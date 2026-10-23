@@ -19,7 +19,7 @@ variable {D R : Type}
 /-- The first query of a computation and its continuation. -/
 def headQuery {α : Type} : OracleComp (D →ₒ R) α → Option (D × (R → OracleComp (D →ₒ R) α))
   | .pure _ => none
-  | .roll x k => some (x, k)
+  | .liftBind x k => some (x, k)
 
 theorem query_bind_inj {α : Type} {x y : D} {f g : R → OracleComp (D →ₒ R) α}
     (h : (liftM ((D →ₒ R).query x) >>= f : OracleComp (D →ₒ R) α) = liftM ((D →ₒ R).query y) >>= g) :
@@ -328,7 +328,7 @@ theorem Resolves.congr {α : Type} {cache cache' : QueryCache (D →ₒ R)}
 
 /-- `E` laid over `C`: `E`'s entries, and `C`'s where `E` has none. -/
 def overlay (E C : QueryCache (D →ₒ R)) : QueryCache (D →ₒ R) :=
-  fun x => match E x with
+  QueryCache.ofFn fun x => match E x with
     | some a => some a
     | none => C x
 
@@ -337,12 +337,12 @@ theorem overlay_of_none {E C : QueryCache (D →ₒ R)} {x : D} (hx : E x = none
   simp [overlay, hx]
 
 theorem overlay_empty (E : QueryCache (D →ₒ R)) : overlay E ∅ = E := by
-  funext x
+  refine QueryCache.ext fun x => ?_
   cases h : E x <;> simp [overlay, h]
 
 theorem overlay_cacheQuery [DecidableEq D] {E C : QueryCache (D →ₒ R)} {x : D} (hx : E x = none) (a : R) :
     (overlay E C).cacheQuery x a = overlay E (C.cacheQuery x a) := by
-  funext y
+  refine QueryCache.ext fun y => ?_
   by_cases hy : y = x
   · subst y
     simp [overlay, hx]
@@ -390,7 +390,7 @@ theorem randomOracle_run_cache_eq (input : HashInput) (initial middle : QueryCac
   | some cached =>
       rw [QueryImpl.withCaching_run_some _ hcached, support_pure, Set.mem_singleton_iff] at hmem
       cases hmem
-      funext candidate
+      refine QueryCache.ext fun candidate => ?_
       by_cases heq : candidate = input
       · subst candidate
         rw [QueryCache.cacheQuery_self, hcached]

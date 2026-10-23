@@ -49,11 +49,11 @@ theorem stopped_map {α β : Type} (model : HiddenRows.Model D R A ι) (table : 
 
 theorem probEvent_stopOr_map {α β : Type} (g : α → β) (bad : β → Prop)
     (program : ProbComp (Option α)) :
-    Pr[HiddenReveal.StopOr bad | Option.map g <$> program] =
-      Pr[HiddenReveal.StopOr (bad ∘ g) | program] := by
-  rw [probEvent_map]
+    Pr{let x ← Option.map g <$> program}[(HiddenReveal.StopOr bad) x] =
+      Pr{let x ← program}[(HiddenReveal.StopOr (bad ∘ g)) x] := by
+  rw [prEvent_map]
   congr 1
-  funext result
+  refine congrArg (· <$> program) (funext fun result => ?_)
   cases result <;> rfl
 
 end Generic
@@ -76,50 +76,49 @@ theorem costRun_le_stopped {α : Type} (model : HiddenRows.Model HashInput HashO
     (table : HiddenGraph.Table) (outside : HashInput → HashOutput)
     (computation : OracleComp CostSpec α) (known : HiddenReveal.Knowledge Coordinate)
     (hknown : HiddenRows.KnownAgrees table known) (event : α × List (Entry HashInput) → Prop) :
-    Pr[event | costRun (HiddenRows.answer model table outside) table computation] ≤
-      Pr[HiddenReveal.StopOr event |
-        HiddenRows.stopped model table outside (erase (trace computation)) known] := by
+    Pr{let x ← costRun (HiddenRows.answer model table outside) table computation}[event x] ≤
+      Pr{let x ← HiddenRows.stopped model table outside (erase (trace computation)) known}[(HiddenReveal.StopOr event) x] := by
   induction computation using OracleComp.inductionOn generalizing known event with
   | pure value =>
       rw [costRun_pure]
-      change _ ≤ Pr[HiddenReveal.StopOr event | (pure (some (value, [])) : ProbComp _)]
+      change _ ≤ Pr{let x ← (pure (some (value, [])) : ProbComp _)}[(HiddenReveal.StopOr event) x]
       simp [HiddenReveal.StopOr]
   | query_bind input next ih =>
       rw [costRun_query_bind, erase_trace_query_bind]
       rcases input with (draw | (bytes | coordinate)) | amount
-      · change _ ≤ Pr[_ | HiddenRows.stopped model table outside
-          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inl draw)) >>= _) known]
+      · change _ ≤ Pr{let x ← (HiddenRows.stopped model table outside
+          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inl draw)) >>= _) known)}[(HiddenReveal.StopOr event) x]
         rw [HiddenRows.stopped_private]
-        simp only [probEvent_bind_eq_tsum]
+        simp only [OracleComp.prEvent_bind_eq_tsum]
         refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
-        rw [stopped_map, probEvent_stopOr_map, probEvent_map]
+        rw [stopped_map, probEvent_stopOr_map, prEvent_map]
         exact ih value known hknown _
-      · change _ ≤ Pr[_ | HiddenRows.stopped model table outside
-          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inr (.inl bytes))) >>= _) known]
+      · change _ ≤ Pr{let x ← (HiddenRows.stopped model table outside
+          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inr (.inl bytes))) >>= _) known)}[(HiddenReveal.StopOr event) x]
         rw [HiddenRows.stopped_hash]
-        change Pr[_ | pure (HiddenRows.answer model table outside bytes) >>= _] ≤ _
+        change Pr{let x ← pure (HiddenRows.answer model table outside bytes) >>= _}[event x] ≤ _
         rw [pure_bind]
         cases hp : model.parse bytes with
         | none =>
             dsimp only
-            rw [stopped_map, probEvent_stopOr_map, probEvent_map]
+            rw [stopped_map, probEvent_stopOr_map, prEvent_map]
             exact ih _ known hknown _
         | some query =>
             dsimp only
             split_ifs with hstop hcanonical
             · simp [HiddenReveal.StopOr]
-            · rw [stopped_map, probEvent_stopOr_map, probEvent_map]
+            · rw [stopped_map, probEvent_stopOr_map, prEvent_map]
               exact ih _ _ (hknown.reveal _) _
-            · rw [stopped_map, probEvent_stopOr_map, probEvent_map]
+            · rw [stopped_map, probEvent_stopOr_map, prEvent_map]
               exact ih _ known hknown _
-      · change _ ≤ Pr[_ | HiddenRows.stopped model table outside
-          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inr (.inr coordinate))) >>= _) known]
+      · change _ ≤ Pr{let x ← (HiddenRows.stopped model table outside
+          (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inr (.inr coordinate))) >>= _) known)}[(HiddenReveal.StopOr event) x]
         rw [HiddenRows.stopped_reveal]
-        change Pr[_ | pure (table coordinate) >>= _] ≤ _
-        rw [pure_bind, stopped_map, probEvent_stopOr_map, probEvent_map]
+        change Pr{let x ← pure (table coordinate) >>= _}[event x] ≤ _
+        rw [pure_bind, stopped_map, probEvent_stopOr_map, prEvent_map]
         exact ih _ _ (hknown.reveal coordinate) _
-      · change Pr[_ | pure () >>= _] ≤ Pr[_ | HiddenRows.stopped model table outside (pure () >>= _) known]
-        rw [pure_bind, pure_bind, stopped_map, probEvent_stopOr_map, probEvent_map]
+      · change Pr{let x ← pure () >>= _}[event x] ≤ Pr{let x ← HiddenRows.stopped model table outside (pure () >>= _) known}[(HiddenReveal.StopOr event) x]
+        rw [pure_bind, pure_bind, stopped_map, probEvent_stopOr_map, prEvent_map]
         exact ih () known hknown _
 
 end SphincsFors.Security.HiddenBridge

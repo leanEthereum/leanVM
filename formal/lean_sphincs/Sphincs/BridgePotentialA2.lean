@@ -51,11 +51,11 @@ theorem sum_double_le (G G' : FIn → FIn → ℝ≥0∞) (f : FIn) (h : ∀ g h
     intro g h'
     by_cases hg : g = f
     · subst hg
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact le_add_right le_add_self
     · by_cases hh : h' = f
       · subst hh
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         exact le_add_self
       · rw [h g h' hg hh]
         exact le_add_right le_self_add
@@ -71,7 +71,7 @@ theorem sum_double_le (G G' : FIn → FIn → ℝ≥0∞) (f : FIn) (h : ∀ g h
             simp [hg]
           · simp
         have e2 : ∑ g, ∑ h, (if h = f then G' g f else 0) = ∑ g, G' g f :=
-          Finset.sum_congr rfl fun g _ => by rw [Finset.sum_ite_eq' Finset.univ f, if_pos (Finset.mem_univ _)]
+          Finset.sum_congr rfl fun g _ => by rw [Finset.sum_ite_eq' Finset.univ f, ite_eq_left (Finset.mem_univ _)]
         rw [e1, e2]
 
 /-- The contact weight of a new step with truncated answer `t`. -/
@@ -81,22 +81,22 @@ noncomputable def cwNew (s : St) (f : FIn) (t : Digest) : ℝ≥0∞ :=
 theorem meanD_cwNew (s : St) (f : FIn) (C : ℝ≥0∞) : meanD (fun t => cwNew s f t * C) = ν * C := by
   unfold cwNew
   cases hk : s.known f.outC with
-  | none => simp only [if_true, meanD_const]
+  | none => simp only [ite_true, meanD_const]
   | some w =>
-      simp only [reduceCtorEq, if_false, Option.some.injEq, ite_mul, one_mul, zero_mul]
+      simp only [reduceCtorEq, ite_false, Option.some.injEq, ite_mul, one_mul, zero_mul]
       rw [meanD_ite_eq w (fun t => w = t) (fun t => eq_comm)]
 
 theorem cw_of_not_fe {s : St} {f : FIn} (h : ¬K.FE s f) : K.cw s f = 0 := by
   have h1 : ¬K.FC s f := fun ⟨u, w, hu, _⟩ => h ⟨u, hu⟩
   have h2 : ¬K.Lat s f := fun hl => h hl.1
-  simp only [cw, h1, h2, if_false]
+  simp only [cw, h1, h2, ite_false]
 
 /-- **Other inputs.** An input of no WOTS or FORS shape pays at most its first-order hazard. -/
 theorem step_other (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (hi : K.initial x = none)
     (hAB : ∀ l, Landed K.p l → (∀ i, ¬K.IsA l i x) ∧ ∀ i v, ¬K.IsB l i v x)
     (hE : ∀ l msg ctr, Landed K.p l → x ≠ Wots.encodingInput K.p topLayer rootTree l msg ctr)
     (hF : ∀ f : FIn, x ≠ f.input K.p) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤ K.pot y s + ν * K.kindUnit x := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 ≤ K.pot y s + ν * K.kindUnit x := by
   have h := K.mean_store y hx 0 (fun t => (if ¬K.Bad s ∧ Fatal (K.tg.kind x) s.known t then 1 else 0) +
     ∑ c : Coordinate, if K.tg.kind x = .hidden c ∧ s.known c = none then ν else 0) (fun u => ?_)
   · rw [add_zero] at h
@@ -104,9 +104,9 @@ theorem step_other (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (h
     rw [meanD_add, meanD_const]
     refine le_trans (add_le_add (meanD_mono fun t => ?_) le_rfl) (K.fo_mean s x)
     by_cases h1 : Fatal (K.tg.kind x) s.known t
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       split_ifs <;> simp
-    · rw [if_neg h1, if_neg (fun h => h1 h.2)]
+    · rw [ite_eq_right h1, ite_eq_right (fun h => h1 h.2)]
   · set s' := s.store x u with hs'
     have hsame : ∀ l, Landed K.p l → K.SameLeaf s s' l := fun l hl =>
       K.sameLeaf_store u hx hi l (hAB l hl).1 (hAB l hl).2 (fun msg ctr => hE l msg ctr hl)
@@ -133,7 +133,7 @@ guess record, and otherwise the weighted recorded contacts it may pair with and 
 contact at the remaining budget. -/
 theorem step_fchain (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (hi : K.initial x = none)
     {f : FIn} (hxF : x = f.input K.p) (hk : K.tg.kind x = .none) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 ≤
       K.pot y s + ν * (if Recd s f then (y : ℝ≥0∞) * ν + K.kf s else 1) := by
   set C : ℝ≥0∞ := if Recd s f then (y : ℝ≥0∞) * ν + K.kf s else 1 with hCdef
   have hnotA : ∀ l i, ¬K.IsA l i x := fun l i hA => isA_ne_fchain hA f hxF
@@ -173,7 +173,7 @@ theorem step_fchain (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (
       | none =>
           have h1 : ¬K.FC s' f := fun ⟨_, w, _, hw, _⟩ => by rw [hkn, hko] at hw; cases hw
           have h2 : K.Lat s' f := ⟨⟨u, hfr⟩, by rw [hkn, hko]⟩
-          simp only [h1, h2, if_false, if_true]
+          simp only [h1, h2, ite_false, ite_true]
       | some w =>
           have h2 : ¬K.Lat s' f := fun hl => by
             have h3 := hl.2
@@ -181,13 +181,13 @@ theorem step_fchain (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (
             cases h3
           by_cases hw : t = w
           · have h1 : K.FC s' f := ⟨u, w, hfr, by rw [hkn, hko], hw⟩
-            simp only [h1, if_true, reduceCtorEq, if_false, hw]
+            simp only [h1, ite_true, reduceCtorEq, ite_false, hw]
           · have h1 : ¬K.FC s' f := fun ⟨v, w', hv, hw', hvw⟩ => by
               rw [huniq v hv, hkn, hko] at *
               cases hw'
               exact hw hvw
             have hne : ¬(some w = some t) := fun e => hw (Option.some.inj e).symm
-            simp only [h1, h2, if_false, reduceCtorEq, hne]
+            simp only [h1, h2, ite_false, reduceCtorEq, hne]
     have hcw0 : K.cw s f = 0 := K.cw_of_not_fe hnotFE
     set N := cwNew s f t with hN
     -- the three forest sums
@@ -205,9 +205,9 @@ theorem step_fchain (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (
       rw [Finset.mul_sum]
       refine Finset.sum_le_sum fun h _ => ?_
       by_cases hc : Recd s' f ∧ Recd s' h ∧ f.Rel h
-      · rw [if_pos hc, if_pos (show Recd s f from hc.1), if_pos (show Recd s h from hc.2.1), hcwf,
+      · rw [ite_eq_left hc, ite_eq_left (show Recd s f from hc.1), ite_eq_left (show Recd s h from hc.2.1), hcwf,
           hcw h (fun e => hc.2.2.2 (by rw [e]))]
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
         exact bot_le
     have hcol : ∑ g, (if Recd s' g ∧ Recd s' f ∧ g.Rel f then K.cw s' g * K.cw s' f else 0) ≤
         (if Recd s f then N else 0) * K.kf s := by
@@ -215,9 +215,9 @@ theorem step_fchain (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (
       rw [Finset.mul_sum]
       refine Finset.sum_le_sum fun g _ => ?_
       by_cases hc : Recd s' g ∧ Recd s' f ∧ g.Rel f
-      · rw [if_pos hc, if_pos (show Recd s f from hc.2.1), if_pos (show Recd s g from hc.1), hcwf,
+      · rw [ite_eq_left hc, ite_eq_left (show Recd s f from hc.2.1), ite_eq_left (show Recd s g from hc.1), hcwf,
           hcw g (fun e => hc.2.2.2 (by rw [e])), mul_comm]
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
         exact bot_le
     have hpp : K.pp s' ≤ K.pp s + 2 * ((if Recd s f then N else 0) * K.kf s) := by
       unfold pp
@@ -268,9 +268,9 @@ theorem leafCount_le_of {s s' : St} {l : Index} (hc : ∀ i, K.ContactB s' l i =
     (hb : K.BadLeaf s l → K.BadLeaf s' l) : K.leafCount s' l ≤ K.leafCount s l := by
   unfold leafCount
   by_cases h' : K.BadLeaf s' l
-  · rw [if_pos h']
+  · rw [ite_eq_left h']
     exact bot_le
-  · rw [if_neg h', if_neg (fun h => h' (hb h))]
+  · rw [ite_eq_right h', ite_eq_right (fun h => h' (hb h))]
     simp only [hc, le_refl]
 
 theorem armedAt_of_le {s s' : St} {l : Index} (hc : ∀ i, K.ContactB s' l i = K.ContactB s l i)
@@ -318,7 +318,7 @@ the payload of a contact. -/
 theorem step_A (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none)
     (hi : K.initial x = none) {l : Index} {i : ChainIndex} (hl : Landed K.p l) (hA : K.IsA l i x)
     (hk : K.tg.kind x = .none) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 ≤
       K.pot y s + (ν / 2 + ν * (if K.Bad s then 0 else ((K.ContactB s l i).encard : ℝ≥0∞))) := by
   have h := K.mean_store y hx 0 (fun t => ν / 2 + if ¬K.Bad s ∧ t ∈ K.ContactB s l i then 1 else 0)
     (fun u => ?_)
@@ -387,15 +387,15 @@ theorem step_A (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
 theorem ite_or_le (P : Prop) [Decidable P] (Q : ChainIndex → Prop) [DecidablePred Q] :
     (if P ∨ ∃ i, Q i then (1 : ℝ≥0∞) else 0) ≤ (if P then 1 else 0) + ∑ i, if Q i then 1 else 0 := by
   by_cases hP : P
-  · rw [if_pos (Or.inl hP), if_pos hP]
+  · rw [ite_eq_left (Or.inl hP), ite_eq_left hP]
     exact le_self_add
   · by_cases hQ : ∃ i, Q i
     · obtain ⟨i, hi⟩ := hQ
-      rw [if_pos (Or.inr ⟨i, hi⟩), if_neg hP, zero_add]
-      calc (1 : ℝ≥0∞) = if Q i then 1 else 0 := by rw [if_pos hi]
+      rw [ite_eq_left (Or.inr ⟨i, hi⟩), ite_eq_right hP, zero_add]
+      calc (1 : ℝ≥0∞) = if Q i then 1 else 0 := by rw [ite_eq_left hi]
         _ ≤ _ := Finset.single_le_sum (f := fun i => if Q i then (1 : ℝ≥0∞) else 0) (fun _ _ => bot_le)
             (Finset.mem_univ i)
-    · rw [if_neg (by tauto)]
+    · rw [ite_eq_right (by tauto)]
       exact bot_le
 
 /-! ### Encoding inputs -/
@@ -405,7 +405,7 @@ the arming by a new marker. -/
 theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none)
     (hi : K.initial x = none) {l : Index} {msg : Digest} {ctr : Counter} (hl : Landed K.p l)
     (hxE : x = Wots.encodingInput K.p topLayer rootTree l msg ctr) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤ K.pot y s + (ν * K.kindUnit x +
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 ≤ K.pot y s + (ν * K.kindUnit x +
       ν * (if K.Bad s then 0 else 63 * ∑ i, (if (K.ContactB s l i).Nonempty then (1 : ℝ≥0∞) else 0)) +
       ν * (((y : ℝ≥0∞) * ν) * (if K.Armed s then 0 else 4032 * ENNReal.ofReal (2 - K.ρ)))) := by
   set PI := ∑ c : Coordinate, if K.tg.kind x = .hidden c ∧ s.known c = none then ν else 0 with hPI
@@ -419,28 +419,28 @@ theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.c
     refine add_le_add (add_le_add ?_ ?_) ?_
     · refine le_trans (add_le_add (meanD_mono fun t => ?_) le_rfl) (K.fo_mean s x)
       by_cases h1 : Fatal (K.tg.kind x) s.known t
-      · rw [if_pos h1]
+      · rw [ite_eq_left h1]
         split_ifs <;> simp
-      · rw [if_neg h1, if_neg (fun h => h1 h.2)]
+      · rw [ite_eq_right h1, ite_eq_right (fun h => h1 h.2)]
     · by_cases hb : K.Bad s
-      · simp only [hb, if_true, meanD_const, mul_zero, le_refl]
-      · simp only [hb, if_false]
+      · simp only [hb, ite_true, meanD_const, mul_zero, le_refl]
+      · simp only [hb, ite_false]
         rw [meanD_sum, Finset.mul_sum, Finset.mul_sum]
         refine Finset.sum_le_sum fun i _ => ?_
         by_cases hne : (K.ContactB s l i).Nonempty
-        · rw [if_pos hne, mul_one]
+        · rw [ite_eq_left hne, mul_one]
           refine (meanD_ite_le _ (K.markSet l i) (fun t ht => ht.2) 1).trans ?_
           rw [mul_one]
           exact mul_le_mul_of_nonneg_left (K.markSet_card l i) bot_le
-        · rw [if_neg hne, mul_zero, mul_zero]
+        · rw [ite_eq_right hne, mul_zero, mul_zero]
           have h0 : (fun t => if (K.ContactB s l i).Nonempty ∧ t ∈ K.markSet l i then (1 : ℝ≥0∞) else 0) =
-              fun _ => 0 := funext fun t => if_neg fun h => hne h.1
+              fun _ => 0 := funext fun t => ite_eq_right fun h => hne h.1
           rw [h0, meanD_const]
     · rw [mul_left_comm]
       refine mul_le_mul_of_nonneg_left ?_ bot_le
       by_cases ha : K.Armed s
       · simp [ha, meanD_const]
-      · simp only [ha, if_false, not_false_eq_true, true_and]
+      · simp only [ha, ite_false, not_false_eq_true, true_and]
         refine (meanD_ite_le _ (K.markAll l) (fun t ht => ht) _).trans ?_
         exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right (K.markAll_card l) bot_le) bot_le
   · set s' := s.store x u with hs'
@@ -456,7 +456,7 @@ theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.c
       rw [K.contactB_store u hx hi]
       exact Set.union_eq_left.2 fun v hv => absurd hv.1 (hnotB l i' v)
     have hAAeq : ∀ i', K.AAns s' l i' = K.AAns s l i' := fun i' => by
-      rw [K.aAns_store u hx hi, if_neg (hnotA l i')]
+      rw [K.aAns_store u hx hi, ite_eq_right (hnotA l i')]
     have hMk : ∀ i', K.Marker s' l i' ↔ K.Marker s l i' ∨ t ∈ K.markSet l i' := fun i' => by
       rw [K.marker_store u hx hi]
       exact ⟨fun h => h.imp_right fun h' => h'.2, fun h => h.imp_right fun h' => ⟨⟨msg, ctr, hxE⟩, h'⟩⟩
@@ -514,7 +514,7 @@ theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.c
         (if K.Bad s then 0 else ∑ i, if (K.ContactB s l i).Nonempty ∧ t ∈ K.markSet l i then 1 else 0) := by
       by_cases hb : K.Bad s
       · simp [hb]
-      · simp only [hb, not_false_eq_true, true_and, if_false]
+      · simp only [hb, not_false_eq_true, true_and, ite_false]
         exact ite_or_le _ _
     calc _ ≤ ((if ¬K.Bad s ∧ Fatal (K.tg.kind x) s.known t then 1 else 0) +
           (if K.Bad s then 0 else ∑ i, if (K.ContactB s l i).Nonempty ∧ t ∈ K.markSet l i then 1 else 0)) + PI :=
@@ -529,7 +529,7 @@ clean leaf, arming the state. An observed payload uses up one credit. -/
 theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none)
     (hi : K.initial x = none) {l : Index} {i : ChainIndex} {v : Digest} (hl : Landed K.p l)
     (hB : K.IsB l i v x) (hk : K.tg.kind x = .none) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 + (if v ∈ K.AAns s l i then ν / 2 else 0) ≤ K.pot y s +
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 + (if v ∈ K.AAns s l i then ν / 2 else 0) ≤ K.pot y s +
       ν * (if K.BadLeaf s l ∨ v ∈ K.AAns s l i ∨ K.Marker s l i ∨ ∃ i', i' ≠ i ∧ (K.ContactB s l i').Nonempty
         then (if K.Bad s then 0 else 1)
         else ((y : ℝ≥0∞) * ν) * ((if K.Armed s then 0 else ENNReal.ofReal (2 - K.ρ)) + 64)) := by
@@ -550,7 +550,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
     have hsame : ∀ l', Landed K.p l' → l' ≠ l → K.SameLeaf s s' l' := fun l' _ hne =>
       K.sameLeaf_store u hx hi l' (hnotA l') (fun i' v' hB' => hne (isB_unique hB' hB).1) (hnotE l')
     have hAAeq : ∀ i', K.AAns s' l i' = K.AAns s l i' := fun i' => by
-      rw [K.aAns_store u hx hi, if_neg (hnotA l i')]
+      rw [K.aAns_store u hx hi, ite_eq_right (hnotA l i')]
     have hMk : ∀ i', K.Marker s' l i' ↔ K.Marker s l i' := fun i' => by
       rw [K.marker_store u hx hi]
       exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, he⟩, _⟩ => hnotE l msg ctr he, Or.inl⟩
@@ -561,7 +561,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
       rw [K.contactB_store u hx hi]
       congr 1
       ext w
-      simp only [Set.mem_setOf_eq]
+      simp only [Set.mem_ofPred_eq]
       exact ⟨fun ⟨h1, h2⟩ => ⟨(isB_unique h1 hB).2.2, h2⟩, fun ⟨h1, h2⟩ => ⟨h1 ▸ hB, h2⟩⟩
     have hvCB : v ∉ K.ContactB s l i := fun h => not_mem_bPay hx hB (K.contactB_subset_bPay l i h)
     have hmono : K.BadLeaf s l → K.BadLeaf s' l := K.badLeaf_store_of u hx hi
@@ -589,7 +589,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
     · have hCBi' : K.ContactB s' l i = insert v (K.ContactB s l i) := by
         rw [hCBi]
         ext w
-        simp only [Set.mem_union, Set.mem_setOf_eq, Set.mem_insert_iff, hfront, and_true]
+        simp only [Set.mem_union, Set.mem_ofPred_eq, Set.mem_insert_iff, hfront, and_true]
         exact or_comm
       have hbl : K.BadLeaf s' l ↔ BL := by
         constructor
@@ -635,12 +635,12 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
         have hC := K.contactCount_of_same l hsame 0 fun _ => by
           rw [add_zero]
           unfold leafCount
-          rw [if_pos hb']
+          rw [ite_eq_left hb']
           exact bot_le
         have hR := K.rate_le (dV := 0) (dK := 0) (by rw [add_zero]; exact hV) hC (by rw [hKF, add_zero])
         have := K.pot_le y hD hP hL hU hR
         refine this.trans (add_le_add le_rfl (le_of_eq ?_))
-        rw [if_pos hfront, hc, if_pos hBLc]
+        rw [ite_eq_left hfront, hc, ite_eq_left hBLc]
         by_cases hb : K.Bad s <;> simp [hb]
       · have hnb' : ¬K.BadLeaf s' l := fun h => hBLc (hbl.1 h)
         have hnb : ¬K.BadLeaf s l := fun h => hBLc (Or.inl h)
@@ -653,7 +653,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
         have hV := K.vrate_le hρ (s := s) (s' := s') True fun _ => Or.inr trivial
         have hleaf : K.leafCount s' l = K.leafCount s l + 1 := by
           unfold leafCount
-          rw [if_neg hnb', if_neg hnb, Fintype.sum_eq_add_sum_compl i,
+          rw [ite_eq_right hnb', ite_eq_right hnb, Fintype.sum_eq_add_sum_compl i,
             Fintype.sum_eq_add_sum_compl i (f := fun i₀ => ((K.ContactB s l i₀).encard : ℝ≥0∞)), hCBi',
             Set.encard_insert_of_notMem hvCB, ENat.toENNReal_add, ENat.toENNReal_one,
             Finset.sum_congr rfl fun i₀ hi₀ => by rw [hCBne i₀ (by simpa using hi₀)]]
@@ -662,7 +662,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
         have hR := K.rate_le (dK := 0) hV hC (by rw [hKF, add_zero])
         have := K.pot_le y hD hP hL hU hR
         refine this.trans (add_le_add le_rfl (le_of_eq ?_))
-        rw [if_pos hfront, hc, if_neg hBLc]
+        rw [ite_eq_left hfront, hc, ite_eq_right hBLc]
         by_cases ha : K.Armed s <;> simp [ha]
     · have hCBi' : K.ContactB s' l i = K.ContactB s l i := by
         rw [hCBi]
@@ -685,7 +685,7 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
       have hR : K.rate s' ≤ K.rate s + 0 := by rw [add_zero, K.rate_eq_of hA hC hKF]
       have := K.pot_le y hD hP hL hU hR
       refine this.trans (add_le_add le_rfl (le_of_eq ?_))
-      rw [if_neg hfront]
+      rw [ite_eq_right hfront]
       simp
 
 end Ctx

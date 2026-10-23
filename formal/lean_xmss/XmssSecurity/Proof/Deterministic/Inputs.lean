@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.Seeded.KeyDerivation
 
 open OracleComp OracleSpec ENNReal
@@ -58,7 +59,7 @@ theorem derivationSeedHit_unique {input : HashInput} {left right : MasterSeed}
   bytesLE_injective 32 (hl.symm.trans hr)
 
 theorem probEvent_derivationSeedHit_le (input : HashInput) :
-    Pr[DerivationSeedHit input | sampleMasterSeed] ≤ 1 / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
+    Pr{let x ← sampleMasterSeed}[(DerivationSeedHit input) x] ≤ 1 / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   classical
   by_cases hexists : ∃ seed, DerivationSeedHit input seed
   · obtain ⟨seed, hseed⟩ := hexists
@@ -66,7 +67,7 @@ theorem probEvent_derivationSeedHit_le (input : HashInput) :
       funext other
       exact propext ⟨fun h => derivationSeedHit_unique h hseed, fun h => h ▸ hseed⟩
     rw [hevent]
-    simp [sampleMasterSeed, MasterSeed]
+    simp [sampleMasterSeed, MasterSeed, SampleableType.prEvent_uniformSample_eq_singleton]
   · have hempty : DerivationSeedHit input = fun _ => False := by
       funext seed
       exact propext ⟨fun h => hexists ⟨seed, h⟩, False.elim⟩

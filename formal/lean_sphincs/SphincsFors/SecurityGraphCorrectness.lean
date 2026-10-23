@@ -216,7 +216,7 @@ theorem treePosition_active_below (lay : Layer) (tree : TreeIndex) (level : Nat)
     active parameter (treePosition lay tree level hlevel index) := by
   cases level with
   | zero => simpa only [treePosition, active, Landed, Nat.sub_zero] using hkept
-  | succ level => simpa only [treePosition, active, KeptNode, if_pos hlower] using hkept
+  | succ level => simpa only [treePosition, active, KeptNode, ite_eq_left hlower] using hkept
 
 include hconsistent in
 theorem tree_value_below (lay : Layer) (tree : TreeIndex) (level : Nat)
@@ -446,7 +446,7 @@ theorem canonicalPath_below (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     canonicalTreePath f parameter lay tree seed leaf level =
       node f parameter lay tree seed level (Nat.xor (leaf.val / 2 ^ level) 1) := by
   have hlevel : level < layerHeight lay := hlower.trans_le Params.subtreeHeight_le
-  rw [canonicalTreePath, dif_pos hlevel, eval_treePath, if_pos hlower]
+  rw [canonicalTreePath, dite_eq_left hlevel, eval_treePath, ite_eq_left hlower]
 
 include hconsistent in
 theorem tree_path_value (hboundary : BoundaryCorrect f parameter seed labels)
@@ -640,7 +640,7 @@ theorem fors_path_sibling (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
       ⟨Nat.xor (leaf.val / 2 ^ level) 1,
         Nat.xor_lt_two_pow ((Nat.div_le_self _ _).trans_lt leaf.isLt) (by decide)⟩)) =
       Fors.extendPath (Fors.canonicalPath f parameter index tree seed leaf) level := by
-  rw [Fors.extendPath, dif_pos hlevel, Fors.canonicalPath]
+  rw [Fors.extendPath, dite_eq_left hlevel, Fors.canonicalPath]
   exact fors_value f parameter seed labels hconsistent index tree level (Nat.le_of_lt hlevel) _
     (Nat.xor_lt_two_pow (quotient_range ftsTreeHeight level leaf.val (Nat.le_of_lt hlevel) leaf.isLt)
       (Nat.one_lt_two_pow (by omega)))
@@ -700,7 +700,7 @@ theorem materialSurrogates_eq (material : SeedModel.Material)
     materialSurrogates material = surrogates f (SeedModel.parameter material) seed := by
   funext level
   unfold surrogates
-  rw [Seeded.surrogate, dif_pos level.isLt]
+  rw [Seeded.surrogate, dite_eq_left level.isLt]
   exact (SeedModel.eval_secret_prepared f seed material hagrees (.inr (.inr level))).symm
 
 end SphincsFors.Security.GraphCorrectness

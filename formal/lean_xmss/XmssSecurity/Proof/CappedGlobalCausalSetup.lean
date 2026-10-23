@@ -19,13 +19,13 @@ noncomputable def trajectoryProgrammedGlobalChainKeygen :
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
 
 theorem evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist coupledGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    (coupledGlobalChainKeygen) =ᵈ
+      (trajectoryProgrammedGlobalChainKeygen) :=
   evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories
 
 theorem evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist actualGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    (actualGlobalChainKeygen) =ᵈ
+      (trajectoryProgrammedGlobalChainKeygen) :=
   evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_table
@@ -33,8 +33,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_table
     (hresult : result ∈ support trajectoryProgrammedGlobalChainKeygen) :
     globalKeygenChainValueTable result.cache result.secretKey = result.table := by
   apply actualGlobalChainKeygen_support_table result
-  exact (mem_support_iff_of_evalDist_eq
-    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed result).mpr hresult
+  exact (OracleComp.support_eq_of_evalDistEq
+    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed).symm.subset hresult
 
 abbrev GlobalChainActionTracedResult :=
   ((ProgrammedGlobalChainKeygenView × (GameOutcome × QueryCache HashSpec)) ×
@@ -781,8 +781,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_keyResult
     view.keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅) := by
   apply actualGlobalChainKeygen_support_keyResult view
-  exact (mem_support_iff_of_evalDist_eq
-    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed view).mpr hview
+  exact (OracleComp.support_eq_of_evalDistEq
+    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed).symm.subset hview
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_treeCacheStable
     (view : ProgrammedGlobalChainKeygenView)

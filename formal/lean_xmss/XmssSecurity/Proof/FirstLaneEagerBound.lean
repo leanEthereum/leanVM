@@ -13,7 +13,7 @@ omit [Fintype Index] [DecidableEq Index] in
     (eagerTraceImpl table input).run =
       (fun output => (output, traceFragment input output)) <$>
         eagerImpl table input := by
-  simp [eagerTraceImpl, QueryImpl.withTraceAppend_apply]
+  simp [eagerTraceImpl]
 
 omit [Fintype Index] [DecidableEq Index] in
 theorem eagerTrace_query_bind_run
@@ -62,23 +62,23 @@ noncomputable def applyEncodingRequest
           if hit then pure true else resume output (some nextState)
 
 theorem evalDist_sample_applyEncodingRequest
-    (sample : ProbComp β) (hmass : Pr[⊥ | sample] = 0)
+    (sample : ProbComp β)
     (request : EncodingRequest)
     (resume : β → HashOutput → Option EncodingMonitor.State → ProbComp Bool)
     (state : Option EncodingMonitor.State) :
-    evalDist (sample >>= fun seed =>
-      applyEncodingRequest request (resume seed) state) =
-      evalDist (applyEncodingRequest request
+    (sample >>= fun seed =>
+      applyEncodingRequest request (resume seed) state) =ᵈ
+      (applyEncodingRequest request
         (fun output nextState => sample >>= fun seed =>
           resume seed output nextState) state) := by
   cases state with
   | none =>
       unfold applyEncodingRequest
-      exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+      exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
   | some state =>
       unfold applyEncodingRequest
-      rw [OracleComp.DeferredSampling.evalDist_bind_comm]
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+      apply EvalDistEq.bind_right
       intro output
       cases happly : CappedEncodingMonitor.State.applyObserved state
         (request.observed output) with
@@ -88,8 +88,7 @@ theorem evalDist_sample_applyEncodingRequest
           cases hit with
           | false => rfl
           | true =>
-              exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-                sample hmass (pure true)
+              exact OracleComp.EvalDistEq.bind_const sample (pure true)
 
 noncomputable def runEagerQuery
     (table : Index → Digest)
@@ -147,10 +146,10 @@ theorem applyEncodingRequest_true_probability_le
     (resume : HashOutput → Option EncodingMonitor.State → ProbComp Bool)
     (state : Option EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ output nextState,
-      Pr[(· = true) | resume output nextState] ≤
+      Pr{let x ← resume output nextState}[x = true] ≤
         (fuel : ENNReal) * ((2 ^ digestBits : Nat) : ENNReal)⁻¹ +
           encodingPendingRisk nextState) :
-    Pr[(· = true) | applyEncodingRequest request resume state] ≤
+    Pr{let x ← applyEncodingRequest request resume state}[x = true] ≤
       ((fuel + request.cost : Nat) : ENNReal) *
           ((2 ^ digestBits : Nat) : ENNReal)⁻¹ +
         encodingPendingRisk state := by
@@ -159,7 +158,7 @@ theorem applyEncodingRequest_true_probability_le
       cases state with
       | none =>
           unfold applyEncodingRequest EncodingRequest.cost encodingPendingRisk
-          refine (probEvent_bind_le_of_forall_le fun output _ =>
+          refine (prEvent_bind_le_of_forall_le_of_support _ _ _ fun output _ =>
             hresume output none).trans ?_
           simp only [encodingPendingRisk, add_zero]
           rw [Nat.cast_add, Nat.cast_one, add_mul, one_mul]
@@ -184,14 +183,14 @@ theorem applyEncodingRequest_true_probability_le
             | some target =>
                 simp [CappedEncodingMonitor.State.applyObserved, hsigned]
           have hdist :
-              evalDist (applyEncodingRequest (.query leafIndex) resume (some state)) =
-                evalDist (CappedEncodingMonitor.applyProgrammedQueryMonitor leafIndex
+              (applyEncodingRequest (.query leafIndex) resume (some state)) =ᵈ
+                (CappedEncodingMonitor.applyProgrammedQueryMonitor leafIndex
                   activeResume state) := by
             rw [hdirect]
             exact
               CappedEncodingMonitor.applyProgrammedQueryMonitor_evalDist_eq
                 leafIndex activeResume state |>.symm
-          refine (probEvent_congr' (fun _ _ => Iff.rfl) hdist).le.trans ?_
+          refine (hdist.prEvent_eq (· = true)).le.trans ?_
           simpa [EncodingRequest.cost, encodingPendingRisk, Nat.cast_add,
             HiddenValue.card_digest] using
             CappedEncodingMonitor.applyProgrammedQueryMonitor_true_probability_le
@@ -203,7 +202,7 @@ theorem applyEncodingRequest_true_probability_le
       cases state with
       | none =>
           unfold applyEncodingRequest EncodingRequest.cost encodingPendingRisk
-          exact probEvent_bind_le_of_forall_le fun output _ =>
+          exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun output _ =>
             hresume output none
       | some state =>
           cases hsigned : state.signed leafIndex with
@@ -223,16 +222,14 @@ theorem applyEncodingRequest_true_probability_le
                   simp [CappedEncodingMonitor.State.applyObserved, hsigned,
                     hvalid]
               have hdist :
-                  evalDist
-                      (applyEncodingRequest (.sign leafIndex) resume (some state)) =
-                    evalDist
-                      (CappedEncodingMonitor.applyProgrammedSignAttemptMonitor
+                  (applyEncodingRequest (.sign leafIndex) resume (some state)) =ᵈ
+                    (CappedEncodingMonitor.applyProgrammedSignAttemptMonitor
                         leafIndex activeResume state) := by
                 rw [hdirect]
                 exact
                   CappedEncodingMonitor.applyProgrammedSignAttemptMonitor_evalDist_eq
                     leafIndex activeResume state |>.symm
-              refine (probEvent_congr' (fun _ _ => Iff.rfl) hdist).le.trans ?_
+              refine (hdist.prEvent_eq (· = true)).le.trans ?_
               simpa [EncodingRequest.cost, encodingPendingRisk,
                 HiddenValue.card_digest] using
                 CappedEncodingMonitor.applyProgrammedSignAttemptMonitor_true_probability_le
@@ -242,7 +239,7 @@ theorem applyEncodingRequest_true_probability_le
                       hresume output (some nextState)
           | some target =>
               unfold applyEncodingRequest EncodingRequest.observed
-              refine (probEvent_bind_le_of_forall_le
+              refine (prEvent_bind_le_of_forall_le_of_support _ _ _
                 (ε := (fuel : ENNReal) *
                     ((2 ^ digestBits : Nat) : ENNReal)⁻¹ +
                   encodingPendingRisk (some state))
@@ -274,16 +271,16 @@ theorem applyRevealRequest_true_probability_le
     (resume : Digest → AdaptiveRevealMonitor.State Index → ProbComp Bool)
     (fuel : Nat) (offset : ENNReal)
     (hresume : ∀ value,
-      Pr[(· = true) | resume value (state.install index value)] ≤
+      Pr{let x ← resume value (state.install index value)}[x = true] ≤
         ((fuel + (state.install index value).pendingCount : Nat) : ENNReal) *
             ((2 ^ digestBits : Nat) : ENNReal)⁻¹ + offset) :
-    Pr[(· = true) | applyRevealRequest state index resume] ≤
+    Pr{let x ← applyRevealRequest state index resume}[x = true] ≤
       ((fuel + state.pendingCount : Nat) : ENNReal) *
           ((2 ^ digestBits : Nat) : ENNReal)⁻¹ + offset := by
   let installedCount := (state.install index 0).pendingCount
-  refine (probEvent_bind_le_probEvent_add
+  refine (prEvent_bind_le_prEvent_add_of_support
     (mx := ($ᵗ Digest))
-    (my := fun value =>
+    (f := fun value =>
       if value ∈ state.pending index then pure true
       else resume value (state.install index value))
     (q := fun hit : Bool => hit = true)
@@ -322,12 +319,12 @@ theorem evalDist_eagerTableSample_applyRevealRequest
     (index : Index) (hrevealed : chainState.revealed index = none)
     (resume : (Index → Digest) → Digest →
       AdaptiveRevealMonitor.State Index → ProbComp Bool) :
-    evalDist (RevealProbeOracleSimulation.eagerTableSample >>= fun base =>
+    (RevealProbeOracleSimulation.eagerTableSample >>= fun base =>
       let table := RevealProbeOracleSimulation.extendTable chainState base
       let value := table index
       if value ∈ chainState.pending index then pure true
-      else resume table value (chainState.install index value)) =
-      evalDist (applyRevealRequest chainState index fun value nextState =>
+      else resume table value (chainState.install index value)) =ᵈ
+      (applyRevealRequest chainState index fun value nextState =>
         RevealProbeOracleSimulation.eagerTableSample >>= fun base =>
           resume (RevealProbeOracleSimulation.extendTable nextState base)
             value nextState) := by
@@ -337,7 +334,7 @@ theorem evalDist_eagerTableSample_applyRevealRequest
     if value ∈ chainState.pending index then pure true
     else resume table value (chainState.install index value)
   calc
-    _ = evalDist (do
+    _ =ᵈ (do
           let value ← $ᵗ Digest
           let base ← RevealProbeOracleSimulation.eagerTableSample
           if value ∈ chainState.pending index then pure true
@@ -347,11 +344,11 @@ theorem evalDist_eagerTableSample_applyRevealRequest
                 (chainState.install index value) base)
               value (chainState.install index value)) := by
         unfold RevealProbeOracleSimulation.eagerTableSample
-        rw [RevealProbeOracleSimulation.evalDist_uniformTable_eq_bind_update
-          index continuation]
-        apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+        refine (RevealProbeOracleSimulation.evalDist_uniformTable_eq_bind_update
+          index continuation).trans ?_
+        apply EvalDistEq.bind_right
         intro value
-        apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+        apply EvalDistEq.bind_right
         intro base
         simp only [continuation]
         rw [RevealProbeOracleSimulation.extendTable_update_eq_install
@@ -362,15 +359,15 @@ theorem evalDist_eagerTableSample_applyRevealRequest
           simp [RevealProbeOracleSimulation.extendTable,
             AdaptiveRevealMonitor.State.install]
         rw [hinstalled]
-    _ = _ := by
+    _ =ᵈ (_ : ProbComp Bool) := by
       unfold applyRevealRequest
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+
+      apply EvalDistEq.bind_right
       intro value
       by_cases hhit : value ∈ chainState.pending index
       · simp only [hhit, ↓reduceIte]
-        exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-          RevealProbeOracleSimulation.eagerTableSample
-          (by simp [RevealProbeOracleSimulation.eagerTableSample]) (pure true)
+        exact OracleComp.EvalDistEq.bind_const
+          RevealProbeOracleSimulation.eagerTableSample (pure true)
       · simp [hhit]
 
 noncomputable def runObserved
@@ -518,9 +515,9 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
     (chainState : AdaptiveRevealMonitor.State Index)
     (fuel : Nat) (computation : OracleComp (World Index) α)
     (hbound : computation.IsQueryBoundP IsHazardQuery fuel) :
-    evalDist ((fun result => runObserved table encodingState chainState result.2) <$>
-      (simulateQ (eagerTraceImpl table) computation).run) =
-    evalDist (runStructural table encodingState chainState fuel computation) := by
+    ((fun result => runObserved table encodingState chainState result.2) <$>
+      (simulateQ (eagerTraceImpl table) computation).run) =ᵈ
+    (runStructural table encodingState chainState fuel computation) := by
   induction computation using OracleComp.inductionOn generalizing
       encodingState chainState fuel with
   | pure result =>
@@ -531,7 +528,7 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
       | uniform n =>
           rw [eagerTrace_query_bind_run, runStructural_query_bind]
           simp only [eagerImpl, traceFragment, map_bind, runEagerQuery]
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply EvalDistEq.bind_right
           intro output
           simpa [runObserved] using
             ih output encodingState chainState fuel
@@ -545,13 +542,13 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
                 applyEncodingRequest, EncodingRequest.observed]
               cases encodingState with
               | none =>
-                  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                  apply EvalDistEq.bind_right
                   intro output
                   simpa [runObserved] using
                     ih output none chainState remaining
                       (by simpa [IsHazardQuery] using hbound.2 output)
               | some state =>
-                  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                  apply EvalDistEq.bind_right
                   intro output
                   cases happly : CappedEncodingMonitor.State.applyObserved state
                     (.query leafIndex output) with
@@ -568,21 +565,20 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
                               (by simpa [IsHazardQuery] using hbound.2 output)
                       | true =>
                           simp [runObserved, happly]
-                          apply OracleComp.ProgramLogic.Relational.spmf_map_const_of_no_failure
-                          exact probFailure_of_liftM_PMF _
+                          exact OracleComp.EvalDistEq.map_const _ _
       | encodingSignAttempt leafIndex =>
           rw [eagerTrace_query_bind_run, runStructural_query_bind]
           simp only [eagerImpl, traceFragment, map_bind, runEagerQuery,
             applyEncodingRequest, EncodingRequest.observed]
           cases encodingState with
           | none =>
-              apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+              apply EvalDistEq.bind_right
               intro output
               simpa [runObserved] using
                 ih output none chainState fuel
                   (by simpa [IsHazardQuery] using hbound.2 output)
           | some state =>
-              apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+              apply EvalDistEq.bind_right
               intro output
               cases happly : CappedEncodingMonitor.State.applyObserved state
                 (.sign leafIndex output) with
@@ -599,8 +595,7 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
                           (by simpa [IsHazardQuery] using hbound.2 output)
                   | true =>
                       simp [runObserved, happly]
-                      apply OracleComp.ProgramLogic.Relational.spmf_map_const_of_no_failure
-                      exact probFailure_of_liftM_PMF _
+                      exact OracleComp.EvalDistEq.map_const _ _
       | probe index target =>
           cases fuel with
           | zero => simp [IsHazardQuery] at hbound
@@ -628,8 +623,7 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
           | none =>
               by_cases hhit : table index ∈ chainState.pending index
               · simp [runObserved, hrevealed, hhit]
-                apply OracleComp.ProgramLogic.Relational.spmf_map_const_of_no_failure
-                exact probFailure_of_liftM_PMF _
+                exact OracleComp.EvalDistEq.map_const _ _
               · simpa [runObserved, hrevealed, hhit] using
                   ih (table index) encodingState
                     (chainState.install index (table index)) fuel
@@ -670,11 +664,10 @@ theorem eagerFinalize_true_probability_le
     (chainState : AdaptiveRevealMonitor.State Index)
     (hvalid : RevealProbeOracleSimulation.StateValid chainState)
     (fuel : Nat) :
-    Pr[(fun hit : Bool => hit = true) |
-      (fun base : Index → Digest =>
+    Pr{let hit ← ((fun base : Index → Digest =>
         RevealProbeOracleSimulation.tableHits chainState
           (RevealProbeOracleSimulation.extendTable chainState base)) <$>
-        RevealProbeOracleSimulation.eagerTableSample] ≤
+        RevealProbeOracleSimulation.eagerTableSample)}[hit = true] ≤
       potential fuel encodingState chainState := by
   refine (RevealProbeOracleSimulation.eagerFinalize_true_probability_le
     chainState hvalid).trans ?_
@@ -689,70 +682,62 @@ theorem structuralExperiment_true_probability_le
     (chainState : AdaptiveRevealMonitor.State Index)
     (hvalid : RevealProbeOracleSimulation.StateValid chainState)
     (fuel : Nat) (computation : OracleComp (World Index) α) :
-    Pr[(fun hit : Bool => hit = true) |
-      structuralExperiment encodingState chainState fuel computation] ≤
+    Pr{let hit ← structuralExperiment encodingState chainState fuel computation}[hit = true] ≤
       potential fuel encodingState chainState := by
   induction computation using OracleComp.inductionOn generalizing
       encodingState chainState fuel with
   | pure result =>
-      change Pr[(fun hit : Bool => hit = true) |
-        (fun base : Index → Digest =>
-          RevealProbeOracleSimulation.tableHits chainState
-            (RevealProbeOracleSimulation.extendTable chainState base)) <$>
-          RevealProbeOracleSimulation.eagerTableSample] ≤ _
+      change Pr{let hit ← (RevealProbeOracleSimulation.eagerTableSample >>= fun base : Index → Digest =>
+          pure (RevealProbeOracleSimulation.tableHits chainState
+            (RevealProbeOracleSimulation.extendTable chainState base)))}[hit = true] ≤ _
+      rw [bind_pure_comp]
       exact eagerFinalize_true_probability_le encodingState chainState hvalid fuel
   | query_bind input next ih =>
       cases input with
       | uniform n =>
           have hdist :
-              evalDist (structuralExperiment encodingState chainState fuel
+              (structuralExperiment encodingState chainState fuel
                 ((liftM (OracleSpec.query (spec := World Index) (.uniform n)) :
-                  OracleComp (World Index) _) >>= next)) =
-                evalDist ((liftM (unifSpec.query n) : ProbComp _) >>= fun output =>
+                  OracleComp (World Index) _) >>= next)) =ᵈ
+                ((liftM (unifSpec.query n) : ProbComp _) >>= fun output =>
                   structuralExperiment encodingState chainState fuel
                     (next output)) := by
             rw [structuralExperiment_query_bind]
             simp only [runEagerQuery]
-            exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
-          refine (probEvent_congr'
-            (oa' := (liftM (unifSpec.query n) : ProbComp _) >>= fun output =>
-              structuralExperiment encodingState chainState fuel (next output))
-            (fun _ _ => Iff.rfl) hdist).le.trans ?_
-          exact probEvent_bind_le_of_forall_le fun output _ =>
+            exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
+          refine (hdist.prEvent_eq (· = true)).le.trans ?_
+          exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun output _ =>
             ih output encodingState chainState hvalid fuel
       | encodingQuery leafIndex =>
           cases fuel with
           | zero =>
               rw [structuralExperiment_query_bind]
               simp only [runEagerQuery]
+              rw [bind_pure_comp]
               exact eagerFinalize_true_probability_le encodingState chainState
                 hvalid 0
           | succ remaining =>
               let resume := fun output nextState =>
                 structuralExperiment nextState chainState remaining (next output)
               have hdist :
-                  evalDist (structuralExperiment encodingState chainState
+                  (structuralExperiment encodingState chainState
                     (remaining + 1)
                     ((liftM (OracleSpec.query (spec := World Index)
                       (.encodingQuery leafIndex)) :
-                      OracleComp (World Index) _) >>= next)) =
-                    evalDist
-                      (applyEncodingRequest (.query leafIndex) resume encodingState) := by
+                      OracleComp (World Index) _) >>= next)) =ᵈ
+                    (applyEncodingRequest (.query leafIndex) resume encodingState) := by
                 rw [structuralExperiment_query_bind]
                 simp only [runEagerQuery]
                 simpa [resume, structuralExperiment] using
                   evalDist_sample_applyEncodingRequest
                     RevealProbeOracleSimulation.eagerTableSample
-                    (by simp [RevealProbeOracleSimulation.eagerTableSample])
                     (.query leafIndex)
                     (fun base output nextState =>
                       runStructural
                         (RevealProbeOracleSimulation.extendTable chainState base)
                         nextState chainState remaining (next output))
                     encodingState
-              refine (probEvent_congr'
-                (oa' := applyEncodingRequest (.query leafIndex) resume encodingState)
-                (fun _ _ => Iff.rfl) hdist).le.trans ?_
+              refine (hdist.prEvent_eq (· = true)).le.trans ?_
               simpa [resume, potential, EncodingRequest.cost,
                 HiddenValue.card_digest, Nat.add_assoc, Nat.add_comm,
                 Nat.add_left_comm] using
@@ -765,27 +750,23 @@ theorem structuralExperiment_true_probability_le
           let resume := fun output nextState =>
             structuralExperiment nextState chainState fuel (next output)
           have hdist :
-              evalDist (structuralExperiment encodingState chainState fuel
+              (structuralExperiment encodingState chainState fuel
                 ((liftM (OracleSpec.query (spec := World Index)
                   (.encodingSignAttempt leafIndex)) :
-                  OracleComp (World Index) _) >>= next)) =
-                evalDist
-                  (applyEncodingRequest (.sign leafIndex) resume encodingState) := by
+                  OracleComp (World Index) _) >>= next)) =ᵈ
+                (applyEncodingRequest (.sign leafIndex) resume encodingState) := by
             rw [structuralExperiment_query_bind]
             simp only [runEagerQuery]
             simpa [resume, structuralExperiment] using
               evalDist_sample_applyEncodingRequest
                 RevealProbeOracleSimulation.eagerTableSample
-                (by simp [RevealProbeOracleSimulation.eagerTableSample])
                 (.sign leafIndex)
                 (fun base output nextState =>
                   runStructural
                     (RevealProbeOracleSimulation.extendTable chainState base)
                     nextState chainState fuel (next output))
                 encodingState
-          refine (probEvent_congr'
-            (oa' := applyEncodingRequest (.sign leafIndex) resume encodingState)
-            (fun _ _ => Iff.rfl) hdist).le.trans ?_
+          refine (hdist.prEvent_eq (· = true)).le.trans ?_
           simpa [resume, potential, EncodingRequest.cost,
             HiddenValue.card_digest] using
             applyEncodingRequest_true_probability_le (.sign leafIndex) resume
@@ -798,6 +779,7 @@ theorem structuralExperiment_true_probability_le
           | zero =>
               rw [structuralExperiment_query_bind]
               simp only [runEagerQuery]
+              rw [bind_pure_comp]
               exact eagerFinalize_true_probability_le encodingState chainState
                 hvalid 0
           | succ remaining =>
@@ -805,9 +787,8 @@ theorem structuralExperiment_true_probability_le
               | some value =>
                   rw [structuralExperiment_query_bind]
                   simp only [runEagerQuery, hrevealed]
-                  change Pr[(fun hit : Bool => hit = true) |
-                    structuralExperiment encodingState chainState remaining
-                      (next ())] ≤ _
+                  change Pr{let hit ← (structuralExperiment encodingState chainState remaining
+                      (next ()))}[hit = true] ≤ _
                   refine (ih () encodingState chainState hvalid remaining).trans ?_
                   unfold potential
                   gcongr
@@ -815,10 +796,9 @@ theorem structuralExperiment_true_probability_le
               | none =>
                   rw [structuralExperiment_query_bind]
                   simp only [runEagerQuery, hrevealed]
-                  change Pr[(fun hit : Bool => hit = true) |
-                    structuralExperiment encodingState
+                  change Pr{let hit ← (structuralExperiment encodingState
                       (chainState.addPending index target) remaining
-                        (next ())] ≤ _
+                        (next ()))}[hit = true] ≤ _
                   refine (ih () encodingState
                     (chainState.addPending index target)
                     (hvalid.addPending index target hrevealed) remaining).trans ?_
@@ -844,19 +824,18 @@ theorem structuralExperiment_true_probability_le
               simp only [runEagerQuery, hrevealed]
               simp only [RevealProbeOracleSimulation.extendTable, hrevealed,
                 Option.getD_some]
-              change Pr[(fun hit : Bool => hit = true) |
-                structuralExperiment encodingState chainState fuel
-                  (next value)] ≤ _
+              change Pr{let hit ← (structuralExperiment encodingState chainState fuel
+                  (next value))}[hit = true] ≤ _
               exact ih value encodingState chainState hvalid fuel
           | none =>
               let resume := fun value nextState =>
                 structuralExperiment encodingState nextState fuel (next value)
               have hdist :
-                  evalDist (structuralExperiment encodingState chainState fuel
+                  (structuralExperiment encodingState chainState fuel
                     ((liftM (OracleSpec.query (spec := World Index)
                       (.reveal index)) :
-                      OracleComp (World Index) _) >>= next)) =
-                    evalDist (applyRevealRequest chainState index resume) := by
+                      OracleComp (World Index) _) >>= next)) =ᵈ
+                    (applyRevealRequest chainState index resume) := by
                 rw [structuralExperiment_query_bind]
                 simp only [runEagerQuery, hrevealed]
                 simpa [resume, structuralExperiment] using
@@ -864,9 +843,7 @@ theorem structuralExperiment_true_probability_le
                     hrevealed fun table value nextState =>
                       runStructural table encodingState nextState fuel
                         (next value)
-              refine (probEvent_congr'
-                (oa' := applyRevealRequest chainState index resume)
-                (fun _ _ => Iff.rfl) hdist).le.trans ?_
+              refine (hdist.prEvent_eq (· = true)).le.trans ?_
               simpa [resume, potential] using
                 applyRevealRequest_true_probability_le chainState index resume
                   fuel (encodingPendingRisk encodingState) fun value => by
@@ -877,48 +854,39 @@ theorem structuralExperiment_true_probability_le
 theorem combinedHit_probability_eq_structuralExperiment
     (fuel : Nat) (computation : OracleComp (World Index) α)
     (hbound : computation.IsQueryBoundP IsHazardQuery fuel) :
-    Pr[fun result : (Index → Digest) × (α × ActionTrace Index) =>
-        CombinedHit result.1 result.2.2 |
-      eagerExperiment computation] =
-    Pr[(fun hit : Bool => hit = true) |
-      structuralExperiment (some EncodingMonitor.State.empty)
-        AdaptiveRevealMonitor.State.empty fuel computation] := by
+    Pr{let result ← eagerExperiment computation}[CombinedHit result.1 result.2.2] =
+    Pr{let hit ← (structuralExperiment (some EncodingMonitor.State.empty)
+        AdaptiveRevealMonitor.State.empty fuel computation)}[hit = true] := by
   unfold eagerExperiment structuralExperiment
-  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+  rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
   apply tsum_congr
   intro table
   congr 1
   rw [show (do
       let result ← (simulateQ (eagerTraceImpl table) computation).run
       pure (table, result)) =
-    Prod.mk table <$> (simulateQ (eagerTraceImpl table) computation).run by rfl]
-  rw [probEvent_map]
-  change Pr[(fun result => CombinedHit table result.2) |
-      (simulateQ (eagerTraceImpl table) computation).run] =
-    Pr[(fun hit : Bool => hit = true) |
-      runStructural table (some EncodingMonitor.State.empty)
-        AdaptiveRevealMonitor.State.empty fuel computation]
+    Prod.mk table <$> (simulateQ (eagerTraceImpl table) computation).run from
+      bind_pure_comp _ _]
+  rw [prEvent_map]
+  change Pr{let result ← (simulateQ (eagerTraceImpl table) computation).run}[CombinedHit table result.2] =
+    Pr{let hit ← (runStructural table (some EncodingMonitor.State.empty)
+        AdaptiveRevealMonitor.State.empty fuel computation)}[hit = true]
   calc
-    _ = Pr[(fun hit : Bool => hit = true) |
-        (runObserved table (some EncodingMonitor.State.empty)
+    _ = Pr{let hit ← ((runObserved table (some EncodingMonitor.State.empty)
           AdaptiveRevealMonitor.State.empty ∘ Prod.snd) <$>
-            (simulateQ (eagerTraceImpl table) computation).run] := by
-      rw [probEvent_map]
-      apply probEvent_congr' (oa' :=
-        (simulateQ (eagerTraceImpl table) computation).run)
-      · intro result _
-        exact (runObserved_empty_eq_combinedHit table result.2).symm
-      · rfl
-    _ = _ := probEvent_congr' (fun _ _ => Iff.rfl)
-      (evalDist_runObserved_eagerTrace_eq_runStructural table
+            (simulateQ (eagerTraceImpl table) computation).run)}[hit = true] := by
+      rw [prEvent_map]
+      exact prEvent_congr_of_support _ _ _ fun result _ =>
+        (runObserved_empty_eq_combinedHit table result.2).symm
+    _ = _ := (evalDist_runObserved_eagerTrace_eq_runStructural table
         (some EncodingMonitor.State.empty)
-        AdaptiveRevealMonitor.State.empty fuel computation hbound)
+        AdaptiveRevealMonitor.State.empty fuel computation hbound).prEvent_eq (· = true)
+
 
 theorem structuralExperiment_empty_true_probability_le
     (fuel : Nat) (computation : OracleComp (World Index) α) :
-    Pr[(fun hit : Bool => hit = true) |
-      structuralExperiment (some EncodingMonitor.State.empty)
-        AdaptiveRevealMonitor.State.empty fuel computation] ≤
+    Pr{let hit ← (structuralExperiment (some EncodingMonitor.State.empty)
+        AdaptiveRevealMonitor.State.empty fuel computation)}[hit = true] ≤
       (fuel : ENNReal) / ((2 ^ digestBits : Nat) : ENNReal) := by
   simpa [potential, encodingPendingRisk,
     AdaptiveRevealMonitor.State.pendingCount_empty,

@@ -25,7 +25,7 @@ theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParam
   | succ steps ih =>
       have hlevel : subtreeHeight + steps < totalHeight := by omega
       rw [Seeded.spineNode, hashCalls_bind, ih (by omega), hashCalls_bind]
-      simp only [Seeded.surrogate, dif_pos hlevel, hashCalls_deriveKey]
+      simp only [Seeded.surrogate, dite_eq_left hlevel, hashCalls_deriveKey]
       split <;> rw [hashCalls_tweakableHash] <;> omega
 
 theorem hashCalls_keygenFromSeed (f : QueryImpl HashSpec Id) (seed : MasterSeed) :

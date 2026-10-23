@@ -268,7 +268,7 @@ theorem walk_post (hparse : ∀ ρ call, model.parse (blk parameter data message
                 prepared_store initial s hprep _ u hc0⟩
         obtain ⟨hb0, hb0s, hrest, hprep1⟩ := hstep
         by_cases hl : Landed parameter (blockIndex res.1)
-        · rw [if_pos hl] at ho
+        · rw [ite_eq_left hl] at ho
           obtain ⟨u1, hf0, hf1, hf1s, hfother, hfrev, hfsig, hffail⟩ :=
             finish_post tg initial model parameter data message hparse Fail hfail ρ _ res.2 hprep1 res.1 hb0 o ho r hr
           refine Or.inr ⟨ρ, res.1, u1, ⟨hf0, hl, hf1, hb0s, ?_, fun ρ' hρ' => ?_⟩, hfrev, hfsig, fun hn => ?_⟩
@@ -285,7 +285,7 @@ theorem walk_post (hparse : ∀ ρ call, model.parse (blk parameter data message
             exact ⟨h1', Or.inl h0⟩
           · obtain ⟨hrv, hfl⟩ := hffail hn
             exact ⟨hrv, fun _ => hfl⟩
-        · rw [if_neg hl] at ho
+        · rw [ite_eq_right hl] at ho
           -- every randomizer is related after the rejected trial
           have hrel1 : ∀ ρ', RelatedAt parameter data message s res.2 ρ' := by
             intro ρ'

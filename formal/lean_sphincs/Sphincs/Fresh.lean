@@ -2,6 +2,8 @@ import Sphincs.Encoding
 import Sphincs.World
 import Sphincs.Bytes
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Compositional preservation of fresh random-oracle inputs. These lemmas quantify over the actual
 support of oracle runs, so their conclusions apply after random key generation and adaptive binds.

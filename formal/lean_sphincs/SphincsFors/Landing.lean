@@ -47,29 +47,25 @@ theorem landed_card (parameter : PublicParameter) :
 
 omit [Params] in
 theorem evalDist_blockIndex_uniform :
-    𝒟[Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-    𝒟[($ᵗ Index : ProbComp Index)] := by
+    (Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ Index : ProbComp Index) := by
   have heq : Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput) =
       BitVec.toFin <$> ((fun u : HashOutput => u.extractLsb' digestBits totalHeight) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) := by rw [Functor.map_map]; rfl
-  rw [heq, evalDist_map, evalDist_blockIndexBits_uniform, ← evalDist_map]
-  exact evalDist_map_bijective_uniform_cross (α := BitVec totalHeight) (β := Index) BitVec.toFin
-    ⟨fun _ _ h => congrArg BitVec.ofFin h, fun i => ⟨BitVec.ofFin i, rfl⟩⟩
+  rw [heq]
+  exact (evalDist_blockIndexBits_uniform.map BitVec.toFin).trans
+    (SampleableType.map_uniformSample_evalDistEq_of_bijective (α := BitVec totalHeight) (β := Index)
+      ⟨fun _ _ h => congrArg BitVec.ofFin h, fun i => ⟨BitVec.ofFin i, rfl⟩⟩)
 
 /-- A fresh first message-digest block lands with probability exactly `2^b / 2^26`. -/
 theorem fresh_landing_probability (parameter : PublicParameter) :
-    Pr[fun u : HashOutput => Landed parameter (Concrete.blockIndex u) |
-      ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[Landed parameter (Concrete.blockIndex u)] =
       ((2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ totalHeight : Nat) : ℝ≥0∞) := by
-  rw [show (fun u : HashOutput => Landed parameter (Concrete.blockIndex u)) =
-    (Landed parameter) ∘ Concrete.blockIndex from rfl, ← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) evalDist_blockIndex_uniform,
-    probEvent_uniformSample, landed_card, Fintype.card_fin]
+  rw [← prEvent_map, evalDist_blockIndex_uniform.prEvent_eq,
+    SampleableType.prEvent_uniformSample, landed_card, Fintype.card_fin]
 
 /-- Equivalently, the fresh landing probability is the reciprocal number of subtrees. -/
 theorem fresh_landing_probability_inv (parameter : PublicParameter) :
-    Pr[fun u : HashOutput => Landed parameter (Concrete.blockIndex u) |
-      ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[Landed parameter (Concrete.blockIndex u)] =
       ((2 ^ (totalHeight - subtreeHeight) : Nat) : ℝ≥0∞)⁻¹ := by
   rw [fresh_landing_probability, ← subtree_size_mul, Nat.cast_mul, div_eq_mul_inv,
     ENNReal.mul_inv (Or.inl (by simp)) (Or.inl (by simp)),

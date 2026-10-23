@@ -1,4 +1,7 @@
 import Sphincs.Scheme
+import VCVio.OracleComp.Constructions.SampleableType.Measure
+import VCVio.OracleComp.EvalDist.Sum
+import VCVio.EvalDist.ProbabilityBounds
 
 /-!
 # Exhausting a search
@@ -37,20 +40,19 @@ noncomputable def failMass (decode : HashOutput → Option β) : ℝ≥0∞ :=
 
 /-- The rejection share is the probability that one uniform answer is rejected. -/
 theorem failMass_eq_probEvent (decode : HashOutput → Option β) :
-    failMass decode = Pr[fun u => decode u = none | ($ᵗ HashOutput : ProbComp HashOutput)] :=
-  (probEvent_uniformSample HashOutput _).symm
+    failMass decode = Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[decode u = none] :=
+  (SampleableType.prEvent_uniformSample _).symm
 
 /-- A query on an uncached input samples its answer uniformly. -/
 theorem fresh_run (input : HashInput) (cache : QueryCache HashSpec) (hfresh : cache input = none)
     {δ : Type} (next : HashOutput × QueryCache HashSpec → ProbComp δ) (p : δ → Prop) :
-    Pr[p | (randomOracle (spec := HashSpec) input).run cache >>= next]
+    Pr{let x ← (randomOracle (spec := HashSpec) input).run cache >>= next}[p x]
       = ∑' u : HashOutput, (Fintype.card HashOutput : ℝ≥0∞)⁻¹
-          * Pr[p | next (u, cache.cacheQuery input u)] := by
-  rw [randomOracle, QueryImpl.withCaching_run_none _ hfresh, map_eq_bind_pure_comp, bind_assoc]
-  simp only [Function.comp_def, pure_bind]
-  rw [show (uniformSampleImpl (spec := HashSpec) input) = ($ᵗ HashOutput : ProbComp HashOutput)
-    from rfl, probEvent_bind_eq_tsum]
-  exact tsum_congr fun u => by rw [probOutput_uniformSample]
+          * Pr{let x ← next (u, cache.cacheQuery input u)}[p x] := by
+  rw [randomOracle, QueryImpl.withCaching_run_none _ hfresh, bind_map_left,
+    show (uniformSampleImpl (spec := HashSpec) input) = ($ᵗ HashOutput : ProbComp HashOutput)
+      from rfl, OracleComp.prEvent_bind_eq_tsum]
+  exact tsum_congr fun u => by rw [SampleableType.prEvent_uniformSample_eq_singleton]
 
 /-- A search over fresh inputs, distinct below `bound`, exhausts all `n` trials with probability at most the per-trial rejection share to the `n`. The bound is what the counter search needs: its inputs carry a 32-bit counter, so they repeat only after `2 ^ 32` trials, which is exactly its trial budget. -/
 theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput → Option β)
@@ -58,8 +60,7 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
     (hinj : ∀ s s', s < bound → s' < bound → inputs s = inputs s' → s = s') :
     ∀ (n t : Nat), t + n ≤ bound → ∀ cache : QueryCache HashSpec,
       (∀ s, t ≤ s → s < bound → cache (inputs s) = none) →
-      Pr[fun r => r.1 = none |
-          (simulateQ randomOracle (searchLoop inputs decode success n t)).run cache]
+      Pr{let r ← (simulateQ randomOracle (searchLoop inputs decode success n t)).run cache}[r.1 = none]
         ≤ failMass decode ^ n := by
   intro n
   induction n with
@@ -71,19 +72,19 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
         StateT.run_bind]
       rw [fresh_run (inputs t) cache (hfresh t (Nat.le_refl t) (by omega))]
       have hterm : ∀ u : HashOutput,
-          Pr[fun r => r.1 = none | (simulateQ randomOracle
+          Pr{let r ← ((simulateQ randomOracle
               (match decode u with
                 | some value => some <$> success t value
                 | none => searchLoop inputs decode success n (t + 1))).run
-              (cache.cacheQuery (inputs t) u)]
+              (cache.cacheQuery (inputs t) u))}[r.1 = none]
             ≤ (if decode u = none then failMass decode ^ n else 0) := by
         intro u
         cases hu : decode u with
         | some value =>
-            simp only [reduceCtorEq, if_false, simulateQ_map, StateT.run_map, probEvent_map]
+            simp only [reduceCtorEq, ite_false, simulateQ_map, StateT.run_map, prEvent_map]
             simp
         | none =>
-            simp only [if_true]
+            simp only [ite_true]
             refine ih (t + 1) (by omega) _ (fun s hs hsb => ?_)
             have hne : inputs s ≠ inputs t := fun hcon => by
               have hst := hinj s t hsb (by omega) hcon
@@ -99,52 +100,52 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
 theorem probEvent_bind_le {α δ : Type} (x : OracleComp HashSpec α) (k : α → OracleComp HashSpec δ)
     (p : δ × QueryCache HashSpec → Prop) (cache : QueryCache HashSpec) (b : ℝ≥0∞)
     (hk : ∀ r ∈ support ((simulateQ randomOracle x).run cache),
-      Pr[p | (simulateQ randomOracle (k r.1)).run r.2] ≤ b) :
-    Pr[p | (simulateQ randomOracle (x >>= k)).run cache] ≤ b := by
-  rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
+      Pr{let x ← (simulateQ randomOracle (k r.1)).run r.2}[p x] ≤ b) :
+    Pr{let y ← (simulateQ randomOracle (x >>= k)).run cache}[p y] ≤ b := by
+  rw [simulateQ_bind, StateT.run_bind, OracleComp.prEvent_bind_eq_tsum]
   calc ∑' r : α × QueryCache HashSpec,
-        Pr[= r | (simulateQ randomOracle x).run cache]
-          * Pr[p | (simulateQ randomOracle (k r.1)).run r.2]
-      ≤ ∑' r : α × QueryCache HashSpec, Pr[= r | (simulateQ randomOracle x).run cache] * b := by
+        Pr{let y ← (simulateQ randomOracle x).run cache}[y = r]
+          * Pr{let x ← (simulateQ randomOracle (k r.1)).run r.2}[p x]
+      ≤ ∑' r : α × QueryCache HashSpec, Pr{let y ← (simulateQ randomOracle x).run cache}[y = r] * b := by
         refine ENNReal.tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support ((simulateQ randomOracle x).run cache)
         · exact mul_le_mul_right (hk r hr) _
-        · simp [probOutput_eq_zero_of_not_mem_support hr]
+        · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
     _ ≤ b := by
         rw [ENNReal.tsum_mul_right]
-        exact mul_le_of_le_one_left' tsum_probOutput_le_one
+        exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 /-- A run fails only if its first part lands in `p`, or its continuation fails from a reachable state outside `p`. -/
 theorem probEvent_bind_le_add {α δ : Type} (x : OracleComp HashSpec α)
     (k : α → OracleComp HashSpec δ) (p : α × QueryCache HashSpec → Prop)
     (q : δ × QueryCache HashSpec → Prop) (cache : QueryCache HashSpec) (b : ℝ≥0∞)
     (hk : ∀ r ∈ support ((simulateQ randomOracle x).run cache), ¬ p r →
-      Pr[q | (simulateQ randomOracle (k r.1)).run r.2] ≤ b) :
-    Pr[q | (simulateQ randomOracle (x >>= k)).run cache]
-      ≤ Pr[p | (simulateQ randomOracle x).run cache] + b := by
+      Pr{let x ← (simulateQ randomOracle (k r.1)).run r.2}[q x] ≤ b) :
+    Pr{let y ← (simulateQ randomOracle (x >>= k)).run cache}[q y]
+      ≤ Pr{let y ← (simulateQ randomOracle x).run cache}[p y] + b := by
   classical
-  rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum,
-    probEvent_eq_tsum_ite (mx := (simulateQ randomOracle x).run cache) (p := p)]
+  rw [simulateQ_bind, StateT.run_bind, OracleComp.prEvent_bind_eq_tsum,
+    OracleComp.prEvent_eq_tsum_ite (oa := (simulateQ randomOracle x).run cache) (p := p)]
   calc ∑' r : α × QueryCache HashSpec,
-        Pr[= r | (simulateQ randomOracle x).run cache]
-          * Pr[q | (simulateQ randomOracle (k r.1)).run r.2]
+        Pr{let y ← (simulateQ randomOracle x).run cache}[y = r]
+          * Pr{let x ← (simulateQ randomOracle (k r.1)).run r.2}[q x]
       ≤ ∑' r : α × QueryCache HashSpec,
-          ((if p r then Pr[= r | (simulateQ randomOracle x).run cache] else 0)
-            + Pr[= r | (simulateQ randomOracle x).run cache] * b) := by
+          ((if p r then Pr{let y ← (simulateQ randomOracle x).run cache}[y = r] else 0)
+            + Pr{let y ← (simulateQ randomOracle x).run cache}[y = r] * b) := by
         refine ENNReal.tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support ((simulateQ randomOracle x).run cache)
         · by_cases hp : p r
-          · simp only [hp, if_true]
-            have hone : Pr[q | (simulateQ randomOracle (k r.1)).run r.2] ≤ 1 := probEvent_le_one
+          · simp only [hp, ite_true]
+            have hone : Pr{let x ← (simulateQ randomOracle (k r.1)).run r.2}[q x] ≤ 1 := (prEvent_le_one _)
             exact le_add_right (mul_le_of_le_one_right' hone)
-          · simp only [hp, if_false, zero_add]
+          · simp only [hp, ite_false, zero_add]
             exact mul_le_mul_right (hk r hr hp) _
-        · simp [probOutput_eq_zero_of_not_mem_support hr]
+        · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
     _ ≤ (∑' r : α × QueryCache HashSpec,
-          if p r then Pr[= r | (simulateQ randomOracle x).run cache] else 0) + b := by
+          if p r then Pr{let y ← (simulateQ randomOracle x).run cache}[y = r] else 0) + b := by
         rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
         have hmass : ∑' r : α × QueryCache HashSpec,
-            Pr[= r | (simulateQ randomOracle x).run cache] ≤ 1 := tsum_probOutput_le_one
+            Pr{let y ← (simulateQ randomOracle x).run cache}[y = r] ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
         exact add_le_add le_rfl (mul_le_of_le_one_left' hmass)
 
 /-! ## Distinct inputs

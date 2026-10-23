@@ -93,13 +93,13 @@ theorem openInd_add_signedInd_le (x : HashInput) (cache : QueryCache HashSpec)
   cases dec parameter x with
   | none => simp
   | some p =>
-      rw [Option.elim_some, Option.elim_some, Option.isSome_some, if_pos rfl]
+      rw [Option.elim_some, Option.elim_some, Option.isSome_some, ite_eq_left rfl]
       by_cases h : Unsigned trace p.1
-      · rw [if_pos h, add_zero]
+      · rw [ite_eq_left h, add_zero]
         split_ifs
         · exact le_rfl
         · exact zero_le
-      · rw [if_neg h, if_neg (fun hh => h hh.2), zero_add]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.2), zero_add]
 
 /-! ### Counts under one fresh answer -/
 
@@ -195,20 +195,20 @@ theorem openΦ_fresh {x : HashInput} (hx : cache x = none) :
         intro e' _
         rw [ex_ite]
         by_cases hu : Unsigned trace e'
-        · rw [if_pos hu, if_pos hu]
+        · rw [ite_eq_left hu, ite_eq_left hu]
           by_cases he : e' = e
           · subst he
-            rw [if_pos rfl, aCost, dec_input, Option.elim_some, if_pos ⟨hx, hu⟩]
+            rw [ite_eq_left rfl, aCost, dec_input, Option.elim_some, ite_eq_left ⟨hx, hu⟩]
             exact ex_Φ_le hx
-          · rw [if_neg he, add_zero]
+          · rw [ite_eq_right he, add_zero]
             have h := fun u => (potentials_cacheQuery_of_not_input (cache := cache)
               (fun y => input_ne_of_ne parameter (Ne.symm he) z y) u).1
             simp_rw [h]
             rw [ex_const]
-        · rw [if_neg hu, if_neg hu, zero_add]
+        · rw [ite_eq_right hu, ite_eq_right hu, zero_add]
           exact zero_le
       refine (Finset.sum_le_sum hterm).trans (le_of_eq ?_)
-      rw [Finset.sum_add_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ e)]
+      rw [Finset.sum_add_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ e)]
 
 theorem hvSum_fresh {x : HashInput} (hx : cache x = none) :
     hvSum parameter cache trace + landing * aCost parameter x cache trace ≤
@@ -235,7 +235,7 @@ theorem hvSum_fresh {x : HashInput} (hx : cache x = none) :
         intro e' _
         by_cases hopen : e' = e ∧ Unsigned trace e
         · obtain ⟨rfl, hu⟩ := hopen
-          rw [if_pos rfl, aCost, dec_input, Option.elim_some, if_pos ⟨hx, hu⟩]
+          rw [ite_eq_left rfl, aCost, dec_input, Option.elim_some, ite_eq_left ⟨hx, hu⟩]
           simp only [frozen_of_none hu]
           refine le_of_eq_of_le ?_ (ex_V_mul_H hx)
           rw [add_comm (_ * W _ _ _ _)]
@@ -248,13 +248,13 @@ theorem hvSum_fresh {x : HashInput} (hx : cache x = none) :
           have hzero : (if e' = e then landing * aCost parameter (input parameter e z) cache trace else 0) = 0 := by
             split_ifs with he
             · subst he
-              rw [aCost, dec_input, Option.elim_some, if_neg (fun h => hopen ⟨rfl, h.2⟩), mul_zero]
+              rw [aCost, dec_input, Option.elim_some, ite_eq_right (fun h => hopen ⟨rfl, h.2⟩), mul_zero]
             · rfl
           rw [hzero, add_zero]
           simp_rw [V_congr (hagree _), H_congr (hagree _)]
           rw [ex_const]
       refine le_of_eq_of_le ?_ (Finset.sum_le_sum hterm)
-      rw [Finset.sum_add_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ e)]
+      rw [Finset.sum_add_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ e)]
 
 theorem counts_fresh_closed {x : HashInput}
     (h : ∀ p, dec parameter x = some p → ¬Unsigned trace p.1) (u : HashOutput) :
@@ -294,7 +294,7 @@ theorem postBad_fresh {x : HashInput} (hx : cache x = none) (u : HashOutput)
     rw [QueryCache.cacheQuery_self, Option.some.injEq] at hc
     subst hc
     have hsigned : ¬Unsigned trace e := by unfold Unsigned; rw [hf]; simp
-    refine Or.inr ⟨by rw [signedInd, dec_input, Option.elim_some, if_neg hsigned], ?_⟩
+    refine Or.inr ⟨by rw [signedInd, dec_input, Option.elim_some, ite_eq_right hsigned], ?_⟩
     rw [target, dec_input, Option.elim_some, hf, Option.elim_some, selDigest, hs, Option.elim_some, dig, ho]
     exact ht.symm
   · rw [QueryCache.cacheQuery_of_ne _ _ hxz] at hc
@@ -316,11 +316,11 @@ theorem postPot_fresh {cache : QueryCache HashSpec} {trace : SigningCacheTrace} 
     intro u
     unfold postPot
     by_cases h1 : trace.leafIndices.Nodup ∧ PostBad parameter trace (cache.cacheQuery x u)
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       rcases postBad_fresh hx u h1.2 with h | ⟨hs, ht⟩
-      · rw [if_pos ⟨h1.1, h⟩]; exact le_self_add
-      · rw [hs, if_pos ht, one_mul]; exact le_add_self
-    · rw [if_neg h1]; exact zero_le
+      · rw [ite_eq_left ⟨h1.1, h⟩]; exact le_self_add
+      · rw [hs, ite_eq_left ht, one_mul]; exact le_add_self
+    · rw [ite_eq_right h1]; exact zero_le
   refine (ex_mono hpoint).trans (le_of_eq ?_)
   rw [ex_add, ex_const, ex_const_mul, ex_digest]
 
@@ -378,7 +378,7 @@ theorem openΦ_sign :
   unfold openΦ
   rw [← Finset.add_sum_erase _ _ (Finset.mem_univ request.leafIndex),
     ← Finset.add_sum_erase _ _ (Finset.mem_univ request.leafIndex),
-    if_neg (show ¬Unsigned (trace ++ [⟨request, r.1, cache, r.2⟩]) request.leafIndex from
+    ite_eq_right (show ¬Unsigned (trace ++ [⟨request, r.1, cache, r.2⟩]) request.leafIndex from
       first_append_self (trace := trace) ⟨request, r.1, cache, r.2⟩), zero_add, add_comm]
   refine congrArg _ (Finset.sum_congr rfl fun e he => ?_)
   have hne := Finset.ne_of_mem_erase he

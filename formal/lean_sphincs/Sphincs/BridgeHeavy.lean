@@ -622,8 +622,8 @@ theorem extOf_excl_mono (s : State) {excl excl' : Pair → Prop} (h : ∀ q, exc
     (ρ : Randomness) : extOf parameter data s excl' m ρ ≤ extOf parameter data s excl m ρ := by
   unfold extOf
   by_cases hx : excl (m, ρ)
-  · rw [if_pos hx, if_pos (h _ hx)]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, ite_eq_left (h _ hx)]
+  · rw [ite_eq_right hx]
     split_ifs
     · exact bot_le
     · exact le_rfl
@@ -781,7 +781,7 @@ theorem termH_addMsg {s : State} {Ms : List Message} (hM : MInv parameter data s
     rw [List.filter_cons]
     split_ifs with hlive
     · unfold lightMsgs heavyMsg
-      rw [List.filter_cons, if_pos (by simpa using hnh), List.find?_cons_of_neg (by simpa using hnh)]
+      rw [List.filter_cons, ite_eq_left (by simpa using hnh), List.find?_cons_of_neg (by simpa using hnh)]
       exact grpM_untouched s excl m hun _ d
     · rfl
 
@@ -853,9 +853,9 @@ theorem grpAll_probeG (hw : w ≤ 1) (s : State) (p : Pair) (hp0 : s.cache (pblk
     rw [grpM_withPair_self,
       grp_congr _ _ (fun e => grpAll_withPair_other s p u0 excl (G I) Ms' hnot e) d]
     by_cases hl : Landed parameter (blockIndex u0)
-    · simp only [hl, if_true]
+    · simp only [hl, ite_true]
       rfl
-    · simp only [hl, if_false]
+    · simp only [hl, ite_false]
       exact grp_congr_ext _ (fun ρ hρ => by
         by_cases h : ρ = p.2
         · subst h; rw [Function.update_self] at hρ; cases hρ
@@ -928,9 +928,9 @@ theorem sgnM_probe (s : State) (p : Pair) (hp0 : s.cache (pblk parameter data p)
     intro u0
     rw [sgnM_withPair_self]
     by_cases hl : Landed parameter (blockIndex u0)
-    · simp only [hl, if_true]
+    · simp only [hl, ite_true]
       rfl
-    · simp only [hl, if_false]
+    · simp only [hl, ite_false]
       exact sgn_congr_ext _ (fun ρ hρ => by
         by_cases h : ρ = p.2
         · subst h; rw [Function.update_self] at hρ; cases hρ
@@ -948,7 +948,7 @@ message without disclosing anything. -/
 theorem sgnM_stop (s : State) (p : Pair) (excl : Pair → Prop) (hx : excl p) (u0 : HashOutput)
     (hl : Landed parameter (blockIndex u0)) {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (d : Multiset View) :
     sgnM parameter data (withPair parameter data s p u0) excl p.1 X d ≤ sgnM parameter data s excl p.1 X d := by
-  rw [sgnM_withPair_self, if_pos hl, if_pos hx]
+  rw [sgnM_withPair_self, ite_eq_left hl, ite_eq_left hx]
   exact sgn_stop_le landing_le_one Finset.univ_nonempty _ _ hX d p.2
 
 /-- The value with a heavy message: the law of its signed view outside the groups. -/
@@ -1204,7 +1204,7 @@ theorem termH_stop {f : Multiset View → ℝ≥0∞} (hf : MonoFin f) {s : Stat
       have h2 : baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I = grpAll parameter data s excl Ls G d := rfl
       rw [h1, h2, grpAll_perm _ excl _ hperm d, grpAll_perm _ excl _ hperm d]
       simp only [grpAll]
-      rw [grpM_withPair_self, if_pos hl, if_pos hx,
+      rw [grpM_withPair_self, ite_eq_left hl, ite_eq_left hx,
         grp_congr _ _ (fun e => grpAll_withPair_other s p u0 excl G rest hnot e) d]
       exact grp_stop_le landing_le_one Finset.univ_nonempty _ _ (grpAll_mono s excl hGmono rest) d p.2 hst
     · exact le_of_eq ((hsame u0 I).trans (valH_blocksOn excl
@@ -1235,9 +1235,9 @@ the message applied to that function: `sign_term` stopped before the fresh slot.
 theorem sign_termS (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none)
     {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
           ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-            signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+            signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
           outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out)) ≤
       sgnM parameter data s excl m X d := by
@@ -1246,29 +1246,29 @@ theorem sign_termS (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = non
   set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
   have hcard : c * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
-  have hscan : ∑' out, Pr[= out | interp tg initial model
+  have hscan : ∑' out, Pr{let x ← (interp tg initial model
         ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+          signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
       c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
-    rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-    have hpr : ∀ ρ, Pr[= ρ | ($ᵗ Randomness : ProbComp Randomness)] = c := by
+    rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
       intro ρ
-      rw [probOutput_uniformSample]
+      rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]
     rw [ENNReal.tsum_mul_left, tsum_fintype]
     refine mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ => ?_)
     exact scan_bound_comb tg initial model parameter data m hparse s gf gp digestAttemptLimit
       (by unfold digestAttemptLimit; norm_num) budget start
-  have hsum : ∑' out, Pr[= out | interp tg initial model
+  have hsum : ∑' out, Pr{let x ← (interp tg initial model
         ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+          signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
       X d + c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
     rw [tsum_congr fun out => mul_add _ _ _, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-    exact add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) hscan
+    exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
   refine le_trans hsum ?_
   have hbase : X d = c * ∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
       (X d) (X d) digestAttemptLimit start := by
@@ -1298,9 +1298,9 @@ theorem sign_termS (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = non
     | some u0 =>
         simp only [Option.elim]
         split_ifs with hl hx
-        · simp only [hgp, if_pos hx, add_zero, le_refl]
+        · simp only [hgp, ite_eq_left hx, add_zero, le_refl]
         · have hv : pview parameter data s (m, ρ) = viewOf u0 := pview_of_cached h0
-          simp only [hgp, if_neg hx, hv]
+          simp only [hgp, ite_eq_right hx, hv]
           rw [add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))]
         · rw [add_zero]
           exact hX _ _ (Multiset.le_add_right _ _)
@@ -1357,7 +1357,7 @@ slot if it is light, the law of its signed view (which takes the spare slot) if 
 theorem term_expectH (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none) (hf : MonoFin f)
     {Ms : List Message} (hM : MInv parameter data s Ms) {budgetT : ℕ} (hT : TotalInv parameter data Qtot s budgetT)
     {L : QueryLog SigningSpec} (hm : MsgLive L m) (excl : Pair → Prop) (budget k : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d f L Ms excl out J) k [] ≤
       termH parameter data Qtot w s Ms L excl f d (n + 1) k := by
   rw [← termH_addMsg hM L excl m f d (n + 1) k]
@@ -1379,7 +1379,7 @@ theorem term_expectH (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = n
       (heavyMsg_eq_some_iff hT).2 ⟨hperm.mem_iff.2 (List.mem_cons_self ..), hH⟩
     have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm (restMsgs m L Ms) := by
       have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, if_neg (by simpa using hH)] at h1
+      rw [List.filter_cons, ite_eq_right (by simpa using hH)] at h1
       rw [← hlightR]
       exact h1
     refine le_trans (sign_termS tg initial model parameter data m hparse hX s d excl budget) (le_of_eq ?_)
@@ -1410,7 +1410,7 @@ theorem term_expectH (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = n
     have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm
         (m :: lightMsgs parameter data Qtot s (restMsgs m L Ms)) := by
       have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, if_pos (by simpa using hH)] at h1
+      rw [List.filter_cons, ite_eq_left (by simpa using hH)] at h1
       exact h1
     refine le_trans (sign_term tg initial model parameter data m hparse hX s d excl budget) (le_of_eq ?_)
     have hR : baseH parameter data Qtot w s (addMsg Ms m) L excl f d (n + 1) J =

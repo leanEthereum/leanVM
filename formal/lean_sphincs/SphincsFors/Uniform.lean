@@ -1,4 +1,5 @@
 import SphincsFors.Scheme
+import SphincsBase.Proof.Base.Probability
 
 /-! Uniform bit extraction; adapted from leanVM b7a107256. -/
 namespace SphincsFors
@@ -33,7 +34,7 @@ theorem splitHashOutput_bijective {width : Nat} (hwidth : width ≤ hashOutputBi
     Function.Bijective (splitHashOutput width) := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨splitHashOutput_injective hwidth, ?_⟩
-  rw [Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, ← pow_add]
+  rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add]
   congr
   omega
 
@@ -57,9 +58,8 @@ theorem joinHalves_halves (output : HashOutput) :
   (splitHashOutputEquiv digestBits (by decide)).symm_apply_apply output
 
 theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ hashOutputBits) :
-    𝒟[(fun output : HashOutput => output.extractLsb' 0 width) <$>
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+    ((fun output : HashOutput => output.extractLsb' 0 width) <$>
+        ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   let split := splitHashOutput width
   have hmap :
       (fun output : HashOutput => output.extractLsb' 0 width) <$>
@@ -68,33 +68,34 @@ theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ ha
     simp [Functor.map_map, split, splitHashOutput]
   rw [hmap]
   have hsplit :
-      𝒟[split <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-        𝒟[($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
-          ProbComp (BitVec width × BitVec (hashOutputBits - width)))] :=
-    evalDist_map_bijective_uniform_cross
+      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
+          ProbComp (BitVec width × BitVec (hashOutputBits - width))) :=
+    SampleableType.map_uniformSample_evalDistEq_of_bijective
       (α := HashOutput) (β := BitVec width × BitVec (hashOutputBits - width))
-      split (splitHashOutput_bijective hwidth)
-  rw [evalDist_map, hsplit, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+      (splitHashOutput_bijective hwidth)
+  refine (hsplit.map Prod.fst).trans fun p => ?_
+  rw [prEvent_map]
+  exact SampleableType.prEvent_uniformSample_fst p
 
 /-- A field of a hash output is uniform when some other field completes it into an injective
 reading of the output and the two widths add up to the output's. -/
 theorem evalDist_hashOutput_field_uniform {width rest : Nat} (hsum : width + rest = hashOutputBits)
     (field : HashOutput → BitVec width) (other : HashOutput → BitVec rest)
     (hinj : Function.Injective fun output => (field output, other output)) :
-    𝒟[field <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+    (field <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   have hbij : Function.Bijective fun output : HashOutput => (field output, other output) := by
     apply (Fintype.bijective_iff_injective_and_card _).2
     refine ⟨hinj, ?_⟩
-    rw [Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, ← pow_add, hsum]
+    rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add, hsum]
   have hmap : field <$> ($ᵗ HashOutput : ProbComp HashOutput) =
       Prod.fst <$> ((fun output : HashOutput => (field output, other output)) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) := by
     simp [Functor.map_map]
-  rw [hmap, evalDist_map, evalDist_map_bijective_uniform_cross
-    (α := HashOutput) (β := BitVec width × BitVec rest) _ hbij, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+  rw [hmap]
+  refine ((SampleableType.map_uniformSample_evalDistEq_of_bijective
+    (α := HashOutput) (β := BitVec width × BitVec rest) hbij).map Prod.fst).trans fun p => ?_
+  rw [prEvent_map]
+  exact SampleableType.prEvent_uniformSample_fst p
 
 /-- Equal fields give equal bits. -/
 theorem getLsbD_eq_of_extract_eq {n start width : Nat} {x y : BitVec n}
@@ -154,23 +155,23 @@ theorem getLsbD_truncateMessageDigest (first second : HashOutput) (i : Nat) :
   rw [hbit, BitVec.getLsbD_append, getLsbD_firstCallFields, getLsbD_callIndices,
     getLsbD_callIndices]
   by_cases h0 : i < 26
-  · simp only [h0, show i < 146 by omega, show i < 266 by omega, if_true, decide_true,
+  · simp only [h0, show i < 146 by omega, show i < 266 by omega, ite_true, decide_true,
       Bool.true_and]
   by_cases h1 : i < 86
   · simp only [h0, h1, show i < 146 by omega, show i < 266 by omega, show i - 26 < 60 by omega,
-      if_true, if_false, decide_true, Bool.true_and]
+      ite_true, ite_false, decide_true, Bool.true_and]
   by_cases h2 : i < 146
   · simp only [h0, h1, h2, show i < 266 by omega, show ¬ i - 26 < 60 by omega,
-      show i - 26 < 120 by omega, if_true, if_false, decide_true, Bool.true_and]
+      show i - 26 < 120 by omega, ite_true, ite_false, decide_true, Bool.true_and]
     rw [show i - 26 - 60 = i - 86 by omega]
   by_cases h3 : i < 206
   · simp only [h0, h1, h2, h3, show i < 266 by omega, show i - 146 < 60 by omega,
-      if_true, if_false, decide_true, Bool.true_and]
+      ite_true, ite_false, decide_true, Bool.true_and]
   by_cases h4 : i < 266
   · simp only [h0, h1, h2, h3, h4, show ¬ i - 146 < 60 by omega, show i - 146 < 120 by omega,
-      if_true, if_false, decide_true, Bool.true_and]
+      ite_true, ite_false, decide_true, Bool.true_and]
     rw [show i - 146 - 60 = i - 206 by omega]
-  · simp only [h0, h1, h2, h3, h4, if_false, decide_false, Bool.false_and]
+  · simp only [h0, h1, h2, h3, h4, ite_false, decide_false, Bool.false_and]
 
 /-- Where the FORS indices are (`digest_fields` in `crates/sphincs/src/scheme.rs`): index `kappa` is
 in call `kappa / 12`, at bit `64 * ((kappa % 12) / 6) + 10 * (kappa % 6)`, so six indices lie in each
@@ -196,21 +197,21 @@ theorem digestLeaves_truncate (first second : HashOutput) (tree : IndexGroup) :
       else false) = _
   by_cases h0 : kappa < 6
   · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show 26 + 10 * kappa + i < 86 by omega,
-      show kappa < 12 by omega, if_true, if_false]
+      show kappa < 12 by omega, ite_true, ite_false]
     rw [show 26 + 10 * kappa + i - 26 = 64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
   by_cases h1 : kappa < 12
   · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
-      show 26 + 10 * kappa + i < 146 by omega, h1, if_true, if_false]
+      show 26 + 10 * kappa + i < 146 by omega, h1, ite_true, ite_false]
     rw [show 64 + (26 + 10 * kappa + i - 86) =
       64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
   by_cases h2 : kappa < 18
   · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
       show ¬ 26 + 10 * kappa + i < 146 by omega, show 26 + 10 * kappa + i < 206 by omega, h1,
-      if_true, if_false]
+      ite_true, ite_false]
     rw [show 26 + 10 * kappa + i - 146 = 64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
   · simp only [show ¬ 26 + 10 * kappa + i < 26 by omega, show ¬ 26 + 10 * kappa + i < 86 by omega,
       show ¬ 26 + 10 * kappa + i < 146 by omega, show ¬ 26 + 10 * kappa + i < 206 by omega,
-      show 26 + 10 * kappa + i < 266 by omega, h1, if_true, if_false]
+      show 26 + 10 * kappa + i < 266 by omega, h1, ite_true, ite_false]
     rw [show 64 + (26 + 10 * kappa + i - 206) =
       64 * (kappa % 12 / 6) + 10 * (kappa % 6) + i by omega]
 
@@ -285,50 +286,39 @@ theorem blockIndexBits_injective :
 
 /-- The fields of digest call `0` of a uniform output are uniform. -/
 theorem evalDist_firstCallFields_uniform :
-    𝒟[firstCallFields <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec 146 : ProbComp (BitVec 146))] :=
+    (firstCallFields <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec 146 : ProbComp (BitVec 146)) :=
   evalDist_hashOutput_field_uniform (by decide) firstCallFields firstCallRest
     firstCallFields_injective
 
 /-- The `12` FORS indices of a uniform output are uniform. -/
 theorem evalDist_callIndices_uniform :
-    𝒟[callIndices <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec 120 : ProbComp (BitVec 120))] :=
+    (callIndices <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec 120 : ProbComp (BitVec 120)) :=
   evalDist_hashOutput_field_uniform (by decide) callIndices callIndicesRest callIndices_injective
 
 /-- The index bits of digest call `0` of a uniform output are uniform. -/
 theorem evalDist_blockIndexBits_uniform :
-    𝒟[(fun output : HashOutput => output.extractLsb' digestBits totalHeight) <$>
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec totalHeight : ProbComp (BitVec totalHeight))] :=
+    ((fun output : HashOutput => output.extractLsb' digestBits totalHeight) <$>
+        ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec totalHeight : ProbComp (BitVec totalHeight)) :=
   evalDist_hashOutput_field_uniform (by decide) _ blockIndexRest blockIndexBits_injective
 
 theorem evalDist_truncateHash_uniform :
-    𝒟[truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ Digest : ProbComp Digest)] := by
-  change 𝒟[(fun output : HashOutput => output.extractLsb' 0 digestBits) <$>
-      ($ᵗ HashOutput : ProbComp HashOutput)] = _
+    (truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ Digest : ProbComp Digest) := by
   exact evalDist_hashOutput_extract_uniform (width := digestBits) (by decide)
 
 theorem probEvent_uniform_truncateHash_eq (target : Digest) :
-    Pr[fun output : HashOutput => truncateHash output = target |
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output = target] =
       (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
-  rw [show (fun output : HashOutput => truncateHash output = target) =
-      (fun output => output = target) ∘ truncateHash from rfl]
-  rw [← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) evalDist_truncateHash_uniform]
-  rw [probEvent_eq_eq_probOutput, probOutput_uniformSample]
+  have h := evalDist_truncateHash_uniform.prEvent_eq (· = target)
+  rw [prEvent_map] at h
+  rw [h]
+  exact SampleableType.prEvent_uniformSample_eq_singleton target
 
 theorem probEvent_uniform_truncateHash_mem (targets : Finset Digest) :
-    Pr[fun output : HashOutput => truncateHash output ∈ targets |
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output ∈ targets] =
       (targets.card : ℝ≥0∞) / (Fintype.card Digest : ℝ≥0∞) := by
-  rw [show (fun output : HashOutput => truncateHash output ∈ targets) =
-      (fun digest => digest ∈ targets) ∘ truncateHash from rfl]
-  rw [← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) evalDist_truncateHash_uniform]
-  rw [probEvent_uniformSample]
+  have h := evalDist_truncateHash_uniform.prEvent_eq (· ∈ targets)
+  rw [prEvent_map] at h
+  rw [h, SampleableType.prEvent_uniformSample]
   rw [Finset.filter_univ_mem]
 
 end SphincsFors

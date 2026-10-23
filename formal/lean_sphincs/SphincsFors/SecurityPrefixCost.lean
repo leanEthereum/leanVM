@@ -61,7 +61,7 @@ theorem hashCalls_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParam
   induction steps generalizing start value with
   | zero => simp only [chainWalk, hashCalls_pure]
   | succ steps ih =>
-      rw [chainWalk, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [chainWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 /-- A sum over the 64 chains, pair by pair. -/
 theorem sum_chains_eq_sum_pairs (g : ChainIndex → Nat) :
@@ -131,7 +131,7 @@ theorem hashCalls_ftsNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
       | succ level =>
           simp only [Seeded.ftsNode, hashCalls_bind, ih, hashCalls_tweakableHash]
           have hpos : 0 < 2 ^ level := Nat.two_pow_pos level
-          simp only [ftsNodeCost, Nat.succ_ne_zero, if_false, Nat.add_sub_cancel]
+          simp only [ftsNodeCost, Nat.succ_ne_zero, ite_false, Nat.add_sub_cancel]
           rw [pow_succ]
           omega
 

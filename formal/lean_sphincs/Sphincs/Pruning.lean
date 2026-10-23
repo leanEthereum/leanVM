@@ -77,12 +77,12 @@ theorem eval_treeFold_pruned_path (parameter : PublicParameter) (lay : Layer) (t
   apply eval_treeFold_spine f parameter lay tree seed leaf hland path
   · intro level hlevel
     have hlt : level < layerHeight lay := lt_of_lt_of_le hlevel hb
-    rw [hpath level hlt, eval_treePath, if_pos hlevel]
+    rw [hpath level hlt, eval_treePath, ite_eq_left hlevel]
   · intro t ht
     have hlt : subtreeHeight + t < layerHeight lay := by
       change subtreeHeight + t < totalHeight
       omega
     rw [hpath _ hlt, eval_treePath,
-      if_neg (show ¬subtreeHeight + t < subtreeHeight by omega)]
+      ite_eq_right (show ¬subtreeHeight + t < subtreeHeight by omega)]
 
 end Sphincs.Completeness

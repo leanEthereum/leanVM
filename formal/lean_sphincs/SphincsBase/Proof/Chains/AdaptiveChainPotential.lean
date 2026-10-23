@@ -7,8 +7,7 @@ set_option backward.isDefEq.respectTransparency false
 
 theorem expectation_pure {Result : Type} (result : Result) (payoff : Result → ENNReal) :
     (∑' output, PMF.pure result output * payoff output) = payoff result := by
-  simpa only [PMF.probOutput_eq_apply, PMF.monad_pure_eq_pure] using
-    tsum_probOutput_pure_mul (m := PMF) result payoff
+  simp [PMF.pure_apply]
 
 theorem expectation_add {Result : Type} (law : PMF Result) (first second : Result → ENNReal) :
     (∑' result, law result * (first result + second result)) =

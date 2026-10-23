@@ -27,19 +27,19 @@ theorem lazyRun_contactPotential_le (auxiliary : QueryImpl auxSpec PMF)
   apply lazyRun_potential_le auxiliary (fun current => contactPotential current endpoint) (2 / Fintype.card State)
   intro input current
   cases input with
-  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, if_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
+  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, ite_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
   | inr query =>
-      simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, if_true, Nat.cast_one, mul_one]
+      simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, ite_true, Nat.cast_one, mul_one]
       exact contactPotential_observe_le current query endpoint
 
 theorem realRun_contact_le (auxiliary : State → QueryImpl auxSpec PMF)
     (computation : State → OracleComp (auxSpec + PrefixSpec n State) Result) :
-    Pr[fun result => Contact result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[Contact result.2.2 result.1] ≤
       (2 / Fintype.card State) * ∑' result, idealRun auxiliary
         (fun endpoint => QueryCap.counted IsPrefixQuery (computation endpoint)) (fun _ _ => none) result * (result.2.1.2 : ENNReal) := by
-  rw [show Pr[fun result => Contact result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] =
+  rw [show Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[Contact result.2.2 result.1] =
     (∑' result, realRun auxiliary computation (fun _ _ => none) result * (if Contact result.2.2 result.1 then 1 else 0)) by
-      simp only [probEvent_eq_tsum_ite, PMF.probOutput_eq_apply, mul_ite, mul_one, mul_zero]]
+      simp only [PMF.prEvent_eq_tsum_ite, mul_ite, mul_one, mul_zero]]
   rw [realRun_expectation]
   calc
     _ ≤ ∑' result, idealRun auxiliary computation (fun _ _ => none) result * contactPotential result.2.2 result.1 :=

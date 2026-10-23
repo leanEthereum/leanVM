@@ -32,7 +32,7 @@ theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
   | query_bind input next ih =>
       simp only [counted_query_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_pure, ih,
         WriterT.run_bind]
-      simp [QueryImpl.withAddCost, QueryImpl.withCost, QueryImpl.withTraceBefore_apply,
+      simp [QueryImpl.withAddCost, QueryImpl.withCost,
         WriterT.run_bind, WriterT.run_liftM, WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc]
       rfl
 

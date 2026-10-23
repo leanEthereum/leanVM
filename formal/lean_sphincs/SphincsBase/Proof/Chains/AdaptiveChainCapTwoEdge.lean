@@ -17,16 +17,15 @@ variable {State : Type} [Fintype State] [DecidableEq State] [Nonempty State]
 include hcharge hreal
 
 theorem realRun_cap_twoEdge_eq :
-    Pr[fun result => TwoEdge result.2.2 result.1 |
-      realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)] =
-        Pr[fun result => TwoEdge result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] := by
+    Pr{let result ← realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)}[TwoEdge result.2.2 result.1] =
+        Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdge result.2.2 result.1] := by
   have h := congrArg (fun law : PMF (State × (Option Result × (Fin (n + 2) → State → Option State))) =>
-    Pr[fun result => TwoEdge result.2.2 result.1 | law])
+    Pr{let result ← law}[TwoEdge result.2.2 result.1])
     (realRun_cap_erased_observed auxiliary computation cost budget hcharge hreal)
-  simpa only [← PMF.monad_map_eq_map, probEvent_map, Function.comp_def] using h
+  simpa only [← PMF.monad_map_eq_map, prEvent_map, Function.comp_def] using h
 
 theorem realRun_twoEdge_le_cap_cost (hsmall : budget < Fintype.card State) :
-    Pr[fun result => TwoEdge result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdge result.2.2 result.1] ≤
       (((3 / 2 : ENNReal) + 4 * ((budget : ENNReal) / Fintype.card State) +
         2 * ((budget : ENNReal) / Fintype.card State)^2) / Fintype.card State) *
           ∑' result, idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget)
@@ -51,16 +50,16 @@ theorem realRun_twoEdgeEvent_le_cap_cost {depth : Nat} (auxiliary : State → Qu
       result.2 ≤ cost result.1)
     (hreal : ∀ result ∈ (realRun auxiliary computation (fun _ _ => none)).support, cost result.2.1 ≤ budget)
     (hsmall : budget < Fintype.card State) :
-    Pr[fun result => TwoEdgeEvent result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdgeEvent result.2.2 result.1] ≤
       (((3 / 2 : ENNReal) + 4 * ((budget : ENNReal) / Fintype.card State) +
         2 * ((budget : ENNReal) / Fintype.card State)^2) / Fintype.card State) *
           ∑' result, idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget)
             (fun _ _ => none) result * (QueryCap.spent budget result.2.1 : ENNReal) := by
   cases depth with
-  | zero => simp only [TwoEdgeEvent, probEvent_eq_tsum_ite, if_false, tsum_zero]; exact bot_le
+  | zero => simp only [TwoEdgeEvent, PMF.prEvent_eq_tsum_ite, ite_false, tsum_zero]; exact bot_le
   | succ depth =>
       cases depth with
-      | zero => simp only [TwoEdgeEvent, probEvent_eq_tsum_ite, if_false, tsum_zero]; exact bot_le
+      | zero => simp only [TwoEdgeEvent, PMF.prEvent_eq_tsum_ite, ite_false, tsum_zero]; exact bot_le
       | succ depth => exact realRun_twoEdge_le_cap_cost auxiliary computation cost budget hcharge hreal hsmall
 
 end SphincsBase.Concrete.PartialChainEndpoint

@@ -27,13 +27,14 @@ noncomputable def preparation (seed : MasterSeed) :
   return (d, result)
 
 theorem run_preparation (seed : MasterSeed) :
-    𝒟[(simulateQ randomOracle (preparation seed)).run ∅] =
-      𝒟[do
+    ((simulateQ randomOracle (preparation seed)).run ∅) =ᵈ
+      (do
         let d ← drawDerivations
         let r ← (simulateQ randomOracle (honestRun d).withQueryLog).run (progCache seed d)
-        pure ((d, r.1), r.2)] := by
+        pure ((d, r.1), r.2)) := by
   unfold preparation
-  rw [simulateQ_bind, StateT.run_bind, evalDist_programDerivations_draw]
+  rw [simulateQ_bind, StateT.run_bind]
+  refine (evalDist_programDerivations_draw seed _).trans (.of_eq ?_)
   simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure]
 
 theorem mem_support_preparation (seed : MasterSeed) (d : Derivations)
@@ -41,7 +42,7 @@ theorem mem_support_preparation (seed : MasterSeed) (d : Derivations)
     (cache : QueryCache HashSpec)
     (hr : (r, cache) ∈ support ((simulateQ randomOracle (honestRun d).withQueryLog).run (progCache seed d))) :
     ((d, r), cache) ∈ support ((simulateQ randomOracle (preparation seed)).run ∅) := by
-  rw [mem_support_iff_of_evalDist_eq (run_preparation seed), mem_support_bind_iff]
+  rw [OracleComp.support_eq_of_evalDistEq (run_preparation seed), mem_support_bind_iff]
   refine ⟨d, mem_support_drawDerivations d, ?_⟩
   rw [mem_support_bind_iff]
   exact ⟨(r, cache), hr, by simp⟩
@@ -78,38 +79,37 @@ theorem lift_hash_romImpl {α : Type} (c : OracleComp HashSpec α) :
 
 /-- The inner game's winning distribution is the table game's. -/
 theorem evalDist_innerGame (adversary : LeanXmss.Security.Adversary) :
-    𝒟[(simulateQ romImpl (innerGame adversary)).run' ∅] = 𝒟[sampleMasterSeed >>= tableGame adversary] := by
+    ((simulateQ romImpl (innerGame adversary)).run' ∅) =ᵈ (sampleMasterSeed >>= tableGame adversary) := by
   rw [innerGame, run'_lift_sample_bind]
-  apply evalDist_bind_congr'
+  apply EvalDistEq.bind_right
   intro seed
-  rw [evalDist_presample_computation _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅,
-    lift_hash_romImpl, evalDist_bind, run_preparation, ← evalDist_bind]
+  refine (evalDist_presample_computation _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅).trans ?_
+  rw [lift_hash_romImpl]
+  refine ((run_preparation seed).bind_left _).trans ?_
   unfold tableGame
   simp only [bind_assoc, pure_bind]
-  apply evalDist_bind_congr'
+  apply EvalDistEq.bind_right
   intro d
-  apply evalDist_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro r hr
   have h := prepared_of_mem seed d r.1 r.2 hr
-  rw [StateT.run'_eq, StateT.run'_eq, evalDist_map, evalDist_map,
-    (erases_afterKeygen adversary h).evalDist_run r.2 le_rfl]
+  rw [StateT.run'_eq, StateT.run'_eq]
+  exact ((erases_afterKeygen adversary h).evalDist_run r.2 le_rfl).map _
 
 theorem probOutput_countHashQueries (computation : OracleComp OracleWorld Bool) :
-    Pr[fun result => result.1 = true | (simulateQ romImpl (countHashQueries computation)).run' ∅] =
-      Pr[= true | (simulateQ romImpl computation).run' ∅] := by
+    Pr{let result ← (simulateQ romImpl (countHashQueries computation)).run' ∅}[result.1 = true] =
+      Pr{let x ← (simulateQ romImpl computation).run' ∅}[x = true] := by
   have h := congrArg (fun c : OracleComp OracleWorld Bool => (simulateQ romImpl c).run' ∅)
     (countHashQueries_forget computation)
   simp only [simulateQ_map, StateT.run'_map'] at h
   rw [← h]
-  simpa only [probEvent_eq_eq_probOutput, Function.comp_def] using
-    (probEvent_map (mx := (simulateQ romImpl (countHashQueries computation)).run' ∅) (f := Prod.fst)
-      (q := fun result => result = true)).symm
+  exact (prEvent_map _ Prod.fst (· = true)).symm
 
 /-- The inner game's winning probability is the table game's. -/
 theorem innerGame_eq_tableGame (adversary : LeanXmss.Security.Adversary) :
-    Pr[= true | (simulateQ romImpl (innerGame adversary)).run' ∅] =
-      Pr[= true | sampleMasterSeed >>= tableGame adversary] := by
-  rw [probOutput_def, evalDist_innerGame, ← probOutput_def]
+    Pr{let x ← (simulateQ romImpl (innerGame adversary)).run' ∅}[x = true] =
+      Pr{let x ← sampleMasterSeed >>= tableGame adversary}[x = true] :=
+  (evalDist_innerGame adversary).prEvent_eq (· = true)
 
 /-! ## Budgets -/
 

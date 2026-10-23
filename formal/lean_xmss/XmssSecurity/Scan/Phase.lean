@@ -71,31 +71,31 @@ theorem landing_ne_zero : landing ≠ 0 := by
 
 theorem tsum_le_add_mul_probEvent {β : Type} (mx : ProbComp β) (g : β → ℝ≥0∞) (a b : ℝ≥0∞)
     (E : β → Prop) [DecidablePred E] (h : ∀ r ∈ support mx, g r ≤ a + b * if E r then 1 else 0) :
-    ∑' r, Pr[= r | mx] * g r ≤ a + b * Pr[E | mx] := by
-  calc ∑' r, Pr[= r | mx] * g r ≤ ∑' r, Pr[= r | mx] * (a + b * if E r then 1 else 0) := by
+    ∑' r, Pr{let x ← mx}[x = r] * g r ≤ a + b * Pr{let x ← mx}[E x] := by
+  calc ∑' r, Pr{let x ← mx}[x = r] * g r ≤ ∑' r, Pr{let x ← mx}[x = r] * (a + b * if E r then 1 else 0) := by
         refine ENNReal.tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support mx
         · exact mul_le_mul_right (h r hr) _
-        · simp [probOutput_eq_zero_of_not_mem_support hr]
-    _ = (∑' r, Pr[= r | mx]) * a + b * Pr[E | mx] := by
+        · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
+    _ = (∑' r, Pr{let x ← mx}[x = r]) * a + b * Pr{let x ← mx}[E x] := by
         simp_rw [mul_add]
-        rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+        rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
         congr 1
         refine tsum_congr fun r => ?_
         split_ifs <;> ring
-    _ ≤ a + b * Pr[E | mx] := by
+    _ ≤ a + b * Pr{let x ← mx}[E x] := by
         gcongr
-        calc (∑' r, Pr[= r | mx]) * a ≤ 1 * a := by gcongr; exact tsum_probOutput_le_one
+        calc (∑' r, Pr{let x ← mx}[x = r]) * a ≤ 1 * a := by gcongr; exact (OracleComp.tsum_prEvent_le_one _)
           _ = a := one_mul a
 
 theorem tsum_le_of_support {β : Type} (mx : ProbComp β) (g : β → ℝ≥0∞) (a : ℝ≥0∞)
-    (h : ∀ r ∈ support mx, g r ≤ a) : ∑' r, Pr[= r | mx] * g r ≤ a := by
+    (h : ∀ r ∈ support mx, g r ≤ a) : ∑' r, Pr{let x ← mx}[x = r] * g r ≤ a := by
   classical
   simpa using tsum_le_add_mul_probEvent mx g a 0 (fun _ => False) (fun r hr => by simpa using h r hr)
 
 theorem tsum_eq_of_support {β : Type} (mx : ProbComp β) (g : β → ℝ≥0∞) (a : ℝ≥0∞)
-    (h : ∀ r ∈ support mx, g r = a) : ∑' r, Pr[= r | mx] * g r = a :=
-  tsum_probOutput_mul_of_const_on_support mx h (by simp)
+    (h : ∀ r ∈ support mx, g r = a) : ∑' r, Pr{let x ← mx}[x = r] * g r = a :=
+  OracleComp.tsum_prEvent_mul_of_const_on_support mx h
 
 theorem W_ne_top (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (y : Position) : W cache parameter leafIndex y ≠ ⊤ :=
@@ -117,7 +117,7 @@ noncomputable def cost1 : (OracleWorld + SigningSpec).Domain → State → ℝ�
   onHash fun x s => aCost secretKey.parameter x s.1.1 s.1.2
 
 theorem f1_step (input : (OracleWorld + SigningSpec).Domain) (s : State) :
-    ∑' r, Pr[= r | (impl publicKey secretKey input).run s] * f1 secretKey r.2 ≤
+    ∑' r, Pr{let x ← (impl publicKey secretKey input).run s}[x = r] * f1 secretKey r.2 ≤
       f1 secretKey s + cost1 secretKey input s := by
   obtain ⟨⟨cache, trace⟩, k⟩ := s
   cases input with
@@ -168,15 +168,18 @@ theorem f1_step (input : (OracleWorld + SigningSpec).Domain) (s : State) :
         rw [mul_assoc (N * N), ← mul_add]
         refine mul_le_mul' le_rfl ?_
         by_cases h1 : PreBad secretKey (trace ++ [⟨request, r.1, cache, r.2⟩])
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           rcases preBad_sign secretKey h1 with h | ⟨h, h'⟩
-          · rw [if_pos h]; exact le_self_add
-          · rw [if_pos h, if_pos h', mul_one]; exact le_add_self
-        · rw [if_neg h1]; exact zero_le
+          · rw [ite_eq_left h]; exact le_self_add
+          · rw [ite_eq_left h, ite_eq_left h', mul_one]; exact le_add_self
+        · rw [ite_eq_right h1]; exact zero_le
       · rw [add_assoc, f1, cost1, onHash_sign, add_zero]
         refine add_le_add le_rfl ?_
         calc N * (openΦ secretKey.parameter cache trace - U) +
-              N * N * (if Unsigned trace e then 1 else 0) * Pr[_ | _] ≤
+              N * N * (if Unsigned trace e then 1 else 0) *
+                Pr{let x ← (simulateQ romImpl (Concrete.scheme.sign secretKey request.leafIndex
+                  request.message)).run cache}[(⟨request, x.1, cache, x.2⟩ :
+                    SigningCacheEntry).CachedSelectionCollision secretKey cache] ≤
             N * (openΦ secretKey.parameter cache trace - U) + N * U := by
               refine add_le_add le_rfl ?_
               unfold U
@@ -195,7 +198,7 @@ theorem aCost_cached {parameter : PublicParameter} {x : HashInput} {cache : Quer
   unfold aCost
   cases dec parameter x with
   | none => rfl
-  | some p => rw [Option.elim_some, if_neg fun h => by rw [hc] at h; exact Option.some_ne_none _ h.1]
+  | some p => rw [Option.elim_some, ite_eq_right fun h => by rw [hc] at h; exact Option.some_ne_none _ h.1]
 
 theorem openInd_cached {parameter : PublicParameter} {x : HashInput} {cache : QueryCache HashSpec}
     {o : HashOutput} (hc : cache x = some o) (trace : SigningCacheTrace) :
@@ -203,7 +206,7 @@ theorem openInd_cached {parameter : PublicParameter} {x : HashInput} {cache : Qu
   unfold openInd
   cases dec parameter x with
   | none => rfl
-  | some p => rw [Option.elim_some, if_neg fun h => by rw [hc] at h; exact Option.some_ne_none _ h.1]
+  | some p => rw [Option.elim_some, ite_eq_right fun h => by rw [hc] at h; exact Option.some_ne_none _ h.1]
 
 theorem counts_fresh_le {parameter : PublicParameter} {x : HashInput} {cache : QueryCache HashSpec}
     {trace : SigningCacheTrace} (hx : cache x = none) (u : HashOutput) :
@@ -233,7 +236,7 @@ noncomputable def f2 (s : State) : ℝ≥0∞ := hvSum secretKey.parameter s.1.1
 
 theorem f2_step (input : (OracleWorld + SigningSpec).Domain) (s : State) :
     f2 secretKey s + landing * cost1 secretKey input s ≤
-      ∑' r, Pr[= r | (impl publicKey secretKey input).run s] * f2 secretKey r.2 := by
+      ∑' r, Pr{let x ← (impl publicKey secretKey input).run s}[x = r] * f2 secretKey r.2 := by
   obtain ⟨⟨cache, trace⟩, k⟩ := s
   cases input with
   | inl w =>
@@ -295,12 +298,12 @@ theorem inv_step (input : (OracleWorld + SigningSpec).Domain) (s : State) (hs : 
 
 theorem f3_step (hQ : Q ≤ 2 ^ 127) (input : (OracleWorld + SigningSpec).Domain) (s : State)
     (hs : Inv secretKey s) :
-    ∑' r, Pr[= r | (impl publicKey secretKey input).run s] * f3 secretKey Q r.2 ≤
+    ∑' r, Pr{let x ← (impl publicKey secretKey input).run s}[x = r] * f3 secretKey Q r.2 ≤
       f3 secretKey Q s + cost3 secretKey Q input s := by
   obtain ⟨⟨cache, trace⟩, k⟩ := s
   unfold Inv at hs
   by_cases hover : IsAdvHash input ∧ Q ≤ k
-  · rw [cost3, overBudget, if_pos hover, top_add, add_top]
+  · rw [cost3, overBudget, ite_eq_left hover, top_add, add_top]
     exact le_top
   cases input with
   | inl w =>
@@ -354,10 +357,10 @@ theorem f3_step (hQ : Q ≤ 2 ^ 127) (input : (OracleWorld + SigningSpec).Domain
                         (input secretKey.parameter e z) u, trace), k + 1)) = _ from funext hopen,
                       ex_outcome (fun st : LoopWalk.St => F3 pReal Q (nCount secretKey.parameter cache trace + 1)
                           (vCount secretKey.parameter cache trace + if st = .hit then 1 else 0) (k + 1)),
-                      if_pos (rfl : LoopWalk.St.hit = .hit),
-                      if_neg (show ¬LoopWalk.St.miss = .hit by decide), add_zero,
-                      cost3, overBudget, if_neg hover, zero_add, onHash_hash, openInd, hd, Option.elim_some,
-                      if_pos (show cache (input secretKey.parameter e z) = none ∧ Unsigned trace e from ⟨hc, hu⟩),
+                      ite_eq_left (rfl : LoopWalk.St.hit = .hit),
+                      ite_eq_right (show ¬LoopWalk.St.miss = .hit by decide), add_zero,
+                      cost3, overBudget, ite_eq_right hover, zero_add, onHash_hash, openInd, hd, Option.elim_some,
+                      ite_eq_left (show cache (input secretKey.parameter e z) = none ∧ Unsigned trace e from ⟨hc, hu⟩),
                       mul_one, one_sub_landing, landing_eq_ofReal]
                     exact F3_encoding pReal_ge pReal_le hQ hs hk
                   · exact hclosed fun p hp hup => by
@@ -431,7 +434,7 @@ theorem worldSigned_inl (parameter : PublicParameter) (trace : SigningCacheTrace
 
 theorem postPot_romImpl (parameter : PublicParameter) (trace : SigningCacheTrace) (w : OracleWorld.Domain)
     (cache : QueryCache HashSpec) :
-    ∑' r, Pr[= r | (romImpl w).run cache] * postPot parameter trace r.2 ≤
+    ∑' r, Pr{let x ← (romImpl w).run cache}[x = r] * postPot parameter trace r.2 ≤
       postPot parameter trace cache + worldSigned parameter trace w * N⁻¹ := by
   cases w with
   | inl n =>
@@ -462,7 +465,7 @@ theorem worldSigned_le (parameter : PublicParameter) (trace : SigningCacheTrace)
             have h' : encodingInputLeafIndex? parameter x = some p.1 := by rw [hx]; exact h
             rw [CappedEncodingMonitor.IsEncodingHashQuery_inr, h']
             rfl
-          rw [if_pos henc, Option.elim_some]
+          rw [ite_eq_left henc, Option.elim_some]
           split_ifs
           · exact zero_le
           · exact le_rfl
@@ -476,13 +479,13 @@ noncomputable def cost4 (input : (OracleWorld + SigningSpec).Domain) (s : State)
   N * onHash (fun x s => signedInd secretKey.parameter x s.1.2) input s
 
 theorem f4_step (input : (OracleWorld + SigningSpec).Domain) (s : State) :
-    ∑' r, Pr[= r | (impl publicKey secretKey input).run s] * f4 secretKey r.2 ≤
+    ∑' r, Pr{let x ← (impl publicKey secretKey input).run s}[x = r] * f4 secretKey r.2 ≤
       f4 secretKey s + cost4 secretKey input s := by
   obtain ⟨⟨cache, trace⟩, k⟩ := s
   cases input with
   | inl w =>
       rw [expect_world]
-      calc _ = N * N * ∑' r, Pr[= r | (romImpl w).run cache] * postPot secretKey.parameter trace r.2 := by
+      calc _ = N * N * ∑' r, Pr{let x ← (romImpl w).run cache}[x = r] * postPot secretKey.parameter trace r.2 := by
             rw [← ENNReal.tsum_mul_left]
             refine tsum_congr fun r => ?_
             rw [mul_left_comm]

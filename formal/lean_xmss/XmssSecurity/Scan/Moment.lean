@@ -3,7 +3,7 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
-import Mathlib.Data.Real.Basic
+import Mathlib.Basic.Real.Basic
 
 /-!
 # A quadratic potential for the landed count

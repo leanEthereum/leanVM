@@ -347,12 +347,9 @@ theorem winningStructuralCollision_afterKeygen_orientation
 
 theorem winningStructuralCollision_probability_le_expectedMovedQueries
     (adversary : Adversary) :
-    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-      WinningStructuralCollisionOccurs execution.2 execution.1 |
-      detailedGameWithCache Concrete.scheme adversary] ≤
+    Pr{let execution ← detailedGameWithCache Concrete.scheme adversary}[WinningStructuralCollisionOccurs execution.2 execution.1] ≤
       (∑' keyResult,
-        Pr[= keyResult |
-          (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+        Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
           expectedSimulatedQueryCount romImpl
             (Rom.IsRelevantHashQuery fun input =>
               keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)

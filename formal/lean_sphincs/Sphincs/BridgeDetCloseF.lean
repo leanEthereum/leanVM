@@ -196,7 +196,7 @@ theorem small_seedFree_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (
     (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
     (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
     (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q] ≤
+    Pr{let x ← seedFreeExperiment (internalize adversary) q}[Win x] ≤
       (smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) +
         2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost)) + smallFailF q * expectedFail := by
   refine le_trans (seedFree_le_exposeP adversary q) ?_
@@ -208,9 +208,9 @@ theorem small_seedFree_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (
       prepared ∈ support (preparation parameterOutput fixed highs remaining) →
       ∀ known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
         (knownOf (truncateHash parameterOutput) fixed)),
-      Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+      Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-            (sampleData parameterOutput fixed highs remaining)))) known prepared.2] ≤
+            (sampleData parameterOutput fixed highs remaining)))) known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
         A + C * failMass (failSet prepared.1) := by
     intro parameterOutput fixed highs remaining prepared hprepared known hk
     refine le_trans (sample_boundF hb adversary hnr q hq parameterOutput fixed highs remaining prepared
@@ -219,12 +219,12 @@ theorem small_seedFree_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (
     unfold smallMainFF smallFailF
     rw [Rat.cast_mul, ENNReal.ofReal_mul (Rat.cast_nonneg.2 hκ0)]
     ring
-  simp only [probEvent_bind_eq_tsum]
-  refine le_trans (tsum_bound_le _ _ A C (fun parameterOutput => ∑' fixed, Pr[= fixed | ($ᵗ HiddenGraph.Table :
-    ProbComp HiddenGraph.Table)] *
-    ∑' highs, Pr[= highs | ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)] *
-    ∑' remaining, Pr[= remaining | ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)] *
-    ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+  simp only [OracleComp.prEvent_bind_eq_tsum]
+  refine le_trans (tsum_bound_le _ _ A C (fun parameterOutput => ∑' fixed, Pr{let x ← ($ᵗ HiddenGraph.Table :
+    ProbComp HiddenGraph.Table)}[x = fixed] *
+    ∑' highs, Pr{let x ← ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)}[x = highs] *
+    ∑' remaining, Pr{let x ← ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)}[x = remaining] *
+    ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
       failMass (failSet prepared.1)) fun parameterOutput _ => ?_) le_rfl
   refine tsum_bound_le _ _ A C _ fun fixed _ => ?_
   refine tsum_bound_le _ _ A C _ fun highs _ => ?_
@@ -234,7 +234,7 @@ theorem small_seedFree_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (
     fun known hk => hsample parameterOutput fixed highs remaining prepared hprepared known hk) ?_
   refine add_le_add le_rfl (mul_le_mul_right ?_ _)
   rw [ENNReal.tsum_mul_right]
-  exact mul_le_of_le_one_left' tsum_probOutput_le_one
+  exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 /-- **Small budgets, deterministic signer.** -/
 theorem det_smallF (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
@@ -359,7 +359,7 @@ theorem det_bitsF (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b)
   have hkg : keygenCost = 226 * 2 ^ b + 2 * (26 - b) := by rw [← hb]; rfl
   intro q hq1 adversary hbound
   by_cases hbig : 2 ^ 127 ≤ q
-  · refine le_trans probEvent_le_one ?_
+  · refine le_trans (prEvent_le_one _) ?_
     rw [ENNReal.le_div_iff_mul_le (Or.inl (by positivity)) (Or.inl (ENNReal.natCast_ne_top _)), one_mul]
     exact_mod_cast hbig
   have hq127 : q < 2 ^ 127 := Nat.lt_of_not_le hbig

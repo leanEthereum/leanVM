@@ -326,13 +326,13 @@ theorem simulate_eagerTrace_hazardEnforcementImpl_query
   cases input with
   | uniform n =>
       simp [StateT.run, uniformQuery, eagerTraceImpl, eagerImpl,
-        traceFragment, QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+        traceFragment, WriterT.run_tell,
         hazardCount, enforceHazardTrace]
   | encodingQuery leafIndex =>
       cases fuel with
       | zero =>
           simp [StateT.run, eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            WriterT.run_tell,
             enforceHazardTrace]
           change (fun x => ((x.1, 0), x.2)) <$>
               (simulateQ (eagerTraceImpl table)
@@ -341,25 +341,25 @@ theorem simulate_eagerTrace_hazardEnforcementImpl_query
           simp
       | succ remaining =>
           simp [StateT.run, encodingQuery, eagerTraceImpl, eagerImpl,
-            traceFragment, QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            traceFragment, WriterT.run_tell,
             hazardCount, enforceHazardTrace]
   | encodingSignAttempt leafIndex =>
       simp [StateT.run, encodingSignAttemptQuery, eagerTraceImpl,
-        eagerImpl, traceFragment, QueryImpl.withTraceAppend_apply,
+        eagerImpl, traceFragment,
         WriterT.run_tell, hazardCount, enforceHazardTrace]
   | probe index target =>
       cases fuel with
       | zero =>
           simp [StateT.run, eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            WriterT.run_tell,
             enforceHazardTrace]
       | succ remaining =>
           simp [StateT.run, probeQuery, eagerTraceImpl, eagerImpl,
-            traceFragment, QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            traceFragment, WriterT.run_tell,
             hazardCount, enforceHazardTrace]
   | reveal index =>
       simp [StateT.run, revealQuery, eagerTraceImpl, eagerImpl,
-        traceFragment, QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+        traceFragment, WriterT.run_tell,
         hazardCount, enforceHazardTrace]
 
 omit [Fintype Index] [DecidableEq Index] in

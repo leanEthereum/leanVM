@@ -60,7 +60,7 @@ theorem queryCount_realChainWalk (parameter : PublicParameter) (lay : LeanXmss.L
   | succ steps ih =>
       rw [LeanXmss.Concrete.chainWalk]
       refine (ih (by omega)).bind fun previous => ?_
-      rw [dif_pos (show start + steps < LeanXmss.chainLength - 1 by
+      rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 by
         simp only [chainLength, winternitzBits, LeanXmss.chainLength, LeanXmss.winternitzBits] at hsteps ⊢
         omega)]
       exact queryCount_realHash _ _ _
@@ -167,7 +167,7 @@ theorem erases_treeNode_bottom (seed : MasterSeed) (d : Derivations) (level : Na
       exact .refl _ _
   | succ level ih =>
       rw [LeanXmss.Seeded.treeNode, Concrete.treeNode_succ_eq]
-      simp only [dif_pos (show level < treeHeight by simp only [treeHeight]; omega)]
+      simp only [dite_eq_left (show level < treeHeight by simp only [treeHeight]; omega)]
       have hj2 : 2 * j + 1 < 2 ^ (32 - level) := by
         rw [show 32 - level = 32 - (level + 1) + 1 by omega, pow_succ]
         omega
@@ -208,7 +208,7 @@ theorem erases_treeNode_top (seed : MasterSeed) (d : Derivations) (level : Nat) 
       exact .refl _ _
   | succ level ih =>
       rw [LeanXmss.Seeded.treeNode, Concrete.topTreeNode]
-      simp only [dif_pos (show level < treeHeight by simp only [treeHeight]; omega)]
+      simp only [dite_eq_left (show level < treeHeight by simp only [treeHeight]; omega)]
       have hj2 : 2 * j + 1 < 2 ^ (16 - level) := by
         rw [show 16 - level = 16 - (level + 1) + 1 by omega, pow_succ]
         omega

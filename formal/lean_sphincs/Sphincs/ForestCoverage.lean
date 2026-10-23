@@ -119,15 +119,14 @@ theorem fullDigestView_injective : Function.Injective fullDigestView := by
 theorem fullDigestView_bijective : Function.Bijective fullDigestView := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨fullDigestView_injective, ?_⟩
-  rw [card_bitVec, Fintype.card_prod, Fintype.card_fin, Fintype.card_fun,
-    Fintype.card_fin, Fintype.card_fin, ← pow_mul, ← pow_add]
-  rfl
+  simp only [Fintype.card_bitVec, Fintype.card_prod, Fintype.card_fin, Fintype.card_fun]
+  rw [← pow_mul, ← pow_add]
+  congr 1
 
 theorem evalDist_fullDigestView_uniform :
-    𝒟[fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)] =
-    𝒟[($ᵗ FullDigestView : ProbComp FullDigestView)] :=
-  evalDist_map_bijective_uniform_cross (α := MessageDigest) (β := FullDigestView)
-    fullDigestView fullDigestView_bijective
+    (fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)) =ᵈ ($ᵗ FullDigestView : ProbComp FullDigestView) :=
+  SampleableType.map_uniformSample_evalDistEq_of_bijective (α := MessageDigest) (β := FullDigestView)
+    fullDigestView_bijective
 
 /-! ### Decoding a field -/
 

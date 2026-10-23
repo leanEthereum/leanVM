@@ -127,14 +127,14 @@ theorem full_restrict_mass [Nonempty Answer] {n : Nat} (rows : Fin n → Finset 
   · have h := uniformTable_restrict (fun _ : Fin n => Finset.univ) rows
       (fun _ => Finset.univ_nonempty) hrows (fun _ => Finset.subset_univ _) table
     by_cases ht : ∀ coordinate, table coordinate ∈ rows coordinate <;>
-      simpa only [full, constrained, dif_pos hrows, Finset.card_univ, ht, if_true, if_false] using h
+      simpa only [full, constrained, dite_eq_left hrows, Finset.card_univ, ht, ite_true, ite_false] using h
   · push Not at hrows
     obtain ⟨coordinate, hempty⟩ := hrows
     have hzero : (∏ coordinate, (rows coordinate).card : Nat) = 0 :=
       Finset.prod_eq_zero (Finset.mem_univ coordinate) (by rw [hempty, Finset.card_empty])
     have ht : ¬∀ coordinate, table coordinate ∈ rows coordinate := fun h => by
       simpa only [hempty, Finset.notMem_empty] using h coordinate
-    simp only [ht, if_false, hzero, Nat.cast_zero, ENNReal.zero_div, zero_mul]
+    simp only [ht, ite_false, hzero, Nat.cast_zero, ENNReal.zero_div, zero_mul]
 
 noncomputable def successMass (decode : Answer → Option Value) {n : Nat} (index : Fin n) (value : Value) : ENNReal :=
   ((∏ coordinate, (allowed decode index value coordinate).card : Nat) : ENNReal) /
@@ -149,9 +149,9 @@ theorem full_success_mass [Nonempty Answer] (decode : Answer → Option Value) {
 
 theorem probEvent_full_success [Nonempty Answer] (decode : Answer → Option Value) {n : Nat}
     (index : Fin n) (value : Value) :
-    Pr[fun table => select decode table = some (index, value) | full (Answer := Answer) n] =
+    Pr{let table ← full (Answer := Answer) n}[select decode table = some (index, value)] =
       successMass decode index value := by
-  simp only [probEvent_eq_tsum_ite, PMF.probOutput_eq_apply,
+  simp only [PMF.prEvent_eq_tsum_ite,
     full_success_mass decode index value, ENNReal.tsum_mul_left, PMF.tsum_coe, mul_one]
 
 theorem full_exhaustion_mass [Nonempty Answer] (decode : Answer → Option Value) (n : Nat)
@@ -171,9 +171,9 @@ theorem full_exhaustion_mass [Nonempty Answer] (decode : Answer → Option Value
   simpa only [select_none_iff] using h
 
 theorem probEvent_full_exhaustion [Nonempty Answer] (decode : Answer → Option Value) (n : Nat) :
-    Pr[fun table => select decode table = none | full (Answer := Answer) n] =
+    Pr{let table ← full (Answer := Answer) n}[select decode table = none] =
       ((invalid decode).card / (Fintype.card Answer : ENNReal)) ^ n := by
-  simp only [probEvent_eq_tsum_ite, PMF.probOutput_eq_apply,
+  simp only [PMF.prEvent_eq_tsum_ite,
     full_exhaustion_mass decode n, ENNReal.tsum_mul_left, PMF.tsum_coe, mul_one]
 
 noncomputable def selected [Nonempty Answer] (decode : Answer → Option Value) (n : Nat) :
@@ -187,14 +187,14 @@ noncomputable def afterSelect [Nonempty Answer] (decode : Answer → Option Valu
 omit [DecidableEq Answer] in
 theorem selected_apply [Nonempty Answer] (decode : Answer → Option Value) (n : Nat)
     (result : Option (Fin n × Value)) :
-    selected decode n result = Pr[fun table => select decode table = result | full (Answer := Answer) n] := by
-  simp only [selected, PMF.map_apply, probEvent_eq_tsum_ite, PMF.probOutput_eq_apply]
+    selected decode n result = Pr{let table ← full (Answer := Answer) n}[select decode table = result] := by
+  simp only [selected, PMF.map_apply, PMF.prEvent_eq_tsum_ite]
   apply tsum_congr
   intro table
   by_cases h : select decode table = result
   · subst result
     simp
-  · simp only [h, Ne.symm h, if_false]
+  · simp only [h, Ne.symm h, ite_false]
 
 theorem selected_mul_afterSelect [Nonempty Answer] (decode : Answer → Option Value) (n : Nat)
     (result : Option (Fin n × Value)) (table : Fin n → Answer) :

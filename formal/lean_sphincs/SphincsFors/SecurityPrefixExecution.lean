@@ -16,9 +16,6 @@ set_option backward.isDefEq.respectTransparency false
 
 abbrev World (segment : Segment) := OracleWorld + PrefixSpec segment.digit.val Digest
 
-noncomputable local instance (segment : Segment) : IsUniformSpec (World segment) :=
-  IsUniformSpec.ofFintypeInhabited _
-
 /-- Source-side hash calls, excluding private uniform samples. -/
 def SourceHash : OracleWorld.Domain → Prop
   | .inl _ => False

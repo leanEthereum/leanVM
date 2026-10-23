@@ -62,7 +62,7 @@ theorem hashCalls_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParam
   induction steps generalizing start value with
   | zero => simp only [chainWalk, hashCalls_pure]
   | succ steps ih =>
-      rw [chainWalk, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [chainWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 /-- The 64 chain starts of a one-time key cost 32 seed derivations. -/
 theorem hashCalls_otsSecrets (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -105,7 +105,7 @@ theorem hashCalls_forestWalk (f : QueryImpl HashSpec Id) (parameter : PublicPara
   induction steps generalizing start value with
   | zero => simp only [forestWalk, hashCalls_pure]
   | succ steps ih =>
-      rw [forestWalk, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [forestWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 theorem hashCalls_chainValue (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
@@ -139,7 +139,7 @@ theorem hashCalls_subNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   induction level generalizing node with
   | zero => rw [Seeded.subNode, hashCalls_childLeaf]; rfl
   | succ level ih =>
-      rw [Seeded.subNode, hashCalls_bind, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash,
+      rw [Seeded.subNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
         ih _ (by omega), ih _ (by omega)]
       have hp : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]
@@ -162,7 +162,7 @@ theorem hashCalls_topNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   induction level generalizing node with
   | zero => rw [Seeded.topNode, hashCalls_superNode]; rfl
   | succ level ih =>
-      rw [Seeded.topNode, hashCalls_bind, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash,
+      rw [Seeded.topNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
         ih _ (by omega), ih _ (by omega)]
       have hp : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]

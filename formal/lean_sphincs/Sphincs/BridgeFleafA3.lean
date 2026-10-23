@@ -66,7 +66,7 @@ theorem arithFF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0
   have hbase : 1 + Y + ENNReal.ofReal (K.ρ - 1 - xr) ≤ ENNReal.ofReal K.ρ := arith_fleaf hN hxr hY
   set d := ENNReal.ofReal (K.ρ - 1 - xr) with hd
   by_cases hr : Recd s f
-  · rw [if_pos hr]
+  · rw [ite_eq_left hr]
     calc g + (Y + K.kf s) + d ≤ (1 + Y + d) + K.kf s := by
           calc g + (Y + K.kf s) + d ≤ 1 + (Y + K.kf s) + d := add_le_add (add_le_add hg le_rfl) le_rfl
             _ = (1 + Y + d) + K.kf s := by ring
@@ -74,7 +74,7 @@ theorem arithFF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0
       _ ≤ K.vrate s + K.kf s := add_le_add (K.vrate_ge hN.high s) le_rfl
       _ ≤ _ := K.rate_ge_kf s
   · have hg0 : g = 0 := hrec.resolve_right hr
-    rw [hg0, if_neg hr, zero_add]
+    rw [hg0, ite_eq_right hr, zero_add]
     calc 1 + d ≤ 1 + Y + d := add_le_add le_self_add le_rfl
       _ ≤ ENNReal.ofReal K.ρ := hbase
       _ ≤ _ := K.rate_ge_rho hN s
@@ -92,13 +92,13 @@ include hN hxr hY in
 /-- A fresh forest step pays its guess and the slack. -/
 theorem fresh_fchainF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {f : FIn}
     (hxF : x = f.input K.p) (hk : K.tg.kind x = .none) {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0 ∨ Recd s f) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤
       K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_fchain y' hx hi hxF hk
   have ha := K.arithFF hN hxr hY s hg hrec
   rw [K.pot_succ]
-  calc ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr)
+  calc ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr)
       ≤ K.pot y' s + ν * (if Recd s f then (y' : ℝ≥0∞) * ν + K.kf s else 1) + ν * g +
           ν * ENNReal.ofReal (K.ρ - 1 - xr) :=
         add_le_add (add_le_add h le_rfl) le_rfl
@@ -111,7 +111,7 @@ include hN hxr hY hsec in
 theorem guess_freshF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) (q : Address × Digest)
     (hp : HiddenGraph.parse K.p (candidateActive K.p) x = some q) (hk : s.known q.1.inputCoordinate = none)
     (hF : IsFchainIn K.p x) :
-    ∑' r, Pr[= r | readOutside x (s.record (q.1.inputCoordinate, q.2))] * K.pot y' r.2 +
+    ∑' r, Pr{let y ← readOutside x (s.record (q.1.inputCoordinate, q.2))}[y = r] * K.pot y' r.2 +
       ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤ K.pot (y' + 1) s := by
   obtain ⟨rfl, -⟩ := (parse_some_iff _ _ x q).1 hp
   obtain ⟨addr, v⟩ := q
@@ -140,11 +140,11 @@ theorem guess_freshF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x =
       have hrec := K.pot_record (y' + 1) s ((Address.fchain index c sp j a i t).inputCoordinate, v) hk hKF
       rw [mul_one] at main
       refine (ENNReal.add_le_add_iff_right ν_ne_top).1 ?_
-      calc ∑' r, Pr[= r | readOutside ((FIn.mk index c sp j a i t v).input K.p)
-              (s.record ((Address.fchain index c sp j a i t).inputCoordinate, v))] * K.pot y' r.2 +
+      calc ∑' r, Pr{let x ← (readOutside ((FIn.mk index c sp j a i t v).input K.p)
+              (s.record ((Address.fchain index c sp j a i t).inputCoordinate, v)))}[x = r] * K.pot y' r.2 +
             ν * ENNReal.ofReal (K.ρ - 1 - xr) + ν
-          = ∑' r, Pr[= r | readOutside ((FIn.mk index c sp j a i t v).input K.p)
-              (s.record ((Address.fchain index c sp j a i t).inputCoordinate, v))] * K.pot y' r.2 + ν +
+          = ∑' r, Pr{let x ← (readOutside ((FIn.mk index c sp j a i t v).input K.p)
+              (s.record ((Address.fchain index c sp j a i t).inputCoordinate, v)))}[x = r] * K.pot y' r.2 + ν +
             ν * ENNReal.ofReal (K.ρ - 1 - xr) := by ring
         _ ≤ K.pot (y' + 1) (s.record ((Address.fchain index c sp j a i t).inputCoordinate, v)) := main
         _ ≤ _ := hrec
@@ -197,17 +197,17 @@ unknown secret. -/
 theorem stepFchain {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
     (hsec : ∀ x, SecondOrderInput K.p K.R x → K.tg.kind x = .none)
     (bytes : HashInput) (hF : IsFchainIn K.p bytes) (budget : ℕ) (s : St) (hinv : K.Inv s) (hcost : 1 ≤ budget) :
-    ∑' r, Pr[= r | costStep M (.inl (.inr (.inl bytes))) s] * K.potCap total (budget - 1) r.2 +
+    ∑' r, Pr{let x ← costStep M (.inl (.inr (.inl bytes))) s}[x = r] * K.potCap total (budget - 1) r.2 +
       ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128) ≤ K.potCap total budget s := by
   unfold potCap
   by_cases hb : budget ≤ total
   swap
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     exact le_top
-  rw [if_pos hb]
+  rw [ite_eq_left hb]
   have hpot : ∀ r : HashOutput × St,
       (if budget - 1 ≤ total then K.pot (budget - 1) r.2 else ⊤) = K.pot (budget - 1) r.2 :=
-    fun r => if_pos ((Nat.sub_le _ _).trans hb)
+    fun r => ite_eq_left ((Nat.sub_le _ _).trans hb)
   simp only [hpot]
   have hxr : (0 : ℝ) ≤ (total : ℝ) / 2 ^ 128 := by positivity
   obtain ⟨y', rfl⟩ : ∃ y', budget = y' + 1 := ⟨budget - 1, by omega⟩
@@ -222,7 +222,7 @@ theorem stepFchain {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
       rw [lazyStep_unparsed M bytes s hp]
       cases hc : s.cache bytes with
       | some u =>
-          rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+          rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
           exact hsame
       | none =>
           have h := K.fresh_fchainF hN hxr hY hinv hc hxF hkF (g := 0) bot_le (Or.inl rfl)
@@ -237,13 +237,13 @@ theorem stepFchain {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
           cases hc : s.cache bytes with
           | some u =>
               have hc' : (s.record (q.1.inputCoordinate, q.2)).cache bytes = some u := hc
-              rw [readOutside_cached bytes _ u hc', tsum_probOutput_pure_mul]
+              rw [readOutside_cached bytes _ u hc', OracleComp.tsum_prEvent_pure_mul]
               exact K.guess_cachedF hN hxr y' hinv hc q hq hk
           | none => exact K.guess_freshF hN hxr hY hsec hinv hc q hq hk ⟨f, hxF⟩
       | some canonical =>
           by_cases heq : q.2 = canonical
-          · rw [lazyStep_canonical M bytes s q hp canonical hk heq, tsum_probOutput_map_mul]
-            calc ∑' r, Pr[= r | sampleCoordinate (M.outgoing q.1) s] * K.pot y' r.2 +
+          · rw [lazyStep_canonical M bytes s q hp canonical hk heq, OracleComp.tsum_prEvent_map_mul]
+            calc ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot y' r.2 +
                   ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128)
                 ≤ K.pot y' s + ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128) :=
                   add_le_add (K.sample_mean y' s _) le_rfl
@@ -251,7 +251,7 @@ theorem stepFchain {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
           · rw [lazyStep_other M bytes s q hp canonical hk heq]
             cases hc : s.cache bytes with
             | some u =>
-                rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+                rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
                 exact hsame
             | none =>
                 have h := K.fresh_fchainF hN hxr hY hinv hc hxF hkF (g := 0) bot_le (Or.inl rfl)
@@ -266,7 +266,7 @@ theorem digestCount_fleaf (tg' : Targeting HashInput HashOutput Coordinate)
     obtain ⟨f, rfl⟩ := hF
     exact fun hd => msg_ne_fchain hd rfl
   have h := digestCount_bytes tg' bytes
-  rw [hdig, if_neg hnm] at h
+  rw [hdig, ite_eq_right hnm] at h
   exact_mod_cast h
 
 include hMp hMi hMo in
@@ -277,7 +277,7 @@ theorem stepF (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.dige
     (hmsg : ∀ x, ForestSigner.IsMsgInput x → K.tg.kind x = .none)
     (input : (SourceCostSpec HashInput HashOutput Coordinate).Domain) (budget : ℕ) (s : St) (hinv : K.Inv s)
     (hcost : sourceCost input ≤ budget) :
-    ∑' r, Pr[= r | costStep M input s] * K.potCap total (budget - sourceCost input) r.2 +
+    ∑' r, Pr{let x ← costStep M input s}[x = r] * K.potCap total (budget - sourceCost input) r.2 +
       ENNReal.ofReal (K.ρ / 2 ^ 128) * digestCount tg' (recorded input) +
       ENNReal.ofReal ((K.ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128) * fleafCount (IsFchainIn K.p) (recorded input) ≤
         K.potCap total budget s := by
@@ -287,7 +287,7 @@ theorem stepF (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.dige
       rfl
     rw [hc1] at hcost ⊢
     rw [K.digestCount_fleaf tg' hdig bytes hF, Nat.cast_zero, mul_zero, add_zero, fleafCount_recorded_inl,
-      if_pos hF, mul_one, payment_eq]
+      ite_eq_left hF, mul_one, payment_eq]
     exact K.stepFchain M hMp hMi hN hsec bytes hF budget s hinv hcost
   · have hfc : fleafCount (IsFchainIn K.p) (recorded input) = 0 :=
       fleafCount_recorded_eq_zero _ input fun bytes h hb => hF ⟨bytes, h, hb⟩
@@ -313,8 +313,8 @@ theorem smallRoute_potentialF
     (tg : Targeting HashInput HashOutput Coordinate) (hdigest : tg.digest = ForestSigner.IsMsgInput)
     (total : ℕ) (hN : Numeric ρ ((total : ℝ) / 2 ^ 128))
     {α : Type} (comp : OracleComp (SourceCostSpec HashInput HashOutput Coordinate) α) :
-    ∑' out, Pr[= out | interp tg prepared.2 (sampleModel parameterOutput highs) comp total
-        (DebtState.start prepared.2 known)] *
+    ∑' out, Pr{let x ← (interp tg prepared.2 (sampleModel parameterOutput highs) comp total
+        (DebtState.start prepared.2 known))}[x = out] *
       (endValue (payoffA parameterOutput fixed highs remaining prepared known ρ) out.2 +
         ENNReal.ofReal (ρ / 2 ^ 128) * digestCount tg out.1.2.2.1 +
         ENNReal.ofReal ((ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128) *
@@ -337,7 +337,7 @@ theorem smallRoute_potentialF
     (inv_start parameterOutput fixed highs remaining prepared known ρ hknown)
   refine h.trans (le_of_eq ?_)
   unfold Ctx.potCap
-  rw [if_pos le_rfl]
+  rw [ite_eq_left le_rfl]
   exact pot_start K known (show (0 : ℝ) ≤ ρ by linarith [hN.low]) total
 
 end Sample

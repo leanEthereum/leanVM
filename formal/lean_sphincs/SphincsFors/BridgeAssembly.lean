@@ -35,29 +35,46 @@ theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [Deci
         OnlyW.bind (ih answer hnext) (fun _ => OnlyW.pure' _)
       split <;> simpa [OnlyW] using hbind
 
+/-- `pure` has the same distribution in any two lawful semantics. -/
+theorem evalDistEq_pure {m₁ m₂ : Type → Type} [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]
+    [EvalDistSemantics m₁] [LawfulEvalDistSemantics m₁] [EvalDistSemantics m₂]
+    [LawfulEvalDistSemantics m₂] {α : Type} (value : α) :
+    (pure value : m₁ α) =ᵈ (pure value : m₂ α) := fun p => by
+  classical
+  rw [prEvent_pure, prEvent_pure]
+
+/-- A uniform query of `unifSpec` is the uniform `PMF`. -/
+theorem evalDistEq_unifQuery_pmf (draw : ℕ) :
+    (liftM (unifSpec.query draw) : ProbComp _) =ᵈ PMF.uniformOfFintype (Fin (draw + 1)) := by
+  refine evalDistEq_iff_forall_prEvent_eq_output.mpr fun x => ?_
+  rw [OracleComp.prEvent_liftM_query_eq_card_div, PMF.probOutput_eq_apply, PMF.uniformOfFintype_apply,
+    Finset.filter_eq' Finset.univ x]
+  simp
+
 /-- Two handlers with equal per-query distributions give equal simulated distributions. -/
 theorem evalDist_simulateQ_congr {ι : Type} {spec : OracleSpec ι} {m₁ m₂ : Type → Type}
     [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]
-    [MonadLiftT m₁ SPMF] [LawfulMonadLiftT m₁ SPMF] [MonadLiftT m₂ SPMF] [LawfulMonadLiftT m₂ SPMF]
+    [EvalDistSemantics m₁] [LawfulEvalDistSemantics m₁] [EvalDistSemantics m₂]
+    [LawfulEvalDistSemantics m₂]
     (impl₁ : QueryImpl spec m₁) (impl₂ : QueryImpl spec m₂)
-    (h : ∀ input, 𝒟[impl₁ input] = 𝒟[impl₂ input]) {α : Type} (oa : OracleComp spec α) :
-    𝒟[simulateQ impl₁ oa] = 𝒟[simulateQ impl₂ oa] := by
+    (h : ∀ input, impl₁ input =ᵈ impl₂ input) {α : Type} (oa : OracleComp spec α) :
+    simulateQ impl₁ oa =ᵈ simulateQ impl₂ oa := by
   induction oa using OracleComp.inductionOn with
-  | pure value => simp
+  | pure value => simpa only [simulateQ_pure] using evalDistEq_pure value
   | query_bind input next ih =>
-      rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_spec_query,
-        evalDist_bind, evalDist_bind, h input]
-      exact congrArg _ (funext ih)
+      rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_spec_query]
+      exact (h input).bind ih
 
 theorem evalDist_fixedRom_eq_fixedHashWorld (f : HashInput → HashOutput) {α : Type}
     (oa : OracleComp OracleWorld α) :
-    𝒟[simulateQ (fixedRom f) oa] = 𝒟[simulateQ (Prefix.fixedHashWorld f) oa] := by
+    simulateQ (fixedRom f) oa =ᵈ simulateQ (Prefix.fixedHashWorld f) oa := by
   refine evalDist_simulateQ_congr _ _ (fun input => ?_) oa
   cases input with
   | inl draw =>
-      change 𝒟[(liftM (unifSpec.query draw) : ProbComp _)] = 𝒟[PMF.uniformOfFintype (Fin (draw + 1))]
-      rw [evalDist_query]
-  | inr bytes => simp [fixedRom, Prefix.fixedHashWorld]
+      exact evalDistEq_unifQuery_pmf draw
+  | inr bytes =>
+      simp [fixedRom, Prefix.fixedHashWorld]
+      exact evalDistEq_pure (m₁ := ProbComp) (m₂ := PMF) (f bytes)
 
 noncomputable local instance assemblyLabelsSampleable : SampleableType CanonicalGraphLabels :=
   graphLabelsSampleable

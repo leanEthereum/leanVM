@@ -95,7 +95,7 @@ theorem search_targets_empty_or_miss (f : QueryImpl HashSpec Id) (parameter : Pu
   · have hexempt' : exemptInput f parameter lay tree leaf message =
         some (tweakableHashInput parameter (.encoding lay tree leaf)
           (bytesLE 16 message ++ bytesLE 4 counter)) := hexempt
-    rw [if_pos hexempt']
+    rw [ite_eq_left hexempt']
     exact Finset.notMem_empty _
 
 end SphincsFors.Security.ReferenceChoice

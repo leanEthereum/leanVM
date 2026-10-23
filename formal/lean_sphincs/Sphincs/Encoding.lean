@@ -19,16 +19,12 @@ open TargetSum
 
 /-- The accepted share is the code's size over the digest space. -/
 theorem probEvent_accept :
-    Pr[fun u : HashOutput => (decodeDigest (truncateHash u)).isSome |
-        ($ᵗ HashOutput : ProbComp HashOutput)]
+    Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[(decodeDigest (truncateHash u)).isSome]
       = ((univ.filter fun d : Digest => (decodeDigest d).isSome).card : ℝ≥0∞)
           / (Fintype.card Digest : ℝ≥0∞) := by
   rw [← Sphincs.probEvent_uniform_truncateHash_mem
     (univ.filter fun d : Digest => (decodeDigest d).isSome)]
-  apply probEvent_congr'
-  · intro u _
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-  · rfl
+  exact prEvent_congr _ _ _ fun u => by simp only [Finset.mem_filter, Finset.mem_univ, true_and]
 
 /-- One trial rejects at most `1 - 2 ^ -10` of the answers. -/
 theorem failMass_encoding_add_le :
@@ -38,18 +34,16 @@ theorem failMass_encoding_add_le :
   have hnat : (2 : Nat) ^ 118 ≤ accepted := haccepted ▸ two_pow_le_card_accepting
   have hcard : (Fintype.card Digest : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 128 := by
     rw [show Fintype.card Digest = 2 ^ 128 by simp [digestBits], Nat.cast_pow, Nat.cast_ofNat]
-  have hcompl := probEvent_compl ($ᵗ HashOutput : ProbComp HashOutput)
-    (fun u => (decodeDigest (truncateHash u)).isSome)
-  have hreject : Pr[fun u : HashOutput => ¬ (decodeDigest (truncateHash u)).isSome = true |
-      ($ᵗ HashOutput : ProbComp HashOutput)]
+  have hcompl : Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[(decodeDigest (truncateHash u)).isSome]
+      + Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ (decodeDigest (truncateHash u)).isSome = true]
+      = 1 := by
+    rw [OracleComp.prEvent_not_eq_one_sub]
+    exact add_tsub_cancel_of_le (prEvent_le_one _)
+  have hreject : Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ (decodeDigest (truncateHash u)).isSome = true]
       = failMass (fun out => decodeDigest (truncateHash out)) := by
     rw [failMass_eq_probEvent]
-    apply probEvent_congr'
-    · intro u _
-      cases decodeDigest (truncateHash u) <;> simp
-    · rfl
-  have hfail : Pr[⊥ | ($ᵗ HashOutput : ProbComp HashOutput)] = 0 := by simp
-  rw [hreject, probEvent_accept, hfail, tsub_zero, hcard, haccepted] at hcompl
+    exact prEvent_congr _ _ _ fun u => by cases decodeDigest (truncateHash u) <;> simp
+  rw [hreject, probEvent_accept, hcard, haccepted] at hcompl
   have hshare : ((2 : ℝ≥0∞) ^ 10)⁻¹ ≤ (accepted : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
     rw [ENNReal.le_div_iff_mul_le (Or.inl (by simp)) (Or.inl (by simp)),
       show (2 : ℝ≥0∞) ^ 128 = 2 ^ 10 * 2 ^ 118 by rw [← pow_add],
@@ -63,9 +57,9 @@ theorem encoding_exhaustion_bound (parameter : PublicParameter) (lay : Layer) (t
     (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) (cache : QueryCache HashSpec)
     (hfresh : ∀ c, c < encodingAttemptLimit →
       cache (encodeInput parameter lay tree leaf message c) = none) :
-    Pr[fun r => r.1 = none | (simulateQ randomOracle
+    Pr{let r ← ((simulateQ randomOracle
         (Seeded.otsSign parameter lay tree leaf seed message
-          : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))).run cache]
+          : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))).run cache)}[r.1 = none]
       ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ 22) := by
   apply (probEvent_otsSign parameter lay tree leaf seed message cache hfresh).trans
   have hhalf := pow_le_half_ennreal (2 ^ 10) (by positivity)

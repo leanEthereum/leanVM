@@ -89,13 +89,13 @@ theorem treeNode_merkle_query_cached_in_largerCache
               simpa only [hlevel, ↓reduceDIte] using hrestAll)
         have hpartition := merkleAddressInSubtree_step_sum targetLevel targetNode levels
           node hlevel hvalid
-        rw [if_pos hcontains] at hpartition
+        rw [ite_eq_left hcontains] at hpartition
         have hdomain : HashDomain.merkle ⟨levels, hlevel⟩ node ≠
             .merkle targetLevel targetNode := by
           intro heq
           have hlevelEq := congrArg Fin.val (HashDomain.merkle.inj heq).1
           exact hcurrent hlevelEq.symm
-        rw [if_neg hdomain, add_zero] at hpartition
+        rw [ite_eq_right hdomain, add_zero] at hpartition
         by_cases hleftContains : MerkleAddressInSubtree targetLevel targetNode levels
             (Concrete.childNode node false)
         · obtain ⟨output, hcached⟩ :=
@@ -104,7 +104,7 @@ theorem treeNode_merkle_query_cached_in_largerCache
           exact ⟨output, hleftLe hcached⟩
         · have hrightContains : MerkleAddressInSubtree targetLevel targetNode levels
               (Concrete.childNode node true) := by
-            simp only [hleftContains, if_false, zero_add] at hpartition
+            simp only [hleftContains, ite_false, zero_add] at hpartition
             split at hpartition
             · assumption
             · omega

@@ -13,8 +13,7 @@ def WinningSecondLaneBadEventOccurs
 
 def HasSecondLaneBound
     (q : Nat) (adversary : Adversary) : Prop :=
-  Pr[WinningSecondLaneBadEventOccurs |
-      cappedDetailedGameWithEncodingTrace adversary] ≤
+  Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningSecondLaneBadEventOccurs x] ≤
     q /
       ((2 ^ digestBits : Nat) : ENNReal)
 
@@ -25,37 +24,25 @@ theorem hasSecondLaneBound_of_hashQueryBound
   let encoding := CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary
   let structural := expectedPostKeygenStructuralQueries adversary
   have hstructural :
-      Pr[fun execution : CappedEncodingTraceExecution =>
-          WinningStructuralCollisionOccurs execution.2.1.1 execution.1 |
-        cappedDetailedGameWithEncodingTrace adversary] ≤
+      Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[WinningStructuralCollisionOccurs execution.2.1.1 execution.1] ≤
       structural / ((2 ^ digestBits : Nat) : ENNReal) := by
-    change Pr[fun execution : CappedEncodingTraceExecution =>
-          WinningStructuralCollisionOccurs execution.2.1.1 execution.1 |
-        cappedDetailedGameWithEncodingTrace adversary] ≤
+    change Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[WinningStructuralCollisionOccurs execution.2.1.1 execution.1] ≤
       expectedPostKeygenStructuralQueries adversary /
         ((2 ^ digestBits : Nat) : ENNReal)
     calc
-      _ = Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-            WinningStructuralCollisionOccurs execution.2 execution.1 |
-          detailedGameWithCache Concrete.scheme adversary] := by
+      _ = Pr{let execution ← detailedGameWithCache Concrete.scheme adversary}[WinningStructuralCollisionOccurs execution.2 execution.1] := by
         rw [← cappedDetailedGameWithEncodingTrace_cache_projection,
-          probEvent_map]
-        rfl
+          prEvent_map]
       _ ≤ _ :=
         winningStructuralCollision_probability_le_expectedPostKeygenStructuralQueries
           adversary
   unfold HasSecondLaneBound WinningSecondLaneBadEventOccurs
   calc
-    Pr[fun execution : CappedEncodingTraceExecution =>
-        WinningCachedSelectionOccurs execution ∨
-          WinningStructuralCollisionOccurs execution.2.1.1 execution.1 |
-      cappedDetailedGameWithEncodingTrace adversary] ≤
-      Pr[WinningCachedSelectionOccurs |
-          cappedDetailedGameWithEncodingTrace adversary] +
-        Pr[fun execution : CappedEncodingTraceExecution =>
-            WinningStructuralCollisionOccurs execution.2.1.1 execution.1 |
-          cappedDetailedGameWithEncodingTrace adversary] :=
-      probEvent_or_le _ _ _
+    Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[WinningCachedSelectionOccurs execution ∨
+          WinningStructuralCollisionOccurs execution.2.1.1 execution.1] ≤
+      Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningCachedSelectionOccurs x] +
+        Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[WinningStructuralCollisionOccurs execution.2.1.1 execution.1] :=
+      prEvent_or_le _ _ _
     _ ≤ encoding / ((2 ^ digestBits : Nat) : ENNReal) +
         structural / ((2 ^ digestBits : Nat) : ENNReal) :=
       add_le_add

@@ -1,3 +1,5 @@
 .build
 target
+# A Lean module directory, which `target` matches where paths are case-insensitive.
+!formal/lean_da/PqDas/Target/
 __pycache__/

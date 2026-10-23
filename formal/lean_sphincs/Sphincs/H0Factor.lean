@@ -78,9 +78,9 @@ theorem marksAt_add_single (l l0 : ι) (m : M) (d : Multiset (ι × M)) :
   rw [Multiset.filter_add, Multiset.map_add]
   congr 1
   by_cases h : l0 = l
-  · rw [if_pos h, Multiset.filter_singleton, if_pos h]
+  · rw [ite_eq_left h, Multiset.filter_singleton, ite_eq_left h]
     rfl
-  · rw [if_neg h, Multiset.filter_singleton, if_neg h]
+  · rw [ite_eq_right h, Multiset.filter_singleton, ite_eq_right h]
     rfl
 
 theorem prod_update_split (F : ι → ℝ≥0∞) (l0 : ι) :
@@ -98,10 +98,10 @@ theorem avgL_prod_marks (φ : ι → Multiset M → ℝ≥0∞) :
           avgN (φ l0) (L.count l0) (marksAt l0 d0 + {m}) *
             ∏ l ∈ Finset.univ.erase l0, avgN (φ l) (L.count l) (marksAt l d0) := by
         intro m
-        rw [prod_update_split _ l0, marksAt_add_single, if_pos rfl]
+        rw [prod_update_split _ l0, marksAt_add_single, ite_eq_left rfl]
         congr 1
         refine Finset.prod_congr rfl fun l hl => ?_
-        rw [marksAt_add_single, if_neg (Ne.symm (Finset.ne_of_mem_erase hl)), add_zero]
+        rw [marksAt_add_single, ite_eq_right (Ne.symm (Finset.ne_of_mem_erase hl)), add_zero]
       simp only [hpt]
       rw [show (fun m : M => avgN (φ l0) (L.count l0) (marksAt l0 d0 + {m}) *
           ∏ l ∈ Finset.univ.erase l0, avgN (φ l) (L.count l) (marksAt l d0)) =
@@ -111,7 +111,7 @@ theorem avgL_prod_marks (φ : ι → Multiset M → ℝ≥0∞) :
         List.count_cons_self, mul_comm]
       congr 1
       refine Finset.prod_congr rfl fun l hl => ?_
-      rw [List.count_cons, if_neg (by simpa [beq_iff_eq] using (Ne.symm (Finset.ne_of_mem_erase hl))), add_zero]
+      rw [List.count_cons, ite_eq_right (by simpa [beq_iff_eq] using (Ne.symm (Finset.ne_of_mem_erase hl))), add_zero]
 
 /-- **Sums of per-index functions average termwise.** -/
 theorem avgL_sum_marks (φ : ι → Multiset M → ℝ≥0∞) :
@@ -128,10 +128,10 @@ theorem avgL_sum_marks (φ : ι → Multiset M → ℝ≥0∞) :
       refine Finset.sum_congr rfl fun l _ => ?_
       by_cases h : l0 = l
       · subst h
-        simp only [if_true, List.count_cons_self, avgN]
+        simp only [ite_true, List.count_cons_self, avgN]
         rfl
-      · simp only [if_neg h, add_zero, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-        rw [List.count_cons, if_neg (by simp [beq_iff_eq, h, Ne.symm h]), add_zero, ← mul_assoc,
+      · simp only [ite_eq_right h, add_zero, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+        rw [List.count_cons, ite_eq_right (by simp [beq_iff_eq, h, Ne.symm h]), add_zero, ← mul_assoc,
           ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _), one_mul]
 
 /-- **Domination by separable count functions.** If `f` is below a sum plus a multiple of a

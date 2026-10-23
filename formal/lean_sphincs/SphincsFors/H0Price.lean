@@ -25,7 +25,7 @@ theorem sum_card_filter_eq {α β : Type} [Fintype β] [DecidableEq β] (f : α 
         intro a
         rw [Multiset.filter_cons]
         split_ifs <;> simp [add_comm]
-      simp only [h, Finset.sum_add_distrib, ih, Finset.sum_ite_eq, Finset.mem_univ, if_true,
+      simp only [h, Finset.sum_add_distrib, ih, Finset.sum_ite_eq, Finset.mem_univ, ite_true,
         Multiset.card_cons]
       ring
 

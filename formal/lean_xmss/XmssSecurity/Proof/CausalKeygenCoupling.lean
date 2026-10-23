@@ -18,6 +18,7 @@ theorem simulate_chainHash_run_of_fresh
           (Concrete.CacheView.keyChainInput parameter key chain step value)
           output)) <$> uniformHashOutput := by
   let input := Concrete.CacheView.keyChainInput parameter key chain step value
+  rw [Concrete.simulateQ_keyChainHash_run]
   change (fun result : HashOutput × QueryCache HashSpec =>
       (truncateHash result.1, result.2)) <$> (randomOracle input).run cache = _
   rw [randomOracle_run_none_eq_uniformHashOutput _ _ habsent]
@@ -41,12 +42,12 @@ theorem evalDist_chainExtension_eq_programmed
     (cache : QueryCache HashSpec)
     (habsent : cache
       (Concrete.CacheView.keyChainInput parameter key chain step values.back) = none) :
-    evalDist ((simulateQ randomOracle ((do
+    ((simulateQ randomOracle ((do
       let next ← Concrete.keyChainHash parameter key chain step values.back
       pure (values.push next)) :
         OracleComp HashSpec (Vector Digest ((n + 1) + 1)))).run
-        cache) =
-    evalDist (programmedChainExtension parameter key chain step values cache) := by
+        cache) =ᵈ
+    (programmedChainExtension parameter key chain step values cache) := by
   rw [simulateQ_bind, StateT.run_bind,
     simulate_chainHash_run_of_fresh parameter key chain step values.back
       cache habsent]
@@ -86,10 +87,10 @@ theorem evalDist_chainTrajectory_eq_programmed
       (∀ step : ChainStep, ∀ input,
         AtHashAddress parameter (key.chainDomain chain step) input →
           cache input = none) →
-      evalDist ((simulateQ randomOracle
+      ((simulateQ randomOracle
         (Concrete.chainTrajectory parameter key chain position steps value)).run
-          cache) =
-      evalDist (programmedChainTrajectory parameter key chain position steps
+          cache) =ᵈ
+      (programmedChainTrajectory parameter key chain position steps
         value cache) := by
   intro steps
   induction steps with
@@ -119,19 +120,18 @@ theorem evalDist_chainTrajectory_eq_programmed
           Vector Digest (steps + 1) × QueryCache HashSpec =>
         programmedChainExtension parameter key chain
           ⟨position + steps, hvalid⟩ prior.1 prior.2
-      change evalDist (actualPrior >>= actualExtension) =
-        evalDist (programmedPrior >>= programmedExtension)
+      change (actualPrior >>= actualExtension) =ᵈ
+        (programmedPrior >>= programmedExtension)
       calc
-        evalDist (actualPrior >>= actualExtension) =
-            evalDist (programmedPrior >>= actualExtension) := by
-          rw [evalDist_bind, ih value cache (by omega) habsent,
-            ← evalDist_bind]
-        _ = evalDist (programmedPrior >>= programmedExtension) := by
-          apply evalDist_bind_congr
+        (actualPrior >>= actualExtension) =ᵈ
+            (programmedPrior >>= actualExtension) := by
+          exact (ih value cache (by omega) habsent).bind_left _
+        _ =ᵈ (programmedPrior >>= programmedExtension) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro prior hprior
           have hpriorActual : prior ∈ support actualPrior :=
-            (mem_support_iff_of_evalDist_eq
-              (ih value cache (by omega) habsent) prior).mpr hprior
+            (OracleComp.support_eq_of_evalDistEq
+              (ih value cache (by omega) habsent)).symm.subset hprior
           have hfresh : prior.2
               (Concrete.CacheView.keyChainInput parameter key chain
                 ⟨position + steps, hvalid⟩ prior.1.back) = none := by
@@ -197,9 +197,9 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
       (∀ key ∈ keys, ∀ step : ChainStep, ∀ input,
         AtHashAddress parameter (key.chainDomain chain step) input →
           cache input = none) →
-      evalDist (Concrete.fixedSeedChainTrajectoriesFromCache parameter start
-        chain steps cache keys) =
-      evalDist (programmedFixedSeedChainTrajectoriesFromCache parameter start
+      (Concrete.fixedSeedChainTrajectoriesFromCache parameter start
+        chain steps cache keys) =ᵈ
+      (programmedFixedSeedChainTrajectoriesFromCache parameter start
         chain steps cache keys) := by
   intro keys
   induction keys with
@@ -227,23 +227,23 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
         programmedFixedSeedChainTrajectoriesFromCache parameter start chain
           steps first.2 keys >>= fun rest =>
         pure (first.1 :: rest.1, rest.2)
-      change evalDist (actualFirst >>= actualRest) =
-        evalDist (programmedFirst >>= programmedRest)
-      have hfirst : evalDist actualFirst = evalDist programmedFirst := by
+      change (actualFirst >>= actualRest) =ᵈ
+        (programmedFirst >>= programmedRest)
+      have hfirst : (actualFirst) =ᵈ (programmedFirst) := by
         apply evalDist_chainTrajectory_eq_programmed parameter key chain 0
           steps (start key chain) cache
         · simpa using hsteps
         · intro step input haddress
           exact habsent key (by simp) step input haddress
       calc
-        evalDist (actualFirst >>= actualRest) =
-            evalDist (programmedFirst >>= actualRest) := by
-          rw [evalDist_bind, hfirst, ← evalDist_bind]
-        _ = evalDist (programmedFirst >>= programmedRest) := by
-          apply evalDist_bind_congr
+        (actualFirst >>= actualRest) =ᵈ
+            (programmedFirst >>= actualRest) := by
+          exact hfirst.bind_left _
+        _ =ᵈ (programmedFirst >>= programmedRest) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro first hfirstProgrammed
           have hfirstActual : first ∈ support actualFirst :=
-            (mem_support_iff_of_evalDist_eq hfirst first).mpr hfirstProgrammed
+            (OracleComp.support_eq_of_evalDistEq hfirst).symm.subset hfirstProgrammed
           have htailAbsent : ∀ later ∈ keys, ∀ step : ChainStep, ∀ input,
               AtHashAddress parameter (later.chainDomain chain step) input →
                 first.2 input = none := by
@@ -263,6 +263,6 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
             · exact hfirstActual
           have hrest := ih first.2 htailNodup htailAbsent
           simp only [actualRest, programmedRest]
-          rw [evalDist_bind, hrest, ← evalDist_bind]
+          exact hrest.bind_left _
 
 end XmssSecurity

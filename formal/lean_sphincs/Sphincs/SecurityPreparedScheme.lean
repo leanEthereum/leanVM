@@ -516,6 +516,7 @@ theorem programCache_lookup (base : QueryCache HashSpec) (seed : MasterSeed) (ma
       | some answer => some answer
       | none => base input := by
   unfold programCache
+  simp only [QueryCache.toFn_ofFn]
   split
   · rfl
   · split <;> rfl
@@ -524,12 +525,13 @@ theorem programCache_cacheQuery_none (base : QueryCache HashSpec) (seed : Master
     (input : HashInput) (answer : HashOutput) (hnone : programCache ∅ seed material input = none) :
     programCache (base.cacheQuery input answer) seed material =
       (programCache base seed material).cacheQuery input answer := by
-  funext query
+  refine QueryCache.ext fun query => ?_
   by_cases hquery : query = input
   · subst query
     rw [programCache_lookup, hnone, QueryCache.cacheQuery_self, QueryCache.cacheQuery_self]
   · rw [QueryCache.cacheQuery_of_ne _ _ hquery]
     unfold programCache
+    simp only [QueryCache.toFn_ofFn]
     split
     · rfl
     · split
@@ -636,7 +638,7 @@ theorem counted_query {I : Type} {spec : OracleSpec I} (selected : I → Prop)
   change (do
     let answer ← liftM (spec.query input)
     pure (answer, (if selected input then 1 else 0) + 0)) = _
-  simp only [Nat.add_zero, bind_pure_comp]
+  simp only [Nat.add_zero, pure_bind, bind_pure_comp]
 
 theorem countPrepared_compileWorld_query (seed : MasterSeed) (material : Material)
     (input : OracleWorld.Domain) :

@@ -56,7 +56,7 @@ theorem sum_cachedEncodingEntryCount_univ_eq_cachedEncodingInputCount
     exact hne (Option.some.inj heq)
   have hunion : (⋃ leafIndex, fiber leafIndex) = cachedEncodingInputSet cache parameter := by
     ext entry
-    simp only [Set.mem_iUnion, Set.mem_setOf_eq, fiber, cachedEncodingInputSet]
+    simp only [Set.mem_iUnion, Set.mem_ofPred_eq, fiber, cachedEncodingInputSet]
     constructor
     · rintro ⟨leafIndex, hcache, hleafIndex⟩
       exact ⟨hcache, by simp [hleafIndex]⟩
@@ -85,12 +85,12 @@ theorem cachedEncodingInputSet_cacheQuery_subset
   rw [Set.mem_insert_iff] at hinsert
   cases hleafIndex : encodingInputLeafIndex? parameter input with
   | some leafIndex =>
-    simp only [Option.isSome_some, if_true, Set.mem_insert_iff]
+    simp only [Option.isSome_some, ite_true, Set.mem_insert_iff]
     rcases hinsert with heq | hold
     · exact Or.inl heq
     · exact Or.inr ⟨hold, hentry.2⟩
   | none =>
-    simp only [Option.isSome_none, Bool.false_eq_true, if_false]
+    simp only [Option.isSome_none, Bool.false_eq_true, ite_false]
     rcases hinsert with heq | hold
     · subst entry
       have hisSome := hentry.2
@@ -142,10 +142,9 @@ set_option linter.constructorNameAsVariable false in
 theorem uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryCount
     (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec) :
-    Pr[fun randomness : Randomness => ∃ output,
+    Pr{let randomness ← $ᵗ Randomness}[∃ output,
       cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) =
-        some output |
-      $ᵗ Randomness] ≤
+        some output] ≤
       cachedEncodingEntryCount cache parameter leafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
   classical
@@ -168,7 +167,7 @@ theorem uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryC
     simpa only [cachedEncodingEntryCount, fiber,
       Set.encard_coe_eq_coe_finsetCard, ENat.toENNReal_coe] using
       ENat.toENNReal_mono embedding.encard_le
-  rw [probEvent_uniformSample, card_randomness, div_eq_mul_inv]
+  rw [SampleableType.prEvent_uniformSample, card_randomness, div_eq_mul_inv]
   change (targets.card : ℝ≥0∞) *
       ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ ≤ _
   exact mul_le_mul' hcard le_rfl

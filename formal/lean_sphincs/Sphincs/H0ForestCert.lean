@@ -157,17 +157,17 @@ theorem leafQ_succ_sub {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) (
   obtain ⟨hl, -⟩ := checkLeaf_parts h
   unfold leafQ
   by_cases h1 : n + 1 < tab.length
-  · rw [if_pos h1, if_pos h1, if_pos (by omega)]
-  · rw [if_neg h1, if_neg h1]
+  · rw [ite_eq_left h1, ite_eq_left h1, ite_eq_left (by omega)]
+  · rw [ite_eq_right h1, ite_eq_right h1]
     by_cases h0 : n < tab.length
-    · rw [if_pos h0]
+    · rw [ite_eq_left h0]
       have hn : n = tab.length - 1 := by omega
       subst hn
       have : tab.length - 1 + 1 - (tab.length - 1) = 1 := by omega
       rw [this]
       push_cast
       ring
-    · rw [if_neg h0]
+    · rw [ite_eq_right h0]
       have : n + 1 - (tab.length - 1) = (n - (tab.length - 1)) + 1 := by omega
       rw [this]
       push_cast
@@ -178,18 +178,18 @@ theorem leaf_incr_mono {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) (
   obtain ⟨hl, -, -, hconv, hJ⟩ := checkLeaf_parts h
   rw [leafQ_succ_sub h n, leafQ_succ_sub h (n + 1)]
   by_cases h2 : n + 1 + 1 < tab.length
-  · rw [if_pos (by omega), if_pos h2]
+  · rw [ite_eq_left (by omega), ite_eq_left h2]
     have := hconv n (by omega)
     linarith
-  · rw [if_neg h2]
+  · rw [ite_eq_right h2]
     by_cases h1 : n + 1 < tab.length
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       have hn : n = tab.length - 2 := by omega
       subst hn
       have e1 : tab.length - 2 + 1 = tab.length - 1 := by omega
       rw [e1]
       exact hJ
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
 
 theorem leaf_incr_nonneg {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) (n : ℕ) :
     0 ≤ leafQ tab J (n + 1) - leafQ tab J n := by
@@ -204,7 +204,7 @@ theorem leafQ_nonneg {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) : �
   | 0 => by
       obtain ⟨hl, h0, -⟩ := checkLeaf_parts h
       unfold leafQ
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
       exact h0
   | n + 1 => by
       have := leaf_incr_nonneg h n
@@ -236,16 +236,16 @@ theorem leaf_sepGood {tab : List ℚ} {J : ℚ} (h : checkLeaf tab J = true) :
     have hT0 : 0 ≤ T := by
       have := leafQ_nonneg h (tab.length - 1)
       unfold leafQ at this
-      rwa [if_pos (by omega)] at this
+      rwa [ite_eq_left (by omega)] at this
     refine ⟨⟨((T + J : ℚ) : ℝ), by positivity⟩, fun n => ?_⟩
     have hle : leafQ tab J n ≤ (T + J) * ((n : ℚ) + 1) := by
       by_cases hn : n < tab.length
       · have hm := leafQ_mono h (show n ≤ tab.length - 1 by omega)
-        have hT : leafQ tab J (tab.length - 1) = T := by unfold leafQ; rw [if_pos (by omega)]
+        have hT : leafQ tab J (tab.length - 1) = T := by unfold leafQ; rw [ite_eq_left (by omega)]
         rw [hT] at hm
         nlinarith [(Nat.cast_nonneg n : (0 : ℚ) ≤ n)]
       · unfold leafQ
-        rw [if_neg hn]
+        rw [ite_eq_right hn]
         have hk : ((n - (tab.length - 1) : ℕ) : ℚ) ≤ (n : ℚ) + 1 := by
           have : n - (tab.length - 1) ≤ n + 1 := by omega
           exact_mod_cast this
@@ -284,7 +284,7 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
     intro n hn
     have := leafQ_nonneg hleaf n
     unfold leafQ at this
-    rw [if_pos (by omega)] at this
+    rw [ite_eq_left (by omega)] at this
     exact_mod_cast this
   have hhead : ∑ i ∈ Finset.range (t.n1 + 1), poisW μ i * ENNReal.ofReal (leafQ tab J i : ℝ) ≤
       ENNReal.ofReal (∑ n ∈ Finset.range (t.n1 + 1), (t.pb n : ℝ) * (tab.getD n 0 : ℝ)) := by
@@ -292,7 +292,7 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
       (htab0 n (Finset.mem_range.1 hn)))]
     refine Finset.sum_le_sum fun n hn => ?_
     have hn' : n < t.n1 + 1 := Finset.mem_range.1 hn
-    have hlq : leafQ tab J n = tab.getD n 0 := by unfold leafQ; rw [if_pos (by omega)]
+    have hlq : leafQ tab J n = tab.getD n 0 := by unfold leafQ; rw [ite_eq_left (by omega)]
     rw [poisW_eq_pR, ← ENNReal.ofReal_mul (pR_nonneg (NNReal.coe_nonneg μ) n), hlq]
     apply ENNReal.ofReal_le_ofReal
     have hp := t.pmf ht n (by omega)
@@ -306,14 +306,14 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
     have hT0 : (0 : ℝ) ≤ (T : ℝ) := by
       have := leafQ_nonneg hleaf t.n1
       unfold leafQ at this
-      rw [if_pos (by omega)] at this
+      rw [ite_eq_left (by omega)] at this
       exact_mod_cast this
     have hpt : ∀ j : ℕ, poisW μ (j + (t.n1 + 1)) * ENNReal.ofReal (leafQ tab J (j + (t.n1 + 1)) : ℝ) ≤
         ENNReal.ofReal ((t.pb (t.n1 + 1) : ℝ) * ((t.r : ℝ) ^ j * ((T : ℝ) + (J : ℝ) * ((j : ℝ) + 1)))) := by
       intro j
       have hlq : leafQ tab J (j + (t.n1 + 1)) = T + J * ((j : ℚ) + 1) := by
         unfold leafQ
-        rw [if_neg (by omega), hlen]
+        rw [ite_eq_right (by omega), hlen]
         have : j + (t.n1 + 1) - (t.n1 + 1 - 1) = j + 1 := by omega
         rw [this, show t.n1 + 1 - 1 = t.n1 by omega]
         push_cast
@@ -353,7 +353,7 @@ theorem poisMean_leaf_le {t : PoisT} (ht : checkPT t = true) {tab : List ℚ} {J
         · have hT0 : (0 : ℝ) ≤ (T : ℝ) := by
             have := leafQ_nonneg hleaf t.n1
             unfold leafQ at this
-            rw [if_pos (by omega)] at this
+            rw [ite_eq_left (by omega)] at this
             exact_mod_cast this
           have hJ0' : (0 : ℝ) ≤ (J : ℝ) := by exact_mod_cast hJ0
           have h1r : 0 < 1 - (t.r : ℝ) := by linarith

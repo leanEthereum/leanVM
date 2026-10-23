@@ -21,11 +21,11 @@ variable (g : HashInput → HashOutput) (c : HiddenGraph.Table)
 
 /-- The probability that the budget-capped run returns a value satisfying `E`. -/
 noncomputable def val {α : Type} (E : α → Prop) (P : OracleComp CostSpec α) (b : ℕ) : ℝ≥0∞ :=
-  Pr[fun r => ∃ v, r.1 = some v ∧ E v | costRun g c (cap P b)]
+  Pr{let r ← costRun g c (cap P b)}[∃ v, r.1 = some v ∧ E v]
 
 theorem val_pure {α : Type} (E : α → Prop) (v : α) (b : ℕ) :
     val g c E (pure v) b = if E v then 1 else 0 := by
-  rw [val, cap_pure', costRun_pure, probEvent_pure]
+  rw [val, cap_pure', costRun_pure, prEvent_pure]
   by_cases h : E v
   · simp [h]
   · simp [h]
@@ -34,15 +34,15 @@ theorem val_query_bind {α : Type} (E : α → Prop) (i : CostSpec.Domain)
     (k : CostSpec.Range i → OracleComp CostSpec α) (b : ℕ) :
     val g c E (liftM (CostSpec.query i) >>= k) b =
       if sourceCost i ≤ b then
-        ∑' a, Pr[= a | fixedCostP g c i] * val g c E (k a) (b - sourceCost i)
+        ∑' a, Pr{let x ← fixedCostP g c i}[x = a] * val g c E (k a) (b - sourceCost i)
       else 0 := by
   rw [val, cap_query_bind']
   split
-  · rw [costRun_query_bind, probEvent_bind_eq_tsum]
+  · rw [costRun_query_bind, OracleComp.prEvent_bind_eq_tsum]
     refine tsum_congr fun a => ?_
-    rw [probEvent_map]
+    rw [prEvent_map]
     rfl
-  · rw [costRun_pure, probEvent_pure]
+  · rw [costRun_pure, prEvent_pure]
     simp
 
 theorem val_mono {α : Type} (E : α → Prop) (P : OracleComp CostSpec α) :
@@ -54,7 +54,7 @@ theorem val_mono {α : Type} (E : α → Prop) (P : OracleComp CostSpec α) :
       rw [val_query_bind, val_query_bind]
       split
       · rename_i hcost
-        rw [if_pos (hcost.trans hb)]
+        rw [ite_eq_left (hcost.trans hb)]
         exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (ih a _ _ (by omega))
       · exact bot_le
 
@@ -84,7 +84,7 @@ theorem val_bind_le_avg {ρ α β : Type} (E : β → Prop) (w : ρ → ℝ≥0�
         · refine mul_le_mul' le_rfl (ih a (fun x hx b' => h x ?_ b') _)
           rw [simulateQ_bind, simulateQ_spec_query, mem_support_bind_iff]
           exact ⟨a, ha, hx⟩
-        · rw [probOutput_eq_zero_of_not_mem_support ha]
+        · rw [(prEvent_eq_zero_of_not_mem_support _) ha]
           simp
       · simp
 
@@ -111,34 +111,34 @@ theorem val_bind_le_of {α β : Type} (E : β → Prop)
       rw [bind_assoc, val_query_bind]
       split
       · calc
-          _ ≤ ∑' a, Pr[= a | fixedCostP g c i] * V0 := by
+          _ ≤ ∑' a, Pr{let x ← fixedCostP g c i}[x = a] * V0 := by
             refine ENNReal.tsum_le_tsum fun a => ?_
             by_cases ha : a ∈ support (fixedCostP g c i)
             · refine mul_le_mul' le_rfl (ih a _ fun x hx b' hb' => h x ?_ b' (by omega))
               rw [simulateQ_bind, simulateQ_spec_query, mem_support_bind_iff]
               exact ⟨a, ha, hx⟩
-            · rw [probOutput_eq_zero_of_not_mem_support ha]
+            · rw [(prEvent_eq_zero_of_not_mem_support _) ha]
               simp
           _ ≤ V0 := by
             rw [ENNReal.tsum_mul_right]
-            exact mul_le_of_le_one_left bot_le tsum_probOutput_le_one
+            exact mul_le_of_le_one_left bot_le (OracleComp.tsum_prEvent_le_one _)
       · exact bot_le
 
 /-- Lifted private randomness is averaged with its own law. -/
 theorem val_liftProb_bind {γ α : Type} (E : α → Prop) (p : ProbComp γ)
     (k : γ → OracleComp CostSpec α) (b : ℕ) :
-    val g c E ((liftM p : OracleComp CostSpec γ) >>= k) b = ∑' x, Pr[= x | p] * val g c E (k x) b := by
+    val g c E ((liftM p : OracleComp CostSpec γ) >>= k) b = ∑' x, Pr{let y ← p}[y = x] * val g c E (k x) b := by
   induction p using OracleComp.inductionOn with
-  | pure x => simp only [liftM_pure, pure_bind, tsum_probOutput_pure_mul]
+  | pure x => simp only [liftM_pure, pure_bind, OracleComp.tsum_prEvent_pure_mul]
   | query_bind draw next ih =>
       rw [liftM_bind, bind_assoc]
       change val g c E (liftM (CostSpec.query (.inl (.inl draw))) >>= fun a =>
         (liftM (next a) : OracleComp CostSpec γ) >>= k) b = _
       rw [val_query_bind]
       show (if (0 : ℕ) ≤ b then ∑' a : Fin (draw + 1),
-          Pr[= a | (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))] *
+          Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = a] *
             val g c E ((liftM (next a) : OracleComp CostSpec γ) >>= k) (b - 0) else 0) = _
-      rw [if_pos (Nat.zero_le _), Nat.sub_zero, tsum_probOutput_bind_mul]
+      rw [ite_eq_left (Nat.zero_le _), Nat.sub_zero, OracleComp.tsum_prEvent_bind_mul]
       refine tsum_congr fun a => ?_
       rw [ih a]
 
@@ -146,9 +146,10 @@ theorem val_tick_le {α : Type} (E : α → Prop) (amount : ℕ) (k : Unit → O
     val g c E (HiddenCost.tick amount >>= k) b ≤ val g c E (k ()) b := by
   rw [HiddenCost.tick, val_query_bind]
   split
-  · change ∑' a, Pr[= a | (pure () : ProbComp Unit)] * _ ≤ _
-    rw [tsum_probOutput_pure_mul]
-    exact val_mono g c E _ _ _ (Nat.sub_le _ _)
+  · change ∑' a, Pr{let x ← (pure () : ProbComp Unit)}[x = a] * _ ≤ _
+    rw [tsum_fintype, Fintype.sum_unique]
+    exact le_trans (mul_le_of_le_one_left' (prEvent_le_one (m := ProbComp) _))
+      (val_mono g c E _ _ _ (Nat.sub_le _ _))
   · exact bot_le
 
 /-! ### Averaging uniform tables -/
@@ -157,36 +158,36 @@ omit g c in
 /-- Splitting one coordinate off a uniform table. -/
 theorem tsum_uniform_update {D R : Type} [Fintype D] [DecidableEq D] [Fintype R] [Nonempty R]
     [SampleableType R] [SampleableType (D → R)] (i : D) (G : (D → R) → ℝ≥0∞) :
-    ∑' table, Pr[= table | ($ᵗ (D → R) : ProbComp (D → R))] * G table =
-      ∑' a, Pr[= a | ($ᵗ R : ProbComp R)] * ∑' table, Pr[= table | ($ᵗ (D → R) : ProbComp (D → R))] *
+    ∑' table, Pr{let x ← ($ᵗ (D → R) : ProbComp (D → R))}[x = table] * G table =
+      ∑' a, Pr{let x ← ($ᵗ R : ProbComp R)}[x = a] * ∑' table, Pr{let x ← ($ᵗ (D → R) : ProbComp (D → R))}[x = table] *
         G (Function.update table i a) := by
-  have h := evalDist_uniformSample_bind_update (D := D) (R := R) i
+  have h := uniformSample_bind_update_evalDistEq (D := D) (R := R) i
   calc
-    _ = ∑' table, Pr[= table | (do
+    _ = ∑' table, Pr{let x ← (do
           let u ← ($ᵗ R : ProbComp R)
           let table ← ($ᵗ (D → R) : ProbComp (D → R))
-          pure (Function.update table i u))] * G table := by
+          pure (Function.update table i u))}[x = table] * G table := by
       refine tsum_congr fun table => ?_
-      rw [probOutput_congr rfl h.symm]
+      rw [(h.symm).prEvent_eq _]
     _ = _ := by
-      rw [tsum_probOutput_bind_mul]
+      rw [OracleComp.tsum_prEvent_bind_mul]
       refine tsum_congr fun a => ?_
-      rw [tsum_probOutput_bind_mul]
-      simp only [tsum_probOutput_pure_mul]
+      rw [OracleComp.tsum_prEvent_bind_mul]
+      simp only [OracleComp.tsum_prEvent_pure_mul]
 
 omit g c in
 theorem tsum_uniform_truncate (F : Randomness → ℝ≥0∞) :
-    ∑' a, Pr[= a | ($ᵗ HashOutput : ProbComp HashOutput)] * F (truncateHash a) =
-      ∑' r, Pr[= r | ($ᵗ Randomness : ProbComp Randomness)] * F r := by
-  rw [← tsum_probOutput_map_mul]
+    ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] * F (truncateHash a) =
+      ∑' r, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = r] * F r := by
+  rw [← OracleComp.tsum_prEvent_map_mul]
   refine tsum_congr fun r => ?_
-  rw [probOutput_congr rfl evalDist_truncateHash_uniform]
+  rw [(evalDist_truncateHash_uniform).prEvent_eq _]
 
 omit g c in
 theorem tsum_prob_mul_le {ρ : Type} (p : ProbComp ρ) (C : ℝ≥0∞) :
-    ∑' x, Pr[= x | p] * C ≤ C := by
+    ∑' x, Pr{let y ← p}[y = x] * C ≤ C := by
   rw [ENNReal.tsum_mul_right]
-  exact mul_le_of_le_one_left bot_le tsum_probOutput_le_one
+  exact mul_le_of_le_one_left bot_le (OracleComp.tsum_prEvent_le_one _)
 
 /-! ### One message: a derived randomizer base read once is a fresh uniform start -/
 
@@ -196,18 +197,18 @@ variable [Params]
 scan from the truncated base) wins at most as often as the scan from a uniform start. -/
 theorem row_le {α : Type} (E : α → Prop) (parameter : PublicParameter) (data : PublicData)
     (message : Message) (k : Option Signature → OracleComp CostSpec α) (n b : ℕ) :
-    ∑' a, Pr[= a | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] *
         val g c E ((HiddenCost.tick 1 >>= fun _ =>
           signCostSourceLoop parameter data message n (truncateHash a)) >>= k) b ≤
       val g c E (((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>=
         fun start => signCostSourceLoop parameter data message n start) >>= k) b := by
   calc
-    _ ≤ ∑' a, Pr[= a | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    _ ≤ ∑' a, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = a] *
           val g c E (signCostSourceLoop parameter data message n (truncateHash a) >>= k) b := by
       refine ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl ?_
       rw [bind_assoc]
       exact val_tick_le g c E 1 _ b
-    _ = ∑' r, Pr[= r | ($ᵗ Randomness : ProbComp Randomness)] *
+    _ = ∑' r, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = r] *
           val g c E (signCostSourceLoop parameter data message n r >>= k) b :=
       tsum_uniform_truncate (fun r => val g c E (signCostSourceLoop parameter data message n r >>= k) b)
     _ = _ := by rw [bind_assoc, val_liftProb_bind]
@@ -352,7 +353,7 @@ deterministic game with a uniform randomizer table wins (within budget) at most 
 fresh-randomizer game. -/
 theorem avg_advDet (E : Bool → Prop) (parameter : PublicParameter) (data : PublicData) :
     ∀ (M : OracleComp AdvSpec Forgery) (S : List Message) (L : QueryLog SigningSpec), NoRepeat M S → ∀ b,
-      ∑' rnd, Pr[= rnd | ($ᵗ Det.RTable : ProbComp Det.RTable)] *
+      ∑' rnd, Pr{let x ← ($ᵗ Det.RTable : ProbComp Det.RTable)}[x = rnd] *
           val g c E (advDet parameter data rnd M L) b ≤
         val g c E (advRand parameter data M L) b := by
   intro M
@@ -382,7 +383,7 @@ theorem avg_advDet (E : Bool → Prop) (parameter : PublicParameter) (data : Pub
             (List.mem_append_right _ (List.mem_singleton_self m))
         simp_rw [hloc]
         calc
-          _ ≤ ∑' row, Pr[= row | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          _ ≤ ∑' row, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = row] *
                 val g c E ((HiddenCost.tick 1 >>= fun _ =>
                     signCostSourceLoop parameter data m digestAttemptLimit (truncateHash row)) >>= fun r =>
                   advRand parameter data (next r) (L ++ [⟨m, r⟩])) b := by
@@ -536,8 +537,8 @@ theorem finishBool_le (parameter : PublicParameter) (data : PublicData) (L L' : 
       simp only [Bool.and_eq_true, decide_eq_true_eq] at h ⊢
       obtain ⟨⟨hvalid, hcontains⟩, hv⟩ := h
       refine ⟨⟨le_trans hlen hvalid, fun ⟨entry, hentry, heq⟩ => hcontains ⟨entry, (hmem entry).2 hentry, heq⟩⟩, hv⟩
-    rw [if_pos h, if_pos h']
-  · rw [if_neg h]
+    rw [ite_eq_left h, ite_eq_left h']
+  · rw [ite_eq_right h]
     exact bot_le
 
 open Memo in
@@ -611,7 +612,7 @@ theorem memo_game_le (parameter : PublicParameter) (data : PublicData) (rnd : De
 
 theorem avg_game (parameter : PublicParameter) (data : PublicData) (adversary : Adversary)
     (hnr : adversary.NoRepeat) (b : ℕ) :
-    ∑' rnd, Pr[= rnd | ($ᵗ Det.RTable : ProbComp Det.RTable)] *
+    ∑' rnd, Pr{let x ← ($ᵗ Det.RTable : ProbComp Det.RTable)}[x = rnd] *
         val g c (· = true) (Det.costGameDet parameter data rnd adversary) b ≤
       val g c (· = true) (costGame parameter data adversary) b := by
   unfold Det.costGameDet costGame
@@ -624,13 +625,13 @@ deterministic game of any adversary wins (within budget) at most as often as the
 game of its memoizing version. -/
 theorem win_avg_le (parameter : PublicParameter) (data : PublicData) (adversary : Adversary)
     (hnr : (Memo.memoAdv adversary).NoRepeat) (b : ℕ) :
-    Pr[Reduce.Win | do
+    Pr{let x ← (do
         let rnd ← ($ᵗ Det.RTable : ProbComp Det.RTable)
-        costRun g c (cap (Det.costGameDet parameter data rnd adversary) b)] ≤
-      Pr[Reduce.Win | costRun g c (cap (costGame parameter data (Memo.memoAdv adversary)) b)] := by
-  rw [probEvent_bind_eq_tsum]
+        costRun g c (cap (Det.costGameDet parameter data rnd adversary) b))}[Reduce.Win x] ≤
+      Pr{let x ← costRun g c (cap (costGame parameter data (Memo.memoAdv adversary)) b)}[Reduce.Win x] := by
+  rw [OracleComp.prEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' rnd, Pr[= rnd | ($ᵗ Det.RTable : ProbComp Det.RTable)] *
+    _ ≤ ∑' rnd, Pr{let x ← ($ᵗ Det.RTable : ProbComp Det.RTable)}[x = rnd] *
           val g c (· = true) (Det.costGameDet parameter data rnd (Memo.memoAdv adversary)) b :=
       ENNReal.tsum_le_tsum fun rnd => mul_le_mul' le_rfl (memo_game_le g c parameter data rnd adversary b)
     _ ≤ _ := avg_game g c parameter data _ hnr b

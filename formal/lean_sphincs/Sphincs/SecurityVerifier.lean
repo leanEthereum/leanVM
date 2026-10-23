@@ -1,6 +1,8 @@
 import Sphincs.SecurityChainWitness
 import Sphincs.Correctness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! The actual one-layer verifier exposes its WOTS leaf and Merkle fold in its query trace. -/
 
 open OracleComp OracleSpec

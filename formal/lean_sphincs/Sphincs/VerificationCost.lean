@@ -2,6 +2,8 @@ import Sphincs.Layout
 import Sphincs.Code
 import Sphincs.Correctness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Compression counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes costs
 `max 1 (ceil (n / 64))`, the BLAKE2s accounting used by `blocks` in `crates/signatures/src/tweak.rs` and
@@ -85,7 +87,7 @@ theorem compressions_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicPa
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [chainWalk, compressions_bind, dif_pos (by omega), compressions_tweakableHash,
+      rw [chainWalk, compressions_bind, dite_eq_left (by omega), compressions_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
@@ -136,7 +138,7 @@ theorem compressions_forestWalk (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : 
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [forestWalk, compressions_bind, dif_pos (by omega), compressions_tweakableHash,
+      rw [forestWalk, compressions_bind, dite_eq_left (by omega), compressions_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
@@ -166,7 +168,7 @@ theorem compressions_subFold (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (path : 
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [subFold, compressions_bind, ih (by omega), dif_pos (by omega)]
+      rw [subFold, compressions_bind, ih (by omega), dite_eq_left (by omega)]
       dsimp only
       split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length, blocks]
 
@@ -176,7 +178,7 @@ theorem compressions_topFold (s : SuperIdx) (path : Fin topHeight → Digest)
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [topFold, compressions_bind, ih (by omega), dif_pos (by omega)]
+      rw [topFold, compressions_bind, ih (by omega), dite_eq_left (by omega)]
       dsimp only
       split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length, blocks]
 
@@ -266,7 +268,7 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
     compressions f (verifyLayers parameter index signature numLayers message) =
       if (evalWithAnswerFn f (verifyLayers parameter index signature numLayers message
         : OracleComp HashSpec (Option Digest))).isSome then 116 else 1 := by
-  rw [show numLayers = 0 + 1 from rfl, verifyLayers, dif_pos (by decide : 0 < numLayers)]
+  rw [show numLayers = 0 + 1 from rfl, verifyLayers, dite_eq_left (by decide : 0 < numLayers)]
   simp only [compressions_bind, evalWithAnswerFn_bind]
   rw [compressions_otsLeaf]
   cases hleaf : evalWithAnswerFn f (otsLeaf parameter topLayer (treeIndexAt index topLayer)

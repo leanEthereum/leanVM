@@ -23,14 +23,14 @@ theorem lazyRun_counted_queryCount_le (auxiliary : QueryImpl auxSpec PMF)
           simp only [QueryCap.counted_query_bind, bind_pure_comp, lazyRun_query_bind, lazyRun_map,
             lazyImpl, StateT.run_mk, PMF.bind_map, Function.comp_def, PMF.mem_support_bind_iff, PMF.mem_support_map_iff] at hresult
           obtain ⟨answer, _, tail, htail, rfl⟩ := hresult
-          simpa only [IsPrefixQuery, if_false, Nat.zero_add] using ih answer observed tail htail
+          simpa only [IsPrefixQuery, ite_false, Nat.zero_add] using ih answer observed tail htail
       | inr query =>
           simp only [QueryCap.counted_query_bind, bind_pure_comp, lazyRun_query_bind, lazyRun_map,
             lazyImpl, StateT.run_mk, PMF.bind_map, Function.comp_def, PMF.mem_support_bind_iff, PMF.mem_support_map_iff] at hresult
           obtain ⟨answer, _, tail, htail, rfl⟩ := hresult
           have ht := ih answer (record observed query answer) tail htail
           have hr := queryCount_record_le observed query answer
-          simp only [IsPrefixQuery, if_true]
+          simp only [IsPrefixQuery, ite_true]
           omega
 
 theorem lazyRun_counted_budget_le (auxiliary : QueryImpl auxSpec PMF)

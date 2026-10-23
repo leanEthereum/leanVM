@@ -410,7 +410,7 @@ theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b
   have hkg : keygenCost = 226 * 2 ^ b + 2 * (26 - b) := by rw [← hb]; rfl
   intro q hq1 adversary hbound
   by_cases hbig : 2 ^ 127 ≤ q
-  · refine le_trans probEvent_le_one ?_
+  · refine le_trans (prEvent_le_one _) ?_
     rw [ENNReal.le_div_iff_mul_le (Or.inl (by positivity)) (Or.inl (ENNReal.natCast_ne_top _)), one_mul]
     exact_mod_cast hbig
   have hq127 : q < 2 ^ 127 := Nat.lt_of_not_le hbig

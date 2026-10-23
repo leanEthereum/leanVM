@@ -142,9 +142,9 @@ theorem programGraphCache_row_lookup (positions : List Position) (cache : QueryC
         if value = coordinates otsSecret ftsSecret labels address.inputCoordinate then
           some (labels address.position) else cache (input parameter (address, value)) := by
   by_cases heq : value = coordinates otsSecret ftsSecret labels address.inputCoordinate
-  · rw [if_pos heq, heq, coordinates_input]
+  · rw [ite_eq_left heq, heq, coordinates_input]
     exact programGraphCache_label parameter otsSecret ftsSecret labels positions cache _ hposition
-  · rw [if_neg heq]
+  · rw [ite_eq_right heq]
     exact programGraphCache_row_miss parameter otsSecret ftsSecret labels positions cache address value heq
 
 end Sphincs.Security.HiddenGraph

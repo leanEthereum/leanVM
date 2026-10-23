@@ -95,7 +95,7 @@ theorem cached_hitA (htable : tableExtending (knownOf (truncateHash parameterOut
   refine ⟨input, answer, hanswer, ?_⟩
   have hvalue : f input = answer := (hagree input hentry).trans hfin
   unfold targetsA
-  rw [if_neg hfirst, ← hvalue]
+  rw [ite_eq_right hfirst, ← hvalue]
   exact hmem
 
 /-- A recorded query that is not a correct guess is cached with its answer. -/
@@ -353,7 +353,7 @@ theorem structException_hitA (index : Index) (marks : Coord → CoordMark) (open
     have hdom : Forest.subDomain index c (marks c).super j (level + 1) (((marks c).child j).val / 2 ^ (level + 1)) =
         HashDomain.subNode index c (marks c).super j ⟨level, by omega⟩
           ⟨((marks c).child j).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt ((marks c).child j).isLt⟩ := by
-      rw [Forest.subDomain, dif_pos ⟨by omega, by omega⟩]
+      rw [Forest.subDomain, dite_eq_left ⟨by omega, by omega⟩]
       congr 2
       exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt ((marks c).child j).isLt)
     refine ⟨_, Forest.subNodeInput_mem f parameter index marks opening c j level hfolded,
@@ -381,7 +381,7 @@ theorem structException_hitA (index : Index) (marks : Coord → CoordMark) (open
     have hdom : Forest.topDomain index c (level + 1) ((marks c).super.val / 2 ^ (level + 1)) =
         HashDomain.topNode index c ⟨level, by omega⟩
           ⟨(marks c).super.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (marks c).super.isLt⟩ := by
-      rw [Forest.topDomain, dif_pos ⟨by omega, by omega⟩]
+      rw [Forest.topDomain, dite_eq_left ⟨by omega, by omega⟩]
       congr 2
       exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (marks c).super.isLt)
     refine ⟨_, Forest.topNodeInput_mem f parameter index marks opening c level hfolded,

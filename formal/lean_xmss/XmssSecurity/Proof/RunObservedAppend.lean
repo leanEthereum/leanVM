@@ -44,7 +44,7 @@ theorem runObserved_eq_true_of_initial_tableHit
               rw [runObserved, hrevealed]
               by_cases hcontains : table revealIndex ∈ state.pending revealIndex
               · simp [hcontains]
-              · rw [if_neg hcontains]
+              · rw [ite_eq_right hcontains]
                 apply ih (state.install revealIndex (table revealIndex)) index
                 by_cases heq : index = revealIndex
                 · subst index
@@ -83,7 +83,7 @@ theorem runObserved_append_eq_true_of_prefix
               rw [List.cons_append, runObserved, hrevealed]
               by_cases hcontains : table index ∈ state.pending index
               · simp [hcontains]
-              · rw [if_neg hcontains] at hhit ⊢
+              · rw [ite_eq_right hcontains] at hhit ⊢
                 exact ih (state.install index (table index)) hhit
 
 

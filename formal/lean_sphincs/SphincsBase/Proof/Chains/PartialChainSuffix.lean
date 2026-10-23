@@ -32,8 +32,8 @@ theorem knownMass_empty (prior : PMF State) (observed : Fin 0 → State → Opti
 omit [Fintype State] [Nonempty State] in
 theorem knownMass_pure {n : Nat} (value : State) (observed : Fin n → State → Option State) (endpoint : State) :
     knownMass (PMF.pure value) observed endpoint = if knownRun observed value = some endpoint then 1 else 0 := by
-  simpa only [knownMass, PMF.probOutput_eq_apply, PMF.monad_pure_eq_pure] using
-    (tsum_probOutput_pure_mul (m := PMF) value (fun start => if knownRun observed start = some endpoint then 1 else 0))
+  rw [knownMass, tsum_eq_single value (fun start hstart => by simp [PMF.pure_apply, hstart])]
+  simp [PMF.pure_apply]
 
 theorem knownMass_uniform {n : Nat} (observed : Fin n → State → Option State) (endpoint : State) :
     knownMass (PMF.uniformOfFintype State) observed endpoint =
@@ -55,7 +55,7 @@ theorem advance_knownMass_le {n : Nat} (prior : PMF State) (observed : Fin (n + 
       apply mul_le_mul' le_rfl
       change knownMass (rowLaw (observed 0 input)) (Fin.tail observed) endpoint ≤ _
       cases hrow : observed 0 input with
-      | none => simp only [rowLaw, knownMass_uniform, knownRun, hrow, Option.bind_none, reduceCtorEq, if_false, zero_add, le_refl]
+      | none => simp only [rowLaw, knownMass_uniform, knownRun, hrow, Option.bind_none, reduceCtorEq, ite_false, zero_add, le_refl]
       | some value =>
           simp only [rowLaw, knownMass_pure, knownRun, hrow, Option.bind_some]
           exact _root_.le_add_of_nonneg_right bot_le
@@ -114,7 +114,7 @@ theorem knownCount_eq_zero_of_no_contact {n : Nat} (observed : Fin (n + 1) → S
   unfold knownCount
   apply Finset.sum_eq_zero
   intro start _
-  exact if_neg (fun hrun => h (knownRun_contact observed start endpoint hrun))
+  exact ite_eq_right (fun hrun => h (knownRun_contact observed start endpoint hrun))
 
 omit [Nonempty State] in
 theorem suffixCount_le_one_of_no_contact {n : Nat} (observed : Fin n → State → Option State) (endpoint : State)

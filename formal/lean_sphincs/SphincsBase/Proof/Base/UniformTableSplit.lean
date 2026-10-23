@@ -71,21 +71,21 @@ theorem uniform_product {Left Right : Type} [Fintype Left] [Fintype Right] [None
     rw [PMF.map_apply]
     by_cases ha : a = left
     · subst a
-      rw [if_pos rfl, tsum_eq_single right]
-      · rw [if_pos rfl]
+      rw [ite_eq_left rfl, tsum_eq_single right]
+      · rw [ite_eq_left rfl]
       · intro b hb
-        exact if_neg (fun h => hb (congrArg Prod.snd h).symm)
-    · rw [if_neg ha]
+        exact ite_eq_right (fun h => hb (congrArg Prod.snd h).symm)
+    · rw [ite_eq_right ha]
       apply ENNReal.tsum_eq_zero.mpr
       intro b
-      exact if_neg (fun h => ha (congrArg Prod.fst h).symm)
+      exact ite_eq_right (fun h => ha (congrArg Prod.fst h).symm)
   rw [PMF.bind_apply]
   simp only [hmap, mul_ite, mul_zero]
   rw [tsum_eq_single left]
-  · simp only [if_true, PMF.uniformOfFintype_apply]
+  · simp only [ite_true, PMF.uniformOfFintype_apply]
     rw [Fintype.card_prod, Nat.cast_mul, ENNReal.mul_inv (by simp) (by simp)]
   · intro a ha
-    exact if_neg ha
+    exact ite_eq_right ha
 
 variable [Fintype Index] [Fintype Cell] [Fintype Answer] [Nonempty Answer]
   [DecidableEq Index] [DecidableEq Cell]

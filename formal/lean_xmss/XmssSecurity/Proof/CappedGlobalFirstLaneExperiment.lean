@@ -1496,7 +1496,7 @@ theorem simulate_globalFirstLaneEagerTrace_chainProjection
           FirstLaneOracleSimulation.eagerImpl,
           FirstLaneOracleSimulation.traceFragment,
           FirstLaneOracleSimulation.ActionTrace.chainActions,
-          QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+          WriterT.run_tell]
         rw [RevealProbeOracleSimulation.simulate_eagerTrace_liftProbComp]
     | uniform n | probe _ _ | reveal _ =>
         simp [globalFirstLaneEraseImpl,
@@ -1510,6 +1510,6 @@ theorem simulate_globalFirstLaneEagerTrace_chainProjection
           RevealProbeOracleSimulation.eagerTraceImpl,
           RevealProbeOracleSimulation.eagerImpl,
           RevealProbeOracleSimulation.traceFragment,
-          QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+          WriterT.run_tell]
 
 end XmssSecurity.CappedChain

@@ -39,9 +39,9 @@ theorem counted_le_of_queryBound (computation : OracleComp spec Result) (budget 
       have htail := ih answer _ (hbound.2 answer) tail htail
       by_cases hselected : selected input
       · have hpos : 0 < budget := by simpa only [hselected, not_true_eq_false, false_or] using hbound.1
-        simp only [if_pos hselected] at htail ⊢
+        simp only [ite_eq_left hselected] at htail ⊢
         omega
-      · simpa only [if_neg hselected, Nat.zero_add] using htail
+      · simpa only [ite_eq_right hselected, Nat.zero_add] using htail
 
 theorem counted_writer_bind_le {Trace Next : Type} [Monoid Trace] (cost : Trace → Nat)
     (hcost : ∀ first second, cost (first * second) = cost first + cost second)

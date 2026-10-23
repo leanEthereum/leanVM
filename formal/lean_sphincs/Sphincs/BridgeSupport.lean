@@ -189,11 +189,11 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
         | some query =>
             simp only [hp] at h
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
-            · rw [if_pos hstop] at h
+            · rw [ite_eq_left hstop] at h
               simp at h
-            · rw [if_neg hstop] at h
+            · rw [ite_eq_right hstop] at h
               by_cases hmatch : query.2 = table (model.incoming query.1)
-              · rw [if_pos hmatch, outside_stopped_map] at h
+              · rw [ite_eq_left hmatch, outside_stopped_map] at h
                 have hknown : known (model.incoming query.1) ≠ none := fun hnone => hstop ⟨hnone, hmatch⟩
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
                 simp only [Prod.mk.injEq] at heq
@@ -220,7 +220,7 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
                       exact .succ query.1 (.known _ _ hincoming)
                     · rw [QueryCache.cacheQuery_of_ne _ _ heq] at hc
                       exact .known _ _ hc
-              · rw [if_neg hmatch, mem_support_bind_iff] at h
+              · rw [ite_eq_right hmatch, mem_support_bind_iff] at h
                 obtain ⟨read, hread, h⟩ := h
                 rw [outside_stopped_map] at h
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
@@ -355,11 +355,11 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
         | some query =>
             simp only [hp] at h
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
-            · rw [if_pos hstop] at h
+            · rw [ite_eq_left hstop] at h
               simp at h
-            · rw [if_neg hstop] at h
+            · rw [ite_eq_right hstop] at h
               by_cases hmatch : query.2 = table (model.incoming query.1)
-              · rw [if_pos hmatch, outside_stopped_map] at h
+              · rw [ite_eq_left hmatch, outside_stopped_map] at h
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
                 simp only [Prod.mk.injEq] at heq
                 obtain ⟨⟨rfl, rfl⟩, rfl⟩ := heq
@@ -369,7 +369,7 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
                 · cases heq
                   exact absurd hmatch (hnot query hp)
                 · exact hcached other hmem hnot
-              · rw [if_neg hmatch] at h
+              · rw [ite_eq_right hmatch] at h
                 exact hreadCase h
       · change some _ ∈ support (HiddenOutside.stopped model table
           (liftM ((HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate).query

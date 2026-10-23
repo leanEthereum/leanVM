@@ -34,12 +34,12 @@ variable [Params]
 
 omit [Params] in
 theorem tsum_min_leF {α : Type} (mx : ProbComp α) (X : α → ℝ≥0∞) :
-    ∑' a, Pr[= a | mx] * min 1 (X a) ≤ min 1 (∑' a, Pr[= a | mx] * X a) := by
+    ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ min 1 (∑' a, Pr{let x ← mx}[x = a] * X a) := by
   refine le_min ?_ (ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_right _ _) _)
-  calc ∑' a, Pr[= a | mx] * min 1 (X a) ≤ ∑' a, Pr[= a | mx] * 1 :=
+  calc ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ ∑' a, Pr{let x ← mx}[x = a] * 1 :=
         ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_left _ _) _
-    _ = ∑' a, Pr[= a | mx] := by simp only [mul_one]
-    _ ≤ 1 := tsum_probOutput_le_one
+    _ = ∑' a, Pr{let x ← mx}[x = a] := by simp only [mul_one]
+    _ ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
 
 omit [Params] in
 theorem pairE_min_leF (F : HashOutput → ℝ≥0∞) : pairE (fun a => min 1 (F a)) ≤ min 1 (pairE F) :=
@@ -333,8 +333,8 @@ theorem potNF_newPair (hw : wbar ≤ 1) {s : State} {P : List Pair} {Ms : List M
       potNF K data wbar Fail s P Ms L d (j + 1) := by
   unfold potNF potG
   by_cases hL : False ∨ signatureLimit < L.length
-  · simp only [if_pos hL, pairE_const, le_refl]
-  · simp only [if_neg hL]
+  · simp only [ite_eq_left hL, pairE_const, le_refl]
+  · simp only [ite_eq_right hL]
     have h := coreG_newPair wbar 0 Fail witnessNear_props hw ENNReal.zero_ne_top hP hM hp0 L hrate d
       (signatureLimit - L.length) j
     rwa [add_zero] at h
@@ -400,7 +400,7 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_pos (by simpa using hlive), List.length_cons]
+        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
           rfl
         · rfl
       simp only [hl]
@@ -409,7 +409,7 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_neg (by simpa using hlive)]
+        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
           rfl
         · rfl
       simp only [hl, pairE_const]
@@ -418,8 +418,8 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   rw [pairE_add]
   refine add_le_add ?_ hlam
   by_cases hL : signatureLimit < L.length
-  · simp only [if_pos hL, pairE_const, le_refl]
-  simp only [if_neg hL]
+  · simp only [ite_eq_left hL, pairE_const, le_refl]
+  simp only [ite_eq_right hL]
   have hi := initial_none_of_fresh K.initial s hB.inv.prepared _ hp0
   have hnf : ∀ f : FIn, pblk K.p data p ≠ f.input K.p := fun f =>
     msg_ne_fchain (msgInput_digestInput K.p data.root p.1 p.2)
@@ -472,14 +472,14 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
   intro budget s P Ms L d R hb hB x hnew
   obtain ⟨y, rfl⟩ : ∃ y, budget = y + 1 := ⟨budget - 1, by omega⟩
   simp only [Nat.add_sub_cancel]
-  have hmass : ∑' r, Pr[= r | ordinaryStep model x s.known s] = 1 := by simp
+  have hmass : ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] = 1 := by simp
   unfold psiF psiCoreF
   simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
   rw [add_right_comm]
   refine add_le_add ?_ (lam_mono le_rfl (Nat.le_succ y))
   by_cases hL : signatureLimit < L.length
-  · simp only [if_pos hL, mul_zero, tsum_zero, zero_le]
-  simp only [if_neg hL]
+  · simp only [ite_eq_left hL, mul_zero, tsum_zero, zero_le]
+  simp only [ite_eq_right hL]
   set C0 := coefU K data wbar Fail s P Ms L d y with hC0
   set Q := potNF K data wbar Fail s P Ms L d y with hQ
   set S := ∑ j ∈ Finset.range y, potNF K data wbar Fail s P Ms L d j with hS
@@ -508,7 +508,7 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
   have hC : ∀ f : FIn, x = f.input K.p → s.known f.inC = none → gA R C0 f ≤ C0 := by
     intro f _ hk
     unfold gA
-    rw [if_neg (not_settled_of_unknown hB.rinv hB.rclosed hk)]
+    rw [ite_eq_right (not_settled_of_unknown hB.rinv hB.rclosed hk)]
   have hmean := K.wsum_ordinary model hMp hMi hB.inv hB.gc x (gA R C0) C0 hC
   have hf1le : f1 ≤ 1 := by rw [hf1]; split_ifs <;> simp
   have hC0le : ν * C0 * f1 ≤ (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 + ν * coinRiskF K data s Ms L y +
@@ -525,13 +525,13 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
       _ = (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 + ν * coinRiskF K data s Ms L y +
             κ * ν * Q * f1 := by ring
       _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_right' hf1le)
-  calc _ ≤ ∑' r, Pr[= r | ordinaryStep model x s.known s] *
+  calc _ ≤ ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
         (K.wsum (gA R C0) r.2 + coinPotF K data s Ms L y + κ * ν * S) := by
         refine ENNReal.tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support (ordinaryStep model x s.known s)
         · exact mul_le_mul_right (hpt r hr) _
-        · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
-    _ = ∑' r, Pr[= r | ordinaryStep model x s.known s] * K.wsum (gA R C0) r.2 +
+        · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
+    _ = ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * K.wsum (gA R C0) r.2 +
           (coinPotF K data s Ms L y + κ * ν * S) := by
         simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
         ring
@@ -566,7 +566,7 @@ theorem potNF_start (known : HiddenReveal.Knowledge Coordinate) (total : ℕ) :
     potNF K data wbar Fail (DebtState.start K.initial known) [] [] [] 0 total =
       total * (startNearF wbar total + failMass Fail) + signatureLimit * failMass Fail := by
   unfold potNF potG
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   unfold coreG
   simp only [List.map_nil, List.sum_nil, zero_add, List.length_nil, Nat.sub_zero]
   rfl
@@ -589,11 +589,11 @@ theorem psiF_start (Lmax : ℕ) (known : HiddenReveal.Knowledge Coordinate) (tot
         κ * ν * ∑ j ∈ Finset.range total, ((j : ℝ≥0∞) * (startNearF wbar j + failMass Fail) +
           signatureLimit * failMass Fail) + lam Lmax 0 total := by
   unfold psiF psiCoreF
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   have hw0 : ∀ g, K.wsum g (DebtState.start K.initial known) = 0 := fun g => by
     unfold Ctx.wsum
     refine Finset.sum_eq_zero fun f _ => ?_
-    rw [if_neg]
+    rw [ite_eq_right]
     intro h
     cases h
   rw [hw0, zero_add]

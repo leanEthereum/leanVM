@@ -113,28 +113,28 @@ theorem rnd_ne_param (parameter : PublicParameter) (seed seed' : MasterSeed) (re
 
 theorem progCache_param (seed : MasterSeed) (d : Derivations) :
     progCache seed d (paramInput seed) = some d.param := by
-  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => topRnd_ne_param _ _ _ _ h.symm,
-    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => rnd_ne_param _ _ _ _ h.symm,
-    topCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => topInput_ne_param _ _ _ _ h.symm,
-    bottomCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => bottomInput_ne_param _ _ _ _ h.symm,
+  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => topRnd_ne_param d.parameter seed seed pos h.symm,
+    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => rnd_ne_param d.parameter seed seed pos h.symm,
+    topCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => topInput_ne_param d.parameter seed seed pos h.symm,
+    bottomCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos h => bottomInput_ne_param d.parameter seed seed pos h.symm,
     paramCache, QueryCache.cacheQuery_self]
 
 theorem progCache_bottom (seed : MasterSeed) (d : Derivations) (pos : BottomPos) :
     progCache seed d (bottomInput d.parameter seed pos) = some (d.bottom pos) := by
-  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRnd_ne_bottom _ _ _ _ h.symm,
-    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => rnd_ne_bottom _ _ _ _ h.symm,
-    topCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topInput_ne_bottom _ _ _ _ h.symm,
+  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRnd_ne_bottom d.parameter seed pos' pos h.symm,
+    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => rnd_ne_bottom d.parameter seed pos' pos h.symm,
+    topCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topInput_ne_bottom d.parameter seed pos' pos h.symm,
     bottomCache, cacheTable_apply _ _ (bottomInput_injective _ _)]
 
 theorem progCache_top (seed : MasterSeed) (d : Derivations) (pos : TopOtsPos) :
     progCache seed d (topInput d.parameter seed pos) = some (d.top pos) := by
-  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRnd_ne_top _ _ _ _ h.symm,
-    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => rnd_ne_top _ _ _ _ h.symm,
+  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRnd_ne_top d.parameter seed pos' pos h.symm,
+    rndCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => rnd_ne_top d.parameter seed pos' pos h.symm,
     topCache, cacheTable_apply _ _ (topInput_injective _ _)]
 
 theorem progCache_rnd (seed : MasterSeed) (d : Derivations) (request : SignRequest) :
     progCache seed d (rndInput d.parameter seed request) = some (d.rnd request) := by
-  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRndInput_ne_rnd _ _ _ _ h.symm,
+  rw [progCache, cacheTable_apply_of_not_mem _ _ _ _ fun pos' h => topRndInput_ne_rnd d.parameter seed pos' request h.symm,
     rndCache, cacheTable_apply _ _ (rndInput_injective _ _)]
 
 theorem progCache_topRnd (seed : MasterSeed) (d : Derivations) (pos : TopRndPos) :
@@ -189,115 +189,115 @@ noncomputable def drawDerivations : ProbComp Derivations := do
 
 theorem evalDist_run_bind_of {α β σ : Type} {c : OracleComp HashSpec α} {cache : QueryCache HashSpec}
     {sampler : ProbComp σ} {g : σ → α × QueryCache HashSpec}
-    (h : 𝒟[(simulateQ randomOracle c).run cache] = 𝒟[g <$> sampler])
+    (h : ((simulateQ randomOracle c).run cache) =ᵈ (g <$> sampler))
     (k : α → OracleComp HashSpec β) :
-    𝒟[(simulateQ randomOracle (c >>= k)).run cache] =
-      𝒟[sampler >>= fun s => (simulateQ randomOracle (k (g s).1)).run (g s).2] := by
-  rw [simulateQ_bind, StateT.run_bind, evalDist_bind, h, ← evalDist_bind, bind_map_left]
+    ((simulateQ randomOracle (c >>= k)).run cache) =ᵈ
+      (sampler >>= fun s => (simulateQ randomOracle (k (g s).1)).run (g s).2) := by
+  rw [simulateQ_bind, StateT.run_bind]
+  exact (h.bind_left _).trans (.of_eq (bind_map_left _ _ _))
 
 /-- Answering the derivations one by one is drawing the table at once. -/
 theorem evalDist_programDerivations (seed : MasterSeed) :
-    𝒟[(simulateQ randomOracle (programDerivations seed)).run ∅] =
-      𝒟[do
+    ((simulateQ randomOracle (programDerivations seed)).run ∅) =ᵈ
+      (do
         let param ← $ᵗ HashOutput
         let bottom ← sampleBottom
         let top ← sampleTopOts
         let rnd ← sampleRandomizerOutputs
         let topRnd ← sampleTopRnd
         pure ((⟨param, bottom, top, rnd, topRnd⟩ : Derivations),
-          progCache seed ⟨param, bottom, top, rnd, topRnd⟩)] := by
+          progCache seed ⟨param, bottom, top, rnd, topRnd⟩)) := by
   unfold programDerivations
-  have hparam : 𝒟[(simulateQ randomOracle (Concrete.oracleHash (paramInput seed) :
-      OracleComp HashSpec HashOutput)).run ∅] =
-        𝒟[(fun param => (param, paramCache seed param)) <$> ($ᵗ HashOutput)] := by
-    change 𝒟[(randomOracle (spec := HashSpec) (paramInput seed)).run ∅] = _
+  have hparam : ((simulateQ randomOracle (Concrete.oracleHash (paramInput seed) :
+      OracleComp HashSpec HashOutput)).run ∅) =ᵈ
+        ((fun param => (param, paramCache seed param)) <$> ($ᵗ HashOutput)) := by
+    change ((randomOracle (spec := HashSpec) (paramInput seed)).run ∅) =ᵈ _
     rw [QueryImpl.withCaching_run_none _ (QueryCache.empty_apply _)]
     rfl
-  rw [evalDist_run_bind_of hparam]
-  apply evalDist_bind_congr'
+  refine (evalDist_run_bind_of hparam _).trans ?_
+  apply EvalDistEq.bind_right
   intro param
-  rw [evalDist_run_bind_of (evalQ_fresh_bottom seed param)]
-  apply evalDist_bind_congr'
+  dsimp only
+  refine (evalDist_run_bind_of (evalQ_fresh_bottom seed param) _).trans ?_
+  apply EvalDistEq.bind_right
   intro bottom
-  rw [evalDist_run_bind_of (evalQ_fresh_top seed param bottom)]
-  apply evalDist_bind_congr'
+  dsimp only
+  refine (evalDist_run_bind_of (evalQ_fresh_top seed param bottom) _).trans ?_
+  apply EvalDistEq.bind_right
   intro top
-  rw [evalDist_run_bind_of (evalQ_fresh_rnd seed param bottom top)]
-  apply evalDist_bind_congr'
+  dsimp only
+  refine (evalDist_run_bind_of (evalQ_fresh_rnd seed param bottom top) _).trans ?_
+  apply EvalDistEq.bind_right
   intro rnd
-  rw [evalDist_run_bind_of (evalQ_fresh_topRnd seed param bottom top rnd)]
-  apply evalDist_bind_congr'
+  dsimp only
+  refine (evalDist_run_bind_of (evalQ_fresh_topRnd seed param bottom top rnd) _).trans ?_
+  apply EvalDistEq.bind_right
   intro topRnd
   rw [simulateQ_pure, StateT.run_pure]
   unfold progCache rndCache topCache bottomCache Derivations.parameter
   dsimp only
+  exact EvalDistEq.rfl
 where
   evalQ_fresh_bottom (seed : MasterSeed) (param : HashOutput) :
-      𝒟[(simulateQ randomOracle (queryTable (bottomInput (truncateHash param) seed))).run
-        (paramCache seed param)] =
-      𝒟[(fun bottom => (bottom, cacheTable (paramCache seed param)
-        (bottomInput (truncateHash param) seed) bottom)) <$> sampleBottom] :=
+      ((simulateQ randomOracle (queryTable (bottomInput (truncateHash param) seed))).run
+        (paramCache seed param)) =ᵈ
+      ((fun bottom => (bottom, cacheTable (paramCache seed param)
+        (bottomInput (truncateHash param) seed) bottom)) <$> sampleBottom) :=
     letI := bottomSampleable
     evalDist_queryTable_fresh _ (bottomInput_injective _ _) _
-      fun pos => paramCache_of_ne (bottomInput_ne_param _ _ _ _)
+      fun pos => paramCache_of_ne (bottomInput_ne_param (truncateHash param) seed seed pos)
   evalQ_fresh_top (seed : MasterSeed) (param : HashOutput) (bottom : BottomPos → HashOutput) :
-      𝒟[(simulateQ randomOracle (queryTable (topInput (truncateHash param) seed))).run
-        (cacheTable (paramCache seed param) (bottomInput (truncateHash param) seed) bottom)] =
-      𝒟[(fun top => (top, cacheTable (cacheTable (paramCache seed param)
+      ((simulateQ randomOracle (queryTable (topInput (truncateHash param) seed))).run
+        (cacheTable (paramCache seed param) (bottomInput (truncateHash param) seed) bottom)) =ᵈ
+      ((fun top => (top, cacheTable (cacheTable (paramCache seed param)
         (bottomInput (truncateHash param) seed) bottom) (topInput (truncateHash param) seed) top)) <$>
-          sampleTopOts] :=
+          sampleTopOts) :=
     letI := topOtsSampleable
     evalDist_queryTable_fresh _ (topInput_injective _ _) _ fun pos => by
-      rw [cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topInput_ne_bottom _ _ _ _,
-        paramCache_of_ne (topInput_ne_param _ _ _ _)]
+      rw [cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topInput_ne_bottom (truncateHash param) seed pos pos',
+        paramCache_of_ne (topInput_ne_param (truncateHash param) seed seed pos)]
   evalQ_fresh_rnd (seed : MasterSeed) (param : HashOutput) (bottom : BottomPos → HashOutput)
       (top : TopOtsPos → HashOutput) :
-      𝒟[(simulateQ randomOracle (queryTable (rndInput (truncateHash param) seed))).run
+      ((simulateQ randomOracle (queryTable (rndInput (truncateHash param) seed))).run
         (cacheTable (cacheTable (paramCache seed param) (bottomInput (truncateHash param) seed) bottom)
-          (topInput (truncateHash param) seed) top)] =
-      𝒟[(fun rnd => (rnd, cacheTable (cacheTable (cacheTable (paramCache seed param)
+          (topInput (truncateHash param) seed) top)) =ᵈ
+      ((fun rnd => (rnd, cacheTable (cacheTable (cacheTable (paramCache seed param)
         (bottomInput (truncateHash param) seed) bottom) (topInput (truncateHash param) seed) top)
-          (rndInput (truncateHash param) seed) rnd)) <$> sampleRandomizerOutputs] :=
+          (rndInput (truncateHash param) seed) rnd)) <$> sampleRandomizerOutputs) :=
     letI := randomizerOutputsSampleableType
     evalDist_queryTable_fresh _ (rndInput_injective _ _) _ fun request => by
-      rw [cacheTable_apply_of_not_mem _ _ _ _ fun pos' => rnd_ne_top _ _ _ _,
-        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => rnd_ne_bottom _ _ _ _,
-        paramCache_of_ne (rnd_ne_param _ _ _ _)]
+      rw [cacheTable_apply_of_not_mem _ _ _ _ fun pos' => rnd_ne_top (truncateHash param) seed request pos',
+        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => rnd_ne_bottom (truncateHash param) seed request pos',
+        paramCache_of_ne (rnd_ne_param (truncateHash param) seed seed request)]
   evalQ_fresh_topRnd (seed : MasterSeed) (param : HashOutput) (bottom : BottomPos → HashOutput)
       (top : TopOtsPos → HashOutput) (rnd : RandomizerOutputs) :
-      𝒟[(simulateQ randomOracle (queryTable (topRndInput (truncateHash param) seed))).run
+      ((simulateQ randomOracle (queryTable (topRndInput (truncateHash param) seed))).run
         (cacheTable (cacheTable (cacheTable (paramCache seed param)
           (bottomInput (truncateHash param) seed) bottom) (topInput (truncateHash param) seed) top)
-            (rndInput (truncateHash param) seed) rnd)] =
-      𝒟[(fun topRnd => (topRnd, cacheTable (cacheTable (cacheTable (cacheTable (paramCache seed param)
+            (rndInput (truncateHash param) seed) rnd)) =ᵈ
+      ((fun topRnd => (topRnd, cacheTable (cacheTable (cacheTable (cacheTable (paramCache seed param)
         (bottomInput (truncateHash param) seed) bottom) (topInput (truncateHash param) seed) top)
           (rndInput (truncateHash param) seed) rnd) (topRndInput (truncateHash param) seed) topRnd)) <$>
-            sampleTopRnd] :=
+            sampleTopRnd) :=
     letI := topRndSampleable
     evalDist_queryTable_fresh _ (topRndInput_injective _ _) _ fun pos => by
-      rw [cacheTable_apply_of_not_mem _ _ _ _ fun request => topRndInput_ne_rnd _ _ _ _,
-        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topRnd_ne_top _ _ _ _,
-        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topRnd_ne_bottom _ _ _ _,
-        paramCache_of_ne (topRnd_ne_param _ _ _ _)]
+      rw [cacheTable_apply_of_not_mem _ _ _ _ fun request => topRndInput_ne_rnd (truncateHash param) seed pos request,
+        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topRnd_ne_top (truncateHash param) seed pos pos',
+        cacheTable_apply_of_not_mem _ _ _ _ fun pos' => topRnd_ne_bottom (truncateHash param) seed pos pos',
+        paramCache_of_ne (topRnd_ne_param (truncateHash param) seed seed pos)]
 
 theorem evalDist_programDerivations_draw (seed : MasterSeed) {α : Type}
     (k : Derivations × QueryCache HashSpec → ProbComp α) :
-    𝒟[(simulateQ randomOracle (programDerivations seed)).run ∅ >>= k] =
-      𝒟[drawDerivations >>= fun d => k (d, progCache seed d)] := by
-  rw [evalDist_bind, evalDist_programDerivations, ← evalDist_bind]
-  congr 1
+    ((simulateQ randomOracle (programDerivations seed)).run ∅ >>= k) =ᵈ
+      (drawDerivations >>= fun d => k (d, progCache seed d)) := by
+  refine ((evalDist_programDerivations seed).bind_left k).trans (.of_eq ?_)
   unfold drawDerivations
   simp only [bind_assoc, pure_bind]
 
 theorem mem_support_drawDerivations (d : Derivations) : d ∈ support drawDerivations := by
   obtain ⟨param, bottom, top, rnd, topRnd⟩ := d
-  have hall : ∀ {α : Type} (sampler : ProbComp α) (x : α),
-      (∀ y, Pr[= y | sampler] ≠ 0) → x ∈ support sampler := fun sampler x h => by
-    rw [mem_support_iff]; exact h x
   have hu : ∀ {α : Type} (inst : SampleableType α) [Fintype α] (x : α), x ∈ support (@uniformSample α inst) :=
-    fun inst _ x => hall _ x fun y => by
-      rw [@probOutput_uniformSample _ inst]
-      exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+    fun inst _ x => @mem_support_uniformSample _ inst x
   unfold drawDerivations
   rw [mem_support_bind_iff]
   refine ⟨param, hu _ param, ?_⟩

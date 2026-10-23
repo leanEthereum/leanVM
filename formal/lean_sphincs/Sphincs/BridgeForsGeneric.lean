@@ -38,7 +38,7 @@ noncomputable def excessW (W : View → Multiset View → ℝ≥0∞) (b0 : ℝ�
 theorem priceW_props {W : View → Multiset View → ℝ≥0∞} (hW : WitnessProps W) : MonoFin (priceW W) := by
   refine ⟨fun a b hab => ?_, fun D => ?_⟩
   · unfold priceW
-    exact mul_le_mul_left' (freshAvg_mono _ fun v _ => (hW v).1 a b hab) _
+    exact mul_le_mul_right (freshAvg_mono _ fun v _ => (hW v).1 a b hab) _
   · unfold priceW
     refine ENNReal.mul_ne_top (ne_top_of_le_ne_top ENNReal.one_ne_top landing_le_one) ?_
     exact freshAvg_ne_top Finset.univ_nonempty fun v => (hW v).2 D
@@ -202,13 +202,13 @@ theorem coreG_newPair (hW : WitnessProps W) (hw : wbar ≤ 1) (hb0 : b0 ≠ ⊤)
     unfold candG candValueG
     rw [pview_withPair_self]
     by_cases hu : Unsigned L p
-    · rw [if_pos hu]
+    · rw [ite_eq_left hu]
       by_cases hF : (viewOf u0).1 ∈ Fail
-      · rw [if_pos hF, if_pos hF]
+      · rw [ite_eq_left hF, ite_eq_left hF]
         exact le_self_add
-      · rw [if_neg hF, if_neg hF, zero_add]
+      · rw [ite_eq_right hF, ite_eq_right hF, zero_add]
         exact termO_stop (hW _) hM p hp0 L (· = p) rfl u0 hl d n k
-    · rw [if_neg hu]
+    · rw [ite_eq_right hu]
       exact bot_le
   have hpoint : ∀ u0, coreG parameter data W wbar b0 Fail (withPair parameter data s p u0)
       (addPair parameter P p u0) Ms' L d n k ≤
@@ -221,9 +221,9 @@ theorem coreG_newPair (hW : WitnessProps W) (hw : wbar ≤ 1) (hb0 : b0 ≠ ⊤)
     refine add_le_add (add_le_add ?_ le_rfl) le_rfl
     unfold addPair
     by_cases hl : Landed parameter (blockIndex u0)
-    · rw [if_pos hl, if_pos hl, List.map_cons, List.sum_cons]
+    · rw [ite_eq_left hl, ite_eq_left hl, List.map_cons, List.sum_cons]
       exact add_le_add (hnew u0 hl) le_rfl
-    · rw [if_neg hl, if_neg hl, zero_add]
+    · rw [ite_eq_right hl, ite_eq_right hl, zero_add]
   refine le_trans (pairE_mono hpoint) ?_
   simp only [pairE_add, pairE_const_mul, pairE_const, pairE_list_sum]
   have h1 : pairE (fun u0 => if Landed parameter (blockIndex u0) then
@@ -286,10 +286,10 @@ theorem potG_grow (hW : WitnessProps W) {gate : State → Prop}
     potG parameter data W wbar b0 Fail gate s' P Ms L d k ≤ potG parameter data W wbar b0 Fail gate s P Ms L d k' := by
   unfold potG
   by_cases hr : gate s' ∨ signatureLimit < L.length
-  · rw [if_pos hr]; exact bot_le
+  · rw [ite_eq_left hr]; exact bot_le
   · have hr' : ¬(gate s ∨ signatureLimit < L.length) := fun h' =>
       hr (h'.imp (hgate s s' hext) id)
-    rw [if_neg hr, if_neg hr', coreG_congr wbar b0 Fail h]
+    rw [ite_eq_right hr, ite_eq_right hr', coreG_congr wbar b0 Fail h]
     exact coreG_mono wbar b0 Fail hW hw hb0 s P Ms L d _ hk
 
 end OrderG
@@ -355,14 +355,14 @@ theorem sign_pointG_level (hW : WitnessProps W) {gate : State → Prop}
   have hshape := sign_shape parameter data Fail m hpost out rfl hr
   unfold potG
   by_cases hcase : gate out.2 ∨ signatureLimit < (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length
-  · rw [if_pos hcase]; exact bot_le
-  rw [if_neg hcase]
+  · rw [ite_eq_left hcase]; exact bot_le
+  rw [ite_eq_right hcase]
   have hreal : ¬gate s := fun h => hcase (Or.inl (hgate s out.2 hext h))
   have hlen : L.length < signatureLimit := by
     have := hcase
     simp only [List.length_append, List.length_singleton, not_or, not_lt] at this
     omega
-  rw [if_neg (by push Not; exact ⟨hreal, hlen⟩)]
+  rw [ite_eq_right (by push Not; exact ⟨hreal, hlen⟩)]
   have hn : signatureLimit - (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length = signatureLimit - (L.length + 1) := by simp
   rw [hn]
   set n := signatureLimit - (L.length + 1) with hndef
@@ -394,7 +394,7 @@ theorem sign_pointG_level (hW : WitnessProps W) {gate : State → Prop}
     unfold candG
     by_cases hU' : Unsigned (L ++ [⟨m, r⟩] : QueryLog SigningSpec) q
     · have hU := unsigned_of_append hU'
-      rw [if_pos hU', if_pos hU, hview q hq]
+      rw [ite_eq_left hU', ite_eq_left hU, hview q hq]
       split_ifs with hF
       · exact le_rfl
       · unfold candValueG
@@ -403,7 +403,7 @@ theorem sign_pointG_level (hW : WitnessProps W) {gate : State → Prop}
           hprep out hout r hr (· = q) (fun sig hsig _ heq => ?_) n hk
         subst hsig
         exact not_unsigned_signed (m := m) (L := L) (by rw [heq]; exact hU')
-    · rw [if_neg hU']
+    · rw [ite_eq_right hU']
       exact bot_le
   · -- the excess forecast
     refine mul_le_mul' (by exact_mod_cast hk) (add_le_add ?_ le_rfl)
@@ -416,28 +416,28 @@ theorem sign_expectG_level (hW : WitnessProps W) (gate : State → Prop)
     (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     (hb0 : b0 ≠ ⊤) (budget K : ℕ) (s : State) (P : List Pair) (Ms : List Message)
     (L : QueryLog SigningSpec) (hm : MsgLive L m) (d : Multiset View) (hM : MInv parameter data s Ms) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         canonL parameter data W wbar b0 Fail m s P Ms L d gate K out ≤
       potG parameter data W wbar b0 Fail gate s P Ms L d K := by
   unfold canonL
   by_cases hcase : gate s ∨ signatureLimit ≤ L.length
-  · simp only [if_pos hcase, mul_zero, tsum_zero]
+  · simp only [ite_eq_left hcase, mul_zero, tsum_zero]
     exact bot_le
-  simp only [if_neg hcase]
+  simp only [ite_eq_right hcase]
   have hcase' : ¬gate s ∧ L.length < signatureLimit := by push Not at hcase; exact hcase
   have hlen := hcase'.2
   unfold potG
-  rw [if_neg (by rintro (h | h); exact hcase'.1 h; omega)]
+  rw [ite_eq_right (by rintro (h | h); exact hcase'.1 h; omega)]
   set n := signatureLimit - (L.length + 1) with hn
   have hn1 : signatureLimit - L.length = n + 1 := by omega
   rw [hn1]
   have hparse' : ∀ ρ, model.parse (blk parameter data m ρ) = none := fun ρ => hparse (m, ρ)
-  have hmass : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] ≤ 1 :=
-    tsum_probOutput_le_one
-  have hFN : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hmass : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] ≤ 1 :=
+    (OracleComp.tsum_prEvent_le_one _)
+  have hFN : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       freshNewWeight parameter data m s (fun v => if v.1 ∈ Fail then 1 else 0) out ≤ failMass Fail :=
     fresh_expectO tg initial model hparse' _ budget
-  have hT : ∀ q ∈ P, ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hT : ∀ q ∈ P, ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (if Unsigned L q then (if (pview parameter data s q).1 ∈ Fail then 1 else
         creations Finset.univ landing (fun J => upperO parameter data wbar m s n d (W (pview parameter data s q))
           (restMsgs m L Ms) (· = q) out J) K []) else 0) ≤
@@ -450,7 +450,7 @@ theorem sign_expectG_level (hW : WitnessProps W) (gate : State → Prop)
       rw [termO_eq_cons hm hM]
       exact term_expectO tg initial model hparse' (hW _) _ _ budget K
     · simp
-  have hH : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hH : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       creations Finset.univ landing (fun J => upperO parameter data wbar m s n d (excessW W b0)
         (restMsgs m L Ms) (fun _ => False) out J) K [] ≤ hValueG parameter data W wbar b0 s Ms L d (n + 1) K := by
     unfold hValueG

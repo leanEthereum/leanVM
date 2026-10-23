@@ -55,9 +55,9 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
     (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
     (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-          (sampleData parameterOutput fixed highs remaining)))) known prepared.2] ≤
+          (sampleData parameterOutput fixed highs remaining)))) known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
       ENNReal.ofReal (ρ * (q - keygenCost : ℕ) / 2 ^ 128) +
         (((q - keygenCost : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + failMass (failSet prepared.1)) +
           signatureLimit * failMass (failSet prepared.1)) +
@@ -123,10 +123,10 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     unfold costGameX
     exact interp_tick_bind_abort tgA prepared.2 model _ _ q start hK
   -- the linear potential with both payments
-  have hA3 : ∑' out, Pr[= out | run] * (endValue pay out.2 + b0 * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) +
+  have hA3 : ∑' out, Pr{let x ← run}[x = out] * (endValue pay out.2 + b0 * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) +
       c0 * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞)) ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
     by_cases hK : keygenCost ≤ q
-    · rw [hrunK hK, tsum_probOutput_map_mul]
+    · rw [hrunK hK, OracleComp.tsum_prEvent_map_mul]
       refine le_trans (le_of_eq ?_) (smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk
         tgA rfl q' hN (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []))
       refine tsum_congr fun out => ?_
@@ -142,11 +142,11 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
       exact smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk tgA rfl 0
         (numeric_monoF hN (by rw [hq0]) (by norm_num)) (costGameX param data (internalize adversary))
   -- the cover potential
-  have hcover : ∑' out, Pr[= out | run] * finalValue param data tgA prepared.2 [] out ≤
+  have hcover : ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out ≤
       (((q' : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + φ) + signatureLimit * φ) +
-        lam Lmax 0 q' + b0 * ∑' out, Pr[= out | run] * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) := by
+        lam Lmax 0 q' + b0 * ∑' out, Pr{let x ← run}[x = out] * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) := by
     by_cases hK : keygenCost ≤ q
-    · rw [hrunK hK, tsum_probOutput_map_mul, tsum_probOutput_map_mul]
+    · rw [hrunK hK, OracleComp.tsum_prEvent_map_mul, OracleComp.tsum_prEvent_map_mul]
       have hgood := goodO_advProg param data wbar b0 Fset q' Lmax tgA prepared.2 model
         hparse hdigest hfail hfair hQ ((internalize adversary).main ⟨data.root, param⟩) [] hnr' q' start [] [] 0 []
         (start_prepared prepared.2 known) (start_pinv param data prepared.2 hclean known)
@@ -158,11 +158,11 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
           (((q' : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + φ) + signatureLimit * φ) + lam Lmax 0 q' := by
         refine le_trans (potO_start_le param data wbar b0 Fset tgA prepared.2 Lmax start q') ?_
         gcongr
-      calc ∑' out, Pr[= out | interp tgA prepared.2 model
-              (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []) q' start] *
+      calc ∑' out, Pr{let x ← (interp tgA prepared.2 model
+              (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []) q' start)}[x = out] *
             finalValue param data tgA prepared.2 [] _
-          = ∑' out, Pr[= out | interp tgA prepared.2 model
-              (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []) q' start] *
+          = ∑' out, Pr{let x ← (interp tgA prepared.2 model
+              (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []) q' start)}[x = out] *
             finalValue param data tgA prepared.2 [] out := rfl
         _ ≤ potO param data wbar b0 Fset tgA prepared.2 Lmax start [] [] [] 0 q' +
             b0 * expectedFlagged tgA prepared.2 model
@@ -172,19 +172,19 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
             refine le_trans (expectedFlagged_le_digestF tgA prepared.2 model _ q' start) (le_of_eq ?_)
             refine tsum_congr fun out => ?_
             simp [digestCount]
-    · rw [hrunA hK, tsum_probOutput_pure_mul]
+    · rw [hrunA hK, OracleComp.tsum_prEvent_pure_mul]
       refine le_trans (le_of_eq ?_) bot_le
       rfl
   -- the contact bound A4
   have hκspl : ν ≤ payB + κE * ν := arm_splitF κ
-  have hA4 : ∑' out, Pr[= out | run] * finalA4 K data.root out.1.1 out.1.2.1 out.2 ≤
+  have hA4 : ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2 ≤
       ν * (((Nat.choose q' 2 : ℕ) : ℝ≥0∞) * rateS) +
         κE * ν * ((q' : ℕ) * ((q' : ℕ) * (ENNReal.ofReal ((c / 2 : ℚ) : ℝ) + φ) + signatureLimit * φ)) +
         lam Lmax 0 q' +
         (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) *
-          ∑' out, Pr[= out | run] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) := by
+          ∑' out, Pr{let x ← run}[x = out] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) := by
     by_cases hK : keygenCost ≤ q
-    · rw [hrunK hK, tsum_probOutput_map_mul, tsum_probOutput_map_mul]
+    · rw [hrunK hK, OracleComp.tsum_prEvent_map_mul, OracleComp.tsum_prEvent_map_mul]
       have hinv := inv_start parameterOutput fixed highs remaining prepared known ρ hk
       have hb := a4F_bound K data wbar κE Fset model hMp hMi hMo hparse hclean hfail q' hfair hQ hκspl
         ((internalize adversary).main ⟨data.root, param⟩) hnr' known hinv
@@ -196,44 +196,45 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
         le_trans (H0.hNearOf_le b N qtop hbb hNN t on hrt hpt hon q' hqtop) (ofReal_le_two_halfF c)
       have hsum := start_sum_leF hfair.le_one q' φ _ hnear
       refine add_le_add (add_le_add le_rfl ?_) le_rfl
-      exact mul_le_mul_left' hsum _
-    · rw [hrunA hK, tsum_probOutput_pure_mul]
+      exact mul_le_mul_right hsum _
+    · rw [hrunA hK, OracleComp.tsum_prEvent_pure_mul]
       refine le_trans (le_of_eq ?_) bot_le
       rfl
   -- pointwise split and summation
   refine le_trans (stopped_le_interp_exposeV hb adversary q hq parameterOutput fixed highs remaining prepared
     hprepared tgA known hk) ?_
-  change Pr[_ | run >>= fun result => (fun table => (table, result)) <$> completion result.2.known] ≤ _
-  have hstep : ∀ out, Pr[= out | run] *
-      Pr[fun x => CorrectGuess x.1 x.2.2 ∨ badAV parameterOutput fixed highs remaining prepared.1 x.1
-          (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache) |
-        (fun table => (table, out)) <$> completion out.2.known] ≤
-      Pr[= out | run] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
+  change Pr{let x ← run >>= fun result => (fun table => (table, result)) <$> completion result.2.known}[
+    CorrectGuess x.1 x.2.2 ∨ badAV parameterOutput fixed highs remaining prepared.1 x.1
+      (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] ≤ _
+  have hstep : ∀ out, Pr{let x ← run}[x = out] *
+      Pr{let x ← (fun table => (table, out)) <$> completion out.2.known}[CorrectGuess x.1 x.2.2 ∨ badAV parameterOutput fixed highs remaining prepared.1 x.1
+          (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] ≤
+      Pr{let x ← run}[x = out] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
         finalA4 K data.root out.1.1 out.1.2.1 out.2) := by
     intro out
     by_cases hout : out ∈ support run
     · refine mul_le_mul_right ?_ _
-      rw [probEvent_map]
+      rw [prEvent_map]
       set E4 : (Coordinate → Digest) → Prop := fun T => ∃ outcome, out.1.1 = some outcome ∧
         SigningTranscript.Valid outcome.2.1 ∧ A4ev K data.root T out.2 outcome out.1.2.1 with hE4
-      have hE4le : Pr[E4 | completion out.2.known] ≤ finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
+      have hE4le : Pr{let x ← completion out.2.known}[E4 x] ≤ finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
         cases hres : out.1.1 with
         | none =>
-            refine le_of_eq_of_le (probEvent_eq_zero fun T _ h => ?_) bot_le
+            refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun T _ h => ?_) bot_le
             obtain ⟨outcome, h1, -⟩ := h
             rw [hres] at h1
             cases h1
         | some outcome =>
-            simp only [finalA4, Option.elim]
-            refine probEvent_mono fun T _ h => ?_
+            unfold finalA4
+            rw [Option.elim_some]
+            refine prEvent_mono_of_support _ _ _ fun T _ h => ?_
             obtain ⟨outcome', h1, h2, h3⟩ := h
             rw [hres] at h1
             cases h1
             exact ⟨h2, h3⟩
-      calc Pr[_ | completion out.2.known]
-          ≤ Pr[fun T => pay T out.2 = 1 ∨ (E4 T ∨ finalValue param data tgA prepared.2 [] out = 1) |
-              completion out.2.known] := by
-            refine probEvent_mono fun T hT h => ?_
+      calc _
+          ≤ Pr{let T ← completion out.2.known}[pay T out.2 = 1 ∨ (E4 T ∨ finalValue param data tgA prepared.2 [] out = 1)] := by
+            refine prEvent_mono_of_support _ _ _ fun T hT h => ?_
             have hTe : tableExtending out.2.known T = T := by
               unfold completion at hT
               rw [support_map] at hT
@@ -246,34 +247,34 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
             · exact Or.inl h1
             · exact Or.inr (Or.inl h2)
             · exact Or.inr (Or.inr h3)
-        _ ≤ Pr[fun T => pay T out.2 = 1 | completion out.2.known] +
-            Pr[fun T => E4 T ∨ finalValue param data tgA prepared.2 [] out = 1 | completion out.2.known] :=
-            probEvent_or_le _ _ _
+        _ ≤ Pr{let T ← completion out.2.known}[pay T out.2 = 1] +
+            Pr{let T ← completion out.2.known}[E4 T ∨ finalValue param data tgA prepared.2 [] out = 1] :=
+            prEvent_or_le _ _ _
         _ ≤ endValue pay out.2 + (finalA4 K data.root out.1.1 out.1.2.1 out.2 +
               finalValue param data tgA prepared.2 [] out) := by
             refine add_le_add (probEvent_le_endValueF pay out.2 _ fun T h => h) ?_
-            refine le_trans (probEvent_or_le _ _ _) (add_le_add hE4le ?_)
+            refine le_trans (prEvent_or_le _ _ _) (add_le_add hE4le ?_)
             by_cases hf : finalValue param data tgA prepared.2 [] out = 1
             · rw [hf]
-              exact probEvent_le_one
-            · exact le_of_eq_of_le (probEvent_eq_zero fun _ _ h => hf h) bot_le
+              exact (prEvent_le_one _)
+            · exact le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun _ _ h => hf h) bot_le
         _ = _ := by ring
-    · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
-  rw [probEvent_bind_eq_tsum]
+    · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
+  rw [OracleComp.prEvent_bind_eq_tsum]
   refine le_trans (ENNReal.tsum_le_tsum hstep) ?_
-  have hsplit : ∑' out, Pr[= out | run] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
+  have hsplit : ∑' out, Pr{let x ← run}[x = out] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
         finalA4 K data.root out.1.1 out.1.2.1 out.2) =
-      (∑' out, Pr[= out | run] * endValue pay out.2 +
-        ∑' out, Pr[= out | run] * finalValue param data tgA prepared.2 [] out) +
-        ∑' out, Pr[= out | run] * finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
+      (∑' out, Pr{let x ← run}[x = out] * endValue pay out.2 +
+        ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out) +
+        ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
     rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
     refine tsum_congr fun out => ?_
     ring
   rw [hsplit]
-  set Ev := ∑' out, Pr[= out | run] * endValue pay out.2 with hEv
-  set Efin := ∑' out, Pr[= out | run] * finalValue param data tgA prepared.2 [] out with hEfin
-  set Ed := ∑' out, Pr[= out | run] * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) with hEd
-  set Ef := ∑' out, Pr[= out | run] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) with hEf
+  set Ev := ∑' out, Pr{let x ← run}[x = out] * endValue pay out.2 with hEv
+  set Efin := ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out with hEfin
+  set Ed := ∑' out, Pr{let x ← run}[x = out] * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) with hEd
+  set Ef := ∑' out, Pr{let x ← run}[x = out] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) with hEf
   have hA3' : Ev + b0 * Ed + c0 * Ef ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
     refine le_trans (le_of_eq ?_) hA3
     rw [hEv, hEd, hEf, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add, ← ENNReal.tsum_add]
@@ -292,7 +293,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
         = κE * nearM + κE * nearF := by rw [hnearM, hnearF]; ring
       _ ≤ κE * nearM + 1 * nearF := by gcongr
       _ = κE * nearM + nearF := by rw [one_mul]
-  calc (Ev + Efin) + ∑' out, Pr[= out | run] * finalA4 K data.root out.1.1 out.1.2.1 out.2
+  calc (Ev + Efin) + ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2
       ≤ (Ev + (cov + lm + b0 * Ed)) + (coin + κE * ν * ((q' : ℕ) * ((q' : ℕ) *
           (ENNReal.ofReal ((c / 2 : ℚ) : ℝ) + φ) + signatureLimit * φ)) + lm +
           (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * Ef) :=

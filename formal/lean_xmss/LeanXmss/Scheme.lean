@@ -1,5 +1,7 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+module
+
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 
 /-!
 # leanXMSS
@@ -23,6 +25,8 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
 open OracleComp OracleSpec ENNReal
 
 namespace LeanXmss
+
+@[expose] public section
 
 /-! ## The instance: parameters, types, and hash-input layout -/
 
@@ -456,5 +460,7 @@ def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Op
   return some ⟨index, fun lay => if lay = bottomLayer then bottom else top⟩
 
 end Seeded
+
+end
 
 end LeanXmss

@@ -148,7 +148,7 @@ theorem treePosition_active_below (lay : Layer) (tree : TreeIndex) (level : Nat)
     active parameter (treePosition lay tree level hlevel index) := by
   cases level with
   | zero => simpa only [treePosition, active, Landed, Nat.sub_zero] using hkept
-  | succ level => simpa only [treePosition, active, KeptNode, if_pos hlower] using hkept
+  | succ level => simpa only [treePosition, active, KeptNode, ite_eq_left hlower] using hkept
 
 include hconsistent in
 theorem tree_value_below (lay : Layer) (tree : TreeIndex) (level : Nat)
@@ -378,7 +378,7 @@ theorem canonicalPath_below (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     canonicalTreePath f parameter lay tree seed leaf level =
       node f parameter lay tree seed level (Nat.xor (leaf.val / 2 ^ level) 1) := by
   have hlevel : level < layerHeight lay := hlower.trans_le Params.subtreeHeight_le
-  rw [canonicalTreePath, dif_pos hlevel, eval_treePath, if_pos hlower]
+  rw [canonicalTreePath, dite_eq_left hlevel, eval_treePath, ite_eq_left hlower]
 
 include hconsistent in
 theorem tree_path_value (hboundary : BoundaryCorrect f parameter seed labels)
@@ -826,7 +826,7 @@ theorem sub_path_sibling (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (level : Nat
       ⟨Nat.xor (a.val / 2 ^ level) 1,
         Nat.xor_lt_two_pow ((Nat.div_le_self _ _).trans_lt a.isLt) (by decide)⟩)) =
       Forest.subPathExt (Forest.canonicalSubPath f parameter index seed c s j a) level := by
-  rw [Forest.subPathExt, dif_pos hlevel, Forest.canonicalSubPath]
+  rw [Forest.subPathExt, dite_eq_left hlevel, Forest.canonicalSubPath]
   exact sub_value f parameter seed labels hconsistent index c s j level (Nat.le_of_lt hlevel) _
     (Nat.xor_lt_two_pow (quotient_range subHeight level a.val (Nat.le_of_lt hlevel) a.isLt)
       (Nat.one_lt_two_pow (by omega)))
@@ -837,7 +837,7 @@ theorem top_path_sibling (s : SuperIdx) (level : Nat) (hlevel : level < topHeigh
       ⟨Nat.xor (s.val / 2 ^ level) 1,
         Nat.xor_lt_two_pow ((Nat.div_le_self _ _).trans_lt s.isLt) (by decide)⟩)) =
       Forest.topPathExt (Forest.canonicalTopPath f parameter index seed c s) level := by
-  rw [Forest.topPathExt, dif_pos hlevel, Forest.canonicalTopPath]
+  rw [Forest.topPathExt, dite_eq_left hlevel, Forest.canonicalTopPath]
   exact top_value f parameter seed labels hconsistent index c level (Nat.le_of_lt hlevel) _
     (Nat.xor_lt_two_pow (quotient_range topHeight level s.val (Nat.le_of_lt hlevel) s.isLt)
       (Nat.one_lt_two_pow (by omega)))
@@ -865,7 +865,7 @@ theorem sub_path_input (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (level : Nat) 
     simpa only [Nat.zero_add] using (Nat.testBit_add a.val 0 level).symm
   rw [hbit]
   congr 1
-  rw [Forest.subDomain, dif_pos ⟨by omega, by omega⟩]
+  rw [Forest.subDomain, dite_eq_left ⟨by omega, by omega⟩]
   congr 1
   apply Fin.ext
   change a.val / 2 ^ level / 2 = a.val / 2 ^ (level + 1) % 2 ^ subHeight
@@ -894,7 +894,7 @@ theorem top_path_input (s : SuperIdx) (level : Nat) (hlevel : level < topHeight)
     simpa only [Nat.zero_add] using (Nat.testBit_add s.val 0 level).symm
   rw [hbit]
   congr 1
-  rw [Forest.topDomain, dif_pos ⟨by omega, by omega⟩]
+  rw [Forest.topDomain, dite_eq_left ⟨by omega, by omega⟩]
   congr 1
   apply Fin.ext
   change s.val / 2 ^ level / 2 = s.val / 2 ^ (level + 1) % 2 ^ topHeight
@@ -933,7 +933,7 @@ theorem materialSurrogates_eq (material : SeedModel.Material)
     materialSurrogates material = surrogates f (SeedModel.parameter material) seed := by
   funext level
   unfold surrogates
-  rw [Seeded.surrogate, dif_pos level.isLt]
+  rw [Seeded.surrogate, dite_eq_left level.isLt]
   exact (SeedModel.eval_surrogate_prepared f seed material hagrees level).symm
 
 end Sphincs.Security.GraphCorrectness

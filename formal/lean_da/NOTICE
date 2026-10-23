@@ -1,0 +1,5 @@
+LeanDA security in Lean 4
+
+The library PqDas (PqDas.lean and PqDas/) is Benedikt Wagner's formalization of erasure code commitments, ported from https://github.com/b-wagn/fv-pq-da at commit 4475179c19296acf3469d7d552a3186ad1feda74, and is licensed under the Apache License, Version 2.0, a copy of which is in LICENSE.
+
+Changes from that commit: every file of PqDas was modified to build on VCVio afa6593f15e1e79ecb3cf22fc56191cecb452bb0 and Lean v4.34.1 (measure-based probability notation and lemmas, experiments observed as measures, a few lemmas restated for equality in distribution, comments), and PqDas/AxiomCheck.lean pins the axioms with #guard_msgs; each modified file says so under its module docstring. The library LeanDa and the root module LeanDa.lean are new.

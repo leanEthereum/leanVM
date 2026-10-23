@@ -1,0 +1,9 @@
+/.lake/
+/.vscode/
+/.idea/
+*.olean
+*.ilean
+
+
+# Agents
+.claude/

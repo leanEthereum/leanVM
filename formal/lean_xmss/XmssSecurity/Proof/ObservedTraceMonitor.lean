@@ -29,14 +29,14 @@ theorem simulate_eagerTrace_support_traceAgrees
       cases input with
       | uniform n =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           obtain ⟨output, rfl⟩ := hhead
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
           exact ih output tail htail
       | probe index target =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           subst head
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -44,7 +44,7 @@ theorem simulate_eagerTrace_support_traceAgrees
           exact ih () tail htail
       | reveal index =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           subst head
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -140,7 +140,7 @@ theorem advanceObserved_append_of_some
               simp only at hleft ⊢
               by_cases hhit : table index ∈ state.pending index
               · simp [hhit] at hleft ⊢
-              · rw [if_neg hhit] at hleft ⊢
+              · rw [ite_eq_right hhit] at hleft ⊢
                 exact ih (state.install index (table index)) final hleft
 
 theorem advanceObserved_append

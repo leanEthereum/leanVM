@@ -18,7 +18,7 @@ theorem counted_run_balance (computation : OracleComp spec Result) (budget : Nat
   | query_bind input next ih =>
       rw [run_query_bind] at hresult
       by_cases hs : selected input
-      · rw [if_pos hs] at hresult
+      · rw [ite_eq_left hs] at hresult
         cases budget with
         | zero =>
             rw [counted_pure, mem_support_pure_iff] at hresult
@@ -32,15 +32,15 @@ theorem counted_run_balance (computation : OracleComp spec Result) (budget : Nat
             rw [mem_support_pure_iff] at hresult
             subst result
             have h := ih answer budget tail htail
-            simp only [if_pos hs]
+            simp only [ite_eq_left hs]
             omega
-      · rw [if_neg hs, counted_query_bind, mem_support_bind_iff] at hresult
+      · rw [ite_eq_right hs, counted_query_bind, mem_support_bind_iff] at hresult
         obtain ⟨answer, _, hresult⟩ := hresult
         rw [mem_support_bind_iff] at hresult
         obtain ⟨tail, htail, hresult⟩ := hresult
         rw [mem_support_pure_iff] at hresult
         subst result
-        simpa only [if_neg hs, Nat.zero_add] using ih answer budget tail htail
+        simpa only [ite_eq_right hs, Nat.zero_add] using ih answer budget tail htail
 
 theorem counted_next_bound (impl : QueryImpl spec PMF) (input : spec.Domain)
     (next : spec.Range input → OracleComp spec Result) (budget : Nat)

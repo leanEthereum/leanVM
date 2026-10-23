@@ -146,10 +146,10 @@ theorem digestEncoding_pack (x : Encoding) : digestEncoding (pack x) = x := by
   have hp : (2 : Nat) ^ digitOffset i = 4 ^ i.val := by
     simp [digitOffset, winternitzBits, pow_mul]
   rw [hp, packNat, digit_of_sum 4 (by decide) (digit x) (digit_lt x) numChains i.val i.isLt,
-    digit, dif_pos i.isLt]
+    digit, dite_eq_left i.isLt]
 
 theorem decodeDigest_pack (x : Encoding) (hx : Valid x) : decodeDigest (pack x) = some x := by
-  rw [decodeDigest, digestEncoding_pack, if_pos hx]
+  rw [decodeDigest, digestEncoding_pack, ite_eq_left hx]
 
 /-- At least one in 1024 uniformly sampled 128-bit digests is an admissible WOTS+C codeword. -/
 theorem two_pow_le_card_accepting :

@@ -48,18 +48,17 @@ theorem stopped_table_leV (hb : 0 < subtreeHeight) (adversary : Adversary) (q : 
     (hknown : ∀ c v, known c = some v →
       knownOf (truncateHash parameterOutput) fixed c = some v ∨ AboveWord (truncateHash parameterOutput) prepared.1 c)
     (table : Coordinate → Digest) (hagree : Agrees known table) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stopped (sampleModel parameterOutput highs) table
+    Pr{let x ← (HiddenOutside.stopped (sampleModel parameterOutput highs) table
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
           (sampleData parameterOutput fixed highs remaining))))
-        known prepared.2] ≤
-      Pr[fun r => CorrectGuess table r.2 ∨
-          badAV parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache) |
-        fixedRun (sampleModel parameterOutput highs) table
+        known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
+      Pr{let r ← (fixedRun (sampleModel parameterOutput highs) table
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining))))
-          (DebtState.start prepared.2 known)] := by
+          (DebtState.start prepared.2 known))}[CorrectGuess table r.2 ∨
+          badAV parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache)] := by
   have htable := (agrees_iff_extending _ table).1 hagree
-  refine le_trans (probEvent_mono fun r hr hwin => ?_)
+  refine le_trans (prEvent_mono_of_support _ _ _ fun r hr hwin => ?_)
     (stopped_le_fixedRun (sampleModel parameterOutput highs) table _ _
       (DebtState.start prepared.2 known) hagree)
   rcases r with _ | ⟨⟨⟨res, reveals⟩, entries⟩, cacheF⟩
@@ -84,26 +83,24 @@ theorem stopped_le_interpV (hb : 0 < subtreeHeight) (adversary : Adversary) (q :
     (hknownOf : ∀ c v, knownOf (truncateHash parameterOutput) fixed c = some v → known c = some v)
     (hknown : ∀ c v, known c = some v →
       knownOf (truncateHash parameterOutput) fixed c = some v ∨ AboveWord (truncateHash parameterOutput) prepared.1 c) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
           (sampleData parameterOutput fixed highs remaining))))
-        known prepared.2] ≤
-      Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-          badAV parameterOutput fixed highs remaining prepared.1 x.1
-            (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache) |
-        interp tg prepared.2 (sampleModel parameterOutput highs)
+        known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
+      Pr{let x ← (interp tg prepared.2 (sampleModel parameterOutput highs)
           (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining)
             (internalize adversary)) q (DebtState.start prepared.2 known) >>=
-          fun result => (fun table => (table, result)) <$> completion result.2.known] := by
+          fun result => (fun table => (table, result)) <$> completion result.2.known)}[CorrectGuess x.1 x.2.2 ∨
+          badAV parameterOutput fixed highs remaining prepared.1 x.1
+            (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] := by
   unfold HiddenOutside.stoppedExperiment
-  rw [probEvent_bind_eq_tsum]
-  calc _ ≤ ∑' table, Pr[= table | completion known] *
-        Pr[fun r => CorrectGuess table r.2 ∨
-            badAV parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache) |
-          fixedRun (sampleModel parameterOutput highs) table
+  rw [OracleComp.prEvent_bind_eq_tsum]
+  calc _ ≤ ∑' table, Pr{let x ← completion known}[x = table] *
+        Pr{let r ← (fixedRun (sampleModel parameterOutput highs) table
             (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
               (sampleData parameterOutput fixed highs remaining))))
-            (DebtState.start prepared.2 known)] := by
+            (DebtState.start prepared.2 known))}[CorrectGuess table r.2 ∨
+            badAV parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache)] := by
         refine ENNReal.tsum_le_tsum fun table => ?_
         by_cases htab : table ∈ support (completion known)
         · have hag : Agrees known table := by
@@ -114,26 +111,23 @@ theorem stopped_le_interpV (hb : 0 < subtreeHeight) (adversary : Adversary) (q :
           have := stopped_table_leV hb adversary q hq parameterOutput fixed highs remaining prepared
             hprepared known hknownOf hknown table hag
           exact mul_le_mul_right this _
-        · rw [probOutput_eq_zero_of_not_mem_support htab, zero_mul, zero_mul]
-    _ = Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-            badAV parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache) |
-          withTable (fun table => fixedRun (sampleModel parameterOutput highs) table
+        · rw [(prEvent_eq_zero_of_not_mem_support _) htab, zero_mul, zero_mul]
+    _ = Pr{let x ← (withTable (fun table => fixedRun (sampleModel parameterOutput highs) table
             (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
               (sampleData parameterOutput fixed highs remaining))))
-            (DebtState.start prepared.2 known)) known] := by
+            (DebtState.start prepared.2 known)) known)}[CorrectGuess x.1 x.2.2 ∨
+            badAV parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache)] := by
         unfold withTable
-        rw [probEvent_bind_eq_tsum]
+        rw [OracleComp.prEvent_bind_eq_tsum]
         refine tsum_congr fun table => ?_
-        rw [probEvent_map]
-        rfl
-    _ = Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-            badAV parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache) |
-          lazyRun (sampleModel parameterOutput highs)
+        rw [prEvent_map]
+    _ = Pr{let x ← (lazyRun (sampleModel parameterOutput highs)
             (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
               (sampleData parameterOutput fixed highs remaining))))
             (DebtState.start prepared.2 known) >>= fun result =>
-              (fun table => (table, result)) <$> completion result.2.known] :=
-        probEvent_congr' (fun _ _ => Iff.rfl) (withTable_fixedRun _ _ _)
+              (fun table => (table, result)) <$> completion result.2.known)}[CorrectGuess x.1 x.2.2 ∨
+            badAV parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache)] :=
+        (withTable_fixedRun _ _ _).prEvent_eq _
     _ = _ := by
         unfold richProgram
         rw [lazyRun_wrapped tg prepared.2]
@@ -152,8 +146,7 @@ theorem stopped_le_interpV (hb : 0 < subtreeHeight) (adversary : Adversary) (q :
           rw [bind_map_left, map_bind]
           refine bind_congr fun out => ?_
           rw [Functor.map_map]
-        rw [hcomp, probEvent_map]
-        rfl
+        rw [hcomp, prEvent_map]
 
 set_option maxRecDepth 100000 in
 /-- **From the stopped experiment with the above-word exposure to the interpreted run.** -/
@@ -165,17 +158,16 @@ theorem stopped_le_interp_exposeV (hb : 0 < subtreeHeight) (adversary : Adversar
     (tg : Targeting HashInput HashOutput Coordinate) (known : Knowledge Coordinate)
     (hk : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
       (knownOf (truncateHash parameterOutput) fixed))) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
           (sampleData parameterOutput fixed highs remaining))))
-        known prepared.2] ≤
-      Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-          badAV parameterOutput fixed highs remaining prepared.1 x.1
-            (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache) |
-        interp tg prepared.2 (sampleModel parameterOutput highs)
+        known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
+      Pr{let x ← (interp tg prepared.2 (sampleModel parameterOutput highs)
           (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining)
             (internalize adversary)) q (DebtState.start prepared.2 known) >>=
-          fun result => (fun table => (table, result)) <$> completion result.2.known] :=
+          fun result => (fun table => (table, result)) <$> completion result.2.known)}[CorrectGuess x.1 x.2.2 ∨
+          badAV parameterOutput fixed highs remaining prepared.1 x.1
+            (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)] :=
   stopped_le_interpV hb adversary q hq parameterOutput fixed highs remaining prepared hprepared tg known
     (expose_known_support _ fixed prepared.1 known hk).1 (expose_known_support _ fixed prepared.1 known hk).2
 

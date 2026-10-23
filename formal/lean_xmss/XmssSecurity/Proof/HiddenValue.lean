@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.IdealStatement
 import VCVio.OracleComp.Constructions.SampleableType
 
@@ -12,8 +13,8 @@ theorem card_digest : Fintype.card Digest = 2 ^ digestBits := by
   simp
 
 theorem uniform_digest_point_probability (target : Digest) :
-    Pr[= target | $ᵗ Digest] =
+    Pr{let x ← $ᵗ Digest}[x = target] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probOutput_uniformSample, card_digest]
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, card_digest]
 
 end XmssSecurity.HiddenValue

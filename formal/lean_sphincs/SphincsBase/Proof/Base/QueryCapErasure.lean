@@ -36,7 +36,7 @@ theorem run_eq_some_counted (impl : QueryImpl spec PMF) (computation : OracleCom
   rw [run_eq_counted]
   apply map_eq_on_support
   intro result hresult
-  exact if_pos (hbound result hresult)
+  exact ite_eq_left (hbound result hresult)
 
 theorem run_erased (impl : QueryImpl spec PMF) (computation : OracleComp spec Result) (budget : Nat)
     (hbound : ∀ result ∈ (simulateQ impl (counted selected computation)).support, result.2 ≤ budget) :

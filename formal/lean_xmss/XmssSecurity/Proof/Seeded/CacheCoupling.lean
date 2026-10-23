@@ -37,7 +37,7 @@ theorem run'_stopBefore_eq {α : Type} (bad : HashInput → Prop) [DecidablePred
       rw [stopBefore_query_bind]
       by_cases hbad : hashBad bad input
       · simp [hbad]
-      · simp only [if_neg hbad, run'_query_bind]
+      · simp only [ite_eq_right hbad, run'_query_bind]
         cases input with
         | inl input =>
             dsimp [OracleWorld] at next ih ⊢
@@ -68,9 +68,9 @@ theorem run'_stopBefore_eq {α : Type} (bad : HashInput → Prop) [DecidablePred
 theorem probEvent_cache_change_le {α : Type} (bad : HashInput → Prop) [DecidablePred bad]
     (computation : OracleComp OracleWorld α) (left right : QueryCache HashSpec)
     (h : AgreeOutside bad left right) (event : α → Prop) :
-    Pr[event | (simulateQ romImpl computation).run' left] ≤
-      Pr[event | (simulateQ romImpl computation).run' right] +
-      Pr[= none | (simulateQ romImpl (stopBefore (hashBad bad) computation)).run' right] := by
+    Pr{let x ← (simulateQ romImpl computation).run' left}[event x] ≤
+      Pr{let x ← (simulateQ romImpl computation).run' right}[event x] +
+      Pr{let x ← (simulateQ romImpl (stopBefore (hashBad bad) computation)).run' right}[x = none] := by
   have hbound := probEvent_le_stopBefore_add_failure (hashBad bad) computation left event
   rw [run'_stopBefore_eq bad computation left right h] at hbound
   exact hbound.trans (add_le_add

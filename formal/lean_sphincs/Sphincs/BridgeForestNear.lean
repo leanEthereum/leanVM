@@ -48,8 +48,8 @@ theorem witnessNear_props : WitnessProps witnessNear := by
   unfold witnessNear
   refine Finset.sum_le_sum fun c _ => Finset.sum_le_sum fun j _ => ?_
   by_cases h : NearSub v c j small
-  · rw [if_pos h, if_pos (nearSub_mono hle h)]
-  · rw [if_neg h]; exact zero_le
+  · rw [ite_eq_left h, ite_eq_left (nearSub_mono hle h)]
+  · rw [ite_eq_right h]; exact zero_le
 
 /-- A chain covered by the reveals is covered by disclosed views accounting for the reveals. -/
 theorem chainCovered_of_chainCov {R : List Coordinate} {d : Multiset View} (hD : DInv R d) (digest : MessageDigest)
@@ -99,7 +99,7 @@ theorem nearWitness_pos {R : List Coordinate} {d : Multiset View} (hD : DInv R d
     then (1 : ℝ≥0∞) else 0) (fun _ _ => zero_le) (Finset.mem_univ c))
   refine le_trans ?_ (Finset.single_le_sum (f := fun j => if NearSub (Lifetime.localDigestView digest) c j d
     then (1 : ℝ≥0∞) else 0) (fun _ _ => zero_le) (Finset.mem_univ (otherSub j)))
-  rw [if_pos hsub]
+  rw [ite_eq_left hsub]
 
 end Sphincs.Security.ForsPotential
 
@@ -135,12 +135,12 @@ theorem nearSub_iff (l : Fin (2 ^ subtreeHeight)) (τ : Coord → FieldVal) (c :
   · intro h
     refine ⟨fun c' hc j' i => ?_, fun i => ?_⟩
     · have h' := h c'
-      rw [if_neg hc] at h'
+      rw [ite_eq_right hc] at h'
       rcases h' j' i with h0 | ⟨_, ⟨v, hv, hl, rfl⟩, hk⟩
       · exact Or.inl h0
       · exact Or.inr ⟨v, hv, hl, hk⟩
     · have h' := h c
-      rw [if_pos rfl] at h'
+      rw [ite_eq_left rfl] at h'
       rcases h' i with h0 | ⟨_, ⟨v, hv, hl, rfl⟩, hk⟩
       · exact Or.inl h0
       · exact Or.inr ⟨v, hv, hl, hk⟩
@@ -159,13 +159,13 @@ theorem priceNear_decomp (d : Multiset View) :
     unfold witnessNear
     refine Finset.sum_congr rfl fun c _ => Finset.sum_congr rfl fun j _ => ?_
     by_cases h : NearSub (l, τ) c j d
-    · rw [if_pos h]
-      exact (Finset.prod_eq_one fun c' _ => if_pos ((nearSub_iff l τ c j d).1 h c')).symm
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+      exact (Finset.prod_eq_one fun c' _ => ite_eq_left ((nearSub_iff l τ c j d).1 h c')).symm
+    · rw [ite_eq_right h]
       rw [nearSub_iff] at h
       push Not at h
       obtain ⟨c', hc'⟩ := h
-      exact (Finset.prod_eq_zero (Finset.mem_univ c') (if_neg hc')).symm
+      exact (Finset.prod_eq_zero (Finset.mem_univ c') (ite_eq_right hc')).symm
   simp only [hw]
   have hy : ∀ l : Fin (2 ^ subtreeHeight), (freshAvg Finset.univ fun τ : Coord → FieldVal =>
       ∑ c, ∑ j, ∏ c', (fun c' (t : FieldVal) => if (if c' = c then CoverHF t j ((marksAt l d).map fun m => m c')

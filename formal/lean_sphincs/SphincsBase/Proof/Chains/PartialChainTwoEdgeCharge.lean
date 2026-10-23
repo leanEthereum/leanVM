@@ -13,8 +13,8 @@ theorem contactCount_mono {n : Nat} {before after : Fin n → State → Option S
   intro query _
   by_cases hk : query.1.val + 1 = n ∧ before query.1 query.2 = some endpoint
   · have hk' : query.1.val + 1 = n ∧ after query.1 query.2 = some endpoint := ⟨hk.1, h _ _ _ hk.2⟩
-    simp only [if_pos hk, if_pos hk', le_refl]
-  · simp only [if_neg hk, Nat.zero_le]
+    simp only [ite_eq_left hk, ite_eq_left hk', le_refl]
+  · simp only [ite_eq_right hk, Nat.zero_le]
 
 noncomputable def twoEdgeCharge {n : Nat} (spent : Nat) (observed : Fin (n + 2) → State → Option State) (endpoint : State) : Nat :=
   longCompleted observed + 2 * preparationCount observed +

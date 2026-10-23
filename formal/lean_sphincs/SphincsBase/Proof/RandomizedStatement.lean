@@ -59,7 +59,7 @@ noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adver
 
 /-- Success probability from an empty random-oracle cache. -/
 noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
+  Pr{let x ← (simulateQ romImpl (gameCore scheme adversary)).run' ∅}[x = true]
 
 /-- Count one per hash call, including cache hits, and zero per uniform sample. -/
 noncomputable def countedRomImpl :=

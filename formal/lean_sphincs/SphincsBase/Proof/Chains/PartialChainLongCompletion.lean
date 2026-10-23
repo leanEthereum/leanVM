@@ -99,13 +99,13 @@ theorem knownCount_sum_last_fresh {n : Nat} (before : Fin n → State → Option
   apply Finset.sum_congr rfl
   intro start _
   cases hrun : knownRun before start with
-  | none => simp only [Option.bind_none, Option.isSome_none, Bool.false_eq_true, if_false, reduceCtorEq, Nat.add_zero]
+  | none => simp only [Option.bind_none, Option.isSome_none, Bool.false_eq_true, ite_false, reduceCtorEq, Nat.add_zero]
   | some value =>
       by_cases hv : value = input
       · subst value
         simp only [Option.bind_some, Function.update_self, hfresh, Option.isSome_some, Option.isSome_none,
-          Bool.false_eq_true, if_true, if_false, Nat.zero_add]
-      · simp only [Option.bind_some, Function.update_of_ne hv, Option.some.injEq, if_neg hv, Nat.add_zero]
+          Bool.false_eq_true, ite_true, ite_false, Nat.zero_add]
+      · simp only [Option.bind_some, Function.update_of_ne hv, Option.some.injEq, ite_eq_right hv, Nat.add_zero]
 
 theorem longCompleted_last_fresh {n : Nat} (before : Fin n → State → Option State) (last : State → Option State)
     (input answer : State) (hfresh : last input = none) :

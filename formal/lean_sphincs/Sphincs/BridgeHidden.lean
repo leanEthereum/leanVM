@@ -112,7 +112,7 @@ theorem graphFn_eq_answer (material : Material) (answers : CanonicalGraphLabels)
       split_ifs with hvalue
       · simp only [graphFn, extend, graphCache]
         rw [programGraphCache_row_lookup p ots fts labels _ ∅ address hmem value,
-          if_pos (show value = coordinates ots fts labels address.inputCoordinate from hvalue)]
+          ite_eq_left (show value = coordinates ots fts labels address.inputCoordinate from hvalue)]
         change labels address.position = Prefix.combine (coordinates ots fts labels address.outputCoordinate)
           (highHalves labels address)
         rw [coordinates_outgoing]
@@ -408,7 +408,7 @@ noncomputable def mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.T
 
 noncomputable def knownOf (parameter : PublicParameter) (fixed : HiddenGraph.Table) :
     HiddenReveal.Knowledge Coordinate :=
-  fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
+  QueryCache.ofFn fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
     else none
 
 theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) (coordinate : Coordinate)
@@ -418,7 +418,7 @@ theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table
 theorem masked_mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) :
     masked parameter (mix parameter fixed fresh) = tableExtending (knownOf parameter fixed) fresh := by
   funext coordinate
-  simp only [masked, mix, tableExtending, knownOf]
+  simp only [masked, mix, tableExtending, knownOf, QueryCache.ofFn_apply]
   by_cases hknown : KnownCoordinate parameter coordinate
   · simp [hknown]
   · have hmask : ¬Masked parameter coordinate := fun h => hknown (known_of_masked _ _ h)
@@ -440,30 +440,30 @@ theorem graphCoordinates_split (lows : HiddenGraph.Table) :
       by_cases hzero : position.val = 0
       · have hm : ¬Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
           fun h => h.1 hzero
-        rw [if_neg hm, ← hcoord]
-        simp only [HiddenGraph.coordinates, dif_pos hzero]
+        rw [ite_eq_right hm, ← hcoord]
+        simp only [HiddenGraph.coordinates, dite_eq_left hzero]
         rfl
       · by_cases hland : Landed (truncateHash parameterOutput) leaf
         · have hm : ¬Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
             fun h => h.2 hland
-          rw [if_neg hm, ← hcoord]
-          simp only [HiddenGraph.coordinates, dif_neg hzero]
+          rw [ite_eq_right hm, ← hcoord]
+          simp only [HiddenGraph.coordinates, dite_eq_right hzero]
           rw [completed_active_label _ _ _ _ hland]
           rfl
         · have hm : Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
             ⟨hzero, hland⟩
-          rw [if_pos hm]
-          simp only [HiddenGraph.coordinates, dif_neg hzero, completedLabels]
-          rw [if_neg (fun hmem => hland ((mem_graphOrder _ _).mp hmem))]
+          rw [ite_eq_left hm]
+          simp only [HiddenGraph.coordinates, dite_eq_right hzero, completedLabels]
+          rw [ite_eq_right (fun hmem => hland ((mem_graphOrder _ _).mp hmem))]
           simp only [PrunedGraph.initialLabels, PrunedGraph.boundary]
           rfl
   | fchain index c s j a i position =>
-      rw [if_neg (show ¬Masked (truncateHash parameterOutput) (.fchain index c s j a i position) from
+      rw [ite_eq_right (show ¬Masked (truncateHash parameterOutput) (.fchain index c s j a i position) from
         fun h => h), ← hcoord]
       by_cases hzero : position.val = 0
-      · simp only [HiddenGraph.coordinates, dif_pos hzero]
+      · simp only [HiddenGraph.coordinates, dite_eq_left hzero]
         rfl
-      · simp only [HiddenGraph.coordinates, dif_neg hzero]
+      · simp only [HiddenGraph.coordinates, dite_eq_right hzero]
         rw [completed_active_label _ _ _ _ trivial]
         rfl
 

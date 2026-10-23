@@ -137,43 +137,38 @@ theorem sequenceFin_map {m : Type → Type} [Monad m] [LawfulMonad m] {A B : Typ
       cases i using Fin.cases <;> rfl
 
 theorem evalDist_sequenceFin_congr {A : Type} {n : Nat}
-    (left right : Fin n → ProbComp A) (h : ∀ i, 𝒟[left i] = 𝒟[right i]) :
-    𝒟[Concrete.sequenceFin left] = 𝒟[Concrete.sequenceFin right] := by
+    (left right : Fin n → ProbComp A) (h : ∀ i, left i =ᵈ right i) :
+    Concrete.sequenceFin left =ᵈ Concrete.sequenceFin right := by
   induction n with
   | zero => rfl
   | succ n ih =>
-      simp only [Concrete.sequenceFin, bind_pure_comp, evalDist_bind]
-      rw [h 0]
-      congr 1
-      funext head
-      rw [evalDist_map, evalDist_map, ih _ _ (fun i => h i.succ)]
+      simp only [Concrete.sequenceFin, bind_pure_comp]
+      exact (h 0).bind fun _ => (ih _ _ (fun i => h i.succ)).map _
 
 theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
-    𝒟[Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)] =
-      𝒟[$ᵗ (Fin n → R)] := by
+    (Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)) =ᵈ ($ᵗ (Fin n → R)) := by
   classical
   induction n with
   | zero =>
-      apply SPMF.ext
-      intro values
+      refine evalDistEq_iff_forall_prEvent_eq_output.mpr fun values => ?_
       have heq : values = Fin.elim0 := funext fun i => i.elim0
-      simp [Concrete.sequenceFin, heq]
+      simp [Concrete.sequenceFin, heq, Subsingleton.elim (default : Fin 0 → R) Fin.elim0,
+        Finset.filter_singleton]
+
   | succ n ih =>
       calc
-        _ = 𝒟[finHeadTailEquiv R n <$> (do
+        _ =ᵈ (finHeadTailEquiv R n <$> (do
             let head ← $ᵗ R
             let tail ← $ᵗ (Fin n → R)
-            pure (head, tail))] := by
+            pure (head, tail))) := by
           simp only [Concrete.sequenceFin, map_bind, finHeadTailEquiv,
             Equiv.coe_fn_mk, bind_pure_comp]
-          rw [evalDist_bind, evalDist_bind]
-          congr 1
-          funext head
-          rw [evalDist_map, ih, evalDist_map, evalDist_map, Functor.map_map]
-        _ = 𝒟[finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))] := by
-          rw [evalDist_map, evalDist_map, evalDist_independent_uniform_pair]
-        _ = _ := evalDist_map_bijective_uniform_cross
-          (α := R × (Fin n → R)) (β := Fin (n + 1) → R)
-          (finHeadTailEquiv R n) (finHeadTailEquiv R n).bijective
+          refine EvalDistEq.bind_right _ fun head => (ih.map _).trans (.of_eq ?_)
+          rw [Functor.map_map]
+        _ =ᵈ (finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))) :=
+          evalDist_independent_uniform_pair.map _
+        _ =ᵈ _ := SampleableType.map_uniformSample_evalDistEq_of_bijective
+          (finHeadTailEquiv R n).bijective
+
 
 end XmssSecurity.Seeded

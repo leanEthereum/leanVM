@@ -2,6 +2,8 @@ import Sphincs.SecurityVerifier
 import Sphincs.Randomized
 import VCVio.OracleComp.QueryTracking.QueryBound
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Every hash input of the honest algorithms and of the verifier has at most 1056 bytes.
 Longer adversarial inputs never meet honest work, which lets them be simulated privately. -/
 

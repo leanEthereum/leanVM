@@ -1,5 +1,7 @@
 import Sphincs.SecurityChainWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic extraction for the forest opening, the analogue of `SecurityForsWitness`. An opening
 that recovers the canonical forest key either opens every needed chain at its canonical value with
@@ -77,14 +79,14 @@ theorem honestChain_succ (position : Nat) (hposition : position < chainTop) :
     honestChain f parameter index c s j a i secret (position + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨position, hposition⟩)
           ((bytesLE 16) (honestChain f parameter index c s j a i secret position)))) := by
-  simp only [honestChain, forestWalk, evalWithAnswerFn_bind, Nat.zero_add, dif_pos hposition,
+  simp only [honestChain, forestWalk, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
 theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat) (hrange : start + steps < chainTop) :
     walkValue f parameter index c s j a i start value (steps + 1)
       = truncateHash (f (tweakableHashInput parameter (.fchain index c s j a i ⟨start + steps, hrange⟩)
           ((bytesLE 16) (walkValue f parameter index c s j a i start value steps)))) := by
-  simp only [walkValue, forestWalk, evalWithAnswerFn_bind, dif_pos hrange, Completeness.eval_tweakableHash]
+  simp only [walkValue, forestWalk, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a forest chain step: something other than the honest value at `position` hashing to
 the honest value at `position + 1`. -/
@@ -187,14 +189,14 @@ theorem merkleFold_subFold (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx
       rw [merkleFold, subFold, ih (by omega)]
       apply bind_congr
       intro current
-      rw [dif_pos hl]
+      rw [dite_eq_left hl]
       have hdom : subDomain index c s j (levels + 1) (a.val / 2 ^ (levels + 1)) =
           .subNode index c s j ⟨levels, hl⟩ ⟨a.val / 2 ^ (levels + 1),
             Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt⟩ := by
-        rw [subDomain, dif_pos ⟨by omega, by omega⟩]
+        rw [subDomain, dite_eq_left ⟨by omega, by omega⟩]
         congr 1
         exact Fin.ext (Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt))
-      rw [hdom, subPathExt, dif_pos hl]
+      rw [hdom, subPathExt, dite_eq_left hl]
       cases a.val.testBit levels <;> rfl
 
 theorem merkleFold_topFold (c : Coord) (s : SuperIdx) (path : Fin topHeight → Digest) (levels : Nat)
@@ -208,14 +210,14 @@ theorem merkleFold_topFold (c : Coord) (s : SuperIdx) (path : Fin topHeight → 
       rw [merkleFold, topFold, ih (by omega)]
       apply bind_congr
       intro current
-      rw [dif_pos hl]
+      rw [dite_eq_left hl]
       have hdom : topDomain index c (levels + 1) (s.val / 2 ^ (levels + 1)) =
           .topNode index c ⟨levels, hl⟩ ⟨s.val / 2 ^ (levels + 1),
             Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt⟩ := by
-        rw [topDomain, dif_pos ⟨by omega, by omega⟩]
+        rw [topDomain, dite_eq_left ⟨by omega, by omega⟩]
         congr 1
         exact Fin.ext (Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt))
-      rw [hdom, topPathExt, dif_pos hl]
+      rw [hdom, topPathExt, dite_eq_left hl]
       cases s.val.testBit levels <;> rfl
 
 /-- The canonical sub-tree path of a child. -/
@@ -462,7 +464,7 @@ theorem sub_fold_classification (c : Coord) (mark : CoordMark) (j : SubIdx) (ope
     funext level
     by_cases hlow : level.val < subHeight - 1
     · have hp := hpath level.val hlow
-      simpa only [subPathExt, dif_pos level.isLt] using hp
+      simpa only [subPathExt, dite_eq_left level.isLt] using hp
     · have hlevel : level = subTopLevel := by
         apply Fin.ext
         have := level.isLt
@@ -499,7 +501,7 @@ theorem top_fold_classification (c : Coord) (mark : CoordMark) (opening : CoordO
     funext level
     by_cases hlow : level.val < topHeight - 1
     · have hp := hpath level.val hlow
-      simpa only [topPathExt, dif_pos level.isLt] using hp
+      simpa only [topPathExt, dite_eq_left level.isLt] using hp
     · have hlevel : level = topTopLevel := by
         apply Fin.ext
         have := level.isLt

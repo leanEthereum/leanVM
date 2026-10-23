@@ -25,12 +25,12 @@ variable (K : Ctx)
 
 /-- A reveal keeps the potential in expectation. -/
 theorem sample_mean (y : ℕ) (s : St) (c : Coordinate) :
-    ∑' r, Pr[= r | sampleCoordinate c s] * K.pot y r.2 ≤ K.pot y s := by
+    ∑' r, Pr{let x ← sampleCoordinate c s}[x = r] * K.pot y r.2 ≤ K.pot y s := by
   cases hc : s.known c with
   | some v =>
-      rw [sampleCoordinate_known c s v hc, tsum_probOutput_pure_mul]
+      rw [sampleCoordinate_known c s v hc, OracleComp.tsum_prEvent_pure_mul]
   | none =>
-      rw [sampleCoordinate_unknown c s hc, tsum_probOutput_map_mul]
+      rw [sampleCoordinate_unknown c s hc, OracleComp.tsum_prEvent_map_mul]
       exact K.pot_expose_mean y s c hc
 
 theorem inv_sample {s : St} (hinv : K.Inv s) (c : Coordinate) :
@@ -118,26 +118,26 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
     (hmsg : ∀ x, ForestSigner.IsMsgInput x → K.tg.kind x = .none)
     (input : (SourceCostSpec HashInput HashOutput Coordinate).Domain) (budget : ℕ) (s : St) (hinv : K.Inv s)
     (hcost : sourceCost input ≤ budget) :
-    ∑' r, Pr[= r | costStep M input s] * K.potCap total (budget - sourceCost input) r.2 +
+    ∑' r, Pr{let x ← costStep M input s}[x = r] * K.potCap total (budget - sourceCost input) r.2 +
       ENNReal.ofReal (K.ρ / 2 ^ 128) * digestCount tg' (recorded input) ≤ K.potCap total budget s := by
   unfold potCap
   by_cases hb : budget ≤ total
   swap
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     exact le_top
-  rw [if_pos hb]
+  rw [ite_eq_left hb]
   have hpot : ∀ r : (SourceCostSpec HashInput HashOutput Coordinate).Range input × St,
       (if budget - sourceCost input ≤ total then K.pot (budget - sourceCost input) r.2 else ⊤) =
-        K.pot (budget - sourceCost input) r.2 := fun r => if_pos ((Nat.sub_le _ _).trans hb)
+        K.pot (budget - sourceCost input) r.2 := fun r => ite_eq_left ((Nat.sub_le _ _).trans hb)
   simp only [hpot]
   have hxr : (0 : ℝ) ≤ (total : ℝ) / 2 ^ 128 := by positivity
   rcases input with (draw | (bytes | c)) | amount
   · have hrec : digestCount tg' (recorded (D := HashInput) (R := HashOutput) (ι := Coordinate)
         (.inl (.inl draw))) = 0 := rfl
-    rw [hrec, Nat.cast_zero, mul_zero, add_zero, costStep_inl, lazyStep_draw, tsum_probOutput_map_mul]
+    rw [hrec, Nat.cast_zero, mul_zero, add_zero, costStep_inl, lazyStep_draw, OracleComp.tsum_prEvent_map_mul]
     simp only [sourceCost, Nat.sub_zero]
     rw [ENNReal.tsum_mul_right]
-    exact mul_le_of_le_one_left' tsum_probOutput_le_one
+    exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   · have hcost1 : sourceCost (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inl (.inr (.inl bytes))) = 1 :=
       rfl
     rw [hcost1] at hcost ⊢
@@ -150,7 +150,7 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
         rw [lazyStep_unparsed M bytes s hp]
         cases hc : s.cache bytes with
         | some u =>
-            rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+            rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
             show K.pot y' s + _ ≤ _
             have h := K.pot_same hN.high (by linarith [hN.low]) y' s
               (if ForestSigner.IsMsgInput bytes then 1 else 0) (by split_ifs <;> simp)
@@ -159,16 +159,16 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
               _ ≤ _ := h
         | none =>
             by_cases hd : ForestSigner.IsMsgInput bytes
-            · rw [if_pos hd, mul_one]
+            · rw [ite_eq_left hd, mul_one]
               exact K.fresh_digest hN hmsg hinv hc hd
-            · rw [if_neg hd, mul_zero, add_zero]
+            · rw [ite_eq_right hd, mul_zero, add_zero]
               exact K.fresh_zero hN hxr hY hsec hinv hc
     | some q =>
         have hq : HiddenGraph.parse K.p (candidateActive K.p) bytes = some q := by rw [← hMp, hp]
         have hd : ¬ForestSigner.IsMsgInput bytes := fun hd => by
           rw [parse_msg_none _ _ bytes hd] at hq
           cases hq
-        rw [if_neg hd, mul_zero, add_zero]
+        rw [ite_eq_right hd, mul_zero, add_zero]
         cases hk : s.known (M.incoming q.1) with
         | none =>
             rw [lazyStep_guess M bytes s q hp hk, hMi]
@@ -176,20 +176,20 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
             cases hc : s.cache bytes with
             | some u =>
                 have hc' : (s.record (q.1.inputCoordinate, q.2)).cache bytes = some u := hc
-                rw [readOutside_cached bytes _ u hc', tsum_probOutput_pure_mul]
+                rw [readOutside_cached bytes _ u hc', OracleComp.tsum_prEvent_pure_mul]
                 exact K.guess_cached hN y' hinv hc q hq hk
             | none => exact K.guess_fresh hN hxr hY hsec hinv hc q hq hk
         | some canonical =>
             by_cases heq : q.2 = canonical
-            · rw [lazyStep_canonical M bytes s q hp canonical hk heq, tsum_probOutput_map_mul]
-              calc ∑' r, Pr[= r | sampleCoordinate (M.outgoing q.1) s] * K.pot y' r.2
-                  ≤ ∑' r, Pr[= r | sampleCoordinate (M.outgoing q.1) s] * K.pot (y' + 1) r.2 :=
+            · rw [lazyStep_canonical M bytes s q hp canonical hk heq, OracleComp.tsum_prEvent_map_mul]
+              calc ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot y' r.2
+                  ≤ ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot (y' + 1) r.2 :=
                     ENNReal.tsum_le_tsum fun r => mul_le_mul_of_nonneg_left (K.pot_mono (Nat.le_succ _) _) bot_le
                 _ ≤ _ := K.sample_mean (y' + 1) s _
             · rw [lazyStep_other M bytes s q hp canonical hk heq]
               cases hc : s.cache bytes with
               | some u =>
-                  rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+                  rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
                   exact K.pot_mono (Nat.le_succ _) s
               | none => exact K.fresh_zero hN hxr hY hsec hinv hc
   · have hrec : digestCount tg' (recorded (D := HashInput) (R := HashOutput) (ι := Coordinate)
@@ -200,8 +200,8 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
   · have hrec : digestCount tg' (recorded (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inr amount)) = 0 :=
       rfl
     rw [hrec, Nat.cast_zero, mul_zero, add_zero]
-    change ∑' r, Pr[= r | (pure ((), s) : ProbComp _)] * _ ≤ _
-    rw [tsum_probOutput_pure_mul]
+    change ∑' r, Pr{let x ← (pure ((), s) : ProbComp _)}[x = r] * _ ≤ _
+    rw [OracleComp.tsum_prEvent_pure_mul]
     exact K.pot_mono (Nat.sub_le _ _) s
 
 end Model
@@ -214,17 +214,17 @@ theorem payoff_le_one (T : Coordinate → Digest) (s : St) : K.payoff T s ≤ 1 
 
 /-- Completing an unexposed coordinate hits a set with its share of the space. -/
 theorem completion_mem (known : Knowledge Coordinate) (c : Coordinate) (hc : known c = none)
-    (S : Set Digest) : Pr[fun T => T c ∈ S | completion known] ≤ (S.encard : ℝ≥0∞) * ν := by
+    (S : Set Digest) : Pr{let T ← completion known}[T c ∈ S] ≤ (S.encard : ℝ≥0∞) * ν := by
   set Sf : Finset Digest := Finset.univ.filter (· ∈ S) with hSf
   have hS : (S.encard : ℝ≥0∞) = (Sf.card : ℝ≥0∞) := by
     have : S = (Sf : Set Digest) := by
       ext t
       simp [hSf]
     rw [this, Set.encard_coe_eq_coe_finsetCard, ENat.toENNReal_coe]
-  calc Pr[fun T => T c ∈ S | completion known] = Pr[fun T => ∃ v ∈ Sf, T c = v | completion known] := by
-        refine probEvent_ext fun T _ => ?_
+  calc Pr{let T ← completion known}[T c ∈ S] = Pr{let T ← completion known}[∃ v ∈ Sf, T c = v] := by
+        refine prEvent_congr_of_support _ _ _ fun T _ => ?_
         simp [hSf]
-    _ ≤ ∑ v ∈ Sf, Pr[fun T => T c = v | completion known] := probEvent_exists_finset_le_sum _ _ _
+    _ ≤ ∑ v ∈ Sf, Pr{let T ← completion known}[T c = v] := prEvent_exists_finset_le _ _ _
     _ = ∑ _v ∈ Sf, ν := Finset.sum_congr rfl fun v _ => by rw [completion_guess known c v hc, one_div]; rfl
     _ = _ := by rw [Finset.sum_const, nsmul_eq_mul, hS]
 
@@ -238,20 +238,21 @@ omit [Params] in
 /-- **Pinning coordinates.** Completing a knowledge cache satisfies coordinatewise conditions with
 the product of their chances. -/
 theorem completion_pin (known : Knowledge Coordinate) (P : Coordinate → Digest → Prop) :
-    Pr[fun T => ∀ c, P c (T c) | completion known] = ∏ c, pinChance (known c) (P c) := by
+    Pr{let T ← completion known}[∀ c, P c (T c)] = ∏ c, pinChance (known c) (P c) := by
   classical
   let allowed : Coordinate → Finset Digest := fun c => match known c with
     | none => Finset.univ.filter (P c)
     | some w => if P c w then Finset.univ else ∅
-  have hset : (Finset.univ.filter ((fun T : Coordinate → Digest => ∀ c, P c (T c)) ∘ tableExtending known)) =
+  have hset : (Finset.univ.filter (fun fresh : Coordinate → Digest => ∀ c, P c (tableExtending known fresh c))) =
       Fintype.piFinset allowed := by
     ext fresh
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset, Function.comp_apply]
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset]
     refine forall_congr' fun c => ?_
     cases hc : known c with
     | none => simp [allowed, tableExtending, hc]
     | some w => by_cases hp : P c w <;> simp [allowed, tableExtending, hc, hp]
-  rw [completion, probEvent_map, probEvent_uniformSample, hset, Fintype.card_piFinset, Fintype.card_fun]
+  rw [completion, prEvent_map, @SampleableType.prEvent_uniformSample _ HiddenReveal.tableSampleable, hset,
+    Fintype.card_piFinset, Fintype.card_fun]
   rw [Nat.cast_prod, Nat.cast_pow, show ((Fintype.card Digest : ℝ≥0∞)) ^ (Fintype.card Coordinate) =
       ∏ _c : Coordinate, (Fintype.card Digest : ℝ≥0∞) by rw [Finset.prod_const, Finset.card_univ],
     ← ENNReal.prod_div_distrib_of_ne_zero]
@@ -260,7 +261,7 @@ theorem completion_pin (known : Knowledge Coordinate) (P : Coordinate → Digest
     | none => simp only [allowed, hc, pinChance]
     | some w =>
         by_cases hp : P c w
-        · simp only [allowed, hc, hp, if_true, Finset.card_univ, pinChance]
+        · simp only [allowed, hc, hp, ite_true, Finset.card_univ, pinChance]
           rw [card_digest_ennreal]
           exact ENNReal.div_self (by norm_num) (by norm_num)
         · simp [allowed, hc, hp, pinChance]
@@ -296,7 +297,7 @@ theorem pinChance_eq (o : Option Digest) (t : Digest) :
   | some w => simp [pinChance]
 
 /-- The chance of one forest contact against the completion is its contact weight. -/
-theorem prob_fct (s : St) (f : FIn) : Pr[fun T => K.FCT T s f | completion s.known] = K.cw s f := by
+theorem prob_fct (s : St) (f : FIn) : Pr{let T ← completion s.known}[K.FCT T s f] = K.cw s f := by
   by_cases hfe : K.FE s f
   · obtain ⟨u, hu⟩ := hfe
     have huniq : ∀ v, K.Fr s (f.input K.p) v → v = u := fun v hv => by
@@ -309,7 +310,7 @@ theorem prob_fct (s : St) (f : FIn) : Pr[fun T => K.FCT T s f | completion s.kno
         rw [← ht, huniq v hv]
       · intro h
         exact ⟨u, hu, (h f.outC rfl).symm⟩
-    rw [(probEvent_ext (fun T _ => hev T)).trans
+    rw [(prEvent_congr_of_support _ _ _ (fun T _ => hev T)).trans
       (completion_pin s.known (fun c v => c = f.outC → v = truncateHash u))]
     rw [Finset.prod_eq_single f.outC]
     · rw [pinChance_congr _ (Q' := fun v => v = truncateHash u) (fun v => by simp), pinChance_eq]
@@ -318,7 +319,7 @@ theorem prob_fct (s : St) (f : FIn) : Pr[fun T => K.FCT T s f | completion s.kno
       | none =>
           have h1 : ¬K.FC s f := fun ⟨_, w, _, hw, _⟩ => by rw [hk] at hw; cases hw
           have h2 : K.Lat s f := ⟨⟨u, hu⟩, hk⟩
-          simp only [h1, h2, if_false, if_true]
+          simp only [h1, h2, ite_false, ite_true]
       | some w =>
           have h2 : ¬K.Lat s f := fun hl => by
             have h3 := hl.2
@@ -326,22 +327,22 @@ theorem prob_fct (s : St) (f : FIn) : Pr[fun T => K.FCT T s f | completion s.kno
             cases h3
           by_cases hw : w = truncateHash u
           · have h1 : K.FC s f := ⟨u, w, hu, hk, hw.symm⟩
-            simp only [h1, hw, if_true]
+            simp only [h1, hw, ite_true]
           · have h1 : ¬K.FC s f := fun ⟨v, w', hv, hw', ht⟩ => by
               rw [hk] at hw'
               cases hw'
               exact hw (by rw [← ht, huniq v hv])
-            simp only [h1, h2, hw, if_false]
+            simp only [h1, h2, hw, ite_false]
     · intro c _ hc
       rw [pinChance_congr _ (Q' := fun _ => True) (fun v => by simp [hc]), pinChance_true]
     · simp
   · have h0 := K.cw_of_not_fe hfe
     rw [h0]
-    exact probEvent_eq_zero fun T _ ⟨u, hu, _⟩ => hfe ⟨u, hu⟩
+    exact prEvent_eq_zero_of_forall_mem_support _ _ fun T _ ⟨u, hu, _⟩ => hfe ⟨u, hu⟩
 
 /-- The chance of two forest contacts writing different coordinates is the product of their weights. -/
 theorem prob_fct2 (s : St) (f g : FIn) (hfg : f.outC ≠ g.outC) :
-    Pr[fun T => K.FCT T s f ∧ K.FCT T s g | completion s.known] = K.cw s f * K.cw s g := by
+    Pr{let T ← completion s.known}[K.FCT T s f ∧ K.FCT T s g] = K.cw s f * K.cw s g := by
   by_cases hfe : K.FE s f
   · by_cases hge : K.FE s g
     · obtain ⟨u, hu⟩ := hfe
@@ -363,7 +364,7 @@ theorem prob_fct2 (s : St) (f g : FIn) (hfg : f.outC ≠ g.outC) :
             exact ⟨⟨u, hu, ((h f.outC).1 rfl).symm⟩, ⟨u', hu', ((h g.outC).2 rfl).symm⟩⟩
       have hf1 := K.prob_fct s f
       have hg1 := K.prob_fct s g
-      rw [(probEvent_ext (fun T _ => hev T)).trans (completion_pin s.known
+      rw [(prEvent_congr_of_support _ _ _ (fun T _ => hev T)).trans (completion_pin s.known
         (fun c v => (c = f.outC → v = truncateHash u) ∧ (c = g.outC → v = truncateHash u')))]
       have hsplit : ∀ c, pinChance (s.known c)
           (fun v => (c = f.outC → v = truncateHash u) ∧ (c = g.outC → v = truncateHash u')) =
@@ -379,21 +380,21 @@ theorem prob_fct2 (s : St) (f g : FIn) (hfg : f.outC ≠ g.outC) :
             pinChance_congr (s.known c) (Q := fun v => c = f.outC → v = truncateHash u) (Q' := fun _ => True)
               (fun v => by simp [hcf]), pinChance_true, one_mul]
       rw [Finset.prod_congr rfl fun c _ => hsplit c, Finset.prod_mul_distrib]
-      have hf2 : Pr[fun T => K.FCT T s f | completion s.known] =
+      have hf2 : Pr{let T ← completion s.known}[K.FCT T s f] =
           ∏ c, pinChance (s.known c) (fun v => c = f.outC → v = truncateHash u) := by
-        refine (probEvent_ext fun T _ => ⟨fun ⟨v, hv, ht⟩ c hc => ?_, fun h => ⟨u, hu, (h f.outC rfl).symm⟩⟩).trans
+        refine (prEvent_congr_of_support _ _ _ fun T _ => ⟨fun ⟨v, hv, ht⟩ c hc => ?_, fun h => ⟨u, hu, (h f.outC rfl).symm⟩⟩).trans
           (completion_pin s.known (fun c v => c = f.outC → v = truncateHash u))
         rw [hc, ← ht, huniq f u v hu hv]
-      have hg2 : Pr[fun T => K.FCT T s g | completion s.known] =
+      have hg2 : Pr{let T ← completion s.known}[K.FCT T s g] =
           ∏ c, pinChance (s.known c) (fun v => c = g.outC → v = truncateHash u') := by
         rw [← completion_pin]
-        refine probEvent_ext fun T _ => ⟨fun ⟨v, hv, ht⟩ c hc => ?_, fun h => ⟨u', hu', (h g.outC rfl).symm⟩⟩
+        refine prEvent_congr_of_support _ _ _ fun T _ => ⟨fun ⟨v, hv, ht⟩ c hc => ?_, fun h => ⟨u', hu', (h g.outC rfl).symm⟩⟩
         rw [hc, ← ht, huniq g u' v hu' hv]
       rw [← hf2, ← hg2, hf1, hg1]
     · rw [K.cw_of_not_fe hge, mul_zero]
-      exact probEvent_eq_zero fun T _ ⟨_, ⟨u, hu, _⟩⟩ => hge ⟨u, hu⟩
+      exact prEvent_eq_zero_of_forall_mem_support _ _ fun T _ ⟨_, ⟨u, hu, _⟩⟩ => hge ⟨u, hu⟩
   · rw [K.cw_of_not_fe hfe, zero_mul]
-    exact probEvent_eq_zero fun T _ ⟨⟨u, hu, _⟩, _⟩ => hfe ⟨u, hu⟩
+    exact prEvent_eq_zero_of_forall_mem_support _ _ fun T _ ⟨⟨u, hu, _⟩, _⟩ => hfe ⟨u, hu⟩
 
 /-- The indicator of a forest contact without guess record against a completed table. -/
 noncomputable def ngInd (T : Coordinate → Digest) (s : St) (f : FIn) : ℝ≥0∞ :=
@@ -411,26 +412,26 @@ theorem payoff_le_split (T : Coordinate → Digest) (s : St) :
   by_cases h : Hit K.tg K.initial T s ∨ K.WotsBad s ∨ (∃ f, K.FCT T s f ∧ ¬Recd s f) ∨
       (∃ f g, f.Rel g ∧ K.FCT T s f ∧ K.FCT T s g)
   swap
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact bot_le
-  rw [if_pos h]
+  rw [ite_eq_left h]
   have hng : ∀ f, K.FCT T s f → ¬Recd s f → (1 : ℝ≥0∞) ≤ ∑ f, K.ngInd T s f := fun f hc hr => by
-    have h1 : K.ngInd T s f = 1 := by rw [ngInd, if_neg hr, if_pos hc]
+    have h1 : K.ngInd T s f = 1 := by rw [ngInd, ite_eq_right hr, ite_eq_left hc]
     rw [← h1]
     exact Finset.single_le_sum (fun _ _ => bot_le) (Finset.mem_univ f)
   rcases h with h | h | ⟨f, hc, hr⟩ | ⟨f, g, hrel, hcf, hcg⟩
-  · rw [if_pos (Or.inl h)]; exact le_add_right le_self_add
-  · rw [if_pos (Or.inr h)]; exact le_add_right le_self_add
+  · rw [ite_eq_left (Or.inl h)]; exact le_add_right le_self_add
+  · rw [ite_eq_left (Or.inr h)]; exact le_add_right le_self_add
   · exact le_add_right ((hng f hc hr).trans le_add_self)
   · by_cases hrf : Recd s f
     · by_cases hrg : Recd s g
       · refine le_add_left ?_
         have hfgv : K.pairInd T s f g = 1 := by
-          rw [pairInd, if_pos (show Recd s f ∧ Recd s g ∧ f.Rel g from ⟨hrf, hrg, hrel⟩),
-            if_pos (show K.FCT T s f ∧ K.FCT T s g from ⟨hcf, hcg⟩)]
+          rw [pairInd, ite_eq_left (show Recd s f ∧ Recd s g ∧ f.Rel g from ⟨hrf, hrg, hrel⟩),
+            ite_eq_left (show K.FCT T s f ∧ K.FCT T s g from ⟨hcf, hcg⟩)]
         have hgfv : K.pairInd T s g f = 1 := by
-          rw [pairInd, if_pos (show Recd s g ∧ Recd s f ∧ g.Rel f from ⟨hrg, hrf, FIn.rel_symm hrel⟩),
-            if_pos (show K.FCT T s g ∧ K.FCT T s f from ⟨hcg, hcf⟩)]
+          rw [pairInd, ite_eq_left (show Recd s g ∧ Recd s f ∧ g.Rel f from ⟨hrg, hrf, FIn.rel_symm hrel⟩),
+            ite_eq_left (show K.FCT T s g ∧ K.FCT T s f from ⟨hcg, hcf⟩)]
         have hne : f ≠ g := fun e => hrel.2 (by rw [e])
         have hrow : ∀ a b, K.pairInd T s a b ≤ ∑ b', K.pairInd T s a b' := fun a b =>
           Finset.single_le_sum (fun _ _ => bot_le) (Finset.mem_univ b)
@@ -445,21 +446,21 @@ theorem payoff_le_split (T : Coordinate → Digest) (s : St) :
     · exact le_add_right ((hng f hcf hrf).trans le_add_self)
 
 theorem tsum_ind (μ : ProbComp (Coordinate → Digest)) (E : (Coordinate → Digest) → Prop) [DecidablePred E] :
-    ∑' T, Pr[= T | μ] * (if E T then (1 : ℝ≥0∞) else 0) = Pr[E | μ] := by
-  rw [probEvent_eq_tsum_ite]
+    ∑' T, Pr{let x ← μ}[x = T] * (if E T then (1 : ℝ≥0∞) else 0) = Pr{let x ← μ}[E x] := by
+  rw [OracleComp.prEvent_eq_tsum_ite]
   refine tsum_congr fun T => ?_
   split_ifs <;> simp
 
 /-- **Final payoff.** The expected payoff is at most the decided events, the pending debts and the
 forest part. -/
 theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
-  have hHW : ∑' T, Pr[= T | completion s.known] * (if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) ≤
+  have hHW : ∑' T, Pr{let x ← completion s.known}[x = T] * (if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) ≤
       K.done s + K.pend s := by
     by_cases hb : K.Bad s
-    · calc _ ≤ ∑' T, Pr[= T | completion s.known] :=
+    · calc _ ≤ ∑' T, Pr{let x ← completion s.known}[x = T] :=
             ENNReal.tsum_le_tsum fun T => mul_le_of_le_one_right' (by split_ifs <;> simp)
-        _ ≤ 1 := tsum_probOutput_le_one
-        _ = K.done s := by rw [done, if_pos hb]
+        _ ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
+        _ = K.done s := by rw [done, ite_eq_left hb]
         _ ≤ _ := le_self_add
     · have hpay : ∀ T, (if Hit K.tg K.initial T s ∨ K.WotsBad s then (1 : ℝ≥0∞) else 0) ≤
           if ∃ c, s.known c = none ∧ T c ∈ debts K.tg K.initial s c then 1 else 0 := by
@@ -473,50 +474,50 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
           · exact hb (Or.inr hw)
         · exact bot_le
         · exact le_rfl
-      calc _ ≤ ∑' T, Pr[= T | completion s.known] *
+      calc _ ≤ ∑' T, Pr{let x ← completion s.known}[x = T] *
               (if ∃ c, s.known c = none ∧ T c ∈ debts K.tg K.initial s c then 1 else 0) :=
             ENNReal.tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (hpay T) bot_le
-        _ = Pr[fun T => ∃ c ∈ (Finset.univ : Finset Coordinate), s.known c = none ∧
-              T c ∈ debts K.tg K.initial s c | completion s.known] := by
-            rw [probEvent_eq_tsum_ite]
+        _ = Pr{let T ← completion s.known}[∃ c ∈ (Finset.univ : Finset Coordinate), s.known c = none ∧
+              T c ∈ debts K.tg K.initial s c] := by
+            rw [OracleComp.prEvent_eq_tsum_ite]
             refine tsum_congr fun T => ?_
             simp only [Finset.mem_univ, true_and]
             split_ifs <;> simp
         _ ≤ ∑ c ∈ (Finset.univ : Finset Coordinate),
-              Pr[fun T => s.known c = none ∧ T c ∈ debts K.tg K.initial s c | completion s.known] :=
-            probEvent_exists_finset_le_sum _ _ _
+              Pr{let T ← completion s.known}[s.known c = none ∧ T c ∈ debts K.tg K.initial s c] :=
+            prEvent_exists_finset_le _ _ _
         _ ≤ K.pend s := by
             unfold pend
             refine Finset.sum_le_sum fun c _ => ?_
             by_cases hc : s.known c = none
-            · rw [if_pos hc]
-              calc Pr[fun T => s.known c = none ∧ T c ∈ debts K.tg K.initial s c | completion s.known]
-                  ≤ Pr[fun T => T c ∈ debts K.tg K.initial s c | completion s.known] :=
-                    probEvent_mono fun T _ h => h.2
+            · rw [ite_eq_left hc]
+              calc Pr{let T ← completion s.known}[s.known c = none ∧ T c ∈ debts K.tg K.initial s c]
+                  ≤ Pr{let T ← completion s.known}[T c ∈ debts K.tg K.initial s c] :=
+                    prEvent_mono_of_support _ _ _ fun T _ h => h.2
                 _ ≤ _ := completion_mem s.known c hc _
-            · rw [if_neg hc]
-              exact le_of_eq (probEvent_eq_zero fun T _ h => hc h.1)
+            · rw [ite_eq_right hc]
+              exact le_of_eq (prEvent_eq_zero_of_forall_mem_support _ _ fun T _ h => hc h.1)
         _ ≤ _ := le_add_self
-  have hcell1 : ∀ f, ∑' T, Pr[= T | completion s.known] * K.ngInd T s f = if Recd s f then 0 else K.cw s f := by
+  have hcell1 : ∀ f, ∑' T, Pr{let x ← completion s.known}[x = T] * K.ngInd T s f = if Recd s f then 0 else K.cw s f := by
     intro f
     by_cases hr : Recd s f
-    · simp only [ngInd, hr, if_true, mul_zero, tsum_zero]
-    · simp only [ngInd, hr, if_false]
+    · simp only [ngInd, hr, ite_true, mul_zero, tsum_zero]
+    · simp only [ngInd, hr, ite_false]
       rw [tsum_ind, K.prob_fct s f]
-  have hNG : ∑' T, Pr[= T | completion s.known] * ∑ f, K.ngInd T s f = K.ng s := by
+  have hNG : ∑' T, Pr{let x ← completion s.known}[x = T] * ∑ f, K.ngInd T s f = K.ng s := by
     simp only [Finset.mul_sum]
     rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
     exact Finset.sum_congr rfl fun f _ => hcell1 f
-  have hcell2 : ∀ f g, ∑' T, Pr[= T | completion s.known] * K.pairInd T s f g =
+  have hcell2 : ∀ f g, ∑' T, Pr{let x ← completion s.known}[x = T] * K.pairInd T s f g =
       if Recd s f ∧ Recd s g ∧ f.Rel g then K.cw s f * K.cw s g else 0 := by
     intro f g
     by_cases hr : Recd s f ∧ Recd s g ∧ f.Rel g
-    · simp only [pairInd, if_pos hr]
+    · simp only [pairInd, ite_eq_left hr]
       rw [tsum_ind, K.prob_fct2 s f g (FIn.outC_ne_of_rel hr.2.2)]
-    · simp only [pairInd, hr, if_false, mul_zero, tsum_zero]
-  have hPP : ∑' T, Pr[= T | completion s.known] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) = K.pp s / 2 := by
-    have hmul : ∀ T, Pr[= T | completion s.known] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) =
-        (∑ f, ∑ g, Pr[= T | completion s.known] * K.pairInd T s f g) * 2⁻¹ := by
+    · simp only [pairInd, hr, ite_false, mul_zero, tsum_zero]
+  have hPP : ∑' T, Pr{let x ← completion s.known}[x = T] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) = K.pp s / 2 := by
+    have hmul : ∀ T, Pr{let x ← completion s.known}[x = T] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) =
+        (∑ f, ∑ g, Pr{let x ← completion s.known}[x = T] * K.pairInd T s f g) * 2⁻¹ := by
       intro T
       rw [div_eq_mul_inv, ← mul_assoc, Finset.mul_sum]
       simp only [Finset.mul_sum]
@@ -527,12 +528,12 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
     unfold pp
     exact Finset.sum_congr rfl fun f _ => Finset.sum_congr rfl fun g _ => hcell2 f g
   calc endValue K.payoff s
-      ≤ ∑' T, Pr[= T | completion s.known] * ((if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
+      ≤ ∑' T, Pr{let x ← completion s.known}[x = T] * ((if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
           ∑ f, K.ngInd T s f + (∑ f, ∑ g, K.pairInd T s f g) / 2) :=
         ENNReal.tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (K.payoff_le_split T s) bot_le
-    _ = ∑' T, Pr[= T | completion s.known] * (if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
-        ∑' T, Pr[= T | completion s.known] * ∑ f, K.ngInd T s f +
-        ∑' T, Pr[= T | completion s.known] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) := by
+    _ = ∑' T, Pr{let x ← completion s.known}[x = T] * (if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
+        ∑' T, Pr{let x ← completion s.known}[x = T] * ∑ f, K.ngInd T s f +
+        ∑' T, Pr{let x ← completion s.known}[x = T] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) := by
         simp only [mul_add]
         rw [ENNReal.tsum_add, ENNReal.tsum_add]
     _ ≤ K.done s + K.pend s + K.ng s + K.pp s / 2 := by

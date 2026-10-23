@@ -105,41 +105,37 @@ theorem replayPrepare_update (answers : CanonicalGraphLabels) (positions : List 
 the secret-derived canonical input strings is assumed. Their exact separation suffices. -/
 theorem evalDist_samplePrepare_eq_uniform (positions : List Position) (hnodup : positions.Nodup)
     (labels : CanonicalGraphLabels) (cache : QueryCache HashSpec) :
-    𝒟[samplePrepare parameter otsSecret ftsSecret positions labels cache] =
-      𝒟[(fun answers => replayPrepare parameter otsSecret ftsSecret answers positions labels cache) <$>
-        ($ᵗ CanonicalGraphLabels)] := by
+    samplePrepare parameter otsSecret ftsSecret positions labels cache =ᵈ ((fun answers => replayPrepare parameter otsSecret ftsSecret answers positions labels cache) <$>
+        ($ᵗ CanonicalGraphLabels)) := by
   induction positions generalizing labels cache with
   | nil =>
       simp only [samplePrepare, replayPrepare, map_eq_bind_pure_comp]
-      exact (OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-        ($ᵗ CanonicalGraphLabels) (by simp) (pure (labels, cache))).symm
+      exact (OracleComp.EvalDistEq.bind_const ($ᵗ CanonicalGraphLabels) (pure (labels, cache))).symm
   | cons position rest ih =>
       obtain ⟨hposition, hrest⟩ := List.nodup_cons.mp hnodup
       have hextract := SphincsBase.Concrete.FiniteGraphSampling.evalDist_table_extract position
         (fun answers output => pure (replayPrepare parameter otsSecret ftsSecret answers rest
           (Function.update labels position output)
           (cache.cacheQuery (canonicalGraphInput parameter otsSecret ftsSecret position labels) output)))
-      change 𝒟[samplePrepare parameter otsSecret ftsSecret (position :: rest) labels cache] =
-        𝒟[do
+      rw [map_eq_bind_pure_comp]
+      change samplePrepare parameter otsSecret ftsSecret (position :: rest) labels cache =ᵈ (do
           let answers ← $ᵗ CanonicalGraphLabels
           pure (replayPrepare parameter otsSecret ftsSecret answers rest
             (Function.update labels position (answers position))
-            (cache.cacheQuery (canonicalGraphInput parameter otsSecret ftsSecret position labels) (answers position)))]
-      rw [hextract]
+            (cache.cacheQuery (canonicalGraphInput parameter otsSecret ftsSecret position labels) (answers position))))
+      refine EvalDistEq.trans ?_ hextract.symm
       simp_rw [replayPrepare_update parameter otsSecret ftsSecret _ rest position hposition]
       rw [samplePrepare]
-      apply evalDist_bind_congr'
-      intro output
-      exact ih hrest _ _
+      refine EvalDistEq.bind_right _ fun output => ?_
+      exact (ih hrest _ _).trans (by rw [map_eq_bind_pure_comp]; exact EvalDistEq.rfl)
 
 theorem evalDist_prepare_uniform (positions : List Position) (hnodup : positions.Nodup)
     (labels : CanonicalGraphLabels) (cache : QueryCache HashSpec)
     (hfresh : FreshPositions parameter otsSecret ftsSecret positions cache) :
-    𝒟[(simulateQ randomOracle (prepare parameter otsSecret ftsSecret positions labels)).run cache] =
-      𝒟[(fun answers => replayPrepare parameter otsSecret ftsSecret answers positions labels cache) <$>
-        ($ᵗ CanonicalGraphLabels)] := by
-  rw [run_prepare_eq_sample parameter otsSecret ftsSecret positions hnodup labels cache hfresh,
-    evalDist_samplePrepare_eq_uniform parameter otsSecret ftsSecret positions hnodup]
+    ((simulateQ randomOracle (prepare parameter otsSecret ftsSecret positions labels)).run cache) =ᵈ ((fun answers => replayPrepare parameter otsSecret ftsSecret answers positions labels cache) <$>
+        ($ᵗ CanonicalGraphLabels)) := by
+  rw [run_prepare_eq_sample parameter otsSecret ftsSecret positions hnodup labels cache hfresh]
+  exact evalDist_samplePrepare_eq_uniform parameter otsSecret ftsSecret positions hnodup labels cache
 
 omit parameter otsSecret ftsSecret in
 def completedLabels (positions : List Position) (initial answers : CanonicalGraphLabels) :
@@ -193,28 +189,29 @@ theorem evalDist_prepare_programmed (positions : List Position) (hnodup : positi
     (hsorted : positions.Pairwise (fun left right => left.depth ≤ right.depth))
     (initial : CanonicalGraphLabels) (cache : QueryCache HashSpec)
     (hfresh : FreshPositions parameter otsSecret ftsSecret positions cache) :
-    𝒟[(simulateQ randomOracle (prepare parameter otsSecret ftsSecret positions initial)).run cache] =
-      𝒟[(fun answers =>
+    ((simulateQ randomOracle (prepare parameter otsSecret ftsSecret positions initial)).run cache) =ᵈ ((fun answers =>
         let labels := completedLabels positions initial answers
         (labels, programGraphCache parameter otsSecret ftsSecret positions labels cache)) <$>
-        ($ᵗ CanonicalGraphLabels)] := by
-  rw [evalDist_prepare_uniform parameter otsSecret ftsSecret positions hnodup initial cache hfresh]
-  congr 1
-  apply congrArg (fun f => f <$> ($ᵗ CanonicalGraphLabels : ProbComp CanonicalGraphLabels))
-  funext answers
-  exact replayPrepare_eq_program parameter otsSecret ftsSecret answers
-    (completedLabels positions initial answers) positions hsorted initial cache
-    (fun position hposition => by simp only [completedLabels, if_neg hposition])
-    (fun position hposition => by simp only [completedLabels, if_pos hposition])
+        ($ᵗ CanonicalGraphLabels)) := by
+  refine (evalDist_prepare_uniform parameter otsSecret ftsSecret positions hnodup initial cache hfresh).trans ?_
+  have hfun : (fun answers => replayPrepare parameter otsSecret ftsSecret answers positions initial cache) =
+      (fun answers =>
+        let labels := completedLabels positions initial answers
+        (labels, programGraphCache parameter otsSecret ftsSecret positions labels cache)) := by
+    funext answers
+    exact replayPrepare_eq_program parameter otsSecret ftsSecret answers
+      (completedLabels positions initial answers) positions hsorted initial cache
+      (fun position hposition => by simp only [completedLabels, ite_eq_right hposition])
+      (fun position hposition => by simp only [completedLabels, ite_eq_left hposition])
+  rw [hfun]
 
 theorem evalDist_activeGraph_programmed (active : Position → Prop) (initial : CanonicalGraphLabels)
     (cache : QueryCache HashSpec) (hfresh : FreshStructural parameter cache) :
-    𝒟[(simulateQ randomOracle
-      (prepare parameter otsSecret ftsSecret (graphOrder active) initial)).run cache] =
-      𝒟[(fun answers =>
+    ((simulateQ randomOracle
+      (prepare parameter otsSecret ftsSecret (graphOrder active) initial)).run cache) =ᵈ ((fun answers =>
         let labels := completedLabels (graphOrder active) initial answers
         (labels, programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)) <$>
-        ($ᵗ CanonicalGraphLabels)] :=
+        ($ᵗ CanonicalGraphLabels)) :=
   evalDist_prepare_programmed parameter otsSecret ftsSecret (graphOrder active)
     (graphOrder_nodup active) (graphOrder_sorted active) initial cache
     (freshPositions_of_structural parameter otsSecret ftsSecret _ cache hfresh)
@@ -224,21 +221,17 @@ counts already included in the output remain unchanged; preparation itself is un
 theorem evalDist_graph_continuation {α : Type} (program : OracleComp OracleWorld α)
     (active : Position → Prop) (initial : CanonicalGraphLabels)
     (cache : QueryCache HashSpec) (hfresh : FreshStructural parameter cache) :
-    𝒟[(simulateQ romImpl program).run' cache] =
-      𝒟[do
+    ((simulateQ romImpl program).run' cache) =ᵈ (do
         let answers ← $ᵗ CanonicalGraphLabels
         let labels := completedLabels (graphOrder active) initial answers
         (simulateQ romImpl program).run'
-          (programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)] := by
-  rw [SeedCoupling.evalDist_presample_computation program
+          (programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)) := by
+  refine (SeedCoupling.evalDist_presample_computation program
     (liftM (prepare parameter otsSecret ftsSecret (graphOrder active) initial) :
-      OracleComp OracleWorld CanonicalGraphLabels) cache, simulate_lift_hash]
-  trans 𝒟[((fun answers =>
-      let labels := completedLabels (graphOrder active) initial answers
-      (labels, programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)) <$>
-      ($ᵗ CanonicalGraphLabels)) >>= fun result => (simulateQ romImpl program).run' result.2]
-  · rw [evalDist_bind, evalDist_activeGraph_programmed parameter otsSecret ftsSecret active initial cache hfresh,
-      evalDist_bind]
-  · rw [bind_map_left]
+      OracleComp OracleWorld CanonicalGraphLabels) cache).trans ?_
+  rw [simulate_lift_hash]
+  refine ((evalDist_activeGraph_programmed parameter otsSecret ftsSecret active initial cache
+    hfresh).bind_left _).trans ?_
+  rw [bind_map_left]
 
 end Sphincs.Security.Graph

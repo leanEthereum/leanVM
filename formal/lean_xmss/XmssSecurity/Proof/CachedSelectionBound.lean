@@ -142,18 +142,15 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_eq_map (adversary : Advers
 theorem capped_cachedSelection_probability_le_expectedDigest
     (q : Nat) (adversary : Adversary)
     (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q) (hq : q < 2 ^ 127) :
-    Pr[WinningCachedSelectionOccurs |
-      cappedDetailedGameWithEncodingTrace adversary] ≤
+    Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningCachedSelectionOccurs x] ≤
       CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary /
         ((2 ^ digestBits : Nat) : ENNReal) := by
-  have hproj : Pr[WinningCachedSelectionOccurs | cappedDetailedGameWithEncodingTrace adversary] =
-      Pr[fun x : GameOutcome × (QueryCache HashSpec × SigningCacheTrace) =>
-          WinningOutcomeBadEventOccurs x.2.1 x.1 .encoding ∧
-            ∃ entry ∈ x.2.2, entry.CachedSelectionCollision x.1.secretKey x.2.1 |
-        cappedDetailedGameWithSigningTrace adversary] := by
-    rw [← cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
+  have hproj : Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningCachedSelectionOccurs x] =
+      Pr{let x ← cappedDetailedGameWithSigningTrace adversary}[WinningOutcomeBadEventOccurs x.2.1 x.1 .encoding ∧
+            ∃ entry ∈ x.2.2, entry.CachedSelectionCollision x.1.secretKey x.2.1] := by
+    rw [← cappedDetailedGameWithEncodingTrace_projection, prEvent_map]
     rfl
-  rw [hproj, cappedDetailedGameWithSigningTrace, probEvent_bind_eq_tsum,
+  rw [hproj, cappedDetailedGameWithSigningTrace, OracleComp.prEvent_bind_eq_tsum,
     CappedEncodingMonitor.expectedPostKeygenEncodingQueries, div_eq_mul_inv, ← ENNReal.tsum_mul_right]
   refine ENNReal.tsum_le_tsum fun keyResult => ?_
   by_cases hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
@@ -170,12 +167,12 @@ theorem capped_cachedSelection_probability_le_expectedDigest
     refine le_trans ?_ hcore
     rw [mul_comm]
     refine mul_le_mul' le_rfl ?_
-    rw [cappedDetailedGameAfterKeygenWithSigningTrace_eq_map, probEvent_map]
-    refine probEvent_mono fun y hy hev => ?_
+    rw [cappedDetailedGameAfterKeygenWithSigningTrace_eq_map, prEvent_map]
+    refine prEvent_mono_of_support _ _ _ fun y hy hev => ?_
     refine cachedSelection_event_le adversary publicKey secretKey cache0 _ ?_ hev
     rw [cappedDetailedGameAfterKeygenWithSigningTrace_eq_map, support_map]
     exact ⟨y, hy, rfl⟩
-  · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) hkey, zero_mul]
     exact zero_le
 
 end XmssSecurity

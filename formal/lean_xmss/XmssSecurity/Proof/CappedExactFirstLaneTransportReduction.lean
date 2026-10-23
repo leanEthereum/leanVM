@@ -177,7 +177,7 @@ theorem globalFirstLaneErase_exactTracedLift
       ((globalExactTracedLift keyView input sourceBase).run state)
       ((globalExactTracedLift keyView input targetBase).run state) := by
   unfold globalExactTracedLift
-  simp only [StateT.run_mk]
+  simp only [StateT.run_mk, ← bind_pure_comp]
   apply hbase.bind
   intro result
   exact GlobalFirstLaneErases.pure _
@@ -254,7 +254,7 @@ theorem globalFirstLaneErase_exactTracedVerifierImpl
         state) := by
   unfold globalFirstLaneExactTracedVerifierImpl
     globalHighDirectTracedVerifierImpl
-  simp only [StateT.run_mk]
+  simp only [StateT.run_mk, ← bind_pure_comp]
   apply (globalFirstLaneOracleErasure keyView edgeHigh input
     state.causalState).bind
   intro result
@@ -313,7 +313,7 @@ theorem globalFirstLaneEncodingHashQuery_validTrace
       simp [hcache, firstLaneValidEncodingActions] at hresult ⊢
       exact hresult ▸ rfl
   | none =>
-      simp only [if_pos]
+      simp only [ite_eq_left]
       dsimp only at hresult
       simp only [hcache] at hresult
       unfold globalFirstLaneFreshEncodingQuery at hresult
@@ -321,7 +321,7 @@ theorem globalFirstLaneEncodingHashQuery_validTrace
         FirstLaneOracleSimulation.eagerTraceImpl,
         FirstLaneOracleSimulation.eagerImpl,
         FirstLaneOracleSimulation.traceFragment,
-        QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+        WriterT.run_tell,
         firstLaneValidEncodingActions] at hresult ⊢
       obtain ⟨output, _houtput, rfl⟩ := hresult
       rfl
@@ -361,7 +361,7 @@ theorem globalFirstLaneEncodingHashQuery_cacheGrowth
         FirstLaneOracleSimulation.eagerTraceImpl,
         FirstLaneOracleSimulation.eagerImpl,
         FirstLaneOracleSimulation.traceFragment,
-        QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hresult
+        WriterT.run_tell] at hresult
       obtain ⟨output, _houtput, rfl⟩ := hresult
       exact ⟨CacheGrowthRepresented.cacheQuery state.cache
         (message, randomness) output hcache (by simp),
@@ -399,7 +399,7 @@ theorem globalFirstLaneLiftRevealProbe_encodingProjection
         FirstLaneOracleSimulation.probeQuery,
         FirstLaneOracleSimulation.revealQuery,
         RevealProbeOracleSimulation.eagerImpl,
-        QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+        WriterT.run_tell]
 
 theorem globalFirstLaneLiftRevealProbe_encodingActions_eq_nil
     (table : GlobalChainValueIndex → Digest)
@@ -560,7 +560,7 @@ theorem globalFirstLaneAttackerHashQueryAtLeafIndex_trace
         FirstLaneOracleSimulation.eagerTraceImpl,
         FirstLaneOracleSimulation.eagerImpl,
         FirstLaneOracleSimulation.traceFragment,
-        QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hresult
+        WriterT.run_tell] at hresult
       obtain ⟨output, _houtput, rfl⟩ := hresult
       simp [FirstLaneOracleSimulation.ActionTrace.encodingActions]
 
@@ -602,7 +602,7 @@ theorem globalFirstLaneAttackerHashQueryAtLeafIndex_cacheGrowth
         FirstLaneOracleSimulation.eagerTraceImpl,
         FirstLaneOracleSimulation.eagerImpl,
         FirstLaneOracleSimulation.traceFragment,
-        QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hresult
+        WriterT.run_tell] at hresult
       obtain ⟨output, _houtput, rfl⟩ := hresult
       constructor
       · constructor
@@ -711,7 +711,7 @@ theorem globalFirstLaneSigningAttempt_summary
       by_cases hcache : state.cache
           (Concrete.CacheView.encodingInput keyView.secretKey.parameter
             request.leafIndex (request.message, randomness)) = none
-      · simp only [hcache, if_pos]
+      · simp only [hcache, ite_eq_left]
         change List.Sublist
           (CappedEncodingMonitor.validObservedSignLeafIndices
             [.sign request.leafIndex encodedHead.1.1]) [request.leafIndex]
@@ -1649,7 +1649,7 @@ theorem globalFirstLaneUniformImpl_validSignLeafIndices_eq_nil
     FirstLaneOracleSimulation.eagerTraceImpl,
     FirstLaneOracleSimulation.eagerImpl,
     FirstLaneOracleSimulation.traceFragment,
-    QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+    WriterT.run_tell] at hhead
   obtain ⟨output, _houtput, rfl⟩ := hhead
   simp only [simulateQ_pure, WriterT.run_pure', map_pure, support_pure,
     Set.mem_singleton_iff, Prod.map_apply, id_eq] at htail

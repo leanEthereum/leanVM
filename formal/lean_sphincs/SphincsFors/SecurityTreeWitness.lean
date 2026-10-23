@@ -10,6 +10,7 @@ the sibling may be a surrogate rather than the root of a constructed subtree.
 -/
 
 open OracleComp OracleSpec
+set_option backward.isDefEq.respectTransparency false
 
 namespace SphincsFors.Security
 open Concrete
@@ -256,8 +257,8 @@ theorem canonicalTreePath_surrogate (f : QueryImpl HashSpec Id) (parameter : Pub
     canonicalTreePath f parameter lay tree seed leaf level =
       evalWithAnswerFn f (Seeded.surrogate parameter seed level : OracleComp HashSpec Digest) := by
   have hheight : level < layerHeight lay := hhigh
-  rw [canonicalTreePath, dif_pos hheight, Completeness.eval_treePath,
-    if_neg (Nat.not_lt.mpr hlow)]
+  rw [canonicalTreePath, dite_eq_left hheight, Completeness.eval_treePath,
+    ite_eq_right (Nat.not_lt.mpr hlow)]
 
 theorem canonicalTreePath_root (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (leaf : LeafIndex)
@@ -269,7 +270,7 @@ theorem canonicalTreePath_root (f : QueryImpl HashSpec Id) (parameter : PublicPa
   rw [merkleValue, merkleFold_treeFold]
   apply Completeness.eval_treeFold_pruned_path f parameter lay tree seed leaf hland
   intro level hlevel
-  exact dif_pos hlevel
+  exact dite_eq_left hlevel
 
 /-- A concrete query below a surrogate's level produces that surrogate. Unlike `MerkleMatch`,
 the target has no honest node-domain preimage: the key generated it by seed derivation. -/

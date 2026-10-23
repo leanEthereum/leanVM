@@ -9,9 +9,9 @@ namespace XmssSecurity.Rom
 
 /-- A uniform 256-bit oracle output has any fixed 128-bit truncation with probability exactly `2^-128`. -/
 theorem uniform_truncate_probability (target : Digest) :
-    Pr[fun output : HashOutput => truncateHash output = target | $ᵗ HashOutput] =
+    Pr{let output ← $ᵗ HashOutput}[truncateHash output = target] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_uniformSample]
+  rw [SampleableType.prEvent_uniformSample]
   change ((matchingOutputs target).card : ℝ≥0∞) /
       (Fintype.card HashOutput : ℝ≥0∞) = _
   rw [card_matchingOutputs, card_hashOutput, hashOutputBits_eq, Nat.pow_add,
@@ -31,8 +31,8 @@ theorem uniform_truncate_probability (target : Digest) :
 
 open OracleSpec
 
-noncomputable local instance : IsUniformSpec HashSpec :=
-  IsUniformSpec.ofFintypeInhabited _
+noncomputable local instance : UniformAnswerMeasure HashSpec :=
+  UniformAnswerMeasure.ofFiniteNonempty _
 
 /-- Each fresh query may select its own target digest without adding an index-set loss. -/
 def AdaptiveFreshDigestCollisionWith (initialCache finalCache : QueryCache HashSpec)

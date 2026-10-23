@@ -67,14 +67,14 @@ theorem signed_reach (w : LutIdx) {u : ℕ} (c : Fin u → LutIdx) :
       if (lut w i).val ≤ (maxCw c i).val then 1 else 0 := by
     intro i
     by_cases h0 : (lut w i).val = 0
-    · rw [if_pos h0, zero_mul, sub_zero, if_pos (by rw [h0]; exact Nat.zero_le _)]
-    · rw [if_neg h0, one_mul]
+    · rw [ite_eq_left h0, zero_mul, sub_zero, ite_eq_left (by rw [h0]; exact Nat.zero_le _)]
+    · rw [ite_eq_right h0, one_mul]
       by_cases hr : ∃ k, (lut w i).val ≤ (lut (c k) i).val
       · obtain ⟨k, hk⟩ := hr
-        rw [Finset.prod_eq_zero (Finset.mem_univ k) (if_neg (by omega)), sub_zero,
-          if_pos ((le_maxCw_iff c i _).2 (Or.inr ⟨k, hk⟩))]
+        rw [Finset.prod_eq_zero (Finset.mem_univ k) (ite_eq_right (by omega)), sub_zero,
+          ite_eq_left ((le_maxCw_iff c i _).2 (Or.inr ⟨k, hk⟩))]
       · push Not at hr
-        rw [Finset.prod_eq_one fun k _ => if_pos (hr k), sub_self, if_neg]
+        rw [Finset.prod_eq_one fun k _ => ite_eq_left (hr k), sub_self, ite_eq_right]
         intro hle
         rcases (le_maxCw_iff c i _).1 hle with h | ⟨k, hk⟩
         · exact h0 h
@@ -84,12 +84,12 @@ theorem signed_reach (w : LutIdx) {u : ℕ} (c : Fin u → LutIdx) :
         ∏ k, (if (lut (c k) i).val < (lut w i).val then (1 : ℝ) else 0)) := by
     simp only [hpt]
     by_cases hall : ∀ i, (lut w i).val ≤ (maxCw c i).val
-    · rw [if_pos hall]
-      exact (Finset.prod_eq_one fun i _ => if_pos (hall i)).symm
-    · rw [if_neg hall]
+    · rw [ite_eq_left hall]
+      exact (Finset.prod_eq_one fun i _ => ite_eq_left (hall i)).symm
+    · rw [ite_eq_right hall]
       push Not at hall
       obtain ⟨i, hi⟩ := hall
-      exact (Finset.prod_eq_zero (Finset.mem_univ i) (if_neg (by omega))).symm
+      exact (Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right (by omega))).symm
   rw [hprod, prod_one_sub_mul]
   refine Finset.sum_congr rfl fun T _ => ?_
   unfold needA1

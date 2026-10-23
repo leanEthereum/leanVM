@@ -43,16 +43,16 @@ theorem observedRun_cap_eq_counted (auxiliary : QueryImpl auxSpec PMF) (tables :
       simp only [bind_pure_comp, observedRun_query_bind, observedRun_map]
       cases input with
       | inl input =>
-          simp only [IsPrefixQuery, if_false, observedRun_query_bind, observedImpl, StateT.run_mk,
+          simp only [IsPrefixQuery, ite_false, observedRun_query_bind, observedImpl, StateT.run_mk,
             PMF.bind_map, PMF.map_bind, PMF.map_comp, Function.comp_def, Nat.zero_add]
           apply pmf_bind_eq_on_support
           intro answer hanswer
           apply ih answer observed budget
           intro tail htail
           have h := QueryCap.counted_next_bound IsPrefixQuery (fixedImpl auxiliary tables) (.inl input) next budget hbound answer hanswer tail htail
-          simpa only [IsPrefixQuery, if_false, Nat.zero_add] using h
+          simpa only [IsPrefixQuery, ite_false, Nat.zero_add] using h
       | inr query =>
-          simp only [IsPrefixQuery, if_true]
+          simp only [IsPrefixQuery, ite_true]
           have hnext := fun tail htail => QueryCap.counted_next_bound IsPrefixQuery (fixedImpl auxiliary tables)
             (.inr query) next budget hbound (tables query.1 query.2) (by simp [fixedImpl]) tail htail
           cases budget with
@@ -60,7 +60,7 @@ theorem observedRun_cap_eq_counted (auxiliary : QueryImpl auxSpec PMF) (tables :
               obtain ⟨tail, htail⟩ := (simulateQ (fixedImpl auxiliary tables)
                 (QueryCap.counted IsPrefixQuery (next (tables query.1 query.2)))).support_nonempty
               have h := hnext tail htail
-              simp only [IsPrefixQuery, if_true] at h
+              simp only [IsPrefixQuery, ite_true] at h
               omega
           | succ budget =>
               simp only [observedRun_query_bind, observedImpl, StateT.run_mk, PMF.pure_bind,
@@ -68,7 +68,7 @@ theorem observedRun_cap_eq_counted (auxiliary : QueryImpl auxSpec PMF) (tables :
               apply ih (tables query.1 query.2) (record observed query (tables query.1 query.2)) budget
               intro tail htail
               have h := hnext tail htail
-              simp only [IsPrefixQuery, if_true] at h
+              simp only [IsPrefixQuery, ite_true] at h
               omega
 
 theorem realRun_map (auxiliary : State → QueryImpl auxSpec PMF)
@@ -118,16 +118,15 @@ theorem realRun_cap_erased_observed :
   simpa only [PMF.map_comp, Function.comp_def, Option.map_some] using h
 
 theorem realRun_cap_contact_eq :
-    Pr[fun result => Contact result.2.2 result.1 |
-      realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)] =
-        Pr[fun result => Contact result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] := by
+    Pr{let result ← realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)}[Contact result.2.2 result.1] =
+        Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[Contact result.2.2 result.1] := by
   have h := congrArg (fun law : PMF (State × (Option Result × (Fin n → State → Option State))) =>
-    Pr[fun result => Contact result.2.2 result.1 | law])
+    Pr{let result ← law}[Contact result.2.2 result.1])
     (realRun_cap_erased_observed auxiliary computation cost budget hcharge hreal)
-  simpa only [← PMF.monad_map_eq_map, probEvent_map, Function.comp_def] using h
+  simpa only [← PMF.monad_map_eq_map, prEvent_map, Function.comp_def] using h
 
 theorem realRun_contact_le_cap_cost (hsmall : budget < Fintype.card State) :
-    Pr[fun result => Contact result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[Contact result.2.2 result.1] ≤
       (2 / Fintype.card State) * ∑' result,
         idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none) result *
           (QueryCap.spent budget result.2.1 : ENNReal) := by

@@ -153,36 +153,36 @@ theorem landing_le_one : landing ≤ 1 := by
   exact ENNReal.inv_le_one.2 (by exact_mod_cast Nat.one_le_two_pow)
 
 theorem unlanded_mass (parameter : PublicParameter) :
-    ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
       (if Landed parameter (blockIndex u0) then (0 : ℝ≥0∞) else 1) = 1 - landing := by
-  have htot : (∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+  have htot : (∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
       (if Landed parameter (blockIndex u0) then (1 : ℝ≥0∞) else 0)) +
-    ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
       (if Landed parameter (blockIndex u0) then (0 : ℝ≥0∞) else 1) = 1 := by
     rw [← ENNReal.tsum_add]
-    calc _ = ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] := by
+    calc _ = ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] := by
           refine tsum_congr fun u0 => ?_
-          split_ifs <;> simp
-      _ = 1 := tsum_probOutput_eq_one' probFailure_eq_zero
+          split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
+      _ = 1 := OracleComp.tsum_prEvent_eq_one _
   rw [landed_mass parameter] at htot
   exact ENNReal.eq_sub_of_add_eq' ENNReal.one_ne_top (by rw [add_comm]; exact htot)
 
 /-- **Mean over a fresh pair.** -/
 theorem pair_mean (parameter : PublicParameter) (F : View → ℝ≥0∞) (C : ℝ≥0∞) :
-    ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
-      ∑' u1, Pr[= u1 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
+      ∑' u1, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u1] *
         (if Landed parameter (blockIndex u0) then F (viewOf u0 u1) else C) =
       landing * freshAvg Finset.univ F + (1 - landing) * C := by
-  have hsplit : ∀ u0, ∑' u1, Pr[= u1 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+  have hsplit : ∀ u0, ∑' u1, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u1] *
       (if Landed parameter (blockIndex u0) then F (viewOf u0 u1) else C) =
-      (∑' u1, Pr[= u1 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+      (∑' u1, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u1] *
         (if Landed parameter (blockIndex u0) then F (Lifetime.localDigestView (truncateMessageDigest u0 u1)) else 0)) +
       C * (if Landed parameter (blockIndex u0) then 0 else 1) := by
     intro u0
     split_ifs
-    · simp [viewOf]
+    · simp [-SampleableType.prEvent_uniformSample, viewOf]
     · simp only [mul_zero, tsum_zero, zero_add, mul_one]
-      rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul]
+      rw [ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul]
   simp only [hsplit, mul_add, ENNReal.tsum_add]
   rw [fresh_view_mean parameter F]
   congr 1
@@ -206,8 +206,8 @@ section PairE
 
 /-- Expectation over two fresh blocks. -/
 noncomputable def pairE (F : HashOutput → HashOutput → ℝ≥0∞) : ℝ≥0∞ :=
-  ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
-    ∑' u1, Pr[= u1 | ($ᵗ HashOutput : ProbComp HashOutput)] * F u0 u1
+  ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
+    ∑' u1, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u1] * F u0 u1
 
 omit [Params] in
 theorem pairE_add (F G : HashOutput → HashOutput → ℝ≥0∞) :
@@ -220,7 +220,7 @@ theorem pairE_mono {F G : HashOutput → HashOutput → ℝ≥0∞} (h : ∀ a b
 
 omit [Params] in
 theorem pairE_const (c : ℝ≥0∞) : pairE (fun _ _ => c) = c := by
-  simp only [pairE, ENNReal.tsum_mul_right, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul]
+  simp only [pairE, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul]
 
 omit [Params] in
 theorem pairE_const_mul (c : ℝ≥0∞) (F : HashOutput → HashOutput → ℝ≥0∞) :
@@ -329,7 +329,7 @@ theorem pinv_withPair {s : State} {P : List Pair} (hP : PInv parameter data s P)
       · rintro ⟨u, hu, hl⟩
         rw [withPair_zero] at hu
         cases hu
-        rw [if_pos hl]
+        rw [ite_eq_left hl]
         exact List.mem_cons_self ..
     · rw [hland q hqp, ← hP.mem q]
       unfold addPair
@@ -483,7 +483,7 @@ def CountInv (s : State) (budget : ℕ) : Prop :=
 def Good (L : QueryLog SigningSpec) (prog : OracleComp CostSpec HiddenBridge.Outcome) : Prop :=
   ∀ budget (s : State) (P : List Pair) (d : Multiset View) (R : List Coordinate),
     Prepared initial s → PInv parameter data s P → DInv R d → CountInv parameter data Qtot s budget →
-      ∑' out, Pr[= out | interp tg initial model prog budget s] * finalValue parameter data tg initial R out ≤
+      ∑' out, Pr{let x ← interp tg initial model prog budget s}[x = out] * finalValue parameter data tg initial R out ≤
         pot parameter data wbar b0 Fail tg initial s P L d budget + b0 * expectedFlagged tg initial model prog budget s
 
 theorem pot_mono (hw : wbar ≤ 1) (hb0 : b0 ≠ ⊤) (s : State) (P : List Pair) (L : QueryLog SigningSpec)
@@ -586,18 +586,18 @@ theorem finalValue_abort (R : List Coordinate) (s : State) :
 
 omit [Params] in
 theorem interp_mass {α : Type} (computation : OracleComp CostSpec α) (budget : ℕ) (s : State) :
-    ∑' out, Pr[= out | interp tg initial model computation budget s] = 1 :=
-  tsum_probOutput_eq_one' probFailure_eq_zero
+    ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] = 1 :=
+  OracleComp.tsum_prEvent_eq_one _
 
 theorem finalValue_ordinary (R : List Coordinate) (x : HashInput)
     (next : HashOutput → OracleComp CostSpec HiddenBridge.Outcome) (budget : ℕ) (hb : 1 ≤ budget) (s : State) :
-    ∑' out, Pr[= out | interp tg initial model (liftM (CostSpec.query (.inl (.inr (.inl x)))) >>= next) budget s] *
+    ∑' out, Pr{let y ← interp tg initial model (liftM (CostSpec.query (.inl (.inr (.inl x)))) >>= next) budget s}[y = out] *
         finalValue parameter data tg initial R out =
-      ∑' r, Pr[= r | ordinaryStep model x s.known s] *
-        ∑' out, Pr[= out | interp tg initial model (next r.1) (budget - 1) r.2] *
+      ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
+        ∑' out, Pr{let x ← interp tg initial model (next r.1) (budget - 1) r.2}[x = out] *
           finalValue parameter data tg initial R out := by
-  rw [interp_ordinary, if_pos hb, tsum_probOutput_bind_mul]
-  simp only [tsum_probOutput_map_mul]
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  simp only [OracleComp.tsum_prEvent_map_mul]
   rfl
 
 omit [Params] in
@@ -605,13 +605,13 @@ theorem flagged_ordinary (x : HashInput) (next : HashOutput → OracleComp CostS
     (budget : ℕ) (hb : 1 ≤ budget) (s : State) :
     expectedFlagged tg initial model (liftM (CostSpec.query (.inl (.inr (.inl x)))) >>= next) budget s =
       (pays tg initial s (.inl (.inr (.inl x))) : ℝ≥0∞) +
-        ∑' r, Pr[= r | ordinaryStep model x s.known s] *
+        ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           expectedFlagged tg initial model (next r.1) (budget - 1) r.2 := by
   unfold expectedFlagged
-  rw [interp_ordinary, if_pos hb, tsum_probOutput_bind_mul]
-  simp only [tsum_probOutput_map_mul, flaggedCount_append, flaggedCount_touch, Nat.cast_add, mul_add,
+  rw [interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+  simp only [OracleComp.tsum_prEvent_map_mul, flaggedCount_append, flaggedCount_touch, Nat.cast_add, mul_add,
     ENNReal.tsum_add, ENNReal.tsum_mul_right, interp_mass]
-  rw [one_mul, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul]
+  rw [one_mul, OracleComp.tsum_prEvent_eq_one _, one_mul]
 
 /-- Without a new pair, an ordinary query keeps the items and their views. -/
 theorem same_items {x : HashInput} {s s' : State} (hext : Extends s s') (hother : ∀ y, y ≠ x → s'.cache y = s.cache y)
@@ -667,7 +667,7 @@ theorem witness_pos_of_covered {R : List Coordinate} {d : Multiset View} (hD : D
     (hcov : Covered (HiddenBridge.revealedSet R) (fullDigestView digest)) :
     1 ≤ witness (Lifetime.localDigestView digest) d := by
   unfold witness
-  refine Finset.one_le_prod' fun t _ => ?_
+  refine Finset.one_le_prod fun t _ => ?_
   have hmem := hcov t
   simp only [fullDigestView, HiddenBridge.revealedSet, Finset.mem_filter, Finset.mem_univ, true_and] at hmem
   obtain ⟨w, hw, h1, h2⟩ := hD _ _ _ hmem
@@ -808,7 +808,7 @@ theorem sign_shape {reveals : List Coordinate} {r : Option Signature} {s' : Stat
       rcases r with _ | sig
       · rfl
       · simp only [Option.elim]
-        rw [hsig sig rfl, if_pos hn]
+        rw [hsig sig rfl, ite_eq_left hn]
     · rcases r with _ | sig
       · left
         refine ⟨newRand_eq_empty_of_pool parameter data m hothers (by rw [he]; exact Option.some_ne_none _), ?_⟩
@@ -819,7 +819,7 @@ theorem sign_shape {reveals : List Coordinate} {r : Option Signature} {s' : Stat
         unfold poolDisc
         rw [hres]
         simp only [Option.elim]
-        rw [hsig sig rfl, if_neg (by rw [he]; exact Option.some_ne_none _)]
+        rw [hsig sig rfl, ite_eq_right (by rw [he]; exact Option.some_ne_none _)]
         congr 1
         simp only [pview]
         change ((out.2.cache (blk parameter data m ρ 0)).elim _ fun u0 =>
@@ -1036,7 +1036,7 @@ theorem sign_params (hparse : ∀ p call, model.parse (pblk parameter data p cal
             unfold poolDisc
             rw [hr]
             simp only [Option.elim]
-            rw [hsig sig rfl, he, if_neg (Option.some_ne_none _), hv]
+            rw [hsig sig rfl, he, ite_eq_right (Option.some_ne_none _), hv]
             exact Multiset.mem_singleton_self _
   · -- the count of cached randomizers
     intro m'
@@ -1090,13 +1090,13 @@ theorem freshNewWeight_ge {out : Run HashInput Coordinate (Option Signature) × 
     (hl : Landed parameter (blockIndex u0)) (h1 : out.2.cache (blk parameter data m ρ 1) = some u1)
     (g : View → ℝ≥0∞) : g (viewOf u0 u1) ≤ freshNewWeight parameter data m s g out := by
   unfold freshNewWeight
-  rw [if_pos (by rw [hres]; rfl)]
+  rw [ite_eq_left (by rw [hres]; rfl)]
   refine le_trans (le_of_eq ?_) (Finset.single_le_sum (f := fun ρ' => if s.cache (blk parameter data m ρ' 1) = none then
     (out.2.cache (blk parameter data m ρ' 0)).elim 0 (fun u0 =>
       (out.2.cache (blk parameter data m ρ' 1)).elim 0 fun u1 =>
         if Landed parameter (blockIndex u0) then g (viewOf u0 u1) else 0) else 0)
     (fun _ _ => bot_le) (Finset.mem_univ ρ))
-  simp only [hs1, h0, h1, Option.elim, if_true, if_pos hl]
+  simp only [hs1, h0, h1, Option.elim, ite_true, ite_eq_left hl]
 
 omit [Params] in
 theorem unsigned_of_append {L : QueryLog SigningSpec} {e : (_ : Message) × Option Signature} {q : Pair}

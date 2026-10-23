@@ -24,7 +24,7 @@ theorem randomOracle_query_result_cache_eq_cacheQuery
       rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
         Set.mem_singleton_iff] at hmem
       cases hmem
-      apply funext
+      apply QueryCache.ext
       intro candidate
       by_cases heq : candidate = input
       · subst candidate
@@ -135,18 +135,19 @@ theorem precomputedKeygen_support_secretKey_uses_finalCache
   rw [hcache]
 
 theorem evalDist_materialized_keygen_eq_precomputedKeygen :
-    evalDist (materializeCachedKeyResult <$>
-      (simulateQ romImpl keygen).run ∅) =
-      evalDist ((simulateQ romImpl precomputedKeygen).run ∅) := by
+    (materializeCachedKeyResult <$>
+      (simulateQ romImpl keygen).run ∅) =ᵈ
+      ((simulateQ romImpl precomputedKeygen).run ∅) := by
   rw [← erasePrecomputedKeygen_eq_keygen, simulateQ_map, StateT.run_map]
   simp only [Functor.map_map]
   rw [map_eq_bind_pure_comp]
   conv_rhs => rw [← bind_pure
     ((simulateQ romImpl precomputedKeygen).run ∅)]
-  apply evalDist_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro keyResult hmem
-  apply congrArg evalDist
+  apply EvalDistEq.of_eq
   apply congrArg pure
+
   simp only [materializeCachedKeyResult,
     erasePrecomputedKeyResult, erasePrecomputation]
   change ((keyResult.1.1,

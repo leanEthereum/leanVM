@@ -1,6 +1,8 @@
 import Sphincs.SecurityReferenceSignature
 import Sphincs.ForestCoverage
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! The stopped hidden-row proof uses one hidden predecessor guess or one noncanonical
 output match at a chain address. The older two-edge/contact extraction implies this simpler
 event without a small-query assumption or an honest-signature premise. -/

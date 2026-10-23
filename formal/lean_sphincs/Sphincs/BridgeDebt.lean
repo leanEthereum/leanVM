@@ -101,7 +101,7 @@ theorem fixedStep_canonical (model : HiddenRows.Model D R A ι) (table : ι → 
     (fixedStep model table (.inr (.inl bytes))).run state =
       pure (model.combine query.1 (table (model.outgoing query.1)),
         state.expose (model.outgoing query.1) (table (model.outgoing query.1))) := by
-  simp only [fixedStep, StateT.run, hp, hk, heq, if_true]
+  simp only [fixedStep, StateT.run, hp, hk, heq, ite_true]
 
 omit [Fintype ι] in
 theorem fixedStep_other (model : HiddenRows.Model D R A ι) (table : ι → Digest) (bytes : D)
@@ -109,7 +109,7 @@ theorem fixedStep_other (model : HiddenRows.Model D R A ι) (table : ι → Dige
     (canonical : Digest) (hk : state.known (model.incoming query.1) = some canonical)
     (hne : query.2 ≠ canonical) :
     (fixedStep model table (.inr (.inl bytes))).run state = readOutside bytes state := by
-  simp only [fixedStep, StateT.run, hp, hk, hne, if_false]
+  simp only [fixedStep, StateT.run, hp, hk, hne, ite_false]
 
 omit [Fintype ι] in
 theorem fixedStep_draw (model : HiddenRows.Model D R A ι) (table : ι → Digest) (draw : unifSpec.Domain)
@@ -167,7 +167,7 @@ theorem stoppedStep_stop {α : Type} (model : HiddenRows.Model D R A ι) (table 
     (hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)) :
     stoppedStep model table (.inr (.inl bytes)) next known cache = pure none := by
   simp only [stoppedStep, hp]
-  rw [if_pos hstop]
+  rw [ite_eq_left hstop]
 
 omit [Fintype ι] in
 theorem stoppedStep_miss {α : Type} (model : HiddenRows.Model D R A ι) (table : ι → Digest) (bytes : D)
@@ -177,7 +177,7 @@ theorem stoppedStep_miss {α : Type} (model : HiddenRows.Model D R A ι) (table 
     stoppedStep model table (.inr (.inl bytes)) next known cache =
       outsideRead bytes cache >>= fun result => next result.1 known result.2 := by
   simp only [stoppedStep, hp]
-  rw [if_neg (fun h => hmiss h.2), if_neg hmiss]
+  rw [ite_eq_right (fun h => hmiss h.2), ite_eq_right hmiss]
 
 omit [Fintype ι] in
 theorem stoppedStep_canonical {α : Type} (model : HiddenRows.Model D R A ι) (table : ι → Digest) (bytes : D)
@@ -188,7 +188,7 @@ theorem stoppedStep_canonical {α : Type} (model : HiddenRows.Model D R A ι) (t
       next (model.combine query.1 (table (model.outgoing query.1)))
         (known.cacheQuery (model.outgoing query.1) (table (model.outgoing query.1))) cache := by
   simp only [stoppedStep, hp]
-  rw [if_neg (fun h => hknown h.1), if_pos hhit]
+  rw [ite_eq_right (fun h => hknown h.1), ite_eq_left hhit]
 
 omit [Fintype ι] in
 /-- Recorded guesses are never forgotten. -/
@@ -246,27 +246,25 @@ comparison records a correct guess or produces the same bad result. -/
 theorem stopped_le_fixedRun {α : Type} (model : HiddenRows.Model D R A ι) (table : ι → Digest)
     (computation : OracleComp (HiddenRows.SourceSpec D R ι) α) (bad : α × Cache D R → Prop)
     (state : DebtState D R ι) (hagree : Agrees state.known table) :
-    Pr[StopOr bad | stopped model table computation state.known state.cache] ≤
-      Pr[fun result => CorrectGuess table result.2 ∨ bad (result.1, result.2.cache) |
-        fixedRun model table computation state] := by
+    Pr{let x ← stopped model table computation state.known state.cache}[(StopOr bad) x] ≤
+      Pr{let result ← fixedRun model table computation state}[CorrectGuess table result.2 ∨ bad (result.1, result.2.cache)] := by
   induction computation using OracleComp.inductionOn generalizing state with
   | pure value =>
-      simp only [stopped, OracleComp.construct_pure, fixedRun_pure, probEvent_pure, StopOr]
+      simp only [stopped, OracleComp.construct_pure, fixedRun_pure, prEvent_pure, StopOr]
       split_ifs <;> simp_all
   | query_bind input next ih =>
       rw [stopped_query_bind, fixedRun_query_bind]
       rcases input with draw | (bytes | coordinate)
       · rw [fixedStep_draw]
-        simp only [stoppedStep, bind_map_left, probEvent_bind_eq_tsum]
+        simp only [stoppedStep, bind_map_left, OracleComp.prEvent_bind_eq_tsum]
         refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
         exact ih value state hagree
       · have hreadStep : ∀ base : DebtState D R ι, base.known = state.known → base.cache = state.cache →
-            Pr[StopOr bad | outsideRead bytes state.cache >>= fun result =>
-              stopped model table (next result.1) state.known result.2] ≤
-            Pr[fun result => CorrectGuess table result.2 ∨ bad (result.1, result.2.cache) |
-              readOutside bytes base >>= fun result => fixedRun model table (next result.1) result.2] := by
+            Pr{let x ← (outsideRead bytes state.cache >>= fun result =>
+              stopped model table (next result.1) state.known result.2)}[(StopOr bad) x] ≤
+            Pr{let result ← readOutside bytes base >>= fun result => fixedRun model table (next result.1) result.2}[CorrectGuess table result.2 ∨ bad (result.1, result.2.cache)] := by
           intro base hknown hcache
-          simp only [readOutside, bind_map_left, probEvent_bind_eq_tsum, hcache]
+          simp only [readOutside, bind_map_left, OracleComp.prEvent_bind_eq_tsum, hcache]
           refine ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
           have h := ih result.1 { base with cache := result.2 } (by simpa [hknown] using hagree)
           simpa [hknown] using h
@@ -279,11 +277,10 @@ theorem stopped_le_fixedRun {α : Type} (model : HiddenRows.Model D R A ι) (tab
             | none =>
                 rw [fixedStep_guess model table bytes state query hp hk]
                 by_cases hguess : query.2 = table (model.incoming query.1)
-                · rw [stoppedStep_stop model table bytes _ _ _ query hp ⟨hk, hguess⟩, probEvent_pure]
-                  simp only [StopOr, if_true]
+                · rw [stoppedStep_stop model table bytes _ _ _ query hp ⟨hk, hguess⟩, prEvent_pure]
+                  simp only [StopOr, ite_true]
                   refine le_of_eq (Eq.symm ?_)
-                  rw [probEvent_eq_one_iff]
-                  refine ⟨probFailure_eq_zero, fun result hresult => Or.inl ?_⟩
+                  refine OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun result hresult => Or.inl ?_
                   rw [mem_support_bind_iff] at hresult
                   obtain ⟨first, hfirst, hrest⟩ := hresult
                   have hstate : first.2.guesses = (model.incoming query.1, query.2) :: state.guesses := by
@@ -381,14 +378,14 @@ theorem lazyStep_canonical (model : HiddenRows.Model D R A ι) (bytes : D) (stat
     (lazyStep model (.inr (.inl bytes))).run state =
       (fun result => (model.combine query.1 result.1, result.2)) <$>
         sampleCoordinate (model.outgoing query.1) state := by
-  simp only [lazyStep, StateT.run, hp, hk, heq, if_true]
+  simp only [lazyStep, StateT.run, hp, hk, heq, ite_true]
 
 omit [Fintype ι] in
 theorem lazyStep_other (model : HiddenRows.Model D R A ι) (bytes : D) (state : DebtState D R ι)
     (query : A × Digest) (hp : model.parse bytes = some query) (canonical : Digest)
     (hk : state.known (model.incoming query.1) = some canonical) (hne : query.2 ≠ canonical) :
     (lazyStep model (.inr (.inl bytes))).run state = readOutside bytes state := by
-  simp only [lazyStep, StateT.run, hp, hk, hne, if_false]
+  simp only [lazyStep, StateT.run, hp, hk, hne, ite_false]
 
 /-- Joint law of the completed table and a run. -/
 noncomputable def withTable {α : Type} (run : (ι → Digest) → ProbComp α) (known : Knowledge ι) :
@@ -441,31 +438,25 @@ omit [SampleableType R] in
 /-- A reveal commutes with completion: the table value at a sampled coordinate. -/
 theorem withTable_reveal {β : Type} (coordinate : ι) (state : DebtState D R ι)
     (continuation : Digest → DebtState D R ι → (ι → Digest) → ProbComp β) :
-    𝒟[completion state.known >>= fun table =>
-        continuation (table coordinate) (state.expose coordinate (table coordinate)) table] =
-      𝒟[sampleCoordinate coordinate state >>= fun result =>
-        completion result.2.known >>= continuation result.1 result.2] := by
-  rw [completion_reveal state.known coordinate
-    (fun value table => continuation value (state.expose coordinate value) table)]
+    (completion state.known >>= fun table =>
+        continuation (table coordinate) (state.expose coordinate (table coordinate)) table) =ᵈ (sampleCoordinate coordinate state >>= fun result =>
+        completion result.2.known >>= continuation result.1 result.2) := by
+  refine (completion_reveal state.known coordinate
+    (fun value table => continuation value (state.expose coordinate value) table)).trans ?_
   simp only [sampleCoordinate, bind_map_left]
-  congr 1
-  apply bind_congr_of_forall_mem_support
-  intro sample hsample
+  refine OracleComp.EvalDistEq.bind_congr_of_support _ fun sample hsample => ?_
   have hcache := randomOracle_known_support state.known coordinate sample hsample
-  simp only [DebtState.expose, ← hcache]
+  simp only [DebtState.expose, ← hcache, EvalDistEq.refl]
 
 omit [SampleableType R] in
 /-- Steps that leave the exposed coordinates unchanged commute with completion. -/
 theorem withTable_swap {β Y : Type} (step : ProbComp (Y × DebtState D R ι)) (state : DebtState D R ι)
     (hknown : ∀ result ∈ support step, result.2.known = state.known)
     (continuation : Y → DebtState D R ι → (ι → Digest) → ProbComp β) :
-    𝒟[completion state.known >>= fun table => step >>= fun result => continuation result.1 result.2 table] =
-      𝒟[step >>= fun result => completion result.2.known >>= continuation result.1 result.2] := by
-  rw [evalDist_bind_bind_swap]
-  congr 1
-  apply bind_congr_of_forall_mem_support
-  intro result hresult
-  rw [hknown result hresult]
+    (completion state.known >>= fun table => step >>= fun result => continuation result.1 result.2 table) =ᵈ (step >>= fun result => completion result.2.known >>= continuation result.1 result.2) := by
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  refine OracleComp.EvalDistEq.bind_congr_of_support _ fun result hresult => ?_
+  simp only [hknown result hresult, EvalDistEq.refl]
 
 omit [Fintype ι] in
 theorem readOutside_known (bytes : D) (state : DebtState D R ι) :
@@ -479,9 +470,8 @@ theorem readOutside_known (bytes : D) (state : DebtState D R ι) :
 same joint law as the lazy comparison followed by completion of what remains unexposed. -/
 theorem withTable_fixedRun {α : Type} (model : HiddenRows.Model D R A ι)
     (computation : OracleComp (HiddenRows.SourceSpec D R ι) α) (state : DebtState D R ι) :
-    𝒟[withTable (fun table => fixedRun model table computation state) state.known] =
-      𝒟[lazyRun model computation state >>= fun result =>
-        (fun table => (table, result)) <$> completion result.2.known] := by
+    withTable (fun table => fixedRun model table computation state) state.known =ᵈ (lazyRun model computation state >>= fun result =>
+        (fun table => (table, result)) <$> completion result.2.known) := by
   induction computation using OracleComp.inductionOn generalizing state with
   | pure value =>
       simp only [withTable, fixedRun_pure, lazyRun_pure, map_pure, pure_bind]
@@ -491,28 +481,24 @@ theorem withTable_fixedRun {α : Type} (model : HiddenRows.Model D R A ι)
       simp only [withTable, fixedRun_query_bind, lazyRun_query_bind, map_bind]
       have hstep : ∀ (step : ProbComp ((HiddenRows.SourceSpec D R ι).Range input × DebtState D R ι)),
           (∀ result ∈ support step, result.2.known = state.known) →
-          𝒟[completion state.known >>= fun table => step >>= fun result =>
-              (fun r => (table, r)) <$> fixedRun model table (next result.1) result.2] =
-            𝒟[step >>= fun result => lazyRun model (next result.1) result.2 >>= fun r =>
-              (fun table => (table, r)) <$> completion r.2.known] := by
+          (completion state.known >>= fun table => step >>= fun result =>
+              (fun r => (table, r)) <$> fixedRun model table (next result.1) result.2) =ᵈ (step >>= fun result => lazyRun model (next result.1) result.2 >>= fun r =>
+              (fun table => (table, r)) <$> completion r.2.known) := by
         intro step hknown
         refine (withTable_swap step state hknown
           (fun value after table => (fun r => (table, r)) <$> fixedRun model table (next value) after)).trans ?_
-        apply evalDist_bind_congr'
-        intro result
+        refine EvalDistEq.bind_right _ fun result => ?_
         exact ih result.1 result.2
       have hreveal : ∀ (coordinate : ι) (label : Digest → (HiddenRows.SourceSpec D R ι).Range input),
-          𝒟[completion state.known >>= fun table =>
+          (completion state.known >>= fun table =>
               (fun r => (table, r)) <$> fixedRun model table (next (label (table coordinate)))
-                (state.expose coordinate (table coordinate))] =
-            𝒟[sampleCoordinate coordinate state >>= fun result =>
+                (state.expose coordinate (table coordinate))) =ᵈ (sampleCoordinate coordinate state >>= fun result =>
               lazyRun model (next (label result.1)) result.2 >>= fun r =>
-                (fun table => (table, r)) <$> completion r.2.known] := by
+                (fun table => (table, r)) <$> completion r.2.known) := by
         intro coordinate label
         refine (withTable_reveal coordinate state
           (fun value after table => (fun r => (table, r)) <$> fixedRun model table (next (label value)) after)).trans ?_
-        apply evalDist_bind_congr'
-        intro result
+        refine EvalDistEq.bind_right _ fun result => ?_
         exact ih (label result.1) result.2
       rcases input with draw | (bytes | coordinate)
       · simp only [fixedStep_draw, lazyStep_draw]

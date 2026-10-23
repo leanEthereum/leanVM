@@ -37,8 +37,8 @@ theorem avgR_ite_two {β : Type} [Fintype β] [DecidableEq β] (b0 b1 : β) (h :
       · simp [h0, h1]
   rw [hsplit, avgR_add, avgR_add, avgR_const]
   unfold avgR
-  rw [Finset.sum_ite_eq' Finset.univ b0, Finset.sum_ite_eq' Finset.univ b1, if_pos (Finset.mem_univ _),
-    if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_ite_eq' Finset.univ b0, Finset.sum_ite_eq' Finset.univ b1, ite_eq_left (Finset.mem_univ _),
+    ite_eq_left (Finset.mem_univ _)]
   have hc0 : (Fintype.card β : ℝ) ≠ 0 := by
     have : 0 < Fintype.card β := Fintype.card_pos_iff.2 ⟨b0⟩
     exact_mod_cast this.ne'
@@ -58,8 +58,8 @@ theorem avg_pair_sub (j : SubIdx) (t t' : MT) (T T' : Finset FChain) :
     intro tt w i
     unfold need
     by_cases h : (lut w i).val < (lut (tt.2 j).2 i).val
-    · rw [if_neg (by omega), if_pos h]; ring
-    · rw [if_pos (by omega), if_neg h]; ring
+    · rw [ite_eq_right (by omega), ite_eq_left h]; ring
+    · rw [ite_eq_left (by omega), ite_eq_right h]; ring
   have hcard : (Fintype.card ChildIdx : ℝ) = 8 := by
     show (Fintype.card (Fin (2 ^ subHeight)) : ℝ) = 8
     rw [Fintype.card_fin]
@@ -72,7 +72,7 @@ theorem avg_pair_sub (j : SubIdx) (t t' : MT) (T T' : Finset FChain) :
         if a = (t.2 j).1 then G2 (t.2 j).2 T (t'.2 j).2 T' else 1 := by
       intro a
       by_cases ha : a = (t.2 j).1
-      · rw [if_pos ha]
+      · rw [ite_eq_left ha]
         unfold G2
         congr 1
         funext w
@@ -80,18 +80,18 @@ theorem avg_pair_sub (j : SubIdx) (t t' : MT) (T T' : Finset FChain) :
         congr 1
         · exact Finset.prod_congr rfl fun i _ => hlt t w i
         · exact Finset.prod_congr rfl fun i _ => hlt t' w i
-      · rw [if_neg ha]
+      · rw [ite_eq_right ha]
         have ha' : a ≠ (t'.2 j).1 := fun h => ha (h.trans he.symm)
         have h1 : ∀ w : LutIdx, (∏ i ∈ T, (1 - if (a, w).1 = (t.2 j).1 ∧ need t j i ≤ (lut (a, w).2 i).val then
             (1 : ℝ) else 0)) * ∏ i ∈ T', (1 - if (a, w).1 = (t'.2 j).1 ∧ need t' j i ≤ (lut (a, w).2 i).val then
             (1 : ℝ) else 0) = 1 := by
           intro w
-          rw [Finset.prod_eq_one fun i _ => by rw [if_neg (fun h => ha h.1), sub_zero],
-            Finset.prod_eq_one fun i _ => by rw [if_neg (fun h => ha' h.1), sub_zero], one_mul]
+          rw [Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h => ha h.1), sub_zero],
+            Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h => ha' h.1), sub_zero], one_mul]
         simp only [h1]
         exact avgR_const 1
     simp only [ha]
-    rw [avgR_ite_one, hcard, βf, if_pos rfl]
+    rw [avgR_ite_one, hcard, βf, ite_eq_left rfl]
     ring
   · rw [show decide ((t.2 j).1 = (t'.2 j).1) = false from decide_eq_false he]
     have ha : ∀ a : ChildIdx, (avgR fun w : LutIdx =>
@@ -100,43 +100,43 @@ theorem avg_pair_sub (j : SubIdx) (t t' : MT) (T T' : Finset FChain) :
         if a = (t.2 j).1 then G (t.2 j).2 T else if a = (t'.2 j).1 then G (t'.2 j).2 T' else 1 := by
       intro a
       by_cases ha : a = (t.2 j).1
-      · rw [if_pos ha]
+      · rw [ite_eq_left ha]
         have ha' : a ≠ (t'.2 j).1 := fun h => he (ha.symm.trans h)
         unfold G
         congr 1
         funext w
-        rw [Finset.prod_eq_one (s := T') fun i _ => by rw [if_neg (fun h => ha' h.1), sub_zero], mul_one]
+        rw [Finset.prod_eq_one (s := T') fun i _ => by rw [ite_eq_right (fun h => ha' h.1), sub_zero], mul_one]
         refine Finset.prod_congr rfl fun i _ => ?_
         simp only [ha, true_and]
         exact hlt t w i
-      · rw [if_neg ha]
+      · rw [ite_eq_right ha]
         by_cases ha' : a = (t'.2 j).1
-        · rw [if_pos ha']
+        · rw [ite_eq_left ha']
           unfold G
           congr 1
           funext w
-          rw [Finset.prod_eq_one (s := T) fun i _ => by rw [if_neg (fun h => ha h.1), sub_zero], one_mul]
+          rw [Finset.prod_eq_one (s := T) fun i _ => by rw [ite_eq_right (fun h => ha h.1), sub_zero], one_mul]
           refine Finset.prod_congr rfl fun i _ => ?_
           simp only [ha', true_and]
           exact hlt t' w i
-        · rw [if_neg ha']
+        · rw [ite_eq_right ha']
           have h1 : ∀ w : LutIdx, (∏ i ∈ T, (1 - if (a, w).1 = (t.2 j).1 ∧ need t j i ≤ (lut (a, w).2 i).val then
               (1 : ℝ) else 0)) * ∏ i ∈ T', (1 - if (a, w).1 = (t'.2 j).1 ∧ need t' j i ≤ (lut (a, w).2 i).val then
               (1 : ℝ) else 0) = 1 := by
             intro w
-            rw [Finset.prod_eq_one fun i _ => by rw [if_neg (fun h => ha h.1), sub_zero],
-              Finset.prod_eq_one fun i _ => by rw [if_neg (fun h => ha' h.1), sub_zero], one_mul]
+            rw [Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h => ha h.1), sub_zero],
+              Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h => ha' h.1), sub_zero], one_mul]
           simp only [h1]
           exact avgR_const 1
     simp only [ha]
-    rw [avgR_ite_two _ _ he, hcard, βf, if_neg (by simp)]
+    rw [avgR_ite_two _ _ he, hcard, βf, ite_eq_right (by simp)]
     ring
 
 
 theorem avoidB_off (t : MT) (S : SubIdx → Finset FChain) (s : SuperIdx) (p : SubIdx → ChildIdx × LutIdx)
     (h : s ≠ t.1) : avoidB t S (s, p) = 1 := by
   unfold avoidB
-  exact Finset.prod_eq_one fun j _ => Finset.prod_eq_one fun i _ => by rw [if_neg (fun h' => h h'.1), sub_zero]
+  exact Finset.prod_eq_one fun j _ => Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h' => h h'.1), sub_zero]
 
 theorem avoidB_on (t : MT) (S : SubIdx → Finset FChain) (p : SubIdx → ChildIdx × LutIdx) :
     avoidB t S (t.1, p) =
@@ -159,12 +159,12 @@ theorem avgR_avoid2 (t t' : MT) (S S' : SubIdx → Finset FChain) :
     rw [Fintype.card_fin]
     norm_num [topHeight]
   by_cases hst : t.1 = t'.1
-  · rw [if_pos hst]
+  · rw [ite_eq_left hst]
     have hs : ∀ s : SuperIdx, (avgR fun p : SubIdx → ChildIdx × LutIdx => avoidB t S (s, p) * avoidB t' S' (s, p)) =
         if s = t.1 then ∏ j, βf (decide ((t.2 j).1 = (t'.2 j).1)) (t.2 j).2 (S j) (t'.2 j).2 (S' j) else 1 := by
       intro s
       by_cases hs : s = t.1
-      · rw [if_pos hs]
+      · rw [ite_eq_left hs]
         subst hs
         have hprod : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (t.1, p) * avoidB t' S' (t.1, p) =
             ∏ j, ((∏ i ∈ S j, (1 - if (p j).1 = (t.2 j).1 ∧ need t j i ≤ (lut (p j).2 i).val then (1 : ℝ) else 0)) *
@@ -176,7 +176,7 @@ theorem avgR_avoid2 (t t' : MT) (S S' : SubIdx → Finset FChain) :
           (∏ i ∈ S j, (1 - if q.1 = (t.2 j).1 ∧ need t j i ≤ (lut q.2 i).val then (1 : ℝ) else 0)) *
             ∏ i ∈ S' j, (1 - if q.1 = (t'.2 j).1 ∧ need t' j i ≤ (lut q.2 i).val then (1 : ℝ) else 0))]
         exact Finset.prod_congr rfl fun j _ => avg_pair_sub j t t' (S j) (S' j)
-      · rw [if_neg hs]
+      · rw [ite_eq_right hs]
         have h1 : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (s, p) * avoidB t' S' (s, p) = 1 := fun p => by
           rw [avoidB_off t S s p hs, avoidB_off t' S' s p (fun h => hs (h.trans hst.symm)), one_mul]
         simp only [h1]
@@ -184,25 +184,25 @@ theorem avgR_avoid2 (t t' : MT) (S S' : SubIdx → Finset FChain) :
     simp only [hs]
     rw [avgR_ite_one, hcard]
     ring
-  · rw [if_neg hst]
+  · rw [ite_eq_right hst]
     have hs : ∀ s : SuperIdx, (avgR fun p : SubIdx → ChildIdx × LutIdx => avoidB t S (s, p) * avoidB t' S' (s, p)) =
         if s = t.1 then ∏ j, (7 / 8 + 1 / 8 * G (t.2 j).2 (S j))
         else if s = t'.1 then ∏ j, (7 / 8 + 1 / 8 * G (t'.2 j).2 (S' j)) else 1 := by
       intro s
       by_cases hs : s = t.1
-      · rw [if_pos hs]
+      · rw [ite_eq_left hs]
         have h1 : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (s, p) * avoidB t' S' (s, p) = avoidB t S (s, p) :=
           fun p => by rw [avoidB_off t' S' s p (fun h => hst (hs.symm.trans h)), mul_one]
         simp only [h1]
-        rw [avgR_avoidB_inner, if_pos hs]
-      · rw [if_neg hs]
+        rw [avgR_avoidB_inner, ite_eq_left hs]
+      · rw [ite_eq_right hs]
         by_cases hs' : s = t'.1
-        · rw [if_pos hs']
+        · rw [ite_eq_left hs']
           have h1 : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (s, p) * avoidB t' S' (s, p) =
               avoidB t' S' (s, p) := fun p => by rw [avoidB_off t S s p hs, one_mul]
           simp only [h1]
-          rw [avgR_avoidB_inner, if_pos hs']
-        · rw [if_neg hs']
+          rw [avgR_avoidB_inner, ite_eq_left hs']
+        · rw [ite_eq_right hs']
           have h1 : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (s, p) * avoidB t' S' (s, p) = 1 := fun p => by
             rw [avoidB_off t S s p hs, avoidB_off t' S' s p hs', one_mul]
           simp only [h1]
@@ -281,14 +281,14 @@ theorem avgR_pair_ite {β : Type} [Fintype β] [DecidableEq β] [Nonempty β] (A
         simp only [eq_comm]
       rw [h2]
       unfold avgR
-      rw [Finset.sum_ite_eq' Finset.univ b, if_pos (Finset.mem_univ _)]
+      rw [Finset.sum_ite_eq' Finset.univ b, ite_eq_left (Finset.mem_univ _)]
       ring
     · have h2 : (fun b' : β => if (b, b').1 = (b, b').2 then A else B) =
           fun b' => B * (if b' = b then A / B else 1) := by
         funext b'
         by_cases hb : b' = b
-        · rw [if_pos hb, if_pos hb.symm]; field_simp
-        · rw [if_neg hb, if_neg (Ne.symm hb), mul_one]
+        · rw [ite_eq_left hb, ite_eq_left hb.symm]; field_simp
+        · rw [ite_eq_right hb, ite_eq_right (Ne.symm hb), mul_one]
       rw [h2, avgR_const_mul, this]
       field_simp
   simp only [h]
@@ -449,12 +449,12 @@ theorem avg_child_pair (i : ℕ) :
       if aa.1 = aa.2 then νeqR i else νneR i := by
     intro aa
     by_cases ha : aa.1 = aa.2
-    · rw [if_pos ha]
+    · rw [ite_eq_left ha]
       unfold νeqR
       congr 1
       funext ww
       simp only [ha, decide_true]
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       unfold νneR
       congr 1
       funext ww
@@ -541,14 +541,14 @@ theorem Ψ2R_eq (n : ℕ) :
         ∑ i ∈ Finset.range (s + 1), (s.choose i : ℝ) * μR i ^ 2 * μR (s - i) ^ 2 := by
     intro ss
     by_cases hs : ss.1 = ss.2
-    · rw [if_pos hs, ← avg_eq_part n]
+    · rw [ite_eq_left hs, ← avg_eq_part n]
       refine congrArg avgR (funext fun pp => ?_)
       refine Finset.sum_congr rfl fun S _ => Finset.sum_congr rfl fun S' _ => ?_
-      rw [if_pos hs, needA_eq, needA_eq]
-    · rw [if_neg hs, ← avg_ne_part n]
+      rw [ite_eq_left hs, needA_eq, needA_eq]
+    · rw [ite_eq_right hs, ← avg_ne_part n]
       refine congrArg avgR (funext fun pp => ?_)
       refine Finset.sum_congr rfl fun S _ => Finset.sum_congr rfl fun S' _ => ?_
-      rw [if_neg hs, needA_eq, needA_eq]
+      rw [ite_eq_right hs, needA_eq, needA_eq]
   simp only [h]
   rw [avgR_pair_ite]
   have hcard : (Fintype.card SuperIdx : ℝ) = 16 := by
@@ -568,7 +568,7 @@ theorem νneR_eq (i : ℕ) :
         ∑ u ∈ Finset.range (s + 1), (s.choose u : ℝ) * (∑ T : Finset FChain, (-1) ^ T.card * needA1 ww.1 T *
           G ww.1 T ^ u) * ∑ T' : Finset FChain, (-1) ^ T'.card * needA1 ww.2 T' * G ww.2 T' ^ (s - u) := by
     intro ww
-    simp only [βf, Bool.false_eq_true, if_false]
+    simp only [βf, Bool.false_eq_true, ite_false]
     exact sum_sum_pow_affine2 _ _ _ _ _ _ _
   simp only [hpt]
   rw [avgR_sum]
@@ -595,7 +595,7 @@ theorem νeqR_eq (i : ℕ) :
         ∑ T : Finset FChain, ∑ T' : Finset FChain,
           ((-1) ^ T.card * needA1 ww.1 T) * ((-1) ^ T'.card * needA1 ww.2 T') * G2 ww.1 T ww.2 T' ^ u := by
     intro ww
-    simp only [βf, if_true, pow_affine, Finset.mul_sum]
+    simp only [βf, ite_true, pow_affine, Finset.mul_sum]
     have hsw : ∀ T : Finset FChain, (∑ T' : Finset FChain, ∑ u ∈ Finset.range (i + 1),
         ((-1) ^ T.card * needA1 ww.1 T) * ((-1) ^ T'.card * needA1 ww.2 T') *
           ((1 / 8) ^ u * (7 / 8) ^ (i - u) * (i.choose u : ℝ) * G2 ww.1 T ww.2 T' ^ u)) =

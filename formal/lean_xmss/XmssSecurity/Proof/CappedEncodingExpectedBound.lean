@@ -46,7 +46,7 @@ theorem cappedUnloggedMappedAdversary_simulateQ_run_eq_source
 noncomputable def expectedPostKeygenEncodingQueries
     (adversary : Adversary) : ENNReal :=
   ∑' keyResult,
-    Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+    Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
       expectedSimulatedQueryCount romImpl
         (IsEncodingHashQuery keyResult.1.2.parameter)
         (cappedSourceUnloggedDetailedGameAfterKeygen adversary

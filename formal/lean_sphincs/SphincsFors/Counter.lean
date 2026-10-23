@@ -37,9 +37,9 @@ theorem probEvent_otsSign (parameter : PublicParameter) (lay : Layer) (tree : Tr
     (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) (cache : QueryCache HashSpec)
     (hfresh : ∀ c, c < encodingAttemptLimit →
       cache (encodeInput parameter lay tree leaf message c) = none) :
-    Pr[fun r => r.1 = none | (simulateQ randomOracle
+    Pr{let r ← ((simulateQ randomOracle
         (otsSign parameter lay tree leaf seed message
-          : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))).run cache]
+          : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))).run cache)}[r.1 = none]
       ≤ failMass (fun out => TargetSum.decodeDigest (truncateHash out)) ^ encodingAttemptLimit := by
   rw [otsSign, otsSignFrom_eq_searchLoop]
   exact probEvent_searchLoop _ _ _ encodingAttemptLimit

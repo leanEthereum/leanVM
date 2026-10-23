@@ -1,3 +1,4 @@
+import VCVio.OracleComp.SimSemantics.StateT.Measure
 import XmssSecurity.Proof.Deterministic.TrialSampling
 import XmssSecurity.Proof.Deterministic.TranscriptReduction
 
@@ -78,29 +79,27 @@ theorem evalDist_freshRun_of_kernel {α Tape : Type} [SampleableType Tape]
     (handler : QueryImpl OracleWorld (StateT State ProbComp))
     (kernel : SignRequest → Tape → StateT State ProbComp (Option Signature))
     (sign : SignRequest → StateT State ProbComp (Option Signature))
-    (hkernel : ∀ message state, 𝒟[do
+    (hkernel : ∀ message state, (do
       let tape ← ($ᵗ Tape : ProbComp Tape)
-      (kernel message tape).run state] = 𝒟[(sign message).run state])
+      (kernel message tape).run state) =ᵈ ((sign message).run state))
     (computation : OracleComp (OracleWorld + SigningSpec) α) (state : State) :
-    𝒟[(freshRun handler kernel computation).run state] =
-      𝒟[(simulateQ (handler + sign) computation).run state] := by
+    ((freshRun handler kernel computation).run state) =ᵈ ((simulateQ (handler + sign) computation).run state) := by
   unfold freshRun
-  apply evalDist_simulateQ_run_congr
+  apply evalDistEq_simulateQ_run
   intro input state
   cases input with
   | inl input => rfl
   | inr message =>
-      change 𝒟[((do
+      change (((do
         let tape ← liftM ($ᵗ Tape : ProbComp Tape)
-        kernel message tape) : StateT State ProbComp (Option Signature)).run state] = _
+        kernel message tape) : StateT State ProbComp (Option Signature)).run state) =ᵈ _
       simp only [StateT.run_bind, StateT.run_liftM, bind_assoc, pure_bind]
       exact hkernel message state
 
 theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (computation : OracleComp (OracleWorld + SigningSpec) α) (state : State) :
-    𝒟[(freshRun (worldHandler hash) (requestKernel hash secretKey) computation).run state] =
-      𝒟[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
-        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state] := by
+    ((freshRun (worldHandler hash) (requestKernel hash secretKey) computation).run state) =ᵈ ((simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
+        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state) := by
   exact evalDist_freshRun_of_kernel (worldHandler hash) (requestKernel hash secretKey)
     (fun (message : SignRequest) => simulateQ (worldHandler hash)
       (Concrete.precomputedCappedSign secretKey message.leafIndex message.message))
@@ -110,11 +109,11 @@ theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT St
 theorem evalDist_tableRequests {α : Type} {used : Set SignRequest}
     (hash : QueryImpl HashSpec (StateT State ProbComp)) (secretKey : XmssSecurity.SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (hfresh : FreshRequests used computation) (state : State) :
-    𝒟[do
+    (do
       let randomizers ← sampleRandomizerOutputs
-      (simulateQ (worldHandler hash) (runSigning (fun (message : SignRequest) => tableSign randomizers secretKey message.leafIndex message.message) computation)).run state] =
-      𝒟[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
-        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state] := by
+      (simulateQ (worldHandler hash) (runSigning (fun (message : SignRequest) => tableSign randomizers secretKey message.leafIndex message.message) computation)).run state) =ᵈ
+      ((simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
+        (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state) := by
   simp_rw [← tableRun_requests]
   exact (hfresh.evalDist_tableRun (worldHandler hash) (requestKernel hash secretKey) state).trans
     (evalDist_freshRequests hash secretKey computation state)
@@ -122,7 +121,7 @@ theorem evalDist_tableRequests {α : Type} {used : Set SignRequest}
 theorem freshRequests_sourceGame_memo (publicKey : PublicKey) (adversary : Adversary) :
     FreshRequests ∅ (sourceGame publicKey (memoAdversary adversary)) := by
   have h : FreshRequests ∅ (memoize (adversary.main publicKey) ∅) := by
-    simpa only [QueryCache.empty_apply, ne_eq, not_true_eq_false, Set.setOf_false] using
+    simpa only [QueryCache.empty_apply, ne_eq, not_true_eq_false, Set.ofPred_false] using
       freshRequests_memoize (adversary.main publicKey) ∅
   unfold sourceGame memoAdversary
   apply h.withRequestLog.bind

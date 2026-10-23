@@ -6,22 +6,6 @@ open _root_.OracleComp OracleSpec ENNReal
 def spent {Result : Type} (budget : Nat) (result : Option (Result × Nat)) : Nat :=
   result.elim 0 (fun finished => budget - finished.2)
 
-theorem scaled_expectation_bind_le {Sample First Second : Type} (prior : SPMF Sample)
-    (first : Sample → SPMF First) (second : Sample → SPMF Second)
-    (firstCost : First → ENNReal) (secondCost : Second → ENNReal) (factor : ENNReal)
-    (h : ∀ sample ∈ support prior,
-      factor * (∑' result, Pr[= result | first sample] * firstCost result) ≤
-        ∑' result, Pr[= result | second sample] * secondCost result) :
-    factor * (∑' result, Pr[= result | prior >>= first] * firstCost result) ≤
-      ∑' result, Pr[= result | prior >>= second] * secondCost result := by
-  rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul, ← ENNReal.tsum_mul_left]
-  apply ENNReal.tsum_le_tsum
-  intro sample
-  by_cases hsample : sample ∈ support prior
-  · rw [mul_left_comm factor]
-    exact mul_le_mul' le_rfl (h sample hsample)
-  · rw [probOutput_eq_zero_of_not_mem_support hsample, zero_mul, zero_mul, mul_zero]
-
 end SphincsBase.QueryCap
 
 namespace SphincsBase.Concrete.PartialChainEndpoint

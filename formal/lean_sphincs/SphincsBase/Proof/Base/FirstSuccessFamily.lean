@@ -54,16 +54,16 @@ theorem selected_mul_afterSelect (decode : Answer → Option Value) (n : Nat) (r
   rw [selected, afterSelect, FinitePmfProduct.apply, FinitePmfProduct.apply, ← Finset.prod_mul_distrib]
   simp only [FirstSuccessTable.selected_mul_afterSelect]
   by_cases h : select decode n tables = results
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hcoordinate (index : Index) : FirstSuccessTable.select decode (tables index) = results index := congrFun h index
-    simp only [hcoordinate, if_true, FirstSuccessTable.full_eq_uniform]
+    simp only [hcoordinate, ite_true, FirstSuccessTable.full_eq_uniform]
     exact congrFun (congrArg DFunLike.coe (FinitePmfProduct.uniform (Index := Index) (Value := Fin n → Answer))) tables
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hex : ∃ index, FirstSuccessTable.select decode (tables index) ≠ results index := by
       by_contra! hall
       exact h (funext hall)
     obtain ⟨index, hindex⟩ := hex
-    exact Finset.prod_eq_zero (Finset.mem_univ index) (if_neg hindex)
+    exact Finset.prod_eq_zero (Finset.mem_univ index) (ite_eq_right hindex)
 
 theorem uniform_bind_eq_selected {Result : Type} (decode : Answer → Option Value) (n : Nat)
     (next : (Index → Option (Fin n × Value)) → (Index → Fin n → Answer) → PMF Result) :

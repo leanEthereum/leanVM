@@ -25,7 +25,7 @@ theorem avgR_ite_one {β : Type} [Fintype β] [DecidableEq β] (b0 : β) (V : �
     avgR (fun b : β => if b = b0 then V else 1) =
       ((Fintype.card β : ℝ) - 1) / Fintype.card β + V / Fintype.card β := by
   unfold avgR
-  rw [Finset.sum_ite, Finset.sum_const, Finset.sum_const, Finset.filter_eq' Finset.univ b0, if_pos (Finset.mem_univ _),
+  rw [Finset.sum_ite, Finset.sum_const, Finset.sum_const, Finset.filter_eq' Finset.univ b0, ite_eq_left (Finset.mem_univ _),
     Finset.card_singleton, nsmul_eq_mul, nsmul_eq_mul, Finset.filter_ne' Finset.univ b0,
     Finset.card_erase_of_mem (Finset.mem_univ _), Finset.card_univ]
   have hc : (1 : ℕ) ≤ Fintype.card β := Fintype.card_pos_iff.2 ⟨b0⟩
@@ -40,7 +40,7 @@ theorem avgR_avoidB_inner (t : MT) (S : SubIdx → Finset FChain) (s : SuperIdx)
       if s = t.1 then ∏ j, (7 / 8 + 1 / 8 * G (t.2 j).2 (S j)) else 1 := by
   classical
   by_cases hst : s = t.1
-  · rw [if_pos hst]
+  · rw [ite_eq_left hst]
     subst hst
     have hprod : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (t.1, p) =
         ∏ j, ∏ i ∈ S j, (1 - if (p j).1 = (t.2 j).1 ∧ need t j i ≤ (lut (p j).2 i).val then (1 : ℝ) else 0) := by
@@ -58,32 +58,32 @@ theorem avgR_avoidB_inner (t : MT) (S : SubIdx → Finset FChain) (s : SuperIdx)
         if a = (t.2 j).1 then G (t.2 j).2 (S j) else 1 := by
       intro a
       by_cases ha : a = (t.2 j).1
-      · rw [if_pos ha]
+      · rw [ite_eq_left ha]
         unfold G
         congr 1
         funext w
         refine Finset.prod_congr rfl fun i _ => ?_
         simp only [ha, true_and, need]
         by_cases hlt : (lut w i).val < (lut (t.2 j).2 i).val
-        · rw [if_neg (by omega), if_pos hlt]; ring
-        · rw [if_pos (by omega), if_neg hlt]; ring
-      · rw [if_neg ha]
+        · rw [ite_eq_right (by omega), ite_eq_left hlt]; ring
+        · rw [ite_eq_left (by omega), ite_eq_right hlt]; ring
+      · rw [ite_eq_right ha]
         have h1 : ∀ w : LutIdx, (∏ i ∈ S j,
             (1 - if (a, w).1 = (t.2 j).1 ∧ need t j i ≤ (lut (a, w).2 i).val then (1 : ℝ) else 0)) = 1 :=
-          fun w => Finset.prod_eq_one fun i _ => by rw [if_neg (fun h => ha h.1), sub_zero]
+          fun w => Finset.prod_eq_one fun i _ => by rw [ite_eq_right (fun h => ha h.1), sub_zero]
         simp only [h1]
         exact avgR_const 1
     simp only [ha]
     rw [avgR_ite_one]
-    simp only [ChildIdx, subHeight, Fintype.card_fin]
-    norm_num
+    simp only [ChildIdx, Fintype.card_fin]
+    norm_num [subHeight]
     ring
-  · rw [if_neg hst]
+  · rw [ite_eq_right hst]
     have hone : ∀ p : SubIdx → ChildIdx × LutIdx, avoidB t S (s, p) = 1 := by
       intro p
       unfold avoidB
       refine Finset.prod_eq_one fun j _ => Finset.prod_eq_one fun i _ => ?_
-      rw [if_neg (fun h => hst h.1), sub_zero]
+      rw [ite_eq_right (fun h => hst h.1), sub_zero]
     simp only [hone]
     exact avgR_const 1
 
@@ -95,8 +95,8 @@ theorem avgR_avoidB (t : MT) (S : SubIdx → Finset FChain) :
   have hs := avgR_avoidB_inner t S
   simp only [hs]
   rw [avgR_ite_one]
-  simp only [SuperIdx, topHeight, Fintype.card_fin]
-  norm_num
+  simp only [SuperIdx, Fintype.card_fin]
+  norm_num [topHeight]
   ring
 
 /-! ### The first moment -/

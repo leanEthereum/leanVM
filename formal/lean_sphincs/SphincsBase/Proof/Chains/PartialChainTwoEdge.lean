@@ -43,7 +43,7 @@ theorem knownCount_eq_zero_of_no_twoEdge {n : Nat} (observed : Fin (n + 2) → S
   unfold knownCount
   apply Finset.sum_eq_zero
   intro start _
-  exact if_neg (fun hrun => h (knownRun_twoEdge observed start endpoint hrun))
+  exact ite_eq_right (fun hrun => h (knownRun_twoEdge observed start endpoint hrun))
 
 theorem targetCount_eq_contactCount_of_no_twoEdge {n : Nat} (observed : Fin (n + 2) → State → Option State) (endpoint : State)
     (h : ¬TwoEdge observed endpoint) : targetCount observed endpoint = contactCount observed endpoint := by
@@ -105,23 +105,21 @@ theorem twoEdge_record_penultimate {n : Nat} (observed : Fin (n + 2) → State �
 theorem twoEdge_last_probability [Nonempty State] {n : Nat}
     (observed : Fin (n + 2) → State → Option State) (input endpoint : State)
     (h : ¬TwoEdge observed endpoint) (hfresh : observed (Fin.last (n + 1)) input = none) :
-    Pr[fun answer => TwoEdge (record observed (Fin.last (n + 1), input) answer) endpoint |
-      rowLaw (observed (Fin.last (n + 1)) input)] =
+    Pr{let answer ← rowLaw (observed (Fin.last (n + 1)) input)}[TwoEdge (record observed (Fin.last (n + 1), input) answer) endpoint] =
         if ∃ start, observed (Fin.last n).castSucc start = some input then 1 / (Fintype.card State : ENNReal) else 0 := by
   classical
-  simp only [hfresh, rowLaw, probEvent_eq_tsum_ite, PMF.probOutput_eq_apply,
+  simp only [hfresh, rowLaw, PMF.prEvent_eq_tsum_ite,
     twoEdge_record_last observed input _ endpoint h]
   by_cases hp : ∃ start, observed (Fin.last n).castSucc start = some input
-  · simp only [hp, and_true, if_true, tsum_ite_eq, PMF.uniformOfFintype_apply, one_div]
-  · simp only [hp, and_false, if_false, tsum_zero]
+  · simp only [hp, and_true, ite_true, tsum_ite_eq, PMF.uniformOfFintype_apply, one_div]
+  · simp only [hp, and_false, ite_false, tsum_zero]
 
 theorem twoEdge_penultimate_probability [Nonempty State] {n : Nat}
     (observed : Fin (n + 2) → State → Option State) (input endpoint : State)
     (h : ¬TwoEdge observed endpoint) (hfresh : observed (Fin.last n).castSucc input = none) :
-    Pr[fun answer => TwoEdge (record observed ((Fin.last n).castSucc, input) answer) endpoint |
-      rowLaw (observed (Fin.last n).castSucc input)] = (contactCount observed endpoint : ENNReal) / Fintype.card State := by
+    Pr{let answer ← rowLaw (observed (Fin.last n).castSucc input)}[TwoEdge (record observed ((Fin.last n).castSucc, input) answer) endpoint] = (contactCount observed endpoint : ENNReal) / Fintype.card State := by
   classical
-  simp only [hfresh, rowLaw, probEvent_eq_tsum_ite, PMF.probOutput_eq_apply,
+  simp only [hfresh, rowLaw, PMF.prEvent_eq_tsum_ite,
     twoEdge_record_penultimate observed input _ endpoint h, PMF.uniformOfFintype_apply, tsum_fintype,
     contactCount_succ, Nat.cast_sum, Nat.cast_ite, Nat.cast_one, Nat.cast_zero, div_eq_mul_inv,
     Finset.sum_mul, ite_mul, one_mul, zero_mul]

@@ -71,35 +71,31 @@ variable [_root_.Finite Node] [_root_.Finite Cell] [_root_.Finite Answer] [Nonem
 omit [_root_.Finite Cell] in
 theorem evalDist_plant_eq_replay (input : Node → State → Cell) (advance : Node → Answer → State → State)
     (nodes : List Node) (hnodes : nodes.Nodup) (state : State) :
-    𝒟[plant input advance nodes state] =
-      𝒟[do
+    plant input advance nodes state =ᵈ (do
         let answers ← ($ᵗ (Node → Answer) : ProbComp _)
         let table ← ($ᵗ (Cell → Answer) : ProbComp _)
-        pure (replay input advance answers table nodes state)] := by
+        pure (replay input advance answers table nodes state)) := by
   induction nodes generalizing state with
   | nil =>
       simp only [plant, replay]
-      exact (evalDist_bind_const_neverFails _ (by simp) _).symm
+      exact (OracleComp.EvalDistEq.bind_const _ _).symm
   | cons node nodes ih =>
       obtain ⟨hnode, hnodes⟩ := List.nodup_cons.mp hnodes
       have hextract := evalDist_table_extract node (fun answers answer => do
         let table ← ($ᵗ (Cell → Answer) : ProbComp _)
         let result := replay input advance answers table nodes (advance node answer state)
         pure (result.1, Function.update result.2 (input node state) answer))
-      change 𝒟[plant input advance (node :: nodes) state] =
-        𝒟[do
+      change plant input advance (node :: nodes) state =ᵈ (do
           let answers ← ($ᵗ (Node → Answer) : ProbComp _)
           let table ← ($ᵗ (Cell → Answer) : ProbComp _)
           let result := replay input advance answers table nodes (advance node (answers node) state)
-          pure (result.1, Function.update result.2 (input node state) (answers node))]
-      rw [hextract]
+          pure (result.1, Function.update result.2 (input node state) (answers node)))
+      refine EvalDistEq.trans ?_ hextract.symm
       simp_rw [replay_update_of_not_mem input advance _ _ nodes node hnode]
       simp only [plant]
-      apply evalDist_bind_congr_left
-      intro answer
-      have h := congrArg (fun distribution : SPMF (State × (Cell → Answer)) =>
-        distribution >>= fun result => pure (result.1, Function.update result.2 (input node state) answer))
-        (ih hnodes (advance node answer state))
-      simpa only [evalDist_bind, evalDist_pure, bind_assoc, pure_bind] using h
+      refine EvalDistEq.bind_right _ fun answer => ?_
+      have h := (ih hnodes (advance node answer state)).map
+        (fun result : State × (Cell → Answer) => (result.1, Function.update result.2 (input node state) answer))
+      simpa only [map_bind, map_pure, bind_pure_comp, Functor.map_map] using h
 
 end SphincsBase.Concrete.FiniteGraphSampling

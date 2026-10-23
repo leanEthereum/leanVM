@@ -198,7 +198,7 @@ theorem mix_firstOf (outputs : SecretOutputs) {position : SecretPosition} (h : P
     mix outputs (firstOf position) =
       joinHalves (truncateHash (outputs (firstOf position)))
         (truncateHash (outputs (secondOf position))) := by
-  simp only [mix, paired_firstOf, h, isSecond_firstOf, firstOf_firstOf, secondOf_firstOf, if_true]
+  simp only [mix, paired_firstOf, h, isSecond_firstOf, firstOf_firstOf, secondOf_firstOf, ite_true]
   rfl
 
 theorem mix_secondOf (outputs : SecretOutputs) {position : SecretPosition} (h : Paired position = true) :
@@ -206,23 +206,23 @@ theorem mix_secondOf (outputs : SecretOutputs) {position : SecretPosition} (h : 
       joinHalves (truncateHashHigh (outputs (firstOf position)))
         (truncateHashHigh (outputs (secondOf position))) := by
   simp only [mix, paired_secondOf, h, isSecond_secondOf h, firstOf_secondOf, secondOf_secondOf,
-    if_true]
+    ite_true]
 
 theorem mix_involutive : Function.Involutive mix := by
   intro outputs
   funext position
   cases hp : Paired position with
-  | false => simp only [mix, hp, Bool.false_eq_true, if_false]
+  | false => simp only [mix, hp, Bool.false_eq_true, ite_false]
   | true =>
       cases hs : isSecond position with
       | false =>
           have hfirst := firstOf_of_not_second hs
-          conv_lhs => rw [mix, if_pos hp, hs, if_neg (by simp)]
+          conv_lhs => rw [mix, ite_eq_left hp, hs, ite_eq_right (by simp)]
           rw [mix_firstOf outputs hp, mix_secondOf outputs hp, truncateHash_joinHalves,
             truncateHash_joinHalves, hfirst, joinHalves_halves]
       | true =>
           have hsecond := secondOf_of_second hs
-          conv_lhs => rw [mix, if_pos hp, hs, if_pos rfl]
+          conv_lhs => rw [mix, ite_eq_left hp, hs, ite_eq_left rfl]
           rw [mix_firstOf outputs hp, mix_secondOf outputs hp, truncateHashHigh_joinHalves,
             truncateHashHigh_joinHalves, hsecond, joinHalves_halves]
 
@@ -282,7 +282,7 @@ theorem secretInput_ne_parameterInput (seed : MasterSeed) (material : Material)
 a derived value, answered with `pairOutput`. This definition overwrites its specified entries; a
 later lemma explicitly requires those entries fresh to preserve the base. -/
 noncomputable def programCache (base : QueryCache HashSpec) (seed : MasterSeed)
-    (material : Material) : QueryCache HashSpec := fun input =>
+    (material : Material) : QueryCache HashSpec := QueryCache.ofFn fun input =>
   if input = parameterInput seed then some material.1
   else if h : ∃ position, input = secretInput seed material position then
     some (pairOutput material.2 (Classical.choose h))
@@ -296,9 +296,9 @@ theorem programCache_secret (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) (position : SecretPosition) :
     programCache base seed material (secretInput seed material position) =
       some (pairOutput material.2 position) := by
-  rw [programCache, if_neg (secretInput_ne_parameterInput seed material position)]
+  rw [programCache, QueryCache.ofFn_apply, ite_eq_right (secretInput_ne_parameterInput seed material position)]
   have h : ∃ other, secretInput seed material position = secretInput seed material other := ⟨position, rfl⟩
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact congrArg (fun p => some (mix material.2 p))
     (firstOf_eq_of_secretInput_eq (Classical.choose_spec h)).symm
 
@@ -308,8 +308,8 @@ theorem programCache_other (base : QueryCache HashSpec) (seed : MasterSeed) (mat
     (input : HashInput) (hparameter : input ≠ parameterInput seed)
     (hsecret : ∀ position, input ≠ secretInput seed material position) :
     programCache base seed material input = base input := by
-  simp only [programCache, hparameter, ↓reduceIte]
-  exact dif_neg (by simpa only [not_exists] using hsecret)
+  simp only [programCache, QueryCache.ofFn_apply, hparameter, ↓reduceIte]
+  exact dite_eq_right (by simpa only [not_exists] using hsecret)
 
 def AgreeOutsideSeed (seed : MasterSeed) (left right : QueryCache HashSpec) : Prop :=
   ∀ input, ¬SeedGuess.SeedHit input seed → left input = right input

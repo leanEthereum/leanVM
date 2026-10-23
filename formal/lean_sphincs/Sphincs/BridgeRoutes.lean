@@ -24,8 +24,8 @@ attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSamp
 set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world.** -/
 theorem seedFree_le_prep (adversary : Adversary) (q : Nat) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q] ≤
-      Pr[HiddenReveal.StopOr RichWin | do
+    Pr{let x ← seedFreeExperiment (internalize adversary) q}[Win x] ≤
+      Pr{let x ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -34,7 +34,7 @@ theorem seedFree_le_prep (adversary : Adversary) (q : Nat) :
         HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining))))
-          (knownOf (truncateHash parameterOutput) fixed) prepared.2] := by
+          (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) x] := by
   refine (seedFree_le_stopped (internalize adversary) q Win).trans (le_of_eq ?_)
   refine probEvent_bind_congr₂ _ _ _ _ _ fun parameterOutput => ?_
   refine probEvent_bind_congr₂ _ _ _ _ _ fun fixed => ?_
@@ -46,9 +46,8 @@ theorem seedFree_le_prep (adversary : Adversary) (q : Nat) :
       (GraphView.publicData (labelsOf (splitMaterial parameterOutput highs remaining fixed)
         (splitAnswers highs remaining fixed))) adversary) q))
   unfold outsideFn
-  rw [probEvent_congr' (fun _ _ => Iff.rfl)
-    (evalDist_stoppedExperiment_prep (sampleModel parameterOutput highs) _ (truncateHash parameterOutput)
-      (sampleData parameterOutput fixed highs remaining).forestKey _ hshort _)]
+  rw [(evalDist_stoppedExperiment_prep (sampleModel parameterOutput highs) _ (truncateHash parameterOutput)
+      (sampleData parameterOutput fixed highs remaining).forestKey _ hshort _).prEvent_eq]
   refine probEvent_bind_congr₂ _ _ _ _ _ fun prepared => ?_
   rw [probEvent_stopOr_map]
   unfold HiddenOutside.stoppedExperiment
@@ -71,8 +70,8 @@ theorem seedFree_le_prep (adversary : Adversary) (q : Nat) :
 set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world, with the above-word values exposed.** -/
 theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q] ≤
-      Pr[HiddenReveal.StopOr RichWin | do
+    Pr{let x ← seedFreeExperiment (internalize adversary) q}[Win x] ≤
+      Pr{let x ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -83,7 +82,7 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) :
         HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining))))
-          known prepared.2] := by
+          known prepared.2)}[(HiddenReveal.StopOr RichWin) x] := by
   refine (seedFree_le_expose (internalize adversary) q Win
     (fun parameterOutput fixed highs remaining outsideTable =>
       aboveList (truncateHash parameterOutput)
@@ -100,10 +99,9 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) :
       (GraphView.publicData (labelsOf (splitMaterial parameterOutput highs remaining fixed)
         (splitAnswers highs remaining fixed))) adversary) q))
   unfold outsideFn
-  rw [probEvent_congr' (fun _ _ => Iff.rfl)
-    (evalDist_expose_prep (sampleModel parameterOutput highs) _ (truncateHash parameterOutput)
+  rw [(evalDist_expose_prep (sampleModel parameterOutput highs) _ (truncateHash parameterOutput)
       (sampleData parameterOutput fixed highs remaining).forestKey _ hshort _
-      (aboveList (truncateHash parameterOutput)))]
+      (aboveList (truncateHash parameterOutput))).prEvent_eq]
   refine probEvent_bind_congr₂ _ _ _ _ _ fun prepared => ?_
   refine probEvent_bind_congr₂ _ _ _ _ _ fun known => ?_
   rw [probEvent_stopOr_map]

@@ -211,8 +211,8 @@ theorem grp_ex_mono {h : Multiset V → ℝ≥0∞} (hmono : Monotone' h) (σ : 
   · exact le_rfl
   · simp only
     by_cases h1 : ex x
-    · rw [if_pos h1, if_pos (hex x h1)]
-    · rw [if_neg h1]
+    · rw [ite_eq_left h1, ite_eq_left (hex x h1)]
+    · rw [ite_eq_right h1]
       split_ifs
       · exact hmono _ _ (Multiset.le_add_right _ _)
       · exact le_rfl
@@ -334,7 +334,7 @@ theorem grp_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL
         simp only [val]
         rw [← hs, ← ht, hsy, hty]
         simp [pay, hy, hX]
-      simp only [hLv, if_true, hw, mul_zero, zero_mul, add_zero, mul_one]
+      simp only [hLv, ite_true, hw, mul_zero, zero_mul, add_zero, mul_one]
       rw [h0]
       change p * avgT h d + _ ≤ _
       rw [havg]
@@ -383,7 +383,7 @@ theorem grp_step (hp : p ≤ 1) (hp0 : p ≠ 0) (A : ℕ) (hL : L ≤ A + 1) (hL
           freshAvg_const _ Finset.univ_nonempty, freshAvg_add, freshAvg_const _ Finset.univ_nonempty,
           freshAvg_mul] at h1
         exact h1
-      simp only [hLv, hNv, if_neg hx0, zero_add]
+      simp only [hLv, hNv, ite_eq_right hx0, zero_add]
       by_cases hnl : σ x0 = some none
       · have hbv : b = avgT h d := by simp [hb, baseOf, hnl]
         have hw0 : w x0 = 0 := by simp [hw, hx0, hnl]

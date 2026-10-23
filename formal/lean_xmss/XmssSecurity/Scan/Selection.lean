@@ -26,12 +26,11 @@ noncomputable def landing : ℝ≥0∞ :=
   (TargetSum.validDigests.card : ℝ≥0∞) / 2 ^ digestBits
 
 theorem probEvent_landing :
-    Pr[fun output : HashOutput => TargetSum.ValidDigest (truncateHash output) | $ᵗ HashOutput] =
+    Pr{let output ← $ᵗ HashOutput}[TargetSum.ValidDigest (truncateHash output)] =
       landing := by
-  rw [show (fun output : HashOutput => TargetSum.ValidDigest (truncateHash output)) =
-      TargetSum.ValidDigest ∘ truncateHash from rfl, ← probEvent_map,
-    probEvent_congr' (fun _ _ => Iff.rfl) Rom.evalDist_truncate_uniformHashOutput,
-    probEvent_uniformSample]
+  have h := Rom.evalDist_truncate_uniformHashOutput.prEvent_eq TargetSum.ValidDigest
+  rw [prEvent_map] at h
+  rw [h, SampleableType.prEvent_uniformSample]
   have hcard : Fintype.card Digest = 2 ^ digestBits := by simp
   rw [hcard, Nat.cast_pow, Nat.cast_ofNat]
   rfl
@@ -57,13 +56,9 @@ theorem attempt_run (secretKey : SecretKey) (leafIndex : LeafIndex) (message : M
   cases h : TargetSum.decodeDigest (truncateHash z.1) <;> simp [attemptResult, h]
 
 theorem probEvent_not_landing :
-    Pr[fun output : HashOutput => ¬TargetSum.ValidDigest (truncateHash output) | $ᵗ HashOutput] =
+    Pr{let output ← $ᵗ HashOutput}[¬TargetSum.ValidDigest (truncateHash output)] =
       1 - landing := by
-  have h := probEvent_compl ($ᵗ HashOutput)
-    (fun output : HashOutput => TargetSum.ValidDigest (truncateHash output))
-  rw [probFailure_uniformSample, tsub_zero, probEvent_landing] at h
-  have hl : landing ≠ ⊤ := ne_top_of_le_ne_top one_ne_top (h ▸ le_self_add)
-  exact ENNReal.eq_sub_of_add_eq hl (by rw [add_comm, h])
+  rw [OracleComp.prEvent_not_eq_one_sub, probEvent_landing]
 
 theorem attemptResult_of_not_valid (secretKey : SecretKey) (leafIndex : LeafIndex)
     (randomness : Randomness) {output : HashOutput}
@@ -150,10 +145,9 @@ theorem selection_eq_reach (secretKey : SecretKey) (leafIndex : LeafIndex) (mess
       (∀ j < A, scanStatus secretKey leafIndex message cache
           (base + BitVec.ofNat randomnessBits (trial + j)) =
         st (base + BitVec.ofNat randomnessBits (trial + j))) →
-      Pr[fun result => ∃ s, result.1 = some s ∧ s.randomness = y |
-        (simulateQ romImpl
+      Pr{let result ← ((simulateQ romImpl
           (Concrete.precomputedSignBoundedAttempts secretKey leafIndex message base A trial)).run
-            cache] =
+            cache)}[∃ s, result.1 = some s ∧ s.randomness = y] =
         reach nextRand landing st y A (base + BitVec.ofNat randomnessBits trial)
   | 0, trial, cache, _, _, _ => by
       simp [Concrete.precomputedSignBoundedAttempts, reach]
@@ -175,14 +169,14 @@ theorem selection_eq_reach (secretKey : SecretKey) (leafIndex : LeafIndex) (mess
           rw [randomOracle, QueryImpl.withCaching_run_some _ hc, map_pure, pure_bind]
           by_cases hv : TargetSum.ValidDigest (truncateHash output)
           · obtain ⟨signature, hsig, hrand⟩ := attemptResult_of_valid secretKey leafIndex r hv
-            rw [hsig, continuation_some, probEvent_pure]
+            rw [hsig, continuation_some, prEvent_pure]
             by_cases hry : r = y
             · subst hry
-              rw [reach_self, if_pos ⟨signature, rfl, hrand⟩]
+              rw [reach_self, ite_eq_left ⟨signature, rfl, hrand⟩]
             · have hhit : st r = .hit := by
                 rw [← hstr]
                 simp [scanStatus, hc, hv]
-              rw [reach_succ_hit A hry hhit, if_neg]
+              rw [reach_succ_hit A hry hhit, ite_eq_right]
               rintro ⟨s, hs, hsy⟩
               cases hs
               exact hry (hrand.symm.trans hsy)
@@ -206,20 +200,18 @@ theorem selection_eq_reach (secretKey : SecretKey) (leafIndex : LeafIndex) (mess
             rw [hy] at hstr
             rw [← hstr] at hfresh
             cases hfresh
-          rw [randomOracle_run_none_eq_uniformHashOutput _ _ hc, Functor.map_map,
-            map_eq_bind_pure_comp, bind_assoc]
-          simp only [Function.comp_apply, pure_bind]
-          rw [probEvent_bind_eq_tsum, reach_succ_fresh A hry hfresh, hnext,
-            ← probEvent_not_landing, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
+          rw [randomOracle_run_none_eq_uniformHashOutput _ _ hc, Functor.map_map, bind_map_left]
+          rw [OracleComp.prEvent_bind_eq_tsum, reach_succ_fresh A hry hfresh, hnext,
+            ← probEvent_not_landing, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
           refine tsum_congr fun output => ?_
           by_cases hv : TargetSum.ValidDigest (truncateHash output)
           · obtain ⟨signature, hsig, hrand⟩ := attemptResult_of_valid secretKey leafIndex r hv
-            rw [hsig, continuation_some, probEvent_pure, if_neg, if_neg (not_not.mpr hv), zero_mul,
+            rw [hsig, continuation_some, prEvent_pure, ite_eq_right, ite_eq_right (not_not.mpr hv), zero_mul,
               mul_zero]
             rintro ⟨s, hs, hsy⟩
             cases hs
             exact hry (hrand.symm.trans hsy)
-          · rw [attemptResult_of_not_valid secretKey leafIndex r hv, continuation_none, if_pos hv,
+          · rw [attemptResult_of_not_valid secretKey leafIndex r hv, continuation_none, ite_eq_left hv,
               uniformHashOutput, ih _ (by omega)]
             · rw [scanStatus_cacheQuery_of_ne _ _ _ _ (Ne.symm hry)]
               exact hy
@@ -234,9 +226,8 @@ over the cache's statuses reaches `y` from `base`. -/
 theorem selection_eq (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec) (base y : Randomness) {A : ℕ} (hA : A ≤ 2 ^ randomnessBits)
     (hy : scanStatus secretKey leafIndex message cache y = .hit) :
-    Pr[fun result => ∃ s, result.1 = some s ∧ s.randomness = y |
-      (simulateQ romImpl
-        (Concrete.precomputedSignBoundedAttempts secretKey leafIndex message base A 0)).run cache] =
+    Pr{let result ← ((simulateQ romImpl
+        (Concrete.precomputedSignBoundedAttempts secretKey leafIndex message base A 0)).run cache)}[∃ s, result.1 = some s ∧ s.randomness = y] =
       reach nextRand landing (scanStatus secretKey leafIndex message cache) y A base := by
   simpa using selection_eq_reach secretKey leafIndex message base
     (scanStatus secretKey leafIndex message cache) y A 0 cache hA hy (fun _ _ => rfl)
@@ -252,15 +243,15 @@ noncomputable local instance : SampleableType Randomness :=
 theorem selection_uniform_eq (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec) (y : Randomness)
     (hy : scanStatus secretKey leafIndex message cache y = .hit) :
-    Pr[fun result => ∃ s, result.1 = some s ∧ s.randomness = y | do
+    Pr{let result ← (do
       let base ← $ᵗ Randomness
       (simulateQ romImpl (Concrete.precomputedSignBoundedAttempts secretKey leafIndex message base
-        signingAttemptLimit 0)).run cache] =
+        signingAttemptLimit 0)).run cache)}[∃ s, result.1 = some s ∧ s.randomness = y] =
       (∑ r, reach nextRand landing (scanStatus secretKey leafIndex message cache) y
         signingAttemptLimit r) * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_bind_eq_tsum, tsum_fintype, Finset.sum_mul]
+  rw [OracleComp.prEvent_bind_eq_tsum, tsum_fintype, Finset.sum_mul]
   refine Finset.sum_congr rfl fun base _ => ?_
   rw [selection_eq secretKey leafIndex message cache base y signingAttemptLimit_le hy,
-    probOutput_uniformSample, card_randomness, mul_comm]
+    SampleableType.prEvent_uniformSample_eq_singleton, card_randomness, mul_comm]
 
 end XmssSecurity.Scan

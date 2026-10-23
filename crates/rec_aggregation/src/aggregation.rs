@@ -1699,6 +1699,12 @@ thread_local! {
 #[derive(Default)]
 pub(crate) struct Hints(Vec<(String, Vec<Vec<F192>>)>);
 
+#[cfg(test)]
+thread_local! {
+    /// The streams the last `aggregate` on this thread installed (`guest_diff`).
+    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<F192>>)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
 impl Hints {
     fn push(&mut self, name: &str, entry: Vec<F192>) {
         match self.0.iter_mut().find(|(n, _)| n == name) {
@@ -1715,6 +1721,8 @@ impl Hints {
     }
 
     fn install(self, guest: &mut Program) {
+        #[cfg(test)]
+        INSTALLED.set(self.0.clone());
         for (name, entries) in self.0 {
             guest.set_witness(name, entries);
         }
@@ -3019,6 +3027,18 @@ fn compile_guest(kbc: usize) -> Program {
     }
     guest
 }
+
+#[cfg(test)]
+mod guest_bytecode;
+
+#[cfg(test)]
+mod node_vectors;
+
+#[cfg(test)]
+mod guest_source;
+
+#[cfg(test)]
+mod guest_diff;
 
 #[cfg(test)]
 mod tests {

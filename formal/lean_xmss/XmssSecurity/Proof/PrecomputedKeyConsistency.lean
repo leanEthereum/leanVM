@@ -33,8 +33,9 @@ theorem Concrete.oldKeygen_support_materializedPrecomputedKeygen
       ((simulateQ romImpl Concrete.keygen).run ∅)) :
     Concrete.materializeCachedKeyResult keyResult ∈ support
       ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) := by
-  apply (mem_support_iff_of_evalDist_eq
-    Concrete.evalDist_materialized_keygen_eq_precomputedKeygen _).mp
+  rw [← OracleComp.support_eq_of_evalDistEq
+    Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
+
   rw [support_map]
   exact ⟨keyResult, hmem, rfl⟩
 

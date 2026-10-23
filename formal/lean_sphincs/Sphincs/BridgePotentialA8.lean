@@ -196,7 +196,7 @@ theorem hit_of_bad
       exact prepared_clean parameterOutput fixed highs remaining prepared hprepared T input answer hinit hmem
   | none =>
       have hkind : (ctxA parameterOutput fixed highs remaining prepared known ρ).tg.kind input =
-          (sampleTargeting parameterOutput fixed highs remaining prepared.1).kind input := if_neg hsec
+          (sampleTargeting parameterOutput fixed highs remaining prepared.1).kind input := ite_eq_right hsec
       rcases target_kind parameterOutput fixed highs remaining T hfix prepared.1 input _ hmem with
         hfixed | ⟨coordinate, hhidden, hvalue⟩
       · exact Or.inl (Or.inl ⟨input, answer, _, hcache, hinit, hkind.trans hfixed, rfl⟩)
@@ -337,7 +337,7 @@ theorem badA_split (hfix : tableExtending (knownOf (truncateHash parameterOutput
       payoffA parameterOutput fixed highs remaining prepared known ρ T s = 1 := by
     intro P hP hp
     unfold payoffA Ctx.payoff
-    exact if_pos (hP hp)
+    exact ite_eq_left (hP hp)
   rcases h with hhit | hw | hrev | htwo | ⟨outcome, hres, hnear | hcov⟩
   · exact Or.inl (hpay _ (fun h => Or.inl (hit_of_bad parameterOutput fixed highs remaining prepared hprepared
       known ρ s hinv T hT hfix h)) hhit)

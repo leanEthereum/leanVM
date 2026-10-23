@@ -79,7 +79,7 @@ theorem freshRequests_memoize {α : Type} (computation : OracleComp (base + (Req
                 by_cases h : request = input
                 · subst request
                   simp only [QueryCache.cacheQuery_self, ne_eq, reduceCtorEq, not_false_eq_true,
-                    Set.mem_setOf_eq, Set.mem_insert_iff, true_or]
+                    Set.mem_ofPred_eq, Set.mem_insert_iff, true_or]
                 · simp [h]
               rw [← hset]
               exact ih answer _

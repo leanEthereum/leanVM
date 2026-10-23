@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.Bridge.Reduction
 import XmssSecurity.Proof.Seeded.BudgetTransfer
 import LeanXmss.Bytes
@@ -32,7 +33,7 @@ theorem guessBound_keySeedHit : GuessBound KeySeedHit := by
       funext other
       exact propext ⟨fun h => LeanXmss.seedHashInput_injective (h.symm.trans hkey), fun h => h ▸ hkey⟩
     rw [hevent]
-    simp [sampleMasterSeed, MasterSeed]
+    simp [sampleMasterSeed, MasterSeed, SampleableType.prEvent_uniformSample_eq_singleton]
   · have hempty : KeySeedHit input = fun _ => False := by
       funext keySeed
       exact propext ⟨fun h => hexists ⟨keySeed, h⟩, False.elim⟩
@@ -52,18 +53,20 @@ theorem gameCore_eq_seedHash (adversary : LeanXmss.Security.Adversary) :
       (liftM sampleMasterSeed : OracleComp OracleWorld _) >>= fun keySeed =>
         liftM (OracleWorld.query (.inr (LeanXmss.seedHashInput keySeed))) >>= realAfterSeed adversary := by
   rw [gameCore_eq]
-  congr 1
+  refine congrArg (fun k => (liftM sampleMasterSeed : OracleComp OracleWorld _) >>= k)
+    (funext fun keySeed => ?_)
+  rw [keygenFromSeed_eq, liftM_bind, bind_assoc]
+  rfl
 
 theorem run_seedHash (keySeed : MasterSeed) :
     (romImpl (.inr (LeanXmss.seedHashInput keySeed))).run ∅ =
       (fun seed => (seed, keySeedCache keySeed seed)) <$> ($ᵗ HashOutput : ProbComp HashOutput) :=
   QueryImpl.withCaching_run_none _ (QueryCache.empty_apply _)
 
-theorem evalDist_sampleMasterSeed : 𝒟[sampleMasterSeed] = 𝒟[($ᵗ HashOutput : ProbComp HashOutput)] :=
-  evalDist_ext fun seed => by
-    unfold sampleMasterSeed
-    rw [probOutput_uniformSample, probOutput_uniformSample (α := HashOutput)]
-    rfl
+theorem evalDist_sampleMasterSeed : (sampleMasterSeed) =ᵈ ($ᵗ HashOutput : ProbComp HashOutput) := by
+  unfold sampleMasterSeed
+  exact EvalDistEq.of_forall_prEvent_eq fun p =>
+    SampleableType.prEvent_uniformSample_inst_irrel (α := HashOutput) _ _ p
 
 /-- The real budget leaves `q - 1` hash calls after the seed hash, from every scheme seed. -/
 theorem seededBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q < 2 ^ 256)
@@ -77,10 +80,8 @@ theorem seededBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q
     (by simp only [List.length_nil]; omega) (fun keySeed _ => agreeOutside_keySeedCache keySeed seed)
     fun keySeed _ => ?_
   have hkey := hashQueryBound_of_sampling_bind sampleMasterSeed _ ∅ q hgame keySeed (by
-    rw [mem_support_iff]
-    unfold sampleMasterSeed
-    rw [probOutput_uniformSample]
-    exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _))
+    rw [OracleComp.support_eq_of_evalDistEq evalDist_sampleMasterSeed]
+    exact mem_support_uniformSample HashOutput)
   exact (hashQueryBound_query_bind _ _ ∅ q hkey (seed, keySeedCache keySeed seed) (by
     rw [run_seedHash, support_map]
     exact ⟨seed, mem_support_uniformSample HashOutput, rfl⟩)).2
@@ -89,22 +90,24 @@ theorem seededBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q
 theorem forgeAdvantage_le_inner (adversary : LeanXmss.Security.Adversary) (q : Nat)
     (hbound : SeededBudget adversary q) :
     LeanXmss.Security.forgeAdvantage adversary ≤
-      Pr[= true | (simulateQ romImpl (innerGame adversary)).run' ∅] +
+      Pr{let x ← (simulateQ romImpl (innerGame adversary)).run' ∅}[x = true] +
         ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   have hadv : LeanXmss.Security.forgeAdvantage adversary =
-      Pr[= true | (simulateQ romImpl (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool)).run' ∅] := by
+      Pr{let x ← (simulateQ romImpl (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool)).run' ∅}[x = true] := by
     unfold LeanXmss.Security.forgeAdvantage LeanXmss.Security.experiment
     rw [← probOutput_countHashQueries, simulateQ_countHashQueries]
     rfl
-  have hreal : 𝒟[(simulateQ romImpl (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool)).run' ∅] =
-      𝒟[sampleMasterSeed >>= fun seed => sampleMasterSeed >>= fun keySeed =>
-        (simulateQ romImpl (realAfterSeed adversary seed)).run' (keySeedCache keySeed seed)] := by
+  have hreal : ((simulateQ romImpl (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool)).run' ∅) =ᵈ
+      (sampleMasterSeed >>= fun seed => sampleMasterSeed >>= fun keySeed =>
+        (simulateQ romImpl (realAfterSeed adversary seed)).run' (keySeedCache keySeed seed)) := by
     rw [gameCore_eq_seedHash, run'_lift_sample_bind]
     simp only [run'_query_bind, run_seedHash, bind_map_left]
-    rw [evalDist_bind_bind_swap, evalDist_bind, ← evalDist_sampleMasterSeed, ← evalDist_bind]
-  rw [hadv, probOutput_def, hreal, ← probOutput_def, innerGame, run'_lift_sample_bind,
-    ← probEvent_eq_eq_probOutput, ← probEvent_eq_eq_probOutput]
-  apply probEvent_bind_congr_le_add
+    refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+    exact evalDist_sampleMasterSeed.symm.bind_left _
+  rw [hadv]
+  refine (hreal.prEvent_eq (· = true)).trans_le ?_
+  rw [innerGame, run'_lift_sample_bind]
+  apply OracleComp.prEvent_bind_congr_le_add
   intro seed _
   exact probEvent_random_cache_change_le guessBound_keySeedHit _ (keySeedCache · seed) ∅
     (fun keySeed => agreeOutside_keySeedCache keySeed seed) (q - 1) (hbound seed) _

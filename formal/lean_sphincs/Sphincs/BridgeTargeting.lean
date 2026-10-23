@@ -110,7 +110,7 @@ theorem positionAt_message : positionAt (hashDomainFields .message) = none := by
 omit [Params] in
 theorem encodingAt_message : encodingAt (hashDomainFields .message) = none := by
   unfold encodingAt
-  rw [dif_neg]
+  rw [dite_eq_right]
   rintro ⟨leaf, h⟩
   have hd := hashFields_injective (by trivial) (by trivial) h
   cases hd
@@ -361,7 +361,7 @@ theorem target_kind (table : HiddenGraph.Table)
                   unfold referenceTable
                   rw [(positionAt_some_iff _ address.position).2 rfl]
                   dsimp only
-                  rw [if_neg hactive, boundary_row]
+                  rw [ite_eq_right hactive, boundary_row]
                   exact Option.map_none _
                 rw [hnone] at he
                 cases he

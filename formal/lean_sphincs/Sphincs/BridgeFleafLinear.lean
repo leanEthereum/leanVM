@@ -66,7 +66,7 @@ theorem fleafCount_recorded_eq_zero (IsFleaf : D → Prop) (input : (SourceCostS
 /-- Interpreted runs lose no mass. -/
 theorem interp_mass {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
     (state : DebtState D R ι) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] = 1 := by
+    ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] = 1 := by
   simp
 
 /-- **Linear potential with two payments on the interpreter.** -/
@@ -74,69 +74,69 @@ theorem interp_potential2 {α : Type} (IsFleaf : D → Prop) (Inv : DebtState D 
     (Φ : ℕ → DebtState D R ι → ℝ≥0∞) (payoff : (ι → Digest) → DebtState D R ι → ℝ≥0∞) (pay pay2 : ℝ≥0∞)
     (hfinal : ∀ budget state, Inv state → endValue payoff state ≤ Φ budget state)
     (hstep : ∀ (input : (SourceCostSpec D R ι).Domain) budget state, Inv state → sourceCost input ≤ budget →
-      ∑' result, Pr[= result | costStep model input state] * Φ (budget - sourceCost input) result.2 +
+      ∑' result, Pr{let x ← costStep model input state}[x = result] * Φ (budget - sourceCost input) result.2 +
         pay * digestCount tg (recorded input) + pay2 * fleafCount IsFleaf (recorded input) ≤ Φ budget state)
     (hinv : ∀ input state, Inv state → ∀ result ∈ support (costStep model input state), Inv result.2)
     (computation : OracleComp (SourceCostSpec D R ι) α) :
     ∀ budget state, Inv state →
-      ∑' out, Pr[= out | interp tg initial model computation budget state] *
+      ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] *
         (endValue payoff out.2 + pay * digestCount tg out.1.2.2.1 + pay2 * fleafCount IsFleaf out.1.2.2.1) ≤
           Φ budget state := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
       intro budget state hstate
-      rw [interp_pure, tsum_probOutput_pure_mul]
+      rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
       simpa [digestCount, fleafCount] using hfinal budget state hstate
   | query_bind input next ih =>
       intro budget state hstate
       rw [interp_query_bind]
       split_ifs with hcost
-      · rw [tsum_probOutput_bind_mul]
+      · rw [OracleComp.tsum_prEvent_bind_mul]
         set c : ℝ≥0∞ := pay * digestCount tg (recorded input) + pay2 * fleafCount IsFleaf (recorded input)
           with hc
-        calc ∑' result, Pr[= result | costStep model input state] *
-              ∑' out, Pr[= out | (fun out => ((out.1.1, revealed input ++ out.1.2.1,
+        calc ∑' result, Pr{let x ← costStep model input state}[x = result] *
+              ∑' out, Pr{let x ← ((fun out => ((out.1.1, revealed input ++ out.1.2.1,
                   recorded input ++ out.1.2.2.1, touch tg initial state input ++ out.1.2.2.2), out.2)) <$>
-                interp tg initial model (next result.1) (budget - sourceCost input) result.2] *
+                interp tg initial model (next result.1) (budget - sourceCost input) result.2)}[x = out] *
                 (endValue payoff out.2 + pay * digestCount tg out.1.2.2.1 + pay2 * fleafCount IsFleaf out.1.2.2.1)
-            ≤ ∑' result, Pr[= result | costStep model input state] *
+            ≤ ∑' result, Pr{let x ← costStep model input state}[x = result] *
                 (Φ (budget - sourceCost input) result.2 + c) := by
               refine ENNReal.tsum_le_tsum fun result => ?_
               by_cases hr : result ∈ support (costStep model input state)
               · refine mul_le_mul_right ?_ _
-                rw [tsum_probOutput_map_mul]
+                rw [OracleComp.tsum_prEvent_map_mul]
                 simp only [digestCount_append, fleafCount_append, Nat.cast_add]
-                calc ∑' out, Pr[= out | interp tg initial model (next result.1) (budget - sourceCost input)
-                        result.2] *
+                calc ∑' out, Pr{let x ← (interp tg initial model (next result.1) (budget - sourceCost input)
+                        result.2)}[x = out] *
                       (endValue payoff out.2 + pay * ((digestCount tg (recorded input) : ℝ≥0∞) +
                         digestCount tg out.1.2.2.1) + pay2 * ((fleafCount IsFleaf (recorded input) : ℝ≥0∞) +
                         fleafCount IsFleaf out.1.2.2.1))
-                    = ∑' out, Pr[= out | interp tg initial model (next result.1) (budget - sourceCost input)
-                          result.2] *
+                    = ∑' out, Pr{let x ← (interp tg initial model (next result.1) (budget - sourceCost input)
+                          result.2)}[x = out] *
                         (endValue payoff out.2 + pay * digestCount tg out.1.2.2.1 +
                           pay2 * fleafCount IsFleaf out.1.2.2.1) +
-                      (∑' out, Pr[= out | interp tg initial model (next result.1)
-                        (budget - sourceCost input) result.2]) * c := by
+                      (∑' out, Pr{let x ← (interp tg initial model (next result.1)
+                        (budget - sourceCost input) result.2)}[x = out]) * c := by
                       rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
                       refine tsum_congr fun out => ?_
                       rw [hc]
                       ring
                   _ ≤ Φ (budget - sourceCost input) result.2 + 1 * c :=
                       add_le_add (ih result.1 _ _ (hinv input state hstate result hr))
-                        (mul_le_mul' tsum_probOutput_le_one le_rfl)
+                        (mul_le_mul' (OracleComp.tsum_prEvent_le_one _) le_rfl)
                   _ = _ := by rw [one_mul]
-              · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
-          _ = ∑' result, Pr[= result | costStep model input state] * Φ (budget - sourceCost input) result.2 +
-                (∑' result, Pr[= result | costStep model input state]) * c := by
+              · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
+          _ = ∑' result, Pr{let x ← costStep model input state}[x = result] * Φ (budget - sourceCost input) result.2 +
+                (∑' result, Pr{let x ← costStep model input state}[x = result]) * c := by
               rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
               refine tsum_congr fun result => ?_
               ring
-          _ ≤ ∑' result, Pr[= result | costStep model input state] * Φ (budget - sourceCost input) result.2 +
-                1 * c := add_le_add le_rfl (mul_le_mul' tsum_probOutput_le_one le_rfl)
+          _ ≤ ∑' result, Pr{let x ← costStep model input state}[x = result] * Φ (budget - sourceCost input) result.2 +
+                1 * c := add_le_add le_rfl (mul_le_mul' (OracleComp.tsum_prEvent_le_one _) le_rfl)
           _ ≤ _ := by
               rw [one_mul, hc, ← add_assoc]
               exact hstep input budget state hstate hcost
-      · rw [tsum_probOutput_pure_mul]
+      · rw [OracleComp.tsum_prEvent_pure_mul]
         simpa [digestCount, fleafCount] using hfinal budget state hstate
 
 end Sphincs.Security.HiddenDebt

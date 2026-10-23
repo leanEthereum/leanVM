@@ -61,7 +61,7 @@ theorem messageDigestInput_length (parameter : PublicParameter) (root : Digest) 
     (tweakableHashInput parameter (.message call)
       (Concrete.messageDigestPayload root message randomness)).length = 80 := by
   simp [tweakableHashInput, tweakBytes, fieldBytes_length, Concrete.messageDigestPayload,
-    bytesLE_length]
+    bytesLE]
 
 /-- The scheme has one layer and one tree: these two arguments of a call are not serialized. -/
 theorem layer_eq (lay lay' : Layer) : lay = lay' := by

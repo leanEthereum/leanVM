@@ -110,8 +110,8 @@ theorem grpAll_excl_mono (s : State) {excl excl' : Pair → Prop} (h : ∀ q, ex
       refine grp_ext_mono _ (fun ρ => ?_) (grpAll_mono s excl hF Ms) d
       unfold extOf
       by_cases hx : excl (m, ρ)
-      · rw [if_pos hx, if_pos (h _ hx)]
-      · rw [if_neg hx]
+      · rw [ite_eq_left hx, ite_eq_left (h _ hx)]
+      · rw [ite_eq_right hx]
         split_ifs
         · exact bot_le
         · exact le_rfl
@@ -277,7 +277,7 @@ theorem termO_stop {f : Multiset View → ℝ≥0∞} (hf : MonoFin f) {s : Stat
       simp [stOf, h]
     rw [grpAll_perm _ excl _ hperm d, grpAll_perm _ excl _ hperm d]
     simp only [grpAll]
-    rw [grpM_withPair_self, if_pos hl, if_pos hx,
+    rw [grpM_withPair_self, ite_eq_left hl, ite_eq_left hx,
       grp_congr _ _ (fun e => grpAll_withPair_other s p u0 excl (virtualOnce Finset.univ w f n I) rest hnot e) d]
     exact grp_stop_le landing_le_one Finset.univ_nonempty _ _
       (grpAll_mono s excl (virtualOnce_mono hf.1 n I) rest) d p.2 hst
@@ -508,13 +508,13 @@ theorem coreO_newPair (hw : w ≤ 1) {s : State} {P : List Pair} {Ms : List Mess
     unfold candO candValueO
     rw [pview_withPair_self]
     by_cases hu : Unsigned L p
-    · rw [if_pos hu]
+    · rw [ite_eq_left hu]
       by_cases hF : (viewOf u0).1 ∈ Fail
-      · rw [if_pos hF, if_pos hF]
+      · rw [ite_eq_left hF, ite_eq_left hF]
         exact le_self_add
-      · rw [if_neg hF, if_neg hF, zero_add]
+      · rw [ite_eq_right hF, ite_eq_right hF, zero_add]
         exact termO_stop (witness_props _) hM p hp0 L (· = p) rfl u0 hl d n k
-    · rw [if_neg hu]
+    · rw [ite_eq_right hu]
       exact bot_le
   have hpoint : ∀ u0, coreO parameter data w b0 Fail (withPair parameter data s p u0)
       (addPair parameter P p u0) Ms' L d n k ≤
@@ -527,9 +527,9 @@ theorem coreO_newPair (hw : w ≤ 1) {s : State} {P : List Pair} {Ms : List Mess
     refine add_le_add (add_le_add ?_ le_rfl) le_rfl
     unfold addPair
     by_cases hl : Landed parameter (blockIndex u0)
-    · rw [if_pos hl, if_pos hl, List.map_cons, List.sum_cons]
+    · rw [ite_eq_left hl, ite_eq_left hl, List.map_cons, List.sum_cons]
       exact add_le_add (hnew u0 hl) le_rfl
-    · rw [if_neg hl, if_neg hl, zero_add]
+    · rw [ite_eq_right hl, ite_eq_right hl, zero_add]
   refine le_trans (pairE_mono hpoint) ?_
   simp only [pairE_add, pairE_const_mul, pairE_const, pairE_list_sum]
   have h1 : pairE (fun u0 => if Landed parameter (blockIndex u0) then
@@ -629,10 +629,10 @@ theorem potO_grow (hw : w ≤ 1) (Lmax : ℕ) {s s' : State} (hext : Extends s s
   unfold potO
   refine add_le_add ?_ (lam_mono le_rfl hk)
   by_cases hr : Realized tg initial s' ∨ signatureLimit < L.length
-  · rw [if_pos hr]; exact bot_le
+  · rw [ite_eq_left hr]; exact bot_le
   · have hr' : ¬(Realized tg initial s ∨ signatureLimit < L.length) := fun h' =>
       hr (h'.imp (realized_of_extends tg initial hext) id)
-    rw [if_neg hr, if_neg hr', coreO_blocks w b0 Fail h]
+    rw [ite_eq_right hr, ite_eq_right hr', coreO_blocks w b0 Fail h]
     exact coreO_mono w b0 Fail hw s P Ms L d _ hk
 
 end OrderO
@@ -650,14 +650,14 @@ def GoodO (L : QueryLog SigningSpec) (prog : OracleComp CostSpec HiddenBridge.Ou
   ∀ budget (s : State) (P : List Pair) (Ms : List Message) (d : Multiset View) (R : List Coordinate),
     Prepared initial s → PInv parameter data s P → MInv parameter data s Ms → DInv R d →
       CountInv parameter data Qtot s budget →
-      ∑' out, Pr[= out | interp tg initial model prog budget s] * finalValue parameter data tg initial R out ≤
+      ∑' out, Pr{let x ← interp tg initial model prog budget s}[x = out] * finalValue parameter data tg initial R out ≤
         potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * expectedFlagged tg initial model prog budget s
 
 /-- The final value is at most one in the mean. -/
 theorem final_le_one (prog : OracleComp CostSpec HiddenBridge.Outcome) (budget : ℕ) (s : State) (R : List Coordinate) :
-    ∑' out, Pr[= out | interp tg initial model prog budget s] * finalValue parameter data tg initial R out ≤ 1 := by
-  calc _ ≤ ∑' out, Pr[= out | interp tg initial model prog budget s] * 1 := by
+    ∑' out, Pr{let x ← interp tg initial model prog budget s}[x = out] * finalValue parameter data tg initial R out ≤ 1 := by
+  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model prog budget s}[x = out] * 1 := by
         refine ENNReal.tsum_le_tsum fun out => mul_le_mul_right ?_ _
         unfold finalValue
         cases out.1.1 with
@@ -667,7 +667,7 @@ theorem final_le_one (prog : OracleComp CostSpec HiddenBridge.Outcome) (budget :
             split_ifs
             · exact le_rfl
             · exact zero_le_one
-    _ ≤ 1 := by simp only [mul_one]; exact tsum_probOutput_le_one
+    _ ≤ 1 := by simp only [mul_one]; exact (OracleComp.tsum_prEvent_le_one _)
 
 theorem goodO_draw (L : QueryLog SigningSpec) (draw : ℕ)
     (next : Fin (draw + 1) → OracleComp CostSpec HiddenBridge.Outcome)
@@ -676,14 +676,14 @@ theorem goodO_draw (L : QueryLog SigningSpec) (draw : ℕ)
       (liftM (CostSpec.query (.inl (.inl draw))) >>= next) := by
   intro budget s P Ms d R hprep hP hM hD hC
   unfold expectedFlagged
-  rw [interp_draw, tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
-  calc _ ≤ ∑' v, Pr[= v | (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))] *
+  rw [interp_draw, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
+  calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * expectedFlagged tg initial model (next v) budget s) :=
         ENNReal.tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hprep hP hM hD hC) _
     _ ≤ _ := by
         simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-        refine add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) (le_of_eq ?_)
+        refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) (le_of_eq ?_)
         unfold expectedFlagged
         simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
 
@@ -696,21 +696,21 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
     (hM : MInv parameter data s Ms) (hD : DInv R d)
     (hC : CountInv parameter data Qtot s budget) (p : Pair)
     (hp0 : s.cache (pblk parameter data p) = none) :
-    ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next u) (budget - 1)
-          (s.store (pblk parameter data p) u)] * finalValue parameter data tg initial R out ≤
+    ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
+        ∑' out, Pr{let x ← (interp tg initial model (next u) (budget - 1)
+          (s.store (pblk parameter data p) u))}[x = out] * finalValue parameter data tg initial R out ≤
       potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
         b0 * ((if Realized tg initial s then 0 else 1) +
-          ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
             expectedFlagged tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u)) := by
   set n := signatureLimit - L.length with hn
   set ℓ := (livePairs L P).length with hℓ
   by_cases hcap : 1 ≤ lam Lmax ℓ budget
   · -- more landed pairs than the cap: the cap term pays everything
-    calc _ ≤ ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * 1 :=
+    calc _ ≤ ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * 1 :=
           ENNReal.tsum_le_tsum fun u => mul_le_mul_right
             (final_le_one parameter data tg initial model (next u) (budget - 1) _ R) _
-      _ ≤ 1 := by simp only [mul_one]; exact tsum_probOutput_le_one
+      _ ≤ 1 := by simp only [mul_one]; exact (OracleComp.tsum_prEvent_le_one _)
       _ ≤ lam Lmax ℓ budget := hcap
       _ ≤ _ := le_trans le_add_self le_self_add
   have hlen : ℓ ≤ Lmax := by
@@ -723,8 +723,8 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
     have h1 := count_withPair (parameter := parameter) (data := data) m s p a
     have h2 := hC m
     omega
-  have hone : ∀ u, ∑' out, Pr[= out | interp tg initial model (next u) (budget - 1)
-        (s.store (pblk parameter data p) u)] * finalValue parameter data tg initial R out ≤
+  have hone : ∀ u, ∑' out, Pr{let x ← (interp tg initial model (next u) (budget - 1)
+        (s.store (pblk parameter data p) u))}[x = out] * finalValue parameter data tg initial R out ≤
       potO parameter data w b0 Fail tg initial Lmax (withPair parameter data s p u)
           (addPair parameter P p u) (addMsg Ms p.1) L d (budget - 1) +
         b0 * expectedFlagged tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u) := fun u =>
@@ -737,7 +737,7 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   swap
   · simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
   -- the cap term keeps its mean
-  have hlam : ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+  have hlam : ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
       lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) ≤ lam Lmax ℓ budget := by
     by_cases hlive : MsgLive L p.1
     · have hl : ∀ u, lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
@@ -746,7 +746,7 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_pos (by simpa using hlive), List.length_cons]
+        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
           rfl
         · rfl
       simp only [hl]
@@ -757,11 +757,11 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_neg (by simpa using hlive)]
+        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
           rfl
         · rfl
       simp only [hl, ENNReal.tsum_mul_right]
-      exact le_trans (mul_le_of_le_one_left' tsum_probOutput_le_one) (lam_mono le_rfl (Nat.sub_le _ _))
+      exact le_trans (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) (lam_mono le_rfl (Nat.sub_le _ _))
   unfold potO
   simp only [mul_add, ENNReal.tsum_add]
   rw [add_right_comm]
@@ -770,9 +770,9 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   · refine le_of_eq_of_le (ENNReal.tsum_eq_zero.2 fun u => ?_) bot_le
     have hr' : Realized tg initial (withPair parameter data s p u) ∨ signatureLimit < L.length :=
       hr.imp (realized_of_extends tg initial (extends_store s (pblk parameter data p) u hp0)) id
-    rw [if_pos hr', mul_zero]
+    rw [ite_eq_left hr', mul_zero]
   · have hreal : ¬Realized tg initial s := fun h' => hr (Or.inl h')
-    rw [if_neg hreal, mul_one, if_neg hr]
+    rw [ite_eq_right hreal, mul_one, ite_eq_right hr]
     have hcore : coreO parameter data w b0 Fail s P Ms L d n budget =
         coreO parameter data w b0 Fail s P Ms L d n (budget - 1 + 1) := by rw [Nat.sub_add_cancel hb]
     rw [hcore]
@@ -794,7 +794,7 @@ theorem goodO_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = no
   intro budget s P Ms d R hprep hP hM hD hC
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinary, if_neg hb, tsum_probOutput_pure_mul, finalValue_abort]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort]
     exact bot_le
   rw [finalValue_ordinary tg initial model parameter data R x next budget hb s,
     flagged_ordinary tg initial model x next budget hb s]
@@ -802,14 +802,14 @@ theorem goodO_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = no
   · obtain ⟨p, rfl, hp0⟩ := hnew
     rw [ordinaryStep, hparse p]
     simp only
-    rw [readOutside_fresh _ s hp0, tsum_probOutput_map_mul, tsum_probOutput_map_mul]
+    rw [readOutside_fresh _ s hp0, OracleComp.tsum_prEvent_map_mul, OracleComp.tsum_prEvent_map_mul]
     have hpay : (pays tg initial s (.inl (.inr (.inl (pblk parameter data p)))) : ℝ≥0∞) =
         if Realized tg initial s then 0 else 1 := by
       by_cases hr : Realized tg initial s <;> simp [pays, hdigest p, hr]
     rw [hpay]
     exact new_pair_boundO parameter data w b0 Fail Qtot Lmax tg initial model hfair hQ L next h budget hb s P Ms d R
       hprep hP hM hD hC p hp0
-  · calc _ ≤ ∑' r, Pr[= r | ordinaryStep model x s.known s] *
+  · calc _ ≤ ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           (potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
             b0 * expectedFlagged tg initial model (next r.1) (budget - 1) r.2) := by
           refine ENNReal.tsum_le_tsum fun r => ?_
@@ -829,10 +829,10 @@ theorem goodO_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = no
             refine le_trans (h r.1 (budget - 1) r.2 P Ms d R
               (fun i o hi => hext.1 i o (hprep i o hi)) hP' (minv_blocks hblocks hM) hD hcnt) (add_le_add ?_ le_rfl)
             exact potO_grow w b0 Fail tg initial hfair.le_one Lmax hext hblocks P Ms L d (Nat.sub_le _ _)
-          · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
+          · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
       _ ≤ _ := by
           simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-          refine add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) ?_
+          refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) ?_
           refine le_add_left (le_of_eq ?_)
           simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
 
@@ -840,7 +840,7 @@ theorem goodO_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = no
 theorem goodO_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery) (verified : Bool) :
     GoodO parameter data w b0 Fail Qtot Lmax tg initial model L (pure (forgery, L, verified)) := by
   intro budget s P Ms d R hprep hP hM hD hC
-  rw [interp_pure, tsum_probOutput_pure_mul]
+  rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
   refine le_trans ?_ le_self_add
   unfold finalValue
   simp only [Option.elim, List.append_nil]
@@ -867,7 +867,7 @@ theorem goodO_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery)
       have hv : pview parameter data s q = Lifetime.localDigestView (truncateMessageDigest a) := by
         simp only [pview, h0, Option.elim, viewOf]
       unfold potO
-      rw [if_neg (by
+      rw [ite_eq_right (by
         rintro (h | h)
         · exact hreal h
         · exact absurd hvalid (by simp [SigningTranscript.Valid]; omega))]
@@ -875,7 +875,7 @@ theorem goodO_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery)
       unfold coreO
       refine le_trans ?_ (le_trans (List.le_sum_of_mem (List.mem_map_of_mem hqP)) (le_self_add.trans le_self_add))
       unfold candO
-      rw [if_pos (show Unsigned L q from hunsigned)]
+      rw [ite_eq_left (show Unsigned L q from hunsigned)]
       split_ifs
       · exact le_rfl
       · unfold candValueO
@@ -1003,7 +1003,7 @@ theorem sign_paramsS (hparse : ∀ p, model.parse (pblk parameter data p) = none
               unfold poolDisc
               rw [hr]
               simp only [Option.elim]
-              rw [hsig sig rfl, he, if_neg (Option.some_ne_none _), hv]
+              rw [hsig sig rfl, he, ite_eq_right (Option.some_ne_none _), hv]
               exact Multiset.mem_singleton_self _
         · change (decodeMark (coordField (truncateMessageDigest u0) c)).super = s0
           rw [← hmarks, hs]
@@ -1079,7 +1079,7 @@ theorem live_after (L : QueryLog SigningSpec) (r : Option Signature) (Ms : List 
   unfold live restMsgs addMsg
   split_ifs with hm
   · exact hfil Ms
-  · rw [List.filter_cons, if_neg (by simp [msgLive_append]), hfil Ms]
+  · rw [List.filter_cons, ite_eq_right (by simp [msgLive_append]), hfil Ms]
     rfl
 
 omit [Params] in
@@ -1095,7 +1095,7 @@ theorem live_perm {L : QueryLog SigningSpec} (hm : MsgLive L m) {Ms : List Messa
   · refine List.filter_congr fun m' _ => ?_
     rw [Bool.eq_iff_iff]
     simp [bne_iff_ne]
-  · rw [List.filter_cons, if_pos (by simpa using hm), List.filter_cons, if_neg (by simp)]
+  · rw [List.filter_cons, ite_eq_left (by simpa using hm), List.filter_cons, ite_eq_right (by simp)]
     refine List.filter_congr fun m' _ => ?_
     rw [Bool.eq_iff_iff]
     simp [bne_iff_ne]
@@ -1150,7 +1150,7 @@ theorem virtualOnce_succ_nil (J : List View) (e : Multiset View) :
 value with one more fresh slot and the group of the signed message. -/
 theorem term_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none)
     (hf : MonoFin f) (rest : List Message) (excl : Pair → Prop) (budget k : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         creations Finset.univ landing (fun J => upperO parameter data w m s n d f rest excl out J) k [] ≤
       creations Finset.univ landing (fun J => grpAll parameter data s excl (m :: rest)
         (virtualOnce Finset.univ w f (n + 1) J) d) k [] := by
@@ -1170,12 +1170,12 @@ theorem term_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = n
 
 /-- The fresh pair completed by a signing call weighs at most its fresh average. -/
 theorem fresh_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none) (gf : View → ℝ≥0∞) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         freshNewWeight parameter data m s gf out ≤ freshAvg Finset.univ gf := by
   unfold signCostSource
-  rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-  have hstart : ∀ start : Randomness, ∑' out, Pr[= out | interp tg initial model
-      (signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+  rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+  have hstart : ∀ start : Randomness, ∑' out, Pr{let x ← (interp tg initial model
+      (signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
       freshNewWeight parameter data m s gf out ≤ freshAvg Finset.univ gf := by
     intro start
     have h := scan_bound_comb tg initial model parameter data m hparse s gf (fun _ _ => 0) digestAttemptLimit
@@ -1184,9 +1184,9 @@ theorem fresh_expectO (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
     refine walk_le landing_le_one _ (fun ρ => ?_) le_rfl bot_le _ start
     unfold poolValue
     cases s.cache (blk parameter data m ρ) <;> simp
-  calc _ ≤ ∑' start, Pr[= start | ($ᵗ Randomness : ProbComp Randomness)] * freshAvg Finset.univ gf :=
+  calc _ ≤ ∑' start, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = start] * freshAvg Finset.univ gf :=
         ENNReal.tsum_le_tsum fun start => mul_le_mul_right (hstart start) _
-    _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' tsum_probOutput_le_one
+    _ ≤ _ := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 end SignExpectO
 
@@ -1215,12 +1215,12 @@ theorem freshNewWeight_ge {out : Run HashInput Coordinate (Option Signature) × 
     (hl : Landed parameter (blockIndex u0)) (g : View → ℝ≥0∞) :
     g (viewOf u0) ≤ freshNewWeight parameter data m s g out := by
   unfold freshNewWeight
-  rw [if_pos (by rw [hres]; rfl)]
+  rw [ite_eq_left (by rw [hres]; rfl)]
   refine le_trans (le_of_eq ?_) (Finset.single_le_sum (f := fun ρ' => if s.cache (blk parameter data m ρ') = none then
     (out.2.cache (blk parameter data m ρ')).elim 0 (fun u0 =>
       if Landed parameter (blockIndex u0) then g (viewOf u0) else 0) else 0)
     (fun _ _ => bot_le) (Finset.mem_univ ρ))
-  simp only [hs0, h0, Option.elim, if_true, if_pos hl]
+  simp only [hs0, h0, Option.elim, ite_true, ite_eq_left hl]
 
 end SignPointO
 
@@ -1288,14 +1288,14 @@ theorem sign_pointO (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     budget s hprep out hout r hr
   have hshape := sign_shape parameter data Fail m hpost out rfl hr
   by_cases hcase : Realized tg initial out.2 ∨ signatureLimit < (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length
-  · rw [if_pos hcase]; exact bot_le
-  rw [if_neg hcase]
+  · rw [ite_eq_left hcase]; exact bot_le
+  rw [ite_eq_right hcase]
   have hreal : ¬Realized tg initial s := fun h => hcase (Or.inl (realized_of_extends tg initial hext h))
   have hlen : L.length < signatureLimit := by
     have := hcase
     simp only [List.length_append, List.length_singleton, not_or, not_lt] at this
     omega
-  rw [if_neg (by push Not; exact ⟨hreal, hlen⟩)]
+  rw [ite_eq_right (by push Not; exact ⟨hreal, hlen⟩)]
   have hn : signatureLimit - (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length = signatureLimit - (L.length + 1) := by simp
   rw [hn]
   set n := signatureLimit - (L.length + 1) with hndef
@@ -1327,7 +1327,7 @@ theorem sign_pointO (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     unfold candO
     by_cases hU' : Unsigned (L ++ [⟨m, r⟩] : QueryLog SigningSpec) q
     · have hU := unsigned_of_append hU'
-      rw [if_pos hU', if_pos hU, hview q hq]
+      rw [ite_eq_left hU', ite_eq_left hU, hview q hq]
       split_ifs with hF
       · exact le_rfl
       · unfold candValueO
@@ -1336,7 +1336,7 @@ theorem sign_pointO (hparse : ∀ p, model.parse (pblk parameter data p) = none)
           hprep out hout r hr (· = q) (fun sig hsig _ heq => ?_) n hk
         subst hsig
         exact not_unsigned_signed (m := m) (L := L) (by rw [heq]; exact hU')
-    · rw [if_neg hU']
+    · rw [ite_eq_right hU']
       exact bot_le
   · -- the excess forecast
     refine mul_le_mul' (by exact_mod_cast hk) (add_le_add ?_ le_rfl)
@@ -1348,28 +1348,28 @@ theorem sign_pointO (hparse : ∀ p, model.parse (pblk parameter data p) = none)
 theorem sign_expectO (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     (budget : ℕ) (s : State) (P : List Pair) (Ms : List Message)
     (L : QueryLog SigningSpec) (hm : MsgLive L m) (d : Multiset View) (hM : MInv parameter data s Ms) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (if Realized tg initial s ∨ signatureLimit ≤ L.length then 0
           else canonO parameter data w b0 Fail m s P Ms L d (signatureLimit - (L.length + 1)) budget out) ≤
       if Realized tg initial s ∨ signatureLimit < L.length then 0
       else coreO parameter data w b0 Fail s P Ms L d (signatureLimit - L.length) budget := by
   by_cases hcase : Realized tg initial s ∨ signatureLimit ≤ L.length
-  · simp only [if_pos hcase, mul_zero, tsum_zero]
+  · simp only [ite_eq_left hcase, mul_zero, tsum_zero]
     exact bot_le
-  simp only [if_neg hcase]
+  simp only [ite_eq_right hcase]
   have hcase' : ¬Realized tg initial s ∧ L.length < signatureLimit := by push Not at hcase; exact hcase
   have hlen := hcase'.2
-  rw [if_neg (by rintro (h | h); exact hcase'.1 h; omega)]
+  rw [ite_eq_right (by rintro (h | h); exact hcase'.1 h; omega)]
   set n := signatureLimit - (L.length + 1) with hn
   have hn1 : signatureLimit - L.length = n + 1 := by omega
   rw [hn1]
   have hparse' : ∀ ρ, model.parse (blk parameter data m ρ) = none := fun ρ => hparse (m, ρ)
-  have hmass : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] ≤ 1 :=
-    tsum_probOutput_le_one
-  have hFN : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hmass : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] ≤ 1 :=
+    (OracleComp.tsum_prEvent_le_one _)
+  have hFN : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       freshNewWeight parameter data m s (fun v => if v.1 ∈ Fail then 1 else 0) out ≤ failMass Fail :=
     fresh_expectO tg initial model hparse' _ budget
-  have hT : ∀ q ∈ P, ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hT : ∀ q ∈ P, ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (if Unsigned L q then (if (pview parameter data s q).1 ∈ Fail then 1 else
         creations Finset.univ landing (fun J => upperO parameter data w m s n d (witnessFn (pview parameter data s q))
           (restMsgs m L Ms) (· = q) out J) budget []) else 0) ≤
@@ -1382,7 +1382,7 @@ theorem sign_expectO (hparse : ∀ p, model.parse (pblk parameter data p) = none
       rw [termO_eq_cons hm hM]
       exact term_expectO tg initial model hparse' (witness_props _) _ _ budget budget
     · simp
-  have hH : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hH : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       creations Finset.univ landing (fun J => upperO parameter data w m s n d (excess b0)
         (restMsgs m L Ms) (fun _ => False) out J) budget [] ≤ hValueO parameter data w b0 s Ms L d (n + 1) budget := by
     unfold hValueO
@@ -1419,15 +1419,15 @@ theorem goodO_sign (Lmax : ℕ) (hparse : ∀ p, model.parse (pblk parameter dat
     if Realized tg initial s ∨ signatureLimit ≤ L.length then 0
     else canonO parameter data w b0 Fail m s P Ms L d (signatureLimit - (L.length + 1)) budget o1 with hcanonR
   have hpoint : ∀ o1 ∈ support (interp tg initial model sign budget s),
-      ∑' out, Pr[= out | interpThen tg initial model next budget o1] * finalValue parameter data tg initial R out ≤
+      ∑' out, Pr{let x ← interpThen tg initial model next budget o1}[x = out] * finalValue parameter data tg initial R out ≤
         canonR o1 + lam Lmax ℓ budget + b0 * cont o1 := by
     intro o1 ho1
     cases hres : o1.1.1 with
     | none =>
-        rw [interpThen_none tg initial model next budget o1 hres, tsum_probOutput_pure_mul]
+        rw [interpThen_none tg initial model next budget o1 hres, OracleComp.tsum_prEvent_pure_mul]
         exact bot_le
     | some r =>
-        rw [interpThen_some tg initial model next budget o1 r hres, tsum_probOutput_map_mul]
+        rw [interpThen_some tg initial model next budget o1 r hres, OracleComp.tsum_prEvent_map_mul]
         obtain ⟨hprep', hP', hM', hD', hC', _⟩ := sign_paramsS tg initial model Fail Qtot hparse (hfail m)
           budget s P Ms d R hprep hP hM hD hC o1 ho1 r hres
         have hIH := h r (budget - traceCost o1.1.2.2.1) o1.2 _ _ _ _ hprep' hP' hM' hD' hC'
@@ -1461,33 +1461,33 @@ theorem goodO_sign (Lmax : ℕ) (hparse : ∀ p, model.parse (pblk parameter dat
         · unfold potO
           exact add_le_add hpot hlam
         · simp only [hcont, hres, Option.elim, le_refl]
-  have hflag : ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * cont o1 ≤
+  have hflag : ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * cont o1 ≤
       expectedFlagged tg initial model (sign >>= next) budget s := by
     unfold expectedFlagged
-    rw [interp_bind, tsum_probOutput_bind_mul]
+    rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
     refine ENNReal.tsum_le_tsum fun o1 => mul_le_mul_right ?_ _
     cases hres : o1.1.1 with
     | none => simp only [hcont, hres, Option.elim]; exact bot_le
     | some r =>
         simp only [hcont, hres, Option.elim]
-        rw [interpThen_some tg initial model next budget o1 r hres, tsum_probOutput_map_mul]
+        rw [interpThen_some tg initial model next budget o1 r hres, OracleComp.tsum_prEvent_map_mul]
         unfold expectedFlagged
         refine ENNReal.tsum_le_tsum fun o2 => mul_le_mul_right ?_ _
         simp only [flaggedCount_append, Nat.cast_add]
         exact le_add_self
-  rw [interp_bind, tsum_probOutput_bind_mul]
-  calc _ ≤ ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * (canonR o1 + lam Lmax ℓ budget + b0 * cont o1) := by
+  rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
+  calc _ ≤ ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * (canonR o1 + lam Lmax ℓ budget + b0 * cont o1) := by
         refine ENNReal.tsum_le_tsum fun o1 => ?_
         by_cases ho1 : o1 ∈ support (interp tg initial model sign budget s)
         · exact mul_le_mul_right (hpoint o1 ho1) _
-        · rw [probOutput_eq_zero_of_not_mem_support ho1, zero_mul, zero_mul]
-    _ = ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * canonR o1 +
-          (∑' o1, Pr[= o1 | interp tg initial model sign budget s]) * lam Lmax ℓ budget +
-          b0 * ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * cont o1 := by
+        · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
+    _ = ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * canonR o1 +
+          (∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1]) * lam Lmax ℓ budget +
+          b0 * ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * cont o1 := by
         simp only [mul_add, ENNReal.tsum_add, mul_left_comm _ b0, ENNReal.tsum_mul_left, ENNReal.tsum_mul_right]
     _ ≤ _ := by
         unfold potO
-        refine add_le_add (add_le_add ?_ (mul_le_of_le_one_left' tsum_probOutput_le_one)) (mul_le_mul_right hflag _)
+        refine add_le_add (add_le_add ?_ (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _))) (mul_le_mul_right hflag _)
         exact sign_expectO tg initial model parameter data w b0 Fail m hparse budget s P Ms L hm d hM
 
 end SignPointMainO

@@ -164,7 +164,7 @@ theorem encoding_pack (x : Encoding) : encoding (pack x) = x := by
   apply Fin.ext
   rw [encoding, digit_val, toNat_pack, packNat,
     digit_of_sum 4 (by decide) (wordDigit x) (wordDigit_lt x) numChains i.val i.isLt,
-    wordDigit, dif_pos i.isLt]
+    wordDigit, dite_eq_left i.isLt]
 
 theorem valid_pack {x : Encoding} (hx : sum x = targetSum) : Valid (pack x) := by
   refine ⟨?_, by rw [encoding_pack]; exact hx⟩
@@ -183,7 +183,7 @@ theorem pack_encoding {d : Digest} (hd : Valid d) : pack (encoding d) = d := by
   rw [← sum_digits_eq 4 (by decide) numChains d.toNat hlt, packNat]
   apply Finset.sum_congr rfl
   intro j hj
-  rw [wordDigit, dif_pos (Finset.mem_range.mp hj), encoding, digit_val]
+  rw [wordDigit, dite_eq_left (Finset.mem_range.mp hj), encoding, digit_val]
 
 /-- Two codewords with the same digits are the same digest. -/
 theorem eq_of_encoding_eq {d d' : Digest} (hd : Valid d) (hd' : Valid d')

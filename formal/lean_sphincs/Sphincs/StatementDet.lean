@@ -34,7 +34,7 @@ noncomputable def experimentDet (adversary : Adversary) : ProbComp (Bool × Nat)
   (simulateQ countedOracle (gameCoreDet adversary)).run.run' ∅
 
 noncomputable def forgeAdvantageDet (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => result.1 = true | experimentDet adversary]
+  Pr{let result ← experimentDet adversary}[result.1 = true]
 
 def HasHashQueryBoundDet (adversary : Adversary) (q : Nat) : Prop :=
   ∀ result ∈ support (experimentDet adversary), result.2 ≤ q

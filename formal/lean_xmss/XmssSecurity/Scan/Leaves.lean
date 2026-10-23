@@ -82,7 +82,7 @@ theorem dec_input (leafIndex : LeafIndex) (y : Position) :
     dec parameter (input parameter leafIndex y) = some (leafIndex, y) := by
   have h : ∃ p : LeafIndex × Position, input parameter p.1 p.2 = input parameter leafIndex y :=
     ⟨(leafIndex, y), rfl⟩
-  rw [dec, dif_pos h]
+  rw [dec, dite_eq_left h]
   have hspec := h.choose_spec
   have hleaf := Concrete.CacheView.leafIndex_eq_of_encodingInput_eq parameter hspec
   rw [hleaf] at hspec
@@ -123,26 +123,26 @@ theorem frozen_cacheQuery_agree {cache : QueryCache HashSpec} {trace : SigningCa
 /-! ### The oracle on one query -/
 
 theorem romImpl_expect_unif (n : ℕ) (cache : QueryCache HashSpec) (G : QueryCache HashSpec → ℝ≥0∞) :
-    ∑' r, Pr[= r | (romImpl (.inl n)).run cache] * G r.2 = G cache := by
+    ∑' r, Pr{let x ← (romImpl (.inl n)).run cache}[x = r] * G r.2 = G cache := by
   have hrun : (unifFwdImpl HashSpec n).run cache =
       (fun sample => (sample, cache)) <$> (liftM (unifSpec.query n) : ProbComp _) := by
     simpa [simulateQ_query] using
       (unifFwdImpl.simulateQ_run (hashSpec := HashSpec) (liftM (unifSpec.query n) : ProbComp _) cache)
-  change ∑' r, Pr[= r | (unifFwdImpl HashSpec n).run cache] * G r.2 = G cache
-  rw [hrun, tsum_probOutput_map_mul]
-  exact tsum_probOutput_mul_of_const_on_support _ (fun _ _ => rfl) (by simp)
+  change ∑' r, Pr{let x ← (unifFwdImpl HashSpec n).run cache}[x = r] * G r.2 = G cache
+  rw [hrun, OracleComp.tsum_prEvent_map_mul]
+  exact OracleComp.tsum_prEvent_mul_of_const_on_support _ (fun _ _ => rfl)
 
 theorem romImpl_expect_cached {x : HashInput} {cache : QueryCache HashSpec} {o : HashOutput}
     (hx : cache x = some o) (G : QueryCache HashSpec → ℝ≥0∞) :
-    ∑' r, Pr[= r | (romImpl (.inr x)).run cache] * G r.2 = G cache := by
-  change ∑' r, Pr[= r | (randomOracle (spec := HashSpec) x).run cache] * G r.2 = G cache
-  rw [randomOracle, QueryImpl.withCaching_run_some _ hx, tsum_probOutput_pure_mul]
+    ∑' r, Pr{let y ← (romImpl (.inr x)).run cache}[y = r] * G r.2 = G cache := by
+  change ∑' r, Pr{let y ← (randomOracle (spec := HashSpec) x).run cache}[y = r] * G r.2 = G cache
+  rw [randomOracle, QueryImpl.withCaching_run_some _ hx, OracleComp.tsum_prEvent_pure_mul]
 
 theorem romImpl_expect_fresh {x : HashInput} {cache : QueryCache HashSpec} (hx : cache x = none)
     (G : QueryCache HashSpec → ℝ≥0∞) :
-    ∑' r, Pr[= r | (romImpl (.inr x)).run cache] * G r.2 = ex fun u : HashOutput => G (cache.cacheQuery x u) := by
-  change ∑' r, Pr[= r | (randomOracle (spec := HashSpec) x).run cache] * G r.2 = _
-  rw [randomOracle_run_none_eq_uniformHashOutput _ _ hx, tsum_probOutput_map_mul, tsum_fintype, ex]
+    ∑' r, Pr{let y ← (romImpl (.inr x)).run cache}[y = r] * G r.2 = ex fun u : HashOutput => G (cache.cacheQuery x u) := by
+  change ∑' r, Pr{let y ← (randomOracle (spec := HashSpec) x).run cache}[y = r] * G r.2 = _
+  rw [randomOracle_run_none_eq_uniformHashOutput _ _ hx, OracleComp.tsum_prEvent_map_mul, tsum_fintype, ex]
   rfl
 
 theorem romImpl_support_unif {n : ℕ} {cache : QueryCache HashSpec} {r}

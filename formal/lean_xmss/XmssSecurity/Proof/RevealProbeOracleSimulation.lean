@@ -160,7 +160,7 @@ theorem simulate_eagerTrace_revealQuery
     (simulateQ (eagerTraceImpl table) (revealQuery index)).run =
       pure (table index, [.reveal index (table index)]) := by
   simp [revealQuery, eagerTraceImpl, eagerImpl, traceFragment,
-    QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+    WriterT.run_tell]
 
 noncomputable local instance sampleableTable :
     SampleableType (Index → Digest) :=
@@ -316,15 +316,12 @@ theorem tableHits_extendTable_eq_true_iff
 
 theorem eagerFinalize_true_probability_le
     (state : AdaptiveRevealMonitor.State Index) (hvalid : StateValid state) :
-    Pr[(fun hit : Bool => hit = true) |
-      (fun base : Index → Digest => tableHits state (extendTable state base)) <$>
-        ($ᵗ (Index → Digest))] ≤
+    Pr{let hit ← ((fun base : Index → Digest => tableHits state (extendTable state base)) <$>
+        ($ᵗ (Index → Digest)))}[hit = true] ≤
       (state.pendingCount : ℝ≥0∞) *
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_map]
-  change Pr[(fun base : Index → Digest =>
-    tableHits state (extendTable state base) = true) |
-      $ᵗ (Index → Digest)] ≤ _
+  rw [prEvent_map]
+  change Pr{let base ← $ᵗ (Index → Digest)}[tableHits state (extendTable state base) = true] ≤ _
   have hevent :
       (fun base : Index → Digest =>
         tableHits state (extendTable state base) = true) =
@@ -335,15 +332,11 @@ theorem eagerFinalize_true_probability_le
     exact propext (tableHits_extendTable_eq_true_iff state hvalid base)
   rw [hevent]
   calc
-    Pr[fun base : Index → Digest =>
-          ∃ index ∈ (Finset.univ : Finset Index),
-            ∃ target ∈ state.pending index, base index = target |
-        $ᵗ (Index → Digest)] ≤
+    Pr{let base ← $ᵗ (Index → Digest)}[∃ index ∈ (Finset.univ : Finset Index),
+            ∃ target ∈ state.pending index, base index = target] ≤
       ∑ index ∈ (Finset.univ : Finset Index),
-        Pr[fun base : Index → Digest =>
-            ∃ target ∈ state.pending index, base index = target |
-          $ᵗ (Index → Digest)] :=
-        probEvent_exists_finset_le_sum Finset.univ ($ᵗ (Index → Digest))
+        Pr{let base ← $ᵗ (Index → Digest)}[∃ target ∈ state.pending index, base index = target] :=
+        prEvent_exists_finset_le Finset.univ ($ᵗ (Index → Digest))
           (fun index base =>
             ∃ target ∈ state.pending index, base index = target)
     _ ≤ ∑ index ∈ (Finset.univ : Finset Index),
@@ -352,13 +345,10 @@ theorem eagerFinalize_true_probability_le
       apply Finset.sum_le_sum
       intro index _hindex
       calc
-        Pr[fun base : Index → Digest =>
-              ∃ target ∈ state.pending index, base index = target |
-            $ᵗ (Index → Digest)] ≤
+        Pr{let base ← $ᵗ (Index → Digest)}[∃ target ∈ state.pending index, base index = target] ≤
           ∑ target ∈ state.pending index,
-            Pr[fun base : Index → Digest => base index = target |
-              $ᵗ (Index → Digest)] :=
-            probEvent_exists_finset_le_sum (state.pending index)
+            Pr{let base ← $ᵗ (Index → Digest)}[base index = target] :=
+            prEvent_exists_finset_le (state.pending index)
               ($ᵗ (Index → Digest))
               (fun target base => base index = target)
         _ = ∑ _target ∈ state.pending index,
@@ -376,23 +366,22 @@ theorem eagerFinalize_true_probability_le
       simp [AdaptiveRevealMonitor.State.pendingCount]
 
 theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
-    Pr[(fun value : Digest => value ∈ targets) | $ᵗ Digest] ≤
+    Pr{let value ← $ᵗ Digest}[value ∈ targets] ≤
       (targets.card : ℝ≥0∞) *
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
-    Pr[(fun value : Digest => value ∈ targets) | $ᵗ Digest] =
-      Pr[(fun value : Digest => ∃ target ∈ targets, value = target) |
-        $ᵗ Digest] := by
-      apply probEvent_congr' (fun value _ => by simp) rfl
+    Pr{let value ← $ᵗ Digest}[value ∈ targets] =
+      Pr{let value ← $ᵗ Digest}[∃ target ∈ targets, value = target] := by
+      exact prEvent_congr _ _ _ fun value => by simp
     _ ≤ ∑ target ∈ targets,
-        Pr[(fun value : Digest => value = target) | $ᵗ Digest] :=
-      probEvent_exists_finset_le_sum targets ($ᵗ Digest)
+        Pr{let value ← $ᵗ Digest}[value = target] :=
+      prEvent_exists_finset_le targets ($ᵗ Digest)
         (fun target value => value = target)
     _ = ∑ _target ∈ targets,
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
       apply Finset.sum_congr rfl
       intro target _htarget
-      rw [probEvent_uniformSample]
+      rw [SampleableType.prEvent_uniformSample]
       have hfilter :
           (Finset.univ.filter (fun value : Digest => value = target)) =
             {target} := by
@@ -407,19 +396,20 @@ theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
 
 theorem evalDist_uniformTable_eq_bind_update
     (index : Index) (continuation : (Index → Digest) → ProbComp α) :
-    𝒟[($ᵗ (Index → Digest)) >>= continuation] =
-      𝒟[do
+    (($ᵗ (Index → Digest)) >>= continuation) =ᵈ (do
         let value ← $ᵗ Digest
         let base ← $ᵗ (Index → Digest)
-        continuation (Function.update base index value)] := by
+        continuation (Function.update base index value)) := by
   calc
-    𝒟[($ᵗ (Index → Digest)) >>= continuation] =
-        𝒟[(do
+    (($ᵗ (Index → Digest)) >>= continuation) =ᵈ
+        ((do
           let value ← $ᵗ Digest
           let base ← $ᵗ (Index → Digest)
-          pure (Function.update base index value)) >>= continuation] := by
-      rw [evalDist_bind, evalDist_bind, evalDist_uniformSample_bind_update index]
+          pure (Function.update base index value)) >>= continuation) := by
+      simpa only [bind_assoc, pure_bind] using
+        (evalDistEq_uniformSample_bind_update index continuation).symm
     _ = _ := by simp [bind_assoc]
+
 
 set_option maxRecDepth 100000 in
 def observedProbeCount : ActionTrace Index → Nat

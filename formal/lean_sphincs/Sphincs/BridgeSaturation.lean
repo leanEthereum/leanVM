@@ -75,41 +75,39 @@ theorem card_digest : Fintype.card Digest = 2 ^ 128 := by
 /-- **Exact avoidance.** Completing a knowledge cache avoids finite sets at its unexposed
 coordinates with the product probability. -/
 theorem completion_avoid (known : Knowledge ι) (avoid : ι → Finset Digest) :
-    Pr[fun table => ∀ coordinate, known coordinate = none → table coordinate ∉ avoid coordinate |
-        completion known] =
+    Pr{let table ← completion known}[∀ coordinate, known coordinate = none → table coordinate ∉ avoid coordinate] =
       ∏ coordinate, if known coordinate = none then
         (((Fintype.card Digest - (avoid coordinate).card : Nat) : ℝ≥0∞) / (Fintype.card Digest : ℝ≥0∞))
         else 1 := by
   classical
   let allowed : ι → Finset Digest := fun coordinate =>
     if known coordinate = none then Finset.univ \ avoid coordinate else Finset.univ
-  have hset : (Finset.univ.filter ((fun table : ι → Digest =>
-      ∀ coordinate, known coordinate = none → table coordinate ∉ avoid coordinate) ∘ tableExtending known)) =
+  have hset : (Finset.univ.filter (fun fresh : ι → Digest =>
+      ∀ coordinate, known coordinate = none → tableExtending known fresh coordinate ∉ avoid coordinate)) =
       Fintype.piFinset allowed := by
     ext fresh
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset, allowed,
-      Function.comp_apply]
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset, allowed]
     constructor
     · intro h coordinate
       by_cases hc : known coordinate = none
-      · rw [if_pos hc, Finset.mem_sdiff]
+      · rw [ite_eq_left hc, Finset.mem_sdiff]
         refine ⟨Finset.mem_univ _, ?_⟩
         have := h coordinate hc
         simpa [tableExtending, hc] using this
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
         exact Finset.mem_univ _
     · intro h coordinate hc
       have := h coordinate
-      rw [if_pos hc, Finset.mem_sdiff] at this
+      rw [ite_eq_left hc, Finset.mem_sdiff] at this
       simpa [tableExtending, hc] using this.2
-  rw [completion, probEvent_map, probEvent_uniformSample, hset, Fintype.card_piFinset, Fintype.card_fun]
+  rw [completion, prEvent_map, @SampleableType.prEvent_uniformSample _ HiddenReveal.tableSampleable, hset, Fintype.card_piFinset, Fintype.card_fun]
   rw [Nat.cast_prod, Nat.cast_pow, show ((Fintype.card Digest : ℝ≥0∞)) ^ (Fintype.card ι) =
       ∏ _coordinate : ι, (Fintype.card Digest : ℝ≥0∞) by rw [Finset.prod_const, Finset.card_univ],
     ← ENNReal.prod_div_distrib_of_ne_zero]
   · refine Finset.prod_congr rfl fun coordinate _ => ?_
     by_cases hc : known coordinate = none
-    · simp only [allowed, if_pos hc, Finset.card_sdiff, Finset.inter_univ, Finset.card_univ]
-    · simp only [allowed, if_neg hc, Finset.card_univ]
+    · simp only [allowed, ite_eq_left hc, Finset.card_sdiff, Finset.inter_univ, Finset.card_univ]
+    · simp only [allowed, ite_eq_right hc, Finset.card_univ]
       exact ENNReal.div_self (by simp) (by simp)
   · intro coordinate _
     simp
@@ -122,10 +120,10 @@ theorem debts_record (state : DebtState D R ι) (guess : ι × Digest) (coordina
       if coordinate = guess.1 then insert guess.2 (debts tg initial state coordinate)
       else debts tg initial state coordinate := by
   ext value
-  simp only [debts, DebtState.record, List.mem_cons, Set.mem_union, Set.mem_setOf_eq]
+  simp only [debts, DebtState.record, List.mem_cons, Set.mem_union, Set.mem_ofPred_eq]
   split_ifs with h
   · subst h
-    simp only [Set.mem_insert_iff, Set.mem_union, Set.mem_setOf_eq, Prod.ext_iff]
+    simp only [Set.mem_insert_iff, Set.mem_union, Set.mem_ofPred_eq, Prod.ext_iff]
     tauto
   · constructor
     · rintro (⟨heq | hmem⟩ | hcache)
@@ -147,7 +145,7 @@ theorem debts_store (state : DebtState D R ι) (input : D) (output : R)
       if tg.kind input = .hidden coordinate then insert (tg.trunc output) (debts tg initial state coordinate)
       else debts tg initial state coordinate := by
   ext value
-  simp only [debts, DebtState.store, Set.mem_union, Set.mem_setOf_eq]
+  simp only [debts, DebtState.store, Set.mem_union, Set.mem_ofPred_eq]
   constructor
   · rintro (hguess | ⟨other, out, hcache, hinit, hkind, htrunc⟩)
     · split_ifs <;> simp [hguess]
@@ -155,7 +153,7 @@ theorem debts_store (state : DebtState D R ι) (input : D) (output : R)
       · subst other
         rw [QueryCache.cacheQuery_self] at hcache
         cases hcache
-        rw [if_pos hkind]
+        rw [ite_eq_left hkind]
         exact Set.mem_insert_iff.mpr (Or.inl htrunc.symm)
       · rw [QueryCache.cacheQuery_of_ne _ _ heq] at hcache
         have hold : value ∈ debts tg initial state coordinate :=
@@ -221,7 +219,7 @@ omit [SampleableType R] in
 /-- At the end, the survival weight is at most the probability that completion avoids a hit. -/
 theorem weight_le_noHit_of (state : DebtState D R ι)
     (hfinite : ∀ coordinate, state.known coordinate = none → (debts tg initial state coordinate).Finite) :
-    weight tg initial state ≤ Pr[fun table => ¬Hit tg initial table state | completion state.known] := by
+    weight tg initial state ≤ Pr{let table ← completion state.known}[¬Hit tg initial table state] := by
   unfold weight
   split_ifs with hrealized
   · exact bot_le
@@ -232,12 +230,12 @@ theorem weight_le_noHit_of (state : DebtState D R ι)
       funext table
       simp only [Hit, hrealized, false_or, not_exists, not_and]
       refine propext (forall_congr' fun coordinate => imp_congr_right fun hc => ?_)
-      simp only [avoid, dif_pos hc, Set.Finite.mem_toFinset]
+      simp only [avoid, dite_eq_left hc, Set.Finite.mem_toFinset]
     rw [hevent, completion_avoid]
     refine le_of_eq (Finset.prod_congr rfl fun coordinate _ => ?_)
     split_ifs with hc
     · have hcard : (debts tg initial state coordinate).encard = ((avoid coordinate).card : ℕ∞) := by
-        simp only [avoid, dif_pos hc]
+        simp only [avoid, dite_eq_left hc]
         rw [Set.Finite.encard_eq_coe_toFinset_card (hfinite coordinate hc)]
       have hle : (avoid coordinate).card ≤ Fintype.card Digest := Finset.card_le_univ _
       rw [hcard, space_eq, ENat.toENNReal_coe, ENNReal.natCast_sub,
@@ -248,7 +246,7 @@ theorem weight_le_noHit_of (state : DebtState D R ι)
 omit [SampleableType R] in
 /-- At the end, the survival weight is at most the probability that completion avoids a hit. -/
 theorem weight_le_noHit (state : DebtState D R ι) :
-    weight tg initial state ≤ Pr[fun table => ¬Hit tg initial table state | completion state.known] := by
+    weight tg initial state ≤ Pr{let table ← completion state.known}[¬Hit tg initial table state] := by
   by_cases hfinite : ∀ coordinate, state.known coordinate = none → (debts tg initial state coordinate).Finite
   · exact weight_le_noHit_of tg initial state hfinite
   · push Not at hfinite
@@ -259,7 +257,7 @@ theorem weight_le_noHit (state : DebtState D R ι) :
       · rfl
       · unfold survival
         refine Finset.prod_eq_zero (Finset.mem_univ coordinate) ?_
-        rw [if_pos hc, Set.Infinite.encard_eq hinfinite, ENat.toENNReal_top,
+        rw [ite_eq_left hc, Set.Infinite.encard_eq hinfinite, ENat.toENNReal_top,
           ENNReal.top_div_of_ne_top (by simp [space] : space ≠ ⊤)]
         exact tsub_eq_zero_of_le le_top
     rw [hzero]
@@ -270,7 +268,7 @@ theorem weight_le_one (state : DebtState D R ι) : weight tg initial state ≤ 1
   unfold weight survival
   split_ifs
   · exact zero_le_one
-  · refine Finset.prod_le_one' fun coordinate _ => ?_
+  · refine Finset.prod_le_one fun coordinate _ => ?_
     split_ifs
     · exact tsub_le_self
     · exact le_rfl
@@ -312,7 +310,7 @@ theorem survival_expose (state : DebtState D R ι) (coordinate : ι) (value : Di
   rw [Fintype.prod_eq_mul_prod_compl coordinate, Fintype.prod_eq_mul_prod_compl coordinate (f := fun other =>
     if (state.expose coordinate value).known other = none then
       1 - ((debts tg initial (state.expose coordinate value) other).encard : ℝ≥0∞) / space else 1)]
-  simp only [hc, if_true, DebtState.expose, QueryCache.cacheQuery_self, reduceCtorEq, if_false, one_mul]
+  simp only [hc, ite_true, DebtState.expose, QueryCache.cacheQuery_self, reduceCtorEq, ite_false, one_mul]
   congr 1
   refine Finset.prod_congr rfl fun other hother => ?_
   have hne : other ≠ coordinate := by simpa using hother
@@ -320,9 +318,9 @@ theorem survival_expose (state : DebtState D R ι) (coordinate : ι) (value : Di
   rfl
 
 theorem prob_uniform_not_mem (set : Set Digest) (hfinite : set.Finite) :
-    Pr[fun value => value ∉ set | ($ᵗ Digest : ProbComp Digest)] = 1 - (set.encard : ℝ≥0∞) / space := by
+    Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∉ set] = 1 - (set.encard : ℝ≥0∞) / space := by
   classical
-  rw [probEvent_uniformSample]
+  rw [SampleableType.prEvent_uniformSample]
   have hfilter : (Finset.univ.filter fun value : Digest => value ∉ set) = Finset.univ \ hfinite.toFinset := by
     ext value
     simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_sdiff, Set.Finite.mem_toFinset]
@@ -336,12 +334,12 @@ omit [SampleableType R] in
 expectation: a debt is hit with exactly its share of the space. -/
 theorem weight_expose_mean (state : DebtState D R ι) (coordinate : ι)
     (hc : state.known coordinate = none) (hfinite : (debts tg initial state coordinate).Finite) :
-    (∑' value, Pr[= value | ($ᵗ Digest : ProbComp Digest)] *
+    (∑' value, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = value] *
       weight tg initial (state.expose coordinate value)) = weight tg initial state := by
   by_cases hrealized : Realized tg initial state
   · have hzero : ∀ value, weight tg initial (state.expose coordinate value) = 0 := fun value => by
-      rw [weight, if_pos ((realized_expose tg initial state coordinate value hc).2 (Or.inl hrealized))]
-    rw [weight, if_pos hrealized]
+      rw [weight, ite_eq_left ((realized_expose tg initial state coordinate value hc).2 (Or.inl hrealized))]
+    rw [weight, ite_eq_left hrealized]
     exact (tsum_congr fun value => by rw [hzero value, mul_zero]).trans tsum_zero
   · have hrest : ∀ value, survival tg initial (state.expose coordinate value) =
         survival tg initial (state.expose coordinate 0) := by
@@ -359,19 +357,19 @@ theorem weight_expose_mean (state : DebtState D R ι) (coordinate : ι)
       intro value
       rw [weight, hrest]
       by_cases hv : value ∈ debts tg initial state coordinate
-      · rw [if_pos ((realized_expose tg initial state coordinate value hc).2 (Or.inr hv)), if_pos hv, zero_mul]
+      · rw [ite_eq_left ((realized_expose tg initial state coordinate value hc).2 (Or.inr hv)), ite_eq_left hv, zero_mul]
       · have hnot : ¬Realized tg initial (state.expose coordinate value) := fun h =>
           ((realized_expose tg initial state coordinate value hc).1 h).elim hrealized hv
-        rw [if_neg hnot, if_neg hv, one_mul]
+        rw [ite_eq_right hnot, ite_eq_right hv, one_mul]
     simp_rw [hpoint, ← mul_assoc]
     rw [ENNReal.tsum_mul_right]
-    have hprob : (∑' value, Pr[= value | ($ᵗ Digest : ProbComp Digest)] *
+    have hprob : (∑' value, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = value] *
         (if value ∈ debts tg initial state coordinate then 0 else 1)) =
-        Pr[fun value => value ∉ debts tg initial state coordinate | ($ᵗ Digest : ProbComp Digest)] := by
-      rw [probEvent_eq_tsum_ite]
+        Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∉ debts tg initial state coordinate] := by
+      rw [OracleComp.prEvent_eq_tsum_ite]
       refine tsum_congr fun value => ?_
-      split_ifs <;> simp_all
-    rw [hprob, prob_uniform_not_mem _ hfinite, weight, if_neg hrealized,
+      split_ifs <;> first | contradiction | simp only [mul_zero, mul_one]
+    rw [hprob, prob_uniform_not_mem _ hfinite, weight, ite_eq_right hrealized,
       survival_expose tg initial state coordinate 0 hc]
     rfl
 
@@ -411,20 +409,20 @@ theorem factor_insert_mean (count : ℕ) (hcount : count ≤ 2 ^ 128) :
 
 /-- Truncation of a uniform answer is uniform. -/
 def UniformTruncation : Prop :=
-  𝒟[tg.trunc <$> ($ᵗ R : ProbComp R)] = 𝒟[($ᵗ Digest : ProbComp Digest)]
+  (tg.trunc <$> ($ᵗ R : ProbComp R)) =ᵈ ($ᵗ Digest : ProbComp Digest)
 
 omit [Fintype ι] in
 theorem truncation_mean (htrunc : UniformTruncation (R := R) tg) (φ : Digest → ℝ≥0∞) :
-    ∑' output, Pr[= output | ($ᵗ R : ProbComp R)] * φ (tg.trunc output) =
-      ∑' value, Pr[= value | ($ᵗ Digest : ProbComp Digest)] * φ value := by
-  rw [← tsum_probOutput_map_mul]
+    ∑' output, Pr{let x ← ($ᵗ R : ProbComp R)}[x = output] * φ (tg.trunc output) =
+      ∑' value, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = value] * φ value := by
+  rw [← OracleComp.tsum_prEvent_map_mul]
   refine tsum_congr fun value => ?_
-  rw [probOutput_def, probOutput_def, htrunc]
+  rw [htrunc.prEvent_eq]
 
 theorem prob_uniform_mem (set : Set Digest) (hfinite : set.Finite) :
-    Pr[fun value => value ∈ set | ($ᵗ Digest : ProbComp Digest)] = (set.encard : ℝ≥0∞) / space := by
+    Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∈ set] = (set.encard : ℝ≥0∞) / space := by
   classical
-  rw [probEvent_uniformSample]
+  rw [SampleableType.prEvent_uniformSample]
   have hfilter : (Finset.univ.filter fun value : Digest => value ∈ set) = hfinite.toFinset := by
     ext value
     simp only [Finset.mem_filter, Finset.mem_univ, true_and, Set.Finite.mem_toFinset]
@@ -432,14 +430,14 @@ theorem prob_uniform_mem (set : Set Digest) (hfinite : set.Finite) :
 
 /-- A uniform digest falls in a set or not: the mean of a two-valued function. -/
 theorem uniform_split (set : Set Digest) (inside outside : ℝ≥0∞) :
-    (∑' value, Pr[= value | ($ᵗ Digest : ProbComp Digest)] * (if value ∈ set then inside else outside)) =
-      Pr[fun value => value ∈ set | ($ᵗ Digest : ProbComp Digest)] * inside +
-        Pr[fun value => value ∉ set | ($ᵗ Digest : ProbComp Digest)] * outside := by
+    (∑' value, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = value] * (if value ∈ set then inside else outside)) =
+      Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∈ set] * inside +
+        Pr{let value ← ($ᵗ Digest : ProbComp Digest)}[value ∉ set] * outside := by
   classical
-  rw [probEvent_eq_tsum_ite, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right, ← ENNReal.tsum_mul_right,
+  rw [OracleComp.prEvent_eq_tsum_ite, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right, ← ENNReal.tsum_mul_right,
     ← ENNReal.tsum_add]
   refine tsum_congr fun value => ?_
-  split_ifs <;> simp
+  split_ifs <;> first | contradiction | simp only [zero_mul, add_zero, zero_add]
 
 omit [SampleableType R] in
 theorem survival_split (state : DebtState D R ι) (coordinate : ι) :
@@ -459,7 +457,7 @@ theorem survival_store_eq (state : DebtState D R ι) (input : D) (output : R)
   have hknown : (state.store input output).known = state.known := rfl
   rw [hknown]
   split_ifs with hc
-  · rw [debts_store tg initial state input output hfresh hinitial, if_neg (fun h => hkind coordinate h hc)]
+  · rw [debts_store tg initial state input output hfresh hinitial, ite_eq_right (fun h => hkind coordinate h hc)]
   · rfl
 
 omit [Fintype ι] [SampleableType R] in
@@ -468,7 +466,7 @@ theorem realized_store_of_none (state : DebtState D R ι) (input : D) (output : 
     Realized tg initial (state.store input output) ↔ Realized tg initial state := by
   have hknown : (state.store input output).known = state.known := rfl
   simp only [Realized, fixedHit_store tg initial state input output hfresh hinitial, hkind,
-    debts_store tg initial state input output hfresh hinitial, reduceCtorEq, if_false, false_and,
+    debts_store tg initial state input output hfresh hinitial, reduceCtorEq, ite_false, false_and,
     exists_false, or_false, hknown]
 
 /-- The truncated values that a fresh answer must avoid, given its target. -/
@@ -489,7 +487,7 @@ theorem realized_store (state : DebtState D R ι) (input : D) (output : R)
   cases hk : tg.kind input with
   | none => simp [Fatal]
   | fixed value =>
-      simp only [reduceCtorEq, if_false, TargetKind.fixed.injEq, exists_eq_left', Fatal]
+      simp only [reduceCtorEq, ite_false, TargetKind.fixed.injEq, exists_eq_left', Fatal]
       exact or_right_comm
   | hidden coordinate =>
       simp only [reduceCtorEq, false_and, exists_false, or_false, TargetKind.hidden.injEq, Fatal]
@@ -508,7 +506,7 @@ theorem realized_store (state : DebtState D R ι) (input : D) (output : R)
           split_ifs
           · exact Set.mem_insert_of_mem _ hv
           · exact hv
-        · exact Or.inr ⟨coordinate, tg.trunc output, hfatal, by rw [if_pos rfl]; exact Set.mem_insert _ _⟩
+        · exact Or.inr ⟨coordinate, tg.trunc output, hfatal, by rw [ite_eq_left rfl]; exact Set.mem_insert _ _⟩
 
 /-- The survival factors of all coordinates but one. -/
 noncomputable def rest (state : DebtState D R ι) (coordinate : ι) : ℝ≥0∞ :=
@@ -527,17 +525,17 @@ theorem survival_store_hidden (state : DebtState D R ι) (input : D) (output : R
       (1 - ((insert (tg.trunc output) (debts tg initial state coordinate)).encard : ℝ≥0∞) / space) *
         rest tg initial state coordinate := by
   have hknown : (state.store input output).known = state.known := rfl
-  rw [survival_split' tg initial _ coordinate, hknown, if_pos hc, factor,
-    debts_store tg initial state input output hfresh hinitial, if_pos hk]
+  rw [survival_split' tg initial _ coordinate, hknown, ite_eq_left hc, factor,
+    debts_store tg initial state input output hfresh hinitial, ite_eq_left hk]
   congr 1
   refine Finset.prod_congr rfl fun other hother => ?_
   have hne : other ≠ coordinate := by simpa using hother
   simp only [hknown, factor, debts_store tg initial state input output hfresh hinitial, hk,
-    TargetKind.hidden.injEq, hne.symm, if_false]
+    TargetKind.hidden.injEq, hne.symm, ite_false]
 
 theorem tsum_uniform_const (value : ℝ≥0∞) :
-    ∑' output, Pr[= output | ($ᵗ R : ProbComp R)] * value = value := by
-  rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (probFailure_uniformSample _), one_mul]
+    ∑' output, Pr{let x ← ($ᵗ R : ProbComp R)}[x = output] * value = value := by
+  rw [ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul]
 
 /-- **Fresh answer.** Storing a fresh uniform answer keeps at least a `1 - 2^-128` share of the
 survival weight in expectation, whatever its target. -/
@@ -545,9 +543,9 @@ theorem weight_store_mean (htrunc : UniformTruncation (R := R) tg) (state : Debt
     (input : D) (hfresh : state.cache input = none) (hinitial : initial input = none)
     (hfinite : ∀ coordinate, (debts tg initial state coordinate).Finite) :
     (1 - 1 / space) * weight tg initial state ≤
-      ∑' output, Pr[= output | ($ᵗ R : ProbComp R)] * weight tg initial (state.store input output) := by
+      ∑' output, Pr{let x ← ($ᵗ R : ProbComp R)}[x = output] * weight tg initial (state.store input output) := by
   by_cases hrealized : Realized tg initial state
-  · rw [weight, if_pos hrealized, mul_zero]
+  · rw [weight, ite_eq_left hrealized, mul_zero]
     exact bot_le
   have hweight : ∀ output, weight tg initial (state.store input output) =
       if Fatal (tg.kind input) state.known (tg.trunc output) then 0
@@ -556,12 +554,12 @@ theorem weight_store_mean (htrunc : UniformTruncation (R := R) tg) (state : Debt
     rw [weight]
     simp only [realized_store tg initial state input output hfresh hinitial, hrealized, false_or]
   simp_rw [hweight]
-  rw [weight, if_neg hrealized]
+  rw [weight, ite_eq_right hrealized]
   -- one fatal truncated value, survival unchanged
   have hone : ∀ fatal : Digest, (∀ output, Fatal (tg.kind input) state.known (tg.trunc output) ↔
       tg.trunc output = fatal) → (∀ output, survival tg initial (state.store input output) =
         survival tg initial state) →
-      (1 - 1 / space) * survival tg initial state ≤ ∑' output, Pr[= output | ($ᵗ R : ProbComp R)] *
+      (1 - 1 / space) * survival tg initial state ≤ ∑' output, Pr{let x ← ($ᵗ R : ProbComp R)}[x = output] *
         (if Fatal (tg.kind input) state.known (tg.trunc output) then 0
           else survival tg initial (state.store input output)) := by
     intro fatal hfatal hsame
@@ -579,7 +577,7 @@ theorem weight_store_mean (htrunc : UniformTruncation (R := R) tg) (state : Debt
       have hsame : ∀ output, survival tg initial (state.store input output) = survival tg initial state :=
         fun output => survival_store_eq tg initial state input output hfresh hinitial
           (fun coordinate h => by rw [hk] at h; cases h)
-      simp only [Fatal, if_false, hsame, tsum_uniform_const]
+      simp only [Fatal, ite_false, hsame, tsum_uniform_const]
       exact mul_le_of_le_one_left' tsub_le_self
   | fixed value =>
       rw [hk] at hone
@@ -597,7 +595,7 @@ theorem weight_store_mean (htrunc : UniformTruncation (R := R) tg) (state : Debt
           have hnot : ∀ output, ¬Fatal (TargetKind.hidden coordinate) state.known (tg.trunc output) := by
             intro output h
             simp [Fatal, hc] at h
-          simp only [hnot, if_false]
+          simp only [hnot, ite_false]
           simp_rw [survival_store_hidden tg initial state input _ hfresh hinitial coordinate hk hc]
           have hmean := truncation_mean tg htrunc (fun value =>
             (1 - ((insert value (debts tg initial state coordinate)).encard : ℝ≥0∞) / space) *
@@ -620,7 +618,7 @@ theorem weight_store_mean (htrunc : UniformTruncation (R := R) tg) (state : Debt
           simp_rw [hpoint]
           rw [uniform_split, prob_uniform_mem _ (hfinite coordinate),
             prob_uniform_not_mem _ (hfinite coordinate), hencard, survival_split' tg initial state coordinate,
-            if_pos hc, factor, hencard]
+            ite_eq_left hc, factor, hencard]
           have hle : count ≤ 2 ^ 128 := by
             rw [hcount, ← card_digest]
             exact Finset.card_le_univ _
@@ -795,13 +793,13 @@ theorem initial_none_of_fresh (state : DebtState D R ι) (hprepared : Prepared i
 theorem weight_readOutside_mean (htrunc : UniformTruncation (R := R) tg) (bytes : D) (state : DebtState D R ι)
     (hprepared : Prepared initial state) (hfinite : ∀ coordinate, (debts tg initial state coordinate).Finite) :
     (1 - 1 / space) * weight tg initial state ≤
-      ∑' result, Pr[= result | readOutside bytes state] * weight tg initial result.2 := by
+      ∑' result, Pr{let x ← readOutside bytes state}[x = result] * weight tg initial result.2 := by
   cases hc : state.cache bytes with
   | some output =>
-      rw [readOutside_cached bytes state output hc, tsum_probOutput_pure_mul]
+      rw [readOutside_cached bytes state output hc, OracleComp.tsum_prEvent_pure_mul]
       exact mul_le_of_le_one_left' tsub_le_self
   | none =>
-      rw [readOutside_fresh bytes state hc, tsum_probOutput_map_mul]
+      rw [readOutside_fresh bytes state hc, OracleComp.tsum_prEvent_map_mul]
       exact weight_store_mean tg initial htrunc state bytes hc
         (initial_none_of_fresh initial state hprepared bytes hc) hfinite
 
@@ -847,12 +845,12 @@ theorem survival_record (state : DebtState D R ι) (guess : ι × Digest) (hc : 
       (1 - ((insert guess.2 (debts tg initial state guess.1)).encard : ℝ≥0∞) / space) *
         rest tg initial state guess.1 := by
   have hknown : (state.record guess).known = state.known := rfl
-  rw [survival_split' tg initial _ guess.1, hknown, if_pos hc, factor, debts_record, if_pos rfl]
+  rw [survival_split' tg initial _ guess.1, hknown, ite_eq_left hc, factor, debts_record, ite_eq_left rfl]
   congr 1
   unfold rest
   refine Finset.prod_congr rfl fun other hother => ?_
   have hne : other ≠ guess.1 := by simpa using hother
-  simp only [hknown, factor, debts_record, hne, if_false]
+  simp only [hknown, factor, debts_record, hne, ite_false]
 
 omit [SampleableType R] in
 /-- **Guess.** Recording a guess at an unexposed coordinate with at most `p` debts keeps a
@@ -862,10 +860,10 @@ theorem weight_record (state : DebtState D R ι) (guess : ι × Digest) (hc : st
     (hcount : (debts tg initial state guess.1).encard ≤ probes) (hprobes : (probes : ℝ) < spaceReal) :
     probeFactor probes * weight tg initial state ≤ weight tg initial (state.record guess) := by
   by_cases hrealized : Realized tg initial state
-  · rw [weight, if_pos hrealized, mul_zero]
+  · rw [weight, ite_eq_left hrealized, mul_zero]
     exact bot_le
-  rw [weight, weight, if_neg hrealized, if_neg (by rwa [realized_record tg initial state guess hc]),
-    survival_record tg initial state guess hc, survival_split' tg initial state guess.1, if_pos hc, factor,
+  rw [weight, weight, ite_eq_right hrealized, ite_eq_right (by rwa [realized_record tg initial state guess hc]),
+    survival_record tg initial state guess hc, survival_split' tg initial state guess.1, ite_eq_left hc, factor,
     ← mul_assoc]
   refine mul_le_mul_left ?_ _
   set count := hfinite.toFinset.card with hcountdef
@@ -976,7 +974,7 @@ theorem Inv.grow {state state' : DebtState D R ι} {probes : ℕ} {extra : ι �
   finite coordinate := by
     have hlt : (debts tg initial state' coordinate).encard < ⊤ :=
       (hgrowth coordinate).trans_lt (ENat.add_lt_top.mpr ⟨(hinv.finite coordinate).encard_lt_top,
-        ENat.coe_lt_top _⟩)
+        ENat.natCast_lt_top _⟩)
     exact Set.encard_lt_top_iff.mp hlt
   bound coordinate := by
     calc _ ≤ _ := hgrowth coordinate
@@ -1050,7 +1048,7 @@ variable (model : HiddenRows.Model D R A ι)
 
 /-- Mean survival weight after one step. -/
 noncomputable def meanWeight {β : Type} (step : ProbComp (β × DebtState D R ι)) : ℝ≥0∞ :=
-  ∑' result, Pr[= result | step] * weight tg initial result.2
+  ∑' result, Pr{let x ← step}[x = result] * weight tg initial result.2
 
 omit [Fintype ι] [SampleableType R] in
 theorem sampleCoordinate_known (coordinate : ι) (state : DebtState D R ι) (value : Digest)
@@ -1070,22 +1068,22 @@ theorem meanWeight_sample (coordinate : ι) (state : DebtState D R ι)
     meanWeight tg initial (sampleCoordinate coordinate state) = weight tg initial state := by
   cases hc : state.known coordinate with
   | none =>
-      rw [meanWeight, sampleCoordinate_unknown coordinate state hc, tsum_probOutput_map_mul]
+      rw [meanWeight, sampleCoordinate_unknown coordinate state hc, OracleComp.tsum_prEvent_map_mul]
       exact weight_expose_mean tg initial state coordinate hc hfinite
-  | some value => rw [meanWeight, sampleCoordinate_known coordinate state value hc, tsum_probOutput_pure_mul]
+  | some value => rw [meanWeight, sampleCoordinate_known coordinate state value hc, OracleComp.tsum_prEvent_pure_mul]
 
 omit [SampleableType R] in
 theorem meanWeight_map {β γ : Type} (f : β → γ) (step : ProbComp (β × DebtState D R ι)) :
     meanWeight tg initial ((fun result => (f result.1, result.2)) <$> step) = meanWeight tg initial step := by
-  rw [meanWeight, meanWeight, tsum_probOutput_map_mul]
+  rw [meanWeight, meanWeight, OracleComp.tsum_prEvent_map_mul]
 
 theorem meanWeight_readOutside_none (bytes : D) (state : DebtState D R ι) (hk : tg.kind bytes = .none)
     (hprepared : Prepared initial state) :
     meanWeight tg initial (readOutside bytes state) = weight tg initial state := by
   cases hc : state.cache bytes with
-  | some output => rw [meanWeight, readOutside_cached bytes state output hc, tsum_probOutput_pure_mul]
+  | some output => rw [meanWeight, readOutside_cached bytes state output hc, OracleComp.tsum_prEvent_pure_mul]
   | none =>
-      rw [meanWeight, readOutside_fresh bytes state hc, tsum_probOutput_map_mul]
+      rw [meanWeight, readOutside_fresh bytes state hc, OracleComp.tsum_prEvent_map_mul]
       have hinitial := initial_none_of_fresh initial state hprepared bytes hc
       have hsame : ∀ output, weight tg initial (state.store bytes output) = weight tg initial state := by
         intro output
@@ -1125,7 +1123,7 @@ theorem inv_readOutside_none (bytes : D) (state : DebtState D R ι) (probes : �
   · rw [h]
     have hinitial := initial_none_of_fresh initial state hinv.prepared bytes hc
     refine hinv.same tg initial (fun coordinate => ?_) (prepared_store initial state hinv.prepared bytes result.1 hc)
-    rw [debts_store tg initial state bytes result.1 hc hinitial, if_neg (by rw [hk]; exact fun h => by cases h)]
+    rw [debts_store tg initial state bytes result.1 hc hinitial, ite_eq_right (by rw [hk]; exact fun h => by cases h)]
 
 theorem inv_guess (bytes : D) (state : DebtState D R ι) (guess : ι × Digest) (probes : ℕ)
     (hinv : Inv tg initial state probes) (hrow : tg.kind bytes ≠ .hidden guess.1)
@@ -1145,8 +1143,8 @@ theorem inv_guess (bytes : D) (state : DebtState D R ι) (guess : ι × Digest) 
     · simp only [Pi.add_apply]
       by_cases hcoord : coordinate = guess.1
       · subst hcoord
-        rw [if_pos rfl, if_neg hrow]
-      · rw [if_neg hcoord, zero_add]
+        rw [ite_eq_left rfl, ite_eq_right hrow]
+      · rw [ite_eq_right hcoord, zero_add]
         split_ifs <;> omega
     · simp only [Pi.add_apply]
       rw [Finset.sum_add_distrib, hone]
@@ -1164,28 +1162,28 @@ theorem probe_inequality (probes remaining : ℕ) (weightValue mean : ℝ≥0∞
 /-- Combining one step with the induction hypothesis. -/
 theorem combine {β : Type} (step : ProbComp β) (nextWeight nextPay nextEnd : β → ℝ≥0∞)
     (current payment paid nextBudget : ℝ≥0∞)
-    (hstep : current + payment * paid ≤ nextBudget * ∑' x, Pr[= x | step] * nextWeight x)
+    (hstep : current + payment * paid ≤ nextBudget * ∑' x, Pr{let y ← step}[y = x] * nextWeight x)
     (hih : ∀ x ∈ support step, nextBudget * nextWeight x + payment * nextPay x ≤ nextEnd x) :
-    current + payment * ∑' x, Pr[= x | step] * (paid + nextPay x) ≤ ∑' x, Pr[= x | step] * nextEnd x := by
-  have hmass : ∑' x, Pr[= x | step] = 1 := tsum_probOutput_eq_one' probFailure_eq_zero
-  calc current + payment * ∑' x, Pr[= x | step] * (paid + nextPay x)
-      = (current + payment * paid) + ∑' x, Pr[= x | step] * (payment * nextPay x) := by
+    current + payment * ∑' x, Pr{let y ← step}[y = x] * (paid + nextPay x) ≤ ∑' x, Pr{let y ← step}[y = x] * nextEnd x := by
+  have hmass : ∑' x, Pr{let y ← step}[y = x] = 1 := OracleComp.tsum_prEvent_eq_one _
+  calc current + payment * ∑' x, Pr{let y ← step}[y = x] * (paid + nextPay x)
+      = (current + payment * paid) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) := by
         simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
         rw [← ENNReal.tsum_mul_left]
         simp only [mul_left_comm payment]
         ring
-    _ ≤ nextBudget * (∑' x, Pr[= x | step] * nextWeight x) + ∑' x, Pr[= x | step] * (payment * nextPay x) :=
+    _ ≤ nextBudget * (∑' x, Pr{let y ← step}[y = x] * nextWeight x) + ∑' x, Pr{let y ← step}[y = x] * (payment * nextPay x) :=
         add_le_add hstep le_rfl
-    _ = ∑' x, Pr[= x | step] * (nextBudget * nextWeight x + payment * nextPay x) := by
+    _ = ∑' x, Pr{let y ← step}[y = x] * (nextBudget * nextWeight x + payment * nextPay x) := by
         rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
         refine tsum_congr fun x => ?_
         ring
-    _ ≤ ∑' x, Pr[= x | step] * nextEnd x := by
+    _ ≤ ∑' x, Pr{let y ← step}[y = x] * nextEnd x := by
         refine ENNReal.tsum_le_tsum fun x => ?_
         by_cases hx : x ∈ support step
         · gcongr
           exact hih x hx
-        · rw [probOutput_eq_zero_of_not_mem_support hx, zero_mul, zero_mul]
+        · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]
 
 end Steps
 
@@ -1231,7 +1229,7 @@ omit [Fintype ι] [SampleableType R] in
 theorem debts_start (known : Knowledge ι) (coordinate : ι) :
     debts tg initial (DebtState.start initial known) coordinate = ∅ := by
   ext value
-  simp only [debts, DebtState.start, List.not_mem_nil, Set.setOf_false, Set.empty_union, Set.mem_setOf_eq,
+  simp only [debts, DebtState.start, List.not_mem_nil, Set.ofPred_false, Set.empty_union, Set.mem_ofPred_eq,
     Set.mem_empty_iff_false, iff_false, not_exists, not_and]
   intro input output hcache hinitial
   rw [hcache] at hinitial
@@ -1253,7 +1251,7 @@ theorem weight_start (known : Knowledge ι) : weight tg initial (DebtState.start
       cases hinitial
     · rw [debts_start] at hv
       exact hv
-  rw [weight, if_neg hrealized, survival]
+  rw [weight, ite_eq_right hrealized, survival]
   refine Finset.prod_eq_one fun coordinate _ => ?_
   split_ifs
   · simp [debts_start]

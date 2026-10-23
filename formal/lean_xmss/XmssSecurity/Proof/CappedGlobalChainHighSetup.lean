@@ -32,36 +32,31 @@ def programmedGlobalChainMaterialBaseHighView
 
 theorem evalDist_programmedGlobalChainMaterialBaseHighView_eq_independent
     (parameter : PublicParameter) :
-    evalDist (programmedGlobalChainMaterialBaseHighView <$>
-      programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) =
-    evalDist independentGlobalChainTableHigh := by
+    (programmedGlobalChainMaterialBaseHighView <$>
+      programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) =ᵈ
+    independentGlobalChainTableHigh := by
   unfold programmedGlobalChainTrajectoryMaterialWithBaseHigh
     programmedGlobalChainMaterialBaseHighView
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
   calc
-    _ = evalDist ((globalChainTrajectoryMaterialBase <$>
+    _ =ᵈ ((globalChainTrajectoryMaterialBase <$>
           programmedGlobalChainTrajectoryMaterialWithBase parameter) >>=
         fun table => independentGlobalChainHigh >>= fun high =>
           pure (table, high)) := by
       simp [globalChainTrajectoryMaterialBase, map_eq_bind_pure_comp,
         bind_assoc]
-    _ = evalDist ((globalChainTrajectoryMaterialTable <$>
+    _ =ᵈ ((globalChainTrajectoryMaterialTable <$>
           programmedGlobalChainTrajectoryMaterial parameter) >>=
         fun table => independentGlobalChainHigh >>= fun high =>
-          pure (table, high)) := by
-      rw [evalDist_bind,
-        ← evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
-          parameter,
-        ← evalDist_bind]
-    _ = evalDist (independentGlobalChainValueTable >>= fun table =>
+          pure (table, high)) :=
+      (evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
+        parameter).symm.bind_left _
+    _ =ᵈ (independentGlobalChainValueTable >>= fun table =>
         independentGlobalChainHigh >>= fun high => pure (table, high)) := by
-      rw [evalDist_bind,
-        evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
-          parameter,
-        evalDist_uniformSample,
-        ← evalDist_independentGlobalChainValueTable_eq_uniformMeasure,
-        ← evalDist_bind]
+      rw [independentGlobalChainValueTable_eq_uniform]
+      exact (evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
+        parameter).bind_left _
     _ = _ := by rfl
 
 def ProgrammedGlobalChainMaterialBaseHighRelation
@@ -81,18 +76,18 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
       (programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter)
       (ProgrammedGlobalChainMaterialBaseHighRelation parameter) := by
   classical
-  letI : DecidableEq ((GlobalChainValueIndex → Digest) ×
+  let : DecidableEq ((GlobalChainValueIndex → Digest) ×
       (GlobalChainEdgeIndex → Digest)) := Classical.decEq _
   have hprojection :
-      evalDist ((fun material : GlobalChainTrajectoryMaterial =>
+      ((fun material : GlobalChainTrajectoryMaterial =>
         (globalChainTrajectoryMaterialTable material,
           globalChainEdgeHighTableOfCache material.2.2 parameter
             (globalChainTrajectoryMaterialTable material))) <$>
-        programmedGlobalChainTrajectoryMaterial parameter) =
-      evalDist (programmedGlobalChainMaterialBaseHighView <$>
+        programmedGlobalChainTrajectoryMaterial parameter) =ᵈ
+      (programmedGlobalChainMaterialBaseHighView <$>
         programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) := by
     calc
-      _ = evalDist (globalChainTableHighViewOfMaterial parameter <$>
+      _ =ᵈ (globalChainTableHighViewOfMaterial parameter <$>
           outputGlobalChainTrajectoryMaterial parameter) := by
         have hfunction : (fun material : GlobalChainTrajectoryMaterial =>
             (globalChainTrajectoryMaterialTable material,
@@ -102,10 +97,8 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
           funext material
           rfl
         rw [hfunction]
-        rw [evalDist_map,
-          evalDist_programmedGlobalChainTrajectoryMaterial_eq_output parameter,
-          ← evalDist_map]
-      _ = evalDist (globalChainKeygenRandomnessView <$>
+        exact (evalDist_programmedGlobalChainTrajectoryMaterial_eq_output parameter).map _
+      _ =ᵈ (globalChainKeygenRandomnessView <$>
           (globalChainRandomnessOfMaterial parameter <$>
             outputGlobalChainTrajectoryMaterial parameter)) := by
         simp only [Functor.map_map]
@@ -116,14 +109,12 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
           exact globalChainKeygenRandomnessView_ofView
             (globalChainTableHighViewOfMaterial parameter material)
         rw [hview]
-      _ = evalDist (globalChainKeygenRandomnessView <$>
-          uniformGlobalChainKeygenRandomness) := by
-        rw [evalDist_map,
-          evalDist_outputGlobalChainRandomness_eq_uniform parameter,
-          ← evalDist_map]
-      _ = evalDist independentGlobalChainTableHigh :=
+      _ =ᵈ (globalChainKeygenRandomnessView <$>
+          uniformGlobalChainKeygenRandomness) :=
+        (evalDist_outputGlobalChainRandomness_eq_uniform parameter).map _
+      _ =ᵈ independentGlobalChainTableHigh :=
         evalDist_globalChainKeygenRandomnessView_eq_independent
-      _ = _ :=
+      _ =ᵈ _ :=
         (evalDist_programmedGlobalChainMaterialBaseHighView_eq_independent
           parameter).symm
   apply relTriple_post_mono
@@ -357,9 +348,8 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
     exact ⟨expectedCoupled, hparameterView, by simp⟩
   have hexpected : expectedCoupled.toProgrammedView parameter ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
-    (mem_support_iff_of_evalDist_eq
-      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed _).mp
-        hcoupled
+    (OracleComp.support_eq_of_evalDistEq
+      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed).subset hcoupled
   rw [hpureView, hpureRun]
   exact hexpected
 
@@ -384,9 +374,10 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
   obtain ⟨hbaseHigh, hleftCoupledSupport, hrightSupport⟩ := hrel
   have hleftSupport : left ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
-    (mem_support_iff_of_evalDist_eq
-      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed left).mp
+    (OracleComp.support_eq_of_evalDistEq
+      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed).subset
         hleftCoupledSupport
+
   have hrightViewSupport : right.1.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
     coupledGlobalChainKeygenWithBaseHighFull_support_keyView right
@@ -422,7 +413,7 @@ theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
     RelTriple trajectoryProgrammedGlobalChainKeygen
       coupledGlobalChainKeygenWithBaseHighFull
       ProgrammedGlobalChainKeygenBaseHighStableRelation := by
-  exact relTriple_of_evalDist_eq_left
+  exact relTriple_of_evalDistEq_left
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
     relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
 
@@ -434,7 +425,7 @@ noncomputable def globalFilteredCausalKeygenState
     (view : ProgrammedGlobalChainKeygenView) : GlobalCausalHashState := by
   classical
   exact {
-    cache := fun input =>
+    cache := QueryCache.ofFn fun input =>
       if MerkleHashInput view.secretKey.parameter input then view.cache input
       else none
     keygenCache := view.cache
@@ -818,6 +809,7 @@ theorem relTriple_globalEncodingHash_run_filtered
       (GlobalFilteredResultRelation Digest parameter leftBase left right) := by
   let input := Concrete.CacheView.encodingInput parameter leafIndex
     (message, randomness)
+  rw [Concrete.simulateQ_encodingHash_run, Concrete.simulateQ_encodingHash_run]
   change RelTriple
     ((fun result : HashOutput × QueryCache HashSpec =>
       (truncateHash result.1, result.2)) <$> (randomOracle input).run left)
@@ -910,9 +902,11 @@ theorem globalChainValueHighTableOfEdges_next
         (edge.1, edge.2.1, chainStepNextDigit edge.2.2) =
       high edge := by
   unfold globalChainValueHighTableOfEdges
-  simp only [chainStepNextDigit]
-  rw [dif_neg (by omega)]
-  congr 3
+  split
+  · rename_i hzero
+    simp [chainStepNextDigit] at hzero
+  · simp only [chainStepNextDigit]
+    congr 3
 
 noncomputable def globalCausalRevealHashQueryFromHigh
     (high : GlobalChainValueIndex → Digest)
@@ -1353,7 +1347,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
     left hleftSupport
   have htopSigned : left.secretKey.topSigned = right.1.1.secretKey.topSigned :=
     hrel.1.toStable.1.2.2.1
-  apply relTriple_of_evalDist_eq_left
+  apply relTriple_of_evalDistEq_left
     (Concrete.evalDist_precomputedCappedSign_materialized_eq_cappedSign
       left.keyResult hleftKey hrel.1.2.1 leftCache hstate.2.2.1
         request.leafIndex request.message)

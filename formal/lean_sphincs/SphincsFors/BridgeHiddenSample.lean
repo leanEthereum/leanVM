@@ -53,8 +53,8 @@ theorem uniform_mix (parameter : PublicParameter) :
 
 omit [Params] in
 theorem evalDist_uniform_congr {α : Type} [Fintype α] [Nonempty α] (left right : SampleableType α) :
-    𝒟[(@uniformSample α left : ProbComp α)] = 𝒟[(@uniformSample α right : ProbComp α)] := by
-  rw [@evalDist_uniformSample α left, @evalDist_uniformSample α right]
+    (@uniformSample α left : ProbComp α) =ᵈ (@uniformSample α right : ProbComp α) := by
+  exact fun p => SampleableType.prEvent_uniformSample_inst_irrel left right p
 
 noncomputable local instance sampleCellFintypeInst : Fintype SampleCell := sampleCellFintype
 noncomputable local instance sampleCellDecEq : DecidableEq SampleCell := Classical.decEq _
@@ -69,42 +69,35 @@ noncomputable local instance remainingSampleable : SampleableType RemainingOutpu
   SampleableType.ofFintype _
 
 omit [Params] in
-private theorem lift_pmf_bind {α β : Type} (distribution : PMF α) (next : α → PMF β) :
-    (liftM (distribution.bind next) : SPMF β) =
-      (liftM distribution >>= fun value => liftM (next value)) := liftM_bind distribution next
-
-omit [Params] in
-private theorem lift_pmf_map {α β : Type} (distribution : PMF α) (next : α → β) :
-    (liftM (distribution.map next) : SPMF β) = next <$> liftM distribution := liftM_map next distribution
+private theorem uniformSample_evalDistEq_pmf (T : Type) [Fintype T] [Nonempty T] [SampleableType T] :
+    ($ᵗ T : ProbComp T) =ᵈ PMF.uniformOfFintype T := by
+  refine evalDistEq_iff_forall_prEvent_eq_output.mpr fun x => ?_
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, PMF.probOutput_eq_apply,
+    PMF.uniformOfFintype_apply]
 
 theorem evalDist_mix (parameter : PublicParameter) :
-    𝒟[($ᵗ HiddenGraph.Table) >>= fun fixed => mix parameter fixed <$> ($ᵗ HiddenGraph.Table)] =
-      𝒟[($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)] := by
-  have h := congrArg (fun distribution : PMF HiddenGraph.Table =>
-    (liftM distribution : SPMF HiddenGraph.Table)) (uniform_mix parameter)
-  simp only [lift_pmf_bind, lift_pmf_map] at h
-  simp only [evalDist_bind, evalDist_map, evalDist_uniformSample]
-  exact h
+    (($ᵗ HiddenGraph.Table) >>= fun fixed => mix parameter fixed <$> ($ᵗ HiddenGraph.Table)) =ᵈ ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table) := by
+  have hu := uniformSample_evalDistEq_pmf HiddenGraph.Table
+  refine (hu.bind fun fixed => hu.map (mix parameter fixed)).trans ?_
+  rw [show ((PMF.uniformOfFintype HiddenGraph.Table) >>= fun fixed =>
+      mix parameter fixed <$> PMF.uniformOfFintype HiddenGraph.Table) =
+        PMF.uniformOfFintype HiddenGraph.Table from uniform_mix parameter]
+  exact hu.symm
 
 theorem evalDist_mix_bind {β : Type} (parameter : PublicParameter) (next : HiddenGraph.Table → ProbComp β) :
-    𝒟[($ᵗ HiddenGraph.Table) >>= next] =
-      𝒟[($ᵗ HiddenGraph.Table) >>= fun fixed => ($ᵗ HiddenGraph.Table) >>= fun fresh =>
-        next (mix parameter fixed fresh)] := by
-  have h := congrArg (fun distribution : SPMF HiddenGraph.Table => distribution >>= fun table => 𝒟[next table])
-    (evalDist_mix parameter)
-  simp only [← evalDist_bind, bind_assoc, bind_map_left] at h
+    (($ᵗ HiddenGraph.Table) >>= next) =ᵈ (($ᵗ HiddenGraph.Table) >>= fun fixed => ($ᵗ HiddenGraph.Table) >>= fun fresh =>
+        next (mix parameter fixed fresh)) := by
+  have h := (evalDist_mix parameter).bind_left next
+  simp only [bind_assoc, bind_map_left] at h
   exact h.symm
 
 omit [Params] in
 theorem evalDist_completion_bind {β : Type} (known : HiddenReveal.Knowledge Coordinate)
     (next : HiddenGraph.Table → ProbComp β) :
-    𝒟[HiddenReveal.completion known >>= next] =
-      𝒟[($ᵗ HiddenGraph.Table) >>= fun fresh => next (tableExtending known fresh)] := by
+    (HiddenReveal.completion known >>= next) =ᵈ (($ᵗ HiddenGraph.Table) >>= fun fresh => next (tableExtending known fresh)) := by
   unfold HiddenReveal.completion
   refine (Eager.evalDist_map_bind' _ _ _).trans ?_
-  have h := evalDist_uniform_congr HiddenReveal.tableSampleable hiddenTableSampleable
-  exact (evalDist_bind _ _).trans ((congrArg (fun distribution : SPMF HiddenGraph.Table =>
-    distribution >>= fun fresh => 𝒟[next (tableExtending known fresh)]) h).trans (evalDist_bind _ _).symm)
+  exact (evalDist_uniform_congr HiddenReveal.tableSampleable hiddenTableSampleable).bind_left _
 
 /-- One public/structural sample's hidden-row run at coordinate table `table`. -/
 noncomputable def hiddenRun (adversary : Adversary) (q : Nat) (parameterOutput : HashOutput)
@@ -124,52 +117,47 @@ noncomputable def hiddenRun (adversary : Adversary) (q : Nat) (parameterOutput :
 /-- **Hidden decomposition.** The seed-free experiment samples every public and structural
 value first and then the coordinate table as an exact completion of the known coordinates. -/
 theorem evalDist_seedFree_completion (adversary : Adversary) (q : Nat) :
-    𝒟[seedFreeExperiment adversary q] =
-      𝒟[do
+    seedFreeExperiment adversary q =ᵈ (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
         let remaining ← $ᵗ RemainingOutputs
         let outsideTable ← $ᵗ Eager.Table
         let table ← HiddenReveal.completion (knownOf (truncateHash parameterOutput) fixed)
-        hiddenRun adversary q parameterOutput fixed highs remaining outsideTable table] := by
+        hiddenRun adversary q parameterOutput fixed highs remaining outsideTable table) := by
   unfold seedFreeExperiment
-  rw [evalDist_material_graph_continuation]
-  apply evalDist_bind_congr'
-  intro parameterOutput
+  refine (evalDist_material_graph_continuation _).trans ?_
+  refine EvalDistEq.bind_right _ fun parameterOutput => ?_
   simp only [sampleSplitPair, bind_assoc, bind_map_left]
-  rw [evalDist_mix_bind (truncateHash parameterOutput)]
-  apply evalDist_bind_congr'
-  intro fixed
+  refine (evalDist_mix_bind (truncateHash parameterOutput) _).trans ?_
+  refine EvalDistEq.bind_right _ fun fixed => ?_
   simp only [joinedPair]
-  change 𝒟[($ᵗ HiddenGraph.Table) >>= fun fresh => ($ᵗ CoordinateHighs) >>= fun highs =>
+  change ($ᵗ HiddenGraph.Table) >>= (fun fresh => ($ᵗ CoordinateHighs) >>= fun highs =>
       ($ᵗ RemainingOutputs) >>= fun remaining => ($ᵗ Eager.Table) >>= fun outsideTable =>
         seedFreeRun adversary q
           (splitMaterial parameterOutput highs remaining (mix (truncateHash parameterOutput) fixed fresh))
-          (splitAnswers highs remaining (mix (truncateHash parameterOutput) fixed fresh)) outsideTable] = _
+          (splitAnswers highs remaining (mix (truncateHash parameterOutput) fixed fresh)) outsideTable) =ᵈ _
   simp only [seedFreeRun_mix]
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro highs
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro remaining
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro outsideTable
-  rw [evalDist_completion_bind]
-  rfl
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  refine EvalDistEq.bind_right _ fun highs => ?_
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  refine EvalDistEq.bind_right _ fun remaining => ?_
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  refine EvalDistEq.bind_right _ fun outsideTable => ?_
+  refine EvalDistEq.trans ?_ (evalDist_completion_bind
+    (knownOf (truncateHash parameterOutput) fixed) _).symm
+  exact EvalDistEq.rfl
 
 omit [Params] in
 theorem probEvent_bind_mono_support {α β γ : Type} (p : ProbComp α) (k₁ : α → ProbComp β)
     (k₂ : α → ProbComp γ) (event₁ : β → Prop) (event₂ : γ → Prop)
-    (h : ∀ a ∈ support p, Pr[event₁ | k₁ a] ≤ Pr[event₂ | k₂ a]) :
-    Pr[event₁ | p >>= k₁] ≤ Pr[event₂ | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum]
+    (h : ∀ a ∈ support p, Pr{let x ← k₁ a}[event₁ x] ≤ Pr{let x ← k₂ a}[event₂ x]) :
+    Pr{let x ← p >>= k₁}[event₁ x] ≤ Pr{let x ← p >>= k₂}[event₂ x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
   refine ENNReal.tsum_le_tsum fun a => ?_
   by_cases ha : a ∈ support p
   · exact mul_le_mul' le_rfl (h a ha)
-  · rw [probOutput_eq_zero_of_not_mem_support ha]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) ha]
     simp
 
 /-- The row model of one sample: high halves are the independent sampled ones. -/
@@ -202,8 +190,8 @@ event or a hidden-input stop in the existing stopped hidden-row experiment, aver
 public and structural samples. -/
 theorem seedFree_le_stopped (adversary : Adversary) (q : Nat)
     (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop) :
-    Pr[event | seedFreeExperiment adversary q] ≤
-      Pr[HiddenReveal.StopOr event | do
+    Pr{let x ← seedFreeExperiment adversary q}[event x] ≤
+      Pr{let x ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -214,16 +202,15 @@ theorem seedFree_le_stopped (adversary : Adversary) (q : Nat)
             (splitAnswers highs remaining fixed) outsideTable)
           (HiddenCost.erase (HiddenCost.trace
             (sampleProgram adversary q parameterOutput fixed highs remaining)))
-          (knownOf (truncateHash parameterOutput) fixed)] := by
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_seedFree_completion adversary q)]
+          (knownOf (truncateHash parameterOutput) fixed))}[(HiddenReveal.StopOr event) x] := by
+  rw [(evalDist_seedFree_completion adversary q).prEvent_eq]
   refine probEvent_bind_mono_support _ _ _ _ _ fun parameterOutput _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun fixed _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun highs _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun remaining _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun outsideTable _ => ?_
   unfold HiddenRows.stoppedExperiment
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_completion_bind _ _),
-    probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_completion_bind _ _)]
+  rw [(evalDist_completion_bind _ _).prEvent_eq, (evalDist_completion_bind _ _).prEvent_eq]
   refine probEvent_bind_mono_support _ _ _ _ _ fun fresh _ => ?_
   have hagree := HiddenRows.knownAgrees_completion (knownOf (truncateHash parameterOutput) fixed) fresh
   have h := costRun_le_stopped (sampleModel parameterOutput highs)

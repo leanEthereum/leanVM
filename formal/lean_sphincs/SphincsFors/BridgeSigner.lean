@@ -251,17 +251,17 @@ theorem two_reads_bound₂ {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mode
     (hp1 : model.parse x1 = none) (state : DebtState D R ι) (u0 : R) (hc0 : state.cache x0 = some u0)
     (rest : R → R → OracleComp (SourceCostSpec D R ι) β)
     (havoid : ∀ a b, Avoids (fun x => x = x0 ∨ x = x1) (rest a b)) (g : R → R → ℝ≥0∞) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
         (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x0)))) >>= fun a =>
-          liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x1)))) >>= fun b => rest a b) budget state] *
+          liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x1)))) >>= fun b => rest a b) budget state)}[x = out] *
         (if out.1.1.isSome then (out.2.cache x0).elim 0 (fun a => (out.2.cache x1).elim 0 (g a)) else 0) ≤
-      (state.cache x1).elim (∑' u, Pr[= u | ($ᵗ R : ProbComp R)] * g u0 u) (g u0) := by
+      (state.cache x1).elim (∑' u, Pr{let x ← ($ᵗ R : ProbComp R)}[x = u] * g u0 u) (g u0) := by
   have hinner : ∀ a b (s : DebtState D R ι) b', s.cache x0 = some u0 → s.cache x1 = some b →
-      ∑' out, Pr[= out | interp tg initial model (rest a b) b' s] *
+      ∑' out, Pr{let x ← interp tg initial model (rest a b) b' s}[x = out] *
         (if out.1.1.isSome then (out.2.cache x0).elim 0 (fun a => (out.2.cache x1).elim 0 (g a)) else 0) ≤
           g u0 b := by
     intro a b s b' hs0 hs1
-    calc _ ≤ ∑' out, Pr[= out | interp tg initial model (rest a b) b' s] * g u0 b := by
+    calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (rest a b) b' s}[x = out] * g u0 b := by
           refine ENNReal.tsum_le_tsum fun out => ?_
           by_cases hout : out ∈ support (interp tg initial model (rest a b) b' s)
           · have hk0 := interp_avoids_cache tg initial model _ (rest a b) (havoid a b) b' s out hout x0 (Or.inl rfl)
@@ -271,15 +271,15 @@ theorem two_reads_bound₂ {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mode
             · rw [hk0, hs0, hk1, hs1]
               rfl
             · exact bot_le
-          · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
+          · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
       _ ≤ g u0 b := by
           rw [ENNReal.tsum_mul_right]
-          exact mul_le_of_le_one_left' tsum_probOutput_le_one
+          exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   rw [interp_ordinary]
   split_ifs with h0
   · rw [ordinaryStep, hp0]
     simp only
-    rw [readOutside_cached x0 state u0 hc0, pure_bind, tsum_probOutput_map_mul]
+    rw [readOutside_cached x0 state u0 hc0, pure_bind, OracleComp.tsum_prEvent_map_mul]
     simp only
     rw [interp_ordinary]
     split_ifs with h1
@@ -287,19 +287,19 @@ theorem two_reads_bound₂ {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mode
       simp only
       cases hc1 : state.cache x1 with
       | some u1 =>
-          rw [readOutside_cached x1 state u1 hc1, pure_bind, tsum_probOutput_map_mul]
+          rw [readOutside_cached x1 state u1 hc1, pure_bind, OracleComp.tsum_prEvent_map_mul]
           exact hinner u0 u1 state _ hc0 hc1
       | none =>
           simp only [Option.elim]
-          rw [readOutside_fresh x1 state hc1, bind_map_left, tsum_probOutput_bind_mul]
+          rw [readOutside_fresh x1 state hc1, bind_map_left, OracleComp.tsum_prEvent_bind_mul]
           refine ENNReal.tsum_le_tsum fun u => ?_
           gcongr
-          rw [tsum_probOutput_map_mul]
+          rw [OracleComp.tsum_prEvent_map_mul]
           exact hinner u0 u (state.store x1 u) _ (by rw [store_cache_ne state x1 x0 hne u]; exact hc0)
             (by simp [DebtState.store])
-    · rw [tsum_probOutput_pure_mul]
+    · rw [OracleComp.tsum_prEvent_pure_mul]
       simp
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     simp
 
 end SphincsFors.Security.HiddenDebt

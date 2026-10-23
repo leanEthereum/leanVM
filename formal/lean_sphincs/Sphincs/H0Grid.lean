@@ -48,7 +48,7 @@ theorem telescope : ∀ (d : ℕ) (g : (Fin d → FPos) → ℝ) (x : Fin d → 
   | 0, g, x => by
       rw [Fintype.sum_unique]
       simp only [deltaF]
-      rw [if_pos (fun i => i.elim0), one_mul]
+      rw [ite_eq_left (fun i => i.elim0), one_mul]
       congr 1
       funext i
       exact i.elim0
@@ -59,7 +59,7 @@ theorem telescope : ∀ (d : ℕ) (g : (Fin d → FPos) → ℝ) (x : Fin d → 
             (if x 0 ≤ y then (1 : ℝ) else 0) * (if ∀ i, Fin.tail x i ≤ m' i then (1 : ℝ) else 0) := by
         intro y m'
         by_cases h0 : x 0 ≤ y
-        · rw [if_pos h0, one_mul]
+        · rw [ite_eq_left h0, one_mul]
           congr 1
           apply propext
           constructor
@@ -70,7 +70,7 @@ theorem telescope : ∀ (d : ℕ) (g : (Fin d → FPos) → ℝ) (x : Fin d → 
             refine Fin.cases ?_ (fun j => ?_) i
             · simpa using h0
             · simpa [Fin.tail] using h j
-        · rw [if_neg h0, zero_mul, if_neg]
+        · rw [ite_eq_right h0, zero_mul, ite_eq_right]
           intro h
           exact h0 (by simpa using h 0)
       have hdel : ∀ (y : FPos) (m' : Fin d → FPos), deltaF (d + 1) g (Fin.cons y m') =
@@ -124,13 +124,13 @@ theorem avgR_maxCw_le {u : ℕ} (m : FChain → FPos) :
       show (Finset.univ.sup fun k => (lut (c k) i).val) ≤ (m i).val
       exact Finset.sup_le fun k _ => h k i
   by_cases hall : ∀ i, maxCw c i ≤ m i
-  · rw [if_pos hall]
-    exact (Finset.prod_eq_one fun k _ => if_pos (hiff.1 hall k)).symm
-  · rw [if_neg hall]
+  · rw [ite_eq_left hall]
+    exact (Finset.prod_eq_one fun k _ => ite_eq_left (hiff.1 hall k)).symm
+  · rw [ite_eq_right hall]
     rw [hiff] at hall
     push Not at hall
     obtain ⟨k, hk⟩ := hall
-    exact (Finset.prod_eq_zero (Finset.mem_univ k) (if_neg (by push Not; exact hk))).symm
+    exact (Finset.prod_eq_zero (Finset.mem_univ k) (ite_eq_right (by push Not; exact hk))).symm
 
 /-- **`f(u)` on the grid.** -/
 theorem fR_grid (u : ℕ) : fR u = ∑ m : FChain → FPos, Hm m ^ u * deltaF childChains Hm m := by

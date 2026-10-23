@@ -124,7 +124,7 @@ theorem keygenTopTargetInput_topChainInput (secretKey : SecretKey) (cache : Quer
         Concrete.CacheView.topChainInput secretKey.parameter address.1 address.2.1 address.2.2
           value' := ⟨(key, chain, step), value, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topChain.injEq] at hdomain
@@ -149,7 +149,7 @@ theorem keygenTopTargetInput_topLeafInput (secretKey : SecretKey) (cache : Query
       Concrete.CacheView.topLeafInput secretKey.parameter key endpoints =
         Concrete.CacheView.topLeafInput secretKey.parameter key' endpoints' := ⟨key, endpoints, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot, dif_pos hex]
+  rw [dite_eq_right hnot, dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topLeaf.injEq] at hdomain
@@ -180,7 +180,7 @@ theorem keygenTopTargetInput_topMerkleInput (secretKey : SecretKey) (cache : Que
         Concrete.CacheView.topMerkleInput secretKey.parameter address.1 address.2 left' right' :=
     ⟨(level, node), left, right, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot1, dif_neg hnot2, dif_pos hex]
+  rw [dite_eq_right hnot1, dite_eq_right hnot2, dite_eq_left hex]
   obtain ⟨_, _, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topMerkle.injEq] at hdomain
@@ -216,7 +216,7 @@ theorem keygenTopTargetInput_topEncodingInput (secretKey : SecretKey) (cache : Q
         Concrete.CacheView.topEncodingInput secretKey.parameter key' payload' :=
     ⟨key, payload, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot1, dif_neg hnot2, dif_neg hnot3, dif_pos hex]
+  rw [dite_eq_right hnot1, dite_eq_right hnot2, dite_eq_right hnot3, dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topEncoding.injEq] at hdomain
@@ -233,6 +233,7 @@ variable (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
 
 include hkeygen hle
 
+set_option maxRecDepth 10000 in
 /-- A cached top chain step that collides with the honest one at its address. -/
 theorem topChainCollision_afterKeygen
     (key : TopIndex) (chain : ChainIndex) (step : ChainStep) (forgedValue : Digest)
@@ -264,6 +265,7 @@ theorem topChainCollision_afterKeygen
     rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
       Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt] at hstepCollision
 
+set_option maxRecDepth 10000 in
 /-- A cached top leaf that collides with the honest one of its key. -/
 theorem topLeafCollision_afterKeygen
     (key : TopIndex) (forgedEndpoints : ChainIndex → Digest) (forgedOutput : HashOutput)
@@ -354,6 +356,7 @@ theorem topOrdered_honestNodePair_eq_children (cache : QueryCache HashSpec)
     rcases hchildren with ⟨hleft, hright⟩
     simp [topOrderedNodePair, hbitFalse, hleft, hright]
 
+set_option maxRecDepth 10000 in
 /-- A cached top node on a path that collides with the honest one at its address. -/
 theorem topMerkleCollision_afterKeygen
     (key : TopIndex) (level : MerkleLevel)
@@ -404,11 +407,12 @@ theorem topMerkleCollision_afterKeygen
     exact hhonestCached
   · rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput]
     unfold Concrete.CacheView.topNodeHash at heq
-    rw [dif_pos level.isLt, dif_pos level.isLt] at heq
+    rw [dite_eq_left level.isLt, dite_eq_left level.isLt] at heq
     rw [topNodeInput_eq_topMerkleInput_ordered, topNodeInput_eq_topMerkleInput_ordered,
       hhonestInitial] at heq
     exact heq
 
+set_option maxRecDepth 10000 in
 /-- A cached top message digest input, other than the honest selected trial, with its digest. -/
 theorem topEncodingCollision_afterKeygen
     (key : TopIndex) (randomness : Randomness) (encoding : Encoding)

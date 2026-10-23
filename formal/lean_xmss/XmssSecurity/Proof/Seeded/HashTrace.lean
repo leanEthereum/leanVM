@@ -67,26 +67,25 @@ theorem traceHits_prepend (bad : HashInput → Prop) (input : OracleWorld.Domain
 
 theorem probOutput_stopBefore_none {α : Type} (bad : HashInput → Prop) [DecidablePred bad]
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    Pr[= none | (simulateQ romImpl (stopBefore (hashBad bad) computation)).run' cache] =
-      Pr[fun result => TraceHits bad result.2 |
-        (simulateQ romImpl (traceHashes computation)).run' cache] := by
+    Pr{let x ← (simulateQ romImpl (stopBefore (hashBad bad) computation)).run' cache}[x = none] =
+      Pr{let result ← (simulateQ romImpl (traceHashes computation)).run' cache}[TraceHits bad result.2] := by
   classical
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value => simp [stopBefore_pure, traceHashes_pure, TraceHits]
   | query_bind input next ih =>
       rw [stopBefore_query_bind, traceHashes_query_bind]
       by_cases hbad : hashBad bad input
-      · rw [if_pos hbad, run'_query_bind]
+      · rw [ite_eq_left hbad, run'_query_bind]
         simp [bind_pure_comp, simulateQ_map, StateT.run'_eq, StateT.run_map]
-        intro a b answer cache' _ a' inputs cache'' _ _ hb
-        rw [← hb, traceHits_prepend]
-        exact Or.inl hbad
-      · rw [if_neg hbad, run'_query_bind, run'_query_bind]
-        simp only [probOutput_bind_eq_tsum, probEvent_bind_eq_tsum]
+        simp only [traceHits_prepend, hbad, true_or]
+        rw [← map_bind, OracleComp.prEvent_true_eq_one]
+      · rw [ite_eq_right hbad, run'_query_bind, run'_query_bind]
+        simp only [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
         apply tsum_congr
         intro result
         rw [ih result.1 result.2]
         simp only [bind_pure_comp, simulateQ_map, StateT.run'_eq, StateT.run_map,
-          Functor.map_map, probEvent_map, Function.comp_def, traceHits_prepend, hbad, false_or]
+          Functor.map_map, traceHits_prepend, hbad, false_or]
+
 
 end XmssSecurity.Seeded

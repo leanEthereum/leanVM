@@ -1,5 +1,7 @@
 import SphincsFors.SecurityChainWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic FORS extraction for the candidate's 24 trees. An opening recovering the canonical
 FORS key either exposes the canonical secrets and paths, or one of its actual oracle queries
@@ -135,7 +137,7 @@ theorem tree_classification (f : QueryImpl HashSpec Id) (parameter : PublicParam
       funext level
       by_cases hlevel : level.val < ftsTopLevel
       · have hp := hpath level.val hlevel
-        simpa only [extendPath, dif_pos level.isLt] using hp
+        simpa only [extendPath, dite_eq_left level.isLt] using hp
       · have hlast : level = ⟨ftsTopLevel, by decide⟩ := by
           apply Fin.ext
           have := level.isLt

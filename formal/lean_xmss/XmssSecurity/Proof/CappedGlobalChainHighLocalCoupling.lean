@@ -608,7 +608,7 @@ theorem simulate_eagerTrace_globalProbeQuery
     RevealProbeOracleSimulation.eagerTraceImpl,
     RevealProbeOracleSimulation.eagerImpl,
     RevealProbeOracleSimulation.traceFragment,
-    QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+    WriterT.run_tell]
 
 theorem globalRunObserved_probe_hit_hidden
     (table : GlobalChainValueIndex → Digest)

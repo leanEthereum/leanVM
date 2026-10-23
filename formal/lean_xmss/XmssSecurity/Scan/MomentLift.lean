@@ -1,6 +1,6 @@
 import XmssSecurity.Scan.Moment
-import Mathlib.Data.ENNReal.Real
-import Mathlib.Data.ENNReal.Operations
+import Mathlib.Basic.ENNReal.Real
+import Mathlib.Basic.ENNReal.Operations
 
 /-!
 # The quadratic potential in `ℝ≥0∞`
@@ -49,7 +49,7 @@ theorem F3_encoding (hp : 1 / 2 ^ 21 ≤ p) (hp' : p ≤ 1 / 2 ^ 20) (hQ : Q ≤
   have hA : 0 ≤ momentA p Q := by unfold momentA momentK; have : (0 : ℝ) ≤ 2 - p := by linarith
                                   positivity
   unfold F3
-  rw [if_pos hn1, if_pos hn1, if_pos hnQ, ← ENNReal.ofReal_mul hp0.le, ← ENNReal.ofReal_mul (by linarith),
+  rw [ite_eq_left hn1, ite_eq_left hn1, ite_eq_left hnQ, ← ENNReal.ofReal_mul hp0.le, ← ENNReal.ofReal_mul (by linarith),
     ← ENNReal.ofReal_add (mul_nonneg hp0.le (Λ_add_nonneg hp0 hp1 _ hn1))
       (mul_nonneg (by linarith) (Λ_add_nonneg hp0 hp1 _ hn1)),
     ← ENNReal.ofReal_add (Λ_add_nonneg hp0 hp1 _ hnQ) hA]

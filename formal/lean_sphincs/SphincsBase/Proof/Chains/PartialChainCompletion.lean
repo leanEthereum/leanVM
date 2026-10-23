@@ -29,8 +29,8 @@ theorem knownCount_mono {n : Nat} {before after : Fin n → State → Option Sta
   apply Finset.sum_le_sum
   intro start _
   by_cases hknown : knownRun before start = some endpoint
-  · simp only [if_pos hknown, if_pos (knownRun_mono h start endpoint hknown), le_refl]
-  · simp only [if_neg hknown, Nat.zero_le]
+  · simp only [ite_eq_left hknown, ite_eq_left (knownRun_mono h start endpoint hknown), le_refl]
+  · simp only [ite_eq_right hknown, Nat.zero_le]
 
 noncomputable def targetCount : {n : Nat} → (Fin n → State → Option State) → State → Nat
   | 0, _, _ => 0
@@ -92,7 +92,7 @@ theorem knownCount_sum_le_queried {n : Nat} (observed : Fin (n + 1) → State �
   cases hrow : observed 0 start with
   | none => simp [knownRun, hrow]
   | some value =>
-      simp only [reduceCtorEq, if_false]
+      simp only [reduceCtorEq, ite_false]
       split <;> omega
 
 theorem completedCount_le_queryCount {n : Nat} (observed : Fin n → State → Option State) :

@@ -7,13 +7,13 @@ attribute [local instance] Classical.propDecidable
 
 private theorem weighted_event_le_bound {Result : Type} (law : PMF Result) (weight : Result → ENNReal)
     (event : Result → Prop) [DecidablePred event] (bound : ENNReal) (hbound : ∀ result, weight result ≤ bound) :
-    (∑' result, law result * (weight result * if event result then 1 else 0)) ≤ bound * Pr[event | law] := by
-  rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+    (∑' result, law result * (weight result * if event result then 1 else 0)) ≤ bound * Pr{let x ← law}[event x] := by
+  rw [PMF.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
   apply ENNReal.tsum_le_tsum
   intro result
   by_cases hevent : event result
-  · simpa only [hevent, if_true, mul_one, PMF.probOutput_eq_apply, mul_comm] using mul_le_mul' (hbound result) (le_refl (law result))
-  · simp only [hevent, if_false, mul_zero, le_refl]
+  · simpa only [hevent, ite_true, mul_one, PMF.probOutput_eq_apply, mul_comm] using mul_le_mul' (hbound result) (le_refl (law result))
+  · simp only [hevent, ite_false, mul_zero, le_refl]
 
 variable {State : Type} [Fintype State] [DecidableEq State] [Nonempty State]
 
@@ -41,9 +41,9 @@ theorem row_update_charge (prior : PMF State) (observed : State → Option State
       intro start
       apply mul_le_mul' le_rfl
       by_cases hs : start = input
-      · rw [if_pos hs]
+      · rw [ite_eq_left hs]
         exact (PMF.coe_le_one _ endpoint).trans (_root_.le_add_of_nonneg_left bot_le)
-      · simp only [Function.update_of_ne hs, if_neg hs, add_zero, le_refl]
+      · simp only [Function.update_of_ne hs, ite_eq_right hs, add_zero, le_refl]
     _ = _ := by
       simp only [mul_add, ENNReal.tsum_add, mul_ite, mul_one, mul_zero, tsum_ite_eq, PMF.bind_apply]
 

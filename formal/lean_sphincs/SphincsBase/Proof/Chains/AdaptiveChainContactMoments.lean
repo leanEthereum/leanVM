@@ -44,9 +44,9 @@ theorem lazyRun_contactCount_le (auxiliary : QueryImpl auxSpec PMF)
   apply lazyRun_potential_le auxiliary (fun current => (contactCount current endpoint : ENNReal)) (1 / Fintype.card State)
   intro input current
   cases input with
-  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, if_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
+  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, ite_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
   | inr query =>
-      simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, if_true, Nat.cast_one, mul_one]
+      simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, ite_true, Nat.cast_one, mul_one]
       exact contactCount_observe_le current query endpoint
 
 theorem lazyRun_contactFactorial_le (auxiliary : QueryImpl auxSpec PMF)
@@ -62,13 +62,13 @@ theorem lazyRun_contactFactorial_le (auxiliary : QueryImpl auxSpec PMF)
     (fun _ _ => _root_.le_add_of_nonneg_right bot_le) ?_ computation observed budget le_rfl hbound
   intro input current remaining hremaining hpositive
   cases input with
-  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, if_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
+  | inl input => simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, ite_false, Nat.cast_zero, mul_zero, add_zero, le_refl]
   | inr query =>
       have hpos : 0 < remaining := by simpa only [IsPrefixQuery, not_true_eq_false, false_or] using hpositive
       cases remaining with
       | zero => omega
       | succ remaining =>
-          simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, if_true, Nat.cast_one, mul_one, Nat.add_sub_cancel]
+          simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, ite_true, Nat.cast_one, mul_one, Nat.add_sub_cancel]
           exact contactMomentPotential_observe_le current query endpoint remaining budget (by omega)
 
 theorem lazyRun_empty_contactCount_le (auxiliary : QueryImpl auxSpec PMF)

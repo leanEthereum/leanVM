@@ -86,7 +86,7 @@ theorem run_queryBound (computation : OracleComp spec Result) (budget : Nat) :
   | query_bind input next ih =>
       rw [run_query_bind]
       by_cases hselected : selected input
-      · rw [if_pos hselected]
+      · rw [ite_eq_left hselected]
         cases budget with
         | zero => exact isQueryBoundP_pure selected none 0
         | succ budget =>
@@ -107,11 +107,11 @@ theorem run_bind (computation : OracleComp spec Result) (next : Result → Oracl
   | query_bind input continuation ih =>
       rw [bind_assoc, run_query_bind, run_query_bind]
       by_cases hselected : selected input
-      · rw [if_pos hselected, if_pos hselected]
+      · rw [ite_eq_left hselected, ite_eq_left hselected]
         cases budget with
         | zero => simp only [pure_bind]
         | succ budget => simp only [bind_assoc, ih]
-      · simp only [if_neg hselected, bind_assoc, ih]
+      · simp only [ite_eq_right hselected, bind_assoc, ih]
 
 def finish (budget : Nat) (result : Result × Nat) : Option (Result × Nat) :=
   if result.2 ≤ budget then some (result.1, budget - result.2) else none
@@ -122,21 +122,21 @@ theorem run_eq_counted (impl : QueryImpl spec PMF) (computation : OracleComp spe
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure result =>
       simp only [run_pure, counted_pure, simulateQ_pure, ← PMF.monad_map_eq_map, map_pure,
-        finish, Nat.zero_le, if_true, Nat.sub_zero]
+        finish, Nat.zero_le, ite_true, Nat.sub_zero]
   | query_bind input next ih =>
       rw [run_query_bind, counted_query_bind]
       by_cases hselected : selected input
-      · rw [if_pos hselected]
+      · rw [ite_eq_left hselected]
         cases budget with
         | zero =>
             simp only [simulateQ_pure, simulateQ_bind, simulateQ_spec_query, PMF.monad_bind_eq_bind,
               PMF.monad_pure_eq_pure, PMF.map, PMF.bind_bind, PMF.pure_bind, Function.comp_def,
-              finish, if_pos hselected, Nat.add_comm 1, Nat.add_one_le_iff, Nat.not_lt_zero, if_false, PMF.bind_const]
+              finish, ite_eq_left hselected, Nat.add_comm 1, Nat.add_one_le_iff, Nat.not_lt_zero, ite_false, PMF.bind_const]
         | succ budget =>
             simp only [simulateQ_bind, simulateQ_spec_query, ih, simulateQ_pure, PMF.monad_bind_eq_bind,
-              PMF.monad_pure_eq_pure, PMF.map, PMF.bind_bind, PMF.pure_bind, Function.comp_def, finish, if_pos hselected,
+              PMF.monad_pure_eq_pure, PMF.map, PMF.bind_bind, PMF.pure_bind, Function.comp_def, finish, ite_eq_left hselected,
               Nat.add_comm 1, Nat.add_le_add_iff_right, Nat.add_sub_add_right]
-      · simp only [if_neg hselected, simulateQ_bind, simulateQ_spec_query, ih, simulateQ_pure,
+      · simp only [ite_eq_right hselected, simulateQ_bind, simulateQ_spec_query, ih, simulateQ_pure,
           PMF.monad_bind_eq_bind, PMF.monad_pure_eq_pure, PMF.map, PMF.bind_bind, PMF.pure_bind, Function.comp_def,
           Nat.zero_add, Prod.mk.eta]
 

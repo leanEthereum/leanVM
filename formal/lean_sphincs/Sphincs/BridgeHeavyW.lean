@@ -129,13 +129,13 @@ theorem coreH_newPair (hw : w ≤ 1) {s : State} {P : List Pair} {Ms : List Mess
     unfold candH candValueH
     rw [pview_withPair_self]
     by_cases hu : Unsigned L p
-    · rw [if_pos hu]
+    · rw [ite_eq_left hu]
       by_cases hF : (viewOf u0).1 ∈ Fail
-      · rw [if_pos hF, if_pos hF]
+      · rw [ite_eq_left hF, ite_eq_left hF]
         exact le_self_add
-      · rw [if_neg hF, if_neg hF, zero_add]
+      · rw [ite_eq_right hF, ite_eq_right hF, zero_add]
         exact termH_stop (witness_props _) hM hT hb p hp0 L (· = p) rfl u0 hl d n k
-    · rw [if_neg hu]
+    · rw [ite_eq_right hu]
       exact bot_le
   have hpoint : ∀ u0, coreH parameter data Qtot w b0 Fail (withPair parameter data s p u0)
       (addPair parameter P p u0) Ms' L d n k ≤
@@ -148,9 +148,9 @@ theorem coreH_newPair (hw : w ≤ 1) {s : State} {P : List Pair} {Ms : List Mess
     refine add_le_add (add_le_add ?_ le_rfl) le_rfl
     unfold addPair
     by_cases hl : Landed parameter (blockIndex u0)
-    · rw [if_pos hl, if_pos hl, List.map_cons, List.sum_cons]
+    · rw [ite_eq_left hl, ite_eq_left hl, List.map_cons, List.sum_cons]
       exact add_le_add (hnew u0 hl) le_rfl
-    · rw [if_neg hl, if_neg hl, zero_add]
+    · rw [ite_eq_right hl, ite_eq_right hl, zero_add]
   refine le_trans (pairE_mono hpoint) ?_
   simp only [pairE_add, pairE_const_mul, pairE_const, pairE_list_sum]
   have h1 : pairE (fun u0 => if Landed parameter (blockIndex u0) then
@@ -205,10 +205,10 @@ theorem potH_grow (hw : w ≤ 1) (Lmax : ℕ) {s s' : State} (hext : Extends s s
   unfold potH
   refine add_le_add ?_ (lam_mono le_rfl hk)
   by_cases hr : Realized tg initial s' ∨ signatureLimit < L.length
-  · rw [if_pos hr]; exact bot_le
+  · rw [ite_eq_left hr]; exact bot_le
   · have hr' : ¬(Realized tg initial s ∨ signatureLimit < L.length) := fun h' =>
       hr (h'.imp (realized_of_extends tg initial hext) id)
-    rw [if_neg hr, if_neg hr', coreH_blocks w b0 Fail h]
+    rw [ite_eq_right hr, ite_eq_right hr', coreH_blocks w b0 Fail h]
     exact coreH_mono w b0 Fail hw s P Ms L d _ hk
 
 end OrderH
@@ -262,9 +262,9 @@ theorem walk_avg_le_sgnM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (
     | some u0 =>
         simp only [Option.elim]
         split_ifs with hl hx
-        · simp only [hgp, if_pos hx, add_zero, le_refl]
+        · simp only [hgp, ite_eq_left hx, add_zero, le_refl]
         · have hv : pview parameter data s (m, ρ) = viewOf u0 := pview_of_cached h0
-          simp only [hgp, if_neg hx, hv]
+          simp only [hgp, ite_eq_right hx, hv]
           rw [add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))]
         · rw [add_zero]
           exact hX _ _ (Multiset.le_add_right _ _)
@@ -279,7 +279,7 @@ theorem upper_scanW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = no
     (hkind : ∀ ρ, tg.kind (blk parameter data m ρ) = .none)
     (X : Multiset View → ℝ≥0∞) (s : State) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
             outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
@@ -290,16 +290,16 @@ theorem upper_scanW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = no
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
   set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
   set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hscan : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hscan : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
       weight tg initial s * (c * ∑ start, walk nextRand landing (stOf parameter data m s)
         (poolValue parameter data m s gp) (freshAvg Finset.univ gf) 0 digestAttemptLimit start) := by
     unfold signCostSource
-    rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-    have hpr : ∀ ρ, Pr[= ρ | ($ᵗ Randomness : ProbComp Randomness)] = c := by
+    rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
       intro ρ
-      rw [probOutput_uniformSample]
+      rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]
     rw [ENNReal.tsum_mul_left, tsum_fintype]
     refine le_trans (mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ =>
@@ -318,7 +318,7 @@ theorem sign_termSW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = no
     (hkind : ∀ ρ, tg.kind (blk parameter data m ρ) = .none)
     {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
             outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
@@ -340,7 +340,7 @@ theorem term_expectHW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
     (hkind : ∀ ρ, tg.kind (blk parameter data m ρ) = .none) (hf : MonoFin f)
     {Ms : List Message} (hM : MInv parameter data s Ms) {budgetT : ℕ} (hT : TotalInv parameter data Qtot s budgetT)
     {L : QueryLog SigningSpec} (hm : MsgLive L m) (excl : Pair → Prop) (budget k : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d f L Ms excl out J) k []) ≤
       weight tg initial s * termH parameter data Qtot w s Ms L excl f d (n + 1) k := by
@@ -365,7 +365,7 @@ theorem term_expectHW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
       (heavyMsg_eq_some_iff hT).2 ⟨hperm.mem_iff.2 (List.mem_cons_self ..), hH⟩
     have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm (restMsgs m L Ms) := by
       have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, if_neg (by simpa using hH)] at h1
+      rw [List.filter_cons, ite_eq_right (by simpa using hH)] at h1
       rw [← hlightR]
       exact h1
     refine le_trans (sign_termSW tg initial model parameter data m hparse hkind hX s d excl budget)
@@ -397,7 +397,7 @@ theorem term_expectHW (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = 
     have hlightV : (lightMsgs parameter data Qtot s (live L (addMsg Ms m))).Perm
         (m :: lightMsgs parameter data Qtot s (restMsgs m L Ms)) := by
       have h1 := hperm.filter (fun m' => decide (¬Heavy parameter data Qtot s m'))
-      rw [List.filter_cons, if_pos (by simpa using hH)] at h1
+      rw [List.filter_cons, ite_eq_left (by simpa using hH)] at h1
       exact h1
     refine le_trans (upper_expectW tg initial model parameter data m hparse hkind hX s d excl budget)
       (mul_le_mul' le_rfl (le_of_eq ?_))
@@ -465,14 +465,14 @@ theorem sign_pointH (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     budget s hprep out hout r hr
   have hshape := sign_shape parameter data Fail m hpost out rfl hr
   by_cases hcase : Realized tg initial out.2 ∨ signatureLimit < (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length
-  · rw [if_pos hcase]; exact bot_le
-  rw [if_neg hcase]
+  · rw [ite_eq_left hcase]; exact bot_le
+  rw [ite_eq_right hcase]
   have hreal : ¬Realized tg initial s := fun h => hcase (Or.inl (realized_of_extends tg initial hext h))
   have hlen : L.length < signatureLimit := by
     have := hcase
     simp only [List.length_append, List.length_singleton, not_or, not_lt] at this
     omega
-  rw [if_neg (by push Not; exact ⟨hreal, hlen⟩)]
+  rw [ite_eq_right (by push Not; exact ⟨hreal, hlen⟩)]
   have hn : signatureLimit - (L ++ [⟨m, r⟩] : QueryLog SigningSpec).length = signatureLimit - (L.length + 1) := by simp
   rw [hn]
   set n := signatureLimit - (L.length + 1) with hndef
@@ -504,7 +504,7 @@ theorem sign_pointH (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     unfold candH
     by_cases hU' : Unsigned (L ++ [⟨m, r⟩] : QueryLog SigningSpec) q
     · have hU := unsigned_of_append hU'
-      rw [if_pos hU', if_pos hU, hview q hq]
+      rw [ite_eq_left hU', ite_eq_left hU, hview q hq]
       split_ifs with hF
       · exact le_rfl
       · unfold candValueH
@@ -513,7 +513,7 @@ theorem sign_pointH (hparse : ∀ p, model.parse (pblk parameter data p) = none)
           s Ms L d hprep out hout r hr (· = q) (fun sig hsig _ heq => ?_) n hk
         subst hsig
         exact not_unsigned_signed (m := m) (L := L) (by rw [heq]; exact hU')
-    · rw [if_neg hU']
+    · rw [ite_eq_right hU']
       exact bot_le
   · -- the excess forecast
     refine mul_le_mul' (by exact_mod_cast hk) (add_le_add ?_ le_rfl)
@@ -527,18 +527,18 @@ theorem sign_expectHW (hparse : ∀ p, model.parse (pblk parameter data p) = non
     (budget : ℕ) (s : State) (P : List Pair) (Ms : List Message)
     (L : QueryLog SigningSpec) (hm : MsgLive L m) (d : Multiset View) (hM : MInv parameter data s Ms)
     {budgetT : ℕ} (hT : TotalInv parameter data Qtot s budgetT) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 * (if Realized tg initial s ∨ signatureLimit ≤ L.length then 0
           else canonH parameter data Qtot w b0 Fail m s P Ms L d (signatureLimit - (L.length + 1)) budget out)) ≤
       weight tg initial s * (if Realized tg initial s ∨ signatureLimit < L.length then 0
         else coreH parameter data Qtot w b0 Fail s P Ms L d (signatureLimit - L.length) budget) := by
   by_cases hcase : Realized tg initial s ∨ signatureLimit ≤ L.length
-  · simp only [if_pos hcase, mul_zero, tsum_zero]
+  · simp only [ite_eq_left hcase, mul_zero, tsum_zero]
     exact bot_le
-  simp only [if_neg hcase]
+  simp only [ite_eq_right hcase]
   have hcase' : ¬Realized tg initial s ∧ L.length < signatureLimit := by push Not at hcase; exact hcase
   have hlen := hcase'.2
-  rw [if_neg (by rintro (h | h); exact hcase'.1 h; omega)]
+  rw [ite_eq_right (by rintro (h | h); exact hcase'.1 h; omega)]
   set n := signatureLimit - (L.length + 1) with hn
   have hn1 : signatureLimit - L.length = n + 1 := by omega
   rw [hn1]
@@ -546,11 +546,11 @@ theorem sign_expectHW (hparse : ∀ p, model.parse (pblk parameter data p) = non
   have hkind' : ∀ ρ, tg.kind (blk parameter data m ρ) = .none := fun ρ => hkind (m, ρ)
   have hconst := fun c => interp_weight_constW tg initial model (s := s)
     (signCostSource parameter data m) budget c
-  have hFN : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hFN : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (weight tg initial out.2 * freshNewWeight parameter data m s (fun v => if v.1 ∈ Fail then 1 else 0) out) ≤
       weight tg initial s * failMass Fail :=
     fresh_expectW tg initial model parameter data m hparse' hkind' s _ budget
-  have hTm : ∀ q ∈ P, ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hTm : ∀ q ∈ P, ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (weight tg initial out.2 * (if Unsigned L q then (if (pview parameter data s q).1 ∈ Fail then 1 else
         creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d (witnessFn (pview parameter data s q))
           L Ms (· = q) out J) budget []) else 0)) ≤
@@ -562,13 +562,13 @@ theorem sign_expectHW (hparse : ∀ p, model.parse (pblk parameter data p) = non
     · unfold candValueH
       exact term_expectHW tg initial model hparse' hkind' (witness_props _) hM hT hm _ budget budget
     · exact hconst 0
-  have hH : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hH : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (weight tg initial out.2 * creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d (excess b0)
         L Ms (fun _ => False) out J) budget []) ≤
       weight tg initial s * hValueH parameter data Qtot w b0 s Ms L d (n + 1) budget := by
     unfold hValueH
     exact term_expectHW tg initial model hparse' hkind' (excess_props b0) hM hT hm _ budget budget
-  have hLS : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hLS : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (weight tg initial out.2 * (P.map fun q => if Unsigned L q then (if (pview parameter data s q).1 ∈ Fail then 1
         else creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d
           (witnessFn (pview parameter data s q)) L Ms (· = q) out J) budget [])
@@ -577,21 +577,21 @@ theorem sign_expectHW (hparse : ∀ p, model.parse (pblk parameter data p) = non
     simp only [← mul_assoc]
     rw [tsum_list_sum, ← List.sum_map_mul_left]
     exact List.sum_le_sum fun q hq => by simpa only [mul_assoc] using hTm q hq
-  have hHC : ∑' out, Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+  have hHC : ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
       (weight tg initial out.2 * ((budget : ℝ≥0∞) * (creations Finset.univ landing
         (fun J => upperH parameter data Qtot w m s n d (excess b0) L Ms (fun _ => False) out J) budget [] +
           failMass Fail))) ≤
       weight tg initial s * ((budget : ℝ≥0∞) * (hValueH parameter data Qtot w b0 s Ms L d (n + 1) budget +
         failMass Fail)) := by
     have hpt : ∀ out : Run HashInput Coordinate (Option Signature) × State,
-        Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * ((budget : ℝ≥0∞) * (creations Finset.univ landing
             (fun J => upperH parameter data Qtot w m s n d (excess b0) L Ms (fun _ => False) out J) budget [] +
               failMass Fail))) =
-        (budget : ℝ≥0∞) * (Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        (budget : ℝ≥0∞) * (Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * creations Finset.univ landing
             (fun J => upperH parameter data Qtot w m s n d (excess b0) L Ms (fun _ => False) out J) budget [])) +
-        (budget : ℝ≥0∞) * (Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        (budget : ℝ≥0∞) * (Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * failMass Fail)) := by
       intro out
       ring
@@ -601,20 +601,20 @@ theorem sign_expectHW (hparse : ∀ p, model.parse (pblk parameter data p) = non
           add_le_add (mul_le_mul' le_rfl hH) (mul_le_mul' le_rfl (hconst _))
       _ = _ := by ring
   have hsplit : ∀ out : Run HashInput Coordinate (Option Signature) × State,
-      Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+      Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 * canonH parameter data Qtot w b0 Fail m s P Ms L d n budget out) =
-      Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+      Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * freshNewWeight parameter data m s (fun v => if v.1 ∈ Fail then 1 else 0) out) +
-        Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * (P.map fun q => if Unsigned L q then (if (pview parameter data s q).1 ∈ Fail then 1
             else creations Finset.univ landing (fun J => upperH parameter data Qtot w m s n d
               (witnessFn (pview parameter data s q)) L Ms (· = q) out J) budget [])
             else 0).sum) +
-        Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * ((budget : ℝ≥0∞) * (creations Finset.univ landing
             (fun J => upperH parameter data Qtot w m s n d (excess b0) L Ms (fun _ => False) out J) budget [] +
               failMass Fail))) +
-        Pr[= out | interp tg initial model (signCostSource parameter data m) budget s] *
+        Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
           (weight tg initial out.2 * ((n : ℝ≥0∞) * failMass Fail)) := by
     intro out
     unfold canonH
@@ -647,7 +647,7 @@ def GoodHW (L : QueryLog SigningSpec) (prog : OracleComp CostSpec HiddenBridge.O
   ∀ budget (s : State) (P : List Pair) (Ms : List Message) (d : Multiset View) (R : List Coordinate),
     Prepared initial s → PInv parameter data s P → MInv parameter data s Ms → DInv R d →
       TotalInv parameter data Qtot s budget →
-      ∑' out, Pr[= out | interp tg initial model prog budget s] *
+      ∑' out, Pr{let x ← interp tg initial model prog budget s}[x = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
         weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * wflag tg initial model prog budget s
@@ -659,22 +659,22 @@ theorem goodHW_draw (L : QueryLog SigningSpec) (draw : ℕ)
       (liftM (CostSpec.query (.inl (.inl draw))) >>= next) := by
   intro budget s P Ms d R hprep hP hM hD hT
   have hw : wflag tg initial model (liftM (CostSpec.query (.inl (.inl draw))) >>= next) budget s =
-      ∑' v, Pr[= v | (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))] *
+      ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         wflag tg initial model (next v) budget s := by
     rw [wflag_query_bind]
-    refine (if_pos (Nat.zero_le budget)).trans ?_
-    change ∑' r, Pr[= r | (fun v => (v, s)) <$> (liftM (unifSpec.query draw) : ProbComp _)] *
+    refine (ite_eq_left (Nat.zero_le budget)).trans ?_
+    change ∑' r, Pr{let x ← (fun v => (v, s)) <$> (liftM (unifSpec.query draw) : ProbComp _)}[x = r] *
       (0 + wflag tg initial model (next r.1) (budget - 0) r.2) = _
-    rw [tsum_probOutput_map_mul]
+    rw [OracleComp.tsum_prEvent_map_mul]
     simp only [zero_add, Nat.sub_zero]
-  rw [hw, interp_draw, tsum_probOutput_bind_mul]
-  calc _ ≤ ∑' v, Pr[= v | (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))] *
+  rw [hw, interp_draw, OracleComp.tsum_prEvent_bind_mul]
+  calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * wflag tg initial model (next v) budget s) :=
         ENNReal.tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hprep hP hM hD hT) _
     _ ≤ _ := by
         simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-        refine add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) (le_of_eq ?_)
+        refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) (le_of_eq ?_)
         simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
 
 /-- The potential part of a new pair, when the coin pays the rate of its message if it is live and
@@ -685,7 +685,7 @@ theorem new_pair_coreH (hw : w ≤ 1) (L : QueryLog SigningSpec)
     (hT : TotalInv parameter data Qtot s budget) (p : Pair)
     (hp0 : s.cache (pblk parameter data p) = none)
     (hrate : MsgLive L p.1 → ¬Heavy parameter data Qtot s p.1 → Rate parameter data w s p.1) :
-    ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
         potH parameter data Qtot w b0 Fail tg initial Lmax (withPair parameter data s p u) (addPair parameter P p u)
           (addMsg Ms p.1) L d (budget - 1) ≤
       potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
@@ -693,7 +693,7 @@ theorem new_pair_coreH (hw : w ≤ 1) (L : QueryLog SigningSpec)
   set n := signatureLimit - L.length with hn
   set ℓ := (livePairs L P).length with hℓ
   -- the cap term keeps its mean
-  have hlam : ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+  have hlam : ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
       lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) ≤ lam Lmax ℓ budget := by
     by_cases hlive : MsgLive L p.1
     · have hl : ∀ u, lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
@@ -702,7 +702,7 @@ theorem new_pair_coreH (hw : w ≤ 1) (L : QueryLog SigningSpec)
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_pos (by simpa using hlive), List.length_cons]
+        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
           rfl
         · rfl
       simp only [hl]
@@ -713,11 +713,11 @@ theorem new_pair_coreH (hw : w ≤ 1) (L : QueryLog SigningSpec)
         intro u
         unfold addPair livePairs
         split_ifs with hl
-        · rw [List.filter_cons, if_neg (by simpa using hlive)]
+        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
           rfl
         · rfl
       simp only [hl, ENNReal.tsum_mul_right]
-      exact le_trans (mul_le_of_le_one_left' tsum_probOutput_le_one) (lam_mono le_rfl (Nat.sub_le _ _))
+      exact le_trans (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) (lam_mono le_rfl (Nat.sub_le _ _))
   unfold potH
   simp only [mul_add, ENNReal.tsum_add]
   rw [add_right_comm]
@@ -726,9 +726,9 @@ theorem new_pair_coreH (hw : w ≤ 1) (L : QueryLog SigningSpec)
   · refine le_of_eq_of_le (ENNReal.tsum_eq_zero.2 fun u => ?_) bot_le
     have hr' : Realized tg initial (withPair parameter data s p u) ∨ signatureLimit < L.length :=
       hr.imp (realized_of_extends tg initial (extends_store s (pblk parameter data p) u hp0)) id
-    rw [if_pos hr', mul_zero]
+    rw [ite_eq_left hr', mul_zero]
   · have hreal : ¬Realized tg initial s := fun h' => hr (Or.inl h')
-    rw [if_neg hreal, mul_one, if_neg hr]
+    rw [ite_eq_right hreal, mul_one, ite_eq_right hr]
     have hcore : coreH parameter data Qtot w b0 Fail s P Ms L d n budget =
         coreH parameter data Qtot w b0 Fail s P Ms L d n (budget - 1 + 1) := by rw [Nat.sub_add_cancel hb]
     rw [hcore]
@@ -750,23 +750,23 @@ theorem new_pair_boundHW (hkind : ∀ p, tg.kind (pblk parameter data p) = .none
     (hM : MInv parameter data s Ms) (hD : DInv R d)
     (hT : TotalInv parameter data Qtot s budget) (p : Pair)
     (hp0 : s.cache (pblk parameter data p) = none) :
-    ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next u) (budget - 1)
-          (s.store (pblk parameter data p) u)] * (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
+    ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
+        ∑' out, Pr{let x ← (interp tg initial model (next u) (budget - 1)
+          (s.store (pblk parameter data p) u))}[x = out] * (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
       weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
         b0 * (weight tg initial s +
-          ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
             wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u)) := by
   have hws : ∀ u, weight tg initial (s.store (pblk parameter data p) u) = weight tg initial s := fun u =>
     weight_store_untargetedW tg initial s _ u (hkind p)
   set ℓ := (livePairs L P).length with hℓ
   by_cases hcap : 1 ≤ lam Lmax ℓ budget
   · -- more landed pairs than the cap: the cap term pays everything
-    calc _ ≤ ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * weight tg initial s :=
+    calc _ ≤ ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * weight tg initial s :=
           ENNReal.tsum_le_tsum fun u => mul_le_mul_right
             ((finalW_le parameter data tg initial model (next u) (budget - 1) _ R).trans (hws u).le) _
       _ ≤ weight tg initial s := by
-          rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' tsum_probOutput_le_one
+          rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
       _ ≤ weight tg initial s * lam Lmax ℓ budget := le_mul_of_one_le_right' hcap
       _ ≤ _ := by
           unfold potH
@@ -777,8 +777,8 @@ theorem new_pair_boundHW (hkind : ∀ p, tg.kind (pblk parameter data p) = .none
   have hrate : MsgLive L p.1 → ¬Heavy parameter data Qtot s p.1 → Rate parameter data w s p.1 :=
     fun hlive hnh => rate_of_fair hfair s p.1 (le_trans (cachedCount_le_of_not_heavy hnh) hQ)
       (le_trans (landedCount_le hP L hlive) hlen)
-  have hone : ∀ u, ∑' out, Pr[= out | interp tg initial model (next u) (budget - 1)
-        (s.store (pblk parameter data p) u)] * (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
+  have hone : ∀ u, ∑' out, Pr{let x ← (interp tg initial model (next u) (budget - 1)
+        (s.store (pblk parameter data p) u))}[x = out] * (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
       weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax (withPair parameter data s p u)
           (addPair parameter P p u) (addMsg Ms p.1) L d (budget - 1) +
         b0 * wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u) := fun u => by
@@ -789,7 +789,7 @@ theorem new_pair_boundHW (hkind : ∀ p, tg.kind (pblk parameter data p) = .none
   simp only [mul_add, ENNReal.tsum_add]
   rw [← add_assoc]
   refine add_le_add ?_ (le_of_eq ?_)
-  · calc _ = weight tg initial s * ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+  · calc _ = weight tg initial s * ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
           potH parameter data Qtot w b0 Fail tg initial Lmax (withPair parameter data s p u)
             (addPair parameter P p u) (addMsg Ms p.1) L d (budget - 1) := by
           simp only [mul_left_comm _ (weight tg initial s), ENNReal.tsum_mul_left]
@@ -802,7 +802,7 @@ theorem new_pair_boundHW (hkind : ∀ p, tg.kind (pblk parameter data p) = .none
           refine add_le_add le_rfl ?_
           rw [mul_left_comm]
           refine mul_le_mul_right ?_ _
-          split_ifs <;> simp
+          split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
   · simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
 
 /-- **One ordinary query, weighted.** -/
@@ -817,7 +817,7 @@ theorem goodHW_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = n
   intro budget s P Ms d R hprep hP hM hD hT
   by_cases hb : 1 ≤ budget
   swap
-  · rw [interp_ordinary, if_neg hb, tsum_probOutput_pure_mul, finalValue_abort, mul_zero]
+  · rw [interp_ordinary, ite_eq_right hb, OracleComp.tsum_prEvent_pure_mul, finalValue_abort, mul_zero]
     exact bot_le
   rw [finalValueW_ordinary parameter data tg initial model R x next budget hb s,
     wflag_ordinary tg initial model x next budget hb s]
@@ -825,24 +825,24 @@ theorem goodHW_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = n
   · obtain ⟨p, rfl, hp0⟩ := hnew
     rw [ordinaryStep, hparse p]
     simp only
-    rw [readOutside_fresh _ s hp0, tsum_probOutput_map_mul, tsum_probOutput_map_mul]
+    rw [readOutside_fresh _ s hp0, OracleComp.tsum_prEvent_map_mul, OracleComp.tsum_prEvent_map_mul]
     have hpay : wpays tg initial s (.inl (.inr (.inl (pblk parameter data p)))) = weight tg initial s := by
       change (if tg.digest (pblk parameter data p) then weight tg initial s else 0) = _
-      rw [if_pos (hdigest p)]
+      rw [ite_eq_left (hdigest p)]
     rw [hpay]
-    have hsum : ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    have hsum : ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
         (weight tg initial s + wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u)) =
-        weight tg initial s + ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+        weight tg initial s + ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
           wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p) u) := by
-      simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, tsum_probOutput_eq_one' probFailure_eq_zero,
+      simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _,
         one_mul]
     rw [hsum]
     exact new_pair_boundHW parameter data Qtot w b0 Fail Lmax tg initial model hkind hfair hQ L next h budget hb
       s P Ms d R hprep hP hM hD hT p hp0
-  · have hmean : ∑' r, Pr[= r | ordinaryStep model x s.known s] * weight tg initial r.2 ≤ weight tg initial s := by
+  · have hmean : ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * weight tg initial r.2 ≤ weight tg initial s := by
       have := meanWeight_costStep_leW tg initial model (.inl (.inr (.inl x))) s
       rwa [costStep_ordinary] at this
-    calc _ ≤ ∑' r, Pr[= r | ordinaryStep model x s.known s] *
+    calc _ ≤ ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           (weight tg initial r.2 * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
             b0 * wflag tg initial model (next r.1) (budget - 1) r.2) := by
           refine ENNReal.tsum_le_tsum fun r => ?_
@@ -857,11 +857,11 @@ theorem goodHW_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = n
               (totalInv_ordinary model hT hb x r hr)) (add_le_add ?_ le_rfl)
             exact mul_le_mul_right
               (potH_grow w b0 Fail tg initial hfair.le_one Lmax hext hblocks P Ms L d (Nat.sub_le _ _)) _
-          · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
+          · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
       _ ≤ _ := by
           simp only [mul_add, ENNReal.tsum_add]
           refine add_le_add ?_ ?_
-          · calc _ = (∑' r, Pr[= r | ordinaryStep model x s.known s] * weight tg initial r.2) *
+          · calc _ = (∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * weight tg initial r.2) *
                   potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget := by
                   rw [← ENNReal.tsum_mul_right]
                   exact tsum_congr fun r => by ring
@@ -873,7 +873,7 @@ theorem goodHW_ordinary (hparse : ∀ p, model.parse (pblk parameter data p) = n
 theorem goodHW_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery) (verified : Bool) :
     GoodHW parameter data Qtot w b0 Fail Lmax tg initial model L (pure (forgery, L, verified)) := by
   intro budget s P Ms d R hprep hP hM hD hT
-  rw [wflag_pure, mul_zero, add_zero, interp_pure, tsum_probOutput_pure_mul]
+  rw [wflag_pure, mul_zero, add_zero, interp_pure, OracleComp.tsum_prEvent_pure_mul]
   refine mul_le_mul_right ?_ _
   unfold finalValue
   simp only [Option.elim, List.append_nil]
@@ -900,7 +900,7 @@ theorem goodHW_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery
       have hv : pview parameter data s q = Lifetime.localDigestView (truncateMessageDigest a) := by
         simp only [pview, h0, Option.elim, viewOf]
       unfold potH
-      rw [if_neg (by
+      rw [ite_eq_right (by
         rintro (h | h)
         · exact hreal h
         · exact absurd hvalid (by simp [SigningTranscript.Valid]; omega))]
@@ -908,7 +908,7 @@ theorem goodHW_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery
       unfold coreH
       refine le_trans ?_ (le_trans (List.le_sum_of_mem (List.mem_map_of_mem hqP)) (le_self_add.trans le_self_add))
       unfold candH
-      rw [if_pos (show Unsigned L q from hunsigned)]
+      rw [ite_eq_left (show Unsigned L q from hunsigned)]
       split_ifs
       · exact le_rfl
       · unfold candValueH
@@ -954,18 +954,18 @@ theorem goodHW_sign (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     if Realized tg initial s ∨ signatureLimit ≤ L.length then 0
     else canonH parameter data Qtot w b0 Fail m s P Ms L d (signatureLimit - (L.length + 1)) budget o1 with hcanonR
   have hpoint : ∀ o1 ∈ support (interp tg initial model sign budget s),
-      ∑' out, Pr[= out | interpThen tg initial model next budget o1] *
+      ∑' out, Pr{let x ← interpThen tg initial model next budget o1}[x = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
         weight tg initial o1.2 * (canonR o1 + lam Lmax ℓ budget) + b0 * cont o1 := by
     intro o1 ho1
     cases hres : o1.1.1 with
     | none =>
-        rw [interpThen_none tg initial model next budget o1 hres, tsum_probOutput_pure_mul]
+        rw [interpThen_none tg initial model next budget o1 hres, OracleComp.tsum_prEvent_pure_mul]
         have h0 : finalValue parameter data tg initial R ((none, o1.1.2.1, o1.1.2.2.1, o1.1.2.2.2), o1.2) = 0 := rfl
         rw [h0, mul_zero]
         exact bot_le
     | some r =>
-        rw [interpThen_some tg initial model next budget o1 r hres, tsum_probOutput_map_mul]
+        rw [interpThen_some tg initial model next budget o1 r hres, OracleComp.tsum_prEvent_map_mul]
         obtain ⟨hprep', hP', hM', hD', _, _⟩ := sign_paramsS tg initial model Fail Qtot hparse (hfail m)
           budget s P Ms d R hprep hP hM hD hT.countInv o1 ho1 r hres
         have hT' : TotalInv parameter data Qtot o1.2 (budget - traceCost o1.1.2.2.1) :=
@@ -1001,20 +1001,20 @@ theorem goodHW_sign (hparse : ∀ p, model.parse (pblk parameter data p) = none)
         · unfold potH
           exact add_le_add hpot hlam
         · simp only [hcont, hres, Option.elim, le_refl]
-  have hflag : ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * cont o1 ≤
+  have hflag : ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * cont o1 ≤
       wflag tg initial model (sign >>= next) budget s := by
     rw [wflag_bind]
     exact le_add_self
-  rw [interp_bind, tsum_probOutput_bind_mul]
-  calc _ ≤ ∑' o1, Pr[= o1 | interp tg initial model sign budget s] *
+  rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
+  calc _ ≤ ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] *
         (weight tg initial o1.2 * (canonR o1 + lam Lmax ℓ budget) + b0 * cont o1) := by
         refine ENNReal.tsum_le_tsum fun o1 => ?_
         by_cases ho1 : o1 ∈ support (interp tg initial model sign budget s)
         · exact mul_le_mul_right (hpoint o1 ho1) _
-        · rw [probOutput_eq_zero_of_not_mem_support ho1, zero_mul, zero_mul]
-    _ = ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * (weight tg initial o1.2 * canonR o1) +
-          ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * (weight tg initial o1.2 * lam Lmax ℓ budget) +
-          b0 * ∑' o1, Pr[= o1 | interp tg initial model sign budget s] * cont o1 := by
+        · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
+    _ = ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * (weight tg initial o1.2 * canonR o1) +
+          ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * (weight tg initial o1.2 * lam Lmax ℓ budget) +
+          b0 * ∑' o1, Pr{let x ← interp tg initial model sign budget s}[x = o1] * cont o1 := by
         simp only [mul_add, ENNReal.tsum_add, mul_left_comm _ b0, ENNReal.tsum_mul_left]
     _ ≤ _ := by
         unfold potH

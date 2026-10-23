@@ -101,8 +101,7 @@ theorem rightProgD_bind (sk : Sphincs.Seeded.SecretKey) {β γ : Type} (M : Orac
   simp only [rightProgD, simulateQ_bind, StateT.run_bind, WriterT.run_bind]
 
 def BlockD (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β) : Prop :=
-  ∀ short long, 𝒟[leftView <$> leftRun (leftProgD sk M) (merge short long)] =
-    𝒟[rightView <$> rightRun (rightProgD sk M long) short]
+  ∀ short long, (leftView <$> leftRun (leftProgD sk M) (merge short long)) =ᵈ (rightView <$> rightRun (rightProgD sk M long) short)
 
 theorem BlockD.bind {sk : Sphincs.Seeded.SecretKey} {β γ : Type} {M : OracleComp AdvSpec β}
     {k : β → OracleComp AdvSpec γ} (hM : BlockD sk M) (hk : ∀ value, BlockD sk (k value)) :
@@ -213,7 +212,7 @@ theorem BlockD.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬I
       simp only [leftRun, countShort, rightRun, countHashQueries, simulateQ_pure, WriterT.run_pure,
         SphincsBase.QueryCap.counted_pure, StateT.run_pure, map_pure]
       rw [PreparedScheme.counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
-      change 𝒟[_ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long)))] = _
+      change _ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long))) =ᵈ _
       rw [QueryImpl.withCaching_run_some _ (hlookup.trans hc)]
       simp [leftView, rightView, ShortQuery, h]
   | none =>
@@ -225,10 +224,8 @@ theorem BlockD.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬I
         rightRun_map, rightRun_liftProb, Functor.map_map, Functor.map_map, leftRun_longQuery h,
         QueryImpl.withCaching_run_none _ (hlookup.trans hc)]
       simp only [Functor.map_map]
-      have hsample : 𝒟[(uniformSampleImpl (spec := HashSpec) input : ProbComp HashOutput)] =
-          𝒟[($ᵗ HashOutput : ProbComp HashOutput)] := by
-        change 𝒟[($ᵗ (HashSpec.Range input) : ProbComp _)] = _
-        rw [evalDist_uniformSample]
+      have hsample : (uniformSampleImpl (spec := HashSpec) input : ProbComp HashOutput) =ᵈ ($ᵗ HashOutput : ProbComp HashOutput) := by
+        exact EvalDistEq.rfl
       refine evalDist_map_congr_of_evalDist_eq _ _ hsample _ _ (fun answer => ?_)
       simp only [leftView, rightView, merge_cacheQuery_long short long h]
 
@@ -302,10 +299,9 @@ theorem gameAfterSeedDet_eq (adversary : Adversary) (seed : MasterSeed) :
 
 theorem restD_rel (adversary : Adversary) (keys : PublicKey × Sphincs.Seeded.SecretKey)
     (short : QueryCache HashSpec) :
-    𝒟[(fun result => result.1) <$>
-        leftRun (leftProgD keys.2 (adversary.main keys.1) >>= verifyPart keys.1) (merge short ∅)] =
-      𝒟[(fun result => result.1) <$>
-        rightRun (leftProgD keys.2 ((internalize adversary).main keys.1) >>= verifyPart keys.1) short] := by
+    ((fun result => result.1) <$>
+        leftRun (leftProgD keys.2 (adversary.main keys.1) >>= verifyPart keys.1) (merge short ∅)) =ᵈ ((fun result => result.1) <$>
+        rightRun (leftProgD keys.2 ((internalize adversary).main keys.1) >>= verifyPart keys.1) short) := by
   rw [show (internalize adversary).main keys.1 =
       (simulateQ internalImpl (adversary.main keys.1)).run' ∅ from rfl, leftProgD_internal,
     leftRun_bind, rightRun_bind, map_bind, map_bind]
@@ -316,14 +312,13 @@ theorem restD_rel (adversary : Adversary) (keys : PublicKey × Sphincs.Seeded.Se
   · simp only [Functor.map_map]
     rfl
   · simp only [Functor.map_map]
-    change _ = 𝒟[_ <$> leftRun (verifyPart keys.1 (first.1.1.1.1, first.1.1.2))
-      (merge first.2 first.1.1.1.2)]
+    change _ =ᵈ _ <$> leftRun (verifyPart keys.1 (first.1.1.1.1, first.1.1.2))
+      (merge first.2 first.1.1.1.2)
     rw [leftRun_short _ (OnlyW.verifyPart _ _), Functor.map_map]
     rfl
 
 theorem gameAfterSeedDet_rel (adversary : Adversary) (seed : MasterSeed) (short : QueryCache HashSpec) :
-    𝒟[(fun result => result.1) <$> leftRun (gameAfterSeedDet adversary seed) (merge short ∅)] =
-      𝒟[(fun result => result.1) <$> rightRun (gameAfterSeedDet (internalize adversary) seed) short] := by
+    ((fun result => result.1) <$> leftRun (gameAfterSeedDet adversary seed) (merge short ∅)) =ᵈ ((fun result => result.1) <$> rightRun (gameAfterSeedDet (internalize adversary) seed) short) := by
   rw [gameAfterSeedDet_eq, gameAfterSeedDet_eq, leftRun_bind, rightRun_bind, map_bind, map_bind]
   refine evalDist_bind_rel _ _ id (fun result => (result.1, merge result.2 ∅))
     (by rw [leftRun_short _ (OnlyW.liftHash (Short.Seeded.Only.keygenFromSeed seed)), Functor.map_map]
@@ -351,8 +346,7 @@ theorem experimentDet_eq_rightRun (adversary : Adversary) :
   rfl
 
 theorem evalDist_experimentDet_internalize (adversary : Adversary) :
-    𝒟[experimentDet (internalize adversary)] =
-      𝒟[(fun result => result.1) <$> leftRun (gameCoreDet adversary) ∅] := by
+    experimentDet (internalize adversary) =ᵈ ((fun result => result.1) <$> leftRun (gameCoreDet adversary) ∅) := by
   rw [experimentDet_eq_rightRun, gameCoreDet_eq_sampling, gameCoreDet_eq_sampling,
     show leftRun ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
       gameAfterSeedDet adversary) ∅ = leftRun ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
@@ -382,13 +376,12 @@ attribute [local irreducible] experimentDet count2 leftRun rightRun sampleMaster
 
 /-- Internalizing long inputs never lowers the probability of a budgeted win. -/
 theorem budgetedWin_le_internalize (adversary : Adversary) (q : Nat) :
-    Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experimentDet adversary] ≤
-      Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-        experimentDet (internalize adversary)] := by
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experimentDet_internalize adversary),
-    experimentDet_eq_rightRun, leftRun_eq_split, rightRun_eq_split, probEvent_map, probEvent_map,
-    probEvent_map, probEvent_map]
-  refine probEvent_mono fun result _ hresult => ⟨hresult.1, ?_⟩
+    Pr{let result ← experimentDet adversary}[result.1 = true ∧ result.2 ≤ q] ≤
+      Pr{let result ← experimentDet (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] := by
+  rw [(evalDist_experimentDet_internalize adversary).prEvent_eq,
+    experimentDet_eq_rightRun, leftRun_eq_split, rightRun_eq_split, prEvent_map, prEvent_map,
+    prEvent_map, prEvent_map]
+  refine prEvent_mono_of_support _ _ _ fun result _ hresult => ⟨hresult.1, ?_⟩
   exact le_trans (Nat.le_add_right _ _) hresult.2
 
 end Budgeted
@@ -442,23 +435,24 @@ open SeedModel Graph Assembly Eager in
 /-- The internalized deterministic experiment from a uniform scheme seed as an average of
 fixed-function counted games. -/
 theorem evalDist_experimentMasterDet_fixed (adversary : Adversary) :
-    𝒟[experimentMasterDet (internalize adversary)] = 𝒟[do
+    experimentMasterDet (internalize adversary) =ᵈ (do
       let material ← sampleMaterial
       let seed ← sampleMasterSeed
       let answers ← $ᵗ CanonicalGraphLabels
       let table ← $ᵗ Eager.Table
       simulateQ (fixedRom (extend (preparedCache material seed answers) table))
-        (countHashQueries (gameAfterMasterDet (internalize adversary) seed))] := by
-  rw [experimentMasterDet, gameCoreMasterDet, evalDist_seeded_prepared_counted]
-  refine evalDist_bind_congr' _ (fun material => evalDist_bind_congr' _ (fun seed => ?_))
+        (countHashQueries (gameAfterMasterDet (internalize adversary) seed))) := by
+  rw [experimentMasterDet, gameCoreMasterDet]
+  refine (evalDist_seeded_prepared_counted _).trans ?_
+  refine EvalDistEq.bind_right _ (fun material => EvalDistEq.bind_right _ (fun seed => ?_))
   rw [← simulateQ_countHashQueries]
-  change 𝒟[(simulateQ romImpl (countHashQueries (gameAfterMasterDet (internalize adversary) seed))).run'
-    (programCache ∅ seed material)] = _
-  rw [evalDist_graph_continuation (parameter material) (GraphCorrectness.materialOts material)
+  change (simulateQ romImpl (countHashQueries (gameAfterMasterDet (internalize adversary) seed))).run'
+    (programCache ∅ seed material) =ᵈ _
+  refine (evalDist_graph_continuation (parameter material) (GraphCorrectness.materialOts material)
     (GraphCorrectness.materialFts material) _ (PrunedGraph.active (parameter material))
     (PrunedGraph.initialLabels (parameter material) (GraphCorrectness.materialSurrogates material))
-    _ (material_freshStructural (parameter material) seed material)]
-  refine evalDist_bind_congr' _ (fun answers => ?_)
+    _ (material_freshStructural (parameter material) seed material)).trans ?_
+  refine EvalDistEq.bind_right _ (fun answers => ?_)
   exact evalDist_romImpl_eq_table _
     (OnlyW.counted _ _ (OnlyW.gameAfterMasterDet_internalize adversary seed)) _
 

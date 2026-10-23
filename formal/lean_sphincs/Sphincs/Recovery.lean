@@ -283,11 +283,11 @@ theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : T
       cases hbit : leaf.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd leaf.val levels hbit
-          simp only [if_true, eval_tweakableHash]
+          simp only [ite_true, eval_tweakableHash]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even leaf.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash]
           rw [hsib, hcur]
 
 /-- Every codeword has deficit sum 5. -/
@@ -417,7 +417,7 @@ theorem subNodeValue_succ (level node : Nat) (hlevel : level < subHeight) :
           (.subNode index c s j ⟨level, hlevel⟩ ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (subNodeValue f parameter index c s j seed level (2 * node))
             (subNodeValue f parameter index c s j seed level (2 * node + 1))))) := by
-  simp only [subNodeValue, Seeded.subNode, evalWithAnswerFn_bind, dif_pos hlevel, eval_tweakableHash]
+  simp only [subNodeValue, Seeded.subNode, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
 
 theorem subNodeValue_zero (a : ChildIdx) :
     subNodeValue f parameter index c s j seed 0 a.val = childLeafValue f parameter index c s j seed a := by
@@ -441,7 +441,7 @@ theorem eval_subFold_path (a : ChildIdx) (path : Fin subHeight → Digest) :
       have hlevels : levels < subHeight := Nat.lt_of_succ_le hheight
       rw [subFold, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight) (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
-      rw [dif_pos hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
+      rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
         subNodeValue_succ f parameter index c s j seed levels _ hlevels]
       have hnode : (⟨a.val / 2 ^ (levels + 1), Nat.lt_of_le_of_lt (Nat.div_le_self _ _) a.isLt⟩ : ChildIdx)
           = ⟨a.val / 2 ^ (levels + 1) % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ :=
@@ -449,11 +449,11 @@ theorem eval_subFold_path (a : ChildIdx) (path : Fin subHeight → Digest) :
       cases hbit : a.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd a.val levels hbit
-          simp only [if_true, eval_tweakableHash, hnode]
+          simp only [ite_true, eval_tweakableHash, hnode]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even a.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash, hnode]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash, hnode]
           rw [hsib, hcur]
 
 end Sub
@@ -476,7 +476,7 @@ theorem topNodeValue_succ (level node : Nat) (hlevel : level < topHeight) :
           (.topNode index c ⟨level, hlevel⟩ ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (topNodeValue f parameter index c seed level (2 * node))
             (topNodeValue f parameter index c seed level (2 * node + 1))))) := by
-  simp only [topNodeValue, Seeded.topNode, evalWithAnswerFn_bind, dif_pos hlevel, eval_tweakableHash]
+  simp only [topNodeValue, Seeded.topNode, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
 
 theorem topNodeValue_zero (s : SuperIdx) :
     topNodeValue f parameter index c seed 0 s.val = superValue f parameter index c seed s := by
@@ -499,7 +499,7 @@ theorem eval_topFold_path (s : SuperIdx) (path : Fin topHeight → Digest) :
       have hlevels : levels < topHeight := Nat.lt_of_succ_le hheight
       rw [topFold, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight) (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
-      rw [dif_pos hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
+      rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
         topNodeValue_succ f parameter index c seed levels _ hlevels]
       have hnode : (⟨s.val / 2 ^ (levels + 1), Nat.lt_of_le_of_lt (Nat.div_le_self _ _) s.isLt⟩ : SuperIdx)
           = ⟨s.val / 2 ^ (levels + 1) % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ :=
@@ -507,11 +507,11 @@ theorem eval_topFold_path (s : SuperIdx) (path : Fin topHeight → Digest) :
       cases hbit : s.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd s.val levels hbit
-          simp only [if_true, eval_tweakableHash, hnode]
+          simp only [ite_true, eval_tweakableHash, hnode]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even s.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash, hnode]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash, hnode]
           rw [hsib, hcur]
 
 end Top

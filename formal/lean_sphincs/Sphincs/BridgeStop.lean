@@ -61,26 +61,23 @@ theorem run_withAddCost_trace {m : Type → Type} [Monad m] [LawfulMonad m] {α 
 theorem liftM_id_pmf {α : Type} (x : α) : (liftM (show Id α from x) : PMF α) = PMF.pure x := rfl
 
 theorem evalDist_liftM_id {α : Type} (x : α) :
-    𝒟[(liftM (show Id α from x) : PMF α)] = 𝒟[(pure x : ProbComp α)] := by
+    (liftM (show Id α from x) : PMF α) =ᵈ (pure x : ProbComp α) := by
   rw [liftM_id_pmf]
-  simp
+  exact Assembly.evalDistEq_pure x
 
 theorem evalDist_fixedCostSource {α : Type} (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table)
     (computation : OracleComp CostSpec α) :
-    𝒟[(simulateQ (fixedCostSource f table) computation).run] =
-      𝒟[(fun result => (result.1, Multiplicative.ofAdd (traceCost result.2))) <$>
-        costRun f table computation] := by
+    ((simulateQ (fixedCostSource f table) computation).run) =ᵈ ((fun result => (result.1, Multiplicative.ofAdd (traceCost result.2))) <$>
+        costRun f table computation) := by
   rw [show fixedCostSource f table = (fixedCostPMF f table).withAddCost sourceCost from rfl,
-    run_withAddCost_trace, evalDist_map, evalDist_map, costRun]
-  congr 1
+    run_withAddCost_trace, costRun]
+  refine EvalDistEq.map ?_ _
   refine Assembly.evalDist_simulateQ_congr _ _ (fun input => ?_) _
   rcases input with (draw | (bytes | coordinate)) | amount
-  · change 𝒟[PMF.uniformOfFintype (Fin (draw + 1))] = 𝒟[(liftM (unifSpec.query draw) : ProbComp _)]
-    rw [evalDist_query]
+  · exact (Assembly.evalDistEq_unifQuery_pmf draw).symm
   · exact evalDist_liftM_id (f bytes)
   · exact evalDist_liftM_id (table coordinate)
-  · change 𝒟[PMF.pure ()] = 𝒟[(pure () : ProbComp _)]
-    simp
+  · exact Assembly.evalDistEq_pure ()
 
 /-! ### Identical until a marked ordinary input -/
 
@@ -108,25 +105,23 @@ both measured on the run with the unchanged function. -/
 theorem probEvent_costRun_le {α : Type} (f f₀ : HashInput → HashOutput) (table : HiddenGraph.Table)
     (marked : HashInput → Prop) (hagree : ∀ input, ¬marked input → f input = f₀ input)
     (computation : OracleComp CostSpec α) (event : α × List (Entry HashInput) → Prop) :
-    Pr[event | costRun f table computation] ≤
-      Pr[event | costRun f₀ table computation] +
-        Pr[fun result => Hits marked result.2 | costRun f₀ table computation] := by
+    Pr{let x ← costRun f table computation}[event x] ≤
+      Pr{let x ← costRun f₀ table computation}[event x] +
+        Pr{let result ← costRun f₀ table computation}[Hits marked result.2] := by
   induction computation using OracleComp.inductionOn generalizing event with
   | pure value => simp [costRun_pure]
   | query_bind input next ih =>
       by_cases hmarked : ∃ bytes, input = .inl (.inr (.inl bytes)) ∧ marked bytes
       · obtain ⟨bytes, rfl, hbytes⟩ := hmarked
-        have hone : Pr[fun result => Hits marked result.2 |
-            costRun f₀ table (liftM (CostSpec.query (.inl (.inr (.inl bytes)))) >>= next)] = 1 := by
-          rw [probEvent_eq_one_iff]
-          refine ⟨by simp, fun result hresult => ?_⟩
+        have hone : Pr{let result ← costRun f₀ table (liftM (CostSpec.query (.inl (.inr (.inl bytes)))) >>= next)}[Hits marked result.2] = 1 := by
+          refine OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun result hresult => ?_
           rw [costRun_query_bind, mem_support_bind_iff] at hresult
           obtain ⟨answer, _, hmap⟩ := hresult
           rw [support_map] at hmap
           obtain ⟨tail, _, rfl⟩ := hmap
           exact ⟨bytes, by simp [recorded], hbytes⟩
         rw [hone]
-        exact probEvent_le_one.trans (le_add_self)
+        exact (prEvent_le_one _).trans (le_add_self)
       · have hsame : fixedCostP f table input = fixedCostP f₀ table input := by
           rcases input with (draw | (bytes | coordinate)) | amount
           · rfl
@@ -137,20 +132,15 @@ theorem probEvent_costRun_le {α : Type} (f f₀ : HashInput → HashOutput) (ta
         have hnot : ∀ bytes, input = .inl (.inr (.inl bytes)) → ¬marked bytes :=
           fun bytes heq h => hmarked ⟨bytes, heq, h⟩
         rw [costRun_query_bind, costRun_query_bind, hsame]
-        simp only [probEvent_bind_eq_tsum, probEvent_map]
+        simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
         rw [← ENNReal.tsum_add]
         refine ENNReal.tsum_le_tsum (fun answer => ?_)
         rw [← mul_add]
         refine mul_le_mul' le_rfl ?_
         have h := ih answer (event ∘ fun result : α × List (Entry HashInput) =>
           (result.1, recorded input ++ result.2))
-        have hhit : (fun result : α × List (Entry HashInput) => Hits marked result.2) ∘
-            (fun result : α × List (Entry HashInput) => (result.1, recorded input ++ result.2)) =
-            fun result => Hits marked result.2 := by
-          funext result
-          exact propext (hits_append_recorded marked input result.2 hnot)
-        rw [hhit]
-        exact h
+        simp only [hits_append_recorded marked input _ hnot]
+        simpa only [Function.comp_def] using h
 
 /-! ### Capping the original budget -/
 
@@ -167,9 +157,8 @@ theorem cap_query_bind' {α : Type} (input : CostSpec.Domain)
 /-- Runs within the budget are runs of the capped program. -/
 theorem probEvent_costRun_le_cap {α : Type} (f : HashInput → HashOutput) (table : HiddenGraph.Table)
     (computation : OracleComp CostSpec α) (budget : Nat) (event : α → Prop) :
-    Pr[fun result => event result.1 ∧ traceCost result.2 ≤ budget | costRun f table computation] ≤
-      Pr[fun result => ∃ value, result.1 = some value ∧ event value |
-        costRun f table (cap computation budget)] := by
+    Pr{let result ← costRun f table computation}[event result.1 ∧ traceCost result.2 ≤ budget] ≤
+      Pr{let result ← costRun f table (cap computation budget)}[∃ value, result.1 = some value ∧ event value] := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value =>
       rw [cap_pure', costRun_pure, costRun_pure]
@@ -179,9 +168,9 @@ theorem probEvent_costRun_le_cap {α : Type} (f : HashInput → HashOutput) (tab
       split
       · rename_i hcost
         rw [costRun_query_bind, costRun_query_bind]
-        simp only [probEvent_bind_eq_tsum, probEvent_map]
+        simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
         refine ENNReal.tsum_le_tsum (fun answer => mul_le_mul' le_rfl ?_)
-        refine le_trans (probEvent_mono ?_) (ih answer (budget - sourceCost input))
+        refine le_trans (prEvent_mono_of_support _ _ _ ?_) (ih answer (budget - sourceCost input))
         intro result _ hresult
         refine ⟨hresult.1, ?_⟩
         have h : traceCost (recorded input ++ result.2) ≤ budget := hresult.2
@@ -189,13 +178,12 @@ theorem probEvent_costRun_le_cap {α : Type} (f : HashInput → HashOutput) (tab
         omega
       · rename_i hcost
         rw [costRun_query_bind]
-        simp only [probEvent_bind_eq_tsum, probEvent_map]
+        simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
         refine le_trans (le_of_eq ?_) bot_le
         refine ENNReal.tsum_eq_zero.2 (fun answer => ?_)
         rw [mul_eq_zero]
         right
-        rw [probEvent_eq_zero_iff]
-        intro result _ hresult
+        refine prEvent_eq_zero_of_forall_mem_support _ _ fun result _ hresult => ?_
         have h : traceCost (recorded input ++ result.2) ≤ budget := hresult.2
         rw [traceCost_append, recorded_cost] at h
         omega

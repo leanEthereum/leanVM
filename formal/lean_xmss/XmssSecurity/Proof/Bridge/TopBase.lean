@@ -1,3 +1,5 @@
+import VCVio.OracleComp.SimSemantics.StateT.Measure
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.Bridge.Naturality
 import XmssSecurity.Proof.Bridge.Program
 import XmssSecurity.Proof.Deterministic.FreshRequests
@@ -234,65 +236,62 @@ theorem freshRun_keygenKey (parameter : PublicParameter) (secret : LeafIndex →
 
 theorem evalDist_freshRun_table_key (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (topSecret : TopIndex → ChainIndex → Digest) (cache : QueryCache HashSpec) :
-    𝒟[(freshRun romImpl signTable (keygenTable parameter secret topSecret)).run cache] =
-      𝒟[(freshRun romImpl signKey (keygenKey parameter secret topSecret)).run cache] := by
+    ((freshRun romImpl signTable (keygenTable parameter secret topSecret)).run cache) =ᵈ
+      ((freshRun romImpl signKey (keygenKey parameter secret topSecret)).run cache) := by
   rw [freshRun_keygenTable, freshRun_keygenKey, keygenState_eq_table, keygenState_eq_table]
-  apply evalDist_simulateQ_run_congr
+  apply evalDistEq_simulateQ_run
   intro input state
   cases input with
   | inl input => rfl
   | inr pos =>
-      change 𝒟[((do
+      change (((do
           let tape ← liftM ($ᵗ HashOutput : ProbComp HashOutput)
-          pure (truncateHash tape)) : StateT (QueryCache HashSpec) ProbComp Randomness).run state] =
-        𝒟[((do
+          pure (truncateHash tape)) : StateT (QueryCache HashSpec) ProbComp Randomness).run state) =ᵈ
+        (((do
           let tape ← liftM ($ᵗ Randomness : ProbComp Randomness)
-          pure tape) : StateT (QueryCache HashSpec) ProbComp Randomness).run state]
+          pure tape) : StateT (QueryCache HashSpec) ProbComp Randomness).run state)
       simp only [StateT.run_bind, StateT.run_liftM, bind_assoc, pure_bind, StateT.run_pure]
-      calc 𝒟[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun x => pure (truncateHash x, state) :
-              ProbComp (Randomness × QueryCache HashSpec))]
-          = 𝒟[((truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun d => pure (d, state) :
-              ProbComp (Randomness × QueryCache HashSpec))] := by rw [bind_map_left]
-        _ = 𝒟[(($ᵗ Digest : ProbComp Digest) >>= fun d => pure (d, state) :
-              ProbComp (Randomness × QueryCache HashSpec))] := by
-          rw [evalDist_bind, Rom.evalDist_truncate_uniformHashOutput, ← evalDist_bind]
-        _ = _ := by
-          rw [evalDist_bind, evalDist_bind, evalDist_uniformSample, evalDist_uniformSample]
-          rfl
+      calc ((($ᵗ HashOutput : ProbComp HashOutput) >>= fun x => pure (truncateHash x, state) :
+              ProbComp (Randomness × QueryCache HashSpec)))
+          =ᵈ (((truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun d => pure (d, state) :
+              ProbComp (Randomness × QueryCache HashSpec))) := by rw [bind_map_left]
+        _ =ᵈ ((($ᵗ Digest : ProbComp Digest) >>= fun d => pure (d, state) :
+              ProbComp (Randomness × QueryCache HashSpec))) :=
+          Rom.evalDist_truncate_uniformHashOutput.bind_left _
+        _ =ᵈ _ := (SampleableType.uniformSample_evalDistEq_of_inst (A := Digest) _ _).bind_left _
 
 /-- Reading a uniform table at each key's own root is a uniform base per key. -/
 theorem evalDist_topBase (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (topSecret : TopIndex → ChainIndex → Digest) {β : Type}
     (k : (Digest × (TopIndex → Option (Randomness × Encoding))) × QueryCache HashSpec → ProbComp β) :
-    𝒟[sampleTopRnd >>= fun table => (simulateQ randomOracle (Concrete.honestKeygen parameter secret topSecret
-        fun key root => (pure (truncateHash (table (key, root))) : OracleComp HashSpec Randomness))).run ∅ >>= k] =
-      𝒟[Concrete.sampleTopBase >>= fun topBase => (simulateQ randomOracle (Concrete.honestKeygen parameter secret
-        topSecret fun key _ => (pure (topBase key) : OracleComp HashSpec Randomness))).run ∅ >>= k] := by
+    (sampleTopRnd >>= fun table => (simulateQ randomOracle (Concrete.honestKeygen parameter secret topSecret
+        fun key root => (pure (truncateHash (table (key, root))) : OracleComp HashSpec Randomness))).run ∅ >>= k) =ᵈ
+      (Concrete.sampleTopBase >>= fun topBase => (simulateQ randomOracle (Concrete.honestKeygen parameter secret
+        topSecret fun key _ => (pure (topBase key) : OracleComp HashSpec Randomness))).run ∅ >>= k) := by
   simp_rw [← tableRun_keygenTable, ← tableRun_keygenKey]
-  have h1 : 𝒟[sampleTopRnd >>= fun table =>
-      (tableRun romImpl signTable table (keygenTable parameter secret topSecret)).run ∅] =
-        𝒟[(freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅] :=
+  have h1 : (sampleTopRnd >>= fun table =>
+      (tableRun romImpl signTable table (keygenTable parameter secret topSecret)).run ∅) =ᵈ
+        ((freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅) :=
     letI := topRndSampleable
     (freshRequests_keygenTable parameter secret topSecret).evalDist_tableRun romImpl signTable ∅
-  have h2 : 𝒟[Concrete.sampleTopBase >>= fun table =>
-      (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅] =
-        𝒟[(freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅] := by
-    letI : SampleableType (TopIndex → Randomness) := SampleableType.ofFintype (TopIndex → Randomness)
-    rw [← (freshRequests_keygenKey parameter secret topSecret).evalDist_tableRun romImpl signKey ∅,
-      evalDist_bind, evalDist_bind]
+  have h2 : (Concrete.sampleTopBase >>= fun table =>
+      (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅) =ᵈ
+        ((freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅) := by
+    let : SampleableType (TopIndex → Randomness) := SampleableType.ofFintype (TopIndex → Randomness)
+    refine EvalDistEq.trans ?_
+      ((freshRequests_keygenKey parameter secret topSecret).evalDist_tableRun romImpl signKey ∅)
     unfold Concrete.sampleTopBase
-    rw [evalDist_uniformSample]
-  calc _ = 𝒟[(sampleTopRnd >>= fun table =>
-          (tableRun romImpl signTable table (keygenTable parameter secret topSecret)).run ∅) >>= k] := by
+    exact (SampleableType.uniformSample_evalDistEq_of_inst _ _).bind_left _
+  calc _ =ᵈ ((sampleTopRnd >>= fun table =>
+          (tableRun romImpl signTable table (keygenTable parameter secret topSecret)).run ∅) >>= k) := by
         rw [bind_assoc]
-    _ = 𝒟[(freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅ >>= k] := by
-        rw [evalDist_bind, h1, ← evalDist_bind]
-    _ = 𝒟[(freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅ >>= k] := by
-        rw [evalDist_bind, evalDist_freshRun_table_key, ← evalDist_bind]
-    _ = 𝒟[(Concrete.sampleTopBase >>= fun table =>
-          (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅) >>= k] := by
-        conv_rhs => rw [evalDist_bind, h2]
-        rw [evalDist_bind]
+    _ =ᵈ ((freshRun romImpl signTable (keygenTable parameter secret topSecret)).run ∅ >>= k) := by
+        exact h1.bind_left _
+    _ =ᵈ ((freshRun romImpl signKey (keygenKey parameter secret topSecret)).run ∅ >>= k) := by
+        exact (evalDist_freshRun_table_key _ _ _ _).bind_left _
+    _ =ᵈ ((Concrete.sampleTopBase >>= fun table =>
+          (tableRun romImpl signKey table (keygenKey parameter secret topSecret)).run ∅) >>= k) := by
+        exact h2.symm.bind_left _
     _ = _ := by rw [bind_assoc]
 
 end XmssSecurity.Bridge

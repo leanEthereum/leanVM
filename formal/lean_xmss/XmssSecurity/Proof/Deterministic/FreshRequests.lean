@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.RandomizedStatement
+import XmssSecurity.Proof.EvalDistEq
 
 open OracleComp OracleSpec
 
@@ -154,13 +155,11 @@ theorem freshRun_baseLift_bind {α β : Type}
 
 theorem evalDist_table_refresh {α : Type} (request : Request)
     (next : (Request → Tape) → ProbComp α) :
-    𝒟[do let table ← $ᵗ (Request → Tape); next table] =
-      𝒟[do
+    (do let table ← $ᵗ (Request → Tape); next table) =ᵈ (do
         let tape ← $ᵗ Tape
         let table ← $ᵗ (Request → Tape)
-        next (Function.update table request tape)] := by
-  rw [evalDist_bind, ← evalDist_uniformSample_bind_update request, ← evalDist_bind]
-  simp only [bind_assoc, pure_bind]
+        next (Function.update table request tape)) := by
+  exact (evalDistEq_uniformSample_bind_update request next).symm
 
 /-- Independent tapes may be sampled when a request first appears. The state can include query costs. -/
 theorem FreshRequests.evalDist_tableRun {α : Type} {used : Set Request}
@@ -168,46 +167,45 @@ theorem FreshRequests.evalDist_tableRun {α : Type} {used : Set Request}
     (h : FreshRequests used computation)
     (handler : QueryImpl base (StateT State ProbComp))
     (sign : Request → Tape → StateT State ProbComp Answer) (state : State) :
-    𝒟[do
+    (do
       let table ← $ᵗ (Request → Tape)
-      (tableRun handler sign table computation).run state] =
-      𝒟[(freshRun handler sign computation).run state] := by
+      (tableRun handler sign table computation).run state) =ᵈ ((freshRun handler sign computation).run state) := by
   induction h generalizing state with
   | pure value =>
-      apply evalDist_ext
-      intro result
-      simp [tableRun, freshRun]
+      simp only [tableRun, freshRun, simulateQ_pure, StateT.run_pure]
+      exact OracleComp.EvalDistEq.bind_const _ _
   | base input next _ ih =>
       simp only [tableRun, freshRun, simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-      change 𝒟[do
+      change (do
         let table ← $ᵗ (Request → Tape)
         let result ← (handler input).run state
-        (tableRun handler sign table (next result.1)).run result.2] =
-          𝒟[do
+        (tableRun handler sign table (next result.1)).run result.2) =ᵈ
+          (do
             let result ← (handler input).run state
-            (freshRun handler sign (next result.1)).run result.2]
-      rw [evalDist_bind_bind_swap]
-      apply evalDist_bind_congr'
+            (freshRun handler sign (next result.1)).run result.2)
+      refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+      apply EvalDistEq.bind_right
       intro result
       exact ih result.1 result.2
   | request input hnew next htail ih =>
-      rw [evalDist_table_refresh input]
+      refine (evalDist_table_refresh input _).trans ?_
       simp only [tableRun, freshRun, simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-      change 𝒟[do
+      change (do
         let tape ← $ᵗ Tape
         let table ← $ᵗ (Request → Tape)
         let result ← (sign input (Function.update table input tape input)).run state
-        (tableRun handler sign (Function.update table input tape) (next result.1)).run result.2] =
-          𝒟[do
+        (tableRun handler sign (Function.update table input tape) (next result.1)).run result.2) =ᵈ
+          (do
             let result ← ((do
               let tape ← liftM ($ᵗ Tape : ProbComp Tape)
               sign input tape) : StateT State ProbComp Answer).run state
-            (freshRun handler sign (next result.1)).run result.2]
+            (freshRun handler sign (next result.1)).run result.2)
       simp only [Function.update_self, StateT.run_bind, StateT.run_liftM, bind_assoc, pure_bind]
-      apply evalDist_bind_congr'
+      apply EvalDistEq.bind_right
       intro tape
-      rw [evalDist_bind_bind_swap]
-      apply evalDist_bind_congr'
+      refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+
+      apply EvalDistEq.bind_right
       intro result
       have hsame : ∀ table : Request → Tape,
           tableRun handler sign (Function.update table input tape) (next result.1) =

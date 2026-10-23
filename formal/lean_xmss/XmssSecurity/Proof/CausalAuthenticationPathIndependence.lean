@@ -35,12 +35,12 @@ theorem authenticationPathNode_subtreeValid
   have hchildren := Concrete.CacheReplay.pathNode_children
     leafIndex level.val level.isLt
   by_cases hbit : leafIndex.val.testBit level.val = true
-  · rw [if_pos hbit] at hchildren
+  · rw [ite_eq_left hbit] at hchildren
     have hvalid := childNode_subtreeValid level.val
       (Concrete.CacheReplay.pathNode leafIndex (level.val + 1)) false hparent
     rw [hchildren.1] at hvalid
     exact hvalid
-  · rw [if_neg hbit] at hchildren
+  · rw [ite_eq_right hbit] at hchildren
     have hvalid := childNode_subtreeValid level.val
       (Concrete.CacheReplay.pathNode leafIndex (level.val + 1)) true hparent
     rw [hchildren.2] at hvalid

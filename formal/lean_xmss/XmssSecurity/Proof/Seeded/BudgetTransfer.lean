@@ -12,8 +12,8 @@ theorem exists_seed_not_hit {hit : HashInput → MasterSeed → Prop} (hhit : Gu
   classical
   by_contra h
   have hall : ∀ seed, SeedHitLog hit inputs seed := by simpa using h
-  have hone : Pr[SeedHitLog hit inputs | sampleMasterSeed] = 1 := by
-    simp [hall]
+  have hone : Pr{let x ← sampleMasterSeed}[(SeedHitLog hit inputs) x] = 1 :=
+    OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun seed _ => hall seed
   have hlt : (inputs.length : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) < 1 :=
     ENNReal.div_lt_of_lt_mul (by rw [one_mul]; exact_mod_cast hsize)
   exact (not_lt_of_ge (hone ▸ probEvent_seedHitLog_le hhit inputs)) hlt

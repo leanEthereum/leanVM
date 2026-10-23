@@ -115,7 +115,7 @@ theorem hitReach_eq_walk (st : α → St) :
       cases h : st r with
       | hit =>
           rw [walk_succ_hit _ _ _ _ h, hitReach, Finset.sum_eq_single r]
-          · rw [if_pos h, reach_self]
+          · rw [ite_eq_left h, reach_self]
           · intro z _ hz
             split_ifs
             · exact reach_succ_hit A (Ne.symm hz) h
@@ -180,8 +180,8 @@ theorem mass_hit_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j, 0 <
       (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) + (if st r ≠ .fresh then 1 else 0) := by
     intro r
     by_cases hr : st r = .fresh
-    · rw [if_pos hr, if_neg (not_not.2 hr), add_zero, hitReach_eq_walk]
-    · rw [if_neg hr, if_pos hr, zero_add]
+    · rw [ite_eq_left hr, ite_eq_right (not_not.2 hr), add_zero, hitReach_eq_walk]
+    · rw [ite_eq_right hr, ite_eq_left hr, zero_add]
       exact hitReach_le_one hp st A r
   have hcard : ∑ r, (if st r ≠ .fresh then (1 : ℝ≥0∞) else 0) = (Finset.univ.filter fun r => st r ≠ .fresh).card := by
     rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]

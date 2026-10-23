@@ -93,7 +93,7 @@ theorem Concrete.precomputedKeygen_bottomRoot_eq_of_cache_le
   simp only [Prod.mk.injEq] at hchildren
   unfold Concrete.bottomRoot
   rw [show treeHeight = (treeHeight - 1) + 1 by decide, Concrete.CacheReplay.treeNode_succ_eq,
-    Concrete.CacheReplay.treeNode_succ_eq, dif_pos hlevel, dif_pos hlevel]
+    Concrete.CacheReplay.treeNode_succ_eq, dite_eq_left hlevel, dite_eq_left hlevel]
   unfold Concrete.CacheView.merkleHash
   change Concrete.CacheView.digestAt keyResult.2
       (Concrete.CacheView.merkleInput keyResult.1.2.parameter level (Concrete.bottomRootNode key)
@@ -406,7 +406,7 @@ theorem Concrete.precomputedKeygen_topTreeNode_eq_of_cache_le
       have hlevel : levels < treeHeight := by omega
       have hchild := fun right => Concrete.topChildNode_lt levels node hnode hlevel right
       rw [Concrete.CacheReplay.topTreeNode_succ_eq, Concrete.CacheReplay.topTreeNode_succ_eq,
-        dif_pos hlevel, dif_pos hlevel]
+        dite_eq_left hlevel, dite_eq_left hlevel]
       obtain ⟨output, hcached⟩ := Concrete.precomputedKeygen_cache_has_topMerkleInput keyResult
         hmem ⟨levels, hlevel⟩ node hnode
       unfold Concrete.CacheView.topMerkleHash
@@ -743,7 +743,7 @@ theorem Concrete.CacheView.topEncodingInput_injective (parameter : PublicParamet
     (key : TopIndex) : Function.Injective (topEncodingInput parameter key) := by
   rintro ⟨leftRoot, leftRandomness⟩ ⟨rightRoot, rightRandomness⟩ heq
   have hpayload := payload_eq_of_tweakableHashInput_eq parameter (.topEncoding key) heq
-  obtain ⟨hroot, hrandomness⟩ := List.append_inj hpayload (by simp [length_bytesLE])
+  obtain ⟨hroot, hrandomness⟩ := List.append_inj hpayload (by simp)
   exact Prod.ext (bytesLE_injective 16 hroot) (bytesLE_injective 16 hrandomness)
 
 /-- Key generation caches the selected trial of every successful top grinding, with its codeword. -/

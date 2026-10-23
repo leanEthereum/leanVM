@@ -500,9 +500,10 @@ theorem globalHighMonitoredPublicProjection_eq_append_direct
 
 theorem evalDist_map_congr_of_evalDist_eq
     (project : α → β) (left right : ProbComp α)
-    (hdist : evalDist left = evalDist right) :
-    evalDist (project <$> left) = evalDist (project <$> right) := by
-  rw [evalDist_map, evalDist_map, hdist]
+    (hdist : left =ᵈ right) :
+    (project <$> left) =ᵈ (project <$> right) :=
+  hdist.map project
+
 
 
 abbrev GlobalHighDirectTracedState :=

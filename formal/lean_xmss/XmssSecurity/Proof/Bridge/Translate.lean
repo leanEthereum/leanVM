@@ -143,11 +143,11 @@ theorem chainWalk_bottom (parameter : PublicParameter) (key : LeafIndex) (chain 
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
-      · conv_lhs => rw [dif_pos (show start + steps < LeanXmss.chainLength - 1 from h)]
-        conv_rhs => rw [dif_pos h]
+      · conv_lhs => rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 from h)]
+        conv_rhs => rw [dite_eq_left h]
         exact hash_eq (chain_input parameter key chain ⟨start + steps, h⟩ previous)
-      · conv_lhs => rw [dif_neg (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
-        conv_rhs => rw [dif_neg h]
+      · conv_lhs => rw [dite_eq_right (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
+        conv_rhs => rw [dite_eq_right h]
 
 theorem chainWalk_top (parameter : PublicParameter) (key : TopIndex) (chain : ChainIndex)
     (start steps : Nat) (value : Digest) :
@@ -161,11 +161,11 @@ theorem chainWalk_top (parameter : PublicParameter) (key : TopIndex) (chain : Ch
       apply bind_congr
       intro previous
       by_cases h : start + steps < chainLength - 1
-      · conv_lhs => rw [dif_pos (show start + steps < LeanXmss.chainLength - 1 from h)]
-        conv_rhs => rw [dif_pos h]
+      · conv_lhs => rw [dite_eq_left (show start + steps < LeanXmss.chainLength - 1 from h)]
+        conv_rhs => rw [dite_eq_left h]
         exact hash_eq (topChain_input parameter key chain ⟨start + steps, h⟩ previous)
-      · conv_lhs => rw [dif_neg (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
-        conv_rhs => rw [dif_neg h]
+      · conv_lhs => rw [dite_eq_right (show ¬start + steps < LeanXmss.chainLength - 1 from h)]
+        conv_rhs => rw [dite_eq_right h]
 
 theorem leafHash_bottom (parameter : PublicParameter) (key : LeafIndex)
     (endpoints : ChainIndex → Digest) :
@@ -235,7 +235,7 @@ theorem decode_eq (digest : Digest) :
     rfl
   · have h' : ¬digest.toNat / 2 ^ (LeanXmss.winternitzBits * LeanXmss.numChains) = 0 :=
       fun h'' => h ((digestTop_eq_zero_iff digest).2 h'')
-    simp only [h, h', false_and, if_false]
+    simp only [h, h', false_and, ite_false]
 
 
 /-! ## Verification -/
@@ -259,12 +259,12 @@ theorem treeFold_bottom (parameter : PublicParameter) (key : LeafIndex) (signatu
       rw [LeanXmss.Concrete.treeFold, Concrete.authenticationRoot, ih (by omega)]
       apply bind_congr
       intro current
-      simp only [Concrete.authenticationNodeHash, Concrete.signaturePath, dif_pos h,
-        dif_pos (show levels < LeanXmss.layerHeight from h)]
+      simp only [Concrete.authenticationNodeHash, Concrete.signaturePath, dite_eq_left h,
+        dite_eq_left (show levels < LeanXmss.layerHeight from h)]
       by_cases hb : key.val.testBit levels
-      · simp only [hb, if_true]
+      · simp only [hb, ite_true]
         exact nodeHash_bottom parameter ⟨levels, h⟩ (Concrete.nodeIndex key levels) _ _
-      · simp only [hb, Bool.false_eq_true, if_false]
+      · simp only [hb, Bool.false_eq_true, ite_false]
         exact nodeHash_bottom parameter ⟨levels, h⟩ (Concrete.nodeIndex key levels) _ _
 
 theorem treeFold_top (parameter : PublicParameter) (key : TopIndex) (path : Fin treeHeight → Digest)
@@ -279,11 +279,11 @@ theorem treeFold_top (parameter : PublicParameter) (key : TopIndex) (path : Fin 
       rw [LeanXmss.Concrete.treeFold, Concrete.topAuthenticationRoot, ih (by omega)]
       apply bind_congr
       intro current
-      simp only [dif_pos h, dif_pos (show levels < LeanXmss.layerHeight from h), topKey_val]
+      simp only [dite_eq_left h, dite_eq_left (show levels < LeanXmss.layerHeight from h), topKey_val]
       by_cases hb : key.val.testBit levels
-      · simp only [hb, if_true]
+      · simp only [hb, ite_true]
         exact nodeHash_top parameter ⟨levels, h⟩ (Concrete.topNodeIndex key levels) _ _
-      · simp only [hb, Bool.false_eq_true, if_false]
+      · simp only [hb, Bool.false_eq_true, ite_false]
         exact nodeHash_top parameter ⟨levels, h⟩ (Concrete.topNodeIndex key levels) _ _
 
 /-- A model layer signature as the real scheme's. -/
@@ -418,7 +418,7 @@ theorem verify_eq (publicKey : PublicKey) (index : LeafIndex) (message : Message
         OracleComp LeanXmss.HashSpec Bool) =
       (Concrete.verify publicKey index message signature : OracleComp HashSpec Bool) := by
   unfold LeanXmss.Concrete.verify Concrete.verify Concrete.verifyAfterLeaf Concrete.verifyTop
-  simp only [toRealSig, toRealPk, if_pos, if_neg topLayer_ne_bottom, keyAt_bottom, keyAt_top]
+  simp only [toRealSig, toRealPk, ite_eq_left, ite_eq_right topLayer_ne_bottom, keyAt_bottom, keyAt_top]
   rw [layerRoot_bottom]
   simp only [bind_assoc]
   apply bind_congr

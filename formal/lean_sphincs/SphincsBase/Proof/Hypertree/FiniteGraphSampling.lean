@@ -1,5 +1,7 @@
 import SphincsBase.Proof.Base.Prelude
 import SphincsBase.Proof.Hypertree.Honest
+import VCVio.EvalDist.Monad.UniformTable
+import VCVio.OracleComp.Constructions.SampleableType.Measure
 namespace SphincsBase.Concrete.FiniteGraphSampling
 
 open _root_.OracleComp OracleSpec OracleComp.DeferredSampling
@@ -54,42 +56,33 @@ noncomputable def plant (input : Node → State → Cell)
 
 theorem evalDist_table_extract {Result : Type} (cell : Cell)
     (next : (Cell → Answer) → Answer → ProbComp Result) :
-    𝒟[do let table ← ($ᵗ (Cell → Answer) : ProbComp _); next table (table cell)] =
-      𝒟[do
+    (do let table ← ($ᵗ (Cell → Answer) : ProbComp _); next table (table cell)) =ᵈ (do
         let answer ← ($ᵗ Answer : ProbComp _)
         let table ← ($ᵗ (Cell → Answer) : ProbComp _)
-        next (Function.update table cell answer) answer] := by
-  have h := congrArg (fun distribution : SPMF (Cell → Answer) =>
-    distribution >>= fun table => 𝒟[next table (table cell)])
-    (evalDist_uniformSample_bind_update (R := Answer) cell)
-  simpa only [evalDist_bind, bind_assoc, evalDist_pure, pure_bind, Function.update_self] using h.symm
+        next (Function.update table cell answer) answer) := by
+  let : MeasurableSpace Answer := ⊤
+  let : MeasurableSpace Result := ⊤
+  exact EvalDistEq.of_evalDist_eq <| evalDist_bind_cell_extract ($ᵗ Answer) ($ᵗ (Cell → Answer))
+    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample cell next
 
 theorem evalDist_read_eq_plant (input : Node → State → Cell)
     (advance : Node → Answer → State → State) (hsep : Separated input)
     (nodes : List Node) (hnodes : nodes.Nodup) (state : State) :
-    𝒟[do
+    (do
       let table ← ($ᵗ (Cell → Answer) : ProbComp _)
-      pure (read input advance table nodes state, table)] =
-      𝒟[plant input advance nodes state] := by
+      pure (read input advance table nodes state, table)) =ᵈ plant input advance nodes state := by
   induction nodes generalizing state with
   | nil => rfl
   | cons node nodes ih =>
       obtain ⟨hnode, hnodes⟩ := List.nodup_cons.mp hnodes
       simp only [read]
-      rw [evalDist_table_extract (input node state)
-        (fun table answer => pure (read input advance table nodes (advance node answer state), table))]
+      refine (evalDist_table_extract (input node state)
+        (fun table answer => pure (read input advance table nodes (advance node answer state), table))).trans ?_
       simp_rw [read_update_of_not_mem input advance hsep _ nodes node hnode]
-      change 𝒟[do
-        let answer ← ($ᵗ Answer : ProbComp _)
-        let table ← ($ᵗ (Cell → Answer) : ProbComp _)
-        pure (read input advance table nodes (advance node answer state),
-          Function.update table (input node state) answer)] = _
       simp only [plant]
-      apply evalDist_bind_congr_left
-      intro answer
-      have h := congrArg (fun distribution : SPMF (State × (Cell → Answer)) =>
-        distribution >>= fun result => pure (result.1, Function.update result.2 (input node state) answer))
-        (ih hnodes (advance node answer state))
-      simpa only [evalDist_bind, evalDist_pure, bind_assoc, pure_bind] using h
+      refine EvalDistEq.bind_right _ fun answer => ?_
+      have h := (ih hnodes (advance node answer state)).map
+        (fun result : State × (Cell → Answer) => (result.1, Function.update result.2 (input node state) answer))
+      simpa only [map_bind, map_pure, bind_pure_comp, Functor.map_map] using h
 
 end SphincsBase.Concrete.FiniteGraphSampling

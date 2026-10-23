@@ -42,13 +42,13 @@ theorem run_randomizedDigest_start (sk : Seeded.SecretKey) (message : Message) (
 omit [Params] in
 theorem tsum_randomness_ite (P : Randomness → Prop) [DecidablePred P] (x y : ℝ≥0∞) :
     ∑' ρ : Randomness, (Fintype.card Randomness : ℝ≥0∞)⁻¹ * (if P ρ then x else y) =
-      x * Pr[P | ($ᵗ Randomness : ProbComp Randomness)] +
-        y * Pr[fun ρ => ¬P ρ | ($ᵗ Randomness : ProbComp Randomness)] := by
-  rw [probEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) P,
-    probEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) (fun ρ => ¬P ρ),
+      x * Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[P x] +
+        y * Pr{let ρ ← ($ᵗ Randomness : ProbComp Randomness)}[¬P ρ] := by
+  rw [OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) P,
+    OracleComp.prEvent_eq_tsum_ite ($ᵗ Randomness : ProbComp Randomness) (fun ρ => ¬P ρ),
     ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
   refine tsum_congr fun ρ => ?_
-  rw [probOutput_uniformSample]
+  rw [SampleableType.prEvent_uniformSample_eq_singleton]
   by_cases h : P ρ <;> simp [h, mul_comm]
 
 omit [Params] in
@@ -74,11 +74,10 @@ omit [Params] in
 /-- A uniform start puts one of its `n` scanned randomizers in a set `R` with probability at most
 `n |R| / 2^128`. -/
 theorem probEvent_randomness_mem_le (R : Finset Randomness) (n : Nat) :
-    Pr[fun ρ => ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R |
-        ($ᵗ Randomness : ProbComp Randomness)] ≤
+    Pr{let ρ ← ($ᵗ Randomness : ProbComp Randomness)}[∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R] ≤
       ((n * R.card : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
   classical
-  rw [probEvent_uniformSample,
+  rw [SampleableType.prEvent_uniformSample,
     show Fintype.card Randomness = 2 ^ 128 by simp [digestBits], Nat.cast_pow, Nat.cast_ofNat]
   refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
   calc (Finset.univ.filter fun ρ : Randomness => ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R).card
@@ -99,8 +98,7 @@ theorem probEvent_scanLoop (sk : Seeded.SecretKey) (message : Message) :
       n ≤ 2 ^ 128 →
       (∀ ρ', ρ' ∉ R → cache (msgInput sk message ρ') = none) →
       (∀ i < n, ρ + BitVec.ofNat digestBits i ∉ R) →
-      Pr[fun r => r.1 = none |
-        (simulateQ randomOracle (Randomized.scanLoop sk message n ρ)).run cache]
+      Pr{let r ← (simulateQ randomOracle (Randomized.scanLoop sk message n ρ)).run cache}[r.1 = none]
       ≤ digestReject sk.parameter ^ n := by
   intro n
   induction n with
@@ -134,31 +132,29 @@ already be cached. -/
 theorem probEvent_randomizedDigest (sk : Seeded.SecretKey) (message : Message)
     (n : Nat) (cache : QueryCache HashSpec) (R : Finset Randomness) (hn : n ≤ 2 ^ 128)
     (hmsg : ∀ ρ, ρ ∉ R → cache (msgInput sk message ρ) = none) :
-    Pr[fun r => r.1 = none |
-      (simulateQ romImpl (Randomized.signDigestLoop sk message n)).run cache]
+    Pr{let r ← (simulateQ romImpl (Randomized.signDigestLoop sk message n)).run cache}[r.1 = none]
     ≤ digestReject sk.parameter ^ n + ((n * R.card : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
   classical
-  rw [run_randomizedDigest_start, probEvent_bind_eq_tsum]
-  simp only [probOutput_uniformSample]
+  rw [run_randomizedDigest_start, OracleComp.prEvent_bind_eq_tsum]
+  simp only [SampleableType.prEvent_uniformSample_eq_singleton]
   refine (ENNReal.tsum_le_tsum (g := fun ρ => (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
     (if ∃ i < n, ρ + BitVec.ofNat digestBits i ∈ R then 1
       else digestReject sk.parameter ^ n))
     fun ρ => mul_le_mul_right ?_ _).trans ?_
   · split
-    next => exact probEvent_le_one
+    next => exact (prEvent_le_one _)
     next hfree =>
       exact probEvent_scanLoop sk message n ρ cache R hn hmsg
         (fun i hi hmem => hfree ⟨i, hi, hmem⟩)
   · rw [tsum_randomness_ite, one_mul, add_comm]
-    exact add_le_add (mul_le_of_le_one_right' probEvent_le_one)
+    exact add_le_add (mul_le_of_le_one_right' (prEvent_le_one _))
       (probEvent_randomness_mem_le R n)
 
 /-- The randomized grinding loop exhausts its full budget with probability at most `2^(-2^(b+5))`
 from a cache with no message-digest inputs. -/
 theorem randomized_digest_exhaustion_bound (sk : Seeded.SecretKey) (message : Message)
     (cache : QueryCache HashSpec) (hfresh : ∀ ρ, cache (msgInput sk message ρ) = none) :
-    Pr[fun r => r.1 = none |
-      (simulateQ romImpl (Randomized.signDigestLoop sk message digestAttemptLimit)).run cache]
+    Pr{let r ← (simulateQ romImpl (Randomized.signDigestLoop sk message digestAttemptLimit)).run cache}[r.1 = none]
       ≤ (2⁻¹ : ℝ≥0∞) ^ (2 ^ (subtreeHeight + 5)) := by
   refine (probEvent_randomizedDigest sk message digestAttemptLimit cache ∅
     (by simp [digestAttemptLimit]) (fun ρ _ => hfresh ρ)).trans ?_

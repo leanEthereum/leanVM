@@ -164,7 +164,7 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
       rcases Nat.eq_zero_or_pos step.val with hstep | hstep
       · have hslots : slots f parameter otsSecret ftsSecret
             (.chain lay tree leafIdx chainIdx step) = [otsSecret lay tree leafIdx chainIdx] := by
-          simp only [slots, if_pos hstep]
+          simp only [slots, ite_eq_left hstep]
         rw [hslots]
         simp only [honestPayload, hstep, Concrete.honestChain_zero, List.flatMap_cons,
           List.flatMap_nil, List.append_nil]
@@ -172,14 +172,14 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
         have hslt : s < chainLength - 1 := by have := step.isLt; omega
         have hchildren : (Position.chain lay tree leafIdx chainIdx step).children
             = [.chain lay tree leafIdx chainIdx ⟨s, hslt⟩] := by
-          rw [Position.children, dif_pos hstep]
+          rw [Position.children, dite_eq_left hstep]
           simp only [List.cons.injEq, Position.chain.injEq, Fin.mk.injEq, and_true, true_and]
           omega
         have hslots : slots f parameter otsSecret ftsSecret
             (.chain lay tree leafIdx chainIdx step)
             = [honestValue f parameter otsSecret ftsSecret
                 (.chain lay tree leafIdx chainIdx ⟨s, hslt⟩)] := by
-          simp only [slots, if_neg (by omega : ¬ step.val = 0), childValues, hchildren,
+          simp only [slots, ite_eq_right (by omega : ¬ step.val = 0), childValues, hchildren,
             List.map_cons, List.map_nil]
         rw [hslots, honestValue_chain]
         simp only [honestPayload, List.flatMap_cons, List.flatMap_nil, List.append_nil, hs]
@@ -199,7 +199,7 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
       · have hchildren : (Position.node lay tree level nodeIdx).children
             = [.leaf lay tree ⟨2 * nodeIdx.val, by omega⟩,
               .leaf lay tree ⟨2 * nodeIdx.val + 1, by omega⟩] := by
-          rw [Position.children, dif_pos hvalid, dif_neg (by omega)]
+          rw [Position.children, dite_eq_left hvalid, dite_eq_right (by omega)]
         simp only [slots, childValues, hchildren, List.map_cons, List.map_nil, List.flatMap_cons,
           List.flatMap_nil, List.append_nil, honestPayload, Concrete.nodePayload]
         rw [honestValue_leaf, honestValue_leaf, hlevel]
@@ -208,7 +208,7 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
                 ⟨2 * nodeIdx.val, by omega⟩,
               .node lay tree ⟨level.val - 1, by have := level.isLt; omega⟩
                 ⟨2 * nodeIdx.val + 1, by omega⟩] := by
-          rw [Position.children, dif_pos hvalid, dif_pos hlevel]
+          rw [Position.children, dite_eq_left hvalid, dite_eq_left hlevel]
         simp only [slots, childValues, hchildren, List.map_cons, List.map_nil, List.flatMap_cons,
           List.flatMap_nil, List.append_nil, honestPayload, Concrete.nodePayload]
         rw [honestValue_node, honestValue_node, show level.val - 1 + 1 = level.val from by omega]
@@ -220,7 +220,7 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
       · have hchildren : (Position.ftsNode index tree level nodeIdx).children
             = [.ftsLeaf index tree ⟨2 * nodeIdx.val, by omega⟩,
               .ftsLeaf index tree ⟨2 * nodeIdx.val + 1, by omega⟩] := by
-          rw [Position.children, dif_pos hvalid, dif_neg (by omega)]
+          rw [Position.children, dite_eq_left hvalid, dite_eq_right (by omega)]
         simp only [slots, childValues, hchildren, List.map_cons, List.map_nil, List.flatMap_cons,
           List.flatMap_nil, List.append_nil, honestPayload, Concrete.nodePayload]
         rw [honestValue_ftsLeaf, honestValue_ftsLeaf, hlevel]
@@ -229,7 +229,7 @@ theorem honestPayload_eq_slots {p : Position} (hvalid : p.Valid) :
                 ⟨2 * nodeIdx.val, by omega⟩,
               .ftsNode index tree ⟨level.val - 1, by have := level.isLt; omega⟩
                 ⟨2 * nodeIdx.val + 1, by omega⟩] := by
-          rw [Position.children, dif_pos hvalid, dif_pos hlevel]
+          rw [Position.children, dite_eq_left hvalid, dite_eq_left hlevel]
         simp only [slots, childValues, hchildren, List.map_cons, List.map_nil, List.flatMap_cons,
           List.flatMap_nil, List.append_nil, honestPayload, Concrete.nodePayload]
         rw [honestValue_ftsNode, honestValue_ftsNode,

@@ -1,5 +1,5 @@
 import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Data.ENNReal.BigOperators
+import Mathlib.Basic.ENNReal.BigOperators
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Algebra.BigOperators.Ring.Finset
 
@@ -218,19 +218,19 @@ section Reach
 variable [DecidableEq α]
 
 theorem reach_self (st : α → St) (y : α) (A : ℕ) : reach σ p st y (A + 1) y = 1 := by
-  rw [reach, if_pos rfl]
+  rw [reach, ite_eq_left rfl]
 
 theorem reach_succ_hit {st : α → St} {y r : α} (A : ℕ) (hr : r ≠ y) (h : st r = .hit) :
     reach σ p st y (A + 1) r = 0 := by
-  rw [reach, if_neg hr, h]
+  rw [reach, ite_eq_right hr, h]
 
 theorem reach_succ_miss {st : α → St} {y r : α} (A : ℕ) (hr : r ≠ y) (h : st r = .miss) :
     reach σ p st y (A + 1) r = reach σ p st y A (σ r) := by
-  rw [reach, if_neg hr, h]
+  rw [reach, ite_eq_right hr, h]
 
 theorem reach_succ_fresh {st : α → St} {y r : α} (A : ℕ) (hr : r ≠ y) (h : st r = .fresh) :
     reach σ p st y (A + 1) r = (1 - p) * reach σ p st y A (σ r) := by
-  rw [reach, if_neg hr, h]
+  rw [reach, ite_eq_right hr, h]
 
 theorem reach_le_one (st : α → St) (y : α) : ∀ (A : ℕ) (r : α), reach σ p st y A r ≤ 1
   | 0, _ => zero_le_one
@@ -425,13 +425,13 @@ theorem back_le (hp : p ≤ 1) (st : α → St) (y : α) :
       rw [back, pass]
       cases h : st ((σ⁻¹ ^ (j + 1)) y) with
       | hit =>
-          simp only [zero_mul, mul_zero, add_zero, reduceCtorEq, if_false]
+          simp only [zero_mul, mul_zero, add_zero, reduceCtorEq, ite_false]
           exact le_trans le_self_add ih
       | miss =>
-          simp only [one_mul, reduceCtorEq, if_false, add_zero]
+          simp only [one_mul, reduceCtorEq, ite_false, add_zero]
           exact ih
       | fresh =>
-          simp only [if_true]
+          simp only [ite_true]
           set P := pass σ p st y j
           set B := back σ p st y j
           calc p * (B + (1 - p) * P) + (1 - p) * ((1 - p) * P)
@@ -449,7 +449,7 @@ theorem sum_range_back (st : α → St) (y : α) (h : α → ℝ≥0∞) (hh : �
       have hb : back σ p st y (A + 1) = back σ p st y A +
           (if st ((σ⁻¹ ^ (A + 1)) y) = .fresh then pass σ p st y (A + 1) else 0) := rfl
       rw [Finset.sum_range_succ, sum_range_back st y h hh (A + 1)]
-      simp only [Nat.add_sub_cancel, Nat.succ_pos, if_true]
+      simp only [Nat.add_sub_cancel, Nat.succ_pos, ite_true]
       rw [show A + 2 - 1 = A + 1 from rfl, hb, hh]
       split_ifs <;> simp
 
@@ -471,8 +471,8 @@ theorem sum_reach_le (hp : p ≤ 1) (st : α → St) (y : α) (A : ℕ) (hA : �
         refine le_trans ?_ (Finset.single_le_sum (f := fun j => if (σ⁻¹ ^ j) y = (σ⁻¹ ^ i) y then
           (if 0 < j then h ((σ⁻¹ ^ j) y) * pass σ p st y j else 0) else 0) (fun _ _ => bot_le)
           (Finset.mem_range.2 hiA))
-        have hh : h ((σ⁻¹ ^ i) y) = 1 := if_pos hr.2
-        rw [if_pos rfl, if_pos hi0, hh, one_mul]
+        have hh : h ((σ⁻¹ ^ i) y) = 1 := ite_eq_left hr.2
+        rw [ite_eq_left rfl, ite_eq_left hi0, hh, one_mul]
         exact reach_le_pass st y A hA i hi0 hiA A
     · exact bot_le
   calc p * ∑ r, (if r ≠ y ∧ st r = .fresh then reach σ p st y A r else 0)
@@ -581,7 +581,7 @@ theorem gv_fresh (hp : p ≤ 1) (st : α → St) (hst : ∀ r, st r = .fresh) (i
         intro r
         rw [walk_succ_fresh _ _ _ _ (hst r), ih, ← add_mul, add_tsub_cancel_of_le hp, one_mul]
   unfold gv
-  simp only [hst, if_true, hw, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+  simp only [hst, ite_true, hw, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 
 /-- A group value with one more hit that pays the base value is below the group value. -/
 theorem gv_stop_le (hp : p ≤ 1) (st : α → St) {item : α → ℝ≥0∞} {base favg : ℝ≥0∞} (hi : ∀ x, base ≤ item x)
@@ -591,7 +591,7 @@ theorem gv_stop_le (hp : p ≤ 1) (st : α → St) {item : α → ℝ≥0∞} {b
   refine Finset.sum_le_sum fun r _ => ?_
   by_cases hr : r = y
   · subst hr
-    rw [if_neg (by rw [Function.update_self]; simp), if_pos hy]
+    rw [ite_eq_right (by rw [Function.update_self]; simp), ite_eq_left hy]
     rcases A with _ | A
     · exact le_rfl
     · rw [walk_succ_hit _ _ _ _ (Function.update_self ..), Function.update_self]
@@ -640,8 +640,8 @@ theorem start_le (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (bas
         (if r ≠ y ∧ st r = .fresh then p * reach σ p st y A r * δ else 0) + (if r = y then δ else 0) := by
   by_cases hr : r = y
   · subst hr
-    rw [Function.update_self, Function.update_self, if_neg (by simp), if_neg (by simp), if_pos hy,
-      if_neg (by simp), if_pos rfl, add_zero]
+    rw [Function.update_self, Function.update_self, ite_eq_right (by simp), ite_eq_right (by simp), ite_eq_left hy,
+      ite_eq_right (by simp), ite_eq_left rfl, add_zero]
     rcases A with _ | A
     · simp only [walk_zero]
       rw [← add_mul, add_tsub_cancel_of_le hp, one_mul]
@@ -664,18 +664,18 @@ theorem start_le (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (bas
         _ = p * base + (1 - p) * X + δ := by rw [add_tsub_cancel_of_le hp, one_mul]
   · have hsth : Function.update st y St.hit r = st r := Function.update_of_ne hr _ _
     have hstm : Function.update st y St.miss r = st r := Function.update_of_ne hr _ _
-    rw [hsth, hstm, if_neg hr, add_zero]
+    rw [hsth, hstm, ite_eq_right hr, add_zero]
     have hρ : p * reach σ p st y A r ≠ ⊤ :=
       ENNReal.mul_ne_top (ne_top_of_le_ne_top one_ne_top hp) (reach_ne_top st y A r)
     by_cases hfr : st r = .fresh
-    · rw [if_pos hfr, if_pos ⟨hr, hfr⟩]
+    · rw [ite_eq_left hfr, ite_eq_left ⟨hr, hfr⟩]
       have h := probe_eq hp st item base base (base + δ) y hy A hA r
       have h2 : p * walk σ p (Function.update st y .hit) (Function.update item y (base + δ)) base base A r +
           (1 - p) * walk σ p (Function.update st y .miss) item base base A r + p * reach σ p st y A r * base =
           (walk σ p st item base base A r + p * reach σ p st y A r * δ) + p * reach σ p st y A r * base := by
         rw [h]; ring
       exact le_of_eq ((ENNReal.add_left_inj (ENNReal.mul_ne_top hρ hbase)).1 h2)
-    · rw [if_neg hfr, if_neg (fun h => hfr h.2), add_zero]
+    · rw [ite_eq_right hfr, ite_eq_right (fun h => hfr h.2), add_zero]
       have h := probe_eq hp st item (base + δ) base (base + δ) y hy A hA r
       exact le_of_eq ((ENNReal.add_left_inj (ENNReal.mul_ne_top hρ (ENNReal.add_ne_top.2 ⟨hbase, hδ⟩))).1 h)
 
@@ -690,7 +690,7 @@ theorem creation_le (hp : p ≤ 1) (st : α → St) (item : α → ℝ≥0∞) (
   rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
   refine le_trans (Finset.sum_le_sum fun r _ => start_le hp st item base δ hbase hδ y hy A hA r) ?_
   rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ y (fun _ => δ),
-    if_pos (Finset.mem_univ y)]
+    ite_eq_left (Finset.mem_univ y)]
   gcongr
   have h := sum_reach_le hp st y A hA
   calc ∑ r, (if r ≠ y ∧ st r = .fresh then p * reach σ p st y A r * δ else 0)
@@ -712,7 +712,7 @@ theorem hit_le_sum_reach (st : α → St) :
       | hit =>
           rw [walk_succ_hit _ _ _ _ h]
           refine le_trans (le_of_eq ?_) (Finset.single_le_sum (fun _ _ => bot_le) (Finset.mem_univ r))
-          rw [if_pos h, reach_self]
+          rw [ite_eq_left h, reach_self]
       | miss =>
           rw [walk_succ_miss _ _ _ _ h]
           refine le_trans (hit_le_sum_reach st A (σ r)) (Finset.sum_le_sum fun x _ => ?_)
@@ -777,7 +777,7 @@ theorem mass_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j, 0 < j �
     intro r
     by_cases hr : st r = .fresh
     · simp [hr]
-    · rw [if_neg hr, if_neg hr, zero_add, if_pos hr]
+    · rw [ite_eq_right hr, ite_eq_right hr, zero_add, ite_eq_left hr]
       exact walk_le hp st (fun _ => le_rfl) le_rfl zero_le_one A r
   have hcard : (Fintype.card α : ℝ≥0∞) ≤ gv σ p st (fun _ => 0) 1 0 A +
       (∑ r, (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) +

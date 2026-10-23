@@ -81,21 +81,21 @@ theorem trial_boundS
     (hrel : Related parameter data message reference state) (cont : OracleComp CostSpec (Option Signature))
     (hih : ∀ s', Related parameter data message reference s' →
       (∀ x, x ≠ blk parameter data message ρ → s'.cache x = state.cache x) → ∀ b,
-        ∑' out, Pr[= out | interp tg initial model cont b s'] * W out.1.1 out.2 ≤ bound)
+        ∑' out, Pr{let x ← interp tg initial model cont b s'}[x = out] * W out.1.1 out.2 ≤ bound)
     (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
         (liftM (CostSpec.query (.inl (.inr (.inl (blk parameter data message ρ))))) >>= fun first =>
           if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
-          else cont) budget state] *
+          else cont) budget state)}[x = out] *
         W out.1.1 out.2 ≤
       (state.cache (blk parameter data message ρ)).elim
-        (∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+        (∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
           (if Landed parameter (blockIndex u0) then gf (viewOf u0) else bound))
         (fun u0 => if Landed parameter (blockIndex u0) then poolValue parameter data message reference gp ρ
           else bound) := by
   have hfinish : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u0 : HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ → s'.cache (blk parameter data message ρ) = some u0 →
-      ∑' out, Pr[= out | interp tg initial model (finishCostSource parameter data message ρ) b s'] *
+      ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message ρ) b s'}[x = out] *
           W out.1.1 out.2 ≤
         pairWeight parameter data message reference gf gp ρ u0 := by
     intro s' u0 b hrel' hs'
@@ -103,29 +103,29 @@ theorem trial_boundS
       (hparse ρ) s' u0 hs' _ b)
     by_cases hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')
     · exact mul_le_mul_right (hWfin s' u0 b hrel' hs' out hout) _
-    · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
+    · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
   rw [interp_ordinary]
   split_ifs with h1
   · rw [ordinaryStep, hparse ρ]
     simp only
-    rw [tsum_probOutput_bind_mul]
-    simp only [tsum_probOutput_map_mul]
+    rw [OracleComp.tsum_prEvent_bind_mul]
+    simp only [OracleComp.tsum_prEvent_map_mul]
     cases hc : state.cache (blk parameter data message ρ) with
     | some u0 =>
-        rw [readOutside_cached _ state u0 hc, tsum_probOutput_pure_mul]
+        rw [readOutside_cached _ state u0 hc, OracleComp.tsum_prEvent_pure_mul]
         simp only [Option.elim]
         by_cases hl : Landed parameter (blockIndex u0)
-        · rw [if_pos hl, if_pos hl]
+        · rw [ite_eq_left hl, ite_eq_left hl]
           have href : reference.cache (blk parameter data message ρ) = some u0 := by
             rcases hrel ρ with h | ⟨_, u, hu, hnl⟩
             · rw [← h]; exact hc
             · rw [hc] at hu; cases hu; exact absurd hl hnl
           refine le_trans (hfinish state u0 _ (fun ρ' _ => hrel ρ') hc) (le_of_eq ?_)
           simp [pairWeight, poolValue, href, hl]
-        · rw [if_neg hl, if_neg hl]
+        · rw [ite_eq_right hl, ite_eq_right hl]
           exact hih state hrel (fun _ _ => rfl) _
     | none =>
-        rw [readOutside_fresh _ state hc, tsum_probOutput_map_mul]
+        rw [readOutside_fresh _ state hc, OracleComp.tsum_prEvent_map_mul]
         simp only [Option.elim]
         have href : reference.cache (blk parameter data message ρ) = none := by
           rcases hrel ρ with h | ⟨h, _⟩
@@ -133,18 +133,18 @@ theorem trial_boundS
           · exact h
         refine ENNReal.tsum_le_tsum fun u0 => mul_le_mul_right ?_ _
         by_cases hl : Landed parameter (blockIndex u0)
-        · rw [if_pos hl, if_pos hl]
+        · rw [ite_eq_left hl, ite_eq_left hl]
           refine le_trans (hfinish _ u0 _ (fun ρ' hρ' => by
               rw [show (state.store (blk parameter data message ρ) u0).cache (blk parameter data message ρ') =
                 state.cache (blk parameter data message ρ') from
                 store_cache_ne state _ _ (blk_ne_of_ne parameter data message hρ') u0]
               exact hrel ρ')
             (by simp [DebtState.store])) (le_of_eq ?_)
-          simp only [pairWeight, href, if_true, if_pos hl]
-        · rw [if_neg hl, if_neg hl]
+          simp only [pairWeight, href, ite_true, ite_eq_left hl]
+        · rw [ite_eq_right hl, ite_eq_right hl]
           exact hih _ (related_store parameter data message reference state hrel ρ hc u0 hl)
             (fun x hx => store_cache_ne state _ x hx u0) _
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     rw [hWabort]
     exact zero_le
 
@@ -167,7 +167,7 @@ theorem scan_boundW
     ∀ attempts, attempts ≤ 2 ^ 128 → ∀ budget state ρ, Related parameter data message reference state →
       (∀ i, i < attempts → state.cache (blk parameter data message ((nextRand ^ i) ρ)) =
         reference.cache (blk parameter data message ((nextRand ^ i) ρ))) →
-      ∑' out, Pr[= out | interp tg initial model (signCostSourceLoop parameter data message attempts ρ) budget state] *
+      ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message attempts ρ) budget state}[x = out] *
           W out.1.1 out.2 ≤
         walk nextRand ForestPrice.landing (stOf parameter data message reference)
           (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts ρ := by
@@ -175,8 +175,8 @@ theorem scan_boundW
   induction attempts with
   | zero =>
       intro _ budget state ρ hrel _
-      change ∑' out, Pr[= out | interp tg initial model (pure none) budget state] * W out.1.1 out.2 ≤ _
-      rw [interp_pure, tsum_probOutput_pure_mul]
+      change ∑' out, Pr{let x ← interp tg initial model (pure none) budget state}[x = out] * W out.1.1 out.2 ≤ _
+      rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
       change W (some none) state ≤ _
       rw [hWnone state hrel]
       exact bot_le
@@ -185,7 +185,7 @@ theorem scan_boundW
       rw [signCostSourceLoop_succ]
       have hnext : ∀ s', Related parameter data message reference s' →
           (∀ x, x ≠ blk parameter data message ρ → s'.cache x = state.cache x) → ∀ b,
-          ∑' out, Pr[= out | interp tg initial model (signCostSourceLoop parameter data message attempts (nextRand ρ)) b s'] *
+          ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message attempts (nextRand ρ)) b s'}[x = out] *
             W out.1.1 out.2 ≤
           walk nextRand ForestPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
@@ -210,25 +210,25 @@ theorem scan_boundW
           set bound := walk nextRand ForestPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
             (nextRand ρ)
-          have hsplit : (∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          have hsplit : (∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
               (if Landed parameter (blockIndex u0) then gf (viewOf u0) else bound)) =
-              (∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+              (∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
                 (if Landed parameter (blockIndex u0) then gf (viewOf u0) else 0)) +
-              bound * ∑' u0, Pr[= u0 | ($ᵗ HashOutput : ProbComp HashOutput)] *
+              bound * ∑' u0, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u0] *
                 (if Landed parameter (blockIndex u0) then 0 else 1) := by
             rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
             refine tsum_congr fun u0 => ?_
             split_ifs
-            · simp
-            · simp [mul_comm]
+            · simp [-SampleableType.prEvent_uniformSample]
+            · simp [-SampleableType.prEvent_uniformSample, mul_comm]
           rw [hsplit, unlanded_mass parameter, fresh_view_mean parameter gf, mul_comm bound]
       | some u0 =>
           simp only [Option.elim]
           by_cases hl : Landed parameter (blockIndex u0)
           · have hst : stOf parameter data message reference ρ = .hit := by simp [stOf, hc, hl]
-            rw [walk_succ_hit _ _ _ _ hst, if_pos hl]
+            rw [walk_succ_hit _ _ _ _ hst, ite_eq_left hl]
           · have hst : stOf parameter data message reference ρ = .miss := by simp [stOf, hc, hl]
-            rw [walk_succ_miss _ _ _ _ hst, if_neg hl]
+            rw [walk_succ_miss _ _ _ _ hst, ite_eq_right hl]
 
 end Scan
 
@@ -284,7 +284,7 @@ theorem scan_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ) 
                 prepared_store initial s hprep _ u hc0⟩
         obtain ⟨hb0, hb0s, hrest, hprep1⟩ := hstep
         by_cases hl : Landed parameter (blockIndex res.1)
-        · rw [if_pos hl] at ho
+        · rw [ite_eq_left hl] at ho
           obtain ⟨hf0, hfother, hfrev, hfsig, hffail⟩ :=
             finish_post tg initial model parameter data message hparse Fail hfail ρ _ res.2 hprep1 res.1 hb0 o ho r hr
           refine Or.inr ⟨ρ, res.1, ⟨hf0, hl, hb0s, fun ρ' hρ' => ?_⟩, hfrev, hfsig, fun hn => ?_⟩
@@ -293,7 +293,7 @@ theorem scan_post (hparse : ∀ ρ, model.parse (blk parameter data message ρ) 
               hrest _ (blk_ne_of_ne parameter data message hρ')]
           · obtain ⟨hrv, hfl⟩ := hffail hn
             exact ⟨hrv, fun _ => hfl⟩
-        · rw [if_neg hl] at ho
+        · rw [ite_eq_right hl] at ho
           have hrel1 : ∀ ρ', RelatedAt parameter data message s res.2 ρ' := by
             intro ρ'
             by_cases hρ : ρ' = ρ

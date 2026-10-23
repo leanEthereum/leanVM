@@ -313,7 +313,7 @@ theorem secretInput_ne_parameterInput (seed : MasterSeed) (material : Material)
 /-- Program the complete derivation table over a base cache. This definition overwrites its
 specified entries; a later lemma explicitly requires those entries fresh to preserve the base. -/
 noncomputable def programCache (base : QueryCache HashSpec) (seed : MasterSeed)
-    (material : Material) : QueryCache HashSpec := fun input =>
+    (material : Material) : QueryCache HashSpec := QueryCache.ofFn fun input =>
   if input = parameterInput seed then some material.1
   else if h : ∃ derivation, input = derivationInput seed material derivation then
     some (derivedOutput material.2 (Classical.choose h))
@@ -327,10 +327,10 @@ theorem programCache_derivation (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) (derivation : Derivation) :
     programCache base seed material (derivationInput seed material derivation) =
       some (derivedOutput material.2 derivation) := by
-  rw [programCache, if_neg (derivationInput_ne_parameterInput seed material derivation)]
+  rw [programCache, QueryCache.ofFn_apply, ite_eq_right (derivationInput_ne_parameterInput seed material derivation)]
   have h : ∃ other, derivationInput seed material derivation = derivationInput seed material other :=
     ⟨derivation, rfl⟩
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact congrArg (fun p => some (derivedOutput material.2 p))
     (derivationInput_injective seed material (Classical.choose_spec h).symm)
 
@@ -348,8 +348,8 @@ theorem programCache_other (base : QueryCache HashSpec) (seed : MasterSeed) (mat
     (input : HashInput) (hparameter : input ≠ parameterInput seed)
     (hsecret : ∀ position, input ≠ secretInput seed material position) :
     programCache base seed material input = base input := by
-  simp only [programCache, hparameter, ↓reduceIte]
-  refine dif_neg ?_
+  simp only [programCache, QueryCache.ofFn_apply, hparameter, ↓reduceIte]
+  refine dite_eq_right ?_
   rintro ⟨derivation, hd⟩
   obtain ⟨position, rfl⟩ := secretDerivation_surjective derivation
   exact hsecret position hd

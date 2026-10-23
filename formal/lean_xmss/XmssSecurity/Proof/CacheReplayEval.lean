@@ -28,8 +28,8 @@ theorem truncateHash_answer (cache : QueryCache HashSpec) (input : HashInput) :
 theorem eval_oracleHash (cache : QueryCache HashSpec) (input : HashInput) :
     evalWithAnswerFn (answerFn cache)
       (Concrete.oracleHash input : OracleComp HashSpec HashOutput) = answer cache input := by
-  simpa [Concrete.oracleHash, answerFn] using
-    evalWithAnswerFn_query (answerFn cache) input
+  simp [Concrete.oracleHash, answerFn]
+
 
 @[simp]
 theorem eval_tweakableHash (cache : QueryCache HashSpec)

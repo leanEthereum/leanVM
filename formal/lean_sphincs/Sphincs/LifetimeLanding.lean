@@ -64,14 +64,14 @@ def localDigestView (digest : MessageDigest) : KeptDigestView :=
 /-- Joint event factorization: acceptance only costs the reciprocal number of subtrees. -/
 theorem probEvent_landed_localDigest (parameter : PublicParameter)
     (P : KeptDigestView → Prop) [DecidablePred P] :
-    Pr[fun digest => Landed parameter (digestIndex digest) ∧ P (localDigestView digest) |
-      ($ᵗ MessageDigest : ProbComp MessageDigest)] =
+    Pr{let digest ← ($ᵗ MessageDigest : ProbComp MessageDigest)}[Landed parameter (digestIndex digest) ∧ P (localDigestView digest)] =
         ((2 ^ (totalHeight - subtreeHeight) : Nat) : ℝ≥0∞)⁻¹ *
-          Pr[P | ($ᵗ KeptDigestView : ProbComp KeptDigestView)] := by
-  change Pr[(fun view : FullDigestView => Landed parameter view.1 ∧ P (localFullView view)) ∘
-    fullDigestView | _] = _
-  rw [← probEvent_map, probEvent_congr' (fun _ _ => Iff.rfl) evalDist_fullDigestView_uniform]
-  rw [probEvent_uniformSample, probEvent_uniformSample, ← Fintype.card_subtype,
+          Pr{let x ← ($ᵗ KeptDigestView : ProbComp KeptDigestView)}[P x] := by
+  have hpush := evalDist_fullDigestView_uniform.prEvent_eq
+    (fun view : FullDigestView => Landed parameter view.1 ∧ P (localFullView view))
+  simp only [prEvent_map] at hpush
+  refine hpush.trans ?_
+  rw [SampleableType.prEvent_uniformSample, SampleableType.prEvent_uniformSample, ← Fintype.card_subtype,
     ← Fintype.card_subtype, ← Fintype.card_congr (keptFilteredEquiv parameter P),
     fullDigestView_card_factor, Nat.cast_mul]
   simp only [div_eq_mul_inv,

@@ -2,6 +2,8 @@ import SphincsFors.BridgeFixedRun
 import SphincsFors.SecurityReferenceSignature
 import SphincsFors.SecurityHiddenWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Accepted-signature classification retaining that every non-tree exception is at a
 retained leaf. -/
 
@@ -179,7 +181,7 @@ theorem accepted_full_classification (f : QueryImpl HashSpec Id) (pk : PublicKey
           · simp only [chosenCounter, hselected, Option.map_some]
           · funext level
             have hp := hopen.2 level.val level.isLt
-            simpa only [index, signaturePath, canonicalTreePath, dif_pos level.isLt] using hp
+            simpa only [index, signaturePath, canonicalTreePath, dite_eq_left level.isLt] using hp
         · refine Or.inr (Or.inr ⟨hland, Or.inr (Or.inr (Or.inr ⟨hforsException, ?_⟩))⟩)
           obtain ⟨input, canonicalInput, hinput, hne, hout⟩ :=
             Fors.Exception.queried_output_match f pk.parameter (index f pk message signature) seed
@@ -234,7 +236,7 @@ theorem active_hit (position : Position) (hactive : PrunedGraph.active parameter
   unfold graphTable
   rw [targets_at_entry parameter _ position.domain payload _
     (referenceTable_active parameter _ _ _ _ labels position hactive)]
-  rw [if_neg (fun h => hne (Option.some.inj h).symm)]
+  rw [ite_eq_right (fun h => hne (Option.some.inj h).symm)]
   rw [hout]
   exact Finset.mem_singleton_self _
 
@@ -400,7 +402,7 @@ theorem encodingAt_encoding (leaf : Index) :
   have hex : ∃ leaf' : Index, hashDomainFields (.encoding topLayer rootTree leaf) =
       hashDomainFields (.encoding topLayer rootTree leaf') := ⟨leaf, rfl⟩
   unfold encodingAt
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact congrArg some (encoding_fields_injective hex.choose_spec).symm
 
 attribute [local irreducible] encodingAt
@@ -472,7 +474,7 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   unfold Wots.encodingInput
   rw [targets_at_entry _ _ _ _ _ hentry]
   simp only []
-  rw [if_neg hexempt']
+  rw [ite_eq_right hexempt']
   exact Finset.mem_singleton.mpr hout
 
 end SphincsFors.Security.HiddenBridge

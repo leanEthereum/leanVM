@@ -18,8 +18,10 @@ theorem Concrete.tweakableHash_queryBound_zero_unaddressed
     (Concrete.tweakableHash parameter domain payload :
       OracleComp HashSpec Digest).IsQueryBoundP
         (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  simp [Concrete.tweakableHash, Concrete.oracleHash,
-    KeygenAddressedHashInput]
+  simp only [Concrete.tweakableHash, Concrete.oracleHash, HasQuery.instOfMonadLift_query,
+    bind_pure_comp, isQueryBoundP_map_iff, isQueryBoundP_query_iff]
+  intro hunaddressed
+  exact absurd ⟨domain, by simp⟩ hunaddressed
 
 theorem Concrete.chainWalk_queryBound_zero_unaddressed
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)

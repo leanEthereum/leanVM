@@ -1,5 +1,7 @@
 import Sphincs.BridgeClassify
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Accepted-signature classification keeping the recovered forest key. An accepted signature is a
 canonical WOTS and tree opening at a retained leaf whose forest part recovers the canonical forest
 key, a tree hit, or a WOTS exception at a retained leaf. A recovered canonical forest key is a
@@ -222,7 +224,7 @@ theorem accepted_recovered_classification (f : QueryImpl HashSpec Id) (pk : Publ
         · simp only [chosenCounter, hselected, Option.map_some]
         · funext level
           have hp := hopen.2 level.val level.isLt
-          simpa only [index, signaturePath, canonicalTreePath, dif_pos level.isLt] using hp
+          simpa only [index, signaturePath, canonicalTreePath, dite_eq_left level.isLt] using hp
       · exact Or.inr (Or.inr ⟨hland, Or.inl hencoding⟩)
       · exact Or.inr (Or.inr ⟨hland, Or.inr (Or.inl hleafMatch)⟩)
       · exact Or.inr (Or.inr ⟨hland, Or.inr (Or.inr hchain)⟩)

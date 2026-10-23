@@ -94,8 +94,7 @@ theorem idealRun_cap_count_expectation :
     simp only [hzero, zero_mul]
 
 theorem realRun_cap_contact_le :
-    Pr[fun result => Contact result.2.2 result.1 |
-      realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none)}[Contact result.2.2 result.1] ≤
         (2 / Fintype.card State) * ∑' result,
           idealRun auxiliary (fun endpoint => QueryCap.run IsPrefixQuery (computation endpoint) budget) (fun _ _ => none) result *
             (QueryCap.spent budget result.2.1 : ENNReal) := by

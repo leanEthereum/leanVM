@@ -59,14 +59,14 @@ theorem publicData_correct (f : QueryImpl HashSpec Id) (parameter : PublicParame
   · exact fors_key_value f parameter seed labels hconsistent
   · intro leaf hland
     funext level
-    simpa only [publicData, canonicalTreePath, dif_pos level.isLt] using
+    simpa only [publicData, canonicalTreePath, dite_eq_left level.isLt] using
       tree_path_sibling f parameter seed labels hconsistent hboundary topLayer rootTree
         leaf hland level.val level.isLt
   · intro index leaves
     funext tree level
     have h := fors_path_sibling f parameter seed labels hconsistent index tree (leaves tree)
       level.val level.isLt
-    simpa only [publicData, eval_ftsOpen, Fors.extendPath, dif_pos level.isLt,
+    simpa only [publicData, eval_ftsOpen, Fors.extendPath, dite_eq_left level.isLt,
       Fors.canonicalPath, ftsIndexOf] using h
 
 def CoordinatesCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -88,7 +88,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     by_cases hz : position.val = 0
     · simp only [coordinates, hz, ↓reduceDIte, Chain.honestChain, chainWalk]
       rfl
-    · rw [coordinates, dif_neg hz]
+    · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainLength - 1 := by have := position.isLt; omega
       have h := chain_value f parameter seed labels hconsistent topLayer rootTree leaf hland
         chain ⟨position.val - 1, hstep⟩

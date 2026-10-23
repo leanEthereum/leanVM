@@ -22,8 +22,15 @@ def serializeSignature (signature : Signature) : List UInt8 :=
 
 theorem digest_vector_length {n : Nat} (values : Fin n → Digest) :
     ((List.ofFn values).flatMap (bytesLE 16)).length = n * 16 := by
-  simp [List.length_flatMap, bytesLE_length]
-  exact List.length_ofFn
+  have key : ∀ l : List (BitVec (8 * 16)), (l.flatMap (bytesLE 16)).length = l.length * 16 := by
+    intro l
+    induction l with
+    | nil => rfl
+    | cons a l ih =>
+      simp only [List.flatMap_cons, List.length_append, ih, bytesLE, List.length_ofFn,
+        List.length_cons]
+      omega
+  exact (key (List.ofFn values)).trans (congrArg (· * 16) (List.length_ofFn (f := values)))
 
 theorem serializeCoord_length (opening : CoordOpening) : (serializeCoord opening).length = 352 := by
   simp only [serializeCoord, List.length_append, digest_vector_length, List.length_flatten,
@@ -33,7 +40,7 @@ theorem serializeCoord_length (opening : CoordOpening) : (serializeCoord opening
 
 /-- **Serialized size.** Every forest signature, malformed or not, serializes to 4276 bytes. -/
 theorem signature_size (signature : Signature) : (serializeSignature signature).length = 4276 := by
-  simp only [serializeSignature, List.length_append, bytesLE_length, digest_vector_length,
+  simp only [serializeSignature, List.length_append, bytesLE, List.length_ofFn, digest_vector_length,
     List.length_flatten, List.map_ofFn, Function.comp_def, serializeCoord_length, List.sum_ofFn,
     Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
   decide

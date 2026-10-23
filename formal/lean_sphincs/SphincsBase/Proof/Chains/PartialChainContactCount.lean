@@ -25,7 +25,7 @@ theorem contactCount_succ {n : Nat} (observed : Fin (n + 1) → State → Option
       apply Fin.ext
       simp only [Fin.val_last]
       omega
-    simp only [hn, false_and, if_false, Finset.sum_const_zero]
+    simp only [hn, false_and, ite_false, Finset.sum_const_zero]
   · simp
 
 theorem contactCount_tail {n : Nat} (observed : Fin (n + 2) → State → Option State) (endpoint : State) :
@@ -64,7 +64,7 @@ theorem contactCount_record_fresh {n : Nat} (observed : Fin n → State → Opti
     contactCount, ← Finset.add_sum_erase Finset.univ
       (fun other : Fin n × State => if other.1.val + 1 = n ∧ observed other.1 other.2 = some endpoint then 1 else 0)
       (Finset.mem_univ query)]
-  simp only [hfresh, reduceCtorEq, and_false, if_false, Nat.zero_add, Nat.add_comm]
+  simp only [hfresh, reduceCtorEq, and_false, ite_false, Nat.zero_add, Nat.add_comm]
 
 theorem contactCount_observe_increment_le [Nonempty State] {n : Nat}
     (value increment : Nat → ENNReal) (hincrement : ∀ k, value (k + 1) = value k + increment k)
@@ -81,11 +81,11 @@ theorem contactCount_observe_increment_le [Nonempty State] {n : Nat}
       · simp only [hlast, true_and]
         have hvalue (answer : State) : value (contactCount observed endpoint + if answer = endpoint then 1 else 0) =
             value (contactCount observed endpoint) + if answer = endpoint then increment (contactCount observed endpoint) else 0 := by
-          by_cases heq : answer = endpoint <;> simp only [heq, if_true, if_false, hincrement, add_zero]
+          by_cases heq : answer = endpoint <;> simp only [heq, ite_true, ite_false, hincrement, add_zero]
         simp only [hvalue, expectation_add, expectation_const]
         simp only [mul_ite, mul_zero, tsum_ite_eq, PMF.uniformOfFintype_apply]
         exact le_of_eq (by rw [div_eq_mul_inv, mul_comm])
-      · simp only [hlast, false_and, if_false, Nat.add_zero, expectation_const]
+      · simp only [hlast, false_and, ite_false, Nat.add_zero, expectation_const]
         exact _root_.le_add_of_nonneg_right bot_le
 
 theorem contactCount_observe_le [Nonempty State] {n : Nat} (observed : Fin n → State → Option State)

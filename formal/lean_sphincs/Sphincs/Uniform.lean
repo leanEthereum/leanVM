@@ -1,4 +1,5 @@
 import Sphincs.Scheme
+import SphincsBase.Proof.Base.Probability
 
 /-! Uniform bit extraction; adapted from leanVM b7a107256. -/
 namespace Sphincs
@@ -33,7 +34,7 @@ theorem splitHashOutput_bijective {width : Nat} (hwidth : width ≤ hashOutputBi
     Function.Bijective (splitHashOutput width) := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨splitHashOutput_injective hwidth, ?_⟩
-  rw [Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, ← pow_add]
+  rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add]
   congr
   omega
 
@@ -42,9 +43,8 @@ noncomputable def splitHashOutputEquiv (width : Nat) (hwidth : width ≤ hashOut
   Equiv.ofBijective (splitHashOutput width) (splitHashOutput_bijective hwidth)
 
 theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ hashOutputBits) :
-    𝒟[(fun output : HashOutput => output.extractLsb' 0 width) <$>
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+    ((fun output : HashOutput => output.extractLsb' 0 width) <$>
+        ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   let split := splitHashOutput width
   have hmap :
       (fun output : HashOutput => output.extractLsb' 0 width) <$>
@@ -53,14 +53,14 @@ theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ ha
     simp [Functor.map_map, split, splitHashOutput]
   rw [hmap]
   have hsplit :
-      𝒟[split <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-        𝒟[($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
-          ProbComp (BitVec width × BitVec (hashOutputBits - width)))] :=
-    evalDist_map_bijective_uniform_cross
+      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
+          ProbComp (BitVec width × BitVec (hashOutputBits - width))) :=
+    SampleableType.map_uniformSample_evalDistEq_of_bijective
       (α := HashOutput) (β := BitVec width × BitVec (hashOutputBits - width))
-      split (splitHashOutput_bijective hwidth)
-  rw [evalDist_map, hsplit, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+      (splitHashOutput_bijective hwidth)
+  refine (hsplit.map Prod.fst).trans fun p => ?_
+  rw [prEvent_map]
+  exact SampleableType.prEvent_uniformSample_fst p
 
 /-- The three parts of a hash output around the `width` bits at `offset`. -/
 def splitHashOutputAt (offset width : Nat) (output : HashOutput) :
@@ -92,7 +92,7 @@ theorem splitHashOutputAt_bijective {offset width : Nat} (hwidth : offset + widt
           b.getLsbD (i - (offset + width))) hhigh
         simp only [BitVec.getLsbD_extractLsb', hshift, decide_true, Bool.true_and] at this
         rwa [show offset + width + (i - (offset + width)) = i by omega] at this
-  · rw [Fintype.card_prod, Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, card_bitVec,
+  · rw [Fintype.card_prod, Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec,
       ← pow_add, ← pow_add]
     congr
     omega
@@ -100,9 +100,8 @@ theorem splitHashOutputAt_bijective {offset width : Nat} (hwidth : offset + widt
 /-- The `width` bits at any offset of a uniform hash output are uniform. -/
 theorem evalDist_hashOutput_extractAt_uniform {offset width : Nat}
     (hwidth : offset + width ≤ hashOutputBits) :
-    𝒟[(fun output : HashOutput => output.extractLsb' offset width) <$>
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+    ((fun output : HashOutput => output.extractLsb' offset width) <$>
+        ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ BitVec width : ProbComp (BitVec width)) := by
   let split := splitHashOutputAt offset width
   have hmap :
       (fun output : HashOutput => output.extractLsb' offset width) <$>
@@ -111,42 +110,34 @@ theorem evalDist_hashOutput_extractAt_uniform {offset width : Nat}
     simp [Functor.map_map, split, splitHashOutputAt]
   rw [hmap]
   have hsplit :
-      𝒟[split <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-        𝒟[($ᵗ (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width)))) :
-          ProbComp (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width)))))] :=
-    evalDist_map_bijective_uniform_cross
+      (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width)))) :
+          ProbComp (BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width))))) :=
+    SampleableType.map_uniformSample_evalDistEq_of_bijective
       (α := HashOutput)
       (β := BitVec width × (BitVec offset × BitVec (hashOutputBits - (offset + width))))
-      split (splitHashOutputAt_bijective hwidth)
-  rw [evalDist_map, hsplit, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+      (splitHashOutputAt_bijective hwidth)
+  refine (hsplit.map Prod.fst).trans fun p => ?_
+  rw [prEvent_map]
+  exact SampleableType.prEvent_uniformSample_fst p
 
 theorem evalDist_truncateHash_uniform :
-    𝒟[truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ Digest : ProbComp Digest)] := by
-  change 𝒟[(fun output : HashOutput => output.extractLsb' 0 digestBits) <$>
-      ($ᵗ HashOutput : ProbComp HashOutput)] = _
+    (truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ Digest : ProbComp Digest) := by
   exact evalDist_hashOutput_extract_uniform (width := digestBits) (by decide)
 
 theorem probEvent_uniform_truncateHash_eq (target : Digest) :
-    Pr[fun output : HashOutput => truncateHash output = target |
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output = target] =
       (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
-  rw [show (fun output : HashOutput => truncateHash output = target) =
-      (fun output => output = target) ∘ truncateHash from rfl]
-  rw [← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) evalDist_truncateHash_uniform]
-  rw [probEvent_eq_eq_probOutput, probOutput_uniformSample]
+  have h := evalDist_truncateHash_uniform.prEvent_eq (· = target)
+  rw [prEvent_map] at h
+  rw [h]
+  exact SampleableType.prEvent_uniformSample_eq_singleton target
 
 theorem probEvent_uniform_truncateHash_mem (targets : Finset Digest) :
-    Pr[fun output : HashOutput => truncateHash output ∈ targets |
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
+    Pr{let output ← ($ᵗ HashOutput : ProbComp HashOutput)}[truncateHash output ∈ targets] =
       (targets.card : ℝ≥0∞) / (Fintype.card Digest : ℝ≥0∞) := by
-  rw [show (fun output : HashOutput => truncateHash output ∈ targets) =
-      (fun digest => digest ∈ targets) ∘ truncateHash from rfl]
-  rw [← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) evalDist_truncateHash_uniform]
-  rw [probEvent_uniformSample]
+  have h := evalDist_truncateHash_uniform.prEvent_eq (· ∈ targets)
+  rw [prEvent_map] at h
+  rw [h, SampleableType.prEvent_uniformSample]
   rw [Finset.filter_univ_mem]
 
 end Sphincs

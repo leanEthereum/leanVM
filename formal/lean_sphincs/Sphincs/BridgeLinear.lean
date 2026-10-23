@@ -31,6 +31,6 @@ theorem digestCount_append (first second : List (Entry D)) :
 /-- Expected final payoff of a state, once its unexposed coordinates are completed. -/
 noncomputable def endValue (payoff : (ι → Digest) → DebtState D R ι → ℝ≥0∞) (state : DebtState D R ι) :
     ℝ≥0∞ :=
-  ∑' table, Pr[= table | completion state.known] * payoff table state
+  ∑' table, Pr{let x ← completion state.known}[x = table] * payoff table state
 
 end Sphincs.Security.HiddenDebt

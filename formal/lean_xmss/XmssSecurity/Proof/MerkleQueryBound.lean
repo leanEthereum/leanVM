@@ -66,7 +66,7 @@ theorem merkleAddressInSubtree_step_sum
       simp only at hlevelEq
       omega
     unfold MerkleAddressInSubtree
-    simp only [hlt, hparentLt, true_and, hdomain, if_false, add_zero]
+    simp only [hlt, hparentLt, true_and, hdomain, ite_false, add_zero]
     rw [hexponent]
     exact hpartition
   · by_cases heq : targetLevel.val = levels
@@ -74,7 +74,7 @@ theorem merkleAddressInSubtree_step_sum
         apply Fin.ext
         exact heq
       subst targetLevel
-      simp only [MerkleAddressInSubtree, lt_self_iff_false, false_and, if_false,
+      simp only [MerkleAddressInSubtree, lt_self_iff_false, false_and, ite_false,
         Nat.lt_succ_self, true_and, Nat.sub_self, treeCovers_zero_iff,
         HashDomain.merkle.injEq]
       simp
@@ -129,13 +129,13 @@ theorem Concrete.treeNode_queryBound_merkleAddress
         intro right _
         by_cases heq : HashDomain.merkle ⟨levels, hlevel⟩ node =
             .merkle targetLevel targetNode
-        · simp only [heq, if_pos]
+        · simp only [heq, ite_eq_left]
           obtain ⟨hlevelEq, hnodeEq⟩ := HashDomain.merkle.inj heq
           subst targetLevel
           subst targetNode
           exact Concrete.tweakableHash_queryBound_atAddress parameter
             (.merkle ⟨levels, hlevel⟩ node) (Concrete.nodePayload left right)
-        · simp only [heq, if_false]
+        · simp only [heq, ite_false]
           exact Concrete.tweakableHash_queryBound_atOtherAddress parameter
             (.merkle targetLevel targetNode) (.merkle ⟨levels, hlevel⟩ node)
             (Concrete.nodePayload left right) heq

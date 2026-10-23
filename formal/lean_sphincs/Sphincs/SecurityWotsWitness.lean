@@ -1,6 +1,8 @@
 import Sphincs.SecurityChainWitness
 import Sphincs.SecurityEncoding
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! WOTS+C extraction from the actual verifier trace, adapted from leanVM b7a107256.
 The exceptional cases remain explicit: leaf or forward-chain output matches, two linked prefix
 edges, two prefix contacts, or a unit-neighbor encoding together with one prefix contact. -/

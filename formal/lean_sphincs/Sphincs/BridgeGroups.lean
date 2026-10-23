@@ -275,9 +275,9 @@ theorem grpAll_probe {w : ℝ≥0∞} (hw : w ≤ 1) {f : Multiset View → ℝ�
     rw [grpM_withPair_self,
       grp_congr _ _ (fun e => grpAll_withPair_other s p u0 excl (virtualOnce Finset.univ w f n I) Ms' hnot e) d]
     by_cases hl : Landed parameter (blockIndex u0)
-    · simp only [hl, if_true]
+    · simp only [hl, ite_true]
       rfl
-    · simp only [hl, if_false]
+    · simp only [hl, ite_false]
       exact grp_congr_ext _ (fun ρ hρ => by
         by_cases h : ρ = p.2
         · subst h; rw [Function.update_self] at hρ; cases hρ
@@ -326,7 +326,7 @@ theorem scan_bound_comb
     (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none) (s : State)
     (gf : View → ℝ≥0∞) (gp : Randomness → View → ℝ≥0∞) (attempts : ℕ) (hA : attempts ≤ 2 ^ 128)
     (budget : ℕ) (start : Randomness) :
-    ∑' out, Pr[= out | interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s] *
+    ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s}[x = out] *
         (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
       walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 attempts start := by
@@ -336,12 +336,12 @@ theorem scan_bound_comb
     (fun _ => by simp [freshNewWeight, outWeight]) ?_ ?_ attempts hA budget s start (fun _ => Or.inl rfl)
     (fun _ _ => rfl)
   · intro s' hrel
-    simp only [freshNewWeight, outWeight, Option.isSome_some, if_true, add_zero]
+    simp only [freshNewWeight, outWeight, Option.isSome_some, ite_true, add_zero]
     refine Finset.sum_eq_zero fun ρ _ => ?_
     split_ifs with hn
     · rcases hrel ρ with h | ⟨_, u, hu', hnl⟩
       · rw [h, hn]; rfl
-      · simp only [hu', Option.elim, if_neg hnl]
+      · simp only [hu', Option.elim, ite_eq_right hnl]
     · rfl
   · intro ρ s' u0 b hoff hs0 out hout
     have hkeep := finish_keeps_msg tg initial model parameter data m hparse ρ b s' u0 hs0 out hout
@@ -350,34 +350,34 @@ theorem scan_bound_comb
     show freshNewWeight parameter data m s gf ((out.1.1, [], [], []), out.2) +
       outWeight parameter data m s 0 gp ((out.1.1, [], [], []), out.2) ≤ _
     by_cases hsome : out.1.1.isSome
-    · rw [if_pos hsome, hk ρ, hs0]
+    · rw [ite_eq_left hsome, hk ρ, hs0]
       simp only [Option.elim]
       have hfresh : freshNewWeight parameter data m s gf ((out.1.1, [], [], []), out.2) =
           if s.cache (blk parameter data m ρ) = none then
             (if Landed parameter (blockIndex u0) then gf (viewOf u0) else 0) else 0 := by
-        simp only [freshNewWeight, if_pos hsome]
+        simp only [freshNewWeight, ite_eq_left hsome]
         rw [Finset.sum_eq_single ρ]
         · simp only [hk ρ, hs0, Option.elim]
         · intro ρ' _ hne
           split_ifs with hn
           · rcases hoff ρ' hne with h | ⟨_, u, hu', hnl⟩
             · rw [hk ρ', h, hn]; rfl
-            · simp only [hk ρ', hu', Option.elim, if_neg hnl]
+            · simp only [hk ρ', hu', Option.elim, ite_eq_right hnl]
           · rfl
         · intro h; exact absurd (Finset.mem_univ ρ) h
       rw [hfresh]
       have hout' : outWeight parameter data m s 0 gp ((out.1.1, [], [], []), out.2) ≤
           if s.cache (blk parameter data m ρ) = none then 0 else gp ρ (viewOf u0) := by
         have := outWeight_finish_le tg initial model parameter data m s 0 gp ρ b s' out hout
-        simp only [if_pos hsome, hk ρ, hs0, Option.elim, pairWeight] at this
+        simp only [ite_eq_left hsome, hk ρ, hs0, Option.elim, pairWeight] at this
         refine le_trans (le_of_eq ?_) (le_trans this (le_of_eq ?_))
         · rfl
         · split_ifs <;> rfl
       refine le_trans (add_le_add_right hout' _) (le_of_eq ?_)
       simp only [pairWeight]
-      split_ifs <;> simp
-    · rw [if_neg hsome]
-      simp only [freshNewWeight, if_neg hsome, zero_add]
+      split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
+    · rw [ite_eq_right hsome]
+      simp only [freshNewWeight, ite_eq_right hsome, zero_add]
       unfold outWeight
       cases hr : out.1.1 with
       | none => rfl
@@ -416,12 +416,12 @@ theorem upper_pointX {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) {s : 
     rw [← add_tsub_cancel_of_le hbase]
     refine add_le_add le_rfl (le_trans ?_ le_self_add)
     unfold freshNewWeight
-    rw [if_pos (by rw [hres]; rfl)]
+    rw [ite_eq_left (by rw [hres]; rfl)]
     refine le_trans (le_of_eq ?_) (Finset.single_le_sum (f := fun ρ' => if s.cache (blk parameter data m ρ') = none then
       (out.2.cache (blk parameter data m ρ')).elim 0 (fun u0 =>
         if Landed parameter (blockIndex u0) then X (d + {viewOf u0}) - X d else 0) else 0)
       (fun _ _ => bot_le) (Finset.mem_univ ρ))
-    simp only [hs0, h0, Option.elim, if_true, if_pos hl]
+    simp only [hs0, h0, Option.elim, ite_true, ite_eq_left hl]
   · rw [hnew, hpool]
     simp only [Finset.toList_empty, List.map_nil, Multiset.coe_nil, add_zero]
     have hbase : X d ≤ X (d + {viewOf u0}) := hX _ _ (Multiset.le_add_right _ _)
@@ -431,12 +431,12 @@ theorem upper_pointX {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) {s : 
     rw [hres, hr]
     simp only
     rw [hsig, h0]
-    simp only [Option.elim, pairWeight, hs0, reduceCtorEq, if_false]
+    simp only [Option.elim, pairWeight, hs0, reduceCtorEq, ite_false]
     have hne : s.cache (blk parameter data m sig.randomness) ≠ none := by
       rw [hsig, hs0]; exact Option.some_ne_none _
     have hx := hex sig hr hne
     rw [hsig] at hx
-    rw [if_neg hx]
+    rw [ite_eq_right hx]
 
 variable (parameter data m)
 
@@ -446,9 +446,9 @@ after one fresh slot. -/
 theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none)
     {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
           ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-            signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+            signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
           outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out)) ≤
       grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
@@ -462,29 +462,29 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
     calc X e = freshAvg Finset.univ (fun _ : View => X e) := (freshAvg_const _ Finset.univ_nonempty _).symm
       _ ≤ _ := freshAvg_mono _ fun v _ => hX _ _ (Multiset.le_add_right _ _)
   -- the scan part
-  have hscan : ∑' out, Pr[= out | interp tg initial model
+  have hscan : ∑' out, Pr{let x ← (interp tg initial model
         ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+          signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out) ≤
       c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
-    rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-    have hpr : ∀ ρ, Pr[= ρ | ($ᵗ Randomness : ProbComp Randomness)] = c := by
+    rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+    have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = c := by
       intro ρ
-      rw [probOutput_uniformSample]
+      rw [SampleableType.prEvent_uniformSample_eq_singleton]
     simp only [hpr]
     rw [ENNReal.tsum_mul_left, tsum_fintype]
     refine mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ => ?_)
     exact scan_bound_comb tg initial model parameter data m hparse s gf gp digestAttemptLimit
       (by unfold digestAttemptLimit; norm_num) budget start
-  have hsum : ∑' out, Pr[= out | interp tg initial model
+  have hsum : ∑' out, Pr{let x ← (interp tg initial model
         ((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>= fun start =>
-          signCostSourceLoop parameter data m digestAttemptLimit start) budget s] *
+          signCostSourceLoop parameter data m digestAttemptLimit start) budget s)}[x = out] *
         (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
       X d + c * ∑ start, walk nextRand landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
     rw [tsum_congr fun out => mul_add _ _ _, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-    exact add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) hscan
+    exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
   refine le_trans hsum ?_
   -- the base value joins every walk
   have hbase : X d = c * ∑ start : Randomness, walk nextRand landing (stOf parameter data m s) (fun _ => X d)
@@ -506,9 +506,9 @@ theorem sign_term (hparse : ∀ ρ, model.parse (blk parameter data m ρ) = none
     | some u0 =>
         simp only [Option.elim]
         split_ifs with hl hx
-        · simp only [hgp, if_pos hx, add_zero, le_refl]
+        · simp only [hgp, ite_eq_left hx, add_zero, le_refl]
         · have hv : pview parameter data s (m, ρ) = viewOf u0 := pview_of_cached h0
-          simp only [hgp, if_neg hx, hv]
+          simp only [hgp, ite_eq_right hx, hv]
           rw [add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))]
         · rw [add_zero]
           exact hX _ _ (Multiset.le_add_right _ _)

@@ -57,7 +57,7 @@ theorem sourceDirectTracedMappedAdversaryImpl_query_run_eq
   unfold sourceDirectTracedMappedAdversaryImpl actionTracedStateImpl
     sourceActionTracedMappedAdversaryImpl
   rw [sourceDirectMappedAdversaryImpl_eq_compose]
-  simp [QueryImpl.apply_compose, QueryImpl.withTraceAppend_apply,
+  simp [QueryImpl.apply_compose,
     map_eq_bind_pure_comp]
 
 set_option maxRecDepth 1000000 in

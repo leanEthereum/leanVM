@@ -10,6 +10,7 @@ little-endian encoding being injective, which is what this module proves.
 -/
 
 namespace SphincsBase
+set_option backward.isDefEq.respectTransparency false
 
 theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) :
     x = y := by

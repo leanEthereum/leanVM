@@ -41,13 +41,13 @@ theorem knownAgrees_exposeT (table : ι → Digest) :
 /-- **Exposure commutes with completion.** -/
 theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Knowledge ι → ProbComp β) :
     ∀ (cs : List ι) (known : Knowledge ι),
-      𝒟[completion known >>= fun table => next table (exposeT table cs known)] =
-        𝒟[exposeR cs known >>= fun known' => completion known' >>= fun table => next table known']
-  | [], _ => by simp only [exposeT, exposeR, pure_bind]
+      (completion known >>= fun table => next table (exposeT table cs known)) =ᵈ (exposeR cs known >>= fun known' => completion known' >>= fun table => next table known')
+  | [], _ => by simp only [exposeT, exposeR, pure_bind, EvalDistEq.refl]
   | c :: cs, known => by
       simp only [exposeT, exposeR, bind_assoc]
-      rw [completion_reveal known c (fun value table => next table (exposeT table cs (known.cacheQuery c value)))]
-      apply evalDist_bind_congr
+      refine (completion_reveal known c
+        (fun value table => next table (exposeT table cs (known.cacheQuery c value)))).trans ?_
+      refine OracleComp.EvalDistEq.bind_congr_of_support _ ?_
       rintro ⟨value, known'⟩ hr
       have hcache := HiddenDebt.randomOracle_known_support known c _ hr
       dsimp only at hcache ⊢
@@ -70,8 +70,8 @@ outside samples. -/
 theorem seedFree_le_expose (adversary : Adversary) (q : Nat)
     (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop)
     (cs : HashOutput → HiddenGraph.Table → CoordinateHighs → RemainingOutputs → Eager.Table → List Coordinate) :
-    Pr[event | seedFreeExperiment adversary q] ≤
-      Pr[HiddenReveal.StopOr event | do
+    Pr{let x ← seedFreeExperiment adversary q}[event x] ≤
+      Pr{let x ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -84,21 +84,21 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat)
             (splitAnswers highs remaining fixed) outsideTable)
           (HiddenCost.erase (HiddenCost.trace
             (sampleProgram adversary q parameterOutput fixed highs remaining)))
-          known] := by
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_seedFree_completion adversary q)]
+          known)}[(HiddenReveal.StopOr event) x] := by
+  rw [(evalDist_seedFree_completion adversary q).prEvent_eq]
   refine probEvent_bind_mono_support _ _ _ _ _ fun parameterOutput _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun fixed _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun highs _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun remaining _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun outsideTable _ => ?_
   unfold HiddenRows.stoppedExperiment
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_completion_exposeT
+  rw [(evalDist_completion_exposeT
     (fun table known => HiddenRows.stopped (sampleModel parameterOutput highs) table
       (outsideFn (splitMaterial parameterOutput highs remaining fixed)
         (splitAnswers highs remaining fixed) outsideTable)
       (HiddenCost.erase (HiddenCost.trace (sampleProgram adversary q parameterOutput fixed highs remaining)))
       known)
-    (cs parameterOutput fixed highs remaining outsideTable) (knownOf (truncateHash parameterOutput) fixed)).symm]
+    (cs parameterOutput fixed highs remaining outsideTable) (knownOf (truncateHash parameterOutput) fixed)).symm.prEvent_eq]
   refine probEvent_bind_mono_support _ _ _ _ _ fun table htable => ?_
   have hagree : HiddenRows.KnownAgrees table (knownOf (truncateHash parameterOutput) fixed) := by
     unfold completion at htable
@@ -129,27 +129,24 @@ theorem evalDist_expose_prep {A α : Type}
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cs : (Index → Option (Counter × Encoding)) → List Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+    (($ᵗ Eager.Table) >>= fun outside =>
         exposeR (cs (resultsOf parameter forsKey (extend base outside))) known >>= fun known' =>
-          HiddenRows.stoppedExperiment model (extend base outside) computation known'] =
-      𝒟[(simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
+          HiddenRows.stoppedExperiment model (extend base outside) computation known') =ᵈ ((simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
         exposeR (cs prepared.1) known >>= fun known' =>
-          Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known' prepared.2] := by
-  rw [evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
+          Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known' prepared.2) := by
+  refine (evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
     (fun f => exposeR (cs (resultsOf parameter forsKey f)) known >>= fun known' =>
-      HiddenRows.stoppedExperiment model f computation known')]
-  apply evalDist_bind_congr
-  intro prepared hprepared
+      HiddenRows.stoppedExperiment model f computation known')).trans ?_
+  refine OracleComp.EvalDistEq.bind_congr_of_support _ fun prepared hprepared => ?_
   have hres : ∀ outside, resultsOf parameter forsKey (extend prepared.2 outside) = prepared.1 := by
     intro outside
     funext leaf
     exact (preparation_support parameter forsKey base prepared hprepared (extend prepared.2 outside)
       (extend_agrees _ _)).2 leaf
   simp only [hres]
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro known'
-  exact evalDist_stoppedExperiment_lazy model _ computation hshort known'
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  exact EvalDistEq.bind_right _ fun known' =>
+    evalDist_stoppedExperiment_lazy model _ computation hshort known'
 
 /-- The prepared word of a leaf (the dummy word when the search failed). -/
 noncomputable def preparedWord (results : Index → Option (Counter × Encoding)) (leaf : Index) : Encoding :=

@@ -34,8 +34,7 @@ theorem scanStatus_eq (leafIndex : LeafIndex) (message : Message) (cache : Query
 
 theorem sign_select_le (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec)
     (ρ : Randomness) (hy : IsHit cache secretKey.parameter leafIndex (message, ρ)) :
-    Pr[fun r : Option Signature × QueryCache HashSpec => ∃ s, r.1 = some s ∧ s.randomness = ρ |
-      (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache] ≤
+    Pr{let r ← (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache}[∃ s, r.1 = some s ∧ s.randomness = ρ] ≤
       W cache secretKey.parameter leafIndex (message, ρ) * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   have hsample :
       (simulateQ romImpl (liftM Concrete.signingRandomness)).run cache =
@@ -48,19 +47,18 @@ theorem sign_select_le (leafIndex : LeafIndex) (message : Message) (cache : Quer
       Concrete.signingRandomness cache
   have hstatus : Scan.scanStatus secretKey leafIndex message cache ρ = .hit := by
     rw [scanStatus_eq]; exact (isHit_iff (message, ρ)).mp hy
-  change Pr[_ | (simulateQ romImpl (Concrete.precomputedCappedSign secretKey leafIndex message)).run
-    cache] ≤ _
+  change Pr{let x ← ((simulateQ romImpl (Concrete.precomputedCappedSign secretKey leafIndex message)).run
+    cache)}[∃ s, x.1 = some s ∧ s.randomness = ρ] ≤ _
   rw [Concrete.precomputedCappedSign, simulateQ_bind, StateT.run_bind, hsample,
-    Concrete.signingRandomness_eq, map_eq_bind_pure_comp, bind_assoc]
-  simp only [Function.comp_apply, pure_bind]
+    Concrete.signingRandomness_eq, bind_map_left]
   refine le_trans ?_ (Scan.selection_uniform_eq secretKey leafIndex message cache ρ hstatus).le |>.trans
     (le_of_eq ?_)
-  · rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+  · rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
     refine ENNReal.tsum_le_tsum fun base => mul_le_mul' le_rfl ?_
     rw [simulateQ_bind, StateT.run_bind]
     simp only [simulateQ_pure, StateT.run_pure]
-    rw [bind_pure_comp, probEvent_map]
-    refine probEvent_mono fun z _ h => ?_
+    rw [bind_pure_comp, prEvent_map]
+    refine prEvent_mono_of_support _ _ _ fun z _ h => ?_
     obtain ⟨s, hs, hρ⟩ := h
     refine ⟨s, ?_, hρ⟩
     split_ifs at hs
@@ -71,24 +69,18 @@ theorem sign_select_le (leafIndex : LeafIndex) (message : Message) (cache : Quer
 open Classical in
 /-- **The signer selects a partnered input with probability at most `Φ / 2^128`.** -/
 theorem sign_collision_le (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec) :
-    Pr[fun r : Option Signature × QueryCache HashSpec =>
-        (⟨⟨leafIndex, message⟩, r.1, cache, r.2⟩ : SigningCacheEntry).CachedSelectionCollision
-          secretKey cache |
-      (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache] ≤
+    Pr{let r ← (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache}[(⟨⟨leafIndex, message⟩, r.1, cache, r.2⟩ : SigningCacheEntry).CachedSelectionCollision
+          secretKey cache] ≤
       Φ cache secretKey.parameter leafIndex * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   set S : Finset Randomness :=
     Finset.univ.filter fun ρ => IsPartnered cache secretKey.parameter leafIndex (message, ρ)
-  calc _ ≤ Pr[fun r : Option Signature × QueryCache HashSpec =>
-          ∃ ρ ∈ S, ∃ s, r.1 = some s ∧ s.randomness = ρ |
-        (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache] := by
-        refine probEvent_mono fun r hr hcol => ?_
+  calc _ ≤ Pr{let r ← (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache}[∃ ρ ∈ S, ∃ s, r.1 = some s ∧ s.randomness = ρ] := by
+        refine prEvent_mono_of_support _ _ _ fun r hr hcol => ?_
         obtain ⟨sig, so, z, oo, hsig, hso, hoo, hz, htrunc⟩ := hcol
         refine ⟨sig.randomness, Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩, sig, hsig, rfl⟩
         exact ⟨so, hso, sign_selected_valid secretKey hr hsig hso, z, hz, oo, hoo, htrunc.symm⟩
-    _ ≤ ∑ ρ ∈ S, Pr[fun r : Option Signature × QueryCache HashSpec =>
-          ∃ s, r.1 = some s ∧ s.randomness = ρ |
-        (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache] :=
-        probEvent_exists_finset_le_sum S _ _
+    _ ≤ ∑ ρ ∈ S, Pr{let r ← (simulateQ romImpl (Concrete.scheme.sign secretKey leafIndex message)).run cache}[∃ s, r.1 = some s ∧ s.randomness = ρ] :=
+        prEvent_exists_finset_le S _ _
     _ ≤ ∑ ρ ∈ S, W cache secretKey.parameter leafIndex (message, ρ) * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
         refine Finset.sum_le_sum fun ρ hρ => sign_select_le secretKey leafIndex message cache ρ ?_
         obtain ⟨o, ho, hv, -⟩ := (Finset.mem_filter.mp hρ).2

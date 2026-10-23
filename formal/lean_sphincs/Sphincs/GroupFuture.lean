@@ -201,7 +201,7 @@ theorem idMass_ge [Nonempty α] (hp : p ≤ 1) (st : α → St) (hA : ∀ x j, 0
   have h := mass_le hp st A hA
   have hc : (Fintype.card α : ℝ≥0∞) * (Fintype.card α : ℝ≥0∞)⁻¹ = 1 :=
     ENNReal.mul_inv_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
-  have h2 := mul_le_mul_right' h (Fintype.card α : ℝ≥0∞)⁻¹
+  have h2 := mul_le_mul_left h (Fintype.card α : ℝ≥0∞)⁻¹
   rw [mul_assoc, hc, mul_one] at h2
   refine le_trans h2 (le_of_eq ?_)
   unfold idMass

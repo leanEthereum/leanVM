@@ -92,22 +92,23 @@ theorem Concrete.precomputedSignBoundedAttempts_success_randomness
               initialCache attemptCache found hattempt⟩
 
 theorem probEvent_uniform_add_const (P : Randomness → Prop) (c : Randomness) :
-    Pr[fun base : Randomness => P (base + c) | $ᵗ Randomness] =
-      Pr[P | $ᵗ Randomness] := by
-  rw [show (fun base : Randomness => P (base + c)) = P ∘ (· + c) from rfl, ← probEvent_map]
-  exact probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_add_right_uniform (α := Randomness) c)
+    Pr{let base ← $ᵗ Randomness}[P (base + c)] =
+      Pr{let x ← $ᵗ Randomness}[P x] := by
+  have hbij : Function.Bijective (· + c : Randomness → Randomness) :=
+    ⟨add_left_injective c, fun y => ⟨y - c, sub_add_cancel y c⟩⟩
+  have h := (SampleableType.map_uniformSample_evalDistEq_of_bijective hbij).prEvent_eq P
+  rw [prEvent_map] at h
+  exact h
 
 set_option linter.constructorNameAsVariable false in
 /-- The returned trial was already queried with probability at most `A_max` times the cached share. -/
 theorem Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedCount
     (secretKey : SecretKey)
     (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec) :
-    Pr[fun result : Option Signature × QueryCache HashSpec =>
-      ∃ signature, result.1 = some signature ∧ ∃ output,
+    Pr{let result ← ((simulateQ romImpl
+        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache)}[∃ signature, result.1 = some signature ∧ ∃ output,
         cache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
-          (message, signature.randomness)) = some output |
-      (simulateQ romImpl
-        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] ≤
+          (message, signature.randomness)) = some output] ≤
       (signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount cache secretKey.parameter leafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
@@ -124,15 +125,12 @@ theorem Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedC
       (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp))
       Concrete.signingRandomness cache
   rw [Concrete.precomputedCappedSign, simulateQ_bind, StateT.run_bind, hsample,
-    Concrete.signingRandomness_eq, map_eq_bind_pure_comp, bind_assoc]
-  simp only [Function.comp_apply, pure_bind]
+    Concrete.signingRandomness_eq, bind_map_left]
   calc
-    _ ≤ Pr[fun base : Randomness =>
-          ∃ c, c < signingAttemptLimit ∧ hit (base + BitVec.ofNat randomnessBits c) |
-          $ᵗ Randomness] := by
-      refine (probEvent_bind_le_probEvent_add (ε := 0) ?_).trans (by rw [add_zero])
+    _ ≤ Pr{let base ← $ᵗ Randomness}[∃ c, c < signingAttemptLimit ∧ hit (base + BitVec.ofNat randomnessBits c)] := by
+      refine (prEvent_bind_le_prEvent_add_of_support (ε := 0) _ _ _ _ ?_).trans (by rw [add_zero])
       intro base _ hbase
-      refine le_of_eq (probEvent_eq_zero ?_)
+      refine le_of_eq (prEvent_eq_zero_of_forall_mem_support _ _ ?_)
       rintro ⟨result, resultCache⟩ hmem ⟨signature, hsignature, houtput⟩
       simp only at hsignature
       subst hsignature
@@ -152,13 +150,13 @@ theorem Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedC
       rw [hrandomness] at houtput
       exact hbase ⟨c, by omega, houtput⟩
     _ ≤ ∑ c ∈ Finset.range signingAttemptLimit,
-          Pr[fun base : Randomness => hit (base + BitVec.ofNat randomnessBits c) | $ᵗ Randomness] := by
-      refine (probEvent_mono ?_).trans (probEvent_exists_finset_le_sum
+          Pr{let base ← $ᵗ Randomness}[hit (base + BitVec.ofNat randomnessBits c)] := by
+      refine (prEvent_mono_of_support _ _ _ ?_).trans (prEvent_exists_finset_le
         (Finset.range signingAttemptLimit) _ _)
       rintro base - ⟨c, hc, hhit⟩
       exact ⟨c, Finset.mem_range.mpr hc, hhit⟩
     _ = ∑ _c ∈ Finset.range signingAttemptLimit,
-          Pr[hit | $ᵗ Randomness] := by
+          Pr{let x ← $ᵗ Randomness}[hit x] := by
       apply Finset.sum_congr rfl
       intro c _
       exact probEvent_uniform_add_const hit _

@@ -42,26 +42,26 @@ theorem rate_ge_kf (s : St) : K.vrate s + K.kf s ≤ K.rate s := by
 
 theorem vrate_armed {s : St} (h : K.Armed s) : K.vrate s = 2 := by
   unfold vrate
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 theorem leafCount_le_contactCount (s : St) {l : Index} (hl : Landed K.p l) :
     K.leafCount s l ≤ K.contactCount s := by
   unfold contactCount
-  calc K.leafCount s l = if Landed K.p l then K.leafCount s l else 0 := by rw [if_pos hl]
+  calc K.leafCount s l = if Landed K.p l then K.leafCount s l else 0 := by rw [ite_eq_left hl]
     _ ≤ _ := Finset.single_le_sum (f := fun l => if Landed K.p l then K.leafCount s l else 0)
         (fun _ _ => bot_le) (Finset.mem_univ l)
 
 theorem encard_le_leafCount (s : St) {l : Index} (hnb : ¬K.BadLeaf s l) (i : ChainIndex) :
     ((K.ContactB s l i).encard : ℝ≥0∞) ≤ K.leafCount s l := by
   unfold leafCount
-  rw [if_neg hnb]
+  rw [ite_eq_right hnb]
   exact Finset.single_le_sum (f := fun i => ((K.ContactB s l i).encard : ℝ≥0∞)) (fun _ _ => bot_le)
     (Finset.mem_univ i)
 
 theorem nonempty_le_leafCount (s : St) {l : Index} (hnb : ¬K.BadLeaf s l) :
     ∑ i, (if (K.ContactB s l i).Nonempty then (1 : ℝ≥0∞) else 0) ≤ K.leafCount s l := by
   unfold leafCount
-  rw [if_neg hnb]
+  rw [ite_eq_right hnb]
   refine Finset.sum_le_sum fun i _ => ?_
   split_ifs with hne
   · rw [← ENat.toENNReal_one, ENat.toENNReal_le]
@@ -96,9 +96,9 @@ theorem arithA (s : St) {l : Index} (hl : Landed K.p l) (i : ChainIndex) {g : �
     g + 2⁻¹ + (if K.Bad s then 0 else ((K.ContactB s l i).encard : ℝ≥0∞)) ≤ K.rate s := by
   have hbase : g + 2⁻¹ ≤ ENNReal.ofReal K.ρ := (add_le_add hg le_rfl).trans (three_halves_le hN.low)
   by_cases hb : K.Bad s
-  · rw [if_pos hb, add_zero]
+  · rw [ite_eq_left hb, add_zero]
     exact hbase.trans (K.rate_ge_rho hN s)
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     have hnb := K.not_badLeaf hb hl
     by_cases hne : (K.ContactB s l i).Nonempty
     · have ha := K.armed_of_contact hl hnb hne
@@ -123,18 +123,18 @@ theorem arithB (s : St) {l : Index} (hl : Landed K.p l) (i : ChainIndex) (v : Di
         else Y * ((if K.Armed s then 0 else ENNReal.ofReal (2 - K.ρ)) + 64)) ≤
       K.rate s + (if v ∈ K.AAns s l i then 2⁻¹ else 0) := by
   by_cases hBL : K.BadLeaf s l ∨ v ∈ K.AAns s l i ∨ K.Marker s l i ∨ ∃ i', i' ≠ i ∧ (K.ContactB s l i').Nonempty
-  · rw [if_pos hBL]
+  · rw [ite_eq_left hBL]
     by_cases hb : K.Bad s
-    · rw [if_pos hb, add_zero]
+    · rw [ite_eq_left hb, add_zero]
       exact hg.trans ((K.one_le_rate hN s).trans le_self_add)
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       by_cases hobs : v ∈ K.AAns s l i
-      · rw [if_pos hobs]
+      · rw [ite_eq_left hobs]
         calc g + 1 ≤ 1 + 1 := add_le_add hg le_rfl
           _ = (1 + 2⁻¹) + 2⁻¹ := by rw [add_assoc, ENNReal.inv_two_add_inv_two]
           _ ≤ ENNReal.ofReal K.ρ + 2⁻¹ := add_le_add (three_halves_le hN.low) le_rfl
           _ ≤ _ := add_le_add (K.rate_ge_rho hN s) le_rfl
-      · rw [if_neg hobs, add_zero]
+      · rw [ite_eq_right hobs, add_zero]
         have hnb := K.not_badLeaf hb hl
         have ha : K.Armed s := by
           rcases hBL with hbl | hv | hm | ⟨i', -, hne⟩
@@ -145,15 +145,15 @@ theorem arithB (s : St) {l : Index} (hl : Landed K.p l) (i : ChainIndex) (v : Di
         calc g + 1 ≤ 1 + 1 := add_le_add hg le_rfl
           _ = K.vrate s := by rw [K.vrate_armed ha, one_add_one_eq_two]
           _ ≤ _ := K.vrate_le_rate s
-  · rw [if_neg hBL]
+  · rw [ite_eq_right hBL]
     have hobs : v ∉ K.AAns s l i := fun h => hBL (Or.inr (Or.inl h))
-    rw [if_neg hobs, add_zero]
+    rw [ite_eq_right hobs, add_zero]
     by_cases ha : K.Armed s
-    · rw [if_pos ha, zero_add]
+    · rw [ite_eq_left ha, zero_add]
       calc g + Y * 64 ≤ 1 + 1 := add_le_add hg (by rw [mul_comm]; exact arith_small hN hxr hY)
         _ = K.vrate s := by rw [K.vrate_armed ha, one_add_one_eq_two]
         _ ≤ _ := K.vrate_le_rate s
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       calc g + Y * (ENNReal.ofReal (2 - K.ρ) + 64) ≤ 1 + Y * (ENNReal.ofReal (2 - K.ρ) + 64) :=
             add_le_add hg le_rfl
         _ ≤ ENNReal.ofReal K.ρ := arith_contact hN hxr hY
@@ -167,7 +167,7 @@ theorem arithEnc (s : St) {l : Index} (hl : Landed K.p l) {g : ℝ≥0∞} (hg :
   · obtain ⟨hb, i, hne⟩ := hb
     have hnb := K.not_badLeaf hb hl
     have ha := K.armed_of_contact hl hnb hne
-    rw [if_neg hb, if_pos ha, mul_zero, add_zero]
+    rw [ite_eq_right hb, ite_eq_left ha, mul_zero, add_zero]
     have hcc := (K.nonempty_le_leafCount s hnb).trans (K.leafCount_le_contactCount s hl)
     calc g + 63 * ∑ i, (if (K.ContactB s l i).Nonempty then (1 : ℝ≥0∞) else 0)
         ≤ 1 + 64 * K.contactCount s := add_le_add hg (mul_le_mul' (by norm_num) hcc)
@@ -182,9 +182,9 @@ theorem arithEnc (s : St) {l : Index} (hl : Landed K.p l) {g : ℝ≥0∞} (hg :
         simp [this]
     rw [hzero, add_zero]
     by_cases ha : K.Armed s
-    · rw [if_pos ha, mul_zero, add_zero]
+    · rw [ite_eq_left ha, mul_zero, add_zero]
       exact hg.trans (K.one_le_rate hN s)
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       calc g + Y * (4032 * ENNReal.ofReal (2 - K.ρ)) ≤ 1 + Y * (4032 * ENNReal.ofReal (2 - K.ρ)) :=
             add_le_add hg le_rfl
         _ ≤ ENNReal.ofReal K.ρ := PotentialA.arith_enc hN hxr hY
@@ -196,7 +196,7 @@ when it carries a record, or one unit otherwise. -/
 theorem arithF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0 ∨ Recd s f) :
     g + (if Recd s f then Y + K.kf s else 1) ≤ K.rate s := by
   by_cases hr : Recd s f
-  · rw [if_pos hr]
+  · rw [ite_eq_left hr]
     calc g + (Y + K.kf s) ≤ (1 + Y) + K.kf s := by
           rw [← add_assoc]
           exact add_le_add (add_le_add hg le_rfl) le_rfl
@@ -204,7 +204,7 @@ theorem arithF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0 
       _ ≤ K.vrate s + K.kf s := add_le_add (K.vrate_ge hN.high s) le_rfl
       _ ≤ _ := K.rate_ge_kf s
   · have hg0 : g = 0 := hrec.resolve_right hr
-    rw [hg0, if_neg hr, zero_add]
+    rw [hg0, ite_eq_right hr, zero_add]
     exact K.one_le_rate hN s
 
 end Arith
@@ -237,7 +237,7 @@ theorem fresh_other {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = 
     (hE : ∀ l msg ctr, Landed K.p l → x ≠ Wots.encodingInput K.p topLayer rootTree l msg ctr)
     (hF : ∀ f : FIn, x ≠ f.input K.p)
     {w : ℝ≥0∞} (hw : w + K.kindUnit x ≤ ENNReal.ofReal K.ρ) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * w ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * w ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_other y' hx hi hAB hE hF
   rw [K.pot_succ]
@@ -249,7 +249,7 @@ include hN in
 theorem fresh_A {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {l : Index}
     {i : ChainIndex} (hl : Landed K.p l) (hA : K.IsA l i x) (hk : K.tg.kind x = .none) {g : ℝ≥0∞}
     (hg : g ≤ 1) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_A hN.high y' hx hi hl hA hk
   have ha := K.arithA hN s hl i hg
@@ -265,7 +265,7 @@ include hN hxr hY in
 theorem fresh_B {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {l : Index}
     {i : ChainIndex} {v : Digest} (hl : Landed K.p l) (hB : K.IsB l i v x) (hk : K.tg.kind x = .none)
     {g : ℝ≥0∞} (hg : g ≤ 1) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_B hN.high y' hx hi hl hB hk
   have ha := K.arithB hN hxr hY s hl i v hg
@@ -282,7 +282,7 @@ theorem fresh_B {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none
     · rw [mul_zero]
   refine (ENNReal.add_le_add_iff_right hcrtop).1 ?_
   rw [K.pot_succ]
-  calc _ = (∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + cr) + ν * g := by ring
+  calc _ = (∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + cr) + ν * g := by ring
     _ ≤ _ + ν * g := add_le_add h le_rfl
     _ = K.pot y' s + ν * (g + _) := by ring
     _ ≤ K.pot y' s + ν * (K.rate s + (if v ∈ K.AAns s l i then 2⁻¹ else 0)) :=
@@ -293,7 +293,7 @@ include hN hxr hY in
 theorem fresh_enc {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {l : Index}
     {msg : Digest} {ctr : Counter} (hl : Landed K.p l) (hxE : x = Wots.encodingInput K.p topLayer rootTree l msg ctr)
     {g : ℝ≥0∞} (hg : g + K.kindUnit x ≤ 1) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_enc hN.high y' hx hi hl hxE
   have ha := K.arithEnc hN hxr hY s hl hg
@@ -307,7 +307,7 @@ theorem fresh_enc {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = no
 include hN hxr hY in
 theorem fresh_fchain {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {f : FIn}
     (hxF : x = f.input K.p) (hk : K.tg.kind x = .none) {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0 ∨ Recd s f) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_fchain y' hx hi hxF hk
   have ha := K.arithF hN hxr hY s hg hrec

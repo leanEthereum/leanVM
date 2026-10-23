@@ -73,7 +73,10 @@ theorem trace_query_bind {D R ι α : Type} (input : (SourceCostSpec D R ι).Dom
     (next : (SourceCostSpec D R ι).Range input → OracleComp (SourceCostSpec D R ι) α) :
     trace (liftM ((SourceCostSpec D R ι).query input) >>= next) =
       (liftM ((SourceCostSpec D R ι).query input) >>= fun value =>
-        (fun result => (result.1, recorded input ++ result.2)) <$> trace (next value)) := rfl
+        (fun result => (result.1, recorded input ++ result.2)) <$> trace (next value)) := by
+  rw [trace, OracleComp.construct_query_bind]
+  simp only [map_eq_bind_pure_comp]
+  rfl
 
 /-- A weighted cap stops before any query or compressed honest-work tick exceeds the
 remaining original budget. This is used on the common comparison execution. -/

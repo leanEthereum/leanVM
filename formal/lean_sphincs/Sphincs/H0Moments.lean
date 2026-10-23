@@ -163,14 +163,14 @@ theorem coverR_eq_prod (t : MT) (X : Multiset MT) :
       if need t j i = 0 ∨ ∃ x ∈ X, KC x t j i then 1 else 0 := by
     intro j i
     by_cases h0 : need t j i = 0
-    · rw [if_pos h0, zero_mul, sub_zero, if_pos (Or.inl h0)]
-    · rw [if_neg h0, one_mul]
+    · rw [ite_eq_left h0, zero_mul, sub_zero, ite_eq_left (Or.inl h0)]
+    · rw [ite_eq_right h0, one_mul]
       by_cases hx : ∃ x ∈ X, KC x t j i
       · obtain ⟨x, hx, hk⟩ := hx
-        rw [if_pos (Or.inr ⟨x, hx, hk⟩), Multiset.prod_eq_zero (Multiset.mem_map.2 ⟨x, hx, by simp [hk]⟩),
+        rw [ite_eq_left (Or.inr ⟨x, hx, hk⟩), Multiset.prod_eq_zero (Multiset.mem_map.2 ⟨x, hx, by simp [hk]⟩),
           sub_zero]
       · push Not at hx
-        rw [if_neg (by rintro (h | ⟨x, hx', hk⟩); exact h0 h; exact hx x hx' hk)]
+        rw [ite_eq_right (by rintro (h | ⟨x, hx', hk⟩); exact h0 h; exact hx x hx' hk)]
         rw [Multiset.prod_eq_one (fun y hy => by
           obtain ⟨x, hx', rfl⟩ := Multiset.mem_map.1 hy
           simp [hx x hx'])]
@@ -178,16 +178,16 @@ theorem coverR_eq_prod (t : MT) (X : Multiset MT) :
   simp only [hpt]
   unfold coverR CoverT
   by_cases hc : ∀ j i, need t j i = 0 ∨ ∃ x ∈ X, KC x t j i
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     symm
     refine Finset.prod_eq_one fun j _ => Finset.prod_eq_one fun i _ => ?_
-    rw [if_pos (hc j i)]
-  · rw [if_neg hc]
+    rw [ite_eq_left (hc j i)]
+  · rw [ite_eq_right hc]
     push Not at hc
     obtain ⟨j, i, hji⟩ := hc
     symm
     refine Finset.prod_eq_zero (Finset.mem_univ j) (Finset.prod_eq_zero (Finset.mem_univ i) ?_)
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro (h | ⟨x, hx, hk⟩)
     · exact hji.1 h
     · exact hji.2 x hx hk

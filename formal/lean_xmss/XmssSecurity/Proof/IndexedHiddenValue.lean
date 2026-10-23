@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.HiddenValue
+import XmssSecurity.Proof.EvalDistEq
 import VCVio.OracleComp.Constructions.SampleableType
 
 open OracleComp ENNReal
@@ -14,7 +15,7 @@ noncomputable local instance : SampleableType (Index → Digest) :=
   SampleableType.ofFintype (Index → Digest)
 
 theorem uniform_table_coordinate_probability (index : Index) (target : Digest) :
-    Pr[fun table : Index → Digest => table index = target | $ᵗ (Index → Digest)] =
+    Pr{let table ← $ᵗ (Index → Digest)}[table index = target] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   classical
   let embed : Unit → Index := fun _ => index
@@ -33,26 +34,22 @@ theorem uniform_table_coordinate_probability (index : Index) (target : Digest) :
     · intro value
       exact ⟨fun _ => value, rfl⟩
   have hmarginal :
-      𝒟[evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))] =
-        𝒟[$ᵗ Digest] := by
+      (evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))) =ᵈ ($ᵗ Digest) := by
     have hrestrict :
-        𝒟[(fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest))] =
-          𝒟[$ᵗ (Unit → Digest)] := by
-      simpa [bind_pure_comp] using
-        evalDist_uniformSample_map_comp_injective (R := Digest) hembed
-    rw [evalDist_map, hrestrict, ← evalDist_map]
-    exact evalDist_map_bijective_uniform_cross
-      (α := Unit → Digest) (β := Digest) evaluate hevaluate
+        ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest))) =ᵈ
+          ($ᵗ (Unit → Digest)) :=
+      evalDistEq_uniformSample_map_comp_injective (R := Digest) hembed
+    exact (hrestrict.map evaluate).trans
+      (SampleableType.map_uniformSample_evalDistEq_of_bijective hevaluate)
   calc
-    Pr[fun table : Index → Digest => table index = target | $ᵗ (Index → Digest)] =
-        Pr[fun value : Digest => value = target |
-          evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))] := by
-      rw [probEvent_map, probEvent_map]
+    Pr{let table ← $ᵗ (Index → Digest)}[table index = target] =
+        Pr{let value ← evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))}[value = target] := by
+      rw [prEvent_map, prEvent_map]
       rfl
-    _ = Pr[fun value : Digest => value = target | $ᵗ Digest] :=
-      probEvent_congr' (fun _ _ => Iff.rfl) hmarginal
-    _ = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ :=
-      by simpa only [probEvent_eq_eq_probOutput] using
-        HiddenValue.uniform_digest_point_probability target
+    _ = Pr{let value ← $ᵗ Digest}[value = target] :=
+      hmarginal.prEvent_eq (· = target)
+    _ = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
+      rw [SampleableType.prEvent_uniformSample_eq_singleton, HiddenValue.card_digest]
+
 
 end XmssSecurity.IndexedHiddenValue

@@ -54,7 +54,7 @@ theorem twoEdgeWeight_observe_of_bad {n : Nat} (observed : Fin (n + 2) → State
   | none =>
       have hafter (answer : State) : TwoEdge (record observed query answer) endpoint :=
         twoEdge_mono (record_extends observed query answer (Or.inl hrow)) endpoint hbad
-      simp only [twoEdgeWeight, if_pos hbad, if_pos (hafter _), mul_one]
+      simp only [twoEdgeWeight, ite_eq_left hbad, ite_eq_left (hafter _), mul_one]
       simpa only [hrow] using meanPreimages_observe observed query endpoint
 
 theorem twoEdge_first_compensation {n : Nat} (spent : Nat) (observed : Fin (n + 2) → State → Option State)
@@ -69,11 +69,11 @@ theorem twoEdge_first_compensation {n : Nat} (spent : Nat) (observed : Fin (n + 
   · subst step
     by_cases hprepared : ∃ start, observed (Fin.last n).castSucc start = some input
     · apply expected_charge_cover _ _ (2 + contactCount observed endpoint + targetCount (Fin.init observed) input)
-      · simpa only [twoEdgeWeight, if_pos hprepared] using twoEdge_last_weighted_risk observed input endpoint hbad hfresh
+      · simpa only [twoEdgeWeight, ite_eq_left hprepared] using twoEdge_last_weighted_risk observed input endpoint hbad hfresh
       · intro answer
         exact twoEdgeCharge_record_last spent observed input answer endpoint hfresh hprepared
     · apply expected_charge_cover _ _ 0
-      · simpa only [twoEdgeWeight, if_neg hprepared, Nat.cast_zero, div_eq_mul_inv, zero_mul] using twoEdge_last_weighted_risk observed input endpoint hbad hfresh
+      · simpa only [twoEdgeWeight, ite_eq_right hprepared, Nat.cast_zero, div_eq_mul_inv, zero_mul] using twoEdge_last_weighted_risk observed input endpoint hbad hfresh
       · intro answer
         simpa only [Nat.add_zero] using twoEdgeCharge_mono (Nat.le_succ spent)
           (record_extends observed (Fin.last (n + 1), input) answer (Or.inl hfresh)) endpoint
@@ -86,7 +86,7 @@ theorem twoEdge_first_compensation {n : Nat} (spent : Nat) (observed : Fin (n + 
     · have hafter (answer : State) : ¬TwoEdge (record observed (step, input) answer) endpoint := by
         rw [twoEdge_record_earlier observed (step, input) answer endpoint (Ne.symm hpen) (Ne.symm hlast)]
         exact hbad
-      simp only [twoEdgeWeight, if_neg (hafter _), mul_zero, tsum_zero, add_zero]
+      simp only [twoEdgeWeight, ite_eq_right (hafter _), mul_zero, tsum_zero, add_zero]
       exact twoEdgeCharge_observe_mono spent observed (step, input) endpoint
 
 theorem twoEdge_observe_compensation {n : Nat} (spent : Nat) (observed : Fin (n + 2) → State → Option State)
@@ -98,7 +98,7 @@ theorem twoEdge_observe_compensation {n : Nat} (spent : Nat) (observed : Fin (n 
   by_cases hbad : TwoEdge observed endpoint
   · rw [twoEdgeWeight_observe_of_bad observed query endpoint hbad, add_comm]
     exact _root_.add_le_add le_rfl (twoEdgeCharge_observe_mono spent observed query endpoint)
-  · have hzero : twoEdgeWeight observed endpoint = 0 := by simp only [twoEdgeWeight, if_neg hbad, mul_zero]
+  · have hzero : twoEdgeWeight observed endpoint = 0 := by simp only [twoEdgeWeight, ite_eq_right hbad, mul_zero]
     rw [hzero, zero_add]
     cases hrow : observed query.1 query.2 with
     | none => simpa only [hrow] using twoEdge_first_compensation spent observed query endpoint hbad hrow

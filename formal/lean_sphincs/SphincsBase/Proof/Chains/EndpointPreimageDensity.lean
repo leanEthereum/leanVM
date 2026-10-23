@@ -29,14 +29,14 @@ theorem map_pair_apply (law : PMF State) (table target : Table) (endpoint : Stat
   rw [PMF.map_apply]
   by_cases htable : table = target
   · subst target
-    rw [if_pos rfl, tsum_eq_single endpoint]
-    · rw [if_pos rfl]
+    rw [ite_eq_left rfl, tsum_eq_single endpoint]
+    · rw [ite_eq_left rfl]
     · intro value hvalue
-      exact if_neg (fun h => hvalue (congrArg Prod.snd h).symm)
-  · rw [if_neg htable]
+      exact ite_eq_right (fun h => hvalue (congrArg Prod.snd h).symm)
+  · rw [ite_eq_right htable]
     apply ENNReal.tsum_eq_zero.mpr
     intro value
-    exact if_neg (fun h => htable (congrArg Prod.fst h).symm)
+    exact ite_eq_right (fun h => htable (congrArg Prod.fst h).symm)
 
 omit [Fintype State] [Nonempty State] [DecidableEq State] in
 theorem bind_pair_apply (prior : PMF Table) (law : Table → PMF State) (table : Table) (endpoint : State) :
@@ -45,9 +45,9 @@ theorem bind_pair_apply (prior : PMF Table) (law : Table → PMF State) (table :
   rw [PMF.bind_apply]
   simp only [map_pair_apply, mul_ite, mul_zero]
   rw [tsum_eq_single table]
-  · simp only [if_true]
+  · simp only [ite_true]
   · intro selected hselected
-    exact if_neg hselected
+    exact ite_eq_right hselected
 
 theorem real_apply (prior : PMF Table) (evaluate : Table → State → State) (table : Table) (endpoint : State) :
     real prior evaluate (table, endpoint) = prior table * ((preimages evaluate table endpoint : ENNReal) / Fintype.card State) := by

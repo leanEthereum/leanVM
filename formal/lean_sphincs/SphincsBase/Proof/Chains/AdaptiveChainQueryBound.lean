@@ -29,7 +29,7 @@ theorem queryCount_record_le (observed : Fin n → State → Option State) (quer
       Function.update (fun step => queriedCount (observed step)) query.1
         (queriedCount (Function.update (observed query.1) query.2 (some answer))) := by
     funext step
-    by_cases hstep : step = query.1 <;> simp only [record, Function.update_apply, hstep, if_true, if_false]
+    by_cases hstep : step = query.1 <;> simp only [record, Function.update_apply, hstep, ite_true, ite_false]
   rw [queryCount, hfun, Finset.sum_update_of_mem (Finset.mem_univ query.1), Finset.sdiff_singleton_eq_erase,
     queryCount, ← Finset.add_sum_erase Finset.univ (fun step => queriedCount (observed step)) (Finset.mem_univ query.1)]
   have h := queriedCount_update_le (observed query.1) query.2 answer

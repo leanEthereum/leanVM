@@ -33,20 +33,20 @@ theorem wsum_expose_mean (g : FIn → ℝ≥0∞) (s : St) (c : Coordinate) (hc 
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun f _ => ?_
   by_cases hr : Recd s f
-  · simp only [if_pos hr]
+  · simp only [ite_eq_left hr]
     calc ∑ v, ν * (g f * K.cw (s.expose c v) f) = g f * ∑ v, ν * K.cw (s.expose c v) f := by
           rw [Finset.mul_sum]
           exact Finset.sum_congr rfl fun v _ => by ring
       _ = g f * K.cw s f := by rw [K.mean_cw s c hc f]
-  · simp only [if_neg hr, mul_zero, Finset.sum_const_zero]
+  · simp only [ite_eq_right hr, mul_zero, Finset.sum_const_zero]
 
 theorem wsum_sample_le (g : FIn → ℝ≥0∞) (s : St) (c : Coordinate) :
-    ∑' r, Pr[= r | sampleCoordinate c s] * K.wsum g r.2 ≤ K.wsum g s := by
+    ∑' r, Pr{let x ← sampleCoordinate c s}[x = r] * K.wsum g r.2 ≤ K.wsum g s := by
   cases hc : s.known c with
   | some v =>
-      rw [sampleCoordinate_known c s v hc, tsum_probOutput_pure_mul]
+      rw [sampleCoordinate_known c s v hc, OracleComp.tsum_prEvent_pure_mul]
   | none =>
-      rw [sampleCoordinate_unknown c s hc, tsum_probOutput_map_mul]
+      rw [sampleCoordinate_unknown c s hc, OracleComp.tsum_prEvent_map_mul]
       simp only [probOutput_digest]
       rw [tsum_fintype, K.wsum_expose_mean g s c hc]
 
@@ -73,20 +73,20 @@ theorem cw_store_new {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x =
         obtain ⟨w, hw, _⟩ := hFC.1 h
         rw [hk] at hw
         cases hw
-      rw [if_neg h1, if_pos (hLat.2 hk), if_pos rfl]
+      rw [ite_eq_right h1, ite_eq_left (hLat.2 hk), ite_eq_left rfl]
   | some w =>
       have h2 : ¬K.Lat (s.store x u) f := fun h => by
         have := hLat.1 h
         rw [hk] at this
         cases this
-      simp only [reduceCtorEq, if_false, Option.some.injEq]
+      simp only [reduceCtorEq, ite_false, Option.some.injEq]
       by_cases ht : w = truncateHash u
-      · rw [if_pos (hFC.2 ⟨w, hk, ht.symm⟩), if_pos ht]
-      · rw [if_neg (fun h => by
+      · rw [ite_eq_left (hFC.2 ⟨w, hk, ht.symm⟩), ite_eq_left ht]
+      · rw [ite_eq_right (fun h => by
           obtain ⟨w', hw', ht'⟩ := hFC.1 h
           rw [hk] at hw'
           cases hw'
-          exact ht ht'.symm), if_neg h2, if_neg ht]
+          exact ht ht'.symm), ite_eq_right h2, ite_eq_right ht]
 
 theorem cw_store_other {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = none) (hi : K.initial x = none)
     {f : FIn} (hxf : x ≠ f.input K.p) : K.cw (s.store x u) f = K.cw s f := by
@@ -123,15 +123,15 @@ theorem wsum_store_new (g : FIn → ℝ≥0∞) {s : St} {x : HashInput} (u : Ha
   rfl
 
 theorem mean_new (g : FIn → ℝ≥0∞) (s : St) (f0 : FIn) :
-    ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] *
+    ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
         (if Recd s f0 then g f0 * cwNew s f0 (truncateHash u) else 0) = if Recd s f0 then ν * g f0 else 0 := by
   by_cases hr : Recd s f0
-  · simp only [if_pos hr]
+  · simp only [ite_eq_left hr]
     rw [mean_trunc (fun t => g f0 * cwNew s f0 t)]
     have := meanD_cwNew s f0 (g f0)
     simp only [mul_comm (g f0)] at this ⊢
     exact this
-  · simp only [if_neg hr, mul_zero, tsum_zero]
+  · simp only [ite_eq_right hr, mul_zero, tsum_zero]
 
 theorem wsum_record (g : FIn → ℝ≥0∞) (s : St) (g0 : Coordinate × Digest)
     (h : ∀ f : FIn, (f.inC, f.v) = g0 → K.cw s f ≠ 0 → g0 ∈ s.guesses) :
@@ -146,7 +146,7 @@ theorem wsum_record (g : FIn → ℝ≥0∞) (s : St) (g0 : Coordinate × Digest
     · have hmem := h f hf hc
       have h1 : Recd (s.record g0) f := List.mem_cons.2 (Or.inl hf)
       have h2 : Recd s f := by unfold Recd; rw [hf]; exact hmem
-      rw [if_pos h1, if_pos h2]
+      rw [ite_eq_left h1, ite_eq_left h2]
   · have hiff : Recd (s.record g0) f ↔ Recd s f := by
       unfold Recd
       simp only [DebtState.record, List.mem_cons]
@@ -195,11 +195,11 @@ include hMp hMi in
 step query at an unexposed read coordinate adds `2^-128` times its coefficient. -/
 theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached M s) (x : HashInput)
     (g : FIn → ℝ≥0∞) (C : ℝ≥0∞) (hC : ∀ f : FIn, x = f.input K.p → s.known f.inC = none → g f ≤ C) :
-    ∑' r, Pr[= r | ordinaryStep M x s.known s] * K.wsum g r.2 ≤
+    ∑' r, Pr{let y ← ordinaryStep M x s.known s}[y = r] * K.wsum g r.2 ≤
       K.wsum g s + ν * C * (if IsFchainIn K.p x then 1 else 0) := by
   -- a fresh read without a new record keeps the mean
   have hread : ∀ s1 : St, s1.cache = s.cache → s1.known = s.known → s1.guesses = s.guesses →
-      ∑' r, Pr[= r | readOutside x s1] * K.wsum g r.2 ≤ K.wsum g s := by
+      ∑' r, Pr{let y ← readOutside x s1}[y = r] * K.wsum g r.2 ≤ K.wsum g s := by
     intro s1 hcache hknown hguess
     have hs1 : s1 = s := by
       cases s1; cases s
@@ -208,20 +208,20 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
     subst hs1
     cases hc : s1.cache x with
     | some u =>
-        rw [readOutside_cached x s1 u hc, tsum_probOutput_pure_mul]
+        rw [readOutside_cached x s1 u hc, OracleComp.tsum_prEvent_pure_mul]
     | none =>
-        rw [readOutside_fresh x s1 hc, tsum_probOutput_map_mul]
+        rw [readOutside_fresh x s1 hc, OracleComp.tsum_prEvent_map_mul]
         have hi := initial_none_of_fresh K.initial s1 hinv.prepared x hc
         by_cases hF : ∃ f0 : FIn, x = f0.input K.p
         · obtain ⟨f0, hxf⟩ := hF
           have hnr : ¬Recd s1 f0 := K.not_recd_of_fresh M hMp hMi hgc (by rw [← hxf]; exact hc)
-          simp only [K.wsum_store_new g _ hc hi hxf, if_neg hnr, add_zero]
+          simp only [K.wsum_store_new g _ hc hi hxf, ite_eq_right hnr, add_zero]
           rw [ENNReal.tsum_mul_right]
-          exact mul_le_of_le_one_left' tsum_probOutput_le_one
+          exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
         · push Not at hF
           simp only [K.wsum_store_other g _ hc hi hF]
           rw [ENNReal.tsum_mul_right]
-          exact mul_le_of_le_one_left' tsum_probOutput_le_one
+          exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   cases hp : M.parse x with
   | none =>
       simp only [ordinaryStep, hp]
@@ -237,7 +237,7 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
           cases hc : s.cache x with
           | some u =>
               have hc' : (s.record g0).cache x = some u := hc
-              rw [readOutside_cached x _ u hc', tsum_probOutput_pure_mul]
+              rw [readOutside_cached x _ u hc', OracleComp.tsum_prEvent_pure_mul]
               refine le_trans (le_of_eq (K.wsum_record g s g0 fun f hf hcw => ?_)) le_self_add
               have hfe : K.FE s f := by
                 by_contra hn
@@ -252,7 +252,7 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
               exact this
           | none =>
               have hc' : (s.record g0).cache x = none := hc
-              rw [readOutside_fresh x _ hc', tsum_probOutput_map_mul]
+              rw [readOutside_fresh x _ hc', OracleComp.tsum_prEvent_map_mul]
               have hi := initial_none_of_fresh K.initial s hinv.prepared x hc
               have hrec0 : K.wsum g (s.record g0) = K.wsum g s := K.wsum_record g s g0 fun f hf hcw => by
                 exfalso
@@ -266,8 +266,8 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
                 simp only [K.wsum_store_new g _ hc' hi hxf, hrec0, mul_add]
                 rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, Ctx.mean_new g (s.record g0) f0]
                 have hIs : IsFchainIn K.p x := ⟨f0, hxf⟩
-                rw [if_pos hIs, mul_one]
-                refine add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) ?_
+                rw [ite_eq_left hIs, mul_one]
+                refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) ?_
                 split_ifs
                 · refine mul_le_mul_right (hC f0 hxf ?_) _
                   -- the read coordinate of the new step is the guessed one
@@ -285,13 +285,13 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
               · push Not at hF
                 simp only [K.wsum_store_other g _ hc' hi hF, hrec0]
                 rw [ENNReal.tsum_mul_right]
-                exact le_trans (mul_le_of_le_one_left' tsum_probOutput_le_one) le_self_add
+                exact le_trans (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) le_self_add
       | some canonical =>
           by_cases heq : v = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq]
-            rw [tsum_probOutput_map_mul]
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq]
+            rw [OracleComp.tsum_prEvent_map_mul]
             exact le_trans (K.wsum_sample_le g s _) le_self_add
-          · simp only [ordinaryStep, hp, hk, if_neg heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq]
             exact le_trans (hread s rfl rfl rfl) le_self_add
 
 end Model

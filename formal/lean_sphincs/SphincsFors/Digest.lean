@@ -40,31 +40,31 @@ theorem cached_run (input : HashInput) (cache : QueryCache HashSpec) (answer : H
 
 /-- The share of fresh answers the admissibility test rejects. -/
 noncomputable def digestReject (parameter : PublicParameter) : ℝ≥0∞ :=
-  Pr[fun u : HashOutput => ¬ Landed parameter (blockIndex u) |
-    ($ᵗ HashOutput : ProbComp HashOutput)]
+  Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ Landed parameter (blockIndex u)]
 
 theorem digestReject_add (parameter : PublicParameter) :
     digestReject parameter + ((2 ^ (totalHeight - subtreeHeight) : Nat) : ℝ≥0∞)⁻¹ = 1 := by
-  have h := probEvent_compl ($ᵗ HashOutput : ProbComp HashOutput)
-    (fun u => Landed parameter (blockIndex u))
-  have hfail : Pr[⊥ | ($ᵗ HashOutput : ProbComp HashOutput)] = 0 := by simp
-  rw [fresh_landing_probability_inv, hfail, tsub_zero] at h
+  have h : Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[Landed parameter (blockIndex u)]
+      + Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ Landed parameter (blockIndex u)] = 1 := by
+    rw [OracleComp.prEvent_not_eq_one_sub]
+    exact add_tsub_cancel_of_le (prEvent_le_one _)
+  rw [fresh_landing_probability_inv] at h
   rw [add_comm]
   exact h
 
-theorem digestReject_le_one (parameter : PublicParameter) : digestReject parameter ≤ 1 := probEvent_le_one
+theorem digestReject_le_one (parameter : PublicParameter) : digestReject parameter ≤ 1 := (prEvent_le_one _)
 
 omit [Params] in
 /-- Averaging a two-valued function over one uniform answer. -/
 theorem tsum_uniform_ite (P : HashOutput → Prop) [DecidablePred P] (x y : ℝ≥0∞) :
     ∑' u : HashOutput, (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * (if P u then x else y)
-      = x * Pr[P | ($ᵗ HashOutput : ProbComp HashOutput)]
-        + y * Pr[fun u => ¬ P u | ($ᵗ HashOutput : ProbComp HashOutput)] := by
-  rw [probEvent_eq_tsum_ite ($ᵗ HashOutput : ProbComp HashOutput) P,
-    probEvent_eq_tsum_ite ($ᵗ HashOutput : ProbComp HashOutput) (fun u => ¬ P u),
+      = x * Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[P x]
+        + y * Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ P u] := by
+  rw [OracleComp.prEvent_eq_tsum_ite ($ᵗ HashOutput : ProbComp HashOutput) P,
+    OracleComp.prEvent_eq_tsum_ite ($ᵗ HashOutput : ProbComp HashOutput) (fun u => ¬ P u),
     ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
   refine tsum_congr fun u => ?_
-  rw [probOutput_uniformSample]
+  rw [SampleableType.prEvent_uniformSample_eq_singleton]
   by_cases hu : P u <;> simp [hu, mul_comm]
 
 /-- One trial's failure share. -/

@@ -76,7 +76,7 @@ theorem getT_KT (m : FChain → FPos) : (getT childChains KT m : ℝ) = 256 * Hm
       push_cast
       refine Finset.sum_congr rfl fun w _ => ?_
       simp [hy]
-    · exact (Finset.sum_eq_zero fun w _ => if_neg (fun h => hy h.2)).symm
+    · exact (Finset.sum_eq_zero fun w _ => ite_eq_right (fun h => hy h.2)).symm
   simp only [h]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun w _ => ?_
@@ -84,10 +84,10 @@ theorem getT_KT (m : FChain → FPos) : (getT childChains KT m : ℝ) = 256 * Hm
   · have hiff : (lut w = lut w ∧ ∀ i, lut w i ≤ m i) ↔ ∀ i, (lut w i).val ≤ (m i).val :=
       ⟨fun h i => Fin.le_iff_val_le_val.1 (h.2 i), fun h => ⟨rfl, fun i => Fin.le_iff_val_le_val.2 (h i)⟩⟩
     by_cases hall : ∀ i, (lut w i).val ≤ (m i).val
-    · rw [if_pos (hiff.2 hall), if_pos hall]
-    · rw [if_neg (fun h => hall (hiff.1 h)), if_neg hall]
+    · rw [ite_eq_left (hiff.2 hall), ite_eq_left hall]
+    · rw [ite_eq_right (fun h => hall (hiff.1 h)), ite_eq_right hall]
   · intro x _ hx
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro ⟨h1, _⟩
     exact hx h1.symm
   · simp

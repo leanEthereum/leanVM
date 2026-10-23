@@ -29,12 +29,11 @@ table, is the eager table itself. Only the resulting cache is kept. -/
 theorem evalDist_eager_prefix {β γ : Type} (computation : OracleComp HashSpec γ)
     (hshort : Short.Only computation) (cache : QueryCache HashSpec)
     (next : (HashInput → HashOutput) → ProbComp β) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside => next (extend cache outside)] =
-      𝒟[(simulateQ randomOracle computation).run cache >>= fun result =>
-        ($ᵗ Eager.Table) >>= fun outside => next (extend result.2 outside)] := by
+    (($ᵗ Eager.Table) >>= fun outside => next (extend cache outside)) =ᵈ ((simulateQ randomOracle computation).run cache >>= fun result =>
+        ($ᵗ Eager.Table) >>= fun outside => next (extend result.2 outside)) := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
-      simp only [simulateQ_pure, StateT.run_pure, pure_bind]
+      simp only [simulateQ_pure, StateT.run_pure, pure_bind, EvalDistEq.refl]
   | query_bind input next' ih =>
       rw [Short.Only, isQueryBoundP_query_bind_iff] at hshort
       have hnext : ∀ answer, Short.Only (next' answer) := fun answer => by
@@ -45,7 +44,7 @@ theorem evalDist_eager_prefix {β γ : Type} (computation : OracleComp HashSpec 
         · exact Classical.not_not.mp hnot
         · omega
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
-      change _ = 𝒟[(randomOracle (spec := HashSpec) input).run cache >>= _]
+      change _ =ᵈ (randomOracle (spec := HashSpec) input).run cache >>= _
       cases hc : cache input with
       | some answer =>
           rw [QueryImpl.withCaching_run_some _ hc, pure_bind]
@@ -57,36 +56,30 @@ theorem evalDist_eager_prefix {β γ : Type} (computation : OracleComp HashSpec 
                 (fun table => next (extend cache table)) (Function.update outside ⟨input, hinput⟩ answer) := by
             intro answer outside
             simp only [extend_cacheQuery cache outside hinput hc answer]
-          calc 𝒟[($ᵗ Eager.Table) >>= fun outside => next (extend cache outside)]
-              = 𝒟[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
-                  fun outside => pure (Function.update outside ⟨input, hinput⟩ answer)) >>=
-                    fun outside => next (extend cache outside)] := by
-                symm
-                rw [evalDist_bind, evalDist_uniformSample_bind_update (D := ShortIn) (R := HashOutput)
-                  ⟨input, hinput⟩, ← evalDist_bind]
-            _ = 𝒟[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
-                  next (extend (cache.cacheQuery input answer) outside)] := by
-                simp only [bind_assoc, pure_bind, hupdate]
-            _ = _ := by
-                change _ = 𝒟[uniformSampleImpl (spec := HashSpec) input >>= _]
-                apply evalDist_bind_congr'
-                intro answer
-                exact ih answer (hnext answer) _
+          have hassoc : (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
+                fun outside => pure (Function.update outside ⟨input, hinput⟩ answer)) >>=
+                  (fun outside => next (extend cache outside)) =
+              ($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
+                next (extend (cache.cacheQuery input answer) outside) := by
+            simp only [bind_assoc, pure_bind, hupdate]
+          refine ((uniformSample_bind_update_evalDistEq (D := ShortIn) (R := HashOutput)
+            ⟨input, hinput⟩).bind_left _).symm.trans ?_
+          rw [hassoc]
+          change _ =ᵈ uniformSampleImpl (spec := HashSpec) input >>= _
+          exact EvalDistEq.bind_right _ fun answer => ih answer (hnext answer) _
 
 theorem evalDist_stoppedExperiment_prep {A α : Type}
     (model : HiddenRows.Model HashInput HashOutput A HiddenGraph.Coordinate)
     (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → Digest)
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stoppedExperiment model (extend base outside) computation known] =
-      𝒟[(simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
-        Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known prepared.2] := by
-  rw [evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
-    (fun outside => HiddenRows.stoppedExperiment model outside computation known)]
-  apply evalDist_bind_congr'
-  intro prepared
-  exact evalDist_stoppedExperiment_lazy model _ computation hshort known
+    (($ᵗ Eager.Table) >>= fun outside =>
+        HiddenRows.stoppedExperiment model (extend base outside) computation known) =ᵈ ((simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
+        Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known prepared.2) := by
+  refine (evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
+    (fun outside => HiddenRows.stoppedExperiment model outside computation known)).trans ?_
+  exact EvalDistEq.bind_right _ fun prepared =>
+    evalDist_stoppedExperiment_lazy model _ computation hshort known
 
 section Game
 

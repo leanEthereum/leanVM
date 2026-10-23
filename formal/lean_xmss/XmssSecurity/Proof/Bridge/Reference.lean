@@ -23,9 +23,9 @@ theorem worldHandler_randomOracle : worldHandler randomOracle = romImpl := rfl
 
 theorem prob_table_le_memo (adversary : Adversary) (randomizers : RandomizerOutputs)
     (publicKey : PublicKey) (secretKey : XmssSecurity.SecretKey) (cache : QueryCache HashSpec) :
-    Pr[= true | (simulateQ romImpl (gameRest (tableScheme randomizers) adversary publicKey secretKey)).run' cache] ≤
-      Pr[= true | (simulateQ romImpl
-        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run' cache] := by
+    Pr{let x ← (simulateQ romImpl (gameRest (tableScheme randomizers) adversary publicKey secretKey)).run' cache}[x = true] ≤
+      Pr{let x ← ((simulateQ romImpl
+        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run' cache)}[x = true] := by
   rw [← runSigning_sourceGame, ← runSigning_sourceGame]
   exact prob_sourceGame_le_memo _ _ _ _
 
@@ -41,12 +41,12 @@ variable {State : Type}
 /-- A uniform table of randomizer bases is the model's signer, once requests are memoized. -/
 theorem evalDist_table_memo_run (hash : QueryImpl HashSpec (StateT State ProbComp)) (adversary : Adversary)
     (publicKey : PublicKey) (secretKey : XmssSecurity.SecretKey) (state : State) :
-    𝒟[do
+    (do
       let randomizers ← sampleRandomizerOutputs
       (simulateQ (worldHandler hash)
-        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run state] =
-      𝒟[(simulateQ (worldHandler hash)
-        (gameRest Concrete.scheme (memoAdversary adversary) publicKey secretKey)).run state] := by
+        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run state) =ᵈ
+      ((simulateQ (worldHandler hash)
+        (gameRest Concrete.scheme (memoAdversary adversary) publicKey secretKey)).run state) := by
   have hleft (randomizers : RandomizerOutputs) := runSigning_sourceGame randomizers secretKey publicKey
     (memoAdversary adversary)
   simp_rw [← hleft]
@@ -56,15 +56,15 @@ theorem evalDist_table_memo_run (hash : QueryImpl HashSpec (StateT State ProbCom
 
 theorem evalDist_table_memo (adversary : Adversary) (publicKey : PublicKey)
     (secretKey : XmssSecurity.SecretKey) (cache : QueryCache HashSpec) :
-    𝒟[do
+    (do
       let randomizers ← sampleRandomizerOutputs
       (simulateQ romImpl
-        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run' cache] =
-      𝒟[(simulateQ romImpl (gameRest Concrete.scheme (memoAdversary adversary) publicKey secretKey)).run' cache] := by
+        (gameRest (tableScheme randomizers) (memoAdversary adversary) publicKey secretKey)).run' cache) =ᵈ
+      ((simulateQ romImpl (gameRest Concrete.scheme (memoAdversary adversary) publicKey secretKey)).run' cache) := by
   have h := evalDist_table_memo_run randomOracle adversary publicKey secretKey cache
   rw [worldHandler_randomOracle] at h
-  have heq := congrArg (fun distribution => Prod.fst <$> distribution) h
-  simpa only [StateT.run'_eq, evalDist_map, evalDist_bind, map_bind] using heq
+  have heq := h.map Prod.fst
+  simpa only [StateT.run'_eq, map_bind] using heq
 
 theorem hashQueryBound_reference (adversary : Adversary) (publicKey : PublicKey)
     (secretKey : XmssSecurity.SecretKey) (cache : QueryCache HashSpec) (q : Nat)
@@ -73,7 +73,7 @@ theorem hashQueryBound_reference (adversary : Adversary) (publicKey : PublicKey)
     HashQueryBound (gameRest Concrete.scheme (memoAdversary adversary) publicKey secretKey) cache q := by
   rw [hashQueryBound_iff_costState]
   intro result hresult
-  rw [← mem_support_iff_of_evalDist_eq (evalDist_table_memo_run costHash adversary publicKey secretKey
+  rw [← OracleComp.support_eq_of_evalDistEq (evalDist_table_memo_run costHash adversary publicKey secretKey
     (cache, 0)), mem_support_bind_iff] at hresult
   obtain ⟨randomizers, _, hresult⟩ := hresult
   exact (hashQueryBound_iff_costState _ cache q).1 (hbound randomizers) result hresult

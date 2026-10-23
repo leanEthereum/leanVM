@@ -127,7 +127,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
       cases input with
       | uniform n =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           obtain ⟨output, rfl⟩ := hhead
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -138,7 +138,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
           | zero => simp [IsHazardQuery] at hbound
           | succ remaining =>
               simp [eagerTraceImpl, eagerImpl, traceFragment,
-                QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+                WriterT.run_tell] at hhead
               obtain ⟨output, _houtput, rfl⟩ := hhead
               rw [support_map] at htail
               obtain ⟨tail, htail, rfl⟩ := htail
@@ -147,7 +147,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
               simpa [Prod.map, hazardCount] using Nat.succ_le_succ htailCount
       | encodingSignAttempt leafIndex =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           obtain ⟨output, _houtput, rfl⟩ := hhead
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -158,7 +158,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
           | zero => simp [IsHazardQuery] at hbound
           | succ remaining =>
               simp [eagerTraceImpl, eagerImpl, traceFragment,
-                QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+                WriterT.run_tell] at hhead
               subst head
               rw [support_map] at htail
               obtain ⟨tail, htail, rfl⟩ := htail
@@ -167,7 +167,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
               simpa [Prod.map, hazardCount] using Nat.succ_le_succ htailCount
       | reveal index =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           subst head
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail

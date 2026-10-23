@@ -41,7 +41,7 @@ theorem needA_single (t : MT) (j : SubIdx) (T : Finset FChain) :
     needA t (single j T) = needA1 (t.2 j).2 T := by
   unfold needA needA1
   rw [prod_single j _ (fun j' hj' => by simp [single, hj'])]
-  simp only [single, if_true]
+  simp only [single, ite_true]
   rfl
 
 theorem avoidB_single (t : MT) (j : SubIdx) (T : Finset FChain) (x : MT) :
@@ -49,7 +49,7 @@ theorem avoidB_single (t : MT) (j : SubIdx) (T : Finset FChain) (x : MT) :
   classical
   unfold avoidB
   rw [prod_single j _ (fun j' hj' => by simp [single, hj'])]
-  simp only [single, if_true]
+  simp only [single, ite_true]
 
 theorem coverHR_eq_prod (t : MT) (j : SubIdx) (X : Multiset MT) :
     coverHR t j X = ∏ i, (1 - (if need t j i = 0 then 0 else 1) *
@@ -60,14 +60,14 @@ theorem coverHR_eq_prod (t : MT) (j : SubIdx) (X : Multiset MT) :
       if need t j i = 0 ∨ ∃ x ∈ X, KC x t j i then 1 else 0 := by
     intro i
     by_cases h0 : need t j i = 0
-    · rw [if_pos h0, zero_mul, sub_zero, if_pos (Or.inl h0)]
-    · rw [if_neg h0, one_mul]
+    · rw [ite_eq_left h0, zero_mul, sub_zero, ite_eq_left (Or.inl h0)]
+    · rw [ite_eq_right h0, one_mul]
       by_cases hx : ∃ x ∈ X, KC x t j i
       · obtain ⟨x, hx, hk⟩ := hx
-        rw [if_pos (Or.inr ⟨x, hx, hk⟩), Multiset.prod_eq_zero (Multiset.mem_map.2 ⟨x, hx, by simp [hk]⟩),
+        rw [ite_eq_left (Or.inr ⟨x, hx, hk⟩), Multiset.prod_eq_zero (Multiset.mem_map.2 ⟨x, hx, by simp [hk]⟩),
           sub_zero]
       · push Not at hx
-        rw [if_neg (by rintro (h | ⟨x, hx', hk⟩); exact h0 h; exact hx x hx' hk)]
+        rw [ite_eq_right (by rintro (h | ⟨x, hx', hk⟩); exact h0 h; exact hx x hx' hk)]
         rw [Multiset.prod_eq_one (fun y hy => by
           obtain ⟨x, hx', rfl⟩ := Multiset.mem_map.1 hy
           simp [hx x hx'])]
@@ -75,15 +75,15 @@ theorem coverHR_eq_prod (t : MT) (j : SubIdx) (X : Multiset MT) :
   simp only [hpt]
   unfold coverHR CoverHT
   by_cases hc : ∀ i, need t j i = 0 ∨ ∃ x ∈ X, KC x t j i
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     symm
-    exact Finset.prod_eq_one fun i _ => if_pos (hc i)
-  · rw [if_neg hc]
+    exact Finset.prod_eq_one fun i _ => ite_eq_left (hc i)
+  · rw [ite_eq_right hc]
     push Not at hc
     obtain ⟨i, hi⟩ := hc
     symm
     refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro (h | ⟨x, hx, hk⟩)
     · exact hi.1 h
     · exact hi.2 x hx hk
@@ -136,12 +136,12 @@ theorem avgR_word (j : SubIdx) (g : LutIdx → ℝ) : avgR (fun t : MT => g (t.2
         avgR_words (fun w => g (w j))
     _ = avgR (fun w : SubIdx → LutIdx => ∏ j', (if j' = j then g (w j') else (1 : ℝ))) := by
         refine congrArg avgR (funext fun w => ?_)
-        rw [prod_single j _ (fun j' hj' => by simp only [if_neg hj'])]
+        rw [prod_single j _ (fun j' hj' => by simp only [ite_eq_right hj'])]
         simp
     _ = ∏ j', avgR (fun x : LutIdx => if j' = j then g x else (1 : ℝ)) :=
         avgR_prod_pi (fun j' (x : LutIdx) => if j' = j then g x else (1 : ℝ))
     _ = avgR g := by
-        rw [prod_single j _ (fun j' hj' => by simp only [if_neg hj']; exact avgR_const 1)]
+        rw [prod_single j _ (fun j' hj' => by simp only [ite_eq_right hj']; exact avgR_const 1)]
         simp
 
 /-- **The half-cover moment.** -/
@@ -209,8 +209,8 @@ theorem φH_eq (j : SubIdx) (Xs : Multiset FieldVal) :
     intro t
     unfold coverHR
     by_cases h : CoverHF t j Xs
-    · rw [if_pos h, if_pos ((coverHF_iff t j Xs).1 h), ENNReal.ofReal_one]
-    · rw [if_neg h, if_neg (fun h' => h ((coverHF_iff t j Xs).2 h')), ENNReal.ofReal_zero]
+    · rw [ite_eq_left h, ite_eq_left ((coverHF_iff t j Xs).1 h), ENNReal.ofReal_one]
+    · rw [ite_eq_right h, ite_eq_right (fun h' => h ((coverHF_iff t j Xs).2 h')), ENNReal.ofReal_zero]
   simp only [hpt]
   rw [freshAvg_ofReal _ (fun t => coverHR_nonneg _ _ _), avgR_equiv fieldMT]
   simp only [Equiv.apply_symm_apply]
@@ -259,10 +259,10 @@ theorem avgN_yN (n : ℕ) :
   simp only [Multiset.map_zero]
   rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ c)]
   have h1 : avgN (nearFactor c j c) n 0 = ENNReal.ofReal (ΨHR j n) := by
-    simp only [nearFactor, if_true]; exact avgN_φH j n
+    simp only [nearFactor, ite_true]; exact avgN_φH j n
   have h2 : ∀ c' ∈ Finset.univ.erase c, avgN (nearFactor c j c') n 0 = ENNReal.ofReal (Ψ1R n) := by
     intro c' hc'
-    simp only [nearFactor, if_neg (Finset.ne_of_mem_erase hc')]
+    simp only [nearFactor, ite_eq_right (Finset.ne_of_mem_erase hc')]
     exact avgN_φF n
   rw [h1, Finset.prod_congr rfl h2, Finset.prod_const, Finset.card_erase_of_mem (Finset.mem_univ _),
     Finset.card_univ, card_coord]
@@ -271,7 +271,7 @@ theorem yN_le (Ms : Multiset (Coord → FieldVal)) : yN Ms ≤ 16 := by
   unfold yN
   calc ∑ c, ∑ j, ∏ c', nearFactor c j c' (Ms.map fun m => m c') ≤ ∑ _c : Coord, ∑ _j : SubIdx, (1 : ℝ≥0∞) := by
         refine Finset.sum_le_sum fun c _ => Finset.sum_le_sum fun j _ => ?_
-        refine Finset.prod_le_one' fun c' _ => ?_
+        refine Finset.prod_le_one fun c' _ => ?_
         unfold nearFactor
         split_ifs
         · exact φH_le_one j _

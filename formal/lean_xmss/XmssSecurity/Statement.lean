@@ -83,7 +83,7 @@ noncomputable def experiment (adversary : Adversary) : ProbComp (Bool × Nat) :=
 
 /-- The probability of a successful forgery. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => result.1 = true | experiment adversary]
+  Pr{let result ← experiment adversary}[result.1 = true]
 
 /-- Every execution uses at most `q` hash calls, including key generation, signing, and verification. -/
 def HasHashQueryBound (adversary : Adversary) (q : Nat) : Prop :=

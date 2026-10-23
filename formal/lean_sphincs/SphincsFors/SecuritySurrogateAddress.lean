@@ -42,7 +42,7 @@ theorem boundary_not_kept (parameter : PublicParameter) (level : Nat)
     simp only [le_refl, ↓reduceIte, Nat.sub_self, pow_zero, Nat.div_one,
       boundaryIndex, spineIndex]
     exact xor_one_ne _
-  · rw [if_neg (by omega : ¬level ≤ subtreeHeight)]
+  · rw [ite_eq_right (by omega : ¬level ≤ subtreeHeight)]
     exact xor_one_ne _
 
 end SphincsFors.Security

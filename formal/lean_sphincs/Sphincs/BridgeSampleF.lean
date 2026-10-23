@@ -75,12 +75,12 @@ omit [Params] [Fintype ι] in
 theorem expectedFlagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
     (s : DebtState D R ι) :
     expectedFlagged tg initial model comp budget s ≤
-      ∑' out, Pr[= out | interp tg initial model comp budget s] * (digestCount tg out.1.2.2.1 : ℝ≥0∞) := by
+      ∑' out, Pr{let x ← interp tg initial model comp budget s}[x = out] * (digestCount tg out.1.2.2.1 : ℝ≥0∞) := by
   unfold expectedFlagged
   refine ENNReal.tsum_le_tsum fun out => ?_
   by_cases hout : out ∈ support (interp tg initial model comp budget s)
   · exact mul_le_mul_right (by exact_mod_cast flagged_le_digestF tg initial model comp budget s out hout) _
-  · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
 
 end Flagged
 
@@ -125,7 +125,7 @@ theorem small_pointwiseF (out : Run HashInput Coordinate HiddenBridge.Outcome ×
   have hpay : Hit K.tg prepared.2 T out.2 → payoffA parameterOutput fixed highs remaining prepared known ρ T out.2 = 1 := by
     intro hh
     unfold payoffA Ctx.payoff
-    exact if_pos (Or.inl hh)
+    exact ite_eq_left (Or.inl hh)
   rcases h with hg | ⟨hbad, outcome, hres, hvalid⟩
   · exact Or.inl (hpay (hit_of_correctGuess parameterOutput fixed highs remaining prepared known ρ out.2 T hTe hg))
   · rcases badA_split parameterOutput fixed highs remaining prepared hprepared known ρ out.2 hinv T hTe hfix
@@ -139,7 +139,7 @@ theorem small_pointwiseF (out : Run HashInput Coordinate HiddenBridge.Outcome ×
         unfold finalValue
         rw [hres']
         simp only [Option.elim, List.nil_append]
-        exact if_pos ⟨hcov, hreal⟩
+        exact ite_eq_left ⟨hcov, hreal⟩
 
 end Pointwise
 
@@ -173,8 +173,8 @@ theorem numeric_monoF {ρ x x' : ℝ} (h : Numeric ρ x) (hx : x' ≤ x) (_hx0 :
 omit [Params] in
 theorem probEvent_le_endValueF (payoff : (Coordinate → Digest) → State → ℝ≥0∞) (s : State)
     (E : (Coordinate → Digest) → Prop) (h : ∀ T, E T → payoff T s = 1) :
-    Pr[E | completion s.known] ≤ endValue payoff s := by
-  rw [probEvent_eq_tsum_ite]
+    Pr{let x ← completion s.known}[E x] ≤ endValue payoff s := by
+  rw [OracleComp.prEvent_eq_tsum_ite]
   unfold endValue
   refine ENNReal.tsum_le_tsum fun T => ?_
   split_ifs with hT

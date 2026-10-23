@@ -52,7 +52,7 @@ theorem card_opens_le (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (
     (((decodeMark x).child (otherSub j), (decodeMark x).word (otherSub j)), (decodeMark x).word j) with hg
   have hmaps : Set.MapsTo g (S : Set FieldVal) (T : Set ((ChildIdx × LutIdx) × LutIdx)) := by
     intro x hx
-    simp only [hS, Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq] at hx
+    simp only [hS, Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq] at hx
     rw [Finset.mem_coe]
     simp only [hT, hg, Finset.mem_product, Finset.mem_univ, true_and, Finset.mem_filter]
     have := hx.2.2
@@ -60,7 +60,7 @@ theorem card_opens_le (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (
     omega
   have hinj : Set.InjOn g S := by
     intro x hx y hy hxy
-    simp only [hS, Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq] at hx hy
+    simp only [hS, Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq] at hx hy
     simp only [hg, Prod.mk.injEq] at hxy
     obtain ⟨⟨hc, hw⟩, hwj⟩ := hxy
     have hm : decodeMark x = decodeMark y := by
@@ -101,7 +101,7 @@ noncomputable def revRate : ℝ≥0∞ := 123 * ((2 ^ subtreeHeight * 2 ^ 15 : �
 theorem opensAt_le_one (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
     (k : ℕ) (v : View) : opensAt index c sp j a i k v ≤ 1 := by
   unfold opensAt
-  split_ifs <;> simp
+  split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
 
 /-- **A uniform kept view opens a given chain with probability at most the reveal rate.** -/
 theorem freshAvg_opensAt (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
@@ -112,8 +112,8 @@ theorem freshAvg_opensAt (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx
       (if v.1 = localIdx index then 1 else 0) *
         ∏ c', (fun c' (t : FieldVal) => if c' = c then (if P t then (1 : ℝ≥0∞) else 0) else 1) c' (v.2 c') := by
     intro v
-    rw [Finset.prod_eq_single c (fun c' _ hc' => by simp only [if_neg hc']) (fun h => absurd (Finset.mem_univ c) h)]
-    simp only [if_true, opensAt, hP]
+    rw [Finset.prod_eq_single c (fun c' _ hc' => by simp only [ite_eq_right hc']) (fun h => absurd (Finset.mem_univ c) h)]
+    simp only [ite_true, opensAt, hP]
     split_ifs <;> simp_all
   have hfield : freshAvg (Finset.univ : Finset FieldVal) (fun t => if P t then (1 : ℝ≥0∞) else 0) ≤
       ((2 ^ 26 : ℕ) : ℝ≥0∞)⁻¹ * (2048 * 123 : ℕ) := by
@@ -144,9 +144,9 @@ theorem freshAvg_opensAt (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx
       if c' = c then (if P t then (1 : ℝ≥0∞) else 0) else 1) c' (τ c'))).trans ?_
     rw [H0Avg.freshAvg_pi_prod (fun c' (t : FieldVal) => if c' = c then (if P t then (1 : ℝ≥0∞) else 0) else 1)]
     congr 1
-    rw [Finset.prod_eq_single c (fun c' _ hc' => by simp only [if_neg hc']; exact H0Avg.freshAvg_const' 1)
+    rw [Finset.prod_eq_single c (fun c' _ hc' => by simp only [ite_eq_right hc']; exact H0Avg.freshAvg_const' 1)
       (fun h => absurd (Finset.mem_univ c) h)]
-    simp only [if_true]
+    simp only [ite_true]
   simp only [hinner]
   have hidx : freshAvg (Finset.univ : Finset (Fin (2 ^ subtreeHeight))) (fun l =>
       (if l = localIdx index then (1 : ℝ≥0∞) else 0) *
@@ -157,7 +157,7 @@ theorem freshAvg_opensAt (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx
     rw [Finset.card_univ, Fintype.card_fin]
     congr 1
     simp only [ite_mul, one_mul, zero_mul]
-    rw [Finset.sum_ite_eq' Finset.univ (localIdx index), if_pos (Finset.mem_univ _)]
+    rw [Finset.sum_ite_eq' Finset.univ (localIdx index), ite_eq_left (Finset.mem_univ _)]
   rw [hidx]
   calc ((2 ^ subtreeHeight : ℕ) : ℝ≥0∞)⁻¹ *
         freshAvg (Finset.univ : Finset FieldVal) (fun t => if P t then (1 : ℝ≥0∞) else 0)
@@ -227,7 +227,7 @@ theorem reveal_point (hparse : ∀ p, model.parse (pblk parameter data p) = none
     have hmarks := digestMarks_eq (truncateMessageDigest u0) c
     have hhit : opensAt index c sp j a i k (viewOf u0) = 1 := by
       unfold opensAt viewOf
-      rw [if_pos]
+      rw [ite_eq_left]
       refine ⟨by rw [localDigestView_fst, hi], ?_, ?_, ?_⟩
       · rw [localDigestView_snd, ← hmarks, hs]
       · rw [localDigestView_snd, ← hmarks, ha]
@@ -246,7 +246,7 @@ theorem reveal_point (hparse : ∀ p, model.parse (pblk parameter data p) = none
         rw [hr]
         simp only
         rw [hρ, hsel.1]
-        simp only [Option.elim, pairWeight, hs0, reduceCtorEq, if_false]
+        simp only [Option.elim, pairWeight, hs0, reduceCtorEq, ite_false]
         exact hhit.symm
 
 /-- Every reveal of a run of the final assembly from a cached digest block is opened by its digest. -/
@@ -274,7 +274,7 @@ landing and 1 at a cached landed pair of the message. -/
 theorem reveal_scan_all (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     {s : State} (attempts : ℕ) (hA : attempts ≤ 2 ^ 128) (budget : ℕ) (start : Randomness)
     (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (hk : k < chainTop) :
-    ∑' o1, Pr[= o1 | interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s] *
+    ∑' o1, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data m attempts start) budget s}[x = o1] *
         (if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
       walk nextRand landing (stOf parameter data m s) (fun _ => 1) revRate 0 attempts start := by
   have hparse' : ∀ ρ, model.parse (blk parameter data m ρ) = none := fun ρ => hparse (m, ρ)
@@ -284,7 +284,7 @@ theorem reveal_scan_all (hparse : ∀ p, model.parse (pblk parameter data p) = n
     if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ L then 1 else 0 with hV
   have hV0 : V [] = 0 := by
     simp only [hV]
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro ⟨q, _, h⟩
     cases h
   have hVfin : ∀ (ρ : Randomness) (s' : State) (u0 : HashOutput) (b : ℕ),
@@ -303,7 +303,7 @@ theorem reveal_scan_all (hparse : ∀ p, model.parse (pblk parameter data p) = n
     have hmarks := digestMarks_eq (truncateMessageDigest u0) c
     have hhit : opensAt index c sp j a i k (viewOf u0) = 1 := by
       unfold opensAt viewOf
-      rw [if_pos]
+      rw [ite_eq_left]
       refine ⟨by rw [localDigestView_fst, hi], ?_, ?_, ?_⟩
       · rw [localDigestView_snd, ← hmarks, hs]
       · rw [localDigestView_snd, ← hmarks, ha]
@@ -333,17 +333,17 @@ a cached landed pair of the message. -/
 theorem reveal_le_all (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     {s : State} (budget : ℕ)
     (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (hk : k < chainTop) :
-    ∑' o1, Pr[= o1 | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' o1, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = o1] *
         (if ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
       revRate + hitMass parameter data s m := by
   set cinv := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
   have hcard : cinv * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
   unfold signCostSource
-  rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-  have hpr : ∀ ρ, Pr[= ρ | ($ᵗ Randomness : ProbComp Randomness)] = cinv := by
+  rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+  have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = cinv := by
     intro ρ
-    rw [probOutput_uniformSample]
+    rw [SampleableType.prEvent_uniformSample_eq_singleton]
   simp only [hpr]
   rw [ENNReal.tsum_mul_left, tsum_fintype]
   calc _ ≤ cinv * ∑ start : Randomness, (revRate +
@@ -363,7 +363,7 @@ signed message. -/
 theorem reveal_le (hparse : ∀ p, model.parse (pblk parameter data p) = none)
     {s : State} (budget : ℕ)
     (index : Index) (c : Coord) (sp : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) (k : ℕ) (hk : k < chainTop) :
-    ∑' o1, Pr[= o1 | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' o1, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = o1] *
         (if o1.1.1.isSome ∧ ∃ q : FPos, q.val ≤ k ∧ Coordinate.fchain index c sp j a i q ∈ o1.1.2.1 then 1 else 0) ≤
       revRate + hitMass parameter data s m := by
   refine le_trans (ENNReal.tsum_le_tsum fun o1 => mul_le_mul' le_rfl ?_)

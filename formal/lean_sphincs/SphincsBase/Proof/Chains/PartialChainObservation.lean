@@ -55,10 +55,10 @@ theorem completeTables_observe_mass {n : Nat} (observed : Fin n → State → Op
   rw [completeTables_record, FinitePmfProduct.update_apply, ← mul_assoc,
     completeFunction_observe_mass, ite_mul, zero_mul]
   by_cases hanswer : tables query.1 query.2 = answer
-  · rw [if_pos hanswer, if_pos hanswer, completeTables, FinitePmfProduct.apply]
+  · rw [ite_eq_left hanswer, ite_eq_left hanswer, completeTables, FinitePmfProduct.apply]
     exact Finset.mul_prod_erase Finset.univ (fun step => completeFunction (observed step) (tables step))
       (Finset.mem_univ query.1)
-  · rw [if_neg hanswer, if_neg hanswer]
+  · rw [ite_eq_right hanswer, ite_eq_right hanswer]
 
 theorem completeTables_bind_observe {n : Nat} {Result : Type} (observed : Fin n → State → Option State)
     (query : Fin n × State) (next : State → (Fin n → State → State) → PMF Result) :

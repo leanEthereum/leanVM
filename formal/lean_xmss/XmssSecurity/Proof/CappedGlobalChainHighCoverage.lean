@@ -607,7 +607,7 @@ theorem globalFilteredCausalUncachedHashPlan_reveal_has_predecessor
           · subst target
             by_cases hnext : predecessor.2.2.val + 1 < chainLength
             · simp only [globalFilteredCausalUncachedAttackerHashPlan,
-                hrevealed, dif_pos hnext] at hplan
+                hrevealed, dite_eq_left hnext] at hplan
               have hindex :
                   (predecessor.1, predecessor.2.1,
                     ⟨predecessor.2.2.val + 1, hnext⟩) = index :=
@@ -615,10 +615,10 @@ theorem globalFilteredCausalUncachedHashPlan_reveal_has_predecessor
               subst index
               exact ⟨predecessor, value, hrevealed, rfl, rfl, rfl⟩
             · simp only [globalFilteredCausalUncachedAttackerHashPlan,
-                hrevealed, dif_neg hnext] at hplan
+                hrevealed, dite_eq_right hnext] at hplan
               cases hplan
           · simp only [globalFilteredCausalUncachedAttackerHashPlan,
-              hrevealed, if_neg htarget] at hplan
+              hrevealed, ite_eq_right htarget] at hplan
             cases hplan
 
 theorem globalFilteredCausalAttackerHashPlan_reveal_has_predecessor
@@ -1740,7 +1740,7 @@ theorem globalRunObserved_eq_true_of_probe_mem_of_no_reveal
           | none =>
               by_cases hearly : table candidate ∈ state.pending candidate
               · simp [hearly]
-              · rw [if_neg hearly]
+              · rw [ite_eq_right hearly]
                 apply ih (state.install candidate (table candidate))
                 · simpa [AdaptiveRevealMonitor.State.install,
                     Function.update_of_ne (Ne.symm hne)] using hhidden

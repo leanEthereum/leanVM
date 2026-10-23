@@ -263,7 +263,7 @@ theorem mem_treeReveals_of {index : Index} {c : Coord} {mark : CoordMark} (j : S
     (hk : (openedPos mark j ch).val ≤ k.val) :
     HiddenGraph.Coordinate.fchain index c mark.super j (mark.child j) ch k ∈ treeReveals index c mark := by
   simp only [treeReveals, List.mem_flatten, List.mem_ofFn, exists_exists_eq_and]
-  exact ⟨j, ch, k, by rw [if_pos hk]; exact List.mem_singleton_self _⟩
+  exact ⟨j, ch, k, by rw [ite_eq_left hk]; exact List.mem_singleton_self _⟩
 
 theorem costRun_withReveals_coordCostSource (data : PublicData) (index : Index) (marks : Coord → CoordMark)
     (c : Coord) (result : RunResult CoordOpening)
@@ -281,10 +281,10 @@ theorem costRun_withReveals_coordCostSource (data : PublicData) (index : Index) 
     refine costRun_withReveals_sequenceFin_det f table _ _ _ (fun k r' hr' => ?_) r hr
     split at hr'
     · rename_i hk
-      rw [costRun_withReveals_reveal f table _ r' hr', if_pos hk, if_pos hk]
+      rw [costRun_withReveals_reveal f table _ r' hr', ite_eq_left hk, ite_eq_left hk]
     · rename_i hk
       rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at hr'
-      rw [hr', if_neg hk, if_neg hk]
+      rw [hr', ite_eq_right hk, ite_eq_right hk]
   have hsub : ∀ (j : SubIdx) r, r ∈ support (costRun f table (withReveals (do
       let cols ← Concrete.sequenceFin fun i => revealChainCost index c (marks c) j i
       return (⟨fun i => cols i (openedPos (marks c) j i),

@@ -1,0 +1,34 @@
+name = "lean-da-security"
+version = "0.1.0"
+defaultTargets = ["LeanDa"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.1"
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio.git"
+rev = "afa6593f15e1e79ecb3cf22fc56191cecb452bb0"
+
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
+
+[[lean_lib]]
+name = "PqDas"
+
+[[lean_lib]]
+name = "LeanDa"

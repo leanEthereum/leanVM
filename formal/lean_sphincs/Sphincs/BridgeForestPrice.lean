@@ -48,8 +48,8 @@ theorem witness_mono (target : View) : Monotone' (witness target) := by
   unfold witness
   by_cases hs : CoverAll target small
   · have hl : CoverAll target large := fun c j i => chainCovered_mono hle (hs c j i)
-    rw [if_pos hs, if_pos hl]
-  · rw [if_neg hs]; exact zero_le
+    rw [ite_eq_left hs, ite_eq_left hl]
+  · rw [ite_eq_right hs]; exact zero_le
 
 /-! ### The fresh-digest price and its excess over a baseline -/
 

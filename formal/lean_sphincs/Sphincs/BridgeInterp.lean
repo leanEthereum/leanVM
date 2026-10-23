@@ -123,7 +123,7 @@ theorem flaggedCount_touch (state : DebtState D R ι) (input : (SourceCostSpec D
 /-- Expected number of flagged digest touches of an interpreted run. -/
 noncomputable def expectedFlagged {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α)
     (budget : ℕ) (state : DebtState D R ι) : ℝ≥0∞ :=
-  ∑' out, Pr[= out | interp tg initial model computation budget state] *
+  ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] *
     (flaggedCount tg out.1.2.2.2 : ℝ≥0∞)
 
 /-! ### Sequential composition -/

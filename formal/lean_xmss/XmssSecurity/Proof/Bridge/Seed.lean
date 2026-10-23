@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.Bridge.Reduction
 import XmssSecurity.Proof.Seeded.BudgetTransfer
 
@@ -57,26 +58,25 @@ theorem cleanBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q 
 /-- Dropping the programmed entries costs a seed guess per hash call after key generation. -/
 theorem tableGame_le_clean (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q < 2 ^ 256)
     (hbound : SeededBudget adversary q) :
-    Pr[= true | sampleMasterSeed >>= tableGame adversary] ≤
-      Pr[= true | cleanGame adversary] + ((q - keygenQueries : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
-  have hswap : 𝒟[sampleMasterSeed >>= tableGame adversary] = 𝒟[do
+    Pr{let x ← sampleMasterSeed >>= tableGame adversary}[x = true] ≤
+      Pr{let x ← cleanGame adversary}[x = true] + ((q - keygenQueries : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
+  have hswap : (sampleMasterSeed >>= tableGame adversary) =ᵈ (do
       let d ← drawDerivations
       let p ← (simulateQ randomOracle (honestRun d).withQueryLog).run ∅
       let seed ← sampleMasterSeed
       (simulateQ romImpl (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary)
-        (modelPublicKey d p.1) (modelSecretKey d p.1))).run' (overlay (progCache seed d) p.2)] := by
+        (modelPublicKey d p.1) (modelSecretKey d p.1))).run' (overlay (progCache seed d) p.2)) := by
     unfold tableGame
     simp_rw [run_progCache, bind_map_left]
-    rw [evalDist_bind_bind_swap]
-    apply evalDist_bind_congr'
+    refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+    apply EvalDistEq.bind_right
     intro d
-    rw [evalDist_bind_bind_swap]
-  rw [probOutput_def, hswap, ← probOutput_def]
+    exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
+  refine (hswap.prEvent_eq (· = true)).trans_le ?_
   unfold cleanGame
-  rw [← probEvent_eq_eq_probOutput, ← probEvent_eq_eq_probOutput]
-  apply probEvent_bind_congr_le_add
+  apply OracleComp.prEvent_bind_congr_le_add
   intro d _
-  apply probEvent_bind_congr_le_add
+  apply OracleComp.prEvent_bind_congr_le_add
   intro p hp
   exact probEvent_random_cache_change_le guessBound_seedHit _ (fun seed => overlay (progCache seed d) p.2) p.2
     (fun seed => agreeOutside_overlay_progCache seed d p.2) (q - keygenQueries)

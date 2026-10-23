@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.CappedEncodingRejection
+import XmssSecurity.Proof.EvalDistEq
 
 open OracleComp ENNReal
 
@@ -45,27 +46,32 @@ theorem State.pendingRisk_addPending_le
           push_cast
           rw [add_mul, one_mul]
 
+private theorem sum_uniformDigest_eq_one :
+    ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 := by
+  rw [← OracleComp.tsum_prEvent_eq_one ($ᵗ Digest), tsum_fintype]
+
+
 theorem uniformDigest_if_eq_probability_le
     (target : Digest) (resume : Digest → ProbComp Bool) (ε : ℝ≥0∞)
     (hresume : ∀ digest, digest ≠ target →
-      Pr[(· = true) | resume digest] ≤ ε) :
-    Pr[(· = true) | do
+      Pr{let x ← resume digest}[x = true] ≤ ε) :
+    Pr{let x ← (do
       let digest ← $ᵗ Digest
-      if digest = target then pure true else resume digest] ≤
+      if digest = target then pure true else resume digest)}[x = true] ≤
       (Fintype.card Digest : ℝ≥0∞)⁻¹ + ε := by
-  refine (probEvent_bind_le_probEvent_add
-    (p := fun digest : Digest => digest = target) (ε := ε) ?_).trans ?_
+  refine (prEvent_bind_le_prEvent_add_of_support _ _
+    (fun digest : Digest => digest = target) _ (ε := ε) ?_).trans ?_
   · intro digest _hdigest hmiss
     simpa [hmiss] using hresume digest hmiss
-  · rw [probEvent_eq_eq_probOutput, probOutput_uniformSample]
+  · rw [SampleableType.prEvent_uniformSample_eq_singleton]
 
 theorem uniformDigest_valid_bonus_sum_eq :
     ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] *
+        Pr{let x ← $ᵗ Digest}[x = digest] *
           (if TargetSum.ValidDigest digest then
             (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
       (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
-  simp_rw [probOutput_uniformSample]
+  simp_rw [SampleableType.prEvent_uniformSample_eq_singleton]
   simp_rw [mul_ite, mul_zero]
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero,
     Finset.sum_const, nsmul_eq_mul]
@@ -84,11 +90,11 @@ theorem uniformDigest_valid_bonus_sum_eq :
 
 theorem uniformDigest_mem_bonus_sum_eq (targets : Finset Digest) :
     ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] *
+        Pr{let x ← $ᵗ Digest}[x = digest] *
           (if digest ∈ targets then 1 else 0) =
       (targets.card : ℝ≥0∞) *
         (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
-  simp_rw [probOutput_uniformSample]
+  simp_rw [SampleableType.prEvent_uniformSample_eq_singleton]
   simp_rw [mul_ite, mul_one, mul_zero]
   have hfilter : Finset.univ.filter (fun digest : Digest => digest ∈ targets) =
       targets := by
@@ -99,7 +105,7 @@ theorem uniformDigest_mem_bonus_sum_eq (targets : Finset Digest) :
 
 theorem uniformDigest_valid_scaled_bonus_sum_eq (scale : Nat) :
     ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] *
+        Pr{let x ← $ᵗ Digest}[x = digest] *
           (if TargetSum.ValidDigest digest then
             (scale : ℝ≥0∞) *
               (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
@@ -108,7 +114,7 @@ theorem uniformDigest_valid_scaled_bonus_sum_eq (scale : Nat) :
   calc
     _ = (scale : ℝ≥0∞) *
         (∑ digest : Digest,
-          Pr[= digest | $ᵗ Digest] *
+          Pr{let x ← $ᵗ Digest}[x = digest] *
             (if TargetSum.ValidDigest digest then
               (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0)) := by
           rw [Finset.mul_sum]
@@ -122,7 +128,7 @@ theorem uniformDigest_valid_scaled_bonus_sum_eq (scale : Nat) :
 
 theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
     ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] *
+        Pr{let x ← $ᵗ Digest}[x = digest] *
           (if TargetSum.ValidDigest digest then
             if digest ∈ targets then 1 else 0
           else
@@ -134,7 +140,7 @@ theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
     (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
   calc
     _ ≤ ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] *
+        Pr{let x ← $ᵗ Digest}[x = digest] *
           ((if digest ∈ targets then 1 else 0) +
             if TargetSum.ValidDigest digest then 0 else removed) := by
           apply Finset.sum_le_sum
@@ -149,25 +155,25 @@ theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
             · simp only [hvalid, hmem, ↓reduceIte, zero_add]
               exact le_rfl
     _ = (∑ digest : Digest,
-          Pr[= digest | $ᵗ Digest] *
+          Pr{let x ← $ᵗ Digest}[x = digest] *
             (if digest ∈ targets then 1 else 0)) +
         ∑ digest : Digest,
-          Pr[= digest | $ᵗ Digest] *
+          Pr{let x ← $ᵗ Digest}[x = digest] *
             (if TargetSum.ValidDigest digest then 0 else removed) := by
               simp_rw [mul_add]
               rw [Finset.sum_add_distrib]
     _ = (∑ digest : Digest,
-          Pr[= digest | $ᵗ Digest] *
+          Pr{let x ← $ᵗ Digest}[x = digest] *
             (if TargetSum.ValidDigest digest then removed else 0)) +
         ∑ digest : Digest,
-          Pr[= digest | $ᵗ Digest] *
+          Pr{let x ← $ᵗ Digest}[x = digest] *
             (if TargetSum.ValidDigest digest then 0 else removed) := by
               have hfirst :
                 ∑ digest : Digest,
-                    Pr[= digest | $ᵗ Digest] *
+                    Pr{let x ← $ᵗ Digest}[x = digest] *
                       (if digest ∈ targets then 1 else 0) =
                   ∑ digest : Digest,
-                    Pr[= digest | $ᵗ Digest] *
+                    Pr{let x ← $ᵗ Digest}[x = digest] *
                       (if TargetSum.ValidDigest digest then removed else 0) := by
                 calc
                   _ = (targets.card : ℝ≥0∞) *
@@ -178,15 +184,16 @@ theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
                     exact (uniformDigest_valid_scaled_bonus_sum_eq targets.card).symm
               rw [hfirst]
     _ = ∑ digest : Digest,
-        Pr[= digest | $ᵗ Digest] * removed := by
+        Pr{let x ← $ᵗ Digest}[x = digest] * removed := by
           rw [← Finset.sum_add_distrib]
           apply Finset.sum_congr rfl
           intro digest _hdigest
-          by_cases hvalid : TargetSum.ValidDigest digest <;> simp [hvalid]
+          by_cases hvalid : TargetSum.ValidDigest digest <;>
+            simp only [hvalid, ↓reduceIte, mul_zero, add_zero, zero_add]
     _ = removed := by
           rw [← Finset.sum_mul]
-          have hmass : ∑ digest : Digest, Pr[= digest | $ᵗ Digest] = 1 :=
-            sum_probOutput_eq_one (mx := ($ᵗ Digest)) (by simp)
+          have hmass : ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 :=
+            sum_uniformDigest_eq_one
           rw [hmass, one_mul]
 
 noncomputable def applyUniformSignAttemptMonitor
@@ -207,19 +214,19 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
     (resume : Digest → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ digest nextState,
-      Pr[(· = true) | resume digest nextState] ≤
+      Pr{let x ← resume digest nextState}[x = true] ≤
         (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
           State.pendingRisk nextState) :
-    Pr[(· = true) | applyUniformSignAttemptMonitor leafIndex resume state] ≤
+    Pr{let x ← applyUniformSignAttemptMonitor leafIndex resume state}[x = true] ≤
       (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
         State.pendingRisk state := by
   cases hsigned : state.signed leafIndex with
   | some target =>
       unfold applyUniformSignAttemptMonitor
-      rw [probEvent_bind_eq_tsum, tsum_fintype]
+      rw [OracleComp.prEvent_bind_eq_tsum, tsum_fintype]
       calc
         _ ≤ ∑ digest : Digest,
-            Pr[= digest | $ᵗ Digest] *
+            Pr{let x ← $ᵗ Digest}[x = digest] *
               ((fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
                 State.pendingRisk state) := by
                   apply Finset.sum_le_sum
@@ -230,8 +237,8 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
                   · simpa [hvalid] using hresume digest state
         _ = _ := by
               rw [← Finset.sum_mul]
-              have hmass : ∑ digest : Digest, Pr[= digest | $ᵗ Digest] = 1 :=
-                sum_probOutput_eq_one (mx := ($ᵗ Digest)) (by simp)
+              have hmass : ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 :=
+                sum_uniformDigest_eq_one
               rw [hmass, one_mul]
   | none =>
       let base := (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹
@@ -241,10 +248,10 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
       have hrisk : remaining + removed = State.pendingRisk state := by
         exact State.pendingRisk_install_add state leafIndex 0
       unfold applyUniformSignAttemptMonitor
-      rw [probEvent_bind_eq_tsum, tsum_fintype]
+      rw [OracleComp.prEvent_bind_eq_tsum, tsum_fintype]
       calc
         _ ≤ ∑ digest : Digest,
-            Pr[= digest | $ᵗ Digest] *
+            Pr{let x ← $ᵗ Digest}[x = digest] *
               (base + remaining +
                 if TargetSum.ValidDigest digest then
                   if digest ∈ state.pending leafIndex then 1 else 0
@@ -265,26 +272,26 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
                         hresume digest (state.install leafIndex digest)
                   · simp only [hvalid, ↓reduceIte]
                     calc
-                      Pr[(· = true) | resume digest state] ≤
+                      Pr{let x ← resume digest state}[x = true] ≤
                           base + State.pendingRisk state := by
                             simpa [base] using hresume digest state
                       _ = base + remaining + removed := by rw [← hrisk]; ac_rfl
         _ = (base + remaining) +
             ∑ digest : Digest,
-              Pr[= digest | $ᵗ Digest] *
+              Pr{let x ← $ᵗ Digest}[x = digest] *
                 (if TargetSum.ValidDigest digest then
                   if digest ∈ state.pending leafIndex then 1 else 0
                 else removed) := by
                   rw [show (∑ digest : Digest,
-                      Pr[= digest | $ᵗ Digest] *
+                      Pr{let x ← $ᵗ Digest}[x = digest] *
                         (base + remaining +
                           (if TargetSum.ValidDigest digest then
                             if digest ∈ state.pending leafIndex then 1 else 0
                           else removed))) =
                       (∑ digest : Digest,
-                        Pr[= digest | $ᵗ Digest] * (base + remaining)) +
+                        Pr{let x ← $ᵗ Digest}[x = digest] * (base + remaining)) +
                       ∑ digest : Digest,
-                        Pr[= digest | $ᵗ Digest] *
+                        Pr{let x ← $ᵗ Digest}[x = digest] *
                           (if TargetSum.ValidDigest digest then
                             if digest ∈ state.pending leafIndex then 1 else 0
                           else removed) by
@@ -293,8 +300,8 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
                             intro digest _hdigest
                             rw [mul_add]]
                   rw [← Finset.sum_mul]
-                  have hmass : ∑ digest : Digest, Pr[= digest | $ᵗ Digest] = 1 :=
-                    sum_probOutput_eq_one (mx := ($ᵗ Digest)) (by simp)
+                  have hmass : ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 :=
+                    sum_uniformDigest_eq_one
                   rw [hmass, one_mul]
         _ ≤ (base + remaining) + removed := by
               gcongr
@@ -319,10 +326,10 @@ theorem applyUniformQueryMonitor_true_probability_le
     (resume : Digest → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ digest nextState,
-      Pr[(· = true) | resume digest nextState] ≤
+      Pr{let x ← resume digest nextState}[x = true] ≤
         (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
           State.pendingRisk nextState) :
-    Pr[(· = true) | applyUniformQueryMonitor leafIndex resume state] ≤
+    Pr{let x ← applyUniformQueryMonitor leafIndex resume state}[x = true] ≤
       (fuel.succ : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
         State.pendingRisk state := by
   cases hsigned : state.signed leafIndex with
@@ -339,16 +346,15 @@ theorem applyUniformQueryMonitor_true_probability_le
         ac_rfl
   | none =>
       unfold applyUniformQueryMonitor
-      rw [hsigned, probEvent_bind_eq_tsum, tsum_fintype]
+      rw [hsigned, OracleComp.prEvent_bind_eq_tsum, tsum_fintype]
       calc
         ∑ digest : Digest,
-            Pr[= digest | $ᵗ Digest] *
-              Pr[(· = true) |
-                if TargetSum.ValidDigest digest then
+            Pr{let x ← $ᵗ Digest}[x = digest] *
+              Pr{let x ← (if TargetSum.ValidDigest digest then
                   resume digest (state.addPending leafIndex digest)
-                else resume digest state] ≤
+                else resume digest state)}[x = true] ≤
           ∑ digest : Digest,
-            Pr[= digest | $ᵗ Digest] *
+            Pr{let x ← $ᵗ Digest}[x = digest] *
               ((fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
                 State.pendingRisk state +
                 if TargetSum.ValidDigest digest then
@@ -359,8 +365,7 @@ theorem applyUniformQueryMonitor_true_probability_le
                     by_cases hvalid : TargetSum.ValidDigest digest
                     · simp only [hvalid, ↓reduceIte]
                       calc
-                        Pr[(· = true) |
-                            resume digest (state.addPending leafIndex digest)] ≤
+                        Pr{let x ← resume digest (state.addPending leafIndex digest)}[x = true] ≤
                           (fuel : ℝ≥0∞) *
                               (Fintype.card Digest : ℝ≥0∞)⁻¹ +
                             State.pendingRisk (state.addPending leafIndex digest) :=
@@ -380,8 +385,8 @@ theorem applyUniformQueryMonitor_true_probability_le
               simp_rw [mul_add]
               rw [Finset.sum_add_distrib, Finset.sum_add_distrib,
                 ← Finset.sum_mul, ← Finset.sum_mul]
-              have hmass : ∑ digest : Digest, Pr[= digest | $ᵗ Digest] = 1 :=
-                sum_probOutput_eq_one (mx := ($ᵗ Digest)) (by simp)
+              have hmass : ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 :=
+                sum_uniformDigest_eq_one
               rw [hmass, one_mul, uniformDigest_valid_bonus_sum_eq, one_mul]
         _ = (fuel.succ : ℝ≥0∞) *
               (Fintype.card Digest : ℝ≥0∞)⁻¹ +
@@ -404,15 +409,15 @@ theorem applyProgrammedQueryMonitor_true_probability_le
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ output nextState,
-      Pr[(· = true) | resume output nextState] ≤
+      Pr{let x ← resume output nextState}[x = true] ≤
         (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
           State.pendingRisk nextState) :
-    Pr[(· = true) | applyProgrammedQueryMonitor leafIndex resume state] ≤
+    Pr{let x ← applyProgrammedQueryMonitor leafIndex resume state}[x = true] ≤
       (fuel.succ : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
         State.pendingRisk state := by
   apply applyUniformQueryMonitor_true_probability_le
   intro digest nextState
-  exact probEvent_bind_le_of_forall_le fun output _houtput => hresume output nextState
+  exact prEvent_bind_le_of_forall_le _ _ _ fun output => hresume output nextState
 
 noncomputable def applyProgrammedSignAttemptMonitor
     (leafIndex : LeafIndex)
@@ -429,15 +434,15 @@ theorem applyProgrammedSignAttemptMonitor_true_probability_le
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ output nextState,
-      Pr[(· = true) | resume output nextState] ≤
+      Pr{let x ← resume output nextState}[x = true] ≤
         (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
           State.pendingRisk nextState) :
-    Pr[(· = true) | applyProgrammedSignAttemptMonitor leafIndex resume state] ≤
+    Pr{let x ← applyProgrammedSignAttemptMonitor leafIndex resume state}[x = true] ≤
       (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
         State.pendingRisk state := by
   apply applyUniformSignAttemptMonitor_true_probability_le
   intro digest nextState
-  exact probEvent_bind_le_of_forall_le fun output _houtput => hresume output nextState
+  exact prEvent_bind_le_of_forall_le _ _ _ fun output => hresume output nextState
 
 noncomputable def applyHashOutputQueryMonitor
     (leafIndex : LeafIndex)
@@ -471,8 +476,8 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedQueryMonitor leafIndex resume state) =
-      evalDist (applyHashOutputQueryMonitor leafIndex resume state) := by
+    (applyProgrammedQueryMonitor leafIndex resume state) =ᵈ
+      (applyHashOutputQueryMonitor leafIndex resume state) := by
   let continuation := fun result : Digest × HashOutput =>
     match state.signed leafIndex with
     | some target =>
@@ -482,38 +487,35 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
           resume result.2 (state.addPending leafIndex result.1)
         else resume result.2 state
   calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
+    _ =ᵈ ($ᵗ Digest >>= fun digest =>
           Rom.sampleHashOutputWithDigest digest >>= fun output =>
             continuation (digest, output)) := by
       unfold applyProgrammedQueryMonitor applyUniformQueryMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply EvalDistEq.bind_right
       intro digest
       cases hsigned : state.signed leafIndex with
       | none =>
           by_cases hvalid : TargetSum.ValidDigest digest <;>
-            simp only [hvalid, ↓reduceIte]
+            simp only [hvalid, ↓reduceIte, EvalDistEq.refl]
       | some target =>
           by_cases heq : digest = target
           · simp only [heq, ↓reduceIte]
             symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-              (Rom.sampleHashOutputWithDigest target)
-              (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
-          · simp only [heq, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
-      congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
+            exact OracleComp.EvalDistEq.bind_const _ _
+          · simp only [heq, ↓reduceIte, EvalDistEq.refl]
+    _ =ᵈ (Rom.sampledHashOutputWithDigest >>= continuation) := .of_eq rfl
+    _ =ᵈ ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
-    _ = _ := by
-      congr 1
+    _ = _ := rfl
+
 
 theorem applyProgrammedSignAttemptMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedSignAttemptMonitor leafIndex resume state) =
-      evalDist (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
+    (applyProgrammedSignAttemptMonitor leafIndex resume state) =ᵈ
+      (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
   let continuation := fun result : Digest × HashOutput =>
     if TargetSum.ValidDigest result.1 then
       match state.signed leafIndex with
@@ -523,36 +525,31 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
           else resume result.2 (state.install leafIndex result.1)
     else resume result.2 state
   calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
+    _ =ᵈ ($ᵗ Digest >>= fun digest =>
           Rom.sampleHashOutputWithDigest digest >>= fun output =>
             continuation (digest, output)) := by
       unfold applyProgrammedSignAttemptMonitor applyUniformSignAttemptMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply EvalDistEq.bind_right
       intro digest
       by_cases hvalid : TargetSum.ValidDigest digest
       · simp only [hvalid, ↓reduceIte]
         cases hsigned : state.signed leafIndex with
         | some target =>
             symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-              (Rom.sampleHashOutputWithDigest digest)
-              (by simp [Rom.sampleHashOutputWithDigest]) (pure false)
+            exact OracleComp.EvalDistEq.bind_const _ _
         | none =>
             by_cases hmem : digest ∈ state.pending leafIndex
             · simp only [hmem, ↓reduceIte]
               symm
-              exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-                (Rom.sampleHashOutputWithDigest digest)
-                (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
-            · simp only [hmem, ↓reduceIte]
-      · simp only [hvalid, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
-      congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
+              exact OracleComp.EvalDistEq.bind_const _ _
+            · simp only [hmem, ↓reduceIte, EvalDistEq.refl]
+      · simp only [hvalid, ↓reduceIte, EvalDistEq.refl]
+    _ =ᵈ (Rom.sampledHashOutputWithDigest >>= continuation) := .of_eq rfl
+    _ =ᵈ ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
-    _ = _ := by
-      congr 1
+    _ = _ := rfl
+
 
 noncomputable def State.applyObserved
     (state : EncodingMonitor.State) : EncodingMonitor.ObservedAction →
@@ -822,7 +819,7 @@ theorem runObserved_eq_standard_validActions
   | nil => rfl
   | cons action actions ih =>
       by_cases hvalid : ActionValid action
-      · rw [runObserved, validActions, if_pos hvalid,
+      · rw [runObserved, validActions, ite_eq_left hvalid,
           EncodingMonitor.runObserved_cons]
         have heq := State.applyObserved_eq_standard_of_valid state action hvalid
         cases happly : State.applyObserved state action with
@@ -836,7 +833,7 @@ theorem runObserved_eq_standard_validActions
             have hstandard : EncodingMonitor.State.applyObserved state action =
                 some (nextState, hit) := heq.symm.trans happly
             simp [hstandard, ih nextState hnext]
-      · rw [runObserved, validActions, if_neg hvalid]
+      · rw [runObserved, validActions, ite_eq_right hvalid]
         rw [State.applyObserved_eq_unchanged_of_invalid state action hstate hvalid]
         simp [ih state hstate]
 

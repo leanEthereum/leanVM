@@ -1,0 +1,106 @@
+name = "lean-vm"
+version = "0.1.0"
+defaultTargets = ["LeanVM"]
+# Tests are `#guard`s and `example`s checked while the test library compiles.
+testDriver = "LeanVMTests"
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
+# and LeanDA, whose security formal/lean_da proves: Spec/Node.lean and Spec/Da.lean import their
+# Scheme modules, built here with this package's toolchain and dependencies, so they come first:
+# a later requirement's versions take precedence.
+[[require]]
+name = "lean-xmss-security"
+path = "../lean_xmss"
+
+[[require]]
+name = "lean-sphincs-security"
+path = "../lean_sphincs"
+
+[[require]]
+name = "lean-da-security"
+path = "../lean_da"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.1"
+
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
+
+[[require]]
+name = "Clean"
+git = "https://github.com/Verified-zkEVM/clean"
+rev = "42fe4b268132a46604d40cc73f642a1995f26547"
+
+# Root requirements take precedence over inherited manifests. Mathlib stays on the release
+# matching the toolchain.
+[[require]]
+name = "Arklib"
+git = "https://github.com/Verified-zkEVM/ArkLib"
+rev = "4dae3acff846125521b7b3998010885071746f16"
+
+# Native probability carriers and the free monads used by Protocol oracle computations.
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio"
+rev = "afa6593f15e1e79ecb3cf22fc56191cecb452bb0"
+
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
+
+[[lean_lib]]
+name = "LeanVM"
+globs = ["LeanVM.*"]
+
+[[lean_lib]]
+# Tests deliberately load full module bodies for kernel evaluation and axiom inspection.
+name = "LeanVMTests"
+srcDir = "tests"
+globs = ["LeanVMTests.+"]
+allowNonModules = true
+
+# The deployed verifier, compiled, on the four proof files of the Rust prover; not a default
+# target. scripts/fuzz-verifier.py runs it against the Rust verifier.
+[[lean_exe]]
+name = "leanvm-verify"
+root = "LeanvmVerify"
+srcDir = "cli"
+
+# The Rust vectors' costly checks, compiled (cli/NodeVectors.lean); CI runs it after `lake test`.
+[[lean_exe]]
+name = "node-vectors"
+root = "NodeVectors"
+srcDir = "cli"
+
+# Writes the guest's core IR as data (`LeanVM/Guest/Data/Core*.lean`); `--check` fails when it
+# is stale, as CI runs it.
+[[lean_exe]]
+name = "guest-core"
+root = "GuestCore"
+srcDir = "cli"
+
+# The guest's mirror and honest hint generator against Rust aggregations (cli/GuestDiff.lean), on
+# the cases the Rust test `guest_diff` writes; CI runs it.
+[[lean_exe]]
+name = "guest-diff"
+root = "GuestDiff"
+srcDir = "cli"
+
+# Writes the certificates of the guest's compiled functions (`LeanVM/Guest/Data/Cert*.lean`,
+# `Pows.lean`); `--check` fails when they are stale, as CI runs it.
+[[lean_exe]]
+name = "guest-cert"
+root = "GuestCert"
+srcDir = "cli"

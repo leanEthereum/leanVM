@@ -1,4 +1,4 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
+import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 
 /-!

@@ -22,7 +22,7 @@ theorem counted_lift_hash {α : Type} (computation : OracleComp HashSpec α) :
   | query_bind input next ih =>
       simp only [liftM_bind]
       change counted SourceHash (liftM (OracleWorld.query (.inr input)) >>= fun output => liftM (next output)) = _
-      simp only [counted_query_bind, SourceHash, if_true, ih, liftM_bind, liftM_pure]
+      simp only [counted_query_bind, SourceHash, ite_true, ih, liftM_bind, liftM_pure]
       rfl
 
 theorem eval_counted_hash {α : Type} (f : QueryImpl HashSpec Id) (computation : OracleComp HashSpec α) :
@@ -33,7 +33,7 @@ theorem eval_counted_hash {α : Type} (f : QueryImpl HashSpec Id) (computation :
   | query_bind input next ih =>
       simp only [counted_query_bind, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
         show evalWithAnswerFn f (liftM (HashSpec.query input)) = f input from simulateQ_spec_query f input,
-        ih, if_true]
+        ih, ite_true]
       change (_, 1 + hashCalls f (next (f input))) = (_, (input :: queriedInputs f (next (f input))).length)
       simp only [List.length_cons, hashCalls, Nat.add_comm]
 

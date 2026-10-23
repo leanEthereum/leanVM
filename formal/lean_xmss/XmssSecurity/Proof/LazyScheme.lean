@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.StatementLemmas
 
@@ -21,10 +22,10 @@ noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Dige
 @[simp]
 theorem probOutput_sampleSecret
     (secret : LeafIndex → ChainIndex → Digest) :
-    Pr[= secret | sampleSecret] =
+    Pr{let x ← sampleSecret}[x = secret] =
       (Fintype.card (LeafIndex → ChainIndex → Digest) : ENNReal)⁻¹ := by
   rw [sampleSecret_eq]
-  exact probOutput_uniformSample (LeafIndex → ChainIndex → Digest) secret
+  exact SampleableType.prEvent_uniformSample_eq_singleton secret
 
 noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter

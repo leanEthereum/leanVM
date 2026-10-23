@@ -49,12 +49,12 @@ theorem nextRand_no_return (ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < si
 /-! ### Expectations over a fresh output -/
 
 /-- The mean of `f` over a uniform oracle output. -/
-noncomputable def ex (f : HashOutput → ℝ≥0∞) : ℝ≥0∞ := ∑ u, Pr[= u | $ᵗ HashOutput] * f u
+noncomputable def ex (f : HashOutput → ℝ≥0∞) : ℝ≥0∞ := ∑ u, Pr{let x ← $ᵗ HashOutput}[x = u] * f u
 
-theorem ex_def (f : HashOutput → ℝ≥0∞) : ex f = ∑ u, Pr[= u | $ᵗ HashOutput] * f u := rfl
+theorem ex_def (f : HashOutput → ℝ≥0∞) : ex f = ∑ u, Pr{let x ← $ᵗ HashOutput}[x = u] * f u := rfl
 
 theorem ex_const (c : ℝ≥0∞) : ex (fun _ => c) = c := by
-  simp only [ex, probOutput_uniformSample, ← Finset.sum_mul, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+  simp only [ex, SampleableType.prEvent_uniformSample_eq_singleton, ← Finset.sum_mul, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   rw [ENNReal.mul_inv_cancel (by simp) (by simp), one_mul]
 
 theorem ex_add (f g : HashOutput → ℝ≥0∞) : ex (fun u => f u + g u) = ex f + ex g := by
@@ -82,11 +82,11 @@ theorem ex_mono {f g : HashOutput → ℝ≥0∞} (h : ∀ u, f u ≤ g u) : ex 
 /-- `N⁻¹`, the probability of one digest. -/
 theorem ex_digest (d : Digest) :
     ex (fun u => if truncateHash u = d then 1 else 0) = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [← Rom.uniform_truncate_probability d, probEvent_eq_sum_fintype_ite, ex]
-  exact Finset.sum_congr rfl fun u _ => by split_ifs <;> simp
+  rw [← Rom.uniform_truncate_probability d, OracleComp.prEvent_eq_tsum_ite, tsum_fintype, ex]
+  exact Finset.sum_congr rfl fun u _ => by split_ifs <;> simp only [mul_one, mul_zero]
 
 theorem probOutput_truncate (d : Digest) :
-    Pr[fun u : HashOutput => truncateHash u = d | $ᵗ HashOutput] = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ :=
+    Pr{let u ← $ᵗ HashOutput}[truncateHash u = d] = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ :=
   Rom.uniform_truncate_probability d
 
 theorem ex_valid : ex (fun u => if TargetSum.ValidDigest (truncateHash u) then 1 else 0) = landing := by
@@ -100,12 +100,12 @@ theorem ex_valid : ex (fun u => if TargetSum.ValidDigest (truncateHash u) then 1
   rw [Finset.sum_const, nsmul_eq_mul, landing]
 
 theorem probOutput_valid :
-    Pr[fun u : HashOutput => TargetSum.ValidDigest (truncateHash u) | $ᵗ HashOutput] = landing := by
-  rw [← ex_valid, probEvent_eq_sum_fintype_ite, ex]
-  exact Finset.sum_congr rfl fun u _ => by split_ifs <;> simp
+    Pr{let u ← $ᵗ HashOutput}[TargetSum.ValidDigest (truncateHash u)] = landing := by
+  rw [← ex_valid, OracleComp.prEvent_eq_tsum_ite, tsum_fintype, ex]
+  exact Finset.sum_congr rfl fun u _ => by split_ifs <;> simp only [mul_one, mul_zero]
 
 theorem landing_le_one : landing ≤ 1 := by
-  rw [← probOutput_valid]; exact probEvent_le_one
+  rw [← probOutput_valid]; exact (prEvent_le_one _)
 
 theorem landing_ne_top : landing ≠ ⊤ := ne_top_of_le_ne_top one_ne_top landing_le_one
 
@@ -183,14 +183,14 @@ theorem line_cacheQuery_self (x : Position) (u : HashOutput) :
   rw [line, status_cacheQuery]
   by_cases h : ρ = x.2
   · subst h; simp
-  · rw [if_neg fun he => h (by rw [← he]), Function.update_of_ne h, line]
+  · rw [ite_eq_right fun he => h (by rw [← he]), Function.update_of_ne h, line]
 
 /-- **Line facts.** Other messages' lines are unchanged. -/
 theorem line_cacheQuery_of_ne (x : Position) (u : HashOutput) {m : Message} (hm : m ≠ x.1) :
     line (cache.cacheQuery (input parameter leafIndex x) u) parameter leafIndex m =
       line cache parameter leafIndex m := by
   funext ρ
-  rw [line, status_cacheQuery, if_neg fun he => hm (by rw [← he]), line]
+  rw [line, status_cacheQuery, ite_eq_right fun he => hm (by rw [← he]), line]
 
 
 /-! ### Other inputs -/
@@ -219,7 +219,8 @@ theorem C_congr : C c₁ parameter leafIndex = C c₂ parameter leafIndex := by
   simp only [C, h]
 
 theorem V_congr : V c₁ parameter leafIndex = V c₂ parameter leafIndex := by
-  simp only [V, IsHit, h]
+  unfold V
+  exact congrArg Finset.card (Finset.filter_congr fun y _ => by simp only [IsHit, h])
 
 end Agree
 
@@ -384,7 +385,7 @@ theorem V_cacheQuery (u : HashOutput) :
     · subst hy; simp [isHit_cacheQuery hx, not_isHit_x hx]
     · simp [isHit_cacheQuery hx, hy]
   simp_rw [h]
-  rw [Finset.sum_add_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_add_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
 
 theorem H_cacheQuery (u : HashOutput) :
     H (cache.cacheQuery (input parameter leafIndex x) u) parameter leafIndex =
@@ -401,7 +402,7 @@ theorem H_cacheQuery (u : HashOutput) :
     · subst hy; simp [isHit_cacheQuery hx, not_isHit_x hx, W_cacheQuery_self]
     · simp [isHit_cacheQuery hx, hy]
   simp_rw [h]
-  rw [Finset.sum_add_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_add_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
 
 /-- The mean hit mass grows by the landing mass at `x`. -/
 theorem ex_H :
@@ -410,8 +411,8 @@ theorem ex_H :
   simp_rw [H_cacheQuery hx]
   rw [ex_add, ex_sum]
   simp_rw [ex_ite, ex_W hx]
-  rw [ex_outcome (fun s => if s = .hit then W cache parameter leafIndex x else 0), if_pos rfl,
-    if_neg (by decide), mul_zero, add_zero, H]
+  rw [ex_outcome (fun s => if s = .hit then W cache parameter leafIndex x else 0), ite_eq_left rfl,
+    ite_eq_right (by decide), mul_zero, add_zero, H]
 
 omit hx in
 /-- A landing at `x` never lowers the hit mass. -/
@@ -441,7 +442,7 @@ theorem ex_V_mul_H :
       · simpa using H_le_cacheQuery_of_hit (x := x) hu
       · simp
   rw [ex_outcome (fun s => (if s = .hit then (1 : ℝ≥0∞) else 0) * H cache parameter leafIndex)] at hlow
-  simp only [if_true, one_mul, reduceCtorEq, if_false, zero_mul, mul_zero, add_zero] at hlow
+  simp only [ite_true, one_mul, reduceCtorEq, ite_false, zero_mul, mul_zero, add_zero] at hlow
   calc _ = (V cache parameter leafIndex : ℝ≥0∞) * (H cache parameter leafIndex + landing * W cache parameter leafIndex x) +
         landing * H cache parameter leafIndex := by ring
     _ ≤ _ := add_le_add le_rfl hlow
@@ -467,8 +468,8 @@ theorem Φ_cacheQuery_le (u : HashOutput) :
       if y = x then K * W cache parameter leafIndex x else 0 := fun y => by
     by_cases hP : IsPartnered (cache.cacheQuery (input parameter leafIndex x) u) parameter leafIndex y
     swap
-    · rw [if_neg hP]; exact bot_le
-    rw [if_pos hP]
+    · rw [ite_eq_right hP]; exact bot_le
+    rw [ite_eq_left hP]
     obtain ⟨o, ho, hv, z, hzy, other, hz, htr⟩ := hP
     by_cases hy : y = x
     · subst hy
@@ -482,13 +483,13 @@ theorem Φ_cacheQuery_le (u : HashOutput) :
         have h1 := Finset.single_le_sum (f := fun z => if IsHit cache parameter leafIndex z then
           (if truncateHash u = dig cache parameter leafIndex z then (1 : ℝ≥0∞) else 0) else 0)
           (fun _ _ => bot_le) (@Finset.mem_univ Position _ z)
-        rw [if_pos hzhit, if_pos hdz] at h1
+        rw [ite_eq_left hzhit, ite_eq_left hdz] at h1
         exact h1
-      rw [if_pos rfl, W_cacheQuery_self]
+      rw [ite_eq_left rfl, W_cacheQuery_self]
       exact le_add_left (le_mul_of_one_le_left bot_le hK)
     · have ho' : cache (input parameter leafIndex y) = some o := by
         rwa [cacheQuery_input_of_ne x y u hy] at ho
-      rw [if_neg hy, add_zero]
+      rw [ite_eq_right hy, add_zero]
       by_cases hzx : z = x
       · subst hzx
         rw [QueryCache.cacheQuery_self, Option.some_inj] at hz
@@ -496,15 +497,15 @@ theorem Φ_cacheQuery_le (u : HashOutput) :
         have hhit : IsHit cache parameter leafIndex y := ⟨o, ho', hv⟩
         have hd : truncateHash u = dig cache parameter leafIndex y := by simp [dig, ho', htr]
         have hu : outcome u = .hit := by simp [outcome, htr, hv]
-        rw [if_pos hhit, if_pos hd, one_mul]
+        rw [ite_eq_left hhit, ite_eq_left hd, one_mul]
         exact le_add_left (W_cacheQuery_le_of_hit z hu y)
       · have hz' : cache (input parameter leafIndex z) = some other := by
           rwa [cacheQuery_input_of_ne x z _ hzx] at hz
-        rw [if_pos ⟨o, ho', hv, z, hzy, other, hz', htr⟩]
+        rw [ite_eq_left ⟨o, ho', hv, z, hzy, other, hz', htr⟩]
         exact le_self_add
   rw [Φ]
   refine (Finset.sum_le_sum fun y _ => hterm y).trans ?_
-  rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
 
 /-- **The partner step.** -/
 theorem ex_Φ_le :

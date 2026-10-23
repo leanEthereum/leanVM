@@ -31,7 +31,7 @@ theorem survival_le_of_extendsW {state state' : DebtState D R ι} (h : Extends s
     survival tg initial state' ≤ survival tg initial state := by
   unfold survival
   rw [hknown]
-  refine Finset.prod_le_prod' fun coordinate _ => ?_
+  refine Finset.prod_le_prod fun coordinate _ => ?_
   split_ifs
   · refine tsub_le_tsub_left (ENNReal.div_le_div_right ?_ _) _
     exact ENat.toENNReal_le.mpr (Set.encard_le_encard (debts_mono tg initial h coordinate))
@@ -43,8 +43,8 @@ theorem weight_le_of_extendsW {state state' : DebtState D R ι} (h : Extends sta
     weight tg initial state' ≤ weight tg initial state := by
   unfold weight
   by_cases hr : Realized tg initial state
-  · rw [if_pos (realized_of_extends tg initial h hr), if_pos hr]
-  · rw [if_neg hr]
+  · rw [ite_eq_left (realized_of_extends tg initial h hr), ite_eq_left hr]
+  · rw [ite_eq_right hr]
     split_ifs
     · exact bot_le
     · exact survival_le_of_extendsW tg initial h hknown
@@ -72,14 +72,14 @@ theorem weight_presampleW (x : D) (hk : tg.kind x = .none) (state : DebtState D 
 theorem meanWeight_le_of_supportW {β : Type} (step : ProbComp (β × DebtState D R ι)) (c : ℝ≥0∞)
     (h : ∀ r ∈ support step, weight tg initial r.2 ≤ c) : meanWeight tg initial step ≤ c := by
   unfold meanWeight
-  calc ∑' r, Pr[= r | step] * weight tg initial r.2 ≤ ∑' r, Pr[= r | step] * c := by
+  calc ∑' r, Pr{let x ← step}[x = r] * weight tg initial r.2 ≤ ∑' r, Pr{let x ← step}[x = r] * c := by
         refine ENNReal.tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support step
         · exact mul_le_mul_right (h r hr) _
-        · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
+        · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
     _ ≤ c := by
         rw [ENNReal.tsum_mul_right]
-        exact mul_le_of_le_one_left' tsum_probOutput_le_one
+        exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 theorem readOutside_weight_leW (bytes : D) (state : DebtState D R ι) :
     ∀ r ∈ support (readOutside bytes state), weight tg initial r.2 ≤ weight tg initial state := by
@@ -116,42 +116,42 @@ theorem meanWeight_costStep_leW (input : (SourceCostSpec D R ι).Domain) (state 
   · change meanWeight tg initial (sampleCoordinate coordinate state) ≤ _
     rw [meanWeight_sample tg initial coordinate state (debts_finiteW tg initial state _)]
   · change meanWeight tg initial (pure ((), state) : ProbComp _) ≤ _
-    rw [meanWeight, tsum_probOutput_pure_mul]
+    rw [meanWeight, OracleComp.tsum_prEvent_pure_mul]
 
 /-- **Supermartingale.** The expected final weight of an interpreted run is at most the initial
 weight. -/
 theorem interp_weight_leW {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) :
     ∀ budget (state : DebtState D R ι),
-      ∑' out, Pr[= out | interp tg initial model computation budget state] * weight tg initial out.2 ≤
+      ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * weight tg initial out.2 ≤
         weight tg initial state := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
       intro budget state
-      rw [interp_pure, tsum_probOutput_pure_mul]
+      rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
   | query_bind input next ih =>
       intro budget state
       rw [interp_query_bind]
       split_ifs with hcost
-      · rw [tsum_probOutput_bind_mul]
-        simp only [tsum_probOutput_map_mul]
-        calc _ ≤ ∑' r, Pr[= r | costStep model input state] * weight tg initial r.2 :=
+      · rw [OracleComp.tsum_prEvent_bind_mul]
+        simp only [OracleComp.tsum_prEvent_map_mul]
+        calc _ ≤ ∑' r, Pr{let x ← costStep model input state}[x = r] * weight tg initial r.2 :=
               ENNReal.tsum_le_tsum fun r => mul_le_mul_right (ih r.1 _ r.2) _
           _ ≤ _ := meanWeight_costStep_leW tg initial model input state
-      · rw [tsum_probOutput_pure_mul]
+      · rw [OracleComp.tsum_prEvent_pure_mul]
 
 /-- A pointwise bound on the support turns into the bound times the initial weight. -/
 theorem interp_weight_mul_leW {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
     (state : DebtState D R ι) (G : Run D ι α × DebtState D R ι → ℝ≥0∞) (K : ℝ≥0∞)
     (hG : ∀ out ∈ support (interp tg initial model computation budget state), G out ≤ K) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * (weight tg initial out.2 * G out) ≤
+    ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * (weight tg initial out.2 * G out) ≤
       weight tg initial state * K := by
-  calc _ ≤ ∑' out, Pr[= out | interp tg initial model computation budget state] *
+  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] *
         (weight tg initial out.2 * K) := by
         refine ENNReal.tsum_le_tsum fun out => ?_
         by_cases hout : out ∈ support (interp tg initial model computation budget state)
         · exact mul_le_mul_right (mul_le_mul_right (hG out hout) _) _
-        · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
-    _ = (∑' out, Pr[= out | interp tg initial model computation budget state] * weight tg initial out.2) * K := by
+        · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
+    _ = (∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * weight tg initial out.2) * K := by
         rw [← ENNReal.tsum_mul_right]
         exact tsum_congr fun out => by ring
     _ ≤ _ := mul_le_mul_left (interp_weight_leW tg initial model computation budget state) _
@@ -169,7 +169,7 @@ noncomputable def wflag {α : Type} (computation : OracleComp (SourceCostSpec D 
   OracleComp.construct (C := fun _ => ℕ → DebtState D R ι → ℝ≥0∞) (fun _ _ _ => 0)
     (fun input _ next budget state =>
       if sourceCost input ≤ budget then
-        ∑' result, Pr[= result | costStep model input state] *
+        ∑' result, Pr{let x ← costStep model input state}[x = result] *
           (wpays tg initial state input + next result.1 (budget - sourceCost input) result.2)
       else 0) computation
 
@@ -181,7 +181,7 @@ theorem wflag_query_bind {α : Type} (input : (SourceCostSpec D R ι).Domain)
     (budget : ℕ) (state : DebtState D R ι) :
     wflag tg initial model (liftM ((SourceCostSpec D R ι).query input) >>= next) budget state =
       if sourceCost input ≤ budget then
-        ∑' result, Pr[= result | costStep model input state] *
+        ∑' result, Pr{let x ← costStep model input state}[x = result] *
           (wpays tg initial state input + wflag tg initial model (next result.1) (budget - sourceCost input) result.2)
       else 0 := rfl
 
@@ -203,30 +203,30 @@ theorem wflag_bind {α β : Type} (first : OracleComp (SourceCostSpec D R ι) α
     ∀ budget (state : DebtState D R ι),
       wflag tg initial model (first >>= next) budget state =
         wflag tg initial model first budget state +
-          ∑' o1, Pr[= o1 | interp tg initial model first budget state] *
+          ∑' o1, Pr{let x ← interp tg initial model first budget state}[x = o1] *
             o1.1.1.elim 0 (fun value => wflag tg initial model (next value) (budget - traceCost o1.1.2.2.1) o1.2) := by
   induction first using OracleComp.inductionOn with
   | pure value =>
       intro budget state
-      rw [pure_bind, wflag_pure, interp_pure, tsum_probOutput_pure_mul, zero_add]
+      rw [pure_bind, wflag_pure, interp_pure, OracleComp.tsum_prEvent_pure_mul, zero_add]
       simp only [Option.elim, traceCost, List.map_nil, List.sum_nil, Nat.sub_zero]
   | query_bind input rest ih =>
       intro budget state
       rw [bind_assoc, wflag_query_bind, wflag_query_bind, interp_query_bind]
       split_ifs with hcost
-      · rw [tsum_probOutput_bind_mul, ← ENNReal.tsum_add]
+      · rw [OracleComp.tsum_prEvent_bind_mul, ← ENNReal.tsum_add]
         refine tsum_congr fun r => ?_
-        rw [tsum_probOutput_map_mul, ih r.1 (budget - sourceCost input) r.2]
+        rw [OracleComp.tsum_prEvent_map_mul, ih r.1 (budget - sourceCost input) r.2]
         simp only [traceCost_append, recorded_cost, Nat.sub_sub]
         ring
-      · rw [tsum_probOutput_pure_mul]
+      · rw [OracleComp.tsum_prEvent_pure_mul]
         simp
 
 /-- Presampling an untargeted input does not raise the expected weighted payments. -/
 theorem wflag_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) :
     ∀ budget (state : DebtState D R ι),
-      ∑' s, Pr[= s | presample x state] * wflag tg initial model computation budget s ≤
+      ∑' s, Pr{let y ← presample x state}[y = s] * wflag tg initial model computation budget s ≤
         wflag tg initial model computation budget state := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -239,29 +239,29 @@ theorem wflag_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
       · set f : (SourceCostSpec D R ι).Range input × DebtState D R ι → ℝ≥0∞ := fun r =>
           wpays tg initial state input + wflag tg initial model (next r.1) (budget - sourceCost input) r.2 with hf
         have hpay : ∀ s ∈ support (presample x state),
-            ∑' r, Pr[= r | costStep model input s] *
+            ∑' r, Pr{let x ← costStep model input s}[x = r] *
               (wpays tg initial s input + wflag tg initial model (next r.1) (budget - sourceCost input) r.2) =
-            ∑' r, Pr[= r | costStep model input s] * f r := by
+            ∑' r, Pr{let x ← costStep model input s}[x = r] * f r := by
           intro s hs
           rw [wpays_presampleW tg initial x hk state input s hs]
-        have hstep : ∑' s, Pr[= s | presample x state] * ∑' r, Pr[= r | costStep model input s] * f r =
-            ∑' r, Pr[= r | costStep model input state] *
-              ∑' s, Pr[= s | presample x r.2] * f (r.1, s) := by
+        have hstep : ∑' s, Pr{let y ← presample x state}[y = s] * ∑' r, Pr{let x ← costStep model input s}[x = r] * f r =
+            ∑' r, Pr{let x ← costStep model input state}[x = r] *
+              ∑' s, Pr{let y ← presample x r.2}[y = s] * f (r.1, s) := by
           have h := presample_costStep model x input state (pure : _ → ProbComp _)
           simp only [bind_pure] at h
-          rw [← tsum_probOutput_bind_mul]
-          refine (tsum_congr fun r => congrArg (· * f r) (probOutput_congr rfl h)).trans ?_
-          rw [tsum_probOutput_bind_mul]
+          rw [← OracleComp.tsum_prEvent_bind_mul]
+          refine (tsum_congr fun r => congrArg (· * f r) ((h).prEvent_eq _)).trans ?_
+          rw [OracleComp.tsum_prEvent_bind_mul]
           refine tsum_congr fun r => ?_
           congr 1
-          rw [tsum_probOutput_bind_mul]
+          rw [OracleComp.tsum_prEvent_bind_mul]
           refine tsum_congr fun s => ?_
-          rw [tsum_probOutput_pure_mul]
-        calc _ = ∑' s, Pr[= s | presample x state] * ∑' r, Pr[= r | costStep model input s] * f r := by
+          rw [OracleComp.tsum_prEvent_pure_mul]
+        calc _ = ∑' s, Pr{let y ← presample x state}[y = s] * ∑' r, Pr{let x ← costStep model input s}[x = r] * f r := by
               refine tsum_congr fun s => ?_
               by_cases hs : s ∈ support (presample x state)
               · rw [hpay s hs]
-              · rw [probOutput_eq_zero_of_not_mem_support hs, zero_mul, zero_mul]
+              · rw [(prEvent_eq_zero_of_not_mem_support _) hs, zero_mul, zero_mul]
           _ = _ := hstep
           _ ≤ _ := by
               refine ENNReal.tsum_le_tsum fun r => mul_le_mul_right ?_ _
@@ -300,7 +300,7 @@ theorem step_goodW (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal) (payme
         subst hresult
         exact hinv
       · change _ + payment * 0 ≤ _ * meanWeight tg initial (pure ((), state) : ProbComp _)
-        rw [meanWeight, tsum_probOutput_pure_mul, mul_zero, add_zero]
+        rw [meanWeight, OracleComp.tsum_prEvent_pure_mul, mul_zero, add_zero]
         gcongr
         exact budget_le_of_le probes _ _ (Nat.sub_le _ _) (by linarith)
   | inl input =>
@@ -312,9 +312,9 @@ theorem step_goodW (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal) (payme
             obtain ⟨value, _, rfl⟩ := hresult
             exact hinv
           · change _ + payment * 0 ≤ _
-            rw [costStep_inl, lazyStep_draw, meanWeight, tsum_probOutput_map_mul]
+            rw [costStep_inl, lazyStep_draw, meanWeight, OracleComp.tsum_prEvent_map_mul]
             dsimp only
-            rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul,
+            rw [ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul,
               mul_zero, add_zero]
             simp only [sourceCost, Nat.sub_zero, le_refl]
       | inr input =>
@@ -346,14 +346,14 @@ theorem step_goodW (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal) (payme
                   rw [costStep_inl, lazyStep_unparsed model bytes state hp] at hresult
                   exact inv_readOutside_none tg initial bytes state probes hinv hk result hresult
                 · rw [costStep_inl, lazyStep_unparsed model bytes state hp,
-                    meanWeight_readOutside_none tg initial bytes state hk hinv.prepared, if_pos hdigest]
+                    meanWeight_readOutside_none tg initial bytes state hk hinv.prepared, ite_eq_left hdigest]
                   calc budget probes (rest + 1) * weight tg initial state + payment * weight tg initial state
                       ≤ budget probes (rest + 1) * weight tg initial state +
                           (budget probes rest - budget probes (rest + 1)) * weight tg initial state :=
                         add_le_add le_rfl (mul_le_mul_left (hpayment probes rest (by omega)) _)
                     _ = budget probes rest * weight tg initial state := by
                         rw [← add_mul, add_tsub_cancel_of_le (budget_succ_le probes rest (by linarith))]
-              · rw [if_neg hdigest, mul_zero, add_zero]
+              · rw [ite_eq_right hdigest, mul_zero, add_zero]
                 cases hp : model.parse bytes with
                 | none =>
                     refine ⟨probes + 1, by omega, ?_, ?_⟩
@@ -418,11 +418,11 @@ theorem saturationW (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal) (paym
       Inv tg initial state probes → probes + remaining ≤ total →
       budget probes remaining * weight tg initial state +
           payment * wflag tg initial model computation remaining state ≤
-        ∑' out, Pr[= out | interp tg initial model computation remaining state] * weight tg initial out.2 := by
+        ∑' out, Pr{let x ← interp tg initial model computation remaining state}[x = out] * weight tg initial out.2 := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
       intro remaining state probes _ hsum
-      rw [wflag_pure, interp_pure, tsum_probOutput_pure_mul, mul_zero, add_zero]
+      rw [wflag_pure, interp_pure, OracleComp.tsum_prEvent_pure_mul, mul_zero, add_zero]
       refine mul_le_of_le_one_left' (budget_le_one probes remaining ?_)
       have h : ((probes + remaining : ℕ) : ℝ) ≤ total := by exact_mod_cast hsum
       push_cast at h
@@ -433,14 +433,14 @@ theorem saturationW (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal) (paym
       split_ifs with hcost
       · obtain ⟨probes', hsum', hsupport, hstep⟩ := step_goodW tg initial model hcompat htrunc total htotal
           payment hpayment input state probes remaining hinv hcost hsum
-        rw [tsum_probOutput_bind_mul]
-        simp only [tsum_probOutput_map_mul]
+        rw [OracleComp.tsum_prEvent_bind_mul]
+        simp only [OracleComp.tsum_prEvent_map_mul]
         exact combine (costStep model input state) (fun result => weight tg initial result.2)
           (fun result => wflag tg initial model (next result.1) (remaining - sourceCost input) result.2)
-          (fun result => ∑' out, Pr[= out | interp tg initial model (next result.1)
-            (remaining - sourceCost input) result.2] * weight tg initial out.2) _ payment _ _ hstep
+          (fun result => ∑' out, Pr{let x ← (interp tg initial model (next result.1)
+            (remaining - sourceCost input) result.2)}[x = out] * weight tg initial out.2) _ payment _ _ hstep
           fun result hresult => ih result.1 _ result.2 probes' (hsupport result hresult) hsum'
-      · rw [tsum_probOutput_pure_mul, mul_zero, add_zero]
+      · rw [OracleComp.tsum_prEvent_pure_mul, mul_zero, add_zero]
         refine mul_le_of_le_one_left' (budget_le_one probes remaining ?_)
         have h : ((probes + remaining : ℕ) : ℝ) ≤ total := by exact_mod_cast hsum
         push_cast at h
@@ -452,7 +452,7 @@ theorem saturationW_start (total : ℕ) (htotal : (total : ℝ) + 1 < spaceReal)
       payment ≤ budget probes remaining - budget probes (remaining + 1))
     {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) (known : Knowledge ι) :
     budget 0 total + payment * wflag tg initial model computation total (DebtState.start initial known) ≤
-      ∑' out, Pr[= out | interp tg initial model computation total (DebtState.start initial known)] *
+      ∑' out, Pr{let x ← interp tg initial model computation total (DebtState.start initial known)}[x = out] *
         weight tg initial out.2 := by
   have h := saturationW tg initial model hcompat htrunc total htotal payment hpayment computation total
     (DebtState.start initial known) 0 (inv_start tg initial known) (by omega)
@@ -469,14 +469,14 @@ theorem two_reads_bound₂W {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mod
     (hc0 : state.cache x0 = some u0)
     (rest : R → R → OracleComp (SourceCostSpec D R ι) β)
     (havoid : ∀ a b, Avoids (fun x => x = x0 ∨ x = x1) (rest a b)) (g : R → R → ℝ≥0∞) (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
         (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x0)))) >>= fun a =>
-          liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x1)))) >>= fun b => rest a b) budget state] *
+          liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x1)))) >>= fun b => rest a b) budget state)}[x = out] *
         (weight tg initial out.2 *
           (if out.1.1.isSome then (out.2.cache x0).elim 0 (fun a => (out.2.cache x1).elim 0 (g a)) else 0)) ≤
-      weight tg initial state * (state.cache x1).elim (∑' u, Pr[= u | ($ᵗ R : ProbComp R)] * g u0 u) (g u0) := by
+      weight tg initial state * (state.cache x1).elim (∑' u, Pr{let x ← ($ᵗ R : ProbComp R)}[x = u] * g u0 u) (g u0) := by
   have hinner : ∀ a b (s : DebtState D R ι) b', s.cache x0 = some u0 → s.cache x1 = some b →
-      ∑' out, Pr[= out | interp tg initial model (rest a b) b' s] *
+      ∑' out, Pr{let x ← interp tg initial model (rest a b) b' s}[x = out] *
         (weight tg initial out.2 *
           (if out.1.1.isSome then (out.2.cache x0).elim 0 (fun a => (out.2.cache x1).elim 0 (g a)) else 0)) ≤
           weight tg initial s * g u0 b := by
@@ -492,7 +492,7 @@ theorem two_reads_bound₂W {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mod
   split_ifs with h0
   · rw [ordinaryStep, hp0]
     simp only
-    rw [readOutside_cached x0 state u0 hc0, pure_bind, tsum_probOutput_map_mul]
+    rw [readOutside_cached x0 state u0 hc0, pure_bind, OracleComp.tsum_prEvent_map_mul]
     simp only
     rw [interp_ordinary]
     split_ifs with h1
@@ -500,20 +500,20 @@ theorem two_reads_bound₂W {β : Type} (x0 x1 : D) (hne : x0 ≠ x1) (hp0 : mod
       simp only
       cases hc1 : state.cache x1 with
       | some u1 =>
-          rw [readOutside_cached x1 state u1 hc1, pure_bind, tsum_probOutput_map_mul]
+          rw [readOutside_cached x1 state u1 hc1, pure_bind, OracleComp.tsum_prEvent_map_mul]
           exact hinner u0 u1 state _ hc0 hc1
       | none =>
           simp only [Option.elim]
-          rw [readOutside_fresh x1 state hc1, bind_map_left, tsum_probOutput_bind_mul, ← ENNReal.tsum_mul_left]
+          rw [readOutside_fresh x1 state hc1, bind_map_left, OracleComp.tsum_prEvent_bind_mul, ← ENNReal.tsum_mul_left]
           refine ENNReal.tsum_le_tsum fun u => ?_
-          rw [tsum_probOutput_map_mul, mul_left_comm]
+          rw [OracleComp.tsum_prEvent_map_mul, mul_left_comm]
           refine mul_le_mul_right ?_ _
           have h := hinner u0 u (state.store x1 u) (budget - 1 - 1) (by rw [store_cache_ne state x1 x0 hne u]; exact hc0)
             (by simp [DebtState.store])
           rwa [weight_store_untargetedW tg initial state x1 u hk1] at h
-    · rw [tsum_probOutput_pure_mul]
+    · rw [OracleComp.tsum_prEvent_pure_mul]
       simp
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     simp
 
 /-! ### The weighted baseline -/

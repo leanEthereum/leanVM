@@ -214,7 +214,7 @@ theorem erases_sign (h : Prepared seed d result cache) (index : LeafIndex) (mess
     | some signed =>
         have hat : Concrete.topSignedAt (modelSecretKey d result) index = true := by
           simp [Concrete.topSignedAt, hsigned]
-        simp only [Option.map_some, hat, if_true]
+        simp only [Option.map_some, hat, ite_true]
         apply Resolves.pure
 
 end Prepared

@@ -59,34 +59,34 @@ variable (parameter : PublicParameter) (data : PublicData) (wbar : ℝ≥0∞) (
 /-- A hit or a FORS cover of one interpreted outcome has probability at most the missing survival
 weight plus the weighted final value. -/
 theorem hit_or_cover_le (out : Run HashInput Coordinate HiddenBridge.Outcome × State) :
-    Pr[fun r => Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2 |
-        (fun table => (table, out)) <$> completion out.2.known] ≤
+    Pr{let r ← (fun table => (table, out)) <$> completion out.2.known}[Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2] ≤
       (1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out := by
-  rw [probEvent_map]
+  rw [prEvent_map]
   by_cases hc : CoverOf parameter data out ∧ ¬Realized tg initial out.2
   · obtain ⟨⟨outcome, hres, hfc⟩, hreal⟩ := hc
     have h1 : finalValue parameter data tg initial [] out = 1 := by
       unfold finalValue
       rw [hres]
       simp only [Option.elim, List.nil_append]
-      rw [if_pos ⟨hfc, hreal⟩]
+      rw [ite_eq_left ⟨hfc, hreal⟩]
     rw [h1, mul_one, tsub_add_cancel_of_le (weight_le_one tg initial out.2)]
-    exact probEvent_le_one
+    exact (prEvent_le_one _)
   · refine le_trans ?_ le_self_add
-    have hsub : Pr[(fun r : (Coordinate → Digest) × Run HashInput Coordinate HiddenBridge.Outcome × State =>
-          Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2) ∘ (fun table => (table, out)) |
-        completion out.2.known] ≤ Pr[fun table => Hit tg initial table out.2 | completion out.2.known] := by
-      refine probEvent_mono fun table _ hp => ?_
+    have hsub : Pr{let x ← completion out.2.known}[((fun r : (Coordinate → Digest) × Run HashInput Coordinate HiddenBridge.Outcome × State =>
+          Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2) ∘ (fun table => (table, out))) x] ≤ Pr{let table ← completion out.2.known}[Hit tg initial table out.2] := by
+      refine prEvent_mono_of_support _ _ _ fun table _ hp => ?_
       rcases hp with hh | hcov
       · exact hh
       · exact Or.inl (not_not.1 fun hr => hc ⟨hcov, hr⟩)
     refine le_trans hsub ?_
-    have hsplit := probEvent_compl (completion out.2.known) (fun table => Hit tg initial table out.2)
-    rw [probFailure_eq_zero, tsub_zero] at hsplit
+    have hsplit : Pr{let table ← completion out.2.known}[Hit tg initial table out.2]
+        + Pr{let table ← completion out.2.known}[¬Hit tg initial table out.2] = 1 := by
+      rw [OracleComp.prEvent_not_eq_one_sub]
+      exact add_tsub_cancel_of_le (prEvent_le_one _)
     have hle := weight_le_noHit tg initial out.2
-    calc Pr[fun table => Hit tg initial table out.2 | completion out.2.known]
-        = 1 - Pr[fun table => ¬Hit tg initial table out.2 | completion out.2.known] :=
-          ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top probEvent_le_one) hsplit
+    calc Pr{let table ← completion out.2.known}[Hit tg initial table out.2]
+        = 1 - Pr{let table ← completion out.2.known}[¬Hit tg initial table out.2] :=
+          ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top (prEvent_le_one _)) hsplit
       _ ≤ _ := tsub_le_tsub_left hle _
 
 /-- **The rest of the game with the weighted baseline.** For an adversary that never repeats a
@@ -103,9 +103,8 @@ theorem rest_boundW (hcompat : Compatible tg model) (htrunc : UniformTruncation 
     (total : ℕ) (htotal : 2 * (total : ℝ) + 2 ≤ spaceReal) (Lmax : ℕ)
     (hfair : FairS wbar (total + digestAttemptLimit) Lmax)
     (M : OracleComp (OracleWorld + SigningSpec) Forgery) (hnr : NoRepeat M []) (known : Knowledge Coordinate) :
-    Pr[fun r => Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2 |
-        interp tg initial model (advProg parameter data M []) total (DebtState.start initial known) >>= fun result =>
-          (fun table => (table, result)) <$> completion result.2.known] ≤
+    Pr{let r ← (interp tg initial model (advProg parameter data M []) total (DebtState.start initial known) >>= fun result =>
+          (fun table => (table, result)) <$> completion result.2.known)}[Hit tg initial r.1 r.2.2 ∨ CoverOf parameter data r.2] ≤
       (1 - budget 0 total) + (total * (hValueO parameter data wbar (baselineW total)
         (DebtState.start initial known) [] [] 0 signatureLimit total + failMass Fail) + signatureLimit * failMass Fail) +
         lam Lmax 0 total := by
@@ -127,33 +126,33 @@ theorem rest_boundW (hcompat : Compatible tg model) (htrunc : UniformTruncation 
   rw [hw1, one_mul] at hgood
   -- the weighted saturation
   have hsat : budget 0 total + b0 * wflag tg initial model (advProg parameter data M []) total start ≤
-      ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+      ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
         weight tg initial out.2 :=
     saturationW_start tg initial model hcompat htrunc total htotal1 b0
       (baselineW_payment total htotal2) (advProg parameter data M []) known
   set W := wflag tg initial model (advProg parameter data M []) total start with hW
-  set E := ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+  set E := ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
     weight tg initial out.2 with hEdef
   have hE : E ≤ 1 :=
     le_trans (ENNReal.tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
-      tsum_probOutput_le_one
-  have hcompl : ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+      (OracleComp.tsum_prEvent_le_one _)
+  have hcompl : ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
       (1 - weight tg initial out.2) = 1 - E := by
-    have hsum : ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+    have hsum : ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
         (1 - weight tg initial out.2) + E = 1 := by
       rw [hEdef, ← ENNReal.tsum_add]
-      calc _ = ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] :=
+      calc _ = ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] :=
             tsum_congr fun out => by
               rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
-        _ = 1 := tsum_probOutput_eq_one' probFailure_eq_zero
+        _ = 1 := OracleComp.tsum_prEvent_eq_one _
     exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top hE) hsum
   have hle : budget 0 total + b0 * W ≤ 1 := le_trans hsat hE
   have hW1 : b0 * W ≤ 1 - budget 0 total := ENNReal.le_sub_of_add_le_left ENNReal.ofReal_ne_top hle
-  rw [probEvent_bind_eq_tsum]
-  calc _ ≤ ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+  rw [OracleComp.prEvent_bind_eq_tsum]
+  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
         ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
         ENNReal.tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
-    _ = (1 - E) + ∑' out, Pr[= out | interp tg initial model (advProg parameter data M []) total start] *
+    _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model (advProg parameter data M []) total start}[x = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
         rw [← hcompl, ← ENNReal.tsum_add]
         exact tsum_congr fun out => mul_add _ _ _
@@ -214,10 +213,10 @@ theorem sample_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
         out.1.1 = some none → (Lifetime.localDigestView digest).1 ∈ Fail)
     (wbar : ℝ≥0∞) (htotal : 2 * ((q - keygenCost : ℕ) : ℝ) + 2 ≤ spaceReal) (Lmax : ℕ)
     (hfair : FairS wbar (q - keygenCost + digestAttemptLimit) Lmax) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
           (sampleData parameterOutput fixed highs remaining))))
-        (knownOf (truncateHash parameterOutput) fixed) prepared.2] ≤
+        (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
       (1 - budget 0 (q - keygenCost)) + ((q - keygenCost : ℕ) * (hValueO (truncateHash parameterOutput)
         (sampleData parameterOutput fixed highs remaining) wbar (baselineW (q - keygenCost))
         (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) [] [] 0 signatureLimit
@@ -231,7 +230,7 @@ theorem sample_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     hcompat.digestParse _ (hmsg _ (msgInput_digestInput param data.root p.1 p.2)).2
   refine le_trans (stopped_le_interp hb adversary q hq parameterOutput fixed highs remaining prepared hprepared tg) ?_
   -- a correct guess or a bad cache is a decided hit
-  refine le_trans (probEvent_mono (q := fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
+  refine le_trans (prEvent_mono_of_support _ _ (fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
     fun x hx hp => ?_) ?_
   · rw [mem_support_bind_iff] at hx
     obtain ⟨out, hout, hx⟩ := hx
@@ -260,12 +259,12 @@ theorem sample_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
       (fun p => hclean _ (msgInput_digestInput param data.root p.1 p.2)) hfail (q - keygenCost) htotal Lmax hfair
       ((internalize adversary).main ⟨data.root, param⟩)
       (noRepeat_internalize_adversary adversary hnr _) known)
-    rw [costRestX_eq, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+    rw [costRestX_eq, OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
     refine tsum_congr fun out => ?_
-    rw [probEvent_map, probEvent_map]
+    rw [prEvent_map, prEvent_map]
     rfl
   · rw [interp_tick_bind_abort tg prepared.2 model _ _ q start hK, pure_bind]
-    refine le_of_eq_of_le (probEvent_eq_zero fun x hx hp => ?_) bot_le
+    refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun x hx hp => ?_) bot_le
     rw [support_map] at hx
     obtain ⟨table, _, rfl⟩ := hx
     rcases hp with hh | ⟨outcome, hres, _⟩
@@ -292,7 +291,7 @@ theorem large_seedFree_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (
       prepared ∈ support (preparation parameterOutput fixed highs remaining) → ∀ x, IsMsgInput x → prepared.2 x = none)
     (wbar : ℝ≥0∞) (Lmax : ℕ) (hfair : FairS wbar (q - keygenCost + digestAttemptLimit) Lmax)
     (htotal : 2 * ((q - keygenCost : ℕ) : ℝ) + 2 ≤ spaceReal) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q] ≤
+    Pr{let x ← seedFreeExperiment (internalize adversary) q}[Win x] ≤
       ((1 - budget 0 (q - keygenCost)) + (q - keygenCost : ℕ) * startExcessO wbar (baselineW (q - keygenCost))
         (q - keygenCost) + lam Lmax 0 (q - keygenCost)) +
       ((q - keygenCost : ℕ) + signatureLimit) * expectedFail := by
@@ -303,10 +302,10 @@ theorem large_seedFree_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (
   -- one sample
   have hsample : ∀ parameterOutput fixed highs remaining prepared,
       prepared ∈ support (preparation parameterOutput fixed highs remaining) →
-      Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+      Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining))))
-          (knownOf (truncateHash parameterOutput) fixed) prepared.2] ≤ A + C * failMass (failSet prepared.1) := by
+          (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤ A + C * failMass (failSet prepared.1) := by
     intro parameterOutput fixed highs remaining prepared hprepared
     obtain ⟨tg, hcompat, htrunc, hmsg, hhit⟩ := htarget parameterOutput fixed highs remaining prepared hprepared
     refine le_trans (sample_boundW hb adversary hnr q hq parameterOutput fixed highs remaining prepared hprepared tg hhit
@@ -317,11 +316,11 @@ theorem large_seedFree_boundW (hb : 0 < subtreeHeight) (adversary : Adversary) (
     push_cast
     ring
   -- average
-  simp only [probEvent_bind_eq_tsum]
-  refine le_trans (tsum_bound_le _ _ A C (fun parameterOutput => ∑' fixed, Pr[= fixed | ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)] *
-    ∑' highs, Pr[= highs | ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)] *
-    ∑' remaining, Pr[= remaining | ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)] *
-    ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+  simp only [OracleComp.prEvent_bind_eq_tsum]
+  refine le_trans (tsum_bound_le _ _ A C (fun parameterOutput => ∑' fixed, Pr{let x ← ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)}[x = fixed] *
+    ∑' highs, Pr{let x ← ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)}[x = highs] *
+    ∑' remaining, Pr{let x ← ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)}[x = remaining] *
+    ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
       failMass (failSet prepared.1)) fun parameterOutput _ => ?_) le_rfl
   refine tsum_bound_le _ _ A C _ fun fixed _ => ?_
   refine tsum_bound_le _ _ A C _ fun highs _ => ?_

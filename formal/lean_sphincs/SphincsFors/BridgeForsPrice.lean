@@ -46,8 +46,8 @@ theorem prod_increasing_differences {κ : Type} [DecidableEq κ] (trees : Finset
       set A' := ∏ t ∈ trees, large t
       set B := ∏ t ∈ trees, (small t + extra t)
       set B' := ∏ t ∈ trees, (large t + extra t)
-      have hBB : B ≤ B' := Finset.prod_le_prod' fun t _ => Nat.add_le_add_right (hle t) _
-      have hAB : A ≤ B := Finset.prod_le_prod' fun t _ => Nat.le_add_right _ _
+      have hBB : B ≤ B' := Finset.prod_le_prod fun t _ => Nat.add_le_add_right (hle t) _
+      have hAB : A ≤ B := Finset.prod_le_prod fun t _ => Nat.le_add_right _ _
       have hj' := hle j
       -- (a + s) B + a' A' ≤ (a' + s) B' + a A
       nlinarith [Nat.mul_le_mul_right (extra j) hBB, Nat.mul_le_mul hj' (le_refl (B - A)),
@@ -58,7 +58,7 @@ theorem witness_mono (target : View) : Monotone' fun disclosed : Multiset View =
     (witness target disclosed : ℝ≥0∞) := by
   intro small large hle
   have h : witness target small ≤ witness target large :=
-    Finset.prod_le_prod' fun tree _ => matchCount_mono target tree hle
+    Finset.prod_le_prod fun tree _ => matchCount_mono target tree hle
   show (witness target small : ℝ≥0∞) ≤ (witness target large : ℝ≥0∞)
   exact Nat.cast_le.mpr h
 

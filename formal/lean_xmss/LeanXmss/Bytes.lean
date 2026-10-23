@@ -27,6 +27,19 @@ theorem bytesLE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = by
 theorem bytesLE_length (n : Nat) (x : BitVec (8 * n)) : (bytesLE n x).length = n := by
   simp [bytesLE]
 
+@[simp] theorem bytesLE_length_digest (x : Digest) : (bytesLE 16 x).length = 16 :=
+  bytesLE_length 16 x
+
+@[simp] theorem bytesLE_length_publicParameter (x : PublicParameter) :
+    (bytesLE 16 x).length = 16 :=
+  bytesLE_length 16 x
+
+@[simp] theorem bytesLE_length_message (x : Message) : (bytesLE 32 x).length = 32 :=
+  bytesLE_length 32 x
+
+@[simp] theorem bytesLE_length_masterSeed (x : MasterSeed) : (bytesLE 32 x).length = 32 :=
+  bytesLE_length 32 x
+
 /-- A bit vector determines the natural it encodes, below the wrap. -/
 theorem ofNat_inj_of_lt {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
     (h : BitVec.ofNat w a = BitVec.ofNat w b) : a = b := by
@@ -64,7 +77,7 @@ theorem fieldInput_injective {fields fields' : TweakFields}
       bytesLE 16 parameter' ++ fieldBytes fields' ++ payload') :
     fields = fields' ∧ parameter = parameter' ∧ payload = payload' := by
   obtain ⟨hprefix, hpayload⟩ := List.append_inj h (by simp [fieldBytes, bytesLE_length])
-  obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp [bytesLE_length])
+  obtain ⟨hparameter, hfields⟩ := List.append_inj hprefix (by simp)
   exact ⟨fieldBytes_injective hfields, bytesLE_injective hparameter, hpayload⟩
 
 theorem tweakableInput_injective {parameter parameter' : PublicParameter}

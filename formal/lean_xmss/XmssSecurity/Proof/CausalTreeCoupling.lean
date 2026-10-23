@@ -241,6 +241,15 @@ theorem relTriple_randomOracle_leafPair
         QueryImpl.withCaching_run_some _ hright]
       exact relTriple_pure_pure ⟨rfl, hleftLe, hrightLe, hcorr⟩
 
+theorem Concrete.simulateQ_tweakableHash_run (parameter : PublicParameter) (domain : HashDomain)
+    (payload : HashInput) (cache : QueryCache HashSpec) :
+    (simulateQ randomOracle
+      (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run cache =
+      (fun result : HashOutput × QueryCache HashSpec => (truncateHash result.1, result.2)) <$>
+        (randomOracle (tweakableHashInput parameter domain payload)).run cache := by
+  simp only [Concrete.tweakableHash, Concrete.oracleHash,
+    HasQuery.instOfMonadLift_query, bind_pure_comp, simulateQ_map, StateT.run_map, simulateQ_spec_query]
+
 theorem relTriple_tweakableHash_retained
     {leftCache rightCache : QueryCache HashSpec}
     (hrel : KeygenRunRelation parameter leftStart rightStart leftWarm rightWarm
@@ -252,6 +261,7 @@ theorem relTriple_tweakableHash_retained
       ((simulateQ randomOracle (Concrete.tweakableHash parameter domain payload :
         OracleComp HashSpec Digest)).run rightCache)
       (KeygenRunResult parameter leftStart rightStart leftWarm rightWarm) := by
+  rw [Concrete.simulateQ_tweakableHash_run, Concrete.simulateQ_tweakableHash_run]
   change RelTriple
     ((fun result : HashOutput × QueryCache HashSpec => (truncateHash result.1, result.2)) <$>
       (randomOracle (tweakableHashInput parameter domain payload)).run leftCache)
@@ -275,6 +285,7 @@ theorem relTriple_keyLeafHash
         (Concrete.leafPayload (keyOneTimePublicKey rightWarm parameter rightStart key)) :
           OracleComp HashSpec Digest)).run rightCache)
       (KeygenRunResult parameter leftStart rightStart leftWarm rightWarm) := by
+  rw [Concrete.simulateQ_tweakableHash_run, Concrete.simulateQ_tweakableHash_run]
   change RelTriple
     ((fun result : HashOutput × QueryCache HashSpec => (truncateHash result.1, result.2)) <$>
       (randomOracle (Concrete.CacheView.keyLeafInput parameter key

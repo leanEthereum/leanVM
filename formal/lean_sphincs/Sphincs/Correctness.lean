@@ -57,8 +57,10 @@ omit [Params] in
 theorem leafIndexAt_eq (index : Index) (lay : Layer) : leafIndexAt index lay = index := by
   rw [only_layer lay]
   apply Fin.ext
+  have hindex := index.isLt
   simp [leafIndexAt, heightBelow, heightAbove, topLayer, layerHeight,
-    totalHeight, maxLayerHeight]
+    totalHeight, maxLayerHeight] at hindex ⊢
+  omega
 
 omit [Params] in
 theorem digestIndex_truncate (first : HashOutput) :
@@ -100,7 +102,7 @@ theorem signDigestLoop_spec (secretKey : Seeded.SecretKey) (message : Message) :
         simp only [evalWithAnswerFn_pure, Option.some.injEq, Prod.mk.injEq] at h
         rw [digestValue_index, ← h.1]
         by_contra hh
-        simp only [if_neg hh, evalWithAnswerFn_pure] at hl
+        simp only [ite_eq_right hh, evalWithAnswerFn_pure] at hl
         contradiction
       next => exact ih (start + 1) h
 
@@ -114,8 +116,8 @@ theorem sequenceLayers_spec {α : Layer → Type}
   cases ht : evalWithAnswerFn f (computation topLayer) with
   | none => simp [ht] at h
   | some top =>
-      simp only [ht, evalWithAnswerFn_pure, Option.some.injEq] at h
-      subst h
+      simp only [ht, evalWithAnswerFn_pure] at h
+      obtain rfl := Option.some.inj h
       intro lay
       rw [only_layer lay]
       exact ht
@@ -167,11 +169,12 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
   obtain ⟨hots, hpath⟩ := signLayer_spec f secretKey index lay h
   refine ⟨?_, ?_⟩
   · rw [eval_otsLeaf_of_otsSign f secretKey.parameter lay (treeIndexAt index lay)
-      (leafIndexAt index lay) secretKey.seed _ hots, node_zero, leafIndexAt_eq]
+      (leafIndexAt index lay) secretKey.seed _ hots,
+      ← congrArg Fin.val (leafIndexAt_eq index lay), node_zero]
   · rw [leafIndexAt_eq] at hpath ⊢
     apply eval_treeFold_pruned_path f _ _ _ _ _ hland
     intro level hlevel
-    rw [signaturePath, dif_pos hlevel, hpath]
+    rw [signaturePath, dite_eq_left hlevel, hpath]
 
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
 theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
@@ -205,7 +208,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
       signature.randomness : OracleComp HashSpec MessageDigest) = digest := rfl
   rw [Concrete.verify]
   simp only [evalWithAnswerFn_bind, hdig, ← hindex, hkey]
-  rw [show numLayers = 0 + 1 from rfl, verifyLayers, dif_pos (by decide : 0 < numLayers)]
+  rw [show numLayers = 0 + 1 from rfl, verifyLayers, dite_eq_left (by decide : 0 < numLayers)]
   simp only [topLayer] at hleaf hfold'
   simp only [topLayer, evalWithAnswerFn_bind, hleaf, hfold', verifyLayers,
     evalWithAnswerFn_pure, decide_true]

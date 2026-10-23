@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.EvalDistEq
 import XmssSecurity.Proof.Seeded.StoppedRun
 import XmssSecurity.Proof.ConsistentQueryBound
 
@@ -10,7 +11,7 @@ set_option backward.isDefEq.respectTransparency false
 theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
     (h : left ≠ right) (a b : HashOutput) :
     (cache.cacheQuery left a).cacheQuery right b = (cache.cacheQuery right b).cacheQuery left a := by
-  funext input
+  ext input
   by_cases hl : input = left
   · subst input
     simp [QueryCache.cacheQuery_of_ne, h]
@@ -22,14 +23,13 @@ theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
 /-- An unobserved query may be sampled early, whether or not the computation later uses it. -/
 theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (target : HashInput) (hfresh : cache target = none) :
-    𝒟[(simulateQ romImpl computation).run' cache] = 𝒟[do
+    ((simulateQ romImpl computation).run' cache) =ᵈ (do
       let output ← $ᵗ HashOutput
-      (simulateQ romImpl computation).run' (cache.cacheQuery target output)] := by
+      (simulateQ romImpl computation).run' (cache.cacheQuery target output)) := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
-      apply evalDist_ext
-      intro result
-      simp
+      simp only [simulateQ_pure, StateT.run'_eq, StateT.run_pure, map_pure]
+      exact (OracleComp.EvalDistEq.bind_const _ _).symm
   | query_bind input next ih =>
       cases input with
       | inl input =>
@@ -44,13 +44,13 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
               (liftM (unifSpec.query input) : ProbComp _)
               (fun result => (simulateQ romImpl (next result.1)).run' result.2)
           rw [hrun]
-          trans 𝒟[do
+          refine EvalDistEq.trans (my := (do
             let answer ← (liftM (unifSpec.query input) : ProbComp _)
             let output ← $ᵗ HashOutput
-            (simulateQ romImpl (next answer)).run' (cache.cacheQuery target output)]
-          · exact evalDist_bind_congr' _ (fun answer => ih answer cache hfresh)
-          · rw [evalDist_bind_bind_swap]
-            apply evalDist_bind_congr'
+            (simulateQ romImpl (next answer)).run' (cache.cacheQuery target output) : ProbComp _)) ?_ ?_
+          · exact EvalDistEq.bind_right _ (fun answer => ih answer cache hfresh)
+          · refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+            apply EvalDistEq.bind_right
             intro output
             rw [hrun]
       | inr input =>
@@ -62,39 +62,39 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
           by_cases heq : input = target
           · subst target
             rw [hrun, QueryImpl.withCaching_run_none _ hfresh, bind_map_left]
-            apply evalDist_bind_congr'
+            apply EvalDistEq.bind_right
             intro output
             rw [hrun, QueryImpl.withCaching_run_some _ (QueryCache.cacheQuery_self _ _ _), pure_bind]
           · have hfresh' (output : HashOutput) : (cache.cacheQuery input output) target = none := by
               rw [QueryCache.cacheQuery_of_ne _ _ (Ne.symm heq), hfresh]
             cases hinput : cache input with
             | some answer =>
-                rw [hrun, QueryImpl.withCaching_run_some _ hinput, pure_bind, ih answer cache hfresh]
-                apply evalDist_bind_congr'
+                rw [hrun, QueryImpl.withCaching_run_some _ hinput, pure_bind]
+                refine (ih answer cache hfresh).trans ?_
+                apply EvalDistEq.bind_right
                 intro output
                 rw [hrun, QueryImpl.withCaching_run_some _ (by
                   rw [QueryCache.cacheQuery_of_ne _ _ heq, hinput]), pure_bind]
             | none =>
                 rw [hrun, QueryImpl.withCaching_run_none _ hinput, bind_map_left]
-                trans 𝒟[do
+                refine EvalDistEq.trans (my := (do
                   let answer ← $ᵗ HashOutput
                   let output ← $ᵗ HashOutput
-                  (simulateQ romImpl (next answer)).run' ((cache.cacheQuery input answer).cacheQuery target output)]
-                · exact evalDist_bind_congr' _ (fun answer => ih answer _ (hfresh' answer))
-                · rw [evalDist_bind_bind_swap]
-                  apply evalDist_bind_congr'
+                  (simulateQ romImpl (next answer)).run' ((cache.cacheQuery input answer).cacheQuery target output) : ProbComp _)) ?_ ?_
+                · exact EvalDistEq.bind_right _ (fun answer => ih answer _ (hfresh' answer))
+                · refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+                  apply EvalDistEq.bind_right
                   intro output
                   rw [hrun, QueryImpl.withCaching_run_none _ (by
                     rw [QueryCache.cacheQuery_of_ne _ _ heq, hinput]), bind_map_left]
-                  apply evalDist_bind_congr'
+                  apply EvalDistEq.bind_right
                   intro answer
                   rw [cacheQuery_comm cache input target heq]
 
 theorem evalDist_presample_query {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (target : HashInput) :
-    𝒟[(simulateQ romImpl computation).run' cache] =
-      𝒟[(randomOracle (spec := HashSpec) target).run cache >>= fun result =>
-        (simulateQ romImpl computation).run' result.2] := by
+    ((simulateQ romImpl computation).run' cache) =ᵈ ((randomOracle (spec := HashSpec) target).run cache >>= fun result =>
+        (simulateQ romImpl computation).run' result.2) := by
   cases hc : cache target with
   | none =>
       rw [QueryImpl.withCaching_run_none _ hc, bind_map_left]
@@ -104,22 +104,22 @@ theorem evalDist_presample_query {α : Type} (computation : OracleComp OracleWor
 
 theorem evalDist_presample_computation {α β : Type} (computation : OracleComp OracleWorld α)
     (preparation : OracleComp OracleWorld β) (cache : QueryCache HashSpec) :
-    𝒟[(simulateQ romImpl computation).run' cache] =
-      𝒟[(simulateQ romImpl preparation).run cache >>= fun result =>
-        (simulateQ romImpl computation).run' result.2] := by
+    ((simulateQ romImpl computation).run' cache) =ᵈ ((simulateQ romImpl preparation).run cache >>= fun result =>
+        (simulateQ romImpl computation).run' result.2) := by
   induction preparation using OracleComp.inductionOn generalizing cache with
   | pure value => simp
   | query_bind input next ih =>
       simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
-      trans 𝒟[(romImpl input).run cache >>= fun result =>
-        (simulateQ romImpl computation).run' result.2]
+      refine EvalDistEq.trans (my := ((romImpl input).run cache >>= fun result =>
+        (simulateQ romImpl computation).run' result.2 : ProbComp _)) ?_ ?_
       · cases input with
         | inl input =>
-            apply evalDist_ext
-            intro value
+            refine (OracleComp.EvalDistEq.bind_const
+              (liftM (unifSpec.query input) : ProbComp _) _).symm.trans (EvalDistEq.of_eq ?_)
             simp [romImpl, unifFwdImpl]
+
         | inr input => exact evalDist_presample_query computation cache input
-      · exact evalDist_bind_congr' _ (fun result => ih result.1 result.2)
+      · exact EvalDistEq.bind_right _ (fun result => ih result.1 result.2)
 
 theorem hashQueryBound_after_preparation {α β : Type} (computation : OracleComp OracleWorld α)
     (preparation : OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
@@ -128,8 +128,9 @@ theorem hashQueryBound_after_preparation {α β : Type} (computation : OracleCom
     HashQueryBound computation prepared.2 q := by
   intro result hresult
   apply hbound result
-  rw [mem_support_iff_of_evalDist_eq
-    (evalDist_presample_computation (countHashQueries computation) preparation cache), mem_support_bind_iff]
+  rw [OracleComp.support_eq_of_evalDistEq
+    (evalDist_presample_computation (countHashQueries computation) preparation cache),
+    mem_support_bind_iff]
   exact ⟨prepared, hprepared, hresult⟩
 
 end XmssSecurity.Seeded

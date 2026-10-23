@@ -43,19 +43,20 @@ variable [SampleableType R] [Fintype R] [SampleableType (J → R)]
 
 theorem evalDist_queryTable_fresh (inputs : J → D) (hinj : Function.Injective inputs)
     (cache : QueryCache (D →ₒ R)) (hfresh : ∀ j, cache (inputs j) = none) :
-    𝒟[(simulateQ randomOracle (queryTable inputs)).run cache] =
-      𝒟[(fun outputs => (outputs, cacheTable cache inputs outputs)) <$> ($ᵗ (J → R))] := by
+    ((simulateQ randomOracle (queryTable inputs)).run cache) =ᵈ ((fun outputs => (outputs, cacheTable cache inputs outputs)) <$> ($ᵗ (J → R))) := by
   classical
   rw [queryTable, simulateQ_map, StateT.run_map,
     run_sequenceFin_fresh (fun i => inputs ((Fintype.equivFin J).symm i))
       (fun _ _ h => (Fintype.equivFin J).symm.injective (hinj h)) cache (fun _ => hfresh _)]
   simp only [bind_pure_comp, Functor.map_map]
-  rw [evalDist_map, evalDist_sequenceFin_uniform]
-  have htable := evalDist_map_bijective_uniform_cross
-    (α := Fin (Fintype.card J) → R) (β := J → R) (finTableEquiv J R) (finTableEquiv J R).bijective
-  rw [evalDist_map, ← htable]
-  simp only [evalDist_map, Functor.map_map]
+  refine ((evalDist_sequenceFin_uniform _).map _).trans ?_
+  have htable := SampleableType.map_uniformSample_evalDistEq_of_bijective
+    (finTableEquiv J R).bijective
+  refine (EvalDistEq.of_eq ?_).trans
+    (htable.map fun outputs => (outputs, cacheTable cache inputs outputs))
+  rw [Functor.map_map]
   congr 1
+
   funext outputs
   simp only [cacheTable, Equiv.symm_apply_apply]
 

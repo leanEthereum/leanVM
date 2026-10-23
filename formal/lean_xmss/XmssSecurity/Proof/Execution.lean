@@ -67,9 +67,8 @@ noncomputable def gameWithCache (scheme : Scheme SecretKey) (adversary : Adversa
 /-- Keeping the final cache does not change the winning probability. -/
 theorem forgeAdvantage_eq_gameWithCache (scheme : Scheme SecretKey) (adversary : Adversary) :
     forgeAdvantage scheme adversary =
-      Pr[fun outcome => outcome.1 = true | gameWithCache scheme adversary] := by
+      Pr{let outcome ← gameWithCache scheme adversary}[outcome.1 = true] := by
   unfold forgeAdvantage gameWithCache
-  rw [StateT.run'_eq, ← probEvent_eq_eq_probOutput, probEvent_map]
-  rfl
+  rw [StateT.run'_eq, prEvent_map]
 
 end XmssSecurity

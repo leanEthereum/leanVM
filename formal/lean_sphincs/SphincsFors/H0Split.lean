@@ -53,13 +53,13 @@ theorem priceR_cross (κ : ℝ) (k : ι → ℕ) {i j : ι} (hij : i ≠ j) :
   simp only [Pi.add_apply, Pi.single_apply]
   by_cases h1 : l = i
   · subst h1
-    simp only [if_neg hij]
+    simp only [ite_eq_right hij]
     push_cast; ring
   · by_cases h2 : l = j
     · subst h2
-      simp only [if_neg h1]
+      simp only [ite_eq_right h1]
       push_cast; ring
-    · simp only [if_neg h1, if_neg h2]
+    · simp only [ite_eq_right h1, ite_eq_right h2]
       push_cast; ring
 
 theorem pow24_convex (x : ℝ) (hx : 0 ≤ x) : 2 * (x + 1) ^ 24 ≤ (x + 2) ^ 24 + x ^ 24 := by
@@ -77,7 +77,7 @@ theorem priceR_convex {κ : ℝ} (hκ : 0 ≤ κ) (k : ι → ℕ) (i : ι) :
   refine Finset.sum_le_sum fun l _ => ?_
   simp only [Pi.add_apply, Pi.single_apply]
   by_cases h1 : l = i
-  · simp only [h1, if_true]
+  · simp only [h1, ite_true]
     push_cast
     have := pow24_convex (k i : ℝ) (by positivity)
     have e : (k i : ℝ) + 1 + 1 = k i + 2 := by ring
@@ -215,9 +215,9 @@ theorem pois_sepSum (a : ℝ≥0) (j : ι) (h : ι → ℕ → ℝ≥0∞) (k : 
   refine Finset.sum_congr rfl fun l _ => ?_
   by_cases hl : l = j
   · subst hl
-    simp only [if_true, Pi.add_apply, Pi.single_eq_same]
+    simp only [ite_true, Pi.add_apply, Pi.single_eq_same]
     rfl
-  · simp only [if_neg hl, Pi.add_apply, Pi.single_eq_of_ne hl, add_zero]
+  · simp only [ite_eq_right hl, Pi.add_apply, Pi.single_eq_of_ne hl, add_zero]
     rw [ENNReal.tsum_mul_right, poisW_tsum, one_mul]
 
 theorem pois_sepProd (a : ℝ≥0) (j : ι) (g : ι → ℕ → ℝ≥0∞) (k : ι → ℕ) :
@@ -232,12 +232,12 @@ theorem pois_sepProd (a : ℝ≥0) (j : ι) (g : ι → ℕ → ℝ≥0∞) (k :
       rw [Pi.add_apply, Pi.single_eq_of_ne (Finset.ne_of_mem_erase hl), add_zero]
   have hrest' : ∏ l ∈ Finset.univ.erase j, (if l = j then pois1 a (g l) (k l) else g l (k l)) = R := by
     refine Finset.prod_congr rfl fun l hl => ?_
-    rw [if_neg (Finset.ne_of_mem_erase hl)]
+    rw [ite_eq_right (Finset.ne_of_mem_erase hl)]
   unfold pois
   calc ∑' n, poisW a n * ∏ l, g l ((k + Pi.single j n : ι → ℕ) l)
       = ∑' n, poisW a n * g j (k j + n) * R := tsum_congr fun n => by rw [hterm n, mul_assoc]
     _ = pois1 a (g j) (k j) * R := by rw [ENNReal.tsum_mul_right]; rfl
-    _ = _ := by rw [prod_split j, if_pos rfl, hrest']
+    _ = _ := by rw [prod_split j, ite_eq_left rfl, hrest']
 
 theorem poisList_sepSum (a : ℝ≥0) : ∀ (ls : List ι), ls.Nodup → ∀ (h : ι → ℕ → ℝ≥0∞) (k : ι → ℕ),
     poisList a ls (fun x => ∑ l, h l (x l)) k = ∑ l, (if l ∈ ls then pois1 a (h l) (k l) else h l (k l))
@@ -284,7 +284,7 @@ theorem poisIID_sepSum (a : ℝ≥0) (h : ℕ → ℝ≥0∞) :
     poisIID a (fun x : ι → ℕ => ∑ l, h (x l)) 0 = (Fintype.card ι : ℝ≥0∞) * poisMean a h := by
   unfold poisIID
   rw [poisList_sepSum a _ (Finset.nodup_toList _) (fun _ => h)]
-  simp only [Finset.mem_toList, Finset.mem_univ, if_true, Pi.zero_apply, pois1_zero, Finset.sum_const,
+  simp only [Finset.mem_toList, Finset.mem_univ, ite_true, Pi.zero_apply, pois1_zero, Finset.sum_const,
     Finset.card_univ, nsmul_eq_mul]
 
 /-- Iid Poisson mean of a separable product: `E[g(K)]^L`. -/
@@ -292,7 +292,7 @@ theorem poisIID_sepProd (a : ℝ≥0) (g : ℕ → ℝ≥0∞) :
     poisIID a (fun x : ι → ℕ => ∏ l, g (x l)) 0 = poisMean a g ^ Fintype.card ι := by
   unfold poisIID
   rw [poisList_sepProd a _ (Finset.nodup_toList _) (fun _ => g)]
-  simp only [Finset.mem_toList, Finset.mem_univ, if_true, Pi.zero_apply, pois1_zero, Finset.prod_const,
+  simp only [Finset.mem_toList, Finset.mem_univ, ite_true, Pi.zero_apply, pois1_zero, Finset.prod_const,
     Finset.card_univ]
 
 /-! ### The split bound of the one-coin H-term -/

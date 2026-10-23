@@ -8,6 +8,7 @@ support of oracle runs, so their conclusions apply after random key generation a
 -/
 
 open OracleComp OracleSpec
+set_option backward.isDefEq.respectTransparency false
 
 namespace SphincsFors.Completeness
 

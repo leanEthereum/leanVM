@@ -198,7 +198,7 @@ theorem sum_nu_digest : ∑ _v : Digest, ν = 1 := by
 
 theorem sum_nu_ite (t : Digest) : ∑ v : Digest, ν * (if t = v then (1 : ℝ≥0∞) else 0) = ν := by
   simp only [mul_ite, mul_one, mul_zero]
-  rw [Finset.sum_ite_eq Finset.univ t, if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_ite_eq Finset.univ t, ite_eq_left (Finset.mem_univ _)]
 
 theorem cw_congr1 {s s' : St} (f : FIn) (hfr : ∀ u, K.Fr s' (f.input K.p) u ↔ K.Fr s (f.input K.p) u)
     (hk : s'.known f.outC = s.known f.outC) : K.cw s' f = K.cw s f := by
@@ -225,7 +225,7 @@ theorem mean_cw (s : St) (c : Coordinate) (hc : s.known c = none) (f : FIn) :
     by_cases hfe : K.FE s f
     · obtain ⟨u, hu⟩ := hfe
       have hLat : K.Lat s f := ⟨⟨u, hu⟩, by rw [hf, hc]⟩
-      have hcw : K.cw s f = ν := by simp only [cw, hFC, hLat, if_false, if_true]
+      have hcw : K.cw s f = ν := by simp only [cw, hFC, hLat, ite_false, ite_true]
       have hcw' : ∀ v, K.cw (s.expose c v) f = if truncateHash u = v then 1 else 0 := fun v => by
         have hFC' : K.FC (s.expose c v) f ↔ truncateHash u = v := by
           constructor
@@ -243,17 +243,17 @@ theorem mean_cw (s : St) (c : Coordinate) (hc : s.known c = none) (f : FIn) :
           · intro ht
             exact ⟨u, v, hu, hkv v, ht⟩
         by_cases ht : truncateHash u = v
-        · simp only [cw, hFC'.2 ht, if_true, ht]
-        · simp only [cw, (not_congr hFC').2 ht, hLat' v, if_false, ht]
+        · simp only [cw, hFC'.2 ht, ite_true, ht]
+        · simp only [cw, (not_congr hFC').2 ht, hLat' v, ite_false, ht]
       rw [hcw]
       simp only [hcw']
       exact sum_nu_ite _
     · have h0 : K.cw s f = 0 := by
         have h2 : ¬K.Lat s f := fun hl => hfe hl.1
-        simp only [cw, hFC, h2, if_false]
+        simp only [cw, hFC, h2, ite_false]
       have h0' : ∀ v, K.cw (s.expose c v) f = 0 := fun v => by
         have h1 : ¬K.FC (s.expose c v) f := fun ⟨u, w, hu, _⟩ => hfe ⟨u, hu⟩
-        simp only [cw, h1, hLat' v, if_false]
+        simp only [cw, h1, hLat' v, ite_false]
       simp only [h0, h0', mul_zero, Finset.sum_const_zero]
   · simp only [K.cw_expose_ne s c _ f hf]
     rw [← Finset.sum_mul, sum_nu_digest, one_mul]
@@ -282,9 +282,9 @@ theorem mean_ng (s : St) (c : Coordinate) (hc : s.known c = none) :
   refine Finset.sum_congr rfl fun f _ => ?_
   by_cases hr : Recd s f
   · have h' : ∀ v, Recd (s.expose c v) f := fun _ => hr
-    simp only [h', hr, if_true, mul_zero, Finset.sum_const_zero]
+    simp only [h', hr, ite_true, mul_zero, Finset.sum_const_zero]
   · have h' : ∀ v, ¬Recd (s.expose c v) f := fun _ => hr
-    simp only [h', hr, if_false]
+    simp only [h', hr, ite_false]
     exact K.mean_cw s c hc f
 
 theorem mean_kf (s : St) (c : Coordinate) (hc : s.known c = none) :
@@ -295,10 +295,10 @@ theorem mean_kf (s : St) (c : Coordinate) (hc : s.known c = none) :
   refine Finset.sum_congr rfl fun f _ => ?_
   by_cases hr : Recd s f
   · have h' : ∀ v, Recd (s.expose c v) f := fun _ => hr
-    simp only [h', hr, if_true]
+    simp only [h', hr, ite_true]
     exact K.mean_cw s c hc f
   · have h' : ∀ v, ¬Recd (s.expose c v) f := fun _ => hr
-    simp only [h', hr, if_false, mul_zero, Finset.sum_const_zero]
+    simp only [h', hr, ite_false, mul_zero, Finset.sum_const_zero]
 
 theorem mean_pp (s : St) (c : Coordinate) (hc : s.known c = none) :
     ∑ v : Digest, ν * K.pp (s.expose c v) = K.pp s := by
@@ -310,20 +310,20 @@ theorem mean_pp (s : St) (c : Coordinate) (hc : s.known c = none) :
   refine Finset.sum_congr rfl fun g _ => ?_
   by_cases hr : Recd s f ∧ Recd s g ∧ f.Rel g
   · have h' : ∀ v, Recd (s.expose c v) f ∧ Recd (s.expose c v) g ∧ f.Rel g := fun _ => hr
-    rw [if_pos hr]
-    rw [Finset.sum_congr rfl fun v _ => by rw [if_pos (h' v)]]
+    rw [ite_eq_left hr]
+    rw [Finset.sum_congr rfl fun v _ => by rw [ite_eq_left (h' v)]]
     exact K.mean_cw2 s c hc f g (FIn.outC_ne_of_rel hr.2.2)
   · have h' : ∀ v, ¬(Recd (s.expose c v) f ∧ Recd (s.expose c v) g ∧ f.Rel g) := fun _ => hr
-    rw [if_neg hr]
-    rw [Finset.sum_congr rfl fun v _ => by rw [if_neg (h' v), mul_zero]]
+    rw [ite_eq_right hr]
+    rw [Finset.sum_congr rfl fun v _ => by rw [ite_eq_right (h' v), mul_zero]]
     exact Finset.sum_const_zero
 
 /-- **Reveal.** Sampling an unexposed coordinate settles its debts with exactly their share, and
 keeps every contact weight in the mean. -/
 theorem pot_expose_mean (y : ℕ) (s : St) (c : Coordinate) (hc : s.known c = none) :
-    ∑' v, Pr[= v | ($ᵗ Digest : ProbComp Digest)] * K.pot y (s.expose c v) ≤ K.pot y s := by
+    ∑' v, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = v] * K.pot y (s.expose c v) ≤ K.pot y s := by
   set E := ((debts K.tg K.initial s c).encard : ℝ≥0∞) * ν with hE
-  have hlhs : ∑' v, Pr[= v | ($ᵗ Digest : ProbComp Digest)] * K.pot y (s.expose c v) =
+  have hlhs : ∑' v, Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = v] * K.pot y (s.expose c v) =
       ∑ v : Digest, ν * K.pot y (s.expose c v) := by
     rw [tsum_fintype]
     exact Finset.sum_congr rfl fun v _ => by rw [probOutput_digest]
@@ -338,7 +338,7 @@ theorem pot_expose_mean (y : ℕ) (s : St) (c : Coordinate) (hc : s.known c = no
     intro v
     have hD := K.done_le (s := s) (s' := s.expose c v) (v ∈ debts K.tg K.initial s c) (K.bad_expose s c v hc)
     have hD' : K.done (s.expose c v) ≤ K.done s + if v ∈ debts K.tg K.initial s c then 1 else 0 :=
-      hD.trans (add_le_add le_rfl (by split_ifs <;> simp_all))
+      hD.trans (add_le_add le_rfl (by split_ifs <;> simp_all [-SampleableType.prEvent_uniformSample]))
     unfold pot rate
     rw [hUA, hV, hCC]
     calc K.done (s.expose c v) + K.pend (s.expose c v) + K.latent (s.expose c v) +

@@ -64,15 +64,15 @@ theorem leanXmss_security : LeanXmss.LeanXmssSecurityStatement := by
     have hlanes := Proof.concreteScheme_afterKeygenSecurity (q - keygenQueries) (by omega)
       (modelAdversary adversary) (afterKeygenBudget adversary q (by omega) hseeded)
     calc LeanXmss.Security.forgeAdvantage adversary
-        ≤ Pr[= true | (simulateQ romImpl (innerGame adversary)).run' ∅] +
+        ≤ Pr{let x ← (simulateQ romImpl (innerGame adversary)).run' ∅}[x = true] +
           ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := forgeAdvantage_le_inner adversary q hseeded
-      _ = Pr[= true | sampleMasterSeed >>= tableGame adversary] +
+      _ = Pr{let x ← sampleMasterSeed >>= tableGame adversary}[x = true] +
           ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := by rw [innerGame_eq_tableGame]
-      _ ≤ Pr[= true | cleanGame adversary] +
+      _ ≤ Pr{let x ← cleanGame adversary}[x = true] +
           ((q - keygenQueries : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) +
             ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) :=
         add_le_add (tableGame_le_clean adversary q (by omega) hseeded) le_rfl
-      _ ≤ Pr[= true | refGame adversary] +
+      _ ≤ Pr{let x ← refGame adversary}[x = true] +
           ((q - keygenQueries : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) +
             ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) :=
         add_le_add (add_le_add (cleanGame_le_ref adversary) le_rfl) le_rfl
@@ -85,7 +85,7 @@ theorem leanXmss_security : LeanXmss.LeanXmssSecurityStatement := by
       _ ≤ _ := final_arithmetic q hK hsmall
   · have hlarge : 2 ^ 127 ≤ q := Nat.le_of_not_gt hsmall
     calc
-      LeanXmss.Security.forgeAdvantage adversary ≤ 1 := probEvent_le_one
+      LeanXmss.Security.forgeAdvantage adversary ≤ 1 := (prEvent_le_one _)
       _ = ((2 ^ 127 : Nat) : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
         (ENNReal.div_self (by norm_num) (ENNReal.natCast_ne_top _)).symm
       _ ≤ _ := ENNReal.div_le_div (by exact_mod_cast hlarge) le_rfl

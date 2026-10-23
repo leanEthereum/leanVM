@@ -44,7 +44,7 @@ example : ¬ inconsistentBranch.IsQueryBoundP (fun _ : OracleWorld.Domain => Tru
     have hn := congrArg BitVec.toNat heq
     change 0 = 1 at hn
     omega
-  simp only [if_neg hne, if_true, Nat.reduceSub] at h2
+  simp only [ite_eq_right hne, ite_true, Nat.reduceSub] at h2
   have h3 := (isQueryBoundP_query_bind_iff _ _ _ _).mp h2
   exact h3.1.elim (fun hfalse => hfalse (by decide)) (Nat.not_lt_zero _)
 

@@ -127,13 +127,13 @@ theorem price_decomp (d : Multiset View) :
     intro l τ
     unfold witness
     by_cases h : CoverAll (l, τ) d
-    · rw [if_pos h]
-      exact (Finset.prod_eq_one fun c _ => if_pos ((coverAll_iff l τ d).1 h c)).symm
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+      exact (Finset.prod_eq_one fun c _ => ite_eq_left ((coverAll_iff l τ d).1 h c)).symm
+    · rw [ite_eq_right h]
       rw [coverAll_iff] at h
       push Not at h
       obtain ⟨c, hc⟩ := h
-      exact (Finset.prod_eq_zero (Finset.mem_univ c) (if_neg hc)).symm
+      exact (Finset.prod_eq_zero (Finset.mem_univ c) (ite_eq_right hc)).symm
   simp only [hw]
   have hy : ∀ l : Fin (2 ^ subtreeHeight), (freshAvg Finset.univ fun τ : Coord → FieldVal =>
       ∏ c, if CoverF (τ c) ((marksAt l d).map fun m => m c) then (1 : ℝ≥0∞) else 0) = yM (marksAt l d) := by
@@ -200,8 +200,8 @@ theorem φF_eq (Xs : Multiset FieldVal) :
     intro t
     unfold coverR
     by_cases h : CoverF t Xs
-    · rw [if_pos h, if_pos ((coverF_iff t Xs).1 h), ENNReal.ofReal_one]
-    · rw [if_neg h, if_neg (fun h' => h ((coverF_iff t Xs).2 h')), ENNReal.ofReal_zero]
+    · rw [ite_eq_left h, ite_eq_left ((coverF_iff t Xs).1 h), ENNReal.ofReal_one]
+    · rw [ite_eq_right h, ite_eq_right (fun h' => h ((coverF_iff t Xs).2 h')), ENNReal.ofReal_zero]
   simp only [hpt]
   rw [freshAvg_ofReal _ (fun t => coverR_nonneg _ _), avgR_equiv fieldMT]
   simp only [Equiv.apply_symm_apply]
@@ -253,7 +253,7 @@ theorem φF_le_one (Xs : Multiset FieldVal) : φF Xs ≤ 1 := by
 
 omit [Params] in
 theorem yM_le_one (Ms : Multiset (Coord → FieldVal)) : yM Ms ≤ 1 :=
-  Finset.prod_le_one' fun c _ => φF_le_one _
+  Finset.prod_le_one fun c _ => φF_le_one _
 
 omit [Params] in
 theorem yM_ne_top (Ms : Multiset (Coord → FieldVal)) : yM Ms ≠ ⊤ :=

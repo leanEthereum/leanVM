@@ -21,10 +21,9 @@ theorem outcomePredicate_probability_le_expectedMovedQueries_of_afterKeygen_fres
         event execution →
           Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
             (targetInput keyResult.1 keyResult.2)) :
-    Pr[event | detailedGameWithCache Concrete.scheme adversary] ≤
+    Pr{let x ← detailedGameWithCache Concrete.scheme adversary}[event x] ≤
       (∑' keyResult,
-        Pr[= keyResult |
-          (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+        Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
           expectedSimulatedQueryCount romImpl
             (Rom.IsRelevantHashQuery fun input =>
               targetInput keyResult.1 keyResult.2 input ≠ input)

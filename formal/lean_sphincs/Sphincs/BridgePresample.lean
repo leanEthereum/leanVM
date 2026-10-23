@@ -19,6 +19,10 @@ variable {D R A ι : Type} [Fintype ι] [SampleableType R]
 attribute [local instance] saturationDecEqInput saturationDecEqCoordinate
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)
 
+omit [Fintype ι] [SampleableType R] in
+private theorem evalDistEq_of_eq {α : Type} {mx my : ProbComp α} (h : mx = my) : mx =ᵈ my :=
+  h ▸ EvalDistEq.rfl
+
 /-- Fix the answer to an outside input in advance. -/
 noncomputable def presample (x : D) (state : DebtState D R ι) : ProbComp (DebtState D R ι) :=
   match state.cache x with
@@ -40,7 +44,7 @@ theorem store_comm (state : DebtState D R ι) (x y : D) (hxy : x ≠ y) (u v : R
     (state.store x u).store y v = (state.store y v).store x u := by
   simp only [DebtState.store]
   congr 1
-  exact Function.update_comm hxy _ _ _
+  exact QueryCache.cacheQuery_comm _ hxy _ _
 
 omit [Fintype ι] [SampleableType R] in
 theorem store_cache_ne (state : DebtState D R ι) (x y : D) (hxy : y ≠ x) (u : R) :
@@ -51,23 +55,22 @@ omit [Fintype ι] in
 /-- Presampling commutes with an outside read. -/
 theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => readOutside y s >>= next] =
-      𝒟[readOutside y state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => readOutside y s >>= next) =ᵈ (readOutside y state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   by_cases hxy : y = x
   · subst hxy
     cases hc : state.cache y with
     | some v =>
-        simp only [presample_cached y state v hc, readOutside_cached y state v hc, pure_bind]
+        simp only [presample_cached y state v hc, readOutside_cached y state v hc, pure_bind, EvalDistEq.refl]
     | none =>
         rw [presample_fresh y state hc, readOutside_fresh y state hc, bind_map_left, bind_map_left]
-        congr 1
+        apply evalDistEq_of_eq
         refine bind_congr fun u => ?_
         have hst : (state.store y u).cache y = some u := by simp [DebtState.store]
         simp only [readOutside_cached y _ u hst, presample_cached y _ u hst, pure_bind]
   · cases hcx : state.cache x with
     | some v =>
         rw [presample_cached x state v hcx, pure_bind]
-        congr 1
+        apply evalDistEq_of_eq
         apply bind_congr_of_forall_mem_support
         intro r hr
         rcases readOutside_support y state r hr with h | ⟨_, h⟩
@@ -84,7 +87,7 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
         cases hcy : state.cache y with
         | some v =>
             rw [readOutside_cached y state v hcy, pure_bind, presample_fresh x state hcx, bind_map_left]
-            congr 1
+            apply evalDistEq_of_eq
             refine bind_congr fun u => ?_
             rw [readOutside_cached y _ v (by rw [store_cache_ne state x y hxy u]; exact hcy), pure_bind]
         | none =>
@@ -93,8 +96,8 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
                 (fun v => (v, (state.store x u).store y v)) <$> ($ᵗ R : ProbComp R) := fun u =>
               readOutside_fresh y _ (by rw [store_cache_ne state x y hxy u]; exact hcy)
             simp only [hL, bind_map_left]
-            rw [evalDist_bind_bind_swap]
-            congr 1
+            refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+            apply evalDistEq_of_eq
             refine bind_congr fun v => ?_
             rw [presample_fresh x _ (by rw [store_cache_ne state y x (Ne.symm hxy) v]; exact hcx), bind_map_left]
             refine bind_congr fun u => ?_
@@ -106,7 +109,7 @@ omit [Fintype ι] [SampleableType R] in
 theorem debts_store_untargeted (state : DebtState D R ι) (x : D) (u : R) (hk : tg.kind x = .none)
     (coordinate : ι) : debts tg initial (state.store x u) coordinate = debts tg initial state coordinate := by
   ext value
-  simp only [debts, DebtState.store, Set.mem_union, Set.mem_setOf_eq]
+  simp only [debts, DebtState.store, Set.mem_union, Set.mem_ofPred_eq]
   refine or_congr Iff.rfl ⟨?_, ?_⟩
   · rintro ⟨input, out, hcache, hinit, hkind, htrunc⟩
     have hne : input ≠ x := by rintro rfl; rw [hk] at hkind; cases hkind
@@ -183,8 +186,7 @@ theorem presample_setKnown (x : D) (state : DebtState D R ι) (known : Knowledge
 omit [Fintype ι] in
 theorem presample_sampleCoordinate {γ : Type} (x : D) (coordinate : ι) (state : DebtState D R ι)
     (next : Digest × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => sampleCoordinate coordinate s >>= next] =
-      𝒟[sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => sampleCoordinate coordinate s >>= next) =ᵈ (sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   have hstep : ∀ s ∈ support (presample x state), sampleCoordinate coordinate s =
       (fun r => (r.1, { s with known := r.2 })) <$>
         (randomOracle (spec := ι →ₒ Digest) coordinate).run state.known := by
@@ -196,8 +198,8 @@ theorem presample_sampleCoordinate {γ : Type} (x : D) (coordinate : ι) (state 
     bind_congr_of_forall_mem_support _ fun s hs => by rw [hstep s hs]
   rw [hcongr]
   simp only [sampleCoordinate, bind_map_left]
-  rw [evalDist_bind_bind_swap]
-  congr 1
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  apply evalDistEq_of_eq
   refine bind_congr fun r => ?_
   rw [presample_setKnown x state r.2, bind_map_left]
 
@@ -205,9 +207,9 @@ omit [Fintype ι] in
 /-- Presampling commutes with an outside read after a deterministic update of the guesses. -/
 theorem presample_readOutside_record {γ : Type} (x bytes : D) (state : DebtState D R ι) (guess : ι × Digest)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => readOutside bytes (s.record guess) >>= next] =
-      𝒟[readOutside bytes (state.record guess) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
-  rw [← presample_readOutside x bytes (state.record guess) next, presample_record, bind_map_left]
+    (presample x state >>= fun s => readOutside bytes (s.record guess) >>= next) =ᵈ (readOutside bytes (state.record guess) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
+  refine EvalDistEq.trans ?_ (presample_readOutside x bytes (state.record guess) next)
+  rw [presample_record, bind_map_left]
 
 /-- The ordinary-query step, read off the exposed coordinates. -/
 noncomputable def ordinaryStep (bytes : D) (known : Knowledge ι) (state : DebtState D R ι) :
@@ -238,16 +240,15 @@ theorem costStep_ordinary (bytes : D) (state : DebtState D R ι) :
           exact lazyStep_guess model bytes state query hp hk
       | some canonical =>
           by_cases heq : query.2 = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq]
             exact lazyStep_canonical model bytes state query hp canonical hk heq
-          · simp only [ordinaryStep, hp, hk, if_neg heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq]
             exact lazyStep_other model bytes state query hp canonical hk heq
 
 omit [Fintype ι] in
 theorem presample_ordinaryStep {γ : Type} (x bytes : D) (state : DebtState D R ι)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next] =
-      𝒟[ordinaryStep model bytes state.known state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next) =ᵈ (ordinaryStep model bytes state.known state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   cases hp : model.parse bytes with
   | none =>
       simp only [ordinaryStep, hp]
@@ -259,24 +260,22 @@ theorem presample_ordinaryStep {γ : Type} (x bytes : D) (state : DebtState D R 
           exact presample_readOutside_record x bytes state _ next
       | some canonical =>
           by_cases heq : query.2 = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq, bind_map_left]
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq, bind_map_left]
             exact presample_sampleCoordinate x _ state _
-          · simp only [ordinaryStep, hp, hk, if_neg heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq]
             exact presample_readOutside x bytes state next
 
 omit [Fintype ι] in
 theorem presample_indep {T γ : Type} (x : D) (state : DebtState D R ι) (query : ProbComp T)
     (next : T × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => ((fun v => (v, s)) <$> query) >>= next] =
-      𝒟[((fun v => (v, state)) <$> query) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => ((fun v => (v, s)) <$> query) >>= next) =ᵈ (((fun v => (v, state)) <$> query) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   simp only [bind_map_left]
-  exact evalDist_bind_bind_swap _ _ _
+  exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 omit [Fintype ι] in
 theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι).Domain) (state : DebtState D R ι)
     (next : (SourceCostSpec D R ι).Range input × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => costStep model input s >>= next] =
-      𝒟[costStep model input state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => costStep model input s >>= next) =ᵈ (costStep model input state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   rcases input with (draw | (bytes | coordinate)) | amount
   · exact presample_indep x state (liftM (unifSpec.query draw) : ProbComp _) next
   · have hcongr : (presample x state >>= fun s => costStep model (.inl (.inr (.inl bytes))) s >>= next) =
@@ -285,20 +284,19 @@ theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι).
         rw [costStep_ordinary, (presample_known x state s hs).1]
     rw [hcongr, costStep_ordinary]
     exact presample_ordinaryStep model x bytes state next
-  · change 𝒟[presample x state >>= fun s => sampleCoordinate coordinate s >>= next] =
-      𝒟[sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)]
+  · change (presample x state >>= fun s => sampleCoordinate coordinate s >>= next) =ᵈ
+      (sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s))
     exact presample_sampleCoordinate x coordinate state next
-  · change 𝒟[presample x state >>= fun s => (pure ((), s) : ProbComp _) >>= next] =
-      𝒟[(pure ((), state) : ProbComp _) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)]
-    simp only [pure_bind]
+  · change (presample x state >>= fun s => (pure ((), s) : ProbComp _) >>= next) =ᵈ
+      ((pure ((), state) : ProbComp _) >>= fun r => presample x r.2 >>= fun s => next (r.1, s))
+    simp only [pure_bind, EvalDistEq.refl]
 
 omit [Fintype ι] in
 /-- **Presampling an untargeted input commutes with the interpreter.** -/
 theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) :
-    ∀ budget state, 𝒟[presample x state >>= fun s => interp tg initial model computation budget s] =
-      𝒟[interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2] := by
+    ∀ budget state, (presample x state >>= fun s => interp tg initial model computation budget s) =ᵈ (interp tg initial model computation budget state >>= fun out =>
+        (fun s => (out.1, s)) <$> presample x out.2) := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
       intro budget state
@@ -327,22 +325,13 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
               (fun out => (φ out.1, out.2)) <$>
                 interp tg initial model (next result.1) (budget - sourceCost input) result.2) :=
           bind_congr_of_forall_mem_support _ fun s hs => by rw [htouch s hs]
-        rw [hcongr, presample_costStep model x input state, bind_assoc, evalDist_bind, evalDist_bind]
-        congr 1
-        funext result
-        have hih := ih result.1 (budget - sourceCost input) result.2
-        calc 𝒟[presample x result.2 >>= fun s => (fun out => (φ out.1, out.2)) <$>
-              interp tg initial model (next result.1) (budget - sourceCost input) s]
-            = (fun out => (φ out.1, out.2)) <$> 𝒟[presample x result.2 >>= fun s =>
-                interp tg initial model (next result.1) (budget - sourceCost input) s] := by
-              rw [← evalDist_map, map_bind]
-          _ = (fun out => (φ out.1, out.2)) <$> 𝒟[interp tg initial model (next result.1)
-                (budget - sourceCost input) result.2 >>= fun out => (fun s => (out.1, s)) <$> presample x out.2] := by
-              rw [hih]
-          _ = _ := by
-              rw [← evalDist_map, map_bind, bind_map_left]
-              simp only [Functor.map_map]
-              rfl
+        rw [hcongr]
+        refine (presample_costStep model x input state _).trans ?_
+        rw [bind_assoc]
+        refine EvalDistEq.bind_right _ fun result => ?_
+        have h := (ih result.1 (budget - sourceCost input) result.2).map (fun out => (φ out.1, out.2))
+        simp only [map_bind, Functor.map_map, bind_map_left] at h ⊢
+        exact h
       · simp only [pure_bind]
         rw [map_eq_bind_pure_comp]
         rfl

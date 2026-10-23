@@ -24,10 +24,10 @@ theorem lazyRun_twoEdge_compensation (auxiliary : QueryImpl auxSpec PMF)
     have hn : (Fintype.card State : ENNReal) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
     cases input with
     | inl input =>
-        simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, if_false, Nat.add_zero]
+        simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, ite_false, Nat.add_zero]
         exact ENNReal.div_ne_top (ENNReal.natCast_ne_top _) hn
     | inr query =>
-        simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, if_true]
+        simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, ite_true]
         change (∑' answer : State, rowLaw (current query.1 query.2) answer *
           ((twoEdgeCharge (used + 1) (record current query answer) endpoint : ENNReal) / Fintype.card State)) ≠ ⊤
         rw [tsum_fintype]
@@ -38,10 +38,10 @@ theorem lazyRun_twoEdge_compensation (auxiliary : QueryImpl auxSpec PMF)
   · intro input current used
     cases input with
     | inl input =>
-        simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, if_false, Nat.add_zero]
+        simp only [lazyImpl, StateT.run_mk, expectation_map, expectation_const, IsPrefixQuery, ite_false, Nat.add_zero]
         exact le_of_eq (add_comm _ _)
     | inr query =>
-        simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, if_true]
+        simp only [lazyImpl, StateT.run_mk, expectation_map, IsPrefixQuery, ite_true]
         exact twoEdge_observe_compensation used current query endpoint
 
 omit [Nonempty State] in
@@ -107,14 +107,14 @@ theorem lazyRun_empty_twoEdge_le (auxiliary : QueryImpl auxSpec PMF)
 theorem realRun_twoEdge_le (auxiliary : State → QueryImpl auxSpec PMF)
     (computation : State → OracleComp (auxSpec + PrefixSpec (n + 2) State) Result)
     (budget : Nat) (hbound : ∀ endpoint, (computation endpoint).IsQueryBoundP IsPrefixQuery budget) :
-    Pr[fun result => TwoEdge result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] ≤
+    Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdge result.2.2 result.1] ≤
       (((3 / 2 : ENNReal) + 4 * ((budget : ENNReal) / Fintype.card State) +
         2 * ((budget : ENNReal) / Fintype.card State)^2) / Fintype.card State) *
           ∑' result, idealRun auxiliary (fun endpoint => QueryCap.counted IsPrefixQuery (computation endpoint))
             (fun _ _ => none) result * (result.2.1.2 : ENNReal) := by
-  rw [show Pr[fun result => TwoEdge result.2.2 result.1 | realRun auxiliary computation (fun _ _ => none)] =
+  rw [show Pr{let result ← realRun auxiliary computation (fun _ _ => none)}[TwoEdge result.2.2 result.1] =
       (∑' result, realRun auxiliary computation (fun _ _ => none) result * (if TwoEdge result.2.2 result.1 then 1 else 0)) by
-        simp only [probEvent_eq_tsum_ite, PMF.probOutput_eq_apply, mul_ite, mul_one, mul_zero]]
+        simp only [PMF.prEvent_eq_tsum_ite, mul_ite, mul_one, mul_zero]]
   rw [realRun_expectation]
   simp only [idealRun, expectation_bind, expectation_map]
   rw [← expectation_scale]

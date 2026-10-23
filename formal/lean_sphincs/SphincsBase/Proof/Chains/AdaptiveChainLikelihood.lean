@@ -10,14 +10,15 @@ theorem expectation_bind {First Second : Type} (prior : PMF First) (next : First
     (payoff : Second → ENNReal) :
     (∑' result, prior.bind next result * payoff result) =
       ∑' first, prior first * ∑' result, next first result * payoff result := by
-  simpa only [PMF.probOutput_eq_apply, PMF.monad_bind_eq_bind] using
-    tsum_probOutput_bind_mul prior next payoff
+  simp_rw [PMF.bind_apply, ← ENNReal.tsum_mul_right, ← ENNReal.tsum_mul_left, mul_assoc]
+  exact ENNReal.tsum_comm
 
 theorem expectation_map {First Second : Type} (prior : PMF First) (next : First → Second)
     (payoff : Second → ENNReal) :
     (∑' result, prior.map next result * payoff result) = ∑' first, prior first * payoff (next first) := by
-  simpa only [PMF.probOutput_eq_apply, PMF.monad_map_eq_map] using
-    tsum_probOutput_map_mul prior next payoff
+  rw [← PMF.bind_pure_comp, expectation_bind]
+  refine tsum_congr fun first => ?_
+  simp [PMF.pure_apply]
 
 variable {State : Type} [Fintype State] [DecidableEq State] [Nonempty State]
   {AuxIndex : Type} {auxSpec : OracleSpec AuxIndex} {n : Nat}

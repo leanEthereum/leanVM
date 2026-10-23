@@ -72,14 +72,14 @@ theorem coin_step (k : ι → ℕ) (ρ : ι → ℝ≥0∞) (p : ℝ≥0∞) (hp
       ∏ l ∈ Finset.univ.erase j, charlier (k l) (cnt idx d l) (ρ l) := by
     refine Finset.prod_congr rfl fun l hl => ?_
     have hne : j ≠ l := (Finset.ne_of_mem_erase hl).symm
-    rw [cnt_add_single, if_neg hne, add_zero]
+    rw [cnt_add_single, ite_eq_right hne, add_zero]
   have hrest2 : ∏ l ∈ Finset.univ.erase j, charlier (k l) (cnt idx d l) (ρ l + if idx v = l then p else 0) =
       ∏ l ∈ Finset.univ.erase j, charlier (k l) (cnt idx d l) (ρ l) := by
     refine Finset.prod_congr rfl fun l hl => ?_
     have hne : j ≠ l := (Finset.ne_of_mem_erase hl).symm
     simp only [j] at hne
-    rw [if_neg hne, add_zero]
-  rw [hrest1, hrest2, cnt_add_single, if_pos rfl, if_pos rfl]
+    rw [ite_eq_right hne, add_zero]
+  rw [hrest1, hrest2, cnt_add_single, ite_eq_left rfl, ite_eq_left rfl]
   set R := ∏ l ∈ Finset.univ.erase j, charlier (k l) (cnt idx d l) (ρ l)
   calc p * (charlier (k j) (cnt idx d j + 1) (ρ j) * R) + (1 - p) * (charlier (k j) (cnt idx d j) (ρ j) * R)
       = (p * charlier (k j) (cnt idx d j + 1) (ρ j) + (1 - p) * charlier (k j) (cnt idx d j) (ρ j)) * R := by
@@ -125,11 +125,11 @@ theorem perturbed_split (k : ι → ℕ) (c : ι → ℕ) (y : ι → ℝ≥0∞
     perturbed k c y mw v =
       charlier (k v) (c v + 1) (y v + mw) * ∏ l ∈ Finset.univ.erase v, charlier (k l) (c l) (y l) := by
   unfold perturbed
-  rw [prod_split v, if_pos rfl, if_pos rfl]
+  rw [prod_split v, ite_eq_left rfl, ite_eq_left rfl]
   congr 1
   refine Finset.prod_congr rfl fun l hl => ?_
   have hne : v ≠ l := (Finset.ne_of_mem_erase hl).symm
-  rw [if_neg hne, if_neg hne, add_zero, add_zero]
+  rw [ite_eq_right hne, ite_eq_right hne, add_zero, add_zero]
 
 /-- **Fresh step.** One fresh uniform disclosure, which becomes an item with future coin rate
 `m w`, is dominated by raising every rate by `α`. -/
@@ -184,7 +184,7 @@ theorem fresh_step (U : Finset V) (hU : UniformIndex idx U) (k : ι → ℕ) (K 
         exact avg_perturbed_le _ _ _ hL he
     _ ≤ ∏ l, charlier (k l) (cnt idx d l)
           (((m : ℝ≥0∞) * α + ((m + 1 : ℕ) : ℝ≥0∞) * w * nItems idx items l) + α) := by
-        refine Finset.prod_le_prod' fun l _ => ?_
+        refine Finset.prod_le_prod fun l _ => ?_
         rcases hkl : k l with _ | n
         · simp
         · simpa using charlier_lower α n (cnt idx d l) _
@@ -224,10 +224,10 @@ theorem virtual_le_chProd (U : Finset V) (hU : UniformIndex idx U) (k : ι → �
 /-- Product with one shifted rate. -/
 theorem shifted_split (k : ι → ℕ) (ρ : ι → ℝ≥0∞) (s : ℝ≥0∞) (v : ι) :
     ∏ l, (ρ l + if v = l then s else 0) ^ k l = (ρ v + s) ^ k v * ∏ l ∈ Finset.univ.erase v, ρ l ^ k l := by
-  rw [prod_split v, if_pos rfl]
+  rw [prod_split v, ite_eq_left rfl]
   congr 1
   refine Finset.prod_congr rfl fun l hl => ?_
-  rw [if_neg (Finset.ne_of_mem_erase hl).symm, add_zero]
+  rw [ite_eq_right (Finset.ne_of_mem_erase hl).symm, add_zero]
 
 /-- **Creation step.** A potential future pair (landed with probability `lam`, uniform index, coin
 rate `Nw` over the remaining slots) is dominated by raising every rate by `γ`. -/
@@ -269,7 +269,7 @@ theorem creation_step (U : Finset V) (hU : UniformIndex idx U) (k : ι → ℕ) 
         congr 1; refine Finset.sum_congr rfl fun v _ => by ring
     _ ≤ ∏ l, (ρ l ^ k l + lam * b l) := prod_add_ge _ _ _
     _ ≤ ∏ l, (ρ l + γ) ^ k l := by
-        refine Finset.prod_le_prod' fun l _ => ?_
+        refine Finset.prod_le_prod fun l _ => ?_
         rcases hkl : k l with _ | n
         · simp [b, hkl]
         · have hγ' : lam * (L⁻¹ * (Nw * (1 + θ) ^ K)) ≤ γ := by

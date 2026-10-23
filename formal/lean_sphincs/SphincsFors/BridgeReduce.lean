@@ -118,27 +118,27 @@ def Win (result : Option Bool × List (Entry HashInput)) : Prop :=
 omit [Params] in
 theorem probEvent_bind_le_add {α β γ δ : Type} (p : ProbComp α) (k : α → ProbComp β)
     (k₁ : α → ProbComp γ) (k₂ : α → ProbComp δ) (event : β → Prop) (event₁ : γ → Prop)
-    (event₂ : δ → Prop) (h : ∀ a, Pr[event | k a] ≤ Pr[event₁ | k₁ a] + Pr[event₂ | k₂ a]) :
-    Pr[event | p >>= k] ≤ Pr[event₁ | p >>= k₁] + Pr[event₂ | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum]
+    (event₂ : δ → Prop) (h : ∀ a, Pr{let x ← k a}[event x] ≤ Pr{let x ← k₁ a}[event₁ x] + Pr{let x ← k₂ a}[event₂ x]) :
+    Pr{let x ← p >>= k}[event x] ≤ Pr{let x ← p >>= k₁}[event₁ x] + Pr{let x ← p >>= k₂}[event₂ x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
   rw [← ENNReal.tsum_add]
   exact ENNReal.tsum_le_tsum fun a => (mul_le_mul' le_rfl (h a)).trans_eq (mul_add ..)
 
 omit [Params] in
 theorem probEvent_bind_le_of {α β : Type} (p : ProbComp α) (k : α → ProbComp β) (event : β → Prop)
-    (bound : ℝ≥0∞) (h : ∀ a, Pr[event | k a] ≤ bound) : Pr[event | p >>= k] ≤ bound := by
-  rw [probEvent_bind_eq_tsum]
+    (bound : ℝ≥0∞) (h : ∀ a, Pr{let x ← k a}[event x] ≤ bound) : Pr{let x ← p >>= k}[event x] ≤ bound := by
+  rw [OracleComp.prEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' a, Pr[= a | p] * bound := ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
+    _ ≤ ∑' a, Pr{let x ← p}[x = a] * bound := ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
     _ ≤ bound := by
       rw [ENNReal.tsum_mul_right]
-      exact mul_le_of_le_one_left bot_le tsum_probOutput_le_one
+      exact mul_le_of_le_one_left bot_le (OracleComp.tsum_prEvent_le_one _)
 
 omit [Params] in
 theorem probEvent_bind_mono {α β : Type} (p : ProbComp α) (k₁ k₂ : α → ProbComp β)
-    (event : β → Prop) (h : ∀ a, Pr[event | k₁ a] ≤ Pr[event | k₂ a]) :
-    Pr[event | p >>= k₁] ≤ Pr[event | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum]
+    (event : β → Prop) (h : ∀ a, Pr{let x ← k₁ a}[event x] ≤ Pr{let x ← k₂ a}[event x]) :
+    Pr{let x ← p >>= k₁}[event x] ≤ Pr{let x ← p >>= k₂}[event x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
   exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
 
 end SphincsFors.Security.Reduce

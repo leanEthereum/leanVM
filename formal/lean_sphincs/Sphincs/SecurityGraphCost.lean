@@ -126,7 +126,7 @@ theorem hashCalls_treePath_exact (f : QueryImpl HashSpec Id) (parameter : Public
   split
   · exact hashCalls_treeNode f parameter lay tree seed _ _
   · have hlevel : level.val < totalHeight := level.isLt
-    simp only [Seeded.surrogate, dif_pos hlevel, hashCalls_deriveKey]
+    simp only [Seeded.surrogate, dite_eq_left hlevel, hashCalls_deriveKey]
 
 theorem hashCalls_signLayer_exact (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
     (index : Index) (lay : Layer) :

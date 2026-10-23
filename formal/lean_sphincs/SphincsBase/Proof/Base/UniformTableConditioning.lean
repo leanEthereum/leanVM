@@ -10,10 +10,10 @@ theorem uniformFinset_restrict_mass {α : Type} (source target : Finset α)
     (if value ∈ target then PMF.uniformOfFinset source hs value else 0) =
       ((target.card : ENNReal) / source.card) * PMF.uniformOfFinset target ht value := by
   by_cases hv : value ∈ target
-  · rw [if_pos hv, PMF.uniformOfFinset_apply_of_mem hs (hsub hv), PMF.uniformOfFinset_apply_of_mem ht hv]
+  · rw [ite_eq_left hv, PMF.uniformOfFinset_apply_of_mem hs (hsub hv), PMF.uniformOfFinset_apply_of_mem ht hv]
     have ht0 : (target.card : ENNReal) ≠ 0 := by exact_mod_cast Nat.ne_of_gt ht.card_pos
     rw [div_eq_mul_inv, mul_right_comm, ENNReal.mul_inv_cancel ht0 (by finiteness), one_mul]
-  · simp only [hv, if_false, PMF.uniformOfFinset_apply_of_notMem ht hv, mul_zero]
+  · simp only [hv, ite_false, PMF.uniformOfFinset_apply_of_notMem ht hv, mul_zero]
 
 variable {ι α : Type} [Fintype ι] [DecidableEq ι] [DecidableEq α]
 

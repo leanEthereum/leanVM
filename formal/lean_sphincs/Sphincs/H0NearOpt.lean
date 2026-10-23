@@ -70,7 +70,7 @@ theorem avgN_near_le {b : ℕ} (hb : subtreeHeight = b) {t : PoisT} {o : OptN} (
         (le_trans (ΨHR_nonneg j n) (ΨHR_le_tab j n (by omega)))
     calc κE * ∑ _c : Coord, ∑ j : SubIdx, ENNReal.ofReal (ΨHR j n) * ENNReal.ofReal (Ψ1R n) ^ 7
         ≤ κE * ∑ _c : Coord, ∑ _j : SubIdx, ENNReal.ofReal (((PHtab.getD n 0 * P1tab.getD n 0 ^ 7 : ℚ)) : ℝ) :=
-          mul_le_mul_left' (Finset.sum_le_sum fun c _ => Finset.sum_le_sum fun j _ => hterm j) _
+          mul_le_mul_right (Finset.sum_le_sum fun c _ => Finset.sum_le_sum fun j _ => hterm j) _
       _ = ENNReal.ofReal ((nBound n : ℚ) : ℝ) := by
           simp only [Finset.sum_const, Finset.card_univ, card_coord, nsmul_eq_mul]
           rw [hκE, show Fintype.card SubIdx = 2 from rfl]
@@ -83,7 +83,7 @@ theorem avgN_near_le {b : ℕ} (hb : subtreeHeight = b) {t : PoisT} {o : OptN} (
       _ ≤ _ := ENNReal.ofReal_le_ofReal (by exact_mod_cast hnb n hn)
   · have hcap : avgN (fun Ms => κE * yN Ms) n 0 ≤ ENNReal.ofReal ((16 * κQ : ℚ) : ℝ) := by
       calc avgN (fun Ms => κE * yN Ms) n 0 ≤ avgN (fun _ => κE * 16) n 0 :=
-            avgN_mono (fun Ms => mul_le_mul_left' (yN_le Ms) _) n 0
+            avgN_mono (fun Ms => mul_le_mul_right (yN_le Ms) _) n 0
         _ = κE * 16 := avgN_const _ n 0
         _ = _ := by
             rw [hκE, ← ENNReal.ofReal_ofNat 16, ← ENNReal.ofReal_mul hκ0]
@@ -169,12 +169,12 @@ theorem hNearOf_le (b N qtop : ℕ) (hb : subtreeHeight = b) (hN : signatureLimi
     le_trans hpm (ENNReal.ofReal_le_ofReal (Rat.cast_le.2 hEn))
   rw [hL]
   calc (2 : ℝ≥0∞) ^ b * poisMean μ (fun n => ENNReal.ofReal (leafQ o.nt o.Jn n : ℝ))
-      ≤ (2 : ℝ≥0∞) ^ b * ENNReal.ofReal (o.En : ℝ) := mul_le_mul_left' hpm' _
+      ≤ (2 : ℝ≥0∞) ^ b * ENNReal.ofReal (o.En : ℝ) := mul_le_mul_right hpm' _
     _ = ENNReal.ofReal ((2 ^ b * o.En : ℚ) : ℝ) := by
         by_cases hE : (0 : ℝ) ≤ (o.En : ℝ)
         · rw [show ((2 ^ b * o.En : ℚ) : ℝ) = (2 : ℝ) ^ b * (o.En : ℝ) by push_cast; ring,
             ENNReal.ofReal_mul (by positivity), ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_ofNat]
-        · push_neg at hE
+        · push Not at hE
           rw [ENNReal.ofReal_of_nonpos hE.le, mul_zero, ENNReal.ofReal_of_nonpos]
           push_cast
           exact mul_nonpos_of_nonneg_of_nonpos (by positivity) hE.le

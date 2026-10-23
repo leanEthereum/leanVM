@@ -41,7 +41,7 @@ theorem V_initial (e : LeafIndex) : V cache0 secretKey.parameter e = 0 := by
 
 theorem Φ_initial (e : LeafIndex) : Φ cache0 secretKey.parameter e = 0 := by
   unfold Φ
-  refine Finset.sum_eq_zero fun y _ => if_neg ?_
+  refine Finset.sum_eq_zero fun y _ => ite_eq_right ?_
   rintro ⟨o, ho, -⟩
   rw [hc0] at ho
   cases ho
@@ -49,7 +49,7 @@ theorem Φ_initial (e : LeafIndex) : Φ cache0 secretKey.parameter e = 0 := by
 theorem f1_initial : f1 secretKey ((cache0, []), 0) = 0 := by
   have hpre : ¬PreBad secretKey [] := by rintro ⟨e, entry, h, -⟩; cases h
   unfold f1 openΦ
-  rw [if_neg hpre, mul_zero, zero_add, Finset.sum_eq_zero fun e _ => by rw [Φ_initial secretKey hc0, ite_self],
+  rw [ite_eq_right hpre, mul_zero, zero_add, Finset.sum_eq_zero fun e _ => by rw [Φ_initial secretKey hc0, ite_self],
     mul_zero]
 
 theorem f2_initial : f2 secretKey ((cache0, []), 0) = 0 := by
@@ -75,7 +75,7 @@ end Initial
 
 theorem postPot_nil (cache : QueryCache HashSpec) : postPot secretKey.parameter [] cache = 0 := by
   unfold postPot
-  rw [if_neg]
+  rw [ite_eq_right]
   rintro ⟨-, e, entry, h, -⟩
   cases h
 
@@ -92,18 +92,17 @@ include hc0 in
 theorem preBad_le (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (hbound : HashQueryBound (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
       computation) cache0 Q) :
-    N * N * Pr[fun r => PreBad secretKey r.2.1.2 |
-        (simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0)] ≤
+    N * N * Pr{let r ← (simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0)}[PreBad secretKey r.2.1.2] ≤
       ENNReal.ofReal (momentA pReal Q) *
         expectedSimulatedCost (impl publicKey secretKey) (openCost secretKey) computation ((cache0, []), 0) := by
   classical
   set s0 : State := ((cache0, []), 0)
   set I := impl publicKey secretKey
   set cost := expectedSimulatedCost I (cost1 secretKey) computation s0
-  have hpre : N * N * Pr[fun r => PreBad secretKey r.2.1.2 | (simulateQ I computation).run s0] ≤ cost := by
+  have hpre : N * N * Pr{let r ← (simulateQ I computation).run s0}[PreBad secretKey r.2.1.2] ≤ cost := by
     refine (const_mul_probEvent_le_expectedFinal I (f1 secretKey) (fun s => PreBad secretKey s.1.2) (N * N)
       (fun s h => ?_) computation s0).trans ?_
-    · unfold f1; rw [if_pos h, mul_one]; exact le_self_add
+    · unfold f1; rw [ite_eq_left h, mul_one]; exact le_self_add
     · refine (expectedFinal_le I (Inv := fun _ => True) (fun _ _ _ _ _ => trivial) (f1 secretKey)
         (cost1 secretKey) (fun input s _ => f1_step publicKey secretKey input s) computation s0 trivial).trans ?_
       rw [f1_initial secretKey hc0, zero_add]
@@ -144,14 +143,14 @@ theorem preBad_le (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (Orac
 probability `2^-128`. -/
 theorem postPot_final_le (trace : SigningCacheTrace) (computation : OracleComp OracleWorld β)
     (cache : QueryCache HashSpec) :
-    ∑' y, Pr[= y | (simulateQ romImpl computation).run cache] * (N * N * postPot secretKey.parameter trace y.2) ≤
+    ∑' y, Pr{let x ← (simulateQ romImpl computation).run cache}[x = y] * (N * N * postPot secretKey.parameter trace y.2) ≤
       N * N * postPot secretKey.parameter trace cache +
         N * expectedSimulatedQueryCount romImpl
           (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter) computation cache := by
   refine (expectedFinal_le romImpl (Inv := fun _ => True) (fun _ _ _ _ _ => trivial)
     (fun c => N * N * postPot secretKey.parameter trace c)
     (fun w _ => N * worldSigned secretKey.parameter trace w) (fun w c _ => ?_) computation cache trivial).trans ?_
-  · calc _ = N * N * ∑' r, Pr[= r | (romImpl w).run c] * postPot secretKey.parameter trace r.2 := by
+  · calc _ = N * N * ∑' r, Pr{let x ← (romImpl w).run c}[x = r] * postPot secretKey.parameter trace r.2 := by
           rw [← ENNReal.tsum_mul_left]
           exact tsum_congr fun r => mul_left_comm _ _ _
       _ ≤ N * N * (postPot secretKey.parameter trace c + worldSigned secretKey.parameter trace w * N⁻¹) :=
@@ -212,10 +211,9 @@ theorem collision_le (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp (Ora
     (cont : α → OracleComp OracleWorld β)
     (hbound : HashQueryBound (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
       computation >>= cont) cache0 Q) :
-    N * N * Pr[fun y : (α × State) × (β × QueryCache HashSpec) => y.1.2.1.2.leafIndices.Nodup ∧
-        (PreBad secretKey y.1.2.1.2 ∨ PostBad secretKey.parameter y.1.2.1.2 y.2.2) |
-      (simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0) >>= fun r =>
-        (fun v => (r, v)) <$> (simulateQ romImpl (cont r.1)).run r.2.1.1] ≤
+    N * N * Pr{let y ← ((simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0) >>= fun r =>
+        (fun v => (r, v)) <$> (simulateQ romImpl (cont r.1)).run r.2.1.1)}[y.1.2.1.2.leafIndices.Nodup ∧
+        (PreBad secretKey y.1.2.1.2 ∨ PostBad secretKey.parameter y.1.2.1.2 y.2.2)] ≤
       N * expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
         (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey) computation >>= cont)
         cache0 := by
@@ -228,40 +226,39 @@ theorem collision_le (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp (Ora
     expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery P) (cont r.1) r.2.1.1
   have hhead := hashQueryBound_left hbound
   -- the event against the two potentials
-  have hsplit : N * N * Pr[fun y : (α × State) × (β × QueryCache HashSpec) => y.1.2.1.2.leafIndices.Nodup ∧
-        (PreBad secretKey y.1.2.1.2 ∨ PostBad P y.1.2.1.2 y.2.2) |
-        run >>= fun r => (fun v => (r, v)) <$> (simulateQ romImpl (cont r.1)).run r.2.1.1] ≤
-      ∑' r, Pr[= r | run] * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) +
+  have hsplit : N * N * Pr{let y ← run >>= fun r => (fun v => (r, v)) <$> (simulateQ romImpl (cont r.1)).run r.2.1.1}[y.1.2.1.2.leafIndices.Nodup ∧
+        (PreBad secretKey y.1.2.1.2 ∨ PostBad P y.1.2.1.2 y.2.2)] ≤
+      ∑' r, Pr{let x ← run}[x = r] * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) +
         (f4 secretKey r.2 + N * Ecount r)) := by
-    rw [probEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]
+    rw [OracleComp.prEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]
     refine ENNReal.tsum_le_tsum fun r => ?_
     rw [mul_left_comm]
     refine mul_le_mul' le_rfl ?_
-    rw [probEvent_map, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+    rw [prEvent_map, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
     calc ∑' v, N * N * (if (fun y : (α × State) × (β × QueryCache HashSpec) => y.1.2.1.2.leafIndices.Nodup ∧
             (PreBad secretKey y.1.2.1.2 ∨ PostBad P y.1.2.1.2 y.2.2)) ((fun v => (r, v)) v) then
-            Pr[= v | (simulateQ romImpl (cont r.1)).run r.2.1.1] else 0) ≤
-          ∑' v, Pr[= v | (simulateQ romImpl (cont r.1)).run r.2.1.1] *
+            Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] else 0) ≤
+          ∑' v, Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] *
             (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) + N * N * postPot P r.2.1.2 v.2) := by
           refine ENNReal.tsum_le_tsum fun v => ?_
           dsimp only
           by_cases h1 : r.2.1.2.leafIndices.Nodup ∧ (PreBad secretKey r.2.1.2 ∨ PostBad P r.2.1.2 v.2)
-          · rw [if_pos h1, mul_comm]
+          · rw [ite_eq_left h1, mul_comm]
             refine mul_le_mul' le_rfl ?_
             by_cases h2 : PreBad secretKey r.2.1.2
-            · rw [if_pos h2, mul_one]; exact le_self_add
-            · rw [if_neg h2, mul_zero, zero_add]
+            · rw [ite_eq_left h2, mul_one]; exact le_self_add
+            · rw [ite_eq_right h2, mul_zero, zero_add]
               unfold postPot
-              rw [if_pos ⟨h1.1, h1.2.resolve_left h2⟩, mul_one]
-          · rw [if_neg h1, mul_zero]; exact zero_le
-      _ = (∑' v, Pr[= v | (simulateQ romImpl (cont r.1)).run r.2.1.1]) *
+              rw [ite_eq_left ⟨h1.1, h1.2.resolve_left h2⟩, mul_one]
+          · rw [ite_eq_right h1, mul_zero]; exact zero_le
+      _ = (∑' v, Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v]) *
               (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0)) +
-            ∑' v, Pr[= v | (simulateQ romImpl (cont r.1)).run r.2.1.1] * (N * N * postPot P r.2.1.2 v.2) := by
+            ∑' v, Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] * (N * N * postPot P r.2.1.2 v.2) := by
           simp_rw [mul_add]
           rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
       _ ≤ 1 * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0)) +
             (N * N * postPot P r.2.1.2 r.2.1.1 + N * Ecount r) :=
-          add_le_add (mul_le_mul' tsum_probOutput_le_one le_rfl)
+          add_le_add (mul_le_mul' (OracleComp.tsum_prEvent_le_one _) le_rfl)
             (postPot_final_le secretKey r.2.1.2 (cont r.1) r.2.1.1)
       _ = _ := by rw [one_mul]; rfl
   have hpre := preBad_le publicKey secretKey hc0 Q hQ.le computation hhead
@@ -278,26 +275,26 @@ theorem collision_le (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp (Ora
     rw [← expectedSimulatedCost_add]
     exact (expectedSimulatedCost_mono I (openCost_add_signedCost_le secretKey) computation s0).trans
       (expectedSimulatedCost_advEncoding_le publicKey secretKey P computation cache0 [] 0)
-  have hcont : ∑' r, Pr[= r | run] * Ecount r =
-      ∑' y, Pr[= y | (simulateQ romImpl (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
-        computation)).run cache0] *
+  have hcont : ∑' r, Pr{let x ← run}[x = r] * Ecount r =
+      ∑' y, Pr{let x ← ((simulateQ romImpl (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
+        computation)).run cache0)}[x = y] *
         expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery P) (cont y.1) y.2 := by
-    rw [← impl_run_proj, tsum_probOutput_map_mul]
+    rw [← impl_run_proj, OracleComp.tsum_prEvent_map_mul]
   refine hsplit.trans ?_
-  calc ∑' r, Pr[= r | run] * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) +
+  calc ∑' r, Pr{let x ← run}[x = r] * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) +
         (f4 secretKey r.2 + N * Ecount r)) =
-      N * N * Pr[fun r => PreBad secretKey r.2.1.2 | run] + expectedFinal I (f4 secretKey) computation s0 +
-        N * ∑' r, Pr[= r | run] * Ecount r := by
+      N * N * Pr{let r ← run}[PreBad secretKey r.2.1.2] + expectedFinal I (f4 secretKey) computation s0 +
+        N * ∑' r, Pr{let x ← run}[x = r] * Ecount r := by
         simp_rw [mul_add]
         rw [ENNReal.tsum_add, ENNReal.tsum_add, add_assoc, expectedFinal, ← ENNReal.tsum_mul_left,
-          probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+          OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
         congr 1
         · refine tsum_congr fun r => ?_
           split_ifs <;> ring
         · congr 1
           exact tsum_congr fun r => mul_left_comm _ _ _
     _ ≤ N * expectedSimulatedCost I (openCost secretKey) computation s0 +
-          N * expectedSimulatedCost I (signedCost secretKey) computation s0 + N * ∑' r, Pr[= r | run] * Ecount r :=
+          N * expectedSimulatedCost I (signedCost secretKey) computation s0 + N * ∑' r, Pr{let x ← run}[x = r] * Ecount r :=
         add_le_add (add_le_add (hpre.trans (mul_le_mul' (momentA_le_N hQ) le_rfl)) hf4) le_rfl
     _ ≤ _ := by
         rw [← mul_add, ← mul_add, expectedSimulatedQueryCount_bind, hcont]

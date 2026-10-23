@@ -129,10 +129,10 @@ theorem val_query (p : ℝ≥0∞) (hp : p ≤ 1) (hs : s y = p) (ht : t y = 1 -
           refine val_congr e _ _ ev a (e x) fun j hj => ?_
           have hne : e^[j] (e x) ≠ x := hfree j (by omega)
           simp [Function.update_of_ne hne]
-        simp only [val, arrive, Function.update_self, if_true, hkeep, hs, ht]
+        simp only [val, arrive, Function.update_self, ite_true, hkeep, hs, ht]
         ring
       · have ih := val_query p hp hs ht c cL ev A hfree a (e x) (by omega)
-        simp only [val, arrive, if_neg hx, Function.update_of_ne hx]
+        simp only [val, arrive, ite_eq_right hx, Function.update_of_ne hx]
         set VL := val e (Function.update s y 1) (Function.update t y 0) (Function.update c y cL) ev a (e x)
         set VN := val e (Function.update s y 0) (Function.update t y 1) c ev a (e x)
         set V := val e s t c ev a (e x)

@@ -67,17 +67,17 @@ theorem publicData_correct (f : QueryImpl HashSpec Id) (parameter : PublicParame
   · exact forest_key_value f parameter seed labels hconsistent
   · intro leaf hland
     funext level
-    simpa only [publicData, canonicalTreePath, dif_pos level.isLt] using
+    simpa only [publicData, canonicalTreePath, dite_eq_left level.isLt] using
       tree_path_sibling f parameter seed labels hconsistent hboundary topLayer rootTree
         leaf hland level.val level.isLt
   · intro index c s j a
     funext level
     have h := sub_path_sibling f parameter seed labels hconsistent index c s j a level.val level.isLt
-    simpa only [publicData, Forest.subPathExt, dif_pos level.isLt] using h
+    simpa only [publicData, Forest.subPathExt, dite_eq_left level.isLt] using h
   · intro index c s
     funext level
     have h := top_path_sibling f parameter seed labels hconsistent index c s level.val level.isLt
-    simpa only [publicData, Forest.topPathExt, dif_pos level.isLt] using h
+    simpa only [publicData, Forest.topPathExt, dite_eq_left level.isLt] using h
 
 def CoordinatesCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (table : HiddenGraph.Table) : Prop :=
@@ -98,7 +98,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     by_cases hz : position.val = 0
     · simp only [coordinates, hz, ↓reduceDIte, Chain.honestChain, chainWalk]
       rfl
-    · rw [coordinates, dif_neg hz]
+    · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainLength - 1 := by have := position.isLt; omega
       have h := chain_value f parameter seed labels hconsistent topLayer rootTree leaf hland
         chain ⟨position.val - 1, hstep⟩
@@ -107,7 +107,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     by_cases hz : position.val = 0
     · simp only [coordinates, hz, ↓reduceDIte, Completeness.chainValueOf, Completeness.fwalk, forestWalk]
       rfl
-    · rw [coordinates, dif_neg hz]
+    · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainTop := by have := position.isLt; omega
       have h := fchain_value f parameter seed labels hconsistent index c s j a i ⟨position.val - 1, hstep⟩
       rw [Nat.sub_add_cancel (by omega : 1 ≤ position.val)] at h

@@ -213,11 +213,11 @@ theorem eval_otsValues (parameter : PublicParameter) (lay : Layer) (tree : TreeI
   simp only [otsValues, otsSecret, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin,
     eval_derivePair, eval_deriveKey, unpairChains]
   rcases Nat.mod_two_eq_zero_or_one chainIdx.val with h | h
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hc := evenChain_chainPair h
     conv_rhs => rw [← hc]
     rw [secretHalf_evenChain, hc]
-  · rw [if_neg (by omega)]
+  · rw [ite_eq_right (by omega)]
     have hc := oddChain_chainPair h
     conv_rhs => rw [← hc]
     rw [secretHalf_oddChain, keygenHashInput_oddChain, hc]
@@ -368,11 +368,11 @@ theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : T
       cases hbit : leaf.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd leaf.val levels hbit
-          simp only [if_true, eval_tweakableHash]
+          simp only [ite_true, eval_tweakableHash]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even leaf.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash]
           rw [hsib, hcur]
 
 /-! ## The few-time signature
@@ -444,15 +444,15 @@ theorem eval_ftsFold_path (parameter : PublicParameter) (index : Index) (tree : 
       rw [ftsFold, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight)
           (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
-      rw [dif_pos hlevels, hpath levels hlevels (Nat.lt_succ_self levels), ftsNodeValue_succ]
+      rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels), ftsNodeValue_succ]
       cases hbit : leaf.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd leaf.val levels hbit
-          simp only [if_true, eval_tweakableHash]
+          simp only [ite_true, eval_tweakableHash]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even leaf.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash]
           rw [hsib, hcur]
 
 omit f in
@@ -463,7 +463,9 @@ theorem ftsTopPair_eq_iff (g : Nat → Digest) (leaf : FtsLeaf) (node other : Di
       node = g (leaf.val / 2 ^ ftsTopLevel) ∧ other = g (Nat.xor (leaf.val / 2 ^ ftsTopLevel) 1) := by
   have hlt : leaf.val / 2 ^ ftsTopLevel < 2 := by
     rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
-    simp [ftsTopLevel, ftsTreeHeight]
+    have hleaf := leaf.isLt
+    simp [ftsTopLevel, ftsTreeHeight] at hleaf ⊢
+    omega
   unfold ftsTopPair
   rw [Nat.testBit_eq_decide_div_mod_eq]
   obtain h | h : leaf.val / 2 ^ ftsTopLevel = 0 ∨ leaf.val / 2 ^ ftsTopLevel = 1 := by

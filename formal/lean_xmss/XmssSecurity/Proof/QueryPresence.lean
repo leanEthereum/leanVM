@@ -95,7 +95,7 @@ theorem treeNode_leaf_query_cached_in_largerCache
       rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrest
       obtain ⟨⟨right, rightCache⟩, hright, hnode⟩ := hrest
       have hpartition := treeCovers_children_sum levels node leafIndex hvalid
-      rw [if_pos hcover] at hpartition
+      rw [ite_eq_left hcover] at hpartition
       by_cases hleftCover : TreeCovers levels (Concrete.childNode node false) leafIndex
       · have hleftLe : leftCache ≤ resultCache :=
           randomOracle_cache_le
@@ -110,7 +110,7 @@ theorem treeNode_leaf_query_cached_in_largerCache
           hleftValid hleftCover initialCache leftCache left hleft (hleftLe.trans hle)
       · have hrightCover : TreeCovers levels (Concrete.childNode node true) leafIndex := by
           by_contra hrightCover
-          simp only [hleftCover, hrightCover, if_false, zero_add] at hpartition
+          simp only [hleftCover, hrightCover, ite_false, zero_add] at hpartition
           omega
         have hrightLe : rightCache ≤ resultCache :=
           randomOracle_cache_le
@@ -203,7 +203,7 @@ theorem treeNode_oneTimePublicKey_eq_in_largerCache
       rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrest
       obtain ⟨⟨right, rightCache⟩, hright, hnode⟩ := hrest
       have hpartition := treeCovers_children_sum levels node leafIndex hvalid
-      rw [if_pos hcover] at hpartition
+      rw [ite_eq_left hcover] at hpartition
       by_cases hleftCover : TreeCovers levels (Concrete.childNode node false) leafIndex
       · have hleftLe : leftCache ≤ resultCache :=
           randomOracle_cache_le
@@ -223,7 +223,7 @@ theorem treeNode_oneTimePublicKey_eq_in_largerCache
         exact hresult.symm.trans hlarger
       · have hrightCover : TreeCovers levels (Concrete.childNode node true) leafIndex := by
           by_contra hrightCover
-          simp only [hleftCover, hrightCover, if_false, zero_add] at hpartition
+          simp only [hleftCover, hrightCover, ite_false, zero_add] at hpartition
           omega
         have hrightLe : rightCache ≤ resultCache :=
           randomOracle_cache_le

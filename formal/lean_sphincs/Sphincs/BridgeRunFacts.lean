@@ -63,12 +63,12 @@ theorem ordinaryStep_shape (bytes : HashInput) (s : State) (r : HashOutput × St
               exact ⟨rfl, rfl⟩
       | some canonical =>
           by_cases heq : v = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq] at hr
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq] at hr
             right; right
             rw [support_map] at hr
             obtain ⟨res, hres, rfl⟩ := hr
             exact ⟨a, v, _, rfl, sampleCoordinate_expose _ s res hres⟩
-          · simp only [ordinaryStep, hp, hk, if_neg heq] at hr
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq] at hr
             left
             refine ⟨fun a' v' h => ?_, readOutside_support bytes s r hr⟩
             cases h
@@ -401,7 +401,7 @@ theorem closedRuns_revealChainCost (index : Index) (c : Coord) (mark : CoordMark
       (revealChainCost index c mark j i) := by
     unfold revealChainCost
     refine mustReveal_sequenceFin tg initial model _ k ?_
-    rw [if_pos hk]
+    rw [ite_eq_left hk]
     exact mustReveal_reveal tg initial model _
   exact hmust budget s out hout hsome
 

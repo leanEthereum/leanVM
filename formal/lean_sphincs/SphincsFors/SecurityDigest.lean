@@ -28,7 +28,7 @@ theorem joinDigest_injective : Function.Injective joinDigest := by
 theorem joinDigest_bijective : Function.Bijective joinDigest := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨joinDigest_injective, ?_⟩
-  simp only [Fintype.card_prod, card_bitVec, ← pow_add]
+  simp only [Fintype.card_prod, Fintype.card_bitVec, ← pow_add]
   rfl
 
 theorem truncateMessageDigest_eq_join (first second : HashOutput) :
@@ -43,36 +43,30 @@ theorem truncateMessageDigest_eq_join (first second : HashOutput) :
 
 /-- The two independent oracle blocks induce exactly the uniform 266-bit digest law. -/
 theorem evalDist_digestBlocks_uniform :
-    𝒟[(do
+    (do
       let first ← ($ᵗ HashOutput : ProbComp HashOutput)
       let second ← ($ᵗ HashOutput : ProbComp HashOutput)
-      pure (truncateMessageDigest first second))] =
-      𝒟[($ᵗ MessageDigest : ProbComp MessageDigest)] := by
+      pure (truncateMessageDigest first second)) =ᵈ ($ᵗ MessageDigest : ProbComp MessageDigest) := by
   let pairs : ProbComp (BitVec 146 × BitVec 120) := do
     let first ← ($ᵗ HashOutput : ProbComp HashOutput)
     let second ← ($ᵗ HashOutput : ProbComp HashOutput)
     pure (firstCallFields first, callIndices second)
-  have hpairs : 𝒟[pairs] = 𝒟[($ᵗ (BitVec 146 × BitVec 120) :
-      ProbComp (BitVec 146 × BitVec 120))] := by
-    apply evalDist_ext
-    intro pair
-    change Pr[= pair | (do
-      let first ← ($ᵗ HashOutput : ProbComp HashOutput)
-      let second ← ($ᵗ HashOutput : ProbComp HashOutput)
-      pure (firstCallFields first, callIndices second))] = _
-    rw [probOutput_bind_bind_prod_mk_eq_mul]
-    rw [evalDist_ext_iff.mp evalDist_firstCallFields_uniform pair.1,
-      evalDist_ext_iff.mp evalDist_callIndices_uniform pair.2]
-    simp only [probOutput_uniformSample, Fintype.card_prod, Nat.cast_mul]
-    rw [ENNReal.mul_inv (Or.inl (by simp)) (Or.inl (by simp))]
+  have hpairs : pairs =ᵈ ($ᵗ (BitVec 146 × BitVec 120) :
+      ProbComp (BitVec 146 × BitVec 120)) := by
+    have hrw : pairs = (firstCallFields <$> ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun a =>
+        (callIndices <$> ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun b => pure (a, b) := by
+      simp only [pairs, bind_map_left]
+    rw [hrw, SampleableType.uniformSample_prod_eq_bind]
+    exact EvalDistEq.bind_congr evalDist_firstCallFields_uniform fun _ =>
+      EvalDistEq.bind_congr evalDist_callIndices_uniform fun _ => EvalDistEq.rfl
   have hjoin : (do
       let first ← ($ᵗ HashOutput : ProbComp HashOutput)
       let second ← ($ᵗ HashOutput : ProbComp HashOutput)
       pure (truncateMessageDigest first second)) = joinDigest <$> pairs := by
     simp only [pairs, map_bind, map_pure, truncateMessageDigest_eq_join]
-  rw [hjoin, evalDist_map, hpairs, ← evalDist_map]
-  exact evalDist_map_bijective_uniform_cross (α := BitVec 146 × BitVec 120)
-    (β := MessageDigest) joinDigest joinDigest_bijective
+  rw [hjoin]
+  exact (hpairs.map joinDigest).trans (SampleableType.map_uniformSample_evalDistEq_of_bijective
+    (α := BitVec 146 × BitVec 120) (β := MessageDigest) joinDigest_bijective)
 
 /-- The exact byte string queried for one block of a message digest. -/
 abbrev digestInput (parameter : PublicParameter) (root : Digest) (message : Message)

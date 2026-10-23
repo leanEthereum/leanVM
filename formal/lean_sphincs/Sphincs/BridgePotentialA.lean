@@ -56,17 +56,17 @@ theorem ν_ne_top : ν ≠ ⊤ := by
   unfold ν
   simp
 
-theorem probOutput_digest (t : Digest) : Pr[= t | ($ᵗ Digest : ProbComp Digest)] = ν := by
-  rw [probOutput_uniformSample, card_digest_ennreal]
+theorem probOutput_digest (t : Digest) : Pr{let x ← ($ᵗ Digest : ProbComp Digest)}[x = t] = ν := by
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, card_digest_ennreal]
   rfl
 
 /-- The truncated answer of a uniform output is a uniform digest. -/
 theorem mean_trunc (G : Digest → ℝ≥0∞) :
-    ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * G (truncateHash u) = meanD G := by
-  rw [← tsum_probOutput_map_mul]
-  have h : ∀ t, Pr[= t | truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)] = ν := by
+    ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * G (truncateHash u) = meanD G := by
+  rw [← OracleComp.tsum_prEvent_map_mul]
+  have h : ∀ t, Pr{let x ← truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)}[x = t] = ν := by
     intro t
-    rw [probOutput_def, evalDist_truncateHash_uniform, ← probOutput_def, probOutput_digest]
+    rw [evalDist_truncateHash_uniform.prEvent_eq, probOutput_digest]
   simp only [h]
   rw [tsum_fintype, meanD, Finset.mul_sum]
 
@@ -425,9 +425,9 @@ theorem aAns_store (hx : s.cache x = none) (hi : K.initial x = none) (l : Index)
     K.AAns (s.store x u) l i =
       if K.IsA l i x then insert (truncateHash u) (K.AAns s l i) else K.AAns s l i := by
   ext t
-  simp only [AAns, Set.mem_setOf_eq, fr_store u hx hi]
+  simp only [AAns, Set.mem_ofPred_eq, fr_store u hx hi]
   split_ifs with hA
-  · simp only [Set.mem_insert_iff, Set.mem_setOf_eq]
+  · simp only [Set.mem_insert_iff, Set.mem_ofPred_eq]
     constructor
     · rintro ⟨y, v, hy, (hfr | ⟨rfl, rfl⟩), ht⟩
       · exact Or.inr ⟨y, v, hy, hfr, ht⟩
@@ -445,7 +445,7 @@ theorem aAns_store (hx : s.cache x = none) (hi : K.initial x = none) (l : Index)
 theorem bPay_store (hx : s.cache x = none) (hi : K.initial x = none) (l : Index) (i : ChainIndex) :
     K.BPay (s.store x u) l i = K.BPay s l i ∪ {v | K.IsB l i v x} := by
   ext v
-  simp only [BPay, Set.mem_union, Set.mem_setOf_eq, fr_store u hx hi]
+  simp only [BPay, Set.mem_union, Set.mem_ofPred_eq, fr_store u hx hi]
   constructor
   · rintro ⟨y, w, hy, (hfr | ⟨rfl, rfl⟩)⟩
     · exact Or.inl ⟨y, w, hy, hfr⟩
@@ -458,7 +458,7 @@ theorem contactB_store (hx : s.cache x = none) (hi : K.initial x = none) (l : In
     K.ContactB (s.store x u) l i =
       K.ContactB s l i ∪ {v | K.IsB l i v x ∧ truncateHash u = K.front l i} := by
   ext v
-  simp only [ContactB, Set.mem_union, Set.mem_setOf_eq, fr_store u hx hi]
+  simp only [ContactB, Set.mem_union, Set.mem_ofPred_eq, fr_store u hx hi]
   constructor
   · rintro ⟨y, w, hy, (hfr | ⟨rfl, rfl⟩), ht⟩
     · exact Or.inl ⟨y, w, hy, hfr, ht⟩
@@ -592,15 +592,15 @@ theorem contactCount_of_same {s s' : St} (l₀ : Index) (h : ∀ l, Landed K.p l
       ≤ ∑ l, ((if Landed K.p l then K.leafCount s l else 0) + if l = l₀ then d else 0) := by
         refine Finset.sum_le_sum fun l _ => ?_
         by_cases hl : Landed K.p l
-        · rw [if_pos hl, if_pos hl]
+        · rw [ite_eq_left hl, ite_eq_left hl]
           by_cases hll : l = l₀
           · subst hll
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             exact hd hl
-          · rw [if_neg hll, add_zero, leafCount_congr (h l hl hll)]
-        · rw [if_neg hl, if_neg hl, zero_add]
+          · rw [ite_eq_right hll, add_zero, leafCount_congr (h l hl hll)]
+        · rw [ite_eq_right hl, ite_eq_right hl, zero_add]
           exact bot_le
-    _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ l₀, if_pos (Finset.mem_univ _)]
+    _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ l₀, ite_eq_left (Finset.mem_univ _)]
 
 /-- With every landed leaf unchanged, the WOTS aggregates are unchanged. -/
 theorem wots_of_allSame {s s' : St} (h : ∀ l, Landed K.p l → K.SameLeaf s s' l) :
@@ -612,8 +612,8 @@ theorem wots_of_allSame {s s' : St} (h : ∀ l, Landed K.p l → K.SameLeaf s s'
   unfold contactCount
   refine Finset.sum_congr rfl fun l _ => ?_
   by_cases hl : Landed K.p l
-  · rw [if_pos hl, if_pos hl, leafCount_congr (h l hl)]
-  · rw [if_neg hl, if_neg hl]
+  · rw [ite_eq_left hl, ite_eq_left hl, leafCount_congr (h l hl)]
+  · rw [ite_eq_right hl, ite_eq_right hl]
 
 /-- Under a store, a leaf is unchanged when the input is not of its WOTS shapes. -/
 theorem sameLeaf_store {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = none)
@@ -623,7 +623,7 @@ theorem sameLeaf_store {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x
   refine ⟨fun i => ?_, fun i => ?_, fun i => ?_⟩
   · rw [contactB_store u hx hi]
     refine Set.union_eq_left.2 fun v hv => absurd hv.1 (hB i v)
-  · rw [aAns_store u hx hi, if_neg (hA i)]
+  · rw [aAns_store u hx hi, ite_eq_right (hA i)]
   · rw [marker_store u hx hi]
     exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, he⟩, _⟩ => hE msg ctr he, Or.inl⟩
 
@@ -650,12 +650,12 @@ theorem done_le {s s' : St} (E : Prop) [Decidable E] (h : K.Bad s' → K.Bad s �
     K.done s' ≤ K.done s + (if ¬K.Bad s ∧ E then 1 else 0) := by
   unfold done
   by_cases hb' : K.Bad s'
-  · rw [if_pos hb']
+  · rw [ite_eq_left hb']
     by_cases hb : K.Bad s
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       exact le_self_add
-    · rw [if_neg hb, zero_add, if_pos ⟨hb, (h hb').resolve_left hb⟩]
-  · rw [if_neg hb']
+    · rw [ite_eq_right hb, zero_add, ite_eq_left ⟨hb, (h hb').resolve_left hb⟩]
+  · rw [ite_eq_right hb']
     exact bot_le
 
 /-- Pending debts after a fresh answer: at most one more at the input's hidden target. -/
@@ -668,16 +668,16 @@ theorem pend_store {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = n
   have hknown : (s.store x u).known = s.known := rfl
   rw [hknown, debts_store K.tg K.initial s x u hx hi]
   by_cases hc : s.known c = none
-  · rw [if_pos hc, if_pos hc]
+  · rw [ite_eq_left hc, ite_eq_left hc]
     by_cases hk : K.tg.kind x = .hidden c
-    · rw [if_pos hk, if_pos ⟨hk, hc⟩]
+    · rw [ite_eq_left hk, ite_eq_left ⟨hk, hc⟩]
       calc ((insert (K.tg.trunc u) (debts K.tg K.initial s c)).encard : ℝ≥0∞) * ν
           ≤ (((debts K.tg K.initial s c).encard : ℝ≥0∞) + 1) * ν :=
             mul_le_mul_of_nonneg_right (encard_insert_le_ennreal _ _) bot_le
         _ = _ := by rw [add_mul, one_mul]
     · have hk' : ¬(K.tg.kind x = .hidden c ∧ s.known c = none) := fun h => hk h.1
-      rw [if_neg hk, if_neg hk', add_zero]
-  · rw [if_neg hc, if_neg hc, zero_add]
+      rw [ite_eq_right hk, ite_eq_right hk', add_zero]
+  · rw [ite_eq_right hc, ite_eq_right hc, zero_add]
     exact bot_le
 
 theorem pend_store_none {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = none)
@@ -686,7 +686,7 @@ theorem pend_store_none {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache 
   refine Finset.sum_congr rfl fun c _ => ?_
   have hknown : (s.store x u).known = s.known := rfl
   have hk' : ¬K.tg.kind x = .hidden c := by rw [hk]; exact fun h => by cases h
-  rw [hknown, debts_store K.tg K.initial s x u hx hi, if_neg hk']
+  rw [hknown, debts_store K.tg K.initial s x u hx hi, ite_eq_right hk']
 
 theorem pend_record (s : St) (g : Coordinate × Digest) : K.pend (s.record g) ≤ K.pend s + ν := by
   unfold pend
@@ -698,17 +698,17 @@ theorem pend_record (s : St) (g : Coordinate × Digest) : K.pend (s.record g) �
         refine Finset.sum_le_sum fun c _ => ?_
         rw [hknown, debts_record]
         by_cases hc : s.known c = none
-        · rw [if_pos hc, if_pos hc]
+        · rw [ite_eq_left hc, ite_eq_left hc]
           by_cases hcg : c = g.1
-          · rw [if_pos hcg, if_pos hcg]
+          · rw [ite_eq_left hcg, ite_eq_left hcg]
             calc ((insert g.2 (debts K.tg K.initial s c)).encard : ℝ≥0∞) * ν
                 ≤ (((debts K.tg K.initial s c).encard : ℝ≥0∞) + 1) * ν :=
                   mul_le_mul_of_nonneg_right (encard_insert_le_ennreal _ _) bot_le
               _ = _ := by rw [add_mul, one_mul]
-          · rw [if_neg hcg, if_neg hcg, add_zero]
-        · rw [if_neg hc, if_neg hc, zero_add]
+          · rw [ite_eq_right hcg, ite_eq_right hcg, add_zero]
+        · rw [ite_eq_right hc, ite_eq_right hc, zero_add]
           exact bot_le
-    _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ g.1, if_pos (Finset.mem_univ _)]
+    _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ g.1, ite_eq_left (Finset.mem_univ _)]
 
 /-- Exposing an unexposed coordinate settles exactly its debts. -/
 theorem pend_expose (s : St) (c : Coordinate) (v : Digest) (hc : s.known c = none) :
@@ -723,12 +723,12 @@ theorem pend_expose (s : St) (c : Coordinate) (v : Digest) (hc : s.known c = non
     by_cases hcc : c' = c
     · subst hcc
       have hself : (s.expose c' v).known c' = some v := by simp [DebtState.expose]
-      rw [if_pos hc, hself, if_neg (by simp), zero_add, if_pos rfl]
+      rw [ite_eq_left hc, hself, ite_eq_right (by simp), zero_add, ite_eq_left rfl]
     · have hk : (s.expose c v).known c' = s.known c' := by simp [DebtState.expose, hcc]
-      rw [hk, if_neg hcc, add_zero]
+      rw [hk, ite_eq_right hcc, add_zero]
       rfl
   rw [Finset.sum_congr rfl fun c' _ => hpoint c', Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ c,
-    if_pos (Finset.mem_univ _)]
+    ite_eq_left (Finset.mem_univ _)]
 
 /-- The first-order cost of a fresh answer: a fatal value, or a new debt at an unexposed target. -/
 noncomputable def kindUnit (x : HashInput) : ℝ≥0∞ := if K.tg.kind x = .none then 0 else 1
@@ -740,22 +740,22 @@ theorem fo_mean (s : St) (x : HashInput) :
   cases hk : K.tg.kind x with
   | none =>
       have h1 : (fun t : Digest => if Fatal (TargetKind.none : TargetKind Coordinate) s.known t then (1 : ℝ≥0∞)
-          else 0) = fun _ => 0 := funext fun t => if_neg (fun h => h)
+          else 0) = fun _ => 0 := funext fun t => ite_eq_right (fun h => h)
       have h2 : ∀ c : Coordinate, ¬((TargetKind.none : TargetKind Coordinate) = .hidden c ∧ s.known c = none) :=
         fun c h => by cases h.1
-      simp only [h1, h2, if_false, Finset.sum_const_zero, add_zero, if_true, meanD_const, mul_zero, le_refl]
+      simp only [h1, h2, ite_false, Finset.sum_const_zero, add_zero, ite_true, meanD_const, mul_zero, le_refl]
   | fixed value =>
-      simp only [if_false, reduceCtorEq, mul_one]
+      simp only [ite_false, reduceCtorEq, mul_one]
       rw [meanD_ite_eq value (fun t => Fatal (TargetKind.fixed value) s.known t) (fun t => Iff.rfl), mul_one]
       simp
   | hidden target =>
-      simp only [reduceCtorEq, if_false, mul_one]
+      simp only [reduceCtorEq, ite_false, mul_one]
       have hsum : (∑ c : Coordinate, if TargetKind.hidden target = TargetKind.hidden c ∧ s.known c = none
           then ν else 0) = if s.known target = none then ν else 0 := by
         rw [Finset.sum_eq_single target]
         · simp
         · intro c _ hc
-          rw [if_neg]
+          rw [ite_eq_right]
           rintro ⟨h, -⟩
           exact hc (TargetKind.hidden.inj h).symm
         · simp
@@ -763,10 +763,10 @@ theorem fo_mean (s : St) (x : HashInput) :
       cases hc : s.known target with
       | none =>
           have h1 : (fun t : Digest => if Fatal (TargetKind.hidden target) s.known t then (1 : ℝ≥0∞) else 0) =
-              fun _ => 0 := funext fun t => if_neg (by simp [Fatal, hc])
-          rw [h1, meanD_const, zero_add, if_pos rfl]
+              fun _ => 0 := funext fun t => ite_eq_right (by simp [Fatal, hc])
+          rw [h1, meanD_const, zero_add, ite_eq_left rfl]
       | some value =>
-          rw [if_neg (by simp), add_zero, meanD_ite_eq value (fun t => Fatal (TargetKind.hidden target) s.known t)
+          rw [ite_eq_right (by simp), add_zero, meanD_ite_eq value (fun t => Fatal (TargetKind.hidden target) s.known t)
             (fun t => by simp [Fatal, hc, eq_comm]), mul_one]
 
 /-! ### Combining the components -/
@@ -809,13 +809,13 @@ theorem pot_le {s s' : St} (y : ℕ) {cr dD dP dL dU dR : ℝ≥0∞}
 /-- A fresh read: the mean potential after a pointwise bound through the truncated answer. -/
 theorem mean_store (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (cr : ℝ≥0∞)
     (G : Digest → ℝ≥0∞) (h : ∀ u, K.pot y (s.store x u) + cr ≤ K.pot y s + G (truncateHash u)) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 + cr ≤ K.pot y s + meanD G := by
-  rw [readOutside_fresh x s hx, tsum_probOutput_map_mul]
-  calc ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * K.pot y (s.store x u) + cr
-      = ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * (K.pot y (s.store x u) + cr) := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y r.2 + cr ≤ K.pot y s + meanD G := by
+  rw [readOutside_fresh x s hx, OracleComp.tsum_prEvent_map_mul]
+  calc ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * K.pot y (s.store x u) + cr
+      = ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * (K.pot y (s.store x u) + cr) := by
         simp only [mul_add]
         rw [ENNReal.tsum_add, tsum_uniform_const]
-    _ ≤ ∑' u, Pr[= u | ($ᵗ HashOutput : ProbComp HashOutput)] * (K.pot y s + G (truncateHash u)) :=
+    _ ≤ ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * (K.pot y s + G (truncateHash u)) :=
         ENNReal.tsum_le_tsum fun u => mul_le_mul_of_nonneg_left (h u) bot_le
     _ = K.pot y s + meanD G := by
         simp only [mul_add]
@@ -828,18 +828,18 @@ theorem vrate_le (hρ : K.ρ ≤ 2) {s s' : St} (E : Prop) [Decidable E] (h : K.
     exact ENNReal.ofReal_le_ofReal hρ
   unfold vrate
   by_cases ha' : K.Armed s'
-  · rw [if_pos ha']
+  · rw [ite_eq_left ha']
     by_cases ha : K.Armed s
-    · rw [if_pos ha]
+    · rw [ite_eq_left ha]
       exact le_self_add
-    · rw [if_neg ha, if_pos ⟨ha, (h ha').resolve_left ha⟩]
+    · rw [ite_eq_right ha, ite_eq_left ⟨ha, (h ha').resolve_left ha⟩]
       calc (2 : ℝ≥0∞) = ENNReal.ofReal (K.ρ + (2 - K.ρ)) := by simp
         _ ≤ _ := ENNReal.ofReal_add_le
-  · rw [if_neg ha']
+  · rw [ite_eq_right ha']
     by_cases ha : K.Armed s
-    · rw [if_pos ha]
+    · rw [ite_eq_left ha]
       exact h2.trans le_self_add
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       exact le_self_add
 
 theorem rate_le {s s' : St} {dV dC dK : ℝ≥0∞} (hV : K.vrate s' ≤ K.vrate s + dV)

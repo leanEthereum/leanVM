@@ -48,7 +48,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafRedirect
   simp only [globalFilteredCausalUncachedAttackerHashPlan]
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
-  rw [hhidden, if_pos hmatch, hkeygen]
+  rw [hhidden, ite_eq_left hmatch, hkeygen]
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -66,7 +66,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   simp only [globalFilteredCausalUncachedAttackerHashPlan]
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
-  rw [hhidden, if_neg hmatch]
+  rw [hhidden, ite_eq_right hmatch]
 
 
 set_option maxRecDepth 1000000
