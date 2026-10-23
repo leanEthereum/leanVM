@@ -14,25 +14,25 @@
 <table align="center">
   <tr>
     <td><a href="#leanxmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>1130/s</b></td>
+    <td align="right"><b>1200/s</b></td>
   </tr>
   <tr>
     <td><a href="#leansphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>720/s</b></td>
+    <td align="right"><b>850/s</b></td>
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
-    <td align="right"><b>2 MiB/s</b></td>
+    <td align="right"><b>2,3 MiB/s</b></td>
   </tr>
 </table>
 <table align="center">
   <tr>
     <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>0.34s</b></td>
+    <td align="right"><b>0.30s</b></td>
   </tr>
   <tr>
     <td><a href="#hashing">hash compressions</a></td>
-    <td align="right"><b>500K/s</b></td>
+    <td align="right"><b>540K/s</b></td>
   </tr>
   <tr>
     <td><a href="#fibonacci">cheap cycles</a></td>
@@ -79,12 +79,12 @@ cargo leanvm aggregate --xmss 1400 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 1,400 leanXMSS signatures
-  cycles (VM steps)           : 1,586,526 = 2^20.597
-    details                   : XOR 2^18.675 (26.4%)  SET 2^18.26 (19.8%)  MUL 2^18.13 (18.1%)  KECCAK 2^17.994 (16.5%)  DEREF 2^17.559 (12.2%)  JUMP 2^16.788 (7.1%)  MEMORY 2^23.121  BYTECODE 2^18.494  TOTAL_COMMITTED 2^26.845
-  proof size                  : 362.7 KiB
-  proving time                : 1.191 s ± 1.8%      peak memory 13.108 GiB
-  per signature               : 1,175.79 signatures/s
-  verifying                   : 8.576 ms
+  cycles (VM steps)           : 1,569,406 = 2^20.582
+    details                   : XOR 2^18.675 (26.7%)  SET 2^18.179 (18.9%)  MUL 2^18.13 (18.3%)  KECCAK 2^17.994 (16.6%)  DEREF 2^17.559 (12.3%)  JUMP 2^16.788 (7.2%)  MEMORY 2^23.109  BYTECODE 2^18.474  TOTAL_COMMITTED 2^26.845
+  proof size                  : 363.0 KiB
+  proving time                : 1.172 s ± 0.8%      peak memory 11.562 GiB
+  per signature               : 1,194.859 signatures/s
+  verifying                   : 8.778 ms
 ```
 
 ### leanSPHINCS aggregation
@@ -129,11 +129,11 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 
 ```
 recursion 2→1, over leaves of 900 leanXMSS signatures
-  cycles (VM steps)           : 544,972 = 2^19.056
-    details                   : MUL 2^17.631 (37.2%)  XOR 2^17.186 (27.4%)  DEREF 2^16.85 (21.7%)  SET 2^15.226 (7.0%)  JUMP 2^14.532 (4.3%)  KECCAK 2^13.63 (2.3%)  MEMORY 2^19.79  BYTECODE 2^18.494  TOTAL_COMMITTED 2^24.039
-  proof size                  : 218.0 KiB
-  proving time                : 0.313 s ± 4.9%      peak memory 9.848 GiB
-  verifying                   : 9.971 ms
+  cycles (VM steps)           : 544,979 = 2^19.056
+    details                   : MUL 2^17.631 (37.2%)  XOR 2^17.186 (27.4%)  DEREF 2^16.85 (21.7%)  SET 2^15.226 (7.0%)  JUMP 2^14.532 (4.3%)  KECCAK 2^13.63 (2.3%)  MEMORY 2^19.79  BYTECODE 2^18.474  TOTAL_COMMITTED 2^24.039
+  proof size                  : 216.7 KiB
+  proving time                : 0.302 s ± 2.8%      peak memory 8.96 GiB
+  verifying                   : 9.814 ms
 ```
 
 ### hashing
