@@ -234,7 +234,12 @@ pub fn verify_keccak(
     instance: &[E],
     output: &[E],
 ) -> Result<KeccakOpenings, VerifierError> {
-    assert_eq!((instance.len(), output.len()), (shape.log_steps, LANES));
+    // `replay_unchecked` reaches this with a child's announced shape, where the contract is an error and
+    // never a panic. The pack bound is what keeps `pack_bits` below from underflowing.
+    require(
+        instance.len() == shape.log_steps && output.len() == LANES && shape.log_steps >= PACK.ilog2() as usize,
+        VerifierError::AnnouncedTableSizes,
+    )?;
     let segment = transcript.samples(log2_ceil(shape.segments() as u64));
     let point = [&instance[4..], &segment[..]].concat();
     // The first claim combines the output lanes as words: bit z of a word weighs x^z.

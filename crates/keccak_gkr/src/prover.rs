@@ -53,6 +53,16 @@ const PART: usize = PACKS / 2;
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 const PART: usize = 8;
 const PART_WORDS: usize = 48 * PART / 64;
+// `pack` reads four products to three words and `add` XORs whole vectors, so `PART` divides by four
+// and `PART_WORDS` by each arm's lane count. A `PART` that broke either would drop products or store
+// past the array rather than fail to build.
+const _: () = assert!(PART.is_multiple_of(4));
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+const _: () = assert!(PART_WORDS.is_multiple_of(8));
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+const _: () = assert!(PART_WORDS.is_multiple_of(4));
+#[cfg(target_arch = "aarch64")]
+const _: () = assert!(PART_WORDS.is_multiple_of(2));
 
 /// The products of a part of a block position's packs, 48 bits each, grouped while every digit
 /// of the weights groups the block's positions.
