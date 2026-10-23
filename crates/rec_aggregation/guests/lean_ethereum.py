@@ -3374,11 +3374,12 @@ def chain_tip(walks, i: Const):
 
 
 @inline
-def walk(at, pp, walks, i: Const, k: Const, lx: Const):
+def walk(at, pp, walks, tags, i: Const, k: Const, lx: Const):
     # Walk chain i from position k to its end, the step leaving position s landing in
     # chain i's slot s of `walks`, so the tip is chain_tip(walks, i) whatever k is. A
     # leanSPHINCS step's address carries i and s, its input ending after the value; a
-    # leanXMSS one only s, at[s] computed once per key, i riding after the value.
+    # leanXMSS one only s, at[s] computed once per key, i riding after the value, read
+    # off `tags` so a dispatch arm names it rather than setting it again.
     if const(k == CHAIN_STEPS):
         hint_witness(walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE:((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE + 1], "chain_starts")
     else:
@@ -3386,7 +3387,7 @@ def walk(at, pp, walks, i: Const, k: Const, lx: Const):
         for s in unroll(k, CHAIN_STEPS):
             o = (CHAIN_STEPS * i + s) * KECCAK_STATE
             if const(lx == 1):
-                keccak([pp, at[s]], [value, i], walks[o:o + KECCAK_STATE])
+                keccak([pp, at[s]], [value, tags[i]], walks[o:o + KECCAK_STATE])
             else:
                 keccak([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], walks[o:o + KECCAK_STATE], len=48)
             value = walks[o]
@@ -3394,13 +3395,13 @@ def walk(at, pp, walks, i: Const, k: Const, lx: Const):
 
 
 @inline
-def walk_group(at, pp, walks, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
+def walk_group(at, pp, walks, tags, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
     # The n <= DIGIT_GROUP chains from `first` on, at the digits of k, one
     # dispatch for all of them. Folds the digits' sum into `product`, in the
     # exponent (`powers[s]` is GEN ** s), and the digits into `encoded`, where the
     # encoding digest holds them.
     for r in unroll(0, n):
-        walk(at, pp, walks, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
+        walk(at, pp, walks, tags, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
     return product * powers[DIGIT_SUMS[k]], encoded + const(k * CHAIN_LENGTH ** first)
 
 
@@ -3469,6 +3470,12 @@ def verify_lean_xmss(signer):
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
     for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
+    # The chain indices, both layers': a constant a dispatch arm sets lives inside a
+    # branch, so every arm that walks chain i sets i again. Written once here they are
+    # frame cells the arms read for nothing.
+    tags = StackBuf(LX_V)
+    for i in unroll(0, LX_V):
+        tags[i] = i
 
     for layer in unroll(0, 2):
         if const(layer == 0):
@@ -3498,10 +3505,10 @@ def verify_lean_xmss(signer):
         for p in unroll(0, LX_V // DIGIT_GROUP):
             group = hint_witness("digits")
             assert log(group) < DIGIT_GROUPS
-            digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, walks, DIGIT_GROUP * p, DIGIT_GROUP, k, 1, powers, digit_product, encoded))
+            digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, walks, tags, DIGIT_GROUP * p, DIGIT_GROUP, k, 1, powers, digit_product, encoded))
         group = hint_witness("digits")
         assert log(group) < CHAIN_LENGTH
-        digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, walks, LX_V - 1, 1, k, 1, powers, digit_product, encoded))
+        digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, walks, tags, LX_V - 1, 1, k, 1, powers, digit_product, encoded))
         digest[0] = encoded  # the digits, stored where D already is
         assert digit_product == GEN ** LX_TARGET_SUM
 
@@ -3731,14 +3738,16 @@ def verify_sig_lean_sphincs(signer, byte_bits):
         powers[s] = GEN ** s
     digit_product = 1
     encoded = 0
+    # A leanSPHINCS chain index rides its step's address, so the chain-index table a
+    # leanXMSS walk reads is unused here and `powers` stands in for it.
     for p in unroll(0, SP_V // DIGIT_GROUP):
         group = hint_witness("digits")
         assert log(group) < DIGIT_GROUPS
-        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, walks, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
+        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, walks, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
     # The chain the groups leave over.
     group = hint_witness("digits")
     assert log(group) < CHAIN_LENGTH
-    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, walks, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
+    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, walks, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     encoding[0] = encoded  # the digits, stored where D already is
     assert digit_product == GEN ** SP_TARGET_SUM
 
