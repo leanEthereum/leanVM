@@ -134,7 +134,7 @@ recursion 2→1, over leaves of 900 leanXMSS signatures
   verifying                   : 9.195 ms
 ```
 
-### hashing
+### Proving KECCAK
 
 ```bash
 cargo leanvm hash --log-n 17 --repeat 3
