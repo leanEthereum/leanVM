@@ -29,11 +29,11 @@ pub use transcript::Proof;
 
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
-use hash::Digest;
+use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
-    KECCAK_DEPTH, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES, OP_KECCAK, QKECCAK,
-    build_layout, keccak_lane,
+    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
+    OP_KECCAK, QKECCAK, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
@@ -66,8 +66,6 @@ pub enum VerifierError {
     InducedBasisDimensions,
     WhirTerminal,
     WhirNoTerminalLevel,
-    /// The table sumcheck leaves other than one claim on each `KECCAK` output lane, in order, at one point.
-    KeccakOutputClaims,
     KeccakProduct,
     KeccakLayer,
     KeccakOutputOpening,
@@ -101,7 +99,6 @@ impl std::fmt::Display for VerifierError {
             Self::InducedBasisDimensions => "bad induced-basis dimensions",
             Self::WhirTerminal => "WHIR terminal check failed",
             Self::WhirNoTerminalLevel => "WHIR verification ended without a terminal level",
-            Self::KeccakOutputClaims => "one claim on each KECCAK output lane, in order",
             Self::KeccakProduct => "Keccak product polynomial does not carry the claim",
             Self::KeccakLayer => "Keccak layer evaluations do not match the sumcheck",
             Self::KeccakOutputOpening => "Keccak output opening ends on the wrong value",
@@ -194,7 +191,7 @@ pub fn verify_keccak_batch(
     proof: &Proof,
 ) -> Result<(), VerifierError> {
     require(
-        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && 24 % depth == 0,
+        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && ROUNDS.is_multiple_of(depth),
         VerifierError::CommittedSize,
     )?;
     let shape = KeccakShape { log_steps, depth };
@@ -216,7 +213,7 @@ pub fn verify_keccak_batch(
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1])?;
     let instance = transcript.samples(log_steps);
-    let output = transcript.next_scalars(25)?;
+    let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
     let (target, weight) = ring_switch(point, &slices, &mut transcript);
@@ -263,7 +260,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let xi_powers = powers(xi, n_constraints + 3); // one power per constraint, then one per bus side, shared by every table
     let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
     let target = dot(form_powers, &bus.totals);
-    let table_sumcheck_claims = table_sumcheck(
+    let evaluations = table_sumcheck(
         &layout.tables,
         &layout.table_log_heights,
         &bus.forms,
@@ -274,7 +271,13 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         &mut transcript,
     )?;
     let mut claims = bus.claims;
-    claims.extend(table_sumcheck_claims);
+    for (base, (point, values)) in GLOBAL_COLUMN_BASES.into_iter().zip(&evaluations) {
+        claims.extend(values.iter().enumerate().map(|(local, &value)| ColumnClaim {
+            column: base + local,
+            point: point.clone(),
+            value,
+        }));
+    }
 
     // 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
     // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
@@ -291,28 +294,16 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         });
     }
 
-    // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
-    // reduction's claim on the permutation's output: they leave the batch.
-    let output_columns: Vec<usize> = (0..25).map(|lane| keccak_lane("out", lane)).collect();
-    let (outputs, rest): (Vec<ColumnClaim>, Vec<ColumnClaim>) = claims
-        .into_iter()
-        .partition(|claim| output_columns.contains(&claim.column));
-    claims = rest;
-    require(
-        outputs
-            .iter()
-            .map(|claim| claim.column)
-            .eq(output_columns.iter().copied())
-            && outputs.iter().all(|claim| claim.point == outputs[0].point),
-        VerifierError::KeccakOutputClaims,
-    )?;
-    let shape = KeccakShape {
-        log_steps: layout.table_log_heights[OP_KECCAK],
-        depth: KECCAK_DEPTH,
-    };
-    let values: Vec<E> = outputs.iter().map(|claim| claim.value).collect();
+    // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
+    // the permutation's output: they leave the batch, their columns having no placement.
+    let (point, values) = &evaluations[OP_KECCAK];
     let keccak_start = transcript.stream_offset();
-    let openings = verify_keccak(&mut transcript, shape, &outputs[0].point, &values)?;
+    let openings = verify_keccak(
+        &mut transcript,
+        layout.keccak,
+        point,
+        &values[KECCAK_OUT..KECCAK_OUT + STATE_LANES],
+    )?;
     let keccak_scalars = keccak_start..transcript.stream_offset();
     if let Some((point, value)) = openings.outputs {
         claims.push(ColumnClaim {
@@ -333,7 +324,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         ringswitch_target,
     );
     let mut stack_claims = vec![ringswitch];
-    stack_claims.extend(claims.iter().map(|claim| claim.on_stack(&layout)));
+    stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
     verify_stacked_opening(
         &mut transcript,
         root,

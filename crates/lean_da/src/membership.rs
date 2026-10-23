@@ -18,6 +18,7 @@ use fiat_shamir::FiatShamirState;
 use fiat_shamir::merkle::hash_to_scalars;
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::{F64, F192};
+use primitives::hash::{OUT_LEN, hash, hash_many};
 
 use crate::{CELL_SYMBOLS, CODEWORD_SYMBOLS, DA_LOG_K, LOG_M};
 
@@ -46,17 +47,13 @@ pub fn membership_vector(root: &[u8; 32]) -> Vec<F192> {
 /// its entries' three little-endian 64-bit limbs.
 pub fn vector_digest(vector: &[F192]) -> [u8; 32] {
     assert_eq!(vector.len(), CODEWORD_SYMBOLS);
-    let columns: Vec<u8> = vector
-        .chunks(CELL_SYMBOLS)
-        .flat_map(|column| {
-            let bytes: Vec<u8> = column
-                .iter()
-                .flat_map(|v| [v.c0, v.c1, v.c2].into_iter().flat_map(u64::to_le_bytes))
-                .collect();
-            primitives::hash::hash(&bytes)
-        })
+    let bytes: Vec<u8> = vector
+        .iter()
+        .flat_map(|v| [v.c0, v.c1, v.c2].into_iter().flat_map(u64::to_le_bytes))
         .collect();
-    primitives::hash::hash(&columns)
+    let mut columns = vec![0u8; CODEWORD_SYMBOLS / CELL_SYMBOLS * OUT_LEN];
+    hash_many(&bytes, CELL_SYMBOLS * 24, &mut columns);
+    hash(&columns)
 }
 
 /// `L` over the whole domain: the tensor `⊗_j (1, z_j)` encoded as a codeword.

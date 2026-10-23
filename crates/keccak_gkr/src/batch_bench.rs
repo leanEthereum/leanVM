@@ -54,7 +54,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let output_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let openings = crate::prove(&mut ps, &witness, &committed, &output);
+        let openings = witness.prove(&mut ps, &committed, &output);
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();

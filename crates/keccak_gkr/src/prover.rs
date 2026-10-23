@@ -10,32 +10,21 @@
 //! are down to one row.
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::gf2_64::mul_wide;
 use primitives::field::{F192, F192Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 
-use crate::basis::{PolyEval, carry};
-use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose};
+use crate::basis::{PolyEval, add_mul, carry};
+use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, fold_groups, mixed_points, products, slot};
+use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at, sum};
 use crate::rmfe::PROD_BITS;
-use crate::witness::{BLOCK_WORDS, Shape, Witness, transpose64};
+use crate::witness::{Shape, Witness, transpose64, words};
 
 /// The pattern index of a binary assignment.
 fn ternary(b: usize) -> usize {
     (0..SKIP).fold(0, |acc, k| acc + (b >> k & 1) * 3usize.pow(k as u32))
-}
-
-/// The five positions of a row and slice, which `chi` mixes.
-#[inline(always)]
-fn row_positions(row: usize, z: usize) -> [usize; 5] {
-    std::array::from_fn(|x| 64 * (x + 5 * row) + z)
-}
-
-#[inline(always)]
-fn words(block: &[u64], j: usize) -> &[u64; BLOCK_WORDS] {
-    block[j * BLOCK_WORDS..][..BLOCK_WORDS].try_into().expect("eight words")
 }
 
 /// Digits a weight splits into, and the values of one.
@@ -315,10 +304,10 @@ impl Layer<'_> {
     /// here. A binary one is a pack, whose sum `binary` already holds. The packs of the padding
     /// block are all equal, so their extension vanishes there.
     fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F192, binary: &[F192; GROUP]) -> Vec<F192> {
-        let weights: Vec<Element> = claim.weights.iter().map(|&w| field.from_field(w)).collect();
+        let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
         let groups: Vec<Element> = eq_table(&claim.point[SKIP..])
             .iter()
-            .map(|&e| field.from_field(e))
+            .map(|&e| field.to_poly(e))
             .collect();
         let (nb, written) = (self.witness.shape.n_blocks(), self.witness.written());
         let mixed = parallel::map_reduce_with_state(
@@ -331,7 +320,7 @@ impl Layer<'_> {
                 skip.run(block, &weights);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                        add_mul(total, &carry::<3, 4>(&skip.get(slot(half, i))), &groups[2 * row + half]);
                     }
                 }
             },
@@ -369,7 +358,7 @@ impl Layer<'_> {
         pads: &mut [u64],
     ) -> (F192, F192) {
         let field = round.field;
-        let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.from_field(e)).collect();
+        let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
         let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
         let weights = self.task_weights(eq);
         // Rows of segments that do not exist are zero, and so is their product.
@@ -451,18 +440,18 @@ impl<'a> Round<'a> {
     fn new(field: &'a PowerField, claim: &Claim, s: F192, kappa: F192) -> Self {
         let (mut weights, mut constant) = (vec![0u64; ROW], vec![0u64; ROW]);
         for j in 0..BITS {
-            set(&mut weights, BITS, j, &field.from_field(claim.weights[j]));
+            set(&mut weights, BITS, j, &field.to_poly(claim.weights[j]));
             set(
                 &mut constant,
                 BITS,
                 j,
-                &field.from_field(kappa * claim.weights[along(j, 2)]),
+                &field.to_poly(kappa * claim.weights[along(j, 2)]),
             );
         }
         Self {
             field,
             eval: PolyEval::new(s, 72),
-            kappa: field.from_field(kappa),
+            kappa: field.to_poly(kappa),
             weights,
             constant,
         }
@@ -475,9 +464,9 @@ impl<'a> Round<'a> {
         for k in 0..3 {
             let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
             for lane in 0..BITS / 64 {
-                let at = |shift: usize| 64 * ((lane % 5 + shift) % 5 + 5 * (lane / 5));
+                let at = along(64 * lane, 1);
                 for z in 0..64 {
-                    next[64 * lane + z] = src[at(1) + z] ^ self.kappa[k];
+                    next[64 * lane + z] = src[at + z] ^ self.kappa[k];
                 }
             }
         }
@@ -485,8 +474,7 @@ impl<'a> Round<'a> {
         for k in 0..3 {
             let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
             for lane in 0..BITS / 64 {
-                let at = 64 * ((lane % 5 + 2) % 5 + 5 * (lane / 5));
-                dst[64 * lane..][..64].copy_from_slice(&src[at..][..64]);
+                dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
             }
         }
     }
@@ -501,16 +489,9 @@ impl<'a> Round<'a> {
         let (zero, infinity) = self
             .field
             .dot_pair([&b[..ROW], &b[ROW..]], [&shifted[..ROW], &shifted[ROW..]], BITS);
-        let weight = self.field.from_field(eq);
-        for (acc, dot) in [(&mut sums.0, zero), (&mut sums.1, infinity)] {
-            for (i, &x) in dot.iter().enumerate() {
-                for (k, &y) in weight.iter().enumerate() {
-                    let p = mul_wide(x, y);
-                    acc[i + k] ^= p as u64;
-                    acc[i + k + 1] ^= (p >> 64) as u64;
-                }
-            }
-        }
+        let weight = self.field.to_poly(eq);
+        add_mul(&mut sums.0, &zero, &weight);
+        add_mul(&mut sums.1, &infinity, &weight);
     }
 
     fn finish(&self, sums: &RoundSums) -> (F192, F192) {
@@ -661,15 +642,6 @@ fn local_round(w: &[F192], t: &[Vec<F192>; 3], kappa: F192) -> [F192; 4] {
     h
 }
 
-fn local_fold(table: &[F192], challenge: F192) -> Vec<F192> {
-    table
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|p| p[0] + challenge * (p[0] + p[1]))
-        .collect()
-}
-
 /// The table the rounds after the bit-level ones fold, and the half they fold it into: reused
 /// from layer to layer.
 pub struct Scratch {
@@ -733,12 +705,7 @@ pub fn prove_layer(
             }
         }
         let coeffs = [scale * h[0], scale * (h[0] + h[1] + h[2]), scale * h[2]];
-        ps.add_round_poly(&coeffs, true);
-        let challenge = ps.sample();
-        let eq = F192::ONE + claim.point[i] + challenge;
-        value = eq * poly_eval(&coeffs, challenge);
-        scale *= eq;
-        point.push(challenge);
+        let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
         sums = sums
             .as_chunks::<3>()
             .0
@@ -764,14 +731,9 @@ pub fn prove_layer(
     let tail = tracing::info_span!("Tail").entered();
     for i in SKIP..claim.point.len() {
         let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
-        ps.add_round_poly(&coeffs, true);
-        let challenge = ps.sample();
-        let eq = F192::ONE + claim.point[i] + challenge;
-        value = eq * poly_eval(&coeffs, challenge);
-        scale *= eq;
-        point.push(challenge);
+        let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
         let later = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
-        values = round.fold(src, layout, dst, pads, &field.from_field(challenge), &later);
+        values = round.fold(src, layout, dst, pads, &field.to_poly(challenge), &later);
         layout = layout.next();
         (src, dst) = (dst, src);
     }
@@ -801,8 +763,8 @@ pub fn prove_layer(
         ps.add_round_poly(&coeffs, false);
         let challenge = ps.sample();
         local.push(challenge);
-        w = local_fold(&w, challenge);
-        t = t.map(|v| local_fold(&v, challenge));
+        w = fold(&w, 1, challenge);
+        t = t.map(|v| fold(&v, 1, challenge));
     }
     let t = [t[0][0], t[1][0], t[2][0]];
     ps.add_scalars(&t);
@@ -815,6 +777,25 @@ pub fn prove_layer(
     }
 }
 
+/// Send a round of the sumcheck over the packs and segments and bind its variable, whose point
+/// in the claim is `at`: the claim's `eq` factor on it moves into `scale`.
+fn bind(
+    ps: &mut ProverState,
+    coeffs: &[F192; 3],
+    at: F192,
+    value: &mut F192,
+    scale: &mut F192,
+    point: &mut Vec<F192>,
+) -> F192 {
+    ps.add_round_poly(coeffs, true);
+    let challenge = ps.sample();
+    let eq = F192::ONE + at + challenge;
+    *value = eq * poly_eval(coeffs, challenge);
+    *scale *= eq;
+    point.push(challenge);
+    challenge
+}
+
 /// The coefficients of a round polynomial `h`, scaled, from its values at `0` and infinity:
 /// `(1 + r) h(0) + r h(1) = value` gives the value at one.
 fn round_coefficients(scale: F192, zero: F192, infinity: F192, value: F192, r: F192) -> [F192; 3] {
@@ -822,16 +803,4 @@ fn round_coefficients(scale: F192, zero: F192, infinity: F192, value: F192, r: F
     // value = c0 + r (c1 + c2).
     let c1 = (value + c0) * r.inv() + c2;
     [c0, c1, c2]
-}
-
-/// `total += a * b`, on binary polynomials.
-#[inline(always)]
-fn add_mul(total: &mut [u64; 7], a: &[u64; 4], b: &[u64; 3]) {
-    for (i, &a) in a.iter().enumerate() {
-        for (k, &b) in b.iter().enumerate() {
-            let p = mul_wide(a, b);
-            total[i + k] ^= p as u64;
-            total[i + k + 1] ^= (p >> 64) as u64;
-        }
-    }
 }

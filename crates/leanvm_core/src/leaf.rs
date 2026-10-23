@@ -248,16 +248,9 @@ impl LeafBlock<'_> {
         let (real_out, padding) = out.split_at_mut(real);
         // A padding row's leaf is the identity, so it leaves the product alone.
         padding.fill(F192::ONE);
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-        let done = self.fill8(z0, real_out, cols);
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx2",
-            target_feature = "vpclmulqdq",
-            not(target_feature = "avx512f")
-        ))]
-        let done = self.fill4(z0, real_out, cols);
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+        let done = self.fill_lanes(z0, real_out, cols);
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
@@ -266,79 +259,58 @@ impl LeafBlock<'_> {
         }
     }
 
-    /// [`fill`](Self::fill) eight rows at a time, every term one lane-wise mixed
-    /// product ([`primitives::field::x8`]); returns how many rows it wrote.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-    fn fill8(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
-        use primitives::field::x8::{F64x8, F192x8, Mixed8};
-        let eight = |source: &[F64], z: usize| F64x8::load(source[z..z + 8].try_into().unwrap());
-        // `g^z` for the eight rows, stepped by `g^8`.
-        let mut index = F64x8::new(std::array::from_fn(|i| g_pow(z0 + i)));
-        let step = F64x8::splat(g_pow(8));
-        let coeffs: Vec<F192x8> = self
+    /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
+    /// product; returns how many rows it wrote.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    fn fill_lanes(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
+        use lanes::{E, K, Mixed, N};
+        let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
+        // `g^z` for the `N` rows, stepped by `g^N`.
+        let mut index = K::new(std::array::from_fn(|i| g_pow(z0 + i)));
+        let step = K::splat(g_pow(N));
+        let coeffs: Vec<E> = self
             .terms
             .iter()
             .map(|t| match t {
-                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => F192x8::splat(*c),
+                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => E::splat(*c),
             })
             .collect();
-        let constant = F192x8::splat(self.const_part);
-        let (chunks, _) = out.as_chunks_mut::<8>();
+        let constant = E::splat(self.const_part);
+        let (chunks, _) = out.as_chunks_mut::<N>();
         for (k, slot) in chunks.iter_mut().enumerate() {
-            let z = z0 + 8 * k;
-            let mut acc = Mixed8::ZERO;
+            let z = z0 + N * k;
+            let mut acc = Mixed::ZERO;
             for (t, &c) in self.terms.iter().zip(&coeffs) {
                 match t {
-                    Term::Col(i, _) => acc.add(c, eight(cols[*i], z)),
-                    Term::Prod(i, j, _) => acc.add(c, eight(cols[*i], z) * eight(cols[*j], z)),
+                    Term::Col(i, _) => acc.add(c, load(cols[*i], z)),
+                    Term::Prod(i, j, _) => acc.add(c, load(cols[*i], z) * load(cols[*j], z)),
                     Term::Index(_) => acc.add(c, index),
-                    Term::Public(vals, _) => acc.add(c, eight(vals, z)),
+                    Term::Public(vals, _) => acc.add(c, load(vals, z)),
                 }
             }
             index = index * step;
             (acc.reduce() + constant).store(slot);
         }
-        8 * chunks.len()
+        N * chunks.len()
     }
+}
 
-    /// [`fill`](Self::fill) four rows at a time without AVX-512 ([`primitives::field::x4`]);
-    /// returns how many rows it wrote.
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx2",
-        target_feature = "vpclmulqdq",
-        not(target_feature = "avx512f")
-    ))]
-    fn fill4(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
-        use primitives::field::x4::{F64x4, Mixed4, Splat4};
-        let four = |source: &[F64], z: usize| F64x4::load(source[z..z + 4].try_into().unwrap());
-        // `g^z` for the four rows, stepped by `g^4`.
-        let mut index = F64x4::load(&std::array::from_fn(|i| g_pow(z0 + i)));
-        let step = F64x4::splat(g_pow(4));
-        let coeffs: Vec<Splat4> = self
-            .terms
-            .iter()
-            .map(|t| match t {
-                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => Splat4::new(*c),
-            })
-            .collect();
-        let (chunks, _) = out.as_chunks_mut::<4>();
-        for (k, slot) in chunks.iter_mut().enumerate() {
-            let z = z0 + 4 * k;
-            let mut acc = Mixed4::ZERO;
-            for (t, &c) in self.terms.iter().zip(&coeffs) {
-                match t {
-                    Term::Col(i, _) => acc.add(c, four(cols[*i], z)),
-                    Term::Prod(i, j, _) => acc.add(c, four(cols[*i], z) * four(cols[*j], z)),
-                    Term::Index(_) => acc.add(c, index),
-                    Term::Public(vals, _) => acc.add(c, four(vals, z)),
-                }
-            }
-            index = index * step;
-            *slot = acc.reduce(self.const_part);
-        }
-        4 * chunks.len()
-    }
+/// The lane-wise kernels [`LeafBlock::fill_lanes`] runs on: eight lanes with AVX-512
+/// ([`primitives::field::x8`]), four without ([`primitives::field::x4`]).
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+mod lanes {
+    pub(super) use primitives::field::x8::{F64x8 as K, F192x8 as E, Mixed8 as Mixed};
+    pub(super) const N: usize = 8;
+}
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "vpclmulqdq",
+    not(target_feature = "avx512f")
+))]
+mod lanes {
+    pub(super) use primitives::field::x4::{F64x4 as K, F192x4 as E, Mixed4 as Mixed};
+    pub(super) const N: usize = 4;
 }
 
 /// `dst[i] = ∏ src[4i..4i+4]`, an incomplete last four-tuple padded with the identity.

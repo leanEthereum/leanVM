@@ -44,7 +44,10 @@ use std::ops::Range;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 pub use lean_da::{DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
-use leanvm_core::cpu::{Program, ProveError, from_scalar, prove, public_input_bytes, scalar_proof, to_scalar};
+use leanvm_core::constraints::xi_offsets;
+use leanvm_core::cpu::{
+    KeccakLane, Program, ProveError, from_scalar, keccak_value, prove, public_input_bytes, scalar_proof, to_scalar,
+};
 use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
@@ -369,8 +372,7 @@ fn statement_digest(signers_hash: [F192; 2], da_digest: [u8; 32], defer: &Deferr
 /// A child's fresh claim is batched with its carried one at every child count, one included.
 struct DeferredSubproof {
     public_input: [F192; 2],
-    bytecode_row_point: Vec<F192>,
-    bytecode_selector_point: Vec<F192>,
+    bytecode_point: Vec<F192>,
     bytecode_value: F192,
 }
 
@@ -843,38 +845,32 @@ fn fold_lsb(table: &mut Vec<F192>, challenge: F192) {
     table.truncate(half);
 }
 
-/// Compressed product-sumcheck round message over γ-weighted table pairs:
-/// (g1, g∞) with g0 recovered from the running claim.
-fn round_msg(pairs: &[(&[F192], &[F192], F192)]) -> (F192, F192) {
-    let (mut g1, mut gi) = (F192::ZERO, F192::ZERO);
-    for &(u, m, lambda) in pairs {
-        let half = u.len() / 2;
-        let term = |i: usize| {
-            let (u0, u1) = (u[2 * i], u[2 * i + 1]);
-            let (m0, m1) = (m[2 * i], m[2 * i + 1]);
-            (u1 * m1, (u0 + u1) * (m0 + m1))
-        };
-        let (a1, ai) = if half >= PAR_MIN {
-            parallel::fold_reduce(
-                half,
-                || (F192::ZERO, F192::ZERO),
-                |acc: &mut (F192, F192), i| {
-                    let (x, y) = term(i);
-                    acc.0 += x;
-                    acc.1 += y;
-                },
-                |a: (F192, F192), b: (F192, F192)| (a.0 + b.0, a.1 + b.1),
-            )
-        } else {
-            (0..half).fold((F192::ZERO, F192::ZERO), |acc, i| {
+/// Compressed product-sumcheck round message of `u·m`: (g1, g∞) with g0 recovered from the
+/// running claim.
+fn round_msg(u: &[F192], m: &[F192]) -> (F192, F192) {
+    let half = u.len() / 2;
+    let term = |i: usize| {
+        let (u0, u1) = (u[2 * i], u[2 * i + 1]);
+        let (m0, m1) = (m[2 * i], m[2 * i + 1]);
+        (u1 * m1, (u0 + u1) * (m0 + m1))
+    };
+    if half >= PAR_MIN {
+        parallel::fold_reduce(
+            half,
+            || (F192::ZERO, F192::ZERO),
+            |acc: &mut (F192, F192), i| {
                 let (x, y) = term(i);
-                (acc.0 + x, acc.1 + y)
-            })
-        };
-        g1 += lambda * a1;
-        gi += lambda * ai;
+                acc.0 += x;
+                acc.1 += y;
+            },
+            |a: (F192, F192), b: (F192, F192)| (a.0 + b.0, a.1 + b.1),
+        )
+    } else {
+        (0..half).fold((F192::ZERO, F192::ZERO), |acc, i| {
+            let (x, y) = term(i);
+            (acc.0 + x, acc.1 + y)
+        })
     }
-    (g1, gi)
 }
 
 /// One round of a batching sumcheck, in the transcript order the guest mirrors
@@ -960,8 +956,7 @@ fn aggregate_deferred_claims(
     pad(&mut transcript, 1);
     for (subproof, carried) in subproofs.iter().zip(carried_claims) {
         let mut words = vec![subproof.public_input[0], subproof.public_input[1]];
-        words.extend(&subproof.bytecode_row_point);
-        words.extend(&subproof.bytecode_selector_point);
+        words.extend(&subproof.bytecode_point);
         words.push(subproof.bytecode_value);
         words.extend(carried.cells());
         for &value in &words {
@@ -975,17 +970,7 @@ fn aggregate_deferred_claims(
     let points: Vec<Vec<F192>> = subproofs
         .iter()
         .zip(carried_claims)
-        .flat_map(|(subproof, carried)| {
-            [
-                subproof
-                    .bytecode_row_point
-                    .iter()
-                    .chain(&subproof.bytecode_selector_point)
-                    .copied()
-                    .collect::<Vec<_>>(),
-                carried.bytecode_point.clone(),
-            ]
-        })
+        .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
         .collect();
     let values: Vec<F192> = subproofs
         .iter()
@@ -1023,7 +1008,7 @@ fn aggregate_deferred_claims(
         folded
     };
     for _ in 1..kbc {
-        let msg = round_msg(&[(&bt, &wt, F192::ONE)]);
+        let msg = round_msg(&bt, &wt);
         let r = absorb_round(&mut transcript, &mut bscr, &mut r_bc, &mut brun, msg);
         fold_lsb(&mut bt, r);
         fold_lsb(&mut wt, r);
@@ -1036,7 +1021,7 @@ fn aggregate_deferred_claims(
     let wt_slots = slot_weights(&points, &gbc, &r_bc, kbc);
     let (mut bt, mut wt) = (bt_slots, wt_slots);
     for _ in 0..leanvm_core::leaf::N_BYTECODE_SELECTORS {
-        let msg = round_msg(&[(&bt, &wt, F192::ONE)]);
+        let msg = round_msg(&bt, &wt);
         let r = absorb_round(&mut transcript, &mut bscr, &mut r_bc, &mut brun, msg);
         fold_lsb(&mut bt, r);
         fold_lsb(&mut wt, r);
@@ -1086,22 +1071,12 @@ fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     (queries.next_power_of_two().ilog2() as usize).min(depth)
 }
 
-/// The KECCAK table's virtual value columns: the input lanes, then the output lanes.
-fn keccak_value_columns() -> Vec<usize> {
-    let base = leanvm_core::cpu::schema().base[5];
-    leanvm_core::tables::KECCAK_VALUE_COLS
-        .iter()
-        .map(|&c| base + c)
-        .collect()
-}
-
 /// One entry of the guest's claim pool.
 enum ClaimSite {
     /// A committed column read by a framework bus block.
     Framework { column: usize },
-    /// A table column; `is_virtual` marks the q_keccak-backed value
-    /// columns, whose claim is on a slot of `q_keccak` rather than a column of its own.
-    TableColumn { column: usize, is_virtual: bool },
+    /// A table column, a KECCAK value lane's ([`keccak_value`]) included.
+    TableColumn { column: usize },
     /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
     MemoryLimb { column: usize },
 }
@@ -1125,7 +1100,7 @@ fn coord_kind(c: &Coord) -> usize {
 fn coord_scale(c: &Coord) -> F192 {
     match c {
         Coord::Const(v) => F192::new(v.0, 0, 0),
-        Coord::GCol(_, k) | Coord::Prod(_, _, k) => F192::new(g_pow(*k as usize).0, 0, 0),
+        Coord::GCol(_, k) | Coord::Prod(_, _, k) => count(*k as usize),
         _ => F192::ZERO,
     }
 }
@@ -1160,7 +1135,6 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 /// claim descriptors follow this order.
 fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl FnMut(ClaimSite)) {
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
-    let valcols = keccak_value_columns();
     // Only the framework blocks raise claims: a table's coords are settled inside
     // the table sumcheck.
     let is_framework: Vec<bool> = leanvm_core::cpu::block_kappa_sources(kbc)
@@ -1181,7 +1155,7 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
                     if !seen.insert((*i, blk.kappa)) {
                         continue; // deduped: pooled once at its first occurrence
                     }
-                    assert!(!valcols.contains(i), "{VALCOL_FRAMEWORK}");
+                    assert!(keccak_value(*i).is_none(), "{VALCOL_FRAMEWORK}");
                     visit(ClaimSite::Framework { column: *i });
                 }
             }
@@ -1190,10 +1164,8 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
     let sch = leanvm_core::cpu::schema();
     for (t, table) in leanvm_core::tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
-            let column = sch.base[t] + c;
             visit(ClaimSite::TableColumn {
-                column,
-                is_virtual: layout.placements[column].is_virtual(),
+                column: sch.base[t] + c,
             });
         }
     }
@@ -1267,7 +1239,7 @@ fn gen_verify(
         let mut order: Vec<usize> = (0..blocks.len()).collect();
         order.sort_by_key(|&i| side_layouts[s].offsets[i]);
         for &i in &order {
-            sort_order.push(F192::new(g_pow(gbase + i).0, 0, 0)); // g^{global block index}
+            sort_order.push(count(gbase + i)); // g^{global block index}
         }
         gbase += blocks.len();
     }
@@ -1287,10 +1259,7 @@ fn gen_verify(
     }
     let mut col_order = committed_globals;
     col_order.sort_by_key(|&global| layout.placements[global].offset);
-    let col_sort_order: Vec<F192> = col_order
-        .iter()
-        .map(|&global| F192::new(g_pow(compact_col[global]).0, 0, 0))
-        .collect();
+    let col_sort_order: Vec<F192> = col_order.iter().map(|&global| count(compact_col[global])).collect();
 
     // ---- Phase E2 hints (the stacked WHIR opening) ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
@@ -1337,12 +1306,9 @@ fn gen_verify(
         caps.extend(nodes.iter().flat_map(pack_hash_state));
         cap_active.extend(active);
     }
-    let mut bytecode_row_point = bytecode_point;
-    let bytecode_selector_point = bytecode_row_point.split_off(kbc);
     let deferred = DeferredSubproof {
         public_input,
-        bytecode_row_point,
-        bytecode_selector_point,
+        bytecode_point,
         bytecode_value,
     };
 
@@ -1364,10 +1330,7 @@ fn gen_verify(
         ("merkle_cap_active", cap_active),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
-        (
-            "zc_tau_max",
-            vec![F192::new(g_pow(*taus.iter().max().unwrap()).0, 0, 0)],
-        ),
+        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_sort_order", col_sort_order),
@@ -1626,16 +1589,10 @@ fn push_lean_sphincs_hints(
     for value in subtrees.flat_map(|subtree| &subtree.values) {
         hints.push("sp_forest_values", vec![pack_16_bytes(value)]);
     }
-    let (idx, marks) = lean_sphincs::message_digest(pp, &sig.randomizer, message);
+    let digest = lean_sphincs::message_digest_bytes(pp, &sig.randomizer, message);
+    let (idx, marks) = lean_sphincs::marks_of(&digest);
     // The bits past the digest's fields, which only its rebuild reads.
-    let digest = lean_sphincs::hasher(pp, &lean_sphincs::tweak(lean_sphincs::TWEAK_MSG, 0, 0))
-        .update(message)
-        .update(&sig.randomizer)
-        .finalize();
-    let unused = (LEAN_SPHINCS_USED_BITS..128).fold(0u64, |value, bit| {
-        let position = 8 * lean_sphincs::DIGEST_WORD_BYTES + bit;
-        value | u64::from(digest[position / 8] >> (position % 8) & 1) << (bit - LEAN_SPHINCS_USED_BITS)
-    });
+    let unused = lean_sphincs::digest_field(&digest, LEAN_SPHINCS_USED_BITS, 128 - LEAN_SPHINCS_USED_BITS);
     hints.push("sp_unused", exponent_bytes(unused, 128 - LEAN_SPHINCS_USED_BITS));
     for word in marks.iter().flat_map(|mark| mark.words) {
         hints.push("sp_words", vec![count(word)]);
@@ -2006,8 +1963,14 @@ struct ClaimDescriptor {
     qkeccak_slot: usize,
 }
 
-/// The guest's `POINT_BUF_KECCAK_OUT`: a claim on an output lane, which the Keccak reduction
-/// takes as its claim on the permutation's output and the opening never sees.
+// The guest's `POINT_BUF_*`, the point a pooled claim is made at: the bus's `zeta`, the table
+// sumcheck's point, the public input's, that point on a slot of `q_keccak`, and none for an
+// output lane's, which the Keccak reduction takes as its claim on the permutation's output and
+// the opening never sees.
+const POINT_BUF_ZETA: usize = 0;
+const POINT_BUF_RHO: usize = 1;
+const POINT_BUF_PI: usize = 2;
+const POINT_BUF_QKECCAK_RHO: usize = 3;
 const POINT_BUF_KECCAK_OUT: usize = 4;
 
 fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String {
@@ -2113,7 +2076,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
 
     // ---- claim descriptor buffer ids (structural) ----
-    let valcols = keccak_value_columns();
     let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
     let mut compact_col_pm = vec![usize::MAX; col_sources_pm.len()];
     let mut n_committed = 0usize;
@@ -2125,7 +2087,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     }
     let qkeccak_compact = compact_col_pm[leanvm_core::cpu::QKECCAK];
     assert_ne!(qkeccak_compact, usize::MAX, "QKECCAK must be committed");
-    // Buffer codes are the guest's POINT_BUF_*: zeta, chi, pi, qkeccak-chi.
     let mut claims = Vec::new();
     walk_claims(&layout, kbc, |site| {
         let descriptor = match site {
@@ -2133,34 +2094,30 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                 let column = compact_col_pm[column];
                 assert_ne!(column, usize::MAX, "framework claim must target a committed column");
                 ClaimDescriptor {
-                    buffer: 0,
+                    buffer: POINT_BUF_ZETA,
                     column,
                     qkeccak_slot: 0,
                 }
             }
-            ClaimSite::TableColumn { column, is_virtual, .. } => {
-                let slot = is_virtual
-                    .then(|| leanvm_core::keccak::value_slot(valcols.iter().position(|&v| v == column).unwrap()));
-                match slot {
-                    None => ClaimDescriptor {
-                        buffer: 1,
-                        column: compact_col_pm[column],
-                        qkeccak_slot: 0,
-                    },
-                    Some(Some(slot)) => ClaimDescriptor {
-                        buffer: 3,
-                        column: qkeccak_compact,
-                        qkeccak_slot: slot,
-                    },
-                    Some(None) => ClaimDescriptor {
-                        buffer: POINT_BUF_KECCAK_OUT,
-                        column: qkeccak_compact,
-                        qkeccak_slot: 0,
-                    },
-                }
-            }
+            ClaimSite::TableColumn { column } => match keccak_value(column) {
+                None => ClaimDescriptor {
+                    buffer: POINT_BUF_RHO,
+                    column: compact_col_pm[column],
+                    qkeccak_slot: 0,
+                },
+                Some(KeccakLane::Input(slot)) => ClaimDescriptor {
+                    buffer: POINT_BUF_QKECCAK_RHO,
+                    column: qkeccak_compact,
+                    qkeccak_slot: slot,
+                },
+                Some(KeccakLane::Output(_)) => ClaimDescriptor {
+                    buffer: POINT_BUF_KECCAK_OUT,
+                    column: qkeccak_compact,
+                    qkeccak_slot: 0,
+                },
+            },
             ClaimSite::MemoryLimb { column } => ClaimDescriptor {
-                buffer: 2,
+                buffer: POINT_BUF_PI,
                 column: compact_col_pm[column],
                 qkeccak_slot: 0,
             },
@@ -2227,15 +2184,10 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("COORD_FRESH", literals(coordinates.iter().map(|c| c.fresh)));
     // A fresh coordinate's place in the run of words the decomposition absorbs, which
     // decides where it waits in the Fiat-Shamir sponge.
-    let fresh_pos: Vec<usize> = coordinates
-        .iter()
-        .scan(0usize, |n, c| {
-            let pos = *n;
-            *n += c.fresh;
-            Some(pos)
-        })
-        .collect();
-    ps("COORD_FRESH_POS", literals(&fresh_pos));
+    ps(
+        "COORD_FRESH_POS",
+        literals(xi_offsets(coordinates.iter().map(|c| c.fresh))),
+    );
     ps(
         "N_FRESH",
         coordinates.iter().map(|c| c.fresh).sum::<usize>().to_string(),
@@ -2270,10 +2222,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .map(|t| t.n_constraints())
         .collect();
     let form_base = leanvm_core::cpu::xi_form_base();
-    ps(
-        "ETA_OFFSET",
-        literals(leanvm_core::constraints::xi_offsets(n_id.iter().copied())),
-    );
+    ps("ETA_OFFSET", literals(xi_offsets(n_id.iter().copied())));
     ps("ETA_FORM_BASE", form_base.to_string());
     ps("N_ETA_POWS", (form_base + 3).to_string());
     let committed: Vec<usize> = leanvm_core::tables::tables()
@@ -2281,35 +2230,25 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .map(|t| t.n_committed_columns())
         .collect();
     ps("N_TABLE_COLS", literals(&committed));
-    let col_base: Vec<usize> = committed
-        .iter()
-        .scan(0usize, |n, &c| {
-            let base = *n;
-            *n += c;
-            Some(base)
-        })
-        .collect();
-    ps("TABLE_COL_BASE", literals(&col_base));
+    ps("TABLE_COL_BASE", literals(xi_offsets(committed.iter().copied())));
     ps("N_COL_EVALS", committed.iter().sum::<usize>().to_string());
     ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
     // ---- the Keccak reduction (`keccak_gkr`), as index lists the guest unrolls ----
     {
         use keccak_gkr::rmfe::{EMBED_BITS, PACK, PROD_BITS, RMFE};
-        let depth = leanvm_core::keccak::DEPTH;
-        let segments = primitives::hash::ROUNDS / depth;
-        // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list.
+        let shape = keccak_gkr::Shape::new(leanvm_core::keccak::MIN_STEPS, leanvm_core::keccak::DEPTH);
+        let (depth, segments) = (shape.depth(), shape.segments());
+        // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's
+        // offset, then the end.
         let lists = |rows: Vec<Vec<usize>>| {
-            let mut starts = vec![0];
-            for row in &rows {
-                starts.push(starts.last().unwrap() + row.len());
-            }
-            (literals(&starts), literals(rows.concat()))
+            let starts = xi_offsets(rows.iter().map(Vec::len).chain([0]));
+            (literals(starts), literals(rows.concat()))
         };
         let bits = |word: u64, n: usize| (0..n).filter(|b| word >> b & 1 == 1).collect::<Vec<_>>();
         assert!(segments > 1, "the guest opens a committed segment output");
         ps("KECCAK_DEPTH", depth.to_string());
         ps("KECCAK_SEGMENTS", segments.to_string());
-        ps("KECCAK_SEG_LOG", segments.next_power_of_two().ilog2().to_string());
+        ps("KECCAK_SEG_LOG", shape.seg_log().to_string());
         ps("KECCAK_PACK", PACK.to_string());
         ps("KECCAK_EMBED_BITS", EMBED_BITS.to_string());
         ps("KECCAK_PROD_BITS", PROD_BITS.to_string());
@@ -2329,8 +2268,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         let (starts, idx) = lists(
             (0..depth * segments)
                 .map(|at| {
-                    let rc = primitives::hash::RC[depth * (at % segments + 1) - at / segments - 1];
-                    (0..7).filter(|i| rc >> ((1u32 << i) - 1) & 1 == 1).collect()
+                    let round = shape.round(at % segments, at / segments);
+                    (0..7).filter(|i| keccak_gkr::iota_bit(round, (1 << i) - 1)).collect()
                 })
                 .collect(),
         );
@@ -2929,7 +2868,7 @@ mod tests {
                 hints.entry_mut("sp_leaves", 0)[1] += other_tree;
             }),
             Box::new(|hints: &mut Hints| {
-                hints.entry_mut("sp_unused", 0)[0] *= F192::new(g_pow(1).0, 0, 0);
+                hints.entry_mut("sp_unused", 0)[0] *= count(1);
             }),
         ];
         for forgery in forgeries {
@@ -2953,7 +2892,7 @@ mod tests {
             Box::new(|hints: &mut Hints| hints.entry_mut("leaf_index_bits", 0)[0] += F192::ONE),
             Box::new(|hints: &mut Hints| hints.entry_mut("leaf_index_bits", 0)[1] = F192::new(2, 0, 0)),
             Box::new(|hints: &mut Hints| {
-                hints.entry_mut("digits", 0)[0] *= F192::new(g_pow(1).0, 0, 0);
+                hints.entry_mut("digits", 0)[0] *= count(1);
             }),
         ];
         for forgery in forgeries {
@@ -3182,13 +3121,14 @@ def main():
         }
     }
 
-    /// The right leaf holds more keys than one hash block of its list (four), so
-    /// both that leaf and the parent rebuilding it run the list's block loop and
-    /// then a partial last block, while the left leaf's list is one block alone.
+    /// The right leaf holds more claims than one loop frame of its list hashes
+    /// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
+    /// list's group loop and then a partial last group, while the left leaf's list is
+    /// a partial group alone.
     #[test]
     fn aggregate_two_to_one() {
         leanvm_core::init_prover();
-        let big = 4 * 2 + 3;
+        let big = 2 * CLAIM_GROUP + 3;
         let signers = get_signers(SMALL_LEAF_SIZE + big);
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
         let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);

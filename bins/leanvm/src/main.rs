@@ -7,7 +7,6 @@ use clap::{Parser, Subcommand};
 
 mod benchmark;
 mod fibonacci;
-mod hash;
 mod report;
 
 #[derive(Parser)]
@@ -82,8 +81,13 @@ enum Command {
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
     Hash {
-        /// Log2 of the number of permutations, at least 9.
-        #[arg(long, default_value_t = 17, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(9..))]
+        /// Log2 of the number of permutations, at least that of the reduction's fewest steps.
+        #[arg(
+            long,
+            default_value_t = 17,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new()
+                .range(u64::from(leanvm_core::keccak::MIN_STEPS.ilog2())..)
+        )]
         log_n: usize,
     },
     /// Prove and verify Fibonacci in the exponent (demo).
@@ -122,7 +126,7 @@ fn main() {
             );
         }
         Command::Hash { log_n } => {
-            hash::run_hash(log_n, cli.log_inv_rate, plan);
+            keccak_gkr::batch_bench::run(1 << log_n, leanvm_core::keccak::DEPTH, cli.log_inv_rate, plan).print();
         }
         Command::Fibonacci { n } => {
             fibonacci::run_fibonacci(n, cli.log_inv_rate, plan);

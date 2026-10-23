@@ -10,7 +10,7 @@
 //!
 //! One layer turns a claim on the states after a round into a claim on the states before it.
 
-use primitives::field::F192;
+use primitives::field::{F192, powers};
 use primitives::multilinear::eq_table;
 
 use crate::keccak::{BITS, along};
@@ -31,10 +31,7 @@ pub struct Claim {
 /// The instance weights of a claim made at the polynomial point `s`: the value at `s` of each
 /// unit vector's embedding.
 pub fn mu_at(s: F192) -> [F192; PACK] {
-    let mut powers = [F192::ONE; EMBED_BITS];
-    for b in 1..EMBED_BITS {
-        powers[b] = powers[b - 1] * s;
-    }
+    let powers = powers(s, EMBED_BITS);
     std::array::from_fn(|i| {
         (0..EMBED_BITS)
             .filter(|b| RMFE.emb[i] >> b & 1 == 1)
@@ -64,14 +61,14 @@ pub fn chi_weights(eq: &[F192], beta: F192) -> Vec<F192> {
     out
 }
 
-/// The claim the layers start from, once its challenges are drawn: a random combination of the
-/// output lanes as words, bit `z` of a word weighing `x^z`.
-pub fn first_claim(shape: Shape, value: F192, r_low: &[F192], point: Vec<F192>, r_lane: &[F192]) -> Claim {
+/// The claim the layers start from, once its challenges are drawn, valued at zero: a random
+/// combination of the output lanes as words, bit `z` of a word weighing `x^z`.
+pub fn first_claim(shape: Shape, r_low: &[F192], point: Vec<F192>, r_lane: &[F192]) -> Claim {
     let mu: [F192; PACK] = eq_table(r_low).try_into().expect("four low variables");
     assert_eq!(point.len(), shape.y_vars());
     let lanes = eq_table(r_lane);
     Claim {
-        value,
+        value: F192::ZERO,
         mu,
         point,
         weights: (0..BITS)

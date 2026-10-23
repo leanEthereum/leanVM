@@ -16,29 +16,27 @@
 //! cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
 //! the VM reads, and the output is the permutation's, written as it is.
 
-use crate::transcript::ProverState;
-use keccak_gkr::witness::{BLOCK, Extent, Slot};
-use keccak_gkr::{Openings, OutputClaim, Shape};
+use keccak_gkr::witness::{BLOCK, Extent, Slot, block_lanes};
+use keccak_gkr::{Shape, Witness};
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
 
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
-/// Committed states of a step: its input and those between, not its output.
-const STATES: usize = primitives::hash::ROUNDS / DEPTH;
-/// `log2` of the slots the committed column holds per step: one per lane of each state, rounded
-/// up to a power of two.
-pub const SLOT_LOG: usize = (STATE_LANES * STATES).next_power_of_two().ilog2() as usize;
-/// The fewest steps the reduction is sized for, one of its blocks, and its `log2`.
-pub const MIN_STEPS: usize = 1 << MIN_STEPS_LOG;
-const MIN_STEPS_LOG: usize = 9;
+/// The reduction's shape at its fewest steps.
+const MIN_SHAPE: Shape = shape(0);
+/// `log2` of the slots the committed column holds per step: one per lane of each state but the
+/// output, rounded up to a power of two.
+pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
+/// The fewest steps the reduction is sized for, one of its blocks.
+pub const MIN_STEPS: usize = MIN_SHAPE.n();
 
 /// `log2` of the steps the reduction proves for `n` executed ones.
 pub fn n_steps_log(n: usize) -> usize {
-    (n.max(1).next_power_of_two().ilog2() as usize).max(MIN_STEPS_LOG)
+    shape(n).n_log()
 }
 
-fn shape(n_steps: usize) -> Shape {
+const fn shape(n_steps: usize) -> Shape {
     Shape::new(n_steps, DEPTH)
 }
 
@@ -53,7 +51,7 @@ pub const RELATION_LABEL: &[u8] =
 
 /// `log2` of the committed column, in words.
 pub fn qkeccak_kappa(n_steps: usize) -> usize {
-    n_steps_log(n_steps) + SLOT_LOG
+    shape(n_steps).stack_log()
 }
 
 /// Cells a sponge state occupies.
@@ -84,12 +82,6 @@ pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CEL
         c += 1;
     }
     t
-}
-
-/// The committed column's slot for value column `i`, in `tables::KECCAK_VALUE_COLS` order: an
-/// input lane's own. An output lane has none.
-pub fn value_slot(i: usize) -> Option<usize> {
-    (i < STATE_LANES).then_some(i)
 }
 
 /// The 25 lanes thirteen state cells hold in a layout.
@@ -125,32 +117,7 @@ pub(crate) fn permute_cells(cells: &[F192; STATE_CELLS], in_odd: bool, out_odd: 
 
 /// The reduction's witness: every round's state of every step, kept from the pass that wrote
 /// the committed column until the reduction has run.
-pub(crate) struct PreparedReductionWitness(keccak_gkr::Witness);
-
-impl PreparedReductionWitness {
-    /// The openings of the committed column the reduction leaves, the output being `output`.
-    pub(crate) fn prove(&self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
-        keccak_gkr::prove(ps, &self.0, q_keccak, output)
-    }
-}
-
-/// Build the committed column for `instances`, the lanes each step reads, padded with all-zero
-/// steps to `2^n_steps_log(instances.len())`, and keep the reduction's witness.
-#[cfg(test)]
-pub(crate) fn build_qkeccak_prepared(
-    instances: &[[u64; STATE_LANES]],
-    q_keccak: &mut [F64],
-) -> PreparedReductionWitness {
-    let shape = shape(instances.len());
-    assert_eq!(
-        q_keccak.len(),
-        1 << shape.stack_log(),
-        "the committed column is the wrong size"
-    );
-    let inputs: Vec<[u64; STATE_LANES]> =
-        parallel::map_collect(shape.n(), |i| instances.get(i).copied().unwrap_or([0; STATE_LANES]));
-    PreparedReductionWitness(keccak_gkr::Witness::generate(shape, &inputs, q_keccak))
-}
+pub(crate) type PreparedReductionWitness = Witness;
 
 /// The reduction's witness for the steps a program ran, built while it ran: every whole block
 /// of steps, its rounds in `extents` and its committed lanes in `lanes`, slot after slot.
@@ -158,24 +125,6 @@ pub(crate) struct Blocks {
     extents: Vec<Extent>,
     lanes: Vec<Vec<u64>>,
     steps: usize,
-}
-
-/// One block's rounds into `slot`, and its committed lanes.
-///
-/// # Safety
-/// As [`keccak_gkr::witness::block`].
-unsafe fn run_block(steps: &[[u64; STATE_LANES]], slot: Slot) -> Vec<u64> {
-    let mut inputs = [[0; STATE_LANES]; BLOCK];
-    inputs[..steps.len()].copy_from_slice(steps);
-    // SAFETY: every word is written, a slot's lanes for each of the block's eight words.
-    let mut lanes = unsafe { primitives::uninit_vec::<u64>((STATE_LANES * STATES) * BLOCK) };
-    // SAFETY: forwarded to the caller.
-    unsafe {
-        keccak_gkr::witness::block(DEPTH, &inputs, slot, |slot, w, words| {
-            lanes[slot * BLOCK + 64 * w..][..64].copy_from_slice(words)
-        })
-    };
-    lanes
 }
 
 /// Run `run`, which reports the lanes of each step it executes, and build the reduction's
@@ -198,7 +147,7 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
                         let job = queue.lock().expect("a worker panicked").recv();
                         let Ok((g, steps, slot)) = job else { break };
                         // SAFETY: the job owns its slot.
-                        done.push((g, unsafe { run_block(&steps, slot) }));
+                        done.push((g, unsafe { block_lanes(DEPTH, &steps, slot) }));
                     }
                     done
                 })
@@ -217,7 +166,7 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
             let block = std::mem::replace(pending, Vec::with_capacity(BLOCK));
             if workers == 0 || last {
                 // SAFETY: the block owns its slot.
-                inline.push((blocks, unsafe { run_block(&block, slot) }));
+                inline.push((blocks, unsafe { block_lanes(DEPTH, &block, slot) }));
             } else {
                 jobs.send((blocks, block, slot)).expect("the workers outlive the run");
             }
@@ -249,70 +198,35 @@ impl Blocks {
     /// Write the committed column of the `steps` steps these blocks hold, padded with
     /// all-zero steps, and hand the reduction its witness.
     pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> PreparedReductionWitness {
-        let shape = shape(steps);
         assert_eq!(self.steps, steps, "the blocks are of another run");
+        let shape = shape(self.steps);
         assert_eq!(
             q_keccak.len(),
             1 << shape.stack_log(),
             "the committed column is the wrong size"
         );
-        let n = shape.n();
-        let written = self.lanes.len();
-        let padding = (written < shape.n_blocks()).then(|| {
-            let mut extent = Extent::new(written, 1);
-            let slot = extent.slot(written);
-            // SAFETY: the extent's one slot, written here alone.
-            let lanes = unsafe { run_block(&[], slot) };
-            (extent, lanes)
-        });
-        q_keccak[shape.slots() * n..].fill(F64::ZERO);
-        let column = parallel::SendPtr(q_keccak.as_mut_ptr());
-        parallel::for_each(shape.n_blocks(), |g| {
-            let lanes = self
-                .lanes
-                .get(g)
-                .unwrap_or_else(|| &padding.as_ref().expect("a padding block").1);
-            let stream = primitives::stream::Stream::new();
-            for slot in 0..shape.slots() {
-                // SAFETY: block `g` owns its steps' words of every slot.
-                unsafe {
-                    stream.copy_uninit(
-                        column.add(slot * n + g * BLOCK).cast::<u64>(),
-                        &lanes[slot * BLOCK..][..BLOCK],
-                    )
-                };
-            }
-        });
-        // SAFETY: `while_executing` ran a block into each of the first `written` slots, in
-        // order, and the padding block was written just above.
-        PreparedReductionWitness(unsafe {
-            keccak_gkr::Witness::from_extents(shape, self.extents, written, padding.map(|(extent, _)| extent))
-        })
+        // SAFETY: `while_executing` ran block `g` into its slot of `extents`, in order, its
+        // lanes being `lanes[g]`.
+        unsafe { Witness::from_blocks(shape, self.extents, &self.lanes, q_keccak) }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::transcript::ProverState;
+    use keccak_gkr::OutputClaim;
 
     fn f(x: u64) -> F64 {
         F64(x)
     }
 
-    /// The committed column on its own, and the reduction's witness.
-    fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, PreparedReductionWitness) {
+    /// The committed column for `instances`, padded with all-zero steps, and the reduction's
+    /// witness.
+    fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
         let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
-        let witness = build_qkeccak_prepared(instances, &mut q_keccak);
+        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak);
         (q_keccak, witness)
-    }
-
-    /// The true claim on the steps' outputs at `point`.
-    fn output_claim(instances: &[[u64; STATE_LANES]], point: Vec<F192>) -> OutputClaim {
-        let shape = shape(instances.len());
-        let inputs: Vec<[u64; STATE_LANES]> = (0..shape.n())
-            .map(|i| instances.get(i).copied().unwrap_or([0; STATE_LANES]))
-            .collect();
-        OutputClaim::of_inputs(shape, &inputs, point)
     }
 
     fn sample_instances(n: usize) -> Vec<[u64; STATE_LANES]> {
@@ -338,21 +252,14 @@ mod tests {
             let witness = blocks.place(n, &mut q_keccak);
             assert_eq!(q_keccak, expected, "{n} steps");
             let point = (0..n_steps_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
-            let output = output_claim(&instances, point);
-            let stream = |witness: &PreparedReductionWitness| {
+            let output = OutputClaim::of_inputs(shape(n), &instances, point);
+            let stream = |witness: &Witness| {
                 let mut ps = ProverState::from_label(b"blocks");
                 let openings = witness.prove(&mut ps, &q_keccak, &output);
                 (openings, ps.into_proof())
             };
             assert!(stream(&witness) == stream(&reference), "{n} steps");
         }
-    }
-
-    /// The relation's label names the constants it stands for.
-    #[test]
-    fn relation_label_names_the_depth() {
-        let label = std::str::from_utf8(RELATION_LABEL).unwrap();
-        assert!(label.contains(&format!("depth {DEPTH},")));
     }
 
     /// Both layouts round-trip, and a padded message laid out in cells, block `k`'s nine cells
@@ -405,9 +312,7 @@ mod tests {
         let n = 1usize << n_steps_log(instances.len());
         for (j, input) in instances.iter().enumerate() {
             for i in 0..STATE_LANES {
-                let slot = value_slot(i).expect("an input lane");
-                assert_eq!(q_keccak[slot * n + j], f(input[i]));
-                assert_eq!(value_slot(STATE_LANES + i), None);
+                assert_eq!(q_keccak[i * n + j], f(input[i]));
             }
         }
     }

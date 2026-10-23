@@ -7,10 +7,8 @@
 //! them), and one WHIR run discharges
 //!
 //! - **point claims** ([`StackClaim`]): plain multilinear evaluations of
-//!   aligned sub-slices of the stack (a `Point` claim's weight is
-//!   `eq(low_point, .)` supported on `[offset, offset + 2^|low_point|)`; a
-//!   `Strided` claim freezes the low `stride_log` in-block coords to `slot`'s
-//!   bits, so its weight is nonzero only at `offset + slot + j * 2^stride_log`),
+//!   aligned sub-slices of the stack (a claim's weight is `eq(low_point, .)`
+//!   supported on `[offset, offset + 2^|low_point|)`),
 //! - **ring-switched claims** ([`RingSwitchOpen`]): bit-MLE evaluation claims
 //!   on the packed sub-block `q_keccak = stack[offset .. offset + 2^qkeccak_vars]`,
 //!   reduced per claim by [`super::ring_switch::prove_prepare`] and the
@@ -71,34 +69,25 @@ pub enum StackClaim {
         low_point: Vec<F192>,
         value: F192,
     },
-    /// A boolean-selector claim on a packed column: the low `stride_log`
-    /// in-block coords are frozen to `slot`'s bits (so the weight is nonzero
-    /// only at `offset + slot + j * 2^stride_log`) and `point` is the high
-    /// part. Equivalent to a `Point` with `low_point = slot_bits ++ point`,
-    /// folded in `O(2^|point|)` instead of `O(2^(stride_log + |point|))`.
-    /// `offset` must be a multiple of `2^(stride_log + |point|)` and
-    /// `slot < 2^stride_log`.
-    Strided {
-        offset: usize,
-        slot: usize,
-        stride_log: usize,
-        point: Vec<F192>,
-        value: F192,
-    },
 }
 
 impl StackClaim {
     #[inline]
     pub fn value(&self) -> F192 {
-        match self {
-            StackClaim::Point { value, .. } | StackClaim::Strided { value, .. } => *value,
-        }
+        let StackClaim::Point { value, .. } = self;
+        *value
+    }
+
+    /// The aligned dyadic range of the stack its weight is supported on.
+    fn range(&self) -> (usize, usize) {
+        let StackClaim::Point { offset, low_point, .. } = self;
+        (*offset, *offset + (1usize << low_point.len()))
     }
 }
 
 /// One ring-switched claim on the q_keccak sub-block: the 64 bit-slice MLEs of
 /// q_keccak at `suffix_point` (see [`super::ring_switch`]), which has
-/// `qkeccak_vars` coords.
+/// `qkeccak_vars` coords, the same for every claim.
 ///
 /// `s_hat_v` holds those 64 values. The caller transmits and checks them itself
 /// (the Keccak reduction sends them and checks them against its last claim), so this
@@ -117,30 +106,15 @@ pub struct RingSwitchOpen {
     /// q_keccak's offset inside the committed stack; must be a multiple of
     /// `2^qkeccak_vars` (an aligned slice).
     pub offset: usize,
-    /// log2 of q_keccak's length in F64 words; the opener slices
-    /// `q_keccak = stack[offset .. offset + 2^qkeccak_vars]` (no separate copy).
-    pub qkeccak_vars: usize,
     pub claims: Vec<RingSwitchClaim>,
 }
 
-// ---------------------------------------------------------------------------
-// Claim support
-// ---------------------------------------------------------------------------
-
-/// The b_stack range a claim's weight is supported on. Every range is an
-/// aligned dyadic interval (the offset asserts below), so two of them are
-/// nested or disjoint and never partially overlap. `Strided` reports its whole
-/// block rather than the strided positions inside it, which is conservative in
-/// the direction that matters: it only ever makes a later claim accumulate.
-fn claim_range(claim: &StackClaim) -> (usize, usize) {
-    match claim {
-        StackClaim::Point { offset, low_point, .. } => (*offset, *offset + (1usize << low_point.len())),
-        StackClaim::Strided {
-            offset,
-            stride_log,
-            point,
-            ..
-        } => (*offset, *offset + (1usize << (stride_log + point.len()))),
+impl RingSwitchOpen {
+    /// log2 of q_keccak's length in F64 words, its claims' point length; the
+    /// opener slices `q_keccak = stack[offset .. offset + 2^qkeccak_vars]` (no
+    /// separate copy).
+    pub fn qkeccak_vars(&self) -> usize {
+        self.claims[0].suffix_point.len()
     }
 }
 
@@ -167,7 +141,11 @@ pub fn open_batch_mixed_whir_stacked(
     point_claims: &[StackClaim],
     ring: &RingSwitchOpen,
 ) {
-    let qkeccak_len = 1usize << ring.qkeccak_vars;
+    assert!(
+        !ring.claims.is_empty(),
+        "stacked PCS opening carries at least one ring-switched claim"
+    );
+    let qkeccak_len = 1usize << ring.qkeccak_vars();
     assert!(
         ring.offset.is_multiple_of(qkeccak_len),
         "q_keccak offset must be 2^qkeccak_vars-aligned"
@@ -177,12 +155,8 @@ pub fn open_batch_mixed_whir_stacked(
         "q_keccak slice must fit inside the stack"
     );
     assert!(
-        point_claims.iter().all(|c| claim_range(c).1 <= stack.len()),
+        point_claims.iter().all(|c| c.range().1 <= stack.len()),
         "every claim must live inside the committed lanes"
-    );
-    assert!(
-        !ring.claims.is_empty(),
-        "stacked PCS opening carries at least one ring-switched claim"
     );
     let span = tracing::info_span!("Ring switch").entered();
 
@@ -193,8 +167,8 @@ pub fn open_batch_mixed_whir_stacked(
     for claim in &ring.claims {
         assert_eq!(
             claim.suffix_point.len(),
-            ring.qkeccak_vars,
-            "ring-switch suffix point must have qkeccak_vars coords"
+            ring.qkeccak_vars(),
+            "every ring-switch suffix point must have qkeccak_vars coords"
         );
         rs_states.push(ring_switch::prove_prepare(
             qkeccak,
@@ -271,7 +245,6 @@ mod tests {
             let offset = if stack.len() >= 2 * qkeccak_len { qkeccak_len } else { 0 };
             let ring = RingSwitchOpen {
                 offset,
-                qkeccak_vars,
                 claims: (0..2)
                     .map(|_| RingSwitchClaim {
                         suffix_point: rng.ext_vec(qkeccak_vars),
@@ -289,7 +262,7 @@ mod tests {
                     ring_switch::prove_finish_deferred(state, &coordinates, rng.ext())
                 })
                 .collect();
-            let mut claims: Vec<_> = [
+            let claims: Vec<_> = [
                 (offset, qkeccak_vars),
                 ((lanes - 1) * lane_block, lane_vars),
                 (8, 3),
@@ -302,36 +275,18 @@ mod tests {
                 value: rng.ext(),
             })
             .collect();
-            for stride_log in [0, 1, 3, qkeccak_vars - 1, qkeccak_vars] {
-                claims.push(StackClaim::Strided {
-                    offset,
-                    slot: (1 << stride_log) - 1,
-                    stride_log,
-                    point: rng.ext_vec(qkeccak_vars - stride_log),
-                    value: rng.ext(),
-                });
-            }
             let lambdas = rng.ext_vec(claims.len());
             // Oracle: the dense weight written out naively, one eq entry at a
             // time, so it shares no code with the fused build under test.
             let mut expected = vec![F192::ZERO; stack.len()];
             ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut expected[offset..offset + qkeccak_len]);
             for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                let (base, stride_log, point) = match claim {
-                    StackClaim::Point { offset, low_point, .. } => (*offset, 0, low_point.as_slice()),
-                    StackClaim::Strided {
-                        offset,
-                        slot,
-                        stride_log,
-                        point,
-                        ..
-                    } => (*offset + *slot, *stride_log, point.as_slice()),
-                };
-                for j in 0..1usize << point.len() {
-                    let w = point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
+                let StackClaim::Point { offset, low_point, .. } = claim;
+                for j in 0..1usize << low_point.len() {
+                    let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
                         w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
                     });
-                    expected[base + (j << stride_log)] += w;
+                    expected[offset + j] += w;
                 }
             }
             let (actual, message) = basis::build(&stack, lane_block, &claims, &lambdas, &ring, &rs_outputs);

@@ -68,9 +68,9 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     }
 }
 
-fn xor_bytes(state: &mut [u64; STATE_LANES], bytes: &[u8]) {
-    for (i, &byte) in bytes.iter().enumerate() {
-        state[i / 8] ^= u64::from(byte) << (8 * (i % 8));
+fn xor_block(state: &mut [u64; STATE_LANES], block: &[u8; RATE]) {
+    for (lane, word) in state.iter_mut().zip(block.as_chunks::<8>().0) {
+        *lane ^= u64::from_le_bytes(*word);
     }
 }
 
@@ -80,14 +80,14 @@ pub fn keccak_hash(data: &[u8]) -> Digest {
     let mut state = [0u64; STATE_LANES];
     let (blocks, tail) = data.as_chunks::<RATE>();
     for block in blocks {
-        xor_bytes(&mut state, block);
+        xor_block(&mut state, block);
         keccak_f(&mut state);
     }
     let mut block = [0u8; RATE];
     block[..tail.len()].copy_from_slice(tail);
     block[tail.len()] ^= 0x01;
     block[RATE - 1] ^= 0x80;
-    xor_bytes(&mut state, &block);
+    xor_block(&mut state, &block);
     keccak_f(&mut state);
     let mut value = [0u8; 32];
     for (bytes, lane) in value.as_chunks_mut().0.iter_mut().zip(state) {

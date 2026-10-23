@@ -6,6 +6,8 @@ use lean_compiler::{compile, parse};
 use primitives::field::F192;
 use primitives::hash::{STATE_LANES, keccak_f};
 
+use crate::common::f192_lit;
+
 const SRC: &str = r#"
 from snark_lib import *
 
@@ -58,15 +60,14 @@ fn duplex(state: &mut [u64; STATE_LANES], rate: &[u64]) -> F192 {
 fn guest_transcript_step_matches_the_native_duplex() {
     let mut state: [u64; STATE_LANES] = std::array::from_fn(|i| 0x9e37_79b9_7f4a_7c15u64.wrapping_mul(i as u64 + 1));
     keccak_f(&mut state);
-    let lit = |x: F192| format!("f192({}, {}, {})", x.c0, x.c1, x.c2);
     // The capacity cells as the VM reads them: lane 16 alone, then lanes 17..25 two a cell.
     let cap: [F192; 5] = std::array::from_fn(|c| match c {
         0 => F192::new(state[16], 0, 0),
         _ => F192::new(state[15 + 2 * c], state[16 + 2 * c], 0),
     });
-    let mut src = SRC.replace("Y_INV_LIT", &lit(F192::new(0, 1, 0).inv()));
+    let mut src = SRC.replace("Y_INV_LIT", &f192_lit(F192::new(0, 1, 0).inv()));
     for (c, x) in cap.into_iter().enumerate() {
-        src = src.replace(&format!("CAP_{c}"), &lit(x));
+        src = src.replace(&format!("CAP_{c}"), &f192_lit(x));
     }
     let first = duplex(&mut state, &[5, 6, 7, 1]);
     let second = duplex(&mut state, &[]);

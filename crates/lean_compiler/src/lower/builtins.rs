@@ -31,31 +31,20 @@ impl FnLower<'_> {
     /// transcript keeps it.
     fn lower_keccak(&mut self, args: &[Expr]) {
         let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap"]);
-        let [a0, a1] = self.keccak_words::<2>(&args[0]);
-        let [b0, b1] = self.keccak_words::<2>(&args[1]);
-        let mut cells = vec![a0, a1, b0, b1];
+        let mut cells = self.keccak_operand(&args[0], 2);
+        cells.extend(self.keccak_operand(&args[1], 2));
         if let Some(tail) = kwargs.get("tail") {
-            cells.extend(self.keccak_words::<4>(tail));
+            cells.extend(self.keccak_operand(tail, 4));
         }
         if let Some(cap) = kwargs.get("cap") {
             if kwargs.contains_key("len") {
                 self.fail("keccak cap= is an overwrite duplex step: it takes no len=")
             }
-            let cap = match self.try_cell_run(cap) {
-                Ok(CellRun::Stack { base, len }) if len == STATE_CELLS => base + 8,
-                Ok(CellRun::Stack { base, len: 5 }) => base,
-                Ok(CellRun::Heap { ptr, lo, len }) if len == STATE_CELLS || len == 5 => {
-                    let from = lo + len - 5;
-                    let run = self.alloc_stack(5);
-                    for k in 0..5 {
-                        self.deref(ptr, from + k, run + k, DerefMode::Cell);
-                    }
-                    run
-                }
-                _ => self.fail(format!(
+            let cap = self.prev_state(cap, 5).unwrap_or_else(|| {
+                self.fail(format!(
                     "keccak cap= must be a previous {STATE_CELLS}-cell output or its last five cells"
-                )),
-            };
+                ))
+            });
             cells.resize(8, SpongeCell::Zero);
             let out = self.keccak_out(&args[2]);
             let (m, tail) = self.keccak_rate(&cells, None);
@@ -108,25 +97,7 @@ impl FnLower<'_> {
             }
             e => e,
         };
-        let cells: Vec<SpongeCell> = match list {
-            Expr::ListLit(words) => words
-                .iter()
-                .map(|w| match self.try_const_int(w) {
-                    Some(0) => SpongeCell::Zero,
-                    _ => SpongeCell::Cell(self.expr(w)),
-                })
-                .collect(),
-            e => match self.cell_run(e) {
-                CellRun::Stack { base, len } => (0..len).map(|k| SpongeCell::Cell(base + k)).collect(),
-                CellRun::Heap { ptr, lo, len } => {
-                    let t = self.alloc_stack(len);
-                    for k in 0..len {
-                        self.deref(ptr, lo + k, t + k, DerefMode::Cell);
-                    }
-                    (0..len).map(|k| SpongeCell::Cell(t + k)).collect()
-                }
-            },
-        };
+        let cells = self.sponge_cells(list);
         if cells.is_empty() {
             self.fail("keccak_cells hashes at least one cell")
         }
@@ -146,18 +117,12 @@ impl FnLower<'_> {
             }
             None
         };
-        let state = kwargs.get("state").map(|state| match self.try_cell_run(state) {
-            Ok(CellRun::Stack { base, len }) if len >= STATE_CELLS => base,
-            Ok(CellRun::Heap { ptr, lo, len }) if len == STATE_CELLS => {
-                let st = self.alloc_stack(STATE_CELLS);
-                for k in 0..STATE_CELLS {
-                    self.deref(ptr, lo + k, st + k, DerefMode::Cell);
-                }
-                st
-            }
-            _ => self.fail(format!(
-                "keccak_cells state= must be the {STATE_CELLS}-cell run a previous keccak wrote"
-            )),
+        let state = kwargs.get("state").map(|state| {
+            self.prev_state(state, STATE_CELLS).unwrap_or_else(|| {
+                self.fail(format!(
+                    "keccak_cells state= must be the {STATE_CELLS}-cell run a previous keccak wrote"
+                ))
+            })
         });
         let out = self.keccak_out(&args[1]);
         self.emit_keccak_message(cells, final_len, state, out.state);
@@ -252,11 +217,7 @@ impl FnLower<'_> {
                     self.copy(out.state + k, base + k);
                 }
             }
-            Some(CellRun::Heap { ptr, lo, len }) => {
-                for k in 0..len {
-                    self.deref(ptr, lo + k, out.state + k, DerefMode::Cell);
-                }
-            }
+            Some(CellRun::Heap { ptr, lo, len }) => self.deref_run(ptr, lo, len, out.state),
         }
     }
 
@@ -488,37 +449,53 @@ impl FnLower<'_> {
         true
     }
 
-    /// `N` message cells of a `keccak` block: a list literal of `N` words (a literal
-    /// `0` known to be zero, which lets a constant window of the padding run stand
-    /// in for it), or a run of `N` cells, a heap slice bridged through the stack
-    /// one `DEREF` per cell since `KECCAK` addresses only frame cells.
-    fn keccak_words<const N: usize>(&mut self, e: &Expr) -> [SpongeCell; N] {
+    /// The message cells `e` names: a list literal's words (a literal `0` known to be zero,
+    /// which lets a constant window of the padding run stand in for it), or a run of cells, a
+    /// heap run bridged through the stack since `KECCAK` addresses only frame cells.
+    fn sponge_cells(&mut self, e: &Expr) -> Vec<SpongeCell> {
         if let Expr::ListLit(words) = e {
-            if words.len() != N {
-                self.fail(format!(
-                    "a keccak operand written as a list needs exactly {N} words, got {}",
-                    words.len()
-                ))
-            };
-            return std::array::from_fn(|k| match self.try_const_int(&words[k]) {
-                Some(0) => SpongeCell::Zero,
-                _ => SpongeCell::Cell(self.expr(&words[k])),
-            });
+            return words
+                .iter()
+                .map(|w| match self.try_const_int(w) {
+                    Some(0) => SpongeCell::Zero,
+                    _ => SpongeCell::Cell(self.expr(w)),
+                })
+                .collect();
         }
-        match self.cell_run(e) {
-            CellRun::Stack { base, len } if len == N as u32 => {
-                std::array::from_fn(|k| SpongeCell::Cell(base + k as u32))
+        let (base, len) = match self.cell_run(e) {
+            CellRun::Stack { base, len } => (base, len),
+            CellRun::Heap { ptr, lo, len } => (self.heap_to_stack(ptr, lo, len), len),
+        };
+        (0..len).map(|k| SpongeCell::Cell(base + k)).collect()
+    }
+
+    /// A `keccak` operand: [`Self::sponge_cells`] of exactly `n` cells.
+    fn keccak_operand(&mut self, e: &Expr, n: usize) -> Vec<SpongeCell> {
+        let cells = self.sponge_cells(e);
+        if cells.len() != n {
+            match e {
+                Expr::ListLit(_) => self.fail(format!(
+                    "a keccak operand written as a list needs exactly {n} words, got {}",
+                    cells.len()
+                )),
+                _ => self.fail(format!(
+                    "this keccak operand spans exactly {n} cells; slice a larger buffer: `buf[lo:lo + {n}]`"
+                )),
             }
-            CellRun::Heap { ptr, lo, len } if len == N as u32 => {
-                let t = self.alloc_stack(N as u32);
-                for k in 0..N as u32 {
-                    self.deref(ptr, lo + k, t + k, DerefMode::Cell);
-                }
-                std::array::from_fn(|k| SpongeCell::Cell(t + k as u32))
+        }
+        cells
+    }
+
+    /// The frame cells holding the last `n` cells of a previous 13-cell output `e`, or `e` as
+    /// those `n` cells alone: a stack run in place, a heap run bridged through the stack.
+    fn prev_state(&mut self, e: &Expr, n: u32) -> Option<Off> {
+        match self.try_cell_run(e).ok()? {
+            CellRun::Stack { base, len } if len >= STATE_CELLS => Some(base + STATE_CELLS - n),
+            CellRun::Stack { base, len } if len == n => Some(base),
+            CellRun::Heap { ptr, lo, len } if len == STATE_CELLS || len == n => {
+                Some(self.heap_to_stack(ptr, lo + len - n, n))
             }
-            _ => self.fail(format!(
-                "this keccak operand spans exactly {N} cells; slice a larger buffer: `buf[lo:lo + {N}]`"
-            )),
+            _ => None,
         }
     }
 

@@ -27,7 +27,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_dyn_from_state, zero_prefix_state};
+use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
 use primitives::pretty_integer;
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -202,7 +202,7 @@ impl Nodes {
         for j in level..level + height {
             // SAFETY: level `j` of the subtree is initialized, and level `j + 1` is ours to write.
             let (children, parents) = unsafe { (self.level_mut(j, first, n), self.level_mut(j + 1, first / 2, n / 2)) };
-            hash_many::<{ 2 * OUT_LEN }>(digests_as_bytes(children), digests_as_bytes(parents));
+            hash_many(digests_as_bytes(children), 2 * OUT_LEN, digests_as_bytes(parents));
             (first, n) = (first / 2, n / 2);
         }
     }
@@ -316,7 +316,7 @@ impl LeafHasher {
     fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
         match *self {
             Self::Direct { row_bytes, state } => {
-                hash_many_dyn_from_state(rows, row_bytes, &state, digests_as_bytes(out));
+                hash_many_from_state(rows, row_bytes, &state, digests_as_bytes(out));
             }
             Self::Staged {
                 row_bytes,
@@ -333,7 +333,7 @@ impl LeafHasher {
                 let mut tile = Tile::new();
                 for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
                     let images = tile.extend(rows, row_bytes, image);
-                    hash_many_dyn_from_state(images, image, &state, digests_as_bytes(out));
+                    hash_many_from_state(images, image, &state, digests_as_bytes(out));
                 }
             }
         }

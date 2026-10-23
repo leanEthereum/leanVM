@@ -18,7 +18,7 @@ fn run<const LEN: usize>() {
         parallel::chunks_mut(&mut out, k * 32, |i, sub| {
             let d = &data[i * BYTES..][..BYTES];
             for _ in 0..ITERS {
-                primitives::hash::hash_many::<LEN>(d, sub);
+                primitives::hash::hash_many(d, LEN, sub);
                 std::hint::black_box(&mut *sub);
             }
         });

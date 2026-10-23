@@ -4,7 +4,8 @@
 //! multiplying it by a weight is a carry-less product. So the prover moves its weights into that
 //! basis once, accumulates unreduced polynomials in `s`, and evaluates each total at `s` at the end.
 
-use primitives::field::F192;
+use primitives::field::gf2_64::mul_wide;
+use primitives::field::{F192, powers};
 
 fn bits(a: F192) -> [u64; 3] {
     [a.c0, a.c1, a.c2]
@@ -97,11 +98,13 @@ pub struct PolyEval {
 
 impl PolyEval {
     pub fn new(s: F192, n_bytes: usize) -> Self {
-        let powers: Vec<F192> = std::iter::successors(Some(F192::ONE), |&p| Some(p * s))
-            .take(8 * n_bytes)
-            .collect();
         Self {
-            tables: powers.as_chunks::<8>().0.iter().map(byte_sums).collect(),
+            tables: powers(s, 8 * n_bytes)
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(byte_sums)
+                .collect(),
         }
     }
 
@@ -126,10 +129,21 @@ pub fn carry<const N: usize, const M: usize>(acc: &[u128; N]) -> [u64; M] {
     out
 }
 
+/// `acc += a * b`, on binary polynomials.
+#[inline(always)]
+pub fn add_mul<const A: usize, const B: usize, const N: usize>(acc: &mut [u64; N], a: &[u64; A], b: &[u64; B]) {
+    for (i, &a) in a.iter().enumerate() {
+        for (k, &b) in b.iter().enumerate() {
+            let p = mul_wide(a, b);
+            acc[i + k] ^= p as u64;
+            acc[i + k + 1] ^= (p >> 64) as u64;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::field::gf2_64::mul_wide;
     use primitives::test_rng::Rng;
 
     #[test]

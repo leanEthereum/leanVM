@@ -49,6 +49,26 @@ pub fn schema() -> &'static Schema {
     })
 }
 
+/// A KECCAK value column. Both kinds are VIRTUAL, with no placement of their own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KeccakLane {
+    /// Input lane `l`, whose words are `q_keccak`'s slot `l`: a claim on it is a claim on that slot.
+    Input(usize),
+    /// Output lane `l`, whose claim is the Keccak reduction's claim on the permutation's output.
+    Output(usize),
+}
+
+/// The KECCAK value lane global column `col` is, if it is one.
+pub fn keccak_value(col: usize) -> Option<KeccakLane> {
+    use primitives::hash::STATE_LANES;
+    let lane = col.checked_sub(schema().base[tables::KECCAK_TABLE] + tables::keccakt::V_IN)?;
+    match lane {
+        0..STATE_LANES => Some(KeccakLane::Input(lane)),
+        _ if lane < 2 * STATE_LANES => Some(KeccakLane::Output(lane - STATE_LANES)),
+        _ => None,
+    }
+}
+
 /// Offset a table's local flush coordinates to global column indices.
 fn offset_coords(base: usize, coords: Vec<Coord>) -> Vec<Coord> {
     coords.into_iter().map(|c| offset_coord(base, c)).collect()
@@ -93,7 +113,7 @@ pub struct Layout {
 /// announce it).
 pub(crate) struct Witness {
     pub(crate) q: Vec<F64>,
-    /// The virtual columns' values as `(global column index, values)`. They carry
+    /// The KECCAK output lanes' values as `(global column index, values)`. They carry
     /// data for the bus but are not committed, so they are not in `q`.
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
     pub(crate) layout: Layout,
@@ -104,18 +124,20 @@ pub(crate) struct Witness {
 
 impl Witness {
     /// One read-only view per column, in global column order: the window into the
-    /// stack for a committed column, the private buffer for a virtual one.
+    /// stack for a committed column or a KECCAK input lane (its slot of `q_keccak`),
+    /// the private buffer for an output lane.
     pub(crate) fn columns(&self) -> Vec<&[F64]> {
+        let q_keccak = self.layout.placements[QKECCAK].offset;
+        let steps = 1 << self.layout.taus[tables::KECCAK_TABLE];
         let mut cols: Vec<&[F64]> = self
             .layout
             .placements
             .iter()
-            .map(|p| {
-                if p.is_virtual() {
-                    &[][..]
-                } else {
-                    &self.q[p.offset..p.offset + (1 << p.n_vars)]
-                }
+            .enumerate()
+            .map(|(i, p)| match keccak_value(i) {
+                Some(KeccakLane::Input(l)) => &self.q[q_keccak + l * steps..][..steps],
+                _ if p.is_virtual() => &[][..],
+                _ => &self.q[p.offset..][..1 << p.n_vars],
             })
             .collect();
         for (i, buf) in &self.virt {
@@ -164,9 +186,10 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     // The input lanes' memory-bus claims route directly to `q_keccak` slot
     // evaluations (`slot_claims`), the output lanes' to the reduction's output claim,
     // which binds both to the proven witness with no separate value-binding sub-protocol.
-    let b3 = sch.base[tables::KECCAK_TABLE];
-    for &c in &tables::KECCAK_VALUE_COLS {
-        k[b3 + c] = None;
+    for (col, k) in k.iter_mut().enumerate() {
+        if keccak_value(col).is_some() {
+            *k = None;
+        }
     }
     k
 }
@@ -480,21 +503,16 @@ impl Program {
         // and hands out windows tiling the rest; `fill_table` checks that each table
         // wrote every window it was given, and the shared columns below write theirs.
         let mut q = unsafe { witness::alloc_stack(l.shape) };
-        // A virtual column is not in the stack, so its values need storage of their
-        // own: it carries data for the bus, and only its evaluation claims route
-        // elsewhere (to `q_keccak`).
-        let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
-        for (t, table) in tables::tables().iter().enumerate() {
-            for c in 0..table.n_committed_columns() {
-                let i = sch.base[t] + c;
-                if l.placements[i].is_virtual() {
-                    // SAFETY: a virtual window is a table column, `FillCtx::cols_at`
-                    // writes every row of every window it is given, and `fill_table`
-                    // asserts each table wrote all of its columns.
-                    virt.push((i, unsafe { primitives::uninit_vec::<F64>(1 << l.taus[t]) }));
-                }
-            }
-        }
+        // An output lane is neither in the stack nor in `q_keccak`, so its values need
+        // storage of their own: it carries data for the bus. An input lane is a slot of
+        // `q_keccak` ([`Witness::columns`]), so it gets no window and no fill.
+        let steps = 1 << l.taus[tables::KECCAK_TABLE];
+        let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
+            .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
+            // SAFETY: `FillCtx::cols_at` writes every row of every window it is given, and
+            // `fill_table` asserts each table wrote all of its windows.
+            .map(|i| (i, unsafe { primitives::uninit_vec::<F64>(steps) }))
+            .collect();
         let mut windows = witness::split_stack(&mut q, &l.placements);
         for (i, buf) in virt.iter_mut() {
             windows[*i] = buf;
@@ -557,7 +575,7 @@ impl Program {
 
         // (`execute` already asserts the run halts at the sentinel (pc, fp) =
         // (g^{B-1}, 0), exactly the boundary the public layout derives.)
-        drop(windows); // release the borrow of `q` and of the virtual buffers
+        drop(windows); // release the borrow of `q` and of the output lanes' buffers
         Witness {
             q,
             virt,

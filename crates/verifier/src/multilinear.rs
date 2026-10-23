@@ -111,26 +111,23 @@ pub fn poly_eval(coefficients: &[E], point: E) -> E {
     coefficients.iter().rev().fold(ZERO, |acc, &c| acc * point + c)
 }
 
-/// Where something sits in the stacked cube: a claim's point fills the `variables` coordinates above `low`, the bits of `index` fixing the rest.
-/// `low` is zero for a block with a cube of its own, and the slot width for a column interleaved into a bigger block.
+/// Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest.
 #[derive(Clone, Copy, Debug)]
 pub struct Placement {
     pub variables: usize,
     pub index: u64,
-    pub low: usize,
 }
 
 impl Placement {
     pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {
-        let bits = selector_point(self.index, stack_log);
-        [&bits[..self.low], point, &bits[self.low + self.variables..]].concat()
+        let above = selector_point(self.index >> self.variables, stack_log - self.variables);
+        [point, &above].concat()
     }
 
     /// eq weight of the coordinates above the window.
     pub fn eq_above(&self, point: &[E]) -> E {
-        let window = self.low + self.variables;
-        let bits = selector_point(self.index >> window, point.len() - window);
-        eq_eval(&bits, &point[window..])
+        let bits = selector_point(self.index >> self.variables, point.len() - self.variables);
+        eq_eval(&bits, &point[self.variables..])
     }
 }
 

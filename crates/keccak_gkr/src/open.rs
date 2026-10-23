@@ -15,7 +15,7 @@ use primitives::multilinear::{eq_table, mle_eval, poly_eval};
 use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
 use crate::protocol::{Claim, dot, sum};
-use crate::witness::{BLOCK_WORDS, Shape, Witness};
+use crate::witness::{BLOCK_WORDS, Shape, Witness, words};
 
 /// The 64 slices of the committed stack at `point`: bit `z` of every word, as a multilinear.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,7 +45,6 @@ impl Openings {
     pub fn into_pcs_claims(self, offset: usize) -> (RingSwitchOpen, Option<StackClaim>) {
         let ring = RingSwitchOpen {
             offset,
-            qkeccak_vars: self.inputs.point.len(),
             claims: vec![RingSwitchClaim {
                 suffix_point: self.inputs.point,
                 s_hat_v: Some(self.inputs.slices),
@@ -85,12 +84,11 @@ fn chi_word(block: &[u64], round: usize, j: usize, w: usize) -> u64 {
 
 /// The eight words of position `j` in block `g` of the state after `round` rounds.
 #[inline(always)]
-fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
-    if round == 0 {
-        let at = j * BLOCK_WORDS;
-        return witness.input(g)[at..at + BLOCK_WORDS].try_into().expect("eight words");
-    }
+pub(crate) fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
     let block = witness.layer(round, g);
+    if round == 0 {
+        return *words(block, j);
+    }
     std::array::from_fn(|w| chi_word(block, round, j, w))
 }
 
@@ -170,7 +168,7 @@ fn round_values(a: &[F192], b: &[F192], width: usize) -> (F192, F192) {
     (zero, infinity)
 }
 
-fn fold(table: &[F192], width: usize, challenge: F192) -> Vec<F192> {
+pub(crate) fn fold(table: &[F192], width: usize, challenge: F192) -> Vec<F192> {
     table
         .chunks_exact(2 * width)
         .flat_map(|pair| (0..width).map(move |j| pair[j] + challenge * (pair[j] + pair[width + j])))

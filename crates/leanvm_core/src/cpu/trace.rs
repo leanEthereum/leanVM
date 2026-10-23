@@ -45,7 +45,7 @@ pub(crate) struct Jrow {
 }
 
 /// `KECCAK` row: the per-cell memory access counts, in the order the table flushes
-/// them (`tables::keccak_cells`): the four `m` cells, the four `tail` cells, `b8`, the
+/// them (`tables::KeccakOp::cell`): the four `m` cells, the four `tail` cells, `b8`, the
 /// four `cap` cells, then the thirteen output cells. The fifty value lanes are those
 /// cells' lanes, read back from the final memory image.
 pub(crate) struct Krow {

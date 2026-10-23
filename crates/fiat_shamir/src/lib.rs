@@ -29,13 +29,16 @@ pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {
     digest_words(&primitives::hash::hash(&input))
 }
 
-/// A 32-byte digest as the four little-endian words the chain runs in.
+/// A 32-byte digest as four little-endian words.
 pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
     std::array::from_fn(|index| F64(u64::from_le_bytes(digest[8 * index..8 * index + 8].try_into().unwrap())))
 }
 
 /// Scalars a permutation absorbs.
 pub const RATE_SCALARS: usize = 4;
+
+/// The rate's lanes, four per scalar.
+const RATE_LANES: usize = 4 * RATE_SCALARS;
 
 // Domain tags, the fourth lane of an absorbed scalar. Nonzero, so a scalar never reads as the
 // zeroed rate past the last one, and distinct, so a grinding nonce never reads as a sent scalar.
@@ -47,10 +50,9 @@ const DS_POW_NONCE: u64 = 4;
 /// callers'), so the state only ever absorbs and squeezes.
 #[derive(Clone)]
 pub struct FiatShamirState {
-    /// The sponge state the last permutation left.
+    /// The next permutation's input: the capacity the last one left, and in the rate the
+    /// `n_pending` scalars absorbed since, then zeros.
     state: [u64; STATE_LANES],
-    /// The scalars absorbed since, with their tags.
-    pending: [(F192, u64); RATE_SCALARS],
     n_pending: usize,
 }
 
@@ -61,18 +63,15 @@ impl FiatShamirState {
     /// state, so the whole statement is bound before anything is sampled; there is no
     /// mid-protocol "observe public data" step to get wrong (or forget).
     pub fn new(iv: [F64; 4], public_input: [F64; 4]) -> Self {
-        let mut state = [0u64; STATE_LANES];
-        for (lane, word) in state.iter_mut().zip(iv.into_iter().chain(public_input)) {
+        let mut fs = Self {
+            state: [0; STATE_LANES],
+            n_pending: 0,
+        };
+        for (lane, word) in fs.state.iter_mut().zip(iv.into_iter().chain(public_input)) {
             *lane = word.0;
         }
-        Self {
-            state: {
-                primitives::hash::keccak_f(&mut state);
-                state
-            },
-            pending: [(F192::ZERO, 0); RATE_SCALARS],
-            n_pending: 0,
-        }
+        fs.duplex();
+        fs
     }
 
     /// Seed a protocol that has no public input of its own from `label`, whose hash
@@ -81,23 +80,21 @@ impl FiatShamirState {
         Self::new(digest_words(&primitives::hash::hash(label)), [F64::ZERO; 4])
     }
 
-    /// Permute, taking the waiting scalars into the rate.
-    fn duplex(&mut self) {
-        let mut input = self.state;
-        input[..16].fill(0);
-        for (i, &(x, tag)) in self.pending[..self.n_pending].iter().enumerate() {
-            input[4 * i..4 * i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);
-        }
-        primitives::hash::keccak_f(&mut input);
-        self.state = input;
+    /// Permute, taking the waiting scalars, and return the output's first three lanes.
+    fn duplex(&mut self) -> F192 {
+        primitives::hash::keccak_f(&mut self.state);
+        let out = F192::new(self.state[0], self.state[1], self.state[2]);
+        self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
+        out
     }
 
     fn absorb(&mut self, x: F192, tag: u64) {
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }
-        self.pending[self.n_pending] = (x, tag);
+        let i = 4 * self.n_pending;
+        self.state[i..i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);
         self.n_pending += 1;
     }
 
@@ -125,8 +122,7 @@ impl FiatShamirState {
     /// public; soundness comes from each challenge being a random-oracle image of
     /// the entire prior transcript.
     pub fn sample(&mut self) -> F192 {
-        self.duplex();
-        F192::new(self.state[0], self.state[1], self.state[2])
+        self.duplex()
     }
 
     /// Squeeze `n` challenges, in order.
@@ -165,45 +161,19 @@ impl FiatShamirState {
                 .find(|&n| self.pow_bits_ok(F192::new(n, 0, 0), bits))
                 .expect("a nonce exists")
         } else {
-            // Many candidates at once through the batched hash. A candidate's permutation
-            // is one final 128-byte message absorbed into the zeroed rate: its block's padding
-            // puts PAD_FIRST and PAD_LAST in lane 16, so the starting state carries both to
-            // cancel them.
+            // Many candidates at once through the batched permutation: each one's input is the
+            // state with a zero nonce absorbed, its nonce written into that scalar's first lane.
             let mut base = self.clone();
-            if base.n_pending == RATE_SCALARS {
-                base.duplex();
-            }
-            let slot = base.n_pending;
-            let mut init = base.state;
-            init[..16].fill(0);
-            init[16] ^= u64::from(primitives::hash::PAD_FIRST) ^ primitives::hash::END_BIT;
-            let mut rate = [0u64; 16];
-            for (i, &(x, tag)) in base.pending[..slot].iter().enumerate() {
-                rate[4 * i..4 * i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);
-            }
-            rate[4 * slot + 3] = DS_POW_NONCE;
+            base.absorb(F192::ZERO, DS_POW_NONCE);
+            let lane = 4 * (base.n_pending - 1);
             const BATCH: usize = 2 * primitives::hash::LANES;
-            let mut template = [[0u8; 128]; BATCH];
-            for block in &mut template {
-                for (bytes, lane) in block.as_chunks_mut::<8>().0.iter_mut().zip(rate) {
-                    *bytes = lane.to_le_bytes();
-                }
-            }
             let batch = |first: u64| {
-                let mut blocks = template;
-                for (i, block) in blocks.iter_mut().enumerate() {
-                    block[32 * slot..32 * slot + 8].copy_from_slice(&(first + i as u64).to_le_bytes());
+                let mut states = [base.state; BATCH];
+                for (i, state) in states.iter_mut().enumerate() {
+                    state[lane] = first + i as u64;
                 }
-                let mut digests = [[0u8; 32]; BATCH];
-                primitives::hash::hash_many_dyn_from_state(
-                    blocks.as_flattened(),
-                    128,
-                    &init,
-                    digests.as_flattened_mut(),
-                );
-                digests
-                    .iter()
-                    .position(|d| u64::from_le_bytes(d[..8].try_into().unwrap()) & ((1u64 << bits) - 1) == 0)
+                primitives::hash::keccak_f_many(&mut states);
+                states.iter().position(|s| s[0] & ((1u64 << bits) - 1) == 0)
             };
             // The smallest matching batch and its first match give the smallest nonce.
             let block: u64 = 1 << (bits.min(24) + 1);

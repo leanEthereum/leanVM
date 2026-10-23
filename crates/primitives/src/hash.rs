@@ -4,26 +4,25 @@
 //! Three surfaces, in increasing order of how much of the machine they touch:
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes
-//!   and `keccak_gkr` proves, and [`absorb`], one sponge step (XOR a block into the rate,
-//!   permute).
+//!   and `keccak_gkr` proves, and [`keccak_f_many`], its batched form.
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes.
-//! - [`hash_many`], the batched form: `LANES` independent equal-length inputs
+//! - [`hash_many`], the batched form: [`LANES`] independent equal-length inputs
 //!   hashed together with the state transposed across lanes, which is how the
 //!   PCS Merkle tree gets SIMD out of hashes that are individually serial.
 //!
 //! The state is 25 little-endian 64-bit lanes, lane `x + 5y` holding
-//! `A[x, y]`. The first [`RATE_LANES`] lanes are the rate: a message block is
+//! `A[x, y]`. The first `RATE / 8` lanes are the rate: a message block is
 //! XORed into them before each permutation, and the digest is read off the first
-//! [`OUT_LANES`] of them after the last one.
+//! `OUT_LEN / 8` of them after the last one.
 
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
 /// Digest length in lanes.
-pub const OUT_LANES: usize = OUT_LEN / 8;
+const OUT_LANES: usize = OUT_LEN / 8;
 /// Sponge rate in bytes: `1600 - 2·256` bits.
 pub const RATE: usize = 136;
 /// Sponge rate in lanes.
-pub const RATE_LANES: usize = RATE / 8;
+const RATE_LANES: usize = RATE / 8;
 /// Lanes in the state.
 pub const STATE_LANES: usize = 25;
 /// Rounds per permutation.
@@ -243,7 +242,7 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 
 /// One sponge step: XOR the rate block `block` into `state` and permute.
 #[inline]
-pub fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
+fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
     for (s, b) in state.iter_mut().zip(block) {
         *s ^= b;
     }
@@ -258,7 +257,7 @@ fn block_of(bytes: &[u8; RATE]) -> [u64; RATE_LANES] {
 
 /// The final block: the last `tail.len() < RATE` message bytes, then the padding, as rate lanes.
 #[inline]
-pub fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
+fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
     assert!(tail.len() < RATE, "a final block holds fewer than RATE message bytes");
     let mut bytes = [0u8; RATE];
     bytes[..tail.len()].copy_from_slice(tail);
@@ -344,7 +343,7 @@ pub fn zero_prefix_state(n_blocks: usize) -> [u64; STATE_LANES] {
 
 /// [`hash`] continued from a sponge state that has absorbed whole blocks (see
 /// [`zero_prefix_state`]): `data` is the rest of the message.
-pub fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
+fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
     let mut state = *state;
     let (blocks, tail) = data.as_chunks::<RATE>();
     for block in blocks {
@@ -524,17 +523,19 @@ mod arm {
     }
 }
 
+/// The widest backend this build has, which the batched entry points use.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+type Backend = x86::Avx512;
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
+type Backend = x86::Avx2;
+#[cfg(target_arch = "aarch64")]
+type Backend = arm::Neon;
+#[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
+type Backend = u64;
+
 /// Inputs handled together by the widest backend. Batched entry points accept
 /// any count and process the remainder serially.
-pub const LANES: usize = if cfg!(all(target_arch = "x86_64", target_feature = "avx512f")) {
-    8
-} else if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
-    4
-} else if cfg!(target_arch = "aarch64") {
-    2
-} else {
-    1
-};
+pub const LANES: usize = Backend::WIDTH;
 
 /// Widest batch any backend takes.
 const MAX_WIDTH: usize = 8;
@@ -628,42 +629,56 @@ unsafe fn hash_many_with<S: Lanes64>(data: &[u8], len: usize, state: &[u64; STAT
     }
 }
 
-/// Batched Keccak-256 of `data` split into `LEN`-byte inputs, writing one 32-byte
+/// Batched Keccak-256 of `data` split into `len`-byte inputs, writing one 32-byte
 /// digest per input to `out`. Byte-identical to [`hash`] per input; the batching
 /// only changes how the lanes are scheduled.
-pub fn hash_many<const LEN: usize>(data: &[u8], out: &mut [u8]) {
-    hash_many_dyn(data, LEN, out);
+pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
+    hash_many_from_state(data, len, &[0; STATE_LANES], out);
 }
 
-/// [`hash_many`] with the input length known only at runtime.
-pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
-    hash_many_dyn_from_state(data, len, &[0; STATE_LANES], out);
-}
-
-/// [`hash_many_dyn`] continued from one sponge state shared by every input, as
-/// [`hash_from_state`] is to [`hash`], under its precondition. Byte-identical to
-/// hashing each full image.
-pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+/// [`hash_many`] continued from one sponge state shared by every input, which has absorbed
+/// whole blocks (see [`zero_prefix_state`]). Byte-identical to hashing each full image.
+pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
     let n = out.len() / OUT_LEN;
     assert_eq!(out.len(), n * OUT_LEN);
     assert_eq!(data.len(), n * len);
-    // SAFETY (each arm): the asserts above pin the buffer sizes the backends
-    // require, and every backend is gated on the feature its intrinsics need.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-    unsafe {
-        hash_many_with::<x86::Avx512>(data, len, state, out)
+    // SAFETY: the asserts pin the buffer sizes, and the backend is gated on the features its intrinsics need.
+    unsafe { hash_many_with::<Backend>(data, len, state, out) }
+}
+
+/// Keccak-f\[1600\] of every state in place, [`LANES`] at a time.
+pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
+    let (groups, rest) = states.as_chunks_mut::<LANES>();
+    for group in groups {
+        permute_group::<Backend>(group);
     }
-    #[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f"), target_feature = "avx2"))]
-    unsafe {
-        hash_many_with::<x86::Avx2>(data, len, state, out)
+    for state in rest {
+        keccak_f(state);
     }
-    #[cfg(target_arch = "aarch64")]
-    unsafe {
-        hash_many_with::<arm::Neon>(data, len, state, out)
+}
+
+/// Keccak-f of `S::WIDTH` states, transposed into one vector per lane and back.
+#[inline(always)]
+fn permute_group<S: Lanes64>(states: &mut [[u64; STATE_LANES]]) {
+    debug_assert_eq!(states.len(), S::WIDTH);
+    // `buf[i * WIDTH + l]` is state `l`'s lane `i`.
+    let mut buf = [0u64; STATE_LANES * MAX_WIDTH];
+    for (l, state) in states.iter().enumerate() {
+        for (i, &lane) in state.iter().enumerate() {
+            buf[i * S::WIDTH + l] = lane;
+        }
     }
-    #[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64")))]
-    unsafe {
-        hash_many_with::<u64>(data, len, state, out)
+    // SAFETY: `buf` holds STATE_LANES * MAX_WIDTH >= (i + 1) * WIDTH words.
+    let mut st: [S; STATE_LANES] = std::array::from_fn(|i| unsafe { S::load(buf.as_ptr().add(i * S::WIDTH)) });
+    permute(&mut st);
+    for (i, lane) in st.iter().enumerate() {
+        // SAFETY: as above.
+        unsafe { lane.store(buf.as_mut_ptr().add(i * S::WIDTH)) };
+    }
+    for (l, state) in states.iter_mut().enumerate() {
+        for (i, lane) in state.iter_mut().enumerate() {
+            *lane = buf[i * S::WIDTH + l];
+        }
     }
 }
 
@@ -679,26 +694,13 @@ mod tests {
         (0..n).map(|i| ((i * 7 + 3) & 0xff) as u8).collect()
     }
 
-    /// Known answers from OpenSSL's `keccak-256`.
+    /// A known answer from OpenSSL's `keccak-256`.
     #[test]
-    fn matches_reference_vectors() {
+    fn matches_reference_vector() {
         assert_eq!(
             hex(&hash(b"abc")),
             "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
         );
-        for (n, expected) in [
-            (
-                0usize,
-                "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            ),
-            (1, "69c322e3248a5dfc29d73c5b0553b0185a35cd5bb6386747517ef7e53b15e287"),
-            (63, "48d8e506b57c81c8257a8e1da7f04610191ef05bf96fa9dc4fb9bca39bbed2c6"),
-            (64, "0251cf13aa5b18f1cbda7cddbe85f3dc536fc93df590c2d20ca9b28af1ed2c39"),
-            (127, "fa3cd4a949bae0f7690ff5c8cbc6dc0332d192d790ab4d80dc97ba37b6569deb"),
-            (128, "1c51c71b758998e7b841d7abde03b6f2b3e76b0313ed687269c30e16bb3aa488"),
-        ] {
-            assert_eq!(hex(&hash(&pattern(n))), expected, "{n} bytes");
-        }
     }
 
     /// Ethereum's `keccak256`, as an independent implementation computes it, across both sides of
@@ -740,7 +742,7 @@ mod tests {
                 for n in [1usize, 4, 17] {
                     let data: Vec<u8> = (0..n * rest).map(|i| (i * 31 + zero_blocks) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];
-                    hash_many_dyn_from_state(&data, rest, &state, &mut got);
+                    hash_many_from_state(&data, rest, &state, &mut got);
                     for i in 0..n {
                         let mut whole = vec![0u8; zlen];
                         whole.extend_from_slice(&data[i * rest..(i + 1) * rest]);
@@ -757,7 +759,7 @@ mod tests {
         }
     }
 
-    /// Every SIMD backend compiled into this build agrees with the scalar hash,
+    /// Every SIMD backend compiled into this build agrees with the scalar hash and permutation,
     /// not just the one the dispatch picks.
     #[test]
     fn every_backend_matches_scalar() {
@@ -776,6 +778,15 @@ mod tests {
                         );
                     }
                 }
+            }
+            let states: Vec<[u64; STATE_LANES]> = (0..S::WIDTH as u64)
+                .map(|l| std::array::from_fn(|i| (l << 32) ^ (i as u64 * 0x9E37_79B9)))
+                .collect();
+            let mut got = states.clone();
+            permute_group::<S>(&mut got);
+            for (mut want, got) in states.into_iter().zip(got) {
+                keccak_f(&mut want);
+                assert_eq!(got, want, "{name}: permutation");
             }
         }
         check::<u64>("scalar");

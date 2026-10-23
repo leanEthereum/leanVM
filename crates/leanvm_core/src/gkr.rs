@@ -219,12 +219,6 @@ fn coarsen(ones: &[Range<usize>], shift: usize) -> Vec<Range<usize>> {
         .collect()
 }
 
-/// Whether `ones` covers `rows`.
-fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
-    let i = ones.partition_point(|r| r.start <= rows.start);
-    i > 0 && ones[i - 1].end >= rows.end
-}
-
 /// `range` split at the edges of `ones` into maximal runs, each tagged with whether
 /// `ones` covers it.
 fn runs<'a>(range: Range<usize>, ones: &'a [Range<usize>]) -> impl Iterator<Item = (Range<usize>, bool)> + 'a {
@@ -373,8 +367,8 @@ impl QuaternaryLayerState {
         let mut next: Vec<F192> = unsafe { primitives::uninit_vec(4 * rows) };
         let values = &self.values;
         let identity = coarsen(&self.ones, 1);
-        let fold_row = |row: usize| -> [F192; 4] {
-            if covered(&identity, row..row + 1) {
+        let fold_row = |row: usize, one: bool| -> [F192; 4] {
+            if one {
                 return [F192::ONE; 4];
             }
             // One slice, not eight indexes: the bounds checks and the
@@ -382,6 +376,10 @@ impl QuaternaryLayerState {
             let v = &values[8 * row..8 * row + 8];
             let folds = mul4(std::array::from_fn(|child| v[child] + v[4 + child]), [challenge; 4]);
             std::array::from_fn(|child| v[child] + folds[child])
+        };
+        // The folded rows `base..base + n`, the identity's runs found in one walk.
+        let folded = |base: usize, n: usize| {
+            runs(base..base + n, &identity).flat_map(|(run, one)| run.map(move |row| fold_row(row, one)))
         };
         // The next round is what reads the output, and a layer this size is long
         // evicted by then, so where an ordinary store fetches the line it
@@ -391,22 +389,20 @@ impl QuaternaryLayerState {
         #[cfg(target_arch = "x86_64")]
         let window = |base: usize, destination: &mut [F192]| {
             let stream = Stream::new();
-            for (pair, slot) in destination.chunks_mut(8).enumerate() {
+            let mut rows = folded(base, destination.len() / 4);
+            for slot in destination.chunks_mut(8) {
                 let mut both = [F192::ZERO; 8];
-                both[..4].copy_from_slice(&fold_row(base + 2 * pair));
-                if slot.len() == 8 {
-                    both[4..].copy_from_slice(&fold_row(base + 2 * pair + 1));
+                for (half, row) in both[..slot.len()].chunks_mut(4).zip(&mut rows) {
+                    half.copy_from_slice(&row);
                 }
                 stream.copy(slot, &both[..slot.len()]);
             }
         };
         #[cfg(not(target_arch = "x86_64"))]
         let window = |base: usize, destination: &mut [F192]| {
-            for (pair, slot) in destination.chunks_mut(8).enumerate() {
-                slot[..4].copy_from_slice(&fold_row(base + 2 * pair));
-                if slot.len() == 8 {
-                    slot[4..].copy_from_slice(&fold_row(base + 2 * pair + 1));
-                }
+            let rows = folded(base, destination.len() / 4);
+            for (slot, row) in destination.chunks_mut(4).zip(rows) {
+                slot.copy_from_slice(&row);
             }
         };
         if full_rows >= PAR_THRESHOLD {
@@ -449,18 +445,18 @@ impl QuaternaryLayerState {
             let end = (first + PAIRS).min(pairs);
             let mut stage = [F192::ZERO; 8 * PAIRS];
             let end_row = (2 * end).min(rows);
-            for row in 2 * first..end_row {
-                let offset = 4 * (row - 2 * first);
-                if covered(&identity, row..row + 1) {
-                    stage[offset..offset + 4].fill(F192::ONE);
+            for (run, one) in runs(2 * first..end_row, &identity) {
+                let staged = &mut stage[4 * (run.start - 2 * first)..4 * (run.end - 2 * first)];
+                if one {
+                    staged.fill(F192::ONE);
                     continue;
                 }
-                let lo = 8 * row;
-                let left = &values[lo..lo + 4];
-                let right = values.get(lo + 4..lo + 8).unwrap_or(&[F192::ONE; 4]);
-                let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
-                for i in 0..4 {
-                    stage[offset + i] = left[i] + product[i];
+                for (row, out) in run.zip(staged.as_chunks_mut::<4>().0) {
+                    let lo = 8 * row;
+                    let left = &values[lo..lo + 4];
+                    let right = values.get(lo + 4..lo + 8).unwrap_or(&[F192::ONE; 4]);
+                    let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
+                    *out = std::array::from_fn(|i| left[i] + product[i]);
                 }
             }
             let summand = |pair: usize, weight: F192| {
@@ -526,11 +522,17 @@ fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: 
 /// kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod vertical {
-    use super::{SplitEq, add4, coarsen, covered, sum_tasks};
+    use super::{SplitEq, add4, coarsen, sum_tasks};
     use primitives::field::F192;
     use primitives::field::x8::{F192x8, Sum8};
     use primitives::stream::Stream;
     use std::ops::Range;
+
+    /// Whether `ones` covers `rows`.
+    fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
+        let i = ones.partition_point(|r| r.start <= rows.start);
+        i > 0 && ones[i - 1].end >= rows.end
+    }
 
     /// Eight pairs of rows: `g[4h + c]` lane `p` is child `c` of row `2p + h`.
     pub(super) type Group = [F192x8; 8];

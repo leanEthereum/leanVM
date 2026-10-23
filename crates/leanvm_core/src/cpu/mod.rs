@@ -80,7 +80,7 @@ pub fn fs_seed(program: &Program) -> [F192; 2] {
 }
 
 /// The two 128-bit halves a digest travels in, as the four words the
-/// Fiat-Shamir chain runs on. Only defined for a real digest, whose halves have
+/// Fiat-Shamir sponge absorbs. Only defined for a real digest, whose halves have
 /// no third limb; [`verify`] rejects a public input that has one, so a
 /// third limb can never be silently dropped from what the transcript binds.
 fn digest_words(halves: &[F192; 2]) -> [F64; 4] {
@@ -456,18 +456,6 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// If `col` is a KECCAK **input** value column (global index), its `q_keccak` slot.
-/// These columns are virtual (uncommitted): their evaluation claims are re-routed
-/// to `q_keccak` slot evaluations, which is the whole binding: the bus-tied value
-/// IS the proven `q_keccak` word, no separate check needed.
-fn keccak_value_slot(col: usize) -> Option<usize> {
-    let base = schema().base[tables::KECCAK_TABLE];
-    tables::KECCAK_VALUE_COLS
-        .iter()
-        .position(|&c| base + c == col)
-        .and_then(crate::keccak::value_slot)
-}
-
 /// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on
 /// the permutation's output: the batch claims every column of the table at one point.
 fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
@@ -553,7 +541,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
     }
     let cycles = exec.cycles;
-    let w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
+    let mut w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: w.layout.shape.mu,
@@ -613,6 +601,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         });
         (bus, table_claims)
     };
+    // The bus and the constraints were the output lanes' last readers.
+    drop(std::mem::take(&mut w.virt));
     let l = &w.layout;
 
     // The PI binding (§sec:e2e-pi) transmits nothing: its claims are the public
@@ -631,9 +621,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
-    let n_steps = 1usize << w.layout.taus[tables::KECCAK_TABLE];
-    let offset = w.layout.placements[QKECCAK].offset;
-    let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_steps))];
+    let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
+    let q_keccak = &w.q[offset..][..1 << n_vars];
     let openings = crate::stage!("Keccak reduction", || {
         keccak_reduction.prove(&mut ps, q_keccak, &output)
     });
@@ -670,13 +659,12 @@ fn finish_claims(
     claims.reserve(sch.n - N_SHARED);
     for (t, table) in tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
-            if t == tables::KECCAK_TABLE
-                && (tables::keccakt::V_OUT..tables::keccakt::V_OUT + primitives::hash::STATE_LANES).contains(&c)
-            {
+            let col = sch.base[t] + c;
+            if let Some(KeccakLane::Output(_)) = keccak_value(col) {
                 continue; // the Keccak reduction's claim on the output (`keccak_output_claim`)
             }
             claims.push(ColumnClaim {
-                col: sch.base[t] + c,
+                col,
                 point: table_claims[t].chi.clone(),
                 value: table_claims[t].evals[c],
             });
@@ -775,7 +763,7 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
         .map(|c| {
             // A KECCAK value column (always virtual): its bus claim at instance point
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some(slot) = keccak_value_slot(c.col) {
+            if let Some(KeccakLane::Input(slot)) = keccak_value(c.col) {
                 return pcs::SlotClaim::Point {
                     offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,
@@ -874,11 +862,10 @@ mod tests {
             .flat_map(|c| [c.c0, c.c1])
             .flat_map(u64::to_le_bytes)
             .collect();
-        let digest: Vec<u8> = state_of_cells(&out, true)[..4]
-            .iter()
-            .flat_map(|w| w.to_le_bytes())
-            .collect();
-        assert_eq!(digest, primitives::hash::hash(&bytes));
+        assert_eq!(
+            primitives::hash::digest_of(&state_of_cells(&out, true)),
+            primitives::hash::hash(&bytes)
+        );
 
         let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("a hand-assembled program verifies");

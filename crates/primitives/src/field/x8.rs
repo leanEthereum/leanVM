@@ -11,7 +11,7 @@ use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul};
 
 use super::gf2_64::{F64, reduce};
 use super::gf2_64x3::F192;
-use super::gf2_64x3::x86_64::{fold, reduce_lanes512};
+use super::gf2_64x3::x86_64::{fold, reduce_halves512};
 
 /// Eight elements; register `k` is coefficient `k` of lanes `0..8`.
 #[derive(Clone, Copy, Debug)]
@@ -49,13 +49,6 @@ fn vector(v: [i64; 8]) -> __m512i {
 fn load_u64x8(src: *const u64) -> __m512i {
     // SAFETY: callers pass a pointer to eight readable qwords.
     unsafe { _mm512_loadu_si512(src.cast()) }
-}
-
-/// The lane-wise base reduction of the even-lane and odd-lane 128-bit partials.
-#[inline(always)]
-fn reduce_halves(even: __m512i, odd: __m512i) -> __m512i {
-    // SAFETY: the module's cfg enables avx512f.
-    unsafe { reduce_lanes512(_mm512_unpacklo_epi64(even, odd), _mm512_unpackhi_epi64(even, odd)) }
 }
 
 /// Qword `i` of the result is `a[idx[i]]` for `idx[i] < 8`, else `b[idx[i] - 8]`.
@@ -269,7 +262,7 @@ impl Mul for F192x8 {
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
         let (even, odd) = self.products(rhs);
-        Self(std::array::from_fn(|k| reduce_halves(even[k], odd[k])))
+        Self(std::array::from_fn(|k| reduce_halves512(even[k], odd[k])))
     }
 }
 
@@ -337,7 +330,7 @@ impl Mul for F64x8 {
     fn mul(self, rhs: Self) -> Self {
         // SAFETY: the module's cfg enables avx512f and vpclmulqdq.
         Self(unsafe {
-            reduce_halves(
+            reduce_halves512(
                 _mm512_clmulepi64_epi128::<0x00>(self.0, rhs.0),
                 _mm512_clmulepi64_epi128::<0x11>(self.0, rhs.0),
             )
@@ -373,7 +366,7 @@ impl Mixed8 {
 
     #[inline(always)]
     pub fn reduce(self) -> F192x8 {
-        F192x8(std::array::from_fn(|i| reduce_halves(self.even[i], self.odd[i])))
+        F192x8(std::array::from_fn(|i| reduce_halves512(self.even[i], self.odd[i])))
     }
 }
 

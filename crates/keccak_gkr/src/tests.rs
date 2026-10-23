@@ -5,39 +5,22 @@ use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_transcript, open_commitment, scalar_proof};
-use crate::keccak::{BITS, LANES, LOCAL_VARS, along, iota_bit};
+use crate::keccak::{BITS, LANES, LOCAL_VARS};
+use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::rmfe::PROD_BITS;
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
 
 /// The sliced state after `round` rounds.
-pub(crate) fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
-    let blocks = witness.shape.n_blocks();
-    if round == 0 {
-        return (0..blocks).flat_map(|g| witness.input(g).to_vec()).collect();
-    }
-    let u: Vec<u64> = (0..blocks).flat_map(|g| witness.layer(round, g).to_vec()).collect();
-    let mut out = vec![0u64; u.len()];
-    for (block, out) in u
-        .as_chunks::<BLOCK_LEN>()
-        .0
-        .iter()
-        .zip(out.as_chunks_mut::<BLOCK_LEN>().0)
-    {
-        for j in 0..BITS {
-            for w in 0..BLOCK_WORDS {
-                let chi = block[j * BLOCK_WORDS + w]
-                    ^ (!block[along(j, 1) * BLOCK_WORDS + w] & block[along(j, 2) * BLOCK_WORDS + w]);
-                out[j * BLOCK_WORDS + w] = if j < 64 && iota_bit(round, j) { !chi } else { chi };
-            }
-        }
-    }
-    out
+fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
+    (0..witness.shape.n_blocks())
+        .flat_map(|g| (0..BITS).flat_map(move |j| state_words(witness, round, g, j)))
+        .collect()
 }
 
 /// A claim's value, from its definition.
-pub(crate) fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192 {
+fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192 {
     let eq = eq_table(&claim.point);
     let mut acc = F192::ZERO;
     for (segment, state) in states.iter().enumerate() {
@@ -80,7 +63,7 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
 
     let mut ps = ProverState::from_label(b"keccak-gkr-test");
     let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
-    let mut claim = first_claim(shape, F192::ZERO, &r_low, point, &r_lane);
+    let mut claim = first_claim(shape, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
     let mut scratch = crate::prover::Scratch::new(shape);
     for step in 0..depth {
@@ -119,7 +102,7 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
-    let openings = crate::prove(&mut ps, &witness, committed, &output);
+    let openings = witness.prove(&mut ps, committed, &output);
     if lane_error == F192::ZERO && committed == honest {
         // Each opening is what the commitment scheme means by it.
         let mut stack = committed.to_vec();
@@ -214,7 +197,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
             let mut ps = ProverState::from_label(LABEL);
             let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
             ps.add_scalars(&output.lanes);
-            let openings = crate::prove(&mut ps, witness, &committed, &output);
+            let openings = witness.prove(&mut ps, &committed, &output);
             (openings, ps.into_proof())
         };
         assert!(stream(&padded) == stream(&dense(shape, &inputs)), "{n} instances");

@@ -9,9 +9,8 @@
 //! A table row is laid out by word: word `k` of entry `j` at `k * width + j`.
 
 use primitives::field::F192;
-use primitives::field::gf2_64::mul_wide;
 
-use crate::basis::{PolyEval, PowerBasis};
+use crate::basis::{PolyEval, PowerBasis, add_mul};
 
 pub type Element = [u64; 3];
 
@@ -20,29 +19,10 @@ pub type Element = [u64; 3];
 macro_rules! row_kernel {
     ($width:expr, $kernel:ident($($arg:expr),*), $portable:expr) => {
         cfg_select! {
-            all(
-                target_arch = "x86_64",
-                target_feature = "avx512f",
-                target_feature = "avx512bw",
-                target_feature = "vpclmulqdq",
-                target_feature = "gfni"
-            ) => {
-                if $width.is_multiple_of(8) {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+                if $width.is_multiple_of(x86::STEP) {
                     // SAFETY: the features are enabled at compile time, and the caller bounds every row.
                     unsafe { x86::$kernel($($arg),*) }
-                } else {
-                    $portable
-                }
-            }
-            all(
-                target_arch = "x86_64",
-                target_feature = "avx2",
-                target_feature = "pclmulqdq",
-                not(target_feature = "avx512f")
-            ) => {
-                if $width.is_multiple_of(avx2::STEP) {
-                    // SAFETY: the features are enabled at compile time, and the caller bounds every row.
-                    unsafe { avx2::$kernel($($arg),*) }
                 } else {
                     $portable
                 }
@@ -73,13 +53,7 @@ pub struct PowerField {
 #[inline(always)]
 fn mul_wide3(a: &Element, b: &Element) -> [u64; 6] {
     let mut out = [0u64; 6];
-    for i in 0..3 {
-        for k in 0..3 {
-            let p = mul_wide(a[i], b[k]);
-            out[i + k] ^= p as u64;
-            out[i + k + 1] ^= (p >> 64) as u64;
-        }
-    }
+    add_mul(&mut out, a, b);
     out
 }
 
@@ -116,7 +90,7 @@ impl PowerField {
         })
     }
 
-    pub fn from_field(&self, a: F192) -> Element {
+    pub fn to_poly(&self, a: F192) -> Element {
         self.basis.to_poly(a)
     }
 
@@ -236,227 +210,9 @@ pub fn dot_pair_portable(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64;
     (zero, infinity)
 }
 
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "vpclmulqdq",
-    target_feature = "gfni"
-))]
+/// The x86 kernels on a register of [`Vector`](crate::clmul::Vector) lanes, two entries to a lane.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
 mod x86 {
-    use core::arch::x86_64::*;
-
-    use super::*;
-
-    #[inline(always)]
-    unsafe fn load3(row: &[u64], width: usize, j: usize) -> [__m512i; 3] {
-        unsafe { std::array::from_fn(|k| _mm512_loadu_si512(row.as_ptr().add(k * width + j).cast())) }
-    }
-
-    /// The products of eight pairs, as partial sums by word offset: lanes of `out[half][s]` hold
-    /// the 128-bit sum of `a[i] * b[k]` over `i + k = s`, for the even or the odd four.
-    ///
-    /// Karatsuba's six products where the schoolbook takes nine: the carry-less multiplier is the
-    /// scarce unit.
-    #[inline(always)]
-    unsafe fn partial(a: &[__m512i; 3], b: &[__m512i; 3]) -> [[__m512i; 5]; 2] {
-        unsafe { karatsuba(a, &sums(a), b, &sums(b)) }
-    }
-
-    /// The pairwise sums of three words, `0 + 1`, `0 + 2`, `1 + 2`, which [`karatsuba`] multiplies.
-    #[inline(always)]
-    unsafe fn sums(a: &[__m512i; 3]) -> [__m512i; 3] {
-        unsafe {
-            [
-                _mm512_xor_si512(a[0], a[1]),
-                _mm512_xor_si512(a[0], a[2]),
-                _mm512_xor_si512(a[1], a[2]),
-            ]
-        }
-    }
-
-    /// [`partial`] given each operand's [`sums`].
-    #[inline(always)]
-    unsafe fn karatsuba(a: &[__m512i; 3], sa: &[__m512i; 3], b: &[__m512i; 3], sb: &[__m512i; 3]) -> [[__m512i; 5]; 2] {
-        unsafe {
-            let product = |x: __m512i, y: __m512i| {
-                [
-                    _mm512_clmulepi64_epi128(x, y, 0x00),
-                    _mm512_clmulepi64_epi128(x, y, 0x11),
-                ]
-            };
-            let (p0, p1, p2) = (product(a[0], b[0]), product(a[1], b[1]), product(a[2], b[2]));
-            let (m01, m02, m12) = (product(sa[0], sb[0]), product(sa[1], sb[1]), product(sa[2], sb[2]));
-            std::array::from_fn(|h| {
-                let x = |u: __m512i, v: __m512i, w: __m512i| _mm512_ternarylogic_epi64::<0x96>(u, v, w);
-                [
-                    p0[h],
-                    x(m01[h], p0[h], p1[h]),
-                    _mm512_xor_si512(x(m02[h], p0[h], p1[h]), p2[h]),
-                    x(m12[h], p1[h], p2[h]),
-                    p2[h],
-                ]
-            })
-        }
-    }
-
-    #[inline(always)]
-    unsafe fn xor3(a: &[__m512i; 3], b: &[__m512i; 3]) -> [__m512i; 3] {
-        unsafe { std::array::from_fn(|k| _mm512_xor_si512(a[k], b[k])) }
-    }
-
-    pub unsafe fn dot_pair(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 6], [u64; 6]) {
-        unsafe {
-            let mut acc = [[_mm512_setzero_si512(); 5]; 2];
-            for j in (0..width).step_by(8) {
-                let (a0, a1, b0, b1) = (
-                    load3(a[0], width, j),
-                    load3(a[1], width, j),
-                    load3(b[0], width, j),
-                    load3(b[1], width, j),
-                );
-                for (acc, p) in acc
-                    .iter_mut()
-                    .zip([partial(&a0, &b0), partial(&xor3(&a0, &a1), &xor3(&b0, &b1))])
-                {
-                    for s in 0..5 {
-                        acc[s] = _mm512_xor_si512(acc[s], _mm512_xor_si512(p[0][s], p[1][s]));
-                    }
-                }
-            }
-            let finish = |acc: &[__m512i; 5]| {
-                let mut out = [0u64; 6];
-                for s in 0..5 {
-                    let mut lanes = [0u128; 4];
-                    _mm512_storeu_si512(lanes.as_mut_ptr().cast(), acc[s]);
-                    let sum = lanes[0] ^ lanes[1] ^ lanes[2] ^ lanes[3];
-                    out[s] ^= sum as u64;
-                    out[s + 1] ^= (sum >> 64) as u64;
-                }
-                out
-            };
-            (finish(&acc[0]), finish(&acc[1]))
-        }
-    }
-
-    /// Words of a product from its partial sums by offset, in the low half of each lane: word
-    /// `w` is the low half of sum `w` and the high half of sum `w - 1`.
-    #[inline(always)]
-    unsafe fn word(sums: &[__m512i; 5], w: usize) -> __m512i {
-        unsafe {
-            let low = if w < 5 { sums[w] } else { _mm512_setzero_si512() };
-            let high = if w > 0 {
-                _mm512_bsrli_epi128(sums[w - 1], 8)
-            } else {
-                _mm512_setzero_si512()
-            };
-            _mm512_xor_si512(low, high)
-        }
-    }
-
-    /// Reduce four products given by their words in the low half of each lane.
-    #[inline(always)]
-    unsafe fn reduce(field: &PowerField, p: &[__m512i; 6]) -> [__m512i; 3] {
-        unsafe {
-            let barrett: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(field.barrett[k] as i64));
-            let modulus: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(field.modulus[k] as i64));
-            let high = [p[3], p[4], p[5]];
-            // The top three words of `high * barrett`: sums at offsets 2, 3 and 4.
-            let mut t = [_mm512_setzero_si512(); 5];
-            for (i, k) in [(0, 2), (1, 1), (2, 0), (1, 2), (2, 1), (2, 2)] {
-                t[i + k] = _mm512_xor_si512(t[i + k], _mm512_clmulepi64_epi128(high[i], barrett[k], 0x00));
-            }
-            let q: [__m512i; 3] = std::array::from_fn(|k| _mm512_xor_si512(high[k], word(&t, 3 + k)));
-            // The low three words of `q * modulus`: sums at offsets 0, 1 and 2.
-            let mut r = [_mm512_setzero_si512(); 5];
-            for (i, k) in [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0)] {
-                r[i + k] = _mm512_xor_si512(r[i + k], _mm512_clmulepi64_epi128(q[i], modulus[k], 0x00));
-            }
-            std::array::from_fn(|k| _mm512_xor_si512(p[k], word(&r, k)))
-        }
-    }
-
-    pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
-        unsafe {
-            let zero = _mm512_setzero_si512();
-            for j in (0..width).step_by(8) {
-                let w: [__m512i; 4] =
-                    std::array::from_fn(|k| _mm512_loadu_si512(wide.as_ptr().add(k * width + j).cast()));
-                // The even four in the low half of each lane, then the odd four.
-                let reduced: [[__m512i; 3]; 2] = std::array::from_fn(|half| {
-                    let at = |x: __m512i| if half == 0 { x } else { _mm512_bsrli_epi128(x, 8) };
-                    reduce(field, &[at(w[0]), at(w[1]), at(w[2]), at(w[3]), zero, zero])
-                });
-                for k in 0..3 {
-                    _mm512_storeu_si512(
-                        dst.as_mut_ptr().add(k * width + j).cast(),
-                        _mm512_unpacklo_epi64(reduced[0][k], reduced[1][k]),
-                    );
-                }
-            }
-        }
-    }
-
-    pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        unsafe {
-            for j in (0..width).step_by(8) {
-                let sums = partial(&load3(a, width, j), &load3(b, width, j));
-                let reduced: [[__m512i; 3]; 2] = std::array::from_fn(|half| {
-                    let words: [__m512i; 6] = std::array::from_fn(|w| word(&sums[half], w));
-                    reduce(field, &words)
-                });
-                let c = load3(c, width, j);
-                for k in 0..3 {
-                    let product = _mm512_unpacklo_epi64(reduced[0][k], reduced[1][k]);
-                    _mm512_storeu_si512(
-                        dst.as_mut_ptr().add(k * width + j).cast(),
-                        _mm512_xor_si512(c[k], product),
-                    );
-                }
-            }
-        }
-    }
-
-    pub unsafe fn fold_row(
-        field: &PowerField,
-        dst: &mut [u64],
-        lo: &[u64],
-        hi: &[u64],
-        challenge: &Element,
-        width: usize,
-    ) {
-        unsafe {
-            let challenge: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(challenge[k] as i64));
-            let challenge_sums = sums(&challenge);
-            for j in (0..width).step_by(8) {
-                let (l, h) = (load3(lo, width, j), load3(hi, width, j));
-                let delta = xor3(&l, &h);
-                // `delta * challenge` for the even and the odd four.
-                let product = karatsuba(&delta, &sums(&delta), &challenge, &challenge_sums);
-                let reduced: [[__m512i; 3]; 2] = std::array::from_fn(|half| {
-                    let words: [__m512i; 6] = std::array::from_fn(|w| word(&product[half], w));
-                    reduce(field, &words)
-                });
-                for k in 0..3 {
-                    let folded = _mm512_unpacklo_epi64(reduced[0][k], reduced[1][k]);
-                    _mm512_storeu_si512(
-                        dst.as_mut_ptr().add(k * width + j).cast(),
-                        _mm512_xor_si512(l[k], folded),
-                    );
-                }
-            }
-        }
-    }
-}
-
-/// The AVX-512 kernels on a register of [`Vector`](crate::clmul::Vector) lanes, two entries to a lane.
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "pclmulqdq",
-    not(target_feature = "avx512f")
-))]
-mod avx2 {
     use super::*;
     use crate::clmul::{V, Vector};
 
@@ -570,7 +326,7 @@ mod avx2 {
                 .zip([partial(&a0, &b0), partial(&xor3(&a0, &a1), &xor3(&b0, &b1))])
             {
                 for s in 0..5 {
-                    acc[s] = acc[s].xor(p[0][s]).xor(p[1][s]);
+                    acc[s] = acc[s].xor(p[0][s].xor(p[1][s]));
                 }
             }
         }
@@ -791,7 +547,7 @@ mod tests {
             let values = rng.ext_vec(width);
             let mut row = vec![0u64; 3 * width];
             for (j, &v) in values.iter().enumerate() {
-                set(&mut row, width, j, &field.from_field(v));
+                set(&mut row, width, j, &field.to_poly(v));
             }
             (values, row)
         };
@@ -815,8 +571,8 @@ mod tests {
 
         let challenge = rng.ext();
         let (mut fast, mut slow) = (vec![0u64; 3 * width], vec![0u64; 3 * width]);
-        field.fold_row(&mut fast, &ra0, &ra1, &field.from_field(challenge), width);
-        field.fold_row_portable(&mut slow, &ra0, &ra1, &field.from_field(challenge), width);
+        field.fold_row(&mut fast, &ra0, &ra1, &field.to_poly(challenge), width);
+        field.fold_row_portable(&mut slow, &ra0, &ra1, &field.to_poly(challenge), width);
         assert_eq!(fast, slow);
         for j in 0..width {
             assert_eq!(

@@ -913,9 +913,10 @@ impl Program {
                         pc += 1;
                     }
                 }
-                Op::Keccak { in_odd, out_odd, .. } => {
+                Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
-                    let cells = crate::tables::keccak_cells(&self.prog, pc, fp);
+                    let k = crate::tables::KeccakOp::of(&op);
+                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // The table reads every cell with a literal zero top limb, so anything
                     // else could not balance the bus.
@@ -927,10 +928,10 @@ impl Program {
                     // No table constraint covers the output (the relation is proven
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
-                    let mut lanes = crate::keccak::state_of_cells(&input, in_odd);
+                    let mut lanes = crate::keccak::state_of_cells(&input, k.in_odd);
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
-                    let output = crate::keccak::cells_of_state(&lanes, out_odd);
+                    let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                     for (c, &v) in output.iter().enumerate() {
                         m.put(cells[STATE_CELLS + c], v)?;
                     }

@@ -192,16 +192,21 @@ fn test_python_verifier() {
 #[test]
 fn tampers_fail_the_same_check() {
     let fixture = fixture();
+    // The reduction's stream: the committed outputs' claim, then each layer opening on its product polynomial and
+    // ending on three evaluations. The output opening follows (a slot sumcheck, then the word), then the input opening
+    // (a sumcheck over a pack's instances, one over the slot, then the slices). A degree-3 sumcheck sends two
+    // scalars a round.
+    const PRODUCT_COEFFICIENTS: usize = 47; // a product of two degree-23 embeddings
+    const PACK_BITS: usize = 4; // sixteen instances a pack
+    const SLOT_BITS: usize = 6; // 25 lanes of the 2 segments' states
+    const SLICES: usize = 64;
     let keccak = fixture.summary.keccak_scalars.clone();
-    // The reduction opens with the committed outputs' claim, then the first layer's 47 product coefficients, and its
-    // last layer ends on three evaluations. The output opening follows (a slot sumcheck of 6 rounds, two scalars a
-    // round, then the word), then the input opening (4 rounds, 6 rounds, the 64 slices).
-    let input_opening = 2 * (4 + 6) + 64;
-    let output_opening = 2 * 6 + 1;
+    let input_opening = 2 * (PACK_BITS + SLOT_BITS) + SLICES;
+    let output_opening = 2 * SLOT_BITS + 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
         (N_TABLES + 2, VerifierError::DigestHalf),
-        (keccak.start + 47, VerifierError::KeccakProduct),
+        (keccak.start + PRODUCT_COEFFICIENTS, VerifierError::KeccakProduct),
         (
             keccak.end - input_opening - output_opening - 1,
             VerifierError::KeccakLayer,

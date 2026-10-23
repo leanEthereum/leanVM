@@ -4,10 +4,10 @@
 //! `theta, rho, pi`, then `chi`, then `iota`.
 
 use primitives::field::F192;
+pub use primitives::hash::STATE_LANES as LANES;
 use primitives::hash::{PI, RC, RHO, ROUNDS};
 
 pub const BITS: usize = 1600;
-pub const LANES: usize = 25;
 /// Variables of the cube the positions embed in, low ones first: `z`, then the lane.
 pub const LOCAL_VARS: usize = 11;
 /// Variables of the lane alone.
@@ -18,6 +18,12 @@ pub const LANE_VARS: usize = 5;
 pub const fn along(j: usize, k: usize) -> usize {
     let (lane, z) = (j / 64, j % 64);
     64 * ((lane % 5 + k) % 5 + 5 * (lane / 5)) + z
+}
+
+/// The five positions of a row and slice, which `chi` mixes.
+#[inline(always)]
+pub fn row_positions(row: usize, z: usize) -> [usize; 5] {
+    std::array::from_fn(|x| 64 * (x + 5 * row) + z)
 }
 
 /// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1.

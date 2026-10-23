@@ -7,6 +7,7 @@
 
 use primitives::field::gf2_64::mul_wide;
 
+use crate::keccak::row_positions;
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
@@ -48,16 +49,22 @@ pub const GROUP: usize = 16;
 /// Variables indexing the packs of a group.
 pub const SKIP: usize = 4;
 /// Points of `{0, 1, infinity}^SKIP`, and those of them with a coordinate at infinity.
-pub const TERNARY: usize = 81;
-pub const MIXED: usize = 65;
+pub const TERNARY: usize = 3usize.pow(SKIP as u32);
+pub const MIXED: usize = TERNARY - GROUP;
 /// The mixed points of a block position's two groups, rounded up to whole vectors.
-pub const SLOTS: usize = 136;
+pub const SLOTS: usize = (2 * MIXED).next_multiple_of(8);
 
 /// Sums of `value * weight word`, a 128-bit product each, laid out as the vector kernel leaves
-/// them: entry `i` of a run of eight sits at `[2 * (i / 8) + i % 2][(i % 8) / 2]`.
+/// them: entry `i` of a run of eight sits at `lane(i)`.
 #[derive(Clone, Copy)]
 #[repr(C, align(64))]
 pub struct Lanes(pub [u128; 4]);
+
+/// The [`Lanes`] of entry `i`, and its lane there.
+#[inline(always)]
+const fn lane(i: usize) -> (usize, usize) {
+    (2 * (i / 8) + i % 2, (i % 8) / 2)
+}
 
 /// Per mixed point of each group, the sum over positions of `weight * product`, as three
 /// partial products.
@@ -74,7 +81,8 @@ impl SkipAcc {
 
     /// The three partial products of slot `i`.
     pub fn get(&self, i: usize) -> [u128; 3] {
-        std::array::from_fn(|k| self.0[k][2 * (i / 8) + i % 2].0[(i % 8) / 2])
+        let (v, l) = lane(i);
+        std::array::from_fn(|k| self.0[k][v].0[l])
     }
 }
 
@@ -179,8 +187,9 @@ pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u
         let (b, c) = (&e[(x + 1) % 5], &e[(x + 2) % 5]);
         for p in 0..SLOTS {
             let product = mul_wide(b[p] as u64, c[p] as u64) as u64;
+            let (v, l) = lane(p);
             for k in 0..3 {
-                acc.0[k][2 * (p / 8) + p % 2].0[(p % 8) / 2] ^= mul_wide(product, weights[x][k]);
+                acc.0[k][v].0[l] ^= mul_wide(product, weights[x][k]);
             }
         }
     }
@@ -224,27 +233,17 @@ pub static NIBBLES: [[u8; 16]; 12] = {
     tables
 };
 
-/// The five positions of a row and slice, which `chi` mixes.
-#[inline(always)]
-fn row_positions(row: usize, z: usize) -> [usize; 5] {
-    std::array::from_fn(|x| 64 * (x + 5 * row) + z)
-}
-
-#[inline(always)]
-fn words(block: &[u64], j: usize) -> &[u64; BLOCK_WORDS] {
-    block[j * BLOCK_WORDS..][..BLOCK_WORDS].try_into().expect("eight words")
-}
-
 /// [`skip_row`] over every row and slice of a block, the position weights as elements: per
 /// [`slot`], the three partial products.
-pub fn skip_block_portable(block: &[u64], weights: &[[u64; 3]]) -> Vec<[u128; 3]> {
+#[cfg(test)]
+fn skip_block_portable(block: &[u64], weights: &[[u64; 3]]) -> Vec<[u128; 3]> {
     let mut acc = SkipAcc::new();
     let mut extended = [[0u32; SLOTS]; 5];
     for r in 0..5 {
         for z in 0..64 {
             let js = row_positions(r, z);
             for x in 0..5 {
-                extend(&embed_portable(words(block, js[x])), &mut extended[x]);
+                extend(&embed_portable(crate::witness::words(block, js[x])), &mut extended[x]);
             }
             skip_row_portable(&mut acc, &extended, std::array::from_fn(|x| &weights[js[x]]));
         }
@@ -284,7 +283,7 @@ cfg_select! {
                     for z in 0..64 {
                         let js = row_positions(r, z);
                         for x in 0..5 {
-                            embed_extend(words(block, js[x]), &mut self.extended[x]);
+                            embed_extend(crate::witness::words(block, js[x]), &mut self.extended[x]);
                         }
                         skip_row(&mut self.acc, &self.extended, std::array::from_fn(|x| &weights[js[x]]));
                     }
@@ -299,6 +298,31 @@ cfg_select! {
     }
 }
 
+/// [`products`] on a register of [`Vector`](crate::clmul::Vector) lanes, two packs to a lane: the
+/// x86 form at every width.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[inline(always)]
+pub fn products_clmul(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
+    use crate::clmul::{V, Vector};
+    let ones = V::splat(RMFE.ones as u64);
+    let mut out = [0u64; PACKS];
+    for q in (0..PACKS).step_by(2 * V::N) {
+        // SAFETY: `2 * N` packs at `q`, and as many words.
+        unsafe {
+            let (za, zb, zc) = (
+                V::load_packs(a.as_ptr().add(q)),
+                V::load_packs(b.as_ptr().add(q)),
+                V::load_packs(c.as_ptr().add(q)),
+            );
+            let linear = za.xor(zc);
+            let even = zb.clmul::<0x00>(zc).xor(linear.clmul::<0x00>(ones));
+            let odd = zb.clmul::<0x11>(zc).xor(linear.clmul::<0x11>(ones));
+            V::store(out.as_mut_ptr().add(q), even.unpacklo(odd));
+        }
+    }
+    out
+}
+
 /// Compiled only where its features are, so its kernels are safe to call.
 #[cfg(all(
     target_arch = "x86_64",
@@ -311,7 +335,7 @@ mod x86 {
     use core::arch::x86_64::*;
 
     use super::*;
-    pub use super::{embed_extend_portable as embed_extend, skip_row_portable as skip_row};
+    pub use super::{embed_extend_portable as embed_extend, products_clmul as products, skip_row_portable as skip_row};
     use crate::keccak::BITS;
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
@@ -345,19 +369,9 @@ mod x86 {
     #[inline(always)]
     pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
-            let m = &MATRICES;
             let v = _mm512_loadu_si512(words.as_ptr().cast());
-            // Byte `k` of the embedding, in the low byte of each pack's 16 bits.
-            let byte = |k: usize| {
-                let lo = _mm512_gf2p8affine_epi64_epi8(v, _mm512_set1_epi64(m[0][k]), 0);
-                let hi = _mm512_gf2p8affine_epi64_epi8(v, _mm512_set1_epi64(m[1][k]), 0);
-                _mm512_and_si512(
-                    _mm512_xor_si512(lo, _mm512_srli_epi16(hi, 8)),
-                    _mm512_set1_epi16(0x00ff),
-                )
-            };
-            let low = _mm512_or_si512(byte(0), _mm512_slli_epi16(byte(1), 8));
-            let high = byte(2);
+            let low = _mm512_or_si512(embedding_byte(v, 0), _mm512_slli_epi16(embedding_byte(v, 1), 8));
+            let high = embedding_byte(v, 2);
             // Interleaving the halves leaves each lane's four low packs, then its four high ones.
             let (first, second) = (_mm512_unpacklo_epi16(low, high), _mm512_unpackhi_epi16(low, high));
             let mut out = [0u32; PACKS];
@@ -389,32 +403,6 @@ mod x86 {
     #[inline(always)]
     unsafe fn load(p: *const u32) -> __m512i {
         unsafe { _mm512_cvtepu32_epi64(_mm256_loadu_si256(p.cast())) }
-    }
-
-    #[inline(always)]
-    pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
-        unsafe {
-            let ones = _mm512_set1_epi64(RMFE.ones as i64);
-            let mut out = [0u64; PACKS];
-            for g in 0..4 {
-                let (za, zb, zc) = (
-                    load(a.as_ptr().add(8 * g)),
-                    load(b.as_ptr().add(8 * g)),
-                    load(c.as_ptr().add(8 * g)),
-                );
-                let linear = _mm512_xor_si512(za, zc);
-                let even = _mm512_xor_si512(
-                    _mm512_clmulepi64_epi128(zb, zc, 0x00),
-                    _mm512_clmulepi64_epi128(linear, ones, 0x00),
-                );
-                let odd = _mm512_xor_si512(
-                    _mm512_clmulepi64_epi128(zb, zc, 0x11),
-                    _mm512_clmulepi64_epi128(linear, ones, 0x01),
-                );
-                _mm512_storeu_si512(out.as_mut_ptr().add(8 * g).cast(), _mm512_unpacklo_epi64(even, odd));
-            }
-            out
-        }
     }
 
     /// Byte `k` of the embedding of each pack of `v`, in the low byte of the pack's 16 bits.
@@ -628,7 +616,8 @@ mod x86 {
 }
 
 /// Compiled only where its features are, so its kernels are safe to call. The embedding is
-/// NEON's nibble lookups; the products are a register of [`Vector`](crate::clmul::Vector) lanes, two packs to a lane.
+/// NEON's nibble lookups, and the products are on a register of [`Vector`](crate::clmul::Vector)
+/// lanes, two packs to a lane.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx2",
@@ -638,6 +627,7 @@ mod x86 {
 mod avx2 {
     use core::arch::x86_64::*;
 
+    pub use super::products_clmul as products;
     use super::*;
     use crate::clmul::{V, Vector};
 
@@ -753,27 +743,6 @@ mod avx2 {
         }
     }
 
-    #[inline(always)]
-    pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
-        let ones = V::splat(RMFE.ones as u64);
-        let mut out = [0u64; PACKS];
-        for q in (0..PACKS).step_by(2 * V::N) {
-            // SAFETY: `2 * N` packs at `q`, and as many words.
-            unsafe {
-                let (za, zb, zc) = (
-                    V::load_packs(a.as_ptr().add(q)),
-                    V::load_packs(b.as_ptr().add(q)),
-                    V::load_packs(c.as_ptr().add(q)),
-                );
-                let linear = za.xor(zc);
-                let even = zb.clmul::<0x00>(zc).xor(linear.clmul::<0x00>(ones));
-                let odd = zb.clmul::<0x11>(zc).xor(linear.clmul::<0x11>(ones));
-                V::store(out.as_mut_ptr().add(q), even.unpacklo(odd));
-            }
-        }
-        out
-    }
-
     /// `2 * N` slots at a time, their sums over the row kept in registers. A slot's product lies
     /// in the low word of its lane, which multiplies the weights as it is. The padding slots past
     /// the last whole register are skipped: nothing reads their sums.
@@ -796,8 +765,9 @@ mod avx2 {
             // Slot `p + h + 2 * l` is lane `l` of `sums[.][h]`, and those lanes lie side by side.
             for (acc, sums) in acc.0.iter_mut().zip(sums) {
                 for (h, sum) in sums.into_iter().enumerate() {
-                    let slot = acc[2 * (p / 8) + h].0[(p % 8) / 2..].as_mut_ptr().cast::<u64>();
-                    // SAFETY: `N` lanes from `(p % 8) / 2`, a multiple of `N`.
+                    let (v, l) = lane(p + h);
+                    let slot = acc[v].0[l..].as_mut_ptr().cast::<u64>();
+                    // SAFETY: `N` lanes from `l`, a multiple of `N`.
                     unsafe { V::store(slot, V::load(slot).xor(sum)) };
                 }
             }
@@ -840,21 +810,7 @@ mod neon {
     #[inline(always)]
     pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
-            let p = NIBBLES.as_ptr().cast::<u8>();
-            let t = [
-                vld1q_u8(p),
-                vld1q_u8(p.add(16)),
-                vld1q_u8(p.add(32)),
-                vld1q_u8(p.add(48)),
-                vld1q_u8(p.add(64)),
-                vld1q_u8(p.add(80)),
-                vld1q_u8(p.add(96)),
-                vld1q_u8(p.add(112)),
-                vld1q_u8(p.add(128)),
-                vld1q_u8(p.add(144)),
-                vld1q_u8(p.add(160)),
-                vld1q_u8(p.add(176)),
-            ];
+            let t: [uint8x16_t; 12] = std::array::from_fn(|i| vld1q_u8(NIBBLES[i].as_ptr()));
             let mask = vdupq_n_u8(0x0f);
             let mut out = [0u32; PACKS];
             for half in 0..2 {
@@ -1002,8 +958,8 @@ mod neon {
                 }
                 for (k, sums) in sums.iter().enumerate() {
                     for (h, &sum) in sums.iter().enumerate() {
-                        let i = p + h;
-                        let slot = (&mut acc.0[k][2 * (i / 8) + i % 2].0[(i % 8) / 2] as *mut u128).cast::<u64>();
+                        let (v, l) = lane(p + h);
+                        let slot = (&mut acc.0[k][v].0[l] as *mut u128).cast::<u64>();
                         vst1q_u64(slot, veorq_u64(vld1q_u64(slot), sum));
                     }
                 }

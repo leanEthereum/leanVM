@@ -4,6 +4,11 @@
 use lean_compiler::{compile, parse};
 use primitives::field::F192;
 
+/// `x` as a zkDSL `f192(..)` literal.
+pub fn f192_lit(x: F192) -> String {
+    format!("f192({}, {}, {})", x.c0, x.c1, x.c2)
+}
+
 /// The program's own instruction mix: executed but not proven.
 pub fn mix(src: &str, pi: [F192; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
     compile(&parse(src).expect("parse")).execute(pi).unwrap().rows()

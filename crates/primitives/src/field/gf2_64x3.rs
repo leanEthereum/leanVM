@@ -745,6 +745,15 @@ pub mod x86_64 {
         _mm256_xor_si256(lo, f)
     }
 
+    /// Qword `i` is the reduction of lane `i`'s 128-bit product, `even` holding those of the even
+    /// lanes and `odd` those of the odd ones, one per 128-bit lane.
+    #[cfg(target_feature = "avx2")]
+    #[inline(always)]
+    pub fn reduce_halves256(even: __m256i, odd: __m256i) -> __m256i {
+        // SAFETY: the cfg enables avx2.
+        unsafe { reduce_lanes256(_mm256_unpacklo_epi64(even, odd), _mm256_unpackhi_epi64(even, odd)) }
+    }
+
     /// Lane-wise base reduction on eight qwords; see the four-qword version.
     ///
     /// # Safety
@@ -766,6 +775,14 @@ pub mod x86_64 {
             _mm512_xor_si512(_mm512_slli_epi64::<3>(v), _mm512_slli_epi64::<4>(v)),
         );
         _mm512_xor_si512(lo, f)
+    }
+
+    /// [`reduce_halves256`] on eight qwords.
+    #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    #[inline(always)]
+    pub(crate) fn reduce_halves512(even: __m512i, odd: __m512i) -> __m512i {
+        // SAFETY: the cfg enables avx512f.
+        unsafe { reduce_lanes512(_mm512_unpacklo_epi64(even, odd), _mm512_unpackhi_epi64(even, odd)) }
     }
 
     /// The y-folded Karatsuba products of two pairs, one pair per 128-bit lane.
@@ -808,7 +825,7 @@ pub mod x86_64 {
         unsafe {
             let [d0, d1, d2] = karatsuba_vec2(a, b);
             // Lane i of c01 is [c0_i, c1_i]; the low qword of lane i of c2 is c2_i.
-            let c01 = reduce_lanes256(_mm256_unpacklo_epi64(d0, d1), _mm256_unpackhi_epi64(d0, d1));
+            let c01 = reduce_halves256(d0, d1);
             let c2 = reduce_lanes256(d2, _mm256_unpackhi_epi64(d2, d2));
             let (w01, w2) = (transmute::<__m256i, [u64; 4]>(c01), transmute::<__m256i, [u64; 4]>(c2));
             std::array::from_fn(|i| F192::new(w01[2 * i], w01[2 * i + 1], w2[2 * i]))
@@ -873,7 +890,7 @@ pub mod x86_64 {
         unsafe {
             let [d0, d1, d2] = karatsuba_vec4(a, b);
             // Lane i of c01 is [c0_i, c1_i]; the low qword of lane i of c2 is c2_i.
-            let c01 = reduce_lanes512(_mm512_unpacklo_epi64(d0, d1), _mm512_unpackhi_epi64(d0, d1));
+            let c01 = reduce_halves512(d0, d1);
             let c2 = reduce_lanes512(d2, _mm512_unpackhi_epi64(d2, d2));
             let (w01, w2) = (transmute::<__m512i, [u64; 8]>(c01), transmute::<__m512i, [u64; 8]>(c2));
             std::array::from_fn(|i| F192::new(w01[2 * i], w01[2 * i + 1], w2[2 * i]))
@@ -937,10 +954,9 @@ pub mod x86_64 {
             let kv = _mm512_loadu_si512(k.as_ptr().cast());
             let [e0, e1, o0, o1, e2, o2] = mul_by_pairs(t01, t01, t2, kv);
             // Gather each product's low and high halves into qword-wise vectors, then reduce.
-            let red = |x, y| reduce_lanes512(_mm512_unpacklo_epi64(x, y), _mm512_unpackhi_epi64(x, y));
-            let even = transmute::<__m512i, [u64; 8]>(red(e0, e1));
-            let odd = transmute::<__m512i, [u64; 8]>(red(o0, o1));
-            let c2 = transmute::<__m512i, [u64; 8]>(red(e2, o2));
+            let even = transmute::<__m512i, [u64; 8]>(reduce_halves512(e0, e1));
+            let odd = transmute::<__m512i, [u64; 8]>(reduce_halves512(o0, o1));
+            let c2 = transmute::<__m512i, [u64; 8]>(reduce_halves512(e2, o2));
             std::array::from_fn(|i| {
                 let (j, w) = (i / 2, if i % 2 == 0 { &even } else { &odd });
                 F192::new(w[2 * j], w[2 * j + 1], c2[i])
@@ -1025,14 +1041,13 @@ pub mod x86_64 {
         unsafe {
             let t01 = _mm256_broadcastsi128_si256(pair(t.c0, t.c1));
             let t2 = _mm256_set1_epi64x(t.c2 as i64);
-            let red = |x, y| reduce_lanes256(_mm256_unpacklo_epi64(x, y), _mm256_unpackhi_epi64(x, y));
             let mut out = [F192::ZERO; 8];
             for (half, out) in out.as_chunks_mut::<4>().0.iter_mut().enumerate() {
                 let kv = _mm256_loadu_si256(k.as_ptr().add(4 * half).cast());
                 let [e0, e1, o0, o1, e2, o2] = mul_by_pairs_ymm(t01, t01, t2, kv);
-                let even = transmute::<__m256i, [u64; 4]>(red(e0, e1));
-                let odd = transmute::<__m256i, [u64; 4]>(red(o0, o1));
-                let c2 = transmute::<__m256i, [u64; 4]>(red(e2, o2));
+                let even = transmute::<__m256i, [u64; 4]>(reduce_halves256(e0, e1));
+                let odd = transmute::<__m256i, [u64; 4]>(reduce_halves256(o0, o1));
+                let c2 = transmute::<__m256i, [u64; 4]>(reduce_halves256(e2, o2));
                 for (i, slot) in out.iter_mut().enumerate() {
                     let (j, w) = (i / 2, if i % 2 == 0 { &even } else { &odd });
                     *slot = F192::new(w[2 * j], w[2 * j + 1], c2[i]);

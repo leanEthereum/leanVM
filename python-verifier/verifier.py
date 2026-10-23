@@ -191,6 +191,8 @@ def powers(base: E, count: int) -> list[E]:
 # Keccak-256 (Ethereum's hash): 136-byte blocks, the last holding the remaining 0 to 135
 # bytes and the padding 0x01 || 0^* || 0x80.
 RATE = 136
+STATE_LANES = 25
+ROUNDS = 24
 PAD_FIRST = 0x01  # the padding's first byte, after the message; FIPS 202's 256-bit hash would put 0x06
 PAD_LAST = 0x80
 
@@ -201,7 +203,7 @@ def keccak_hash(data: bytes) -> Digest:
     padded = bytearray(data) + bytes(blocks * RATE - len(data))
     padded[len(data)] ^= PAD_FIRST
     padded[-1] ^= PAD_LAST
-    state = [0] * 25
+    state = [0] * STATE_LANES
     for b in range(blocks):
         state = keccak_f([lane ^ word for lane, word in zip(state, unpack("<17Q", padded[RATE * b : RATE * (b + 1)]))] + state[17:])
     return Digest(pack("<4Q", *state[:4]))
@@ -301,21 +303,18 @@ def poly_eval(coefficients: Sequence[E], point: E) -> E:
 
 @dataclass(frozen=True)
 class Placement:
-    """Where something sits in the stacked cube: a claim's point fills the `variables` coordinates above `low`, the bits of `index` fixing the rest.
-    `low` is zero for a block with a cube of its own, and the slot width for a column interleaved into a bigger block."""
+    """Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest."""
 
     variables: int
     index: int
-    low: int = 0
 
     def stack_point(self, point: MultilinearPoint, stack_log: int) -> MultilinearPoint:
-        bits = _selector_point(self.index, stack_log)
-        return bits[: self.low] + tuple(point) + bits[self.low + self.variables :]
+        return tuple(point) + _selector_point(self.index >> self.variables, stack_log - self.variables)
 
     def eq_above(self, point: Sequence[E]) -> E:
         """eq weight of the coordinates above the window."""
-        bits = _selector_point(self.index >> (self.low + self.variables), len(point) - self.low - self.variables)
-        return eq_eval(bits, point[self.low + self.variables :])
+        bits = _selector_point(self.index >> self.variables, len(point) - self.variables)
+        return eq_eval(bits, point[self.variables :])
 
 
 def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
@@ -367,11 +366,11 @@ def keccak_f(lanes: Sequence[int]) -> list[int]:
 
     for rc in KECCAK_RC:
         c = [a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20] for x in range(5)]
-        a = [a[i] ^ c[(i - 1) % 5] ^ rot(c[(i + 1) % 5], 1) for i in range(25)]
-        b = [0] * 25
-        for i in range(25):
+        a = [a[i] ^ c[(i - 1) % 5] ^ rot(c[(i + 1) % 5], 1) for i in range(STATE_LANES)]
+        b = [0] * STATE_LANES
+        for i in range(STATE_LANES):
             b[KECCAK_PI[i]] = rot(a[i], KECCAK_RHO[i])
-        a = [b[i] ^ (~b[i - i % 5 + (i + 1) % 5] & LANE_MASK & b[i - i % 5 + (i + 2) % 5]) for i in range(25)]
+        a = [b[i] ^ (~b[i - i % 5 + (i + 1) % 5] & LANE_MASK & b[i - i % 5 + (i + 2) % 5]) for i in range(STATE_LANES)]
         a[0] ^= rc
     return a
 
@@ -559,8 +558,12 @@ class ColumnClaim:
     point: MultilinearPoint
     value: E
 
-    def on_stack(self, layout: Layout) -> StackClaim:
-        point = layout.placements[self.column].stack_point(self.point, layout.stack_log)
+    def on_stack(self, layout: Layout) -> StackClaim | None:
+        """None for a column nothing commits, whose claim never reaches the stack."""
+        placement = layout.placements[self.column]
+        if placement is None:
+            return None
+        point = placement.stack_point(self.point, layout.stack_log)
         return (lambda x: eq_eval(point, x), self.value)
 
 
@@ -651,7 +654,8 @@ def table_sumcheck(
     equality_point: MultilinearPoint,
     target: E,
     transcript: Transcript,
-) -> list[ColumnClaim]:
+) -> list[tuple[MultilinearPoint, tuple[E, ...]]]:
+    """Each table's point and its columns' evaluations there."""
     n_rounds = max(table_log_heights)
     challenges, claim = sumcheck(transcript, target, 4, [None] * n_rounds)
     point = list(reversed(challenges))
@@ -663,16 +667,15 @@ def table_sumcheck(
 
     final = ZERO
     cursor = 0
-    claims: list[ColumnClaim] = []
+    rows = []
     for table, height, forms, weight in zip(TABLES, table_log_heights, bus_forms, weights, strict=True):
         evaluations = tuple(transcript.next_scalars(table.width))
         summand = dot(constraint_powers[cursor : cursor + table.n_constraints], table.constraints(evaluations))
         final += weight * (summand + dot(form_powers, [form.evaluate(evaluations.__getitem__) for form in forms]))
         cursor += table.n_constraints
-        table_point = tuple(point[:height])
-        claims.extend(ColumnClaim(GLOBAL_COLUMN_BASES[table.opcode] + local, table_point, value) for local, value in enumerate(evaluations))
+        rows.append((tuple(point[:height]), evaluations))
     require(final == claim, "table sumcheck terminal mismatch")
-    return claims
+    return rows
 
 
 RELATION_LABEL = b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus"
@@ -686,11 +689,12 @@ K_BITS = 64
 # The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
 # slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
 KECCAK_DEPTH = 12
-KECCAK_SEGMENTS = 24 // KECCAK_DEPTH
+KECCAK_SEGMENTS = ROUNDS // KECCAK_DEPTH
 KECCAK_SEGMENT_BITS = log2_ceil(KECCAK_SEGMENTS)
-QKECCAK_SLOT_BITS = log2_ceil(25 * KECCAK_SEGMENTS)
+QKECCAK_SLOT_BITS = log2_ceil(STATE_LANES * KECCAK_SEGMENTS)
 KECCAK_MIN_STEPS_LOG = 9  # the reduction is sized for at least one block of 512 steps
-KECCAK_BITS = 1600
+KECCAK_CELLS = 13  # a sponge state, read and written by KECCAK
+KECCAK_BITS = 64 * STATE_LANES
 KECCAK_LOCAL_BITS = 11  # a bit position is z + 64 * lane, in a cube of 2048
 KECCAK_LANE_BITS = 5
 
@@ -703,7 +707,7 @@ class Layout:
     push: tuple[BusBlock, ...]
     pull: tuple[BusBlock, ...]
     count: tuple[BusBlock, ...]
-    placements: tuple[Placement, ...]
+    placements: tuple[Placement | None, ...]  # None for a column nothing commits: the KECCAK output lanes
     stack_log: int
     table_log_heights: tuple[int, ...]
 
@@ -790,10 +794,10 @@ class Table:
     @property
     def padding(self) -> tuple[E, ...]:
         """The row a padding row holds: zero, but for KECCAK's output lanes, a padding row permuting zeros."""
-        if self.opcode != OP_KECCAK:
-            return tuple(ZERO for _ in self.columns)
-        output = keccak_f([0] * 25)
-        return tuple(E(output[KECCAK_OUTPUTS.index(name)]) if name in KECCAK_OUTPUTS else ZERO for name in self.columns)
+        padding = [ZERO] * self.width
+        if self.opcode == OP_KECCAK:
+            padding[KECCAK_OUT : KECCAK_OUT + STATE_LANES] = map(E, keccak_f([0] * STATE_LANES))
+        return tuple(padding)
 
 
 def _flushes_arith(opcode: int, multiply: bool) -> Flushes:
@@ -873,7 +877,7 @@ def _keccak_cell_lanes(odd: bool) -> tuple[tuple[int | None, int | None], ...]:
             return (None, 0)
         return (16, None) if c == 8 else (2 * c, 2 * c + 1)
 
-    return tuple(lanes(c) for c in range(13))
+    return tuple(lanes(c) for c in range(KECCAK_CELLS))
 
 
 def _layout_limb(even: int | None, odd: int | None, flag: int, missing: int | None) -> Form:
@@ -904,15 +908,14 @@ def _flushes_keccak() -> Flushes:
         return _prod(fp, o_b8) if cell == 8 else _prod(fp, o_cap, cell - 9)
 
     even, odd = _keccak_cell_lanes(False), _keccak_cell_lanes(True)
-    for side, (prefix, flag, missing) in enumerate((("in", odd_in, free), ("out", odd_out, None))):
+    for side, (lanes, flag, missing) in enumerate(((KECCAK_IN, odd_in, free), (KECCAK_OUT, odd_out, None))):
 
-        def lane(lane: int | None, prefix: str = prefix) -> int | None:
-            return None if lane is None else _cols(KECCAK_COLUMNS, f"{prefix}_{lane}")[0]
+        def lane(lane: int | None, lanes: int = lanes) -> int | None:
+            return None if lane is None else lanes + lane
 
-        for cell in range(13):
+        for cell in range(KECCAK_CELLS):
             values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
-            (count,) = _cols(KECCAK_COLUMNS, f"cnt_{13 * side + cell}")
-            flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), count, values)
+            flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), KECCAK_CNT + KECCAK_CELLS * side + cell, values)
     return flushes
 
 
@@ -928,10 +931,11 @@ KECCAK_COLUMNS = (
     "free",
     # These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
     # and the output lanes' claims are the Keccak reduction's claim on the output.
-    *(f"in_{lane}" for lane in range(25)), *(f"out_{lane}" for lane in range(25)),
-    # ...and the read counts, committed here like every other column.
-    *(f"cnt_{cell}" for cell in range(26)), "cnt_bc",
+    *(f"in_{lane}" for lane in range(STATE_LANES)), *(f"out_{lane}" for lane in range(STATE_LANES)),
+    # ...and the read counts, each cell read then each written, committed here like every other column.
+    *(f"cnt_{cell}" for cell in range(2 * KECCAK_CELLS)), "cnt_bc",
 )  # fmt: skip
+KECCAK_IN, KECCAK_OUT, KECCAK_CNT = (KECCAK_COLUMNS.index(name) for name in ("in_0", "out_0", "cnt_0"))
 
 TABLES = (
     Table("xor", OP_XOR, ARITH_COLUMNS, _flushes_arith(OP_XOR, multiply=False)),
@@ -941,10 +945,6 @@ TABLES = (
     Table("jump", OP_JUMP, JUMP_COLUMNS, _flushes_jump(), _jump_constraints),
     Table("keccak", OP_KECCAK, KECCAK_COLUMNS, _flushes_keccak()),
 )
-
-# The KECCAK value lanes in q_keccak slot order: the input state's. The output's have no slot.
-KECCAK_SLOTS = tuple(f"in_{lane}" for lane in range(25))
-KECCAK_OUTPUTS = tuple(f"out_{lane}" for lane in range(25))
 
 
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
@@ -980,15 +980,16 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
 
     # A KECCAK value lane gets no block of its own: an input lane is committed inside q_keccak, one
     # slot of 2^height words each, and an output lane not at all, nothing ever opening it.
-    limbs = {GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0]: slot for slot, name in enumerate(KECCAK_SLOTS)}
-    outputs = {GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0] for name in KECCAK_OUTPUTS}
-    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in limbs and column not in outputs}
+    base = GLOBAL_COLUMN_BASES[OP_KECCAK]
+    inputs = range(base + KECCAK_IN, base + KECCAK_IN + STATE_LANES)
+    outputs = range(base + KECCAK_OUT, base + KECCAK_OUT + STATE_LANES)
+    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in inputs and column not in outputs}
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
     placements = [
-        Placement(kappa, offsets[QKECCAK] + (limbs[column] << kappa))
-        if column in limbs
+        Placement(kappa, offsets[QKECCAK] + ((column - inputs.start) << kappa))
+        if column in inputs
         else None
         if column in outputs
         else Placement(kappa, offsets[column])
@@ -1195,7 +1196,7 @@ KECCAK_RC = (
     0x000000000000800A, 0x800000008000000A, 0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
 )  # fmt: skip
 KECCAK_RHO = (0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14)
-KECCAK_PI = tuple(i // 5 + 5 * ((2 * (i % 5) + 3 * (i // 5)) % 5) for i in range(25))  # where lane x + 5y lands
+KECCAK_PI = tuple(i // 5 + 5 * ((2 * (i % 5) + 3 * (i // 5)) % 5) for i in range(STATE_LANES))  # where lane x + 5y lands
 
 
 # Keccak, by GKR over its rounds ------------------------------------------------
@@ -1204,7 +1205,7 @@ KECCAK_PI = tuple(i // 5 + 5 * ((2 * (i % 5) + 3 * (i // 5)) % 5) for i in range
 # the weight of bit `j` of instance `i` of pack `y` in segment `m` being
 # `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
-PACK = 16
+PACK_BITS = 4
 EMBED_BITS = 24
 PRODUCT_BITS = 2 * EMBED_BITS - 1
 # The moduli the embedding is glued from, with the bits each holds.
@@ -1275,13 +1276,13 @@ def keccak_along(j: int, k: int) -> int:
 def keccak_linear_transpose(w: Sequence[E]) -> list[E]:
     """The transpose of theta, rho, pi on weight vectors: `<w, L(a)> = <L^T(w), a>`."""
     g = [ZERO] * KECCAK_BITS  # the weight each position of theta's output carries
-    for lane in range(25):
+    for lane in range(STATE_LANES):
         for z in range(64):
             g[64 * lane + z] = w[64 * KECCAK_PI[lane] + (z + KECCAK_RHO[lane]) % 64]
     columns = [E.sum(g[64 * (x + 5 * y) + z] for y in range(5)) for x in range(5) for z in range(64)]
     return [
         g[64 * lane + z] + columns[64 * ((lane % 5 + 1) % 5) + z] + columns[64 * ((lane % 5 + 4) % 5) + (z + 1) % 64]
-        for lane in range(25)
+        for lane in range(STATE_LANES)
         for z in range(64)
     ]
 
@@ -1294,7 +1295,7 @@ def keccak_instance_weights(s: E) -> list[E]:
 
 def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim: KeccakClaim) -> KeccakClaim:
     """A claim on the states `step` layers below the committed outputs becomes one on the states a layer further down."""
-    pack_bits = log_steps - 4
+    pack_bits = log_steps - PACK_BITS
     # 1] The product polynomial: the claim's weighted sum of the packs' unprojected chi.
     product = transcript.next_scalars(PRODUCT_BITS)
     projected = E.sum(E.sum(m for m, mask in zip(claim.mu, RMFE_PROJECT) if mask >> c & 1) * product[c] for c in range(PRODUCT_BITS))
@@ -1341,11 +1342,11 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
 def _keccak_slot_weights(log_steps: int, claim: KeccakClaim, first: int, count: int) -> list[list[E]]:
     """The weight a claim puts on each (slot, z): its position weights on the slots of the states it speaks of, scaled by
     the segment. `first` is the state segment 0 claims, and only the first `count` segments' states are committed."""
-    segments = eq_kernel(claim.point[log_steps - 4 :])
+    segments = eq_kernel(claim.point[log_steps - PACK_BITS :])
     rows = [[ZERO] * 64 for _ in range(2**QKECCAK_SLOT_BITS)]
     for segment in range(count):
         for j in range(KECCAK_BITS):
-            rows[25 * (first + segment) + j // 64][j % 64] = segments[segment] * claim.weights[j]
+            rows[STATE_LANES * (first + segment) + j // 64][j % 64] = segments[segment] * claim.weights[j]
     return rows
 
 
@@ -1365,14 +1366,14 @@ def verify_keccak(
     committed inputs. The last segment's output is the permutation's, claimed by the table's lanes `output` at
     `instance`; the others are committed. It leaves openings of q_keccak: the committed outputs as words at
     one point, and the column's 64 slices at another."""
-    pack_bits = log_steps - 4
-    r_low = instance[:4]
+    pack_bits = log_steps - PACK_BITS
+    r_low = instance[:PACK_BITS]
     segment = transcript.samples(KECCAK_SEGMENT_BITS)
-    point = (*instance[4:], *segment)
+    point = (*instance[PACK_BITS:], *segment)
     # The first claim combines the output lanes as words: bit z of a word weighs x^z.
     lanes = eq_kernel(transcript.samples(KECCAK_LANE_BITS))
     weights = [lanes[j // 64] * E(1 << (j % 64)) for j in range(KECCAK_BITS)]
-    last = eq_kernel(segment)[KECCAK_SEGMENTS - 1] * dot(lanes[:25], output)
+    last = eq_kernel(segment)[KECCAK_SEGMENTS - 1] * dot(lanes[:STATE_LANES], output)
     committed = transcript.next_scalar() if KECCAK_SEGMENTS > 1 else ZERO
     first = KeccakClaim(committed + last, eq_kernel(r_low), point, weights)
     claim = first
@@ -1385,9 +1386,9 @@ def verify_keccak(
         slot, weights, value = _keccak_open(transcript, log_steps, first, 1, KECCAK_SEGMENTS - 1, committed)
         word = transcript.next_scalar()
         require(weights[0] * word == value, "Keccak output opening ends on the wrong value")
-        outputs.append(ColumnClaim(QKECCAK, (*r_low, *instance[4:], *slot), word))
+        outputs.append(ColumnClaim(QKECCAK, (*r_low, *instance[PACK_BITS:], *slot), word))
     # The inputs: the instances of a pack first, then the slot.
-    low, value = sumcheck(transcript, claim.value, 3, [None] * 4)
+    low, value = sumcheck(transcript, claim.value, 3, [None] * PACK_BITS)
     slot, weights, value = _keccak_open(transcript, log_steps, claim, 0, KECCAK_SEGMENTS, value)
     slices = transcript.next_scalars(K_BITS)
     require(multilinear_eval(claim.mu, low) * dot(weights, slices) == value, "Keccak input opening ends on the wrong value")
@@ -1478,8 +1479,10 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     xi_powers = powers(xi, n_constraints + 3)  # one power per constraint, then one per bus side, shared by every table
     constraint_powers, form_powers = xi_powers[:n_constraints], xi_powers[n_constraints:]
     target = dot(form_powers, bus.totals)
-    table_sumcheck_claims = table_sumcheck(layout.table_log_heights, bus.forms, constraint_powers, form_powers, bus.point, target, transcript)
-    claims = [*bus.claims, *table_sumcheck_claims]
+    evaluations = table_sumcheck(layout.table_log_heights, bus.forms, constraint_powers, form_powers, bus.point, target, transcript)
+    claims = list(bus.claims)
+    for base, (point, values) in zip(GLOBAL_COLUMN_BASES, evaluations, strict=True):
+        claims.extend(ColumnClaim(base + local, point, value) for local, value in enumerate(values))
 
     # 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
     # evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
@@ -1489,13 +1492,10 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     public_point = (public_challenge, *[ZERO] * (layout.placements[MEMORY_0].variables - 1))
     claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
 
-    # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
-    # reduction's claim on the permutation's output: they leave the batch.
-    output_columns = [GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0] for name in KECCAK_OUTPUTS]
-    lanes = [c for c in claims if c.column in output_columns]
-    require([c.column for c in lanes] == output_columns and len({c.point for c in lanes}) == 1, "one claim on each KECCAK output lane, in order")
-    claims = [c for c in claims if c.column not in output_columns]
-    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_KECCAK], lanes[0].point, [c.value for c in lanes], transcript)
+    # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
+    # the permutation's output: they leave the batch, their columns having no placement.
+    point, values = evaluations[OP_KECCAK]
+    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_KECCAK], point, values[KECCAK_OUT : KECCAK_OUT + STATE_LANES], transcript)
     claims.extend(outputs)
 
     # 7] Ring-switching
@@ -1504,7 +1504,8 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     target, weight = ring_switch(point, slices, transcript)
     qkeccak = layout.placements[QKECCAK]
     ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c.on_stack(layout) for c in claims)])
+    stack_claims = (c.on_stack(layout) for c in claims)
+    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None)])
     transcript.finish()
 
 

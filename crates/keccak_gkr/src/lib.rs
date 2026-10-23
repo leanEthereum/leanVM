@@ -14,7 +14,7 @@
 //!
 //! # Claims
 //!
-//! A claim ([`protocol::Claim`]) is a weighted sum of the bits of one state per segment. An
+//! A claim (`protocol::Claim`) is a weighted sum of the bits of one state per segment. An
 //! instance index splits into a pack (its high bits) and one of the pack's sixteen instances,
 //! and the weight of a bit is a product of four: `eq` of a point at the pack and segment, a
 //! weight per bit position, and a weight per instance of the pack.
@@ -25,7 +25,7 @@
 //! nonzero difference of two bit tables. Its value is the committed outputs' part, which the
 //! prover sends, plus the last segment's, which the caller's lane values give. `depth` layers turn
 //! the claim into one on the committed inputs, and both end as openings of the commitment
-//! ([`open`]): the committed outputs as words at one point, the inputs as their 64 bit slices at
+//! (`open`): the committed outputs as words at one point, the inputs as their 64 bit slices at
 //! another. The caller's instance point is a challenge drawn after the commitment, and the
 //! claim's segment and lane challenges after the caller's lane values are bound, so a batch that breaks the permutation anywhere makes the first claim
 //! false of what the inputs imply, except with the probability a nonzero multilinear vanishes at
@@ -36,7 +36,7 @@
 //! A round is `chi` after a linear map. On the state `u` the linear map produces, `chi` sets
 //! position `j` to `u[j] + (1 + u[j + 1]) * u[j + 2]`, with `j + k` the position `k` columns
 //! along. A claim on a round's output becomes one on its input in six steps (the
-//! verifier's are `crates/verifier`'s `keccak.rs`, the prover's [`prover::prove_layer`]):
+//! verifier's are `crates/verifier`'s `keccak.rs`, the prover's `prover::prove_layer`):
 //!
 //! 1. **Product polynomial.** Sixteen bits embed in a binary polynomial of degree at most 23, in
 //!    such a way that a fixed linear map sends a product of two embeddings to the embedding of
@@ -76,11 +76,11 @@
 //! # Prover
 //!
 //! The witness holds every round's `u` sliced by bit position, 64 instances to a word
-//! ([`witness`]). A layer walks it three times ([`prover`]): once for `U`, once for the first
+//! ([`witness`]). A layer walks it three times (`prover`): once for `U`, once for the first
 //! four rounds of step 3, which are sums of products of bit-level combinations of packs, and
 //! once to fold those four rounds' challenges into field elements. Everything after `s` is
 //! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
-//! weighted sum is a carry-less product ([`basis`], [`power`]).
+//! weighted sum is a carry-less product (`basis`, `power`).
 
 use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;
@@ -88,35 +88,31 @@ use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
 
-pub mod basis;
+mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "pclmulqdq",
-    not(target_feature = "avx512f")
-))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
 mod clmul;
-pub mod keccak;
+mod keccak;
 pub mod kernels;
-pub mod open;
-pub mod power;
-pub mod protocol;
-pub mod prover;
+mod open;
+mod power;
+mod protocol;
+mod prover;
 pub mod rmfe;
 pub mod witness;
 
 #[cfg(test)]
 mod tests;
 
+pub use keccak::iota_bit;
 pub use open::{Opening, Openings, WordOpening};
 pub use witness::{Shape, Witness};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
 /// the output state, as words over the instances, evaluated at `instance` (an instance index's
-/// low four variables first). Both must be bound to the transcript before [`prove`] runs, the
-/// point being a challenge drawn after the commitment.
+/// low four variables first). Both must be bound to the transcript before [`Witness::prove`]
+/// runs, the point being a challenge drawn after the commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
     pub instance: Vec<F192>,
@@ -162,35 +158,37 @@ impl OutputClaim {
 fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
     assert_eq!(output.instance.len(), shape.n_log);
     let point = [&output.instance[4..], &segment[..]].concat();
-    let mut claim = first_claim(shape, F192::ZERO, &output.instance[..4], point, r_lane);
+    let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);
     let last = eq_table(&segment)[shape.segments() - 1];
     claim.value = last * dot(&eq_table(r_lane)[..keccak::LANES], &output.lanes);
     claim
 }
 
-/// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to openings
-/// of the commitment. `committed` is what [`Witness::generate`] wrote.
-pub fn prove(ps: &mut ProverState, witness: &Witness, committed: &[F64], output: &OutputClaim) -> Openings {
-    let shape = witness.shape;
-    let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
-    let mut first = first(shape, output, segment, &r_lane);
-    let instance = &output.instance;
-    let (folded, committed_value) =
-        tracing::info_span!("Outputs").in_scope(|| open::output_claim(shape, committed, instance, &first));
-    if shape.segments() > 1 {
-        ps.add_scalar(committed_value);
-    }
-    first.value += committed_value;
+impl Witness {
+    /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to
+    /// openings of the commitment. `committed` is what [`Witness::generate`] wrote.
+    pub fn prove(&self, ps: &mut ProverState, committed: &[F64], output: &OutputClaim) -> Openings {
+        let shape = self.shape;
+        let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
+        let mut first = first(shape, output, segment, &r_lane);
+        let instance = &output.instance;
+        let (folded, committed_value) =
+            tracing::info_span!("Outputs").in_scope(|| open::output_claim(shape, committed, instance, &first));
+        if shape.segments() > 1 {
+            ps.add_scalar(committed_value);
+        }
+        first.value += committed_value;
 
-    let mut claim = first.clone();
-    let mut scratch = prover::Scratch::new(shape);
-    for step in 0..shape.depth {
-        claim = tracing::info_span!("Layer", step)
-            .in_scope(|| prover::prove_layer(ps, witness, &mut scratch, step, &claim));
+        let mut claim = first.clone();
+        let mut scratch = prover::Scratch::new(shape);
+        for step in 0..shape.depth {
+            claim = tracing::info_span!("Layer", step)
+                .in_scope(|| prover::prove_layer(ps, self, &mut scratch, step, &claim));
+        }
+        let _span = tracing::info_span!("Openings").entered();
+        let outputs =
+            (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
+        let inputs = open::open_inputs(ps, self, &claim);
+        Openings { outputs, inputs }
     }
-    let _span = tracing::info_span!("Openings").entered();
-    let outputs =
-        (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
-    let inputs = open::open_inputs(ps, witness, &claim);
-    Openings { outputs, inputs }
 }

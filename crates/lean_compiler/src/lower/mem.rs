@@ -291,4 +291,19 @@ impl FnLower<'_> {
         self.next += n;
         base
     }
+
+    /// A fresh stack run holding the heap run of `len` cells at `ptr`'s g-power offset `lo`.
+    pub(super) fn heap_to_stack(&mut self, ptr: Off, lo: u32, len: u32) -> Off {
+        let run = self.alloc_stack(len);
+        self.deref_run(ptr, lo, len, run);
+        run
+    }
+
+    /// One `DEREF` per cell between the heap run of `len` cells at `ptr`'s g-power offset
+    /// `lo` and the stack run at `run`: whichever is written gives the other its values.
+    pub(super) fn deref_run(&mut self, ptr: Off, lo: u32, len: u32, run: Off) {
+        for k in 0..len {
+            self.deref(ptr, lo + k, run + k, DerefMode::Cell);
+        }
+    }
 }

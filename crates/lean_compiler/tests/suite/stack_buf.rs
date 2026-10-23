@@ -6,24 +6,16 @@
 //! the digest into `out`.
 //!
 //! Since these DSL scalars are K-embedded F192 cells, a `StackBuf(2)` written
-//! cell-by-cell holds the lanes `[v0, 0, v1, 0]`
-//!: the reference `compress` is fed that lane layout.
+//! cell-by-cell holds the lanes `[v0, 0, v1, 0]`.
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use leanvm_core::vmhash::compress;
 use primitives::field::{F64, F192, g_pow};
 
-use crate::common::mix;
+use crate::common::{f192_lit, mix};
 
-/// The two 128-bit digest cells of `compress(a, b)` as `F192`s (lo = word 0/2,
-/// hi = word 1/3): what a `keccak(...)` output `StackBuf(2)` holds cell-by-cell.
-fn digest_cells(a: [F64; 4], b: [F64; 4]) -> [F192; 2] {
-    let d = compress(a, b);
-    [F192::new(d[0].0, d[1].0, 0), F192::new(d[2].0, d[3].0, 0)]
-}
-
-/// The digest cells of the hash of `bytes`.
+/// The digest cells of the hash of `bytes`: what a `keccak(...)` output `StackBuf(2)` holds
+/// cell-by-cell (lo = word 0/2, hi = word 1/3).
 fn hash_cells(bytes: &[u8]) -> [F192; 2] {
     let d = primitives::hash::hash(bytes);
     let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
@@ -65,9 +57,8 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
 
-    // Each cell holds one scalar in its low lane, so the hashed words are [5,0,7,0].
-    let h = [F64(5), F64(0), F64(7), F64(0)];
-    let want = digest_cells(h, h);
+    // Each cell holds one scalar in its low lane.
+    let want = hash_cells(&scalar_cells([5, 7, 5, 7]));
 
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 1, "one KECCAK instruction");
@@ -122,8 +113,9 @@ def main():
     let mut bytes = scalar_cells(1..=9);
     let two = hash_cells(&bytes[..136]);
     bytes.truncate(135);
-    let lit = |x: F192| format!("f192({}, {}, 0)", x.c0, x.c1);
-    let src = src.replace("TWO_0", &lit(two[0])).replace("TWO_1", &lit(two[1]));
+    let src = src
+        .replace("TWO_0", &f192_lit(two[0]))
+        .replace("TWO_1", &f192_lit(two[1]));
     proves(&src, hash_cells(&bytes));
 }
 
@@ -170,8 +162,9 @@ def main():
     return
 ";
     let heap = hash_cells(&scalar_cells(1..=16));
-    let lit = |x: F192| format!("f192({}, {}, 0)", x.c0, x.c1);
-    let src = src.replace("HEAP_0", &lit(heap[0])).replace("HEAP_1", &lit(heap[1]));
+    let src = src
+        .replace("HEAP_0", &f192_lit(heap[0]))
+        .replace("HEAP_1", &f192_lit(heap[1]));
     proves(&src, hash_cells(&scalar_cells(1..=20)));
 }
 
@@ -236,7 +229,7 @@ def main():
     p[GEN] = out[1]
     return
 ";
-    let want = digest_cells([F64(1), F64(0), F64(2), F64(0)], [F64(3), F64(0), F64(4), F64(0)]);
+    let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
@@ -264,7 +257,7 @@ def main():
     p[GEN] = out[1]
     return
 ";
-    let want = digest_cells([F64(1), F64(0), F64(2), F64(0)], [F64(3), F64(0), F64(4), F64(0)]);
+    let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
@@ -461,12 +454,11 @@ def step(state, v):
 ";
     let program = compile(&parse(src).expect("parse"));
 
-    // Each cell = one scalar in its low lane, so a StackBuf(2) hashes words
-    // [c0, 0, c1, 0]. x == v == 9 (the scalar return), so both steps use tag 9.
-    let tag = [F64(9), F64(0), F64(3), F64(0)];
-    let s1 = compress([F64(5), F64(0), F64(7), F64(0)], tag);
-    let s2 = compress(s1, tag); // the returned StackBuf (holding s1's words) fed back in
-    let want = [F192::new(s2[0].0, s2[1].0, 0), F192::new(s2[2].0, s2[3].0, 0)];
+    // x == v == 9 (the scalar return), so both steps use tag 9; the second hashes the
+    // returned StackBuf, holding the first digest.
+    let mut second = primitives::hash::hash(&scalar_cells([5, 7, 9, 3])).to_vec();
+    second.extend(scalar_cells([9, 3]));
+    let want = hash_cells(&second);
 
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 2, "two KECCAK instructions (one per inlined step)");
@@ -576,7 +568,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     // s = [7, 5] after the swap → words [7,0,5,0]; t = [7 ^ 5, 3] = [2, 3] → [2,0,3,0].
-    let want = digest_cells([F64(7), F64(0), F64(5), F64(0)], [F64(2), F64(0), F64(3), F64(0)]);
+    let want = hash_cells(&scalar_cells([7, 5, 2, 3]));
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 1, "one KECCAK instruction");
     verify(&program, &want, &proof).expect("list-literal StackBuf verifies");

@@ -10,30 +10,16 @@ use crate::whir::{INITIAL_BASIS_CHUNK, SumcheckMessage, build_initial_basis};
 struct PointWeight<'a> {
     offset: usize,
     end: usize,
-    slot: usize,
-    stride: usize,
     low: &'a [F192],
     high: Vec<F192>,
 }
 
 impl<'a> PointWeight<'a> {
     fn new(claim: &'a StackClaim, lambda: F192, chunk_log: usize) -> Self {
-        let (offset, slot, stride_log, point) = match claim {
-            StackClaim::Point { offset, low_point, .. } => (*offset, 0, 0, low_point.as_slice()),
-            StackClaim::Strided {
-                offset,
-                slot,
-                stride_log,
-                point,
-                ..
-            } => (*offset, *slot, *stride_log, point.as_slice()),
-        };
-        let len = 1usize << (stride_log + point.len());
-        let stride = 1usize << stride_log;
+        let StackClaim::Point { offset, low_point, .. } = claim;
+        let (offset, len) = (*offset, 1usize << low_point.len());
         assert!(offset.is_multiple_of(len), "claim must be aligned to its support");
-        assert!(slot < stride, "claim slot must fit the stride");
-        let low_vars = point.len().min(chunk_log.saturating_sub(stride_log));
-        let (low, high_point) = point.split_at(low_vars);
+        let (low, high_point) = low_point.split_at(low_point.len().min(chunk_log));
         let mut high = Box::new_uninit_slice(1 << high_point.len()).into_vec();
         fill_eq_table_uninit(high_point, lambda, &mut high);
         // SAFETY: the seeded equality build initializes the whole table.
@@ -41,33 +27,25 @@ impl<'a> PointWeight<'a> {
         Self {
             offset,
             end: offset + len,
-            slot,
-            stride,
             low,
             high,
         }
     }
 
     fn add(&self, start: usize, dst: &mut [F192], scratch: &mut [MaybeUninit<F192>]) {
-        let base = self.offset + self.slot;
-        let lo = start.max(base);
+        let lo = start.max(self.offset);
         let hi = (start + dst.len()).min(self.end);
         if lo >= hi {
             return;
         }
-        let first = (lo - base).div_ceil(self.stride);
-        let end = (hi - base).div_ceil(self.stride);
-        if first == end {
-            return;
-        }
+        let first = lo - self.offset;
         let len = 1usize << self.low.len();
-        assert!(first.is_multiple_of(len) && end - first == len);
+        assert!(first.is_multiple_of(len) && hi - lo == len);
         fill_eq_table_uninit(self.low, self.high[first / len], &mut scratch[..len]);
         // SAFETY: the build above initializes this prefix before the scatter reads it.
         let eq = unsafe { std::slice::from_raw_parts(scratch.as_ptr().cast::<F192>(), len) };
-        let dst_offset = base + first * self.stride - start;
-        for (i, &value) in eq.iter().enumerate() {
-            dst[dst_offset + i * self.stride] += value;
+        for (dst, &value) in dst[lo - start..hi - start].iter_mut().zip(eq) {
+            *dst += value;
         }
     }
 }
@@ -93,7 +71,7 @@ pub(super) fn build(
             lane.push(index);
         }
     }
-    let ring_end = ring.offset + (1 << ring.qkeccak_vars);
+    let ring_end = ring.offset + (1 << ring.qkeccak_vars());
     build_initial_basis(stack, lane_block, |start, dst| {
         dst.fill(F192::ZERO);
         let lo = start.max(ring.offset);

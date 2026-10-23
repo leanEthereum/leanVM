@@ -2,8 +2,8 @@
 
 use crate::field::{E, ONE, ZERO};
 use crate::layout::{
-    BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, GLOBAL_COLUMN_BASES, Layout, MEMORY_0, MEMORY_1, MEMORY_2,
-    MEMORY_FINAL_COUNTERS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
+    BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, Layout, MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS,
+    SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
 use crate::multilinear::{
     Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
@@ -68,11 +68,7 @@ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
     let mut framework: Vec<Placement> = sizes
         .iter()
         .zip(offsets)
-        .map(|(&variables, index)| Placement {
-            variables,
-            index,
-            low: 0,
-        })
+        .map(|(&variables, index)| Placement { variables, index })
         .collect();
     let tables = framework.split_off(framework_log_rows.len());
     BusLayout {
@@ -89,10 +85,10 @@ pub struct ColumnClaim {
 }
 
 impl ColumnClaim {
-    pub fn on_stack(&self, layout: &Layout) -> StackClaim<'static> {
-        let placement = layout.placements[self.column].expect("a claim is on a committed column");
-        let point = placement.stack_point(&self.point, layout.stack_log);
-        (Box::new(move |x| eq_eval(&point, x)), self.value)
+    /// `None` for a column nothing commits, whose claim never reaches the stack.
+    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
+        let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
+        Some((Box::new(move |x| eq_eval(&point, x)), self.value))
     }
 }
 
@@ -216,6 +212,9 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     })
 }
 
+/// A table's point, and its columns' evaluations there.
+pub type TableEvaluations = (Vec<E>, Vec<E>);
+
 pub fn table_sumcheck(
     tables: &[Table],
     table_log_heights: &[usize],
@@ -225,7 +224,7 @@ pub fn table_sumcheck(
     equality_point: &[E],
     target: E,
     transcript: &mut Transcript,
-) -> Result<Vec<ColumnClaim>, VerifierError> {
+) -> Result<Vec<TableEvaluations>, VerifierError> {
     let n_rounds = table_log_heights.iter().copied().max().unwrap_or(0);
     let (challenges, claim) = sumcheck(transcript, target, 4, &vec![None; n_rounds])?;
     let point: Vec<E> = challenges.into_iter().rev().collect();
@@ -237,22 +236,14 @@ pub fn table_sumcheck(
         }
     }
 
-    let mut claims = Vec::new();
     let mut rows = Vec::with_capacity(tables.len());
     for (table, &height) in tables.iter().zip(table_log_heights) {
-        let evaluations = transcript.next_scalars(table.width())?;
-        let table_point = &point[..height];
-        claims.extend(evaluations.iter().enumerate().map(|(local, &value)| ColumnClaim {
-            column: GLOBAL_COLUMN_BASES[table.opcode] + local,
-            point: table_point.to_vec(),
-            value,
-        }));
-        rows.push(evaluations);
+        rows.push((point[..height].to_vec(), transcript.next_scalars(table.width())?));
     }
     if transcript.checked() {
         let mut terminal = ZERO;
         let mut cursor = 0;
-        for (((table, evaluations), forms), &weight) in tables.iter().zip(&rows).zip(bus_forms).zip(&weights) {
+        for (((table, (_, evaluations)), forms), &weight) in tables.iter().zip(&rows).zip(bus_forms).zip(&weights) {
             let n_constraints = table.n_constraints();
             let summand = dot(
                 &constraint_powers[cursor..cursor + n_constraints],
@@ -264,5 +255,5 @@ pub fn table_sumcheck(
         }
         require(terminal == claim, VerifierError::TableSumcheckTerminal)?;
     }
-    Ok(claims)
+    Ok(rows)
 }

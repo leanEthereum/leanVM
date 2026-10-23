@@ -232,31 +232,39 @@ impl std::fmt::Display for LeanSphincsVerifyError {
 
 impl std::error::Error for LeanSphincsVerifyError {}
 
+/// Bits `offset..offset + len` of a message digest's bit fields, the bits past
+/// its codeword bytes ([`marks_of`]), as a little-endian value.
+pub fn digest_field(digest: &[u8; 32], offset: usize, len: usize) -> u64 {
+    (0..len).fold(0, |value, bit| {
+        let position = 8 * DIGEST_WORD_BYTES + offset + bit;
+        value | u64::from(digest[position / 8] >> (position % 8) & 1) << bit
+    })
+}
+
 /// The index and the trees' marks a digest spells. Its fields are grouped by
 /// kind, so that none lies across two 64-bit words: first one byte per subtree,
 /// its codeword, then little-endian bit fields, the `h` bits of index, each
 /// tree's leaf, and each subtree's WOTS key.
-fn marks_of(digest: &[u8; 32]) -> (u64, [Mark; FOREST_TREES]) {
-    let field = |offset: usize, len: usize| {
-        (0..len).fold(0usize, |value, bit| {
-            let position = 8 * DIGEST_WORD_BYTES + offset + bit;
-            value | (usize::from(digest[position / 8] >> (position % 8) & 1) << bit)
-        })
-    };
+pub fn marks_of(digest: &[u8; 32]) -> (u64, [Mark; FOREST_TREES]) {
+    let field = |offset: usize, len: usize| digest_field(digest, offset, len) as usize;
     let keys = H + FOREST_TREES * TREE_HEIGHT;
     let marks = std::array::from_fn(|c| Mark {
         leaf: field(H + c * TREE_HEIGHT, TREE_HEIGHT),
         keys: std::array::from_fn(|j| field(keys + (SUBTREES * c + j) * SUBTREE_HEIGHT, SUBTREE_HEIGHT)),
         words: std::array::from_fn(|j| usize::from(digest[SUBTREES * c + j])),
     });
-    (field(0, H) as u64, marks)
+    (digest_field(digest, 0, H), marks)
 }
 
-/// The message digest, `H(P | A | m | rho)`, read as the index and the
-/// trees' marks. `P` binds the key, so the root is not hashed, and the input is
-/// one 80-byte block.
+/// The message digest, `H(P | A | m | rho)`. `P` binds the key, so the root is
+/// not hashed, and the input is one 80-byte block.
+pub fn message_digest_bytes(pp: &PublicParam, rho: &Randomizer, m: &Message) -> [u8; 32] {
+    digest_prefix(pp, m).update(rho).finalize()
+}
+
+/// The message digest read as the index and the trees' marks.
 pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, [Mark; FOREST_TREES]) {
-    marks_of(&digest_prefix(pp, m).update(rho).finalize())
+    marks_of(&message_digest_bytes(pp, rho, m))
 }
 
 fn digest_prefix(pp: &PublicParam, m: &Message) -> primitives::hash::Hasher {

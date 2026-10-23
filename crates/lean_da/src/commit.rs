@@ -7,7 +7,7 @@
 //! The final commitment is `H(root_row, root_col)`.
 
 use fiat_shamir::merkle::{Hash, hash_pair};
-use primitives::hash::{OUT_LEN, hash, hash_many_dyn};
+use primitives::hash::{OUT_LEN, hash, hash_many};
 
 use crate::{CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, PAYLOAD_CELLS, encode_rows, row_count};
 
@@ -64,7 +64,7 @@ pub fn commit_codewords(codewords: Vec<u64>) -> (DaCommitment, DaWitness) {
         prefix.copy_from_slice(&cell_digests[i * cells..i * cells + t]);
     });
     let mut row_digests = vec![padding_row; n_pad];
-    hash_many_dyn(
+    hash_many(
         prefixes.as_flattened(),
         t * OUT_LEN,
         row_digests[..n_rows].as_flattened_mut(),
@@ -113,7 +113,7 @@ fn hash_cells(codewords: &[u64]) -> Vec<Hash> {
     let n_rows = codewords.len() / m;
     let mut digests = vec![Hash::default(); n_rows * cells];
     parallel::chunks_mut(&mut digests, cells, |i, row| {
-        hash_many_dyn(
+        hash_many(
             as_bytes(&codewords[i * m..(i + 1) * m]),
             CELL_SYMBOLS * size_of::<u64>(),
             row.as_flattened_mut(),
@@ -133,7 +133,7 @@ fn tree_from_leaves(mut tree: Vec<Hash>) -> Vec<Hash> {
     let (mut base, mut width) = (0, n);
     while width > 1 {
         let (read, write) = tree.split_at_mut(base + width);
-        hash_many_dyn(
+        hash_many(
             read[base..].as_flattened(),
             2 * OUT_LEN,
             write[..width / 2].as_flattened_mut(),

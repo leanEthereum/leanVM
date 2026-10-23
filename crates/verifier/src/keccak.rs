@@ -5,17 +5,17 @@
 //! in segment `m` is `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
 use crate::field::{E, ONE, ZERO};
-use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS};
+use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
 
-const PACK: usize = 16;
+const PACK_BITS: usize = 4;
+const PACK: usize = 1 << PACK_BITS;
 const EMBED_BITS: usize = 24;
 const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
-const LANES: usize = 25;
-const BITS: usize = 64 * LANES;
+const BITS: usize = 64 * STATE_LANES;
 const LOCAL_BITS: usize = 11; // a bit position is z + 64 * lane, in a cube of 2048
 const LANE_BITS: usize = 5;
 
@@ -58,12 +58,12 @@ impl KeccakShape {
     }
 
     fn pack_bits(&self) -> usize {
-        self.log_steps - 4
+        self.log_steps - PACK_BITS
     }
 
     /// The slot index of q_keccak: lane `l` of the state segment `m` starts from is slot `25 m + l`.
     pub fn slot_bits(&self) -> usize {
-        log2_ceil((LANES * self.segments()) as u64)
+        log2_ceil((STATE_LANES * self.segments()) as u64)
     }
 }
 
@@ -83,7 +83,7 @@ fn along(j: usize, k: usize) -> usize {
 /// The transpose of theta, rho, pi on weight vectors: `<w, L(a)> = <L^T(w), a>`.
 fn linear_transpose(w: &[E]) -> Vec<E> {
     let mut g = vec![ZERO; BITS]; // the weight each position of theta's output carries
-    for lane in 0..LANES {
+    for lane in 0..STATE_LANES {
         for z in 0..64 {
             g[64 * lane + z] = w[64 * KECCAK_PI[lane] + (z + KECCAK_RHO[lane] as usize) % 64];
         }
@@ -192,7 +192,7 @@ fn slot_weights(shape: KeccakShape, claim: &Claim, first: usize, count: usize) -
     let mut rows = vec![[ZERO; 64]; 1 << shape.slot_bits()];
     for segment in 0..count {
         for j in 0..BITS {
-            rows[LANES * (first + segment) + j / 64][j % 64] = segments[segment] * claim.weights[j];
+            rows[STATE_LANES * (first + segment) + j / 64][j % 64] = segments[segment] * claim.weights[j];
         }
     }
     rows
@@ -237,15 +237,15 @@ pub fn verify_keccak(
     // `replay_unchecked` reaches this with a child's announced shape, where the contract is an error and
     // never a panic. The pack bound is what keeps `pack_bits` below from underflowing.
     require(
-        instance.len() == shape.log_steps && output.len() == LANES && shape.log_steps >= PACK.ilog2() as usize,
+        instance.len() == shape.log_steps && output.len() == STATE_LANES && shape.log_steps >= PACK_BITS,
         VerifierError::AnnouncedTableSizes,
     )?;
     let segment = transcript.samples(log2_ceil(shape.segments() as u64));
-    let point = [&instance[4..], &segment[..]].concat();
+    let point = [&instance[PACK_BITS..], &segment[..]].concat();
     // The first claim combines the output lanes as words: bit z of a word weighs x^z.
     let lanes = eq_kernel(&transcript.samples(LANE_BITS));
     let weights = (0..BITS).map(|j| lanes[j / 64] * E::new(1 << (j % 64), 0, 0)).collect();
-    let last = eq_kernel(&segment)[shape.segments() - 1] * dot(&lanes[..LANES], output);
+    let last = eq_kernel(&segment)[shape.segments() - 1] * dot(&lanes[..STATE_LANES], output);
     let committed = if shape.segments() > 1 {
         transcript.next_scalar()?
     } else {
@@ -253,7 +253,7 @@ pub fn verify_keccak(
     };
     let first = Claim {
         value: committed + last,
-        mu: eq_kernel(&instance[..4]),
+        mu: eq_kernel(&instance[..PACK_BITS]),
         point,
         weights,
     };
@@ -273,7 +273,7 @@ pub fn verify_keccak(
         outputs = Some(([instance, &slot].concat(), word));
     }
     // The inputs: the instances of a pack first, then the slot.
-    let (low, value) = sumcheck(transcript, claim.value, 3, &[None; 4])?;
+    let (low, value) = sumcheck(transcript, claim.value, 3, &[None; PACK_BITS])?;
     let (slot, weights, value) = open(transcript, shape, &claim, 0, shape.segments(), value)?;
     let slices = transcript.next_scalars(K_BITS)?;
     if transcript.checked() {
