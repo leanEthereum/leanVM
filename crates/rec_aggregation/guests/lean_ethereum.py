@@ -1243,41 +1243,48 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
     return row_dot
 
 
-def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
     # Base-field rows (level 0) run two queries an iteration, sharing the loop
     # overhead and the weight reads; an odd count runs its first query alone,
     # ahead of the pairs. Extension rows run one query an iteration.
-    # Query k is weighted lam^k: the chain runs h <- (h + dot_k) / lam, ending at
-    # sum_k lam^(k - n) dot_k, and one product by lam_n = lam^n restores it.
-    mu = 1 / lam
+    # Query k is weighted lam^k, read off the powers the level already holds, so
+    # the chain is a plain sum and no challenge is inverted. Query 0 weighs 1, so a
+    # first query run alone takes none.
     chain = HeapBuf(n_iters_g * GEN)
     if odd == 1:
-        chain[GEN ** 0] = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth) * mu
+        chain[GEN ** 0] = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth)
     else:
         chain[GEN ** 0] = 0
     for xi in mul_range(1, n_iters_g):
         if base == 1:
-            bit_ptrs = query_bit_ptrs * xi * xi
+            pair = xi * xi
+            bit_ptrs = query_bit_ptrs * pair
+            weights = query_weights * pair
             d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** odd], base, interleave, leaf_cells, depth, cap_depth)
             d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** (odd + 1)], base, interleave, leaf_cells, depth, cap_depth)
-            chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
+            chain[xi * GEN] = chain[xi] + weights[GEN ** odd] * d0 + weights[GEN ** (odd + 1)] * d1
         else:
             d = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[xi], base, interleave, leaf_cells, depth, cap_depth)
-            chain[xi * GEN] = (chain[xi] + d) * mu
-    return chain[n_iters_g] * lam_n
+            chain[xi * GEN] = chain[xi] + query_weights[xi] * d
+    return chain[n_iters_g]
 
 
 @inline
-def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
-    # prod_t (d_t + chain_t) over one query's message-column coordinates, chain_0
-    # being the query position.
-    prefix_eq = row_d[GEN ** 0] + basis_chain
+def residual_query(basis_chain, row_b, vanish: Const, n_cols: Const):
+    # prod_t (1 + b_t * (chain_t + vk_t)) over one query's message-column
+    # coordinates, chain_0 being the query position. Since b_t = c_t / vk_t, that
+    # factor is the (1 + c_t) + b_t * chain_t of the caller, and chain_t + vk_t is
+    # also the subspace-vanishing recurrence's step to chain_(t+1), so the
+    # coordinate costs one add and two multiplies.
+    step = basis_chain + LIG_VANISH_VALS[vanish]
+    prefix_eq = 1 + row_b[GEN ** 0] * step
     for t in unroll(1, n_cols):
-        # subspace-vanishing recurrence for the novel-basis point
-        basis_chain *= basis_chain + LIG_VANISH_VALS[vanish + t - 1]
-        prefix_eq *= row_d[GEN ** t] + basis_chain
+        basis_chain *= step
+        step = basis_chain + LIG_VANISH_VALS[vanish + t]
+        prefix_eq *= 1 + row_b[GEN ** t] * step
     return prefix_eq
+
 
 
 def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
@@ -1450,7 +1457,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
@@ -1540,31 +1547,22 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     # coordinates; only the novel-basis chain (the query position's
     # subspace-vanishing walk) differs. Since
     #     1 + c_t * (1 + chain_t * inv_t) == (1 + c_t) + (c_t * inv_t) * chain_t
-    # a coordinate's two coefficients depend on the challenge and the baked
-    # vanishing inverse alone, so they hoist out of the query loop (one row a level,
-    # fold coords then tail coords). Factoring b_t = c_t * inv_t out of every
-    # coordinate leaves (a_t / b_t) + chain_t per query, so a query is one add and
-    # one multiply a coordinate, and the level's product of the b_t scales its sum
-    # once. A zero challenge makes b_t zero and the division unsatisfiable, which
-    # rejects rather than accepts.
-    basis_d = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
-    level_scale = HeapBuf(GEN ** n_levels)
+    # a coordinate's coefficient b_t = c_t * inv_t depends on the challenge and the
+    # baked vanishing inverse alone, so it hoists out of the query loop (one row a
+    # level, fold coords then tail coords). Dividing the constant term (1 + c_t) by
+    # b_t would leave one multiply a coordinate, but it rejects the zero challenge a
+    # verifier accepts, so `residual_query` rebuilds that term from b_t instead.
+    basis_b = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         prefix_len = LIG_RESIDUAL_PREFIX_LEN[ml]
         vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-        scale = level_betas[GEN ** lvl]
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
-            coef_b = fold_c * LIG_VANISH_INVS[vanish + t]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / coef_b
-            scale *= coef_b
+            basis_b[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = fold_c * LIG_VANISH_INVS[vanish + t]
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
-            coef_b = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
-            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / coef_b
-            scale *= coef_b
-        level_scale[GEN ** lvl] = scale
+            basis_b[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
     inner_chain = HeapBuf(GEN ** (n_levels + 1))
     inner_chain[GEN ** 0] = 0
     for lvl in unroll(0, n_levels):
@@ -1573,26 +1571,28 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         basis_row = lvl * LIG_LOG_MSG_COLS_CAP
         residual_chain = HeapBuf(GEN ** (max_q + 1))
         residual_chain[GEN ** 0] = 0
-        # Two queries an iteration share the row's reads and constants.
+        # Two queries an iteration share the row's reads and constants. The three
+        # bases below are captured in place of the buffers they come from, so
+        # hoisting them costs the loop no extra argument.
+        level_positions = query_positions * GEN ** LIG_POSITIONS_OFF[ml]
+        level_weights = query_weights * GEN ** (lvl * max_q)
+        level_row = basis_b * GEN ** basis_row
         for xr in mul_range(1, GEN ** (LIG_QUERIES[ml] // 2)):
             ml = m_idx * LIG_MAX_LEVELS + lvl  # rebound: the body captures by value
             vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-            basis_row = lvl * LIG_LOG_MSG_COLS_CAP
-            max_q = LIG_MAX_QUERIES[m_idx]
             pair = xr * xr
-            positions = query_positions * GEN ** LIG_POSITIONS_OFF[ml] * pair
-            weights = query_weights * GEN ** (lvl * max_q) * pair
-            row_d = basis_d * GEN ** basis_row
-            eq_0 = residual_query(positions[GEN ** 0], row_d, vanish, LIG_LOG_MSG_COLS[ml])
-            eq_1 = residual_query(positions[GEN ** 1], row_d, vanish, LIG_LOG_MSG_COLS[ml])
+            positions = level_positions * pair
+            weights = level_weights * pair
+            eq_0 = residual_query(positions[GEN ** 0], level_row, vanish, LIG_LOG_MSG_COLS[ml])
+            eq_1 = residual_query(positions[GEN ** 1], level_row, vanish, LIG_LOG_MSG_COLS[ml])
             residual_chain[xr * GEN] = residual_chain[xr] + weights[GEN ** 0] * eq_0 + weights[GEN ** 1] * eq_1
         level_sum = residual_chain[GEN ** (LIG_QUERIES[ml] // 2)]
         if const(LIG_QUERIES[ml] % 2 == 1):
             last = LIG_QUERIES[ml] - 1
-            eq_last = residual_query(query_positions[GEN ** (LIG_POSITIONS_OFF[ml] + last)], basis_d * GEN ** basis_row, vanish, LIG_LOG_MSG_COLS[ml])
+            eq_last = residual_query(query_positions[GEN ** (LIG_POSITIONS_OFF[ml] + last)], basis_b * GEN ** basis_row, vanish, LIG_LOG_MSG_COLS[ml])
             level_sum = level_sum + query_weights[GEN ** (lvl * max_q + last)] * eq_last
-        # accumulate beta_lvl * prod_t b_t * (per-level residual sum) into the grand residual
-        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * level_sum
+        # accumulate beta_lvl * (per-level residual sum) into the grand residual
+        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_betas[GEN ** lvl] * level_sum
 
     # Explicit OOD eq bases at the same terminal point.
     ood_inner = 0
