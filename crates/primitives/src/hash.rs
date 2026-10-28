@@ -109,6 +109,54 @@ trait Lanes64: Copy {
     fn xor5(a: Self, b: Self, c: Self, d: Self, e: Self) -> Self {
         a.xor(b).xor(c).xor(d).xor(e)
     }
+
+    /// Write every input's digest, the low bytes of the first [`OUT_LANES`] state lanes, to
+    /// `out[l * OUT_LEN ..]`.
+    ///
+    /// The default transposes through the stack, as [`Lanes64::absorb_words`] does.
+    ///
+    /// # Safety
+    /// `out` must be valid for `WIDTH * OUT_LEN` writable bytes.
+    #[inline(always)]
+    unsafe fn store_digests(st: &[Self; STATE_LANES], out: *mut u8) {
+        let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
+        for (w, lane) in st[..OUT_LANES].iter().enumerate() {
+            // SAFETY: `lanes` holds OUT_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
+            unsafe { lane.store(lanes.as_mut_ptr().add(w * Self::WIDTH)) };
+        }
+        for l in 0..Self::WIDTH {
+            for w in 0..OUT_LANES {
+                let bytes = lanes[w * Self::WIDTH + l].to_le_bytes();
+                // SAFETY: `l * 32 + 8 * w + 8 <= WIDTH * 32`.
+                unsafe { out.add(l * OUT_LEN + 8 * w).copy_from_nonoverlapping(bytes.as_ptr(), 8) };
+            }
+        }
+    }
+
+    /// XOR word `w` of every input's block at byte offset `off`, for `w < n`, into rate lane `w`.
+    ///
+    /// The default transposes through the stack: `WIDTH` scalar stores per lane, then one vector
+    /// load of them. A backend that can build the lane in the register file overrides it.
+    ///
+    /// # Safety
+    /// Every `inputs[l]` must be valid for reads of `off + 8 * n` bytes.
+    #[inline(always)]
+    unsafe fn absorb_words(st: &mut [Self; STATE_LANES], inputs: &[*const u8], off: usize, n: usize) {
+        // `buf[w * WIDTH + l]` is input `l`'s word `w`.
+        let mut buf = [0u64; RATE_LANES * MAX_WIDTH];
+        for (l, &input) in inputs.iter().enumerate() {
+            for w in 0..n {
+                // SAFETY: the word lies inside the input, by the caller.
+                let word = unsafe { input.add(off + 8 * w).cast::<u64>().read_unaligned() };
+                buf[w * Self::WIDTH + l] = u64::from_le(word);
+            }
+        }
+        for (w, lane) in st[..n].iter_mut().enumerate() {
+            // SAFETY: `buf` holds RATE_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
+            *lane = lane.xor(unsafe { Self::load(buf.as_ptr().add(w * Self::WIDTH)) });
+        }
+    }
+
     /// θ's column effect: `c_prev ⊕ rotl(c_next, 1)`.
     #[inline(always)]
     fn theta_d(c_prev: Self, c_next: Self) -> Self {
@@ -460,7 +508,7 @@ mod x86 {
 
 #[cfg(target_arch = "aarch64")]
 mod arm {
-    use super::Lanes64;
+    use super::{Lanes64, OUT_LANES, OUT_LEN, STATE_LANES};
     use core::arch::aarch64::*;
 
     /// NEON: two lanes. With the SHA3 extension, χ is one `BCAX`, the column
@@ -520,6 +568,46 @@ mod arm {
         fn theta_d(c_prev: Self, c_next: Self) -> Self {
             Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) })
         }
+
+        /// Each half of the lane straight to its digest, with no staging store to read back.
+        #[inline(always)]
+        unsafe fn store_digests(st: &[Self; STATE_LANES], out: *mut u8) {
+            for (w, lane) in st[..OUT_LANES].iter().enumerate() {
+                // SAFETY: both digests lie inside `out`, by the caller.
+                unsafe {
+                    vst1_u64(out.add(8 * w).cast(), vget_low_u64(lane.0));
+                    vst1_u64(out.add(OUT_LEN + 8 * w).cast(), vget_high_u64(lane.0));
+                }
+            }
+        }
+
+        /// Two rate lanes at a time, transposed in the register file by `ZIP1`/`ZIP2` of one
+        /// 128-bit load per input. The default's two scalar stores cannot forward to the
+        /// 128-bit load that follows them, so every lane of every block would wait for them to
+        /// reach L1.
+        #[inline(always)]
+        unsafe fn absorb_words(st: &mut [Self; STATE_LANES], inputs: &[*const u8], off: usize, n: usize) {
+            let (first, second) = (inputs[0], inputs[1]);
+            let mut w = 0;
+            while w + 1 < n {
+                // SAFETY: words `w` and `w + 1` lie inside both inputs, by the caller.
+                unsafe {
+                    let a = vld1q_u64(first.add(off + 8 * w).cast());
+                    let b = vld1q_u64(second.add(off + 8 * w).cast());
+                    st[w] = st[w].xor(Self(vzip1q_u64(a, b)));
+                    st[w + 1] = st[w + 1].xor(Self(vzip2q_u64(a, b)));
+                }
+                w += 2;
+            }
+            if w < n {
+                // SAFETY: word `w` lies inside both inputs, by the caller.
+                let pair = unsafe {
+                    let (p, q) = (first.add(off + 8 * w).cast(), second.add(off + 8 * w).cast());
+                    vcombine_u64(vld1_u64(p), vld1_u64(q))
+                };
+                st[w] = st[w].xor(Self(pair));
+            }
+        }
     }
 }
 
@@ -550,59 +638,32 @@ const MAX_WIDTH: usize = 8;
 unsafe fn hash_group<S: Lanes64>(inputs: &[*const u8], len: usize, init: &[u64; STATE_LANES], out: *mut u8) {
     debug_assert_eq!(inputs.len(), S::WIDTH);
     let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(init[i]));
-    // `buf[w * WIDTH + l]` is input `l`'s lane `w` of the current block.
-    let mut buf = [0u64; RATE_LANES * MAX_WIDTH];
-    // XOR the first `n` lanes of `buf` into the rate.
-    let xor_buf = |st: &mut [S; STATE_LANES], buf: &[u64], n: usize| {
-        for (w, lane) in st[..n].iter_mut().enumerate() {
-            // SAFETY: `buf` holds RATE_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
-            *lane = lane.xor(unsafe { S::load(buf.as_ptr().add(w * S::WIDTH)) });
-        }
-    };
     let (blocks, tail) = (len / RATE, len % RATE);
     for blk in 0..blocks {
-        for (l, &input) in inputs.iter().enumerate() {
-            for w in 0..RATE_LANES {
-                // SAFETY: the block lies inside the input's `len` bytes.
-                let word = unsafe { input.add(blk * RATE + 8 * w).cast::<u64>().read_unaligned() };
-                buf[w * S::WIDTH + l] = u64::from_le(word);
-            }
-        }
-        xor_buf(&mut st, &buf, RATE_LANES);
+        // SAFETY: the block lies inside every input's `len` bytes.
+        unsafe { S::absorb_words(&mut st, inputs, blk * RATE, RATE_LANES) };
         permute(&mut st);
     }
-    // The final block, read in place: its words, then the padding, which every input has in the same lanes.
+    // The final block: its whole words, then the partial one and the padding, which every input
+    // has in the same lanes.
     let (words, part) = (tail / 8, tail % 8);
-    for (l, &input) in inputs.iter().enumerate() {
-        // SAFETY: the final block is the input's last `tail` bytes.
-        let input = unsafe { input.add(blocks * RATE) };
-        for w in 0..words {
-            // SAFETY: as above.
-            let word = unsafe { input.add(8 * w).cast::<u64>().read_unaligned() };
-            buf[w * S::WIDTH + l] = u64::from_le(word);
+    // SAFETY: those words are the start of the input's last `tail` bytes.
+    unsafe { S::absorb_words(&mut st, inputs, blocks * RATE, words) };
+    if part > 0 {
+        let mut buf = [0u64; MAX_WIDTH];
+        for (l, &input) in inputs.iter().enumerate() {
+            // SAFETY: the partial word is the input's last `part` bytes.
+            let byte = |j: usize| u64::from(unsafe { *input.add(blocks * RATE + 8 * words + j) }) << (8 * j);
+            buf[l] = (0..part).fold(0, |acc, j| acc | byte(j));
         }
-        if part > 0 {
-            // SAFETY: as above.
-            let byte = |j: usize| u64::from(unsafe { *input.add(8 * words + j) }) << (8 * j);
-            buf[words * S::WIDTH + l] = (0..part).fold(0, |acc, j| acc | byte(j));
-        }
+        // SAFETY: `buf` holds MAX_WIDTH >= WIDTH words.
+        st[words] = st[words].xor(unsafe { S::load(buf.as_ptr()) });
     }
-    xor_buf(&mut st, &buf, words + usize::from(part > 0));
     st[words] = st[words].xor(S::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(S::splat(END_BIT));
     permute(&mut st);
-    let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
-    for (w, lane) in st[..OUT_LANES].iter().enumerate() {
-        // SAFETY: `lanes` holds OUT_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
-        unsafe { lane.store(lanes.as_mut_ptr().add(w * S::WIDTH)) };
-    }
-    for l in 0..S::WIDTH {
-        for w in 0..OUT_LANES {
-            let bytes = lanes[w * S::WIDTH + l].to_le_bytes();
-            // SAFETY: `l * 32 + 8 * w + 8 <= WIDTH * 32`.
-            unsafe { out.add(l * OUT_LEN + 8 * w).copy_from_nonoverlapping(bytes.as_ptr(), 8) };
-        }
-    }
+    // SAFETY: `out` holds WIDTH digests, by the caller.
+    unsafe { S::store_digests(&st, out) };
 }
 
 /// The batched hash over one backend.
