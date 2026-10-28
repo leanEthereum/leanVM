@@ -44,15 +44,6 @@ const fn shape(n_steps: usize) -> Shape {
     Shape::new(n_steps, DEPTH)
 }
 
-/// Domain separator for the relation in the Fiat-Shamir seed (`leanvm_core::cpu`): the hash of
-/// a label naming the reduction and everything fixed about it. A deliberate change bumps the
-/// label, and the digest is mirrored in `python-verifier/verifier.py` and in the recursion guest.
-pub fn relation_digest() -> [u8; 32] {
-    primitives::hash::hash(RELATION_LABEL)
-}
-pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus";
-
 /// `log2` of the committed column, in words.
 pub fn qkeccak_kappa(n_steps: usize) -> usize {
     shape(n_steps).stack_log()

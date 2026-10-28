@@ -61,8 +61,11 @@ pub struct BusBlock {
     pub owner: usize,           // whose block it is, by opcode
 }
 
-pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus";
+/// The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
+/// transcript. Its length is fixed and Keccak's padding binds the preimage's, so the bytecode that
+/// follows needs no length field of its own. Nothing derives it from the constants below: any change
+/// to the constraint system bumps it by hand. Mirrored in `python-verifier/verifier.py`.
+pub const TAG: &[u8] = b"leanvm-v1";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
 pub const NUM_GLOBAL_COLUMNS: usize = 6;

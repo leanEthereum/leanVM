@@ -52,29 +52,16 @@ const MAX_LOG_ROWS: usize = 32;
 /// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
 /// everything fixed about the proving environment.
 ///
-/// Two things go in. [`crate::keccak::relation_digest`] names the Keccak
-/// relation and how its reduction is parameterized, independent of the instance
-/// count, which is announced and absorbed with the other sizes, so one constant
-/// covers every shape. And the bytecode enters through the hash
-/// cached on `Program`, the hash of the stacked multilinear
-/// ([`layout::bytecode_table`]) rather than over an assembler digest, so a
-/// verifier holding only that polynomial reproduces the seed; that inner hash is
-/// cached, so the table is walked once per program rather than once per proof.
+/// It is [`verifier::TAG`] followed by the stacked bytecode multilinear
+/// ([`layout::bytecode_table`]) rather than an assembler digest, so a verifier
+/// holding only that polynomial reproduces the seed.
 ///
 /// The IV fills lanes 0..4 of the transcript's first permutation input
 /// ([`fiat_shamir::FiatShamirState::new`]), the public input the next four, so all challenges depend on the circuit version and the program before
 /// anything else; a recursion guest carries the INNER program's IV in its public
 /// input, pinning both with one word pair.
 pub fn fs_seed(program: &Program) -> [F192; 2] {
-    let mut h = primitives::hash::Hasher::new();
-    h.update(b"leanvm");
-    // Length-framed so the preimage parses one way: the domain and the bytecode
-    // hash are fixed-width, so framing the digest between them is all it takes.
-    let relation = crate::keccak::relation_digest();
-    h.update(&(relation.len() as u64).to_le_bytes());
-    h.update(&relation);
-    h.update(&program.bytecode_hash);
-    let d = h.finalize();
+    let d = &program.fiat_shamir_iv;
     let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
     [F192::new(word(0), word(8), 0), F192::new(word(16), word(24), 0)]
 }
@@ -109,12 +96,12 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
 #[derive(Clone)]
 pub struct Program {
     pub prog: Vec<Op>, // bytecode (size B, power of two)
-    /// The hash of the stacked bytecode multilinear, computed once at assembly
-    /// so proofs of the same program do not rehash it (that table is
-    /// 16·2^kbc words, tens of megabytes at production sizes). Trusted to match
-    /// `prog`: always set by [`Program::assemble`] from the bytecode, so a
-    /// `Program` cannot carry a hash inconsistent with its own `prog`.
-    pub(crate) bytecode_hash: [u8; 32],
+    /// The Fiat-Shamir IV ([`fs_seed`]), computed once at assembly so proofs of
+    /// the same program do not rehash the stacked bytecode multilinear (that
+    /// table is 16·2^kbc words, tens of megabytes at production sizes). Trusted
+    /// to match `prog`: always set by [`Program::assemble`] from the bytecode,
+    /// so a `Program` cannot carry an IV inconsistent with its own `prog`.
+    pub(crate) fiat_shamir_iv: [u8; 32],
     /// Prover-side frame/buffer allocation hints (keyed by global pc) and the
     /// size of `main`'s frame: the nondeterminism [`Program::execute`] needs to
     /// run the program. Public verification ([`verify`]) ignores them.
@@ -131,7 +118,7 @@ pub struct Program {
     /// diagnostic; empty for hand-assembled programs.
     pub fn_ranges: Vec<(String, u32, u32)>,
     /// Source line of the statement that emitted each pc. Prover-side only, and
-    /// outside `bytecode_hash`, so it costs nothing in the proof: a failed guest
+    /// outside `fiat_shamir_iv`, so it costs nothing in the proof: a failed guest
     /// check reports a line rather than a pc to disassemble around. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
@@ -147,26 +134,29 @@ pub struct Program {
     pub min_log_committed: usize,
 }
 
-/// The bytecode digest reinterprets the stacked table as bytes, which is its
+/// The IV reinterprets the stacked bytecode table as bytes, which is its
 /// `to_le_bytes` image only on a little-endian target.
 const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
-    /// Assemble a [`Program`], computing its bytecode digest
+    /// Assemble a [`Program`], computing its Fiat-Shamir IV
     /// from `prog`. The single funnel for construction, so the digest is always
     /// consistent with the bytecode.
     pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<hints::RHint>>, main_frame: u32) -> Self {
-        let bytecode_hash = {
+        let fiat_shamir_iv = {
             let table = layout::bytecode_table(&prog);
             // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
             // exactly the concatenation of its `to_le_bytes` on little-endian targets.
             let bytes: &[u8] =
                 unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
-            primitives::hash::Hasher::new().update(bytes).finalize()
+            primitives::hash::Hasher::new()
+                .update(verifier::TAG)
+                .update(bytes)
+                .finalize()
         };
         Self {
             prog,
-            bytecode_hash,
+            fiat_shamir_iv,
             hints,
             main_frame,
             witness: HashMap::new(),
@@ -554,7 +544,10 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         public_input.iter().all(|h| h.c2 == 0),
         "a public input is a 256-bit digest"
     );
-    let mut ps = ProverState::new(digest_words(&fs_seed(program)), digest_words(&public_input));
+    let mut ps = ProverState::new(
+        fiat_shamir::digest_words(&program.fiat_shamir_iv),
+        digest_words(&public_input),
+    );
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
     announce_public(&mut ps, w.log_mem, w.layout.rows, log_inv_rate);

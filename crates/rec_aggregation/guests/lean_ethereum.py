@@ -341,9 +341,10 @@ AGG_SEED_4 = AGG_SEED_4_PLACEHOLDER
 AGG_CHILD_PAD = AGG_CHILD_PAD_PLACEHOLDER
 AGG_CHILD_WORDS = 2 + DEFER_SIZE + DEFER_STMT_CELLS
 # The statement digest's preimage: the STMT_HEADER header values as the 16-byte
-# cells they already are (the seed and the signer-set digest, which itself binds
-# both claim lists), then the deferred cells' tower limbs, two to a cell. No domain
-# tag: the seed leads, and it binds this bytecode and the Keccak relation.
+# cells they already are (the seed, then the leanXMSS and leanSPHINCS claim-list
+# digests and the DA one), then the deferred cells' tower limbs, two to a cell. No
+# domain tag: every field has a fixed width, and the seed leads, binding this
+# bytecode and the proof system's version.
 STMT_HEADER = STMT_HEADER_PLACEHOLDER
 STMT_DEFER_OFF = STMT_HEADER
 STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
@@ -377,7 +378,6 @@ TW_NODE = TW_NODE_PLACEHOLDER
 TW_MSG = TW_MSG_PLACEHOLDER
 HI_MUL = 2 ** 32
 STEP_MUL = 2 ** 61
-DIGEST_CELLS = 2
 
 # ----------------------------------------------------- leanXMSS (host-supplied)
 # Two layers of trees of height LX_HEIGHT over keys of LX_V chains. A layer's digest
@@ -3634,7 +3634,7 @@ def sp_tree_arm(node, leaf_at, pp, tops, sub_tws, c: Const, s: Const):
 def verify_sig_lean_sphincs(signer, byte_bits):
     # `signer` is one 4-cell entry of the leanSPHINCS coverage table: the pubkey's root and
     # public parameter, then the message THAT signer signed, the two bound together
-    # by the signer-set digest, as for leanXMSS.
+    # by the scheme's claim-list digest, as for leanXMSS.
     pp = signer[GEN]
 
     # ---- the message digest, which chooses the few-time key and what it opens ----
@@ -3760,17 +3760,17 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     return
 
 
-# =========================== statements and the signer set ==========================
+# ========================== statements and the claim lists ==========================
 
 
-def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
+def statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer):
     # A node's statement, hashed to the two words the VM publishes, over the
-    # proving environment's Fiat-Shamir seed (the Keccak relation and this bytecode), the
-    # two-cell signer-set digest, the digest of its possibly empty DA root list,
-    # and the DEFER_STMT_CELLS deferred-claim cells. A
-    # parent rebuilds a child's statement with this same call, over a signer-set
-    # digest it re-absorbed itself, which forces the child to be a proof of THIS
-    # bytecode over claims read out of the parent's own tables.
+    # proving environment's Fiat-Shamir seed (the proof system's version and this
+    # bytecode), the leanXMSS and leanSPHINCS claim-list digests, the digest of its
+    # possibly empty DA root list, and the DEFER_STMT_CELLS deferred-claim cells. A
+    # parent rebuilds a child's statement with this same call, over list digests it
+    # re-absorbed itself, which forces the child to be a proof of THIS bytecode over
+    # claims read out of the parent's own tables.
     #
     # The preimage is fixed-length, so a plain hash beats the Fiat-Shamir chain.
     # A header value is a canonical cell and needs no check, the KECCAK table
@@ -3779,10 +3779,12 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
     cells = StackBuf(STMT_CELLS)
     cells[0] = seed_0  # the STMT_HEADER header cells
     cells[1] = seed_1
-    cells[2] = signers_hash[1]
-    cells[3] = signers_hash[GEN]
-    cells[4] = da_0
-    cells[5] = da_1
+    cells[2] = xd_0
+    cells[3] = xd_1
+    cells[4] = sd_0
+    cells[5] = sd_1
+    cells[6] = da_0
+    cells[7] = da_1
     for p in unroll(0, STMT_PAIRS):
         s = defer[GEN ** (2 * p)]
         if const(2 * p + 1 == DEFER_STMT_CELLS):
@@ -4090,7 +4092,7 @@ def main():
     # verified against the claim in its own coverage slot; a leanXMSS signature carries
     # its own leaf index. DA roots occupy a separate region of the same table.
     #
-    # The declared lists are the signer set; the duplicate slots absorb claims a
+    # The declared lists are what the node publishes; the duplicate slots absorb claims a
     # child covers that the set does not declare. The coverage table is one region
     # per scheme, each its declared claims then its own duplicates, then DA shaped
     # the same way:
@@ -4135,16 +4137,16 @@ def main():
     n_total_g = da_base_g * da_slots_g
     assert log(n_total_g) < MAX_KEYS
 
-    # The proving environment (the Keccak relation and this bytecode) as one digest. It
-    # rides the statement rather than the bytecode, so nothing here has to know its
-    # own hash; the outer verifier pins it, and every child statement rebuilt below
-    # copies it, which is what keeps a whole tree on one bytecode.
+    # The proving environment (the proof system's version and this bytecode) as one
+    # digest. It rides the statement rather than the bytecode, so nothing here has to
+    # know its own hash; the outer verifier pins it, and every child statement rebuilt
+    # below copies it, which is what keeps a whole tree on one bytecode.
     fs_seed = StackBuf(2)
     hint_witness(fs_seed, "fs_seed")
     seed_0 = fs_seed[0]
     seed_1 = fs_seed[1]
 
-    # ---- the signer set ----
+    # ---- the claim lists ----
     g_logs_pow2, g_squares = exponent_tables()
 
     # ---- data availability ----
@@ -4158,7 +4160,7 @@ def main():
     # indices below run over one space: leanXMSS, then leanSPHINCS, then DA.
     #
     # Each list's digest is a plain hash of its claims, 64 bytes a claim, its padding
-    # binding its length; the signer set is one permutation over the two digests.
+    # binding its length; the statement carries the two digests side by side.
     lx_table = HeapBuf(lx_slots_g ** 4)
     lean_sphincs_table = HeapBuf(lean_sphincs_slots_g ** 4)
     xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g)
@@ -4172,11 +4174,6 @@ def main():
         hint_witness(dup[0:4], "dup_claims")
     # At least one published signature claim or DA root also ensures a nonempty coverage table.
     assert n_lx_g * n_lean_sphincs_g * n_da_g != 1
-    signers = StackBuf(KECCAK_STATE)
-    keccak([xd_0, xd_1], [sd_0, sd_1], signers)
-    signers_hash = HeapBuf(DIGEST_CELLS)
-    signers_hash[1] = signers[0]
-    signers_hash[GEN] = signers[1]
 
     # ---- coverage ----
     # Every one of the n_total slots is written exactly once: write-once memory
@@ -4235,11 +4232,6 @@ def main():
         nsub_g = nsub_x_g * nsub_s_g
         cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g)
         cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g)
-        sub_signers = StackBuf(KECCAK_STATE)
-        keccak([cx_0, cx_1], [cs_0, cs_1], sub_signers)
-        sub_hash = HeapBuf(DIGEST_CELLS)
-        sub_hash[1] = sub_signers[0]
-        sub_hash[GEN] = sub_signers[1]
         carried = child_carried * xc ** DEFER_STMT_CELLS
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
         nsub_da_g = hint_witness("child_da_count")
@@ -4253,7 +4245,7 @@ def main():
             root[GEN ** 2] = vector_0
             root[GEN ** 3] = vector_1
         child_da_0, child_da_1 = da_list_digest(child_da, nsub_da_g)
-        pi_0, pi_1 = statement_digest(seed_0, seed_1, sub_hash, child_da_0, child_da_1, carried)
+        pi_0, pi_1 = statement_digest(seed_0, seed_1, cx_0, cx_1, cs_0, cs_1, child_da_0, child_da_1, carried)
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
@@ -4275,7 +4267,7 @@ def main():
     else:
         aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)
 
-    own_0, own_1 = statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer_stmt)
+    own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer_stmt)
     pub_ptr = GEN ** 0
     assert pub_ptr[1] == own_0
     assert pub_ptr[GEN] == own_1

@@ -2,7 +2,7 @@
 
 use crate::field::{E, ZERO, reduce};
 use crate::hash::{Digest, keccak_hash};
-use crate::layout::RELATION_LABEL;
+use crate::layout::TAG;
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
 
@@ -43,11 +43,14 @@ fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
 
 impl Bytecode {
     pub fn new(table: &[u64]) -> Self {
-        let encoded_bytecode: Vec<u8> = table.iter().flat_map(|word| word.to_le_bytes()).collect();
-        let bytecode_hash = keccak_hash(&encoded_bytecode);
-        let relation = keccak_hash(RELATION_LABEL).0;
-        let length = (relation.len() as u64).to_le_bytes();
-        let iv_preimage = [&b"leanvm"[..], &length, &relation, &bytecode_hash.0].concat();
+        let fiat_shamir_iv = {
+            let iv_preimage: Vec<u8> = TAG
+                .iter()
+                .copied()
+                .chain(table.iter().flat_map(|word| word.to_le_bytes()))
+                .collect();
+            keccak_hash(&iv_preimage)
+        };
 
         let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
         for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
@@ -77,7 +80,7 @@ impl Bytecode {
         }
         Self {
             len: table.len(),
-            fiat_shamir_iv: keccak_hash(&iv_preimage),
+            fiat_shamir_iv,
             blocks,
             words,
             positions,

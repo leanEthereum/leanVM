@@ -235,21 +235,6 @@ fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F192; 4] {
     claim_cells(&pk.flatten(), message)
 }
 
-/// The signer-set digest: the plain hash of the leanXMSS list's digest then the
-/// leanSPHINCS list's, a 64-byte message, one block, one permutation (`main` in the guest). Each
-/// list digest binds its own length through the hash's padding, so the pair binds
-/// both lists whole.
-fn signers_hash(xmss_signers: &[LeanXmssClaim], lean_sphincs_signers: &[LeanSphincsClaim]) -> [F192; 2] {
-    let xmss = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
-    let lean_sphincs = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
-    pack_hash_state(&primitives::hash::hash(&cell_bytes([
-        xmss[0],
-        xmss[1],
-        lean_sphincs[0],
-        lean_sphincs[1],
-    ])))
-}
-
 /// The claim on the stacked bytecode that a node defers rather than evaluating
 /// in-circuit: one point and value (`doc/leanvm/main.tex` §Deferred evaluation
 /// claims).
@@ -320,10 +305,12 @@ impl DeferredClaim {
     }
 }
 
-/// The statement's fixed header, ahead of the deferred cells: the seed, the
-/// signer-set digest (which itself binds both claim lists), and
-/// the DA root-list digest. Fed to the guest as `STMT_HEADER`, so the two cannot drift.
-const STATEMENT_HEADER: usize = 6;
+/// The statement's fixed header, ahead of the deferred cells: the seed, the two
+/// claim-list digests (leanXMSS then leanSPHINCS), and the DA root-list digest.
+/// Fed to the guest as `STMT_HEADER`, which pins where its deferred cells start;
+/// the header cells themselves are written out again there, and only the
+/// end-to-end statement check holds the two spellings together.
+const STATEMENT_HEADER: usize = 8;
 
 /// A plain hash over a lane stream, two lanes a 128-bit cell: what the guest gets
 /// from `keccak_cells` over the same cells.
@@ -335,27 +322,36 @@ fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
 /// A node's public statement, hashed to the two words the VM publishes. The
 /// guest's `statement_digest` computes exactly this, both for itself and when it
 /// rebuilds a child's, which is what forces a whole tree onto one bytecode and
-/// each child's claims, bound by the signer-set digest,
-/// onto its parent's lists.
+/// each child's claims, bound by the two list digests, onto its parent's lists.
 ///
-/// Fixed-length preimage, so a plain hash, with no domain tag of its own: the
-/// header leads with the environment digest, which binds this bytecode and
-/// the Keccak relation and so already separates the preimage from every other use of
-/// the hash here. The header is hashed as the canonical cells it already is (two
-/// lanes each, whence the assert, the guest being unable to hash a third), then
-/// all three lanes of each deferred cell.
-fn statement_digest(signers_hash: [F192; 2], da_digest: [u8; 32], defer: &DeferredClaim) -> [F192; 2] {
+/// Fixed-length preimage, so a plain hash, with no domain tag of its own: every
+/// field has a fixed width, and the header leads with the environment digest, which
+/// binds this bytecode and the proof system's version and so already separates the
+/// preimage from every other use of the hash here. The header is hashed as the
+/// canonical cells it already is (two lanes each, whence the assert, the guest being
+/// unable to hash a third), then all three lanes of each deferred cell. Each claim
+/// list's digest binds its own length through the hash's padding, so the pair binds
+/// both lists whole.
+fn statement_digest(
+    xmss_signers: &[LeanXmssClaim],
+    lean_sphincs_signers: &[LeanSphincsClaim],
+    da_digest: [u8; 32],
+    defer: &DeferredClaim,
+) -> [F192; 2] {
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
+    let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
+    let lean_sphincs_digest = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
     let da_digest = pack_hash_state(&da_digest);
-    let header = [
+    let header: [F192; STATEMENT_HEADER] = [
         seed[0],
         seed[1],
-        signers_hash[0],
-        signers_hash[1],
+        xmss_digest[0],
+        xmss_digest[1],
+        lean_sphincs_digest[0],
+        lean_sphincs_digest[1],
         da_digest[0],
         da_digest[1],
     ];
-    assert_eq!(header.len(), STATEMENT_HEADER);
     let mut cells = defer.cells();
     if !cells.len().is_multiple_of(2) {
         cells.push(F192::ZERO); // the guest pairs the odd cell with a zero scalar
@@ -576,7 +572,8 @@ impl EthereumProof {
     /// This aggregate's own public statement, as the VM publishes it.
     fn public_input(&self) -> [F192; 2] {
         statement_digest(
-            signers_hash(&self.xmss_signers, &self.lean_sphincs_signers),
+            &self.xmss_signers,
+            &self.lean_sphincs_signers,
             self.da_commitments_digest(),
             &self.defer,
         )
@@ -708,7 +705,8 @@ impl EthereumProof {
         }
         let _s = tracing::info_span!("Statement digest").entered();
         let pi = statement_digest(
-            signers_hash(&self.xmss_signers, &self.lean_sphincs_signers),
+            &self.xmss_signers,
+            &self.lean_sphincs_signers,
             verifier::da::list_digest(&self.da_roots),
             &self.defer,
         );
@@ -1914,7 +1912,8 @@ pub fn aggregate_with_stats(
     }
 
     let public_input = statement_digest(
-        signers_hash(&cover.xmss.signers, &cover.lean_sphincs.signers),
+        &cover.xmss.signers,
+        &cover.lean_sphincs.signers,
         da_list_digest(&da_roots),
         &defer,
     );

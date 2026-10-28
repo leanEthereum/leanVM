@@ -64,7 +64,7 @@ The count tree pads the same way, and whatever its padding leaves are, $R_c\neq0
 
 The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3's duplex challenger~\cite{Plonky3}, over Keccak-$f[1600]$ (\S\ref{sec:vm}). The \emph{rate} is lanes $0,\dots,15$ and the \emph{capacity} lanes $16,\dots,24$, $576$ bits.
 
-\paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV (a digest of the bytecode and of the label fixing the Keccak reduction) in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The statement is bound before any challenge is drawn.
+\paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The IV is the hash of a fixed tag naming the proof system's version, \texttt{leanvm-v1}, followed by the bytecode: the tag has a fixed length and comes first, and the padding binds the preimage's length, so no length field is needed. The statement is bound before any challenge is drawn.
 
 \paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
 
@@ -81,7 +81,7 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and the hash of a label fixing the Keccak reduction (Annex~\ref{annex:keccak}). The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 

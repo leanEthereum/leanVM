@@ -18,7 +18,8 @@ The proof carries the signature claims and DA root list. Their digests bind thes
 \begin{tabular}{@{}rl@{}}
 \hline
 $32$ bytes & Fiat-Shamir IV\\
-$32$ bytes & signer-set digest\\
+$32$ bytes & leanXMSS claim list digest\\
+$32$ bytes & leanSPHINCS claim list digest\\
 $32$ bytes & DA list digest\\
 $(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
 \hline
@@ -28,7 +29,7 @@ The deferred claim lets recursion postpone an expensive polynomial evaluation un
 
 The DA list digest is the hash of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
-The signer-set digest is the hash of the leanXMSS list digest followed by the leanSPHINCS list digest, $64$ bytes, one permutation. Each list digest is the hash of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}).
+Each list digest is the hash of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}). Every field above has a fixed width, so the preimage parses one way and the statement needs no length fields.
 
 \subsubsection{Checking coverage}
 

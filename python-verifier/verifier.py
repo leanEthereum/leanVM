@@ -678,9 +678,10 @@ def table_sumcheck(
     return rows
 
 
-RELATION_LABEL = (
-    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus"
-)
+# The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
+# transcript. Bumped by hand whenever the constraint system changes. Its length is fixed and Keccak's
+# padding binds the preimage's, so the bytecode that follows needs no length field of its own.
+TAG = b"leanvm-v1"
 
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
 NUM_GLOBAL_COLUMNS = 6
@@ -1460,10 +1461,7 @@ def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int,
 
 
 def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) -> None:
-    bytecode_hash = keccak_hash(b"".join(word.to_bytes() for word in bytecode))
-    relation = keccak_hash(RELATION_LABEL).value
-    iv_preimage = b"leanvm" + pack("<Q", len(relation)) + relation + bytecode_hash.value
-    fiat_shamir_IV = keccak_hash(iv_preimage)
+    fiat_shamir_IV = keccak_hash(TAG + b"".join(word.to_bytes() for word in bytecode))
     transcript = Transcript(proof, fiat_shamir_IV, public_input)
 
     # 1] memory log-size, table row counts, and log-inv-rate in WHIR
