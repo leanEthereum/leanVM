@@ -166,10 +166,6 @@ pub fn run_recursion(
         blobs_per_leaf <= lean_da::DA_MAX_ROWS,
         "too many blobs in one commitment"
     );
-    assert!(
-        blobs_per_leaf == 0 || n <= rec_aggregation::MAX_DA_ROOTS,
-        "too many distinct DA roots"
-    );
     leanvm_core::init_prover();
     rec_aggregation::warm_up();
     let all = signers(0, n * per_leaf);
@@ -228,11 +224,10 @@ pub fn run_recursion(
     );
     if blobs_per_leaf > 0 {
         assert_eq!(
-            sig.da_commitments().len(),
-            n,
-            "every child's distinct root must survive recursion"
+            sig.da_commitment(),
+            children[0].da_commitment(),
+            "the first child's root is passed on"
         );
-        println!("  retained DA roots           : {n}");
     }
     println!(
         "  verifying                   : {} ms",

@@ -1,8 +1,8 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
 # crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
 # and leanSPHINCS signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
-# statement digest binding its signature claims and a possibly empty list of LeanDA roots.
-# It may check a blob matrix directly and retain any roots proved by its children.
+# statement digest binding its signature claims and at most one LeanDA root: that of a
+# blob matrix it checks directly, or one of its children's, passed on.
 # Reading order: `main` is the
 # node, `verify_sub` the in-circuit copy of `verifier::verify_execution`, and
 # `open_stacked` the WHIR opening it dispatches into.
@@ -453,8 +453,6 @@ SP_UNUSED_TOP = 2 ** (SP_UNUSED_BITS - 8 * (SP_UNUSED_BYTES - 1))
 # duplicates, which is what the coverage range check needs below 2^MIN_LOG_MEM;
 # MAX_RECURSIONS is the arity of an aggregation tree.
 MAX_KEYS = MAX_KEYS_PLACEHOLDER
-MAX_DA_ROOTS = MAX_DA_ROOTS_PLACEHOLDER
-DA_ROOT_COUNTS = DA_ROOT_COUNTS_PLACEHOLDER
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 
@@ -3766,8 +3764,8 @@ def verify_sig_lean_sphincs(signer, byte_bits):
 def statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer):
     # A node's statement, hashed to the two words the VM publishes, over the
     # proving environment's Fiat-Shamir seed (the proof system's version and this
-    # bytecode), the leanXMSS and leanSPHINCS claim-list digests, the digest of its
-    # possibly empty DA root list, and the DEFER_STMT_CELLS deferred-claim cells. A
+    # bytecode), the leanXMSS and leanSPHINCS claim-list digests, its DA digest (zeros
+    # without a root), and the DEFER_STMT_CELLS deferred-claim cells. A
     # parent rebuilds a child's statement with this same call, over list digests it
     # re-absorbed itself, which forces the child to be a proof of THIS bytecode over
     # claims read out of the parent's own tables.
@@ -4062,47 +4060,23 @@ def da_vector_cell(digest):
 # ================================ the aggregation node ==============================
 
 
-def da_list_digest(roots, n_g):
-    # At most 16 roots, so the count dispatches to a compile-time length.
-    a, b = match(log(n_g), range(0, DA_ROOT_COUNTS), lambda n: da_hash_roots(roots, n))
-    return a, b
-
-
-def da_hash_roots(roots, n: Const):
-    digest = StackBuf(KECCAK_STATE)
-    if const(n == 0):
-        keccak([0, 0], [0, 0], digest, len=0)
-    else:
-        keccak_cells(roots[0:4 * n], digest)
-    return digest[0], digest[1]
-
-
-def cover_da_root(roots, cover, n_slots_g, mark):
-    index = hint_witness("da_index")
-    assert log(index) < log(n_slots_g)
-    cover[index] = mark
-    root = roots * (index ** 4)
-    return root[1], root[GEN], root[GEN ** 2], root[GEN ** 3]
-
-
 def main():
     # One node of an aggregation tree: n_raw_lean_xmss leanXMSS signatures, n_raw_lean_sphincs
     # leanSPHINCS signatures and n_children sub-proofs OF THIS SAME BYTECODE. A claim of
     # either scheme is a pubkey and the message it signed, and each signature is
     # verified against the claim in its own coverage slot; a leanXMSS signature carries
-    # its own leaf index. DA roots occupy a separate region of the same table.
+    # its own leaf index. It publishes at most one DA digest: that of the blob matrix it
+    # checks, or one of its children's, or none.
     #
     # The declared lists are what the node publishes; the duplicate slots absorb claims a
     # child covers that the set does not declare. The coverage table is one region
-    # per scheme, each its declared claims then its own duplicates, then DA shaped
-    # the same way:
+    # per scheme, each its declared claims then its own duplicates:
     #
-    #   [leanXMSS: declared | dup][leanSPHINCS: declared | dup][DA: declared | dup]
+    #   [leanXMSS: declared | dup][leanSPHINCS: declared | dup]
     #
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which claim. A
-    # signature slot is four cells, a pubkey and the message that pubkey signed; a DA slot
-    # is four too, a root and its membership vector's digest.
+    # slot is four cells, a pubkey and the message that pubkey signed.
     meta = StackBuf(8)
     hint_witness(meta, "meta")  # every count in the exponent
     n_lx_g = meta[0]
@@ -4121,20 +4095,11 @@ def main():
     assert log(n_raw_s_g) < MAX_KEYS
     assert log(n_children_g) < MAX_RECURSIONS + 1
     assert log(n_direct_da_g) < 2
-    da_meta = StackBuf(2)
-    hint_witness(da_meta, "da_meta")
-    n_da_g = da_meta[0]
-    n_da_dup_g = da_meta[1]
-    assert log(n_da_g) < MAX_DA_ROOTS + 1
-    assert log(n_da_dup_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
-    da_slots_g = n_da_g * n_da_dup_g
-    assert log(da_slots_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
     lx_slots_g = n_lx_g * n_xdup_g
     lean_sphincs_slots_g = n_lean_sphincs_g * n_sdup_g
-    # The sum of every region bounds the coverage indices, so it is what has to sit
+    # The sum of both regions bounds the coverage indices, so it is what has to sit
     # below the minimum memory size.
-    da_base_g = lx_slots_g * lean_sphincs_slots_g
-    n_total_g = da_base_g * da_slots_g
+    n_total_g = lx_slots_g * lean_sphincs_slots_g
     assert log(n_total_g) < MAX_KEYS
 
     # The proving environment (the proof system's version and this bytecode) as one
@@ -4149,15 +4114,9 @@ def main():
     # ---- the claim lists ----
     g_logs_pow2, g_squares = exponent_tables()
 
-    # ---- data availability ----
-    da_roots = HeapBuf(da_slots_g ** 4)
-    for xd in mul_range(1, da_slots_g):
-        root = da_roots * (xd ** 4)
-        hint_witness(root[0:4], "da_roots")
-    da_0, da_1 = da_list_digest(da_roots, n_da_g)
     # One table per scheme: its declared list (strictly sorted, checked by the outer
     # verifier, which holds it) followed by its own duplicate slots. The coverage
-    # indices below run over one space: leanXMSS, then leanSPHINCS, then DA.
+    # indices below run over one space: leanXMSS, then leanSPHINCS.
     #
     # Each list's digest is a plain hash of its claims, 64 bytes a claim, its padding
     # binding its length; the statement carries the two digests side by side.
@@ -4172,17 +4131,14 @@ def main():
     for xd in mul_range(1, n_sdup_g):
         dup = lean_sphincs_table * ((n_lean_sphincs_g * xd) ** 4)
         hint_witness(dup[0:4], "dup_claims")
-    # At least one published signature claim or DA root also ensures a nonempty coverage table.
-    assert n_lx_g * n_lean_sphincs_g * n_da_g != 1
 
     # ---- coverage ----
     # Every one of the n_total slots is written exactly once: write-once memory
     # rejects a second write (the value written is the running count, so two writes
     # to one slot disagree), and the count below rejects a missed one. So every
     # declared claim is covered by a direct check of its own kind or by a verified
-    # child. Each writer is confined to its own region, including DA roots.
+    # child. Each writer is confined to its own region.
     cover = HeapBuf(n_total_g)
-    da_cover = cover * da_base_g
     # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes).
     byte_bits = HeapBuf(SP_BYTE_VALUES)
     for v in unroll(0, SP_BYTE_VALUES):
@@ -4203,20 +4159,24 @@ def main():
         cover[lx_slots_g * off_hint] = n_raw_x_g * xj
         verify_sig_lean_sphincs(lean_sphincs_table * (off_hint ** 4), byte_bits)
 
+    # ---- data availability ----
+    # One DA digest per child, read off its statement below, then the node's own:
+    # H(root, vector digest) of its blob matrix, or zeros without blobs.
+    da_digests = HeapBuf((n_children_g * GEN) ** 2)
+    own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
         root_0, root_1, vector_0, vector_1 = da_verify(g_squares)
-        expected_0, expected_1, expected_v0, expected_v1 = cover_da_root(da_roots, da_cover, da_slots_g, n_raw_x_g * n_raw_s_g)
-        assert root_0 == expected_0
-        assert root_1 == expected_1
-        assert vector_0 == expected_v0
-        assert vector_1 == expected_v1
+        keccak([root_0, root_1], [vector_0, vector_1], own_da[0:2])
+    else:
+        own_da[1] = 0
+        own_da[GEN] = 0
 
     # ---- children ----
     child_pi = HeapBuf(n_children_g * n_children_g)
     child_fresh = HeapBuf(n_children_g ** DEFER_SIZE)
     child_carried = HeapBuf(n_children_g ** DEFER_STMT_CELLS)
     written = HeapBuf(n_children_g * GEN)  # loop-carried write count, one per child
-    written[GEN ** 0] = n_raw_x_g * n_raw_s_g * n_direct_da_g
+    written[GEN ** 0] = n_raw_x_g * n_raw_s_g
     for xc in mul_range(1, n_children_g):
         base = written[xc]
         # The child's two list lengths, then its two lists, rebuilt from THIS node's
@@ -4234,24 +4194,21 @@ def main():
         cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g)
         carried = child_carried * xc ** DEFER_STMT_CELLS
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
-        nsub_da_g = hint_witness("child_da_count")
-        assert log(nsub_da_g) < MAX_DA_ROOTS + 1
-        child_da = HeapBuf(nsub_da_g ** 4)
-        for xd in mul_range(1, nsub_da_g):
-            root = child_da * (xd ** 4)
-            root_0, root_1, vector_0, vector_1 = cover_da_root(da_roots, da_cover, da_slots_g, base * nsub_g * xd)
-            root[1] = root_0
-            root[GEN] = root_1
-            root[GEN ** 2] = vector_0
-            root[GEN ** 3] = vector_1
-        child_da_0, child_da_1 = da_list_digest(child_da, nsub_da_g)
-        pi_0, pi_1 = statement_digest(seed_0, seed_1, cx_0, cx_1, cs_0, cs_1, child_da_0, child_da_1, carried)
+        child_da = da_digests * xc ** 2
+        hint_witness(child_da[0:2], "child_da")
+        pi_0, pi_1 = statement_digest(seed_0, seed_1, cx_0, cx_1, cs_0, cs_1, child_da[1], child_da[GEN], carried)
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
         verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)
-        written[xc * GEN] = base * nsub_g * nsub_da_g
+        written[xc * GEN] = base * nsub_g
     assert written[n_children_g] == n_total_g
+
+    # The published DA digest: a child's or the node's own, its own if it has blobs.
+    da_pick = hint_witness("da_pick")
+    assert log(da_pick) < log(n_children_g * GEN)
+    assert (da_pick + n_children_g) * (n_direct_da_g + 1) == 0
+    da = da_digests * da_pick ** 2
 
     # ---- this node's own deferred claim ----
     defer_stmt = HeapBuf(DEFER_STMT_CELLS)
@@ -4267,7 +4224,7 @@ def main():
     else:
         aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)
 
-    own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer_stmt)
+    own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da[1], da[GEN], defer_stmt)
     pub_ptr = GEN ** 0
     assert pub_ptr[1] == own_0
     assert pub_ptr[GEN] == own_1

@@ -9,31 +9,29 @@ A signature claim identifies what was signed and by whom. For both leanXMSS, two
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
-The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, possibly empty. Each root is paired with the hash of its membership test vector $\dual$ (\S\ref{sec:da-membership}). 
+The DA claim is at most one LeanDA root $\daroot$, paired with the hash $\davechash$ of its membership test vector $\dual$ (\S\ref{sec:da-membership}). A node that checks blobs publishes their root; otherwise it may pass on one child's root, or none.
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
-The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256, \S\ref{sec:prog-hashing}) of the following fields, in order:
+Digests bind the two variable-length claim lists into a fixed-size statement. The VM's public input is the hash (Keccak-256, \S\ref{sec:prog-hashing}) of the following fields, in order:
 \begin{center}
 \begin{tabular}{@{}rl@{}}
 \hline
 $32$ bytes & Fiat-Shamir IV\\
 $32$ bytes & leanXMSS claim list digest\\
 $32$ bytes & leanSPHINCS claim list digest\\
-$32$ bytes & DA list digest\\
+$32$ bytes & DA digest $H(\daroot,\davechash)$ (zeros if none)\\
 $(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
 \hline
 \end{tabular}
 \end{center}
 The deferred claim lets recursion postpone an expensive polynomial evaluation until the final verification (\S\ref{sec:deferred-claims}).
 
-The DA list digest is the hash of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
-
 Each list digest is the hash of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}). Every field above has a fixed width, so the preimage parses one way and the statement needs no length fields.
 
 \subsubsection{Checking coverage}
 
-Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with one region for leanXMSS, one for SPHINCS+ and one for DA. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
+Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with one region for leanXMSS and one for SPHINCS+. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
 
 Each occurrence of a supporting claim needs its own slot. If two children prove the same published claim, one occurrence uses its published slot and the other uses an extra slot. Every occurrence of a claim the parent omits uses an extra slot. These claims are still verified; only the published prefixes enter the parent's list digests.
 
@@ -168,6 +166,6 @@ The guest recomputes $\daroot$ from the encoded rows, receives $\davec$ as a hin
 \]
 for every row $w_i$. The vector is shared across all rows and hashed once. It contains $32768$ entries, or $768$ KiB.
 
-Recursive nodes preserve the pair $(\daroot,\davechash)$ for each retained claim. The final native verifier recomputes $\davechash$ from every retained root (outside of the snark).
+A node passing a child's root on passes its digest $H(\daroot,\davechash)$ unchanged. The final native verifier recomputes $\davechash$ from the root (outside of the snark).
 
 Every valid row passes. Under uniform challenges, a fixed invalid matrix passes with probability at most $\log_2\kdim/|\E|=14/2^{192}$ (Proposition~\ref{prop:rs-membership}).

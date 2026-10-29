@@ -95,10 +95,9 @@ pub fn vector_digest(vector: &[E]) -> [u8; 32] {
     keccak_hash(&columns.collect::<Vec<u8>>()).0
 }
 
-/// The hash of the concatenated `(root, vector digest)` pairs, or of the empty string: what the statement of an aggregate carries for its DA roots.
-pub fn list_digest(roots: &[[u8; 32]]) -> [u8; 32] {
-    let pairs = roots
-        .iter()
-        .flat_map(|root| [*root, vector_digest(&membership_vector(root))]);
-    keccak_hash(&pairs.flatten().collect::<Vec<u8>>()).0
+/// What the statement of an aggregate carries for its DA root: the hash of the root and its vector digest, or zeros without one.
+pub fn digest(root: Option<[u8; 32]>) -> [u8; 32] {
+    root.map_or([0; 32], |root| {
+        keccak_hash(&[root, vector_digest(&membership_vector(&root))].concat()).0
+    })
 }

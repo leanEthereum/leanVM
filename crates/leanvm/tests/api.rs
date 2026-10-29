@@ -43,7 +43,7 @@ fn public_api_end_to_end() {
     .unwrap();
     let left = EthereumProof::from_bytes(&left.to_bytes()).unwrap();
     left.verify().unwrap();
-    assert_eq!(left.da_commitments(), &[commitment.root]);
+    assert_eq!(left.da_commitment(), Some(commitment.root));
     let other_blobs: Vec<_> = blobs.iter().map(|x| x ^ 42).collect();
     let (other_commitment, _) = lean_da::commit(&other_blobs);
     let right = aggregate(
@@ -55,18 +55,18 @@ fn public_api_end_to_end() {
         2,
     )
     .unwrap();
-    let mut roots = vec![commitment.root, other_commitment.root];
-    roots.sort();
+    assert_eq!(right.da_commitment(), Some(other_commitment.root));
+    // A proof carries one blob matrix: the root passes on one child's, by default the first's.
     let root = aggregate(&[left, right], lean_xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
     assert_eq!(root.num_signature_claims(), 11);
-    assert_eq!(root.da_commitments(), roots);
+    assert_eq!(root.da_commitment(), Some(commitment.root));
 
     // 4. Onto the wire, and back to a receiver, which checks the statement itself:
     //    verifying says these pubkeys signed, the messages being the prover's.
     let bytes = root.to_bytes();
     let received = EthereumProof::from_bytes(&bytes).unwrap();
     received.verify().unwrap();
-    assert_eq!(received.da_commitments(), roots);
+    assert_eq!(received.da_commitment(), Some(commitment.root));
     let on = |message| received.xmss_signers().iter().filter(|(_, m)| *m == message).count();
     assert_eq!((on(MSG_0), on(MSG_1), on(MSG_2)), (3, 4, 1));
 
@@ -86,13 +86,13 @@ fn public_api_end_to_end() {
         &[],
         Some(ClaimSelection {
             signatures: &retained_signatures,
-            da_commitments: &[commitment.root],
+            da_commitment: Some(commitment.root),
         }),
         2,
     )
     .unwrap();
     narrowed.verify().unwrap();
-    assert_eq!(narrowed.da_commitments(), &[commitment.root]);
+    assert_eq!(narrowed.da_commitment(), Some(commitment.root));
     assert_eq!(narrowed.num_signature_claims(), 11 - dropped_claims.len() - 1);
     assert!(
         dropped_claims
@@ -108,13 +108,13 @@ fn public_api_end_to_end() {
         &[],
         Some(ClaimSelection {
             signatures: &retained_signatures,
-            da_commitments: &[],
+            da_commitment: None,
         }),
         2,
     )
     .unwrap();
     dropped.verify().unwrap();
-    assert!(dropped.da_commitments().is_empty());
+    assert_eq!(dropped.da_commitment(), None);
     assert_eq!(dropped.xmss_signers(), retained_signatures.xmss);
     assert_eq!(dropped.lean_sphincs_signers(), retained_signatures.lean_sphincs);
 }
