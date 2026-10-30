@@ -9,7 +9,7 @@ use super::stage::LOG_BATCH;
 /// - The far layers `start..deep_start` run as gathered passes of at most `max_g` layers each.
 /// - The near layers `deep_start..log_d` run as one deep pass over L2-sized sub-blocks.
 /// - It holds numbers only and is `Copy`, so an encode can keep it to read rows back.
-/// - Openings rebuild a row from it, so it must come from the same pool size as the encode.
+/// - [`AdditiveNttF64::rows`](super::AdditiveNttF64::rows) rebuilds a row from it, so it must come from the same pool size as the encode.
 #[derive(Clone, Copy, Debug)]
 pub struct Plan {
     pub(super) log_d: usize,

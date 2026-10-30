@@ -231,15 +231,18 @@ impl Terms {
         });
         p
     }
-}
 
-impl Terms {
+    /// Words of a block of the lift: `2^low_vars`.
+    pub(crate) fn lift_len(&self) -> usize {
+        1 << self.low_vars
+    }
+
     /// The weight over one lane block after every lane round, rebuilt from the term table's last row `a`, as
     /// the body of block `h` of `2^low_vars` words: it builds the block of the weight for the witness block
     /// `f` in `out`, and returns the unreduced message terms of `f` against it.
     ///
     /// `b[h * 2^m + x] = sum_claims A[c] * gamma_c(h) * pi_c(x) + sum_rings Phi'(e(x))`, where
-    /// `Phi'` weighs the ring's coordinates by its 192 terms of `a`, and the message of `f` against `b`.
+    /// `Phi'` weighs the ring's coordinates by its 192 terms of `a`.
     ///
     /// The setup is each pattern's weight on each block, `sum_c a[c] * gamma_c(h)` over its claims, and the
     /// ring weights. A block is built in the caller's buffer, and the dense patterns share one reduction per vector.
@@ -398,7 +401,6 @@ pub(super) fn initial_basis(
         p,
         a,
         n_terms,
-        lift_len: 1 << low_vars,
         lift: terms,
     }
 }

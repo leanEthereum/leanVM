@@ -113,10 +113,14 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     queries: &[usize],
     weights: &[F192],
 ) -> (Vec<F192>, F192) {
+    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
+    (induce_basis(log_msg_cols, sks_vks, queries, weights), enforced_sum)
+}
+
+/// The basis half of [`induce_sumcheck_poly`]: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`.
+pub(crate) fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usize], weights: &[F192]) -> Vec<F192> {
     let n_queries = queries.len();
     assert_eq!(weights.len(), n_queries);
-    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
-
     let inv_sks_vks = invert_sks(sks_vks);
     let lo = log_msg_cols / 2;
     let padded = n_queries.next_multiple_of(8);
@@ -151,7 +155,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
         })
     };
     // SAFETY: the fill writes every element before it reads any.
-    let basis = unsafe {
+    unsafe {
         primitives::filled_vec(1 << log_msg_cols, |basis| {
             parallel::chunks_mut(basis, 1 << lo, |j, out: &mut [F192]| {
                 for (out, low) in out.iter_mut().zip(low.chunks_exact(padded)) {
@@ -159,8 +163,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
                 }
             });
         })
-    };
-    (basis, enforced_sum)
+    }
 }
 
 /// Appends `t[j] = Π_k s[k]^(bit k of j)`, over K, to `out`.
@@ -192,57 +195,6 @@ pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
         sum += w * T::dot(row, &eq);
     }
     sum
-}
-
-/// SUCCINCT evaluator for the induced basis poly's MLE at the boolean points, in place of the dense
-/// basis, via the closed form:
-///   `MLE(basis_poly)(p) = Σ_i w_i · Π_k (1 + p[k] · (1 + W-hat_k(q_i)))`
-/// where `q_i = F64(queries[i])` and the K-valued `W-hat_k(q_i)` lifts into E
-/// through the char-2 factor. Returns the evaluations at all `2^log_msg_cols` points.
-pub(crate) fn induce_sumcheck_evaluate_at_residual(
-    log_msg_cols: usize,
-    sks_vks: &[F64],
-    queries: &[usize],
-    weights: &[F192],
-) -> Vec<F192> {
-    let n_queries = queries.len();
-    debug_assert_eq!(weights.len(), n_queries);
-    let inv_sks_vks = invert_sks(sks_vks);
-
-    // Per query: W-hat_k(q) for all k over K.
-    let compute_query = |&q: &usize| -> Vec<F64> {
-        let mut sks_at_x = vec![F64::ZERO; log_msg_cols];
-        normalized_sks_at(F64(q as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
-        sks_at_x
-    };
-    // Once per opening over query-count-sized inputs; stay serial below
-    // the dispatch crossover.
-    const PAR_FLOOR: usize = 1024;
-    let per_query: Vec<Vec<F64>> = if n_queries > PAR_FLOOR {
-        parallel::map_collect(n_queries, |i| compute_query(&queries[i]))
-    } else {
-        queries.iter().map(compute_query).collect()
-    };
-
-    // For each point y, accumulate the product per query.
-    let compute_y = |y: usize| -> F192 {
-        let mut sum = F192::ZERO;
-        for (w, &weight) in per_query.iter().zip(weights) {
-            let mut prod = F192::ONE;
-            for (j, &w_j) in w.iter().enumerate() {
-                let p_j = if (y >> j) & 1 == 1 { F192::ONE } else { F192::ZERO };
-                prod *= F192::ONE + p_j * (F192::ONE + F192::from(w_j));
-            }
-            sum += weight * prod;
-        }
-        sum
-    };
-    let len = 1usize << log_msg_cols;
-    if len > PAR_FLOOR {
-        primitives::par_collect(len, compute_y)
-    } else {
-        (0..len).map(compute_y).collect()
-    }
 }
 
 /// The transposed forward butterfly, applied to each pair of E elements as K words. The forward

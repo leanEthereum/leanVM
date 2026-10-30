@@ -7,7 +7,7 @@ use super::scratch::with_scratch;
 use super::source::Lanes;
 use super::window::STREAM_MIN_WORDS;
 
-/// Transpose a lane-major message into the row-major order the encoder reads.
+/// Transpose a lane-major message into the row-major order the encodes read.
 ///
 /// # Layout
 ///

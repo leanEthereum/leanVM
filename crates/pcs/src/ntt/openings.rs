@@ -61,23 +61,16 @@ pub(super) fn built_rows(
 
 /// The reads of codeword rows, from what an encode kept of its codeword.
 impl AdditiveNttF64 {
-    /// The rows at the sorted `positions` of `codeword`, `row_words` words each, back to back. A codeword kept
-    /// as [`Codeword::Nothing`] is recomputed from its lane-major message `msg` of `n_lanes` lanes.
-    pub fn rows(
-        &self,
-        codeword: &Codeword,
-        row_words: usize,
-        msg: &[F64],
-        n_lanes: usize,
-        positions: &[usize],
-    ) -> Vec<F64> {
+    /// The rows at the sorted `positions` of `codeword`, back to back. A [`Codeword::Nothing`] is recomputed from
+    /// its lane-major message `msg`, which no other codeword reads.
+    pub fn rows(&self, codeword: &Codeword, msg: &[F64], positions: &[usize]) -> Vec<F64> {
         match *codeword {
-            Codeword::Whole(ref words) => gather_rows(words, row_words, positions),
+            Codeword::Whole(ref words, plan) => gather_rows(words, plan.num_ntts, positions),
             Codeword::BeforeDeep(ref words, plan) => {
                 let sub_len = plan.sub_len();
                 self.finished_rows(&plan, positions, |_, sub| &words[sub * sub_len..][..sub_len])
             }
-            Codeword::Nothing(plan) => {
+            Codeword::Nothing(plan, n_lanes) => {
                 let log_sub = plan.log_sub();
                 let mut subs: Vec<usize> = positions.iter().map(|q| q >> log_sub).collect();
                 subs.dedup();
@@ -104,7 +97,7 @@ impl AdditiveNttF64 {
             deep_start,
             ..
         } = *plan;
-        built_rows(num_ntts, log_d - deep_start, positions, |i, sub_idx, live, sub| {
+        built_rows(num_ntts, plan.log_sub(), positions, |i, sub_idx, live, sub| {
             let src = Some(src(i, sub_idx));
             self.run_layers(sub, src, log_d, num_ntts, deep_start, deep_start, sub_idx, Some(live));
         })
@@ -141,7 +134,7 @@ impl<'a> Rebuild<'a> {
             ..
         } = *plan;
         let g = deep_start - start;
-        let (rows, log_step) = (1usize << g, log_d - deep_start);
+        let (rows, log_step) = (1usize << g, plan.log_sub());
         let msg_rows = 1usize << (log_d - start);
         assert!(plan.rebuilds_from_lanes(), "one gathered pass reads the lanes");
         assert_eq!(lanes.words.len(), lanes.n_lanes * msg_rows);
@@ -169,13 +162,12 @@ impl<'a> Rebuild<'a> {
     /// The sub-blocks back to back, before their deep layers.
     fn run(&self, ntt: &AdditiveNttF64) -> Vec<F64> {
         let Plan {
-            log_d,
             num_ntts,
             start,
             deep_start,
             ..
         } = self.plan;
-        let (rows, log_step) = (1usize << (deep_start - start), log_d - deep_start);
+        let (rows, log_step) = (1usize << (deep_start - start), self.plan.log_sub());
         let sub_len = self.plan.sub_len();
         // SAFETY: the groups below write every element, and `built` is read only once they are done.
         let mut built = unsafe { primitives::uninit_vec(self.n_subs * sub_len) };

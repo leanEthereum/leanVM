@@ -3,7 +3,7 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Reed-Solomon encoding over `E = GF(2^192)` with base-field twiddles.
+//! E slices as K words, so that an E encode is the base transform over three times the lanes.
 //!
 //! Deeper WHIR levels encode an E-valued, folded witness on the same K-domain.
 //!
@@ -40,7 +40,7 @@ pub(crate) fn words_mut(v: &mut [F192]) -> &mut [F64] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ntt::AdditiveNttF64;
+    use crate::ntt::{AdditiveNttF64, Codeword};
     use primitives::log2_strict_usize;
     use primitives::test_rng::Rng;
 
@@ -100,10 +100,12 @@ mod tests {
             // Reference: 2^rate explicit copies, then the E-valued transform from the rate layer.
             let mut want: Vec<F192> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
             forward_scalar(&ntt, &mut want, lanes, rate);
-            // Under test: a zeroed codeword, filled by the encode alone.
-            let mut got = vec![F192::ZERO; want.len()];
-            ntt.encode_interleaved_with(words_mut(&mut got), words(&msg), 3 * lanes, rate, false, &|_, _| {});
-            assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={rate}");
+            // Under test: the encode of the message held apart.
+            let codeword = ntt.encode_interleaved_with(words(&msg), 3 * lanes, rate, false, &|_, _| {});
+            let Codeword::Whole(got, _) = codeword else {
+                panic!("an encode not asked to defer keeps its codeword whole")
+            };
+            assert_eq!(got, words(&want), "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }
 }

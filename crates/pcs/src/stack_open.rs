@@ -130,8 +130,9 @@ impl RingSwitchOpen {
 /// evaluation AND the ring-switched q_keccak claims (`ring`) in ONE WHIR
 /// run, reusing the caller's [`super::whir::commit`] output as L0.
 ///
-/// `stack` is the committed message (not stored in [`ProverData`]), consumed: the
-/// lane rounds drop it before the level-1 commit. It is the `2^log_n`-word stack truncated to the lane blocks that
+/// `stack` is the committed message (not stored in [`ProverData`]), consumed: it goes once nothing reads it, after
+/// the lane rounds or, when the commit kept no codeword, after the L0 open. It is the `2^log_n`-word stack truncated
+/// to the lane blocks that
 /// carry data, so every claim must live inside it and the padding past it is
 /// exactly the weight's zero region. `config.initial_k` / `config.log_inv_rates[0]`
 /// must match the commit's `log_batch_size` / `log_inv_rate` (enforced by shape

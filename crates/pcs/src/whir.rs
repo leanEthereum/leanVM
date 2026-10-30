@@ -119,11 +119,12 @@ pub struct ProverData {
     pub merkle_tree: merkle::CutTree,
 }
 
-/// Where [`primitives::REBUILD_OVER_STORE`], the largest L0 codeword the commit keeps, in bytes.
+/// The largest L0 codeword the commit keeps where [`primitives::REBUILD_OVER_STORE`], in bytes.
 ///
-/// - Up to it, memory is not the limit, and the codeword saves the opening a rebuild from the stack and the encode a second stage fill.
-/// - Above it, the codeword dominates the peak: the commit keeps none, and when one gathered pass covers the layers
-///   before the deep pass it encodes half of the cosets at a time.
+/// - Up to it, memory is not the limit: the commit keeps the codeword before its deep layers, which saves the
+///   opening a rebuild from the stack and the encode a second stage fill.
+/// - Above it, the codeword dominates the peak: when one gathered pass covers the layers before the deep pass,
+///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
 const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
@@ -204,8 +205,7 @@ pub(crate) struct LigeroWitness {
 impl LigeroWitness {
     /// The rows at the sorted `positions`, back to back, each as the K words its Merkle leaf is hashed from.
     fn opened_words(&self, positions: &[usize]) -> Vec<F64> {
-        self.ntt
-            .rows(&self.codeword, 3 * self.num_interleaved, &[], 0, positions)
+        self.ntt.rows(&self.codeword, &[], positions)
     }
 
     /// The rows at `queries`, in order and back to back, and the octopus over them.
@@ -252,33 +252,17 @@ pub(crate) fn ligero_commit_ext(
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
     let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
-    let encode = |mat: &mut [F64]| {
-        tracing::info_span!(
-            "NTT",
-            kind = "extension encode",
-            log_domain = log_block_len,
-            lanes = num_interleaved
-        )
-        .in_scope(|| {
-            let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
-            let defer_deep = primitives::REBUILD_OVER_STORE;
-            ntt.encode_interleaved_with(
-                mat,
-                words(poly),
-                3 * num_interleaved,
-                log_inv_rate,
-                defer_deep,
-                &on_rows,
-            )
-        })
-    };
-    let mut deep = None;
-    // SAFETY: the fill writes every element before it reads any.
-    let mat = unsafe { primitives::filled_vec(3 * block_len * num_interleaved, |mat| deep = encode(mat)) };
-    let codeword = match deep {
-        Some(plan) => Codeword::BeforeDeep(mat, plan),
-        None => Codeword::Whole(mat),
-    };
+    let codeword = tracing::info_span!(
+        "NTT",
+        kind = "extension encode",
+        log_domain = log_block_len,
+        lanes = num_interleaved
+    )
+    .in_scope(|| {
+        let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
+        let defer_deep = primitives::REBUILD_OVER_STORE;
+        ntt.encode_interleaved_with(words(poly), row_words, log_inv_rate, defer_deep, &on_rows)
+    });
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 
     LigeroWitness {
@@ -651,13 +635,11 @@ fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
 /// so that for any two lanes `sum_x f(l, x) * b(l', x) = sum_t p[l][t] * a[l'][t]`, with
 /// `p[l][t] = sum_x f(l, x) * K_t(x)`. Both tables are lane-major with `n_terms` terms per lane,
 /// and the lane rounds run on them in place of the witness and the weight. `lift` rebuilds the
-/// weight after the last one, a block of `lift_len` words at a time.
+/// weight after the last one, a block of [`Terms::lift_len`] words at a time.
 pub(crate) struct InitialBasis {
     pub(crate) p: Vec<F192>,
     pub(crate) a: Vec<F192>,
     pub(crate) n_terms: usize,
-    /// Words of a block the lift takes.
-    pub(crate) lift_len: usize,
     pub(crate) lift: Terms,
 }
 
@@ -808,8 +790,6 @@ pub(crate) struct SumcheckProver {
     /// Terms per lane of the tables, and words of a lane block of the committed lanes.
     n_terms: usize,
     lane_block: usize,
-    /// Words of a block the lift takes.
-    lift_len: usize,
     /// Taken by the last lane round.
     lift: Option<Terms>,
     /// The lane challenges so far.
@@ -830,15 +810,9 @@ impl SumcheckProver {
     pub(crate) fn new(stack: Vec<F64>, b1: InitialBasis, h1: F192, lane_block: usize) -> (Self, SumcheckMessage) {
         let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = stack.len().ilog2()).entered();
         assert!(lane_block > 0 && stack.len().is_multiple_of(lane_block));
-        let InitialBasis {
-            p,
-            a,
-            n_terms,
-            lift_len,
-            lift,
-        } = b1;
+        let InitialBasis { p, a, n_terms, lift } = b1;
         assert_eq!(p.len(), stack.len() / lane_block * n_terms);
-        assert!(lane_block.is_multiple_of(lift_len));
+        assert!(lane_block.is_multiple_of(lift.lift_len()));
         let msg = round_msg_blocks(&p, &a, n_terms);
         let inst = Self {
             base: stack,
@@ -846,7 +820,6 @@ impl SumcheckProver {
             combined_basis: a,
             n_terms,
             lane_block,
-            lift_len,
             lift: Some(lift),
             lane_rs: Vec::new(),
             t_r: h1,
@@ -880,7 +853,7 @@ impl SumcheckProver {
         let msg = if last {
             let lift = self.lift.take().expect("the lift is taken by the last lane round only");
             let blocks = lift.blocks(&self.combined_basis);
-            let (f, b, msg) = fold_all_lanes(&self.base, self.lane_block, &self.lane_rs, self.lift_len, &blocks);
+            let (f, b, msg) = fold_all_lanes(&self.base, self.lane_block, &self.lane_rs, lift.lift_len(), &blocks);
             (self.f, self.combined_basis) = (f, b);
             msg
         } else {
@@ -1064,7 +1037,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         n_lanes >= 1 && n_lanes <= num_interleaved_0,
         "at most 2^initial_k lanes"
     );
-    assert_eq!(prover_data.codeword.words(), block_len_0 * prover_data.row_words);
+    assert_eq!(prover_data.codeword.plan().words(), block_len_0 * prover_data.row_words);
     assert!((n_lanes..=num_interleaved_0).contains(&prover_data.row_words));
 
     // Nothing is absorbed on entry. The commitment was bound by the `add_root` that
@@ -1096,7 +1069,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     }
     drop(sumcheck_span);
     // A rebuilding L0 open recomputes its rows from the stack, so that lives until then. Otherwise it goes now.
-    let stack = sc_prover.take_stack(matches!(prover_data.codeword, Codeword::Nothing(_)));
+    let stack = sc_prover.take_stack(matches!(prover_data.codeword, Codeword::Nothing(..)));
 
     // Commit f^1 = folded (now E-valued) witness as wtns_1.
     let n1 = log_n - initial_k;
@@ -1129,9 +1102,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // Ordered (dup-possible) rows for the local induce math ...
     let row_words = prover_data.row_words;
     let group_0 = l0_tree.group_positions(&queries_0);
-    let group_rows_0 = prover_data
-        .ntt
-        .rows(&prover_data.codeword, row_words, &stack, n_lanes, &group_0);
+    let group_rows_0 = prover_data.ntt.rows(&prover_data.codeword, &stack, &group_0);
     let image = |q| &fetched_row(&group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
     let mut opened_rows_0 = Vec::with_capacity(queries_0.len() * num_interleaved_0);
     // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts
@@ -1206,8 +1177,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             // a sweep over the residual cube.
             let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
-            let basis_last =
-                induce_sumcheck_evaluate_at_residual(n_res, &eval_sk_at_vks(n_res), &queries_last, &weights_last);
+            let basis_last = induce_basis(n_res, &eval_sk_at_vks(n_res), &queries_last, &weights_last);
             let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
             send_msg(ps, intro_msg_last, enforced_sum_last);
             sc_prover.glue_pending(lambda_last);

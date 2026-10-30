@@ -16,7 +16,7 @@
 //!
 //! So one task hashes a block of leaves and climbs its subtree while the digests are in L1.
 //!
-//! The encoder hands blocks over as it finishes them, so leaves are hashed while the rows are in L2.
+//! The encode hands blocks over as it finishes them, so leaves are hashed while the rows are in L2.
 //!
 //! Above the blocks, the last block to finish a unit of nodes climbs it, so no pass waits on a barrier.
 
@@ -614,13 +614,13 @@ mod tests {
 
     #[test]
     fn blocks_of_any_size_build_one_tree() {
-        // Invariant: the tree does not depend on the block size the encoder picks.
+        // Invariant: the tree does not depend on the block size the encode picks.
         let (num_leaves, row_words) = (1usize << 12, 6usize);
         let data: Vec<F64> = (0..row_words * num_leaves).map(|i| F64(i as u64 * 7 + 1)).collect();
         let want = merkle_tree_padded_rows(&data, num_leaves, row_words, row_words);
         for log_block in [0usize, 3, 5, 6, 9, 12] {
             let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 0);
-            // Blocks arrive out of order, as the encoder's tasks finish.
+            // Blocks arrive out of order, as the encode's tasks finish.
             for b in (0..num_leaves >> log_block).rev() {
                 let rows = row_words << log_block;
                 builder.absorb(b << log_block, &data[b * rows..][..rows]);
