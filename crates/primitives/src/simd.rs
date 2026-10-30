@@ -14,13 +14,6 @@ pub const fn from_words(w: [u64; 8]) -> __m512i {
     unsafe { core::mem::transmute::<[u64; 8], __m512i>(w) }
 }
 
-/// The eight words of a vector, the low qword first.
-#[inline(always)]
-pub fn to_words(v: __m512i) -> [u64; 8] {
-    // SAFETY: both types are 64 bytes and every bit pattern is a valid array.
-    unsafe { core::mem::transmute::<__m512i, [u64; 8]>(v) }
-}
-
 /// Register `i` of `src`: bytes `64 * i..64 * i + 64`, read unaligned.
 #[inline(always)]
 pub fn load<T: Plain>(src: &[T], i: usize) -> __m512i {
