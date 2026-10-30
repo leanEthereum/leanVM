@@ -263,7 +263,7 @@ mod tests {
     /// The lane rounds of a projected basis must send the messages of the naive lane rounds on
     /// the dense weight and leave the same witness, weight and next message, across claims inside
     /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, and a
-    /// q_flock ring both spanning lanes and selected by lane bits.
+    /// q_keccak ring both spanning lanes and selected by lane bits.
     #[test]
     fn projected_lane_rounds_match_the_naive_dense_rounds() {
         const LANE_ROUNDS: usize = 6;

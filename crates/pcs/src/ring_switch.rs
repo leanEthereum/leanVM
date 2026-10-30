@@ -57,9 +57,9 @@
 //!
 //! ## Building `rs_eq_ind`
 //!
-//! The prover keeps the equality tensor factored, folds each claim through
-//! `primitives::bit_fold`, and combines the claims directly into one dense PCS
-//! weight. It never materializes a dense vector per claim. A verifier never
+//! The prover keeps each claim as its point and its map, and the opening's
+//! Basis (`stack_open::basis`) folds them into its terms, so no dense weight is
+//! ever built, per claim or combined. A verifier never
 //! builds the vector at all: it evaluates its MLE at the WHIR final point from
 //! `Phi`'s challenges.
 

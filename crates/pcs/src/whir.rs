@@ -182,7 +182,8 @@ fn kept_rows(words: &[F64], row_words: usize, deep: Option<&(AdditiveNttF64, Pla
 /// Largest L0 codeword the commit keeps, in bytes.
 ///
 /// - Up to it, memory is not the limit, and the codeword saves the opening a rebuild from the stack and the encode a second stage fill.
-/// - Above it (8:1 and up), the codeword dominates the peak: the commit encodes two cosets at a time and keeps none.
+/// - Above it, the codeword dominates the peak: the commit keeps none, and when one gathered pass covers the layers
+///   before the deep pass it encodes half of the cosets at a time.
 const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
@@ -529,14 +530,14 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     )
 }
 
-/// Outputs a fused fold folds before it multiplies them, so the message reads values written a
-/// while ago rather than stores still in flight.
+/// Outputs a fused fold writes before its message reads them, so the reads hit settled stores rather than stores
+/// still in flight.
 const FOLD_STAGE: usize = 256;
 
 /// Fold outputs of at least this many elements (12 MiB) take streaming stores.
 ///
-/// - Eight nodes share 64 MiB of L3, so a node keeps about 8 MiB.
-/// - A larger output is evicted before the next round reads it, so an ordinary store only adds the line fetch.
+/// An output this large is evicted from a worker's share of the L3 before the next round reads it, so an ordinary
+/// store only adds the line fetch.
 const STREAM_FOLD_MIN: usize = 1 << 19;
 
 /// Fused fold + next-round message: the witness and the basis fold, and the
@@ -1268,9 +1269,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     drop((prover_data, stack));
     drop(span);
 
-    // Induce basis_0 from the L0 opens. L0 dominates the induce phase, where
-    // the sparse-prefix transposed-NTT path wins; the dispatcher auto-selects
-    // it (deeper levels stay dense), mirroring the original.
+    // Induce basis_0 from the L0 opens: the dispatcher picks the sparse transposed NTT wherever the level opens
+    // more queries than its blowup.
     let sks_vks_n1 = eval_sk_at_vks(n1);
     let span = tracing::info_span!("Induce", level = 0).entered();
     let (basis_0_induced, enforced_sum_0) = induce_sumcheck_poly_auto_base(
@@ -1521,7 +1521,7 @@ mod tests {
     }
 
     /// The sparse transposed-NTT induce must be byte-identical to the dense
-    /// LCH-expansion induce (same guarantee the original pins). Covers a domain
+    /// LCH-expansion induce. Covers a domain
     /// of a single window (`log_msg_cols` of 10 or less), and the ones of 2 to 6
     /// layers above the windows of the second pass (`log_msg_cols` 12 to 16).
     #[test]

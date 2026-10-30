@@ -243,8 +243,7 @@ pub(super) fn butterfly_interleaved_block(block: &mut [F64], twiddle: F64, block
 /// Butterfly all `num_ntts` lanes of one (top row, bottom row) pair with a
 /// shared twiddle: new_u = u + v*t; new_v = v + new_u.
 ///
-/// On NEON this processes eight lanes per iteration. The pair kernel handles a short even tail,
-/// and the scalar path handles an odd tail.
+/// On NEON this processes eight lanes per iteration, and the scalar path handles the rest.
 #[inline]
 fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     debug_assert_eq!(top.len(), bot.len());
@@ -350,7 +349,7 @@ fn butterfly_lanes_avx2(top: &mut [F64], bot: &mut [F64], twiddle: u64) {
 }
 
 /// Four butterflies `u' = u + v * t`, `v' = v + u'` in registers: the products one per 128-bit
-/// lane, even lanes then odd lanes as in `butterfly_zmm`, then one shift-and-XOR reduction.
+/// lane, even lanes then odd lanes as in `mul_xor_avx512`, then one shift-and-XOR reduction.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "pclmulqdq",

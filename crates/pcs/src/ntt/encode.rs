@@ -134,7 +134,8 @@ impl<'t> Encoder<'t> {
     ///   and handed to `on_rows` from there.
     /// - The buffer then keeps what the gathered passes left.
     ///   [`Openings::rows`] finishes any row again.
-    /// - With no separate deep pass in the plan, the buffer is the whole codeword and this returns `None`.
+    /// - It returns the plan only when the deep pass deferred: otherwise the buffer is the whole codeword and
+    ///   this returns `None`.
     ///
     /// # Panics
     ///

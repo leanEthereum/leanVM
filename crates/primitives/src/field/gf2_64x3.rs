@@ -792,8 +792,7 @@ pub mod x86_64 {
         crate::simd::from_words(words)
     };
 
-    /// Lane-wise base reduction on eight qwords; see the four-qword version.
-    ///
+    /// Lane-wise base reduction on eight qwords:
     /// `lo ^ g(hi) ^ g(spill)`, with `g(y) = y ^ y<<1 ^ y<<3 ^ y<<4 = z ^ z<<3` for `z = y ^ y<<1`, and
     /// `g(spill)` one in-lane byte lookup on the top nibble of `hi`.
     ///

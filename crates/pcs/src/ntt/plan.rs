@@ -65,9 +65,9 @@ impl Plan {
         self.deep_start < self.log_d
     }
 
-    /// Whether the deep pass hands rows over itself, in parallel: it has gathered passes before it and layers to run.
+    /// Whether the deep pass hands rows over itself: it starts past layer 0 and has layers to run.
     ///
-    /// A lone sub-block runs on one thread, so its rows go over in parallel afterwards.
+    /// A deep pass from layer 0 is one sub-block on one thread, so its rows go over in parallel afterwards.
     pub(super) fn fuses_rows(&self) -> bool {
         0 < self.deep_start && self.deep_start < self.log_d
     }
@@ -135,7 +135,6 @@ fn deep_start(log_d: usize, num_ntts: usize, start: usize) -> usize {
 /// # Why this value
 ///
 /// - 2^17 words is 1 MiB, a whole Zen 5 L2.
-/// - Two SMT threads then spill each other's units into L3, which costs far less than a DRAM sweep.
 /// - At 51 lanes it plans one gathered pass plus the deep pass, where 2^16 words planned two plus one.
 ///
 /// # On Apple silicon

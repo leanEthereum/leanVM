@@ -514,7 +514,7 @@ mod avx512 {
             odd: [from_words([0; 8]); 3],
         };
 
-        /// The sum of the sixteen products, reduced.
+        /// The sum of the eight products, reduced.
         #[inline]
         pub fn reduce(self) -> F192 {
             // SAFETY: the module is compiled only with the features enabled.

@@ -87,7 +87,7 @@ fn perf_cores() -> usize {
 }
 
 /// The distinct physical cores behind the CPUs this process may run on: a core whose
-/// sibling threads are all allowed counts once.
+/// threads include at least one allowed CPU counts once.
 #[cfg(target_os = "linux")]
 fn allowed_cores() -> Option<usize> {
     let status = std::fs::read_to_string("/proc/self/status").ok()?;

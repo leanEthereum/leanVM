@@ -99,8 +99,9 @@ pub fn pretty_f64(value: f64) -> String {
 }
 
 /// Whether the prover rebuilds what a later step reads rather than storing it. On x86 the
-/// stores' memory traffic costs more than the products that rebuild their contents; on Apple
-/// silicon a store-only pass is as cheap as a read, so the prover stores there.
+/// stores' memory traffic costs more than the products that rebuild their contents, and every
+/// other target but Apple silicon follows it; on Apple silicon a store-only pass is as cheap as a
+/// read, so the prover stores there.
 pub const REBUILD_OVER_STORE: bool = !cfg!(all(target_arch = "aarch64", target_os = "macos"));
 
 /// `log2` of a power of two (panics otherwise).

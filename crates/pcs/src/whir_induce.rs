@@ -25,8 +25,7 @@ fn next_s(s: F64, s_at_root: F64) -> F64 {
     s * s + s_at_root * s
 }
 
-/// `sks_vks[k] = s_k(v_k)` for `k = 0..=log_n`, over K. Mirror of
-/// `whir::eval_sk_at_vks`. Public for the recursion harness, which dumps
+/// `sks_vks[k] = s_k(v_k)` for `k = 0..=log_n`, over K. Public for the recursion harness, which dumps
 /// these vanishing-polynomial values as guest hints (base-field, embedded into
 /// the tower with both extension limbs zero).
 pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
@@ -279,8 +278,6 @@ const STRIP: usize = 16;
 ///   the rows (windows) of each replica, and sums the replicas. A layer skips the
 ///   blocks of rows that are still zero, as pass 1 does, and the sum is the only
 ///   thing written to the output.
-///
-/// Mirror of `whir::transpose_forward_ntt_sparse`.
 fn transpose_forward_ntt_sparse_ext(
     ntt: &AdditiveNttF64,
     positions: &[usize],
@@ -428,8 +425,7 @@ fn transpose_rows<'a>(tile: &mut [F192], k: usize, plan: impl Iterator<Item = &'
 /// `F^T`-based fast path for [`induce_sumcheck_poly`]: scatter per-query
 /// E-weights into the codeword domain, apply `F^T` with K-twiddles, keep the
 /// low `2^log_msg_cols` outputs. Byte-identical output to the dense path
-/// (pinned by `induce_via_ntt_matches_dense`). Mirror of
-/// `whir::induce_sumcheck_poly_via_ntt` with the L0 mixed row dot.
+/// (pinned by `induce_via_ntt_matches_dense`).
 pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     log_msg_cols: usize,
     log_inv_rate: usize,
@@ -457,8 +453,7 @@ pub(crate) fn induce_use_ntt_heuristic(log_msg_cols: usize, log_inv_rate: usize,
 }
 
 /// Dispatch between the dense [`induce_sumcheck_poly`] and the sparse
-/// [`induce_sumcheck_poly_via_ntt_base`] for L0 (base-field rows). Mirror of
-/// `whir::induce_sumcheck_poly_auto`: in the recursive PCS this fires
+/// [`induce_sumcheck_poly_via_ntt_base`] for L0 (base-field rows): in the recursive PCS this fires
 /// only at the top level (large message domain, many queries); deeper levels
 /// stay dense. Both paths produce identical output, so a mis-dispatch only
 /// costs time.

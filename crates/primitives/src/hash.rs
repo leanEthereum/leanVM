@@ -83,8 +83,7 @@ pub const PI: [usize; STATE_LANES] = {
 /// lanes. The permutation is written once over this trait, so each backend
 /// supplies only XOR, the χ step and the rotations.
 ///
-/// `load` and `store` move the `WIDTH` words from `src[i]` on, unaligned, through the
-/// bounds-checked [`load_at`] and [`store_at`].
+/// `load` and `store` move the `WIDTH` words from `src[i]` on, unaligned and bounds-checked.
 trait Lanes64: Copy {
     const WIDTH: usize;
 
