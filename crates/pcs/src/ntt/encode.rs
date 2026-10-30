@@ -30,12 +30,24 @@ pub enum Keep {
     Nothing,
 }
 
-/// What [`AdditiveNttF64::encode_lane_major`](super::AdditiveNttF64::encode_lane_major) kept of its codeword.
-pub struct Encoded {
-    /// The buffer kept, or empty when nothing was.
-    pub words: Vec<F64>,
-    /// Set if the deep pass is left to run on a row read, from `words` or, when empty, from the message.
-    pub deep: Option<Plan>,
+/// What an encode kept of its codeword, for [`AdditiveNttF64::rows`] to read rows from.
+pub enum Codeword {
+    /// All of it.
+    Whole(Vec<F64>),
+    /// The buffer as the gathered passes left it: the deep layers run again on each row read.
+    BeforeDeep(Vec<F64>, Plan),
+    /// No buffer: each row is recomputed from the lane-major message, which the plan says how to encode.
+    Nothing(Plan),
+}
+
+impl Codeword {
+    /// Words of the codeword the encode covered, kept or not.
+    pub fn words(&self) -> usize {
+        match self {
+            Self::Whole(words) => words.len(),
+            Self::BeforeDeep(_, plan) | Self::Nothing(plan) => plan.words(),
+        }
+    }
 }
 
 /// The encodes: [`AdditiveNttF64::transform`] is the spine, a [`Plan`], gathered passes, a deep pass and a
@@ -79,7 +91,7 @@ impl AdditiveNttF64 {
         log_inv_rate: usize,
         keep: Keep,
         on_rows: &RowSink<'_>,
-    ) -> Encoded {
+    ) -> Codeword {
         assert!(0 < n_lanes && n_lanes <= num_ntts, "a row holds its lanes");
         assert!(log_inv_rate >= 1, "a codeword has at least two cosets");
         let msg_rows = msg.len() / n_lanes;
@@ -100,9 +112,10 @@ impl AdditiveNttF64 {
                 }
             })
         };
-        Encoded {
-            words: if by_halves { Vec::new() } else { data },
-            deep,
+        match deep {
+            Some(plan) if by_halves => Codeword::Nothing(plan),
+            Some(plan) => Codeword::BeforeDeep(data, plan),
+            None => Codeword::Whole(data),
         }
     }
 

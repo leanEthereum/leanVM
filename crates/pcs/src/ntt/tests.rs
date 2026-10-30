@@ -6,8 +6,7 @@ use primitives::field::F64;
 use primitives::log2_strict_usize;
 use primitives::test_rng::Rng;
 
-use super::encode::{Encoded, Keep};
-use super::openings::Kept;
+use super::encode::{Codeword, Keep};
 use super::source::Source;
 use super::stage::transpose_lane_major;
 use super::twiddles::AdditiveNttF64;
@@ -268,8 +267,7 @@ fn lane_major_encode_matches_transpose_then_in_place() {
         for keep in [Keep::Whole, Keep::BeforeDeep, Keep::Nothing] {
             let mut handed = vec![F64::ZERO; want.len()];
             let on_rows = sink_into(&mut handed, row_words);
-            let encoded = ntt.encode_lane_major(&msg, n_lanes, row_words, log_inv_rate, keep, &on_rows);
-            let Encoded { words, deep } = encoded;
+            let codeword = ntt.encode_lane_major(&msg, n_lanes, row_words, log_inv_rate, keep, &on_rows);
             drop(on_rows);
             let keep_nothing = keep == Keep::Nothing;
             let context =
@@ -277,30 +275,10 @@ fn lane_major_encode_matches_transpose_then_in_place() {
             assert_eq!(handed, want, "handed-over rows, {context}");
             let mut positions: Vec<usize> = (0..40).map(|_| rng.next_u64() as usize % (1 << log_d)).collect();
             positions.sort_unstable();
-            let rows = match deep {
-                Some(plan) if words.is_empty() => {
-                    let kept = Kept::Nothing {
-                        msg: &msg,
-                        n_lanes,
-                        plan,
-                    };
-                    ntt.rows(kept, &positions)
-                }
-                Some(deep) => ntt.rows(
-                    Kept::BeforeDeep {
-                        words: &words,
-                        plan: deep,
-                    },
-                    &positions,
-                ),
-                None => {
-                    assert_eq!(words, want, "codeword, {context}");
-                    positions
-                        .iter()
-                        .flat_map(|&q| words[q * row_words..][..row_words].iter().copied())
-                        .collect()
-                }
-            };
+            if let Codeword::Whole(words) = &codeword {
+                assert_eq!(*words, want, "codeword, {context}");
+            }
+            let rows = ntt.rows(&codeword, row_words, &msg, n_lanes, &positions);
             for (&q, row) in positions.iter().zip(rows.chunks_exact(row_words)) {
                 assert_eq!(row[..], want[q * row_words..][..row_words], "row {q}, {context}");
             }
@@ -337,19 +315,11 @@ fn deferred_deep_rows_match_the_full_encode() {
         splits += usize::from(deep.is_some());
         let mut positions: Vec<usize> = (0..40).map(|_| rng.next_u64() as usize % (1 << log_d)).collect();
         positions.sort_unstable();
-        let rows = match deep {
-            Some(deep) => ntt.rows(
-                Kept::BeforeDeep {
-                    words: &got,
-                    plan: deep,
-                },
-                &positions,
-            ),
-            None => positions
-                .iter()
-                .flat_map(|&q| got[q * lanes..][..lanes].iter().copied())
-                .collect(),
+        let codeword = match deep {
+            Some(plan) => Codeword::BeforeDeep(got, plan),
+            None => Codeword::Whole(got),
         };
+        let rows = ntt.rows(&codeword, lanes, &[], 0, &positions);
         for (&q, row) in positions.iter().zip(rows.chunks_exact(lanes)) {
             assert_eq!(
                 row[..],

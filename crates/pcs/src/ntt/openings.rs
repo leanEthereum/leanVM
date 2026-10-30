@@ -2,24 +2,15 @@
 
 use primitives::field::F64;
 
+use super::encode::Codeword;
 use super::plan::Plan;
 use super::scratch::with_scratch;
 use super::source::Lanes;
 use super::stage::{BATCH, Stage};
 use super::twiddles::AdditiveNttF64;
 
-/// What an encode kept of its codeword, for the openings to read rows from.
-///
-/// A codeword kept whole needs no layers: [`gather_rows`] reads it.
-pub enum Kept<'a> {
-    /// The buffer as the gathered passes left it: the deep layers run again on each row read.
-    BeforeDeep { words: &'a [F64], plan: Plan },
-    /// No buffer: each row is recomputed from the lane-major message, which `plan` says how to encode.
-    Nothing { msg: &'a [F64], n_lanes: usize, plan: Plan },
-}
-
 /// The rows at the sorted `positions` of a codeword kept whole, `row_words` words each, back to back.
-pub fn gather_rows(words: &[F64], row_words: usize, positions: &[usize]) -> Vec<F64> {
+fn gather_rows(words: &[F64], row_words: usize, positions: &[usize]) -> Vec<F64> {
     let mut out = Vec::with_capacity(positions.len() * row_words);
     for &q in positions {
         out.extend_from_slice(&words[q * row_words..][..row_words]);
@@ -68,17 +59,25 @@ pub(super) fn built_rows(
     }
 }
 
-/// The reads of codeword rows that an encode left out of its codeword: [`AdditiveNttF64::rows`] says which rows
-/// are read, and [`Kept`] says what the encode left to read them from.
+/// The reads of codeword rows, from what an encode kept of its codeword.
 impl AdditiveNttF64 {
-    /// The rows at the sorted `positions`, back to back, each as the words of one codeword row.
-    pub fn rows(&self, kept: Kept<'_>, positions: &[usize]) -> Vec<F64> {
-        match kept {
-            Kept::BeforeDeep { words, plan } => {
+    /// The rows at the sorted `positions` of `codeword`, `row_words` words each, back to back. A codeword kept
+    /// as [`Codeword::Nothing`] is recomputed from its lane-major message `msg` of `n_lanes` lanes.
+    pub fn rows(
+        &self,
+        codeword: &Codeword,
+        row_words: usize,
+        msg: &[F64],
+        n_lanes: usize,
+        positions: &[usize],
+    ) -> Vec<F64> {
+        match *codeword {
+            Codeword::Whole(ref words) => gather_rows(words, row_words, positions),
+            Codeword::BeforeDeep(ref words, plan) => {
                 let sub_len = plan.sub_len();
                 self.finished_rows(&plan, positions, |_, sub| &words[sub * sub_len..][..sub_len])
             }
-            Kept::Nothing { msg, n_lanes, plan } => {
+            Codeword::Nothing(plan) => {
                 let log_sub = plan.log_sub();
                 let mut subs: Vec<usize> = positions.iter().map(|q| q >> log_sub).collect();
                 subs.dedup();

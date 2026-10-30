@@ -22,7 +22,7 @@
 //! field size `q = 2^192`; the committed alphabet remains `K = GF(2^64)`.
 
 use crate::merkle::{self, Hash};
-use crate::ntt::{AdditiveNttF64, Encoded, Keep, Kept, Plan, gather_rows};
+use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::ProverState;
@@ -109,75 +109,14 @@ pub struct Commitment {
 }
 
 /// Prover-side state retained after commit for the opening phase. The message
-/// itself is not stored; the caller retains it for opening.
-///
-/// With `deep` set, `codeword` holds the rows before the encode's deep layers, which the opening finishes.
-/// If it is empty too, the encode kept no rows, and the opening recomputes the sub-blocks a query reads
-/// from the message, see `ProverData::l0`.
+/// itself is not stored; the caller retains it for opening, and an opening of a
+/// [`Codeword::Nothing`] recomputes the rows a query reads from it.
 pub struct ProverData {
-    pub codeword: Vec<F64>,
+    ntt: AdditiveNttF64,
+    codeword: Codeword,
     /// Words per codeword row: the committed lanes, with zero lanes in front up to the vector width.
     row_words: usize,
     pub merkle_tree: merkle::CutTree,
-    deep: Option<(AdditiveNttF64, Plan)>,
-}
-
-impl ProverData {
-    /// Words of the codeword the encode covered, kept or not.
-    fn len(&self) -> usize {
-        self.deep.as_ref().map_or(self.codeword.len(), |(_, deep)| deep.words())
-    }
-
-    /// Whether the opening needs the message to recompute the rows.
-    pub(crate) fn rebuilds(&self) -> bool {
-        self.deep.is_some() && self.codeword.is_empty()
-    }
-
-    /// The codeword as the opening reads it. `stack` is the committed message, `n_lanes` its lanes.
-    pub(crate) fn l0<'a>(&'a self, stack: &'a [F64], n_lanes: usize) -> L0Codeword<'a> {
-        L0Codeword {
-            words: &self.codeword,
-            row_words: self.row_words,
-            deep: self.deep.as_ref(),
-            stack,
-            n_lanes,
-        }
-    }
-}
-
-/// The L0 codeword as the opening reads it: kept whole or before its deep layers, or recomputed from the message.
-pub(crate) struct L0Codeword<'a> {
-    words: &'a [F64],
-    row_words: usize,
-    deep: Option<&'a (AdditiveNttF64, Plan)>,
-    stack: &'a [F64],
-    n_lanes: usize,
-}
-
-impl L0Codeword<'_> {
-    /// The rows at the sorted `positions`, `row_words` words each, back to back.
-    fn rows(&self, positions: &[usize]) -> Vec<F64> {
-        match self.deep {
-            Some((ntt, plan)) if self.words.is_empty() => {
-                let kept = Kept::Nothing {
-                    msg: self.stack,
-                    n_lanes: self.n_lanes,
-                    plan: *plan,
-                };
-                ntt.rows(kept, positions)
-            }
-            deep => kept_rows(self.words, self.row_words, deep, positions),
-        }
-    }
-}
-
-/// The rows at the sorted `positions` of a codeword kept whole, or kept before its deep layers when `deep` says
-/// how to finish them, `row_words` words each, back to back.
-fn kept_rows(words: &[F64], row_words: usize, deep: Option<&(AdditiveNttF64, Plan)>, positions: &[usize]) -> Vec<F64> {
-    match deep {
-        Some((ntt, plan)) => ntt.rows(Kept::BeforeDeep { words, plan: *plan }, positions),
-        None => gather_rows(words, row_words, positions),
-    }
 }
 
 /// Where [`primitives::REBUILD_OVER_STORE`], the largest L0 codeword the commit keeps, in bytes.
@@ -222,9 +161,9 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
-    let (codeword, deep) = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words)
-        .in_scope(|| {
-            let ntt = AdditiveNttF64::standard(k_code);
+    let ntt = AdditiveNttF64::standard(k_code);
+    let codeword =
+        tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
             let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
             let keep = if !primitives::REBUILD_OVER_STORE {
                 Keep::Whole
@@ -233,9 +172,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             } else {
                 Keep::BeforeDeep
             };
-            let Encoded { words, deep } =
-                ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows);
-            (words, deep.map(|deep| (ntt, deep)))
+            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
         });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
     let root = merkle_tree.root();
@@ -243,10 +180,10 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     (
         Commitment { root },
         ProverData {
+            ntt,
             codeword,
             row_words,
             merkle_tree,
-            deep,
         },
     )
 }
@@ -255,25 +192,20 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
 /// is one Merkle leaf of `num_interleaved * 24` bytes.
 ///
-/// With `deep` set, `mat` holds the codeword before its deep layers, and
-/// [`LigeroWitness::opened_words`] finishes the rows a query opens.
+/// A codeword kept before its deep layers has them finished on the rows a query opens.
 pub(crate) struct LigeroWitness {
-    pub mat: Vec<F192>,
+    ntt: AdditiveNttF64,
+    codeword: Codeword,
     pub tree: merkle::CutTree,
     pub block_len: usize,
     pub num_interleaved: usize,
-    deep: Option<(AdditiveNttF64, Plan)>,
 }
 
 impl LigeroWitness {
     /// The rows at the sorted `positions`, back to back, each as the K words its Merkle leaf is hashed from.
     fn opened_words(&self, positions: &[usize]) -> Vec<F64> {
-        kept_rows(
-            words(&self.mat),
-            3 * self.num_interleaved,
-            self.deep.as_ref(),
-            positions,
-        )
+        self.ntt
+            .rows(&self.codeword, 3 * self.num_interleaved, &[], 0, positions)
     }
 
     /// The rows at `queries`, in order and back to back, and the octopus over them.
@@ -320,7 +252,7 @@ pub(crate) fn ligero_commit_ext(
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
     let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
-    let encode = |mat: &mut [F192]| {
+    let encode = |mat: &mut [F64]| {
         tracing::info_span!(
             "NTT",
             kind = "extension encode",
@@ -330,22 +262,31 @@ pub(crate) fn ligero_commit_ext(
         .in_scope(|| {
             let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
             let defer_deep = primitives::REBUILD_OVER_STORE;
-            let (mat, msg) = (words_mut(mat), words(poly));
-            ntt.encode_interleaved_with(mat, msg, 3 * num_interleaved, log_inv_rate, defer_deep, &on_rows)
-                .map(|plan| (ntt, plan))
+            ntt.encode_interleaved_with(
+                mat,
+                words(poly),
+                3 * num_interleaved,
+                log_inv_rate,
+                defer_deep,
+                &on_rows,
+            )
         })
     };
     let mut deep = None;
     // SAFETY: the fill writes every element before it reads any.
-    let mat = unsafe { primitives::filled_vec(block_len * num_interleaved, |mat| deep = encode(mat)) };
+    let mat = unsafe { primitives::filled_vec(3 * block_len * num_interleaved, |mat| deep = encode(mat)) };
+    let codeword = match deep {
+        Some(plan) => Codeword::BeforeDeep(mat, plan),
+        None => Codeword::Whole(mat),
+    };
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 
     LigeroWitness {
-        mat,
+        ntt,
+        codeword,
         tree,
         block_len,
         num_interleaved,
-        deep,
     }
 }
 
@@ -1123,7 +1064,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         n_lanes >= 1 && n_lanes <= num_interleaved_0,
         "at most 2^initial_k lanes"
     );
-    assert_eq!(prover_data.len(), block_len_0 * prover_data.row_words);
+    assert_eq!(prover_data.codeword.words(), block_len_0 * prover_data.row_words);
     assert!((n_lanes..=num_interleaved_0).contains(&prover_data.row_words));
 
     // Nothing is absorbed on entry. The commitment was bound by the `add_root` that
@@ -1155,7 +1096,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     }
     drop(sumcheck_span);
     // A rebuilding L0 open recomputes its rows from the stack, so that lives until then. Otherwise it goes now.
-    let stack = sc_prover.take_stack(prover_data.rebuilds());
+    let stack = sc_prover.take_stack(matches!(prover_data.codeword, Codeword::Nothing(_)));
 
     // Commit f^1 = folded (now E-valued) witness as wtns_1.
     let n1 = log_n - initial_k;
@@ -1188,7 +1129,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // Ordered (dup-possible) rows for the local induce math ...
     let row_words = prover_data.row_words;
     let group_0 = l0_tree.group_positions(&queries_0);
-    let group_rows_0 = prover_data.l0(&stack, n_lanes).rows(&group_0);
+    let group_rows_0 = prover_data
+        .ntt
+        .rows(&prover_data.codeword, row_words, &stack, n_lanes, &group_0);
     let image = |q| &fetched_row(&group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
     let mut opened_rows_0 = Vec::with_capacity(queries_0.len() * num_interleaved_0);
     // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts

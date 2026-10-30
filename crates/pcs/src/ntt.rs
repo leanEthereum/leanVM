@@ -68,8 +68,7 @@ mod tests;
 mod twiddles;
 mod window;
 
-pub use encode::{Encoded, Keep, RowSink};
+pub use encode::{Codeword, Keep, RowSink};
 pub(crate) use kernels::transpose_butterfly_lanes;
-pub use openings::{Kept, gather_rows};
 pub use plan::Plan;
 pub use twiddles::AdditiveNttF64;
