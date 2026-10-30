@@ -126,7 +126,10 @@ impl Mixed4 {
 
     #[inline(always)]
     pub fn reduce(self) -> F192x4 {
-        F192x4(std::array::from_fn(|i| reduce_halves(self.even[i], self.odd[i])))
+        // SAFETY: the module's cfg enables avx2.
+        F192x4(std::array::from_fn(|i| unsafe {
+            reduce_halves(self.even[i], self.odd[i])
+        }))
     }
 }
 

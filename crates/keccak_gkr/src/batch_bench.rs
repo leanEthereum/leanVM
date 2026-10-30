@@ -58,7 +58,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
+        open_commitment(&mut ps, shape, committed, prover_data, &config, openings);
         let open_s = t.elapsed().as_secs_f64();
 
         (
@@ -175,8 +175,8 @@ pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) 
 pub(crate) fn open_commitment(
     ps: &mut ProverState,
     shape: Shape,
-    stack: &[F64],
-    prover_data: &ProverData,
+    stack: Vec<F64>,
+    prover_data: ProverData,
     config: &ProverConfig,
     openings: Openings,
 ) {

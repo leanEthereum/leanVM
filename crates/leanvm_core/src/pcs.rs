@@ -134,12 +134,14 @@ pub fn commit(
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
 /// sub-block (§cpu), so every opening is stacked.
-pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], ring: &RingSwitchOpen) {
+///
+/// The opening consumes the commitment: it frees the codeword and tree once the L0 queries are answered.
+pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, ring)
+    open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, points, ring)
 }
 
 #[cfg(test)]

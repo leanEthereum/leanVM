@@ -6,8 +6,6 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use std::mem::MaybeUninit;
-
 use crate::field::{F64, F192, Weights8, dot_base, mul_base8, mul4};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
@@ -33,17 +31,13 @@ pub fn eq_eval(r: &[F192], x: &[F192]) -> F192 {
         .fold(F192::ONE, |acc, (&ri, &xi)| acc * (F192::ONE + ri + xi))
 }
 
-/// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table_uninit`].
+/// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table`].
 pub fn eq_table(r: &[F192]) -> Vec<F192> {
-    let len = 1usize << r.len();
-    let mut eq = Vec::with_capacity(len);
-    fill_eq_table_uninit(r, F192::ONE, &mut eq.spare_capacity_mut()[..len]);
-    // SAFETY: the fill writes all `len` entries.
-    unsafe { eq.set_len(len) };
-    eq
+    // SAFETY: the fill writes every element before it reads any.
+    unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_table(r, F192::ONE, eq)) }
 }
 
-/// Fill `out` with `seed * eq(r, .)`, in LSB-first order. Every entry is written before it is read.
+/// Fill `out` with `seed * eq(r, .)`, in LSB-first order. The old contents of `out` are never read.
 ///
 /// A small table doubles a level at a time on the calling thread.
 ///
@@ -55,23 +49,21 @@ pub fn eq_table(r: &[F192]) -> Vec<F192> {
 ///
 /// `low` stays in L1, so each entry costs one product and one store, with no level-by-level rereads.
 /// A caller inside a dispatch must keep the table below `EQ_PAR_LEN`.
-pub fn fill_eq_table_uninit(r: &[F192], seed: F192, out: &mut [MaybeUninit<F192>]) {
+pub fn fill_eq_table(r: &[F192], seed: F192, out: &mut [F192]) {
     assert_eq!(out.len(), 1usize << r.len(), "out must have length 2^r.len()");
     if out.len() < EQ_PAR_LEN {
         return fill_eq_doubling(r, seed, out);
     }
     let (r_low, r_high) = r.split_at(EQ_LOW_VARS);
     let low = eq_table(r_low);
-    let mut high = Box::new_uninit_slice(1usize << r_high.len()).into_vec();
-    fill_eq_table_uninit(r_high, seed, &mut high);
-    // SAFETY: the fill above writes every entry.
-    let high = unsafe { high.into_boxed_slice().assume_init() }.into_vec();
+    // SAFETY: the fill writes every element before it reads any.
+    let high = unsafe { crate::filled_vec(1usize << r_high.len(), |high| fill_eq_table(r_high, seed, high)) };
     let rows = parallel::recommended_chunk_size(high.len());
     parallel::chunks_mut(out, rows * low.len(), |c, chunk| {
         for (row, &w) in chunk.chunks_exact_mut(low.len()).zip(&high[c * rows..]) {
             for (dst, src) in row.as_chunks_mut::<4>().0.iter_mut().zip(low.as_chunks::<4>().0) {
                 let p = mul4([w; 4], *src);
-                dst.iter_mut().zip(p).for_each(|(d, p)| _ = d.write(p));
+                *dst = p;
             }
         }
     });
@@ -86,25 +78,23 @@ const EQ_LOW_VARS: usize = 10;
 /// The level-by-level `eq` build: each level writes the high half from the low half, then rewrites the low half.
 ///
 /// In characteristic 2 the low child is the high child plus the parent, so each pair costs one product.
-fn fill_eq_doubling(r: &[F192], seed: F192, out: &mut [MaybeUninit<F192>]) {
-    out[0].write(seed);
+fn fill_eq_doubling(r: &[F192], seed: F192, out: &mut [F192]) {
+    out[0] = seed;
     for (i, &rk) in r.iter().enumerate() {
         let half = 1usize << i;
         let (lo, hi) = out[..2 * half].split_at_mut(half);
-        // SAFETY: the low half was initialized at earlier levels.
-        let lo = unsafe { &mut *(lo as *mut [MaybeUninit<F192>] as *mut [F192]) };
         let (lo4, lo_tail) = lo.as_chunks_mut::<4>();
         let (hi4, hi_tail) = hi.as_chunks_mut::<4>();
         for (l, h) in lo4.iter_mut().zip(hi4) {
             let p = mul4([rk; 4], *l);
-            for k in 0..4 {
-                h[k].write(p[k]);
-                l[k] += p[k];
+            *h = p;
+            for (l, p) in l.iter_mut().zip(p) {
+                *l += p;
             }
         }
         for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
             let p = *l * rk;
-            h.write(p);
+            *h = p;
             *l += p;
         }
     }
@@ -129,20 +119,22 @@ fn fold_low_k(table: &[F64], chi: F192) -> Vec<F192> {
 pub fn fold_high_k(table: &[F64], chi: F192) -> Vec<F192> {
     debug_assert_eq!(table.len() % 2, 0);
     let (lo, hi) = table.split_at(table.len() / 2);
-    let mut out = Box::new_uninit_slice(lo.len()).into_vec();
-    let (out8, out_tail) = out.as_chunks_mut::<8>();
-    let ((lo8, lo_tail), (hi8, hi_tail)) = (lo.as_chunks::<8>(), hi.as_chunks::<8>());
-    for ((o, l), h) in out8.iter_mut().zip(lo8).zip(hi8) {
-        let p = mul_base8(chi, std::array::from_fn(|i| l[i] + h[i]));
-        for i in 0..8 {
-            o[i].write(F192::from(l[i]) + p[i]);
-        }
+    // SAFETY: the fill writes every element before it reads any.
+    unsafe {
+        crate::filled_vec(lo.len(), |out| {
+            let (out8, out_tail) = out.as_chunks_mut::<8>();
+            let ((lo8, lo_tail), (hi8, hi_tail)) = (lo.as_chunks::<8>(), hi.as_chunks::<8>());
+            for ((o, l), h) in out8.iter_mut().zip(lo8).zip(hi8) {
+                let p = mul_base8(chi, std::array::from_fn(|i| l[i] + h[i]));
+                for i in 0..8 {
+                    o[i] = F192::from(l[i]) + p[i];
+                }
+            }
+            for ((o, &l), &h) in out_tail.iter_mut().zip(lo_tail).zip(hi_tail) {
+                *o = interp_k(l, h, chi);
+            }
+        })
     }
-    for ((o, &l), &h) in out_tail.iter_mut().zip(lo_tail).zip(hi_tail) {
-        o.write(interp_k(l, h, chi));
-    }
-    // SAFETY: both loops together write every entry.
-    unsafe { out.into_boxed_slice().assume_init() }.into_vec()
 }
 
 /// Bind the highest free variable of `table` to `chi` in place: `table[i] =

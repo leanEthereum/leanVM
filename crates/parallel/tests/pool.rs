@@ -149,20 +149,3 @@ fn find_first_returns_the_global_minimum() {
         assert_eq!(parallel::find_first(n, |_| false), None, "n = {n}");
     }
 }
-
-/// The default holds back one performance worker exactly when there are
-/// efficiency workers to absorb its share (see `default_topology`), so a
-/// homogeneous host must field every core it reports.
-#[test]
-fn default_topology_reserves_no_worker_on_a_homogeneous_host() {
-    // The env var this binary may have inherited would pin the count and defeat
-    // the check, so only assert when nothing is pinned.
-    if std::env::var_os("LEANVM_NUM_THREADS").is_some() {
-        return;
-    }
-    let topo = parallel::topology();
-    if topo.efficiency == 0 {
-        let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
-        assert_eq!(topo.perf, cores, "nothing may be reserved without efficiency workers");
-    }
-}

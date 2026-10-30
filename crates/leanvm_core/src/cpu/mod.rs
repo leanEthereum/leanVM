@@ -622,7 +622,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     drop(keccak_reduction);
     let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
-    crate::stage!("PCS open", || { pcs::open(&mut ps, &committed, &w.q, &slots, &ring) });
+    crate::stage!("PCS open", || { pcs::open(&mut ps, committed, w.q, &slots, &ring) });
     Ok((
         ps.into_proof(),
         Stats {

@@ -18,8 +18,10 @@
 //!
 //! All claims are lambda-folded into ONE combined weight `b_stack` over the
 //! whole stack plus one `target`, then proved by
-//! [`super::whir::recursive_prover_with_basis`]. A verifier recomputes the
-//! target from the claims and evaluates `MLE(b_stack)` once, at the final fold
+//! `whir::recursive_prover_with_prepared_basis`. The weight is never
+//! materialized over the stack: the lane rounds run on its terms (see the `basis`
+//! module), and only the one lane block that survives them is built. A verifier recomputes
+//! the target from the claims and evaluates `MLE(b_stack)` once, at the final fold
 //! point, from the closed form under "The combined weight".
 //!
 //! ## Transcript order
@@ -37,7 +39,7 @@
 //!      + sum_j lambda^(n_rs + j) * eq(claim_j, x)
 //! ```
 //!
-//! which is exactly what the dense `b_stack` scatter produces (each claim's
+//! which is exactly what a dense `b_stack` scatter would produce (each claim's
 //! weight lives on its aligned slice, so scattering the low-dimensional eq /
 //! rs_eq_ind tensor at the slice offset IS multiplying by the boolean
 //! selector eq).
@@ -114,7 +116,7 @@ impl RingSwitchOpen {
     /// opener slices `q_keccak = stack[offset .. offset + 2^qkeccak_vars]` (no
     /// separate copy).
     pub fn qkeccak_vars(&self) -> usize {
-        self.claims[0].suffix_point.len()
+        self.claims.first().map_or(0, |claim| claim.suffix_point.len())
     }
 }
 
@@ -126,8 +128,8 @@ impl RingSwitchOpen {
 /// evaluation AND the ring-switched q_keccak claims (`ring`) in ONE WHIR
 /// run, reusing the caller's [`super::whir::commit`] output as L0.
 ///
-/// `stack` is the committed message (the caller retains it; it is not stored in
-/// [`ProverData`]): the `2^log_n`-word stack truncated to the lane blocks that
+/// `stack` is the committed message (not stored in [`ProverData`]), consumed: the
+/// lane rounds drop it before the level-1 commit. It is the `2^log_n`-word stack truncated to the lane blocks that
 /// carry data, so every claim must live inside it and the padding past it is
 /// exactly the weight's zero region. `config.initial_k` / `config.log_inv_rates[0]`
 /// must match the commit's `log_batch_size` / `log_inv_rate` (enforced by shape
@@ -135,16 +137,12 @@ impl RingSwitchOpen {
 pub fn open_batch_mixed_whir_stacked(
     ps: &mut ProverState,
     log_n: usize,
-    stack: &[F64],
-    prover_data: &ProverData,
+    stack: Vec<F64>,
+    prover_data: ProverData,
     config: &ProverConfig,
     point_claims: &[StackClaim],
     ring: &RingSwitchOpen,
 ) {
-    assert!(
-        !ring.claims.is_empty(),
-        "stacked PCS opening carries at least one ring-switched claim"
-    );
     let qkeccak_len = 1usize << ring.qkeccak_vars();
     assert!(
         ring.offset.is_multiple_of(qkeccak_len),
@@ -194,7 +192,7 @@ pub fn open_batch_mixed_whir_stacked(
 
     // 3. Combined target and lifted stack weight b_stack: the lambda-weighted
     //    rs_eq_ind sum scattered at the q_keccak slice, plus the point-claim
-    //    eq tensors scattered at their offsets.
+    //    eq tensors scattered at their offsets (the weight itself stays factored).
     let target = rs_outputs
         .iter()
         .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim)
@@ -203,26 +201,16 @@ pub fn open_batch_mixed_whir_stacked(
             .zip(lambdas_pd)
             .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value());
 
-    // The lifted weight is built and consumed in one pass: each lane window is
-    // filled from the ring-switch outputs and the point claims, then feeds
-    // round 0's message while it is still hot, so nothing re-reads the buffer.
-    let lane_block = 1usize << (log_n - config.initial_k);
-    let (b_stack, message) = tracing::info_span!("Basis")
-        .in_scope(|| basis::build(stack, lane_block, point_claims, lambdas_pd, ring, &rs_outputs));
+    // The lane rounds run on the weight's terms and a projection of the stack onto them, so the
+    // lifted weight over the stack is never built.
+    let lane_vars = log_n - config.initial_k;
+    let rings: Vec<_> = rs_outputs.into_iter().map(|output| output.weight).collect();
+    let initial_basis = tracing::info_span!("Basis")
+        .in_scope(|| basis::project(&stack, lane_vars, point_claims, lambdas_pd, ring, &rings));
 
     // 4. One WHIR over the full stack against the combined claim (the
-    //    stack is borrowed by the prover; no copy).
-    super::whir::recursive_prover_with_prepared_basis(
-        config,
-        log_n,
-        stack,
-        b_stack,
-        target,
-        &prover_data.codeword,
-        &prover_data.merkle_tree,
-        Some(message),
-        ps,
-    );
+    //    prover takes the stack; no copy).
+    super::whir::recursive_prover_with_prepared_basis(config, log_n, stack, initial_basis, target, prover_data, ps);
 }
 
 // ---------------------------------------------------------------------------
@@ -234,67 +222,151 @@ mod tests {
     use super::*;
     use primitives::test_rng::Rng;
 
-    #[test]
-    fn fused_basis_matches_dense_weights() {
-        let mut rng = Rng::new(0xBA515);
-        for (lane_vars, lanes) in [(6usize, 1usize), (6, 3), (10, 15), (10, 37)] {
-            let lane_block = 1 << lane_vars;
-            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
-            let qkeccak_vars = lane_vars + usize::from(lanes > 1);
-            let qkeccak_len = 1 << qkeccak_vars;
-            let offset = if stack.len() >= 2 * qkeccak_len { qkeccak_len } else { 0 };
-            let ring = RingSwitchOpen {
-                offset,
-                claims: (0..2)
-                    .map(|_| RingSwitchClaim {
-                        suffix_point: rng.ext_vec(qkeccak_vars),
-                        s_hat_v: None,
-                    })
-                    .collect(),
-            };
-            let coordinates = rng.ext_vec(192);
-            let rs_outputs: Vec<_> = ring
-                .claims
-                .iter()
-                .map(|claim| {
-                    let state =
-                        ring_switch::prove_prepare(&stack[offset..offset + qkeccak_len], &claim.suffix_point, None);
-                    ring_switch::prove_finish_deferred(state, &coordinates, rng.ext())
-                })
-                .collect();
-            let claims: Vec<_> = [
-                (offset, qkeccak_vars),
-                ((lanes - 1) * lane_block, lane_vars),
-                (8, 3),
-                (0, 0),
-            ]
-            .into_iter()
-            .map(|(offset, vars)| StackClaim::Point {
-                offset,
-                low_point: rng.ext_vec(vars),
-                value: rng.ext(),
-            })
-            .collect();
-            let lambdas = rng.ext_vec(claims.len());
-            // Oracle: the dense weight written out naively, one eq entry at a
-            // time, so it shares no code with the fused build under test.
-            let mut expected = vec![F192::ZERO; stack.len()];
-            ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut expected[offset..offset + qkeccak_len]);
-            for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                let StackClaim::Point { offset, low_point, .. } = claim;
-                for j in 0..1usize << low_point.len() {
-                    let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
-                        w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
-                    });
-                    expected[offset + j] += w;
-                }
+    use crate::whir::{SumcheckMessage, SumcheckProver};
+
+    /// `(u_0, u_2)` of the pairs of blocks `(2i, 2i + 1)`, a last odd block against zeros.
+    fn blocks_msg(f: &[F192], b: &[F192], block: usize) -> SumcheckMessage {
+        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+        for (f, b) in f.chunks(2 * block).zip(b.chunks(2 * block)) {
+            for x in 0..block {
+                let (f0, b0) = (f[x], b[x]);
+                let (f1, b1) = (
+                    f.get(block + x).copied().unwrap_or(F192::ZERO),
+                    b.get(block + x).copied().unwrap_or(F192::ZERO),
+                );
+                u_0 += f0 * b0;
+                u_2 += (f0 + f1) * (b0 + b1);
             }
-            let (actual, message) = basis::build(&stack, lane_block, &claims, &lambdas, &ring, &rs_outputs);
-            assert_eq!(&*actual, expected, "lane_vars={lane_vars}, lanes={lanes}");
-            let (_, expected_message) = super::super::whir::build_initial_basis(&stack, lane_block, |start, dst| {
-                dst.copy_from_slice(&expected[start..start + dst.len()]);
-            });
-            assert_eq!(message, expected_message);
+        }
+        SumcheckMessage { u_0, u_2 }
+    }
+
+    /// `(u_0, u_2)` of the adjacent pairs `(2j, 2j + 1)`.
+    fn adjacent_msg(f: &[F192], b: &[F192]) -> SumcheckMessage {
+        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+        for (f, b) in f.as_chunks::<2>().0.iter().zip(b.as_chunks::<2>().0.iter()) {
+            u_0 += f[0] * b[0];
+            u_2 += (f[0] + f[1]) * (b[0] + b[1]);
+        }
+        SumcheckMessage { u_0, u_2 }
+    }
+
+    /// One lane round: block `2j` and block `2j + 1` fold into block `j` as `x0 + r (x0 + x1)`,
+    /// a last odd block against zeros.
+    fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
+        x.chunks(2 * block)
+            .flat_map(|pair| (0..block).map(move |i| (pair[i], pair.get(block + i).copied().unwrap_or(F192::ZERO))))
+            .map(|(x0, x1)| x0 + r * (x0 + x1))
+            .collect()
+    }
+
+    /// The lane rounds of a projected basis must send the messages of the naive lane rounds on
+    /// the dense weight and leave the same witness, weight and next message, across claims inside
+    /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, and a
+    /// q_flock ring both spanning lanes and selected by lane bits.
+    #[test]
+    fn projected_lane_rounds_match_the_naive_dense_rounds() {
+        const LANE_ROUNDS: usize = 6;
+        let mut rng = Rng::new(0xBA515);
+        for (lane_vars, lanes, qkeccak_vars) in [
+            (6usize, 1usize, 6usize),
+            (6, 3, 7),
+            (8, 13, 10),
+            (8, 13, 8),
+            (8, 5, 6),
+            (10, 37, 12),
+            (12, 5, 13),
+        ] {
+            let lane_block = 1usize << lane_vars;
+            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let qkeccak_len = 1usize << qkeccak_vars;
+            for offset in [0, qkeccak_len] {
+                if offset + qkeccak_len > stack.len() {
+                    continue;
+                }
+                let ring = RingSwitchOpen {
+                    offset,
+                    claims: (0..2)
+                        .map(|_| RingSwitchClaim {
+                            suffix_point: rng.ext_vec(qkeccak_vars),
+                            s_hat_v: None,
+                        })
+                        .collect(),
+                };
+                let coordinates = rng.ext_vec(192);
+                let rs_outputs: Vec<_> = ring
+                    .claims
+                    .iter()
+                    .map(|claim| {
+                        let state =
+                            ring_switch::prove_prepare(&stack[offset..offset + qkeccak_len], &claim.suffix_point, None);
+                        ring_switch::prove_finish_deferred(state, &coordinates, rng.ext())
+                    })
+                    .collect();
+                let last_lane = (lanes - 1) * lane_block;
+                let shared = rng.ext_vec(lane_vars);
+                let mut shapes = vec![
+                    (offset, qkeccak_vars, None),
+                    (offset, qkeccak_vars, None),
+                    (last_lane, lane_vars, Some(shared.clone())),
+                    (0, lane_vars, Some(shared)),
+                    (last_lane, lane_vars, None),
+                    (8, 3, None),
+                    (8, 3, None),
+                    (0, 0, None),
+                    (last_lane + 4, 2, None),
+                ];
+                for spanned in 1..=2 {
+                    if lanes >= 1 << spanned {
+                        shapes.push((0, lane_vars + spanned, None));
+                    }
+                }
+                let claims: Vec<_> = shapes
+                    .into_iter()
+                    .map(|(offset, vars, point)| StackClaim::Point {
+                        offset,
+                        low_point: point.unwrap_or_else(|| rng.ext_vec(vars)),
+                        value: rng.ext(),
+                    })
+                    .collect();
+                let lambdas = rng.ext_vec(claims.len());
+
+                // Oracle: the dense weight written out naively, one eq entry at a time.
+                let mut dense = vec![F192::ZERO; stack.len()];
+                ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut dense[offset..offset + qkeccak_len]);
+                for (claim, &lambda) in claims.iter().zip(&lambdas) {
+                    let StackClaim::Point { offset, low_point, .. } = claim;
+                    for j in 0..1usize << low_point.len() {
+                        let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
+                            w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
+                        });
+                        dense[offset + j] += w;
+                    }
+                }
+
+                let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
+                let projected = basis::project(&stack, lane_vars, &claims, &lambdas, &ring, &rings);
+                let target = rng.ext();
+                let (mut prover, msg) = SumcheckProver::new(stack.clone(), projected, target, lane_block);
+                let context =
+                    format!("lane_vars={lane_vars}, lanes={lanes}, qkeccak_vars={qkeccak_vars}, offset={offset}");
+                let mut f: Vec<F192> = stack.iter().map(|&word| F192::from(word)).collect();
+                assert_eq!(msg, blocks_msg(&f, &dense, lane_block), "{context}, round 0");
+                for round in 1..=LANE_ROUNDS {
+                    let r = rng.ext();
+                    let last = round == LANE_ROUNDS;
+                    f = fold_blocks(&f, lane_block, r);
+                    dense = fold_blocks(&dense, lane_block, r);
+                    let want = if last {
+                        adjacent_msg(&f, &dense)
+                    } else {
+                        blocks_msg(&f, &dense, lane_block)
+                    };
+                    assert_eq!(prover.fold_lane(r, last), want, "{context}, round {round}");
+                }
+                assert_eq!(prover.f_ext(), f, "{context}, witness");
+                assert_eq!(prover.basis(), &dense[..], "{context}, weight");
+            }
         }
     }
 }

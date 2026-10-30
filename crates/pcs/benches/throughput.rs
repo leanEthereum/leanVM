@@ -1,8 +1,8 @@
 //! Dedicated PCS throughput benchmark.
 //!
-//! Commits and opens a random witness of `2^PCS_LOG_N` GF(2^64) elements at
-//! inverse-rate `1/2^PCS_LOG_INV_RATE`, times each phase, and reports GiB/s
-//! over the committed data. The
+//! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
+//! inverse-rate `1/2^PCS_LOG_INV_RATE` and opens it through the stacked opener with one point
+//! claim, times each phase, and reports GiB/s over the committed data. The
 //! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
@@ -14,15 +14,14 @@
 //! ```
 //!
 //! Large `PCS_LOG_N` needs substantial memory: the RS codeword is `2^log_inv_rate`×
-//! the witness, and the open copies the basis table each pass.
+//! the witness.
 
 use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
-use pcs::whir::{
-    LOG_INV_RATE_0, build_eq_table_ext, commit, config_for_rate, inner_product_base_ext, recursive_prover_with_basis,
-};
+use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+use pcs::whir::{LOG_INV_RATE_0, build_eq_table_ext, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
     field::{F64, F192},
     pretty_integer,
@@ -46,8 +45,17 @@ fn main() {
     let n = 1usize << log_n;
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
     let point: Vec<F192> = rng.ext_vec(log_n);
-    let b_initial = build_eq_table_ext(&point);
-    let target = inner_product_base_ext(&witness, &b_initial);
+    let target = inner_product_base_ext(&witness, &build_eq_table_ext(&point));
+    // One point claim over the whole witness and no ring-switched claim: the opener's work shape.
+    let claims = [StackClaim::Point {
+        offset: 0,
+        low_point: point,
+        value: target,
+    }];
+    let ring = RingSwitchOpen {
+        offset: 0,
+        claims: Vec::new(),
+    };
 
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
     plan.warm_then_measure(|last| {
@@ -60,16 +68,7 @@ fn main() {
         let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
-            recursive_prover_with_basis(
-                &pc,
-                log_n,
-                &witness,
-                b_initial.to_vec(),
-                target,
-                &pd.codeword,
-                &pd.merkle_tree,
-                &mut ch,
-            );
+            open_batch_mixed_whir_stacked(&mut ch, log_n, witness.clone(), pd, &pc, &claims, &ring);
         });
         open_t.push(t.elapsed().as_secs_f64());
         black_box((cm, ch.into_proof()));

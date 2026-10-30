@@ -65,15 +65,27 @@ impl PrunedMerklePaths {
     /// For `q` queries in a tree of depth `d` the octopus is at most `q · d`
     /// hashes (what `q` independent paths would cost) and typically much
     /// smaller, since a sibling shared by several paths is emitted once.
-    pub fn prune(tree: &[Hash], num_leaves: usize, positions: &[usize], row: impl Fn(usize) -> Vec<F64>) -> Self {
+    pub fn prune<'a>(tree: &[Hash], num_leaves: usize, positions: &[usize], row: impl Fn(usize) -> &'a [F64]) -> Self {
         assert!(num_leaves.is_power_of_two() && num_leaves > 0);
         assert_eq!(tree.len(), 2 * num_leaves - 1);
+        let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
+        Self::prune_with(num_leaves, positions, |level, i| tree[level_start(level) + i], row)
+    }
+
+    /// Like [`Self::prune`], for a tree held in pieces: `node(level, i)` is node `i` of `level`, leaves at level 0.
+    pub fn prune_with<'a>(
+        num_leaves: usize,
+        positions: &[usize],
+        node: impl Fn(usize, usize) -> Hash,
+        row: impl Fn(usize) -> &'a [F64],
+    ) -> Self {
+        assert!(num_leaves.is_power_of_two() && num_leaves > 0);
         let sorted = sorted_unique(positions);
         debug_assert!(sorted.iter().all(|&p| p < num_leaves));
 
         let mut sibling_hashes = Vec::new();
         let mut active = sorted.clone();
-        let (mut level_start, mut level_len) = (0usize, num_leaves);
+        let (mut level, mut level_len) = (0usize, num_leaves);
         while level_len > 1 {
             let mut next = Vec::with_capacity(active.len());
             let mut i = 0;
@@ -84,7 +96,7 @@ impl PrunedMerklePaths {
                 if i + 1 < active.len() && active[i + 1] == (p ^ 1) {
                     i += 2;
                 } else {
-                    sibling_hashes.push(tree[level_start + (p ^ 1)]);
+                    sibling_hashes.push(node(level, p ^ 1));
                     i += 1;
                 }
                 next.push(p >> 1);
@@ -92,12 +104,12 @@ impl PrunedMerklePaths {
             // `next` stays sorted-unique: sibling pairs collapse to one parent,
             // and `p >> 1` is otherwise strictly increasing.
             active = next;
-            level_start += level_len;
+            level += 1;
             level_len >>= 1;
         }
 
         Self {
-            leaf_data: sorted.iter().map(|&q| row(q)).collect(),
+            leaf_data: sorted.iter().map(|&q| row(q).to_vec()).collect(),
             sibling_hashes,
         }
     }

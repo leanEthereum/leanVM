@@ -12,6 +12,7 @@
 #[cfg(target_arch = "aarch64")]
 pub mod neon;
 
+pub mod f192x8;
 pub mod gf2_64;
 pub mod gf2_64x3;
 #[cfg(all(
@@ -24,6 +25,10 @@ pub mod x4;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 pub mod x8;
 
+pub use f192x8::{
+    Acc8, F64x8, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
+    xor_into8,
+};
 pub use gf2_64::F64;
 pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_base8, mul_unreduced4, mul2, mul4};
 
@@ -69,15 +74,18 @@ pub fn powers(x: F192, n: usize) -> Vec<F192> {
 /// chain across cores.
 pub fn g_powers(n: usize) -> Vec<F64> {
     const CHUNK: usize = 1 << 12;
-    let mut v = vec![F64::ZERO; n];
-    parallel::chunks_mut(&mut v, CHUNK, |ci, chunk| {
-        let mut acc = g_pow(ci * CHUNK);
-        for slot in chunk.iter_mut() {
-            *slot = acc;
-            acc = mul_by_g(acc);
-        }
-    });
-    v
+    // SAFETY: the fill writes every element before it reads any.
+    unsafe {
+        crate::filled_vec(n, |v| {
+            parallel::chunks_mut(v, CHUNK, |ci, chunk| {
+                let mut acc = g_pow(ci * CHUNK);
+                for slot in chunk.iter_mut() {
+                    *slot = acc;
+                    acc = mul_by_g(acc);
+                }
+            });
+        })
+    }
 }
 
 /// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`):

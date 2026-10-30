@@ -10,3 +10,5 @@ workspace = true
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 libc.workspace = true
+
+[dependencies]
