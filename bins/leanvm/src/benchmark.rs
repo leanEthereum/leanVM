@@ -167,6 +167,9 @@ pub fn run_recursion(
         "too many blobs in one commitment"
     );
     leanvm_core::init_prover();
+    let started = std::time::Instant::now();
+    let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
+    let compile_time = started.elapsed();
     rec_aggregation::warm_up();
     if let Some(out) = std::env::var_os(LEAVES_OUT) {
         return write_leaves(
@@ -178,10 +181,6 @@ pub fn run_recursion(
             out.as_ref(),
         );
     }
-    let started = std::time::Instant::now();
-    let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
-    let compile_time = started.elapsed();
-
     let children = leaves_from_subprocess(n);
 
     if enable_tracing {
