@@ -54,7 +54,7 @@ impl BitFold {
         tail_rows: &[[u8; B]],
         out: &mut [F192; BLOCK],
     ) {
-        assert!(A == self.n_chunks && B == tail.n_chunks, "one byte width per fold");
+        debug_assert!(A == self.n_chunks && B == tail.n_chunks);
         assert!(head_rows.len() <= BLOCK && head_rows.len() == tail_rows.len());
         self.imp.fold_block_pair(&tail.imp, head_rows, tail_rows, out);
     }
@@ -65,7 +65,7 @@ impl BitFold {
     /// intermediate, so it skips the fold's input transpose.
     #[inline]
     pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
-        assert_eq!(CHUNKS, self.n_chunks, "one byte width per fold");
+        debug_assert_eq!(CHUNKS, self.n_chunks);
         self.imp.fold_columns(cols, out);
     }
 }
@@ -521,6 +521,8 @@ mod gfni {
             rows: &[[u8; CHUNKS]; BLOCK],
             next: *const u8,
         ) -> [__m512i; OUT_BYTES] {
+            // Every register is written below only when at least one stage runs.
+            const { assert!(CHUNKS.is_power_of_two() && CHUNKS >= 8, "a row is 8 to 128 bytes") };
             // Phase 1: CHUNKS registers of 64 bytes, row-major, then one register per input byte.
             let mut regs = MaybeUninit::<[__m512i; CHUNKS]>::uninit();
             let dst = regs.as_mut_ptr().cast::<__m512i>();
