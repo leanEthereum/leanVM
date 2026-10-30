@@ -143,8 +143,8 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
 }
 
 /// Prove `n` leaves with signatures and distinct blob payloads, then aggregate them in one
-/// recursion step and verify the result. The leaves are built once; only the
-/// recursion step is measured.
+/// recursion step and verify the result. The leaves are built once, in a process of their own;
+/// only the recursion step is measured.
 pub fn run_recursion(
     n: usize,
     per_leaf: usize,
@@ -168,25 +168,21 @@ pub fn run_recursion(
     );
     leanvm_core::init_prover();
     rec_aggregation::warm_up();
-    let all = signers(0, n * per_leaf);
-    let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
+    if let Some(out) = std::env::var_os(LEAVES_OUT) {
+        return write_leaves(
+            n,
+            per_leaf,
+            lean_sphincs_per_leaf,
+            blobs_per_leaf,
+            log_inv_rate,
+            out.as_ref(),
+        );
+    }
     let started = std::time::Instant::now();
     let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
 
-    let children: Vec<EthereumProof> = (0..n)
-        .map(|k| {
-            aggregate(
-                &[],
-                all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
-                all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-                &blobs(blobs_per_leaf, k as u64),
-                None,
-                log_inv_rate,
-            )
-            .expect("leaf aggregates")
-        })
-        .collect();
+    let children = leaves_from_subprocess(n);
 
     if enable_tracing {
         bench::init_tracing();
@@ -233,4 +229,60 @@ pub fn run_recursion(
         "  verifying                   : {} ms",
         pretty_f64(verify_time.mean() * 1000.0)
     );
+}
+
+/// Prove a recursion step's `n` leaves and write them to `out`, each proof's bytes after its length.
+fn write_leaves(
+    n: usize,
+    per_leaf: usize,
+    lean_sphincs_per_leaf: usize,
+    blobs_per_leaf: usize,
+    log_inv_rate: usize,
+    out: &std::path::Path,
+) {
+    let all = signers(0, n * per_leaf);
+    let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
+    let mut bytes = Vec::new();
+    for k in 0..n {
+        let leaf = aggregate(
+            &[],
+            all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
+            all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
+            &blobs(blobs_per_leaf, k as u64),
+            None,
+            log_inv_rate,
+        )
+        .expect("leaf aggregates")
+        .to_bytes();
+        bytes.extend_from_slice(&(leaf.len() as u64).to_le_bytes());
+        bytes.extend_from_slice(&leaf);
+    }
+    std::fs::write(out, bytes).expect("the leaves are written");
+}
+
+/// Set by [`leaves_from_subprocess`] on the process it starts: the file that process writes the leaves to.
+const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
+
+/// The leaves of [`run_recursion`], from this same command rerun with [`LEAVES_OUT`] set. Peak
+/// memory is the process's high-water mark, which proving them here would make a leaf's.
+fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
+    let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
+    let status = std::process::Command::new(std::env::current_exe().expect("this binary's path"))
+        .args(std::env::args_os().skip(1))
+        .env(LEAVES_OUT, &out)
+        .status()
+        .expect("the leaves' process starts");
+    assert!(status.success(), "the leaves' process failed");
+    let bytes = std::fs::read(&out).expect("the leaves are read");
+    std::fs::remove_file(&out).expect("the leaves' file is removed");
+
+    let mut rest = &bytes[..];
+    let mut leaves = Vec::with_capacity(n);
+    while let Some((len, tail)) = rest.split_first_chunk::<8>() {
+        let (proof, tail) = tail.split_at(u64::from_le_bytes(*len) as usize);
+        leaves.push(EthereumProof::from_bytes(proof).expect("a leaf proof"));
+        rest = tail;
+    }
+    assert_eq!(leaves.len(), n, "one proof per leaf");
+    leaves
 }
