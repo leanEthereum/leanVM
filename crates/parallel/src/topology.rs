@@ -81,7 +81,7 @@ fn perf_cores() -> usize {
     let logical = std::thread::available_parallelism().map_or(1, |n| n.get());
     #[cfg(target_os = "linux")]
     if let Some(cores) = allowed_cores() {
-        return logical.min(cores).max(1);
+        return logical.min(cores);
     }
     logical
 }

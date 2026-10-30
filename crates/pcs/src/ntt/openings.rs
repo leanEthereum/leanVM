@@ -118,17 +118,7 @@ impl<'t> Openings<'t> {
         let layers = self.layers;
         built_rows(num_ntts, log_d - deep_start, positions, |i, sub_idx, live, sub| {
             let src = Some(src(i, sub_idx));
-            layers.run(
-                sub,
-                src,
-                log_d,
-                num_ntts,
-                deep_start,
-                log_d,
-                deep_start,
-                sub_idx,
-                Some(live),
-            );
+            layers.run(sub, src, log_d, num_ntts, deep_start, deep_start, sub_idx, Some(live));
         })
     }
 }
@@ -142,8 +132,7 @@ impl<'t> Openings<'t> {
 /// - It owns the [`Stage`] of that pass and, per coset with queried sub-blocks, the rows it keeps.
 struct Rebuild<'a> {
     plan: Plan,
-    lanes: Lanes<'a>,
-    stage: Stage,
+    stage: Stage<'a>,
     /// Each coset with queried sub-blocks: its index, those sub-blocks' places in `subs`, and their group rows.
     cosets: Vec<(usize, std::ops::Range<usize>, Vec<usize>)>,
     n_subs: usize,
@@ -184,10 +173,9 @@ impl<'a> Rebuild<'a> {
                 )
             })
             .collect();
-        let stage = Stage::new(&lanes, log_step, msg_rows, num_ntts);
+        let stage = Stage::new(lanes, log_step, msg_rows, num_ntts);
         Self {
             plan: *plan,
-            lanes,
             stage,
             cosets,
             n_subs: subs.len(),
@@ -218,7 +206,7 @@ impl<'a> Rebuild<'a> {
                 let (stage, scratch) = all.split_at_mut(stage_len);
                 for t in lo..hi {
                     for octet in 0..num_ntts / 8 {
-                        self.stage.fill(stage, self.lanes.words, t * BATCH, octet);
+                        self.stage.fill(stage, t * BATCH, octet);
                         for (coset, run, live) in &self.cosets {
                             let live_rows = Some(&live[..]);
                             layers.run(
@@ -227,7 +215,6 @@ impl<'a> Rebuild<'a> {
                                 deep_start,
                                 BATCH * 8,
                                 start,
-                                deep_start,
                                 start,
                                 *coset,
                                 live_rows,

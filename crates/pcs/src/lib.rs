@@ -15,4 +15,4 @@ pub mod whir_config;
 mod whir_induce;
 mod whir_ntt_ext;
 
-pub use pack::{LOG_PACKING, PaddingSpec};
+pub use pack::LOG_PACKING;

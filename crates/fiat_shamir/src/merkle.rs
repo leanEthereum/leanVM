@@ -59,21 +59,14 @@ pub struct PrunedMerklePaths {
 }
 
 impl PrunedMerklePaths {
-    /// Prover side: open `positions` of `tree`, storing one row per distinct
-    /// position plus a single octopus over them. `row(q)` is the leaf at `q`.
+    /// Prover side: open `positions` of a tree held in pieces, storing one row per distinct position plus a
+    /// single octopus over them. `node(level, i)` is node `i` of `level`, leaves at level 0, and `row(q)` is the
+    /// leaf at `q`.
     ///
     /// For `q` queries in a tree of depth `d` the octopus is at most `q · d`
     /// hashes (what `q` independent paths would cost) and typically much
     /// smaller, since a sibling shared by several paths is emitted once.
-    pub fn prune<'a>(tree: &[Hash], num_leaves: usize, positions: &[usize], row: impl Fn(usize) -> &'a [F64]) -> Self {
-        assert!(num_leaves.is_power_of_two() && num_leaves > 0);
-        assert_eq!(tree.len(), 2 * num_leaves - 1);
-        let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
-        Self::prune_with(num_leaves, positions, |level, i| tree[level_start(level) + i], row)
-    }
-
-    /// Like [`Self::prune`], for a tree held in pieces: `node(level, i)` is node `i` of `level`, leaves at level 0.
-    pub fn prune_with<'a>(
+    pub fn prune<'a>(
         num_leaves: usize,
         positions: &[usize],
         node: impl Fn(usize, usize) -> Hash,

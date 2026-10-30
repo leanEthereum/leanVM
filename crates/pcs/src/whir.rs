@@ -70,7 +70,6 @@ use primitives::multilinear::eq_table as build_eq_table_ext_parallel;
 /// evaluation-claim `target` for a K-witness against an E-basis.
 pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
     assert_eq!(witness.len(), b.len());
-    const PAR_THRESHOLD: usize = 4096;
     if witness.len() < PAR_THRESHOLD {
         return witness
             .iter()
@@ -158,23 +157,25 @@ impl L0Codeword<'_> {
     /// The rows at the sorted `positions`, `row_words` words each, back to back.
     fn rows(&self, positions: &[usize]) -> Vec<F64> {
         match self.deep {
-            Some((ntt, plan)) => {
-                let kept = if self.words.is_empty() {
-                    Kept::Nothing {
-                        msg: self.stack,
-                        n_lanes: self.n_lanes,
-                        plan: *plan,
-                    }
-                } else {
-                    Kept::BeforeDeep {
-                        words: self.words,
-                        plan: *plan,
-                    }
+            Some((ntt, plan)) if self.words.is_empty() => {
+                let kept = Kept::Nothing {
+                    msg: self.stack,
+                    n_lanes: self.n_lanes,
+                    plan: *plan,
                 };
                 ntt.openings().rows(kept, positions)
             }
-            None => gather_rows(self.words, self.row_words, positions),
+            deep => kept_rows(self.words, self.row_words, deep, positions),
         }
+    }
+}
+
+/// The rows at the sorted `positions` of a codeword kept whole, or kept before its deep layers when `deep` says
+/// how to finish them, `row_words` words each, back to back.
+fn kept_rows(words: &[F64], row_words: usize, deep: Option<&(AdditiveNttF64, Plan)>, positions: &[usize]) -> Vec<F64> {
+    match deep {
+        Some((ntt, plan)) => ntt.openings().rows(Kept::BeforeDeep { words, plan: *plan }, positions),
+        None => gather_rows(words, row_words, positions),
     }
 }
 
@@ -248,40 +249,29 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     )
 }
 
-/// What a [`LigeroWitness`] keeps of its codeword when an encode left rows out of it.
-enum Deferred {
-    /// The rows before the deep layers, which `finish_rows` completes.
-    Deep(AdditiveNttF64, Plan),
-}
-
 /// Codeword + Merkle tree for one deeper WHIR commitment level.
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
-/// is one Merkle leaf of `num_interleaved * 16` bytes.
+/// is one Merkle leaf of `num_interleaved * 24` bytes.
 ///
-/// With `deferred` set, `mat` is not the codeword: see [`Deferred`].
+/// With `deep` set, `mat` holds the codeword before its deep layers, and
 /// [`LigeroWitness::opened_words`] finishes the rows a query opens.
 pub(crate) struct LigeroWitness {
     pub mat: Vec<F192>,
     pub tree: merkle::CutTree,
     pub block_len: usize,
     pub num_interleaved: usize,
-    deferred: Option<Deferred>,
+    deep: Option<(AdditiveNttF64, Plan)>,
 }
 
 impl LigeroWitness {
     /// The rows at the sorted `positions`, back to back, each as the K words its Merkle leaf is hashed from.
     fn opened_words(&self, positions: &[usize]) -> Vec<F64> {
-        let row_words = 3 * self.num_interleaved;
-        match &self.deferred {
-            Some(Deferred::Deep(ntt, plan)) => ntt.openings().rows(
-                Kept::BeforeDeep {
-                    words: words(&self.mat),
-                    plan: *plan,
-                },
-                positions,
-            ),
-            None => gather_rows(words(&self.mat), row_words, positions),
-        }
+        kept_rows(
+            words(&self.mat),
+            3 * self.num_interleaved,
+            self.deep.as_ref(),
+            positions,
+        )
     }
 
     /// The rows at `queries`, in order and back to back, and the octopus over them.
@@ -341,15 +331,12 @@ pub(crate) fn ligero_commit_ext(
             let defer_deep = primitives::REBUILD_OVER_STORE;
             let (mat, msg) = (words_mut(mat), words(poly));
             ntt.encode_interleaved_with(mat, msg, 3 * num_interleaved, log_inv_rate, defer_deep, &on_rows)
-                .map(|rows| Deferred::Deep(ntt, rows))
+                .map(|plan| (ntt, plan))
         })
     };
-    let (mat, deferred) = {
-        let mut deferred = None;
-        // SAFETY: the fill writes every element before it reads any.
-        let mat = unsafe { primitives::filled_vec(block_len * num_interleaved, |mat| deferred = encode(mat)) };
-        (mat, deferred)
-    };
+    let mut deep = None;
+    // SAFETY: the fill writes every element before it reads any.
+    let mat = unsafe { primitives::filled_vec(block_len * num_interleaved, |mat| deep = encode(mat)) };
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 
     LigeroWitness {
@@ -357,7 +344,7 @@ pub(crate) fn ligero_commit_ext(
         tree,
         block_len,
         num_interleaved,
-        deferred,
+        deep,
     }
 }
 
@@ -516,7 +503,6 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     debug_assert_eq!(b.len(), n);
 
     let dots = |at: std::ops::Range<usize>| adjacent_dots::<true>(&f[at.clone()], &b[at]);
-    const PAR_THRESHOLD: usize = 4096;
     let (u_0, u_2, odd) = if n / 2 < PAR_THRESHOLD {
         dots(0..n)
     } else {
@@ -626,6 +612,9 @@ fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, S
 // ordinary adjacent-pair fold.
 
 /// Elements per task wherever a round is chunked.
+/// Below this many items a pass runs on the calling thread: a dispatch costs more than it saves.
+const PAR_THRESHOLD: usize = 4096;
+
 const ROUND_CHUNK: usize = 2048;
 
 /// Sum the per-task `(u_0, u_2)` accumulators, sequentially for the small
@@ -637,7 +626,6 @@ pub(crate) fn accumulate_msg(
     n_pairs: usize,
     task: impl Fn(usize) -> (Acc8, Acc8) + Sync,
 ) -> (Acc8, Acc8) {
-    const PAR_THRESHOLD: usize = 4096;
     if n_pairs < PAR_THRESHOLD {
         let mut u_0 = Acc8::ZERO;
         let mut u_2 = Acc8::ZERO;
@@ -669,7 +657,6 @@ fn accumulate_msg_chunks(
     chunk: usize,
     task: impl Fn(usize, &mut [F192], &mut [F192]) -> (Acc8, Acc8) + Sync,
 ) -> (Acc8, Acc8) {
-    const PAR_THRESHOLD: usize = 4096;
     if f.len() < PAR_THRESHOLD {
         let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
         for (t, (fc, bc)) in f.chunks_mut(chunk).zip(b.chunks_mut(chunk)).enumerate() {
@@ -1340,14 +1327,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             // a sweep over the residual cube.
             let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
-            let basis_last = induce_sumcheck_evaluate_at_residual(
-                n_res,
-                &eval_sk_at_vks(n_res),
-                &queries_last,
-                &weights_last,
-                &[],
-                n_res,
-            );
+            let basis_last =
+                induce_sumcheck_evaluate_at_residual(n_res, &eval_sk_at_vks(n_res), &queries_last, &weights_last);
             let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
             send_msg(ps, intro_msg_last, enforced_sum_last);
             sc_prover.glue_pending(lambda_last);

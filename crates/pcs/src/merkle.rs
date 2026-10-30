@@ -378,7 +378,7 @@ impl CutTree {
                 .expect("a sibling is in an opened group");
             local[Self::start(n, level) + group * width + i % width]
         };
-        PrunedMerklePaths::prune_with(self.num_leaves, positions, node, row)
+        PrunedMerklePaths::prune(self.num_leaves, positions, node, row)
     }
 }
 
@@ -605,7 +605,9 @@ mod tests {
                 let group = cut.group_positions(&positions);
                 let rows: Vec<F64> = group.iter().flat_map(|&q| row(q)).copied().collect();
                 let got = cut.prune(&positions, row_words, leaf_words, &rows, row);
-                assert_eq!(got, PrunedMerklePaths::prune(&full, num_leaves, &positions, row));
+                let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
+                let node = |level: usize, i: usize| full[level_start(level) + i];
+                assert_eq!(got, PrunedMerklePaths::prune(num_leaves, &positions, node, row));
             }
         }
     }

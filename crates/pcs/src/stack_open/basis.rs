@@ -15,7 +15,7 @@
 
 use primitives::bit_fold::BitFold;
 use primitives::bits::bit_transpose_64bytes;
-use primitives::field::{Acc8, F64, F192, F192x8, Weights8, dot_base, fold_lones8_ext, msg_lone8_ext, xor_into8};
+use primitives::field::{Acc8, F64, F192, F192x8, Weights8, dot_base, msg_lone8_ext, xor_into8};
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{RingWeight, coordinate_basis};
@@ -27,9 +27,9 @@ pub(super) const LOW_VARS: usize = 10;
 /// Packing width: the bit rows of a block of words.
 const ROWS: usize = 64;
 
-/// `g * t`, elementwise: the lone fold `t + r * t` at `r = g + 1`.
+/// `g * t`, elementwise.
 fn scale8(t: &[F192; 8], g: F192) -> [F192; 8] {
-    fold_lones8_ext(t, g + F192::ONE)
+    (F192x8::from_array(t) * F192x8::splat(g)).to_array()
 }
 
 /// What a weight does to one bit of the stack index.
@@ -253,7 +253,7 @@ impl LaneLift for Terms {
             .map(|ring| {
                 let vars = ring.point.len().min(self.lane_vars);
                 let weights = a[ring.first..ring.first + DEGREE_E].to_vec();
-                let weight = RingWeight::from_point(weights, ring.point[..vars].to_vec());
+                let weight = RingWeight::new(weights, ring.point[..vars].to_vec()).fold();
                 (weight, ring.x_offset, 1usize << vars)
             })
             .collect();

@@ -77,7 +77,7 @@ impl<'s> DeepPass<'s> {
                         let copy = |part: &mut [F64]| part.copy_from_slice(&msg[..part.len()]);
                         scratch.chunks_mut(block_len).for_each(copy);
                     }
-                    layers.run(scratch, from, log_d, num_ntts, deep_start, log_d, outer, sub_idx, None);
+                    layers.run(scratch, from, log_d, num_ntts, deep_start, outer, sub_idx, None);
                     if let Some(f) = sink {
                         f(sub_idx << log_sub, scratch);
                     }
@@ -107,24 +107,14 @@ impl<'s> DeepPass<'s> {
             if self.defer && sink.is_some() {
                 // The rows are hashed from scratch and the buffer keeps its pre-deep state.
                 with_scratch(sub_len, |scratch| {
-                    layers.run(
-                        scratch,
-                        Some(&*sub),
-                        log_d,
-                        num_ntts,
-                        deep_start,
-                        log_d,
-                        outer,
-                        sub_idx,
-                        None,
-                    );
+                    layers.run(scratch, Some(&*sub), log_d, num_ntts, deep_start, outer, sub_idx, None);
                     if let Some(f) = sink {
                         f(sub_idx << log_sub, scratch);
                     }
                 });
             } else {
                 // The replicas are already in place: run the layers where they are.
-                layers.run(sub, None, log_d, num_ntts, deep_start, log_d, outer, sub_idx, None);
+                layers.run(sub, None, log_d, num_ntts, deep_start, outer, sub_idx, None);
                 if let Some(f) = sink {
                     f(sub_idx << log_sub, sub);
                 }

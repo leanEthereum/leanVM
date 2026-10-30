@@ -43,6 +43,25 @@ mod portable {
         [a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]]
     }
 
+    /// The even lanes of `a` then of `b`, and the odd ones.
+    fn even_odd<T: Copy>(a: &[T; 8], b: &[T; 8]) -> ([T; 8], [T; 8]) {
+        let pick = |parity: usize| {
+            core::array::from_fn(|i| {
+                if i < 4 {
+                    a[2 * i + parity]
+                } else {
+                    b[2 * (i - 4) + parity]
+                }
+            })
+        };
+        (pick(0), pick(1))
+    }
+
+    /// The 8x8 transpose: element `j` of `out[p]` is element `p` of `g[j]`.
+    fn transpose<T: Copy>(g: [[T; 8]; 8]) -> [[T; 8]; 8] {
+        core::array::from_fn(|p| core::array::from_fn(|j| g[j][p]))
+    }
+
     /// Eight elements, on a target without the wide multiplier. Line-aligned, so that an
     /// array of them is still published by the streaming stores where those exist.
     #[derive(Clone, Copy, Debug)]
@@ -90,25 +109,14 @@ mod portable {
         /// `([a0, a2, a4, a6, b0, b2, b4, b6], [a1, a3, a5, a7, b1, b3, b5, b7])`.
         #[inline]
         pub fn even_odd(a: Self, b: Self) -> (Self, Self) {
-            let pick = |parity: usize| {
-                Self(core::array::from_fn(|i| {
-                    if i < 4 {
-                        a.0[2 * i + parity]
-                    } else {
-                        b.0[2 * (i - 4) + parity]
-                    }
-                }))
-            };
-            (pick(0), pick(1))
+            let (even, odd) = even_odd(&a.0, &b.0);
+            (Self(even), Self(odd))
         }
-    }
 
-    /// The eight lane-wise products.
-    impl F192x8 {
         /// The 8x8 transpose: lane `j` of `out[p]` is lane `p` of `g[j]`.
         #[inline]
         pub fn transpose(g: [Self; 8]) -> [Self; 8] {
-            core::array::from_fn(|p| Self(core::array::from_fn(|j| g[j].0[p])))
+            transpose(g.map(|v| v.0)).map(Self)
         }
     }
 
@@ -165,22 +173,14 @@ mod portable {
         /// `([a0, a2, a4, a6, b0, b2, b4, b6], [a1, a3, a5, a7, b1, b3, b5, b7])`.
         #[inline]
         pub fn even_odd(a: Self, b: Self) -> (Self, Self) {
-            let pick = |parity: usize| {
-                Self(core::array::from_fn(|i| {
-                    if i < 4 {
-                        a.0[2 * i + parity]
-                    } else {
-                        b.0[2 * (i - 4) + parity]
-                    }
-                }))
-            };
-            (pick(0), pick(1))
+            let (even, odd) = even_odd(&a.0, &b.0);
+            (Self(even), Self(odd))
         }
 
         /// The 8x8 transpose: lane `j` of `out[p]` is lane `p` of `g[j]`.
         #[inline]
         pub fn transpose(g: [Self; 8]) -> [Self; 8] {
-            core::array::from_fn(|p| Self(core::array::from_fn(|j| g[j].0[p])))
+            transpose(g.map(|v| v.0)).map(Self)
         }
     }
 
@@ -318,8 +318,11 @@ pub fn fold_lones8_ext(x0: &[F192; 8], r: F192) -> [F192; 8] {
 #[inline(always)]
 pub fn msg_terms8_ext(x0: &[F192; 8], x1: &[F192; 8], y0: &[F192; 8], y1: &[F192; 8]) -> (Acc8, Acc8) {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-    // SAFETY: the features are enabled at compile time.
-    return unsafe { avx512::msg_terms_ext(x0, x1, y0, y1) };
+    {
+        let (a0, a1) = (F192x8::from_array(x0), F192x8::from_array(x1));
+        let (b0, b1) = (F192x8::from_array(y0), F192x8::from_array(y1));
+        (a0.mul_unreduced(b0), (a0 + a1).mul_unreduced(b0 + b1))
+    }
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
     {
         let xs: [F192; 8] = core::array::from_fn(|j| x0[j] + x1[j]);
@@ -332,8 +335,7 @@ pub fn msg_terms8_ext(x0: &[F192; 8], x1: &[F192; 8], y0: &[F192; 8], y1: &[F192
 #[inline(always)]
 pub fn msg_lone8_ext(x0: &[F192; 8], y0: &[F192; 8]) -> Acc8 {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-    // SAFETY: the features are enabled at compile time.
-    return unsafe { avx512::dot_ext(x0, y0) };
+    return F192x8::from_array(x0).mul_unreduced(F192x8::from_array(y0));
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
     portable::dot_ext(x0, y0)
 }
@@ -635,19 +637,6 @@ mod avx512 {
             unsafe { load_planes(e) }
         }
 
-        /// Eight elements from their coefficient registers: qword `i` of `c0`, `c1` and `c2` is that coefficient of element `i`.
-        #[inline(always)]
-        pub fn from_coeffs(c0: __m512i, c1: __m512i, c2: __m512i) -> Self {
-            // SAFETY: the module is compiled only with avx512f enabled.
-            unsafe {
-                Self {
-                    lo: _mm512_unpacklo_epi64(c0, c1),
-                    hi: _mm512_unpackhi_epi64(c0, c1),
-                    c2,
-                }
-            }
-        }
-
         #[inline(always)]
         pub fn to_array(self) -> [F192; 8] {
             let mut out = [F192::ZERO; 8];
@@ -868,19 +857,6 @@ mod avx512 {
             _mm512_clmulepi64_epi128::<0x11>(a, b),
         );
         reduce_lanes512(_mm512_unpacklo_epi64(even, odd), _mm512_unpackhi_epi64(even, odd))
-    }
-
-    #[inline]
-    #[target_feature(enable = "avx512f,vpclmulqdq")]
-    pub fn msg_terms_ext(x0: &[F192; 8], x1: &[F192; 8], y0: &[F192; 8], y1: &[F192; 8]) -> (Acc8, Acc8) {
-        let (a0, a1, b0, b1) = (load_planes(x0), load_planes(x1), load_planes(y0), load_planes(y1));
-        (mul(a0, b0), mul(a0 + a1, b0 + b1))
-    }
-
-    #[inline]
-    #[target_feature(enable = "avx512f,vpclmulqdq")]
-    pub fn dot_ext(x0: &[F192; 8], y0: &[F192; 8]) -> Acc8 {
-        mul(load_planes(x0), load_planes(y0))
     }
 }
 

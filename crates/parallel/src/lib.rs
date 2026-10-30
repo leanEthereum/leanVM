@@ -457,11 +457,8 @@ where
 }
 
 fn chunk_views<T, const N: usize>(bufs: [&mut [T]; N], widths: [usize; N]) -> [Chunks<T>; N] {
-    let mut k = 0;
-    bufs.map(|buf| {
-        k += 1;
-        Chunks::new(buf, widths[k - 1])
-    })
+    let mut widths = widths.into_iter();
+    bufs.map(|buf| Chunks::new(buf, widths.next().expect("one width per buffer")))
 }
 
 /// Task `i`'s chunk of each view, or an empty slice for a view with fewer chunks.
@@ -519,17 +516,18 @@ pub fn fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
 /// pool and writes each result straight into the output at its own index: one
 /// allocation, no `Option` slots, no per-worker intermediate vectors.
 pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
-    let mut out: Vec<std::mem::MaybeUninit<T>> = Vec::with_capacity(n_tasks);
-    out.resize_with(n_tasks, std::mem::MaybeUninit::uninit);
-    // A panic in `f` leaks the slots written so far, which is acceptable: a task panic is re-raised on
-    // the dispatcher and fails the proof.
-    chunks_mut(&mut out, 1, |i, slot| {
-        slot[0].write(f(i));
+    let mut out: Vec<T> = Vec::with_capacity(n_tasks);
+    let base = SendPtr(out.as_mut_ptr());
+    for_each(n_tasks, |i| {
+        // SAFETY: distinct `i` write disjoint in-bounds slots, each exactly once,
+        // and the dispatch blocks until every write is finished. A panic in `f`
+        // leaks the slots written so far, which is acceptable: a task panic is
+        // re-raised on the dispatcher and fails the proof.
+        unsafe { base.add(i).write(f(i)) };
     });
-    let mut out = std::mem::ManuallyDrop::new(out);
-    // SAFETY: every slot in `0..n_tasks` was written exactly once above, and `MaybeUninit<T>` has the
-    // layout of `T`, so the allocation, length and capacity carry over.
-    unsafe { Vec::from_raw_parts(out.as_mut_ptr().cast::<T>(), out.len(), out.capacity()) }
+    // SAFETY: every slot in `0..n_tasks` was initialized exactly once above.
+    unsafe { out.set_len(n_tasks) };
+    out
 }
 
 /// The smallest `i` in `0..n_tasks` with `pred(i)`, or `None`. Deterministic

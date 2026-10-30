@@ -27,7 +27,7 @@ impl<'t> Layers<'t> {
 }
 
 impl Layers<'_> {
-    /// Run a range of layers over one sub-block of the domain.
+    /// Run layers `first_layer..log_d` over one sub-block of the domain.
     ///
     /// - The domain has `2^d` rows and splits into `2^o` equal sub-blocks.
     /// - The buffer is one of them; its index fixes the global block index, and so the twiddle, of each block.
@@ -49,16 +49,15 @@ impl Layers<'_> {
         log_d: usize,
         num_ntts: usize,
         first_layer: usize,
-        end_layer: usize,
         outer_log: usize,
         sub_idx: usize,
         live: Option<&[usize]>,
     ) {
-        if let Some(src) = src.filter(|_| first_layer >= end_layer) {
+        if let Some(src) = src.filter(|_| first_layer >= log_d) {
             buf.copy_from_slice(src);
         }
         let mut layer = first_layer;
-        while layer < end_layer {
+        while layer < log_d {
             // This layer's blocks inside the buffer: how many, and their size in rows and words.
             let num_blocks_in_buf = 1usize << (layer - outer_log);
             let block_size = 1usize << (log_d - layer);
@@ -66,7 +65,7 @@ impl Layers<'_> {
             // A block's index in the whole domain, which picks its twiddle.
             let global = |block_in_buf: usize| sub_idx * num_blocks_in_buf + block_in_buf;
 
-            let radix = radix_layers(end_layer - layer);
+            let radix = radix_layers(log_d - layer);
             if radix == 3 {
                 // One radix-8 sweep.
                 let eighth = block_size >> 3;

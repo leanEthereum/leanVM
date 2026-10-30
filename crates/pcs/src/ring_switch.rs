@@ -229,7 +229,7 @@ pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192])
 
 /// Deferred, lambda-baked ring-switch output used by the stacked opener.
 ///
-/// Keeping the split eq factors and the folded map avoids materializing one full
+/// Keeping the claim's point and its map avoids materializing one full
 /// `rs_eq_ind` vector per claim. The map already contains the claim's batching
 /// scalar, so combining several claims needs only additions.
 pub(crate) struct DeferredRingSwitchOutput {
@@ -243,6 +243,10 @@ pub(crate) struct DeferredRingSwitchOutput {
 pub(crate) struct RingWeight {
     weights: Vec<F192>,
     point: Vec<F192>,
+}
+
+/// A [`RingWeight`] ready to fill its values: the factored `eq(point, ·)` and `Phi` as bit folds.
+pub(crate) struct RingFold {
     eq_lo: Vec<F192>,
     eq_hi: Vec<F192>,
     /// The weights of a product row's low 128 bits and of its top 64, to fold 64 rows at a time.
@@ -260,22 +264,19 @@ pub(crate) fn coordinate_basis(w: usize) -> F192 {
 }
 
 impl RingWeight {
-    fn new(weights: Vec<F192>, point: Vec<F192>, eq_lo: Vec<F192>, eq_hi: Vec<F192>) -> Self {
+    pub(crate) fn new(weights: Vec<F192>, point: Vec<F192>) -> Self {
         assert_eq!(weights.len(), DEGREE_E);
-        debug_assert_eq!(eq_lo.len() * eq_hi.len(), 1 << point.len());
-        let fold = (BitFold::new(&weights[..128]), BitFold::new(&weights[128..]));
-        Self {
-            fold,
-            weights,
-            point,
-            eq_lo,
-            eq_hi,
-        }
+        Self { weights, point }
     }
 
-    pub(crate) fn from_point(weights: Vec<F192>, point: Vec<F192>) -> Self {
-        let (eq_lo, eq_hi) = build_eq_split_ext(&point);
-        Self::new(weights, point, eq_lo, eq_hi)
+    /// The tables that fill the weight's values.
+    pub(crate) fn fold(&self) -> RingFold {
+        let (eq_lo, eq_hi) = build_eq_split_ext(&self.point);
+        RingFold {
+            eq_lo,
+            eq_hi,
+            fold: (BitFold::new(&self.weights[..128]), BitFold::new(&self.weights[128..])),
+        }
     }
 
     pub(crate) fn point(&self) -> &[F192] {
@@ -294,7 +295,9 @@ impl RingWeight {
         }
         acc
     }
+}
 
+impl RingFold {
     /// `out[j] += Phi(eq(point, start + j))`.
     pub(crate) fn add_chunk(&self, start: usize, out: &mut [F192]) {
         let block_len = self.eq_lo.len();
@@ -323,7 +326,7 @@ pub(crate) fn prove_finish_deferred(
     let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
     DeferredRingSwitchOutput {
         batched_sumcheck_claim: lambda * sumcheck_claim,
-        weight: RingWeight::new(scaled_weights, state.point, state.eq_lo, state.eq_hi),
+        weight: RingWeight::new(scaled_weights, state.point),
     }
 }
 
@@ -334,11 +337,11 @@ pub(crate) fn prove_finish_deferred(
 #[cfg(test)]
 pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
     for claim in outputs {
-        claim.weight.add_chunk(start, out);
+        claim.weight.fold().add_chunk(start, out);
     }
 }
 
-impl RingWeight {
+impl RingFold {
     /// `out[j] += Phi(e_lo[j] * e_hi)`, 64 products at a time through the bit fold.
     #[inline]
     fn fold_products(&self, e_lo: &[F192], e_hi: F192, out: &mut [F192]) {
@@ -406,8 +409,6 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 pub struct RingSwitchProveState {
     s_hat_v: Vec<F192>,
     point: Vec<F192>,
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
 }
 
 /// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
@@ -428,13 +429,13 @@ pub fn prove_prepare(
         1usize << suffix_point.len(),
         "packed witness must have 2^|suffix_point| words"
     );
-    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
     let s_hat_v = match precomputed_s_hat_v {
         Some(v) => {
             assert_eq!(v.len(), PACKING_WIDTH);
             v.to_vec()
         }
         None => {
+            let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
             let mask = eq_lo.len() - 1;
             let shift = eq_lo.len().trailing_zeros();
             let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
@@ -444,8 +445,6 @@ pub fn prove_prepare(
     RingSwitchProveState {
         s_hat_v,
         point: suffix_point.to_vec(),
-        eq_lo,
-        eq_hi,
     }
 }
 
@@ -472,14 +471,9 @@ mod tests {
         let coordinate_weights = rng.ext_vec(DEGREE_E);
         let lambdas = [rng.ext(), rng.ext()];
         let states = (0..2)
-            .map(|_| {
-                let (eq_lo, eq_hi) = build_eq_split_ext(&point);
-                RingSwitchProveState {
-                    s_hat_v: rng.ext_vec(PACKING_WIDTH),
-                    point: point.clone(),
-                    eq_lo,
-                    eq_hi,
-                }
+            .map(|_| RingSwitchProveState {
+                s_hat_v: rng.ext_vec(PACKING_WIDTH),
+                point: point.clone(),
             })
             .collect::<Vec<_>>();
 

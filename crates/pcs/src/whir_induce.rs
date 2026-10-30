@@ -116,12 +116,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
 ) -> (Vec<F192>, F192) {
     let n_queries = queries.len();
     assert_eq!(weights.len(), n_queries);
-    let eq = build_eq_table_ext(v_challenges);
-    assert_eq!(opened_rows.len(), n_queries * eq.len());
-    let enforced_sum = opened_rows
-        .chunks_exact(eq.len())
-        .zip(weights)
-        .fold(F192::ZERO, |sum, (row, &w)| sum + T::dot(row, &eq) * w);
+    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
 
     let inv_sks_vks = invert_sks(sks_vks);
     let lo = log_msg_cols / 2;
@@ -200,77 +195,54 @@ pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
     sum
 }
 
-/// SUCCINCT evaluator for the induced basis poly's MLE at residual points,
-/// in place of the dense basis, via the closed form:
+/// SUCCINCT evaluator for the induced basis poly's MLE at the boolean points, in place of the dense
+/// basis, via the closed form:
 ///   `MLE(basis_poly)(p) = Σ_i w_i · Π_k (1 + p[k] · (1 + W-hat_k(q_i)))`
 /// where `q_i = F64(queries[i])` and the K-valued `W-hat_k(q_i)` lifts into E
-/// through the char-2 factor. `ris_for_basis` is the fixed residual prefix
-/// (length `log_msg_cols - yr_log_n`); returns evaluations at the `2^yr_log_n`
-/// points `ris_for_basis ++ y_bits`.
+/// through the char-2 factor. Returns the evaluations at all `2^log_msg_cols` points.
 pub(crate) fn induce_sumcheck_evaluate_at_residual(
     log_msg_cols: usize,
     sks_vks: &[F64],
     queries: &[usize],
     weights: &[F192],
-    ris_for_basis: &[F192],
-    yr_log_n: usize,
 ) -> Vec<F192> {
-    assert_eq!(ris_for_basis.len() + yr_log_n, log_msg_cols);
     let n_queries = queries.len();
-    let yr_len = 1usize << yr_log_n;
-
     debug_assert_eq!(weights.len(), n_queries);
     let inv_sks_vks = invert_sks(sks_vks);
-    let prefix_len = ris_for_basis.len();
 
-    // Per-query precomputation: W-hat_k(q) for all k over K, split into a
-    // fixed prefix product (E scalar) and the suffix W-hat values varied per y.
-    struct PerQuery {
-        prefix_prod: F192,
-        suffix_w: Vec<F64>, // length = yr_log_n
-    }
-    let compute_query = |&q: &usize| -> PerQuery {
+    // Per query: W-hat_k(q) for all k over K.
+    let compute_query = |&q: &usize| -> Vec<F64> {
         let mut sks_at_x = vec![F64::ZERO; log_msg_cols];
         normalized_sks_at(F64(q as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
-        // Prefix product: Π_{k<prefix_len} (1 + ris[k] · (1 + W-hat_k(q)))
-        let mut prefix_prod = F192::ONE;
-        for k in 0..prefix_len {
-            prefix_prod *= F192::ONE + ris_for_basis[k] * (F192::ONE + F192::from(sks_at_x[k]));
-        }
-        let suffix_w = if log_msg_cols > prefix_len {
-            sks_at_x[prefix_len..].to_vec()
-        } else {
-            Vec::new()
-        };
-        PerQuery { prefix_prod, suffix_w }
+        sks_at_x
     };
     // Once per opening over query-count-sized inputs; stay serial below
     // the dispatch crossover.
     const PAR_FLOOR: usize = 1024;
-    let per_query: Vec<PerQuery> = if n_queries > PAR_FLOOR {
+    let per_query: Vec<Vec<F64>> = if n_queries > PAR_FLOOR {
         parallel::map_collect(n_queries, |i| compute_query(&queries[i]))
     } else {
         queries.iter().map(compute_query).collect()
     };
 
-    // For each residual position y, accumulate the suffix product per query.
+    // For each point y, accumulate the product per query.
     let compute_y = |y: usize| -> F192 {
         let mut sum = F192::ZERO;
-        for i in 0..n_queries {
-            let pq = &per_query[i];
-            let mut suffix_prod = F192::ONE;
-            for j in 0..yr_log_n {
+        for (w, &weight) in per_query.iter().zip(weights) {
+            let mut prod = F192::ONE;
+            for (j, &w_j) in w.iter().enumerate() {
                 let p_j = if (y >> j) & 1 == 1 { F192::ONE } else { F192::ZERO };
-                suffix_prod *= F192::ONE + p_j * (F192::ONE + F192::from(pq.suffix_w[j]));
+                prod *= F192::ONE + p_j * (F192::ONE + F192::from(w_j));
             }
-            sum += weights[i] * pq.prefix_prod * suffix_prod;
+            sum += weight * prod;
         }
         sum
     };
-    if yr_len > PAR_FLOOR {
-        primitives::par_collect(yr_len, compute_y)
+    let len = 1usize << log_msg_cols;
+    if len > PAR_FLOOR {
+        primitives::par_collect(len, compute_y)
     } else {
-        (0..yr_len).map(compute_y).collect()
+        (0..len).map(compute_y).collect()
     }
 }
 
@@ -467,29 +439,10 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     weights: &[F192],
 ) -> (Vec<F192>, F192) {
     let log_block = log_msg_cols + log_inv_rate;
-    let block_len = 1usize << log_block;
-    let n_queries = queries.len();
+    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
 
-    let eq = build_eq_table_ext(v_challenges);
-    assert_eq!(opened_rows.len(), n_queries * eq.len());
-    debug_assert_eq!(weights.len(), n_queries);
-
-    let mut enforced_sum = F192::ZERO;
-    for (row, &w) in opened_rows.chunks_exact(eq.len()).zip(weights) {
-        enforced_sum += F64::dot(row, &eq) * w;
-    }
-
-    let coeffs = if log_block == 0 {
-        // SAFETY: zero is a valid F192, and the loop below reads these slots.
-        let mut c = vec![F192::ZERO; block_len];
-        for i in 0..n_queries {
-            c[queries[i]] += weights[i];
-        }
-        c
-    } else {
-        let ntt = AdditiveNttF64::standard(log_block);
-        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_inv_rate)
-    };
+    let ntt = AdditiveNttF64::standard(log_block);
+    let coeffs = transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_inv_rate);
     (coeffs, enforced_sum)
 }
 

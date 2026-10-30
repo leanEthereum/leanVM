@@ -85,23 +85,23 @@ pub(super) const BATCH: usize = 1 << LOG_BATCH;
 
 /// The transpose of a lane-major message through a stage, for one gathered pass.
 ///
-/// - It owns the geometry of the fill: the step, the message rows and the lanes.
+/// - It owns the message and the geometry of the fill: the step, the message rows and the row width.
 /// - [`Stage::fill`] moves one octet of lanes of a batch of residues into a stage buffer.
 /// - A task fills the stage, then each block of the pass transforms a copy of it.
-pub(super) struct Stage {
+pub(super) struct Stage<'a> {
+    lanes: Lanes<'a>,
     log_step: usize,
     msg_rows: usize,
-    n_lanes: usize,
     row_words: usize,
 }
 
-impl Stage {
-    /// The stage of a pass with `rows` rows a group, over a message of `msg_rows` rows and `lanes`.
-    pub(super) fn new(lanes: &Lanes, log_step: usize, msg_rows: usize, row_words: usize) -> Self {
+impl<'a> Stage<'a> {
+    /// The stage of a pass whose groups are `2^log_step` rows apart, over `lanes` of `msg_rows` rows each.
+    pub(super) fn new(lanes: Lanes<'a>, log_step: usize, msg_rows: usize, row_words: usize) -> Self {
         Self {
+            lanes,
             log_step,
             msg_rows,
-            n_lanes: lanes.n_lanes,
             row_words,
         }
     }
@@ -116,11 +116,11 @@ impl Stage {
     ///   Lane `8 * octet + k` of row `t0 + s + i * step` is word `(i * BATCH + s) * 8 + k`.
     /// - One tile is 8 words of 8 lane blocks, so each 64 byte line of a lane block is read once, whole.
     #[inline]
-    pub(super) fn fill(&self, stage: &mut [F64], msg: &[F64], t0: usize, octet: usize) {
+    pub(super) fn fill(&self, stage: &mut [F64], t0: usize, octet: usize) {
         let Self {
+            lanes: Lanes { words: msg, n_lanes },
             log_step,
             msg_rows,
-            n_lanes,
             row_words,
         } = *self;
         // SAFETY: AVX-512F is enabled at compile time.

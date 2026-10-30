@@ -56,7 +56,7 @@ use super::window::Window;
 pub(super) struct GatheredPass<'a> {
     src: Source<'a>,
     /// The transpose of a lane-major message, if the source is one.
-    staging: Option<Stage>,
+    staging: Option<Stage<'a>>,
     layer: usize,
     g: usize,
     num_ntts: usize,
@@ -98,7 +98,7 @@ impl<'a> GatheredPass<'a> {
         let group_len = rows * width;
         let stage_len = if staged || gathers { group_len } else { 0 };
         let staging = match src {
-            Source::Lanes(lanes) => Some(Stage::new(&lanes, log_step, block_rows, num_ntts)),
+            Source::Lanes(lanes) => Some(Stage::new(lanes, log_step, block_rows, num_ntts)),
             _ => None,
         };
         // Whole aligned cache lines in every row stream out a line at a time; other rows are stored whole.
@@ -137,12 +137,12 @@ impl<'a> GatheredPass<'a> {
                 let stream = self.stream.then(Stream::new);
                 let stream = stream.as_ref();
                 for t in lo..hi {
-                    match (self.src, &self.staging) {
-                        (Source::Lanes(lanes), Some(staging)) => {
+                    match &self.staging {
+                        Some(staging) => {
+                            let r = t * self.batch;
                             for octet in 0..self.num_ntts / 8 {
-                                staging.fill(stage, lanes.words, t * self.batch, octet);
+                                staging.fill(stage, r, octet);
                                 for block in self.blocks.clone().rev() {
-                                    let r = t * self.batch;
                                     let dst = win.row(self.block_rows, block, r) + 8 * octet;
                                     self.group(layers, scratch, stream, win, base, block, r, Some(&*stage), dst);
                                 }
@@ -213,17 +213,7 @@ impl<'a> GatheredPass<'a> {
                 base.0.cast_const().wrapping_add(win.row(self.block_rows, block, r)),
             );
         }
-        layers.run(
-            scratch,
-            from,
-            layer + g,
-            self.width,
-            layer,
-            layer + g,
-            layer,
-            block,
-            None,
-        );
+        layers.run(scratch, from, layer + g, self.width, layer, layer, block, None);
         Drain {
             // SAFETY: the group's first row lies inside the buffer.
             dst: unsafe { base.add(dst) },
