@@ -185,7 +185,7 @@ mod portable {
     target_feature = "avx512bw",
     target_feature = "avx512vbmi"
 ))]
-pub mod gfni {
+mod gfni {
     //! The GFNI fold of 64 rows at a time.
     //!
     //! ```text
@@ -243,6 +243,13 @@ pub mod gfni {
                 regs[z | zbit] = _mm512_permutex2var_epi8(u, hi, w);
             }
         }
+    }
+
+    /// The input byte that register `r` holds after the input stages, for rows of `2^c` bytes: its bits are the
+    /// register's bits from `c - 6` on, then those below.
+    const fn byte_of_reg(c: usize, r: usize) -> usize {
+        let skew = c.saturating_sub(6);
+        (r >> skew) | ((r & ((1 << skew) - 1)) << (c - skew))
     }
 
     /// The value in qword `l` of output register `r`.
@@ -469,14 +476,10 @@ pub mod gfni {
             let n_chunks = weights.len() / 8;
             let c = n_chunks.trailing_zeros() as usize;
 
-            let skew = c.saturating_sub(6);
-
-            // Register `r` then holds input byte `j(r)`: its bits are register bits skew.. then 0..skew.
-            let byte_of_reg = |r: usize| (r >> skew) | ((r & ((1 << skew) - 1)) << (c - skew));
             let bytes: &[[F192; 8]] = weights.as_chunks().0;
             // SAFETY: the module is compiled only with these target features enabled.
             let matrices = (0..n_chunks)
-                .flat_map(|r| unsafe { weight_matrices(&bytes[byte_of_reg(r)]) })
+                .flat_map(|r| unsafe { weight_matrices(&bytes[byte_of_reg(c, r)]) })
                 .collect();
             Self {
                 matrices,
@@ -548,11 +551,8 @@ pub mod gfni {
         #[inline]
         #[target_feature(enable = "avx512f,avx512bw,avx512vbmi,gfni")]
         fn fold_columns_full<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS]) -> [__m512i; OUT_BYTES] {
-            // The register order the input stages leave: register `r` holds input byte `j(r)`.
             let c = CHUNKS.trailing_zeros() as usize;
-            let skew = c.saturating_sub(6);
-            let byte_of_reg = |r: usize| (r >> skew) | ((r & ((1 << skew) - 1)) << (c - skew));
-            let regs: [__m512i; CHUNKS] = std::array::from_fn(|r| simd::load(&cols[byte_of_reg(r)], 0));
+            let regs: [__m512i; CHUNKS] = std::array::from_fn(|r| simd::load(&cols[byte_of_reg(c, r)], 0));
             self.accumulate::<CHUNKS, false>(&regs, std::ptr::null())
         }
 

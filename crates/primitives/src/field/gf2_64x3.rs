@@ -1062,7 +1062,7 @@ pub mod x86_64 {
     ///
     /// # Safety
     ///
-    /// Callable only where vpclmulqdq and avx2 are enabled; `k.len()` must be `8 * w.len()`.
+    /// Callable only where vpclmulqdq and avx2 are enabled.
     #[cfg(all(
         target_feature = "vpclmulqdq",
         target_feature = "avx2",

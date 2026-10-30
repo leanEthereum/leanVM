@@ -95,7 +95,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 - **Nested dispatch panics**, because it would deadlock the dispatch lock.
 - **One site runs beside the pool, not in it:** `keccak::while_executing` spawns half the pool's count of plain threads for the length of a program's execution, when the pool is idle; they are gone before the next dispatch. `LEANVM_NUM_THREADS=1` leaves it none.
 - **Both core clusters share one queue** (P at `USER_INTERACTIVE`, E at `UTILITY`); guided self-scheduling means a slow core claims fewer batches. Do not add a second pool: that was `primitives::epool`, now deleted.
-- **The default runs one worker per physical core the process may use** (on Linux, the cores behind its CPU affinity), **and holds back one performance worker when efficiency workers exist.**
+- **The default runs one worker per logical CPU, on Linux one per physical core the process may use** (the cores behind its CPU affinity), **and holds back one performance worker when efficiency workers exist.**
 
 `LEANVM_NUM_THREADS` sets the **performance**-worker count, leaving E-workers in place. `1` = strictly sequential.
 

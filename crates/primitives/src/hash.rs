@@ -475,8 +475,7 @@ mod x86 {
         fn store_digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
             assert_eq!(out.len(), 8 * OUT_LEN);
             // Rows are the four digest words of each input, then four zero words.
-            // SAFETY: AVX-512F is enabled at compile time, and the intrinsic touches only registers.
-            let zero = unsafe { _mm512_setzero_si512() };
+            let zero = simd::from_words([0; 8]);
             let rows = simd::transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
             for (pair, [first, second]) in rows.as_chunks::<2>().0.iter().enumerate() {
                 // Low 256 bits of two inputs' rows side by side: lanes 0, 1 of the first, then of the second.
@@ -491,6 +490,7 @@ mod x86 {
 #[cfg(target_arch = "aarch64")]
 mod arm {
     use super::Lanes64;
+    use crate::{load_at, store_at};
     use core::arch::aarch64::*;
 
     /// NEON: two lanes. With the SHA3 extension, χ is one `BCAX`, the column
@@ -503,13 +503,11 @@ mod arm {
 
         #[inline(always)]
         fn load(src: &[u64], i: usize) -> Self {
-            let words = &src[i..i + 2];
-            Self(unsafe { vld1q_u64(words.as_ptr()) })
+            Self(load_at(src, i))
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64], i: usize) {
-            let words = &mut dst[i..i + 2];
-            unsafe { vst1q_u64(words.as_mut_ptr(), self.0) }
+            store_at(dst, i, self.0)
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {

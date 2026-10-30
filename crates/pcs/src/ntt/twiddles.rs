@@ -44,7 +44,7 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
 /// Additive NTT over F_{2^64} on the standard polynomial-basis subspace `{1, x, x^2, ...}`: the integers under
 /// their natural encoding.
 ///
-/// - It owns the rows of [`generate_evals_from_subspace`] and the byte tables built from them, so the twiddle of
+/// - It owns the rows of `generate_evals_from_subspace` and the byte tables built from them, so the twiddle of
 ///   every block at every layer.
 /// - The encodes (`encode.rs`), the layer sweeps (`layers.rs`) and the reads of rows an encode left out of its
 ///   codeword (`openings.rs`) are its methods.

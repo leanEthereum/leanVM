@@ -141,6 +141,7 @@ mod portable {
 
     /// Eight base-field elements, on a target without the wide multiplier.
     #[derive(Clone, Copy, Debug)]
+    #[repr(transparent)]
     pub struct F64x8([F64; 8]);
 
     // SAFETY: one field, an array of plain elements.
@@ -636,30 +637,22 @@ mod avx512 {
             out
         }
 
-        /// Element `i`, read from memory with scalar loads.
+        /// Element `i`, read from memory with scalar loads: `[c0, c1]` from its plane, `c2` from the third.
         #[inline]
         pub fn lane(&self, i: usize) -> F192 {
             assert!(i < 8);
-            let (qwords, at) = (core::ptr::from_ref(self).cast::<u64>(), 2 * (i / 2));
-            // SAFETY: the struct is three `repr(C)` planes of eight qwords, and `i < 8`.
-            unsafe {
-                let plane = qwords.add(8 * (i % 2));
-                F192::new(*plane.add(at), *plane.add(at + 1), *qwords.add(16 + i))
-            }
+            let q = crate::cast_slice::<Self, u64>(core::slice::from_ref(self));
+            let at = 8 * (i % 2) + 2 * (i / 2);
+            F192::new(q[at], q[at + 1], q[16 + i])
         }
 
         /// Overwrite element `i` with scalar stores.
         #[inline]
         pub fn set_lane(&mut self, i: usize, e: F192) {
             assert!(i < 8);
-            let (qwords, at) = (core::ptr::from_mut(self).cast::<u64>(), 2 * (i / 2));
-            // SAFETY: as in `lane`.
-            unsafe {
-                let plane = qwords.add(8 * (i % 2));
-                *plane.add(at) = e.c0;
-                *plane.add(at + 1) = e.c1;
-                *qwords.add(16 + i) = e.c2;
-            }
+            let q = crate::cast_slice_mut::<Self, u64>(core::slice::from_mut(self));
+            let at = 8 * (i % 2) + 2 * (i / 2);
+            (q[at], q[at + 1], q[16 + i]) = (e.c0, e.c1, e.c2);
         }
 
         /// The eight lane-wise products, unreduced: twelve carry-less multiplications.

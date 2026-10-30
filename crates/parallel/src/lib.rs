@@ -370,12 +370,20 @@ where
 /// slice. Composes to any number of buffers, which the zip-based helpers do not:
 /// a kernel writing four tables at two different widths builds one of these per
 /// table and indexes them all by the same item.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
 }
+
+// By hand: the derives would demand `T: Clone` and `T: Copy`.
+impl<T> Clone for Chunks<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<T> Copy for Chunks<T> {}
 
 impl<T> Chunks<T> {
     /// View `data` as `len.div_ceil(width)` chunks of `width` (the last shorter).

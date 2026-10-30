@@ -51,7 +51,7 @@ impl Codeword {
     }
 }
 
-/// The encodes: [`AdditiveNttF64::transform`] is the spine, a [`Plan`], gathered passes, a deep pass and a
+/// The encodes: `transform` is the spine, a [`Plan`], gathered passes, a deep pass and a
 /// hand-over, and the three public encodes differ in their source and in what they keep of the codeword.
 impl AdditiveNttF64 {
     /// RS-encode a message already stored in the codeword's first replica.
@@ -62,7 +62,7 @@ impl AdditiveNttF64 {
     /// - It is row-major: word `row * n + lane` for `n` interleaved lanes.
     /// - The buffer ends as `2^r` copies of it, each transformed from layer `r` on.
     ///
-    /// The replication is free: the first pass reads its rows from the message itself, see [`Self::transform`].
+    /// The replication is free: the first pass reads its rows from the message itself, see `transform`.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
         self.transform(
             &mut Window::new(data, num_ntts, 0),

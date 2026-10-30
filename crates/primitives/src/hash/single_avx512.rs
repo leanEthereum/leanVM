@@ -160,8 +160,7 @@ const X_MAPS: [[[u64; 8]; 5]; 24] = {
 
 #[inline(always)]
 fn indices(x: &[u64; 8]) -> __m512i {
-    // SAFETY: the array holds a full vector, and this module requires AVX-512F.
-    unsafe { _mm512_loadu_si512(x.as_ptr().cast()) }
+    crate::simd::load(x, 0)
 }
 
 #[inline(always)]
@@ -229,35 +228,32 @@ fn round<const P: usize>(mut s: [__m512i; 5], rc: u64) -> [__m512i; 5] {
 
 #[inline(never)]
 pub(super) fn permute(state: &mut [u64; 25]) {
-    // SAFETY: each masked access touches five lanes of the 25-lane state; AVX-512F is enabled.
-    unsafe {
-        let mut s = core::array::from_fn(|i| _mm512_maskz_loadu_epi64(0x1f, state.as_ptr().add(5 * i).cast()));
-        s = round::<0>(s, super::RC[0]);
-        s = round::<1>(s, super::RC[1]);
-        s = round::<2>(s, super::RC[2]);
-        s = round::<3>(s, super::RC[3]);
-        s = round::<4>(s, super::RC[4]);
-        s = round::<5>(s, super::RC[5]);
-        s = round::<6>(s, super::RC[6]);
-        s = round::<7>(s, super::RC[7]);
-        s = round::<8>(s, super::RC[8]);
-        s = round::<9>(s, super::RC[9]);
-        s = round::<10>(s, super::RC[10]);
-        s = round::<11>(s, super::RC[11]);
-        s = round::<12>(s, super::RC[12]);
-        s = round::<13>(s, super::RC[13]);
-        s = round::<14>(s, super::RC[14]);
-        s = round::<15>(s, super::RC[15]);
-        s = round::<16>(s, super::RC[16]);
-        s = round::<17>(s, super::RC[17]);
-        s = round::<18>(s, super::RC[18]);
-        s = round::<19>(s, super::RC[19]);
-        s = round::<20>(s, super::RC[20]);
-        s = round::<21>(s, super::RC[21]);
-        s = round::<22>(s, super::RC[22]);
-        s = round::<23>(s, super::RC[23]);
-        for i in 0..5 {
-            _mm512_mask_storeu_epi64(state.as_mut_ptr().add(5 * i).cast(), 0x1f, s[i]);
-        }
+    let mut s = core::array::from_fn(|i| crate::simd::load_prefix(&state[5 * i..], 0, 5));
+    s = round::<0>(s, super::RC[0]);
+    s = round::<1>(s, super::RC[1]);
+    s = round::<2>(s, super::RC[2]);
+    s = round::<3>(s, super::RC[3]);
+    s = round::<4>(s, super::RC[4]);
+    s = round::<5>(s, super::RC[5]);
+    s = round::<6>(s, super::RC[6]);
+    s = round::<7>(s, super::RC[7]);
+    s = round::<8>(s, super::RC[8]);
+    s = round::<9>(s, super::RC[9]);
+    s = round::<10>(s, super::RC[10]);
+    s = round::<11>(s, super::RC[11]);
+    s = round::<12>(s, super::RC[12]);
+    s = round::<13>(s, super::RC[13]);
+    s = round::<14>(s, super::RC[14]);
+    s = round::<15>(s, super::RC[15]);
+    s = round::<16>(s, super::RC[16]);
+    s = round::<17>(s, super::RC[17]);
+    s = round::<18>(s, super::RC[18]);
+    s = round::<19>(s, super::RC[19]);
+    s = round::<20>(s, super::RC[20]);
+    s = round::<21>(s, super::RC[21]);
+    s = round::<22>(s, super::RC[22]);
+    s = round::<23>(s, super::RC[23]);
+    for (i, &row) in s.iter().enumerate() {
+        crate::simd::store_prefix(&mut state[5 * i..], 0, 5, row);
     }
 }

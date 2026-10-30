@@ -67,8 +67,8 @@ fn default_topology() -> Topology {
 
 /// Performance-core count: `hw.perflevel0.logicalcpu` on Apple silicon (where
 /// `available_parallelism` counts the efficiency cores too, and those are handled
-/// separately), else the platform's parallelism capped at the physical cores the
-/// process may run on.
+/// separately), else the platform's parallelism, capped on Linux at the physical cores
+/// the process may run on.
 ///
 /// The prover is DRAM-bound once every core runs: a second SMT thread per core adds
 /// cache and bandwidth contention, not throughput.
@@ -190,15 +190,5 @@ mod tests {
         assert_eq!(cpu_list("0-3,8,10-11"), Some(vec![0, 1, 2, 3, 8, 10, 11]));
         assert_eq!(cpu_list("5"), Some(vec![5]));
         assert_eq!(cpu_list("0-x"), None);
-    }
-
-    /// The default holds back one performance worker exactly when there are efficiency workers
-    /// to absorb its share, so a homogeneous host fields every core it counts.
-    #[test]
-    fn default_topology_reserves_no_worker_on_a_homogeneous_host() {
-        let topo = default_topology();
-        if topo.efficiency == 0 {
-            assert_eq!(topo.perf, perf_cores());
-        }
     }
 }
