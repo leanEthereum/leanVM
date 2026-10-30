@@ -361,15 +361,6 @@ pub fn xor_into8(out: &mut [F192; 8], add: &[F192; 8]) {
     }
 }
 
-impl Prod8 {
-    /// The eight lane sums reduced separately, with the lane layout of [`mul_base_splat8`]:
-    /// element `i` of the result is the `i`-th product's sum.
-    #[inline]
-    pub fn reduce_each(self) -> [F192; 8] {
-        self.reduce_lanes().to_array()
-    }
-}
-
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 mod avx512 {
     use core::arch::x86_64::*;
@@ -894,7 +885,7 @@ mod tests {
             let mut per: Prod8 = mul_base_splat8(r, &k0);
             per ^= mul_base_splat8(x0[0], &k1);
             assert_eq!(
-                per.reduce_each(),
+                per.reduce_lanes().to_array(),
                 core::array::from_fn(|j| r.mul_base(k0[j]) + x0[0].mul_base(k1[j]))
             );
             let mut sum = x0;

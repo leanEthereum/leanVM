@@ -56,6 +56,8 @@ use super::whir::{ProverConfig, ProverData};
 
 mod basis;
 
+pub(crate) use basis::Terms;
+
 // ---------------------------------------------------------------------------
 // Claim types
 // ---------------------------------------------------------------------------
@@ -206,7 +208,7 @@ pub fn open_batch_mixed_whir_stacked(
     let lane_vars = log_n - config.initial_k;
     let rings: Vec<_> = rs_outputs.into_iter().map(|output| output.weight).collect();
     let initial_basis = tracing::info_span!("Basis")
-        .in_scope(|| basis::project(&stack, lane_vars, point_claims, lambdas_pd, ring, &rings));
+        .in_scope(|| basis::initial_basis(&stack, lane_vars, point_claims, lambdas_pd, ring, &rings));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    prover takes the stack; no copy).
@@ -347,7 +349,7 @@ mod tests {
                 }
 
                 let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
-                let projected = basis::project(&stack, lane_vars, &claims, &lambdas, &ring, &rings);
+                let projected = basis::initial_basis(&stack, lane_vars, &claims, &lambdas, &ring, &rings);
                 let target = rng.ext();
                 let (mut prover, msg) = SumcheckProver::new(stack.clone(), projected, target, lane_block);
                 let context =

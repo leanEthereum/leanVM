@@ -23,6 +23,7 @@
 
 use crate::merkle::{self, Hash};
 use crate::ntt::{AdditiveNttF64, Encoded, Keep, Kept, Plan, gather_rows};
+use crate::stack_open::Terms;
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{
@@ -472,51 +473,29 @@ pub(crate) fn adjacent_dots<const ODD: bool>(f: &[F192], b: &[F192]) -> (Acc8, A
     (u_0, u_2, odd)
 }
 
-/// Round message over a witness `f` and a basis `b`.
-///
-/// Deferred reduction: XOR-accumulate the raw lane products (no reduction tail
-/// per term) and reduce once per accumulator. Reduction commutes with XOR, so
-/// the message is bit-identical to reducing every term.
-fn round_msg_lsb(f: &[F192], b: &[F192]) -> SumcheckMessage {
+/// The round message of `f` against `b`, and with `EVAL` their inner product: for an OOD basis
+/// `b = eq(z, ·)`, the claimed MLE evaluation.
+fn round_msg_lsb<const EVAL: bool>(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
 
     // `ROUND_CHUNK` is even, so no pair straddles two tasks.
-    let task = |c: usize| {
+    let dots = |c: usize| {
         let at = c * ROUND_CHUNK..(c * ROUND_CHUNK + ROUND_CHUNK).min(n);
-        let (u_0, u_2, _) = adjacent_dots::<false>(&f[at.clone()], &b[at]);
-        (u_0, u_2)
+        adjacent_dots::<EVAL>(&f[at.clone()], &b[at])
     };
-    let (u_0, u_2) = accumulate_msg(n.div_ceil(ROUND_CHUNK), n / 2, task);
-    SumcheckMessage {
-        u_0: u_0.reduce(),
-        u_2: u_2.reduce(),
-    }
-}
-
-/// Build the round message and the full inner product in one pass. For an OOD
-/// basis `b = eq(z, ·)`, the inner product is the claimed MLE evaluation.
-fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192) {
-    let n = f.len();
-    debug_assert!(n.is_power_of_two() && n >= 2);
-    debug_assert_eq!(b.len(), n);
-
-    let dots = |at: std::ops::Range<usize>| adjacent_dots::<true>(&f[at.clone()], &b[at]);
+    let add = |(mut a0, mut a2, mut ao): (Acc8, Acc8, Acc8), (c0, c2, co): (Acc8, Acc8, Acc8)| {
+        a0 ^= c0;
+        a2 ^= c2;
+        ao ^= co;
+        (a0, a2, ao)
+    };
+    let (n_tasks, zero) = (n.div_ceil(ROUND_CHUNK), (Acc8::ZERO, Acc8::ZERO, Acc8::ZERO));
     let (u_0, u_2, odd) = if n / 2 < PAR_THRESHOLD {
-        dots(0..n)
+        (0..n_tasks).map(dots).fold(zero, add)
     } else {
-        parallel::map_reduce(
-            n.div_ceil(ROUND_CHUNK),
-            || (Acc8::ZERO, Acc8::ZERO, Acc8::ZERO),
-            |c| dots(c * ROUND_CHUNK..(c * ROUND_CHUNK + ROUND_CHUNK).min(n)),
-            |(mut a0, mut a2, mut ao), (b0, b2, bo)| {
-                a0 ^= b0;
-                a2 ^= b2;
-                ao ^= bo;
-                (a0, a2, ao)
-            },
-        )
+        parallel::map_reduce(n_tasks, || zero, dots, add)
     };
     let mut y = u_0;
     y ^= odd;
@@ -617,39 +596,9 @@ const PAR_THRESHOLD: usize = 4096;
 /// Elements per task wherever a round is chunked.
 const ROUND_CHUNK: usize = 2048;
 
-/// Sum the per-task `(u_0, u_2)` accumulators, sequentially for the small
-/// instances where dispatch costs more than the work. Unreduced accumulators
+/// Sum the per-task `(u_0, u_2)` accumulators of `task(i, ..)`, which fills chunk `i` of two output tables,
+/// sequentially for the small instances where dispatch costs more than the work. Unreduced accumulators
 /// combine by XOR and `reduce` is linear, so both paths land on the same message.
-#[inline]
-pub(crate) fn accumulate_msg(
-    n_tasks: usize,
-    n_pairs: usize,
-    task: impl Fn(usize) -> (Acc8, Acc8) + Sync,
-) -> (Acc8, Acc8) {
-    if n_pairs < PAR_THRESHOLD {
-        let mut u_0 = Acc8::ZERO;
-        let mut u_2 = Acc8::ZERO;
-        for t in 0..n_tasks {
-            let (t0, t2) = task(t);
-            u_0 ^= t0;
-            u_2 ^= t2;
-        }
-        (u_0, u_2)
-    } else {
-        parallel::map_reduce(
-            n_tasks,
-            || (Acc8::ZERO, Acc8::ZERO),
-            task,
-            |(mut a0, mut a2), (c0, c2)| {
-                a0 ^= c0;
-                a2 ^= c2;
-                (a0, a2)
-            },
-        )
-    }
-}
-
-/// [`accumulate_msg`] over the chunks of two output tables, which `task(i, ..)` fills.
 #[inline]
 fn accumulate_msg_chunks(
     f: &mut [F192],
@@ -757,29 +706,18 @@ fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
     out
 }
 
-/// Builds block `h` of the weight over a lane block after every lane round from the witness block `f`, and
-/// returns the unreduced message terms of `f` against it.
-pub(crate) type LiftBlock<'a> = Box<dyn Fn(usize, &[F192], &mut [F192]) -> (Acc8, Acc8) + Sync + 'a>;
-
-/// The weight over one lane block after every lane round, rebuilt from the term table's last row.
-pub(crate) trait LaneLift {
-    /// The per-block body for the table row `a`. A block is `2^low_vars` words, the length of the
-    /// `f` and `out` it is given.
-    fn blocks<'a>(&'a self, a: &[F192]) -> LiftBlock<'a>;
-}
-
 /// The basis the sumcheck starts from: the weight as terms, `b(l, x) = sum_t a[l][t] * K_t(x)`,
 /// so that for any two lanes `sum_x f(l, x) * b(l', x) = sum_t p[l][t] * a[l'][t]`, with
-/// `p[l][t] = sum_x f(l, x) * K_t(x)`. Both tables are lane-major with `block` terms per lane,
+/// `p[l][t] = sum_x f(l, x) * K_t(x)`. Both tables are lane-major with `n_terms` terms per lane,
 /// and the lane rounds run on them in place of the witness and the weight. `lift` rebuilds the
-/// weight after the last one.
+/// weight after the last one, a block of `lift_len` words at a time.
 pub(crate) struct InitialBasis {
     pub(crate) p: Vec<F192>,
     pub(crate) a: Vec<F192>,
-    pub(crate) block: usize,
+    pub(crate) n_terms: usize,
     /// Words of a block the lift takes.
     pub(crate) lift_len: usize,
-    pub(crate) lift: Box<dyn LaneLift>,
+    pub(crate) lift: Terms,
 }
 
 /// `out[i] = fold_pair(x0[i], x1[i], r)`, eight at a time where the multiplier is wide.
@@ -838,7 +776,7 @@ fn lane_sums<'a>(out: &mut [F192], lanes: impl Iterator<Item = (F192, &'a [F64],
             }
         }
         for (o, a) in out.iter_mut().zip(&acc) {
-            *o = a.reduce_each();
+            *o = a.reduce_lanes().to_array();
         }
     }
 }
@@ -866,10 +804,10 @@ fn prefetch_l2(words: &[F64], at: usize) {
 /// stream out.
 fn fold_all_lanes(
     base: &[F64],
-    block: usize,
+    lane_block: usize,
     rs: &[F192],
-    run: usize,
-    lift: &LiftBlock,
+    lift_len: usize,
+    lift: &(impl Fn(usize, &[F192], &mut [F192]) -> (Acc8, Acc8) + Sync),
 ) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     const TASK: usize = 32;
     let weights = primitives::multilinear::eq_table(rs);
@@ -877,32 +815,32 @@ fn fold_all_lanes(
     // Every task streams each of its output blocks below.
     // SAFETY: the fill writes every element before it reads any.
     let [f, b] = unsafe {
-        primitives::filled_vecs([block; 2], |[f, b]| {
-            sums = accumulate_msg_chunks(f, b, TASK * run, |c, f_out, b_out| {
-                let out_blocks = f_out.len() / run;
+        primitives::filled_vecs([lane_block; 2], |[f, b]| {
+            sums = accumulate_msg_chunks(f, b, TASK * lift_len, |c, f_out, b_out| {
+                let out_blocks = f_out.len() / lift_len;
                 // The witness block and the weight block stay in L1 and L2; the outputs take only streaming stores,
                 // so they are never fetched.
-                let mut acc = vec![F192::ZERO; run];
-                let mut weight = vec![F192::ZERO; run];
+                let mut acc = vec![F192::ZERO; lift_len];
+                let mut weight = vec![F192::ZERO; lift_len];
                 let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
                 let stream = primitives::stream::Stream::new();
                 for i in 0..out_blocks {
                     let h = c * TASK + i;
-                    let lanes = base.chunks_exact(block).enumerate().map(|(l, lane)| {
+                    let lanes = base.chunks_exact(lane_block).enumerate().map(|(l, lane)| {
                         // The lane's next block, when this task reads it.
                         let next = if i + 1 < out_blocks {
-                            &lane[(h + 1) * run..(h + 2) * run]
+                            &lane[(h + 1) * lift_len..(h + 2) * lift_len]
                         } else {
                             &[][..]
                         };
-                        (weights[l], &lane[h * run..(h + 1) * run], next)
+                        (weights[l], &lane[h * lift_len..(h + 1) * lift_len], next)
                     });
                     lane_sums(&mut acc, lanes);
                     let (t_0, t_2) = lift(h, &acc, &mut weight);
                     u_0 ^= t_0;
                     u_2 ^= t_2;
-                    stream.copy(&mut f_out[i * run..][..run], &acc);
-                    stream.copy(&mut b_out[i * run..][..run], &weight);
+                    stream.copy(&mut f_out[i * lift_len..][..lift_len], &acc);
+                    stream.copy(&mut b_out[i * lift_len..][..lift_len], &weight);
                 }
                 (u_0, u_2)
             });
@@ -926,13 +864,13 @@ pub(crate) struct SumcheckProver {
     /// `glue_pending(lambda)` folds each claim introduced since the last glue in as
     /// `combined_basis += lambda^tau * b_new`, `tau` counting from 1 (the running claim is `tau = 0`).
     combined_basis: Vec<F192>,
-    /// Elements of a lane block of the tables, and of the committed lanes.
-    block: usize,
+    /// Terms per lane of the tables, and words of a lane block of the committed lanes.
+    n_terms: usize,
     lane_block: usize,
     /// Words of a block the lift takes.
     lift_len: usize,
     /// Taken by the last lane round.
-    lift: Option<Box<dyn LaneLift>>,
+    lift: Option<Terms>,
     /// The lane challenges so far.
     lane_rs: Vec<F192>,
     /// The running claim and its quadratic; `h(0) + h(1) = t_r` fixes the linear coefficient.
@@ -945,27 +883,27 @@ pub(crate) struct SumcheckProver {
 }
 
 impl SumcheckProver {
-    /// `lane_block` is the lane block size `2^(log_n - initial_k)` of the committed lanes `f`: the
+    /// `lane_block` is the lane block size `2^(log_n - initial_k)` of the committed lanes `stack`: the
     /// first `initial_k` rounds are the lane fold, so round 0's message already pairs whole
     /// blocks of the tables rather than adjacent words.
-    pub(crate) fn new(f: Vec<F64>, b1: InitialBasis, h1: F192, lane_block: usize) -> (Self, SumcheckMessage) {
-        let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = f.len().ilog2()).entered();
-        assert!(lane_block > 0 && f.len().is_multiple_of(lane_block));
+    pub(crate) fn new(stack: Vec<F64>, b1: InitialBasis, h1: F192, lane_block: usize) -> (Self, SumcheckMessage) {
+        let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = stack.len().ilog2()).entered();
+        assert!(lane_block > 0 && stack.len().is_multiple_of(lane_block));
         let InitialBasis {
             p,
             a,
-            block,
+            n_terms,
             lift_len,
             lift,
         } = b1;
-        assert_eq!(p.len(), f.len() / lane_block * block);
+        assert_eq!(p.len(), stack.len() / lane_block * n_terms);
         assert!(lane_block.is_multiple_of(lift_len));
-        let msg = round_msg_blocks(&p, &a, block);
+        let msg = round_msg_blocks(&p, &a, n_terms);
         let inst = Self {
-            base: f,
+            base: stack,
             f: p,
             combined_basis: a,
-            block,
+            n_terms,
             lane_block,
             lift_len,
             lift: Some(lift),
@@ -996,8 +934,8 @@ impl SumcheckProver {
         let _span =
             tracing::info_span!("Sumcheck round", round = self.round, log_size = self.f.len().ilog2()).entered();
         self.lane_rs.push(r);
-        self.f = fold_blocks(&self.f, self.block, r);
-        self.combined_basis = fold_blocks(&self.combined_basis, self.block, r);
+        self.f = fold_blocks(&self.f, self.n_terms, r);
+        self.combined_basis = fold_blocks(&self.combined_basis, self.n_terms, r);
         let msg = if last {
             let lift = self.lift.take().expect("the lift is taken by the last lane round only");
             let blocks = lift.blocks(&self.combined_basis);
@@ -1005,7 +943,7 @@ impl SumcheckProver {
             (self.f, self.combined_basis) = (f, b);
             msg
         } else {
-            round_msg_blocks(&self.f, &self.combined_basis, self.block)
+            round_msg_blocks(&self.f, &self.combined_basis, self.n_terms)
         };
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
@@ -1036,7 +974,7 @@ impl SumcheckProver {
     /// (u_0, u_2) for `Σ_x f(x) · b_new(x)` at the current dim.
     fn introduce_new(&mut self, b_new: Vec<F192>, h_new: F192) -> SumcheckMessage {
         assert_eq!(b_new.len(), self.f.len());
-        let msg = round_msg_lsb(&self.f, &b_new);
+        let (msg, _) = round_msg_lsb::<false>(&self.f, &b_new);
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         msg
     }
@@ -1046,7 +984,7 @@ impl SumcheckProver {
     fn introduce_ood(&mut self, z: &[F192]) -> (SumcheckMessage, F192) {
         assert_eq!(1 << z.len(), self.f.len());
         let b_new = build_eq_table_ext_parallel(z);
-        let (msg, h_new) = round_msg_and_eval_lsb_ext(&self.f, &b_new);
+        let (msg, h_new) = round_msg_lsb::<true>(&self.f, &b_new);
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         (msg, h_new)
     }
@@ -1577,9 +1515,13 @@ mod tests {
         for log in [1usize, 2, 3, 4, 5, 6, 8, 12, 13, 14] {
             let n = 1usize << log;
             let (f, b) = (rng.ext_vec(n), rng.ext_vec(n));
-            assert_eq!(round_msg_lsb(&f, &b), msg_ref(&f, &b), "round_msg_lsb, n={n}");
+            assert_eq!(
+                round_msg_lsb::<false>(&f, &b).0,
+                msg_ref(&f, &b),
+                "round_msg_lsb, n={n}"
+            );
 
-            let (msg, y) = round_msg_and_eval_lsb_ext(&f, &b);
+            let (msg, y) = round_msg_lsb::<true>(&f, &b);
             assert_eq!(msg, msg_ref(&f, &b), "eval message, n={n}");
             assert_eq!(
                 y,

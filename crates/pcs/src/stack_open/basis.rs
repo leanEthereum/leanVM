@@ -20,7 +20,7 @@ use primitives::field::{Acc8, F64, F192, F192x8, Weights8, dot_base, msg_lone8_e
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{RingWeight, coordinate_basis};
 use crate::tensor_algebra::{DEGREE_E, transpose_s_hat};
-use crate::whir::{InitialBasis, LaneLift, LiftBlock, adjacent_dots};
+use crate::whir::{InitialBasis, adjacent_dots};
 
 /// Bits of a block's low part.
 pub(super) const LOW_VARS: usize = 10;
@@ -74,14 +74,8 @@ fn table(factors: &[Factor]) -> Vec<F192> {
     out
 }
 
-/// A claim's factors on the low `bits` bits of the stack index.
-fn claim_factors(claim: &StackClaim, bits: usize) -> Vec<Factor> {
-    let StackClaim::Point { offset, low_point, .. } = claim;
-    ring_factors(low_point, *offset, bits)
-}
-
-/// A ring claim's factors on the low `bits` bits of the stack index.
-fn ring_factors(point: &[F192], offset: usize, bits: usize) -> Vec<Factor> {
+/// The factors on the low `bits` bits of the stack index of a claim at `point`, placed at `offset`.
+fn point_factors(point: &[F192], offset: usize, bits: usize) -> Vec<Factor> {
     (0..bits)
         .map(|b| match point.get(b) {
             Some(&p) => Factor::Eq(p),
@@ -133,7 +127,7 @@ struct Ring {
 }
 
 /// The factored terms of the opening's weight.
-struct Terms {
+pub(crate) struct Terms {
     /// Bits of a lane block.
     lane_vars: usize,
     /// Bits of a block's low part.
@@ -239,13 +233,17 @@ impl Terms {
     }
 }
 
-impl LaneLift for Terms {
+impl Terms {
+    /// The weight over one lane block after every lane round, rebuilt from the term table's last row `a`, as
+    /// the body of block `h` of `2^low_vars` words: it builds the block of the weight for the witness block
+    /// `f` in `out`, and returns the unreduced message terms of `f` against it.
+    ///
     /// `b[h * 2^m + x] = sum_claims A[c] * gamma_c(h) * pi_c(x) + sum_rings Phi'(e(x))`, where
     /// `Phi'` weighs the ring's coordinates by its 192 terms of `a`, and the message of `f` against `b`.
     ///
     /// The setup is each pattern's weight on each block, `sum_c a[c] * gamma_c(h)` over its claims, and the
     /// ring weights. A block is built in the caller's buffer, and the dense patterns share one reduction per vector.
-    fn blocks<'a>(&'a self, a: &[F192]) -> LiftBlock<'a> {
+    pub(crate) fn blocks(&self, a: &[F192]) -> impl Fn(usize, &[F192], &mut [F192]) -> (Acc8, Acc8) + Sync + '_ {
         let block = 1usize << self.low_vars;
         let rings: Vec<_> = self
             .rings
@@ -271,7 +269,7 @@ impl LaneLift for Terms {
                 });
             })
         };
-        Box::new(move |h, f, out| {
+        move |h, f, out| {
             let live = || {
                 self.patterns
                     .iter()
@@ -292,14 +290,14 @@ impl LaneLift for Terms {
             }
             let (u_0, u_2, _) = adjacent_dots::<false>(f, out);
             (u_0, u_2)
-        })
+        }
     }
 }
 
 /// The opening's weight as terms: its table `P` against the stack, its table `A`, and the lift of `A`'s last row.
 ///
 /// Every claim must lie inside the stack, and `lane_vars` must be at least 6.
-pub(super) fn project(
+pub(super) fn initial_basis(
     stack: &[F64],
     lane_vars: usize,
     claims: &[StackClaim],
@@ -334,7 +332,8 @@ pub(super) fn project(
     // The claims' lane weights, then the rings', each `1 << lane_bits` long.
     let mut lanes: Vec<F192> = Vec::new();
     for (c, claim) in claims.iter().enumerate() {
-        let factors = claim_factors(claim, bits);
+        let StackClaim::Point { offset, low_point, .. } = claim;
+        let factors = point_factors(low_point, *offset, bits);
         let (low, rest) = factors.split_at(low_vars);
         let (mid, lane) = rest.split_at(lane_vars - low_vars);
         extend_table(&mut terms.gamma, mid);
@@ -365,7 +364,7 @@ pub(super) fn project(
             .collect();
     }
     for (i, weight) in rings.iter().enumerate() {
-        let factors = ring_factors(weight.point(), ring.offset, bits);
+        let factors = point_factors(weight.point(), ring.offset, bits);
         let (low, rest) = factors.split_at(low_vars);
         let (mid, lane) = rest.split_at(lane_vars - low_vars);
         terms.rings.push(Ring {
@@ -398,8 +397,8 @@ pub(super) fn project(
     InitialBasis {
         p,
         a,
-        block: n_terms,
+        n_terms,
         lift_len: 1 << low_vars,
-        lift: Box::new(terms),
+        lift: terms,
     }
 }
