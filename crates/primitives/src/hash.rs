@@ -490,7 +490,6 @@ mod x86 {
 #[cfg(target_arch = "aarch64")]
 mod arm {
     use super::Lanes64;
-    use crate::{load_at, store_at};
     use core::arch::aarch64::*;
 
     /// NEON: two lanes. With the SHA3 extension, χ is one `BCAX`, the column
@@ -503,11 +502,15 @@ mod arm {
 
         #[inline(always)]
         fn load(src: &[u64], i: usize) -> Self {
-            Self(load_at(src, i))
+            let words: &[u64; 2] = src[i..i + 2].try_into().unwrap();
+            // SAFETY: `words` is two readable words, and NEON is in the aarch64 baseline.
+            Self(unsafe { vld1q_u64(words.as_ptr()) })
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64], i: usize) {
-            store_at(dst, i, self.0)
+            let words: &mut [u64; 2] = (&mut dst[i..i + 2]).try_into().unwrap();
+            // SAFETY: `words` is two writable words, and NEON is in the aarch64 baseline.
+            unsafe { vst1q_u64(words.as_mut_ptr(), self.0) }
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
