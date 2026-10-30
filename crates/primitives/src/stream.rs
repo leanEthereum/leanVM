@@ -42,6 +42,25 @@ impl Stream {
         // SAFETY: forwarded to the caller's obligation.
         unsafe { copy_raw(dst.cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
+
+    /// Copy one value to `dst`, which must not be fetched first: streamed when it is whole, aligned cache
+    /// lines, a compile-time fact that leaves no head or tail to store normally, and stored normally otherwise.
+    ///
+    /// # Safety
+    /// `dst` must be valid, aligned for `T` and disjoint from `src`.
+    #[inline(always)]
+    pub unsafe fn copy_lines<T: Copy>(&self, dst: *mut T, src: &T) {
+        // The non-temporal stores need whole, line-aligned lines; a value shaped otherwise,
+        // and every target without them, takes the ordinary store.
+        #[cfg(target_arch = "x86_64")]
+        if const { align_of::<T>() >= 64 && size_of::<T>().is_multiple_of(64) } {
+            // SAFETY: both pointers cover `size_of::<T>()` bytes, `dst` is line-aligned, and they do not overlap.
+            unsafe { stream_lines(dst.cast(), core::ptr::from_ref(src).cast(), size_of::<T>()) };
+            return;
+        }
+        // SAFETY: `dst` is valid and aligned for `T`, and disjoint from `src`.
+        unsafe { dst.write(*src) };
+    }
 }
 
 /// # Safety
@@ -85,7 +104,7 @@ impl Drop for Stream {
 /// Both pointers must be valid for `bytes`, `dst` 64-byte aligned, and the
 /// ranges must not overlap.
 #[cfg(target_arch = "x86_64")]
-#[inline]
+#[inline(always)]
 unsafe fn stream_lines(dst: *mut u8, src: *const u8, bytes: usize) {
     use core::arch::x86_64::*;
     unsafe {

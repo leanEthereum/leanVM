@@ -3,7 +3,7 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Reed-Solomon encoding over `E = GF(2^192)` with base-field twiddles.
+//! E slices as K words, so that an E encode is the base transform over three times the lanes.
 //!
 //! Deeper WHIR levels encode an E-valued, folded witness on the same K-domain.
 //!
@@ -21,49 +21,26 @@
 //!
 //! Every butterfly acts on each coefficient alone, so the encode runs as the base transform over `3n` lanes.
 
-use crate::ntt::{AdditiveNttF64, RowSink};
 use primitives::field::{F64, F192};
 
 // An E element is exactly three K words, with no padding, so the two views line up.
 const _: () = assert!(size_of::<F192>() == 3 * size_of::<F64>());
 const _: () = assert!(align_of::<F192>() == align_of::<F64>());
 
-/// RS-encode a row-major E-valued message into a codeword, overwriting all of it.
-///
-/// - The codeword is `2^r` copies of the message, each transformed from layer `r` on.
-/// - Here `r` is the log inverse rate.
-/// - The codeword may start uninitialized.
-/// - `on_rows` gets every finished block of rows, as K words.
-///
-/// # Panics
-///
-/// Panics unless the lane count is a power of two.
-pub(crate) fn encode_interleaved_ext(
-    ntt: &AdditiveNttF64,
-    mat: &mut [F192],
-    msg: &[F192],
-    num_ntts: usize,
-    log_inv_rate: usize,
-    on_rows: &RowSink<'_>,
-) {
-    assert!(num_ntts.is_power_of_two());
-    // View both buffers as K words: each row of n E lanes becomes 3n K lanes.
-    //
-    // SAFETY:
-    // - An E element is laid out as three K words, and a K element as one word.
-    // - So each view covers exactly the same memory as the slice it came from.
-    let (mat, msg) = unsafe {
-        (
-            std::slice::from_raw_parts_mut(mat.as_mut_ptr().cast::<F64>(), 3 * mat.len()),
-            std::slice::from_raw_parts(msg.as_ptr().cast::<F64>(), 3 * msg.len()),
-        )
-    };
-    ntt.encode_interleaved_with(mat, msg, 3 * num_ntts, log_inv_rate, on_rows);
+/// A slice of E elements as its K words, shared.
+pub(crate) fn words(v: &[F192]) -> &[F64] {
+    primitives::cast_slice(v)
+}
+
+/// A slice of E elements as its K words.
+pub(crate) fn words_mut(v: &mut [F192]) -> &mut [F64] {
+    primitives::cast_slice_mut(v)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ntt::{AdditiveNttF64, Codeword};
     use primitives::log2_strict_usize;
     use primitives::test_rng::Rng;
 
@@ -123,10 +100,12 @@ mod tests {
             // Reference: 2^rate explicit copies, then the E-valued transform from the rate layer.
             let mut want: Vec<F192> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
             forward_scalar(&ntt, &mut want, lanes, rate);
-            // Under test: a zeroed codeword, filled by the encode alone.
-            let mut got = vec![F192::ZERO; want.len()];
-            encode_interleaved_ext(&ntt, &mut got, &msg, lanes, rate, &|_, _| {});
-            assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={rate}");
+            // Under test: the encode of the message held apart.
+            let codeword = ntt.encode_interleaved_with(words(&msg), 3 * lanes, rate, false, &|_, _| {});
+            let Codeword::Whole(got, _) = codeword else {
+                panic!("an encode not asked to defer keeps its codeword whole")
+            };
+            assert_eq!(got, words(&want), "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }
 }

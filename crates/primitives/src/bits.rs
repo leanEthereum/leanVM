@@ -68,14 +68,11 @@ fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
 #[target_feature(enable = "avx512f,avx512vbmi,gfni")]
-unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
-    use core::arch::x86_64::*;
+#[inline]
+fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
+    use crate::simd::{load, store};
 
-    // SAFETY: each load and store is one 64-byte array.
-    unsafe {
-        let rows = bit_transpose_64bytes_m512(_mm512_loadu_si512(input.as_ptr().cast()));
-        _mm512_storeu_si512(output.as_mut_ptr().cast(), rows);
-    }
+    store(output, 0, bit_transpose_64bytes_m512(load(input, 0)));
 }
 
 /// [`bit_transpose_64bytes`] in a register.
@@ -89,6 +86,8 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
 /// ```
 ///
 /// With constant byte `j = 1 << j`, that is bit `j` of `A`'s byte `7 - i`: the reversal undoes it.
+///
+/// The cfg gate guarantees `avx512f`, `avx512vbmi` and `gfni` at compile time.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
 #[inline(always)]
 pub fn bit_transpose_64bytes_m512(input: core::arch::x86_64::__m512i) -> core::arch::x86_64::__m512i {
@@ -116,15 +115,17 @@ pub fn bit_transpose_64bytes_m512(input: core::arch::x86_64::__m512i) -> core::a
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
-    use core::arch::aarch64::*;
-
+    // SAFETY: the module's cfg enables the NEON features this body uses.
     unsafe {
-        let in_ptr = input.as_ptr();
-        let v0 = vld1q_u8(in_ptr);
-        let v1 = vld1q_u8(in_ptr.add(16));
-        let v2 = vld1q_u8(in_ptr.add(32));
-        let v3 = vld1q_u8(in_ptr.add(48));
-        let table = uint8x16x4_t(v0, v1, v2, v3);
+        use crate::{load_at, store_at};
+        use core::arch::aarch64::*;
+
+        let table = uint8x16x4_t(
+            load_at(input, 0),
+            load_at(input, 16),
+            load_at(input, 32),
+            load_at(input, 48),
+        );
 
         // vqtbl4q indexes that bring bytes belonging to byte-chunk b ∈ 0..8
         // into contiguous 8-byte runs, packed two-chunks-per-Q-reg.
@@ -133,10 +134,10 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
         const IDX2: [u8; 16] = [4, 12, 20, 28, 36, 44, 52, 60, 5, 13, 21, 29, 37, 45, 53, 61];
         const IDX3: [u8; 16] = [6, 14, 22, 30, 38, 46, 54, 62, 7, 15, 23, 31, 39, 47, 55, 63];
 
-        let mut y0 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX0.as_ptr())));
-        let mut y1 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX1.as_ptr())));
-        let mut y2 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX2.as_ptr())));
-        let mut y3 = vreinterpretq_u64_u8(vqtbl4q_u8(table, vld1q_u8(IDX3.as_ptr())));
+        let mut y0 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX0, 0)));
+        let mut y1 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX1, 0)));
+        let mut y2 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX2, 0)));
+        let mut y3 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX3, 0)));
 
         let mask1 = vdupq_n_u64(0x00AA00AA00AA00AA);
         let mask2 = vdupq_n_u64(0x0000CCCC0000CCCC);
@@ -172,11 +173,10 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
         y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<28>(t2)));
         y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<28>(t3)));
 
-        let out_ptr = output.as_mut_ptr();
-        vst1q_u8(out_ptr, vreinterpretq_u8_u64(y0));
-        vst1q_u8(out_ptr.add(16), vreinterpretq_u8_u64(y1));
-        vst1q_u8(out_ptr.add(32), vreinterpretq_u8_u64(y2));
-        vst1q_u8(out_ptr.add(48), vreinterpretq_u8_u64(y3));
+        store_at(output, 0, vreinterpretq_u8_u64(y0));
+        store_at(output, 16, vreinterpretq_u8_u64(y1));
+        store_at(output, 32, vreinterpretq_u8_u64(y2));
+        store_at(output, 48, vreinterpretq_u8_u64(y3));
     }
 }
 

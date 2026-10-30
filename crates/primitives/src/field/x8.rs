@@ -18,6 +18,9 @@ use super::gf2_64x3::x86_64::{fold, reduce_halves512};
 #[repr(C, align(64))]
 pub struct F192x8([__m512i; 3]);
 
+// SAFETY: three `__m512i`, plain data with no padding.
+unsafe impl crate::Plain for F192x8 {}
+
 /// The sum over lanes of unreduced products, as four 128-bit partials per coefficient.
 #[derive(Clone, Copy, Debug)]
 pub struct Sum8([__m512i; 3]);
@@ -262,7 +265,8 @@ impl Mul for F192x8 {
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
         let (even, odd) = self.products(rhs);
-        Self(std::array::from_fn(|k| reduce_halves512(even[k], odd[k])))
+        // SAFETY: the module's cfg enables avx512f and vpclmulqdq, and `f192x8` requires avx512bw with them.
+        Self(std::array::from_fn(|k| unsafe { reduce_halves512(even[k], odd[k]) }))
     }
 }
 
@@ -366,7 +370,10 @@ impl Mixed8 {
 
     #[inline(always)]
     pub fn reduce(self) -> F192x8 {
-        F192x8(std::array::from_fn(|i| reduce_halves512(self.even[i], self.odd[i])))
+        // SAFETY: the module's cfg enables avx512f and vpclmulqdq, and `f192x8` requires avx512bw with them.
+        F192x8(std::array::from_fn(|i| unsafe {
+            reduce_halves512(self.even[i], self.odd[i])
+        }))
     }
 }
 

@@ -49,7 +49,7 @@
 //!    `rs_eq_ind[y] = Phi(eq(r_suffix, y))` where `Phi : E -> E` is the
 //!    composed map above. Completeness:
 //!    `sum_y rs_eq_ind[y] * packed[y] == sumcheck_claim`, which is exactly
-//!    the claim shape [`super::whir::recursive_prover_with_basis`]
+//!    the claim shape [`super::stack_open::open_batch_mixed_whir_stacked`]
 //!    proves (with `b_initial = rs_eq_ind`, `target = sumcheck_claim`).
 //!    A nonzero discrepancy gives a nonzero polynomial in the six challenges;
 //!    its total degree is below `2^32`, hence its failure probability is below
@@ -57,14 +57,16 @@
 //!
 //! ## Building `rs_eq_ind`
 //!
-//! The prover keeps the equality tensor factored, folds each claim into a
-//! small byte table, and combines the claims directly into one dense PCS
-//! weight. It never materializes a dense vector per claim. A verifier never
+//! The prover keeps each claim as its point and its map, and the opening's
+//! basis (`stack_open::basis`) folds them into its terms, so no dense weight is
+//! ever built, per claim or combined. A verifier never
 //! builds the vector at all: it evaluates its MLE at the WHIR final point from
 //! `Phi`'s challenges.
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F64, F192};
+use primitives::bit_fold::{BLOCK, BitFold};
+use primitives::field::xor_into8;
+use primitives::field::{F64, F192, mul4};
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
@@ -126,15 +128,8 @@ pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
 pub fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
-    // b_w has only bit w set: bits 0..64 are K's power basis, and bits 64/128
-    // shift it by Y / Y^2.
-    let basis = |w: usize| match w / PACKING_WIDTH {
-        0 => F192::new(1u64 << (w % PACKING_WIDTH), 0, 0),
-        1 => F192::new(0, 1u64 << (w % PACKING_WIDTH), 0),
-        _ => F192::new(0, 0, 1u64 << (w % PACKING_WIDTH)),
-    };
     (0..DEGREE_E)
-        .map(|w| apply_composed_map(basis(w), challenges))
+        .map(|w| apply_composed_map(coordinate_basis(w), challenges))
         .collect()
 }
 
@@ -204,7 +199,6 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
 /// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
 ///
 /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
-/// See [`fold_ext_elems`] for the bytewise-table production version.
 #[cfg(test)]
 pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
     assert_eq!(coordinate_weights.len(), DEGREE_E);
@@ -233,68 +227,132 @@ pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192])
     })
 }
 
-/// Number of bytes in an E element (= lookup tables for the fold).
-const FOLD_N_BYTES: usize = 24;
-/// Entries per byte-lookup table.
-const FOLD_TABLE_SIZE: usize = 256;
-
-/// Build the 24x256 byte-lookup table for [`fold_ext_elems`]:
-/// `table[k * 256 + v] = sum_{bit b set in v} coordinate_weights[k * 8 + b]`.
-/// Byte order: bytes 0..8 are the little-endian bytes of `c0` (bits 0..64),
-/// bytes 8..16 those of `c1` (bits 64..128), and bytes 16..24 those of `c2`.
-fn build_fold_byte_table_ext(coordinate_weights: &[F192]) -> Box<FoldByteTable> {
-    assert_eq!(coordinate_weights.len(), DEGREE_E);
-    let mut tables: Box<FoldByteTable> = Box::new([[F192::ZERO; FOLD_TABLE_SIZE]; FOLD_N_BYTES]);
-    for byte_idx in 0..FOLD_N_BYTES {
-        let bit_base = byte_idx * 8;
-        for value in 0..FOLD_TABLE_SIZE {
-            let mut acc = F192::ZERO;
-            for bit_in_byte in 0..8 {
-                if (value >> bit_in_byte) & 1 == 1 {
-                    acc += coordinate_weights[bit_base + bit_in_byte];
-                }
-            }
-            tables[byte_idx][value] = acc;
-        }
-    }
-    tables
-}
-
-/// The byte table as its shape rather than as a flat run: a `u8` cannot index a
-/// 256-entry row out of bounds and the row index is a constant of the unrolled
-/// loop, so neither lookup carries a bounds check and the row stride folds into
-/// the address. Flat, this is 24 bounds checks and 24 stride multiplies per
-/// output slot, and the address registers they force live do not fit.
-type FoldByteTable = [[F192; FOLD_TABLE_SIZE]; FOLD_N_BYTES];
-
-/// One folded output slot: `sum_{k=0..24} tables[k][byte_k(elem)]`, tree-reduced
-/// so the XORs pipeline.
-#[inline(always)]
-fn fold_one_slot_ext(elem: F192, tables: &FoldByteTable) -> F192 {
-    let bytes = [elem.c0.to_le_bytes(), elem.c1.to_le_bytes(), elem.c2.to_le_bytes()];
-    let mut acc = F192::ZERO;
-    for (word, word_bytes) in bytes.iter().enumerate() {
-        for (byte, &value) in word_bytes.iter().enumerate() {
-            acc += tables[8 * word + byte][value as usize];
-        }
-    }
-    acc
-}
-
 /// Deferred, lambda-baked ring-switch output used by the stacked opener.
 ///
-/// Keeping the split eq factors and the tiny byte table avoids materializing
-/// one full `rs_eq_ind` vector per claim.  The table already contains the
-/// claim's batching scalar, so combining several claims needs only additions.
+/// Keeping the claim's point and its map avoids materializing one full
+/// `rs_eq_ind` vector per claim. The map already contains the claim's batching
+/// scalar, so combining several claims needs only additions.
 pub(crate) struct DeferredRingSwitchOutput {
     pub(crate) batched_sumcheck_claim: F192,
+    pub(crate) weight: RingWeight,
+}
+
+/// `Phi(eq(point, y))` over a claim's suffix domain, for an F_2-linear `Phi` given by its
+/// value on every coordinate basis element of `E`.
+#[derive(Clone)]
+pub(crate) struct RingWeight {
+    weights: Vec<F192>,
+    point: Vec<F192>,
+}
+
+/// A [`RingWeight`] ready to fill its values: the factored `eq(point, ·)` and `Phi` as bit folds.
+pub(crate) struct RingFold {
     eq_lo: Vec<F192>,
     eq_hi: Vec<F192>,
-    table: Box<FoldByteTable>,
+    /// The weights of a product row's low 128 bits and of its top 64, to fold 64 rows at a time.
+    fold: (BitFold, BitFold),
+}
+
+/// The `w`-th `F_2`-coordinate basis element of `E`: bits 0..64 are K's power
+/// basis, and bits 64/128 shift it by Y / Y^2.
+pub(crate) fn coordinate_basis(w: usize) -> F192 {
+    match w / PACKING_WIDTH {
+        0 => F192::new(1u64 << (w % PACKING_WIDTH), 0, 0),
+        1 => F192::new(0, 1u64 << (w % PACKING_WIDTH), 0),
+        _ => F192::new(0, 0, 1u64 << (w % PACKING_WIDTH)),
+    }
+}
+
+impl RingWeight {
+    pub(crate) fn new(weights: Vec<F192>, point: Vec<F192>) -> Self {
+        assert_eq!(weights.len(), DEGREE_E);
+        Self { weights, point }
+    }
+
+    /// The tables that fill the weight's values.
+    pub(crate) fn fold(&self) -> RingFold {
+        let (eq_lo, eq_hi) = build_eq_split_ext(&self.point);
+        RingFold {
+            eq_lo,
+            eq_hi,
+            fold: (BitFold::new(&self.weights[..128]), BitFold::new(&self.weights[128..])),
+        }
+    }
+
+    pub(crate) fn point(&self) -> &[F192] {
+        &self.point
+    }
+
+    /// `Phi(value)`.
+    pub(crate) fn apply(&self, value: F192) -> F192 {
+        let mut acc = F192::ZERO;
+        for (limb, word) in [value.c0, value.c1, value.c2].into_iter().enumerate() {
+            let mut bits = word;
+            while bits != 0 {
+                acc += self.weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];
+                bits &= bits - 1;
+            }
+        }
+        acc
+    }
+}
+
+impl RingFold {
+    /// `out[j] += Phi(eq(point, start + j))`.
+    pub(crate) fn add_chunk(&self, start: usize, out: &mut [F192]) {
+        let block_len = self.eq_lo.len();
+        assert!(start + out.len() <= block_len * self.eq_hi.len());
+        let mut done = 0;
+        while done < out.len() {
+            let index = start + done;
+            let lo = index % block_len;
+            let len = (block_len - lo).min(out.len() - done);
+            let e_hi = self.eq_hi[index / block_len];
+            self.fold_products(&self.eq_lo[lo..lo + len], e_hi, &mut out[done..done + len]);
+            done += len;
+        }
+    }
+
+    /// `out[j] += Phi(e_lo[j] * e_hi)`, 64 products at a time through the bit fold.
+    #[inline]
+    fn fold_products(&self, e_lo: &[F192], e_hi: F192, out: &mut [F192]) {
+        debug_assert_eq!(e_lo.len(), out.len());
+        let mut head = [[0u64; 2]; BLOCK];
+        let mut tail = [0u64; BLOCK];
+        let mut folded = [F192::ZERO; BLOCK];
+        for (e_lo, out) in e_lo.chunks(BLOCK).zip(out.chunks_mut(BLOCK)) {
+            let n = e_lo.len();
+            let (lo4, lo_r) = e_lo.as_chunks::<4>();
+            let mut put = |i: usize, p: F192| {
+                head[i] = [p.c0, p.c1];
+                tail[i] = p.c2;
+            };
+            for (k, e_lo) in lo4.iter().enumerate() {
+                for (j, p) in mul4(*e_lo, [e_hi; 4]).into_iter().enumerate() {
+                    put(4 * k + j, p);
+                }
+            }
+            for (j, &e_lo) in lo_r.iter().enumerate() {
+                put(4 * lo4.len() + j, e_lo * e_hi);
+            }
+            let head_rows = primitives::cast_slice::<[u64; 2], [u8; 16]>(&head);
+            let tail_rows = primitives::cast_slice::<u64, [u8; 8]>(&tail);
+            self.fold
+                .0
+                .fold_block_pair(&self.fold.1, &head_rows[..n], &tail_rows[..n], &mut folded);
+            let (out8, out_r) = out.as_chunks_mut::<8>();
+            for (o, f) in out8.iter_mut().zip(folded.as_chunks::<8>().0) {
+                xor_into8(o, f);
+            }
+            for (o, f) in out_r.iter_mut().zip(&folded[8 * out8.len()..]) {
+                *o += *f;
+            }
+        }
+    }
 }
 
 /// Finish a ring-switch claim without materializing its dense weight vector.
-/// The batching scalar is baked into both the target and the byte table.
+/// The batching scalar is baked into both the target and the map.
 pub(crate) fn prove_finish_deferred(
     state: RingSwitchProveState,
     coordinate_weights: &[F192],
@@ -305,31 +363,15 @@ pub(crate) fn prove_finish_deferred(
     let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
     DeferredRingSwitchOutput {
         batched_sumcheck_claim: lambda * sumcheck_claim,
-        eq_lo: state.eq_lo,
-        eq_hi: state.eq_hi,
-        table: build_fold_byte_table_ext(&scaled_weights),
+        weight: RingWeight::new(scaled_weights, state.point),
     }
 }
 
-/// Fold several deferred claims into `out[start..]` of their combined dense
-/// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
-/// allocated or read back. `start` is an offset into the basis, which lets a
-/// caller cover it one cache-resident window at a time.
-pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
+/// The dense weight of several deferred claims, accumulated into `out`: the reference for tests.
+#[cfg(test)]
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], out: &mut [F192]) {
     for claim in outputs {
-        let block_len = claim.eq_lo.len();
-        assert!(start + out.len() <= block_len * claim.eq_hi.len());
-        let mut done = 0;
-        while done < out.len() {
-            let index = start + done;
-            let lo = index % block_len;
-            let len = (block_len - lo).min(out.len() - done);
-            let e_hi = claim.eq_hi[index / block_len];
-            for (slot, &e_lo) in out[done..done + len].iter_mut().zip(&claim.eq_lo[lo..lo + len]) {
-                *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
-            }
-            done += len;
-        }
+        claim.weight.fold().add_chunk(0, out);
     }
 }
 
@@ -356,13 +398,12 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 ///
 /// The two phases exist because one map is shared by every claim, and it can
 /// only be sampled once all of them have been sent. So each claim's
-/// map-independent work (its slice-MLE vector and its factored eq tensor) has
-/// to survive that barrier.
+/// map-independent work (its slice-MLE vector and its point) has to survive
+/// that barrier.
 #[derive(Clone)]
 pub struct RingSwitchProveState {
     s_hat_v: Vec<F192>,
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
+    point: Vec<F192>,
 }
 
 /// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
@@ -383,20 +424,23 @@ pub fn prove_prepare(
         1usize << suffix_point.len(),
         "packed witness must have 2^|suffix_point| words"
     );
-    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
     let s_hat_v = match precomputed_s_hat_v {
         Some(v) => {
             assert_eq!(v.len(), PACKING_WIDTH);
             v.to_vec()
         }
         None => {
+            let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
             let mask = eq_lo.len() - 1;
             let shift = eq_lo.len().trailing_zeros();
             let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
             fold_1b_rows(packed_witness, &full)
         }
     };
-    RingSwitchProveState { s_hat_v, eq_lo, eq_hi }
+    RingSwitchProveState {
+        s_hat_v,
+        point: suffix_point.to_vec(),
+    }
 }
 
 #[cfg(test)]
@@ -422,18 +466,14 @@ mod tests {
         let coordinate_weights = rng.ext_vec(DEGREE_E);
         let lambdas = [rng.ext(), rng.ext()];
         let states = (0..2)
-            .map(|_| {
-                let (eq_lo, eq_hi) = build_eq_split_ext(&point);
-                RingSwitchProveState {
-                    s_hat_v: rng.ext_vec(PACKING_WIDTH),
-                    eq_lo,
-                    eq_hi,
-                }
+            .map(|_| RingSwitchProveState {
+                s_hat_v: rng.ext_vec(PACKING_WIDTH),
+                point: point.clone(),
             })
             .collect::<Vec<_>>();
 
         // Reference: one dense weight vector per claim, combined afterwards.
-        let dense_basis = fold_dense(&build_eq_table_ext(&point), &coordinate_weights);
+        let dense_basis = fold_ext_elems_naive(&build_eq_table_ext(&point), &coordinate_weights);
         let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
             acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
         });
@@ -451,7 +491,7 @@ mod tests {
             .iter()
             .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
         let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
-        combine_deferred_chunk(&deferred, 0, &mut deferred_basis);
+        combine_deferred_chunk(&deferred, &mut deferred_basis);
 
         assert_eq!(deferred_target, expected_target);
         assert_eq!(deferred_basis, expected_basis);
@@ -541,13 +581,6 @@ mod tests {
         assert_eq!(apply_composed_map(value, &challenges), expanded);
     }
 
-    /// The byte-table fold of a dense tensor: the kernel `combine_deferred_chunk`
-    /// runs per slot, without its factored-eq slot generation.
-    fn fold_dense(tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
-        let tables = build_fold_byte_table_ext(coordinate_weights);
-        tensor.iter().map(|&e| fold_one_slot_ext(e, &tables)).collect()
-    }
-
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
     fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
@@ -625,19 +658,6 @@ mod tests {
             prove_prepare(&packed, suffix_point, None).s_hat_v,
             s_ref,
             "the witness fold must reproduce the reference slices"
-        );
-    }
-
-    /// The byte-table fold behind `combine_deferred_chunk` must match the naive
-    /// bit-scan on arbitrary (not necessarily eq-structured) input.
-    #[test]
-    fn rs_eq_ind_fast_matches_naive() {
-        let mut rng = Rng::new(3);
-        let tensor = rng.ext_vec(1usize << 8);
-        let coordinate_weights = rng.ext_vec(DEGREE_E);
-        assert_eq!(
-            fold_dense(&tensor, &coordinate_weights),
-            fold_ext_elems_naive(&tensor, &coordinate_weights)
         );
     }
 }

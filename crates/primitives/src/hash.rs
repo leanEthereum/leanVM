@@ -83,20 +83,12 @@ pub const PI: [usize; STATE_LANES] = {
 /// lanes. The permutation is written once over this trait, so each backend
 /// supplies only XOR, the χ step and the rotations.
 ///
-/// # Safety
-///
-/// `load` and `store` take raw pointers to `WIDTH` contiguous `u64`, and
-/// implementors may use unaligned vector accesses, so callers must keep those
-/// `WIDTH` elements in bounds.
+/// `load` and `store` move the `WIDTH` words from `src[i]` on, unaligned and bounds-checked.
 trait Lanes64: Copy {
     const WIDTH: usize;
 
-    /// # Safety
-    /// `p` must be valid for reads of `WIDTH` `u64`.
-    unsafe fn load(p: *const u64) -> Self;
-    /// # Safety
-    /// `p` must be valid for writes of `WIDTH` `u64`.
-    unsafe fn store(self, p: *mut u64);
+    fn load(src: &[u64], i: usize) -> Self;
+    fn store(self, dst: &mut [u64], i: usize);
 
     fn splat(x: u64) -> Self;
     fn xor(self, o: Self) -> Self;
@@ -104,6 +96,40 @@ trait Lanes64: Copy {
     fn rotl<const N: i32>(self) -> Self;
     /// χ on one lane: `a ⊕ (¬b ∧ c)`.
     fn chi(a: Self, b: Self, c: Self) -> Self;
+
+    /// XOR the first `words` little-endian words of every input into `st[..words]`.
+    ///
+    /// Input `l` is at `data[l * len..]`, and its words start `byte_offset` bytes in.
+    /// Needs `words <= RATE_LANES` and `byte_offset + 8 * words <= len`.
+    #[inline(always)]
+    fn absorb_words(st: &mut [Self; STATE_LANES], data: &[u8], len: usize, byte_offset: usize, words: usize) {
+        assert!(words <= RATE_LANES && byte_offset + 8 * words <= len);
+        // `buf[w * WIDTH + l]` is input `l`'s word `w`.
+        let mut buf = [0u64; RATE_LANES * MAX_WIDTH];
+        for l in 0..Self::WIDTH {
+            let src = &data[l * len + byte_offset..][..8 * words];
+            for (w, word) in src.as_chunks::<8>().0.iter().enumerate() {
+                buf[w * Self::WIDTH + l] = u64::from_le_bytes(*word);
+            }
+        }
+        for (w, lane) in st[..words].iter_mut().enumerate() {
+            *lane = lane.xor(Self::load(&buf, w * Self::WIDTH));
+        }
+    }
+
+    /// Write the first [`OUT_LEN`] bytes of every input's state to `out[l * OUT_LEN..]`.
+    #[inline(always)]
+    fn store_digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+        let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
+        for (w, lane) in st[..OUT_LANES].iter().enumerate() {
+            lane.store(&mut lanes, w * Self::WIDTH);
+        }
+        for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
+            for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                *bytes = lanes[w * Self::WIDTH + l].to_le_bytes();
+            }
+        }
+    }
 
     #[inline(always)]
     fn xor5(a: Self, b: Self, c: Self, d: Self, e: Self) -> Self {
@@ -161,12 +187,12 @@ impl Lanes64 for u64 {
     const WIDTH: usize = 1;
 
     #[inline(always)]
-    unsafe fn load(p: *const u64) -> Self {
-        unsafe { p.read_unaligned() }
+    fn load(src: &[u64], i: usize) -> Self {
+        src[i]
     }
     #[inline(always)]
-    unsafe fn store(self, p: *mut u64) {
-        unsafe { p.write_unaligned(self) }
+    fn store(self, dst: &mut [u64], i: usize) {
+        dst[i] = self;
     }
     #[inline(always)]
     fn splat(x: u64) -> Self {
@@ -186,48 +212,14 @@ impl Lanes64 for u64 {
     }
 }
 
-/// The Keccak-f\[1600\] permutation, in place.
-///
-/// With AVX-512 the scalar rounds are not [`permute`]'s: LLVM's SLP vectorizer turns its
-/// straight-line round into a mesh of vector inserts and extracts, where the round below,
-/// ρ and π as one in-place cycle, stays in general-purpose registers. Out of line, so a
-/// caller holding the state in locals cannot hand the vectorizer the same chance. Without
-/// AVX-512 the straight-line round stays scalar and is the faster of the two.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-#[inline(never)]
+mod single_avx512;
+
+/// The Keccak-f\[1600\] permutation, in place.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+#[inline]
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
-    /// The π cycle from lane 1, and the ρ rotation each lane takes on arriving.
-    const CYCLE: [(usize, u32); STATE_LANES - 1] = {
-        let mut cycle = [(0, 0); STATE_LANES - 1];
-        let mut from = 1;
-        let mut i = 0;
-        while i < cycle.len() {
-            cycle[i] = (PI[from], RHO[from]);
-            from = PI[from];
-            i += 1;
-        }
-        cycle
-    };
-    for &rc in &RC {
-        let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
-        for x in 0..5 {
-            let d = c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1);
-            for y in 0..5 {
-                a[x + 5 * y] ^= d;
-            }
-        }
-        let mut carried = a[1];
-        for (to, rot) in CYCLE {
-            carried = std::mem::replace(&mut a[to], carried.rotate_left(rot));
-        }
-        for row in a.as_chunks_mut::<5>().0 {
-            let b = *row;
-            for x in 0..5 {
-                row[x] = b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]);
-            }
-        }
-        a[0] ^= rc;
-    }
+    single_avx512::permute(a);
 }
 
 /// The Keccak-f\[1600\] permutation, in place.
@@ -366,6 +358,11 @@ fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 mod x86 {
     use super::Lanes64;
+    #[cfg(target_feature = "avx512f")]
+    use super::{OUT_LEN, RATE_LANES, STATE_LANES};
+    #[cfg(target_feature = "avx512f")]
+    use crate::simd;
+    use crate::{load_at, store_at};
     use core::arch::x86_64::*;
 
     /// AVX2: four lanes. No 64-bit rotate before AVX-512, so a rotation is a
@@ -381,12 +378,12 @@ mod x86 {
         const WIDTH: usize = 4;
 
         #[inline(always)]
-        unsafe fn load(p: *const u64) -> Self {
-            Self(unsafe { _mm256_loadu_si256(p.cast()) })
+        fn load(src: &[u64], i: usize) -> Self {
+            Self(load_at(src, i))
         }
         #[inline(always)]
-        unsafe fn store(self, p: *mut u64) {
-            unsafe { _mm256_storeu_si256(p.cast(), self.0) }
+        fn store(self, dst: &mut [u64], i: usize) {
+            store_at(dst, i, self.0)
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
@@ -424,12 +421,12 @@ mod x86 {
         const WIDTH: usize = 8;
 
         #[inline(always)]
-        unsafe fn load(p: *const u64) -> Self {
-            Self(unsafe { _mm512_loadu_si512(p.cast()) })
+        fn load(src: &[u64], i: usize) -> Self {
+            Self(load_at(src, i))
         }
         #[inline(always)]
-        unsafe fn store(self, p: *mut u64) {
-            unsafe { _mm512_storeu_si512(p.cast(), self.0) }
+        fn store(self, dst: &mut [u64], i: usize) {
+            store_at(dst, i, self.0)
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
@@ -455,6 +452,38 @@ mod x86 {
                 Self(_mm512_ternarylogic_epi64::<0x96>(t, d.0, e.0))
             }
         }
+
+        #[inline(always)]
+        fn absorb_words(st: &mut [Self; STATE_LANES], data: &[u8], len: usize, byte_offset: usize, words: usize) {
+            assert!(words <= RATE_LANES && byte_offset + 8 * words <= len);
+            for g in 0..words.div_ceil(8) {
+                let n = (words - 8 * g).min(8);
+                // Each load reads only the `n` valid words of its input, which `load_prefix` checks
+                // against the sub-slice, and the assert above keeps them inside the input.
+                let rows: [__m512i; 8] = std::array::from_fn(|l| {
+                    let input = &data[l * len + byte_offset + 64 * g..];
+                    simd::load_prefix(input, 0, n)
+                });
+                let cols = simd::transpose8(rows);
+                for (w, col) in cols.into_iter().enumerate().take(n) {
+                    st[8 * g + w] = Self(simd::xor(st[8 * g + w].0, col));
+                }
+            }
+        }
+
+        #[inline(always)]
+        fn store_digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+            assert_eq!(out.len(), 8 * OUT_LEN);
+            // Rows are the four digest words of each input, then four zero words.
+            let zero = simd::from_words([0; 8]);
+            let rows = simd::transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
+            for (pair, [first, second]) in rows.as_chunks::<2>().0.iter().enumerate() {
+                // Low 256 bits of two inputs' rows side by side: lanes 0, 1 of the first, then of the second.
+                // SAFETY: as above, a register-only intrinsic under compile-time AVX-512F.
+                let both = unsafe { _mm512_shuffle_i64x2::<0x44>(*first, *second) };
+                simd::store(out, pair, both);
+            }
+        }
     }
 }
 
@@ -472,12 +501,16 @@ mod arm {
         const WIDTH: usize = 2;
 
         #[inline(always)]
-        unsafe fn load(p: *const u64) -> Self {
-            Self(unsafe { vld1q_u64(p) })
+        fn load(src: &[u64], i: usize) -> Self {
+            let words: &[u64; 2] = src[i..i + 2].try_into().unwrap();
+            // SAFETY: `words` is two readable words, and NEON is in the aarch64 baseline.
+            Self(unsafe { vld1q_u64(words.as_ptr()) })
         }
         #[inline(always)]
-        unsafe fn store(self, p: *mut u64) {
-            unsafe { vst1q_u64(p, self.0) }
+        fn store(self, dst: &mut [u64], i: usize) {
+            let words: &mut [u64; 2] = (&mut dst[i..i + 2]).try_into().unwrap();
+            // SAFETY: `words` is two writable words, and NEON is in the aarch64 baseline.
+            unsafe { vst1q_u64(words.as_mut_ptr(), self.0) }
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
@@ -540,88 +573,47 @@ pub const LANES: usize = Backend::WIDTH;
 /// Widest batch any backend takes.
 const MAX_WIDTH: usize = 8;
 
-/// Hash `S::WIDTH` inputs of `len` bytes starting at `inputs[l]`, from the shared
+/// Hash `S::WIDTH` inputs of `len` bytes, input `l` at `data[l * len..]`, from the shared
 /// sponge state `init`, writing the digests consecutively to `out`.
-///
-/// # Safety
-/// Every `inputs[l]` must be valid for `len` readable bytes, and `out` for
-/// `S::WIDTH * OUT_LEN` writable bytes.
 #[inline(always)]
-unsafe fn hash_group<S: Lanes64>(inputs: &[*const u8], len: usize, init: &[u64; STATE_LANES], out: *mut u8) {
-    debug_assert_eq!(inputs.len(), S::WIDTH);
+fn hash_group<S: Lanes64>(data: &[u8], len: usize, init: &[u64; STATE_LANES], out: &mut [u8]) {
+    debug_assert_eq!((data.len(), out.len()), (S::WIDTH * len, S::WIDTH * OUT_LEN));
     let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(init[i]));
-    // `buf[w * WIDTH + l]` is input `l`'s lane `w` of the current block.
-    let mut buf = [0u64; RATE_LANES * MAX_WIDTH];
-    // XOR the first `n` lanes of `buf` into the rate.
-    let xor_buf = |st: &mut [S; STATE_LANES], buf: &[u64], n: usize| {
-        for (w, lane) in st[..n].iter_mut().enumerate() {
-            // SAFETY: `buf` holds RATE_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
-            *lane = lane.xor(unsafe { S::load(buf.as_ptr().add(w * S::WIDTH)) });
-        }
-    };
     let (blocks, tail) = (len / RATE, len % RATE);
     for blk in 0..blocks {
-        for (l, &input) in inputs.iter().enumerate() {
-            for w in 0..RATE_LANES {
-                // SAFETY: the block lies inside the input's `len` bytes.
-                let word = unsafe { input.add(blk * RATE + 8 * w).cast::<u64>().read_unaligned() };
-                buf[w * S::WIDTH + l] = u64::from_le(word);
-            }
-        }
-        xor_buf(&mut st, &buf, RATE_LANES);
+        S::absorb_words(&mut st, data, len, blk * RATE, RATE_LANES);
         permute(&mut st);
     }
-    // The final block, read in place: its words, then the padding, which every input has in the same lanes.
+    // The final block: its whole words, then the partial word, then the padding, which every input has in the same lanes.
     let (words, part) = (tail / 8, tail % 8);
-    for (l, &input) in inputs.iter().enumerate() {
-        // SAFETY: the final block is the input's last `tail` bytes.
-        let input = unsafe { input.add(blocks * RATE) };
-        for w in 0..words {
-            // SAFETY: as above.
-            let word = unsafe { input.add(8 * w).cast::<u64>().read_unaligned() };
-            buf[w * S::WIDTH + l] = u64::from_le(word);
-        }
-        if part > 0 {
-            // SAFETY: as above.
-            let byte = |j: usize| u64::from(unsafe { *input.add(8 * words + j) }) << (8 * j);
-            buf[words * S::WIDTH + l] = (0..part).fold(0, |acc, j| acc | byte(j));
-        }
+    S::absorb_words(&mut st, data, len, blocks * RATE, words);
+    if part > 0 {
+        let lanes: [u64; MAX_WIDTH] = std::array::from_fn(|l| {
+            if l >= S::WIDTH {
+                return 0;
+            }
+            let rest = &data[l * len + blocks * RATE + 8 * words..][..part];
+            rest.iter()
+                .enumerate()
+                .fold(0, |acc, (j, &b)| acc | u64::from(b) << (8 * j))
+        });
+        st[words] = st[words].xor(S::load(&lanes, 0));
     }
-    xor_buf(&mut st, &buf, words + usize::from(part > 0));
     st[words] = st[words].xor(S::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(S::splat(END_BIT));
     permute(&mut st);
-    let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
-    for (w, lane) in st[..OUT_LANES].iter().enumerate() {
-        // SAFETY: `lanes` holds OUT_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
-        unsafe { lane.store(lanes.as_mut_ptr().add(w * S::WIDTH)) };
-    }
-    for l in 0..S::WIDTH {
-        for w in 0..OUT_LANES {
-            let bytes = lanes[w * S::WIDTH + l].to_le_bytes();
-            // SAFETY: `l * 32 + 8 * w + 8 <= WIDTH * 32`.
-            unsafe { out.add(l * OUT_LEN + 8 * w).copy_from_nonoverlapping(bytes.as_ptr(), 8) };
-        }
-    }
+    S::store_digests(&st, out);
 }
 
-/// The batched hash over one backend.
-///
-/// # Safety
-/// `data.len() == n * len` and `out.len() == n * OUT_LEN` for some `n`.
+/// The batched hash over one backend: `out.len() / OUT_LEN` inputs of `len` bytes.
 #[inline(always)]
-unsafe fn hash_many_with<S: Lanes64>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+fn hash_many_with<S: Lanes64>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
     let n = out.len() / OUT_LEN;
+    assert_eq!((data.len(), out.len()), (n * len, n * OUT_LEN));
     let groups = n / S::WIDTH;
-    let mut ptrs = [core::ptr::null::<u8>(); MAX_WIDTH];
     for g in 0..groups {
-        let base = g * S::WIDTH;
-        for (l, slot) in ptrs[..S::WIDTH].iter_mut().enumerate() {
-            *slot = data[(base + l) * len..].as_ptr();
-        }
-        // SAFETY: each pointer has `len` readable bytes, and the output window
-        // `[base, base + WIDTH)` is inside `out`.
-        unsafe { hash_group::<S>(&ptrs[..S::WIDTH], len, state, out.as_mut_ptr().add(base * OUT_LEN)) };
+        let digests = &mut out[g * S::WIDTH * OUT_LEN..][..S::WIDTH * OUT_LEN];
+        hash_group::<S>(&data[g * S::WIDTH * len..][..S::WIDTH * len], len, state, digests);
     }
     for i in groups * S::WIDTH..n {
         let d = hash_from_state(&data[i * len..(i + 1) * len], state);
@@ -639,11 +631,7 @@ pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
 /// [`hash_many`] continued from one sponge state shared by every input, which has absorbed
 /// whole blocks (see [`zero_prefix_state`]). Byte-identical to hashing each full image.
 pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
-    let n = out.len() / OUT_LEN;
-    assert_eq!(out.len(), n * OUT_LEN);
-    assert_eq!(data.len(), n * len);
-    // SAFETY: the asserts pin the buffer sizes, and the backend is gated on the features its intrinsics need.
-    unsafe { hash_many_with::<Backend>(data, len, state, out) }
+    hash_many_with::<Backend>(data, len, state, out)
 }
 
 /// Keccak-f\[1600\] of every state in place, [`LANES`] at a time.
@@ -668,12 +656,10 @@ fn permute_group<S: Lanes64>(states: &mut [[u64; STATE_LANES]]) {
             buf[i * S::WIDTH + l] = lane;
         }
     }
-    // SAFETY: `buf` holds STATE_LANES * MAX_WIDTH >= (i + 1) * WIDTH words.
-    let mut st: [S; STATE_LANES] = std::array::from_fn(|i| unsafe { S::load(buf.as_ptr().add(i * S::WIDTH)) });
+    let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::load(&buf, i * S::WIDTH));
     permute(&mut st);
     for (i, lane) in st.iter().enumerate() {
-        // SAFETY: as above.
-        unsafe { lane.store(buf.as_mut_ptr().add(i * S::WIDTH)) };
+        lane.store(&mut buf, i * S::WIDTH);
     }
     for (l, state) in states.iter_mut().enumerate() {
         for (i, lane) in state.iter_mut().enumerate() {
@@ -759,6 +745,58 @@ mod tests {
         }
     }
 
+    /// Batched hashing agrees with the one-shot hash for tails of every shape, over whole groups.
+    #[test]
+    fn batched_matches_one_shot_across_lengths() {
+        for len in [
+            1usize, 7, 8, 9, 63, 64, 65, 100, 135, 136, 137, 200, 271, 272, 273, 300, 511, 512, 513,
+        ] {
+            let n = 24;
+            let data: Vec<u8> = (0..n * len).map(|i| (i * 131 + len) as u8).collect();
+            let mut got = vec![0u8; n * OUT_LEN];
+            hash_many(&data, len, &mut got);
+            let mut from_state = vec![0u8; n * OUT_LEN];
+            hash_many_from_state(&data, len, &zero_prefix_state(1), &mut from_state);
+            for i in 0..n {
+                let input = &data[i * len..(i + 1) * len];
+                assert_eq!(
+                    &got[i * OUT_LEN..(i + 1) * OUT_LEN],
+                    &hash(input)[..],
+                    "len {len} input {i}"
+                );
+                let mut whole = vec![0u8; RATE];
+                whole.extend_from_slice(input);
+                assert_eq!(
+                    &from_state[i * OUT_LEN..(i + 1) * OUT_LEN],
+                    &hash(&whole)[..],
+                    "prefixed len {len} input {i}"
+                );
+            }
+        }
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+    #[test]
+    fn single_state_matches_portable_permutation() {
+        let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+        for case in 0..256 {
+            let mut state = std::array::from_fn(|_| {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                match case {
+                    0 => 0,
+                    1 => u64::MAX,
+                    _ => seed,
+                }
+            });
+            let mut expected = state;
+            permute(&mut expected);
+            keccak_f(&mut state);
+            assert_eq!(state, expected, "case {case}");
+        }
+    }
+
     /// Every SIMD backend compiled into this build agrees with the scalar hash and permutation,
     /// not just the one the dispatch picks.
     #[test]
@@ -768,8 +806,7 @@ mod tests {
                 for len in [0usize, 8, 64, 135, 136, 137, 272, 1024] {
                     let data: Vec<u8> = (0..n * len).map(|i| ((i * 37 + 11) & 0xff) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];
-                    // SAFETY: `data` holds `n * len` bytes and `got` `n * 32`.
-                    unsafe { hash_many_with::<S>(&data, len, &[0; STATE_LANES], &mut got) };
+                    hash_many_with::<S>(&data, len, &[0; STATE_LANES], &mut got);
                     for i in 0..n {
                         assert_eq!(
                             &got[i * OUT_LEN..(i + 1) * OUT_LEN],
