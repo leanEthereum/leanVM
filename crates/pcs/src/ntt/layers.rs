@@ -22,7 +22,6 @@ impl AdditiveNttF64 {
     /// With a `src` as long as `buf`, the layers run over a copy of it, which the first sweep makes.
     /// That sweep loads from `src` and stores to `buf`, and the blocks it skips are not copied.
     /// Later sweeps work inside the blocks of the first, so they never read a word that was not copied.
-    #[allow(clippy::too_many_arguments)]
     pub(super) fn run_layers(
         &self,
         buf: &mut [F64],

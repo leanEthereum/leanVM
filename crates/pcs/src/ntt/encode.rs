@@ -83,7 +83,6 @@ impl AdditiveNttF64 {
     /// - The encode then runs once per half of the cosets, in one half-size buffer.
     ///   The deep pass goes to `on_rows` only.
     /// - Otherwise the codeword is kept whole, before its deep layers unless `keep` is [`Keep::Whole`].
-    #[allow(clippy::too_many_arguments)]
     pub fn encode_lane_major(
         &self,
         msg: &[F64],

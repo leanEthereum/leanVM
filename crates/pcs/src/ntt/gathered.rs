@@ -186,7 +186,6 @@ impl<'a> GatheredPass<'a> {
     /// Transform residue `r`'s group as layer-`layer` block `block`, and send it back to word `dst` on.
     ///
     /// The rows are `from` the stage, or gathered from the block's own rows of the buffer.
-    #[allow(clippy::too_many_arguments)]
     #[inline(always)]
     fn group(
         &self,

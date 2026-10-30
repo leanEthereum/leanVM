@@ -6,7 +6,7 @@
 
 use core::arch::x86_64::*;
 
-pub use crate::Plain;
+use crate::Plain;
 
 /// The vector of eight words, the first in the low qword.
 pub const fn from_words(w: [u64; 8]) -> __m512i {

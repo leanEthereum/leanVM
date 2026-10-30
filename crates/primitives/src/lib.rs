@@ -122,7 +122,7 @@ pub fn log2_ceil_usize(n: usize) -> usize {
 /// Implement it only for such types.
 pub unsafe trait Plain: Copy {}
 
-// SAFETY: integers, and `repr(transparent)` and `repr(C)` structs of them.
+// SAFETY: integers.
 unsafe impl Plain for u8 {}
 unsafe impl Plain for u64 {}
 unsafe impl Plain for u32 {}

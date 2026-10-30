@@ -118,7 +118,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
 }
 
 /// The basis half of [`induce_sumcheck_poly`]: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`.
-pub(crate) fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usize], weights: &[F192]) -> Vec<F192> {
+fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usize], weights: &[F192]) -> Vec<F192> {
     let n_queries = queries.len();
     assert_eq!(weights.len(), n_queries);
     let inv_sks_vks = invert_sks(sks_vks);
@@ -177,11 +177,9 @@ fn extend_tensor_k(out: &mut Vec<F64>, s: &[F64]) {
     }
 }
 
-/// Just the `enforced_sum` half of [`induce_sumcheck_poly`]:
+/// The `enforced_sum` half of [`induce_sumcheck_poly`]:
 ///   `enforced_sum = Σ_i w_i · <opened_rows[i], eq(v_challenges, ·)>`
-/// Cheap: O(num_queries x num_interleaved). The prover needs it for its last
-/// level, whose induced basis it never materializes.
-pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
+fn induce_sumcheck_enforced_sum<T: RowElem>(
     opened_rows: &[T],
     v_challenges: &[F192],
     queries: &[usize],

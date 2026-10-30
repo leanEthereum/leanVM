@@ -189,9 +189,8 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     )
 }
 
-/// Codeword + Merkle tree for one deeper WHIR commitment level.
-/// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
-/// is one Merkle leaf of `num_interleaved * 24` bytes.
+/// Codeword + Merkle tree for one deeper WHIR commitment level: a row is one position across the
+/// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 24` bytes.
 ///
 /// A codeword kept before its deep layers has them finished on the rows a query opens.
 pub(crate) struct LigeroWitness {
@@ -1046,8 +1045,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // must therefore have transmitted its root before opening against it, which is what makes the
     // fold challenges depend on the commitment.
 
-    // L0 codeword + tree are borrowed (reused from `commit`); the root itself is never needed
-    // here, the caller having transmitted it.
+    // The L0 codeword and tree come from `commit` and go once the L0 open is done; the root itself is never
+    // needed here, the caller having transmitted it.
     // The codeword interleaves only the committed lanes, and its lane `t` is stack
     // block `n_lanes-1-t`, so a row IS the tail of the leaf image: the absent lanes
     // are the image's leading zeros (`MerkleBuilder` shares their hash prefix, and only
@@ -1167,17 +1166,22 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             let lambda_last = ps.sample();
             let weights_last = powers(lambda_last, num_queries_last);
             let span = tracing::info_span!("Final level").entered();
-            // Final level: stored (sorted-unique) only, no local induce; the
-            // verifier fans these to ordered for its last-level induce.
+            // Final level: the rows in query order feed the induce; the proof stores the sorted-unique ones.
             let (rows_last, paths) = wtns_prev.open(&queries_last);
             ps.hint_merkle(paths);
             // Tie the last commitment into the running claim through the same
             // intro/glue step as every other level, then finish the remaining
             // sumcheck rounds. This closes on one weight evaluation instead of
             // a sweep over the residual cube.
-            let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
-            let basis_last = induce_basis(n_res, &eval_sk_at_vks(n_res), &queries_last, &weights_last);
+            let (basis_last, enforced_sum_last) = induce_sumcheck_poly(
+                n_res,
+                &eval_sk_at_vks(n_res),
+                &rows_last,
+                &level_rs,
+                &queries_last,
+                &weights_last,
+            );
             let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
             send_msg(ps, intro_msg_last, enforced_sum_last);
             sc_prover.glue_pending(lambda_last);
