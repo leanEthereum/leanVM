@@ -38,7 +38,7 @@
 //!          |       GatheredPass         far layers, one sweep each      -> Stage
 //!          |       DeepPass             near layers, rows to the sink
 //!          |            both run their groups through AdditiveNttF64::run_layers
-//!          +-- AdditiveNttF64::rows(Kept)  rows read back from what the encode kept
+//!          +-- AdditiveNttF64::rows(Codeword)  rows read back from what the encode kept
 //! ```
 //!
 //! # Reading order
