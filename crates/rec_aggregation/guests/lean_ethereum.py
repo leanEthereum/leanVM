@@ -59,11 +59,6 @@ FS_CELLS = 5
 # so a step is one pointer multiply rather than one per field.
 PAIR_SLOTS = 2  # a two-field chain
 # A record's Fiat-Shamir sponge is its FS_CELLS capacity cells, from field *_FS on.
-# A Fiat-Shamir chain carrying one accumulator (the claim batching loops).
-ACC_FS = 0
-ACC_PEND = 5  # the eight rate cells the record's first permutation takes
-ACC_VALUE = 13
-ACC_SLOTS = 14
 # A sponge with a full rate waiting: its capacity, then those eight rate cells.
 PEND_SLOTS = 13
 # One sumcheck round of the bus GKR or the table batch.
@@ -4235,7 +4230,7 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
     # Every child contributes two claims on the stacked bytecode: the one IT
     # deferred (carried in its statement) and the fresh one raised by verifying its
     # proof. A fresh transcript binds all of them, samples the batching
-    # coefficients, and one sumcheck reduces the lot to one claim, which is what the
+    # coefficient, and one sumcheck reduces the lot to one claim, which is what the
     # node then defers in its own statement.
     bc_msgs = HeapBuf(2 * BYTECODE_VARS)
     hint_witness(bc_msgs[0:2 * BYTECODE_VARS], "bc_sumcheck_msgs")
@@ -4289,37 +4284,29 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
     absorbed = absorb * n_children_g ** PEND_SLOTS
 
     # ---- the batching sumcheck (BYTECODE_VARS variables, 2 claims per child) ----
-    # Fresh and carried share one layout (point, then value), so the two differ
-    # only in which buffer they come from. The first child's first challenge takes
-    # the last full rate; every later record's pending cells are zero.
-    lam_bc = HeapBuf(n_children_g * n_children_g)
-    bc_chain = HeapBuf((n_children_g * GEN) ** ACC_SLOTS)
-    for j in unroll(0, FS_CELLS):
-        bc_chain[GEN ** (ACC_FS + j)] = absorbed[GEN ** j]
-    for j in unroll(0, 8):
-        bc_chain[GEN ** (ACC_PEND + j)] = absorbed[GEN ** (FS_CELLS + j)]
-    bc_chain[GEN ** ACC_VALUE] = 0
+    # One challenge lam, its permutation taking the last full rate: child i's fresh
+    # claim takes lam^(2i), its carried one lam^(2i+1). Fresh and carried share one
+    # layout (point, then value), so the two differ only in which buffer they come
+    # from. Each record holds the child's power of lam^2, then the running value.
+    absorbed_cap = fs_load(absorbed, 0, 1)
+    st = fs_perm_pending(absorbed_cap, absorbed, FS_CELLS)
+    lam = challenge_from_state(st)
+    lam_sq = lam * lam
+    bc_chain = HeapBuf((n_children_g * GEN) ** PAIR_SLOTS)
+    bc_chain[GEN ** 0] = 1
+    bc_chain[GEN ** 1] = 0
     for xc in mul_range(1, n_children_g):
-        row = bc_chain * xc ** ACC_SLOTS
-        row_cap = fs_load(row, ACC_FS, 1)
-        st = fs_perm_pending(row_cap, row, ACC_PEND)
-        lam_fresh = challenge_from_state(st)
-        no_rate = StackBuf(8)
-        st, lam_carried = squeeze(st, no_rate, 0)
-        pair = xc * xc
-        lam_bc[pair] = lam_fresh
-        lam_bc[pair * GEN] = lam_carried
+        row = bc_chain * xc ** PAIR_SLOTS
+        lam_pow = row[GEN ** 0]
         fresh = fresh_row[xc]
         carried = carried_row[xc]
-        nxt = row * GEN ** ACC_SLOTS
-        fs_store(nxt, ACC_FS, 1, st)
-        for j in unroll(0, 8):
-            nxt[GEN ** (ACC_PEND + j)] = 0
-        nxt[GEN ** ACC_VALUE] = row[GEN ** ACC_VALUE] + lam_fresh * fresh[GEN ** FRESH_BC_VALUE] + lam_carried * carried[GEN ** DEFER_STMT_BC_VALUE]
-    bc_end = bc_chain * n_children_g ** ACC_SLOTS
-    bc_running = bc_end[GEN ** ACC_VALUE]
+        nxt = row * GEN ** PAIR_SLOTS
+        nxt[GEN ** 0] = lam_pow * lam_sq
+        nxt[GEN ** 1] = row[GEN ** 1] + lam_pow * (fresh[GEN ** FRESH_BC_VALUE] + lam * carried[GEN ** DEFER_STMT_BC_VALUE])
+    bc_end = bc_chain * n_children_g ** PAIR_SLOTS
+    bc_running = bc_end[GEN ** 1]
     bc_point = HeapBuf(BYTECODE_VARS)
-    fs0, fs1, fs2, fs3, fs4, bc_running = batch_sumcheck(bc_end[GEN ** ACC_FS], bc_end[GEN ** (ACC_FS + 1)], bc_end[GEN ** (ACC_FS + 2)], bc_end[GEN ** (ACC_FS + 3)], bc_end[GEN ** (ACC_FS + 4)], bc_msgs, bc_running, bc_point, BYTECODE_VARS)
+    fs0, fs1, fs2, fs3, fs4, bc_running = batch_sumcheck(st[8], st[9], st[10], st[11], st[12], bc_msgs, bc_running, bc_point, BYTECODE_VARS)
     bc_wsum = HeapBuf(n_children_g * GEN)
     bc_wsum[GEN ** 0] = 0
     for xc in mul_range(1, n_children_g):
@@ -4331,8 +4318,8 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
             rk = bc_point[GEN ** k]
             eq_fresh *= (1 + fresh[GEN ** k] + rk)
             eq_carried *= (1 + carried[GEN ** k] + rk)
-        pair = xc * xc
-        bc_wsum[xc * GEN] = bc_wsum[xc] + lam_bc[pair] * eq_fresh + lam_bc[pair * GEN] * eq_carried
+        row = bc_chain * xc ** PAIR_SLOTS
+        bc_wsum[xc * GEN] = bc_wsum[xc] + row[GEN ** 0] * (eq_fresh + lam * eq_carried)
     assert bc_running == bytecode_star * bc_wsum[n_children_g]
 
     for k in unroll(0, BYTECODE_VARS):

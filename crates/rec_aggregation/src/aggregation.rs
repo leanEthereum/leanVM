@@ -937,7 +937,11 @@ fn aggregate_deferred_claims(
     }
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
-    let gbc: Vec<F192> = (0..2 * child_count).map(|_| transcript.sample()).collect();
+    // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1).
+    let lam = transcript.sample();
+    let gbc: Vec<F192> = std::iter::successors(Some(F192::ONE), |&power| Some(power * lam))
+        .take(2 * child_count)
+        .collect();
     let points: Vec<Vec<F192>> = subproofs
         .iter()
         .zip(carried_claims)
