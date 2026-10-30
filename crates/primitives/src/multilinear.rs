@@ -117,7 +117,7 @@ fn fold_low_k(table: &[F64], chi: F192) -> Vec<F192> {
 ///
 /// Eight entries share one batched mixed product ([`mul_base8`]).
 pub fn fold_high_k(table: &[F64], chi: F192) -> Vec<F192> {
-    debug_assert_eq!(table.len() % 2, 0);
+    assert!(table.len().is_multiple_of(2), "a table of whole pairs");
     let (lo, hi) = table.split_at(table.len() / 2);
     // SAFETY: the fill writes every element before it reads any.
     unsafe {

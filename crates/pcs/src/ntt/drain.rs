@@ -32,7 +32,7 @@ impl Drain {
                 unsafe {
                     let dst = self.dst.add(row * self.dst_stride + k * self.piece_stride);
                     match stream {
-                        Some(s) => s.copy_lines(dst.cast::<Line>(), &*src.as_ptr().cast::<Line>()),
+                        Some(s) => s.copy_lines(dst.cast::<Line>(), &primitives::cast_slice::<F64, Line>(src)[0]),
                         None => dst.copy_from_nonoverlapping(src.as_ptr(), self.piece),
                     }
                 }

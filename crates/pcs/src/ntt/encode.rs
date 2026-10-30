@@ -114,7 +114,7 @@ impl<'t> Encoder<'t> {
             primitives::filled_vec((held * msg_rows) * num_ntts, |data| {
                 for first in (0..1usize << log_inv_rate).step_by(held).rev() {
                     let src = Source::Lanes(Lanes { words: msg, n_lanes });
-                    let mut win = Window::new(data, num_ntts, first);
+                    let mut win = Window::new(data, num_ntts, first * msg_rows);
                     deep = self.transform(&mut win, log_inv_rate, src, Some(on_rows), defer_deep);
                 }
             })
@@ -183,7 +183,7 @@ impl<'t> Encoder<'t> {
     /// - The first pass reads its rows from the message instead.
     /// - A lane-major message is read by that pass directly.
     ///   A plan with no such pass transposes it into block 0 of the buffer and encodes in place.
-    /// - Its `first_coset` and the buffer's size give the layer-`start` blocks the buffer holds.
+    /// - Its `first_row` and the buffer's size give the layer-`start` blocks the buffer holds.
     /// - Twiddles and rows handed to `on_rows` stay global.
     ///
     /// # Why block 0 goes last
@@ -249,9 +249,9 @@ impl<'t> Encoder<'t> {
 
     /// Hand every row of the buffer to the sink, in parallel blocks of four a worker.
     fn hand_over(win: &mut Window, plan: &Plan, sink: &RowSink<'_>) {
-        let log_rows = plan.log_handover_rows();
+        let (log_rows, first) = (plan.log_handover_rows(), win.first_row());
         parallel::chunks_mut(win.words_mut(), plan.num_ntts << log_rows, |i, rows| {
-            sink(i << log_rows, rows)
+            sink(first + (i << log_rows), rows)
         });
     }
 }

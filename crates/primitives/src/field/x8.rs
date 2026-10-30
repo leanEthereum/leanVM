@@ -265,7 +265,7 @@ impl Mul for F192x8 {
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
         let (even, odd) = self.products(rhs);
-        // SAFETY: the module's cfg enables avx512f and vpclmulqdq.
+        // SAFETY: the module's cfg enables avx512f and vpclmulqdq, and `f192x8` requires avx512bw with them.
         Self(std::array::from_fn(|k| unsafe { reduce_halves512(even[k], odd[k]) }))
     }
 }
@@ -370,7 +370,7 @@ impl Mixed8 {
 
     #[inline(always)]
     pub fn reduce(self) -> F192x8 {
-        // SAFETY: the module's cfg enables avx512f and vpclmulqdq.
+        // SAFETY: the module's cfg enables avx512f and vpclmulqdq, and `f192x8` requires avx512bw with them.
         F192x8(std::array::from_fn(|i| unsafe {
             reduce_halves512(self.even[i], self.odd[i])
         }))

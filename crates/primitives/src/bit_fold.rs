@@ -54,7 +54,7 @@ impl BitFold {
         tail_rows: &[[u8; B]],
         out: &mut [F192; BLOCK],
     ) {
-        debug_assert!(A == self.n_chunks && B == tail.n_chunks);
+        assert!(A == self.n_chunks && B == tail.n_chunks, "one byte width per fold");
         assert!(head_rows.len() <= BLOCK && head_rows.len() == tail_rows.len());
         self.imp.fold_block_pair(&tail.imp, head_rows, tail_rows, out);
     }
@@ -65,7 +65,7 @@ impl BitFold {
     /// intermediate, so it skips the fold's input transpose.
     #[inline]
     pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
-        debug_assert_eq!(CHUNKS, self.n_chunks);
+        assert_eq!(CHUNKS, self.n_chunks, "one byte width per fold");
         self.imp.fold_columns(cols, out);
     }
 }

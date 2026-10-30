@@ -317,9 +317,9 @@ impl<T> Copy for SendPtr<T> {}
 
 // SAFETY: `SendPtr` grants no access by itself; every dereference is inside an
 // `unsafe` block whose comment establishes that the range being touched belongs
-// to exactly one task.
-unsafe impl<T> Send for SendPtr<T> {}
-unsafe impl<T> Sync for SendPtr<T> {}
+// to exactly one task, and the elements it reaches may move to that task's thread.
+unsafe impl<T: Send> Send for SendPtr<T> {}
+unsafe impl<T: Send> Sync for SendPtr<T> {}
 
 impl<T> SendPtr<T> {
     /// Offset the base by `n` elements.
@@ -404,7 +404,7 @@ impl<T> Chunks<T> {
     #[inline]
     pub unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
         let start = i * self.width;
-        debug_assert!(start < self.len);
+        assert!(start < self.len, "chunk {i} out of range");
         unsafe { self.base.slice(start, self.width.min(self.len - start)) }
     }
 }

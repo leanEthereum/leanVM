@@ -80,6 +80,12 @@ impl MerkleBuilder {
     fn absorb_bytes(&self, first_leaf: usize, rows: &[u8]) {
         let n = rows.len() / self.leaves.row_bytes();
         assert_eq!(rows.len(), n * self.leaves.row_bytes(), "whole rows");
+        // Every shape check comes before the claim, so a claimed block is always written.
+        let chunk = n.min(SCRATCH_LEAVES);
+        if self.cut > 0 {
+            assert!(n >= 1 << self.cut, "a block holds whole leaf groups");
+            assert!(n.is_multiple_of(chunk), "a block holds whole chunks");
+        }
         self.progress.claim(first_leaf, n);
         // SAFETY: the claim makes these leaves, and their subtree up to the unit, ours alone.
         unsafe {
@@ -88,9 +94,6 @@ impl MerkleBuilder {
                 return self.complete(0, first_leaf, n);
             }
             // The groups climb to the cut in a stack scratch, a chunk of leaves at a time, and only their tops are kept.
-            assert!(n >= 1 << self.cut, "a block holds whole leaf groups");
-            let chunk = n.min(SCRATCH_LEAVES);
-            assert!(n.is_multiple_of(chunk), "a block holds whole chunks");
             let tops = n >> self.cut;
             let mut scratch = [MaybeUninit::<Hash>::uninit(); 2 * SCRATCH_LEAVES];
             for (k, rows) in rows.chunks_exact(chunk * self.leaves.row_bytes()).enumerate() {

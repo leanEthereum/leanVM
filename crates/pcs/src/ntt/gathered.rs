@@ -87,7 +87,7 @@ impl<'a> GatheredPass<'a> {
         let log_step = log_d - layer - g;
         let (rows, step, block_rows) = (1usize << g, 1usize << log_step, 1usize << (log_d - layer));
         // The blocks the buffer holds.
-        let first_block = win.first_coset();
+        let first_block = win.first_row() / block_rows;
         let blocks = first_block..first_block + (win.len() / num_ntts) / block_rows;
         // A lane-major group is 64 lanes of a batch of residues, transposed into a stage: one line per residue in each row.
         let staged = matches!(src, Source::Lanes(_));

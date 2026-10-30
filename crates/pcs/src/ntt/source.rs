@@ -17,7 +17,7 @@ pub(super) enum Source<'a> {
     InPlace,
     /// Each is a copy of this row-major message.
     Rows(&'a [F64]),
-    /// Each is this lane-major message transposed; the buffer holds the cosets from its `first_coset` on.
+    /// Each is this lane-major message transposed; the buffer holds the cosets from its `first_row` on.
     Lanes(Lanes<'a>),
 }
 

@@ -124,8 +124,8 @@ pub(super) fn butterfly_interleaved_fused_3layer(
                 },
             );
         }
-        // SAFETY: this code is compiled only where VPCLMULQDQ and AVX-512F are enabled, and every such
-        // machine runs the AVX-512BW that the sweep adds.
+        // SAFETY: this code is compiled only where VPCLMULQDQ and AVX-512F are enabled, and `primitives`
+        // refuses to build there without the AVX-512BW the sweep adds.
         unsafe { sweep(block, src, t, eighth, num_ntts) }
     }
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
@@ -259,8 +259,8 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     }
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     {
-        // SAFETY: this code is compiled only where VPCLMULQDQ and AVX-512F are enabled, and every such
-        // machine runs the AVX-512BW that the kernel adds.
+        // SAFETY: this code is compiled only where VPCLMULQDQ and AVX-512F are enabled, and `primitives`
+        // refuses to build there without the AVX-512BW the kernel adds.
         unsafe { butterfly_lanes_avx512(top, bot, twiddle.0) };
         done = top.len();
     }

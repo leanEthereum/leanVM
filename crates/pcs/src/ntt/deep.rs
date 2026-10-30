@@ -101,10 +101,9 @@ impl<'s> DeepPass<'s> {
             ..
         } = self.plan;
         let (sub_len, outer, log_sub, sink) = (self.sub_len, self.outer, self.log_sub, self.sink);
-        let (first_coset, start) = (win.first_coset(), self.plan.start);
+        let first_sub = win.first_row() >> log_sub;
         parallel::chunks_mut(win.words_mut(), sub_len, |local, sub| {
-            // The buffer's first sub-block, in the whole domain.
-            let sub_idx = local + (first_coset << (log_d - start - log_sub));
+            let sub_idx = first_sub + local;
             if self.defer && sink.is_some() {
                 // The rows are hashed from scratch and the buffer keeps its pre-deep state.
                 with_scratch(sub_len, |scratch| {

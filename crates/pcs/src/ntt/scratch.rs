@@ -8,6 +8,9 @@ use std::cell::RefCell;
 #[repr(C, align(64))]
 pub(super) struct Line([F64; 8]);
 
+// SAFETY: one field, an array of plain words.
+unsafe impl primitives::Plain for Line {}
+
 /// Lend this thread's scratch buffer, grown to the requested length.
 ///
 /// - It is cache-line aligned, so a full-width load never splits a line.
@@ -21,9 +24,6 @@ pub(super) fn with_scratch<R>(len: usize, f: impl FnOnce(&mut [F64]) -> R) -> R 
         if lines.len() * 8 < len {
             lines.resize(len.div_ceil(8), Line([F64::ZERO; 8]));
         }
-        // SAFETY:
-        // - A line is exactly eight contiguous words, with no padding.
-        // - The buffer holds at least the requested words, all initialized.
-        f(unsafe { std::slice::from_raw_parts_mut(lines.as_mut_ptr().cast::<F64>(), len) })
+        f(&mut primitives::cast_slice_mut::<Line, F64>(lines)[..len])
     })
 }

@@ -13,26 +13,26 @@ pub(super) const STREAM_MIN_WORDS: usize = 1 << 23;
 
 /// The words an encode transforms, and which part of the codeword they are.
 ///
-/// - The buffer is whole blocks of `num_ntts`-word rows: all the cosets, or the cosets from `first_coset` on.
-/// - It owns `first_coset`, which shifts every block index to its place in the whole domain.
+/// - The buffer is whole blocks of `num_ntts`-word rows: all the cosets, or the cosets from row `first_row` on.
+/// - It owns `first_row`, which shifts every row and block index to its place in the whole domain.
 /// - It owns `stream`: a buffer this large is evicted before the next pass reads it back.
 /// - Tasks write disjoint pieces through [`Window::base`], so they never hold the `&mut`.
 pub(super) struct Window<'a> {
     words: &'a mut [F64],
     num_ntts: usize,
-    first_coset: usize,
+    first_row: usize,
     stream: bool,
 }
 
 impl<'a> Window<'a> {
-    pub(super) fn new(words: &'a mut [F64], num_ntts: usize, first_coset: usize) -> Self {
+    pub(super) fn new(words: &'a mut [F64], num_ntts: usize, first_row: usize) -> Self {
         assert!(num_ntts > 0);
         assert_eq!(words.len() % num_ntts, 0);
         let stream = words.len() >= STREAM_MIN_WORDS;
         Self {
             words,
             num_ntts,
-            first_coset,
+            first_row,
             stream,
         }
     }
@@ -41,8 +41,9 @@ impl<'a> Window<'a> {
         self.num_ntts
     }
 
-    pub(super) fn first_coset(&self) -> usize {
-        self.first_coset
+    /// The buffer's first row, in the whole domain.
+    pub(super) fn first_row(&self) -> usize {
+        self.first_row
     }
 
     /// Whether this buffer's write-backs stream.
@@ -71,6 +72,6 @@ impl<'a> Window<'a> {
     /// The first word of row `r` of layer block `block`, in a buffer of blocks of `block_rows` rows.
     #[inline(always)]
     pub(super) fn row(&self, block_rows: usize, block: usize, r: usize) -> usize {
-        ((block - self.first_coset) * block_rows + r) * self.num_ntts
+        (block * block_rows + r - self.first_row) * self.num_ntts
     }
 }
