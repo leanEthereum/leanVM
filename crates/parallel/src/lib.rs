@@ -412,7 +412,7 @@ impl<T> Chunks<T> {
     #[inline]
     pub unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
         let start = i * self.width;
-        assert!(start < self.len, "chunk {i} out of range");
+        debug_assert!(start < self.len);
         unsafe { self.base.slice(start, self.width.min(self.len - start)) }
     }
 }
