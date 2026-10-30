@@ -276,6 +276,8 @@ mod tests {
             (8, 5, 6),
             (10, 37, 12),
             (12, 5, 13),
+            // Sixteen blocks a lane: the claims' sums run eight blocks at a time.
+            (14, 3, 15),
         ] {
             let lane_block = 1usize << lane_vars;
             let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
@@ -333,7 +335,7 @@ mod tests {
 
                 // Oracle: the dense weight written out naively, one eq entry at a time.
                 let mut dense = vec![F192::ZERO; stack.len()];
-                ring_switch::combine_deferred_chunk(&rs_outputs, 0, &mut dense[offset..offset + qkeccak_len]);
+                ring_switch::combine_deferred_chunk(&rs_outputs, &mut dense[offset..offset + qkeccak_len]);
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
                     let StackClaim::Point { offset, low_point, .. } = claim;
                     for j in 0..1usize << low_point.len() {

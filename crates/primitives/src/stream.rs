@@ -42,11 +42,9 @@ impl Stream {
         // SAFETY: forwarded to the caller's obligation.
         unsafe { copy_raw(dst.cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
-}
 
-impl Stream {
-    /// Copy one value of whole, aligned cache lines to `dst`, which must not be fetched first.
-    /// The size and alignment are compile-time facts, so no head or tail is left to store normally.
+    /// Copy one value to `dst`, which must not be fetched first: streamed when it is whole, aligned cache
+    /// lines, a compile-time fact that leaves no head or tail to store normally, and stored normally otherwise.
     ///
     /// # Safety
     /// `dst` must be valid, aligned for `T` and disjoint from `src`.

@@ -5,31 +5,12 @@ use primitives::field::F64;
 use super::kernels::{
     butterfly_interleaved_block, butterfly_interleaved_fused_2layer, butterfly_interleaved_fused_3layer,
 };
-use super::twiddles::Twiddles;
+use super::twiddles::AdditiveNttF64;
 
-/// The layer sweeps, over the twiddles of the domain.
-///
-/// - It is a `Copy` handle on the [`Twiddles`], so every pass takes it by value, as one pointer.
-/// - [`Layers::run`] runs a range of layers on one buffer, which is one sub-block of the domain.
-/// - It knows no plan, message or cache budget: its callers decide what to run, and where.
-#[derive(Clone, Copy)]
-pub(super) struct Layers<'t>(&'t Twiddles);
-
-impl<'t> Layers<'t> {
-    pub(super) fn new(twiddles: &'t Twiddles) -> Self {
-        Self(twiddles)
-    }
-
-    /// Log of the number of points of the domain.
-    pub(super) fn log_domain_size(self) -> usize {
-        self.0.log_domain_size()
-    }
-}
-
-impl Layers<'_> {
+impl AdditiveNttF64 {
     /// Run layers `first_layer..log_d` over one sub-block of the domain.
     ///
-    /// - The domain has `2^d` rows and splits into `2^o` equal sub-blocks.
+    /// - The domain has `2^log_d` rows and splits into `2^outer_log` equal sub-blocks.
     /// - The buffer is one of them; its index fixes the global block index, and so the twiddle, of each block.
     /// - Layers fuse into radix-8 sweeps, with radix-4 sweeps where a lone radix-2 would be left over.
     ///
@@ -42,8 +23,8 @@ impl Layers<'_> {
     /// That sweep loads from `src` and stores to `buf`, and the blocks it skips are not copied.
     /// Later sweeps work inside the blocks of the first, so they never read a word that was not copied.
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn run(
-        self,
+    pub(super) fn run_layers(
+        &self,
         buf: &mut [F64],
         mut src: Option<&[F64]>,
         log_d: usize,
@@ -70,7 +51,7 @@ impl Layers<'_> {
                 // One radix-8 sweep.
                 let eighth = block_size >> 3;
                 for_each_block(num_blocks_in_buf, log_d - layer, live, |block_in_buf| {
-                    let t = self.0.radix8(layer, global(block_in_buf));
+                    let t = self.radix8(layer, global(block_in_buf));
                     let start = block_in_buf * block_elems;
                     butterfly_interleaved_fused_3layer(
                         &mut buf[start..start + block_elems],
@@ -87,9 +68,9 @@ impl Layers<'_> {
                 for_each_block(num_blocks_in_buf, log_d - layer, live, |block_in_buf| {
                     let global_block = global(block_in_buf);
                     let t = [
-                        self.0.twiddle(layer, global_block),
-                        self.0.twiddle(layer + 1, 2 * global_block),
-                        self.0.twiddle(layer + 1, 2 * global_block + 1),
+                        self.twiddle(layer, global_block),
+                        self.twiddle(layer + 1, 2 * global_block),
+                        self.twiddle(layer + 1, 2 * global_block + 1),
                     ];
                     let start = block_in_buf * block_elems;
                     butterfly_interleaved_fused_2layer(
@@ -105,7 +86,7 @@ impl Layers<'_> {
                 // One layer: a plain butterfly sweep.
                 let block_size_half = block_size >> 1;
                 for_each_block(num_blocks_in_buf, log_d - layer, live, |block_in_buf| {
-                    let twiddle = self.0.twiddle(layer, global(block_in_buf));
+                    let twiddle = self.twiddle(layer, global(block_in_buf));
                     let start = block_in_buf * block_elems;
                     // A lone layer is rare: its block is copied before it runs, not fused with it.
                     if let Some(src) = src {

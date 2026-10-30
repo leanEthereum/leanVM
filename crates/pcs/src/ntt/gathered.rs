@@ -3,12 +3,11 @@
 use primitives::field::F64;
 use primitives::stream::Stream;
 
-use super::drain::Drain;
-use super::layers::Layers;
 use super::plan::Plan;
-use super::scratch::with_scratch;
+use super::scratch::{Line, with_scratch};
 use super::source::Source;
 use super::stage::{BATCH, Stage};
+use super::twiddles::AdditiveNttF64;
 use super::window::Window;
 
 /// One gathered pass: layers `layer..layer + g` in one sweep of the buffer, one row group at a time.
@@ -20,7 +19,7 @@ use super::window::Window;
 /// # Row groups
 ///
 /// - A group takes rows `r + i * step`, for `i < 2^g`, of one layer-`layer` block.
-/// - Here `step = 2^(d - layer - g)` and the residue `r < step`.
+/// - Here `step = 2^(log_d - layer - g)` and the residue `r < step`.
 /// - Those are exactly the rows the next `g` layers pair with each other.
 ///
 /// ```text
@@ -33,13 +32,13 @@ use super::window::Window;
 ///
 /// # Why the twiddles still match
 ///
-/// - At layer `L`, a row's block index is `row >> (d - L)`.
+/// - At layer `layer`, a row's block index is `row >> (log_d - layer)`.
 /// - The residue is below `step`, so that shift drops it.
 /// - The scratch transform therefore takes the same twiddles as the full one.
 ///
 /// # Tasks
 ///
-/// - A task is one residue over every block the buffer holds, from `first_block` on, block 0 last.
+/// - A task takes a range of residues, each over every block the buffer holds.
 /// - With a message, it gathers the message's rows once, and every block transforms a copy of them.
 /// - The message may be the buffer's block 0, so block 0 goes last.
 /// - Tasks own disjoint residues, so no task reads rows another task writes.
@@ -51,8 +50,6 @@ use super::window::Window;
 /// - It goes one octet of lanes at a time, and the octet of the residues is 64 lanes of one transform.
 /// - It transposes those lanes into a stage of `2^g` rows of 64 words, one line per residue.
 /// - Each block transforms a copy of the stage and scatters it line by line.
-///
-/// A block's rows are its own, and the message is read before block 0 is written.
 pub(super) struct GatheredPass<'a> {
     src: Source<'a>,
     /// The transpose of a lane-major message, if the source is one.
@@ -66,8 +63,7 @@ pub(super) struct GatheredPass<'a> {
     /// Rows of a layer-`layer` block, and the rows between the rows of a group.
     block_rows: usize,
     step: usize,
-    /// Rows of a group, its words a row, and its words in all.
-    rows: usize,
+    /// Words of a group's row, and of the group.
     width: usize,
     group_len: usize,
     /// Residues one task step takes, and the words of its stage.
@@ -115,7 +111,6 @@ impl<'a> GatheredPass<'a> {
             blocks,
             block_rows,
             step,
-            rows,
             width,
             group_len,
             batch,
@@ -127,7 +122,7 @@ impl<'a> GatheredPass<'a> {
     }
 
     /// Sweep the buffer once, one task per range of residues.
-    pub(super) fn run(&self, layers: Layers, win: &mut Window) {
+    pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window) {
         let base = win.base();
         let win = &*win;
         parallel::for_each_chunk(self.step / self.batch, |lo, hi| {
@@ -144,7 +139,7 @@ impl<'a> GatheredPass<'a> {
                                 staging.fill(stage, r, octet);
                                 for block in self.blocks.clone().rev() {
                                     let dst = win.row(self.block_rows, block, r) + 8 * octet;
-                                    self.group(layers, scratch, stream, win, base, block, r, Some(&*stage), dst);
+                                    self.group(ntt, scratch, stream, win, base, block, r, Some(&*stage), dst);
                                 }
                             }
                         }
@@ -156,7 +151,7 @@ impl<'a> GatheredPass<'a> {
                             for block in self.blocks.clone().rev() {
                                 let dst = win.row(self.block_rows, block, t);
                                 let from = msg.map(|_| &*stage);
-                                self.group(layers, scratch, stream, win, base, block, t, from, dst);
+                                self.group(ntt, scratch, stream, win, base, block, t, from, dst);
                             }
                         }
                     }
@@ -195,7 +190,7 @@ impl<'a> GatheredPass<'a> {
     #[inline(always)]
     fn group(
         &self,
-        layers: Layers,
+        ntt: &AdditiveNttF64,
         scratch: &mut [F64],
         stream: Option<&Stream>,
         win: &Window,
@@ -213,16 +208,22 @@ impl<'a> GatheredPass<'a> {
                 base.0.cast_const().wrapping_add(win.row(self.block_rows, block, r)),
             );
         }
-        layers.run(scratch, from, layer + g, self.width, layer, layer, block, None);
-        Drain {
-            // SAFETY: the group's first row lies inside the buffer.
-            dst: unsafe { base.add(dst) },
-            row_len: self.width,
-            dst_stride: step * num_ntts,
-            piece: self.piece,
-            piece_stride: self.piece_stride,
-            rows: self.rows,
+        ntt.run_layers(scratch, from, layer + g, self.width, layer, layer, block, None);
+        // Write the group back: scratch row `i` lands `i * step` rows after word `dst`, in pieces of `piece` words
+        // `piece_stride` apart. A streaming write moves whole aligned cache lines: `piece` is then 8.
+        for (i, row) in scratch.chunks_exact(self.width).enumerate() {
+            for (k, piece) in row.chunks_exact(self.piece).enumerate() {
+                // SAFETY:
+                // - The group lies inside the buffer, so every piece is in bounds, and line-aligned when streamed.
+                // - Only this group's task writes these rows of the buffer.
+                unsafe {
+                    let at = base.add(dst + i * step * num_ntts + k * self.piece_stride);
+                    match stream {
+                        Some(s) => s.copy_lines(at.cast::<Line>(), &primitives::cast_slice::<F64, Line>(piece)[0]),
+                        None => at.copy_from_nonoverlapping(piece.as_ptr(), self.piece),
+                    }
+                }
+            }
         }
-        .run(scratch, stream);
     }
 }

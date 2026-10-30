@@ -34,12 +34,17 @@ impl Plan {
         }
     }
 
-    /// The plan of a lane-major encode, if its first gathered pass can read the message:
-    /// a layer for it to run, whole cache lines in a row, and enough residues to batch.
-    pub(super) fn for_lanes(log_d: usize, num_ntts: usize, start: usize) -> Option<Self> {
-        let plan = Self::new(log_d, num_ntts, start);
-        let g = (plan.deep_start - start).min(plan.max_g);
-        (start < plan.deep_start && num_ntts.is_multiple_of(8) && log_d - start - g >= LOG_BATCH).then_some(plan)
+    /// Whether the first gathered pass can read a lane-major message itself: it has a layer to run, whole cache
+    /// lines in a row, and enough residues to batch.
+    pub(super) fn reads_lanes(&self) -> bool {
+        let g = (self.deep_start - self.start).min(self.max_g);
+        self.start < self.deep_start && self.num_ntts.is_multiple_of(8) && self.log_d - self.start - g >= LOG_BATCH
+    }
+
+    /// Whether an opening can rebuild a row from a lane-major message alone: one gathered pass reads it and
+    /// covers every layer before the deep pass.
+    pub(super) fn rebuilds_from_lanes(&self) -> bool {
+        self.reads_lanes() && self.single_gathered_pass()
     }
 
     /// The gathered passes as `(layer, g)`: each runs layers `layer..layer + g`.
@@ -72,17 +77,20 @@ impl Plan {
         0 < self.deep_start && self.deep_start < self.log_d
     }
 
-    /// The log of the rows of one deep sub-block.
-    ///
-    /// A task takes at least an L2 budget of rows.
-    /// So a high rate's tiny sub-blocks still reach the hasher in whole batches.
+    /// The log of the rows of one deep sub-block: a block of layer `deep_start`.
     pub(super) fn log_sub(&self) -> usize {
-        (self.log_d - self.deep_start).max(self.max_g.min(self.log_d - par_log(self.log_d)))
+        self.log_d - self.deep_start
     }
 
     /// Words of one deep sub-block.
     pub(super) fn sub_len(&self) -> usize {
-        self.num_ntts << (self.log_d - self.deep_start)
+        self.num_ntts << self.log_sub()
+    }
+
+    /// The log of the rows of one deep task: a run of sub-blocks of at least an L2 budget of rows, so a high
+    /// rate's tiny sub-blocks still reach the hasher in whole batches.
+    pub(super) fn log_task(&self) -> usize {
+        self.log_sub().max(self.max_g.min(self.log_d - par_log(self.log_d)))
     }
 
     /// The log of the rows of a block handed over in parallel after the last pass: four blocks per worker.

@@ -312,36 +312,7 @@ impl RingFold {
             done += len;
         }
     }
-}
 
-/// Finish a ring-switch claim without materializing its dense weight vector.
-/// The batching scalar is baked into both the target and the map.
-pub(crate) fn prove_finish_deferred(
-    state: RingSwitchProveState,
-    coordinate_weights: &[F192],
-    lambda: F192,
-) -> DeferredRingSwitchOutput {
-    let s_hat_u = transpose_s_hat(&state.s_hat_v);
-    let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
-    let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
-    DeferredRingSwitchOutput {
-        batched_sumcheck_claim: lambda * sumcheck_claim,
-        weight: RingWeight::new(scaled_weights, state.point),
-    }
-}
-
-/// Fold several deferred claims into `out[start..]` of their combined dense
-/// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
-/// allocated or read back. `start` is an offset into the basis, which lets a
-/// caller cover it one cache-resident window at a time.
-#[cfg(test)]
-pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
-    for claim in outputs {
-        claim.weight.fold().add_chunk(start, out);
-    }
-}
-
-impl RingFold {
     /// `out[j] += Phi(e_lo[j] * e_hi)`, 64 products at a time through the bit fold.
     #[inline]
     fn fold_products(&self, e_lo: &[F192], e_hi: F192, out: &mut [F192]) {
@@ -380,6 +351,30 @@ impl RingFold {
     }
 }
 
+/// Finish a ring-switch claim without materializing its dense weight vector.
+/// The batching scalar is baked into both the target and the map.
+pub(crate) fn prove_finish_deferred(
+    state: RingSwitchProveState,
+    coordinate_weights: &[F192],
+    lambda: F192,
+) -> DeferredRingSwitchOutput {
+    let s_hat_u = transpose_s_hat(&state.s_hat_v);
+    let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
+    let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
+    DeferredRingSwitchOutput {
+        batched_sumcheck_claim: lambda * sumcheck_claim,
+        weight: RingWeight::new(scaled_weights, state.point),
+    }
+}
+
+/// The dense weight of several deferred claims, accumulated into `out`: the reference for tests.
+#[cfg(test)]
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], out: &mut [F192]) {
+    for claim in outputs {
+        claim.weight.fold().add_chunk(0, out);
+    }
+}
+
 /// Split point for the factored eq build: low half sized ~n/2 (min 4, the
 /// point where two factor tables beat one full build).
 fn split_n_lo(n: usize) -> usize {
@@ -403,8 +398,8 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 ///
 /// The two phases exist because one map is shared by every claim, and it can
 /// only be sampled once all of them have been sent. So each claim's
-/// map-independent work (its slice-MLE vector and its factored eq tensor) has
-/// to survive that barrier.
+/// map-independent work (its slice-MLE vector and its point) has to survive
+/// that barrier.
 #[derive(Clone)]
 pub struct RingSwitchProveState {
     s_hat_v: Vec<F192>,
@@ -496,7 +491,7 @@ mod tests {
             .iter()
             .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
         let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
-        combine_deferred_chunk(&deferred, 0, &mut deferred_basis);
+        combine_deferred_chunk(&deferred, &mut deferred_basis);
 
         assert_eq!(deferred_target, expected_target);
         assert_eq!(deferred_basis, expected_basis);

@@ -346,7 +346,7 @@ pub fn mul_base_splat8(c: F192, k: &[F64; 8]) -> Prod8 {
     F192x8::splat(c).mul_base_unreduced(F64x8::from_array(k))
 }
 
-/// `out[i] += in[i]` over eight elements.
+/// `out[i] += add[i]` over eight elements.
 #[inline]
 pub fn xor_into8(out: &mut [F192; 8], add: &[F192; 8]) {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]

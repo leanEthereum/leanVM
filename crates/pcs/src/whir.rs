@@ -163,7 +163,7 @@ impl L0Codeword<'_> {
                     n_lanes: self.n_lanes,
                     plan: *plan,
                 };
-                ntt.openings().rows(kept, positions)
+                ntt.rows(kept, positions)
             }
             deep => kept_rows(self.words, self.row_words, deep, positions),
         }
@@ -174,12 +174,12 @@ impl L0Codeword<'_> {
 /// how to finish them, `row_words` words each, back to back.
 fn kept_rows(words: &[F64], row_words: usize, deep: Option<&(AdditiveNttF64, Plan)>, positions: &[usize]) -> Vec<F64> {
     match deep {
-        Some((ntt, plan)) => ntt.openings().rows(Kept::BeforeDeep { words, plan: *plan }, positions),
+        Some((ntt, plan)) => ntt.rows(Kept::BeforeDeep { words, plan: *plan }, positions),
         None => gather_rows(words, row_words, positions),
     }
 }
 
-/// Largest L0 codeword the commit keeps, in bytes.
+/// Where [`primitives::REBUILD_OVER_STORE`], the largest L0 codeword the commit keeps, in bytes.
 ///
 /// - Up to it, memory is not the limit, and the codeword saves the opening a rebuild from the stack and the encode a second stage fill.
 /// - Above it, the codeword dominates the peak: the commit keeps none, and when one gathered pass covers the layers
@@ -319,7 +319,6 @@ pub(crate) fn ligero_commit_ext(
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
     let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
-    // The encode writes every matrix element before reading it.
     let encode = |mat: &mut [F192]| {
         tracing::info_span!(
             "NTT",
@@ -612,10 +611,10 @@ fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, S
 // after them the buffers are one `H`-element block and every later round is the
 // ordinary adjacent-pair fold.
 
-/// Elements per task wherever a round is chunked.
 /// Below this many items a pass runs on the calling thread: a dispatch costs more than it saves.
 const PAR_THRESHOLD: usize = 4096;
 
+/// Elements per task wherever a round is chunked.
 const ROUND_CHUNK: usize = 2048;
 
 /// Sum the per-task `(u_0, u_2)` accumulators, sequentially for the small
@@ -722,8 +721,7 @@ fn msg_terms_lone(f0: &[F192], b0: &[F192]) -> (Acc8, Acc8) {
 
 /// Round message for a lane round, over `f.len() / block` blocks.
 fn round_msg_blocks(f: &[F192], b: &[F192], block: usize) -> SumcheckMessage {
-    // Real asserts, not debug ones: the crate is only ever built in release, and a
-    // block count that truncates drops the trailing block from BOTH u_0 and u_2,
+    // Real asserts: a block count that truncates drops the trailing block from BOTH u_0 and u_2,
     // which is a well-formed but wrong round message rather than a panic.
     assert_eq!(b.len(), f.len());
     assert!(block > 0 && f.len().is_multiple_of(block));
@@ -1202,8 +1200,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // block `n_lanes-1-t`, so a row IS the tail of the leaf image: the absent lanes
     // are the image's leading zeros (`MerkleBuilder` shares their hash prefix, and only
     // this tail rides the proof).
-    // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts
-    // block `b` at index `b` and the absent lanes' zeros at the end, where they contribute nothing.
 
     let ood_count = |lvl: usize| -> usize { config.ood_samples.get(lvl).copied().unwrap_or(0) };
 
@@ -1250,13 +1246,15 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let lambda_0 = ps.sample();
     let weights_0 = powers(lambda_0, num_queries_0);
     let span = tracing::info_span!("Open", level = 0).entered();
-    // Ordered (dup-possible) rows for the local induce math ...
     // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
+    // Ordered (dup-possible) rows for the local induce math ...
     let row_words = prover_data.row_words;
     let group_0 = l0_tree.group_positions(&queries_0);
     let group_rows_0 = prover_data.l0(&stack, n_lanes).rows(&group_0);
     let image = |q| &fetched_row(&group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
     let mut opened_rows_0 = Vec::with_capacity(queries_0.len() * num_interleaved_0);
+    // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts
+    // block `b` at index `b` and the absent lanes' zeros at the end, where they contribute nothing.
     for &q in &queries_0 {
         let zeros = std::iter::repeat_n(F64::ZERO, num_interleaved_0 - n_lanes);
         opened_rows_0.extend(image(q).iter().rev().copied().chain(zeros));

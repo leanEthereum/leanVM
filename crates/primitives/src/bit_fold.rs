@@ -43,7 +43,7 @@ impl BitFold {
         }
     }
 
-    /// Fold up to 64 rows split in two runs of bytes: `self` weighs the `A` bytes of `head`, `tail` the `B` of `tail_rows`.
+    /// Fold up to 64 rows split in two runs of bytes: `self` weighs the `A` bytes of `head_rows`, `tail` the `B` of `tail_rows`.
     ///
     /// The sums are added before the output transpose, so a row of 24 bytes costs 24 input bytes, not 32.
     #[inline]

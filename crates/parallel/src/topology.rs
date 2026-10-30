@@ -95,9 +95,12 @@ fn allowed_cores() -> Option<usize> {
         .lines()
         .find_map(|line| line.strip_prefix("Cpus_allowed_list:"))?;
     let mut cores = std::collections::HashSet::new();
+    // An allowed CPU that is offline has no topology; it adds no core.
     for cpu in cpu_list(allowed.trim())? {
         let path = format!("/sys/devices/system/cpu/cpu{cpu}/topology/thread_siblings_list");
-        cores.insert(std::fs::read_to_string(path).ok()?.trim().to_owned());
+        if let Ok(siblings) = std::fs::read_to_string(path) {
+            cores.insert(siblings.trim().to_owned());
+        }
     }
     (!cores.is_empty()).then_some(cores.len())
 }

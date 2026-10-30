@@ -24,7 +24,7 @@ pub fn to_words(v: __m512i) -> [u64; 8] {
 /// Register `i` of `src`: bytes `64 * i..64 * i + 64`, read unaligned.
 #[inline(always)]
 pub fn load<T: Plain>(src: &[T], i: usize) -> __m512i {
-    assert!(i.saturating_add(1).saturating_mul(64) <= size_of_val(src));
+    assert!(i < size_of_val(src) / 64);
     // SAFETY: the assert keeps the 64 bytes inside `src`, and any bytes of a `Plain` type are readable.
     unsafe { _mm512_loadu_si512(src.as_ptr().cast::<u8>().wrapping_add(64 * i).cast()) }
 }
@@ -32,7 +32,7 @@ pub fn load<T: Plain>(src: &[T], i: usize) -> __m512i {
 /// Write `v` over register `i` of `dst`: bytes `64 * i..64 * i + 64`, unaligned.
 #[inline(always)]
 pub fn store<T: Plain>(dst: &mut [T], i: usize, v: __m512i) {
-    assert!(i.saturating_add(1).saturating_mul(64) <= size_of_val(dst));
+    assert!(i < size_of_val(dst) / 64);
     // SAFETY: the assert keeps the 64 bytes inside `dst`, and any bytes are a valid `Plain` value.
     unsafe { _mm512_storeu_si512(dst.as_mut_ptr().cast::<u8>().add(64 * i).cast(), v) }
 }
@@ -80,7 +80,8 @@ pub fn xor(a: __m512i, b: __m512i) -> __m512i {
 /// Only those words must lie inside `src`: a register may hang over its end, or start past it with `n == 0`.
 #[inline(always)]
 pub fn load_prefix<T: Plain>(src: &[T], i: usize, n: usize) -> __m512i {
-    assert!(n <= 8 && (n == 0 || i.saturating_mul(8).saturating_add(n) <= size_of_val(src) / 8));
+    let words = size_of_val(src) / 8;
+    assert!(n <= 8 && (n == 0 || (n <= words && i <= (words - n) / 8)));
     // SAFETY: the assert keeps the first `n` words inside `src`, which is readable for any `Plain` bytes.
     // The masked-out words are not accessed.
     unsafe {
@@ -96,7 +97,8 @@ pub fn load_prefix<T: Plain>(src: &[T], i: usize, n: usize) -> __m512i {
 /// Only those words must lie inside `dst`.
 #[inline(always)]
 pub fn store_prefix<T: Plain>(dst: &mut [T], i: usize, n: usize, v: __m512i) {
-    assert!(n <= 8 && (n == 0 || i.saturating_mul(8).saturating_add(n) <= size_of_val(dst) / 8));
+    let words = size_of_val(dst) / 8;
+    assert!(n <= 8 && (n == 0 || (n <= words && i <= (words - n) / 8)));
     // SAFETY: the assert keeps the first `n` words inside `dst`, and any bytes are a valid `Plain` value.
     unsafe {
         _mm512_mask_storeu_epi64(

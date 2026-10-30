@@ -41,13 +41,15 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
     acc
 }
 
-/// The evaluation domain of the additive NTT, and the twiddle of every block at every layer.
+/// Additive NTT over F_{2^64} on the standard polynomial-basis subspace `{1, x, x^2, ...}`: the integers under
+/// their natural encoding.
 ///
-/// - It owns the rows of [`generate_evals_from_subspace`] and the byte tables built from them.
-/// - It is the standard polynomial-basis subspace `{1, x, x^2, ...}`, the integers under their natural encoding.
-/// - It knows no buffer, message or plan: the passes borrow it through `Layers`.
+/// - It owns the rows of [`generate_evals_from_subspace`] and the byte tables built from them, so the twiddle of
+///   every block at every layer.
+/// - The encodes (`encode.rs`), the layer sweeps (`layers.rs`) and the reads of rows an encode left out of its
+///   codeword (`openings.rs`) are its methods.
 #[derive(Clone, Debug)]
-pub(super) struct Twiddles {
+pub struct AdditiveNttF64 {
     /// The rows of [`generate_evals_from_subspace`], end to end.
     evals: Vec<F64>,
     /// Per eval row, the subset sums of `row[1..]` over each byte of a block index:
@@ -55,7 +57,7 @@ pub(super) struct Twiddles {
     tables: Vec<[[F64; 256]; 3]>,
 }
 
-impl Twiddles {
+impl AdditiveNttF64 {
     /// Row `i`, which starts after `l + (l - 1) + ... + (l - i + 1)` values.
     fn row(&self, i: usize) -> &[F64] {
         let l = self.tables.len();
@@ -87,7 +89,7 @@ impl Twiddles {
     /// Standard NTT with basis `{1, x, …, x^(dim-1)}`. Requires `dim ≤ 63` so
     /// the evaluation domain (and the twiddles) stay inside F_{2^64} without
     /// wrap; far beyond any codeword size in use.
-    pub(super) fn standard(dim: usize) -> Self {
+    pub fn standard(dim: usize) -> Self {
         assert!(dim <= 63, "standard NTT requires dim ≤ 63");
         let basis: Vec<F64> = (0..dim).map(|i| F64(1u64 << i)).collect();
         Self::new(&basis)
@@ -99,10 +101,10 @@ impl Twiddles {
 
     /// Twiddle of one block at one layer.
     ///
-    /// - It is `s_i(sum_j bit_j(block) * b_(i+1+j))`, with `i = L - layer - 1` on a `2^L`-point domain.
+    /// - It is `s_i(sum_j bit_j(block) * b_(i+1+j))`, with `i = log_domain_size - layer - 1`.
     /// - The normalized `s_i` is F_2-linear, so this is a subset sum of row `i` of the table.
     #[inline]
-    pub(super) fn twiddle(&self, layer: usize, block: usize) -> F64 {
+    pub fn twiddle(&self, layer: usize, block: usize) -> F64 {
         let row = self.log_domain_size() - layer - 1;
         if block < 1 << 24 {
             let t = &self.tables[row];
@@ -115,9 +117,8 @@ impl Twiddles {
     /// The seven twiddles a radix-8 group needs, breadth-first: layer `layer`,
     /// then `layer + 1` (one per half), then `layer + 2` (one per quarter).
     ///
-    /// `span_get` is F_2-linear in the block index, so the six deeper twiddles are
-    /// the block's own contribution plus a fixed correction per sub-block index:
-    /// one scan of the three basis rows replaces seven.
+    /// `span_get` is F_2-linear in the block index, so a deeper layer's twiddles are its
+    /// first child's plus a fixed offset per child: three lookups instead of seven.
     pub(super) fn radix8(&self, layer: usize, block: usize) -> [F64; 7] {
         let l = self.log_domain_size();
         let (v1, v2) = (self.row(l - layer - 2), self.row(l - layer - 3));
@@ -130,7 +131,7 @@ impl Twiddles {
     }
 
     /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
-    pub(super) fn inverse_transform(&self, data: &mut [F64]) {
+    pub fn inverse_transform(&self, data: &mut [F64]) {
         let log_d = log2_strict_usize(data.len());
         assert!(log_d <= self.log_domain_size());
         for layer in (0..log_d).rev() {

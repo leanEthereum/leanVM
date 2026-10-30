@@ -180,7 +180,7 @@ pub fn cast_slice_mut<A: Plain, B: Plain>(a: &mut [A]) -> &mut [B] {
 /// The `A` whose bytes start at element `i` of `src`, read unaligned.
 #[inline(always)]
 pub fn load_at<T: Plain, A: Plain>(src: &[T], i: usize) -> A {
-    assert!(i.saturating_mul(size_of::<T>()).saturating_add(size_of::<A>()) <= size_of_val(src));
+    assert!(size_of::<A>() <= size_of_val(src) && i <= (size_of_val(src) - size_of::<A>()) / size_of::<T>());
     // SAFETY: the assert keeps the bytes inside `src`, and any bytes of a `Plain` type are
     // readable and a valid `A`.
     unsafe { src.as_ptr().wrapping_add(i).cast::<A>().read_unaligned() }
@@ -189,7 +189,7 @@ pub fn load_at<T: Plain, A: Plain>(src: &[T], i: usize) -> A {
 /// Write `v` over the bytes from element `i` of `dst` on, unaligned.
 #[inline(always)]
 pub fn store_at<T: Plain, A: Plain>(dst: &mut [T], i: usize, v: A) {
-    assert!(i.saturating_mul(size_of::<T>()).saturating_add(size_of::<A>()) <= size_of_val(dst));
+    assert!(size_of::<A>() <= size_of_val(dst) && i <= (size_of_val(dst) - size_of::<A>()) / size_of::<T>());
     // SAFETY: the assert keeps the bytes inside `dst`, and any bytes are a valid `Plain` value.
     unsafe { dst.as_mut_ptr().add(i).cast::<A>().write_unaligned(v) }
 }

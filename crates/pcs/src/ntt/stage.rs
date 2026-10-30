@@ -12,7 +12,7 @@ use super::window::STREAM_MIN_WORDS;
 /// # Layout
 ///
 /// ```text
-///     input, lane-major:   [ block 0 | block 1 | ... | block n-1 ]   each 2^rows_log words
+///     input, lane-major:   [ block 0 | block 1 | ... | block n-1 ]   each 2^log_rows words
 ///     output, row-major:   row x = [ 0, ..., 0, block n-1 word x, ..., block 0 word x ]
 /// ```
 ///
@@ -31,7 +31,7 @@ use super::window::STREAM_MIN_WORDS;
 /// - Rows are handled one tile at a time.
 /// - Each lane adds a contiguous burst of words to an L1-resident tile.
 /// - The finished tile goes out as one contiguous run.
-/// - That keeps an n-way gather at a `2^rows_log` stride near memory bandwidth.
+/// - That keeps an n-way gather at a `2^log_rows` stride near memory bandwidth.
 pub(super) fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, row_words: usize, log_rows: usize) {
     let rows = 1usize << log_rows;
     assert!(n_lanes > 0, "a commitment needs at least one lane");
@@ -162,11 +162,11 @@ fn fill_stage_tiles(
     }
 }
 
-/// Write `sub[tile + s][k] = msg[src[k] + s]` for the 8 x 8 words of eight lines, a line in `zeros` being zeros.
+/// Write `stage[tile + s][k] = msg[src[k] + s]` for the 8 x 8 words of eight lines, a line in `zeros` being zeros.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "avx512f")]
-fn fill_tile(sub: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
     use core::arch::x86_64::*;
     use primitives::simd::{load, store, transpose8};
     let r: [__m512i; 8] = std::array::from_fn(|k| {
@@ -178,17 +178,17 @@ fn fill_tile(sub: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: 
     });
     let cols = transpose8(r);
     for (s, col) in cols.into_iter().enumerate() {
-        store(sub, tile + s, col);
+        store(stage, tile + s, col);
     }
 }
 
 /// [`fill_tile`] word by word.
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
 #[inline(always)]
-fn fill_tile(sub: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
     for s in 0..8 {
         for k in 0..8 {
-            sub[(tile + s) * 8 + k] = if zeros >> k & 1 == 1 {
+            stage[(tile + s) * 8 + k] = if zeros >> k & 1 == 1 {
                 F64::ZERO
             } else {
                 msg[src[k] + s]

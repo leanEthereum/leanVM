@@ -750,13 +750,13 @@ pub mod x86_64 {
             _mm256_xor_si256(_mm256_srli_epi64::<63>(hi), _mm256_srli_epi64::<61>(hi)),
             _mm256_srli_epi64::<60>(hi),
         );
-        // lo ^ f(hi ^ spill), with f(v) = v ^ v<<1 ^ v<<3 ^ v<<4.
+        // lo ^ g(hi ^ spill), with g(v) = v ^ v<<1 ^ v<<3 ^ v<<4.
         let v = _mm256_xor_si256(hi, spill);
-        let f = _mm256_xor_si256(
+        let g = _mm256_xor_si256(
             _mm256_xor_si256(v, _mm256_slli_epi64::<1>(v)),
             _mm256_xor_si256(_mm256_slli_epi64::<3>(v), _mm256_slli_epi64::<4>(v)),
         );
-        _mm256_xor_si256(lo, f)
+        _mm256_xor_si256(lo, g)
     }
 
     /// Qword `i` is the reduction of lane `i`'s 128-bit product, `even` holding those of the even
@@ -795,7 +795,6 @@ pub mod x86_64 {
     /// Lane-wise base reduction on eight qwords:
     /// `lo ^ g(hi) ^ g(spill)`, with `g(y) = y ^ y<<1 ^ y<<3 ^ y<<4 = z ^ z<<3` for `z = y ^ y<<1`, and
     /// `g(spill)` one in-lane byte lookup on the top nibble of `hi`.
-    ///
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "avx512f", enable = "avx512bw")]

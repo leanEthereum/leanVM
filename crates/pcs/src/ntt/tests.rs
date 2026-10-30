@@ -6,11 +6,11 @@ use primitives::field::F64;
 use primitives::log2_strict_usize;
 use primitives::test_rng::Rng;
 
-use super::encode::{Encoded, Encoder, Keep};
-use super::facade::AdditiveNttF64;
+use super::encode::{Encoded, Keep};
 use super::openings::Kept;
 use super::source::Source;
 use super::stage::transpose_lane_major;
+use super::twiddles::AdditiveNttF64;
 use super::window::Window;
 
 /// Test oracle: fill every replica with a copy of a message held elsewhere.
@@ -72,7 +72,7 @@ fn inverse_roundtrip_and_variants_agree() {
         let mut a = orig.clone();
         forward_scalar_from_layer(&ntt, &mut a, 1, 0);
         let mut c = orig.clone();
-        Encoder::new(&ntt.tw).transform(&mut Window::new(&mut c, 1, 0), 0, Source::Replicas, None, false);
+        ntt.transform(&mut Window::new(&mut c, 1, 0), 0, Source::Replicas, None, false);
         assert_eq!(a, c, "parallel == scalar at log_d={log_d}");
 
         ntt.inverse_transform(&mut a);
@@ -120,7 +120,7 @@ fn interleaved_parallel_matches_scalar() {
         // Under test: the pass-planning driver.
         let mut got = original;
         let mut win = Window::new(&mut got, lanes, 0);
-        Encoder::new(&ntt.tw).transform(&mut win, start_layer, Source::Replicas, None, false);
+        ntt.transform(&mut win, start_layer, Source::Replicas, None, false);
 
         assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, start_layer={start_layer}");
     }
@@ -230,7 +230,7 @@ fn lane_major_msg_encode_matches_per_lane_reference() {
                 let block = row_words - 1 - lane;
                 replicate_rows(&mut want, &msg[block * rows..(block + 1) * rows]);
                 let mut win = Window::new(&mut want, 1, 0);
-                Encoder::new(&ntt.tw).transform(&mut win, log_inv_rate, Source::Replicas, None, false);
+                ntt.transform(&mut win, log_inv_rate, Source::Replicas, None, false);
             }
             for pos in 0..block_len {
                 assert_eq!(
@@ -284,9 +284,9 @@ fn lane_major_encode_matches_transpose_then_in_place() {
                         n_lanes,
                         plan,
                     };
-                    ntt.openings().rows(kept, &positions)
+                    ntt.rows(kept, &positions)
                 }
-                Some(deep) => ntt.openings().rows(
+                Some(deep) => ntt.rows(
                     Kept::BeforeDeep {
                         words: &words,
                         plan: deep,
@@ -309,7 +309,8 @@ fn lane_major_encode_matches_transpose_then_in_place() {
 }
 
 /// Without the deep writeback, the handed-over rows and the rows finished on demand
-/// must equal the full encode's, wherever the plan splits off a deep pass.
+/// must equal the full encode's, wherever the plan splits off a deep pass. Whether a shape
+/// splits depends on the cache budget and the pool, so only some shape must.
 ///
 /// A deep-only plan with a separate message builds the whole codeword and returns `None`.
 /// The in-place, deep-only, deferred branch runs in `lane_major_encode_matches_transpose_then_in_place`,
@@ -317,13 +318,9 @@ fn lane_major_encode_matches_transpose_then_in_place() {
 #[test]
 fn deferred_deep_rows_match_the_full_encode() {
     let mut rng = Rng::new(0xDEE9);
-    let shapes = [
-        (14usize, 51usize, 1usize, true),
-        (15, 64, 2, true),
-        (9, 8, 1, false),
-        (4, 8, 4, false),
-    ];
-    for (log_d, lanes, log_inv_rate, split) in shapes {
+    let shapes = [(14usize, 51usize, 1usize), (15, 64, 2), (9, 8, 1), (4, 8, 4)];
+    let mut splits = 0;
+    for (log_d, lanes, log_inv_rate) in shapes {
         let ntt = AdditiveNttF64::standard(log_d);
         let msg_len = (lanes << log_d) >> log_inv_rate;
         let msg: Vec<F64> = (0..msg_len).map(|_| F64(rng.next_u64())).collect();
@@ -337,11 +334,11 @@ fn deferred_deep_rows_match_the_full_encode() {
         let deep = ntt.encode_interleaved_with(&mut got, &msg, lanes, log_inv_rate, true, &sink);
         drop(sink);
         assert_eq!(handed, want, "handed-over rows, log_d={log_d}, lanes={lanes}");
-        assert_eq!(deep.is_some(), split, "plan, log_d={log_d}, lanes={lanes}");
+        splits += usize::from(deep.is_some());
         let mut positions: Vec<usize> = (0..40).map(|_| rng.next_u64() as usize % (1 << log_d)).collect();
         positions.sort_unstable();
         let rows = match deep {
-            Some(deep) => ntt.openings().rows(
+            Some(deep) => ntt.rows(
                 Kept::BeforeDeep {
                     words: &got,
                     plan: deep,
@@ -361,4 +358,5 @@ fn deferred_deep_rows_match_the_full_encode() {
             );
         }
     }
+    assert!(splits > 0, "some shape plans a deferred deep pass");
 }
