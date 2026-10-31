@@ -149,3 +149,9 @@ fn find_first_returns_the_global_minimum() {
         assert_eq!(parallel::find_first(n, |_| false), None, "n = {n}");
     }
 }
+
+#[test]
+#[should_panic = "nested parallel dispatch"]
+fn nested_dispatch_panics_even_when_the_outer_runs_inline() {
+    parallel::for_each(1, |_| parallel::for_each(4, |_| {}));
+}

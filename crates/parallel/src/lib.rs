@@ -152,6 +152,7 @@ fn pool() -> &'static Pool {
 
 fn worker_main(pool: &'static Pool, id: usize, qos: Qos) {
     WORKER_ID.set(id);
+    IN_TASK.set(true); // a worker only ever runs tasks
     set_qos(qos);
     let _ = pool.workers[id].handle.set(std::thread::current());
     let mut last_generation = 0usize;
@@ -202,7 +203,6 @@ fn drain(pool: &Pool) {
     let f = unsafe { job.f.as_ref() };
     let task_count = job.n_tasks;
     let worker_count = num_threads();
-    IN_TASK.set(true); // catches nested dispatch; see `for_each_chunk`
     // Catch a task panic so it cannot unwind across `worker_main` (skipping the
     // `working` decrement and hanging the join) or poison the dispatch lock.
     let result = catch_unwind(AssertUnwindSafe(|| {
@@ -221,9 +221,24 @@ fn drain(pool: &Pool) {
             f(start, (start + batch).min(task_count));
         }
     }));
-    IN_TASK.set(false);
     if let Err(payload) = result {
         pool.panic.lock().unwrap().get_or_insert(payload); // keep the first
+    }
+}
+
+/// Marks the calling thread as inside a dispatch until dropped, unwinding included.
+struct InTask;
+
+impl InTask {
+    fn enter() -> Self {
+        IN_TASK.set(true);
+        Self
+    }
+}
+
+impl Drop for InTask {
+    fn drop(&mut self) {
+        IN_TASK.set(false);
     }
 }
 
@@ -240,6 +255,8 @@ fn drain(pool: &Pool) {
 /// independent unit and keep the levels below it sequential.
 pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     assert!(!IN_TASK.get(), "nested parallel dispatch from inside a pool task");
+    // The caller runs tasks too, inline or as worker 0, so nesting panics on every path.
+    let _task = InTask::enter();
 
     let worker_count = num_threads();
     if worker_count <= 1 || n_tasks <= 1 {
