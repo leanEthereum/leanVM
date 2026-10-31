@@ -391,6 +391,10 @@ impl FnLower<'_> {
                     ))
                 };
                 let nbits = self.const_index(&args[2]);
+                // An exponent of `g` is below its order, 2^64 - 1.
+                if !plain && nbits > 64 {
+                    self.fail(format!("{f} writes at most 64 bits, got {nbits}"))
+                }
                 let bits = self.bits_dest(&args[0], nbits, f);
                 let value = self.expr(&args[1]);
                 self.pending.push(Hint::Resolved(if plain {

@@ -87,7 +87,7 @@ def main():
     return
 ```
 
-Each constant is **evaluated as a compile-time integer expression** (or an `f192` literal, or a field-valued one such as `GEN ** 2`) and substituted as a single literal everywhere its name appears below, so unlike a `Const` parameter it needs no call site and works in every literal position. Integer arithmetic is the point: it is what makes a derived size come out right, as in `N_TWEAK_WORDS = 2 + CHAIN_STEPS * V + LOG_LIFETIME`. Constants must precede the `def`s and are resolved *before* variables, so a constant name is **reserved**: do not reuse it as a parameter or local name. (Syntactically, `N = 8` is just a Python module global.)
+Each constant is **evaluated as a compile-time integer expression** (or an `f192` literal, or a field-valued one such as `GEN ** 2`) and substituted as a single literal everywhere its name appears below, so unlike a `Const` parameter it needs no call site and works in every literal position. Integer arithmetic is the point: it is what makes a derived size come out right, as in `N_TWEAK_WORDS = 2 + CHAIN_STEPS * V + LOG_LIFETIME`. Constants must precede the `def`s and are resolved *before* variables, so a constant name is **reserved**: do not reuse it as a parameter or local name. A constant may not take the name of a builtin or of the language's own words (`GEN`, `log`, `range`, `unroll`, `mul_range`, `print`), which it would replace everywhere they appear. A constant whose integer arithmetic overflows a `u128`, goes negative or divides by zero is an error, not a field value. Text inside a string literal (a stream name, a print label) is never substituted. (Syntactically, `N = 8` is just a Python module global.)
 
 **Placeholders** let a host fill values at compile time without editing the source. Any identifier may be mapped to replacement text before parsing (`parse_with_replacements`, taking a `BTreeMap<String, String>`); the replacement is identifier-bounded (`FOO` does not touch `FOOBAR`). The idiom is a placeholder feeding a constant:
 
@@ -155,7 +155,7 @@ def hash_pair(buf, k: Const):
     return h[0], h[1]
 ```
 
-`k: Const` marks a **compile-time parameter**: the call site must pass a constant (an integer literal, `GEN ** k`, or a literal-bound name), and the compiler *specializes* the function per distinct constant tuple, a monomorphized copy (`hash_pair__L1`) with the parameter substituted as its literal, shared by every call with the same constants; only the runtime arguments are passed. Inside the body the parameter *is* the literal, so it works in compile-time positions: stack indexes, slice bounds. A function with a `Const` parameter is a template: it is never lowered itself. The idiomatic pairing dispatches a runtime index to a const-indexed helper:
+`k: Const` marks a **compile-time parameter**: the call site must pass a constant (an integer literal, `GEN ** k`, or a literal-bound name), and the compiler *specializes* the function per distinct constant tuple, a monomorphized copy (`hash_pair__L1`) with the parameter substituted as its literal, shared by every call with the same constants; only the runtime arguments are passed. Inside the body the parameter *is* the literal, so it works in compile-time positions: stack indexes, slice bounds. Rebinding it at the body's own level shadows the literal from there on; a rebinding inside an `if` or an `unroll` is rejected, since such a binding may outlive its block and the substitution, made first, cannot tell. A function with a `Const` parameter is a template: it is never lowered itself. The idiomatic pairing dispatches a runtime index to a const-indexed helper:
 
 ```python
 r = match(log(x), range(0, 4), lambda i: hash_pair(buf, i))
@@ -272,6 +272,8 @@ Lowering: the body becomes a tail-recursive helper function whose exit test is f
 
 The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
 
+The body is a function of its own, returning nothing, so a bare `return` inside it ends the **loop**, not the enclosing function: execution continues after the `for`. The counter advances from its value at the end of the body, so rebinding it moves the walk.
+
 ### `for i in unroll(a, b)`: compile-time unrolling
 
 ```python
@@ -284,7 +286,7 @@ def chain(buf, n: Const):
     return
 ```
 
-The body is replicated `b − a` times with `i` substituted by each integer literal in turn, usable anywhere a literal is (stack indexes, slice bounds, `Const` arguments). Zero loop overhead: no call, no frame, no counter; the price is code size. Bounds are compile-time integer expressions, evaluated after `Const` specialization, so `unroll(0, n)` with `n: Const` works (unlike `mul_range`, whose bounds are parse-time literals). Every copy executes (this is straight-line code, not a branch), so bindings simply rebind, a fresh binding per iteration.
+The body is replicated `b − a` times with `i` substituted by each integer literal in turn, usable anywhere a literal is (stack indexes, slice bounds, `Const` arguments). Zero loop overhead: no call, no frame, no counter; the price is code size. Bounds are compile-time integer expressions, evaluated after `Const` specialization, so `unroll(0, n)` with `n: Const` works (unlike `mul_range`, whose bounds are parse-time literals). Every copy executes (this is straight-line code, not a branch), so bindings simply rebind, a fresh binding per iteration. The counter itself follows the rule of a `Const` parameter: it may be rebound at the body's own level, not inside a nested `if` or `unroll`.
 
 ### `if` / `elif` / `else`
 
@@ -368,7 +370,7 @@ A proof-enforced inequality, in **3 instructions and no branch**: `XOR` for `x =
 
 ### Range checks: `assert log x < log Y` and `assert log x < k`
 
-The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^16` (the minimum memory size, which keeps the gadget provable at every memory size the prover may announce). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
+The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^16` (the minimum memory size, which keeps the gadget provable at every memory size the prover may announce). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
 
 ```python
 assert log(x) < log(GEN ** 8)

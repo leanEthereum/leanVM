@@ -2,9 +2,9 @@
 //! happens on text.
 //!
 //! Five syntactic positions demand a literal before lowering ever runs: a buffer
-//! size, a `mul_range` bound, a range-check bound, a `match` range, and a
-//! `case`. That is why a global constant is substituted rather than bound, and
-//! it is the whole reason this module exists.
+//! size, a `StackBuf` parameter size, a `mul_range` bound, a range-check bound,
+//! and a `match` range. That is why a global constant is substituted rather than
+//! bound, and it is the whole reason this module exists.
 //!
 //! A constant is read as a compile-time INTEGER, which is deliberate and
 //! load-bearing: it is what makes a derived size come out right. So the same
@@ -59,6 +59,23 @@ pub(super) fn const_int_expr(e: &Expr) -> Option<u128> {
         },
         Expr::Pow(a, b) => const_int_expr(a)?.checked_pow(u32::try_from(const_int_expr(b)?).ok()?),
         _ => None,
+    }
+}
+
+/// Whether `e` is literals under integer operators only, so that failing to fold
+/// it means an overflow, a negative intermediate or a division by zero.
+pub(super) fn is_int_arith(e: &Expr) -> bool {
+    match e {
+        Expr::Lit(_) => true,
+        Expr::Add(a, b)
+        | Expr::Sub(a, b)
+        | Expr::Mul(a, b)
+        | Expr::Div(a, b)
+        | Expr::FieldDiv(a, b)
+        | Expr::Mod(a, b)
+        | Expr::Pow(a, b) => is_int_arith(a) && is_int_arith(b),
+        Expr::Call(f, args) if f == "const" && args.len() == 1 => is_int_arith(&args[0]),
+        _ => false,
     }
 }
 
@@ -125,24 +142,37 @@ pub(super) fn parse_gpow_bound(s: &str) -> Result<u64, String> {
 /// Apply identifier-level **placeholder** replacements to source text before
 /// parsing: each maximal run of alphanumeric characters and underscores that
 /// equals a key of `replacements` is replaced by its value; other text,
-/// including substrings of longer identifiers, is untouched. An empty map
-/// returns the source unchanged.
+/// including substrings of longer identifiers and the inside of a string
+/// literal (a stream name, a print label), is untouched. An empty map returns
+/// the source unchanged.
 pub(super) fn apply_replacements(src: &str, replacements: &BTreeMap<String, String>) -> String {
     if replacements.is_empty() {
         return src.to_string();
     }
     let mut out = String::with_capacity(src.len());
     let mut start = 0;
-    let flush = |out: &mut String, word: &str| {
-        out.push_str(replacements.get(word).map_or(word, String::as_str));
+    let mut in_str = false;
+    let flush = |out: &mut String, word: &str, in_str: bool| {
+        out.push_str(if in_str {
+            word
+        } else {
+            replacements.get(word).map_or(word, String::as_str)
+        });
     };
     for (i, c) in src.char_indices() {
         if !(c.is_alphanumeric() || c == '_') {
-            flush(&mut out, &src[start..i]);
+            flush(&mut out, &src[start..i], in_str);
             out.push(c);
             start = i + c.len_utf8();
+            // A string literal ends with its line, so a stray `"` in a comment
+            // cannot reach past it.
+            in_str = match c {
+                '"' => !in_str,
+                '\n' => false,
+                _ => in_str,
+            };
         }
     }
-    flush(&mut out, &src[start..]);
+    flush(&mut out, &src[start..], in_str);
     out
 }

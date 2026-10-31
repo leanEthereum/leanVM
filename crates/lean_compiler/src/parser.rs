@@ -19,7 +19,9 @@ mod consts;
 mod expr;
 mod subst;
 pub use consts::parse_const;
-use consts::{apply_replacements, const_int_expr, eval_const_int, gpow_bound, parse_f192_const, parse_gpow_bound};
+use consts::{
+    apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_f192_const, parse_gpow_bound,
+};
 use expr::{
     binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
     strip_comment, strip_const_wrapper, top_level_cmp,
@@ -161,6 +163,12 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                 consts.insert(name, format!("f192({},{},{})", v.c0, v.c1, v.c2));
             } else if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
+            } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
+                // Integer arithmetic that did not fold. Reading it in the field
+                // instead, as the branch below would, silently picks another value.
+                return Err(at(format!(
+                    "global constant `{name}`: `{rhs}` overflows a u128, goes negative or divides by zero"
+                )));
             } else {
                 // `GEN ** 2` and friends. The ISA is written in g-powers, so this
                 // is the natural spelling for a constant one, and it is not an
@@ -226,7 +234,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             ));
         }
     }
-    infer_return_shapes(&mut funcs)?;
+    infer_return_shapes(&mut funcs);
     Ok(Ast { funcs, const_arrays })
 }
 
@@ -234,6 +242,12 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
 /// may not take one of these, since the builtin would win and the body would be
 /// dead code that still looked live.
 const BUILTINS: &[&str] = &[
+    "GEN",
+    "log",
+    "print",
+    "range",
+    "unroll",
+    "mul_range",
     "addr",
     "assert_in_k",
     "keccak",
@@ -255,17 +269,12 @@ const BUILTINS: &[&str] = &[
 /// carries its static size, a `HeapBuf` stays a one-cell pointer (its allocation
 /// hint ran in the creating function). Iterated to a fixed point, so a wrapper
 /// may return a buffer produced by a function declared later.
-fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
-    fn expr_shape(
-        e: &Expr,
-        locals: &HashMap<&str, Shape>,
-        known: &HashMap<String, Vec<Shape>>,
-    ) -> Result<Shape, String> {
-        let fits = |n: u64| u32::try_from(n).map_err(|_| format!("StackBuf size {n} does not fit in u32"));
-        Ok(match e {
+fn infer_return_shapes(funcs: &mut [Func]) {
+    fn expr_shape(e: &Expr, locals: &HashMap<&str, Shape>, known: &HashMap<String, Vec<Shape>>) -> Shape {
+        match e {
             Expr::Var(v) => locals.get(v.as_str()).copied().unwrap_or(Shape::Scalar),
-            Expr::StackBuf(n) => Shape::StackBuf(fits(*n)?),
-            Expr::ListLit(es) => Shape::StackBuf(fits(es.len() as u64)?),
+            Expr::StackBuf(n) => Shape::StackBuf(*n),
+            Expr::ListLit(es) => Shape::StackBuf(es.len() as u32),
             Expr::Call(f, _) => known
                 .get(f)
                 .filter(|r| r.len() == 1)
@@ -273,15 +282,10 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
                 .copied()
                 .unwrap_or(Shape::Scalar),
             _ => Shape::Scalar,
-        })
+        }
     }
 
-    fn scan(
-        body: &[Stmt],
-        params: &[Param],
-        known: &HashMap<String, Vec<Shape>>,
-        n_ret: usize,
-    ) -> Result<Vec<Shape>, String> {
+    fn scan(body: &[Stmt], params: &[Param], known: &HashMap<String, Vec<Shape>>, n_ret: usize) -> Vec<Shape> {
         // Seeded from the DECLARED shapes: a `s: StackBuf(n)` parameter is a run
         // here as much as a local one is, so `return s` returns the run rather
         // than reporting it used as a scalar.
@@ -290,7 +294,7 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
         for stmt in body {
             match &stmt.kind {
                 StmtKind::Let(name, e) => {
-                    let shape = expr_shape(e, &locals, known)?;
+                    let shape = expr_shape(e, &locals, known);
                     locals.insert(name.as_str(), shape);
                 }
                 StmtKind::LetTuple(names, f, _) => {
@@ -307,7 +311,7 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
                     locals.insert(var.as_str(), Shape::Scalar);
                     for inner in body {
                         if let StmtKind::Let(name, e) = &inner.kind {
-                            let shape = expr_shape(e, &locals, known)?;
+                            let shape = expr_shape(e, &locals, known);
                             locals.insert(name.as_str(), shape);
                         }
                     }
@@ -316,15 +320,12 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
                     locals.insert(name.as_str(), Shape::Scalar);
                 }
                 StmtKind::Return(es) => {
-                    returns = es
-                        .iter()
-                        .map(|e| expr_shape(e, &locals, known))
-                        .collect::<Result<_, _>>()?;
+                    returns = es.iter().map(|e| expr_shape(e, &locals, known)).collect();
                 }
                 _ => {}
             }
         }
-        Ok(returns)
+        returns
     }
 
     let mut known: HashMap<String, Vec<Shape>> = funcs
@@ -337,8 +338,8 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
     for _ in 0..=funcs.len() {
         let next: HashMap<String, Vec<Shape>> = funcs
             .iter()
-            .map(|f| Ok((f.name.clone(), scan(&f.body, &f.params, &known, f.return_shapes.len())?)))
-            .collect::<Result<_, String>>()?;
+            .map(|f| (f.name.clone(), scan(&f.body, &f.params, &known, f.return_shapes.len())))
+            .collect();
         if next == known {
             break;
         }
@@ -349,7 +350,6 @@ fn infer_return_shapes(funcs: &mut [Func]) -> Result<(), String> {
             .remove(&f.name)
             .expect("every function has inferred return shapes");
     }
-    Ok(())
 }
 
 /// One significant source line: its 1-based position in the ORIGINAL file, its
@@ -451,7 +451,11 @@ impl Parser<'_> {
         let header = header.strip_suffix(':').ok_or("function header needs `:`")?;
         let open = header.find('(').ok_or("function header needs `(`")?;
         let name = header[..open].trim().to_string();
-        let params_str = header[open + 1..header.rfind(')').ok_or("missing `)`")?].trim();
+        let close = header
+            .rfind(')')
+            .filter(|&c| c > open)
+            .ok_or("function header needs `)` after `(`")?;
+        let params_str = header[open + 1..close].trim();
         let mut params = Vec::new();
         if !params_str.is_empty() {
             for part in params_str.split(',') {
@@ -492,6 +496,16 @@ impl Parser<'_> {
         }
         self.i += 1;
         let body = self.block(indent)?;
+        if let Some(p) = params
+            .iter()
+            .find(|p| p.kind == ParamKind::Const && rebinds_in_block(&body, &p.name))
+        {
+            return Err(format!(
+                "`def {name}`: `{}` is a Const parameter, substituted as a literal into the body, so it \
+                 cannot be rebound inside an `if` or an `unroll`; bind a new name",
+                p.name
+            ));
+        }
         let n_ret = body
             .iter()
             .filter_map(|s| {
@@ -554,14 +568,16 @@ impl Parser<'_> {
                     return Err("unroll needs `a, b` (compile-time integers)".into());
                 }
                 let (lo, hi) = (parse_expr(parts[0])?, parse_expr(parts[1])?);
+                let var = binding_name(var, "loop counter")?;
                 self.i += 1;
                 let body = self.block(indent)?;
-                return Ok(StmtKind::Unroll {
-                    var: binding_name(var, "loop counter")?,
-                    lo,
-                    hi,
-                    body,
-                });
+                if rebinds_in_block(&body, &var) {
+                    return Err(format!(
+                        "the `unroll` counter `{var}` is substituted as a literal into each copy of the body, \
+                         so it cannot be rebound inside an `if` or an `unroll`; bind a new name"
+                    ));
+                }
+                return Ok(StmtKind::Unroll { var, lo, hi, body });
             }
             let parts = call_args(iter, "mul_range").ok_or("`for` needs `mul_range(start, stop)` or `unroll(a, b)`")?;
             if parts.len() != 2 {
@@ -666,8 +682,8 @@ impl Parser<'_> {
             // range check in the exponent: proves `log_g(X) < k`.
             if let Some((a, b)) = split_once_top(rest, "<") {
                 let x =
-                    strip_log(a).ok_or("a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`")?;
-                let bound = match strip_log(b) {
+                    strip_log(a)?.ok_or("a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`")?;
+                let bound = match strip_log(b)? {
                     // `log GEN ** k = k` when the bound folds to a power of GEN;
                     // otherwise it is a runtime g-power and the gadget derives
                     // `g^{k-1}` from it. A bound that folds to something else is a
@@ -846,10 +862,19 @@ impl Parser<'_> {
 type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
 
 /// Strip a leading `log` token (`log x`, `log(x)`), if present. The token must
-/// end at a boundary, so a variable named `logx` is not a log of `x`.
-fn strip_log(s: &str) -> Option<&str> {
-    let r = s.trim_start().strip_prefix("log")?;
-    r.starts_with([' ', '(']).then_some(r)
+/// end at a boundary, so a variable named `logx` is not a log of `x`. A bare
+/// `log x` takes the rest of the side, and a parenthesised one only its group,
+/// which must end the side: `log(x) * 2` is `2·log x` in Python and was read
+/// here as `log(2x)`, so it is rejected rather than read either way.
+fn strip_log(s: &str) -> Result<Option<&str>, String> {
+    let Some(r) = s.trim().strip_prefix("log").filter(|r| r.starts_with([' ', '('])) else {
+        return Ok(None);
+    };
+    let r = r.trim_start();
+    if r.starts_with('(') && !whole_call(r) {
+        return Err(format!("`{}`: put the whole operand inside `log(…)`", s.trim()));
+    }
+    Ok(Some(r))
 }
 
 /// `names = match(log(x), range(a, b), lambda i: expr, …)`: leanVM's
@@ -873,7 +898,7 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
         .collect::<Result<Vec<_>, _>>()?;
     let chunks = call_args(rhs, "match").ok_or("malformed `match(…)`")?;
     let (first, pairs) = chunks.split_first().ok_or("match needs arguments")?;
-    let x = strip_log(first).ok_or("`match` matches logs: `match(log(x), …)`")?;
+    let x = strip_log(first)?.ok_or("`match` matches logs: `match(log(x), …)`")?;
     let x = parse_expr(x)?;
     if pairs.is_empty() || !pairs.len().is_multiple_of(2) {
         return Err("match needs `range(a, b), lambda i: …` pairs after the scrutinee".into());
@@ -898,9 +923,10 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
             .strip_prefix("lambda ")
             .ok_or("expected `lambda i: …` after each range")?;
         let (param, body) = split_once_top(lam, ":").ok_or("`lambda` needs `:`")?;
+        let param = binding_name(param, "lambda parameter")?;
         let body = parse_expr(body)?;
         for j in lo..hi {
-            arms.push(subst_var(&body, param.trim(), &Expr::Lit(j)));
+            arms.push(subst_var(&body, &param, &Expr::Lit(j)));
         }
     }
     Ok(StmtKind::Match { targets, x, arms })

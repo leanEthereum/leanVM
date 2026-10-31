@@ -288,7 +288,9 @@ impl FnLower<'_> {
     /// base. Nothing else may `fresh()` between them, so they stay adjacent.
     pub(super) fn alloc_stack(&mut self, n: u32) -> Off {
         let base = self.next;
-        self.next += n;
+        self.next = base
+            .checked_add(n)
+            .unwrap_or_else(|| self.fail("the frame outgrows 2^32 cells"));
         base
     }
 

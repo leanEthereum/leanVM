@@ -22,7 +22,7 @@ pub(crate) enum KVal {
     /// An intra-function jump target: the `i`-th instruction of the function
     /// this `SET` belongs to, resolved to `g^{entry + i}` once entry pcs are
     /// fixed. Emitted with a placeholder by the `if`/`else` lowering and
-    /// backpatched ([`FnLower::patch_local`]).
+    /// backpatched (`FnLower::patch_local`).
     Local(u32),
     /// The `i`-th instruction of the named function: a `match` arm's entry, written
     /// into the arm's jump-table slot ([`JumpTables`]).
@@ -107,7 +107,7 @@ pub(crate) enum Hint {
     AllocFrame { ptr: Off, callee: String },
     /// `AllocFrame` sized to the **largest** of several callees, a shared frame
     /// for a dispatched call (all `callees` share the arg/return layout; only
-    /// their local count, hence frame size, differs). See [`FnLower::lower_dispatched_call`].
+    /// their local count, hence frame size, differs). See `FnLower::lower_dispatched_call`.
     AllocFrameMax { ptr: Off, callees: Vec<String> },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint heap region of `size`
     /// cells (a `HeapBuf(size)`), addressed by g-power offsets from the pointer.
@@ -140,7 +140,7 @@ pub(crate) struct JumpTables {
     pub(crate) shared: HashMap<Vec<String>, usize>,
 }
 
-/// A resolved run of consecutive cells ([`crate::lower::FnLower::cell_run`]): a
+/// A resolved run of consecutive cells (`FnLower::cell_run`): a
 /// frame (stack) run, used in place, or a heap slice (the buffer pointer's cell
 /// plus the first g-power offset), which a `keccak` operand must bridge through
 /// the stack since `KECCAK` addresses only frame cells.

@@ -108,10 +108,7 @@ impl FnLower<'_> {
                             "`{callee}` parameter {i} is a StackBuf({n}), got a StackBuf({len})"
                         ))
                     }
-                    for k in 0..n {
-                        let cell = src + k;
-                        arg_offs.push((base + k, cell));
-                    }
+                    arg_offs.extend((0..n).map(|k| (base + k, src + k)));
                 }
                 Shape::Scalar => {
                     let cell = self.expr(a);
@@ -326,7 +323,7 @@ impl FnLower<'_> {
         };
         let substs = self
             .const_substs(def, args)
-            .unwrap_or_else(|_| self.fail(format!("`@inline {callee}`: bad arity or unresolved Const argument")));
+            .unwrap_or_else(|e| self.fail(format!("`@inline {callee}`: {e}")));
         let body = substitute_body(&def.body, &substs);
         let n_ret = def.return_shapes.len();
         if n_ret != dsts.len() {
@@ -351,9 +348,21 @@ impl FnLower<'_> {
         // `self_fp`, and range-check bounds stay the caller's: the inlined code
         // runs in the caller's frame, so they fit.
         let mut binds: Vec<(String, Binding)> = Vec::new();
-        for (p, a) in def.params.iter().zip(args) {
+        for (i, (p, a)) in def.params.iter().zip(args).enumerate() {
             if p.kind == ParamKind::Const {
                 continue;
+            }
+            // A declared run is checked as a real call checks it ([`Self::lower_call`]).
+            if let Shape::StackBuf(n) = p.shape() {
+                match self.stack_of(a) {
+                    Some((_, len)) if len == n => {}
+                    Some((_, len)) => self.fail(format!(
+                        "`{callee}` parameter {i} is a StackBuf({n}), got a StackBuf({len})"
+                    )),
+                    None => self.fail(format!(
+                        "`{callee}` parameter {i} is a StackBuf({n}); pass one, got `{a:?}`"
+                    )),
+                }
             }
             let b = if let Some((base, size)) = self.stack_of(a) {
                 Binding::Stack(base, size)
@@ -442,8 +451,7 @@ impl FnLower<'_> {
                         self.fail(format!("returned StackBuf has size {actual}, expected {size}"))
                     };
                     for k in 0..size {
-                        let src = base + k;
-                        self.copy(src, ret + k);
+                        self.copy(base + k, ret + k);
                     }
                 }
             }
@@ -458,6 +466,11 @@ impl FnLower<'_> {
     /// copy of the callee, queued once per distinct constant tuple and named
     /// `callee__L5_G3`-style, and only the runtime arguments remain.
     pub(super) fn specialize<'a>(&mut self, callee: &str, args: &'a [Expr]) -> (String, Vec<&'a Expr>) {
+        // `main` runs in the fixed frame `g^0` and halts the machine where another
+        // function returns, so a call to it would end the run.
+        if callee == "main" {
+            self.fail("`main` is the entry point, so it cannot be called")
+        }
         let Some(def) = self.defs.get(callee).copied() else {
             return (callee.to_string(), args.iter().collect()); // loop helpers, unknown names
         };

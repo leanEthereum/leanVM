@@ -47,7 +47,7 @@ pub enum Expr {
     /// Single-return function call in expression position.
     Call(String, Vec<Expr>),
     /// `HeapBuf(n)`: allocate a heap buffer of `n` cells; evaluates to its pointer.
-    HeapBuf(u64),
+    HeapBuf(u32),
     /// `HeapBuf(size)` with a *runtime* size carried **in the exponent**: the
     /// buffer holds `k` cells where `size = g^k` (so a size derived from a
     /// g-power count `n` is plain field arithmetic: `HeapBuf(n * n * GEN**2)`
@@ -59,7 +59,7 @@ pub enum Expr {
     /// stack value. Its cells `sa[0..n]` are written/read directly (no heap deref),
     /// and a size-2 `StackBuf` is a valid `keccak` operand (the four 64-bit hash
     /// words live as two lanes in each of two consecutive 128-bit cells).
-    StackBuf(u64),
+    StackBuf(u32),
     /// `arr[idx]`: read a cell. For a heap `arr` (a pointer), `m[arr·idx]` (idx a
     /// g-power). For a [`Expr::StackBuf`]: the frame cell `base + idx` (idx a
     /// compile-time integer), read directly.
@@ -335,7 +335,6 @@ fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
     }
 }
 
-/// Collect references in `s` into `refs` and names it binds into `bound`.
 /// Every name the block binds, ignoring scope. [`free_vars_stmt`] deliberately
 /// does not answer this: its `bound` set is scoped, so an arm-local binding is
 /// discarded with the arm.
@@ -374,6 +373,7 @@ fn scoped_vars<'a>(body: &'a [Stmt], refs: &mut Vec<&'a str>) {
     }
 }
 
+/// Collect references in `s` into `refs` and names it binds into `bound`.
 pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &mut HashSet<&'a str>) {
     match &s.kind {
         StmtKind::Let(n, e) => {
@@ -468,8 +468,54 @@ pub(crate) fn free_vars_stmt<'a>(s: &'a Stmt, refs: &mut Vec<&'a str>, bound: &m
         StmtKind::Unroll { var, lo, hi, body } => {
             free_vars_expr(lo, refs);
             free_vars_expr(hi, refs);
-            bound.insert(var.as_str());
+            // The counter is bound inside the body only, so unless the body
+            // rebinds it, a read of the name after the loop is the enclosing one.
+            let fresh = bound.insert(var.as_str());
             body.iter().for_each(|s| free_vars_stmt(s, refs, bound));
+            if fresh && !binds_through(body, var) {
+                bound.remove(var.as_str());
+            }
         }
     }
+}
+
+/// Whether `s` itself binds `name`, nested blocks aside.
+pub(crate) fn binds(s: &StmtKind, name: &str) -> bool {
+    match s {
+        StmtKind::Let(n, _) | StmtKind::LetHintWitness { name: n, .. } => n == name,
+        StmtKind::LetTuple(ns, ..) => ns.iter().any(|n| n == name),
+        StmtKind::Match { targets, .. } => targets.iter().any(|t| matches!(t, Expr::Var(n) if n == name)),
+        _ => false,
+    }
+}
+
+/// Whether `body` binds `name` where the binding may outlive the block: at its
+/// own level, or in an `if` arm or an `unroll` body, even one whose counter has
+/// that name, since only the counter is local to it (a `mul_range` body is a
+/// function of its own).
+fn binds_through(body: &[Stmt], name: &str) -> bool {
+    body.iter().any(|s| match &s.kind {
+        StmtKind::If { then, els, .. } => binds_through(then, name) || binds_through(els, name),
+        StmtKind::Unroll { body, .. } => binds_through(body, name),
+        kind => binds(kind, name),
+    })
+}
+
+/// Whether `body` rebinds `name` inside an `if` arm or an `unroll` body.
+///
+/// A `Const` parameter or an `unroll` counter is bound by substituting a literal
+/// for it ([`crate::subst_stmts`]), which stops at a rebinding. At the name's own
+/// level that is exact, but inside a block it is not: an `unroll` body's bindings
+/// outlive it, and an `if` arm's do exactly when the condition folds, which
+/// substitution, running first, cannot know.
+pub(crate) fn rebinds_in_block(body: &[Stmt], name: &str) -> bool {
+    body.iter().any(|s| match &s.kind {
+        StmtKind::If { then, els, .. } => [then, els]
+            .iter()
+            .any(|arm| binds_through(arm, name) || rebinds_in_block(arm, name)),
+        StmtKind::Unroll { body, .. } => binds_through(body, name) || rebinds_in_block(body, name),
+        // Inside, `name` is the loop's own counter when it is named so.
+        StmtKind::For { var, body, .. } => var != name && rebinds_in_block(body, name),
+        _ => false,
+    })
 }

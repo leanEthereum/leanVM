@@ -261,9 +261,7 @@ impl FnLower<'_> {
     }
 
     fn fresh(&mut self) -> Off {
-        let o = self.next;
-        self.next += 1;
-        o
+        self.alloc_stack(1)
     }
 
     fn emit(&mut self, op: LOp) {
@@ -535,9 +533,11 @@ impl FnLower<'_> {
         // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
-        let inline_arm =
-            |s: &Self, a: &Expr| matches!(a, Expr::Call(f, _) if s.defs.get(f.as_str()).is_some_and(|d| d.inline));
-        if arms.iter().all(|a| matches!(a, Expr::Call(..)) && !inline_arm(self, a)) {
+        // A builtin arm (`f192(…)`, `hint_log2_ceil(…)`) has no entry to dispatch to.
+        if arms
+            .iter()
+            .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| !d.inline)))
+        {
             let specialized: Vec<(String, Vec<&Expr>)> = arms
                 .iter()
                 .map(|a| {
@@ -582,10 +582,8 @@ impl FnLower<'_> {
                                     if size != 1 {
                                         s.fail("a multi-cell StackBuf return cannot cross a match join")
                                     }
-                                    // `copy` reads the run's first cell, which is where
-                                    // the arm's single returned value sits.
-                                    let src = base;
-                                    s.copy(src, rc);
+                                    // The run's first cell holds the arm's single returned value.
+                                    s.copy(base, rc);
                                 }
                                 RetBind::Scalar => {}
                             }
@@ -657,10 +655,7 @@ impl FnLower<'_> {
         // simply win, so an ambiguous condition is REJECTED and `const(...)` is
         // how the author names the regime (`zkDSL.md`, "`if const(...)`").
         let (a, b) = (self.eval(lhs), self.eval(rhs));
-        if let (Some(ai), Some(bi)) = (
-            a.int.and_then(|n| u32::try_from(n).ok()),
-            b.int.and_then(|n| u32::try_from(n).ok()),
-        ) {
+        if let (Some(ai), Some(bi)) = (a.int, b.int) {
             // Checked per SIDE, not by comparing the two verdicts. If each side's
             // own readings agree then integer equality and field equality say the
             // same thing, so a side that disagrees with ITSELF is the whole of the
@@ -686,10 +681,9 @@ impl FnLower<'_> {
             }
             return;
         }
-        // `const(...)` also decides a condition only the field can read (`GEN ** 3`,
-        // or anything past `u32`), which has no integer reading to be ambiguous
-        // against. A plain `if` must NOT: folding it would rescope the arm, whose
-        // bindings then outlive it.
+        // `const(...)` also decides a condition only the field can read (`GEN ** 3`),
+        // which has no integer reading to be ambiguous against. A plain `if` must
+        // NOT: folding it would rescope the arm, whose bindings then outlive it.
         if force_const {
             if let (Some(fa), Some(fb)) = (a.field, b.field) {
                 for st in if (fa == fb) == eq { then } else { els } {
@@ -926,12 +920,15 @@ impl FnLower<'_> {
                 // UNCONSTRAINED, so the caller (log2_ceil) re-verifies it. Same
                 // "prover computes, circuit checks" pattern as `/`.
                 if args.len() != 3 {
-    self.fail(format!(
+                    self.fail(format!(
                         "hint_log2_ceil takes three arguments, `(bits, nbits, floor)`, got {}",
                         args.len()
                     ))
-};
+                }
                 let nbits = self.const_index(&args[1]);
+                if nbits > 128 {
+                    self.fail(format!("hint_log2_ceil reads at most 128 bits, got {nbits}"))
+                }
                 let floor = self.const_index(&args[2]);
                 let bits = self.bits_dest(&args[0], nbits, "hint_log2_ceil");
                 let dst = self.fresh();
@@ -949,12 +946,9 @@ impl FnLower<'_> {
             }
             Expr::HeapBuf(n) => {
                 let arr = self.fresh();
-                self.heap_sizes.insert(arr, *n as u128);
+                self.heap_sizes.insert(arr, u128::from(*n));
                 // Allocate before the next instruction reads the pointer.
-                self.pending.push(Hint::AllocBuffer {
-                    ptr: arr,
-                    size: *n as u32,
-                });
+                self.pending.push(Hint::AllocBuffer { ptr: arr, size: *n });
                 arr
             }
             Expr::HeapBufDyn(e) => {
@@ -965,9 +959,7 @@ impl FnLower<'_> {
                 self.pending.push(Hint::AllocBufferDyn { ptr: arr, size });
                 arr
             }
-            Expr::StackBuf(_) => {
-                self.fail("StackBuf(n) must be bound to a name: `x = StackBuf(n)`")
-            }
+            Expr::StackBuf(_) => self.fail("StackBuf(n) must be bound to a name: `x = StackBuf(n)`"),
             // A frame cell IS the answer; a heap cell needs a `DEREF` to read.
             Expr::Index(arr, idx) => {
                 if let Some(c) = self.frame_cell(arr, idx) {
@@ -1067,7 +1059,7 @@ impl FnLower<'_> {
             }
             // A call writes its single return value straight into `dst` (an
             // aliased inline return materializes, then copies into `dst`).
-            Expr::Call(f, args) => {
+            Expr::Call(f, args) if self.defs.contains_key(f.as_str()) => {
                 self.inline_stack_ret = None;
                 self.call_into(f, args, &[dst]);
                 let v = self.take_inline_ret_cell(dst);
@@ -1091,8 +1083,8 @@ impl FnLower<'_> {
             StmtKind::Let(name, e) => match e {
                 // `x = StackBuf(n)`: bind a run of `n` consecutive frame cells.
                 Expr::StackBuf(n) => {
-                    let base = self.alloc_stack(*n as u32);
-                    self.rebind(name, Binding::Stack(base, *n as u32));
+                    let base = self.alloc_stack(*n);
+                    self.rebind(name, Binding::Stack(base, *n));
                 }
                 // `x = [a, b, …]`: an initialized StackBuf. Allocate the run and
                 // write each element in place, through the ordinary stack-store
@@ -1437,6 +1429,15 @@ impl FnLower<'_> {
                 }
             }
             ForBound::Runtime(_) => {
+                // The entry test and the first call's argument both read the bound,
+                // so one with a call or an allocation in it is bound once first.
+                let entry_bound = if calls_or_allocates(&entry_bound) {
+                    let name = format!("__entry{id}");
+                    self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
+                    Expr::Var(name)
+                } else {
+                    entry_bound
+                };
                 let stmt = Stmt::new(
                     self.cur_line,
                     StmtKind::CallIfNe(
@@ -1459,6 +1460,30 @@ fn contains_return(body: &[Stmt]) -> bool {
         StmtKind::For { body, .. } | StmtKind::Unroll { body, .. } => contains_return(body),
         _ => false,
     })
+}
+
+/// Whether evaluating `e` calls a function or allocates, so that evaluating it
+/// twice is not the same as reading one evaluation twice.
+fn calls_or_allocates(e: &Expr) -> bool {
+    match e {
+        Expr::Call(..)
+        | Expr::HeapBuf(_)
+        | Expr::HeapBufDyn(_)
+        | Expr::StackBuf(_)
+        | Expr::ListLit(_)
+        | Expr::ListComp(..) => true,
+        Expr::Add(a, b)
+        | Expr::Mul(a, b)
+        | Expr::Sub(a, b)
+        | Expr::Div(a, b)
+        | Expr::FieldDiv(a, b)
+        | Expr::Mod(a, b)
+        | Expr::Index(a, b)
+        | Expr::Pow(a, b) => calls_or_allocates(a) || calls_or_allocates(b),
+        Expr::Slice(a, lo, hi) => calls_or_allocates(a) || calls_or_allocates(lo) || calls_or_allocates(hi),
+        Expr::GenPow(x) => calls_or_allocates(x),
+        Expr::Lit(_) | Expr::Gen | Expr::GPow(_) | Expr::Var(_) => false,
+    }
 }
 
 /// The literal `k` when `hi` is syntactically `lo + k` (either operand order):

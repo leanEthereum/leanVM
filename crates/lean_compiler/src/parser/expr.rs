@@ -147,7 +147,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         // already substituted) is a static size like a bare literal.
         // A cell count is a frame/heap size: reject one that does not fit rather
         // than wrapping it into a plausible small buffer.
-        let cells = |n: u128| u64::try_from(n).map_err(|_| format!("{name} size {n} does not fit in u64"));
+        let cells = |n: u128| u32::try_from(n).map_err(|_| format!("{name} size {n} does not fit in u32"));
         if name == "HeapBuf" || name == "StackBuf" {
             let size = match args.as_slice() {
                 [arg] => const_int_expr(arg),
