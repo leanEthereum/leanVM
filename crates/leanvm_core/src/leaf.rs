@@ -7,7 +7,6 @@
 //! g-powers, separators); the fingerprint challenges `α, β` are `E`-valued, so a
 //! leaf accumulates via the mixed `mul_base` product (2 PMULL per coordinate).
 
-use crate::colval::ColVal;
 use crate::gkr;
 use crate::transcript::ProverState;
 use primitives::field::{F64, F192, F192Unreduced, Weights8, dot_base, g_pow, index_mle, mul_by_g};
@@ -497,7 +496,8 @@ pub struct BusForm {
 }
 
 impl BusForm {
-    fn new(n_cols: usize) -> Self {
+    /// The zero form over `n_cols` columns.
+    pub(crate) fn new(n_cols: usize) -> Self {
         Self {
             coeffs: vec![F192::ZERO; n_cols],
             prods: Vec::new(),
@@ -516,12 +516,8 @@ impl BusForm {
         }
     }
 
-    /// The pointwise sum of several forms over the same columns.
-    ///
-    /// Evaluating the sum is evaluating each and adding, and the constraint batch
-    /// only ever wants a table's total, so its three bus sides collapse to one
-    /// dot product and one product list: the row loop then reads the column
-    /// values once for all three rather than once each.
+    /// The pointwise sum of several forms over the same columns. Their products are
+    /// listed together, a pair named in two forms twice.
     pub fn sum(forms: impl IntoIterator<Item = Self>) -> Self {
         let mut forms = forms.into_iter();
         let mut out = forms.next().expect("a table has at least one bus form");
@@ -531,15 +527,26 @@ impl BusForm {
                 *slot += c;
             }
             out.constant += form.constant;
-            for (a, b, c) in form.prods {
-                match out.prods.iter_mut().find(|p| (p.0, p.1) == (a, b)) {
-                    Some(p) => p.2 += c,
-                    None => out.prods.push((a, b, c)),
-                }
-            }
+            out.prods.extend(form.prods);
         }
-        out.prods.retain(|p| p.2 != F192::ZERO);
         out
+    }
+
+    /// The form at one point, `evals` the columns' values there; only its degree-two terms when `quadratic`.
+    #[cfg(test)]
+    pub(crate) fn eval(&self, evals: &[F192], quadratic: bool) -> F192 {
+        let linear = if quadratic { F192::ZERO } else { self.linear(evals) };
+        self.prods
+            .iter()
+            .fold(linear, |acc, &(a, b, c)| acc + evals[a] * evals[b] * c)
+    }
+
+    /// `constant + Σ coeffs[i]·evals[i]`.
+    fn linear(&self, evals: &[F192]) -> F192 {
+        self.coeffs
+            .iter()
+            .zip(evals)
+            .fold(self.constant, |acc, (&w, &v)| acc + w * v)
     }
 
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
@@ -547,15 +554,13 @@ impl BusForm {
     /// `ζ`, which is the whole point of a form; a product coordinate does NOT, so
     /// `prod_sums` supplies `Σ_z eq(ζ,z)·col_a(z)·col_b(z)` for each pair it uses.
     fn sum_at(&self, evals: &[F192], prod_sums: &[(usize, usize, F192)]) -> F192 {
-        self.prods
-            .iter()
-            .fold(F192::dot(&self.coeffs, evals, self.constant), |acc, &(a, b, c)| {
-                let s = prod_sums
-                    .iter()
-                    .find(|p| (p.0, p.1) == (a, b))
-                    .expect("every pair was summed");
-                acc + c * s.2
-            })
+        self.prods.iter().fold(self.linear(evals), |acc, &(a, b, c)| {
+            let s = prod_sums
+                .iter()
+                .find(|p| (p.0, p.1) == (a, b))
+                .expect("every pair was summed");
+            acc + c * s.2
+        })
     }
 }
 

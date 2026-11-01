@@ -6,7 +6,7 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use crate::field::{F64, F192, Weights8, dot_base, mul_base8, mul4};
+use crate::field::{F64, F192, Weights8, dot_base, mul4};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -113,69 +113,15 @@ fn fold_low_k(table: &[F64], chi: F192) -> Vec<F192> {
         .collect()
 }
 
-/// Bind the highest variable of a `K`-table and lift the result into `E`.
-///
-/// Eight entries share one batched mixed product ([`mul_base8`]).
-pub fn fold_high_k(table: &[F64], chi: F192) -> Vec<F192> {
-    assert!(table.len().is_multiple_of(2), "a table of whole pairs");
-    let (lo, hi) = table.split_at(table.len() / 2);
-    // SAFETY: the fill writes every element before it reads any.
-    unsafe {
-        crate::filled_vec(lo.len(), |out| {
-            let (out8, out_tail) = out.as_chunks_mut::<8>();
-            let ((lo8, lo_tail), (hi8, hi_tail)) = (lo.as_chunks::<8>(), hi.as_chunks::<8>());
-            for ((o, l), h) in out8.iter_mut().zip(lo8).zip(hi8) {
-                let p = mul_base8(chi, std::array::from_fn(|i| l[i] + h[i]));
-                for i in 0..8 {
-                    o[i] = F192::from(l[i]) + p[i];
-                }
-            }
-            for ((o, &l), &h) in out_tail.iter_mut().zip(lo_tail).zip(hi_tail) {
-                *o = interp_k(l, h, chi);
-            }
-        })
-    }
-}
-
-/// Bind the highest free variable of `table` to `chi` in place: `table[i] =
-/// interp(table[i], table[i + half], chi)`. Binding from the top down leaves the
-/// low variables, the ones every table of a batch shares, for last.
-pub fn fold_high_inplace(table: &mut Vec<F192>, chi: F192) {
-    debug_assert_eq!(table.len() % 2, 0);
-    let half = table.len() / 2;
-    {
-        // Split once rather than index twice: indexing reloads the data pointer
-        // and length through the container every iteration, since nothing proves
-        // they do not alias the elements, and pays a bounds check for it.
-        let (lo, hi) = (**table).split_at_mut(half);
-        interp_into(lo, hi, chi);
-    }
-    table.truncate(half);
-}
-
-/// `lo[i] = interp(lo[i], hi[i], chi)`, four products per batch.
-fn interp_into(lo: &mut [F192], hi: &[F192], chi: F192) {
-    let ((lo4, lo_tail), (hi4, hi_tail)) = (lo.as_chunks_mut::<4>(), hi.as_chunks::<4>());
-    for (l, h) in lo4.iter_mut().zip(hi4) {
-        let p = mul4([chi; 4], std::array::from_fn(|i| l[i] + h[i]));
-        for i in 0..4 {
-            l[i] += p[i];
-        }
-    }
-    for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
-        *l = interp(*l, *h, chi);
-    }
-}
-
 /// Marginalize the lowest variable out of an `eq` table (in place). `eq(r_0, 0) +
 /// eq(r_0, 1) = 1`, so summing adjacent entries drops `r_0` with no multiplies,
 /// versus `2^{n-1}` to rebuild the table.
 pub fn shrink_eq_low(table: &mut Vec<F192>) {
     let half = table.len() / 2;
     {
-        // Sliced, as in `fold_high_inplace`: reading the pair and writing the
-        // sum through one slice drops the per-iteration reload and its bounds
-        // check. The write index trails the read, so the in-place walk is sound.
+        // Through one slice rather than the `Vec`: reading the pair and writing the
+        // sum drops the per-iteration reload and its bounds check. The write index
+        // trails the read, so the in-place walk is sound.
         let t: &mut [F192] = table;
         for i in 0..half {
             let (a, b) = (t[2 * i], t[2 * i + 1]);
@@ -190,7 +136,7 @@ pub fn shrink_eq_low(table: &mut Vec<F192>) {
 pub fn shrink_eq_high(table: &mut Vec<F192>) {
     let half = table.len() / 2;
     {
-        // Sliced, as in `fold_high_inplace`.
+        // Split once, as in `shrink_eq_low`, so the loop pays no reload or bounds check.
         let (lo, hi) = (**table).split_at_mut(half);
         for (l, h) in lo.iter_mut().zip(&*hi) {
             *l += *h;
@@ -287,18 +233,6 @@ mod tests {
             let point: Vec<_> = (0..n).map(|i| F192::from(F64(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
-            // An odd length leaves a scalar tail after the batched folds.
-            let chi = point.first().copied().unwrap_or(F192::Y) + F192::Y;
-            if n > 0 {
-                let half = table.len() / 2;
-                let want: Vec<_> = (0..half).map(|i| interp_k(table[i], table[i + half], chi)).collect();
-                assert_eq!(&*fold_high_k(&table, chi), &want[..]);
-                let lifted: Vec<F192> = table.iter().map(|&k| F192::from(k) * chi).collect();
-                let mut got = lifted.clone();
-                fold_high_inplace(&mut got, chi);
-                let want: Vec<_> = (0..half).map(|i| interp(lifted[i], lifted[i + half], chi)).collect();
-                assert_eq!(got, want);
-            }
         }
     }
 }
