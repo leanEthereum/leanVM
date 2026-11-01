@@ -130,11 +130,28 @@ mod portable {
         }
     }
 
+    impl core::ops::Add for F64x8 {
+        type Output = Self;
+
+        #[inline]
+        fn add(self, rhs: Self) -> Self {
+            Self(core::array::from_fn(|i| self.0[i] + rhs.0[i]))
+        }
+    }
+
     impl F192x8 {
         /// The eight mixed products `self_i * k_i`, unreduced.
         #[inline]
         pub fn mul_base_unreduced(self, k: F64x8) -> Prod8 {
             Prod8(core::array::from_fn(|i| self.0[i].mul_base_unreduced(k.0[i])))
+        }
+    }
+
+    /// The embedding of the base field.
+    impl From<F64x8> for F192x8 {
+        #[inline]
+        fn from(k: F64x8) -> Self {
+            Self(k.0.map(F192::from))
         }
     }
 
@@ -328,12 +345,38 @@ mod avx512 {
         }
     }
 
+    impl core::ops::Add for F64x8 {
+        type Output = Self;
+
+        #[inline(always)]
+        fn add(self, rhs: Self) -> Self {
+            Self(xor(self.0, rhs.0))
+        }
+    }
+
     impl F192x8 {
         /// The eight mixed products `self_i * k_i`, unreduced: six carry-less multiplications.
         #[inline(always)]
         pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
             // SAFETY: the module is compiled only with the features enabled.
             unsafe { mul_base(self, k.0) }
+        }
+    }
+
+    /// The embedding of the base field.
+    impl From<F64x8> for F192x8 {
+        #[inline(always)]
+        fn from(k: F64x8) -> Self {
+            // SAFETY: the module is compiled only with avx512f enabled.
+            unsafe {
+                let zero = _mm512_setzero_si512();
+                // Each word is its element's `c0`.
+                Self {
+                    lo: _mm512_unpacklo_epi64(k.0, zero),
+                    hi: _mm512_unpackhi_epi64(k.0, zero),
+                    c2: zero,
+                }
+            }
         }
     }
 
@@ -649,7 +692,13 @@ mod tests {
                 odd.to_array(),
                 core::array::from_fn(|j| if j < 4 { x0[2 * j + 1] } else { x1[2 * (j - 4) + 1] })
             );
-            let ka = F64x8::from_array(&k0);
+
+            let (ka, kb) = (F64x8::from_array(&k0), F64x8::from_array(&k1));
+            assert_eq!(
+                F192x8::from(ka + kb).to_array(),
+                core::array::from_fn(|j| F192::from(k0[j] + k1[j]))
+            );
+            assert_eq!(F192x8::from(ka).to_array(), k0.map(F192::from));
             assert_eq!(
                 xa.mul_base_unreduced(ka).reduce_lanes().to_array(),
                 core::array::from_fn(|j| x0[j].mul_base(k0[j]))

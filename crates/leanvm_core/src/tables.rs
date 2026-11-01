@@ -11,31 +11,20 @@
 //! the `DEREF` store, the `JUMP` successors are each written out as the degree-2
 //! bus coordinate that carries them (§sec:m3), which leaves `JUMP`'s is-nonzero
 //! indicator as the one identity any table still has. Every identity is `K`-valued,
-//! so a relation on machine words is written out lane by lane; after the round a
-//! table joins the batch its columns are `E`-valued, which is what
-//! `eval_constraint` takes.
+//! so a relation on machine words is written out lane by lane. A table hands its
+//! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
-use crate::colval::ColVal;
 use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
+use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
 
 // ---- the identities ----------------------------------------------------------
 //
-// Each is written ONCE, generic over the column type: `F64` in the round a table
-// joins the batch, `F192` afterwards (see [`ColVal`]). Products of two `K`
-// columns stay 64-bit and an `η`-power multiplies through `mul_e`.
-//
 // EVERY identity is `K`-valued, like the columns it reads and like the bus
 // coordinates (§sec:air). A relation between machine WORDS is therefore written out
 // lane by lane, with the tower multiplication unrolled by hand ([`TOWER_LANES`]),
-// rather than assembled into one `E` equation. A table's identity slice is then a
-// mixed dot product against its `η`-range: in the round a table joins the batch (the
-// batch's largest) that is one 64-bit product per identity plus three PMULL for its
-// `η`-power, with ONE reduction for the whole slice ([`ColVal::dot`]). One `E`-valued
-// identity would instead cost a full `E×E` product against its `η`-power, plus a
-// reduction of its own, and the lanes it bundles are the same lane polynomials
-// either way.
+// rather than assembled into one `E` equation.
 
 /// The tower product `x·y` in `E = K[y]/(y³+y+1)` as three lane sums: lane `i` is
 /// `Σ x_j·y_k` over `TOWER_LANES[i]`. The five partial sums of §sec:tab-mul fold
@@ -53,28 +42,10 @@ const TOWER_LANES: [&[(usize, usize)]; 3] = [
 /// as a coordinate ([`arith_result`]), and `JUMP`'s condition is `K`-valued, so no
 /// identity assembles a tower product any more.
 #[cfg(test)]
-fn tower_lane<T: ColVal>(lane: usize, x: [T; 3], y: [T; 3]) -> T {
-    TOWER_LANES[lane].iter().fold(T::ZERO, |acc, &(j, k)| acc + x[j] * y[k])
-}
-
-/// `JUMP`'s two identities: `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump).
-///
-/// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
-/// gives `b = 1` (and the first `w = cond⁻¹`); when `cond = 0` the first gives
-/// `b = 0`. The two selections need no identity: the state push carries each as its
-/// own degree-2 coordinate (§sec:m3).
-///
-/// The condition is `K`-valued, so both identities are single-lane. Its memory
-/// flush carries literal zeros above the low limb (`memory_k`), so a word outside
-/// `K` cannot balance the bus; the interpreter rejects one outright.
-fn jump_identity<T: ColVal>(pows: &[F192], cols: &[T], quadratic: bool) -> F192 {
-    use jump::*;
-    let (b, b1) = if quadratic {
-        (T::ZERO, cols[B])
-    } else {
-        (cols[B], cols[B] + T::ONE)
-    };
-    T::dot(pows, &[b + cols[V_COND] * cols[W], cols[V_COND] * b1], F192::ZERO)
+fn tower_lane(lane: usize, x: [F64; 3], y: [F64; 3]) -> F64 {
+    TOWER_LANES[lane]
+        .iter()
+        .fold(F64::ZERO, |acc, &(j, k)| acc + x[j] * y[k])
 }
 
 // ---- shared bus vocabulary ---------------------------------------------------
@@ -346,33 +317,23 @@ pub trait Table: Sync {
     fn padding(&self) -> Vec<F64> {
         vec![F64::ZERO; self.n_committed_columns()]
     }
-    /// How many identities [`eval_constraint`](Table::eval_constraint) folds.
+    /// How many identities [`constraint`](Table::constraint) folds.
     /// Sizes this table's slice of the batch's disjoint `xi`-range (§constraints).
     /// Defaults to none, which is every table but `JUMP`: a relation whose value
     /// rides the bus as a coordinate needs no identity to tie it (§sec:m3).
     fn n_constraints(&self) -> usize {
         0
     }
-    /// Evaluate the table's degree-2 constraint at one row, reading column values
-    /// by local index from `cols` (e.g. `cols[jump::V_COND]`) and weighting identity
-    /// `i` by `pows[i]`, this table's slice of the batch's `xi`-powers. The slice is
-    /// is exactly [`n_constraints`](Table::n_constraints) long: an identity indexed
-    /// past its end panics rather than silently reaching into the next table's
-    /// range. The table sumcheck carries every committed column of a table, in
-    /// local order, so `cols` is indexed directly. With `quadratic=false` it returns
-    /// `0` on every valid row (§sec:air); `true` selects only the degree-two terms.
-    /// The default is the constraint-free case; a table that declares constraints
-    /// and forgets to evaluate them trips the assert instead of dropping them.
-    fn eval_constraint(&self, pows: &[F192], _cols: &[F192], _quadratic: bool) -> F192 {
-        assert!(pows.is_empty(), "a table with constraints must evaluate them");
-        F192::ZERO
-    }
-    /// The same identity over `K`-valued columns, for the round a table joins the
-    /// batch, before its columns have been folded into `E` (§sec:air). Both entry
-    /// points delegate to one generic definition per table, so they cannot drift.
-    fn eval_constraint_k(&self, pows: &[F192], _cols: &[F64], _quadratic: bool) -> F192 {
-        assert!(pows.is_empty(), "a table with constraints must evaluate them");
-        F192::ZERO
+    /// The table's identities as one degree-2 form over its columns, in local order
+    /// (e.g. `jump::V_COND`), identity `i` weighted by `pows[i]`, this table's slice of
+    /// the batch's `xi`-powers. The form vanishes on every valid row (§sec:air). The
+    /// slice is exactly [`n_constraints`](Table::n_constraints) long: an identity
+    /// indexed past its end panics rather than reaching into the next table's range.
+    /// The default is the constraint-free case; a table that declares constraints and
+    /// forgets to state them trips the assert instead of dropping them.
+    fn constraint(&self, pows: &[F192]) -> BusForm {
+        assert!(pows.is_empty(), "a table with constraints must state them");
+        BusForm::new(self.n_committed_columns())
     }
     /// Declare the table's bus interactions.
     fn flushes(&self, f: &mut FlushBuilder);
@@ -776,11 +737,23 @@ impl Table for JumpTable {
     fn n_constraints(&self) -> usize {
         2 // the two indicator identities; the selections ride the state push
     }
-    fn eval_constraint(&self, pows: &[F192], cols: &[F192], quadratic: bool) -> F192 {
-        jump_identity(pows, cols, quadratic)
-    }
-    fn eval_constraint_k(&self, pows: &[F192], cols: &[F64], quadratic: bool) -> F192 {
-        jump_identity(pows, cols, quadratic)
+    /// `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump), weighted `pows[0]` and `pows[1]`.
+    ///
+    /// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
+    /// gives `b = 1` (and the first `w = cond⁻¹`); when `cond = 0` the first gives
+    /// `b = 0`. The two selections need no identity: the state push carries each as its
+    /// own degree-2 coordinate (§sec:m3).
+    ///
+    /// The condition is `K`-valued, so both identities are single-lane. Its memory
+    /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
+    /// `K` cannot balance the bus; the interpreter rejects one outright.
+    fn constraint(&self, pows: &[F192]) -> BusForm {
+        use jump::*;
+        let mut form = BusForm::new(N);
+        form.coeffs[B] = pows[0];
+        form.coeffs[V_COND] = pows[1];
+        form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
+        form
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use jump::*;
@@ -1029,7 +1002,12 @@ mod tests {
             row[jump::V_COND] = cond;
             row[jump::W] = w;
             row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };
-            assert_eq!(jump_identity(&pows, &row, false), F192::ZERO, "cond = {cond:?}");
+            let row: Vec<F192> = row.into_iter().map(F192::from).collect();
+            assert_eq!(
+                JumpTable.constraint(&pows).eval(&row, false),
+                F192::ZERO,
+                "cond = {cond:?}"
+            );
         }
     }
 }

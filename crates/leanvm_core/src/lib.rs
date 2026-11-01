@@ -20,7 +20,6 @@
 //! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.
 //! - [`vmhash`]: VM-native hashing (the one-block hash every Merkle node uses).
 
-pub mod colval;
 pub mod constraints;
 pub mod cpu;
 pub mod gkr;
