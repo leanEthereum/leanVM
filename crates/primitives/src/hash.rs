@@ -489,7 +489,7 @@ mod x86 {
 
 #[cfg(target_arch = "aarch64")]
 mod arm {
-    use super::Lanes64;
+    use super::{Lanes64, OUT_LEN, RATE_LANES, STATE_LANES};
     use core::arch::aarch64::*;
 
     /// NEON: two lanes. With the SHA3 extension, χ is one `BCAX`, the column
@@ -552,6 +552,50 @@ mod arm {
         #[inline(always)]
         fn theta_d(c_prev: Self, c_next: Self) -> Self {
             Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) })
+        }
+
+        #[inline(always)]
+        fn absorb_words(st: &mut [Self; STATE_LANES], data: &[u8], len: usize, byte_offset: usize, words: usize) {
+            assert!(words <= RATE_LANES && byte_offset + 8 * words <= len);
+            let (a, b) = (
+                &data[byte_offset..][..8 * words],
+                &data[len + byte_offset..][..8 * words],
+            );
+            // Two words of each input per load; `ZIP1` and `ZIP2` turn the pair of rows into two lanes.
+            for (p, (x, y)) in a.as_chunks::<16>().0.iter().zip(b.as_chunks::<16>().0).enumerate() {
+                // SAFETY: `x` and `y` are 16 readable bytes each, and NEON loads need no alignment.
+                unsafe {
+                    let (x, y) = (vld1q_u64(x.as_ptr().cast()), vld1q_u64(y.as_ptr().cast()));
+                    st[2 * p] = Self(veorq_u64(st[2 * p].0, vzip1q_u64(x, y)));
+                    st[2 * p + 1] = Self(veorq_u64(st[2 * p + 1].0, vzip2q_u64(x, y)));
+                }
+            }
+            if words % 2 == 1 {
+                let w = words - 1;
+                let word = |input: &[u8]| u64::from_le_bytes(*input[8 * w..].first_chunk().unwrap());
+                // SAFETY: register-only NEON intrinsics.
+                let both = unsafe { vcombine_u64(vcreate_u64(word(a)), vcreate_u64(word(b))) };
+                st[w] = Self(unsafe { veorq_u64(st[w].0, both) });
+            }
+        }
+
+        #[inline(always)]
+        fn store_digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+            assert_eq!(out.len(), 2 * OUT_LEN);
+            // `ZIP1` of two digest lanes is two words of the first input, `ZIP2` the same of the second.
+            // SAFETY: register-only NEON intrinsics.
+            let halves = unsafe {
+                [
+                    vzip1q_u64(st[0].0, st[1].0),
+                    vzip1q_u64(st[2].0, st[3].0),
+                    vzip2q_u64(st[0].0, st[1].0),
+                    vzip2q_u64(st[2].0, st[3].0),
+                ]
+            };
+            for (bytes, half) in out.as_chunks_mut::<16>().0.iter_mut().zip(halves) {
+                // SAFETY: `bytes` is 16 writable bytes, and NEON stores need no alignment.
+                unsafe { vst1q_u64(bytes.as_mut_ptr().cast(), half) }
+            }
         }
     }
 }
