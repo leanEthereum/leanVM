@@ -18,5 +18,4 @@ rand.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-bincode.workspace = true
 signatures = { path = ".", features = ["mock"] }

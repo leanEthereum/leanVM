@@ -31,7 +31,7 @@ fn known_answer() {
     let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
     let signature = sign(&sk, &message, 0xA5C3_7E19).unwrap();
     assert_eq!(
-        hex(&pk.flatten()),
+        hex(&pk.to_bytes()),
         "4066673001949b6ff8b9299fd4ea17d28787ad501aafe4b64e2488107b5e3ec3"
     );
     assert_eq!(
@@ -71,35 +71,14 @@ fn signature_is_bound_to_its_leaf_index_and_message() {
     assert!(verify(&pk, &other, &sig).is_err());
 }
 
-#[test]
-fn serialize_deserialize_and_size() {
-    let (sk, pk) = mock::key_gen_from_seed([5; SEED_LEN], 100, 115);
-    let message = test_message();
-    let sig = mock::sign(&sk, &message, 110).unwrap();
-
-    let public_key_bytes = bincode::serialize(&pk).unwrap();
-    assert_eq!(public_key_bytes.len(), PUB_KEY_SIZE);
-    assert_eq!(
-        bincode::deserialize::<LeanXmssPublicKey>(&public_key_bytes).unwrap(),
-        pk
-    );
-
-    let signature_bytes = bincode::serialize(&sig).unwrap();
-    assert_eq!(signature_bytes.len(), SIG_SIZE);
-    let decoded: LeanXmssSignature = bincode::deserialize(&signature_bytes).unwrap();
-    assert_eq!(decoded, sig);
-    verify(&pk, &message, &decoded).unwrap();
-}
-
 /// A secret key encodes as its seed, and the reloaded key signs exactly as the
 /// original does.
 #[test]
 fn secret_key_survives_a_round_trip() {
     let seed = [6; SEED_LEN];
     let (sk, pk) = key_gen_from_seed(seed);
-    let bytes = bincode::serialize(&sk).unwrap();
-    assert_eq!(bytes, seed);
-    let reloaded: LeanXmssSecretKey = bincode::deserialize(&bytes).unwrap();
+    assert_eq!(sk.to_bytes(), seed);
+    let reloaded = LeanXmssSecretKey::from_bytes(&sk.to_bytes());
     assert_eq!(reloaded.public_key(), pk);
     let message = test_message();
     assert_eq!(sign(&reloaded, &message, 43).unwrap(), sign(&sk, &message, 43).unwrap());

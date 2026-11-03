@@ -148,7 +148,7 @@ mod xmss {
     fn key_gen_matches_ethlib() {
         for case in cases("xmss", "key_gen") {
             let output = match exact::<SEED_LEN>(case.bytes("seed")) {
-                Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.flatten().to_vec()),
+                Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.to_bytes().to_vec()),
                 None => Value::Null,
             };
             assert_eq!(output, case.output, "{}", case.name);
@@ -179,7 +179,7 @@ mod xmss {
     fn signature_index_matches_ethlib() {
         for case in cases("xmss", "signature_index") {
             let output = match exact::<SIG_SIZE>(case.bytes("signature")) {
-                Some(sig) => Value::Int(u64::from(LeanXmssSignature::from_bytes(&sig).leaf_index)),
+                Some(sig) => Value::Int(u64::from(LeanXmssSignature::from_bytes(&sig).leaf_index())),
                 None => Value::Null,
             };
             assert_eq!(output, case.output, "{}", case.name);
@@ -217,7 +217,7 @@ mod sphincs {
     fn key_gen_matches_ethlib() {
         for case in cases("sphincs", "key_gen") {
             let output = match exact::<SEED_LEN>(case.bytes("seed")) {
-                Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.flatten().to_vec()),
+                Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.to_bytes().to_vec()),
                 None => Value::Null,
             };
             assert_eq!(output, case.output, "{}", case.name);

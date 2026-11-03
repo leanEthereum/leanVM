@@ -25,6 +25,9 @@ type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
 const SCHEMA_VERSION: u32 = 7;
 
+/// One cached leanXMSS signer, as fixed-size bytes: the public key, then the signature.
+const LEAN_XMSS_RECORD: usize = PUB_KEY_SIZE + SIG_SIZE;
+
 /// The leaf indices every cached key signs at: mock keys (`lean_xmss::mock`), real
 /// only over this range, which a full key's top tree would make far slower to
 /// generate.
@@ -73,41 +76,51 @@ fn cache_dir() -> PathBuf {
 /// any change to the scheme, its parameters, key derivation or grinding changes.
 fn cache_path(message_id: u32) -> PathBuf {
     let mut hasher = DefaultHasher::new();
-    (SCHEMA_VERSION, message_id, compute_signer(0, message_id)).hash(&mut hasher);
+    (
+        SCHEMA_VERSION,
+        LEAN_XMSS_RECORD,
+        message_id,
+        compute_signer(0, message_id),
+    )
+        .hash(&mut hasher);
     cache_dir().join(format!("lean_xmss_signers_{:016x}.bin", hasher.finish()))
 }
 
 fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<CachedSignature>> {
     let bytes = fs::read(path).ok()?;
-    let (version, mut signers): (u32, Vec<CachedSignature>) = bincode::deserialize(&bytes).ok()?;
-    if version != SCHEMA_VERSION {
-        return None;
-    }
     let msg = message_for(message_id);
-    let valid = signers
-        .iter()
-        .enumerate()
-        .take_while(|(i, (pk, sig))| {
-            sig.leaf_index() == leaf_index_of(*i, message_id) && lean_xmss::verify(pk, &msg, sig).is_ok()
-        })
-        .count();
-    if valid < signers.len() {
-        eprintln!(
-            "warning: signers cache {} is stale (signer {valid} of {} no longer verifies); regenerating from there",
-            path.display(),
-            signers.len()
-        );
-        signers.truncate(valid);
+    let mut signers = Vec::with_capacity(bytes.len() / LEAN_XMSS_RECORD);
+    for record in bytes.as_chunks::<LEAN_XMSS_RECORD>().0 {
+        let (pk, sig) = record.split_at(PUB_KEY_SIZE);
+        let pk = LeanXmssPublicKey::from_bytes(pk.try_into().unwrap());
+        let sig = LeanXmssSignature::from_bytes(sig.try_into().unwrap());
+        if sig.leaf_index() != leaf_index_of(signers.len(), message_id) || lean_xmss::verify(&pk, &msg, &sig).is_err() {
+            eprintln!(
+                "warning: signers cache {} is stale (signer {} no longer verifies); regenerating from there",
+                path.display(),
+                signers.len()
+            );
+            break;
+        }
+        signers.push((pk, sig));
     }
     Some(signers)
 }
 
 fn save_cache(path: &Path, signers: &[CachedSignature]) {
+    let mut bytes = Vec::with_capacity(signers.len() * LEAN_XMSS_RECORD);
+    for (pk, sig) in signers {
+        bytes.extend_from_slice(&pk.to_bytes());
+        bytes.extend_from_slice(&sig.to_bytes());
+    }
+    write_cache(path, &bytes);
+}
+
+fn write_cache(path: &Path, bytes: &[u8]) {
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    let bytes = bincode::serialize(&(SCHEMA_VERSION, signers)).expect("serialize signers cache");
-    if let Err(error) = fs::write(path, &bytes) {
+    if let Err(error) = fs::write(path, bytes) {
         eprintln!("warning: could not write signers cache to {}: {error}", path.display());
     }
 }
@@ -249,19 +262,13 @@ fn try_load_lean_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
 }
 
 fn save_lean_sphincs_cache(signers: &[CachedSphincsSignature]) {
-    let path = lean_sphincs_cache_path();
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
     let mut bytes = Vec::with_capacity(signers.len() * LEAN_SPHINCS_RECORD);
     for (public_key, message, signature) in signers {
-        bytes.extend_from_slice(&public_key.flatten());
+        bytes.extend_from_slice(&public_key.to_bytes());
         bytes.extend_from_slice(message);
         bytes.extend_from_slice(&signature.to_bytes());
     }
-    if let Err(error) = fs::write(&path, &bytes) {
-        eprintln!("warning: could not write signers cache to {}: {error}", path.display());
-    }
+    write_cache(&lean_sphincs_cache_path(), &bytes);
 }
 
 static LEAN_SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());

@@ -20,7 +20,7 @@ fn signatures_verify_and_tampered_ones_do_not() {
     let mut other = message;
     other[0] ^= 1;
     assert!(verify(&pk, &other, &signature).is_err());
-    let mut bytes = pk.flatten();
+    let mut bytes = pk.to_bytes();
     bytes[N] ^= 1;
     let key = LeanSphincsPublicKey::from_bytes(&bytes);
     assert!(verify(&key, &message, &signature).is_err());

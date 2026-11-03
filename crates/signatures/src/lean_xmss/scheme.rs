@@ -6,11 +6,11 @@ use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 
 use rand::{CryptoRng, Rng};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::lean_xmss::*;
 
-/// Ordered lexicographically on `flatten()`, which is what an aggregate's claims are
+/// Ordered lexicographically on `to_bytes()`, which is what an aggregate's claims are
 /// sorted by.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
@@ -24,7 +24,7 @@ impl LeanXmssPublicKey {
     }
 
     /// The specification's serialization, exactly [`PUB_KEY_SIZE`] bytes.
-    pub fn flatten(&self) -> [u8; PUB_KEY_SIZE] {
+    pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0u8; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.merkle_root);
         out[N..].copy_from_slice(&self.public_param);
@@ -41,10 +41,9 @@ impl LeanXmssPublicKey {
 
 /// One layer's signature: the randomizer, the value each digit opens, and the
 /// authentication path.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LayerSignature {
     pub(crate) randomizer: Randomizer,
-    #[serde(with = "crate::lean_xmss::array_serialization")]
     pub(crate) chain_values: [Digest; V],
     pub(crate) path: [Digest; LAYER_HEIGHT],
 }
@@ -61,7 +60,7 @@ impl LayerSignature {
 
 /// Carries the leaf index it was made at, so a verifier needs only the key and the
 /// message. The top layer's signature is the same for every leaf of a bottom tree.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LeanXmssSignature {
     pub(crate) leaf_index: LeafIndex,
     pub(crate) bottom: LayerSignature,
@@ -139,19 +138,6 @@ impl std::fmt::Debug for LeanXmssSecretKey {
     }
 }
 
-/// SECRET KEY MATERIAL: the key's seed, all of it; decoding regenerates the key.
-impl Serialize for LeanXmssSecretKey {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.key_seed.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for LeanXmssSecretKey {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Seed::deserialize(deserializer).map(|seed| key_gen_from_seed(seed).0)
-    }
-}
-
 struct BottomTree {
     index: u32,
     tree: LayerTree,
@@ -216,6 +202,16 @@ pub fn sign(
 }
 
 impl LeanXmssSecretKey {
+    /// SECRET KEY MATERIAL: the key's seed, all of the key.
+    pub fn to_bytes(&self) -> Seed {
+        self.key_seed
+    }
+
+    /// Regenerates the key, as key generation does.
+    pub fn from_bytes(bytes: &Seed) -> Self {
+        key_gen_from_seed(*bytes).0
+    }
+
     pub fn public_key(&self) -> LeanXmssPublicKey {
         LeanXmssPublicKey {
             merkle_root: self.top.root(),

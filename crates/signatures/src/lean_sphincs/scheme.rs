@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::lean_sphincs::*;
 
-/// Ordered lexicographically on [`Self::flatten`], which is what an aggregate's
+/// Ordered lexicographically on [`Self::to_bytes`], which is what an aggregate's
 /// signer list is sorted and deduplicated by.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LeanSphincsPublicKey {
@@ -24,7 +24,7 @@ impl LeanSphincsPublicKey {
         &self.public_param
     }
 
-    pub fn flatten(&self) -> [u8; PUB_KEY_SIZE] {
+    pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.root);
         out[N..].copy_from_slice(&self.public_param);
@@ -411,7 +411,7 @@ mod tests {
         let master = SchemeSeed(std::array::from_fn(|i| (37 * i + 11) as u8));
         let pk = public_key_of(&master);
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
-        assert_eq!(pk.flatten()[..], pk_bytes[..]);
+        assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
         let signature = sign_with(&master, &message).unwrap();
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
         assert_eq!(verify(&pk, &message, &signature), Ok(()));

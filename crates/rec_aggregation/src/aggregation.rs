@@ -185,7 +185,7 @@ fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
-/// root and public parameter (`flatten`), then the message that pubkey signed.
+/// root and public parameter (`to_bytes`), then the message that pubkey signed.
 fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> [F192; 4] {
     [
         pack_16_bytes(&pk[..16]),
@@ -196,11 +196,11 @@ fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> [F192; 4] {
 }
 
 fn lean_xmss_claim_cells((pk, message): &LeanXmssClaim) -> [F192; 4] {
-    claim_cells(&pk.flatten(), message)
+    claim_cells(&pk.to_bytes(), message)
 }
 
 fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F192; 4] {
-    claim_cells(&pk.flatten(), message)
+    claim_cells(&pk.to_bytes(), message)
 }
 
 /// The claim on the stacked bytecode that a node defers rather than evaluating
