@@ -46,7 +46,7 @@ fn the_counter_is_the_least_admissible() {
     let signature = sign(&sk, &message).unwrap();
     let pp = &pk.public_param;
     let (idx, leaves) = message_digest(pp, &signature.randomizer, &message);
-    let fors_key = fors_recover(pp, idx as u32, &leaves, &signature.fors);
+    let fors_key = fors_recover(pp, idx, &leaves, &signature.fors, |_| ());
     let key = OtsKey::of_index(0, idx);
     let signed = fors_key_bytes(&fors_key);
     let counter = signature.layers[0].counter;

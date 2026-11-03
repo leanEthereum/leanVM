@@ -54,11 +54,11 @@ impl LeanSphincsSecretKey {
     }
 
     /// SECRET KEY MATERIAL: the seed, all of the key.
-    pub fn to_bytes(&self) -> [u8; SECRET_KEY_SIZE] {
+    pub fn to_bytes(&self) -> MasterSecret {
         self.seed
     }
 
-    pub fn from_bytes(bytes: &[u8; SECRET_KEY_SIZE]) -> Self {
+    pub fn from_bytes(bytes: &MasterSecret) -> Self {
         Self { seed: *bytes }
     }
 }
@@ -123,17 +123,13 @@ impl LeanSphincsSignature {
             secret: take(N).try_into().unwrap(),
             path: std::array::from_fn(|_| take(N).try_into().unwrap()),
         });
-        let mut paths = [[0; N]; H];
-        let mut start = 0;
+        let mut paths = Vec::with_capacity(H);
         let layers = std::array::from_fn(|layer| {
             let signed = LayerSignature {
                 counter: u32::from_le_bytes(take(COUNTER_LEN).try_into().unwrap()),
                 wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
             };
-            for node in &mut paths[start..start + LAYER_HEIGHTS[layer]] {
-                *node = take(N).try_into().unwrap();
-            }
-            start += LAYER_HEIGHTS[layer];
+            paths.extend((0..LAYER_HEIGHTS[layer]).map(|_| Digest::try_from(take(N)).unwrap()));
             signed
         });
         debug_assert_eq!(at, SIG_SIZE);
@@ -141,7 +137,7 @@ impl LeanSphincsSignature {
             randomizer,
             fors,
             layers,
-            paths,
+            paths: paths.try_into().unwrap(),
         }
     }
 }
@@ -199,19 +195,19 @@ pub fn message_digest_bytes(pp: &PublicParam, rho: &Randomizer, m: &Message) -> 
 
 /// The index and the FORS leaves a digest spells: read as one little-endian
 /// number, its low `h` bits, then `a` bits per tree.
-pub fn digest_fields(digest: &[u8; 32 * DIGEST_CALLS]) -> (u64, [usize; FORS_TREES]) {
+pub fn digest_fields(digest: &[u8; 32 * DIGEST_CALLS]) -> (u32, [usize; FORS_TREES]) {
     let field = |offset: usize, len: usize| {
-        (0..len).fold(0u64, |value, bit| {
+        (0..len).fold(0, |value, bit| {
             let position = offset + bit;
-            value | u64::from(digest[position / 8] >> (position % 8) & 1) << bit
+            value | usize::from(digest[position / 8] >> (position % 8) & 1) << bit
         })
     };
-    let leaves = std::array::from_fn(|c| field(H + c * FORS_HEIGHT, FORS_HEIGHT) as usize);
-    (field(0, H), leaves)
+    let leaves = std::array::from_fn(|c| field(H + c * FORS_HEIGHT, FORS_HEIGHT));
+    (field(0, H) as u32, leaves)
 }
 
 /// The message digest read as the index and the FORS leaves.
-pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, [usize; FORS_TREES]) {
+pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u32, [usize; FORS_TREES]) {
     digest_fields(&message_digest_bytes(pp, rho, m))
 }
 
@@ -284,12 +280,9 @@ pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanSphincsSecretKey, LeanSphincsPu
 }
 
 /// The randomizer of a message, `R = Th(P, A_rnd, S | m)` for the scheme seed
-/// `S`, unpredictable without it. Every index is a leaf of the key, so the first one is kept.
+/// `S`, unpredictable without it.
 pub fn randomizer(pp: &PublicParam, seed: &MasterSecret, m: &Message) -> Randomizer {
-    let mut payload = [0u8; MASTER_SECRET_LEN + MESSAGE_LEN];
-    payload[..MASTER_SECRET_LEN].copy_from_slice(seed);
-    payload[MASTER_SECRET_LEN..].copy_from_slice(m);
-    th(pp, &tweak(TWEAK_RANDOMIZER, 0, 0), &payload)
+    th(pp, &tweak(TWEAK_RANDOMIZER, 0, 0), [*seed, *m].as_flattened())
 }
 
 /// The bytes of a FORS key, the bottom one-time key's message.
@@ -310,20 +303,16 @@ fn sign_with(seed: &MasterSecret, message: &Message) -> Result<LeanSphincsSignat
     let pp = &public_param(seed);
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
-    let (fors_key, fors) = fors_open(pp, seed, idx as u32, &leaves);
+    let (fors_key, fors) = fors_open(pp, seed, idx, &leaves);
     let mut signed = fors_key_bytes(&fors_key).to_vec();
-    let mut layers = Vec::with_capacity(LAYERS);
-    let (mut paths, mut start) = ([[0; N]; H], 0);
+    let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
     for layer in 0..LAYERS {
         let key = OtsKey::of_index(layer, idx);
         let (counter, wots) =
             wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding(layer))?;
         let levels = tree_levels(pp, seed, &key);
         let height = LAYER_HEIGHTS[layer];
-        for (level, node) in paths[start..start + height].iter_mut().enumerate() {
-            *node = levels[level][(key.leaf as usize >> level) ^ 1];
-        }
-        start += height;
+        paths.extend((0..height).map(|level| levels[level][(key.leaf as usize >> level) ^ 1]));
         layers.push(LayerSignature { counter, wots });
         signed = levels[height][0].to_vec();
     }
@@ -331,17 +320,13 @@ fn sign_with(seed: &MasterSecret, message: &Message) -> Result<LeanSphincsSignat
         randomizer: rho,
         fors,
         layers: layers.try_into().unwrap(),
-        paths,
+        paths: paths.try_into().unwrap(),
     })
 }
 
-/// `Tree.fold`: the root a key's leaf and its path reach.
-pub fn tree_fold(pp: &PublicParam, key: &OtsKey, leaf: Digest, path: &[Digest]) -> Digest {
-    tree_fold_with(pp, key, leaf, path, |_| ())
-}
-
-/// [`tree_fold`], showing `visit` the two children of every node on the way up.
-pub fn tree_fold_with(
+/// `Tree.fold`: the root a key's leaf and its path reach, showing `visit` the two
+/// children of every node on the way up.
+pub fn tree_fold(
     pp: &PublicParam,
     key: &OtsKey,
     leaf: Digest,
@@ -364,13 +349,13 @@ pub fn verify(
 ) -> Result<(), LeanSphincsVerifyError> {
     let pp = &pk.public_param;
     let (idx, leaves) = message_digest(pp, &signature.randomizer, message);
-    let fors_key = fors_recover(pp, idx as u32, &leaves, &signature.fors);
+    let fors_key = fors_recover(pp, idx, &leaves, &signature.fors, |_| ());
     let mut signed = fors_key_bytes(&fors_key).to_vec();
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
         let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding(layer))?;
-        signed = tree_fold(pp, &key, leaf, signature.path(layer)).to_vec();
+        signed = tree_fold(pp, &key, leaf, signature.path(layer), |_| ()).to_vec();
     }
     if signed == pk.root {
         Ok(())

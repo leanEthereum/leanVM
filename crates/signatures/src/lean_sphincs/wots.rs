@@ -22,13 +22,13 @@ pub struct OtsKey {
 impl OtsKey {
     /// The key of `layer` on the way from bottom leaf `idx` up: the bits below
     /// the layer dropped, the rest split into a tree and a leaf.
-    pub fn of_index(layer: usize, idx: u64) -> Self {
+    pub fn of_index(layer: usize, idx: u32) -> Self {
         let height = LAYER_HEIGHTS[layer];
         let e = idx >> LAYER_HEIGHTS[..layer].iter().sum::<usize>();
         Self {
             layer,
-            tree: (e >> height) as u32,
-            leaf: (e & ((1 << height) - 1)) as u32,
+            tree: e >> height,
+            leaf: e & ((1 << height) - 1),
         }
     }
 

@@ -1531,7 +1531,7 @@ fn lean_sphincs_hints(
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
     let ordered = |pair: &[lean_sphincs::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
-    let fors_key = lean_sphincs::fors_recover_with(pp, idx as u32, &leaves, &sig.fors, |pair| {
+    let fors_key = lean_sphincs::fors_recover(pp, idx, &leaves, &sig.fors, |pair| {
         hints.push(("sp_fors_nodes", ordered(pair)));
     });
     let mut signed = lean_sphincs::fors_key_bytes(&fors_key).to_vec();
@@ -1544,7 +1544,7 @@ fn lean_sphincs_hints(
         for value in &layer_sig.wots {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
-        let root = lean_sphincs::tree_fold_with(pp, &key, leaf, sig.path(layer), |pair| {
+        let root = lean_sphincs::tree_fold(pp, &key, leaf, sig.path(layer), |pair| {
             hints.push(("siblings", ordered(pair)));
         });
         signed = root.to_vec();

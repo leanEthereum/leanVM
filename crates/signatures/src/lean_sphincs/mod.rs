@@ -75,7 +75,6 @@ pub const DIGEST_BITS: usize = H + FORS_TREES * FORS_HEIGHT;
 pub const DIGEST_CALLS: usize = DIGEST_BITS.div_ceil(256);
 
 pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
-pub const SECRET_KEY_SIZE: usize = MASTER_SECRET_LEN;
 /// One FORS tree's opening: the secret, then the path.
 pub const FORS_OPENING_SIZE: usize = N + FORS_HEIGHT * N;
 

@@ -18,8 +18,7 @@ pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 
 pub const ADDRESS_LEN: usize = 16;
 
-// Hash types (the low five bits of the address's last field byte); each scheme adds
-// its own.
+// Hash types (the low five bits of the address's byte 7); each scheme adds its own.
 pub const TWEAK_PRF: u8 = 0;
 pub const TWEAK_CHAIN: u8 = 1;
 pub const TWEAK_LEAF: u8 = 2;

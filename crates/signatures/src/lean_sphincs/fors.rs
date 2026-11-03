@@ -69,14 +69,9 @@ pub(crate) fn fors_open(
     (std::array::from_fn(|c| trees[c].0), std::array::from_fn(|c| trees[c].1))
 }
 
-/// `Fts.recover`: the FORS key an opening reaches at `leaves`.
-pub fn fors_recover(pp: &PublicParam, idx: u32, leaves: &[usize; FORS_TREES], opening: &ForsOpening) -> ForsKey {
-    fors_recover_with(pp, idx, leaves, opening, |_| ())
-}
-
-/// [`fors_recover`], showing `visit` the two children of every node on the way
-/// up, then each tree's two top nodes.
-pub fn fors_recover_with(
+/// `Fts.recover`: the FORS key an opening reaches at `leaves`, showing `visit` the
+/// two children of every node on the way up, then each tree's two top nodes.
+pub fn fors_recover(
     pp: &PublicParam,
     idx: u32,
     leaves: &[usize; FORS_TREES],
