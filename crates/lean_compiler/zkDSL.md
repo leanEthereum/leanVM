@@ -1,6 +1,6 @@
 # zkDSL Language Reference (leanVM)
 
-The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
+The zkDSL is a Python-syntax language that compiles to the leanVM ISA: seven instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`, `DOT`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `dot`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
@@ -425,7 +425,7 @@ Both state words are hash outputs, so their top limbs are already zero. Only `d2
 y = dot(cells[0:2], weights[4 * k:4 * k + 4], acc)   # acc + sum_j weights[4k + j] * lane_j
 ```
 
-`dot(x, w, acc)` is one `DOT` instruction: `acc + Σ_{j<4} w[j]·x_j`, an affine form of four GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a `StackBuf` or a slice of one with compile-time bounds), read as eight lanes: lane `2k + h` is limb `h` of cell `k`, the layout `pack64x2` builds and the one `KECCAK` hashes. Every cell must be canonical (top limb zero), and the instruction proves it, with both its lanes in GF(2^64), as `KECCAK` does for the cells it reads: a run that `dot` and `keccak_cells` both read needs no `assert_in_k`. `w` is a four-cell `HeapBuf` slice `buf[lo:lo + 4]` (or a pointer to frame cells from `addr`), read through its pointer; `acc` is any value. The result is a fresh value. A chain of `dot`s weighs a row of opened data against weights a verifier derived from its transcript, one row per four terms where a `MUL` and an `XOR` per term would do it.
+`dot(x, w, acc)` is one `DOT` instruction: `acc + Σ_{j<4} w[j]·x_j`, an affine form of four GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a `StackBuf` or a slice of one with compile-time bounds), read as four lanes: lane `2k + h` is limb `h` of cell `k`, the layout `pack64x2` builds and the one `KECCAK` hashes. Every cell must be canonical (top limb zero), and the instruction proves it, with both its lanes in GF(2^64), as `KECCAK` does for the cells it reads: a run that `dot` and `keccak_cells` both read needs no `assert_in_k`. `w` is a four-cell `HeapBuf` slice `buf[lo:lo + 4]` (or a pointer to frame cells from `addr`), read through its pointer; `acc` is any value. The result is a fresh value. A chain of `dot`s weighs a row of opened data against weights a verifier derived from its transcript, one row per four terms where a `MUL` and an `XOR` per term would do it.
 
 ## KECCAK
 

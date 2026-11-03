@@ -857,7 +857,7 @@ mod tests {
     /// `DOT` adds the accumulator and its weighed lanes, lane `2k + h` being limb `h` of cell `k`,
     /// and the run it is in proves and verifies.
     #[test]
-    fn dot_weighs_eight_lanes() {
+    fn dot_weighs_its_lanes() {
         let (cells, weights, acc) = dot_inputs();
         let program = dot_program(cells, weights, acc);
         let pi = [w(7), w(11)];

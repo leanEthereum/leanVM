@@ -268,7 +268,7 @@ pub fn disassemble(prog: &[Op]) -> String {
                 )
             }
             Op::Dot { x, p, w, acc, out } => {
-                format!("DOT    fp[{out}] = fp[{acc}] + <lanes fp[{x}..+4], *(fp[{p}]·g^{w})..+8>")
+                format!("DOT    fp[{out}] = fp[{acc}] + <lanes fp[{x}..+2], *(fp[{p}]·g^{w})..+4>")
             }
         };
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();

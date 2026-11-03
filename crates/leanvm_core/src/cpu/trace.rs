@@ -55,7 +55,7 @@ pub(crate) struct Krow {
     pub(crate) bytecode_read: u32,
 }
 
-/// `DOT` row: the access counts of its fifteen cells, in the order the table flushes them
+/// `DOT` row: the access counts of its cells, in the order the table flushes them
 /// (`tables::DOT_CELLS`): the lane cells, the weight pointer, the weights, the accumulator, then
 /// the result. `w` is the first weight's cell, the pointer resolved.
 pub(crate) struct Dotrow {
