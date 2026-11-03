@@ -31,6 +31,7 @@ BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
 COORD_BASIS = COORD_BASIS_PLACEHOLDER
+BIT_WEIGHTS = 32  # the longest run of bits a query position sums: above every tree depth
 # Six challenges compose the F2-linear map that batches the 192 transposed
 # ring-switch coordinates.
 RING_MAP_SHIFTS = [32, 16, 8, 4, 2, 1]
@@ -651,7 +652,13 @@ def exponent_tables():
     for j in unroll(0, SIZE_BITS):
         g_squares[GEN ** j] = sq_run
         sq_run *= sq_run
-    return g_logs_pow2, g_squares
+    # The weights DOT reads to sum a run of bit cells: a bit cell is the lane pair
+    # (b, 0), so bit b of a run weighs x^b and the high lanes nothing.
+    bit_weights = HeapBuf(2 * BIT_WEIGHTS)
+    for b in unroll(0, BIT_WEIGHTS):
+        bit_weights[GEN ** (2 * b)] = COORD_BASIS[b]
+        bit_weights[GEN ** (2 * b + 1)] = 0
+    return g_logs_pow2, g_squares, bit_weights
 
 
 def g_power_of_word(value):
@@ -718,7 +725,18 @@ def log2_ceil_in_the_exponent(g_N, g_logs_pow2, g_squares, floor: Const, nbits: 
     return g_log
 
 
-def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
+@inline
+def bits_value(bits, at: Const, n: Const, bit_weights):
+    # sum_{b<n} bits[at + b] x^b, a pair of bit cells a DOT; an odd last bit by a product.
+    value = 0
+    for k in unroll(0, n // 2):
+        value = dot(bits[at + 2 * k:at + 2 * k + 2], bit_weights[4 * k:4 * k + 4], value)
+    if n % 2 == 1:
+        value = value + bits[at + n - 1] * COORD_BASIS[n - 1]
+    return value
+
+
+def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, bit_weights, depth: Const):
     # The squeezed word's bits are advice-decomposed HERE, boolean-constrained and
     # tied back by reconstruction; each depth-bit group also becomes a query
     # position (little-endian), with a pointer to its bit run (the Merkle direction
@@ -729,38 +747,42 @@ def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
     bits = StackBuf(FIELD_BITS)
     hint_decompose_bits(bits, squeezed_word, FIELD_BITS)
     bits_ptr = addr(bits)
+    for i in unroll(0, FIELD_BITS):
+        t = bits[i]
+        bits[i] = t * t  # booleanity, as a write-once pin
+    # A position is linear in its bits, so DOT sums them, two bit cells a row. A
+    # group inside one 64-bit limb shifts into the word as a WHOLE, the coordinate
+    # basis being the polynomial basis there: COORD_BASIS[base_bit + b] ==
+    # COORD_BASIS[base_bit] * COORD_BASIS[b] below 64, so the group contributes one
+    # multiply to the reconstruction. A group straddling the boundary splits into
+    # the two runs that do stay inside a limb; `cut // depth == 0` IS `cut < depth`,
+    # the DSL's `if` comparing for equality only.
     reconstructed = 0
     for j in unroll(0, per_word):
         base_bit = j * depth
-        # A group inside one 64-bit limb shifts as a WHOLE, the coordinate basis
-        # being the polynomial basis there: COORD_BASIS[base_bit + b] ==
-        # COORD_BASIS[base_bit] * COORD_BASIS[b] below 64, so the group contributes
-        # one multiply rather than one per bit. A group straddling the boundary
-        # splits into the two runs that do stay inside a limb; `b // cut == 0` IS
-        # `b < cut`, the DSL's `if` comparing for equality only.
         cut = 64 - base_bit % 64  # bits of this group below the next limb
-        p_lo = 0
-        p_hi = 0
-        for b in unroll(0, depth):
-            t = bits[base_bit + b]
-            bits[base_bit + b] = t * t  # booleanity, as a write-once pin
-            if b // cut == 0:
-                p_lo += t * COORD_BASIS[b]
-            else:
-                p_hi += t * COORD_BASIS[b - cut]
-        # position = p_lo + 2^cut * p_hi: multiplying by X^cut concatenates the two
-        # runs, since both degrees stay below 64.
         if cut // depth == 0:  # `cut < depth`: this group straddles the boundary
+            p_lo = bits_value(bits, base_bit, cut, bit_weights)
+            p_hi = bits_value(bits, base_bit + cut, depth - cut, bit_weights)
+            # position = p_lo + 2^cut * p_hi: multiplying by X^cut concatenates the
+            # two runs, since both degrees stay below 64.
             positions_out[GEN ** j] = p_lo + COORD_BASIS[cut] * p_hi
             reconstructed += COORD_BASIS[base_bit] * p_lo + COORD_BASIS[base_bit + cut] * p_hi
         else:
-            positions_out[GEN ** j] = p_lo
-            reconstructed += COORD_BASIS[base_bit] * p_lo
+            p = bits_value(bits, base_bit, depth, bit_weights)
+            positions_out[GEN ** j] = p
+            reconstructed += COORD_BASIS[base_bit] * p
         bit_ptrs_out[GEN ** j] = bits_ptr * GEN ** base_bit
-    for i in unroll(per_word * depth, FIELD_BITS):
-        t = bits[i]
-        bits[i] = t * t
-        reconstructed += t * COORD_BASIS[i]
+    # The bits past the last group, split the same way at a limb boundary.
+    rest_at = per_word * depth
+    rest = FIELD_BITS - rest_at
+    if rest != 0:
+        rest_cut = 64 - rest_at % 64
+        if rest_cut // rest == 0:
+            reconstructed += COORD_BASIS[rest_at] * bits_value(bits, rest_at, rest_cut, bit_weights)
+            reconstructed += COORD_BASIS[rest_at + rest_cut] * bits_value(bits, rest_at + rest_cut, rest - rest_cut, bit_weights)
+        else:
+            reconstructed += COORD_BASIS[rest_at] * bits_value(bits, rest_at, rest, bit_weights)
     assert reconstructed == squeezed_word
     return
 
@@ -1267,7 +1289,7 @@ def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     return prefix_eq
 
 
-def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
+def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, bit_weights):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
     # opening proof data is hinted here, so only the executed arm pops its streams.
@@ -1407,7 +1429,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             row_sp, packed_word = squeeze(row_cap, no_rate, 0)
             fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
             query_ptr = xs ** (FIELD_BITS // depth)
-            decode_query_bits(packed_word, query_positions * GEN ** pos_off * query_ptr, query_bit_ptrs * GEN ** pos_off * query_ptr, depth)
+            decode_query_bits(packed_word, query_positions * GEN ** pos_off * query_ptr, query_bit_ptrs * GEN ** pos_off * query_ptr, bit_weights, depth)
         sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
         sp = fs_load(sqz_end, 0, 1)
 
@@ -3134,7 +3156,7 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_kecca
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
-def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
+def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, bit_weights, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
     # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
     # in that order. All proof data is hinted HERE, so each call pops the next
@@ -3309,7 +3331,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # dispatch independently for every inner proof in a mixed-rate batch.
     config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
     assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor, bit_weights))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.
@@ -4134,7 +4156,7 @@ def main():
     seed_1 = fs_seed[1]
 
     # ---- the claim lists ----
-    g_logs_pow2, g_squares = exponent_tables()
+    g_logs_pow2, g_squares, bit_weights = exponent_tables()
 
     # One table per scheme: its declared list (strictly sorted, checked by the outer
     # verifier, which holds it) followed by its own duplicate slots. The coverage
@@ -4222,7 +4244,7 @@ def main():
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
-        verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)
+        verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, bit_weights, child_fresh * xc ** DEFER_SIZE)
         written[xc * GEN] = base * nsub_g
     assert written[n_children_g] == n_total_g
 

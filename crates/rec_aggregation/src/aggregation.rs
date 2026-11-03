@@ -2395,6 +2395,11 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     .collect()
             }),
         );
+        // The guest sums a query position's bits against a table of `BIT_WEIGHTS` powers of `x`.
+        assert!(
+            cands.iter().flat_map(|c| &c.tree_depths).all(|&d| d <= 32),
+            "a query position has more bits than the guest's BIT_WEIGHTS"
+        );
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
         ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
         ps("LIG_CAP_OFF", flat(&|c| c.cap_offsets.clone()));
