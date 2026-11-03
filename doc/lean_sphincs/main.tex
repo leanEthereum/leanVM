@@ -77,7 +77,7 @@ Let $\hash:\bits{*}\to\bits{256}$ be Keccak-256~\cite{keccak}, Ethereum's hash, 
 \]
 Here $P$ is a 128-bit public parameter and $\addr$ is a 128-bit \emph{address} identifying the operation and its position in the construction. Appendix~\ref{sec:tweaks} gives every address's exact bytes. $\Truncate_r$ always keeps the first $r$ bits, with bits read least significant first within each byte. The parameter and the address take 32 of a block's 136 bytes, so a chain step and a Merkle node each cost one permutation, and every value a hash input holds starts on a 16-byte boundary.
 
-The message $m$ and the seed $S$ are each 256 bits. The signature contains a 128-bit randomizer $\rho$ and one 32-bit counter per layer. Chain values and Merkle nodes are 128 bits; write $\mathcal H=\bits n$.
+The message $m$, the seed $S_0$ and the secret $S$ derived from it are each 256 bits. The signature contains a 128-bit randomizer $\rho$ and one 32-bit counter per layer. Chain values and Merkle nodes are 128 bits; write $\mathcal H=\bits n$.
 
 \begin{center}
 \begin{tabular}{@{}lll@{}}
@@ -97,7 +97,7 @@ $\cmax$ & $2^{32}$ & maximum encoding attempts per layer\\
 \end{tabular}
 \end{center}
 
-The public parameter and all signing secrets are derived from $S$ itself, with no hash of the configuration first, so one seed must never serve two configurations. In particular,
+The public parameter and all signing secrets are derived from $S=\hash(\text{\texttt{leanSPHINCS}}\concat S_0)$, the hash of the scheme's 11-byte ASCII name then the seed, so that no other scheme derives from the same bytes. In particular,
 \[
   P=\Th\!\left(0^{128},\addr_{\mathrm{parameter}},S\right).
 \]
@@ -225,16 +225,16 @@ Every digest is accepted: every index is a leaf of the key.
 \subsection{Key generation}
 \label{rem:seed}
 
-$\Gen$ samples $S\getsr\bits{256}$, derives $P$ as in Section~\ref{sec:parameters}, builds the top tree of $2^{h_2}$ one-time keys, and returns
+$\Gen$ samples $S_0\getsr\bits{256}$, derives $S$ and $P$ as in Section~\ref{sec:parameters}, builds the top tree of $2^{h_2}$ one-time keys, and returns
 \[
-  \pk=(\rootnode,P),\qquad \sk=S,
+  \pk=(\rootnode,P),\qquad \sk=S_0,
 \]
-the top tree being a cache the signer may recompute from $S$.
+the top tree being a cache the signer may recompute from $S_0$.
 
 \subsection{Signing}
 \label{sec:sign}
 
-Given $\sk=S$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as follows:
+Given $\sk=S_0$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as follows:
 \begin{enumerate}
 \item Derive $\rho=\Th(P,\addr_{\mathrm{rnd}},S\concat m)$, and extract $\idx$ and the leaves from $\Digest(P,m,\rho)$.
 \item Compute the opening $\FtsOpen(P,\idx,s)$ and $M_0=\FtsKey(P,\idx)$.
@@ -257,7 +257,7 @@ $\Ver(\pk,m,\sigma)$ rejects $\bot$ and malformed inputs. Otherwise, parse $\pk=
 \subsection{Serialization and cost}
 \label{sec:costs}
 
-Serialize the public key as $\rootnode\concat P$, 32 bytes. The secret key is $S$, 32 bytes.
+Serialize the public key as $\rootnode\concat P$, 32 bytes. The secret key is $S_0$, 32 bytes.
 
 A signature starts with $\rho$, followed by the FORS opening in increasing tree, each tree's secret then its path in increasing height, then the layers from the bottom up, each $\LE_{32}(c_l)$, the $v$ chain values in increasing chain index and the path in increasing height. The size is
 \[
@@ -279,7 +279,7 @@ Count permutations of Keccak-f: an input of $r$ bytes costs $\lfloor r/136\rfloo
 \]
 permutations to verify: per FORS tree a leaf and 9 folds; 6 for the bottom encoding, which absorbs the FORS key, and 1 for each encoding above it; per layer 64 chain steps and 8 for the one-time leaf.
 
-A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $232$ permutations, and key generation $232\cdot2^{10}+(2^{10}-1)+1=238\,592$. Signing spends about $2.3\cdot10^5$: $61\,392$ for the FORS instance, $119\,294$ for the two lower trees, and per layer the expected $14\,700$ encoding attempts, one permutation each once the message is absorbed.
+A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $232$ permutations, and key generation, with the scheme seed and the public parameter, $232\cdot2^{10}+(2^{10}-1)+2=238\,593$. Signing spends about $2.3\cdot10^5$: $61\,392$ for the FORS instance, $119\,294$ for the two lower trees, and per layer the expected $14\,700$ encoding attempts, one permutation each once the message is absorbed.
 
 \section{Security}
 \label{sec:security}

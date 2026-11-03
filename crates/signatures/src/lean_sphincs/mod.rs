@@ -10,9 +10,9 @@
 //! the 16-byte address `A` naming one hash call in the whole structure (the
 //! `hash` module).
 //!
-//! The secret key is one 32-byte seed, which derives the public parameter and
-//! every secret. Key generation builds the top tree, and signing the FORS
-//! instance and the two lower trees on the way.
+//! The secret key is one 32-byte seed. Its hash with the scheme's tag derives
+//! the public parameter and every secret. Key generation builds the top tree,
+//! and signing the FORS instance and the two lower trees on the way.
 
 mod hash;
 pub use hash::*;
@@ -23,9 +23,12 @@ pub use fors::*;
 mod scheme;
 pub use scheme::*;
 
-/// The seed every secret is derived from: the whole secret key.
+/// The key's seed, the whole secret key.
 pub const MASTER_SECRET_LEN: usize = 32;
 pub type MasterSecret = [u8; MASTER_SECRET_LEN];
+
+/// Hashed before the seed, so no other scheme derives from the same bytes.
+pub const SEED_TAG: &[u8] = b"leanSPHINCS";
 
 /// The per-message randomizer the message digest is computed under.
 pub const RANDOMIZER_LEN: usize = 16;

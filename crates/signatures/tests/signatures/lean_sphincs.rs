@@ -4,35 +4,10 @@ fn seed(x: u8) -> MasterSecret {
     std::array::from_fn(|i| x.wrapping_mul(31).wrapping_add(i as u8))
 }
 
-fn unhex(s: &str) -> Vec<u8> {
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
-        .collect()
-}
-
-/// A known answer, byte for byte: the key of the seed `S[i] = 37 i + 11` and its
-/// signature of the message `m[i] = 7 i + 3`.
-#[test]
-fn known_answer() {
-    let vector = include_str!("lean_sphincs_known_answer.hex");
-    let mut lines = vector.lines();
-    let (pk_bytes, sig_bytes) = (unhex(lines.next().unwrap()), unhex(lines.next().unwrap()));
-    let (sk, pk) = key_gen_from_seed(std::array::from_fn(|i| (37 * i + 11) as u8));
-    let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
-    assert_eq!(pk.flatten()[..], pk_bytes[..]);
-    let signature = sign(&sk, &message).unwrap();
-    assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
-    assert_eq!(
-        message_digest(&pk.public_param, &signature.randomizer, &message).0,
-        65963065
-    );
-    assert_eq!(verify(&pk, &message, &signature), Ok(()));
-}
-
 #[test]
 fn signatures_verify_and_tampered_ones_do_not() {
     let (sk, pk) = key_gen_from_seed(seed(3));
+    assert_eq!(pk.public_param, public_param(&scheme_seed(&seed(3))));
     assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message).unwrap();

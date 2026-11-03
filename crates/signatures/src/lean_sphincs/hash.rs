@@ -11,6 +11,11 @@ pub const TWEAK_FORS_PRF: u8 = 14;
 pub const TWEAK_FORS_LEAF: u8 = 15;
 pub const TWEAK_FORS_NODE: u8 = 17;
 
+/// The seed the scheme derives from.
+pub fn scheme_seed(seed: &MasterSecret) -> MasterSecret {
+    tagged_seed(SEED_TAG, seed)
+}
+
 /// The `hi` field of a FORS call at `position` of tree `c`: `c + 64 position`,
 /// a position being a leaf, a pair of leaves, or `level + 16 j` for node `j`.
 pub const fn fors_hi(c: usize, position: usize) -> u32 {

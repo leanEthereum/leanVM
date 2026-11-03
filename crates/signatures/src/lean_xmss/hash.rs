@@ -23,7 +23,7 @@ pub fn layer_hi(layer: usize, field: u32) -> u32 {
     field | (layer as u32 * TOP)
 }
 
-/// The seed the scheme derives from: the hash of [`SEED_TAG`] then the key's seed.
+/// The seed the scheme derives from.
 pub fn scheme_seed(seed: &Seed) -> Seed {
-    primitives::hash::Hasher::new().update(SEED_TAG).update(seed).finalize()
+    tagged_seed(SEED_TAG, seed)
 }

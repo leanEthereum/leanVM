@@ -40,7 +40,10 @@ impl LeanSphincsPublicKey {
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
     pub public_param: PublicParam,
+    /// The key's seed, which the key serializes.
     seed: MasterSecret,
+    /// [`scheme_seed`] of it, which every secret derives from.
+    master: MasterSecret,
     /// The top tree's levels, its leaves first and its root last.
     top: Vec<Vec<Digest>>,
 }
@@ -270,14 +273,19 @@ fn tree_levels(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Vec<Vec<D
     merkle_levels(leaves, height, |level, j, pair| node(pp, key, level, j, pair))
 }
 
-/// `Gen`, deterministic: the seed derives the public parameter, and the top tree
-/// gives the root.
+/// `Gen`, deterministic: the seed's [`scheme_seed`] derives the public parameter,
+/// and the top tree gives the root.
 pub fn key_gen_from_seed(seed: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    let public_param = public_param(&seed);
-    let top = tree_levels(&public_param, &seed, &OtsKey::of_index(LAYERS - 1, 0));
+    key_from_scheme_seed(seed, scheme_seed(&seed))
+}
+
+fn key_from_scheme_seed(seed: MasterSecret, master: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
+    let public_param = public_param(&master);
+    let top = tree_levels(&public_param, &master, &OtsKey::of_index(LAYERS - 1, 0));
     let sk = LeanSphincsSecretKey {
         public_param,
         seed,
+        master,
         top,
     };
     let pk = sk.public_key();
@@ -289,8 +297,8 @@ pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanSphincsSecretKey, LeanSphincsPu
     key_gen_from_seed(rng.random())
 }
 
-/// The randomizer of a message, `R = Th(P, A_rnd, S | m)`, unpredictable without
-/// the seed. Every index is a leaf of the key, so the first one is kept.
+/// The randomizer of a message, `R = Th(P, A_rnd, S | m)` for the scheme seed
+/// `S`, unpredictable without it. Every index is a leaf of the key, so the first one is kept.
 pub fn randomizer(pp: &PublicParam, seed: &MasterSecret, m: &Message) -> Randomizer {
     let mut payload = [0u8; MASTER_SECRET_LEN + MESSAGE_LEN];
     payload[..MASTER_SECRET_LEN].copy_from_slice(seed);
@@ -307,7 +315,7 @@ pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
 /// which opens the message, and each layer signs what the layer below gives. A
 /// key signs at most `2^30` messages (`doc/lean_sphincs`).
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    let (pp, seed) = (&sk.public_param, &sk.seed);
+    let (pp, seed) = (&sk.public_param, &sk.master);
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
     let (fors_key, fors) = fors_open(pp, seed, idx as u32, &leaves);
@@ -382,5 +390,32 @@ pub fn verify(
         Ok(())
     } else {
         Err(LeanSphincsVerifyError::RootMismatch)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A known answer, byte for byte, of everything below the tag: the key whose
+    /// scheme seed is `S[i] = 37 i + 11` and its signature of `m[i] = 7 i + 3`.
+    #[test]
+    fn known_answer() {
+        let mut lines = include_str!("known_answer.hex").lines();
+        let mut unhex = || {
+            let s = lines.next().unwrap();
+            (0..s.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+                .collect::<Vec<_>>()
+        };
+        let (pk_bytes, sig_bytes) = (unhex(), unhex());
+        let master = std::array::from_fn(|i| (37 * i + 11) as u8);
+        let (sk, pk) = key_from_scheme_seed(master, master);
+        let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
+        assert_eq!(pk.flatten()[..], pk_bytes[..]);
+        let signature = sign(&sk, &message).unwrap();
+        assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
+        assert_eq!(verify(&pk, &message, &signature), Ok(()));
     }
 }
