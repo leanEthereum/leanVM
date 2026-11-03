@@ -109,20 +109,31 @@ pub fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Digest {
 }
 
 /// Two secrets for one hash: the two halves of the untruncated hash of the seed.
-pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &[u8; 32]) -> [Digest; 2] {
-    let output = hasher(pp, tw).update(seed).finalize();
+pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &SchemeSeed) -> [Digest; 2] {
+    let output = hasher(pp, tw).update(seed.as_bytes()).finalize();
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
+}
+
+/// The seed a scheme derives every secret from, [`tagged_seed`] of a key's seed:
+/// its own type, so that a key's seed cannot stand in for it.
+#[derive(Clone, Copy)]
+pub struct SchemeSeed(pub(crate) [u8; 32]);
+
+impl SchemeSeed {
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 }
 
 /// The seed a scheme derives from: the hash of the scheme's `tag` then the key's
 /// seed, so no two schemes derive from the same bytes.
-pub fn tagged_seed(tag: &[u8], seed: &[u8; 32]) -> [u8; 32] {
-    Hasher::new().update(tag).update(seed).finalize()
+pub fn tagged_seed(tag: &[u8], seed: &[u8; 32]) -> SchemeSeed {
+    SchemeSeed(Hasher::new().update(tag).update(seed).finalize())
 }
 
 /// The public parameter, derived from the scheme's seed under `P = 0`.
-pub fn public_param(seed: &[u8; 32]) -> PublicParam {
-    th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), seed)
+pub fn public_param(seed: &SchemeSeed) -> PublicParam {
+    th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), seed.as_bytes())
 }
 
 #[cfg(test)]

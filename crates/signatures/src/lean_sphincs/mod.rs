@@ -24,8 +24,8 @@ mod scheme;
 pub use scheme::*;
 
 /// The key's seed, the whole secret key.
-pub const MASTER_SECRET_LEN: usize = 32;
-pub type MasterSecret = [u8; MASTER_SECRET_LEN];
+pub const SEED_LEN: usize = 32;
+pub type Seed = [u8; SEED_LEN];
 
 /// Hashed before the seed, so no other scheme derives from the same bytes.
 pub const SEED_TAG: &[u8] = b"leanSPHINCS";

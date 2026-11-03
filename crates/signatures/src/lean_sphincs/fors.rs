@@ -25,7 +25,7 @@ pub type ForsKey = [[Digest; 2]; FORS_TREES];
 
 /// The secrets of leaves `2p` and `2p + 1` of tree `c`: the two halves of one
 /// hash of the seed.
-fn secret_pair(pp: &PublicParam, seed: &MasterSecret, idx: u32, c: usize, p: usize) -> [Digest; 2] {
+fn secret_pair(pp: &PublicParam, seed: &SchemeSeed, idx: u32, c: usize, p: usize) -> [Digest; 2] {
     th_pair(pp, &tweak(TWEAK_FORS_PRF, fors_hi(c, p), idx), seed)
 }
 
@@ -43,7 +43,7 @@ fn fors_node(pp: &PublicParam, idx: u32, c: usize, level: usize, j: usize, child
 /// instance `idx`, and its opening at `leaves`.
 pub(crate) fn fors_open(
     pp: &PublicParam,
-    seed: &MasterSecret,
+    seed: &SchemeSeed,
     idx: u32,
     leaves: &[usize; FORS_TREES],
 ) -> (ForsKey, ForsOpening) {

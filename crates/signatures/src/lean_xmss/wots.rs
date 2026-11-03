@@ -21,7 +21,7 @@ pub fn tree_leaf(leaf_index: LeafIndex) -> u32 {
 
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
-pub fn wots_secrets(pp: &PublicParam, seed: &Seed, layer: usize, e: u32) -> [Digest; V] {
+pub fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
         *pair = th_pair(pp, &tweak(TWEAK_PRF, layer_hi(layer, t as u32), e), seed);
@@ -81,14 +81,14 @@ const GRIND_BATCH: u64 = 1 << 14;
 /// never opens two codewords.
 pub fn wots_sign(
     pp: &PublicParam,
-    seed: &Seed,
+    seed: &SchemeSeed,
     layer: usize,
     e: u32,
     message: &[u8],
 ) -> Option<(Randomizer, [Digest; V])> {
     let base = {
         let mut hasher = hasher(pp, &tweak(TWEAK_RANDOMIZER, layer_hi(layer, 0), e));
-        hasher.update(seed).update(message);
+        hasher.update(seed.as_bytes()).update(message);
         u128::from_le_bytes(hasher.finalize()[..RANDOMIZER_LEN].try_into().unwrap())
     };
     let trial = |c: u64| base.wrapping_add(u128::from(c)).to_le_bytes();
@@ -129,7 +129,7 @@ pub fn wots_leaf(
 
 /// The leaf of key `e` on `layer`, from the seed: what key generation spends its
 /// hashes on.
-pub fn wots_public_leaf(pp: &PublicParam, seed: &Seed, layer: usize, e: u32) -> Digest {
+pub fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
     let secrets = wots_secrets(pp, seed, layer, e);
     let ends = std::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(pp, layer, e, &ends)

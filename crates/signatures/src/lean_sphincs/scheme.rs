@@ -38,7 +38,7 @@ impl LeanSphincsPublicKey {
 /// The key's seed, all of the key: its [`scheme_seed`] derives every secret.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
-    seed: MasterSecret,
+    seed: Seed,
 }
 
 impl std::fmt::Debug for LeanSphincsSecretKey {
@@ -54,11 +54,11 @@ impl LeanSphincsSecretKey {
     }
 
     /// SECRET KEY MATERIAL: the seed, all of the key.
-    pub fn to_bytes(&self) -> MasterSecret {
+    pub fn to_bytes(&self) -> Seed {
         self.seed
     }
 
-    pub fn from_bytes(bytes: &MasterSecret) -> Self {
+    pub fn from_bytes(bytes: &Seed) -> Self {
         Self { seed: *bytes }
     }
 }
@@ -144,23 +144,21 @@ impl LeanSphincsSignature {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LeanSphincsSignError {
-    /// `C_max` counters in a row failed to encode, on this layer.
-    NoAdmissibleEncoding(usize),
+    /// `C_max` counters in a row failed to encode.
+    NoAdmissibleEncoding,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LeanSphincsVerifyError {
-    /// The counter does not encode what the layer signs.
-    InadmissibleEncoding(usize),
+    /// A counter does not encode what its layer signs.
+    InadmissibleEncoding,
     RootMismatch,
 }
 
 impl std::fmt::Display for LeanSphincsSignError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NoAdmissibleEncoding(layer) => {
-                write!(f, "no admissible encoding within C_max attempts on layer {layer}")
-            }
+            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within C_max attempts"),
         }
     }
 }
@@ -170,9 +168,7 @@ impl std::error::Error for LeanSphincsSignError {}
 impl std::fmt::Display for LeanSphincsVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InadmissibleEncoding(layer) => {
-                write!(f, "the counter of layer {layer} does not encode what it signs")
-            }
+            Self::InadmissibleEncoding => write!(f, "a counter does not encode what its layer signs"),
             Self::RootMismatch => write!(f, "the walk does not reach the key's root"),
         }
     }
@@ -242,7 +238,7 @@ fn node(pp: &PublicParam, key: &OtsKey, level: usize, j: usize, children: &[Dige
 }
 
 /// The levels of the tree holding `key`, its leaves first and its root last.
-fn tree_levels(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Vec<Vec<Digest>> {
+fn tree_levels(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
     let leaves = parallel::map_collect(1 << height, |leaf| {
         wots_public_leaf(
@@ -259,13 +255,13 @@ fn tree_levels(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Vec<Vec<D
 
 /// `Gen`, deterministic: the seed's [`scheme_seed`] derives the public parameter,
 /// and the top tree gives the root.
-pub fn key_gen_from_seed(seed: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
+pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     (LeanSphincsSecretKey { seed }, public_key_of(&scheme_seed(&seed)))
 }
 
 /// The public key of the scheme seed `seed`: its public parameter and the top
 /// tree's root.
-fn public_key_of(seed: &MasterSecret) -> LeanSphincsPublicKey {
+fn public_key_of(seed: &SchemeSeed) -> LeanSphincsPublicKey {
     let public_param = public_param(seed);
     let top = tree_levels(&public_param, seed, &OtsKey::of_index(LAYERS - 1, 0));
     LeanSphincsPublicKey {
@@ -281,8 +277,12 @@ pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanSphincsSecretKey, LeanSphincsPu
 
 /// The randomizer of a message, `R = Th(P, A_rnd, S | m)` for the scheme seed
 /// `S`, unpredictable without it.
-pub fn randomizer(pp: &PublicParam, seed: &MasterSecret, m: &Message) -> Randomizer {
-    th(pp, &tweak(TWEAK_RANDOMIZER, 0, 0), [*seed, *m].as_flattened())
+pub fn randomizer(pp: &PublicParam, seed: &SchemeSeed, m: &Message) -> Randomizer {
+    th(
+        pp,
+        &tweak(TWEAK_RANDOMIZER, 0, 0),
+        [*seed.as_bytes(), *m].as_flattened(),
+    )
 }
 
 /// The bytes of a FORS key, the bottom one-time key's message.
@@ -300,7 +300,7 @@ pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsS
 
 /// [`sign`] with the scheme seed `seed`. It builds the FORS instance and the
 /// three trees on the way up.
-fn sign_with(seed: &MasterSecret, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+fn sign_with(seed: &SchemeSeed, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     let pp = &public_param(seed);
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
@@ -309,8 +309,7 @@ fn sign_with(seed: &MasterSecret, message: &Message) -> Result<LeanSphincsSignat
     let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
     for layer in 0..LAYERS {
         let key = OtsKey::of_index(layer, idx);
-        let (counter, wots) =
-            wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding(layer))?;
+        let (counter, wots) = wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
         let levels = tree_levels(pp, seed, &key);
         let height = LAYER_HEIGHTS[layer];
         paths.extend((0..height).map(|level| levels[level][(key.leaf as usize >> level) ^ 1]));
@@ -355,7 +354,7 @@ pub fn verify(
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
         let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
-            .ok_or(LeanSphincsVerifyError::InadmissibleEncoding(layer))?;
+            .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
         signed = tree_fold(pp, &key, leaf, signature.path(layer), |_| ()).to_vec();
     }
     if signed == pk.root {
@@ -382,7 +381,7 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         let (pk_bytes, sig_bytes) = (unhex(), unhex());
-        let master = std::array::from_fn(|i| (37 * i + 11) as u8);
+        let master = SchemeSeed(std::array::from_fn(|i| (37 * i + 11) as u8));
         let pk = public_key_of(&master);
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.flatten()[..], pk_bytes[..]);

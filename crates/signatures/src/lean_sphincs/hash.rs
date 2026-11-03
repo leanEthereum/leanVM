@@ -12,7 +12,7 @@ pub const TWEAK_FORS_LEAF: u8 = 15;
 pub const TWEAK_FORS_NODE: u8 = 17;
 
 /// The seed the scheme derives from.
-pub fn scheme_seed(seed: &MasterSecret) -> MasterSecret {
+pub fn scheme_seed(seed: &Seed) -> SchemeSeed {
     tagged_seed(SEED_TAG, seed)
 }
 

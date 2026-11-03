@@ -182,7 +182,7 @@ pub fn lean_sphincs_message(index: usize) -> lean_sphincs::Message {
 
 /// One cached leanSPHINCS signer, as fixed-size bytes: the scheme's own
 /// serializations, so nothing here has to agree with a derived one.
-const LEAN_LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::MESSAGE_LEN + lean_sphincs::SIG_SIZE;
+const LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::MESSAGE_LEN + lean_sphincs::SIG_SIZE;
 
 fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
@@ -197,11 +197,11 @@ fn lean_sphincs_footprint() -> u64 {
     SCHEMA_VERSION.hash(&mut hasher);
     // The record layout and the per-signer messages, so a change to either
     // invalidates the file rather than being read back as another scheme's.
-    LEAN_LEAN_SPHINCS_RECORD.hash(&mut hasher);
+    LEAN_SPHINCS_RECORD.hash(&mut hasher);
     lean_sphincs_message(0).hash(&mut hasher);
     lean_sphincs_message(1).hash(&mut hasher);
     (
-        lean_sphincs::MASTER_SECRET_LEN,
+        lean_sphincs::SEED_LEN,
         lean_sphincs::V,
         lean_sphincs::W,
         lean_sphincs::TARGET_SUM,
@@ -212,7 +212,7 @@ fn lean_sphincs_footprint() -> u64 {
         .hash(&mut hasher);
     // The key derivation and the tweakable hash, so a change to either
     // invalidates the file.
-    lean_sphincs::public_param(&lean_sphincs::scheme_seed(&[0x11; lean_sphincs::MASTER_SECRET_LEN])).hash(&mut hasher);
+    lean_sphincs::public_param(&lean_sphincs::scheme_seed(&[0x11; lean_sphincs::SEED_LEN])).hash(&mut hasher);
     lean_sphincs::th(
         &[0xA5; lean_sphincs::PUBLIC_PARAM_LEN],
         &lean_sphincs::tweak(1, 2, 3).step(4).at(2, 5),
@@ -228,8 +228,8 @@ fn lean_sphincs_cache_path() -> PathBuf {
 
 fn try_load_lean_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
     let bytes = fs::read(lean_sphincs_cache_path()).ok()?;
-    let mut signers = Vec::with_capacity(bytes.len() / LEAN_LEAN_SPHINCS_RECORD);
-    for record in bytes.as_chunks::<LEAN_LEAN_SPHINCS_RECORD>().0 {
+    let mut signers = Vec::with_capacity(bytes.len() / LEAN_SPHINCS_RECORD);
+    for record in bytes.as_chunks::<LEAN_SPHINCS_RECORD>().0 {
         let (key_bytes, rest) = record.split_at(lean_sphincs::PUB_KEY_SIZE);
         let (message_bytes, signature_bytes) = rest.split_at(lean_sphincs::MESSAGE_LEN);
         let public_key = lean_sphincs::LeanSphincsPublicKey::from_bytes(key_bytes.try_into().unwrap());
@@ -253,7 +253,7 @@ fn save_lean_sphincs_cache(signers: &[CachedSphincsSignature]) {
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    let mut bytes = Vec::with_capacity(signers.len() * LEAN_LEAN_SPHINCS_RECORD);
+    let mut bytes = Vec::with_capacity(signers.len() * LEAN_SPHINCS_RECORD);
     for (public_key, message, signature) in signers {
         bytes.extend_from_slice(&public_key.flatten());
         bytes.extend_from_slice(message);
@@ -264,10 +264,10 @@ fn save_lean_sphincs_cache(signers: &[CachedSphincsSignature]) {
     }
 }
 
-static LEAN_LEAN_SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());
+static LEAN_SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());
 
 pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
-    let mut pool = LEAN_LEAN_SPHINCS_POOL.lock().unwrap();
+    let mut pool = LEAN_SPHINCS_POOL.lock().unwrap();
     if pool.len() < n {
         if let Some(disk) = try_load_lean_sphincs_cache()
             && disk.len() > pool.len()

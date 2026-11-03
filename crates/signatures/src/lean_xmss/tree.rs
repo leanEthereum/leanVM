@@ -9,8 +9,12 @@ pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Di
     th_digests(pp, &tweak(TWEAK_NODE, layer_hi(layer, level as u32), j), children)
 }
 
-fn filler(pp: &PublicParam, seed: &Seed, layer: usize, level: usize, j: u32) -> Digest {
-    th(pp, &tweak(TWEAK_FILLER, layer_hi(layer, level as u32), j), seed)
+fn filler(pp: &PublicParam, seed: &SchemeSeed, layer: usize, level: usize, j: u32) -> Digest {
+    th(
+        pp,
+        &tweak(TWEAK_FILLER, layer_hi(layer, level as u32), j),
+        seed.as_bytes(),
+    )
 }
 
 pub(crate) struct LayerTree {
@@ -24,7 +28,7 @@ pub(crate) struct LayerTree {
 }
 
 impl LayerTree {
-    pub(crate) fn build(pp: &PublicParam, seed: &Seed, layer: usize, base: u32, first: u32, last: u32) -> Self {
+    pub(crate) fn build(pp: &PublicParam, seed: &SchemeSeed, layer: usize, base: u32, first: u32, last: u32) -> Self {
         debug_assert!(first <= last && last >> LAYER_HEIGHT == 0);
         let leaves = parallel::map_collect((last - first + 1) as usize, |j| {
             wots_public_leaf(pp, seed, layer, base + first + j as u32)
@@ -52,7 +56,7 @@ impl LayerTree {
     }
 
     /// Node `j` of `level`, stored if it is over a leaf in range, else a filler.
-    fn at(&self, pp: &PublicParam, seed: &Seed, level: usize, j: u32) -> Digest {
+    fn at(&self, pp: &PublicParam, seed: &SchemeSeed, level: usize, j: u32) -> Digest {
         if (self.first >> level..=self.last >> level).contains(&j) {
             self.levels[level][(j - (self.first >> level)) as usize]
         } else {
@@ -64,7 +68,7 @@ impl LayerTree {
         self.levels[LAYER_HEIGHT][0]
     }
 
-    pub(crate) fn path(&self, pp: &PublicParam, seed: &Seed, leaf: u32) -> [Digest; LAYER_HEIGHT] {
+    pub(crate) fn path(&self, pp: &PublicParam, seed: &SchemeSeed, leaf: u32) -> [Digest; LAYER_HEIGHT] {
         debug_assert!((self.first..=self.last).contains(&leaf));
         std::array::from_fn(|level| self.at(pp, seed, level, (leaf >> level) ^ 1))
     }

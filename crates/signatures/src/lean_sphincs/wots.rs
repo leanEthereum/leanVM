@@ -40,7 +40,7 @@ impl OtsKey {
 
 /// The starts of the `v` chains of a one-time key. One hash of the seed gives
 /// two of them: chains `2j` and `2j + 1` are its two halves.
-pub fn wots_secrets(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> [Digest; V] {
+pub fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (j, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
         *pair = th_pair(pp, &key.tweak(TWEAK_PRF, j as u32), seed);
@@ -93,7 +93,7 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// opens. Deterministic in its inputs, which is what keeps one key to one
 /// codeword per message: a resumed or randomized search would leak two
 /// incomparable codewords.
-pub fn wots_sign(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey, message: &[u8]) -> Option<(u32, [Digest; V])> {
+pub fn wots_sign(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey, message: &[u8]) -> Option<(u32, [Digest; V])> {
     let encoder = encoder(pp, key, message);
     let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode_from(&encoder, c as u32).map(|x| (c as u32, x)))?;
     let secrets = wots_secrets(pp, seed, key);
@@ -120,7 +120,7 @@ pub fn wots_leaf(
 
 /// The leaf of a one-time key, from the seed: what building a tree spends its
 /// hashes on.
-pub fn wots_public_leaf(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Digest {
+pub fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> Digest {
     let secrets = wots_secrets(pp, seed, key);
     let ends = std::array::from_fn(|i| chain(pp, key, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(pp, key, &ends)
