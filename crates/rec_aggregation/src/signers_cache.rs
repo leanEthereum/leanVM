@@ -88,7 +88,7 @@ fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<CachedSignature>> 
         .iter()
         .enumerate()
         .take_while(|(i, (pk, sig))| {
-            sig.leaf_index == leaf_index_of(*i, message_id) && lean_xmss::verify(pk, &msg, sig).is_ok()
+            sig.leaf_index() == leaf_index_of(*i, message_id) && lean_xmss::verify(pk, &msg, sig).is_ok()
         })
         .count();
     if valid < signers.len() {

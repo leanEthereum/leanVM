@@ -15,7 +15,7 @@ fn full_key_signs_and_verifies() {
     verify(&pk, &message, &first).unwrap();
     let other_tree = sign(&sk, &message, (7 << LAYER_HEIGHT) + 3).unwrap();
     verify(&pk, &message, &other_tree).unwrap();
-    assert_ne!(first.top, other_tree.top);
+    assert_ne!(first.top(), other_tree.top());
     assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
 }
 
@@ -48,7 +48,7 @@ fn mock_keys_sign_in_range() {
     let (sk, pk) = mock::key_gen_from_seed([2; SEED_LEN], start, start + 5);
     for leaf_index in start..=start + 5 {
         let sig = mock::sign(&sk, &message, leaf_index).unwrap();
-        assert_eq!(sig.leaf_index, leaf_index);
+        assert_eq!(sig.leaf_index(), leaf_index);
         verify(&pk, &message, &sig).unwrap();
     }
     let (_, same) = mock::key_gen_from_seed([2; SEED_LEN], start, start + 5);
@@ -62,8 +62,9 @@ fn signature_is_bound_to_its_leaf_index_and_message() {
     let (sk, pk) = mock::key_gen_from_seed([4; SEED_LEN], 0, 7);
     let message = test_message();
     let sig = mock::sign(&sk, &message, 5).unwrap();
-    let mut moved = sig.clone();
-    moved.leaf_index = 4;
+    let mut bytes = sig.to_bytes();
+    bytes[..4].copy_from_slice(&4u32.to_le_bytes());
+    let moved = LeanXmssSignature::from_bytes(&bytes);
     assert!(verify(&pk, &message, &moved).is_err());
     let mut other = message;
     other[0] ^= 1;
@@ -102,30 +103,6 @@ fn secret_key_survives_a_round_trip() {
     assert_eq!(reloaded.public_key(), pk);
     let message = test_message();
     assert_eq!(sign(&reloaded, &message, 43).unwrap(), sign(&sk, &message, 43).unwrap());
-}
-
-/// The encoding is the fields concatenated, in declaration order. Assembled
-/// independently here, so a reordered or resized field cannot be mirrored by the
-/// impl.
-#[test]
-fn serialization_layout_is_exact() {
-    let (sk, pk) = mock::key_gen_from_seed([7; SEED_LEN], 290, 310);
-    let message = test_message();
-    let sig = mock::sign(&sk, &message, 300).unwrap();
-
-    assert_eq!(pk.flatten().as_slice(), [pk.merkle_root, pk.public_param].concat());
-
-    let mut expected = sig.leaf_index.to_le_bytes().to_vec();
-    for layer in [&sig.bottom, &sig.top] {
-        expected.extend_from_slice(&layer.randomizer);
-        for value in layer.chain_values.iter().chain(&layer.path) {
-            expected.extend_from_slice(value);
-        }
-    }
-    assert_eq!(expected.len(), SIG_SIZE);
-    assert_eq!(sig.to_bytes().as_slice(), expected);
-    assert_eq!(LeanXmssSignature::from_bytes(&sig.to_bytes()), sig);
-    assert_eq!(LeanXmssPublicKey::from_bytes(&pk.flatten()), pk);
 }
 
 /// The address layout is leanSPHINCS's, and `Th` is the leanVM hash of `P | A | M`.

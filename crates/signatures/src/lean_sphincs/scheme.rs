@@ -15,11 +15,15 @@ use crate::lean_sphincs::*;
 /// signer list is sorted and deduplicated by.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LeanSphincsPublicKey {
-    pub root: Digest,
-    pub public_param: PublicParam,
+    pub(crate) root: Digest,
+    pub(crate) public_param: PublicParam,
 }
 
 impl LeanSphincsPublicKey {
+    pub fn public_param(&self) -> &PublicParam {
+        &self.public_param
+    }
+
     pub fn flatten(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.root);
@@ -64,24 +68,47 @@ impl LeanSphincsSecretKey {
 }
 
 /// What a signature carries for one layer: the one-time signature of what the
-/// layer below gives. Its key's path is in [`LeanSphincsSignature::paths`].
+/// layer below gives. Its key's path is [`LeanSphincsSignature::path`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LayerSignature {
-    pub counter: u32,
-    pub wots: [Digest; V],
+    pub(crate) counter: u32,
+    pub(crate) wots: [Digest; V],
+}
+
+impl LayerSignature {
+    pub fn counter(&self) -> u32 {
+        self.counter
+    }
+
+    pub fn wots(&self) -> &[Digest; V] {
+        &self.wots
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeanSphincsSignature {
-    pub randomizer: Randomizer,
-    pub fors: ForsOpening,
+    pub(crate) randomizer: Randomizer,
+    pub(crate) fors: ForsOpening,
     /// Bottom first.
-    pub layers: [LayerSignature; LAYERS],
+    pub(crate) layers: [LayerSignature; LAYERS],
     /// The layers' paths one after the other, bottom first ([`Self::path`]).
-    pub paths: [Digest; H],
+    pub(crate) paths: [Digest; H],
 }
 
 impl LeanSphincsSignature {
+    pub fn randomizer(&self) -> &Randomizer {
+        &self.randomizer
+    }
+
+    pub fn fors(&self) -> &ForsOpening {
+        &self.fors
+    }
+
+    /// Bottom first.
+    pub fn layers(&self) -> &[LayerSignature; LAYERS] {
+        &self.layers
+    }
+
     /// Layer `layer`'s path in its tree, from the leaf up.
     pub fn path(&self, layer: usize) -> &[Digest] {
         let start: usize = LAYER_HEIGHTS[..layer].iter().sum();

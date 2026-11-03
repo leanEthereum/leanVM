@@ -14,11 +14,15 @@ use crate::lean_xmss::*;
 /// sorted by.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
-    pub merkle_root: Digest,
-    pub public_param: PublicParam,
+    pub(crate) merkle_root: Digest,
+    pub(crate) public_param: PublicParam,
 }
 
 impl LeanXmssPublicKey {
+    pub fn public_param(&self) -> &PublicParam {
+        &self.public_param
+    }
+
     /// The specification's serialization, exactly [`PUB_KEY_SIZE`] bytes.
     pub fn flatten(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0u8; PUB_KEY_SIZE];
@@ -39,22 +43,44 @@ impl LeanXmssPublicKey {
 /// authentication path.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct LayerSignature {
-    pub randomizer: Randomizer,
+    pub(crate) randomizer: Randomizer,
     #[serde(with = "crate::lean_xmss::array_serialization")]
-    pub chain_values: [Digest; V],
-    pub path: [Digest; LAYER_HEIGHT],
+    pub(crate) chain_values: [Digest; V],
+    pub(crate) path: [Digest; LAYER_HEIGHT],
+}
+
+impl LayerSignature {
+    pub fn randomizer(&self) -> &Randomizer {
+        &self.randomizer
+    }
+
+    pub fn chain_values(&self) -> &[Digest; V] {
+        &self.chain_values
+    }
 }
 
 /// Carries the leaf index it was made at, so a verifier needs only the key and the
 /// message. The top layer's signature is the same for every leaf of a bottom tree.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct LeanXmssSignature {
-    pub leaf_index: LeafIndex,
-    pub bottom: LayerSignature,
-    pub top: LayerSignature,
+    pub(crate) leaf_index: LeafIndex,
+    pub(crate) bottom: LayerSignature,
+    pub(crate) top: LayerSignature,
 }
 
 impl LeanXmssSignature {
+    pub fn leaf_index(&self) -> LeafIndex {
+        self.leaf_index
+    }
+
+    pub fn bottom(&self) -> &LayerSignature {
+        &self.bottom
+    }
+
+    pub fn top(&self) -> &LayerSignature {
+        &self.top
+    }
+
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
         let mut out = [0; SIG_SIZE];

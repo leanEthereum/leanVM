@@ -14,8 +14,14 @@ use crate::lean_sphincs::*;
 /// leaf up, the last node being the other top node.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ForsTreeOpening {
-    pub secret: Digest,
-    pub path: [Digest; FORS_HEIGHT],
+    pub(crate) secret: Digest,
+    pub(crate) path: [Digest; FORS_HEIGHT],
+}
+
+impl ForsTreeOpening {
+    pub fn secret(&self) -> &Digest {
+        &self.secret
+    }
 }
 
 pub type ForsOpening = [ForsTreeOpening; FORS_TREES];

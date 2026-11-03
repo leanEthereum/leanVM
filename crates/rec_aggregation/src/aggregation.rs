@@ -1482,19 +1482,19 @@ fn lean_xmss_hints(
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
 ) -> Result<SubHints, AggregationError> {
-    let pp = &pk.public_param;
-    let bits = (0..lean_xmss::LOG_LIFETIME).map(|b| F192::new(u64::from(sig.leaf_index >> b & 1), 0, 0));
+    let pp = pk.public_param();
+    let bits = (0..lean_xmss::LOG_LIFETIME).map(|b| F192::new(u64::from(sig.leaf_index() >> b & 1), 0, 0));
     let mut hints: SubHints = vec![("leaf_index_bits", bits.collect())];
     let mut root: Vec<u8> = message.to_vec();
-    for (layer, layer_sig) in [&sig.bottom, &sig.top].into_iter().enumerate() {
-        let e = lean_xmss::layer_index(sig.leaf_index, layer);
+    for (layer, layer_sig) in [sig.bottom(), sig.top()].into_iter().enumerate() {
+        let e = lean_xmss::layer_index(sig.leaf_index(), layer);
         let (codeword, reached) = lean_xmss::layer_root(pp, layer, e, &root, layer_sig, |pair| {
             hints.push(("siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]));
         })
         .ok_or(AggregationError::MalformedRawSignature)?;
-        hints.push(("randomizer", vec![pack_16_bytes(&layer_sig.randomizer)]));
+        hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
         hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
-        for value in &layer_sig.chain_values {
+        for value in layer_sig.chain_values() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
         root = reached.to_vec();
@@ -1516,32 +1516,32 @@ fn lean_sphincs_hints(
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
 ) -> Result<SubHints, AggregationError> {
-    let pp = &pk.public_param;
-    let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(&sig.randomizer)])];
-    let digest = lean_sphincs::message_digest_bytes(pp, &sig.randomizer, message);
+    let pp = pk.public_param();
+    let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(sig.randomizer())])];
+    let digest = lean_sphincs::message_digest_bytes(pp, sig.randomizer(), message);
     let (idx, leaves) = lean_sphincs::digest_fields(&digest);
     let lane = u64::from_le_bytes(digest[32..40].try_into().unwrap());
     hints.push((
         "sp_unused",
         exponent_bytes(lane >> LEAN_SPHINCS_TAIL_BITS, 64 - LEAN_SPHINCS_TAIL_BITS),
     ));
-    for tree in &sig.fors {
-        hints.push(("sp_fors_secrets", vec![pack_16_bytes(&tree.secret)]));
+    for tree in sig.fors() {
+        hints.push(("sp_fors_secrets", vec![pack_16_bytes(tree.secret())]));
     }
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
     let ordered = |pair: &[lean_sphincs::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
-    let fors_key = lean_sphincs::fors_recover(pp, idx, &leaves, &sig.fors, |pair| {
+    let fors_key = lean_sphincs::fors_recover(pp, idx, &leaves, sig.fors(), |pair| {
         hints.push(("sp_fors_nodes", ordered(pair)));
     });
     let mut signed = lean_sphincs::fors_key_bytes(&fors_key).to_vec();
-    for (layer, layer_sig) in sig.layers.iter().enumerate() {
+    for (layer, layer_sig) in sig.layers().iter().enumerate() {
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
-        let (codeword, leaf) = lean_sphincs::wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
+        let (codeword, leaf) = lean_sphincs::wots_leaf(pp, &key, &signed, layer_sig.counter(), layer_sig.wots())
             .ok_or(AggregationError::MalformedRawSignature)?;
-        hints.push(("sp_counter", exponent_bytes(u64::from(layer_sig.counter), 32)));
+        hints.push(("sp_counter", exponent_bytes(u64::from(layer_sig.counter()), 32)));
         hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
-        for value in &layer_sig.wots {
+        for value in layer_sig.wots() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
         let root = lean_sphincs::tree_fold(pp, &key, leaf, sig.path(layer), |pair| {
@@ -2645,9 +2645,10 @@ mod tests {
     /// Distinct pubkeys, strictly increasing, without generating any.
     fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
         (0..len)
-            .map(|i| LeanXmssPublicKey {
-                merkle_root: (i as u128).to_be_bytes(),
-                public_param: [0; lean_xmss::PUBLIC_PARAM_LEN],
+            .map(|i| {
+                let mut bytes = [0; lean_xmss::PUB_KEY_SIZE];
+                bytes[..16].copy_from_slice(&(i as u128).to_be_bytes());
+                LeanXmssPublicKey::from_bytes(&bytes)
             })
             .collect()
     }
@@ -3450,7 +3451,7 @@ def main():
         let at_a = get_signers(4);
         let at_b = get_signers_for(2, MESSAGE_B);
         assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
-        assert_ne!(at_a[0].1.leaf_index, at_b[0].1.leaf_index);
+        assert_ne!(at_a[0].1.leaf_index(), at_b[0].1.leaf_index());
         let left = aggregate(&[], signing(&at_a[..3], 0), vec![], &[], None, LOG_INV_RATE).expect("left");
         let mut right_raw = signing(&at_a[2..], 0);
         right_raw.extend(signing(&at_b, MESSAGE_B));
@@ -3618,27 +3619,20 @@ def main():
     #[test]
     fn malformed_raw_signature_is_an_error() {
         let message = message();
-        let pk = LeanXmssPublicKey {
-            merkle_root: [0; lean_xmss::N],
-            public_param: [0; lean_xmss::PUBLIC_PARAM_LEN],
-        };
+        let pk = LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]);
         let randomizer = (0..=u8::MAX)
             .map(|byte| [byte; lean_xmss::RANDOMIZER_LEN])
             .find(|r| {
-                let digest = lean_xmss::message_digest(&pk.public_param, 0, 0, r, &message);
+                let digest = lean_xmss::message_digest(pk.public_param(), 0, 0, r, &message);
                 lean_xmss::codeword(&digest).is_none()
             })
             .expect("some randomizer fails the codeword");
-        let layer = lean_xmss::LayerSignature {
-            randomizer,
-            chain_values: [[0; lean_xmss::N]; lean_xmss::V],
-            path: [[0; lean_xmss::N]; lean_xmss::LAYER_HEIGHT],
-        };
-        let sig = LeanXmssSignature {
-            leaf_index: 0,
-            bottom: layer.clone(),
-            top: layer,
-        };
+        // Leaf index 0, then both layers: the randomizer, zero chain values, a zero path.
+        let mut bytes = [0; lean_xmss::SIG_SIZE];
+        let layer_size = (lean_xmss::SIG_SIZE - 4) / 2;
+        bytes[4..4 + lean_xmss::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+        bytes[4 + layer_size..][..lean_xmss::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+        let sig = LeanXmssSignature::from_bytes(&bytes);
 
         assert_eq!(
             lean_xmss_hints(&pk, &sig, &message).err(),
@@ -3655,8 +3649,11 @@ def main():
     /// than a panic inside the prover.
     #[test]
     fn malformed_raw_lean_sphincs_signature_is_an_error() {
-        let (public_key, signed, mut signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
-        signature.layers[0].counter ^= 1;
+        let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
+        // The bottom layer's counter follows the randomizer and the FORS openings.
+        let mut bytes = signature.to_bytes();
+        bytes[lean_sphincs::RANDOMIZER_LEN + lean_sphincs::FORS_TREES * lean_sphincs::FORS_OPENING_SIZE] ^= 1;
+        let signature = LeanSphincsSignature::from_bytes(&bytes);
         assert!(lean_sphincs::verify(&public_key, &signed, &signature).is_err());
         let raw = vec![(public_key, signed, signature)];
         assert_eq!(

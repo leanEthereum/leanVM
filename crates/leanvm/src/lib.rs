@@ -24,17 +24,17 @@ pub mod lean_da {
 
 pub mod lean_xmss {
     pub use signatures::lean_xmss::{
-        Digest, LOG_LIFETIME, LayerSignature, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError,
-        LeanXmssSignature, LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE,
-        Seed, key_gen, key_gen_from_seed, sign, verify,
+        Digest, LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError, LeanXmssSignature,
+        LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen,
+        key_gen_from_seed, sign, verify,
     };
 }
 
 pub mod lean_sphincs {
     pub use signatures::lean_sphincs::{
-        Digest, ForsOpening, ForsTreeOpening, H, LAYER_HEIGHTS, LAYERS, LayerSignature, LeanSphincsPublicKey,
-        LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature, LeanSphincsVerifyError, MESSAGE_LEN, Message,
-        PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen, key_gen_from_seed, sign, verify,
+        Digest, LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature,
+        LeanSphincsVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen,
+        key_gen_from_seed, sign, verify,
     };
 }
 
