@@ -4,6 +4,7 @@
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
+mod grind;
 pub mod lean_sphincs;
 pub mod lean_xmss;
 mod tweak;

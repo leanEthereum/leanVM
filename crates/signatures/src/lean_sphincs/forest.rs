@@ -141,17 +141,6 @@ impl KeyPos {
         self.subtree() + key_field(self.a)
     }
 
-    /// The starts of the key's chains: chains `2t` and `2t + 1` are the two
-    /// halves of one hash of the seed.
-    fn secrets(&self, pp: &PublicParam, master: &MasterSecret) -> [Digest; FOREST_CHAINS] {
-        let mut secrets = [[0u8; N]; FOREST_CHAINS];
-        for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-            let tw = tweak(TWEAK_FOREST_PRF, self.slot() + 2048 * t as u32, self.idx);
-            *pair = th_pair(pp, &tw, master);
-        }
-        secrets
-    }
-
     /// `steps` steps of chain `i` from position `start`; a step carries the
     /// position it leaves.
     fn chain(&self, pp: &PublicParam, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
@@ -185,13 +174,17 @@ fn tree_node(pp: &PublicParam, idx: u32, c: usize, level: usize, node: usize, ch
     th_digests(pp, &tweak(TWEAK_FOREST_NODE, hi, idx), children)
 }
 
-/// The levels of a Merkle tree from its leaves up to its two top nodes.
-fn levels(leaves: Vec<Digest>, node: impl Fn(usize, usize, &[Digest; 2]) -> Digest) -> Vec<Vec<Digest>> {
+/// The levels of a Merkle tree from its leaves up to its two top nodes, `node(level, j)`
+/// being the address of node `j` on `level`, each level hashed in one batch.
+fn levels(batch: &mut ThBatch, leaves: Vec<Digest>, node: impl Fn(usize, usize) -> Tweak) -> Vec<Vec<Digest>> {
     let mut levels = vec![leaves];
     while levels.last().unwrap().len() > 2 {
         let level = levels.len();
-        let (pairs, _) = levels[level - 1].as_chunks::<2>();
-        let up = pairs.iter().enumerate().map(|(j, pair)| node(level, j, pair)).collect();
+        batch.payload(2 * N);
+        for (j, pair) in levels[level - 1].as_chunks::<2>().0.iter().enumerate() {
+            batch.push(&node(level, j), pair.as_flattened());
+        }
+        let up = batch.run().iter().map(|words| halves(words)[0]).collect();
         levels.push(up);
     }
     levels
@@ -225,46 +218,107 @@ pub fn forest_open(
     idx: u32,
     marks: &[Mark; FOREST_TREES],
 ) -> (ForestKey, ForestOpening) {
+    // Every subtree of every tree, independent of one another; item `(c, s, j)` is
+    // subtree `j` of leaf `s` of tree `c`.
+    const PER_TREE: usize = SUBTREES << TREE_HEIGHT;
+    let subtrees = parallel::map_collect(FOREST_TREES * PER_TREE, |item| {
+        let (c, s, j) = (item / PER_TREE, item % PER_TREE / SUBTREES, item % SUBTREES);
+        open_subtree(pp, master, KeyPos { idx, c, s, j, a: 0 }, &marks[c])
+    });
+    let mut batch = ThBatch::new(pp);
+    batch.payload(2 * SUBTREES * N);
+    for (item, pair) in subtrees.as_chunks::<SUBTREES>().0.iter().enumerate() {
+        let (c, s) = (item >> TREE_HEIGHT, item & ((1 << TREE_HEIGHT) - 1));
+        let tops: [[Digest; 2]; SUBTREES] = std::array::from_fn(|j| pair[j].0);
+        batch.push(
+            &tweak(TWEAK_FOREST_TREE_LEAF, c as u32 + leaf_field(s), idx),
+            tops.as_flattened().as_flattened(),
+        );
+    }
+    let leaves: Vec<Digest> = batch.run().iter().map(|words| halves(words)[0]).collect();
     let mut tops = [[[0u8; N]; 2]; FOREST_TREES];
     let opening = std::array::from_fn(|c| {
         let mark = &marks[c];
-        let mut opened = [None; SUBTREES];
-        let leaves = (0..1 << TREE_HEIGHT)
-            .map(|s| {
-                let subtree_tops = std::array::from_fn(|j| {
-                    let key = |a| KeyPos { idx, c, s, j, a };
-                    let leaves = (0..1 << SUBTREE_HEIGHT)
-                        .map(|a| {
-                            let key = key(a);
-                            let secrets = key.secrets(pp, master);
-                            let tops = std::array::from_fn(|i| key.chain(pp, i, 0, FOREST_CHAIN_TOP, secrets[i]));
-                            key.leaf(pp, &tops)
-                        })
-                        .collect();
-                    let levels = levels(leaves, |level, node, pair| key(0).subtree_node(pp, level, node, pair));
-                    if s == mark.leaf {
-                        let key = key(mark.keys[j]);
-                        let (secrets, word) = (key.secrets(pp, master), codeword(mark.words[j]));
-                        opened[j] = Some(SubtreeOpening {
-                            values: std::array::from_fn(|i| {
-                                key.chain(pp, i, 0, FOREST_CHAIN_TOP - word[i] as usize, secrets[i])
-                            }),
-                            path: path(&levels, mark.keys[j]),
-                        });
-                    }
-                    [levels[SUBTREE_HEIGHT - 1][0], levels[SUBTREE_HEIGHT - 1][1]]
-                });
-                tree_leaf(pp, idx, c, s, &subtree_tops)
-            })
-            .collect();
-        let levels = levels(leaves, |level, node, pair| tree_node(pp, idx, c, level, node, pair));
+        let leaves = leaves[c << TREE_HEIGHT..][..1 << TREE_HEIGHT].to_vec();
+        let levels = levels(&mut batch, leaves, |level, node| {
+            tweak(TWEAK_FOREST_NODE, (c + 8 * level + 64 * node) as u32, idx)
+        });
         tops[c] = [levels[TREE_HEIGHT - 1][0], levels[TREE_HEIGHT - 1][1]];
+        let marked = &subtrees[c * PER_TREE + mark.leaf * SUBTREES..][..SUBTREES];
         TreeOpening {
-            subtrees: opened.map(Option::unwrap),
+            subtrees: std::array::from_fn(|j| marked[j].1.expect("the marked leaf's subtrees are opened")),
             path: path(&levels, mark.leaf),
         }
     });
     (tops, opening)
+}
+
+/// The subtree `at` names (its key `a` aside): its two top nodes, and its opening if
+/// its tree leaf is the marked one. Every chain of its keys advances a step per
+/// batch.
+fn open_subtree(
+    pp: &PublicParam,
+    master: &MasterSecret,
+    at: KeyPos,
+    mark: &Mark,
+) -> ([Digest; 2], Option<SubtreeOpening>) {
+    const KEYS: usize = 1 << SUBTREE_HEIGHT;
+    let key = |a| KeyPos { a, ..at };
+    // Chains `2t` and `2t + 1` of a key start at the two halves of one hash of the seed.
+    let mut batch = ThBatch::new(pp);
+    batch.payload(MASTER_SECRET_LEN);
+    for a in 0..KEYS {
+        for t in 0..FOREST_CHAINS / 2 {
+            batch.push(
+                &tweak(TWEAK_FOREST_PRF, key(a).slot() + 2048 * t as u32, at.idx),
+                master,
+            );
+        }
+    }
+    let mut values: Vec<Digest> = batch.run().iter().flat_map(halves).collect();
+    // The marked key's value on each chain, taken as its chain passes the codeword's position.
+    let marked = (at.s == mark.leaf).then(|| (mark.keys[at.j], codeword(mark.words[at.j])));
+    let mut opened = [[0u8; N]; FOREST_CHAINS];
+    for step in 0..=FOREST_CHAIN_TOP {
+        if let Some((a, word)) = marked {
+            for (i, value) in opened.iter_mut().enumerate() {
+                if FOREST_CHAIN_TOP - word[i] as usize == step {
+                    *value = values[a * FOREST_CHAINS + i];
+                }
+            }
+        }
+        if step == FOREST_CHAIN_TOP {
+            break;
+        }
+        batch.payload(N);
+        for (n, value) in values.iter().enumerate() {
+            let (a, i) = (n / FOREST_CHAINS, n % FOREST_CHAINS);
+            batch.push(
+                &tweak(TWEAK_FOREST_CHAIN, key(a).slot() + 2048 * i as u32, at.idx).step(step),
+                value,
+            );
+        }
+        for (value, words) in values.iter_mut().zip(batch.run()) {
+            *value = halves(words)[0];
+        }
+    }
+    batch.payload(FOREST_CHAINS * N);
+    for (a, tops) in values.as_chunks::<FOREST_CHAINS>().0.iter().enumerate() {
+        batch.push(
+            &tweak(TWEAK_FOREST_KEY_LEAF, key(a).slot(), at.idx),
+            tops.as_flattened(),
+        );
+    }
+    let leaves = batch.run().iter().map(|words| halves(words)[0]).collect();
+    let levels = levels(&mut batch, leaves, |level, node| {
+        let hi = at.subtree() + (256 * level + 1024 * node) as u32;
+        tweak(TWEAK_FOREST_SUBNODE, hi, at.idx)
+    });
+    let opening = marked.map(|(a, _)| SubtreeOpening {
+        values: opened,
+        path: path(&levels, a),
+    });
+    ([levels[SUBTREE_HEIGHT - 1][0], levels[SUBTREE_HEIGHT - 1][1]], opening)
 }
 
 /// `Fts.recover`: the few-time key an opening reaches at `marks`.

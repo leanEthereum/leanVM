@@ -4,7 +4,7 @@
 //! A layer's message digest is `Th(P, A, M | R)`, read as `DIGITS` digits of `w`
 //! bits, little endian. It is a codeword when its last `ZERO_DIGITS` digits are
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
-//! randomizer `R` until it is, one permutation a trial.
+//! randomizer `R` until it is.
 
 use crate::lean_xmss::*;
 
@@ -66,14 +66,16 @@ fn digest_prefix(pp: &PublicParam, layer: usize, e: u32, message: &[u8]) -> prim
 /// The digest's first `v` digits, if it is a codeword.
 pub fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let d = u128::from_le_bytes(*digest);
-    let x: [u8; V] = std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8);
-    let sum: usize = x.iter().map(|&digit| digit as usize).sum();
-    (d >> (W * V) == 0 && sum == TARGET_SUM).then_some(x)
+    (d >> (W * V) == 0 && digit_sum(d) == TARGET_SUM)
+        .then(|| std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8))
 }
 
-/// Randomizer trials searched per parallel dispatch: the first hit is expected
-/// after about `2^20`, and a batch has to be small for the search to stop near it.
-const GRIND_BATCH: u64 = 1 << 14;
+/// The sum of `d`'s two-bit digits: a digit is its low bit plus twice its high bit.
+fn digit_sum(d: u128) -> usize {
+    const _: () = assert!(W == 2);
+    const LOW: u128 = u128::MAX / 3;
+    ((d & LOW).count_ones() + 2 * (d & !LOW).count_ones()) as usize
+}
 
 /// `Ots.sign`: the randomizer of the LEAST admissible trial `R_0 + c`, `R_0` a hash
 /// of the seed and the message, and the chain value each digit opens. Deterministic
@@ -91,18 +93,24 @@ pub fn wots_sign(
         hasher.update(seed).update(message);
         u128::from_le_bytes(hasher.finalize()[..RANDOMIZER_LEN].try_into().unwrap())
     };
-    let trial = |c: u64| base.wrapping_add(u128::from(c)).to_le_bytes();
-    let prefix = digest_prefix(pp, layer, e, message);
-    let admits = |c: u64| {
-        let digest = prefix.clone().update(&trial(c)).finalize();
-        codeword(&digest[..N].try_into().unwrap()).is_some()
-    };
-    let c = (0..MAX_RANDOMIZER_TRIALS)
-        .step_by(GRIND_BATCH as usize)
-        .find_map(|start| {
-            parallel::find_first(GRIND_BATCH as usize, |i| admits(start + i as u64)).map(|i| start + i as u64)
-        })?;
-    let randomizer = trial(c);
+    let trial = |c: u64| base.wrapping_add(u128::from(c));
+    let mut input = Vec::with_capacity(PUBLIC_PARAM_LEN + ADDRESS_LEN + message.len() + RANDOMIZER_LEN);
+    input.extend_from_slice(pp);
+    input.extend_from_slice(&address(&tweak(TWEAK_MSG, layer_hi(layer, 0), e)));
+    input.extend_from_slice(message);
+    let at = input.len();
+    input.resize(at + RANDOMIZER_LEN, 0);
+    let c = crate::grind::least_admissible(
+        &input,
+        at,
+        MAX_RANDOMIZER_TRIALS,
+        |c| {
+            let r = trial(c);
+            [r as u64, (r >> 64) as u64]
+        },
+        |digest| codeword(&digest[..N].try_into().unwrap()).is_some(),
+    )?;
+    let randomizer = trial(c).to_le_bytes();
     let x = codeword(&message_digest(pp, layer, e, &randomizer, message))?;
     let secrets = wots_secrets(pp, seed, layer, e);
     let values = std::array::from_fn(|i| chain(pp, layer, e, i, 0, x[i] as usize, secrets[i]));

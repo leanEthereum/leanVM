@@ -89,7 +89,7 @@ fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
             let mut sums = [F192::ZERO; 256];
             // Each entry adds its lowest set bit's weight to an entry already built.
             for v in 1..256usize {
-                let low = v.isolate_lowest_one();
+                let low = v & v.wrapping_neg();
                 sums[v] = sums[v ^ low] + w[low.trailing_zeros() as usize];
             }
             sums

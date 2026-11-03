@@ -7,7 +7,7 @@
 //! after them is, so a prover whose cells are 16 bytes never has to cut a value in
 //! two: a chain step and a Merkle node are one permutation.
 
-use primitives::hash::Hasher;
+use primitives::hash::{self, Hasher, OUT_LANES, RATE, STATE_LANES};
 
 /// `n`: hash value and Merkle node length, in bytes.
 pub const N: usize = 16;
@@ -91,6 +91,69 @@ pub fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Digest {
 pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &[u8; 32]) -> [Digest; 2] {
     let output = hasher(pp, tw).update(seed).finalize();
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
+}
+
+/// `Th` of many one-block inputs of one payload length, hashed
+/// [`primitives::hash::LANES`] at a time. `P` is fixed in a template, so each input
+/// is only its address and payload words. One batch serves any number of rounds and
+/// payload lengths, keeping its buffers.
+pub struct ThBatch {
+    pp: PublicParam,
+    template: [u64; STATE_LANES],
+    /// Words per input: the address's two, then the payload's.
+    k: usize,
+    words: Vec<u64>,
+    out: Vec<[u64; OUT_LANES]>,
+}
+
+impl ThBatch {
+    pub fn new(pp: &PublicParam) -> Self {
+        Self {
+            pp: *pp,
+            template: [0; STATE_LANES],
+            k: 0,
+            words: Vec::new(),
+            out: Vec::new(),
+        }
+    }
+
+    /// Start a round of inputs whose payloads are `payload` bytes.
+    pub fn payload(&mut self, payload: usize) -> &mut Self {
+        assert!(payload.is_multiple_of(8) && PUBLIC_PARAM_LEN + ADDRESS_LEN + payload < RATE);
+        let mut data = [0u8; RATE];
+        data[..PUBLIC_PARAM_LEN].copy_from_slice(&self.pp);
+        self.template = hash::final_state(&data[..PUBLIC_PARAM_LEN + ADDRESS_LEN + payload]);
+        self.k = (ADDRESS_LEN + payload) / 8;
+        self.words.clear();
+        self
+    }
+
+    /// Queue `Th(P, tw, payload)`.
+    pub fn push(&mut self, tw: &Tweak, payload: &[u8]) {
+        debug_assert_eq!(ADDRESS_LEN + payload.len(), 8 * self.k);
+        let address = address(tw);
+        let words = address.as_chunks::<8>().0.iter().chain(payload.as_chunks::<8>().0);
+        self.words.extend(words.map(|word| u64::from_le_bytes(*word)));
+    }
+
+    /// Hash every queued input, in order, as each digest's words, and empty the queue.
+    pub fn run(&mut self) -> &[[u64; OUT_LANES]] {
+        self.out.resize(self.words.len() / self.k, [0; OUT_LANES]);
+        hash::permute_many_from(&self.template, PUBLIC_PARAM_LEN / 8, self.k, &self.words, &mut self.out);
+        self.words.clear();
+        &self.out
+    }
+}
+
+/// The two halves of a digest given as words: `Th`'s value, then [`th_pair`]'s second.
+pub fn halves(words: &[u64; OUT_LANES]) -> [Digest; 2] {
+    let half = |i: usize| {
+        let mut out = [0u8; N];
+        out[..8].copy_from_slice(&words[2 * i].to_le_bytes());
+        out[8..].copy_from_slice(&words[2 * i + 1].to_le_bytes());
+        out
+    };
+    [half(0), half(1)]
 }
 
 /// The seed a scheme derives from: the hash of the scheme's `tag` then the key's

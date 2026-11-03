@@ -18,7 +18,7 @@
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
 /// Digest length in lanes.
-const OUT_LANES: usize = OUT_LEN / 8;
+pub const OUT_LANES: usize = OUT_LEN / 8;
 /// Sponge rate in bytes: `1600 - 2·256` bits.
 pub const RATE: usize = 136;
 /// Sponge rate in lanes.
@@ -678,6 +678,75 @@ pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES],
     hash_many_with::<Backend>(data, len, state, out)
 }
 
+/// The state [`hash`] of `data` permutes last: every whole block absorbed and the padded final
+/// block XORed in, not yet permuted, so `keccak_f` of it then [`digest_of`] is `hash(data)`.
+///
+/// Inputs that differ only in a few words of their final block share it: build it once with
+/// those words zero, then [`permute_many_from`] XORs each input's words in.
+pub fn final_state(data: &[u8]) -> [u64; STATE_LANES] {
+    let mut state = [0; STATE_LANES];
+    let (blocks, tail) = data.as_chunks::<RATE>();
+    for block in blocks {
+        absorb(&mut state, &block_of(block));
+    }
+    for (s, b) in state.iter_mut().zip(&final_block(tail)) {
+        *s ^= b;
+    }
+    state
+}
+
+/// Keccak-f of `template` once per input, input `i` first XORing `words[i * k..][..k]` into
+/// lanes `at..at + k`, writing the first [`OUT_LANES`] lanes of each result to `out[i]`.
+///
+/// With `template` a [`final_state`], `out[i]` is the digest of that input with those words
+/// set, as little-endian words: the batched hash of fixed-layout inputs, with no byte images.
+pub fn permute_many_from(
+    template: &[u64; STATE_LANES],
+    at: usize,
+    k: usize,
+    words: &[u64],
+    out: &mut [[u64; OUT_LANES]],
+) {
+    permute_many_from_with::<Backend>(template, at, k, words, out)
+}
+
+#[inline(always)]
+fn permute_many_from_with<S: Lanes64>(
+    template: &[u64; STATE_LANES],
+    at: usize,
+    k: usize,
+    words: &[u64],
+    out: &mut [[u64; OUT_LANES]],
+) {
+    assert!(at + k <= RATE_LANES && words.len() == k * out.len());
+    let whole = out.len() / S::WIDTH * S::WIDTH;
+    let (groups, rest) = out.split_at_mut(whole);
+    for (g, group) in groups.chunks_exact_mut(S::WIDTH).enumerate() {
+        let words = &words[g * S::WIDTH * k..][..S::WIDTH * k];
+        let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(template[i]));
+        for j in 0..k {
+            let lanes: [u64; MAX_WIDTH] = std::array::from_fn(|l| if l < S::WIDTH { words[l * k + j] } else { 0 });
+            st[at + j] = st[at + j].xor(S::load(&lanes, 0));
+        }
+        permute(&mut st);
+        let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
+        for (w, lane) in st[..OUT_LANES].iter().enumerate() {
+            lane.store(&mut lanes, w * S::WIDTH);
+        }
+        for (l, digest) in group.iter_mut().enumerate() {
+            *digest = std::array::from_fn(|w| lanes[w * S::WIDTH + l]);
+        }
+    }
+    for (i, digest) in rest.iter_mut().enumerate() {
+        let mut state = *template;
+        for (s, w) in state[at..at + k].iter_mut().zip(&words[(whole + i) * k..][..k]) {
+            *s ^= w;
+        }
+        keccak_f(&mut state);
+        *digest = std::array::from_fn(|w| state[w]);
+    }
+}
+
 /// Keccak-f\[1600\] of every state in place, [`LANES`] at a time.
 pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
     let (groups, rest) = states.as_chunks_mut::<LANES>();
@@ -817,6 +886,60 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A template with some final-block words left zero, each input's words XORed in, gives the
+    /// hash of that input, over every backend and inputs that span several blocks.
+    #[test]
+    fn permuting_from_a_final_state_matches_hashing() {
+        fn check<S: Lanes64>(name: &str) {
+            for (len, at, k) in [
+                (48usize, 2usize, 4usize),
+                (80, 8, 2),
+                (128, 2, 14),
+                (292, 2, 2),
+                (135, 0, 16),
+            ] {
+                let n = 3 * S::WIDTH + 1;
+                let base = pattern(len);
+                let offset = (len / RATE) * RATE;
+                let mut zeroed = base.clone();
+                for b in &mut zeroed[offset + 8 * at..(offset + 8 * (at + k)).min(len)] {
+                    *b = 0;
+                }
+                let template = final_state(&zeroed);
+                let words: Vec<u64> = (0..n * k)
+                    .map(|i| (i as u64 + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15))
+                    .collect();
+                let words: Vec<u64> = words
+                    .chunks(k)
+                    .flat_map(|w| {
+                        w.iter().enumerate().map(|(j, &x)| {
+                            // Keep each word inside the input's bytes.
+                            let room = len.saturating_sub(offset + 8 * (at + j)).min(8);
+                            if room == 8 { x } else { x & ((1u64 << (8 * room)) - 1) }
+                        })
+                    })
+                    .collect();
+                let mut got = vec![[0u64; OUT_LANES]; n];
+                permute_many_from_with::<S>(&template, at, k, &words, &mut got);
+                for (i, got) in got.iter().enumerate() {
+                    let mut input = zeroed.clone();
+                    for (j, w) in words[i * k..][..k].iter().enumerate() {
+                        for (b, byte) in w.to_le_bytes().into_iter().enumerate() {
+                            if let Some(slot) = input.get_mut(offset + 8 * (at + j) + b) {
+                                *slot ^= byte;
+                            }
+                        }
+                    }
+                    let want = hash(&input);
+                    let got: Vec<u8> = got.iter().flat_map(|w| w.to_le_bytes()).collect();
+                    assert_eq!(got, want, "{name}: len {len}, input {i}");
+                }
+            }
+        }
+        check::<u64>("scalar");
+        check::<Backend>("backend");
     }
 
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]

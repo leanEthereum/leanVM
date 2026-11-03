@@ -34,18 +34,24 @@ pub fn wots_leaf_hash(pp: &PublicParam, e: u32, ends: &[Digest; V]) -> Digest {
     th_digests(pp, &tweak(TWEAK_LEAF, 0, e), ends)
 }
 
-/// The hash of `Enc(P, e, K, .)` before its counter: `P | A | K`, the forest
-/// key's sixteen nodes. The counter falls in the last block, so a signer grinding
-/// it pays one permutation a counter.
-fn encoder(pp: &PublicParam, e: u32, key: &ForestKey) -> primitives::hash::Hasher {
-    let mut hasher = hasher(pp, &tweak(TWEAK_ENC, 0, e));
-    hasher.update(key.as_flattened().as_flattened());
-    hasher
+/// Bytes of the encoder's hash input before the counter: `P | A | K`, the forest
+/// key's sixteen nodes.
+const ENCODER_LEN: usize = PUBLIC_PARAM_LEN + ADDRESS_LEN + N * 2 * FOREST_TREES;
+
+/// `Enc(P, e, K, .)`'s input with its counter zero. The counter falls in the last
+/// block, so a signer grinding it pays one permutation a counter.
+fn encoder(pp: &PublicParam, e: u32, key: &ForestKey) -> [u8; ENCODER_LEN + COUNTER_LEN] {
+    let mut input = [0u8; ENCODER_LEN + COUNTER_LEN];
+    input[..PUBLIC_PARAM_LEN].copy_from_slice(pp);
+    input[PUBLIC_PARAM_LEN..][..ADDRESS_LEN].copy_from_slice(&address(&tweak(TWEAK_ENC, 0, e)));
+    input[PUBLIC_PARAM_LEN + ADDRESS_LEN..ENCODER_LEN].copy_from_slice(key.as_flattened().as_flattened());
+    input
 }
 
-fn encode_from(encoder: &primitives::hash::Hasher, c: u32) -> Option<[u8; V]> {
-    let output = encoder.clone().update(&c.to_le_bytes()).finalize();
-    codeword(&output[..N].try_into().unwrap())
+fn encode_from(encoder: &[u8; ENCODER_LEN + COUNTER_LEN], c: u32) -> Option<[u8; V]> {
+    let mut input = *encoder;
+    input[ENCODER_LEN..].copy_from_slice(&c.to_le_bytes());
+    codeword(&primitives::hash::hash(&input)[..N].try_into().unwrap())
 }
 
 /// `Enc(P, e, K, c)`: the codeword, or `None` if this counter's digest is not one.
@@ -56,9 +62,12 @@ pub fn encode(pp: &PublicParam, e: u32, key: &ForestKey, c: u32) -> Option<[u8; 
 /// The digest as `v` chunks of `w` bits, little endian; a codeword if they sum
 /// to `T`.
 fn codeword(digest: &Digest) -> Option<[u8; V]> {
+    const _: () = assert!(W == 2 && W * V == 128);
+    // A chunk is its low bit plus twice its high bit.
+    const LOW: u128 = u128::MAX / 3;
     let d = u128::from_le_bytes(*digest);
-    let x: [u8; V] = std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8);
-    (x.iter().map(|&chunk| chunk as usize).sum::<usize>() == TARGET_SUM).then_some(x)
+    let sum = ((d & LOW).count_ones() + 2 * (d & !LOW).count_ones()) as usize;
+    (sum == TARGET_SUM).then(|| std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8))
 }
 
 /// `Ots.sign`: the LEAST admissible counter, and the chain value each chunk
@@ -67,10 +76,17 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// codewords.
 pub fn wots_sign(pp: &PublicParam, master: &MasterSecret, e: u32, key: &ForestKey) -> Option<(u32, [Digest; V])> {
     let encoder = encoder(pp, e, key);
-    let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode_from(&encoder, c as u32).map(|x| (c as u32, x)))?;
+    let c = crate::grind::least_admissible(
+        &encoder,
+        ENCODER_LEN,
+        MAX_ENCODING_ATTEMPTS,
+        |c| [c, 0],
+        |digest| codeword(&digest[..N].try_into().unwrap()).is_some(),
+    )?;
+    let x = encode_from(&encoder, c as u32)?;
     let secrets = wots_secrets(pp, master, e);
     let signature = std::array::from_fn(|i| chain(pp, e, i, 0, x[i] as usize, secrets[i]));
-    Some((c, signature))
+    Some((c as u32, signature))
 }
 
 /// `Ots.leaf`: the leaf a claimed signature recovers, or `None` if its counter

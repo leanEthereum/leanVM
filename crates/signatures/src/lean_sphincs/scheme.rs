@@ -359,14 +359,25 @@ pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsS
     payload[..MASTER_SECRET_LEN].copy_from_slice(&sk.master);
     payload[MASTER_SECRET_LEN..].copy_from_slice(message);
     let base = u128::from_le_bytes(th(pp, &tweak(TWEAK_RANDOMIZER, 0, 0), &payload));
-    let prefix = digest_prefix(pp, message);
-    let (randomizer, idx, marks) = (0..MAX_DIGEST_ATTEMPTS)
-        .find_map(|i| {
-            let randomizer = base.wrapping_add(u128::from(i)).to_le_bytes();
-            let (idx, marks) = marks_of(&prefix.clone().update(&randomizer).finalize());
-            sk.keeps(idx).then_some((randomizer, idx, marks))
-        })
-        .ok_or(LeanSphincsSignError::NoAdmissibleDigest)?;
+    const AT: usize = PUBLIC_PARAM_LEN + ADDRESS_LEN + MESSAGE_LEN;
+    let mut input = [0u8; AT + RANDOMIZER_LEN];
+    input[..PUBLIC_PARAM_LEN].copy_from_slice(pp);
+    input[PUBLIC_PARAM_LEN..][..ADDRESS_LEN].copy_from_slice(&address(&tweak(TWEAK_MSG, 0, 0)));
+    input[PUBLIC_PARAM_LEN + ADDRESS_LEN..AT].copy_from_slice(message);
+    let randomizer_of = |i: u64| base.wrapping_add(u128::from(i));
+    let i = crate::grind::least_admissible(
+        &input,
+        AT,
+        MAX_DIGEST_ATTEMPTS,
+        |i| {
+            let r = randomizer_of(i);
+            [r as u64, (r >> 64) as u64]
+        },
+        |digest| sk.keeps(digest_field(digest, 0, H)),
+    )
+    .ok_or(LeanSphincsSignError::NoAdmissibleDigest)?;
+    let randomizer = randomizer_of(i).to_le_bytes();
+    let (idx, marks) = message_digest(pp, &randomizer, message);
 
     let (forest_key, forest) = forest_open(pp, &sk.master, idx as u32, &marks);
     let (counter, wots) =
