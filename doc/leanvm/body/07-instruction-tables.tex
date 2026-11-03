@@ -144,3 +144,28 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
     the writes the same with $\kout{\ell}$ and $r_{13+c}$. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
   \end{itemize}
 \end{itemize}
+
+\subsection{\texttt{DOT}}\label{sec:tab-dot}
+
+\texttt{DOT}\ $[o_x,o_p,o_w,o_{\mathit{acc}},o_{\mathit{out}}]$ asserts $\loc{o_{\mathit{out}}}=\loc{o_{\mathit{acc}}}+\sum_{j<4}w_j\,x_j$, an affine form of four $\K$-lanes with $\E$ weights (\S\ref{sec:vm}). It is the part of a verifier that is linear in the data it opens: once a child proof's transcript is fixed, the weights a recursive verifier puts on an opened row are words it has computed, and the check is affine in the row (\S\ref{sec:recursion}).
+\begin{itemize}
+\item \textbf{Columns:} $\pc,\fp$; operands $o_x,o_p,o_w,o_{\mathit{acc}},o_{\mathit{out}}$; the four lanes $x_0,\dots,x_3$; the pointer $p$ (a single $\K$-limb); the weights $(w_{j,i})_{j<4,\,i\in\{0,1,2\}}$; the accumulator $(a_i)_{i\in\{0,1,2\}}$; memory counts $r_{x,0},r_{x,1}$, $r_p$, $r_{w,0},\dots,r_{w,3}$, $r_{\mathit{acc}}$, $r_{\mathit{out}}$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Constraints:} none.
+\item \textbf{Flushes:}
+  \begin{itemize}
+  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{DOT},o_x,o_p,o_w,o_{\mathit{acc}},o_{\mathit{out}}}$.
+  \item \textbf{Memory}, the result carrying, limb by limb, the degree-two form $a_i+\sum_{j<4}w_{j,i}\,x_j$ (a $\K$-lane times an $\E$ word needs no tower reduction):
+    \begin{align*}
+      &\rdf{\dsep{MEM},\gen^{k}\fp\cdot o_x,r_{x,k},x_{2k},x_{2k+1},0}\quad(k<2),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_p,r_p,p,0,0},\\
+      &\rdf{\dsep{MEM},\gen^{j}p\cdot o_w,r_{w,j},w_{j,0},w_{j,1},w_{j,2}}\quad(j<4),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{acc}},r_{\mathit{acc}},a_0,a_1,a_2},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{out}},r_{\mathit{out}},\textstyle a_0+\sum_j w_{j,0}x_j,\ a_1+\sum_j w_{j,1}x_j,\ a_2+\sum_j w_{j,2}x_j}.
+    \end{align*}
+  \end{itemize}
+\end{itemize}
+The lane cells' top limbs are literal zeros and the lanes are $\K$ columns, so the bus alone proves each cell canonical and both its lanes in $\K$: a run that \texttt{DOT} weighs and \texttt{KECCAK} hashes needs no packing instructions (\S\ref{sec:prog-subfield-checks}). The weights are read through a pointer, as \texttt{DEREF} reads its target, and the bus forces $p\cdot o_w\cdot\gen^{j}$ to be an address (Corollary~\ref{cor:addrrange}).
+
+The table's least log height is $13$, as \texttt{KECCAK}'s is that of a block of steps. A recursive verifier opens each column of a child proof through its stacking selector, over the child's position bits above the column's height, and decomposes each bus block's offset the same way, so an empty table would cost it the most; the floor caps that cost at the price of $2^{13}$ padding rows. The width, four lanes, balances the same fixed cost per column and per block against the rows a row saves.
+

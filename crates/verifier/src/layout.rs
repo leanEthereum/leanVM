@@ -359,13 +359,75 @@ fn flushes_keccak() -> Flushes {
     flushes
 }
 
+/// `DOT`: `out = acc + Σ_j w_j·x_j`, `DOT_LANES` `K`-lanes `x_j` (the low limbs of canonical cells, two each) against
+/// as many weights read through a pointer, the result a degree-2 form (a `K` lane times an `E` word needs no reduction).
+fn flushes_dot() -> Flushes {
+    let columns = dot_columns();
+    let at = |name: String| columns.iter().position(|c| *c == name).expect("unknown column");
+    let [pc, fp, o_x, o_p, o_w, o_acc, o_out, ptr] =
+        ["pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out", "ptr"].map(|name| at(name.to_string()));
+    let x: [usize; DOT_LANES] = std::array::from_fn(|j| at(format!("x_{j}")));
+    let w: [[usize; 3]; DOT_LANES] = std::array::from_fn(|j| std::array::from_fn(|l| at(format!("w{j}_{l}"))));
+    let acc: [usize; 3] = std::array::from_fn(|l| at(format!("acc_{l}")));
+    let cnt = |name: &str| at(format!("cnt_{name}"));
+    let mut flushes = Flushes::default();
+    flushes.state_step(pc, fp);
+    let operands = vec![col(o_x, 0), col(o_p, 0), col(o_w, 0), col(o_acc, 0), col(o_out, 0)];
+    flushes.bytecode(pc, cnt("bc"), OP_DOT, operands);
+    for k in 0..DOT_LANES / 2 {
+        flushes.memory_cols(
+            prod(fp, o_x, k as u64),
+            cnt(&format!("x{k}")),
+            &[x[2 * k], x[2 * k + 1]],
+        );
+    }
+    flushes.memory_cols(prod(fp, o_p, 0), cnt("ptr"), &[ptr]);
+    for (j, weight) in w.iter().enumerate() {
+        flushes.memory_cols(prod(ptr, o_w, j as u64), cnt(&format!("w{j}")), weight);
+    }
+    flushes.memory_cols(prod(fp, o_acc, 0), cnt("acc"), &acc);
+    let result = std::array::from_fn(|l| col(acc[l], 0) + Form::sum((0..DOT_LANES).map(|j| prod(w[j][l], x[j], 0))));
+    flushes.memory(prod(fp, o_out, 0), cnt("out"), result);
+    flushes
+}
+
+const DOT_LANES: usize = 4;
+/// DOT's least log height, which caps what a recursive verifier pays for a child with few DOT rows.
+const DOT_LOG_FLOOR: usize = 13;
+
+/// DOT's columns: the operands, the lanes `x_j`, the weight pointer, weight `j`'s limbs `wj_l`, the accumulator's, then
+/// a read count per cell in flush order (the lane cells, the pointer, the weights, the accumulator, the result) and
+/// `cnt_bc`.
+fn dot_columns() -> Vec<String> {
+    let head = ["pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out"].map(String::from);
+    let lanes = (0..DOT_LANES).map(|j| format!("x_{j}"));
+    let weights = (0..DOT_LANES).flat_map(|j| (0..3).map(move |l| format!("w{j}_{l}")));
+    let accumulator = (0..3).map(|l| format!("acc_{l}"));
+    let counts = (0..DOT_LANES / 2)
+        .map(|k| format!("x{k}"))
+        .chain(["ptr".to_string()])
+        .chain((0..DOT_LANES).map(|j| format!("w{j}")))
+        .chain(["acc", "out", "bc"].map(String::from))
+        .map(|cell| format!("cnt_{cell}"));
+    head.into_iter()
+        .chain(lanes)
+        .chain(["ptr".to_string()])
+        .chain(weights)
+        .chain(accumulator)
+        .chain(counts)
+        .collect()
+}
+
+const DOT_WIDTH: usize = 7 + DOT_LANES + 1 + 3 * DOT_LANES + 3 + DOT_LANES / 2 + 1 + DOT_LANES + 3;
+
 pub const OP_XOR: usize = 0;
 pub const OP_MUL: usize = 1;
 pub const OP_SET: usize = 2;
 pub const OP_DEREF: usize = 3;
 pub const OP_JUMP: usize = 4;
 pub const OP_KECCAK: usize = 5;
-pub const N_TABLES: usize = 6;
+pub const OP_DOT: usize = 6;
+pub const N_TABLES: usize = 7;
 
 #[rustfmt::skip]
 const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
@@ -454,6 +516,7 @@ pub fn tables() -> Vec<Table> {
         table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
         table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
         keccak,
+        table(OP_DOT, dot_columns(), flushes_dot(), |_| vec![]),
     ]
 }
 
@@ -464,6 +527,7 @@ const TABLE_WIDTHS: [usize; N_TABLES] = [
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
     KECCAK_CNT_BC + 1,
+    DOT_WIDTH,
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -476,7 +540,7 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
 };
 
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
-const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
+const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG, DOT_LOG_FLOOR];
 
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,

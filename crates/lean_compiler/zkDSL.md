@@ -2,7 +2,7 @@
 
 The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
-Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
+Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `dot`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
 Entry points: `lean_compiler::parse` / `parse_with_replacements` → `lean_compiler::compile` → `leanvm_core::cpu::prove` / `verify`.
 
@@ -419,6 +419,14 @@ challenge = state[0] + d2[0] * f192(0, 0, 1)
 
 Both state words are hash outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
 
+## DOT
+
+```python
+y = dot(cells[0:2], weights[4 * k:4 * k + 4], acc)   # acc + sum_j weights[4k + j] * lane_j
+```
+
+`dot(x, w, acc)` is one `DOT` instruction: `acc + Σ_{j<4} w[j]·x_j`, an affine form of four GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a `StackBuf` or a slice of one with compile-time bounds), read as eight lanes: lane `2k + h` is limb `h` of cell `k`, the layout `pack64x2` builds and the one `KECCAK` hashes. Every cell must be canonical (top limb zero), and the instruction proves it, with both its lanes in GF(2^64), as `KECCAK` does for the cells it reads: a run that `dot` and `keccak_cells` both read needs no `assert_in_k`. `w` is a four-cell `HeapBuf` slice `buf[lo:lo + 4]` (or a pointer to frame cells from `addr`), read through its pointer; `acc` is any value. The result is a fresh value. A chain of `dot`s weighs a row of opened data against weights a verifier derived from its transcript, one row per four terms where a `MUL` and an `XOR` per term would do it.
+
 ## KECCAK
 
 ```python
@@ -525,6 +533,7 @@ Three builtins have the prover compute the values at witness generation instead 
 | `unroll` iteration | body only (compile-time replication) |
 | `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +2 copies into a 2-cell `out`, +1 `MUL` per runtime slice start |
 | `hint_witness(dest, "name")` | 0 (+1 `MUL` for a runtime slice start) |
+| `dot(x, w, acc)` | 1, for four weighed lanes (+1 `SET` amortized for a literal `acc`) |
 
 Every cost above is the FIRST occurrence. Two identical pure operations in one function share one cell and the second is free, so `hb[i]` twice, or `row[i]` where `row = hb * GEN ** 2`, costs one pointer `MUL` between them. The sharing stops at a branch: a cell whose instruction sits inside an `if` is not reused after the join, because the other path leaves it unwritten and therefore prover-chosen.
 

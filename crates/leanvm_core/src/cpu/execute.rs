@@ -97,6 +97,12 @@ impl Memory {
         self.page(i >> PAGE_LOG).map_or(F192::ZERO, |p| p[i & (PAGE - 1)].word)
     }
 
+    /// Overwrite cell `i`, as a dishonest prover would.
+    #[cfg(test)]
+    pub(crate) fn set_word(&mut self, i: usize, value: F192) {
+        self.pages[i >> PAGE_LOG][i & (PAGE - 1)].word = value;
+    }
+
     /// Page `p`'s cells, `None` past the last one.
     pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
         self.pages.get(p).map(|p| &p[..])
@@ -356,6 +362,7 @@ impl Program {
         let mut deref: Rows<Drow> = Rows::new();
         let mut jump: Rows<Jrow> = Rows::new();
         let mut keccak: Rows<Krow> = Rows::new();
+        let mut dot: Rows<Dotrow> = Rows::new();
 
         // The memory's pages, grown as the run reaches them. Every method on the hot
         // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
@@ -951,6 +958,47 @@ impl Program {
                     });
                     pc += 1;
                 }
+                Op::Dot { x, p, w, acc, out } => {
+                    use crate::tables::{DOT_CELLS, DOT_LANES};
+                    let pointer = m.read(fp + p);
+                    let p_addr = as_addr(pointer).ok_or_else(|| fail(Fault::WildPointer { value: pointer }))?;
+                    let base = g
+                        .log(p_addr)
+                        .ok_or_else(|| fail(Fault::WildPointer { value: pointer }))?
+                        + w;
+                    let mut cells = [0u32; DOT_CELLS];
+                    for k in 0..DOT_LANES / 2 {
+                        cells[k] = fp + x + k as u32;
+                    }
+                    cells[DOT_LANES / 2] = fp + p;
+                    for j in 0..DOT_LANES {
+                        cells[DOT_LANES / 2 + 1 + j] = base + j as u32;
+                    }
+                    cells[DOT_CELLS - 2] = fp + acc;
+                    cells[DOT_CELLS - 1] = fp + out;
+                    let mut value = m.read(fp + acc);
+                    for k in 0..DOT_LANES / 2 {
+                        // The table reads a lane cell as `(lo, hi, 0)`, so anything else could
+                        // not balance the bus.
+                        let cell = m.read(cells[k]);
+                        if cell.c2 != 0 {
+                            return Err(fail(Fault::NotCanonical { cell: k, value: cell }));
+                        }
+                        for (h, lane) in [cell.c0, cell.c1].into_iter().enumerate() {
+                            value += m.read(cells[DOT_LANES / 2 + 1 + 2 * k + h]) * F192::new(lane, 0, 0);
+                        }
+                    }
+                    m.put(fp + out, value)?;
+                    let r: [u32; DOT_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
+                    dot.push(Dotrow {
+                        pc,
+                        fp,
+                        w: base,
+                        r,
+                        bytecode_read,
+                    });
+                    pc += 1;
+                }
             }
             steps += 1;
         }
@@ -1005,6 +1053,7 @@ impl Program {
             deref,
             jump,
             keccak,
+            dot,
             bytecode_count,
             counts,
         };

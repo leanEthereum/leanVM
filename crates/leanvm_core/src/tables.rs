@@ -14,7 +14,7 @@
 //! so a relation on machine words is written out lane by lane. A table hands its
 //! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
+use crate::cpu::{Dotrow, Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
@@ -73,6 +73,7 @@ pub(crate) const OP_SET: F64 = g_pow(2);
 pub(crate) const OP_DEREF: F64 = g_pow(3);
 pub(crate) const OP_JUMP: F64 = g_pow(4);
 pub(crate) const OP_KECCAK: F64 = g_pow(5);
+pub(crate) const OP_DOT: F64 = g_pow(6);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -344,9 +345,9 @@ pub trait Table: Sync {
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
+/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK, DOT]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
-pub const N_TABLES: usize = 6;
+pub const N_TABLES: usize = 7;
 
 pub fn tables() -> [&'static dyn Table; N_TABLES] {
     [
@@ -356,14 +357,23 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
         &DerefTable,
         &JumpTable,
         &KeccakTable,
+        &DotTable,
     ]
 }
 
 /// Index of the KECCAK table in [`tables`].
 pub(crate) const KECCAK_TABLE: usize = 5;
 
-/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
-pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
+/// `DOT`'s least log height. A recursive verifier pays, for each of the table's columns and bus
+/// blocks, a selector over the child's position bits above the table's height, so a child with no
+/// `DOT` rows (a leaf) would cost it the most; the floor caps that, at the price of committing that
+/// many padding rows.
+pub const DOT_LOG_FLOOR: usize = 13;
+
+/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`, and
+/// [`DOT_LOG_FLOOR`] for `DOT`.
+pub const TABLE_LOG_FLOORS: [usize; N_TABLES] =
+    [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize, DOT_LOG_FLOOR];
 
 /// What each cell a `KECCAK` row touches is addressed by, in flush order (the four `m` cells, the
 /// four `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells): the offset
@@ -961,6 +971,134 @@ impl Table for KeccakTable {
             let cells: [F192; STATE_CELLS] =
                 std::array::from_fn(|c| ctx.mem.word(k.cell(r.fp, STATE_CELLS + c) as usize));
             state_of_cells(&cells, k.out_odd).map(F64)
+        });
+        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+    }
+}
+
+// ---- DOT ---------------------------------------------------------------------
+
+/// The lanes one `DOT` row weighs, two per canonical cell. Every column and bus block of the table
+/// costs a recursive verifier a selector per child, so the width is where that fixed cost and the
+/// rows a row saves balance.
+pub const DOT_LANES: usize = 4;
+/// The cells a `DOT` row touches, in flush order: the lane cells, the weight pointer, the
+/// weights, the accumulator and the result.
+pub const DOT_CELLS: usize = DOT_LANES / 2 + 1 + DOT_LANES + 2;
+
+/// `DOT` (§sec:tab-dot): `out = acc + Σ_j w_j·x_j` over [`DOT_LANES`] `K`-lanes `x_j` with `E`
+/// weights.
+///
+/// This is the affine part of a verifier, done in one row per [`DOT_LANES`] terms. Once a child proof's
+/// transcript is fixed, the weights a verifier puts on opened data (the eq weights of a WHIR
+/// query's row) are known words, and the check is linear in the data. A row commits the lanes as
+/// `K` columns and reads each cell as `(lo, hi, 0)`, so the cells it reads are proved canonical
+/// and their lanes in `K` by the bus alone, the work `pack64x2` does per lane pair in the
+/// guest. The weights are read through a pointer, `p·o_w·g^j`, as `DEREF` reads its target. The
+/// result rides the bus as a degree-2 coordinate, `acc_l + Σ_j w_{j,l}·x_j` per limb `l` (a `K`
+/// lane times an `E` word needs no tower reduction), so the table has no identity of its own.
+struct DotTable;
+
+pub(crate) mod dot {
+    use super::DOT_LANES;
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const OX: usize = 2;
+    pub const OP: usize = 3;
+    pub const OW: usize = 4;
+    pub const OACC: usize = 5;
+    pub const OOUT: usize = 6;
+    pub const X: usize = 7; // the lanes, lane 2k + h being limb h of cell k
+    pub const P: usize = X + DOT_LANES; // the weight pointer, a single K lane
+    pub const W: usize = P + 1; // weight j's limb l at W + 3j + l
+    pub const ACC: usize = W + 3 * DOT_LANES;
+    pub const R0: usize = ACC + 3; // one read count per cell, in flush order
+    pub const RBC: usize = R0 + super::DOT_CELLS;
+    pub const N: usize = RBC + 1;
+}
+
+/// The result's three limbs: `acc_l + Σ_j w_{j,l}·x_j`.
+fn dot_result() -> [Coord; 3] {
+    use dot::*;
+    std::array::from_fn(|l| {
+        let mut terms = vec![Col(ACC + l)];
+        terms.extend((0..DOT_LANES).map(|j| Prod(W + 3 * j + l, X + j, 0)));
+        Coord::Sum(terms)
+    })
+}
+
+/// A `DOT` instruction's five operands, in bytecode-slot order.
+fn dot_operands(op: &Op) -> [u32; 5] {
+    match *op {
+        Op::Dot { x, p, w, acc, out } => [x, p, w, acc, out],
+        op => unreachable!("not a DOT: {op:?}"),
+    }
+}
+
+impl Table for DotTable {
+    fn n_committed_columns(&self) -> usize {
+        dot::N
+    }
+    fn count_columns(&self) -> &'static [usize] {
+        const COUNTS: [usize; DOT_CELLS + 1] = {
+            let mut c = [0usize; DOT_CELLS + 1];
+            let mut i = 0;
+            while i < DOT_CELLS {
+                c[i] = dot::R0 + i;
+                i += 1;
+            }
+            c[DOT_CELLS] = dot::RBC;
+            c
+        };
+        &COUNTS
+    }
+    fn flushes(&self, f: &mut FlushBuilder) {
+        use dot::*;
+        f.state_step(PC, FP);
+        f.bytecode(PC, RBC, OP_DOT, &[Col(OX), Col(OP), Col(OW), Col(OACC), Col(OOUT)]);
+        for k in 0..DOT_LANES / 2 {
+            f.memory_coords(
+                Prod(FP, OX, k as u32),
+                R0 + k,
+                [Col(X + 2 * k), Col(X + 2 * k + 1), Const(F64::ZERO)],
+            );
+        }
+        let r = R0 + DOT_LANES / 2;
+        f.memory_k(Prod(FP, OP, 0), r, P);
+        for j in 0..DOT_LANES {
+            let w = W + 3 * j;
+            f.memory(Prod(P, OW, j as u32), r + 1 + j, w, w + 1, w + 2);
+        }
+        f.memory(Prod(FP, OACC, 0), r + 1 + DOT_LANES, ACC, ACC + 1, ACC + 2);
+        f.memory_coords(Prod(FP, OOUT, 0), r + 2 + DOT_LANES, dot_result());
+    }
+    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+        use dot::*;
+        let rows = &ctx.trace.dot;
+        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
+        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
+        // The operands, the lanes and the pointer from one decode.
+        ctx.cols(out, rows, OX, |r: &Dotrow| {
+            let [x, p, w, acc, o] = dot_operands(&ctx.prog[r.pc as usize]);
+            let mut v = [F64::ZERO; 5 + DOT_LANES + 1];
+            v[..5].copy_from_slice(&[x, p, w, acc, o].map(|o| ctx.g_at(o)));
+            for k in 0..DOT_LANES / 2 {
+                let lanes = ctx.limbs(r.fp + x + k as u32);
+                v[5 + 2 * k] = lanes[0];
+                v[5 + 2 * k + 1] = lanes[1];
+            }
+            v[5 + DOT_LANES] = ctx.limbs(r.fp + p)[0];
+            v
+        });
+        ctx.cols(out, rows, W, |r: &Dotrow| {
+            let acc = dot_operands(&ctx.prog[r.pc as usize])[3];
+            let mut v = [F64::ZERO; 3 * DOT_LANES + 3];
+            for j in 0..DOT_LANES {
+                v[3 * j..3 * j + 3].copy_from_slice(&ctx.limbs(r.w + j as u32));
+            }
+            v[3 * DOT_LANES..].copy_from_slice(&ctx.limbs(r.fp + acc));
+            v
         });
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));

@@ -92,6 +92,15 @@ pub(crate) enum LOp {
         in_odd: bool,
         out_odd: bool,
     },
+    /// `DOT`: `out = acc + Σ_j w_j·x_j` over the lanes of the frame cells from `x`, the weights
+    /// the heap run `m[p]·g^(w+j)`.
+    Dot {
+        x: Off,
+        p: Off,
+        w: u32,
+        acc: Off,
+        out: Off,
+    },
 }
 
 /// A prover hint attached to an instruction. Most are already the runtime's own

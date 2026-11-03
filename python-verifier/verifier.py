@@ -923,7 +923,42 @@ def _flushes_keccak() -> Flushes:
     return flushes
 
 
-OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK = range(6)
+DOT_LANES = 4
+DOT_LOG_FLOOR = 13  # DOT's least log height, which caps what a recursive verifier pays for a child with few DOT rows
+# DOT's columns: the operands, the lanes x_j, the weight pointer, weight j's limbs wj_l, the accumulator's, then a read
+# count per cell in flush order (the lane cells, the pointer, the weights, the accumulator, the result) and cnt_bc.
+DOT_COLUMNS = (
+    "pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out",
+    *(f"x_{j}" for j in range(DOT_LANES)), "ptr",
+    *(f"w{j}_{limb}" for j in range(DOT_LANES) for limb in range(3)),
+    *(f"acc_{limb}" for limb in range(3)),
+    *(f"cnt_x{k}" for k in range(DOT_LANES // 2)), "cnt_ptr", *(f"cnt_w{j}" for j in range(DOT_LANES)), "cnt_acc", "cnt_out", "cnt_bc",
+)  # fmt: skip
+
+
+def _flushes_dot() -> Flushes:
+    """out = acc + sum_j w_j * x_j: DOT_LANES K-lanes x_j (the low limbs of canonical cells, two each) against as many weights read through a pointer."""
+    pc, fp, o_x, o_p, o_w, o_acc, o_out, ptr, cnt_ptr, cnt_acc, cnt_out, cnt_bc = _cols(
+        DOT_COLUMNS, "pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out", "ptr", "cnt_ptr", "cnt_acc", "cnt_out", "cnt_bc"
+    )
+    x = _cols(DOT_COLUMNS, *(f"x_{j}" for j in range(DOT_LANES)))
+    w = [_cols(DOT_COLUMNS, *(f"w{j}_{limb}" for limb in range(3))) for j in range(DOT_LANES)]
+    acc = _cols(DOT_COLUMNS, "acc_0", "acc_1", "acc_2")
+    flushes = Flushes()
+    flushes.state_step(pc, fp)
+    flushes.bytecode(pc, cnt_bc, OP_DOT, (_col(o_x), _col(o_p), _col(o_w), _col(o_acc), _col(o_out)))
+    for k in range(DOT_LANES // 2):
+        flushes.memory_cols(_prod(fp, o_x, k), DOT_COLUMNS.index(f"cnt_x{k}"), x[2 * k], x[2 * k + 1])
+    flushes.memory_cols(_prod(fp, o_p), cnt_ptr, ptr)
+    for j in range(DOT_LANES):
+        flushes.memory_cols(_prod(ptr, o_w, j), DOT_COLUMNS.index(f"cnt_w{j}"), *w[j])
+    flushes.memory_cols(_prod(fp, o_acc), cnt_acc, *acc)
+    result = [_col(acc[limb]) + Form.sum([_prod(w[j][limb], x[j]) for j in range(DOT_LANES)]) for limb in range(3)]
+    flushes.memory(_prod(fp, o_out), cnt_out, result)
+    return flushes
+
+
+OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK, OP_DOT = range(7)
 
 ARITH_COLUMNS = ("pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc",)  # fmt: skip
 SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc")
@@ -961,6 +996,7 @@ TABLES = (
     Table("deref", OP_DEREF, DEREF_COLUMNS, _flushes_deref()),
     Table("jump", OP_JUMP, JUMP_COLUMNS, _flushes_jump(), _jump_constraints),
     Table("keccak", OP_KECCAK, KECCAK_COLUMNS, _flushes_keccak()),
+    Table("dot", OP_DOT, DOT_COLUMNS, _flushes_dot()),
 )
 
 
@@ -968,7 +1004,8 @@ TABLE_WIDTHS = tuple(t.width for t in TABLES)
 GLOBAL_COLUMN_BASES = tuple(NUM_GLOBAL_COLUMNS + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
 
 
-TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK
+# Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK, and DOT's floor.
+TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG, DOT_LOG_FLOOR)
 
 
 def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[int]) -> Layout:

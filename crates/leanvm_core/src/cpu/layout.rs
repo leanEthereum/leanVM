@@ -340,6 +340,10 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
                 ]);
                 OP_KECCAK
             }
+            Op::Dot { x, p, w, acc, out } => {
+                put(&[g_at(x), g_at(p), g_at(w), g_at(acc), g_at(out)]);
+                OP_DOT
+            }
         };
         row
     };

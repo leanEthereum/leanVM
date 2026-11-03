@@ -66,6 +66,34 @@ impl FnLower<'_> {
         self.keccak_finish(out);
     }
 
+    /// `dot(x, w, acc)`: `acc + Σ_j w[j]·x_j`, one `DOT` instruction over `n = DOT_LANES` lanes.
+    /// `x` is a run of `n/2` frame cells, read as `K`-lanes (lane `2k + h` is limb `h` of cell
+    /// `k`), each cell required canonical; `w` is an `n`-cell heap slice of weights, read through
+    /// its pointer.
+    pub(super) fn lower_dot(&mut self, args: &[Expr]) -> Off {
+        if args.len() != 3 {
+            self.fail(format!("dot(x, w, acc) takes three arguments, got {}", args.len()))
+        };
+        const LANES: u32 = leanvm_core::tables::DOT_LANES as u32;
+        let x = match self.cell_run(&args[0]) {
+            CellRun::Stack { base, len } if len == LANES / 2 => base,
+            _ => self.fail(format!(
+                "dot's lanes must be a run of {} frame cells (a StackBuf or its slice)",
+                LANES / 2
+            )),
+        };
+        let (p, w) = match self.cell_run(&args[1]) {
+            CellRun::Heap { ptr, lo, len } if len == LANES => (ptr, lo),
+            _ => self.fail(format!(
+                "dot's weights must be a {LANES}-cell HeapBuf slice `buf[lo:lo + {LANES}]`"
+            )),
+        };
+        let acc = self.expr(&args[2]);
+        let out = self.fresh();
+        self.emit(LOp::Dot { x, p, w, acc, out });
+        out
+    }
+
     /// `keccak_cells(cells, out, state=, len=, final=)`: the Keccak-256 of the message the
     /// cells hold, 136 bytes a `KECCAK` instruction, into `out` as for [`Self::lower_keccak`].
     /// `cells` is a run (a `StackBuf`, or a slice with compile-time bounds) or a list of words,

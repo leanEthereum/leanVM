@@ -52,6 +52,19 @@ pub enum Op {
         in_odd: bool,
         out_odd: bool,
     },
+    /// `DOT`: an affine form of `n = tables::DOT_LANES` `K`-lanes,
+    /// `mem[fp·out] = mem[fp·acc] + Σ_{j<n} w_j·x_j`. The lanes are the two low limbs of the `n/2`
+    /// canonical cells from `fp·x`, lane `2k + h` limb `h` of cell `k`, and the weights `w_j` the
+    /// words at `mem[fp·p]·g^{w+j}`, read through a pointer like `DEREF`'s target. The row commits
+    /// the lanes rather than the cells' words, so a verifier's linear check over opened data
+    /// costs one row per `n` terms.
+    Dot {
+        x: u32,
+        p: u32,
+        w: u32,
+        acc: u32,
+        out: u32,
+    },
 }
 
 /// The source `DEREF` stores at `mem[loc_o1·o2]`: a local cell, the return

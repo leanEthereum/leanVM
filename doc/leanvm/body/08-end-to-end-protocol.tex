@@ -19,6 +19,7 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13
 \texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{KECCAK}        & $\opc{KEC}$ & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{b8}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$ & $\mathit{odd}_{\mathit{in}}$ & $\mathit{odd}_{\mathit{out}}$\\
+\texttt{DOT}           & $\opc{DOT}$ & $o_x$ & $o_p$ & $o_w$ & $o_{\mathit{acc}}$ & $o_{\mathit{out}}$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \hline
 \end{tabular}
 \end{center}
@@ -81,7 +82,7 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the seven row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 
@@ -99,7 +100,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), the padding term of \eqref{eq:pad_leaf}, and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
 
-\paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
+\paragraph{Table sumcheck.} One run proves the seven tables' constraints together with their share of the bus (\S\ref{sec:air}).
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
 \item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.

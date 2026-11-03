@@ -14,7 +14,8 @@ use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
 use crate::tables::{
-    self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
+    self, FillCtx, FlushBuilder, OP_DEREF, OP_DOT, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM,
+    SEP_STATE,
 };
 use crate::transcript::ProverState;
 use crate::witness;
@@ -29,7 +30,7 @@ pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
+pub(crate) use trace::{Dotrow, Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
 /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
 /// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
@@ -380,7 +381,7 @@ pub struct Stats {
 
 impl Stats {
     /// Table names in `rows` order.
-    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
+    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK", "DOT"];
 
     /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and committed-witness sizes.
     ///
@@ -421,13 +422,24 @@ impl Stats {
 /// the commitment.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
+    prove_with(program, public_input, log_inv_rate, |_| ())
+}
+
+/// [`prove`], with `tamper` editing the run before its witness is built: how a test plays a prover that lies.
+fn prove_with(
+    program: &Program,
+    public_input: [F192; 2],
+    log_inv_rate: usize,
+    tamper: impl FnOnce(&mut Execution),
+) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
-    let exec = exec.map_err(ProveError::Execution)?;
+    let mut exec = exec.map_err(ProveError::Execution)?;
+    tamper(&mut exec);
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
@@ -793,7 +805,11 @@ mod tests {
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
         let exec = jumping.execute(pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
-        assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
+        assert_eq!(
+            exec.rows(),
+            [0, 0, 3, 0, 2, 0, 0],
+            "XOR, MUL, SET, DEREF, JUMP, KECCAK, DOT"
+        );
         let (proof, _) = prove(&jumping, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 
@@ -804,6 +820,88 @@ mod tests {
             .err()
             .expect("the run must fail");
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
+    }
+
+    const DOT_CELLS: usize = crate::tables::DOT_LANES / 2;
+
+    /// A `DOT` program: the lane cells from 2, the weight pointer at 6, the accumulator at 7, the
+    /// result at 8, and the weights from 16, which the pointer `g^16` names from main's frame.
+    fn dot_program(cells: [F192; DOT_CELLS], weights: [F192; crate::tables::DOT_LANES], acc: F192) -> Program {
+        let mut prog: Vec<Op> = (2..).zip(cells).map(|(o, k)| Op::Set { o, k }).collect();
+        prog.push(Op::Set {
+            o: 6,
+            k: F192::from(g_pow(16)),
+        });
+        prog.push(Op::Set { o: 7, k: acc });
+        prog.extend((16..).zip(weights).map(|(o, k)| Op::Set { o, k }));
+        prog.push(Op::Dot {
+            x: 2,
+            p: 6,
+            w: 0,
+            acc: 7,
+            out: 8,
+        });
+        prog.resize(15, Op::Set { o: 30, k: F192::ZERO });
+        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        Program::from_bytecode(prog, 32)
+    }
+
+    fn dot_inputs() -> ([F192; DOT_CELLS], [F192; crate::tables::DOT_LANES], F192) {
+        let cells = std::array::from_fn(|k| F192::new(0x9e37_79b9_7f4a_7c15 ^ k as u64, 0x0123_4567 << k, 0));
+        let weights = std::array::from_fn(|j| {
+            F192::new(0xfeed_face_dead_beef, 0x1111_2222_3333_4444, 0x5555_6666_7777_8888) * F192::from(g_pow(j))
+        });
+        (cells, weights, F192::new(3, 5, 7))
+    }
+
+    /// `DOT` adds the accumulator and its weighed lanes, lane `2k + h` being limb `h` of cell `k`,
+    /// and the run it is in proves and verifies.
+    #[test]
+    fn dot_weighs_eight_lanes() {
+        let (cells, weights, acc) = dot_inputs();
+        let program = dot_program(cells, weights, acc);
+        let pi = [w(7), w(11)];
+        let exec = program.execute(pi).unwrap();
+        let lanes = cells.iter().flat_map(|c| [c.c0, c.c1]);
+        let expected = weights
+            .iter()
+            .zip(lanes)
+            .fold(acc, |sum, (&wj, lane)| sum + wj * F192::new(lane, 0, 0));
+        assert_eq!(exec.mem.word(8), expected);
+        assert_eq!(exec.rows()[crate::tables::N_TABLES - 1], 1, "one DOT row");
+        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        verify(&program, &pi, &proof).expect("a DOT run verifies");
+    }
+
+    /// A lane cell carries `(lo, hi, 0)`, as a `KECCAK` state cell does.
+    #[test]
+    fn dot_requires_canonical_cells() {
+        let (mut cells, weights, acc) = dot_inputs();
+        cells[1].c2 = 1;
+        let err = dot_program(cells, weights, acc)
+            .execute([w(7), w(11)])
+            .err()
+            .expect("the run must fail");
+        assert!(matches!(err.fault, Fault::NotCanonical { cell: 1, .. }), "{err}");
+    }
+
+    /// The result is bound by the bus: with another value in the result cell than the row's
+    /// `acc + Σ w·x`, the bus does not balance, so the prover's GKR has no proof to make (it
+    /// panics on the two products), and a proof it did make would not verify.
+    #[test]
+    fn dot_result_is_bound() {
+        let (cells, weights, acc) = dot_inputs();
+        let program = dot_program(cells, weights, acc);
+        let pi = [w(7), w(11)];
+        let forged = std::panic::catch_unwind(|| {
+            prove_with(&program, pi, crate::pcs::TEST_LOG_INV_RATE, |exec| {
+                let forged = exec.mem.word(8) + F192::ONE;
+                exec.mem.set_word(8, forged);
+            })
+        });
+        if let Ok(Ok((proof, _))) = forged {
+            assert!(verify(&program, &pi, &proof).is_err(), "a forged DOT result verifies");
+        }
     }
 
     /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb

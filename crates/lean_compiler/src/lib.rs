@@ -267,6 +267,9 @@ pub fn disassemble(prog: &[Op]) -> String {
                     layout(*in_odd)
                 )
             }
+            Op::Dot { x, p, w, acc, out } => {
+                format!("DOT    fp[{out}] = fp[{acc}] + <lanes fp[{x}..+4], *(fp[{p}]·g^{w})..+8>")
+            }
         };
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
     }
@@ -352,6 +355,13 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             out: *c,
             in_odd: *in_odd,
             out_odd: *out_odd,
+        },
+        LOp::Dot { x, p, w, acc, out } => Op::Dot {
+            x: *x,
+            p: *p,
+            w: *w,
+            acc: *acc,
+            out: *out,
         },
     }
 }

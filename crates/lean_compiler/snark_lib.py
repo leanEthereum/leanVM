@@ -198,6 +198,17 @@ def hint_f192_limbs(dest, value) -> None:
     _ = dest, value
 
 
+def dot(x, w, acc) -> _Elt:
+    """`acc + sum_j w[j] * x_j`, one `DOT` instruction: an affine form of four
+    GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a
+    StackBuf or its slice), read as four lanes, lane `2k + h` limb `h` of cell
+    `k`; every cell must be canonical (top limb zero), which the instruction
+    proves along with its lanes being in GF(2^64). `w` is a four-cell HeapBuf
+    slice `buf[lo:lo + 4]`, read through its pointer."""
+    _ = x, w, acc
+    return _Elt()
+
+
 def keccak(
     a,
     b,

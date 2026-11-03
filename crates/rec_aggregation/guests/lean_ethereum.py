@@ -1163,45 +1163,45 @@ def opening_row_weights(point, out, folds: Const, reverse: Const):
 
 
 @inline
-def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
-    # One query: hash the hinted row up its Merkle path into the shared cap, and
-    # return its dot product with the row's eq weights.
-    if base == 1:
-        row_len = interleave
-    else:
-        row_len = 3 * interleave
-    row = StackBuf(LIG_ROW_CAP)
-    hint_witness(row[0:row_len], "merkle_leaf_rows")
-    row_dot = 0
-    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
-    if base == 1:
-        # Packing proves each hinted lane is in K before hashing or folding it.
-        for jb in unroll(0, interleave // 2):
-            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
-    else:
-        # Pack the checked tower limbs into the leaf's contiguous byte image.
-        for jb in unroll(0, 3 * interleave // 2):
-            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
-    # The weights' tensor factors (opening_row_weights): a run of lo_len row
-    # entries shares one hi factor.
+def opening_lane_weights(eq_w, out, interleave: Const, base: Const):
+    # The weight on each lane of a leaf row, from opening_row_weights' two tensor
+    # factors (word i weighs eq_w[i % lo_len] * eq_w[lo_len + i // lo_len]). Level 0's
+    # lanes are its words; a deeper level's lane 3i + j is limb j of word i, which
+    # weighs y^j times the word's weight, since the word is sum_j y^j limb_j.
     if const(interleave // 8 == 0):
         lo_len = interleave
     else:
         lo_len = 8
+    lo = StackBuf(8)
+    for l in unroll(0, lo_len):
+        lo[l] = eq_w[GEN ** l]
     for h in unroll(0, interleave // lo_len):
-        part = 0
+        hi = eq_w[GEN ** (lo_len + h)]
         for l in unroll(0, lo_len):
             jw = lo_len * h + l
             if base == 1:
-                row_word = row[jw]
-            elif 3 * jw % 2 == 0:
-                # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
+                out[jw] = lo[l] * hi
             else:
-                # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-            part += row_word * row_eq_weights[GEN ** l]
-        row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
+                weight = lo[l] * hi
+                out[3 * jw] = weight
+                out[3 * jw + 1] = Y_TOWER * weight
+                out[3 * jw + 2] = Y_TOWER * Y_TOWER * weight
+    return
+
+
+@inline
+def opening_query(cap, flags, lane_weights, direction_bits, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # One query: hash the hinted row up its Merkle path into the shared cap, and
+    # return its dot product with the row's weights. The row is hinted as the leaf's
+    # cells, two lanes each, and weighed by DOT, two cells an instruction against
+    # `lane_weights` (a run of the level's lane weights). DOT and KECCAK both read a
+    # cell as (lo, hi, 0), so the bus proves every hinted cell canonical and its two
+    # lanes in K, with no packing rows.
+    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
+    hint_witness(packed_row[0:leaf_cells], "merkle_leaf_rows")
+    row_dot = 0
+    for k in unroll(0, leaf_cells // 2):
+        row_dot = dot(packed_row[2 * k:2 * k + 2], lane_weights[4 * k:4 * k + 4], row_dot)
     # Hash the packed row.
     leaf_hash_state = StackBuf(KECCAK_STATE)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
@@ -1230,7 +1230,7 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
     return row_dot
 
 
-def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, lane_weights, n_iters_g, odd: Const, base: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
     # Base-field rows (level 0) run two queries an iteration, sharing the loop
     # overhead and the weight reads; an odd count runs its first query alone,
@@ -1240,17 +1240,17 @@ def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_it
     mu = 1 / lam
     chain = HeapBuf(n_iters_g * GEN)
     if odd == 1:
-        chain[GEN ** 0] = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth) * mu
+        chain[GEN ** 0] = opening_query(cap, flags, lane_weights, query_bit_ptrs[GEN ** 0], leaf_cells, depth, cap_depth) * mu
     else:
         chain[GEN ** 0] = 0
     for xi in mul_range(1, n_iters_g):
         if base == 1:
             bit_ptrs = query_bit_ptrs * xi * xi
-            d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** odd], base, interleave, leaf_cells, depth, cap_depth)
-            d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** (odd + 1)], base, interleave, leaf_cells, depth, cap_depth)
+            d0 = opening_query(cap, flags, lane_weights, bit_ptrs[GEN ** odd], leaf_cells, depth, cap_depth)
+            d1 = opening_query(cap, flags, lane_weights, bit_ptrs[GEN ** (odd + 1)], leaf_cells, depth, cap_depth)
             chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
         else:
-            d = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[xi], base, interleave, leaf_cells, depth, cap_depth)
+            d = opening_query(cap, flags, lane_weights, query_bit_ptrs[xi], leaf_cells, depth, cap_depth)
             chain[xi * GEN] = (chain[xi] + d) * mu
     return chain[n_iters_g] * lam_n
 
@@ -1429,6 +1429,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         # hashes the full image. Deeper levels commit every lane, ascending.
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
+        # What each of a leaf's lanes weighs, the run DOT reads four at a time, once a level.
+        lane_w = StackBuf(LIG_ROW_CAP)
+        opening_lane_weights(row_eq_weights, lane_w, interleave, 1 // (lvl + 1))
 
         cap_depth = LIG_CAP_DEPTH[ml]
         cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
@@ -1437,7 +1440,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, addr(lane_w), GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of

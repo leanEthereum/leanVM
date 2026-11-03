@@ -1207,9 +1207,10 @@ fn gen_verify(
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
         for opening in openings.by_ref().take(queries) {
+            // The leaf's canonical cells, two lanes each, as the guest hashes and weighs them.
             query_hints.push((
                 "merkle_leaf_rows",
-                opening.leaf.iter().map(|x| F192::new(x.0, 0, 0)).collect(),
+                opening.leaf.chunks(2).map(|x| F192::new(x[0].0, x[1].0, 0)).collect(),
             ));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let bytes: Vec<_> = opening.leaf.iter().flat_map(|x| x.to_bytes()).collect();
@@ -2352,6 +2353,14 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             })
             .max()
             .unwrap();
+        // A query's row is weighed by `DOT`, `DOT_LANES` lanes an instruction.
+        assert!(
+            cands
+                .iter()
+                .flat_map(|c| &c.interleaving)
+                .all(|&n| n % leanvm_core::tables::DOT_LANES == 0),
+            "a leaf row must be whole DOT instructions"
+        );
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
         ps(
