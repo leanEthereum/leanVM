@@ -68,6 +68,14 @@ theorem Only.tweakableHash (parameter : PublicParameter) (domain : HashDomain)
   simp only [IsShort, bound, tweakableHashInput_length]
   omega
 
+theorem schemeSeedInput_length (seed : MasterSeed) : (schemeSeedInput seed).length = 43 := by
+  simp [schemeSeedInput, seedTag, bytesLE_length]
+
+theorem Only.schemeSeed (seed : MasterSeed) :
+    Only (FORS.schemeSeed seed : OracleComp HashSpec MasterSeed) := by
+  refine Only.query ?_
+  simp [IsShort, bound, schemeSeedInput_length]
+
 theorem Only.deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     Only (FORS.deriveKey parameter domain seed : OracleComp HashSpec Digest) := by
   unfold FORS.deriveKey
@@ -392,6 +400,11 @@ theorem Only.keygenFromSeed (seed : MasterSeed) :
   unfold FORS.Seeded.keygenFromSeed
   exact Short.Only.bind (Short.Only.deriveKey _ _ _) (fun _ =>
     Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _))
+
+theorem Only.keygen (seed : MasterSeed) :
+    Short.Only (keygen seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
+  unfold FORS.Seeded.keygen
+  exact Short.Only.bind (Short.Only.schemeSeed _) (fun _ => Only.keygenFromSeed _)
 
 theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by

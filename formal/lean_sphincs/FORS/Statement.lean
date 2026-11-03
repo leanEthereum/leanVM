@@ -5,10 +5,12 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 # The security statement
 
 The SUF-CMA game of the security target: forgeries,
-signing transcripts and their tests, adversaries, and the counted experiment with the deterministic
-signer `Seeded.sign` (`Scheme.lean`; the Rust signer's, with FORS in place of the forest), whose randomizers are derived from the master
-seed and the message (a repeated request returns the same signature). Every hash call counts,
-including repeated calls and the calls of the honest parties. The module ends with the forgery
+signing transcripts and their tests, adversaries, and the counted experiment. The key is generated
+from a uniform 32-byte seed `S0` (`Seeded.keygen`, which first hashes it into the scheme seed
+`S = H(leanSPHINCS || S0)`), and the signer is the deterministic `Seeded.sign` (`Scheme.lean`; the
+Rust signer's), whose randomizers are derived from `S` and the message (a repeated request returns
+the same signature). Every hash call counts, including repeated calls and the calls of the honest
+parties, the one that derives `S` among them. The module ends with the forgery
 advantage, the hash-query budget and the security-bits target `SecurityBits P bits`; `Main.lean`
 spells out `SecurityBits P 127` as `Secure127 P` and states it for each configuration `P`.
 -/
@@ -66,12 +68,12 @@ noncomputable def signingOracle (sk : Seeded.SecretKey) :
   QueryImpl.withLogging fun request =>
     liftM (Seeded.sign sk request : OracleComp HashSpec (Option Signature))
 
-/-- The game: a uniform master seed, key generation, the adversary with the signing oracle, and the
-verification of its forgery. It wins when the forgery verifies, the adversary asked for at most
+/-- The game: a uniform seed `S0`, key generation from it, the adversary with the signing oracle, and
+the verification of its forgery. It wins when the forgery verifies, the adversary asked for at most
 `signatureLimit` signatures, and no signing answer was the forgery. -/
 noncomputable def gameCore (adversary : Adversary) : OracleComp OracleWorld Bool := do
   let seed ← liftM sampleMasterSeed
-  let (pk, sk) ← liftM (Seeded.keygenFromSeed seed)
+  let (pk, sk) ← liftM (Seeded.keygen seed)
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
     (simulateQ (QueryImpl.ofLift OracleWorld
       (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) + signingOracle sk)

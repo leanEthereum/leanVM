@@ -1,8 +1,9 @@
 import FORS.Reduction.PreparedSample
 
-/-! Internalizing long adversarial hash inputs for the deterministic-randomizer game, and its
-fixed-function form. `Seeded.sign` only makes short queries (its randomizer derivation is 96
-bytes), so the argument of `Reduction/Internalize` applies verbatim with `signingOracle`. -/
+/-! Internalizing long adversarial hash inputs for the deterministic-randomizer game, and the
+fixed-function form of the game from a uniform scheme seed. `Seeded.sign` only makes short queries
+(its randomizer derivation is 96 bytes), so the argument of `Reduction/Internalize` applies verbatim
+with `signingOracle`. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -256,7 +257,7 @@ theorem leftProgD_internal (sk : FORS.Seeded.SecretKey) {β : Type} (M : OracleC
       (fun result => (result.1.1, result.2)) <$> rightProgD sk M ∅ := by
   simp only [leftProgD, rightProgD, StateT.run'_eq, simulateQ_map, WriterT.run_map]
 
-/-- The deterministic game after its master-seed sample. -/
+/-- The deterministic game after the scheme seed `S`: key generation from `S`. -/
 noncomputable def gameAfterSeedDet (adversary : Adversary) (seed : MasterSeed) :
     OracleComp OracleWorld Bool := do
   let (pk, sk) ← liftM (FORS.Seeded.keygenFromSeed seed)
@@ -267,9 +268,26 @@ noncomputable def gameAfterSeedDet (adversary : Adversary) (seed : MasterSeed) :
   let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
 
+/-- The key's seed `S0` and its hash, the scheme seed `S = H(leanSPHINCS || S0)`. -/
+noncomputable def sampleSchemeSeed : OracleComp OracleWorld MasterSeed := do
+  let seed ← liftM sampleMasterSeed
+  liftM (schemeSeed seed : OracleComp HashSpec MasterSeed)
+
+attribute [local irreducible] sampleMasterSeed in
+theorem OnlyW.sampleSchemeSeed : OnlyW sampleSchemeSeed :=
+  OnlyW.bind (OnlyW.liftProb _) fun seed => OnlyW.liftHash (Short.Only.schemeSeed seed)
+
 theorem gameCore_eq_sampling (adversary : Adversary) :
-    gameCore adversary = (liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
-      gameAfterSeedDet adversary := rfl
+    gameCore adversary = sampleSchemeSeed >>= gameAfterSeedDet adversary := by
+  simp only [gameCore, sampleSchemeSeed, FORS.Seeded.keygen, liftM_bind, bind_assoc]
+  rfl
+
+/-- The game from a uniform scheme seed `S` in place of `H(leanSPHINCS || S0)`. -/
+noncomputable def gameCoreMaster (adversary : Adversary) : OracleComp OracleWorld Bool :=
+  (liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= gameAfterSeedDet adversary
+
+noncomputable def experimentMaster (adversary : Adversary) : ProbComp (Bool × Nat) :=
+  (simulateQ countedOracle (gameCoreMaster adversary)).run.run' ∅
 
 theorem gameAfterSeedDet_eq (adversary : Adversary) (seed : MasterSeed) :
     gameAfterSeedDet adversary seed = (liftM (FORS.Seeded.keygenFromSeed seed) :
@@ -326,17 +344,17 @@ theorem experiment_eq_rightRun (adversary : Adversary) :
   rw [experiment, rightRun, ← simulateQ_countHashQueries]
   rfl
 
+attribute [local irreducible] sampleMasterSeed in
 theorem evalDist_experiment_internalize (adversary : Adversary) :
     𝒟[experiment (internalize adversary)] =
       𝒟[(fun result => result.1) <$> leftRun (gameCore adversary) ∅] := by
   rw [experiment_eq_rightRun, gameCore_eq_sampling, gameCore_eq_sampling,
-    show leftRun ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
-      gameAfterSeedDet adversary) ∅ = leftRun ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
-      gameAfterSeedDet adversary) (merge ∅ ∅) by rw [merge_empty],
+    show leftRun (sampleSchemeSeed >>= gameAfterSeedDet adversary) ∅ =
+      leftRun (sampleSchemeSeed >>= gameAfterSeedDet adversary) (merge ∅ ∅) by rw [merge_empty],
     leftRun_bind, rightRun_bind, map_bind, map_bind]
   symm
   refine evalDist_bind_rel _ _ id (fun result => (result.1, merge result.2 ∅))
-    (by rw [leftRun_short _ (OnlyW.liftProb _), Functor.map_map]; rfl) _ _
+    (by rw [leftRun_short _ OnlyW.sampleSchemeSeed, Functor.map_map]; rfl) _ _
     (fun first => (fun second => (second.1.1, first.1.2 + second.1.2)) <$>
       leftRun (gameAfterSeedDet adversary first.1.1) first.2)
     (fun first => ?_) (fun first => ?_)
@@ -409,16 +427,16 @@ noncomputable local instance detLabelsSampleable : SampleableType CanonicalGraph
   graphLabelsSampleable
 
 open SeedModel Graph Assembly Eager in
-/-- The internalized deterministic experiment as an average of fixed-function counted games. -/
-theorem evalDist_experiment_fixed (adversary : Adversary) :
-    𝒟[experiment (internalize adversary)] = 𝒟[do
+/-- The internalized game from a uniform scheme seed as an average of fixed-function counted games. -/
+theorem evalDist_experimentMaster_fixed (adversary : Adversary) :
+    𝒟[experimentMaster (internalize adversary)] = 𝒟[do
       let material ← sampleMaterial
       let seed ← sampleMasterSeed
       let answers ← $ᵗ CanonicalGraphLabels
       let table ← $ᵗ Eager.Table
       simulateQ (fixedRom (extend (preparedCache material seed answers) table))
         (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] := by
-  rw [experiment, gameCore_eq_sampling, evalDist_seeded_prepared_counted]
+  rw [experimentMaster, gameCoreMaster, evalDist_seeded_prepared_counted]
   refine evalDist_bind_congr' _ (fun material => evalDist_bind_congr' _ (fun seed => ?_))
   rw [← simulateQ_countHashQueries]
   change 𝒟[(simulateQ romImpl (countHashQueries (gameAfterSeedDet (internalize adversary) seed))).run'

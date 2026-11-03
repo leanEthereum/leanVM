@@ -1,10 +1,11 @@
 import FORS.Reduction.WinValue
-import FORS.Reduction.SeedFreeGame
+import FORS.Reduction.SchemeSeed
 
 /-! **Seed elimination for the deterministic-randomizer game.** The SUF-CMA advantage against
 `Seeded.sign` is at most the seed-free, budget-capped win probability of the internalized
-memoizing adversary, plus `2 q / 2^256` for naming the hidden seed (in a derivation input or in a
-randomizer-derivation input).
+memoizing adversary, plus `3 q / 2^256` for naming a hidden seed: the key's seed `S0` in the input
+of the scheme seed (`Reduction/SchemeSeed`), or the scheme seed in a derivation input or in a
+randomizer-derivation input.
 
 The eager table is split at the seed's randomizer-derivation inputs into an independent uniform
 randomizer table; the two runs agree until such an input is queried. Memoizing and then averaging
@@ -390,22 +391,18 @@ theorem noRepeat_internalize_memoAdv (adversary : Adversary) :
   rw [← Memo.internalize_memoAdv]
   exact ForsPotential.noRepeat_internalize_adversary _ (Memo.memoAdv_noRepeat adversary)
 
-attribute [local irreducible] experiment sampleMasterSeed
+attribute [local irreducible] experiment experimentMaster sampleMasterSeed
 
-/-- **Seed elimination for the deterministic signer.** If the seed-free capped win of the
+/-- **Seed elimination from a uniform scheme seed.** If the seed-free capped win of the
 internalized memoizing adversary in the fresh-randomizer graph-view game is at most `B` for every
-table of walk steps, the SUF-CMA advantage against `Seeded.sign` is at most `B` plus `2 q / 2^256`
-for naming the hidden seed. The step halves are fixed and the base randomizers averaged. -/
-theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound adversary q) (B : ℝ≥0∞)
+table of walk steps, the capped win of the internalized game from a uniform scheme seed is at most
+`B` plus `2 q / 2^256` for naming the hidden seed. The step halves are fixed and the base
+randomizers averaged. -/
+theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ≥0∞)
     (hB : ∀ steps, Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps] ≤ B) :
-    forgeAdvantage adversary ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
-  unfold forgeAdvantage
+    Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+        experimentMaster (internalize adversary)] ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
   calc
-    _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experiment adversary] :=
-      probEvent_congr' (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩) rfl
-    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-          experiment (internalize adversary)] := budgetedWin_le_internalize adversary q
     _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | do
           let material ← sampleMaterial
           let seed ← sampleMasterSeed
@@ -413,7 +410,7 @@ theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
           let table ← $ᵗ Eager.Table
           simulateQ (fixedRom (extend (preparedCache material seed answers) table))
             (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] :=
-      probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experiment_fixed adversary)
+      probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experimentMaster_fixed adversary)
     _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | do
           let material ← sampleMaterial
           let seed ← sampleMasterSeed
@@ -510,5 +507,26 @@ theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
         refine probEvent_bind_le_of _ _ _ _ fun rnd => ?_
         exact marked_hit_le (detRun (internalize adversary) q material answers table rnd)
           (fun result => result.2) q (fun result hresult => costRun_cap_cost_le _ _ _ q result hresult)
+
+/-- **Seed elimination for the deterministic signer.** If the seed-free capped win of the
+internalized memoizing adversary in the fresh-randomizer graph-view game is at most `B` for every
+table of walk steps, the SUF-CMA advantage against `Seeded.sign` is at most `B` plus `3 q / 2^256`
+for naming the hidden seeds. -/
+theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
+    (hbound : HasHashQueryBound adversary q) (B : ℝ≥0∞)
+    (hB : ∀ steps, Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps] ≤ B) :
+    forgeAdvantage adversary ≤ B + 3 * (q / (2 : ℝ≥0∞) ^ 256) := by
+  unfold forgeAdvantage
+  calc
+    _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experiment adversary] :=
+      probEvent_congr' (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩) rfl
+    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+          experiment (internalize adversary)] := budgetedWin_le_internalize adversary q
+    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+          experimentMaster (internalize adversary)] + q / (2 : ℝ≥0∞) ^ 256 :=
+      budgetedWin_le_master adversary q
+    _ ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
+      add_le_add (budgetedWinMaster_le_seedFree adversary q B hB) le_rfl
+    _ = B + 3 * (q / (2 : ℝ≥0∞) ^ 256) := by ring
 
 end FORS.Security.Det

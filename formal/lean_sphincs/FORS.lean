@@ -35,6 +35,7 @@ import FORS.Reduction.InternalizeGame
 import FORS.Reduction.Memo
 import FORS.Reduction.NoRepeat
 import FORS.Reduction.PreparedSample
+import FORS.Reduction.SchemeSeed
 import FORS.Reduction.SeedElimination
 import FORS.Reduction.SeedFreeGame
 import FORS.Reduction.ShortInputs

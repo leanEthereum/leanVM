@@ -24,10 +24,12 @@ signature under every bottom leaf is **FORS** with `k = forsTrees` trees of heig
 
 At every layer a WOTS+C key (64 chains of length 4, target sum 128) signs the message of the layer
 below: the FORS key at the bottom layer, the 16-byte root of the tree below at a layer above.
-Layers are numbered from the top (`topLayer = 0`), as in leanVM. Every hash input is
-`P || A || payload`: the 16-byte public parameter, then the 16-byte address of the call (a 32-bit
-field `lo`, a 24-bit field `hi`, one byte holding the type and a chain step, one byte for the layer
-counted from the bottom, 4 bytes for the tree, then 3 zero bytes), so the payload starts at byte 32.
+Layers are numbered from the top (`topLayer = 0`), as in leanVM. Key generation first hashes the
+key's seed `S0` into the scheme seed `S = H(leanSPHINCS || S0)`, from which everything else derives.
+Every other hash input is `P || A || payload`: the 16-byte public parameter, then the 16-byte
+address of the call (a 32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain
+step, one byte for the layer counted from the bottom, 4 bytes for the tree, then 3 zero bytes), so
+the payload starts at byte 32.
 FORS hashes use types 14 (secret derivation), 15 (leaf) and 17 (node), with the instance `idx` in
 `lo` and the tree and position in `hi`. The message digest hashes `m || rho` (the root is not hashed:
 `P` binds the key) and the randomizer base `S || m`.
@@ -384,6 +386,14 @@ def keygenDomainFields : KeygenDomain → TweakFields
   | .ots lay tree leaf pair => treeFields 0 0 lay tree pair leaf
   | .fors index κ pair => tweakFields 14 0 (forsSlot κ pair.val) index
   | .surrogate level => tweakFields 13 0 level 0
+
+/-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS`. -/
+def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
+
+/-- `leanSPHINCS || S0` (`scheme_seed`), 43 bytes: its hash is the scheme seed `S`, the seed every
+other input derives from. It has no parameter and no address. -/
+def schemeSeedInput (seed : MasterSeed) : HashInput :=
+  seedTag ++ bytesLE 32 seed
 
 /-- `P || A || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
@@ -756,6 +766,10 @@ def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
   let output ← Concrete.oracleHash (randomizerHashInput parameter seed message)
   return (truncateHash output, walkStep (upperHash output))
 
+/-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
+def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
+  Concrete.oracleHash (schemeSeedInput seed)
+
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
@@ -764,6 +778,7 @@ namespace Seeded
 
 open Concrete
 
+/-- What the signer reads: `seed` is the scheme seed `S`, not the key's seed `S0`. -/
 structure SecretKey where
   seed : MasterSeed
   parameter : PublicParameter
@@ -915,12 +930,18 @@ def forsOpen (parameter : PublicParameter) (index : Index) (leaves : FTree → F
     (seed : MasterSeed) : m (FTree → TreeOpening) :=
   sequenceFin fun κ => treeOpen parameter index κ (leaves κ) seed
 
-/-- `Gen` (`key_gen`): derive the public parameter, which places the kept subtree, and build the root
-of the top layer. -/
+/-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
+subtree, and build the root of the top layer. -/
 def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
   let parameter ← deriveKey 0 .parameter seed
   let root ← treeRoot parameter topLayer rootTree seed
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+
+/-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
+from `S`. -/
+def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+  let master ← schemeSeed seed
+  keygenFromSeed master
 
 /-- One grinding attempt: the index read from the first digest call (`digest_index`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
