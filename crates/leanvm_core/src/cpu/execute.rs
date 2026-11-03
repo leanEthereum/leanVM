@@ -145,6 +145,8 @@ pub enum Fault {
     NotAGPower { what: &'static str, value: F64 },
     /// A `KECCAK` input cell outside the 128-bit embedding.
     NotCanonical { cell: usize, value: F192 },
+    /// A `KECCAK_M` whose `b8` cell's low limb is not a bit, or that reads the odd layout.
+    BadMerkleStep { value: F192 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -211,6 +213,11 @@ impl std::fmt::Display for Fault {
             Self::NotCanonical { cell, value } => write!(
                 f,
                 "KECCAK input cell {cell} is not a canonical 128-bit embedding ({})",
+                word(*value)
+            ),
+            Self::BadMerkleStep { value } => write!(
+                f,
+                "KECCAK_M needs the even layout and a direction bit in b8's low limb ({})",
                 word(*value)
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
@@ -961,7 +968,22 @@ impl Program {
                 Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let k = crate::tables::KeccakOp::of(&op);
-                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
+                    // KECCAK_M: the low limb of b8 is the direction bit, which picks the order the
+                    // two m pairs are read in.
+                    let bit = if k.swap {
+                        if k.in_odd {
+                            return Err(fail(Fault::BadMerkleStep { value: F192::ZERO }));
+                        }
+                        let b8 = m.read(k.cell(fp, 8, false));
+                        match b8.c0 {
+                            0 => false,
+                            1 => true,
+                            _ => return Err(fail(Fault::BadMerkleStep { value: b8 })),
+                        }
+                    } else {
+                        false
+                    };
+                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c, bit));
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // The table reads every cell with a literal zero top limb, so anything
                     // else could not balance the bus.
@@ -974,6 +996,9 @@ impl Program {
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
                     let mut lanes = crate::keccak::state_of_cells(&input, k.in_odd);
+                    if k.swap {
+                        lanes[16] = primitives::hash::END_BIT;
+                    }
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);

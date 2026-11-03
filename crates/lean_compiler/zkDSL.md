@@ -451,6 +451,7 @@ keccak_cells([18, 19], out, state=st)
 # as given, lanes 16..25 (the transcript's capacity) the last five cells of the previous
 # output `st`.
 keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
+keccak(node[0:2], sib[0:2], h, swap=bit)   # a Merkle step: H(node ‖ sib) if bit is 0, H(sib ‖ node) if 1
 ```
 
 The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
@@ -458,6 +459,8 @@ The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 by
 Both builtins are **statements**: they write the 13-cell sponge state into `out`, whose first two cells are the digest. A 2-cell `out` receives just the digest, at two copies.
 
 `keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells overwriting lanes 0..16, and lanes 16..25 the five cells a previous output ends with (`cap` that 13-cell output or those five cells). Keccak-256's rate is 17 lanes, 136 bytes, so lane 16 is rate to the hash; the transcript keeps it with the capacity, lanes 17..25, and calls lanes 16..25 its capacity.
+
+`keccak(a, b, out, swap=bit)` is one `KECCAK_M`, a Merkle step: the hash of `a ‖ b` when the cell `bit` holds 0 and of `b ‖ a` when it holds 1 (anything else faults, and no proof has such a row). `a` and `b` are read where they are, so a path level is this one instruction plus the read of its bit into the frame, with no copy of the node into a selected slot. It takes no other keyword.
 
 `keccak_cells(cells, out, state=, len=, final=)` hashes a message of any compile-time length: `cells` is a run (a `StackBuf`, or a slice with compile-time bounds), a list of words, or a list comprehension `[e for k in unroll(lo, hi)]` (its bounds compile-time integers once `Const` parameters are substituted, expanded into the list of `e` at each `k`), and the message is their first `len` bytes (all of them by default). Words named in a list are read where they lie. `state=` continues a hash from a previous 13-cell output whose message so far is a whole number of block pairs, 272 bytes or 17 cells each, so that the cells start a block at a cell boundary: what a runtime loop absorbing a block pair a frame needs. `final=0` absorbs the cells zero-extended to whole blocks, with no padding: the start of a hash continued later, or a bare permutation.
 

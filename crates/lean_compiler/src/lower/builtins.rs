@@ -30,7 +30,14 @@ impl FnLower<'_> {
     /// output or those five cells). Lane 16 is in Keccak-256's 17-lane rate, but the
     /// transcript keeps it.
     fn lower_keccak(&mut self, args: &[Expr]) {
-        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap"]);
+        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap", "swap"]);
+        if let Some(bit) = kwargs.get("swap") {
+            if kwargs.len() != 1 {
+                self.fail("keccak swap= is a Merkle step: it takes no tail=, len= or cap=")
+            }
+            self.lower_merkle_step(args, bit);
+            return;
+        }
         let mut cells = self.keccak_operand(&args[0], 2);
         cells.extend(self.keccak_operand(&args[1], 2));
         if let Some(tail) = kwargs.get("tail") {
@@ -56,6 +63,7 @@ impl FnLower<'_> {
                 c: out.state,
                 in_odd: false,
                 out_odd: false,
+                swap: false,
             });
             self.keccak_finish(out);
             return;
@@ -63,6 +71,32 @@ impl FnLower<'_> {
         let len = self.keccak_len(&kwargs, cells.len() as u32);
         let out = self.keccak_out(&args[2]);
         self.emit_keccak_message(cells, Some(len), None, out.state);
+        self.keccak_finish(out);
+    }
+
+    /// `keccak(a, b, out, swap=bit)`: one `KECCAK_M`, the Keccak-256 of the 64 bytes `a ‖ b`
+    /// when the cell `bit` holds 0 and of `b ‖ a` when it holds 1 (any other value faults). `a`
+    /// and `b` are two frame cells each, read where they are; the padding's first byte rides a
+    /// constant tail and its last byte is the instruction's own, `bit` taking its place in `b8`.
+    fn lower_merkle_step(&mut self, args: &[Expr], bit: &Expr) {
+        let mut cells = self.keccak_operand(&args[0], 2);
+        cells.extend(self.keccak_operand(&args[1], 2));
+        cells.resize(BLOCK_CELLS as usize, SpongeCell::Zero);
+        self.xor_byte(&mut cells, 64, primitives::hash::PAD_FIRST);
+        let out = self.keccak_out(&args[2]);
+        let (m, tail) = self.keccak_rate(&cells, None);
+        let b8 = self.expr(bit);
+        let cap = self.keccak_pad_run() + 1;
+        self.emit(LOp::Keccak {
+            m,
+            tail,
+            b8,
+            cap,
+            c: out.state,
+            in_odd: false,
+            out_odd: false,
+            swap: true,
+        });
         self.keccak_finish(out);
     }
 
@@ -301,6 +335,7 @@ impl FnLower<'_> {
                 c,
                 in_odd: k % 2 == 1,
                 out_odd: !last && k % 2 == 0,
+                swap: false,
             });
             state = Some(c);
         }

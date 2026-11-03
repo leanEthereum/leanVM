@@ -14,8 +14,8 @@ use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
 use crate::tables::{
-    self, FillCtx, FlushBuilder, OP_DEREF, OP_DOT, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM,
-    SEP_STATE,
+    self, FillCtx, FlushBuilder, OP_DEREF, OP_DOT, OP_JUMP, OP_KECCAK, OP_KECCAK_M, OP_MUL, OP_SET, OP_XOR,
+    SEP_BYTECODE, SEP_MEM, SEP_STATE,
 };
 use crate::transcript::ProverState;
 use crate::witness;
@@ -708,6 +708,7 @@ mod tests {
             out: 13,
             in_odd: false,
             out_odd: true,
+            swap: false,
         });
         prog.push(Op::Keccak {
             m: [13, 14, 15, 16],
@@ -717,6 +718,7 @@ mod tests {
             out: 26,
             in_odd: true,
             out_odd: false,
+            swap: false,
         });
         for k in 0..2u32 {
             prog.push(Op::Set {
@@ -901,6 +903,112 @@ mod tests {
         });
         if let Ok(Ok((proof, _))) = forged {
             assert!(verify(&program, &pi, &proof).is_err(), "a forged DOT result verifies");
+        }
+    }
+
+    /// Two `KECCAK_M` rows over the same node `2..4` and sibling `4..6`, their direction bits at
+    /// 6 and 7, the padding tail `8..12` (`PAD_FIRST` in lane 8) and the zero capacity `12..16`,
+    /// writing their states at 16 and 29.
+    fn merkle_program(bits: [u64; 2]) -> Program {
+        let pairs = [
+            F192::new(0x0123_4567_89ab_cdef, 0x1111, 0),
+            F192::new(0x2222, 0x3333, 0),
+            F192::new(0xfeed_face_dead_beef, 0x4444, 0),
+            F192::new(0x5555, 0x6666_7777, 0),
+        ];
+        let mut prog: Vec<Op> = (2..).zip(pairs).map(|(o, k)| Op::Set { o, k }).collect();
+        prog.push(Op::Set { o: 6, k: w(bits[0]) });
+        prog.push(Op::Set { o: 7, k: w(bits[1]) });
+        prog.push(Op::Set {
+            o: 8,
+            k: w(u64::from(primitives::hash::PAD_FIRST)),
+        });
+        prog.extend((9..16).map(|o| Op::Set { o, k: F192::ZERO }));
+        for (b8, out) in [(6, 16), (7, 29)] {
+            prog.push(Op::Keccak {
+                m: [2, 3, 4, 5],
+                tail: 8,
+                b8,
+                cap: 12,
+                out,
+                in_odd: false,
+                out_odd: false,
+                swap: true,
+            });
+        }
+        prog.resize(31, Op::Set { o: 47, k: F192::ZERO });
+        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        Program::from_bytecode(prog, 48)
+    }
+
+    /// The state a `KECCAK_M` over `first ‖ second` writes: Keccak-f of the 64-byte block, padded.
+    fn merkle_state(first: [F192; 2], second: [F192; 2]) -> [F192; crate::keccak::STATE_CELLS] {
+        let mut lanes = [0u64; primitives::hash::STATE_LANES];
+        for (k, c) in first.iter().chain(&second).enumerate() {
+            lanes[2 * k] = c.c0;
+            lanes[2 * k + 1] = c.c1;
+        }
+        lanes[8] = u64::from(primitives::hash::PAD_FIRST);
+        lanes[16] = primitives::hash::END_BIT;
+        primitives::hash::keccak_f(&mut lanes);
+        crate::keccak::cells_of_state(&lanes, false)
+    }
+
+    /// `KECCAK_M` hashes its pairs in the order its bit says, `m[0..2] ‖ m[2..4]` for 0 and the
+    /// other way round for 1, and the run proves and verifies.
+    #[test]
+    fn keccak_m_hashes_in_the_bit_order() {
+        let program = merkle_program([0, 1]);
+        let pi = [w(7), w(11)];
+        let exec = program.execute(pi).unwrap();
+        let (node, sibling) = (
+            [exec.mem.word(2), exec.mem.word(3)],
+            [exec.mem.word(4), exec.mem.word(5)],
+        );
+        for (out, want) in [(16, merkle_state(node, sibling)), (29, merkle_state(sibling, node))] {
+            for (c, cell) in want.iter().enumerate() {
+                assert_eq!(exec.mem.word(out + c), *cell, "state cell {c} at {out}");
+            }
+        }
+        assert_eq!(exec.rows()[crate::tables::KECCAK_TABLE], 2, "two KECCAK_M rows");
+        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        verify(&program, &pi, &proof).expect("a KECCAK_M run verifies");
+    }
+
+    /// The direction is a bit: anything else in `b8`'s low limb is no Merkle step.
+    #[test]
+    fn keccak_m_needs_a_bit() {
+        let err = merkle_program([0, 2])
+            .execute([w(7), w(11)])
+            .err()
+            .expect("the run must fail");
+        assert!(matches!(err.fault, Fault::BadMerkleStep { .. }), "{err}");
+    }
+
+    /// The order is bound: a prover that writes, for the row whose bit is 0, the state of the
+    /// other order (sibling first) has the table read the pairs at `A0 = o_m0`, `A1 = o_m1` while
+    /// the output lanes hold the swapped block's permutation, so the Keccak reduction has no
+    /// proof of it; the prover panics or errs, and a proof it did make would not verify.
+    #[test]
+    fn keccak_m_order_is_bound() {
+        let program = merkle_program([0, 1]);
+        let pi = [w(7), w(11)];
+        let forged = std::panic::catch_unwind(|| {
+            prove_with(&program, pi, crate::pcs::TEST_LOG_INV_RATE, |exec| {
+                let (node, sibling) = (
+                    [exec.mem.word(2), exec.mem.word(3)],
+                    [exec.mem.word(4), exec.mem.word(5)],
+                );
+                for (c, cell) in merkle_state(sibling, node).into_iter().enumerate() {
+                    exec.mem.set_word(16 + c, cell);
+                }
+            })
+        });
+        if let Ok(Ok((proof, _))) = forged {
+            assert!(
+                verify(&program, &pi, &proof).is_err(),
+                "a Merkle step in the wrong order verifies"
+            );
         }
     }
 

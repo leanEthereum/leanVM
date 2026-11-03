@@ -65,6 +65,7 @@ Instruction & Operands & Semantics\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\
 \texttt{KECCAK}           & $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}]$ & one Keccak permutation (see below)\\
+\texttt{KECCAK\_M}         & as \texttt{KECCAK} & a Merkle step: \texttt{KECCAK} with a direction bit in $\loc{o_{\mathit{b8}}}$ (see below)\\
 \texttt{DOT}           & $[o_x,o_p,o_w,o_{\mathit{acc}},o_{\mathit{out}}]$ & an affine form of four $\K$-lanes (see below)\\
 \hline
 \end{tabularx}
@@ -97,6 +98,10 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 \item both: cell $9\le c<13$ holds $(2c-1,2c)$.
 \end{itemize}
 The 64-bit of the cell 8 (even) or 0 (odd) (denoted $\cdot$ above) is ignored for the input and set to zero for the output.
+
+\vspace{5mm}
+
+\texttt{KECCAK\_M} (opcode $\gen^{7}$, the Merkle step) is \texttt{KECCAK} with $\mathit{odd}_{\mathit{in}}=0$ and two changes. The low limb of $\loc{o_{\mathit{b8}}}$ is a bit $s\in\{0,1\}$ rather than lane $16$, which is the last byte of Keccak-256's padding of a one-block message, $\texttt{0x80}\cdot2^{56}$. And the first four cells are read in the order $s$ selects: $\loc{o_{m_0}},\loc{o_{m_1}},\loc{o_{m_2}},\loc{o_{m_3}}$ when $s=0$, $\loc{o_{m_2}},\loc{o_{m_3}},\loc{o_{m_0}},\loc{o_{m_1}}$ when $s=1$. A level of a Merkle path is one \texttt{KECCAK\_M} over the running node and the sibling, $s$ the query's bit at that level.
 
 \vspace{5mm}
 

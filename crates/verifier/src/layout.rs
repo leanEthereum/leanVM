@@ -161,7 +161,12 @@ impl Flushes {
     }
 
     fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
-        let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
+        self.bytecode_form(pc, count, constant(gpow(opcode as u64)), operands);
+    }
+
+    /// [`Self::bytecode`] with the opcode a form: a table proving two opcodes reads the one its flag selects.
+    fn bytecode_form(&mut self, pc: usize, count: usize, opcode: Form, operands: Vec<Form>) {
+        let suffix = [vec![opcode], operands].concat();
         self.counted([constant(SEP_BYTECODE), col(pc, 0)], count, suffix);
     }
 
@@ -284,6 +289,26 @@ fn flushes_jump() -> Flushes {
     flushes
 }
 
+/// `KECCAK_M`'s identities (`tables.rs` `KeccakTable::constraint`): the flag `mk` a bit and the even layout under
+/// it; `b8` the lane its layout puts in b8's low limb on a KECCAK row; lane 16 the padding's last byte on a KECCAK_M
+/// row; the direction bit `s = mk·b8` a bit; and the offsets `a0`, `a1` the first two m cells are read at.
+fn keccak_constraints(columns: &[E]) -> Vec<E> {
+    let [o_m0, o_m1, o_m2, o_m3, in_odd] =
+        cols(KECCAK_HEAD, ["o_m0", "o_m1", "o_m2", "o_m3", "odd_in"]).map(|i| columns[i]);
+    let [mk, b8, s, a0, a1] = [KECCAK_MK, KECCAK_B8, KECCAK_S, KECCAK_A0, KECCAK_A1].map(|i| columns[i]);
+    let (v15, v16) = (columns[KECCAK_IN + 15], columns[KECCAK_IN + 16]);
+    vec![
+        mk * (mk + ONE),
+        mk * in_odd,
+        b8 + v16 + in_odd * (v16 + v15) + mk * (b8 + v16),
+        mk * (v16 + E::new(1 << 63, 0, 0)), // Keccak-256's last padding byte, 0x80, atop lane 16
+        s + mk * b8,
+        s * (s + ONE),
+        a0 + o_m0 + s * (o_m0 + o_m2),
+        a1 + o_m1 + s * (o_m1 + o_m3),
+    ]
+}
+
 fn jump_constraints(columns: &[E]) -> Vec<E> {
     let [condition, inverse, flag] = cols(JUMP_COLUMNS, ["v_cond", "w", "b"]).map(|index| columns[index]);
     vec![flag + condition * inverse, condition * (flag + ONE)]
@@ -324,16 +349,31 @@ fn flushes_keccak() -> Flushes {
     let o_m = cols(KECCAK_HEAD, ["o_m0", "o_m1", "o_m2", "o_m3"]);
     let [o_tail, o_b8, o_cap, o_out] = cols(KECCAK_HEAD, ["o_tail", "o_b8", "o_cap", "o_out"]);
     let [in_odd, out_odd] = cols(KECCAK_HEAD, ["odd_in", "odd_out"]);
+    let [mk, b8, a0, a1] = [KECCAK_MK, KECCAK_B8, KECCAK_A0, KECCAK_A1];
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
     let operands = [
         o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_b8, o_cap, o_out, in_odd, out_odd,
     ];
-    flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).to_vec());
+    // KECCAK's opcode, or KECCAK_M's (the Merkle step) when the flag `mk` is 1.
+    let opcode = Form::sum([
+        constant(gpow(OP_KECCAK as u64)),
+        col(mk, OP_KECCAK as u64),
+        col(mk, OP_KECCAK_M as u64),
+    ]);
+    flushes.bytecode_form(pc, KECCAK_CNT_BC, opcode, operands.map(|i| col(i, 0)).to_vec());
     // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
     // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
+    // The first two m cells are read at the offsets `a0`, `a1` the direction bit picks, the other two at the offsets
+    // left over; b8's low limb is the column `b8`.
     let address = |cell: usize| match cell {
-        0..4 => prod(fp, o_m[cell], 0),
+        0 => prod(fp, a0, 0),
+        1 => prod(fp, a1, 0),
+        2 | 3 => Form::sum([
+            prod(fp, [a0, a1][cell - 2], 0),
+            prod(fp, o_m[cell - 2], 0),
+            prod(fp, o_m[cell], 0),
+        ]),
         4..8 => prod(fp, o_tail, cell as u64 - 4),
         8 => prod(fp, o_b8, 0),
         _ => prod(fp, o_cap, cell as u64 - 9),
@@ -343,11 +383,12 @@ fn flushes_keccak() -> Flushes {
         let lane = |lane: Option<usize>| lane.map(|lane| lanes + lane);
         for cell in 0..KECCAK_CELLS {
             let limb = |e: Option<usize>, o: Option<usize>| layout_limb(lane(e), lane(o), flag, missing);
-            let values = [
-                limb(even[cell].0, odd[cell].0),
-                limb(even[cell].1, odd[cell].1),
-                constant(ZERO),
-            ];
+            let low = if side == 0 && cell == 8 {
+                col(b8, 0)
+            } else {
+                limb(even[cell].0, odd[cell].0)
+            };
+            let values = [low, limb(even[cell].1, odd[cell].1), constant(ZERO)];
             let at = if side == 0 {
                 address(cell)
             } else {
@@ -428,6 +469,8 @@ pub const OP_JUMP: usize = 4;
 pub const OP_KECCAK: usize = 5;
 pub const OP_DOT: usize = 6;
 pub const N_TABLES: usize = 7;
+/// `KECCAK_M`, the Merkle step: its own opcode, proven by the KECCAK table.
+pub const OP_KECCAK_M: usize = 7;
 
 #[rustfmt::skip]
 const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
@@ -446,6 +489,14 @@ pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
 const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
+// After the counts, KECCAK_M's: its flag, b8's low limb as read, the direction bit, and the offsets of the first two
+// m cells.
+const KECCAK_MK: usize = KECCAK_CNT_BC + 1;
+const KECCAK_B8: usize = KECCAK_MK + 1;
+const KECCAK_S: usize = KECCAK_B8 + 1;
+const KECCAK_A0: usize = KECCAK_S + 1;
+const KECCAK_A1: usize = KECCAK_A0 + 1;
+const KECCAK_WIDTH: usize = KECCAK_A1 + 1;
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
 /// committed columns in local order, the ones before the value lanes then the read counts
@@ -489,7 +540,7 @@ fn keccak_columns() -> Vec<String> {
     head.chain(lanes("in"))
         .chain(lanes("out"))
         .chain(counts)
-        .chain(["cnt_bc".to_string()])
+        .chain(["cnt_bc", "mk", "b8", "s", "a0", "a1"].map(String::from))
         .collect()
 }
 
@@ -502,7 +553,7 @@ pub fn tables() -> Vec<Table> {
         constraints,
     };
     let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
-    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
+    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), keccak_constraints);
     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
     let mut output = [0; STATE_LANES];
     keccak_f(&mut output);
@@ -526,7 +577,7 @@ const TABLE_WIDTHS: [usize; N_TABLES] = [
     SET_COLUMNS.len(),
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
-    KECCAK_CNT_BC + 1,
+    KECCAK_WIDTH,
     DOT_WIDTH,
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {

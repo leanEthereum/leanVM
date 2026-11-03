@@ -43,6 +43,13 @@ pub enum Op {
     /// output: block `k` of a message laid out in cells starts at cell `17k / 2`, halfway
     /// through it when `k` is odd, and the odd layout pairs the lanes as such a block's cells
     /// do. The relation is proven by the Keccak reduction ([`crate::keccak`]).
+    ///
+    /// With `swap` (opcode `KECCAK_M`, a Merkle step; even input layout only), the cell `b8`
+    /// holds a direction bit `s` in its low limb instead of lane 16, which is Keccak-256's last
+    /// padding byte for a one-block message (`hash::PAD_LAST << 56`), and the two `m` pairs are
+    /// read in the order `s` selects: `m[0], m[1]` then `m[2], m[3]` when `s = 0`, the other
+    /// way round when `s = 1`. A Merkle path's level is then this one row: the running node
+    /// and the hinted sibling hashed in the order the query bit says.
     Keccak {
         m: [u32; 4],
         tail: u32,
@@ -51,6 +58,7 @@ pub enum Op {
         out: u32,
         in_odd: bool,
         out_odd: bool,
+        swap: bool,
     },
     /// `DOT`: an affine form of `n = tables::DOT_LANES` `K`-lanes,
     /// `mem[fp·out] = mem[fp·acc] + Σ_{j<n} w_j·x_j`. The lanes are the two low limbs of the `n/2`

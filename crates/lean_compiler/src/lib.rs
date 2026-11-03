@@ -255,10 +255,16 @@ pub fn disassemble(prog: &[Op]) -> String {
                 out,
                 in_odd,
                 out_odd,
+                swap,
             } => {
                 let layout = |odd: bool| if odd { "odd" } else { "even" };
+                let (name, b8) = if *swap {
+                    ("KECCAK_M", format!("bit=fp[{b8}]"))
+                } else {
+                    ("KECCAK", format!("b8=fp[{b8}]"))
+                };
                 format!(
-                    "KECCAK fp[{out}..+13] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {}",
+                    "{name:<6} fp[{out}..+13] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], {b8}, cap=fp[{cap}..+4]) {}",
                     layout(*out_odd),
                     m[0],
                     m[1],
@@ -347,6 +353,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             c,
             in_odd,
             out_odd,
+            swap,
         } => Op::Keccak {
             m: *m,
             tail: *tail,
@@ -355,6 +362,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             out: *c,
             in_odd: *in_odd,
             out_odd: *out_odd,
+            swap: *swap,
         },
         LOp::Dot { x, p, w, acc, out } => Op::Dot {
             x: *x,

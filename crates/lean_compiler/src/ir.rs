@@ -91,6 +91,8 @@ pub(crate) enum LOp {
         c: Off,
         in_odd: bool,
         out_odd: bool,
+        /// `KECCAK_M`: `b8` holds the direction bit that orders the `m` pairs.
+        swap: bool,
     },
     /// `DOT`: `out = acc + Σ_j w_j·x_j` over the lanes of the frame cells from `x`, the weights
     /// the heap run `m[p]·g^(w+j)`.

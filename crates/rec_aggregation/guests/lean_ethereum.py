@@ -1035,20 +1035,17 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 
 @inline
 def verify_merkle_path(leaf, direction_bits, depth: Const):
-    # Hinted child pairs are hashed in order; the boolean query bit selects the
-    # child that must equal the running node, binding each link of the path.
-    path = StackBuf(LIG_PATH_CAP)
-    hint_witness(path[0:4 * depth], "merkle_children")
-    # The selected pair starts at path_ptr * g^(2*bit) = path_ptr + bit * path_step.
-    path_ptr = addr(path)
-    path_step = path_ptr * (1 + GEN ** 2)
+    # A level is one KECCAK_M: the running node and the hinted sibling, hashed in the
+    # order the boolean query bit selects (node on the left when it is 0), which binds
+    # each link of the path. The bit is read into the frame, the instruction's b8 cell.
+    siblings = StackBuf(LIG_PATH_CAP // 2)
+    hint_witness(siblings[0:2 * depth], "merkle_siblings")
     node = leaf
     for level in unroll(0, depth):
-        selected = path_ptr + direction_bits[GEN ** level] * path_step
-        selected[GEN ** (4 * level)] = node[0]
-        selected[GEN ** (4 * level + 1)] = node[1]
-        node = StackBuf(KECCAK_STATE)
-        keccak(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
+        bit = direction_bits[GEN ** level]
+        parent = StackBuf(KECCAK_STATE)
+        keccak(node[0:2], siblings[2 * level:2 * level + 2], parent, swap=bit)
+        node = parent
     return node
 
 
@@ -2276,7 +2273,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         # The table's AIR constraint at the final point (col_evals is indexed by
         # local column index; the formulas mirror tables.rs Table::constraint). Every
         # value relation now rides the bus as a degree-2 coordinate, so only JUMP's
-        # is-nonzero indicator is left with an identity of its own.
+        # is-nonzero indicator and KECCAK_M's selection are left with identities.
         constraint_eval = 0
         if t == TABLE_JUMP:
             # `b = c*w` and `c*(b+1) = 0`. The condition is K-valued, its memory read
@@ -2287,6 +2284,24 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
             b = col_evals[13]
             constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (b + c * col_evals[12])
             constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (c * (b + 1))
+        if t == TABLE_KECCAK:
+            # KECCAK_M's eight identities (tables.rs KeccakTable::constraint). Local columns:
+            # o_m0..o_m3 at 2..5, odd_in at 10, input lanes 15 and 16 at 28 and 29, and
+            # after the read counts mk, b8, s, a0, a1 at 90..94. GEN ** 63 is lane 16's
+            # padding byte 0x80.
+            mk = col_evals[90]
+            b8 = col_evals[91]
+            sb = col_evals[92]
+            odd_in = col_evals[10]
+            v16 = col_evals[29]
+            constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (mk * (mk + 1))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (mk * odd_in)
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 2] * (b8 + v16 + odd_in * (v16 + col_evals[28]) + mk * (b8 + v16))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 3] * (mk * (v16 + GEN ** 63))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 4] * (sb + mk * b8)
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 5] * (sb * (sb + 1))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 6] * (col_evals[93] + col_evals[2] + sb * (col_evals[2] + col_evals[4]))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 7] * (col_evals[94] + col_evals[3] + sb * (col_evals[3] + col_evals[5]))
         # The table's three bus forms, evaluated at the SAME column evaluations:
         # Σ_b eq_hi(b) · (γ + Σ_i α^i · coord_i), the coords read off col_evals at
         # their local index. This is what replaces opening those columns at ζ.

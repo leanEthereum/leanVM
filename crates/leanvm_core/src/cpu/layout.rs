@@ -324,6 +324,7 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
                 out,
                 in_odd,
                 out_odd,
+                swap,
             } => {
                 let [m0, m1, m2, m3] = m.map(g_at);
                 put(&[
@@ -338,7 +339,7 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
                     flag(in_odd),
                     flag(out_odd),
                 ]);
-                OP_KECCAK
+                if swap { OP_KECCAK_M } else { OP_KECCAK }
             }
             Op::Dot { x, p, w, acc, out } => {
                 put(&[g_at(x), g_at(p), g_at(w), g_at(acc), g_at(out)]);
