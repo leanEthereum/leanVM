@@ -68,9 +68,8 @@ jobs:
             !formal/lean_sphincs/.lake/packages/mathlib/.lake
           key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean') }}
           restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-
-      # Each kernel-checked table (`decide +kernel`) takes most of the runner's
-      # memory, so it is built alone, before Lake builds the rest in parallel,
-      # with some swap as margin.
+      # Every module maps Mathlib's build, which Lake's parallel jobs share; the
+      # kernel-checked certificates add little to it. The swap is margin.
       - name: Add swap
         run: |
           sudo fallocate -l 8G /swapfile.lean
@@ -82,22 +81,16 @@ jobs:
           lake-package-directory: formal/lean_sphincs
           use-github-cache: false
           build: false
-      - name: Build the kernel tables one at a time
-        working-directory: formal/lean_sphincs
-        run: |
-          for m in Sphincs.H0FTab Sphincs.H0PTab Sphincs.H0NTab Sphincs.LifetimeCertificates; do
-            lake build "$m"
-          done
       - name: Build
         working-directory: formal/lean_sphincs
         run: lake build
       - name: Check the axiom footprint
         working-directory: formal/lean_sphincs
         run: |
-          printf 'import Sphincs\n#print axioms Sphincs.Lifetimes.requestedSecurity\n' \
+          printf 'import FORS\n#print axioms FORS.h26_layered\n' \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'Sphincs.Lifetimes.requestedSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+          grep -qF "'FORS.h26_layered' depends on axioms: [propext, Classical.choice, Quot.sound]" \
             "$RUNNER_TEMP/axioms.txt"
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'

@@ -1,32 +1,28 @@
 # leanSPHINCS security in Lean 4
 
-**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](../../crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](../../doc/lean_sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
+**`FORS.h26_layered` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](../../crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](../../doc/lean_sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, up to 1,182,000,000 signatures.** [Axioms.lean](FORS/Axioms.lean) pins it to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`, and checks that no declaration of the library depends on another axiom. Every numeric certificate is checked by the kernel.
 
-The game is [StatementDet.lean](Sphincs/StatementDet.lean). A uniform 32-byte seed `S0` generates the key (`Seeded.keygenFromSeed`: the scheme seed `S = H(leanSPHINCS ‖ S0)`, then everything from `S`), and the adversary gets the public key, the random oracle and a signing oracle running the deterministic signer `Seeded.sign`. It wins if the final `Concrete.verify` accepts its pair, the pair is not one the signing oracle returned, and the signing oracle answered at most `N` requests, repeats included. `HasClassicalSecurityBitsDet 127` says that for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls on every outcome, the probability of winning is at most `q / 2^127`. The count includes every call of the experiment: key generation, the signer and the final verification. Private sampling is free, and running time and memory are unbounded.
+The statement is [Main.lean](FORS/Main.lean) and the game [Statement.lean](FORS/Statement.lean). A uniform 32-byte seed generates the key (`Seeded.keygenFromSeed`: the public parameter and every secret from the seed itself), and the adversary gets the public key, the random oracle and a signing oracle running the deterministic signer `Seeded.sign`. It wins if the final `Concrete.verify` accepts its pair, the pair is not one the signing oracle returned, and the signing oracle answered at most `N` requests, repeats included. `Secure127` says that for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls on every outcome, the probability of winning is at most `q / 2^127`. The count includes every call of the experiment: key generation, the signer and the final verification.
 
-## Lifetimes
-
-A key keeps one subtree of height `b` of the height-26 tree (`doc/lean_sphincs` explains the pruning). Each row is one theorem of [Lifetimes.lean](Sphincs/Lifetimes.lean):
-
-|  b |  signatures N | key generation, hash calls | key generation, permutations |
-| -: | ------------: | -------------------------: | ---------------------------: |
-| 26 | 1,383,000,000 |             15,166,603,265 |               15,636,365,313 |
-| 20 |    26,030,000 |                236,978,189 |                  244,318,221 |
-| 14 |       480,900 |                  3,702,809 |                    3,817,497 |
-| 13 |       247,000 |                  1,851,419 |                    1,908,763 |
-| 12 |       126,900 |                    925,725 |                      954,397 |
-| 10 |        33,490 |                    231,457 |                      238,625 |
-|  8 |         8,830 |                     57,893 |                       59,685 |
-
-The hash calls are `226 · 2^b + 2 (26 − b) + 1` (`Security.Prefix.hashCalls_keygenFromSeed`): the scheme seed, then per one-time key 32 derivations of chain starts, 192 chain steps and the leaf, then the `2^b − 1` nodes of the subtree, the `26 − b` surrogate siblings, the `26 − b` nodes above the subtree and the public parameter. In permutations of the leanVM hash, one per 136-byte block, the last holding the padding, a one-time leaf hashes 1,056 bytes and costs 8 and the scheme seed's 43 bytes cost 1, so the total is `233 · 2^b + 2 (26 − b) + 1`.
-
-Also proved: for every hash function and every subtree height, a signature the signer returns verifies (`Completeness.correct`), a signature serializes to 4,276 bytes (`signature_size`), and an accepted verification costs exactly 267 permutations of the leanVM hash, one per 136-byte block, the last holding the padding, and no signature more (`Cost.verification_permutations`, `Cost.verification_permutations_le`), which is `lean_sphincs::VERIFY_PERMUTATIONS`.
+Also proved: a signature the signer returns verifies (`Completeness.correct`), a signature serializes to 7,740 bytes (`Configurations.size_h26_layered_k24`), and an accepted verification costs exactly 492 Keccak-f permutations (`Configurations.keccak256_h26_layered_k24`), which are `lean_sphincs::SIG_SIZE` and `lean_sphincs::VERIFY_PERMUTATIONS`.
 
 ## The model and the Rust code
 
-[Scheme.lean](Sphincs/Scheme.lean) is the functional model. Its bytes are the crate's: the scheme seed `S = H(leanSPHINCS ‖ S0)` (`schemeSeedInput`, 43 bytes), the 16-byte address and every hash domain, the seed derivations (two chain starts per hash), the randomizer base `R0 = Th(P, A(7, 0, 0), S ‖ m)` and the attempts `R0 + i`, the 234-bit message digest and its field offsets, the codeword table (`codewordCodes`, the rule of `doc/lean_sphincs`), the kept subtree (the first 8 bytes of `P` mod `2^(26−b)`), the 2^32 bounds on randomizer and counter attempts, and the serialization. This was checked by reading both sides; it is not a mechanized refinement of the Rust.
+[Scheme.lean](FORS/Scheme.lean) is the functional model, generic in `Params` (the height, the layers, the FORS shape and the signature limit) and instantiated at `.layered 26 3 8 24 10 1182000000`: three layers of 10 + 8 + 8, FORS of 24 trees of height 10. Its bytes are the crate's: the 16-byte address with its layer and tree, every hash domain, the seed derivations (two secrets per hash), the randomizer `R = Th(P, A(7), S ‖ m)`, the two digest calls and the field offsets, the FORS addresses, the encodings with their counter last, the `2^32` bound on counters, and the serialization. This was checked by reading both sides and by the crate's known-answer test; it is not a mechanized refinement of the Rust.
 
-The two signers compute the same signature, but not with the same hash calls. The Lean signer recomputes the forest for its key and again for the opening, and hashes the digest once more after its loop, where the Rust signer reuses what it computed. The budget `q` of the theorem counts the calls of the Lean signer.
+The model's signer is written for every shape: it also derives a step from the second half of the randomizer hash and tries `R`, `R + step`, ... until the index lands in a kept subtree. A layered key keeps every index, so it signs at `R`, as the crate does. The two signers compute the same signature but not with the same hash calls: the Lean signer recomputes what the Rust signer reuses, and the budget `q` counts the calls of the Lean signer.
+
+## The proof
+
+| Modules | What they do |
+| --- | --- |
+| [Scheme/](FORS/Scheme) | the model's lemmas: bytes and domains, the digest, the layout, correctness, verification costs |
+| [Seed/](FORS/Seed), [Reduction/](FORS/Reduction) | the seed eliminated from the game, the oracle internalized |
+| [ScanSigner/](FORS/ScanSigner), [GraphView/](FORS/GraphView), [LazyRun/](FORS/LazyRun) | the signer's hash calls, their cost, and the run sampled lazily |
+| [Classification/](FORS/Classification) | what an accepted forgery must contain |
+| [SmallBudget/](FORS/SmallBudget), [LargeBudget/](FORS/LargeBudget) | the two routes, for small and for large query budgets |
+| [CoverBound/](FORS/CoverBound), [CoverPotential/](FORS/CoverPotential), [Base/](FORS/Base) | the bound on covering every FORS tree, and the potentials |
+| [Certificates/](FORS/Certificates), [Lifetimes.lean](FORS/Lifetimes.lean) | the kernel-checked certificates of this configuration (`decide +kernel`), and the theorem they give |
 
 ## Build
 
@@ -35,15 +31,3 @@ cd formal/lean_sphincs
 lake exe cache get
 lake build
 ```
-
-[PROOF.md](PROOF.md) describes the route, the codeword table, the hash inputs, the signer's hash-call counts, and the scripts that generate the kernel-checked certificates.
-
-## Libraries
-
-| Library                    | What it is                                                                                                                                                                                                                                |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Sphincs](Sphincs)         | The scheme and its proof.                                                                                                                                                                                                                 |
-| [SphincsFors](SphincsFors) | The modules of the proof of the FORS variant of leanSPHINCS that `Sphincs` imports.                                                                                                                                                       |
-| [SphincsBase](SphincsBase) | The modules that `Sphincs` and `SphincsFors` import from the candidates' copy of the proof of leanVM's earlier leanSPHINCS instance (whose hash domains it renumbers): scheme-independent tooling (uniform tables, query caps, chain bounds). |
-
-The three come from [leanXMSS-leanSPHINCS-candidates](https://github.com/TomWambsgans/leanXMSS-leanSPHINCS-candidates/tree/134a0b638a3a5041f5abdebaed72569ed560619d/formal/sphincs) at commit `134a0b6`, where they are named `LeanForest`, `LeanSphincs` and `SphincsSecurity` and where the rest of the FORS proof is. Only the modules `Sphincs` reaches are here, renamed and otherwise unchanged but for the scheme seed `S = H(leanSPHINCS ‖ S0)` (`BridgeSchemeSeed.lean` and the key generation it reaches), for the doc comments of `VerificationCost.lean`, and for a doc comment of `Lifetimes.lean`, of `LifetimeCertificates.lean` and of the script that writes it.
