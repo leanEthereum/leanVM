@@ -2,21 +2,21 @@
 //! <https://ethresear.ch/t/leanda-design-and-benchmark/25642>.
 //!
 //! Each payload row contains `k` symbols, systematically encoded to `m = 2k`
-//! evaluations on an additive domain. The row branch commits to the first `k`
-//! evaluations, which are the original payload; the column branch authenticates
-//! sampled cells. A row belongs to the code iff it is orthogonal to the commitment's
+//! evaluations on an additive domain. Each encoded row, a blob, has a Merkle root
+//! over its cell digests, and the commitment is the Merkle root over the blob roots.
+//! A row belongs to the code iff it is orthogonal to the commitment's
 //! [`membership_vector`], with high probability over the Fiat-Shamir challenges.
-//! The aggregation guest proves this check together with both commitment branches.
+//! The aggregation guest proves this check together with the commitment.
 //!
-//! Row and cell widths are powers of two. Trees pad the row count with zero rows.
-//! A root binds this padded matrix, not the original row count: a trailing zero
-//! row is indistinguishable from padding within the same padded height.
+//! Row and cell widths are powers of two. The tree over the blob roots pads the row
+//! count with zero rows. A root binds this padded matrix, not the original row count:
+//! a trailing zero row is indistinguishable from padding within the same padded height.
 
 mod commit;
 mod encode;
 mod membership;
 
-pub use commit::{DaCommitment, DaWitness, commit, commit_codewords, padding_digests};
+pub use commit::{DaWitness, commit, commit_codewords, padding_root};
 pub use encode::encode_rows;
 pub use membership::{dual_codeword, membership_challenges, membership_vector, vector_digest};
 
@@ -35,7 +35,6 @@ pub const CODEWORD_SYMBOLS: usize = 2 * BLOB_SYMBOLS;
 pub const CELL_SYMBOLS: usize = 1 << DA_LOG_CELL;
 /// Sampling cells in one encoded blob.
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
-const PAYLOAD_CELLS: usize = BLOB_SYMBOLS / CELL_SYMBOLS;
 const LOG_M: usize = DA_LOG_K + 1;
 
 fn row_count(symbols: usize, width: usize) -> usize {

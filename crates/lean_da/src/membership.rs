@@ -28,8 +28,8 @@ const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
 /// `z_0 … z_{log k - 1}`, bound to the commitment.
 ///
-/// The matrix root binds both commitment branches. The vector hash is not observed,
-/// avoiding a circular dependency between the challenges and the vector.
+/// The root binds the whole matrix. The vector hash is not observed, avoiding a
+/// circular dependency between the challenges and the vector.
 pub fn membership_challenges(root: &[u8; 32]) -> Vec<F192> {
     let mut fs = FiatShamirState::from_label(LABEL);
     for scalar in hash_to_scalars(root) {
@@ -85,14 +85,14 @@ pub fn dual_codeword(z: &[F192]) -> Vec<F192> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::BLOB_SYMBOLS;
     use crate::encode_rows;
-    use crate::{BLOB_SYMBOLS, DaCommitment};
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
     /// Draw challenges from the commitment and test every row for membership.
     /// The caller must separately bind `codewords` to the commitment.
-    fn check_membership(commitment: &DaCommitment, codewords: &[u64]) -> bool {
-        let dual = membership_vector(&commitment.root);
+    fn check_membership(root: &[u8; 32], codewords: &[u64]) -> bool {
+        let dual = membership_vector(root);
         codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
             let residual = dual
                 .iter()
@@ -162,17 +162,17 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(11);
         let rows = random_rows(&mut rng, n_rows * BLOB_SYMBOLS);
         let codewords = encode_rows(&rows);
-        let (commitment, _) = crate::commit_codewords(codewords.clone());
+        let (root, _) = crate::commit_codewords(codewords.clone());
 
-        assert!(check_membership(&commitment, &codewords));
+        assert!(check_membership(&root, &codewords));
 
         for &position in &[0usize, 1, BLOB_SYMBOLS - 1, BLOB_SYMBOLS, CODEWORD_SYMBOLS - 1] {
             let mut corrupted = codewords.clone();
             let index = 3 * CODEWORD_SYMBOLS + position;
             corrupted[index] ^= 1;
-            let (corrupted_commitment, _) = crate::commit_codewords(corrupted.clone());
+            let (corrupted_root, _) = crate::commit_codewords(corrupted.clone());
             assert!(
-                !check_membership(&corrupted_commitment, &corrupted),
+                !check_membership(&corrupted_root, &corrupted),
                 "a flip at {position} passed the membership check"
             );
         }
@@ -191,8 +191,8 @@ mod tests {
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
         ntt.encode_interleaved_in_place(crate::encode::as_field_mut(&mut full), 1, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);
-        let (commitment, _) = crate::commit_codewords(codewords.clone());
+        let (root, _) = crate::commit_codewords(codewords.clone());
 
-        assert!(!check_membership(&commitment, &codewords));
+        assert!(!check_membership(&root, &codewords));
     }
 }

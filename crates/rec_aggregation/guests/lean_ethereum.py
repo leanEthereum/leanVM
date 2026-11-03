@@ -453,23 +453,22 @@ MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 # ---------------------------------- LeanDA ------------------------------------------
 # Blob and cell widths are fixed. The row count is hinted and bounded by DA_MAX_ROWS;
-# the Merkle trees dispatch on the checked log of its padded value.
+# the tree over the blob roots dispatches on the checked log of its padded value.
 DA_LOG_K = DA_LOG_K_PLACEHOLDER
 DA_LOG_CELL = DA_LOG_CELL_PLACEHOLDER
 DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
 DA_LOG_MAX_ROWS = DA_LOG_MAX_ROWS_PLACEHOLDER
-DA_PAD_CELL_0 = DA_PAD_CELL_0_PLACEHOLDER
-DA_PAD_CELL_1 = DA_PAD_CELL_1_PLACEHOLDER
-DA_PAD_ROW_0 = DA_PAD_ROW_0_PLACEHOLDER
-DA_PAD_ROW_1 = DA_PAD_ROW_1_PLACEHOLDER
+DA_PAD_BLOB_0 = DA_PAD_BLOB_0_PLACEHOLDER
+DA_PAD_BLOB_1 = DA_PAD_BLOB_1_PLACEHOLDER
 
 DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
 DA_BLOCK_BITS = DA_LOG_K + 1 - DA_LOG_CELL      # log of the cells per row
 DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
-DA_PREFIX_CELLS = 2 ** (DA_LOG_K - DA_LOG_CELL)    # cells in the first half
 DA_PACKED = DA_CELL // 2                        # packed 128-bit cells in one cell
 DA_WEIGHT_CELLS = 3 * DA_CELL // 2              # packed cells of one cell's weights
 DA_TREE_ARMS = DA_LOG_MAX_ROWS + 1              # tree depths the row count can dispatch to
+DA_SUM = 4 * DA_CELLS                           # where a blob's running sum starts, past its tree
+DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
 
 # =================================== field packing ==================================
 # Serializing a word means exposing its three K limbs, and the tower representation
@@ -3913,68 +3912,47 @@ def child_claim_list_last(state, entries_ptr, cover, marks, origin_g, limit_g, k
 
 
 def da_verify(g_squares):
-    # Returns the matrix root and membership-vector hash, two canonical cells each.
-    # The row count is a run-time parameter. The trees need a compile-time depth,
-    # so the rows are padded to a power of two and the two `match`es below dispatch
-    # on its log; everything else walks the real rows only. A padding row is the
-    # zero codeword, so its cell digest and its row digest are constants, and the
-    # gap loop writes them without hashing anything.
+    # Returns the commitment root and membership-vector hash, two canonical cells each.
+    # Only the tree over the blob roots walks the padded count; a padding blob's root
+    # is a constant, which the gap loop writes without hashing anything.
     shape = StackBuf(2)
     hint_witness(shape, "da_shape")  # n_blob, then log2 of the padded count
     n_blob_g = shape[0]
     g_log_pad = shape[1]
     n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
 
-    prefix_digests = HeapBuf(n_pad_g ** (2 * DA_PREFIX_CELLS))
-    prefix_bases = HeapBuf(n_blob_g)
-    for xi in mul_range(1, n_blob_g):
-        prefix_bases[xi] = prefix_digests * (xi ** (2 * DA_PREFIX_CELLS))
-
     # The membership vector's hash: the hash of its columns' hashes, two cells a
     # column.
     column_digests = HeapBuf(2 * DA_CELLS)
 
-    # Each row's running sum uses a fresh write-once cell per column.
-    acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
+    # A blob's region: its tree, then its running sum, a fresh write-once cell per column.
+    blobs = HeapBuf(n_blob_g ** DA_REGION)
     rowbase = HeapBuf(n_blob_g)
     for xi in mul_range(1, n_blob_g):
-        chain = acc * (xi ** (DA_CELLS + 1))
-        rowbase[xi] = chain
-        chain[1] = 0
+        base = blobs * (xi ** DA_REGION)
+        rowbase[xi] = base
+        base[GEN ** DA_SUM] = 0
 
-    # Prefix blocks first, so the digests the row branch needs are stored by a
-    # loop that knows it is inside the prefix, with no per-block branch.
-    coltree = HeapBuf(4 * DA_CELLS)
-    for xb in mul_range(1, GEN ** DA_PREFIX_CELLS):
-        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, 1)
-    for xb in mul_range(GEN ** DA_PREFIX_CELLS, GEN ** DA_CELLS):
-        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, 0)
+    for xb in mul_range(1, GEN ** DA_CELLS):
+        da_verify_column(xb, n_blob_g, rowbase, column_digests)
 
+    roots = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
-        chain = rowbase[xi]
-        assert chain[GEN ** DA_CELLS] == 0
-    rc0, rc1 = da_levels(coltree, DA_CELLS, DA_BLOCK_BITS)
-
-    # The row branch: each row's prefix digests, hashed as one string.
-    rowtree = HeapBuf(n_pad_g ** 4)
-    for xi in mul_range(1, n_blob_g):
-        run = prefix_bases[xi]
-        st = StackBuf(KECCAK_STATE)
-        keccak_cells(run[0:2 * DA_PREFIX_CELLS], st)
-        slot = rowtree * (xi ** 2)
-        slot[1] = st[0]
-        slot[GEN] = st[1]
+        base = rowbase[xi]
+        assert base[GEN ** (DA_SUM + DA_CELLS)] == 0
+        b0, b1 = da_levels(base, DA_CELLS, DA_BLOCK_BITS)
+        slot = roots * (xi ** 2)
+        slot[1] = b0
+        slot[GEN] = b1
     for xd in mul_range(1, gap_g):
-        pad = rowtree * (n_blob_g ** 2) * (xd ** 2)
-        pad[1] = DA_PAD_ROW_0
-        pad[GEN] = DA_PAD_ROW_1
-    rr0, rr1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(rowtree, 2 ** k, k))
+        pad = roots * (n_blob_g ** 2) * (xd ** 2)
+        pad[1] = DA_PAD_BLOB_0
+        pad[GEN] = DA_PAD_BLOB_1
+    r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(roots, 2 ** k, k))
 
-    root = StackBuf(KECCAK_STATE)
-    keccak([rr0, rr1], [rc0, rc1], root)
     vector = StackBuf(KECCAK_STATE)
     keccak_cells(column_digests[0:2 * DA_CELLS], vector)
-    return root[0], root[1], vector[0], vector[1]
+    return r0, r1, vector[0], vector[1]
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -3989,28 +3967,19 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
     return n_pad_g, gap_g
 
 
-def da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, store: Const):
-    lvals = da_vector_cell(column_digests * (xb * xb))
-    node = HeapBuf(n_pad_g ** 4)
+def da_verify_column(xb, n_blob_g, rowbase, column_digests):
+    # Column log(xb) of every blob: a cell's digest is leaf log(xb) of its blob's tree,
+    # and its inner product with the column's weights joins its blob's running sum.
+    xb2 = xb * xb
+    lvals = da_vector_cell(column_digests * xb2)
     for xi in mul_range(1, n_blob_g):
         d0, d1, s = da_verify_cell(lvals)
-        chain = rowbase[xi] * xb
-        chain[GEN] = chain[1] + s
-        leaf = node * (xi ** 2)
+        base = rowbase[xi]
+        chain = base * xb
+        chain[GEN ** (DA_SUM + 1)] = chain[GEN ** DA_SUM] + s
+        leaf = base * xb2
         leaf[1] = d0
         leaf[GEN] = d1
-        if const(store == 1):
-            slot = prefix_bases[xi] * (xb * xb)
-            slot[1] = d0
-            slot[GEN] = d1
-    for xd in mul_range(1, gap_g):
-        pad = node * (n_blob_g ** 2) * (xd ** 2)
-        pad[1] = DA_PAD_CELL_0
-        pad[GEN] = DA_PAD_CELL_1
-    c0, c1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(node, 2 ** k, k))
-    out = coltree * (xb * xb)
-    out[1] = c0
-    out[GEN] = c1
     return
 
 

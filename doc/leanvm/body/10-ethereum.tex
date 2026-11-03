@@ -47,7 +47,7 @@ A node with $n$ children combines the claim each child carries with the new clai
 
 Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. An approach using leanVM was introduced in \href{https://frisitano.github.io/slides/presentations/leanvm-fold-in-circuit-das-2026-05-08/index.html}{Risitano's presentation} and developed in LeanDA~\cite{LeanDA} by Meng, Wagner, Kadianakis and Risitano: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal security proof can be found in \cite{LeanDASecurity}.
 
-Our construction uses Keccak-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
+Our construction uses Keccak-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different commitment (\S\ref{sec:da-commit}) and codeword membership test (\S\ref{sec:da-membership}) from LeanDA's. The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
 
 \subsubsection{The commitment}\label{sec:da-commit}
@@ -70,12 +70,7 @@ $\nblob$ & $1$ to $1024$ & dynamic parameter\\
 \end{center}
 Zero codewords pad the row count to the next power of two. The root binds this padded matrix.
 
-Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. The same cell digests feed two branches:
-\begin{itemize}[itemsep=1pt,topsep=3pt]
-\item \textbf{Row branch.} Hash the first $\kdim/\cellsz$ cell digests of each row into $r_i$, then Merkle-commit these row digests into $\darow$.
-\item \textbf{Column branch.} Merkle-commit each column of cell digests into $C_j$, then Merkle-commit the column roots into $\dacol$.
-\end{itemize}
-The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See \cite{LeanDA} for details.
+Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. Each row has a Merkle tree of its own: its leaves are $e_{i,0},\ldots,e_{i,127}$, each inner node is the hash of its two children, and its root is $\dablob{i}$. The left child of $\dablob{i}$ covers the first $\kdim/\cellsz$ cells, the original blob. The commitment $\daroot$ is the root of the Merkle tree whose leaves are the row roots of the padded matrix, each padding row having the zero codeword's root (Figure~\ref{fig:da-hashing}). A sampled cell is authenticated by its path to its row's root, then that root's path to $\daroot$.
 
 \begin{figure}[htbp]
 \centering
@@ -83,9 +78,9 @@ The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See
   font=\footnotesize,
   >={Stealth[length=1.5mm]},
   edge/.style={semithick,draw=black!65},
-  rowedge/.style={semithick,draw=blue!65!black},
+  blobedge/.style={semithick,draw=blue!65!black},
   digest/.style={circle,fill=black!65,inner sep=1.5pt},
-  rowdigest/.style={circle,fill=blue!65!black,inner sep=1.5pt}
+  blobdigest/.style={circle,fill=blue!65!black,inner sep=1.5pt}
 ]
 \node[anchor=west,font=\small\bfseries] at (0,1.3) {Encoded blobs: one row per blob, $128$ cells per row};
 \node[blue!65!black] at (2,0.75) {First $64$ cells};
@@ -105,50 +100,38 @@ The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See
       \node at (\j+0.5,-\i*0.65-0.325) {$e_{\i,\label}$};
     \fi\fi
   }
-  \node[rowdigest,label=above:{$r_\i$}] (row\i) at (-0.9,-\i*0.65-0.325) {};
-  \draw[rowedge,->] (0,-\i*0.65-0.325) -- (row\i);
+  \node[inner sep=1pt] (row\i) at (-0.75,-\i*0.65-0.325) {$\dablob{\i}$};
+  \draw[edge,->] (0,-\i*0.65-0.325) -- (row\i);
 }
 \draw[blue!65!black,thick] (0,0) rectangle (4,-2.6);
-\draw[orange!85!black,thick] (1,0) rectangle (2,-2.6);
-\node[align=center,blue!65!black] at (-1.8,0.75) {$r_i=H(e_{i,0},\ldots,e_{i,63})$};
-\node[rowdigest] (row01) at (-1.8,-0.65) {};
-\node[rowdigest] (row23) at (-1.8,-1.95) {};
-\node[rowdigest,label=above:{$\darow$}] (rowroot) at (-2.9,-1.3) {};
-\draw[rowedge] (row0) -- (row01) -- (row1);
-\draw[rowedge] (row2) -- (row23) -- (row3);
-\draw[rowedge] (row01) -- (rowroot) -- (row23);
-\node[align=center] at (5,-3.05) {Each rectangle: one $2$ KiB cell, labelled by\\its digest $e_{i,j}=H(\text{cell}_{i,j})$.};
+\draw[orange!85!black,thick] (0,-1.95) rectangle (8,-2.6);
+\node[digest] (row01) at (-1.9,-0.65) {};
+\node[digest] (row23) at (-1.9,-1.95) {};
+\node[digest,label=left:{$\daroot$}] (root) at (-2.8,-1.3) {};
+\draw[edge] (row0.west) -- (row01) -- (row1.west);
+\draw[edge] (row2.west) -- (row23) -- (row3.west);
+\draw[edge] (row01) -- (root) -- (row23);
+\node[align=center] at (4,-3.05) {Each rectangle: one $2$ KiB cell, labelled by\\its digest $e_{i,j}=H(\text{cell}_{i,j})$.};
 
-\draw[orange!85!black,dashed,->] (1.5,-2.6) -- (1.5,-3.65);
-\node[anchor=west,font=\small\bfseries] at (-0.3,-4) {Expand column $1$};
-\node[anchor=west] at (3.1,-4) {The same tree is built for every column.};
-\foreach \i in {0,1,2,3} {
-  \node[draw=orange!85!black,fill=orange!8,minimum width=1.05cm,minimum height=0.45cm] (colleaf\i) at (\i*1.6,-4.65) {$e_{\i,1}$};
+\node[anchor=west,font=\small\bfseries,orange!85!black] at (-0.3,-3.85) {Expand row $3$};
+\node[anchor=west] at (2.6,-3.85) {The same tree is built for every row.};
+\foreach \x/\label/\fill in {0.6/0/blue!8,2.2/1/blue!8,5.8/126/white,7.4/127/white} {
+  \node[draw=orange!85!black,fill=\fill,minimum width=1.05cm,minimum height=0.45cm] (leaf\label) at (\x,-4.6) {$e_{3,\label}$};
 }
-\node[digest] (col01) at (0.8,-5.4) {};
-\node[digest] (col23) at (4,-5.4) {};
-\node[digest,label=below right:{$C_1$}] (col1) at (2.4,-6.15) {};
-\draw[edge] (colleaf0) -- (col01) -- (colleaf1);
-\draw[edge] (colleaf2) -- (col23) -- (colleaf3);
-\draw[edge] (col01) -- (col1) -- (col23);
-
-\node[digest,label=above:{$C_0$}] (col0) at (0.4,-6.15) {};
-\node[digest,label=above:{$C_{126}$}] (col126) at (6.4,-6.15) {};
-\node[digest,label=above:{$C_{127}$}] (col127) at (8.4,-6.15) {};
-\node at (4.4,-6.15) {$\cdots$};
-\node[digest] (cols01) at (1.4,-6.9) {};
-\node[digest] (cols126127) at (7.4,-6.9) {};
-\draw[edge] (col0) -- (cols01) -- (col1);
-\draw[edge] (col126) -- (cols126127) -- (col127);
-\node[digest,label=below:{$\dacol$}] (colroot) at (4.4,-8.2) {};
-\draw[edge,dashed] (cols01) -- (colroot) -- (cols126127);
-\node[fill=white,inner sep=3pt] at (4.4,-7.35) {Merkle tree over all $128$ column roots};
-
-\node[draw,rounded corners=2pt,fill=black!4,inner sep=5pt] (root) at (0.5,-9.35) {$\daroot=H(\darow,\dacol)$};
-\draw[rowedge,->] (rowroot) -- (-2.9,-9.35) -- (root.west);
-\draw[edge,->] (colroot) -- (4.9,-8.2) |- (root.east);
+\node at (4,-4.6) {$\cdots$};
+\node[blobdigest] (low) at (1.4,-5.35) {};
+\node[digest] (high) at (6.6,-5.35) {};
+\draw[blobedge] (leaf0) -- (low) -- (leaf1);
+\draw[edge] (leaf126) -- (high) -- (leaf127);
+\node[blobdigest,label={[blue!65!black]below left:{the first $64$ cells}}] (blob) at (2.6,-6.1) {};
+\node[digest,label=below right:{the remaining $64$ cells}] (redundancy) at (5.4,-6.1) {};
+\draw[blobedge,dashed] (low) -- (blob);
+\draw[edge,dashed] (high) -- (redundancy);
+\node[digest,label=below:{$\dablob{3}$}] (row) at (4,-6.85) {};
+\draw[blobedge] (blob) -- (row);
+\draw[edge] (redundancy) -- (row);
 \end{tikzpicture}
-\caption{Example of encoding of 4 blobs.}
+\caption{The commitment to 4 encoded blobs.}
 \label{fig:da-hashing}
 \end{figure}
 

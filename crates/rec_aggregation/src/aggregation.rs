@@ -1674,7 +1674,7 @@ pub fn aggregate_with_stats(
         let _span = tracing::info_span!("LeanDA commit").entered();
         lean_da::commit(blobs)
     });
-    let direct_root = direct.as_ref().map(|(commitment, _)| commitment.root);
+    let direct_root = direct.as_ref().map(|&(commitment, _)| commitment);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
         return Err(AggregationError::BlobsUnpublished);
     }
@@ -1842,8 +1842,8 @@ pub fn aggregate_with_stats(
     let mut da = child_da.get(da_pick).copied().unwrap_or_default();
     if let Some((commitment, witness)) = direct {
         let n_rows = blobs.len() / BLOB_SYMBOLS;
-        let vector = lean_da::membership_vector(&commitment.root);
-        da = root_vector_digest(&commitment.root, &vector);
+        let vector = lean_da::membership_vector(&commitment);
+        da = root_vector_digest(&commitment, &vector);
         for block in vector.as_chunks::<CELL_SYMBOLS>().0 {
             hints.push("da_weights", block.to_vec());
         }
@@ -2520,16 +2520,13 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     );
 
     // ---- LeanDA (`doc/leanvm` §sec:leanda) ----
-    let (pad_cell, pad_row) = lean_da::padding_digests();
-    let (pad_cell, pad_row) = (pack_hash_state(&pad_cell), pack_hash_state(&pad_row));
+    let pad_blob = pack_hash_state(&lean_da::padding_root());
     ps("DA_LOG_K", DA_LOG_K.to_string());
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
-    ps("DA_PAD_CELL_0", f192_literal(pad_cell[0]));
-    ps("DA_PAD_CELL_1", f192_literal(pad_cell[1]));
-    ps("DA_PAD_ROW_0", f192_literal(pad_row[0]));
-    ps("DA_PAD_ROW_1", f192_literal(pad_row[1]));
+    ps("DA_PAD_BLOB_0", f192_literal(pad_blob[0]));
+    ps("DA_PAD_BLOB_1", f192_literal(pad_blob[1]));
     let defer_cells = kbc + log2_bc_cols + 1;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
     let pairs = defer_cells.div_ceil(2);
@@ -3114,11 +3111,11 @@ def main():
         let (commitment, _) = lean_da::commit(&rows);
         assert_eq!(
             node.da_commitment(),
-            Some(commitment.root),
+            Some(commitment),
             "the guest committed to something else"
         );
         let received = EthereumProof::from_bytes(&node.to_bytes()).unwrap();
-        assert_eq!(received.da_commitment(), Some(commitment.root));
+        assert_eq!(received.da_commitment(), Some(commitment));
         received.verify().unwrap();
     }
 
@@ -3181,7 +3178,7 @@ def main():
         assert_eq!(pass_on(Some(Some(second)), &[]), Some(second));
         assert_eq!(pass_on(Some(None), &[]), None);
         let rows = da_rows(1, 511);
-        assert_eq!(pass_on(None, &rows), Some(lean_da::commit(&rows).0.root));
+        assert_eq!(pass_on(None, &rows), Some(lean_da::commit(&rows).0));
 
         // Passed on again, one level up.
         let middle = aggregate(&children[1..], vec![], vec![], &[], None, LOG_INV_RATE).unwrap();
@@ -3296,15 +3293,12 @@ def main():
                     );
                 }
             }
-            for block in lean_da::membership_vector(&commitment.root)
-                .as_chunks::<CELL_SYMBOLS>()
-                .0
-            {
+            for block in lean_da::membership_vector(&commitment).as_chunks::<CELL_SYMBOLS>().0 {
                 hints.push("da_weights", block.to_vec());
             }
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&da_digest(Some(commitment.root))))
+            program.execute(pack_hash_state(&da_digest(Some(commitment))))
         };
         assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
         for position in [0, BLOB_SYMBOLS + 5] {
@@ -3347,7 +3341,7 @@ def main():
                 aggregate(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
             node.verify().expect("node verifies");
             let (commitment, _) = lean_da::commit(&rows);
-            assert_eq!(node.da_root, Some(commitment.root), "{n_rows} rows");
+            assert_eq!(node.da_root, Some(commitment), "{n_rows} rows");
         }
     }
 
