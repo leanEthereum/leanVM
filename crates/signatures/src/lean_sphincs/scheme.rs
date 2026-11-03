@@ -73,13 +73,11 @@ impl LeanSphincsSecretKey {
 }
 
 /// What a signature carries for one layer: the one-time signature of what the
-/// layer below gives, and the key's path in its tree.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// layer below gives. Its key's path is in [`LeanSphincsSignature::paths`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LayerSignature {
     pub counter: u32,
     pub wots: [Digest; V],
-    /// From the leaf up, as long as the layer's height.
-    pub path: Vec<Digest>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -88,17 +86,21 @@ pub struct LeanSphincsSignature {
     pub fors: ForsOpening,
     /// Bottom first.
     pub layers: [LayerSignature; LAYERS],
+    /// The layers' paths one after the other, bottom first ([`Self::path`]).
+    pub paths: [Digest; H],
 }
 
 impl LeanSphincsSignature {
+    /// Layer `layer`'s path in its tree, from the leaf up.
+    pub fn path(&self, layer: usize) -> &[Digest] {
+        let start: usize = LAYER_HEIGHTS[..layer].iter().sum();
+        &self.paths[start..start + LAYER_HEIGHTS[layer]]
+    }
+
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes: the
-    /// randomizer, the FORS openings, then the layers from the bottom up.
-    /// Panics if a path does not have its layer's height.
+    /// randomizer, the FORS openings, then each layer from the bottom up, its
+    /// counter, chain values and path.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
-        assert!(
-            (0..LAYERS).all(|layer| self.layers[layer].path.len() == LAYER_HEIGHTS[layer]),
-            "a path does not have its layer's height"
-        );
         let mut out = [0; SIG_SIZE];
         let mut at = 0;
         let mut put = |bytes: &[u8]| {
@@ -110,10 +112,10 @@ impl LeanSphincsSignature {
             put(&tree.secret);
             put(tree.path.as_flattened());
         }
-        for layer in &self.layers {
-            put(&layer.counter.to_le_bytes());
-            put(layer.wots.as_flattened());
-            put(layer.path.as_flattened());
+        for (layer, signed) in self.layers.iter().enumerate() {
+            put(&signed.counter.to_le_bytes());
+            put(signed.wots.as_flattened());
+            put(self.path(layer).as_flattened());
         }
         debug_assert_eq!(at, SIG_SIZE);
         out
@@ -130,16 +132,25 @@ impl LeanSphincsSignature {
             secret: take(N).try_into().unwrap(),
             path: std::array::from_fn(|_| take(N).try_into().unwrap()),
         });
-        let layers = std::array::from_fn(|layer| LayerSignature {
-            counter: u32::from_le_bytes(take(COUNTER_LEN).try_into().unwrap()),
-            wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
-            path: (0..LAYER_HEIGHTS[layer]).map(|_| take(N).try_into().unwrap()).collect(),
+        let mut paths = [[0; N]; H];
+        let mut start = 0;
+        let layers = std::array::from_fn(|layer| {
+            let signed = LayerSignature {
+                counter: u32::from_le_bytes(take(COUNTER_LEN).try_into().unwrap()),
+                wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
+            };
+            for node in &mut paths[start..start + LAYER_HEIGHTS[layer]] {
+                *node = take(N).try_into().unwrap();
+            }
+            start += LAYER_HEIGHTS[layer];
+            signed
         });
         debug_assert_eq!(at, SIG_SIZE);
         Self {
             randomizer,
             fors,
             layers,
+            paths,
         }
     }
 }
@@ -152,8 +163,6 @@ pub enum LeanSphincsSignError {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LeanSphincsVerifyError {
-    /// A path has the wrong length for its layer.
-    Malformed,
     /// The counter does not encode what the layer signs.
     InadmissibleEncoding(usize),
     RootMismatch,
@@ -174,7 +183,6 @@ impl std::error::Error for LeanSphincsSignError {}
 impl std::fmt::Display for LeanSphincsVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Malformed => write!(f, "a path does not have its layer's height"),
             Self::InadmissibleEncoding(layer) => {
                 write!(f, "the counter of layer {layer} does not encode what it signs")
             }
@@ -262,13 +270,6 @@ fn tree_levels(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Vec<Vec<D
     merkle_levels(leaves, height, |level, j, pair| node(pp, key, level, j, pair))
 }
 
-/// The path of `key`'s leaf in the tree whose `levels` these are.
-fn path(levels: &[Vec<Digest>], key: &OtsKey) -> Vec<Digest> {
-    (0..levels.len() - 1)
-        .map(|level| levels[level][(key.leaf as usize >> level) ^ 1])
-        .collect()
-}
-
 /// `Gen`, deterministic: the seed derives the public parameter, and the top tree
 /// gives the root.
 pub fn key_gen_from_seed(seed: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
@@ -312,6 +313,7 @@ pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsS
     let (fors_key, fors) = fors_open(pp, seed, idx as u32, &leaves);
     let mut signed = fors_key_bytes(&fors_key).to_vec();
     let mut layers = Vec::with_capacity(LAYERS);
+    let (mut paths, mut start) = ([[0; N]; H], 0);
     for layer in 0..LAYERS {
         let key = OtsKey::of_index(layer, idx);
         let (counter, wots) =
@@ -323,17 +325,19 @@ pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsS
             built = tree_levels(pp, seed, &key);
             &built
         };
-        layers.push(LayerSignature {
-            counter,
-            wots,
-            path: path(levels, &key),
-        });
-        signed = levels[LAYER_HEIGHTS[layer]][0].to_vec();
+        let height = LAYER_HEIGHTS[layer];
+        for (level, node) in paths[start..start + height].iter_mut().enumerate() {
+            *node = levels[level][(key.leaf as usize >> level) ^ 1];
+        }
+        start += height;
+        layers.push(LayerSignature { counter, wots });
+        signed = levels[height][0].to_vec();
     }
     Ok(LeanSphincsSignature {
         randomizer: rho,
         fors,
         layers: layers.try_into().unwrap(),
+        paths,
     })
 }
 
@@ -364,9 +368,6 @@ pub fn verify(
     message: &Message,
     signature: &LeanSphincsSignature,
 ) -> Result<(), LeanSphincsVerifyError> {
-    if (0..LAYERS).any(|layer| signature.layers[layer].path.len() != LAYER_HEIGHTS[layer]) {
-        return Err(LeanSphincsVerifyError::Malformed);
-    }
     let pp = &pk.public_param;
     let (idx, leaves) = message_digest(pp, &signature.randomizer, message);
     let fors_key = fors_recover(pp, idx as u32, &leaves, &signature.fors);
@@ -375,7 +376,7 @@ pub fn verify(
         let key = OtsKey::of_index(layer, idx);
         let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding(layer))?;
-        signed = tree_fold(pp, &key, leaf, &layer_sig.path).to_vec();
+        signed = tree_fold(pp, &key, leaf, signature.path(layer)).to_vec();
     }
     if signed == pk.root {
         Ok(())

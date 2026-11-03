@@ -269,7 +269,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/sphincs`): its type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak` in `crates/signatures`): its type `tag < 32`, a chain step
 `step < 8`, the layer (counted from the bottom) and the tree, and two fields `hi < 2^24` and
 `lo < 2^32`. -/
 structure TweakFields where
@@ -490,7 +490,7 @@ def leafOfNat (value : Nat) : LeafIndex :=
   ⟨value % 2 ^ maxLayerHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
 
 /-- `steps` chain steps from position `start`: the step onto position `start + steps + 1` carries
-step `start + steps` (`chain_tweak` with `to = start + steps + 1`). -/
+step `start + steps`. -/
 def chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (chainIdx : ChainIndex) : Nat → Nat → Digest → m Digest
   | _, 0, value => pure value
@@ -539,7 +539,7 @@ def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf 
     (message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
-/-- `Ots.leaf` (`wots_recover`): the verifier's leaf, or nothing if the counter does not encode the message. -/
+/-- `Ots.leaf` (`wots_leaf`): the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
@@ -714,8 +714,8 @@ number (`0` for a full or a layered key). -/
 def subtreePosition (parameter : PublicParameter) : Nat :=
   parameter.toNat % 2 ^ (totalHeight - subtreeHeight)
 
-/-- The kept instances are `s * 2^b .. (s + 1) * 2^b` (`XmssTree::contains` on the top layer's
-leaf `idx >> heightBelow topLayer`). -/
+/-- The kept instances are `s * 2^b .. (s + 1) * 2^b`, read on the top layer's leaf
+`idx >> heightBelow topLayer`. -/
 def Landed (parameter : PublicParameter) (index : Index) : Prop :=
   index.val / 2 ^ subtreeHeight = subtreePosition parameter
 
@@ -748,7 +748,7 @@ def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 back before `2^128` attempts. -/
 def walkStep (half : Randomness) : Randomness := half ||| 1#digestBits
 
-/-- One hash per message (`randomizer_walk`): its first half is the base randomizer `R0`, its second
+/-- One hash per message: its first half is the base randomizer `R0` (`randomizer`), its second
 half gives the step of the walk. -/
 def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (seed : MasterSeed)
@@ -821,7 +821,7 @@ def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : 
   if hlevel : level < maxLayerHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
 
 /-- The node at level `k + steps` above the kept part (`k = keptHeight lay`): its root folded with
-the first `steps` surrogates (`XmssTree::from_leaves`). -/
+the first `steps` surrogates. -/
 def spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) :
     Nat → m Digest
   | 0 => treeNode parameter lay tree seed (keptHeight lay) (keptPosition parameter lay)
@@ -841,7 +841,7 @@ def treeRoot (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (seed : MasterSeed) : m Digest :=
   spineNode parameter lay tree seed (layerHeight lay - keptHeight lay)
 
-/-- The authentication path of a kept leaf (`XmssTree::path`): nodes of the kept part below level
+/-- The authentication path of a kept leaf: nodes of the kept part below level
 `keptHeight`, surrogates from that level on. -/
 def treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (seed : MasterSeed) (leaf : LeafIndex) : m (Fin (layerHeight lay) → Digest) :=

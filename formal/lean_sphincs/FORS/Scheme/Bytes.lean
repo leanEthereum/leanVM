@@ -1,6 +1,6 @@
 import FORS.Scheme.Lemmas
 
-/-! Byte encoding and domain separation; adapted from leanVM b7a107256. -/
+/-! Byte encoding and domain separation. -/
 namespace FORS
 
 variable [Params]

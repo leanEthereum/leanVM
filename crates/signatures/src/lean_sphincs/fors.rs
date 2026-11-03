@@ -30,18 +30,18 @@ fn secret_pair(pp: &PublicParam, seed: &MasterSecret, idx: u32, c: usize, p: usi
 }
 
 /// Leaf `l` of tree `c`: the hash of its secret.
-pub fn fors_leaf(pp: &PublicParam, idx: u32, c: usize, l: usize, secret: &Digest) -> Digest {
+fn fors_leaf(pp: &PublicParam, idx: u32, c: usize, l: usize, secret: &Digest) -> Digest {
     th(pp, &tweak(TWEAK_FORS_LEAF, fors_hi(c, l), idx), secret)
 }
 
 /// Node `j` on `level` of tree `c`, from its two children.
-pub fn fors_node(pp: &PublicParam, idx: u32, c: usize, level: usize, j: usize, children: &[Digest; 2]) -> Digest {
+fn fors_node(pp: &PublicParam, idx: u32, c: usize, level: usize, j: usize, children: &[Digest; 2]) -> Digest {
     th_digests(pp, &tweak(TWEAK_FORS_NODE, fors_hi(c, level + (j << 4)), idx), children)
 }
 
 /// `Fts.key` and `Fts.sign` together, each tree being built once: the key of
 /// instance `idx`, and its opening at `leaves`.
-pub fn fors_open(
+pub(crate) fn fors_open(
     pp: &PublicParam,
     seed: &MasterSecret,
     idx: u32,

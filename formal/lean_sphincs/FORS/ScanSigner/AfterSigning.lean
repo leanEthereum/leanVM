@@ -225,8 +225,8 @@ theorem finishRest_none (randomness : Randomness) (digest : MessageDigest) (budg
     rw [hv]
     exact fun h => by cases h
 
-/-- **Final assembly, support.** Its digest call reads the blocks of its own pair — the cached ones
-as they stand, the rest freshly — and it then signs the digest of that pair. -/
+/-- **Final assembly, support.** Its digest call reads the blocks of its own pair (the cached ones
+as they stand, the rest freshly), and it then signs the digest of that pair. -/
 theorem finish_post (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
     (Fail : Finset (Fin (2 ^ subtreeHeight)))
     (hfail : ∀ ρ digest budget (s1 : DebtState HashInput HashOutput Coordinate), Prepared initial s1 →

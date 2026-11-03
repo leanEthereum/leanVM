@@ -1,7 +1,7 @@
 import FORS.Classification.Tree
 
 /-! Chain divergence and prefix-inversion contacts on the actual verifier query trace.
-Adapted from leanVM b7a107256. No hash-injectivity assumption is used. -/
+No hash-injectivity assumption is used. -/
 
 open OracleComp OracleSpec
 

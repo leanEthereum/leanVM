@@ -2,8 +2,7 @@ import FORS.Scheme.Bytes
 
 /-! The signature's byte layout: the randomizer, then per FORS tree the secret and the `a` auth
 nodes, then per layer from the bottom up the WOTS+C counter, chain values and authentication path,
-as the forest's layout (`crates/sphincs/src/scheme.rs::Signature::to_bytes`) with FORS in place of
-the forest. -/
+as `LeanSphincsSignature::to_bytes` lays it out. -/
 
 namespace FORS
 

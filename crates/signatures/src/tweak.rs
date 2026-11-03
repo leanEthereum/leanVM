@@ -115,12 +115,6 @@ pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &[u8; 32]) -> [Digest; 2] {
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
 }
 
-/// The seed a scheme derives from: the hash of the scheme's `tag` then the key's
-/// seed, so no two schemes derive from the same bytes.
-pub fn tagged_seed(tag: &[u8], seed: &[u8; 32]) -> [u8; 32] {
-    Hasher::new().update(tag).update(seed).finalize()
-}
-
 /// The public parameter, derived from the scheme's seed under `P = 0`.
 pub fn public_param(seed: &[u8; 32]) -> PublicParam {
     th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), seed)

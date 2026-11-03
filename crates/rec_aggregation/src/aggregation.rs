@@ -102,7 +102,7 @@ const _: () = assert!(lean_xmss::LOG_LIFETIME == 32);
 // two cells, then the low lane of its second call's first cell, where the bits past the
 // fields are unused. It rebuilds the bottom tree's index from three layers' leaves.
 const _: () = assert!(lean_sphincs::DIGEST_CALLS == 2 && lean_sphincs::DIGEST_BITS > 256);
-const _: () = assert!(LEAN_SPHINCS_TAIL_BITS <= 64 && lean_sphincs::LAYERS == 3);
+const _: () = assert!(LEAN_SPHINCS_TAIL_BITS < 64 && lean_sphincs::LAYERS == 3);
 const _: () = assert!(lean_sphincs::FORS_HEIGHT <= 64 && lean_sphincs::H <= 64);
 // It places a FORS leaf at bit 6 of its address's `hi` field and a node index at bit
 // 10, past the tree and the level (`SP_FLEAF_SHIFT`, `SP_FNODE_SHIFT`).
@@ -1536,9 +1536,6 @@ fn lean_sphincs_hints(
     });
     let mut signed = lean_sphincs::fors_key_bytes(&fors_key).to_vec();
     for (layer, layer_sig) in sig.layers.iter().enumerate() {
-        if layer_sig.path.len() != lean_sphincs::LAYER_HEIGHTS[layer] {
-            return Err(AggregationError::MalformedRawSignature);
-        }
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
         let (codeword, leaf) = lean_sphincs::wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(AggregationError::MalformedRawSignature)?;
@@ -1547,13 +1544,10 @@ fn lean_sphincs_hints(
         for value in &layer_sig.wots {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
-        let root = lean_sphincs::tree_fold_with(pp, &key, leaf, &layer_sig.path, |pair| {
+        let root = lean_sphincs::tree_fold_with(pp, &key, leaf, sig.path(layer), |pair| {
             hints.push(("siblings", ordered(pair)));
         });
         signed = root.to_vec();
-    }
-    if signed != pk.root {
-        return Err(AggregationError::MalformedRawSignature);
     }
     Ok(hints)
 }

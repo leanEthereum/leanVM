@@ -3,7 +3,7 @@ import FORS.GraphView.Targets
 
 /-! Canonical structural graph preparation. The retained positions can be any subset;
 positions omitted by pruning retain their initial labels (in particular surrogate values).
-Graph edges and their exact inputs follow leanVM b7a107256, specialized to the candidate. -/
+Graph edges carry the scheme's exact inputs. -/
 
 open OracleComp OracleSpec
 

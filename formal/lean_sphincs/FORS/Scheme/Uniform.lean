@@ -1,6 +1,6 @@
 import FORS.Scheme.Lemmas
 
-/-! Uniform bit extraction; adapted from leanVM b7a107256. -/
+/-! Uniform bit extraction. -/
 namespace FORS
 
 variable [Params]

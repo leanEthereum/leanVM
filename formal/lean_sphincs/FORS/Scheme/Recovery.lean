@@ -4,7 +4,7 @@ import Mathlib.Data.Nat.Bitwise
 /-!
 # Recovery: what the signer produces, the verifier accepts
 
-Adapted from leanVM b7a107256. One-time recovery returns the leaf the signer built,
+One-time recovery returns the leaf the signer built,
 and each FORS path returns its node. Scheme/Pruning.lean adds the surrogate spine;
 Scheme/Correctness.lean composes these facts into signer/verifier correctness.
 

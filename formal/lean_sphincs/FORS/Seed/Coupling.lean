@@ -4,7 +4,7 @@ import FORS.Base.Prelude
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 
 /-! Finite fresh-table preparation and the candidate's parameter-dependent derivation table.
-The generic finite-table proof is adapted from leanVM b7a107256. Preparation explicitly performs
+Preparation explicitly performs
 oracle queries; later theorems relate it to independent full-output material and its programmed
 cache. Preparation is not silently counted as part of an adversary's existing query budget. -/
 

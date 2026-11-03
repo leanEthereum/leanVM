@@ -2,7 +2,7 @@ import FORS.Scheme.Code
 import FORS.Scheme.Uniform
 
 /-! Candidate WOTS+C encoding classification and exact small-neighborhood bounds.
-Adapted from leanVM b7a107256; the candidate uses 64 two-bit digits without padding. -/
+The code uses 64 two-bit digits without padding. -/
 
 namespace FORS.Security.EncodingCode
 

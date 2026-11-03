@@ -15,8 +15,7 @@ model input is `P || A || payload` (`n` bytes, the 16-byte `P` and the 16-byte a
   per call and one per key. Its digest input also puts 16 zero bytes before the randomizer, which
   costs nothing more: `A || m || 0^16 || R` is 80 bytes, 2 compressions, as `A || m || R` would be.
 
-These are the accountings of `crates/sphincs/src/hash.rs` and `scripts/scheme.py`. The oracle's
-answers remain arbitrary; only the byte lengths are counted.
+The oracle's answers remain arbitrary; only the byte lengths are counted.
 -/
 
 open OracleComp OracleSpec Finset

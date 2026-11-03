@@ -4,7 +4,7 @@ import FORS.Scheme.Recovery
 Correctness of the pruned Merkle path, including the surrogate spine, at every layer: the top
 layer's kept subtree and its surrogates, and the whole trees below the top layer (whose kept part
 is the whole tree, with no surrogate). The argument holds for every hash function, height and
-shape. The chain recovery lemmas are adapted from leanVM b7a107256.
+shape.
 -/
 
 open OracleComp

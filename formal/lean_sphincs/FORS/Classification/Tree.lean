@@ -3,7 +3,7 @@ import FORS.Scheme.Landing
 import FORS.Scheme.Bytes
 
 /-!
-Deterministic Merkle extraction, adapted from leanVM b7a107256's first-divergence argument.
+Deterministic Merkle extraction, by a first-divergence argument.
 Two paths reaching the same root either agree, cross into the other path's sibling, or make a
 different queried input hit a canonical node value. Crossing is essential for a pruned key:
 the sibling may be a surrogate rather than the root of a constructed subtree.

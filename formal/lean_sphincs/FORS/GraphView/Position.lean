@@ -1,7 +1,6 @@
 import FORS.Scheme.Domains
 
-/-! Finite structural positions and their exact serialized addresses, adapted from leanVM
-b7a107256. The position type deliberately overapproximates the single retained subtree;
+/-! Finite structural positions and their exact serialized addresses. The position type deliberately overapproximates the single retained subtree;
 pruning selects the positions that are actually prepared. FORS positions are the leaves (the hash of
 a secret) and the nodes of every tree of every instance; the root of a tree (`fnode` at the last
 level) is a position that no other position and no algorithm reads. -/

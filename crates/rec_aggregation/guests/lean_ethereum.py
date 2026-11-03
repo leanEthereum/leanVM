@@ -3648,6 +3648,20 @@ def sp_path(node, pp, bits, vals, out, off: Const, height: Const, lane):
     return
 
 
+@inline
+def sp_upper_layer(pp, at, below, byte_bits, bits, vals, out, off: Const, height: Const, lane):
+    # A layer above the bottom: the key at `at` signs the root below, its counter
+    # rebuilt from four bytes, then the path to its tree's root into out.
+    ctr = StackBuf(SP_COUNTER_BYTES)
+    hint_witness(ctr, "sp_counter")
+    counter = sp_from_bytes(byte_bits, ctr, SP_COUNTER_BYTES, SP_BYTE_VALUES)
+    enc = StackBuf(KECCAK_STATE)
+    keccak([pp, at + SP_TW_ENC], [below, counter], enc, len=SP_ROOT_ENCODING_BYTES)
+    leaf = sp_wots(pp, at, enc[0])
+    sp_path(leaf, pp, bits, vals, out, off, height, lane)
+    return
+
+
 def verify_sig_lean_sphincs(signer, byte_bits):
     # `signer` is one 4-cell entry of the leanSPHINCS coverage table: the pubkey's root and
     # public parameter, then the message THAT signer signed, the two bound together
@@ -3729,23 +3743,10 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     root_b = StackBuf(KECCAK_STATE)
     sp_path(leaf, pp, bits0, vals, root_b, 0, SP_HEIGHT_0, lane_b)
 
-    ctr_m = StackBuf(SP_COUNTER_BYTES)
-    hint_witness(ctr_m, "sp_counter")
-    ctr = sp_from_bytes(byte_bits, ctr_m, SP_COUNTER_BYTES, SP_BYTE_VALUES)
-    enc_m = StackBuf(KECCAK_STATE)
-    keccak([pp, at_m + SP_TW_ENC], [root_b[0], ctr], enc_m, len=SP_ROOT_ENCODING_BYTES)
-    leaf = sp_wots(pp, at_m, enc_m[0])
     root_m = StackBuf(KECCAK_STATE)
-    sp_path(leaf, pp, bits0, vals, root_m, SP_HEIGHT_0, SP_HEIGHT_1, lane_m)
-
-    ctr_t = StackBuf(SP_COUNTER_BYTES)
-    hint_witness(ctr_t, "sp_counter")
-    ctr = sp_from_bytes(byte_bits, ctr_t, SP_COUNTER_BYTES, SP_BYTE_VALUES)
-    enc_t = StackBuf(KECCAK_STATE)
-    keccak([pp, at_t + SP_TW_ENC], [root_m[0], ctr], enc_t, len=SP_ROOT_ENCODING_BYTES)
-    leaf = sp_wots(pp, at_t, enc_t[0])
+    sp_upper_layer(pp, at_m, root_b[0], byte_bits, bits0, vals, root_m, SP_HEIGHT_0, SP_HEIGHT_1, lane_m)
     root = StackBuf(KECCAK_STATE)
-    sp_path(leaf, pp, bits0, vals, root, SP_HEIGHT_0 + SP_HEIGHT_1, SP_HEIGHT_2, lane_t)
+    sp_upper_layer(pp, at_t, root_m[0], byte_bits, bits0, vals, root, SP_HEIGHT_0 + SP_HEIGHT_1, SP_HEIGHT_2, lane_t)
     assert root[0] == signer[1]
     return
 
