@@ -9,7 +9,7 @@ A signature claim identifies what was signed and by whom. For both leanXMSS, two
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
-The DA claim is at most one LeanDA root $\daroot$, paired with the hash $\davechash$ of its membership test vector $\dual$ (\S\ref{sec:da-membership}). A node that checks blobs publishes their root; otherwise it may pass on one child's root, or none.
+The DA claim is at most one LeanDA root $\daroot$, paired with the challenge $\dachal$ of its membership test (\S\ref{sec:da-membership}). A node that checks blobs publishes their root; otherwise it may pass on one child's root, or none.
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
@@ -20,7 +20,7 @@ Digests bind the two variable-length claim lists into a fixed-size statement. Th
 $32$ bytes & Fiat-Shamir IV\\
 $32$ bytes & leanXMSS claim list digest\\
 $32$ bytes & leanSPHINCS claim list digest\\
-$32$ bytes & DA digest $H(\daroot,\davechash)$ (zeros if none)\\
+$32$ bytes & DA digest $H(\daroot,\dachal)$ (zeros if none)\\
 $(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
 \hline
 \end{tabular}
@@ -139,16 +139,16 @@ Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. Each row 
 
 A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
 
-The Fiat-Shamir challenges $\log_2\kdim$ in $\E$ are derived from the matrix root $\daroot$. These define the polynomial $\dual$ of \eqref{eq:dual-product} and its evaluation vector $\davec=(\dual(x))_{x\in\dom}$. Let $\davechash$ be the hash of the concatenated hashes of its $128$ columns, each $256$ consecutive entries in domain order, an entry serialized as its three little-endian $64$-bit limbs.
+The challenge is one element $\dachal\in\E$, drawn from the VM's transcript (\S\ref{sec:e2e-fiat-shamir}) with the hash of \texttt{leanDA/rs-membership/v1} as IV and $\daroot$ as public input. It defines $\dual$ by \eqref{eq:dual-product} and $\davec=(\dual(x))_{x\in\dom}$. The statement carries $H(\daroot,\dachal)$, $\dachal$ serialized as its three little-endian $64$-bit limbs and a zero word.
 
-The guest recomputes $\daroot$ from the encoded rows, receives $\davec$ as a hinted vector, checks its hash against $\davechash$, and uses it to check membership:
+The guest recomputes $\daroot$, takes $\dachal$ as a hint, computes $\davec$ and checks
 \[
   \inner{\davec}{w_i}
   =\sum_{x\in\dom}\dual(x)w_i(x)
-  \;\qeq\;0.
+  \;\qeq\;0
 \]
-for every row $w_i$. The vector is shared across all rows and hashed once. It contains $32768$ entries, or $768$ KiB.
+for every row $w_i$. Factor $j$ of \eqref{eq:dual-product} depends only on the bits of $x$ from $j$ up, so $\davec$ is a product tree over those bits, built once for all rows.
 
-A node passing a child's root on passes its digest $H(\daroot,\davechash)$ unchanged. The final native verifier recomputes $\davechash$ from the root (outside of the snark).
+The native verifier derives $\dachal$ from $\daroot$ outside the SNARK, as the security proof requires, and checks the proof against $H(\daroot,\dachal)$. A node passing on a child's root passes its digest unchanged.
 
-Every valid row passes. Under uniform challenges, a fixed invalid matrix passes with probability at most $\log_2\kdim/|\E|=14/2^{192}$ (Proposition~\ref{prop:rs-membership}).
+Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-178}$ (Proposition~\ref{prop:rs-membership}).

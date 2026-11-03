@@ -4,8 +4,8 @@
 //! Each payload row contains `k` symbols, systematically encoded to `m = 2k`
 //! evaluations on an additive domain. Each encoded row, a blob, has a Merkle root
 //! over its cell digests, and the commitment is the Merkle root over the blob roots.
-//! A row belongs to the code iff it is orthogonal to the commitment's
-//! [`membership_vector`], with high probability over the Fiat-Shamir challenges.
+//! A row belongs to the code iff it is orthogonal to a membership vector the root's
+//! challenge determines, with high probability over that challenge (`membership`).
 //! The aggregation guest proves this check together with the commitment.
 //!
 //! Row and cell widths are powers of two. The tree over the blob roots pads the row
@@ -18,7 +18,7 @@ mod membership;
 
 pub use commit::{DaWitness, commit, commit_codewords, padding_root};
 pub use encode::encode_rows;
-pub use membership::{dual_codeword, membership_challenges, membership_vector, vector_digest};
+pub use membership::subspace_above;
 
 /// Payload symbols per blob, as a logarithm (128 KiB).
 pub const DA_LOG_K: usize = 14;

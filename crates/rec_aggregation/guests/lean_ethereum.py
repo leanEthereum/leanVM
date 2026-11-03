@@ -460,12 +460,18 @@ DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
 DA_LOG_MAX_ROWS = DA_LOG_MAX_ROWS_PLACEHOLDER
 DA_PAD_BLOB_0 = DA_PAD_BLOB_0_PLACEHOLDER
 DA_PAD_BLOB_1 = DA_PAD_BLOB_1_PLACEHOLDER
+# Vhat_j at the points the membership vector's product tree needs (da_factors): each
+# parent node of the tree over a cell index, then of the tree inside a cell, at the bit
+# j it splits; and Vhat_j(beta_(DA_LOG_CELL + b)) at DA_LOG_CELL * b + j, for each factor
+# j inside a cell and bit b of the cell index.
+DA_VHAT = DA_VHAT_PLACEHOLDER
+DA_VHAT_COLUMN = DA_VHAT_COLUMN_PLACEHOLDER
 
+DA_LOG_M = DA_LOG_K + 1                         # log of the symbols per encoded row
 DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
-DA_BLOCK_BITS = DA_LOG_K + 1 - DA_LOG_CELL      # log of the cells per row
+DA_BLOCK_BITS = DA_LOG_M - DA_LOG_CELL          # log of the cells per row
 DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
 DA_PACKED = DA_CELL // 2                        # packed 128-bit cells in one cell
-DA_WEIGHT_CELLS = 3 * DA_CELL // 2              # packed cells of one cell's weights
 DA_TREE_ARMS = DA_LOG_MAX_ROWS + 1              # tree depths the row count can dispatch to
 DA_SUM = 4 * DA_CELLS                           # where a blob's running sum starts, past its tree
 DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
@@ -3907,12 +3913,13 @@ def child_claim_list_last(state, entries_ptr, cover, marks, origin_g, limit_g, k
 
 
 # ================================ LeanDA ===============================
-# Hash the encoded rows and the hinted membership vector, then check their inner products.
-# The external verifier derives the vector hash from the root; recursion preserves both.
+# Hash the encoded rows and build the membership vector from the challenge, then check
+# their inner products. The external verifier derives the challenge from the root;
+# recursion preserves both.
 
 
 def da_verify(g_squares):
-    # Returns the commitment root and membership-vector hash, two canonical cells each.
+    # Returns the commitment root and the membership challenge, two canonical cells each.
     # Only the tree over the blob roots walks the padded count; a padding blob's root
     # is a constant, which the gap loop writes without hashing anything.
     shape = StackBuf(2)
@@ -3921,9 +3928,11 @@ def da_verify(g_squares):
     g_log_pad = shape[1]
     n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
 
-    # The membership vector's hash: the hash of its columns' hashes, two cells a
-    # column.
-    column_digests = HeapBuf(2 * DA_CELLS)
+    # The challenge as its 32 bytes, two cells whose top limbs the KECCAK hashing them checks.
+    z = hint_witness("da_challenge")
+    z_cells = StackBuf(2)
+    fs_pack(z_cells, 0, z, 0)
+    zs, top_leaves, cell_factors, offsets = da_vector(z)
 
     # A blob's region: its tree, then its running sum, a fresh write-once cell per column.
     blobs = HeapBuf(n_blob_g ** DA_REGION)
@@ -3934,7 +3943,7 @@ def da_verify(g_squares):
         base[GEN ** DA_SUM] = 0
 
     for xb in mul_range(1, GEN ** DA_CELLS):
-        da_verify_column(xb, n_blob_g, rowbase, column_digests)
+        da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)
 
     roots = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
@@ -3949,10 +3958,7 @@ def da_verify(g_squares):
         pad[1] = DA_PAD_BLOB_0
         pad[GEN] = DA_PAD_BLOB_1
     r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(roots, 2 ** k, k))
-
-    vector = StackBuf(KECCAK_STATE)
-    keccak_cells(column_digests[0:2 * DA_CELLS], vector)
-    return r0, r1, vector[0], vector[1]
+    return r0, r1, z_cells[0], z_cells[1]
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -3967,11 +3973,12 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
     return n_pad_g, gap_g
 
 
-def da_verify_column(xb, n_blob_g, rowbase, column_digests):
-    # Column log(xb) of every blob: a cell's digest is leaf log(xb) of its blob's tree,
-    # and its inner product with the column's weights joins its blob's running sum.
+def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets):
+    # Column log(xb) of every blob: its weights expand the tree inside a cell from the
+    # column's leaf of the tree above; a cell's digest is leaf log(xb) of its blob's tree,
+    # and its inner product with the weights joins its blob's running sum.
+    lvals = da_expand(top_leaves[xb], cell_factors, zs, offsets * xb ** DA_LOG_CELL, DA_LOG_CELL - 1, DA_LOG_CELL)
     xb2 = xb * xb
-    lvals = da_vector_cell(column_digests * xb2)
     for xi in mul_range(1, n_blob_g):
         d0, d1, s = da_verify_cell(lvals)
         base = rowbase[xi]
@@ -4009,17 +4016,72 @@ def da_levels(tree, n: Const, log_n: Const):
     return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
 
 
-def da_vector_cell(digest):
-    # One column's weights, their hash written to the two cells at `digest`. Two
-    # extension-field entries become three canonical 128-bit cells.
-    weights = StackBuf(DA_CELL)
-    hint_witness(weights[0:DA_CELL], "da_weights")
-    packed = StackBuf(DA_WEIGHT_CELLS)
-    for p in unroll(0, DA_CELL // 2):
-        pack_pair(packed, 3 * p, weights[2 * p], weights[2 * p + 1])
-    keccak_cells(packed, digest[0:2])
-    weights_ptr = addr(weights)
-    return weights_ptr
+def da_vector(z):
+    # L(x) = prod_(j < DA_LOG_K) (1 + z_j Vhat_j(x)), z_j = z^(2^j), as a binary tree over
+    # x's bits from the top down: factor j depends only on the bits from j up, so a node
+    # is its parent times one factor. The tree over the cell index runs once; each column
+    # expands the tree inside a cell from its leaf, its factors shifted by the cell
+    # index's part of each Vhat_j (da_column_offsets).
+    zs = HeapBuf(DA_LOG_M)
+    zj = z
+    for j in unroll(0, DA_LOG_K):
+        zs[GEN ** j] = zj
+        zj = zj * zj
+    zs[GEN ** DA_LOG_K] = 0  # the top bit splits without a factor: the degree bound
+    above_top = HeapBuf(DA_LOG_M)  # nothing sits above the tree over the cell index
+    for j in unroll(DA_LOG_CELL, DA_LOG_M):
+        above_top[GEN ** j] = 0
+    top_factors = da_factors(zs, DA_LOG_K, DA_BLOCK_BITS, 0)
+    top_leaves = da_expand(1, top_factors, zs, above_top, DA_LOG_K, DA_BLOCK_BITS)
+    cell_factors = da_factors(zs, DA_LOG_CELL - 1, DA_LOG_CELL, DA_CELLS)
+    offsets = da_column_offsets(zs)
+    return zs, top_leaves, cell_factors, offsets
+
+
+def da_factors(zs, top: Const, depth: Const, at: Const):
+    # 1 + z_j Vhat_j(x) for each parent node n of a product tree over bits top, top - 1, ...,
+    # in heap order: j the bit n splits and x the point its path's bits make, DA_VHAT[at + n].
+    factors = HeapBuf(DA_CELL)  # the deepest tree's parents, the one inside a cell
+    for d in unroll(0, depth):
+        z = zs[GEN ** (top - d)]
+        for y in unroll(0, 2 ** d):
+            factors[GEN ** (2 ** d + y)] = z * DA_VHAT[at + 2 ** d + y] + 1
+    return factors
+
+
+def da_expand(root, factors, zs, shifts, top: Const, depth: Const):
+    # The product tree below `root` over bits top, top - 1, ..., in heap order: node n's
+    # children 2n and 2n + 1 are n times its factor at the two values of the bit j it
+    # splits, factors[n] + shifts[j] and that plus z_j. Returns a pointer to its leaves.
+    nodes = StackBuf(2 * DA_CELL)  # the deepest tree's, the one inside a cell
+    nodes[1] = root
+    for d in unroll(0, depth):
+        z = zs[GEN ** (top - d)]
+        shift = shifts[GEN ** (top - d)]
+        for y in unroll(0, 2 ** d):
+            nodes[2 ** (d + 1) + 2 * y] = nodes[2 ** d + y] * (factors[GEN ** (2 ** d + y)] + shift)
+            nodes[2 ** (d + 1) + 2 * y + 1] = nodes[2 ** (d + 1) + 2 * y] + nodes[2 ** d + y] * z
+    leaves = addr(nodes)
+    return leaves * GEN ** (2 ** depth)
+
+
+def da_column_offsets(zs):
+    # offsets[DA_LOG_CELL * h + j] = z_j Vhat_j at the cell index h's bits, for each factor
+    # j inside a cell: zero at h = 0, then one doubling per bit of h.
+    offsets = HeapBuf(DA_LOG_CELL * DA_CELLS)
+    for j in unroll(0, DA_LOG_CELL):
+        offsets[GEN ** j] = 0
+    for b in unroll(0, DA_BLOCK_BITS):
+        steps = HeapBuf(DA_LOG_CELL)
+        for j in unroll(0, DA_LOG_CELL):
+            steps[GEN ** j] = zs[GEN ** j] * DA_VHAT_COLUMN[DA_LOG_CELL * b + j]
+        for xh in mul_range(1, GEN ** (2 ** b)):
+            src = offsets * xh ** DA_LOG_CELL
+            dst = src * GEN ** (DA_LOG_CELL * 2 ** b)
+            for j in unroll(0, DA_LOG_CELL):
+                dst[GEN ** j] = src[GEN ** j] + steps[GEN ** j]
+    return offsets
+
 
 # ================================ the aggregation node ==============================
 
@@ -4125,12 +4187,12 @@ def main():
 
     # ---- data availability ----
     # One DA digest per child, read off its statement below, then the node's own:
-    # H(root, vector digest) of its blob matrix, or zeros without blobs.
+    # H(root, challenge) of its blob matrix, or zeros without blobs.
     da_digests = HeapBuf((n_children_g * GEN) ** 2)
     own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
-        root_0, root_1, vector_0, vector_1 = da_verify(g_squares)
-        keccak([root_0, root_1], [vector_0, vector_1], own_da[0:2])
+        root_0, root_1, z_0, z_1 = da_verify(g_squares)
+        keccak([root_0, root_1], [z_0, z_1], own_da[0:2])
     else:
         own_da[1] = 0
         own_da[GEN] = 0

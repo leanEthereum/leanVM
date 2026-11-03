@@ -1,7 +1,7 @@
 //! Proof transport and Fiat-Shamir.
 
 use crate::field::{E, K, ZERO};
-use crate::hash::{Digest, STATE_LANES, keccak_f, keccak_hash};
+use crate::hash::{Digest, STATE_LANES, keccak_f};
 use crate::merkle::{MerkleOpenings, MerklePath};
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
@@ -58,11 +58,6 @@ impl Sponge {
             pending: [(ZERO, 0); RATE_SCALARS],
             n_pending: 0,
         }
-    }
-
-    /// A protocol with no public input of its own, seeded from `label` alone.
-    pub fn from_label(label: &[u8]) -> Self {
-        Self::new(keccak_hash(label), Digest([0; 32]))
     }
 
     fn duplex(&mut self) {

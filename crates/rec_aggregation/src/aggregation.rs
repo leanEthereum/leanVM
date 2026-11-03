@@ -302,7 +302,7 @@ impl DeferredClaim {
 }
 
 /// The statement's fixed header, ahead of the deferred cells: the seed, the two
-/// claim-list digests (leanXMSS then leanSPHINCS), and the DA digest ([`da_digest`]).
+/// claim-list digests (leanXMSS then leanSPHINCS), and the DA digest ([`verifier::da::digest`]).
 /// Fed to the guest as `STMT_HEADER`, which pins where its deferred cells start;
 /// the header cells themselves are written out again there, and only the
 /// end-to-end statement check holds the two spellings together.
@@ -390,7 +390,7 @@ pub struct EthereumProof {
     /// Strictly sorted and deduplicated on the whole `(pubkey, message)` pair.
     lean_sphincs_signers: Vec<LeanSphincsClaim>,
     /// At most one LeanDA root, checked here or by a descendant. The statement carries
-    /// its [`da_digest`].
+    /// its [`verifier::da::digest`].
     da_root: Option<[u8; 32]>,
     /// What this aggregate defers to whoever discharges it: its parent, in
     /// circuit, or [`Self::verify`], natively.
@@ -545,20 +545,6 @@ fn check_signer_set(
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
     Ok(())
-}
-
-/// The statement's DA field: `H(root, vector digest)`, the vector derived from the root
-/// outside the SNARK, or zeros without a root. Trusting a prover's vector digest would let
-/// zero weights certify any matrix.
-fn da_digest(root: Option<[u8; 32]>) -> [u8; 32] {
-    root.map_or([0; 32], |root| {
-        root_vector_digest(&root, &lean_da::membership_vector(&root))
-    })
-}
-
-/// [`da_digest`] of a root whose membership vector is at hand.
-fn root_vector_digest(root: &[u8; 32], vector: &[F192]) -> [u8; 32] {
-    primitives::hash::hash(&[*root, lean_da::vector_digest(vector)].concat())
 }
 
 impl EthereumProof {
@@ -1715,7 +1701,10 @@ pub fn aggregate_with_stats(
     // the true evaluation, and the root discharges the one claim they reduce to.
     let _span = tracing::info_span!("Replay children").entered();
     let mut statements = Vec::with_capacity(children.len());
-    let child_da: Vec<[u8; 32]> = children.iter().map(|child| da_digest(child.da_root)).collect();
+    let child_da: Vec<[u8; 32]> = children
+        .iter()
+        .map(|child| verifier::da::digest(child.da_root))
+        .collect();
     for (child, &da) in children.iter().zip(&child_da) {
         check_signer_set(&child.xmss_signers, &child.lean_sphincs_signers).map_err(AggregationError::InvalidChild)?;
         statements.push(child.statement(da));
@@ -1842,11 +1831,11 @@ pub fn aggregate_with_stats(
     let mut da = child_da.get(da_pick).copied().unwrap_or_default();
     if let Some((commitment, witness)) = direct {
         let n_rows = blobs.len() / BLOB_SYMBOLS;
-        let vector = lean_da::membership_vector(&commitment);
-        da = root_vector_digest(&commitment, &vector);
-        for block in vector.as_chunks::<CELL_SYMBOLS>().0 {
-            hints.push("da_weights", block.to_vec());
-        }
+        da = verifier::da::digest(Some(commitment));
+        hints.push(
+            "da_challenge",
+            vec![from_scalar(verifier::da::membership_challenge(&commitment))],
+        );
         hints.push(
             "da_shape",
             vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],
@@ -2527,6 +2516,23 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
     ps("DA_PAD_BLOB_0", f192_literal(pad_blob[0]));
     ps("DA_PAD_BLOB_1", f192_literal(pad_blob[1]));
+    // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
+    // order: `j` the bit `n` splits, the point its path's bits make.
+    let vhat = lean_da::subspace_above();
+    let tree = |top: usize, depth: usize| -> Vec<u64> {
+        (0..1usize << depth)
+            .map(|n| n.checked_ilog2().map_or(0, |d| vhat(top - d as usize, n - (1 << d)).0))
+            .collect()
+    };
+    let cell_bits = CELLS_PER_ROW.ilog2() as usize;
+    let (top_tree, cell_tree) = (tree(DA_LOG_K, cell_bits), tree(DA_LOG_CELL - 1, DA_LOG_CELL));
+    ps("DA_VHAT", literals(top_tree.into_iter().chain(cell_tree)));
+    // `Vhat_j(beta_(DA_LOG_CELL + b))` for each factor `j` inside a cell and bit `b` of the cell index.
+    let column = (0..cell_bits).flat_map(|b| (0..DA_LOG_CELL).map(move |j| (j, b)));
+    ps(
+        "DA_VHAT_COLUMN",
+        literals(column.map(|(j, b)| vhat(j, 1 << (DA_LOG_CELL - 1 - j + b)).0)),
+    );
     let defer_cells = kbc + log2_bc_cols + 1;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
     let pairs = defer_cells.div_ceil(2);
@@ -3085,7 +3091,12 @@ def main():
         let node = aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
         // `cpu::verify` accepts the same proof of the same statement.
-        verify(unified_guest(), &node.statement(da_digest(node.da_root)), &node.proof).expect("node verifies natively");
+        verify(
+            unified_guest(),
+            &node.statement(verifier::da::digest(node.da_root)),
+            &node.proof,
+        )
+        .expect("node verifies natively");
         assert_eq!(node.xmss_signers.len(), SMALL_LEAF_SIZE + big);
     }
 
@@ -3189,14 +3200,14 @@ def main():
 
     /// The guest reads each child's root off its statement and publishes the one the
     /// node picks, which must be its own with blobs: a child's root other than the one
-    /// its proof carries, a pick past the children, or a child's root picked over the
-    /// node's blobs fails the guest's run.
+    /// its proof carries, a pick past the children, a child's root picked over the
+    /// node's blobs, or a membership challenge other than the root's fails the guest's run.
     #[test]
     fn forged_da_hints_are_rejected() {
         leanvm_core::init_prover();
         let signers = get_signers(SMALL_LEAF_SIZE);
         let child = aggregate(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE).unwrap();
-        let forgeries: [(Forgery, bool); 3] = [
+        let forgeries: [(Forgery, bool); 4] = [
             (
                 Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F192::ONE),
                 false,
@@ -3207,6 +3218,10 @@ def main():
             ),
             (
                 Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] = count(0)),
+                true,
+            ),
+            (
+                Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += F192::ONE),
                 true,
             ),
         ];
@@ -3293,26 +3308,19 @@ def main():
                     );
                 }
             }
-            for block in lean_da::membership_vector(&commitment).as_chunks::<CELL_SYMBOLS>().0 {
-                hints.push("da_weights", block.to_vec());
-            }
+            hints.push(
+                "da_challenge",
+                vec![from_scalar(verifier::da::membership_challenge(&commitment))],
+            );
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&da_digest(Some(commitment))))
+            program.execute(pack_hash_state(&verifier::da::digest(Some(commitment))))
         };
         assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
         for position in [0, BLOB_SYMBOLS + 5] {
             let mut corrupted = codewords.clone();
             corrupted[CODEWORD_SYMBOLS + position] ^= 1;
             assert!(run(&corrupted).is_err(), "a flip at {position} passed");
-        }
-    }
-
-    /// The verifier crate derives a root's DA digest, membership vector included, as `lean_da` does.
-    #[test]
-    fn scalar_da_digest_matches_lean_da() {
-        for root in [None, Some([0x5a; 32]), Some(primitives::hash::hash(b"root"))] {
-            assert_eq!(verifier::da::digest(root), da_digest(root));
         }
     }
 

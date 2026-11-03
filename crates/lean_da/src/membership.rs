@@ -4,95 +4,58 @@
 //! `deg(h) <= m-2`. Pairing codewords and comparing dimensions therefore gives
 //! `RS_k(D)^⊥ = RS_{m-k}(D)`. At rate 1/2 the code is self-dual.
 //!
-//! The check uses `L(X) = ∏_{j < log2(k)} (1 + z_j · Vhat_j(X))`, where
-//! `Vhat_j = X_{2^j}` is the normalized subspace polynomial of degree `2^j`.
-//! Expanding this product gives every novel-basis coefficient below `k` with
-//! tensor weights `⊗_j(1, z_j)`, so `L` is a codeword.
+//! The check uses `L(X) = ∏_{j < log2(k)} (1 + z^(2^j) · Vhat_j(X))` for one challenge `z`,
+//! where `Vhat_j = X_{2^j}` is the normalized subspace polynomial of degree `2^j`.
+//! Expanding this product gives every novel-basis polynomial below `k`, `X_i` with
+//! weight `z^i`, so `L` is a codeword.
 //!
-//! For a fixed invalid row `w`, `⟨L,w⟩` is a nonzero multilinear polynomial in
-//! `z`. Fresh independent uniform challenges accept it with probability at most
-//! `log2(k)/2^192`. The external verifier derives the vector from the commitment.
-//! The guest binds its hinted vector by hashing it and checks the inner products.
+//! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
+//! of degree below `k`. A uniform challenge accepts it with probability at most
+//! `(k-1)/2^192`. The verifier crate derives `z` from the root, outside the SNARK, and the
+//! statement binds it; the guest builds `L` from `z` and checks the inner products.
 
-use fiat_shamir::FiatShamirState;
-use fiat_shamir::merkle::hash_to_scalars;
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192};
-use primitives::hash::{OUT_LEN, hash, hash_many};
+use primitives::field::F64;
 
-use crate::{CELL_SYMBOLS, CODEWORD_SYMBOLS, DA_LOG_K, LOG_M};
+use crate::{DA_LOG_K, LOG_M};
 
-/// Transcript label, so a membership challenge can never be replayed as any other
-/// challenge in the stack.
-const LABEL: &[u8] = b"leanDA/rs-membership/v1";
-
-/// `z_0 … z_{log k - 1}`, bound to the commitment.
-///
-/// The root binds the whole matrix. The vector hash is not observed, avoiding a
-/// circular dependency between the challenges and the vector.
-pub fn membership_challenges(root: &[u8; 32]) -> Vec<F192> {
-    let mut fs = FiatShamirState::from_label(LABEL);
-    for scalar in hash_to_scalars(root) {
-        fs.observe(scalar);
+/// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
+/// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
+/// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
+pub fn subspace_above() -> impl Fn(usize, usize) -> F64 {
+    let ntt = AdditiveNttF64::standard(LOG_M);
+    move |j, y| {
+        assert!(j <= DA_LOG_K && y >> (DA_LOG_K - j) == 0, "bits above {j} only");
+        ntt.twiddle(DA_LOG_K - j, y)
     }
-    fs.sample_vec(DA_LOG_K)
-}
-
-/// The test vector deterministically derived from a matrix root.
-pub fn membership_vector(root: &[u8; 32]) -> Vec<F192> {
-    dual_codeword(&membership_challenges(root))
-}
-
-/// The hash of the hashes of the vector's columns, `CELL_SYMBOLS` entries each in domain order, a column hashed as
-/// its entries' three little-endian 64-bit limbs.
-pub fn vector_digest(vector: &[F192]) -> [u8; 32] {
-    assert_eq!(vector.len(), CODEWORD_SYMBOLS);
-    let bytes: Vec<u8> = vector
-        .iter()
-        .flat_map(|v| [v.c0, v.c1, v.c2].into_iter().flat_map(u64::to_le_bytes))
-        .collect();
-    let mut columns = vec![0u8; CODEWORD_SYMBOLS / CELL_SYMBOLS * OUT_LEN];
-    hash_many(&bytes, CELL_SYMBOLS * 24, &mut columns);
-    hash(&columns)
-}
-
-/// `L` over the whole domain: the tensor `⊗_j (1, z_j)` encoded as a codeword.
-///
-/// The additive NTT's twiddles are `K`-valued and the transform is `K`-linear, so
-/// an `E`-valued transform is three `K`-transforms on the limbs. `F192` is
-/// `repr(C)` over three `u64`, which is exactly the interleaved layout
-/// [`AdditiveNttF64::encode_interleaved_in_place`] wants for `num_ntts = 3`.
-pub fn dual_codeword(z: &[F192]) -> Vec<F192> {
-    assert_eq!(z.len(), DA_LOG_K, "one challenge per novel-basis variable");
-    let m = CODEWORD_SYMBOLS;
-
-    let mut buffer = vec![F192::ZERO; m];
-    buffer[0] = F192::ONE;
-    for (j, &zj) in z.iter().enumerate() {
-        let (low, high) = buffer[..1 << (j + 1)].split_at_mut(1 << j);
-        for (h, &l) in high.iter_mut().zip(low.iter()) {
-            *h = l * zj;
-        }
-    }
-
-    // SAFETY: `F192` is `repr(C)` over three `u64` and `F64` is `repr(transparent)`
-    // over `u64`, so the buffer is `3m` limb-interleaved `F64` words with no padding.
-    let limbs = unsafe { core::slice::from_raw_parts_mut(buffer.as_mut_ptr().cast::<F64>(), 3 * m) };
-    AdditiveNttF64::standard(LOG_M).encode_interleaved_in_place(limbs, 3, 1);
-    buffer
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BLOB_SYMBOLS;
-    use crate::encode_rows;
+    use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, encode_rows};
+    use primitives::field::{F192, powers};
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
-    /// Draw challenges from the commitment and test every row for membership.
-    /// The caller must separately bind `codewords` to the commitment.
-    fn check_membership(root: &[u8; 32], codewords: &[u64]) -> bool {
-        let dual = membership_vector(root);
+    /// `L` over the whole domain as the guest builds it: at each point, the product of its factors.
+    fn dual_codeword(z: F192) -> Vec<F192> {
+        let vhat = subspace_above();
+        let z_powers: Vec<F192> = std::iter::successors(Some(z), |&p| Some(p * p))
+            .take(DA_LOG_K)
+            .collect();
+        (0..CODEWORD_SYMBOLS)
+            .map(|i| {
+                (0..DA_LOG_K).fold(F192::ONE, |product, j| {
+                    let at = F64((i >> j) as u64 & 1) + vhat(j, i >> (j + 1));
+                    product * (F192::ONE + z_powers[j].mul_base(at))
+                })
+            })
+            .collect()
+    }
+
+    /// Test every row against the vector of a random challenge.
+    fn check_membership(z: F192, codewords: &[u64]) -> bool {
+        let dual = dual_codeword(z);
         codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
             let residual = dual
                 .iter()
@@ -100,6 +63,10 @@ mod tests {
                 .fold(F192::ZERO, |acc, (&l, &w)| acc + l.mul_base(F64(w)));
             residual == F192::ZERO
         })
+    }
+
+    fn random_challenge(rng: &mut StdRng) -> F192 {
+        F192::new(rng.random(), rng.random(), rng.random())
     }
 
     fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
@@ -120,35 +87,20 @@ mod tests {
         }
     }
 
-    /// `dual_codeword` runs one interleaved transform over the three `F192` limbs
-    /// in place, which leans on `F192` being `repr(C)` over three `u64`. A single-lane
-    /// transform of each limb must give the same codeword.
+    /// The product form, with the factors [`subspace_above`] gives, is the codeword whose
+    /// novel-basis coefficients are `z^i` below `k`, in the codewords' domain order.
     #[test]
-    fn dual_codeword_matches_limbwise_transform() {
-        let mut rng = StdRng::seed_from_u64(5);
-        let z: Vec<F192> = (0..DA_LOG_K)
-            .map(|_| F192::new(rng.random(), rng.random(), rng.random()))
-            .collect();
-        let dual = dual_codeword(&z);
-
-        let mut tensor = vec![F192::ZERO; BLOB_SYMBOLS];
-        tensor[0] = F192::ONE;
-        for (j, &zj) in z.iter().enumerate() {
-            let (low, high) = tensor[..1 << (j + 1)].split_at_mut(1 << j);
-            for (h, &l) in high.iter_mut().zip(low.iter()) {
-                *h = l * zj;
-            }
-        }
+    fn dual_codeword_has_the_powers_of_z_as_coefficients() {
+        let z = random_challenge(&mut StdRng::seed_from_u64(5));
+        let dual = dual_codeword(z);
+        let want = powers(z, BLOB_SYMBOLS);
         let ntt = AdditiveNttF64::standard(LOG_M);
         for limb in 0..3 {
-            let mut encoded = vec![F64::ZERO; CODEWORD_SYMBOLS];
-            for (out, c) in encoded.iter_mut().zip(&tensor) {
-                *out = F64([c.c0, c.c1, c.c2][limb]);
-            }
-            ntt.encode_interleaved_in_place(&mut encoded, 1, 0);
-            for (x, (&got, &want)) in dual.iter().zip(&encoded).enumerate() {
-                assert_eq!(F64([got.c0, got.c1, got.c2][limb]), want, "limb {limb} at {x}");
-            }
+            let mut coefficients: Vec<F64> = dual.iter().map(|v| F64([v.c0, v.c1, v.c2][limb])).collect();
+            ntt.inverse_transform(&mut coefficients);
+            let (low, high) = coefficients.split_at(BLOB_SYMBOLS);
+            assert!(low.iter().zip(&want).all(|(c, w)| c.0 == [w.c0, w.c1, w.c2][limb]));
+            assert!(high.iter().all(|&c| c == F64::ZERO));
         }
     }
 
@@ -162,17 +114,15 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(11);
         let rows = random_rows(&mut rng, n_rows * BLOB_SYMBOLS);
         let codewords = encode_rows(&rows);
-        let (root, _) = crate::commit_codewords(codewords.clone());
+        let z = random_challenge(&mut rng);
 
-        assert!(check_membership(&root, &codewords));
+        assert!(check_membership(z, &codewords));
 
         for &position in &[0usize, 1, BLOB_SYMBOLS - 1, BLOB_SYMBOLS, CODEWORD_SYMBOLS - 1] {
             let mut corrupted = codewords.clone();
-            let index = 3 * CODEWORD_SYMBOLS + position;
-            corrupted[index] ^= 1;
-            let (corrupted_root, _) = crate::commit_codewords(corrupted.clone());
+            corrupted[3 * CODEWORD_SYMBOLS + position] ^= 1;
             assert!(
-                !check_membership(&corrupted_root, &corrupted),
+                !check_membership(z, &corrupted),
                 "a flip at {position} passed the membership check"
             );
         }
@@ -191,8 +141,7 @@ mod tests {
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
         ntt.encode_interleaved_in_place(crate::encode::as_field_mut(&mut full), 1, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);
-        let (root, _) = crate::commit_codewords(codewords.clone());
 
-        assert!(!check_membership(&root, &codewords));
+        assert!(!check_membership(random_challenge(&mut rng), &codewords));
     }
 }

@@ -157,19 +157,19 @@ At rate $1/2$, the code equals its dual.
 If $f$ and $g$ have degrees less than $\kdim$ and $\blen-\kdim$, then $\deg(fg)\le\blen-2$. Lemma~\ref{lem:domain-sum} gives $\sum_{x\in\dom}f(x)g(x)=0$, so the two codes are orthogonal. Their dimensions sum to $\blen$, giving equality with the dual.
 \end{proof}
 
-\begin{proposition}[Membership with tensor weights]\label{prop:rs-membership}
-Let $\kdim=2^\kappa$, $\blen=2\kdim$, and $\dom=\subsp_{\kappa+1}$. For $z=(z_0,\ldots,z_{\kappa-1})\in\E^\kappa$, define
+\begin{proposition}[Membership with power weights]\label{prop:rs-membership}
+Let $\kdim=2^\kappa$, $\blen=2\kdim$, and $\dom=\subsp_{\kappa+1}$. For $\dachal\in\E$, define
 \begin{equation}\label{eq:dual-product}
-  \dual(X):=\prod_{j<\kappa}\bigl(1+z_j\Wn{j}(X)\bigr).
+  \dual(X):=\prod_{j<\kappa}\bigl(1+\dachal^{2^j}\Wn{j}(X)\bigr).
 \end{equation}
-Its evaluation vector is a codeword. For any fixed $w\in\E^\dom$, the inner product $\inner{\dual}{w}:=\sum_{x\in\dom}\dual(x)w(x)$ vanishes identically as a polynomial in $z$ if and only if $w$ is a codeword. If $w$ is not a codeword and the $z_j$ are independent and uniform, then
+Its evaluation vector is a codeword. For any fixed $w\in\E^\dom$, the inner product $\inner{\dual}{w}:=\sum_{x\in\dom}\dual(x)w(x)$ vanishes identically as a polynomial in $\dachal$ if and only if $w$ is a codeword. If $w$ is not a codeword and $\dachal$ is uniform, then
 \[
-  \Pr_z[\inner{\dual}{w}=0]\le\frac{\kappa}{|\E|}.
+  \Pr_\dachal[\inner{\dual}{w}=0]\le\frac{\kdim-1}{|\E|}.
 \]
 \end{proposition}
 
 \begin{proof}
-Since $\Wn{j}=\novel_{2^j}$, expanding \eqref{eq:dual-product} gives the novel-basis polynomials of index less than $\kdim$, with coefficient tensor $\bigotimes_j(1,z_j)$. Thus $\deg\dual<\kdim$, and Corollary~\ref{cor:rs-dual} makes it orthogonal to every codeword.
+Since $\Wn{j}=\novel_{2^j}$, expanding \eqref{eq:dual-product} gives $\dual=\sum_{u<\kdim}\dachal^u\novel_u$, the binary digits of $u$ picking its factors. Thus $\deg\dual<\kdim$, and Corollary~\ref{cor:rs-dual} makes it orthogonal to every codeword.
 
-Conversely, the coefficient of $\prod_j z_j^{u_j}$ in $\inner{\dual}{w}$ is $\inner{\novel_{\langle u\rangle}}{w}$. If the inner product vanished identically, $w$ would be orthogonal to every basis codeword, hence would itself belong to the code. For an invalid $w$, it is therefore a nonzero multilinear polynomial of total degree at most $\kappa$. The probability bound follows from Lemma~\ref{lem:sz}.
+Conversely, the coefficient of $\dachal^u$ in $\inner{\dual}{w}$ is $\inner{\novel_u}{w}$. If the inner product vanished identically, $w$ would be orthogonal to every basis codeword, hence would itself belong to the code. For an invalid $w$, it is therefore a nonzero polynomial in $\dachal$ of degree less than $\kdim$. The probability bound follows from Lemma~\ref{lem:sz}.
 \end{proof}
