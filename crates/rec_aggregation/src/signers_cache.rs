@@ -162,10 +162,6 @@ pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
     pool[..n].to_vec()
 }
 
-/// The height of the subtree a cached leanSPHINCS key keeps. Verification does not
-/// depend on it, and a full key takes `2^26` one-time keys to generate.
-pub const LEAN_LEAN_SPHINCS_KEPT_HEIGHT: usize = 12;
-
 /// A leanSPHINCS signer, generated the same way, with the message it signed.
 /// Signing is stateless, so unlike leanXMSS there is no leaf index and no key range:
 /// one key answers for every index.
@@ -190,7 +186,7 @@ const LEAN_LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphinc
 
 fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = lean_sphincs::key_gen(&mut rng, LEAN_LEAN_SPHINCS_KEPT_HEIGHT);
+    let (secret_key, public_key) = lean_sphincs::key_gen(&mut rng);
     let message = lean_sphincs_message(index);
     let signature = lean_sphincs::sign(&secret_key, &message).expect("sign");
     (public_key, message, signature)
@@ -209,26 +205,20 @@ fn lean_sphincs_footprint() -> u64 {
         lean_sphincs::V,
         lean_sphincs::W,
         lean_sphincs::TARGET_SUM,
-        lean_sphincs::H,
-        lean_sphincs::FOREST_TREES,
-        lean_sphincs::TREE_HEIGHT,
-        lean_sphincs::SUBTREE_HEIGHT,
-        lean_sphincs::FOREST_CHAINS,
-        LEAN_LEAN_SPHINCS_KEPT_HEIGHT,
+        lean_sphincs::LAYER_HEIGHTS,
+        lean_sphincs::FORS_TREES,
+        lean_sphincs::FORS_HEIGHT,
     )
         .hash(&mut hasher);
-    // The key derivation, the tweakable hash and the codeword table, so a change
-    // to any of them invalidates the file.
-    lean_sphincs::scheme_seed(&[0x11; lean_sphincs::MASTER_SECRET_LEN]).hash(&mut hasher);
+    // The key derivation and the tweakable hash, so a change to either
+    // invalidates the file.
+    lean_sphincs::public_param(&[0x11; lean_sphincs::MASTER_SECRET_LEN]).hash(&mut hasher);
     lean_sphincs::th(
         &[0xA5; lean_sphincs::PUBLIC_PARAM_LEN],
-        &lean_sphincs::tweak(1, 2, 3).step(4),
+        &lean_sphincs::tweak(1, 2, 3).step(4).at(2, 5),
         &[0x3C; 16],
     )
     .hash(&mut hasher);
-    for t in 0..1 << lean_sphincs::CODEWORD_BITS {
-        lean_sphincs::codeword(t).hash(&mut hasher);
-    }
     hasher.finish()
 }
 
@@ -284,8 +274,8 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
         {
             *pool = disk;
         }
-        // Key generation is one whole 2^12-leaf tree, which is the expensive
-        // part; it fans out internally, so this loop stays sequential.
+        // Key generation and signing build whole trees, and fan out
+        // internally, so this loop stays sequential.
         let started = Instant::now();
         let missing = n.saturating_sub(pool.len());
         for index in pool.len()..n {
