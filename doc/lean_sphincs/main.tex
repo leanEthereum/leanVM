@@ -292,7 +292,7 @@ For $N=1\,182\,000\,000\approx2^{30.14}$, every adversary wins with probability 
 The address is chosen so that a prover whose machine words are 16 bytes never cuts a value in two: it is 16 bytes, so every value after it starts a cell, and its fields are little-endian.
 
 \paragraph{Hash domains.}
-An input determines its parameter, its address and its payload, and an address determines the call, so distinct calls of one key never share an input. Calls of different keys differ in $P$.
+An input determines its parameter, its address and its payload, and an address determines the call, so distinct calls of one key never share an input. Calls of different keys differ in $P$. The scheme seed's input, 43 bytes with no parameter and no address, is shorter than every other input, which is at least 48 bytes.
 
 \paragraph{Quantum security.}
 \label{sec:quantum}

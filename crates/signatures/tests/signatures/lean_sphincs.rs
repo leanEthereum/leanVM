@@ -7,7 +7,9 @@ fn seed(x: u8) -> MasterSecret {
 #[test]
 fn signatures_verify_and_tampered_ones_do_not() {
     let (sk, pk) = key_gen_from_seed(seed(3));
-    assert_eq!(pk.public_param, public_param(&scheme_seed(&seed(3))));
+    // Every secret derives from H("leanSPHINCS" || seed).
+    let scheme_seed = primitives::hash::hash(&[b"leanSPHINCS".as_slice(), &seed(3)].concat());
+    assert_eq!(pk.public_param, public_param(&scheme_seed));
     assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message).unwrap();

@@ -292,7 +292,8 @@ pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
 
 /// `Sign`. Deterministic and stateless: the digest picks the FORS instance,
 /// which opens the message, and each layer signs what the layer below gives. A
-/// key signs at most `2^30` messages (`doc/lean_sphincs`).
+/// key signs at most `2^30` messages (`doc/lean_sphincs`). It builds its trees on
+/// `parallel`, so never sign from inside a `parallel` task.
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     sign_with(&scheme_seed(&sk.seed), message)
 }
