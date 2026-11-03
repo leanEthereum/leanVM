@@ -40,10 +40,9 @@ impl LeanSphincsPublicKey {
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
     pub public_param: PublicParam,
-    /// The key's seed, which the key serializes.
+    /// The key's seed, which the key serializes and whose [`scheme_seed`] every
+    /// secret derives from.
     seed: MasterSecret,
-    /// [`scheme_seed`] of it, which every secret derives from.
-    master: MasterSecret,
     /// The top tree's levels, its leaves first and its root last.
     top: Vec<Vec<Digest>>,
 }
@@ -285,7 +284,6 @@ fn key_from_scheme_seed(seed: MasterSecret, master: MasterSecret) -> (LeanSphinc
     let sk = LeanSphincsSecretKey {
         public_param,
         seed,
-        master,
         top,
     };
     let pk = sk.public_key();
@@ -315,7 +313,16 @@ pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
 /// which opens the message, and each layer signs what the layer below gives. A
 /// key signs at most `2^30` messages (`doc/lean_sphincs`).
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    let (pp, seed) = (&sk.public_param, &sk.master);
+    sign_with(sk, &scheme_seed(&sk.seed), message)
+}
+
+/// [`sign`] with the scheme seed `seed`.
+fn sign_with(
+    sk: &LeanSphincsSecretKey,
+    seed: &MasterSecret,
+    message: &Message,
+) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+    let pp = &sk.public_param;
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
     let (fors_key, fors) = fors_open(pp, seed, idx as u32, &leaves);
@@ -414,7 +421,7 @@ mod tests {
         let (sk, pk) = key_from_scheme_seed(master, master);
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.flatten()[..], pk_bytes[..]);
-        let signature = sign(&sk, &message).unwrap();
+        let signature = sign_with(&sk, &master, &message).unwrap();
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
         assert_eq!(verify(&pk, &message, &signature), Ok(()));
     }
