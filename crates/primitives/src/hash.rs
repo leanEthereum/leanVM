@@ -678,6 +678,64 @@ pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES],
     hash_many_with::<Backend>(data, len, state, out)
 }
 
+/// The state [`hash`] of `data` permutes last: every whole block absorbed and the padded final
+/// block XORed in, not yet permuted, so `keccak_f` of it then [`digest_of`] is `hash(data)`.
+///
+/// Inputs that differ only in a few words of their final block share it: build it once with
+/// those words zero, then [`digest_halves_from`] XORs each input's words in.
+pub fn final_state(data: &[u8]) -> [u64; STATE_LANES] {
+    let mut state = [0; STATE_LANES];
+    let (blocks, tail) = data.as_chunks::<RATE>();
+    for block in blocks {
+        absorb(&mut state, &block_of(block));
+    }
+    for (s, b) in state.iter_mut().zip(&final_block(tail)) {
+        *s ^= b;
+    }
+    state
+}
+
+/// The first 128 bits of the digest, little endian, of `template`'s input with `values[i]`
+/// XORed into its lanes `at` and `at + 1`, into `out[i]`, [`LANES`] values at a time.
+/// `template` is that input's [`final_state`] with those 16 bytes zero, so a value costs one
+/// permutation.
+pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
+    digest_halves_from_with::<Backend>(template, at, values, out)
+}
+
+#[inline(always)]
+fn digest_halves_from_with<S: Lanes64>(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
+    assert!(at + 2 <= RATE_LANES && values.len() == out.len());
+    let whole = out.len() / S::WIDTH * S::WIDTH;
+    for g in (0..whole).step_by(S::WIDTH) {
+        let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(template[i]));
+        for (j, shift) in [(0, 0), (1, 64)] {
+            let lanes: [u64; MAX_WIDTH] = std::array::from_fn(|l| {
+                if l < S::WIDTH {
+                    (values[g + l] >> shift) as u64
+                } else {
+                    0
+                }
+            });
+            st[at + j] = st[at + j].xor(S::load(&lanes, 0));
+        }
+        permute(&mut st);
+        let mut lanes = [0u64; 2 * MAX_WIDTH];
+        st[0].store(&mut lanes, 0);
+        st[1].store(&mut lanes, S::WIDTH);
+        for l in 0..S::WIDTH {
+            out[g + l] = u128::from(lanes[l]) | u128::from(lanes[S::WIDTH + l]) << 64;
+        }
+    }
+    for i in whole..out.len() {
+        let mut state = *template;
+        state[at] ^= values[i] as u64;
+        state[at + 1] ^= (values[i] >> 64) as u64;
+        keccak_f(&mut state);
+        out[i] = u128::from(state[0]) | u128::from(state[1]) << 64;
+    }
+}
+
 /// Keccak-f\[1600\] of every state in place, [`LANES`] at a time.
 pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
     let (groups, rest) = states.as_chunks_mut::<LANES>();
@@ -817,6 +875,30 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A value XORed into a final state's zeroed lanes gives the digest of the input holding it,
+    /// on every backend, the remainder past the last whole group included.
+    #[test]
+    fn digest_halves_from_a_final_state_match_hashing() {
+        fn check<S: Lanes64>(name: &str) {
+            for (len, at) in [(80, 64), (64, 48), (160, 144)] {
+                let mut input = pattern(len);
+                input[at..at + 16].fill(0);
+                let template = final_state(&input);
+                let values: Vec<u128> = (0..2 * S::WIDTH as u128 + 1)
+                    .map(|i| (i + 1) * 0x9E37_79B9_7F4A_7C15)
+                    .collect();
+                let mut got = vec![0; values.len()];
+                digest_halves_from_with::<S>(&template, at % RATE / 8, &values, &mut got);
+                for (value, got) in values.iter().zip(got) {
+                    input[at..at + 16].copy_from_slice(&value.to_le_bytes());
+                    assert_eq!(got.to_le_bytes()[..], hash(&input)[..16], "{name}: len {len}");
+                }
+            }
+        }
+        check::<u64>("scalar");
+        check::<Backend>("backend");
     }
 
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]

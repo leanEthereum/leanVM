@@ -6,6 +6,10 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one permutation a trial.
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use primitives::hash::RATE;
+
 use crate::lean_xmss::*;
 
 /// The index of `leaf_index`'s one-time key on `layer`: the leaf index itself at
@@ -51,29 +55,64 @@ pub fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]
 /// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
 /// bottom and the bottom root at the top.
 pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Randomizer, message: &[u8]) -> Digest {
-    digest_prefix(pp, layer, e, message).update(randomizer).finalize()[..N]
+    hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e))
+        .update(message)
+        .update(randomizer)
+        .finalize()[..N]
         .try_into()
         .unwrap()
-}
-
-/// `P | A | M`, the hasher a randomizer trial continues.
-fn digest_prefix(pp: &PublicParam, layer: usize, e: u32, message: &[u8]) -> primitives::hash::Hasher {
-    let mut prefix = hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e));
-    prefix.update(message);
-    prefix
 }
 
 /// The digest's first `v` digits, if it is a codeword.
 pub fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let d = u128::from_le_bytes(*digest);
-    let x: [u8; V] = std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8);
-    let sum: usize = x.iter().map(|&digit| digit as usize).sum();
-    (d >> (W * V) == 0 && sum == TARGET_SUM).then_some(x)
+    is_codeword(d).then(|| std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8))
 }
 
-/// Randomizer trials searched per parallel dispatch: the first hit is expected
-/// after about `2^20`, and a batch has to be small for the search to stop near it.
-const GRIND_BATCH: u64 = 1 << 14;
+/// Whether the digest `d`, little endian, is a codeword: its digits past the `v`th are
+/// zero, and a two-bit digit being its low bit plus twice its high bit, the others sum
+/// to `T`.
+fn is_codeword(d: u128) -> bool {
+    const _: () = assert!(W == 2);
+    const LOW: u128 = u128::MAX / 3;
+    d >> (W * V) == 0 && (d & LOW).count_ones() + 2 * (d & !LOW).count_ones() == TARGET_SUM as u32
+}
+
+/// Trials a grinding worker claims and hashes at once.
+const GRIND_BATCH: usize = 64;
+
+/// The least `c` below `MAX_RANDOMIZER_TRIALS` whose randomizer `base + c`, as the last
+/// 16 bytes of `input`, makes its digest a codeword. Those bytes are zero in `input` and
+/// lie in its last block, so the blocks before are absorbed once and a trial costs one
+/// permutation. Workers claim batches in ascending order and stop at the first claim past
+/// the least hit so far, so every batch below the answer is searched however the pool
+/// interleaves: the least trial, which keeps one key to one codeword.
+fn least_trial(input: &[u8], base: u128) -> Option<u64> {
+    let at = input.len() - RANDOMIZER_LEN;
+    assert!(at.is_multiple_of(8) && at / RATE == input.len() / RATE);
+    let template = primitives::hash::final_state(input);
+    let (next, least) = (AtomicU64::new(0), AtomicU64::new(u64::MAX));
+    parallel::for_each(parallel::num_threads(), |_| {
+        let (mut values, mut digests) = ([0; GRIND_BATCH], [0; GRIND_BATCH]);
+        loop {
+            let first = next.fetch_add(GRIND_BATCH as u64, Ordering::Relaxed);
+            if first >= MAX_RANDOMIZER_TRIALS.min(least.load(Ordering::Relaxed)) {
+                return;
+            }
+            let n = (MAX_RANDOMIZER_TRIALS - first).min(GRIND_BATCH as u64) as usize;
+            for (c, value) in (first..).zip(&mut values[..n]) {
+                *value = base.wrapping_add(u128::from(c));
+            }
+            primitives::hash::digest_halves_from(&template, at % RATE / 8, &values[..n], &mut digests[..n]);
+            if let Some(hit) = digests[..n].iter().position(|&d| is_codeword(d)) {
+                least.fetch_min(first + hit as u64, Ordering::Relaxed);
+                return;
+            }
+        }
+    });
+    let least = least.into_inner();
+    (least != u64::MAX).then_some(least)
+}
 
 /// `Ots.sign`: the randomizer of the LEAST admissible trial `R_0 + c`, `R_0` a hash
 /// of the seed and the message, and the chain value each digit opens. Deterministic
@@ -91,18 +130,9 @@ pub fn wots_sign(
         hasher.update(seed.as_bytes()).update(message);
         u128::from_le_bytes(hasher.finalize()[..RANDOMIZER_LEN].try_into().unwrap())
     };
-    let trial = |c: u64| base.wrapping_add(u128::from(c)).to_le_bytes();
-    let prefix = digest_prefix(pp, layer, e, message);
-    let admits = |c: u64| {
-        let digest = prefix.clone().update(&trial(c)).finalize();
-        codeword(&digest[..N].try_into().unwrap()).is_some()
-    };
-    let c = (0..MAX_RANDOMIZER_TRIALS)
-        .step_by(GRIND_BATCH as usize)
-        .find_map(|start| {
-            parallel::find_first(GRIND_BATCH as usize, |i| admits(start + i as u64)).map(|i| start + i as u64)
-        })?;
-    let randomizer = trial(c);
+    let address = address(&tweak(TWEAK_MSG, layer_hi(layer, 0), e));
+    let input = [pp.as_slice(), &address, message, &[0; RANDOMIZER_LEN]].concat();
+    let randomizer = base.wrapping_add(u128::from(least_trial(&input, base)?)).to_le_bytes();
     let x = codeword(&message_digest(pp, layer, e, &randomizer, message))?;
     let secrets = wots_secrets(pp, seed, layer, e);
     let values = std::array::from_fn(|i| chain(pp, layer, e, i, 0, x[i] as usize, secrets[i]));
