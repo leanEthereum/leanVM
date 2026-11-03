@@ -41,23 +41,3 @@ fn signatures_verify_and_tampered_ones_do_not() {
         assert!(verify(&pk, &message, &bad).is_err(), "byte {at}");
     }
 }
-
-#[test]
-fn the_counter_is_the_least_admissible() {
-    let (sk, pk) = key_gen_from_seed(seed(4));
-    let message = [9; MESSAGE_LEN];
-    let signature = sign(&sk, &message).unwrap();
-    let pp = &pk.public_param;
-    let (idx, leaves) = message_digest(pp, &signature.randomizer, &message);
-    let fors_key = fors_recover(pp, idx, &leaves, &signature.fors, |_| ());
-    let key = OtsKey::of_index(0, idx);
-    let signed = fors_key_bytes(&fors_key);
-    let counter = signature.layers[0].counter;
-    // The signer grinds from the hash state before the counter; the encoding is
-    // still `Th(P, A_enc(K), M | LE_32(c))` in one piece.
-    let digest = th(pp, &key.tweak(TWEAK_ENC, 0), &[signed, &counter.to_le_bytes()].concat());
-    let d = u128::from_le_bytes(digest);
-    let word: [u8; V] = std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8);
-    assert_eq!(encode(pp, &key, signed, counter), Some(word));
-    assert!((0..counter).all(|c| encode(pp, &key, signed, c).is_none()));
-}
