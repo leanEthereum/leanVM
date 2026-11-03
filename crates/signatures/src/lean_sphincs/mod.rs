@@ -12,7 +12,7 @@
 //!
 //! The secret key is one 32-byte seed. Its hash with the scheme's tag derives
 //! the public parameter and every secret. Key generation builds the top tree,
-//! and signing the FORS instance and the two lower trees on the way.
+//! and signing the FORS instance and the three trees on the way up.
 
 mod hash;
 pub use hash::*;

@@ -35,32 +35,22 @@ impl LeanSphincsPublicKey {
     }
 }
 
-/// The seed, and the top tree key generation built from it, a cache and not
-/// state: the signer reads the top key's path off it.
+/// The key's seed, all of the key: its [`scheme_seed`] derives every secret.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
-    pub public_param: PublicParam,
-    /// The key's seed, which the key serializes and whose [`scheme_seed`] every
-    /// secret derives from.
     seed: MasterSecret,
-    /// The top tree's levels, its leaves first and its root last.
-    top: Vec<Vec<Digest>>,
 }
 
 impl std::fmt::Debug for LeanSphincsSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LeanSphincsSecretKey")
-            .field("public_key", &self.public_key())
-            .finish_non_exhaustive()
+        f.debug_struct("LeanSphincsSecretKey").finish_non_exhaustive()
     }
 }
 
 impl LeanSphincsSecretKey {
+    /// The public key, rebuilt as key generation builds it: the whole top tree.
     pub fn public_key(&self) -> LeanSphincsPublicKey {
-        LeanSphincsPublicKey {
-            root: self.top[LAYER_HEIGHTS[LAYERS - 1]][0],
-            public_param: self.public_param,
-        }
+        public_key_of(&scheme_seed(&self.seed))
     }
 
     /// SECRET KEY MATERIAL: the seed, all of the key.
@@ -68,9 +58,8 @@ impl LeanSphincsSecretKey {
         self.seed
     }
 
-    /// Regenerates the key, as key generation does.
     pub fn from_bytes(bytes: &[u8; SECRET_KEY_SIZE]) -> Self {
-        key_gen_from_seed(*bytes).0
+        Self { seed: *bytes }
     }
 }
 
@@ -275,19 +264,18 @@ fn tree_levels(pp: &PublicParam, seed: &MasterSecret, key: &OtsKey) -> Vec<Vec<D
 /// `Gen`, deterministic: the seed's [`scheme_seed`] derives the public parameter,
 /// and the top tree gives the root.
 pub fn key_gen_from_seed(seed: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    key_from_scheme_seed(seed, scheme_seed(&seed))
+    (LeanSphincsSecretKey { seed }, public_key_of(&scheme_seed(&seed)))
 }
 
-fn key_from_scheme_seed(seed: MasterSecret, master: MasterSecret) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    let public_param = public_param(&master);
-    let top = tree_levels(&public_param, &master, &OtsKey::of_index(LAYERS - 1, 0));
-    let sk = LeanSphincsSecretKey {
+/// The public key of the scheme seed `seed`: its public parameter and the top
+/// tree's root.
+fn public_key_of(seed: &MasterSecret) -> LeanSphincsPublicKey {
+    let public_param = public_param(seed);
+    let top = tree_levels(&public_param, seed, &OtsKey::of_index(LAYERS - 1, 0));
+    LeanSphincsPublicKey {
+        root: top[LAYER_HEIGHTS[LAYERS - 1]][0],
         public_param,
-        seed,
-        top,
-    };
-    let pk = sk.public_key();
-    (sk, pk)
+    }
 }
 
 /// `Gen`, on a fresh seed from `rng`.
@@ -313,16 +301,13 @@ pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
 /// which opens the message, and each layer signs what the layer below gives. A
 /// key signs at most `2^30` messages (`doc/lean_sphincs`).
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    sign_with(sk, &scheme_seed(&sk.seed), message)
+    sign_with(&scheme_seed(&sk.seed), message)
 }
 
-/// [`sign`] with the scheme seed `seed`.
-fn sign_with(
-    sk: &LeanSphincsSecretKey,
-    seed: &MasterSecret,
-    message: &Message,
-) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    let pp = &sk.public_param;
+/// [`sign`] with the scheme seed `seed`. It builds the FORS instance and the
+/// three trees on the way up.
+fn sign_with(seed: &MasterSecret, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+    let pp = &public_param(seed);
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
     let (fors_key, fors) = fors_open(pp, seed, idx as u32, &leaves);
@@ -333,13 +318,7 @@ fn sign_with(
         let key = OtsKey::of_index(layer, idx);
         let (counter, wots) =
             wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding(layer))?;
-        let built;
-        let levels = if layer == LAYERS - 1 {
-            &sk.top
-        } else {
-            built = tree_levels(pp, seed, &key);
-            &built
-        };
+        let levels = tree_levels(pp, seed, &key);
         let height = LAYER_HEIGHTS[layer];
         for (level, node) in paths[start..start + height].iter_mut().enumerate() {
             *node = levels[level][(key.leaf as usize >> level) ^ 1];
@@ -418,10 +397,10 @@ mod tests {
         };
         let (pk_bytes, sig_bytes) = (unhex(), unhex());
         let master = std::array::from_fn(|i| (37 * i + 11) as u8);
-        let (sk, pk) = key_from_scheme_seed(master, master);
+        let pk = public_key_of(&master);
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.flatten()[..], pk_bytes[..]);
-        let signature = sign_with(&sk, &master, &message).unwrap();
+        let signature = sign_with(&master, &message).unwrap();
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
         assert_eq!(verify(&pk, &message, &signature), Ok(()));
     }

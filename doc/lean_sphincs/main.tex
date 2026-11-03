@@ -227,9 +227,8 @@ Every digest is accepted: every index is a leaf of the key.
 
 $\Gen$ samples $S_0\getsr\bits{256}$, derives $S$ and $P$ as in Section~\ref{sec:parameters}, builds the top tree of $2^{h_2}$ one-time keys, and returns
 \[
-  \pk=(\rootnode,P),\qquad \sk=S_0,
+  \pk=(\rootnode,P),\qquad \sk=S_0.
 \]
-the top tree being a cache the signer may recompute from $S_0$.
 
 \subsection{Signing}
 \label{sec:sign}
@@ -279,7 +278,7 @@ Count permutations of Keccak-f: an input of $r$ bytes costs $\lfloor r/136\rfloo
 \]
 permutations to verify: per FORS tree a leaf and 9 folds; 6 for the bottom encoding, which absorbs the FORS key, and 1 for each encoding above it; per layer 64 chain steps and 8 for the one-time leaf.
 
-A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $232$ permutations, and key generation, with the scheme seed and the public parameter, $232\cdot2^{10}+(2^{10}-1)+2=238\,593$. Signing spends about $2.3\cdot10^5$: $61\,392$ for the FORS instance, $119\,294$ for the two lower trees, and per layer the expected $14\,700$ encoding attempts, one permutation each once the message is absorbed.
+A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $232$ permutations, and key generation, with the scheme seed and the public parameter, $232\cdot2^{10}+(2^{10}-1)+2=238\,593$. Signing spends about $4.6\cdot10^5$: $61\,392$ for the FORS instance, $119\,294$ for the two lower trees, $238\,591$ for the top tree, which a signer may keep from key generation instead, and per layer the expected $14\,700$ encoding attempts, one permutation each once the message is absorbed.
 
 \section{Security}
 \label{sec:security}
