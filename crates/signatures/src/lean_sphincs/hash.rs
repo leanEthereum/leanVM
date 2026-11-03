@@ -1,5 +1,5 @@
-//! leanSPHINCS's address types and seed, on the shared tweakable hash
-//! (`crate::tweak`), whose address names one hash call in the whole structure.
+//! leanSPHINCS's address types, on the shared tweakable hash (`crate::tweak`),
+//! whose address names one hash call in the whole structure.
 
 pub use crate::tweak::*;
 
@@ -7,18 +7,20 @@ use crate::lean_sphincs::*;
 
 // Hash types of leanSPHINCS's own.
 pub const TWEAK_ENC: u8 = 4;
-/// A pruned key's surrogate siblings.
-pub const TWEAK_SURROGATE: u8 = 13;
-pub const TWEAK_FOREST_PRF: u8 = 14;
-pub const TWEAK_FOREST_CHAIN: u8 = 15;
-/// The leaf of a subtree: a small WOTS key's chain tops.
-pub const TWEAK_FOREST_KEY_LEAF: u8 = 16;
-pub const TWEAK_FOREST_SUBNODE: u8 = 17;
-/// The leaf of a tree: the top nodes of its two subtrees.
-pub const TWEAK_FOREST_TREE_LEAF: u8 = 18;
-pub const TWEAK_FOREST_NODE: u8 = 19;
+pub const TWEAK_FORS_PRF: u8 = 14;
+pub const TWEAK_FORS_LEAF: u8 = 15;
+pub const TWEAK_FORS_NODE: u8 = 17;
 
 /// The seed the scheme derives from.
-pub fn scheme_seed(seed: &MasterSecret) -> MasterSecret {
+pub fn scheme_seed(seed: &Seed) -> SchemeSeed {
     tagged_seed(SEED_TAG, seed)
 }
+
+/// The `hi` field of a FORS call at `position` of tree `c`: `c + 64 position`,
+/// a position being a leaf, a pair of leaves, or `level + 16 j` for node `j`.
+pub const fn fors_hi(c: usize, position: usize) -> u32 {
+    (c + 64 * position) as u32
+}
+
+const _: () = assert!(FORS_TREES <= 64 && FORS_HEIGHT <= 16);
+const _: () = assert!(fors_hi(FORS_TREES - 1, 16 << FORS_HEIGHT) < 1 << 24);

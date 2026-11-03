@@ -24,6 +24,6 @@ pub fn layer_hi(layer: usize, field: u32) -> u32 {
 }
 
 /// The seed the scheme derives from.
-pub fn scheme_seed(seed: &Seed) -> Seed {
+pub fn scheme_seed(seed: &Seed) -> SchemeSeed {
     tagged_seed(SEED_TAG, seed)
 }

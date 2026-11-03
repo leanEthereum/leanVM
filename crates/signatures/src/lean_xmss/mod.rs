@@ -20,7 +20,7 @@ pub use scheme::*;
 #[cfg(feature = "mock")]
 pub mod mock;
 
-/// The seed every secret is derived from.
+/// The key's seed, the whole secret key.
 pub const SEED_LEN: usize = 32;
 pub type Seed = [u8; SEED_LEN];
 

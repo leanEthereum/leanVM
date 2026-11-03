@@ -10,36 +10,63 @@
 
 use crate::lean_sphincs::*;
 
-/// The starts of the `v` chains of the one-time key at leaf `e`. One hash of the
-/// seed gives two of them: chains `2t` and `2t + 1` are its two halves.
-pub fn wots_secrets(pp: &PublicParam, master: &MasterSecret, e: u32) -> [Digest; V] {
+/// A one-time key of the hypertree: its layer, counted from the bottom, its tree
+/// on that layer, and its leaf in that tree.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct OtsKey {
+    pub layer: usize,
+    pub tree: u32,
+    pub leaf: u32,
+}
+
+impl OtsKey {
+    /// The key of `layer` on the way from bottom leaf `idx` up: the bits below
+    /// the layer dropped, the rest split into a tree and a leaf.
+    pub fn of_index(layer: usize, idx: u32) -> Self {
+        let height = LAYER_HEIGHTS[layer];
+        let e = idx >> LAYER_HEIGHTS[..layer].iter().sum::<usize>();
+        Self {
+            layer,
+            tree: e >> height,
+            leaf: e & ((1 << height) - 1),
+        }
+    }
+
+    /// The key's address of type `t`: its leaf in `lo`, its layer and tree.
+    pub fn tweak(&self, t: u8, hi: u32) -> Tweak {
+        tweak(t, hi, self.leaf).at(self.layer, self.tree)
+    }
+}
+
+/// The starts of the `v` chains of a one-time key. One hash of the seed gives
+/// two of them: chains `2j` and `2j + 1` are its two halves.
+pub fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
-    for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-        *pair = th_pair(pp, &tweak(TWEAK_PRF, t as u32, e), master);
+    for (j, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+        *pair = th_pair(pp, &key.tweak(TWEAK_PRF, j as u32), seed);
     }
     secrets
 }
 
 /// `steps` steps of chain `i` from position `start`; a step carries the position
 /// it leaves.
-pub fn chain(pp: &PublicParam, e: u32, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
+pub fn chain(pp: &PublicParam, key: &OtsKey, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
     debug_assert!(start + steps < CHAIN_LEN);
-    (start..start + steps).fold(value, |current, from| {
-        th(pp, &tweak(TWEAK_CHAIN, i as u32, e).step(from), &current)
-    })
+    let tw = key.tweak(TWEAK_CHAIN, i as u32);
+    (start..start + steps).fold(value, |current, from| th(pp, &tw.step(from), &current))
 }
 
 /// The Merkle leaf of a one-time key: `Th` over its `v` chain ends.
-pub fn wots_leaf_hash(pp: &PublicParam, e: u32, ends: &[Digest; V]) -> Digest {
-    th_digests(pp, &tweak(TWEAK_LEAF, 0, e), ends)
+pub fn wots_leaf_hash(pp: &PublicParam, key: &OtsKey, ends: &[Digest; V]) -> Digest {
+    th_digests(pp, &key.tweak(TWEAK_LEAF, 0), ends)
 }
 
-/// The hash of `Enc(P, e, K, .)` before its counter: `P | A | K`, the forest
-/// key's sixteen nodes. The counter falls in the last block, so a signer grinding
-/// it pays one permutation a counter.
-fn encoder(pp: &PublicParam, e: u32, key: &ForestKey) -> primitives::hash::Hasher {
-    let mut hasher = hasher(pp, &tweak(TWEAK_ENC, 0, e));
-    hasher.update(key.as_flattened().as_flattened());
+/// The hash of `Enc(P, K, M, .)` before its counter: `P | A | M`. The counter
+/// falls in the last block, so a signer grinding it pays one permutation a
+/// counter.
+fn encoder(pp: &PublicParam, key: &OtsKey, message: &[u8]) -> primitives::hash::Hasher {
+    let mut hasher = hasher(pp, &key.tweak(TWEAK_ENC, 0));
+    hasher.update(message);
     hasher
 }
 
@@ -48,9 +75,10 @@ fn encode_from(encoder: &primitives::hash::Hasher, c: u32) -> Option<[u8; V]> {
     codeword(&output[..N].try_into().unwrap())
 }
 
-/// `Enc(P, e, K, c)`: the codeword, or `None` if this counter's digest is not one.
-pub fn encode(pp: &PublicParam, e: u32, key: &ForestKey, c: u32) -> Option<[u8; V]> {
-    encode_from(&encoder(pp, e, key), c)
+/// `Enc(P, K, M, c) = Th(P, A_enc(K), M | LE_32(c))` as a codeword, or `None` if
+/// this counter's digest is not one.
+pub fn encode(pp: &PublicParam, key: &OtsKey, message: &[u8], c: u32) -> Option<[u8; V]> {
+    encode_from(&encoder(pp, key, message), c)
 }
 
 /// The digest as `v` chunks of `w` bits, little endian; a codeword if they sum
@@ -63,31 +91,37 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 
 /// `Ots.sign`: the LEAST admissible counter, and the chain value each chunk
 /// opens. Deterministic in its inputs, which is what keeps one key to one
-/// codeword: a resumed or randomized search would leak two incomparable
-/// codewords.
-pub fn wots_sign(pp: &PublicParam, master: &MasterSecret, e: u32, key: &ForestKey) -> Option<(u32, [Digest; V])> {
-    let encoder = encoder(pp, e, key);
+/// codeword per message: a resumed or randomized search would leak two
+/// incomparable codewords.
+pub fn wots_sign(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey, message: &[u8]) -> Option<(u32, [Digest; V])> {
+    let encoder = encoder(pp, key, message);
     let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode_from(&encoder, c as u32).map(|x| (c as u32, x)))?;
-    let secrets = wots_secrets(pp, master, e);
-    let signature = std::array::from_fn(|i| chain(pp, e, i, 0, x[i] as usize, secrets[i]));
+    let secrets = wots_secrets(pp, seed, key);
+    let signature = std::array::from_fn(|i| chain(pp, key, i, 0, x[i] as usize, secrets[i]));
     Some((c, signature))
 }
 
-/// `Ots.leaf`: the leaf a claimed signature recovers, or `None` if its counter
-/// is not admissible for the key.
-pub fn wots_leaf(pp: &PublicParam, e: u32, key: &ForestKey, c: u32, signature: &[Digest; V]) -> Option<Digest> {
-    let x = encode(pp, e, key, c)?;
+/// `Ots.leaf`: the leaf a claimed signature recovers, and the codeword it opens
+/// at, or `None` if its counter is not admissible for the message.
+pub fn wots_leaf(
+    pp: &PublicParam,
+    key: &OtsKey,
+    message: &[u8],
+    c: u32,
+    signature: &[Digest; V],
+) -> Option<([u8; V], Digest)> {
+    let x = encode(pp, key, message, c)?;
     let ends = std::array::from_fn(|i| {
         let start = x[i] as usize;
-        chain(pp, e, i, start, CHAIN_LEN - 1 - start, signature[i])
+        chain(pp, key, i, start, CHAIN_LEN - 1 - start, signature[i])
     });
-    Some(wots_leaf_hash(pp, e, &ends))
+    Some((x, wots_leaf_hash(pp, key, &ends)))
 }
 
-/// The leaf of the one-time key at `e`, from the seed: what key generation
-/// spends its hashes on.
-pub fn wots_public_leaf(pp: &PublicParam, master: &MasterSecret, e: u32) -> Digest {
-    let secrets = wots_secrets(pp, master, e);
-    let ends = std::array::from_fn(|i| chain(pp, e, i, 0, CHAIN_LEN - 1, secrets[i]));
-    wots_leaf_hash(pp, e, &ends)
+/// The leaf of a one-time key, from the seed: what building a tree spends its
+/// hashes on.
+pub fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> Digest {
+    let secrets = wots_secrets(pp, seed, key);
+    let ends = std::array::from_fn(|i| chain(pp, key, i, 0, CHAIN_LEN - 1, secrets[i]));
+    wots_leaf_hash(pp, key, &ends)
 }

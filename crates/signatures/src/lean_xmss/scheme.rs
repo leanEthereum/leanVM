@@ -96,10 +96,9 @@ impl LeanXmssSignature {
 }
 
 pub struct LeanXmssSecretKey {
-    /// The key's seed, which the key serializes.
+    /// The key's seed, which the key serializes and whose [`scheme_seed`] every
+    /// secret derives from.
     key_seed: Seed,
-    /// [`scheme_seed`] of it, which every secret derives from.
-    seed: Seed,
     public_param: PublicParam,
     top: LayerTree,
     /// The bottom tree the key last signed in.
@@ -171,7 +170,6 @@ pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (Le
     let top = LayerTree::build(&public_param, &seed, 1, 0, first, last);
     let sk = LeanXmssSecretKey {
         key_seed,
-        seed,
         public_param,
         top,
         bottom: Mutex::new(None),
@@ -213,14 +211,15 @@ impl LeanXmssSecretKey {
         leaves: RangeInclusive<LeafIndex>,
     ) -> Result<LeanXmssSignature, LeanXmssSignError> {
         let bottom = self.bottom_tree(leaf_index, leaves)?;
-        let (randomizer, chain_values) = wots_sign(&self.public_param, &self.seed, 0, leaf_index, message)
+        let seed = scheme_seed(&self.key_seed);
+        let (randomizer, chain_values) = wots_sign(&self.public_param, &seed, 0, leaf_index, message)
             .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
         Ok(LeanXmssSignature {
             leaf_index,
             bottom: LayerSignature {
                 randomizer,
                 chain_values,
-                path: bottom.tree.path(&self.public_param, &self.seed, tree_leaf(leaf_index)),
+                path: bottom.tree.path(&self.public_param, &seed, tree_leaf(leaf_index)),
             },
             top: bottom.top_signature.clone(),
         })
@@ -238,7 +237,7 @@ impl LeanXmssSecretKey {
         if let Some(bottom) = self.bottom.lock().unwrap().as_ref().filter(|b| b.index == index) {
             return Ok(Arc::clone(bottom));
         }
-        let (pp, seed) = (&self.public_param, &self.seed);
+        let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
         let base = index << LAYER_HEIGHT;
         let first = (*leaves.start()).max(base) - base;
         let last = (*leaves.end()).min(base | tree_leaf(LeafIndex::MAX)) - base;
