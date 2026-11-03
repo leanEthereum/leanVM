@@ -509,6 +509,7 @@ Three builtins have the prover compute the values at witness generation instead 
 
 - `hint_decompose_bits(bits, value, nbits[, start])`: writes `nbits` bits of `value`, from bit `start` on (default `0`), into the buffer `bits`, one field element (`0`/`1`) per bit.
 - `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation).
+- `hint_decompose_nibbles_exponent(digits, x, shift, ndigits, rev)`: writes the `ndigits` base-16 digits `d_j` of `n >> s`, where `x = GEN ** n` and `shift = GEN ** s`, low digit first, into `digits` as `GEN ** d_j`; with `rev = 1` each digit's four bits are reversed. A caller range-checks each digit (`assert log(d) < 16`) and rebuilds `x` from them, which costs a few cycles a digit where bits cost four a bit.
 - `g = hint_log2_ceil(bits, nbits, floor)`: returns `GEN ** log2_ceil(v)` for the value `v` held bitwise in the `nbits`-bit buffer `bits`, floored at `floor`.
 
 `bits` is a `HeapBuf` or a `StackBuf` (of at least `nbits` cells). Prefer the `StackBuf`: a frame cell is addressed directly, so `bits[i]` at a compile-time index is free where a heap read is a `DEREF`, and the booleanity pin `bits[i] = b * b` is then one `MUL` rather than a `MUL` and a `DEREF`. Use `addr` below where the run must also be indexed at runtime or reached from elsewhere.

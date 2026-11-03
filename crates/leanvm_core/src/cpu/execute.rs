@@ -590,6 +590,7 @@ impl Program {
                         RHint::Log2Ceil { .. } => "Log2Ceil",
                         RHint::BitDecompose { .. } => "BitDecompose",
                         RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
+                        RHint::NibbleDecomposeExp { .. } => "NibbleDecomposeExp",
                         RHint::FieldLimbs { .. } => "FieldLimbs",
                         RHint::Inverse { .. } => "Inverse",
                         RHint::Print { .. } => "Print",
@@ -739,6 +740,38 @@ impl Program {
                             for j in 0..*nbits {
                                 let bit = ((n >> j) & 1) as u64;
                                 m.put(bb + j, F192::new(bit, 0, 0))?;
+                            }
+                        }
+                        RHint::NibbleDecomposeExp {
+                            value,
+                            shift,
+                            digits,
+                            ndigits,
+                            rev,
+                        } => {
+                            const WHAT: &str = "hint_decompose_nibbles_exponent value";
+                            const SHIFT: &str = "hint_decompose_nibbles_exponent shift";
+                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                            let n = bounded_dlog(&mut dlog_cache, x, (4 * ndigits).min(64))
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                            let y = in_k(SHIFT, m.get(fp + shift)).map_err(fail)?;
+                            let s = bounded_dlog(&mut dlog_cache, y, 7)
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: SHIFT, value: y }))?;
+                            let n = if s >= 128 { 0 } else { n >> s };
+                            let bb = bits_base(&m, &mut g, fp, *digits, "hint_decompose_nibbles_exponent pointer")
+                                .map_err(fail)?;
+                            for j in 0..*ndigits {
+                                let d = if 4 * j >= 128 {
+                                    0
+                                } else {
+                                    ((n >> (4 * j)) & 15) as usize
+                                };
+                                let d = if *rev {
+                                    (d as u8).reverse_bits() as usize >> 4
+                                } else {
+                                    d
+                                };
+                                m.put(bb + j, F192::new(g.pow(d).0, 0, 0))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {

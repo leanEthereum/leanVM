@@ -10,6 +10,7 @@ mod dot;
 mod field_div;
 mod field_towers;
 mod hint_log2_ceil;
+mod hint_nibbles;
 mod inline_expr;
 mod loop_frames;
 mod miscompiles;

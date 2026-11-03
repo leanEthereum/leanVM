@@ -1875,21 +1875,36 @@ def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g):
     return
 
 
-def block_selector_tab(sel_bits, eq_tab, g_tab, n: Const):
-    # block_selector off the shared tables: per nibble, the pinned bits fold into a
-    # g-power index g^u, u below the nibble's table size, that reads its eq factor
-    # and its share of g^offset.
+@inline
+def assert_digit(idx, width: Const):
+    # idx = g^u with u < 2^width, width in 1..4: the range check in the exponent.
+    if const(width == 4):
+        assert log(idx) < 16
+    elif const(width == 3):
+        assert log(idx) < 8
+    elif const(width == 2):
+        assert log(idx) < 4
+    else:
+        assert log(idx) < 2
+    return
+
+
+def block_selector_tab(off_g, kappa_g, eq_tab, g_tab, n: Const):
+    # block_selector off the shared tables: the selector bits are offset >> κ, hinted
+    # a nibble at a time as g-power indices g^u (u the nibble, low bit first), each
+    # range-checked below the nibble's table size, so that it reads its eq factor and
+    # its share of g^offset; the caller pins the product of the shares to g^offset,
+    # which makes the digits offset >> κ's and the offset κ-aligned.
+    digits = StackBuf(SEL_TAB_NIBBLES)
+    hint_decompose_nibbles_exponent(digits, off_g, kappa_g, SEL_TAB_NIBBLES, 0)
     eq = GEN ** 0
     rebuilt = GEN ** 0
     for j in unroll(0, (n + 3) // 4):
         width = 4
         if const(j == n // 4):
             width = n - 4 * j
-        idx = GEN ** 0
-        for t in unroll(0, width):
-            sbit = sel_bits[GEN ** (4 * j + t)]
-            sel_bits[GEN ** (4 * j + t)] = sbit * sbit  # booleanity as a write-once pin
-            idx *= 1 + sbit * (1 + GEN ** (2 ** t))
+        idx = digits[j]
+        assert_digit(idx, width)
         eq *= eq_tab[GEN ** (SEL_TAB_EQ_STRIDE * j + 2 ** width - 2) * idx]
         rebuilt *= g_tab[GEN ** (16 * j) * idx]
     return eq, rebuilt
@@ -2066,20 +2081,21 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                 # g^offset from those high bits alone (weights g^(2^(κ+k))) and
                 # asserting it equals block_off_g pins the bits AND the κ-alignment
                 # in one shot; the low κ bit cells are written but never read.
-                offset_bits = HeapBuf(GEN ** SIZE_BITS)
-                hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                 shared = 0
                 if const(BLOCK_KAPPA_SRC[b] // 2 != 0):
                     if const(BLOCK_KAPPA_ADJ[b] == 0):
                         shared = 1
                 if const(shared == 1):
                     t = BLOCK_KAPPA_SRC[b] - 2
-                    sel_bits = offset_bits * dims_g[GEN ** (t + 1)]
+                    off_g = block_off_g[GEN ** b]
+                    tau_g = dims_g[GEN ** (t + 1)]
                     len_g = shared_len[t]
                     tab_eq = shared_eq * GEN ** (t * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
                     tab_g = shared_g * GEN ** (t * SEL_TAB_NIBBLES * 16)
-                    eq_hi, goff = match(log(len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(sel_bits, tab_eq, tab_g, n))
+                    eq_hi, goff = match(log(len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(off_g, tau_g, tab_eq, tab_g, n))
                 else:
+                    offset_bits = HeapBuf(GEN ** SIZE_BITS)
+                    hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                     sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
                     assert log(sel_len_g) < SIZE_BITS
                     sel_bits = offset_bits * kappa_g
@@ -3038,22 +3054,21 @@ def column_selector(offset, sel_eq, sel_g, kappa: Const):
     # Rebuild the offset using only bits above the column's kappa, certifying its
     # alignment. The same bits select the column at the complete opening point.
     # Both offset and point are zero above m, so extending to 4 * SEL_NIBBLES adds
-    # only factors eq(0, 0) = 1. The bits go a nibble at a time, top bit first:
-    # their g-power index u (bit 4j+3-t weighing 2^t) reads the nibble's eq over
-    # its coordinates and its g^offset share off the tables of selector_tables.
-    bits = StackBuf(4 * SEL_NIBBLES)
-    hint_decompose_bits_exponent(bits, offset, 4 * SEL_NIBBLES)
+    # only factors eq(0, 0) = 1. The bits go a nibble at a time, hinted as the
+    # nibble's g-power index g^u (bit 4j+3-t weighing 2^t), range-checked below the
+    # nibble's table size: it reads the nibble's eq over its coordinates and its
+    # g^offset share off the tables of selector_tables, and the shares' product
+    # pinned to the offset makes every digit the offset's.
+    digits = StackBuf(SEL_NIBBLES)
+    hint_decompose_nibbles_exponent(digits, offset, GEN ** 0, SEL_NIBBLES, 1)
     rebuilt = GEN ** 0
     selector = GEN ** 0
     for j in unroll(kappa // 4, SEL_NIBBLES):
         width = 4
         if const(j == kappa // 4):
             width = 4 * j + 4 - kappa
-        idx = GEN ** 0
-        for t in unroll(0, width):
-            bit = bits[4 * j + 3 - t]
-            bits[4 * j + 3 - t] = bit * bit
-            idx *= 1 + bit * (1 + GEN ** (2 ** t))
+        idx = digits[j]
+        assert_digit(idx, width)
         selector *= sel_eq[GEN ** (SEL_EQ_STRIDE * j + 2 ** width - 2) * idx]
         rebuilt *= sel_g[GEN ** (16 * j) * idx]
     assert rebuilt == offset

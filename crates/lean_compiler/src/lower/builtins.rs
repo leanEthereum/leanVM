@@ -406,7 +406,9 @@ impl FnLower<'_> {
     /// advice, re-checked in-circuit by their caller: `hint_decompose_bits`
     /// writes a value's bits into a buffer, `hint_decompose_bits_exponent` the
     /// bits of `n` where the value is `g^n` (a bounded dlog at witness
-    /// generation), `hint_f192_limbs` a value's coordinate limbs.
+    /// generation), `hint_decompose_nibbles_exponent` the base-16 digits of
+    /// such an `n` shifted right by another exponent, each as a g-power,
+    /// `hint_f192_limbs` a value's coordinate limbs.
     pub(super) fn lower_builtin(&mut self, f: &str, args: &[Expr]) -> bool {
         match f {
             "hint_decompose_bits" | "hint_decompose_bits_exponent" => {
@@ -439,6 +441,29 @@ impl FnLower<'_> {
                     }
                 } else {
                     RHint::BitDecomposeExp { value, bits, nbits }
+                }));
+            }
+            "hint_decompose_nibbles_exponent" => {
+                if args.len() != 5 {
+                    self.fail(format!(
+                        "{f} takes `(digits, value, shift, ndigits, rev)`, got {} arguments",
+                        args.len()
+                    ))
+                };
+                let ndigits = self.const_index(&args[3]);
+                let rev = self.const_index(&args[4]);
+                if ndigits > 16 || rev > 1 {
+                    self.fail(format!("{f} writes at most 16 digits, and `rev` is 0 or 1"))
+                }
+                let digits = self.bits_dest(&args[0], ndigits, f);
+                let value = self.expr(&args[1]);
+                let shift = self.expr(&args[2]);
+                self.pending.push(Hint::Resolved(RHint::NibbleDecomposeExp {
+                    value,
+                    shift,
+                    digits,
+                    ndigits,
+                    rev: rev == 1,
                 }));
             }
             "keccak" => self.lower_keccak(args),

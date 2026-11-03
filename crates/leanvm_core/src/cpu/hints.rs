@@ -221,6 +221,16 @@ pub enum RHint {
     /// Write the `nbits` bits of `n`, where `m[fp+value] = g^n` (a bounded
     /// discrete log at witness generation), into `bits`.
     BitDecomposeExp { value: Off, bits: BitsDest, nbits: u32 },
+    /// Write the `ndigits` base-16 digits of `n >> s`, where `m[fp+value] = g^n` and
+    /// `m[fp+shift] = g^s` (bounded discrete logs at witness generation), into `digits` as the
+    /// g-powers `g^d`, the low digit first; with `rev`, each digit's four bits reversed.
+    NibbleDecomposeExp {
+        value: Off,
+        shift: Off,
+        digits: BitsDest,
+        ndigits: u32,
+        rev: bool,
+    },
     /// Write the first `len` K-coordinate limbs of `m[fp+value]` to
     /// `m[fp+base..]`. Computed advice; callers constrain the result.
     FieldLimbs { value: Off, base: Off, len: u32 },

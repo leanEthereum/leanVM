@@ -257,6 +257,7 @@ const BUILTINS: &[&str] = &[
     "f192",
     "hint_decompose_bits",
     "hint_decompose_bits_exponent",
+    "hint_decompose_nibbles_exponent",
     "hint_f192_limbs",
     "hint_log2_ceil",
     "hint_witness",

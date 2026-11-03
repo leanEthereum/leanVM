@@ -72,6 +72,14 @@ def hint_decompose_bits_exponent(bits, x, nbits: int) -> None:
     _ = bits, x, nbits
 
 
+def hint_decompose_nibbles_exponent(digits, x, shift, ndigits: int, rev: int) -> None:
+    """Computed advice: with x = g^n and shift = g^s, the prover writes the
+    `ndigits` base-16 digits d_j of n >> s, low digit first, into `digits` as
+    the g-powers g^(d_j), each digit's four bits reversed when `rev` is 1.
+    UNCONSTRAINED: the caller range-checks every g^(d_j) and rebuilds x."""
+    _ = digits, x, shift, ndigits, rev
+
+
 def hint_log2_ceil(bits, nbits: int, floor: int) -> _Elt:
     """Computed advice: returns `g^max(log2_ceil(v), floor)`, where `v` is the
     integer the `nbits`-cell `bits` buffer decodes to. The prover fills it at
