@@ -169,6 +169,12 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
   verifying                   : 5.963 ms
 ```
 
+### Fancy aggregation
+
+````
+cargo leanvm recursion --n 16 --xmss-per-leaf 256 --fancy --log-inv-rate 1 --leaf-log-inv-rate 2
+```
+
 ## SNARK machinery
 
 - 192-bit binary field (degree-3 tower over the 64-bit field)
