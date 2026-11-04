@@ -11,4 +11,3 @@ rec_aggregation.workspace = true
 leanvm_core.workspace = true
 lean_da.workspace = true
 signatures.workspace = true
-rand.workspace = true

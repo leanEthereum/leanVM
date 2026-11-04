@@ -37,7 +37,7 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
     );
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
     println!("    details                   : {}", stats.details());
-    crate::report::print_proof_size(&proof);
+    crate::report::print_proof_size(bincode::serialized_size(&proof).expect("proof is serializable") as usize);
     let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
     println!(
         "  proving                     : {} s{}   {} cycles/s      peak memory {} GiB",

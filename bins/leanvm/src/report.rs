@@ -20,7 +20,6 @@ pub fn peak_gib() -> String {
     pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
 }
 
-pub fn print_proof_size<T: serde::Serialize>(proof: &T) {
-    let bytes = bincode::serialized_size(proof).expect("proof is serializable");
+pub fn print_proof_size(bytes: usize) {
     println!("  proof size                  : {:.1} KiB", bytes as f64 / 1024.0);
 }

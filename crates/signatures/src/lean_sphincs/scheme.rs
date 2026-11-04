@@ -6,7 +6,6 @@
 //! FORS key, the middle key the bottom tree's root, the top key the middle
 //! tree's root, and the top tree's root is the public key.
 
-use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::lean_sphincs::*;
@@ -297,9 +296,9 @@ fn public_key_of(seed: &SchemeSeed) -> LeanSphincsPublicKey {
     }
 }
 
-/// `Gen`, on a fresh seed from `rng`.
-pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    key_gen_from_seed(rng.random())
+/// `Gen`, on a fresh seed from the operating system's randomness.
+pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
+    key_gen_from_seed(rand::random())
 }
 
 /// The randomizer of a message, `R = Th(P, A_rnd, S | m)` for the scheme seed

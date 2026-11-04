@@ -379,8 +379,32 @@ pub enum AggregateVerifyError {
     /// The bytes are not a valid encoding of an aggregate.
     MalformedEncoding,
     /// The snark did not verify. From [`aggregate`], which does not verify its children, it means a child's proof could not be read.
-    Snark(verifier::VerifierError),
+    Snark(SnarkVerifyError),
 }
+
+/// Why a proof did not verify. Opaque: its message is for debugging.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnarkVerifyError(verifier::VerifierError);
+
+impl std::fmt::Display for SnarkVerifyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl std::error::Error for SnarkVerifyError {}
+
+/// Why the prover made no proof. Opaque: its message is for debugging.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnarkProveError(ProveError);
+
+impl std::fmt::Display for SnarkProveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl std::error::Error for SnarkProveError {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AggregationError {
@@ -412,7 +436,7 @@ pub enum AggregationError {
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any
     /// verifier accepts (too many signatures for one proof).
-    ProofError(ProveError),
+    ProofError(SnarkProveError),
 }
 
 impl std::fmt::Display for AggregateVerifyError {
@@ -574,9 +598,9 @@ impl EthereumProof {
         wire().serialize(&self.core()).expect("an aggregate serializes")
     }
 
-    /// The underlying VM proof, whose serialized size the CLI's benchmarks report.
-    pub fn proof(&self) -> &leanvm_core::cpu::Proof {
-        &self.proof
+    /// The serialized size of the VM proof alone, without the statement.
+    pub fn proof_size(&self) -> usize {
+        wire().serialized_size(&self.proof).expect("a proof serializes") as usize
     }
 
     /// Inverse of [`Self::to_bytes_without_pubkeys`], verifying nothing either.
@@ -644,7 +668,7 @@ impl EthereumProof {
         drop(_s);
         verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
             .map(|_| ())
-            .map_err(AggregateVerifyError::Snark)
+            .map_err(|e| AggregateVerifyError::Snark(SnarkVerifyError(e)))
     }
 }
 
@@ -1668,7 +1692,8 @@ pub fn aggregate_with_stats(
     });
     let mut replayed = Vec::with_capacity(children.len());
     for (pi, summary) in statements.into_iter().zip(summaries) {
-        let summary = summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(e)))?;
+        let summary =
+            summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
         replayed.push((pi, summary));
     }
 
@@ -1828,7 +1853,8 @@ pub fn aggregate_with_stats(
         forge(&mut hints);
     }
     hints.install(&mut program);
-    let (proof, stats) = prove(&program, public_input, log_inv_rate).map_err(AggregationError::ProofError)?;
+    let (proof, stats) =
+        prove(&program, public_input, log_inv_rate).map_err(|e| AggregationError::ProofError(SnarkProveError(e)))?;
     Ok((
         EthereumProof {
             xmss_signers: cover.xmss.signers,
@@ -2888,8 +2914,7 @@ mod tests {
     #[test]
     fn aggregate_one_key_two_messages() {
         leanvm_core::init_prover();
-        let mut rng = StdRng::seed_from_u64(77);
-        let (secret_key, public_key) = lean_sphincs::key_gen(&mut rng);
+        let (secret_key, public_key) = lean_sphincs::key_gen_from_seed([77; lean_sphincs::SEED_LEN]);
         let raw: Vec<RawSphincs> = [3u8, 9]
             .into_iter()
             .map(|tag| {

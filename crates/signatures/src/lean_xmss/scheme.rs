@@ -5,7 +5,6 @@
 use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 
-use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::lean_xmss::*;
@@ -162,9 +161,10 @@ impl std::error::Error for LeanXmssSignError {}
 /// Every leaf index: what a key signs at, but for a mock key.
 pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
 
-/// A fresh key pair, its seed sampled from `rng`. Generates the whole top tree.
-pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    key_gen_from_seed(rng.random())
+/// A fresh key pair, its seed from the operating system's randomness. Generates
+/// the whole top tree.
+pub fn key_gen() -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+    key_gen_from_seed(rand::random())
 }
 
 /// Deterministic [`key_gen`]: the seed is the key's entire secret material. Never

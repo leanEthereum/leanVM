@@ -7,11 +7,10 @@ const MSG_2: lean_xmss::Message = [2; lean_xmss::MESSAGE_LEN];
 #[test]
 fn public_api_end_to_end() {
     setup();
-    let rng = &mut rand::rng();
 
     // 1. Eight leanXMSS signatures over three messages, three of the first, four of the second, one of the third,
     //    by four keys. A key signs each message at its own leaf index, which the statement does not record.
-    let keys: Vec<_> = (0..4).map(|_| lean_xmss::key_gen(rng)).collect();
+    let keys: Vec<_> = (0..4).map(|_| lean_xmss::key_gen()).collect();
     let mut lean_xmss_input = Vec::new();
     for (leaf_index, (message, count)) in (7..).zip([(MSG_0, 3), (MSG_1, 4), (MSG_2, 1)]) {
         for (secret_key, pub_key) in &keys[..count] {
@@ -23,7 +22,7 @@ fn public_api_end_to_end() {
     // 2. Three leanSPHINCS signatures, each on its own message
     let mut lean_sphincs_input = Vec::new();
     for signer in 0..3u8 {
-        let (secret_key, pub_key) = lean_sphincs::key_gen(rng);
+        let (secret_key, pub_key) = lean_sphincs::key_gen();
         let message = [signer; lean_sphincs::MESSAGE_LEN];
         let signature = lean_sphincs::sign(&secret_key, &message).unwrap();
         lean_sphincs_input.push((pub_key, message, signature));

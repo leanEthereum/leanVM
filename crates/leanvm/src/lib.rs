@@ -5,14 +5,11 @@
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, VerifierError, aggregate,
+    AggregateVerifyError, AggregationError, ClaimSelection, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
+    MAX_RECURSIONS, SignatureClaims, SnarkProveError, SnarkVerifyError, aggregate,
 };
 
-pub use leanvm_core::{
-    cpu::{ExecError, Fault, ProveError},
-    pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE},
-};
+pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 /// LeanDA commitments. Blob symbols are `u64` words read in little-endian byte order.
 pub mod lean_da {
@@ -37,8 +34,6 @@ pub mod lean_sphincs {
         key_gen_from_seed, sign, verify,
     };
 }
-
-pub use rand;
 
 /// Call once before [`aggregate`] or [`EthereumProof::verify`].
 ///

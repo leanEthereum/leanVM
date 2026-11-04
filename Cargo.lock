@@ -304,7 +304,6 @@ version = "0.1.0"
 dependencies = [
  "lean_da",
  "leanvm_core",
- "rand",
  "rec_aggregation",
  "signatures",
 ]
