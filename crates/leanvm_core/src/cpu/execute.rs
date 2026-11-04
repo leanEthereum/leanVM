@@ -281,8 +281,8 @@ impl Program {
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
 
-        // g^j and its reverse index g^j ↦ j, seeded for the pcs and return targets,
-        // the main frame and the range-check floor, then grown by each reservation.
+        // g^j, covering the pcs and return targets, the main frame and the range-check
+        // floor, then grown by each reservation, and its reverse index g^j ↦ j.
         let seed = (self.prog.len() + 2)
             .max(self.main_frame as usize)
             .max(1 << MIN_LOG_MEM);
@@ -344,9 +344,6 @@ impl Program {
         // `DBG_PROF=1`: per-pc step counts, printed as a per-function cycle
         // profile after the run (needs `fn_ranges`, i.e. a compiled program).
         let mut prof: Option<Vec<u64>> = std::env::var("DBG_PROF").is_ok().then(|| vec![0u64; self.prog.len()]);
-
-        // Baby-step table for `hint_decompose_bits_exponent`, built on first use.
-        let mut dlog_cache: Option<(GPow, F64)> = None;
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
         // `Trace` once the run finishes (alongside the final count columns).
@@ -500,12 +497,13 @@ impl Program {
         }
         // Bounded discrete log for `hint_decompose_bits_exponent`: find n < 2^nbits
         // with g^n = x, by baby-step giant-step (baby table g^j for j < 2^17,
-        // built once per run; giant step ×g^(-2^17)). Prover-side only: the
+        // built once per process; giant step ×g^(-2^17)). Prover-side only: the
         // guest re-verifies the hinted bits in-circuit.
-        fn bounded_dlog(cache: &mut Option<(GPow, F64)>, x: F64, nbits: u32) -> Option<u128> {
+        fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
             const LOG_BABY: u32 = 17;
-            let (baby, giant) = cache.get_or_insert_with(|| {
-                let baby = GPow::new((1usize << LOG_BABY) - 1);
+            static TABLE: std::sync::OnceLock<(GPow, F64)> = std::sync::OnceLock::new();
+            let (baby, giant) = TABLE.get_or_init(|| {
+                let baby = GPow::dense((1usize << LOG_BABY) - 1);
                 // g^(2^17), one past the table; its inverse is the giant step.
                 let giant = mul_by_g(baby.pow((1usize << LOG_BABY) - 1)).inv();
                 (baby, giant)
@@ -517,7 +515,7 @@ impl Program {
                 1
             };
             for a in 0..max_giant {
-                if let Some(j) = baby.log(y) {
+                if let Some(j) = baby.lookup(y) {
                     return Some((a as u128) << LOG_BABY | j as u128);
                 }
                 y *= *giant;
@@ -527,9 +525,9 @@ impl Program {
 
         // A runtime count (a loop's frame span, a `HeapBuf` size) as the exponent of
         // a g-power: the address table when it covers it, else a bounded discrete log.
-        fn count(g: &mut GPow, dlog: &mut Option<(GPow, F64)>, x: F64) -> Option<u32> {
+        fn count(g: &mut GPow, x: F64) -> Option<u32> {
             g.log(x)
-                .or_else(|| bounded_dlog(dlog, x, MAX_CELLS.ilog2()).map(|n| n as u32))
+                .or_else(|| bounded_dlog(x, MAX_CELLS.ilog2()).map(|n| n as u32))
         }
 
         // The cell a heap run starts at: read the pointer back out of memory and
@@ -610,16 +608,14 @@ impl Program {
                                             value: span,
                                         }));
                                     }
-                                    let n = count(&mut g, &mut dlog_cache, span)
-                                        .ok_or_else(|| fail(Fault::OutOfMemory))?
-                                        + 1;
+                                    let n = count(&mut g, span).ok_or_else(|| fail(Fault::OutOfMemory))? + 1;
                                     (ptr, size.checked_mul(n).ok_or_else(|| fail(Fault::OutOfMemory))?)
                                 }
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells.
                                 RHint::AllocDyn { ptr, size } => {
                                     let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
-                                    let cells = count(&mut g, &mut dlog_cache, sz).ok_or_else(|| {
+                                    let cells = count(&mut g, sz).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "HeapBuf size",
                                             value: sz,
@@ -725,7 +721,7 @@ impl Program {
                         RHint::BitDecomposeExp { value, bits, nbits } => {
                             const WHAT: &str = "hint_decompose_bits_exponent value";
                             let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
-                            let n = bounded_dlog(&mut dlog_cache, x, *nbits)
+                            let n = bounded_dlog(x, *nbits)
                                 .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                             let bb = bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer")
                                 .map_err(fail)?;
@@ -751,11 +747,7 @@ impl Program {
                 }
             }
             // Cover the g-powers this step may index (g²·pc return target, g^fp).
-            // Guarded so the steady state is a length compare, not a call.
-            let need = (pc as usize + 2).max(fp as usize);
-            if g.covered() <= need {
-                g.grow_to(need);
-            }
+            g.grow_to((pc as usize + 2).max(fp as usize));
 
             let bytecode_read = {
                 let v = bytecode_count[pc as usize];
@@ -933,7 +925,7 @@ impl Program {
                     // No table constraint covers the output (the relation is proven
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
-                    let mut lanes = crate::keccak::state_of_cells(&input, k.in_odd);
+                    let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);

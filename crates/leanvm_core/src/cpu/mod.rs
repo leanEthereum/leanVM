@@ -746,7 +746,7 @@ mod tests {
             .flat_map(u64::to_le_bytes)
             .collect();
         assert_eq!(
-            primitives::hash::digest_of(&state_of_cells(&out, true)),
+            primitives::hash::digest_of(&state_of_cells(true, |c| out[c])),
             primitives::hash::hash(&bytes)
         );
 
