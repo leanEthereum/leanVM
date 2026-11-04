@@ -142,14 +142,15 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
     );
 }
 
-/// Prove `n` leaves with signatures and distinct blob payloads, then aggregate them in one
-/// recursion step and verify the result. The leaves are built once, in a process of their own;
-/// only the recursion step is measured.
+/// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
+/// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
+/// built once, in a process of their own; only the recursion step is measured.
 pub fn run_recursion(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
+    leaf_log_inv_rate: usize,
     log_inv_rate: usize,
     enable_tracing: bool,
     plan: Plan,
@@ -177,7 +178,7 @@ pub fn run_recursion(
             per_leaf,
             lean_sphincs_per_leaf,
             blobs_per_leaf,
-            log_inv_rate,
+            leaf_log_inv_rate,
             out.as_ref(),
         );
     }
@@ -210,6 +211,9 @@ pub fn run_recursion(
     }
     if blobs_per_leaf > 0 {
         inputs.push(format!("{blobs_per_leaf} blobs"));
+    }
+    if leaf_log_inv_rate != log_inv_rate {
+        inputs.push(format!("proven at log-inv-rate {leaf_log_inv_rate}"));
     }
     report(
         &format!("\nrecursion {n}\u{2192}1, over leaves of {}", inputs.join(", ")),

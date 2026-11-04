@@ -78,6 +78,12 @@ enum Command {
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=lean_da::DA_MAX_ROWS as u64)
         )]
         blobs_per_leaf: usize,
+        /// WHIR inverse-rate logarithm of the leaves (1 through 4)
+        #[arg(
+            long,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
+        )]
+        leaf_log_inv_rate: Option<usize>,
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
     Hash {
@@ -117,12 +123,14 @@ fn main() {
             xmss_per_leaf,
             sphincs_per_leaf,
             blobs_per_leaf,
+            leaf_log_inv_rate,
         } => {
             benchmark::run_recursion(
                 n,
                 xmss_per_leaf,
                 sphincs_per_leaf,
                 blobs_per_leaf,
+                leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
                 cli.log_inv_rate,
                 cli.tracing,
                 plan,
