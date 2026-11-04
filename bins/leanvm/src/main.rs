@@ -3,7 +3,7 @@
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 mod benchmark;
 mod fancy;
@@ -86,7 +86,7 @@ enum Command {
         )]
         leaf_log_inv_rate: Option<usize>,
         /// Draw the subnets' attestations being aggregated, then recursed, on the terminal.
-        #[arg(long, conflicts_with = "tracing")]
+        #[arg(long)]
         fancy: bool,
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
@@ -113,6 +113,15 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
+    // Checked here, since a subcommand's `conflicts_with` misses a global flag given before it.
+    if cli.tracing && matches!(cli.command, Command::Recursion { fancy: true, .. }) {
+        Cli::command()
+            .error(
+                clap::error::ErrorKind::ArgumentConflict,
+                "--fancy cannot be used with --tracing",
+            )
+            .exit();
+    }
     leanvm_core::init_prover();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {

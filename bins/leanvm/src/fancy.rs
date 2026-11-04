@@ -22,6 +22,8 @@ const RUSH: Duration = Duration::from_millis(400);
 const SPINNER: [char; 10] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 type Rgb = (u8, u8, u8);
+/// A box's inner width and height in cells, and the dots it shows.
+type Layout = (usize, usize, usize);
 const DIM: Rgb = (68, 76, 98);
 const FAINT: Rgb = (110, 118, 140);
 const TEXT: Rgb = (200, 206, 220);
@@ -58,6 +60,8 @@ struct State {
     began: Instant,
     /// The child's output that is not progress, printed under the final frame.
     postscript: String,
+    /// Each subnet's dots in the order they aggregate, for the layout they were placed in.
+    dots: Option<(Layout, Vec<Vec<usize>>)>,
 }
 
 /// The animation, or nothing when `--fancy` is off: every method is then a no-op.
@@ -87,17 +91,28 @@ impl Show {
             root: Root::Waiting,
             began: Instant::now(),
             postscript: String::new(),
+            dots: None,
         }));
         let stop = Arc::new(AtomicBool::new(false));
         let tty = std::io::stdout().is_terminal();
         let painter = tty.then(|| {
             on_interrupt_restore_cursor();
+            // A panic's message goes under the frame: stop drawing before it is printed, or the
+            // next frame paints over it.
+            let (previous, halt) = (std::panic::take_hook(), stop.clone());
+            std::panic::set_hook(Box::new(move |info| {
+                if !halt.swap(true, Ordering::Relaxed) {
+                    std::thread::sleep(2 * FRAME);
+                    eprint!("\x1b[?25h");
+                }
+                previous(info);
+            }));
             print!("\x1b[?25l");
             let (state, stop) = (state.clone(), stop.clone());
             std::thread::spawn(move || {
                 let mut height = 0;
                 while !stop.load(Ordering::Relaxed) {
-                    let frame = render(&state.lock().unwrap(), Instant::now(), terminal_width(), true);
+                    let frame = render(&mut lock(&state), Instant::now(), terminal_width(), true);
                     height = paint(&frame, height, true);
                     std::thread::sleep(FRAME);
                 }
@@ -203,12 +218,11 @@ impl Show {
         if inner.tty {
             std::thread::sleep(Duration::from_millis(1500));
         }
-        let postscript = std::mem::take(&mut inner.lock().postscript);
         inner.close();
-        print!("{postscript}");
     }
 
-    /// Stop drawing, leaving the frame as it is, before an error is reported under it.
+    /// Stop drawing, leaving the frame as it is and the child's output under it, before an error
+    /// is reported.
     pub fn close(&mut self) {
         if let Some(inner) = &mut self.0 {
             inner.close();
@@ -218,7 +232,7 @@ impl Show {
 
 impl Inner {
     fn lock(&self) -> MutexGuard<'_, State> {
-        self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+        lock(&self.state)
     }
 
     fn close(&mut self) {
@@ -227,19 +241,22 @@ impl Inner {
         }
         self.stop.store(true, Ordering::Relaxed);
         let height = self.painter.take().map_or(0, |p| p.join().unwrap_or(0));
-        let state = self.lock();
-        let now = match state.root {
-            // Long after any sparkle has faded.
-            Root::Done { at, .. } => at + Duration::from_secs(60),
-            _ => Instant::now(),
-        };
-        let frame = render(&state, now, terminal_width(), self.tty);
-        drop(state);
-        paint(&frame, height, self.tty);
+        let mut state = self.lock();
+        // Unwinding, the panic's message is under the frame: leave both as they are.
+        if !std::thread::panicking() {
+            let now = match state.root {
+                // Long after any sparkle has faded.
+                Root::Done { at, .. } => at + Duration::from_secs(60),
+                _ => Instant::now(),
+            };
+            let frame = render(&mut state, now, terminal_width(), self.tty);
+            paint(&frame, height, self.tty);
+        }
         if self.tty {
             print!("\x1b[?25h");
         }
         println!();
+        print!("{}", state.postscript);
         let _ = std::io::stdout().flush();
     }
 }
@@ -248,6 +265,10 @@ impl Drop for Inner {
     fn drop(&mut self) {
         self.close();
     }
+}
+
+fn lock(state: &Mutex<State>) -> MutexGuard<'_, State> {
+    state.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 /// Redraw `frame` over the `height` lines drawn last, returning its own height. Off a terminal,
@@ -442,7 +463,7 @@ fn curve(from: (f64, f64), to: (f64, f64), f: f64) -> (usize, usize) {
     )
 }
 
-fn render(s: &State, now: Instant, width: usize, color: bool) -> Vec<String> {
+fn render(s: &mut State, now: Instant, width: usize, color: bool) -> Vec<String> {
     let n = s.leaves.len();
     let t = now.saturating_duration_since(s.began).as_secs_f64();
     let w = width.saturating_sub(1).clamp(40, 120);
@@ -465,6 +486,24 @@ fn render(s: &State, now: Instant, width: usize, color: bool) -> Vec<String> {
     let fan_h = 5;
     let root_y = fan_y + fan_h;
     let mut c = Canvas::new(w, root_y + 4);
+
+    // The attestations, scattered over each box and aggregated from its far corners in.
+    if s.dots.as_ref().is_none_or(|(layout, _)| *layout != (iw, ih, shown)) {
+        let order = |i: usize| {
+            let (ox, oy) = (iw as f64, ih as f64 * 4.0);
+            let dist = |d: usize| {
+                let (dx, dy) = ((d % (iw * 2)) as f64 - ox, (d / (iw * 2)) as f64 - oy);
+                -(dx * dx + 4.0 * dy * dy) - (hash(d as u64, 7) % 9) as f64
+            };
+            let mut dots: Vec<usize> = (0..slots).collect();
+            dots.sort_by_key(|&d| hash(i as u64, d as u64));
+            dots.truncate(shown);
+            dots.sort_by(|&a, &b| dist(a).total_cmp(&dist(b)));
+            dots
+        };
+        s.dots = Some(((iw, ih, shown), (0..n).map(order).collect()));
+    }
+    let s = &*s;
 
     let shared = fill(s, now);
     // When the last leaf is proven, every subnet's count runs up to full, and then they are done.
@@ -526,16 +565,7 @@ fn render(s: &State, now: Instant, width: usize, color: bool) -> Vec<String> {
         c.centered(x, bw, name_y, &name, name_color);
         c.frame(x, box_y, bw, ih + 2, border);
 
-        // The attestations, scattered over the box and aggregated from its far corners in.
-        let mut dots: Vec<usize> = (0..slots).collect();
-        dots.sort_by_key(|&d| hash(i as u64, d as u64));
-        dots.truncate(shown);
-        let (ox, oy) = (iw as f64, ih as f64 * 4.0);
-        let dist = |d: usize| {
-            let (dx, dy) = ((d % (iw * 2)) as f64 - ox, (d / (iw * 2)) as f64 - oy);
-            -(dx * dx + 4.0 * dy * dy) - (hash(d as u64, 7) % 9) as f64
-        };
-        dots.sort_by(|&a, &b| dist(a).total_cmp(&dist(b)));
+        let dots = &s.dots.as_ref().expect("placed above").1[i];
         let front = (shown / 10).max(1);
         let mut cells = vec![(0usize, 0usize, false); iw * ih];
         for (rank, &d) in dots.iter().enumerate() {
@@ -581,8 +611,7 @@ fn render(s: &State, now: Instant, width: usize, color: bool) -> Vec<String> {
             None => (vec![format!("{total} {}", s.noun), total], DIM),
         };
         let label = labels.into_iter().find(|l| l.chars().count() <= bw).unwrap_or_default();
-        let label = (label, color);
-        c.centered(x, bw, label_y, &label.0, label.1);
+        c.centered(x, bw, label_y, &label, color);
 
         // Its proof's way down to the root: dotted until the proof exists, then lit, with packets
         // flowing along it while the root recurses.
