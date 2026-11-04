@@ -196,7 +196,7 @@ pub fn mle_eval_par(table: &[F64], point: &[F192]) -> F192 {
 const MLE_LOW_VARS: usize = 10;
 
 /// `eq(r, .)` packed eight weights at a time for [`dot_base`]. Needs `r.len() >= 3`.
-fn packed_eq(r: &[F192]) -> Vec<Weights8> {
+pub fn packed_eq(r: &[F192]) -> Vec<Weights8> {
     eq_table(r).as_chunks::<8>().0.iter().map(Weights8::new).collect()
 }
 
