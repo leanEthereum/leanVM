@@ -1,0 +1,74 @@
+name: Recursion bench
+
+# Runs the 2→1 recursion benchmark of the README at a PR's merge commit and at its base (the merge commit's first
+# parent), on one runner, and prints both reports: the cycle and row counts, the committed size and the proof size are
+# deterministic, the times are this runner's. It gates nothing.
+
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recursion-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # As in rust.yml: pin the ISA, or a cached build dies of SIGILL on an older runner.
+  RUSTFLAGS: -C target-cpu=haswell
+
+jobs:
+  recursion:
+    name: 2→1 recursion, PR and base
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The merge commit and its first parent, the base.
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: recursion-bench
+      # The benchmark's signers, generated once and cached under target/ by `rec_aggregation::signers_cache`.
+      - uses: actions/cache@v4
+        with:
+          path: target/signers-cache
+          key: signers-${{ hashFiles('crates/signatures/**', 'crates/rec_aggregation/src/signers_cache.rs') }}
+          restore-keys: signers-
+      - name: Build the PR and its base
+        run: |
+          mkdir -p ab
+          cargo build --release -p leanvm-cli
+          cp target/release/leanvm ab/head
+          git checkout --quiet --detach HEAD^1
+          cargo build --release -p leanvm-cli
+          cp target/release/leanvm ab/base
+          git checkout --quiet --detach "$GITHUB_SHA"
+      - name: Prove the recursion step, base then PR
+        run: |
+          for side in base head; do
+            echo "::group::$side"
+            "ab/$side" recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3 | tee "ab/$side.txt"
+            echo "::endgroup::"
+          done
+      - name: Report
+        run: |
+          field() { grep -m1 "$2" "ab/$1.txt" | sed 's/^[^:]*: *//'; }
+          {
+            echo "### 2→1 recursion over leaves of 900 leanXMSS, \`--log-inv-rate 2\`"
+            echo
+            echo "| | base | PR |"
+            echo "|---|---|---|"
+            for row in "cycles (VM steps)" "details" "proof size" "proving time" "verifying" "aggregation bytecode"; do
+              echo "| $row | $(field base "$row") | $(field head "$row") |"
+            done
+            echo
+            echo "Runner: $(lscpu | sed -n 's/^Model name: *//p' | head -n1), $(nproc) vCPUs."
+          } | tee -a "$GITHUB_STEP_SUMMARY"

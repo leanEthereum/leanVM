@@ -97,6 +97,12 @@ impl Memory {
         self.page(i >> PAGE_LOG).map_or(F192::ZERO, |p| p[i & (PAGE - 1)].word)
     }
 
+    /// Overwrite cell `i`, as a dishonest prover would.
+    #[cfg(test)]
+    pub(crate) fn set_word(&mut self, i: usize, value: F192) {
+        self.pages[i >> PAGE_LOG][i & (PAGE - 1)].word = value;
+    }
+
     /// Page `p`'s cells, `None` past the last one.
     pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
         self.pages.get(p).map(|p| &p[..])
@@ -139,6 +145,8 @@ pub enum Fault {
     NotAGPower { what: &'static str, value: F64 },
     /// A `KECCAK` input cell outside the 128-bit embedding.
     NotCanonical { cell: usize, value: F192 },
+    /// A `KECCAK_M` whose `b8` cell's low limb is not a bit, or that reads the odd layout.
+    BadMerkleStep { value: F192 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -205,6 +213,11 @@ impl std::fmt::Display for Fault {
             Self::NotCanonical { cell, value } => write!(
                 f,
                 "KECCAK input cell {cell} is not a canonical 128-bit embedding ({})",
+                word(*value)
+            ),
+            Self::BadMerkleStep { value } => write!(
+                f,
+                "KECCAK_M needs the even layout and a direction bit in b8's low limb ({})",
                 word(*value)
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
@@ -356,6 +369,7 @@ impl Program {
         let mut deref: Rows<Drow> = Rows::new();
         let mut jump: Rows<Jrow> = Rows::new();
         let mut keccak: Rows<Krow> = Rows::new();
+        let mut dot: Rows<Dotrow> = Rows::new();
 
         // The memory's pages, grown as the run reaches them. Every method on the hot
         // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
@@ -583,6 +597,7 @@ impl Program {
                         RHint::Log2Ceil { .. } => "Log2Ceil",
                         RHint::BitDecompose { .. } => "BitDecompose",
                         RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
+                        RHint::NibbleDecomposeExp { .. } => "NibbleDecomposeExp",
                         RHint::FieldLimbs { .. } => "FieldLimbs",
                         RHint::Inverse { .. } => "Inverse",
                         RHint::Print { .. } => "Print",
@@ -732,6 +747,38 @@ impl Program {
                             for j in 0..*nbits {
                                 let bit = ((n >> j) & 1) as u64;
                                 m.put(bb + j, F192::new(bit, 0, 0))?;
+                            }
+                        }
+                        RHint::NibbleDecomposeExp {
+                            value,
+                            shift,
+                            digits,
+                            ndigits,
+                            rev,
+                        } => {
+                            const WHAT: &str = "hint_decompose_nibbles_exponent value";
+                            const SHIFT: &str = "hint_decompose_nibbles_exponent shift";
+                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                            let n = bounded_dlog(&mut dlog_cache, x, (4 * ndigits).min(64))
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                            let y = in_k(SHIFT, m.get(fp + shift)).map_err(fail)?;
+                            let s = bounded_dlog(&mut dlog_cache, y, 7)
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: SHIFT, value: y }))?;
+                            let n = if s >= 128 { 0 } else { n >> s };
+                            let bb = bits_base(&m, &mut g, fp, *digits, "hint_decompose_nibbles_exponent pointer")
+                                .map_err(fail)?;
+                            for j in 0..*ndigits {
+                                let d = if 4 * j >= 128 {
+                                    0
+                                } else {
+                                    ((n >> (4 * j)) & 15) as usize
+                                };
+                                let d = if *rev {
+                                    (d as u8).reverse_bits() as usize >> 4
+                                } else {
+                                    d
+                                };
+                                m.put(bb + j, F192::new(g.pow(d).0, 0, 0))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {
@@ -921,7 +968,22 @@ impl Program {
                 Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let k = crate::tables::KeccakOp::of(&op);
-                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
+                    // KECCAK_M: the low limb of b8 is the direction bit, which picks the order the
+                    // two m pairs are read in.
+                    let bit = if k.swap {
+                        if k.in_odd {
+                            return Err(fail(Fault::BadMerkleStep { value: F192::ZERO }));
+                        }
+                        let b8 = m.read(k.cell(fp, 8, false));
+                        match b8.c0 {
+                            0 => false,
+                            1 => true,
+                            _ => return Err(fail(Fault::BadMerkleStep { value: b8 })),
+                        }
+                    } else {
+                        false
+                    };
+                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c, bit));
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // The table reads every cell with a literal zero top limb, so anything
                     // else could not balance the bus.
@@ -934,6 +996,9 @@ impl Program {
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
                     let mut lanes = crate::keccak::state_of_cells(&input, k.in_odd);
+                    if k.swap {
+                        lanes[16] = primitives::hash::END_BIT;
+                    }
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
@@ -946,6 +1011,47 @@ impl Program {
                     keccak.push(Krow {
                         pc,
                         fp,
+                        r,
+                        bytecode_read,
+                    });
+                    pc += 1;
+                }
+                Op::Dot { x, p, w, acc, out } => {
+                    use crate::tables::{DOT_CELLS, DOT_LANES};
+                    let pointer = m.read(fp + p);
+                    let p_addr = as_addr(pointer).ok_or_else(|| fail(Fault::WildPointer { value: pointer }))?;
+                    let base = g
+                        .log(p_addr)
+                        .ok_or_else(|| fail(Fault::WildPointer { value: pointer }))?
+                        + w;
+                    let mut cells = [0u32; DOT_CELLS];
+                    for k in 0..DOT_LANES / 2 {
+                        cells[k] = fp + x + k as u32;
+                    }
+                    cells[DOT_LANES / 2] = fp + p;
+                    for j in 0..DOT_LANES {
+                        cells[DOT_LANES / 2 + 1 + j] = base + j as u32;
+                    }
+                    cells[DOT_CELLS - 2] = fp + acc;
+                    cells[DOT_CELLS - 1] = fp + out;
+                    let mut value = m.read(fp + acc);
+                    for k in 0..DOT_LANES / 2 {
+                        // The table reads a lane cell as `(lo, hi, 0)`, so anything else could
+                        // not balance the bus.
+                        let cell = m.read(cells[k]);
+                        if cell.c2 != 0 {
+                            return Err(fail(Fault::NotCanonical { cell: k, value: cell }));
+                        }
+                        for (h, lane) in [cell.c0, cell.c1].into_iter().enumerate() {
+                            value += m.read(cells[DOT_LANES / 2 + 1 + 2 * k + h]) * F192::new(lane, 0, 0);
+                        }
+                    }
+                    m.put(fp + out, value)?;
+                    let r: [u32; DOT_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
+                    dot.push(Dotrow {
+                        pc,
+                        fp,
+                        w: base,
                         r,
                         bytecode_read,
                     });
@@ -1005,6 +1111,7 @@ impl Program {
             deref,
             jump,
             keccak,
+            dot,
             bytecode_count,
             counts,
         };

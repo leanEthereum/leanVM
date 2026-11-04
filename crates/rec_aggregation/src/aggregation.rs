@@ -1231,11 +1231,12 @@ fn gen_verify(
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
         for opening in openings.by_ref().take(queries) {
+            // The leaf's canonical cells, two lanes each, as the guest hashes and weighs them.
             query_hints.push((
                 "merkle_leaf_rows",
-                opening.leaf.iter().map(|x| F192::new(x.0, 0, 0)).collect(),
+                opening.leaf.chunks(2).map(|x| F192::new(x[0].0, x[1].0, 0)).collect(),
             ));
-            let mut path_children = Vec::with_capacity(4 * path_depth);
+            let mut path_siblings = Vec::with_capacity(2 * path_depth);
             let bytes: Vec<_> = opening.leaf.iter().flat_map(|x| x.to_bytes()).collect();
             let mut node = pcs::merkle::hash_leaf(&bytes);
             let mut index = (1 << depth) + opening.leaf_index as usize;
@@ -1251,14 +1252,13 @@ fn gen_verify(
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(pack_hash_state(left));
-                    path_children.extend(pack_hash_state(right));
+                    path_siblings.extend(pack_hash_state(sibling));
                 }
                 node = pcs::merkle::hash_pair(left, right);
                 index >>= 1;
             }
             nodes[1] = node;
-            query_hints.push(("merkle_children", path_children));
+            query_hints.push(("merkle_siblings", path_siblings));
         }
         caps.extend(nodes.iter().flat_map(pack_hash_state));
         cap_active.extend(active);
@@ -2378,6 +2378,14 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             })
             .max()
             .unwrap();
+        // A query's row is weighed by `DOT`, `DOT_LANES` lanes an instruction.
+        assert!(
+            cands
+                .iter()
+                .flat_map(|c| &c.interleaving)
+                .all(|&n| n % leanvm_core::tables::DOT_LANES == 0),
+            "a leaf row must be whole DOT instructions"
+        );
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
         ps(
@@ -2411,6 +2419,11 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     .map(|(level, &n)| if level == 0 { n / 2 } else { 3 * n / 2 })
                     .collect()
             }),
+        );
+        // The guest sums a query position's bits against a table of `BIT_WEIGHTS` powers of `x`.
+        assert!(
+            cands.iter().flat_map(|c| &c.tree_depths).all(|&d| d <= 32),
+            "a query position has more bits than the guest's BIT_WEIGHTS"
         );
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
         ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
@@ -3022,35 +3035,52 @@ def main():
         for i in (1..8).rev() {
             tree[i] = pcs::merkle::hash_pair(&tree[2 * i], &tree[2 * i + 1]);
         }
-        let run = |index: usize, leaf: [u8; 32], pairs: &[[[u8; 32]; 2]], root: [u8; 32]| {
+        let run = |bits: [u64; 3], leaf: [u8; 32], siblings: &[[u8; 32]], root: [u8; 32]| {
             let mut hints = Hints::default();
-            hints.push(
-                "bits",
-                (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
-            );
+            hints.push("bits", bits.map(|b| F192::from(F64(b))).to_vec());
             hints.push("leaf", pack_hash_state(&leaf).to_vec());
-            hints.push(
-                "merkle_children",
-                pairs.iter().flatten().flat_map(pack_hash_state).collect(),
-            );
+            hints.push("merkle_siblings", siblings.iter().flat_map(pack_hash_state).collect());
             let mut program = guest.clone();
             hints.install(&mut program);
             program.execute(pack_hash_state(&root))
         };
+        let bits_of = |index: usize| std::array::from_fn(|k| ((index >> k) & 1) as u64);
+        let siblings_of =
+            |index: usize| -> Vec<[u8; 32]> { (0..3).map(|level| tree[((8 + index) >> level) ^ 1]).collect() };
         for index in 0..8 {
-            let pairs: Vec<_> = (0..3)
-                .map(|level| {
-                    let left = ((8 + index) >> level) & !1;
-                    [tree[left], tree[left + 1]]
-                })
-                .collect();
             assert!(
-                run(index, tree[8 + index], &pairs, tree[1])
+                run(bits_of(index), tree[8 + index], &siblings_of(index), tree[1])
                     .unwrap()
                     .unconstrained_reads
                     .is_empty()
             );
         }
+        // A Merkle step hashes in the order its bit says, so a wrong sibling, a flipped bit or
+        // a leaf from elsewhere misses the root; a bit that is not 0 or 1 is no KECCAK_M at all
+        // (its row would break the table's `S·(S + 1) = 0`), and the guest pins the bits anyway.
+        let index = 5;
+        let mut wrong = siblings_of(index);
+        wrong[1] = tree[2];
+        assert!(
+            run(bits_of(index), tree[8 + index], &wrong, tree[1]).is_err(),
+            "a wrong sibling"
+        );
+        let mut flipped = bits_of(index);
+        flipped[1] ^= 1;
+        assert!(
+            run(flipped, tree[8 + index], &siblings_of(index), tree[1]).is_err(),
+            "a flipped bit"
+        );
+        assert!(
+            run(bits_of(index), tree[9], &siblings_of(index), tree[1]).is_err(),
+            "another leaf"
+        );
+        let mut two = bits_of(index);
+        two[0] = 2;
+        assert!(
+            run(two, tree[8 + index], &siblings_of(index), tree[1]).is_err(),
+            "a bit of 2"
+        );
     }
 
     /// The right leaf holds more claims than one loop frame of its list hashes
@@ -3261,7 +3291,7 @@ def main():
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
         let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
+            "{helpers}\ndef main():\n    _, squares, _ = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
         );
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
         let n_rows = 3usize;

@@ -14,7 +14,7 @@
 //! so a relation on machine words is written out lane by lane. A table hands its
 //! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
+use crate::cpu::{Dotrow, Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
@@ -73,6 +73,9 @@ pub(crate) const OP_SET: F64 = g_pow(2);
 pub(crate) const OP_DEREF: F64 = g_pow(3);
 pub(crate) const OP_JUMP: F64 = g_pow(4);
 pub(crate) const OP_KECCAK: F64 = g_pow(5);
+pub(crate) const OP_DOT: F64 = g_pow(6);
+/// `KECCAK_M`, the Merkle step, proven by the `KECCAK` table (its flag `keccakt::MK`).
+pub(crate) const OP_KECCAK_M: F64 = g_pow(7);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -118,8 +121,14 @@ impl FlushBuilder {
     /// Bytecode read at `pc`: the program tuple (opcode + ten operand slots),
     /// with the per-pc execution count advanced by ×g on the push side.
     pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
-        let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
-        let mut pull = vec![Const(SEP_BYTECODE), Col(pc), Col(count), Const(opcode)];
+        self.bytecode_coord(pc, count, Const(opcode), operands);
+    }
+
+    /// [`Self::bytecode`] with the opcode a coordinate: a table proving two opcodes reads the
+    /// one its flag column selects.
+    pub(crate) fn bytecode_coord(&mut self, pc: usize, count: usize, opcode: Coord, operands: &[Coord]) {
+        let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), opcode.clone()];
+        let mut pull = vec![Const(SEP_BYTECODE), Col(pc), Col(count), opcode];
         push.extend_from_slice(operands);
         pull.extend_from_slice(operands);
         self.pair(push, pull);
@@ -344,9 +353,9 @@ pub trait Table: Sync {
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
+/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK, DOT]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
-pub const N_TABLES: usize = 6;
+pub const N_TABLES: usize = 7;
 
 pub fn tables() -> [&'static dyn Table; N_TABLES] {
     [
@@ -356,14 +365,23 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
         &DerefTable,
         &JumpTable,
         &KeccakTable,
+        &DotTable,
     ]
 }
 
 /// Index of the KECCAK table in [`tables`].
 pub(crate) const KECCAK_TABLE: usize = 5;
 
-/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
-pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
+/// `DOT`'s least log height. A recursive verifier pays, for each of the table's columns and bus
+/// blocks, a selector over the child's position bits above the table's height, so a child with no
+/// `DOT` rows (a leaf) would cost it the most; the floor caps that, at the price of committing that
+/// many padding rows.
+pub const DOT_LOG_FLOOR: usize = 13;
+
+/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`, and
+/// [`DOT_LOG_FLOOR`] for `DOT`.
+pub const TABLE_LOG_FLOORS: [usize; N_TABLES] =
+    [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize, DOT_LOG_FLOOR];
 
 /// What each cell a `KECCAK` row touches is addressed by, in flush order (the four `m` cells, the
 /// four `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells): the offset
@@ -391,6 +409,7 @@ pub(crate) struct KeccakOp {
     offsets: [u32; 8],
     pub(crate) in_odd: bool,
     pub(crate) out_odd: bool,
+    pub(crate) swap: bool,
 }
 
 impl KeccakOp {
@@ -404,17 +423,21 @@ impl KeccakOp {
                 out,
                 in_odd,
                 out_odd,
+                swap,
             } => Self {
                 offsets: [m[0], m[1], m[2], m[3], tail, b8, cap, out],
                 in_odd,
                 out_odd,
+                swap,
             },
             op => unreachable!("not a KECCAK: {op:?}"),
         }
     }
 
-    /// Cell `c` (in flush order) of a row at frame `fp`.
-    pub(crate) fn cell(&self, fp: u32, c: usize) -> u32 {
+    /// Cell `c` (in flush order) of a row at frame `fp`, `bit` the row's direction bit (zero but
+    /// for a `KECCAK_M` row whose `b8` cell holds one): it swaps the two `m` pairs.
+    pub(crate) fn cell(&self, fp: u32, c: usize, bit: bool) -> u32 {
+        let c = if bit && c < 4 { c ^ 2 } else { c };
         let (operand, step) = KECCAK_CELLS[c];
         fp + self.offsets[operand] + step
     }
@@ -856,6 +879,13 @@ impl Table for JumpTable {
 /// `cpu` treats them as VIRTUAL ([`crate::cpu::keccak_value`]): the input lanes are `q_keccak`'s
 /// slots, which hold those words, so their claims route there and the fill leaves them alone,
 /// and the output lanes' claims are the Keccak reduction's claim on the output.
+///
+/// The table also proves `KECCAK_M`, the Merkle step (§sec:tab-keccak): the flag `MK` selects the
+/// opcode the bytecode read carries. On such a row the low limb of the cell `b8`, the column `B8`,
+/// is a direction bit `S` rather than lane 16, which the row pins to Keccak-256's last padding
+/// byte, and the first two `m` cells are read at `fp·A0`, `fp·A1`, the offsets `o_m0`, `o_m1`
+/// or, when `S = 1`, `o_m2`, `o_m3`; the other pair at the offsets left over, `A0 + o_m0 + o_m2`
+/// and `A1 + o_m1 + o_m3`. Eight identities tie these columns (`constraint`).
 struct KeccakTable;
 
 pub(crate) mod keccakt {
@@ -872,7 +902,12 @@ pub(crate) mod keccakt {
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
     pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
     pub const RBC: usize = R0 + ROW_CELLS;
-    pub const N: usize = RBC + 1;
+    pub const MK: usize = RBC + 1; // 1 on a KECCAK_M row: the bytecode read is KECCAK_M's
+    pub const B8: usize = MK + 1; // the low limb of the cell b8, as read
+    pub const S: usize = B8 + 1; // MK·B8: a KECCAK_M row's direction bit, zero on a KECCAK row
+    pub const A0: usize = S + 1; // the g-powers of the offsets the first two m cells are read at:
+    pub const A1: usize = A0 + 1; // o_m0 and o_m1, or o_m2 and o_m3 when S = 1
+    pub const N: usize = A1 + 1;
 }
 
 /// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
@@ -908,6 +943,45 @@ impl Table for KeccakTable {
         };
         &COUNTS
     }
+    fn n_constraints(&self) -> usize {
+        8
+    }
+    /// `KECCAK_M`'s identities, weighted `pows[0..8]`, in characteristic 2:
+    /// - `MK·(MK + 1) = 0`: the flag is a bit, so the opcode read is `KECCAK`'s or `KECCAK_M`'s;
+    /// - `MK·in_odd = 0`: a Merkle step reads the even layout;
+    /// - `B8 + l + MK·(B8 + v_16) = 0`, `l = v_16 + in_odd·(v_16 + v_15)` the lane the even or
+    ///   odd layout puts in `b8`'s low limb: on a `KECCAK` row `B8` is that lane;
+    /// - `MK·(v_16 + END_BIT) = 0`: on a `KECCAK_M` row lane 16 is the padding's last byte;
+    /// - `S + MK·B8 = 0` and `S·(S + 1) = 0`: the direction bit, zero on a `KECCAK` row;
+    /// - `A0 + o_m0 + S·(o_m0 + o_m2) = 0` and `A1 + o_m1 + S·(o_m1 + o_m3) = 0`.
+    fn constraint(&self, pows: &[F192]) -> BusForm {
+        use keccakt::*;
+        let (v15, v16) = (V_IN + 15, V_IN + 16);
+        let mut form = BusForm::new(N);
+        form.coeffs[MK] = pows[0] + pows[3] * F192::from(F64(primitives::hash::END_BIT));
+        form.coeffs[B8] = pows[2];
+        form.coeffs[v16] = pows[2];
+        form.coeffs[S] = pows[4] + pows[5];
+        form.coeffs[A0] = pows[6];
+        form.coeffs[O_M0] = pows[6];
+        form.coeffs[A1] = pows[7];
+        form.coeffs[O_M0 + 1] = pows[7];
+        form.prods = vec![
+            (MK, MK, pows[0]),
+            (MK, IN_ODD, pows[1]),
+            (IN_ODD, v16, pows[2]),
+            (IN_ODD, v15, pows[2]),
+            (MK, B8, pows[2]),
+            (MK, v16, pows[2] + pows[3]),
+            (MK, B8, pows[4]),
+            (S, S, pows[5]),
+            (S, O_M0, pows[6]),
+            (S, O_M0 + 2, pows[6]),
+            (S, O_M0 + 1, pows[7]),
+            (S, O_M0 + 3, pows[7]),
+        ];
+        form
+    }
     /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
     /// steps, permutes zeros, in the even layout.
     fn padding(&self) -> Vec<F64> {
@@ -924,7 +998,9 @@ impl Table for KeccakTable {
         use keccakt::*;
         f.state_step(PC, FP);
         let operands: Vec<Coord> = (O_M0..=OUT_ODD).map(Col).collect();
-        f.bytecode(PC, RBC, OP_KECCAK, &operands);
+        // KECCAK's opcode, or KECCAK_M's when MK = 1.
+        let opcode = Coord::Sum(vec![Const(OP_KECCAK), GCol(MK, 5), GCol(MK, 7)]);
+        f.bytecode_coord(PC, RBC, opcode, &operands);
         // Thirteen cells read, then thirteen written. A consecutive cell is a free ×g on the
         // product's g-power.
         let (even, odd) = (cell_lanes(false), cell_lanes(true));
@@ -934,9 +1010,23 @@ impl Table for KeccakTable {
             } else {
                 (c - STATE_CELLS, V_OUT, OUT_ODD, None)
             };
-            let lo = layout_limb(even[s].0, odd[s].0, values, flag, free);
+            let lo = if c == 8 {
+                Col(B8)
+            } else {
+                layout_limb(even[s].0, odd[s].0, values, flag, free)
+            };
             let hi = layout_limb(even[s].1, odd[s].1, values, flag, free);
-            f.memory_coords(Prod(FP, O_M0 + operand, step), R0 + c, [lo, hi, Const(F64::ZERO)]);
+            // The m cells at the offsets the direction bit picks: A0, A1, and the pair left over.
+            let addr = match c {
+                0 => Prod(FP, A0, 0),
+                1 => Prod(FP, A1, 0),
+                2 | 3 => {
+                    let a = if c == 2 { A0 } else { A1 };
+                    Coord::Sum(vec![Prod(FP, a, 0), Prod(FP, O_M0 + c - 2, 0), Prod(FP, O_M0 + c, 0)])
+                }
+                _ => Prod(FP, O_M0 + operand, step),
+            };
+            f.memory_coords(addr, R0 + c, [lo, hi, Const(F64::ZERO)]);
         }
     }
     /// Every column but the input lanes, which are `q_keccak`'s and have no window here.
@@ -951,16 +1041,153 @@ impl Table for KeccakTable {
         ctx.cols(out, rows, O_M0, |r| {
             let k = op(r);
             let [m0, m1, m2, m3, tail, b8, cap, o] = k.offsets.map(|o| ctx.g_at(o));
+            // A KECCAK_M row reads the even layout, whose free limb is b8's high one.
             let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
-            let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
+            let free = ctx.mem.word(k.cell(r.fp, cell, false) as usize);
             let free = F64(if high { free.c1 } else { free.c0 });
             [m0, m1, m2, m3, tail, b8, cap, o, flag(k.in_odd), flag(k.out_odd), free]
         });
         ctx.cols(out, rows, V_OUT, |r| {
             let k = op(r);
             let cells: [F192; STATE_CELLS] =
-                std::array::from_fn(|c| ctx.mem.word(k.cell(r.fp, STATE_CELLS + c) as usize));
+                std::array::from_fn(|c| ctx.mem.word(k.cell(r.fp, STATE_CELLS + c, false) as usize));
             state_of_cells(&cells, k.out_odd).map(F64)
+        });
+        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+        ctx.cols(out, rows, MK, |r| {
+            let k = op(r);
+            let b8 = F64(ctx.mem.word(k.cell(r.fp, 8, false) as usize).c0);
+            let s = k.swap && b8 == F64::ONE;
+            let [m0, m1, m2, m3] = [0, 1, 2, 3].map(|i| ctx.g_at(k.offsets[i]));
+            let (a0, a1) = if s { (m2, m3) } else { (m0, m1) };
+            [flag(k.swap), b8, flag(s), a0, a1]
+        });
+    }
+}
+
+// ---- DOT ---------------------------------------------------------------------
+
+/// The lanes one `DOT` row weighs, two per canonical cell. Every column and bus block of the table
+/// costs a recursive verifier a selector per child, so the width is where that fixed cost and the
+/// rows a row saves balance.
+pub const DOT_LANES: usize = 4;
+/// The cells a `DOT` row touches, in flush order: the lane cells, the weight pointer, the
+/// weights, the accumulator and the result.
+pub const DOT_CELLS: usize = DOT_LANES / 2 + 1 + DOT_LANES + 2;
+
+/// `DOT` (§sec:tab-dot): `out = acc + Σ_j w_j·x_j` over [`DOT_LANES`] `K`-lanes `x_j` with `E`
+/// weights.
+///
+/// This is the affine part of a verifier, done in one row per [`DOT_LANES`] terms. Once a child proof's
+/// transcript is fixed, the weights a verifier puts on opened data (the eq weights of a WHIR
+/// query's row) are known words, and the check is linear in the data. A row commits the lanes as
+/// `K` columns and reads each cell as `(lo, hi, 0)`, so the cells it reads are proved canonical
+/// and their lanes in `K` by the bus alone, the work `pack64x2` does per lane pair in the
+/// guest. The weights are read through a pointer, `p·o_w·g^j`, as `DEREF` reads its target. The
+/// result rides the bus as a degree-2 coordinate, `acc_l + Σ_j w_{j,l}·x_j` per limb `l` (a `K`
+/// lane times an `E` word needs no tower reduction), so the table has no identity of its own.
+struct DotTable;
+
+pub(crate) mod dot {
+    use super::DOT_LANES;
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const OX: usize = 2;
+    pub const OP: usize = 3;
+    pub const OW: usize = 4;
+    pub const OACC: usize = 5;
+    pub const OOUT: usize = 6;
+    pub const X: usize = 7; // the lanes, lane 2k + h being limb h of cell k
+    pub const P: usize = X + DOT_LANES; // the weight pointer, a single K lane
+    pub const W: usize = P + 1; // weight j's limb l at W + 3j + l
+    pub const ACC: usize = W + 3 * DOT_LANES;
+    pub const R0: usize = ACC + 3; // one read count per cell, in flush order
+    pub const RBC: usize = R0 + super::DOT_CELLS;
+    pub const N: usize = RBC + 1;
+}
+
+/// The result's three limbs: `acc_l + Σ_j w_{j,l}·x_j`.
+fn dot_result() -> [Coord; 3] {
+    use dot::*;
+    std::array::from_fn(|l| {
+        let mut terms = vec![Col(ACC + l)];
+        terms.extend((0..DOT_LANES).map(|j| Prod(W + 3 * j + l, X + j, 0)));
+        Coord::Sum(terms)
+    })
+}
+
+/// A `DOT` instruction's five operands, in bytecode-slot order.
+fn dot_operands(op: &Op) -> [u32; 5] {
+    match *op {
+        Op::Dot { x, p, w, acc, out } => [x, p, w, acc, out],
+        op => unreachable!("not a DOT: {op:?}"),
+    }
+}
+
+impl Table for DotTable {
+    fn n_committed_columns(&self) -> usize {
+        dot::N
+    }
+    fn count_columns(&self) -> &'static [usize] {
+        const COUNTS: [usize; DOT_CELLS + 1] = {
+            let mut c = [0usize; DOT_CELLS + 1];
+            let mut i = 0;
+            while i < DOT_CELLS {
+                c[i] = dot::R0 + i;
+                i += 1;
+            }
+            c[DOT_CELLS] = dot::RBC;
+            c
+        };
+        &COUNTS
+    }
+    fn flushes(&self, f: &mut FlushBuilder) {
+        use dot::*;
+        f.state_step(PC, FP);
+        f.bytecode(PC, RBC, OP_DOT, &[Col(OX), Col(OP), Col(OW), Col(OACC), Col(OOUT)]);
+        for k in 0..DOT_LANES / 2 {
+            f.memory_coords(
+                Prod(FP, OX, k as u32),
+                R0 + k,
+                [Col(X + 2 * k), Col(X + 2 * k + 1), Const(F64::ZERO)],
+            );
+        }
+        let r = R0 + DOT_LANES / 2;
+        f.memory_k(Prod(FP, OP, 0), r, P);
+        for j in 0..DOT_LANES {
+            let w = W + 3 * j;
+            f.memory(Prod(P, OW, j as u32), r + 1 + j, w, w + 1, w + 2);
+        }
+        f.memory(Prod(FP, OACC, 0), r + 1 + DOT_LANES, ACC, ACC + 1, ACC + 2);
+        f.memory_coords(Prod(FP, OOUT, 0), r + 2 + DOT_LANES, dot_result());
+    }
+    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+        use dot::*;
+        let rows = &ctx.trace.dot;
+        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
+        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
+        // The operands, the lanes and the pointer from one decode.
+        ctx.cols(out, rows, OX, |r: &Dotrow| {
+            let [x, p, w, acc, o] = dot_operands(&ctx.prog[r.pc as usize]);
+            let mut v = [F64::ZERO; 5 + DOT_LANES + 1];
+            v[..5].copy_from_slice(&[x, p, w, acc, o].map(|o| ctx.g_at(o)));
+            for k in 0..DOT_LANES / 2 {
+                let lanes = ctx.limbs(r.fp + x + k as u32);
+                v[5 + 2 * k] = lanes[0];
+                v[5 + 2 * k + 1] = lanes[1];
+            }
+            v[5 + DOT_LANES] = ctx.limbs(r.fp + p)[0];
+            v
+        });
+        ctx.cols(out, rows, W, |r: &Dotrow| {
+            let acc = dot_operands(&ctx.prog[r.pc as usize])[3];
+            let mut v = [F64::ZERO; 3 * DOT_LANES + 3];
+            for j in 0..DOT_LANES {
+                v[3 * j..3 * j + 3].copy_from_slice(&ctx.limbs(r.w + j as u32));
+            }
+            v[3 * DOT_LANES..].copy_from_slice(&ctx.limbs(r.fp + acc));
+            v
         });
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
@@ -973,6 +1200,15 @@ mod tests {
     use primitives::field::powers;
 
     const C: F192 = F192::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef, 0x1111_2222_3333_4444);
+
+    /// The recursion guest evaluates `KECCAK_M`'s identities at these local columns
+    /// (`lean_ethereum.py`, the table sumcheck's `TABLE_KECCAK` arm), as it does `JUMP`'s.
+    #[test]
+    fn keccak_m_columns_where_the_guest_reads_them() {
+        use keccakt::*;
+        assert_eq!((O_M0, IN_ODD, V_IN + 15, V_IN + 16), (2, 10, 28, 29));
+        assert_eq!((MK, B8, S, A0, A1, N), (90, 91, 92, 93, 94, 95));
+    }
 
     /// The hand-unrolled tower product IS `E`'s multiplication, lane by lane. Both
     /// `MUL`'s result coordinate and `JUMP`'s inverse identity are written out from

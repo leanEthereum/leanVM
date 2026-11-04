@@ -30,6 +30,28 @@ def main():
     digest = StackBuf(2)
     keccak_cells([5, 7, 5, 7, 5, 7, 5, 7, 5, 7], digest)
 
+    # Eight lanes g^j, two to a cell, weighed by two DOTs and by MUL and XOR.
+    weights = HeapBuf(8)
+    for j in unroll(0, 8):
+        weights[GEN ** j] = digest[0] * GEN ** j
+    lanes = StackBuf(4)
+    for k in unroll(0, 4):
+        lanes[k] = GEN ** (2 * k) + f192(0, 1, 0) * GEN ** (2 * k + 1)
+    weighed = digest[1]
+    for j in unroll(0, 8):
+        weighed = weighed + weights[GEN ** j] * GEN ** j
+    assert dot(lanes[2:4], weights[4:8], dot(lanes[0:2], weights[0:4], digest[1])) == weighed
+
+    # Two Merkle steps (KECCAK_M), one per direction bit, each written over the state a plain
+    # KECCAK of the order the bit names leaves, which asserts they agree.
+    for bit in unroll(0, 2):
+        node = StackBuf(2)
+        keccak(digest[0:2], lanes[0:2], node)
+        if bit == 0:
+            keccak(digest[0:2], lanes[0:2], node, swap=0)
+        else:
+            keccak(lanes[0:2], digest[0:2], node, swap=1)
+
     chain = HeapBuf(LOOP_STEPS + 1)
     chain[1] = digest[0]
     for index in mul_range(1, GEN ** LOOP_STEPS):
@@ -213,6 +235,10 @@ fn tampers_fail_the_same_check() {
         ),
         (keccak.end - input_opening - 1, VerifierError::KeccakOutputOpening),
         (keccak.end - 1, VerifierError::KeccakInputOpening),
+        // The last table's last column evaluation, DOT's bytecode count, sent just before the reduction.
+        (keccak.start - 1, VerifierError::TableSumcheckTerminal),
+        // KECCAK's last column evaluation, KECCAK_M's offset A1, sent before DOT's 37: its identity no longer holds.
+        (keccak.start - 1 - 37, VerifierError::TableSumcheckTerminal),
     ];
 
     let bytecode = Bytecode::new(&fixture.bytecode_table());

@@ -31,6 +31,7 @@ BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
 COORD_BASIS = COORD_BASIS_PLACEHOLDER
+BIT_WEIGHTS = 32  # the longest run of bits a query position sums: above every tree depth
 # Six challenges compose the F2-linear map that batches the 192 transposed
 # ring-switch coordinates.
 RING_MAP_SHIFTS = [32, 16, 8, 4, 2, 1]
@@ -651,7 +652,13 @@ def exponent_tables():
     for j in unroll(0, SIZE_BITS):
         g_squares[GEN ** j] = sq_run
         sq_run *= sq_run
-    return g_logs_pow2, g_squares
+    # The weights DOT reads to sum a run of bit cells: a bit cell is the lane pair
+    # (b, 0), so bit b of a run weighs x^b and the high lanes nothing.
+    bit_weights = HeapBuf(2 * BIT_WEIGHTS)
+    for b in unroll(0, BIT_WEIGHTS):
+        bit_weights[GEN ** (2 * b)] = COORD_BASIS[b]
+        bit_weights[GEN ** (2 * b + 1)] = 0
+    return g_logs_pow2, g_squares, bit_weights
 
 
 def g_power_of_word(value):
@@ -718,7 +725,18 @@ def log2_ceil_in_the_exponent(g_N, g_logs_pow2, g_squares, floor: Const, nbits: 
     return g_log
 
 
-def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
+@inline
+def bits_value(bits, at: Const, n: Const, bit_weights):
+    # sum_{b<n} bits[at + b] x^b, a pair of bit cells a DOT; an odd last bit by a product.
+    value = 0
+    for k in unroll(0, n // 2):
+        value = dot(bits[at + 2 * k:at + 2 * k + 2], bit_weights[4 * k:4 * k + 4], value)
+    if n % 2 == 1:
+        value = value + bits[at + n - 1] * COORD_BASIS[n - 1]
+    return value
+
+
+def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, bit_weights, depth: Const):
     # The squeezed word's bits are advice-decomposed HERE, boolean-constrained and
     # tied back by reconstruction; each depth-bit group also becomes a query
     # position (little-endian), with a pointer to its bit run (the Merkle direction
@@ -729,38 +747,42 @@ def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
     bits = StackBuf(FIELD_BITS)
     hint_decompose_bits(bits, squeezed_word, FIELD_BITS)
     bits_ptr = addr(bits)
+    for i in unroll(0, FIELD_BITS):
+        t = bits[i]
+        bits[i] = t * t  # booleanity, as a write-once pin
+    # A position is linear in its bits, so DOT sums them, two bit cells a row. A
+    # group inside one 64-bit limb shifts into the word as a WHOLE, the coordinate
+    # basis being the polynomial basis there: COORD_BASIS[base_bit + b] ==
+    # COORD_BASIS[base_bit] * COORD_BASIS[b] below 64, so the group contributes one
+    # multiply to the reconstruction. A group straddling the boundary splits into
+    # the two runs that do stay inside a limb; `cut // depth == 0` IS `cut < depth`,
+    # the DSL's `if` comparing for equality only.
     reconstructed = 0
     for j in unroll(0, per_word):
         base_bit = j * depth
-        # A group inside one 64-bit limb shifts as a WHOLE, the coordinate basis
-        # being the polynomial basis there: COORD_BASIS[base_bit + b] ==
-        # COORD_BASIS[base_bit] * COORD_BASIS[b] below 64, so the group contributes
-        # one multiply rather than one per bit. A group straddling the boundary
-        # splits into the two runs that do stay inside a limb; `b // cut == 0` IS
-        # `b < cut`, the DSL's `if` comparing for equality only.
         cut = 64 - base_bit % 64  # bits of this group below the next limb
-        p_lo = 0
-        p_hi = 0
-        for b in unroll(0, depth):
-            t = bits[base_bit + b]
-            bits[base_bit + b] = t * t  # booleanity, as a write-once pin
-            if b // cut == 0:
-                p_lo += t * COORD_BASIS[b]
-            else:
-                p_hi += t * COORD_BASIS[b - cut]
-        # position = p_lo + 2^cut * p_hi: multiplying by X^cut concatenates the two
-        # runs, since both degrees stay below 64.
         if cut // depth == 0:  # `cut < depth`: this group straddles the boundary
+            p_lo = bits_value(bits, base_bit, cut, bit_weights)
+            p_hi = bits_value(bits, base_bit + cut, depth - cut, bit_weights)
+            # position = p_lo + 2^cut * p_hi: multiplying by X^cut concatenates the
+            # two runs, since both degrees stay below 64.
             positions_out[GEN ** j] = p_lo + COORD_BASIS[cut] * p_hi
             reconstructed += COORD_BASIS[base_bit] * p_lo + COORD_BASIS[base_bit + cut] * p_hi
         else:
-            positions_out[GEN ** j] = p_lo
-            reconstructed += COORD_BASIS[base_bit] * p_lo
+            p = bits_value(bits, base_bit, depth, bit_weights)
+            positions_out[GEN ** j] = p
+            reconstructed += COORD_BASIS[base_bit] * p
         bit_ptrs_out[GEN ** j] = bits_ptr * GEN ** base_bit
-    for i in unroll(per_word * depth, FIELD_BITS):
-        t = bits[i]
-        bits[i] = t * t
-        reconstructed += t * COORD_BASIS[i]
+    # The bits past the last group, split the same way at a limb boundary.
+    rest_at = per_word * depth
+    rest = FIELD_BITS - rest_at
+    if rest != 0:
+        rest_cut = 64 - rest_at % 64
+        if rest_cut // rest == 0:
+            reconstructed += COORD_BASIS[rest_at] * bits_value(bits, rest_at, rest_cut, bit_weights)
+            reconstructed += COORD_BASIS[rest_at + rest_cut] * bits_value(bits, rest_at + rest_cut, rest - rest_cut, bit_weights)
+        else:
+            reconstructed += COORD_BASIS[rest_at] * bits_value(bits, rest_at, rest, bit_weights)
     assert reconstructed == squeezed_word
     return
 
@@ -1013,20 +1035,17 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 
 @inline
 def verify_merkle_path(leaf, direction_bits, depth: Const):
-    # Hinted child pairs are hashed in order; the boolean query bit selects the
-    # child that must equal the running node, binding each link of the path.
-    path = StackBuf(LIG_PATH_CAP)
-    hint_witness(path[0:4 * depth], "merkle_children")
-    # The selected pair starts at path_ptr * g^(2*bit) = path_ptr + bit * path_step.
-    path_ptr = addr(path)
-    path_step = path_ptr * (1 + GEN ** 2)
+    # A level is one KECCAK_M: the running node and the hinted sibling, hashed in the
+    # order the boolean query bit selects (node on the left when it is 0), which binds
+    # each link of the path. The bit is read into the frame, the instruction's b8 cell.
+    siblings = StackBuf(LIG_PATH_CAP // 2)
+    hint_witness(siblings[0:2 * depth], "merkle_siblings")
     node = leaf
     for level in unroll(0, depth):
-        selected = path_ptr + direction_bits[GEN ** level] * path_step
-        selected[GEN ** (4 * level)] = node[0]
-        selected[GEN ** (4 * level + 1)] = node[1]
-        node = StackBuf(KECCAK_STATE)
-        keccak(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
+        bit = direction_bits[GEN ** level]
+        parent = StackBuf(KECCAK_STATE)
+        keccak(node[0:2], siblings[2 * level:2 * level + 2], parent, swap=bit)
+        node = parent
     return node
 
 
@@ -1163,45 +1182,45 @@ def opening_row_weights(point, out, folds: Const, reverse: Const):
 
 
 @inline
-def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
-    # One query: hash the hinted row up its Merkle path into the shared cap, and
-    # return its dot product with the row's eq weights.
-    if base == 1:
-        row_len = interleave
-    else:
-        row_len = 3 * interleave
-    row = StackBuf(LIG_ROW_CAP)
-    hint_witness(row[0:row_len], "merkle_leaf_rows")
-    row_dot = 0
-    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
-    if base == 1:
-        # Packing proves each hinted lane is in K before hashing or folding it.
-        for jb in unroll(0, interleave // 2):
-            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
-    else:
-        # Pack the checked tower limbs into the leaf's contiguous byte image.
-        for jb in unroll(0, 3 * interleave // 2):
-            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
-    # The weights' tensor factors (opening_row_weights): a run of lo_len row
-    # entries shares one hi factor.
+def opening_lane_weights(eq_w, out, interleave: Const, base: Const):
+    # The weight on each lane of a leaf row, from opening_row_weights' two tensor
+    # factors (word i weighs eq_w[i % lo_len] * eq_w[lo_len + i // lo_len]). Level 0's
+    # lanes are its words; a deeper level's lane 3i + j is limb j of word i, which
+    # weighs y^j times the word's weight, since the word is sum_j y^j limb_j.
     if const(interleave // 8 == 0):
         lo_len = interleave
     else:
         lo_len = 8
+    lo = StackBuf(8)
+    for l in unroll(0, lo_len):
+        lo[l] = eq_w[GEN ** l]
     for h in unroll(0, interleave // lo_len):
-        part = 0
+        hi = eq_w[GEN ** (lo_len + h)]
         for l in unroll(0, lo_len):
             jw = lo_len * h + l
             if base == 1:
-                row_word = row[jw]
-            elif 3 * jw % 2 == 0:
-                # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
+                out[jw] = lo[l] * hi
             else:
-                # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-            part += row_word * row_eq_weights[GEN ** l]
-        row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
+                weight = lo[l] * hi
+                out[3 * jw] = weight
+                out[3 * jw + 1] = Y_TOWER * weight
+                out[3 * jw + 2] = Y_TOWER * Y_TOWER * weight
+    return
+
+
+@inline
+def opening_query(cap, flags, lane_weights, direction_bits, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # One query: hash the hinted row up its Merkle path into the shared cap, and
+    # return its dot product with the row's weights. The row is hinted as the leaf's
+    # cells, two lanes each, and weighed by DOT, two cells an instruction against
+    # `lane_weights` (a run of the level's lane weights). DOT and KECCAK both read a
+    # cell as (lo, hi, 0), so the bus proves every hinted cell canonical and its two
+    # lanes in K, with no packing rows.
+    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
+    hint_witness(packed_row[0:leaf_cells], "merkle_leaf_rows")
+    row_dot = 0
+    for k in unroll(0, leaf_cells // 2):
+        row_dot = dot(packed_row[2 * k:2 * k + 2], lane_weights[4 * k:4 * k + 4], row_dot)
     # Hash the packed row.
     leaf_hash_state = StackBuf(KECCAK_STATE)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
@@ -1230,7 +1249,7 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
     return row_dot
 
 
-def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, lane_weights, n_iters_g, odd: Const, base: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
     # Base-field rows (level 0) run two queries an iteration, sharing the loop
     # overhead and the weight reads; an odd count runs its first query alone,
@@ -1240,17 +1259,17 @@ def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_it
     mu = 1 / lam
     chain = HeapBuf(n_iters_g * GEN)
     if odd == 1:
-        chain[GEN ** 0] = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth) * mu
+        chain[GEN ** 0] = opening_query(cap, flags, lane_weights, query_bit_ptrs[GEN ** 0], leaf_cells, depth, cap_depth) * mu
     else:
         chain[GEN ** 0] = 0
     for xi in mul_range(1, n_iters_g):
         if base == 1:
             bit_ptrs = query_bit_ptrs * xi * xi
-            d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** odd], base, interleave, leaf_cells, depth, cap_depth)
-            d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** (odd + 1)], base, interleave, leaf_cells, depth, cap_depth)
+            d0 = opening_query(cap, flags, lane_weights, bit_ptrs[GEN ** odd], leaf_cells, depth, cap_depth)
+            d1 = opening_query(cap, flags, lane_weights, bit_ptrs[GEN ** (odd + 1)], leaf_cells, depth, cap_depth)
             chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
         else:
-            d = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[xi], base, interleave, leaf_cells, depth, cap_depth)
+            d = opening_query(cap, flags, lane_weights, query_bit_ptrs[xi], leaf_cells, depth, cap_depth)
             chain[xi * GEN] = (chain[xi] + d) * mu
     return chain[n_iters_g] * lam_n
 
@@ -1267,7 +1286,7 @@ def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     return prefix_eq
 
 
-def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
+def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, bit_weights):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
     # opening proof data is hinted here, so only the executed arm pops its streams.
@@ -1407,7 +1426,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             row_sp, packed_word = squeeze(row_cap, no_rate, 0)
             fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
             query_ptr = xs ** (FIELD_BITS // depth)
-            decode_query_bits(packed_word, query_positions * GEN ** pos_off * query_ptr, query_bit_ptrs * GEN ** pos_off * query_ptr, depth)
+            decode_query_bits(packed_word, query_positions * GEN ** pos_off * query_ptr, query_bit_ptrs * GEN ** pos_off * query_ptr, bit_weights, depth)
         sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
         sp = fs_load(sqz_end, 0, 1)
 
@@ -1429,6 +1448,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         # hashes the full image. Deeper levels commit every lane, ascending.
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
+        # What each of a leaf's lanes weighs, the run DOT reads four at a time, once a level.
+        lane_w = StackBuf(LIG_ROW_CAP)
+        opening_lane_weights(row_eq_weights, lane_w, interleave, 1 // (lvl + 1))
 
         cap_depth = LIG_CAP_DEPTH[ml]
         cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
@@ -1437,7 +1459,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, addr(lane_w), GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
@@ -1850,21 +1872,36 @@ def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g):
     return
 
 
-def block_selector_tab(sel_bits, eq_tab, g_tab, n: Const):
-    # block_selector off the shared tables: per nibble, the pinned bits fold into a
-    # g-power index g^u, u below the nibble's table size, that reads its eq factor
-    # and its share of g^offset.
+@inline
+def assert_digit(idx, width: Const):
+    # idx = g^u with u < 2^width, width in 1..4: the range check in the exponent.
+    if const(width == 4):
+        assert log(idx) < 16
+    elif const(width == 3):
+        assert log(idx) < 8
+    elif const(width == 2):
+        assert log(idx) < 4
+    else:
+        assert log(idx) < 2
+    return
+
+
+def block_selector_tab(off_g, kappa_g, eq_tab, g_tab, n: Const):
+    # block_selector off the shared tables: the selector bits are offset >> κ, hinted
+    # a nibble at a time as g-power indices g^u (u the nibble, low bit first), each
+    # range-checked below the nibble's table size, so that it reads its eq factor and
+    # its share of g^offset; the caller pins the product of the shares to g^offset,
+    # which makes the digits offset >> κ's and the offset κ-aligned.
+    digits = StackBuf(SEL_TAB_NIBBLES)
+    hint_decompose_nibbles_exponent(digits, off_g, kappa_g, SEL_TAB_NIBBLES, 0)
     eq = GEN ** 0
     rebuilt = GEN ** 0
     for j in unroll(0, (n + 3) // 4):
         width = 4
         if const(j == n // 4):
             width = n - 4 * j
-        idx = GEN ** 0
-        for t in unroll(0, width):
-            sbit = sel_bits[GEN ** (4 * j + t)]
-            sel_bits[GEN ** (4 * j + t)] = sbit * sbit  # booleanity as a write-once pin
-            idx *= 1 + sbit * (1 + GEN ** (2 ** t))
+        idx = digits[j]
+        assert_digit(idx, width)
         eq *= eq_tab[GEN ** (SEL_TAB_EQ_STRIDE * j + 2 ** width - 2) * idx]
         rebuilt *= g_tab[GEN ** (16 * j) * idx]
     return eq, rebuilt
@@ -2041,20 +2078,21 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                 # g^offset from those high bits alone (weights g^(2^(κ+k))) and
                 # asserting it equals block_off_g pins the bits AND the κ-alignment
                 # in one shot; the low κ bit cells are written but never read.
-                offset_bits = HeapBuf(GEN ** SIZE_BITS)
-                hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                 shared = 0
                 if const(BLOCK_KAPPA_SRC[b] // 2 != 0):
                     if const(BLOCK_KAPPA_ADJ[b] == 0):
                         shared = 1
                 if const(shared == 1):
                     t = BLOCK_KAPPA_SRC[b] - 2
-                    sel_bits = offset_bits * dims_g[GEN ** (t + 1)]
+                    off_g = block_off_g[GEN ** b]
+                    tau_g = dims_g[GEN ** (t + 1)]
                     len_g = shared_len[t]
                     tab_eq = shared_eq * GEN ** (t * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
                     tab_g = shared_g * GEN ** (t * SEL_TAB_NIBBLES * 16)
-                    eq_hi, goff = match(log(len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(sel_bits, tab_eq, tab_g, n))
+                    eq_hi, goff = match(log(len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(off_g, tau_g, tab_eq, tab_g, n))
                 else:
+                    offset_bits = HeapBuf(GEN ** SIZE_BITS)
+                    hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                     sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
                     assert log(sel_len_g) < SIZE_BITS
                     sel_bits = offset_bits * kappa_g
@@ -2235,7 +2273,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         # The table's AIR constraint at the final point (col_evals is indexed by
         # local column index; the formulas mirror tables.rs Table::constraint). Every
         # value relation now rides the bus as a degree-2 coordinate, so only JUMP's
-        # is-nonzero indicator is left with an identity of its own.
+        # is-nonzero indicator and KECCAK_M's selection are left with identities.
         constraint_eval = 0
         if t == TABLE_JUMP:
             # `b = c*w` and `c*(b+1) = 0`. The condition is K-valued, its memory read
@@ -2246,6 +2284,24 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
             b = col_evals[13]
             constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (b + c * col_evals[12])
             constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (c * (b + 1))
+        if t == TABLE_KECCAK:
+            # KECCAK_M's eight identities (tables.rs KeccakTable::constraint). Local columns:
+            # o_m0..o_m3 at 2..5, odd_in at 10, input lanes 15 and 16 at 28 and 29, and
+            # after the read counts mk, b8, s, a0, a1 at 90..94. GEN ** 63 is lane 16's
+            # padding byte 0x80.
+            mk = col_evals[90]
+            b8 = col_evals[91]
+            sb = col_evals[92]
+            odd_in = col_evals[10]
+            v16 = col_evals[29]
+            constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (mk * (mk + 1))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (mk * odd_in)
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 2] * (b8 + v16 + odd_in * (v16 + col_evals[28]) + mk * (b8 + v16))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 3] * (mk * (v16 + GEN ** 63))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 4] * (sb + mk * b8)
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 5] * (sb * (sb + 1))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 6] * (col_evals[93] + col_evals[2] + sb * (col_evals[2] + col_evals[4]))
+            constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 7] * (col_evals[94] + col_evals[3] + sb * (col_evals[3] + col_evals[5]))
         # The table's three bus forms, evaluated at the SAME column evaluations:
         # Σ_b eq_hi(b) · (γ + Σ_i α^i · coord_i), the coords read off col_evals at
         # their local index. This is what replaces opening those columns at ζ.
@@ -3013,22 +3069,21 @@ def column_selector(offset, sel_eq, sel_g, kappa: Const):
     # Rebuild the offset using only bits above the column's kappa, certifying its
     # alignment. The same bits select the column at the complete opening point.
     # Both offset and point are zero above m, so extending to 4 * SEL_NIBBLES adds
-    # only factors eq(0, 0) = 1. The bits go a nibble at a time, top bit first:
-    # their g-power index u (bit 4j+3-t weighing 2^t) reads the nibble's eq over
-    # its coordinates and its g^offset share off the tables of selector_tables.
-    bits = StackBuf(4 * SEL_NIBBLES)
-    hint_decompose_bits_exponent(bits, offset, 4 * SEL_NIBBLES)
+    # only factors eq(0, 0) = 1. The bits go a nibble at a time, hinted as the
+    # nibble's g-power index g^u (bit 4j+3-t weighing 2^t), range-checked below the
+    # nibble's table size: it reads the nibble's eq over its coordinates and its
+    # g^offset share off the tables of selector_tables, and the shares' product
+    # pinned to the offset makes every digit the offset's.
+    digits = StackBuf(SEL_NIBBLES)
+    hint_decompose_nibbles_exponent(digits, offset, GEN ** 0, SEL_NIBBLES, 1)
     rebuilt = GEN ** 0
     selector = GEN ** 0
     for j in unroll(kappa // 4, SEL_NIBBLES):
         width = 4
         if const(j == kappa // 4):
             width = 4 * j + 4 - kappa
-        idx = GEN ** 0
-        for t in unroll(0, width):
-            bit = bits[4 * j + 3 - t]
-            bits[4 * j + 3 - t] = bit * bit
-            idx *= 1 + bit * (1 + GEN ** (2 ** t))
+        idx = digits[j]
+        assert_digit(idx, width)
         selector *= sel_eq[GEN ** (SEL_EQ_STRIDE * j + 2 ** width - 2) * idx]
         rebuilt *= sel_g[GEN ** (16 * j) * idx]
     assert rebuilt == offset
@@ -3131,7 +3186,7 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_kecca
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
-def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
+def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, bit_weights, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
     # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
     # in that order. All proof data is hinted HERE, so each call pops the next
@@ -3306,7 +3361,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # dispatch independently for every inner proof in a mixed-rate batch.
     config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
     assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor, bit_weights))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.
@@ -4131,7 +4186,7 @@ def main():
     seed_1 = fs_seed[1]
 
     # ---- the claim lists ----
-    g_logs_pow2, g_squares = exponent_tables()
+    g_logs_pow2, g_squares, bit_weights = exponent_tables()
 
     # One table per scheme: its declared list (strictly sorted, checked by the outer
     # verifier, which holds it) followed by its own duplicate slots. The coverage
@@ -4219,7 +4274,7 @@ def main():
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
-        verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, child_fresh * xc ** DEFER_SIZE)
+        verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, bit_weights, child_fresh * xc ** DEFER_SIZE)
         written[xc * GEN] = base * nsub_g
     assert written[n_children_g] == n_total_g
 

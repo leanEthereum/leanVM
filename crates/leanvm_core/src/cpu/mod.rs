@@ -14,7 +14,8 @@ use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
 use crate::tables::{
-    self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
+    self, FillCtx, FlushBuilder, OP_DEREF, OP_DOT, OP_JUMP, OP_KECCAK, OP_KECCAK_M, OP_MUL, OP_SET, OP_XOR,
+    SEP_BYTECODE, SEP_MEM, SEP_STATE,
 };
 use crate::transcript::ProverState;
 use crate::witness;
@@ -29,7 +30,7 @@ pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
+pub(crate) use trace::{Dotrow, Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
 /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
 /// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
@@ -380,7 +381,7 @@ pub struct Stats {
 
 impl Stats {
     /// Table names in `rows` order.
-    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
+    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK", "DOT"];
 
     /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and committed-witness sizes.
     ///
@@ -421,13 +422,24 @@ impl Stats {
 /// the commitment.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
+    prove_with(program, public_input, log_inv_rate, |_| ())
+}
+
+/// [`prove`], with `tamper` editing the run before its witness is built: how a test plays a prover that lies.
+fn prove_with(
+    program: &Program,
+    public_input: [F192; 2],
+    log_inv_rate: usize,
+    tamper: impl FnOnce(&mut Execution),
+) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
-    let exec = exec.map_err(ProveError::Execution)?;
+    let mut exec = exec.map_err(ProveError::Execution)?;
+    tamper(&mut exec);
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
@@ -696,6 +708,7 @@ mod tests {
             out: 13,
             in_odd: false,
             out_odd: true,
+            swap: false,
         });
         prog.push(Op::Keccak {
             m: [13, 14, 15, 16],
@@ -705,6 +718,7 @@ mod tests {
             out: 26,
             in_odd: true,
             out_odd: false,
+            swap: false,
         });
         for k in 0..2u32 {
             prog.push(Op::Set {
@@ -793,7 +807,11 @@ mod tests {
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
         let exec = jumping.execute(pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
-        assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
+        assert_eq!(
+            exec.rows(),
+            [0, 0, 3, 0, 2, 0, 0],
+            "XOR, MUL, SET, DEREF, JUMP, KECCAK, DOT"
+        );
         let (proof, _) = prove(&jumping, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 
@@ -804,6 +822,194 @@ mod tests {
             .err()
             .expect("the run must fail");
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
+    }
+
+    const DOT_CELLS: usize = crate::tables::DOT_LANES / 2;
+
+    /// A `DOT` program: the lane cells from 2, the weight pointer at 6, the accumulator at 7, the
+    /// result at 8, and the weights from 16, which the pointer `g^16` names from main's frame.
+    fn dot_program(cells: [F192; DOT_CELLS], weights: [F192; crate::tables::DOT_LANES], acc: F192) -> Program {
+        let mut prog: Vec<Op> = (2..).zip(cells).map(|(o, k)| Op::Set { o, k }).collect();
+        prog.push(Op::Set {
+            o: 6,
+            k: F192::from(g_pow(16)),
+        });
+        prog.push(Op::Set { o: 7, k: acc });
+        prog.extend((16..).zip(weights).map(|(o, k)| Op::Set { o, k }));
+        prog.push(Op::Dot {
+            x: 2,
+            p: 6,
+            w: 0,
+            acc: 7,
+            out: 8,
+        });
+        prog.resize(15, Op::Set { o: 30, k: F192::ZERO });
+        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        Program::from_bytecode(prog, 32)
+    }
+
+    fn dot_inputs() -> ([F192; DOT_CELLS], [F192; crate::tables::DOT_LANES], F192) {
+        let cells = std::array::from_fn(|k| F192::new(0x9e37_79b9_7f4a_7c15 ^ k as u64, 0x0123_4567 << k, 0));
+        let weights = std::array::from_fn(|j| {
+            F192::new(0xfeed_face_dead_beef, 0x1111_2222_3333_4444, 0x5555_6666_7777_8888) * F192::from(g_pow(j))
+        });
+        (cells, weights, F192::new(3, 5, 7))
+    }
+
+    /// `DOT` adds the accumulator and its weighed lanes, lane `2k + h` being limb `h` of cell `k`,
+    /// and the run it is in proves and verifies.
+    #[test]
+    fn dot_weighs_its_lanes() {
+        let (cells, weights, acc) = dot_inputs();
+        let program = dot_program(cells, weights, acc);
+        let pi = [w(7), w(11)];
+        let exec = program.execute(pi).unwrap();
+        let lanes = cells.iter().flat_map(|c| [c.c0, c.c1]);
+        let expected = weights
+            .iter()
+            .zip(lanes)
+            .fold(acc, |sum, (&wj, lane)| sum + wj * F192::new(lane, 0, 0));
+        assert_eq!(exec.mem.word(8), expected);
+        assert_eq!(exec.rows()[crate::tables::N_TABLES - 1], 1, "one DOT row");
+        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        verify(&program, &pi, &proof).expect("a DOT run verifies");
+    }
+
+    /// A lane cell carries `(lo, hi, 0)`, as a `KECCAK` state cell does.
+    #[test]
+    fn dot_requires_canonical_cells() {
+        let (mut cells, weights, acc) = dot_inputs();
+        cells[1].c2 = 1;
+        let err = dot_program(cells, weights, acc)
+            .execute([w(7), w(11)])
+            .err()
+            .expect("the run must fail");
+        assert!(matches!(err.fault, Fault::NotCanonical { cell: 1, .. }), "{err}");
+    }
+
+    /// The result is bound by the bus: with another value in the result cell than the row's
+    /// `acc + Σ w·x`, the bus does not balance, so the prover's GKR has no proof to make (it
+    /// panics on the two products), and a proof it did make would not verify.
+    #[test]
+    fn dot_result_is_bound() {
+        let (cells, weights, acc) = dot_inputs();
+        let program = dot_program(cells, weights, acc);
+        let pi = [w(7), w(11)];
+        let forged = std::panic::catch_unwind(|| {
+            prove_with(&program, pi, crate::pcs::TEST_LOG_INV_RATE, |exec| {
+                let forged = exec.mem.word(8) + F192::ONE;
+                exec.mem.set_word(8, forged);
+            })
+        });
+        if let Ok(Ok((proof, _))) = forged {
+            assert!(verify(&program, &pi, &proof).is_err(), "a forged DOT result verifies");
+        }
+    }
+
+    /// Two `KECCAK_M` rows over the same node `2..4` and sibling `4..6`, their direction bits at
+    /// 6 and 7, the padding tail `8..12` (`PAD_FIRST` in lane 8) and the zero capacity `12..16`,
+    /// writing their states at 16 and 29.
+    fn merkle_program(bits: [u64; 2]) -> Program {
+        let pairs = [
+            F192::new(0x0123_4567_89ab_cdef, 0x1111, 0),
+            F192::new(0x2222, 0x3333, 0),
+            F192::new(0xfeed_face_dead_beef, 0x4444, 0),
+            F192::new(0x5555, 0x6666_7777, 0),
+        ];
+        let mut prog: Vec<Op> = (2..).zip(pairs).map(|(o, k)| Op::Set { o, k }).collect();
+        prog.push(Op::Set { o: 6, k: w(bits[0]) });
+        prog.push(Op::Set { o: 7, k: w(bits[1]) });
+        prog.push(Op::Set {
+            o: 8,
+            k: w(u64::from(primitives::hash::PAD_FIRST)),
+        });
+        prog.extend((9..16).map(|o| Op::Set { o, k: F192::ZERO }));
+        for (b8, out) in [(6, 16), (7, 29)] {
+            prog.push(Op::Keccak {
+                m: [2, 3, 4, 5],
+                tail: 8,
+                b8,
+                cap: 12,
+                out,
+                in_odd: false,
+                out_odd: false,
+                swap: true,
+            });
+        }
+        prog.resize(31, Op::Set { o: 47, k: F192::ZERO });
+        prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+        Program::from_bytecode(prog, 48)
+    }
+
+    /// The state a `KECCAK_M` over `first ‖ second` writes: Keccak-f of the 64-byte block, padded.
+    fn merkle_state(first: [F192; 2], second: [F192; 2]) -> [F192; crate::keccak::STATE_CELLS] {
+        let mut lanes = [0u64; primitives::hash::STATE_LANES];
+        for (k, c) in first.iter().chain(&second).enumerate() {
+            lanes[2 * k] = c.c0;
+            lanes[2 * k + 1] = c.c1;
+        }
+        lanes[8] = u64::from(primitives::hash::PAD_FIRST);
+        lanes[16] = primitives::hash::END_BIT;
+        primitives::hash::keccak_f(&mut lanes);
+        crate::keccak::cells_of_state(&lanes, false)
+    }
+
+    /// `KECCAK_M` hashes its pairs in the order its bit says, `m[0..2] ‖ m[2..4]` for 0 and the
+    /// other way round for 1, and the run proves and verifies.
+    #[test]
+    fn keccak_m_hashes_in_the_bit_order() {
+        let program = merkle_program([0, 1]);
+        let pi = [w(7), w(11)];
+        let exec = program.execute(pi).unwrap();
+        let (node, sibling) = (
+            [exec.mem.word(2), exec.mem.word(3)],
+            [exec.mem.word(4), exec.mem.word(5)],
+        );
+        for (out, want) in [(16, merkle_state(node, sibling)), (29, merkle_state(sibling, node))] {
+            for (c, cell) in want.iter().enumerate() {
+                assert_eq!(exec.mem.word(out + c), *cell, "state cell {c} at {out}");
+            }
+        }
+        assert_eq!(exec.rows()[crate::tables::KECCAK_TABLE], 2, "two KECCAK_M rows");
+        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        verify(&program, &pi, &proof).expect("a KECCAK_M run verifies");
+    }
+
+    /// The direction is a bit: anything else in `b8`'s low limb is no Merkle step.
+    #[test]
+    fn keccak_m_needs_a_bit() {
+        let err = merkle_program([0, 2])
+            .execute([w(7), w(11)])
+            .err()
+            .expect("the run must fail");
+        assert!(matches!(err.fault, Fault::BadMerkleStep { .. }), "{err}");
+    }
+
+    /// The order is bound: a prover that writes, for the row whose bit is 0, the state of the
+    /// other order (sibling first) has the table read the pairs at `A0 = o_m0`, `A1 = o_m1` while
+    /// the output lanes hold the swapped block's permutation, so the Keccak reduction has no
+    /// proof of it; the prover panics or errs, and a proof it did make would not verify.
+    #[test]
+    fn keccak_m_order_is_bound() {
+        let program = merkle_program([0, 1]);
+        let pi = [w(7), w(11)];
+        let forged = std::panic::catch_unwind(|| {
+            prove_with(&program, pi, crate::pcs::TEST_LOG_INV_RATE, |exec| {
+                let (node, sibling) = (
+                    [exec.mem.word(2), exec.mem.word(3)],
+                    [exec.mem.word(4), exec.mem.word(5)],
+                );
+                for (c, cell) in merkle_state(sibling, node).into_iter().enumerate() {
+                    exec.mem.set_word(16 + c, cell);
+                }
+            })
+        });
+        if let Ok(Ok((proof, _))) = forged {
+            assert!(
+                verify(&program, &pi, &proof).is_err(),
+                "a Merkle step in the wrong order verifies"
+            );
+        }
     }
 
     /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb

@@ -914,6 +914,7 @@ impl FnLower<'_> {
                 let ga = self.stack_addr(args);
                 self.materialize(ga)
             }
+            Expr::Call(f, args) if f == "dot" => self.lower_dot(args),
             Expr::Call(f, args) if f == "hint_log2_ceil" => {
                 // Computed advice: the prover fills g^log2_ceil (base-2 ceil-log) of the value in
                 // `bits` (a `nbits`-bit buffer), floored at `floor`. Returned

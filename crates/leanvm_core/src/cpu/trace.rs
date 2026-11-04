@@ -55,6 +55,17 @@ pub(crate) struct Krow {
     pub(crate) bytecode_read: u32,
 }
 
+/// `DOT` row: the access counts of its cells, in the order the table flushes them
+/// (`tables::DOT_CELLS`): the lane cells, the weight pointer, the weights, the accumulator, then
+/// the result. `w` is the first weight's cell, the pointer resolved.
+pub(crate) struct Dotrow {
+    pub(crate) pc: u32,
+    pub(crate) fp: u32,
+    pub(crate) w: u32,
+    pub(crate) r: [u32; crate::tables::DOT_CELLS],
+    pub(crate) bytecode_read: u32,
+}
+
 /// Rows in fixed-size chunks, so the trace grows without ever moving what it holds:
 /// a `Vec` would copy every row written so far each time it doubled.
 pub(crate) struct Rows<T> {
@@ -104,6 +115,7 @@ pub(crate) struct Trace {
     pub(crate) deref: Rows<Drow>,
     pub(crate) jump: Rows<Jrow>,
     pub(crate) keccak: Rows<Krow>,
+    pub(crate) dot: Rows<Dotrow>,
     pub(crate) bytecode_count: Vec<u32>, // per-pc execution count; the column holds g^{A[pc]}
     /// One past the highest access count, of a cell or a pc: the `g`-powers a fill looks up.
     pub(crate) counts: usize,
@@ -119,6 +131,7 @@ impl Trace {
             self.deref.len(),
             self.jump.len(),
             self.keccak.len(),
+            self.dot.len(),
         ]
     }
 }

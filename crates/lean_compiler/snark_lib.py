@@ -72,6 +72,14 @@ def hint_decompose_bits_exponent(bits, x, nbits: int) -> None:
     _ = bits, x, nbits
 
 
+def hint_decompose_nibbles_exponent(digits, x, shift, ndigits: int, rev: int) -> None:
+    """Computed advice: with x = g^n and shift = g^s, the prover writes the
+    `ndigits` base-16 digits d_j of n >> s, low digit first, into `digits` as
+    the g-powers g^(d_j), each digit's four bits reversed when `rev` is 1.
+    UNCONSTRAINED: the caller range-checks every g^(d_j) and rebuilds x."""
+    _ = digits, x, shift, ndigits, rev
+
+
 def hint_log2_ceil(bits, nbits: int, floor: int) -> _Elt:
     """Computed advice: returns `g^max(log2_ceil(v), floor)`, where `v` is the
     integer the `nbits`-cell `bits` buffer decodes to. The prover fills it at
@@ -196,6 +204,17 @@ def hint_f192_limbs(dest, value) -> None:
     of `value` into a 1-to-3-cell StackBuf. UNCONSTRAINED; callers bind the
     result with `assert_in_k` and field reconstruction."""
     _ = dest, value
+
+
+def dot(x, w, acc) -> _Elt:
+    """`acc + sum_j w[j] * x_j`, one `DOT` instruction: an affine form of four
+    GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a
+    StackBuf or its slice), read as four lanes, lane `2k + h` limb `h` of cell
+    `k`; every cell must be canonical (top limb zero), which the instruction
+    proves along with its lanes being in GF(2^64). `w` is a four-cell HeapBuf
+    slice `buf[lo:lo + 4]`, read through its pointer."""
+    _ = x, w, acc
+    return _Elt()
 
 
 def keccak(

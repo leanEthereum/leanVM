@@ -30,7 +30,14 @@ impl FnLower<'_> {
     /// output or those five cells). Lane 16 is in Keccak-256's 17-lane rate, but the
     /// transcript keeps it.
     fn lower_keccak(&mut self, args: &[Expr]) {
-        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap"]);
+        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap", "swap"]);
+        if let Some(bit) = kwargs.get("swap") {
+            if kwargs.len() != 1 {
+                self.fail("keccak swap= is a Merkle step: it takes no tail=, len= or cap=")
+            }
+            self.lower_merkle_step(args, bit);
+            return;
+        }
         let mut cells = self.keccak_operand(&args[0], 2);
         cells.extend(self.keccak_operand(&args[1], 2));
         if let Some(tail) = kwargs.get("tail") {
@@ -56,6 +63,7 @@ impl FnLower<'_> {
                 c: out.state,
                 in_odd: false,
                 out_odd: false,
+                swap: false,
             });
             self.keccak_finish(out);
             return;
@@ -64,6 +72,60 @@ impl FnLower<'_> {
         let out = self.keccak_out(&args[2]);
         self.emit_keccak_message(cells, Some(len), None, out.state);
         self.keccak_finish(out);
+    }
+
+    /// `keccak(a, b, out, swap=bit)`: one `KECCAK_M`, the Keccak-256 of the 64 bytes `a ‖ b`
+    /// when the cell `bit` holds 0 and of `b ‖ a` when it holds 1 (any other value faults). `a`
+    /// and `b` are two frame cells each, read where they are; the padding's first byte rides a
+    /// constant tail and its last byte is the instruction's own, `bit` taking its place in `b8`.
+    fn lower_merkle_step(&mut self, args: &[Expr], bit: &Expr) {
+        let mut cells = self.keccak_operand(&args[0], 2);
+        cells.extend(self.keccak_operand(&args[1], 2));
+        cells.resize(BLOCK_CELLS as usize, SpongeCell::Zero);
+        self.xor_byte(&mut cells, 64, primitives::hash::PAD_FIRST);
+        let out = self.keccak_out(&args[2]);
+        let (m, tail) = self.keccak_rate(&cells, None);
+        let b8 = self.expr(bit);
+        let cap = self.keccak_pad_run() + 1;
+        self.emit(LOp::Keccak {
+            m,
+            tail,
+            b8,
+            cap,
+            c: out.state,
+            in_odd: false,
+            out_odd: false,
+            swap: true,
+        });
+        self.keccak_finish(out);
+    }
+
+    /// `dot(x, w, acc)`: `acc + Σ_j w[j]·x_j`, one `DOT` instruction over `n = DOT_LANES` lanes.
+    /// `x` is a run of `n/2` frame cells, read as `K`-lanes (lane `2k + h` is limb `h` of cell
+    /// `k`), each cell required canonical; `w` is an `n`-cell heap slice of weights, read through
+    /// its pointer.
+    pub(super) fn lower_dot(&mut self, args: &[Expr]) -> Off {
+        if args.len() != 3 {
+            self.fail(format!("dot(x, w, acc) takes three arguments, got {}", args.len()))
+        };
+        const LANES: u32 = leanvm_core::tables::DOT_LANES as u32;
+        let x = match self.cell_run(&args[0]) {
+            CellRun::Stack { base, len } if len == LANES / 2 => base,
+            _ => self.fail(format!(
+                "dot's lanes must be a run of {} frame cells (a StackBuf or its slice)",
+                LANES / 2
+            )),
+        };
+        let (p, w) = match self.cell_run(&args[1]) {
+            CellRun::Heap { ptr, lo, len } if len == LANES => (ptr, lo),
+            _ => self.fail(format!(
+                "dot's weights must be a {LANES}-cell HeapBuf slice `buf[lo:lo + {LANES}]`"
+            )),
+        };
+        let acc = self.expr(&args[2]);
+        let out = self.fresh();
+        self.emit(LOp::Dot { x, p, w, acc, out });
+        out
     }
 
     /// `keccak_cells(cells, out, state=, len=, final=)`: the Keccak-256 of the message the
@@ -273,6 +335,7 @@ impl FnLower<'_> {
                 c,
                 in_odd: k % 2 == 1,
                 out_odd: !last && k % 2 == 0,
+                swap: false,
             });
             state = Some(c);
         }
@@ -378,7 +441,9 @@ impl FnLower<'_> {
     /// advice, re-checked in-circuit by their caller: `hint_decompose_bits`
     /// writes a value's bits into a buffer, `hint_decompose_bits_exponent` the
     /// bits of `n` where the value is `g^n` (a bounded dlog at witness
-    /// generation), `hint_f192_limbs` a value's coordinate limbs.
+    /// generation), `hint_decompose_nibbles_exponent` the base-16 digits of
+    /// such an `n` shifted right by another exponent, each as a g-power,
+    /// `hint_f192_limbs` a value's coordinate limbs.
     pub(super) fn lower_builtin(&mut self, f: &str, args: &[Expr]) -> bool {
         match f {
             "hint_decompose_bits" | "hint_decompose_bits_exponent" => {
@@ -411,6 +476,29 @@ impl FnLower<'_> {
                     }
                 } else {
                     RHint::BitDecomposeExp { value, bits, nbits }
+                }));
+            }
+            "hint_decompose_nibbles_exponent" => {
+                if args.len() != 5 {
+                    self.fail(format!(
+                        "{f} takes `(digits, value, shift, ndigits, rev)`, got {} arguments",
+                        args.len()
+                    ))
+                };
+                let ndigits = self.const_index(&args[3]);
+                let rev = self.const_index(&args[4]);
+                if ndigits > 16 || rev > 1 {
+                    self.fail(format!("{f} writes at most 16 digits, and `rev` is 0 or 1"))
+                }
+                let digits = self.bits_dest(&args[0], ndigits, f);
+                let value = self.expr(&args[1]);
+                let shift = self.expr(&args[2]);
+                self.pending.push(Hint::Resolved(RHint::NibbleDecomposeExp {
+                    value,
+                    shift,
+                    digits,
+                    ndigits,
+                    rev: rev == 1,
                 }));
             }
             "keccak" => self.lower_keccak(args),

@@ -1,8 +1,8 @@
 # zkDSL Language Reference (leanVM)
 
-The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
+The zkDSL is a Python-syntax language that compiles to the leanVM ISA: seven instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`, `DOT`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
-Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
+Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `dot`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
 Entry points: `lean_compiler::parse` / `parse_with_replacements` → `lean_compiler::compile` → `leanvm_core::cpu::prove` / `verify`.
 
@@ -419,6 +419,14 @@ challenge = state[0] + d2[0] * f192(0, 0, 1)
 
 Both state words are hash outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
 
+## DOT
+
+```python
+y = dot(cells[0:2], weights[4 * k:4 * k + 4], acc)   # acc + sum_j weights[4k + j] * lane_j
+```
+
+`dot(x, w, acc)` is one `DOT` instruction: `acc + Σ_{j<4} w[j]·x_j`, an affine form of four GF(2^64) lanes with GF(2^192) weights. `x` is a run of two frame cells (a `StackBuf` or a slice of one with compile-time bounds), read as four lanes: lane `2k + h` is limb `h` of cell `k`, the layout `pack64x2` builds and the one `KECCAK` hashes. Every cell must be canonical (top limb zero), and the instruction proves it, with both its lanes in GF(2^64), as `KECCAK` does for the cells it reads: a run that `dot` and `keccak_cells` both read needs no `assert_in_k`. `w` is a four-cell `HeapBuf` slice `buf[lo:lo + 4]` (or a pointer to frame cells from `addr`), read through its pointer; `acc` is any value. The result is a fresh value. A chain of `dot`s weighs a row of opened data against weights a verifier derived from its transcript, one row per four terms where a `MUL` and an `XOR` per term would do it.
+
 ## KECCAK
 
 ```python
@@ -443,6 +451,7 @@ keccak_cells([18, 19], out, state=st)
 # as given, lanes 16..25 (the transcript's capacity) the last five cells of the previous
 # output `st`.
 keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
+keccak(node[0:2], sib[0:2], h, swap=bit)   # a Merkle step: H(node ‖ sib) if bit is 0, H(sib ‖ node) if 1
 ```
 
 The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
@@ -450,6 +459,8 @@ The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 by
 Both builtins are **statements**: they write the 13-cell sponge state into `out`, whose first two cells are the digest. A 2-cell `out` receives just the digest, at two copies.
 
 `keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells overwriting lanes 0..16, and lanes 16..25 the five cells a previous output ends with (`cap` that 13-cell output or those five cells). Keccak-256's rate is 17 lanes, 136 bytes, so lane 16 is rate to the hash; the transcript keeps it with the capacity, lanes 17..25, and calls lanes 16..25 its capacity.
+
+`keccak(a, b, out, swap=bit)` is one `KECCAK_M`, a Merkle step: the hash of `a ‖ b` when the cell `bit` holds 0 and of `b ‖ a` when it holds 1 (anything else faults, and no proof has such a row). `a` and `b` are read where they are, so a path level is this one instruction plus the read of its bit into the frame, with no copy of the node into a selected slot. It takes no other keyword.
 
 `keccak_cells(cells, out, state=, len=, final=)` hashes a message of any compile-time length: `cells` is a run (a `StackBuf`, or a slice with compile-time bounds), a list of words, or a list comprehension `[e for k in unroll(lo, hi)]` (its bounds compile-time integers once `Const` parameters are substituted, expanded into the list of `e` at each `k`), and the message is their first `len` bytes (all of them by default). Words named in a list are read where they lie. `state=` continues a hash from a previous 13-cell output whose message so far is a whole number of block pairs, 272 bytes or 17 cells each, so that the cells start a block at a cell boundary: what a runtime loop absorbing a block pair a frame needs. `final=0` absorbs the cells zero-extended to whole blocks, with no padding: the start of a hash continued later, or a bare permutation.
 
@@ -501,6 +512,7 @@ Three builtins have the prover compute the values at witness generation instead 
 
 - `hint_decompose_bits(bits, value, nbits[, start])`: writes `nbits` bits of `value`, from bit `start` on (default `0`), into the buffer `bits`, one field element (`0`/`1`) per bit.
 - `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation).
+- `hint_decompose_nibbles_exponent(digits, x, shift, ndigits, rev)`: writes the `ndigits` base-16 digits `d_j` of `n >> s`, where `x = GEN ** n` and `shift = GEN ** s`, low digit first, into `digits` as `GEN ** d_j`; with `rev = 1` each digit's four bits are reversed. A caller range-checks each digit (`assert log(d) < 16`) and rebuilds `x` from them, which costs a few cycles a digit where bits cost four a bit.
 - `g = hint_log2_ceil(bits, nbits, floor)`: returns `GEN ** log2_ceil(v)` for the value `v` held bitwise in the `nbits`-bit buffer `bits`, floored at `floor`.
 
 `bits` is a `HeapBuf` or a `StackBuf` (of at least `nbits` cells). Prefer the `StackBuf`: a frame cell is addressed directly, so `bits[i]` at a compile-time index is free where a heap read is a `DEREF`, and the booleanity pin `bits[i] = b * b` is then one `MUL` rather than a `MUL` and a `DEREF`. Use `addr` below where the run must also be indexed at runtime or reached from elsewhere.
@@ -525,6 +537,7 @@ Three builtins have the prover compute the values at witness generation instead 
 | `unroll` iteration | body only (compile-time replication) |
 | `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +2 copies into a 2-cell `out`, +1 `MUL` per runtime slice start |
 | `hint_witness(dest, "name")` | 0 (+1 `MUL` for a runtime slice start) |
+| `dot(x, w, acc)` | 1, for four weighed lanes (+1 `SET` amortized for a literal `acc`) |
 
 Every cost above is the FIRST occurrence. Two identical pure operations in one function share one cell and the second is free, so `hb[i]` twice, or `row[i]` where `row = hb * GEN ** 2`, costs one pointer `MUL` between them. The sharing stops at a branch: a cell whose instruction sits inside an `if` is not reused after the join, because the other path leaves it unwritten and therefore prover-chosen.
 

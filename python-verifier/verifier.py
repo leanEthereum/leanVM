@@ -760,8 +760,10 @@ class Flushes:
     def _counted(self, prefix: Sequence[Form], count: int, suffix: Sequence[Form]) -> None:
         self.pair((*prefix, _col(count, 1), *suffix), (*prefix, _col(count), *suffix))
 
-    def bytecode(self, pc: int, count: int, opcode: int, operands: Sequence[Form]) -> None:
-        self._counted((_const(SEP_BYTECODE), _col(pc)), count, (_const(_gpow(opcode)), *operands))
+    def bytecode(self, pc: int, count: int, opcode: int | Form, operands: Sequence[Form]) -> None:
+        """The program tuple at pc; `opcode` a form when a table proves two opcodes, its flag selecting one."""
+        tag = _const(_gpow(opcode)) if isinstance(opcode, int) else opcode
+        self._counted((_const(SEP_BYTECODE), _col(pc)), count, (tag, *operands))
 
     def memory(self, address: Form, count: int, values: Sequence[Form]) -> None:
         self._counted((_const(SEP_MEM), address), count, values)
@@ -864,6 +866,25 @@ def _flushes_jump() -> Flushes:
     return flushes
 
 
+def _keccak_constraints(columns: Sequence[E]) -> tuple[E, ...]:
+    """KECCAK_M's identities: the flag a bit and the even layout under it; b8 the lane its layout puts in b8's low limb on a
+    KECCAK row; lane 16 the padding's last byte on a KECCAK_M row; the direction bit s = mk*b8 a bit; the offsets a0, a1."""
+    o_m0, o_m1, o_m2, o_m3, odd_in, mk, b8, s, a0, a1 = (
+        columns[i] for i in _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3", "odd_in", "mk", "b8", "s", "a0", "a1")
+    )
+    v15, v16 = columns[KECCAK_IN + 15], columns[KECCAK_IN + 16]
+    return (
+        mk * (mk + ONE),
+        mk * odd_in,
+        b8 + v16 + odd_in * (v16 + v15) + mk * (b8 + v16),
+        mk * (v16 + E(1 << 63)),  # Keccak-256's last padding byte, 0x80, atop lane 16
+        s + mk * b8,
+        s * (s + ONE),
+        a0 + o_m0 + s * (o_m0 + o_m2),
+        a1 + o_m1 + s * (o_m1 + o_m3),
+    )
+
+
 def _jump_constraints(columns: Sequence[E]) -> tuple[E, ...]:
     condition, inverse, flag = (columns[index] for index in _cols(JUMP_COLUMNS, "v_cond", "w", "b"))
     return (flag + condition * inverse, condition * (flag + ONE))
@@ -897,16 +918,23 @@ def _flushes_keccak() -> Flushes:
     pc, fp, cnt_bc, free = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc", "free")
     o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
     o_tail, o_b8, o_cap, o_out, odd_in, odd_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out")
+    mk, b8, a0, a1 = _cols(KECCAK_COLUMNS, "mk", "b8", "a0", "a1")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)))
+    # KECCAK's opcode, or KECCAK_M's (the Merkle step) when the flag mk is 1.
+    opcode = Form.sum([_const(_gpow(OP_KECCAK)), _col(mk, OP_KECCAK), _col(mk, OP_KECCAK_M)])
+    flushes.bytecode(pc, cnt_bc, opcode, tuple(_col(i) for i in (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)))
 
     # The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the
     # thirteen written, each holding its lanes in the layout its flag names: a read cell's
-    # free lane is the column `free`, a written one's zero.
+    # free lane is the column `free`, a written one's zero. The first two m cells are read at
+    # the offsets a0, a1 the direction bit picks, the other two at the offsets left over, and
+    # b8's low limb is the column b8.
     def address(cell: int) -> Form:
+        if cell < 2:
+            return _prod(fp, (a0, a1)[cell])
         if cell < 4:
-            return _prod(fp, o_m[cell])
+            return Form.sum([_prod(fp, (a0, a1)[cell - 2]), _prod(fp, o_m[cell - 2]), _prod(fp, o_m[cell])])
         if cell < 8:
             return _prod(fp, o_tail, cell - 4)
         return _prod(fp, o_b8) if cell == 8 else _prod(fp, o_cap, cell - 9)
@@ -919,11 +947,49 @@ def _flushes_keccak() -> Flushes:
 
         for cell in range(KECCAK_CELLS):
             values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
+            if side == 0 and cell == 8:
+                values[0] = _col(b8)
             flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), KECCAK_CNT + KECCAK_CELLS * side + cell, values)
     return flushes
 
 
-OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK = range(6)
+DOT_LANES = 4
+DOT_LOG_FLOOR = 13  # DOT's least log height, which caps what a recursive verifier pays for a child with few DOT rows
+# DOT's columns: the operands, the lanes x_j, the weight pointer, weight j's limbs wj_l, the accumulator's, then a read
+# count per cell in flush order (the lane cells, the pointer, the weights, the accumulator, the result) and cnt_bc.
+DOT_COLUMNS = (
+    "pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out",
+    *(f"x_{j}" for j in range(DOT_LANES)), "ptr",
+    *(f"w{j}_{limb}" for j in range(DOT_LANES) for limb in range(3)),
+    *(f"acc_{limb}" for limb in range(3)),
+    *(f"cnt_x{k}" for k in range(DOT_LANES // 2)), "cnt_ptr", *(f"cnt_w{j}" for j in range(DOT_LANES)), "cnt_acc", "cnt_out", "cnt_bc",
+)  # fmt: skip
+
+
+def _flushes_dot() -> Flushes:
+    """out = acc + sum_j w_j * x_j: DOT_LANES K-lanes x_j (the low limbs of canonical cells, two each) against as many weights read through a pointer."""
+    pc, fp, o_x, o_p, o_w, o_acc, o_out, ptr, cnt_ptr, cnt_acc, cnt_out, cnt_bc = _cols(
+        DOT_COLUMNS, "pc", "fp", "o_x", "o_p", "o_w", "o_acc", "o_out", "ptr", "cnt_ptr", "cnt_acc", "cnt_out", "cnt_bc"
+    )
+    x = _cols(DOT_COLUMNS, *(f"x_{j}" for j in range(DOT_LANES)))
+    w = [_cols(DOT_COLUMNS, *(f"w{j}_{limb}" for limb in range(3))) for j in range(DOT_LANES)]
+    acc = _cols(DOT_COLUMNS, "acc_0", "acc_1", "acc_2")
+    flushes = Flushes()
+    flushes.state_step(pc, fp)
+    flushes.bytecode(pc, cnt_bc, OP_DOT, (_col(o_x), _col(o_p), _col(o_w), _col(o_acc), _col(o_out)))
+    for k in range(DOT_LANES // 2):
+        flushes.memory_cols(_prod(fp, o_x, k), DOT_COLUMNS.index(f"cnt_x{k}"), x[2 * k], x[2 * k + 1])
+    flushes.memory_cols(_prod(fp, o_p), cnt_ptr, ptr)
+    for j in range(DOT_LANES):
+        flushes.memory_cols(_prod(ptr, o_w, j), DOT_COLUMNS.index(f"cnt_w{j}"), *w[j])
+    flushes.memory_cols(_prod(fp, o_acc), cnt_acc, *acc)
+    result = [_col(acc[limb]) + Form.sum([_prod(w[j][limb], x[j]) for j in range(DOT_LANES)]) for limb in range(3)]
+    flushes.memory(_prod(fp, o_out), cnt_out, result)
+    return flushes
+
+
+OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK, OP_DOT = range(7)
+OP_KECCAK_M = 7  # the Merkle step, its own opcode, proven by the KECCAK table
 
 ARITH_COLUMNS = ("pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc",)  # fmt: skip
 SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc")
@@ -938,6 +1004,8 @@ KECCAK_COLUMNS = (
     *(f"in_{lane}" for lane in range(STATE_LANES)), *(f"out_{lane}" for lane in range(STATE_LANES)),
     # ...and the read counts, each cell read then each written, committed here like every other column.
     *(f"cnt_{cell}" for cell in range(2 * KECCAK_CELLS)), "cnt_bc",
+    # KECCAK_M's: its flag, b8's low limb as read, the direction bit, the offsets of the first two m cells.
+    "mk", "b8", "s", "a0", "a1",
 )  # fmt: skip
 KECCAK_IN, KECCAK_OUT, KECCAK_CNT = (KECCAK_COLUMNS.index(name) for name in ("in_0", "out_0", "cnt_0"))
 # Which slot of q_keccak each local KECCAK column is. The states take the first QKECCAK_SLOTS, the input
@@ -960,7 +1028,8 @@ TABLES = (
     Table("set", OP_SET, SET_COLUMNS, _flushes_set()),
     Table("deref", OP_DEREF, DEREF_COLUMNS, _flushes_deref()),
     Table("jump", OP_JUMP, JUMP_COLUMNS, _flushes_jump(), _jump_constraints),
-    Table("keccak", OP_KECCAK, KECCAK_COLUMNS, _flushes_keccak()),
+    Table("keccak", OP_KECCAK, KECCAK_COLUMNS, _flushes_keccak(), _keccak_constraints),
+    Table("dot", OP_DOT, DOT_COLUMNS, _flushes_dot()),
 )
 
 
@@ -968,7 +1037,8 @@ TABLE_WIDTHS = tuple(t.width for t in TABLES)
 GLOBAL_COLUMN_BASES = tuple(NUM_GLOBAL_COLUMNS + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
 
 
-TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK
+# Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK, and DOT's floor.
+TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG, DOT_LOG_FLOOR)
 
 
 def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[int]) -> Layout:
