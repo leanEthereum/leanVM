@@ -79,18 +79,24 @@ pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CEL
     t
 }
 
-/// The 25 lanes thirteen state cells hold in a layout.
-pub fn state_of_cells(cells: &[F192; STATE_CELLS], odd: bool) -> [u64; STATE_LANES] {
-    let mut s = [0u64; STATE_LANES];
-    for (cell, (lo, hi)) in cells.iter().zip(cell_lanes(odd)) {
-        if let Some(lo) = lo {
-            s[lo] = cell.c0;
+/// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
+pub fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
+    // The layout is a constant, so the loop compiles to straight-line moves.
+    fn read<const ODD: bool>(cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
+        let mut s = [0; STATE_LANES];
+        for c in 0..STATE_CELLS {
+            let (lo, hi) = const { cell_lanes(ODD) }[c];
+            let w = cell(c);
+            if let Some(l) = lo {
+                s[l] = w.c0;
+            }
+            if let Some(h) = hi {
+                s[h] = w.c1;
+            }
         }
-        if let Some(hi) = hi {
-            s[hi] = cell.c1;
-        }
+        s
     }
-    s
+    if odd { read::<true>(cell) } else { read::<false>(cell) }
 }
 
 /// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
@@ -105,7 +111,7 @@ pub fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] 
 /// What a `KECCAK` instruction writes, given the cells it reads.
 #[cfg(test)]
 pub(crate) fn permute_cells(cells: &[F192; STATE_CELLS], in_odd: bool, out_odd: bool) -> [F192; STATE_CELLS] {
-    let mut s = state_of_cells(cells, in_odd);
+    let mut s = state_of_cells(in_odd, |c| cells[c]);
     primitives::hash::keccak_f(&mut s);
     cells_of_state(&s, out_odd)
 }
@@ -272,7 +278,8 @@ mod tests {
         use primitives::hash::{PAD_FIRST, PAD_LAST, RATE};
         let s: [u64; STATE_LANES] = std::array::from_fn(|i| 0x1111 * (i as u64 + 1));
         for odd in [false, true] {
-            assert_eq!(state_of_cells(&cells_of_state(&s, odd), odd), s);
+            let cells = cells_of_state(&s, odd);
+            assert_eq!(state_of_cells(odd, |c| cells[c]), s);
         }
         for n in [0, 1, 64, 127, 135, 136, 137, 200, 271, 272, 300, 543, 1000] {
             let msg: Vec<u8> = (0..n).map(|i| (i * 7 + 3) as u8).collect();

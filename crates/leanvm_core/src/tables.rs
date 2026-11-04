@@ -958,9 +958,8 @@ impl Table for KeccakTable {
         });
         ctx.cols(out, rows, V_OUT, |r| {
             let k = op(r);
-            let cells: [F192; STATE_CELLS] =
-                std::array::from_fn(|c| ctx.mem.word(k.cell(r.fp, STATE_CELLS + c) as usize));
-            state_of_cells(&cells, k.out_odd).map(F64)
+            let base = k.cell(r.fp, STATE_CELLS) as usize;
+            state_of_cells(k.out_odd, |c| ctx.mem.word(base + c)).map(F64)
         });
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));

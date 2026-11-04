@@ -51,6 +51,8 @@ impl F64 {
     /// Itoh-Tsujii: with `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
     /// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
     /// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
+    /// The runs of 6, 12 and 24 squarings are one nibble-table map each: 16 independent lookups
+    /// in place of that many dependent squarings.
     pub fn inv(self) -> Self {
         // Square `v` a total of `n` times.
         let sq = |mut v: Self, n: u32| {
@@ -59,19 +61,69 @@ impl F64 {
             }
             v
         };
+        let [sq6, sq12, sq24] = &FROBENIUS;
         // Each step reads t_k = x^(2^k - 1).
         let t1 = self;
         let t2 = sq(t1, 1) * t1;
         let t3 = sq(t2, 1) * t1;
         let t6 = sq(t3, 3) * t3;
-        let t12 = sq(t6, 6) * t6;
-        let t24 = sq(t12, 12) * t12;
-        let t48 = sq(t24, 24) * t24;
-        let t60 = sq(t48, 12) * t12;
+        let t12 = frobenius(t6, sq6) * t6;
+        let t24 = frobenius(t12, sq12) * t12;
+        let t48 = frobenius(t24, sq24) * t24;
+        let t60 = frobenius(t48, sq12) * t12;
         let t63 = sq(t60, 3) * t3;
         // (x^(2^63 - 1))^2 = x^(2^64 - 2).
         sq(t63, 1)
     }
+}
+
+/// `v^(2^k)` for `k` = 6, 12, 24: squaring is GF(2)-linear, so its `k`-fold power is too, and
+/// `FROBENIUS[_][p][n]` is the image of nibble value `n` at nibble `p`.
+static FROBENIUS: [[[u64; 16]; 16]; 3] = [frobenius_table(6), frobenius_table(12), frobenius_table(24)];
+
+const fn frobenius_table(k: u32) -> [[u64; 16]; 16] {
+    let mut basis = [0u64; 64];
+    let mut i = 0;
+    while i < 64 {
+        let mut v = 1u64 << i;
+        let mut s = 0;
+        while s < k {
+            v = reduce(software::clmul(v, v));
+            s += 1;
+        }
+        basis[i] = v;
+        i += 1;
+    }
+    let mut table = [[0u64; 16]; 16];
+    let mut p = 0;
+    while p < 16 {
+        let mut n = 1;
+        while n < 16 {
+            let mut b = 0;
+            while b < 4 {
+                if (n >> b) & 1 != 0 {
+                    table[p][n] ^= basis[4 * p + b];
+                }
+                b += 1;
+            }
+            n += 1;
+        }
+        p += 1;
+    }
+    table
+}
+
+/// The linear map `table` holds, applied to `v`: one lookup per nibble. The table's length is
+/// hidden, so the lookups keep bounds checks the compiler cannot discharge, which stop it turning
+/// them into AVX-512 gathers that lose to the scalar loads.
+#[inline]
+fn frobenius(v: F64, table: &[[u64; 16]; 16]) -> F64 {
+    let flat: &[u64] = core::hint::black_box(table.as_flattened());
+    let mut acc = [0u64; 2];
+    for p in 0..16 {
+        acc[p & 1] ^= flat[16 * p + ((v.0 >> (4 * p)) as usize & 15)];
+    }
+    F64(acc[0] ^ acc[1])
 }
 
 #[allow(clippy::suspicious_arithmetic_impl)]
