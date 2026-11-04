@@ -4139,10 +4139,27 @@ def main():
     #
     # Each list's digest is a plain hash of its claims, 64 bytes a claim, its padding
     # binding its length; the statement carries the two digests side by side.
+    #
+    # A relay has one child whose lists are this node's, and hints their digests rather
+    # than hashing the claims twice. Its statement carries them, so whoever checks it
+    # hashes the lists it publishes, and the child is checked against the same digests:
+    # that is the whole coverage argument, which needs the child and nothing else, so the
+    # tables, counts and coverage then publish nothing.
     lx_table = HeapBuf(lx_slots_g ** 4)
     lean_sphincs_table = HeapBuf(lean_sphincs_slots_g ** 4)
-    xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g)
-    sd_0, sd_1 = claim_list_digest(lean_sphincs_table, n_lean_sphincs_g)
+    digests = HeapBuf(GEN ** 4)  # leanXMSS then leanSPHINCS, two cells each
+    relay = hint_witness("relay")
+    assert log(relay) < 2
+    if relay == GEN:
+        assert n_children_g == GEN
+        hint_witness(digests[0:4], "relay_digests")
+    else:
+        xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g)
+        sd_0, sd_1 = claim_list_digest(lean_sphincs_table, n_lean_sphincs_g)
+        digests[GEN ** 0] = xd_0
+        digests[GEN ** 1] = xd_1
+        digests[GEN ** 2] = sd_0
+        digests[GEN ** 3] = sd_1
     # The duplicate slots ride the same tables but outside the hashed prefixes.
     for xd in mul_range(1, n_xdup_g):
         dup = lx_table * ((n_lx_g * xd) ** 4)
@@ -4201,7 +4218,7 @@ def main():
         # The child's two list lengths, then its two lists, rebuilt from THIS node's
         # tables through hinted indices: everything hinted there is pinned by the
         # list digests, which the child's statement carries, so a lie about any of it
-        # changes the public input its proof has to satisfy.
+        # changes the public input its proof has to satisfy. A relay's are its own.
         child_meta = StackBuf(2)
         hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_lean_sphincs
         nsub_x_g = child_meta[0]
@@ -4209,13 +4226,22 @@ def main():
         assert log(nsub_x_g) < MAX_KEYS
         assert log(nsub_s_g) < MAX_KEYS
         nsub_g = nsub_x_g * nsub_s_g
-        cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g)
-        cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g)
+        child_digests = HeapBuf(GEN ** 4)
+        if relay == GEN:
+            for k in unroll(0, 4):
+                child_digests[GEN ** k] = digests[GEN ** k]
+        else:
+            cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g)
+            cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g)
+            child_digests[GEN ** 0] = cx_0
+            child_digests[GEN ** 1] = cx_1
+            child_digests[GEN ** 2] = cs_0
+            child_digests[GEN ** 3] = cs_1
         carried = child_carried * xc ** DEFER_STMT_CELLS
         hint_witness(carried[0:DEFER_STMT_CELLS], "child_defer")
         child_da = da_digests * xc ** 2
         hint_witness(child_da[0:2], "child_da")
-        pi_0, pi_1 = statement_digest(seed_0, seed_1, cx_0, cx_1, cs_0, cs_1, child_da[1], child_da[GEN], carried)
+        pi_0, pi_1 = statement_digest(seed_0, seed_1, child_digests[GEN ** 0], child_digests[GEN ** 1], child_digests[GEN ** 2], child_digests[GEN ** 3], child_da[1], child_da[GEN], carried)
         pi = xc * xc
         child_pi[pi] = pi_0
         child_pi[pi * GEN] = pi_1
@@ -4243,7 +4269,7 @@ def main():
     else:
         aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)
 
-    own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da[1], da[GEN], defer_stmt)
+    own_0, own_1 = statement_digest(seed_0, seed_1, digests[GEN ** 0], digests[GEN ** 1], digests[GEN ** 2], digests[GEN ** 3], da[1], da[GEN], defer_stmt)
     pub_ptr = GEN ** 0
     assert pub_ptr[1] == own_0
     assert pub_ptr[GEN] == own_1
