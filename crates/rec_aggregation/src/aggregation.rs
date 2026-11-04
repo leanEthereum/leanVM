@@ -1639,14 +1639,22 @@ pub fn aggregate_with_stats(
         return Err(AggregationError::TooLarge);
     }
 
+    // A relay: one child and no claim of its own, so its lists are the child's. The guest
+    // takes their digests rather than hashing the claims twice, over empty tables.
+    let relay = children.len() == 1
+        && raw_lean_xmss.is_empty()
+        && raw_lean_sphincs.is_empty()
+        && cover.xmss.dups.is_empty()
+        && cover.lean_sphincs.dups.is_empty();
+    let listed = |n: usize| count(if relay { 0 } else { n });
     let mut hints = Hints::default();
     hints.push(
         "meta",
         vec![
-            count(cover.xmss.signers.len()),
+            listed(cover.xmss.signers.len()),
             count(cover.xmss.dups.len()),
             count(raw_lean_xmss.len()),
-            count(cover.lean_sphincs.signers.len()),
+            listed(cover.lean_sphincs.signers.len()),
             count(cover.lean_sphincs.dups.len()),
             count(raw_lean_sphincs.len()),
             count(children.len()),
@@ -1664,12 +1672,18 @@ pub fn aggregate_with_stats(
         .iter()
         .map(lean_sphincs_claim_cells)
         .collect();
-    for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
-        if !cells.is_empty() {
-            hints.push("signers_split", list_split(cells.len()));
-        }
-        for claim in cells {
-            hints.push("claims", claim.to_vec());
+    hints.push("relay", vec![count(usize::from(relay))]);
+    if relay {
+        let digests = [&lean_xmss_cells, &lean_sphincs_cells].map(|cells| claim_list_digest(cells.iter().copied()));
+        hints.push("relay_digests", digests.concat());
+    } else {
+        for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
+            if !cells.is_empty() {
+                hints.push("signers_split", list_split(cells.len()));
+            }
+            for claim in cells {
+                hints.push("claims", claim.to_vec());
+            }
         }
     }
     let dups = cover.xmss.dups.iter().map(lean_xmss_claim_cells);
@@ -1715,14 +1729,19 @@ pub fn aggregate_with_stats(
     for (i, (child, (pi, summary))) in children.iter().zip(replayed).enumerate() {
         hints.push(
             "child_meta",
-            vec![count(child.xmss_signers.len()), count(child.lean_sphincs_signers.len())],
+            vec![
+                listed(child.xmss_signers.len()),
+                listed(child.lean_sphincs_signers.len()),
+            ],
         );
-        for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
-            if !offsets.is_empty() {
-                hints.push("signers_split", list_split(offsets.len()));
-            }
-            for &offset in offsets {
-                hints.push("child_claim_index", vec![count(offset)]);
+        if !relay {
+            for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
+                if !offsets.is_empty() {
+                    hints.push("signers_split", list_split(offsets.len()));
+                }
+                for &offset in offsets {
+                    hints.push("child_claim_index", vec![count(offset)]);
+                }
             }
         }
         hints.push("child_defer", child.defer.cells());
@@ -3021,6 +3040,59 @@ def main():
         )
         .expect("node verifies natively");
         assert_eq!(node.xmss_signers.len(), SMALL_LEAF_SIZE + big);
+    }
+
+    /// A node with one child and nothing of its own relays the child's list digests
+    /// instead of hashing its claims. It verifies, natively and rebuilt by a parent that
+    /// hashes them; forged digests are rejected, and so is a relay without a child.
+    #[test]
+    fn a_relay_passes_its_child_on() {
+        leanvm_core::init_prover();
+        let signers = get_signers(2 * SMALL_LEAF_SIZE);
+        let leaf = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
+        let relay = aggregate(std::slice::from_ref(&leaf), vec![], vec![], &[], None, LOG_INV_RATE).expect("relay");
+        relay.verify().expect("relay verifies");
+        assert_eq!(relay.xmss_signers, leaf.xmss_signers);
+        let other = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
+        let parent = aggregate(&[relay, other], vec![], vec![], &[], None, LOG_INV_RATE).expect("parent");
+        parent.verify().expect("parent verifies");
+
+        let forgeries: [Forgery; 2] = [
+            Box::new(|hints: &mut Hints| hints.entry_mut("relay_digests", 0)[0] += F192::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("relay_digests", 0)[2] += F192::ONE),
+        ];
+        for forgery in forgeries {
+            FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+            let result = aggregate(std::slice::from_ref(&leaf), vec![], vec![], &[], None, LOG_INV_RATE);
+            assert!(
+                matches!(result, Err(AggregationError::ProofError(_))),
+                "forged digests are rejected"
+            );
+        }
+        // A leaf relaying its own lists' digests, its counts zeroed so nothing else runs:
+        // only the guest's one-child check stops it publishing claims no one checked.
+        let leaf_signers = signing(&signers[SMALL_LEAF_SIZE..], 0);
+        let mut claims: Vec<LeanXmssClaim> = leaf_signers.iter().map(|(pk, message, _)| (*pk, *message)).collect();
+        claims.sort();
+        let digests = [
+            claim_list_digest(claims.iter().map(lean_xmss_claim_cells)),
+            claim_list_digest(std::iter::empty()),
+        ]
+        .concat();
+        FORGE.with(|forge| {
+            *forge.borrow_mut() = Some(Box::new(move |hints: &mut Hints| {
+                let meta = hints.entry_mut("meta", 0);
+                meta[0] = count(0);
+                meta[2] = count(0);
+                hints.entry_mut("relay", 0)[0] = count(1);
+                hints.push("relay_digests", digests);
+            }))
+        });
+        let result = aggregate(&[], leaf_signers, vec![], &[], None, LOG_INV_RATE);
+        assert!(
+            matches!(result, Err(AggregationError::ProofError(_))),
+            "a relay without a child is rejected"
+        );
     }
 
     fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
