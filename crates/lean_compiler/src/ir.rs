@@ -101,8 +101,15 @@ pub(crate) enum LOp {
 pub(crate) enum Hint {
     /// Index the next frame address without allocating it again.
     NextFrameAddress,
-    /// Reserve the loop run, including the final untaken call's argument frame.
-    AllocLoopFrames { ptr: Off, callee: String, count: LoopCount },
+    /// Reserve the loop run, including the final untaken call's argument frame, of
+    /// which only the first `tail` cells (return target, arguments, frame pointer)
+    /// are ever written.
+    AllocLoopFrames {
+        ptr: Off,
+        callee: String,
+        count: LoopCount,
+        tail: u32,
+    },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint frame for `callee`.
     AllocFrame { ptr: Off, callee: String },
     /// `AllocFrame` sized to the **largest** of several callees, a shared frame

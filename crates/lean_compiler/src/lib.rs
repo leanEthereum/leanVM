@@ -163,13 +163,19 @@ pub fn compile(ast: &Ast) -> Program {
                     .drain(..)
                     .map(|h| match h {
                         Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
-                        Hint::AllocLoopFrames { ptr, callee, count } => {
+                        Hint::AllocLoopFrames {
+                            ptr,
+                            callee,
+                            count,
+                            tail,
+                        } => {
                             let size = frame_size[&callee];
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
                                     size: size
-                                        .checked_mul(u32::try_from(n).expect("loop range too large"))
+                                        .checked_mul(u32::try_from(n - 1).expect("loop range too large"))
+                                        .and_then(|frames| frames.checked_add(tail))
                                         .expect("loop frames overflow"),
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
@@ -177,6 +183,7 @@ pub fn compile(ast: &Ast) -> Program {
                                     size,
                                     end: cell,
                                     start_inverse: g_pow_u128(u128::from(start)).inv(),
+                                    tail,
                                 },
                             }
                         }

@@ -72,6 +72,22 @@ def hint_decompose_bits_exponent(bits, x, nbits: int) -> None:
     _ = bits, x, nbits
 
 
+def hint_decompose_digits_exponent(dest, x, nbits: int, ndigits: int, digit_bits: int, start) -> None:
+    """Computed advice: the prover writes g^d_j for the `ndigits` base-2^digit_bits
+    digits d_j of n >> start, where x = g^n, n < 2^nbits; `start` is a compile-time
+    integer or a runtime g-power g^start. UNCONSTRAINED: the caller range-checks each
+    digit and pins their weighted product to x."""
+    _ = dest, x, nbits, ndigits, digit_bits, start
+
+
+def hint_windows_exponent(dest, value, start: int, width: int, count: int, at: int = 0) -> None:
+    """Computed advice: the prover writes `count` windows of `width` bits of `value`,
+    from bit `start` on, into `dest` from cell `at`, each as g^n for n the integer
+    its bits spell. UNCONSTRAINED: the caller range-checks each window and ties the
+    windows back to `value`."""
+    _ = dest, value, start, width, count, at
+
+
 def hint_log2_ceil(bits, nbits: int, floor: int) -> _Elt:
     """Computed advice: returns `g^max(log2_ceil(v), floor)`, where `v` is the
     integer the `nbits`-cell `bits` buffer decodes to. The prover fills it at
@@ -189,6 +205,12 @@ def assert_in_k(a, b) -> None:
     """Prove that both machine words are GF(2^64)-valued. This is the sole
     packing-related intrinsic and lowers to one untaken JUMP."""
     _ = a, b
+
+
+def assert_gpow(x) -> None:
+    """Prove that `x = GEN ** e` with `e` below the memory size, by one DEREF
+    through it: the lower half of `assert log x < k`, without an upper bound."""
+    _ = x
 
 
 def hint_f192_limbs(dest, value) -> None:

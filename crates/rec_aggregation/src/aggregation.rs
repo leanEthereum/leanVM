@@ -166,15 +166,23 @@ fn cell_bytes(cells: impl IntoIterator<Item = F192>) -> Vec<u8> {
 /// Claims the guest hashes a loop frame: 68 cells, four whole block pairs.
 const CLAIM_GROUP: usize = 17;
 const _: () = assert!((CLAIM_GROUP * 64).is_multiple_of(2 * primitives::hash::RATE));
+/// Groups of [`CLAIM_GROUP`] the guest's main list loop hashes a frame.
+const BIG_GROUPS: usize = 8;
+const CLAIM_BIG: usize = CLAIM_GROUP * BIG_GROUPS;
 
-/// How the guest splits a list of `n` claims: the whole groups of [`CLAIM_GROUP`], one
-/// a loop frame, and the claims after them. Its own product identity and range checks
-/// pin both, so this only has to agree with them (`list_split` in the guest). A list
-/// is never empty here: both claim lists are guarded at the call, since the guest
-/// hashes an empty one without a split at all.
+/// How the guest splits a list of `n` claims: the whole frames of [`CLAIM_BIG`], then
+/// the whole groups of [`CLAIM_GROUP`], then the claims after them. Its own product
+/// identity and range checks pin all three, so this only has to agree with them
+/// (`list_split` in the guest). A list is never empty here: both claim lists are
+/// guarded at the call, since the guest hashes an empty one without a split at all.
 fn list_split(n: usize) -> Vec<F192> {
     assert!(n > 0, "an empty list has no split");
-    vec![count(n / CLAIM_GROUP), count(n % CLAIM_GROUP)]
+    let rest = n % CLAIM_BIG;
+    vec![
+        count(n / CLAIM_BIG),
+        count(rest / CLAIM_GROUP),
+        count(rest % CLAIM_GROUP),
+    ]
 }
 
 /// One scheme's declared claims, hashed plainly: 64 bytes a claim, its pubkey then
@@ -959,10 +967,10 @@ fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
 
 /// One entry of the guest's claim pool.
 enum ClaimSite {
-    /// A committed column read by a framework bus block.
-    Framework { column: usize },
+    /// A committed column read by a framework bus block of kappa source `source`.
+    Framework { column: usize, source: (usize, usize) },
     /// A table column, a KECCAK value lane's ([`keccak_value`]) included.
-    TableColumn { column: usize },
+    TableColumn { column: usize, table: usize },
     /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
     MemoryLimb { column: usize },
 }
@@ -1015,6 +1023,63 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     });
 }
 
+/// The first column of each column group: a maximal run of committed columns, in compact
+/// order, sharing one kappa source. The stacked order (descending kappa, then index) keeps
+/// a group's columns consecutive, since any other column of equal kappa lies outside it.
+fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) -> Vec<usize> {
+    // As `col_groups`, per side: a side's blocks tile its own cube.
+    (0..sources.len())
+        .filter(|&b| side_starts.contains(&b) || sources[b] != sources[b - 1])
+        .collect()
+}
+
+fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
+    (0..sources.len())
+        .filter(|&c| c == 0 || sources[c] != sources[c - 1])
+        .collect()
+}
+
+/// The terms of `a + b` (characteristic 2), merged: constants summed, the scales of
+/// one column or one column product summed, and whatever sums to zero dropped.
+fn coord_difference(a: &[Term], b: &[Term]) -> Vec<Term> {
+    let (konst, col, gcol) = (0, 1, 2); // coord_kind of Const, Col, GCol
+    let one = dsl_u128(F192::ONE);
+    let mut constant = 0u128;
+    let mut scaled: BTreeMap<(usize, usize, usize), u128> = BTreeMap::new();
+    for t in a.iter().chain(b) {
+        match t.kind {
+            k if k == konst => constant ^= t.constant,
+            k if k == col => *scaled.entry((gcol, t.column_a, 0)).or_default() ^= one,
+            k if k == gcol => *scaled.entry((gcol, t.column_a, 0)).or_default() ^= t.constant,
+            k => {
+                let (x, y) = (t.column_a.min(t.column_b), t.column_a.max(t.column_b));
+                *scaled.entry((k, x, y)).or_default() ^= t.constant;
+            }
+        }
+    }
+    let mut out = Vec::new();
+    if constant != 0 {
+        out.push(Term {
+            kind: konst,
+            constant,
+            column_a: 0,
+            column_b: 0,
+        });
+    }
+    for ((kind, column_a, column_b), constant) in scaled {
+        if constant != 0 {
+            let kind = if kind == gcol && constant == one { col } else { kind };
+            out.push(Term {
+                kind,
+                constant,
+                column_a,
+                column_b,
+            });
+        }
+    }
+    out
+}
+
 /// Visit the claim pool in the exact order the guest indexes it: the framework
 /// bus claims (deduped by `(column, kappa)`, as `leaf.rs` pools them), then every
 /// table's committed columns, then the PI memory triple. The placeholder map's
@@ -1023,17 +1088,14 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
     // Only the framework blocks raise claims: a table's coords are settled inside
     // the table sumcheck.
-    let is_framework: Vec<bool> = leanvm_core::cpu::block_kappa_sources(kbc)
-        .into_iter()
-        .map(|(src, _)| src < 2)
-        .collect();
+    let sources = leanvm_core::cpu::block_kappa_sources(kbc);
     let mut seen: std::collections::HashSet<(usize, usize)> = Default::default();
     let mut bi = 0usize;
     for blocks in sides.iter() {
         for blk in blocks.iter() {
-            let framework = is_framework[bi];
+            let source = sources[bi];
             bi += 1;
-            if !framework {
+            if source.0 >= 2 {
                 continue;
             }
             for c in &blk.coords {
@@ -1042,7 +1104,7 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
                         continue; // deduped: pooled once at its first occurrence
                     }
                     assert!(keccak_value(*i).is_none(), "{VALCOL_FRAMEWORK}");
-                    visit(ClaimSite::Framework { column: *i });
+                    visit(ClaimSite::Framework { column: *i, source });
                 }
             }
         }
@@ -1052,6 +1114,7 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
         for c in 0..table.n_committed_columns() {
             visit(ClaimSite::TableColumn {
                 column: sch.base[t] + c,
+                table: t,
             });
         }
     }
@@ -1121,14 +1184,36 @@ fn gen_verify(
     // ascending index) before deriving offsets from it.
     let mut sort_order: Vec<F192> = Vec::new();
     let mut gbase = 0usize;
+    let block_sources = leanvm_core::cpu::block_kappa_sources(kbc);
+    let side_starts: Vec<usize> = sides
+        .iter()
+        .scan(0, |at, blocks| {
+            let start = *at;
+            *at += blocks.len();
+            Some(start)
+        })
+        .chain([block_sources.len()])
+        .collect();
+    let block_groups = block_groups(&block_sources, &side_starts);
     for (s, blocks) in sides.iter().enumerate() {
         let mut order: Vec<usize> = (0..blocks.len()).collect();
         order.sort_by_key(|&i| side_layouts[s].offsets[i]);
+        let mut last_group = usize::MAX;
         for &i in &order {
-            sort_order.push(count(gbase + i)); // g^{global block index}
+            // g^{global group index}, once per group: its blocks are consecutive.
+            let group = block_groups.partition_point(|&start| start <= gbase + i) - 1;
+            if group != last_group {
+                sort_order.push(count(group));
+                last_group = group;
+            }
         }
         gbase += blocks.len();
     }
+    assert_eq!(
+        sort_order.len(),
+        block_groups.len(),
+        "a block group's blocks are consecutive"
+    );
     // The stacked commitment uses witness::placements_of: committed columns
     // sorted by descending kappa, then by their native column index. Transport
     // compact committed-column indices; the guest certifies the permutation,
@@ -1145,7 +1230,23 @@ fn gen_verify(
     }
     let mut col_order = committed_globals;
     col_order.sort_by_key(|&global| layout.placements[global].offset);
-    let col_sort_order: Vec<F192> = col_order.iter().map(|&global| count(compact_col[global])).collect();
+    // The order by column group (`col_groups`): its columns are consecutive in it.
+    let groups = col_groups(&col_sources.iter().flatten().copied().collect::<Vec<_>>());
+    let group_of = |compact: usize| groups.partition_point(|&start| start <= compact) - 1;
+    let mut col_group_order: Vec<F192> = Vec::new();
+    let mut last_group = usize::MAX;
+    for &global in &col_order {
+        let group = group_of(compact_col[global]);
+        if group != last_group {
+            col_group_order.push(count(group));
+            last_group = group;
+        }
+    }
+    assert_eq!(
+        col_group_order.len(),
+        groups.len(),
+        "a column group's columns are consecutive"
+    );
 
     // ---- Phase E2 hints (the stacked WHIR opening) ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
@@ -1219,8 +1320,8 @@ fn gen_verify(
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
-        ("col_sort_order", col_sort_order),
-        ("sort_order", sort_order),
+        ("col_group_order", col_group_order),
+        ("block_group_order", sort_order),
     ];
     hints.extend(query_hints);
     Ok((hints, deferred))
@@ -1718,11 +1819,23 @@ pub fn aggregate_with_stats(
             vec![count(child.xmss_signers.len()), count(child.lean_sphincs_signers.len())],
         );
         for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
-            if !offsets.is_empty() {
-                hints.push("signers_split", list_split(offsets.len()));
+            if offsets.is_empty() {
+                continue;
             }
-            for &offset in offsets {
-                hints.push("child_claim_index", vec![count(offset)]);
+            hints.push("signers_split", list_split(offsets.len()));
+            // Strictly increasing slots go as gaps (`child_claim_list_mono`).
+            if offsets.is_sorted_by(|a, b| a < b) {
+                hints.push("child_mono", vec![count(1)]);
+                let mut next = 0;
+                for &offset in offsets {
+                    hints.push("child_claim_gap", vec![count(offset - next)]);
+                    next = offset + 1;
+                }
+            } else {
+                hints.push("child_mono", vec![count(0)]);
+                for &offset in offsets {
+                    hints.push("child_claim_index", vec![count(offset)]);
+                }
             }
         }
         hints.push("child_defer", child.defer.cells());
@@ -1833,6 +1946,8 @@ struct ClaimDescriptor {
     buffer: usize,
     column: usize,
     qkeccak_slot: usize,
+    /// The kappa source `(src, adj)` of the claim's low dimension.
+    source: (usize, usize),
 }
 
 // The guest's `POINT_BUF_*`, the point a pooled claim is made at: the bus's `zeta`, the table
@@ -1850,6 +1965,84 @@ fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String 
         "[{}]",
         values.into_iter().map(|v| v.to_string()).collect::<Vec<_>>().join(", ")
     )
+}
+
+/// A greedy (Paar) straight-line program computing each row's sum, or product where a row repeats an input:
+/// value `inputs + k` is op `k`, the sum or product of two earlier values, the pair most rows share first.
+/// Returns the ops and the value holding each (nonempty) row.
+fn straight_line(rows: &[Vec<usize>], inputs: usize) -> (Vec<(usize, usize)>, Vec<usize>) {
+    let mut rows: Vec<Vec<usize>> = rows.to_vec();
+    let mut ops = Vec::new();
+    let pairs = |row: &Vec<usize>| {
+        let mut out = std::collections::BTreeSet::new();
+        for (i, &a) in row.iter().enumerate() {
+            for &b in &row[i + 1..] {
+                out.insert((a.min(b), a.max(b)));
+            }
+        }
+        out
+    };
+    loop {
+        let mut counts = std::collections::BTreeMap::<(usize, usize), usize>::new();
+        for row in &rows {
+            for pair in pairs(row) {
+                *counts.entry(pair).or_default() += 1;
+            }
+        }
+        // The most shared pair, the first of them; once none is shared, any pair left.
+        let Some((&(a, b), _)) = counts.iter().rev().max_by_key(|&(_, &n)| n) else {
+            break;
+        };
+        let new = inputs + ops.len();
+        ops.push((a, b));
+        for row in &mut rows {
+            if let Some(i) = row.iter().position(|&v| v == a) {
+                row.remove(i);
+                if let Some(j) = row.iter().position(|&v| v == b) {
+                    row.remove(j);
+                    row.push(new);
+                } else {
+                    row.insert(i, a);
+                }
+            }
+        }
+    }
+    let outputs = rows
+        .iter()
+        .map(|row| {
+            assert_eq!(row.len(), 1, "a straight-line row is nonempty");
+            row[0]
+        })
+        .collect();
+    (ops, outputs)
+}
+
+/// Binary polynomials: the quotient and the remainder of `a` by `m`.
+fn poly_divmod(mut a: u64, m: u64) -> (u64, u64) {
+    let dm = 63 - m.leading_zeros();
+    let mut q = 0;
+    while a != 0 && 63 - a.leading_zeros() >= dm {
+        let shift = 63 - a.leading_zeros() - dm;
+        q |= 1 << shift;
+        a ^= m << shift;
+    }
+    (q, a)
+}
+
+/// `p`'s irreducible factors, with multiplicity, smallest first.
+fn poly_factors(mut p: u64) -> Vec<u64> {
+    let mut factors = Vec::new();
+    let mut q = 2u64;
+    while p > 1 && 64 - q.leading_zeros() <= (64 - p.leading_zeros()) {
+        let (quotient, rem) = poly_divmod(p, q);
+        if rem == 0 {
+            factors.push(q);
+            p = quotient;
+        } else {
+            q += 1;
+        }
+    }
+    factors
 }
 
 struct OpeningShape {
@@ -1962,36 +2155,45 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let mut claims = Vec::new();
     walk_claims(&layout, kbc, |site| {
         let descriptor = match site {
-            ClaimSite::Framework { column, .. } => {
+            ClaimSite::Framework { column, source } => {
                 let column = compact_col_pm[column];
                 assert_ne!(column, usize::MAX, "framework claim must target a committed column");
                 ClaimDescriptor {
                     buffer: POINT_BUF_ZETA,
                     column,
                     qkeccak_slot: 0,
+                    source,
                 }
             }
-            ClaimSite::TableColumn { column } => match keccak_value(column) {
-                None => ClaimDescriptor {
-                    buffer: POINT_BUF_RHO,
-                    column: compact_col_pm[column],
-                    qkeccak_slot: 0,
-                },
-                Some(KeccakLane::Slot(slot)) => ClaimDescriptor {
-                    buffer: POINT_BUF_QKECCAK_RHO,
-                    column: qkeccak_compact,
-                    qkeccak_slot: slot,
-                },
-                Some(KeccakLane::Output(_)) => ClaimDescriptor {
-                    buffer: POINT_BUF_KECCAK_OUT,
-                    column: qkeccak_compact,
-                    qkeccak_slot: 0,
-                },
-            },
+            ClaimSite::TableColumn { column, table } => {
+                // A table column's claim is at its table's chi[..tau].
+                let source = (2 + table, 0);
+                match keccak_value(column) {
+                    None => ClaimDescriptor {
+                        buffer: POINT_BUF_RHO,
+                        column: compact_col_pm[column],
+                        qkeccak_slot: 0,
+                        source,
+                    },
+                    Some(KeccakLane::Slot(slot)) => ClaimDescriptor {
+                        buffer: POINT_BUF_QKECCAK_RHO,
+                        column: qkeccak_compact,
+                        qkeccak_slot: slot,
+                        source,
+                    },
+                    Some(KeccakLane::Output(_)) => ClaimDescriptor {
+                        buffer: POINT_BUF_KECCAK_OUT,
+                        column: qkeccak_compact,
+                        qkeccak_slot: 0,
+                        source,
+                    },
+                }
+            }
             ClaimSite::MemoryLimb { column } => ClaimDescriptor {
                 buffer: POINT_BUF_PI,
                 column: compact_col_pm[column],
                 qkeccak_slot: 0,
+                source: (1, 0),
             },
         };
         claims.push(descriptor);
@@ -2038,6 +2240,16 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         "push/pull padding tuples must match"
     );
     ps("BLOCK_KAPPA_SRC", literals(bks.iter().map(|&(s, _)| s)));
+    let bgroups = block_groups(&bks, &sblk);
+    ps("N_BLOCK_GROUPS", bgroups.len().to_string());
+    ps(
+        "BLOCK_GROUP_START",
+        literals(bgroups.iter().copied().chain([bks.len()])),
+    );
+    ps(
+        "SIDE_GROUP_START",
+        literals(sblk.iter().map(|&b| bgroups.partition_point(|&start| start < b))),
+    );
     ps("BLOCK_KAPPA_ADJ", literals(bks.iter().map(|&(_, a)| a)));
     ps(
         "BLOCK_TABLE",
@@ -2067,6 +2279,28 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("COORD_CLAIM_SLOT", literals(coordinates.iter().map(|c| c.claim_slot)));
     ps("COORD_TERM_OFF", literals(coordinates.iter().map(|c| c.terms.start)));
     ps("COORD_TERM_COUNT", literals(coordinates.iter().map(|c| c.terms.len())));
+    // A pull table-block coordinate's difference from its push twin's, as merged terms
+    // appended after every coordinate's own: the guest counts a pull block's form as
+    // push's plus these, the two blocks sharing eq_hi.
+    let (mut diff_off, mut diff_count) = (vec![0usize; coordinates.len()], vec![0usize; coordinates.len()]);
+    for b in sblk[1]..sblk[2] {
+        let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
+        assert!(
+            bks[b] == bks[b - sblk[1]] && pull.len() == push.len(),
+            "pull block {b} must mirror its push twin"
+        );
+        for (p, q) in pull.zip(push) {
+            let merged = coord_difference(
+                &terms[coordinates[p].terms.clone()],
+                &terms[coordinates[q].terms.clone()],
+            );
+            diff_off[p] = terms.len();
+            diff_count[p] = merged.len();
+            terms.extend(merged);
+        }
+    }
+    ps("COORD_DIFF_OFF", literals(&diff_off));
+    ps("COORD_DIFF_COUNT", literals(&diff_count));
     ps("TERM_TYPE", literals(terms.iter().map(|t| t.kind)));
     ps("TERM_CONST", literals(terms.iter().map(|t| t.constant)));
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
@@ -2124,18 +2358,51 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         ps("KECCAK_PACK", PACK.to_string());
         ps("KECCAK_EMBED_BITS", EMBED_BITS.to_string());
         ps("KECCAK_PROD_BITS", PROD_BITS.to_string());
-        // The instances whose projection reads each product coefficient.
-        let (starts, idx) = lists(
-            (0..PROD_BITS)
-                .map(|c| (0..PACK).filter(|&i| RMFE.proj[i] >> c & 1 == 1).collect())
-                .collect(),
+        // Each product coefficient's reader, the sum of the instance weights whose projection reads
+        // it, as a straight line of sums over the PACK weights.
+        let (ops, outputs) = straight_line(
+            &(0..PROD_BITS)
+                .map(|c| (0..PACK).filter(|&i| RMFE.proj[i] >> c & 1 == 1).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+            PACK,
         );
-        ps("KECCAK_PROJ_START", starts);
-        ps("KECCAK_PROJ_IDX", idx);
-        // The monomials of each unit vector's embedding.
-        let (starts, idx) = lists(RMFE.emb.iter().map(|&e| bits(e as u64, EMBED_BITS)).collect());
-        ps("KECCAK_EMB_START", starts);
-        ps("KECCAK_EMB_IDX", idx);
+        ps("KECCAK_PROJ_A", literals(ops.iter().map(|op| op.0)));
+        ps("KECCAK_PROJ_B", literals(ops.iter().map(|op| op.1)));
+        ps("KECCAK_PROJ_OUT", literals(outputs));
+        ps("KECCAK_PROJ_CELLS", (PACK + ops.len()).to_string());
+        // Each unit vector's embedding is a product of small irreducible factors (the modulus's,
+        // by the CRT): the factors' monomials, then a straight line of products over them.
+        let factored: Vec<Vec<u64>> = RMFE.emb.iter().map(|&e| poly_factors(e as u64)).collect();
+        let clmul = |a: u64, b: u64| (0..64).filter(|i| b >> i & 1 == 1).fold(0, |acc, i| acc ^ a << i);
+        for (row, &e) in factored.iter().zip(&RMFE.emb) {
+            assert_eq!(row.iter().fold(1, |acc, &f| clmul(acc, f)), e as u64);
+        }
+        let mut factors: Vec<u64> = factored.concat();
+        factors.sort_unstable();
+        factors.dedup();
+        let (starts, idx) = lists(factors.iter().map(|&f| bits(f, EMBED_BITS)).collect());
+        ps("KECCAK_FAC_START", starts);
+        ps("KECCAK_FAC_IDX", idx);
+        ps(
+            "KECCAK_FAC_DEG",
+            (factors.iter().map(|f| 63 - f.leading_zeros()).max().unwrap() + 1).to_string(),
+        );
+        let (ops, outputs) = straight_line(
+            &factored
+                .iter()
+                .map(|row| {
+                    row.iter()
+                        .map(|f| factors.binary_search(f).unwrap())
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>(),
+            factors.len(),
+        );
+        ps("KECCAK_EMB_A", literals(ops.iter().map(|op| op.0)));
+        ps("KECCAK_EMB_B", literals(ops.iter().map(|op| op.1)));
+        ps("KECCAK_EMB_OUT", literals(outputs));
+        ps("KECCAK_FAC_N", factors.len().to_string());
+        ps("KECCAK_EMB_CELLS", (factors.len() + ops.len()).to_string());
         // The positions iota flips are `2^i - 1`; per (layer, segment), which `i`.
         let (starts, idx) = lists(
             (0..depth * segments)
@@ -2263,6 +2530,9 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
     ps("COL_KAPPA_ADJ", literals(cks.iter().map(|&(_, a)| a)));
+    let groups = col_groups(&cks);
+    ps("N_COL_GROUPS", groups.len().to_string());
+    ps("COL_GROUP_START", literals(groups.iter().copied().chain([cks.len()])));
     ps("PCS_MIN_MU", leanvm_core::pcs::MIN_MU.to_string());
     ps(
         "LIG_LOG_MSG_COLS_CAP",
@@ -2400,6 +2670,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     );
     ps("CLAIM_POINT_BUF", literals(claims.iter().map(|c| c.buffer)));
     ps("CLAIM_COMMITTED_COL", literals(claims.iter().map(|c| c.column)));
+    ps("CLAIM_KAPPA_SRC", literals(claims.iter().map(|c| c.source.0)));
+    ps("CLAIM_KAPPA_ADJ", literals(claims.iter().map(|c| c.source.1)));
     let slot_log = leanvm_core::keccak::SLOT_LOG;
     let cpqbits: Vec<usize> = claims
         .iter()
@@ -2496,6 +2768,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LX_TOP", address(lean_xmss::tweak(0, lean_xmss::TOP, 0)));
     ps("MAX_KEYS", MAX_KEYS.to_string());
     ps("CLAIM_GROUP", CLAIM_GROUP.to_string());
+    ps("BIG_GROUPS", BIG_GROUPS.to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
 
     // The leanSPHINCS instance. Its addresses are derived per signature from the
@@ -2891,7 +3164,9 @@ def main():
     point1 = HeapBuf(MAX_STACK_LOG)
     for k in unroll(0, MAX_STACK_LOG):
         point1[GEN ** k] = 1 + point[GEN ** k]
-    sel_eq, sel_g = selector_tables(point, point1)
+    sel_eq = selector_tables(point, point1)
+    g_squares = exponent_tables()
+    sel_g = g_squares * GEN ** SIZE_BITS
     offset = hint_witness("offset")
     kappa_g = hint_witness("kappa")
     weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
@@ -3172,7 +3447,7 @@ def main():
             r#"{helpers}
 def main():
     n_g = hint_witness("n")
-    body, rest = list_split(n_g)
+    bigs, body, rest = list_split(n_g)
     public = GEN ** 0
     assert public[1] == body
     assert public[GEN] == rest
@@ -3183,7 +3458,7 @@ def main():
         let run = |body: F192, rest: F192| {
             let mut hints = Hints::default();
             hints.push("n", vec![count(6)]);
-            hints.push("signers_split", vec![body, rest]);
+            hints.push("signers_split", vec![count(0), body, rest]);
             let mut program = guest.clone();
             hints.install(&mut program);
             program.execute([body, rest])
@@ -3207,7 +3482,7 @@ def main():
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
         let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
+            "{helpers}\ndef main():\n    squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
         );
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
         let n_rows = 3usize;
@@ -3469,6 +3744,53 @@ def main():
         node.verify().expect("node verifies");
         assert_eq!(node.xmss_signers.len(), 40);
         assert!(node.xmss_signers.windows(2).all(|w| w[0] < w[1]));
+    }
+
+    /// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
+    /// child may declare a claim twice, and a gap of `g^-1` would walk the copy back onto
+    /// the slot it just covered, with the same coverage mark, so write-once memory alone
+    /// would not see it: only the gap's `assert_gpow` does.
+    #[test]
+    fn a_child_walk_cannot_step_back() {
+        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
+            .split_once("\ndef main():")
+            .unwrap();
+        let source = format!(
+            r#"{helpers}
+def main():
+    n_c = hint_witness("n")
+    table = HeapBuf(GEN ** 8)
+    hint_witness(table[0:8], "claims")
+    cover = HeapBuf(GEN ** 2)
+    d0, d1 = child_claim_list_digest(table, cover, GEN ** 3, GEN ** 2, n_c)
+    public = GEN ** 0
+    assert public[1] == d0
+    assert public[GEN] == d1
+    return
+"#
+        );
+        let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+        let claim = |i: u64| [1, 2, 3, 4].map(|k| F192::new(i * 7919 + k, k, 0));
+        let table: Vec<F192> = [claim(0), claim(1)].concat();
+        let run = |child: &[[F192; 4]], gaps: &[F192]| {
+            let mut hints = Hints::default();
+            hints.push("n", vec![count(child.len())]);
+            hints.push("claims", table.clone());
+            hints.push("signers_split", list_split(child.len()));
+            hints.push("child_mono", vec![count(1)]);
+            for &gap in gaps {
+                hints.push("child_claim_gap", vec![gap]);
+            }
+            let mut program = guest.clone();
+            hints.install(&mut program);
+            program.execute(claim_list_digest(child.iter().copied()))
+        };
+        assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
+        let back = F192::new(g_pow(1).inv().0, 0, 0);
+        assert!(
+            run(&[claim(0), claim(0)], &[count(0), back]).is_err(),
+            "a walk revisited a slot"
+        );
     }
 
     /// Three levels, both schemes. The leanSPHINCS claims are rebuilt twice over, once

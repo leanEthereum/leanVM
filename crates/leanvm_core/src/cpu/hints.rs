@@ -215,12 +215,14 @@ pub enum BitsDest {
 pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
-    /// Reserve `(log_g(m[end] * start_inverse) + 1)` consecutive frames.
+    /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
+    /// then the `tail` cells the final, untaken call writes of one more.
     AllocFrames {
         ptr: Off,
         size: u32,
         end: Off,
         start_inverse: F64,
+        tail: u32,
     },
     /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
     Alloc { ptr: Off, size: u32 },
@@ -249,6 +251,28 @@ pub enum RHint {
     /// Write the `nbits` bits of `n`, where `m[fp+value] = g^n` (a bounded
     /// discrete log at witness generation), into `bits`.
     BitDecomposeExp { value: Off, bits: BitsDest, nbits: u32 },
+    /// Write `g^d_j` for the `ndigits` base-`2^digit_bits` digits `d_j` of `n >> s` into
+    /// `dst`, where `m[fp+value] = g^n` with `n < 2^nbits` and `s` is `start` or, given
+    /// `start_cell`, the exponent of `m[fp+start_cell]`.
+    DigitDecomposeExp {
+        value: Off,
+        dst: BitsDest,
+        nbits: u32,
+        ndigits: u32,
+        digit_bits: u32,
+        start: u32,
+        start_cell: Option<Off>,
+    },
+    /// Write `count` windows of `width` bits of `m[fp+value]`, from bit `start` on, into
+    /// `dest` from cell `at` on, as g-powers: window `i` is `g^n` for `n` its bits read as an integer.
+    WindowsExp {
+        value: Off,
+        dest: BitsDest,
+        at: u32,
+        start: u32,
+        width: u32,
+        count: u32,
+    },
     /// Write the first `len` K-coordinate limbs of `m[fp+value]` to
     /// `m[fp+base..]`. Computed advice; callers constrain the result.
     FieldLimbs { value: Off, base: Off, len: u32 },

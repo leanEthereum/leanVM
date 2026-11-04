@@ -175,7 +175,7 @@ def combine(a, b, k: Const):
     return s[k % 2]
 ```
 
-An `@inline` function is **expanded at each call site** instead of emitting a real call: no frame, no argument/return `DEREF`s, no call/return `JUMP`s. Its body must end with one top-level `return`. Builtins, ordinary calls, nested inline calls, `if`, and `unroll` are allowed; `mul_range` loops, `match`, tuple assignments within the body, and nested/early returns are rejected. Ordinary calls retain their own frames; nested inline calls expand recursively, with direct or indirect recursive expansion rejected.
+An `@inline` function is **expanded at each call site** instead of emitting a real call: no frame, no argument/return `DEREF`s, no call/return `JUMP`s. Its body must end with one top-level `return`. Builtins, ordinary calls, nested inline calls, tuple assignments, `match`, `if`, and `unroll` are allowed; `mul_range` loops and nested/early returns are rejected. Ordinary calls retain their own frames; nested inline calls expand recursively, with direct or indirect recursive expansion rejected.
 
 An `@inline` function may also **return a `StackBuf`**: the caller's binding aliases the returned cell run (zero copies), and `StackBuf` arguments alias likewise.
 
@@ -362,7 +362,7 @@ The wrapper reinterprets the **operators**, not the leaves, and that is the whol
 
 ### `assert a == b`
 
-A proof-enforced equality: 1 cycle (`XOR` into the frame's zero cell, whose write-once double write is the assert).
+A proof-enforced equality: 1 cycle (`MUL b = a * 1` into `b`'s own cell, whose write-once double write is the assert). A `MUL` rather than an `XOR` into a zero cell, since the recursion guest fills the XOR table first.
 
 ### `assert a != b`
 
@@ -387,6 +387,8 @@ Cost: **3 cycles** (leanVM's DEREF range-check trick, in the exponent) plus one 
 3. `DEREF` through `y`: bounds the complement; a "negative" `k-1-e` would wrap to `≈ 2^64`, far beyond any memory size, so together `e ≤ k-1`.
 
 The two `DEREF` target cells are unconstrained touches, back-filled at the end of execution. A failing check surfaces at witness generation as the complement's `DEREF` panic ("not a small g-power … a failed range check").
+
+A runtime bound written `c * GEN ** j` with `j ≥ 1` needs no `g^{-1}`: its target `c·g^{j-1}` is built directly (no instruction at all for `j = 1`), so a loop that hoists `last = n / GEN` and checks `assert log x < log(last * GEN)` pays 3 cycles a check. `assert_gpow(x)` is step 1 alone, one `DEREF`: `x = g^e` with `e` below the memory size, a lower bound with no upper one, for walks whose offsets only move forward.
 
 ## K membership and packing
 
@@ -497,10 +499,12 @@ The prover supplies streams with `program.set_witness("name", entries)` (`Vec<Ve
 
 ### Computed-advice hints
 
-Three builtins have the prover compute the values at witness generation instead of popping a stream entry. Like `hint_witness`, the results are completely unconstrained: the program must re-verify them in-circuit.
+Five builtins have the prover compute the values at witness generation instead of popping a stream entry. Like `hint_witness`, the results are completely unconstrained: the program must re-verify them in-circuit.
 
 - `hint_decompose_bits(bits, value, nbits[, start])`: writes `nbits` bits of `value`, from bit `start` on (default `0`), into the buffer `bits`, one field element (`0`/`1`) per bit.
 - `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation).
+- `hint_decompose_digits_exponent(dest, x, nbits, ndigits, digit_bits, start)`: writes `GEN ** d_j` for the `ndigits` base-`2^digit_bits` digits `d_j` of `n >> start` into `dest`, where `x = GEN ** n` and `n < 2^nbits`; `start` is an integer or a runtime g-power.
+- `hint_windows_exponent(dest, value, start, width, count[, at])`: writes `count` windows of `width` bits of `value`, from bit `start` on, into `dest` from cell `at` (default `0`), each as `GEN ** n` for `n` the integer its bits spell. Each window wants a range check before it is used.
 - `g = hint_log2_ceil(bits, nbits, floor)`: returns `GEN ** log2_ceil(v)` for the value `v` held bitwise in the `nbits`-bit buffer `bits`, floored at `floor`.
 
 `bits` is a `HeapBuf` or a `StackBuf` (of at least `nbits` cells). Prefer the `StackBuf`: a frame cell is addressed directly, so `bits[i]` at a compile-time index is free where a heap read is a `DEREF`, and the booleanity pin `bits[i] = b * b` is then one `MUL` rather than a `MUL` and a `DEREF`. Use `addr` below where the run must also be indexed at runtime or reached from elsewhere.
@@ -515,7 +519,7 @@ Three builtins have the prover compute the values at witness generation instead 
 | `a / b` | 1 `MUL` (write-once back-solve; division by zero is undefined) |
 | heap read / store `buf[i]` | 1 `DEREF`; +1 `MUL` for a *runtime* index (a compile-time g-power offset folds into the `DEREF`, for free) |
 | stack read `sa[k]` | 0 (direct cell addressing); a *store* is 1, like any other write |
-| `assert a == b` | 1 (+ 1 `SET` amortized per frame for the zero cell) |
+| `assert a == b` | 1 `MUL` (+ 1 `SET` amortized per frame for the one cell) |
 | `assert a != b` | 3 (`XOR`, `MUL`, `SET`), no branch, one hinted inverse |
 | `assert log x < k` | 3 (+1 `SET` amortized per bound per frame; a runtime bound costs 1 `MUL` instead) |
 | `if a == b: …` | 3 (+2 to skip a non-empty `else`; +2 amortized `self-fp` per branching function); **0 if the condition is compile-time** |

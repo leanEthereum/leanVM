@@ -268,10 +268,34 @@ impl FnLower<'_> {
             GAddr {
                 base: Some(c), exp: 0, ..
             } => c,
-            GAddr { base, exp, .. } => {
-                let k = self.const_cell(g_pow_u128(exp).into());
-                let Some(c) = base else { return k };
-                self.pure(PureOp::Mul, c, k)
+            GAddr { base: None, exp, .. } => self.const_cell(g_pow_u128(exp).into()),
+            GAddr { base: Some(c), exp, .. } => {
+                let mats = self.scope.mat_cells.get(&c).cloned().unwrap_or_default();
+                if let Some(&(_, o)) = mats.iter().find(|m| m.0 == exp) {
+                    return o;
+                }
+                let has = |s: &Self, e: u128| {
+                    let v: F192 = g_pow_u128(e).into();
+                    s.scope.const_cells.contains_key(&[v.c0, v.c1, v.c2])
+                };
+                // Start from the base itself or the nearest materialized step below
+                // whose distance is a constant already set; failing that, the direct
+                // product, whose constant is then set.
+                let from = if has(self, exp) {
+                    None
+                } else {
+                    std::iter::once((0, c))
+                        .chain(mats.iter().copied())
+                        .filter(|&(e, _)| e < exp && has(self, exp - e))
+                        .max_by_key(|&(e, _)| e)
+                };
+                let (src, k) = match from {
+                    Some((e, src)) => (src, self.const_cell(g_pow_u128(exp - e).into())),
+                    None => (c, self.const_cell(g_pow_u128(exp).into())),
+                };
+                let o = self.pure(PureOp::Mul, src, k);
+                self.scope.mat_cells.entry(c).or_default().push((exp, o));
+                o
             }
         }
     }

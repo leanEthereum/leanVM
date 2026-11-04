@@ -154,6 +154,10 @@ struct Scope {
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
     const_cells: HashMap<[u64; 3], Off>,
+    /// Materialized shifted pointers: base cell → `(exp, cell holding base·g^exp)`.
+    /// A later `base·g^k` multiplies the nearest one up by a constant already set,
+    /// so an unrolled walk `p·g, p·g^2, …` pays one `SET` of `g` rather than one per step.
+    mat_cells: HashMap<Off, Vec<(u128, Off)>>,
     /// Five consecutive frame cells holding `[pad, 0, 0, 0, 0]`, `pad` the padding's
     /// first byte at the start of a cell: every constant `tail` and `cap` a fresh
     /// `keccak` block needs is a window of it. Emitted lazily at the first dominating
@@ -337,9 +341,11 @@ impl FnLower<'_> {
     /// is already pinned, as in `q = x ** k / w`, whose division writes into the
     /// cell the squaring chain already determined.
     ///
-    /// So these stay out: the zero cell an `assert a == b` XORs into, the
-    /// `g^{k-1}` a range check multiplies into, `assert a != b`'s product, a
-    /// division's back-solve, and `expr_into`'s caller-chosen destination.
+    /// So these stay out: the cell an `assert a == b` multiplies into, a constant
+    /// bound's `g^{k-1}` a range check multiplies into, `assert a != b`'s product, a
+    /// division's back-solve, and `expr_into`'s caller-chosen destination. A runtime
+    /// bound's `n·g^{-1}` may come from here: its first `MUL` pins it before any range
+    /// check writes into it.
     fn pure(&mut self, op: PureOp, a: Off, b: Off) -> Off {
         let key = (op, a.min(b), a.max(b));
         if let Some(&o) = self.scope.pure_cells.get(&key) {
@@ -397,8 +403,7 @@ impl FnLower<'_> {
     }
 
     /// A frame cell holding `0`, set lazily once (or a zero of the `keccak` padding
-    /// run, when that came first): the condition of `assert_in_k`'s untaken jump, and
-    /// the destination every `assert a == b` in this scope XORs into.
+    /// run, when that came first): the condition of `assert_in_k`'s untaken jump.
     fn zero(&mut self) -> Off {
         self.const_cell(F192::ZERO)
     }
@@ -556,6 +561,16 @@ impl FnLower<'_> {
         }
         let xo = self.expr(x);
         let (rcells, binds) = self.ret_targets(targets);
+        // `@inline` arms expand here, and those are mostly hash walks: the `keccak` padding
+        // run and a two-to-one hash's closing lane are set once above the dispatch, where
+        // they dominate every arm, not again in each.
+        if arms
+            .iter()
+            .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| d.inline)))
+        {
+            self.keccak_pad_run();
+            self.const_cell(crate::lower::builtins::two_to_one_close());
+        }
         self.lower_match_dispatch(xo, arms.len(), |s, j| {
             s.scoped(|s| {
                 if let [rcell] = rcells.as_slice() {
@@ -816,13 +831,30 @@ impl FnLower<'_> {
                         leanvm_core::cpu::MIN_LOG_MEM
                     ))
                 };
+                // A bound `c·g^j` with `j ≥ 1` has `c·g^{j-1}` as its target, at no `g^{-1}`.
+                if let Some(
+                    ga @ GAddr {
+                        base: Some(_),
+                        exp: 1..,
+                        run: None,
+                    },
+                ) = self.gaddr_of(b)
+                {
+                    let kcell = self.materialize(GAddr { exp: ga.exp - 1, ..ga });
+                    return self.range_check(e, kcell);
+                }
                 let bcell = self.expr(b);
                 let inv = self.const_cell(F192::new(primitives::field::G.inv().0, 0, 0));
-                let c = self.fresh();
-                self.emit(LOp::Mul { a: bcell, b: inv, c });
-                c
+                // Interned: the MUL that first writes `Y·g^{-1}` pins it, so every later
+                // check of the same bound in its scope multiplies into that cell.
+                self.pure(PureOp::Mul, bcell, inv)
             }
         };
+        self.range_check(e, kcell);
+    }
+
+    /// The three instructions of [`Self::lower_assert_lt`] against the cell holding `g^{k-1}`.
+    fn range_check(&mut self, e: &Expr, kcell: Off) {
         let x = self.expr(e);
         let y = self.fresh(); // the complement g^{k-1-e}, back-solved by the MUL
         let t1 = self.fresh(); // DEREF targets: unconstrained touch cells
@@ -882,6 +914,11 @@ impl FnLower<'_> {
             Expr::Mul(a, b) => {
                 if let Some(x) = self.mul_identity(a, b) {
                     return self.expr(x);
+                }
+                // `x·g^k` takes the shifted-pointer path, which can step from a `x·g^j`
+                // already in a cell instead of setting `g^k` afresh.
+                if let Some(ga @ GAddr { base: Some(_), .. }) = self.gaddr_of(e) {
+                    return self.materialize(ga);
                 }
                 let (la, lb) = (self.expr(a), self.expr(b));
                 self.pure(PureOp::Mul, la, lb)
@@ -1169,14 +1206,14 @@ impl FnLower<'_> {
                     self.rebind(n, b);
                 }
             }
-            // `a + b` into the frame's zero cell: the double write IS the
-            // assertion, so the `SET .. = 0` a fresh destination needed is gone
-            // and no cell is burned. Not through `pure`, for the same reason:
-            // sharing this cell would drop the assertion.
+            // `a * 1` into `b`'s own cell: the double write IS the assertion, and no
+            // cell is burned. A MUL rather than `a + b` into the zero cell, since the
+            // recursion guest fills the XOR table first. Not through `pure`: the
+            // write must happen.
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
-                let z = self.zero();
-                self.emit(LOp::Xor { a: la, b: lb, c: z });
+                let one = self.one();
+                self.emit(LOp::Mul { a: la, b: one, c: lb });
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),

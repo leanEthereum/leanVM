@@ -49,8 +49,11 @@ fn stmt_inline_safe(s: &Stmt) -> bool {
         | StmtKind::AssertEq(..)
         | StmtKind::AssertNe(..)
         | StmtKind::AssertLt(..)
-        // Ordinary calls allocate their own frames.
-        | StmtKind::Call(..) => true,
+        // Ordinary calls allocate their own frames; an `@inline` callee, a `match` arm or a
+        // tuple's call nests its own expansion, saving and restoring the return cells.
+        | StmtKind::Call(..)
+        | StmtKind::LetTuple(..)
+        | StmtKind::Match { .. } => true,
         StmtKind::If { then, els, .. } => then.iter().all(stmt_inline_safe) && els.iter().all(stmt_inline_safe),
         StmtKind::Unroll { body, .. } => body.iter().all(stmt_inline_safe),
         _ => false,
@@ -169,6 +172,7 @@ impl FnLower<'_> {
                 ptr: nfp,
                 callee: callee.to_string(),
                 count,
+                tail: Abi::end(callee_arg_cells, 0) + 1,
             });
         } else {
             self.pending.push(Hint::AllocFrame {
@@ -333,7 +337,9 @@ impl FnLower<'_> {
             ))
         };
         if !body_inlinable(&body) {
-            self.fail(format!("`@inline {callee}` requires one tail `return`, with no nested returns, tuple assignments, mul_range loops, or match"))
+            self.fail(format!(
+                "`@inline {callee}` requires one tail `return`, with no nested returns or mul_range loops"
+            ))
         };
         if self.inline_calls.iter().any(|f| f == callee) {
             self.fail(format!(
