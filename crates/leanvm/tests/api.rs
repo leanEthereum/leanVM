@@ -6,7 +6,7 @@ const MSG_2: lean_xmss::Message = [2; lean_xmss::MESSAGE_LEN];
 
 #[test]
 fn public_api_end_to_end() {
-    setup_prover();
+    setup();
     let rng = &mut rand::rng();
 
     // 1. Eight leanXMSS signatures over three messages, three of the first, four of the second, one of the third,

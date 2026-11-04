@@ -1,6 +1,6 @@
 //! leanVM proves leanXMSS and leanSPHINCS signature claims and LeanDA blob well-formedness.
 //!
-//! Release only: the zkDSL compiler [`setup_verifier`] runs overflows the debug stack.
+//! Release only: the zkDSL compiler [`setup`] runs overflows the debug stack.
 //!
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
@@ -40,20 +40,14 @@ pub mod lean_sphincs {
 
 pub use rand;
 
-/// Call once before verifying an [`EthereumProof`]. Idempotent, and
-/// [`setup_prover`] does it for you.
-pub fn setup_verifier() {
-    leanvm_core::init_prover();
-    rec_aggregation::warm_up();
-}
-
-/// Call once before [`aggregate`].
+/// Call once before [`aggregate`] or [`EthereumProof::verify`].
 ///
 /// A proof's buffers are ordinary heap allocations, freed before it returns, so
 /// proving speed depends on the process's global allocator. One that keeps freed
 /// pages mapped serves the next proof from them with no page fault: jemalloc with
 /// dirty pages that never decay, which the `leanvm` CLI installs. glibc's default
 /// is the slow case, since it unmaps a large block on free.
-pub fn setup_prover() {
-    setup_verifier();
+pub fn setup() {
+    leanvm_core::init_prover();
+    rec_aggregation::warm_up();
 }
