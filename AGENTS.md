@@ -74,7 +74,7 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 cargo leanvm hash --log-n 17 --repeat 3     # the Keccak GKR alone, as keccak_gkr's `hash_batch`
 ```
 
-`aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`. Compare schemes and changes by the reported VM cycle counts.
+`aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`, and `--fancy` draws the subnets being aggregated and recursed, live on the terminal. Compare schemes and changes by the reported VM cycle counts.
 
 CI compares every PR with its base, never with a history: `bench.yml` runs both on one runner, in turns, on an x86-64 (`haswell`) and an arm64 (`neoverse-n2`, `+aes,+sha3`) testbed, and `bench-comment.yml` posts what moved as one PR comment. The posting workflows never run the PR's code; `.github/scripts/pr_comment.py` (standard-library Python) says what they trust, and its `--dry-run` prints the comment a run's artifacts would give.
 

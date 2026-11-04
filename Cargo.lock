@@ -319,6 +319,7 @@ dependencies = [
  "lean_compiler",
  "lean_da",
  "leanvm_core",
+ "libc",
  "primitives",
  "rand",
  "rec_aggregation",

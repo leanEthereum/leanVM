@@ -2,6 +2,7 @@
 //! n→1 recursion step over leaves of that size (`recursion`). Aggregation accepts
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
+use crate::fancy::Show;
 use bench::{Plan, Timing};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
@@ -144,7 +145,8 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
 
 /// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
 /// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
-/// built once, in a process of their own; only the recursion step is measured.
+/// built once, in a process of their own; only the recursion step is measured. `fancy` draws the
+/// run on the terminal ([`crate::fancy`]).
 pub fn run_recursion(
     n: usize,
     per_leaf: usize,
@@ -153,6 +155,7 @@ pub fn run_recursion(
     leaf_log_inv_rate: usize,
     log_inv_rate: usize,
     enable_tracing: bool,
+    fancy: bool,
     plan: Plan,
 ) {
     assert!(
@@ -167,34 +170,61 @@ pub fn run_recursion(
         blobs_per_leaf <= lean_da::DA_MAX_ROWS,
         "too many blobs in one commitment"
     );
+    let leaves_out = std::env::var_os(LEAVES_OUT);
+    let (attestations, noun) = match per_leaf + lean_sphincs_per_leaf {
+        0 => (blobs_per_leaf, "blobs"),
+        sigs => (sigs, "attestations"),
+    };
+    let mut show = Show::new(fancy && leaves_out.is_none(), n, attestations, noun, plan.repeat);
+    show.status("compiling the recursive guest");
     leanvm_core::init_prover();
     let started = std::time::Instant::now();
     let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
+    show.status("warming up the prover");
     rec_aggregation::warm_up();
-    if let Some(out) = std::env::var_os(LEAVES_OUT) {
+    if let Some(out) = leaves_out {
         return write_leaves(
             n,
             per_leaf,
             lean_sphincs_per_leaf,
             blobs_per_leaf,
             leaf_log_inv_rate,
+            fancy,
             out.as_ref(),
         );
     }
-    let children = leaves_from_subprocess(n);
+    show.status("preparing the subnets");
+    let children = leaves_from_subprocess(n, &mut show);
 
     if enable_tracing {
         bench::init_tracing();
     }
+    let mut pass = 0;
     let ((sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&children, vec![], vec![], &[], None, log_inv_rate).expect("node aggregates")
+        show.pass_started(pass);
+        pass += 1;
+        let node = aggregate_with_stats(&children, vec![], vec![], &[], None, log_inv_rate).expect("node aggregates");
+        show.pass_ended();
+        node
     });
+    show.verifying();
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
         sig.verify().expect("the recursive aggregate verifies");
     });
+    if blobs_per_leaf > 0 {
+        assert_eq!(
+            sig.da_commitment(),
+            children[0].da_commitment(),
+            "the first child's root is passed on"
+        );
+    }
+    show.finish(sig.proof_size() as f64 / 1024.0, prove_time.mean());
+    if fancy {
+        return;
+    }
 
     println!(
         "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
@@ -221,13 +251,6 @@ pub fn run_recursion(
         &sig,
         &prove_time,
     );
-    if blobs_per_leaf > 0 {
-        assert_eq!(
-            sig.da_commitment(),
-            children[0].da_commitment(),
-            "the first child's root is passed on"
-        );
-    }
     println!(
         "  verifying                   : {} ms",
         pretty_f64(verify_time.mean() * 1000.0)
@@ -235,18 +258,23 @@ pub fn run_recursion(
 }
 
 /// Prove a recursion step's `n` leaves and write them to `out`, each proof's bytes after its length.
+/// `fancy` reports each leaf as it starts and ends, for the parent's drawing.
 fn write_leaves(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     log_inv_rate: usize,
+    fancy: bool,
     out: &std::path::Path,
 ) {
     let all = signers(0, n * per_leaf);
     let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
     let mut bytes = Vec::new();
     for k in 0..n {
+        if fancy {
+            println!("{} start {k}", crate::fancy::PROTOCOL);
+        }
         let leaf = aggregate(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
@@ -257,6 +285,9 @@ fn write_leaves(
         )
         .expect("leaf aggregates")
         .to_bytes();
+        if fancy {
+            println!("{} done {k}", crate::fancy::PROTOCOL);
+        }
         bytes.extend_from_slice(&(leaf.len() as u64).to_le_bytes());
         bytes.extend_from_slice(&leaf);
     }
@@ -268,13 +299,37 @@ const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
 
 /// The leaves of [`run_recursion`], from this same command rerun with [`LEAVES_OUT`] set. Peak
 /// memory is the process's high-water mark, which proving them here would make a leaf's.
-fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
+/// With `show` on, the process's stdout is its progress, and its stderr is held back until it ends.
+fn leaves_from_subprocess(n: usize, show: &mut Show) -> Vec<EthereumProof> {
+    use std::process::Stdio;
     let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
-    let status = std::process::Command::new(std::env::current_exe().expect("this binary's path"))
-        .args(std::env::args_os().skip(1))
-        .env(LEAVES_OUT, &out)
-        .status()
-        .expect("the leaves' process starts");
+    let mut command = std::process::Command::new(std::env::current_exe().expect("this binary's path"));
+    command.args(std::env::args_os().skip(1)).env(LEAVES_OUT, &out);
+    let status = if show.is_on() {
+        let mut child = command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("the leaves' process starts");
+        let mut stderr = child.stderr.take().expect("piped");
+        let errors = std::thread::spawn(move || {
+            let mut errors = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut stderr, &mut errors);
+            errors
+        });
+        show.follow(child.stdout.take().expect("piped"));
+        let status = child.wait().expect("the leaves' process ends");
+        let errors = errors.join().expect("its stderr is read");
+        if status.success() {
+            show.postscript(&String::from_utf8_lossy(&errors));
+        } else {
+            show.close();
+            std::io::Write::write_all(&mut std::io::stderr(), &errors).expect("its stderr is relayed");
+        }
+        status
+    } else {
+        command.status().expect("the leaves' process starts")
+    };
     assert!(status.success(), "the leaves' process failed");
     let bytes = std::fs::read(&out).expect("the leaves are read");
     std::fs::remove_file(&out).expect("the leaves' file is removed");

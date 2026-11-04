@@ -6,6 +6,7 @@ static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 use clap::{Parser, Subcommand};
 
 mod benchmark;
+mod fancy;
 mod fibonacci;
 mod report;
 
@@ -84,6 +85,9 @@ enum Command {
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
         )]
         leaf_log_inv_rate: Option<usize>,
+        /// Draw the subnets' attestations being aggregated, then recursed, on the terminal.
+        #[arg(long, conflicts_with = "tracing")]
+        fancy: bool,
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
     Hash {
@@ -124,6 +128,7 @@ fn main() {
             sphincs_per_leaf,
             blobs_per_leaf,
             leaf_log_inv_rate,
+            fancy,
         } => {
             benchmark::run_recursion(
                 n,
@@ -133,6 +138,7 @@ fn main() {
                 leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
                 cli.log_inv_rate,
                 cli.tracing,
+                fancy,
                 plan,
             );
         }

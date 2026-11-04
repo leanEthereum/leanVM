@@ -26,4 +26,5 @@ rand.workspace = true
 bincode.workspace = true
 serde.workspace = true
 tracing.workspace = true
+libc.workspace = true
 clap = { version = "4", features = ["derive"] }

@@ -3,6 +3,7 @@
 //! Bencher Metric Format output. Nothing the prover or verifier links.
 
 use std::io::{IsTerminal, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 mod allocator;
@@ -20,7 +21,15 @@ pub use trace::{TraceSuppressed, init_tracing, init_tracing_from_env, suppress_t
 /// redirected output stays readable; the transient parts are simply skipped.
 struct Progress {
     tty: bool,
+    quiet: bool,
     parts: String,
+}
+
+static QUIET: AtomicBool = AtomicBool::new(false);
+
+/// Silence the live pass progress, for a caller that draws on the terminal itself.
+pub fn quiet_progress() {
+    QUIET.store(true, Ordering::Relaxed);
 }
 
 const PROGRESS_LABEL: &str = "  passes                      : ";
@@ -29,12 +38,13 @@ impl Progress {
     fn new() -> Self {
         Self {
             tty: std::io::stderr().is_terminal(),
+            quiet: QUIET.load(Ordering::Relaxed),
             parts: String::new(),
         }
     }
 
     fn draw(&self, transient: &str) {
-        if self.tty {
+        if self.tty && !self.quiet {
             eprint!("\r\x1b[2K{PROGRESS_LABEL}{}{transient}", self.parts);
             let _ = std::io::stderr().flush();
         }
@@ -54,6 +64,9 @@ impl Progress {
             self.parts.push_str("  ");
         }
         self.parts.push_str(&format!("{secs:.3} s"));
+        if self.quiet {
+            return;
+        }
         if self.tty {
             self.draw("");
         } else {
@@ -68,6 +81,9 @@ impl Progress {
     }
 
     fn finish(self) {
+        if self.quiet {
+            return;
+        }
         if !self.parts.is_empty() {
             eprintln!();
         } else if self.tty {
