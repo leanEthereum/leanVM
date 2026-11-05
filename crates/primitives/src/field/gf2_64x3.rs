@@ -357,7 +357,7 @@ impl F192Unreduced {
     }
 
     /// Build from three 128-bit coefficients given as `[low, high]` words.
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[inline]
     pub(crate) const fn from_coeffs(coeffs: [[u64; 2]; 3]) -> Self {
         Self { coeffs }

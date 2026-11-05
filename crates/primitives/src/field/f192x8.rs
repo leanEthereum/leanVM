@@ -7,6 +7,9 @@
 //!     c2  qword i = c2 of element i
 //! ```
 //!
+//! With VPCLMULQDQ but no AVX-512 they are two halves of four lanes in the `x4` form, a YMM plane per
+//! coefficient.
+//!
 //! A kernel loads its operands straight from memory, so it must only read values stored before the
 //! current loop iteration: a 512-bit load over a word just stored stalls on the store buffer.
 //!
@@ -15,10 +18,19 @@
 use super::gf2_64::F64;
 use super::gf2_64x3::{F192, F192Unreduced};
 
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "vpclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "avx512f")
+))]
+pub use avx2::{F64x8, F192x8, Prod8};
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 pub use avx512::{Acc8, F64x8, F192x8};
+#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+pub use portable::{F64x8, F192x8, Prod8};
 #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
-pub use portable::{Acc8, F64x8, F192x8, Prod8};
+pub use sum::Acc8;
 
 /// The unreduced products of eight elements, lane by lane: what [`F192x8::mul_unreduced`] returns.
 /// A sum of them is an XOR, and [`Prod8::reduce_lanes`] reduces each lane on its own.
@@ -26,17 +38,11 @@ pub use portable::{Acc8, F64x8, F192x8, Prod8};
 pub type Prod8 = Acc8;
 
 /// The eight-lane types on a target without the wide multiplier.
-#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
 mod portable {
+    use super::sum::halves;
     use super::{F64, F192, F192Unreduced};
     use crate::field::gf2_64x3::{mul_unreduced4, mul4};
-
-    /// The two quads of eight lanes. Straight-line, so a product's halves stay in registers:
-    /// an `array::map` over the halves is not inlined and passes both through memory.
-    #[inline(always)]
-    fn halves<T: Copy>(x: &[T; 8]) -> ([T; 4], [T; 4]) {
-        ([x[0], x[1], x[2], x[3]], [x[4], x[5], x[6], x[7]])
-    }
 
     #[inline(always)]
     fn join<T: Copy>(a: [T; 4], b: [T; 4]) -> [T; 8] {
@@ -196,10 +202,25 @@ mod portable {
             self
         }
     }
+}
 
-    /// The unreduced sum of eight-element products, on a target without the wide multiplier: one
-    /// sum, where [`Prod8`] keeps eight. A NEON register file cannot hold eight lanes of three
-    /// 128-bit coefficients, so a sum read only whole is kept as one.
+/// The dot-product accumulator on a target without the AVX-512 multiplier.
+#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+mod sum {
+    use super::{F192, F192Unreduced};
+    use crate::field::gf2_64x3::mul_unreduced4;
+
+    /// The two quads of eight lanes. Straight-line, so a product's halves stay in registers:
+    /// an `array::map` over the halves is not inlined and passes both through memory.
+    #[inline(always)]
+    pub(super) fn halves<T: Copy>(x: &[T; 8]) -> ([T; 4], [T; 4]) {
+        ([x[0], x[1], x[2], x[3]], [x[4], x[5], x[6], x[7]])
+    }
+
+    /// The unreduced sum of eight-element products: one sum, where [`Prod8`](super::Prod8) keeps
+    /// eight. A NEON register file cannot hold eight lanes of three 128-bit coefficients, and on
+    /// AVX2 the dot products it sums take their operands straight from memory, with no plane
+    /// transpose, so a sum read only whole is kept as one.
     #[derive(Clone, Copy, Debug)]
     pub struct Acc8(F192Unreduced);
 
@@ -264,7 +285,7 @@ pub fn msg_terms8_ext(x0: &[F192; 8], x1: &[F192; 8], y0: &[F192; 8], y1: &[F192
     {
         let xs: [F192; 8] = core::array::from_fn(|j| x0[j] + x1[j]);
         let ys: [F192; 8] = core::array::from_fn(|j| y0[j] + y1[j]);
-        (portable::dot_ext(x0, y0), portable::dot_ext(&xs, &ys))
+        (sum::dot_ext(x0, y0), sum::dot_ext(&xs, &ys))
     }
 }
 
@@ -274,7 +295,7 @@ pub fn msg_lone8_ext(x0: &[F192; 8], y0: &[F192; 8]) -> Acc8 {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     return F192x8::from_array(x0).mul_unreduced(F192x8::from_array(y0));
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
-    portable::dot_ext(x0, y0)
+    sum::dot_ext(x0, y0)
 }
 
 /// The eight mixed products `c * k_i`, unreduced.
@@ -295,6 +316,179 @@ pub fn xor_into8(out: &mut [F192; 8], add: &[F192; 8]) {
     #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
     for (o, a) in out.iter_mut().zip(add) {
         *o += *a;
+    }
+}
+
+/// The eight-lane types with VPCLMULQDQ but no AVX-512: two halves of four lanes, each the `x4` form, a
+/// YMM plane per coefficient, so a product is lane-wise, two lanes to an instruction.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "vpclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "avx512f")
+))]
+mod avx2 {
+    use core::arch::x86_64::*;
+
+    use super::{F64, F192};
+    use crate::field::x4::{F64x4, F192x4, Mixed4};
+
+    /// Lanes `4h ..= 4h + 3` in half `h`. Line-aligned, as the portable form is.
+    #[derive(Clone, Copy, Debug)]
+    #[repr(C, align(64))]
+    pub struct F192x8([F192x4; 2]);
+
+    // SAFETY: `repr(C)` over vectors that fill the alignment, so no padding and no invalid bit pattern.
+    unsafe impl crate::Plain for F192x8 {}
+
+    /// Lanes `4h ..= 4h + 3` in half `h`.
+    #[derive(Clone, Copy, Debug)]
+    #[repr(C)]
+    pub struct F64x8([F64x4; 2]);
+
+    // SAFETY: `repr(C)` over vectors, which have no padding and no invalid bit pattern.
+    unsafe impl crate::Plain for F64x8 {}
+
+    /// Unreduced lane-wise products, half by half.
+    #[derive(Clone, Copy, Debug)]
+    pub struct Prod8([Mixed4; 2]);
+
+    impl F192x8 {
+        #[inline(always)]
+        pub fn splat(r: F192) -> Self {
+            Self([F192x4::splat(r); 2])
+        }
+
+        #[inline(always)]
+        pub fn from_array(e: &[F192; 8]) -> Self {
+            let (halves, _) = e.as_chunks::<4>();
+            Self([F192x4::load(&halves[0]), F192x4::load(&halves[1])])
+        }
+
+        #[inline(always)]
+        pub fn to_array(self) -> [F192; 8] {
+            let mut out = [F192::ZERO; 8];
+            let (halves, _) = out.as_chunks_mut::<4>();
+            self.0[0].store(&mut halves[0]);
+            self.0[1].store(&mut halves[1]);
+            out
+        }
+
+        #[inline(always)]
+        pub fn mul_unreduced(self, rhs: Self) -> Prod8 {
+            Prod8(std::array::from_fn(|h| self.0[h].mul_unreduced(rhs.0[h])))
+        }
+
+        /// The eight mixed products `self_i * k_i`, unreduced.
+        #[inline(always)]
+        pub fn mul_base_unreduced(self, k: F64x8) -> Prod8 {
+            Prod8(std::array::from_fn(|h| {
+                let mut p = Mixed4::ZERO;
+                p.add(self.0[h], k.0[h]);
+                p
+            }))
+        }
+
+        /// `([a0, a2, a4, a6, b0, b2, b4, b6], [a1, a3, a5, a7, b1, b3, b5, b7])`.
+        #[inline(always)]
+        pub fn even_odd(a: Self, b: Self) -> (Self, Self) {
+            // Per plane, `[x0, x4, x2, x6]` reordered to `[x0, x2, x4, x6]`, and the same for the odd lanes.
+            let split = |x: Self| -> (F192x4, F192x4) {
+                let [lo, hi] = x.0.map(|h| h.0);
+                // SAFETY: the module's cfg enables avx2.
+                unsafe {
+                    (
+                        F192x4(std::array::from_fn(|k| {
+                            _mm256_permute4x64_epi64::<0xD8>(_mm256_unpacklo_epi64(lo[k], hi[k]))
+                        })),
+                        F192x4(std::array::from_fn(|k| {
+                            _mm256_permute4x64_epi64::<0xD8>(_mm256_unpackhi_epi64(lo[k], hi[k]))
+                        })),
+                    )
+                }
+            };
+            let ((ae, ao), (be, bo)) = (split(a), split(b));
+            (Self([ae, be]), Self([ao, bo]))
+        }
+    }
+
+    impl core::ops::Add for F192x8 {
+        type Output = Self;
+
+        #[inline(always)]
+        fn add(self, rhs: Self) -> Self {
+            Self([self.0[0] + rhs.0[0], self.0[1] + rhs.0[1]])
+        }
+    }
+
+    impl core::ops::Mul for F192x8 {
+        type Output = Self;
+
+        #[inline(always)]
+        fn mul(self, rhs: Self) -> Self {
+            self.mul_unreduced(rhs).reduce_lanes()
+        }
+    }
+
+    /// The embedding of the base field.
+    impl From<F64x8> for F192x8 {
+        #[inline(always)]
+        fn from(k: F64x8) -> Self {
+            Self(k.0.map(F192x4::from))
+        }
+    }
+
+    impl F64x8 {
+        #[inline(always)]
+        pub fn from_array(k: &[F64; 8]) -> Self {
+            let (halves, _) = k.as_chunks::<4>();
+            Self([F64x4::load(&halves[0]), F64x4::load(&halves[1])])
+        }
+    }
+
+    impl core::ops::Add for F64x8 {
+        type Output = Self;
+
+        #[inline(always)]
+        fn add(self, rhs: Self) -> Self {
+            Self([self.0[0] + rhs.0[0], self.0[1] + rhs.0[1]])
+        }
+    }
+
+    impl Prod8 {
+        pub const ZERO: Self = Self([Mixed4::ZERO; 2]);
+
+        /// The sum of the eight lanes, reduced once.
+        #[inline]
+        pub fn reduce(self) -> F192 {
+            let [mut sum, other] = self.0;
+            sum ^= other;
+            sum.sum()
+        }
+
+        /// Every lane reduced on its own.
+        #[inline(always)]
+        pub fn reduce_lanes(self) -> F192x8 {
+            F192x8(self.0.map(Mixed4::reduce))
+        }
+    }
+
+    impl core::ops::BitXorAssign for Prod8 {
+        #[inline(always)]
+        fn bitxor_assign(&mut self, rhs: Self) {
+            self.0[0] ^= rhs.0[0];
+            self.0[1] ^= rhs.0[1];
+        }
+    }
+
+    impl core::ops::BitXor for Prod8 {
+        type Output = Self;
+
+        #[inline(always)]
+        fn bitxor(mut self, rhs: Self) -> Self {
+            self ^= rhs;
+            self
+        }
     }
 }
 
