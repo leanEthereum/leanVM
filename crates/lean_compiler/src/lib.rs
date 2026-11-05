@@ -48,7 +48,7 @@ pub use parser::{parse, parse_const, parse_with_replacements};
 /// Compile an [`Ast`] to a provable [`Program`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> Program {
-    // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
+    // Lower main first (it is entered at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
         .funcs
@@ -98,28 +98,11 @@ pub fn compile(ast: &Ast) -> Program {
             &mut tables,
         ));
     }
-    // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
-    // one `SET` per slot writes them, then falls through into `main`.
+    // The tables sit past `main`'s own cells, written by `SET`s in `main`'s frame
+    // (`fp = g^0`) where `place_tables` puts them.
     let tables_base = lowered[0].frame_size;
-    if !tables.slots.is_empty() {
-        lowered[0].frame_size += tables.slots.len() as u32;
-        let code = (tables.slots.iter().zip(tables_base..))
-            .map(|(k, o)| LInstr {
-                op: LOp::Set { o, k: k.clone() },
-                line: 0,
-                hints: Vec::new(),
-            })
-            .collect();
-        let frame_size = lowered[0].frame_size;
-        lowered.insert(
-            0,
-            Lowered {
-                name: "__jump_tables".into(),
-                code,
-                frame_size,
-            },
-        );
-    }
+    lowered[0].frame_size += tables.slots.len() as u32;
+    place_tables(&mut lowered, &tables.slots, tables_base);
     if dbg_lower {
         for low in &lowered {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
@@ -216,6 +199,181 @@ pub fn compile(ast: &Ast) -> Program {
         .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))
         .collect();
     program
+}
+
+/// Write each jump-table slot at the start of the innermost [`Region`] of `main` that
+/// every path to a dispatch through its table crosses, rather than all of them up front.
+///
+/// A region needs a table when one of its instructions dispatches through it or names a
+/// function (a call, a loop, a table entry) from which a dispatch through it is
+/// reachable. A table is written where the regions needing it meet, which runs before
+/// any of them and at most once, so a table behind a loop or branch of `main` that never
+/// runs costs nothing. Code indices into `main` shift by the `SET`s inserted
+/// before them.
+fn place_tables(lowered: &mut [Lowered], slots: &[KVal], tables_base: u32) {
+    use std::collections::{BTreeSet, HashSet};
+    let target = |k: &KVal| match k {
+        KVal::Entry(name) | KVal::At(name, _) => Some(name.clone()),
+        _ => None,
+    };
+    // Each table runs from its `first` slot to the next table's.
+    let firsts: BTreeSet<usize> = (lowered.iter().flat_map(|l| &l.code))
+        .filter_map(|ins| match ins.op {
+            LOp::Slot { first, .. } => Some(first as usize),
+            _ => None,
+        })
+        .collect();
+    let bounds: Vec<usize> = firsts.iter().copied().chain([slots.len()]).collect();
+    let table_of: HashMap<usize, usize> = firsts.iter().enumerate().map(|(t, &f)| (f, t)).collect();
+    // What each instruction reaches directly: the functions it names, the table it reads.
+    let refs = |ins: &LInstr| -> (Option<String>, Option<usize>) {
+        match &ins.op {
+            LOp::Set { k, .. } => (target(k), None),
+            LOp::Slot { first, .. } => (None, Some(table_of[&(*first as usize)])),
+            _ => (None, None),
+        }
+    };
+    let index: HashMap<&str, usize> = lowered.iter().enumerate().map(|(i, l)| (l.name.as_str(), i)).collect();
+    // Per function: the functions and tables it reaches in one step.
+    let mut calls: Vec<Vec<usize>> = vec![Vec::new(); lowered.len()];
+    let mut reads: Vec<Vec<usize>> = vec![Vec::new(); lowered.len()];
+    for (i, l) in lowered.iter().enumerate() {
+        for ins in &l.code {
+            let (name, table) = refs(ins);
+            calls[i].extend(name.and_then(|n| index.get(n.as_str()).copied()));
+            reads[i].extend(table);
+        }
+    }
+    // A dispatch reaches every function its table names.
+    let table_calls: Vec<Vec<usize>> = (0..firsts.len())
+        .map(|t| {
+            slots[bounds[t]..bounds[t + 1]]
+                .iter()
+                .filter_map(|k| target(k).and_then(|n| index.get(n.as_str()).copied()))
+                .collect()
+        })
+        .collect();
+    let main = &lowered[0];
+    debug_assert_eq!(main.name, "main");
+    let regions = main.regions.clone();
+    // The innermost region of each `main` instruction: children follow their parents.
+    let mut region_of = vec![0usize; main.code.len()];
+    for (r, reg) in regions.iter().enumerate() {
+        region_of[reg.start..reg.end].fill(r);
+    }
+    // The tables each region needs, closing over calls and dispatches.
+    let mut needs: Vec<HashSet<usize>> = vec![HashSet::new(); regions.len()];
+    for r in 0..regions.len() {
+        let mut seen = vec![false; lowered.len()];
+        let mut stack = Vec::new();
+        for (ins, _) in main.code.iter().zip(&region_of).filter(|(_, at)| **at == r) {
+            let (name, table) = refs(ins);
+            if let Some(t) = table {
+                needs[r].insert(t);
+                stack.extend(table_calls[t].iter().copied());
+            }
+            stack.extend(name.and_then(|n| index.get(n.as_str()).copied()));
+        }
+        while let Some(f) = stack.pop() {
+            // `main` itself is a region tree of its own; its arms are reached in place.
+            if f == 0 || std::mem::replace(&mut seen[f], true) {
+                continue;
+            }
+            stack.extend(calls[f].iter().copied());
+            for &t in &reads[f] {
+                if needs[r].insert(t) {
+                    stack.extend(table_calls[t].iter().copied());
+                }
+            }
+        }
+    }
+    // Where each table goes: where the regions needing it meet, or the start of `main`
+    // for a table nothing reaches.
+    let depth = |mut r: usize| {
+        let mut d = 0;
+        while r != 0 {
+            r = regions[r].parent;
+            d += 1;
+        }
+        d
+    };
+    let meet = |mut a: usize, mut b: usize| {
+        let (mut da, mut db) = (depth(a), depth(b));
+        while da > db {
+            a = regions[a].parent;
+            da -= 1;
+        }
+        while db > da {
+            b = regions[b].parent;
+            db -= 1;
+        }
+        while a != b {
+            a = regions[a].parent;
+            b = regions[b].parent;
+        }
+        a
+    };
+    let mut at: Vec<Option<usize>> = vec![None; slots.len()];
+    for (r, ts) in needs.iter().enumerate() {
+        for &t in ts {
+            for slot in &mut at[bounds[t]..bounds[t + 1]] {
+                *slot = Some(slot.map_or(r, |p| meet(p, r)));
+            }
+        }
+    }
+    let mut writes: Vec<Vec<LInstr>> = vec![Vec::new(); regions.len()];
+    for (j, k) in slots.iter().enumerate() {
+        writes[at[j].unwrap_or(0)].push(LInstr {
+            op: LOp::Set {
+                o: tables_base + j as u32,
+                k: k.clone(),
+            },
+            line: 0,
+            hints: Vec::new(),
+        });
+    }
+    // Insert each region's writes at its start; a jump to that index lands on them.
+    let len = lowered[0].code.len();
+    let mut inserted = vec![0u32; len + 1];
+    for (r, w) in writes.iter().enumerate() {
+        inserted[regions[r].start] += w.len() as u32;
+    }
+    let mut before = vec![0u32; len + 1];
+    for i in 1..=len {
+        before[i] = before[i - 1] + inserted[i - 1];
+    }
+    let shift = |i: u32| i + before[i as usize];
+    let old = std::mem::take(&mut lowered[0].code);
+    let mut code = Vec::with_capacity(len + slots.len());
+    let mut by_start: Vec<(usize, usize)> = (0..regions.len()).map(|r| (regions[r].start, r)).collect();
+    by_start.sort();
+    let mut next = by_start.into_iter().peekable();
+    for (i, ins) in old.into_iter().enumerate() {
+        while let Some(&(start, r)) = next.peek()
+            && start == i
+        {
+            code.append(&mut writes[r]);
+            next.next();
+        }
+        code.push(ins);
+    }
+    for (_, r) in next {
+        code.append(&mut writes[r]);
+    }
+    lowered[0].code = code;
+    // The writes inserted above carry `main` arm entries too, so this runs after them.
+    let fix = |k: &mut KVal, own: bool| match k {
+        KVal::Local(i) if own => *i = shift(*i),
+        KVal::At(name, i) if name == "main" => *i = shift(*i),
+        _ => {}
+    };
+    for (f, l) in lowered.iter_mut().enumerate() {
+        for ins in &mut l.code {
+            if let LOp::Set { k, .. } = &mut ins.op {
+                fix(k, f == 0);
+            }
+        }
+    }
 }
 
 /// Render compiled bytecode as a human-readable disassembly. `fp[k]` is the cell

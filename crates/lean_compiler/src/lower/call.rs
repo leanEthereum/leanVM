@@ -28,9 +28,11 @@ pub(super) fn ret_binding(b: Option<RetBind>, dst: Off) -> Binding {
 }
 
 fn substitute_body<'a>(body: &'a [Stmt], substs: &[(&str, Expr)]) -> Cow<'a, [Stmt]> {
-    substs.iter().fold(Cow::Borrowed(body), |body, (name, value)| {
-        Cow::Owned(subst_stmts(&body, name, value))
-    })
+    if substs.is_empty() {
+        return Cow::Borrowed(body);
+    }
+    let subs: Vec<(&str, &Expr)> = substs.iter().map(|(name, value)| (*name, value)).collect();
+    Cow::Owned(crate::parser::subst_all(body, &subs))
 }
 
 /// A single tail return, preceded by statements that can be expanded in the caller's frame.

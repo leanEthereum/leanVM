@@ -131,13 +131,29 @@ pub(crate) struct Lowered {
     pub(crate) name: String,
     pub(crate) code: Vec<LInstr>,
     pub(crate) frame_size: u32,
+    /// `main` only: its branch blocks, where jump-table writes can go ([`Region`]).
+    pub(crate) regions: Vec<Region>,
+}
+
+/// A block of `main`'s code that runs at most once and is entered only at its start:
+/// the whole body (region 0), a runtime `if` arm, or the entry of a `mul_range` loop
+/// that runs at least once. `main` has no back edges (a loop body is a function of its
+/// own), so a `SET` at a region's start runs once, and only on paths through it.
+#[derive(Clone, Debug)]
+pub(crate) struct Region {
+    pub(crate) parent: usize,
+    /// Code indices `[start, end)`; a child's range lies inside its parent's.
+    pub(crate) start: usize,
+    pub(crate) end: usize,
 }
 
 /// The jump tables every `match` dispatches through: one cell per arm, holding the
 /// pc it jumps to, in `main`'s frame past its own cells. `main`'s frame sits at a
 /// fixed address (`fp = g^0`), so a dispatch reads slot `x = g^j` of a table with
-/// one `DEREF` ([`LOp::Slot`]). Code at pc 0, before `main` and in its frame, writes
-/// every slot once, with one `SET` each.
+/// one `DEREF` ([`LOp::Slot`]). `main` writes each slot once, with one `SET`, at the
+/// start of the innermost [`Region`] every path to a dispatch through it crosses
+/// (`place_tables`), so a table behind a loop or branch of `main` that does not run
+/// is never written.
 #[derive(Default)]
 pub(crate) struct JumpTables {
     /// Each slot's target: an arm's first instruction ([`KVal::At`]) or, for a
