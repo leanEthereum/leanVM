@@ -303,7 +303,7 @@ pub struct Ast {
 use std::collections::HashSet;
 
 /// Collect variable references in `e` into `refs` (in source order).
-fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
+pub(crate) fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
     match e {
         Expr::Var(v) => refs.push(v.as_str()),
         Expr::Add(a, b)

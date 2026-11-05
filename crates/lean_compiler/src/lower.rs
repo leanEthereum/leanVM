@@ -216,6 +216,12 @@ struct FnLower<'a> {
     cur_line: u32,
     /// Hints queued to attach to the next emitted instruction.
     pending: Vec<Hint>,
+    /// The `match` the one being lowered enters directly, its arms ending in the next
+    /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
+    chain_next: Option<ChainNext>,
+    /// Set for a `match` an earlier one's arms dispatch into: its table, and the join
+    /// its chain's last `match` exits to, set where the chain starts.
+    chain_in: Option<ChainIn>,
     /// Active `@inline` expansion stack. Nested inline helpers are allowed,
     /// but direct or indirect recursion would otherwise recurse forever in
     /// the compiler.
@@ -238,6 +244,20 @@ struct FnLower<'a> {
     const_arrays: &'a HashMap<&'a str, &'a [F192]>,
     /// Every `match` dispatches through a slot of these.
     tables: &'a mut JumpTables,
+}
+
+/// The next `match` of a chain: its scrutinee cell and arm count.
+struct ChainNext {
+    xo: Off,
+    n: usize,
+}
+
+/// What a chained `match` inherits: its reserved table, and its chain's join cell and the
+/// index of the `SET` that writes it.
+struct ChainIn {
+    first: usize,
+    join: Off,
+    jset: usize,
 }
 
 impl FnLower<'_> {
@@ -559,18 +579,26 @@ impl FnLower<'_> {
             // Not uniform: fall through (the specializations queued above are
             // re-requested idempotently by `call_into`).
         }
-        let xo = self.expr(x);
+        // A chained match is entered from the previous one's arms: nothing may be emitted
+        // above its arms, where no path would run it. The chain's state is set aside while
+        // the scrutinee and targets lower, so no match nested in them takes it.
+        let (chain_next, chain_in) = (self.chain_next.take(), self.chain_in.take());
+        let entered = chain_in.is_some();
+        let before = self.code.len();
+        let xo = if entered { 0 } else { self.expr(x) };
         let (rcells, binds) = self.ret_targets(targets);
         // `@inline` arms expand here, and those are mostly hash walks: the `keccak` padding
         // run and a two-to-one hash's closing lane are set once above the dispatch, where
         // they dominate every arm, not again in each.
-        if arms
-            .iter()
-            .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| d.inline)))
-        {
+        if !entered && self.all_inline(arms) {
             self.keccak_pad_run();
             self.const_cell(crate::lower::builtins::two_to_one_close());
         }
+        assert!(
+            !entered || self.code.len() == before,
+            "a chained match emitted code above its arms"
+        );
+        (self.chain_next, self.chain_in) = (chain_next, chain_in);
         self.lower_match_dispatch(xo, arms.len(), |s, j| {
             s.scoped(|s| {
                 if let [rcell] = rcells.as_slice() {
@@ -610,6 +638,41 @@ impl FnLower<'_> {
         self.bind_targets(&binds);
     }
 
+    /// The frame cell `e` names, if reading it emits nothing and names nothing `targets`
+    /// rebinds: a scalar variable, or a `StackBuf` cell at a compile-time index. Only such a
+    /// scrutinee can chain, the previous match's arms reading it with no code of its own.
+    fn free_cell(&self, e: &Expr, targets: &[Expr]) -> Option<Off> {
+        let mut names = Vec::new();
+        crate::ast::free_vars_expr(e, &mut names);
+        if names
+            .iter()
+            .any(|n| targets.iter().any(|t| matches!(t, Expr::Var(v) if v == n)))
+        {
+            return None;
+        }
+        match e {
+            Expr::Var(n) => match self.scope.bound(n)?.val {
+                Binding::Scalar(o) => Some(o),
+                _ => None,
+            },
+            Expr::Index(b, i) => {
+                let (Expr::Var(n), Some(k)) = (&**b, self.try_const_index(i)) else {
+                    return None;
+                };
+                let (base, len) = self.scope.stack(n)?;
+                (k < len).then_some(base + k)
+            }
+            _ => None,
+        }
+    }
+
+    /// Whether every arm is an `@inline` call: a `match` that lowers through
+    /// [`Self::lower_match_dispatch`] into the dispatching frame.
+    fn all_inline(&self, arms: &[Expr]) -> bool {
+        arms.iter()
+            .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| d.inline)))
+    }
+
     /// Jump through slot `x` of the table at `first` ([`JumpTables`]): one `DEREF`
     /// of the slot, then a `JUMP` to what it holds, with frame `of`.
     pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
@@ -624,28 +687,58 @@ impl FnLower<'_> {
 
     /// The dispatch every `match` lowers through: read slot `x` of the match's jump
     /// table and jump there ([`Self::table_jump`]). Every non-final arm exits to the
-    /// join. `body` lowers arm `j`, with its own branch-local scope.
+    /// join or, chained ([`ChainNext`]), every arm ends in the next match's dispatch.
+    /// `body` lowers arm `j`, with its own branch-local scope.
     ///
     /// One arm runs, so the arms allocate their locals over the same cells.
     fn lower_match_dispatch(&mut self, xo: Off, n: usize, mut body: impl FnMut(&mut Self, usize)) {
+        let next = self.chain_next.take();
+        let entered = self.chain_in.take();
+        let before = self.code.len();
         // Hoisted on purpose: these SETs must dominate the join.
         let sfp = self.self_fp();
         let one = self.one();
-        let join = self.fresh();
-        let jset = self.code.len();
-        self.set(join, KVal::Local(0)); // patched: the join
-        let first = self.tables.slots.len();
+        // A chain sets one join, its last match's, where it starts.
+        let (join, jset) = match &entered {
+            Some(ci) => (ci.join, ci.jset),
+            None => {
+                let join = self.fresh();
+                let jset = self.code.len();
+                self.set(join, KVal::Local(0)); // patched: the join
+                (join, jset)
+            }
+        };
         let name = self.fn_name.to_string();
-        self.tables.slots.extend((0..n).map(|_| KVal::At(name.clone(), 0)));
-        self.table_jump(xo, first, one, sfp);
-        // The arm blocks, each exiting to the join (the last falls through).
+        let first = match &entered {
+            // An earlier match's arms already dispatched into this table.
+            Some(ci) => ci.first,
+            None => {
+                let first = self.tables.slots.len();
+                self.tables.slots.extend((0..n).map(|_| KVal::At(name.clone(), 0)));
+                self.table_jump(xo, first, one, sfp);
+                first
+            }
+        };
+        assert!(
+            entered.is_none() || self.code.len() == before,
+            "a chained match emitted code above its arms"
+        );
+        let next_first = next.as_ref().map(|nx| {
+            let first = self.tables.slots.len();
+            self.tables.slots.extend((0..nx.n).map(|_| KVal::At(name.clone(), 0)));
+            first
+        });
+        // The arm blocks, each exiting to the join (the last falls through), or into the
+        // next match's dispatch.
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
-            if j + 1 != n {
+            if let (Some(nx), Some(nf)) = (&next, next_first) {
+                self.table_jump(nx.xo, nf, one, sfp);
+            } else if j + 1 != n {
                 self.emit(LOp::Jump {
                     oc: one,
                     od: join,
@@ -657,7 +750,10 @@ impl FnLower<'_> {
             self.heap_sizes.retain(|&o, _| o < arms_base);
         }
         self.next = arms_end;
-        self.patch_local(jset, self.code.len());
+        match next_first {
+            Some(first) => self.chain_in = Some(ChainIn { first, join, jset }),
+            None => self.patch_local(jset, self.code.len()),
+        }
     }
 
     /// Lower `if` / `else`, arranging the blocks so the nonzero `XOR` result jumps to the correct arm.
@@ -1297,10 +1393,20 @@ impl FnLower<'_> {
                 if lo > hi {
                     self.fail(format!("unroll(a, b) needs a <= b, got ({lo}, {hi})"))
                 };
-                for j in lo..hi {
-                    for s in subst_stmts(body, var, &Expr::Lit(j as u128)) {
-                        self.stmt(&s);
+                let stmts: Vec<Stmt> = (lo..hi)
+                    .flat_map(|j| subst_stmts(body, var, &Expr::Lit(j as u128)))
+                    .collect();
+                for (i, s) in stmts.iter().enumerate() {
+                    // Back-to-back dispatches chain: each arm of one enters the next.
+                    if let (StmtKind::Match { targets, arms, .. }, Some(next)) = (&s.kind, stmts.get(i + 1))
+                        && let StmtKind::Match { x: nx, arms: narms, .. } = &next.kind
+                        && self.all_inline(arms)
+                        && self.all_inline(narms)
+                        && let Some(xo) = self.free_cell(nx, targets)
+                    {
+                        self.chain_next = Some(ChainNext { xo, n: narms.len() });
                     }
+                    self.stmt(s);
                 }
             }
         }
@@ -1366,26 +1472,23 @@ impl FnLower<'_> {
         // Everything the body binds ANYWHERE, branch-local or not. `bound` above
         // is scoped, which is what makes the capture set right; this flat one
         // only answers "does the body have an `r` of its own?", which is what the
-        // StackBuf rejection below needs: a body that merely SHADOWS an enclosing
-        // `StackBuf` never touches it, so rejecting it names a capture that is
-        // not happening.
+        // StackBuf capture below needs: a body that merely SHADOWS an enclosing
+        // `StackBuf` never touches it, so capturing it copies cells for nothing.
         let mut captures = Vec::new();
         let mut seen = std::collections::HashSet::new();
         for r in &referenced {
             if bound.contains(r) {
                 continue;
             }
-            // A StackBuf is a run of cells, not a single scalar arg, and the
-            // tail-recursive loop helper can't thread one across iterations, so a
-            // StackBuf from the enclosing scope can't be captured. Reject with a
-            // clear error (not the misleading "unbound variable" the capture drop
-            // would otherwise trigger). Keep it inside the loop body, or carry
-            // state through a `HeapBuf`.
-            if self.scope.stack(r).is_some() && !shadowed.contains(r) {
-                self.fail(format!(
-                    "StackBuf `{r}` cannot be captured into a `for` loop; \
-                     define it inside the loop body or carry state via a `HeapBuf`"
-                ));
+            // A StackBuf is a run of cells: the helper takes it as a `StackBuf(n)`
+            // parameter, which each iteration's self-call copies on, cell by cell.
+            if let Some((_, len)) = self.scope.stack(r)
+                && !shadowed.contains(r)
+            {
+                if seen.insert(*r) {
+                    captures.push(((*r).to_string(), Shape::StackBuf(len)));
+                }
+                continue;
             }
             // A compile-time field constant is capturable too: the body becomes
             // its own function, so the constant is not in scope there, and the
@@ -1398,7 +1501,7 @@ impl FnLower<'_> {
                 Some(Binding::Scalar(_) | Binding::Gaddr(_) | Binding::FConst(_))
             ) && seen.insert(*r)
             {
-                captures.push((*r).to_string());
+                captures.push(((*r).to_string(), Shape::Scalar));
             }
         }
 
@@ -1406,9 +1509,9 @@ impl FnLower<'_> {
         // captures. `cap_args` builds an argument list (a leading expression,
         // the bound, then the captures by name).
         let runtime = matches!(hi, ForBound::Runtime(_));
-        let mut params = vec![var.to_string()];
+        let mut params = vec![(var.to_string(), Shape::Scalar)];
         if runtime {
-            params.push(bound_var.clone());
+            params.push((bound_var.clone(), Shape::Scalar));
         }
         params.extend(captures.iter().cloned());
         let cap_args = |first: Expr, bound: Expr| {
@@ -1416,7 +1519,7 @@ impl FnLower<'_> {
             if runtime {
                 a.push(bound);
             }
-            a.extend(captures.iter().map(|c| Expr::Var(c.clone())));
+            a.extend(captures.iter().map(|(c, _)| Expr::Var(c.clone())));
             a
         };
 
@@ -1442,9 +1545,9 @@ impl FnLower<'_> {
             name: loop_name.clone(),
             params: params
                 .into_iter()
-                .map(|name| Param {
+                .map(|(name, shape)| Param {
                     name,
-                    kind: ParamKind::Runtime(Shape::Scalar),
+                    kind: ParamKind::Runtime(shape),
                 })
                 .collect(),
             return_shapes: vec![],
@@ -1591,6 +1694,8 @@ pub(crate) fn lower_func(
         inline_stack_ret: None,
 
         pending: Vec::new(),
+        chain_next: None,
+        chain_in: None,
         inline_calls: Vec::new(),
         loop_bounds,
         queue,

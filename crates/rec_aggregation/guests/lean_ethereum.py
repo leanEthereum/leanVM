@@ -394,8 +394,9 @@ MONO_REC = KECCAK_STATE + 2
 
 # --------------------------------------------------------- WOTS+C (host-supplied)
 # Both schemes' one-time keys: chains of CHAIN_LENGTH positions, whose digits are
-# dispatched DIGIT_GROUP at a time, the last chain alone, and the address, a cell
-# whose low lane is lo:32 | hi:24 | type:5 | step:3 and whose high lane is a
+# dispatched a group at a time (leanSPHINCS DIGIT_GROUP and the last chain alone,
+# leanXMSS LX_DIGIT_GROUP and the rest), and the address, a cell whose low lane is
+# lo:32 | hi:24 | type:5 | step:3 and whose high lane is a
 # leanSPHINCS hypertree address's layer:8 | tree:32, zero otherwise. TW_* hold the
 # type. Every 16-byte native value is one canonical cell.
 W = W_PLACEHOLDER
@@ -420,6 +421,23 @@ LX_V = LX_V_PLACEHOLDER
 LX_TARGET_SUM = LX_TARGET_SUM_PLACEHOLDER
 LX_HEIGHT = LX_HEIGHT_PLACEHOLDER
 LX_TOP = LX_TOP_PLACEHOLDER
+# The path is dispatched LX_WINDOW index bits at a time (`lx_window`), LX_LAYER_WINDOWS a layer.
+LX_WINDOW = LX_WINDOW_PLACEHOLDER
+LX_LAYER_WINDOWS = LX_HEIGHT // LX_WINDOW
+LX_WINDOWS = 2 * LX_LAYER_WINDOWS
+LX_WINDOW_ARMS = 2 ** LX_WINDOW
+# A layer's codeword digits are dispatched LX_DIGIT_GROUP at a time, then the LX_DIGIT_TAIL left.
+LX_DIGIT_GROUP = LX_DIGIT_GROUP_PLACEHOLDER
+LX_DIGIT_GROUPS = CHAIN_LENGTH ** LX_DIGIT_GROUP
+LX_DIGIT_TAIL = LX_V % LX_DIGIT_GROUP
+LX_TAIL_GROUPS = CHAIN_LENGTH ** LX_DIGIT_TAIL
+LX_DIGIT_DISPATCHES = LX_V // LX_DIGIT_GROUP + 1
+LX_GROUP_SIZES = LX_GROUP_SIZES_PLACEHOLDER
+# Where a chain index lives (`walk`): the zero cell for 0, powers[LX_TAG_LOG[i]] for a power
+# of two (slot 0), else LX_TAG_SLOT[i] - 1 of the LX_N_TAGS carried tags.
+LX_TAG_SLOT = LX_TAG_SLOT_PLACEHOLDER
+LX_TAG_LOG = LX_TAG_LOG_PLACEHOLDER
+LX_N_TAGS = LX_N_TAGS_PLACEHOLDER
 
 # -------------------------------------------------- leanSPHINCS (host-supplied)
 # The scheme's own letters, prefixed SP_: under each bottom leaf a FORS instance of
@@ -1291,7 +1309,6 @@ def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
     return n0, n1
 
 
-@inline
 def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against the sibling its hinted pair holds.
@@ -3509,16 +3526,6 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
 
 @inline
-def shifts(bits, off: Const, n: Const, out):
-    # The integer in the pinned bits [off, off+n) and its right shifts, out[l] the
-    # one by l: a field's value, and the node indices above a leaf.
-    out[n - 1] = bits[off + n - 1]
-    for r in unroll(1, n):
-        out[n - 1 - r] = bits[off + n - 1 - r] + GEN * out[n - r]
-    return
-
-
-@inline
 def is_child(node, kids, k: Const, bit):
     # A node is not ordered against its sibling: the two children are hinted in
     # order, at kids[k] and kids[k + 1], and `node` is checked to be the one `bit`
@@ -3538,12 +3545,20 @@ def chain_tip(walks, i: Const):
 
 
 @inline
-def walk(at, pp, walks, tags, i: Const, k: Const, lx: Const):
+def walk(at, pp, walks, tags, powers, i: Const, k: Const, lx: Const):
     # Walk chain i from position k to its end, the step leaving position s landing in
     # chain i's slot s of `walks`, so the tip is chain_tip(walks, i) whatever k is. A
     # leanSPHINCS step's address carries i and s, its input ending after the value; a
     # leanXMSS one only s, at[s] computed once per key, i riding after the value, read
-    # off `tags` so a dispatch arm names it rather than setting it again.
+    # off a cell set outside the dispatch (the zero cell, `powers` or `tags`), so an arm
+    # names it rather than setting it again.
+    if const(lx == 1):
+        if const(i == 0):
+            tag = 0
+        elif const(LX_TAG_SLOT[i] == 0):
+            tag = powers[LX_TAG_LOG[i]]
+        else:
+            tag = tags[LX_TAG_SLOT[i] - 1]
     if const(k == CHAIN_STEPS):
         hint_witness(walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE:((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE + 1], "chain_starts")
     else:
@@ -3551,7 +3566,7 @@ def walk(at, pp, walks, tags, i: Const, k: Const, lx: Const):
         for s in unroll(k, CHAIN_STEPS):
             o = (CHAIN_STEPS * i + s) * KECCAK_STATE
             if const(lx == 1):
-                keccak([pp, at[s]], [value, tags[i]], walks[o:o + KECCAK_STATE])
+                keccak([pp, at[s]], [value, tag], walks[o:o + KECCAK_STATE])
             else:
                 keccak([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], walks[o:o + KECCAK_STATE], len=48)
             value = walks[o]
@@ -3560,13 +3575,12 @@ def walk(at, pp, walks, tags, i: Const, k: Const, lx: Const):
 
 @inline
 def walk_group(at, pp, walks, tags, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
-    # The n <= DIGIT_GROUP chains from `first` on, at the digits of k, one
-    # dispatch for all of them. Folds the digits' sum into `product`, in the
-    # exponent (`powers[s]` is GEN ** s), and the digits into `encoded`, where the
-    # encoding digest holds them.
+    # The n chains from `first` on, at the digits of k (its low n), one dispatch for
+    # all of them. Folds the digits' sum into `product`, in the exponent (`powers[s]` is
+    # GEN ** s), and the digits into `encoded`, where the encoding digest holds them.
     for r in unroll(0, n):
-        walk(at, pp, walks, tags, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
-    return product * powers[DIGIT_SUMS[k]], encoded + const(k * CHAIN_LENGTH ** first)
+        walk(at, pp, walks, tags, powers, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
+    return product * powers[DIGIT_SUMS[k % CHAIN_LENGTH ** n]], encoded + const(k % CHAIN_LENGTH ** n * CHAIN_LENGTH ** first)
 
 
 @inline
@@ -3588,64 +3602,78 @@ def wots_leaf(p0, p1, walks, n: Const, leaf):
     return
 
 
+# ========================= leanXMSS signature verification ========================
+
+
 @inline
-def merkle_path(node, pp, bits, nodes, out, off: Const, height: Const, end: Const, top: Const):
-    # The path from `node` up `height` levels into out, the two children of each
-    # node hinted in order. Level l's bit is bits[off + l] and its parent's index
-    # nodes[off + l + 1], the one at `end` being a root, at index 0. `top` flags
-    # leanXMSS's top layer.
-    cur = node
-    for level in unroll(0, height):
-        kids = StackBuf(2)
-        hint_witness(kids, "siblings")
-        is_child(cur, kids, 0, bits[off + level])
-        if const(level + 1 == height):
+def lx_levels(cur, pp, powers, his, out, w: Const, k: Const):
+    # The LX_WINDOW path levels from LX_WINDOW * w, whose index bits are k's, from `cur`
+    # into out. A node's order against its hinted sibling is k's bit, and a parent's
+    # address holds `leaf_index >> (level + 1)`: his[w + 1] shifted up by what is left of
+    # the window, k's higher bits added. Nothing is above the top window.
+    for r in unroll(0, LX_WINDOW):
+        tag = const(TW_NODE + ((LX_WINDOW * w + r) % LX_HEIGHT + 1) * HI_MUL + (LX_WINDOW * w + r) // LX_HEIGHT * LX_TOP + k // 2 ** (r + 1))
+        if const(w + 1 == LX_WINDOWS):
+            at = tag
+        elif const(r + 1 == LX_WINDOW):
+            at = his[w + 1] + tag
+        else:
+            at = his[w + 1] * powers[LX_WINDOW - 1 - r] + tag
+        if const(r + 1 == LX_WINDOW):
             parent = out
         else:
             parent = StackBuf(KECCAK_STATE)
-        if const(off + level + 1 == end):
-            keccak([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP)], kids, parent)
+        sibling = hint_witness("lx_path")
+        if const((k // 2 ** r) % 2 == 0):
+            keccak([pp, at], [cur, sibling], parent)
         else:
-            keccak([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP) + nodes[off + level + 1]], kids, parent)
+            keccak([pp, at], [sibling, cur], parent)
         cur = parent[0]
     return
 
 
-# ========================= leanXMSS signature verification ========================
+@inline
+def lx_window(cur, pp, powers, his, out, w: Const, k: Const):
+    # Window w of the path (`lx_levels`). Returns his[w] as his[w + 1] and k spell it,
+    # which the dispatch writes where the hinted his[w] already is: so the index the
+    # signature's addresses use is the one its path takes.
+    lx_levels(cur, pp, powers, his, out, w, k)
+    return his[w + 1] * powers[LX_WINDOW] + const(k)
 
 
-def verify_lean_xmss(signer):
+@inline
+def lx_top_window(cur, pp, powers, his, out, w: Const, k: Const):
+    # The top window, nothing above it: his[w] is k alone.
+    lx_levels(cur, pp, powers, his, out, w, k)
+    return const(k)
+
+
+@inline
+def verify_lean_xmss(signer, tags):
     # `signer` is one 4-cell entry of the leanXMSS coverage table: the pubkey's
     # merkle root and public parameter, then the message that pubkey signed. The
     # bottom layer signs the message, the top layer the bottom root.
     pp = signer[GEN]
 
-    # The leaf index rides the signature, so every address is derived here from its
-    # bits, which are advice pinned Boolean: any index is one some signature may
-    # carry, so no outside value pins them, and the digests and the root this
-    # signature must reach bind them. nodes[l] is `leaf_index >> l`: the bottom
-    # layer's key and node indices, then from LX_HEIGHT on the top layer's.
-    bits = StackBuf(2 * LX_HEIGHT)
-    hint_witness(bits, "leaf_index_bits")
-    for b in unroll(0, 2 * LX_HEIGHT):
-        bits[b] = bits[b] * bits[b]
-    nodes = StackBuf(2 * LX_HEIGHT)
-    shifts(bits, 0, 2 * LX_HEIGHT, nodes)
-    powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
-    for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
+    # The leaf index rides the signature, so every address is derived here from it. It
+    # is advice: his[v] is `leaf_index >> (LX_WINDOW * v)`, a field's value, and each window
+    # of LX_WINDOW bits is hinted again in the exponent, range checked and dispatched on
+    # by the path (`lx_window`). Each arm pins his[w] to his[w + 1] and its own bits, and
+    # the top one has nothing above it, so his[0] is the index the windows spell. Any
+    # index is one some signature may carry; the digests and the root this signature
+    # must reach bind it.
+    his = StackBuf(LX_WINDOWS)
+    hint_witness(his, "lx_index")
+    windows = StackBuf(LX_WINDOWS)
+    hint_witness(windows, "lx_windows")
+    powers = StackBuf(LX_DIGIT_GROUP * CHAIN_STEPS + 1)
+    for s in unroll(0, LX_DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
-    # The chain indices, both layers': a constant a dispatch arm sets lives inside a
-    # branch, so every arm that walks chain i sets i again. Written once here they are
-    # frame cells the arms read for nothing.
-    tags = StackBuf(LX_V)
-    for i in unroll(0, LX_V):
-        tags[i] = i
-
     for layer in unroll(0, 2):
         if const(layer == 0):
-            idx = nodes[0]
+            idx = his[0]
         else:
-            idx = nodes[LX_HEIGHT] + LX_TOP
+            idx = his[LX_LAYER_WINDOWS] + LX_TOP
         # D = Th(P, A, M | R), one block: 80 bytes at the bottom, and 64 at the top,
         # where M is the bottom root.
         rho = hint_witness("randomizer")
@@ -3653,9 +3681,9 @@ def verify_lean_xmss(signer):
         if const(layer == 0):
             keccak([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
         else:
-            keccak([pp, idx + TW_MSG], [root[0], rho], digest)
+            keccak([pp, idx + TW_MSG], [root, rho], digest)
 
-        # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
+        # The codeword: LX_DIGIT_GROUP digits at a time, hinted in the exponent, range
         # checked and dispatched once, the arm walking every chain's remaining steps
         # and folding its digits in: their sums into a product that must be the
         # target sum, and the digits, each where the digest holds it, into D, which
@@ -3666,22 +3694,33 @@ def verify_lean_xmss(signer):
         walks = StackBuf(LX_V * CHAIN_STEPS * KECCAK_STATE)
         digit_product = 1
         encoded = 0
-        for p in unroll(0, LX_V // DIGIT_GROUP):
-            group = hint_witness("digits")
-            assert log(group) < DIGIT_GROUPS
-            digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, walks, tags, DIGIT_GROUP * p, DIGIT_GROUP, k, 1, powers, digit_product, encoded))
-        group = hint_witness("digits")
-        assert log(group) < CHAIN_LENGTH
-        digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, walks, tags, LX_V - 1, 1, k, 1, powers, digit_product, encoded))
+        groups = StackBuf(LX_DIGIT_DISPATCHES)
+        hint_witness(groups, "lx_digits")
+        for p in unroll(0, LX_DIGIT_DISPATCHES - 1):
+            assert log(groups[p]) < LX_DIGIT_GROUPS
+        assert log(groups[LX_DIGIT_DISPATCHES - 1]) < LX_TAIL_GROUPS
+        # Back to back, each arm entering the next dispatch. The last group's table is as
+        # wide as the others, its range check what keeps it to LX_DIGIT_TAIL digits.
+        for p in unroll(0, LX_DIGIT_DISPATCHES):
+            digit_product, encoded = match(log(groups[p]), range(0, LX_DIGIT_GROUPS), lambda k: walk_group(steps, pp, walks, tags, LX_DIGIT_GROUP * p, LX_GROUP_SIZES[p], k, 1, powers, digit_product, encoded))
         digest[0] = encoded  # the digits, stored where D already is
         assert digit_product == GEN ** LX_TARGET_SUM
 
-        # The one-time leaf, then the path to the layer's root.
+        # The one-time leaf, then the path to the layer's root, a window at a time.
         leaf = StackBuf(KECCAK_STATE)
         wots_leaf(pp, idx + TW_LEAF, walks, LX_V, leaf)
-        root = StackBuf(KECCAK_STATE)
-        merkle_path(leaf[0], pp, bits, nodes, root, LX_HEIGHT * layer, LX_HEIGHT, 2 * LX_HEIGHT, layer)
-    assert root[0] == signer[1]
+        cur = leaf[0]
+        for v in unroll(0, LX_LAYER_WINDOWS):
+            w = layer * LX_LAYER_WINDOWS + v
+            out = StackBuf(KECCAK_STATE)
+            assert log(windows[w]) < LX_WINDOW_ARMS
+            if const(w + 1 == LX_WINDOWS):
+                his[w] = match(log(windows[w]), range(0, LX_WINDOW_ARMS), lambda k: lx_top_window(cur, pp, powers, his, out, w, k))
+            else:
+                his[w] = match(log(windows[w]), range(0, LX_WINDOW_ARMS), lambda k: lx_window(cur, pp, powers, his, out, w, k))
+            cur = out[0]
+        root = cur
+    assert root == signer[1]
     return
 
 
@@ -3806,10 +3845,10 @@ def sp_wots(pp, at, encoding):
 
 @inline
 def sp_path(node, pp, bits, vals, out, off: Const, height: Const, lane):
-    # merkle_path in one tree of the hypertree, whose leaf index is the field from
-    # bit `off` of the digest's first cell: every address adds `lane`, the tree's
-    # layer and tree as an address's high lane holds them, and the root is at index
-    # 0. Not merkle_path itself, where a runtime lane would cost leanXMSS XORs.
+    # The path up one tree of the hypertree, the two children of each node hinted in
+    # order, whose leaf index is the field from bit `off` of the digest's first cell:
+    # every address adds `lane`, the tree's layer and tree as an address's high lane
+    # holds them, and the root is at index 0.
     cur = node
     for level in unroll(0, height):
         kids = StackBuf(2)
@@ -4449,6 +4488,12 @@ def main():
     byte_bits = HeapBuf(SP_BYTE_VALUES)
     for v in unroll(0, SP_BYTE_VALUES):
         byte_bits[GEN ** v] = v
+    # The chain indices a leanXMSS chain step hashes after its value, those no other
+    # cell holds (`walk`), set once here and carried through the signature loop.
+    lx_tags = StackBuf(LX_N_TAGS)
+    for i in unroll(1, LX_V):
+        if const(LX_TAG_SLOT[i] != 0):
+            lx_tags[LX_TAG_SLOT[i] - 1] = i
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
         # A runtime bound, whose `n_total < 2^MIN_LOG_MEM` precondition is
@@ -4458,7 +4503,7 @@ def main():
         # a raw leanXMSS signature covers no leanSPHINCS claim.
         assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
-        verify_lean_xmss(lx_table * (idx ** 4))
+        verify_lean_xmss(lx_table * (idx ** 4), lx_tags)
     for xj in mul_range(1, n_raw_s_g):
         off_hint = hint_witness("sp_raw_index")
         assert log(off_hint) < log(lean_sphincs_slots_g)
