@@ -244,6 +244,9 @@ struct FnLower<'a> {
     const_arrays: &'a HashMap<&'a str, &'a [F192]>,
     /// Every `match` dispatches through a slot of these.
     tables: &'a mut JumpTables,
+    /// `main` only: its regions so far, and the one being lowered ([`Region`]).
+    regions: Vec<Region>,
+    region: usize,
 }
 
 /// The next `match` of a chain: its scrutinee cell and arm count.
@@ -496,13 +499,30 @@ impl FnLower<'_> {
         self.scope = saved_scope;
     }
 
-    /// Lower a branch body with branch-local scope ([`Self::scoped`]).
+    /// Lower a branch body with branch-local scope ([`Self::scoped`]). In `main` the
+    /// body is a [`Region`] of its own, where the jump tables only it reaches are written.
     fn branch(&mut self, body: &[Stmt]) {
+        if !self.is_main || body.is_empty() {
+            return self.scoped(|s| {
+                for st in body {
+                    s.stmt(st);
+                }
+            });
+        }
+        let id = self.regions.len();
+        self.regions.push(Region {
+            parent: self.region,
+            start: self.code.len(),
+            end: 0,
+        });
+        let outer = std::mem::replace(&mut self.region, id);
         self.scoped(|s| {
             for st in body {
                 s.stmt(st);
             }
         });
+        self.region = outer;
+        self.regions[id].end = self.code.len();
     }
 
     /// The cell each multi-return target names, and the names still to bind.
@@ -1366,6 +1386,17 @@ impl FnLower<'_> {
                 }
             }
             StmtKind::Return(es) => self.lower_return(es),
+            // In `main`, a loop's entry test is a branch, so the loop's jump tables are
+            // written only when it runs ([`Region`]); `main` runs once, so the two
+            // extra instructions are paid once per loop.
+            StmtKind::CallIfNe(lhs, rhs, callee, args) if self.is_main => self.lower_if(
+                false,
+                lhs,
+                rhs,
+                &[Stmt::new(self.cur_line, StmtKind::Call(callee.clone(), args.clone()))],
+                &[],
+                false,
+            ),
             StmtKind::CallIfNe(lhs, rhs, callee, args) => {
                 // A conditional call: the frame setup runs either way, and the
                 // `JUMP`'s nonzero test decides whether the callee is entered,
@@ -1703,7 +1734,16 @@ pub(crate) fn lower_func(
         defs,
         const_arrays,
         tables,
+        regions: Vec::new(),
+        region: 0,
     };
+    if lowerer.is_main {
+        lowerer.regions.push(Region {
+            parent: 0,
+            start: 0,
+            end: 0,
+        });
+    }
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare
         // `return`, in a function that returns nothing. The `mul_range` helper
@@ -1723,9 +1763,13 @@ pub(crate) fn lower_func(
         let last = f.body.last().map_or(0, |s| s.line);
         lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
     }
+    if let Some(body) = lowerer.regions.first_mut() {
+        body.end = lowerer.code.len();
+    }
     Lowered {
         name: f.name.clone(),
         code: lowerer.code,
         frame_size: lowerer.next,
+        regions: lowerer.regions,
     }
 }

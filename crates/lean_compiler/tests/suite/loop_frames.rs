@@ -1,5 +1,5 @@
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{prove, verify};
+use leanvm_core::cpu::{Stats, prove, verify};
 use primitives::field::{F64, F192, g_pow};
 
 #[test]
@@ -127,4 +127,34 @@ def main():
         let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &public, &proof).unwrap();
     }
+}
+
+/// `main` writes a jump table where the paths to its `match` meet, so a loop that
+/// is never entered writes none of its tables: here no `SET` for the 64 slots.
+#[test]
+fn a_loop_that_never_runs_writes_no_jump_table() {
+    let src = "\
+def pick(j):
+    v = match(log(j), range(0, 64), lambda k: k)
+    return v
+
+def main():
+    n = hint_witness(\"n\")
+    assert log(n) < 2
+    s = HeapBuf(1)
+    for i in mul_range(1, n):
+        s[i] = pick(i)
+    return
+";
+    let set = Stats::TABLES.iter().position(|&t| t == "SET").expect("a SET table");
+    let sets = |n: F192| {
+        let mut program = compile(&parse(src).expect("parse"));
+        program.set_witness("n", vec![vec![n]]);
+        program.execute([F192::ZERO; 2]).unwrap().rows()[set]
+    };
+    assert!(
+        sets(F192::ONE) < 64,
+        "the table of a loop that never runs is not written"
+    );
+    assert!(sets(g_pow(1).into()) >= 64, "entering the loop writes it");
 }
