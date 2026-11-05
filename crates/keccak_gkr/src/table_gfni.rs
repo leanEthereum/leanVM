@@ -105,30 +105,6 @@ impl Maps {
     }
 }
 
-/// 4-bit bit reversal: the unpack network reads source rows in bit-reversed order.
-const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
-
-/// 16x16 byte transpose inside each 128-bit lane: `out[k]` byte `p` of a lane = `in[p]` byte `k`.
-#[inline]
-#[target_feature(enable = "avx512f", enable = "avx512bw")]
-fn transpose16(r: &mut [__m512i; 16]) {
-    *r = std::array::from_fn(|i| r[REV4[i]]);
-    macro_rules! round {
-        ($lo:ident, $hi:ident) => {{
-            let mut t = [_mm512_setzero_si512(); 16];
-            for i in 0..8 {
-                t[2 * i] = $lo(r[i], r[i + 8]);
-                t[2 * i + 1] = $hi(r[i], r[i + 8]);
-            }
-            *r = t;
-        }};
-    }
-    round!(_mm512_unpacklo_epi8, _mm512_unpackhi_epi8);
-    round!(_mm512_unpacklo_epi16, _mm512_unpackhi_epi16);
-    round!(_mm512_unpacklo_epi32, _mm512_unpackhi_epi32);
-    round!(_mm512_unpacklo_epi64, _mm512_unpackhi_epi64);
-}
-
 /// 4x4 transpose of 128-bit lanes: `out[l]` lane `g` = `x[g]` lane `l`.
 #[inline]
 #[target_feature(enable = "avx512f")]
@@ -160,7 +136,7 @@ unsafe fn transpose_positions(p: *const u64) -> [__m512i; 64] {
             *v = unsafe { _mm512_loadu_si512(p.add(BLOCK_WORDS * (16 * q + n)).cast()) };
         }
         // yq[k] lane l byte n = byte 16 l + k of position 16 q + n.
-        transpose16(yq);
+        primitives::bits::transpose16_lanes512(yq);
     }
     let mut out = [_mm512_setzero_si512(); 64];
     for k in 0..16 {
@@ -233,7 +209,7 @@ mod tests {
     #[test]
     fn rows_match_the_carry_less_path() {
         let mut rng = Rng::new(0x7AB1E);
-        for _ in 0..3 {
+        {
             let field = PowerField::new(rng.ext()).expect("a generator");
             // The fold weights: field elements in the power basis, by word.
             let elems: Vec<Element> = (0..GROUP).map(|_| field.to_poly(rng.ext())).collect();

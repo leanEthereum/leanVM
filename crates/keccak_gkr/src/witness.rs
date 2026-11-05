@@ -246,8 +246,8 @@ pub unsafe fn block(
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
             // over them, which vectorizes with plain loads (by position, it took gathers).
-            let words = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
-            let (ua, ub, uc) = (words(a), words(b), words(c));
+            let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
+            let (ua, ub, uc) = (flat(a), flat(b), flat(c));
             for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
                 *s = ua[k] ^ (!ub[k] & uc[k]);
             }

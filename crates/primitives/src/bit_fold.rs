@@ -115,20 +115,7 @@ fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNK
         .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
 }
 
-#[cfg(not(any(
-    all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ),
-    all(
-        target_arch = "x86_64",
-        target_feature = "avx2",
-        target_feature = "gfni",
-        not(all(target_feature = "avx512bw", target_feature = "avx512vbmi"))
-    )
-)))]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni")))]
 use portable::Imp;
 
 #[cfg(all(
@@ -147,19 +134,11 @@ use gfni256::Imp;
 ))]
 use gfni::Imp;
 
-#[cfg(not(any(
-    all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ),
-    all(
-        target_arch = "x86_64",
-        target_feature = "avx2",
-        target_feature = "gfni",
-        not(all(target_feature = "avx512bw", target_feature = "avx512vbmi"))
-    )
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
 )))]
 mod portable {
     use super::{BLOCK, F192, fold_row_lookup, lookup_tables};
@@ -191,6 +170,11 @@ mod portable {
             }
         }
 
+        // With AVX2 and GFNI the columns go through `gfni256`, which keeps these tables for rows only.
+        #[cfg_attr(
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
+            allow(dead_code)
+        )]
         #[inline]
         pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
             for (p, o) in out.iter_mut().enumerate() {
@@ -627,18 +611,18 @@ mod gfni256 {
 
     use core::arch::x86_64::*;
 
-    use super::{BLOCK, F192, fold_row_lookup, lookup_tables};
+    use super::{BLOCK, F192};
 
     /// Bytes of an F192.
     const OUT_BYTES: usize = 24;
 
-    /// The GFNI matrices and the byte tables.
+    /// The GFNI matrices, and the byte tables for the row-major fold.
     #[derive(Clone, Debug)]
     pub(super) struct Imp {
         /// `matrices[j][o]` maps byte `j` of a row to byte `o` of its weights' sum.
         matrices: Vec<[u64; OUT_BYTES]>,
-        /// One subset-sum table per byte of a row.
-        tables: Vec<[F192; 256]>,
+        /// The byte tables of the row-major fold.
+        lookup: super::portable::Imp,
     }
 
     /// Byte `o` of a weight.
@@ -674,7 +658,7 @@ mod gfni256 {
                 .collect();
             Self {
                 matrices,
-                tables: lookup_tables(weights),
+                lookup: super::portable::Imp::new(weights),
             }
         }
 
@@ -686,9 +670,7 @@ mod gfni256 {
             tail_rows: &[[u8; B]],
             out: &mut [F192; BLOCK],
         ) {
-            for ((o, head), tail_row) in out.iter_mut().zip(head_rows).zip(tail_rows) {
-                *o = fold_row_lookup(&self.tables, head) + fold_row_lookup(&tail.tables, tail_row);
-            }
+            self.lookup.fold_block_pair(&tail.lookup, head_rows, tail_rows, out);
         }
 
         #[inline]

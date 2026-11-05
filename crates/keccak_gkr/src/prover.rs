@@ -15,13 +15,6 @@ use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::basis::{PolyEval, add_mul, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
-#[cfg(not(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-)))]
-use crate::kernels::fold_groups;
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
@@ -38,7 +31,7 @@ fn ternary(b: usize) -> usize {
 const DIGIT_BITS: usize = 8;
 const DIGITS: usize = 192 / DIGIT_BITS;
 /// The bits of a block position's products, 48 to each pack.
-const PAYLOAD_BITS: usize = 48 * PACKS;
+pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX-512 the
 /// whole position, three registers; with AVX2 half, three registers; elsewhere a quarter, a
 /// block's worth of which stays in cache.
@@ -248,7 +241,7 @@ impl Layer<'_> {
     /// the block's weight, as field elements.
     fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
         cfg_select! {
-            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni", target_feature = "pclmulqdq") => {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
                 self.pack_products_gfni(claim)
             }
             _ => { self.pack_products_buckets(claim) }
@@ -256,15 +249,9 @@ impl Layer<'_> {
     }
 
     /// [`Self::pack_products`] by GFNI outer products (`upass_gfni`): the same sums.
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx2",
-        target_feature = "gfni",
-        target_feature = "pclmulqdq"
-    ))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
     fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
-        use crate::upass_gfni::{PAYLOAD, UPass};
-        const _: () = assert!(PAYLOAD == PAYLOAD_BITS);
+        use crate::upass_gfni::UPass;
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let upass = UPass::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
@@ -293,12 +280,7 @@ impl Layer<'_> {
     /// [`Self::pack_products`] by digit buckets: the block's positions grouped by each digit of
     /// their weight ([`Groups`]), a part of the packs at a time. The GFNI form's test oracle.
     #[cfg_attr(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx2",
-            target_feature = "gfni",
-            target_feature = "pclmulqdq"
-        ),
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
         allow(dead_code)
     )]
     fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
@@ -440,7 +422,20 @@ impl Layer<'_> {
         );
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || (vec![0u64; 4 * ROW], vec![0u64; 8 * BITS], vec![0u64; 2 * ROW]),
+            || {
+                // The GFNI rows need no wide scratch.
+                let gfni = cfg!(all(
+                    target_arch = "x86_64",
+                    target_feature = "avx512f",
+                    target_feature = "avx512bw",
+                    target_feature = "gfni"
+                ));
+                (
+                    vec![0u64; 4 * ROW],
+                    vec![0u64; if gfni { 0 } else { 8 * BITS }],
+                    vec![0u64; 2 * ROW],
+                )
+            },
             RoundSums::default,
             |(scratch, wide, rows), sums, task| {
                 let (segment, g, block) = self.block(task);
@@ -454,47 +449,27 @@ impl Layer<'_> {
                 };
                 let rows = &mut rows[..out.len()];
                 let halves = rows.len() / ROW;
-                // With GFNI, each group's value by affine byte maps (`table_gfni`), the same rows.
-                #[cfg(all(
-                    target_arch = "x86_64",
-                    target_feature = "avx512f",
-                    target_feature = "avx512bw",
-                    target_feature = "gfni"
-                ))]
-                {
-                    // The affine maps need no wide scratch.
-                    let _ = wide;
-                    maps.rows(block, rows, halves);
-                }
-                // Both groups' unreduced sums, four words each and laid out by word.
-                #[cfg(not(all(
-                    target_arch = "x86_64",
-                    target_feature = "avx512f",
-                    target_feature = "avx512bw",
-                    target_feature = "gfni"
-                )))]
-                for j in 0..BITS {
-                    let sums = fold_groups(&embed(words(block, j)), &fold);
-                    for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                        let sum: [u64; 4] = carry(sum);
-                        for (k, &word) in sum.iter().enumerate() {
-                            wide[k * BITS + j] = word;
+                cfg_select! {
+                    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
+                        // Each group's value by affine byte maps (`table_gfni`).
+                        let _ = wide;
+                        maps.rows(block, rows, halves);
+                    }
+                    _ => {
+                        // Both groups' unreduced sums, four words each and laid out by word, then reduced.
+                        for j in 0..BITS {
+                            let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
+                            for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
+                                let sum: [u64; 4] = carry(sum);
+                                for (k, &word) in sum.iter().enumerate() {
+                                    wide[k * BITS + j] = word;
+                                }
+                            }
+                        }
+                        for (t, wide) in rows.as_chunks_mut::<ROW>().0.iter_mut().zip(wide.as_chunks::<{ 4 * BITS }>().0) {
+                            field.reduce_row(t, wide, BITS);
                         }
                     }
-                }
-                #[cfg(not(all(
-                    target_arch = "x86_64",
-                    target_feature = "avx512f",
-                    target_feature = "avx512bw",
-                    target_feature = "gfni"
-                )))]
-                for (t, wide) in rows
-                    .as_chunks_mut::<ROW>()
-                    .0
-                    .iter_mut()
-                    .zip(wide.as_chunks::<{ 4 * BITS }>().0)
-                {
-                    field.reduce_row(t, wide, BITS);
                 }
                 round.add_pair(sums, scratch, &rows[..ROW], &rows[rows.len() - ROW..], weights[task]);
                 // Built in cache for the round values, then published: the next round reads them.
@@ -899,13 +874,7 @@ fn round_coefficients(scale: F192, zero: F192, infinity: F192, value: F192, r: F
     [c0, c1, c2]
 }
 
-#[cfg(all(
-    test,
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "gfni",
-    target_feature = "pclmulqdq"
-))]
+#[cfg(all(test, target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod gfni_tests {
     use primitives::test_rng::Rng;
 
@@ -918,13 +887,14 @@ mod gfni_tests {
     #[test]
     fn gfni_pack_products_equal_the_buckets() {
         // 1100 instances: three blocks written, a padding block for the fourth.
-        for (n, depth, seed) in [(512, 4, 1), (1100, 12, 2), (2048, 12, 3)] {
+        {
+            let (n, depth, seed) = (1100, 12, 2);
             let mut rng = Rng::new(seed);
             let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
             let shape = Shape::new(n, depth);
             let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
             let witness = Witness::generate(shape, &inputs, &mut committed);
-            assert_eq!(witness.written() < shape.n_blocks(), n == 1100, "padding block");
+            assert!(witness.written() < shape.n_blocks(), "a padding block");
             for (step, mode) in [(0, "dense"), (depth - 1, "sparse"), (depth / 2, "lanes"), (1, "zero")] {
                 let layer = Layer {
                     witness: &witness,

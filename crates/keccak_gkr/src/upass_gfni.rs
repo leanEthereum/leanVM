@@ -1,4 +1,4 @@
-//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2, GFNI and PCLMULQDQ): the
+//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2 and GFNI): the
 //! same values as [`crate::prover`]'s digit buckets, `sum over positions j of weights[j] (x)
 //! product(q, j)` for every pack `q` of a block and every coefficient of its product.
 //!
@@ -14,7 +14,7 @@
 //!    products of each active one, and their bit transposes into *slot bytes* (bit `k` =
 //!    position `k`), staged register by register in a per-thread buffer;
 //! 2. per staged register, every active octet's 24 matrices applied into accumulators held in
-//!    registers, eight at a time (AVX2 has sixteen registers), then one byte transpose back to
+//!    registers, eight at a time on AVX2 (sixteen registers) and all 24 with AVX-512, then one byte transpose back to
 //!    the field elements.
 //!
 //! The 8x8 byte transpose without VPERMB ([`bt8`]) leaves the positions in a fixed order
@@ -32,7 +32,7 @@ use crate::kernels::{PACKS, embed, products};
 use crate::witness::words;
 
 /// The bits of a block position's products, 48 to each pack, in the prover's payload order.
-pub const PAYLOAD: usize = 48 * PACKS;
+use crate::prover::PAYLOAD_BITS as PAYLOAD;
 /// Registers of 32 slot bytes per block position octet: a pack's six coefficient bytes for each
 /// of the eight positions.
 const REGS: usize = PAYLOAD / 32;

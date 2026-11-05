@@ -111,12 +111,7 @@ pub mod rmfe;
     target_feature = "gfni"
 ))]
 mod table_gfni;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "gfni",
-    target_feature = "pclmulqdq"
-))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod upass_gfni;
 pub mod witness;
 
