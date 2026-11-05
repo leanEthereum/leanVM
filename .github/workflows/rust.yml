@@ -64,3 +64,16 @@ jobs:
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
+
+  machete:
+    name: Unused dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete@0.9.2
+      # No build: machete reads the manifests and greps the sources.
+      # `--with-metadata` resolves each package through `cargo metadata`, so dev-dependencies are read too.
+      - name: Check for unused dependencies
+        run: cargo machete --with-metadata
