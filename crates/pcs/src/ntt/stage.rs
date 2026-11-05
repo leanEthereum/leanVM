@@ -128,15 +128,28 @@ impl<'a> Stage<'a> {
         unsafe {
             fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
         }
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
+        // SAFETY: AVX2 is enabled at compile time.
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+        unsafe {
+            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
+        }
+        #[cfg(not(any(
+            all(target_arch = "x86_64", target_feature = "avx512f"),
+            all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f"))
+        )))]
         fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet);
     }
 }
 
-/// [`Stage::fill`], a target-feature function where AVX-512 is enabled, so its tiles move through registers.
+/// [`Stage::fill`], a target-feature function where AVX-512 or AVX2 is enabled, so its tiles move through registers.
 #[cfg_attr(
     all(target_arch = "x86_64", target_feature = "avx512f"),
     target_feature(enable = "avx512f"),
+    inline
+)]
+#[cfg_attr(
+    all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")),
+    target_feature(enable = "avx2"),
     inline
 )]
 fn fill_stage_tiles(
@@ -182,8 +195,45 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
     }
 }
 
+/// [`fill_tile`] as two 4x4 transposes of YMM halves per half of the lines.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+#[inline]
+#[target_feature(enable = "avx2")]
+fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+    use core::arch::x86_64::*;
+    use primitives::{load_at, store_at};
+    // Line `k`, half `h`: words `4h..4h + 4` of the line's 8 residues.
+    let r: [[__m256i; 2]; 8] = std::array::from_fn(|k| {
+        if zeros >> k & 1 == 1 {
+            [_mm256_setzero_si256(); 2]
+        } else {
+            [load_at(msg, src[k]), load_at(msg, src[k] + 4)]
+        }
+    });
+    // Residue `s` is word `s` of every line: lines 0..4 in its first half, 4..8 in its second.
+    for h in 0..2 {
+        for q in 0..2 {
+            let t = |k: usize| r[4 * q + k][h];
+            let (a0, a1) = (_mm256_unpacklo_epi64(t(0), t(1)), _mm256_unpackhi_epi64(t(0), t(1)));
+            let (a2, a3) = (_mm256_unpacklo_epi64(t(2), t(3)), _mm256_unpackhi_epi64(t(2), t(3)));
+            let cols = [
+                _mm256_permute2x128_si256::<0x20>(a0, a2),
+                _mm256_permute2x128_si256::<0x20>(a1, a3),
+                _mm256_permute2x128_si256::<0x31>(a0, a2),
+                _mm256_permute2x128_si256::<0x31>(a1, a3),
+            ];
+            for (i, col) in cols.into_iter().enumerate() {
+                store_at(stage, (tile + 4 * h + i) * 8 + 4 * q, col);
+            }
+        }
+    }
+}
+
 /// [`fill_tile`] word by word.
-#[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
+#[cfg(not(any(
+    all(target_arch = "x86_64", target_feature = "avx512f"),
+    all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f"))
+)))]
 #[inline(always)]
 fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
     for s in 0..8 {
