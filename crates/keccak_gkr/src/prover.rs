@@ -236,9 +236,77 @@ impl Layer<'_> {
     ///
     /// Nothing here knows where the polynomials will be evaluated, so each product meets its
     /// weight bit by bit. The position weights are the same in every block, so a block's sum
-    /// over positions is grouped by their digits ([`Groups`]), a part of the packs at a time;
-    /// only that sum meets the block's weight, as field elements.
+    /// over positions is taken bit by bit, by GFNI outer products where they are compiled
+    /// (`upass_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
+    /// the block's weight, as field elements.
     fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "gfni",
+            target_feature = "pclmulqdq"
+        ))]
+        {
+            self.pack_products_gfni(claim)
+        }
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "gfni",
+            target_feature = "pclmulqdq"
+        )))]
+        {
+            self.pack_products_buckets(claim)
+        }
+    }
+
+    /// [`Self::pack_products`] by GFNI outer products (`upass_gfni`): the same sums.
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "gfni",
+        target_feature = "pclmulqdq"
+    ))]
+    fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
+        use crate::upass_gfni::{PAYLOAD, UPass};
+        const _: () = assert!(PAYLOAD == PAYLOAD_BITS);
+        let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
+        let upass = UPass::new(&claim.weights);
+        let sums = parallel::map_reduce_with_state(
+            self.n_tasks(),
+            || upass.scratch(),
+            || vec![F192Unreduced::ZERO; PAYLOAD_BITS],
+            |scratch, sums, task| {
+                let (_, _, block) = self.block(task);
+                upass.block_sums(scratch, block);
+                for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
+                    *sum ^= weights[task].mul_unreduced(F192::new(v[0], v[1], v[2]));
+                }
+            },
+            |mut a, b| {
+                for (x, y) in a.iter_mut().zip(b) {
+                    *x ^= y;
+                }
+                a
+            },
+        );
+        (0..PACKS)
+            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
+            .collect()
+    }
+
+    /// [`Self::pack_products`] by digit buckets: the block's positions grouped by each digit of
+    /// their weight ([`Groups`]), a part of the packs at a time. The GFNI form's test oracle.
+    #[cfg_attr(
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "gfni",
+            target_feature = "pclmulqdq"
+        ),
+        allow(dead_code)
+    )]
+    fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let groups = Groups::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
@@ -803,4 +871,53 @@ fn round_coefficients(scale: F192, zero: F192, infinity: F192, value: F192, r: F
     // value = c0 + r (c1 + c2).
     let c1 = (value + c0) * r.inv() + c2;
     [c0, c1, c2]
+}
+
+#[cfg(all(
+    test,
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "gfni",
+    target_feature = "pclmulqdq"
+))]
+mod gfni_tests {
+    use primitives::test_rng::Rng;
+
+    use super::*;
+    use crate::keccak::LANES;
+    use crate::protocol::first_claim;
+
+    /// The GFNI outer products give the digit buckets' sums, on dense, sparse and zero weights,
+    /// with and without a padding block.
+    #[test]
+    fn gfni_pack_products_equal_the_buckets() {
+        for (n, depth, seed) in [(512, 4, 1), (1000, 12, 2), (2048, 12, 3)] {
+            let mut rng = Rng::new(seed);
+            let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+            let shape = Shape::new(n, depth);
+            let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+            let witness = Witness::generate(shape, &inputs, &mut committed);
+            for (step, mode) in [(0, "dense"), (depth - 1, "sparse"), (depth / 2, "dense"), (1, "zero")] {
+                let layer = Layer {
+                    witness: &witness,
+                    rounds: (0..shape.segments()).map(|m| shape.round(m, step)).collect(),
+                };
+                let mut claim = first_claim(shape, &rng.ext_vec(4), rng.ext_vec(shape.y_vars()), &rng.ext_vec(5));
+                claim.weights = (0..BITS)
+                    .map(|j| {
+                        // Sparse: whole octets and some single positions are zero.
+                        if mode == "zero" || (mode == "sparse" && ((j / 8) % 3 == 1 || j % 7 == 0)) {
+                            F192::ZERO
+                        } else {
+                            rng.ext()
+                        }
+                    })
+                    .collect();
+                assert!(
+                    layer.pack_products_gfni(&claim) == layer.pack_products_buckets(&claim),
+                    "n {n} depth {depth} step {step} {mode}"
+                );
+            }
+        }
+    }
 }
