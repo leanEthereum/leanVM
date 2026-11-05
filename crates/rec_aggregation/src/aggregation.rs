@@ -2854,7 +2854,8 @@ pub fn warm_up() {
 pub fn unified_guest() -> &'static Program {
     static GUEST: std::sync::OnceLock<Program> = std::sync::OnceLock::new();
     GUEST.get_or_init(|| {
-        let mut guess = 20;
+        // A guess at the guest's own size: right, it compiles once; wrong, one more round.
+        let mut guess = 19;
         for _ in 0..8 {
             let guest = compile_guest(guess);
             let actual = guest.prog.len().trailing_zeros() as usize;
