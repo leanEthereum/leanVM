@@ -198,7 +198,7 @@ pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u
 /// For both groups of a block position, `sum over the group's packs of weights[.][q] * e[q]`,
 /// as three partial products.
 #[inline(always)]
-pub(crate) fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[u128; 3]; 2] {
+pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[u128; 3]; 2] {
     simd::fold_groups(e, weights)
 }
 

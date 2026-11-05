@@ -37,6 +37,7 @@
 //! protocol to drift.
 
 use bincode::Options as _;
+use fiat_shamir::merkle::hash_to_scalars;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
@@ -52,7 +53,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use primitives::field::{F64, F64x8, F192, F192x8, G, Prod8, dot_base, g_pow};
-use primitives::multilinear::{eq_table, mle_eval_par, packed_eq};
+use primitives::multilinear::{eq_table, interp, mle_eval_par, packed_eq};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
 
@@ -90,14 +91,19 @@ pub const MAX_KEYS: usize = 1 << 16;
 // the guest and another in the statement, and nothing else would notice.
 const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BYTECODE_SELECTORS);
 // Both schemes' one-time keys go through the guest's one WOTS+C walk: the same chain
-// length, digits dispatched DIGIT_GROUP at a time and the last chain alone, and the
-// same address types (`signatures`' shared tweak). A chain step's address leaves out the
+// length, digits dispatched a group at a time, and the same address types
+// (`signatures`' shared tweak). leanSPHINCS groups DIGIT_GROUP digits, the last chain
+// alone; leanXMSS LX_DIGIT_GROUP, then the rest. A chain step's address leaves out the
 // chain index in leanXMSS, where it follows the value.
 const DIGIT_GROUP: usize = 3;
+/// The guest's `LX_DIGIT_GROUP`.
+const LX_DIGIT_GROUP: usize = 4;
+/// The guest's `LX_WINDOW`: index bits a path dispatch covers.
+const LX_WINDOW: usize = 8;
 const _: () = assert!(lean_sphincs::W * lean_sphincs::V == 128 && lean_sphincs::V % DIGIT_GROUP == 1);
-const _: () = assert!(lean_xmss::W == lean_sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);
-// A leaf index is the two layers' indices, which the guest decomposes into bits at once.
-const _: () = assert!(lean_xmss::LOG_LIFETIME == 32);
+const _: () = assert!(lean_xmss::W == lean_sphincs::W && !lean_xmss::V.is_multiple_of(LX_DIGIT_GROUP));
+// A leaf index is the two layers' indices, which the guest dispatches on a window at a time.
+const _: () = assert!(lean_xmss::LOG_LIFETIME == 32 && lean_xmss::LAYER_HEIGHT.is_multiple_of(LX_WINDOW));
 // The guest reads the leanSPHINCS digest's fields as one bit string: its first call's
 // two cells, then the low lane of its second call's first cell, where the bits past the
 // fields are unused. It rebuilds the bottom tree's index from three layers' leaves.
@@ -133,16 +139,6 @@ fn dsl_u128(value: F192) -> u128 {
 
 fn f192_literal(f: F192) -> String {
     format!("f192({},{},{})", f.c0, f.c1, f.c2)
-}
-
-/// Pack a 32-byte digest as the canonical 128+128 cell pair the VM's hash
-/// instruction writes.
-fn pack_hash_state(hash: &[u8; 32]) -> [F192; 2] {
-    let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
-    [
-        F192::new(word_at(0), word_at(8), 0),
-        F192::new(word_at(16), word_at(24), 0),
-    ]
 }
 
 /// A 16-byte native value as one canonical 128-bit cell.
@@ -189,7 +185,7 @@ fn list_split(n: usize) -> Vec<F192> {
 /// the message it signed, and an empty list hashes the empty string. The guest
 /// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
 fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
-    pack_hash_state(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
+    hash_to_scalars(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
@@ -292,7 +288,7 @@ const STATEMENT_HEADER: usize = 8;
 /// from `keccak_cells` over the same cells.
 fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
     let bytes: Vec<u8> = lanes.flat_map(u64::to_le_bytes).collect();
-    pack_hash_state(&primitives::hash::hash(&bytes))
+    hash_to_scalars(&primitives::hash::hash(&bytes))
 }
 
 /// A node's public statement, hashed to the two words the VM publishes. The
@@ -317,7 +313,7 @@ fn statement_digest(
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
     let lean_sphincs_digest = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
-    let da_digest = pack_hash_state(&da_digest);
+    let da_digest = hash_to_scalars(&da_digest);
     let header: [F192; STATEMENT_HEADER] = [
         seed[0],
         seed[1],
@@ -782,7 +778,7 @@ fn bytecode_vars() -> usize {
 fn fold_lsb(table: &mut Vec<F192>, challenge: F192) {
     let half = table.len() / 2;
     for i in 0..half {
-        table[i] = table[2 * i] + challenge * (table[2 * i] + table[2 * i + 1]);
+        table[i] = interp(table[2 * i], table[2 * i + 1], challenge);
     }
     table.truncate(half);
 }
@@ -1281,8 +1277,8 @@ fn gen_verify(
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(pack_hash_state(left));
-                    path_children.extend(pack_hash_state(right));
+                    path_children.extend(hash_to_scalars(left));
+                    path_children.extend(hash_to_scalars(right));
                 }
                 node = pcs::merkle::hash_pair(left, right);
                 index >>= 1;
@@ -1290,7 +1286,7 @@ fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(pack_hash_state));
+        caps.extend(nodes.iter().flat_map(hash_to_scalars));
         cap_active.extend(active);
     }
     let deferred = DeferredSubproof {
@@ -1515,11 +1511,11 @@ fn plan_coverage(
     Ok(cover)
 }
 
-/// The digits of a WOTS+C codeword as the guest dispatches on them: `DIGIT_GROUP` at
-/// a time, then the last alone, each group's index little endian in base
-/// `CHAIN_LEN`, in the exponent.
-fn digit_hints(codeword: &[u8]) -> impl Iterator<Item = Vec<F192>> + '_ {
-    codeword.chunks(DIGIT_GROUP).map(|group| {
+/// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
+/// time, then the rest, each group's index little endian in base `CHAIN_LEN`, in the
+/// exponent.
+fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F192>> + '_ {
+    codeword.chunks(size).map(|group| {
         let index = group
             .iter()
             .rev()
@@ -1528,26 +1524,39 @@ fn digit_hints(codeword: &[u8]) -> impl Iterator<Item = Vec<F192>> + '_ {
     })
 }
 
-/// One leanXMSS signature's witness: the bits of its leaf index, then per layer,
-/// bottom first, the randomizer, the codeword's digits, the chain values they start
-/// from, and the ordered children of every node on the path.
+/// One leanXMSS signature's witness: its leaf index shifted by each multiple of
+/// `LX_WINDOW` and those windows in the exponent, then per layer, bottom first, the
+/// randomizer, the codeword's digits, the chain values they start from, and the
+/// sibling of every node on the path.
 fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
 ) -> Result<SubHints, AggregationError> {
     let pp = pk.public_param();
-    let bits = (0..lean_xmss::LOG_LIFETIME).map(|b| F192::new(u64::from(sig.leaf_index() >> b & 1), 0, 0));
-    let mut hints: SubHints = vec![("leaf_index_bits", bits.collect())];
+    let index = u64::from(sig.leaf_index());
+    let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
+    let mut hints: SubHints = vec![
+        ("lx_index", windows.clone().map(|x| F192::new(x, 0, 0)).collect()),
+        (
+            "lx_windows",
+            windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),
+        ),
+    ];
     let mut root: Vec<u8> = message.to_vec();
+    let mut level = 0;
     for (layer, layer_sig) in [sig.bottom(), sig.top()].into_iter().enumerate() {
         let e = lean_xmss::layer_index(sig.leaf_index(), layer);
         let (codeword, reached) = lean_xmss::layer_root(pp, layer, e, &root, layer_sig, |pair| {
-            hints.push(("siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]));
+            hints.push((
+                "lx_path",
+                vec![pack_16_bytes(&pair[usize::from(index >> level & 1 == 0)])],
+            ));
+            level += 1;
         })
         .ok_or(AggregationError::MalformedRawSignature)?;
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
-        hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
+        hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
         for value in layer_sig.chain_values() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
@@ -1594,7 +1603,7 @@ fn lean_sphincs_hints(
         let (codeword, leaf) = lean_sphincs::wots_leaf(pp, &key, &signed, layer_sig.counter(), layer_sig.wots())
             .ok_or(AggregationError::MalformedRawSignature)?;
         hints.push(("sp_counter", exponent_bytes(u64::from(layer_sig.counter()), 32)));
-        hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
+        hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
         for value in layer_sig.wots() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
@@ -1839,7 +1848,7 @@ pub fn aggregate_with_stats(
             }
         }
         hints.push("child_defer", child.defer.cells());
-        hints.push("child_da", pack_hash_state(&child_da[i]).to_vec());
+        hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
         let (sub_hints, defer) = gen_verify(
             guest,
             pi,
@@ -2710,7 +2719,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     );
 
     // ---- LeanDA (`doc/leanvm` §sec:leanda) ----
-    let pad_blob = pack_hash_state(&lean_da::padding_root());
+    let pad_blob = hash_to_scalars(&lean_da::padding_root());
     ps("DA_LOG_K", DA_LOG_K.to_string());
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
@@ -2744,9 +2753,10 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // and the hash types they share, as the address lane holds them.
     ps("W", lean_xmss::W.to_string());
     ps("DIGIT_GROUP", DIGIT_GROUP.to_string());
-    let digit_sums: Vec<String> = (0..lean_xmss::CHAIN_LEN.pow(DIGIT_GROUP as u32))
+    let widest = LX_DIGIT_GROUP.max(DIGIT_GROUP);
+    let digit_sums: Vec<String> = (0..lean_xmss::CHAIN_LEN.pow(widest as u32))
         .map(|k| {
-            let digits = (0..DIGIT_GROUP).map(|r| k / lean_xmss::CHAIN_LEN.pow(r as u32) % lean_xmss::CHAIN_LEN);
+            let digits = (0..widest).map(|r| k / lean_xmss::CHAIN_LEN.pow(r as u32) % lean_xmss::CHAIN_LEN);
             digits.sum::<usize>().to_string()
         })
         .collect();
@@ -2766,6 +2776,23 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LX_TARGET_SUM", lean_xmss::TARGET_SUM.to_string());
     ps("LX_HEIGHT", lean_xmss::LAYER_HEIGHT.to_string());
     ps("LX_TOP", address(lean_xmss::tweak(0, lean_xmss::TOP, 0)));
+    ps("LX_WINDOW", LX_WINDOW.to_string());
+    ps("LX_DIGIT_GROUP", LX_DIGIT_GROUP.to_string());
+    let sizes =
+        (0..lean_xmss::V.div_ceil(LX_DIGIT_GROUP)).map(|p| LX_DIGIT_GROUP.min(lean_xmss::V - LX_DIGIT_GROUP * p));
+    ps("LX_GROUP_SIZES", format!("{:?}", sizes.collect::<Vec<_>>()));
+    // A chain index: zero and the powers of two are cells the guest has, the others a
+    // slot of the tags it carries.
+    let (mut slots, mut logs, mut n_tags) = (Vec::new(), Vec::new(), 0);
+    for i in 0..lean_xmss::V {
+        let carried = i != 0 && !i.is_power_of_two();
+        n_tags += usize::from(carried);
+        slots.push(if carried { n_tags } else { 0 });
+        logs.push(i.checked_ilog2().unwrap_or(0));
+    }
+    ps("LX_TAG_SLOT", format!("{slots:?}"));
+    ps("LX_TAG_LOG", format!("{logs:?}"));
+    ps("LX_N_TAGS", n_tags.to_string());
     ps("MAX_KEYS", MAX_KEYS.to_string());
     ps("CLAIM_GROUP", CLAIM_GROUP.to_string());
     ps("BIG_GROUPS", BIG_GROUPS.to_string());
@@ -3034,17 +3061,17 @@ mod tests {
     }
 
     /// A leanXMSS signature's leaf index and codeword are bound in-circuit: a node whose
-    /// hints flip a bit of the index, give it a bit that is not Boolean, or dispatch a
-    /// digit group other than the digest's fails the guest's run.
+    /// hints change the index, dispatch a path window other than the index's, or
+    /// dispatch a digit group other than the digest's fails the guest's run.
     #[test]
     fn forged_lean_xmss_hints_are_rejected() {
         leanvm_core::init_prover();
         let signers = signing(&get_signers(1), 0);
         let forgeries: [Forgery; 3] = [
-            Box::new(|hints: &mut Hints| hints.entry_mut("leaf_index_bits", 0)[0] += F192::ONE),
-            Box::new(|hints: &mut Hints| hints.entry_mut("leaf_index_bits", 0)[1] = F192::new(2, 0, 0)),
+            Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F192::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
             Box::new(|hints: &mut Hints| {
-                hints.entry_mut("digits", 0)[0] *= count(1);
+                hints.entry_mut("lx_digits", 0)[0] *= count(1);
             }),
         ];
         for forgery in forgeries {
@@ -3249,14 +3276,14 @@ def main():
                 "bits",
                 (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
             );
-            hints.push("leaf", pack_hash_state(&leaf).to_vec());
+            hints.push("leaf", hash_to_scalars(&leaf).to_vec());
             hints.push(
                 "merkle_children",
-                pairs.iter().flatten().flat_map(pack_hash_state).collect(),
+                pairs.iter().flatten().flat_map(hash_to_scalars).collect(),
             );
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&root))
+            program.execute(hash_to_scalars(&root))
         };
         for index in 0..8 {
             let pairs: Vec<_> = (0..3)
@@ -3512,7 +3539,7 @@ def main():
             );
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&verifier::da::digest(Some(commitment))))
+            program.execute(hash_to_scalars(&verifier::da::digest(Some(commitment))))
         };
         assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
         for position in [0, BLOB_SYMBOLS + 5] {
@@ -3548,41 +3575,6 @@ def main():
             node.verify().expect("node verifies");
             let (commitment, _) = lean_da::commit(&rows);
             assert_eq!(node.da_root, Some(commitment), "{n_rows} rows");
-        }
-    }
-
-    /// What one blob-carrying proof costs, at the shape EIP-4844 and EIP-7594 fix.
-    /// Reported, not asserted: run it by name when the shape or the sweep changes.
-    #[test]
-    #[ignore]
-    fn da_blob_proof() {
-        leanvm_core::init_prover();
-        let signers = get_signers(SMALL_LEAF_SIZE);
-        // One discarded proof: the first pays the guest build and the
-        // allocator's page faults, which would otherwise land entirely on the first row
-        // count reported.
-        warm_up();
-        println!(
-            "bytecode: {} instructions, DA_MAX_ROWS = {DA_MAX_ROWS}",
-            unified_guest().prog.len()
-        );
-        let _ = aggregate_with_stats(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE);
-        for n_rows in [1usize, 6, 14, 32] {
-            let rows = da_rows(n_rows, 300 + n_rows as u64);
-            let started = std::time::Instant::now();
-            let (node, stats) = aggregate_with_stats(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE)
-                .expect("node aggregates");
-            let elapsed = started.elapsed();
-            let payload = n_rows * (1 << DA_LOG_K) * 8;
-            println!(
-                "{n_rows:>3} blobs ({:>5} KiB): {:>8.2?}  {:>6.0} KiB/s  cycles 2^{:.1}  mem 2^{:.1}  proof {:.0} KiB",
-                payload / 1024,
-                elapsed,
-                payload as f64 / 1024.0 / elapsed.as_secs_f64(),
-                (stats.cycles as f64).log2(),
-                (stats.mem_used as f64).log2(),
-                node.to_bytes().len() as f64 / 1024.0,
-            );
         }
     }
 

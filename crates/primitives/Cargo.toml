@@ -19,7 +19,6 @@ test-util = ["dep:rand"]
 
 [dev-dependencies]
 primitives = { path = ".", features = ["test-util"] }
-bincode.workspace = true
 bench.workspace = true
 sha3.workspace = true
 

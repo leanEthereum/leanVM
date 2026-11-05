@@ -1038,3 +1038,62 @@ def main():
 ";
     compile(&parse(src).expect("parse"));
 }
+
+/// Back-to-back `match` statements an `unroll` expands chain, each arm entering the
+/// next dispatch: the arms still run in order and fold into the same value, in fewer
+/// cycles than the same matches written out, which do not chain.
+#[test]
+fn chained_matches_run_in_order() {
+    let head = "@inline\ndef add(acc, k: Const):\n    return acc * GEN ** (k + 1)\n\ndef main():\n    xs = StackBuf(3)\n    xs[0] = GEN ** 1\n    xs[1] = GEN ** 3\n    xs[2] = GEN ** 0\n    acc = GEN\n";
+    let tail = "    p = 1\n    p[1] = acc\n    p[GEN] = 0\n    return\n";
+    let step = |p: usize| format!("acc = match(log(xs[{p}]), range(0, 4), lambda k: add(acc * GEN ** {p}, k))\n");
+    let chained = format!(
+        "{head}    for p in unroll(0, 3):\n        {}{tail}",
+        step(0).replace("[0]", "[p]").replace("** 0", "** p")
+    );
+    let unchained = format!("{head}    {}    {}    {}{tail}", step(0), step(1), step(2));
+    // g^1 · (g^0 · g^2) · (g^1 · g^4) · (g^2 · g^1)
+    let want = [F192::from(g_pow(11)), F192::ZERO];
+    let program = compile(&parse(&chained).expect("parse"));
+    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("chained matches verify");
+    assert!(program.execute([F192::from(g_pow(10)), F192::ZERO]).is_err());
+    let unchained = compile(&parse(&unchained).expect("parse"));
+    assert!(program.execute(want).unwrap().cycles < unchained.execute(want).unwrap().cycles);
+}
+
+/// A scrutinee chains only when reading it emits nothing and the previous match does not
+/// rebind it. One that needs code (here an inlined `assert`) or names the previous target
+/// lowers unchained, and a `match` nested in a scrutinee leaves the chain to its own.
+#[test]
+fn unchainable_scrutinees_keep_their_meaning() {
+    let add = "@inline\ndef add(acc, k: Const):\n    return acc * GEN ** (k + 1)\n\n";
+    let g = |k| F192::from(g_pow(k));
+    let check = |src: String, good: [F192; 2], bad: [F192; 2]| {
+        let program = compile(&parse(&src).expect("parse"));
+        program.execute(good).unwrap_or_else(|e| panic!("{src}\n{e}"));
+        assert!(program.execute(bad).is_err(), "{src}");
+    };
+    // An inlined `assert` in the third scrutinee still runs.
+    check(
+        format!(
+            "@inline\ndef chk(a):\n    assert a != GEN ** 3\n    return a\n\n{add}def main():\n    q = 1\n    xs = StackBuf(3)\n    xs[0] = GEN ** 0\n    xs[1] = GEN ** 1\n    xs[2] = q[GEN]\n    acc = GEN\n    for p in unroll(0, 3):\n        acc = match(log(chk(xs[p])), range(0, 4), lambda k: add(acc, k))\n    q[1] = acc\n    return\n"
+        ),
+        [g(5), g(0)],
+        [g(8), g(3)],
+    );
+    // The second match of each pair chains onto the first, whose scrutinee holds a `match`.
+    check(
+        format!(
+            "@inline\ndef id(k: Const):\n    return GEN ** k\n\n@inline\ndef sel(a):\n    r = match(log(a), range(0, 4), lambda k: id(k))\n    return r\n\n{add}def main():\n    q = 1\n    xs = [GEN ** 0, GEN ** 1]\n    ys = [GEN ** 2, GEN ** 0]\n    acc = GEN\n    for p in unroll(0, 2):\n        acc = match(log(sel(xs[p])), range(0, 4), lambda k: add(acc, k))\n        acc = match(log(ys[p]), range(0, 4), lambda k: add(acc, k))\n    q[1] = acc\n    q[GEN] = 0\n    return\n"
+        ),
+        [g(8), F192::ZERO],
+        [g(9), F192::ZERO],
+    );
+    // A scrutinee the previous match rebinds is read after it.
+    check(
+        "@inline\ndef step(k: Const):\n    return GEN ** ((k + 1) % 4)\n\ndef main():\n    x = GEN ** 0\n    for p in unroll(0, 3):\n        x = match(log(x), range(0, 4), lambda k: step(k))\n    q = 1\n    q[1] = x\n    q[GEN] = 0\n    return\n".to_string(),
+        [g(3), F192::ZERO],
+        [g(2), F192::ZERO],
+    );
+}

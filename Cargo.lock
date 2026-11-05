@@ -282,7 +282,6 @@ dependencies = [
  "leanvm_core",
  "primitives",
  "rand",
- "verifier",
 ]
 
 [[package]]
@@ -294,7 +293,6 @@ dependencies = [
  "pcs",
  "primitives",
  "rand",
- "serde",
  "tracing",
 ]
 
@@ -322,7 +320,6 @@ dependencies = [
  "primitives",
  "rand",
  "rec_aggregation",
- "serde",
  "signatures",
  "tracing",
 ]
@@ -402,7 +399,6 @@ name = "pcs"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "fiat_shamir",
  "parallel",
  "primitives",
@@ -429,7 +425,6 @@ name = "primitives"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "parallel",
  "primitives",
  "rand",
@@ -495,6 +490,7 @@ name = "rec_aggregation"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "fiat_shamir",
  "keccak_gkr",
  "lean_compiler",
  "lean_da",

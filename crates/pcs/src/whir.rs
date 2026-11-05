@@ -30,6 +30,7 @@ use primitives::field::{
     Acc8, F64, F192, F192Unreduced, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext,
     powers,
 };
+use primitives::multilinear::{eq_table, interp};
 
 pub use super::whir_config::{
     FinalBlockConfig, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
@@ -45,27 +46,6 @@ use crate::whir_ntt_ext::*;
 // ===================================================================
 // Multilinear helpers over E
 // ===================================================================
-
-/// Build the eq-MLE table at `point`, LSB-first, without dispatching to the worker pool.
-pub fn build_eq_table_ext(point: &[F192]) -> Vec<F192> {
-    let d = point.len();
-    let mut out: Vec<F192> = Vec::with_capacity(1usize << d);
-    out.push(F192::ONE);
-    for j in 0..d {
-        let r_j = point[j];
-        let len = 1usize << j;
-        out.resize(2 * len, F192::ZERO);
-        for i in 0..len {
-            let v = out[i];
-            let high = v * r_j;
-            out[i + len] = high;
-            out[i] = v + high;
-        }
-    }
-    out
-}
-
-use primitives::multilinear::eq_table as build_eq_table_ext_parallel;
 
 /// Mixed inner product `Σ_i b[i] · witness[i]` (E x K via `mul_base`). The
 /// evaluation-claim `target` for a K-witness against an E-basis.
@@ -329,21 +309,14 @@ impl RoundQuad {
     }
 }
 
-/// Characteristic-two interpolation `x0·(1+r) + x1·r = x0 + r·(x0+x1)`: one product rather
-/// than two, bit-identical, and still just one reduction.
-#[inline]
-fn fold_pair(x0: F192, x1: F192, r: F192) -> F192 {
-    x0 + r * (x0 + x1)
-}
-
-/// [`fold_pair`] against an absent partner: the lane rounds pair the last lane with the
+/// A fold against an absent partner: the lane rounds pair the last lane with the
 /// stacked witness's zero padding, so the interpolation collapses to `x0·(1+r)`.
 #[inline]
 fn fold_lone(x0: F192, r: F192) -> F192 {
     x0 + r * x0
 }
 
-/// `out[j] = fold_pair(x[2j], x[2j + 1], r)`.
+/// `out[j] = interp(x[2j], x[2j + 1], r)`.
 #[inline]
 fn fold_adjacent(out: &mut [F192], x: &[F192], r: F192) {
     let (o8, o_r) = out.as_chunks_mut::<8>();
@@ -353,7 +326,7 @@ fn fold_adjacent(out: &mut [F192], x: &[F192], r: F192) {
         *d = fold_pairs8_ext(&even, &odd, r);
     }
     for (d, p) in o_r.iter_mut().zip(x_r.as_chunks::<2>().0.iter()) {
-        *d = fold_pair(p[0], p[1], r);
+        *d = interp(p[0], p[1], r);
     }
 }
 
@@ -642,7 +615,7 @@ pub(crate) struct InitialBasis {
     pub(crate) lift: Terms,
 }
 
-/// `out[i] = fold_pair(x0[i], x1[i], r)`, eight at a time where the multiplier is wide.
+/// `out[i] = interp(x0[i], x1[i], r)`, eight at a time where the multiplier is wide.
 #[inline]
 fn fold_pairs_batched(out: &mut [F192], x0: &[F192], x1: &[F192], r: F192) {
     let (o8, o_r) = out.as_chunks_mut::<8>();
@@ -651,7 +624,7 @@ fn fold_pairs_batched(out: &mut [F192], x0: &[F192], x1: &[F192], r: F192) {
         *d = fold_pairs8_ext(a, b, r);
     }
     for ((d, &a), &b) in o_r.iter_mut().zip(a_r).zip(b_r) {
-        *d = fold_pair(a, b, r);
+        *d = interp(a, b, r);
     }
 }
 
@@ -732,7 +705,7 @@ fn fold_all_lanes(
     lift: &(impl Fn(usize, &[F192], &mut [F192]) -> (Acc8, Acc8) + Sync),
 ) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     const TASK: usize = 32;
-    let weights = primitives::multilinear::eq_table(rs);
+    let weights = eq_table(rs);
     let mut sums = (Acc8::ZERO, Acc8::ZERO);
     // Every task streams each of its output blocks below.
     // SAFETY: the fill writes every element before it reads any.
@@ -896,7 +869,7 @@ impl SumcheckProver {
     /// pass as the round message.
     fn introduce_ood(&mut self, z: &[F192]) -> (SumcheckMessage, F192) {
         assert_eq!(1 << z.len(), self.f.len());
-        let b_new = build_eq_table_ext_parallel(z);
+        let b_new = eq_table(z);
         let (msg, h_new) = round_msg_lsb::<true>(&self.f, &b_new);
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         (msg, h_new)
@@ -1085,8 +1058,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // MLE evaluation is introduced into the running sumcheck.
     send_ood(&mut sc_prover, ps, n1, ood_count(1));
 
-    // Query-phase PoW grinding for L0 (0 bits in the production profile; the
-    // canonical 0 nonce is still absorbed to keep the transcript in lockstep).
+    // Query-phase PoW grinding for L0, as for every later level.
     ps.grind(config.grinding_bits[0] as u32);
 
     // Open L0; lane-fold weights = r_lane_fold.
@@ -1268,33 +1240,6 @@ mod tests {
         assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
     }
 
-    /// The parallel eq builder must be byte-identical to the serial one, and
-    /// the seeded variant must equal the seed-scaled table, at sizes on both
-    /// sides of the internal parallel level floor (2^12 halves, so n = 15
-    /// exercises parallel levels; n = 6 stays fully serial).
-    #[test]
-    fn eq_table_parallel_and_seeded_match_serial() {
-        let mut rng = Rng::new(21);
-        for n in [0usize, 1, 6, 13, 15] {
-            let point: Vec<F192> = (0..n).map(|_| rng.ext()).collect();
-            let serial = build_eq_table_ext(&point);
-            assert_eq!(
-                &*build_eq_table_ext_parallel(&point),
-                &serial[..],
-                "parallel mismatch at n={n}"
-            );
-            let g = rng.ext();
-            // SAFETY: the fill writes every element before it reads any.
-            let seeded = unsafe {
-                primitives::filled_vec(1 << n, |seeded| {
-                    primitives::multilinear::fill_eq_table(&point, g, seeded)
-                })
-            };
-            let scaled: Vec<F192> = serial.iter().map(|&e| g * e).collect();
-            assert_eq!(&*seeded, &scaled, "seeded mismatch at n={n}");
-        }
-    }
-
     /// At log_n = 18 the production profile's L0 has log_msg_cols = 12 and
     /// enough queries to trip the sparse transposed-NTT dispatch; the smaller
     /// shape stays on the dense path (cols < 12).
@@ -1447,7 +1392,7 @@ mod tests {
             );
 
             let fold =
-                |x: &[F192]| -> Vec<F192> { x.as_chunks::<2>().0.iter().map(|p| fold_pair(p[0], p[1], r)).collect() };
+                |x: &[F192]| -> Vec<F192> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };
             let (nb_ref, nf_ref) = (fold(&b), fold(&f));
             let (nf, nb, msg) = fold_and_msg_lsb(&f, &b, r);
             assert_eq!(

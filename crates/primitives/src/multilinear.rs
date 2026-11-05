@@ -37,6 +37,12 @@ pub fn eq_table(r: &[F192]) -> Vec<F192> {
     unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_table(r, F192::ONE, eq)) }
 }
 
+/// The `eq(r, ·)` table, built on the calling thread.
+pub fn eq_table_serial(r: &[F192]) -> Vec<F192> {
+    // SAFETY: the fill writes every element before it reads any.
+    unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_doubling(r, F192::ONE, eq)) }
+}
+
 /// Fill `out` with `seed * eq(r, .)`, in LSB-first order. The old contents of `out` are never read.
 ///
 /// A small table doubles a level at a time on the calling thread.
@@ -113,30 +119,12 @@ fn fold_low_k(table: &[F64], chi: F192) -> Vec<F192> {
         .collect()
 }
 
-/// Marginalize the lowest variable out of an `eq` table (in place). `eq(r_0, 0) +
-/// eq(r_0, 1) = 1`, so summing adjacent entries drops `r_0` with no multiplies,
-/// versus `2^{n-1}` to rebuild the table.
-pub fn shrink_eq_low(table: &mut Vec<F192>) {
-    let half = table.len() / 2;
-    {
-        // Through one slice rather than the `Vec`: reading the pair and writing the
-        // sum drops the per-iteration reload and its bounds check. The write index
-        // trails the read, so the in-place walk is sound.
-        let t: &mut [F192] = table;
-        for i in 0..half {
-            let (a, b) = (t[2 * i], t[2 * i + 1]);
-            t[i] = a + b;
-        }
-    }
-    table.truncate(half);
-}
-
-/// Marginalize the highest variable out of an `eq` table (in place), the
-/// [`shrink_eq_low`] counterpart for a top-down sumcheck.
+/// Marginalize the highest variable out of an `eq` table (in place), for a top-down sumcheck.
+/// `eq(r, 0) + eq(r, 1) = 1`, so summing the two halves drops `r` with no multiplies.
 pub fn shrink_eq_high(table: &mut Vec<F192>) {
     let half = table.len() / 2;
     {
-        // Split once, as in `shrink_eq_low`, so the loop pays no reload or bounds check.
+        // Split once, so the loop pays no reload or bounds check.
         let (lo, hi) = (**table).split_at_mut(half);
         for (l, h) in lo.iter_mut().zip(&*hi) {
             *l += *h;

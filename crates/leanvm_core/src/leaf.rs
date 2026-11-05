@@ -774,31 +774,6 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// bus tuple coordinate.
 pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The stacked bytecode polynomial as a dense table: eleven public encoding
-/// columns at their tuple coordinates, padded to sixteen selector slots. One
-/// multilinear polynomial B̃ in `κ_bc + 4` variables, which is what a bus leaf
-/// reads at `(ζ_lo, α⃗)` (§sec:e2e-bc); the outermost verifier evaluates it.
-pub fn stacked_bytecode_table(blocks: &[Block]) -> Vec<F64> {
-    let mut kbc = 0;
-    let mut cols: Vec<&[F64]> = Vec::new();
-    for blk in blocks {
-        for c in &blk.coords {
-            if let Coord::Public(vals) = c {
-                kbc = blk.kappa;
-                cols.push(vals.as_slice());
-            }
-        }
-    }
-    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
-    for (i, vals) in cols.into_iter().enumerate() {
-        let slot = BYTECODE_PUBLIC_SLOT + i;
-        assert!(slot < 1 << N_BYTECODE_SELECTORS, "a public slot is a tuple coordinate");
-        assert_eq!(vals.len(), 1 << kbc);
-        table[(slot << kbc)..((slot + 1) << kbc)].copy_from_slice(vals);
-    }
-    table
-}
-
 /// The three bus sides in `[push, pull, count]` order with their fingerprint
 /// weights. The count channel's leaf is the count itself (a single `Col`), so it
 /// runs at `α⃗ = 0` (weight `1` on slot `0`, zero elsewhere), `β = 0`, and its GKR
@@ -869,9 +844,7 @@ pub(crate) fn prove_balance(
     });
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || {
-        gkr::prove_product_triple(leaves, ps, gkr::RootShape::FirstTwoShared)
-    });
+    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_product_triple(leaves, ps));
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
     // every table block becomes a form for the zerocheck instead.
@@ -1038,7 +1011,7 @@ fn tables_and_prods_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gkr::{Leaves, RootShape, prove_product_triple};
+    use crate::gkr::{Leaves, prove_product_triple};
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
@@ -1140,13 +1113,18 @@ mod tests {
             );
         }
         assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
-        let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
-        let [ps0, ps1] = &mut proofs;
-        let planned = prove_product_triple(built, ps0, RootShape::Distinct);
-        let reference = prove_product_triple(want.map(Leaves::new), ps1, RootShape::Distinct);
-        assert_eq!((planned.point, planned.values), (reference.point, reference.values));
-        let [a, b] = proofs.map(|ps| ps.into_proof().stream);
-        assert_eq!(a, b);
+        // The GKR wants its first two products equal, so each side is paired with itself.
+        let reference = want.map(Leaves::new);
+        for side in [0, 1] {
+            let pick = |l: &[Leaves; 3]| [l[side].clone(), l[side].clone(), l[2].clone()];
+            let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
+            let [ps0, ps1] = &mut proofs;
+            let planned = prove_product_triple(pick(&built), ps0);
+            let reference = prove_product_triple(pick(&reference), ps1);
+            assert_eq!((planned.point, planned.values), (reference.point, reference.values));
+            let [a, b] = proofs.map(|ps| ps.into_proof().stream);
+            assert_eq!(a, b);
+        }
     }
 
     /// The bound is `(N_TUPLE_BITS + 1)·2^mu` plus the GKR terms: only the bus

@@ -8,7 +8,6 @@
 //! transposed-NTT fast path with the dispatch between them.
 
 use crate::ntt::{AdditiveNttF64, transpose_butterfly_lanes};
-use crate::whir::build_eq_table_ext;
 use crate::whir_ntt_ext::words_mut;
 use primitives::field::{F64, F192, Weights8, dot_base};
 
@@ -185,7 +184,7 @@ fn induce_sumcheck_enforced_sum<T: RowElem>(
     queries: &[usize],
     weights: &[F192],
 ) -> F192 {
-    let eq = build_eq_table_ext(v_challenges);
+    let eq = primitives::multilinear::eq_table_serial(v_challenges);
     assert_eq!(opened_rows.len(), queries.len() * eq.len());
     debug_assert_eq!(weights.len(), queries.len());
     let mut sum = F192::ZERO;

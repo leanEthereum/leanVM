@@ -414,14 +414,14 @@ fn stack_buf_rebind_to_scalar() {
     verify(&program, &want, &proof).expect("rebound-scalar program verifies");
 }
 
-/// A StackBuf from the enclosing scope referenced inside a `for` loop cannot be
-/// captured; the compiler rejects it with a clear message (not a misleading
-/// "unbound variable" from the capture being silently dropped).
+/// A StackBuf from the enclosing scope referenced inside a `for` loop is captured
+/// whole: every iteration reads the cells the loop was entered with.
 #[test]
-#[should_panic(expected = "cannot be captured into a `for` loop")]
-fn stack_buf_loop_capture_rejected() {
-    let src = "def main():\n    h = StackBuf(2)\n    h[0] = 1\n    h[1] = 2\n    for i in mul_range(1, GEN ** 4):\n        x = h[0]\n    return\n";
-    let _ = compile(&parse(src).expect("parse"));
+fn stack_buf_loop_capture() {
+    let src = "def main():\n    h = StackBuf(2)\n    h[0] = 5\n    h[1] = 7\n    for i in mul_range(1, GEN ** 4):\n        p = 1\n        p[1] = h[0]\n        p[GEN] = h[1]\n    return\n";
+    let program = compile(&parse(src).expect("parse"));
+    program.execute([F192::from(F64(5)), F192::from(F64(7))]).unwrap();
+    assert!(program.execute([F192::from(F64(5)), F192::from(F64(8))]).is_err());
 }
 
 /// An `@inline` may return a `StackBuf` *and* a scalar together (a tuple bind):

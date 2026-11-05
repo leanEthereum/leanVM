@@ -10,7 +10,7 @@ pub type Hash = [u8; 32];
 /// protocol uses this one split (the commitment root, the public input, the
 /// guest's MD state), so the VM sees one shape everywhere.
 #[inline]
-pub(crate) fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
+pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
     let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
     [
         F192::new(word_at(0), word_at(8), 0),
