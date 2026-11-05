@@ -33,19 +33,19 @@ use leanvm_core::cpu::Program;
 const GOLDEN: &[(&str, &str)] = &[
     ("conditionals", "4f88f144b73dfb5e6453c12fb3f1b20bbc99835d2b7e8b30c0b80a8c4d558c40"),
     ("const_params", "f28aa76ef2b1415821a2573704d2590e8ac85e87d47c795b270a6fa7ff6625bb"),
-    ("fibonacci", "edb68f2529e0a1cb12169b8f629eae2e196a26151917af0d8d8572ded22b3a64"),
+    ("fibonacci", "184585c370a069f11d2e151a2ed31514f48a7b52afb1c49d2d4601aeca245a05"),
     ("hash_heap_chain", "309365f5b90a6cf1fadde436e9df7d6022398b243cdd17f46c1b672044a63bdf"),
     ("hash_slices", "b8f40cefc0466e7be412e27be0fa513ff02bab648dd1c55fcad8b15a8983b5d6"),
     ("heapbuf_dyn", "95e1a69f54106145fc4f845e9076117ba3e891305dc30e20de6e2aa989ecb8e7"),
-    ("hint", "ac78fc8dfcef7129fd40c591da640ed26c1798b4ca435fabe9994571c8fb0bcc"),
-    ("identities", "6b5cdc55c458e318c8ea5b87f7cd212135e44698a0fd397bae5d835fa84b815a"),
+    ("hint", "4a4e977531e9603a9b2c5c4006c5f9289875caf9326d300e6cda53cf581764d9"),
+    ("identities", "622b2661ca39c90b107b0364678a35daff1a2e52d149dd2d7c89160142397a92"),
     ("match", "9b83c42ba7b54d9ff0ed65a070f25ec36c969c3e1f4da050de2d8fa07cd9648e"),
-    ("match_arms", "8a3e18fafab508ce3254c0a05d85a659605bb95d7620dce41e26a88dddbea3d4"),
+    ("match_arms", "253d6694f92e36ec53923921bea01a2c10fdc04c640b042740c3ad55ef3f6b30"),
     ("nested", "fa19f657b534a8bdaf894854617f65d46f35cfd49f0d19e93d2dda7a1f2b1b01"),
-    ("runtime_loop", "187513c18352d40beae1bd224cac7140b9a9c0bf2847a0b4fe86f5982c741757"),
-    ("scoping", "c680d0661bd5b8417ff6615c3b53dde83b15bb6554790429f68e8ed823699587"),
-    ("unroll", "26d5455233a7e92a04dcee57798b2e8091dfd08bfcab9667952431ec20cf5252"),
-    ("wots_walk", "f497f7276970efe06306bb21a324626d615e91ec78fc1d8fd7f9e74c383d4d12"),
+    ("runtime_loop", "ccb3518649d47408ea3611cdee45751008dcad844e67a41bf2135d2c33741d19"),
+    ("scoping", "15adff655932818f7ce52bd225e975fa9d38960a268aeda7af87e0272e75e1cf"),
+    ("unroll", "6d4910546e117da89cb07a53851629341f632490d66c79213aa772ed83cfa191"),
+    ("wots_walk", "af45309de7c7077092da609bc25b60a42dc3b5ac52a39281ffdc0c1198221934"),
 ];
 
 fn digest(p: &Program) -> String {

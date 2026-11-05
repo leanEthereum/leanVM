@@ -581,6 +581,8 @@ impl Program {
                         RHint::Log2Ceil { .. } => "Log2Ceil",
                         RHint::BitDecompose { .. } => "BitDecompose",
                         RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
+                        RHint::DigitDecomposeExp { .. } => "DigitDecomposeExp",
+                        RHint::WindowsExp { .. } => "WindowsExp",
                         RHint::FieldLimbs { .. } => "FieldLimbs",
                         RHint::Inverse { .. } => "Inverse",
                         RHint::Print { .. } => "Print",
@@ -600,6 +602,7 @@ impl Program {
                                     size,
                                     end,
                                     start_inverse,
+                                    tail,
                                 } => {
                                     let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * start_inverse;
                                     if span.is_zero() {
@@ -608,8 +611,9 @@ impl Program {
                                             value: span,
                                         }));
                                     }
-                                    let n = count(&mut g, span).ok_or_else(|| fail(Fault::OutOfMemory))? + 1;
-                                    (ptr, size.checked_mul(n).ok_or_else(|| fail(Fault::OutOfMemory))?)
+                                    let n = count(&mut g, span).ok_or_else(|| fail(Fault::OutOfMemory))?;
+                                    let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+                                    (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                                 }
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells.
@@ -728,6 +732,59 @@ impl Program {
                             for j in 0..*nbits {
                                 let bit = ((n >> j) & 1) as u64;
                                 m.put(bb + j, F192::new(bit, 0, 0))?;
+                            }
+                        }
+                        RHint::WindowsExp {
+                            value,
+                            dest,
+                            at,
+                            start,
+                            width,
+                            count,
+                        } => {
+                            assert!(start + width * count <= 192, "a machine word has 192 bits");
+                            let v = m.get(fp + value);
+                            let limbs = [v.c0, v.c1, v.c2];
+                            let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
+                            for i in 0..*count {
+                                let mut n = 0usize;
+                                for j in 0..*width {
+                                    let bit = start + i * width + j;
+                                    n |= (((limbs[bit as usize / 64] >> (bit % 64)) & 1) as usize) << j;
+                                }
+                                m.put(bb + at + i, F192::from(primitives::field::g_pow(n)))?;
+                            }
+                        }
+                        RHint::DigitDecomposeExp {
+                            value,
+                            dst,
+                            nbits,
+                            ndigits,
+                            digit_bits,
+                            start,
+                            start_cell,
+                        } => {
+                            const WHAT: &str = "hint_decompose_digits_exponent value";
+                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                            let n = bounded_dlog(x, *nbits)
+                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                            let s = match start_cell {
+                                None => *start,
+                                Some(c) => {
+                                    const WHAT: &str = "hint_decompose_digits_exponent start";
+                                    let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
+                                    bounded_dlog(y, 7)
+                                        .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
+                                        as u32
+                                }
+                            };
+                            let bb = bits_base(&m, &mut g, fp, *dst, "hint_decompose_digits_exponent pointer")
+                                .map_err(fail)?;
+                            let mask = (1u128 << digit_bits) - 1;
+                            for j in 0..*ndigits {
+                                let at = s + digit_bits * j;
+                                let d = if at >= 128 { 0 } else { (n >> at) & mask };
+                                m.put(bb + j, F192::from(primitives::field::g_pow(d as usize)))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {

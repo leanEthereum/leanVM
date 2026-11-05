@@ -413,6 +413,63 @@ impl FnLower<'_> {
                     RHint::BitDecomposeExp { value, bits, nbits }
                 }));
             }
+            "hint_windows_exponent" => {
+                if !(5..=6).contains(&args.len()) {
+                    self.fail(format!(
+                        "{f} takes `(dest, value, start, width, count[, at])`, got {} arguments",
+                        args.len()
+                    ))
+                };
+                let start = self.const_index(&args[2]);
+                let width = self.const_index(&args[3]);
+                let count = self.const_index(&args[4]);
+                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width * count) > 192 {
+                    self.fail(format!("{f}: windows of 1..=16 bits inside a 192-bit word"))
+                };
+                let at = args.get(5).map_or(0, |at| self.const_index(at));
+                let dest = self.bits_dest(&args[0], at + count, f);
+                let value = self.expr(&args[1]);
+                self.pending.push(Hint::Resolved(RHint::WindowsExp {
+                    value,
+                    dest,
+                    at,
+                    start,
+                    width,
+                    count,
+                }));
+            }
+            "hint_decompose_digits_exponent" => {
+                // (dest, value, nbits, ndigits, digit_bits, start): g^digit for the
+                // base-2^digit_bits digits of n >> start, value = g^n, n < 2^nbits; start
+                // a compile-time integer or a runtime g-power g^start.
+                if args.len() != 6 {
+                    self.fail(format!(
+                        "{f} takes `(dest, value, nbits, ndigits, digit_bits, start)`, got {} arguments",
+                        args.len()
+                    ))
+                };
+                let nbits = self.const_index(&args[2]);
+                let ndigits = self.const_index(&args[3]);
+                let digit_bits = self.const_index(&args[4]);
+                if nbits > 64 || !(1..=16).contains(&digit_bits) {
+                    self.fail(format!("{f}: nbits <= 64 and 1 <= digit_bits <= 16"))
+                }
+                let dst = self.bits_dest(&args[0], ndigits, f);
+                let value = self.expr(&args[1]);
+                let (start, start_cell) = match self.try_const_index(&args[5]) {
+                    Some(k) => (k, None),
+                    None => (0, Some(self.expr(&args[5]))),
+                };
+                self.pending.push(Hint::Resolved(RHint::DigitDecomposeExp {
+                    value,
+                    dst,
+                    nbits,
+                    ndigits,
+                    digit_bits,
+                    start,
+                    start_cell,
+                }));
+            }
             "keccak" => self.lower_keccak(args),
             "keccak_cells" => self.lower_keccak_cells(args),
             "assert_in_k" => {
@@ -423,6 +480,16 @@ impl FnLower<'_> {
                 let b = self.expr(&args[1]);
                 let zero = self.zero();
                 self.emit(LOp::Jump { oc: zero, od: a, of: b });
+            }
+            "assert_gpow" => {
+                // One `DEREF` through `x`: the memory bus then proves `x = g^e` with
+                // `e < 2^h`, the lower half of a range check, its target a touch cell.
+                if args.len() != 1 {
+                    self.fail("assert_gpow(x) takes one scalar cell")
+                };
+                let x = self.expr(&args[0]);
+                let t = self.fresh();
+                self.deref(x, 0, t, DerefMode::Cell);
             }
             "hint_f192_limbs" => {
                 if args.len() != 2 {
@@ -524,7 +591,7 @@ impl FnLower<'_> {
     /// The five cells `[pad, 0, 0, 0, 0]` every `keccak` in this scope shares
     /// ([`Scope::keccak_pad`]): the zero `tail` and `cap` start at `+1`, a 64-byte message's
     /// `tail` at `+0`. Set, never left unwritten: an unwritten cell is the prover's.
-    fn keccak_pad_run(&mut self) -> Off {
+    pub(super) fn keccak_pad_run(&mut self) -> Off {
         if let Some(o) = self.scope.keccak_pad {
             return o;
         }
@@ -586,6 +653,11 @@ const STATE_CELLS: u32 = leanvm_core::keccak::STATE_CELLS as u32;
 const BLOCK_CELLS: u32 = leanvm_core::keccak::RATE_CELLS as u32;
 /// Bytes a block absorbs.
 const RATE: usize = primitives::hash::RATE;
+
+/// The last rate lane of a 64-byte message's one block: the padding's closing `0x80` byte.
+pub(super) fn two_to_one_close() -> F192 {
+    F192::new(0x80 << 56, 0, 0)
+}
 
 /// A cell holding the padding's first byte at its start: `0x01` in the low lane.
 fn keccak_pad_value() -> F192 {
