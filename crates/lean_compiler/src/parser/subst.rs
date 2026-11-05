@@ -20,27 +20,37 @@ use super::*;
 /// arm or an `unroll` body ([`rebinds_in_block`]), whose bindings may outlive
 /// the block, and a `mul_range` body's never do.
 pub(crate) fn subst_stmts(stmts: &[Stmt], name: &str, to: &Expr) -> Vec<Stmt> {
-    let mut rest = stmts.iter();
+    subst_all(stmts, &[(name, to)])
+}
+
+/// [`subst_stmts`] for several names at once, in one copy of the tree. Each name
+/// stops at its own rebinding. The same as substituting them one after another
+/// when no replacement mentions another name, as for the literals a `Const`
+/// call substitutes.
+pub(crate) fn subst_all(stmts: &[Stmt], subs: &[(&str, &Expr)]) -> Vec<Stmt> {
+    let mut active = subs.to_vec();
     let mut out = Vec::with_capacity(stmts.len());
-    for s in rest.by_ref() {
-        out.push(s.at(subst_kind(&s.kind, name, to)));
-        if binds(&s.kind, name) {
-            break;
+    for s in stmts {
+        if active.is_empty() {
+            out.push(s.clone());
+            continue;
         }
+        out.push(s.at(subst_kind(&s.kind, &active)));
+        active.retain(|(name, _)| !binds(&s.kind, name));
     }
-    out.extend(rest.cloned());
     out
 }
 
-fn subst_kind(s: &StmtKind, name: &str, to: &Expr) -> StmtKind {
-    let e = |x: &Expr| subst_var(x, name, to);
+fn subst_kind(s: &StmtKind, subs: &[(&str, &Expr)]) -> StmtKind {
+    let e = |x: &Expr| subst_vars(x, subs);
     let es = |xs: &[Expr]| xs.iter().map(e).collect();
-    // A loop counter named `name` shadows it in the body.
+    // A loop counter shadows a name of its own in the body.
     let body = |var: &str, body: &[Stmt]| {
-        if var == name {
-            body.to_vec()
+        if subs.iter().any(|(name, _)| *name == var) {
+            let rest: Vec<_> = subs.iter().copied().filter(|(name, _)| *name != var).collect();
+            subst_all(body, &rest)
         } else {
-            subst_stmts(body, name, to)
+            subst_all(body, subs)
         }
     };
     match s {
@@ -97,8 +107,8 @@ fn subst_kind(s: &StmtKind, name: &str, to: &Expr) -> StmtKind {
             eq: *eq,
             lhs: e(lhs),
             rhs: e(rhs),
-            then: subst_stmts(then, name, to),
-            els: subst_stmts(els, name, to),
+            then: subst_all(then, subs),
+            els: subst_all(els, subs),
             force_const: *force_const,
         },
         // A name target is a binder, so it is never substituted: rewriting it
@@ -118,9 +128,16 @@ fn subst_kind(s: &StmtKind, name: &str, to: &Expr) -> StmtKind {
 /// `e` with every `Var(name)` replaced by `to`: the `match` arm
 /// expansion, where the lambda parameter becomes the arm's integer literal.
 pub(crate) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
-    let s = |b: &Expr| Box::new(subst_var(b, name, to));
+    subst_vars(e, &[(name, to)])
+}
+
+fn subst_vars(e: &Expr, subs: &[(&str, &Expr)]) -> Expr {
+    let s = |b: &Expr| Box::new(subst_vars(b, subs));
     match e {
-        Expr::Var(v) if v == name => to.clone(),
+        Expr::Var(v) => match subs.iter().find(|(name, _)| name == v) {
+            Some((_, to)) => (*to).clone(),
+            None => e.clone(),
+        },
         Expr::Add(a, b) => Expr::Add(s(a), s(b)),
         Expr::Mul(a, b) => Expr::Mul(s(a), s(b)),
         Expr::Sub(a, b) => Expr::Sub(s(a), s(b)),
@@ -132,14 +149,19 @@ pub(crate) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
         Expr::GenPow(e) => Expr::GenPow(s(e)),
         Expr::Pow(a, b) => Expr::Pow(s(a), s(b)),
         Expr::HeapBufDyn(sz) => Expr::HeapBufDyn(s(sz)),
-        Expr::ListLit(es) => Expr::ListLit(es.iter().map(|a| subst_var(a, name, to)).collect()),
+        Expr::ListLit(es) => Expr::ListLit(es.iter().map(|a| subst_vars(a, subs)).collect()),
         Expr::ListComp(body, var, lo, hi) => Expr::ListComp(
-            if var == name { body.clone() } else { s(body) },
+            if subs.iter().any(|(name, _)| name == var) {
+                let rest: Vec<_> = subs.iter().copied().filter(|(name, _)| name != var).collect();
+                Box::new(subst_vars(body, &rest))
+            } else {
+                s(body)
+            },
             var.clone(),
             s(lo),
             s(hi),
         ),
-        Expr::Call(f, args) => Expr::Call(f.clone(), args.iter().map(|a| subst_var(a, name, to)).collect()),
+        Expr::Call(f, args) => Expr::Call(f.clone(), args.iter().map(|a| subst_vars(a, subs)).collect()),
         other => other.clone(),
     }
 }
