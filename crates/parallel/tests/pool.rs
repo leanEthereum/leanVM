@@ -65,21 +65,6 @@ fn chunks_mut_hands_out_disjoint_slices() {
 }
 
 #[test]
-fn chunks_mut2_stays_in_lockstep() {
-    let mut a = vec![0usize; 3_000];
-    let mut b = vec![0usize; 3_000];
-    parallel::chunks_mut2(&mut a, &mut b, 128, |ci, sa, sb| {
-        assert_eq!(sa.len(), sb.len());
-        for (k, (x, y)) in sa.iter_mut().zip(sb.iter_mut()).enumerate() {
-            *x = ci * 128 + k;
-            *y = 2 * (ci * 128 + k);
-        }
-    });
-    assert!(a.iter().enumerate().all(|(i, &v)| v == i));
-    assert!(b.iter().enumerate().all(|(i, &v)| v == 2 * i));
-}
-
-#[test]
 fn for_each_mut_reports_global_indices() {
     let mut data = vec![0usize; 7_777];
     parallel::for_each_mut(&mut data, |i, slot| *slot = i * 3);

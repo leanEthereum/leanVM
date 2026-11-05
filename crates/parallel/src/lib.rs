@@ -369,20 +369,6 @@ where
     for_each_chunks_mut([data], [chunk], |i, [sub]| f(i, sub));
 }
 
-/// Parallel `a.chunks_mut(chunk).zip(b.chunks_mut(chunk))`, for the kernels that
-/// fold two tables in lockstep. `a` and `b` must have equal length.
-pub fn chunks_mut2<A: Send, B: Send, F>(a: &mut [A], b: &mut [B], chunk: usize, f: F)
-where
-    F: Fn(usize, &mut [A], &mut [B]) + Sync,
-{
-    assert_eq!(a.len(), b.len(), "chunks_mut2: slices differ in length");
-    let b_view = Chunks::new(b, chunk);
-    chunks_mut(a, chunk, |i, sub| {
-        // SAFETY: `b` has the length of `a`, so chunk `i` of `b` exists, and task `i` takes it once.
-        f(i, sub, unsafe { b_view.get(i) });
-    });
-}
-
 /// A `chunks_mut` view that can be handed to tasks: `chunk(i)` is item `i`'s
 /// slice. Composes to any number of buffers, which the zip-based helpers do not:
 /// a kernel writing four tables at two different widths builds one of these per
