@@ -21,6 +21,8 @@
 //! Soundness note: [`WhirSecurityConfig`] analyzes the actual challenge
 //! field size `q = 2^192`; the committed alphabet remains `K = GF(2^64)`.
 
+use std::sync::OnceLock;
+
 use crate::merkle::{self, Hash};
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
@@ -125,7 +127,19 @@ pub struct ProverData {
 ///   opening a rebuild from the stack and the encode a second stage fill.
 /// - Above it, the codeword dominates the peak: when one gathered pass covers the layers before the deep pass,
 ///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
-const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
+/// - `LEANVM_CODEWORD_BUDGET_MIB` overrides the default, in MiB.
+/// - A larger budget buys a faster commit and opening with peak memory.
+fn keep_codeword_max_bytes() -> usize {
+    const DEFAULT_MIB: usize = 1 << 10;
+    static MAX_BYTES: OnceLock<usize> = OnceLock::new();
+    *MAX_BYTES.get_or_init(|| {
+        let mib = std::env::var("LEANVM_CODEWORD_BUDGET_MIB").map_or(DEFAULT_MIB, |v| {
+            v.parse()
+                .unwrap_or_else(|_| panic!("LEANVM_CODEWORD_BUDGET_MIB must be a whole number of MiB, not {v:?}"))
+        });
+        mib.saturating_mul(1 << 20)
+    })
+}
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
 /// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
@@ -168,7 +182,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
             let keep = if !primitives::REBUILD_OVER_STORE {
                 Keep::Whole
-            } else if n_positions * row_words * size_of::<F64>() > KEEP_CODEWORD_MAX_BYTES {
+            } else if n_positions * row_words * size_of::<F64>() > keep_codeword_max_bytes() {
                 Keep::Nothing
             } else {
                 Keep::BeforeDeep
