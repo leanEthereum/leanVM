@@ -3587,41 +3587,6 @@ def main():
         }
     }
 
-    /// What one blob-carrying proof costs, at the shape EIP-4844 and EIP-7594 fix.
-    /// Reported, not asserted: run it by name when the shape or the sweep changes.
-    #[test]
-    #[ignore]
-    fn da_blob_proof() {
-        leanvm_core::init_prover();
-        let signers = get_signers(SMALL_LEAF_SIZE);
-        // One discarded proof: the first pays the guest build and the
-        // allocator's page faults, which would otherwise land entirely on the first row
-        // count reported.
-        warm_up();
-        println!(
-            "bytecode: {} instructions, DA_MAX_ROWS = {DA_MAX_ROWS}",
-            unified_guest().prog.len()
-        );
-        let _ = aggregate_with_stats(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE);
-        for n_rows in [1usize, 6, 14, 32] {
-            let rows = da_rows(n_rows, 300 + n_rows as u64);
-            let started = std::time::Instant::now();
-            let (node, stats) = aggregate_with_stats(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE)
-                .expect("node aggregates");
-            let elapsed = started.elapsed();
-            let payload = n_rows * (1 << DA_LOG_K) * 8;
-            println!(
-                "{n_rows:>3} blobs ({:>5} KiB): {:>8.2?}  {:>6.0} KiB/s  cycles 2^{:.1}  mem 2^{:.1}  proof {:.0} KiB",
-                payload / 1024,
-                elapsed,
-                payload as f64 / 1024.0 / elapsed.as_secs_f64(),
-                (stats.cycles as f64).log2(),
-                (stats.mem_used as f64).log2(),
-                node.to_bytes().len() as f64 / 1024.0,
-            );
-        }
-    }
-
     /// A leaf carrying no payload publishes zeros for its root.
     #[test]
     fn no_payload_publishes_no_root() {

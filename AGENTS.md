@@ -49,6 +49,7 @@ cargo testall                     # release workspace tests
 cargo clippyall                   # clippy, -D warnings
 cargo docall                      # rustdoc, -D warnings
 cargo fmt --all                   # max_width = 120
+cargo machete --with-metadata     # unused dependencies, dev ones included
 ruff format --line-length 150 python-verifier/verifier.py   # and `ruff check` it
 ```
 
