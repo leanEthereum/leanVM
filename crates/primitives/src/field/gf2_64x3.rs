@@ -714,9 +714,26 @@ pub mod x86_64 {
         }
     }
 
+    /// `g(spill)` per top nibble `n` of a high word, in each 128-bit lane (see `G_SPILL`'s 512-bit
+    /// form): `spill = n ^ n>>1 ^ n>>3` are the bits that `g(hi)` pushes past x^63.
+    #[cfg(target_feature = "avx2")]
+    static G_SPILL_256: [u8; 32] = {
+        let mut t = [0u8; 32];
+        let mut i = 0;
+        while i < 32 {
+            let n = (i % 16) as u8;
+            let spill = n ^ (n >> 1) ^ (n >> 3);
+            t[i] = spill ^ (spill << 1) ^ (spill << 3) ^ (spill << 4);
+            i += 1;
+        }
+        t
+    };
+
     /// Lane-wise base reduction: qword `i` of the result is the reduction of `hi[i] * x^64 + lo[i]`.
     ///
-    /// The same shift network as the scalar reduction, applied to every qword at once.
+    /// `lo ^ g(hi) ^ g(spill)`, with `g(y) = y ^ y<<1 ^ y<<3 ^ y<<4 = z ^ z<<3` for `z = y ^ y<<1`, and
+    /// `g(spill)` one in-lane byte lookup on the top nibble of `hi`: three shifts and a shuffle instead
+    /// of the shift network's six shifts.
     ///
     /// # Safety
     ///
@@ -725,18 +742,14 @@ pub mod x86_64 {
     #[inline]
     #[target_feature(enable = "avx2")]
     pub fn reduce_lanes256(lo: __m256i, hi: __m256i) -> __m256i {
-        // The bits of `hi * 0x1B` shifted past x^63.
-        let spill = _mm256_xor_si256(
-            _mm256_xor_si256(_mm256_srli_epi64::<63>(hi), _mm256_srli_epi64::<61>(hi)),
-            _mm256_srli_epi64::<60>(hi),
-        );
-        // lo ^ g(hi ^ spill), with g(v) = v ^ v<<1 ^ v<<3 ^ v<<4.
-        let v = _mm256_xor_si256(hi, spill);
-        let g = _mm256_xor_si256(
-            _mm256_xor_si256(v, _mm256_slli_epi64::<1>(v)),
-            _mm256_xor_si256(_mm256_slli_epi64::<3>(v), _mm256_slli_epi64::<4>(v)),
-        );
-        _mm256_xor_si256(lo, g)
+        // SAFETY: a 32-byte read of a 32-byte static.
+        let table = unsafe { _mm256_loadu_si256(G_SPILL_256.as_ptr().cast()) };
+        let g_spill = _mm256_shuffle_epi8(table, _mm256_srli_epi64::<60>(hi));
+        let z = _mm256_xor_si256(hi, _mm256_slli_epi64::<1>(hi));
+        _mm256_xor_si256(
+            _mm256_xor_si256(lo, z),
+            _mm256_xor_si256(g_spill, _mm256_slli_epi64::<3>(z)),
+        )
     }
 
     /// Qword `i` is the reduction of lane `i`'s 128-bit product, `even` holding those of the even

@@ -244,8 +244,12 @@ pub unsafe fn block(
         store(round, &u);
         for lane in 0..LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
-            for z in 0..64 {
-                state[a + z] = std::array::from_fn(|i| u[a + z][i] ^ (!u[b + z][i] & u[c + z][i]));
+            // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
+            // over them, which vectorizes with plain loads (by position, it took gathers).
+            let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
+            let (ua, ub, uc) = (flat(a), flat(b), flat(c));
+            for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
+                *s = ua[k] ^ (!ub[k] & uc[k]);
             }
         }
         for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {
