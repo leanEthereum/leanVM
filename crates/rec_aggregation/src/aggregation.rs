@@ -219,7 +219,7 @@ fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F192; 4] {
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DeferredClaim {
+pub(crate) struct DeferredClaim {
     bytecode_point: Vec<F192>,
     bytecode_value: F192,
 }

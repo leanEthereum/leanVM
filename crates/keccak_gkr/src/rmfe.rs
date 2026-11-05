@@ -33,8 +33,8 @@ pub struct Rmfe {
     /// `embed` of each unit vector.
     pub emb: [u32; PACK],
     /// `embed` of a low byte and of a high byte.
-    pub emb_lo: [u32; 256],
-    pub emb_hi: [u32; 256],
+    pub(crate) emb_lo: [u32; 256],
+    pub(crate) emb_hi: [u32; 256],
     /// Bit `i` of `project(p)` is the parity of `p & proj[i]`.
     pub proj: [u64; PACK],
     /// `embed` of all ones.

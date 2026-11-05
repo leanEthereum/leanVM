@@ -173,7 +173,7 @@ pub struct FillCtx<'a> {
 
 /// Where one column's values go: its window in the stacked witness, or a private
 /// buffer if the column is virtual.
-pub type ColumnOut<'a> = &'a mut [F64];
+pub(crate) type ColumnOut<'a> = &'a mut [F64];
 
 impl<'a> FillCtx<'a> {
     pub(crate) fn new(

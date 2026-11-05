@@ -187,7 +187,7 @@ impl Program {
 
     /// The compiled function containing `pc`. [`Self::site_at`] wraps this with
     /// the source line when one is known.
-    pub fn fn_at(&self, pc: u32) -> &str {
+    pub(crate) fn fn_at(&self, pc: u32) -> &str {
         self.fn_ranges
             .iter()
             .find(|(_, entry, len)| pc >= *entry && pc < *entry + *len)

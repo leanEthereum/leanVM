@@ -5,4 +5,4 @@
 pub const LOG_PACKING: usize = 6;
 
 /// Packing width (number of bits per F_{2^64} element).
-pub const PACKING_WIDTH: usize = 1 << LOG_PACKING;
+pub(crate) const PACKING_WIDTH: usize = 1 << LOG_PACKING;

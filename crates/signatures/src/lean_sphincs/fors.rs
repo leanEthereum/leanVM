@@ -24,10 +24,10 @@ impl ForsTreeOpening {
     }
 }
 
-pub type ForsOpening = [ForsTreeOpening; FORS_TREES];
+pub(crate) type ForsOpening = [ForsTreeOpening; FORS_TREES];
 
 /// The FORS key: the two top nodes of every tree, left first.
-pub type ForsKey = [[Digest; 2]; FORS_TREES];
+pub(crate) type ForsKey = [[Digest; 2]; FORS_TREES];
 
 /// The secrets of leaves `2p` and `2p + 1` of tree `c`: the two halves of one
 /// hash of the seed.

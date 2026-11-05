@@ -36,7 +36,7 @@ pub const SLOTS: usize = MIN_SHAPE.slots();
 pub const MIN_STEPS: usize = MIN_SHAPE.n();
 
 /// `log2` of the steps the reduction proves for `n` executed ones.
-pub fn n_steps_log(n: usize) -> usize {
+pub(crate) fn n_steps_log(n: usize) -> usize {
     shape(n).n_log()
 }
 
@@ -54,7 +54,7 @@ pub const STATE_CELLS: usize = 13;
 /// The rate cells of a state, the nine a block of a message laid out in cells covers.
 pub const RATE_CELLS: usize = 9;
 /// Cells one `KECCAK` row touches: thirteen read, thirteen written.
-pub const ROW_CELLS: usize = 2 * STATE_CELLS;
+pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
 
 /// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd
 /// one, `None` marking a limb that holds no lane: nine rate cells, lanes `0..16` two to a cell
@@ -80,7 +80,7 @@ pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CEL
 }
 
 /// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
-pub fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
+pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
     // The layout is a constant, so the loop compiles to straight-line moves.
     fn read<const ODD: bool>(cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
         let mut s = [0; STATE_LANES];
@@ -100,7 +100,7 @@ pub fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; STATE_LA
 }
 
 /// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
-pub fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] {
+pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] {
     let lanes = cell_lanes(odd);
     std::array::from_fn(|c| {
         let (lo, hi) = lanes[c];

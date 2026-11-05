@@ -43,14 +43,14 @@ cfg_select! {
 }
 
 /// Packs in a block position.
-pub const PACKS: usize = 32;
+pub(crate) const PACKS: usize = 32;
 /// Packs the bit-level rounds fold together: half a block.
 pub const GROUP: usize = 16;
 /// Variables indexing the packs of a group.
-pub const SKIP: usize = 4;
+pub(crate) const SKIP: usize = 4;
 /// Points of `{0, 1, infinity}^SKIP`, and those of them with a coordinate at infinity.
-pub const TERNARY: usize = 3usize.pow(SKIP as u32);
-pub const MIXED: usize = TERNARY - GROUP;
+pub(crate) const TERNARY: usize = 3usize.pow(SKIP as u32);
+pub(crate) const MIXED: usize = TERNARY - GROUP;
 /// The mixed points of a block position's two groups, rounded up to whole vectors.
 pub const SLOTS: usize = (2 * MIXED).next_multiple_of(8);
 
@@ -58,7 +58,7 @@ pub const SLOTS: usize = (2 * MIXED).next_multiple_of(8);
 /// them: entry `i` of a run of eight sits at `lane(i)`.
 #[derive(Clone, Copy)]
 #[repr(C, align(64))]
-pub struct Lanes(pub [u128; 4]);
+pub struct Lanes(pub(crate) [u128; 4]);
 
 /// The [`Lanes`] of entry `i`, and its lane there.
 #[inline(always)]
@@ -68,7 +68,7 @@ const fn lane(i: usize) -> (usize, usize) {
 
 /// Per mixed point of each group, the sum over positions of `weight * product`, as three
 /// partial products.
-pub struct SkipAcc(pub [[Lanes; SLOTS / 4]; 3]);
+pub struct SkipAcc(pub(crate) [[Lanes; SLOTS / 4]; 3]);
 
 impl SkipAcc {
     pub fn new() -> Box<Self> {
@@ -107,7 +107,7 @@ pub const fn slot(half: usize, i: usize) -> usize {
 /// the low variables have five mixed points: four filling a vector, and the sum of all four
 /// lanes. The outputs are the new vectors' binary points, every vector's four low mixed points,
 /// then every vector's lane sum; [`mixed_points`] names each by its ternary digits.
-pub fn extend_group(v: &[u32; GROUP]) -> [u32; MIXED] {
+pub(crate) fn extend_group(v: &[u32; GROUP]) -> [u32; MIXED] {
     let q = |k: usize| -> [u32; 4] { v[4 * k..][..4].try_into().unwrap() };
     let x = |a: [u32; 4], b: [u32; 4]| -> [u32; 4] { std::array::from_fn(|l| a[l] ^ b[l]) };
     let (w4, w5) = (x(q(0), q(1)), x(q(2), q(3)));
@@ -125,7 +125,7 @@ pub fn extend_group(v: &[u32; GROUP]) -> [u32; MIXED] {
 
 /// The ternary index of each output of [`extend_group`]: variable `k`'s point is its `k`-th
 /// digit, with infinity as 2.
-pub fn mixed_points() -> [usize; MIXED] {
+pub(crate) fn mixed_points() -> [usize; MIXED] {
     let index = |(c0, c1): (usize, usize), (c2, c3): (usize, usize)| c0 + 3 * c1 + 9 * c2 + 27 * c3;
     std::array::from_fn(|i| match i {
         0..20 => index(((i % 4) & 1, (i % 4) >> 1), HIGH[4 + i / 4]),
@@ -198,7 +198,7 @@ pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u
 /// For both groups of a block position, `sum over the group's packs of weights[.][q] * e[q]`,
 /// as three partial products.
 #[inline(always)]
-pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[u128; 3]; 2] {
+pub(crate) fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[u128; 3]; 2] {
     simd::fold_groups(e, weights)
 }
 
@@ -259,11 +259,11 @@ cfg_select! {
         target_feature = "vpclmulqdq",
         target_feature = "gfni"
     ) => {
-        pub use x86::SkipBlock;
+        pub(crate) use x86::SkipBlock;
     }
     _ => {
         /// [`skip_row`] over every row and slice of a block, a position at a time.
-        pub struct SkipBlock {
+        pub(crate) struct SkipBlock {
             acc: Box<SkipAcc>,
             extended: [[u32; SLOTS]; 5],
         }

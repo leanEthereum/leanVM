@@ -124,7 +124,7 @@ impl AdditiveNttF64 {
     /// - The codeword equals the in-place encode's, and every word is written before it is read.
     /// - With `defer_deep`, the deep pass is not written back: each deep sub-block is finished in scratch
     ///   and handed to `on_rows` from there, and the codeword is kept [`Codeword::BeforeDeep`].
-    pub fn encode_interleaved_with(
+    pub(crate) fn encode_interleaved_with(
         &self,
         msg: &[F64],
         num_ntts: usize,
