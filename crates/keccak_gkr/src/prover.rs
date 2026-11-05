@@ -15,7 +15,14 @@ use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::basis::{PolyEval, add_mul, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, fold_groups, mixed_points, products, slot};
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "gfni"
+)))]
+use crate::kernels::fold_groups;
+use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at, sum};
@@ -429,6 +436,13 @@ impl Layer<'_> {
         let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
         let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
         let weights = self.task_weights(eq);
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "gfni"
+        ))]
+        let maps = crate::table_gfni::Maps::new(field, &fold);
         // Rows of segments that do not exist are zero, and so is their product.
         table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(0);
         pads[self.rounds.len() * ROW..].fill(0);
@@ -452,7 +466,24 @@ impl Layer<'_> {
                 };
                 let rows = &mut rows[..out.len()];
                 let halves = rows.len() / ROW;
+                // With GFNI, each group's value by affine byte maps (`table_gfni`), the same rows.
+                #[cfg(all(
+                    target_arch = "x86_64",
+                    target_feature = "avx512f",
+                    target_feature = "avx512bw",
+                    target_feature = "gfni"
+                ))]
+                {
+                    let _ = &wide;
+                    maps.rows(block, rows, halves);
+                }
                 // Both groups' unreduced sums, four words each and laid out by word.
+                #[cfg(not(all(
+                    target_arch = "x86_64",
+                    target_feature = "avx512f",
+                    target_feature = "avx512bw",
+                    target_feature = "gfni"
+                )))]
                 for j in 0..BITS {
                     let sums = fold_groups(&embed(words(block, j)), &fold);
                     for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
@@ -462,6 +493,12 @@ impl Layer<'_> {
                         }
                     }
                 }
+                #[cfg(not(all(
+                    target_arch = "x86_64",
+                    target_feature = "avx512f",
+                    target_feature = "avx512bw",
+                    target_feature = "gfni"
+                )))]
                 for (t, wide) in rows
                     .as_chunks_mut::<ROW>()
                     .0
