@@ -63,7 +63,7 @@ G(\kpt)&\qeq\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\,G_{p,j}(\kpt
 
 with $\kwsum'=\kemb_{\allone}(\kpt)$.
 
-\paragraph{3. Sumcheck.} A sumcheck proves the right side above (first on the $\kbatch-4$ bits of $p$, then on the $11$ bits of $j$). It ends at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, and the verifier has to evaluate:
+\paragraph{3. Sumcheck.} A degree-three sumcheck proves the right side above (first on the $\kbatch-4$ bits of $p$, then on the $11$ bits of $j$). It ends at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, and the verifier has to evaluate:
 \[
 \eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),\qquad
 \kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt),
