@@ -43,4 +43,19 @@ def AdaptiveFreshDigestCollisionWith (initialCache finalCache : QueryCache HashS
       Concrete.CacheView.digestAt finalCache input =
         Concrete.CacheView.digestAt finalCache (targetInput input)
 
+/-- The event, with the target input named by an equation and the outputs typed `HashOutput`.
+At concrete inputs the anonymous constructor makes the kernel compare the output types of two
+different inputs, unfolding both inputs first; over free inputs that comparison is immediate. -/
+theorem AdaptiveFreshDigestCollisionWith.of_target {initialCache finalCache : QueryCache HashSpec}
+    {targetInput : HashInput → HashInput} {input honestInput : HashInput}
+    {output honestOutput : HashOutput}
+    (hcached : finalCache input = some output) (hfresh : initialCache input = none)
+    (htarget : targetInput input = honestInput)
+    (hhonest : initialCache honestInput = some honestOutput)
+    (hdigest : Concrete.CacheView.digestAt finalCache input =
+      Concrete.CacheView.digestAt finalCache honestInput) :
+    AdaptiveFreshDigestCollisionWith initialCache finalCache targetInput := by
+  subst htarget
+  exact ⟨input, output, honestOutput, hcached, hfresh, hhonest, hdigest⟩
+
 end XmssSecurity.Rom

@@ -256,12 +256,10 @@ theorem topChainCollision_afterKeygen
     Concrete.precomputedKeygen_cache_has_topChainInput keyResult hkeygen key chain step
   have hforgedInitial := Concrete.precomputedKeygen_cache_topChainInput_eq_none_of_ne keyResult
     hkeygen key chain step forgedValue (fun heq => hne (heq.trans hstable))
-  refine ⟨Concrete.CacheView.topChainInput keyResult.1.2.parameter key chain step forgedValue,
-    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
-  · rw [keygenTopTargetInput_topChainInput]
-    exact hhonest
-  · rw [keygenTopTargetInput_topChainInput, hstable]
-    rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
+  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
+    (keygenTopTargetInput_topChainInput _ _ _ _ _ _) hhonest ?_
+  rw [hstable]
+  rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
       Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt] at hstepCollision
 
 /-- A cached top leaf that collides with the honest one of its key. -/
@@ -282,12 +280,10 @@ theorem topLeafCollision_afterKeygen
     Concrete.precomputedKeygen_cache_has_topLeafInput keyResult hkeygen key
   have hforgedInitial := Concrete.precomputedKeygen_cache_topLeafInput_eq_none_of_ne keyResult
     hkeygen key forgedEndpoints (fun heq => hcollision.1 (heq.trans hstable))
-  refine ⟨Concrete.CacheView.topLeafInput keyResult.1.2.parameter key forgedEndpoints,
-    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
-  · rw [keygenTopTargetInput_topLeafInput]
-    exact hhonest
-  · rw [keygenTopTargetInput_topLeafInput, hstable]
-    exact hcollision.2
+  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
+    (keygenTopTargetInput_topLeafInput _ _ _ _) hhonest ?_
+  rw [hstable]
+  exact hcollision.2
 
 /-- The children of a top node, ordered as the path's bit at its level orders them. -/
 def topOrderedNodePair (key : TopIndex) (level : Nat) (current sibling : Digest) :
@@ -398,11 +394,10 @@ theorem topMerkleCollision_afterKeygen
       intro hordered
       exact hne (topOrderedNodePair_injective key level.val hordered))
   rw [← topNodeInput_eq_topMerkleInput_ordered] at hforgedInitial
-  refine ⟨Concrete.CacheView.topNodeInput keyResult.1.2.parameter key level forgedCurrent
-    forgedSibling, forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
-  · rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput]
-    exact hhonestCached
-  · rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput]
+  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
+    (by rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput])
+    hhonestCached ?_
+  · rw [topNodeInput_eq_topMerkleInput_ordered]
     unfold Concrete.CacheView.topNodeHash at heq
     rw [dif_pos level.isLt, dif_pos level.isLt] at heq
     rw [topNodeInput_eq_topMerkleInput_ordered, topNodeInput_eq_topMerkleInput_ordered,
@@ -448,12 +443,10 @@ theorem topEncodingCollision_afterKeygen
         simp only [Option.some.injEq, Prod.mk.injEq] at hselected
         apply hne
         rw [← hroot, ← hforgedRoot, hselected.1]
-  refine ⟨Concrete.CacheView.topEncodingInput keyResult.1.2.parameter key forgedInput,
-    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
-  · rw [keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned]
-    exact hhonest
-  · rw [keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned, hroot]
-    exact heq.symm
+  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
+    (keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned) hhonest ?_
+  rw [hroot]
+  exact heq.symm
 
 end Collisions
 
