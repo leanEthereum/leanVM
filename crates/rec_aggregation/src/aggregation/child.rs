@@ -1,9 +1,10 @@
 //! The guest's witness for one child proof, and the opening shapes it shares with the guest's constants.
 
-use super::cells::{count, pack_hash_state};
+use super::cells::count;
 use super::deferred::DeferredSubproof;
 use super::error::AggregationError;
 use super::hints::SubHints;
+use fiat_shamir::merkle::hash_to_scalars;
 use leanvm_core::cpu::{Program, from_scalar};
 use leanvm_core::leaf::Block;
 use primitives::field::F192;
@@ -209,8 +210,8 @@ pub(super) fn gen_verify(
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(pack_hash_state(left));
-                    path_children.extend(pack_hash_state(right));
+                    path_children.extend(hash_to_scalars(left));
+                    path_children.extend(hash_to_scalars(right));
                 }
                 node = pcs::merkle::hash_pair(left, right);
                 index >>= 1;
@@ -218,7 +219,7 @@ pub(super) fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(pack_hash_state));
+        caps.extend(nodes.iter().flat_map(hash_to_scalars));
         cap_active.extend(active);
     }
     let deferred = DeferredSubproof {

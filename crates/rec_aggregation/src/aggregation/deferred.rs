@@ -7,7 +7,7 @@ use super::hints::SubHints;
 use leanvm_core::cpu::{from_scalar, to_scalar};
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use primitives::field::{F64, F64x8, F192, F192x8, Prod8, dot_base};
-use primitives::multilinear::{eq_table, mle_eval_par, packed_eq};
+use primitives::multilinear::{eq_table, interp, mle_eval_par, packed_eq};
 use std::ops::Range;
 
 pub(super) const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1";
@@ -26,7 +26,7 @@ const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BY
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DeferredClaim {
+pub(crate) struct DeferredClaim {
     pub(super) bytecode_point: Vec<F192>,
     pub(super) bytecode_value: F192,
 }
@@ -199,7 +199,7 @@ pub(super) fn bytecode_vars() -> usize {
 fn fold_lsb(table: &mut Vec<F192>, challenge: F192) {
     let half = table.len() / 2;
     for i in 0..half {
-        table[i] = table[2 * i] + challenge * (table[2 * i] + table[2 * i + 1]);
+        table[i] = interp(table[2 * i], table[2 * i + 1], challenge);
     }
     table.truncate(half);
 }

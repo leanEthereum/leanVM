@@ -70,16 +70,17 @@ use primitives::field::{F64, F192, mul4};
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
-use super::whir::{build_eq_table_ext, inner_product_base_ext};
+use super::whir::inner_product_base_ext;
+use primitives::multilinear::eq_table_serial;
 
 /// Total degree of the six-challenge composed batching map. This is the
 /// conservative degree used by the WHIR list-size soundness accounting.
-pub const RING_SWITCH_SOUNDNESS_DEGREE: usize =
+pub(crate) const RING_SWITCH_SOUNDNESS_DEGREE: usize =
     (1usize << 31) + (1usize << 15) + (1usize << 7) + (1usize << 3) + (1usize << 1) + 1;
 
 /// Frobenius shifts in the order in which the two-term maps are composed.
 /// Descending order bounds every challenge's exponent by `2^31`.
-pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
+pub(crate) const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w` is the
 /// `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat`
@@ -127,7 +128,7 @@ pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 /// `3·|S|` `K`-equations, in `192` `K`-unknowns, and with `3·|S| < 192` a
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
-pub fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
+pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
     (0..DEGREE_E)
         .map(|w| apply_composed_map(coordinate_basis(w), challenges))
         .collect()
@@ -147,7 +148,7 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
 
 /// Sample the composed map's challenges after every ring-switch message has
 /// been bound.
-pub fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.len()] {
+pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.len()] {
     std::array::from_fn(|_| ch.sample())
 }
 
@@ -160,7 +161,7 @@ pub fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.
 ///
 /// `packed_witness[y] in K` for `y in 0..2^L`; `suffix_tensor` is
 /// `eq(r_suffix, .)` over the same range (from
-/// [`build_eq_table_ext`]).
+/// [`eq_table_serial`]).
 ///
 /// Output: `s_hat_v[i] = sum_y bit_i(packed_witness[y]) * suffix_tensor[y]`
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
@@ -382,12 +383,12 @@ fn split_n_lo(n: usize) -> usize {
 }
 
 /// Factored eq tensor: `eq(point, y) = eq_lo[y & (2^n_lo - 1)] * eq_hi[y >> n_lo]`
-/// (LSB-first indexing, matching `build_eq_table_ext`). Materializes
+/// (LSB-first indexing, matching `eq_table_serial`). Materializes
 /// `2^n_lo + 2^(n - n_lo)` entries instead of `2^n`; field multiplication is
 /// exact, so the reconstructed entries are bit-identical to the full build.
 fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
     let n_lo = split_n_lo(point.len());
-    (build_eq_table_ext(&point[..n_lo]), build_eq_table_ext(&point[n_lo..]))
+    (eq_table_serial(&point[..n_lo]), eq_table_serial(&point[n_lo..]))
 }
 
 // ---------------------------------------------------------------------------
@@ -473,7 +474,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         // Reference: one dense weight vector per claim, combined afterwards.
-        let dense_basis = fold_ext_elems_naive(&build_eq_table_ext(&point), &coordinate_weights);
+        let dense_basis = fold_ext_elems_naive(&eq_table_serial(&point), &coordinate_weights);
         let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
             acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
         });
@@ -584,7 +585,7 @@ mod tests {
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
     fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
-        let eq_suffix = build_eq_table_ext(suffix_point);
+        let eq_suffix = eq_table_serial(suffix_point);
         (0..PACKING_WIDTH)
             .map(|i| {
                 let mut acc = F192::ZERO;
@@ -608,7 +609,7 @@ mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
         let suffix_point = rng.ext_vec(m - LOG_PACKING);
-        let eq_suffix = build_eq_table_ext(&suffix_point);
+        let eq_suffix = eq_table_serial(&suffix_point);
 
         let s_hat_v = fold_1b_rows(&packed, &eq_suffix);
         assert_eq!(s_hat_v.len(), PACKING_WIDTH);
@@ -635,11 +636,11 @@ mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
         let point = rng.ext_vec(m);
-        let prefix_weights = build_eq_table_ext(&point[..LOG_PACKING]);
+        let prefix_weights = eq_table_serial(&point[..LOG_PACKING]);
         let suffix_point = &point[LOG_PACKING..];
 
         let s_ref = s_hat_v_reference(&packed, suffix_point);
-        let eq_full = build_eq_table_ext(&point);
+        let eq_full = eq_table_serial(&point);
         let mut direct = F192::ZERO;
         for (x, &w) in eq_full.iter().enumerate() {
             if bits[x] {

@@ -112,7 +112,7 @@ pub struct ColumnClaim {
 /// `N_TUPLE_BITS` in the challenges instead of the tuple width, and slot `x`'s
 /// weight is an `eq` weight, which is what lets the aligned bytecode polynomial
 /// be read off at `α⃗` itself (§sec:e2e-bc).
-pub fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
+pub(crate) fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
     debug_assert_eq!(alphas.len(), N_TUPLE_BITS);
     let mut w = vec![F192::ONE; 1 << N_TUPLE_BITS];
     for (bit, &a) in alphas.iter().enumerate() {
@@ -331,7 +331,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
 /// column is read from memory once however many blocks flush it. Each chunk's
 /// four- and sixteen-tuple products, the GKR's levels two and four, are formed while
 /// it is in cache.
-pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
+pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -491,7 +491,7 @@ pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F6
 pub struct BusForm {
     pub coeffs: Vec<F192>,
     /// `(col_a, col_b, coeff)` in LOCAL column indices.
-    pub prods: Vec<(usize, usize, F192)>,
+    pub(crate) prods: Vec<(usize, usize, F192)>,
     pub constant: F192,
 }
 
@@ -772,32 +772,7 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// Slot of the first public column: the bytecode block leads with three
 /// non-public coordinates (tag, index, read count), and a column's slot IS its
 /// bus tuple coordinate.
-pub const BYTECODE_PUBLIC_SLOT: usize = 3;
-
-/// The stacked bytecode polynomial as a dense table: eleven public encoding
-/// columns at their tuple coordinates, padded to sixteen selector slots. One
-/// multilinear polynomial B̃ in `κ_bc + 4` variables, which is what a bus leaf
-/// reads at `(ζ_lo, α⃗)` (§sec:e2e-bc); the outermost verifier evaluates it.
-pub fn stacked_bytecode_table(blocks: &[Block]) -> Vec<F64> {
-    let mut kbc = 0;
-    let mut cols: Vec<&[F64]> = Vec::new();
-    for blk in blocks {
-        for c in &blk.coords {
-            if let Coord::Public(vals) = c {
-                kbc = blk.kappa;
-                cols.push(vals.as_slice());
-            }
-        }
-    }
-    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
-    for (i, vals) in cols.into_iter().enumerate() {
-        let slot = BYTECODE_PUBLIC_SLOT + i;
-        assert!(slot < 1 << N_BYTECODE_SELECTORS, "a public slot is a tuple coordinate");
-        assert_eq!(vals.len(), 1 << kbc);
-        table[(slot << kbc)..((slot + 1) << kbc)].copy_from_slice(vals);
-    }
-    table
-}
+pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
 /// The three bus sides in `[push, pull, count]` order with their fingerprint
 /// weights. The count channel's leaf is the count itself (a single `Col`), so it
@@ -823,7 +798,7 @@ fn sides<'a>(
 /// Everything the bus hands on: the framework blocks' column claims,
 /// the shared GKR point (the table sumcheck's eq point), and
 /// per side the tables' linear forms plus what each is claimed to sum to.
-pub struct BusProof {
+pub(crate) struct BusProof {
     pub claims: Vec<ColumnClaim>,
     /// The GKR point ζ: the zerocheck reuses it, so no fresh point is sampled.
     pub point: Vec<F192>,
@@ -836,7 +811,7 @@ pub struct BusProof {
     pub sigmas: [Vec<F192>; 3],
 }
 
-pub fn prove_balance(
+pub(crate) fn prove_balance(
     push: &[Block],
     pull: &[Block],
     count: &[Block],
@@ -869,9 +844,7 @@ pub fn prove_balance(
     });
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || {
-        gkr::prove_product_triple(leaves, ps, gkr::RootShape::FirstTwoShared)
-    });
+    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_product_triple(leaves, ps));
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
     // every table block becomes a form for the zerocheck instead.
@@ -1038,7 +1011,7 @@ fn tables_and_prods_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gkr::{Leaves, RootShape, prove_product_triple};
+    use crate::gkr::{Leaves, prove_product_triple};
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
@@ -1140,13 +1113,18 @@ mod tests {
             );
         }
         assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
-        let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
-        let [ps0, ps1] = &mut proofs;
-        let planned = prove_product_triple(built, ps0, RootShape::Distinct);
-        let reference = prove_product_triple(want.map(Leaves::new), ps1, RootShape::Distinct);
-        assert_eq!((planned.point, planned.values), (reference.point, reference.values));
-        let [a, b] = proofs.map(|ps| ps.into_proof().stream);
-        assert_eq!(a, b);
+        // The GKR wants its first two products equal, so each side is paired with itself.
+        let reference = want.map(Leaves::new);
+        for side in [0, 1] {
+            let pick = |l: &[Leaves; 3]| [l[side].clone(), l[side].clone(), l[2].clone()];
+            let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
+            let [ps0, ps1] = &mut proofs;
+            let planned = prove_product_triple(pick(&built), ps0);
+            let reference = prove_product_triple(pick(&reference), ps1);
+            assert_eq!((planned.point, planned.values), (reference.point, reference.values));
+            let [a, b] = proofs.map(|ps| ps.into_proof().stream);
+            assert_eq!(a, b);
+        }
     }
 
     /// The bound is `(N_TUPLE_BITS + 1)·2^mu` plus the GKR terms: only the bus

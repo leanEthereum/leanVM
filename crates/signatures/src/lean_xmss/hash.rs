@@ -13,7 +13,7 @@ use crate::lean_xmss::*;
 
 // Hash types of leanXMSS's own.
 /// A node outside a mock key's range.
-pub const TWEAK_FILLER: u8 = 13;
+pub(crate) const TWEAK_FILLER: u8 = 13;
 
 /// The top layer's flag in `hi`.
 pub const TOP: u32 = 1 << 23;

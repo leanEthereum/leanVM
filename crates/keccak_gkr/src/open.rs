@@ -10,7 +10,7 @@
 use fiat_shamir::transcript::ProverState;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F192, F192Unreduced};
-use primitives::multilinear::{eq_table, mle_eval, poly_eval};
+use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 
 use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
@@ -171,7 +171,7 @@ fn round_values(a: &[F192], b: &[F192], width: usize) -> (F192, F192) {
 pub(crate) fn fold(table: &[F192], width: usize, challenge: F192) -> Vec<F192> {
     table
         .chunks_exact(2 * width)
-        .flat_map(|pair| (0..width).map(move |j| pair[j] + challenge * (pair[j] + pair[width + j])))
+        .flat_map(|pair| (0..width).map(move |j| interp(pair[j], pair[width + j], challenge)))
         .collect()
 }
 

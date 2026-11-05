@@ -25,16 +25,6 @@ pub(super) fn f192_literal(f: F192) -> String {
     format!("f192({},{},{})", f.c0, f.c1, f.c2)
 }
 
-/// Pack a 32-byte digest as the canonical 128+128 cell pair the VM's hash
-/// instruction writes.
-pub(super) fn pack_hash_state(hash: &[u8; 32]) -> [F192; 2] {
-    let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
-    [
-        F192::new(word_at(0), word_at(8), 0),
-        F192::new(word_at(16), word_at(24), 0),
-    ]
-}
-
 /// A 16-byte native value as one canonical 128-bit cell.
 pub(super) fn pack_16_bytes(bytes: &[u8]) -> F192 {
     let word_at = |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());

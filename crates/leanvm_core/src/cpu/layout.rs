@@ -13,8 +13,8 @@ use super::*;
 pub const MEM_LO: usize = 0;
 pub const MEM_HI: usize = 1;
 pub const MEM_TOP: usize = 2;
-pub const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
-pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
+pub(crate) const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
+pub(crate) const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
 // KECCAK steps, never fewer than `MIN_STEPS`. It is the
@@ -24,7 +24,7 @@ pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // committed. The reduction's two claims are discharged by the single stacked
 // WHIR opening over this commitment.
 pub const QKECCAK: usize = 5;
-pub const N_SHARED: usize = 6;
+pub(crate) const N_SHARED: usize = 6;
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
 /// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
@@ -283,12 +283,12 @@ pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; t
 }
 
 /// Operand slots of a bytecode tuple, after the opcode.
-pub const BYTECODE_OPERANDS: usize = 10;
+pub(crate) const BYTECODE_OPERANDS: usize = 10;
 
 /// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
 /// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
 /// `Coord::Public` and stack into the polynomial [`bytecode_table`] returns.
-pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
+pub(crate) fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
     let g_at = primitives::field::g_pow32_by_lookup;
 
     // The opcode, then the operand slots: offsets as g-powers, a `SET` immediate as its three
@@ -358,17 +358,21 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
 }
 
 /// The stacked bytecode polynomial: the eleven columns at their bus tuple
-/// coordinates, which is what makes the program's whole share of a bus leaf one
-/// evaluation at `(ζ, α⃗)` (see [`crate::leaf::stacked_bytecode_table`]).
+/// coordinates, padded to sixteen selector slots, which is what makes the program's
+/// whole share of a bus leaf one evaluation at `(ζ, α⃗)` (§sec:e2e-bc).
 ///
 /// This is the multilinear an outermost verifier is handed in place of a
 /// structured program, and what the transcript seed binds ([`super::fs_seed`]).
 pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
-    let coords = bytecode_columns(prog)
-        .map(|c| Coord::Public(std::sync::Arc::new(c)))
-        .into();
-    let block = Block::full(crate::log2_strict_usize(prog.len()), coords);
-    crate::leaf::stacked_bytecode_table(std::slice::from_ref(&block))
+    use crate::leaf::{BYTECODE_PUBLIC_SLOT, N_BYTECODE_SELECTORS};
+    const { assert!(BYTECODE_PUBLIC_SLOT + 1 + BYTECODE_OPERANDS <= 1 << N_BYTECODE_SELECTORS) };
+    let kbc = crate::log2_strict_usize(prog.len());
+    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
+    for (i, column) in bytecode_columns(prog).iter().enumerate() {
+        let slot = BYTECODE_PUBLIC_SLOT + i;
+        table[slot << kbc..(slot + 1) << kbc].copy_from_slice(column);
+    }
+    table
 }
 
 /// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the

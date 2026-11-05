@@ -40,7 +40,7 @@ pub fn message() -> Message {
 }
 
 /// The message of cache `message_id`: distinct per id, and exactly [`message`] at 0.
-pub fn message_for(message_id: u32) -> Message {
+pub(crate) fn message_for(message_id: u32) -> Message {
     let mut msg = message();
     for (byte, delta) in msg.iter_mut().zip(message_id.to_le_bytes()) {
         *byte ^= delta;
@@ -156,7 +156,7 @@ pub fn get_signers(n: usize) -> Vec<CachedSignature> {
 /// The first `n` cached signers, signing [`message_for`]`(message_id)`, signer `i` at
 /// `leaf_index_of(i, message_id)`: one cache file per message, the keys shared
 /// across them.
-pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
+pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
     let mut pools = POOLS.lock().unwrap();
     let pool = pools.entry(message_id).or_default();
     if pool.len() < n {
@@ -186,7 +186,7 @@ type CachedSphincsSignature = (
 
 /// Signer `index`'s own message, distinct from every other's and from the
 /// leanXMSS ones, so a test that mixed them up would fail rather than pass.
-pub fn lean_sphincs_message(index: usize) -> lean_sphincs::Message {
+pub(crate) fn lean_sphincs_message(index: usize) -> lean_sphincs::Message {
     let mut msg = [0u8; lean_sphincs::MESSAGE_LEN];
     msg[..8].copy_from_slice(&(index as u64).to_le_bytes());
     msg[8..].copy_from_slice(&[0xC5; lean_sphincs::MESSAGE_LEN - 8]);

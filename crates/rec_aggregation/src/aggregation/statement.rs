@@ -1,9 +1,10 @@
 //! Claim-list digests and a node's public statement.
 
-use super::cells::{cell_bytes, count, pack_16_bytes, pack_hash_state};
+use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::DeferredClaim;
 use super::guest::unified_guest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
+use fiat_shamir::merkle::hash_to_scalars;
 use primitives::field::F192;
 
 /// Claims the guest hashes a loop frame: 68 cells, four whole block pairs.
@@ -32,7 +33,7 @@ pub(super) fn list_split(n: usize) -> Vec<F192> {
 /// the message it signed, and an empty list hashes the empty string. The guest
 /// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
 pub(super) fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
-    pack_hash_state(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
+    hash_to_scalars(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
@@ -65,7 +66,7 @@ pub(super) const STATEMENT_HEADER: usize = 8;
 /// from `keccak_cells` over the same cells.
 fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
     let bytes: Vec<u8> = lanes.flat_map(u64::to_le_bytes).collect();
-    pack_hash_state(&primitives::hash::hash(&bytes))
+    hash_to_scalars(&primitives::hash::hash(&bytes))
 }
 
 /// A node's public statement, hashed to the two words the VM publishes. The
@@ -90,7 +91,7 @@ pub(super) fn statement_digest(
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
     let lean_sphincs_digest = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
-    let da_digest = pack_hash_state(&da_digest);
+    let da_digest = hash_to_scalars(&da_digest);
     let header: [F192; STATEMENT_HEADER] = [
         seed[0],
         seed[1],

@@ -84,12 +84,13 @@ fn next_level(current: &[F192]) -> Vec<F192> {
 
 /// A tree's leaves, with the two levels above them, which the leaf builder forms while
 /// the leaves are in cache, and its runs of identity leaves.
+#[derive(Clone)]
 pub struct Leaves {
     pub values: Vec<F192>,
     /// `fours[i] = ∏ values[4i..4i+4]`, and `sixteens` likewise over `fours`, an
     /// incomplete last four-tuple padded with the identity.
-    pub fours: Vec<F192>,
-    pub sixteens: Vec<F192>,
+    pub(crate) fours: Vec<F192>,
+    pub(crate) sixteens: Vec<F192>,
     /// Runs of identity leaves among `values`, sorted, which the GKR rounds above them
     /// need neither read nor write.
     pub ones: Vec<Range<usize>>,
@@ -765,29 +766,16 @@ mod vertical {
     }
 }
 
-/// The result of a batched grand-product proof: the three roots and leaf
-/// evaluations, all reduced to one shared point. Under [`RootShape::FirstTwoShared`],
-/// `roots[0] == roots[1]` by construction rather than by a check.
+/// The result of a batched grand-product proof: the three leaf evaluations, all reduced to one shared point.
 pub struct ProductTriple {
-    pub roots: [F192; 3],
     pub point: Vec<F192>,
     pub values: [F192; 3],
 }
 
-/// How many of the three roots ride the stream, which is a property of the statement rather than
-/// of the reduction below.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RootShape {
-    /// Three unrelated products: every root is sent.
-    Distinct,
-    /// The first two trees share a product by construction, as the bus's two sides do
-    /// (a padding row's leaf is the identity on both, so they balance outright). ONE root
-    /// is then sent for both, and no verifier can be handed an unbalanced pair to check.
-    FirstTwoShared,
-}
-
 /// Prove three identity-padded grand products as one RLC-batched radix-four GKR.
-pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState, shape: RootShape) -> ProductTriple {
+/// The first two trees share a product by construction, as the bus's two sides do.
+/// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
+pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -799,18 +787,9 @@ pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState, shape: Ro
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
     let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
-    match shape {
-        RootShape::Distinct => {
-            for root in roots {
-                ps.add_scalar(root);
-            }
-        }
-        RootShape::FirstTwoShared => {
-            assert_eq!(roots[0], roots[1], "FirstTwoShared needs the two products to agree");
-            ps.add_scalar(roots[0]);
-            ps.add_scalar(roots[2]);
-        }
-    }
+    assert_eq!(roots[0], roots[1], "the first two products must agree");
+    ps.add_scalar(roots[0]);
+    ps.add_scalar(roots[2]);
     let mut point = Vec::new();
     let mut values = roots;
 
@@ -898,7 +877,7 @@ pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState, shape: Ro
         layer -= 2;
     }
 
-    ProductTriple { roots, point, values }
+    ProductTriple { point, values }
 }
 
 #[cfg(test)]
@@ -996,24 +975,30 @@ mod tests {
         }
     }
 
+    fn product(lane: &[F192]) -> F192 {
+        lane.iter().copied().fold(F192::ONE, |product, value| product * value)
+    }
+
+    /// Rescale lane 1's last leaf so its product matches lane 0's, as the bus's two sides do.
+    fn balance(leaves: &mut [Vec<F192>; 3]) {
+        let last = leaves[1].len() - 1;
+        leaves[1][last] = F192::ONE;
+        leaves[1][last] = product(&leaves[0]) * product(&leaves[1]).inv();
+    }
+
     #[test]
     fn radix_four_claims_are_true_at_even_and_odd_depths() {
         for mu in 0..=10 {
-            let leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
+            let mut leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
                 (0..1usize << mu)
                     .map(|row| F192::new((1 + row + lane * 100_003) as u64, row as u64, lane as u64))
                     .collect()
             });
-            let expected_roots = leaves
-                .each_ref()
-                .map(|lane| lane.iter().copied().fold(F192::ONE, |product, value| product * value));
+            balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_product_triple(
-                leaves.each_ref().map(|l| Leaves::new(l.to_vec())),
-                &mut ps,
-                RootShape::Distinct,
-            );
-            assert_eq!(proved.roots, expected_roots);
+            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
+            let stream = ps.into_proof().stream;
+            assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
             }
@@ -1024,40 +1009,26 @@ mod tests {
     fn implicit_identity_suffix_matches_dense_padding() {
         for mu in 3..=10 {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
-            let leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+            let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
                     .map(|row| F192::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64))
                     .collect()
             });
+            balance(&mut leaves);
             let dense = leaves.each_ref().map(|lane| {
                 let mut padded = lane.clone();
                 padded.resize(1 << mu, F192::ONE);
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_product_triple(
-                leaves.each_ref().map(|l| Leaves::new(l.to_vec())),
-                &mut sparse_ps,
-                RootShape::Distinct,
-            );
+            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
-                assert_eq!(
-                    proved.roots[lane],
-                    dense[lane]
-                        .iter()
-                        .copied()
-                        .fold(F192::ONE, |product, value| product * value)
-                );
             }
             let proof = sparse_ps.into_proof();
+            assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_product_triple(
-                dense.each_ref().map(|l| Leaves::new(l.to_vec())),
-                &mut dense_ps,
-                RootShape::Distinct,
-            );
-            assert_eq!(dense_proved.roots, proved.roots);
+            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);

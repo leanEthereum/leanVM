@@ -15,9 +15,9 @@ use crate::keccak::{BITS, LANES, along, linear};
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
-pub const BLOCK_WORDS: usize = 8;
+pub(crate) const BLOCK_WORDS: usize = 8;
 /// Words one block of one state takes.
-pub const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
+pub(crate) const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
 
 /// The eight words of position `j` of a sliced block.
 #[inline(always)]
@@ -70,11 +70,11 @@ impl Shape {
         self.segments().next_power_of_two().ilog2() as usize
     }
     /// Variables of a pack index: the instance index without its low four bits.
-    pub const fn pack_vars(&self) -> usize {
+    pub(crate) const fn pack_vars(&self) -> usize {
         self.n_log - 4
     }
     /// Variables the layer sumcheck binds: a pack, then a segment.
-    pub const fn y_vars(&self) -> usize {
+    pub(crate) const fn y_vars(&self) -> usize {
         self.pack_vars() + self.seg_log()
     }
     /// Committed lanes per instance: the state each segment starts from.
@@ -148,7 +148,7 @@ pub struct Witness {
 
 /// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
 #[inline]
-pub fn transpose64(a: &mut [u64; 64]) {
+pub(crate) fn transpose64(a: &mut [u64; 64]) {
     cfg_select! {
         all(
             target_arch = "x86_64",
@@ -244,8 +244,12 @@ pub unsafe fn block(
         store(round, &u);
         for lane in 0..LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
-            for z in 0..64 {
-                state[a + z] = std::array::from_fn(|i| u[a + z][i] ^ (!u[b + z][i] & u[c + z][i]));
+            // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
+            // over them, which vectorizes with plain loads (by position, it took gathers).
+            let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
+            let (ua, ub, uc) = (flat(a), flat(b), flat(c));
+            for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
+                *s = ua[k] ^ (!ub[k] & uc[k]);
             }
         }
         for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {

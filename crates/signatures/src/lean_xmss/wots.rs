@@ -19,13 +19,13 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
 }
 
 /// `leaf_index`'s leaf within its bottom tree.
-pub fn tree_leaf(leaf_index: LeafIndex) -> u32 {
+pub(crate) fn tree_leaf(leaf_index: LeafIndex) -> u32 {
     leaf_index & ((1 << LAYER_HEIGHT) - 1)
 }
 
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
-pub fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
+pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
         *pair = th_pair(pp, &tweak(TWEAK_PRF, layer_hi(layer, t as u32), e), seed);
@@ -48,7 +48,7 @@ pub fn chain(pp: &PublicParam, layer: usize, e: u32, i: usize, start: usize, ste
 }
 
 /// The Merkle leaf of a one-time key: `Th` over its `v` chain ends.
-pub fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]) -> Digest {
+pub(crate) fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]) -> Digest {
     th_digests(pp, &tweak(TWEAK_LEAF, layer_hi(layer, 0), e), ends)
 }
 
@@ -118,7 +118,7 @@ fn least_trial(input: &[u8], base: u128) -> Option<u64> {
 /// of the seed and the message, and the chain value each digit opens. Deterministic
 /// in its inputs, so signing one message again gives the same signature and a key
 /// never opens two codewords.
-pub fn wots_sign(
+pub(crate) fn wots_sign(
     pp: &PublicParam,
     seed: &SchemeSeed,
     layer: usize,
@@ -159,7 +159,7 @@ pub fn wots_leaf(
 
 /// The leaf of key `e` on `layer`, from the seed: what key generation spends its
 /// hashes on.
-pub fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
+pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
     let secrets = wots_secrets(pp, seed, layer, e);
     let ends = std::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(pp, layer, e, &ends)

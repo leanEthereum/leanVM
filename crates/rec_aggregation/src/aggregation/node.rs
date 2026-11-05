@@ -1,6 +1,6 @@
 //! The entry points that prove one node of an aggregation tree.
 
-use super::cells::{count, pack_hash_state};
+use super::cells::count;
 use super::child::{MU_MIN, gen_verify};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
@@ -12,6 +12,7 @@ use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{ClaimSelection, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS};
+use fiat_shamir::merkle::hash_to_scalars;
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_MAX_ROWS};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::{F64, F192};
@@ -252,7 +253,7 @@ pub fn aggregate_with_stats(
             }
         }
         hints.push("child_defer", child.defer.cells());
-        hints.push("child_da", pack_hash_state(&child_da[i]).to_vec());
+        hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
         let (sub_hints, defer) = gen_verify(
             guest,
             pi,

@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 primitives.workspace = true
+fiat_shamir.workspace = true
 parallel.workspace = true
 pcs.workspace = true
 keccak_gkr.workspace = true
@@ -17,14 +18,15 @@ lean_compiler.workspace = true
 signatures.workspace = true
 lean_da.workspace = true
 verifier.workspace = true
-rand.workspace = true
+rand = { workspace = true, optional = true }
 bincode.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
 [features]
 # `signers_cache`: cached benchmark signers over leanXMSS mock keys, for tests and the CLI.
-signers-cache = ["signatures/mock"]
+signers-cache = ["signatures/mock", "dep:rand"]
 
 [dev-dependencies]
 signatures = { workspace = true, features = ["mock"] }
+rand.workspace = true

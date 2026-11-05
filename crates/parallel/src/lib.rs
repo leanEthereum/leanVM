@@ -10,8 +10,9 @@ use std::thread::Thread;
 
 mod topology;
 
+pub use topology::num_threads;
+pub(crate) use topology::topology;
 use topology::{Qos, set_qos};
-pub use topology::{Topology, num_threads, topology};
 
 /// Idle spins before a worker parks: long enough to stay hot across back-to-back
 /// dispatches, short enough to yield the core during a sequential stretch.
@@ -369,26 +370,12 @@ where
     for_each_chunks_mut([data], [chunk], |i, [sub]| f(i, sub));
 }
 
-/// Parallel `a.chunks_mut(chunk).zip(b.chunks_mut(chunk))`, for the kernels that
-/// fold two tables in lockstep. `a` and `b` must have equal length.
-pub fn chunks_mut2<A: Send, B: Send, F>(a: &mut [A], b: &mut [B], chunk: usize, f: F)
-where
-    F: Fn(usize, &mut [A], &mut [B]) + Sync,
-{
-    assert_eq!(a.len(), b.len(), "chunks_mut2: slices differ in length");
-    let b_view = Chunks::new(b, chunk);
-    chunks_mut(a, chunk, |i, sub| {
-        // SAFETY: `b` has the length of `a`, so chunk `i` of `b` exists, and task `i` takes it once.
-        f(i, sub, unsafe { b_view.get(i) });
-    });
-}
-
 /// A `chunks_mut` view that can be handed to tasks: `chunk(i)` is item `i`'s
 /// slice. Composes to any number of buffers, which the zip-based helpers do not:
 /// a kernel writing four tables at two different widths builds one of these per
 /// table and indexes them all by the same item.
 #[derive(Debug)]
-pub struct Chunks<T> {
+pub(crate) struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
@@ -471,7 +458,7 @@ where
 }
 
 /// [`map_reduce_chunks_mut`] without the reduction: `f(i, chunks)` for every task `i`, in parallel.
-pub fn for_each_chunks_mut<T: Send, const N: usize, F>(bufs: [&mut [T]; N], widths: [usize; N], f: F)
+pub(crate) fn for_each_chunks_mut<T: Send, const N: usize, F>(bufs: [&mut [T]; N], widths: [usize; N], f: F)
 where
     F: Fn(usize, [&mut [T]; N]) + Sync,
 {

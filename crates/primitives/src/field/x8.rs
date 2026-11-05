@@ -12,6 +12,7 @@ use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul};
 use super::gf2_64::{F64, reduce};
 use super::gf2_64x3::F192;
 use super::gf2_64x3::x86_64::{fold, reduce_halves512};
+use crate::simd::transpose8;
 
 /// Eight elements; register `k` is coefficient `k` of lanes `0..8`.
 #[derive(Clone, Copy, Debug)]
@@ -107,40 +108,6 @@ const fn planes_to_aos(o: usize) -> ([i64; 8], u8, [i64; 8]) {
 const LOAD: [([i64; 8], u8, [i64; 8]); 3] = [aos_to_planes(0), aos_to_planes(1), aos_to_planes(2)];
 const STORE: [([i64; 8], u8, [i64; 8]); 3] = [planes_to_aos(0), planes_to_aos(1), planes_to_aos(2)];
 
-/// Transpose an 8x8 matrix of qwords: row `r` of the input is column `r` of the output.
-#[inline(always)]
-fn transpose(r: [__m512i; 8]) -> [__m512i; 8] {
-    // SAFETY: the module's cfg enables avx512f.
-    unsafe {
-        let t: [__m512i; 8] = std::array::from_fn(|i| {
-            let (a, b) = (r[i & !1], r[i | 1]);
-            if i % 2 == 0 {
-                _mm512_unpacklo_epi64(a, b)
-            } else {
-                _mm512_unpackhi_epi64(a, b)
-            }
-        });
-        // `u[4h + j]`: rows `4h..4h+4` at qwords `j` and `j + 4`.
-        let u: [__m512i; 8] = std::array::from_fn(|i| {
-            let (h, s, o) = (i / 4, (i / 2) % 2, i % 2);
-            let (a, b) = (t[4 * h + o], t[4 * h + 2 + o]);
-            if s == 0 {
-                _mm512_shuffle_i64x2::<0x88>(a, b)
-            } else {
-                _mm512_shuffle_i64x2::<0xDD>(a, b)
-            }
-        });
-        std::array::from_fn(|c| {
-            let (a, b) = (u[c % 4], u[4 + c % 4]);
-            if c < 4 {
-                _mm512_shuffle_i64x2::<0x88>(a, b)
-            } else {
-                _mm512_shuffle_i64x2::<0xDD>(a, b)
-            }
-        })
-    }
-}
-
 impl F192x8 {
     #[inline(always)]
     pub fn splat(e: F192) -> Self {
@@ -191,7 +158,7 @@ impl F192x8 {
         // gives every run's qword `8b + i` in one register.
         // SAFETY: the 64 elements are 192 readable qwords.
         let blocks: [[__m512i; 8]; 3] =
-            std::array::from_fn(|b| transpose(std::array::from_fn(|p| load_u64x8(unsafe { q.add(24 * p + 8 * b) }))));
+            std::array::from_fn(|b| transpose8(std::array::from_fn(|p| load_u64x8(unsafe { q.add(24 * p + 8 * b) }))));
         std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(3 * j + k) / 8][(3 * j + k) % 8])))
     }
 

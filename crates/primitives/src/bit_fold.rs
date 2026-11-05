@@ -115,13 +115,16 @@ fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNK
         .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
 }
 
-#[cfg(not(all(
-    target_arch = "x86_64",
-    target_feature = "gfni",
-    target_feature = "avx512bw",
-    target_feature = "avx512vbmi"
-)))]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni")))]
 use portable::Imp;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "gfni",
+    not(all(target_feature = "avx512bw", target_feature = "avx512vbmi"))
+))]
+use gfni256::Imp;
 
 #[cfg(all(
     target_arch = "x86_64",
@@ -167,6 +170,11 @@ mod portable {
             }
         }
 
+        // With AVX2 and GFNI the columns go through `gfni256`, which keeps these tables for rows only.
+        #[cfg_attr(
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
+            allow(dead_code)
+        )]
         #[inline]
         pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
             for (p, o) in out.iter_mut().enumerate() {
@@ -579,6 +587,130 @@ mod gfni {
                 );
             }
             acc
+        }
+    }
+}
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "gfni",
+    not(all(target_feature = "avx512bw", target_feature = "avx512vbmi"))
+))]
+mod gfni256 {
+    //! The GFNI fold on 256-bit registers (AVX2 and GFNI, without the AVX-512 kernel's byte permutes), for
+    //! [`super::BitFold::fold_columns`], whose rows already come as byte columns:
+    //!
+    //! ```text
+    //!     per 32 rows:  out byte o  +=  A[j][o] * (column j),  one affine instruction per column and output byte
+    //!                   then a byte transpose of the 24 output-byte registers into 32 F192 values
+    //! ```
+    //!
+    //! Sixteen registers hold eight accumulators at a time, so the columns are read three times. The row-major
+    //! [`super::BitFold::fold_block_pair`] keeps the byte tables.
+
+    use core::arch::x86_64::*;
+
+    use super::{BLOCK, F192};
+
+    /// Bytes of an F192.
+    const OUT_BYTES: usize = 24;
+
+    /// The GFNI matrices, and the byte tables for the row-major fold.
+    #[derive(Clone, Debug)]
+    pub(super) struct Imp {
+        /// `matrices[j][o]` maps byte `j` of a row to byte `o` of its weights' sum.
+        matrices: Vec<[u64; OUT_BYTES]>,
+        /// The byte tables of the row-major fold.
+        lookup: super::portable::Imp,
+    }
+
+    /// Byte `o` of a weight.
+    fn byte(w: F192, o: usize) -> u8 {
+        ([w.c0, w.c1, w.c2][o / 8] >> (8 * (o % 8))) as u8
+    }
+
+    /// The four words of a register.
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    fn words(v: __m256i) -> [u64; 4] {
+        let mut out = [0u64; 4];
+        crate::store_at(&mut out, 0, v);
+        out
+    }
+
+    impl Imp {
+        pub(super) fn new(weights: &[F192]) -> Self {
+            // The affine instruction reads result bit `k` off matrix byte `7 - k`: its bit `s` is bit `k` of byte `o`
+            // of the weight of bit `s` of the input byte.
+            let matrices = weights
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(|w| {
+                    std::array::from_fn(|o| {
+                        (0..8).fold(0u64, |m, k| {
+                            let row = (0..8).fold(0u8, |row, s| row | (byte(w[s], o) >> k & 1) << s);
+                            m | u64::from(row) << (8 * (7 - k))
+                        })
+                    })
+                })
+                .collect();
+            Self {
+                matrices,
+                lookup: super::portable::Imp::new(weights),
+            }
+        }
+
+        #[inline]
+        pub(super) fn fold_block_pair<const A: usize, const B: usize>(
+            &self,
+            tail: &Self,
+            head_rows: &[[u8; A]],
+            tail_rows: &[[u8; B]],
+            out: &mut [F192; BLOCK],
+        ) {
+            self.lookup.fold_block_pair(&tail.lookup, head_rows, tail_rows, out);
+        }
+
+        #[inline]
+        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+            assert_eq!(self.matrices.len(), CHUNKS);
+            // SAFETY: AVX2 and GFNI are enabled at compile time (the module's cfg).
+            unsafe { self.fold_columns_avx2(cols, out) }
+        }
+
+        #[target_feature(enable = "avx2", enable = "gfni")]
+        fn fold_columns_avx2<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+            let mats: &[[u64; OUT_BYTES]; CHUNKS] = self.matrices.as_slice().try_into().expect("one per byte");
+            for half in 0..2 {
+                // Column `j`'s bytes of rows `32 half ..`.
+                let col = |j: usize| -> __m256i { crate::load_at(&cols[j], 32 * half) };
+                let mut acc = [_mm256_setzero_si256(); OUT_BYTES];
+                for o0 in (0..OUT_BYTES).step_by(8) {
+                    let mut a8 = [_mm256_setzero_si256(); 8];
+                    for (j, m) in mats.iter().enumerate() {
+                        let x = col(j);
+                        for (o, a) in a8.iter_mut().enumerate() {
+                            let g = _mm256_gf2p8affine_epi64_epi8::<0>(x, _mm256_set1_epi64x(m[o0 + o] as i64));
+                            *a = _mm256_xor_si256(*a, g);
+                        }
+                    }
+                    acc[o0..o0 + 8].copy_from_slice(&a8);
+                }
+                // acc[o] byte 16 l + p is byte o of row 32 half + 16 l + p.
+                let mut lo: [__m256i; 16] = std::array::from_fn(|o| acc[o]);
+                let mut hi: [__m256i; 16] =
+                    std::array::from_fn(|o| if o < 8 { acc[16 + o] } else { _mm256_setzero_si256() });
+                crate::bits::transpose_bytes16x16_per_lane256(&mut lo);
+                crate::bits::transpose_bytes16x16_per_lane256(&mut hi);
+                for k in 0..16 {
+                    for l in 0..2 {
+                        let (v, w) = (words(lo[k]), words(hi[k]));
+                        out[32 * half + 16 * l + k] = F192::new(v[2 * l], v[2 * l + 1], w[2 * l]);
+                    }
+                }
+            }
         }
     }
 }

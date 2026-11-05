@@ -41,7 +41,7 @@ const STAGE_TILE_BYTES: usize = 16 << 10;
 /// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
 ///
 /// Blocks must all have the same power-of-two size, and together cover every leaf once.
-pub struct MerkleBuilder {
+pub(crate) struct MerkleBuilder {
     nodes: Nodes,
     /// Levels below it are never stored: see [`CutTree`].
     cut: usize,
@@ -306,7 +306,7 @@ const CUT_FROM: usize = 1 << 12;
 /// A finished tree that keeps only the levels from `cut` up, in the flat layout of the full tree.
 ///
 /// Opening a leaf group takes its rows again: the levels below `cut` are recomputed from them.
-pub struct CutTree {
+pub(crate) struct CutTree {
     nodes: Vec<Hash>,
     cut: usize,
     num_leaves: usize,
@@ -331,7 +331,7 @@ impl CutTree {
     }
 
     /// Every leaf of the groups `positions` fall in, ascending: the rows [`Self::prune`] takes.
-    pub fn group_positions(&self, positions: &[usize]) -> Vec<usize> {
+    pub(crate) fn group_positions(&self, positions: &[usize]) -> Vec<usize> {
         let groups = self.groups(positions);
         groups
             .iter()

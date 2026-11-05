@@ -1,16 +1,17 @@
-use super::cells::{count, pack_16_bytes, pack_hash_state};
+use super::cells::{count, pack_16_bytes};
 use super::child::{MU_MAX, MU_MIN};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
-use super::guest::{compile_guest, unified_guest, warm_up};
+use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
-use super::node::{aggregate, aggregate_with_stats};
+use super::node::aggregate;
 use super::placeholders::placeholder_map;
 use super::proof::{ClaimSelection, EthereumProof, SignatureClaims, check_signer_set, wire};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use bincode::Options as _;
+use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::cpu::from_scalar;
@@ -405,14 +406,14 @@ def main():
             "bits",
             (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
         );
-        hints.push("leaf", pack_hash_state(&leaf).to_vec());
+        hints.push("leaf", hash_to_scalars(&leaf).to_vec());
         hints.push(
             "merkle_children",
-            pairs.iter().flatten().flat_map(pack_hash_state).collect(),
+            pairs.iter().flatten().flat_map(hash_to_scalars).collect(),
         );
         let mut program = guest.clone();
         hints.install(&mut program);
-        program.execute(pack_hash_state(&root))
+        program.execute(hash_to_scalars(&root))
     };
     for index in 0..8 {
         let pairs: Vec<_> = (0..3)
@@ -668,7 +669,7 @@ fn da_guest_checks_codeword_membership() {
         );
         let mut program = guest.clone();
         hints.install(&mut program);
-        program.execute(pack_hash_state(&verifier::da::digest(Some(commitment))))
+        program.execute(hash_to_scalars(&verifier::da::digest(Some(commitment))))
     };
     assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
     for position in [0, BLOB_SYMBOLS + 5] {
@@ -703,41 +704,6 @@ fn da_row_count_is_a_run_time_parameter() {
         node.verify().expect("node verifies");
         let (commitment, _) = lean_da::commit(&rows);
         assert_eq!(node.da_root, Some(commitment), "{n_rows} rows");
-    }
-}
-
-/// What one blob-carrying proof costs, at the shape EIP-4844 and EIP-7594 fix.
-/// Reported, not asserted: run it by name when the shape or the sweep changes.
-#[test]
-#[ignore]
-fn da_blob_proof() {
-    leanvm_core::init_prover();
-    let signers = get_signers(SMALL_LEAF_SIZE);
-    // One discarded proof: the first pays the guest build and the
-    // allocator's page faults, which would otherwise land entirely on the first row
-    // count reported.
-    warm_up();
-    println!(
-        "bytecode: {} instructions, DA_MAX_ROWS = {DA_MAX_ROWS}",
-        unified_guest().prog.len()
-    );
-    let _ = aggregate_with_stats(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE);
-    for n_rows in [1usize, 6, 14, 32] {
-        let rows = da_rows(n_rows, 300 + n_rows as u64);
-        let started = std::time::Instant::now();
-        let (node, stats) = aggregate_with_stats(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE)
-            .expect("node aggregates");
-        let elapsed = started.elapsed();
-        let payload = n_rows * (1 << DA_LOG_K) * 8;
-        println!(
-            "{n_rows:>3} blobs ({:>5} KiB): {:>8.2?}  {:>6.0} KiB/s  cycles 2^{:.1}  mem 2^{:.1}  proof {:.0} KiB",
-            payload / 1024,
-            elapsed,
-            payload as f64 / 1024.0 / elapsed.as_secs_f64(),
-            (stats.cycles as f64).log2(),
-            (stats.mem_used as f64).log2(),
-            node.to_bytes().len() as f64 / 1024.0,
-        );
     }
 }
 

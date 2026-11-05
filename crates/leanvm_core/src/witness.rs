@@ -22,7 +22,7 @@ impl Placement {
         offset: 0,
     };
 
-    pub fn is_virtual(&self) -> bool {
+    pub(crate) fn is_virtual(&self) -> bool {
         self.n_vars == usize::MAX
     }
 }

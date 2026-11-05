@@ -238,13 +238,13 @@ impl Shape {
 
 /// A function parameter and its calling convention.
 #[derive(Clone, Debug)]
-pub struct Param {
+pub(crate) struct Param {
     pub name: String,
     pub kind: ParamKind,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ParamKind {
+pub(crate) enum ParamKind {
     /// Substituted at the call site, with no runtime argument cell.
     Const,
     Runtime(Shape),
@@ -261,14 +261,14 @@ impl Param {
 
 /// A function definition. `main` is the entry point.
 #[derive(Clone, Debug)]
-pub struct Func {
+pub(crate) struct Func {
     pub name: String,
     /// A function with a `Const` parameter is a template, specialized per
     /// distinct constant tuple before lowering.
     pub params: Vec<Param>,
     /// Compile-time shape of each source-level return value. Stack buffers use
     /// multiple physical ABI cells; everything else uses one cell.
-    pub return_shapes: Vec<Shape>,
+    pub(crate) return_shapes: Vec<Shape>,
     pub body: Vec<Stmt>,
     /// `@inline`: expand at each call site instead of emitting a call, so the
     /// frame and the argument and return plumbing vanish. The body must be a
@@ -289,7 +289,7 @@ impl Func {
 /// A whole program: a set of functions including `main`.
 #[derive(Clone, Debug)]
 pub struct Ast {
-    pub funcs: Vec<Func>,
+    pub(crate) funcs: Vec<Func>,
     /// Top-level constant arrays `NAME = [a, b, c]`, in declaration order.
     /// Indexed `NAME[i]` and measured `len(NAME)` at compile time only, `i` being
     /// a literal, a constant or an `unroll` variable. Unlike a scalar constant

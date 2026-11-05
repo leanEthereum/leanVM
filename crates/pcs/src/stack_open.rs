@@ -117,7 +117,7 @@ impl RingSwitchOpen {
     /// log2 of q_keccak's length in F64 words, its claims' point length; the
     /// opener slices `q_keccak = stack[offset .. offset + 2^qkeccak_vars]` (no
     /// separate copy).
-    pub fn qkeccak_vars(&self) -> usize {
+    pub(crate) fn qkeccak_vars(&self) -> usize {
         self.claims.first().map_or(0, |claim| claim.suffix_point.len())
     }
 }
@@ -259,7 +259,7 @@ mod tests {
     fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
         x.chunks(2 * block)
             .flat_map(|pair| (0..block).map(move |i| (pair[i], pair.get(block + i).copied().unwrap_or(F192::ZERO))))
-            .map(|(x0, x1)| x0 + r * (x0 + x1))
+            .map(|(x0, x1)| primitives::multilinear::interp(x0, x1, r))
             .collect()
     }
 

@@ -98,7 +98,7 @@ pub struct ProverConfig {
     pub log_inv_rates: Vec<usize>,
     pub level_steps: usize,
     pub initial_k: usize,
-    pub level_ks: Vec<usize>,
+    pub(crate) level_ks: Vec<usize>,
     /// Per-level query counts (L0, L1, ..., L_r). Length = level_steps + 1.
     /// [`WhirSecurityConfig::derive_config_with_log_inv_rate`] fills these
     /// from the per-level soundness analysis.
@@ -338,12 +338,12 @@ pub struct WhirLevelConfig {
     pub log_msg_cols: usize,
     /// Log of lane width per Merkle leaf at this level. For L0 = `initial_k`;
     /// for L_i (i ≥ 1) = the previous level's `k`.
-    pub log_num_interleaved: usize,
+    pub(crate) log_num_interleaved: usize,
     /// Number of sumcheck folds taken at this level. For L0 = `initial_k`
     /// (the lane fold); for L_i (i ≥ 1) = the level fold k_{i−1}.
     pub k: usize,
     /// Slack from the Johnson radius: γ = (1 − √ρ) − η.
-    pub eta: f64,
+    pub(crate) eta: f64,
     /// Number of codeword position queries opened at this level (the FRI
     /// query phase). Bounds the per-query soundness term `(1−γ)^Q`.
     pub queries: usize,
@@ -357,7 +357,7 @@ pub struct WhirLevelConfig {
     /// claim) and ≥ 1 at deeper levels.
     pub ood_samples: usize,
     /// Security target this level guarantees, post-grinding.
-    pub target_security_bits: usize,
+    pub(crate) target_security_bits: usize,
 }
 
 /// Descriptor for the final-residual block (`yr`) sent in the clear at the
@@ -395,7 +395,7 @@ pub struct WhirSecurityConfig {
     /// error term associated with a verifier challenge clears at least this
     /// much. This is an RBR target, not a claim that the sum of all interactive
     /// failure probabilities is bounded by `2^-target_security_bits`.
-    pub target_security_bits: usize,
+    pub(crate) target_security_bits: usize,
     /// Identifier of the proximity-gap analysis used. Self-documents which
     /// theorem the per-level parameters were derived from. Example:
     /// `"ben_sasson_2025_thm_4_6"`.
