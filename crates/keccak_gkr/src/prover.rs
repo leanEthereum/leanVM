@@ -891,13 +891,15 @@ mod gfni_tests {
     /// with and without a padding block.
     #[test]
     fn gfni_pack_products_equal_the_buckets() {
-        for (n, depth, seed) in [(512, 4, 1), (1000, 12, 2), (2048, 12, 3)] {
+        // 1100 instances: three blocks written, a padding block for the fourth.
+        for (n, depth, seed) in [(512, 4, 1), (1100, 12, 2), (2048, 12, 3)] {
             let mut rng = Rng::new(seed);
             let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
             let shape = Shape::new(n, depth);
             let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
             let witness = Witness::generate(shape, &inputs, &mut committed);
-            for (step, mode) in [(0, "dense"), (depth - 1, "sparse"), (depth / 2, "dense"), (1, "zero")] {
+            assert_eq!(witness.written() < shape.n_blocks(), n == 1100, "padding block");
+            for (step, mode) in [(0, "dense"), (depth - 1, "sparse"), (depth / 2, "lanes"), (1, "zero")] {
                 let layer = Layer {
                     witness: &witness,
                     rounds: (0..shape.segments()).map(|m| shape.round(m, step)).collect(),
@@ -905,8 +907,12 @@ mod gfni_tests {
                 let mut claim = first_claim(shape, &rng.ext_vec(4), rng.ext_vec(shape.y_vars()), &rng.ext_vec(5));
                 claim.weights = (0..BITS)
                     .map(|j| {
-                        // Sparse: whole octets and some single positions are zero.
-                        if mode == "zero" || (mode == "sparse" && ((j / 8) % 3 == 1 || j % 7 == 0)) {
+                        // Sparse: whole octets and some single positions are zero. Lanes: only
+                        // lanes 0..3 weigh, so rows with no active lane at all are skipped.
+                        if mode == "zero"
+                            || (mode == "sparse" && ((j / 8) % 3 == 1 || j % 7 == 0))
+                            || (mode == "lanes" && j >= 4 * 64)
+                        {
                             F192::ZERO
                         } else {
                             rng.ext()

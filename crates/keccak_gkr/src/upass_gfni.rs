@@ -1,4 +1,4 @@
-//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2 and GFNI): the
+//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2, GFNI and PCLMULQDQ): the
 //! same values as [`crate::prover`]'s digit buckets, `sum over positions j of weights[j] (x)
 //! product(q, j)` for every pack `q` of a block and every coefficient of its product.
 //!
@@ -228,7 +228,7 @@ impl UPass {
         Self::readout(&s.acc, &mut s.out);
     }
 
-    /// Phase 1: every active octet's slot bytes into `buf[r * na + a]`.
+    /// Phase 1: every active octet's slot bytes into `buf[at(r, a, na)]`.
     fn stage(&self, block: &[u64], buf: &mut [V], na: usize) {
         assert!(buf.len() >= REGS * na);
         let mut e = [[[0u32; PACKS]; 8]; 5];
@@ -247,13 +247,15 @@ impl UPass {
                     *p = products(&e0[k], &e1[k], &e2[k]);
                 }
                 assert!(a < na, "one staged column per active octet");
-                // SAFETY: AVX2 and GFNI are enabled at compile time; `a < na` and `r < REGS`,
-                // so every store is inside `buf` (both asserted).
+                // SAFETY: AVX2 and GFNI are enabled at compile time; `a < na` (asserted) and
+                // `stage_octet` writes registers `r < REGS` only (`3 * 15 + 2`), so every store is
+                // inside `buf` (asserted size).
                 unsafe { Self::stage_octet(&prod, buf.as_mut_ptr(), a, na) };
                 a += 1;
             }
         }
-        debug_assert_eq!(a, na);
+        // Phase 2 reads every active octet's registers: none may be left from another block.
+        assert_eq!(a, na, "every active octet staged");
     }
 
     /// The slot registers of one octet's products (`prod[k][q]`: position `k`, pack `q`):
