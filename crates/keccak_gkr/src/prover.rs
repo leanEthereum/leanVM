@@ -237,7 +237,7 @@ impl Layer<'_> {
     /// Nothing here knows where the polynomials will be evaluated, so each product meets its
     /// weight bit by bit. The position weights are the same in every block, so a block's sum
     /// over positions is taken bit by bit, by GFNI outer products where they are compiled
-    /// (`upass_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
+    /// (`products_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
     /// the block's weight, as field elements.
     fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
         cfg_select! {
@@ -248,19 +248,19 @@ impl Layer<'_> {
         }
     }
 
-    /// [`Self::pack_products`] by GFNI outer products (`upass_gfni`): the same sums.
+    /// [`Self::pack_products`] by GFNI outer products (`products_gfni`): the same sums.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
     fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
-        use crate::upass_gfni::UPass;
+        use crate::products_gfni::ProductSums;
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
-        let upass = UPass::new(&claim.weights);
+        let kernel = ProductSums::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || upass.scratch(),
+            || kernel.scratch(),
             || vec![F192Unreduced::ZERO; PAYLOAD_BITS],
             |scratch, sums, task| {
                 let (_, _, block) = self.block(task);
-                upass.block_sums(scratch, block);
+                kernel.block_sums(scratch, block);
                 for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
                     *sum ^= weights[task].mul_unreduced(F192::new(v[0], v[1], v[2]));
                 }
@@ -412,7 +412,7 @@ impl Layer<'_> {
             target_feature = "avx512bw",
             target_feature = "gfni"
         ))]
-        let maps = crate::table_gfni::Maps::new(field, &fold);
+        let row_maps = crate::table_gfni::RowMaps::new(field, &fold);
         // Rows of segments that do not exist are zero, and so is their product.
         table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(0);
         pads[self.rounds.len() * ROW..].fill(0);
@@ -453,7 +453,7 @@ impl Layer<'_> {
                     all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
                         // Each group's value by affine byte maps (`table_gfni`).
                         let _ = wide;
-                        maps.rows(block, rows, halves);
+                        row_maps.rows(block, rows, halves);
                     }
                     _ => {
                         // Both groups' unreduced sums, four words each and laid out by word, then reduced.
@@ -903,7 +903,7 @@ mod gfni_tests {
                 let mut claim = first_claim(shape, &rng.ext_vec(4), rng.ext_vec(shape.y_vars()), &rng.ext_vec(5));
                 claim.weights = (0..BITS)
                     .map(|j| {
-                        // Sparse: whole octets and some single positions are zero. Lanes: only
+                        // Sparse: whole lane bytes and some single positions are zero. Lanes: only
                         // lanes 0..3 weigh, so rows with no active lane at all are skipped.
                         if mode == "zero"
                             || (mode == "sparse" && ((j / 8) % 3 == 1 || j % 7 == 0))

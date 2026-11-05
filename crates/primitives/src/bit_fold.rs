@@ -702,8 +702,8 @@ mod gfni256 {
                 let mut lo: [__m256i; 16] = std::array::from_fn(|o| acc[o]);
                 let mut hi: [__m256i; 16] =
                     std::array::from_fn(|o| if o < 8 { acc[16 + o] } else { _mm256_setzero_si256() });
-                crate::bits::transpose16_lanes256(&mut lo);
-                crate::bits::transpose16_lanes256(&mut hi);
+                crate::bits::transpose_bytes16x16_per_lane256(&mut lo);
+                crate::bits::transpose_bytes16x16_per_lane256(&mut hi);
                 for k in 0..16 {
                     for l in 0..2 {
                         let (v, w) = (words(lo[k]), words(hi[k]));

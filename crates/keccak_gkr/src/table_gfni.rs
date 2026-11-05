@@ -22,18 +22,18 @@ use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
 /// Bytes of a group of a position (16 packs of 16 bits), and of a reduced value.
-const IN_BYTES: usize = 32;
-const OUT_BYTES: usize = 24;
+const GROUP_BYTES: usize = 32;
+const VALUE_BYTES: usize = 24;
 /// Positions per register.
-const LANES: usize = 64;
+const REGISTER_POSITIONS: usize = 64;
 
-/// The affine maps of one layer's fold weights: `mats[t][o]` sends byte `t` of a group to byte `o`
+/// The affine maps of one layer's fold weights: `matrices[t][o]` sends byte `t` of a group to byte `o`
 /// of its value.
-pub struct Maps {
-    mats: [[u64; OUT_BYTES]; IN_BYTES],
+pub struct RowMaps {
+    matrices: [[u64; VALUE_BYTES]; GROUP_BYTES],
 }
 
-impl Maps {
+impl RowMaps {
     /// From the fold weights `fold[k][q]` (word `k` of pack `q`'s weight, in the power basis).
     pub fn new(field: &PowerField, fold: &[[u64; GROUP]; 3]) -> Self {
         // The value of bit `i` of pack `q` alone, image `16 q + i`: its unit embedding times the pack's
@@ -54,7 +54,7 @@ impl Maps {
         let bit = |image: usize, n: usize| (images[(n / 64) * IMAGES + image] >> (n % 64)) as u8 & 1;
         // An affine byte map reads output bit `k` off matrix byte `7 - k`: its bit `c` is bit `8 o + k`
         // of the image of input bit `c`.
-        let mats = std::array::from_fn(|t| {
+        let matrices = std::array::from_fn(|t| {
             std::array::from_fn(|o| {
                 (0..8).fold(0u64, |m, k| {
                     let row = (0..8).fold(0u8, |row, c| row | bit(16 * (t / 2) + 8 * (t % 2) + c, 8 * o + k) << c);
@@ -62,7 +62,7 @@ impl Maps {
                 })
             })
         });
-        Self { mats }
+        Self { matrices }
     }
 
     /// The rows of a block's first `halves` groups: row `h`, word `k` of position `j` at
@@ -72,13 +72,13 @@ impl Maps {
         // SAFETY: AVX-512F/BW and GFNI are enabled at compile time (module cfg); every load reads
         // positions inside `block` and every store writes words inside `rows` (asserted).
         unsafe {
-            for g in 0..BITS / LANES {
-                let y = transpose_positions(block.as_ptr().add(LANES * g * BLOCK_WORDS));
+            for g in 0..BITS / REGISTER_POSITIONS {
+                let y = transpose_position_bytes(block.as_ptr().add(REGISTER_POSITIONS * g * BLOCK_WORDS));
                 for h in 0..halves {
-                    let acc = self.accumulate(&y[IN_BYTES * h..][..IN_BYTES]);
+                    let acc = self.accumulate(&y[GROUP_BYTES * h..][..GROUP_BYTES]);
                     for k in 0..3 {
-                        let words = planes_to_words(acc[8 * k..][..8].try_into().unwrap());
-                        let dst = rows.as_mut_ptr().add(h * 3 * BITS + k * BITS + LANES * g);
+                        let words = byte_planes_to_words(acc[8 * k..][..8].try_into().unwrap());
+                        let dst = rows.as_mut_ptr().add(h * 3 * BITS + k * BITS + REGISTER_POSITIONS * g);
                         for (r, w) in words.iter().enumerate() {
                             _mm512_storeu_si512(dst.add(8 * r).cast(), *w);
                         }
@@ -88,13 +88,13 @@ impl Maps {
         }
     }
 
-    /// Output byte `o` of the 64 positions: the sum over input bytes `t` of `mats[t][o]` applied to `y[t]`.
+    /// Output byte `o` of the 64 positions: the sum over input bytes `t` of `matrices[t][o]` applied to `y[t]`.
     #[inline]
     #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "gfni")]
-    fn accumulate(&self, y: &[__m512i]) -> [__m512i; OUT_BYTES] {
-        let mut acc = [_mm512_setzero_si512(); OUT_BYTES];
-        for t in (0..IN_BYTES).step_by(2) {
-            let (x0, x1, m0, m1) = (y[t], y[t + 1], &self.mats[t], &self.mats[t + 1]);
+    fn accumulate(&self, y: &[__m512i]) -> [__m512i; VALUE_BYTES] {
+        let mut acc = [_mm512_setzero_si512(); VALUE_BYTES];
+        for t in (0..GROUP_BYTES).step_by(2) {
+            let (x0, x1, m0, m1) = (y[t], y[t + 1], &self.matrices[t], &self.matrices[t + 1]);
             for (o, a) in acc.iter_mut().enumerate() {
                 let g0 = _mm512_gf2p8affine_epi64_epi8::<0>(x0, _mm512_set1_epi64(m0[o] as i64));
                 let g1 = _mm512_gf2p8affine_epi64_epi8::<0>(x1, _mm512_set1_epi64(m1[o] as i64));
@@ -128,7 +128,7 @@ fn transpose_lanes(x: [__m512i; 4]) -> [__m512i; 4] {
 /// `p` is valid for reading 64 positions; AVX-512F/BW.
 #[inline]
 #[target_feature(enable = "avx512f", enable = "avx512bw")]
-unsafe fn transpose_positions(p: *const u64) -> [__m512i; 64] {
+unsafe fn transpose_position_bytes(p: *const u64) -> [__m512i; 64] {
     let mut y = [[_mm512_setzero_si512(); 16]; 4];
     for (q, yq) in y.iter_mut().enumerate() {
         for (n, v) in yq.iter_mut().enumerate() {
@@ -136,7 +136,7 @@ unsafe fn transpose_positions(p: *const u64) -> [__m512i; 64] {
             *v = unsafe { _mm512_loadu_si512(p.add(BLOCK_WORDS * (16 * q + n)).cast()) };
         }
         // yq[k] lane l byte n = byte 16 l + k of position 16 q + n.
-        primitives::bits::transpose16_lanes512(yq);
+        primitives::bits::transpose_bytes16x16_per_lane512(yq);
     }
     let mut out = [_mm512_setzero_si512(); 64];
     for k in 0..16 {
@@ -155,7 +155,7 @@ unsafe fn transpose_positions(p: *const u64) -> [__m512i; 64] {
 /// positions' words: register `r` holds positions `8 r .. 8 r + 8`.
 #[inline]
 #[target_feature(enable = "avx512f", enable = "avx512bw")]
-fn planes_to_words(a: &[__m512i; 8]) -> [__m512i; 8] {
+fn byte_planes_to_words(a: &[__m512i; 8]) -> [__m512i; 8] {
     // Per 128-bit lane `L` (positions 16 L ..): bytes, then 16-bit pairs, then 32-bit quads interleave.
     let u: [__m512i; 8] = std::array::from_fn(|i| {
         let (x, y) = (a[2 * (i / 2)], a[2 * (i / 2) + 1]);
@@ -235,7 +235,7 @@ mod tests {
             }
             for halves in [2, 1] {
                 let mut got = vec![0u64; 2 * 3 * BITS];
-                Maps::new(&field, &fold).rows(&block, &mut got, halves);
+                RowMaps::new(&field, &fold).rows(&block, &mut got, halves);
                 assert_eq!(got[..halves * 3 * BITS], want[..halves * 3 * BITS], "{halves} halves");
             }
         }

@@ -83,7 +83,7 @@
 //! weighted sum is a carry-less product (`basis`, `power`).
 //!
 //! `U`'s weighted bit sums are outer products: with GFNI (x86-64), one affine byte map per byte
-//! of eight positions' weights applied to bit-transposed products (`upass_gfni`); elsewhere,
+//! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 
 use fiat_shamir::transcript::ProverState;
@@ -101,6 +101,8 @@ mod keccak;
 pub mod kernels;
 mod open;
 mod power;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
+mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
@@ -111,8 +113,6 @@ pub mod rmfe;
     target_feature = "gfni"
 ))]
 mod table_gfni;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
-mod upass_gfni;
 pub mod witness;
 
 #[cfg(test)]

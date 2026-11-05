@@ -186,7 +186,7 @@ const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15]
 
 /// A 16x16 byte transpose inside each 128-bit lane of 16 registers of one width: `out[k]` byte `p` of a lane is
 /// `in[p]` byte `k` of that lane. Four rounds of unpacks.
-macro_rules! transpose16_lanes {
+macro_rules! transpose_bytes16x16_per_lane {
     ($(#[$m:meta])* $name:ident, $v:ty, $zero:ident, $([$lo:ident, $hi:ident]),*) => {
         $(#[$m])*
         ///
@@ -209,11 +209,11 @@ macro_rules! transpose16_lanes {
     };
 }
 
-transpose16_lanes!(
+transpose_bytes16x16_per_lane!(
     /// The in-lane 16x16 byte transpose of 16 AVX2 registers.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     #[target_feature(enable = "avx2")]
-    transpose16_lanes256,
+    transpose_bytes16x16_per_lane256,
     core::arch::x86_64::__m256i,
     _mm256_setzero_si256,
     [_mm256_unpacklo_epi8, _mm256_unpackhi_epi8],
@@ -222,11 +222,11 @@ transpose16_lanes!(
     [_mm256_unpacklo_epi64, _mm256_unpackhi_epi64]
 );
 
-transpose16_lanes!(
+transpose_bytes16x16_per_lane!(
     /// The in-lane 16x16 byte transpose of 16 AVX-512 registers.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512bw"))]
     #[target_feature(enable = "avx512f", enable = "avx512bw")]
-    transpose16_lanes512,
+    transpose_bytes16x16_per_lane512,
     core::arch::x86_64::__m512i,
     _mm512_setzero_si512,
     [_mm512_unpacklo_epi8, _mm512_unpackhi_epi8],
