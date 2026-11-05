@@ -37,6 +37,12 @@ pub fn eq_table(r: &[F192]) -> Vec<F192> {
     unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_table(r, F192::ONE, eq)) }
 }
 
+/// The `eq(r, ·)` table, built on the calling thread.
+pub fn eq_table_serial(r: &[F192]) -> Vec<F192> {
+    // SAFETY: the fill writes every element before it reads any.
+    unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_doubling(r, F192::ONE, eq)) }
+}
+
 /// Fill `out` with `seed * eq(r, .)`, in LSB-first order. The old contents of `out` are never read.
 ///
 /// A small table doubles a level at a time on the calling thread.

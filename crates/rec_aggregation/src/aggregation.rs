@@ -37,6 +37,7 @@
 //! protocol to drift.
 
 use bincode::Options as _;
+use fiat_shamir::merkle::hash_to_scalars;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
@@ -52,7 +53,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use primitives::field::{F64, F64x8, F192, F192x8, G, Prod8, dot_base, g_pow};
-use primitives::multilinear::{eq_table, mle_eval_par, packed_eq};
+use primitives::multilinear::{eq_table, interp, mle_eval_par, packed_eq};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
 
@@ -140,16 +141,6 @@ fn f192_literal(f: F192) -> String {
     format!("f192({},{},{})", f.c0, f.c1, f.c2)
 }
 
-/// Pack a 32-byte digest as the canonical 128+128 cell pair the VM's hash
-/// instruction writes.
-fn pack_hash_state(hash: &[u8; 32]) -> [F192; 2] {
-    let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
-    [
-        F192::new(word_at(0), word_at(8), 0),
-        F192::new(word_at(16), word_at(24), 0),
-    ]
-}
-
 /// A 16-byte native value as one canonical 128-bit cell.
 fn pack_16_bytes(bytes: &[u8]) -> F192 {
     let word_at = |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
@@ -194,7 +185,7 @@ fn list_split(n: usize) -> Vec<F192> {
 /// the message it signed, and an empty list hashes the empty string. The guest
 /// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
 fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
-    pack_hash_state(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
+    hash_to_scalars(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
@@ -297,7 +288,7 @@ const STATEMENT_HEADER: usize = 8;
 /// from `keccak_cells` over the same cells.
 fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
     let bytes: Vec<u8> = lanes.flat_map(u64::to_le_bytes).collect();
-    pack_hash_state(&primitives::hash::hash(&bytes))
+    hash_to_scalars(&primitives::hash::hash(&bytes))
 }
 
 /// A node's public statement, hashed to the two words the VM publishes. The
@@ -322,7 +313,7 @@ fn statement_digest(
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
     let lean_sphincs_digest = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
-    let da_digest = pack_hash_state(&da_digest);
+    let da_digest = hash_to_scalars(&da_digest);
     let header: [F192; STATEMENT_HEADER] = [
         seed[0],
         seed[1],
@@ -787,7 +778,7 @@ fn bytecode_vars() -> usize {
 fn fold_lsb(table: &mut Vec<F192>, challenge: F192) {
     let half = table.len() / 2;
     for i in 0..half {
-        table[i] = table[2 * i] + challenge * (table[2 * i] + table[2 * i + 1]);
+        table[i] = interp(table[2 * i], table[2 * i + 1], challenge);
     }
     table.truncate(half);
 }
@@ -1286,8 +1277,8 @@ fn gen_verify(
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(pack_hash_state(left));
-                    path_children.extend(pack_hash_state(right));
+                    path_children.extend(hash_to_scalars(left));
+                    path_children.extend(hash_to_scalars(right));
                 }
                 node = pcs::merkle::hash_pair(left, right);
                 index >>= 1;
@@ -1295,7 +1286,7 @@ fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(pack_hash_state));
+        caps.extend(nodes.iter().flat_map(hash_to_scalars));
         cap_active.extend(active);
     }
     let deferred = DeferredSubproof {
@@ -1857,7 +1848,7 @@ pub fn aggregate_with_stats(
             }
         }
         hints.push("child_defer", child.defer.cells());
-        hints.push("child_da", pack_hash_state(&child_da[i]).to_vec());
+        hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
         let (sub_hints, defer) = gen_verify(
             guest,
             pi,
@@ -2728,7 +2719,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     );
 
     // ---- LeanDA (`doc/leanvm` §sec:leanda) ----
-    let pad_blob = pack_hash_state(&lean_da::padding_root());
+    let pad_blob = hash_to_scalars(&lean_da::padding_root());
     ps("DA_LOG_K", DA_LOG_K.to_string());
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
@@ -3285,14 +3276,14 @@ def main():
                 "bits",
                 (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
             );
-            hints.push("leaf", pack_hash_state(&leaf).to_vec());
+            hints.push("leaf", hash_to_scalars(&leaf).to_vec());
             hints.push(
                 "merkle_children",
-                pairs.iter().flatten().flat_map(pack_hash_state).collect(),
+                pairs.iter().flatten().flat_map(hash_to_scalars).collect(),
             );
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&root))
+            program.execute(hash_to_scalars(&root))
         };
         for index in 0..8 {
             let pairs: Vec<_> = (0..3)
@@ -3548,7 +3539,7 @@ def main():
             );
             let mut program = guest.clone();
             hints.install(&mut program);
-            program.execute(pack_hash_state(&verifier::da::digest(Some(commitment))))
+            program.execute(hash_to_scalars(&verifier::da::digest(Some(commitment))))
         };
         assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
         for position in [0, BLOB_SYMBOLS + 5] {

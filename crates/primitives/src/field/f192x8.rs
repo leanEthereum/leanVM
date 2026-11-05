@@ -649,7 +649,7 @@ mod tests {
 
             assert_eq!(
                 fold_pairs8_ext(&x0, &x1, r),
-                core::array::from_fn(|j| x0[j] + r * (x0[j] + x1[j]))
+                core::array::from_fn(|j| crate::multilinear::interp(x0[j], x1[j], r))
             );
             assert_eq!(fold_lones8_ext(&x0, r), core::array::from_fn(|j| x0[j] + r * x0[j]));
 
