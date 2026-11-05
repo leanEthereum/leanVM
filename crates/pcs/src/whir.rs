@@ -123,21 +123,25 @@ pub struct ProverData {
 
 /// The largest L0 codeword the commit keeps where [`primitives::REBUILD_OVER_STORE`], in bytes.
 ///
-/// - Up to it, memory is not the limit: the commit keeps the codeword before its deep layers, which saves the
-///   opening a rebuild from the stack and the encode a second stage fill.
-/// - Above it, the codeword dominates the peak: when one gathered pass covers the layers before the deep pass,
-///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
-/// - `LEANVM_CODEWORD_BUDGET_MIB` overrides the default, in MiB.
-/// - A larger budget buys a faster commit and opening with peak memory.
+/// - A kept codeword saves the opening a rebuild from the stack and the encode a second stage fill.
+/// - It lives from the commit to the L0 open, beside the bus and the constraints, so it adds its size to the peak.
+/// - The budget is a share of the memory this process may use, so a machine with room to spare keeps it.
+/// - It never falls below a floor, under which memory is not the limit.
+/// - `LEANVM_CODEWORD_BUDGET_MIB` sets it instead, in MiB: `0` never keeps one.
 fn keep_codeword_max_bytes() -> usize {
-    const DEFAULT_MIB: usize = 1 << 10;
+    const FLOOR: usize = 1 << 30;
+    /// The peak of a proof that keeps its codeword is a few times that codeword.
+    /// One eighth leaves that peak well inside the machine, with room for whatever else it runs.
+    const SHARE: usize = 8;
     static MAX_BYTES: OnceLock<usize> = OnceLock::new();
-    *MAX_BYTES.get_or_init(|| {
-        let mib = std::env::var("LEANVM_CODEWORD_BUDGET_MIB").map_or(DEFAULT_MIB, |v| {
-            v.parse()
-                .unwrap_or_else(|_| panic!("LEANVM_CODEWORD_BUDGET_MIB must be a whole number of MiB, not {v:?}"))
-        });
-        mib.saturating_mul(1 << 20)
+    *MAX_BYTES.get_or_init(|| match std::env::var("LEANVM_CODEWORD_BUDGET_MIB") {
+        Ok(v) => {
+            let mib: usize = v
+                .parse()
+                .unwrap_or_else(|_| panic!("LEANVM_CODEWORD_BUDGET_MIB must be a whole number of MiB, not {v:?}"));
+            mib.saturating_mul(1 << 20)
+        }
+        Err(_) => crate::memory::total_bytes().map_or(FLOOR, |total| (total / SHARE).max(FLOOR)),
     })
 }
 
@@ -177,18 +181,24 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
     let ntt = AdditiveNttF64::standard(k_code);
-    let codeword =
-        tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
-            let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
-            let keep = if !primitives::REBUILD_OVER_STORE {
-                Keep::Whole
-            } else if n_positions * row_words * size_of::<F64>() > keep_codeword_max_bytes() {
-                Keep::Nothing
-            } else {
-                Keep::BeforeDeep
-            };
-            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
-        });
+    let keep = if !primitives::REBUILD_OVER_STORE {
+        Keep::Whole
+    } else if n_positions * row_words * size_of::<F64>() > keep_codeword_max_bytes() {
+        Keep::Nothing
+    } else {
+        Keep::BeforeDeep
+    };
+    let codeword = tracing::info_span!(
+        "NTT",
+        kind = "base encode",
+        log_domain = k_code,
+        lanes = row_words,
+        kept = keep != Keep::Nothing
+    )
+    .in_scope(|| {
+        let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
+        ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
+    });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
     let root = merkle_tree.root();
 
