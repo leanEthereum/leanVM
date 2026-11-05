@@ -11,7 +11,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign};
 use serde::{Deserialize, Serialize};
 
 /// Reduction constant of the base field: `x^64 = x^4 + x^3 + x + 1 = 0x1B`.
-pub(crate) const R64: u64 = 0x1B;
+pub const R64: u64 = 0x1B;
 
 /// A GF(2^64) element; bit i = coefficient of x^i.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
