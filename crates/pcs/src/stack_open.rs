@@ -259,7 +259,7 @@ mod tests {
     fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
         x.chunks(2 * block)
             .flat_map(|pair| (0..block).map(move |i| (pair[i], pair.get(block + i).copied().unwrap_or(F192::ZERO))))
-            .map(|(x0, x1)| x0 + r * (x0 + x1))
+            .map(|(x0, x1)| primitives::multilinear::interp(x0, x1, r))
             .collect()
     }
 

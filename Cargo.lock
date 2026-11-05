@@ -495,6 +495,7 @@ name = "rec_aggregation"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "fiat_shamir",
  "keccak_gkr",
  "lean_compiler",
  "lean_da",

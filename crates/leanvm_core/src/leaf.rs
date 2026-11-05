@@ -774,31 +774,6 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// bus tuple coordinate.
 pub const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The stacked bytecode polynomial as a dense table: eleven public encoding
-/// columns at their tuple coordinates, padded to sixteen selector slots. One
-/// multilinear polynomial B̃ in `κ_bc + 4` variables, which is what a bus leaf
-/// reads at `(ζ_lo, α⃗)` (§sec:e2e-bc); the outermost verifier evaluates it.
-pub fn stacked_bytecode_table(blocks: &[Block]) -> Vec<F64> {
-    let mut kbc = 0;
-    let mut cols: Vec<&[F64]> = Vec::new();
-    for blk in blocks {
-        for c in &blk.coords {
-            if let Coord::Public(vals) = c {
-                kbc = blk.kappa;
-                cols.push(vals.as_slice());
-            }
-        }
-    }
-    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
-    for (i, vals) in cols.into_iter().enumerate() {
-        let slot = BYTECODE_PUBLIC_SLOT + i;
-        assert!(slot < 1 << N_BYTECODE_SELECTORS, "a public slot is a tuple coordinate");
-        assert_eq!(vals.len(), 1 << kbc);
-        table[(slot << kbc)..((slot + 1) << kbc)].copy_from_slice(vals);
-    }
-    table
-}
-
 /// The three bus sides in `[push, pull, count]` order with their fingerprint
 /// weights. The count channel's leaf is the count itself (a single `Col`), so it
 /// runs at `α⃗ = 0` (weight `1` on slot `0`, zero elsewhere), `β = 0`, and its GKR

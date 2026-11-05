@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 primitives.workspace = true
+fiat_shamir.workspace = true
 parallel.workspace = true
 pcs.workspace = true
 keccak_gkr.workspace = true

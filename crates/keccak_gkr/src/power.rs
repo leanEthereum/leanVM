@@ -577,7 +577,7 @@ mod tests {
         for j in 0..width {
             assert_eq!(
                 field.to_field(&get(&fast, width, j)),
-                a0[j] + challenge * (a0[j] + a1[j])
+                primitives::multilinear::interp(a0[j], a1[j], challenge)
             );
         }
         let wide: Vec<u64> = (0..4 * width).map(|_| rng.next_u64()).collect();
