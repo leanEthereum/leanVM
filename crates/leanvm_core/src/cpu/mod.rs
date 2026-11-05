@@ -436,6 +436,10 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     }
     let cycles = exec.cycles;
     let mut w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
+    // The witness holds what the proof reads, so the memory image and the trace go now,
+    // before the bus and the commitment allocate theirs.
+    let mem_used = exec.mem_used;
+    drop(exec);
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: w.layout.shape.mu,
@@ -521,7 +525,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
             rows: w.layout.rows,
             committed: committed_size,
             log_mem: w.log_mem,
-            mem_used: exec.mem_used,
+            mem_used,
             bytecode: program.code_len(),
         },
     ))
