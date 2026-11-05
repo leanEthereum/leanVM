@@ -148,12 +148,17 @@ mod portable {
     pub(super) struct Imp {
         /// One subset-sum table per byte of a row.
         tables: Vec<[F192; 256]>,
+        /// The nibble tables of [`avx2::fold_columns`].
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        nibbles: Vec<super::avx2::Nibbles>,
     }
 
     impl Imp {
         pub(super) fn new(weights: &[F192]) -> Self {
             Self {
                 tables: lookup_tables(weights),
+                #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+                nibbles: super::avx2::nibble_tables(weights),
             }
         }
 
@@ -177,12 +182,112 @@ mod portable {
         )]
         #[inline]
         pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+            // SAFETY: AVX2 is enabled at compile time.
+            return unsafe { super::avx2::fold_columns(&self.nibbles, cols, out) };
+            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
             for (p, o) in out.iter_mut().enumerate() {
                 *o = cols
                     .iter()
                     .zip(&self.tables)
                     .fold(F192::ZERO, |acc, (col, sums)| acc + sums[usize::from(col[p])]);
             }
+        }
+    }
+}
+
+/// The GFNI fold's byte-matrix products as nibble lookups, for AVX2 without the AVX-512 GFNI fold.
+///
+/// Output byte `o` of a row is `XOR_j A[j][o] * byte j`. A byte matrix applied to a byte is the sum of its
+/// two nibbles' images, each one in-lane byte shuffle of a 16-entry table, 32 rows to a register.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    not(all(target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi"))
+))]
+mod avx2 {
+    use core::arch::x86_64::*;
+
+    use super::{BLOCK, F192};
+    use crate::{load_at, store_at};
+
+    /// The images of the low and the high nibble of input byte `j` in output byte `o`, each table in both 128-bit lanes.
+    pub(super) type Nibbles = [[u8; 32]; 2];
+
+    /// Entry `24 j + o`: the [`Nibbles`] of input byte `j` and output byte `o`.
+    pub(super) fn nibble_tables(weights: &[F192]) -> Vec<Nibbles> {
+        let byte = |w: &F192, o: usize| ([w.c0, w.c1, w.c2][o / 8] >> (8 * (o % 8))) as u8;
+        let mut out = Vec::with_capacity(3 * weights.len());
+        for w in weights.as_chunks::<8>().0 {
+            for o in 0..24 {
+                out.push(std::array::from_fn(|half| {
+                    std::array::from_fn(|i| {
+                        let n = i % 16;
+                        (0..4)
+                            .filter(|t| n >> t & 1 == 1)
+                            .fold(0, |acc, t| acc ^ byte(&w[4 * half + t], o))
+                    })
+                }));
+            }
+        }
+        out
+    }
+
+    /// [`super::BitFold::fold_columns`]: per 32 rows and coefficient, eight output bytes summed over the
+    /// input bytes, then transposed into words.
+    #[inline]
+    #[target_feature(enable = "avx2")]
+    pub(super) fn fold_columns<const CHUNKS: usize>(
+        tables: &[Nibbles],
+        cols: &[[u8; BLOCK]; CHUNKS],
+        out: &mut [F192; BLOCK],
+    ) {
+        assert_eq!(tables.len(), 24 * CHUNKS);
+        let mask = _mm256_set1_epi8(0x0f);
+        let mut words = [[0u64; BLOCK]; 3];
+        for (k, words) in words.iter_mut().enumerate() {
+            for h in 0..2 {
+                let mut acc = [_mm256_setzero_si256(); 8];
+                for (j, col) in cols.iter().enumerate() {
+                    let v: __m256i = load_at(col, 32 * h);
+                    let (lo, hi) = (
+                        _mm256_and_si256(v, mask),
+                        _mm256_and_si256(_mm256_srli_epi16::<4>(v), mask),
+                    );
+                    for (i, acc) in acc.iter_mut().enumerate() {
+                        let t = &tables[24 * j + 8 * k + i];
+                        let (tl, th): (__m256i, __m256i) = (load_at(&t[0], 0), load_at(&t[1], 0));
+                        let image = _mm256_xor_si256(_mm256_shuffle_epi8(tl, lo), _mm256_shuffle_epi8(th, hi));
+                        *acc = _mm256_xor_si256(*acc, image);
+                    }
+                }
+                // Byte `p` of `acc[i]` is byte `i` of row `32 h + p`: three unpack stages make words.
+                let pairs = |a: __m256i, b: __m256i| (_mm256_unpacklo_epi8(a, b), _mm256_unpackhi_epi8(a, b));
+                let (l01, h01) = pairs(acc[0], acc[1]);
+                let (l23, h23) = pairs(acc[2], acc[3]);
+                let (l45, h45) = pairs(acc[4], acc[5]);
+                let (l67, h67) = pairs(acc[6], acc[7]);
+                // Lane 0 of a stage-one register holds rows `base..base + 8`, lane 1 the same rows plus 16.
+                for (base, (a, b, c, d)) in [(0, (l01, l23, l45, l67)), (8, (h01, h23, h45, h67))] {
+                    let quads = [
+                        (base, _mm256_unpacklo_epi16(a, b), _mm256_unpacklo_epi16(c, d)),
+                        (base + 4, _mm256_unpackhi_epi16(a, b), _mm256_unpackhi_epi16(c, d)),
+                    ];
+                    for (base, x, y) in quads {
+                        for (base, w) in [
+                            (base, _mm256_unpacklo_epi32(x, y)),
+                            (base + 2, _mm256_unpackhi_epi32(x, y)),
+                        ] {
+                            let row = 32 * h + base;
+                            store_at(words, row, _mm256_castsi256_si128(w));
+                            store_at(words, row + 16, _mm256_extracti128_si256::<1>(w));
+                        }
+                    }
+                }
+            }
+        }
+        for (p, o) in out.iter_mut().enumerate() {
+            *o = F192::new(words[0][p], words[1][p], words[2][p]);
         }
     }
 }
