@@ -54,6 +54,16 @@ theorem KeygenRunRelation.rightReplayEndpoints
       rightCache :=
   fun key => (hrightWarm.keyOneTimePublicKey_eq hrel.2.1 key).symm
 
+/-- Over free inputs, so the kernel never compares two concrete inputs' output types. -/
+theorem digestAt_eq_of_hashCacheLookup_eq {leftCache rightCache : QueryCache HashSpec}
+    {leftInput rightInput : HashInput}
+    (hlookup : hashCacheLookup leftCache leftInput = hashCacheLookup rightCache rightInput) :
+    Concrete.CacheView.digestAt leftCache leftInput =
+      Concrete.CacheView.digestAt rightCache rightInput := by
+  unfold hashCacheLookup at hlookup
+  unfold Concrete.CacheView.digestAt
+  split <;> split <;> simp_all
+
 theorem KeygenRunRelation.keyLeafHash_eq
     (hleftWarm : ChainsWarm parameter leftStart leftWarm)
     (hrightWarm : ChainsWarm parameter rightStart rightWarm)
@@ -66,9 +76,7 @@ theorem KeygenRunRelation.keyLeafHash_eq
   have hlookup := GlobalTreeCacheCorrespondence.replayLeaves parameter leftStart rightStart
     leftCache rightCache _ _ hrel.2.2 (KeygenRunRelation.leftReplayEndpoints hleftWarm hrel)
     (KeygenRunRelation.rightReplayEndpoints hrightWarm hrel) key
-  unfold hashCacheLookup at hlookup
-  unfold Concrete.CacheView.digestAt
-  split <;> split <;> simp_all
+  exact digestAt_eq_of_hashCacheLookup_eq hlookup
 
 theorem KeygenRunRelation.treeNode_eq
     (hleftWarm : ChainsWarm parameter leftStart leftWarm)
