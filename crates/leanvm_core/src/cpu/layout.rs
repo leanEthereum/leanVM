@@ -3,6 +3,7 @@
 //! sizes and public input. Plus the prover-side witness build.
 
 use super::*;
+use std::sync::Arc;
 
 // ---- column schema -----------------------------------------------------------
 
@@ -285,10 +286,13 @@ pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; t
 /// Operand slots of a bytecode tuple, after the opcode.
 pub(crate) const BYTECODE_OPERANDS: usize = 10;
 
+/// The PUBLIC bytecode columns of a program.
+pub(crate) type BytecodeColumns = [Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS];
+
 /// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
 /// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
 /// `Coord::Public` and stack into the polynomial [`bytecode_table`] returns.
-pub(crate) fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
+pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
     let g_at = primitives::field::g_pow32_by_lookup;
 
     // The opcode, then the operand slots: offsets as g-powers, a `SET` immediate as its three
@@ -354,7 +358,7 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS]
             unsafe { column.add(i).write(value) };
         }
     });
-    columns
+    columns.map(Arc::new)
 }
 
 /// The stacked bytecode polynomial: the eleven columns at their bus tuple
@@ -364,11 +368,16 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS]
 /// This is the multilinear an outermost verifier is handed in place of a
 /// structured program, and what the transcript seed binds ([`super::fs_seed`]).
 pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
+    stack_columns(&bytecode_columns(prog))
+}
+
+/// [`bytecode_table`] of a program's columns.
+pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
     use crate::leaf::{BYTECODE_PUBLIC_SLOT, N_BYTECODE_SELECTORS};
     const { assert!(BYTECODE_PUBLIC_SLOT + 1 + BYTECODE_OPERANDS <= 1 << N_BYTECODE_SELECTORS) };
-    let kbc = crate::log2_strict_usize(prog.len());
+    let kbc = crate::log2_strict_usize(columns[0].len());
     let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
-    for (i, column) in bytecode_columns(prog).iter().enumerate() {
+    for (i, column) in columns.iter().enumerate() {
         let slot = BYTECODE_PUBLIC_SLOT + i;
         table[slot << kbc..(slot + 1) << kbc].copy_from_slice(column);
     }
@@ -381,8 +390,18 @@ pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
 pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+    layout_of(bytecode_columns(prog), log_mem, rows, pi)
+}
+
+/// [`layout`] of a program's columns.
+pub(crate) fn layout_of(
+    prog_cols: BytecodeColumns,
+    log_mem: usize,
+    rows: [usize; tables::N_TABLES],
+    pi: [F192; 2],
+) -> Layout {
     let taus = table_logs(rows);
-    let bytecode_size = prog.len();
+    let bytecode_size = prog_cols[0].len();
     let log_bytecode = crate::log2_strict_usize(bytecode_size);
 
     // Derived boundary: the run starts at (pc,fp) = (0,0) and, by convention, the
@@ -391,9 +410,6 @@ pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: 
     let final_pc = (bytecode_size - 1) as u32;
 
     let one = F64::ONE;
-    // Shared between the seed and finalize blocks: at kbc = 19 a copy is tens of
-    // megabytes per column.
-    let prog_cols: [std::sync::Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS] = bytecode_columns(prog).map(std::sync::Arc::new);
 
     // ---- bus blocks ----
     use Coord::{Col, Const, Index, Public};
@@ -522,7 +538,7 @@ impl Program {
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
         let pi = [exec.mem.word(0), exec.mem.word(1)];
-        let l = layout(&self.prog, log_mem, row_counts, pi);
+        let l = self.layout(log_mem, row_counts, pi);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into

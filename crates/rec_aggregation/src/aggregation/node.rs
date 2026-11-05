@@ -225,9 +225,15 @@ pub fn aggregate_with_stats(
         })
         .collect();
     let sums = bytecode_sums(&claim_points);
+    // Each child's witness is its own, one child per worker: nothing inside dispatches.
+    let verified = parallel::map_collect(children.len(), |i| {
+        let (pi, summary) = &replayed[i];
+        let value = bytecode_value(&sums[2 * i], &claim_points[2 * i]);
+        gen_verify(guest, *pi, &children[i].proof.stream, summary, value)
+    });
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());
-    for (i, (child, (pi, summary))) in children.iter().zip(replayed).enumerate() {
+    for (i, (child, verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
             vec![count(child.xmss_signers.len()), count(child.lean_sphincs_signers.len())],
@@ -254,13 +260,7 @@ pub fn aggregate_with_stats(
         }
         hints.push("child_defer", child.defer.cells());
         hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
-        let (sub_hints, defer) = gen_verify(
-            guest,
-            pi,
-            &child.proof.stream,
-            summary,
-            bytecode_value(&sums[2 * i], &claim_points[2 * i]),
-        )?;
+        let (sub_hints, defer) = verified?;
         for (name, entry) in sub_hints {
             hints.push(name, entry);
         }

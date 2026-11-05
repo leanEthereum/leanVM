@@ -65,11 +65,10 @@ pub(super) fn gen_verify(
     program: &Program,
     public_input: [F192; 2],
     proof_stream: &[F192],
-    summary: verifier::Summary,
+    summary: &verifier::Summary,
     bytecode_value: F192,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
-    let layout = leanvm_core::cpu::layout(
-        &program.prog,
+    let layout = program.layout(
         summary.log_memory,
         std::array::from_fn(|t| summary.table_rows[t] as usize),
         public_input,
