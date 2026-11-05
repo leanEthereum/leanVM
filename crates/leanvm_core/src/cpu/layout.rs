@@ -161,8 +161,8 @@ pub(crate) struct Witness {
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
     pub(crate) layout: Layout,
     pub(crate) log_mem: usize,
-    /// Freed immediately after reduction, before the mixed PCS opening.
-    pub(crate) keccak_reduction: crate::keccak::PreparedReductionWitness,
+    /// What the Keccak reduction needs beside `q`, which holds the states it rebuilds its witness from.
+    pub(crate) keccak_reduction: crate::keccak::Reduction,
 }
 
 impl Witness {

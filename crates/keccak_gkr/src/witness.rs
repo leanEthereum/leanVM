@@ -187,32 +187,57 @@ pub fn transpose64_portable(a: &mut [u64; 64]) {
 
 type Word = [u64; BLOCK_WORDS];
 
+/// Receives `(slot, w, lanes)`: a committed lane of 64 instances.
+type Commit<'a> = &'a mut dyn FnMut(usize, usize, &[u64; 64]);
+
 fn xor(a: Word, b: Word) -> Word {
     std::array::from_fn(|i| a[i] ^ b[i])
 }
 
 /// Run one block of instances, padded with all-zero inputs, and write its input state and the
-/// state each round applies `chi` to, all sliced, into `slot`. `commit(slot, w, lanes)` receives lane `slot % 25`
-/// of the state after `depth * (slot / 25)` rounds, for instances `64 * w ..` of the block: every
-/// state a segment starts from, the output not being committed.
+/// state each round applies `chi` to, all sliced, into `slot` if there is one.
+///
+/// `commit(slot, w, lanes)` receives lane `slot % 25` of the state after `depth * (slot / 25)`
+/// rounds, for instances `64 * w ..` of the block: every state a segment starts from, the output
+/// not being committed.
 ///
 /// # Safety
-/// `slot` is a slot of a live [`Extent`] that no other call is writing.
+/// `slot`, if any, is a slot of a live [`Extent`] that no other call is writing.
 pub unsafe fn block(
     depth: usize,
     inputs: &[[u64; LANES]],
-    slot: Slot,
+    slot: Option<Slot>,
     mut commit: impl FnMut(usize, usize, &[u64; 64]),
 ) {
     assert!(inputs.len() <= BLOCK);
+    let load = |lane: usize, w: usize, rows: &mut [u64; 64]| {
+        for (i, row) in rows.iter_mut().enumerate() {
+            *row = inputs.get(64 * w + i).map_or(0, |x| x[lane]);
+        }
+    };
+    // SAFETY: forwarded to the caller.
+    unsafe { run(depth, load, slot, Some(&mut commit)) }
+}
+
+/// The block run, its inputs read by `load(lane, w, rows)`.
+///
+/// - `load` writes lane `lane` of instances `64 * w ..` into `rows`.
+/// - The committed lanes are computed only when `commit` is given.
+///
+/// # Safety
+/// As [`block`].
+unsafe fn run(
+    depth: usize,
+    load: impl Fn(usize, usize, &mut [u64; 64]),
+    slot: Option<Slot>,
+    mut commit: Option<Commit>,
+) {
     let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut rows = [0u64; 64];
     for lane in 0..LANES {
         for w in 0..BLOCK_WORDS {
-            for (i, row) in rows.iter_mut().enumerate() {
-                *row = inputs.get(64 * w + i).map_or(0, |x| x[lane]);
-            }
+            load(lane, w, &mut rows);
             transpose64(&mut rows);
             for z in 0..64 {
                 state[64 * lane + z][w] = rows[z];
@@ -220,6 +245,7 @@ pub unsafe fn block(
         }
     }
     let mut lanes = |m: usize, state: &[Word]| {
+        let Some(commit) = commit.as_mut() else { return };
         let mut rows = [0u64; 64];
         for lane in 0..LANES {
             for w in 0..BLOCK_WORDS {
@@ -233,13 +259,17 @@ pub unsafe fn block(
     };
     // A round's state is next read by the layer that proves it, long after this pass.
     let stream = Stream::new();
-    // SAFETY: the slot holds a block of every round.
-    let store = |round: usize, words: &[Word]| unsafe {
-        stream.copy_uninit(slot.base.add(round * slot.stride), words.as_flattened());
+    let store = |round: usize, words: &[Word]| {
+        if let Some(slot) = slot {
+            // SAFETY: the slot holds a block of every round.
+            unsafe { stream.copy_uninit(slot.base.add(round * slot.stride), words.as_flattened()) };
+        }
     };
+    // With no rounds to keep, the run ends at the last committed state.
+    let last = if slot.is_some() { ROUNDS } else { ROUNDS - depth };
     store(0, &state);
     lanes(0, &state);
-    for round in 1..=ROUNDS {
+    for round in 1..=last {
         linear(&state, &mut u, xor);
         store(round, &u);
         for lane in 0..LANES {
@@ -257,11 +287,12 @@ pub unsafe fn block(
     }
 }
 
-/// [`block`], its committed lanes kept: slot `s` at `s * BLOCK ..`, a word per instance.
+/// [`block`]'s committed lanes, written into `slot` if there is one: slot `s` at `s * BLOCK ..`,
+/// a word per instance.
 ///
 /// # Safety
 /// As [`block`].
-pub unsafe fn block_lanes(depth: usize, inputs: &[[u64; LANES]], slot: Slot) -> Vec<u64> {
+unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; LANES]], slot: Option<Slot>) -> Vec<u64> {
     // SAFETY: `block` writes every instance of every slot.
     let mut lanes = unsafe { primitives::uninit_vec(LANES * (ROUNDS / depth) * BLOCK) };
     // SAFETY: forwarded to the caller.
@@ -273,13 +304,21 @@ pub unsafe fn block_lanes(depth: usize, inputs: &[[u64; LANES]], slot: Slot) -> 
     lanes
 }
 
+/// One block's committed lanes alone: slot `s` at `s * BLOCK ..`, a word per instance.
+///
+/// Its rounds are not kept: the reduction rebuilds them from the committed column.
+pub fn block_lanes(depth: usize, inputs: &[[u64; LANES]]) -> Vec<u64> {
+    // SAFETY: no slot is written.
+    unsafe { block_lanes_into(depth, inputs, None) }
+}
+
 /// The padding block of a batch whose first `written` blocks hold its inputs, if blocks follow
 /// them: its one-block extent and its lanes.
 fn padding(shape: Shape, written: usize) -> Option<(Extent, Vec<u64>)> {
     (written < shape.n_blocks()).then(|| {
         let mut extent = Extent::new(written, 1);
         // SAFETY: the extent's one slot, written here alone.
-        let lanes = unsafe { block_lanes(shape.depth, &[], extent.slot(written)) };
+        let lanes = unsafe { block_lanes_into(shape.depth, &[], Some(extent.slot(written))) };
         (extent, lanes)
     })
 }
@@ -350,7 +389,7 @@ impl Witness {
                 if g < written {
                     let stream = Stream::new();
                     let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
-                    block(shape.depth, inputs, slots[g], |slot, w, lanes| {
+                    block(shape.depth, inputs, Some(slots[g]), |slot, w, lanes| {
                         column.write(&stream, slot, g, 64 * w, lanes)
                     });
                 } else {
@@ -362,26 +401,54 @@ impl Witness {
         unsafe { Self::from_extents(shape, vec![extent], written, padding.map(|(extent, _)| extent)) }
     }
 
-    /// The witness of the blocks [`block_lanes`] ran into `extents`, consecutive from block 0,
-    /// block `g` returning `lanes[g]`, the batch's other blocks being the padding block. The
-    /// committed lanes are written into `committed` as [`Witness::generate`] writes them.
+    /// Write the committed lanes of every block into `committed`, laid out as `generate` does.
     ///
-    /// # Safety
-    /// [`block_lanes`] has run block `g` into its slot of `extents`, returning `lanes[g]`, for
-    /// every `g` below `lanes.len()`.
-    pub unsafe fn from_blocks(shape: Shape, extents: Vec<Extent>, lanes: &[Vec<u64>], committed: &mut [F64]) -> Self {
+    /// - Block `g`'s lanes are `lanes[g]`.
+    /// - The blocks past them are the padding block.
+    pub fn write_committed(shape: Shape, lanes: &[Vec<u64>], committed: &mut [F64]) {
         let column = Column::new(shape, committed);
-        let written = lanes.len();
-        let padding = padding(shape, written);
+        let padding = (lanes.len() < shape.n_blocks()).then(|| block_lanes(shape.depth, &[]));
         parallel::for_each(shape.n_blocks(), |g| {
             let lanes = lanes
                 .get(g)
-                .unwrap_or_else(|| &padding.as_ref().expect("a padding block").1);
+                .unwrap_or_else(|| padding.as_ref().expect("a padding block"));
             // SAFETY: block `g` owns its instances' words of every committed lane.
             unsafe { column.write_block(g, lanes) };
         });
-        // SAFETY: forwarded to the caller, the padding block having been run just above.
-        unsafe { Self::from_extents(shape, extents, written, padding.map(|(extent, _)| extent)) }
+    }
+
+    /// The witness of the first `instances` instances, rebuilt from their committed inputs.
+    ///
+    /// - `committed` is laid out as `generate` writes it.
+    /// - The blocks past the last input are the padding block.
+    pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
+        // Blocks per extent: the rebuilt rounds then fit the space the prover's earlier stages
+        // freed, rather than one fresh buffer of them all.
+        const EXTENT_BLOCKS: usize = 32;
+        let n = shape.n();
+        assert!(instances <= n && committed.len() >= LANES * n);
+        let written = instances.div_ceil(BLOCK);
+        let mut extents: Vec<Extent> = (0..written)
+            .step_by(EXTENT_BLOCKS)
+            .map(|first| Extent::new(first, EXTENT_BLOCKS.min(written - first)))
+            .collect();
+        let slots: Vec<Slot> = (0..written).map(|g| extents[g / EXTENT_BLOCKS].slot(g)).collect();
+        parallel::for_each(written, |g| {
+            // Slot `l` holds lane `l` of every input, a word per instance, so 64 instances' lane
+            // is one run of the column. A step past the last input reads the all-zero input the
+            // block pads with.
+            let load = |lane: usize, w: usize, rows: &mut [u64; 64]| {
+                for (row, word) in rows.iter_mut().zip(&committed[lane * n + g * BLOCK + 64 * w..][..64]) {
+                    *row = word.0;
+                }
+            };
+            // SAFETY: block `g` owns its slot.
+            unsafe { run(shape.depth, load, Some(slots[g]), None) };
+        });
+        let padding = padding(shape, written).map(|(extent, _)| extent);
+        // SAFETY: the blocks below `written` were run into `extents` just above, and the padding
+        // block into its own.
+        unsafe { Self::from_extents(shape, extents, written, padding) }
     }
 
     /// The witness of extents whose first `written` blocks [`block`] wrote: consecutive from
