@@ -136,6 +136,18 @@ unsafe fn transpose16(r: &mut [V; 16]) {
     }
 }
 
+/// Where staged register `r` of active octet `a` lies in the buffer (`na` active octets). With
+/// AVX-512 the register pairs `2 R`, `2 R + 1` are adjacent, octet after octet, so phase 2 reads
+/// a pair with one load; otherwise each register's octets are contiguous.
+#[inline(always)]
+const fn at(r: usize, a: usize, na: usize) -> usize {
+    if cfg!(all(target_feature = "avx512f", target_feature = "avx512bw")) {
+        2 * ((r / 2) * na + a) + r % 2
+    } else {
+        r * na + a
+    }
+}
+
 /// Bit `n` of a weight.
 #[inline(always)]
 fn bit(w: F192, n: usize) -> u8 {
@@ -165,7 +177,7 @@ pub struct UPass {
 
 /// A thread's buffers.
 pub struct Scratch {
-    /// The staged registers of a block, register-major (`r * active + a`).
+    /// The staged registers of a block, laid out by [`at`].
     buf: Vec<V>,
     acc: Box<[[V; WBYTES]; REGS]>,
     /// Per payload bit, its weighted sum's three words.
@@ -237,7 +249,7 @@ impl UPass {
                 assert!(a < na, "one staged column per active octet");
                 // SAFETY: AVX2 and GFNI are enabled at compile time; `a < na` and `r < REGS`,
                 // so every store is inside `buf` (both asserted).
-                unsafe { Self::stage_octet(&prod, buf.as_mut_ptr().add(a), na) };
+                unsafe { Self::stage_octet(&prod, buf.as_mut_ptr(), a, na) };
                 a += 1;
             }
         }
@@ -249,9 +261,9 @@ impl UPass {
     /// pack `q` (bit `i` of its byte `b`: coefficient `8 m + b` of position `PI[i]`).
     ///
     /// # Safety
-    /// AVX2 and GFNI; `dst + r * na` writable for `r < REGS`.
+    /// AVX2 and GFNI; `buf + at(r, a, na)` writable for `r < REGS`.
     #[inline(always)]
-    unsafe fn stage_octet(prod: &[[u64; PACKS]; 8], dst: *mut V, na: usize) {
+    unsafe fn stage_octet(prod: &[[u64; PACKS]; 8], buf: *mut V, a: usize, na: usize) {
         unsafe {
             let ident = _mm256_set1_epi64x(IDENT);
             let ld = |k: usize, q: usize| _mm256_loadu_si256(prod[k].as_ptr().add(q).cast());
@@ -273,9 +285,9 @@ impl UPass {
                     // of q + 1; 2..4 and 4, 5 of q + 1.
                     let (s0, s1) = (slots[2 * pair], slots[2 * pair + 1]);
                     let r = 3 * ((qq + 2 * pair) / 2);
-                    *dst.add(r * na) = s0[0];
-                    *dst.add((r + 1) * na) = _mm256_permute2x128_si256(s0[1], s1[0], 0x20);
-                    *dst.add((r + 2) * na) = _mm256_permute2x128_si256(s1[0], s1[1], 0x21);
+                    *buf.add(at(r, a, na)) = s0[0];
+                    *buf.add(at(r + 1, a, na)) = _mm256_permute2x128_si256(s0[1], s1[0], 0x20);
+                    *buf.add(at(r + 2, a, na)) = _mm256_permute2x128_si256(s1[0], s1[1], 0x21);
                 }
             }
         }
@@ -283,20 +295,61 @@ impl UPass {
 
     /// Phase 2: per staged register, every active octet through its 24 matrices, eight
     /// accumulators at a time in registers.
+    #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
     fn accumulate(&self, buf: &[V], na: usize, acc: &mut [[V; WBYTES]; REGS]) {
+        assert!(buf.len() >= REGS * na);
         for (r, acc) in acc.iter_mut().enumerate() {
-            let row = &buf[r * na..r * na + na];
             for b0 in (0..WBYTES).step_by(8) {
-                // SAFETY: AVX2 and GFNI are enabled at compile time (module cfg).
+                // SAFETY: AVX2 and GFNI are enabled at compile time (module cfg), and
+                // `at(r, a, na) < REGS * na <= buf.len()` (asserted).
                 unsafe {
                     let mut a8 = [_mm256_setzero_si256(); 8];
-                    for (st, m) in row.iter().zip(&self.mats) {
+                    for (a, m) in self.mats.iter().enumerate() {
+                        let st = buf.get_unchecked(at(r, a, na));
                         for (o, ao) in a8.iter_mut().enumerate() {
                             let g = _mm256_gf2p8affine_epi64_epi8(*st, _mm256_set1_epi64x(m[b0 + o] as i64), 0);
                             *ao = _mm256_xor_si256(*ao, g);
                         }
                     }
                     acc[b0..b0 + 8].copy_from_slice(&a8);
+                }
+            }
+        }
+    }
+
+    /// Phase 2 with AVX-512: per pair of staged registers (one 512-bit load), every active octet
+    /// through its 24 matrices, all 24 accumulators in registers, two octets per three-way XOR.
+    #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+    fn accumulate(&self, buf: &[V], na: usize, acc: &mut [[V; WBYTES]; REGS]) {
+        assert!(buf.len() >= REGS * na);
+        let mats = &self.mats;
+        for pair in 0..REGS / 2 {
+            // SAFETY: AVX-512F/BW and GFNI are enabled at compile time; octet `a`'s registers
+            // `2 pair`, `2 pair + 1` are the 64 bytes at `at(2 pair, a, na)` (asserted size).
+            unsafe {
+                let ld = |a: usize| _mm512_loadu_si512(buf.as_ptr().add(at(2 * pair, a, na)).cast());
+                let bc = |m: u64| _mm512_set1_epi64(m as i64);
+                let mut a24 = [_mm512_setzero_si512(); WBYTES];
+                let mut a = 0;
+                while a + 1 < na {
+                    let (s0, s1, m0, m1) = (ld(a), ld(a + 1), &mats[a], &mats[a + 1]);
+                    for (b, ab) in a24.iter_mut().enumerate() {
+                        let g0 = _mm512_gf2p8affine_epi64_epi8(s0, bc(m0[b]), 0);
+                        let g1 = _mm512_gf2p8affine_epi64_epi8(s1, bc(m1[b]), 0);
+                        *ab = _mm512_ternarylogic_epi64(*ab, g0, g1, 0x96);
+                    }
+                    a += 2;
+                }
+                if a < na {
+                    let (s0, m0) = (ld(a), &mats[a]);
+                    for (b, ab) in a24.iter_mut().enumerate() {
+                        *ab = _mm512_xor_si512(*ab, _mm512_gf2p8affine_epi64_epi8(s0, bc(m0[b]), 0));
+                    }
+                }
+                // The low half is staged register `2 pair`, the high one `2 pair + 1`.
+                for (b, ab) in a24.iter().enumerate() {
+                    acc[2 * pair][b] = _mm512_castsi512_si256(*ab);
+                    acc[2 * pair + 1][b] = _mm512_extracti64x4_epi64::<1>(*ab);
                 }
             }
         }
