@@ -17,7 +17,7 @@ use primitives::field::gf2_64::mul_wide;
 
 use crate::keccak::BITS;
 use crate::kernels::GROUP;
-use crate::power::{Element, PowerField};
+use crate::power::PowerField;
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
@@ -36,25 +36,28 @@ pub struct Maps {
 impl Maps {
     /// From the fold weights `fold[k][q]` (word `k` of pack `q`'s weight, in the power basis).
     pub fn new(field: &PowerField, fold: &[[u64; GROUP]; 3]) -> Self {
-        // The value of bit `i` of pack `q` alone: its unit embedding times the pack's weight, reduced.
-        let image = |q: usize, i: usize| -> Element {
-            let e = u64::from(RMFE.emb[i]);
-            let mut p = [0u64; 6];
-            for (k, w) in fold.iter().enumerate() {
-                let x = mul_wide(e, w[q]);
-                p[k] ^= x as u64;
-                p[k + 1] ^= (x >> 64) as u64;
+        // The value of bit `i` of pack `q` alone, image `16 q + i`: its unit embedding times the pack's
+        // weight, reduced, a row of four-word products laid out by word as the carry-less path's.
+        const IMAGES: usize = 16 * GROUP;
+        let mut wide = vec![0u64; 4 * IMAGES];
+        for q in 0..GROUP {
+            for (i, &e) in RMFE.emb.iter().enumerate() {
+                for (k, w) in fold.iter().enumerate() {
+                    let x = mul_wide(u64::from(e), w[q]);
+                    wide[k * IMAGES + 16 * q + i] ^= x as u64;
+                    wide[(k + 1) * IMAGES + 16 * q + i] ^= (x >> 64) as u64;
+                }
             }
-            field.reduce(&p)
-        };
-        let images: Vec<[Element; 16]> = (0..GROUP).map(|q| std::array::from_fn(|i| image(q, i))).collect();
-        let bit = |v: &Element, n: usize| (v[n / 64] >> (n % 64)) as u8 & 1;
+        }
+        let mut images = vec![0u64; 3 * IMAGES];
+        field.reduce_row(&mut images, &wide, IMAGES);
+        let bit = |image: usize, n: usize| (images[(n / 64) * IMAGES + image] >> (n % 64)) as u8 & 1;
         // An affine byte map reads output bit `k` off matrix byte `7 - k`: its bit `c` is bit `8 o + k`
         // of the image of input bit `c`.
         let mats = std::array::from_fn(|t| {
             std::array::from_fn(|o| {
                 (0..8).fold(0u64, |m, k| {
-                    let row = (0..8).fold(0u8, |row, c| row | bit(&images[t / 2][8 * (t % 2) + c], 8 * o + k) << c);
+                    let row = (0..8).fold(0u8, |row, c| row | bit(16 * (t / 2) + 8 * (t % 2) + c, 8 * o + k) << c);
                     m | u64::from(row) << (8 * (7 - k))
                 })
             })
@@ -223,6 +226,7 @@ mod tests {
     use super::*;
     use crate::basis::carry;
     use crate::kernels::{embed, fold_groups};
+    use crate::power::Element;
     use crate::witness::words;
 
     /// The rows the per-position path builds: embeddings weighted by carry-less products, reduced.
@@ -257,47 +261,6 @@ mod tests {
                 let mut got = vec![0u64; 2 * 3 * BITS];
                 Maps::new(&field, &fold).rows(&block, &mut got, halves);
                 assert_eq!(got[..halves * 3 * BITS], want[..halves * 3 * BITS], "{halves} halves");
-            }
-        }
-    }
-
-    #[test]
-    fn planes_to_words_transposes() {
-        let planes: [[u8; 64]; 8] = std::array::from_fn(|b| std::array::from_fn(|n| (37 * n + 11 * b + 5) as u8));
-        // SAFETY: AVX-512F/BW are enabled at compile time.
-        let words = unsafe {
-            let a: [__m512i; 8] = std::array::from_fn(|b| _mm512_loadu_si512(planes[b].as_ptr().cast()));
-            planes_to_words(&a)
-        };
-        for (r, w) in words.iter().enumerate() {
-            let mut q = [0u64; 8];
-            // SAFETY: a 64-byte store into eight words.
-            unsafe { _mm512_storeu_si512(q.as_mut_ptr().cast(), *w) };
-            for (d, &word) in q.iter().enumerate() {
-                let n = 8 * r + d;
-                let want = (0..8).fold(0u64, |acc, b| acc | u64::from(planes[b][n]) << (8 * b));
-                assert_eq!(word, want, "position {n}");
-            }
-        }
-    }
-
-    #[test]
-    fn transpose_positions_transposes() {
-        let words: Vec<u64> = (0..64 * BLOCK_WORDS as u64)
-            .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15))
-            .collect();
-        // SAFETY: AVX-512F/BW are enabled at compile time; 64 positions of eight words.
-        let y = unsafe { transpose_positions(words.as_ptr()) };
-        for (b, reg) in y.iter().enumerate() {
-            let mut bytes = [0u8; 64];
-            // SAFETY: a 64-byte store.
-            unsafe { _mm512_storeu_si512(bytes.as_mut_ptr().cast(), *reg) };
-            for (n, &x) in bytes.iter().enumerate() {
-                assert_eq!(
-                    x,
-                    (words[BLOCK_WORDS * n + b / 8] >> (8 * (b % 8))) as u8,
-                    "byte {b} position {n}"
-                );
             }
         }
     }

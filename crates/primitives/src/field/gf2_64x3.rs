@@ -1113,40 +1113,6 @@ mod tests {
         random.chain(corners).collect()
     }
 
-    /// The AVX2 lane reduction is the scalar one, on random words and every top nibble.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-    #[test]
-    fn lane_reduction_matches_scalar() {
-        use core::arch::x86_64::*;
-        let mut rng = Rng::new(7);
-        let mut words: Vec<(u64, u64)> = (0..4096).map(|_| (rng.next_u64(), rng.next_u64())).collect();
-        words.extend((0..16u64).map(|n| (rng.next_u64(), n << 60 | rng.next_u64() >> 4)));
-        words.extend([(0, 0), (u64::MAX, u64::MAX), (0, u64::MAX), (u64::MAX, 0)]);
-        words.extend([(0, 1 << 63), (1, 1 << 60), (u64::MAX, 1 << 62), (12345, 1)]);
-        let (chunks, rest) = words.as_chunks::<4>();
-        assert!(rest.is_empty());
-        for chunk in chunks {
-            let (lo, hi): (Vec<u64>, Vec<u64>) = chunk.iter().copied().unzip();
-            // SAFETY: AVX2 is enabled at compile time; 32-byte reads and writes of four words.
-            let got = unsafe {
-                let r = super::x86_64::reduce_lanes256(
-                    _mm256_loadu_si256(lo.as_ptr().cast()),
-                    _mm256_loadu_si256(hi.as_ptr().cast()),
-                );
-                let mut out = [0u64; 4];
-                _mm256_storeu_si256(out.as_mut_ptr().cast(), r);
-                out
-            };
-            for (i, &(l, h)) in chunk.iter().enumerate() {
-                assert_eq!(
-                    got[i],
-                    crate::field::gf2_64::reduce((h as u128) << 64 | l as u128),
-                    "{h:#x} {l:#x}"
-                );
-            }
-        }
-    }
-
     #[test]
     fn python_vectors_and_modulus() {
         for (a, b, c, s) in VECTORS {

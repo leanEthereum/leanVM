@@ -180,6 +180,38 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
     }
 }
 
+/// 4-bit bit reversal: the unpack network of [`transpose16_lanes256`] reads source rows in this order.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+
+/// 16x16 byte transpose inside each 128-bit lane of 16 AVX2 registers: `out[k]` byte `p` of a lane is `in[p]`
+/// byte `k` of that lane. Four rounds of unpacks.
+///
+/// # Safety
+///
+/// Requires the `avx2` target feature.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[inline]
+#[target_feature(enable = "avx2")]
+pub fn transpose16_lanes256(r: &mut [core::arch::x86_64::__m256i; 16]) {
+    use core::arch::x86_64::*;
+    *r = core::array::from_fn(|i| r[REV4[i]]);
+    macro_rules! round {
+        ($lo:ident, $hi:ident) => {{
+            let mut t = [_mm256_setzero_si256(); 16];
+            for i in 0..8 {
+                t[2 * i] = $lo(r[i], r[i + 8]);
+                t[2 * i + 1] = $hi(r[i], r[i + 8]);
+            }
+            *r = t;
+        }};
+    }
+    round!(_mm256_unpacklo_epi8, _mm256_unpackhi_epi8);
+    round!(_mm256_unpacklo_epi16, _mm256_unpackhi_epi16);
+    round!(_mm256_unpacklo_epi32, _mm256_unpackhi_epi32);
+    round!(_mm256_unpacklo_epi64, _mm256_unpackhi_epi64);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -132,16 +132,6 @@ impl PowerField {
     }
 
     /// `dst[j] = wide[j]` reduced, for a row of four-word polynomials laid out by word.
-    // The table pass builds its rows by GFNI there (`table_gfni`); tests still use this.
-    #[cfg_attr(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ),
-        allow(dead_code)
-    )]
     pub fn reduce_row(&self, dst: &mut [u64], wide: &[u64], width: usize) {
         assert!(dst.len() >= 3 * width && wide.len() >= 4 * width);
         row_kernel!(
@@ -151,16 +141,6 @@ impl PowerField {
         )
     }
 
-    // The table pass builds its rows by GFNI there (`table_gfni`); tests still use this.
-    #[cfg_attr(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ),
-        allow(dead_code)
-    )]
     pub fn reduce_row_portable(&self, dst: &mut [u64], wide: &[u64], width: usize) {
         for j in 0..width {
             let p = [wide[j], wide[width + j], wide[2 * width + j], wide[3 * width + j], 0, 0];
@@ -317,16 +297,6 @@ mod x86 {
     /// [`reduce`] of products of four words, whose high half is their word 3 alone: most of
     /// the products vanish.
     #[inline(always)]
-    // The table pass builds its rows by GFNI there (`table_gfni`); tests still use this.
-    #[cfg_attr(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ),
-        allow(dead_code)
-    )]
     fn reduce4(field: &PowerField, p: &[V; 4]) -> [V; 3] {
         let q = p[3].xor(p[3].clmul::<0x00>(V::splat(field.barrett[2])).high());
         let r: [V; 3] = std::array::from_fn(|k| q.clmul::<0x00>(V::splat(field.modulus[k])));
@@ -372,16 +342,6 @@ mod x86 {
         (finish(&acc[0]), finish(&acc[1]))
     }
 
-    // The table pass builds its rows by GFNI there (`table_gfni`); tests still use this.
-    #[cfg_attr(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "gfni"
-        ),
-        allow(dead_code)
-    )]
     pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
         for j in (0..width).step_by(STEP) {
             let w: [V; 4] = std::array::from_fn(|k| unsafe { V::load(wide.as_ptr().add(k * width + j)) });

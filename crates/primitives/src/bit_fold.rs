@@ -646,30 +646,6 @@ mod gfni256 {
         ([w.c0, w.c1, w.c2][o / 8] >> (8 * (o % 8))) as u8
     }
 
-    /// 4-bit bit reversal: the unpack network reads source rows in bit-reversed order.
-    const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
-
-    /// 16x16 byte transpose inside each 128-bit lane: `out[k]` byte `p` of a lane = `in[p]` byte `k` of that lane.
-    #[inline]
-    #[target_feature(enable = "avx2")]
-    fn transpose16(r: &mut [__m256i; 16]) {
-        *r = std::array::from_fn(|i| r[REV4[i]]);
-        macro_rules! round {
-            ($lo:ident, $hi:ident) => {{
-                let mut t = [_mm256_setzero_si256(); 16];
-                for i in 0..8 {
-                    t[2 * i] = $lo(r[i], r[i + 8]);
-                    t[2 * i + 1] = $hi(r[i], r[i + 8]);
-                }
-                *r = t;
-            }};
-        }
-        round!(_mm256_unpacklo_epi8, _mm256_unpackhi_epi8);
-        round!(_mm256_unpacklo_epi16, _mm256_unpackhi_epi16);
-        round!(_mm256_unpacklo_epi32, _mm256_unpackhi_epi32);
-        round!(_mm256_unpacklo_epi64, _mm256_unpackhi_epi64);
-    }
-
     /// The four words of a register.
     #[inline]
     #[target_feature(enable = "avx2")]
@@ -744,8 +720,8 @@ mod gfni256 {
                 let mut lo: [__m256i; 16] = std::array::from_fn(|o| acc[o]);
                 let mut hi: [__m256i; 16] =
                     std::array::from_fn(|o| if o < 8 { acc[16 + o] } else { _mm256_setzero_si256() });
-                transpose16(&mut lo);
-                transpose16(&mut hi);
+                crate::bits::transpose16_lanes256(&mut lo);
+                crate::bits::transpose16_lanes256(&mut hi);
                 for k in 0..16 {
                     for l in 0..2 {
                         let (v, w) = (words(lo[k]), words(hi[k]));

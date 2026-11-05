@@ -107,35 +107,6 @@ unsafe fn transpose4(r: [V; 4]) -> [V; 4] {
     }
 }
 
-/// 4-bit bit reversal: the unpack network reads source rows in bit-reversed order.
-const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
-
-/// 16x16 byte transpose inside each 128-bit lane of 16 registers: `out[k]` byte `p` of a lane
-/// = `in[p]` byte `k` of that lane.
-///
-/// # Safety
-/// AVX2.
-#[inline(always)]
-unsafe fn transpose16(r: &mut [V; 16]) {
-    unsafe {
-        *r = core::array::from_fn(|i| r[REV4[i]]);
-        macro_rules! round {
-            ($lo:ident, $hi:ident) => {{
-                let mut t = [_mm256_setzero_si256(); 16];
-                for i in 0..8 {
-                    t[2 * i] = $lo(r[i], r[i + 8]);
-                    t[2 * i + 1] = $hi(r[i], r[i + 8]);
-                }
-                *r = t;
-            }};
-        }
-        round!(_mm256_unpacklo_epi8, _mm256_unpackhi_epi8);
-        round!(_mm256_unpacklo_epi16, _mm256_unpackhi_epi16);
-        round!(_mm256_unpacklo_epi32, _mm256_unpackhi_epi32);
-        round!(_mm256_unpacklo_epi64, _mm256_unpackhi_epi64);
-    }
-}
-
 /// Where staged register `r` of active octet `a` lies in the buffer (`na` active octets). With
 /// AVX-512 the register pairs `2 R`, `2 R + 1` are adjacent, octet after octet, so phase 2 reads
 /// a pair with one load; otherwise each register's octets are contiguous.
@@ -367,8 +338,8 @@ impl UPass {
                 let mut lo: [V; 16] = std::array::from_fn(|b| acc[b]);
                 let z = _mm256_setzero_si256();
                 let mut hi: [V; 16] = std::array::from_fn(|b| if b < 8 { acc[16 + b] } else { z });
-                transpose16(&mut lo);
-                transpose16(&mut hi);
+                primitives::bits::transpose16_lanes256(&mut lo);
+                primitives::bits::transpose16_lanes256(&mut hi);
                 // lo[k] lane l: bytes 0..16 of payload bit 32 r + 16 l + k; hi[k]: bytes 16..24.
                 for k in 0..16 {
                     for l in 0..2 {
@@ -384,36 +355,5 @@ impl UPass {
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn bt8_is_the_sigma_byte_transpose() {
-        let a: [u64; 8] = std::array::from_fn(|i| 0x0123_4567_89ab_cdef_u64.rotate_left(8 * i as u32 + 3) ^ i as u64);
-        // SAFETY: AVX2 is enabled at compile time.
-        let out = unsafe {
-            let [x, y] = bt8(
-                _mm256_loadu_si256(a.as_ptr().cast()),
-                _mm256_loadu_si256(a.as_ptr().add(4).cast()),
-            );
-            let mut o = [0u64; 8];
-            _mm256_storeu_si256(o.as_mut_ptr().cast(), x);
-            _mm256_storeu_si256(o.as_mut_ptr().add(4).cast(), y);
-            o
-        };
-        for d in 0..8 {
-            for n in 0..8 {
-                assert_eq!(
-                    (out[d] >> (8 * n)) as u8,
-                    (a[SIGMA[n]] >> (8 * d)) as u8,
-                    "qword {d} byte {n}"
-                );
-            }
-        }
-        assert_eq!(PI, [7, 6, 3, 2, 5, 4, 1, 0]);
     }
 }

@@ -247,23 +247,11 @@ impl Layer<'_> {
     /// (`upass_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
     /// the block's weight, as field elements.
     fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx2",
-            target_feature = "gfni",
-            target_feature = "pclmulqdq"
-        ))]
-        {
-            self.pack_products_gfni(claim)
-        }
-        #[cfg(not(all(
-            target_arch = "x86_64",
-            target_feature = "avx2",
-            target_feature = "gfni",
-            target_feature = "pclmulqdq"
-        )))]
-        {
-            self.pack_products_buckets(claim)
+        cfg_select! {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni", target_feature = "pclmulqdq") => {
+                self.pack_products_gfni(claim)
+            }
+            _ => { self.pack_products_buckets(claim) }
         }
     }
 
@@ -474,7 +462,8 @@ impl Layer<'_> {
                     target_feature = "gfni"
                 ))]
                 {
-                    let _ = &wide;
+                    // The affine maps need no wide scratch.
+                    let _ = wide;
                     maps.rows(block, rows, halves);
                 }
                 // Both groups' unreduced sums, four words each and laid out by word.
