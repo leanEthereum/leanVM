@@ -294,7 +294,6 @@ dependencies = [
  "pcs",
  "primitives",
  "rand",
- "serde",
  "tracing",
 ]
 
@@ -322,7 +321,6 @@ dependencies = [
  "primitives",
  "rand",
  "rec_aggregation",
- "serde",
  "signatures",
  "tracing",
 ]
@@ -402,7 +400,6 @@ name = "pcs"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "fiat_shamir",
  "parallel",
  "primitives",
@@ -429,7 +426,6 @@ name = "primitives"
 version = "0.1.0"
 dependencies = [
  "bench",
- "bincode",
  "parallel",
  "primitives",
  "rand",
