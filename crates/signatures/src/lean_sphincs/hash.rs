@@ -7,7 +7,7 @@ use crate::lean_sphincs::*;
 
 // Hash types of leanSPHINCS's own.
 pub const TWEAK_ENC: u8 = 4;
-pub const TWEAK_FORS_PRF: u8 = 14;
+pub(crate) const TWEAK_FORS_PRF: u8 = 14;
 pub const TWEAK_FORS_LEAF: u8 = 15;
 pub const TWEAK_FORS_NODE: u8 = 17;
 

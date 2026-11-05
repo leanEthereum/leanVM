@@ -15,9 +15,9 @@ use crate::keccak::{BITS, LANES, along, linear};
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
-pub const BLOCK_WORDS: usize = 8;
+pub(crate) const BLOCK_WORDS: usize = 8;
 /// Words one block of one state takes.
-pub const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
+pub(crate) const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
 
 /// The eight words of position `j` of a sliced block.
 #[inline(always)]
@@ -70,11 +70,11 @@ impl Shape {
         self.segments().next_power_of_two().ilog2() as usize
     }
     /// Variables of a pack index: the instance index without its low four bits.
-    pub const fn pack_vars(&self) -> usize {
+    pub(crate) const fn pack_vars(&self) -> usize {
         self.n_log - 4
     }
     /// Variables the layer sumcheck binds: a pack, then a segment.
-    pub const fn y_vars(&self) -> usize {
+    pub(crate) const fn y_vars(&self) -> usize {
         self.pack_vars() + self.seg_log()
     }
     /// Committed lanes per instance: the state each segment starts from.
@@ -148,7 +148,7 @@ pub struct Witness {
 
 /// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
 #[inline]
-pub fn transpose64(a: &mut [u64; 64]) {
+pub(crate) fn transpose64(a: &mut [u64; 64]) {
     cfg_select! {
         all(
             target_arch = "x86_64",

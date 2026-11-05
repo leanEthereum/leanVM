@@ -28,11 +28,11 @@ pub const SEED_LEN: usize = 32;
 pub type Seed = [u8; SEED_LEN];
 
 /// Hashed before the seed, so no other scheme derives from the same bytes.
-pub const SEED_TAG: &[u8] = b"leanSPHINCS";
+pub(crate) const SEED_TAG: &[u8] = b"leanSPHINCS";
 
 /// The per-message randomizer the message digest is computed under.
 pub const RANDOMIZER_LEN: usize = 16;
-pub type Randomizer = [u8; RANDOMIZER_LEN];
+pub(crate) type Randomizer = [u8; RANDOMIZER_LEN];
 
 /// The message to sign (a 256-bit message hash).
 pub const MESSAGE_LEN: usize = 32;
@@ -52,7 +52,7 @@ pub const V: usize = 64;
 /// verification walks fewer chain steps and the signer grinds a counter for it.
 pub const TARGET_SUM: usize = 128;
 /// `C_max`: encoding counters tried per one-time signature.
-pub const MAX_ENCODING_ATTEMPTS: u64 = 1 << 32;
+pub(crate) const MAX_ENCODING_ATTEMPTS: u64 = 1 << 32;
 
 // The hypertree.
 /// `d`: the layers.
@@ -93,7 +93,7 @@ pub const SIG_SIZE: usize = RANDOMIZER_LEN
 /// Permutations of one verification: the digest, the FORS leaves and nodes, the
 /// encodings (the bottom one absorbs the FORS key), the chains, the one-time
 /// leaves and the paths.
-pub const VERIFY_PERMUTATIONS: usize = DIGEST_CALLS * blocks(MESSAGE_LEN + RANDOMIZER_LEN)
+pub(crate) const VERIFY_PERMUTATIONS: usize = DIGEST_CALLS * blocks(MESSAGE_LEN + RANDOMIZER_LEN)
     + FORS_TREES * (blocks(N) + (FORS_HEIGHT - 1) * blocks(2 * N))
     + blocks(2 * FORS_TREES * N + COUNTER_LEN)
     + (LAYERS - 1) * blocks(N + COUNTER_LEN)

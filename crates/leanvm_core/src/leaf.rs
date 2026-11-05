@@ -112,7 +112,7 @@ pub struct ColumnClaim {
 /// `N_TUPLE_BITS` in the challenges instead of the tuple width, and slot `x`'s
 /// weight is an `eq` weight, which is what lets the aligned bytecode polynomial
 /// be read off at `α⃗` itself (§sec:e2e-bc).
-pub fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
+pub(crate) fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
     debug_assert_eq!(alphas.len(), N_TUPLE_BITS);
     let mut w = vec![F192::ONE; 1 << N_TUPLE_BITS];
     for (bit, &a) in alphas.iter().enumerate() {
@@ -331,7 +331,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
 /// column is read from memory once however many blocks flush it. Each chunk's
 /// four- and sixteen-tuple products, the GKR's levels two and four, are formed while
 /// it is in cache.
-pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
+pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -491,7 +491,7 @@ pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F6
 pub struct BusForm {
     pub coeffs: Vec<F192>,
     /// `(col_a, col_b, coeff)` in LOCAL column indices.
-    pub prods: Vec<(usize, usize, F192)>,
+    pub(crate) prods: Vec<(usize, usize, F192)>,
     pub constant: F192,
 }
 
@@ -772,7 +772,7 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// Slot of the first public column: the bytecode block leads with three
 /// non-public coordinates (tag, index, read count), and a column's slot IS its
 /// bus tuple coordinate.
-pub const BYTECODE_PUBLIC_SLOT: usize = 3;
+pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
 /// The three bus sides in `[push, pull, count]` order with their fingerprint
 /// weights. The count channel's leaf is the count itself (a single `Col`), so it
@@ -798,7 +798,7 @@ fn sides<'a>(
 /// Everything the bus hands on: the framework blocks' column claims,
 /// the shared GKR point (the table sumcheck's eq point), and
 /// per side the tables' linear forms plus what each is claimed to sum to.
-pub struct BusProof {
+pub(crate) struct BusProof {
     pub claims: Vec<ColumnClaim>,
     /// The GKR point ζ: the zerocheck reuses it, so no fresh point is sampled.
     pub point: Vec<F192>,
@@ -811,7 +811,7 @@ pub struct BusProof {
     pub sigmas: [Vec<F192>; 3],
 }
 
-pub fn prove_balance(
+pub(crate) fn prove_balance(
     push: &[Block],
     pull: &[Block],
     count: &[Block],

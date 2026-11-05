@@ -89,8 +89,8 @@ pub struct Leaves {
     pub values: Vec<F192>,
     /// `fours[i] = ∏ values[4i..4i+4]`, and `sixteens` likewise over `fours`, an
     /// incomplete last four-tuple padded with the identity.
-    pub fours: Vec<F192>,
-    pub sixteens: Vec<F192>,
+    pub(crate) fours: Vec<F192>,
+    pub(crate) sixteens: Vec<F192>,
     /// Runs of identity leaves among `values`, sorted, which the GKR rounds above them
     /// need neither read nor write.
     pub ones: Vec<Range<usize>>,
@@ -775,7 +775,7 @@ pub struct ProductTriple {
 /// Prove three identity-padded grand products as one RLC-batched radix-four GKR.
 /// The first two trees share a product by construction, as the bus's two sides do.
 /// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
-pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves

@@ -5,9 +5,9 @@ use std::sync::OnceLock;
 /// Worker counts for the pool: performance cores first, then the efficiency
 /// cores that join the same work queue at a lower scheduling class.
 #[derive(Clone, Copy, Debug)]
-pub struct Topology {
+pub(crate) struct Topology {
     /// Workers scheduled on performance cores, including the dispatcher.
-    pub perf: usize,
+    pub(crate) perf: usize,
     /// Extra workers scheduled on efficiency cores; `0` on a homogeneous host.
     pub efficiency: usize,
 }
@@ -28,7 +28,7 @@ impl Topology {
 /// `1` is the exception and means strictly sequential (no workers at all), so a
 /// single-threaded debugging run really is one thread.
 #[must_use]
-pub fn topology() -> Topology {
+pub(crate) fn topology() -> Topology {
     static TOPOLOGY: OnceLock<Topology> = OnceLock::new();
     *TOPOLOGY.get_or_init(|| {
         let requested = std::env::var("LEANVM_NUM_THREADS")

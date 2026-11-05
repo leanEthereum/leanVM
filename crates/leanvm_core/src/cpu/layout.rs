@@ -13,8 +13,8 @@ use super::*;
 pub const MEM_LO: usize = 0;
 pub const MEM_HI: usize = 1;
 pub const MEM_TOP: usize = 2;
-pub const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
-pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
+pub(crate) const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
+pub(crate) const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
 // KECCAK steps, never fewer than `MIN_STEPS`. It is the
@@ -24,7 +24,7 @@ pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // committed. The reduction's two claims are discharged by the single stacked
 // WHIR opening over this commitment.
 pub const QKECCAK: usize = 5;
-pub const N_SHARED: usize = 6;
+pub(crate) const N_SHARED: usize = 6;
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
 /// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
@@ -283,12 +283,12 @@ pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; t
 }
 
 /// Operand slots of a bytecode tuple, after the opcode.
-pub const BYTECODE_OPERANDS: usize = 10;
+pub(crate) const BYTECODE_OPERANDS: usize = 10;
 
 /// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
 /// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
 /// `Coord::Public` and stack into the polynomial [`bytecode_table`] returns.
-pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
+pub(crate) fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
     let g_at = primitives::field::g_pow32_by_lookup;
 
     // The opcode, then the operand slots: offsets as g-powers, a `SET` immediate as its three

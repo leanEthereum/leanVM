@@ -10,8 +10,9 @@ use std::thread::Thread;
 
 mod topology;
 
+pub use topology::num_threads;
+pub(crate) use topology::topology;
 use topology::{Qos, set_qos};
-pub use topology::{Topology, num_threads, topology};
 
 /// Idle spins before a worker parks: long enough to stay hot across back-to-back
 /// dispatches, short enough to yield the core during a sequential stretch.
@@ -374,7 +375,7 @@ where
 /// a kernel writing four tables at two different widths builds one of these per
 /// table and indexes them all by the same item.
 #[derive(Debug)]
-pub struct Chunks<T> {
+pub(crate) struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
@@ -457,7 +458,7 @@ where
 }
 
 /// [`map_reduce_chunks_mut`] without the reduction: `f(i, chunks)` for every task `i`, in parallel.
-pub fn for_each_chunks_mut<T: Send, const N: usize, F>(bufs: [&mut [T]; N], widths: [usize; N], f: F)
+pub(crate) fn for_each_chunks_mut<T: Send, const N: usize, F>(bufs: [&mut [T]; N], widths: [usize; N], f: F)
 where
     F: Fn(usize, [&mut [T]; N]) + Sync,
 {

@@ -96,7 +96,7 @@ pub struct ProverData {
     codeword: Codeword,
     /// Words per codeword row: the committed lanes, with zero lanes in front up to the vector width.
     row_words: usize,
-    pub merkle_tree: merkle::CutTree,
+    pub(crate) merkle_tree: merkle::CutTree,
 }
 
 /// The largest L0 codeword the commit keeps where [`primitives::REBUILD_OVER_STORE`], in bytes.

@@ -151,7 +151,7 @@ impl FiatShamirState {
     /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero
     /// bits, then bind it so later challenges depend on it. `bits = 0` is the
     /// canonical no-work nonce `0`. Parallel search for the larger grinds.
-    pub fn grind_pow(&mut self, bits: u32) -> u64 {
+    pub(crate) fn grind_pow(&mut self, bits: u32) -> u64 {
         assert!(bits < 64, "the grinding window fits the challenge's low limb");
         const PARALLEL_GRIND_MIN: u64 = 1 << 13;
         let nonce = if bits == 0 {
