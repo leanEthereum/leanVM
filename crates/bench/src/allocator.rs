@@ -13,6 +13,17 @@
 //!
 //! The cost is resident memory: the process holds its peak until it exits.
 //!
+//! Kept pages serve only the arena that freed them.
+//! By default jemalloc spreads the threads over many arenas and sends large requests to one more.
+//! A buffer freed in one arena then cannot hold the next stage's buffer, which maps fresh pages:
+//!
+//! ```text
+//!     several arenas: peak resident = sum of each arena's own peak
+//!     one arena:      peak resident = peak of the live buffers, give or take the holes
+//! ```
+//!
+//! So every request, large ones included, goes to one arena.
+//!
 //! Linux gives transparent huge pages only to ranges that ask for them (`madvise` mode), so jemalloc
 //! asks for its extents: a pass over a large table then walks 2 MiB pages, with fewer TLB misses and
 //! one first-touch fault per huge page.
@@ -22,14 +33,15 @@ pub use tikv_jemallocator::Jemalloc;
 /// jemalloc's configuration, which it reads before its first allocation.
 ///
 /// - Dirty pages never decay, so freed memory never returns to the kernel.
+/// - One arena serves every thread and every size, so a freed buffer's pages serve the next one.
 /// - On Linux, its extents are advised as huge pages, and so is its own metadata once that grows large;
 ///   elsewhere jemalloc rejects `thp`.
 /// - jemalloc reads a C string pointer here.
 /// - A reference to a byte array is that pointer, with no length beside it.
 #[cfg(target_os = "linux")]
 #[unsafe(export_name = "_rjem_malloc_conf")]
-static MALLOC_CONF: &[u8; 47] = b"dirty_decay_ms:-1,thp:always,metadata_thp:auto\0";
+static MALLOC_CONF: &[u8; 78] = b"dirty_decay_ms:-1,narenas:1,oversize_threshold:0,thp:always,metadata_thp:auto\0";
 
 #[cfg(not(target_os = "linux"))]
 #[unsafe(export_name = "_rjem_malloc_conf")]
-static MALLOC_CONF: &[u8; 18] = b"dirty_decay_ms:-1\0";
+static MALLOC_CONF: &[u8; 49] = b"dirty_decay_ms:-1,narenas:1,oversize_threshold:0\0";
