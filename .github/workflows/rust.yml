@@ -16,8 +16,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  # Pin the ISA to AVX2, overriding `target-cpu=native` from .cargo/config.toml:
-  # otherwise the SIMD backend under test depends on the runner we land on.
+  # Pin the ISA, overriding `target-cpu=native` from .cargo/config.toml, so a cached build runs on any runner.
+  # Haswell has no VPCLMULQDQ or AVX-512, so the tests never reach the arms that need them.
+  # The `isa` job compiles the others.
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
@@ -41,6 +42,57 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippyall
+
+  # Clippy type-checks every arm the ISA selects, so it also does `cargo check`'s work.
+  # Nothing runs: GitHub's x86-64 runners do not reliably have AVX-512.
+  # The arm64 entries build on arm64 runners, as jemalloc's build script wants a C compiler for the target.
+  isa:
+    name: Clippy (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86-64
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=x86-64
+          # AVX2 and VPCLMULQDQ, no AVX-512.
+          - name: alderlake
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=alderlake
+          # AVX-512 without VPCLMULQDQ or GFNI.
+          - name: x86-64-v4
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=x86-64-v4
+          # AVX-512 with VPCLMULQDQ, GFNI and VBMI, the production arms.
+          - name: znver4
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=znver4
+          # The NEON fallbacks, without PMULL or EOR3.
+          - name: aarch64
+            runner: ubuntu-24.04-arm
+            rustflags: -C target-cpu=generic
+          # The NEON kernels, as bench.yml's arm64 testbed builds them.
+          - name: neoverse-n2
+            runner: ubuntu-24.04-arm
+            rustflags: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
+          # The Apple silicon arms.
+          - name: apple-m1
+            runner: macos-latest
+            rustflags: -C target-cpu=apple-m1
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      # One cache per ISA; RUSTFLAGS is part of its key.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.name }}
       - name: Clippy
         run: cargo clippyall
 
