@@ -30,6 +30,7 @@ pub use f192x8::{
     xor_into8,
 };
 pub use gf2_64::F64;
+use gf2_64::R64;
 pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
 
 // ---------------------------------------------------------------------------
@@ -37,13 +38,24 @@ pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_unreduced4, mul2
 // index encoding (§sec:vm, §sec:e2e-bc).
 // ---------------------------------------------------------------------------
 
-/// Multiply by `x = g` in `K`, where `x^64 = x^4 + x^3 + x + 1` and
-/// `0x1B = x^4 + x^3 + x + 1`.
+/// Multiply by `x = g` in `K`: a shift, and a fold of bit 64 by `x^64 = x^4 + x^3 + x + 1`.
 /// `const` so table constants (`g^k` separators, opcodes) evaluate at compile time.
 #[inline]
 pub const fn mul_by_g(a: F64) -> F64 {
     let carry = a.0 >> 63;
-    F64((a.0 << 1) ^ (0x1B * carry))
+    F64((a.0 << 1) ^ (R64 * carry))
+}
+
+/// Divide by `x = g` in `K`, the inverse of the product by `g`.
+///
+/// Bit 0 of the input says whether that product folded: if so, unfold it and set bit 63.
+#[inline(always)]
+pub const fn div_by_g(a: F64) -> F64 {
+    F64(if a.0 & 1 == 1 {
+        (a.0 ^ R64) >> 1 | 1 << 63
+    } else {
+        a.0 >> 1
+    })
 }
 
 /// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
@@ -130,6 +142,20 @@ pub fn index_mle(zeta: &[F192]) -> F192 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_rng::Rng;
+
+    #[test]
+    fn div_by_g_inverts_mul_by_g() {
+        // Bit 63 folds under the product by g, bit 0 unfolds under the division; R64 is the reduction constant.
+        let corners = [0, 1, 2, R64, 1 << 63, (1 << 63) | 1, u64::MAX >> 1, u64::MAX];
+        let mut rng = Rng::new(7);
+        for a in corners.into_iter().chain((0..1000).map(|_| rng.next_u64())).map(F64) {
+            assert_eq!(div_by_g(mul_by_g(a)), a, "{a:?}");
+            assert_eq!(mul_by_g(div_by_g(a)), a, "{a:?}");
+            // Division by `g` is the product by its inverse.
+            assert_eq!(div_by_g(a), a * F64::G.inv(), "{a:?}");
+        }
+    }
 
     /// The split table against the square-and-multiply it replaces, at both sides of the
     /// `2^16` boundary and at the ends of the operand range.
