@@ -189,10 +189,11 @@ impl LigeroWitness {
 
     /// The rows at `queries`, in order and back to back, and the octopus over them.
     fn open(&self, queries: &[usize]) -> (Vec<F192>, PrunedMerklePaths) {
-        let group = self.tree.group_positions(queries);
-        let group_rows = self.opened_words(&group);
+        let groups = self.tree.groups(queries);
+        let group = groups.leaves();
+        let group_rows = self.opened_words(group);
         let row_words = 3 * self.num_interleaved;
-        let row = |q| fetched_row(&group, &group_rows, row_words, q);
+        let row = |q| fetched_row(group, &group_rows, row_words, q);
         let mut rows = Vec::with_capacity(queries.len() * self.num_interleaved);
         rows.extend(queries.iter().flat_map(|&q| {
             row(q)
@@ -201,7 +202,9 @@ impl LigeroWitness {
                 .iter()
                 .map(|w| F192::new(w[0].0, w[1].0, w[2].0))
         }));
-        let paths = self.tree.prune(queries, row_words, row_words, &group_rows, row);
+        let paths = self
+            .tree
+            .prune(queries, &groups, row_words, row_words, &group_rows, row);
         (rows, paths)
     }
 
@@ -1072,9 +1075,10 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
     // Ordered (dup-possible) rows for the local induce math ...
     let row_words = prover_data.row_words;
-    let group_0 = l0_tree.group_positions(&queries_0);
-    let group_rows_0 = prover_data.ntt.rows(&prover_data.codeword, &stack, &group_0);
-    let image = |q| &fetched_row(&group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
+    let groups_0 = l0_tree.groups(&queries_0);
+    let group_0 = groups_0.leaves();
+    let group_rows_0 = prover_data.ntt.rows(&prover_data.codeword, &stack, group_0);
+    let image = |q| &fetched_row(group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
     let mut opened_rows_0 = Vec::with_capacity(queries_0.len() * num_interleaved_0);
     // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts
     // block `b` at index `b` and the absent lanes' zeros at the end, where they contribute nothing.
@@ -1084,7 +1088,14 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     }
     // ... but the stored proof carries the sorted-unique rows + one octopus over
     // the sorted-unique positions (the verifier re-fans them to ordered).
-    ps.hint_merkle(l0_tree.prune(&queries_0, row_words, num_interleaved_0, &group_rows_0, image));
+    ps.hint_merkle(l0_tree.prune(
+        &queries_0,
+        &groups_0,
+        row_words,
+        num_interleaved_0,
+        &group_rows_0,
+        image,
+    ));
     // Nothing reads the L0 codeword, its stack or its tree again, and the next levels' buffers can be served
     // from their memory.
     drop((prover_data, stack));

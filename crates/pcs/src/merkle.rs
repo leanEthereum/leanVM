@@ -322,36 +322,33 @@ impl CutTree {
         self.nodes[self.nodes.len() - 1]
     }
 
-    /// Distinct groups the `positions` fall in, ascending.
-    fn groups(&self, positions: &[usize]) -> Vec<usize> {
-        let mut groups: Vec<usize> = positions.iter().map(|&q| q >> self.cut).collect();
-        groups.sort_unstable();
-        groups.dedup();
-        groups
-    }
-
-    /// Every leaf of the groups `positions` fall in, ascending: the rows [`Self::prune`] takes.
-    pub(crate) fn group_positions(&self, positions: &[usize]) -> Vec<usize> {
-        let groups = self.groups(positions);
-        groups
-            .iter()
-            .flat_map(|&g| g << self.cut..(g + 1) << self.cut)
-            .collect()
+    /// The groups the `positions` fall in.
+    pub(crate) fn groups(&self, positions: &[usize]) -> Groups {
+        let mut ids: Vec<usize> = positions.iter().map(|&q| q >> self.cut).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        let leaves = ids.iter().flat_map(|&g| g << self.cut..(g + 1) << self.cut).collect();
+        Groups { ids, leaves }
     }
 
     /// The octopus over `positions`, with `row(q)` the row stored at `q`.
     ///
-    /// `group_rows` are the full rows of [`Self::group_positions`], `row_words` each, back to back, hashed
-    /// as the leaves `zeros(leaf_words - row_words) ‖ row`.
-    pub fn prune<'a>(
+    /// `groups` are the groups of `positions`, and `group_rows` the full rows of their leaves, back to back.
+    /// Each row is `row_words` long and hashed as the leaf `zeros(leaf_words - row_words) ‖ row`.
+    pub(crate) fn prune<'a>(
         &self,
         positions: &[usize],
+        groups: &Groups,
         row_words: usize,
         leaf_words: usize,
         group_rows: &[F64],
         row: impl Fn(usize) -> &'a [F64],
     ) -> PrunedMerklePaths {
-        let (groups, size) = (self.groups(positions), 1usize << self.cut);
+        debug_assert!(
+            groups.ids == self.groups(positions).ids,
+            "the groups are those of the positions"
+        );
+        let (groups, size) = (&groups.ids, 1usize << self.cut);
         let n = groups.len() * size;
         assert_eq!(group_rows.len(), n * row_words, "the rows of every group");
         // All groups' leaves as one flat tree up to the cut: a group is aligned, so no climb mixes two.
@@ -379,6 +376,21 @@ impl CutTree {
             local[Self::start(n, level) + group * width + i % width]
         };
         PrunedMerklePaths::prune(self.num_leaves, positions, node, row)
+    }
+}
+
+/// The leaf groups of a cut tree that an opening falls in: what it fetches rows for and rehashes.
+pub(crate) struct Groups {
+    /// The group indices, ascending and distinct.
+    ids: Vec<usize>,
+    /// Every leaf of the groups, ascending.
+    leaves: Vec<usize>,
+}
+
+impl Groups {
+    /// Every leaf of the groups, ascending: the rows the octopus is rebuilt from.
+    pub(crate) fn leaves(&self) -> &[usize] {
+        &self.leaves
     }
 }
 
@@ -602,9 +614,9 @@ mod tests {
                 vec![5, 5, 6, 200 % num_leaves, num_leaves - 1],
                 (0..num_leaves).step_by(7).collect(),
             ] {
-                let group = cut.group_positions(&positions);
-                let rows: Vec<F64> = group.iter().flat_map(|&q| row(q)).copied().collect();
-                let got = cut.prune(&positions, row_words, leaf_words, &rows, row);
+                let groups = cut.groups(&positions);
+                let rows: Vec<F64> = groups.leaves().iter().flat_map(|&q| row(q)).copied().collect();
+                let got = cut.prune(&positions, &groups, row_words, leaf_words, &rows, row);
                 let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
                 let node = |level: usize, i: usize| full[level_start(level) + i];
                 assert_eq!(got, PrunedMerklePaths::prune(num_leaves, &positions, node, row));

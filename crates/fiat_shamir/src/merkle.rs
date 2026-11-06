@@ -76,8 +76,9 @@ impl PrunedMerklePaths {
         let sorted = sorted_unique(positions);
         debug_assert!(sorted.iter().all(|&p| p < num_leaves));
 
+        let leaf_data = sorted.iter().map(|&q| row(q).to_vec()).collect();
         let mut sibling_hashes = Vec::new();
-        let mut active = sorted.clone();
+        let mut active = sorted;
         let (mut level, mut level_len) = (0usize, num_leaves);
         while level_len > 1 {
             let mut next = Vec::with_capacity(active.len());
@@ -102,7 +103,7 @@ impl PrunedMerklePaths {
         }
 
         Self {
-            leaf_data: sorted.iter().map(|&q| row(q).to_vec()).collect(),
+            leaf_data,
             sibling_hashes,
         }
     }
