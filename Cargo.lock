@@ -586,6 +586,7 @@ dependencies = [
  "rand",
  "serde",
  "signatures",
+ "thiserror",
 ]
 
 [[package]]

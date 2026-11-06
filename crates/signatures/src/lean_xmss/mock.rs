@@ -38,6 +38,14 @@ pub fn key_gen_from_seed(seed: Seed, first: LeafIndex, last: LeafIndex) -> (Mock
 }
 
 /// [`crate::lean_xmss::sign`], in the key's range.
+///
+/// # Errors
+///
+/// As the unmocked signing.
+///
+/// # Panics
+///
+/// When the leaf index is outside the key's range.
 pub fn sign(
     sk: &MockSecretKey,
     message: &Message,
