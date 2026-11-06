@@ -94,6 +94,17 @@ pub struct LeanSphincsSignature {
     pub(crate) paths: [Digest; H],
 }
 
+/// Where layer `layer`'s path sits among a signature's path nodes: after every layer below it.
+const fn path_range(layer: usize) -> std::ops::Range<usize> {
+    let mut start = 0;
+    let mut below = 0;
+    while below < layer {
+        start += LAYER_HEIGHTS[below];
+        below += 1;
+    }
+    start..start + LAYER_HEIGHTS[layer]
+}
+
 impl LeanSphincsSignature {
     pub fn randomizer(&self) -> &Randomizer {
         &self.randomizer
@@ -110,8 +121,7 @@ impl LeanSphincsSignature {
 
     /// Layer `layer`'s path in its tree, from the leaf up.
     pub fn path(&self, layer: usize) -> &[Digest] {
-        let start: usize = LAYER_HEIGHTS[..layer].iter().sum();
-        &self.paths[start..start + LAYER_HEIGHTS[layer]]
+        &self.paths[path_range(layer)]
     }
 
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes: the
@@ -149,13 +159,15 @@ impl LeanSphincsSignature {
             secret: take(N).try_into().unwrap(),
             path: std::array::from_fn(|_| take(N).try_into().unwrap()),
         });
-        let mut paths = Vec::with_capacity(H);
+        let mut paths = [[0; N]; H];
         let layers = std::array::from_fn(|layer| {
             let signed = LayerSignature {
                 counter: u32::from_le_bytes(take(COUNTER_LEN).try_into().unwrap()),
                 wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
             };
-            paths.extend((0..LAYER_HEIGHTS[layer]).map(|_| Digest::try_from(take(N)).unwrap()));
+            for node in &mut paths[path_range(layer)] {
+                *node = take(N).try_into().unwrap();
+            }
             signed
         });
         debug_assert_eq!(at, SIG_SIZE);
@@ -163,7 +175,7 @@ impl LeanSphincsSignature {
             randomizer,
             fors,
             layers,
-            paths: paths.try_into().unwrap(),
+            paths,
         }
     }
 }
@@ -331,22 +343,29 @@ fn sign_with(seed: &SchemeSeed, message: &Message) -> Result<LeanSphincsSignatur
     let rho = randomizer(pp, seed, message);
     let (idx, leaves) = message_digest(pp, &rho, message);
     let (fors_key, fors) = fors_open(pp, seed, idx, &leaves);
-    let mut signed = fors_key_bytes(&fors_key).to_vec();
-    let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
-    for layer in 0..LAYERS {
+    let mut layers = [LayerSignature {
+        counter: 0,
+        wots: [[0; N]; V],
+    }; LAYERS];
+    let mut paths = [[0; N]; H];
+    let mut root = [0; N];
+    for (layer, signature) in layers.iter_mut().enumerate() {
+        // The bottom key signs the FORS key, every other the root of the tree below.
+        let signed: &[u8] = if layer == 0 { fors_key_bytes(&fors_key) } else { &root };
         let key = OtsKey::of_index(layer, idx);
-        let (counter, wots) = wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        let (counter, wots) = wots_sign(pp, seed, &key, signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        *signature = LayerSignature { counter, wots };
         let levels = tree_levels(pp, seed, &key);
-        let height = LAYER_HEIGHTS[layer];
-        paths.extend((0..height).map(|level| levels[level][(key.leaf as usize >> level) ^ 1]));
-        layers.push(LayerSignature { counter, wots });
-        signed = levels[height][0].to_vec();
+        for (level, node) in paths[path_range(layer)].iter_mut().enumerate() {
+            *node = levels[level][(key.leaf as usize >> level) ^ 1];
+        }
+        root = levels[LAYER_HEIGHTS[layer]][0];
     }
     Ok(LeanSphincsSignature {
         randomizer: rho,
         fors,
-        layers: layers.try_into().unwrap(),
-        paths: paths.try_into().unwrap(),
+        layers,
+        paths,
     })
 }
 
@@ -376,14 +395,16 @@ pub fn verify(
     let pp = &pk.public_param;
     let (idx, leaves) = message_digest(pp, &signature.randomizer, message);
     let fors_key = fors_recover(pp, idx, &leaves, &signature.fors, |_| ());
-    let mut signed = fors_key_bytes(&fors_key).to_vec();
+    let mut root = [0; N];
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
+        // The bottom key signs the FORS key, every other the root of the tree below.
+        let signed: &[u8] = if layer == 0 { fors_key_bytes(&fors_key) } else { &root };
         let key = OtsKey::of_index(layer, idx);
-        let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
+        let (_, leaf) = wots_leaf(pp, &key, signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
-        signed = tree_fold(pp, &key, leaf, signature.path(layer), |_| ()).to_vec();
+        root = tree_fold(pp, &key, leaf, signature.path(layer), |_| ());
     }
-    if signed == pk.root {
+    if root == pk.root {
         Ok(())
     } else {
         Err(LeanSphincsVerifyError::RootMismatch)
