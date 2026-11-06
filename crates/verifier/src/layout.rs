@@ -8,6 +8,7 @@ use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
 use std::ops::Add;
+use std::sync::OnceLock;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
 
@@ -55,10 +56,16 @@ impl Add for Form {
 /// One block of a bus side, always owned by a table. The three blocks no table owns are the framework, on `BusLayout`.
 #[derive(Clone, Debug)]
 pub struct BusBlock {
-    pub log_rows: usize,        // the owner's height: the block spans 2^log_rows rows
-    pub rows: u64,              // ...of which the first `rows` flush, the rest being padding rows, whose leaves are 1
-    pub coordinates: Vec<Form>, // the tuple flushed, over the owner's OWN local column indices; stays symbolic until its table sumcheck
-    pub owner: usize,           // whose block it is, by opcode
+    /// The owner's height: the block spans 2^log_rows rows.
+    pub log_rows: usize,
+    /// How many leading rows flush; the rest are padding rows, whose leaves are 1.
+    pub rows: u64,
+    /// The tuple flushed, over the owner's own local column indices.
+    ///
+    /// It stays symbolic until its table sumcheck.
+    pub coordinates: &'static [Form],
+    /// The owning table, by opcode.
+    pub owner: usize,
 }
 
 /// The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
@@ -91,7 +98,8 @@ pub struct Layout<'a> {
     pub log_memory: usize,
     pub log_bytecode: usize,
     pub bytecode: &'a Bytecode,
-    pub tables: Vec<Table>,
+    /// The instruction tables, shared by every layout.
+    pub tables: &'static [Table],
     pub push: Vec<BusBlock>,
     pub pull: Vec<BusBlock>,
     pub count: Vec<BusBlock>,
@@ -136,6 +144,7 @@ pub const SEP_BYTECODE: E = E::new(4, 0, 0); // GEN^2
 pub struct Flushes {
     push: Vec<Vec<Form>>,
     pull: Vec<Vec<Form>>,
+    count: Vec<Vec<Form>>, // each count column, flushed alone
 }
 
 impl Flushes {
@@ -183,19 +192,13 @@ pub struct Table {
     pub padding: Vec<E>, // the row a padding row holds
     pub flushes: Flushes,
     pub constraints: fn(&[E]) -> Vec<E>,
+    /// How many constraints the table has.
+    pub n_constraints: usize,
 }
 
 impl Table {
-    pub fn n_constraints(&self) -> usize {
-        (self.constraints)(&vec![ZERO; self.width()]).len()
-    }
-
     pub fn width(&self) -> usize {
         self.columns.len()
-    }
-
-    fn count_columns(&self) -> impl Iterator<Item = usize> {
-        (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
     }
 }
 
@@ -431,13 +434,24 @@ fn keccak_columns() -> Vec<String> {
         .collect()
 }
 
-pub fn tables() -> Vec<Table> {
-    let table = |opcode, columns: Vec<String>, flushes, constraints| Table {
-        opcode,
-        padding: vec![ZERO; columns.len()],
-        columns,
-        flushes,
-        constraints,
+/// The instruction tables, built once: nothing in them depends on a proof.
+pub fn tables() -> &'static [Table] {
+    static TABLES: OnceLock<Vec<Table>> = OnceLock::new();
+    TABLES.get_or_init(build_tables)
+}
+
+fn build_tables() -> Vec<Table> {
+    let table = |opcode, columns: Vec<String>, mut flushes: Flushes, constraints: fn(&[E]) -> Vec<E>| {
+        let counts = columns.iter().enumerate().filter(|(_, name)| name.starts_with("cnt"));
+        flushes.count = counts.map(|(local, _)| vec![col(local, 0)]).collect();
+        Table {
+            opcode,
+            padding: vec![ZERO; columns.len()],
+            n_constraints: constraints(&vec![ZERO; columns.len()]).len(),
+            columns,
+            flushes,
+            constraints,
+        }
     };
     let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
     let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
@@ -504,15 +518,15 @@ pub fn build_layout<'a>(
     let mut pull = Vec::new();
     let mut count = Vec::new();
     for ((table, &height), &rows) in tables.iter().zip(&table_log_heights).zip(table_rows) {
-        let block = |coordinates: &Vec<Form>| BusBlock {
+        let block = |coordinates: &'static Vec<Form>| BusBlock {
             log_rows: height,
             rows,
-            coordinates: coordinates.clone(),
+            coordinates,
             owner: table.opcode,
         };
         push.extend(table.flushes.push.iter().map(block));
         pull.extend(table.flushes.pull.iter().map(block));
-        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
+        count.extend(table.flushes.count.iter().map(block));
     }
 
     // Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
@@ -529,7 +543,7 @@ pub fn build_layout<'a>(
         log_bytecode,
         qkeccak_kappa,
     ];
-    for table in &tables {
+    for table in tables {
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
 

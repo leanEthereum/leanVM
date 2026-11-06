@@ -244,7 +244,7 @@ pub fn table_sumcheck(
         let mut terminal = ZERO;
         let mut cursor = 0;
         for (((table, (_, evaluations)), forms), &weight) in tables.iter().zip(&rows).zip(bus_forms).zip(&weights) {
-            let n_constraints = table.n_constraints();
+            let n_constraints = table.n_constraints;
             let summand = dot(
                 &constraint_powers[cursor..cursor + n_constraints],
                 &(table.constraints)(evaluations),
