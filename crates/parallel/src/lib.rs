@@ -1,4 +1,4 @@
-//! Fixed-size thread pool for flat data-parallel kernels. Workers claim ranges from one shared counter, which also balances heterogeneous cores. Dispatches cannot nest. Task panics are resumed on the dispatcher after all workers stop.
+//! Fixed-size thread pool for flat data-parallel kernels. Workers claim ranges from one shared counter, which also balances heterogeneous cores. Dispatches cannot nest: a dispatch from a pool task panics, and one from a thread a task spawned deadlocks. Task panics are resumed on the dispatcher after all workers stop.
 
 use std::any::Any;
 use std::cell::{Cell, UnsafeCell};

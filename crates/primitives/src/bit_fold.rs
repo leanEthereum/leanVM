@@ -44,6 +44,7 @@ impl BitFold {
     }
 
     /// Fold up to 64 rows split in two runs of bytes: `self` weighs the `A` bytes of `head_rows`, `tail` the `B` of `tail_rows`.
+    /// Rows past the input fold to zero.
     ///
     /// The sums are added before the output transpose, so a row of 24 bytes costs 24 input bytes, not 32.
     #[inline]
@@ -65,7 +66,7 @@ impl BitFold {
     /// intermediate, so it skips the fold's input transpose.
     #[inline]
     pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
-        debug_assert_eq!(CHUNKS, self.n_chunks);
+        assert_eq!(CHUNKS, self.n_chunks);
         self.imp.fold_columns(cols, out);
     }
 }
@@ -173,6 +174,7 @@ mod portable {
             for ((o, head), tail_row) in out.iter_mut().zip(head_rows).zip(tail_rows) {
                 *o = fold_row_lookup(&self.tables, head) + fold_row_lookup(&tail.tables, tail_row);
             }
+            out[head_rows.len()..].fill(F192::ZERO);
         }
 
         // With AVX2 and GFNI the columns go through `gfni256`, which keeps these tables for rows only.

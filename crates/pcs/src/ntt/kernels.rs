@@ -771,14 +771,9 @@ mod avx2 {
         _mm256_xor_si256(u, reduce_halves256(even, odd))
     }
 
-    /// The mask of the first `n` of four qwords.
-    #[inline]
-    #[target_feature(enable = "avx2")]
-    fn prefix_mask(n: usize) -> __m256i {
-        _mm256_cmpgt_epi64(_mm256_set1_epi64x(n as i64), _mm256_setr_epi64x(0, 1, 2, 3))
-    }
-
     /// Words `4i..4i + n` of `src`, then zeros.
+    ///
+    /// A short tail goes through a padded copy rather than `vpmaskmovq`, which AMD lets fault on masked-out words.
     #[inline]
     #[target_feature(enable = "avx2")]
     fn load_prefix(src: &[F64], i: usize, n: usize) -> __m256i {
@@ -786,11 +781,15 @@ mod avx2 {
             return _mm256_setzero_si256();
         }
         assert!(n <= 4 && 4 * i + n <= src.len());
-        // SAFETY: the masked load reads only the first `n` words, which the assert keeps inside `src`.
-        unsafe { _mm256_maskload_epi64(src.as_ptr().add(4 * i).cast(), prefix_mask(n)) }
+        if n == 4 {
+            return load_at(src, 4 * i);
+        }
+        let mut words = [F64::ZERO; 4];
+        words[..n].copy_from_slice(&src[4 * i..4 * i + n]);
+        load_at(&words, 0)
     }
 
-    /// Store the first `n` words of `v` at word `4i` of `dst`.
+    /// Store the first `n` words of `v` at word `4i` of `dst`, as [`load_prefix`] reads them.
     #[inline]
     #[target_feature(enable = "avx2")]
     fn store_prefix(dst: &mut [F64], i: usize, n: usize, v: __m256i) {
@@ -798,8 +797,12 @@ mod avx2 {
             return;
         }
         assert!(n <= 4 && 4 * i + n <= dst.len());
-        // SAFETY: the masked store writes only the first `n` words, which the assert keeps inside `dst`.
-        unsafe { _mm256_maskstore_epi64(dst.as_mut_ptr().add(4 * i).cast(), prefix_mask(n), v) }
+        if n == 4 {
+            return store_at(dst, 4 * i, v);
+        }
+        let mut words = [F64::ZERO; 4];
+        store_at(&mut words, 0, v);
+        dst[4 * i..4 * i + n].copy_from_slice(&words[..n]);
     }
 
     /// Butterfly rows `top` and `bot` of every vector in flight.

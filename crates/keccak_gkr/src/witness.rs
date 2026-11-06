@@ -113,8 +113,13 @@ impl Extent {
     /// An extent for blocks `first .. first + blocks`, none of them written yet. A block is
     /// read only through a [`Witness`], whose builder vouches for the ones [`block`] wrote.
     pub fn new(first: usize, blocks: usize) -> Self {
+        // A wrapped length would leave `slot`'s offsets past the buffer.
+        assert!(first.checked_add(blocks).is_some(), "an extent's blocks are indexable");
+        let len = blocks
+            .checked_mul((ROUNDS + 1) * BLOCK_LEN)
+            .expect("an extent's words fit in memory");
         // SAFETY: nothing reads a block that `Witness::from_extents` was not told is written.
-        let words = unsafe { primitives::uninit_vec((ROUNDS + 1) * blocks * BLOCK_LEN) };
+        let words = unsafe { primitives::uninit_vec(len) };
         Self { first, blocks, words }
     }
 
@@ -159,7 +164,7 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
             // SAFETY: the features are enabled at compile time.
             unsafe { x86::transpose64(a) }
         }
-        all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")) => {
+        all(target_arch = "x86_64", target_feature = "avx2") => {
             // SAFETY: the feature is enabled at compile time.
             unsafe { avx2::transpose64(a) }
         }
@@ -494,7 +499,11 @@ mod x86 {
     }
 }
 
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    not(all(target_feature = "avx512f", target_feature = "avx512vbmi", target_feature = "gfni"))
+))]
 mod avx2 {
     use core::arch::x86_64::*;
 

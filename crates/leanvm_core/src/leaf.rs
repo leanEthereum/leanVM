@@ -402,7 +402,8 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         .enumerate()
         .flat_map(|(g, (&(kappa, _), group))| {
             let height = 1usize << kappa;
-            let rows = (TASK_LEAVES / group.len()).next_power_of_two().min(height);
+            // At least one sixteen per task, or its `sixteens` would go unwritten.
+            let rows = (TASK_LEAVES / group.len()).next_power_of_two().clamp(16, height);
             (0..height).step_by(rows).map(move |z| (g, z..z + rows))
         })
         .collect();

@@ -150,7 +150,7 @@ pub fn poly_eval(coeffs: &[F192], point: F192) -> F192 {
 /// Each row's inner sum is one [`dot_base`] against the packed low table, reduced once.
 /// The table is read once and never lifted into `E`.
 pub fn mle_eval(table: &[F64], point: &[F192]) -> F192 {
-    debug_assert_eq!(table.len(), 1 << point.len());
+    assert_eq!(table.len(), 1 << point.len());
     if point.len() < 3 {
         return match point.split_first() {
             None => F192::from(table[0]),
@@ -169,7 +169,7 @@ pub fn mle_eval(table: &[F64], point: &[F192]) -> F192 {
 /// [`mle_eval`] with the rows spread over the worker pool.
 /// A caller already inside a dispatch must use [`mle_eval`] to avoid nesting.
 pub fn mle_eval_par(table: &[F64], point: &[F192]) -> F192 {
-    debug_assert_eq!(table.len(), 1 << point.len());
+    assert_eq!(table.len(), 1 << point.len());
     if table.len() < PAR_THRESHOLD {
         return mle_eval(table, point);
     }

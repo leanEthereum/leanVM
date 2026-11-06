@@ -705,7 +705,8 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
 
 #[inline(always)]
 fn digest_halves_from_with<S: Lanes64>(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
-    assert!(at + 2 <= RATE_LANES && values.len() == out.len());
+    // The final block ends in padding, so the value stops before its last lane.
+    assert!(at + 2 < RATE_LANES && values.len() == out.len());
     let whole = out.len() / S::WIDTH * S::WIDTH;
     for g in (0..whole).step_by(S::WIDTH) {
         let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(template[i]));

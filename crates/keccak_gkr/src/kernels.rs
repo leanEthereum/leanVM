@@ -24,8 +24,7 @@ cfg_select! {
     all(
         target_arch = "x86_64",
         target_feature = "avx2",
-        target_feature = "pclmulqdq",
-        not(target_feature = "avx512f")
+        target_feature = "pclmulqdq"
     ) => {
         use avx2 as simd;
     }
@@ -622,7 +621,12 @@ mod x86 {
     target_arch = "x86_64",
     target_feature = "avx2",
     target_feature = "pclmulqdq",
-    not(target_feature = "avx512f")
+    not(all(
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))
 ))]
 mod avx2 {
     use core::arch::x86_64::*;

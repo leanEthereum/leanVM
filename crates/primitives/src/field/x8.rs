@@ -49,9 +49,11 @@ fn vector(v: [i64; 8]) -> __m512i {
     unsafe { _mm512_loadu_si512(v.as_ptr().cast()) }
 }
 
+/// # Safety
+/// `src` points to eight readable qwords.
 #[inline(always)]
-fn load_u64x8(src: *const u64) -> __m512i {
-    // SAFETY: callers pass a pointer to eight readable qwords.
+unsafe fn load_u64x8(src: *const u64) -> __m512i {
+    // SAFETY: the module's cfg enables avx512f, and the caller passes eight readable qwords.
     unsafe { _mm512_loadu_si512(src.cast()) }
 }
 
@@ -158,7 +160,7 @@ impl F192x8 {
         // gives every run's qword `8b + i` in one register.
         // SAFETY: the 64 elements are 192 readable qwords.
         let blocks: [[__m512i; 8]; 3] =
-            std::array::from_fn(|b| transpose8(std::array::from_fn(|p| load_u64x8(unsafe { q.add(24 * p + 8 * b) }))));
+            std::array::from_fn(|b| transpose8(std::array::from_fn(|p| unsafe { load_u64x8(q.add(24 * p + 8 * b)) })));
         std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(3 * j + k) / 8][(3 * j + k) % 8])))
     }
 
@@ -280,7 +282,8 @@ impl F64x8 {
 
     #[inline(always)]
     pub fn load(k: &[F64; 8]) -> Self {
-        Self(load_u64x8(k.as_ptr().cast()))
+        // SAFETY: `k` is eight qwords.
+        Self(unsafe { load_u64x8(k.as_ptr().cast()) })
     }
 
     #[inline(always)]
@@ -322,15 +325,14 @@ impl Mixed8 {
         odd: unsafe { std::mem::zeroed() },
     };
 
-    /// Add `c · k[i]` to lane `i`; `c` is a [`F192x8::splat`].
+    /// Add `c[i] · k[i]` to lane `i`.
     #[inline(always)]
     pub fn add(&mut self, c: F192x8, k: F64x8) {
         for i in 0..3 {
-            // SAFETY: the module's cfg enables avx512f and vpclmulqdq. Immediate bit 4
-            // picks the scalar's odd qword; the splat is the same in both.
+            // SAFETY: the module's cfg enables avx512f and vpclmulqdq.
             unsafe {
                 self.even[i] = xor(self.even[i], _mm512_clmulepi64_epi128::<0x00>(c.0[i], k.0));
-                self.odd[i] = xor(self.odd[i], _mm512_clmulepi64_epi128::<0x10>(c.0[i], k.0));
+                self.odd[i] = xor(self.odd[i], _mm512_clmulepi64_epi128::<0x11>(c.0[i], k.0));
             }
         }
     }
@@ -383,7 +385,8 @@ mod tests {
             let mut acc = Mixed8::ZERO;
             acc.add(F192x8::splat(c), F64x8::new(k));
             acc.add(F192x8::splat(a[1]), F64x8::new(k) * F64x8::load(&l));
-            let want = std::array::from_fn(|i| c.mul_base(k[i]) + a[1].mul_base(k[i] * l[i]));
+            acc.add(vb, F64x8::load(&l));
+            let want = std::array::from_fn(|i| c.mul_base(k[i]) + a[1].mul_base(k[i] * l[i]) + b[i].mul_base(l[i]));
             assert_eq!(acc.reduce().to_array(), want);
             assert_eq!((F64x8::new(k) * F64x8::splat(l[0])).to_array(), k.map(|k| k * l[0]));
         }

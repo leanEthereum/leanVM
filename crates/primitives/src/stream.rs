@@ -2,6 +2,8 @@
 
 use std::marker::PhantomData;
 
+use crate::Plain;
+
 /// A region of streaming stores.
 ///
 /// Streaming stores are weakly ordered, so nothing else may observe them until
@@ -26,7 +28,7 @@ impl Stream {
     /// Copy `src` over `dst` without fetching `dst` first. Whole cache lines
     /// stream; a ragged head or tail is stored normally.
     #[inline]
-    pub fn copy<T: Copy>(&self, dst: &mut [T], src: &[T]) {
+    pub fn copy<T: Plain>(&self, dst: &mut [T], src: &[T]) {
         assert_eq!(dst.len(), src.len(), "a streaming copy is elementwise");
         // SAFETY: distinct slices are valid for `size_of_val(src)` bytes each
         // and cannot overlap.
@@ -38,7 +40,7 @@ impl Stream {
     /// # Safety
     /// `dst` must be valid for `src.len()` elements and disjoint from `src`.
     #[inline]
-    pub unsafe fn copy_uninit<T: Copy>(&self, dst: *mut T, src: &[T]) {
+    pub unsafe fn copy_uninit<T: Plain>(&self, dst: *mut T, src: &[T]) {
         // SAFETY: forwarded to the caller's obligation.
         unsafe { copy_raw(dst.cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
@@ -49,7 +51,7 @@ impl Stream {
     /// # Safety
     /// `dst` must be valid, aligned for `T` and disjoint from `src`.
     #[inline(always)]
-    pub unsafe fn copy_lines<T: Copy>(&self, dst: *mut T, src: &T) {
+    pub unsafe fn copy_lines<T: Plain>(&self, dst: *mut T, src: &T) {
         // The non-temporal stores need whole, line-aligned lines; a value shaped otherwise,
         // and every target without them, takes the ordinary store.
         #[cfg(target_arch = "x86_64")]

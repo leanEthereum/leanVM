@@ -111,15 +111,14 @@ impl Mixed4 {
         odd: unsafe { std::mem::zeroed() },
     };
 
-    /// Add `c · k[i]` to lane `i`; `c` is a [`F192x4::splat`].
+    /// Add `c[i] · k[i]` to lane `i`.
     #[inline(always)]
     pub fn add(&mut self, c: F192x4, k: F64x4) {
         for i in 0..3 {
-            // SAFETY: the module's cfg enables avx2 and vpclmulqdq. Immediate bit 4 picks
-            // the scalar's odd qword; the splat is the same in both.
+            // SAFETY: the module's cfg enables avx2 and vpclmulqdq.
             unsafe {
                 self.even[i] = xor(self.even[i], _mm256_clmulepi64_epi128::<0x00>(c.0[i], k.0));
-                self.odd[i] = xor(self.odd[i], _mm256_clmulepi64_epi128::<0x10>(c.0[i], k.0));
+                self.odd[i] = xor(self.odd[i], _mm256_clmulepi64_epi128::<0x11>(c.0[i], k.0));
             }
         }
     }
