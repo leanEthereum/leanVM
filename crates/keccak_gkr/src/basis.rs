@@ -15,14 +15,15 @@ fn xor3(a: &mut [u64; 3], b: &[u64; 3]) {
 
 /// The map from a field element to its coefficients on `1, s, ..., s^191`.
 pub struct PowerBasis {
-    tables: Vec<[[u64; 3]; 256]>,
+    /// Table `k` maps byte `k` of an element to its share of the coefficients.
+    tables: Box<[[[u64; 3]; 256]; 24]>,
 }
 
 impl PowerBasis {
     /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
     pub fn new(s: F192) -> Option<Self> {
         // Row `r` holds bit `r` of every power, beside the identity.
-        let mut rows = vec![([0u64; 3], [0u64; 3]); 192];
+        let mut rows = [([0u64; 3], [0u64; 3]); 192];
         let mut power = F192::ONE;
         for b in 0..192 {
             let p = power.to_limbs();
@@ -52,17 +53,18 @@ impl PowerBasis {
                 column[b / 64] |= (row.1[r / 64] >> (r % 64) & 1) << (b % 64);
             }
         }
-        let tables = (0..24)
-            .map(|k| {
-                let mut t = [[0u64; 3]; 256];
-                for byte in 1..256usize {
-                    let low = byte.trailing_zeros() as usize;
-                    t[byte] = t[byte & (byte - 1)];
-                    xor3(&mut t[byte], &columns[8 * k + low]);
-                }
-                t
-            })
-            .collect();
+        // Zeroed on the heap: built by value, the tables would pass through the stack.
+        let mut tables: Box<[[[u64; 3]; 256]; 24]> = vec![[[0u64; 3]; 256]; 24]
+            .into_boxed_slice()
+            .try_into()
+            .expect("24 tables");
+        for (t, columns) in tables.iter_mut().zip(columns.as_chunks::<8>().0) {
+            for byte in 1..256usize {
+                let low = byte.trailing_zeros() as usize;
+                t[byte] = t[byte & (byte - 1)];
+                xor3(&mut t[byte], &columns[low]);
+            }
+        }
         Some(Self { tables })
     }
 
