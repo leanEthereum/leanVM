@@ -2,11 +2,9 @@
 //! the rate, a `keccak(.., cap=)` duplex step, and a challenge read off the output,
 //! against the duplex sponge of `fiat_shamir::FiatShamirState`.
 
-use lean_compiler::{compile, parse};
+use lean_compiler::{compile, f192_literal, parse};
 use primitives::field::F192;
 use primitives::hash::{STATE_LANES, keccak_f};
-
-use crate::common::f192_lit;
 
 const SRC: &str = r#"
 from snark_lib import *
@@ -65,9 +63,9 @@ fn guest_transcript_step_matches_the_native_duplex() {
         0 => F192::new(state[16], 0, 0),
         _ => F192::new(state[15 + 2 * c], state[16 + 2 * c], 0),
     });
-    let mut src = SRC.replace("Y_INV_LIT", &f192_lit(F192::new(0, 1, 0).inv()));
+    let mut src = SRC.replace("Y_INV_LIT", &f192_literal(F192::new(0, 1, 0).inv()));
     for (c, x) in cap.into_iter().enumerate() {
-        src = src.replace(&format!("CAP_{c}"), &f192_lit(x));
+        src = src.replace(&format!("CAP_{c}"), &f192_literal(x));
     }
     let first = duplex(&mut state, &[5, 6, 7, 1]);
     let second = duplex(&mut state, &[]);
