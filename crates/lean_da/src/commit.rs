@@ -7,7 +7,10 @@
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
-use crate::{CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, encode_rows, row_count};
+use crate::{
+    BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, checked_row_count, encode_rows,
+    row_count,
+};
 
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
@@ -39,13 +42,22 @@ impl DaWitness {
 ///
 /// Returns the root, which the builder publishes: the root of the tree over the blob roots,
 /// binding the matrix including its zero padding.
+///
+/// # Errors
+///
+/// If `rows` is empty, ends in a partial blob, or holds more blobs than one commitment takes.
 #[tracing::instrument(name = "Commit", skip_all)]
-pub fn commit(rows: &[u64]) -> (Hash, DaWitness) {
+pub fn commit(rows: &[u64]) -> Result<(Hash, DaWitness), BlobSizeError> {
+    checked_row_count(rows.len(), BLOB_SYMBOLS).ok_or(BlobSizeError { symbols: rows.len() })?;
     let codewords = encode_rows(rows);
-    commit_codewords(codewords)
+    Ok(commit_codewords(codewords))
 }
 
 /// [`commit`] over rows that are already encoded.
+///
+/// # Panics
+///
+/// If `codewords` is empty, ends in a partial codeword, or holds more codewords than one commitment takes.
 pub fn commit_codewords(codewords: Vec<u64>) -> (Hash, DaWitness) {
     let blob_trees = blob_trees(&codewords);
     let blob_roots = blob_trees
@@ -54,7 +66,7 @@ pub fn commit_codewords(codewords: Vec<u64>) -> (Hash, DaWitness) {
         .iter()
         .map(|tree| tree[BLOB_TREE - 1]);
     let root_tree = tree_from_leaves(blob_roots.collect());
-    let root = *root_tree.last().unwrap();
+    let root = *root_tree.last().expect("a tree has at least its root");
     let witness = DaWitness {
         codewords,
         blob_trees,
@@ -129,7 +141,7 @@ fn as_bytes(data: &[u64]) -> &[u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BLOB_SYMBOLS;
+    use crate::DA_MAX_ROWS;
     use fiat_shamir::merkle::hash_pair;
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -176,8 +188,17 @@ mod tests {
         let mut extended = rows.clone();
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
 
-        let (short, _) = commit(&rows);
-        let (long, _) = commit(&extended);
+        let (short, _) = commit(&rows).unwrap();
+        let (long, _) = commit(&extended).unwrap();
         assert_eq!(short, long);
+    }
+
+    #[test]
+    fn commit_rejects_payloads_that_are_not_whole_blobs_within_the_limit() {
+        // Empty, one symbol short of or past one blob, and one blob past the limit.
+        for symbols in [0, BLOB_SYMBOLS - 1, BLOB_SYMBOLS + 1, (DA_MAX_ROWS + 1) * BLOB_SYMBOLS] {
+            let rows = vec![0; symbols];
+            assert_eq!(commit(&rows).err(), Some(BlobSizeError { symbols }));
+        }
     }
 }

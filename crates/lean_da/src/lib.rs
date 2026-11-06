@@ -37,11 +37,34 @@ pub const CELL_SYMBOLS: usize = 1 << DA_LOG_CELL;
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
 const LOG_M: usize = DA_LOG_K + 1;
 
-fn row_count(symbols: usize, width: usize) -> usize {
-    assert!(symbols.is_multiple_of(width), "partial blob row");
+/// A payload that is not `1..=DA_MAX_ROWS` whole blobs: empty, ending in a partial blob, or too long.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BlobSizeError {
+    /// The payload's length in symbols.
+    pub symbols: usize,
+}
+
+impl std::fmt::Display for BlobSizeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} symbols do not form 1..={DA_MAX_ROWS} blobs of {BLOB_SYMBOLS} symbols",
+            self.symbols
+        )
+    }
+}
+
+impl std::error::Error for BlobSizeError {}
+
+/// The number of `width`-symbol rows in `symbols` symbols, if they form `1..=DA_MAX_ROWS` whole rows.
+fn checked_row_count(symbols: usize, width: usize) -> Option<usize> {
     let rows = symbols / width;
-    assert!((1..=DA_MAX_ROWS).contains(&rows), "expected 1..=DA_MAX_ROWS blobs");
-    rows
+    (symbols.is_multiple_of(width) && (1..=DA_MAX_ROWS).contains(&rows)).then_some(rows)
+}
+
+/// The number of `width`-symbol rows in `symbols` symbols, for a size the caller has checked.
+fn row_count(symbols: usize, width: usize) -> usize {
+    checked_row_count(symbols, width).expect("expected 1..=DA_MAX_ROWS whole blobs")
 }
 
 #[cfg(test)]
@@ -51,9 +74,10 @@ mod tests {
     #[test]
     fn row_counts_reject_empty_partial_and_oversized_inputs() {
         for width in [BLOB_SYMBOLS, CODEWORD_SYMBOLS] {
-            assert_eq!(row_count(width, width), 1);
-            assert_eq!(row_count(DA_MAX_ROWS * width, width), DA_MAX_ROWS);
+            assert_eq!(checked_row_count(width, width), Some(1));
+            assert_eq!(checked_row_count(DA_MAX_ROWS * width, width), Some(DA_MAX_ROWS));
             for symbols in [0, width - 1, width + 1, (DA_MAX_ROWS + 1) * width, usize::MAX] {
+                assert_eq!(checked_row_count(symbols, width), None, "{symbols} symbols");
                 assert!(std::panic::catch_unwind(|| row_count(symbols, width)).is_err());
             }
         }
