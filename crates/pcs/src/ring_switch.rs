@@ -475,9 +475,13 @@ mod tests {
 
         // Reference: one dense weight vector per claim, combined afterwards.
         let dense_basis = fold_ext_elems_naive(&eq_table_serial(&point), &coordinate_weights);
-        let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
-            acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
-        });
+        let expected_target: F192 = states
+            .iter()
+            .zip(lambdas)
+            .map(|(state, lambda)| {
+                lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
+            })
+            .sum();
         let expected_basis = dense_basis
             .iter()
             .map(|&w| (lambdas[0] + lambdas[1]) * w)
@@ -488,9 +492,7 @@ mod tests {
             .zip(lambdas)
             .map(|(state, lambda)| prove_finish_deferred(state, &coordinate_weights, lambda))
             .collect::<Vec<_>>();
-        let deferred_target = deferred
-            .iter()
-            .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
+        let deferred_target = deferred.iter().map(|out| out.batched_sumcheck_claim).sum::<F192>();
         let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
         combine_deferred_chunk(&deferred, &mut deferred_basis);
 
@@ -648,10 +650,7 @@ mod tests {
             }
         }
         assert_eq!(
-            prefix_weights
-                .iter()
-                .zip(&s_ref)
-                .fold(F192::ZERO, |acc, (&w, &s)| acc + w * s),
+            prefix_weights.iter().zip(&s_ref).map(|(&w, &s)| w * s).sum::<F192>(),
             direct,
             "prefix x suffix split must factor the MLE"
         );

@@ -367,7 +367,7 @@ mod tests {
             assert_eq!(va.to_array(), a);
             assert_eq!((va * vb).to_array(), std::array::from_fn(|i| a[i] * b[i]));
             assert_eq!((va + vb).to_array(), std::array::from_fn(|i| a[i] + b[i]));
-            let dot = (0..8).fold(F192::ZERO, |acc, i| acc + a[i] * b[i]);
+            let dot = (0..8).map(|i| a[i] * b[i]).sum();
             assert_eq!(va.mul_sum(vb).reduce(), dot);
             assert_eq!((va.mul_sum(vb) ^ vb.mul_sum(va)).reduce(), F192::ZERO);
             assert_eq!(F192x8::splat(a[0]).to_array(), [a[0]; 8]);

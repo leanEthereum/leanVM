@@ -15,6 +15,7 @@
 //! Both folds are GF(2)-linear, so they commute with XOR.
 //! A sum of products therefore accumulates after the y-fold and reduces once.
 
+use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
@@ -214,6 +215,34 @@ impl MulAssign for F192 {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
+    }
+}
+
+impl Sum for F192 {
+    #[inline]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |acc, x| acc + x)
+    }
+}
+
+impl<'a> Sum<&'a F192> for F192 {
+    #[inline]
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().sum()
+    }
+}
+
+impl Product for F192 {
+    #[inline]
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ONE, |acc, x| acc * x)
+    }
+}
+
+impl<'a> Product<&'a F192> for F192 {
+    #[inline]
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().product()
     }
 }
 
@@ -1186,7 +1215,7 @@ mod tests {
             ];
             assert!((0..16).all(|i| packed[i / 8].get(i % 8) == w[i]));
             let k: [F64; 16] = std::array::from_fn(|_| F64(rng.ext().c0));
-            let want = (0..16).fold(F192::ZERO, |acc, i| acc + w[i].mul_base(k[i]));
+            let want = (0..16).map(|i| w[i].mul_base(k[i])).sum();
             assert_eq!(dot_base(&packed, &k).reduce(), want);
         }
     }

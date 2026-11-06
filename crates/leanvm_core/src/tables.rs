@@ -43,9 +43,7 @@ const TOWER_LANES: [&[(usize, usize)]; 3] = [
 /// identity assembles a tower product any more.
 #[cfg(test)]
 fn tower_lane(lane: usize, x: [F64; 3], y: [F64; 3]) -> F64 {
-    TOWER_LANES[lane]
-        .iter()
-        .fold(F64::ZERO, |acc, &(j, k)| acc + x[j] * y[k])
+    TOWER_LANES[lane].iter().map(|&(j, k)| x[j] * y[k]).sum()
 }
 
 // ---- shared bus vocabulary ---------------------------------------------------

@@ -6,6 +6,7 @@
 //! (`x86_64::mul`, `aarch64::mul_shift_tail`), which fold it with two more carry-less multiplications by `0x1B`
 //! and so never leave the vector register.
 
+use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
@@ -171,6 +172,34 @@ impl MulAssign for F64 {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
+    }
+}
+
+impl Sum for F64 {
+    #[inline]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |acc, x| acc + x)
+    }
+}
+
+impl<'a> Sum<&'a F64> for F64 {
+    #[inline]
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().sum()
+    }
+}
+
+impl Product for F64 {
+    #[inline]
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ONE, |acc, x| acc * x)
+    }
+}
+
+impl<'a> Product<&'a F64> for F64 {
+    #[inline]
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().product()
     }
 }
 

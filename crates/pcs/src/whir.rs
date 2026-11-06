@@ -52,11 +52,7 @@ use crate::whir_ntt_ext::*;
 pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
     assert_eq!(witness.len(), b.len());
     if witness.len() < PAR_THRESHOLD {
-        return witness
-            .iter()
-            .zip(b.iter())
-            .map(|(&w, &e)| e.mul_base(w))
-            .fold(F192::ZERO, |a, v| a + v);
+        return witness.iter().zip(b.iter()).map(|(&w, &e)| e.mul_base(w)).sum();
     }
     parallel::map_reduce(
         witness.len(),
@@ -1385,11 +1381,7 @@ mod tests {
 
             let (msg, y) = round_msg_lsb::<true>(&f, &b);
             assert_eq!(msg, msg_ref(&f, &b), "eval message, n={n}");
-            assert_eq!(
-                y,
-                f.iter().zip(&b).fold(F192::ZERO, |a, (&x, &y)| a + x * y),
-                "eval, n={n}"
-            );
+            assert_eq!(y, f.iter().zip(&b).map(|(&x, &y)| x * y).sum(), "eval, n={n}");
 
             let fold =
                 |x: &[F192]| -> Vec<F192> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };

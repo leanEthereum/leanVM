@@ -847,7 +847,7 @@ mod tests {
             );
             assert_eq!(fold_lones8_ext(&x0, r), core::array::from_fn(|j| x0[j] + r * x0[j]));
 
-            let dot = |x: &[F192; 8], y: &[F192; 8]| (0..8).fold(F192::ZERO, |acc, j| acc + x[j] * y[j]);
+            let dot = |x: &[F192; 8], y: &[F192; 8]| (0..8).map(|j| x[j] * y[j]).sum();
             let (u0, u2) = msg_terms8_ext(&x0, &x1, &y0, &y1);
             assert_eq!(u0.reduce(), dot(&x0, &y0));
             let xs: [F192; 8] = core::array::from_fn(|j| x0[j] + x1[j]);

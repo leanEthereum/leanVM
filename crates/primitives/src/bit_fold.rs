@@ -111,9 +111,7 @@ fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
 #[inline(always)]
 fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNKS]) -> F192 {
     let tables: &[[F192; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
-    row.iter()
-        .zip(tables)
-        .fold(F192::ZERO, |acc, (&v, sums)| acc + sums[usize::from(v)])
+    row.iter().zip(tables).map(|(&v, sums)| sums[usize::from(v)]).sum()
 }
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni")))]
@@ -192,7 +190,8 @@ mod portable {
                 *o = cols
                     .iter()
                     .zip(&self.tables)
-                    .fold(F192::ZERO, |acc, (col, sums)| acc + sums[usize::from(col[p])]);
+                    .map(|(col, sums)| sums[usize::from(col[p])])
+                    .sum();
             }
         }
     }
@@ -885,7 +884,8 @@ mod tests {
             // Bit s of the row is bit s % 8 of byte s / 8.
             let direct = (0..64)
                 .filter(|s| (row[s / 8] >> (s % 8)) & 1 == 1)
-                .fold(F192::ZERO, |acc, s| acc + weights[s]);
+                .map(|s| weights[s])
+                .sum();
             assert_eq!(fold_row_lookup(&tables, &row), direct, "row={row:02x?}");
         }
     }

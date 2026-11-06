@@ -341,7 +341,7 @@ fn airs<'a>(
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..3).fold(F192::ZERO, |acc, s| acc + pows[base + s] * bus.sigmas[s][t]),
+                sigma: (0..3).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
         .collect()
