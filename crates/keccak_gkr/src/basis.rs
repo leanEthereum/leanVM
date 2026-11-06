@@ -7,10 +7,6 @@
 use primitives::field::gf2_64::mul_wide;
 use primitives::field::{F192, powers};
 
-fn bits(a: F192) -> [u64; 3] {
-    [a.c0, a.c1, a.c2]
-}
-
 fn xor3(a: &mut [u64; 3], b: &[u64; 3]) {
     for (x, y) in a.iter_mut().zip(b) {
         *x ^= y;
@@ -29,7 +25,7 @@ impl PowerBasis {
         let mut rows = vec![([0u64; 3], [0u64; 3]); 192];
         let mut power = F192::ONE;
         for b in 0..192 {
-            let p = bits(power);
+            let p = power.to_limbs();
             for (r, row) in rows.iter_mut().enumerate() {
                 row.0[b / 64] |= (p[r / 64] >> (r % 64) & 1) << (b % 64);
             }
@@ -71,7 +67,7 @@ impl PowerBasis {
     }
 
     pub fn to_poly(&self, a: F192) -> [u64; 3] {
-        let a = bits(a);
+        let a = a.to_limbs();
         let mut p = [0u64; 3];
         for (k, table) in self.tables.iter().enumerate() {
             xor3(&mut p, &table[(a[k / 8] >> (8 * (k % 8))) as usize & 0xff]);

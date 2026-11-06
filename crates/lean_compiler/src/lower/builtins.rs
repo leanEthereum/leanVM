@@ -599,10 +599,7 @@ impl FnLower<'_> {
         for k in 0..5 {
             let value = if k == 0 { keccak_pad_value() } else { F192::ZERO };
             self.set_const(o + k, value);
-            self.scope
-                .const_cells
-                .entry([value.c0, value.c1, value.c2])
-                .or_insert(o + k);
+            self.scope.const_cells.entry(value).or_insert(o + k);
         }
         self.scope.keccak_pad = Some(o);
         o

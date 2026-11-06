@@ -121,7 +121,7 @@ impl Part {
 /// Digit `d` of a weight.
 #[inline(always)]
 fn digit(weight: F192, d: usize) -> usize {
-    let w = [weight.c0, weight.c1, weight.c2];
+    let w = weight.to_limbs();
     (w[d / 8] >> (DIGIT_BITS * (d % 8))) as usize & ((1 << DIGIT_BITS) - 1)
 }
 
@@ -262,7 +262,7 @@ impl Layer<'_> {
                 let (_, _, block) = self.block(task);
                 kernel.block_sums(scratch, block);
                 for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
-                    *sum ^= weights[task].mul_unreduced(F192::new(v[0], v[1], v[2]));
+                    *sum ^= weights[task].mul_unreduced(F192::from_limbs(*v));
                 }
             },
             |mut a, b| {

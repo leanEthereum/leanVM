@@ -276,8 +276,7 @@ impl<'a> FillCtx<'a> {
 
     /// The three `K`-lanes of the 192-bit word in memory cell `addr`.
     fn limbs(&self, addr: u32) -> [F64; 3] {
-        let w = self.mem.word(addr as usize);
-        [F64(w.c0), F64(w.c1), F64(w.c2)]
+        self.mem.word(addr as usize).to_limbs().map(F64)
     }
 }
 
@@ -587,7 +586,7 @@ impl Table for SetTable {
         ctx.col(out, rows, O, |r| ctx.g_at(imm(r).0));
         ctx.cols(out, rows, K_LO, |r| {
             let k = imm(r).1;
-            [F64(k.c0), F64(k.c1), F64(k.c2)]
+            k.to_limbs().map(F64)
         });
         ctx.col(out, rows, R, |r| ctx.g_at(r.r));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
@@ -979,10 +978,10 @@ mod tests {
     /// is a bus coordinate, the other a `K` identity), so pin the unrolling here.
     #[test]
     fn unrolled_tower_product_matches_field_product() {
-        let lanes = |v: F192| [F64(v.c0), F64(v.c1), F64(v.c2)];
+        let lanes = |v: F192| v.to_limbs().map(F64);
         let (x, y) = (C, C * C + F192::ONE);
         let got = [0, 1, 2].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
-        assert_eq!(F192::new(got[0], got[1], got[2]), x * y);
+        assert_eq!(F192::from_limbs(got), x * y);
     }
 
     /// `JUMP`'s two identities vanish on an honest row, taken or not.

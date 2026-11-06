@@ -218,7 +218,7 @@ mod avx2 {
 
     /// Entry `24 j + o`: the [`Nibbles`] of input byte `j` and output byte `o`.
     pub(super) fn nibble_tables(weights: &[F192]) -> Vec<Nibbles> {
-        let byte = |w: &F192, o: usize| ([w.c0, w.c1, w.c2][o / 8] >> (8 * (o % 8))) as u8;
+        let byte = |w: &F192, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
         let mut out = Vec::with_capacity(3 * weights.len());
         for w in weights.as_chunks::<8>().0 {
             for o in 0..24 {
@@ -734,7 +734,7 @@ mod gfni256 {
 
     /// Byte `o` of a weight.
     fn byte(w: F192, o: usize) -> u8 {
-        ([w.c0, w.c1, w.c2][o / 8] >> (8 * (o % 8))) as u8
+        (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8
     }
 
     /// The four words of a register.

@@ -287,7 +287,7 @@ impl RingWeight {
     /// `Phi(value)`.
     pub(crate) fn apply(&self, value: F192) -> F192 {
         let mut acc = F192::ZERO;
-        for (limb, word) in [value.c0, value.c1, value.c2].into_iter().enumerate() {
+        for (limb, word) in value.to_limbs().into_iter().enumerate() {
             let mut bits = word;
             while bits != 0 {
                 acc += self.weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];

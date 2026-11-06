@@ -49,7 +49,7 @@ const LOOP_STEPS: usize = 16_384;
 /// reader deriving every leaf width and tree height from the protocol it is
 /// replaying.
 pub(crate) fn encode(stream: &[F192], paths: &[verifier::MerklePath]) -> (Vec<u8>, Vec<u8>) {
-    let limbs = stream.iter().flat_map(|scalar| [scalar.c0, scalar.c1, scalar.c2]);
+    let limbs = stream.iter().flat_map(|scalar| scalar.to_limbs());
     let mut openings = Vec::new();
     for path in paths {
         openings.extend(path.leaf.iter().flat_map(|word| word.to_bytes()));

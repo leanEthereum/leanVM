@@ -309,7 +309,8 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
                 if matches!(op, Op::Xor { .. }) { OP_XOR } else { OP_MUL }
             }
             Op::Set { o, k } => {
-                put(&[g_at(o), F64(k.c0), F64(k.c1), F64(k.c2)]);
+                let [k0, k1, k2] = k.to_limbs().map(F64);
+                put(&[g_at(o), k0, k1, k2]);
                 OP_SET
             }
             Op::Deref { o1, o2, o3, mode } => {
@@ -606,7 +607,7 @@ impl Program {
                             let i = line + j;
                             let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
                             // counts ended at g^{A[i]}
-                            let values = [cell.word.c0, cell.word.c1, cell.word.c2].map(F64);
+                            let values = cell.word.to_limbs().map(F64);
                             buf[0][j] = values[0];
                             buf[1][j] = values[1];
                             buf[2][j] = values[2];
