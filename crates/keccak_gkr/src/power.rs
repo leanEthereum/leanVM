@@ -77,8 +77,12 @@ impl PowerField {
                     barrett[shift / 64] |= 1 << (shift % 64);
                 }
                 dividend[bit / 64] ^= 1 << (bit % 64);
-                for b in (0..192).filter(|b| modulus[b / 64] >> (b % 64) & 1 == 1) {
-                    dividend[(b + shift) / 64] ^= 1 << ((b + shift) % 64);
+                let (words, bits) = (shift / 64, shift % 64);
+                for (i, &m) in modulus.iter().enumerate() {
+                    dividend[words + i] ^= m << bits;
+                    if bits > 0 {
+                        dividend[words + i + 1] ^= m >> (64 - bits);
+                    }
                 }
             }
         }

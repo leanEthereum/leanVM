@@ -21,35 +21,27 @@ pub struct PowerBasis {
 impl PowerBasis {
     /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
     pub fn new(s: F192) -> Option<Self> {
-        // Row `r` holds bit `r` of every power, beside the identity.
-        let mut rows = vec![([0u64; 3], [0u64; 3]); 192];
+        // Column `b` holds a combination of powers, as its bits beside its coefficients. Column
+        // operations keep that so, and bring the bits to the identity: column `r` then holds the
+        // coefficients of the element whose only bit is `r`.
+        let mut columns = vec![([0u64; 3], [0u64; 3]); 192];
         let mut power = F192::ONE;
-        for b in 0..192 {
-            let p = power.to_limbs();
-            for (r, row) in rows.iter_mut().enumerate() {
-                row.0[b / 64] |= (p[r / 64] >> (r % 64) & 1) << (b % 64);
-            }
+        for (b, column) in columns.iter_mut().enumerate() {
+            *column = (power.to_limbs(), [0; 3]);
+            column.1[b / 64] = 1 << (b % 64);
             power *= s;
         }
-        for (r, row) in rows.iter_mut().enumerate() {
-            row.1[r / 64] = 1 << (r % 64);
-        }
-        for b in 0..192 {
-            let pivot = (b..192).find(|&r| rows[r].0[b / 64] >> (b % 64) & 1 == 1)?;
-            rows.swap(b, pivot);
-            let (pa, pi) = rows[b];
-            for (r, row) in rows.iter_mut().enumerate() {
-                if r != b && row.0[b / 64] >> (b % 64) & 1 == 1 {
-                    xor3(&mut row.0, &pa);
-                    xor3(&mut row.1, &pi);
+        for r in 0..192 {
+            let pivot = (r..192).find(|&b| columns[b].0[r / 64] >> (r % 64) & 1 == 1)?;
+            columns.swap(r, pivot);
+            let (pa, pi) = columns[r];
+            // Masked rather than branched on: whether a column has the bit is a coin flip.
+            for (b, column) in columns.iter_mut().enumerate() {
+                let mask = 0u64.wrapping_sub(column.0[r / 64] >> (r % 64) & u64::from(b != r));
+                for k in 0..3 {
+                    column.0[k] ^= pa[k] & mask;
+                    column.1[k] ^= pi[k] & mask;
                 }
-            }
-        }
-        // Row `b` of the inverse is coefficient `b` as a function of the element's bits.
-        let mut columns = [[0u64; 3]; 192];
-        for (b, row) in rows.iter().enumerate() {
-            for (r, column) in columns.iter_mut().enumerate() {
-                column[b / 64] |= (row.1[r / 64] >> (r % 64) & 1) << (b % 64);
             }
         }
         let tables = (0..24)
@@ -58,7 +50,7 @@ impl PowerBasis {
                 for byte in 1..256usize {
                     let low = byte.trailing_zeros() as usize;
                     t[byte] = t[byte & (byte - 1)];
-                    xor3(&mut t[byte], &columns[8 * k + low]);
+                    xor3(&mut t[byte], &columns[8 * k + low].1);
                 }
                 t
             })
@@ -68,9 +60,12 @@ impl PowerBasis {
 
     pub fn to_poly(&self, a: F192) -> [u64; 3] {
         let a = a.to_limbs();
+        // Its length hidden, the lookups keep bounds checks, which stop the compiler turning them
+        // into AVX-512 gathers that lose to scalar loads.
+        let flat: &[[u64; 3]] = std::hint::black_box(self.tables.as_flattened());
         let mut p = [0u64; 3];
-        for (k, table) in self.tables.iter().enumerate() {
-            xor3(&mut p, &table[(a[k / 8] >> (8 * (k % 8))) as usize & 0xff]);
+        for k in 0..24 {
+            xor3(&mut p, &flat[256 * k + ((a[k / 8] >> (8 * (k % 8))) as usize & 0xff)]);
         }
         p
     }
@@ -106,9 +101,11 @@ impl PolyEval {
 
     #[inline]
     pub fn eval(&self, words: &[u64]) -> F192 {
+        // Hidden, as in `PowerBasis::to_poly`, so the lookups are not gathers.
+        let flat: &[F192] = std::hint::black_box(self.tables.as_flattened());
         let mut acc = F192::ZERO;
-        for (k, table) in self.tables.iter().enumerate() {
-            acc += table[(words[k / 8] >> (8 * (k % 8))) as usize & 0xff];
+        for k in 0..self.tables.len() {
+            acc += flat[256 * k + ((words[k / 8] >> (8 * (k % 8))) as usize & 0xff)];
         }
         acc
     }
