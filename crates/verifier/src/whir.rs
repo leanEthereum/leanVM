@@ -197,10 +197,10 @@ pub fn verify_whir(
         } else {
             leaf_words
         };
-        let words = transcript.merkle(current_root, block_length, &queries, row_words, leaf_words)?;
+        let paths = transcript.merkle(current_root, block_length, &queries, row_words, leaf_words)?;
         let lane_weights = eq_kernel(&level_folds);
         let row_values: Vec<E> = if level == 0 {
-            let base_dot = |row: &Vec<K>| {
+            let base_dot = |row: &[K]| {
                 assert_eq!(row.len(), lane_weights.len());
                 E::sum(
                     row.iter()
@@ -209,9 +209,12 @@ pub fn verify_whir(
                         .map(|(&word, &weight)| weight * word),
                 )
             };
-            words.iter().map(base_dot).collect()
+            paths.iter().map(|path| base_dot(&path.leaf)).collect()
         } else {
-            words.iter().map(|row| dot(&ext_row(row), &lane_weights)).collect()
+            paths
+                .iter()
+                .map(|path| dot(&ext_row(&path.leaf), &lane_weights))
+                .collect()
         };
         let enforced = dot(&row_values, &query_weights);
 
