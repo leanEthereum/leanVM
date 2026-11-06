@@ -187,8 +187,8 @@ pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192>
 /// XOR-reduce two per-worker partial accumulators of the bit-slice folds
 /// (E addition is XOR, so the reduction order does not matter).
 fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
-    for (av, bv) in a.iter_mut().zip(b.iter()) {
-        *av += *bv;
+    for (av, bv) in a.iter_mut().zip(b) {
+        *av += bv;
     }
     a
 }

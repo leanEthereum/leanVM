@@ -14,6 +14,15 @@ unused_qualifications = "warn"
 [workspace.lints.clippy]
 needless_range_loop = "allow"
 too_many_arguments = "allow"
+# Pedantic lints that catch a needless copy or clone.
+cloned_instead_of_copied = "warn"
+implicit_clone = "warn"
+needless_pass_by_value = "warn"
+# Pedantic lints that keep the code plain.
+ignore_without_reason = "warn"
+manual_ilog2 = "warn"
+match_bool = "warn"
+semicolon_if_nothing_returned = "warn"
 
 [workspace.dependencies]
 bench = { path = "crates/bench" }

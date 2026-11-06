@@ -383,7 +383,7 @@ mod x86 {
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64], i: usize) {
-            store_at(dst, i, self.0)
+            store_at(dst, i, self.0);
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
@@ -426,7 +426,7 @@ mod x86 {
         }
         #[inline(always)]
         fn store(self, dst: &mut [u64], i: usize) {
-            store_at(dst, i, self.0)
+            store_at(dst, i, self.0);
         }
         #[inline(always)]
         fn splat(x: u64) -> Self {
@@ -675,7 +675,7 @@ pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
 /// [`hash_many`] continued from one sponge state shared by every input, which has absorbed
 /// whole blocks (see [`zero_prefix_state`]). Byte-identical to hashing each full image.
 pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
-    hash_many_with::<Backend>(data, len, state, out)
+    hash_many_with::<Backend>(data, len, state, out);
 }
 
 /// The state [`hash`] of `data` permutes last: every whole block absorbed and the padded final
@@ -700,7 +700,7 @@ pub fn final_state(data: &[u8]) -> [u64; STATE_LANES] {
 /// `template` is that input's [`final_state`] with those 16 bytes zero, so a value costs one
 /// permutation.
 pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
-    digest_halves_from_with::<Backend>(template, at, values, out)
+    digest_halves_from_with::<Backend>(template, at, values, out);
 }
 
 #[inline(always)]

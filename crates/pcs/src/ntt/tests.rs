@@ -178,7 +178,7 @@ fn fused_encode_matches_replicate_then_transform() {
             for hit in &hits[row..row + rows.len() / lanes] {
                 hit.fetch_add(1, Ordering::Relaxed);
             }
-            write(row, rows)
+            write(row, rows);
         });
         drop(write);
         let Codeword::Whole(sep, _) = codeword else {

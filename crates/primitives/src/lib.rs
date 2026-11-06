@@ -24,6 +24,10 @@ pub mod test_rng;
 /// assert_eq!(pretty_integer(16_769_432), "16,769,432");
 /// assert_eq!(pretty_integer(-12_345), "-12,345");
 /// ```
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "callers pass integers, which are cheap to move"
+)]
 pub fn pretty_integer(value: impl ToString) -> String {
     let raw = value.to_string();
     let (sign, digits) = match raw.as_bytes().first() {

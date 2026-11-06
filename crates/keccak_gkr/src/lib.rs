@@ -168,11 +168,11 @@ impl OutputClaim {
 
 /// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
 /// segment and lane weights.
-fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
+fn first(shape: Shape, output: &OutputClaim, segment: &[F192], r_lane: &[F192]) -> Claim {
     assert_eq!(output.instance.len(), shape.n_log);
-    let point = [&output.instance[4..], &segment[..]].concat();
+    let point = [&output.instance[4..], segment].concat();
     let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);
-    let last = eq_table(&segment)[shape.segments() - 1];
+    let last = eq_table(segment)[shape.segments() - 1];
     claim.value = last * dot(&eq_table(r_lane)[..keccak::LANES], &output.lanes);
     claim
 }
@@ -190,7 +190,7 @@ impl Witness {
             "the openings are claims on the whole committed block"
         );
         let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
-        let mut first = first(shape, output, segment, &r_lane);
+        let mut first = first(shape, output, &segment, &r_lane);
         let instance = &output.instance;
         let (folded, committed_value) =
             tracing::info_span!("Outputs").in_scope(|| open::output_claim(shape, committed, instance, &first));

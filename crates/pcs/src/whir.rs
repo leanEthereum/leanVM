@@ -459,7 +459,7 @@ fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, S
     // SAFETY: the fill writes every element before it reads any.
     let [nf, nb] = unsafe {
         primitives::filled_vecs([half; 2], |[nf, nb]| {
-            msg = accumulate_msg_chunks(nf, nb, ROUND_CHUNK, task)
+            msg = accumulate_msg_chunks(nf, nb, ROUND_CHUNK, task);
         })
     };
     let (u_0, u_2) = msg;
@@ -660,7 +660,7 @@ fn add_scaled(acc: &mut [F192], v: &[F192], s: F192) {
 /// time so that their accumulators stay in L1. Each line of `cur_l` read also prefetches the same line
 /// of `next_l` into L2 (when not empty), so the next block streams in while this one multiplies.
 #[inline]
-fn lane_sums<'a>(out: &mut [F192], lanes: impl Iterator<Item = (F192, &'a [F64], &'a [F64])> + Clone) {
+fn lane_sums<'a>(out: &mut [F192], lanes: &(impl Iterator<Item = (F192, &'a [F64], &'a [F64])> + Clone)) {
     const CHUNK: usize = 64;
     for (k, out) in out.as_chunks_mut::<8>().0.chunks_mut(CHUNK).enumerate() {
         let mut acc = [Prod8::ZERO; CHUNK];
@@ -684,7 +684,7 @@ fn prefetch_l2(words: &[F64], at: usize) {
     if let Some(line) = words.get(at) {
         // SAFETY: a prefetch never faults.
         unsafe {
-            core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T1 }>(std::ptr::from_ref(line).cast())
+            core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T1 }>(std::ptr::from_ref(line).cast());
         };
     }
     #[cfg(not(target_arch = "x86_64"))]
@@ -730,7 +730,7 @@ fn fold_all_lanes(
                         };
                         (weights[l], &lane[h * lift_len..(h + 1) * lift_len], next)
                     });
-                    lane_sums(&mut acc, lanes);
+                    lane_sums(&mut acc, &lanes);
                     let (t_0, t_2) = lift(h, &acc, &mut weight);
                     u_0 ^= t_0;
                     u_2 ^= t_2;
@@ -891,7 +891,7 @@ impl SumcheckProver {
             self.quad = RoundQuad::fold(&self.quad, &quad_new, scalar);
             let chunk = parallel::recommended_chunk_size(b_new.len());
             parallel::chunks_mut_zip(&mut self.combined_basis, &b_new, chunk, |_, acc, v| {
-                add_scaled(acc, v, scalar)
+                add_scaled(acc, v, scalar);
             });
         }
     }

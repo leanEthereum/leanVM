@@ -1231,9 +1231,9 @@ mod tests {
     // GF(2)[x] helpers on u128 for the base-polynomial irreducibility test.
 
     fn gf2_mod(mut a: u128, m: u128) -> u128 {
-        let dm = 127 - m.leading_zeros();
+        let dm = m.ilog2();
         while a != 0 {
-            let da = 127 - a.leading_zeros();
+            let da = a.ilog2();
             if da < dm {
                 break;
             }

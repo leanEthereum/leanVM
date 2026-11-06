@@ -166,7 +166,7 @@ pub(super) fn butterfly_interleaved_fused_3layer(
         )
     )))]
     fused_rows::<8>(block, src, eighth, num_ntts, |src, rows| {
-        radix8_butterflies(src, rows, t)
+        radix8_butterflies(src, rows, t);
     });
 }
 
@@ -189,7 +189,7 @@ fn fused_sweep_avx512<const N: usize, const T: usize>(
             twiddles,
             #[inline(always)]
             |v, t| kernel(v, t),
-        )
+        );
     });
 }
 
@@ -314,7 +314,7 @@ pub(super) fn butterfly_interleaved_fused_2layer(
         )
     )))]
     fused_rows::<4>(block, src, quarter, num_ntts, |src, rows| {
-        radix4_butterflies(src, rows, t)
+        radix4_butterflies(src, rows, t);
     });
 }
 
@@ -405,7 +405,7 @@ pub(crate) fn transpose_butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddl
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     // SAFETY: as in `butterfly_lanes`.
     unsafe {
-        transpose_butterfly_lanes_avx512(top, bot, twiddle.0)
+        transpose_butterfly_lanes_avx512(top, bot, twiddle.0);
     }
     #[cfg(all(
         target_arch = "x86_64",
@@ -415,7 +415,7 @@ pub(crate) fn transpose_butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddl
     ))]
     // SAFETY: this code is compiled only where VPCLMULQDQ and AVX2 are enabled.
     unsafe {
-        avx2::transpose_butterfly_lanes(top, bot, twiddle.0)
+        avx2::transpose_butterfly_lanes(top, bot, twiddle.0);
     }
     // One pass beats routing through the forward vector kernel, whose two extra XOR passes cost more here.
     #[cfg(not(any(
@@ -831,7 +831,7 @@ mod avx2 {
                 twiddles,
                 #[inline(always)]
                 |v, t| kernel(v, t),
-            )
+            );
         });
     }
 

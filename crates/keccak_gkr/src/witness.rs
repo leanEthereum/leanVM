@@ -172,7 +172,9 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
             // SAFETY: aarch64 always has NEON.
             unsafe { neon::transpose64(a) }
         }
-        _ => transpose64_portable(a),
+        _ => {
+            transpose64_portable(a);
+        }
     }
 }
 
@@ -282,9 +284,9 @@ unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; LANES]], slot: Option<S
     // SAFETY: forwarded to the caller.
     unsafe {
         block(depth, inputs, slot, |slot, w, words| {
-            lanes[slot * BLOCK + 64 * w..][..64].copy_from_slice(words)
-        })
-    };
+            lanes[slot * BLOCK + 64 * w..][..64].copy_from_slice(words);
+        });
+    }
     lanes
 }
 
@@ -374,7 +376,7 @@ impl Witness {
                     let stream = Stream::new();
                     let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
                     block(shape.depth, inputs, Some(slots[g]), |slot, w, lanes| {
-                        column.write(&stream, slot, g, 64 * w, lanes)
+                        column.write(&stream, slot, g, 64 * w, lanes);
                     });
                 } else {
                     column.write_block(g, &padding.as_ref().expect("a padding block").1);

@@ -659,13 +659,13 @@ impl Program {
                                         pretty_integer(k)
                                     ),
                                     (Some(k), false) => {
-                                        eprintln!("[print] {label} = g^{}", pretty_integer(k))
+                                        eprintln!("[print] {label} = g^{}", pretty_integer(k));
                                     }
                                     (None, true) => {
-                                        eprintln!("[print] {label} = {}", pretty_integer(v.c0))
+                                        eprintln!("[print] {label} = {}", pretty_integer(v.c0));
                                     }
                                     (None, false) => {
-                                        eprintln!("[print] {label} = {:#x}:{:#x}:{:#x}", v.c2, v.c1, v.c0)
+                                        eprintln!("[print] {label} = {:#x}:{:#x}:{:#x}", v.c2, v.c1, v.c0);
                                     }
                                 }
                             } else {

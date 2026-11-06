@@ -126,12 +126,12 @@ impl<'a> Stage<'a> {
         // SAFETY: AVX-512F is enabled at compile time.
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
         unsafe {
-            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
+            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet);
         }
         // SAFETY: AVX2 is enabled at compile time.
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
         unsafe {
-            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet)
+            fill_stage_tiles(stage, msg, t0, log_step, msg_rows, n_lanes, row_words, octet);
         }
         #[cfg(not(any(
             all(target_arch = "x86_64", target_feature = "avx512f"),
