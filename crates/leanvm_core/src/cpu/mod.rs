@@ -229,52 +229,61 @@ impl Program {
 pub use crate::transcript::Proof;
 
 /// Why [`prove`] produced no proof.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum ProveError {
-    /// `log_inv_rate` is outside the range the WHIR configuration accepts (1, 2, 3 or 4).
-    InvalidRate { log_inv_rate: usize },
+    /// `log_inv_rate` is outside the range the WHIR configuration accepts.
+    #[error("log_inv_rate {log_inv_rate} is outside the supported {min}..={max}", min = pcs::MIN_LOG_INV_RATE, max = pcs::MAX_LOG_INV_RATE)]
+    InvalidRate {
+        /// The rate asked for, as a log.
+        log_inv_rate: usize,
+    },
     /// The program has no execution on this input and advice: a failed `assert`,
     /// a wild pointer, advice that does not fit, ...
-    Execution(ExecError),
-    /// The run read these cells before anything wrote them, so their values would be
-    /// the prover's ([`Execution::unconstrained_reads`]).
-    UnconstrainedReads(Vec<u32>),
-    /// The committed witness is `2^log_committed` words, outside the
-    /// `2^MIN_MU..=2^MAX_MU` every verifier accepts
-    WitnessOutOfRange { log_committed: usize },
+    #[error(transparent)]
+    Execution(#[from] ExecError),
+    /// The run read cells before anything wrote them, so their values would be the prover's.
+    #[error(
+        "the program read {} cell(s) before anything wrote them, first at {:?}: a source read of a cell nothing stores, or a store the lowering dropped or misplaced",
+        cells.len(),
+        first_cells(cells)
+    )]
+    UnconstrainedReads {
+        /// The cells, in the order the run read them.
+        cells: Vec<u32>,
+    },
+    /// The committed witness is outside the sizes every verifier accepts.
+    #[error("the committed witness would be 2^{log_committed} words, outside the verifiable 2^{min}..=2^{max}", min = pcs::MIN_MU, max = pcs::MAX_MU)]
+    WitnessOutOfRange {
+        /// The committed size, as a log.
+        log_committed: usize,
+    },
 }
 
-impl std::fmt::Display for ProveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidRate { log_inv_rate } => write!(f, "log_inv_rate {log_inv_rate} is not supported"),
-            Self::Execution(e) => write!(f, "{e}"),
-            Self::UnconstrainedReads(cells) => write!(
-                f,
-                "the program read {} cell(s) before anything wrote them, first at {:?}: a source read \
-                 of a cell nothing stores, or a store the lowering dropped or misplaced",
-                cells.len(),
-                &cells[..cells.len().min(8)]
-            ),
-            Self::WitnessOutOfRange { log_committed } => write!(
-                f,
-                "the committed witness would be 2^{log_committed} words, outside the verifiable 2^{}..=2^{}",
-                pcs::MIN_MU,
-                pcs::MAX_MU
-            ),
-        }
-    }
+/// The first cells a message lists.
+fn first_cells(cells: &[u32]) -> &[u32] {
+    &cells[..cells.len().min(8)]
 }
-
-impl std::error::Error for ProveError {}
 
 /// Why [`verify`] rejected a proof.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum CpuError {
-    /// The statement is malformed: the public input is not two 128-bit halves, or the bytecode's length is not a power of two.
-    PublicInput,
+    /// A half of the public input has a third limb, which the transcript would drop.
+    #[error("public input half {half} has a nonzero third limb: a statement is two 128-bit halves")]
+    PublicInputNotDigest {
+        /// The half's index.
+        half: usize,
+    },
+    /// The bytecode's length is not a power of two, which the stacked bytecode table needs.
+    #[error("the bytecode has {len} instructions, not a power of two")]
+    BytecodeNotPowerOfTwo {
+        /// The bytecode's length.
+        len: usize,
+    },
     /// The `verifier` crate rejected the proof.
-    Verifier(verifier::VerifierError),
+    #[error(transparent)]
+    Verifier(#[from] verifier::VerifierError),
 }
 
 /// Per side, which table (if any) owns each bus block, as `(table, column base)`.
@@ -429,6 +438,13 @@ impl Stats {
 /// run [`Stats`], or why no proof was made ([`ProveError`]). `log_inv_rate`
 /// selects the PCS rate and is announced in the Fiat-Shamir transcript before
 /// the commitment.
+///
+/// # Errors
+///
+/// - `InvalidRate` if `log_inv_rate` is outside the WHIR configuration's range.
+/// - `Execution` if the program has no execution on this input and advice.
+/// - `UnconstrainedReads` if the run reads a cell nothing wrote.
+/// - `WitnessOutOfRange` if the committed witness is outside the sizes every verifier accepts.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
@@ -437,12 +453,14 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
-    let exec = exec.map_err(ProveError::Execution)?;
+    let exec = exec?;
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
     if !exec.unconstrained_reads.is_empty() {
-        return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
+        return Err(ProveError::UnconstrainedReads {
+            cells: exec.unconstrained_reads,
+        });
     }
     let cycles = exec.cycles;
     let mut w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
@@ -627,12 +645,23 @@ pub fn public_input_bytes(public_input: &[F192; 2]) -> [u8; 32] {
 /// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only builds its inputs.
 ///
 /// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
+///
+/// # Errors
+///
+/// - `PublicInputNotDigest` if a half of the public input has a third limb.
+/// - `BytecodeNotPowerOfTwo` if the bytecode's length is not a power of two.
+/// - `Verifier` if the `verifier` crate rejects the proof.
 #[tracing::instrument(name = "Verify", skip_all)]
 pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Result<verifier::Summary, CpuError> {
     // The statement is two 128-bit halves, so a third limb would be dropped and two statements would share a proof.
     // `Program::prog` is public, and the stacked table below is only defined for a power-of-two bytecode.
-    if public_input.iter().any(|half| half.c2 != 0) || !program.prog.len().is_power_of_two() {
-        return Err(CpuError::PublicInput);
+    if let Some(half) = public_input.iter().position(|half| half.c2 != 0) {
+        return Err(CpuError::PublicInputNotDigest { half });
+    }
+    if !program.prog.len().is_power_of_two() {
+        return Err(CpuError::BytecodeNotPowerOfTwo {
+            len: program.prog.len(),
+        });
     }
     let table: Vec<u64> = layout::bytecode_table(&program.prog)
         .iter()
@@ -640,7 +669,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
         .collect();
     let bytecode = verifier::Bytecode::new(&table);
     verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
-        .map_err(CpuError::Verifier)
+        .map_err(CpuError::from)
 }
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
@@ -774,7 +803,54 @@ mod tests {
             .execute([w(7), w(11)])
             .err()
             .expect("the run must fail");
-        assert!(matches!(err.fault, Fault::NotCanonical { cell: 0, .. }), "{err}");
+        // The first KECCAK, at pc 11 after eleven SETs, reads its state cell 0 from address 2.
+        let fault = Fault::NotCanonical {
+            cell: 0,
+            address: 2,
+            value: F192::new(0, 0, 1),
+        };
+        assert_eq!((err.pc, err.fault), (11, fault));
+    }
+
+    #[test]
+    fn a_floor_past_the_largest_memory_is_an_error() {
+        // A committed witness of 2^64 words would need more memory than 2^MAX_LOG_MEM cells.
+        let mut program = keccak_program(F192::ZERO, F192::ZERO, [F192::ZERO; 4], F192::ZERO);
+        program.min_log_committed = 64;
+        let err = program
+            .execute([w(7), w(11)])
+            .err()
+            .expect("no memory reaches the floor");
+        // Refused at the halt pc, the bytecode's last slot, rather than by a panic or a wrapped doubling.
+        let fault = Fault::MemoryTooLarge {
+            min_log_committed: 64,
+            max_log_mem: MAX_LOG_MEM,
+        };
+        assert_eq!((err.pc as usize, err.fault), (program.prog.len() - 1, fault));
+    }
+
+    #[test]
+    fn prove_carries_the_execution_fault() {
+        // A SET in the last slot, reached at fp = g, halts outside main's frame.
+        let (last_pc, other_fp) = (F192::from(g_pow(7)), F192::from(g_pow(1)));
+        let fill = Op::Xor { a: 0, b: 0, c: 0 };
+        let code = vec![
+            Op::Set { o: 2, k: F192::ONE },
+            Op::Set { o: 3, k: last_pc },
+            Op::Set { o: 4, k: other_fp },
+            Op::Jump { oc: 2, od: 3, of: 4 },
+            fill,
+            fill,
+            fill,
+            Op::Set { o: 5, k: F192::ONE },
+        ];
+        let program = Program::from_bytecode(code, 8);
+        let pi = [w(7), w(11)];
+        // The prover refuses with the interpreter's own error, unflattened.
+        let exec = program.execute(pi).err().expect("the run must fail");
+        assert_eq!(exec.fault, Fault::HaltOutsideMain { fp: 1 });
+        let proved = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).err();
+        assert_eq!(proved, Some(ProveError::Execution(exec)));
     }
 
     /// The last slot in a frame other than main's is an ordinary slot: the machine halts in the

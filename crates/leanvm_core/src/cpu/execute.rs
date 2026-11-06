@@ -109,46 +109,136 @@ impl Memory {
 
 /// Why a run has no execution the interpreter can find: the program, on this public
 /// input and advice, asks for something the machine cannot do.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("{fault} at pc {pc} (in {site})")]
+#[non_exhaustive]
 pub struct ExecError {
     /// The instruction the run failed at, or whose hints it failed in.
     pub pc: u32,
     /// Its function and source line ([`Program::site_at`]).
     pub site: String,
+    /// What the instruction or hint asked for.
     pub fault: Fault,
 }
 
 /// What the run asked for that the machine cannot do.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Fault {
     /// A second value for a written cell: a failed `assert`, two writes that disagree,
-    /// or a write to a cell an instruction already read, unwritten, as ZERO. `hint`
-    /// names the hint that wrote it, if one did.
+    /// or a write to a cell an instruction already read, unwritten, as ZERO.
+    #[error(
+        "write-once conflict at cell {cell}: had {}, new {}{}",
+        word(had),
+        word(new),
+        hint_suffix(hint)
+    )]
     Conflict {
+        /// The cell's address.
         cell: u32,
+        /// The word it holds.
         had: F192,
+        /// The word the write asked for.
         new: F192,
+        /// The hint that wrote it, if one did.
         hint: Option<&'static str>,
     },
     /// A `DEREF` through a word that is no small g-power: a wild pointer, or a failed
     /// range check.
-    WildPointer { value: F192 },
+    #[error(
+        "DEREF pointer in cell {cell} is not a small g-power: a wild pointer, or a failed range check (value {})",
+        word(value)
+    )]
+    WildPointer {
+        /// The cell the pointer was read from.
+        cell: u32,
+        /// The pointer.
+        value: F192,
+    },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
-    NotInK { what: &'static str, value: F192 },
+    #[error("{what} in cell {cell} is not a K-valued word ({})", word(value))]
+    NotInK {
+        /// What the word stands for.
+        what: &'static str,
+        /// The cell it was read from.
+        cell: u32,
+        /// The word.
+        value: F192,
+    },
     /// A word that has to be an address or a count is not a g-power in its range.
-    NotAGPower { what: &'static str, value: F64 },
+    #[error("{what} is not a g-power in range (0x{:016x})", value.0)]
+    NotAGPower {
+        /// What the word stands for.
+        what: &'static str,
+        /// The word.
+        value: F64,
+    },
     /// A `KECCAK` input cell outside the 128-bit embedding.
-    NotCanonical { cell: usize, value: F192 },
-    /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
-    BackSolveThroughZero,
-    /// The advice does not fit the program: a witness stream is missing or
-    /// exhausted, or an entry has the wrong length.
-    Witness(String),
+    #[error(
+        "KECCAK input cell {cell} (address {address}) is not a canonical 128-bit embedding ({})",
+        word(value)
+    )]
+    NotCanonical {
+        /// The input's index among the state's cells.
+        cell: usize,
+        /// Its address in memory.
+        address: u32,
+        /// The word it holds.
+        value: F192,
+    },
+    /// A `MUL` asked to solve `a * x = c` for `x` with `a = 0`.
+    #[error("cannot back-solve MUL through the zero operand in cell {operand}")]
+    BackSolveThroughZero {
+        /// The cell holding the zero operand.
+        operand: u32,
+    },
+    /// The program reads a witness stream the advice does not supply.
+    #[error("no witness stream `{name}` (Program::set_witness)")]
+    MissingWitnessStream {
+        /// The stream's name.
+        name: String,
+    },
+    /// The program reads more entries from a witness stream than the advice supplies.
+    #[error("witness stream `{name}` exhausted (needs entry {needed}, has {supplied})")]
+    WitnessExhausted {
+        /// The stream's name.
+        name: String,
+        /// How many entries the run has read, this one included.
+        needed: usize,
+        /// How many entries the advice supplies.
+        supplied: usize,
+    },
+    /// A witness entry's length is not its destination's.
+    #[error("witness `{name}` entry {entry} holds {got} values, the destination {expected}")]
+    WitnessLength {
+        /// The stream's name.
+        name: String,
+        /// The entry's index in the stream.
+        entry: usize,
+        /// The destination's length.
+        expected: usize,
+        /// The entry's length.
+        got: usize,
+    },
     /// The program allocates past the address space.
+    #[error("the program allocates past 2^{} cells", MAX_CELLS.ilog2())]
     OutOfMemory,
+    /// Doubling memory until the stacked witness reaches the program's floor passes the largest memory.
+    #[error("a committed witness of 2^{min_log_committed} words needs more than 2^{max_log_mem} memory cells")]
+    MemoryTooLarge {
+        /// The floor on the committed size, as a log.
+        min_log_committed: usize,
+        /// The largest memory, as a log.
+        max_log_mem: usize,
+    },
     /// The halt `pc` reached in a frame other than `main`'s.
-    HaltOutsideMain { fp: u32 },
+    #[error("the halt pc reached in frame {fp}, not main's")]
+    HaltOutsideMain {
+        /// The frame pointer at the halt.
+        fp: u32,
+    },
     /// Too many instructions: runaway recursion, or a loop that never ends.
+    #[error("step limit of {MAX_STEPS} exceeded (runaway recursion?)")]
     StepLimit,
 }
 
@@ -167,53 +257,14 @@ impl ExecError {
     }
 }
 
-impl std::fmt::Display for ExecError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} at pc {} (in {})", self.fault, self.pc, self.site)
-    }
-}
-
-impl std::error::Error for ExecError {}
-
 /// A word as its limbs, most significant first.
-fn word(w: F192) -> String {
+fn word(w: &F192) -> String {
     format!("{:x}:{:x}:{:x}", w.c2, w.c1, w.c0)
 }
 
-impl std::fmt::Display for Fault {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Conflict { cell, had, new, hint } => {
-                write!(
-                    f,
-                    "write-once conflict at cell {cell}: had {}, new {}",
-                    word(*had),
-                    word(*new)
-                )?;
-                match hint {
-                    Some(hint) => write!(f, " (hint {hint})"),
-                    None => Ok(()),
-                }
-            }
-            Self::WildPointer { value } => write!(
-                f,
-                "DEREF pointer is not a small g-power: a wild pointer, or a failed range check (value {})",
-                word(*value)
-            ),
-            Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
-            Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
-            Self::NotCanonical { cell, value } => write!(
-                f,
-                "KECCAK input cell {cell} is not a canonical 128-bit embedding ({})",
-                word(*value)
-            ),
-            Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
-            Self::Witness(problem) => write!(f, "{problem}"),
-            Self::OutOfMemory => write!(f, "the program allocates past 2^{} cells", MAX_CELLS.ilog2()),
-            Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
-            Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
-        }
-    }
+/// The hint that made a conflicting write, as a message suffix.
+fn hint_suffix(hint: &Option<&str>) -> String {
+    hint.map_or_else(String::new, |hint| format!(" (hint {hint})"))
 }
 
 /// A memory word interpreted as a K-valued address: valid only when both
@@ -223,8 +274,8 @@ fn as_addr(v: F192) -> Option<F64> {
 }
 
 /// [`as_addr`], or why the word is none.
-fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
-    as_addr(v).ok_or(Fault::NotInK { what, value: v })
+fn in_k(what: &'static str, cell: u32, v: F192) -> Result<F64, Fault> {
+    as_addr(v).ok_or(Fault::NotInK { what, cell, value: v })
 }
 
 /// A named witness stream and the next entry `hint_witness` pops from it. Resolved
@@ -240,20 +291,19 @@ impl<'a> Stream<'a> {
         let name = self.name;
         let entries = self
             .entries
-            .ok_or_else(|| Fault::Witness(format!("no witness stream `{name}` (Program::set_witness)")))?;
-        let entry = entries.get(self.next).ok_or_else(|| {
-            Fault::Witness(format!(
-                "witness stream `{name}` exhausted (needs entry {}, has {})",
-                self.next + 1,
-                entries.len()
-            ))
+            .ok_or_else(|| Fault::MissingWitnessStream { name: name.to_string() })?;
+        let entry = entries.get(self.next).ok_or_else(|| Fault::WitnessExhausted {
+            name: name.to_string(),
+            needed: self.next + 1,
+            supplied: entries.len(),
         })?;
         if entry.len() != len as usize {
-            return Err(Fault::Witness(format!(
-                "witness `{name}` entry {} holds {} values, the destination {len}",
-                self.next,
-                entry.len()
-            )));
+            return Err(Fault::WitnessLength {
+                name: name.to_string(),
+                entry: self.next,
+                expected: len as usize,
+                got: entry.len(),
+            });
         }
         self.next += 1;
         Ok(entry)
@@ -266,6 +316,18 @@ impl Program {
     /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
+    ///
+    /// # Errors
+    ///
+    /// An error naming the pc, its source site and the fault:
+    /// - `Conflict` on a second, different write to a cell, which a failed `assert` is.
+    /// - `WildPointer`, `NotInK` or `NotAGPower` on a word that is not the address, count or K-element its use needs.
+    /// - `NotCanonical` on a `KECCAK` input outside the 128-bit embedding.
+    /// - `BackSolveThroughZero` on a `MUL` asked to divide by zero.
+    /// - `MissingWitnessStream`, `WitnessExhausted` or `WitnessLength` on advice that does not fit the program.
+    /// - `OutOfMemory` or `MemoryTooLarge` on a run, or a committed-size floor, past the memory.
+    /// - `HaltOutsideMain` on a halt in a frame other than `main`'s.
+    /// - `StepLimit` on a run longer than the interpreter executes.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
         self.execute_with(public_input, &mut |_| {})
     }
@@ -533,7 +595,7 @@ impl Program {
         // The cell a heap run starts at: read the pointer back out of memory and
         // invert it. Shared by every hint that writes through one.
         fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
-            let p = in_k(what, m.get(cell))?;
+            let p = in_k(what, cell, m.get(cell))?;
             g.log(p).ok_or(Fault::NotAGPower { what, value: p })
         }
 
@@ -604,7 +666,8 @@ impl Program {
                                     start_inverse,
                                     tail,
                                 } => {
-                                    let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * start_inverse;
+                                    let span =
+                                        in_k("loop bound", fp + end, m.get(fp + end)).map_err(fail)? * start_inverse;
                                     if span.is_zero() {
                                         return Err(fail(Fault::NotAGPower {
                                             what: "loop bound",
@@ -618,7 +681,7 @@ impl Program {
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells.
                                 RHint::AllocDyn { ptr, size } => {
-                                    let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
+                                    let sz = in_k("HeapBuf size", fp + size, m.get(fp + size)).map_err(fail)?;
                                     let cells = count(&mut g, sz).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "HeapBuf size",
@@ -724,7 +787,7 @@ impl Program {
                         }
                         RHint::BitDecomposeExp { value, bits, nbits } => {
                             const WHAT: &str = "hint_decompose_bits_exponent value";
-                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                            let x = in_k(WHAT, fp + value, m.get(fp + value)).map_err(fail)?;
                             let n = bounded_dlog(x, *nbits)
                                 .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                             let bb = bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer")
@@ -765,14 +828,14 @@ impl Program {
                             start_cell,
                         } => {
                             const WHAT: &str = "hint_decompose_digits_exponent value";
-                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                            let x = in_k(WHAT, fp + value, m.get(fp + value)).map_err(fail)?;
                             let n = bounded_dlog(x, *nbits)
                                 .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                             let s = match start_cell {
                                 None => *start,
                                 Some(c) => {
                                     const WHAT: &str = "hint_decompose_digits_exponent start";
-                                    let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
+                                    let y = in_k(WHAT, fp + c, m.get(fp + c)).map_err(fail)?;
                                     bounded_dlog(y, 7)
                                         .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
                                         as u32
@@ -835,9 +898,10 @@ impl Program {
                     if !is_xor && m.written(ac) {
                         let (ha, hb) = (m.written(aa), m.written(ab));
                         if ha ^ hb {
-                            let vk = m.get(if ha { aa } else { ab });
+                            let known = if ha { aa } else { ab };
+                            let vk = m.get(known);
                             if vk.is_zero() {
-                                return Err(fail(Fault::BackSolveThroughZero));
+                                return Err(fail(Fault::BackSolveThroughZero { operand: known }));
                             }
                             m.put(if ha { ab } else { aa }, m.get(ac) * vk.inv())?;
                         }
@@ -879,8 +943,10 @@ impl Program {
                 Op::Deref { o1, o2, o3, mode } => {
                     let a1 = fp + o1;
                     let p = m.read(a1);
-                    let p_addr = as_addr(p).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                    let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
+                    let p_addr = as_addr(p).ok_or_else(|| fail(Fault::WildPointer { cell: a1, value: p }))?;
+                    let base = g
+                        .log(p_addr)
+                        .ok_or_else(|| fail(Fault::WildPointer { cell: a1, value: p }))?;
                     let a2 = base + o2;
                     let a3 = fp + o3;
                     match mode {
@@ -931,9 +997,9 @@ impl Program {
                     // otherwise not balance. A guest branches on g-powers; the one
                     // idiom that once branched on a word, `assert a != b`, takes an
                     // inverse hint instead (§sec:prog-div-ne).
-                    let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
-                    let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
-                    let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
+                    let c = in_k("JUMP condition", ac, m.read(ac)).map_err(fail)?;
+                    let d = in_k("JUMP target", ad, m.read(ad)).map_err(fail)?;
+                    let f = in_k("JUMP fp", af, m.read(af)).map_err(fail)?;
                     // The is-nonzero witness `w = c⁻¹` is never used for control
                     // flow, only recorded as a witness column, so it is not
                     // computed here at all: `JumpTable::fill` batch-inverts every
@@ -976,7 +1042,11 @@ impl Program {
                     // else could not balance the bus.
                     for (cell, &value) in input.iter().enumerate() {
                         if value.c2 != 0 {
-                            return Err(fail(Fault::NotCanonical { cell, value }));
+                            return Err(fail(Fault::NotCanonical {
+                                cell,
+                                address: cells[cell],
+                                value,
+                            }));
                         }
                     }
                     // No table constraint covers the output (the relation is proven
@@ -1064,11 +1134,20 @@ impl Program {
         let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
         let taus = super::layout::table_logs(trace.row_counts());
         let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        while super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed
+        // Stop past the largest memory, which no floor justifies, before the doubling can wrap.
+        while cells <= 1 << MAX_LOG_MEM
+            && super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus)
+                < self.min_log_committed
         {
             cells *= 2;
         }
-        assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
+        if cells > 1 << MAX_LOG_MEM {
+            let fault = Fault::MemoryTooLarge {
+                min_log_committed: self.min_log_committed,
+                max_log_mem: MAX_LOG_MEM,
+            };
+            return Err(ExecError::new(self, ending_pc, fault));
+        }
         Ok(Execution {
             mem: Memory {
                 pages: m.pages,

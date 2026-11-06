@@ -336,6 +336,7 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
+ "thiserror",
  "tracing",
  "verifier",
 ]

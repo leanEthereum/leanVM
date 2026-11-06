@@ -15,6 +15,7 @@ pcs.workspace = true
 keccak_gkr.workspace = true
 verifier.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 lean_compiler.workspace = true
