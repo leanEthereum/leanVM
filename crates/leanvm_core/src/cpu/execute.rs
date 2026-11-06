@@ -216,15 +216,9 @@ impl std::fmt::Display for Fault {
     }
 }
 
-/// A memory word interpreted as a K-valued address: valid only when both
-/// extension limbs are zero (every g-power is a K-element).
-fn as_addr(v: F192) -> Option<F64> {
-    (v.c1 == 0 && v.c2 == 0).then_some(F64(v.c0))
-}
-
-/// [`as_addr`], or why the word is none.
+/// A memory word read as a K-valued address, or why it is none: every g-power lies in K.
 fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
-    as_addr(v).ok_or(Fault::NotInK { what, value: v })
+    v.as_base().ok_or(Fault::NotInK { what, value: v })
 }
 
 /// A named witness stream and the next entry `hint_witness` pops from it. Resolved
@@ -650,8 +644,8 @@ impl Program {
                                 // Small integers and small g-powers overlap (8 = x^3
                                 // = g^3): show every reading that applies. Only a
                                 // K-valued word (extension limbs 0) can be a g-power.
-                                let k = as_addr(v).and_then(|lo| g.log(lo));
-                                let small = v.c2 == 0 && v.c1 == 0 && v.c0 < 1 << 32;
+                                let k = v.as_base().and_then(|lo| g.log(lo));
+                                let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
                                 match (k, small) {
                                     (Some(k), true) => eprintln!(
                                         "[print] {label} = {} (g^{})",
@@ -879,7 +873,7 @@ impl Program {
                 Op::Deref { o1, o2, o3, mode } => {
                     let a1 = fp + o1;
                     let p = m.read(a1);
-                    let p_addr = as_addr(p).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
+                    let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let a2 = base + o2;
                     let a3 = fp + o3;

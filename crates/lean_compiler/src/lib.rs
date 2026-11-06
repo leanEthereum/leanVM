@@ -231,9 +231,11 @@ pub fn disassemble(prog: &[Op]) -> String {
     }
     // A machine word is 192-bit; K-valued immediates (both high limbs zero) may be small
     // g-powers (code addresses, indices), shown as `gʲ`.
-    let kfmt = |k: F192| match (k.c1 == 0 && k.c2 == 0).then(|| gmap.get(&F64(k.c0))).flatten() {
-        Some(j) => format!("g^{j}"),
-        None if k.c1 == 0 && k.c2 == 0 => format!("0x{:016x}", k.c0),
+    let kfmt = |k: F192| match k.as_base() {
+        Some(lo) => match gmap.get(&lo) {
+            Some(j) => format!("g^{j}"),
+            None => format!("0x{:016x}", lo.0),
+        },
         None => format!("0x{:016x}{:016x}{:016x}", k.c2, k.c1, k.c0),
     };
 
