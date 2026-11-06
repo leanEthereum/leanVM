@@ -114,18 +114,12 @@ pub fn g_pow32_by_lookup(i: u32) -> F64 {
     }
 }
 
-/// The fixed generator `g = x ∈ K`, with `ord(g) = 2^64 - 1` (pinned by a
-/// field test), larger than every index any admissible
-/// instance uses (the verifier's instance caps, §cpu). For `k < 64`, `g^k` is
-/// the monomial `x^k` (bit `k`), which the WOTS+C encoding check relies on.
-pub const G: F64 = F64::G;
-
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,
 /// evaluated at an `E`-point: `∏_k (1 + ζ_k·(1 + g^{2^k}))` in `O(n)` (§sec:idxcol).
 /// The `g^{2^k}` factors are `K`-constants, so each term is one mixed product.
 pub fn index_mle(zeta: &[F192]) -> F192 {
     let mut acc = F192::ONE;
-    let mut g2k = G; // g^{2^0} = g
+    let mut g2k = F64::G; // g^{2^0} = g
     for &z in zeta {
         acc *= F192::ONE + z.mul_base(F64::ONE + g2k);
         g2k = g2k * g2k;
