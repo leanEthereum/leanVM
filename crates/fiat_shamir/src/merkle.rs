@@ -3,6 +3,8 @@
 
 use primitives::field::{F64, F192};
 
+use crate::digest_words;
+
 pub type Hash = [u8; 32];
 
 /// Encode a Merkle hash as the two field words transcripts carry it in: two
@@ -11,11 +13,8 @@ pub type Hash = [u8; 32];
 /// guest's MD state), so the VM sees one shape everywhere.
 #[inline]
 pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
-    let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
-    [
-        F192::new(word_at(0), word_at(8), 0),
-        F192::new(word_at(16), word_at(24), 0),
-    ]
+    let [w0, w1, w2, w3] = digest_words(hash);
+    [F192::new(w0.0, w1.0, 0), F192::new(w2.0, w3.0, 0)]
 }
 
 /// Hash one leaf ([`primitives::hash::hash`]).
