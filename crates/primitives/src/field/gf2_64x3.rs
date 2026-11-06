@@ -51,6 +51,19 @@ impl F192 {
         Self { c0, c1, c2 }
     }
 
+    /// The coefficients of `y^0`, `y^1` and `y^2`, in that order.
+    #[inline]
+    pub const fn to_limbs(self) -> [u64; 3] {
+        [self.c0, self.c1, self.c2]
+    }
+
+    /// The element whose coefficients of `y^0`, `y^1` and `y^2` are `limbs`, in that order.
+    #[inline]
+    pub const fn from_limbs(limbs: [u64; 3]) -> Self {
+        let [c0, c1, c2] = limbs;
+        Self { c0, c1, c2 }
+    }
+
     #[inline]
     pub const fn is_zero(self) -> bool {
         self.c0 == 0 && self.c1 == 0 && self.c2 == 0
@@ -1116,10 +1129,10 @@ mod tests {
     #[test]
     fn python_vectors_and_modulus() {
         for (a, b, c, s) in VECTORS {
-            let (a, b) = (F192::new(a[0], a[1], a[2]), F192::new(b[0], b[1], b[2]));
-            assert_eq!(a * b, F192::new(c[0], c[1], c[2]));
-            assert_eq!(a.square(), F192::new(s[0], s[1], s[2]));
-            assert_eq!(software::mul(a, b), F192::new(c[0], c[1], c[2]));
+            let (a, b) = (F192::from_limbs(a), F192::from_limbs(b));
+            assert_eq!(a * b, F192::from_limbs(c));
+            assert_eq!(a.square(), F192::from_limbs(s));
+            assert_eq!(software::mul(a, b), F192::from_limbs(c));
         }
         assert_eq!(F192::Y * F192::Y * F192::Y, F192::Y + F192::ONE);
     }

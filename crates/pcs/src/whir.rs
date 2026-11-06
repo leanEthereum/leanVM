@@ -922,7 +922,7 @@ fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) 
         let v = ch.sample();
         for j in 0..per.min(count - out.len()) {
             let off = j * d;
-            let limbs = [v.c0, v.c1, v.c2];
+            let limbs = v.to_limbs();
             let (li, sh) = (off / 64, off % 64);
             let mut chunk = limbs[li] >> sh;
             if sh + d > 64 {

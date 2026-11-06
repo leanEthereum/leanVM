@@ -64,7 +64,7 @@ mod tests {
 
     /// Bit w of an E element in the tower basis (w in 0..192).
     fn ext_bit(e: F192, w: usize) -> u64 {
-        [e.c0, e.c1, e.c2][w / 64] >> (w % 64) & 1
+        e.to_limbs()[w / 64] >> (w % 64) & 1
     }
 
     #[test]

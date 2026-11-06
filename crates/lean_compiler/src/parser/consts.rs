@@ -110,7 +110,7 @@ pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
             limbs[i] =
                 u64::try_from(eval_const_int(p.trim())?).map_err(|_| "an f192 limb does not fit in u64".to_string())?;
         }
-        Ok(F192::new(limbs[0], limbs[1], limbs[2]))
+        Ok(F192::from_limbs(limbs))
     })())
 }
 

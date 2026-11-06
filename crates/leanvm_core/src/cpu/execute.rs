@@ -714,7 +714,7 @@ impl Program {
                         } => {
                             assert!(start + nbits <= 192, "a machine word has 192 bits");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
                                 let at = start + j;
@@ -744,7 +744,7 @@ impl Program {
                         } => {
                             assert!(start + width * count <= 192, "a machine word has 192 bits");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
                             for i in 0..*count {
                                 let mut n = 0usize;
@@ -790,7 +790,7 @@ impl Program {
                         RHint::FieldLimbs { value, base, len } => {
                             assert!((1..=3).contains(len), "an F192 value has three K limbs");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             for j in 0..*len {
                                 m.put(fp + base + j, F192::new(limbs[j as usize], 0, 0))?;
                             }

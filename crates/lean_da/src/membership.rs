@@ -96,10 +96,10 @@ mod tests {
         let want = powers(z, BLOB_SYMBOLS);
         let ntt = AdditiveNttF64::standard(LOG_M);
         for limb in 0..3 {
-            let mut coefficients: Vec<F64> = dual.iter().map(|v| F64([v.c0, v.c1, v.c2][limb])).collect();
+            let mut coefficients: Vec<F64> = dual.iter().map(|v| F64(v.to_limbs()[limb])).collect();
             ntt.inverse_transform(&mut coefficients);
             let (low, high) = coefficients.split_at(BLOB_SYMBOLS);
-            assert!(low.iter().zip(&want).all(|(c, w)| c.0 == [w.c0, w.c1, w.c2][limb]));
+            assert!(low.iter().zip(&want).all(|(c, w)| c.0 == w.to_limbs()[limb]));
             assert!(high.iter().all(|&c| c == F64::ZERO));
         }
     }

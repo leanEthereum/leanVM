@@ -110,5 +110,5 @@ pub(super) fn statement_digest(
         assert_eq!(x.c2, 0, "a header value is a canonical cell");
         [x.c0, x.c1]
     });
-    lane_hash(head.chain(cells.iter().flat_map(|x| [x.c0, x.c1, x.c2])))
+    lane_hash(head.chain(cells.iter().flat_map(|x| x.to_limbs())))
 }

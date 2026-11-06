@@ -276,7 +276,7 @@ impl FnLower<'_> {
                 }
                 let has = |s: &Self, e: u128| {
                     let v: F192 = g_pow_u128(e).into();
-                    s.scope.const_cells.contains_key(&[v.c0, v.c1, v.c2])
+                    s.scope.const_cells.contains_key(&v)
                 };
                 // Start from the base itself or the nearest materialized step below
                 // whose distance is a constant already set; failing that, the direct
