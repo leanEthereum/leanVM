@@ -35,7 +35,7 @@ use primitives::multilinear::{eq_table, interp};
 pub use super::whir_config::{
     FinalBlockConfig, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
     ProverConfig, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR, SECURITY_BITS,
-    SUBSEQUENT_FOLDING_FACTOR, WhirLevelConfig, WhirSecurityConfig, validate_log_inv_rate,
+    SUBSEQUENT_FOLDING_FACTOR, WhirConfigError, WhirLevelConfig, WhirSecurityConfig, validate_log_inv_rate,
 };
 #[cfg(test)]
 pub use super::whir_config::{default_config, udr_queries};
@@ -73,7 +73,11 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
 /// Derive the shared prover/verifier config for a K-witness of `2^log_n` F64
 /// elements at L0 inverse-rate logarithm `log_inv_rate`, using the production
 /// 128-bit Johnson/OOD profile at `m = log_n + LOG_PACKING`.
-pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
+///
+/// # Errors
+///
+/// Any error of the production derivation: an unsupported rate, a witness too small for the ladder, or a level with no sound Johnson slack.
+pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, WhirConfigError> {
     let sec = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)?;
     sec.to_config()
 }
@@ -1238,6 +1242,22 @@ mod tests {
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
         assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
+    }
+
+    #[test]
+    fn config_refusal_names_the_level_and_the_target() {
+        // At log_n = 12 the lane fold of 6 leaves 2^6 message columns at L0.
+        // At rate 1/2 that is a block of 2^7, and no Johnson slack meets 128 bits within it.
+        // The refusal names L0, its shape and the target.
+        assert_eq!(
+            config_for_rate(12, LOG_INV_RATE_0).unwrap_err(),
+            WhirConfigError::NoJohnsonSlack {
+                level: 0,
+                log_inv_rate: 1,
+                log_msg_cols: 6,
+                target_bits: SECURITY_BITS,
+            }
+        );
     }
 
     /// At log_n = 18 the production profile's L0 has log_msg_cols = 12 and

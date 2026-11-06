@@ -402,6 +402,7 @@ dependencies = [
  "fiat_shamir",
  "parallel",
  "primitives",
+ "thiserror",
  "tracing",
 ]
 
