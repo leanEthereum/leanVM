@@ -5,7 +5,7 @@
 //! basis once, accumulates unreduced polynomials in `s`, and evaluates each total at `s` at the end.
 
 use primitives::field::gf2_64::mul_wide;
-use primitives::field::{F192, powers};
+use primitives::field::{F192, byte_sums, powers};
 
 fn bits(a: F192) -> [u64; 3] {
     [a.c0, a.c1, a.c2]
@@ -78,17 +78,6 @@ impl PowerBasis {
         }
         p
     }
-}
-
-/// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
-pub fn byte_sums(weights: &[F192; 8]) -> [F192; 256] {
-    let mut t = [F192::ZERO; 256];
-    for (bit, &w) in weights.iter().enumerate() {
-        for byte in 1usize << bit..2 << bit {
-            t[byte] = t[byte - (1 << bit)] + w;
-        }
-    }
-    t
 }
 
 /// Evaluation at `s` of binary polynomials of at most `8 * n_bytes` coefficients.
