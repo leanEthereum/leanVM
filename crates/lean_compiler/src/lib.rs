@@ -27,6 +27,7 @@
 
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::sync::Arc;
 
 use leanvm_core::cpu::hints::{BitsDest, RHint};
 use leanvm_core::cpu::{DerefMode, Op, Program};

@@ -53,10 +53,10 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
             // lowering.
             Expr::Gen => match const_int_expr(&exp_e) {
                 Some(k) => Ok(Expr::GPow(k)),
-                None => Ok(Expr::GenPow(Box::new(exp_e))),
+                None => Ok(Expr::GenPow(Arc::new(exp_e))),
             },
             // Any other base with a compile-time exponent: square-and-multiply.
-            _ => Ok(Expr::Pow(Box::new(base), Box::new(exp_e))),
+            _ => Ok(Expr::Pow(Arc::new(base), Arc::new(exp_e))),
         };
     }
     // Atom.
@@ -91,10 +91,10 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
                 return Err(bad());
             }
             return Ok(Expr::ListComp(
-                Box::new(parse_expr(body)?),
+                Arc::new(parse_expr(body)?),
                 var.trim().to_string(),
-                Box::new(parse_expr(lo)?),
-                Box::new(parse_expr(hi)?),
+                Arc::new(parse_expr(lo)?),
+                Arc::new(parse_expr(hi)?),
             ));
         }
         return Ok(Expr::ListLit(
@@ -113,13 +113,13 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
         let inner = &s[open + 1..s.len() - 1];
         if let Some((lo, hi)) = split_once_top(inner, ":") {
             return Ok(Expr::Slice(
-                Box::new(base),
-                Box::new(parse_expr(lo)?),
-                Box::new(parse_expr(hi)?),
+                Arc::new(base),
+                Arc::new(parse_expr(lo)?),
+                Arc::new(parse_expr(hi)?),
             ));
         }
         let idx = parse_expr(inner)?;
-        return Ok(Expr::Index(Box::new(base), Box::new(idx)));
+        return Ok(Expr::Index(Arc::new(base), Arc::new(idx)));
     }
     if let Some(open) = s.find('(')
         && s.ends_with(')')
@@ -163,7 +163,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
             return match (name.as_str(), size) {
                 ("HeapBuf", Some(n)) => Ok(Expr::HeapBuf(cells(n)?)),
                 ("StackBuf", Some(n)) => Ok(Expr::StackBuf(cells(n)?)),
-                ("HeapBuf", None) if args.len() == 1 => Ok(Expr::HeapBufDyn(Box::new(args.pop().unwrap()))),
+                ("HeapBuf", None) if args.len() == 1 => Ok(Expr::HeapBufDyn(Arc::new(args.pop().unwrap()))),
                 ("HeapBuf", None) => Err(ParseErrorKind::Arity {
                     call: "HeapBuf",
                     expected: "one `size`",
@@ -186,7 +186,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
 
 /// Combine one tier's operands left-associatively: `node` builds the AST node
 /// for each operator (as [`split_add`] / [`split_mul`] tag it).
-fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -> Expr) -> Result<Expr, ParseError> {
+fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Arc<Expr>, Arc<Expr>) -> Expr) -> Result<Expr, ParseError> {
     // An empty operand is an operator missing a side: a leading `-`, a trailing
     // operator, or two in a row. Naming it beats letting `parse_expr("")` report
     // an empty backtick, which is what every one of these used to say.
@@ -213,8 +213,8 @@ fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -
     }
     let mut acc = parse_expr(segs[0])?;
     for (&op, seg) in ops.iter().zip(&segs[1..]) {
-        let rhs = Box::new(parse_expr(seg)?);
-        acc = node(op, Box::new(acc), rhs);
+        let rhs = Arc::new(parse_expr(seg)?);
+        acc = node(op, Arc::new(acc), rhs);
     }
     Ok(acc)
 }

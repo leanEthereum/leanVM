@@ -1529,7 +1529,7 @@ impl FnLower<'_> {
         // gadget, no inverse hint, and no extra call beyond the one a loop
         // iteration already makes.
         let next_var = format!("__next{id}");
-        let next = Expr::Mul(Box::new(Expr::Var(var.to_string())), Box::new(Expr::Gen));
+        let next = Expr::Mul(Arc::new(Expr::Var(var.to_string())), Arc::new(Expr::Gen));
         let mut loop_body: Vec<Stmt> = body.to_vec();
         // The counter advance and the self-call belong to the `for` header.
         let at = |kind| Stmt::new(self.cur_line, kind);

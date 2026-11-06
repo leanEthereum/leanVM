@@ -1,6 +1,7 @@
 //! The surface AST produced by the parser: expressions, statements, functions.
 
 use primitives::field::F192;
+use std::sync::Arc;
 
 /// An expression. Arithmetic is the field's own: `+` is `XOR`, `*` is `MUL`.
 #[derive(Clone, Debug, PartialEq)]
@@ -17,25 +18,25 @@ pub enum Expr {
     /// `GEN ** e` for a compile-time integer *expression* `e` (an `unroll`
     /// variable, a constant, index arithmetic of those), resolved to a concrete
     /// `g^k` at lowering. Lets `buf[GEN ** i]` name cell `i` with no cursor.
-    GenPow(Box<Expr>),
+    GenPow(Arc<Expr>),
     /// `base ** e` with a non-`GEN` base and a compile-time exponent, by
     /// square-and-multiply at lowering: integer arithmetic in an index or bound
     /// position, field arithmetic in a value. The base may be runtime.
-    Pow(Box<Expr>, Box<Expr>),
+    Pow(Arc<Expr>, Arc<Expr>),
     /// A variable in scope.
     Var(String),
-    Add(Box<Expr>, Box<Expr>),
-    Mul(Box<Expr>, Box<Expr>),
+    Add(Arc<Expr>, Arc<Expr>),
+    Mul(Arc<Expr>, Arc<Expr>),
     /// Integer subtraction, **compile-time only**: field subtraction is `+`
     /// (XOR), so `-` means something only in index space. Using one as a runtime
     /// field value is an error.
-    Sub(Box<Expr>, Box<Expr>),
+    Sub(Arc<Expr>, Arc<Expr>),
     /// Integer floor-division `a // b` and remainder `a % b`, **compile-time
     /// only** (the field has no integer division). Valid where an index /
     /// slice bound / `Const` argument is expected, or as a folded `if`
     /// condition; using one as a runtime field value is an error.
-    Div(Box<Expr>, Box<Expr>),
-    Mod(Box<Expr>, Box<Expr>),
+    Div(Arc<Expr>, Arc<Expr>),
+    Mod(Arc<Expr>, Arc<Expr>),
     /// Field division `a / b` (single slash): a **runtime** field operation,
     /// `a · b⁻¹`. Lowered to one `MUL` whose quotient operand is unset, so the
     /// write-once back-solve fills it with `a · b⁻¹` and the `MUL` constraint
@@ -43,7 +44,7 @@ pub enum Expr {
     /// nondeterministic but the constraint binds it. `b == 0` is rejected,
     /// including `0 / 0`; `1 / b` therefore also enforces `b != 0`. Distinct
     /// from the compile-time `//` ([`Expr::Div`]).
-    FieldDiv(Box<Expr>, Box<Expr>),
+    FieldDiv(Arc<Expr>, Arc<Expr>),
     /// Single-return function call in expression position.
     Call(String, Vec<Expr>),
     /// `HeapBuf(n)`: allocate a heap buffer of `n` cells; evaluates to its pointer.
@@ -54,7 +55,7 @@ pub enum Expr {
     /// is `2·log(n) + 2` cells). The allocation is a prover convenience (like
     /// every base pointer), so an under-size only hurts the prover:
     /// overlapping regions trip write-once. Evaluates to the pointer.
-    HeapBufDyn(Box<Expr>),
+    HeapBufDyn(Arc<Expr>),
     /// `StackBuf(n)`: allocate `n` *consecutive* frame (stack) cells, bound as a
     /// stack value. Its cells `sa[0..n]` are written/read directly (no heap deref),
     /// and a size-2 `StackBuf` is a valid `keccak` operand (the four 64-bit hash
@@ -63,13 +64,13 @@ pub enum Expr {
     /// `arr[idx]`: read a cell. For a heap `arr` (a pointer), `m[arr·idx]` (idx a
     /// g-power). For a [`Expr::StackBuf`]: the frame cell `base + idx` (idx a
     /// compile-time integer), read directly.
-    Index(Box<Expr>, Box<Expr>),
+    Index(Arc<Expr>, Arc<Expr>),
     /// `buf[lo:hi]`: a run of cells of a [`Expr::StackBuf`] (frame cells
     /// `base+lo..base+hi`) or of a [`Expr::HeapBuf`] (heap cells
     /// `ptr·g^lo..ptr·g^hi`), with compile-time integer bounds (`hi`
     /// exclusive). Meaningful as a `keccak` operand, a hint destination, or a
     /// function argument run.
-    Slice(Box<Expr>, Box<Expr>, Box<Expr>),
+    Slice(Arc<Expr>, Arc<Expr>, Arc<Expr>),
     /// `[a, b, …]`: an initialized [`Expr::StackBuf`], so `x = [a, b]` allocates
     /// a StackBuf of the element count and writes each element in place, sugar
     /// for the alloc-then-store idiom. Only meaningful as the RHS of a plain
@@ -79,7 +80,7 @@ pub enum Expr {
     /// `[body for var in unroll(lo, hi)]`: the list literal of `body` at each integer `var` of
     /// `lo..hi`, expanded once the bounds are compile-time integers. Only a `keccak_cells`
     /// argument.
-    ListComp(Box<Expr>, String, Box<Expr>, Box<Expr>),
+    ListComp(Arc<Expr>, String, Arc<Expr>, Arc<Expr>),
 }
 
 /// A statement, with the source line it came from. The line is what every
