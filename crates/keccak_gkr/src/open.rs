@@ -109,6 +109,9 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let tables: Vec<[F192; 256]> = (0..4 << run_vars)
         .map(|t| byte_sums(&std::array::from_fn(|w| low[t % 4 + 4 * w + 32 * (t / 4)])))
         .collect();
+    // Its length hidden, the lookups keep bounds checks, which stop the compiler turning them into
+    // AVX-512 gathers that lose to scalar loads.
+    let flat: &[F192] = std::hint::black_box(tables.as_flattened());
     // A task per position of a committed lane: a task per lane would leave threads idle.
     let positions: Vec<[F192; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
         let (lane, z) = (task / 64, task % 64);
@@ -125,7 +128,7 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
                 primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
                 for (i, sum) in sums.iter_mut().enumerate() {
                     for p in 0..4 {
-                        *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
+                        *sum += flat[256 * (4 * block + p) + gathered[8 * (2 * p + i / 8) + i % 8] as usize];
                     }
                 }
             }
@@ -260,6 +263,8 @@ fn spare_slices(shape: Shape, committed: &[F64], instance: &[F192]) -> Vec<[F192
         || vec![[F192::ZERO; 64]; spare],
         |acc, group| {
             let table = byte_sums(&groups[group]);
+            // Hidden, as in `fold_packs`, so the lookups are not gathers.
+            let table: &[F192] = std::hint::black_box(&table);
             for (slot, acc) in acc.iter_mut().enumerate() {
                 let words = std::array::from_fn(|w| slots[slot * n + 8 * group + w].0);
                 let mut gathered = [0u8; 64];
