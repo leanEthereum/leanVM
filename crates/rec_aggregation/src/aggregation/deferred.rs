@@ -64,7 +64,10 @@ impl DeferredClaim {
         bytecode_at: impl FnOnce(&[F192]) -> F192,
     ) -> Result<Self, AggregateVerifyError> {
         if bytecode_point.len() != bytecode_vars() {
-            return Err(AggregateVerifyError::MalformedClaim);
+            return Err(AggregateVerifyError::PointLength {
+                expected: bytecode_vars(),
+                got: bytecode_point.len(),
+            });
         }
         // Every leaf defers the all-zeros point, where the bytecode polynomial is
         // just its table's first entry. Worth special-casing: the general path is

@@ -6,7 +6,7 @@
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
-    MAX_RECURSIONS, SignatureClaims, SnarkProveError, SnarkVerifyError, aggregate,
+    MAX_RECURSIONS, SignatureClaims, SignatureScheme, SnarkProveError, SnarkVerifyError, aggregate,
 };
 
 pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

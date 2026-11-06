@@ -1,7 +1,7 @@
 //! The aggregate, its wire format and its native verification.
 
 use super::deferred::{DeferredClaim, scalar_bytecode};
-use super::error::{AggregateVerifyError, SnarkVerifyError};
+use super::error::{AggregateVerifyError, SignatureScheme, SnarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS};
 use bincode::Options as _;
@@ -73,13 +73,23 @@ pub(super) fn check_signer_set(
     xmss_signers: &[LeanXmssClaim],
     lean_sphincs_signers: &[LeanSphincsClaim],
 ) -> Result<(), AggregateVerifyError> {
-    if xmss_signers.len() + lean_sphincs_signers.len() >= MAX_KEYS
-        || !xmss_signers.windows(2).all(|w| w[0] < w[1])
-        || !lean_sphincs_signers.windows(2).all(|w| w[0] < w[1])
-    {
-        return Err(AggregateVerifyError::MalformedSignerSet);
+    if xmss_signers.len() + lean_sphincs_signers.len() >= MAX_KEYS {
+        return Err(AggregateVerifyError::TooManySigners {
+            xmss: xmss_signers.len(),
+            lean_sphincs: lean_sphincs_signers.len(),
+            limit: MAX_KEYS,
+        });
     }
-    Ok(())
+    check_sorted(SignatureScheme::LeanXmss, xmss_signers)?;
+    check_sorted(SignatureScheme::LeanSphincs, lean_sphincs_signers)
+}
+
+/// Reject a list that is not strictly sorted, naming the first claim out of order.
+fn check_sorted<K: Ord>(scheme: SignatureScheme, signers: &[K]) -> Result<(), AggregateVerifyError> {
+    match signers.windows(2).position(|w| w[0] >= w[1]) {
+        Some(i) => Err(AggregateVerifyError::UnsortedSigners { scheme, index: i + 1 }),
+        None => Ok(()),
+    }
 }
 
 impl EthereumProof {
@@ -124,6 +134,12 @@ impl EthereumProof {
 
     /// Parsing does NOT verify: the proof is untouched, only shapes are checked.
     /// Call [`Self::verify`] before believing any of it.
+    ///
+    /// # Errors
+    ///
+    /// - `MalformedEncoding` when the bytes do not decode.
+    /// - `TooManySigners` or `UnsortedSigners` when the signer set is not one the coverage argument covers.
+    /// - `PointLength` when the deferred claim's point does not have the stacked bytecode's variables.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AggregateVerifyError> {
         let (claims, core): (SignatureClaims, WireCore) = wire()
             .deserialize(bytes)
@@ -143,6 +159,12 @@ impl EthereumProof {
     }
 
     /// Inverse of [`Self::to_bytes_without_pubkeys`], verifying nothing either.
+    ///
+    /// # Errors
+    ///
+    /// - `MalformedEncoding` when the bytes do not decode.
+    /// - `TooManySigners` or `UnsortedSigners` when the signer set is not one the coverage argument covers.
+    /// - `PointLength` when the deferred claim's point does not have the stacked bytecode's variables.
     pub fn from_bytes_without_pubkeys(bytes: &[u8], claims: SignatureClaims) -> Result<Self, AggregateVerifyError> {
         Self::from_parts(
             claims,
@@ -191,6 +213,12 @@ impl EthereumProof {
     /// check that it is the commitment they require.
     ///
     /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
+    ///
+    /// # Errors
+    ///
+    /// - `TooManySigners` or `UnsortedSigners` when the signer set is not one the coverage argument covers.
+    /// - `PointLength` or `DeferredClaimMismatch` when the deferred claim is not the bytecode's evaluation at its point.
+    /// - `Snark` when the VM proof does not verify against the statement.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {
         check_signer_set(&self.xmss_signers, &self.lean_sphincs_signers)?;
         // Discharging the deferred claim IS recomputing it: its value has
@@ -200,7 +228,7 @@ impl EthereumProof {
         let defer = DeferredClaim::recompute_scalar(self.defer.bytecode_point.clone())?;
         drop(_s);
         if defer != self.defer {
-            return Err(AggregateVerifyError::MalformedClaim);
+            return Err(AggregateVerifyError::DeferredClaimMismatch);
         }
         let _s = tracing::info_span!("Statement digest").entered();
         let pi = self.statement(verifier::da::digest(self.da_root));
