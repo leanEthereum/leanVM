@@ -34,23 +34,38 @@ pub fn iota_bit(round: usize, z: usize) -> bool {
 }
 
 /// `pi(rho(theta(a)))`, over any XOR group.
+///
+/// Lane by lane, a rotation as two runs: on the witness's words, a loop by position that computes
+/// its indices vectorized into AVX-512 gathers.
 pub fn linear<T: Copy + Default>(a: &[T], out: &mut [T], xor: impl Fn(T, T) -> T) {
-    let mut c = [T::default(); 320];
-    for x in 0..5 {
-        for z in 0..64 {
-            c[64 * x + z] = (1..5).fold(a[64 * x + z], |acc, y| xor(acc, a[64 * (x + 5 * y) + z]));
+    let lane = |l: usize| -> &[T] { &a[64 * l..][..64] };
+    let mut c = [[T::default(); 64]; 5];
+    for (x, c) in c.iter_mut().enumerate() {
+        c.copy_from_slice(lane(x));
+        for y in 1..5 {
+            for (c, &a) in c.iter_mut().zip(lane(x + 5 * y)) {
+                *c = xor(*c, a);
+            }
         }
     }
-    let mut d = [T::default(); 320];
-    for x in 0..5 {
-        for z in 0..64 {
-            d[64 * x + z] = xor(c[64 * ((x + 4) % 5) + z], c[64 * ((x + 1) % 5) + (z + 63) % 64]);
+    let mut d = [[T::default(); 64]; 5];
+    for (x, d) in d.iter_mut().enumerate() {
+        let (left, right) = (&c[(x + 4) % 5], &c[(x + 1) % 5]);
+        d[0] = xor(left[0], right[63]);
+        for z in 1..64 {
+            d[z] = xor(left[z], right[z - 1]);
         }
     }
-    for lane in 0..LANES {
-        let rot = RHO[lane] as usize;
-        for z in 0..64 {
-            out[64 * PI[lane] + (z + rot) % 64] = xor(a[64 * lane + z], d[64 * (lane % 5) + z]);
+    for l in 0..LANES {
+        let rot = RHO[l] as usize;
+        let (src, d, dst) = (lane(l), &d[l % 5], &mut out[64 * PI[l]..][..64]);
+        // Position `z` lands at `(z + rot) % 64`.
+        let (wrapped, straight) = dst.split_at_mut(rot);
+        for ((out, &a), &d) in straight.iter_mut().zip(src).zip(d) {
+            *out = xor(a, d);
+        }
+        for ((out, &a), &d) in wrapped.iter_mut().zip(&src[64 - rot..]).zip(&d[64 - rot..]) {
+            *out = xor(a, d);
         }
     }
 }
