@@ -119,11 +119,6 @@ pub struct Placement {
 }
 
 impl Placement {
-    pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {
-        let above = selector_point(self.index >> self.variables, stack_log - self.variables);
-        [point, &above].concat()
-    }
-
     /// eq weight of the coordinates above the window.
     pub fn eq_above(&self, point: &[E]) -> E {
         let bits = selector_point(self.index >> self.variables, point.len() - self.variables);

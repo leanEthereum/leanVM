@@ -35,7 +35,7 @@ use layout::{
     GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
     OP_KECCAK, QKECCAK, build_layout,
 };
-use multilinear::{dot, eq_eval, multilinear_eval};
+use multilinear::{Placement, dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::Transcript;
@@ -117,8 +117,19 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
 
+/// A weight on the stack as a function of the whole stack point.
+type Weight<'a> = Box<dyn Fn(&[E]) -> E + 'a>;
+
+/// The weight a claim puts on the stack, as a function of a stack point `x`.
+enum StackWeight<'a> {
+    /// A column's claim at `point`: `eq(point, x_low)` on its placement's window, times the selector above it.
+    Placed(&'a [E], Placement),
+    /// Any other weight.
+    Other(Weight<'a>),
+}
+
 /// The weight a claim puts on the stack, and the value it claims for it.
-type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
+type StackClaim<'a> = (StackWeight<'a>, E);
 
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
@@ -132,9 +143,28 @@ fn verify_stacked_opening(
 ) -> Result<(), VerifierError> {
     let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
     let scales = powers(transcript.sample(), claims.len());
-    let evaluate_basis = |point: &[E]| {
-        let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
-        dot(&scales, &weights)
+    // A table's columns are claimed at one point: its eq factor on the low coordinates is evaluated once, and each
+    // claim keeps the index of its point, its scale and its placement.
+    let (mut points, mut columns, mut others) = (Vec::<&[E]>::new(), Vec::new(), Vec::new());
+    for ((weight, _), &scale) in claims.iter().zip(&scales) {
+        match weight {
+            StackWeight::Placed(point, placement) => {
+                let at = points.iter().position(|at| at == point).unwrap_or_else(|| {
+                    points.push(point);
+                    points.len() - 1
+                });
+                columns.push((at, scale, *placement));
+            }
+            StackWeight::Other(weight) => others.push((scale, weight)),
+        }
+    }
+    let evaluate_basis = |x: &[E]| {
+        let lows: Vec<E> = points.iter().map(|point| eq_eval(point, &x[..point.len()])).collect();
+        let columns = columns
+            .iter()
+            .map(|&(at, scale, placement)| scale * lows[at] * placement.eq_above(x));
+        let others = others.iter().map(|(scale, weight)| *scale * weight(x));
+        E::sum(columns.chain(others))
     };
     let target = dot(&scales, &values);
     verify_whir(
@@ -217,9 +247,9 @@ pub fn verify_keccak_batch(
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
     let (target, weight) = ring_switch(point, &slices, &mut transcript);
-    let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
+    let mut claims: Vec<StackClaim> = vec![(StackWeight::Other(Box::new(weight)), target)];
     if let Some((point, word)) = openings.outputs {
-        claims.push((Box::new(move |x| eq_eval(&point, x)), word));
+        claims.push((StackWeight::Other(Box::new(move |x| eq_eval(&point, x))), word));
     }
     verify_stacked_opening(&mut transcript, root, stack_log, 1 << stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
@@ -320,7 +350,9 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // placement's selector, and it leads the batch, taking the first power.
     let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
     let ringswitch: StackClaim = (
-        Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
+        StackWeight::Other(Box::new(move |x| {
+            qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])
+        })),
         ringswitch_target,
     );
     let mut stack_claims = vec![ringswitch];
