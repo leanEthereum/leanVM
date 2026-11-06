@@ -3,8 +3,8 @@ import FORS.CoverBound.SecondMoment
 /-! **Rational upper bounds of the per-tree moments.** The closed forms of `Ψ1(n)` and `Ψ2(n)`
 (`CoverBound/FirstMoment`, `CoverBound/SecondMoment`) are exact fractions over `A^n` and `A^(n+1)`,
 `A = 2^a` the number of leaves of a FORS tree. The kernel computes their numerators over `2^128`,
-rounded up: in `ℕ` for `Ψ1` (`cdiv`), in `ℤ` for `Ψ2` (`cdivZ`), whose numerator is an alternating
-sum. -/
+rounded up (`cdiv`): for `Ψ2`, whose numerator is an alternating sum, in `ℕ` and proved equal to the
+rounding in `ℤ` (`p2N_eq`). -/
 
 open ENNReal
 
@@ -59,6 +59,24 @@ theorem le_cdivZ {x y : ℤ} (hy : 0 < y) : (x : ℚ) / y ≤ cdivZ x y := by
   rw [div_le_iff₀ (by exact_mod_cast hy)]
   exact_mod_cast h'
 
+theorem cdivZ_natCast (a b : ℕ) (hb : 0 < b) : cdivZ a b = (cdiv a b : ℤ) := by
+  unfold cdivZ cdiv
+  have hb' : (0 : ℤ) < b := by exact_mod_cast hb
+  have h1 := Nat.div_add_mod (a + b - 1) b
+  have h2 := Nat.mod_lt (a + b - 1) hb
+  have h3 : ((a + b - 1 : ℕ) : ℤ) = a + b - 1 := by omega
+  have h1' : (b : ℤ) * ((a + b - 1) / b : ℕ) + ((a + b - 1) % b : ℕ) = a + b - 1 := by
+    rw [← h3]; exact_mod_cast h1
+  have h2' : (((a + b - 1) % b : ℕ) : ℤ) < b := by exact_mod_cast h2
+  have h4 : (0 : ℤ) ≤ (((a + b - 1) % b : ℕ) : ℤ) := by positivity
+  have key : -(a : ℤ) / b = -(((a + b - 1) / b : ℕ) : ℤ) := by
+    rw [Int.ediv_eq_iff_of_pos hb']
+    constructor <;> nlinarith
+  rw [key, neg_neg]
+
+theorem cdivZ_eq_ceil (n : ℤ) (d : ℕ) : cdivZ n d = ⌈(n / d : ℚ)⌉ := by
+  rw [Rat.ceil_intCast_div_natCast]; rfl
+
 /-- `q ≤ ⌈x / y⌉ / 2^P` once `q 2^P = x / y`. -/
 theorem le_cdivZ_div {q : ℚ} {x y : ℤ} {P : ℕ} (hy : 0 < y) (h : q * 2 ^ P = x / y) :
     q ≤ (cdivZ x y : ℚ) / 2 ^ P := by
@@ -87,8 +105,39 @@ def z2N (a n : ℕ) : ℤ :=
   (2 ^ a : ℤ) ^ (n + 1) - 2 * 2 ^ a * (2 ^ a - 1) ^ n + (2 ^ a - 1) ^ n +
     (2 ^ a - 1) * (2 ^ a - 2) ^ n
 
-/-- The numerator over `2^128` of the bound of `Ψ2(n)`, for trees of height `a`. -/
-def p2N (a n : ℕ) : ℕ := (cdivZ (2 ^ 128 * z2N a n) ((2 ^ a : ℤ) ^ (n + 1))).toNat
+/-- The numerator over `2^128` of the bound of `Ψ2(n)`, for trees of height `a`: `z2N` rounded up, computed
+in `ℕ` (`p2N_eq`). -/
+def p2N (a n : ℕ) : ℕ :=
+  cdiv (2 ^ 128 * ((2 ^ a) ^ (n + 1) + (2 ^ a - 1) ^ n + (2 ^ a - 1) * (2 ^ a - 2) ^ n - 2 * 2 ^ a * (2 ^ a - 1) ^ n))
+    ((2 ^ a) ^ (n + 1))
+
+theorem p2N_eq {a : ℕ} (ha : 1 ≤ a) (n : ℕ) :
+    p2N a n = (cdivZ (2 ^ 128 * z2N a n) ((2 ^ a : ℤ) ^ (n + 1))).toNat := by
+  have hA : 2 ≤ 2 ^ a := le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) ha)
+  set X := (2 ^ a) ^ (n + 1) + (2 ^ a - 1) ^ n + (2 ^ a - 1) * (2 ^ a - 2) ^ n
+  set Y := 2 * 2 ^ a * (2 ^ a - 1) ^ n
+  have hz : z2N a n = (X : ℤ) - Y := by
+    simp only [z2N, X, Y]
+    push_cast [Nat.cast_sub (show 1 ≤ 2 ^ a by omega), Nat.cast_sub hA]
+    ring
+  have hD : 0 < (2 ^ a) ^ (n + 1) := by positivity
+  have hD' : ((2 ^ a : ℤ) ^ (n + 1)) = (((2 ^ a) ^ (n + 1) : ℕ) : ℤ) := by push_cast; rfl
+  unfold p2N
+  rw [hz, hD']
+  rcases le_total Y X with h | h
+  · rw [show (2 : ℤ) ^ 128 * ((X : ℤ) - Y) = ((2 ^ 128 * (X - Y) : ℕ) : ℤ) by push_cast [Nat.cast_sub h]; ring,
+      cdivZ_natCast _ _ hD, Int.toNat_natCast]
+  · rw [Nat.sub_eq_zero_of_le h, Nat.mul_zero]
+    have h0 : cdivZ ((2 : ℤ) ^ 128 * ((X : ℤ) - Y)) (((2 ^ a) ^ (n + 1) : ℕ) : ℤ) ≤ 0 := by
+      unfold cdivZ
+      have : 0 ≤ -((2 : ℤ) ^ 128 * ((X : ℤ) - Y)) := by
+        have : (X : ℤ) ≤ Y := by exact_mod_cast h
+        nlinarith
+      have := Int.ediv_nonneg this (by positivity : (0 : ℤ) ≤ (((2 ^ a) ^ (n + 1) : ℕ) : ℤ))
+      omega
+    rw [Int.toNat_of_nonpos h0]
+    unfold cdiv
+    exact Nat.div_eq_of_lt (by omega)
 
 /-- The bound of `Ψ1(n)`. -/
 def P1Q (a n : ℕ) : ℚ := (p1N a n : ℚ) / 2 ^ 128
@@ -146,7 +195,7 @@ theorem Ψ1R_le (n : ℕ) : Ψ1R n ≤ ((P1Q forsHeight n : ℚ) : ℝ) := by
 theorem Ψ2R_le (n : ℕ) : Ψ2R n ≤ ((P2Q forsHeight n : ℚ) : ℝ) := by
   have hcast : ((P2Q forsHeight n : ℚ) : ℝ) = ((p2N forsHeight n : ℕ) : ℝ) / 2 ^ 128 := by
     rw [P2Q]; push_cast; ring
-  rw [hcast, Ψ2R_frac, p2N]
+  rw [hcast, Ψ2R_frac, p2N_eq (by have := Params.forsHeight_ge; omega)]
   exact div_le_cdivZ_div (by positivity)
 
 end FORS.Security.H0
