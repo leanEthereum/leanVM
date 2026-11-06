@@ -755,9 +755,8 @@ pub(crate) struct SumcheckProver {
     base: Vec<F64>,
     /// The table `P` during the lane rounds, then the folded witness.
     f: Vec<F192>,
-    /// The table `A` during the lane rounds, then the single combined basis poly:
-    /// `glue_pending(lambda)` folds each claim introduced since the last glue in as
-    /// `combined_basis += lambda^tau * b_new`, `tau` counting from 1 (the running claim is `tau = 0`).
+    /// The table `A` during the lane rounds, then the single combined basis poly.
+    /// Each level's glue adds its claim `tau` as `lambda^tau * b_tau`, `tau` from 1 (the running claim is `tau = 0`).
     combined_basis: Vec<F192>,
     /// Terms per lane of the tables, and words of a lane block of the committed lanes.
     n_terms: usize,
@@ -770,8 +769,8 @@ pub(crate) struct SumcheckProver {
     t_r: F192,
     quad: RoundQuad,
     round: usize,
-    /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the
-    /// query batch. Drained by `glue_pending`.
+    /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the query batch.
+    /// The level's glue drains them.
     pending: Vec<(Vec<F192>, F192, RoundQuad)>,
 }
 
@@ -856,15 +855,6 @@ impl SumcheckProver {
         msg
     }
 
-    /// Introduce a fresh basis poly with claimed sum `h_new`; sends the
-    /// (u_0, u_2) for `Σ_x f(x) · b_new(x)` at the current dim.
-    fn introduce_new(&mut self, b_new: Vec<F192>, h_new: F192) -> SumcheckMessage {
-        assert_eq!(b_new.len(), self.f.len());
-        let (msg, _) = round_msg_lsb::<false>(&self.f, &b_new);
-        self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
-        msg
-    }
-
     /// Introduce the OOD basis `eq(z, ·)` and compute its claimed inner product in the same
     /// pass as the round message.
     fn introduce_ood(&mut self, z: &[F192]) -> (SumcheckMessage, F192) {
@@ -875,25 +865,75 @@ impl SumcheckProver {
         (msg, h_new)
     }
 
-    /// Batch every claim introduced since the last glue into the running one
-    /// with powers of the level's single batching challenge (PCS annex,
-    /// Protocol 1 step 1): claim `tau` (counting from 1) contributes
-    /// `combined_basis[j] += lambda^tau * b_new[j]`, `T_r += lambda^tau *
-    /// h_new`. The running claim keeps `lambda^0 = 1`.
-    fn glue_pending(&mut self, lambda: F192) {
+    /// Introduce the level's query batch `b_new`, with claimed sum `h_new`, and glue the level's claims in.
+    ///
+    /// The batch and every pending claim join the running one with powers of `lambda` (PCS annex, Protocol 1 step 1).
+    /// Returns the batch's round message `(u_0, u_2)` for `sum_x f(x) * b_new(x)`.
+    ///
+    /// Claim `tau`, counting from 1 in introduction order with `b_new` last, contributes
+    ///
+    /// ```text
+    /// combined_basis[j] += lambda^tau * b_tau[j]        T_r += lambda^tau * h_tau
+    /// ```
+    ///
+    /// and the running claim keeps `lambda^0 = 1`.
+    /// One pass over the tables computes the message and the sum, so each is read once.
+    fn introduce_and_glue(&mut self, b_new: Vec<F192>, h_new: F192, lambda: F192) -> SumcheckMessage {
+        let n = self.f.len();
+        assert_eq!(b_new.len(), n);
+        assert_eq!(self.combined_basis.len(), n);
         let pending = std::mem::take(&mut self.pending);
-        assert!(!pending.is_empty(), "glue without introduce_new");
-        let mut scalar = F192::ONE;
-        for (b_new, h_new, quad_new) in pending {
-            scalar *= lambda;
-            assert_eq!(b_new.len(), self.combined_basis.len());
-            self.t_r += scalar * h_new;
-            self.quad = RoundQuad::fold(&self.quad, &quad_new, scalar);
-            let chunk = parallel::recommended_chunk_size(b_new.len());
-            parallel::chunks_mut_zip(&mut self.combined_basis, &b_new, chunk, |_, acc, v| {
-                add_scaled(acc, v, scalar)
-            });
+        let scalars = powers(lambda, pending.len() + 2).split_off(1);
+        let bases: Vec<&[F192]> = pending
+            .iter()
+            .map(|(b, ..)| b.as_slice())
+            .chain([b_new.as_slice()])
+            .collect();
+        assert!(bases.iter().all(|b| b.len() == n));
+
+        // `ROUND_CHUNK` is even, so no pair straddles two tasks.
+        let f = &self.f;
+        let task = |c: usize, acc: &mut [F192]| {
+            let at = c * ROUND_CHUNK..c * ROUND_CHUNK + acc.len();
+            for (b, &s) in bases.iter().zip(&scalars) {
+                add_scaled(acc, &b[at.clone()], s);
+            }
+            let (u_0, u_2, _) = adjacent_dots::<false>(&f[at.clone()], &b_new[at]);
+            (u_0, u_2)
+        };
+        let add = |(mut a_0, mut a_2): (Acc8, Acc8), (c_0, c_2): (Acc8, Acc8)| {
+            a_0 ^= c_0;
+            a_2 ^= c_2;
+            (a_0, a_2)
+        };
+        let zero = (Acc8::ZERO, Acc8::ZERO);
+        let (u_0, u_2) = if n / 2 < PAR_THRESHOLD {
+            self.combined_basis
+                .chunks_mut(ROUND_CHUNK)
+                .enumerate()
+                .map(|(c, acc)| task(c, acc))
+                .fold(zero, add)
+        } else {
+            parallel::map_reduce_chunks_mut(
+                [self.combined_basis.as_mut_slice()],
+                [ROUND_CHUNK],
+                || (),
+                || zero,
+                |_, sum, c, [acc]| *sum = add(*sum, task(c, acc)),
+                add,
+            )
+        };
+        let msg = SumcheckMessage {
+            u_0: u_0.reduce(),
+            u_2: u_2.reduce(),
+        };
+
+        let claims = pending.iter().map(|&(_, h, quad)| (h, quad));
+        for ((h, quad), &s) in claims.chain([(h_new, RoundQuad::from_msg(msg, h_new))]).zip(&scalars) {
+            self.t_r += s * h;
+            self.quad = RoundQuad::fold(&self.quad, &quad, s);
         }
+        msg
     }
 
     #[cfg(test)]
@@ -938,7 +978,7 @@ fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) 
 /// transcript: sample `z`, evaluate the folded witness there, send the claim
 /// and its intro message. The claim stays pending: the level's batching
 /// challenge is drawn only once its query positions are fixed too, and
-/// `glue_pending` then folds every claim of the level in with its own power.
+/// `introduce_and_glue` then folds every claim of the level in with its own power.
 /// A verifier replays it operation for operation.
 fn send_ood(sc: &mut SumcheckProver, ps: &mut ProverState, n_vars: usize, count: usize) {
     for _ in 0..count {
@@ -1107,9 +1147,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 
     // Introduce basis_0, then batch the level's claims with powers of lambda_0.
     let span = tracing::info_span!("Introduce", level = 0).entered();
-    let intro_msg_0 = sc_prover.introduce_new(basis_0_induced, enforced_sum_0);
+    let intro_msg_0 = sc_prover.introduce_and_glue(basis_0_induced, enforced_sum_0, lambda_0);
     send_msg(ps, intro_msg_0, enforced_sum_0);
-    sc_prover.glue_pending(lambda_0);
     drop(span);
 
     // Recursive levels.
@@ -1154,9 +1193,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                 &queries_last,
                 &weights_last,
             );
-            let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
+            let intro_msg_last = sc_prover.introduce_and_glue(basis_last, enforced_sum_last, lambda_last);
             send_msg(ps, intro_msg_last, enforced_sum_last);
-            sc_prover.glue_pending(lambda_last);
             for j in 0..n_res {
                 let ri = ps.sample();
                 let msg = sc_prover.fold(ri);
@@ -1206,9 +1244,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         drop(span);
 
         let span = tracing::info_span!("Introduce", level = i + 1).entered();
-        let intro_msg_i = sc_prover.introduce_new(basis_i_induced, enforced_sum_i);
+        let intro_msg_i = sc_prover.introduce_and_glue(basis_i_induced, enforced_sum_i, lambda_i);
         send_msg(ps, intro_msg_i, enforced_sum_i);
-        sc_prover.glue_pending(lambda_i);
         drop(span);
 
         wtns_prev = wtns_next;
