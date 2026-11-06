@@ -153,8 +153,8 @@ fn verify_stacked_opening(
 /// With the proof's own stream, which the walk reads whole, it is the proof in the form the recursion guest and the Python verifier consume.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
-    /// The announced sizes: the memory's log size and each table's row count.
-    pub log_memory: usize,
+    /// The announced sizes: the memory's cells and each table's row count.
+    pub memory_cells: u64,
     pub table_rows: Vec<u64>,
     pub log_inv_rate: usize,
     /// Where the bus reads the stacked bytecode. Its value there is the claim an aggregate defers.
@@ -230,18 +230,17 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let public_input = Digest(*public_input);
     let mut transcript = Transcript::new(proof, bytecode.fiat_shamir_iv, public_input, checked);
 
-    // 1] memory log-size, table row counts, and log-inv-rate in WHIR
+    // 1] memory cells, table row counts, and log-inv-rate in WHIR
     let announced = transcript.next_scalars(2 + N_TABLES)?;
     require(
         announced.iter().all(|value| value.c1 == 0 && value.c2 == 0),
         VerifierError::AnnouncedHighLimb,
     )?;
-    let log_memory = announced[0].c0;
+    let memory_cells = announced[0].c0;
     let table_rows: Vec<u64> = announced[1..1 + N_TABLES].iter().map(|value| value.c0).collect();
     let log_inverse_rate = announced[1 + N_TABLES].c0;
     require((1..=4).contains(&log_inverse_rate), VerifierError::PcsInverseRate)?;
-    require((16..=32).contains(&log_memory), VerifierError::AnnouncedTableSizes)?;
-    let layout = build_layout(bytecode, 1 << log_memory, &table_rows)?;
+    let layout = build_layout(bytecode, memory_cells, &table_rows)?;
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
         VerifierError::CommittedSize,
@@ -338,7 +337,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         &stack_claims,
     )?;
     Ok(Summary {
-        log_memory: layout.log_memory,
+        memory_cells,
         table_rows,
         log_inv_rate: log_inverse_rate as usize,
         bytecode_point: bus.bytecode_point,

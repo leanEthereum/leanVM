@@ -454,6 +454,20 @@ fn claim_placeholders(
     ps("KECCAK_OUT_POOL", out_pool.to_string());
     ps("CLAIM_QKECCAK_SLOT_BITS", literals(&cpqbits));
     ps("QKECCAK_COMMITTED_COL", qkeccak_compact.to_string());
+    // The final read counts' claim on the bus carries the public tail's share: every cell
+    // past the committed ones is read zero times, its count g^0.
+    ps(
+        "MFCNT_COMMITTED_COL",
+        compact_col_pm[leanvm_core::cpu::MFCNT].to_string(),
+    );
+    ps("MEM_PIECES", leanvm_core::cpu::MEMORY_PIECES.to_string());
+    // Each committed entry's memory piece, or MEMORY_PIECES for an entry of a column committed whole.
+    let mem_piece = col_sources_pm.iter().flatten().flat_map(|source| {
+        let memory = source.memory_pad.is_some();
+        (0..source.pieces.len()).map(move |piece| if memory { piece } else { leanvm_core::cpu::MEMORY_PIECES })
+    });
+    ps("COL_MEM_PIECE", literals(mem_piece));
+    ps("MEM_PIECE_SRC", leanvm_core::cpu::MEMORY_PIECE_SOURCE.to_string());
     ps("QKECCAK_VARS_CAP", (33 + slot_log).to_string());
 }
 

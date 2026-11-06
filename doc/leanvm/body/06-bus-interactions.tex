@@ -73,16 +73,28 @@ Under the same hypotheses every read address is an entry address $\gen^{i}$, $i<
 
 \paragraph{The count product.} All counts are nonzero exactly when their product is. The prover therefore sends that product, one $\E$-element, and the verifier checks it is nonzero. It is proven like any other grand product, by GKR over the stacking of every count column (\S\ref{sec:leafstack}), batched with the two other GKRs of the bus (push / pull) (\S\ref{sec:gkr}).
 
-\paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, at most $2^{32}$ memory cells (\S\ref{sec:memchan}) and at most $2^{32}$ bytecode instructions (\S\ref{sec:bytecode}). A row reads at most twenty-seven times (\texttt{KECCAK}: twenty-six cells and its bytecode entry), so the six tables flush $\nread\le27\cdot6\cdot2^{32}<2^{40}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
+\paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, at most $\nmem\le2^{32}$ memory cells (\S\ref{sec:memchan}) and at most $2^{32}$ bytecode instructions (\S\ref{sec:bytecode}). A row reads at most twenty-seven times (\texttt{KECCAK}: twenty-six cells and its bytecode entry), so the six tables flush $\nread\le27\cdot6\cdot2^{32}<2^{40}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
 
 \paragraph{Relaxing the hypotheses.} A bus entry may be any polynomial of degree at most $d = 2$ in the row's columns (\S\ref{sec:m3}), so none of the three (address, count, value) need be committed. Example 1: we don't need to commit memory addresses of the form $\fp\cdot o$ (\S\ref{sec:memchan}) when $\fp$ and $o$ are already committed. Example 2: once the pull counter $\cnt$ is committed, no need to commit to the corresponding push counter $\gen\cdot\cnt$.
 
 \subsection{Memory}\label{sec:memchan}
 
-The memory is an array of $\nmem = 2^{\kmem}$ cells, $16\le\kmem\le32$ (\S\ref{sec:vm}). Bus interaction uses domain separation $\sep=\dsep{MEM} = \gen^{1}$. A memory word is $192$-bit (i.e. one $\E$-element), so $\ncomp=3$: memory is committed as three $\K$-valued multilinears $\mem_0,\mem_1,\mem_2$ in $\kmem$ variables, with
+The memory is an array of $\nmem$ cells, $2^{16}\le\nmem\le2^{32}$ with at most three set bits (\S\ref{sec:vm}), defined on $\kmem=\lceil\log_2\nmem\rceil$ variables. Bus interaction uses domain separation $\sep=\dsep{MEM} = \gen^{1}$. A memory word is $192$-bit (i.e. one $\E$-element), so $\ncomp=3$: memory is committed as three $\K$-valued multilinears $\mem_0,\mem_1,\mem_2$ in $\kmem$ variables, with
 \[
   \mem=\mem_0+y\,\mem_1+y^2\,\mem_2 .
 \]
+
+\paragraph{The public tail.} The four memory columns, $\mem_0,\mem_1,\mem_2$ and the final counts $\cntfin$, are committed on their first $\nmem$ cells only, in a piece per set bit of $\nmem$, largest first, as in \eqref{eq:jagged}. The cells $\nmem\le i<2^{\kmem}$ are public: their word is $0$ and their final count is $\gen^{0}=1$, so $\vpad=0$ for the limbs and $\vpad=1$ for $\cntfin$. The memory blocks still span all $2^{\kmem}$ cells, and the verifier's bus is unchanged: a tail cell's seed pushes $\tup{\dsep{MEM},\gen^{i},1,0}$ and its finalization pulls the same tuple, so the two cancel.
+
+\begin{lemma}[No read reaches the tail]\label{lem:tail}
+Under the hypotheses of Theorem~\ref{thm:omc}, every read address is $\gen^{i}$ with $i<\nmem$.
+\end{lemma}
+
+\begin{proof}
+Fix a tail address $a=\gen^{i}$, $\nmem\le i<2^{\kmem}$. A read at $(a,v)$ with $v\ne0$ is not an entry of the array, so Theorem~\ref{thm:omc} excludes it. Keep in both sides of the balance only the tuples at $(a,0)$: the seed and the finalization carry the same tuple $\tup{\dsep{MEM},a,1,0}$, so they cancel, and what remains are the reads at $(a,0)$, each pulling its count $c$ and pushing $\gen c$. As in the proof of Theorem~\ref{thm:omc}, their counts satisfy $\gen\cdot\rcnts=\rcnts$, so Lemma~\ref{lem:invcnt} and the nonzero counts make $\rcnts$ empty.
+\end{proof}
+
+So Corollary~\ref{cor:addrrange} holds with $i<\nmem$: the machine's memory is its first $\nmem$ cells, and the instance caps bound $\nread$ as before.
 
 \subsection{Bytecode}\label{sec:bytecode}
 

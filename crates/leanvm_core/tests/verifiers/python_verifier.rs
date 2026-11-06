@@ -60,6 +60,11 @@ pub(crate) fn encode(stream: &[F192], paths: &[verifier::MerklePath]) -> (Vec<u8
 
 /// Write the statement and the raw proof with `stream` as the files Python reads, and start the verifier on them.
 fn spawn_python(directory: &Path, stream: &[F192]) -> Child {
+    spawn_python_on(directory, stream, &fixture().summary.merkle_paths)
+}
+
+/// The same with another proof of the fixture's statement: its stream and its raw openings.
+fn spawn_python_on(directory: &Path, stream: &[F192], paths: &[verifier::MerklePath]) -> Child {
     let fixture = fixture();
     std::fs::create_dir_all(directory).expect("create test directory");
     let table = fixture
@@ -67,7 +72,7 @@ fn spawn_python(directory: &Path, stream: &[F192]) -> Child {
         .into_iter()
         .flat_map(u64::to_le_bytes)
         .collect();
-    let (stream, openings) = encode(stream, &fixture.summary.merkle_paths);
+    let (stream, openings) = encode(stream, paths);
     let files = [
         ("bytecode.bin", table),
         ("public_input.bin", public_input_bytes(&fixture.public_input).to_vec()),
@@ -187,8 +192,47 @@ fn test_python_verifier() {
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
-/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size and on the commitment
-/// root, and each check of the Keccak reduction tripped by the scalar it reads last.
+#[test]
+fn memory_in_one_two_or_three_pieces_verifies_in_both() {
+    // Invariant: a proof whose memory is committed in one, two or three pieces verifies in Rust and in Python.
+    // Fixture state: the program uses 540748 cells, 2^19 + 16460, so its memory is 2^20 in one piece,
+    // 2^19 + 2^15 in two and 2^19 + 2^14 + 2^10 in three.
+    let fixture = fixture();
+    let directory = test_directory("pieces");
+    let runs: Vec<(usize, Child)> = [
+        (1, 1 << 20),
+        (2, (1 << 19) + (1 << 15)),
+        (3, (1 << 19) + (1 << 14) + (1 << 10)),
+    ]
+    .into_iter()
+    .map(|(pieces, cells)| {
+        let program = fixture.program.clone().with_memory_pieces(pieces);
+        let (proof, stats) = prove(&program, fixture.public_input, 1).unwrap();
+        assert_eq!((stats.mem_used, stats.memory_cells), (540_748, cells));
+        let summary = verify(&program, &fixture.public_input, &proof).expect("the Rust verifier accepts");
+        assert_eq!(summary.memory_cells, cells as u64, "the announced memory");
+        let run = spawn_python_on(
+            &directory.join(pieces.to_string()),
+            &proof.stream,
+            &summary.merkle_paths,
+        );
+        (pieces, run)
+    })
+    .collect();
+    for (pieces, run) in runs {
+        let output = run.wait_with_output().expect("wait for the Python verifier");
+        assert!(
+            output.status.success(),
+            "Python rejects {pieces} pieces:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    std::fs::remove_dir_all(directory).expect("remove test directory");
+}
+
+/// Both verifiers reject a tampered scalar at the same check: an announced memory of four pieces, a high limb on an
+/// announced size and on the commitment root, and each check of the Keccak reduction tripped by the scalar it reads
+/// last.
 #[test]
 fn tampers_fail_the_same_check() {
     let fixture = fixture();
@@ -203,16 +247,21 @@ fn tampers_fail_the_same_check() {
     let keccak = fixture.summary.keccak_scalars.clone();
     let input_opening = 2 * (PACK_BITS + SLOT_BITS) + SLICES;
     let output_opening = 2 * SLOT_BITS + 1;
+    // The memory is 2^19 + 2^14 + 2^10 cells: its low bit set, it is four pieces.
+    assert_eq!(fixture.summary.memory_cells.count_ones(), 3);
+    let (high, low) = (F192::new(0, 0, 1), F192::new(1, 0, 0));
     let cases = [
-        (0, VerifierError::AnnouncedHighLimb),
-        (N_TABLES + 2, VerifierError::DigestHalf),
-        (keccak.start + PRODUCT_COEFFICIENTS, VerifierError::KeccakProduct),
+        (0, low, VerifierError::AnnouncedTableSizes),
+        (0, high, VerifierError::AnnouncedHighLimb),
+        (N_TABLES + 2, high, VerifierError::DigestHalf),
+        (keccak.start + PRODUCT_COEFFICIENTS, high, VerifierError::KeccakProduct),
         (
             keccak.end - input_opening - output_opening - 1,
+            high,
             VerifierError::KeccakLayer,
         ),
-        (keccak.end - input_opening - 1, VerifierError::KeccakOutputOpening),
-        (keccak.end - 1, VerifierError::KeccakInputOpening),
+        (keccak.end - input_opening - 1, high, VerifierError::KeccakOutputOpening),
+        (keccak.end - 1, high, VerifierError::KeccakInputOpening),
     ];
 
     let bytecode = Bytecode::new(&fixture.bytecode_table());
@@ -220,9 +269,10 @@ fn tampers_fail_the_same_check() {
     let directory = test_directory("tampered");
     let runs: Vec<Child> = cases
         .iter()
-        .map(|&(position, error)| {
+        .enumerate()
+        .map(|(case, &(position, delta, error))| {
             let mut stream = fixture.proof.stream.clone();
-            stream[position] += F192::new(0, 0, 1);
+            stream[position] += delta;
             let (bytes, openings) = encode(&stream, &fixture.summary.merkle_paths);
             let proof = Proof::load(&bytes, &openings).expect("load the tampered proof");
             assert_eq!(
@@ -230,10 +280,10 @@ fn tampers_fail_the_same_check() {
                 Err(error),
                 "scalar {position}"
             );
-            spawn_python(&directory.join(position.to_string()), &stream)
+            spawn_python(&directory.join(case.to_string()), &stream)
         })
         .collect();
-    for ((position, error), run) in cases.into_iter().zip(runs) {
+    for ((position, _, error), run) in cases.into_iter().zip(runs) {
         let output = run.wait_with_output().expect("wait for the Python verifier");
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(

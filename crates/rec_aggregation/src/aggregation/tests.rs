@@ -1,5 +1,5 @@
 use super::cells::{count, pack_16_bytes};
-use super::child::{MU_MAX, MU_MIN};
+use super::child::{MU_CAP, MU_MAX, MU_MIN, memory_piece_hints};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
@@ -15,7 +15,7 @@ use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::cpu::from_scalar;
-use leanvm_core::cpu::verify;
+use leanvm_core::cpu::{Program, verify};
 use primitives::field::{F64, F192, g_pow};
 use primitives::multilinear::mle_eval_par;
 use rand::SeedableRng;
@@ -214,6 +214,30 @@ fn forged_lean_xmss_hints_are_rejected() {
     }
 }
 
+/// A child's memory pieces are bound in-circuit: a node whose hints give the child's
+/// first piece another log, or cut it into two equal pieces, fails the guest's run.
+#[test]
+fn forged_memory_piece_hints_are_rejected() {
+    leanvm_core::init_prover();
+    let child = prove_leaf(&get_signers(1));
+    let forgeries: [Forgery; 2] = [
+        Box::new(|hints: &mut Hints| hints.entry_mut("mem_pieces", 0)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| {
+            let pieces = hints.entry_mut("mem_pieces", 0);
+            pieces[1] = pieces[0];
+            pieces[3] = F192::ONE;
+        }),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(std::slice::from_ref(&child), vec![], vec![], &[], None, LOG_INV_RATE);
+        assert!(
+            matches!(result, Err(AggregationError::ProofError(_))),
+            "a forged hint is rejected"
+        );
+    }
+}
+
 #[test]
 fn aggregate_one_signer() {
     leanvm_core::init_prover();
@@ -366,6 +390,134 @@ def main():
                 );
             }
         }
+    }
+}
+
+#[test]
+fn guest_memory_pieces_match_native() {
+    leanvm_core::init_prover();
+    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
+        .split_once("\ndef main():")
+        .unwrap();
+    // The pinning alone, and the pinning then the coefficients at zeta.
+    let pinning = format!(
+        r#"{helpers}
+def main():
+    g_squares = exponent_tables()
+    cells = hint_witness("cells")
+    kappa_base = HeapBuf(N_KAPPA_SOURCES)
+    mem_has = HeapBuf(MEM_PIECES)
+    g_log_mem = memory_pieces(cells, mem_has, kappa_base, g_squares)
+    public = GEN ** 0
+    assert public[1] == g_log_mem
+    return
+"#
+    );
+    let coefficients = format!(
+        r#"{helpers}
+def main():
+    g_squares = exponent_tables()
+    cells = hint_witness("cells")
+    kappa_base = HeapBuf(N_KAPPA_SOURCES)
+    mem_has = HeapBuf(MEM_PIECES)
+    g_log_mem = memory_pieces(cells, mem_has, kappa_base, g_squares)
+    zeta = HeapBuf(MU_CAP)
+    hint_witness(zeta[0:MU_CAP], "zeta")
+    e = HeapBuf(MEM_PIECES)
+    memory_piece_coefficients(zeta, kappa_base, mem_has, e)
+    expected = StackBuf(MEM_PIECES)
+    hint_witness(expected[0:MEM_PIECES], "expected")
+    for i in unroll(0, MEM_PIECES):
+        assert e[GEN ** i] == expected[i]
+    public = GEN ** 0
+    assert public[1] == g_log_mem
+    return
+"#
+    );
+    let [pinning, coefficients] =
+        [pinning, coefficients].map(|source| compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap()));
+    let mut rng = StdRng::seed_from_u64(1729);
+    let zeta: Vec<F192> = (0..MU_CAP)
+        .map(|_| {
+            let (c0, c1, c2) = rand::Rng::random(&mut rng);
+            F192::new(c0, c1, c2)
+        })
+        .collect();
+    let run = |guest: &Program, cells: u64, pieces: Vec<F192>, kappa: usize| {
+        // The native coefficients of the pieces `cells` has, zero for the ones it has not.
+        let logs = leanvm_core::cpu::memory_pieces(cells as usize);
+        let native_kappa = (cells.next_power_of_two().trailing_zeros() as usize).min(MU_CAP);
+        let mut expected = leanvm_core::witness::piece_coefficients(&zeta[..native_kappa], &logs);
+        expected.resize(3, F192::ZERO);
+        let mut hints = Hints::default();
+        hints.push("cells", vec![F192::new(cells, 0, 0)]);
+        hints.push("mem_pieces", pieces);
+        hints.push("zeta", zeta.clone());
+        hints.push("expected", expected);
+        let mut program = guest.clone();
+        hints.install(&mut program);
+        program.execute([count(kappa), F192::ZERO])
+    };
+    // Invariant: the guest's pinned piece logs are the native pieces, and its coefficients the native ones.
+    // Fixture state: one, two and three pieces, down to a piece of one cell, and both bounds.
+    for cells in [
+        1u64 << 16,
+        1 << 20,
+        (1 << 19) + (1 << 15),
+        (1 << 19) + (1 << 14) + (1 << 10),
+        (1 << 22) + (1 << 20) + (1 << 19),
+        (1 << 31) + (1 << 16) + 1,
+        1 << 32,
+    ] {
+        let kappa = cells.next_power_of_two().trailing_zeros() as usize;
+        let honest = run(&coefficients, cells, memory_piece_hints(cells), kappa)
+            .unwrap_or_else(|e| panic!("{cells} cells: {e}"));
+        assert!(honest.unconstrained_reads.is_empty(), "{cells} cells");
+    }
+    // Mutation: hints that do not spell the memory's binary representation, or a memory the native verifier refuses,
+    // each with the log_mem it implies, so that only the check it targets can reject it.
+    let g = count;
+    let (one, zero) = (F192::ONE, F192::ZERO);
+    let three = (1 << 19) + (1 << 14) + (1 << 10);
+    // A presence of 1 + g: 1 + (1 + g)(1 + g) = g^2, so it would claim log_mem = k_0 + 2 for the cells 2^k_0 + 1 + g.
+    let generator = F192::from(g_pow(1));
+    let not_a_bit = (1 << 19) ^ 1 ^ generator.c0;
+    for (cells, pieces, kappa, defect) in [
+        (three, vec![g(19), g(15), g(10), one, one], 20, "a piece log off by one"),
+        (
+            three,
+            vec![g(19), g(10), g(14), one, one],
+            20,
+            "two pieces out of order",
+        ),
+        (
+            (1 << 20) + (1 << 18),
+            vec![g(18), g(20), g(0), one, zero],
+            19,
+            "a second piece above the first",
+        ),
+        (
+            (1 << 19) + (1 << 14),
+            vec![g(19), g(14), g(10), one, zero],
+            20,
+            "a log for a piece it has not",
+        ),
+        (
+            not_a_bit,
+            vec![g(19), g(0), g(0), one + generator, zero],
+            21,
+            "a presence that is no bit",
+        ),
+        (three + (1 << 4), vec![g(19), g(14), g(10), one, one], 20, "four pieces"),
+        (1 << 15, vec![g(15), g(0), g(0), zero, zero], 15, "below 2^16 cells"),
+        (
+            (1 << 32) + (1 << 16),
+            vec![g(32), g(16), g(0), one, zero],
+            33,
+            "above 2^32 cells",
+        ),
+    ] {
+        assert!(run(&pinning, cells, pieces, kappa).is_err(), "{defect} is rejected");
     }
 }
 

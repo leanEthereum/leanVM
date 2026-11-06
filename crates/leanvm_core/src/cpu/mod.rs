@@ -31,9 +31,9 @@ pub use isa::{DerefMode, Op};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
-/// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
-/// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
-/// verifier rejects any announced `h` outside the range. `MIN_LOG_MEM` is also
+/// Data-memory size bounds (doc §Memory): memory is `N` cells with `2^MIN_LOG_MEM <= N <= 2^MAX_LOG_MEM`, and at
+/// most three set bits.
+/// The prover pads up to the minimum; the verifier rejects any announced `N` outside the range. `MIN_LOG_MEM` is also
 /// the static cap on range-check bounds (`compiler::Stmt::AssertLt`): a bound
 /// `≤ 2^MIN_LOG_MEM` keeps the complement argument sound for every memory size
 /// the prover may announce.
@@ -78,14 +78,14 @@ fn digest_words(halves: &[F192; 2]) -> [F64; 4] {
     ]
 }
 
-/// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) by
+/// Announce the prover's sizes (the memory's cells, every table's row count, the PCS rate) by
 /// writing them onto the scalar stream, which binds them into the state and lets the
 /// verifier reconstruct the layout, every table's height following from its rows
 /// ([`layout::table_logs`]). The public statement (program + input) is not announced
 /// here; it seeds the transcript at construction (see [`fs_seed`]). The boundary
 /// states are derived from the program, so they need no binding.
-fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
-    ps.add_scalar(F192::new(log_mem as u64, 0, 0));
+fn announce_public(ps: &mut ProverState, memory_cells: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
+    ps.add_scalar(F192::new(memory_cells as u64, 0, 0));
     for n in rows {
         ps.add_scalar(F192::new(n as u64, 0, 0));
     }
@@ -134,6 +134,11 @@ pub struct Program {
     /// which keeps the committed size a function of the announced sizes, so neither
     /// the verifier nor the guest needs a new parameter to certify. Prover-side only.
     pub min_log_committed: usize,
+    /// The most pieces the prover commits the memory in, `1..=MEMORY_PIECES`: the memory
+    /// it announces is the least cover of the cells the run used with that many pieces.
+    /// One piece is a power-of-two memory.
+    /// Prover-side only.
+    memory_pieces: usize,
 }
 
 /// The IV reinterprets the stacked bytecode table as bytes, which is its
@@ -167,6 +172,7 @@ impl Program {
             fn_ranges: Vec::new(),
             src_lines: Vec::new(),
             min_log_committed: 0,
+            memory_pieces: MEMORY_PIECES,
         }
     }
 
@@ -202,6 +208,23 @@ impl Program {
             .iter()
             .find(|(_, entry, len)| pc >= *entry && pc < *entry + *len)
             .map_or("<unknown fn>", |(name, _, _)| name.as_str())
+    }
+
+    /// The same program, its proofs committing the memory in at most `pieces` pieces: a test knob, any count proving
+    /// the same statement.
+    ///
+    /// # Panics
+    ///
+    /// If `pieces` is not in `1..=MEMORY_PIECES`.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn with_memory_pieces(mut self, pieces: usize) -> Self {
+        assert!(
+            (1..=MEMORY_PIECES).contains(&pieces),
+            "memory is 1 to {MEMORY_PIECES} pieces"
+        );
+        self.memory_pieces = pieces;
+        self
     }
 
     /// Supply the entries of witness stream `name`: one slice of values per
@@ -379,9 +402,11 @@ pub struct Stats {
     /// Rows per table the program executed.
     pub rows: [usize; tables::N_TABLES],
     pub committed: usize,
-    /// Data memory is `2^log_mem` cells (the padded write-once image).
+    /// Data memory is `memory_cells` cells (the padded write-once image), committed in
+    /// a piece per set bit, on a cube of `2^log_mem`.
+    pub memory_cells: usize,
     pub log_mem: usize,
-    /// Cells actually touched, before the pad to `2^log_mem`, i.e. the real memory
+    /// Cells actually touched, before the pad to `memory_cells`, i.e. the real memory
     /// footprint (`log2` is fractional).
     pub mem_used: usize,
     /// Bytecode instructions, before the pad to a power of two ([`Program::code_len`]).
@@ -466,7 +491,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     );
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
-    announce_public(&mut ps, w.layout.log_mem, w.layout.rows, log_inv_rate);
+    announce_public(&mut ps, w.layout.memory_cells, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || {
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
     });
@@ -540,6 +565,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
             cycles,
             rows: w.layout.rows,
             committed: committed_size,
+            memory_cells: w.layout.memory_cells,
             log_mem: w.layout.log_mem,
             mem_used,
             bytecode: program.code_len(),

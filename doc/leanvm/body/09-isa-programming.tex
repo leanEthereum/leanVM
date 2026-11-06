@@ -19,10 +19,10 @@ A frame is fp-relative with layout $[\mathit{retpc},\mathit{retfp},\mathrm{args}
 
 The callee frame pointer being hinted, the following convention is crucial: \textit{a function's internal logic should only depend on its inputs, not on where its frame happens to land}, so that the value of $\mathit{nfp}$ does not impact its execution.
 
-The ISA makes it possible to use values of $\fp$ outside the range $\{\gen^{0},\dots,\gen^{2^{\kmem}-1}\}$. As long as every memory access of the form $\loc{o}$ (for some offset $o$) is in range, i.e.\ $\fp\cdot o=\gen^{i}$ with $i<2^{\kmem}$, the execution is valid. Yet, reasoning about such out-of-range values of $\fp$ is tricky. The initial $\fp$ is in range, since the state boundary condition fixes $\fp_{0}=\gen^{0}$ (\S\ref{sec:state}), but nothing guarantees it for the ones a \texttt{JUMP} sets. We thus suggest the following programming convention: whenever a \texttt{JUMP} updates $\fp$, the program should guarantee that the new value is in range. The calling convention above does it for free:
+The ISA makes it possible to use values of $\fp$ outside the range $\{\gen^{0},\dots,\gen^{\nmem-1}\}$. As long as every memory access of the form $\loc{o}$ (for some offset $o$) is in range, i.e.\ $\fp\cdot o=\gen^{i}$ with $i<\nmem$, the execution is valid. Yet, reasoning about such out-of-range values of $\fp$ is tricky. The initial $\fp$ is in range, since the state boundary condition fixes $\fp_{0}=\gen^{0}$ (\S\ref{sec:state}), but nothing guarantees it for the ones a \texttt{JUMP} sets. We thus suggest the following programming convention: whenever a \texttt{JUMP} updates $\fp$, the program should guarantee that the new value is in range. The calling convention above does it for free:
 
 \begin{itemize}
-\item On a call, $\fp\gets\loc{o_f}$, where $\loc{o_f}=\mathit{nfp}$ is hinted, hence arbitrary. But the callee frame was initialized with the \texttt{DEREF} $\mem[\mathit{nfp}]\gets\gen^{2}\cdot\pc$, whose memory access at address $\mathit{nfp}$ forces $\mathit{nfp}=\gen^{i}$ with $i<2^{\kmem}$ (Corollary~\ref{cor:addrrange}).
+\item On a call, $\fp\gets\loc{o_f}$, where $\loc{o_f}=\mathit{nfp}$ is hinted, hence arbitrary. But the callee frame was initialized with the \texttt{DEREF} $\mem[\mathit{nfp}]\gets\gen^{2}\cdot\pc$, whose memory access at address $\mathit{nfp}$ forces $\mathit{nfp}=\gen^{i}$ with $i<\nmem$ (Lemma~\ref{lem:tail}).
 \item On a return, $\fp\gets\loc{\gen}$ reads back what the caller wrote there, i.e.\ its own $\fp$, in range by induction.
 \end{itemize}
 
@@ -44,11 +44,11 @@ To check that $\loc{o_1}$ and $\loc{o_2}$ are both in $\K$, it suffices to emit 
 
 The range check \emph{in the exponent} proves $x\in\{\gen^{0},\dots,\gen^{k-1}\}$, i.e.\ $\log_{\gen}x<k$, in 3 cycles:
 \begin{enumerate}
-\item \texttt{DEREF} through $x$: the dereferenced address $x\cdot\gen^{0}$ rides the memory interaction, which balances only for the $2^{\kmem}$ addresses $\gen^{0},\dots,\gen^{2^{\kmem}-1}$ (\S\ref{sec:memchan}): the bus itself proves $x=\gen^{e}$ with $e<2^{\kmem}$;
+\item \texttt{DEREF} through $x$: the dereferenced address $x\cdot\gen^{0}$ rides the memory interaction, which balances only for the $\nmem$ addresses $\gen^{0},\dots,\gen^{\nmem-1}$ (Lemma~\ref{lem:tail}): the bus itself proves $x=\gen^{e}$ with $e<\nmem$;
 \item \texttt{MUL} $x\cdot y$ into a write-once cell holding the constant $\gen^{k-1}$: the runner back-solves the complement $y=\gen^{k-1-e}$ (\S\ref{sec:prog-hints}), and the double write asserts $x\cdot y=\gen^{k-1}$;
-\item \texttt{DEREF} through $y$: proves $y=\gen^{f}$, $f<2^{\kmem}$.
+\item \texttt{DEREF} through $y$: proves $y=\gen^{f}$, $f<\nmem$.
 \end{enumerate}
-Then $e+f\equiv k-1\pmod{2^{64}-1}$ with $e,f<2^{\kmem}\le2^{32}$, so $e+f<2^{33}<2^{64}-1$ and the congruence is an equality over the integers; a ``negative'' $k-1-e$ would wrap to $\approx2^{64}\gg2^{\kmem}$, so $e\le k-1$, for every memory size the prover may announce, provided $k\le2^{16}$ (the minimum, \S\ref{sec:vm}). The two \texttt{DEREF}s only touch their targets, whose values nothing reads; the constant cell is one amortized \texttt{SET} per distinct bound per frame.
+Then $e+f\equiv k-1\pmod{2^{64}-1}$ with $e,f<\nmem\le2^{32}$, so $e+f<2^{33}<2^{64}-1$ and the congruence is an equality over the integers; a ``negative'' $k-1-e$ would wrap to $\approx2^{64}\gg\nmem$, so $e\le k-1$, for every memory size the prover may announce, provided $k\le2^{16}$ (the minimum, \S\ref{sec:vm}). The two \texttt{DEREF}s only touch their targets, whose values nothing reads; the constant cell is one amortized \texttt{SET} per distinct bound per frame.
 
 \subsection{Hashing with Keccak}\label{sec:prog-hashing}
 

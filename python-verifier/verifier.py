@@ -718,6 +718,8 @@ TAG = b"leanvm-v1"
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
 NUM_GLOBAL_COLUMNS = 6
 MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QKECCAK = range(NUM_GLOBAL_COLUMNS)
+MIN_MEMORY_CELLS, MAX_MEMORY_CELLS = 2**16, 2**32  # the announced memory's bounds, in cells
+MAX_MEMORY_PIECES = 3  # the most pieces memory is committed in: one per set bit of its size
 
 K_BITS = 64
 
@@ -1005,7 +1007,13 @@ TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least l
 
 def build_layout(bytecode: Sequence[K], memory_cells: int, table_rows: Sequence[int]) -> Layout:
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
-    require(all(rows <= 2**32 for rows in table_rows) and 0 <= log_bytecode <= 32, "invalid announced table sizes")
+    require(
+        MIN_MEMORY_CELLS <= memory_cells <= MAX_MEMORY_CELLS
+        and memory_cells.bit_count() <= MAX_MEMORY_PIECES
+        and all(rows <= 2**32 for rows in table_rows)
+        and 0 <= log_bytecode <= 32,
+        "invalid announced table sizes",
+    )
     log_memory = log2_ceil(memory_cells)
     # A table's height is the least power of two holding its rows.
     table_log_heights = tuple(max(log2_ceil(rows), floor) for rows, floor in zip(table_rows, TABLE_LOG_FLOORS, strict=True))
@@ -1512,15 +1520,14 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     fiat_shamir_IV = keccak_hash(TAG + b"".join(word.to_bytes() for word in bytecode))
     transcript = Transcript(proof, fiat_shamir_IV, public_input)
 
-    # 1] memory log-size, table row counts, and log-inv-rate in WHIR
+    # 1] memory cells, table row counts, and log-inv-rate in WHIR
     announced = transcript.next_scalars(2 + len(TABLES))
     require(all(value.c1 == value.c2 == 0 for value in announced), "announced size has a nonzero high limb")
-    log_memory = int(announced[0].c0)
+    memory_cells = int(announced[0].c0)
     table_rows = tuple(int(value.c0) for value in announced[1 : 1 + len(TABLES)])
     log_inverse_rate = int(announced[-1].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
-    require(16 <= log_memory <= 32, "invalid announced table sizes")
-    layout = build_layout(bytecode, 2**log_memory, table_rows)
+    layout = build_layout(bytecode, memory_cells, table_rows)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).

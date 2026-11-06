@@ -21,6 +21,12 @@ the zero padding contributing nothing. An evaluation claim $\widetilde P_i(\zeta
 \]
 a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),w)$.
 
+\paragraph{Columns in pieces.} A column need not be committed whole. Let $c$ be a multilinear in $\kappa$ variables whose first $n=\sum_{i}2^{\kpc{i}}$ cells, $\kpc{0}>\kpc{1}>\cdots$, are committed as the pieces $P_i(y)=c(\opcs{i}+y)$, $y\in\cube{\kpc{i}}$, each placed in the stack as above, where $\opcs{i}=\sum_{j<i}2^{\kpc{j}}$, and whose cells from $n$ on all hold a public value $\vpad$. Since $\opcs{i}$ is a multiple of $2^{\kpc{i}}$, the cell $\opcs{i}+y$ has low bits $y$ and high bits those of $\opcs{i}/2^{\kpc{i}}$, so by Fact~\ref{fact:eq} and Lemma~\ref{lem:suffix}
+\begin{equation}\label{eq:jagged}
+  \widetilde c(r)\;=\;\sum_i\epc{i}(r)\,\widetilde P_i(r_{<\kpc{i}})\;+\;\vpad\,\padw{n}(r),\qquad \epc{i}(r)=\eq\bigl(\opcs{i}/2^{\kpc{i}},\,r_{\ge\kpc{i}}\bigr),
+\end{equation}
+the offset read as its bits. A claim $\widetilde c(r)=v$ is therefore one claim on the stack, with weight $W=\sum_i\epc{i}(r)\,\eq((r_{<\kpc{i}},\mathsf{sel}_i),\cdot)$ and value $v-\vpad\,\padw{n}(r)$. The identity is exact and the verifier evaluates both itself, so this costs no soundness and the batching below is unchanged. The memory is committed this way (\S\ref{sec:memchan}): the stack holds only the cells a run covers.
+
 \paragraph{Batching.} By the identity above, the claims the protocol raises on the $P_i$ transfer to a list of claims $\langle W_j,\widetilde q\rangle=c_j$ on the stack, with $\E$-valued weights and targets. The verifier then samples $\lambda\in\E$, and it remains to prove
 \[
   \Bigl\langle \sum_j\lambda^{j-1}W_j,\;\widetilde q\Bigr\rangle\qeq\sum_j\lambda^{j-1}c_j

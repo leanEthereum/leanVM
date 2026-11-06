@@ -21,7 +21,7 @@ LeanVM ISA, also known as leanISA, is inspired by \cite{cairo}. The Virtual Mach
   \item the frame pointer $\fp \xleftarrow{} 1_\K$
 \end{itemize}
 
-Then, initialize the write-once memory: a buffer, of size $\nmem = 2^{\kmem}$, containing $\E$-valued \textit{memory words} (192 bits). The memory is indexed \textit{in the exponent} of $\gen$ (64 bits). The first memory word is $\mem[\gen^0] \in \E$, the second is $\mem[\gen^1]$, the third is $\mem[\gen^2]$, etc. The bytecode addressing follows the same convention. Each memory access beyond $\gen^{\nmem - 1}$ (resp. $\gen^{\nprog - 1}$ for the bytecode) is invalid.
+Then, initialize the write-once memory: a buffer of $\nmem$ cells, containing $\E$-valued \textit{memory words} (192 bits). The memory is indexed \textit{in the exponent} of $\gen$ (64 bits). The first memory word is $\mem[\gen^0] \in \E$, the second is $\mem[\gen^1]$, the third is $\mem[\gen^2]$, etc. The bytecode addressing follows the same convention. Each memory access beyond $\gen^{\nmem - 1}$ (resp. $\gen^{\nprog - 1}$ for the bytecode) is invalid.
 
 The public input fixes the first two memory words $\mem[\gen^0] = \textsf{input}_0 + \textsf{input}_1 \cdot y \in \E$ and $\mem[\gen^1] = \textsf{input}_2 + \textsf{input}_3 \cdot y \in \E$.
 
@@ -46,7 +46,7 @@ When proving the VM execution via a snark, the memory is committed (by an untrus
 
 For a given pair of bytecode and public input, there is more than one valid execution.
 
-In particular, the memory log-size $\kmem$ is a non deterministic parameter, freely chosen at the beginning of execution, with the constraint $16\le\kmem\le 32$.
+In particular, the memory size $\nmem$ is a non deterministic parameter, freely chosen at the beginning of execution, with the constraints $2^{16}\le\nmem\le 2^{32}$ and at most three set bits in its binary expansion (\S\ref{sec:memchan}). We write $\kmem=\lceil\log_2\nmem\rceil$.
 
 \paragraph{Operands and addressing.} An instruction is an opcode followed by a list of $\K$-valued operands. An operand is either an \emph{fp-relative reference}, an offset $j$ into the current frame encoded as the $\gen$-power $o=\gen^{\,j}$, or one $\K$-lane of an \emph{immediate} ($k_0,k_1,k_2$ in \texttt{SET\_CONSTANT}). With the frame based at $\fp=\gen^{\mathrm{base}}$, a reference names the cell
 \[

@@ -11,9 +11,12 @@ use primitives::{
 };
 
 pub struct Execution {
-    pub mem: Memory,     // data memory after the run, write-once (size cells, power of two)
-    pub cycles: usize,   // number of instructions the run executed (trace length)
-    pub mem_used: usize, // cells actually touched, before the power-of-two pad of `mem`
+    /// Data memory after the run, write-once: the announced cells.
+    pub mem: Memory,
+    /// Instructions the run executed: the trace length.
+    pub cycles: usize,
+    /// Cells actually touched, before the pad of the memory to the announced cells.
+    pub mem_used: usize,
     /// Cells an instruction read before anything wrote them, so the value it read was
     /// ZERO here and prover-chosen in a proof: memory is a committed array and the bus
     /// only forces accesses to one address to *agree*, never that the address was
@@ -74,7 +77,7 @@ impl Cell {
     };
 }
 
-/// The write-once data memory: `len` cells, a power of two, in pages, so that the
+/// The write-once data memory: `len` cells, the announced memory, in pages, so that the
 /// image grows without moving what it holds. Cells past the last page are unwritten
 /// and never accessed.
 pub struct Memory {
@@ -83,7 +86,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    /// Cells in the image, its power-of-two pad included.
+    /// Cells in the image, its pad to the announced memory included.
     pub fn len(&self) -> usize {
         self.len
     }
@@ -1057,15 +1060,28 @@ impl Program {
             bytecode_count,
             counts,
         };
-        // Pad memory to a power of two (the boundary tables read a dense image), at
-        // least 2^MIN_LOG_MEM cells (doc §Memory), doubled until the stacked witness
-        // reaches `min_log_committed`.
+        // Cover the cells the run used with at most `memory_pieces` pieces, at least
+        // 2^MIN_LOG_MEM cells (doc §Memory), or, if the stacked witness falls short of
+        // `min_log_committed`, the least such cover that reaches it: the witness grows
+        // with the cells covered, so a bisection finds it.
         let mem_used = m.used;
-        let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
         let taus = super::layout::table_logs(trace.row_counts());
         let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        while super::layout::committed_log(cells, log_bytecode, taus) < self.min_log_committed {
-            cells *= 2;
+        let cover = |used: usize| super::layout::memory_cover(used, self.memory_pieces);
+        let reaches = |cells: usize| super::layout::committed_log(cells, log_bytecode, taus) >= self.min_log_committed;
+        let mut cells = cover(mem_used);
+        if !reaches(cells) {
+            let (mut short, mut enough) = (cells, 1 << MAX_LOG_MEM);
+            assert!(reaches(enough), "data memory exceeds 2^{MAX_LOG_MEM} cells");
+            while enough - short > 1 {
+                let middle = short + (enough - short) / 2;
+                if reaches(cover(middle)) {
+                    enough = middle;
+                } else {
+                    short = middle;
+                }
+            }
+            cells = cover(enough);
         }
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
         Ok(Execution {

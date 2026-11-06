@@ -84,6 +84,12 @@ pub const KECCAK_DEPTH: usize = 12;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 pub const MAX_TABLE_LOG: usize = 32;
+/// The least memory, in cells, a proof may announce.
+pub const MIN_MEMORY_CELLS: u64 = 1 << 16;
+/// The most memory, in cells: the instance cap that keeps the read counts from wrapping (thm:omc).
+pub const MAX_MEMORY_CELLS: u64 = 1 << 32;
+/// The most pieces memory is committed in, one per set bit of its size.
+pub const MAX_MEMORY_PIECES: u32 = 3;
 pub const MIN_STACKED_LOG: usize = 15;
 pub const MAX_STACKED_LOG: usize = 28;
 
@@ -486,7 +492,10 @@ pub fn build_layout<'a>(
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
-        table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG) && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
+        (MIN_MEMORY_CELLS..=MAX_MEMORY_CELLS).contains(&memory_cells)
+            && memory_cells.count_ones() <= MAX_MEMORY_PIECES
+            && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
+            && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
     let log_bytecode = log_bytecode - BUS_BITS;
@@ -598,4 +607,37 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn announced_memory_is_bounded_and_at_most_three_pieces() {
+        // Fixture state: a one-instruction bytecode (16 words), every table one row.
+        let bytecode = Bytecode::new(&[0; 1 << BUS_BITS]);
+        let rows = [1; N_TABLES];
+        let log_memory = |cells: u64| build_layout(&bytecode, cells, &rows).map(|layout| layout.log_memory);
+        // Accepted: both bounds, and three pieces, the least one a single cell.
+        assert_eq!(log_memory(MIN_MEMORY_CELLS), Ok(16));
+        assert_eq!(log_memory(MAX_MEMORY_CELLS), Ok(32));
+        assert_eq!(log_memory((1 << 22) + (1 << 20) + (1 << 19)), Ok(23));
+        assert_eq!(log_memory((1 << 16) + (1 << 15) + 1), Ok(17));
+        // Rejected: below the least memory, above the cap, and four pieces.
+        for cells in [
+            0,
+            MIN_MEMORY_CELLS - 1,
+            MAX_MEMORY_CELLS + 1,
+            MAX_MEMORY_CELLS + MIN_MEMORY_CELLS,
+            1 << 33,
+            (1 << 22) + (1 << 20) + (1 << 19) + (1 << 10),
+        ] {
+            assert_eq!(
+                log_memory(cells),
+                Err(VerifierError::AnnouncedTableSizes),
+                "{cells} cells"
+            );
+        }
+    }
 }
