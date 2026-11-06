@@ -174,8 +174,8 @@ impl<'a> Transcript<'a> {
         Ok(chunk)
     }
 
-    /// The leaf images at `queries`, authenticated against `root`. `row_words` is what the pruned form stores of
-    /// each, the rest of the image being a zero prefix; the raw form carries whole images.
+    /// The paths of `queries`, in order, their leaf images authenticated against `root`. `row_words` is what the pruned
+    /// form stores of each image, the rest being a zero prefix; the raw form carries whole images.
     ///
     /// Each query's own path is kept for [`Self::finish`], whichever form the proof came in.
     pub fn merkle(
@@ -185,7 +185,7 @@ impl<'a> Transcript<'a> {
         queries: &[u64],
         row_words: usize,
         leaf_words: usize,
-    ) -> Result<Vec<Vec<K>>, VerifierError> {
+    ) -> Result<&[MerklePath], VerifierError> {
         let height = log2_strict(block_length)?;
         let paths = match &self.proof.merkle_openings {
             MerkleOpenings::Raw(data) => {
@@ -222,9 +222,9 @@ impl<'a> Transcript<'a> {
                 paths
             }
         };
-        let rows = paths.iter().map(|path| path.leaf.clone()).collect();
+        let start = self.paths.len();
         self.paths.extend(paths);
-        Ok(rows)
+        Ok(&self.paths[start..])
     }
 
     /// returns q(X) := c0 + c1X + c2X^2 + ...

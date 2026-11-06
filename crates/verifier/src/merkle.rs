@@ -1,7 +1,7 @@
 //! Merkle openings in the form a proof travels in: one batch per opening phase, each shared sibling sent once.
 
 use crate::field::K;
-use crate::hash::{Digest, keccak_hash};
+use crate::hash::{Digest, Keccak256, keccak_hash};
 use crate::{VerifierError, require};
 
 /// A proof's Merkle openings, in either form. Both authenticate the same leaf images against the same roots.
@@ -41,8 +41,19 @@ pub fn hash_pair(left: &[u8], right: &[u8]) -> Digest {
     keccak_hash(&pair)
 }
 
+/// How many words of a leaf image one piece of its hash holds: a sponge block's worth, absorbed straight from the stack.
+const LEAF_CHUNK_WORDS: usize = 17;
+
 fn hash_leaf(image: &[K]) -> Digest {
-    keccak_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
+    let mut hasher = Keccak256::default();
+    let mut bytes = [0u8; 8 * LEAF_CHUNK_WORDS];
+    for words in image.chunks(LEAF_CHUNK_WORDS) {
+        for (bytes, word) in bytes.as_chunks_mut().0.iter_mut().zip(words) {
+            *bytes = word.to_bytes();
+        }
+        hasher.update(&bytes[..8 * words.len()]);
+    }
+    hasher.finalize()
 }
 
 /// One query's own opening, the form the recursion guest and the Python verifier read.
@@ -94,10 +105,14 @@ impl PrunedMerklePaths {
         let mut paths: Vec<MerklePath> = positions
             .iter()
             .zip(&self.leaf_data)
-            .map(|(&leaf_index, row)| MerklePath {
-                leaf_index,
-                leaf: [&vec![K(0); leaf_words - row_words], &row[..]].concat(),
-                siblings: Vec::with_capacity(height),
+            .map(|(&leaf_index, row)| {
+                let mut leaf = vec![K(0); leaf_words];
+                leaf[leaf_words - row_words..].copy_from_slice(row);
+                MerklePath {
+                    leaf_index,
+                    leaf,
+                    siblings: Vec::with_capacity(height),
+                }
             })
             .collect();
 
@@ -107,9 +122,11 @@ impl PrunedMerklePaths {
             .map(|path| (path.leaf_index, hash_leaf(&path.leaf)))
             .collect();
         let mut node_of: Vec<usize> = (0..paths.len()).collect(); // where each position's ancestor sits in `nodes`
+        let mut parents = Vec::with_capacity(nodes.len());
+        let mut level_siblings = Vec::with_capacity(nodes.len()); // each node's sibling, and where its parent sits
         for _ in 0..height {
-            let mut parents = Vec::with_capacity(nodes.len());
-            let mut level_siblings = Vec::with_capacity(nodes.len()); // each node's sibling, and where its parent sits
+            parents.clear();
+            level_siblings.clear();
             let mut i = 0;
             while i < nodes.len() {
                 let (index, node) = nodes[i];
@@ -135,12 +152,29 @@ impl PrunedMerklePaths {
                 path.siblings.push(sibling);
                 *node = parent;
             }
-            nodes = parents;
+            std::mem::swap(&mut nodes, &mut parents);
         }
         require(siblings.next().is_none(), VerifierError::MerkleNotConsumed)?;
 
-        let path_of = |query: &u64| paths[positions.binary_search(query).expect("every query is a position")].clone();
-        Ok((nodes[0].1, queries.iter().map(path_of).collect()))
+        // A position's last query takes its path, any earlier one a copy.
+        let position_of = |query: &u64| positions.binary_search(query).expect("every query is a position");
+        let mut last_query = vec![0; positions.len()];
+        for (i, query) in queries.iter().enumerate() {
+            last_query[position_of(query)] = i;
+        }
+        let mut paths: Vec<Option<MerklePath>> = paths.into_iter().map(Some).collect();
+        let mut ordered = Vec::with_capacity(queries.len());
+        for (i, query) in queries.iter().enumerate() {
+            let at = position_of(query);
+            ordered.push(if last_query[at] == i {
+                paths[at].take().expect("only a position's last query takes its path")
+            } else {
+                paths[at]
+                    .clone()
+                    .expect("a position's other queries come before its last")
+            });
+        }
+        Ok((nodes[0].1, ordered))
     }
 }
 

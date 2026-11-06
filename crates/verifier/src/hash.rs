@@ -77,23 +77,66 @@ fn xor_block(state: &mut [u64; STATE_LANES], block: &[u8; RATE]) {
 /// Keccak-256 of `data`: 136-byte blocks, the last holding the remaining 0 to 135 bytes and the padding
 /// `0x01 ‖ 0^* ‖ 0x80`.
 pub fn keccak_hash(data: &[u8]) -> Digest {
-    let mut state = [0u64; STATE_LANES];
-    let (blocks, tail) = data.as_chunks::<RATE>();
-    for block in blocks {
-        xor_block(&mut state, block);
-        keccak_f(&mut state);
+    let mut hasher = Keccak256::default();
+    hasher.update(data);
+    hasher.finalize()
+}
+
+/// Keccak-256 over input that arrives in pieces: the digest of their concatenation, without holding it.
+#[derive(Clone, Debug)]
+pub struct Keccak256 {
+    state: [u64; STATE_LANES],
+    /// The bytes of a block not yet absorbed; fewer than a block between calls.
+    pending: [u8; RATE],
+    filled: usize,
+}
+
+impl Default for Keccak256 {
+    fn default() -> Self {
+        Self {
+            state: [0; STATE_LANES],
+            pending: [0; RATE],
+            filled: 0,
+        }
     }
-    let mut block = [0u8; RATE];
-    block[..tail.len()].copy_from_slice(tail);
-    block[tail.len()] ^= 0x01;
-    block[RATE - 1] ^= 0x80;
-    xor_block(&mut state, &block);
-    keccak_f(&mut state);
-    let mut value = [0u8; 32];
-    for (bytes, lane) in value.as_chunks_mut().0.iter_mut().zip(state) {
-        *bytes = lane.to_le_bytes();
+}
+
+impl Keccak256 {
+    /// Absorbs `data` after everything before it, keeping back any partial block.
+    pub fn update(&mut self, mut data: &[u8]) {
+        if self.filled > 0 {
+            let take = data.len().min(RATE - self.filled);
+            self.pending[self.filled..self.filled + take].copy_from_slice(&data[..take]);
+            self.filled += take;
+            data = &data[take..];
+            if self.filled < RATE {
+                return;
+            }
+            xor_block(&mut self.state, &self.pending);
+            keccak_f(&mut self.state);
+        }
+        let (blocks, tail) = data.as_chunks::<RATE>();
+        for block in blocks {
+            xor_block(&mut self.state, block);
+            keccak_f(&mut self.state);
+        }
+        self.pending[..tail.len()].copy_from_slice(tail);
+        self.filled = tail.len();
     }
-    Digest(value)
+
+    /// The last block, padded `0x01 ‖ 0^* ‖ 0x80`, and the first four lanes of the state.
+    pub fn finalize(mut self) -> Digest {
+        self.pending[self.filled..].fill(0);
+        self.pending[self.filled] ^= 0x01;
+        self.pending[RATE - 1] ^= 0x80;
+        xor_block(&mut self.state, &self.pending);
+        keccak_f(&mut self.state);
+        let mut value = [0u8; 32];
+        for (bytes, lane) in value.as_chunks_mut().0.iter_mut().zip(self.state) {
+            *bytes = lane.to_le_bytes();
+        }
+        Digest(value)
+    }
 }
 
 /// 256 bits
@@ -152,6 +195,23 @@ mod tests {
         for (n, want) in VECTORS {
             let input: Vec<u8> = (0..n).map(|i| i as u8).collect();
             let got: String = keccak_hash(&input).0.iter().map(|byte| format!("{byte:02x}")).collect();
+            assert_eq!(got, want, "{n} bytes");
+        }
+    }
+
+    #[test]
+    fn hashing_in_pieces_matches_reference_vectors() {
+        // Pieces of 1, 7, 136 and 137 bytes in turn: each lands inside, on and across a block boundary somewhere.
+        for (n, want) in VECTORS {
+            let input: Vec<u8> = (0..n).map(|i| i as u8).collect();
+            let mut hasher = Keccak256::default();
+            let (mut rest, mut sizes) = (&input[..], [1, 7, RATE, RATE + 1].into_iter().cycle());
+            while !rest.is_empty() {
+                let (piece, tail) = rest.split_at(rest.len().min(sizes.next().expect("the sizes cycle")));
+                hasher.update(piece);
+                rest = tail;
+            }
+            let got: String = hasher.finalize().0.iter().map(|byte| format!("{byte:02x}")).collect();
             assert_eq!(got, want, "{n} bytes");
         }
     }
