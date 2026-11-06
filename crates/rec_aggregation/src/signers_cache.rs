@@ -18,8 +18,8 @@ use std::time::Instant;
 use primitives::{pretty_f64, pretty_integer};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use signatures::lean_sphincs;
 use signatures::lean_xmss::*;
-use signatures::{lean_sphincs, lean_xmss};
 
 type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
@@ -94,7 +94,7 @@ fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<CachedSignature>> 
         let (pk, sig) = record.split_at(PUB_KEY_SIZE);
         let pk = LeanXmssPublicKey::from_bytes(pk.try_into().unwrap());
         let sig = LeanXmssSignature::from_bytes(sig.try_into().unwrap());
-        if sig.leaf_index() != leaf_index_of(signers.len(), message_id) || lean_xmss::verify(&pk, &msg, &sig).is_err() {
+        if sig.leaf_index() != leaf_index_of(signers.len(), message_id) || verify(&pk, &msg, &sig).is_err() {
             eprintln!(
                 "warning: signers cache {} is stale (signer {} no longer verifies); regenerating from there",
                 path.display(),
@@ -205,6 +205,10 @@ fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     (public_key, message, signature)
 }
 
+#[expect(
+    unused_qualifications,
+    reason = "the scheme each hashed item belongs to is the point"
+)]
 fn lean_sphincs_footprint() -> u64 {
     let mut hasher = DefaultHasher::new();
     SCHEMA_VERSION.hash(&mut hasher);

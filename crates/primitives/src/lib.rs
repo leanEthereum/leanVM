@@ -154,25 +154,25 @@ unsafe impl Plain for core::arch::aarch64::uint64x2_t {}
 ///
 /// If `B` is zero-sized, the slice is misaligned for `B`, or its byte length is not a multiple of `size_of::<B>()`.
 pub fn cast_slice<A: Plain, B: Plain>(a: &[A]) -> &[B] {
-    let (ptr, bytes) = (a.as_ptr().cast::<B>(), core::mem::size_of_val(a));
+    let (ptr, bytes) = (a.as_ptr().cast::<B>(), size_of_val(a));
     assert!(
         size_of::<B>() != 0 && ptr.is_aligned() && bytes % size_of::<B>() == 0,
         "slice does not cast"
     );
     // SAFETY: both types are plain, so every byte is initialized and any pattern is valid; the checks above
     // cover alignment and length, and the lifetime is the borrow's.
-    unsafe { core::slice::from_raw_parts(ptr, bytes / core::mem::size_of::<B>()) }
+    unsafe { core::slice::from_raw_parts(ptr, bytes / size_of::<B>()) }
 }
 
 /// [`cast_slice`] of a mutable slice.
 pub fn cast_slice_mut<A: Plain, B: Plain>(a: &mut [A]) -> &mut [B] {
-    let (ptr, bytes) = (a.as_mut_ptr().cast::<B>(), core::mem::size_of_val(a));
+    let (ptr, bytes) = (a.as_mut_ptr().cast::<B>(), size_of_val(a));
     assert!(
         size_of::<B>() != 0 && ptr.is_aligned() && bytes % size_of::<B>() == 0,
         "slice does not cast"
     );
     // SAFETY: as `cast_slice`, and the borrow is unique.
-    unsafe { core::slice::from_raw_parts_mut(ptr, bytes / core::mem::size_of::<B>()) }
+    unsafe { core::slice::from_raw_parts_mut(ptr, bytes / size_of::<B>()) }
 }
 
 /// The `A` whose bytes start at element `i` of `src`, read unaligned.

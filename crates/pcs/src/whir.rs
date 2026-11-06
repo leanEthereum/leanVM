@@ -1289,7 +1289,7 @@ mod tests {
 
                 let prove = |msg: &[F64]| {
                     let (cm, pd) = commit(msg, log_n, pc.initial_k, pc.log_inv_rates[0]);
-                    let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+                    let mut ps = ProverState::from_label(b"whir-test");
                     open_batch_mixed_whir_stacked(&mut ps, log_n, msg.to_vec(), pd, &pc, &claims, &ring);
                     (cm.root, ps.into_proof())
                 };

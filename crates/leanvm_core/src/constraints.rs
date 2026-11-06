@@ -417,7 +417,7 @@ fn round_polynomial([endpoint, quadratic]: [F192; 2], zeta: F192, claim: F192, w
 pub fn prove(airs: &[Air<'_>], zeta: &[F192], ps: &mut ProverState) -> Vec<Claims> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    let mut tables: Vec<Table> = airs
+    let mut tables: Vec<Table<'_>> = airs
         .iter()
         .map(|air| Table {
             tau: air.tau,

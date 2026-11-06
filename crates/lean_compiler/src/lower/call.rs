@@ -32,7 +32,7 @@ fn substitute_body<'a>(body: &'a [Stmt], substs: &[(&str, Expr)]) -> Cow<'a, [St
         return Cow::Borrowed(body);
     }
     let subs: Vec<(&str, &Expr)> = substs.iter().map(|(name, value)| (*name, value)).collect();
-    Cow::Owned(crate::parser::subst_all(body, &subs))
+    Cow::Owned(parser::subst_all(body, &subs))
 }
 
 /// A single tail return, preceded by statements that can be expanded in the caller's frame.

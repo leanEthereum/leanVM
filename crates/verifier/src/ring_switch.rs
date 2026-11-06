@@ -37,7 +37,7 @@ fn ring_weight(r: &[E], r_prime: &[E], coefficients: &[E]) -> E {
 ///
 /// Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
 /// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure.
-pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> (E, impl Fn(&[E]) -> E + use<>) {
+pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript<'_>) -> (E, impl Fn(&[E]) -> E + use<>) {
     let challenges = transcript.samples(RING_MAP_SHIFTS.len());
     // The same map as a Frobenius sum, `Phi(a) = sum_k c_k a^(2^k)` for k < 64.
     let coefficient = |k: usize| {

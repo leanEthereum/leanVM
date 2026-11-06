@@ -681,7 +681,7 @@ mod vertical {
     /// Fold every tree's rows by `challenge` into its `out`, in one dispatch for the
     /// three, returning the next round's messages.
     pub(super) fn fold(
-        inputs: [Input; 3],
+        inputs: [Input<'_>; 3],
         challenge: F192,
         eq: &SplitEq,
         outs: [&mut Vec<Group>; 3],

@@ -340,7 +340,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
     /// whole sixteen-tuples.
     const CHUNKED: usize = 4;
 
-    let mut blocks: Vec<LeafBlock> = Vec::new();
+    let mut blocks: Vec<LeafBlock<'_>> = Vec::new();
     let mut lens = [1usize; 3];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
@@ -355,7 +355,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
                 "the blocks tile the leaves"
             );
             let mut const_part = beta;
-            let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
+            let mut terms: Vec<Term<'_>> = Vec::with_capacity(blk.coords.len());
             for (i, c) in blk.coords.iter().enumerate() {
                 push_terms(c, w[i], &mut terms, &mut const_part);
             }
@@ -392,7 +392,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         .collect();
     shapes.sort_unstable();
     shapes.dedup();
-    let groups: Vec<Vec<&LeafBlock>> = shapes
+    let groups: Vec<Vec<&LeafBlock<'_>>> = shapes
         .iter()
         .map(|&shape| blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect())
         .collect();
@@ -688,7 +688,7 @@ type PublicEvals = HashMap<(usize, usize), F192>;
 fn public_eval(vals: &Arc<Vec<F64>>, point: &[F192], cache: &mut PublicEvals) -> F192 {
     *cache
         .entry((Arc::as_ptr(vals) as usize, point.len()))
-        .or_insert_with(|| primitives::multilinear::mle_eval_par(vals, point))
+        .or_insert_with(|| mle_eval_par(vals, point))
 }
 
 /// Prover-side decomposition: reads the real columns, writing each FRESH

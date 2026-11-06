@@ -395,7 +395,7 @@ impl Layer<'_> {
     /// The padding block's groups are one row, its segment's entry of `pads`.
     fn table(
         &self,
-        round: &Round,
+        round: &Round<'_>,
         challenges: &[F192],
         eq: &[F192],
         layout: Rows,

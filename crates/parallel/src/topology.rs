@@ -130,7 +130,7 @@ fn efficiency_cores() -> usize {
 #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
 fn sysctl_usize(name: &core::ffi::CStr) -> Option<usize> {
     let mut value: i32 = 0;
-    let mut len = core::mem::size_of::<i32>();
+    let mut len = size_of::<i32>();
     // SAFETY: a read-only sysctl; `value`/`len` are correctly sized and the
     // new-value pointer is null, so nothing is written into the kernel.
     let rc = unsafe {
@@ -142,7 +142,7 @@ fn sysctl_usize(name: &core::ffi::CStr) -> Option<usize> {
             0,
         )
     };
-    (rc == 0 && len == core::mem::size_of::<i32>() && value > 0).then_some(value as usize)
+    (rc == 0 && len == size_of::<i32>() && value > 0).then_some(value as usize)
 }
 
 /// Scheduling class for a worker, which on Apple silicon is also a choice of

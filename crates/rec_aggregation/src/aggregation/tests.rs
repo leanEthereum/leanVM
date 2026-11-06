@@ -456,7 +456,7 @@ fn aggregate_two_to_one() {
 }
 
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
-    let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
+    let mut rng = <StdRng as SeedableRng>::seed_from_u64(seed);
     (0..n_rows * (1 << DA_LOG_K))
         .map(|_| rand::Rng::random(&mut rng))
         .collect()
