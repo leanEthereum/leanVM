@@ -69,7 +69,7 @@ pub(super) fn gen_verify(
     bytecode_value: F192,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
     let layout = program.layout(
-        1 << summary.log_memory,
+        summary.memory_cells as usize,
         std::array::from_fn(|t| summary.table_rows[t] as usize),
         public_input,
     );
@@ -146,17 +146,28 @@ pub(super) fn gen_verify(
     // sorted by descending kappa, then by their native column and piece index.
     // Transport compact committed-piece indices; the guest certifies the permutation,
     // ordering, and accumulated offsets before using them as claim selectors.
+    // A memory piece the memory's cells do not have takes no room, and ranks as one
+    // of log 0: where it sits changes no other piece's offset.
     let col_sources = leanvm_core::cpu::col_kappa_sources(kbc);
     let committed: Vec<(usize, usize)> = col_sources
         .iter()
         .enumerate()
         .flat_map(|(i, source)| (0..source.as_ref().map_or(0, |s| s.pieces.len())).map(move |piece| (i, piece)))
         .collect();
-    let mut col_order: Vec<usize> = (0..committed.len()).collect();
-    col_order.sort_by_key(|&compact| {
+    let placement = |compact: usize| {
         let (global, piece) = committed[compact];
-        layout.columns[global].placements[piece].offset
-    });
+        layout.columns[global].placements.get(piece)
+    };
+    let mut col_order: Vec<usize> = (0..committed.len()).collect();
+    col_order.sort_by_key(|&compact| (std::cmp::Reverse(placement(compact).map_or(0, |p| p.n_vars)), compact));
+    assert!(
+        col_order
+            .iter()
+            .filter_map(|&compact| placement(compact))
+            .map(|p| p.offset)
+            .is_sorted(),
+        "the rank order is the stacked order"
+    );
     // The order by column group (`col_groups`): its pieces are consecutive in it.
     let groups = col_groups(
         &col_sources
@@ -255,10 +266,27 @@ pub(super) fn gen_verify(
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order),
+        ("mem_pieces", memory_piece_hints(summary.memory_cells)),
         ("block_group_order", sort_order),
     ];
     hints.extend(query_hints);
     Ok((hints, deferred))
+}
+
+// The guest's memory pieces, these hints and its coefficients are written for three pieces: any other count would
+// leave cells nothing writes, for the prover to choose.
+const _: () = assert!(
+    leanvm_core::cpu::MEMORY_PIECES == 3,
+    "the guest is written for three memory pieces"
+);
+
+/// The memory's pieces as the guest takes them: the log of each of its three pieces as a
+/// g-power, `g^0` for a piece it does not have, then whether it has the second and the third.
+pub(super) fn memory_piece_hints(memory_cells: u64) -> Vec<F192> {
+    let logs = leanvm_core::cpu::memory_pieces(memory_cells as usize);
+    let log = |i: usize| logs.get(i).map_or(count(0), |&k| count(k));
+    let has = |i: usize| if i < logs.len() { F192::ONE } else { F192::ZERO };
+    vec![log(0), log(1), log(2), has(1), has(2)]
 }
 
 /// The guest's stacked-size dispatch range: one `match_range` opening arm per

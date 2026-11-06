@@ -82,9 +82,13 @@
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\srcsel}[1]{\mathsf{src}(#1)}
 \newcommand{\nprog}{N_{\mathrm{prog}}}   % program length
-\newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
+\newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length, in cells, announced: at most three set bits
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
-\newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length: nmem = 2^kmem
+\newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log of the memory's cube: kmem = ceil(log2 nmem)
+\newcommand{\kpc}[1]{\kappa^{\sharp}_{#1}}  % log length of piece #1 of a column committed in pieces
+\newcommand{\opcs}[1]{o^{\sharp}_{#1}}      % first cell of piece #1: the cells of the pieces before it
+\newcommand{\epc}[1]{e^{\sharp}_{#1}}       % coefficient piece #1 carries in a claim on its column
+\newcommand{\vpad}{v^{\mathrm{pad}}}             % public value of a column's cells past its pieces
 \newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
 \newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count

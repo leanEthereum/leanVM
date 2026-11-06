@@ -14,7 +14,8 @@ use std::sync::Arc;
 pub const MEM_LO: usize = 0;
 pub const MEM_HI: usize = 1;
 pub const MEM_TOP: usize = 2;
-pub(crate) const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
+/// The per-cell memory access count, `g^{A[i]}`.
+pub const MFCNT: usize = 3;
 pub(crate) const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
@@ -29,7 +30,13 @@ pub(crate) const N_SHARED: usize = 6;
 /// The memory image's columns, committed in pieces over its first cells (§sec:stacking).
 pub const MEMORY_COLUMNS: [usize; 4] = [MEM_LO, MEM_HI, MEM_TOP, MFCNT];
 /// The most pieces the memory columns are committed in: one per set bit of the memory's size.
-pub const MEMORY_PIECES: usize = 1;
+pub const MEMORY_PIECES: usize = 3;
+/// The kappa source of the memory's first piece, the others following it: past the
+/// constant, log_mem and every table's tau.
+pub const MEMORY_PIECE_SOURCE: usize = 2 + tables::N_TABLES;
+/// The log of the least piece the prover commits memory in: a piece is then a whole
+/// number of the memory fill's blocks and of the bus leaves' sixteen-tuples.
+const MIN_PIECE_LOG: usize = 10;
 
 /// The log sizes of the pieces `cells` memory cells are committed in, largest first: one per set bit.
 pub fn memory_pieces(cells: usize) -> Vec<usize> {
@@ -37,6 +44,22 @@ pub fn memory_pieces(cells: usize) -> Vec<usize> {
         .rev()
         .filter(|&k| (cells >> k) & 1 == 1)
         .collect()
+}
+
+/// The memory a run that used its first `used` cells announces: the least that holds
+/// them and `2^MIN_LOG_MEM`, in at most `pieces` pieces of at least `2^MIN_PIECE_LOG` cells.
+pub(crate) fn memory_cover(used: usize, pieces: usize) -> usize {
+    assert!(
+        (1..=MEMORY_PIECES).contains(&pieces),
+        "memory is 1 to {MEMORY_PIECES} pieces"
+    );
+    // In units of the least piece, the least number at or above the need with at most
+    // `pieces` set bits: adding a number's lowest set bit is the least step that clears it.
+    let mut units = used.max(1 << MIN_LOG_MEM).div_ceil(1 << MIN_PIECE_LOG);
+    while units.count_ones() as usize > pieces {
+        units += 1 << units.trailing_zeros();
+    }
+    units << MIN_PIECE_LOG
 }
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
@@ -259,7 +282,7 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<ColumnSources>> {
     // Past the memory's cells, each holds the word zero, read zero times: its final count is g^0.
     for c in MEMORY_COLUMNS {
         k[c] = Some(ColumnSources {
-            pieces: vec![(1, 0)],
+            pieces: (0..MEMORY_PIECES).map(|i| (MEMORY_PIECE_SOURCE + i, 0)).collect(),
             memory_pad: Some(if c == MFCNT { F64::ONE } else { F64::ZERO }),
         });
     }
@@ -309,20 +332,26 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
 }
 
 /// Column to pieces' log-sizes (`kappa`) map, derived from the kappa sources by substituting the announced sizes:
-/// source 0 is the constant 0, source 1 is `log_mem`, source `2 + t` is `tau_t`.
+/// source 0 is the constant 0, source 1 is `log_mem`, source `2 + t` is `tau_t`, and the memory piece sources each
+/// piece's log, a piece the memory's cells do not have being left out.
 /// No piece marks a **virtual** (uncommitted) column.
 /// Depends only on the public sizes, so the verifier can reconstruct the placements.
 fn col_kappas(memory_cells: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> Vec<Vec<usize>> {
-    let pieces = memory_pieces(memory_cells);
-    assert_eq!(pieces.len(), MEMORY_PIECES, "the memory is a power of two");
-    let mut values = vec![0usize, crate::log2_ceil_usize(memory_cells)];
-    values.extend(taus);
+    let mut pieces = memory_pieces(memory_cells).into_iter().map(Some).collect::<Vec<_>>();
+    assert!(
+        pieces.len() <= MEMORY_PIECES,
+        "memory is at most {MEMORY_PIECES} pieces"
+    );
+    pieces.resize(MEMORY_PIECES, None);
+    let mut values = vec![Some(0usize), Some(crate::log2_ceil_usize(memory_cells))];
+    values.extend(taus.map(Some));
+    values.extend(pieces);
     col_kappa_sources(log_bytecode)
         .iter()
         .map(|s| {
             s.iter()
                 .flat_map(|s| &s.pieces)
-                .map(|&(source, adj)| values[source] + adj)
+                .filter_map(|&(source, adj)| Some(values[source]? + adj))
                 .collect()
         })
         .collect()
@@ -743,5 +772,28 @@ impl Program {
             layout: l,
             keccak_reduction,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn memory_covers_the_cells_used_in_at_most_the_pieces_asked() {
+        // Invariant: the least memory holding the cells used and 2^16, each piece at least 2^10 cells.
+        // Fixture state: 540748 cells used = 2^19 + 16460, so 2^19 + 2^14 + 2^10 in three pieces.
+        assert_eq!(memory_cover(540_748, 3), (1 << 19) + (1 << 14) + (1 << 10));
+        assert_eq!(memory_cover(540_748, 2), (1 << 19) + (1 << 15));
+        assert_eq!(memory_cover(540_748, 1), 1 << 20);
+        // At the floor, one cell over it, and exactly a cover already.
+        assert_eq!(memory_cover(10, 3), 1 << 16);
+        assert_eq!(memory_cover((1 << 16) + 1, 3), (1 << 16) + (1 << 10));
+        assert_eq!(
+            memory_cover((1 << 22) + (1 << 20) + (1 << 19), 3),
+            (1 << 22) + (1 << 20) + (1 << 19)
+        );
+        // A carry that runs through every low bit: 2^20 - 2^10 + 1 cells need 2^20.
+        assert_eq!(memory_cover((1 << 20) - (1 << 10) + 1, 3), 1 << 20);
     }
 }

@@ -34,11 +34,11 @@ Recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as t
 \[
   c_0=(1+r_m)\,\textsf{input}_0+r_m\,\textsf{input}_2,\qquad c_1=(1+r_m)\,\textsf{input}_1+r_m\,\textsf{input}_3,
 \]
-and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
+and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. Both cells lie in the memory's first piece, and at this point \eqref{eq:jagged} weighs only that piece, with $\epc{0}=1$, the others' coefficients and the tail's weight vanishing. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
 
 \subsection{Padding rows}\label{sec:e2e-pad}
 
-An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}$: zero, except the twenty-five \texttt{KECCAK} output lanes (\S\ref{sec:tab-keccak}), which hold the instruction applied to a zero state. This is only for completeness: $\padrow{j}$ satisfies the constraints (\texttt{JUMP}'s vanish at zero), and the Keccak reduction (Annex~\ref{annex:keccak}) proves that permutation like any other. When the recursion guest needs a larger commitment (\S\ref{sec:recursion}), the prover grows the memory, not a table.
+An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}$: zero, except the twenty-five \texttt{KECCAK} output lanes (\S\ref{sec:tab-keccak}), which hold the instruction applied to a zero state. This is only for completeness: $\padrow{j}$ satisfies the constraints (\texttt{JUMP}'s vanish at zero), and the Keccak reduction (Annex~\ref{annex:keccak}) proves that permutation like any other. When the recursion guest needs a larger commitment (\S\ref{sec:recursion}), the prover grows the memory, not a table: it announces the least $\nmem$ of at most three pieces that reaches the size.
 
 The bus does not depend on what a padding row holds:
 
@@ -81,12 +81,12 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory size $\nmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 
 \begin{enumerate}
-\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
+\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}). The four memory columns are stacked as their pieces, on their first $\nmem$ cells (\S\ref{sec:memchan}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
 \end{enumerate}
 

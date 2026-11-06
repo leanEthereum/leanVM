@@ -45,7 +45,7 @@ RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
 # structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
-# structural LOG (log_mem, log_inv_rate), announced as an integer word and
+# structural LOG (log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # are enough and the reconstruction IS the bound (a larger announced log cannot
 # reproduce itself from this many bits).
@@ -265,8 +265,16 @@ KR_CAP = 16
 LIG_MIN_LOG_SIZE = LIG_MIN_LOG_SIZE_PLACEHOLDER
 LIG_N_LOG_SIZES = LIG_N_LOG_SIZES_PLACEHOLDER
 LIG_N_RATES = LIG_N_RATES_PLACEHOLDER
-# Committed-column kappa sources (0 = const COL_KAPPA_ADJ, 1 = log_mem, 2+t = tau_t)
-# and the PCS floor for the stacked size.
+# Committed-column kappa sources (0 = const COL_KAPPA_ADJ, 1 = log_mem, 2+t = tau_t,
+# MEM_PIECE_SRC + i = the memory's piece i) and the PCS floor for the stacked size. A
+# committed entry is a column's piece: the memory columns have MEM_PIECES each, the
+# first of a memory column's entries being its CLAIM_COMMITTED_COL.
+MEM_PIECES = MEM_PIECES_PLACEHOLDER
+MEM_PIECE_SRC = MEM_PIECE_SRC_PLACEHOLDER
+N_KAPPA_SOURCES = MEM_PIECE_SRC + MEM_PIECES
+NO_MEM_PIECE = MEM_PIECES
+COL_MEM_PIECE = COL_MEM_PIECE_PLACEHOLDER  # a committed entry's memory piece, or NO_MEM_PIECE
+MFCNT_COMMITTED_COL = MFCNT_COMMITTED_COL_PLACEHOLDER
 N_COMMITTED_COLS = N_COMMITTED_COLS_PLACEHOLDER
 N_COLUMN_LOGS = N_COLUMN_LOGS_PLACEHOLDER
 COL_KAPPA_SRC = COL_KAPPA_SRC_PLACEHOLDER
@@ -290,6 +298,7 @@ RANK_KEYS_AT = SIZE_BITS + 16 * SEL_TAB_NIBBLES  # where exponent_tables keeps t
 RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS  # above any block or column index
 RANK_KEY_BOUND = SIZE_BITS * RANK_STRIDE   # above any step between two rank keys
 SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS
+WORD_BITS_AT = SIDE_TAB_AT + N_BLOCK_GROUPS  # where exponent_tables keeps the integer 2^k at g^k
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
@@ -697,7 +706,7 @@ def exponent_tables():
     # powers of two into field products. It spans SIZE_BITS because
     # `log2_ceil_in_the_exponent` bounds its result there and indexes it at g^L.
     # Past them, the opening selector's nibble shares: g^(u 2^(4j)) at SIZE_BITS + 16j + u.
-    g_squares = HeapBuf(SIDE_TAB_AT + N_BLOCK_GROUPS)
+    g_squares = HeapBuf(WORD_BITS_AT + COUNT_BITS)
     sq_run = GEN
     for j in unroll(0, SIZE_BITS):
         g_squares[GEN ** j] = sq_run
@@ -709,6 +718,9 @@ def exponent_tables():
     for s in unroll(0, N_GKR_SIDES):
         for gi in unroll(SIDE_GROUP_START[s], SIDE_GROUP_START[s + 1]):
             g_squares[GEN ** (SIDE_TAB_AT + gi)] = s
+    # Then the integers 2^k, the bits of an announced word.
+    for k in unroll(0, COUNT_BITS):
+        g_squares[GEN ** (WORD_BITS_AT + k)] = 2 ** k
     base = GEN
     for j in unroll(0, SEL_TAB_NIBBLES):
         share = GEN ** 0
@@ -750,6 +762,89 @@ def assert_small_g_power(x, g_squares):
         else:
             rebuilt *= shares[GEN ** (16 * j) * d]
     assert rebuilt == x
+    return
+
+
+def memory_pieces(cells, mem_has, kappa_base, g_squares):
+    # The announced memory's pieces, a set bit of `cells` each, largest first (doc
+    # sec:stacking): their logs k_i as g-powers into kappa_base[g^(MEM_PIECE_SRC + i)], and
+    # whether it has piece i into mem_has[g^i]. The hinted logs and bits are pinned
+    # to spell `cells` with distinct logs, its binary representation, which also
+    # bounds it to three set bits; 2^16 <= cells <= 2^32 as the native verifier
+    # requires. Returns g^log_mem, log_mem = log2_ceil(cells).
+    if const(MEM_PIECES != 3):
+        assert 0 != 0  # compile-time: the hints and the coefficients below are written for three pieces
+    hint = StackBuf(5)
+    hint_witness(hint[0:5], "mem_pieces")
+    g_k0 = hint[0]
+    g_k1 = hint[1]
+    g_k2 = hint[2]
+    has_1 = hint[3]
+    has_2 = hint[4]
+    hint[3] = has_1 * has_1
+    assert has_2 * has_2 == has_2
+    assert has_1 * has_2 == has_2  # no third piece without a second
+    # Every log below 33, so each indexes the word bits; 16 <= k_0 > k_1 > k_2.
+    assert log(g_k0) < COUNT_BITS
+    assert log(g_k1) < COUNT_BITS
+    assert log(g_k2) < COUNT_BITS
+    assert log(g_k0 / GEN ** MIN_LOG_MEM) < COUNT_BITS
+    if has_1 == 1:
+        assert log(g_k0 / g_k1 * INV_GEN) < COUNT_BITS
+    else:
+        assert g_k1 == 1
+    if has_2 == 1:
+        assert log(g_k1 / g_k2 * INV_GEN) < COUNT_BITS
+    else:
+        assert g_k2 == 1
+    word_bits = g_squares * GEN ** WORD_BITS_AT
+    assert word_bits[g_k0] + has_1 * word_bits[g_k1] + has_2 * word_bits[g_k2] == cells
+    kappa_base[GEN ** MEM_PIECE_SRC] = g_k0
+    kappa_base[GEN ** (MEM_PIECE_SRC + 1)] = g_k1
+    kappa_base[GEN ** (MEM_PIECE_SRC + 2)] = g_k2
+    mem_has[GEN ** 0] = 1
+    mem_has[GEN ** 1] = has_1
+    mem_has[GEN ** 2] = has_2
+    # log2_ceil(cells) is k_0, or k_0 + 1 with a second piece: cells <= 2^32 iff it is at most 32.
+    g_log_mem = g_k0 * (1 + has_1 * (1 + GEN))
+    assert log(g_log_mem) < COUNT_BITS
+    return g_log_mem
+
+
+def one_plus_chain(chain, z, n):
+    # chain[g^j] = prod_{t<j} (1 + z[g^t]) for g^j up to n, a certified small g-power.
+    chain[GEN ** 0] = 1
+    for x in mul_range(1, n):
+        chain[x * GEN] = chain[x] * (1 + z[x])
+    return
+
+
+def memory_piece_coefficients(zeta, kappa_base, mem_has, e):
+    # The coefficient e_i = eq(zeta[k_i..log_mem], bits(o_i >> k_i)) piece i carries in a
+    # claim at zeta on a memory column, o_i the cells before it (doc sec:stacking),
+    # into e[g^i], zero for a piece the memory does not have. With a second piece
+    # log_mem = k_0 + 1, o_1 = 2^k_0 and o_2 = 2^k_0 + 2^k_1.
+    g_k0 = kappa_base[GEN ** MEM_PIECE_SRC]
+    g_k1 = kappa_base[GEN ** (MEM_PIECE_SRC + 1)]
+    g_k2 = kappa_base[GEN ** (MEM_PIECE_SRC + 2)]
+    if mem_has[GEN] == 0:
+        e[GEN ** 0] = 1
+        e[GEN ** 1] = 0
+        e[GEN ** 2] = 0
+    else:
+        z0 = zeta[g_k0]
+        e[GEN ** 0] = 1 + z0
+        middle = HeapBuf(COUNT_BITS)  # over [k_1, k_0)
+        one_plus_chain(middle, zeta * g_k1, g_k0 / g_k1)
+        e[GEN ** 1] = z0 * middle[g_k0 / g_k1]
+        if mem_has[GEN ** 2] == 0:
+            e[GEN ** 2] = 0
+        else:
+            low = HeapBuf(COUNT_BITS)  # over [k_2, k_1)
+            one_plus_chain(low, zeta * g_k2, g_k1 / g_k2)
+            high = HeapBuf(COUNT_BITS)  # over (k_1, k_0)
+            one_plus_chain(high, zeta * g_k1 * GEN, g_k0 / g_k1 * INV_GEN)
+            e[GEN ** 2] = z0 * zeta[g_k1] * low[g_k1 / g_k2] * high[g_k0 / g_k1 * INV_GEN]
     return
 
 
@@ -3135,14 +3230,15 @@ def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
     return rs_weight
 
 
-def certify_placement(kappa_base, g_squares):
+def certify_placement(kappa_base, mem_has, g_squares):
     # Certify the native order (descending kappa, then ascending column index) group
     # by group: a column group, a run of columns sharing one kappa source, is
     # consecutive in it, so a hinted order of the groups, certified strictly
     # descending in its rank key, places every column. Returns g^(sum 2^kappa) and
-    # each column's g^offset.
-    kb = StackBuf(N_TABLES + 2)
-    for i in unroll(0, N_TABLES + 2):
+    # each column's g^offset. A memory piece the memory does not have, of log 0, takes
+    # no room, wherever it ranks.
+    kb = StackBuf(N_KAPPA_SOURCES)
+    for i in unroll(0, N_KAPPA_SOURCES):
         kb[i] = kappa_base[GEN ** i]
     rank_keys = g_squares * GEN ** RANK_KEYS_AT
     group_key = HeapBuf(N_COL_GROUPS)
@@ -3155,7 +3251,11 @@ def certify_placement(kappa_base, g_squares):
         assert log(kappa_g) < SIZE_BITS
         # Descending kappa, then the group's first (compact, native-order) index ascending.
         group_key[GEN ** gi] = rank_keys[kappa_g] * INV_GEN ** c0
-        group_size[GEN ** gi] = g_squares[kappa_g] ** (COL_GROUP_START[gi + 1] - c0)
+        column_size = g_squares[kappa_g]
+        if const(COL_MEM_PIECE[c0] != NO_MEM_PIECE):
+            if const(COL_MEM_PIECE[c0] != 0):
+                column_size = 1 + mem_has[GEN ** COL_MEM_PIECE[c0]] * (1 + column_size)
+        group_size[GEN ** gi] = column_size ** (COL_GROUP_START[gi + 1] - c0)
     group_order = HeapBuf(N_COL_GROUPS)
     hint_witness(group_order[0:N_COL_GROUPS], "col_group_order")
     group_base = HeapBuf(N_COL_GROUPS)
@@ -3235,7 +3335,7 @@ def selector_tables(point, point1):
     return sel_eq
 
 
-def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
+def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, tau_keccak_g, kappa_base, mem_has, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # a q_keccak lane puts its slot's bits between the two.
@@ -3246,17 +3346,27 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     eq_prefix_chain(chi_eq_chain, 1, chi, point1, g_zc_n)
     slot_point = point * tau_keccak_g
     slot_point1 = point1 * tau_keccak_g
+    # A memory column is committed in pieces (doc sec:stacking): a claim at r weighs
+    # sum_i e_i(r) eq(r[..k_i], .) sel_i. At the public input's point (rm, 0, ..) only
+    # the first piece's e_0 is nonzero, and it is 1.
+    g_k0 = kappa_base[GEN ** MEM_PIECE_SRC]
     pi_chain = HeapBuf(SIZE_BITS + 1)
     pi_chain[GEN ** 0] = 1
     pi_chain[GEN ** 1] = rm + point1[GEN ** 0]
-    for xk in mul_range(GEN, g_log_mem):
+    for xk in mul_range(GEN, g_k0):
         pi_chain[xk * GEN] = pi_chain[xk] * point1[xk]
-    pi_eq = pi_chain[g_log_mem]
+    pi_eq = pi_chain[g_k0]
+    # At zeta, each piece's coefficient times its low eq, shared by the four memory columns.
+    mem_e = HeapBuf(MEM_PIECES)
+    memory_piece_coefficients(zeta, kappa_base, mem_has, mem_e)
+    mem_low = StackBuf(MEM_PIECES)
+    for i in unroll(0, MEM_PIECES):
+        mem_low[i] = mem_e[GEN ** i] * zeta_eq_chain[kappa_base[GEN ** (MEM_PIECE_SRC + i)]]
 
     # Every low dimension here is a certified log at a baked kappa source, as
     # certify_placement derives the columns'.
-    kb = StackBuf(N_TABLES + 2)
-    for i in unroll(0, N_TABLES + 2):
+    kb = StackBuf(N_KAPPA_SOURCES)
+    for i in unroll(0, N_KAPPA_SOURCES):
         kb[i] = kappa_base[GEN ** i]
     sel_eq = selector_tables(point, point1)
     sel_g = g_squares * GEN ** SIZE_BITS  # exponent_tables' constant nibble shares
@@ -3264,7 +3374,16 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     for c in unroll(0, N_COMMITTED_COLS):
         offset = col_offsets[GEN ** c]
         kappa_g = kb[COL_KAPPA_SRC[c]] * GEN ** COL_KAPPA_ADJ[c]
-        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
+        # A piece the memory does not have weighs nothing, and its offset, past every
+        # placed word, may be past the selector's digits: it gets none.
+        present = 1
+        if const(COL_MEM_PIECE[c] != NO_MEM_PIECE):
+            if const(COL_MEM_PIECE[c] != 0):
+                present = mem_has[GEN ** COL_MEM_PIECE[c]]
+        if present == 1:
+            selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
+        else:
+            selectors[c] = 0
 
     inner_sum = inner_total
     lam_pow = lam_cl  # the pool's powers, as verify_sub batched it
@@ -3294,14 +3413,27 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
                         slot_eq *= slot_factor
                 low_eq = slot_eq * chi_eq_chain[cplen_g]
                 nlow_adj = CLAIM_KAPPA_ADJ[j] + QKECCAK_SLOT_LOG
-            # The claim's low dimension is its column's kappa: by construction when
-            # the two share a kappa source, else checked.
-            if const(CLAIM_KAPPA_SRC[j] != COL_KAPPA_SRC[col]):
-                assert kb[CLAIM_KAPPA_SRC[j]] * GEN ** nlow_adj == kb[COL_KAPPA_SRC[col]] * GEN ** COL_KAPPA_ADJ[col]
+            if const(COL_MEM_PIECE[col] == 0):
+                # A memory column's claim is at log_mem coordinates, the pieces' own
+                # weights taking their lengths from the certified piece logs.
+                if CLAIM_POINT_BUF[j] == POINT_BUF_PI:
+                    inner_sum += lam_pow * pi_eq * selectors[col]
+                elif CLAIM_POINT_BUF[j] == POINT_BUF_ZETA:
+                    pieces_sum = mem_low[0] * selectors[col]
+                    for i in unroll(1, MEM_PIECES):
+                        pieces_sum += mem_low[i] * selectors[col + i]
+                    inner_sum += lam_pow * pieces_sum
+                else:
+                    assert 0 != 0  # compile-time: a memory column is claimed at the public input point or the bus point
             else:
-                if const(nlow_adj != COL_KAPPA_ADJ[col]):
+                # The claim's low dimension is its column's kappa: by construction when
+                # the two share a kappa source, else checked.
+                if const(CLAIM_KAPPA_SRC[j] != COL_KAPPA_SRC[col]):
                     assert kb[CLAIM_KAPPA_SRC[j]] * GEN ** nlow_adj == kb[COL_KAPPA_SRC[col]] * GEN ** COL_KAPPA_ADJ[col]
-            inner_sum += lam_pow * low_eq * selectors[col]
+                else:
+                    if const(nlow_adj != COL_KAPPA_ADJ[col]):
+                        assert kb[CLAIM_KAPPA_SRC[j]] * GEN ** nlow_adj == kb[COL_KAPPA_SRC[col]] * GEN ** COL_KAPPA_ADJ[col]
+                inner_sum += lam_pow * low_eq * selectors[col]
             lam_pow *= lam_cl
     lam_out = lam_pow
 
@@ -3344,10 +3476,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
 
     # ---- announced layout and PCS rate (observed, then certified) ----
-    # The stream announces the memory's log size and each table's row count as
+    # The stream announces the memory's cells and each table's row count as
     # integer WORDS; the shape-generic phases need logs as G-POWERS (loop bounds,
-    # match scrutinees). log_mem is reassembled from its advice-decomposed bits, with
-    # no hint and no g^j -> j lookup. A table's log height is advice, which
+    # match scrutinees). The memory's piece logs and log_mem are advice pinned to
+    # its cells' bits (memory_pieces). A table's log height is advice, which
     # verify_tables certifies to be the least holding its rows, above its floor.
     table_rows = HeapBuf(N_TABLES)
     rate = StackBuf(8)
@@ -3358,7 +3490,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                 rate = StackBuf(8)
         x, cursor = fs_next(rate, i % 4, cursor)
         if i == 0:
-            log_mem_word = x
+            mem_cells_word = x
         else:
             table_rows[GEN ** (i - 1)] = x
     if const((N_TABLES + 1) % 4 == 0):
@@ -3368,22 +3500,21 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     rate_sel = g_power_of_word(log_inv_rate) / GEN
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
-    g_log_mem = g_power_of_word(log_mem_word)
-    assert log(g_log_mem) < COUNT_BITS
-    assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
-    dims_g[GEN ** 0] = g_log_mem
-    hint_witness(dims_g[1:1 + N_TABLES], "table_logs")  # certified in verify_tables
     # kappa_base maps a kappa source index to its certified log (source 0
     # = const via the baked adj). Each block's kappa then DERIVES from its
     # structural source as a compile-time offset off a certified log: no hint, and
     # nothing left free.
-    kappa_base = HeapBuf(N_TABLES + 2)
-    kb = StackBuf(N_TABLES + 2)  # the same, in the frame
+    kappa_base = HeapBuf(N_KAPPA_SOURCES)
+    kb = StackBuf(MEM_PIECE_SRC)  # the same, in the frame, but for the memory's pieces
+    mem_has = HeapBuf(MEM_PIECES)  # whether the memory has each piece
+    g_log_mem = memory_pieces(mem_cells_word, mem_has, kappa_base, g_squares)
+    dims_g[GEN ** 0] = g_log_mem
+    hint_witness(dims_g[1:1 + N_TABLES], "table_logs")  # certified in verify_tables
     kb[0] = 1
     kb[1] = g_log_mem
     for t in unroll(0, N_TABLES):
         kb[2 + t] = dims_g[GEN ** (t + 1)]
-    for i in unroll(0, N_TABLES + 2):
+    for i in unroll(0, MEM_PIECE_SRC):
         kappa_base[GEN ** i] = kb[i]
     # The ONE bus depth, COMPUTED (not hinted): mu = log2_ceil(Σ_b 2^κ_b) over
     # PUSH's blocks; pull matches by pairing, the count tree is padded to it.
@@ -3474,12 +3605,18 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # lanes' claims, which the Keccak reduction consumed), and the Keccak reduction's
     # claim on its committed outputs the power after the pool's last.
     sp, lam_cl = squeeze(sp, rate, 0)
+    # The memory's cells past the committed ones are public, each read g^0 times: the
+    # final counts' claim at zeta less their share, pad_cells(zeta[..log_mem]).
+    assert log(g_log_mem) < N_COLUMN_LOGS
+    mem_pad, mem_lead, mem_rest = match(log(g_log_mem), range(0, N_COLUMN_LOGS), lambda tau: padding_weight(mem_cells_word, zeta, tau))
     target = target_in
     lam_pow = lam_cl
     for j in unroll(0, N_CLAIMS):
         if CLAIM_POINT_BUF[j] != POINT_BUF_KECCAK_OUT:
             if const(j // N_BUS_CLAIMS == 0):
                 target += lam_pow * claim_pool[GEN ** j]
+                if const(CLAIM_COMMITTED_COL[j] == MFCNT_COMMITTED_COL):
+                    target += lam_pow * mem_pad
             else:
                 if const((j - N_BUS_CLAIMS) // N_COL_EVALS == 0):
                     target += lam_pow * col_eval_words[GEN ** (j - N_BUS_CLAIMS)]
@@ -3488,7 +3625,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
 
-    g_total, col_offsets = certify_placement(kappa_base, g_squares)
+    g_total, col_offsets = certify_placement(kappa_base, mem_has, g_squares)
 
     # ---- certify g^m: m = max(log2_ceil(sum_cols 2^kappa), PCS_MIN_MU) ----
     # g_total is g^(sum 2^kappa) from the certified placement walk above.
@@ -3506,7 +3643,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target)
+    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, tau_keccak_g, kappa_base, mem_has, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):
