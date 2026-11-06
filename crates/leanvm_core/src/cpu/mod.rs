@@ -171,8 +171,8 @@ impl Program {
     }
 
     /// The [`layout()`] of this program.
-    pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
-        layout::layout_of(self.bytecode_columns.clone(), log_mem, rows, pi)
+    pub fn layout(&self, memory_cells: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+        layout::layout_of(self.bytecode_columns.clone(), memory_cells, rows, pi)
     }
 
     /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
@@ -323,7 +323,7 @@ fn table_spans() -> TableSpans {
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
-    cols: &'a [&'a [F64]],
+    cols: &'a [Vec<&'a [F64]>],
     spans: &[(usize, usize)],
     xi: F192,
 ) -> Vec<constraints::Air<'a>> {
@@ -334,12 +334,12 @@ fn airs<'a>(
         .iter()
         .zip(taus.iter().zip(spans))
         .enumerate()
-        .map(|(t, (&table, (&tau, &(start, n))))| {
+        .map(|(t, (&table, (&tau, _)))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
             let bus_forms = (0..3).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
-                cols: &cols[start..start + n],
+                cols: &cols[t],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
                 sigma: (0..3).fold(F192::ZERO, |acc, s| acc + pows[base + s] * bus.sigmas[s][t]),
             }
@@ -466,7 +466,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     );
 
     // Announce the prover's sizes, then commit, before sampling any challenge.
-    announce_public(&mut ps, w.log_mem, w.layout.rows, log_inv_rate);
+    announce_public(&mut ps, w.layout.log_mem, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || {
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
     });
@@ -484,10 +484,19 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // it joins and never writes the K-columns back.
     let (bus, table_claims) = {
         let l = &w.layout;
-        let cols = w.columns();
+        let views = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, &owners, &spans, &mut ps)
+            leaf::prove_balance(&l.push, &l.pull, &l.count, &views, &owners, &spans, &mut ps)
         });
+        let cols: Vec<Vec<&[F64]>> = spans
+            .iter()
+            .map(|&(start, n)| {
+                views[start..start + n]
+                    .iter()
+                    .map(|view| view.whole().expect("a table column is held whole"))
+                    .collect()
+            })
+            .collect();
         let table_claims = crate::stage!("Prove constraints", || {
             // One sumcheck for all six tables (§constraints).
             // The eq point is the bus GKR's ζ, not a fresh one: that is what lets the
@@ -517,7 +526,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
-    let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
+    let witness::Placement { offset, n_vars } = w.layout.columns[QKECCAK].placements[0];
     let q_keccak = &w.q[offset..][..1 << n_vars];
     let openings = crate::stage!("Keccak reduction", || {
         keccak_reduction.prove(&mut ps, q_keccak, &output)
@@ -531,7 +540,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
             cycles,
             rows: w.layout.rows,
             committed: committed_size,
-            log_mem: w.log_mem,
+            log_mem: w.layout.log_mem,
             mem_used,
             bytecode: program.code_len(),
         },
@@ -577,7 +586,7 @@ fn finish_claims(
 fn bind_pi_claim(r: F192, l: &Layout) -> [ColumnClaim; 3] {
     let [a, b] = l.pi;
     let limbs = [(a.c0, b.c0), (a.c1, b.c1), (a.c2, b.c2)];
-    let mut point = vec![F192::ZERO; l.placements[MEM_LO].n_vars];
+    let mut point = vec![F192::ZERO; l.log_mem];
     point[0] = r;
     [MEM_LO, MEM_HI, MEM_TOP].map(|col| {
         let (x, y) = limbs[col - MEM_LO];
@@ -645,6 +654,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
 /// the slot at `placements[c].offset`, with the claim's point as the low point.
+/// A claim on a column committed in pieces is one jagged claim over them (§sec:stacking).
 ///
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
 /// `col(r) = v` on one (at the `n_log`-dim instance point `r`) is re-routed to the equal
@@ -659,18 +669,48 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
             if let Some(KeccakLane::Slot(slot)) = keccak_value(c.col) {
                 return pcs::SlotClaim::Point {
-                    offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
+                    offset: l.columns[QKECCAK].placements[0].offset + (slot << c.point.len()),
                     low_point: c.point,
                     value: c.value,
                 };
             }
-            pcs::SlotClaim::Point {
-                offset: l.placements[c.col].offset,
-                low_point: c.point,
-                value: c.value,
+            let column = &l.columns[c.col];
+            match column.whole() {
+                Some(placement) => pcs::SlotClaim::Point {
+                    offset: placement.offset,
+                    low_point: c.point,
+                    value: c.value,
+                },
+                None => jagged_claim(column, c),
             }
         })
         .collect()
+}
+
+/// A claim `c(r) = v` on a column committed in pieces as one claim on its pieces: piece `i`
+/// weighs `e_i(r) * eq(r_{<k_i}, .)` on its own slice, and the cells past the committed ones,
+/// which hold the public pad, move `pad * pad_cells(r)` into the value.
+fn jagged_claim(column: &witness::Pieces, c: ColumnClaim) -> pcs::SlotClaim {
+    let logs: Vec<usize> = column.placements.iter().map(|p| p.n_vars).collect();
+    let coefficients = witness::piece_coefficients(&c.point, &logs);
+    let value = if column.pad == F64::ZERO {
+        c.value
+    } else {
+        c.value + F192::from(column.pad) * leaf::padding_weight(&c.point, column.cells)
+    };
+    pcs::SlotClaim::Jagged {
+        pieces: column
+            .placements
+            .iter()
+            .zip(coefficients)
+            .map(|(p, coeff)| pcs::JaggedPiece {
+                offset: p.offset,
+                low_point: c.point[..p.n_vars].to_vec(),
+                coeff,
+            })
+            .collect(),
+        value,
+    }
 }
 
 #[cfg(test)]

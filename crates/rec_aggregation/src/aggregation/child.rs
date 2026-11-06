@@ -69,7 +69,7 @@ pub(super) fn gen_verify(
     bytecode_value: F192,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
     let layout = program.layout(
-        summary.log_memory,
+        1 << summary.log_memory,
         std::array::from_fn(|t| summary.table_rows[t] as usize),
         public_input,
     );
@@ -142,29 +142,35 @@ pub(super) fn gen_verify(
         block_groups.len(),
         "a block group's blocks are consecutive"
     );
-    // The stacked commitment uses witness::placements_of: committed columns
-    // sorted by descending kappa, then by their native column index. Transport
-    // compact committed-column indices; the guest certifies the permutation,
+    // The stacked commitment uses witness::placements_of: committed pieces
+    // sorted by descending kappa, then by their native column and piece index.
+    // Transport compact committed-piece indices; the guest certifies the permutation,
     // ordering, and accumulated offsets before using them as claim selectors.
     let col_sources = leanvm_core::cpu::col_kappa_sources(kbc);
-    let committed_globals: Vec<usize> = col_sources
+    let committed: Vec<(usize, usize)> = col_sources
         .iter()
         .enumerate()
-        .filter_map(|(i, source)| source.map(|_| i))
+        .flat_map(|(i, source)| (0..source.as_ref().map_or(0, |s| s.pieces.len())).map(move |piece| (i, piece)))
         .collect();
-    let mut compact_col = vec![usize::MAX; col_sources.len()];
-    for (compact, &global) in committed_globals.iter().enumerate() {
-        compact_col[global] = compact;
-    }
-    let mut col_order = committed_globals;
-    col_order.sort_by_key(|&global| layout.placements[global].offset);
-    // The order by column group (`col_groups`): its columns are consecutive in it.
-    let groups = col_groups(&col_sources.iter().flatten().copied().collect::<Vec<_>>());
+    let mut col_order: Vec<usize> = (0..committed.len()).collect();
+    col_order.sort_by_key(|&compact| {
+        let (global, piece) = committed[compact];
+        layout.columns[global].placements[piece].offset
+    });
+    // The order by column group (`col_groups`): its pieces are consecutive in it.
+    let groups = col_groups(
+        &col_sources
+            .iter()
+            .flatten()
+            .flat_map(|s| &s.pieces)
+            .copied()
+            .collect::<Vec<_>>(),
+    );
     let group_of = |compact: usize| groups.partition_point(|&start| start <= compact) - 1;
     let mut col_group_order: Vec<F192> = Vec::new();
     let mut last_group = usize::MAX;
-    for &global in &col_order {
-        let group = group_of(compact_col[global]);
+    for &compact in &col_order {
+        let group = group_of(compact);
         if group != last_group {
             col_group_order.push(count(group));
             last_group = group;

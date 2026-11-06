@@ -29,7 +29,8 @@ use crate::transcript::ProverState;
 use primitives::field::F64;
 
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
+/// The opening's claim types: a point or jagged claim on the stack, and the ring-switched claims on `q_keccak`.
+pub use ::pcs::stack_open::{JaggedPiece, RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 

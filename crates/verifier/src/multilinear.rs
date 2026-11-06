@@ -1,7 +1,7 @@
 //! Multilinear and stacking helpers.
 
 use crate::field::{E, GEN, ONE, Scaled, ZERO};
-use crate::{VerifierError, require};
+use crate::{StackClaim, VerifierError, require};
 
 /// `eq(i, point)` for every index `i`, LSB-first, at one product per entry: `v * (1 + r) = v + v * r`.
 pub fn eq_kernel(point: &[E]) -> Vec<E> {
@@ -128,6 +128,63 @@ impl Placement {
     pub fn eq_above(&self, point: &[E]) -> E {
         let bits = selector_point(self.index >> self.variables, point.len() - self.variables);
         eq_eval(&bits, &point[self.variables..])
+    }
+}
+
+/// A column committed in pieces: piece `i` holds its `2^k_i` cells after the earlier pieces', `k_0 > k_1 > ...`, at its
+/// own place in the stack, and every cell from `cells` on holds `pad`, committed nowhere.
+#[derive(Clone, Debug)]
+pub struct Pieces {
+    /// Where each piece sits, largest first.
+    pub placements: Vec<Placement>,
+    /// The cells the pieces hold.
+    pub cells: u64,
+    /// What every cell past them holds.
+    pub pad: E,
+}
+
+impl Pieces {
+    /// A column committed whole: one piece, and no cell past it.
+    pub fn whole(placement: Placement) -> Self {
+        Self {
+            cells: 1 << placement.variables,
+            placements: vec![placement],
+            pad: ZERO,
+        }
+    }
+
+    /// The claim `c(point) = value`, `point` of `log2_ceil(cells)` coordinates, as one claim on the stack.
+    ///
+    /// Piece `i` starts at `o_i = sum_{j<i} 2^k_j`, a multiple of `2^k_i`, so a cell `o_i + y` of it has the low bits `y`
+    /// and the high bits `o_i >> k_i`, and the cells past `cells` sum to `pad` times the suffix weight (lemma lem:suffix):
+    ///
+    /// ```text
+    /// c(r) = sum_i e_i(r) * P_i(r_{<k_i}) + pad * pad_cells(r),   e_i(r) = eq(r_{>=k_i}, bits(o_i >> k_i))
+    /// ```
+    ///
+    /// The weight is `sum_i e_i(r) * eq((r_{<k_i}, sel_i), .)` and the value `value - pad * pad_cells(r)`.
+    pub fn on_stack(&self, point: &[E], value: E, stack_log: usize) -> StackClaim<'static> {
+        let mut start = 0;
+        let terms: Vec<(E, Vec<E>)> = self
+            .placements
+            .iter()
+            .map(|placement| {
+                let k = placement.variables;
+                let above = selector_point(start >> k, point.len() - k);
+                start += 1 << k;
+                (
+                    eq_eval(&above, &point[k..]),
+                    placement.stack_point(&point[..k], stack_log),
+                )
+            })
+            .collect();
+        let value = if self.pad == ZERO {
+            value
+        } else {
+            value + self.pad * padding_weight(point, self.cells)
+        };
+        let weight = move |x: &[E]| E::sum(terms.iter().map(|(coefficient, at)| *coefficient * eq_eval(at, x)));
+        (Box::new(weight), value)
     }
 }
 

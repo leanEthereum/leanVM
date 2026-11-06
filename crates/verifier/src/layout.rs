@@ -4,7 +4,7 @@ use crate::bytecode::Bytecode;
 use crate::field::{E, GEN, ONE, ZERO};
 use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
-use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
+use crate::multilinear::{Pieces, Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
 use std::ops::Add;
@@ -88,6 +88,7 @@ pub const MIN_STACKED_LOG: usize = 15;
 pub const MAX_STACKED_LOG: usize = 28;
 
 pub struct Layout<'a> {
+    /// The log of the cube the memory's multilinear lives on, `log2_ceil` of its cells.
     pub log_memory: usize,
     pub log_bytecode: usize,
     pub bytecode: &'a Bytecode,
@@ -95,8 +96,8 @@ pub struct Layout<'a> {
     pub push: Vec<BusBlock>,
     pub pull: Vec<BusBlock>,
     pub count: Vec<BusBlock>,
-    /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
-    pub placements: Vec<Option<Placement>>,
+    /// Where each column's pieces sit, `None` for a column nothing commits: the `KECCAK` output lanes.
+    pub columns: Vec<Option<Pieces>>,
     pub stack_log: usize,
     pub placed: u64, // the words the columns fill, from the bottom of the stack
     pub table_log_heights: Vec<usize>,
@@ -480,18 +481,16 @@ const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG
 
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,
-    log_memory: u64,
+    memory_cells: u64,
     table_rows: &[u64],
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
-        (16..=32).contains(&log_memory)
-            && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
-            && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
+        table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG) && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
     let log_bytecode = log_bytecode - BUS_BITS;
-    let log_memory = log_memory as usize;
+    let log_memory = log2_ceil(memory_cells);
     // A table's height is the least power of two holding its rows.
     let table_log_heights: Vec<usize> = table_rows
         .iter()
@@ -532,31 +531,59 @@ pub fn build_layout<'a>(
     for table in &tables {
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
+    // The memory columns are committed on their first `memory_cells` cells, a piece per set bit, largest first.
+    let memory_pieces: Vec<usize> = (0..64).rev().filter(|&k| memory_cells >> k & 1 == 1).collect();
+    let is_memory = |column: usize| column <= MEMORY_FINAL_COUNTERS;
+    let pieces_of = |column: usize| {
+        if is_memory(column) {
+            memory_pieces.clone()
+        } else {
+            vec![kappas[column]]
+        }
+    };
 
     // A column q_keccak carries gets no block of its own: it is one of its slots, 2^height words,
     // whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An output
     // lane is not committed at all, nothing ever opening it.
+    // Every other column's pieces are blocks, in column order then piece order.
     let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
     let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
-    let blocks: Vec<usize> = (0..kappas.len())
+    let blocks: Vec<(usize, usize)> = (0..kappas.len())
         .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
+        .flat_map(|column| pieces_of(column).into_iter().map(move |kappa| (column, kappa)))
         .collect();
-    let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
+    let block_kappas: Vec<usize> = blocks.iter().map(|&(_, kappa)| kappa).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
+    let mut placed_pieces: BTreeMap<usize, Vec<Placement>> = BTreeMap::new();
+    for (&(column, variables), index) in blocks.iter().zip(block_offsets) {
+        placed_pieces
+            .entry(column)
+            .or_default()
+            .push(Placement { variables, index });
+    }
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
     let placed = block_kappas.iter().map(|&kappa| 1 << kappa).sum();
-    let placement = |(column, &kappa): (usize, &usize)| {
-        let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
-        };
-        Some(Placement {
-            variables: kappa,
-            index,
+    let qkeccak = placed_pieces[&QKECCAK][0];
+    let column = |(column, &kappa): (usize, &usize)| {
+        if let Some(slot) = qkeccak_slot(column) {
+            return Some(Pieces::whole(Placement {
+                variables: kappa,
+                index: qkeccak.index + ((slot as u64) << kappa),
+            }));
+        }
+        let placements = placed_pieces.remove(&column)?;
+        Some(if is_memory(column) {
+            Pieces {
+                placements,
+                cells: memory_cells,
+                // Past the committed cells memory is public: words of zero, each read count still g^0.
+                pad: if column == MEMORY_FINAL_COUNTERS { ONE } else { ZERO },
+            }
+        } else {
+            Pieces::whole(placements[0])
         })
     };
-    let placements = kappas.iter().enumerate().map(placement).collect();
+    let columns = kappas.iter().enumerate().map(column).collect();
     Ok(Layout {
         log_memory,
         log_bytecode,
@@ -565,7 +592,7 @@ pub fn build_layout<'a>(
         push,
         pull,
         count,
-        placements,
+        columns,
         stack_log,
         placed,
         table_log_heights,
