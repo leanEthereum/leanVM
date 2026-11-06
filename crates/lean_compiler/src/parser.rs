@@ -150,7 +150,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                     v.map_err(|e| at(format!("global constant array `{name}`: {e}")))?
                 } else {
                     let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
-                    F192::new(n as u64, (n >> 64) as u64, 0)
+                    F192::from(n)
                 };
                 elems.push(elem);
             }
@@ -178,10 +178,9 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                 let v = parse_const(rhs).map_err(|e| at(format!("global constant `{name}`: {e}")))?;
                 consts.insert(
                     name,
-                    if v.c2 == 0 {
-                        (v.c0 as u128 | ((v.c1 as u128) << 64)).to_string()
-                    } else {
-                        format!("f192({},{},{})", v.c0, v.c1, v.c2)
+                    match v.as_u128() {
+                        Some(n) => n.to_string(),
+                        None => format!("f192({},{},{})", v.c0, v.c1, v.c2),
                     },
                 );
             }

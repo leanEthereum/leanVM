@@ -282,11 +282,6 @@ pub fn disassemble(prog: &[Op]) -> String {
     out
 }
 
-/// Embed a `u128` source literal into the low 128 bits of a 192-bit machine word.
-pub(crate) fn lit_field(n: u128) -> F192 {
-    F192::new(n as u64, (n >> 64) as u64, 0)
-}
-
 /// `g^e` for a `u128` exponent (square-and-multiply). `field::g_pow` only takes
 /// a `usize`; an index carried in the exponent (a Fibonacci number, say) can
 /// exceed 64 bits (`ord(g) = 2^64 − 1`, so the exponent wraps mod that).

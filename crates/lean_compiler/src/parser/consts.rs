@@ -87,7 +87,7 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
     fn eval(e: &Expr) -> Result<F192, String> {
         match e {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
-            Expr::Lit(n) => Ok(F192::new(*n as u64, (*n >> 64) as u64, 0)),
+            Expr::Lit(n) => Ok(F192::from(*n)),
             Expr::Gen => Ok(g_pow(1).into()),
             Expr::GPow(k) => Ok(g_pow_u128(*k).into()),
             Expr::Add(a, b) => Ok(eval(a)? + eval(b)?),

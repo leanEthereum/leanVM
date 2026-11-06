@@ -67,6 +67,19 @@ impl F192 {
         }
     }
 
+    /// The integer the two low coefficients spell, low first, or `None` when the `y^2` coefficient is nonzero.
+    ///
+    /// The inverse of the embedding of a `u128`.
+    #[inline]
+    #[must_use]
+    pub const fn as_u128(self) -> Option<u128> {
+        if self.c2 == 0 {
+            Some(self.c0 as u128 | (self.c1 as u128) << 64)
+        } else {
+            None
+        }
+    }
+
     /// Product without the base-field reduction, for XOR accumulation.
     #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
@@ -200,6 +213,20 @@ impl From<F64> for F192 {
     #[inline]
     fn from(k: F64) -> Self {
         Self { c0: k.0, c1: 0, c2: 0 }
+    }
+}
+
+impl From<u128> for F192 {
+    /// A 128-bit integer in the two low coefficients, low first: `n = c0 + 2^64 * c1`, with `c2 = 0`.
+    ///
+    /// This is a bit embedding, not a ring map: integer addition does not become field addition.
+    #[inline]
+    fn from(n: u128) -> Self {
+        Self {
+            c0: n as u64,
+            c1: (n >> 64) as u64,
+            c2: 0,
+        }
     }
 }
 
@@ -1171,6 +1198,19 @@ mod tests {
         // One set bit in either extension limb, at either end, rejects the word.
         for (c1, c2) in [(1, 0), (1 << 63, 0), (0, 1), (0, 1 << 63)] {
             assert_eq!(F192::new(7, c1, c2).as_base(), None, "c1 = {c1:#x}, c2 = {c2:#x}");
+        }
+    }
+
+    #[test]
+    fn u128_round_trips_through_the_low_two_limbs() {
+        // Low limb first: bit 64 of the integer is bit 0 of the `y` coefficient.
+        assert_eq!(F192::from(1u128 << 64), F192::Y);
+        for n in [0, 1, u128::from(u64::MAX), 1 << 64, u128::MAX] {
+            assert_eq!(F192::from(n).as_u128(), Some(n), "{n:#x}");
+        }
+        // Any set bit of the `y^2` coefficient has no integer reading.
+        for c2 in [1, 1 << 63] {
+            assert_eq!(F192::new(5, 6, c2).as_u128(), None, "c2 = {c2:#x}");
         }
     }
 

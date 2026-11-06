@@ -1264,7 +1264,7 @@ impl FnLower<'_> {
                         // Integer-only fold (`//`, `-`, `%` of constants): a
                         // compile-time value too, and as a scalar it is the field
                         // element with those 128 bits, materialized on demand.
-                        self.rebind(name, Binding::FConst(lit_field(k)));
+                        self.rebind(name, Binding::FConst(F192::from(k)));
                     } else if let Expr::Call(cf, cargs) = e
                         && self.defs.contains_key(cf.as_str())
                     {
