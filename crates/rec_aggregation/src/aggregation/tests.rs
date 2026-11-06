@@ -2,7 +2,7 @@ use super::cells::{count, pack_16_bytes};
 use super::child::{MU_MAX, MU_MIN};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
-use super::error::{AggregateVerifyError, AggregationError};
+use super::error::{AggregateVerifyError, AggregationError, SignatureScheme};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
@@ -104,20 +104,42 @@ fn max_keys_bound_is_exclusive() {
     check_signer_set(short, &[]).expect("one short of the cap");
     assert_eq!(
         check_signer_set(&claims, &[]),
-        Err(AggregateVerifyError::MalformedSignerSet)
+        Err(AggregateVerifyError::TooManySigners {
+            xmss: MAX_KEYS,
+            lean_sphincs: 0,
+            limit: MAX_KEYS,
+        })
     );
     assert_eq!(
         check_signer_set(short, &lean_sphincs),
-        Err(AggregateVerifyError::MalformedSignerSet)
+        Err(AggregateVerifyError::TooManySigners {
+            xmss: MAX_KEYS - 1,
+            lean_sphincs: 1,
+            limit: MAX_KEYS,
+        })
     );
     plan_coverage(short, &[], &[], None).expect("one short of the cap");
+    let too_many = Some(AggregationError::TooManyClaims {
+        slots: MAX_KEYS,
+        limit: MAX_KEYS,
+    });
+    assert_eq!(plan_coverage(&claims, &[], &[], None).err(), too_many);
+    assert_eq!(plan_coverage(short, &lean_sphincs, &[], None).err(), too_many);
+}
+
+#[test]
+fn an_unsorted_signer_set_names_the_first_claim_out_of_order() {
+    // Three sorted claims, then the last repeated: claim 3 is not above claim 2.
+    let mut claims: Vec<LeanXmssClaim> = signer_set(3).into_iter().map(|pk| (pk, message())).collect();
+    claims.sort();
+    check_signer_set(&claims, &[]).expect("a sorted set");
+    claims.push(claims[2]);
     assert_eq!(
-        plan_coverage(&claims, &[], &[], None).err(),
-        Some(AggregationError::TooLarge)
-    );
-    assert_eq!(
-        plan_coverage(short, &lean_sphincs, &[], None).err(),
-        Some(AggregationError::TooLarge)
+        check_signer_set(&claims, &[]),
+        Err(AggregateVerifyError::UnsortedSigners {
+            scheme: SignatureScheme::LeanXmss,
+            index: 3,
+        })
     );
 }
 
@@ -683,10 +705,14 @@ fn da_guest_checks_codeword_membership() {
 fn invalid_blob_sizes_are_rejected() {
     for symbols in [1, BLOB_SYMBOLS - 1, BLOB_SYMBOLS + 1, (DA_MAX_ROWS + 1) * BLOB_SYMBOLS] {
         let rows = vec![0; symbols];
-        assert!(matches!(
-            aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE),
-            Err(AggregationError::InvalidBlobSize { symbols: n }) if n == symbols
-        ));
+        assert_eq!(
+            aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE).err(),
+            Some(AggregationError::InvalidBlobSize {
+                symbols,
+                blob_symbols: BLOB_SYMBOLS,
+                max_blobs: DA_MAX_ROWS,
+            })
+        );
     }
 }
 
@@ -771,12 +797,18 @@ fn a_node_may_publish_less_than_it_covers() {
     // A pubkey that signed A only, declared on B: the cache reuses pubkeys.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[2].0, message_for(MESSAGE_B))])).err(),
-        Some(AggregationError::NotCovered)
+        Some(AggregationError::NotCovered {
+            scheme: SignatureScheme::LeanXmss,
+            uncovered: 1,
+        })
     );
     // A covered pubkey, against a message nobody signed.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[0].0, message_for(MESSAGE_B + 1))])).err(),
-        Some(AggregationError::NotCovered)
+        Some(AggregationError::NotCovered {
+            scheme: SignatureScheme::LeanXmss,
+            uncovered: 1,
+        })
     );
 }
 
@@ -1064,11 +1096,17 @@ fn malformed_raw_signature_is_an_error() {
 
     assert_eq!(
         lean_xmss_hints(&pk, &sig, &message).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregationError::MalformedRawSignature {
+            scheme: SignatureScheme::LeanXmss,
+            layer: 0,
+        })
     );
     assert_eq!(
         aggregate(&[], vec![(pk, message, sig)], vec![], &[], None, LOG_INV_RATE).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregationError::MalformedRawSignature {
+            scheme: SignatureScheme::LeanXmss,
+            layer: 0
+        })
     );
 }
 
@@ -1086,6 +1124,9 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let raw = vec![(public_key, signed, signature)];
     assert_eq!(
         aggregate(&[], vec![], raw, &[], None, LOG_INV_RATE).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregationError::MalformedRawSignature {
+            scheme: SignatureScheme::LeanSphincs,
+            layer: 0
+        })
     );
 }

@@ -16,12 +16,14 @@ use super::*;
 use std::collections::BTreeMap;
 
 mod consts;
+mod error;
 mod expr;
 mod subst;
 pub use consts::parse_const;
 use consts::{
     apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_f192_const, parse_gpow_bound,
 };
+pub use error::{ParseError, ParseErrorKind};
 use expr::{
     binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
     strip_comment, strip_const_wrapper, top_level_cmp,
@@ -30,7 +32,11 @@ pub(crate) use subst::{subst_all, subst_stmts, subst_var};
 /// Parse zkDSL source (the Python-shaped surface syntax of `zkDSL.md`) into an
 /// [`Ast`]. The `snark_lib` import is skipped; any other import is an error,
 /// since a program is a single file.
-pub fn parse(src: &str) -> Result<Ast, String> {
+///
+/// # Errors
+///
+/// The first line that does not parse, naming it and saying what it expected there.
+pub fn parse(src: &str) -> Result<Ast, ParseError> {
     parse_with_replacements(src, &BTreeMap::new())
 }
 
@@ -41,7 +47,11 @@ pub fn parse(src: &str) -> Result<Ast, String> {
 /// evaluated as a compile-time integer (or an `f192` literal / constant array)
 /// and substituted into the `def`s below. See the "Placeholders" and "Global
 /// constants" sections of `zkDSL.md`.
-pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String>) -> Result<Ast, String> {
+///
+/// # Errors
+///
+/// `PlaceholderReshapesLine` when a replacement holds a newline, `#` or `"`, else the first line that does not parse, as for a source without placeholders.
+pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String>) -> Result<Ast, ParseError> {
     // Substitution runs over the RAW source, before lines are split, so a
     // replacement carrying a newline would shift every line after it and make
     // every diagnostic below name the wrong one. It would also inject statements
@@ -54,9 +64,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
         .iter()
         .find(|(_, v)| v.contains('\n') || v.contains('#') || v.contains('"'))
     {
-        return Err(format!(
-            "placeholder `{k}` contains a newline, `#` or `\"`, which would reshape the line"
-        ));
+        return Err(ParseErrorKind::PlaceholderReshapesLine { name: k.clone() }.into());
     }
     let src = apply_replacements(src, replacements);
     // (source line, indent, content) for each significant line. The source line
@@ -72,10 +80,10 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
         if let Some(rest) = t.strip_prefix("import ").or_else(|| t.strip_prefix("from ")) {
             let module = rest.split_whitespace().next().unwrap_or("");
             if module != "snark_lib" {
-                return Err(locate(
-                    src_line + 1,
-                    format!("file imports are not supported (only the `snark_lib` stub): `{t}`"),
-                ));
+                return Err(ParseError::from(ParseErrorKind::UnsupportedImport {
+                    statement: t.to_string(),
+                })
+                .at(src_line + 1));
             }
             continue; // the stub is for Python tooling; the compiler skips it
         }
@@ -101,38 +109,42 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             indent,
             text: line,
         } = &lines[start];
-        let at = |e: String| locate(*src, e);
+        let at = |e: ParseErrorKind| ParseError::from(e).at(*src);
         if *indent == 0 && (line.starts_with("def ") || line.starts_with('@')) {
             break;
         }
         if *indent != 0 {
-            return Err(at(format!("unexpected indentation at top level: `{line}`")));
+            return Err(at(ParseErrorKind::TopLevelIndent {
+                indent: *indent,
+                text: line.clone(),
+            }));
         }
         let (lhs, rhs) = split_assign(line).ok_or_else(|| {
-            at(format!(
-                "top level: expected `def`, a global constant `NAME = value`, or the `snark_lib` import, got `{line}`"
+            at(expected(
+                "`def`, a global constant `NAME = value`, or the `snark_lib` import at top level",
+                line,
             ))
         })?;
         let name = lhs.trim().to_string();
         if !is_ident(&name) {
-            return Err(at(format!(
-                "global constant name must be a plain identifier: `{}`",
-                lhs.trim()
-            )));
+            return Err(at(ParseErrorKind::InvalidConstantName { name }));
         }
         if consts.contains_key(&name) || const_arrays.iter().any(|(n, _)| n == &name) {
-            return Err(at(format!("global constant `{name}` is declared twice")));
+            return Err(at(ParseErrorKind::DuplicateConstant { name }));
         }
         // A scalar constant is substituted textually, so one named after a builtin
         // rewrites the builtin's own call sites: `match = 4` turned
         // `v = match(log(x), …)` into `4(log(x), …)`, whose diagnostic names
         // neither the constant nor `match`.
         if BUILTINS.contains(&name.as_str()) {
-            return Err(at(format!(
-                "`{name}` is a builtin, so a global constant of that name would be substituted \
-                 into its own call sites. Rename it"
-            )));
+            return Err(at(ParseErrorKind::ConstantShadowsBuiltin { name }));
         }
+        let in_constant = |e: ParseError| {
+            at(ParseErrorKind::InConstant {
+                name: name.clone(),
+                kind: Box::new(e.kind),
+            })
+        };
         // Resolve earlier scalar constants inside the value first.
         let rhs = apply_replacements(rhs.trim(), &consts);
         let rhs = rhs.trim();
@@ -147,9 +159,9 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                     continue; // tolerate a trailing comma
                 }
                 let elem = if let Some(v) = parse_f192_const(p) {
-                    v.map_err(|e| at(format!("global constant array `{name}`: {e}")))?
+                    v.map_err(in_constant)?
                 } else {
-                    let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
+                    let n = eval_const_int(p).map_err(in_constant)?;
                     F192::new(n as u64, (n >> 64) as u64, 0)
                 };
                 elems.push(elem);
@@ -159,23 +171,24 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             // A scalar constant: an `f192` literal, else a compile-time integer,
             // else a field-valued expression.
             if let Some(value) = parse_f192_const(rhs) {
-                let v = value.map_err(|e| at(format!("global constant `{name}`: {e}")))?;
+                let v = value.map_err(in_constant)?;
                 consts.insert(name, format!("f192({},{},{})", v.c0, v.c1, v.c2));
             } else if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
             } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
                 // Integer arithmetic that did not fold. Reading it in the field
                 // instead, as the branch below would, silently picks another value.
-                return Err(at(format!(
-                    "global constant `{name}`: `{rhs}` overflows a u128, goes negative or divides by zero"
-                )));
+                return Err(at(ParseErrorKind::ConstantOverflow {
+                    name,
+                    value: rhs.to_string(),
+                }));
             } else {
                 // `GEN ** 2` and friends. The ISA is written in g-powers, so this
                 // is the natural spelling for a constant one, and it is not an
                 // integer expression. Rendered as a decimal wherever the value
                 // fits the low two limbs, so the constant still works in the
                 // positions that demand a literal rather than only as a value.
-                let v = parse_const(rhs).map_err(|e| at(format!("global constant `{name}`: {e}")))?;
+                let v = parse_const(rhs).map_err(in_constant)?;
                 consts.insert(
                     name,
                     if v.c2 == 0 {
@@ -213,25 +226,17 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
     // ran the wrong body.
     for (i, f) in funcs.iter().enumerate() {
         if funcs[..i].iter().any(|g| g.name == f.name) {
-            return Err(format!("function `{}` is defined twice", f.name));
+            return Err(ParseErrorKind::DuplicateFunction { name: f.name.clone() }.into());
         }
         if f.name.contains("__") {
-            return Err(format!(
-                "function name `{}` may not contain `__`, which is reserved for the names the \
-                 compiler generates (a loop helper, a `Const` specialization)",
-                f.name
-            ));
+            return Err(ParseErrorKind::ReservedFunctionName { name: f.name.clone() }.into());
         }
         // A builtin wins at the call site, so a function with a builtin's name is
         // never called and its body, constraints included, silently disappears.
         // `def const(x): assert x == 99` was skipped outright by `v = const(4)`,
         // and by whether the ARGUMENT folded, so one call site had two meanings.
         if BUILTINS.contains(&f.name.as_str()) {
-            return Err(format!(
-                "`{}` is a builtin, so a function of that name could never be called: \
-                 the builtin takes every call site. Rename it",
-                f.name
-            ));
+            return Err(ParseErrorKind::FunctionShadowsBuiltin { name: f.name.clone() }.into());
         }
     }
     infer_return_shapes(&mut funcs);
@@ -357,8 +362,6 @@ fn infer_return_shapes(funcs: &mut [Func]) {
 
 /// One significant source line: its 1-based position in the ORIGINAL file, its
 /// indentation, and its text with comments stripped and constants substituted.
-/// Prefix a diagnostic with the source line it came from, unless an inner frame
-/// already named a more specific one.
 /// Does the leading call span the WHOLE of `s`?
 ///
 /// `call_args` strips the first `(` and the LAST `)`, so it also matches a line
@@ -392,11 +395,24 @@ fn whole_call(s: &str) -> bool {
     false
 }
 
-fn locate(line: usize, e: String) -> String {
-    if e.starts_with("line ") {
-        e
-    } else {
-        format!("line {line}: {e}")
+/// A construct that needs `what` where `found` stands.
+fn expected(what: &'static str, found: &str) -> ParseErrorKind {
+    ParseErrorKind::Expected {
+        expected: what,
+        found: found.trim().to_string(),
+    }
+}
+
+/// A call-shaped construct given `parts` where it takes `what`; `call_args` gives no argument as one empty part.
+pub(super) fn arity(call: &'static str, what: &'static str, parts: &[&str]) -> ParseErrorKind {
+    let got = match parts {
+        [only] if only.trim().is_empty() => 0,
+        _ => parts.len(),
+    };
+    ParseErrorKind::Arity {
+        call,
+        expected: what,
+        got,
     }
 }
 
@@ -422,20 +438,23 @@ impl Parser<'_> {
             .map_or(0, |l| l.src)
     }
 
-    fn func(&mut self) -> Result<Func, String> {
+    fn func(&mut self) -> Result<Func, ParseError> {
         let here = self.lines.get(self.i).map_or(0, |l| l.src);
-        self.func_inner().map_err(|e| locate(here, e))
+        self.func_inner().map_err(|e| e.at(here))
     }
 
-    fn func_inner(&mut self) -> Result<Func, String> {
+    fn func_inner(&mut self) -> Result<Func, ParseError> {
         let mut line = &self.lines[self.i];
         // Optional `@inline` decorator on its own line before `def`.
         let inline = if let Some(dec) = line.text.strip_prefix('@') {
             if dec.trim() != "inline" {
-                return Err(format!("unknown decorator `@{}` (only `@inline`)", dec.trim()));
+                return Err(ParseErrorKind::UnknownDecorator {
+                    decorator: dec.trim().to_string(),
+                }
+                .into());
             }
             self.i += 1;
-            line = self.lines.get(self.i).ok_or("`@inline` must precede a `def`")?;
+            line = self.lines.get(self.i).ok_or(ParseErrorKind::DanglingDecorator)?;
             true
         } else {
             false
@@ -444,26 +463,28 @@ impl Parser<'_> {
         // `func`'s frame would name the `@inline` while quoting the `def`.
         let at_def = self.here();
         self.func_header(inline, line.indent, &line.text)
-            .map_err(|e| locate(at_def, e))
+            .map_err(|e| e.at(at_def))
     }
 
-    fn func_header(&mut self, inline: bool, indent: usize, line: &str) -> Result<Func, String> {
-        let header = line
-            .strip_prefix("def ")
-            .ok_or_else(|| format!("expected `def`, got `{line}`"))?;
-        let header = header.strip_suffix(':').ok_or("function header needs `:`")?;
-        let open = header.find('(').ok_or("function header needs `(`")?;
+    fn func_header(&mut self, inline: bool, indent: usize, line: &str) -> Result<Func, ParseError> {
+        let header = line.strip_prefix("def ").ok_or_else(|| expected("`def`", line))?;
+        let header = header
+            .strip_suffix(':')
+            .ok_or_else(|| expected("a function header ending in `:`", line))?;
+        let open = header
+            .find('(')
+            .ok_or_else(|| expected("`(` in the function header", line))?;
         let name = header[..open].trim().to_string();
         let close = header
             .rfind(')')
             .filter(|&c| c > open)
-            .ok_or("function header needs `)` after `(`")?;
+            .ok_or_else(|| expected("`)` after `(` in the function header", line))?;
         let params_str = header[open + 1..close].trim();
         let mut params = Vec::new();
         if !params_str.is_empty() {
             for part in params_str.split(',') {
                 if part.trim().is_empty() {
-                    return Err(format!("`def {name}`: empty parameter (a trailing comma?)"));
+                    return Err(ParseErrorKind::EmptyParameter { function: name }.into());
                 }
                 // `x`, `x: Const` (compile-time, specialized), or
                 // `x: StackBuf(n)` (a run of n cells, passed whole).
@@ -472,14 +493,23 @@ impl Parser<'_> {
                     None => ParamKind::Runtime(Shape::Scalar),
                     Some("Const") => ParamKind::Const,
                     Some(ann) => {
-                        let size = ann.strip_prefix("StackBuf(").and_then(|r| r.strip_suffix(')')).ok_or_else(|| {
-                            format!("unsupported parameter annotation `{ann}` (`Const`, or `StackBuf(n)` to pass a run of cells)")
+                        let size = ann
+                            .strip_prefix("StackBuf(")
+                            .and_then(|r| r.strip_suffix(')'))
+                            .ok_or_else(|| ParseErrorKind::UnsupportedAnnotation {
+                                annotation: ann.to_string(),
+                            })?;
+                        let k = eval_const_int(size).map_err(|_| ParseErrorKind::StackBufParamNotConst {
+                            function: name.clone(),
+                            size: size.trim().to_string(),
                         })?;
-                        let k =
-                            eval_const_int(size).map_err(|e| format!("`def {name}`: StackBuf parameter size: {e}"))?;
-                        let k = u32::try_from(k).map_err(|_| format!("`def {name}`: StackBuf({k}) is too large"))?;
+                        let k = u32::try_from(k).map_err(|_| ParseErrorKind::StackBufParamTooLarge {
+                            function: name.clone(),
+                            size: k,
+                            max: u32::MAX,
+                        })?;
                         if k == 0 {
-                            return Err(format!("`def {name}`: a StackBuf parameter needs at least one cell"));
+                            return Err(ParseErrorKind::EmptyStackBufParam { function: name }.into());
                         }
                         ParamKind::Runtime(Shape::StackBuf(k))
                     }
@@ -495,7 +525,11 @@ impl Parser<'_> {
             .enumerate()
             .find_map(|(i, p)| params[..i].iter().any(|q| q.name == p.name).then_some(&p.name))
         {
-            return Err(format!("parameter `{dup}` is declared twice"));
+            return Err(ParseErrorKind::DuplicateParameter {
+                function: name,
+                name: dup.clone(),
+            }
+            .into());
         }
         self.i += 1;
         let body = self.block(indent)?;
@@ -503,11 +537,11 @@ impl Parser<'_> {
             .iter()
             .find(|p| p.kind == ParamKind::Const && rebinds_in_block(&body, &p.name))
         {
-            return Err(format!(
-                "`def {name}`: `{}` is a Const parameter, substituted as a literal into the body, so it \
-                 cannot be rebound inside an `if` or an `unroll`; bind a new name",
-                p.name
-            ));
+            return Err(ParseErrorKind::ConstParamRebound {
+                function: name,
+                param: p.name.clone(),
+            }
+            .into());
         }
         let n_ret = body
             .iter()
@@ -530,16 +564,20 @@ impl Parser<'_> {
     }
 
     /// Parse a block: all statements indented strictly more than `parent`.
-    fn block(&mut self, parent: usize) -> Result<Vec<Stmt>, String> {
+    fn block(&mut self, parent: usize) -> Result<Vec<Stmt>, ParseError> {
         let mut stmts = Vec::new();
         let block_indent = match self.lines.get(self.i) {
             Some(Line { indent: ind, .. }) if *ind > parent => *ind,
-            _ => return Err(locate(self.here(), "expected an indented block".into())),
+            _ => return Err(ParseError::from(ParseErrorKind::ExpectedBlock { parent }).at(self.here())),
         };
         while let Some(Line { indent: ind, .. }) = self.lines.get(self.i) {
             if *ind != block_indent {
                 if *ind > parent && *ind > block_indent {
-                    return Err(locate(self.here(), "inconsistent indentation".into()));
+                    let kind = ParseErrorKind::InconsistentIndent {
+                        expected: block_indent,
+                        got: *ind,
+                    };
+                    return Err(ParseError::from(kind).at(self.here()));
                 }
                 break;
             }
@@ -548,43 +586,45 @@ impl Parser<'_> {
         Ok(stmts)
     }
 
-    fn stmt(&mut self, indent: usize) -> Result<Stmt, String> {
+    fn stmt(&mut self, indent: usize) -> Result<Stmt, ParseError> {
         let here = self.lines.get(self.i).map_or(0, |l| l.src);
         self.stmt_inner(indent)
             .map(|kind| Stmt::new(here as u32, kind))
-            .map_err(|e| locate(here, e))
+            .map_err(|e| e.at(here))
     }
 
-    fn stmt_inner(&mut self, indent: usize) -> Result<StmtKind, String> {
+    fn stmt_inner(&mut self, indent: usize) -> Result<StmtKind, ParseError> {
         let line = self.lines[self.i].text.as_str();
         if let Some(rest) = line.strip_prefix("for ") {
             // for VAR in mul_range(START, STOP): the counter walks gᵏ from START
             // to STOP, ×g each iteration (STOP is exclusive). Bounds are field
             // elements (powers of GEN), so the multiplicative walk is explicit.
-            let rest = rest.strip_suffix(':').ok_or("`for` needs `:`")?;
-            let (var, iter) = rest.split_once(" in ").ok_or("`for` needs `in`")?;
+            let rest = rest
+                .strip_suffix(':')
+                .ok_or_else(|| expected("a `for` ending in `:`", line))?;
+            let (var, iter) = rest
+                .split_once(" in ")
+                .ok_or_else(|| expected("`in` in a `for`", line))?;
             // `for i in unroll(a, b):` is compile-time replication; the bounds
             // are integer expressions, evaluated at lowering (so a `Const`
             // parameter works as a bound).
             if let Some(parts) = call_args(iter, "unroll") {
                 if parts.len() != 2 {
-                    return Err("unroll needs `a, b` (compile-time integers)".into());
+                    return Err(arity("unroll", "`a, b` (compile-time integers)", &parts).into());
                 }
                 let (lo, hi) = (parse_expr(parts[0])?, parse_expr(parts[1])?);
                 let var = binding_name(var, "loop counter")?;
                 self.i += 1;
                 let body = self.block(indent)?;
                 if rebinds_in_block(&body, &var) {
-                    return Err(format!(
-                        "the `unroll` counter `{var}` is substituted as a literal into each copy of the body, \
-                         so it cannot be rebound inside an `if` or an `unroll`; bind a new name"
-                    ));
+                    return Err(ParseErrorKind::UnrollCounterRebound { var }.into());
                 }
                 return Ok(StmtKind::Unroll { var, lo, hi, body });
             }
-            let parts = call_args(iter, "mul_range").ok_or("`for` needs `mul_range(start, stop)` or `unroll(a, b)`")?;
+            let parts = call_args(iter, "mul_range")
+                .ok_or_else(|| expected("`mul_range(start, stop)` or `unroll(a, b)` after `in`", iter))?;
             if parts.len() != 2 {
-                return Err("mul_range needs `start, stop`".into());
+                return Err(arity("mul_range", "`start, stop`", &parts).into());
             }
             let lo = parse_gpow_bound(parts[0])?;
             // The stop bound: a compile-time power of GEN, or any expression,
@@ -592,7 +632,7 @@ impl Parser<'_> {
             let hi = match parse_gpow_bound(parts[1]) {
                 Ok(hi) => {
                     if lo > hi {
-                        return Err(format!("mul_range: start GEN**{lo} must not exceed stop GEN**{hi}"));
+                        return Err(ParseErrorKind::MulRangeBackwards { start: lo, stop: hi }.into());
                     }
                     ForBound::Const(hi)
                 }
@@ -611,10 +651,7 @@ impl Parser<'_> {
                     // runtime path and still hangs, which wants a field-level
                     // constant folder the parser does not have.
                     if let Expr::Lit(n) = stop {
-                        return Err(format!(
-                            "mul_range stop bound `{n}` is not a power of GEN, so the multiplicative walk \
-                             never reaches it: write `GEN ** k`"
-                        ));
+                        return Err(ParseErrorKind::UnreachableStop { stop: n }.into());
                     }
                     ForBound::Runtime(stop)
                 }
@@ -648,11 +685,12 @@ impl Parser<'_> {
         if let Some(parts) = call_args(line, "print") {
             let (label, value) = match parts.as_slice() {
                 [l, v] if l.trim().starts_with('"') => {
-                    let l = string_lit(l).ok_or("print's label is a string literal: print(\"label\", expr)")?;
+                    let l =
+                        string_lit(l).ok_or_else(|| expected("a string literal label: `print(\"label\", expr)`", l))?;
                     (l.to_string(), v.trim())
                 }
                 [v] => (v.trim().to_string(), v.trim()),
-                _ => return Err("print takes `print(expr)` or `print(\"label\", expr)`".into()),
+                _ => return Err(arity("print", "`print(expr)` or `print(\"label\", expr)`", &parts).into()),
             };
             return Ok(StmtKind::Print {
                 label,
@@ -665,9 +703,10 @@ impl Parser<'_> {
         // vanish into the stream name instead of failing to parse.
         if let Some(parts) = call_args(line, "hint_witness").filter(|_| whole_call(line)) {
             let [dest, name] = parts.as_slice() else {
-                return Err("hint_witness(dest, \"name\") takes two arguments".into());
+                return Err(arity("hint_witness", "`dest, \"name\"`", &parts).into());
             };
-            let name = string_lit(name).ok_or("hint_witness's second argument is a string literal: \"name\"")?;
+            let name = string_lit(name)
+                .ok_or_else(|| expected("a string literal `\"name\"` as hint_witness's second argument", name))?;
             return Ok(StmtKind::HintWitness {
                 dest: parse_expr(dest)?,
                 name: name.to_string(),
@@ -684,8 +723,12 @@ impl Parser<'_> {
             // g-power) or `assert log X < k` (`k` an integer exponent) is a
             // range check in the exponent: proves `log_g(X) < k`.
             if let Some((a, b)) = split_once_top(rest, "<") {
-                let x =
-                    strip_log(a)?.ok_or("a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`")?;
+                let x = strip_log(a)?.ok_or_else(|| {
+                    expected(
+                        "a log, since a `<` assert compares logs: `assert log X < log Y` or `assert log X < k`",
+                        a,
+                    )
+                })?;
                 let bound = match strip_log(b)? {
                     // `log GEN ** k = k` when the bound folds to a power of GEN;
                     // otherwise it is a runtime g-power and the gadget derives
@@ -697,25 +740,23 @@ impl Parser<'_> {
                         let y = parse_expr(y)?;
                         match gpow_bound(&y) {
                             Ok(k) => LtBound::Const(k),
-                            Err(e) if const_int_expr(&y).is_some() => return Err(e),
+                            Err(e) if const_int_expr(&y).is_some() => return Err(e.into()),
                             Err(_) => LtBound::Runtime(y),
                         }
                     }
                     // An integer bound folds like any parse-time size (`CAP + 1`).
                     None => match const_int_expr(&parse_expr(b)?) {
                         Some(k) => {
-                            LtBound::Const(u64::try_from(k).map_err(|_| format!("log bound {k} does not fit in u64"))?)
+                            LtBound::Const(u64::try_from(k).map_err(|_| ParseErrorKind::LogBoundTooLarge { bound: k })?)
                         }
                         None => {
-                            return Err(format!(
-                                "a log bound must be `log _` or a parse-time integer, got `{b}`"
-                            ));
+                            return Err(expected("a log bound `log _` or a parse-time integer", b).into());
                         }
                     },
                 };
                 return Ok(StmtKind::AssertLt(parse_expr(x)?, bound));
             }
-            return Err("`assert` needs `==`, `!=`, or `log _ < _`".into());
+            return Err(expected("`==`, `!=`, or `log _ < _` in an `assert`", rest).into());
         }
         // Augmented assignment `x OP= rhs` (Python `*=`, `+=`, `//=`, `%=`,
         // `-=`) desugars to `x = x OP (rhs)`.
@@ -733,13 +774,15 @@ impl Parser<'_> {
             // here rather than by `parse_expr`.
             if let Some(parts) = call_args(rhs.trim(), "hint_witness").filter(|_| whole_call(rhs.trim())) {
                 let [stream] = parts.as_slice() else {
-                    return Err(
-                        "`x = hint_witness(\"stream\")` takes one argument; to fill a run, write \
-                         `hint_witness(dest, \"stream\")` as a statement"
-                            .into(),
-                    );
+                    return Err(arity(
+                        "hint_witness",
+                        "one `\"stream\"` when bound; to fill a run, write `hint_witness(dest, \"stream\")` as a statement",
+                        &parts,
+                    )
+                    .into());
                 };
-                let stream = string_lit(stream).ok_or("hint_witness's argument is a string literal: \"stream\"")?;
+                let stream = string_lit(stream)
+                    .ok_or_else(|| expected("a string literal `\"stream\"` as hint_witness's argument", stream))?;
                 return Ok(StmtKind::LetHintWitness {
                     name: binding_name(lhs, "binding name")?,
                     stream: stream.to_string(),
@@ -749,7 +792,9 @@ impl Parser<'_> {
             // Indexed LHS `arr[idx] = value` is a heap store.
             if lhs.trim_end().ends_with(']') {
                 let lhs = lhs.trim();
-                let open = lhs.find('[').ok_or("malformed store target")?;
+                let open = lhs
+                    .find('[')
+                    .ok_or_else(|| expected("a store target `arr[idx]`", lhs))?;
                 let arr = parse_expr(&lhs[..open])?;
                 let idx = parse_expr(&lhs[open + 1..lhs.len() - 1])?;
                 return Ok(StmtKind::Store(arr, idx, rhs_expr));
@@ -766,7 +811,7 @@ impl Parser<'_> {
                     .collect::<Result<Vec<_>, _>>()?;
                 return Ok(StmtKind::LetTuple(names, f, args));
             }
-            return Err("tuple assignment requires a call on the right".into());
+            return Err(expected("a call on the right of a tuple assignment", rhs).into());
         }
         // A bare comparison is not a statement, and `split_assign` used to split
         // one on its `=` into a binding named `x !`. In a verifier that is an
@@ -778,26 +823,32 @@ impl Parser<'_> {
             .iter()
             .any(|k| line.starts_with(k));
         if let Some(op) = top_level_cmp(line).filter(|_| !keyword) {
-            let fix = if matches!(op, "==" | "!=") {
-                format!("write `assert {line}`")
+            let statement = line.to_string();
+            return Err(if matches!(op, "==" | "!=") {
+                ParseErrorKind::BareEquality { statement }
             } else {
-                format!("`{op}` is not a predicate: order facts come from `assert log x < k`")
-            };
-            return Err(format!("`{line}` is a comparison, not a statement: {fix}"));
+                ParseErrorKind::BareOrder { statement, op }
+            }
+            .into());
         }
         // Bare call statement.
         if let Expr::Call(f, args) = parse_expr(line)? {
             return Ok(StmtKind::Call(f, args));
         }
-        Err(format!("statement has no effect: `{line}`"))
+        Err(ParseErrorKind::NoEffect {
+            statement: line.to_string(),
+        }
+        .into())
     }
 
     /// `if a == b:` / `if a != b:` (the current line, its `if `/`elif `
     /// prefix already stripped into `header`), with an optional `elif`/`else`
     /// tail at the same indent (an `elif` is sugar for an `else` holding a
     /// nested `if`).
-    fn if_stmt(&mut self, header: &str, indent: usize) -> Result<StmtKind, String> {
-        let cond = header.strip_suffix(':').ok_or("`if` needs `:`")?;
+    fn if_stmt(&mut self, header: &str, indent: usize) -> Result<StmtKind, ParseError> {
+        let cond = header
+            .strip_suffix(':')
+            .ok_or_else(|| expected("an `if` ending in `:`", header))?;
         let (cond, force_const) = match strip_const_wrapper(cond) {
             Some(inner) => (inner, true),
             // A near miss (`const (a == b)`, an unbalanced one) otherwise falls
@@ -814,9 +865,10 @@ impl Parser<'_> {
                     .strip_prefix("const")
                     .is_some_and(|r| r.trim_start().starts_with('(')) =>
             {
-                return Err(
-                    "`const(...)` must wrap the WHOLE condition and balance its brackets: `if const(a == b):`".into(),
-                );
+                return Err(ParseErrorKind::PartialConstCondition {
+                    condition: cond.trim().to_string(),
+                }
+                .into());
             }
             None => (cond, false),
         };
@@ -825,7 +877,7 @@ impl Parser<'_> {
         } else if let Some((l, r)) = split_once_top(cond, "!=") {
             (false, l, r)
         } else {
-            return Err("an `if` condition must be `a == b` or `a != b`".into());
+            return Err(expected("an `if` condition `a == b` or `a != b`", cond).into());
         };
         let (lhs, rhs) = (parse_expr(l)?, parse_expr(r)?);
         self.i += 1;
@@ -847,7 +899,7 @@ impl Parser<'_> {
                 let at_elif = self.here();
                 els = vec![Stmt::new(
                     at_elif as u32,
-                    self.if_stmt(rest, indent).map_err(|e| locate(at_elif, e))?,
+                    self.if_stmt(rest, indent).map_err(|e| e.at(at_elif))?,
                 )];
             }
         }
@@ -869,13 +921,16 @@ type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
 /// `log x` takes the rest of the side, and a parenthesised one only its group,
 /// which must end the side: `log(x) * 2` is `2·log x` in Python and was read
 /// here as `log(2x)`, so it is rejected rather than read either way.
-fn strip_log(s: &str) -> Result<Option<&str>, String> {
+fn strip_log(s: &str) -> Result<Option<&str>, ParseError> {
     let Some(r) = s.trim().strip_prefix("log").filter(|r| r.starts_with([' ', '('])) else {
         return Ok(None);
     };
     let r = r.trim_start();
     if r.starts_with('(') && !whole_call(r) {
-        return Err(format!("`{}`: put the whole operand inside `log(…)`", s.trim()));
+        return Err(ParseErrorKind::PartialLogOperand {
+            operand: s.trim().to_string(),
+        }
+        .into());
     }
     Ok(Some(r))
 }
@@ -886,7 +941,7 @@ fn strip_log(s: &str) -> Result<Option<&str>, String> {
 /// parameter substituted by the literal `j`. The union of the ranges must be
 /// gapless and start at 0 (this compiler's `match` rule). Everything sits on
 /// one line, since there is no line continuation.
-fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
+fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, ParseError> {
     // A target is a name, or a `StackBuf` element, which the arms then write
     // into directly: the ABI already returns into cells the caller picks, so
     // `sb[i], e = match(…)` costs no copy where a name plus a store did.
@@ -894,38 +949,39 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
         .iter()
         .map(|t| match parse_expr(t)? {
             e @ (Expr::Var(_) | Expr::Index(..)) => Ok(e),
-            other => Err(format!(
-                "a `match` target must be a name or a StackBuf element, got `{other:?}`"
-            )),
+            _ => Err(expected("a `match` target that is a name or a StackBuf element", t).into()),
         })
-        .collect::<Result<Vec<_>, _>>()?;
-    let chunks = call_args(rhs, "match").ok_or("malformed `match(…)`")?;
-    let (first, pairs) = chunks.split_first().ok_or("match needs arguments")?;
-    let x = strip_log(first)?.ok_or("`match` matches logs: `match(log(x), …)`")?;
+        .collect::<Result<Vec<_>, ParseError>>()?;
+    let chunks = call_args(rhs, "match").ok_or_else(|| expected("`match(…)` spanning the right side", rhs))?;
+    let (first, pairs) = chunks
+        .split_first()
+        .ok_or_else(|| expected("arguments to `match`", rhs))?;
+    let x = strip_log(first)?.ok_or_else(|| expected("a log as the `match` scrutinee: `match(log(x), …)`", first))?;
     let x = parse_expr(x)?;
     if pairs.is_empty() || !pairs.len().is_multiple_of(2) {
-        return Err("match needs `range(a, b), lambda i: …` pairs after the scrutinee".into());
+        return Err(expected("`range(a, b), lambda i: …` pairs after the `match` scrutinee", rhs).into());
     }
     let mut arms = Vec::new();
     for pair in pairs.chunks(2) {
         let (lo, hi) = match parse_expr(pair[0])? {
             Expr::Call(f, args) if f == "range" => match args.as_slice() {
                 [Expr::Lit(a), Expr::Lit(b)] if a < b => (*a, *b),
-                _ => return Err("match needs `range(a, b)` with integer literals, a < b".into()),
+                _ => return Err(expected("`range(a, b)` with integer literals, a < b", pair[0]).into()),
             },
-            other => return Err(format!("expected `range(a, b)`, got `{other:?}`")),
+            _ => return Err(expected("`range(a, b)`", pair[0]).into()),
         };
         if lo != arms.len() as u128 {
-            return Err(format!(
-                "match ranges must be contiguous from 0: expected a range starting at {}, got {lo}",
-                arms.len()
-            ));
+            return Err(ParseErrorKind::MatchGap {
+                expected: arms.len(),
+                got: lo,
+            }
+            .into());
         }
         let lam = pair[1]
             .trim()
             .strip_prefix("lambda ")
-            .ok_or("expected `lambda i: …` after each range")?;
-        let (param, body) = split_once_top(lam, ":").ok_or("`lambda` needs `:`")?;
+            .ok_or_else(|| expected("`lambda i: …` after each range", pair[1]))?;
+        let (param, body) = split_once_top(lam, ":").ok_or_else(|| expected("`:` in a `lambda`", pair[1]))?;
         let param = binding_name(param, "lambda parameter")?;
         let body = parse_expr(body)?;
         for j in lo..hi {

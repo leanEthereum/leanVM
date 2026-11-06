@@ -40,9 +40,23 @@ use signatures::{lean_sphincs, lean_xmss};
 ///
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
-/// - Raw signatures are assumed valid (otherwise `aggregate` will panic).
+/// - Raw signatures are assumed valid: an invalid one is refused, as `MalformedRawSignature` or a proving error.
 /// - Children are assumed verified by the caller ([`EthereumProof::verify`]): any invalid child
-///   proof ends up returning the error [`AggregationError::ProofError`] (TODO return the index of invalid proof).
+///   proof ends up returning a proving error (TODO return the index of invalid proof).
+///
+/// # Errors
+///
+/// - `InvalidRate` when `log_inv_rate` is outside the WHIR configuration's range.
+/// - `TooManyChildren` when there are more children than one node verifies.
+/// - `InvalidBlobSize` when the blobs are not whole, or more than one commitment takes.
+/// - `BlobsUnpublished` or `BlobNotCovered` when the declared DA root is not the blobs' or a child's.
+/// - `InvalidChild` when a child's signer set is malformed or its proof cannot be walked.
+/// - `NotCovered` when a declared claim is neither a raw signature's nor a child's.
+/// - `TooManyClaims` when the claims, duplicate slots included, reach the guest's limit.
+/// - `MalformedRawSignature` when a raw signature's layer has no target-sum encoding.
+/// - `ChildOutOfRange` or `ChildOverCapacity` when a child is larger than the guest's opening arms or buffers.
+/// - `Empty` when there is nothing to publish.
+/// - `ProofError` when the guest's run fails, on a child that does not verify or a forged signature, or the witness is too large.
 pub fn aggregate(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
@@ -70,10 +84,17 @@ pub fn aggregate_with_stats(
         return Err(AggregationError::InvalidRate { log_inv_rate });
     }
     if children.len() > MAX_RECURSIONS {
-        return Err(AggregationError::TooLarge);
+        return Err(AggregationError::TooManyChildren {
+            children: children.len(),
+            max: MAX_RECURSIONS,
+        });
     }
     if !blobs.len().is_multiple_of(BLOB_SYMBOLS) || blobs.len() / BLOB_SYMBOLS > DA_MAX_ROWS {
-        return Err(AggregationError::InvalidBlobSize { symbols: blobs.len() });
+        return Err(AggregationError::InvalidBlobSize {
+            symbols: blobs.len(),
+            blob_symbols: BLOB_SYMBOLS,
+            max_blobs: DA_MAX_ROWS,
+        });
     }
     let direct = (!blobs.is_empty()).then(|| {
         let _span = tracing::info_span!("LeanDA commit").entered();
@@ -124,8 +145,9 @@ pub fn aggregate_with_stats(
         .iter()
         .map(|child| verifier::da::digest(child.da_root))
         .collect();
-    for (child, &da) in children.iter().zip(&child_da) {
-        check_signer_set(&child.xmss_signers, &child.lean_sphincs_signers).map_err(AggregationError::InvalidChild)?;
+    for (i, (child, &da)) in children.iter().zip(&child_da).enumerate() {
+        check_signer_set(&child.xmss_signers, &child.lean_sphincs_signers)
+            .map_err(|error| AggregationError::InvalidChild { child: i, error })?;
         statements.push(child.statement(da));
     }
     // One single-threaded replay per worker: nothing inside dispatches.
@@ -135,9 +157,11 @@ pub fn aggregate_with_stats(
         verifier::replay_unchecked(bytecode, &public_input, &scalar_proof(&children[i].proof))
     });
     let mut replayed = Vec::with_capacity(children.len());
-    for (pi, summary) in statements.into_iter().zip(summaries) {
-        let summary =
-            summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
+    for (i, (pi, summary)) in statements.into_iter().zip(summaries).enumerate() {
+        let summary = summary.map_err(|e| AggregationError::InvalidChild {
+            child: i,
+            error: AggregateVerifyError::Snark(SnarkVerifyError(e)),
+        })?;
         replayed.push((pi, summary));
     }
 
@@ -151,7 +175,10 @@ pub fn aggregate_with_stats(
         .collect();
     let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
     if cover.n_total() >= MAX_KEYS {
-        return Err(AggregationError::TooLarge);
+        return Err(AggregationError::TooManyClaims {
+            slots: cover.n_total(),
+            limit: MAX_KEYS,
+        });
     }
 
     let mut hints = Hints::default();
@@ -229,7 +256,7 @@ pub fn aggregate_with_stats(
     let verified = parallel::map_collect(children.len(), |i| {
         let (pi, summary) = &replayed[i];
         let value = bytecode_value(&sums[2 * i], &claim_points[2 * i]);
-        gen_verify(guest, *pi, &children[i].proof.stream, summary, value)
+        gen_verify(i, guest, *pi, &children[i].proof.stream, summary, value)
     });
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());

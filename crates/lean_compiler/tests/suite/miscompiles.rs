@@ -43,7 +43,7 @@ fn ambiguous_programs_are_rejected_when_parsed() {
             "does not fit in u32",
         ),
         // Sliced backwards and panicked.
-        ("def f)(:\n    return\n".into(), "needs `)` after `(`"),
+        ("def f)(:\n    return\n".into(), "expected `)` after `(` in the function header"),
         // Substituted into every `GEN ** k`.
         ("GEN = 3\n\ndef main():\n    return\n".into(), "builtin"),
         // Fell back to the field reading, `2^128 - 1 XOR 1`.
@@ -52,7 +52,7 @@ fn ambiguous_programs_are_rejected_when_parsed() {
             "overflows",
         ),
     ] {
-        let err = parse(&src).err().unwrap_or_else(|| panic!("accepted:\n{src}"));
+        let err = parse(&src).err().unwrap_or_else(|| panic!("accepted:\n{src}")).to_string();
         assert!(err.contains(want), "`{err}` does not say `{want}`, for:\n{src}");
     }
 }

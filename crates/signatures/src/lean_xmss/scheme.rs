@@ -143,20 +143,19 @@ struct BottomTree {
     top_signature: LayerSignature,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+/// Why a key cannot sign.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, thiserror::Error)]
+#[non_exhaustive]
 pub enum LeanXmssSignError {
-    NoAdmissibleEncoding,
+    /// No randomizer below the trial limit makes the layer's message digest a codeword.
+    #[error("no randomizer among the first {trials} makes layer {layer}'s message digest a codeword")]
+    NoAdmissibleEncoding {
+        /// The layer that failed: 0 signs the message, 1 the bottom tree's root.
+        layer: usize,
+        /// The randomizers tried.
+        trials: u64,
+    },
 }
-
-impl std::fmt::Display for LeanXmssSignError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within the randomizer trial limit"),
-        }
-    }
-}
-
-impl std::error::Error for LeanXmssSignError {}
 
 /// Every leaf index: what a key signs at, but for a mock key.
 pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
@@ -193,6 +192,10 @@ pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (Le
 /// Never use the same key and leaf index to sign two different messages.
 /// Signing is deterministic. The first signature in a bottom tree builds it with
 /// `parallel`, so never sign from inside a `parallel` task.
+///
+/// # Errors
+///
+/// `NoAdmissibleEncoding` when no randomizer below the trial limit makes a layer's message digest a codeword.
 pub fn sign(
     sk: &LeanXmssSecretKey,
     message: &Message,
@@ -234,8 +237,12 @@ impl LeanXmssSecretKey {
     ) -> Result<LeanXmssSignature, LeanXmssSignError> {
         let bottom = self.bottom_tree(leaf_index, leaves)?;
         let seed = scheme_seed(&self.key_seed);
-        let (randomizer, chain_values) = wots_sign(&self.public_param, &seed, 0, leaf_index, message)
-            .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+        let (randomizer, chain_values) = wots_sign(&self.public_param, &seed, 0, leaf_index, message).ok_or(
+            LeanXmssSignError::NoAdmissibleEncoding {
+                layer: 0,
+                trials: MAX_RANDOMIZER_TRIALS,
+            },
+        )?;
         Ok(LeanXmssSignature {
             leaf_index,
             bottom: LayerSignature {
@@ -265,7 +272,10 @@ impl LeanXmssSecretKey {
         let last = (*leaves.end()).min(base | tree_leaf(LeafIndex::MAX)) - base;
         let tree = LayerTree::build(pp, seed, 0, base, first, last);
         let (randomizer, chain_values) =
-            wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+            wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding {
+                layer: 1,
+                trials: MAX_RANDOMIZER_TRIALS,
+            })?;
         let bottom = Arc::new(BottomTree {
             index,
             top_signature: LayerSignature {
@@ -280,25 +290,32 @@ impl LeanXmssSecretKey {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+/// Why a signature does not verify.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, thiserror::Error)]
+#[non_exhaustive]
 pub enum LeanXmssVerifyError {
-    /// A layer's message digest is not a codeword.
-    InvalidEncoding,
+    /// A layer's message digest, under the signature's randomizer, is not a codeword.
+    #[error("layer {layer} of the signature at leaf {leaf_index}: the message digest is not a codeword")]
+    InvalidEncoding {
+        /// The layer that failed: 0 signs the message, 1 the bottom tree's root.
+        layer: usize,
+        /// The leaf index the signature claims.
+        leaf_index: LeafIndex,
+    },
     /// The top layer does not reach the key's root.
-    InvalidMerklePath,
+    #[error("the signature at leaf {leaf_index} does not reach the key's root")]
+    InvalidMerklePath {
+        /// The leaf index the signature claims.
+        leaf_index: LeafIndex,
+    },
 }
 
-impl std::fmt::Display for LeanXmssVerifyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidEncoding => write!(f, "a layer's message digest is not a codeword"),
-            Self::InvalidMerklePath => write!(f, "the signature does not reach the key's root"),
-        }
-    }
-}
-
-impl std::error::Error for LeanXmssVerifyError {}
-
+/// `Ver`.
+///
+/// # Errors
+///
+/// - `InvalidEncoding` when a layer's message digest, under the signature's randomizer, is not a codeword.
+/// - `InvalidMerklePath` when the top layer does not reach the key's root.
 pub fn verify(
     pk: &LeanXmssPublicKey,
     message: &Message,
@@ -307,13 +324,13 @@ pub fn verify(
     let pp = &pk.public_param;
     let leaf_index = signature.leaf_index;
     let (_, bottom_root) = layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
-        .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
+        .ok_or(LeanXmssVerifyError::InvalidEncoding { layer: 0, leaf_index })?;
     let (_, root) = layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
-        .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
+        .ok_or(LeanXmssVerifyError::InvalidEncoding { layer: 1, leaf_index })?;
     if root == pk.merkle_root {
         Ok(())
     } else {
-        Err(LeanXmssVerifyError::InvalidMerklePath)
+        Err(LeanXmssVerifyError::InvalidMerklePath { leaf_index })
     }
 }
 

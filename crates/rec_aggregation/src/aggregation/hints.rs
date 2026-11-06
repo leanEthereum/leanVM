@@ -1,7 +1,7 @@
 //! Hint streams and the raw signatures' witnesses.
 
 use super::cells::{count, exponent_bytes, pack_16_bytes};
-use super::error::AggregationError;
+use super::error::{AggregationError, SignatureScheme};
 use leanvm_core::cpu::Program;
 use primitives::field::F192;
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -120,7 +120,10 @@ pub(super) fn lean_xmss_hints(
             ));
             level += 1;
         })
-        .ok_or(AggregationError::MalformedRawSignature)?;
+        .ok_or(AggregationError::MalformedRawSignature {
+            scheme: SignatureScheme::LeanXmss,
+            layer,
+        })?;
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
         hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
         for value in layer_sig.chain_values() {
@@ -167,7 +170,10 @@ pub(super) fn lean_sphincs_hints(
     for (layer, layer_sig) in sig.layers().iter().enumerate() {
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
         let (codeword, leaf) = lean_sphincs::wots_leaf(pp, &key, &signed, layer_sig.counter(), layer_sig.wots())
-            .ok_or(AggregationError::MalformedRawSignature)?;
+            .ok_or(AggregationError::MalformedRawSignature {
+                scheme: SignatureScheme::LeanSphincs,
+                layer,
+            })?;
         hints.push(("sp_counter", exponent_bytes(u64::from(layer_sig.counter()), 32)));
         hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
         for value in layer_sig.wots() {

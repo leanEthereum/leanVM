@@ -107,3 +107,28 @@ fn encoding_grinding_bits() {
     println!("Average grinding bits: {bits:.1}");
     assert!((19.0..21.0).contains(&bits), "grinding cost moved: {bits:.2} bits");
 }
+
+#[test]
+fn refusals_name_the_layer_and_the_leaf() {
+    let (sk, pk) = mock::key_gen_from_seed([6; SEED_LEN], 0, 7);
+    let message = test_message();
+    let sig = mock::sign(&sk, &message, 5).unwrap();
+    // Another message under the same randomizer: the bottom layer's digest is no codeword.
+    let mut other = message;
+    other[0] ^= 1;
+    assert_eq!(
+        verify(&pk, &other, &sig),
+        Err(LeanXmssVerifyError::InvalidEncoding {
+            layer: 0,
+            leaf_index: 5
+        })
+    );
+    // The top layer's last path node, one bit off: both layers encode, the root differs.
+    let mut bytes = sig.to_bytes();
+    bytes[SIG_SIZE - 1] ^= 1;
+    let bad = LeanXmssSignature::from_bytes(&bytes);
+    assert_eq!(
+        verify(&pk, &message, &bad),
+        Err(LeanXmssVerifyError::InvalidMerklePath { leaf_index: 5 })
+    );
+}

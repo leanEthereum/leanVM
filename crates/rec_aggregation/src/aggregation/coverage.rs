@@ -1,6 +1,6 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
-use super::error::AggregationError;
+use super::error::{AggregationError, SignatureScheme};
 use super::proof::{EthereumProof, SignatureClaims};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS};
 use std::collections::BTreeSet;
@@ -47,6 +47,7 @@ impl<K: Ord + Clone> Region<K> {
     /// Declares the union of the raw claims and the children's, or exactly
     /// `declare`, which they must cover.
     fn plan<'a>(
+        scheme: SignatureScheme,
         raw: &[K],
         children: impl Iterator<Item = &'a [K]> + Clone,
         declare: Option<&[K]>,
@@ -64,7 +65,10 @@ impl<K: Ord + Clone> Region<K> {
             let mut wanted: BTreeSet<&K> = declare.iter().collect();
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
-                return Err(AggregationError::NotCovered);
+                return Err(AggregationError::NotCovered {
+                    scheme,
+                    uncovered: wanted.len(),
+                });
             }
         }
         let mut claimed = vec![false; signers.len()];
@@ -123,18 +127,23 @@ pub(super) fn plan_coverage(
 ) -> Result<Coverage, AggregationError> {
     let cover = Coverage {
         xmss: Region::plan(
+            SignatureScheme::LeanXmss,
             raw_lean_xmss,
             children.iter().map(|child| child.xmss_signers.as_slice()),
             declare.map(|claims| claims.xmss.as_slice()),
         )?,
         lean_sphincs: Region::plan(
+            SignatureScheme::LeanSphincs,
             raw_lean_sphincs,
             children.iter().map(|child| child.lean_sphincs_signers.as_slice()),
             declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
     };
     if cover.n_total() >= MAX_KEYS {
-        return Err(AggregationError::TooLarge);
+        return Err(AggregationError::TooManyClaims {
+            slots: cover.n_total(),
+            limit: MAX_KEYS,
+        });
     }
     Ok(cover)
 }

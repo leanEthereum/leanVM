@@ -40,7 +40,11 @@ fn hashing_proof() -> (leanvm_core::cpu::Program, [F192; 2], Proof) {
 fn a_bytecode_that_is_not_a_power_of_two_is_an_error() {
     let (mut program, pi, proof) = hashing_proof();
     program.prog.pop();
-    assert!(matches!(verify(&program, &pi, &proof), Err(CpuError::PublicInput)));
+    let len = program.prog.len();
+    assert_eq!(
+        verify(&program, &pi, &proof),
+        Err(CpuError::BytecodeNotPowerOfTwo { len })
+    );
 }
 
 /// Out-of-process verification: everything travels in the two channels, so a proof

@@ -12,6 +12,7 @@ parallel.workspace = true
 primitives.workspace = true
 fiat_shamir.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 primitives = { workspace = true, features = ["test-util"] }

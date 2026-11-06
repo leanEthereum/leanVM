@@ -16,6 +16,7 @@ primitives.workspace = true
 parallel.workspace = true
 rand.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 signatures = { path = ".", features = ["mock"] }

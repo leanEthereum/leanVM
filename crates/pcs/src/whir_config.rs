@@ -45,13 +45,285 @@ pub const MIN_LOG_INV_RATE: usize = 1;
 pub const MAX_LOG_INV_RATE: usize = 4;
 
 /// Validate a production WHIR inverse-rate logarithm.
-pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
+///
+/// # Errors
+///
+/// `RateOutOfRange` when the value is outside `MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE`.
+pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), WhirConfigError> {
     if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
-        return Err(format!(
-            "log_inv_rate must be in {MIN_LOG_INV_RATE}..={MAX_LOG_INV_RATE}, got {log_inv_rate}"
-        ));
+        return Err(WhirConfigError::RateOutOfRange {
+            log_inv_rate,
+            min: MIN_LOG_INV_RATE,
+            max: MAX_LOG_INV_RATE,
+        });
     }
     Ok(())
+}
+
+/// Why no WHIR configuration exists for a requested shape, or why a configuration is inconsistent.
+#[derive(Clone, Debug, PartialEq, thiserror::Error)]
+#[non_exhaustive]
+pub enum WhirConfigError {
+    /// The inverse-rate logarithm is not one the production profile supports.
+    #[error("log_inv_rate {log_inv_rate} is outside {min}..={max}")]
+    RateOutOfRange {
+        /// The requested inverse-rate logarithm.
+        log_inv_rate: usize,
+        /// The smallest supported value.
+        min: usize,
+        /// The largest supported value.
+        max: usize,
+    },
+    /// The witness has fewer bits than one packed word holds.
+    #[error("a witness of 2^{m} bits is smaller than one packed word of 2^{log_packing} bits")]
+    WitnessBelowPacking {
+        /// The witness size logarithm, in bits.
+        m: usize,
+        /// The packed word size logarithm, in bits.
+        log_packing: usize,
+    },
+    /// The lane fold takes every variable, leaving nothing to commit.
+    #[error("a witness of {log_n} variables leaves nothing after the lane fold of {initial_k}")]
+    NothingAfterLaneFold {
+        /// The committed witness's variable count.
+        log_n: usize,
+        /// The variables the lane fold takes.
+        initial_k: usize,
+    },
+    /// The lane fold already leaves a residual small enough to send, so no level fold is taken.
+    #[error(
+        "a witness of {log_n} variables needs a level fold, but the lane fold of {initial_k} already leaves at most {residual_max_log}"
+    )]
+    NoLevelFold {
+        /// The committed witness's variable count.
+        log_n: usize,
+        /// The variables the lane fold takes.
+        initial_k: usize,
+        /// The largest residual sent in the clear, in variables.
+        residual_max_log: usize,
+    },
+    /// A fold takes fewer variables than the Reed-Solomon domain shrinks by, so the rate would have to grow.
+    #[error("the fold into level {level} takes {fold} variables, fewer than the domain reduction of {reduction} bits")]
+    FoldBelowDomainReduction {
+        /// The level the fold leads into.
+        level: usize,
+        /// The variables the fold takes.
+        fold: usize,
+        /// The bits the Reed-Solomon domain shrinks by.
+        reduction: usize,
+    },
+    /// No Johnson slack meets every soundness term of a level within its block length.
+    #[error(
+        "level {level}: no Johnson slack gives {target_bits}-bit soundness at rate 1/2^{log_inv_rate} with 2^{log_msg_cols} message columns"
+    )]
+    NoJohnsonSlack {
+        /// The level index, from L0.
+        level: usize,
+        /// The level's inverse-rate logarithm.
+        log_inv_rate: usize,
+        /// The level's message dimension logarithm.
+        log_msg_cols: usize,
+        /// The round-by-round soundness target, in bits.
+        target_bits: usize,
+    },
+    /// An ad-hoc unique-decoding level cannot fit its query count in its block.
+    #[cfg(test)]
+    #[error("level {level}: a block of {block_len} at rate 1/2^{log_inv_rate} is shorter than its {queries} queries")]
+    BlockBelowQueries {
+        /// The level index, from L0.
+        level: usize,
+        /// The largest inverse-rate logarithm tried.
+        log_inv_rate: usize,
+        /// The level's block length at that rate.
+        block_len: usize,
+        /// The unique-decoding queries at that rate.
+        queries: usize,
+    },
+    /// The witness size and its packed variable count disagree.
+    #[error("log_n {log_n} plus the packing of {log_packing} is not the witness size logarithm {m}")]
+    PackingMismatch {
+        /// The committed witness's variable count.
+        log_n: usize,
+        /// The packed word size logarithm, in bits.
+        log_packing: usize,
+        /// The witness size logarithm, in bits.
+        m: usize,
+    },
+    /// The folds and the residual do not add up to the witness's variable count.
+    #[error(
+        "the lane fold {initial_k}, the level folds {level_folds} and the residual {yr_log_n} do not sum to log_n {log_n}"
+    )]
+    FoldsMismatch {
+        /// The variables the lane fold takes.
+        initial_k: usize,
+        /// The variables the level folds past L0 take, summed.
+        level_folds: usize,
+        /// The residual's variable count.
+        yr_log_n: usize,
+        /// The committed witness's variable count.
+        log_n: usize,
+    },
+    /// The configuration has no level.
+    #[error("the configuration has no level")]
+    NoLevels,
+    /// The first level's fold is not the lane fold.
+    #[error("level 0 folds {k} variables, not the lane fold of {initial_k}")]
+    LaneFoldMismatch {
+        /// The variables L0 folds.
+        k: usize,
+        /// The variables the lane fold takes.
+        initial_k: usize,
+    },
+    /// The first level's leaves do not hold the lane fold's lanes.
+    #[error("level 0 interleaves 2^{log_num_interleaved} lanes per leaf, not the 2^{initial_k} of the lane fold")]
+    LaneInterleavingMismatch {
+        /// The interleaving logarithm L0 declares.
+        log_num_interleaved: usize,
+        /// The variables the lane fold takes.
+        initial_k: usize,
+    },
+    /// A level's code has rate one, so its queries give no soundness.
+    #[error("level {level} has rate one")]
+    RateOne {
+        /// The level index, from L0.
+        level: usize,
+    },
+    /// A level's message has a single column.
+    #[error("level {level} has a single message column")]
+    SingleColumn {
+        /// The level index, from L0.
+        level: usize,
+    },
+    /// A level's columns and lanes do not span the variables it receives.
+    #[error(
+        "level {level}: 2^{log_msg_cols} columns of 2^{log_num_interleaved} lanes do not span the {dim_in} variables it receives"
+    )]
+    LevelDimensionMismatch {
+        /// The level index, from L0.
+        level: usize,
+        /// The level's message dimension logarithm.
+        log_msg_cols: usize,
+        /// The level's interleaving logarithm.
+        log_num_interleaved: usize,
+        /// The variables the level receives.
+        dim_in: usize,
+    },
+    /// A level's rate plus its fold is smaller than the domain reduction after it.
+    #[error(
+        "level {level}: rate 1/2^{log_inv_rate} and a fold of {k} cannot absorb a domain reduction of {reduction} bits"
+    )]
+    DomainReductionTooLarge {
+        /// The level index, from L0.
+        level: usize,
+        /// The level's inverse-rate logarithm.
+        log_inv_rate: usize,
+        /// The variables the level folds.
+        k: usize,
+        /// The bits the Reed-Solomon domain shrinks by after it.
+        reduction: usize,
+    },
+    /// A level's rate does not follow from the previous level's by the domain reduction.
+    #[error(
+        "level {level}: log_inv_rate {got} does not shrink the previous domain by {reduction} bits, which needs {expected}"
+    )]
+    RateLadderMismatch {
+        /// The level index, from L0.
+        level: usize,
+        /// The bits the Reed-Solomon domain shrinks by before it.
+        reduction: usize,
+        /// The inverse-rate logarithm the reduction implies.
+        expected: usize,
+        /// The inverse-rate logarithm the level declares.
+        got: usize,
+    },
+    /// A level's Johnson slack is not inside the Johnson range of its rate.
+    #[error("level {level}: Johnson slack {eta} is outside (0, {max_eta})")]
+    EtaOutOfRange {
+        /// The level index, from L0.
+        level: usize,
+        /// The declared slack.
+        eta: f64,
+        /// The Johnson radius at the level's reduced rate, an exclusive bound.
+        max_eta: f64,
+    },
+    /// L0 takes out-of-domain samples, though the opening's own evaluation claim already binds it.
+    #[error("level 0 takes {ood_samples} out-of-domain samples, but the opening's evaluation claim binds it")]
+    OodAtLaneLevel {
+        /// The samples L0 declares.
+        ood_samples: usize,
+    },
+    /// A level past L0 takes no out-of-domain sample, so nothing binds it to one codeword.
+    #[error("level {level} takes no out-of-domain sample, but its query count assumes one codeword")]
+    MissingOod {
+        /// The level index, from L0.
+        level: usize,
+    },
+    /// A level's out-of-domain binding misses the target.
+    #[error("level {level}: out-of-domain binding gives {bits:.2} bits, below the target of {target}")]
+    OodBelowTarget {
+        /// The level index, from L0.
+        level: usize,
+        /// The bits the binding gives.
+        bits: f64,
+        /// The level's soundness target, in bits.
+        target: usize,
+    },
+    /// A level's queries miss what the grinding leaves of the target.
+    #[error(
+        "level {level}: queries give {bits:.2} bits, below the target of {target} less {grinding_bits} ground bits"
+    )]
+    QueriesBelowTarget {
+        /// The level index, from L0.
+        level: usize,
+        /// The bits the queries give.
+        bits: f64,
+        /// The level's soundness target, in bits.
+        target: usize,
+        /// The bits the query-phase grinding gives.
+        grinding_bits: usize,
+    },
+    /// A level's proximity gap misses the target.
+    #[error(
+        "level {level}: the proximity gap gives {bits:.2} bits over a 2^{log_field}-element field, below the target of {target}"
+    )]
+    ProximityGapBelowTarget {
+        /// The level index, from L0.
+        level: usize,
+        /// The bits the proximity gap gives.
+        bits: f64,
+        /// The logarithm of the analysis field's size.
+        log_field: f64,
+        /// The level's soundness target, in bits.
+        target: usize,
+    },
+    /// A level's list-unioned algebraic identity test misses the target.
+    #[error("level {level}: the list-unioned algebraic test gives {bits:.2} bits, below the target of {target}")]
+    AlgebraicBelowTarget {
+        /// The level index, from L0.
+        level: usize,
+        /// The bits the test gives.
+        bits: f64,
+        /// The level's soundness target, in bits.
+        target: usize,
+    },
+    /// A level targets less soundness than the configuration.
+    #[error("level {level} targets {level_target} bits, below the configuration's {target}")]
+    LevelTargetBelowGlobal {
+        /// The level index, from L0.
+        level: usize,
+        /// The level's soundness target, in bits.
+        level_target: usize,
+        /// The configuration's soundness target, in bits.
+        target: usize,
+    },
+    /// The levels do not fold down to the residual.
+    #[error("the levels fold down to {dim_out} variables, not the residual's {yr_log_n}")]
+    ResidualMismatch {
+        /// The variables left after the last level.
+        dim_out: usize,
+        /// The residual's variable count.
+        yr_log_n: usize,
+    },
 }
 
 /// Per-level query-phase proof-of-work budget. These bits are ground after the
@@ -190,19 +462,35 @@ pub fn udr_queries(log_inv_rate: usize) -> usize {
 /// production derivation's feasibility floor, where they fall back to this
 /// shape. Production callers use the audited, per-level-sound path.
 #[cfg(test)]
-pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
+pub fn default_config(
+    log_n: usize,
+    log_batch_size: usize,
+    log_inv_rate: usize,
+) -> Result<ProverConfig, WhirConfigError> {
     let initial_k = log_batch_size;
     if log_n > initial_k && (1usize << (log_n - initial_k + log_inv_rate)) < udr_queries(log_inv_rate) {
-        return Err("L0 block_len < udr_queries: log_n too small for chosen rate".into());
+        return Err(WhirConfigError::BlockBelowQueries {
+            level: 0,
+            log_inv_rate,
+            block_len: 1usize << (log_n - initial_k + log_inv_rate),
+            queries: udr_queries(log_inv_rate),
+        });
     }
     // Smallest rate strictly above the previous one that still fits the level's
     // query count inside its block length.
+    let mut level = 0;
     let shape = derive_ladder(log_n, initial_k, log_inv_rate, |rate_running, _fold, cols_next| {
+        level += 1;
         let mut next_rate = rate_running + 1;
         while (1usize << (cols_next + next_rate)) < udr_queries(next_rate) {
             next_rate += 1;
             if next_rate > 20 {
-                return Err("could not find feasible recursive rate (level too deep)".into());
+                return Err(WhirConfigError::BlockBelowQueries {
+                    level,
+                    log_inv_rate: 20,
+                    block_len: 1usize << (cols_next + 20),
+                    queries: udr_queries(20),
+                });
             }
         }
         Ok(next_rate)
@@ -253,10 +541,10 @@ fn derive_ladder(
     log_n: usize,
     initial_k: usize,
     log_inv_rate: usize,
-    mut next_rate: impl FnMut(usize, usize, usize) -> Result<usize, String>,
-) -> Result<LadderShape, String> {
+    mut next_rate: impl FnMut(usize, usize, usize) -> Result<usize, WhirConfigError>,
+) -> Result<LadderShape, WhirConfigError> {
     if log_n <= initial_k {
-        return Err("log_n must be > initial_k".into());
+        return Err(WhirConfigError::NothingAfterLaneFold { log_n, initial_k });
     }
     let mut shape = LadderShape {
         log_inv_rates: vec![log_inv_rate],
@@ -279,7 +567,11 @@ fn derive_ladder(
         fold_running = k;
     }
     if shape.k_levels.len() < 2 {
-        return Err("log_n too small: needs at least 2 fold levels".into());
+        return Err(WhirConfigError::NoLevelFold {
+            log_n,
+            initial_k,
+            residual_max_log: RESIDUAL_MAX_LOG,
+        });
     }
     shape.yr_log_n = n_running;
     Ok(shape)
@@ -289,12 +581,19 @@ fn derive_ladder(
 /// [`RS_DOMAIN_INITIAL_REDUCTION_FACTOR`] bits after the initial fold, then
 /// exactly one bit per subsequent fold, so a fold of `k` variables raises the
 /// inverse-rate logarithm by `k - reduction`.
-fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> Result<LadderShape, String> {
+fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> Result<LadderShape, WhirConfigError> {
     let mut domain_reduction = RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
+    let mut level = 0;
     derive_ladder(log_n, initial_k, log_inv_rate, |rate_running, fold_running, _cols| {
-        let rate_increase = fold_running.checked_sub(domain_reduction).ok_or_else(|| {
-            format!("folding factor {fold_running} is smaller than RS domain reduction {domain_reduction}")
-        })?;
+        level += 1;
+        let rate_increase =
+            fold_running
+                .checked_sub(domain_reduction)
+                .ok_or(WhirConfigError::FoldBelowDomainReduction {
+                    level,
+                    fold: fold_running,
+                    reduction: domain_reduction,
+                })?;
         domain_reduction = RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
         Ok(rate_running + rate_increase)
     })
@@ -612,7 +911,7 @@ fn optimize_johnson_level(
     target_bits: usize,
     query_grinding_bits: usize,
     prev_queries: usize,
-) -> Result<OptimizedJohnsonLevel, String> {
+) -> Result<OptimizedJohnsonLevel, WhirConfigError> {
     let target = target_bits as f64;
     let query_target = target_bits.saturating_sub(query_grinding_bits).max(1) as f64;
     let mu = log_msg_cols + log_num_interleaved;
@@ -667,10 +966,11 @@ fn optimize_johnson_level(
         }
     }
 
-    best.ok_or_else(|| {
-        format!(
-            "L{level}: no eta candidate satisfies {target_bits}-bit Johnson/OOD soundness at rate 1/2^{log_inv_rate}"
-        )
+    best.ok_or(WhirConfigError::NoJohnsonSlack {
+        level,
+        log_inv_rate,
+        log_msg_cols,
+        target_bits,
     })
 }
 
@@ -699,59 +999,72 @@ impl WhirLevelConfig {
 
 impl WhirSecurityConfig {
     /// Validate that the config is internally consistent and matches the
-    /// declared analysis. Returns the first violation found, if any.
-    pub fn validate(&self) -> Result<(), String> {
+    /// declared analysis.
+    ///
+    /// # Errors
+    ///
+    /// The first violated invariant, in this order:
+    ///
+    /// - `PackingMismatch` when `log_n + LOG_PACKING != m`;
+    /// - `FoldsMismatch` when the folds and the residual do not sum to `log_n`;
+    /// - `NoLevels` when there is no level;
+    /// - `LaneFoldMismatch`, `LaneInterleavingMismatch` when L0 is not shaped by the lane fold;
+    /// - then, level by level: `RateOne`, `SingleColumn`, `LevelDimensionMismatch` for a malformed level, `DomainReductionTooLarge`, `RateLadderMismatch` for a rate that does not follow the domain schedule, `EtaOutOfRange` for a slack outside the Johnson range, `OodAtLaneLevel`, `MissingOod` for a wrong out-of-domain sample count, `OodBelowTarget`, `QueriesBelowTarget`, `ProximityGapBelowTarget`, `AlgebraicBelowTarget` for a soundness term below the level's target, and `LevelTargetBelowGlobal` for a level target below the configuration's;
+    /// - `ResidualMismatch` when the levels do not fold down to the residual.
+    pub fn validate(&self) -> Result<(), WhirConfigError> {
         if self.log_n + crate::LOG_PACKING != self.m {
-            return Err(format!(
-                "log_n ({}) + LOG_PACKING ({}) != m ({})",
-                self.log_n,
-                crate::LOG_PACKING,
-                self.m
-            ));
+            return Err(WhirConfigError::PackingMismatch {
+                log_n: self.log_n,
+                log_packing: crate::LOG_PACKING,
+                m: self.m,
+            });
         }
 
         // Level shape: initial_k + Σ k (L1+) + yr_log_n = log_n.
         let levels_level_k_sum: usize = self.levels.iter().skip(1).map(|lv| lv.k).sum();
         let yr_log_n = self.final_block.yr_log_n;
         if self.initial_k + levels_level_k_sum + yr_log_n != self.log_n {
-            return Err(format!(
-                "shape mismatch: initial_k ({}) + Σ k ({}) + yr_log_n ({}) = {} ≠ log_n ({})",
-                self.initial_k,
-                levels_level_k_sum,
+            return Err(WhirConfigError::FoldsMismatch {
+                initial_k: self.initial_k,
+                level_folds: levels_level_k_sum,
                 yr_log_n,
-                self.initial_k + levels_level_k_sum + yr_log_n,
-                self.log_n,
-            ));
+                log_n: self.log_n,
+            });
         }
 
         // L0 must have k = initial_k and log_num_interleaved = initial_k.
-        let l0 = self.levels.first().ok_or_else(|| "empty levels".to_string())?;
+        let l0 = self.levels.first().ok_or(WhirConfigError::NoLevels)?;
         if l0.k != self.initial_k {
-            return Err(format!("L0.k ({}) must equal initial_k ({})", l0.k, self.initial_k));
+            return Err(WhirConfigError::LaneFoldMismatch {
+                k: l0.k,
+                initial_k: self.initial_k,
+            });
         }
         if l0.log_num_interleaved != self.initial_k {
-            return Err(format!(
-                "L0.log_num_interleaved ({}) must equal initial_k ({})",
-                l0.log_num_interleaved, self.initial_k
-            ));
+            return Err(WhirConfigError::LaneInterleavingMismatch {
+                log_num_interleaved: l0.log_num_interleaved,
+                initial_k: self.initial_k,
+            });
         }
 
         // Per-level checks.
         let mut dim_in = self.log_n;
         for (i, lv) in self.levels.iter().enumerate() {
             if lv.log_inv_rate == 0 {
-                return Err(format!("L{i}: log_inv_rate=0 gives a rate-one code"));
+                return Err(WhirConfigError::RateOne { level: i });
             }
             if lv.log_msg_cols == 0 {
-                return Err(format!("L{i}: log_msg_cols must be positive"));
+                return Err(WhirConfigError::SingleColumn { level: i });
             }
 
             // Shape: log_msg_cols + log_num_interleaved = dim_in.
             if lv.log_msg_cols + lv.log_num_interleaved != dim_in {
-                return Err(format!(
-                    "L{i}: log_msg_cols ({}) + log_num_interleaved ({}) ≠ input dim ({dim_in})",
-                    lv.log_msg_cols, lv.log_num_interleaved
-                ));
+                return Err(WhirConfigError::LevelDimensionMismatch {
+                    level: i,
+                    log_msg_cols: lv.log_msg_cols,
+                    log_num_interleaved: lv.log_num_interleaved,
+                    dim_in,
+                });
             }
 
             // Folding `lv.k` variables changes the next level's total RS
@@ -768,50 +1081,51 @@ impl WhirSecurityConfig {
                     .log_inv_rate
                     .checked_add(lv.k)
                     .and_then(|r| r.checked_sub(domain_reduction))
-                    .ok_or_else(|| format!("L{i}: invalid RS domain reduction {domain_reduction}"))?;
+                    .ok_or(WhirConfigError::DomainReductionTooLarge {
+                        level: i,
+                        log_inv_rate: lv.log_inv_rate,
+                        k: lv.k,
+                        reduction: domain_reduction,
+                    })?;
                 if next.log_inv_rate != expected_next_rate {
-                    return Err(format!(
-                        "L{}: log_inv_rate ({}) does not reduce the preceding RS domain by {} bit(s); expected {}",
-                        i + 1,
-                        next.log_inv_rate,
-                        domain_reduction,
-                        expected_next_rate,
-                    ));
+                    return Err(WhirConfigError::RateLadderMismatch {
+                        level: i + 1,
+                        reduction: domain_reduction,
+                        expected: expected_next_rate,
+                        got: next.log_inv_rate,
+                    });
                 }
             }
 
             // eta within the Johnson range for this level's (reduced) rate.
             let max_eta = 1.0 - reduced_rate(lv.log_inv_rate, lv.log_msg_cols).sqrt();
             if !lv.eta.is_finite() || lv.eta <= 0.0 || lv.eta >= max_eta {
-                return Err(format!(
-                    "L{i}: Johnson eta must be finite and in (0, {max_eta}), got {}",
-                    lv.eta
-                ));
+                return Err(WhirConfigError::EtaOutOfRange {
+                    level: i,
+                    eta: lv.eta,
+                    max_eta,
+                });
             }
 
             // OOD samples: every level past L0 needs explicit samples, while
             // L0 is bound by the opening's own post-commit evaluation claim.
             if i == 0 && lv.ood_samples != 0 {
-                return Err(format!(
-                    "L0: ood_samples={} but L0 is bound by the opening's \
-                     own evaluation claim (must be 0)",
-                    lv.ood_samples
-                ));
+                return Err(WhirConfigError::OodAtLaneLevel {
+                    ood_samples: lv.ood_samples,
+                });
             }
             if i > 0 && lv.ood_samples == 0 {
-                return Err(format!(
-                    "L{i}: ood_samples ≥ 1 required past L0 (the query \
-                     counts assume single-codeword binding)"
-                ));
+                return Err(WhirConfigError::MissingOod { level: i });
             }
 
             // OOD binding clears the target.
             let ood_pred = lv.paper_predicted_ood_bits();
             if ood_pred + 1e-12 < lv.target_security_bits as f64 {
-                return Err(format!(
-                    "L{i}: OOD binding ({ood_pred:.2} bits) < target ({})",
-                    lv.target_security_bits
-                ));
+                return Err(WhirConfigError::OodBelowTarget {
+                    level: i,
+                    bits: ood_pred,
+                    target: lv.target_security_bits,
+                });
             }
 
             let (pg_pred, q_pred) = lv.paper_predicted_bits();
@@ -820,12 +1134,12 @@ impl WhirSecurityConfig {
             if lv.target_security_bits > lv.grinding_bits
                 && q_pred + 1e-12 < (lv.target_security_bits - lv.grinding_bits) as f64
             {
-                return Err(format!(
-                    "L{i}: query soundness ({q_pred:.2} bits) < target ({}) - grinding ({}) = {}",
-                    lv.target_security_bits,
-                    lv.grinding_bits,
-                    lv.target_security_bits - lv.grinding_bits
-                ));
+                return Err(WhirConfigError::QueriesBelowTarget {
+                    level: i,
+                    bits: q_pred,
+                    target: lv.target_security_bits,
+                    grinding_bits: lv.grinding_bits,
+                });
             }
 
             // Per-application proximity gap + fold-challenge grinding must
@@ -833,10 +1147,12 @@ impl WhirSecurityConfig {
             // so only the fold grind (done before each fold challenge)
             // boosts it; the query-phase grind does not.)
             if pg_pred + 1e-12 < lv.target_security_bits as f64 {
-                return Err(format!(
-                    "L{i}: proximity-gap soundness ({pg_pred:.2} bits) < target ({})",
-                    lv.target_security_bits
-                ));
+                return Err(WhirConfigError::ProximityGapBelowTarget {
+                    level: i,
+                    bits: pg_pred,
+                    log_field: ANALYSIS_LOG_Q,
+                    target: lv.target_security_bits,
+                });
             }
 
             // The largest list-unioned algebraic identity test (currently the
@@ -844,17 +1160,19 @@ impl WhirSecurityConfig {
             // clear the target.
             let algebraic = johnson_algebraic_bits(lv, prev_queries_at(&self.levels, i));
             if algebraic + 1e-12 < lv.target_security_bits as f64 {
-                return Err(format!(
-                    "L{i}: list-unioned algebraic soundness ({algebraic:.2} bits) < target ({})",
-                    lv.target_security_bits
-                ));
+                return Err(WhirConfigError::AlgebraicBelowTarget {
+                    level: i,
+                    bits: algebraic,
+                    target: lv.target_security_bits,
+                });
             }
 
             if lv.target_security_bits < self.target_security_bits {
-                return Err(format!(
-                    "L{i}: target_security_bits ({}) < global target ({})",
-                    lv.target_security_bits, self.target_security_bits
-                ));
+                return Err(WhirConfigError::LevelTargetBelowGlobal {
+                    level: i,
+                    level_target: lv.target_security_bits,
+                    target: self.target_security_bits,
+                });
             }
 
             // Advance dim_in for next level: subtract k (the folds at this level).
@@ -862,9 +1180,10 @@ impl WhirSecurityConfig {
         }
 
         if dim_in != yr_log_n {
-            return Err(format!(
-                "after consuming all levels, dim_in ({dim_in}) ≠ yr_log_n ({yr_log_n})"
-            ));
+            return Err(WhirConfigError::ResidualMismatch {
+                dim_out: dim_in,
+                yr_log_n,
+            });
         }
 
         // Round-by-round soundness (doc/leanvm/body/b-polynomial-commitment-scheme.tex, Thm `thm:rbr`): each
@@ -881,13 +1200,25 @@ impl WhirSecurityConfig {
     /// soundness**, i.e. every verifier-challenge error term (pg + fold
     /// grinding, query + query grinding, OOD, and algebraic checks) clears the
     /// target individually.
-    pub fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, String> {
+    ///
+    /// # Errors
+    ///
+    /// - `RateOutOfRange` when the rate is not a production rate;
+    /// - `WitnessBelowPacking` when `m < LOG_PACKING`;
+    /// - `NothingAfterLaneFold`, `NoLevelFold` when the witness is too small for the ladder;
+    /// - `FoldBelowDomainReduction` when a fold cannot absorb the domain schedule;
+    /// - `NoJohnsonSlack` when a level has no slack meeting every soundness term;
+    /// - any error of the validation of the derived configuration.
+    pub fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, WhirConfigError> {
         validate_log_inv_rate(log_inv_rate)?;
         let target_bits = SECURITY_BITS;
         let query_grind: usize = QUERY_GRINDING_BITS;
         let log_n = m
             .checked_sub(crate::LOG_PACKING)
-            .ok_or_else(|| format!("m ({m}) < LOG_PACKING ({})", crate::LOG_PACKING))?;
+            .ok_or(WhirConfigError::WitnessBelowPacking {
+                m,
+                log_packing: crate::LOG_PACKING,
+            })?;
         let initial_k = INITIAL_FOLDING_FACTOR;
 
         // The ladder geometry is independent of eta. Exact block-length
@@ -940,7 +1271,11 @@ impl WhirSecurityConfig {
     }
 
     /// Build the shared prover/verifier config, retaining the level shape and dropping security-analysis fields.
-    pub fn to_config(&self) -> Result<ProverConfig, String> {
+    ///
+    /// # Errors
+    ///
+    /// Any error of the configuration's validation.
+    pub fn to_config(&self) -> Result<ProverConfig, WhirConfigError> {
         self.validate()?;
         Ok(ProverConfig {
             log_inv_rates: self.levels.iter().map(|lv| lv.log_inv_rate).collect(),

@@ -22,6 +22,7 @@ rand = { workspace = true, optional = true }
 bincode.workspace = true
 serde.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 [features]
 # `signers_cache`: cached benchmark signers over leanXMSS mock keys, for tests and the CLI.

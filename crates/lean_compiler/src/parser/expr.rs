@@ -18,7 +18,7 @@ use super::*;
 
 /// Parse an expression with `+` (lowest) then `*`, atoms being integer literals,
 /// variables, calls `f(args)`, and parenthesised sub-expressions.
-pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
+pub(super) fn parse_expr(s: &str) -> Result<Expr, ParseError> {
     let s = s.trim();
     // `+` / `-` at top level (lowest precedence), left-associative. `-` is
     // compile-time integer subtraction (field subtraction is `+` = XOR).
@@ -74,10 +74,10 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
     if s.starts_with('[') && s.ends_with(']') {
         let inner = s[1..s.len() - 1].trim();
         if inner.is_empty() {
-            return Err("a list literal needs at least one element".into());
+            return Err(ParseErrorKind::EmptyList.into());
         }
         if let Some((body, range)) = split_once_top(inner, " for ") {
-            let bad = || format!("a list comprehension is `[body for var in unroll(lo, hi)]`, got `{s}`");
+            let bad = || ParseError::from(expected("a list comprehension `[body for var in unroll(lo, hi)]`", s));
             let (var, range) = range.split_once(" in ").ok_or_else(bad)?;
             let args = range
                 .trim()
@@ -106,7 +106,9 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
     }
     // Index `base[idx]` or slice `base[lo:hi]` (binds tightest, like a call).
     if s.ends_with(']') {
-        let open = s.find('[').ok_or_else(|| format!("unbalanced `]` in `{s}`"))?;
+        let open = s
+            .find('[')
+            .ok_or_else(|| ParseErrorKind::UnbalancedBracket { text: s.to_string() })?;
         let base = parse_expr(&s[..open])?;
         let inner = &s[open + 1..s.len() - 1];
         if let Some((lo, hi)) = split_once_top(inner, ":") {
@@ -133,7 +135,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
                     if let Some((key, value)) = split_once_top(a, "=") {
                         let key = key.trim();
                         if key.is_empty() || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-                            return Err(format!("invalid keyword argument `{key}`"));
+                            return Err(ParseErrorKind::InvalidKeyword { key: key.to_string() }.into());
                         }
                         Ok(Expr::Call(format!("__kw_{key}"), vec![parse_expr(value)?]))
                     } else {
@@ -147,7 +149,12 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         // already substituted) is a static size like a bare literal.
         // A cell count is a frame/heap size: reject one that does not fit rather
         // than wrapping it into a plausible small buffer.
-        let cells = |n: u128| u32::try_from(n).map_err(|_| format!("{name} size {n} does not fit in u32"));
+        let cells = |n: u128| {
+            u32::try_from(n).map_err(|_| ParseErrorKind::BufferTooLarge {
+                buffer: name.clone(),
+                size: n,
+            })
+        };
         if name == "HeapBuf" || name == "StackBuf" {
             let size = match args.as_slice() {
                 [arg] => const_int_expr(arg),
@@ -157,8 +164,13 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
                 ("HeapBuf", Some(n)) => Ok(Expr::HeapBuf(cells(n)?)),
                 ("StackBuf", Some(n)) => Ok(Expr::StackBuf(cells(n)?)),
                 ("HeapBuf", None) if args.len() == 1 => Ok(Expr::HeapBufDyn(Box::new(args.pop().unwrap()))),
-                ("HeapBuf", None) => Err("HeapBuf(size) takes one argument".into()),
-                _ => Err("StackBuf(n) needs a parse-time integer size".into()),
+                ("HeapBuf", None) => Err(ParseErrorKind::Arity {
+                    call: "HeapBuf",
+                    expected: "one `size`",
+                    got: args.len(),
+                }
+                .into()),
+                _ => Err(expected("a parse-time integer size in `StackBuf(n)`", s).into()),
             };
         }
         return Ok(Expr::Call(name, args));
@@ -167,14 +179,14 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         return Ok(Expr::Var(s.to_string()));
     }
     if s.is_empty() {
-        return Err("expected an expression".into());
+        return Err(ParseErrorKind::EmptyExpression.into());
     }
-    Err(format!("cannot parse expression `{s}`"))
+    Err(ParseErrorKind::InvalidExpression { text: s.to_string() }.into())
 }
 
 /// Combine one tier's operands left-associatively: `node` builds the AST node
 /// for each operator (as [`split_add`] / [`split_mul`] tag it).
-fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -> Expr) -> Result<Expr, String> {
+fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -> Expr) -> Result<Expr, ParseError> {
     // An empty operand is an operator missing a side: a leading `-`, a trailing
     // operator, or two in a row. Naming it beats letting `parse_expr("")` report
     // an empty backtick, which is what every one of these used to say.
@@ -184,18 +196,20 @@ fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -
         } else {
             (ops[i - 1], "right")
         };
+        if op == b'-' && i == 0 {
+            return Err(ParseErrorKind::UnaryMinus.into());
+        }
         // `split_mul` encodes the two divisions, so spell them back out.
-        let shown = match op {
-            b'/' => "//".to_string(),
-            b'd' => "/".to_string(),
-            c => (c as char).to_string(),
+        let op = match op {
+            b'+' => "+",
+            b'-' => "-",
+            b'*' => "*",
+            b'/' => "//",
+            b'd' => "/",
+            b'%' => "%",
+            _ => unreachable!("the operand splitters emit only + - * / d %"),
         };
-        let hint = if op == b'-' && i == 0 {
-            ": there is no unary minus, and field subtraction is `+`"
-        } else {
-            ""
-        };
-        return Err(format!("`{shown}` has no {side} operand{hint}"));
+        return Err(ParseErrorKind::MissingOperand { op, side }.into());
     }
     let mut acc = parse_expr(segs[0])?;
     for (&op, seg) in ops.iter().zip(&segs[1..]) {
@@ -337,7 +351,7 @@ pub(super) fn split_assign(s: &str) -> Option<(&str, &str)> {
 /// The unsupported spellings must be REJECTED rather than declined: falling
 /// through left [`split_assign`] to split the bare `=`, so `x /= 2` became a
 /// binding named `x /` and the program silently kept the old `x`.
-pub(super) fn split_aug(s: &str) -> Result<Aug<'_>, String> {
+pub(super) fn split_aug(s: &str) -> Result<Aug<'_>, ParseError> {
     let b = s.as_bytes();
     for (i, c) in depth0(s) {
         if c != b'=' {
@@ -358,16 +372,12 @@ pub(super) fn split_aug(s: &str) -> Result<Aug<'_>, String> {
             b'-' => ("-", 1),
             b'%' => ("%", 1),
             b'*' if prev2 == Some(b'*') => {
-                return Err("`**=` is not supported; write `x = x ** k`".into());
+                return Err(ParseErrorKind::PowAssign.into());
             }
             b'*' => ("*", 1),
             b'/' if prev2 == Some(b'/') => ("//", 2),
             b'/' => {
-                return Err(
-                    "`/=` is not supported; `/` is runtime field division, so write `x = x / y` (or `//=` for the \
-                     compile-time floor division)"
-                        .into(),
-                );
+                return Err(ParseErrorKind::FieldDivAssign.into());
             }
             _ => return Ok(None),
         };
@@ -434,15 +444,16 @@ pub(super) fn is_ident(s: &str) -> bool {
 /// constants are replaced textually, so `V = 8` with `def scale(V)` arrives as a
 /// parameter literally named `8` while the body's `V` reads the constant.
 /// `zkDSL.md` §Global constants reserves the name; this enforces it.
-pub(super) fn binding_name(raw: &str, what: &str) -> Result<String, String> {
+pub(super) fn binding_name(raw: &str, what: &'static str) -> Result<String, ParseError> {
     let n = raw.trim();
     if is_ident(n) {
         return Ok(n.to_string());
     }
-    Err(format!(
-        "`{n}` is not a valid {what}: a name must be a plain identifier. A top-level constant's name is \
-         reserved, and is substituted before parsing, so a parameter or local may not reuse one."
-    ))
+    Err(ParseErrorKind::InvalidName {
+        name: n.to_string(),
+        role: what,
+    }
+    .into())
 }
 
 /// The inside of a `const(...)` wrapping the WHOLE of `s`, or `None`.

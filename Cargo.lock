@@ -282,6 +282,7 @@ dependencies = [
  "leanvm_core",
  "primitives",
  "rand",
+ "thiserror",
 ]
 
 [[package]]
@@ -335,6 +336,7 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
+ "thiserror",
  "tracing",
  "verifier",
 ]
@@ -402,6 +404,7 @@ dependencies = [
  "fiat_shamir",
  "parallel",
  "primitives",
+ "thiserror",
  "tracing",
 ]
 
@@ -501,6 +504,7 @@ dependencies = [
  "rand",
  "serde",
  "signatures",
+ "thiserror",
  "tracing",
  "verifier",
 ]
@@ -586,6 +590,7 @@ dependencies = [
  "rand",
  "serde",
  "signatures",
+ "thiserror",
 ]
 
 [[package]]

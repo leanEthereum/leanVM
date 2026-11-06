@@ -42,3 +42,28 @@ fn signatures_verify_and_tampered_ones_do_not() {
         assert!(verify(&pk, &message, &bad).is_err(), "byte {at}");
     }
 }
+
+#[test]
+fn refusals_name_the_layer_and_the_leaf() {
+    let (sk, pk) = key_gen_from_seed(seed(5));
+    let message: Message = std::array::from_fn(|i| (5 + i) as u8);
+    let signature = sign(&sk, &message).unwrap();
+    let bytes = signature.to_bytes();
+    let (leaf_index, _) = message_digest(pk.public_param(), signature.randomizer(), &message);
+    // The bottom layer's counter, one bit off, no longer encodes the FORS key.
+    let counter_at = RANDOMIZER_LEN + FORS_TREES * FORS_OPENING_SIZE;
+    let mut bad = bytes;
+    bad[counter_at] ^= 1;
+    let counter = signature.layers()[0].counter() ^ 1;
+    assert_eq!(
+        verify(&pk, &message, &LeanSphincsSignature::from_bytes(&bad)),
+        Err(LeanSphincsVerifyError::InadmissibleEncoding { layer: 0, counter })
+    );
+    // The top layer's last path node, one bit off: every layer still encodes, the root differs.
+    let mut bad = bytes;
+    bad[SIG_SIZE - 1] ^= 1;
+    assert_eq!(
+        verify(&pk, &message, &LeanSphincsSignature::from_bytes(&bad)),
+        Err(LeanSphincsVerifyError::RootMismatch { leaf_index })
+    );
+}

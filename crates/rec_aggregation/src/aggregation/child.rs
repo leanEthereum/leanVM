@@ -62,6 +62,7 @@ pub(super) fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
 /// `proof_stream` (zero hand-mirroring drift). Nothing here says the child
 /// verifies: the guest's run does.
 pub(super) fn gen_verify(
+    child: usize,
     program: &Program,
     public_input: [F192; 2],
     proof_stream: &[F192],
@@ -81,10 +82,26 @@ pub(super) fn gen_verify(
     // Fixed capacities: every buffer/stride placeholder is a global cap so
     // the placeholder map is SHAPE-INDEPENDENT (the definition of generic). A
     // child that verifies and has an arm fits them; one that does not need not.
-    let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP;
-    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
+    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) {
         return Err(AggregationError::ChildOutOfRange {
+            child,
             log_committed: layout.shape.mu,
+            min: MU_MIN,
+            max: MU_MAX,
+        });
+    }
+    let log_side = side_layouts
+        .iter()
+        .map(|side| side.mu)
+        .max()
+        .expect("a bus has three sides");
+    if log_side > MU_CAP || proof_stream.len() > STREAM_CAP {
+        return Err(AggregationError::ChildOverCapacity {
+            child,
+            log_side,
+            stream_len: proof_stream.len(),
+            max_log_side: MU_CAP,
+            max_stream_len: STREAM_CAP,
         });
     }
 

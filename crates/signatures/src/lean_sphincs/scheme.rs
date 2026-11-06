@@ -168,39 +168,39 @@ impl LeanSphincsSignature {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// Why a key cannot sign.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, thiserror::Error)]
+#[non_exhaustive]
 pub enum LeanSphincsSignError {
-    /// `C_max` counters in a row failed to encode.
-    NoAdmissibleEncoding,
+    /// No counter below the attempt limit encodes what the layer signs.
+    #[error("no counter among the first {attempts} encodes what hypertree layer {layer} signs")]
+    NoAdmissibleEncoding {
+        /// The hypertree layer that failed, from the bottom.
+        layer: usize,
+        /// The counters tried.
+        attempts: u64,
+    },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// Why a signature does not verify.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, thiserror::Error)]
+#[non_exhaustive]
 pub enum LeanSphincsVerifyError {
-    /// A counter does not encode what its layer signs.
-    InadmissibleEncoding,
-    RootMismatch,
+    /// A layer's counter does not encode what the layer signs.
+    #[error("hypertree layer {layer}: counter {counter} does not encode what the layer signs")]
+    InadmissibleEncoding {
+        /// The hypertree layer that failed, from the bottom.
+        layer: usize,
+        /// The counter the signature gives for it.
+        counter: u32,
+    },
+    /// The walk up the hypertree does not reach the key's root.
+    #[error("the walk up the hypertree from leaf {leaf_index} does not reach the key's root")]
+    RootMismatch {
+        /// The hypertree leaf the message digest picks.
+        leaf_index: u32,
+    },
 }
-
-impl std::fmt::Display for LeanSphincsSignError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within C_max attempts"),
-        }
-    }
-}
-
-impl std::error::Error for LeanSphincsSignError {}
-
-impl std::fmt::Display for LeanSphincsVerifyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InadmissibleEncoding => write!(f, "a counter does not encode what its layer signs"),
-            Self::RootMismatch => write!(f, "the walk does not reach the key's root"),
-        }
-    }
-}
-
-impl std::error::Error for LeanSphincsVerifyError {}
 
 /// The message digest, `D_0 | D_1` with `D_c = H(P | A_msg(c) | m | R)`, each
 /// call one 80-byte block. `P` binds the key, so the root is not hashed.
@@ -320,6 +320,10 @@ pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
 /// which opens the message, and each layer signs what the layer below gives. A
 /// key signs at most `2^30` messages (`doc/lean_sphincs`). It builds its trees on
 /// `parallel`, so never sign from inside a `parallel` task.
+///
+/// # Errors
+///
+/// `NoAdmissibleEncoding` when no counter below the attempt limit encodes what a layer signs.
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     sign_with(&scheme_seed(&sk.seed), message)
 }
@@ -335,7 +339,10 @@ fn sign_with(seed: &SchemeSeed, message: &Message) -> Result<LeanSphincsSignatur
     let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
     for layer in 0..LAYERS {
         let key = OtsKey::of_index(layer, idx);
-        let (counter, wots) = wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        let (counter, wots) = wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding {
+            layer,
+            attempts: MAX_ENCODING_ATTEMPTS,
+        })?;
         let levels = tree_levels(pp, seed, &key);
         let height = LAYER_HEIGHTS[layer];
         paths.extend((0..height).map(|level| levels[level][(key.leaf as usize >> level) ^ 1]));
@@ -368,6 +375,11 @@ pub fn tree_fold(
 }
 
 /// `Ver`.
+///
+/// # Errors
+///
+/// - `InadmissibleEncoding` when a layer's counter does not encode what the layer signs.
+/// - `RootMismatch` when the walk up the hypertree does not reach the key's root.
 pub fn verify(
     pk: &LeanSphincsPublicKey,
     message: &Message,
@@ -379,14 +391,18 @@ pub fn verify(
     let mut signed = fors_key_bytes(&fors_key).to_vec();
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
-        let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
-            .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
+        let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots).ok_or(
+            LeanSphincsVerifyError::InadmissibleEncoding {
+                layer,
+                counter: layer_sig.counter,
+            },
+        )?;
         signed = tree_fold(pp, &key, leaf, signature.path(layer), |_| ()).to_vec();
     }
     if signed == pk.root {
         Ok(())
     } else {
-        Err(LeanSphincsVerifyError::RootMismatch)
+        Err(LeanSphincsVerifyError::RootMismatch { leaf_index: idx })
     }
 }
 
