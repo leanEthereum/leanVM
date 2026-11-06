@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>leanVM benchmarks</title>
+<meta name="description" content="leanVM proving time and peak memory for leanXMSS aggregation and recursion, on four machines.">
+<style>
+:root {
+  color-scheme: light;
+  --ink: #111111;
+  --muted: #5e5e5e;
+  --rule: #e8e8e8;
+  --tree: #cfcfcf;
+  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font: 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 2.5rem 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--tree); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+
+h1 { font-size: 3.15rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; margin: 0; }
+
+/* Subnets figure */
+
+.story { margin: 2rem 0 0; display: grid; gap: 0.6rem; }
+.story svg { width: 100%; height: auto; display: block; }
+.story p { margin: 0; color: var(--muted); max-width: 44rem; }
+svg text { font-family: var(--sans); }
+svg .lb { font-size: 13px; fill: var(--muted); }
+svg .nm { font-size: 13px; font-weight: 600; fill: var(--ink); }
+svg .wire { stroke: var(--rule); stroke-width: 1; fill: none; }
+svg .wire2 { stroke: var(--tree); stroke-width: 1; fill: none; }
+svg .sig { fill: var(--tree); }
+svg .node { fill: var(--ink); }
+
+/* Toggles */
+
+.controls { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-top: 2.25rem; }
+.toggle { display: flex; align-items: center; gap: 0.9rem; }
+.toggle .name { color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--tree); border-radius: 1.1rem; padding: 2px; }
+.seg button {
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.2rem 0.95rem;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.seg button:hover { background: #f4f4f4; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cpu { margin: 0.9rem 0 0; color: var(--muted); }
+.cpu .simd { color: var(--ink); font-weight: 500; }
+
+/* Results */
+
+.results { margin-top: 1.5rem; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 1.25rem; }
+.results th, .results td { text-align: left; padding: 0.45rem 2.5rem 0.45rem 0; font-weight: 400; line-height: 1.35; vertical-align: baseline; }
+.results thead th { color: var(--muted); font-size: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.45rem; }
+.results tbody tr + tr > * { border-top: 1px solid var(--rule); }
+.results tbody th { font-weight: 500; white-space: nowrap; }
+
+.info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  margin-left: 0.4em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.6em;
+  font-weight: 600;
+  font-style: normal;
+  line-height: 1;
+  cursor: help;
+  vertical-align: 0.25em;
+}
+.info::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.5rem);
+  white-space: pre;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+  z-index: 10;
+}
+.info:hover::after, .info:focus::after { opacity: 1; }
+
+footer { display: flex; justify-content: space-between; gap: 2rem; margin-top: 2.5rem; color: var(--muted); }
+footer p { margin: 0; }
+footer a + a { margin-left: 1.25rem; }
+footer a + button, footer button + a { margin-left: 1.25rem; }
+.linkish { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--tree); text-underline-offset: 3px; }
+.linkish:hover { text-decoration-color: var(--ink); }
+
+/* How to reproduce */
+
+dialog {
+  width: min(46rem, calc(100vw - 2rem));
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.75rem 2rem 1.5rem;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+}
+dialog::backdrop { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(2px); }
+dialog h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.9rem; }
+dialog ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.75rem; }
+dialog li::marker { color: var(--muted); }
+dialog code { font: 0.86rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+dialog pre { margin: 0.35rem 0 0; padding: 0.55rem 0.8rem; background: #f6f6f6; border-radius: 6px; white-space: pre-wrap; word-break: break-word; }
+dialog .note { margin: 1.1rem 0 0; color: var(--muted); }
+dialog .close { position: absolute; top: 0.9rem; right: 1rem; font: inherit; font-size: 1.4rem; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 0.2rem; }
+dialog .close:hover { color: var(--ink); }
+
+@media (hover: none) {
+  .info::after { position: fixed; left: 1rem; right: 1rem; top: auto; bottom: 1.25rem; width: auto; white-space: pre-wrap; text-align: center; }
+}
+@media (max-width: 800px) {
+  main { min-height: 0; }
+  footer { flex-direction: column; gap: 0.5rem; }
+}
+@media (max-width: 600px) {
+  main { padding: 1.25rem 1rem; }
+  h1 { font-size: 2.2rem; }
+  .results { font-size: 1.1rem; }
+  .results th, .results td { padding-right: 1.2rem; }
+  .info::after { white-space: pre-wrap; width: max-content; max-width: 70vw; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>leanVM benchmarks</h1>
+</header>
+
+<figure class="story">
+  <svg id="subnets" viewBox="0 0 800 275" role="img" aria-labelledby="subnets-title">
+    <title id="subnets-title">One slot: 16 subnets of 1,500 leanXMSS signatures, each aggregated into one proof, and the 16 proofs merged into one</title>
+  </svg>
+  <p>768,000 validators = 32 slots × 16 subnets × 1,500 signatures.</p>
+</figure>
+
+<div class="controls">
+  <div class="toggle"><span class="name">Machine</span><div class="seg" id="machine" role="group" aria-label="Machine"></div></div>
+  <div class="toggle"><span class="name">Threads</span><div class="seg" id="threads" role="group" aria-label="Threads"></div></div>
+</div>
+<p class="cpu" id="cpu"></p>
+
+<table class="results">
+  <thead><tr><th></th><th>Proving time</th><th>Peak RAM</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<footer>
+  <p>Commit <a id="commit"></a></p>
+  <p><button type="button" class="linkish" id="howto-open">How to reproduce?</button><a href="https://github.com/leanEthereum/leanVM">Code</a></p>
+</footer>
+
+<dialog id="howto" aria-labelledby="howto-title">
+  <button type="button" class="close" aria-label="Close" id="howto-close">&times;</button>
+  <h2 id="howto-title">How to reproduce</h2>
+  <ul>
+    <li>Install Rust with <a href="https://rustup.rs">rustup</a>.</li>
+    <li>Clone leanVM at the benchmarked commit:
+      <pre><code>git clone https://github.com/leanEthereum/leanVM
+cd leanVM &amp;&amp; git checkout <span class="sha"></span></code></pre></li>
+    <li>Aggregation:
+      <pre><code>LEANVM_NUM_THREADS=8 cargo leanvm aggregate --xmss 1500 --log-inv-rate 2 --repeat 3</code></pre></li>
+    <li>Recursion 16 &rarr; 1:
+      <pre><code>LEANVM_NUM_THREADS=8 cargo leanvm recursion --n 16 --xmss-per-leaf 1500 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3</code></pre></li>
+    <li>Set <code>LEANVM_NUM_THREADS</code> to 4 or 8, or leave it unset for full threads.</li>
+  </ul>
+  <p class="note">Time is the <code>proving time</code> line, RAM the <code>peak memory</code> next to it.</p>
+</dialog>
+
+</main>
+<script>
+// Results come from benchmarks.json: one commit, and per machine results[bench][threads] = { time, ram }.
+const BENCHES = [
+  ["aggregation", "Aggregation", "1,500 leanXMSS signatures into one proof,\nat rate 1/4"],
+  ["recursion", "Recursion 16 \u2192 1", "16 proofs of 1,500 leanXMSS signatures each\ninto one proof, leaves at rate 1/4,\nthe node at rate 1/2"],
+];
+const REPO = "https://github.com/leanEthereum/leanVM";
+let MACHINES = [], THREADS = [];
+const state = { machine: null, threads: null };
+
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  Object.assign(e, attrs);
+  e.append(...kids);
+  return e;
+};
+
+function segment(id, options, key) {
+  document.getElementById(id).replaceChildren(...options.map(value => {
+    const b = el("button", { type: "button", textContent: value });
+    b.addEventListener("click", () => { state[key] = value; render(); });
+    return b;
+  }));
+}
+
+function render() {
+  for (const [id, key] of [["machine", "machine"], ["threads", "threads"]]) {
+    for (const b of document.getElementById(id).children) {
+      b.setAttribute("aria-pressed", String(b.textContent === String(state[key])));
+    }
+  }
+  const m = MACHINES.find(m => m.cpu === state.machine);
+  document.getElementById("cpu").replaceChildren(`${m.memory} \u00b7 `, el("span", { className: "simd", textContent: m.simd }));
+  document.getElementById("rows").replaceChildren(...BENCHES.map(([key, label, tip]) => {
+    const r = (m.results[key] || {})[state.threads];
+    const num = (x, unit) => (typeof x === "number" ? `${x.toFixed(2)} ${unit}` : "\u2013");
+    const info = el("span", { className: "info", tabIndex: 0, textContent: "i" });
+    info.dataset.tip = tip;
+    return el("tr", {}, el("th", {}, label, info), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }));
+  }));
+  try { localStorage.setItem("leanvm-bench", JSON.stringify(state)); } catch (e) {}
+}
+
+// The subnets figure: signatures into 16 aggregates, which merge into one proof per slot.
+(() => {
+  const svg = document.getElementById("subnets");
+  const NS = "http://www.w3.org/2000/svg";
+  const add = (tag, attrs, text) => {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (text) el.textContent = text;
+    svg.appendChild(el);
+    return el;
+  };
+  const N = 16, SIGS = 5;
+  const X = i => 30 + i * 38, Y_SIG = 30, Y_AGG = 130, ROOT = [315, 250];
+
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < SIGS; j++) {
+      add("line", { class: "wire", x1: X(i) + (j - 2) * 6, y1: Y_SIG, x2: X(i), y2: Y_AGG });
+    }
+    add("path", { class: "wire2", d: `M${X(i)},${Y_AGG} Q${X(i)},215 ${ROOT[0]},${ROOT[1]}` });
+  }
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < SIGS; j++) add("circle", { class: "sig", cx: X(i) + (j - 2) * 6, cy: Y_SIG, r: 1.6 });
+    add("circle", { class: "node", cx: X(i), cy: Y_AGG, r: 3.5 });
+  }
+  add("circle", { class: "node", cx: ROOT[0], cy: ROOT[1], r: 5.5 });
+
+  const L = 640;
+  add("text", { class: "nm", x: L, y: Y_SIG + 4 }, "16 subnets");
+  add("text", { class: "lb", x: L, y: Y_SIG + 22 }, "1,500 leanXMSS each");
+  add("text", { class: "nm", x: L, y: Y_AGG + 4 }, "Aggregation");
+  add("text", { class: "lb", x: L, y: Y_AGG + 22 }, "one proof per subnet");
+  add("text", { class: "nm", x: L, y: ROOT[1] + 4 }, "Recursion 16 \u2192 1");
+  add("text", { class: "lb", x: L, y: ROOT[1] + 22 }, "one proof per slot");
+})();
+
+const howto = document.getElementById("howto");
+document.getElementById("howto-open").addEventListener("click", () => howto.showModal());
+document.getElementById("howto-close").addEventListener("click", () => howto.close());
+howto.addEventListener("click", e => {
+  const r = howto.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) howto.close();
+});
+
+fetch("benchmarks.json", { cache: "no-store" })
+  .then(r => r.json())
+  .then(data => {
+    const commit = String(data.commit);
+    const link = document.getElementById("commit");
+    link.href = `${REPO}/commit/${encodeURIComponent(commit)}`;
+    link.textContent = commit.slice(0, 7);
+    for (const e of document.querySelectorAll("#howto .sha")) e.textContent = commit;
+    const rank = k => (/^\d+$/.test(k) ? Number(k) : Infinity);
+    // Slowest first, by aggregation time at the machine's largest pool ("full" if run).
+    const speed = m => {
+      const runs = (m.results || {}).aggregation || {};
+      const most = Object.keys(runs).sort((a, b) => rank(a) - rank(b)).pop();
+      return (runs[most] || {}).time ?? Infinity;
+    };
+    data = data.machines.slice().sort((a, b) => speed(b) - speed(a));
+    MACHINES = data;
+    THREADS = [...new Set(data.flatMap(m => Object.values(m.results).flatMap(Object.keys)))].sort((a, b) => rank(a) - rank(b));
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem("leanvm-bench") || "{}"); } catch (e) {}
+    state.machine = data.some(m => m.cpu === saved.machine) ? saved.machine : data[0].cpu;
+    state.threads = THREADS.includes(saved.threads) ? saved.threads : THREADS[THREADS.length - 1];
+    segment("machine", data.map(m => m.cpu), "machine");
+    segment("threads", THREADS, "threads");
+    render();
+  })
+  .catch(() => { document.getElementById("cpu").textContent = "Could not load benchmarks.json."; });
+</script>
+</body>
+</html>

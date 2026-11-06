@@ -1,0 +1,41 @@
+{
+  "commit": "59c2984df",
+  "machines": [
+    {
+      "cpu": "Apple M4 Max",
+      "memory": "48 GB LPDDR5X, unified",
+      "simd": "NEON",
+      "results": {
+        "aggregation": { "4": { "time": 2.306, "ram": 9.60 }, "8": { "time": 1.680, "ram": 9.65 }, "full": { "time": 1.659, "ram": 9.65 } },
+        "recursion": { "4": { "time": 1.400, "ram": 6.96 }, "8": { "time": 1.053, "ram": 7.03 }, "full": { "time": 1.048, "ram": 7.10 } }
+      }
+    },
+    {
+      "cpu": "AMD Ryzen 7 PRO 8700GE",
+      "memory": "64 GB DDR5-5200, 2 × 32 GB Samsung",
+      "simd": "AVX-512",
+      "results": {
+        "aggregation": { "4": { "time": 3.930, "ram": 5.77 }, "8": { "time": 2.481, "ram": 5.79 }, "full": { "time": 2.492, "ram": 5.83 } },
+        "recursion": { "4": { "time": 2.647, "ram": 5.19 }, "8": { "time": 1.717, "ram": 5.23 }, "full": { "time": 1.730, "ram": 5.22 } }
+      }
+    },
+    {
+      "cpu": "Intel Core Ultra 7 265",
+      "memory": "64 GB DDR5-5600, 2 × 32 GB Crucial",
+      "simd": "AVX2",
+      "results": {
+        "aggregation": { "4": { "time": 3.835, "ram": 5.77 }, "8": { "time": 2.267, "ram": 5.79 }, "full": { "time": 1.752, "ram": 5.91 } },
+        "recursion": { "4": { "time": 2.338, "ram": 5.19 }, "8": { "time": 1.438, "ram": 5.22 }, "full": { "time": 1.180, "ram": 5.30 } }
+      }
+    },
+    {
+      "cpu": "AMD EPYC 9355P",
+      "memory": "192 GB DDR5-6400 RDIMM, 12 × 16 GB SK Hynix",
+      "simd": "AVX-512",
+      "results": {
+        "aggregation": { "4": { "time": 2.483, "ram": 5.77 }, "8": { "time": 1.371, "ram": 5.79 }, "full": { "time": 0.600, "ram": 5.99 } },
+        "recursion": { "4": { "time": 1.546, "ram": 5.19 }, "8": { "time": 0.903, "ram": 5.22 }, "full": { "time": 0.471, "ram": 5.36 } }
+      }
+    }
+  ]
+}
