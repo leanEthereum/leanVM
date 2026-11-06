@@ -13,7 +13,7 @@ use fiat_shamir::transcript::ProverState;
 use primitives::field::{F192, F192Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 
-use crate::basis::{PolyEval, add_mul, carry};
+use crate::basis::{PolyEval, add_mul};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
@@ -365,7 +365,7 @@ impl Layer<'_> {
                 skip.run(block, &weights);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry::<3, 4>(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                        add_mul(total, &skip.get(slot(half, i)), &groups[2 * row + half]);
                     }
                 }
             },
@@ -460,7 +460,7 @@ impl Layer<'_> {
                         for j in 0..BITS {
                             let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
                             for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                                let sum: [u64; 4] = carry(sum);
+                                let sum: [u64; 4] = crate::basis::carry(sum);
                                 for (k, &word) in sum.iter().enumerate() {
                                     wide[k * BITS + j] = word;
                                 }
