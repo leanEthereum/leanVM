@@ -92,7 +92,9 @@ fn snark_lib_import_forms() {
 fn other_imports_rejected() {
     for import in ["import math", "from utils import *"] {
         let src = format!("{import}\ndef main():\n    return\n");
-        let err = parse(&src).expect_err("non-snark_lib import must be rejected");
+        let err = parse(&src)
+            .expect_err("non-snark_lib import must be rejected")
+            .to_string();
         assert!(err.contains("file imports are not supported"), "{err}");
     }
 }

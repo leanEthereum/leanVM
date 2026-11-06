@@ -2,7 +2,7 @@
 //! these compiled clean before, so the pin is that they are now REJECTED: a
 //! diagnostic is the whole fix.
 
-use lean_compiler::{compile, parse};
+use lean_compiler::{ParseErrorKind, compile, parse};
 use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F192, g_pow};
 
@@ -26,7 +26,9 @@ def main():
     p[GEN] = scale(3)
     return
 ";
-    let err = parse(src).expect_err("a parameter may not reuse a constant's name");
+    let err = parse(src)
+        .expect_err("a parameter may not reuse a constant's name")
+        .to_string();
     assert!(err.contains("not a valid parameter name"), "{err}");
 }
 
@@ -53,7 +55,7 @@ def main():
         ("x /= 2", "`/=` is not supported"),
         ("x **= 2", "`**=` is not supported"),
     ] {
-        let err = parse(&body(stmt)).expect_err(stmt);
+        let err = parse(&body(stmt)).expect_err(stmt).to_string();
         assert!(err.contains(want), "{stmt}: {err}");
     }
     // The five that ARE supported still desugar.
@@ -82,12 +84,22 @@ def main():
         )
     };
     for stmt in ["x != y", "x == y", "x <= y", "x >= y", "x < y", "x > y"] {
-        let err = parse(&body(stmt)).expect_err(stmt);
+        let err = parse(&body(stmt)).expect_err(stmt).to_string();
         assert!(err.contains("is a comparison, not a statement"), "{stmt}: {err}");
     }
     // The equality forms name the fix; the order forms say they are not predicates.
-    assert!(parse(&body("x != y")).unwrap_err().contains("write `assert x != y`"));
-    assert!(parse(&body("x < y")).unwrap_err().contains("order facts come from"));
+    assert!(
+        parse(&body("x != y"))
+            .unwrap_err()
+            .to_string()
+            .contains("write `assert x != y`")
+    );
+    assert!(
+        parse(&body("x < y"))
+            .unwrap_err()
+            .to_string()
+            .contains("order facts come from")
+    );
 }
 
 /// A stack store whose value IS its own destination recorded `alias[dst] = dst`,
@@ -150,7 +162,9 @@ def main():
         hb[i * GEN] = hb[i]
     return
 ";
-    let err = parse(src).expect_err("an unreachable stop bound must be rejected");
+    let err = parse(src)
+        .expect_err("an unreachable stop bound must be rejected")
+        .to_string();
     assert!(err.contains("is not a power of GEN"), "{err}");
 
     // A power-of-two literal IS a power of GEN and the walk does reach it, so it
@@ -230,7 +244,7 @@ fn an_operator_missing_an_operand_says_so() {
         ("* 2", "`*` has no left operand"),
         ("4 // ", "`//` has no right operand"),
     ] {
-        let err = lean_compiler::parse_const(src).expect_err(src);
+        let err = lean_compiler::parse_const(src).expect_err(src).to_string();
         assert!(err.contains(want), "{src}: got `{err}`, wanted `{want}`");
     }
 }
@@ -311,7 +325,7 @@ def main():
     return
 ";
     for src in [stmt, expr] {
-        let err = parse(src).expect_err("a trailing factor must not parse");
+        let err = parse(src).expect_err("a trailing factor must not parse").to_string();
         assert!(err.contains("cannot parse expression"), "{err}");
     }
 }
@@ -415,12 +429,22 @@ fn a_program_names_what_it_means() {
     let tail = "    p = GEN ** 0\n    p[1] = GEN ** 0\n    p[GEN] = GEN ** 0\n    return\n";
     // Both bodies used to be lowered, and the last definition won.
     let dup = format!("def f(a):\n    return a\n\ndef f(a):\n    return a\n\ndef main():\n{tail}");
-    assert!(parse(&dup).expect_err("duplicate def").contains("defined twice"));
+    assert!(
+        parse(&dup)
+            .expect_err("duplicate def")
+            .to_string()
+            .contains("defined twice")
+    );
     // `f__L1` is what a `Const` specialization of `f` is called, and `__loopN`
     // what a loop helper is called, so a user function of that name took its
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");
-    assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
+    assert!(
+        parse(&reserved)
+            .expect_err("reserved name")
+            .to_string()
+            .contains("reserved")
+    );
 
     // A call to something that will never be lowered died in the assembler as a
     // bare `no entry found for key`, with no line.
@@ -678,7 +702,9 @@ fn a_value_may_ask_for_the_integer_regime() {
 fn a_function_may_not_shadow_a_builtin() {
     for name in ["const", "f192", "addr", "keccak", "len", "hint_witness", "StackBuf"] {
         let src = format!("def {name}(x):\n    assert x == 99\n    return x\n\ndef main():\n    return\n");
-        let err = parse(&src).expect_err(&format!("`def {name}` must be rejected"));
+        let err = parse(&src)
+            .expect_err(&format!("`def {name}` must be rejected"))
+            .to_string();
         assert!(err.contains("is a builtin"), "got `{err}`");
     }
     // A global CONSTANT of that name is rejected too, and for a sharper reason: a
@@ -686,7 +712,9 @@ fn a_function_may_not_shadow_a_builtin() {
     // `v = match(log(x), …)` into `4(log(x), …)`.
     for name in ["match", "keccak", "len"] {
         let src = format!("{name} = 4\n\ndef main():\n    return\n");
-        let err = parse(&src).expect_err(&format!("`{name} = 4` must be rejected"));
+        let err = parse(&src)
+            .expect_err(&format!("`{name} = 4` must be rejected"))
+            .to_string();
         assert!(err.contains("is a builtin"), "got `{err}`");
     }
     // An ordinary name still works, including one that contains a builtin's.
@@ -768,7 +796,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     // for a malformed condition never would. A condition carrying a comparison of
     // its own is NOT a near miss, since `const(...)` is a value expression too.
     for cond in ["const (a == b)", "const(a == b"] {
-        let err = parse(&prog(cond)).expect_err(cond);
+        let err = parse(&prog(cond)).expect_err(cond).to_string();
         assert!(err.contains("must wrap the WHOLE condition"), "{cond}: got `{err}`");
     }
     // So one side of an ordinary comparison may be a `const(...)`, in either
@@ -913,17 +941,17 @@ def main():
 fn a_parse_error_names_its_source_line() {
     // Counting from 1: blank, comment, constant, blank, blank, def, let, error.
     let src = "\n# a comment\nV = 8\n\n\ndef main():\n    x = 4\n    x != y\n    return\n";
-    let err = parse(src).unwrap_err();
+    let err = parse(src).unwrap_err().to_string();
     assert!(err.starts_with("line 8:"), "{err}");
 
     // A constant declaration, above the `def`s and parsed by a different loop.
     let konst = "\nN = 1\n\nM = 1 +\n\ndef main():\n    return\n";
-    assert!(parse(konst).unwrap_err().starts_with("line 4:"), "{konst}");
+    assert!(parse(konst).unwrap_err().to_string().starts_with("line 4:"), "{konst}");
 
     // Inside a block, past a blank line.
     let block =
         "\n\ndef main():\n    a = StackBuf(2)\n\n    for i in mul_range(1, 10):\n        a[0] = 1\n    return\n";
-    assert!(parse(block).unwrap_err().starts_with("line 6:"));
+    assert!(parse(block).unwrap_err().to_string().starts_with("line 6:"));
 }
 
 /// The four diagnostics raised where no `func`/`stmt` frame is open: those two
@@ -935,19 +963,45 @@ fn a_parse_error_names_its_source_line() {
 fn an_error_raised_between_frames_still_names_its_line() {
     // 1 blank, 2 def, 3 let, 4 if, 5 body, 6 stray deeper indent.
     let indent = "\ndef main():\n    x = 4\n    if x == 4:\n        x = 5\n          x = 6\n    return\n";
-    assert!(parse(indent).unwrap_err().starts_with("line 6:"), "{:?}", parse(indent));
+    assert!(
+        parse(indent).unwrap_err().to_string().starts_with("line 6:"),
+        "{:?}",
+        parse(indent)
+    );
 
     // 1 blank, 2 @inline, 3 the broken def.
     let deco = "\n@inline\nde f(x):\n    return x\n";
-    assert!(parse(deco).unwrap_err().starts_with("line 3:"), "{:?}", parse(deco));
+    assert!(
+        parse(deco).unwrap_err().to_string().starts_with("line 3:"),
+        "{:?}",
+        parse(deco)
+    );
 
     // 1 blank, 2 def, 3 let, 4 if, 5 body, 6 the broken elif.
     let elif = "\ndef main():\n    x = 4\n    if x == 4:\n        x = 5\n    elif x ~~ 5:\n        x = 6\n    return\n";
-    assert!(parse(elif).unwrap_err().starts_with("line 6:"), "{:?}", parse(elif));
+    assert!(
+        parse(elif).unwrap_err().to_string().starts_with("line 6:"),
+        "{:?}",
+        parse(elif)
+    );
 
     // 1 blank, 2 def, 3 let, 4 the match whose ranges are not contiguous.
     let arms = "\ndef main():\n    x = GEN ** 0\n    v = match(log(x), range(0, 1), lambda j: 5, range(2, 3), lambda j: 6)\n    return\n";
-    assert!(parse(arms).unwrap_err().starts_with("line 4:"), "{:?}", parse(arms));
+    assert!(
+        parse(arms).unwrap_err().to_string().starts_with("line 4:"),
+        "{:?}",
+        parse(arms)
+    );
+}
+
+/// A refusal is data a tool can act on: the line, and the indentations that disagree.
+#[test]
+fn a_parse_error_carries_its_line_and_the_values_that_disagree() {
+    // 1 blank, 2 def, 3 let at indent 4, 4 if, 5 body at indent 8, 6 a line at indent 10.
+    let src = "\ndef main():\n    x = 4\n    if x == 4:\n        x = 5\n          x = 6\n    return\n";
+    let err = parse(src).unwrap_err();
+    assert_eq!(err.line, Some(6));
+    assert_eq!(err.kind, ParseErrorKind::InconsistentIndent { expected: 8, got: 10 });
 }
 
 /// A replacement carrying a newline shifts every later line, so the numbers
@@ -961,7 +1015,9 @@ fn a_multi_line_placeholder_is_rejected() {
     let src = "FOO = 1\n\ndef main():\n    return\n";
     for bad in ["1\nz = 9", "1 #"] {
         reps.insert("FOO".to_string(), bad.to_string());
-        let err = lean_compiler::parse_with_replacements(src, &reps).unwrap_err();
+        let err = lean_compiler::parse_with_replacements(src, &reps)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("would reshape the line"), "{bad}: {err}");
     }
 }

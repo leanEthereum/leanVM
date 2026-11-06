@@ -282,6 +282,7 @@ dependencies = [
  "leanvm_core",
  "primitives",
  "rand",
+ "thiserror",
 ]
 
 [[package]]

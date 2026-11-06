@@ -296,7 +296,9 @@ V = V_PLACEHOLDER
 def main():
     return
 ";
-    let err = parse(unfilled).expect_err("an unfilled placeholder must fail");
+    let err = parse(unfilled)
+        .expect_err("an unfilled placeholder must fail")
+        .to_string();
     assert!(
         err.contains("V_PLACEHOLDER"),
         "error should name the placeholder: {err}"

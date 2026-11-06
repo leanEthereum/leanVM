@@ -23,11 +23,13 @@ use super::*;
 /// References to earlier constants are already substituted to their decimal
 /// values, so the input is pure arithmetic. Overflow, division by zero, and a
 /// negative intermediate are errors.
-pub(super) fn eval_const_int(s: &str) -> Result<u128, String> {
-    parse_expr(s)
-        .ok()
-        .and_then(|e| const_int_expr(&e))
-        .ok_or_else(|| format!("not a compile-time integer constant expression: `{}`", s.trim()))
+pub(super) fn eval_const_int(s: &str) -> Result<u128, ParseError> {
+    parse_expr(s).ok().and_then(|e| const_int_expr(&e)).ok_or_else(|| {
+        ParseErrorKind::NotConstInt {
+            text: s.trim().to_string(),
+        }
+        .into()
+    })
 }
 
 /// Fold a compile-time INTEGER expression (literals combined with the usual
@@ -83,8 +85,12 @@ pub(super) fn is_int_arith(e: &Expr) -> bool {
 /// `GEN ** k`, and `+`/`*` combinations of those) to its field element.
 /// Used for the `# public_input: <elt>, <elt>` annotation of `.py` test
 /// programs (see `tests/py_source.rs`).
-pub fn parse_const(s: &str) -> Result<F192, String> {
-    fn eval(e: &Expr) -> Result<F192, String> {
+///
+/// # Errors
+///
+/// A refusal with no line: the expression's own refusal when it does not parse, else `NotConstant` naming the first subexpression that is not a literal, `GEN`, `GEN ** k`, a sum or a product.
+pub fn parse_const(s: &str) -> Result<F192, ParseError> {
+    fn eval(e: &Expr) -> Result<F192, ParseError> {
         match e {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
             Expr::Lit(n) => Ok(F192::new(*n as u64, (*n >> 64) as u64, 0)),
@@ -92,23 +98,31 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
             Expr::GPow(k) => Ok(g_pow_u128(*k).into()),
             Expr::Add(a, b) => Ok(eval(a)? + eval(b)?),
             Expr::Mul(a, b) => Ok(eval(a)? * eval(b)?),
-            other => Err(format!("not a constant expression: `{other:?}`")),
+            other => Err(ParseErrorKind::NotConstant {
+                found: format!("{other:?}"),
+            }
+            .into()),
         }
     }
     eval(&parse_expr(s)?)
 }
 
-pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
+pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, ParseError>> {
     let inner = s.trim().strip_prefix("f192(")?.strip_suffix(')')?;
     let parts = split_top(inner, ',');
     Some((|| {
         if parts.len() != 3 {
-            return Err("f192 needs exactly three limbs".into());
+            return Err(ParseErrorKind::Arity {
+                call: "f192",
+                expected: "three limbs",
+                got: parts.len(),
+            }
+            .into());
         }
         let mut limbs = [0u64; 3];
         for (i, p) in parts.iter().enumerate() {
-            limbs[i] =
-                u64::try_from(eval_const_int(p.trim())?).map_err(|_| "an f192 limb does not fit in u64".to_string())?;
+            let limb = eval_const_int(p.trim())?;
+            limbs[i] = u64::try_from(limb).map_err(|_| ParseErrorKind::LimbTooLarge { limb })?;
         }
         Ok(F192::new(limbs[0], limbs[1], limbs[2]))
     })())
@@ -119,7 +133,7 @@ pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
 /// `GEN ** k`), returning the exponent `k`. Both uses walk/compare exponents,
 /// so the bound must name `g^k` explicitly (an element that is not a known
 /// power of `g` has no usable exponent).
-pub(super) fn gpow_bound(e: &Expr) -> Result<u64, String> {
+pub(super) fn gpow_bound(e: &Expr) -> Result<u64, ParseErrorKind> {
     match e {
         // `g` is `x`, so the literal `2^k` IS `g^k`, and `1` is `g^0`. Rejecting
         // these used to make `mul_range(1, 8)` an error although it runs exactly
@@ -128,15 +142,15 @@ pub(super) fn gpow_bound(e: &Expr) -> Result<u64, String> {
         // same literal as the same element.
         Expr::Lit(n) if (n.is_power_of_two() && *n < (1 << 64)) || *n == 1 => Ok(n.trailing_zeros() as u64),
         Expr::Gen => Ok(1),
-        Expr::GPow(k) => u64::try_from(*k).map_err(|_| format!("bound exponent {k} does not fit in u64")),
-        other => Err(format!(
-            "a range bound must be a power of GEN (`1`, `GEN`, or `GEN ** k`), got `{other:?}`"
-        )),
+        Expr::GPow(k) => u64::try_from(*k).map_err(|_| ParseErrorKind::BoundExponentTooLarge { exponent: *k }),
+        other => Err(ParseErrorKind::NotGenPower {
+            found: format!("{other:?}"),
+        }),
     }
 }
 
-pub(super) fn parse_gpow_bound(s: &str) -> Result<u64, String> {
-    gpow_bound(&parse_expr(s)?)
+pub(super) fn parse_gpow_bound(s: &str) -> Result<u64, ParseError> {
+    Ok(gpow_bound(&parse_expr(s)?)?)
 }
 
 /// Apply identifier-level **placeholder** replacements to source text before
