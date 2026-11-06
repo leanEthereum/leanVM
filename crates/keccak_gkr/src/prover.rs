@@ -496,11 +496,10 @@ impl RoundSums {
 }
 
 /// What a round needs of the claim, by word as a table row is: the position weights, and each
-/// position's constant `kappa * weights[j + 2]`.
+/// position's constant `kappa * (weights[j] + weights[j + 2])`.
 struct Round<'a> {
     field: &'a PowerField,
     eval: PolyEval,
-    kappa: Element,
     weights: Vec<u64>,
     constant: Vec<u64>,
 }
@@ -514,50 +513,27 @@ impl<'a> Round<'a> {
                 &mut constant,
                 BITS,
                 j,
-                &field.to_poly(kappa * claim.weights[along(j, 2)]),
+                &field.to_poly(kappa * (claim.weights[j] + claim.weights[along(j, 2)])),
             );
         }
         Self {
             field,
             eval: PolyEval::new(s, 72),
-            kappa: field.to_poly(kappa),
             weights,
             constant,
         }
     }
 
-    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]` and `T[j + 2]`, for a
-    /// row `T`.
-    fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
-        // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
-        for k in 0..3 {
-            let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                let at = along(64 * lane, 1);
-                for z in 0..64 {
-                    next[64 * lane + z] = src[at + z] ^ self.kappa[k];
-                }
-            }
-        }
-        self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
-        for k in 0..3 {
-            let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
-            }
-        }
-    }
-
     /// Add one pair of rows to a round's sums: the values at `0` and at infinity of
-    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`.
+    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`, where
+    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]`, which is
+    /// `weights[j] * T[j + 1] + constant[j]`.
     fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F192) {
-        let (b, shifted) = scratch.split_at_mut(2 * ROW);
-        for (half, t) in [low, high].into_iter().enumerate() {
-            self.factors(t, &mut b[half * ROW..][..ROW], &mut shifted[half * ROW..][..ROW]);
-        }
-        let (zero, infinity) = self
-            .field
-            .dot_pair([&b[..ROW], &b[ROW..]], [&shifted[..ROW], &shifted[ROW..]], BITS);
+        // A lane is 64 positions, five lanes to a row.
+        let shifted = |j: usize| (along(j, 1), along(j, 2));
+        let (zero, infinity) =
+            self.field
+                .pair_sums(&self.weights, &self.constant, [low, high], BITS, 64, shifted, scratch);
         let weight = self.field.to_poly(eq);
         add_mul(&mut sums.0, &zero, &weight);
         add_mul(&mut sums.1, &infinity, &weight);
