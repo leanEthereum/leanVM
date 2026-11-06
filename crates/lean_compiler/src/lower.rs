@@ -879,7 +879,7 @@ impl FnLower<'_> {
     /// the `SET` precedes every use and each later write is the write-once
     /// equality, but a second WRITER on any of those paths would land on all.
     fn bound_cell(&mut self, k: u64) -> Off {
-        self.const_cell(g_pow_u128((k - 1) as u128).into())
+        self.const_cell(F64::G.pow((k - 1) as u128).into())
     }
 
     /// `assert log x < log GEN ** k`: the 3-cycle range check in the exponent
@@ -972,7 +972,7 @@ impl FnLower<'_> {
             // which `gpow_exp` reports.
             Expr::GenPow(e) => {
                 let k = self.gpow_exp(e);
-                self.const_cell(g_pow_u128(k).into())
+                self.const_cell(F64::G.pow(k).into())
             }
             Expr::Pow(b, e) => self.pow_expr(b, e),
             Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {

@@ -182,7 +182,7 @@ pub fn compile(ast: &Ast) -> Program {
                                     ptr,
                                     size,
                                     end: cell,
-                                    start_inverse: g_pow_u128(u128::from(start)).inv(),
+                                    start_inverse: F64::G.pow(u128::from(start)).inv(),
                                     tail,
                                 },
                             }
@@ -280,22 +280,6 @@ pub fn disassemble(prog: &[Op]) -> String {
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
     }
     out
-}
-
-/// `g^e` for a `u128` exponent (square-and-multiply). `field::g_pow` only takes
-/// a `usize`; an index carried in the exponent (a Fibonacci number, say) can
-/// exceed 64 bits (`ord(g) = 2^64 − 1`, so the exponent wraps mod that).
-fn g_pow_u128(mut e: u128) -> F64 {
-    let mut result = F64::ONE;
-    let mut base = primitives::field::G;
-    while e > 0 {
-        if e & 1 == 1 {
-            result *= base;
-        }
-        base = base * base;
-        e >>= 1;
-    }
-    result
 }
 
 fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {

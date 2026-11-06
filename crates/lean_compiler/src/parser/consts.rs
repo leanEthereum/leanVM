@@ -89,7 +89,7 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
             Expr::Lit(n) => Ok(F192::from(*n)),
             Expr::Gen => Ok(g_pow(1).into()),
-            Expr::GPow(k) => Ok(g_pow_u128(*k).into()),
+            Expr::GPow(k) => Ok(F64::G.pow(*k).into()),
             Expr::Add(a, b) => Ok(eval(a)? + eval(b)?),
             Expr::Mul(a, b) => Ok(eval(a)? * eval(b)?),
             other => Err(format!("not a constant expression: `{other:?}`")),
