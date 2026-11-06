@@ -217,7 +217,7 @@ fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
     for g in 0..shape.n_blocks() {
         let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
         // SAFETY: each block's slot, written once.
-        unsafe { block(shape.depth(), inputs, extent.slot(g), |_, _, _| {}) };
+        unsafe { block(shape.depth(), inputs, Some(extent.slot(g)), |_, _, _| {}) };
     }
     // SAFETY: every block was written just above.
     unsafe { Witness::from_extents(shape, vec![extent], shape.n_blocks(), None) }

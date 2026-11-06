@@ -16,8 +16,9 @@
 //! cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
 //! the VM reads, and the output is the permutation's, written as it is.
 
-use keccak_gkr::witness::{BLOCK, Extent, Slot, block_lanes};
-use keccak_gkr::{Shape, Witness};
+use crate::transcript::ProverState;
+use keccak_gkr::witness::{BLOCK, block_lanes};
+use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
 
@@ -116,29 +117,40 @@ pub(crate) fn permute_cells(cells: &[F192; STATE_CELLS], in_odd: bool, out_odd: 
     cells_of_state(&s, out_odd)
 }
 
-/// The reduction's witness: every round's state of every step, kept from the pass that wrote
-/// the committed column until the reduction has run.
-pub(crate) type PreparedReductionWitness = Witness;
+/// What the reduction needs beside the committed column.
+///
+/// Its witness, every round's state of every step, is rebuilt from the column's input states.
+/// Held from the run instead, it would sit beside the bus's trees, at the prover's peak.
+pub(crate) struct Reduction {
+    shape: Shape,
+    steps: usize,
+}
 
-/// The reduction's witness for the steps a program ran, built while it ran: every whole block
-/// of steps, its rounds in `extents` and its committed lanes in `lanes`, slot after slot.
+impl Reduction {
+    /// Rebuild the witness from `q_keccak`, the whole committed block, and run the reduction.
+    pub(crate) fn prove(self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
+        let witness =
+            tracing::info_span!("Witness").in_scope(|| Witness::from_committed(self.shape, self.steps, q_keccak));
+        witness.prove(ps, q_keccak, output)
+    }
+}
+
+/// The committed lanes of the steps a program ran, built while it ran: every block of steps,
+/// slot after slot.
 pub(crate) struct Blocks {
-    extents: Vec<Extent>,
     lanes: Vec<Vec<u64>>,
     steps: usize,
 }
 
-/// Run `run`, which reports the lanes of each step it executes, and build the reduction's
-/// witness behind it: executing is one thread's work, so the others take each block of steps
-/// as it completes instead of waiting for the last.
+/// Run `run`, which reports the lanes of each step it executes, and compute the committed lanes
+/// behind it: executing is one thread's work, so the others take each block of steps as it
+/// completes instead of waiting for the last.
 pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LANES])) -> R) -> (R, Blocks) {
-    type Job = (usize, Vec<[u64; STATE_LANES]>, Slot);
+    type Job = (usize, Vec<[u64; STATE_LANES]>);
     let (jobs, queue) = std::sync::mpsc::channel::<Job>();
     let queue = std::sync::Mutex::new(queue);
     // More workers than this slow the executing thread by more than they finish early.
     let workers = parallel::num_threads() / 2;
-    // Outlives the scope: the workers write into it until they are joined, even on a panic.
-    let mut extents: Vec<Extent> = Vec::new();
     let (result, lanes, steps) = std::thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|_| {
@@ -146,9 +158,8 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
                     let mut done = Vec::new();
                     loop {
                         let job = queue.lock().expect("a worker panicked").recv();
-                        let Ok((g, steps, slot)) = job else { break };
-                        // SAFETY: the job owns its slot.
-                        done.push((g, unsafe { block_lanes(DEPTH, &steps, slot) }));
+                        let Ok((g, steps)) = job else { break };
+                        done.push((g, block_lanes(DEPTH, &steps)));
                     }
                     done
                 })
@@ -160,16 +171,11 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
         let mut blocks = 0;
         let mut steps = 0;
         let mut dispatch = |pending: &mut Vec<[u64; STATE_LANES]>, last: bool| {
-            if extents.last().is_none_or(|e| e.end() == blocks) {
-                extents.push(Extent::new(blocks, blocks.max(8)));
-            }
-            let slot = extents.last_mut().expect("an extent").slot(blocks);
             let block = std::mem::replace(pending, Vec::with_capacity(BLOCK));
             if workers == 0 || last {
-                // SAFETY: the block owns its slot.
-                inline.push((blocks, unsafe { block_lanes(DEPTH, &block, slot) }));
+                inline.push((blocks, block_lanes(DEPTH, &block)));
             } else {
-                jobs.send((blocks, block, slot)).expect("the workers outlive the run");
+                jobs.send((blocks, block)).expect("the workers outlive the run");
             }
             blocks += 1;
         };
@@ -192,15 +198,15 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
         let lanes = lanes.into_iter().map(|(_, lanes)| lanes).collect();
         (result, lanes, steps)
     });
-    (result, Blocks { extents, lanes, steps })
+    (result, Blocks { lanes, steps })
 }
 
 impl Blocks {
     /// Write the committed states of the `steps` steps these blocks hold, padded with
-    /// all-zero steps, and hand the reduction its witness. `q_keccak` is the states' part of
-    /// the committed block, its first [`SLOTS`] slots: the spare slots past them belong to the
-    /// columns that ride there and are written by their own fill.
-    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> PreparedReductionWitness {
+    /// all-zero steps. `q_keccak` is the states' part of the committed block, its first [`SLOTS`]
+    /// slots: the spare slots past them belong to the columns that ride there and are written by
+    /// their own fill.
+    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> Reduction {
         assert_eq!(self.steps, steps, "the blocks are of another run");
         let shape = shape(self.steps);
         assert_eq!(
@@ -208,17 +214,14 @@ impl Blocks {
             shape.slots() * shape.n(),
             "the committed states are the wrong size"
         );
-        // SAFETY: `while_executing` ran block `g` into its slot of `extents`, in order, its
-        // lanes being `lanes[g]`.
-        unsafe { Witness::from_blocks(shape, self.extents, &self.lanes, q_keccak) }
+        Witness::write_committed(shape, &self.lanes, q_keccak);
+        Reduction { shape, steps }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transcript::ProverState;
-    use keccak_gkr::OutputClaim;
 
     fn f(x: u64) -> F64 {
         F64(x)
@@ -239,8 +242,8 @@ mod tests {
             .collect()
     }
 
-    /// The witness built behind a run is the one a single pass over its steps builds: the same
-    /// committed column and the same reduction, whether the steps fill whole blocks, leave a
+    /// The lanes committed behind a run, and the witness rebuilt from them, are what a single
+    /// pass over its steps builds: the same committed column and the same reduction, whether the steps fill whole blocks, leave a
     /// partial one, or leave blocks of the batch with no step at all.
     #[test]
     fn blocks_built_while_executing_match_one_pass() {
@@ -261,12 +264,11 @@ mod tests {
             q_keccak[states..].fill(f(0x5151_5151));
             let point = (0..n_steps_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
             let output = OutputClaim::of_inputs(shape(n), &instances, point);
-            let stream = |witness: &Witness| {
-                let mut ps = ProverState::from_label(b"blocks");
-                let openings = witness.prove(&mut ps, &q_keccak, &output);
-                (openings, ps.into_proof())
-            };
-            assert!(stream(&witness) == stream(&reference), "{n} steps");
+            let mut ps = ProverState::from_label(b"blocks");
+            let deferred = (witness.prove(&mut ps, &q_keccak, &output), ps.into_proof());
+            let mut ps = ProverState::from_label(b"blocks");
+            let one_pass = (reference.prove(&mut ps, &q_keccak, &output), ps.into_proof());
+            assert!(deferred == one_pass, "{n} steps");
         }
     }
 

@@ -502,8 +502,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi);
     let output = keccak_output_claim(&table_claims);
 
-    // Run the Keccak reduction over the witness retained from the q_keccak build
-    // pass; it returns two claims on the committed `q_keccak`, discharged by the
+    // Run the Keccak reduction over the witness rebuilt from q_keccak's input
+    // states; it returns two claims on the committed `q_keccak`, discharged by the
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
@@ -512,7 +512,6 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let openings = crate::stage!("Keccak reduction", || {
         keccak_reduction.prove(&mut ps, q_keccak, &output)
     });
-    drop(keccak_reduction);
     let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
     crate::stage!("PCS open", || { pcs::open(&mut ps, committed, w.q, &slots, &ring) });
