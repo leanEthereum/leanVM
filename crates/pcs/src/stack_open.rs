@@ -298,7 +298,7 @@ mod tests {
                         })
                         .collect(),
                 };
-                let coordinates = rng.ext_vec(192);
+                let coordinates = std::array::from_fn(|_| rng.ext());
                 let rs_outputs: Vec<_> = ring
                     .claims
                     .iter()

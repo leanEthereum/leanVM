@@ -253,7 +253,9 @@ impl Terms {
             .iter()
             .map(|ring| {
                 let vars = ring.point.len().min(self.lane_vars);
-                let weights = a[ring.first..ring.first + DEGREE_E].to_vec();
+                let weights = *a[ring.first..]
+                    .first_chunk::<DEGREE_E>()
+                    .expect("a ring claim has one term per coordinate");
                 let weight = RingWeight::new(weights, ring.point[..vars].to_vec()).fold();
                 (weight, ring.x_offset, 1usize << vars)
             })

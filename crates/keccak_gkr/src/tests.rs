@@ -117,7 +117,7 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
             );
         }
         let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
-        assert!(slices == openings.inputs.slices, "inputs");
+        assert!(openings.inputs.slices == slices, "inputs");
     }
     open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings);
     ps.into_proof()
