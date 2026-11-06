@@ -43,6 +43,7 @@ use whir::verify_whir;
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum VerifierError {
     FieldElementLength,
     DigestHalf,

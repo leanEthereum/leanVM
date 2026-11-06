@@ -233,7 +233,7 @@ pub use crate::transcript::Proof;
 #[non_exhaustive]
 pub enum ProveError {
     /// `log_inv_rate` is outside the range the WHIR configuration accepts.
-    #[error("log_inv_rate {log_inv_rate} is outside the supported {min}..={max}", min = pcs::MIN_LOG_INV_RATE, max = pcs::MAX_LOG_INV_RATE)]
+    #[error("log_inv_rate {log_inv_rate} is outside {min}..={max}", min = pcs::MIN_LOG_INV_RATE, max = pcs::MAX_LOG_INV_RATE)]
     InvalidRate {
         /// The rate asked for, as a log.
         log_inv_rate: usize,

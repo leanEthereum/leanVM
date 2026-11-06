@@ -166,10 +166,12 @@ pub enum Fault {
         value: F192,
     },
     /// A word that has to be an address or a count is not a g-power in its range.
-    #[error("{what} is not a g-power in range (0x{:016x})", value.0)]
+    #[error("{what} in cell {cell} is not a g-power in range (0x{:016x})", value.0)]
     NotAGPower {
         /// What the word stands for.
         what: &'static str,
+        /// The cell it was read from.
+        cell: u32,
         /// The word.
         value: F64,
     },
@@ -199,12 +201,12 @@ pub enum Fault {
         name: String,
     },
     /// The program reads more entries from a witness stream than the advice supplies.
-    #[error("witness stream `{name}` exhausted (needs entry {needed}, has {supplied})")]
+    #[error("witness stream `{name}` exhausted: entry {entry} is read, the advice has {supplied}")]
     WitnessExhausted {
         /// The stream's name.
         name: String,
-        /// How many entries the run has read, this one included.
-        needed: usize,
+        /// The index of the entry read, from 0, as in a length mismatch.
+        entry: usize,
         /// How many entries the advice supplies.
         supplied: usize,
     },
@@ -294,7 +296,7 @@ impl<'a> Stream<'a> {
             .ok_or_else(|| Fault::MissingWitnessStream { name: name.to_string() })?;
         let entry = entries.get(self.next).ok_or_else(|| Fault::WitnessExhausted {
             name: name.to_string(),
-            needed: self.next + 1,
+            entry: self.next,
             supplied: entries.len(),
         })?;
         if entry.len() != len as usize {
@@ -596,7 +598,7 @@ impl Program {
         // invert it. Shared by every hint that writes through one.
         fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
             let p = in_k(what, cell, m.get(cell))?;
-            g.log(p).ok_or(Fault::NotAGPower { what, value: p })
+            g.log(p).ok_or(Fault::NotAGPower { what, cell, value: p })
         }
 
         // Where a computed-advice bit buffer starts: a frame run needs no lookup
@@ -671,6 +673,7 @@ impl Program {
                                     if span.is_zero() {
                                         return Err(fail(Fault::NotAGPower {
                                             what: "loop bound",
+                                            cell: fp + end,
                                             value: span,
                                         }));
                                     }
@@ -685,6 +688,7 @@ impl Program {
                                     let cells = count(&mut g, sz).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "HeapBuf size",
+                                            cell: fp + size,
                                             value: sz,
                                         })
                                     })?;
@@ -788,8 +792,13 @@ impl Program {
                         RHint::BitDecomposeExp { value, bits, nbits } => {
                             const WHAT: &str = "hint_decompose_bits_exponent value";
                             let x = in_k(WHAT, fp + value, m.get(fp + value)).map_err(fail)?;
-                            let n = bounded_dlog(x, *nbits)
-                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                            let n = bounded_dlog(x, *nbits).ok_or_else(|| {
+                                fail(Fault::NotAGPower {
+                                    what: WHAT,
+                                    cell: fp + value,
+                                    value: x,
+                                })
+                            })?;
                             let bb = bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer")
                                 .map_err(fail)?;
                             for j in 0..*nbits {
@@ -829,16 +838,25 @@ impl Program {
                         } => {
                             const WHAT: &str = "hint_decompose_digits_exponent value";
                             let x = in_k(WHAT, fp + value, m.get(fp + value)).map_err(fail)?;
-                            let n = bounded_dlog(x, *nbits)
-                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                            let n = bounded_dlog(x, *nbits).ok_or_else(|| {
+                                fail(Fault::NotAGPower {
+                                    what: WHAT,
+                                    cell: fp + value,
+                                    value: x,
+                                })
+                            })?;
                             let s = match start_cell {
                                 None => *start,
                                 Some(c) => {
                                     const WHAT: &str = "hint_decompose_digits_exponent start";
                                     let y = in_k(WHAT, fp + c, m.get(fp + c)).map_err(fail)?;
-                                    bounded_dlog(y, 7)
-                                        .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
-                                        as u32
+                                    bounded_dlog(y, 7).ok_or_else(|| {
+                                        fail(Fault::NotAGPower {
+                                            what: WHAT,
+                                            cell: fp + c,
+                                            value: y,
+                                        })
+                                    })? as u32
                                 }
                             };
                             let bb = bits_base(&m, &mut g, fp, *dst, "hint_decompose_digits_exponent pointer")
@@ -1020,12 +1038,14 @@ impl Program {
                         pc = g.log(d).filter(|&t| (t as usize) < self.prog.len()).ok_or_else(|| {
                             fail(Fault::NotAGPower {
                                 what: "JUMP target",
+                                cell: ad,
                                 value: d,
                             })
                         })?;
                         fp = g.log(f).ok_or_else(|| {
                             fail(Fault::NotAGPower {
                                 what: "JUMP fp",
+                                cell: af,
                                 value: f,
                             })
                         })?;

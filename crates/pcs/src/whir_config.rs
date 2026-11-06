@@ -65,7 +65,7 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), WhirConfigError>
 #[non_exhaustive]
 pub enum WhirConfigError {
     /// The inverse-rate logarithm is not one the production profile supports.
-    #[error("log_inv_rate {log_inv_rate} is outside the supported range {min}..={max}")]
+    #[error("log_inv_rate {log_inv_rate} is outside {min}..={max}")]
     RateOutOfRange {
         /// The requested inverse-rate logarithm.
         log_inv_rate: usize,

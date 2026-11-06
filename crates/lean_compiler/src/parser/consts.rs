@@ -112,12 +112,7 @@ pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, ParseError>> {
     let parts = split_top(inner, ',');
     Some((|| {
         if parts.len() != 3 {
-            return Err(ParseErrorKind::Arity {
-                call: "f192",
-                expected: "three limbs",
-                got: parts.len(),
-            }
-            .into());
+            return Err(super::arity("f192", "three limbs", &parts).into());
         }
         let mut limbs = [0u64; 3];
         for (i, p) in parts.iter().enumerate() {

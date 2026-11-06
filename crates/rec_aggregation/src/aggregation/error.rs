@@ -70,12 +70,12 @@ pub enum AggregateVerifyError {
 /// Why a proof did not verify. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[error(transparent)]
-pub struct SnarkVerifyError(#[from] pub(super) verifier::VerifierError);
+pub struct SnarkVerifyError(pub(super) verifier::VerifierError);
 
 /// Why the prover made no proof. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[error(transparent)]
-pub struct SnarkProveError(#[from] pub(super) ProveError);
+pub struct SnarkProveError(pub(super) ProveError);
 
 /// Why aggregation made no aggregate.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]

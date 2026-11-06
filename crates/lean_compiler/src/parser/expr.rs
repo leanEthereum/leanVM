@@ -206,7 +206,8 @@ fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Box<Expr>, Box<Expr>) -
             b'*' => "*",
             b'/' => "//",
             b'd' => "/",
-            _ => "%",
+            b'%' => "%",
+            _ => unreachable!("the operand splitters emit only + - * / d %"),
         };
         return Err(ParseErrorKind::MissingOperand { op, side }.into());
     }

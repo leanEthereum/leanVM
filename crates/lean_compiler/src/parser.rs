@@ -404,7 +404,7 @@ fn expected(what: &'static str, found: &str) -> ParseErrorKind {
 }
 
 /// A call-shaped construct given `parts` where it takes `what`; `call_args` gives no argument as one empty part.
-fn arity(call: &'static str, what: &'static str, parts: &[&str]) -> ParseErrorKind {
+pub(super) fn arity(call: &'static str, what: &'static str, parts: &[&str]) -> ParseErrorKind {
     let got = match parts {
         [only] if only.trim().is_empty() => 0,
         _ => parts.len(),
