@@ -17,7 +17,7 @@ use primitives::bit_fold::BitFold;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::field::{Acc8, F64, F192, F192x8, Weights8, dot_base, msg_lone8_ext, xor_into8};
 
-use super::{RingSwitchOpen, StackClaim};
+use super::RingSwitchOpen;
 use crate::ring_switch::{RingWeight, coordinate_basis};
 use crate::tensor_algebra::{DEGREE_E, transpose_s_hat};
 use crate::whir::{InitialBasis, adjacent_dots};
@@ -299,11 +299,12 @@ impl Terms {
 
 /// The opening's weight as terms: its table `P` against the stack, its table `A`, and the lift of `A`'s last row.
 ///
+/// A claim is an eq weight `(offset, low_point)` on its aligned slice, scaled by its entry of `lambdas`.
 /// Every claim must lie inside the stack, and `lane_vars` must be at least 6.
 pub(super) fn initial_basis(
     stack: &[F64],
     lane_vars: usize,
-    claims: &[StackClaim],
+    claims: &[(usize, &[F192])],
     lambdas: &[F192],
     ring: &RingSwitchOpen,
     rings: &[RingWeight],
@@ -334,9 +335,8 @@ pub(super) fn initial_basis(
     };
     // The claims' lane weights, then the rings', each `1 << lane_bits` long.
     let mut lanes: Vec<F192> = Vec::new();
-    for (c, claim) in claims.iter().enumerate() {
-        let StackClaim::Point { offset, low_point, .. } = claim;
-        let factors = point_factors(low_point, *offset, bits);
+    for (c, &(offset, low_point)) in claims.iter().enumerate() {
+        let factors = point_factors(low_point, offset, bits);
         let (low, rest) = factors.split_at(low_vars);
         let (mid, lane) = rest.split_at(lane_vars - low_vars);
         extend_table(&mut terms.gamma, mid);

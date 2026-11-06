@@ -1318,6 +1318,53 @@ mod tests {
         }
     }
 
+    #[test]
+    fn jagged_claims_open_as_the_weight_they_spell() {
+        // Invariant: an opening depends on a claim's weight function and value alone, not on how its terms are cut.
+        // Fixture state: a 2^13-word witness, test config, one lane block of 2^7 words, no ring-switched claim.
+        let log_n = 13;
+        let pc = test_config_for(log_n);
+        let mut rng = Rng::new(0x1A66ED);
+        let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
+        let ring = RingSwitchOpen {
+            offset: 0,
+            claims: Vec::new(),
+        };
+        let prove = |claims: &[StackClaim]| {
+            let (_, pd) = commit(&witness, log_n, pc.initial_k, pc.log_inv_rates[0]);
+            let mut ps = fiat_shamir::transcript::ProverState::from_label(b"jagged-test");
+            open_batch_mixed_whir_stacked(&mut ps, log_n, witness.clone(), pd, &pc, claims, &ring);
+            ps.into_proof()
+        };
+        let piece = |offset: usize, low_point: Vec<F192>, coeff: F192| crate::stack_open::JaggedPiece {
+            offset,
+            low_point,
+            coeff,
+        };
+        let (point, value) = (rng.ext_vec(9), rng.ext());
+        let reference = prove(&[StackClaim::Point {
+            offset: 1 << 9,
+            low_point: point.clone(),
+            value,
+        }]);
+        // One piece at coefficient 1 is the point claim itself.
+        let whole = StackClaim::Jagged {
+            pieces: vec![piece(1 << 9, point.clone(), F192::ONE)],
+            value,
+        };
+        assert_eq!(prove(&[whole]), reference);
+        // Split by its top coordinate r: eq((p, r), .) is (1 + r) eq(p, .) on the low half and r eq(p, .) on the high one.
+        let (low, r) = (point[..8].to_vec(), point[8]);
+        let halves = StackClaim::Jagged {
+            pieces: vec![
+                piece(1 << 9, low.clone(), F192::ONE + r),
+                piece((1 << 9) + (1 << 8), low, r),
+            ],
+            value,
+        };
+        assert_eq!(prove(&[halves]), reference);
+    }
+
     /// The sparse transposed-NTT induce must be byte-identical to the dense
     /// LCH-expansion induce. Covers a domain
     /// of a single window (`log_msg_cols` of 10 or less), and the ones of 2 to 6

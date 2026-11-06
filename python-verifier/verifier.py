@@ -317,6 +317,39 @@ class Placement:
         return eq_eval(bits, point[self.variables :])
 
 
+@dataclass(frozen=True)
+class Pieces:
+    """A column committed in pieces: piece `i` holds its `2^k_i` cells after the earlier pieces', `k_0 > k_1 > ...`, at its
+    own place in the stack, and every cell from `cells` on holds `pad`, committed nowhere."""
+
+    placements: tuple[Placement, ...]
+    cells: int
+    pad: E
+
+    @staticmethod
+    def whole(placement: Placement) -> Pieces:
+        """A column committed whole: one piece, and no cell past it."""
+        return Pieces((placement,), 2**placement.variables, ZERO)
+
+    def on_stack(self, point: MultilinearPoint, value: E, stack_log: int) -> StackClaim:
+        """The claim `c(point) = value` as one claim on the stack. Piece `i` starts at `o_i = sum_{j<i} 2^k_j`, so
+        `c(r) = sum_i e_i(r) * P_i(r_{<k_i}) + pad * pad_cells(r)` with `e_i(r) = eq(r_{>=k_i}, bits(o_i >> k_i))`."""
+        terms = []
+        start = 0
+        for placement in self.placements:
+            k = placement.variables
+            coefficient = eq_eval(_selector_point(start >> k, len(point) - k), point[k:])
+            terms.append((coefficient, placement.stack_point(point[:k], stack_log)))
+            start += 2**k
+        if self.pad:
+            value += self.pad * padding_weight(point, self.cells)
+
+        def weight(x: Sequence[E]) -> E:
+            return E.sum(coefficient * eq_eval(at, x) for coefficient, at in terms)
+
+        return (weight, value)
+
+
 def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
     offsets = [0] * len(sizes)
     total = 0
@@ -560,11 +593,10 @@ class ColumnClaim:
 
     def on_stack(self, layout: Layout) -> StackClaim | None:
         """None for a column nothing commits, whose claim never reaches the stack."""
-        placement = layout.placements[self.column]
-        if placement is None:
+        pieces = layout.columns[self.column]
+        if pieces is None:
             return None
-        point = placement.stack_point(self.point, layout.stack_log)
-        return (lambda x: eq_eval(point, x), self.value)
+        return pieces.on_stack(self.point, self.value, layout.stack_log)
 
 
 BUS_BITS = 4  # bus communicates tuples of 2^BUS_BITS field elements
@@ -711,7 +743,7 @@ class Layout:
     push: tuple[BusBlock, ...]
     pull: tuple[BusBlock, ...]
     count: tuple[BusBlock, ...]
-    placements: tuple[Placement | None, ...]  # None for a column nothing commits: the KECCAK output lanes
+    columns: tuple[Pieces | None, ...]  # where each column's pieces sit, None for a column nothing commits: the KECCAK output lanes
     stack_log: int
     table_log_heights: tuple[int, ...]
 
@@ -971,9 +1003,10 @@ GLOBAL_COLUMN_BASES = tuple(NUM_GLOBAL_COLUMNS + sum(TABLE_WIDTHS[:table]) for t
 TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK
 
 
-def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[int]) -> Layout:
+def build_layout(bytecode: Sequence[K], memory_cells: int, table_rows: Sequence[int]) -> Layout:
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
-    require(16 <= log_memory <= 32 and all(rows <= 2**32 for rows in table_rows) and 0 <= log_bytecode <= 32, "invalid announced table sizes")
+    require(all(rows <= 2**32 for rows in table_rows) and 0 <= log_bytecode <= 32, "invalid announced table sizes")
+    log_memory = log2_ceil(memory_cells)
     # A table's height is the least power of two holding its rows.
     table_log_heights = tuple(max(log2_ceil(rows), floor) for rows, floor in zip(table_rows, TABLE_LOG_FLOORS, strict=True))
 
@@ -1000,18 +1033,33 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
     base = GLOBAL_COLUMN_BASES[OP_KECCAK]
     outputs = range(base + KECCAK_OUT, base + KECCAK_OUT + STATE_LANES)
     slots = {column: KECCAK_SLOT_OF.get(column - base) for column in range(len(kappas))}
-    blocks = {column: kappa for column, kappa in enumerate(kappas) if slots[column] is None and column not in outputs}
-    block_offsets, total_log = stack_offsets(list(blocks.values()))
-    offsets = dict(zip(blocks, block_offsets))
+    # The memory columns are committed on their first `memory_cells` cells, a piece per set bit, largest first. Every
+    # other committed column's one piece is a block of its own, in column order then piece order.
+    memory_pieces = [k for k in reversed(range(64)) if memory_cells >> k & 1]
+    blocks = [
+        (column, kappa)
+        for column, column_kappa in enumerate(kappas)
+        if slots[column] is None and column not in outputs
+        for kappa in (memory_pieces if column <= MEMORY_FINAL_COUNTERS else [column_kappa])
+    ]
+    block_offsets, total_log = stack_offsets([kappa for _, kappa in blocks])
+    placed: dict[int, list[Placement]] = {}
+    for (column, kappa), offset in zip(blocks, block_offsets, strict=True):
+        placed.setdefault(column, []).append(Placement(kappa, offset))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
 
-    def placement(column: int, kappa: int) -> Placement | None:
+    def pieces(column: int, kappa: int) -> Pieces | None:
         if (slot := slots[column]) is not None:
-            return Placement(kappa, offsets[QKECCAK] + (slot << kappa))
-        return None if column in outputs else Placement(kappa, offsets[column])
+            return Pieces.whole(Placement(kappa, placed[QKECCAK][0].index + (slot << kappa)))
+        if column in outputs:
+            return None
+        if column <= MEMORY_FINAL_COUNTERS:
+            # Past the committed cells memory is public: words of zero, each read count still g^0.
+            return Pieces(tuple(placed[column]), memory_cells, ONE if column == MEMORY_FINAL_COUNTERS else ZERO)
+        return Pieces.whole(placed[column][0])
 
-    placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
-    return Layout(log_memory, log_bytecode, bytecode, tuple(push), tuple(pull), tuple(count), tuple(placements), stack_log, tuple(table_log_heights))
+    columns = tuple(pieces(column, kappa) for column, kappa in enumerate(kappas))
+    return Layout(log_memory, log_bytecode, bytecode, tuple(push), tuple(pull), tuple(count), columns, stack_log, tuple(table_log_heights))
 
 
 # WHIR opening ----------------------------------------------------------------
@@ -1471,7 +1519,8 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     table_rows = tuple(int(value.c0) for value in announced[1 : 1 + len(TABLES)])
     log_inverse_rate = int(announced[-1].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
-    layout = build_layout(bytecode, log_memory, table_rows)
+    require(16 <= log_memory <= 32, "invalid announced table sizes")
+    layout = build_layout(bytecode, 2**log_memory, table_rows)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
@@ -1497,7 +1546,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     public_challenge = transcript.sample()
     first, second = public_input.halves()
     public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)))
-    public_point = (public_challenge, *[ZERO] * (layout.placements[MEMORY_0].variables - 1))
+    public_point = (public_challenge, *[ZERO] * (layout.log_memory - 1))
     claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
 
     # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
@@ -1510,7 +1559,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     # That claim is supported on q_keccak's region of the stack, so its weight carries the
     # placement's selector, and it leads the batch, taking the first power.
     target, weight = ring_switch(point, slices, transcript)
-    qkeccak = layout.placements[QKECCAK]
+    qkeccak = layout.columns[QKECCAK].placements[0]
     ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
     stack_claims = (c.on_stack(layout) for c in claims)
     verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None)])

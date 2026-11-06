@@ -8,7 +8,8 @@
 //!
 //! - **point claims** ([`StackClaim`]): plain multilinear evaluations of
 //!   aligned sub-slices of the stack (a claim's weight is `eq(low_point, .)`
-//!   supported on `[offset, offset + 2^|low_point|)`),
+//!   supported on `[offset, offset + 2^|low_point|)`), or, for a column committed
+//!   in pieces, a sum of such weights, one per piece, each carrying a coefficient,
 //! - **ring-switched claims** ([`RingSwitchOpen`]): bit-MLE evaluation claims
 //!   on the packed sub-block `q_keccak = stack[offset .. offset + 2^qkeccak_vars]`,
 //!   reduced per claim by [`super::ring_switch::prove_prepare`] and the
@@ -73,19 +74,39 @@ pub enum StackClaim {
         low_point: Vec<F192>,
         value: F192,
     },
+    /// A claim on a column committed in pieces: its weight is `sum_i coeff_i * eq(low_point_i, .)`, each piece on its
+    /// own aligned slice, placed as a point claim is.
+    Jagged { pieces: Vec<JaggedPiece>, value: F192 },
+}
+
+/// One piece of a jagged claim.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JaggedPiece {
+    /// Where the piece's aligned slice `[offset, offset + 2^|low_point|)` starts.
+    pub offset: usize,
+    /// The point its eq weight is taken at.
+    pub low_point: Vec<F192>,
+    /// The coefficient its eq weight carries.
+    pub coeff: F192,
 }
 
 impl StackClaim {
     #[inline]
     pub fn value(&self) -> F192 {
-        let StackClaim::Point { value, .. } = self;
-        *value
+        match self {
+            StackClaim::Point { value, .. } | StackClaim::Jagged { value, .. } => *value,
+        }
     }
 
-    /// The aligned dyadic range of the stack its weight is supported on.
-    fn range(&self) -> (usize, usize) {
-        let StackClaim::Point { offset, low_point, .. } = self;
-        (*offset, *offset + (1usize << low_point.len()))
+    /// The claim's weight as eq terms `(offset, low_point, coeff)`, a point claim being one term at coefficient 1.
+    fn terms(&self) -> Vec<(usize, &[F192], F192)> {
+        match self {
+            StackClaim::Point { offset, low_point, .. } => vec![(*offset, low_point.as_slice(), F192::ONE)],
+            StackClaim::Jagged { pieces, .. } => pieces
+                .iter()
+                .map(|piece| (piece.offset, piece.low_point.as_slice(), piece.coeff))
+                .collect(),
+        }
     }
 }
 
@@ -155,9 +176,14 @@ pub fn open_batch_mixed_whir_stacked(
         ring.offset + qkeccak_len <= stack.len(),
         "q_keccak slice must fit inside the stack"
     );
+    // Every claim as eq terms, each scaled by its claim's batching power times its own coefficient.
+    let terms: Vec<(usize, &[F192], F192)> = point_claims.iter().flat_map(StackClaim::terms).collect();
     assert!(
-        point_claims.iter().all(|c| c.range().1 <= stack.len()),
-        "every claim must live inside the committed lanes"
+        terms
+            .iter()
+            .all(|&(offset, point, _)| offset.is_multiple_of(1 << point.len())
+                && offset + (1 << point.len()) <= stack.len()),
+        "every claim must live inside the committed lanes, on aligned slices"
     );
     let span = tracing::info_span!("Ring switch").entered();
 
@@ -208,8 +234,14 @@ pub fn open_batch_mixed_whir_stacked(
     // lifted weight over the stack is never built.
     let lane_vars = log_n - config.initial_k;
     let rings: Vec<_> = rs_outputs.into_iter().map(|output| output.weight).collect();
+    let scales: Vec<F192> = point_claims
+        .iter()
+        .zip(lambdas_pd)
+        .flat_map(|(claim, &lambda)| claim.terms().into_iter().map(move |(_, _, coeff)| lambda * coeff))
+        .collect();
+    let slices: Vec<(usize, &[F192])> = terms.iter().map(|&(offset, point, _)| (offset, point)).collect();
     let initial_basis = tracing::info_span!("Basis")
-        .in_scope(|| basis::initial_basis(&stack, lane_vars, point_claims, lambdas_pd, ring, &rings));
+        .in_scope(|| basis::initial_basis(&stack, lane_vars, &slices, &scales, ring, &rings));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    prover takes the stack; no copy).
@@ -340,7 +372,9 @@ mod tests {
                 let mut dense = vec![F192::ZERO; stack.len()];
                 ring_switch::combine_deferred_chunk(&rs_outputs, &mut dense[offset..offset + qkeccak_len]);
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                    let StackClaim::Point { offset, low_point, .. } = claim;
+                    let StackClaim::Point { offset, low_point, .. } = claim else {
+                        unreachable!("the fixture builds point claims")
+                    };
                     for j in 0..1usize << low_point.len() {
                         let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
                             w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
@@ -350,7 +384,16 @@ mod tests {
                 }
 
                 let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
-                let projected = basis::initial_basis(&stack, lane_vars, &claims, &lambdas, &ring, &rings);
+                let slices: Vec<(usize, &[F192])> = claims
+                    .iter()
+                    .map(|claim| {
+                        let StackClaim::Point { offset, low_point, .. } = claim else {
+                            unreachable!("the fixture builds point claims")
+                        };
+                        (*offset, low_point.as_slice())
+                    })
+                    .collect();
+                let projected = basis::initial_basis(&stack, lane_vars, &slices, &lambdas, &ring, &rings);
                 let target = rng.ext();
                 let (mut prover, msg) = SumcheckProver::new(stack.clone(), projected, target, lane_block);
                 let context =

@@ -70,7 +70,7 @@ impl Block {
 }
 
 /// `pad_n(point)`, the multilinear extension of `[z ≥ n]`, `n ≤ 2^|point|` (lemma lem:suffix).
-fn padding_weight(point: &[F192], n: usize) -> F192 {
+pub(crate) fn padding_weight(point: &[F192], n: usize) -> F192 {
     let bit = |k: usize| F192::new(((n >> k) & 1) as u64, 0, 0);
     let low = point.iter().enumerate().fold(F192::ONE, |pad, (k, &r)| {
         (F192::ONE + bit(k)) * r + (F192::ONE + bit(k) + r) * pad
@@ -86,7 +86,167 @@ pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
         Coord::GCol(i, k) => g_pow(*k as usize) * row[*i],
         Coord::Prod(i, j, k) => g_pow(*k as usize) * row[*i] * row[*j],
         Coord::Sum(cs) => cs.iter().fold(F64::ZERO, |acc, c| acc + coord_at(c, row)),
-        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
+        Coord::Index | Coord::Public(_) => {
+            unreachable!("a table's bus block carries no virtual coordinate")
+        }
+    }
+}
+
+/// What the witness holds of one column, as the bus reads it.
+#[derive(Clone, Debug)]
+pub(crate) enum ColumnView<'a> {
+    /// The column whole.
+    Dense(&'a [F64]),
+    /// The column committed in pieces (§sec:stacking): piece `i` holds the `2^k_i` cells after the earlier pieces',
+    /// largest first, and every cell from `cells` to the column's `2^kappa` holds `pad`.
+    Pieces {
+        pieces: Vec<&'a [F64]>,
+        cells: usize,
+        pad: F64,
+    },
+}
+
+impl<'a> ColumnView<'a> {
+    /// The column, if it is held whole.
+    pub(crate) fn whole(&self) -> Option<&'a [F64]> {
+        match self {
+            Self::Dense(column) => Some(column),
+            Self::Pieces { .. } => None,
+        }
+    }
+
+    /// The column's multilinear extension at `point`, through its pieces when it is held in pieces:
+    ///
+    /// ```text
+    /// c(r) = sum_i e_i(r) * P_i(r_{<k_i}) + pad * pad_cells(r)
+    /// ```
+    pub(crate) fn evaluate(&self, point: &[F192]) -> F192 {
+        let (pieces, cells, pad) = match self {
+            Self::Dense(column) => return mle_eval_par(column, point),
+            Self::Pieces { pieces, cells, pad } => (pieces, *cells, *pad),
+        };
+        let logs: Vec<usize> = pieces
+            .iter()
+            .map(|piece| crate::log2_strict_usize(piece.len()))
+            .collect();
+        let coefficients = crate::witness::piece_coefficients(point, &logs);
+        let tail = if pad == F64::ZERO {
+            F192::ZERO
+        } else {
+            F192::from(pad) * padding_weight(point, cells)
+        };
+        pieces
+            .iter()
+            .zip(&logs)
+            .zip(coefficients)
+            .fold(tail, |acc, ((piece, &k), e)| acc + e * mle_eval_par(piece, &point[..k]))
+    }
+}
+
+/// Which rows of its block a run of leaves reads.
+#[derive(Clone, Copy, Debug)]
+enum Part {
+    /// The whole block.
+    Whole,
+    /// The rows of piece `p` of the columns in pieces the block reads.
+    Piece(usize),
+    /// Rows past their committed cells, which hold the pad.
+    Tail,
+}
+
+/// A run of a side's leaves as the prover builds them: rows `start..start + 2^kappa` of `block`, at `offset` in the
+/// side's leaves, the index column there reading `g^(start + z)`.
+#[derive(Clone, Debug)]
+pub(crate) struct LeafRows<'b> {
+    block: &'b Block,
+    offset: usize,
+    kappa: usize,
+    start: usize,
+    part: Part,
+}
+
+impl<'b> LeafRows<'b> {
+    /// A block's leaves built whole, at `offset`.
+    pub(crate) fn whole(block: &'b Block, offset: usize) -> Self {
+        Self {
+            block,
+            offset,
+            kappa: block.kappa,
+            start: 0,
+            part: Part::Whole,
+        }
+    }
+}
+
+/// A side's blocks as its leaves are built, at their offsets in `lay`: a block reading a column in pieces becomes one
+/// run per piece, then the aligned runs of its rows past the committed cells, which read the pad.
+/// The leaves are the same; only how they are read changes.
+///
+/// Only a framework block, flushing every row, may read a column in pieces, and only through `Col` or `GCol`
+/// coordinates; the columns in pieces it reads share their piece sizes and cells.
+pub(crate) fn split_jagged<'b>(blocks: &'b [Block], lay: &Layout, views: &[ColumnView]) -> Vec<LeafRows<'b>> {
+    let mut out = Vec::with_capacity(blocks.len());
+    for (block, &offset) in blocks.iter().zip(&lay.offsets) {
+        let pieces = |c: &Coord| match c {
+            Coord::Col(i) | Coord::GCol(i, _) => match &views[*i] {
+                ColumnView::Pieces { pieces, cells, .. } => Some((pieces, *cells)),
+                ColumnView::Dense(_) => None,
+            },
+            _ => None,
+        };
+        let Some((shape, cells)) = block.coords.iter().find_map(pieces) else {
+            assert!(
+                !block.coords.iter().any(|c| reads_pieces(c, views)),
+                "a degree-2 coordinate reads a column in pieces"
+            );
+            out.push(LeafRows::whole(block, offset));
+            continue;
+        };
+        assert_eq!(block.rows, 1 << block.kappa, "a block in pieces flushes every row");
+        assert!(
+            block.coords.iter().filter_map(pieces).all(|(other, other_cells)| {
+                other_cells == cells && other.iter().map(|p| p.len()).eq(shape.iter().map(|p| p.len()))
+            }),
+            "the columns in pieces a block reads share their pieces"
+        );
+        let mut start = 0;
+        for (p, piece) in shape.iter().enumerate() {
+            let kappa = crate::log2_strict_usize(piece.len());
+            out.push(LeafRows {
+                block,
+                offset: offset + start,
+                kappa,
+                start,
+                part: Part::Piece(p),
+            });
+            start += piece.len();
+        }
+        // The rows past the cells, in the largest aligned runs.
+        while start < 1 << block.kappa {
+            let kappa = start.trailing_zeros() as usize;
+            out.push(LeafRows {
+                block,
+                offset: offset + start,
+                kappa,
+                start,
+                part: Part::Tail,
+            });
+            start += 1 << kappa;
+        }
+    }
+    out
+}
+
+/// Whether a degree-2 coordinate reads a column in pieces.
+fn reads_pieces(c: &Coord, views: &[ColumnView]) -> bool {
+    let in_pieces = |i: &usize| matches!(views[*i], ColumnView::Pieces { .. });
+    match c {
+        Coord::Prod(i, j, _) => in_pieces(i) || in_pieces(j),
+        Coord::Sum(cs) => cs.iter().any(|c| match c {
+            Coord::Col(i) | Coord::GCol(i, _) => in_pieces(i),
+            other => reads_pieces(other, views),
+        }),
+        _ => false,
     }
 }
 
@@ -183,28 +343,75 @@ pub fn layout(blocks: &[Block]) -> Layout {
 
 /// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
 /// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
-/// `GCol` folds the `g^k` factor into the coefficient.
+/// `GCol` folds the `g^k` factor into the coefficient, and a run starting `s` rows into
+/// its block folds `g^s` into its index column's.
 enum Term<'a> {
-    Col(usize, F192),
-    Prod(usize, usize, F192),
+    Col(&'a [F64], F192),
+    Prod(&'a [F64], &'a [F64], F192),
     Index(F192),
     Public(&'a [F64], F192),
 }
 
-/// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
-/// spreads its children over the SAME `w`: they are one coordinate, so they share
-/// its `α`-power.
-fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
-    match c {
-        Coord::Const(v) => *constant += w.mul_base(*v),
-        Coord::Col(i) => terms.push(Term::Col(*i, w)),
-        Coord::GCol(i, k) => terms.push(Term::Col(*i, w.mul_base(g_pow(*k as usize)))),
-        Coord::Prod(i, j, k) => terms.push(Term::Prod(*i, *j, w.mul_base(g_pow(*k as usize)))),
-        Coord::Index => terms.push(Term::Index(w)),
-        Coord::Public(vals) => terms.push(Term::Public(vals.as_slice(), w)),
-        Coord::Sum(cs) => {
-            for c in cs {
-                push_terms(c, w, terms, constant);
+/// What a run of leaves reads for one column: its rows, or the pad of cells past the committed ones.
+enum Read<'a> {
+    Rows(&'a [F64]),
+    Pad(F64),
+}
+
+impl<'b> LeafRows<'b> {
+    /// What this run reads of the column `view`, or of a public column `vals`.
+    fn read<'a>(&self, view: &ColumnView<'a>) -> Read<'a> {
+        let len = 1 << self.kappa;
+        match (view, self.part) {
+            (ColumnView::Dense(column), _) => Read::Rows(&column[self.start..][..len]),
+            (ColumnView::Pieces { pieces, .. }, Part::Piece(p)) => Read::Rows(pieces[p]),
+            (ColumnView::Pieces { pad, .. }, Part::Tail) => Read::Pad(*pad),
+            (ColumnView::Pieces { .. }, Part::Whole) => {
+                unreachable!("a block reading a column in pieces is split into its pieces")
+            }
+        }
+    }
+
+    /// Flatten one coordinate into leaf terms at coefficient `w`.
+    /// A sum spreads its children over the SAME `w`: they are one coordinate, so they share its `alpha`-power.
+    fn push_terms<'a>(
+        &self,
+        c: &'a Coord,
+        w: F192,
+        views: &[ColumnView<'a>],
+        terms: &mut Vec<Term<'a>>,
+        constant: &mut F192,
+    ) where
+        'b: 'a,
+    {
+        let rows = |i: usize| match self.read(&views[i]) {
+            Read::Rows(rows) => rows,
+            Read::Pad(_) => unreachable!("a degree-2 coordinate reads no column in pieces"),
+        };
+        match c {
+            Coord::Const(v) => *constant += w.mul_base(*v),
+            Coord::Col(i) | Coord::GCol(i, _) => {
+                let scale = match c {
+                    Coord::GCol(_, k) => g_pow(*k as usize),
+                    _ => F64::ONE,
+                };
+                let w = if scale == F64::ONE { w } else { w.mul_base(scale) };
+                match self.read(&views[*i]) {
+                    Read::Rows(rows) => terms.push(Term::Col(rows, w)),
+                    Read::Pad(pad) => *constant += w.mul_base(pad),
+                }
+            }
+            Coord::Prod(i, j, k) => terms.push(Term::Prod(rows(*i), rows(*j), w.mul_base(g_pow(*k as usize)))),
+            Coord::Index => terms.push(Term::Index(if self.start == 0 {
+                w
+            } else {
+                w.mul_base(g_pow(self.start))
+            })),
+            Coord::Public(vals) => terms.push(Term::Public(&vals[self.start..][..1 << self.kappa], w)),
+            Coord::Sum(cs) => {
+                for c in cs {
+                    self.push_terms(c, w, views, terms, constant);
+                }
             }
         }
     }
@@ -224,7 +431,7 @@ struct LeafBlock<'a> {
 impl LeafBlock<'_> {
     /// The leaf of real row `z`, whose index column value `g^z` is `index`.
     #[inline]
-    fn leaf(&self, z: usize, cols: &[&[F64]], index: F64) -> F192 {
+    fn leaf(&self, z: usize, index: F64) -> F192 {
         // The α-weighted coordinate sum defers its reductions: each mixed
         // product contributes its three raw limb products (3 PMULL, no
         // reduction tail), one combined reduction per row at the end,
@@ -232,8 +439,8 @@ impl LeafBlock<'_> {
         let mut acc = F192Unreduced::ZERO;
         for t in &self.terms {
             acc ^= match t {
-                Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
+                Term::Col(col, c) => c.mul_base_unreduced(col[z]),
+                Term::Prod(a, b, c) => c.mul_base_unreduced(a[z] * b[z]),
                 Term::Index(c) => c.mul_base_unreduced(index),
                 Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
             };
@@ -242,18 +449,18 @@ impl LeafBlock<'_> {
     }
 
     /// The leaves of rows `z0..z0 + out.len()`.
-    fn fill(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) {
+    fn fill(&self, z0: usize, out: &mut [F192]) {
         let real = self.rows.saturating_sub(z0).min(out.len());
         let (real_out, padding) = out.split_at_mut(real);
         // A padding row's leaf is the identity, so it leaves the product alone.
         padding.fill(F192::ONE);
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-        let done = self.fill_lanes(z0, real_out, cols);
+        let done = self.fill_lanes(z0, real_out);
         #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
-            *slot = self.leaf(z0 + i, cols, index);
+            *slot = self.leaf(z0 + i, index);
             index = mul_by_g(index);
         }
     }
@@ -261,7 +468,7 @@ impl LeafBlock<'_> {
     /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
     /// product; returns how many rows it wrote.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn fill_lanes(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
+    fn fill_lanes(&self, z0: usize, out: &mut [F192]) -> usize {
         use lanes::{E, K, Mixed, N};
         let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
         // `g^z` for the `N` rows, stepped by `g^N`.
@@ -281,8 +488,8 @@ impl LeafBlock<'_> {
             let mut acc = Mixed::ZERO;
             for (t, &c) in self.terms.iter().zip(&coeffs) {
                 match t {
-                    Term::Col(i, _) => acc.add(c, load(cols[*i], z)),
-                    Term::Prod(i, j, _) => acc.add(c, load(cols[*i], z) * load(cols[*j], z)),
+                    Term::Col(col, _) => acc.add(c, load(col, z)),
+                    Term::Prod(a, b, _) => acc.add(c, load(a, z) * load(b, z)),
                     Term::Index(_) => acc.add(c, index),
                     Term::Public(vals, _) => acc.add(c, load(vals, z)),
                 }
@@ -331,7 +538,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
 /// column is read from memory once however many blocks flush it. Each chunk's
 /// four- and sixteen-tuple products, the GKR's levels two and four, are formed while
 /// it is in cache.
-pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
+pub(crate) fn build_leaves(sides: [(&[LeafRows], &[F192], F192); 3], views: &[ColumnView]) -> [gkr::Leaves; 3] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -342,33 +549,35 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
 
     let mut blocks: Vec<LeafBlock> = Vec::new();
     let mut lens = [1usize; 3];
-    for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
+    for (side, &(side_rows, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
         // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
-        // more precede the smaller ones.
-        if !side_blocks.is_empty() {
-            lens[side] = side_blocks.iter().map(|blk| 1usize << blk.kappa).sum();
+        // more precede the smaller ones; a block split into runs keeps its place.
+        if !side_rows.is_empty() {
+            lens[side] = side_rows.iter().map(|run| 1usize << run.kappa).sum();
         }
-        for (b, blk) in side_blocks.iter().enumerate() {
+        for run in side_rows {
             assert!(
-                lay.offsets[b] + (1 << blk.kappa) <= lens[side],
+                run.offset + (1 << run.kappa) <= lens[side],
                 "the blocks tile the leaves"
             );
             let mut const_part = beta;
-            let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
-            for (i, c) in blk.coords.iter().enumerate() {
-                push_terms(c, w[i], &mut terms, &mut const_part);
+            let mut terms: Vec<Term> = Vec::with_capacity(run.block.coords.len());
+            for (i, c) in run.block.coords.iter().enumerate() {
+                run.push_terms(c, w[i], views, &mut terms, &mut const_part);
             }
             blocks.push(LeafBlock {
                 side,
-                offset: lay.offsets[b],
-                kappa: blk.kappa,
-                rows: blk.rows,
+                offset: run.offset,
+                kappa: run.kappa,
+                rows: match run.part {
+                    Part::Whole => run.block.rows,
+                    Part::Piece(_) | Part::Tail => 1 << run.kappa,
+                },
                 const_part,
                 terms,
             });
         }
-        debug_assert!(lens[side] <= 1usize << lay.mu);
     }
 
     // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
@@ -420,7 +629,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
             let len = CHUNK.min(rows.len());
             let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
             for blk in &groups[group] {
-                blk.fill(z0, leaves, cols);
+                blk.fill(z0, leaves);
                 // Past the block's real rows every leaf, and so every tuple's product, is the identity.
                 let live = if gkr::SKIP_IDENTITY {
                     blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
@@ -447,7 +656,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
     for (side, v) in values.iter_mut().enumerate() {
         let mut tail = lens[side];
         for blk in blocks.iter().filter(|b| b.side == side && b.kappa < CHUNKED) {
-            blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols);
+            blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)]);
             tail = tail.min(blk.offset);
         }
         if sides[side].0.is_empty() {
@@ -705,7 +914,7 @@ fn public_eval(vals: &Arc<Vec<F64>>, point: &[F192], cache: &mut PublicEvals) ->
 fn decompose_prove(
     blocks: &[Block],
     lay: &Layout,
-    cols: &[&[F64]],
+    views: &[ColumnView],
     zeta: &[F192],
     w: &[F192],
     beta: F192,
@@ -737,7 +946,7 @@ fn decompose_prove(
     // per worker, would leave the rest of it idle.
     let vals: Vec<F192> = jobs
         .iter()
-        .map(|&(col, kappa)| mle_eval_par(cols[col], &zeta[..kappa]))
+        .map(|&(col, kappa)| views[col].evaluate(&zeta[..kappa]))
         .collect();
 
     // Pass 2: replay in the original order; duplicates reuse the recorded claim.
@@ -757,7 +966,10 @@ fn decompose_prove(
                 .next()
                 .expect("job enumeration matches decompose_formula's col_val order");
             debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
-            debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
+            debug_assert!(
+                views[col].whole().is_none_or(|column| v == mle_eval(column, zeta_lo)),
+                "job/coord order drift"
+            );
             ps.add_scalar(v);
             v
         },
@@ -812,11 +1024,13 @@ pub(crate) struct BusProof {
     pub sigmas: [Vec<F192>; 3],
 }
 
+/// `views` holds every column the blocks read: a block reading a column in pieces is built a
+/// piece at a time.
 pub(crate) fn prove_balance(
     push: &[Block],
     pull: &[Block],
     count: &[Block],
-    cols: &[&[F64]],
+    views: &[ColumnView],
     owners: &[Vec<Option<(usize, usize)>>; 3],
     tables: &[(usize, usize)],
     ps: &mut ProverState,
@@ -832,15 +1046,15 @@ pub(crate) fn prove_balance(
     // The leaves keep the all-one padding implicit; decomposition uses the full logical depth.
     count_lay.mu = push_lay.mu;
     let leaves = crate::stage!("Bus leaves", || {
+        let runs = [(push, &push_lay), (pull, &pull_lay), (count, &count_lay)]
+            .map(|(blocks, lay)| split_jagged(blocks, lay, views));
         build_leaves(
-            sides(
-                [push, pull, count],
-                [&push_lay, &pull_lay, &count_lay],
-                &w,
-                &count_w,
-                beta,
-            ),
-            cols,
+            [
+                (&runs[0], &w, beta),
+                (&runs[1], &w, beta),
+                (&runs[2], &count_w, F192::ZERO),
+            ],
+            views,
         )
     });
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
@@ -871,7 +1085,7 @@ pub(crate) fn prove_balance(
             frameworks[s] = decompose_prove(
                 blocks,
                 lay,
-                cols,
+                views,
                 &bus_gkr.point,
                 a,
                 g,
@@ -884,7 +1098,7 @@ pub(crate) fn prove_balance(
         }
     });
     let (table_evals, prod_sums) = crate::stage!("Bus tables", || tables_and_prods_at(
-        cols,
+        views,
         tables,
         &forms,
         &bus_gkr.point
@@ -979,7 +1193,7 @@ fn eq_sums(point: &[F192], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Ve
 /// column indices.
 #[allow(clippy::type_complexity)]
 fn tables_and_prods_at(
-    cols: &[&[F64]],
+    views: &[ColumnView],
     tables: &[(usize, usize)],
     forms: &[Vec<BusForm>; 3],
     zeta: &[F192],
@@ -988,16 +1202,19 @@ fn tables_and_prods_at(
         .iter()
         .enumerate()
         .map(|(t, &(base, n_cols))| {
-            let tau = crate::log2_strict_usize(cols[base].len());
+            let columns: Vec<&[F64]> = views[base..base + n_cols]
+                .iter()
+                .map(|view| view.whole().expect("a table column is held whole"))
+                .collect();
+            let tau = crate::log2_strict_usize(columns[0].len());
             let mut pairs: Vec<(usize, usize)> = forms
                 .iter()
                 .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
                 .collect();
             pairs.sort_unstable();
             pairs.dedup();
-            let columns = &cols[base..base + n_cols];
             let products: Vec<(&[F64], &[F64])> = pairs.iter().map(|&(a, b)| (columns[a], columns[b])).collect();
-            let mut sums = eq_sums(&zeta[..tau], columns, &products);
+            let mut sums = eq_sums(&zeta[..tau], &columns, &products);
             let prods = pairs
                 .iter()
                 .zip(&sums[n_cols..])
@@ -1025,6 +1242,15 @@ mod tests {
             Coord::Public(vals) => vals[z],
             Coord::Sum(cs) => cs.iter().fold(F64::ZERO, |acc, c| acc + coord_value(c, cols, z)),
         }
+    }
+
+    /// Every block's leaves built whole, at its offset.
+    fn whole_runs<'b>(blocks: &'b [Block], lay: &Layout) -> Vec<LeafRows<'b>> {
+        blocks
+            .iter()
+            .zip(&lay.offsets)
+            .map(|(block, &offset)| LeafRows::whole(block, offset))
+            .collect()
     }
 
     /// The leaves by their definition, every block at its offset.
@@ -1099,7 +1325,9 @@ mod tests {
         );
         let want: [Vec<F192>; 3] = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
 
-        let built = build_leaves(sides, &cols);
+        let views: Vec<ColumnView> = cols.iter().map(|column| ColumnView::Dense(column)).collect();
+        let runs = sides.map(|(blocks, lay, w, beta)| (whole_runs(blocks, lay), w, beta));
+        let built = build_leaves(runs.each_ref().map(|(r, w, beta)| (r.as_slice(), *w, *beta)), &views);
         for (got, want) in built.iter().zip(&want) {
             let reference = Leaves::new(want.clone());
             assert_eq!(
@@ -1125,6 +1353,63 @@ mod tests {
             assert_eq!((planned.point, planned.values), (reference.point, reference.values));
             let [a, b] = proofs.map(|ps| ps.into_proof().stream);
             assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn a_column_in_pieces_reads_as_its_padded_column() {
+        // Invariant: a column in pieces evaluates, and builds leaves, as the dense column it stands for, whose cells
+        // past the pieces hold the pad.
+        // Fixture state: a cube of 2^13 cells, pieces of 2^12, 2^10 and 2^7 cells (5248, the rest a tail of four
+        // aligned runs), or one piece of every cell; random words, a pad of 0x77, and a random point.
+        let mut seed = 0xC0FF_EE00_D15E_A5E5u64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        let pad = F64(0x77);
+        for logs in [vec![12usize, 10, 7], vec![13]] {
+            let pieces: Vec<Vec<F64>> = logs
+                .iter()
+                .map(|&k| (0..1 << k).map(|_| F64(next())).collect())
+                .collect();
+            let cells: usize = pieces.iter().map(Vec::len).sum();
+            let mut dense: Vec<F64> = pieces.concat();
+            dense.resize(1 << 13, pad);
+            let whole = [ColumnView::Dense(&dense)];
+            let pieced = [ColumnView::Pieces {
+                pieces: pieces.iter().map(Vec::as_slice).collect(),
+                cells,
+                pad,
+            }];
+            let point: Vec<F192> = (0..13).map(|_| F192::new(next(), next(), next())).collect();
+            assert_eq!(pieced[0].evaluate(&point), mle_eval(&dense, &point), "{logs:?}");
+
+            // The same block over column 0, after a block of 2^14, its leaves built whole and a piece at a time.
+            let blocks = vec![
+                Block::full(14, vec![Coord::Const(F64(3)), Coord::Index]),
+                Block::full(13, vec![Coord::Const(F64(5)), Coord::Index, Coord::Col(0)]),
+            ];
+            let lay = layout(&blocks);
+            let w = fingerprint_weights(&[F192::new(3, 1, 4), F192::new(1, 5, 9), F192::new(2, 6, 5), F192::Y]);
+            let count_w = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
+            let beta = F192::new(27, 18, 28);
+            let leaves = |views: &[ColumnView]| {
+                let runs = split_jagged(&blocks, &lay, views);
+                build_leaves(
+                    [(&runs, &w, beta), (&runs, &w, beta), (&[], &count_w, F192::ZERO)],
+                    views,
+                )
+            };
+            let (from_whole, from_pieces) = (leaves(&whole), leaves(&pieced));
+            assert_eq!(from_whole[0].values, naive_leaves(&blocks, &lay, &[&dense], &w, beta));
+            assert_eq!(
+                (&from_pieces[0].values, &from_pieces[0].fours, &from_pieces[0].sixteens),
+                (&from_whole[0].values, &from_whole[0].fours, &from_whole[0].sixteens),
+                "{logs:?}"
+            );
         }
     }
 

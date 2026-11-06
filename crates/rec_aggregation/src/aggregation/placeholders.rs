@@ -169,7 +169,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // Only block and coordinate structure is used here; dummy instructions and
     // table sizes let us derive it before the guest's bytecode exists.
     let stand_in = vec![leanvm_core::cpu::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
-    let layout = leanvm_core::cpu::layout(&stand_in, 20, [1 << 10; N_TABLES], [F192::ZERO, F192::ZERO]);
+    let layout = leanvm_core::cpu::layout(&stand_in, 1 << 20, [1 << 10; N_TABLES], [F192::ZERO, F192::ZERO]);
 
     let mut rep = BTreeMap::new();
     let mut ps = |k: &str, v: String| {
@@ -374,13 +374,15 @@ fn claim_placeholders(
     let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
 
     // ---- claim descriptor buffer ids (structural) ----
+    // A committed column's compact index is its first piece's: the guest's committed
+    // entries are the columns' pieces, in column then piece order.
     let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
     let mut compact_col_pm = vec![usize::MAX; col_sources_pm.len()];
     let mut n_committed = 0usize;
     for (global, source) in col_sources_pm.iter().enumerate() {
-        if source.is_some() {
+        if let Some(source) = source {
             compact_col_pm[global] = n_committed;
-            n_committed += 1;
+            n_committed += source.pieces.len();
         }
     }
     let qkeccak_compact = compact_col_pm[leanvm_core::cpu::QKECCAK];
@@ -673,7 +675,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_MAX_VANISH_LEN", maxsvk.to_string());
     ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
-    let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
+    let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc)
+        .into_iter()
+        .flatten()
+        .flat_map(|source| source.pieces)
+        .collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
     ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));

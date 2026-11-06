@@ -26,6 +26,18 @@ pub(crate) const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // WHIR opening over this commitment.
 pub const QKECCAK: usize = 5;
 pub(crate) const N_SHARED: usize = 6;
+/// The memory image's columns, committed in pieces over its first cells (§sec:stacking).
+pub const MEMORY_COLUMNS: [usize; 4] = [MEM_LO, MEM_HI, MEM_TOP, MFCNT];
+/// The most pieces the memory columns are committed in: one per set bit of the memory's size.
+pub const MEMORY_PIECES: usize = 1;
+
+/// The log sizes of the pieces `cells` memory cells are committed in, largest first: one per set bit.
+pub fn memory_pieces(cells: usize) -> Vec<usize> {
+    (0..usize::BITS as usize)
+        .rev()
+        .filter(|&k| (cells >> k) & 1 == 1)
+        .collect()
+}
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
 /// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
@@ -137,9 +149,13 @@ pub struct Layout {
     pub pull: Vec<Block>,
     /// Count channel: read-count columns whose product must be nonzero (§sec:memchan).
     pub count: Vec<Block>,
-    /// Per-column placement (offset + n_vars) in the stacked witness; from the
-    /// columns' log-sizes alone, so reconstructable by the verifier.
-    pub placements: Vec<witness::Placement>,
+    /// Per column, its pieces in the stacked witness and what its cells past them hold;
+    /// from the announced sizes alone, so reconstructable by the verifier.
+    pub columns: Vec<witness::Pieces>,
+    /// The memory's cells.
+    pub memory_cells: usize,
+    /// The log of the cube the memory columns live on, their claims' point length.
+    pub log_mem: usize,
     /// The stacked witness's shape: its announced `2^mu` size, plus how many lane
     /// blocks of it the prover actually commits (see [`witness::StackShape`]).
     pub shape: witness::StackShape,
@@ -161,69 +177,100 @@ pub(crate) struct Witness {
     /// data for the bus but are not committed, so they are not in `q`.
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
     pub(crate) layout: Layout,
-    pub(crate) log_mem: usize,
     /// What the Keccak reduction needs beside `q`, which holds the states it rebuilds its witness from.
     pub(crate) keccak_reduction: crate::keccak::Reduction,
 }
 
 impl Witness {
     /// One read-only view per column, in global column order: the window into the
-    /// stack for a committed column or a KECCAK input lane (its slot of `q_keccak`),
-    /// the private buffer for an output lane.
-    pub(crate) fn columns(&self) -> Vec<&[F64]> {
-        let q_keccak = self.layout.placements[QKECCAK].offset;
+    /// stack for a column committed whole or a KECCAK input lane (its slot of `q_keccak`),
+    /// the private buffer for an output lane, and the pieces of a column committed in pieces.
+    pub(crate) fn columns(&self) -> Vec<leaf::ColumnView<'_>> {
+        let q_keccak = self.layout.columns[QKECCAK].placements[0].offset;
         let steps = 1 << self.layout.taus[tables::KECCAK_TABLE];
-        let mut cols: Vec<&[F64]> = self
-            .layout
-            .placements
+        let window = |p: &witness::Placement| &self.q[p.offset..][..1 << p.n_vars];
+        self.layout
+            .columns
             .iter()
             .enumerate()
-            .map(|(i, p)| match keccak_value(i) {
-                Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
-                _ if p.is_virtual() => &[][..],
-                _ => &self.q[p.offset..][..1 << p.n_vars],
+            .map(|(i, column)| {
+                if let Some(KeccakLane::Slot(slot)) = keccak_value(i) {
+                    return leaf::ColumnView::Dense(&self.q[q_keccak + slot * steps..][..steps]);
+                }
+                if let Some(placement) = column.whole() {
+                    return leaf::ColumnView::Dense(window(&placement));
+                }
+                if column.placements.is_empty() {
+                    let (_, buf) = self
+                        .virt
+                        .iter()
+                        .find(|(c, _)| *c == i)
+                        .expect("a virtual column is a q_keccak slot or a held output lane");
+                    return leaf::ColumnView::Dense(buf);
+                }
+                leaf::ColumnView::Pieces {
+                    pieces: column.placements.iter().map(window).collect(),
+                    cells: column.cells,
+                    pad: column.pad,
+                }
             })
-            .collect();
-        for (i, buf) in &self.virt {
-            cols[*i] = buf;
-        }
-        cols
+            .collect()
     }
 
     /// Committed data before the zero-pad to `2^m`: the real witness size.
     pub(crate) fn committed_size(&self) -> usize {
         self.layout
-            .placements
+            .columns
             .iter()
-            .filter(|p| !p.is_virtual())
+            .flat_map(|column| &column.placements)
             .map(|p| 1usize << p.n_vars)
             .sum()
     }
 }
 
-/// The committed columns' kappa SOURCES, for the recursion guest's
-/// in-circuit certification of the stacked size m = max(log2_ceil(sum of
-/// 2^kappa), MIN_MU). Per committed column: `Some((source, adj))` with
-/// kappa = value(source) + adj, where source 0 is the constant 0 (kappa =
-/// adj; used for the fixed-size columns and the program bytecode length,
-/// which the caller passes as `log_bytecode`), source 1 is log_mem, and
-/// source 2 + t is tau_t. `None` = virtual (never committed). `col_kappas`
-/// is derived from this, so the two cannot drift apart.
-pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
+/// How a committed column is committed: its pieces' kappa sources, and whether it is committed on the memory's cells.
+#[derive(Clone, Debug)]
+pub struct ColumnSources {
+    /// Each piece's `(source, adj)`, largest first.
+    pub pieces: Vec<(usize, usize)>,
+    /// For a column committed on the memory's cells, what each cell past them holds; `None` for a column committed
+    /// whole.
+    pub memory_pad: Option<F64>,
+}
+
+/// The committed columns' pieces' kappa SOURCES, for the recursion guest's in-circuit certification of the stacked
+/// size `m = max(log2_ceil(sum 2^kappa), MIN_MU)`.
+///
+/// Per committed column, each piece's `(source, adj)` with `kappa = value(source) + adj`, and the pad of a column
+/// committed on the memory's cells.
+/// Source 0 is the constant 0 (kappa = adj; used for the fixed-size columns and the program bytecode length, which the
+/// caller passes as `log_bytecode`), source 1 is log_mem, and source `2 + t` is tau_t.
+/// `None` = virtual (never committed).
+/// The column kappas are derived from this, so the two cannot drift apart.
+pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<ColumnSources>> {
     let sch = schema();
-    let mut k = vec![Some((0usize, 0usize)); sch.n];
-    k[MEM_LO] = Some((1, 0));
-    k[MEM_HI] = Some((1, 0));
-    k[MEM_TOP] = Some((1, 0));
-    k[MFCNT] = Some((1, 0));
-    k[BFCNT] = Some((0, log_bytecode));
+    let whole = |source: (usize, usize)| {
+        Some(ColumnSources {
+            pieces: vec![source],
+            memory_pad: None,
+        })
+    };
+    let mut k = vec![whole((0, 0)); sch.n];
+    // Past the memory's cells, each holds the word zero, read zero times: its final count is g^0.
+    for c in MEMORY_COLUMNS {
+        k[c] = Some(ColumnSources {
+            pieces: vec![(1, 0)],
+            memory_pad: Some(if c == MFCNT { F64::ONE } else { F64::ZERO }),
+        });
+    }
+    k[BFCNT] = whole((0, log_bytecode));
     // q_keccak is `2^(SLOT_LOG + n_steps_log)` F64 words, and tau_5 IS
     // n_steps_log (the announced-size certification uses the same floor), so this
     // reproduces `qkeccak_kappa`.
-    k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
+    k[QKECCAK] = whole((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
-        k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
+        k[base..base + table.n_committed_columns()].fill(whole((2 + t, 0)));
     }
     // The columns `q_keccak` carries are ALWAYS virtual: it already holds the input words at
     // fixed slots and the KECCAK columns riding its spare ones, and the output words are the
@@ -261,24 +308,30 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     push
 }
 
-/// Column → log-size (`kappa`) map, derived from [`col_kappa_sources`] by
-/// substituting the announced sizes: source 0 is the constant 0, source 1 is
-/// `log_mem`, source `2 + t` is `tau_t`. `None` marks a **virtual**
-/// (uncommitted) column. Depends only on the public sizes, so the verifier can
-/// reconstruct the placements.
-fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> Vec<Option<usize>> {
-    let mut values = vec![0usize, log_mem];
+/// Column to pieces' log-sizes (`kappa`) map, derived from the kappa sources by substituting the announced sizes:
+/// source 0 is the constant 0, source 1 is `log_mem`, source `2 + t` is `tau_t`.
+/// No piece marks a **virtual** (uncommitted) column.
+/// Depends only on the public sizes, so the verifier can reconstruct the placements.
+fn col_kappas(memory_cells: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> Vec<Vec<usize>> {
+    let pieces = memory_pieces(memory_cells);
+    assert_eq!(pieces.len(), MEMORY_PIECES, "the memory is a power of two");
+    let mut values = vec![0usize, crate::log2_ceil_usize(memory_cells)];
     values.extend(taus);
     col_kappa_sources(log_bytecode)
         .iter()
-        .map(|s| s.map(|(source, adj)| values[source] + adj))
+        .map(|s| {
+            s.iter()
+                .flat_map(|s| &s.pieces)
+                .map(|&(source, adj)| values[source] + adj)
+                .collect()
+        })
         .collect()
 }
 
 /// `log2` of the stacked witness the announced sizes imply. The one part of
 /// [`layout`] a size floor needs, and far cheaper than the rest of it.
-pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> usize {
-    crate::witness::placements_of(&col_kappas(log_mem, log_bytecode, taus))
+pub(crate) fn committed_log(memory_cells: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> usize {
+    crate::witness::placements_of(&col_kappas(memory_cells, log_bytecode, taus))
         .1
         .mu
 }
@@ -384,23 +437,24 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
     table
 }
 
-/// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the
+/// Build the public layout from the program, the memory's cells `memory_cells`, the
 /// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
 /// reference columns only by INDEX and the program only through its public columns, so
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
-pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
-    layout_of(bytecode_columns(prog), log_mem, rows, pi)
+pub fn layout(prog: &[Op], memory_cells: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+    layout_of(bytecode_columns(prog), memory_cells, rows, pi)
 }
 
 /// [`layout`] of a program's columns.
 pub(crate) fn layout_of(
     prog_cols: BytecodeColumns,
-    log_mem: usize,
+    memory_cells: usize,
     rows: [usize; tables::N_TABLES],
     pi: [F192; 2],
 ) -> Layout {
     let taus = table_logs(rows);
+    let log_mem = crate::log2_ceil_usize(memory_cells);
     let bytecode_size = prog_cols[0].len();
     let log_bytecode = crate::log2_strict_usize(bytecode_size);
 
@@ -482,12 +536,30 @@ pub(crate) fn layout_of(
         count_blocks.extend(table.count_columns().iter().map(|&c| table_block(vec![Col(c)])));
     }
 
-    let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
+    let (placements, shape) = witness::placements_of(&col_kappas(memory_cells, log_bytecode, taus));
+    let columns = placements
+        .into_iter()
+        .zip(col_kappa_sources(log_bytecode))
+        .map(|(placements, sources)| match sources.and_then(|s| s.memory_pad) {
+            Some(pad) => witness::Pieces {
+                placements,
+                cells: memory_cells,
+                pad,
+            },
+            None => witness::Pieces {
+                cells: placements.iter().map(|p| 1 << p.n_vars).sum(),
+                placements,
+                pad: F64::ZERO,
+            },
+        })
+        .collect();
     Layout {
         push,
         pull,
         count: count_blocks,
-        placements,
+        columns,
+        memory_cells,
+        log_mem,
         shape,
         pi,
         taus,
@@ -510,12 +582,10 @@ impl Program {
     /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
     pub(crate) fn build(&self, exec: &Execution, keccak_blocks: crate::keccak::Blocks) -> Witness {
         assert!(self.prog.len().is_power_of_two());
-        assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
         let tr = &exec.trace;
         let cells = exec.mem.len();
         let bytecode_size = self.prog.len();
-        let log_mem = crate::log2_strict_usize(cells);
 
         let sch = schema();
         // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
@@ -538,7 +608,7 @@ impl Program {
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
         let pi = [exec.mem.word(0), exec.mem.word(1)];
-        let l = self.layout(log_mem, row_counts, pi);
+        let l = self.layout(cells, row_counts, pi);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
@@ -560,7 +630,30 @@ impl Program {
             // `fill_table` asserts each table wrote all of its windows.
             .map(|i| (i, unsafe { primitives::uninit_vec::<F64>(steps) }))
             .collect();
-        let mut windows = witness::split_stack(&mut q, &l.placements);
+        let mut pieces = witness::split_stack(&mut q, &l.columns);
+        // The memory columns' pieces, each piece with the cell it starts at.
+        let mut memory: Vec<Vec<(usize, &mut [F64])>> = [MEM_LO, MEM_HI, MEM_TOP, MFCNT]
+            .map(|c| {
+                let mut start = 0;
+                std::mem::take(&mut pieces[c])
+                    .into_iter()
+                    .map(|window| {
+                        let at = start;
+                        start += window.len();
+                        (at, window)
+                    })
+                    .collect()
+            })
+            .into();
+        // Every other column is committed whole, or not at all.
+        let mut windows: Vec<&mut [F64]> = pieces
+            .into_iter()
+            .map(|mut column| match column.len() {
+                0 => <&mut [F64]>::default(),
+                1 => column.pop().expect("one window"),
+                _ => unreachable!("only memory is in pieces"),
+            })
+            .collect();
         for (i, buf) in virt.iter_mut() {
             windows[*i] = buf;
         }
@@ -588,17 +681,29 @@ impl Program {
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
             // One pass over the image fills all four of its columns, streamed out a
             // cache line of each at a time: nothing reads them before the commitment.
+            // A block of cells lies in one piece, every piece being a whole number of blocks.
             const LINE: usize = 8;
             const BLOCK: usize = 1 << 10;
             let page_log = Memory::page_log();
-            let image = [MEM_LO, MEM_HI, MEM_TOP, MFCNT].map(|c| {
-                assert_eq!(windows[c].len(), cells, "a memory column spans the image");
-                parallel::SendPtr(windows[c].as_mut_ptr())
-            });
+            assert_eq!(
+                memory[0].iter().map(|(_, window)| window.len()).sum::<usize>(),
+                cells,
+                "the memory pieces tile the image"
+            );
+            let image: Vec<[(usize, parallel::SendPtr<F64>); 4]> = (0..memory[0].len())
+                .map(|piece| {
+                    std::array::from_fn(|c| {
+                        let (start, window) = &mut memory[c][piece];
+                        assert!(window.len().is_multiple_of(BLOCK), "a memory piece is whole blocks");
+                        (*start, parallel::SendPtr(window.as_mut_ptr()))
+                    })
+                })
+                .collect();
             parallel::for_each_chunk(cells / BLOCK, |first, end| {
                 let stream = primitives::stream::Stream::new();
                 for b in first..end {
                     let at = b * BLOCK;
+                    let piece = &image[image.partition_point(|piece| piece[0].0 <= at) - 1];
                     let page = exec.mem.page(at >> page_log);
                     for line in (at..at + BLOCK).step_by(LINE) {
                         let mut buf = [[F64::ZERO; LINE]; 4];
@@ -612,10 +717,11 @@ impl Program {
                             buf[2][j] = values[2];
                             buf[3][j] = gpow[cell.count as usize];
                         }
-                        for (column, values) in image.iter().zip(&buf) {
+                        for ((start, column), values) in piece.iter().zip(&buf) {
                             // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
-                            // column, in bounds as `cells` is a whole number of blocks.
-                            unsafe { stream.copy_uninit(column.add(line), values) };
+                            // column, which lie in the piece starting at cell `start`,
+                            // that piece being a whole number of blocks.
+                            unsafe { stream.copy_uninit(column.add(line - start), values) };
                         }
                     }
                 }
@@ -635,7 +741,6 @@ impl Program {
             q,
             virt,
             layout: l,
-            log_mem,
             keccak_reduction,
         }
     }

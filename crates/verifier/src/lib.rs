@@ -240,7 +240,8 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let table_rows: Vec<u64> = announced[1..1 + N_TABLES].iter().map(|value| value.c0).collect();
     let log_inverse_rate = announced[1 + N_TABLES].c0;
     require((1..=4).contains(&log_inverse_rate), VerifierError::PcsInverseRate)?;
-    let layout = build_layout(bytecode, log_memory, &table_rows)?;
+    require((16..=32).contains(&log_memory), VerifierError::AnnouncedTableSizes)?;
+    let layout = build_layout(bytecode, 1 << log_memory, &table_rows)?;
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
         VerifierError::CommittedSize,
@@ -283,7 +284,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
-    let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
+    let mut public_point = vec![ZERO; layout.log_memory];
     public_point[0] = public_challenge;
     let public_pairs = [(first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)];
     for (column, (low, high)) in [MEMORY_0, MEMORY_1, MEMORY_2].into_iter().zip(public_pairs) {
@@ -318,7 +319,10 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript);
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
-    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
+    let qkeccak = layout.columns[QKECCAK]
+        .as_ref()
+        .expect("q_keccak is committed")
+        .placements[0];
     let ringswitch: StackClaim = (
         Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
         ringswitch_target,
