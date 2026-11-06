@@ -29,7 +29,7 @@ body {
 }
 
 main {
-  max-width: 56rem;
+  max-width: 62rem;
   margin: 0 auto;
   padding: 1.5rem 2.5rem 1rem;
   min-height: 100vh;
@@ -55,10 +55,15 @@ svg .wire { stroke: var(--rule); stroke-width: 1; fill: none; }
 svg .wire2 { stroke: var(--tree); stroke-width: 1; fill: none; }
 svg .sig { fill: var(--tree); }
 svg .node { fill: var(--ink); }
+.legend { display: none; margin: 0; padding: 0; list-style: none; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 0.6rem; }
+.legend b { color: var(--ink); font-weight: 600; }
+.legend .g { flex: none; width: 0.9rem; display: flex; justify-content: center; }
+.legend .g i { display: block; border-radius: 50%; background: var(--ink); }
 
 /* Toggles */
 
-.controls { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-top: 2.25rem; }
+.controls { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-top: 2.25rem; font-size: 1.2rem; }
 .toggle { display: flex; align-items: center; gap: 0.9rem; }
 .toggle .name { color: var(--muted); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--tree); border-radius: 1.1rem; padding: 2px; }
@@ -68,7 +73,7 @@ svg .node { fill: var(--ink); }
   background: none;
   border: 0;
   border-radius: 999px;
-  padding: 0.2rem 0.95rem;
+  padding: 0.2rem 0.8rem;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
@@ -76,7 +81,7 @@ svg .node { fill: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cpu { margin: 0.9rem 0 0; color: var(--muted); }
-.cpu .simd { color: var(--ink); font-weight: 500; }
+.cpu .simd { color: var(--ink); font-weight: 500; white-space: nowrap; }
 
 /* Results */
 
@@ -85,6 +90,7 @@ svg .node { fill: var(--ink); }
 .results thead th { color: var(--muted); font-size: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.45rem; }
 .results tbody tr + tr > * { border-top: 1px solid var(--rule); }
 .results tbody th { font-weight: 500; white-space: nowrap; }
+.results td, .results thead th { white-space: nowrap; }
 
 .info {
   position: relative;
@@ -143,11 +149,11 @@ dialog {
 }
 dialog::backdrop { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(2px); }
 dialog h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.9rem; }
-dialog ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.75rem; }
+dialog ul { margin: 0; padding-left: 1.2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+dialog li { min-width: 0; }
 dialog li::marker { color: var(--muted); }
 dialog code { font: 0.86rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
-dialog pre { margin: 0.35rem 0 0; padding: 0.55rem 0.8rem; background: #f6f6f6; border-radius: 6px; white-space: pre-wrap; word-break: break-word; }
-dialog .note { margin: 1.1rem 0 0; color: var(--muted); }
+dialog pre { margin: 0.35rem 0 0; padding: 0.55rem 0.8rem; background: #f6f6f6; border-radius: 6px; white-space: pre; overflow-x: auto; }
 dialog .close { position: absolute; top: 0.9rem; right: 1rem; font: inherit; font-size: 1.4rem; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 0.2rem; }
 dialog .close:hover { color: var(--ink); }
 
@@ -159,11 +165,26 @@ dialog .close:hover { color: var(--ink); }
   footer { flex-direction: column; gap: 0.5rem; }
 }
 @media (max-width: 600px) {
-  main { padding: 1.25rem 1rem; }
+  main { padding: 1.5rem 1rem 1.25rem; }
   h1 { font-size: 2.2rem; }
-  .results { font-size: 1.1rem; }
-  .results th, .results td { padding-right: 1.2rem; }
+  .story { margin-top: 1.5rem; gap: 0.9rem; }
+  .legend { display: grid; gap: 0.15rem; }
+  .controls { flex-direction: column; gap: 1rem; margin-top: 2rem; font-size: 1.1rem; }
+  .toggle { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+  #machine { display: grid; grid-template-columns: 1fr 1fr; border-radius: 14px; }
+  #machine button { border-radius: 11px; padding: 0.45rem 0.4rem; line-height: 1.25; font-size: 1rem; }
+  #threads { align-self: flex-start; }
+  #threads button { padding: 0.3rem 1.1rem; }
+  .results { width: 100%; font-size: 1.05rem; }
+  .results th, .results td { padding-right: 0.9rem; }
+  .results th:last-child, .results td:last-child { padding-right: 0; }
+  .results thead th { font-size: 0.85rem; }
+  .results .sub { display: block; }
   .info::after { white-space: pre-wrap; width: max-content; max-width: 70vw; }
+  dialog { padding: 1.4rem 1.1rem 1.2rem; }
+  dialog h2 { font-size: 1.3rem; }
+  dialog code { font-size: 0.8rem; }
+  dialog ul { padding-left: 1rem; }
 }
 </style>
 </head>
@@ -175,9 +196,12 @@ dialog .close:hover { color: var(--ink); }
 </header>
 
 <figure class="story">
-  <svg id="subnets" viewBox="0 0 800 275" role="img" aria-labelledby="subnets-title">
-    <title id="subnets-title">One slot: 16 subnets of 1,500 leanXMSS signatures, each aggregated into one proof, and the 16 proofs merged into one</title>
-  </svg>
+  <svg id="subnets" viewBox="0 0 800 275" role="img" aria-label="One slot: 16 subnets of 1,500 leanXMSS signatures, each aggregated into one proof, and the 16 proofs merged into one"></svg>
+  <ul class="legend">
+    <li><span class="g"><i style="width:5px;height:5px;background:var(--tree)"></i></span><span><b>16 subnets</b>, 1,500 leanXMSS each</span></li>
+    <li><span class="g"><i style="width:7px;height:7px"></i></span><span><b>Aggregation</b>, one proof per subnet</span></li>
+    <li><span class="g"><i style="width:11px;height:11px"></i></span><span><b>Recursion 16 → 1</b>, one proof per slot</span></li>
+  </ul>
   <p>768,000 validators = 32 slots × 16 subnets × 1,500 signatures.</p>
 </figure>
 
@@ -204,22 +228,19 @@ dialog .close:hover { color: var(--ink); }
     <li>Install Rust with <a href="https://rustup.rs">rustup</a>.</li>
     <li>Clone leanVM at the benchmarked commit:
       <pre><code>git clone https://github.com/leanEthereum/leanVM
-cd leanVM &amp;&amp; git checkout <span class="sha"></span></code></pre></li>
-    <li>Aggregation:
-      <pre><code>LEANVM_NUM_THREADS=8 cargo leanvm aggregate --xmss 1500 --log-inv-rate 2 --repeat 3</code></pre></li>
-    <li>Recursion 16 &rarr; 1:
-      <pre><code>LEANVM_NUM_THREADS=8 cargo leanvm recursion --n 16 --xmss-per-leaf 1500 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3</code></pre></li>
-    <li>Set <code>LEANVM_NUM_THREADS</code> to 4 or 8, or leave it unset for full threads.</li>
+cd leanVM
+git checkout <span class="sha"></span></code></pre></li>
+    <li>Run the benchmarks:
+      <pre><code>bins/leanvm/bench.sh</code></pre></li>
   </ul>
-  <p class="note">Time is the <code>proving time</code> line, RAM the <code>peak memory</code> next to it.</p>
 </dialog>
 
 </main>
 <script>
 // Results come from benchmarks.json: one commit, and per machine results[bench][threads] = { time, ram }.
 const BENCHES = [
-  ["aggregation", "Aggregation", "1,500 leanXMSS signatures into one proof,\nat rate 1/4"],
-  ["recursion", "Recursion 16 \u2192 1", "16 proofs of 1,500 leanXMSS signatures each\ninto one proof, leaves at rate 1/4,\nthe node at rate 1/2"],
+  ["aggregation", "Aggregation", "1,500 XMSS", "Rate 1/4"],
+  ["recursion", "Recursion 16 \u2192 1", "", "16 proofs of 1,500 XMSS each into one,\nleaves at rate 1/4, the node at rate 1/2"],
 ];
 const REPO = "https://github.com/leanEthereum/leanVM";
 let MACHINES = [], THREADS = [];
@@ -248,17 +269,19 @@ function render() {
   }
   const m = MACHINES.find(m => m.cpu === state.machine);
   document.getElementById("cpu").replaceChildren(`${m.memory} \u00b7 `, el("span", { className: "simd", textContent: m.simd }));
-  document.getElementById("rows").replaceChildren(...BENCHES.map(([key, label, tip]) => {
+  document.getElementById("rows").replaceChildren(...BENCHES.map(([key, label, sub, tip]) => {
     const r = (m.results[key] || {})[state.threads];
     const num = (x, unit) => (typeof x === "number" ? `${x.toFixed(2)} ${unit}` : "\u2013");
     const info = el("span", { className: "info", tabIndex: 0, textContent: "i" });
     info.dataset.tip = tip;
-    return el("tr", {}, el("th", {}, label, info), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }));
+    const name = sub ? [label, " ", el("span", { className: "sub" }, sub, info)] : [label, info];
+    return el("tr", {}, el("th", {}, ...name), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }));
   }));
   try { localStorage.setItem("leanvm-bench", JSON.stringify(state)); } catch (e) {}
 }
 
 // The subnets figure: signatures into 16 aggregates, which merge into one proof per slot.
+// On phones the labels move to the HTML legend and the marks grow, since the drawing shrinks.
 (() => {
   const svg = document.getElementById("subnets");
   const NS = "http://www.w3.org/2000/svg";
@@ -271,26 +294,34 @@ function render() {
   };
   const N = 16, SIGS = 5;
   const X = i => 30 + i * 38, Y_SIG = 30, Y_AGG = 130, ROOT = [315, 250];
+  const phone = matchMedia("(max-width: 600px)");
 
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < SIGS; j++) {
-      add("line", { class: "wire", x1: X(i) + (j - 2) * 6, y1: Y_SIG, x2: X(i), y2: Y_AGG });
+  const draw = () => {
+    const small = phone.matches, k = small ? 1.6 : 1;
+    svg.querySelectorAll("line, path, circle, text").forEach(e => e.remove());
+    svg.setAttribute("viewBox", small ? "10 18 610 246" : "0 0 800 275");
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < SIGS; j++) {
+        add("line", { class: "wire", x1: X(i) + (j - 2) * 6, y1: Y_SIG, x2: X(i), y2: Y_AGG, "stroke-width": k });
+      }
+      add("path", { class: "wire2", d: `M${X(i)},${Y_AGG} Q${X(i)},215 ${ROOT[0]},${ROOT[1]}`, "stroke-width": k });
     }
-    add("path", { class: "wire2", d: `M${X(i)},${Y_AGG} Q${X(i)},215 ${ROOT[0]},${ROOT[1]}` });
-  }
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < SIGS; j++) add("circle", { class: "sig", cx: X(i) + (j - 2) * 6, cy: Y_SIG, r: 1.6 });
-    add("circle", { class: "node", cx: X(i), cy: Y_AGG, r: 3.5 });
-  }
-  add("circle", { class: "node", cx: ROOT[0], cy: ROOT[1], r: 5.5 });
-
-  const L = 640;
-  add("text", { class: "nm", x: L, y: Y_SIG + 4 }, "16 subnets");
-  add("text", { class: "lb", x: L, y: Y_SIG + 22 }, "1,500 leanXMSS each");
-  add("text", { class: "nm", x: L, y: Y_AGG + 4 }, "Aggregation");
-  add("text", { class: "lb", x: L, y: Y_AGG + 22 }, "one proof per subnet");
-  add("text", { class: "nm", x: L, y: ROOT[1] + 4 }, "Recursion 16 \u2192 1");
-  add("text", { class: "lb", x: L, y: ROOT[1] + 22 }, "one proof per slot");
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < SIGS; j++) add("circle", { class: "sig", cx: X(i) + (j - 2) * 6, cy: Y_SIG, r: 1.6 * k });
+      add("circle", { class: "node", cx: X(i), cy: Y_AGG, r: 3.5 * k });
+    }
+    add("circle", { class: "node", cx: ROOT[0], cy: ROOT[1], r: 5.5 * k });
+    if (small) return;
+    const L = 640;
+    add("text", { class: "nm", x: L, y: Y_SIG + 4 }, "16 subnets");
+    add("text", { class: "lb", x: L, y: Y_SIG + 22 }, "1,500 leanXMSS each");
+    add("text", { class: "nm", x: L, y: Y_AGG + 4 }, "Aggregation");
+    add("text", { class: "lb", x: L, y: Y_AGG + 22 }, "one proof per subnet");
+    add("text", { class: "nm", x: L, y: ROOT[1] + 4 }, "Recursion 16 \u2192 1");
+    add("text", { class: "lb", x: L, y: ROOT[1] + 22 }, "one proof per slot");
+  };
+  draw();
+  phone.addEventListener("change", draw);
 })();
 
 const howto = document.getElementById("howto");
@@ -322,7 +353,7 @@ fetch("benchmarks.json", { cache: "no-store" })
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem("leanvm-bench") || "{}"); } catch (e) {}
     state.machine = data.some(m => m.cpu === saved.machine) ? saved.machine : data[0].cpu;
-    state.threads = THREADS.includes(saved.threads) ? saved.threads : THREADS[THREADS.length - 1];
+    state.threads = THREADS.includes("8") ? "8" : THREADS[THREADS.length - 1];
     segment("machine", data.map(m => m.cpu), "machine");
     segment("threads", THREADS, "threads");
     render();
