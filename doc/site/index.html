@@ -81,6 +81,8 @@ svg .node { fill: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cpu { margin: 0.9rem 0 0; color: var(--muted); }
+.cpu { display: flex; flex-wrap: wrap; gap: 0.2rem 2rem; }
+.cpu .k { color: var(--ink); font-weight: 500; margin-right: 0.5em; }
 .cpu .simd { color: var(--ink); font-weight: 500; white-space: nowrap; }
 
 /* Results */
@@ -237,7 +239,7 @@ git checkout <span class="sha"></span></code></pre></li>
 
 </main>
 <script>
-// Results come from benchmarks.json: one commit, and per machine results[bench][threads] = { time, ram }.
+// Results come from benchmarks.json: one commit, and per machine its name, CPU, RAM and results[bench][threads] = { time, ram }.
 const BENCHES = [
   ["aggregation", "Aggregation", "1,500 XMSS", "Rate 1/4"],
   ["recursion", "Recursion 16 \u2192 1", "", "16 proofs of 1,500 XMSS each into one,\nleaves at rate 1/4, the node at rate 1/2"],
@@ -267,8 +269,11 @@ function render() {
       b.setAttribute("aria-pressed", String(b.textContent === String(state[key])));
     }
   }
-  const m = MACHINES.find(m => m.cpu === state.machine);
-  document.getElementById("cpu").replaceChildren(`${m.memory} \u00b7 `, el("span", { className: "simd", textContent: m.simd }));
+  const m = MACHINES.find(m => m.name === state.machine);
+  document.getElementById("cpu").replaceChildren(
+    el("span", { className: "spec" }, el("span", { className: "k", textContent: "CPU" }), `${m.cpu}, ${m.cores} cores / ${m.threads} threads, `, el("span", { className: "simd", textContent: m.simd })),
+    el("span", { className: "spec" }, el("span", { className: "k", textContent: "RAM" }), m.memory),
+  );
   document.getElementById("rows").replaceChildren(...BENCHES.map(([key, label, sub, tip]) => {
     const r = (m.results[key] || {})[state.threads];
     const num = (x, unit) => (typeof x === "number" ? `${x.toFixed(2)} ${unit}` : "\u2013");
@@ -324,6 +329,12 @@ function render() {
   phone.addEventListener("change", draw);
 })();
 
+// A tap anywhere else closes an open (i) tooltip: iOS does not blur on taps on plain content.
+document.addEventListener("pointerdown", e => {
+  const open = document.activeElement;
+  if (open && open.classList.contains("info") && open !== e.target) open.blur();
+});
+
 const howto = document.getElementById("howto");
 document.getElementById("howto-open").addEventListener("click", () => howto.showModal());
 document.getElementById("howto-close").addEventListener("click", () => howto.close());
@@ -352,9 +363,9 @@ fetch("benchmarks.json", { cache: "no-store" })
     THREADS = [...new Set(data.flatMap(m => Object.values(m.results).flatMap(Object.keys)))].sort((a, b) => rank(a) - rank(b));
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem("leanvm-bench") || "{}"); } catch (e) {}
-    state.machine = data.some(m => m.cpu === saved.machine) ? saved.machine : data[0].cpu;
+    state.machine = data.some(m => m.name === saved.machine) ? saved.machine : data[0].name;
     state.threads = THREADS.includes("8") ? "8" : THREADS[THREADS.length - 1];
-    segment("machine", data.map(m => m.cpu), "machine");
+    segment("machine", data.map(m => m.name), "machine");
     segment("threads", THREADS, "threads");
     render();
   })

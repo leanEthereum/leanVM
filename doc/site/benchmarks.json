@@ -2,7 +2,10 @@
   "commit": "a71c01873",
   "machines": [
     {
+      "name": "MacBook Pro M4 Max",
       "cpu": "Apple M4 Max",
+      "cores": 16,
+      "threads": 16,
       "memory": "48 GB LPDDR5X, unified",
       "simd": "NEON",
       "results": {
@@ -11,7 +14,10 @@
       }
     },
     {
+      "name": "Hetzner AX42",
       "cpu": "AMD Ryzen 7 PRO 8700GE",
+      "cores": 8,
+      "threads": 16,
       "memory": "64 GB DDR5-5200, 2 × 32 GB Samsung",
       "simd": "AVX-512",
       "results": {
@@ -20,7 +26,10 @@
       }
     },
     {
+      "name": "Hetzner EX63",
       "cpu": "Intel Core Ultra 7 265",
+      "cores": 20,
+      "threads": 20,
       "memory": "64 GB DDR5-5600, 2 × 32 GB Crucial",
       "simd": "AVX2",
       "results": {
@@ -29,7 +38,10 @@
       }
     },
     {
+      "name": "Cherry Servers EPYC 9355P",
       "cpu": "AMD EPYC 9355P",
+      "cores": 32,
+      "threads": 64,
       "memory": "192 GB DDR5-6400 RDIMM, 12 × 16 GB SK Hynix",
       "simd": "AVX-512",
       "results": {
