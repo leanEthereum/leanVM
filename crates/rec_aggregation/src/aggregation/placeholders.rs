@@ -483,7 +483,7 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
 fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
-    use keccak_gkr::rmfe::{EMBED_BITS, PACK, PROD_BITS, RMFE};
+    use keccak_gkr::rmfe::{EMBED_BITS, PACK, PACK_BITS, PROD_BITS, RMFE};
     let shape = keccak_gkr::Shape::new(leanvm_core::keccak::MIN_STEPS, leanvm_core::keccak::DEPTH);
     let (depth, segments) = (shape.depth(), shape.segments());
     // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's
@@ -498,6 +498,7 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("KECCAK_SEGMENTS", segments.to_string());
     ps("KECCAK_SEG_LOG", shape.seg_log().to_string());
     ps("KECCAK_PACK", PACK.to_string());
+    ps("KECCAK_PACK_LOG", PACK_BITS.to_string());
     ps("KECCAK_EMBED_BITS", EMBED_BITS.to_string());
     ps("KECCAK_PROD_BITS", PROD_BITS.to_string());
     // Each product coefficient's reader, the sum of the instance weights whose projection reads

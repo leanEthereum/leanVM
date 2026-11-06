@@ -30,8 +30,10 @@ fn ternary(b: usize) -> usize {
 /// Digits a weight splits into, and the values of one.
 const DIGIT_BITS: usize = 8;
 const DIGITS: usize = 192 / DIGIT_BITS;
-/// The bits of a block position's products, 48 to each pack.
-pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
+/// The bits a pack's product takes in a payload: its coefficients, padded to whole 16-bit fields.
+pub(crate) const PROD_STRIDE: usize = PROD_BITS.next_multiple_of(16);
+/// The bits of a block position's products.
+pub(crate) const PAYLOAD_BITS: usize = PROD_STRIDE * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX-512 the
 /// whole position, three registers; with AVX2 half, three registers; elsewhere a quarter, a
 /// block's worth of which stays in cache.
@@ -41,7 +43,7 @@ const PART: usize = PACKS;
 const PART: usize = PACKS / 2;
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 const PART: usize = 8;
-const PART_WORDS: usize = 48 * PART / 64;
+const PART_WORDS: usize = PROD_STRIDE * PART / 64;
 // `pack` reads four products to three words and `add` XORs whole vectors, so `PART` divides by four
 // and `PART_WORDS` by each arm's lane count. A `PART` that broke either would drop products or store
 // past the array rather than fail to build.
@@ -53,7 +55,7 @@ const _: () = assert!(PART_WORDS.is_multiple_of(4));
 #[cfg(target_arch = "aarch64")]
 const _: () = assert!(PART_WORDS.is_multiple_of(2));
 
-/// The products of a part of a block position's packs, 48 bits each, grouped while every digit
+/// The products of a part of a block position's packs, a stride each, grouped while every digit
 /// of the weights groups the block's positions.
 #[derive(Clone, Copy)]
 #[cfg_attr(all(target_arch = "x86_64", target_feature = "avx512f"), repr(C, align(64)))]
@@ -63,9 +65,10 @@ struct Part([u64; PART_WORDS]);
 impl Part {
     const ZERO: Self = Self([0; PART_WORDS]);
 
-    /// Product `q` at bits `48 * q ..`: four products to three words.
+    /// Product `q` at bits `PROD_STRIDE * q ..`: four products to three words.
     #[inline(always)]
     fn pack(products: &[u64; PART]) -> Self {
+        const { assert!(4 * PROD_STRIDE == 3 * 64, "four products to three words") };
         let mut out = [0u64; PART_WORDS];
         for (out, p) in out.as_chunks_mut::<3>().0.iter_mut().zip(products.as_chunks::<4>().0) {
             *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
@@ -273,7 +276,7 @@ impl Layer<'_> {
             },
         );
         (0..PACKS)
-            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
+            .map(|q| std::array::from_fn(|c| sums[PROD_STRIDE * q + c].reduce()))
             .collect()
     }
 
@@ -337,7 +340,7 @@ impl Layer<'_> {
             },
         );
         (0..PACKS)
-            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
+            .map(|q| std::array::from_fn(|c| sums[PROD_STRIDE * q + c].reduce()))
             .collect()
     }
 
@@ -881,6 +884,7 @@ mod gfni_tests {
     use super::*;
     use crate::keccak::LANES;
     use crate::protocol::first_claim;
+    use crate::rmfe::PACK_BITS;
 
     /// The GFNI outer products give the digit buckets' sums, on dense, sparse and zero weights,
     /// with and without a padding block.
@@ -900,7 +904,12 @@ mod gfni_tests {
                     witness: &witness,
                     rounds: (0..shape.segments()).map(|m| shape.round(m, step)).collect(),
                 };
-                let mut claim = first_claim(shape, &rng.ext_vec(4), rng.ext_vec(shape.y_vars()), &rng.ext_vec(5));
+                let mut claim = first_claim(
+                    shape,
+                    &rng.ext_vec(PACK_BITS),
+                    rng.ext_vec(shape.y_vars()),
+                    &rng.ext_vec(5),
+                );
                 claim.weights = (0..BITS)
                     .map(|j| {
                         // Sparse: whole lane bytes and some single positions are zero. Lanes: only

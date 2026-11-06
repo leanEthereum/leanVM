@@ -6,10 +6,11 @@ use verifier::VerifierError;
 
 use crate::batch_bench::{batch_transcript, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANES, LOCAL_VARS};
+use crate::kernels::PACKS;
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
-use crate::rmfe::PROD_BITS;
+use crate::rmfe::{PACK, PACK_BITS, PROD_BITS};
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
 
 /// The sliced state after `round` rounds.
@@ -29,10 +30,10 @@ fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192 {
                 let mut inner = F192::ZERO;
                 for w in 0..BLOCK_WORDS {
                     let word = block[j * BLOCK_WORDS + w];
-                    for p in 0..4 {
-                        let pack = 4 * w + p + 32 * (g + shape.n_blocks() * segment);
-                        for i in 0..16 {
-                            if word >> (16 * p + i) & 1 == 1 {
+                    for p in 0..64 / PACK {
+                        let pack = 64 / PACK * w + p + PACKS * (g + shape.n_blocks() * segment);
+                        for i in 0..PACK {
+                            if word >> (PACK * p + i) & 1 == 1 {
                                 inner += eq[pack] * claim.mu[i];
                             }
                         }
@@ -62,7 +63,11 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
         .collect();
 
     let mut ps = ProverState::from_label(b"keccak-gkr-test");
-    let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
+    let (r_low, point, r_lane) = (
+        ps.sample_vec(PACK_BITS),
+        ps.sample_vec(shape.y_vars()),
+        ps.sample_vec(5),
+    );
     let mut claim = first_claim(shape, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
     let mut scratch = crate::prover::Scratch::new(shape);
@@ -132,7 +137,7 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let layers = 2 + LANES + committed;
     let outputs = layers + shape.depth() * layer;
     let inputs = outputs + committed * (2 * shape.slot_log() + 1);
-    let end = inputs + 2 * (4 + shape.slot_log()) + 64;
+    let end = inputs + 2 * (PACK_BITS + shape.slot_log()) + 64;
     Some(match at {
         _ if at < 2 || at >= end => return None,
         _ if at < layers => VerifierError::KeccakProduct,
