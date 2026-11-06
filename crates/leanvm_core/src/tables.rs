@@ -784,7 +784,11 @@ impl Table for JumpTable {
             op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
         };
         let cell = |r: &Jrow, o: u32| ctx.mem.word((r.fp + o) as usize);
-        let cond = |r: &Jrow| cell(r, ins(r).0);
+        let cond = |r: &Jrow| {
+            let c = cell(r, ins(r).0);
+            debug_assert!(c.c1 == 0 && c.c2 == 0, "a JUMP condition outside K at pc {}", r.pc);
+            F64(c.c0)
+        };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         // The three offsets and the three cells they name come out of ONE decode.
@@ -807,9 +811,10 @@ impl Table for JumpTable {
         // running product of the nonzero conditions before row `i`, so `acc` ends
         // as their full product (nonzero, hence invertible). The taken indicator
         // `b = [c ≠ 0]` falls out of the same pass, so it costs no extra decode.
+        // The conditions lie in K, a subfield, so the inversion runs in K.
         let (w, b) = {
-            let mut acc = F192::ONE;
-            let mut prefix: Vec<F192> = Vec::with_capacity(rows.len());
+            let mut acc = F64::ONE;
+            let mut prefix: Vec<F64> = Vec::with_capacity(rows.len());
             let mut b = vec![F64::ZERO; rows.len()];
             for (i, r) in rows.iter().enumerate() {
                 prefix.push(acc);
@@ -820,7 +825,7 @@ impl Table for JumpTable {
                 }
             }
             let mut inv = acc.inv();
-            let mut w = vec![F192::ZERO; rows.len()];
+            let mut w = vec![F64::ZERO; rows.len()];
             for i in (0..rows.len()).rev() {
                 let c = cond(rows.get(i));
                 if !c.is_zero() {
@@ -830,7 +835,7 @@ impl Table for JumpTable {
             }
             (w, b)
         };
-        ctx.cols_at(out, rows.len(), W, |i| [F64(w[i].c0), b[i]]);
+        ctx.cols_at(out, rows.len(), W, |i| [w[i], b[i]]);
         ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
