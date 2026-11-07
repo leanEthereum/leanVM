@@ -564,9 +564,9 @@ mod tests {
 
         let (zero, infinity) = field.dot_pair([&ra0, &ra1], [&rb0, &rb1], width);
         assert_eq!((zero, infinity), dot_pair_portable([&ra0, &ra1], [&rb0, &rb1], width));
-        let expected = (0..width).fold(F192::ZERO, |acc, j| acc + a0[j] * b0[j]);
+        let expected = (0..width).map(|j| a0[j] * b0[j]).sum();
         assert_eq!(field.to_field(&field.reduce(&zero)), expected);
-        let expected = (0..width).fold(F192::ZERO, |acc, j| acc + (a0[j] + a1[j]) * (b0[j] + b1[j]));
+        let expected = (0..width).map(|j| (a0[j] + a1[j]) * (b0[j] + b1[j])).sum();
         assert_eq!(field.to_field(&field.reduce(&infinity)), expected);
 
         let challenge = rng.ext();

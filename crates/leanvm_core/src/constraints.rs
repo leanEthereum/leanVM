@@ -151,11 +151,7 @@ impl Form {
 
     /// The state of the first `rows` (at most eight) rows, unfolded, from the `K` columns.
     fn small_state(&self, cols: &[&[F64]], rows: usize) -> State {
-        let dot = |terms: &Lin, i: usize| {
-            terms
-                .iter()
-                .fold(F192::ZERO, |acc, &(c, w)| acc + w.mul_base(cols[c][i]))
-        };
+        let dot = |terms: &Lin, i: usize| terms.iter().map(|&(c, w)| w.mul_base(cols[c][i])).sum();
         let column = |value: &dyn Fn(usize) -> F192| {
             F192x8::from_array(&std::array::from_fn(|i| if i < rows { value(i) } else { F192::ZERO }))
         };
@@ -433,17 +429,14 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F192], ps: &mut ProverState) -> Vec<Claim
     let mut chi = vec![F192::ZERO; n];
     // `k`, the challenges drawn so far, common to every table that is still waiting.
     let mut k = F192::ONE;
-    let mut claim = airs.iter().fold(F192::ZERO, |acc, a| acc + a.sigma);
+    let mut claim = airs.iter().map(|a| a.sigma).sum();
     for j in 0..n {
         let m = n - 1 - j; // the variable this round binds
         let at_one = zeta[m].is_zero();
         // The waiting tables contribute the line `Y·k·Σσ`, whose slope `u` is all there
         // is to it. It is NOT sent on its own: it folds into `h` below, and only `h`
         // travels. `msg` is the active tables' degree-2 cofactor, `h`'s multiplicand.
-        let waiting = tables
-            .iter()
-            .filter(|t| t.tau <= m)
-            .fold(F192::ZERO, |acc, t| acc + t.sigma);
+        let waiting = tables.iter().filter(|t| t.tau <= m).map(|t| t.sigma).sum();
         let u = k * waiting;
         let mut msg = [F192::ZERO; 2];
         for t in tables.iter_mut().filter(|t| t.tau > m) {
@@ -540,11 +533,8 @@ mod tests {
         );
         for _ in 0..4 {
             let v: Vec<F192> = (0..COLS).map(|_| random_e(&mut s)).collect();
-            let dot = |terms: &Lin| terms.iter().fold(F192::ZERO, |acc, &(c, w)| acc + w * v[c]);
-            let quad = form
-                .groups
-                .iter()
-                .fold(F192::ZERO, |acc, (l, right)| acc + v[*l] * dot(right));
+            let dot = |terms: &Lin| terms.iter().map(|&(c, w)| w * v[c]).sum();
+            let quad = form.groups.iter().map(|(l, right)| v[*l] * dot(right)).sum();
             assert_eq!(quad, synth(&pows).eval(&v, true));
             assert_eq!(form.constant + dot(&form.lin) + quad, synth(&pows).eval(&v, false));
         }

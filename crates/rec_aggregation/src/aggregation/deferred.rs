@@ -187,7 +187,8 @@ pub(super) fn bytecode_value(sums: &[F192], point: &[F192]) -> F192 {
     eq_table(&point[..BLOCK_VARS])
         .iter()
         .zip(sums)
-        .fold(F192::ZERO, |acc, (&eq, &sum)| acc + eq * sum)
+        .map(|(&eq, &sum)| eq * sum)
+        .sum()
 }
 
 /// Variables of a bytecode claim's point: the log row count plus the stacking
@@ -287,9 +288,7 @@ pub(super) fn aggregate_deferred_claims(
         .zip(carried_claims)
         .flat_map(|(subproof, carried)| [subproof.bytecode_value, carried.bytecode_value])
         .collect();
-    let mut brun: F192 = (0..2 * child_count)
-        .map(|index| gbc[index] * values[index])
-        .fold(F192::ZERO, |acc, value| acc + value);
+    let mut brun: F192 = (0..2 * child_count).map(|index| gbc[index] * values[index]).sum();
     let mut bscr = Vec::new();
     let mut r_bc = Vec::new();
     // The low rounds, on each claim's sums against its `eq` on the low rows, scaled by its power of `lam`.

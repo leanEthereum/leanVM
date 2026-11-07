@@ -73,20 +73,14 @@ pub(crate) trait RowElem: Copy + Sync {
 impl RowElem for F64 {
     #[inline]
     fn dot(row: &[Self], eq: &[F192]) -> F192 {
-        row.iter()
-            .zip(eq.iter())
-            .map(|(&r, &e)| e.mul_base(r))
-            .fold(F192::ZERO, |a, v| a + v)
+        row.iter().zip(eq.iter()).map(|(&r, &e)| e.mul_base(r)).sum()
     }
 }
 
 impl RowElem for F192 {
     #[inline]
     fn dot(row: &[Self], eq: &[F192]) -> F192 {
-        row.iter()
-            .zip(eq.iter())
-            .map(|(&r, &e)| r * e)
-            .fold(F192::ZERO, |a, v| a + v)
+        row.iter().zip(eq.iter()).map(|(&r, &e)| r * e).sum()
     }
 }
 

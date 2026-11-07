@@ -196,13 +196,12 @@ pub fn open_batch_mixed_whir_stacked(
     // 3. Combined target and lifted stack weight b_stack: the lambda-weighted
     //    rs_eq_ind sum scattered at the q_keccak slice, plus the point-claim
     //    eq tensors scattered at their offsets (the weight itself stays factored).
-    let target = rs_outputs
-        .iter()
-        .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim)
+    let target = rs_outputs.iter().map(|out| out.batched_sumcheck_claim).sum::<F192>()
         + point_claims
             .iter()
             .zip(lambdas_pd)
-            .fold(F192::ZERO, |sum, (claim, &lambda)| sum + lambda * claim.value());
+            .map(|(claim, &lambda)| lambda * claim.value())
+            .sum();
 
     // The lane rounds run on the weight's terms and a projection of the stack onto them, so the
     // lifted weight over the stack is never built.

@@ -14,7 +14,7 @@ use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 
 use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
-use crate::protocol::{Claim, dot, sum};
+use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness, words};
 
 /// The 64 slices of the committed stack at `point`: bit `z` of every word, as a multilinear.
@@ -102,7 +102,7 @@ pub(crate) fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -
 fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let shape = witness.shape;
     let written = witness.written();
-    let padding = sum(&eq_table(&point[5..])[written..]);
+    let padding = eq_table(&point[5..])[written..].iter().sum();
     let run_vars = (point.len() - 5).min(3);
     let (low, runs) = (eq_table(&point[..5 + run_vars]), eq_table(&point[5 + run_vars..]));
     // Table `4 * block + p`: pack `p + 4 * w` of the run's block, over the eight words `w`.
@@ -287,9 +287,9 @@ pub fn open_inputs(ps: &mut ProverState, witness: &Witness, committed: &[F64], c
     // Per instance of a pack, the weighted sum over slots and positions.
     let per_instance: Vec<F192> = (0..16)
         .map(|i| {
-            (0..1usize << shape.slot_log()).fold(F192::ZERO, |acc, slot| {
-                acc + dot(&folded[(i + 16 * slot) * 64..][..64], &weights[slot * 64..][..64])
-            })
+            (0..1usize << shape.slot_log())
+                .map(|slot| dot(&folded[(i + 16 * slot) * 64..][..64], &weights[slot * 64..][..64]))
+                .sum()
         })
         .collect();
     let mut value = claim.value;

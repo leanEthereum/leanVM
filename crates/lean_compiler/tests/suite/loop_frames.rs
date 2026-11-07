@@ -47,7 +47,7 @@ def main():
 "#;
     let program = compile(&parse(source).unwrap());
     for end in [2, 3, 9] {
-        let sum = (2..end).fold(F64::ZERO, |sum, i| sum + g_pow(i));
+        let sum = (2..end).map(g_pow).sum::<F64>();
         let public = [F192::from(sum), F192::from(g_pow(end))];
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
         if end == 9 {

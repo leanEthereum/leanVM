@@ -26,9 +26,7 @@ pub fn interp_k(lo: F64, hi: F64, t: F192) -> F192 {
 /// of `x = r`; for arbitrary `r`, it is the multilinear interpolation weight.
 pub fn eq_eval(r: &[F192], x: &[F192]) -> F192 {
     debug_assert_eq!(r.len(), x.len());
-    r.iter()
-        .zip(x)
-        .fold(F192::ONE, |acc, (&ri, &xi)| acc * (F192::ONE + ri + xi))
+    r.iter().zip(x).map(|(&ri, &xi)| F192::ONE + ri + xi).product()
 }
 
 /// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table`].

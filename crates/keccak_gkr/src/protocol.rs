@@ -35,16 +35,13 @@ pub fn mu_at(s: F192) -> [F192; PACK] {
     std::array::from_fn(|i| {
         (0..EMBED_BITS)
             .filter(|b| RMFE.emb[i] >> b & 1 == 1)
-            .fold(F192::ZERO, |acc, b| acc + powers[b])
+            .map(|b| powers[b])
+            .sum()
     })
 }
 
-pub fn sum(xs: &[F192]) -> F192 {
-    xs.iter().fold(F192::ZERO, |acc, &x| acc + x)
-}
-
 pub fn dot(a: &[F192], b: &[F192]) -> F192 {
-    a.iter().zip(b).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y)
+    a.iter().zip(b).map(|(&x, &y)| x * y).sum()
 }
 
 /// The weights of the claim a layer leaves on the state before `chi`.
