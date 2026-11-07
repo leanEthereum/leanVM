@@ -7,7 +7,8 @@
 //! into `E` upstream, [`crate::leaf`]).
 //!
 //! On AVX-512 the large rounds run eight pairs of rows at a time in transposed form
-//! (`vertical`), and skip the runs of rows known to be the identity.
+//! (`vertical`), and skip the runs of rows known to be the identity. A tall layer's
+//! rounds run two per pass before them (`two_rounds`), reading it half as often.
 
 use std::ops::Range;
 
@@ -16,6 +17,9 @@ use crate::transcript::ProverState;
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp};
 use primitives::stream::Stream;
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+mod two_rounds;
 
 /// Rows per parallel window: enough tasks to keep every thread fed, but not so few
 /// rows per task that dispatch dominates.
@@ -289,6 +293,13 @@ impl QuaternaryLayerState {
         }
     }
 
+    /// The stored rows and the runs of identity rows among them.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    fn rows(&self) -> (&[F192], &[Range<usize>]) {
+        debug_assert!(self.groups.is_empty(), "the rows are in `values`");
+        (&self.values, &self.ones)
+    }
+
     /// `(q(0)+q(1), [X²]q, [X³]q, [X⁴]q)`.
     fn round_message(&self, eq: &SplitEq) -> [F192; 4] {
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
@@ -530,7 +541,7 @@ mod vertical {
     use std::ops::Range;
 
     /// Whether `ones` covers `rows`.
-    fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
+    pub(super) fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
         let i = ones.partition_point(|r| r.start <= rows.start);
         i > 0 && ones[i - 1].end >= rows.end
     }
@@ -776,6 +787,73 @@ pub struct ProductTriple {
 /// The first two trees share a product by construction, as the bus's two sides do.
 /// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
 pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+    prove_product_triple_with(leaves, ps, true)
+}
+
+/// The three trees' messages of one round, batched by `lambda`, as the wire carries them.
+fn batch(messages: [[F192; 4]; 3], lambda: F192) -> [F192; 4] {
+    std::array::from_fn(|k| messages[0][k] + lambda * (messages[1][k] + lambda * messages[2][k]))
+}
+
+/// Below this logical height a layer's rounds run one per pass.
+///
+/// The layers it leaves, down to `VERTICAL_ROWS`, are the vertical kernels'.
+/// It is at least the 32 rows of a group, which the weights of a pair of rounds index by.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+const TWO_ROUND_ROWS: usize = 1 << 12;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+const _: () = assert!(TWO_ROUND_ROWS >= 32 && TWO_ROUND_ROWS >= VERTICAL_ROWS);
+
+/// Proves a layer's rounds two per pass while it is tall, leaving its rows folded by every round proven.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+fn prove_two_rounds_per_pass(
+    trees: &mut [QuaternaryLayerState; 3],
+    point: &[F192],
+    lambda: F192,
+    ps: &mut ProverState,
+    challenges: &mut Vec<F192>,
+) {
+    let width = trees[0].logical_rows;
+    // The pair of rounds from `round` weighs its blocks by `eq(point[round + 2..], q)`.
+    let pair = |round: usize| {
+        (round + 2 <= point.len() && width >> round >= TWO_ROUND_ROWS).then(|| SplitEq::new(&point[round + 2..]))
+    };
+    let Some(eq) = pair(0) else { return };
+    let mut grids = two_rounds::grids(trees.each_ref().map(QuaternaryLayerState::rows), &eq);
+    loop {
+        let round = challenges.len();
+        ps.add_scalars(&batch(
+            grids.each_ref().map(|g| g.first_round(point[round + 1])),
+            lambda,
+        ));
+        let low = ps.sample();
+        ps.add_scalars(&batch(grids.each_ref().map(|g| g.second_round(low)), lambda));
+        let high = ps.sample();
+        challenges.extend([low, high]);
+
+        let next = pair(round + 2);
+        let (folded, next_grids) = two_rounds::fold(
+            trees.each_ref().map(QuaternaryLayerState::rows),
+            [low, high],
+            next.as_ref(),
+        );
+        for (tree, values) in trees.iter_mut().zip(folded) {
+            tree.values = values;
+            tree.logical_rows >>= 2;
+            tree.ones = coarsen(&tree.ones, 2);
+        }
+        match next_grids {
+            Some(next) => grids = next,
+            None => return,
+        }
+    }
+}
+
+/// The product-triple proof, a tall layer's rounds two per pass when `two_rounds` is set.
+/// Either way the proof is the same.
+fn prove_product_triple_with(leaves: [Leaves; 3], ps: &mut ProverState, two_rounds: bool) -> ProductTriple {
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+    let _ = two_rounds;
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -829,22 +907,24 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
             }
         }
         let mut round_point = Vec::with_capacity(round_count);
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        if two_rounds {
+            prove_two_rounds_per_pass(&mut trees, &point, lambda, ps, &mut round_point);
+        }
+        let first = round_point.len();
         // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
-        let mut messages = if round_count > 0 {
-            let eq = SplitEq::new(&point[1..]);
+        let mut messages = if first < round_count {
+            let eq = SplitEq::new(&point[1 + first..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
             [[F192::ZERO; 4]; 3]
         };
-        for round in 0..round_count {
-            let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
-            });
+        for round in first..round_count {
             // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
             // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
             // claim fixes and the prover therefore never forms.
-            coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
-            ps.add_scalars(&coeffs);
+            let wire = messages.map(|[sum, c2, c3, c4]| [sum + c2 + c3 + c4, c2, c3, c4]);
+            ps.add_scalars(&batch(wire, lambda));
             let challenge = ps.sample();
             round_point.push(challenge);
             if round + 1 < round_count {
@@ -960,6 +1040,124 @@ mod tests {
                     assert_eq!(f.children(), r.children());
                 }
             }
+        }
+    }
+
+    /// A layer of `n` stored children whose rows `ones` are the identity, and known to be.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    fn layer_with_ones(n: usize, width: usize, ones: &[Range<usize>]) -> QuaternaryLayerState {
+        let mut values: Vec<F192> = (0..n).map(|i| element(i, n)).collect();
+        for row in ones.iter().flat_map(|r| r.clone()) {
+            for v in values.iter_mut().skip(4 * row).take(4) {
+                *v = F192::ONE;
+            }
+        }
+        let mut state = QuaternaryLayerState::new(values, width);
+        state.ones = ones.iter().filter(|r| 4 * r.end <= n).cloned().collect();
+        state
+    }
+
+    /// The wire's form of a scalar kernel's message: `c1` in place of `q(0) + q(1)`.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    fn wire([sum, c2, c3, c4]: [F192; 4]) -> [F192; 4] {
+        [sum + c2 + c3 + c4, c2, c3, c4]
+    }
+
+    /// Two rounds per pass, the grids and the double fold, against the scalar rounds they replace, pass after pass.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[test]
+    fn two_rounds_per_pass_match_single_rounds() {
+        for width in [1usize << 7, 1 << 11, 1 << 14] {
+            let ones = [5..9, 40..100, 301..1000, width / 2 + 3..width / 2 + 333];
+            let lens = [
+                [4 * width, 4 * width - 5, 2 * width + 3],
+                [4 * width - 1, 33, width + 1],
+                [4 * width - 60, 4 * width - 64, 4 * width - 68],
+            ];
+            for lens in lens {
+                let ones: Vec<_> = ones.iter().filter(|r| r.end <= width).cloned().collect();
+                let point: Vec<F192> = (0..width.ilog2())
+                    .map(|i| F192::new(31 + u64::from(i), 7, 11))
+                    .collect();
+                let eq = |round: usize| SplitEq::new(&point[round..]);
+                let mut reference = lens.map(|n| layer_with_ones(n, width, &ones));
+                let mut paired = lens.map(|n| layer_with_ones(n, width, &ones));
+                let mut grids = two_rounds::grids(paired.each_ref().map(QuaternaryLayerState::rows), &eq(2));
+                // A grid needs a whole group of eight blocks: three variables past the pair's two.
+                let mut round = 0;
+                loop {
+                    let challenges = [F192::new(5 + round as u64, 6, 7), F192::new(9, 10 + round as u64, 11)];
+                    for ((grid, r), n) in grids.iter().zip(&mut reference).zip(lens) {
+                        assert_eq!(
+                            grid.first_round(point[round + 1]),
+                            wire(r.round_message_scalar(&eq(round + 1)))
+                        );
+                        r.fold_scalar(challenges[0]);
+                        let second = wire(r.round_message_scalar(&eq(round + 2)));
+                        assert_eq!(
+                            grid.second_round(challenges[0]),
+                            second,
+                            "width={width}, n={n}, round={round}"
+                        );
+                        r.fold_scalar(challenges[1]);
+                    }
+                    let eq = (round + 7 <= point.len()).then(|| eq(round + 4));
+                    let (folded, next) = two_rounds::fold(
+                        paired.each_ref().map(QuaternaryLayerState::rows),
+                        challenges,
+                        eq.as_ref(),
+                    );
+                    for ((tree, values), r) in paired.iter_mut().zip(folded).zip(&reference) {
+                        assert_eq!(values, r.values, "width={width}, lens={lens:?}, round={round}");
+                        tree.values = values;
+                        tree.logical_rows >>= 2;
+                        tree.ones = coarsen(&tree.ones, 2);
+                    }
+                    round += 2;
+                    match next {
+                        Some(next) => grids = next,
+                        None => break,
+                    }
+                }
+            }
+        }
+    }
+
+    /// Two rounds per pass leave the proof and the claim it reduces to unchanged, identity runs and an implicit identity suffix included.
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[test]
+    fn two_rounds_per_pass_leave_the_proof_unchanged() {
+        let mu = 18;
+        let lengths = [(1usize << mu) - 3, (1 << (mu - 1)) + 5, (1 << (mu - 2)) + 7];
+        let ones = [1000..5000, 40_003..60_017, 65_536..70_000];
+        let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+            (0..lengths[lane])
+                .map(|row| {
+                    if ones.iter().any(|r| r.contains(&row)) {
+                        F192::ONE
+                    } else {
+                        F192::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64)
+                    }
+                })
+                .collect()
+        });
+        balance(&mut leaves);
+        let tree = |lane: &Vec<F192>| {
+            let mut tree = Leaves::new(lane.clone());
+            tree.ones = ones.iter().filter(|r| r.end <= lane.len()).cloned().collect();
+            tree
+        };
+        let [paired, single] = [true, false].map(|two_rounds| {
+            let mut ps = ProverState::from_label(b"two-round-radix-four-gkr-test");
+            let proved = prove_product_triple_with(leaves.each_ref().map(tree), &mut ps, two_rounds);
+            (proved.point, proved.values, ps.into_proof().stream)
+        });
+        assert!(paired == single, "two rounds per pass changed the proof");
+        let (point, values, _) = paired;
+        for lane in 0..3 {
+            let mut dense = leaves[lane].clone();
+            dense.resize(1 << mu, F192::ONE);
+            assert_eq!(values[lane], mle_eval_e(&dense, &point));
         }
     }
 
