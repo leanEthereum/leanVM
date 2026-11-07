@@ -56,6 +56,17 @@ impl F192 {
         self.c0 == 0 && self.c1 == 0 && self.c2 == 0
     }
 
+    /// The base-field element this is, or `None` when a `y` coefficient is nonzero.
+    #[inline]
+    #[must_use]
+    pub const fn as_base(self) -> Option<F64> {
+        if self.c1 == 0 && self.c2 == 0 {
+            Some(F64(self.c0))
+        } else {
+            None
+        }
+    }
+
     /// Product without the base-field reduction, for XOR accumulation.
     #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
@@ -159,10 +170,7 @@ impl F192 {
     pub fn inv(self) -> Self {
         let m = self.frobenius() * self.frobenius().frobenius();
         let norm = self * m;
-        debug_assert!(
-            (norm.c1, norm.c2) == (0, 0),
-            "the norm of an F192 element must lie in K"
-        );
+        debug_assert!(norm.as_base().is_some(), "the norm of an F192 element must lie in K");
         m.mul_base(F64(norm.c0).inv())
     }
 }
@@ -1151,6 +1159,18 @@ mod tests {
             assert_eq!(mul4(a, b), want);
             assert_eq!(mul_unreduced4(a, b).map(F192Unreduced::reduce), want);
             assert_eq!(mul2([a[0], a[1]], [b[0], b[1]]), [want[0], want[1]]);
+        }
+    }
+
+    #[test]
+    fn as_base_accepts_exactly_the_base_field() {
+        // Every base-field element comes back, the all-ones word included.
+        for k in [0, 1, u64::MAX] {
+            assert_eq!(F192::from(F64(k)).as_base(), Some(F64(k)));
+        }
+        // One set bit in either extension limb, at either end, rejects the word.
+        for (c1, c2) in [(1, 0), (1 << 63, 0), (0, 1), (0, 1 << 63)] {
+            assert_eq!(F192::new(7, c1, c2).as_base(), None, "c1 = {c1:#x}, c2 = {c2:#x}");
         }
     }
 

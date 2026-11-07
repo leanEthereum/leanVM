@@ -668,10 +668,8 @@ impl Table for DerefTable {
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         debug_assert!(
-            rows.iter().all(|r| {
-                let p = ctx.mem.word((r.fp + ins(r).0) as usize);
-                p.c1 == 0 && p.c2 == 0
-            }),
+            rows.iter()
+                .all(|r| ctx.mem.word((r.fp + ins(r).0) as usize).as_base().is_some()),
             "deref pointer must be K-valued"
         );
         // The three offsets, the two mode flags, the pointer lane and the local
