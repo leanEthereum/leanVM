@@ -446,12 +446,12 @@ theorem fixedCostP_sequenceDep_det : ∀ {n : Nat} {α : Fin n → Type}
     ∃ x, simulateQ (fixedCostP g c) (Concrete.sequenceDep computation) = pure x
   | 0, _, _, _ => ⟨_, by simp only [Concrete.sequenceDep, simulateQ_pure]; rfl⟩
   | n + 1, α, computation, h => by
-      obtain ⟨x0, h0⟩ := h 0
+      obtain ⟨x0, h0⟩ := h (Fin.last _)
       simp only [Concrete.sequenceDep, simulateQ_bind, h0, pure_bind]
       rcases x0 with _ | head
       · exact ⟨_, simulateQ_pure _ _⟩
-      · obtain ⟨xs, hs⟩ := fixedCostP_sequenceDep_det (α := fun i => α i.succ)
-          (fun i => computation i.succ) (fun i => h i.succ)
+      · obtain ⟨xs, hs⟩ := fixedCostP_sequenceDep_det (α := fun i => α i.castSucc)
+          (fun i => computation i.castSucc) (fun i => h i.castSucc)
         simp only [simulateQ_bind, hs, pure_bind]
         rcases xs with _ | tail <;> exact ⟨_, simulateQ_pure _ _⟩
 

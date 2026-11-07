@@ -194,18 +194,22 @@ theorem evalDist_sampleSplitPair :
   simp only [sampleSplitPair, evalDist_bind, evalDist_map, evalDist_uniformSample]
   exact h
 
-/-- The public-parameter answer remains independently sampled outside the coordinate split.
-This is an exact law of the actual prepared material and independently sampled graph labels. -/
+/-- The public-parameter and `SK.prf` answers remain independently sampled outside the
+coordinate split. This is an exact law of the actual prepared material and independently
+sampled graph labels. -/
 theorem evalDist_sampleMaterial_graph :
     𝒟[sampleMaterial >>= fun material =>
       (fun labels => (material, labels)) <$> ($ᵗ CanonicalGraphLabels)] =
-      𝒟[($ᵗ HashOutput) >>= fun parameterOutput =>
-        (fun pair => ((parameterOutput, pair.1), pair.2)) <$> sampleSplitPair] := by
+      𝒟[($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
+        (fun pair => (((parameterOutput, prf), pair.1), pair.2)) <$> sampleSplitPair] := by
   simp only [sampleMaterial, bind_assoc, pure_bind]
   apply evalDist_bind_congr'
   intro parameterOutput
+  rw [evalDist_bind_bind_swap]
+  apply evalDist_bind_congr'
+  intro prf
   have h := evalDist_map_eq_of_evalDist_eq evalDist_sampleSplitPair
-    (fun pair : SecretOutputs × CanonicalGraphLabels => ((parameterOutput, pair.1), pair.2))
+    (fun pair : SecretOutputs × CanonicalGraphLabels => (((parameterOutput, prf), pair.1), pair.2))
   simpa only [map_bind, Functor.map_map, Function.comp_def] using h
 
 /-- Arbitrary adaptive continuations, including query logging and original-cost counters,
@@ -213,8 +217,8 @@ can follow the exact material/coordinate decomposition. -/
 theorem evalDist_material_graph_continuation {α : Type}
     (next : Material → CanonicalGraphLabels → ProbComp α) :
     𝒟[sampleMaterial >>= fun material => ($ᵗ CanonicalGraphLabels) >>= next material] =
-      𝒟[($ᵗ HashOutput) >>= fun parameterOutput => sampleSplitPair >>= fun pair =>
-        next (parameterOutput, pair.1) pair.2] := by
+      𝒟[($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
+        sampleSplitPair >>= fun pair => next ((parameterOutput, prf), pair.1) pair.2] := by
   have h := congrArg (fun distribution : SPMF (Material × CanonicalGraphLabels) =>
     distribution >>= fun pair => evalDist (next pair.1 pair.2)) evalDist_sampleMaterial_graph
   simpa only [← evalDist_bind, bind_assoc, bind_map_left] using h

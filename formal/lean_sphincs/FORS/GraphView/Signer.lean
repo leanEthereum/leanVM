@@ -27,19 +27,19 @@ FORS keys and paths, and the step halves of the randomizer walks (`steps m` give
 for every table of steps. -/
 structure PublicData where
   root : Digest
-  forsKey : Index → ForsKey
+  forsKey : Index → Digest
   treeRoot : Layer → TreeIndex → Digest
   treePath : (lay : Layer) → TreeIndex → LeafIndex → Fin (layerHeight lay) → Digest
   forsPath : Index → FTree → FLeaf → Fin forsHeight → Digest
   steps : Message → Randomness
 
 /-- The message of the key at leaf `leaf` of tree `tree` of layer `lay`, read from the public data:
-the root of the tree below, or the FORS key at the bottom layer. -/
+the root of the tree below, or the FORS public key at the bottom layer. -/
 def PublicData.keyMessage (data : PublicData) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
     HashInput :=
   if hbelow : lay.val + 1 < numLayers then
     rootPayload (data.treeRoot ⟨lay.val + 1, hbelow⟩ (childTree lay tree leaf))
-  else rootsPayload (data.forsKey (childTree lay tree leaf))
+  else rootPayload (data.forsKey (childTree lay tree leaf))
 
 def publicData (labels : CanonicalGraphLabels) (steps : Message → Randomness) : PublicData where
   steps := steps
@@ -63,7 +63,7 @@ structure DataCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
   root : data.root = evalWithAnswerFn f
     (Seeded.treeRoot parameter topLayer rootTree seed : OracleComp HashSpec Digest)
   forsKey : ∀ index, data.forsKey index = evalWithAnswerFn f
-    (Seeded.forsKey parameter index seed : OracleComp HashSpec ForsKey)
+    (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest)
   treeRoot : ∀ lay tree, TreeActive parameter lay tree → data.treeRoot lay tree = evalWithAnswerFn f
     (Seeded.treeRoot parameter lay tree seed : OracleComp HashSpec Digest)
   treePath : ∀ lay tree leaf, KeyActive parameter lay tree leaf → data.treePath lay tree leaf =
@@ -221,9 +221,9 @@ theorem eval_forsOpen_assembled (f : QueryImpl HashSpec Id) (parameter : PublicP
 theorem eval_signLayer_assembled (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
     (hdata : DataCorrect f parameter seed data)
-    (htable : CoordinatesCorrect f parameter seed table) (root : Digest) (index : Index)
+    (htable : CoordinatesCorrect f parameter seed table) (prf : HashOutput) (root : Digest) (index : Index)
     (hland : Landed parameter index) (lay : Layer) :
-    evalWithAnswerFn f (Seeded.signLayer ⟨seed, parameter, root⟩ index lay :
+    evalWithAnswerFn f (Seeded.signLayer ⟨seed, prf, parameter, root⟩ index lay :
       OracleComp HashSpec (Option (LayerSignature lay))) =
     (firstEncoding f parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
       (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0).map
@@ -240,8 +240,8 @@ theorem eval_signLayer_assembled (f : QueryImpl HashSpec Id) (parameter : Public
             OracleComp HashSpec Digest)) := by
     funext chain
     exact htable.1 _ _ _ hactive chain (word chain)
-  simp only [Seeded.signLayer, Seeded.layerMessage, evalWithAnswerFn_bind, Seeded.otsSign,
-    otsSignFrom_eq_firstEncoding, ← hdata.keyMessage lay _ _ hactive, hdata.treePath _ _ _ hactive, hchains]
+  simp only [Seeded.signLayer, Seeded.signLayerWith, Seeded.layerMessage, evalWithAnswerFn_bind,
+    Seeded.otsSign, otsSignFrom_eq_firstEncoding, ← hdata.keyMessage lay _ _ hactive, hdata.treePath _ _ _ hactive, hchains]
   cases firstEncoding f parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
       (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,
@@ -250,15 +250,17 @@ theorem eval_signLayer_assembled (f : QueryImpl HashSpec Id) (parameter : Public
 theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (table : HiddenGraph.Table)
     (hdata : DataCorrect f parameter seed data)
-    (htable : CoordinatesCorrect f parameter seed table)
+    (htable : CoordinatesCorrect f parameter seed table) (prf : HashOutput)
     (message : Message) (randomness : Randomness)
     (hland : Landed parameter (digestIndex (evalWithAnswerFn f
       (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest)))) :
-    evalWithAnswerFn f (Seeded.finishSign ⟨seed, parameter, data.root⟩ message randomness) =
+    evalWithAnswerFn f (Seeded.finishSign ⟨seed, prf, parameter, data.root⟩ message randomness) =
       assembled f parameter data table message randomness := by
-  simp only [Seeded.finishSign, assembled, evalWithAnswerFn_bind, sequenceLayers,
-    Completeness.eval_sequenceDep,
-    eval_signLayer_assembled f parameter seed data table hdata htable _ _ hland,
+  rw [Seeded.finishSign]
+  simp only [evalWithAnswerFn_bind, Completeness.eval_forsPublicKey_forsRecover]
+  rw [Completeness.eval_signLayers f ⟨seed, prf, parameter, data.root⟩ _ hland]
+  simp only [assembled, evalWithAnswerFn_bind,
+    eval_signLayer_assembled f parameter seed data table hdata htable prf _ _ hland,
     Completeness.allSome_map, eval_forsOpen_assembled f parameter seed data table hdata htable,
     assembledEncodings]
   cases allSome fun lay : Layer => firstEncoding f parameter lay

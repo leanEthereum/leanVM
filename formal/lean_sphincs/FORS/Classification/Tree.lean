@@ -5,8 +5,8 @@ import FORS.Scheme.Bytes
 /-!
 Deterministic Merkle extraction, by a first-divergence argument.
 Two paths reaching the same root either agree, cross into the other path's sibling, or make a
-different queried input hit a canonical node value. Crossing is essential for a pruned key:
-the sibling may be a surrogate rather than the root of a constructed subtree.
+different queried input hit a canonical node value. Crossing is essential above a kept subtree,
+where the sibling may be a surrogate rather than the root of a constructed subtree.
 -/
 
 open OracleComp OracleSpec
@@ -72,11 +72,10 @@ theorem flatMap_ofFn_injective {α β : Type} (g : α → List β) (len : Nat)
       | zero => exact hzero
       | succ j => exact congrFun hsucc j
 
-theorem rootsPayload_injective {tops tops' : ForsKey}
-    (h : rootsPayload tops = rootsPayload tops') : tops = tops' :=
-  flatMap_ofFn_injective (fun pair : Digest × Digest => nodePayload pair.1 pair.2) 32
-    (fun pair => by simp [nodePayload, bytesLE_length])
-    (fun _ _ hpair => Prod.ext (nodePayload_injective hpair).1 (nodePayload_injective hpair).2) h
+theorem rootsPayload_injective {roots roots' : ForsKey}
+    (h : rootsPayload roots = rootsPayload roots') : roots = roots' :=
+  flatMap_ofFn_injective (bytesLE 16) 16 (bytesLE_length 16)
+    (fun _ _ hroot => bytesLE_injective hroot) h
 
 def orderedPayload (bit : Bool) (current sibling : Digest) : HashInput :=
   if bit then nodePayload sibling current else nodePayload current sibling

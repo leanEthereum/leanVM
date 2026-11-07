@@ -97,35 +97,4 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
         Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul,
         pow_succ', failMass, div_eq_mul_inv, ← mul_assoc]
 
-/-! ## Distinct inputs
-
-The counter rides in the hashed bytes, so trials below the wrap hash distinct inputs. -/
-theorem bytesLE_inj {n : Nat} {x y : BitVec (8 * n)} (h : bytesLE n x = bytesLE n y) : x = y := by
-  have hfun := List.ofFn_inj.mp h
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
-  have hj : i / 8 < n := by omega
-  have hbyte := congrFun hfun ⟨i / 8, hj⟩
-  have hbits : (x.extractLsb' (8 * (i / 8)) 8) = (y.extractLsb' (8 * (i / 8)) 8) := by
-    simpa using congrArg UInt8.toBitVec hbyte
-  have hlsb := congrArg (fun b : BitVec 8 => b.getLsbD (i % 8)) hbits
-  simp only [BitVec.getLsbD_extractLsb'] at hlsb
-  have hmod : i % 8 < 8 := by omega
-  have hsum : 8 * (i / 8) + i % 8 = i := by omega
-  simpa [hmod, hsum] using hlsb
-
-/-- Counter inputs below the wrap are distinct. -/
-theorem counter_bytes_inj {c c' : Nat} (hc : c < 2 ^ 32) (hc' : c' < 2 ^ 32)
-    (h : (bytesLE 4 (BitVec.ofNat counterBits c) : HashInput)
-        = bytesLE 4 (BitVec.ofNat counterBits c')) : c = c' := by
-  have hv := congrArg BitVec.toNat (bytesLE_inj h)
-  simp only [BitVec.toNat_ofNat, counterBits] at hv
-  rwa [Nat.mod_eq_of_lt hc, Nat.mod_eq_of_lt hc'] at hv
-
-/-! ## The counter search
-
-`otsSignFrom` walks counters from its starting value, hashing the layer message with each under the
-leaf's encoding tweak and stopping at the first digest the target-sum code accepts. That is a search
-over the encoding inputs. -/
-
 end FORS.Completeness

@@ -23,6 +23,13 @@ const OUT_LANES: usize = OUT_LEN / 8;
 pub const RATE: usize = 136;
 /// Sponge rate in lanes.
 const RATE_LANES: usize = RATE / 8;
+
+/// Permutations Keccak-256 spends on an input of `len` bytes: one per block, the last
+/// holding the padding.
+pub const fn permutations(len: usize) -> usize {
+    len / RATE + 1
+}
+
 /// Lanes in the state.
 pub const STATE_LANES: usize = 25;
 /// Rounds per permutation.

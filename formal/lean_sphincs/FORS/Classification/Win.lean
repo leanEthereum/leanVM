@@ -98,13 +98,21 @@ noncomputable def compTable (table : HiddenGraph.Table) (results : OtsKey → Op
   | none => encTable (truncateHash parameterOutput)
       (keyMessages (sampleData parameterOutput fixed highs remaining)) results fields
 
+/-- The sample's targets away from message-digest inputs. A digest input is unaddressed, but its
+bytes parse as an address with a 36-byte payload when its randomizer equals the parsing `PK.seed`;
+no hit of the win implication is one. -/
+noncomputable def digestFreeTargets (table : HiddenGraph.Table) (results : OtsKey → Option (Counter × Encoding))
+    (input : HashInput) : Finset Digest :=
+  if ForsSigner.IsMsgInput input then ∅
+  else targets (truncateHash parameterOutput) (compTable parameterOutput fixed highs remaining table results) input
+
 end Events
 
 /-- The verifier's message digest of a forgery, read from a cache. -/
 def cachedDigest (cache : QueryCache HashSpec) (parameter : PublicParameter) (root : Digest)
     (message : Message) (randomness : Randomness) : Option MessageDigest :=
   (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-    cache (tweakableHashInput parameter (.message call) (messageDigestPayload root message randomness))).map
+    cache (messageDigestInput parameter root message randomness call)).map
     truncateMessageDigest
 
 /-- FORS leaves whose secret the run revealed. -/
@@ -420,8 +428,8 @@ theorem firstEncoding_congr (f g : QueryImpl HashSpec Id) (parameter : PublicPar
         evalWithAnswerFn g (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
     intro counter
     simp only [encode, evalWithAnswerFn_bind, eval_tweakableHash, evalWithAnswerFn_pure]
-    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (message ++ bytesLE 4 counter)) =
-      g (tweakableHashInput parameter (.encoding lay tree leaf) (message ++ bytesLE 4 counter)) from
+    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (message ++ bytesBE 4 counter)) =
+      g (tweakableHashInput parameter (.encoding lay tree leaf) (message ++ bytesBE 4 counter)) from
       h counter]
   intro attempts
   induction attempts with
@@ -432,8 +440,7 @@ theorem firstEncoding_congr (f g : QueryImpl HashSpec Id) (parameter : PublicPar
 
 theorem digestInputs_mem (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) (call : DigestCall) :
-    tweakableHashInput pk.parameter (.message call)
-        (messageDigestPayload pk.root message signature.randomness) ∈
+    messageDigestInput pk.parameter pk.root message signature.randomness call ∈
       SignatureWitness.trace f pk message signature := by
   unfold SignatureWitness.trace
   rw [Concrete.verify]
@@ -560,19 +567,24 @@ theorem encoding_not_row (parameterOutput : HashOutput) (highs : CoordinateHighs
   cases hparse
 
 theorem message_not_row (parameterOutput : HashOutput) (highs : CoordinateHighs) (table : HiddenGraph.Table)
-    (payload : HashInput) (call : DigestCall) :
+    (parameter : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness)
+    (call : DigestCall) :
     ∀ query, (sampleModel parameterOutput highs).parse
-      (tweakableHashInput (truncateHash parameterOutput) (.message call) payload) = some query →
+      (messageDigestInput parameter root message randomness call) = some query →
       ¬query.2 = table ((sampleModel parameterOutput highs).incoming query.1) := by
   intro query hparse
-  rw [sampleModel_parse, parse_tweakable_none _ _ _ _
-    (fun address => by cases address <;> simp [Address.position, Position.domain]) (by trivial)] at hparse
-  cases hparse
+  rw [sampleModel_parse] at hparse
+  obtain ⟨heq, -⟩ := (parse_some_iff _ _ _ query).mp hparse
+  have hrow : messageDigestInput parameter root message randomness call =
+      tweakableHashInput (truncateHash parameterOutput) query.1.position.domain (bytesLE 16 query.2) := heq
+  exact absurd hrow (messageDigestInput_ne_tweakableHashInput _ _ _ _ _ _ _
+    (by rw [bytesLE_length]; omega))
 
 theorem tweakable_not_seedHit (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput)
     (seed : MasterSeed) : ¬SeedGuess.SeedHit (tweakableHashInput parameter domain payload) seed := by
-  rintro ⟨parameter', derive, heq⟩
-  exact keygenInput_ne_hashInput parameter' parameter derive domain seed payload heq
+  rintro (⟨parameter', derive, heq⟩ | ⟨d, heq⟩)
+  · exact keygenInput_ne_hashInput parameter' parameter derive domain seed payload heq
+  · exact keySeedInput_ne_tweakableHashInput seed d parameter domain payload heq
 
 /-- The consistent preparation's targets are the sample's fixed targets. -/
 theorem fullTable_eq (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -637,9 +649,9 @@ theorem cached_hit (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (h
     (hcached : CachedQueries (sampleModel parameterOutput highs) table cacheF entries)
     (input : HashInput) (hentry : Sum.inl input ∈ entries)
     (hmem : truncateHash (f input) ∈ targets (truncateHash parameterOutput)
-      (compTable parameterOutput fixed highs remaining table results) input) :
-    CacheMatch.Bad (targets (truncateHash parameterOutput)
-      (compTable parameterOutput fixed highs remaining table results)) cacheF := by
+      (compTable parameterOutput fixed highs remaining table results) input)
+    (hmsg : ¬ForsSigner.IsMsgInput input) :
+    CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table results) cacheF := by
   have hnot := not_canonicalRow_of_target parameterOutput fixed highs remaining table htable
     results input ⟨_, hmem⟩
   obtain ⟨answer, hanswer⟩ := Option.ne_none_iff_exists'.mp (hcached input hentry hnot)
@@ -647,7 +659,8 @@ theorem cached_hit (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (h
   rw [hanswer] at hfin
   refine ⟨input, answer, hanswer, ?_⟩
   have hvalue : f input = answer := (hagree input hentry).trans hfin
-  rw [← hvalue]
+  unfold digestFreeTargets
+  rw [if_neg hmsg, ← hvalue]
   exact hmem
 
 /-- A queried honest FORS secret was revealed. -/
@@ -812,14 +825,13 @@ theorem cachedDigest_eq (parameterOutput : HashOutput) (highs : CoordinateHighs)
       Sum.inl input ∈ entries) :
     cachedDigest cacheF (truncateHash parameterOutput) root message signature.randomness =
       some (verificationDigest f ⟨root, truncateHash parameterOutput⟩ message signature) := by
-  have hread : ∀ call : DigestCall, cacheF (tweakableHashInput (truncateHash parameterOutput) (.message call)
-      (messageDigestPayload root message signature.randomness)) =
-      some (f (tweakableHashInput (truncateHash parameterOutput) (.message call)
-        (messageDigestPayload root message signature.randomness))) := by
+  have hread : ∀ call : DigestCall, cacheF (messageDigestInput (truncateHash parameterOutput) root message
+      signature.randomness call) =
+      some (f (messageDigestInput (truncateHash parameterOutput) root message signature.randomness call)) := by
     intro call
     have hentry := htrace _ (digestInputs_mem f ⟨root, truncateHash parameterOutput⟩ message signature call)
-    have hnot := message_not_row parameterOutput highs table
-      (messageDigestPayload root message signature.randomness) call
+    have hnot := message_not_row parameterOutput highs table (truncateHash parameterOutput) root message
+      signature.randomness call
     obtain ⟨answer, hanswer⟩ := Option.ne_none_iff_exists'.mp (hcached _ hentry hnot)
     have hfin := finalFn_unparsed parameterOutput highs table cacheF _ hnot
     rw [hanswer] at hfin
@@ -886,8 +898,7 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
     (hverify : evalWithAnswerFn f (Concrete.verify ⟨(sampleData parameterOutput fixed highs remaining).root,
       truncateHash parameterOutput⟩ forgery.message forgery.signature : OracleComp HashSpec Bool) = true)
     (hvalid : SigningTranscript.Valid log) (hnotContains : ¬SigningTranscript.Contains log forgery) :
-    CacheMatch.Bad (targets (truncateHash parameterOutput)
-        (compTable parameterOutput fixed highs remaining table results)) cacheF ∨
+    CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table results) cacheF ∨
       ForsCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
         (forgery, log, true) reveals cacheF := by
   have hhit : ∀ input ∈ SignatureWitness.trace f ⟨(sampleData parameterOutput fixed highs remaining).root,
@@ -896,12 +907,12 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
         (fullTable f (truncateHash parameterOutput) seed
           (labelsOf (materialT parameterOutput fixed highs remaining table)
             (answersT parameterOutput fixed highs remaining table))) input →
-      CacheMatch.Bad (targets (truncateHash parameterOutput)
-        (compTable parameterOutput fixed highs remaining table results)) cacheF := by
-    intro input hinput hmem
+      ¬ForsSigner.IsMsgInput input →
+      CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table results) cacheF := by
+    intro input hinput hmem hmsg
     rw [hfull] at hmem
     exact cached_hit parameterOutput fixed highs remaining table htable results cacheF f entries hagree
-      hcached input (htrace input hinput) hmem
+      hcached input (htrace input hinput) hmem hmsg
   rcases SignatureWitness.accepted_full_classification f ⟨(sampleData parameterOutput fixed highs remaining).root,
       truncateHash parameterOutput⟩ seed forgery.message forgery.signature hb hdata.root hverify with
     ⟨counter, hchosen, hcanon⟩ | ⟨j, -, htree⟩ | ⟨hland, hexc⟩
@@ -911,7 +922,7 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
       obtain ⟨entry, hentry, honest, hhonest, hmessage, hrandomness⟩ := hsigned
       obtain ⟨randomness, hlandR, hfinish⟩ := hgood.1 entry hentry honest hhonest
       rw [hmessage] at hlandR hfinish
-      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput,
+      have heq := canonical_signed_eq f ⟨seed, 0, truncateHash parameterOutput,
         (sampleData parameterOutput fixed highs remaining).root⟩ forgery.message randomness
         forgery.signature honest hlandR hfinish hrandomness counter hchosen hcanon
       apply hnotContains
@@ -921,7 +932,7 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
       have hrun := SignatureWitness.verification_fors_run f ⟨(sampleData parameterOutput fixed highs
         remaining).root, truncateHash parameterOutput⟩ forgery.message forgery.signature
       rcases Fors.Opening.covered_or_hidden f (truncateHash parameterOutput) _ seed _
-          forgery.signature.fors (revealedSet reveals) _ hopen hrun with
+          forgery.signature.fors (revealedSet reveals) _ hopen hrun.bind_left with
         hcovered | ⟨index, κ, leaf, hnot, hmem⟩
       · refine ⟨hvalid, _, cachedDigest_eq parameterOutput highs table cacheF f entries hagree hcached _
           forgery.message forgery.signature htrace, hcanon.1, ?_, hcovered⟩
@@ -934,9 +945,9 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
             queried_fleaf_revealed parameterOutput highs fixed table reveals entries hguess
               index κ leaf (htrace _ hmem))
   · left
-    obtain ⟨input, hinput, hmem⟩ := treeHit_hit f (truncateHash parameterOutput) seed _ hcons hbound _ rfl
+    obtain ⟨input, hinput, hmem, hmsg⟩ := treeHit_hit f (truncateHash parameterOutput) seed _ hcons hbound _ rfl
       forgery.message forgery.signature j htree
-    exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem)
+    exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem) hmsg
   · have hactive : ∀ lay : Layer, PrunedGraph.KeyActive (truncateHash parameterOutput) lay
         (treeIndexAt (SignatureWitness.index f _ forgery.message forgery.signature) lay)
         (leafIndexAt (SignatureWitness.index f _ forgery.message forgery.signature) lay) :=
@@ -946,16 +957,16 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
       have hmsg := labelMessage_eq parameterOutput fixed highs remaining steps table f seed hdata
         (keyAt (SignatureWitness.index f ⟨(sampleData parameterOutput fixed highs remaining).root,
           truncateHash parameterOutput⟩ forgery.message forgery.signature) lay) (hactive lay)
-      obtain ⟨input, hinput, hmem⟩ := encodingMatch_hit f (truncateHash parameterOutput) seed
+      obtain ⟨input, hinput, hmem, hmsg'⟩ := encodingMatch_hit f (truncateHash parameterOutput) seed
         (labelsOf (materialT parameterOutput fixed highs remaining table)
           (answersT parameterOutput fixed highs remaining table))
         (keyAt (SignatureWitness.index f ⟨(sampleData parameterOutput fixed highs remaining).root,
           truncateHash parameterOutput⟩ forgery.message forgery.signature) lay) _ (by rw [hmsg]; exact henc)
-      exact hhit input hinput hmem
+      exact hhit input hinput hmem hmsg'
     · left
-      obtain ⟨input, hinput, hmem⟩ := leafOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
+      obtain ⟨input, hinput, hmem, hmsg⟩ := leafOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
         (hactive lay) _ hleafMatch
-      exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem)
+      exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem) hmsg
     · rcases Wots.ChainException.hidden_or_output f _ _ _ _ _ _ hchain with
         ⟨chain, step, hlt, hmem⟩ | houtput
       · exfalso
@@ -971,14 +982,14 @@ theorem bad_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashOu
         dsimp only at hlt hle
         omega
       · left
-        obtain ⟨input, hinput, hmem⟩ := chainOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
+        obtain ⟨input, hinput, hmem, hmsg⟩ := chainOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
           (hactive lay) _ houtput
-        exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem)
+        exact hhit input hinput (graph_targets_subset _ _ _ _ _ hmem) hmsg
     · left
-      obtain ⟨input, hinput, hmem⟩ := forsException_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
+      obtain ⟨input, hinput, hmem, hmsg⟩ := forsException_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
         hforsExc
       exact hhit input (SignatureWitness.verification_fors_run f _ forgery.message forgery.signature input hinput)
-        (graph_targets_subset _ _ _ _ _ hmem)
+        (graph_targets_subset _ _ _ _ _ hmem) hmsg
 
 /-- Prepared answers take priority over a sample function. -/
 def preferCache (cache : QueryCache HashSpec) (f : QueryImpl HashSpec Id) : QueryImpl HashSpec Id :=
@@ -997,8 +1008,8 @@ theorem encodingInput_short (parameter : PublicParameter) (lay : Layer) (tree : 
     (message : HashInput) (hmessage : Short.ShortMessage message) (counter : Counter) :
     Short.IsShort (Wots.encodingInput parameter lay tree leaf message counter) := by
   unfold Short.ShortMessage at hmessage
-  simp only [Wots.encodingInput, Short.IsShort, Short.bound, Short.tweakableHashInput_length,
-    List.length_append, bytesLE_length]
+  simp only [Wots.encodingInput, Short.IsShort, Short.bound, tweakableHashInput_length,
+    List.length_append, bytesBE_length]
   omega
 
 /-- Encoding inputs read the same value through the prepared cache. -/
@@ -1056,8 +1067,7 @@ theorem win_implies_bad (hb : 0 < keptHeight topLayer) (adversary : Adversary) (
           (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps))))
         (knownOf (truncateHash parameterOutput) fixed) prepared.2))
     (hwin : outcomeWins outcome = true) :
-    CacheMatch.Bad (targets (truncateHash parameterOutput)
-        (compTable parameterOutput fixed highs remaining table prepared.1)) cacheF ∨
+    CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) cacheF ∨
       ForsCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
         outcome reveals cacheF := by
   obtain ⟨hgrow, hrun, hguess⟩ := lazy_support (sampleModel parameterOutput highs) table _

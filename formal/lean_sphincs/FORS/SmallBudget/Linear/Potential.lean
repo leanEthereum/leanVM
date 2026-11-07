@@ -251,9 +251,11 @@ noncomputable def markSet (l : OtsKey) (i : ChainIndex) : Finset Digest :=
 /-- Digests decoding to a unit neighbour of the prepared word. -/
 noncomputable def markAll (l : OtsKey) : Finset Digest := decodingDigests (allUnitNeighbors (K.w l))
 
-/-- A fresh encoding answer of the leaf decodes to a unit neighbour lowering the chain. -/
+/-- A fresh encoding answer of the leaf, at a 16-byte message as every verifier encodes, decodes to
+a unit neighbour lowering the chain. -/
 def Marker (s : St) (l : OtsKey) (i : ChainIndex) : Prop :=
-  ∃ msg ctr u, K.Fr s (Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) u ∧ truncateHash u ∈ K.markSet l i
+  ∃ msg ctr u, msg.length = 16 ∧ K.Fr s (Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) u ∧
+    truncateHash u ∈ K.markSet l i
 
 /-- The WOTS events of a leaf: an observed contact, a contact at a marked chain, or contacts at
 two chains. -/
@@ -470,15 +472,16 @@ theorem contactB_store (hx : s.cache x = none) (hi : K.initial x = none) (l : Ot
 
 theorem marker_store (hx : s.cache x = none) (hi : K.initial x = none) (l : OtsKey) (i : ChainIndex) :
     K.Marker (s.store x u) l i ↔ K.Marker s l i ∨
-      ((∃ msg ctr, x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) ∧ truncateHash u ∈ K.markSet l i) := by
+      ((∃ msg ctr, msg.length = 16 ∧ x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) ∧
+        truncateHash u ∈ K.markSet l i) := by
   simp only [Marker, fr_store u hx hi]
   constructor
-  · rintro ⟨msg, ctr, w, (hfr | ⟨hxe, rfl⟩), hm⟩
-    · exact Or.inl ⟨msg, ctr, w, hfr, hm⟩
-    · exact Or.inr ⟨⟨msg, ctr, hxe.symm⟩, hm⟩
-  · rintro (⟨msg, ctr, w, hfr, hm⟩ | ⟨⟨msg, ctr, rfl⟩, hm⟩)
-    · exact ⟨msg, ctr, w, Or.inl hfr, hm⟩
-    · exact ⟨msg, ctr, u, Or.inr ⟨rfl, rfl⟩, hm⟩
+  · rintro ⟨msg, ctr, w, hlen, (hfr | ⟨hxe, rfl⟩), hm⟩
+    · exact Or.inl ⟨msg, ctr, w, hlen, hfr, hm⟩
+    · exact Or.inr ⟨⟨msg, ctr, hlen, hxe.symm⟩, hm⟩
+  · rintro (⟨msg, ctr, w, hlen, hfr, hm⟩ | ⟨⟨msg, ctr, hlen, rfl⟩, hm⟩)
+    · exact ⟨msg, ctr, w, hlen, Or.inl hfr, hm⟩
+    · exact ⟨msg, ctr, u, hlen, Or.inr ⟨rfl, rfl⟩, hm⟩
 
 theorem fe_store (hx : s.cache x = none) (hi : K.initial x = none) (f : FIn) :
     K.FE (s.store x u) f ↔ K.FE s f ∨ x = f.input K.p := by
@@ -619,14 +622,14 @@ theorem wots_of_allSame {s s' : St} (h : ∀ l, Retained K.p l → K.SameLeaf s 
 /-- Under a store, a leaf is unchanged when the input is not of its WOTS shapes. -/
 theorem sameLeaf_store {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = none)
     (hi : K.initial x = none) (l : OtsKey) (hA : ∀ i, ¬K.IsA l i x) (hB : ∀ i v, ¬K.IsB l i v x)
-    (hE : ∀ msg ctr, x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) :
+    (hE : ∀ msg ctr, msg.length = 16 → x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) :
     K.SameLeaf s (s.store x u) l := by
   refine ⟨fun i => ?_, fun i => ?_, fun i => ?_⟩
   · rw [contactB_store u hx hi]
     refine Set.union_eq_left.2 fun v hv => absurd hv.1 (hB i v)
   · rw [aAns_store u hx hi, if_neg (hA i)]
   · rw [marker_store u hx hi]
-    exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, he⟩, _⟩ => hE msg ctr he, Or.inl⟩
+    exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, hlen, he⟩, _⟩ => hE msg ctr hlen he, Or.inl⟩
 
 /-- Monotonicity of a leaf's WOTS event under a store. -/
 theorem badLeaf_store_of {s : St} {x : HashInput} (u : HashOutput) (hx : s.cache x = none)

@@ -28,29 +28,9 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.Det.forgeAdvantage_le_seedFree
 
-/-- info: 'FORS.Security.Det.budgetedWin_le_master' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.budgetedWin_le_master
-
 /-- info: 'FORS.Security.Det.budgetedWinMaster_le_seedFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.Det.budgetedWinMaster_le_seedFree
-
-/-- info: 'FORS.Security.Det.probEvent_update_seed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.probEvent_update_seed_le
-
-/-- info: 'FORS.Security.Det.evalDist_table_point' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.evalDist_table_point
-
-/-- info: 'FORS.Security.Det.schemeSeedInput_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.schemeSeedInput_probability_le
-
-/-- info: 'FORS.Security.Det.schemeSeedInput_injective' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.schemeSeedInput_injective
 
 /-- info: 'FORS.Security.Det.evalDist_rtable_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -140,7 +120,7 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Concrete.fullDigestView_bijective
 
-/-- info: 'FORS.Security.fieldInput_injective' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.fieldInput_injective' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.fieldInput_injective
 

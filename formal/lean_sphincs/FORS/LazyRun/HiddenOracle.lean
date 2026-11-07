@@ -202,13 +202,19 @@ theorem cellKnown_children (parameter : PublicParameter) (position : Position)
       simp only [Position.children] at hchild
       split_ifs at hchild <;> simp only [List.mem_cons, List.not_mem_nil, or_false] at hchild <;>
         rcases hchild with rfl | rfl <;> exact cellKnown_public parameter _ trivial
+  | froots index =>
+      simp only [Position.children, List.mem_ofFn] at hchild
+      obtain ⟨κ, rfl⟩ := hchild
+      exact cellKnown_public parameter _ trivial
 
 section Split
 
 variable (parameterOutput : HashOutput) (highs : CoordinateHighs) (remaining : RemainingOutputs)
 
+/-- `SK.prf` is fixed: the seed-free run never reads it (the `rfl` in `evalDist_seedFree_completion`
+and the `hprog` step of `Det.budgetedWinMaster_le_seedFree`). -/
 noncomputable def splitMaterial (lows : HiddenGraph.Table) : Material :=
-  (parameterOutput, joinedSecrets (assemble lows highs remaining))
+  ((parameterOutput, 0), joinedSecrets (assemble lows highs remaining))
 
 noncomputable def splitAnswers (lows : HiddenGraph.Table) : CanonicalGraphLabels :=
   joinedLabels (assemble lows highs remaining)
@@ -326,9 +332,9 @@ theorem publicData_congr (labels labels' : CanonicalGraphLabels) (steps : Messag
   unfold GraphView.publicData
   congr 1
   · rw [htree]
-  · funext index κ
+  · funext index
     unfold GraphCorrectness.keyLabels
-    rw [h (.fnode index κ _ _) trivial, h (.fnode index κ _ _) trivial]
+    rw [h (.froots index) trivial]
   · funext lay tree
     rw [htree]
   · funext lay tree leaf level

@@ -98,7 +98,9 @@ theorem sample_boundF (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
     | some qq =>
         exfalso
         obtain ⟨hx, -⟩ := (parse_some_iff _ _ _ qq).1 h
-        exact msg_not_graph param qq.1.position _ _ (msgInput_digestInput param data.root p.1 p.2 call) hx
+        obtain ⟨p', root', message', randomness', call', heq⟩ := msgInput_digestInput param data.root p.1 p.2 call
+        exact messageDigestInput_ne_tweakableHashInput p' param root' message' randomness' call' _
+          (by rw [bytesLE_length]; omega) (heq.symm.trans hx)
   have hdigest : ∀ p call, tgA.digest (pblk param data p call) := fun p call =>
     msgInput_digestInput param data.root p.1 p.2 call
   have hclean : ∀ p call, prepared.2 (pblk param data p call) = none := fun p call =>

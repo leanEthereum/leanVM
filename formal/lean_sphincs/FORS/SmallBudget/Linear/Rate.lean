@@ -235,7 +235,7 @@ variable {xr : ℝ} (hN : Numeric K.ρ xr) (hxr : 0 ≤ xr) {y' : ℕ} (hY : (y'
 include hN in
 theorem fresh_other {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none)
     (hAB : ∀ l, Retained K.p l → (∀ i, ¬K.IsA l i x) ∧ ∀ i v, ¬K.IsB l i v x)
-    (hE : ∀ l msg ctr, Retained K.p l → x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr)
+    (hE : ∀ l msg ctr, Retained K.p l → msg.length = 16 → x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr)
     (hF : ∀ f : FIn, x ≠ f.input K.p)
     {w : ℝ≥0∞} (hw : w + K.kindUnit x ≤ ENNReal.ofReal K.ρ) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * w ≤ K.pot (y' + 1) s := by
@@ -292,11 +292,11 @@ theorem fresh_B {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none
 
 include hN hxr hY in
 theorem fresh_enc {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {l : OtsKey}
-    {msg : HashInput} {ctr : Counter} (hl : Retained K.p l) (hxE : x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr)
-    {g : ℝ≥0∞} (hg : g + K.kindUnit x ≤ 1) :
+    {msg : HashInput} {ctr : Counter} (hl : Retained K.p l) (hlen : msg.length = 16)
+    (hxE : x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) {g : ℝ≥0∞} (hg : g + K.kindUnit x ≤ 1) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
-  have h := K.step_enc hN.high y' hx hi hl hxE
+  have h := K.step_enc hN.high y' hx hi hl hlen hxE
   have ha := K.arithEnc hN hxr hY s hl hg
   rw [K.pot_succ]
   calc _ ≤ _ + ν * g := add_le_add h le_rfl

@@ -84,7 +84,7 @@ fn secret_key_survives_a_round_trip() {
     assert_eq!(sign(&reloaded, &message, 43).unwrap(), sign(&sk, &message, 43).unwrap());
 }
 
-/// The address layout is leanSPHINCS's, and `Th` is the leanVM hash of `P | A | M`.
+/// The address layout, and `Th` as the leanVM hash of `P | A | M`.
 #[test]
 fn address_layout() {
     let tw = tweak(TWEAK_NODE, layer_hi(1, 0x12), 0x89abcdef).step(5);

@@ -38,14 +38,15 @@ theorem secondOrder_tweakable {parameter : PublicParameter} {results : OtsKey �
     refine ⟨lay, tree, leaf, chain, step, ?_, hnot⟩
     cases domain with
     | chain => exact hashFields_injective trivial trivial hf
-    | _ => simp [hashDomainFields, tweakFields, treeFields] at hf
+    | _ => simp [hashDomainFields, tweakFields, treeFields, forsFields] at hf
   · unfold fleafInput at heq
     have hf := (tweakableInput_injective heq).1
     right
     refine ⟨index, κ, leaf, ?_⟩
     cases domain with
     | forsLeaf => exact hashFields_injective trivial trivial hf
-    | _ => simp [hashDomainFields, tweakFields, treeFields] at hf
+    | node => simp [hashDomainFields, tweakFields, treeFields, forsFields] at hf
+    | _ => exact absurd (hashFields_injective (by trivial) (by trivial) hf) (by simp)
 
 /-- A tweakable input outside the chain and FORS leaf domains is first order. -/
 theorem not_secondOrder (parameter : PublicParameter) (results : OtsKey → Option (Counter × Encoding))
@@ -86,7 +87,8 @@ theorem cached_hitA (htable : tableExtending (knownOf (truncateHash parameterOut
     (input : HashInput) (hentry : Sum.inl input ∈ entries)
     (hmem : truncateHash (f input) ∈ targets (truncateHash parameterOutput)
       (compTable parameterOutput fixed highs remaining table results) input)
-    (hfirst : ¬SecondOrderInput (truncateHash parameterOutput) results input) :
+    (hfirst : ¬SecondOrderInput (truncateHash parameterOutput) results input)
+    (hmsg : ¬ForsSigner.IsMsgInput input) :
     CacheMatch.Bad (targetsA (truncateHash parameterOutput) results
       (compTable parameterOutput fixed highs remaining table results)) cacheF := by
   have hnot := not_canonicalRow_of_target parameterOutput fixed highs remaining table htable
@@ -97,7 +99,7 @@ theorem cached_hitA (htable : tableExtending (knownOf (truncateHash parameterOut
   refine ⟨input, answer, hanswer, ?_⟩
   have hvalue : f input = answer := (hagree input hentry).trans hfin
   unfold targetsA
-  rw [if_neg hfirst, ← hvalue]
+  rw [if_neg hfirst, if_neg hmsg, ← hvalue]
   exact hmem
 
 /-- A recorded query that is not a correct guess is cached with its answer. -/
@@ -264,7 +266,7 @@ theorem treeHit_hitA (hboundary : BoundaryCorrect f parameter seed labels) (pk :
     (h : SignatureWitness.TreeHit f pk seed message signature j) :
     ∃ input ∈ SignatureWitness.trace f pk message signature,
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
-      ∀ results, ¬SecondOrderInput parameter results input := by
+      (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
   subst hparameter
   obtain ⟨-, value, -, hrun, hcase⟩ := h
   generalize hlay : layerUp j = lay at hrun hcase
@@ -287,7 +289,7 @@ theorem treeHit_hitA (hboundary : BoundaryCorrect f parameter seed labels) (pk :
     exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
   rcases hcase with ⟨reference, hreference, level, hlevel, hparent, hne, hout⟩ |
     ⟨hlaytop, level, hlevel, ⟨hlower, hpositive, hsurrogate⟩, haddress⟩
-  · refine ⟨_, hmem level hlevel, ?_, hnode level⟩
+  · refine ⟨_, hmem level hlevel, ?_, hnode level, merkleInput_not_msg _ _ _ _ _ _ _⟩
     have hpos := active_hit f pk.parameter seed labels
       (treePosition lay tree (level + 1) (hlevel.trans_le (layerHeight_le lay))
         ⟨reference.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt reference.isLt⟩)
@@ -317,7 +319,7 @@ theorem treeHit_hitA (hboundary : BoundaryCorrect f parameter seed labels) (pk :
     have htop : tree = rootTree := by
       rw [← htree]; exact Completeness.treeIndexAt_top _
     subst htop
-    refine ⟨_, hmem (level - 1) (by omega), ?_, hnode (level - 1)⟩
+    refine ⟨_, hmem (level - 1) (by omega), ?_, hnode (level - 1), merkleInput_not_msg _ _ _ _ _ _ _⟩
     have hlevel' : level < maxLayerHeight := hlevel.trans_le (layerHeight_le _)
     have hentry := PrunedGraph.referenceTable_surrogate pk.parameter (otsSecrets f pk.parameter seed)
       (ftsSecrets f pk.parameter seed) (surrogates f pk.parameter seed) labels topLayer rootTree
@@ -342,14 +344,12 @@ theorem nodeException_hitA (index : Index) (leaves : FTree → FLeaf) (opening :
     (h : Fors.NodeException f parameter index seed leaves opening) :
     ∃ input ∈ queriedInputs f (forsRecover parameter index leaves opening : OracleComp HashSpec ForsKey),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
-      ∀ results, ¬SecondOrderInput parameter results input := by
+      (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
   obtain ⟨κ, level, hlevel, -, hneq, hout⟩ := h
   have hcanon : Fors.leafValue f parameter index κ (leaves κ)
       (Completeness.forsSecretValue f parameter index κ seed (leaves κ)) =
         Completeness.forsLeafValue f parameter index κ seed (leaves κ) := by
     rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
-  have hfolded := hlevel
-  have hlevel : level < forsHeight := by omega
   have hl1 : level + 1 ≤ forsHeight := hlevel
   rw [hcanon] at hneq hout
   have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
@@ -358,10 +358,11 @@ theorem nodeException_hitA (index : Index) (leaves : FTree → FLeaf) (opening :
     rw [Fors.forsDomain, dif_pos ⟨by omega, by omega⟩]
     congr 2
     exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
-  refine ⟨_, Fors.nodeInput_mem f parameter index leaves opening κ level hfolded,
+  refine ⟨_, Fors.nodeInput_mem f parameter index leaves opening κ level hlevel,
     active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
       ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩)
-      trivial _ ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩ ?_ ?_, fun results => ?_⟩
+      trivial _ ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩ ?_ ?_, fun results => ?_,
+    merkleInput_not_msg _ _ _ _ _ _ _⟩
   · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
     exact hneq
   · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
@@ -369,6 +370,19 @@ theorem nodeException_hitA (index : Index) (leaves : FTree → FLeaf) (opening :
   · unfold merkleInput
     rw [hdom]
     exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
+
+include hconsistent in
+/-- A FORS roots match hits at the queried `T_k` input, which is first order. -/
+theorem rootsMatch_hitA (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening)
+    (h : Fors.RootsMatch f parameter index seed (Fors.roots f parameter index leaves opening)) :
+    ∃ input ∈ queriedInputs f (forsRecover parameter index leaves opening >>= forsPublicKey parameter index
+        : OracleComp HashSpec Digest),
+      truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
+      (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input :=
+  ⟨_, Fors.rootsInput_mem f parameter index leaves opening,
+    rootsMatch_hit f parameter seed labels hconsistent index _ h, fun _ =>
+      not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h),
+    ForsSigner.not_msg_tweakable _ _ _ (by rw [rootsPayload_length]; omega)⟩
 
 end Hits
 
@@ -456,21 +470,21 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
         (fullTable f (truncateHash parameterOutput) seed
           (labelsOf (materialT parameterOutput fixed highs remaining table)
             (answersT parameterOutput fixed highs remaining table))) input →
-      ¬SecondOrderInput (truncateHash parameterOutput) results input →
+      ¬SecondOrderInput (truncateHash parameterOutput) results input → ¬ForsSigner.IsMsgInput input →
       badA parameterOutput fixed highs remaining results table
         (((some (forgery, log, true), reveals), entries), cacheF) := by
-    intro input hinput hmem hnot
+    intro input hinput hmem hnot hmsg
     left
     rw [hfull] at hmem
     exact cached_hitA parameterOutput fixed highs remaining table htable results cacheF f entries hagree hcached
-      input (htrace input hinput) hmem hnot
+      input (htrace input hinput) hmem hnot hmsg
   have hfirst : ∀ input ∈ SignatureWitness.trace f ⟨(sampleData parameterOutput fixed highs remaining).root,
       truncateHash parameterOutput⟩ forgery.message forgery.signature,
       truncateHash (f input) ∈ targets (truncateHash parameterOutput)
         (graphTable f (truncateHash parameterOutput) seed
           (labelsOf (materialT parameterOutput fixed highs remaining table)
             (answersT parameterOutput fixed highs remaining table))) input →
-      ¬SecondOrderInput (truncateHash parameterOutput) results input →
+      ¬SecondOrderInput (truncateHash parameterOutput) results input → ¬ForsSigner.IsMsgInput input →
       badA parameterOutput fixed highs remaining results table
         (((some (forgery, log, true), reveals), entries), cacheF) :=
     fun input hinput hmem => hfirstFull input hinput (graph_targets_subset _ _ _ _ _ hmem)
@@ -506,7 +520,7 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
     have hindex' : index = digestIndex digest := rfl
     have hleafMem : ∀ κ, Sum.inl (fleafInput (truncateHash parameterOutput) index κ (leaves κ)
         (forgery.signature.fors κ).secret) ∈ entries := fun κ =>
-      htrace _ (SignatureWitness.verification_fors_run f pk forgery.message forgery.signature _
+      htrace _ ((SignatureWitness.verification_fors_run f pk forgery.message forgery.signature).bind_left _
         (Fors.leafInput_mem f _ index leaves forgery.signature.fors κ))
     have hcov : ∀ κ, Coordinate.fors index κ (leaves κ) 0 ∈ reveals →
         TreeCov (revealedSet reveals) (fullDigestView digest) κ := by
@@ -514,10 +528,15 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
       simp only [TreeCov, fullDigestView, revealedSet, Finset.mem_filter, Finset.mem_univ, true_and]
       rw [← hindex', ← hleavesDef]
       exact h
-    rcases hrec.fors_classification with hN | hall
-    · obtain ⟨input, hinput, hmem, hnot⟩ := nodeException_hitA f (truncateHash parameterOutput) seed _ hcons
+    rcases hrec.fors_classification with hN | hR | hall
+    · obtain ⟨input, hinput, hmem, hnot, hmsg⟩ := nodeException_hitA f (truncateHash parameterOutput) seed _ hcons
         index leaves forgery.signature.fors hN
-      exact hfirst input (SignatureWitness.verification_fors_run f pk _ _ _ hinput) hmem (hnot results)
+      exact hfirst input ((SignatureWitness.verification_fors_run f pk forgery.message
+        forgery.signature).bind_left _ hinput) hmem (hnot results) hmsg
+    · obtain ⟨input, hinput, hmem, hnot, hmsg⟩ := rootsMatch_hitA f (truncateHash parameterOutput) seed _ hcons
+        index leaves forgery.signature.fors hR
+      exact hfirst input (SignatureWitness.verification_fors_run f pk forgery.message forgery.signature _ hinput)
+        hmem (hnot results) hmsg
     -- the contacts of the leaf matches
     have hcontact : ∀ κ, Fors.LeafMatch f (truncateHash parameterOutput) index κ seed (leaves κ)
         (forgery.signature.fors κ).secret →
@@ -557,7 +576,7 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
         · exact absurd (hrevAll κ) (hrc κ hm)
       obtain ⟨randomness, hlandR, hfinish⟩ := hgood.1 entry hentry honest hhonest
       rw [hmessage] at hlandR hfinish
-      have heq := canonical_signed_eq f ⟨seed, truncateHash parameterOutput,
+      have heq := canonical_signed_eq f ⟨seed, 0, truncateHash parameterOutput,
         (sampleData parameterOutput fixed highs remaining).root⟩ forgery.message randomness
         forgery.signature honest hlandR hfinish hrandomness counter hchosen (hrec.canonical hopen)
       apply hnotContains
@@ -588,9 +607,9 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
       rcases (hall κ).2 with hcan | hm
       · exact hcov κ (hcanonRev κ hcan)
       · exact (hone ⟨κ, hm⟩).elim
-  · obtain ⟨input, hinput, hmem, hnot⟩ := treeHit_hitA f (truncateHash parameterOutput) seed _ hcons hbound pk rfl
-      forgery.message forgery.signature j htree
-    exact hfirst input hinput hmem (hnot results)
+  · obtain ⟨input, hinput, hmem, hnot, hmsg⟩ := treeHit_hitA f (truncateHash parameterOutput) seed _ hcons hbound
+      pk rfl forgery.message forgery.signature j htree
+    exact hfirst input hinput hmem (hnot results) hmsg
   · generalize hidx : SignatureWitness.index f pk forgery.message forgery.signature = idx at hland hwots
     have hactive : PrunedGraph.KeyActive (truncateHash parameterOutput) lay (treeIndexAt idx lay)
         (leafIndexAt idx lay) := ⟨_, hland, rfl, rfl⟩
@@ -600,28 +619,29 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
     have hparam : pk.parameter = truncateHash parameterOutput := rfl
     simp only [hidx, hparam] at hwots
     rcases hwots with henc | hleafMatch | hchain
-    · obtain ⟨message, counter, hexempt, hmem, hout⟩ := henc
+    · obtain ⟨message, counter, hlength, hexempt, hmem, hout⟩ := henc
       have hmsg := labelMessage_eq parameterOutput fixed highs remaining steps table f seed hdata
         (lay, treeIndexAt idx lay, leafIndexAt idx lay) hactive
-      obtain ⟨input, hinput, hhit⟩ := encodingMatch_hit f (truncateHash parameterOutput) seed
+      obtain ⟨input, hinput, hhit, hmsgE⟩ := encodingMatch_hit f (truncateHash parameterOutput) seed
         (labelsOf (materialT parameterOutput fixed highs remaining table)
           (answersT parameterOutput fixed highs remaining table)) (lay, treeIndexAt idx lay, leafIndexAt idx lay)
         [Wots.encodingInput (truncateHash parameterOutput) lay (treeIndexAt idx lay) (leafIndexAt idx lay)
           message counter]
-        (by rw [hmsg]; exact ⟨message, counter, hexempt, List.mem_singleton_self _, hout⟩)
+        (by rw [hmsg]; exact ⟨message, counter, hlength, hexempt, List.mem_singleton_self _, hout⟩)
       rw [List.mem_singleton] at hinput
       subst hinput
       exact hfirstFull _ hmem hhit
-        (not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h))
+        (not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)) hmsgE
     · obtain ⟨endpoints, hne, hmem, hout⟩ := hleafMatch
-      obtain ⟨input, hinput, hhit⟩ := leafOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _ hactive
+      obtain ⟨input, hinput, hhit, hmsgL⟩ := leafOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
+        hactive
         [tweakableHashInput (truncateHash parameterOutput) (.leaf lay (treeIndexAt idx lay) (leafIndexAt idx lay))
           (leafPayload endpoints)]
         ⟨endpoints, hne, List.mem_singleton_self _, hout⟩
       rw [List.mem_singleton] at hinput
       subst hinput
       exact hfirst _ hmem hhit
-        (not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h))
+        (not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)) hmsgL
     · have hfrontier : ∀ chain, Wots.frontier f (truncateHash parameterOutput) lay (treeIndexAt idx lay)
           (leafIndexAt idx lay) (SignatureWitness.chosenWord f (truncateHash parameterOutput) seed idx lay)
           (Completeness.otsSecret f (truncateHash parameterOutput) lay (treeIndexAt idx lay) (leafIndexAt idx lay)
@@ -646,8 +666,10 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
         exact ⟨step, payload, _, hstep', hne, hc, hout.trans (hfrontier chain)⟩
       rcases hchain with ⟨chain, step, payload, hle, hmem, hhit⟩ |
         ⟨chain, first, second, payload, middle, hfs, hsw, hmem1, hmem2, hmid, hfront⟩ |
-        ⟨left, right, hne, hcl, hcr⟩ | ⟨chain, ⟨message, counter, candidate, hmemE, hdecode, hneighbor⟩, hcontact⟩
-      · obtain ⟨input, hinput, hhit'⟩ := chainOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _ hactive
+        ⟨left, right, hne, hcl, hcr⟩ |
+        ⟨chain, ⟨message, counter, candidate, hlength, hmemE, hdecode, hneighbor⟩, hcontact⟩
+      · obtain ⟨input, hinput, hhit', hmsgC⟩ := chainOutput_hit f (truncateHash parameterOutput) seed _ hcons _ _ _
+          hactive
           [tweakableHashInput (truncateHash parameterOutput)
             (.chain lay (treeIndexAt idx lay) (leafIndexAt idx lay) chain step) (bytesLE 16 payload)]
           ⟨chain, step, payload, List.mem_singleton_self _, hhit⟩
@@ -659,7 +681,7 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
             (tweakableHashInput (truncateHash parameterOutput)
               (.chain lay (treeIndexAt idx lay) (leafIndexAt idx lay) chain step) (bytesLE 16 payload)) :=
           not_secondOrder_chain _ _ (lay, treeIndexAt idx lay, leafIndexAt idx lay) chain step payload ⟨hactive, hle'⟩
-        exact hfirst _ hmem hhit' hns
+        exact hfirst _ hmem hhit' hns hmsgC
       · have hsw' : second.val + 1 = (preparedWord results (lay, treeIndexAt idx lay, leafIndexAt idx lay) chain).val := by
           rw [← hwordK]; exact hsw
         obtain ⟨-, hc1⟩ := hbelow (lay, treeIndexAt idx lay, leafIndexAt idx lay) hactive chain first payload (by omega) (htrace _ hmem1)
@@ -675,7 +697,7 @@ theorem badA_of_accepted (hb : 0 < keptHeight topLayer) (parameterOutput : HashO
       · exact Or.inr (Or.inl ⟨(lay, treeIndexAt idx lay, leafIndexAt idx lay), hactive, Or.inr (Or.inr
           ⟨left, right, hne, hcontactAt left hcl, hcontactAt right hcr⟩)⟩)
       · have hmarker : MarkerAt (truncateHash parameterOutput) results cacheF (lay, treeIndexAt idx lay, leafIndexAt idx lay) chain :=
-          ⟨message, counter, _, candidate,
+          ⟨message, counter, _, candidate, hlength,
             cached_read parameterOutput highs table cacheF f entries hagree hcached _ (htrace _ hmemE)
               (encoding_not_row parameterOutput highs table lay _ _ message counter),
             hdecode, by rw [← hwordK]; exact hneighbor⟩

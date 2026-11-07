@@ -874,10 +874,12 @@ fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
     );
 }
 
+// A leanSPHINCS chain step's address is WOTS_HASH's, the type the guest leaves zero.
+const _: () = assert!(signatures::lean_sphincs::WOTS_HASH == 0);
+
 /// Both signature schemes and the coverage caps.
 fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
-    // Both schemes' WOTS+C: the chain length, the digit sums of a dispatched group,
-    // and the hash types they share, as the address lane holds them.
+    // Both schemes' WOTS+C: the chain length and the digit sums of a dispatched group.
     ps("W", lean_xmss::W.to_string());
     ps("DIGIT_GROUP", DIGIT_GROUP.to_string());
     let widest = LX_DIGIT_GROUP.max(DIGIT_GROUP);
@@ -888,6 +890,8 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
         })
         .collect();
     ps("DIGIT_SUMS", format!("[{}]", digit_sums.join(", ")));
+    // leanXMSS: its hash types as its address lane holds them. Its addresses are
+    // derived per signature from the leaf index the signature carries.
     let address = |tw| dsl_u128(pack_16_bytes(&lean_xmss::address(&tw))).to_string();
     for (name, tag) in [
         ("TW_CHAIN", lean_xmss::TWEAK_CHAIN),
@@ -897,8 +901,6 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ] {
         ps(name, address(lean_xmss::tweak(tag, 0, 0)));
     }
-    // leanXMSS. Its addresses are derived per signature from the leaf index the
-    // signature carries.
     ps("LX_V", lean_xmss::V.to_string());
     ps("LX_TARGET_SUM", lean_xmss::TARGET_SUM.to_string());
     ps("LX_HEIGHT", lean_xmss::LAYER_HEIGHT.to_string());
@@ -925,15 +927,25 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("BIG_GROUPS", BIG_GROUPS.to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
 
-    // The leanSPHINCS instance. Its addresses are derived per signature from the
-    // index the message digest picks, so the guest receives the shape and each hash
-    // type of its own as the address lane holds it. A hypertree address holds its
-    // layer and tree in the high lane, the layer in its low byte (`SP_LAYER_MUL`,
-    // `SP_TREE_MUL`).
-    assert_eq!(
-        pack_16_bytes(&lean_sphincs::address(&lean_sphincs::tweak(0, 0, 0).at(1, 1))),
-        F192::new(0, 1 | 1 << 8, 0)
-    );
+    // The leanSPHINCS instance: its shape, each address type as A1, the address's
+    // second cell, holds it, and the cell bit each address field's low bytes start at.
+    // The guest derives the rest of every address from the digest.
+    use lean_sphincs::Adrs;
+    let cell = |adrs: Adrs, half: usize| dsl_u128(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
+    let at = Adrs::new(0, 0);
+    for (name, adrs, half) in [
+        ("SP_LAYER_MUL", Adrs::new(1, 0), 0),
+        ("SP_TREE_MUL_0", Adrs::new(0, 1), 0),
+        ("SP_TREE_MUL_1", Adrs::new(0, 1 << 8), 0),
+        ("SP_TREE_MUL_2", Adrs::new(0, 1 << 16), 0),
+        ("SP_KEY_MUL_0", at.with_key_pair(1), 1),
+        ("SP_KEY_MUL_1", at.with_key_pair(1 << 8), 1),
+        ("SP_WORD2_MUL", at.with_chain(1), 1),
+        ("SP_WORD3_MUL_0", at.with_tree_index(1), 1),
+        ("SP_WORD3_MUL_1", at.with_tree_index(1 << 8), 1),
+    ] {
+        ps(name, cell(adrs, half).to_string());
+    }
     ps("SP_V", lean_sphincs::V.to_string());
     ps("SP_TARGET_SUM", lean_sphincs::TARGET_SUM.to_string());
     for (layer, height) in lean_sphincs::LAYER_HEIGHTS.iter().enumerate() {
@@ -941,14 +953,14 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     }
     ps("SP_FORS_TREES", lean_sphincs::FORS_TREES.to_string());
     ps("SP_FORS_HEIGHT", lean_sphincs::FORS_HEIGHT.to_string());
-    for (name, tag) in [
-        ("SP_TW_ENC", lean_sphincs::TWEAK_ENC),
-        ("SP_TW_FLEAF", lean_sphincs::TWEAK_FORS_LEAF),
-        ("SP_TW_FNODE", lean_sphincs::TWEAK_FORS_NODE),
+    ps("SP_DIGEST_BYTES", lean_sphincs::DIGEST_BYTES.to_string());
+    for (name, t) in [
+        ("SP_WOTS_PK", lean_sphincs::WOTS_PK),
+        ("SP_TREE", lean_sphincs::TREE),
+        ("SP_FORS_TREE", lean_sphincs::FORS_TREE),
+        ("SP_FORS_ROOTS", lean_sphincs::FORS_ROOTS),
+        ("SP_WOTS_ENC", lean_sphincs::WOTS_ENC),
     ] {
-        ps(
-            name,
-            dsl_u128(pack_16_bytes(&lean_sphincs::address(&lean_sphincs::tweak(tag, 0, 0)))).to_string(),
-        );
+        ps(name, cell(at.with_type(t), 1).to_string());
     }
 }

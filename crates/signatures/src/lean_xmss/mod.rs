@@ -5,7 +5,7 @@
 //! verification 186 permutations.
 //!
 //! `Th(P, A, M) = H(P | A | M)` truncated to 16 bytes, `H` the leanVM hash, with
-//! the 16-byte address `A` of leanSPHINCS (the `hash` module).
+//! a 16-byte address `A` (the `hash` module).
 //!
 //! [leanXMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf
 

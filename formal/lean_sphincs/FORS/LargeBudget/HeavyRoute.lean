@@ -174,8 +174,8 @@ theorem sample_boundH (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
     (tg : Targeting HashInput HashOutput Coordinate)
     (hhit : ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
       ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
-        (CorrectGuess table s ∨ CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-          (compTable parameterOutput fixed highs remaining table prepared.1)) s.cache) →
+        (CorrectGuess table s ∨ CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table
+          prepared.1) s.cache) →
         Hit tg prepared.2 table s)
     (hcompat : Compatible tg (sampleModel parameterOutput highs)) (htrunc : UniformTruncation (R := HashOutput) tg)
     (hmsg : ∀ x, IsMsgInput x → tg.kind x = .none ∧ tg.digest x)
@@ -259,8 +259,8 @@ theorem large_seedFree_boundH (hb : 0 < keptHeight topLayer) (adversary : Advers
         (∀ x, IsMsgInput x → tg.kind x = .none ∧ tg.digest x) ∧
         ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
           ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
-            (CorrectGuess table s ∨ CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-              (compTable parameterOutput fixed highs remaining table prepared.1)) s.cache) →
+            (CorrectGuess table s ∨ CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table
+              prepared.1) s.cache) →
             Hit tg prepared.2 table s)
     (hclean : ∀ parameterOutput fixed highs remaining prepared,
       prepared ∈ support (preparation parameterOutput fixed highs remaining) → ∀ x, IsMsgInput x → prepared.2 x = none)

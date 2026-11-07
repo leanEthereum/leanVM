@@ -55,12 +55,12 @@ pub(crate) fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Dig
 /// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
 /// bottom and the bottom root at the top.
 pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Randomizer, message: &[u8]) -> Digest {
-    hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e))
-        .update(message)
-        .update(randomizer)
-        .finalize()[..N]
-        .try_into()
-        .unwrap()
+    crate::truncate(
+        hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e))
+            .update(message)
+            .update(randomizer)
+            .finalize(),
+    )
 }
 
 /// The digest's first `v` digits, if it is a codeword.
