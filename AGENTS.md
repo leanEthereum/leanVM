@@ -136,6 +136,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 | var                                                                            | effect                                                |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
 | `LEANVM_NUM_THREADS`                                                           | performance-worker count; `1` = sequential            |
+| `LEANVM_CODEWORD_BUDGET_MIB`                                                   | largest L0 codeword kept; default set by free memory  |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN`                              | `--tracing`, `--repeat`, `--cooldown` for the benches |
 | `LEANVM_HASH_N`, `LEANVM_HASH_UNROLL`                                          | workload sizes in tests                               |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH`                                                 | keccak_gkr batch size, rounds between committed states |
