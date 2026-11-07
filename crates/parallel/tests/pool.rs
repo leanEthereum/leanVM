@@ -140,3 +140,30 @@ fn find_first_returns_the_global_minimum() {
 fn nested_dispatch_panics_even_when_the_outer_runs_inline() {
     parallel::for_each(1, |_| parallel::for_each(4, |_| {}));
 }
+
+#[test]
+fn back_to_back_dispatches_leave_no_worker_in_a_finished_one() {
+    // Invariant: a worker that wakes after a dispatch closed must not run that dispatch's closure, whose
+    // captures are dead by then, and every item of every dispatch runs exactly once.
+    //
+    // Fixture state: 2_000 dispatches of 2 to 17 items, every other one with a slow first item (a short
+    // sleep, so workers arrive after the others are done), every 97th one panicking on its last item.
+    // Each dispatch counts into a fresh vector that dies when it returns.
+    for round in 0..2_000usize {
+        let n = 2 + round % 16;
+        let counts: Vec<AtomicUsize> = (0..n).map(|_| AtomicUsize::new(0)).collect();
+        let panics = round % 97 == 0;
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            parallel::for_each(n, |i| {
+                if round % 2 == 0 && i == 0 {
+                    std::thread::sleep(std::time::Duration::from_micros(50));
+                }
+                counts[i].fetch_add(1, Ordering::Relaxed);
+                assert!(!(panics && i == n - 1), "boom");
+            });
+        }));
+        // Expected: the panic is re-raised exactly when one was thrown, and every item ran once.
+        assert_eq!(result.is_err(), panics, "round {round}");
+        assert!(counts.iter().all(|c| c.load(Ordering::Relaxed) == 1), "round {round}");
+    }
+}
