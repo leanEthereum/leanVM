@@ -4,7 +4,7 @@
 //! A claim is a weighted sum of the bits of one state per segment: the weight of bit `j` of instance `i` of pack `y`
 //! in segment `m` is `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
-use crate::field::{E, ONE, ZERO};
+use crate::field::{E, K, ONE, ZERO};
 use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
@@ -163,39 +163,36 @@ fn verify_layer(
     // 4] The bit position: `sum_j w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])`, the weights one more multilinear factor.
     let (local, value) = sumcheck(transcript, value, 4, &[None; LOCAL_BITS])?;
     let t = transcript.next_scalars(3)?;
-    let eq = eq_kernel(&local);
+    // Position `j = 64 lane + z` splits the point in two, so `eq(local, j) = eq_z[z] * eq_lane[lane]`.
+    let (eq_z, eq_lane) = (eq_kernel(&local[..6]), eq_kernel(&local[6..]));
     if transcript.checked() {
+        let at_local = E::sum(
+            claim
+                .weights
+                .chunks(64)
+                .zip(&eq_lane)
+                .map(|(lane, &e)| e * dot(&eq_z, lane)),
+        );
         require(
-            scale * dot(&eq[..BITS], &claim.weights) * (kappa * t[0] + (kappa + t[1]) * t[2]) == value,
+            scale * at_local * (kappa * t[0] + (kappa + t[1]) * t[2]) == value,
             VerifierError::KeccakLayer,
         )?;
     }
 
     // 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
-    // Position `j` is `k` columns along from `along(j, 5 - k)`.
+    // Position `j` is `k` columns along from `along(j, 5 - k)`, which moves the lane and keeps `z`.
     let beta = transcript.sample();
-    let weights: Vec<E> = (0..BITS)
-        .map(|j| eq[j] + beta * (eq[along(j, 4)] + beta * eq[along(j, 3)]))
-        .collect();
+    let lane_weights: [E; STATE_LANES] = std::array::from_fn(|lane| {
+        let shifted = |k| eq_lane[along(64 * lane, k) / 64];
+        eq_lane[lane] + beta * (shifted(4) + beta * shifted(3))
+    });
+    let weights: Vec<E> = (0..BITS).map(|j| lane_weights[j / 64] * eq_z[j % 64]).collect();
     Ok(Claim {
         value: t[0] + beta * (t[1] + beta * t[2]),
         mu,
         point,
         weights: linear_transpose(&weights),
     })
-}
-
-/// The weight a claim puts on each `(slot, z)`: its position weights on the slots of the states it speaks of, scaled
-/// by the segment. `first` is the state segment 0 claims, and only the first `count` segments' states are committed.
-fn slot_weights(shape: KeccakShape, claim: &Claim, first: usize, count: usize) -> Vec<[E; 64]> {
-    let segments = eq_kernel(&claim.point[shape.pack_bits()..]);
-    let mut rows = vec![[ZERO; 64]; 1 << shape.slot_bits()];
-    for segment in 0..count {
-        for j in 0..BITS {
-            rows[STATE_LANES * (first + segment) + j / 64][j % 64] = segments[segment] * claim.weights[j];
-        }
-    }
-    rows
 }
 
 /// A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left to match.
@@ -208,14 +205,21 @@ fn open(
     value: E,
 ) -> Result<(Vec<E>, [E; 64], E), VerifierError> {
     let (slot, value) = sumcheck(transcript, value, 3, &vec![None; shape.slot_bits()])?;
-    let mut rows = slot_weights(shape, claim, first, count);
-    for &challenge in &slot {
-        rows = rows
-            .chunks(2)
-            .map(|pair| std::array::from_fn(|z| pair[0][z] + challenge * (pair[0][z] + pair[1][z])))
-            .collect();
+    // The weight on `(slot, z)` is the segment's eq times the claim's position weight, on the slots of the states
+    // the claim speaks of: segment `m` holds lane `l` at slot `STATE_LANES * (first + m) + l`.
+    // At the slot challenges, each slot's row of 64 scales by `eq(slot, s)`.
+    let segments = eq_kernel(&claim.point[shape.pack_bits()..]);
+    let slots = eq_kernel(&slot);
+    let mut row = [ZERO; 64];
+    for segment in 0..count {
+        for (lane, weights) in claim.weights.chunks(64).enumerate() {
+            let scale = segments[segment] * slots[STATE_LANES * (first + segment) + lane];
+            for (out, &w) in row.iter_mut().zip(weights) {
+                *out += scale * w;
+            }
+        }
     }
-    Ok((slot, rows[0], value))
+    Ok((slot, row, value))
 }
 
 /// What the reduction leaves: the committed segment outputs as words at one point of q_keccak, if any segment's
@@ -244,7 +248,7 @@ pub fn verify_keccak(
     let point = [&instance[PACK_BITS..], &segment[..]].concat();
     // The first claim combines the output lanes as words: bit z of a word weighs x^z.
     let lanes = eq_kernel(&transcript.samples(LANE_BITS));
-    let weights = (0..BITS).map(|j| lanes[j / 64] * E::new(1 << (j % 64), 0, 0)).collect();
+    let weights = (0..BITS).map(|j| lanes[j / 64] * K(1 << (j % 64))).collect();
     let last = eq_kernel(&segment)[shape.segments() - 1] * dot(&lanes[..STATE_LANES], output);
     let committed = if shape.segments() > 1 {
         transcript.next_scalar()?
