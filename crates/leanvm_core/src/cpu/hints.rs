@@ -2,7 +2,7 @@
 //! resolved hint ops a [`super::Program`] carries ([`RHint`]), and the g-power
 //! table + reverse index the hint interpreter grows on demand.
 
-use primitives::field::{F64, mul_by_g};
+use primitives::field::{F64, div_by_g, mul_by_g};
 
 /// Frame-relative offset operand (matches the compiler's `ir::Off`).
 pub type Off = u32;
@@ -180,16 +180,6 @@ fn insert(table: &mut [u32], key: F64, k: usize) {
         i = (i + 1) & mask;
     }
     table[i] = k as u32 + 1;
-}
-
-/// The inverse of [`mul_by_g`]: bit 0 of its output says whether it folded.
-#[inline(always)]
-fn div_by_g(a: F64) -> F64 {
-    F64(if a.0 & 1 == 1 {
-        (a.0 ^ 0x1B) >> 1 | 1 << 63
-    } else {
-        a.0 >> 1
-    })
 }
 
 /// Bits 32..64 of the mix are the well-distributed ones; the mask keeps as many
