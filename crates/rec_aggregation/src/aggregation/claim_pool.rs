@@ -39,7 +39,7 @@ pub(super) fn coord_kind(c: &Coord) -> usize {
 /// or the `g^k` a `GCol`/`Prod` scales by. Zero for every other kind.
 pub(super) fn coord_scale(c: &Coord) -> F192 {
     match c {
-        Coord::Const(v) => F192::new(v.0, 0, 0),
+        Coord::Const(v) => F192::from(*v),
         Coord::GCol(_, k) | Coord::Prod(_, _, k) => count(*k as usize),
         _ => F192::ZERO,
     }

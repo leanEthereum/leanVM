@@ -624,7 +624,7 @@ def main():
     assert!(run(count(0), count(6)).is_ok());
     // One group and -11 claims after it: the product identity holds, the range
     // check must not.
-    let negative = F192::new(g_pow(11).inv().0, 0, 0);
+    let negative = F192::from(g_pow(11).inv());
     let Err(err) = run(count(1), negative) else {
         panic!("a negative last-block count was accepted");
     };
@@ -907,7 +907,7 @@ def main():
         program.execute(claim_list_digest(child.iter().copied()))
     };
     assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
-    let back = F192::new(g_pow(1).inv().0, 0, 0);
+    let back = F192::from(g_pow(1).inv());
     assert!(
         run(&[claim(0), claim(0)], &[count(0), back]).is_err(),
         "a walk revisited a slot"
