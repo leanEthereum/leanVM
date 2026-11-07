@@ -10,7 +10,7 @@ A \emph{multiset} $\mset{\cdots}$ over a set $S$ is a multiplicity function $S\t
 \end{definition}
 
 \begin{definition}[Multilinear extension]\label{def:mle}
-A \emph{multilinear} is given by its $2^{\kappa}$ values on the boolean hypercube, a function $f:\cube{\kappa}\to\E$. Its \emph{multilinear extension} $\mle{f}:\E^{\kappa}\to\E$ is the unique polynomial of degree at most one in each variable agreeing with $f$ on $\cube{\kappa}$; we identify the two freely.
+A polynomial is \emph{multilinear} if it has degree at most one in each variable. Every $f:\cube{\kappa}\to\E$ has a unique multilinear $\mle{f}\in\E[X_1,\dots,X_\kappa]$ such that $\mle{f}(b)=f(b)$ for all $b\in\cube{\kappa}$: its \emph{multilinear extension}. We often write $f$ for $\mle{f}$.
 \end{definition}
 
 
