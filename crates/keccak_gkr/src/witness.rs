@@ -12,6 +12,7 @@ use primitives::hash::{RC, ROUNDS};
 use primitives::stream::Stream;
 
 use crate::keccak::{BITS, LANES, along, linear};
+use crate::rmfe::PACK_BITS;
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
@@ -69,9 +70,9 @@ impl Shape {
     pub const fn seg_log(&self) -> usize {
         self.segments().next_power_of_two().ilog2() as usize
     }
-    /// Variables of a pack index: the instance index without its low four bits.
+    /// Variables of a pack index: the instance index without the bits within a pack.
     pub(crate) const fn pack_vars(&self) -> usize {
-        self.n_log - 4
+        self.n_log - PACK_BITS
     }
     /// Variables the layer sumcheck binds: a pack, then a segment.
     pub(crate) const fn y_vars(&self) -> usize {

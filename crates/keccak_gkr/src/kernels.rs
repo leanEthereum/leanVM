@@ -1,4 +1,4 @@
-//! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
+//! The bit-level kernels of the layer prover, over one block position at a time: the packs of
 //! one bit position of one block.
 //!
 //! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
@@ -8,8 +8,8 @@
 use primitives::field::gf2_64::mul_wide;
 
 use crate::keccak::row_positions;
-use crate::rmfe::RMFE;
-use crate::witness::BLOCK_WORDS;
+use crate::rmfe::{PACK, RMFE};
+use crate::witness::{BLOCK, BLOCK_WORDS};
 
 cfg_select! {
     all(
@@ -42,11 +42,12 @@ cfg_select! {
 }
 
 /// Packs in a block position.
-pub(crate) const PACKS: usize = 32;
+pub(crate) const PACKS: usize = BLOCK / PACK;
 /// Packs the bit-level rounds fold together: half a block.
-pub const GROUP: usize = 16;
+pub const GROUP: usize = PACKS / 2;
 /// Variables indexing the packs of a group.
 pub(crate) const SKIP: usize = 4;
+const _: () = assert!(GROUP == 1 << SKIP, "a group is indexed by the skipped variables");
 /// Points of `{0, 1, infinity}^SKIP`, and those of them with a coordinate at infinity.
 pub(crate) const TERNARY: usize = 3usize.pow(SKIP as u32);
 pub(crate) const MIXED: usize = TERNARY - GROUP;
@@ -153,17 +154,18 @@ pub fn embed_extend_portable(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS])
     extend(&embed(words), out)
 }
 
-/// The 32 packs of a block position, embedded.
+/// The packs of a block position, embedded.
 #[inline(always)]
 pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
     simd::embed(words)
 }
 
 pub fn embed_portable(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
+    const { assert!(PACK == 16, "a pack is read as a 16-bit field, four to a word") };
     std::array::from_fn(|q| RMFE.embed((words[q / 4] >> (16 * (q % 4))) as u16))
 }
 
-/// The unprojected `chi` of 32 packs: `ones * (a + c) + b * c`.
+/// The unprojected `chi` of a block position's packs: `ones * (a + c) + b * c`.
 #[inline(always)]
 pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
     simd::products(a, b, c)
@@ -210,6 +212,10 @@ pub fn fold_groups_portable(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[
 /// Byte `k` of the embedding of each nibble of a pack: table `4 * k + n` is nibble `n`, low
 /// first. The vector forms without an affine byte map look an embedding up a nibble at a time.
 pub static NIBBLES: [[u8; 16]; 12] = {
+    assert!(
+        PACK == 16 && crate::rmfe::EMBED_BITS <= 24,
+        "four nibbles of a pack, three bytes of an embedding"
+    );
     let mut tables = [[0u8; 16]; 12];
     let mut i = 0;
     while i < 12 {
@@ -635,7 +641,7 @@ mod avx2 {
     use super::*;
     use crate::clmul::{V, Vector};
 
-    /// The 32 packs of a block position, embedded, four to a register.
+    /// The packs of a block position, embedded, four to a register.
     #[inline(always)]
     fn embed_vectors(words: &[u64; BLOCK_WORDS]) -> [__m128i; 8] {
         // SAFETY: the loads are of the tables and the eight words.
