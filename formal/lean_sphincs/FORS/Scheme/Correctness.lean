@@ -2,7 +2,8 @@ import FORS.Scheme.Pruning
 import FORS.Scheme.DigestView
 import FORS.Scheme.Landing
 
-/-! Signer/verifier correctness for every height and shape: every layer, every kept subtree. -/
+/-! Signer/verifier correctness for every height and shape, with the full key every configuration has
+(`Params.full`). -/
 
 open OracleComp
 
@@ -379,8 +380,8 @@ theorem eval_verifyLayers (secretKey : Seeded.SecretKey) (index : Index)
       rw [← habove]
       exact ih (by omega)
 
-/-- Every successful signature verifies under every fixed hash function, for every height, shape
-and pruning height. -/
+/-- Every successful signature verifies under every fixed hash function, for every height and
+shape. -/
 theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
     (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
@@ -417,7 +418,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
   rw [hwalk, ← hroot]
   simp
 
-/-- Every successful signature verifies under every fixed hash function, for any pruning height. -/
+/-- Every successful signature verifies under every fixed hash function. -/
 theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
     (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
@@ -428,7 +429,7 @@ theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signa
   exact verify_of_parts f secretKey message hroot (sign_spec f secretKey message h)
 
 /-- **Correctness.** Key generation supplies the root invariant used by `verify_of_sign`: every
-successful signature verifies, under every fixed hash function and every pruning height. -/
+successful signature verifies, under every fixed hash function. -/
 theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
     (message : Message) (signature : Signature)
     (hkey : evalWithAnswerFn f (Seeded.keygenFromSeed seed) = (publicKey, secretKey))

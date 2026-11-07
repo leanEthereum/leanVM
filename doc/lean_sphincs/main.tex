@@ -314,7 +314,7 @@ A one-time leaf takes $v$ calls of $\PRF$, $(2^w-1)v=192$ chain steps and $\math
   +\underbrace{d\,(v+T+1/p)}_{\text{WOTS$^+$C}}
   \approx5.25\cdot10^5,
 \]
-where a one-time signature takes $v$ calls of $\PRF$, $T$ chain steps and $1/p\approx14\,670.4$ expected one-permutation encoding attempts, with $p$ of Section~\ref{sec:completeness}. A signer may keep the top tree from key generation instead of rebuilding it.
+where a one-time signature takes $v$ calls of $\PRF$, $T$ chain steps and $1/p\approx14\,670.4$ expected one-permutation encoding attempts, with $p$ of Section~\ref{sec:completeness}.
 
 \section{Security}
 \label{sec:security}
@@ -322,7 +322,7 @@ where a one-time signature takes $v$ calls of $\PRF$, $T$ chain steps and $1/p\a
 Model $\keccak$ as one shared random oracle. In the strong-unforgeability game, a classical probabilistic adversary gets $\PK$, queries the oracle and adaptively requests signatures on at most $q_s$ messages of its choice, then returns $(M^*,\sigma^*)$; it wins exactly when $\Ver(\PK,M^*,\sigma^*)$ accepts and no signing request for $M^*$ returned $\sigma^*$. With $q$ bounding every oracle call of the game, including key generation, signing and the final verification, the target is a winning probability of at most $q/2^{127}$ for $q_s=2^{30}$.
 
 \paragraph{The Lean proof.}
-The Lean~4 theorem \texttt{FORS.h26\_layered} in \texttt{formal/lean\_sphincs/} proves this bound for $q_s=1\,182\,000\,000\approx2^{30.14}$. Its model fixes every hash input's bytes as this document does, checked against the implementation by reading both. Its $q$ counts the calls of its model signer, which recomputes some values the implementation's signer reuses.
+The Lean~4 theorem \texttt{FORS.h26\_layered} in \texttt{formal/lean\_sphincs/} proves this bound for $q_s=1\,182\,000\,000\approx2^{30.14}$. Its model fixes every hash input's bytes as this document does, checked against the implementation by reading both. Its $q$ counts the calls of its model signer, which never makes more than this document's signer, so the bound holds for it with the same $q$.
 
 \paragraph{Hash domains.}
 Distinct calls of one key never share an input. The unaddressed calls, $\PRFmsg$, those of $\Hmsg$ and the derivations of $\pkseed$ and $\skprf$, have inputs of 93, 84 and 44 bytes, which no addressed call has, its payload being 16, 20, 32, 384 or 1024 bytes; the two calls of $\Hmsg$, like the two derivations, differ in their last byte. An addressed input is $\pkseed$ then an address whose type word names the call (a FORS tree's height word telling its leaves from its nodes) and whose fields name its position. The secrets enter only the derivations, $\PRF$ and $\PRFmsg$, which the verifier never computes. The game has one key; across keys, calls differ in $\pkseed$, which two keys share with probability $2^{-128}$.

@@ -13,7 +13,8 @@ the top have one height (`lowerHeight`, at least 6); key generation builds the w
 * a FORS leaf is `F` of a secret, and every secret is one `PRF` call on `SK.seed`;
 * a tree is hashed up to its root, and the FORS public key is `T_k` of the `k` roots, the 16-byte
   message the bottom WOTS+C key signs;
-* the digest `H_msg` is `⌈m / 32⌉` calls on `R || PK.seed || PK.root || M' || BE_32(i)`, split as FIPS 205's
+* the digest `H_msg` is `⌈m / 32⌉` calls on `R || PK.seed || PK.root || M || BE_32(i)`, the message unframed
+  (only `PRF_msg` frames it as `M'`), split as FIPS 205's
   Algorithm 19: the FORS leaves read most significant bit first, then the tree index and the bottom
   leaf as big-endian integers;
 * an opening reveals, per tree, the secret of the selected leaf and its `a` auth nodes.
@@ -628,7 +629,7 @@ FIPS 205's digest layout these are FORS leaf bits, not the index (`digestIndex`)
 def blockIndex (first : HashOutput) : Index :=
   (first.extractLsb' 0 totalHeight).toFin
 
-/-- `H_msg(R, PK.seed, PK.root, M')`: the calls, read as FIPS 205's Algorithm 19 reads them. -/
+/-- `H_msg(R, PK.seed, PK.root, M)`: the calls, read as FIPS 205's Algorithm 19 reads them. -/
 def messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) : m MessageDigest := do
   let outputs ← sequenceFin fun call => messageDigestCall parameter root message randomness call
@@ -932,7 +933,8 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
 def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
   keygenFromSeed seed
 
-/-- One grinding attempt: the index read from the first digest call (`digest_index`). -/
+/-- One grinding attempt: whether the low `h` bits of the first digest call (`blockIndex`) land. They
+are FORS leaf bits, not the index, and a full key (`Params.full`) lands every value. -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     m (Option Index) := do
   let first ← messageDigestCall secretKey.parameter secretKey.root message randomness firstCall
@@ -995,10 +997,12 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) (step : Randomnes
       | some index => return some (randomness, index)
       | none => signDigestLoop secretKey message step attempts (randomness + step)
 
-/-- `Sign` (`slh_sign`, deterministic), with the Rust signer's hash calls: derive the randomizer `R`
-of the message (one hash), which a full key lands at first, compute the digest, open FORS and
-recover its public key from the opening, then from the bottom layer up sign the message of the
-layer below with WOTS+C, attach the path, and recover the root the layer above signs. -/
+/-- `Sign` (`slh_sign`, deterministic): derive the randomizer `R` of the message (one hash), which a
+full key lands at first, compute the digest, open FORS and recover its public key from the opening,
+then from the bottom layer up sign the message of the layer below with WOTS+C, attach the path, and
+recover the root the layer above signs. It returns the Rust signer's signature and, on every run,
+makes no more hash calls than the Rust signer, which is what carrying the bound over to the crate
+needs (`README.md`, "The signer's hash calls"); the calls themselves differ. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let walk ← deriveRandomizer secretKey.prf secretKey.parameter message
   let some (randomness, _) ← signDigestLoop secretKey message walk.2 digestAttemptLimit walk.1

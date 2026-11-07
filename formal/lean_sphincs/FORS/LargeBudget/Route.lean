@@ -181,7 +181,8 @@ def TargetingAll : Prop :=
     prepared ∈ support (preparation parameterOutput fixed highs remaining) →
     TargetingFor parameterOutput fixed highs remaining prepared
 
-/-- Every prepared sample has a targeting, at every pruning height `b ≥ 1`. -/
+/-- Every prepared sample has a targeting, given a top layer of positive kept height, which a full
+key (`Params.full`) always has. -/
 theorem targetingAll (hb : 0 < keptHeight topLayer) : TargetingAll := by
   intro parameterOutput fixed highs remaining prepared hprepared
   obtain ⟨tg, htrunc, hcompat, hmsg, hhit⟩ :=
