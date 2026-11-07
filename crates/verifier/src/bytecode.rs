@@ -1,7 +1,7 @@
 //! The program a proof is about, prepared once so that verifying many proofs of it hashes its table once.
 
 use crate::field::{E, ONE, ZERO, reduce};
-use crate::hash::{Digest, keccak_hash};
+use crate::hash::{Digest, Keccak256};
 use crate::layout::TAG;
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
@@ -38,6 +38,9 @@ struct Block {
 /// How many low coordinates one block of [`Bytecode::evaluate`] spans: their eq table stays in cache, and a block is long enough to amortize closing it.
 const BLOCK_LOG: usize = 14;
 
+/// How many words of the table one piece of the IV preimage holds: the preimage is hashed without being held whole.
+const IV_CHUNK_WORDS: usize = 512;
+
 /// The nonzero bytes of `word`, each as its bucket: which byte, times 256, plus its value.
 fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
     let bytes = word.to_le_bytes().into_iter().enumerate();
@@ -49,51 +52,71 @@ fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
 impl Bytecode {
     pub fn new(table: &[u64]) -> Self {
         let fiat_shamir_iv = {
-            let iv_preimage: Vec<u8> = TAG
-                .iter()
-                .copied()
-                .chain(table.iter().flat_map(|word| word.to_le_bytes()))
-                .collect();
-            keccak_hash(&iv_preimage)
+            let mut hasher = Keccak256::default();
+            hasher.update(TAG);
+            let mut bytes = [0u8; 8 * IV_CHUNK_WORDS];
+            for words in table.chunks(IV_CHUNK_WORDS) {
+                for (bytes, word) in bytes.as_chunks_mut().0.iter_mut().zip(words) {
+                    *bytes = word.to_le_bytes();
+                }
+                hasher.update(&bytes[..8 * words.len()]);
+            }
+            hasher.finalize()
         };
 
-        let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        let nonzero = table.iter().filter(|&&word| word != 0).count();
+        let (mut blocks, mut words, mut positions, mut bytes) =
+            (Vec::new(), Vec::new(), Vec::with_capacity(nonzero), Vec::new());
+        let mut members = Vec::with_capacity(1 << BLOCK_LOG);
+        let mut zeros: Vec<(u64, u16)> = Vec::with_capacity(1 << BLOCK_LOG);
         for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
-            let mut members = std::collections::BTreeMap::<u64, Vec<u16>>::new();
-            for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
-                members.entry(word).or_default().push(position as u16);
-            }
+            // Each nonzero word with its position, sorted: a run per distinct word, words and positions ascending.
+            members.clear();
+            members.extend(
+                block
+                    .iter()
+                    .enumerate()
+                    .filter(|&(_, &word)| word != 0)
+                    .map(|(position, &word)| (word, position as u16)),
+            );
             if members.is_empty() {
                 continue;
             }
+            members.sort_unstable();
             // Fewest positions first: the sum over a word's positions then runs one length many times over,
             // so its loop exit is predicted.
-            let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
-            members.sort_by_key(|(_, at)| at.len());
-            let mut used = std::collections::BTreeSet::new();
+            let mut runs: Vec<&[(u64, u16)]> = members.chunk_by(|a, b| a.0 == b.0).collect();
+            runs.sort_by_key(|run| run.len());
+            let mut used = [false; 8 * 256];
             // The zeros, listed as the word 0 whose buckets no block reads, stand in for a more frequent word.
-            let zeros: Vec<u16> = block
-                .iter()
-                .enumerate()
-                .filter(|&(_, &word)| word == 0)
-                .map(|(position, _)| position as u16)
-                .collect();
+            zeros.clear();
+            zeros.extend(
+                block
+                    .iter()
+                    .enumerate()
+                    .filter(|&(_, &word)| word == 0)
+                    .map(|(position, _)| (0, position as u16)),
+            );
             let mut complement = None;
-            if members.last().is_some_and(|(_, at)| at.len() > zeros.len()) {
-                let (word, _) = members.pop().expect("the block has a nonzero word");
-                used.extend(byte_buckets(word));
+            if let Some(run) = runs.pop_if(|run| run.len() > zeros.len()) {
+                let word = run[0].0;
+                for bucket in byte_buckets(word) {
+                    used[bucket as usize] = true;
+                }
                 complement = Some(word);
                 if !zeros.is_empty() {
-                    let at = members.partition_point(|(_, at)| at.len() < zeros.len());
-                    members.insert(at, (0, zeros));
+                    let at = runs.partition_point(|run| run.len() < zeros.len());
+                    runs.insert(at, &zeros);
                 }
             }
-            for (word, at) in members {
-                positions.extend(at);
-                words.push((word, positions.len()));
-                used.extend(byte_buckets(word));
+            for run in runs {
+                positions.extend(run.iter().map(|&(_, position)| position));
+                words.push((run[0].0, positions.len()));
+                for bucket in byte_buckets(run[0].0) {
+                    used[bucket as usize] = true;
+                }
             }
-            bytes.extend(used);
+            bytes.extend((0..).zip(used).filter_map(|(bucket, used)| used.then_some(bucket)));
             blocks.push(Block {
                 index,
                 words_end: words.len(),
