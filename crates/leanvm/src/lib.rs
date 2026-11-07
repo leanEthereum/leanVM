@@ -14,8 +14,8 @@ pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 /// LeanDA commitments. Blob symbols are `u64` words read in little-endian byte order.
 pub mod lean_da {
     pub use ::lean_da::{
-        BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, DaWitness,
-        commit,
+        BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS,
+        DaWitness, commit,
     };
 }
 
