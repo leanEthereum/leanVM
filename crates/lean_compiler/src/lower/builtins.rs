@@ -232,7 +232,7 @@ impl FnLower<'_> {
         out: Off,
     ) {
         let blocks = match final_len {
-            Some(len) => len as usize / RATE + 1,
+            Some(len) => primitives::hash::permutations(len as usize),
             None => (16 * cells.len()).div_ceil(RATE),
         };
         // Block `k` reads the nine cells from `17k / 2`.

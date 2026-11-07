@@ -260,16 +260,16 @@ theorem covers_h26_b26_ok : ForsPotential.checkCoversH 26 26 24 10 15166603264 1
   simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]
   exact ⟨cover_h26_b26_0_ok, by decide +kernel⟩
 
-/-! Height 26, layered (10 + 8 + 8), 1,182,000,000 signatures: the certificate of the height 26, full key, 1,182,000,000 signatures (table, small-route option, near certificate, cover tables and options), checked again only where the keygen credit `K = 231424` enters: the cover chains. -/
+/-! Height 26, layered (10 + 8 + 8), 1,182,000,000 signatures: the certificate of the height 26, full key, 1,182,000,000 signatures (table, small-route option, near certificate, cover tables and options), checked again only where the keygen credit `K = 264193` enters: the cover chains. -/
 
-theorem cover_h26_L_0_ok : checkCoverW 26 26 24 10 231424 1182000000 512487451133699472151040029945233409 cover_h26_b26_0 = true :=
+theorem cover_h26_L_0_ok : checkCoverW 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 cover_h26_b26_0 = true :=
   checkCoverW_of_pt [large_h26_b26_0_0_cB, large_h26_b26_0_1_cB, large_h26_b26_0_2_cB, large_h26_b26_0_3_cB, large_h26_b26_0_4_cB, large_h26_b26_0_5_cB, large_h26_b26_0_6_cB, large_h26_b26_0_7_cB, large_h26_b26_0_8_cB, large_h26_b26_0_9_cB, large_h26_b26_0_10_cB, large_h26_b26_0_11_cB, large_h26_b26_0_12_cB]
     (.cons large_h26_b26_0_0_ok <| .cons large_h26_b26_0_1_ok <| .cons large_h26_b26_0_2_ok <| .cons large_h26_b26_0_3_ok <| .cons large_h26_b26_0_4_ok <| .cons large_h26_b26_0_5_ok <| .cons large_h26_b26_0_6_ok <| .cons large_h26_b26_0_7_ok <| .cons large_h26_b26_0_8_ok <| .cons large_h26_b26_0_9_ok <| .cons large_h26_b26_0_10_ok <| .cons large_h26_b26_0_11_ok <| .cons large_h26_b26_0_12_ok <| .nil)
     tabc_h26_b26_0_ok
     (by decide +kernel)
 
 /-- The covers reach every budget below `2^127`. -/
-theorem covers_h26_L_ok : ForsPotential.checkCoversH 26 26 24 10 231424 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] [] = true := by
+theorem covers_h26_L_ok : ForsPotential.checkCoversH 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] [] = true := by
   simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]
   exact ⟨cover_h26_L_0_ok, by decide +kernel⟩
 

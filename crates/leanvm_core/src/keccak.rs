@@ -277,7 +277,7 @@ mod tests {
     /// block's parity, the last written even, hashes to its Keccak-256.
     #[test]
     fn layouts_absorb_a_message() {
-        use primitives::hash::{PAD_FIRST, PAD_LAST, RATE};
+        use primitives::hash::{PAD_FIRST, PAD_LAST, RATE, permutations};
         let s: [u64; STATE_LANES] = std::array::from_fn(|i| 0x1111 * (i as u64 + 1));
         for odd in [false, true] {
             let cells = cells_of_state(&s, odd);
@@ -285,7 +285,7 @@ mod tests {
         }
         for n in [0, 1, 64, 127, 135, 136, 137, 200, 271, 272, 300, 543, 1000] {
             let msg: Vec<u8> = (0..n).map(|i| (i * 7 + 3) as u8).collect();
-            let blocks = n / RATE + 1;
+            let blocks = permutations(n);
             let mut padded = msg.clone();
             padded.resize(blocks * RATE + 8, 0);
             padded[n] ^= PAD_FIRST;

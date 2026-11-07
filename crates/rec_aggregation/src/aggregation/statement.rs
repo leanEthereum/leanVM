@@ -37,7 +37,7 @@ pub(super) fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> 
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
-/// root and public parameter (`to_bytes`), then the message that pubkey signed.
+/// two halves (`to_bytes`), then the message that pubkey signed.
 fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> [F192; 4] {
     [
         pack_16_bytes(&pk[..16]),

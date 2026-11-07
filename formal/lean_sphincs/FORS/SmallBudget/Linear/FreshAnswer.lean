@@ -90,10 +90,11 @@ theorem cw_of_not_fe {s : St} {f : FIn} (h : ¬K.FE s f) : K.cw s f = 0 := by
   have h2 : ¬K.Lat s f := fun hl => h hl.1
   simp only [cw, h1, h2, if_false]
 
-/-- **Other inputs.** An input of no WOTS or FORS shape pays at most its first-order hazard. -/
+/-- **Other inputs.** An input of no WOTS or FORS shape (an encoding input of a message other than
+16 bytes is of none) pays at most its first-order hazard. -/
 theorem step_other (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (hi : K.initial x = none)
     (hAB : ∀ l, Retained K.p l → (∀ i, ¬K.IsA l i x) ∧ ∀ i v, ¬K.IsB l i v x)
-    (hE : ∀ l msg ctr, Retained K.p l → x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr)
+    (hE : ∀ l msg ctr, Retained K.p l → msg.length = 16 → x ≠ Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr)
     (hF : ∀ f : FIn, x ≠ f.input K.p) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤ K.pot y s + ν * K.kindUnit x := by
   have h := K.mean_store y hx 0 (fun t => (if ¬K.Bad s ∧ Fatal (K.tg.kind x) s.known t then 1 else 0) +
@@ -108,7 +109,7 @@ theorem step_other (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (h
     · rw [if_neg h1, if_neg (fun h => h1 h.2)]
   · set s' := s.store x u with hs'
     have hsame : ∀ l, Retained K.p l → K.SameLeaf s s' l := fun l hl =>
-      K.sameLeaf_store u hx hi l (hAB l hl).1 (hAB l hl).2 (fun msg ctr => hE l msg ctr hl)
+      K.sameLeaf_store u hx hi l (hAB l hl).1 (hAB l hl).2 (fun msg ctr hlen => hE l msg ctr hl hlen)
     obtain ⟨hW, hA, hC⟩ := K.wots_of_allSame hsame
     obtain ⟨-, hKF, -, hLt⟩ := K.fors_same_store u hx hi hF
     have hL : K.latent s' ≤ K.latent s + 0 := by rw [add_zero, hLt]
@@ -150,7 +151,7 @@ theorem step_fleaf (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (h
   · set s' := s.store x u with hs'
     set t := truncateHash u with ht
     have hsame : ∀ l, Retained K.p l → K.SameLeaf s s' l := fun l _ =>
-      K.sameLeaf_store u hx hi l (hnotA l) (hnotB l) (fun msg ctr he => enc_ne_fleaf (he.symm.trans hxF))
+      K.sameLeaf_store u hx hi l (hnotA l) (hnotB l) (fun msg ctr _ he => enc_ne_fleaf (he.symm.trans hxF))
     obtain ⟨hW, hA, hC⟩ := K.wots_of_allSame hsame
     have hRs : ∀ g, Recd s' g ↔ Recd s g := fun g => Iff.rfl
     have hfrg : ∀ (g : FIn) v, g ≠ f → (K.Fr s' (g.input K.p) v ↔ K.Fr s (g.input K.p) v) := fun g v hg => by
@@ -334,13 +335,14 @@ theorem step_A (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
       fun l' msg ctr => isA_ne_enc hA l' msg ctr
     have hnotF : ∀ f : FIn, x ≠ f.input K.p := isA_ne_fleaf hA
     have hsame : ∀ l', Retained K.p l' → l' ≠ l → K.SameLeaf s s' l' := fun l' _ hne =>
-      K.sameLeaf_store u hx hi l' (fun i' hA' => hne (isA_unique hA' hA).1) (hnotB l') (hnotE l')
+      K.sameLeaf_store u hx hi l' (fun i' hA' => hne (isA_unique hA' hA).1) (hnotB l')
+        (fun msg ctr _ => hnotE l' msg ctr)
     have hCB : ∀ i', K.ContactB s' l i' = K.ContactB s l i' := fun i' => by
       rw [K.contactB_store u hx hi]
       exact Set.union_eq_left.2 fun v hv => absurd hv.1 (hnotB l i' v)
     have hMk : ∀ i', K.Marker s' l i' ↔ K.Marker s l i' := fun i' => by
       rw [K.marker_store u hx hi]
-      exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, he⟩, _⟩ => hnotE l msg ctr he, Or.inl⟩
+      exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, _, he⟩, _⟩ => hnotE l msg ctr he, Or.inl⟩
     have hAA : ∀ i' w, w ∈ K.AAns s' l i' → w ∈ K.AAns s l i' ∨ (i' = i ∧ w = t) := fun i' w hw => by
       rw [K.aAns_store u hx hi] at hw
       split_ifs at hw with hA'
@@ -399,11 +401,11 @@ theorem ite_or_le (P : Prop) [Decidable P] (Q : ChainIndex → Prop) [DecidableP
 
 /-! ### Encoding inputs -/
 
-/-- **Encoding inputs at a retained key.** The first-order hit, a marker at a contacted chain, and
-the arming by a new marker. -/
+/-- **Encoding inputs at a retained key**, of a 16-byte message. The first-order hit, a marker at a
+contacted chain, and the arming by a new marker. -/
 theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none)
     (hi : K.initial x = none) {l : OtsKey} {msg : HashInput} {ctr : Counter} (hl : Retained K.p l)
-    (hxE : x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) :
+    (hlen : msg.length = 16) (hxE : x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤ K.pot y s + (ν * K.kindUnit x +
       ν * (if K.Bad s then 0 else 63 * ∑ i, (if (K.ContactB s l i).Nonempty then (1 : ℝ≥0∞) else 0)) +
       ν * (((y : ℝ≥0∞) * ν) * (if K.Armed s then 0 else 4032 * ENNReal.ofReal (2 - K.ρ)))) := by
@@ -450,7 +452,7 @@ theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.c
       enc_ne_fleaf (hxE.symm.trans he)
     have hsame : ∀ l', Retained K.p l' → l' ≠ l → K.SameLeaf s s' l' := fun l' _ hne =>
       K.sameLeaf_store u hx hi l' (hnotA l') (hnotB l')
-        (fun msg' ctr' he => hne (enc_inj (hxE.symm.trans he)).1.symm)
+        (fun msg' ctr' _ he => hne (enc_inj (hxE.symm.trans he)).1.symm)
     have hCB : ∀ i', K.ContactB s' l i' = K.ContactB s l i' := fun i' => by
       rw [K.contactB_store u hx hi]
       exact Set.union_eq_left.2 fun v hv => absurd hv.1 (hnotB l i' v)
@@ -458,7 +460,7 @@ theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.c
       rw [K.aAns_store u hx hi, if_neg (hnotA l i')]
     have hMk : ∀ i', K.Marker s' l i' ↔ K.Marker s l i' ∨ t ∈ K.markSet l i' := fun i' => by
       rw [K.marker_store u hx hi]
-      exact ⟨fun h => h.imp_right fun h' => h'.2, fun h => h.imp_right fun h' => ⟨⟨msg, ctr, hxE⟩, h'⟩⟩
+      exact ⟨fun h => h.imp_right fun h' => h'.2, fun h => h.imp_right fun h' => ⟨⟨msg, ctr, hlen, hxE⟩, h'⟩⟩
     have hmono : K.BadLeaf s l → K.BadLeaf s' l := K.badLeaf_store_of u hx hi
     have hbad : K.BadLeaf s' l → K.BadLeaf s l ∨ ∃ i, (K.ContactB s l i).Nonempty ∧ t ∈ K.markSet l i := by
       rintro (⟨i₀, hw⟩ | ⟨i₀, hne, hm⟩ | ⟨i₁, i₂, hne, h1, h2⟩)
@@ -547,12 +549,13 @@ theorem step_B (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cac
       fun l' msg ctr => isB_ne_enc hB l' msg ctr
     have hnotF : ∀ f : FIn, x ≠ f.input K.p := isB_ne_fleaf hB
     have hsame : ∀ l', Retained K.p l' → l' ≠ l → K.SameLeaf s s' l' := fun l' _ hne =>
-      K.sameLeaf_store u hx hi l' (hnotA l') (fun i' v' hB' => hne (isB_unique hB' hB).1) (hnotE l')
+      K.sameLeaf_store u hx hi l' (hnotA l') (fun i' v' hB' => hne (isB_unique hB' hB).1)
+        (fun msg ctr _ => hnotE l' msg ctr)
     have hAAeq : ∀ i', K.AAns s' l i' = K.AAns s l i' := fun i' => by
       rw [K.aAns_store u hx hi, if_neg (hnotA l i')]
     have hMk : ∀ i', K.Marker s' l i' ↔ K.Marker s l i' := fun i' => by
       rw [K.marker_store u hx hi]
-      exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, he⟩, _⟩ => hnotE l msg ctr he, Or.inl⟩
+      exact ⟨fun h => h.resolve_right fun ⟨⟨msg, ctr, _, he⟩, _⟩ => hnotE l msg ctr he, Or.inl⟩
     have hCBne : ∀ i', i' ≠ i → K.ContactB s' l i' = K.ContactB s l i' := fun i' hne => by
       rw [K.contactB_store u hx hi]
       exact Set.union_eq_left.2 fun w hw => absurd (isB_unique hw.1 hB).2.1 hne

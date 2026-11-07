@@ -30,7 +30,7 @@ pub mod lean_xmss {
 pub mod lean_sphincs {
     pub use signatures::lean_sphincs::{
         Digest, LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature,
-        LeanSphincsVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen,
+        LeanSphincsVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PkSeed, SEED_LEN, SIG_SIZE, Seed, key_gen,
         key_gen_from_seed, sign, verify,
     };
 }

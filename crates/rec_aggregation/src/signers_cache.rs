@@ -205,38 +205,27 @@ fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     (public_key, message, signature)
 }
 
-fn lean_sphincs_footprint() -> u64 {
-    let mut hasher = DefaultHasher::new();
-    SCHEMA_VERSION.hash(&mut hasher);
-    // The record layout and the per-signer messages, so a change to either
-    // invalidates the file rather than being read back as another scheme's.
-    LEAN_SPHINCS_RECORD.hash(&mut hasher);
-    lean_sphincs_message(0).hash(&mut hasher);
-    lean_sphincs_message(1).hash(&mut hasher);
-    (
-        lean_sphincs::SEED_LEN,
-        lean_sphincs::V,
-        lean_sphincs::W,
-        lean_sphincs::TARGET_SUM,
-        lean_sphincs::LAYER_HEIGHTS,
-        lean_sphincs::FORS_TREES,
-        lean_sphincs::FORS_HEIGHT,
-    )
-        .hash(&mut hasher);
-    // The key derivation and the tweakable hash, so a change to either
-    // invalidates the file.
-    lean_sphincs::public_param(&lean_sphincs::scheme_seed(&[0x11; lean_sphincs::SEED_LEN])).hash(&mut hasher);
-    lean_sphincs::th(
-        &[0xA5; lean_sphincs::PUBLIC_PARAM_LEN],
-        &lean_sphincs::tweak(1, 2, 3).step(4).at(2, 5),
-        &[0x3C; 16],
-    )
-    .hash(&mut hasher);
-    hasher.finish()
-}
-
+/// Keyed, as the leanXMSS cache is, by signer 0's key, message and signature, so any
+/// change to the scheme invalidates the file. Signing fans out, so this is computed
+/// once, outside any `parallel` task.
 fn lean_sphincs_cache_path() -> PathBuf {
-    cache_dir().join(format!("lean_sphincs_signers_{:016x}.bin", lean_sphincs_footprint()))
+    static PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    PATH.get_or_init(|| {
+        let (public_key, message, signature) = compute_lean_sphincs_signer(0);
+        let mut hasher = DefaultHasher::new();
+        (
+            SCHEMA_VERSION,
+            LEAN_SPHINCS_RECORD,
+            public_key,
+            message,
+            signature.to_bytes(),
+            // Signer 0's message has a zero index; signer 1's binds how it is encoded.
+            lean_sphincs_message(1),
+        )
+            .hash(&mut hasher);
+        cache_dir().join(format!("lean_sphincs_signers_{:016x}.bin", hasher.finish()))
+    })
+    .clone()
 }
 
 fn try_load_lean_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {

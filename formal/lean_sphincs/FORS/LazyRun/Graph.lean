@@ -60,7 +60,7 @@ def Address.outputCoordinate : Address → Coordinate
       .chain lay tree leaf chainIdx ⟨step.val + 1, by have := step.isLt; omega⟩
   | .fleaf index κ leaf => .fors index κ leaf 1
 
-/-- Only the retained WOTS chains and the FORS leaf rows are programmed for a pruned key. -/
+/-- Only the retained WOTS chains and the FORS leaf rows are programmed. -/
 def candidateActive (parameter : PublicParameter) (address : Address) : Prop :=
   PrunedGraph.active parameter address.position
 

@@ -128,6 +128,11 @@ theorem evalDist_seedFree_completion (adversary : Adversary) (q : Nat) (steps : 
   rw [evalDist_material_graph_continuation]
   apply evalDist_bind_congr'
   intro parameterOutput
+  rw [show (fun prf : HashOutput => sampleSplitPair >>= fun pair =>
+      ($ᵗ Eager.Table) >>= seedFreeRun adversary q steps ((parameterOutput, prf), pair.1) pair.2) =
+      fun _ => sampleSplitPair >>= fun pair =>
+        ($ᵗ Eager.Table) >>= seedFreeRun adversary q steps ((parameterOutput, 0), pair.1) pair.2 from rfl,
+    DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample _)]
   simp only [sampleSplitPair, bind_assoc, bind_map_left]
   rw [evalDist_mix_bind (truncateHash parameterOutput)]
   apply evalDist_bind_congr'

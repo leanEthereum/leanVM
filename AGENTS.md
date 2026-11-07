@@ -10,8 +10,8 @@ A minimal virtual machine and recursive SNARK for signature aggregation and blob
 ## Documents
 
 - `doc/leanvm/`: the LaTeX specification of the ISA and the SNARK. Build with `cd doc/leanvm && latexmk -pdf main.tex` (output in the gitignored `.build/`; if latexmk fails oddly after renaming inputs or editing `refs.bib`, delete `.build` and rerun). Sections are `body/01`..`10` plus annexes `a` (ring switching), `b` (PCS), `c` (Keccak by GKR) and `d` (novel basis and additive NTT); every symbol is defined once in `preamble/macros.tex`. Each section file's `% !TeX root` points at a driver in `drafts/`, so the editor's build key compiles just that section; run `make-drafts.sh` after adding, renaming or renumbering one.
-- `doc/lean_xmss/`, `doc/lean_sphincs/`: the specifications of the two signature schemes, implemented in `crates/signatures/src/lean_xmss` and `lean_sphincs`. leanXMSS has full keys only, plus `mock` keys (real over a short range of leaf indices) behind the `mock` feature, for the signers cache and tests. `crates/signatures/tests/signatures/ethlib/` vendors EthLib's leanXMSS and leanSPHINCS test vectors, both from one EthLib commit; refresh them with `ethlib/sync.sh <ethlib-commit>`. `crates/signatures/src/lean_sphincs/known_answer.hex` is a leanSPHINCS key and signature, from a scheme seed, that the crate must reproduce byte for byte.
-- `formal/lean_xmss/`, `formal/lean_sphincs/`: Lean 4 (VCVio) proofs of the schemes' 127-bit classical security in the random-oracle model. Their `Scheme.lean` models every hash input's bytes as the crate computes them, so changing any of them in the crate invalidates the proof. `lake exe cache get` once, then `lake build`.
+- `doc/lean_xmss/`, `doc/lean_sphincs/`: the specifications of the two signature schemes, implemented in `crates/signatures/src/lean_xmss` and `lean_sphincs`. leanXMSS has full keys only, plus `mock` keys (real over a short range of leaf indices) behind the `mock` feature, for the signers cache and tests. leanSPHINCS is SLH-DSA (FIPS 205) on Keccak-256 with WOTS+C, its own layer heights, a 32-byte `SK.seed` as the only secret and a counter-mode `H_msg`; the spec's first table lists every departure from FIPS 205. `crates/signatures/tests/signatures/ethlib/` vendors EthLib's leanXMSS test vectors; refresh them with `ethlib/sync.sh <ethlib-commit>`. `crates/signatures/src/lean_sphincs/known_answer.hex` is a leanSPHINCS key and signature, from a fixed `SK.seed`, that the crate must reproduce byte for byte.
+- `formal/lean_xmss/`, `formal/lean_sphincs/`: Lean 4 (VCVio) proofs of 127-bit classical security in the random-oracle model. Each `Scheme.lean` models every hash input's bytes as the crate computes them, so changing any of them in the crate invalidates the proof. `lake exe cache get` once, then `lake build`.
 - `crates/lean_compiler/zkDSL.md`: the zkDSL, a Python subset that compiles to the ISA.
 
 The one hash function is Ethereum's Keccak-256 (FIPS 202 but for the padding's first byte, `hash::PAD_FIRST`), in `primitives::hash`. The VM's `KECCAK` opcode, one permutation of a state held in thirteen memory cells (`keccak::cell_lanes`), is proven by `crates/keccak_gkr`: its crate docs describe the prover, Annex C the protocol.
@@ -70,7 +70,7 @@ Where a proof's time goes is the `tracing` span tree, and only that: `--tracing`
 
 ```bash
 cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
-cargo leanvm aggregate --sphincs 530 --log-inv-rate 1 --repeat 3
+cargo leanvm aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
 cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 cargo leanvm hash --log-n 17 --repeat 3     # the Keccak GKR alone, as keccak_gkr's `hash_batch`
 ```

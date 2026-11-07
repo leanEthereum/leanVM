@@ -3,39 +3,32 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 import Mathlib.Data.BitVec
 
 /-!
-# leanSPHINCS, FORS variant: FORS under a hypertree of WOTS+C keys
+# leanSPHINCS: SLH-DSA (FIPS 205) on Keccak-256 with WOTS+C
 
-The scheme has a height `h = totalHeight` (20, 22, 24, 26 or 28) and a shape (`Params`): one tree of
-height `h` of which the key keeps a subtree of `2^b` leaves (`numLayers = 1`, `b = subtreeHeight`,
-`b = h` being the full key), or a hypertree of `numLayers = d` layers whose layers below the top have
-one height (`lowerHeight`, at least 6) and whose key builds the top layer only (`b = h`). The few-time
-signature under every bottom leaf is **FORS** with `k = forsTrees` trees of height `a = forsHeight`:
+The scheme has a height `h = totalHeight` and a hypertree of `numLayers = d` layers whose layers below
+the top have one height (`lowerHeight`, at least 6); key generation builds the whole top layer
+(`subtreeHeight = h`, `Params.full`). The few-time signature under every bottom leaf is **FORS** with
+`k = forsTrees` trees of height `a = forsHeight`, as FIPS 205 has it:
 
-* a FORS leaf is the hash of a secret; one hash of the seed gives the secrets of leaves `2t` and
-  `2t + 1` (its two 16-byte halves);
-* a tree is hashed up to level `a - 1` only: its two level-`(a - 1)` nodes `t_κ[0]`, `t_κ[1]` are not
-  hashed into a root. The FORS key is the `2k` nodes `t_0[0], t_0[1], ..., t_{k-1}[1]` themselves, the
-  message the bottom WOTS+C key signs: no hash folds them, and the WOTS+C encoding absorbs them;
-* the digest is `h + k a` bits, the index then the `k` leaf indices, read from the concatenation of
-  `⌈(h + k a) / 256⌉` digest calls, which differ by their address; the index is in call 0;
-* an opening reveals, per tree, the secret of the selected leaf and its `a` auth nodes. The last auth
-  node of a tree is its other top node: the verifier folds all levels but the last and orders the two
-  top nodes by index.
+* a FORS leaf is `F` of a secret, and every secret is one `PRF` call on `SK.seed`;
+* a tree is hashed up to its root, and the FORS public key is `T_k` of the `k` roots, the 16-byte
+  message the bottom WOTS+C key signs;
+* the digest `H_msg` is `⌈m / 32⌉` calls on `R || PK.seed || PK.root || M' || BE_32(i)`, split as FIPS 205's
+  Algorithm 19: the FORS leaves read most significant bit first, then the tree index and the bottom
+  leaf as big-endian integers;
+* an opening reveals, per tree, the secret of the selected leaf and its `a` auth nodes.
 
-At every layer a WOTS+C key (64 chains of length 4, target sum 128) signs the message of the layer
-below: the FORS key at the bottom layer, the 16-byte root of the tree below at a layer above.
-Layers are numbered from the top (`topLayer = 0`), as in leanVM. Key generation first hashes the
-key's seed `S0` into the scheme seed `S = H(leanSPHINCS || S0)`, from which everything else derives.
-Every other hash input is `P || A || payload`: the 16-byte public parameter, then the 16-byte
-address of the call (a 32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain
-step, one byte for the layer counted from the bottom, 4 bytes for the tree, then 3 zero bytes), so
-the payload starts at byte 32.
-FORS hashes use types 14 (secret derivation), 15 (leaf) and 17 (node), with the instance `idx` in
-`lo` and the tree and position in `hi`. The message digest hashes `m || rho` (the root is not hashed:
-`P` binds the key) and the randomizer base `S || m`.
+At every layer a WOTS+C key (64 chains of length 4, target sum 128) signs the 16-byte message of the
+layer below: the FORS public key at the bottom layer, the root of the tree below at a layer above.
+Layers are numbered from the top (`topLayer = 0`), as in leanVM. The secret key is a 32-byte seed
+`SK.seed`, which is also FIPS 205's `SK.seed`: `PK.seed = Trunc_16(H(leanSPHINCS || SK.seed || 0))` and
+`SK.prf = H(leanSPHINCS || SK.seed || 1)`. An addressed hash input is `PK.seed || ADRS || payload`, ADRS
+being FIPS 205's 32-byte address of eight big-endian words: layer, three words of tree, type, key pair,
+chain or height, hash or index. The randomizer is `R = Trunc_16(H(SK.prf || PK.seed || M'))`, with
+`M' = 0x00 || 11 || leanSPHINCS || M`.
 
-The model is one random oracle on these inputs; as for the forest, the statements cover the three
-hashes and only the costs depend on the hash.
+The model is one random oracle on these inputs; only the costs depend on the hash
+(`Scheme/VerificationCost.lean`).
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -60,9 +53,9 @@ def encodingAttemptLimit : Nat := 2 ^ 32
 
 /-- The key's shape and lifetime. The index has `totalHeight = h` bits. The key is a hypertree of
 `numLayers = d` layers, every layer below the top one of height `lowerHeight ≥ 6` (`d = 1` is one
-tree of height `h`). Its top layer keeps a subtree: the kept instances are the `2^subtreeHeight`
-indices that land in it (`subtreeHeight = h` keeps them all: a full or a layered key). The key signs
-at most `signatureLimit` messages. -/
+tree of height `h`). Key generation builds the whole top layer (`full`: `subtreeHeight = h`), so every
+index lands and the kept subtree of the model's signer is the whole top tree. The key signs at most
+`signatureLimit` messages. -/
 class Params where
   totalHeight : Nat
   numLayers : Nat
@@ -84,39 +77,16 @@ class Params where
   below_le : lowerHeight * (numLayers - 1) ≤ subtreeHeight
   subtreeHeight_le : subtreeHeight ≤ totalHeight
   forsTrees_pos : 0 < forsTrees
-  /-- The tree fits the 6 bits of the address field `hi` that hold it. -/
+  /-- The trees' node indices fit their address word (`forsTreeIndex`). -/
   forsTrees_le : forsTrees ≤ 64
-  /-- A tree has two top nodes below its root. -/
+  /-- A tree has at least two levels. -/
   forsHeight_ge : 2 ≤ forsHeight
-  /-- A level and a node of a tree fit the rest of `hi`. -/
+  /-- A tree's node indices fit their address word. -/
   forsHeight_le : forsHeight ≤ 12
+  /-- Key generation builds the whole top layer: every index lands. -/
+  full : subtreeHeight = totalHeight
 
 export Params (totalHeight numLayers forsTrees forsHeight lowerHeight subtreeHeight signatureLimit)
-
-/-- A **pruned key** (`numLayers = 1`): one tree of height `h` whose key generation builds the
-subtree of height `b` that the public parameter places (`b = h`: the **full key**), with FORS of `k`
-trees of height `a`, for at most `N` signatures. With one layer `lowerHeight` is not used; it is set
-to 6. -/
-abbrev Params.pruned (h b k a N : Nat) (hh : h ≤ 28 := by decide) (h6 : 6 ≤ h := by decide)
-    (hb : b ≤ h := by decide) (hk : 0 < k := by decide) (hk' : k ≤ 64 := by decide)
-    (ha : 2 ≤ a := by decide) (ha' : a ≤ 12 := by decide) : Params where
-  totalHeight := h
-  numLayers := 1
-  forsTrees := k
-  forsHeight := a
-  lowerHeight := 6
-  subtreeHeight := b
-  signatureLimit := N
-  numLayers_pos := Nat.one_pos
-  lowerHeight_ge := Nat.le_refl 6
-  lower_le := h6
-  totalHeight_le := hh
-  below_le := Nat.zero_le b
-  subtreeHeight_le := hb
-  forsTrees_pos := hk
-  forsTrees_le := hk'
-  forsHeight_ge := ha
-  forsHeight_le := ha'
 
 /-- A **layered key**: a hypertree of `d` layers and height `h` whose layers below the top have
 height `ℓ` (the top layer has the rest, `h - ℓ (d - 1)`); key generation builds the whole top layer
@@ -141,6 +111,7 @@ abbrev Params.layered (h d ℓ k a N : Nat) (hd : 0 < d := by decide) (hℓ : 6 
   forsTrees_le := hk'
   forsHeight_ge := ha
   forsHeight_le := ha'
+  full := rfl
 
 variable [Params]
 
@@ -164,8 +135,6 @@ abbrev TreeIndex := Fin (2 ^ totalHeight)
 /-- `e`, a leaf of a tree. Layer `lay` only uses the values below `2^layerHeight lay`. -/
 abbrev LeafIndex := Fin (2 ^ maxLayerHeight)
 abbrev ChainIndex := Fin numChains
-/-- A pair of chains `(2t, 2t + 1)` of a one-time key, `t < 32`: one seed derivation. -/
-abbrev ChainPair := Fin 32
 abbrev Digit := Fin chainLength
 abbrev ChainStep := Fin (chainLength - 1)
 abbrev Encoding := ChainIndex → Digit
@@ -177,13 +146,10 @@ abbrev HashInput := List UInt8
 abbrev FTree := Fin forsTrees
 /-- A leaf, or a node index at any level, of a FORS tree. -/
 abbrev FLeaf := Fin (2 ^ forsHeight)
-/-- A pair of leaves `(2t, 2t + 1)` of a FORS tree: one seed derivation. -/
-abbrev FPair := Fin (2 ^ (forsHeight - 1))
-/-- A level of a FORS tree that is hashed, `1 .. a - 1`, as `level - 1`; `Fin forsHeight` also
-names level `a`, whose address no algorithm uses. -/
+/-- A level of a FORS tree that is hashed, `1 .. a`, as `level - 1`: level `a` is the root. -/
 abbrev FLevel := Fin forsHeight
 
-/-- The height of a layer: `h - 6 (d - 1)` at the top, 6 below. -/
+/-- The height of a layer: `maxLayerHeight` at the top, `lowerHeight` below. -/
 def layerHeight (lay : Layer) : Nat := if lay.val = 0 then maxLayerHeight else lowerHeight
 
 def topLayer : Layer := ⟨0, Params.numLayers_pos⟩
@@ -191,55 +157,59 @@ def topLayer : Layer := ⟨0, Params.numLayers_pos⟩
 /-- `sum_{j > lay} h_j`, the index bits below layer `lay`. -/
 def heightBelow (lay : Layer) : Nat := lowerHeight * (numLayers - 1 - lay.val)
 
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
+/-- The first 16 bytes of a hash output (`bytesLE 32` lays it out): its low 128 bits. -/
 def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
 
-/-- The second 16 bytes of a hash output (bytes 16 to 31). The seed derivations of chain starts and
-FORS secrets and the step of the randomizer walk use them. -/
+/-- The second 16 bytes of a hash output (bytes 16 to 31): the step of the randomizer walk, which a
+full key never takes. -/
 def upperHash (output : HashOutput) : Digest :=
   output.extractLsb' digestBits digestBits
 
-/-- The half of a hash output for chain or FORS leaf `n`: the first for even `n`, the second for odd `n`. -/
-def hashHalf (n : Nat) (output : HashOutput) : Digest :=
-  if n % 2 = 0 then truncateHash output else upperHash output
+/-! ### The message digest: FIPS 205's split of `m` bytes from `⌈m / 32⌉` calls -/
 
-/-! ### The message digest: `h + k a` bits from `⌈(h + k a) / 256⌉` calls -/
-
-/-- The message digest is `h + k a` bits: an index and the `k` leaf indices. -/
+/-- The digest's fields: an index and the `k` leaf indices, `h + k a` bits. -/
 def messageDigestBits : Nat := totalHeight + forsTrees * forsHeight
 
-/-- The number of digest calls: `⌈(h + k a) / 256⌉`. -/
-def digestCalls : Nat := (messageDigestBits + hashOutputBits - 1) / hashOutputBits
+/-- The height of the bottom layer, whose leaf is the digest's last field. -/
+def bottomHeight : Nat := layerHeight ⟨numLayers - 1, Nat.sub_lt Params.numLayers_pos Nat.one_pos⟩
+
+/-- FIPS 205's Algorithm 19: the bytes of the FORS leaves, of the tree index and of the bottom leaf,
+whose total is `m`. -/
+def mdBytes : Nat := (forsTrees * forsHeight + 7) / 8
+def treeIndexBytes : Nat := (totalHeight - bottomHeight + 7) / 8
+def leafIndexBytes : Nat := (bottomHeight + 7) / 8
+def digestBytes : Nat := mdBytes + treeIndexBytes + leafIndexBytes
+
+/-- The number of `H_msg` calls: `⌈m / 32⌉`. -/
+def digestCalls : Nat := (digestBytes + 31) / 32
 
 theorem digestCalls_pos : 0 < digestCalls := by
   have hk := Params.forsTrees_pos
   have ha := Params.forsHeight_ge
-  unfold digestCalls messageDigestBits hashOutputBits
-  have : 1 ≤ forsTrees * forsHeight := Nat.one_le_iff_ne_zero.mpr (by positivity)
+  have : 2 ≤ forsTrees * forsHeight := le_trans ha (Nat.le_mul_of_pos_left _ hk)
+  unfold digestCalls digestBytes mdBytes
   omega
 
 /-- A digest call. -/
 abbrev DigestCall := Fin digestCalls
 
-/-- The first digest call, which holds the index. -/
+/-- The first digest call. -/
 def firstCall : DigestCall := ⟨0, digestCalls_pos⟩
 
+/-- The digest's fields, packed least significant first: the index in the low `h` bits, then the
+leaf of tree `κ` at bit `h + a κ`. -/
 abbrev MessageDigest := BitVec messageDigestBits
 
 /-- The outputs of the digest calls as one number, call 0 in the low 256 bits. -/
 def digestValue (outputs : DigestCall → HashOutput) : Nat :=
   ∑ call : DigestCall, (outputs call).toNat * 2 ^ (hashOutputBits * call.val)
 
-/-- The first `h + k a` bits of the concatenated calls. -/
-def truncateMessageDigest (outputs : DigestCall → HashOutput) : MessageDigest :=
-  BitVec.ofNat messageDigestBits (digestValue outputs)
+/-- The FORS key of an instance: the roots of its `k` trees, which `T_k` compresses into the FORS
+public key (`Concrete.forsPublicKey`). -/
+abbrev ForsKey := FTree → Digest
 
-/-- The FORS key of an instance: the two level-`(a - 1)` nodes of every tree, `(t_κ[0], t_κ[1])`. It
-is not hashed: the WOTS+C encoding absorbs the `2k` nodes (`Concrete.encode`). -/
-abbrev ForsKey := FTree → Digest × Digest
-
-/-- `pk = (root, P)`. -/
+/-- `pk = PK.seed || PK.root`, `parameter` being `PK.seed`. -/
 structure PublicKey where
   root : Digest
   parameter : PublicParameter
@@ -271,48 +241,90 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/signatures`): its type `tag < 32`, a chain step
-`step < 8`, the layer (counted from the bottom) and the tree, and two fields `hi < 2^24` and
-`lo < 2^32`. -/
+/-- Serialize a bit vector into a fixed number of bytes, most significant byte first: FIPS 205's
+`toByte`, for the address words and the counters. -/
+def bytesBE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
+  List.ofFn fun index : Fin byteCount =>
+    UInt8.ofBitVec (value.extractLsb' (8 * (byteCount - 1 - index.val)) 8)
+
+/-! ### Reading the digest (FIPS 205 Algorithm 19) -/
+
+/-- The bytes of the digest calls, call 0 first, each in Keccak's output order. -/
+def digestOutputBytes (outputs : DigestCall → HashOutput) : List UInt8 :=
+  (List.ofFn fun call => bytesLE 32 (outputs call)).flatten
+
+/-- Bit `p` of a byte string read most significant bit first, as `base_2b` reads it. -/
+def msbBit (bytes : List UInt8) (p : Nat) : Nat :=
+  (bytes.getD (p / 8) 0).toNat / 2 ^ (7 - p % 8) % 2
+
+/-- The `width` bits from bit `offset`, most significant first: one value of `base_2b`. -/
+def msbField (bytes : List UInt8) (offset width : Nat) : Nat :=
+  (List.range width).foldl (fun value j => 2 * value + msbBit bytes (offset + j)) 0
+
+/-- `toInt`: a big-endian integer. -/
+def beInt (bytes : List UInt8) : Nat :=
+  bytes.foldl (fun value byte => 256 * value + byte.toNat) 0
+
+/-- The index of a digest: the tree index of its middle bytes, then the bottom leaf of its last
+bytes, each cut to its bits. -/
+def digestIndexValue (bytes : List UInt8) : Nat :=
+  beInt ((bytes.drop mdBytes).take treeIndexBytes) % 2 ^ (totalHeight - bottomHeight) * 2 ^ bottomHeight +
+    beInt ((bytes.drop (mdBytes + treeIndexBytes)).take leafIndexBytes) % 2 ^ bottomHeight
+
+/-- The digest's fields packed as `MessageDigest` lays them out: the index, then each tree's leaf,
+`base_2b(md, a, k)`. -/
+def digestFieldsValue (bytes : List UInt8) : Nat :=
+  digestIndexValue bytes +
+    ∑ κ : FTree, msbField bytes (forsHeight * κ.val) forsHeight * 2 ^ (totalHeight + forsHeight * κ.val)
+
+/-- The fields of the digest calls. -/
+def truncateMessageDigest (outputs : DigestCall → HashOutput) : MessageDigest :=
+  BitVec.ofNat messageDigestBits (digestFieldsValue (digestOutputBytes outputs))
+
+/-- FIPS 205's address `ADRS` (`Adrs` in `crates/signatures`): the layer, counted from the bottom, the
+tree, the type `tag`, the key pair, the chain or height, and the hash address or tree index. -/
 structure TweakFields where
-  tag : BitVec 5
-  step : BitVec 3
-  layer : BitVec 8
-  tree : BitVec 32
-  hi : BitVec 24
-  lo : BitVec 32
+  layer : BitVec 32
+  tree : BitVec 96
+  tag : BitVec 32
+  keyPair : BitVec 32
+  height : BitVec 32
+  index : BitVec 32
 deriving DecidableEq
 
-/-- The 16 address bytes `lo || hi || (tag + 32 * step) || layer || tree || 0^3`: `lo` on 4 bytes,
-`hi` on 3 bytes, the type byte, the layer byte, `tree` on 4 bytes, each least significant byte
-first, then 3 zero bytes. -/
+/-- The 32 address bytes: eight big-endian words, the tree taking three. -/
 def fieldBytes (fields : TweakFields) : HashInput :=
-  bytesLE 4 fields.lo ++ bytesLE 3 fields.hi ++ bytesLE 1 (fields.step ++ fields.tag) ++
-    bytesLE 1 fields.layer ++ bytesLE 4 fields.tree ++ bytesLE 3 0
+  bytesBE 4 fields.layer ++ bytesBE 12 fields.tree ++ bytesBE 4 fields.tag ++ bytesBE 4 fields.keyPair ++
+    bytesBE 4 fields.height ++ bytesBE 4 fields.index
 
-/-- Convert the integer fields of an address outside the hypertree (layer and tree 0). -/
-def tweakFields (tag step hi lo : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, 0, 0, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
+/-- An address from its integer fields. -/
+def tweakFields (tag layer tree keyPair height index : Nat) : TweakFields :=
+  ⟨BitVec.ofNat 32 layer, BitVec.ofNat 96 tree, BitVec.ofNat 32 tag, BitVec.ofNat 32 keyPair,
+    BitVec.ofNat 32 height, BitVec.ofNat 32 index⟩
 
-/-- The layer byte of layer `lay`: the layers are counted from the bottom on the wire. -/
+/-- The layer word of layer `lay`: the layers are counted from the bottom on the wire. -/
 def layerByte (lay : Layer) : Nat := numLayers - 1 - lay.val
 
-/-- Convert the integer fields of an address in tree `tree` of layer `lay`. -/
-def treeFields (tag step : Nat) (lay : Layer) (tree : TreeIndex) (hi lo : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 8 (layerByte lay), BitVec.ofNat 32 tree.val,
-    BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
+/-- An address in tree `tree` of layer `lay`. -/
+def treeFields (tag : Nat) (lay : Layer) (tree : TreeIndex) (keyPair height index : Nat) : TweakFields :=
+  tweakFields tag (layerByte lay) tree.val keyPair height index
 
 /-! ### FORS addresses -/
 
-/-- `κ + 64 p`, a position `p` of tree `κ` of the instance. -/
-def forsSlot (κ : FTree) (position : Nat) : Nat := κ.val + 64 * position
+/-- The address of instance `idx` of type `tag`: the bottom layer, the bottom key's tree, its leaf as
+the key pair (`fors_adrs`). -/
+def forsFields (tag : Nat) (index : Index) (height treeIdx : Nat) : TweakFields :=
+  tweakFields tag 0 (index.val / 2 ^ bottomHeight) (index.val % 2 ^ bottomHeight) height treeIdx
 
-/-- The position of node `node` at level `level` of a tree: `level + 16 node`. -/
-def nodePosition (level node : Nat) : Nat := level + 16 * node
+/-- The tree index of node `node` at height `height` of tree `κ`: FIPS 205's `κ 2^(a - height) + node`,
+counting across the trees. A node index past its tree's width, which no algorithm computes, is placed
+above `2^31`, so that every position has its own address. -/
+def forsTreeIndex (κ : FTree) (height node : Nat) : Nat :=
+  if node < 2 ^ (forsHeight - height) then κ.val * 2 ^ (forsHeight - height) + node
+  else 2 ^ 31 + κ.val * 2 ^ 12 + node
 
 /-- The verification hash domains. Seed derivation uses `KeygenDomain`. A `forsNode` at `level` is the
-node of FORS tree level `level + 1`: the scheme hashes levels 1 to `a - 1`, and the address of a
-tree's root exists and no algorithm uses it. -/
+node of FORS tree level `level + 1`; at the last level, the tree's root. -/
 inductive HashDomain where
   | chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chainIdx : ChainIndex) (step : ChainStep)
   | leaf (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -320,85 +332,74 @@ inductive HashDomain where
   | encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
   | forsLeaf (index : Index) (κ : FTree) (leaf : FLeaf)
   | forsNode (index : Index) (κ : FTree) (level : FLevel) (node : FLeaf)
-  | message (call : DigestCall)
+  | forsRoots (index : Index)
 deriving DecidableEq
 
-/-- The address of a hash domain: types `TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`, FORS types 15 and
-17. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the node level); a chain
-step carries its step. In a FORS instance `lo` is `idx` and `hi` packs the tree, the level and the
-node, `κ + 64 (level + 16 node)` (a leaf: `κ + 64 leaf`). A
-hash of the hypertree carries its layer and its tree; a digest call carries its number in `hi`. -/
+/-- The address of a hash domain, with FIPS 205's types: `WOTS_HASH = 0` (the chain and the position
+a step leaves), `WOTS_PK = 1`, `TREE = 2` (the height and the node index), `FORS_TREE = 3` (the height
+and the tree index), `FORS_ROOTS = 4`, and WOTS+C's encoding, `7`. -/
 def hashDomainFields : HashDomain → TweakFields
-  | .chain lay tree leaf chainIdx step => treeFields 1 step lay tree chainIdx leaf
-  | .leaf lay tree leaf => treeFields 2 0 lay tree 0 leaf
-  | .node lay tree level nodeIdx => treeFields 3 0 lay tree level nodeIdx
-  | .encoding lay tree leaf => treeFields 4 0 lay tree 0 leaf
-  | .forsLeaf index κ leaf => tweakFields 15 0 (forsSlot κ leaf.val) index
-  | .forsNode index κ level node => tweakFields 17 0 (forsSlot κ (nodePosition (level.val + 1) node.val)) index
-  | .message call => tweakFields 12 0 call.val 0
+  | .chain lay tree leaf chainIdx step => treeFields 0 lay tree leaf chainIdx step
+  | .leaf lay tree leaf => treeFields 1 lay tree leaf 0 0
+  | .node lay tree level nodeIdx => treeFields 2 lay tree 0 level nodeIdx
+  | .encoding lay tree leaf => treeFields 7 lay tree leaf 0 0
+  | .forsLeaf index κ leaf => forsFields 3 index 0 (forsTreeIndex κ 0 leaf.val)
+  | .forsNode index κ level node =>
+      forsFields 3 index (level.val + 1) (forsTreeIndex κ (level.val + 1) node.val)
+  | .forsRoots index => forsFields 4 index 0 0
 
-/-- The exact 16 address bytes of a hash domain. -/
+/-- The exact 32 address bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
   fieldBytes (hashDomainFields domain)
 
-/-- The random-oracle input `P || A || payload` of every tweakable hash call and of the message
-digest. -/
+/-- The random-oracle input `PK.seed || ADRS || payload` of every tweakable hash call. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   bytesLE 16 parameter ++ tweakBytes domain ++ message
 
-/-- `P || A(7, 0, 0) || S || m` (`TWEAK_RANDOMIZER = 7`): the randomizer base of a message. -/
-def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
-    (message : Message) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes ⟨7#5, 0#3, 0#8, 0#32, 0#24, 0#32⟩ ++
-    bytesLE 32 seed ++ bytesLE 32 message
-
-/-- The pair of chains a chain of a one-time key belongs to. -/
-def chainPair (chain : ChainIndex) : ChainPair :=
-  ⟨chain.val / 2, by have h : chain.val < 64 := chain.isLt; omega⟩
-
-/-- The pair of leaves a leaf of a FORS tree belongs to. -/
-def leafPair (leaf : FLeaf) : FPair :=
-  ⟨leaf.val / 2, by
-    have h := leaf.isLt
-    have ha := Params.forsHeight_ge
-    have : 2 ^ forsHeight = 2 * 2 ^ (forsHeight - 1) := by
-      rw [← Nat.pow_succ']; congr 1; omega
-    omega⟩
-
-/-- The seed derivations, one hash each. `ots` gives the starts of chains `2t` and `2t + 1` of the
-one-time key at a leaf, `fors` the secrets of leaves `2t` and `2t + 1` of tree `κ` of instance `idx`:
-the two 16-byte halves of the hash. The parameter and a surrogate are the first 16 bytes of their
-hash. -/
+/-- The seed derivations: `ots` gives the start of one chain of the one-time key at a leaf
+(`WOTS_PRF = 5`), `fors` the secret of one leaf of tree `κ` of instance `idx` (`FORS_PRF = 6`), and
+`surrogate`, a sibling above the kept subtree, which no key of `Params` computes, has a type of its own. -/
 inductive KeygenDomain where
-  | parameter
-  | ots (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (pair : ChainPair)
-  | fors (index : Index) (κ : FTree) (pair : FPair)
+  | ots (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex)
+  | fors (index : Index) (κ : FTree) (leaf : FLeaf)
   | surrogate (level : Fin maxLayerHeight)
 deriving DecidableEq
 
-/-- `TWEAK_PARAMETER = 5`, `TWEAK_PRF = 0` (`hi` the pair of chains, `lo` the leaf, with the layer
-and the tree),
-type 14 for a FORS secret pair (`hi` the tree and the pair of leaves, `lo = idx`), `TWEAK_SURROGATE = 13`
-(`hi` the level). -/
 def keygenDomainFields : KeygenDomain → TweakFields
-  | .parameter => tweakFields 5 0 0 0
-  | .ots lay tree leaf pair => treeFields 0 0 lay tree pair leaf
-  | .fors index κ pair => tweakFields 14 0 (forsSlot κ pair.val) index
-  | .surrogate level => tweakFields 13 0 level 0
+  | .ots lay tree leaf chain => treeFields 5 lay tree leaf chain 0
+  | .fors index κ leaf => forsFields 6 index 0 (forsTreeIndex κ 0 leaf.val)
+  | .surrogate level => tweakFields 8 0 0 0 level 0
 
 /-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS`. -/
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
 
-/-- `leanSPHINCS || S0` (`scheme_seed`), 43 bytes: its hash is the scheme seed `S`, the seed every
-other input derives from. It has no parameter and no address. -/
-def schemeSeedInput (seed : MasterSeed) : HashInput :=
-  seedTag ++ bytesLE 32 seed
+/-- `leanSPHINCS || SK.seed || domain`, 44 bytes: domain `0` gives `PK.seed`, its first 16 bytes, and
+domain `1` gives `SK.prf`, all 32 (`expand_key`). It has no parameter and no address. -/
+def keySeedInput (seed : MasterSeed) (domain : Nat) : HashInput :=
+  seedTag ++ bytesLE 32 seed ++ [UInt8.ofNat domain]
 
-/-- `P || A || S`; parameter derivation uses `P = 0`. -/
+/-- `PRF(PK.seed, SK.seed, ADRS)`'s input, `PK.seed || ADRS || SK.seed`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
   bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
+
+/-- `M' = 0x00 || 11 || leanSPHINCS || M`, pure SLH-DSA's framing of the message under the context
+`leanSPHINCS` (FIPS 205 Algorithms 22 and 24), 45 bytes. -/
+def framedMessage (message : Message) : HashInput :=
+  [0x00, 0x0b] ++ seedTag ++ bytesLE 32 message
+
+/-- `PRF_msg(SK.prf, PK.seed, M')`'s input, `SK.prf || PK.seed || M'`, 93 bytes: the randomizer of a
+message. -/
+def randomizerHashInput (prf : HashOutput) (parameter : PublicParameter) (message : Message) : HashInput :=
+  bytesLE 32 prf ++ bytesLE 16 parameter ++ framedMessage message
+
+/-- Call `call` of `H_msg(R, PK.seed, PK.root, M)`: `R || PK.seed || PK.root || M || BE_32(call)`,
+84 bytes, the 32-byte message unframed. -/
+def messageDigestInput (parameter : PublicParameter) (root : Digest) (message : Message)
+    (randomness : Randomness) (call : DigestCall) : HashInput :=
+  bytesLE 16 randomness ++ bytesLE 16 parameter ++ bytesLE 16 root ++ bytesLE 32 message ++
+    bytesBE 4 (BitVec.ofNat 32 call.val)
 
 /-! ### The target-sum code
 
@@ -416,8 +417,9 @@ def Valid (x : Encoding) : Prop := sum x = targetSum
 instance : DecidablePred Valid :=
   fun x => inferInstanceAs (Decidable (sum x = targetSum))
 
-/-- Offset of a two-bit digit. -/
-def digitOffset (i : ChainIndex) : Nat := winternitzBits * i.val
+/-- Offset of a two-bit digit: `base_2b` reads each byte's most significant bits first, digit `i` being
+bits `6 - 2 (i mod 4)` and up of byte `i / 4`. -/
+def digitOffset (i : ChainIndex) : Nat := 8 * (i.val / 4) + 6 - winternitzBits * (i.val % 4)
 
 /-- `x_i`, the two bits of the digest at the digit's offset. -/
 def digestEncoding (digest : Digest) : Encoding :=
@@ -458,7 +460,7 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def oracleHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
-/-- `Th(P, tw, M) = Truncate_n(H(P || tw || M))`. -/
+/-- `Th(PK.seed, ADRS, M) = Trunc_16(H(PK.seed || ADRS || M))`. -/
 def tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     m Digest := do
   let output ← oracleHash (tweakableHashInput parameter domain payload)
@@ -530,23 +532,20 @@ def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (lea
 def nodePayload (left right : Digest) : HashInput :=
   bytesLE 16 left ++ bytesLE 16 right
 
-/-- `t_0[0] || t_0[1] || ... || t_{k-1}[0] || t_{k-1}[1]`, the FORS key as bytes: the level-`(a - 1)`
-nodes of the `k` trees. -/
-def rootsPayload (tops : ForsKey) : HashInput :=
-  (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
+/-- `root_0 || ... || root_{k-1}`, the FORS key as bytes: what `T_k` compresses. -/
+def rootsPayload (roots : ForsKey) : HashInput :=
+  (List.ofFn roots).flatMap (bytesLE 16)
 
-/-- The message a layer's WOTS+C key signs, as bytes: the FORS key's `2k` nodes at the bottom layer
-(`rootsPayload`), the 16-byte root of the tree below at a layer above. -/
+/-- The message a layer's WOTS+C key signs, as bytes: the 16-byte FORS public key at the bottom layer,
+the 16-byte root of the tree below at a layer above. -/
 def rootPayload (root : Digest) : HashInput := bytesLE 16 root
 
-/-- `Enc(P, e, M, c)`: hash the message, then the counter, under the leaf's encoding tweak, and
-decode. There is no message hash: the counter falls in the last block of this one
-(`P || A || K || c`, `36 + 32 k` bytes, at the bottom layer; `P || A || root || c`, 52 bytes,
-above). -/
+/-- `Enc(K, M, c)`: hash the message, then the counter, `BE_32(c)`, under the leaf's encoding address,
+and decode: `PK.seed || ADRS || M || BE_32(c)`, 68 bytes. -/
 def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (counter : Counter) : m (Option Encoding) := do
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
-    (message ++ bytesLE 4 counter)
+    (message ++ bytesBE 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `Ots.leaf` (`wots_leaf`): the verifier's leaf, or nothing if the counter does not encode the message. -/
@@ -597,51 +596,39 @@ def forsFold (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : 
       else
         pure 0
 
-/-- The two top nodes of a tree in index order, from the one the fold reached and the last path
-element: the reached node is node 1 exactly when `bit`, the top bit of the leaf index, is set. -/
-def orderTops (bit : Bool) (current sibling : Digest) : Digest × Digest :=
-  if bit then (sibling, current) else (current, sibling)
-
-/-- The last level of a FORS path: the other level-`(a - 1)` node. -/
-def topLevel : Fin forsHeight := ⟨forsHeight - 1, by have := Params.forsHeight_ge; omega⟩
-
-/-- The two level-`(a - 1)` nodes of a FORS tree that an opening reaches: the leaf is folded `a - 1`
-levels, and the last path element is the other top node. -/
+/-- The root of a FORS tree that an opening reaches: the leaf folded `a` levels (`fors_pkFromSig`). -/
 def treeRecover (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
-    (opening : TreeOpening) : m (Digest × Digest) := do
+    (opening : TreeOpening) : m Digest := do
   let value ← forsLeafHash parameter index κ leaf opening.secret
-  let node ← forsFold parameter index κ leaf opening.path (forsHeight - 1) value
-  return orderTops (leaf.val.testBit (forsHeight - 1)) node (opening.path topLevel)
+  forsFold parameter index κ leaf opening.path forsHeight value
 
-/-- `Fts.recover`: the FORS key an opening reaches. A tree has no root hash, and the key has no hash:
-the WOTS+C encoding absorbs it. -/
+/-- The roots an opening reaches. -/
 def forsRecover (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
     (opening : FTree → TreeOpening) : m ForsKey :=
   sequenceFin fun κ => treeRecover parameter index κ (leaves κ) (opening κ)
 
-/-! ### The message digest -/
+/-- `T_k` of the roots: the FORS public key, which the bottom WOTS+C key signs. -/
+def forsPublicKey (parameter : PublicParameter) (index : Index) (roots : ForsKey) : m Digest :=
+  tweakableHash parameter (.forsRoots index) (rootsPayload roots)
 
-/-- `m || rho`, what the message digest hashes after the parameter and the address: `P || A || m ||
-rho` is 80 bytes, within one Keccak-256 block (136 bytes). The root is not hashed (`P` binds the key); the
-argument is kept for the callers. -/
-def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
-  bytesLE 32 message ++ bytesLE 16 randomness
+/-! ### The message digest -/
 
 /-- One untruncated digest call. -/
 def messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) : m HashOutput :=
-  oracleHash (tweakableHashInput parameter (.message call) (messageDigestPayload root message randomness))
+  oracleHash (messageDigestInput parameter root message randomness call)
 
 /-- `idx`, the low `h` bits of the digest. -/
 def digestIndex (digest : MessageDigest) : Index :=
   (digest.extractLsb' 0 totalHeight).toFin
 
-/-- The leaf index of the first digest call, where the index is. -/
+/-- The low `h` bits of the first digest call, which the grinding loop tests for landing. Under
+FIPS 205's digest layout these are FORS leaf bits, not the index (`digestIndex`); a full key
+(`Params.full`) lands every index, so the test never decides anything and the signer signs at `R`. -/
 def blockIndex (first : HashOutput) : Index :=
   (first.extractLsb' 0 totalHeight).toFin
 
-/-- `Digest(P, m, rho)`: the calls, concatenated and truncated to `h + k a` bits. The root is not an
-input of the hash. -/
+/-- `H_msg(R, PK.seed, PK.root, M')`: the calls, read as FIPS 205's Algorithm 19 reads them. -/
 def messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) : m MessageDigest := do
   let outputs ← sequenceFin fun call => messageDigestCall parameter root message randomness call
@@ -661,8 +648,8 @@ def signaturePath (signature : Signature) (lay : Layer) (level : Nat) : Digest :
   if hlevel : level < layerHeight lay then (signature.layers lay).path ⟨level, hlevel⟩ else 0
 
 /-- The walk up the layers: `remaining + 1` enters at layer `remaining`, whose WOTS+C key signs
-`message` (the FORS key at the bottom layer, the root of the tree below above it); the fold of the
-top layer is the value compared against the public root. -/
+`message` (the FORS public key at the bottom layer, the root of the tree below above it); the fold of
+the top layer is the value compared against the public root. -/
 def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
     Nat → HashInput → m (Option Digest)
   | 0, _ => pure none
@@ -682,13 +669,14 @@ def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Sign
       else
         pure none
 
-/-- `Ver(pk, m, sigma)`: recompute the digest, recover the FORS key, walk the layers (recover the
-one-time leaf, fold the path) and compare with the root. -/
+/-- `Ver(pk, m, sigma)`: recompute the digest, recover the FORS roots and the FORS public key, walk the
+layers (recover the one-time leaf, fold the path) and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
   let index := digestIndex digest
-  let forsKey ← forsRecover publicKey.parameter index (digestLeaves digest) signature.fors
-  let some root ← verifyLayers publicKey.parameter index signature numLayers (rootsPayload forsKey)
+  let roots ← forsRecover publicKey.parameter index (digestLeaves digest) signature.fors
+  let forsKey ← forsPublicKey publicKey.parameter index roots
+  let some root ← verifyLayers publicKey.parameter index signature numLayers (rootPayload forsKey)
     | return false
   return decide (root = publicKey.root)
 
@@ -697,19 +685,41 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
 /-- The top layer holds one tree, at index `0`. -/
 def rootTree : TreeIndex := ⟨0, Nat.two_pow_pos _⟩
 
-/-- Run the `n` computations from index `0` up, stopping on the first failure. -/
+/-- Run the `n` computations from the last index down, stopping on the first failure. -/
 def sequenceDep : {n : Nat} → {α : Fin n → Type} →
     ((i : Fin n) → m (Option (α i))) → m (Option ((i : Fin n) → α i))
   | 0, _, _ => pure (some fun i => Fin.elim0 i)
   | _ + 1, α, computation => do
-      let some head ← computation 0 | return none
-      let some tail ← sequenceDep (α := fun i => α i.succ) fun i => computation i.succ | return none
-      return some (Fin.cases head tail)
+      let some last ← computation (Fin.last _) | return none
+      let some init ← sequenceDep (α := fun i => α i.castSucc) fun i => computation i.castSucc
+        | return none
+      return some (Fin.lastCases last init)
 
-/-- Run the layers from the top down, stopping on failure. -/
-def sequenceLayers {α : Layer → Type}
-    (computation : (lay : Layer) → m (Option (α lay))) : m (Option ((lay : Layer) → α lay)) :=
-  sequenceDep computation
+/-- Run the `n` computations from the last index down, each from the state the one before it
+returned, stopping on the first failure. -/
+def sequenceThread {σ : Type} : {n : Nat} → {α : Fin n → Type} →
+    ((i : Fin n) → σ → m (Option (α i × σ))) → σ → m (Option ((i : Fin n) → α i))
+  | 0, _, _, _ => pure (some fun i => Fin.elim0 i)
+  | _ + 1, α, computation, state => do
+      let some (last, next) ← computation (Fin.last _) state | return none
+      let some init ← sequenceThread (α := fun i => α i.castSucc) (fun i => computation i.castSucc)
+        next | return none
+      return some (Fin.lastCases last init)
+
+/-- A layer signature's path as `treeFold` reads it, zero outside the layer's height. -/
+def partPath {lay : Layer} (part : LayerSignature lay) (level : Nat) : Digest :=
+  if hlevel : level < layerHeight lay then part.path ⟨level, hlevel⟩ else 0
+
+/-- The root of its tree that a layer signature of `message` reaches, as the verifier computes it:
+the one-time leaf, folded up the path. -/
+def layerRecover (parameter : PublicParameter) (index : Index) (lay : Layer) (message : HashInput)
+    (part : LayerSignature lay) : m (Option Digest) := do
+  let tree := treeIndexAt index lay
+  let leaf := leafIndexAt index lay
+  let some value ← otsLeaf parameter lay tree leaf message part.counter part.chainValues
+    | return none
+  let root ← treeFold parameter lay tree leaf (partPath part) (layerHeight lay) value
+  return some root
 
 attribute [irreducible] verify
 
@@ -719,8 +729,7 @@ end Concrete
 
 section Pruning
 
-/-- `s`, the kept subtree of the top layer: the low `h - b` bits of `P`, read as a little-endian
-number (`0` for a full or a layered key). -/
+/-- `s`, the kept subtree of the top layer: `PK.seed` modulo `2^(h - b)`, `0` as `b = h` (`Params.full`). -/
 def subtreePosition (parameter : PublicParameter) : Nat :=
   parameter.toNat % 2 ^ (totalHeight - subtreeHeight)
 
@@ -743,32 +752,31 @@ def keptPosition (parameter : PublicParameter) (lay : Layer) : Nat :=
 
 end Pruning
 
-/-- One seed derivation, first 16 bytes: the parameter and the surrogates. -/
+/-- `PRF(PK.seed, SK.seed, ADRS)`: one seed derivation, the first 16 bytes of its hash. -/
 def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
-
-/-- One seed derivation, all 32 bytes (`th_pair`): its two halves are the starts of two chains or the
-secrets of two FORS leaves. -/
-def deriveOutput {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m HashOutput :=
-  Concrete.oracleHash (keygenHashInput parameter domain seed)
 
 /-- The step of a randomizer walk: its lowest bit is set, so the walk `R0 + i * step` does not come
 back before `2^128` attempts. -/
 def walkStep (half : Randomness) : Randomness := half ||| 1#digestBits
 
-/-- One hash per message: its first half is the base randomizer `R0` (`randomizer`), its second
-half gives the step of the walk. -/
+/-- `PRF_msg(SK.prf, PK.seed, M')`, one hash per message: its first half is the randomizer `R`; its
+second half gives the step of a walk, which a full key never takes. -/
 def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-    (parameter : PublicParameter) (seed : MasterSeed)
+    (prf : HashOutput) (parameter : PublicParameter)
     (message : Message) : m (Randomness × Randomness) := do
-  let output ← Concrete.oracleHash (randomizerHashInput parameter seed message)
+  let output ← Concrete.oracleHash (randomizerHashInput prf parameter message)
   return (truncateHash output, walkStep (upperHash output))
 
-/-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
-def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
-  Concrete.oracleHash (schemeSeedInput seed)
+/-- `PK.seed`, the first 16 bytes of the hash of `leanSPHINCS || SK.seed || 0`. -/
+def derivePublicSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) :
+    m PublicParameter := do
+  return truncateHash (← Concrete.oracleHash (keySeedInput seed 0))
+
+/-- `SK.prf`, the whole hash of `leanSPHINCS || SK.seed || 1`. -/
+def derivePrf {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m HashOutput :=
+  Concrete.oracleHash (keySeedInput seed 1)
 
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
@@ -778,20 +786,19 @@ namespace Seeded
 
 open Concrete
 
-/-- What the signer reads: `seed` is the scheme seed `S`, not the key's seed `S0`. -/
+/-- What the signer reads: `SK.seed`, `SK.prf`, `PK.seed` and `PK.root`. -/
 structure SecretKey where
   seed : MasterSeed
+  prf : HashOutput
   parameter : PublicParameter
   root : Digest
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- `wots_secrets`: the starts of the 64 chains of the one-time key at a leaf, from 32 seed
-derivations. Chains `2t` and `2t + 1` start at the two halves of derivation `t`. -/
+/-- `wots_secrets`: the starts of the 64 chains of the one-time key at a leaf, one `PRF` each. -/
 def otsSecrets (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
-  let outputs ← sequenceFin fun pair : ChainPair => deriveOutput parameter (.ots lay tree leaf pair) seed
-  return fun chainIdx => hashHalf chainIdx.val (outputs (chainPair chainIdx))
+    (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) :=
+  sequenceFin fun chainIdx => deriveKey parameter (.ots lay tree leaf chainIdx) seed
 
 def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) : m (ChainIndex → Digest) := do
@@ -830,8 +837,8 @@ def treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       let right ← treeNode parameter lay tree seed level (2 * nodeIdx + 1)
       tweakableHash parameter (.node lay tree (level + 1) nodeIdx) (nodePayload left right)
 
-/-- The surrogate sibling at `level >= b`, derived from the seed (`TWEAK_SURROGATE`). Honest calls
-have `level < h`. -/
+/-- The surrogate sibling at `level >= b`, derived from the seed (type `8`). Honest calls have
+`level < h`. -/
 def surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) : m Digest :=
   if hlevel : level < maxLayerHeight then deriveKey parameter (.surrogate ⟨level, hlevel⟩) seed else pure 0
 
@@ -874,74 +881,56 @@ open Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- The secret of one FORS leaf, by its own derivation of its pair: a level-0 `forsNode`. Key
-generation and signing derive each pair once (`forsNode` from level 1, `treeOpen`). -/
+/-- `fors_skGen`: the secret of one FORS leaf, one `PRF`. -/
 def forsSecret (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
-    (seed : MasterSeed) : m Digest := do
-  let output ← deriveOutput parameter (.fors index κ (leafPair leaf)) seed
-  return hashHalf leaf.val output
+    (seed : MasterSeed) : m Digest :=
+  deriveKey parameter (.fors index κ leaf) seed
 
-/-- A node of a FORS tree at tree level `level`. A level-1 node derives its pair of leaves once:
-the two halves of the hash are their secrets. -/
+/-- `fors_node`: a node of a FORS tree at tree level `level`, the root at level `a`. -/
 def forsNode (parameter : PublicParameter) (index : Index) (κ : FTree) (seed : MasterSeed) :
     Nat → Nat → m Digest
   | 0, node => do
       let leaf : FLeaf := ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
       let secret ← forsSecret parameter index κ leaf seed
       forsLeafHash parameter index κ leaf secret
-  | 1, node => do
-      let left : FLeaf := ⟨2 * node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-      let right : FLeaf := ⟨(2 * node + 1) % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-      let output ← deriveOutput parameter (.fors index κ (leafPair left)) seed
-      let leftLeaf ← forsLeafHash parameter index κ left (hashHalf 0 output)
-      let rightLeaf ← forsLeafHash parameter index κ right (hashHalf 1 output)
-      tweakableHash parameter (.forsNode index κ ⟨0, by have := Params.forsHeight_ge; omega⟩
-        ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload leftLeaf rightLeaf)
-  | level + 2, node => do
-      let left ← forsNode parameter index κ seed (level + 1) (2 * node)
-      let right ← forsNode parameter index κ seed (level + 1) (2 * node + 1)
-      if hlevel : level + 1 < forsHeight then
-        tweakableHash parameter (.forsNode index κ ⟨level + 1, hlevel⟩
+  | level + 1, node => do
+      let left ← forsNode parameter index κ seed level (2 * node)
+      let right ← forsNode parameter index κ seed level (2 * node + 1)
+      if hlevel : level < forsHeight then
+        tweakableHash parameter (.forsNode index κ ⟨level, hlevel⟩
           ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
       else
         pure 0
 
-/-- The FORS key of instance `idx`: the two level-`(a - 1)` nodes of every tree (no hash). -/
-def forsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m ForsKey :=
-  sequenceFin fun κ => do
-    let left ← forsNode parameter index κ seed (forsHeight - 1) 0
-    let right ← forsNode parameter index κ seed (forsHeight - 1) 1
-    return (left, right)
+/-- The FORS public key of instance `idx`: `T_k` of the roots of its trees. -/
+def forsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m Digest := do
+  let roots ← sequenceFin fun κ => forsNode parameter index κ seed forsHeight 0
+  forsPublicKey parameter index roots
 
-/-- The opening of one tree at a leaf. One derivation gives the secret and the sibling leaf (path
-level 0); the last path element (level `a - 1`) is the top node the verifier does not compute. -/
+/-- The opening of one tree at a leaf: its secret and its path, the sibling at every level. -/
 def treeOpen (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
     (seed : MasterSeed) : m TreeOpening := do
-  let output ← deriveOutput parameter (.fors index κ (leafPair leaf)) seed
-  let sibling : FLeaf := ⟨Nat.xor leaf.val 1 % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-  let siblingLeaf ← forsLeafHash parameter index κ sibling (hashHalf sibling.val output)
+  let secret ← forsSecret parameter index κ leaf seed
   let path ← sequenceFin fun level : Fin forsHeight =>
-    if level.val = 0 then pure siblingLeaf
-    else forsNode parameter index κ seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
-  return ⟨hashHalf leaf.val output, path⟩
+    forsNode parameter index κ seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
+  return ⟨secret, path⟩
 
 /-- `Fts.sign`: the opening of every tree. -/
 def forsOpen (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
     (seed : MasterSeed) : m (FTree → TreeOpening) :=
   sequenceFin fun κ => treeOpen parameter index κ (leaves κ) seed
 
-/-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
-subtree, and build the root of the top layer. -/
+/-- `slh_keygen_internal` from `SK.seed`: derive `PK.seed` and `SK.prf`, and build the root of the top
+layer. -/
 def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let parameter ← deriveKey 0 .parameter seed
+  let parameter ← derivePublicSeed seed
+  let prf ← derivePrf seed
   let root ← treeRoot parameter topLayer rootTree seed
-  return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+  return (⟨root, parameter⟩, ⟨seed, prf, parameter, root⟩)
 
-/-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
-from `S`. -/
-def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let master ← schemeSeed seed
-  keygenFromSeed master
+/-- `Gen` (`key_gen_from_seed`): the key's seed is `SK.seed`. -/
+def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
+  keygenFromSeed seed
 
 /-- One grinding attempt: the index read from the first digest call (`digest_index`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
@@ -953,7 +942,7 @@ def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Random
     return none
 
 /-- What the WOTS+C key at leaf `leaf` of tree `tree` of layer `lay` signs: the root of the tree
-below it, or the FORS key of its instance at the bottom layer. -/
+below it, or the FORS public key of its instance at the bottom layer. -/
 def keyMessage (parameter : PublicParameter) (seed : MasterSeed) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) : m HashInput :=
   if hbelow : lay.val + 1 < numLayers then do
@@ -961,20 +950,40 @@ def keyMessage (parameter : PublicParameter) (seed : MasterSeed) (lay : Layer) (
     return rootPayload root
   else do
     let key ← forsKey parameter (childTree lay tree leaf) seed
-    return rootsPayload key
+    return rootPayload key
 
 /-- What the WOTS+C key of layer `lay` on the path of `idx` signs. -/
 def layerMessage (secretKey : SecretKey) (index : Index) (lay : Layer) : m HashInput :=
   keyMessage secretKey.parameter secretKey.seed lay (treeIndexAt index lay) (leafIndexAt index lay)
 
-def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
+/-- Sign `message` with the WOTS+C key of layer `lay` on the path of `index`, and attach the key's
+path. -/
+def signLayerWith (secretKey : SecretKey) (index : Index) (lay : Layer) (message : HashInput) :
+    m (Option (LayerSignature lay)) := do
   let tree := treeIndexAt index lay
   let leaf := leafIndexAt index lay
-  let message ← layerMessage secretKey index lay
   let some (counter, values) ← otsSign secretKey.parameter lay tree leaf secretKey.seed message
     | return none
   let path ← treePath secretKey.parameter lay tree secretKey.seed leaf
   return some ⟨counter, values, path⟩
+
+/-- A layer's signature of its own message, computed from scratch: what the proof reasons about.
+The signer computes the same signature without recomputing the message (`layerStep`). -/
+def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
+  let message ← layerMessage secretKey index lay
+  signLayerWith secretKey index lay message
+
+/-- One layer of the signer, given what the layer below computed (the FORS public key at the bottom,
+the root of the tree below above it): sign it, then, below the top layer, recover the root the
+signature reaches, which the layer above signs. -/
+def layerStep (secretKey : SecretKey) (index : Index) (lay : Layer) (below : Digest) :
+    m (Option (LayerSignature lay × Digest)) := do
+  let some part ← signLayerWith secretKey index lay (rootPayload below) | return none
+  if lay.val = 0 then
+    return some (part, below)
+  else
+    let some root ← layerRecover secretKey.parameter index lay (rootPayload below) part | return none
+    return some (part, root)
 
 /-- Try `randomness, randomness + step, randomness + 2 step, ...`, stopping at the first that lands
 in the kept subtree. -/
@@ -986,18 +995,21 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) (step : Randomnes
       | some index => return some (randomness, index)
       | none => signDigestLoop secretKey message step attempts (randomness + step)
 
-/-- `Sign`: derive the randomizer base `R0` and the step `delta` of the message (one hash), scan
-`R0, R0 + delta, ...` into the kept subtree, compute the digest, open FORS, and at every layer sign
-the message of the layer below (the FORS key's `2k` top nodes at the bottom) with WOTS+C and attach
-the path. -/
+/-- `Sign` (`slh_sign`, deterministic), with the Rust signer's hash calls: derive the randomizer `R`
+of the message (one hash), which a full key lands at first, compute the digest, open FORS and
+recover its public key from the opening, then from the bottom layer up sign the message of the
+layer below with WOTS+C, attach the path, and recover the root the layer above signs. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let walk ← deriveRandomizer secretKey.parameter secretKey.seed message
+  let walk ← deriveRandomizer secretKey.prf secretKey.parameter message
   let some (randomness, _) ← signDigestLoop secretKey message walk.2 digestAttemptLimit walk.1
     | return none
   let digest ← messageDigest secretKey.parameter secretKey.root message randomness
   let index := digestIndex digest
   let opening ← forsOpen secretKey.parameter index (digestLeaves digest) secretKey.seed
-  let some layers ← sequenceLayers (fun lay => signLayer secretKey index lay) | return none
+  let roots ← forsRecover secretKey.parameter index (digestLeaves digest) opening
+  let forsKey ← forsPublicKey secretKey.parameter index roots
+  let some layers ← sequenceThread (fun lay below => layerStep secretKey index lay below) forsKey
+    | return none
   return some ⟨randomness, opening, layers⟩
 
 end Seeded

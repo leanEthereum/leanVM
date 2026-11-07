@@ -127,12 +127,23 @@ theorem digit_lt (x : Encoding) (j : Nat) : digit x j < 4 := by
   · exact (x _).isLt
   · decide
 
-def packNat (x : Encoding) : Nat := ∑ j ∈ range numChains, digit x j * 4 ^ j
+/-- The base-4 position of chain `j`'s digit: `base_2b` reverses the four digits of each byte. -/
+def digitSlot (j : Nat) : Nat := 4 * (j / 4) + 3 - j % 4
+
+theorem digitSlot_digitSlot (j : Nat) : digitSlot (digitSlot j) = j := by
+  unfold digitSlot
+  omega
+
+theorem digitSlot_lt {j : Nat} (h : j < numChains) : digitSlot j < numChains := by
+  unfold digitSlot numChains at *
+  omega
+
+def packNat (x : Encoding) : Nat := ∑ j ∈ range numChains, digit x (digitSlot j) * 4 ^ j
 
 def pack (x : Encoding) : Digest := BitVec.ofNat digestBits (packNat x)
 
 theorem packNat_lt (x : Encoding) : packNat x < 2 ^ 128 := by
-  exact (sum_digits_lt 4 (by decide) (digit x) (digit_lt x) numChains)
+  exact (sum_digits_lt 4 (by decide) (fun j => digit x (digitSlot j)) (fun j => digit_lt x _) numChains)
 
 theorem toNat_pack (x : Encoding) : (pack x).toNat = packNat x := by
   rw [pack, BitVec.toNat_ofNat, digestBits, Nat.mod_eq_of_lt (packNat_lt x)]
@@ -145,10 +156,13 @@ theorem digestEncoding_pack (x : Encoding) : digestEncoding (pack x) = x := by
   funext i
   apply Fin.ext
   rw [encoding_val, toNat_pack]
-  have hp : (2 : Nat) ^ digitOffset i = 4 ^ i.val := by
-    simp [digitOffset, winternitzBits, pow_mul]
-  rw [hp, packNat, digit_of_sum 4 (by decide) (digit x) (digit_lt x) numChains i.val i.isLt,
-    digit, dif_pos i.isLt]
+  have hoff : digitOffset i = 2 * digitSlot i.val := by
+    unfold digitOffset digitSlot winternitzBits
+    omega
+  have hp : (2 : Nat) ^ digitOffset i = 4 ^ digitSlot i.val := by
+    rw [hoff, pow_mul]; norm_num
+  rw [hp, packNat, digit_of_sum 4 (by decide) (fun j => digit x (digitSlot j)) (fun j => digit_lt x _)
+    numChains (digitSlot i.val) (digitSlot_lt i.isLt), digitSlot_digitSlot, digit, dif_pos i.isLt]
 
 theorem decodeDigest_pack (x : Encoding) (hx : Valid x) : decodeDigest (pack x) = some x := by
   rw [decodeDigest, digestEncoding_pack, if_pos hx]

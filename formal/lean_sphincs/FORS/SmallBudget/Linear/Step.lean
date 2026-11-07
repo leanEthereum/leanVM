@@ -17,26 +17,30 @@ set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 
+/-! The message-digest input has no address: it is told apart from a tweakable hash input by its
+length, 84 bytes against `48 + payload` (`messageDigestInput_ne_tweakableHashInput`). -/
+
 theorem msg_ne_chain {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicParameter} {l : OtsKey}
     {i : ChainIndex} {st : ChainStep} {v : Digest} : x ≠ chainInput p l i st v := by
-  obtain ⟨p', call, payload, rfl⟩ := hx
-  intro h
-  have hd := (domain_eq_of_input h trivial trivial).1
-  cases hd
+  obtain ⟨p', root, message, randomness, call, rfl⟩ := hx
+  exact messageDigestInput_ne_tweakableHashInput p' p root message randomness call _
+    (by rw [bytesLE_length]; omega)
 
+/-- An encoding input of any message but a 32-byte one. An 84-byte message-digest input
+`R ‖ PK.seed' ‖ root' ‖ M ‖ BE_32(call)` spells the encoding input `p ‖ ADRS ‖ M ‖ BE_32(c)` when
+`R = p` and `PK.seed' ‖ root'` spells the address, so the length is needed; the potential's encoding
+class has 16-byte messages only. -/
 theorem msg_ne_enc {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicParameter} {l : OtsKey}
-    {m : HashInput} {c : Counter} : x ≠ Wots.encodingInput p l.1 l.2.1 l.2.2 m c := by
-  obtain ⟨p', call, payload, rfl⟩ := hx
-  intro h
-  have hd := (domain_eq_of_input h trivial trivial).1
-  cases hd
+    {m : HashInput} {c : Counter} (hm : m.length ≠ 32) : x ≠ Wots.encodingInput p l.1 l.2.1 l.2.2 m c := by
+  obtain ⟨p', root, message, randomness, call, rfl⟩ := hx
+  exact messageDigestInput_ne_tweakableHashInput p' p root message randomness call _
+    (by simp only [List.length_append, bytesBE_length]; omega)
 
 theorem msg_ne_fleaf {x : HashInput} (hx : ForsSigner.IsMsgInput x) {p : PublicParameter} {f : FIn} :
     x ≠ f.input p := by
-  obtain ⟨p', call, payload, rfl⟩ := hx
-  intro h
-  have hd := (domain_eq_of_input h trivial trivial).1
-  cases hd
+  obtain ⟨p', root, message, randomness, call, rfl⟩ := hx
+  exact messageDigestInput_ne_tweakableHashInput p' p root message randomness call _
+    (by rw [bytesLE_length]; omega)
 
 theorem input_chain (p : PublicParameter) (l : OtsKey) (i : ChainIndex) (st : ChainStep) (v : Digest) :
     HiddenGraph.input p (Address.chain l.1 l.2.1 l.2.2 i st, v) = chainInput p l i st v := rfl
@@ -82,16 +86,17 @@ theorem fresh_zero {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = n
   by_cases hB : ∃ l i v, Retained K.p l ∧ K.IsB l i v x
   · obtain ⟨l, i, v, hl, hB⟩ := hB
     simpa using K.fresh_B hN hxr hY hinv hx hl hB (hsec x (K.secondOrder_of_isB hB)) (g := 0) bot_le
-  by_cases hE : ∃ l msg ctr, Retained K.p l ∧ x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr
-  · obtain ⟨l, msg, ctr, hl, hxE⟩ := hE
-    simpa using K.fresh_enc hN hxr hY hinv hx hl hxE (g := 0) (by rw [zero_add]; exact K.kindUnit_le_one x)
+  by_cases hE : ∃ l msg ctr, Retained K.p l ∧ msg.length = 16 ∧
+      x = Wots.encodingInput K.p l.1 l.2.1 l.2.2 msg ctr
+  · obtain ⟨l, msg, ctr, hl, hlen, hxE⟩ := hE
+    simpa using K.fresh_enc hN hxr hY hinv hx hl hlen hxE (g := 0) (by rw [zero_add]; exact K.kindUnit_le_one x)
   by_cases hF : ∃ f : FIn, x = f.input K.p
   · obtain ⟨f, hxF⟩ := hF
     simpa using K.fresh_fleaf hN hxr hY hinv hx hxF
       (hsec x (Or.inr ⟨f.index, f.κ, f.leaf, f.v, hxF⟩)) (g := 0) bot_le (Or.inl rfl)
   have h := K.fresh_other hN (y' := y') hinv hx
     (fun l hl => ⟨fun i h => hA ⟨l, i, hl, h⟩, fun i v h => hB ⟨l, i, v, hl, h⟩⟩)
-    (fun l msg ctr hl h => hE ⟨l, msg, ctr, hl, h⟩) (fun f h => hF ⟨f, h⟩) (w := 0)
+    (fun l msg ctr hl hlen h => hE ⟨l, msg, ctr, hl, hlen, h⟩) (fun f h => hF ⟨f, h⟩) (w := 0)
     (by rw [zero_add]; exact (K.kindUnit_le_one x).trans (one_le_ofReal (by linarith [hN.low])))
   simpa using h
 
@@ -101,7 +106,7 @@ theorem fresh_digest (hmsg : ∀ x, ForsSigner.IsMsgInput x → K.tg.kind x = .n
     {x : HashInput} (hx : s.cache x = none) (hd : ForsSigner.IsMsgInput x) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * ENNReal.ofReal K.ρ ≤ K.pot (y' + 1) s := by
   refine K.fresh_other hN hinv hx (fun l _ => ⟨fun i h => ?_, fun i v h => ?_⟩)
-    (fun l msg ctr _ h => msg_ne_enc hd h) (fun f h => msg_ne_fleaf hd h)
+    (fun l msg ctr _ hlen h => msg_ne_enc hd (by omega) h) (fun f h => msg_ne_fleaf hd h)
     (by rw [K.kindUnit_none (hmsg x hd), add_zero])
   · obtain ⟨st, pay, -, h⟩ := h
     exact msg_ne_chain hd h
@@ -148,7 +153,7 @@ theorem guess_fresh {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = 
       by_cases h2 : step.val + 2 = (K.w (lay, tree, leaf) chain).val
       · exact K.fresh_A hN hinv₁ hx₁ hl ⟨step, v, h2, rfl⟩ hkind le_rfl
       refine K.fresh_other hN hinv₁ hx₁ (fun l' _ => ⟨fun i' hA => ?_, fun i' v' hB => ?_⟩)
-        (fun l' msg ctr _ => chainInput_ne_enc) (fun _ => chainInput_ne_fleaf)
+        (fun l' msg ctr _ _ => chainInput_ne_enc) (fun _ => chainInput_ne_fleaf)
         (by rw [K.kindUnit_none hkind, add_zero]; exact one_le_ofReal (by linarith [hN.low]))
       · obtain ⟨st', pay', hst', heq⟩ := hA
         obtain ⟨rfl, rfl, rfl, -⟩ := chainInput_inj heq

@@ -7,12 +7,10 @@ pub(super) fn count(n: usize) -> F192 {
     F192::new(g_pow(n).0, 0, 0)
 }
 
-/// The bytes of a `bits`-bit value, low first, each in the exponent: how the guest
-/// bounds a value it rebuilds (`sp_from_bytes`).
-pub(super) fn exponent_bytes(value: u64, bits: usize) -> Vec<F192> {
-    (0..bits.div_ceil(8))
-        .map(|k| count((value >> (8 * k) & 0xff) as usize))
-        .collect()
+/// Bytes, each in the exponent: how the guest bounds a value it rebuilds
+/// (`sp_from_bytes`).
+pub(super) fn exponent_bytes(bytes: &[u8]) -> Vec<F192> {
+    bytes.iter().map(|&b| count(b.into())).collect()
 }
 
 /// A field element as the decimal `u128` literal the zkDSL parser accepts.

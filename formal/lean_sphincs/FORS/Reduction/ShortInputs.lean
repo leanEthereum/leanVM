@@ -1,9 +1,10 @@
 import FORS.Classification.Verifier
+import FORS.Scheme.Domains
 import VCVio.OracleComp.QueryTracking.QueryBound
 
-/-! Every hash input of the honest algorithms and of the verifier has at most 2084 bytes (the
-encoding of the largest FORS key, 64 trees). Longer adversarial inputs never meet honest work, which
-lets them be simulated privately. -/
+/-! Every hash input of the honest algorithms and of the verifier has at most 2084 bytes (the largest,
+`T_k` of 64 FORS roots, has 1072). Longer adversarial inputs never meet honest work, which lets them
+be simulated privately. -/
 
 open OracleComp OracleSpec
 
@@ -15,8 +16,8 @@ open Concrete
 
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
-/-- The longest honest input: 16 parameter bytes, 16 address bytes, the `2k ≤ 128` top nodes of a FORS
-key and a counter. -/
+/-- A bound on the honest inputs: 16 parameter bytes, 32 address bytes and a payload of at most 2036
+bytes. -/
 def bound : Nat := 2084
 
 def IsShort (input : HashInput) : Prop := input.length ≤ bound
@@ -48,44 +49,29 @@ theorem Only.query {input : HashInput} (h : IsShort input) :
   intro hlong
   exact absurd h hlong
 
-theorem fieldBytes_length (fields : TweakFields) : (fieldBytes fields).length = 16 := by
-  simp [fieldBytes, bytesLE_length]
-
-theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
-    (payload : HashInput) :
-    (tweakableHashInput parameter domain payload).length = 32 + payload.length := by
-  simp only [tweakableHashInput, tweakBytes, List.length_append, fieldBytes_length, bytesLE_length]
-
-theorem keygenHashInput_length (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) : (keygenHashInput parameter domain seed).length = 64 := by
-  simp [keygenHashInput, fieldBytes_length, bytesLE_length]
-
 theorem Only.tweakableHash (parameter : PublicParameter) (domain : HashDomain)
-    (payload : HashInput) (h : payload.length ≤ 2052) :
+    (payload : HashInput) (h : payload.length ≤ 2036) :
     Only (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest) := by
   unfold Concrete.tweakableHash
   refine Only.bind (Only.query ?_) (fun _ => Only.pure' _)
   simp only [IsShort, bound, tweakableHashInput_length]
   omega
 
-theorem schemeSeedInput_length (seed : MasterSeed) : (schemeSeedInput seed).length = 43 := by
-  simp [schemeSeedInput, seedTag, bytesLE_length]
+theorem Only.derivePublicSeed (seed : MasterSeed) :
+    Only (FORS.derivePublicSeed seed : OracleComp HashSpec PublicParameter) := by
+  unfold FORS.derivePublicSeed
+  refine Only.bind (Only.query ?_) (fun _ => Only.pure' _)
+  simp [IsShort, bound, keySeedInput_length]
 
-theorem Only.schemeSeed (seed : MasterSeed) :
-    Only (FORS.schemeSeed seed : OracleComp HashSpec MasterSeed) := by
+theorem Only.derivePrf (seed : MasterSeed) :
+    Only (FORS.derivePrf seed : OracleComp HashSpec HashOutput) := by
   refine Only.query ?_
-  simp [IsShort, bound, schemeSeedInput_length]
+  simp [IsShort, bound, keySeedInput_length]
 
 theorem Only.deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     Only (FORS.deriveKey parameter domain seed : OracleComp HashSpec Digest) := by
   unfold FORS.deriveKey
   refine Only.bind (Only.query ?_) (fun _ => Only.pure' _)
-  simp [IsShort, bound, keygenHashInput_length]
-
-theorem Only.deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    Only (FORS.deriveOutput parameter domain seed : OracleComp HashSpec HashOutput) := by
-  unfold FORS.deriveOutput
-  refine Only.query ?_
   simp [IsShort, bound, keygenHashInput_length]
 
 theorem Only.sequenceFin {α : Type} {n : Nat} (computation : Fin n → OracleComp HashSpec α)
@@ -95,36 +81,6 @@ theorem Only.sequenceFin {α : Type} {n : Nat} (computation : Fin n → OracleCo
   | succ n ih =>
       rw [Concrete.sequenceFin]
       exact Only.bind (h 0) (fun _ => Only.bind (ih _ (fun i => h i.succ)) (fun _ => Only.pure' _))
-
-theorem bytes16_length (value : Digest) : (bytesLE 16 value).length = 16 := bytesLE_length _ _
-
-theorem nodePayload_length (left right : Digest) : (nodePayload left right).length = 32 := by
-  simp [nodePayload, bytesLE_length]
-
-theorem flatMap_bytes_length' {n : Nat} (values : Fin n → BitVec (8 * 16)) :
-    ((List.ofFn values).flatMap (bytesLE 16)).length = 16 * n := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-      rw [List.ofFn_succ, List.flatMap_cons, List.length_append, bytesLE_length,
-        ih (fun i => values i.succ)]
-      ring
-
-theorem flatMap_bytes_length {n : Nat} (values : Fin n → Digest) :
-    ((List.ofFn values).flatMap (bytesLE 16)).length = 16 * n := flatMap_bytes_length' values
-
-theorem leafPayload_length (endpoints : ChainIndex → Digest) :
-    (leafPayload endpoints).length = 1024 := by
-  rw [leafPayload, flatMap_bytes_length]
-  rfl
-
-theorem rootsPayload_length (tops : ForsKey) :
-    (rootsPayload tops).length = 32 * forsTrees := by
-  simp [rootsPayload, nodePayload, bytesLE_length, List.length_flatMap, List.sum_ofFn, mul_comm]
-
-theorem messageDigestPayload_length (root : Digest) (message : Message) (randomness : Randomness) :
-    (messageDigestPayload root message randomness).length = 48 := by
-  simp [messageDigestPayload, bytesLE_length]
 
 theorem Only.chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (chainIdx : ChainIndex) (start : Nat) :
@@ -136,7 +92,7 @@ theorem Only.chainWalk (parameter : PublicParameter) (lay : Layer) (tree : TreeI
       refine Only.bind (Only.chainWalk parameter lay tree leaf chainIdx start steps value) ?_
       intro previous
       split
-      · exact Only.tweakableHash _ _ _ (by rw [bytes16_length]; omega)
+      · exact Only.tweakableHash _ _ _ (by rw [bytesLE_length]; omega)
       · exact Only.pure' _
 
 theorem Only.sequenceDep : ∀ {n : Nat} {α : Fin n → Type}
@@ -145,10 +101,10 @@ theorem Only.sequenceDep : ∀ {n : Nat} {α : Fin n → Type}
   | 0, _, _, _ => Only.pure' _
   | _ + 1, α, computation, h => by
       unfold FORS.Concrete.sequenceDep
-      refine Only.bind (h 0) (fun head => ?_)
+      refine Only.bind (h (Fin.last _)) (fun head => ?_)
       rcases head with _ | head
       · exact Only.pure' _
-      · refine Only.bind (Only.sequenceDep (α := fun i => α i.succ) fun i => h i.succ) (fun tail => ?_)
+      · refine Only.bind (Only.sequenceDep (α := fun i => α i.castSucc) fun i => h i.castSucc) (fun tail => ?_)
         rcases tail with _ | tail <;> exact Only.pure' _
 
 theorem Only.leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
@@ -156,11 +112,8 @@ theorem Only.leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
     Only (Concrete.leafHash parameter lay tree leaf endpoints : OracleComp HashSpec Digest) :=
   Only.tweakableHash _ _ _ (by rw [leafPayload_length]; omega)
 
-/-- A layer's message is at most the largest FORS key, 2048 bytes. -/
-def ShortMessage (message : HashInput) : Prop := message.length ≤ 2048
-
-theorem shortMessage_roots (tops : ForsKey) : ShortMessage (rootsPayload tops) := by
-  unfold ShortMessage; rw [rootsPayload_length]; have := Params.forsTrees_le; omega
+/-- A layer's message is at most 1024 bytes (it is a 16-byte root). -/
+def ShortMessage (message : HashInput) : Prop := message.length ≤ 1024
 
 theorem shortMessage_root (root : Digest) : ShortMessage (rootPayload root) := by
   unfold ShortMessage rootPayload; rw [bytesLE_length]; omega
@@ -171,7 +124,7 @@ theorem Only.encode (parameter : PublicParameter) (lay : Layer) (tree : TreeInde
       OracleComp HashSpec (Option Encoding)) := by
   unfold Concrete.encode
   unfold ShortMessage at hmsg
-  exact Only.bind (Only.tweakableHash _ _ _ (by simp [bytesLE_length]; omega))
+  exact Only.bind (Only.tweakableHash _ _ _ (by simp [bytesBE_length]; omega))
     (fun _ => Only.pure' _)
 
 theorem Only.otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
@@ -202,7 +155,7 @@ theorem Only.treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
 theorem Only.forsLeafHash (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
     (secret : Digest) :
     Only (Concrete.forsLeafHash parameter index κ leaf secret : OracleComp HashSpec Digest) :=
-  Only.tweakableHash _ _ _ (by rw [bytes16_length]; omega)
+  Only.tweakableHash _ _ _ (by rw [bytesLE_length]; omega)
 
 theorem Only.forsFold (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
     (path : Fin forsHeight → Digest) :
@@ -224,7 +177,11 @@ theorem Only.forsRecover (parameter : PublicParameter) (index : Index)
     Only (Concrete.forsRecover parameter index leaves opening : OracleComp HashSpec ForsKey) := by
   unfold Concrete.forsRecover Concrete.treeRecover
   exact Only.sequenceFin _ fun κ => Only.bind (Only.forsLeafHash _ _ _ _ _) (fun _ =>
-    Only.bind (Only.forsFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
+    Only.forsFold _ _ _ _ _ _ _)
+
+theorem Only.forsPublicKey (parameter : PublicParameter) (index : Index) (roots : ForsKey) :
+    Only (Concrete.forsPublicKey parameter index roots : OracleComp HashSpec Digest) :=
+  Only.tweakableHash _ _ _ (by rw [rootsPayload_length]; have := Params.forsTrees_le; omega)
 
 theorem Only.messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) :
@@ -232,7 +189,7 @@ theorem Only.messageDigestCall (parameter : PublicParameter) (root : Digest) (me
       OracleComp HashSpec HashOutput) := by
   unfold Concrete.messageDigestCall
   apply Only.query
-  simp only [IsShort, bound, tweakableHashInput_length, messageDigestPayload_length]
+  simp only [IsShort, bound, messageDigestInput_length]
   omega
 
 theorem Only.messageDigest (parameter : PublicParameter) (root : Digest) (message : Message)
@@ -270,8 +227,10 @@ theorem Only.verify (publicKey : PublicKey) (message : Message) (signature : Sig
   refine Only.bind (Only.messageDigest _ _ _ _) ?_
   intro digest
   refine Only.bind (Only.forsRecover _ _ _ _) ?_
+  intro roots
+  refine Only.bind (Only.forsPublicKey _ _ _) ?_
   intro key
-  refine Only.bind (Only.verifyLayers _ _ _ _ _ (shortMessage_roots key)) ?_
+  refine Only.bind (Only.verifyLayers _ _ _ _ _ (shortMessage_root key)) ?_
   intro value
   cases value <;> exact Only.pure' _
 
@@ -282,8 +241,7 @@ theorem Only.otsSecrets (parameter : PublicParameter) (lay : Layer) (tree : Tree
     (leaf : LeafIndex) (seed : MasterSeed) :
     Only (otsSecrets parameter lay tree leaf seed :
       OracleComp HashSpec (ChainIndex → Digest)) :=
-  Short.Only.bind (Short.Only.sequenceFin _ fun _ => Short.Only.deriveOutput _ _ _)
-    (fun _ => Short.Only.pure' _)
+  Short.Only.sequenceFin _ fun _ => Short.Only.deriveKey _ _ _
 
 theorem Only.oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) :
@@ -323,43 +281,35 @@ theorem Only.treeNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
 theorem Only.forsSecret (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : FLeaf)
     (seed : MasterSeed) :
     Short.Only (forsSecret parameter index κ leaf seed : OracleComp HashSpec Digest) :=
-  Short.Only.bind (Short.Only.deriveOutput _ _ _) (fun _ => Short.Only.pure' _)
+  Short.Only.deriveKey _ _ _
 
 theorem Only.forsNode (parameter : PublicParameter) (index : Index) (κ : FTree) (seed : MasterSeed) :
     ∀ level node, Short.Only (forsNode parameter index κ seed level node : OracleComp HashSpec Digest)
   | 0, node => by
       rw [FORS.Seeded.forsNode]
       exact Short.Only.bind (Only.forsSecret _ _ _ _ _) (fun _ => Short.Only.forsLeafHash _ _ _ _ _)
-  | 1, node => by
+  | level + 1, node => by
       rw [FORS.Seeded.forsNode]
-      exact Short.Only.bind (Short.Only.deriveOutput _ _ _) (fun _ =>
-        Short.Only.bind (Short.Only.forsLeafHash _ _ _ _ _) (fun _ =>
-          Short.Only.bind (Short.Only.forsLeafHash _ _ _ _ _) (fun _ =>
-            Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega))))
-  | level + 2, node => by
-      rw [FORS.Seeded.forsNode]
-      refine Short.Only.bind (Only.forsNode parameter index κ seed (level + 1) _) (fun _ =>
-        Short.Only.bind (Only.forsNode parameter index κ seed (level + 1) _) (fun _ => ?_))
+      refine Short.Only.bind (Only.forsNode parameter index κ seed level _) (fun _ =>
+        Short.Only.bind (Only.forsNode parameter index κ seed level _) (fun _ => ?_))
       split
       · exact Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)
       · exact Short.Only.pure' _
 
 theorem Only.forsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
-    Short.Only (forsKey parameter index seed : OracleComp HashSpec ForsKey) := by
+    Short.Only (forsKey parameter index seed : OracleComp HashSpec Digest) := by
   unfold FORS.Seeded.forsKey
-  exact Short.Only.sequenceFin _ fun κ => Short.Only.bind (Only.forsNode parameter index κ seed _ _) (fun _ =>
-    Short.Only.bind (Only.forsNode parameter index κ seed _ _) (fun _ => Short.Only.pure' _))
+  exact Short.Only.bind (Short.Only.sequenceFin _ fun κ => Only.forsNode parameter index κ seed _ _) (fun _ =>
+    Short.Only.forsPublicKey _ _ _)
 
 theorem Only.forsOpen (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
     (seed : MasterSeed) :
     Short.Only (forsOpen parameter index leaves seed : OracleComp HashSpec (FTree → TreeOpening)) := by
   unfold FORS.Seeded.forsOpen FORS.Seeded.treeOpen
   exact Short.Only.sequenceFin _ fun _ =>
-    Short.Only.bind (Short.Only.deriveOutput _ _ _) (fun _ =>
-      Short.Only.bind (Short.Only.forsLeafHash _ _ _ _ _) (fun _ =>
-        Short.Only.bind (Short.Only.sequenceFin _ fun _ =>
-          Short.Only.ite _ (Short.Only.pure' _) (Only.forsNode _ _ _ _ _ _))
-          (fun _ => Short.Only.pure' _)))
+    Short.Only.bind (Only.forsSecret _ _ _ _ _) (fun _ =>
+      Short.Only.bind (Short.Only.sequenceFin _ fun _ => Only.forsNode _ _ _ _ _ _)
+        (fun _ => Short.Only.pure' _))
 
 theorem Only.surrogate (parameter : PublicParameter) (seed : MasterSeed) (level : Nat) :
     Short.Only (surrogate parameter seed level : OracleComp HashSpec Digest) := by
@@ -398,13 +348,14 @@ theorem Only.treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
 theorem Only.keygenFromSeed (seed : MasterSeed) :
     Short.Only (keygenFromSeed seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
   unfold FORS.Seeded.keygenFromSeed
-  exact Short.Only.bind (Short.Only.deriveKey _ _ _) (fun _ =>
-    Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _))
+  exact Short.Only.bind (Short.Only.derivePublicSeed _) (fun _ =>
+    Short.Only.bind (Short.Only.derivePrf _) (fun _ =>
+      Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _)))
 
 theorem Only.keygen (seed : MasterSeed) :
     Short.Only (keygen seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
   unfold FORS.Seeded.keygen
-  exact Short.Only.bind (Short.Only.schemeSeed _) (fun _ => Only.keygenFromSeed _)
+  exact Only.keygenFromSeed _
 
 theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by
@@ -416,34 +367,63 @@ attribute [local irreducible] FORS.Seeded.treeNode FORS.Seeded.forsNode
   FORS.Seeded.otsSignFrom FORS.Seeded.forsKey
   FORS.Seeded.treePath
 
+theorem Only.signLayerWith (secretKey : SecretKey) (index : Index) (lay : Layer)
+    (message : HashInput) (hmsg : ShortMessage message) :
+    Short.Only (signLayerWith secretKey index lay message :
+      OracleComp HashSpec (Option (LayerSignature lay))) := by
+  unfold FORS.Seeded.signLayerWith FORS.Seeded.otsSign
+  refine Short.Only.bind (Only.otsSignFrom _ _ _ _ _ _ hmsg _ _) (fun result => ?_)
+  rcases result with _ | ⟨counter, values⟩
+  · exact Short.Only.pure' _
+  · exact Short.Only.bind (Only.treePath _ _ _ _ _) (fun _ => Short.Only.pure' _)
+
 theorem Only.signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) :
     Short.Only (signLayer secretKey index lay : OracleComp HashSpec (Option (LayerSignature lay))) := by
   unfold FORS.Seeded.signLayer FORS.Seeded.layerMessage FORS.Seeded.keyMessage
-    FORS.Seeded.otsSign
-  dsimp only
-  generalize treeIndexAt index lay = tree
-  generalize leafIndexAt index lay = leaf
-  have hrest : ∀ message, ShortMessage message →
-      Short.Only (do
-        let some (counter, values) ← FORS.Seeded.otsSignFrom secretKey.parameter lay tree leaf
-          secretKey.seed message encodingAttemptLimit 0 | return none
-        let path ← FORS.Seeded.treePath secretKey.parameter lay tree secretKey.seed leaf
-        return some (⟨counter, values, path⟩ : LayerSignature lay) :
-        OracleComp HashSpec (Option (LayerSignature lay))) := by
-    intro message hmsg
-    refine Short.Only.bind (Only.otsSignFrom _ _ _ _ _ _ hmsg _ _) (fun result => ?_)
-    rcases result with _ | ⟨counter, values⟩
-    · exact Short.Only.pure' _
-    · exact Short.Only.bind (Only.treePath _ _ _ _ _) (fun _ => Short.Only.pure' _)
   split
   · simp only [bind_assoc, pure_bind]
-    exact Short.Only.bind (Only.treeRoot _ _ _ _) (fun root => hrest _ (shortMessage_root root))
+    exact Short.Only.bind (Only.treeRoot _ _ _ _) (fun root =>
+      Only.signLayerWith _ _ _ _ (shortMessage_root root))
   · simp only [bind_assoc, pure_bind]
-    exact Short.Only.bind (Only.forsKey _ _ _) (fun key => hrest _ (shortMessage_roots key))
+    exact Short.Only.bind (Only.forsKey _ _ _) (fun key =>
+      Only.signLayerWith _ _ _ _ (shortMessage_root key))
+
+theorem Only.layerRecover (parameter : PublicParameter) (index : Index) (lay : Layer)
+    (message : HashInput) (hmsg : ShortMessage message) (part : LayerSignature lay) :
+    Short.Only (layerRecover parameter index lay message part : OracleComp HashSpec (Option Digest)) := by
+  unfold Concrete.layerRecover
+  refine Short.Only.bind (Short.Only.otsLeaf _ _ _ _ _ hmsg _ _) (fun value => ?_)
+  rcases value with _ | value
+  · exact Short.Only.pure' _
+  · exact Short.Only.bind (Short.Only.treeFold _ _ _ _ _ _ _) (fun _ => Short.Only.pure' _)
+
+theorem Only.layerStep (secretKey : SecretKey) (index : Index) (lay : Layer) (below : Digest) :
+    Short.Only (layerStep secretKey index lay below :
+      OracleComp HashSpec (Option (LayerSignature lay × Digest))) := by
+  unfold FORS.Seeded.layerStep
+  refine Short.Only.bind (Only.signLayerWith _ _ _ _ (shortMessage_root below)) (fun part => ?_)
+  rcases part with _ | part
+  · exact Short.Only.pure' _
+  · refine Short.Only.ite _ (Short.Only.pure' _) ?_
+    refine Short.Only.bind (Only.layerRecover _ _ _ _ (shortMessage_root below) _) (fun root => ?_)
+    rcases root with _ | root <;> exact Short.Only.pure' _
 
 end Seeded
 
-attribute [local irreducible] FORS.Seeded.signLayer FORS.Seeded.forsOpen
+attribute [local irreducible] FORS.Seeded.signLayer FORS.Seeded.layerStep FORS.Seeded.forsOpen
+
+theorem Only.sequenceThread {σ : Type} : ∀ {n : Nat} {α : Fin n → Type}
+    {computation : (i : Fin n) → σ → OracleComp HashSpec (Option (α i × σ))},
+    (∀ i state, Only (computation i state)) → ∀ state, Only (sequenceThread computation state)
+  | 0, _, _, _, _ => Only.pure' _
+  | _ + 1, α, computation, h, state => by
+      unfold FORS.Concrete.sequenceThread
+      refine Only.bind (h (Fin.last _) state) (fun last => ?_)
+      rcases last with _ | ⟨last, next⟩
+      · exact Only.pure' _
+      · refine Only.bind (Only.sequenceThread (α := fun i => α i.castSucc)
+          (fun i => h i.castSucc) next) (fun init => ?_)
+        rcases init with _ | init <;> exact Only.pure' _
 
 theorem Only.finishSign (secretKey : FORS.Seeded.SecretKey) (message : Message)
     (randomness : Randomness) :
@@ -454,9 +434,11 @@ theorem Only.finishSign (secretKey : FORS.Seeded.SecretKey) (message : Message)
   dsimp only
   generalize digestIndex digest = index
   generalize digestLeaves digest = leaves
-  refine Only.bind (Seeded.Only.forsOpen _ _ _ _) (fun _ => ?_)
-  unfold sequenceLayers
-  refine Only.bind (Only.sequenceDep fun lay => Seeded.Only.signLayer secretKey index lay) (fun layers => ?_)
+  refine Only.bind (Seeded.Only.forsOpen _ _ _ _) (fun opening => ?_)
+  refine Only.bind (Only.forsRecover _ _ _ _) (fun roots => ?_)
+  refine Only.bind (Only.forsPublicKey _ _ _) (fun forsKey => ?_)
+  refine Only.bind (Only.sequenceThread (fun lay below => Seeded.Only.layerStep secretKey index lay below)
+    forsKey) (fun layers => ?_)
   rcases layers with _ | layers <;> exact Only.pure' _
 
 end FORS.Security.Short

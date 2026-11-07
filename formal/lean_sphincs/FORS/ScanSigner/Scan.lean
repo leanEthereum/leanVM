@@ -64,7 +64,7 @@ theorem blk_eq_pblk (ρ : Randomness) :
 /-- Blocks of distinct randomizers differ, whatever their calls. -/
 theorem pblk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') (call call' : DigestCall) :
     pblk parameter data message ρ call ≠ pblk parameter data message ρ' call' := fun heq =>
-  h (payload_randomness_injective data.root message (tweakableInput_injective heq).2.2)
+  h (Security.messageDigestInput_injective heq).2.2.2.1
 
 /-- **The pair invariant of a state**: a pair whose index block is uncached is wholly uncached, and
 a pair whose index block lands is wholly cached. The trial of the scan reads the index block alone,

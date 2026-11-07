@@ -1,3 +1,4 @@
+import FORS.Scheme.Bytes
 import FORS.Scheme.Search
 
 /-!
@@ -18,11 +19,17 @@ variable [Params]
 
 open Concrete Seeded
 
-/-- The input the counter search hashes at counter `c`. -/
+/-- The input the counter search hashes at counter `c`, `BE_32(c)` after the message. -/
 def encodeInput (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (c : Nat) : HashInput :=
   tweakableHashInput parameter (.encoding lay tree leaf)
-    (message ++ bytesLE 4 (BitVec.ofNat counterBits c))
+    (message ++ bytesBE 4 (BitVec.ofNat counterBits c))
+
+/-- Counter bytes below the wrap are distinct. -/
+theorem counter_bytesBE_inj {c c' : Nat} (hc : c < 2 ^ 32) (hc' : c' < 2 ^ 32)
+    (h : (bytesBE 4 (BitVec.ofNat counterBits c) : HashInput)
+        = bytesBE 4 (BitVec.ofNat counterBits c')) : c = c' :=
+  ofNat_inj_of_lt hc hc' (bytesBE_injective h)
 
 theorem encodeInput_inj (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (message : HashInput) {c c' : Nat}
@@ -32,6 +39,6 @@ theorem encodeInput_inj (parameter : PublicParameter) (lay : Layer) (tree : Tree
   simp only [encodeInput, tweakableHashInput, List.append_assoc] at h
   have hpayload := List.append_cancel_left h
   have hpayload' := List.append_cancel_left hpayload
-  exact counter_bytes_inj hc hc' (List.append_cancel_left hpayload')
+  exact counter_bytesBE_inj hc hc' (List.append_cancel_left hpayload')
 
 end FORS.Completeness

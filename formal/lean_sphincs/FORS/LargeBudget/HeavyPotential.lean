@@ -952,26 +952,25 @@ theorem goodHW_pure (hw : w ≤ 1) (L : QueryLog SigningSpec) (forgery : Forgery
   split_ifs with hcov
   swap
   · exact bot_le
-  obtain ⟨⟨hvalid, digest, hdig, hland, hunsigned, hcovered⟩, hreal⟩ := hcov
+  obtain ⟨⟨hvalid, digest, hdig, -, hunsigned, hcovered⟩, hreal⟩ := hcov
   set q : Pair := (forgery.message, forgery.signature.randomness) with hq
   unfold HiddenBridge.cachedDigest at hdig
   cases h0 : pcache parameter data q.1 s q.2 with
   | none =>
       have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (tweakableHashInput parameter (.message call)
-            (messageDigestPayload data.root forgery.message forgery.signature.randomness))) = none := h0
+          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
+            call)) = none := h0
       rw [h0'] at hdig; cases hdig
   | some a =>
       have h0' : (Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-          s.cache (tweakableHashInput parameter (.message call)
-            (messageDigestPayload data.root forgery.message forgery.signature.randomness))) = some a := h0
+          s.cache (messageDigestInput parameter data.root forgery.message forgery.signature.randomness
+            call)) = some a := h0
       rw [h0'] at hdig
       have hdig' : truncateMessageDigest a = digest := by
         simpa using hdig
       subst hdig'
       have hlanded : LandedIn parameter data s q :=
-        ⟨a firstCall, first_of_pcache parameter data h0,
-          by rwa [Concrete.digestIndex_truncate] at hland⟩
+        ⟨a firstCall, first_of_pcache parameter data h0, landed_full parameter _⟩
       have hqP := (hP.mem q).2 hlanded
       have hv : pview parameter data s q = Lifetime.localDigestView (truncateMessageDigest a) := by
         simp only [pview, h0, Option.elim, viewOf]

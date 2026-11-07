@@ -4,15 +4,16 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # The security statement
 
-The SUF-CMA game of the security target: forgeries,
-signing transcripts and their tests, adversaries, and the counted experiment. The key is generated
-from a uniform 32-byte seed `S0` (`Seeded.keygen`, which first hashes it into the scheme seed
-`S = H(leanSPHINCS || S0)`), and the signer is the deterministic `Seeded.sign` (`Scheme.lean`; the
-Rust signer's), whose randomizers are derived from `S` and the message (a repeated request returns
-the same signature). Every hash call counts, including repeated calls and the calls of the honest
-parties, the one that derives `S` among them. The module ends with the forgery
-advantage, the hash-query budget and the security-bits target `SecurityBits P bits`; `Main.lean`
-spells out `SecurityBits P 127` as `Secure127 P` and states it for each configuration `P`.
+The SUF-CMA game of the security target: forgeries, signing transcripts and their tests,
+adversaries, and the counted experiment. The secret key is a uniform 32-byte `SK.seed`
+(`Seeded.keygen`), from which key generation derives `PK.seed` and `SK.prf` (two hashes of
+`leanSPHINCS || SK.seed || d`, for `d = 0, 1`) and every secret (one `PRF` call each). The signer is
+the deterministic `Seeded.sign` (`Scheme.lean`; the Rust signer's), whose randomizers are derived
+from `SK.prf`, `PK.seed` and the message (a repeated request returns the same signature). Every hash
+call counts, including repeated calls and the calls of the honest parties, the two that derive
+`PK.seed` and `SK.prf` among them. The module ends with the forgery advantage, the hash-query budget
+and the security-bits target `SecurityBits P bits`; `Main.lean` spells out `SecurityBits P 127` as
+`Secure127 P` and states it for each configuration `P`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -68,7 +69,7 @@ noncomputable def signingOracle (sk : Seeded.SecretKey) :
   QueryImpl.withLogging fun request =>
     liftM (Seeded.sign sk request : OracleComp HashSpec (Option Signature))
 
-/-- The game: a uniform seed `S0`, key generation from it, the adversary with the signing oracle, and
+/-- The game: a uniform `SK.seed`, key generation from it, the adversary with the signing oracle, and
 the verification of its forgery. It wins when the forgery verifies, the adversary asked for at most
 `signatureLimit` signatures, and no signing answer was the forgery. -/
 noncomputable def gameCore (adversary : Adversary) : OracleComp OracleWorld Bool := do

@@ -137,10 +137,10 @@ theorem revealsIn_sequenceDep (P : Coordinate → Prop) : ∀ {n : Nat} {α : Fi
   | 0, _, _, _ => revealsIn_pure _ _
   | _ + 1, α, computation, h => by
       unfold sequenceDep
-      refine revealsIn_bind _ (h 0) fun head => ?_
+      refine revealsIn_bind _ (h (Fin.last _)) fun head => ?_
       rcases head with _ | head
       · exact revealsIn_pure _ _
-      · refine revealsIn_bind _ (revealsIn_sequenceDep P (α := fun i => α i.succ) fun i => h i.succ)
+      · refine revealsIn_bind _ (revealsIn_sequenceDep P (α := fun i => α i.castSucc) fun i => h i.castSucc)
           fun tail => ?_
         rcases tail with _ | tail <;> exact revealsIn_pure _ _
 
@@ -149,7 +149,6 @@ theorem revealsIn_layerCostSearch (P : Coordinate → Prop) (parameter : PublicP
     (data : PublicData) (index : Index) (lay : Layer) :
     RevealsIn (D := HashInput) (R := HashOutput) P (layerCostSearch parameter data index lay) := by
   unfold layerCostSearch
-  refine revealsIn_bind _ (revealsIn_tick _ _) fun _ => ?_
   refine revealsIn_bind _ (revealsIn_liftHash _ _) fun found => ?_
   rcases found with _ | pair
   · exact revealsIn_pure _ _

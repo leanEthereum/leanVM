@@ -3,17 +3,13 @@ import FORS.Scheme.Code
 import FORS.Scheme.Correctness
 
 /-!
-Compression counts of the actual verifier's logged hash inputs, for each of the three hashes. A
-model input is `P || A || payload` (`n` bytes, the 16-byte `P` and the 16-byte address first):
+Compression counts of the actual verifier's logged hash inputs, for each of three hashes. An
+addressed input is `PK.seed || ADRS || payload` (`48 + |payload|` bytes), a digest call 84 bytes, and
+every hash takes an `n`-byte input as it is:
 
-* Keccak-256 hashes it as it is: `n / 136 + 1` Keccak-f permutations (the padding takes at least
-  one byte);
-* BLAKE2s hashes it as it is: `⌈n / 64⌉` compressions (the last block is zero-padded, no padding
-  byte);
-* SHA-256 hashes `P` alone in a zero-padded first block, compressed once per key, then the
-  `n - 16` remaining bytes with its at least 9 padding bytes: `⌈(n - 16 + 9) / 64⌉` compressions
-  per call and one per key. Its digest input also puts 16 zero bytes before the randomizer, which
-  costs nothing more: `A || m || 0^16 || R` is 80 bytes, 2 compressions, as `A || m || R` would be.
+* Keccak-256: `n / 136 + 1` Keccak-f permutations (the padding takes at least one byte);
+* BLAKE2s: `⌈n / 64⌉` compressions (the last block is zero-padded, no padding byte);
+* SHA-256: `⌈(n + 9) / 64⌉` compressions (at least 9 padding bytes).
 
 The oracle's answers remain arbitrary; only the byte lengths are counted.
 -/
@@ -37,12 +33,7 @@ deriving DecidableEq
 def HashFn.cost : HashFn → Nat → Nat
   | .keccak256, n => n / 136 + 1
   | .blake2s, n => (n + 63) / 64
-  | .sha256, n => (n - 16 + 9 + 63) / 64
-
-/-- Compressions spent once per key and verification: SHA-256's block of `P`. -/
-def HashFn.keyBlocks : HashFn → Nat
-  | .sha256 => 1
-  | _ => 0
+  | .sha256, n => (n + 9 + 63) / 64
 
 variable (H : HashFn)
 
@@ -86,16 +77,10 @@ theorem compressions_bind {α β : Type} (f : QueryImpl HashSpec Id)
 @[simp] theorem compressions_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
     compressions H f (oracleHash input : OracleComp HashSpec HashOutput) = H.cost input.length := rfl
 
-theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
-    (payload : HashInput) :
-    (tweakableHashInput parameter domain payload).length = 32 + payload.length := by
-  simp [tweakableHashInput, tweakBytes, fieldBytes, bytesLE_length]
-  omega
-
 @[simp] theorem compressions_tweakableHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     compressions H f (Concrete.tweakableHash parameter domain payload) =
-      H.cost (32 + payload.length) := by
+      H.cost (48 + payload.length) := by
   rw [Concrete.tweakableHash, compressions_bind, compressions_oracleHash,
     compressions_pure, Nat.add_zero, tweakableHashInput_length]
 
@@ -108,9 +93,9 @@ theorem compressions_sequenceFin {α : Type} {n : Nat} (f : QueryImpl HashSpec I
       rw [sequenceFin, compressions_bind]
       simp only [compressions_bind, compressions_pure, Nat.add_zero, ih, Fin.sum_univ_succ]
 
-/-- A chain step hashes 48 bytes, a node 64. -/
-abbrev stepCost : Nat := H.cost 48
-abbrev nodeCost : Nat := H.cost 64
+/-- A chain step hashes 64 bytes, a node 80. -/
+abbrev stepCost : Nat := H.cost 64
+abbrev nodeCost : Nat := H.cost 80
 
 theorem compressions_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex)
@@ -131,28 +116,21 @@ theorem compressions_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicPa
   have := digit.isLt
   omega
 
-/-- A one-time leaf hashes its 64 chain ends: 1,056 bytes. -/
+/-- A one-time leaf hashes its 64 chain ends: 1,072 bytes. -/
 @[simp] theorem compressions_leafHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (endpoints : ChainIndex → Digest) :
-    compressions H f (leafHash parameter lay tree leaf endpoints) = H.cost 1056 := by
-  rw [leafHash, compressions_tweakableHash, leafPayload, digest_vector_length]
-  rfl
+    compressions H f (leafHash parameter lay tree leaf endpoints) = H.cost 1072 := by
+  rw [leafHash, compressions_tweakableHash, leafPayload_length]
 
-theorem rootsPayload_length (tops : ForsKey) : (rootsPayload tops).length = 32 * forsTrees := by
-  simp [rootsPayload, nodePayload, bytesLE_length, List.length_flatMap, List.sum_ofFn, mul_comm]
-
-theorem rootPayload_length (root : Digest) : (rootPayload root).length = 16 := by
-  simp [rootPayload, bytesLE_length]
-
-/-- The encoding hashes the message and the counter: `32 + |M| + 4` bytes. -/
+/-- The encoding hashes the message and the counter: `48 + |M| + 4` bytes. -/
 @[simp] theorem compressions_encode (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (counter : Counter) :
     compressions H f (encode parameter lay tree leaf message counter) =
-      H.cost (32 + (message.length + 4)) := by
+      H.cost (48 + (message.length + 4)) := by
   simp only [encode, compressions_bind, compressions_tweakableHash, List.length_append,
-    bytesLE_length, compressions_pure, Nat.add_zero]
+    bytesBE_length, compressions_pure, Nat.add_zero]
 
 theorem compressions_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (path : Nat → Digest)
@@ -165,8 +143,8 @@ theorem compressions_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicPar
       dsimp only
       split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length]
 
-/-- One FORS tree: the leaf (48 bytes) and `a - 1` folds. -/
-def treeCost : Nat := stepCost H + (forsHeight - 1) * nodeCost H
+/-- One FORS tree: the leaf (64 bytes) and `a` folds up to the root. -/
+def treeCost : Nat := stepCost H + forsHeight * nodeCost H
 
 section Tree
 
@@ -188,13 +166,12 @@ theorem compressions_forsFold (leaf : FLeaf) (path : Fin forsHeight → Digest)
 
 @[simp] theorem compressions_treeRecover (leaf : FLeaf) (opening : TreeOpening) :
     compressions H f (treeRecover parameter index κ leaf opening) = treeCost H := by
-  rw [treeRecover, compressions_bind, compressions_forsLeafHash, compressions_bind,
-    compressions_forsFold H f parameter index κ _ _ _ (Nat.sub_le _ _), compressions_pure, treeCost]
-  ring
+  rw [treeRecover, compressions_bind, compressions_forsLeafHash,
+    compressions_forsFold H f parameter index κ _ _ _ le_rfl, treeCost]
 
 end Tree
 
-/-- The FORS recovery: `k` trees. The key is not hashed: the encoding absorbs it. -/
+/-- The FORS recovery: `k` trees. -/
 @[simp] theorem compressions_forsRecover (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening) :
     compressions H f (forsRecover parameter index leaves opening) = forsTrees * treeCost H := by
@@ -202,14 +179,20 @@ end Tree
   simp only [compressions_treeRecover, Finset.sum_const,
     Finset.card_univ, Fintype.card_fin, smul_eq_mul]
 
-/-- Every digest call hashes 80 bytes. -/
+/-- `T_k` hashes the `k` roots: `48 + 16 k` bytes. -/
+@[simp] theorem compressions_forsPublicKey (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+    (index : Index) (roots : ForsKey) :
+    compressions H f (forsPublicKey parameter index roots) = H.cost (48 + 16 * forsTrees) := by
+  rw [forsPublicKey, compressions_tweakableHash, rootsPayload_length]
+
+/-- Every digest call hashes 84 bytes. -/
 @[simp] theorem compressions_messageDigest (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
-    compressions H f (messageDigest parameter root message randomness) = digestCalls * H.cost 80 := by
+    compressions H f (messageDigest parameter root message randomness) = digestCalls * H.cost 84 := by
   simp only [messageDigest, compressions_bind, compressions_sequenceFin, messageDigestCall,
-    compressions_oracleHash, tweakableHashInput_length, messageDigestPayload, List.length_append,
-    bytesLE_length, compressions_pure, Nat.add_zero, Finset.sum_const, Finset.card_univ,
-    Fintype.card_fin, smul_eq_mul]
+    compressions_oracleHash, messageDigestInput, List.length_append,
+    bytesLE_length, bytesBE_length, List.length_cons, List.length_nil, compressions_pure, Nat.add_zero,
+    Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
 
 theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput)
@@ -227,7 +210,7 @@ theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
 /-- Recovery after an admissible encoding: the encoding, the 64 chain steps that complete the 128
 signed positions, the leaf. -/
 def otsCost (messageLength : Nat) : Nat :=
-  H.cost (32 + (messageLength + 4)) + 64 * stepCost H + H.cost 1056
+  H.cost (48 + (messageLength + 4)) + 64 * stepCost H + H.cost 1072
 
 /-- Recovery spends `otsCost` after an admissible encoding, or the encoding alone on rejection. -/
 theorem compressions_otsLeaf (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -236,7 +219,7 @@ theorem compressions_otsLeaf (f : QueryImpl HashSpec Id) (parameter : PublicPara
     compressions H f (otsLeaf parameter lay tree leaf message counter values) =
       if (evalWithAnswerFn f (otsLeaf parameter lay tree leaf message counter values
         : OracleComp HashSpec (Option Digest))).isSome then otsCost H message.length
-      else H.cost (32 + (message.length + 4)) := by
+      else H.cost (48 + (message.length + 4)) := by
   cases henc : evalWithAnswerFn f (encode parameter lay tree leaf message counter
       : OracleComp HashSpec (Option Encoding)) with
   | none =>
@@ -252,27 +235,24 @@ theorem compressions_otsLeaf (f : QueryImpl HashSpec Id) (parameter : PublicPara
         Completeness.verification_chain_steps word hvalid, otsCost]
       ring
 
-/-- One layer of the walk: the one-time recovery of its message and the fold of its path. -/
-def layerCost (lay : Layer) (messageLength : Nat) : Nat :=
-  otsCost H messageLength + layerHeight lay * nodeCost H
-
-/-- The message length of the layer `k` steps above the bottom: the FORS key, then a root. -/
-def messageLength (k : Nat) : Nat := if k = 0 then 32 * forsTrees else 16
+/-- One layer of the walk: the one-time recovery of its 16-byte message and the fold of its path. -/
+def layerCost (lay : Layer) : Nat :=
+  otsCost H 16 + layerHeight lay * nodeCost H
 
 attribute [local irreducible] otsLeaf encode sequenceFin chainWalk recoverChain leafHash
-  forsRecover treeFold messageDigest
+  forsRecover forsPublicKey treeFold messageDigest
 
 /-- The walk from the layer `k` steps above the bottom costs the sum of its layers when it accepts,
 and at most that sum otherwise. -/
 theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (signature : Signature) :
-    ∀ n k (message : HashInput), k + n = numLayers → 0 < n → message.length = messageLength k →
+    ∀ n k (message : HashInput), k + n = numLayers → 0 < n → message.length = 16 →
       (compressions H f (verifyLayers parameter index signature n message) ≤
-        ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j) (messageLength j)) ∧
+        ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j)) ∧
       ((evalWithAnswerFn f (verifyLayers parameter index signature n message
           : OracleComp HashSpec (Option Digest))).isSome →
         compressions H f (verifyLayers parameter index signature n message) =
-          ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j) (messageLength j)) := by
+          ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j)) := by
   intro n
   induction n with
   | zero => intro k _ _ hn; exact absurd hn (Nat.lt_irrefl 0)
@@ -281,9 +261,9 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
       have hn : n < numLayers := by omega
       have hlay : (⟨n, hn⟩ : Layer) = layerUp k := by
         apply Fin.ext; simp only [layerUp]; omega
-      have hsplit : ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j) (messageLength j) =
-          layerCost H (layerUp k) (messageLength k) +
-            ∑ j ∈ Finset.Ico (k + 1) numLayers, layerCost H (layerUp j) (messageLength j) :=
+      have hsplit : ∑ j ∈ Finset.Ico k numLayers, layerCost H (layerUp j) =
+          layerCost H (layerUp k) +
+            ∑ j ∈ Finset.Ico (k + 1) numLayers, layerCost H (layerUp j) :=
         Finset.sum_eq_sum_Ico_succ_bot (by omega) _
       rw [verifyLayers, dif_pos hn, hlay, compressions_bind, compressions_otsLeaf]
       simp only [evalWithAnswerFn_bind]
@@ -302,7 +282,7 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
             have hk : k + 1 = numLayers := by omega
             simp only [↓reduceIte, compressions_pure, evalWithAnswerFn_pure, Option.isSome_some,
               Nat.add_zero, forall_const, evalWithAnswerFn_bind]
-            have hrest : ∑ j ∈ Finset.Ico (k + 1) numLayers, layerCost H (layerUp j) (messageLength j) = 0 := by
+            have hrest : ∑ j ∈ Finset.Ico (k + 1) numLayers, layerCost H (layerUp j) = 0 := by
               rw [hk, Finset.Ico_self, Finset.sum_empty]
             rw [hsplit, hrest, layerCost, hlen]
             exact ⟨le_of_eq (by ring), by ring⟩
@@ -310,8 +290,7 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
             have hmsg : (rootPayload (evalWithAnswerFn f (treeFold parameter (layerUp k)
                 (treeIndexAt index (layerUp k)) (leafIndexAt index (layerUp k))
                 (signaturePath signature (layerUp k)) (layerHeight (layerUp k)) value
-                  : OracleComp HashSpec Digest))).length = messageLength (k + 1) := by
-              rw [rootPayload_length, messageLength, if_neg (Nat.succ_ne_zero k)]
+                  : OracleComp HashSpec Digest))).length = 16 := rootPayload_length _
             obtain ⟨hle, heq⟩ := ih (k + 1) _ (by omega) (Nat.pos_of_ne_zero hzero) hmsg
             rw [hsplit, layerCost, hlen]
             refine ⟨by omega, fun hsome => ?_⟩
@@ -319,58 +298,50 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
             rw [heq hsome]
             ring
 
-/-- The verifier's cost of an accepted signature: SHA-256's block of `P`, the 80-byte digest calls,
-FORS, the encoding of the FORS key (`36 + 32 k` bytes) and of each root above it (52 bytes), at every
-layer the 64 chain steps and the one-time leaf, and one node per level of the hypertree. -/
+/-- The verifier's cost of an accepted signature: the 84-byte digest calls, the `k` FORS trees,
+`T_k` of their roots (`48 + 16 k` bytes), at every layer the encoding of its 16-byte message (68
+bytes), the 64 chain steps and the one-time leaf, and one node per level of the hypertree. -/
 def verifyCost : Nat :=
-  H.keyBlocks + digestCalls * H.cost 80 + forsTrees * treeCost H + H.cost (36 + 32 * forsTrees) +
-    (numLayers - 1) * H.cost 52 + numLayers * (64 * stepCost H + H.cost 1056) + totalHeight * nodeCost H
+  digestCalls * H.cost 84 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
+    numLayers * (H.cost 68 + 64 * stepCost H + H.cost 1072) + totalHeight * nodeCost H
 
 /-- The cost of every layer of the walk, in closed form. -/
 theorem sum_layerCost :
-    ∑ j ∈ Finset.Ico 0 numLayers, layerCost H (layerUp j) (messageLength j) =
-      H.cost (36 + 32 * forsTrees) + (numLayers - 1) * H.cost 52 +
-        numLayers * (64 * stepCost H + H.cost 1056) + totalHeight * nodeCost H := by
-  have hpos := numLayers_pos
+    ∑ j ∈ Finset.Ico 0 numLayers, layerCost H (layerUp j) =
+      numLayers * (H.cost 68 + 64 * stepCost H + H.cost 1072) + totalHeight * nodeCost H := by
   have hheights : ∑ j ∈ Finset.Ico 0 numLayers, layerHeight (layerUp j) = totalHeight := by
     rw [← Finset.range_eq_Ico, ← Fin.sum_univ_eq_sum_range (fun j => layerHeight (layerUp j))]
     rw [Function.Bijective.sum_comp layerUp_bijective (fun lay => layerHeight lay), sum_layerHeight]
-  have hmsg : ∑ j ∈ Finset.Ico 0 numLayers, H.cost (32 + (messageLength j + 4)) =
-      H.cost (36 + 32 * forsTrees) + (numLayers - 1) * H.cost 52 := by
-    rw [Finset.sum_eq_sum_Ico_succ_bot hpos]
-    simp only [messageLength, if_true, Nat.zero_add]
-    rw [Finset.sum_congr rfl (fun j hj => by
-      rw [if_neg (by simp only [Finset.mem_Ico] at hj; omega)] : ∀ j ∈ Finset.Ico (0 + 1) numLayers,
-        H.cost (32 + ((if j = 0 then 32 * forsTrees else 16) + 4)) = H.cost 52), Finset.sum_const,
-      Nat.card_Ico, smul_eq_mul]
-    congr 2
-    omega
-  simp only [layerCost, otsCost, Finset.sum_add_distrib, ← Finset.sum_mul, hheights, hmsg,
+  simp only [layerCost, otsCost, Finset.sum_add_distrib, ← Finset.sum_mul, hheights,
     Finset.sum_const, Nat.card_Ico, smul_eq_mul, Nat.sub_zero]
   ring
 
 attribute [local semireducible] Concrete.verify
 
-/-- The compressions of one verification, with SHA-256's block of `P`. -/
+/-- The compressions of one verification. -/
 def verifyCompressions (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) : Nat :=
-  H.keyBlocks + compressions H f (Concrete.verify pk message signature : OracleComp HashSpec Bool)
+  compressions H f (Concrete.verify pk message signature : OracleComp HashSpec Bool)
 
 theorem verify_compressions_split (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :
     verifyCompressions H f pk message signature =
-      H.keyBlocks + digestCalls * H.cost 80 + forsTrees * treeCost H +
+      digestCalls * H.cost 84 + forsTrees * treeCost H + H.cost (48 + 16 * forsTrees) +
         compressions H f (verifyLayers pk.parameter
           (digestIndex (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
             signature.randomness : OracleComp HashSpec MessageDigest))) signature numLayers
-          (rootsPayload (evalWithAnswerFn f (forsRecover pk.parameter
+          (rootPayload (evalWithAnswerFn f (forsPublicKey pk.parameter
             (digestIndex (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
               signature.randomness : OracleComp HashSpec MessageDigest)))
-            (digestLeaves (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
-              signature.randomness : OracleComp HashSpec MessageDigest))) signature.fors
-            : OracleComp HashSpec ForsKey)))) := by
+            (evalWithAnswerFn f (forsRecover pk.parameter
+              (digestIndex (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
+                signature.randomness : OracleComp HashSpec MessageDigest)))
+              (digestLeaves (evalWithAnswerFn f (messageDigest pk.parameter pk.root message
+                signature.randomness : OracleComp HashSpec MessageDigest))) signature.fors
+              : OracleComp HashSpec ForsKey)) : OracleComp HashSpec Digest)))) := by
   rw [verifyCompressions, Concrete.verify, compressions_bind, compressions_messageDigest,
-    compressions_bind, compressions_forsRecover, compressions_bind]
+    compressions_bind, compressions_forsRecover, compressions_bind, compressions_forsPublicKey,
+    compressions_bind]
   split <;> simp only [compressions_pure] <;> ring
 
 /-- **Verification cost.** Every accepted signature costs exactly `verifyCost` compressions of the
@@ -383,10 +354,11 @@ theorem verification_compressions (f : QueryImpl HashSpec Id) (pk : PublicKey)
   rw [verify_compressions_split]
   set digest := evalWithAnswerFn f (messageDigest pk.parameter pk.root message
     signature.randomness : OracleComp HashSpec MessageDigest)
-  set key := evalWithAnswerFn f (forsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
-    signature.fors : OracleComp HashSpec ForsKey)
+  set key := evalWithAnswerFn f (forsPublicKey pk.parameter (digestIndex digest)
+    (evalWithAnswerFn f (forsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
+      signature.fors : OracleComp HashSpec ForsKey)) : OracleComp HashSpec Digest)
   have hwalk := compressions_verifyLayers H f pk.parameter (digestIndex digest) signature numLayers 0
-    (rootsPayload key) (Nat.zero_add _) numLayers_pos (by rw [rootsPayload_length]; rfl)
+    (rootPayload key) (Nat.zero_add _) numLayers_pos (rootPayload_length _)
   simp only [Concrete.verify, evalWithAnswerFn_bind] at haccept
   split at haccept
   next root hroot =>
@@ -401,10 +373,11 @@ theorem verification_compressions_le (f : QueryImpl HashSpec Id) (pk : PublicKey
   rw [verify_compressions_split]
   set digest := evalWithAnswerFn f (messageDigest pk.parameter pk.root message
     signature.randomness : OracleComp HashSpec MessageDigest)
-  set key := evalWithAnswerFn f (forsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
-    signature.fors : OracleComp HashSpec ForsKey)
+  set key := evalWithAnswerFn f (forsPublicKey pk.parameter (digestIndex digest)
+    (evalWithAnswerFn f (forsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
+      signature.fors : OracleComp HashSpec ForsKey)) : OracleComp HashSpec Digest)
   have hwalk := compressions_verifyLayers H f pk.parameter (digestIndex digest) signature numLayers 0
-    (rootsPayload key) (Nat.zero_add _) numLayers_pos (by rw [rootsPayload_length]; rfl)
+    (rootPayload key) (Nat.zero_add _) numLayers_pos (rootPayload_length _)
   have := hwalk.1
   rw [sum_layerCost] at this
   rw [verifyCost]
