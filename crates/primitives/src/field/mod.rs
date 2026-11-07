@@ -70,6 +70,20 @@ pub fn powers(x: F192, n: usize) -> Vec<F192> {
     out
 }
 
+/// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
+///
+/// Entry `v` is `sum_{b : bit b of v is set} weights[b]`, so a dot product with the bits of a byte is one lookup.
+pub fn byte_sums(weights: &[F192; 8]) -> [F192; 256] {
+    let mut t = [F192::ZERO; 256];
+    // The bytes in `[2^b, 2^(b+1))` are those below `2^b` with bit `b` added.
+    for (bit, &w) in weights.iter().enumerate() {
+        for byte in 1usize << bit..2 << bit {
+            t[byte] = t[byte - (1 << bit)] + w;
+        }
+    }
+    t
+}
+
 /// `[g^0, g^1, …, g^{n-1}]`, built in parallel: each chunk seeds with one
 /// [`g_pow`] (`O(log)`) and fills by `mul_by_g`, breaking the serial prefix
 /// chain across cores.
@@ -154,6 +168,20 @@ mod tests {
             assert_eq!(mul_by_g(div_by_g(a)), a, "{a:?}");
             // Division by `g` is the product by its inverse.
             assert_eq!(div_by_g(a), a * F64::G.inv(), "{a:?}");
+        }
+    }
+
+    #[test]
+    fn byte_sums_add_the_weights_of_the_set_bits() {
+        let mut rng = Rng::new(8);
+        let weights: [F192; 8] = std::array::from_fn(|_| rng.ext());
+        let sums = byte_sums(&weights);
+        // Entry `v` against the sum of weight `b` over every set bit `b` of `v`: 0 is empty, 255 takes all eight.
+        for v in 0..256usize {
+            let want = (0..8)
+                .filter(|b| v >> b & 1 == 1)
+                .fold(F192::ZERO, |acc, b| acc + weights[b]);
+            assert_eq!(sums[v], want, "byte {v:#04x}");
         }
     }
 

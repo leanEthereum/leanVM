@@ -9,10 +9,9 @@
 
 use fiat_shamir::transcript::ProverState;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
-use primitives::field::{F64, F192, F192Unreduced};
+use primitives::field::{F64, F192, F192Unreduced, byte_sums};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 
-use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
 use crate::protocol::{Claim, dot, sum};
 use crate::witness::{BLOCK_WORDS, Shape, Witness, words};

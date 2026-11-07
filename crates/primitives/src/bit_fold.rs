@@ -12,6 +12,16 @@
 //! - GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 
 use crate::field::F192;
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
+use crate::field::byte_sums;
 
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
@@ -82,20 +92,7 @@ impl BitFold {
 ))]
 /// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
 fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
-    weights
-        .as_chunks::<8>()
-        .0
-        .iter()
-        .map(|w| {
-            let mut sums = [F192::ZERO; 256];
-            // Each entry adds its lowest set bit's weight to an entry already built.
-            for v in 1..256usize {
-                let low = v.isolate_lowest_one();
-                sums[v] = sums[v ^ low] + w[low.trailing_zeros() as usize];
-            }
-            sums
-        })
-        .collect()
+    weights.as_chunks::<8>().0.iter().map(byte_sums).collect()
 }
 
 #[cfg(any(
