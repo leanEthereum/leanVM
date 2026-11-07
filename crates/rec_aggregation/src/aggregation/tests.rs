@@ -750,7 +750,7 @@ fn a_node_may_publish_less_than_it_covers() {
         .xmss_signers
         .iter()
         .filter(|(_, message)| *message == message_for(MESSAGE_B))
-        .cloned()
+        .copied()
         .collect();
     assert_eq!(on_b.len(), 2);
 
@@ -920,7 +920,7 @@ def main():
 /// directly. The root also adds a raw signature of each scheme alongside its
 /// children.
 #[test]
-#[ignore]
+#[ignore = "slow: proves three levels of recursion"]
 fn aggregate_three_levels() {
     leanvm_core::init_prover();
     let signers = get_signers(4 * SMALL_LEAF_SIZE);
@@ -965,7 +965,7 @@ fn aggregate_three_levels() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "slow: proves a recursion node and its children"]
 fn aggregate_round_trips_through_the_wire() {
     leanvm_core::init_prover();
     let signers = get_signers(2 * SMALL_LEAF_SIZE);
@@ -994,7 +994,7 @@ fn aggregate_round_trips_through_the_wire() {
         &node.to_bytes_without_pubkeys(),
         SignatureClaims {
             xmss: node.xmss_signers.clone(),
-            lean_sphincs: node.lean_sphincs_signers.clone(),
+            lean_sphincs: node.lean_sphincs_signers,
         },
     )
     .expect("round trip");

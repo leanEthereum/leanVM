@@ -98,6 +98,6 @@ pub fn store_prefix<T: Plain>(dst: &mut [T], i: usize, n: usize, v: __m512i) {
             dst.as_mut_ptr().cast::<u8>().wrapping_add(64 * i).cast(),
             ((1u16 << n) - 1) as u8,
             v,
-        )
+        );
     }
 }

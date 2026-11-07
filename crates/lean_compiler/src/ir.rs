@@ -151,6 +151,7 @@ pub(crate) struct JumpTables {
 /// frame (stack) run, used in place, or a heap slice (the buffer pointer's cell
 /// plus the first g-power offset), which a `keccak` operand must bridge through
 /// the stack since `KECCAK` addresses only frame cells.
+#[derive(Clone, Copy)]
 pub(crate) enum CellRun {
     Stack { base: Off, len: u32 },
     Heap { ptr: Off, lo: u32, len: u32 },

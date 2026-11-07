@@ -386,7 +386,7 @@ impl FnLower<'_> {
     /// Emits nothing, so each caller keeps its own evaluation order. In
     /// `hb[sb[0]] = f(sb, …)`, the address may read a cell the value writes.
     /// The heap bound lives where the address is formed ([`Self::heap_addr`]).
-    fn frame_cell(&mut self, arr: &Expr, idx: &Expr) -> Option<Off> {
+    fn frame_cell(&self, arr: &Expr, idx: &Expr) -> Option<Off> {
         let (base, size) = self.stack_of(arr)?;
         let k = self.const_index(idx);
         if k >= size {
@@ -1134,7 +1134,7 @@ impl FnLower<'_> {
         }
         // Runtime base: square-and-multiply over the compile-time exponent bits.
         let base = self.expr(b);
-        let hi = 31 - k.leading_zeros(); // top set bit (k >= 1)
+        let hi = k.ilog2(); // top set bit (k >= 1)
         let mut acc = base;
         for bit in (0..hi).rev() {
             acc = self.pure(PureOp::Mul, acc, acc);
@@ -1538,7 +1538,7 @@ impl FnLower<'_> {
             Expr::Var(next_var.clone()),
             exit,
             loop_name.clone(),
-            cap_args(Expr::Var(next_var), Expr::Var(bound_var.clone())),
+            cap_args(Expr::Var(next_var), Expr::Var(bound_var)),
         )));
         loop_body.push(at(StmtKind::Return(vec![])));
         self.queue.push(Func {

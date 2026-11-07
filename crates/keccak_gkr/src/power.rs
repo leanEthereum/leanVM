@@ -128,7 +128,7 @@ impl PowerField {
             width,
             fold_row(self, dst, lo, hi, challenge, width),
             self.fold_row_portable(dst, lo, hi, challenge, width)
-        )
+        );
     }
 
     /// `dst[j] = wide[j]` reduced, for a row of four-word polynomials laid out by word.
@@ -138,7 +138,7 @@ impl PowerField {
             width,
             reduce_row(self, dst, wide, width),
             self.reduce_row_portable(dst, wide, width)
-        )
+        );
     }
 
     pub fn reduce_row_portable(&self, dst: &mut [u64], wide: &[u64], width: usize) {
@@ -155,7 +155,7 @@ impl PowerField {
             width,
             mul_row(self, dst, a, b, c, width),
             self.mul_row_portable(dst, a, b, c, width)
-        )
+        );
     }
 
     pub fn mul_row_portable(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {

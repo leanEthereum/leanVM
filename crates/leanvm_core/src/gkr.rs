@@ -645,12 +645,14 @@ mod vertical {
         out
     }
 
+    #[derive(Clone, Copy)]
     pub(super) enum Data<'a> {
         Rows(&'a [F192]),
         Groups(&'a [Group]),
     }
 
     /// A layer's rows as a fold reads them, with the runs known to be the identity.
+    #[derive(Clone, Copy)]
     pub(super) struct Input<'a> {
         pub(super) data: Data<'a>,
         pub(super) ones: &'a [Range<usize>],
@@ -996,7 +998,7 @@ mod tests {
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
+            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.clone())), &mut ps);
             let stream = ps.into_proof().stream;
             assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
             for lane in 0..3 {
@@ -1021,14 +1023,14 @@ mod tests {
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
+            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.clone())), &mut sparse_ps);
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
             assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
+            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.clone())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);

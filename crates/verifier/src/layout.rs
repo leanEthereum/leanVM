@@ -154,24 +154,28 @@ impl Flushes {
         self.state_derived(pc, fp, col(pc, 1), col(fp, 0));
     }
 
-    fn counted(&mut self, prefix: [Form; 2], count: usize, suffix: Vec<Form>) {
-        let side = |counter: Form| [prefix.to_vec(), vec![counter], suffix.clone()].concat();
+    fn counted(&mut self, prefix: &[Form; 2], count: usize, suffix: &[Form]) {
+        let side = |counter: Form| [&prefix[..], &[counter], suffix].concat();
         self.pair(side(col(count, 1)), side(col(count, 0)));
     }
 
     fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
         let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
-        self.counted([constant(SEP_BYTECODE), col(pc, 0)], count, suffix);
+        self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], count, &suffix);
     }
 
-    fn memory(&mut self, address: Form, count: usize, values: [Form; 3]) {
-        self.counted([constant(SEP_MEM), address], count, values.to_vec());
+    fn memory(&mut self, address: Form, count: usize, values: &[Form; 3]) {
+        self.counted(&[constant(SEP_MEM), address], count, values);
     }
 
     /// The cell's limbs are the named columns, the missing top ones zero.
     fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
-        let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
-        self.memory(address, count, values);
+        let values = std::array::from_fn(|limb| {
+            columns
+                .get(limb)
+                .map_or_else(|| constant(ZERO), |&column| col(column, 0))
+        });
+        self.memory(address, count, &values);
     }
 }
 
@@ -221,7 +225,7 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     } else {
         std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
     };
-    flushes.memory(prod(fp, o_c, 0), cnt_c, result);
+    flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
     flushes
 }
 
@@ -256,7 +260,7 @@ fn flushes_deref() -> Flushes {
     let operands = vec![col(o1, 0), col(o2, 0), col(o3, 0), col(f_pc, 0), col(f_fp, 0)];
     flushes.bytecode(pc, cnt_bc, OP_DEREF, operands);
     flushes.memory_cols(prod(fp, o1, 0), cnt_ptr, &[ptr]);
-    flushes.memory(prod(ptr, o2, 0), cnt_target, store);
+    flushes.memory(prod(ptr, o2, 0), cnt_target, &store);
     flushes.memory_cols(prod(fp, o3, 0), cnt_local, &v3);
     flushes
 }
@@ -305,7 +309,7 @@ fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS
 fn layout_limb(even: Option<usize>, odd: Option<usize>, flag: usize, missing: Option<usize>) -> Form {
     let (a, b) = (even.or(missing), odd.or(missing));
     if a == b {
-        return a.map_or(constant(ZERO), |a| col(a, 0));
+        return a.map_or_else(|| constant(ZERO), |a| col(a, 0));
     }
     Form::sum(
         [
@@ -352,7 +356,7 @@ fn flushes_keccak() -> Flushes {
             } else {
                 prod(fp, o_out, cell as u64)
             };
-            flushes.memory(at, KECCAK_CNT + KECCAK_CELLS * side + cell, values);
+            flushes.memory(at, KECCAK_CNT + KECCAK_CELLS * side + cell, &values);
         }
     }
     flushes

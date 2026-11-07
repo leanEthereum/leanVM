@@ -71,7 +71,7 @@ fn public_api_end_to_end() {
 
     // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes.
     let (dropped_claims, xmss_signers): (Vec<_>, Vec<_>) =
-        received.xmss_signers().iter().cloned().partition(|(_, m)| *m == MSG_1);
+        received.xmss_signers().iter().copied().partition(|(_, m)| *m == MSG_1);
     let mut lean_sphincs_signers = received.lean_sphincs_signers().to_vec();
     let dropped_signer = lean_sphincs_signers.remove(0);
     let retained_signatures = SignatureClaims {

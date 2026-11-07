@@ -98,7 +98,7 @@ fn address_layout() {
 
 /// Detect changes to the encoding predicate through its grinding cost.
 #[test]
-#[ignore]
+#[ignore = "slow: grinds 2^26 encodings"]
 fn encoding_grinding_bits() {
     let n = 1 << 26;
     let mut rng = StdRng::seed_from_u64(0);

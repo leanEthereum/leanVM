@@ -243,7 +243,7 @@ impl AdditiveNttF64 {
     fn hand_over(win: &mut Window<'_>, plan: &Plan, sink: &RowSink<'_>) {
         let (log_rows, first) = (plan.log_handover_rows(), win.first_row());
         parallel::chunks_mut(win.words_mut(), plan.num_ntts << log_rows, |i, rows| {
-            sink(first + (i << log_rows), rows)
+            sink(first + (i << log_rows), rows);
         });
     }
 }

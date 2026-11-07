@@ -146,11 +146,11 @@ pub fn extend(packs: &[u32; PACKS], out: &mut [u32; SLOTS]) {
 /// [`extend`] of [`embed`].
 #[inline(always)]
 pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
-    simd::embed_extend(words, out)
+    simd::embed_extend(words, out);
 }
 
 pub fn embed_extend_portable(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
-    extend(&embed(words), out)
+    extend(&embed(words), out);
 }
 
 /// The 32 packs of a block position, embedded.
@@ -178,7 +178,7 @@ pub fn products_portable(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -
 /// `acc[p] += sum over x of weights[x] * e[x + 1][p] * e[x + 2][p]`.
 #[inline(always)]
 pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
-    simd::skip_row(acc, e, weights)
+    simd::skip_row(acc, e, weights);
 }
 
 pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {

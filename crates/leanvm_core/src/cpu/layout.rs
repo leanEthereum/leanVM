@@ -388,12 +388,12 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
 pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
-    layout_of(bytecode_columns(prog), log_mem, rows, pi)
+    layout_of(&bytecode_columns(prog), log_mem, rows, pi)
 }
 
 /// [`layout`] of a program's columns.
 pub(crate) fn layout_of(
-    prog_cols: BytecodeColumns,
+    prog_cols: &BytecodeColumns,
     log_mem: usize,
     rows: [usize; tables::N_TABLES],
     pi: [F192; 2],

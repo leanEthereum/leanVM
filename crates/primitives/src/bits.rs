@@ -17,12 +17,12 @@ pub fn bit_transpose_64bytes(input: &[u8; 64], output: &mut [u8; 64]) {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
     // SAFETY: the features are enabled at compile time.
     unsafe {
-        bit_transpose_64bytes_gfni(input, output)
+        bit_transpose_64bytes_gfni(input, output);
     }
     #[cfg(target_arch = "aarch64")]
     // SAFETY: aarch64 always has NEON.
     unsafe {
-        bit_transpose_64bytes_neon(input, output)
+        bit_transpose_64bytes_neon(input, output);
     }
     #[cfg(not(any(
         all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"),

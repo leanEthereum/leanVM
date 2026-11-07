@@ -666,6 +666,7 @@ fn keccak_pad_value() -> F192 {
 
 /// Where a `keccak` writes: the 13-cell stack run its instruction targets, and a
 /// run to copy the state or the digest out to afterwards.
+#[derive(Clone, Copy)]
 struct KeccakOut {
     state: Off,
     copy: Option<CellRun>,
