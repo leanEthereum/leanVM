@@ -121,11 +121,11 @@ type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
 fn verify_stacked_opening(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     root: Digest,
     stack_log: usize,
     log_inv_rate: usize,
-    claims: &[StackClaim],
+    claims: &[StackClaim<'_>],
 ) -> Result<(), VerifierError> {
     let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
     let scales = powers(transcript.sample(), claims.len());
@@ -202,7 +202,7 @@ pub fn verify_keccak_batch(
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
     let (target, weight) = ring_switch(point, &slices, &mut transcript);
-    let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
+    let mut claims: Vec<StackClaim<'_>> = vec![(Box::new(weight), target)];
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
@@ -304,7 +304,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
     let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
-    let ringswitch: StackClaim = (
+    let ringswitch: StackClaim<'_> = (
         Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
         ringswitch_target,
     );

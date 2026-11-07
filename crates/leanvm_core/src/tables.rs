@@ -212,7 +212,7 @@ impl<'a> FillCtx<'a> {
 
     /// Write local column `at`: `f` over the trace rows, then its padding value to the
     /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &Rows<R>, at: usize, f: impl Fn(&R) -> F64 + Sync) {
+    fn col<R: Sync>(&self, out: &mut [ColumnOut<'_>], rows: &Rows<R>, at: usize, f: impl Fn(&R) -> F64 + Sync) {
         self.cols(out, rows, at, |r| [f(r)]);
     }
 
@@ -222,7 +222,7 @@ impl<'a> FillCtx<'a> {
     /// pays for it `N` times.
     fn cols<const N: usize, R: Sync>(
         &self,
-        out: &mut [ColumnOut],
+        out: &mut [ColumnOut<'_>],
         rows: &Rows<R>,
         at: usize,
         f: impl Fn(&R) -> [F64; N] + Sync,
@@ -234,7 +234,7 @@ impl<'a> FillCtx<'a> {
     /// than read off the row.
     fn cols_at<const N: usize>(
         &self,
-        out: &mut [ColumnOut],
+        out: &mut [ColumnOut<'_>],
         n_rows: usize,
         at: usize,
         f: impl Fn(usize) -> [F64; N] + Sync,
@@ -284,7 +284,7 @@ impl<'a> FillCtx<'a> {
 /// Fill one table's columns and check that every window was written. The stack is
 /// allocated uninitialized, so a column the table forgot would be read as
 /// indeterminate bytes rather than caught by a length mismatch.
-pub(crate) fn fill_table(table: &dyn Table, ctx: &FillCtx, out: &mut [ColumnOut]) {
+pub(crate) fn fill_table(table: &dyn Table, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
     table.fill(ctx, out);
     let n = table.n_committed_columns();
     assert!(n <= 128, "the write mask covers at most 128 columns per table");
@@ -341,7 +341,7 @@ pub trait Table: Sync {
     /// window, already at its padded length. Every window must be written in full;
     /// use `FillCtx::col` / `FillCtx::cols`, which append the column's pad value
     /// past the last trace row and record the coverage `fill_table` checks.
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]);
 }
 
 /// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
@@ -508,7 +508,7 @@ impl Table for Arith {
         f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI, VB_TOP);
         f.memory_coords(Prod(FP, OC, 0), RC, arith_result(self.is_xor));
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
         use arith::*;
         let rows = if self.is_xor { &ctx.trace.xor } else { &ctx.trace.mul };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
@@ -574,7 +574,7 @@ impl Table for SetTable {
         // The stored constant K is the cell's value.
         f.memory(Prod(FP, O, 0), R, K_LO, K_HI, K_TOP);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
         use set::*;
         let rows = &ctx.trace.set;
         // The offset and the stored immediate are the instruction's.
@@ -656,7 +656,7 @@ impl Table for DerefTable {
         f.memory_coords(Prod(P, O2, 0), R2, deref_store());
         f.memory(Prod(FP, O3, 0), R3, V3_LO, V3_HI, V3_TOP);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
         use deref::*;
         let rows = &ctx.trace.deref;
         // Offsets and store mode are the instruction's. Neither the store target's
@@ -776,7 +776,7 @@ impl Table for JumpTable {
         f.memory_k(Prod(FP, OD, 0), RD, V_PC);
         f.memory_k(Prod(FP, OF, 0), RF, V_FP);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
         use jump::*;
         let rows = &ctx.trace.jump;
         let ins = |r: &Jrow| match ctx.prog[r.pc as usize] {
@@ -940,7 +940,7 @@ impl Table for KeccakTable {
         }
     }
     /// Every column but the input lanes, which are `q_keccak`'s and have no window here.
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx<'_>, out: &mut [ColumnOut<'_>]) {
         use crate::keccak::{STATE_CELLS, state_of_cells};
         use keccakt::*;
         let rows = &ctx.trace.keccak;

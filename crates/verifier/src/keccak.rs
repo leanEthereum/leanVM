@@ -114,7 +114,7 @@ fn instance_weights(s: E) -> Vec<E> {
 
 /// A claim on the states `step` layers below the committed outputs becomes one on the states a layer further down.
 fn verify_layer(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     shape: KeccakShape,
     step: usize,
     claim: &Claim,
@@ -200,7 +200,7 @@ fn slot_weights(shape: KeccakShape, claim: &Claim, first: usize, count: usize) -
 
 /// A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left to match.
 fn open(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     shape: KeccakShape,
     claim: &Claim,
     first: usize,
@@ -229,7 +229,7 @@ pub struct KeccakOpenings {
 /// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
 /// are committed.
 pub fn verify_keccak(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     shape: KeccakShape,
     instance: &[E],
     output: &[E],

@@ -250,7 +250,7 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     let mut pull = vec![(0, 0), (1, 0), (0, log_bytecode)];
     let mut count = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
-        let mut fb = tables::FlushBuilder::new();
+        let mut fb = FlushBuilder::new();
         table.flushes(&mut fb);
         push.extend(std::iter::repeat_n((2 + t, 0), fb.push.len()));
         pull.extend(std::iter::repeat_n((2 + t, 0), fb.pull.len()));
@@ -278,9 +278,7 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
 /// `log2` of the stacked witness the announced sizes imply. The one part of
 /// [`layout`] a size floor needs, and far cheaper than the rest of it.
 pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> usize {
-    crate::witness::placements_of(&col_kappas(log_mem, log_bytecode, taus))
-        .1
-        .mu
+    witness::placements_of(&col_kappas(log_mem, log_bytecode, taus)).1.mu
 }
 
 /// Operand slots of a bytecode tuple, after the opcode.
@@ -472,7 +470,7 @@ pub(crate) fn layout_of(
         let table_block = |coords: Vec<Coord>| Block {
             kappa: taus[t],
             rows: rows[t],
-            padding: coords.iter().map(|c| crate::leaf::coord_at(c, &padding)).collect(),
+            padding: coords.iter().map(|c| leaf::coord_at(c, &padding)).collect(),
             coords: offset_coords(base, coords),
         };
         let mut fb = FlushBuilder::new();

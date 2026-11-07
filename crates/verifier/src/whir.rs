@@ -67,7 +67,7 @@ fn ext_row(words: &[K]) -> Vec<E> {
         .collect()
 }
 
-fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) -> Result<Vec<u64>, VerifierError> {
+fn sample_queries(transcript: &mut Transcript<'_>, block_length: u64, count: usize) -> Result<Vec<u64>, VerifierError> {
     let depth = log2_strict(block_length)?;
     let per_word = 192 / depth;
     let mut result = Vec::with_capacity(count);
@@ -135,7 +135,7 @@ struct GluedClaim {
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
 pub fn verify_whir(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     log_n: usize,
     log_inv_rate: usize,
     target: E,

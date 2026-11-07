@@ -77,7 +77,7 @@ pub(super) struct GatheredPass<'a> {
 
 impl<'a> GatheredPass<'a> {
     /// The geometry of the pass over layers `layer..layer + g` of `plan`, reading `src` and writing `win`.
-    pub(super) fn new(plan: &Plan, win: &Window, layer: usize, g: usize, src: Source<'a>) -> Self {
+    pub(super) fn new(plan: &Plan, win: &Window<'_>, layer: usize, g: usize, src: Source<'a>) -> Self {
         let (log_d, num_ntts) = (plan.log_d, win.num_ntts());
         // A group is 2^g rows, `step` rows apart, of a block of `block_rows` rows.
         let log_step = log_d - layer - g;
@@ -122,7 +122,7 @@ impl<'a> GatheredPass<'a> {
     }
 
     /// Sweep the buffer once, one task per range of residues.
-    pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window) {
+    pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window<'_>) {
         let base = win.base();
         let win = &*win;
         parallel::for_each_chunk(self.step / self.batch, |lo, hi| {
@@ -161,7 +161,7 @@ impl<'a> GatheredPass<'a> {
     }
 
     /// The first word of residue `r`'s rows in the message, or `None` if the blocks hold their own rows.
-    fn message_rows(&self, base: parallel::SendPtr<F64>, win: &Window, r: usize) -> Option<*const F64> {
+    fn message_rows(&self, base: parallel::SendPtr<F64>, win: &Window<'_>, r: usize) -> Option<*const F64> {
         let first = win.row(self.block_rows, self.first_block, r);
         match self.src {
             Source::Rows(msg) => Some(msg.as_ptr().wrapping_add(first)),
@@ -192,7 +192,7 @@ impl<'a> GatheredPass<'a> {
         ntt: &AdditiveNttF64,
         scratch: &mut [F64],
         stream: Option<&Stream>,
-        win: &Window,
+        win: &Window<'_>,
         base: parallel::SendPtr<F64>,
         block: usize,
         r: usize,

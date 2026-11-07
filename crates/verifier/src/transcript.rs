@@ -216,7 +216,7 @@ impl<'a> Transcript<'a> {
 }
 
 pub fn sumcheck(
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
     mut claim: E,
     count: usize,
     equalities: &[Option<E>],

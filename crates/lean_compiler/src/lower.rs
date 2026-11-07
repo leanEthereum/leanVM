@@ -592,7 +592,7 @@ impl FnLower<'_> {
         // they dominate every arm, not again in each.
         if !entered && self.all_inline(arms) {
             self.keccak_pad_run();
-            self.const_cell(crate::lower::builtins::two_to_one_close());
+            self.const_cell(builtins::two_to_one_close());
         }
         assert!(
             !entered || self.code.len() == before,
@@ -643,7 +643,7 @@ impl FnLower<'_> {
     /// scrutinee can chain, the previous match's arms reading it with no code of its own.
     fn free_cell(&self, e: &Expr, targets: &[Expr]) -> Option<Off> {
         let mut names = Vec::new();
-        crate::ast::free_vars_expr(e, &mut names);
+        free_vars_expr(e, &mut names);
         if names
             .iter()
             .any(|n| targets.iter().any(|t| matches!(t, Expr::Var(v) if v == n)))

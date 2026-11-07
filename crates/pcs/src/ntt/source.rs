@@ -37,7 +37,7 @@ impl<'a> Source<'a> {
     /// Log of the rows of the whole domain this encode covers, with layers from `start`.
     ///
     /// A lane-major message gives its own length, and any other source the buffer's.
-    pub(super) fn log_d(&self, win: &Window, start: usize) -> usize {
+    pub(super) fn log_d(&self, win: &Window<'_>, start: usize) -> usize {
         match self {
             Source::Lanes(lanes) => primitives::log2_strict_usize(lanes.words.len() / lanes.n_lanes) + start,
             _ => primitives::log2_strict_usize(win.len() / win.num_ntts()),
@@ -45,7 +45,7 @@ impl<'a> Source<'a> {
     }
 
     /// Transpose a lane-major message into block 0 of the buffer, which then holds it in place.
-    pub(super) fn transpose_into(self, win: &mut Window, log_rows: usize) -> Self {
+    pub(super) fn transpose_into(self, win: &mut Window<'_>, log_rows: usize) -> Self {
         let Source::Lanes(lanes) = self else { return self };
         let num_ntts = win.num_ntts();
         let out = &mut win.words_mut()[..num_ntts << log_rows];
@@ -58,7 +58,7 @@ impl<'a> Source<'a> {
     /// - A message that is block 0 of the buffer could be overwritten by a task while others still copy it.
     /// - With no layer left to run, no deep task would write the buffer at all.
     /// - Returns [`Source::Replicas`] when it copied, and the source unchanged otherwise.
-    pub(super) fn replicate(self, win: &mut Window, start: usize, has_deep: bool) -> Self {
+    pub(super) fn replicate(self, win: &mut Window<'_>, start: usize, has_deep: bool) -> Self {
         let msg_len = win.len() >> start;
         match self {
             Source::InPlace => replicate(win, None, msg_len),
@@ -73,7 +73,7 @@ impl<'a> Source<'a> {
 ///
 /// - This is the unfused form of a gathered first pass.
 /// - With no `msg`, the message is the buffer's own first replica, which is left as it is.
-fn replicate(win: &mut Window, msg: Option<&[F64]>, msg_len: usize) {
+fn replicate(win: &mut Window<'_>, msg: Option<&[F64]>, msg_len: usize) {
     // Copy granularity: small enough to spread a short message over every worker.
     const CHUNK: usize = 1 << 14;
     let replicas = win.len() / msg_len;

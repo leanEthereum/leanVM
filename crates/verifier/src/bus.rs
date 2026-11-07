@@ -11,7 +11,10 @@ use crate::multilinear::{
 use crate::transcript::{Transcript, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
-fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
+fn verify_gkr_grand_products(
+    depth: usize,
+    transcript: &mut Transcript<'_>,
+) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
     let (shared, count) = (transcript.next_scalar()?, transcript.next_scalar()?);
     let mut point: Vec<E> = Vec::new();
     let mut values = vec![shared, shared, count]; // 3 grand product GKR are batched together: push, pull, count
@@ -86,7 +89,7 @@ pub struct ColumnClaim {
 
 impl ColumnClaim {
     /// `None` for a column nothing commits, whose claim never reaches the stack.
-    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
+    pub fn on_stack(&self, layout: &Layout<'_>) -> Option<StackClaim<'static>> {
         let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
         Some((Box::new(move |x| eq_eval(&point, x)), self.value))
     }
@@ -103,7 +106,8 @@ pub struct BusResult {
     pub totals: Vec<E>,         // what the tables owe each side, derived
 }
 
-pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Result<BusResult, VerifierError> {
+/// Check that the bus balances, push against pull, and return the column claims it leaves.
+pub fn verify_bus_balance(layout: &Layout<'_>, transcript: &mut Transcript<'_>) -> Result<BusResult, VerifierError> {
     let framework_log_rows = [0, layout.log_memory, layout.log_bytecode]; // state, memory, bytecode
     let push_layout = bus_layout(&framework_log_rows, &layout.push);
     let pull_layout = bus_layout(&framework_log_rows, &layout.pull);
@@ -159,7 +163,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     };
 
     let final_pc = gpow((1 << layout.log_bytecode) - 1); // the execution ends at the bytecode's last instruction
-    let sides: [Side; 3] = [
+    let sides: [Side<'_>; 3] = [
         (
             &layout.push,
             &push_layout,
@@ -223,7 +227,7 @@ pub fn table_sumcheck(
     form_powers: &[E],
     equality_point: &[E],
     target: E,
-    transcript: &mut Transcript,
+    transcript: &mut Transcript<'_>,
 ) -> Result<Vec<TableEvaluations>, VerifierError> {
     let n_rounds = table_log_heights.iter().copied().max().unwrap_or(0);
     let (challenges, claim) = sumcheck(transcript, target, 4, &vec![None; n_rounds])?;

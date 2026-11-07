@@ -90,7 +90,7 @@ impl FnLower<'_> {
                 };
                 comprehension = Expr::ListLit(
                     (bound(lo)..bound(hi))
-                        .map(|i| crate::parser::subst_var(body, var, &Expr::Lit(i)))
+                        .map(|i| parser::subst_var(body, var, &Expr::Lit(i)))
                         .collect(),
                 );
                 &comprehension

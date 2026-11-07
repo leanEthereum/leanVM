@@ -188,7 +188,7 @@ impl AdditiveNttF64 {
     /// - With `defer_deep`, the deep pass's results go only to `on_rows`, not back into the buffer.
     pub(super) fn transform(
         &self,
-        win: &mut Window,
+        win: &mut Window<'_>,
         start: usize,
         mut src: Source<'_>,
         on_rows: Option<&RowSink<'_>>,
@@ -240,7 +240,7 @@ impl AdditiveNttF64 {
     }
 
     /// Hand every row of the buffer to the sink, in parallel blocks of four a worker.
-    fn hand_over(win: &mut Window, plan: &Plan, sink: &RowSink<'_>) {
+    fn hand_over(win: &mut Window<'_>, plan: &Plan, sink: &RowSink<'_>) {
         let (log_rows, first) = (plan.log_handover_rows(), win.first_row());
         parallel::chunks_mut(win.words_mut(), plan.num_ntts << log_rows, |i, rows| {
             sink(first + (i << log_rows), rows)

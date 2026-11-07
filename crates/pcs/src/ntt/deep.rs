@@ -41,7 +41,7 @@ impl<'s> DeepPass<'s> {
         }
     }
 
-    pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window, src: Source<'_>) {
+    pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window<'_>, src: Source<'_>) {
         match src {
             Source::Rows(msg) => self.with_message(ntt, win, msg),
             _ => self.in_place(ntt, win),
@@ -51,7 +51,7 @@ impl<'s> DeepPass<'s> {
     /// A separate message: build each task in scratch, hash it, then write it out once.
     ///
     /// Streamed out whole, the codeword is written without ever being read.
-    fn with_message(&self, ntt: &AdditiveNttF64, win: &mut Window, msg: &[F64]) {
+    fn with_message(&self, ntt: &AdditiveNttF64, win: &mut Window<'_>, msg: &[F64]) {
         let Plan {
             log_d,
             num_ntts,
@@ -93,7 +93,7 @@ impl<'s> DeepPass<'s> {
     }
 
     /// The buffer holds the replicas: run the layers where they are, or in scratch when deferred.
-    fn in_place(&self, ntt: &AdditiveNttF64, win: &mut Window) {
+    fn in_place(&self, ntt: &AdditiveNttF64, win: &mut Window<'_>) {
         let Plan {
             log_d,
             num_ntts,

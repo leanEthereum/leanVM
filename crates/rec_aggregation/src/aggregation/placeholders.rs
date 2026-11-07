@@ -78,7 +78,7 @@ fn straight_line(rows: &[Vec<usize>], inputs: usize) -> (Vec<(usize, usize)>, Ve
         out
     };
     loop {
-        let mut counts = std::collections::BTreeMap::<(usize, usize), usize>::new();
+        let mut counts = BTreeMap::<(usize, usize), usize>::new();
         for row in &rows {
             for pair in pairs(row) {
                 *counts.entry(pair).or_default() += 1;
@@ -661,7 +661,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         }
     };
     let (minm, maxm) = (MU_MIN, MU_MAX);
-    let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
+    let rates = MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates
         .clone()
         .flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r)))

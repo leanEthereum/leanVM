@@ -103,7 +103,7 @@ pub struct Program {
     pub(crate) fiat_shamir_iv: [u8; 32],
     /// The public bytecode columns, computed once at assembly with the IV: every layout of the
     /// program shares them, as a proof's and each of a recursion node's children's do.
-    bytecode_columns: layout::BytecodeColumns,
+    bytecode_columns: BytecodeColumns,
     /// Prover-side frame/buffer allocation hints (keyed by global pc) and the
     /// size of `main`'s frame: the nondeterminism [`Program::execute`] needs to
     /// run the program. Public verification ([`verify`]) ignores them.
@@ -145,13 +145,13 @@ impl Program {
     /// from `prog`. The single funnel for construction, so the digest is always
     /// consistent with the bytecode.
     pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<hints::RHint>>, main_frame: u32) -> Self {
-        let bytecode_columns = layout::bytecode_columns(&prog);
+        let bytecode_columns = bytecode_columns(&prog);
         let fiat_shamir_iv = {
-            let table = layout::stack_columns(&bytecode_columns);
+            let table = stack_columns(&bytecode_columns);
             // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
             // exactly the concatenation of its `to_le_bytes` on little-endian targets.
             let bytes: &[u8] =
-                unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+                unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), size_of_val(&table[..])) };
             primitives::hash::Hasher::new()
                 .update(verifier::TAG)
                 .update(bytes)
@@ -172,7 +172,7 @@ impl Program {
 
     /// The [`layout()`] of this program.
     pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
-        layout::layout_of(self.bytecode_columns.clone(), log_mem, rows, pi)
+        layout_of(self.bytecode_columns.clone(), log_mem, rows, pi)
     }
 
     /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
@@ -632,10 +632,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     if public_input.iter().any(|half| half.c2 != 0) || !program.prog.len().is_power_of_two() {
         return Err(CpuError::PublicInput);
     }
-    let table: Vec<u64> = layout::bytecode_table(&program.prog)
-        .iter()
-        .map(|word| word.0)
-        .collect();
+    let table: Vec<u64> = bytecode_table(&program.prog).iter().map(|word| word.0).collect();
     let bytecode = verifier::Bytecode::new(&table);
     verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
         .map_err(CpuError::Verifier)
@@ -759,7 +756,7 @@ mod tests {
             primitives::hash::hash(&bytes)
         );
 
-        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, pi, pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("a hand-assembled program verifies");
     }
 
@@ -803,7 +800,7 @@ mod tests {
         let exec = jumping.execute(pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
         assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
-        let (proof, _) = prove(&jumping, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&jumping, pi, pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 
         // With the compiler's SET in the last slot the run has nowhere to go from there, its

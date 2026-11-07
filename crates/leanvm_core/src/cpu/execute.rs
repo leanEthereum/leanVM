@@ -34,7 +34,7 @@ pub struct Execution {
 
 impl Execution {
     /// Rows per table: the instructions of each opcode the run executed.
-    pub fn rows(&self) -> [usize; crate::tables::N_TABLES] {
+    pub fn rows(&self) -> [usize; tables::N_TABLES] {
         self.trace.row_counts()
     }
 }
@@ -312,7 +312,7 @@ impl Program {
         let (mut pc, mut fp) = (0u32, 0u32);
         let mut steps = 0usize;
         // Witness streams, resolved by name once so a pop indexes one.
-        let mut streams: Vec<Stream> = Vec::new();
+        let mut streams: Vec<Stream<'_>> = Vec::new();
         let mut stream_of: HashMap<&str, u32> = HashMap::new();
         // Per-pc hint index. `self.hints` is keyed by pc, so probing it each step
         // costs a hash of the counter for what is almost always a miss; the
@@ -704,7 +704,7 @@ impl Program {
                                 u128::BITS - (word - 1).leading_zeros()
                             };
                             let mu = cl.max(*floor);
-                            m.put(fp + dst, F192::from(primitives::field::g_pow(mu as usize)))?;
+                            m.put(fp + dst, F192::from(g_pow(mu as usize)))?;
                         }
                         RHint::BitDecompose {
                             value,
@@ -752,7 +752,7 @@ impl Program {
                                     let bit = start + i * width + j;
                                     n |= (((limbs[bit as usize / 64] >> (bit % 64)) & 1) as usize) << j;
                                 }
-                                m.put(bb + at + i, F192::from(primitives::field::g_pow(n)))?;
+                                m.put(bb + at + i, F192::from(g_pow(n)))?;
                             }
                         }
                         RHint::DigitDecomposeExp {
@@ -784,7 +784,7 @@ impl Program {
                             for j in 0..*ndigits {
                                 let at = s + digit_bits * j;
                                 let d = if at >= 128 { 0 } else { (n >> at) & mask };
-                                m.put(bb + j, F192::from(primitives::field::g_pow(d as usize)))?;
+                                m.put(bb + j, F192::from(g_pow(d as usize)))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {
@@ -969,7 +969,7 @@ impl Program {
                 }
                 Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
-                    let k = crate::tables::KeccakOp::of(&op);
+                    let k = tables::KeccakOp::of(&op);
                     let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // The table reads every cell with a literal zero top limb, so anything
@@ -1062,10 +1062,9 @@ impl Program {
         // reaches `min_log_committed`.
         let mem_used = m.used;
         let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
-        let taus = super::layout::table_logs(trace.row_counts());
+        let taus = table_logs(trace.row_counts());
         let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        while super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed
-        {
+        while committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed {
             cells *= 2;
         }
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");

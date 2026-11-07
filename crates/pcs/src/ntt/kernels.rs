@@ -567,11 +567,7 @@ fn butterfly_lanes_neon_8(top: &mut [F64], bot: &mut [F64], twiddle: u64) {
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx512bw")]
-fn mul_xor_avx512(
-    u: core::arch::x86_64::__m512i,
-    v: core::arch::x86_64::__m512i,
-    tw: core::arch::x86_64::__m512i,
-) -> core::arch::x86_64::__m512i {
+fn mul_xor_avx512(u: __m512i, v: __m512i, tw: __m512i) -> __m512i {
     use core::arch::x86_64::*;
     use primitives::field::gf2_64x3::x86_64::reduce_halves512;
 
@@ -635,11 +631,11 @@ const LANE_VECTORS: usize = 2;
 
 /// A broadcast twiddle, and whether it is zero: the butterfly is then `v' = v + u`, with no product.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-type Twiddle = (core::arch::x86_64::__m512i, bool);
+type Twiddle = (__m512i, bool);
 
 /// The vectors of `N` rows held in registers: `v[row][k]` is vector `k` of the row.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-type RowVectors<const N: usize> = [[core::arch::x86_64::__m512i; LANE_VECTORS]; N];
+type RowVectors<const N: usize> = [[__m512i; LANE_VECTORS]; N];
 
 /// Butterfly rows `top` and `bot` of every vector in flight.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
