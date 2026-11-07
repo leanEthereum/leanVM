@@ -81,17 +81,7 @@ pub fn g_powers(n: usize) -> Vec<F64> {
 /// domain separators, opcodes, and the g-power encoding of index `i` (§sec:vm).
 #[inline]
 pub fn g_pow(i: usize) -> F64 {
-    let mut result = F64::ONE;
-    let mut base = G; // x = g
-    let mut e = i;
-    while e > 0 {
-        if e & 1 == 1 {
-            result *= base;
-        }
-        base = base * base;
-        e >>= 1;
-    }
-    result
+    F64::G.pow(i as u128)
 }
 
 /// `g^i` for a `u32` exponent, from two `2^16`-entry tables built once: `i` splits as
