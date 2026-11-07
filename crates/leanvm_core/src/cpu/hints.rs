@@ -91,9 +91,17 @@ impl GPow {
     #[cold]
     fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_CELLS as usize, "address space overflow (program too large)");
+        // At least double, and a quarter more than a large jump asks: the small
+        // extends that follow fill spare capacity instead of copying the table.
+        let n = self.pow.len();
+        if upto >= self.pow.capacity() {
+            let target = (2 * self.pow.capacity())
+                .max(upto + 1 + (upto + 1) / 4)
+                .min(MAX_CELLS as usize);
+            self.pow.reserve_exact(target - n);
+        }
         // ×g is ×x = `mul_by_g` (shift+fold), not a PMULL.
         let mut p = *self.pow.last().unwrap();
-        let n = self.pow.len();
         self.pow.extend((n..=upto).map(|_| {
             p = mul_by_g(p);
             p
