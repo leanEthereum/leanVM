@@ -32,7 +32,8 @@ pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {
 
 /// A 32-byte digest as four little-endian words.
 pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
-    std::array::from_fn(|index| F64(u64::from_le_bytes(digest[8 * index..8 * index + 8].try_into().unwrap())))
+    let words = digest.as_chunks::<8>().0;
+    std::array::from_fn(|index| F64(u64::from_le_bytes(words[index])))
 }
 
 /// Scalars a permutation absorbs.
