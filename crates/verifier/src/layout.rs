@@ -98,7 +98,6 @@ pub struct Layout<'a> {
     /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
     pub placements: Vec<Option<Placement>>,
     pub stack_log: usize,
-    pub placed: u64, // the words the columns fill, from the bottom of the stack
     pub table_log_heights: Vec<usize>,
     pub keccak: KeccakShape,
 }
@@ -545,7 +544,6 @@ pub fn build_layout<'a>(
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
     let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
-    let placed = block_kappas.iter().map(|&kappa| 1 << kappa).sum();
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
             Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
@@ -567,7 +565,6 @@ pub fn build_layout<'a>(
         count,
         placements,
         stack_log,
-        placed,
         table_log_heights,
         keccak,
     })

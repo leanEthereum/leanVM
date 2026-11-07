@@ -24,7 +24,7 @@
 use crate::merkle::{self, Hash};
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
-use fiat_shamir::merkle::PrunedMerklePaths;
+use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{
     Acc8, F64, F192, F192Unreduced, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext,
@@ -119,9 +119,8 @@ const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 /// leaf image is the one a full-width commitment would have hashed, with those
 /// zeros LEADING it: lane `t` of the codeword is message block `n_lanes-1-t`, which
 /// puts them at the front of the image where their whole chunks are one sponge
-/// state every leaf shares. Only the image's tail, the committed lanes,
-/// rides the proof, so a verifier derives `n_lanes` from the announced layout to
-/// read a row and supplies the prefix itself.
+/// state every leaf shares. At most the image's tail, the committed lanes,
+/// rides the proof, the opening saying its width and the image's.
 ///
 /// The encoded row is padded to a whole AVX-512 vector of lanes with zero lanes
 /// in front, so the NTT has no masked tail. The padding is the image's zeros and
@@ -187,8 +186,8 @@ impl LigeroWitness {
         self.ntt.rows(&self.codeword, &[], positions)
     }
 
-    /// The rows at `queries`, in order and back to back, and the octopus over them.
-    fn open(&self, queries: &[usize]) -> (Vec<F192>, PrunedMerklePaths) {
+    /// The rows at `queries`, in order and back to back, and their paths.
+    fn open(&self, queries: &[usize]) -> (Vec<F192>, Vec<MerklePath>) {
         let group = self.tree.group_positions(queries);
         let group_rows = self.opened_words(&group);
         let row_words = 3 * self.num_interleaved;
@@ -201,7 +200,7 @@ impl LigeroWitness {
                 .iter()
                 .map(|w| F192::new(w[0].0, w[1].0, w[2].0))
         }));
-        let paths = self.tree.prune(queries, row_words, row_words, &group_rows, row);
+        let paths = self.tree.open(queries, row_words, row_words, &group_rows, row);
         (rows, paths)
     }
 
@@ -1070,7 +1069,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let weights_0 = powers(lambda_0, num_queries_0);
     let span = tracing::info_span!("Open", level = 0).entered();
     // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
-    // Ordered (dup-possible) rows for the local induce math ...
     let row_words = prover_data.row_words;
     let group_0 = l0_tree.group_positions(&queries_0);
     let group_rows_0 = prover_data.ntt.rows(&prover_data.codeword, &stack, &group_0);
@@ -1082,9 +1080,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let zeros = std::iter::repeat_n(F64::ZERO, num_interleaved_0 - n_lanes);
         opened_rows_0.extend(image(q).iter().rev().copied().chain(zeros));
     }
-    // ... but the stored proof carries the sorted-unique rows + one octopus over
-    // the sorted-unique positions (the verifier re-fans them to ordered).
-    ps.hint_merkle(l0_tree.prune(&queries_0, row_words, num_interleaved_0, &group_rows_0, image));
+    ps.hint_merkle(l0_tree.open(&queries_0, row_words, num_interleaved_0, &group_rows_0, image));
     // Nothing reads the L0 codeword, its stack or its tree again, and the next levels' buffers can be served
     // from their memory.
     drop((prover_data, stack));
@@ -1138,7 +1134,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             let lambda_last = ps.sample();
             let weights_last = powers(lambda_last, num_queries_last);
             let span = tracing::info_span!("Final level").entered();
-            // Final level: the rows in query order feed the induce; the proof stores the sorted-unique ones.
             let (rows_last, paths) = wtns_prev.open(&queries_last);
             ps.hint_merkle(paths);
             // Tie the last commitment into the running claim through the same
@@ -1194,7 +1189,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let lambda_i = ps.sample();
         let weights_i = powers(lambda_i, num_queries_i);
         let span = tracing::info_span!("Open", level = i + 1).entered();
-        // Ordered rows for the local induce; sorted-unique rows + octopus stored.
         let (opened_rows_i, paths) = wtns_prev.open(&queries_i);
         ps.hint_merkle(paths);
         drop(span);
@@ -1260,8 +1254,7 @@ mod tests {
 
     /// Committing only the lanes that carry data must be indistinguishable from
     /// committing the whole `2^log_n` witness with an explicit zero tail: same
-    /// root and byte-identical stream, the stored L0 rows differing only by the
-    /// zero prefix the truncated proof drops.
+    /// root and the same proof.
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
         for (log_n, lanes) in [(13usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
@@ -1296,24 +1289,7 @@ mod tests {
                 let (root_trunc, fs_trunc) = prove(&witness[..used]);
                 let (root_full, fs_full) = prove(&witness);
                 assert_eq!(root_trunc, root_full, "root differs at n_lanes = {n_lanes}");
-                assert_eq!(
-                    fs_trunc.stream, fs_full.stream,
-                    "the protocol itself must not change at n_lanes = {n_lanes}"
-                );
-
-                // What the two proofs DO differ in, and the point of the exercise: the
-                // truncated one stores each L0 row as the committed lanes alone, which is
-                // exactly the full image with its leading padding zeros dropped.
-                let leaf_words = 1usize << pc.initial_k;
-                for (thin, full) in fs_trunc.merkle[0].leaf_data.iter().zip(&fs_full.merkle[0].leaf_data) {
-                    assert_eq!(thin.len(), n_lanes);
-                    assert_eq!(full.len(), leaf_words);
-                    assert_eq!(thin[..], full[leaf_words - n_lanes..], "stored row is the image tail");
-                    assert!(
-                        full[..leaf_words - n_lanes].iter().all(|w| *w == F64::ZERO),
-                        "the words the proof drops are the padding at n_lanes = {n_lanes}"
-                    );
-                }
+                assert_eq!(fs_trunc, fs_full, "the proofs differ at n_lanes = {n_lanes}");
             }
         }
     }

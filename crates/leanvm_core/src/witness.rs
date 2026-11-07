@@ -31,9 +31,8 @@ impl Placement {
 /// from (the claims' selector coords, the PCS level ladder), while `n_lanes` counts
 /// the `2^(mu - LOG_BATCH)`-word lane blocks that actually carry data: the PCS
 /// commits `committed_len()` words and never encodes or hashes the zero tail past
-/// them. The verifier's view of the commitment is the same `2^mu`-word witness
-/// either way; it derives `n_lanes` from the announced layout only to read the
-/// pruned level-0 rows, which leave the zero lanes out.
+/// them. The level-0 openings leave out the zero words every opened row starts
+/// with, the absent lanes among them.
 #[derive(Clone, Copy, Debug)]
 pub struct StackShape {
     pub mu: usize,

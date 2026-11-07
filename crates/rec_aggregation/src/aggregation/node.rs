@@ -113,7 +113,8 @@ pub fn aggregate_with_stats(
 
     // The children are assumed checked. Nothing here verifies one: the replay
     // only reads out of its proof the summary `gen_verify` derives the guest's
-    // witness from, and fails on a proof it cannot walk. A child that does not
+    // witness from, pinning the Merkle paths it reads, and fails on a proof it
+    // cannot walk. A child that does not
     // verify fails in the guest instead, which verifies every child in the VM,
     // so `prove` below returns the error. Its deferred claim is likewise not
     // recomputed: the batching sumcheck below forces every batched value to be
@@ -229,7 +230,7 @@ pub fn aggregate_with_stats(
     let verified = parallel::map_collect(children.len(), |i| {
         let (pi, summary) = &replayed[i];
         let value = bytecode_value(&sums[2 * i], &claim_points[2 * i]);
-        gen_verify(guest, *pi, &children[i].proof.stream, summary, value)
+        gen_verify(guest, *pi, &children[i].proof, summary, value)
     });
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());

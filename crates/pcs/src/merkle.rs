@@ -24,7 +24,7 @@ use std::mem::MaybeUninit;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-pub use fiat_shamir::merkle::{Hash, PrunedMerklePaths, hash_leaf, hash_pair};
+pub use fiat_shamir::merkle::{Hash, MerklePath, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
 use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
@@ -330,7 +330,7 @@ impl CutTree {
         groups
     }
 
-    /// Every leaf of the groups `positions` fall in, ascending: the rows [`Self::prune`] takes.
+    /// Every leaf of the groups `positions` fall in, ascending: the rows [`Self::open`] takes.
     pub(crate) fn group_positions(&self, positions: &[usize]) -> Vec<usize> {
         let groups = self.groups(positions);
         groups
@@ -339,18 +339,18 @@ impl CutTree {
             .collect()
     }
 
-    /// The octopus over `positions`, with `row(q)` the row stored at `q`.
+    /// The paths of `positions`, with `row(q)` the row at `q`.
     ///
     /// `group_rows` are the full rows of [`Self::group_positions`], `row_words` each, back to back, hashed
     /// as the leaves `zeros(leaf_words - row_words) ‖ row`.
-    pub fn prune<'a>(
+    pub fn open<'a>(
         &self,
         positions: &[usize],
         row_words: usize,
         leaf_words: usize,
         group_rows: &[F64],
         row: impl Fn(usize) -> &'a [F64],
-    ) -> PrunedMerklePaths {
+    ) -> Vec<MerklePath> {
         let (groups, size) = (self.groups(positions), 1usize << self.cut);
         let n = groups.len() * size;
         assert_eq!(group_rows.len(), n * row_words, "the rows of every group");
@@ -378,7 +378,7 @@ impl CutTree {
                 .expect("a sibling is in an opened group");
             local[Self::start(n, level) + group * width + i % width]
         };
-        PrunedMerklePaths::prune(self.num_leaves, positions, node, row)
+        fiat_shamir::merkle::open(self.num_leaves, positions, leaf_words, node, row)
     }
 }
 
@@ -585,8 +585,8 @@ mod tests {
     }
 
     #[test]
-    fn cut_tree_prunes_like_the_full_tree() {
-        // Invariant: opening through the cut tree gives the octopus of the full tree.
+    fn cut_tree_opens_like_the_full_tree() {
+        // Invariant: opening through the cut tree gives the paths of the full tree.
         for (num_leaves, row_words, leaf_words) in [(256usize, 8usize, 16usize), (1 << 10, 24, 24), (32, 8, 8)] {
             let data: Vec<F64> = (0..row_words * num_leaves)
                 .map(|i| F64(i as u64 * 0x9E37_79B9 + 1))
@@ -604,10 +604,13 @@ mod tests {
             ] {
                 let group = cut.group_positions(&positions);
                 let rows: Vec<F64> = group.iter().flat_map(|&q| row(q)).copied().collect();
-                let got = cut.prune(&positions, row_words, leaf_words, &rows, row);
+                let got = cut.open(&positions, row_words, leaf_words, &rows, row);
                 let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
                 let node = |level: usize, i: usize| full[level_start(level) + i];
-                assert_eq!(got, PrunedMerklePaths::prune(num_leaves, &positions, node, row));
+                assert_eq!(
+                    got,
+                    fiat_shamir::merkle::open(num_leaves, &positions, leaf_words, node, row)
+                );
             }
         }
     }

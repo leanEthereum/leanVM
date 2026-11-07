@@ -598,19 +598,17 @@ pub fn from_scalar(value: verifier::E) -> F192 {
     F192::new(value.c0, value.c1, value.c2)
 }
 
-/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
+/// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
 pub fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
-        leaf_data: paths
-            .leaf_data
-            .iter()
-            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
-            .collect(),
-        sibling_hashes: paths.sibling_hashes.clone(),
-    });
+    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
+        leaf_index: path.leaf_index,
+        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
+        siblings: path.siblings.clone(),
+    };
+    let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
     verifier::Proof {
         stream: proof.stream.iter().map(to_scalar).collect(),
-        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+        merkle_openings: openings.collect(),
     }
 }
 

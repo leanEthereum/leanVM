@@ -134,13 +134,9 @@ struct GluedClaim {
 }
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
-///
-/// `placed` is how many words of the witness the columns fill. The zero tail past them is whole lanes of the
-/// level-0 commitment, which the pruned proof leaves out of every row.
 pub fn verify_whir(
     transcript: &mut Transcript,
     log_n: usize,
-    placed: u64,
     log_inv_rate: usize,
     target: E,
     root: Digest,
@@ -192,16 +188,10 @@ pub fn verify_whir(
         // level a folded E one, three words per lane.
         let lanes = 1 << fold_count;
         let leaf_words = if level == 0 { lanes } else { 3 * lanes };
-        let row_words = if level == 0 {
-            placed.div_ceil(1 << message_log) as usize
-        } else {
-            leaf_words
-        };
-        let words = transcript.merkle(current_root, block_length, &queries, row_words, leaf_words)?;
+        let words = transcript.merkle(current_root, block_length, &queries, leaf_words)?;
         let lane_weights = eq_kernel(&level_folds);
         let row_values: Vec<E> = if level == 0 {
-            let base_dot = |row: &Vec<K>| {
-                assert_eq!(row.len(), lane_weights.len());
+            let base_dot = |row: &[K]| {
                 E::sum(
                     row.iter()
                         .rev()
@@ -209,9 +199,9 @@ pub fn verify_whir(
                         .map(|(&word, &weight)| weight * word),
                 )
             };
-            words.iter().map(base_dot).collect()
+            words.iter().map(|&row| base_dot(row)).collect()
         } else {
-            words.iter().map(|row| dot(&ext_row(row), &lane_weights)).collect()
+            words.iter().map(|&row| dot(&ext_row(row), &lane_weights)).collect()
         };
         let enforced = dot(&row_values, &query_weights);
 

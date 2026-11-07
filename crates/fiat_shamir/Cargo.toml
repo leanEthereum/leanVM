@@ -10,4 +10,3 @@ workspace = true
 [dependencies]
 parallel.workspace = true
 primitives.workspace = true
-serde.workspace = true

@@ -111,7 +111,7 @@ fn keccak_hash_chain() {
         "  committed witness size      : 2^{:.3}",
         (stats.committed as f64).log2()
     );
-    let proof_bytes = bincode::serialized_size(&proof).expect("proof is serializable");
+    let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
     println!("  proving                     : {prove_time:?}");
     println!(

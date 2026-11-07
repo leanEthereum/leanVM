@@ -13,4 +13,3 @@ leanvm_core.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
-bincode.workspace = true

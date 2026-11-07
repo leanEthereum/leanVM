@@ -38,8 +38,8 @@ pub struct EthereumProof {
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
-/// Everything but the signer set, which a receiver may already hold.
-type WireCore = (Option<[u8; 32]>, Vec<F192>, leanvm_core::cpu::Proof);
+/// Everything but the signer set, which a receiver may already hold, the VM proof in its own encoding.
+type WireCore = (Option<[u8; 32]>, Vec<F192>, Vec<u8>);
 
 /// Signature claims grouped by scheme, each a `(pubkey, message)` pair.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -139,7 +139,7 @@ impl EthereumProof {
 
     /// The serialized size of the VM proof alone, without the statement.
     pub fn proof_size(&self) -> usize {
-        wire().serialized_size(&self.proof).expect("a proof serializes") as usize
+        self.proof.to_bytes().len()
     }
 
     /// Inverse of [`Self::to_bytes_without_pubkeys`], verifying nothing either.
@@ -152,8 +152,8 @@ impl EthereumProof {
         )
     }
 
-    fn core(&self) -> (&Option<[u8; 32]>, &[F192], &leanvm_core::cpu::Proof) {
-        (&self.da_root, &self.defer.bytecode_point, &self.proof)
+    fn core(&self) -> (&Option<[u8; 32]>, &[F192], Vec<u8>) {
+        (&self.da_root, &self.defer.bytecode_point, self.proof.to_bytes())
     }
 
     fn from_parts(claims: SignatureClaims, core: WireCore) -> Result<Self, AggregateVerifyError> {
@@ -166,6 +166,7 @@ impl EthereumProof {
         // bytecode, on a point a peer chose, so
         // anything decidable without it has to be decided before it.
         check_signer_set(&xmss_signers, &lean_sphincs_signers)?;
+        let proof = leanvm_core::cpu::Proof::from_bytes(&proof).ok_or(AggregateVerifyError::MalformedEncoding)?;
         Ok(Self {
             xmss_signers,
             lean_sphincs_signers,

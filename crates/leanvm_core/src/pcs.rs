@@ -15,8 +15,8 @@
 //! shrink with them. A leaf image is still `2^LOG_BATCH` words, the absent lanes
 //! contributing the zeros their codeword would have been, but they LEAD the image:
 //! their whole 136-byte blocks are one sponge state every leaf shares, so the
-//! committer absorbs them once rather than once per leaf, and only the image's tail
-//! rides the proof. Both sides derive the lane count from the announced layout.
+//! committer absorbs them once rather than once per leaf, and at most the image's tail
+//! rides the proof.
 //!
 //! Security: the K configs use rate-1/2 Johnson list decoding with OOD binding
 //! and 128-bit round-by-round soundness ([`::pcs::whir::SECURITY_BITS`]).

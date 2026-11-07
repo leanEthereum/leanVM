@@ -48,8 +48,8 @@ fn a_bytecode_that_is_not_a_power_of_two_is_an_error() {
 #[test]
 fn a_proof_roundtrips_through_bytes() {
     let (program, pi, proof) = hashing_proof();
-    let bytes = bincode::serialize(&proof).expect("proof serializes");
-    let decoded: Proof = bincode::deserialize(&bytes).expect("proof deserializes");
+    let decoded = Proof::from_bytes(&proof.to_bytes()).expect("proof deserializes");
+    assert_eq!(decoded, proof);
     verify(&program, &pi, &decoded).expect("a deserialized proof verifies");
 }
 

@@ -4,15 +4,14 @@
 //! catches the Python one drifting.
 
 use lean_compiler::{compile, parse_with_replacements};
-use leanvm_core::cpu::{Program, Stats, prove, public_input_bytes, verify};
+use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
 use leanvm_core::tables::N_TABLES;
 use primitives::field::{F192, g_pow};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::OnceLock;
-use std::time::Instant;
-use verifier::{Bytecode, Proof, VerifierError, verify_execution};
+use verifier::{Bytecode, E, Proof, VerifierError, verify_execution};
 
 const SOURCE: &str = r#"
 from snark_lib import *
@@ -43,23 +42,9 @@ def main():
 
 const LOOP_STEPS: usize = 16_384;
 
-/// The raw proof as the two encodings the other verifiers read: the scalar
-/// stream as 24-byte little-endian elements, and every query's own opening, its
-/// leaf words followed by its sibling digests. Neither carries a length, the
-/// reader deriving every leaf width and tree height from the protocol it is
-/// replaying.
-pub(crate) fn encode(stream: &[F192], paths: &[verifier::MerklePath]) -> (Vec<u8>, Vec<u8>) {
-    let limbs = stream.iter().flat_map(|scalar| [scalar.c0, scalar.c1, scalar.c2]);
-    let mut openings = Vec::new();
-    for path in paths {
-        openings.extend(path.leaf.iter().flat_map(|word| word.to_bytes()));
-        openings.extend(path.siblings.iter().flatten());
-    }
-    (limbs.flat_map(u64::to_le_bytes).collect(), openings)
-}
-
-/// Write the statement and the raw proof with `stream` as the files Python reads, and start the verifier on them.
-fn spawn_python(directory: &Path, stream: &[F192]) -> Child {
+/// Write the statement and the proof as the files Python reads (its `--help` gives their layout), and start the
+/// verifier on them.
+fn spawn_python(directory: &Path, proof: &Proof) -> Child {
     let fixture = fixture();
     std::fs::create_dir_all(directory).expect("create test directory");
     let table = fixture
@@ -67,11 +52,24 @@ fn spawn_python(directory: &Path, stream: &[F192]) -> Child {
         .into_iter()
         .flat_map(u64::to_le_bytes)
         .collect();
-    let (stream, openings) = encode(stream, &fixture.summary.merkle_paths);
+    let mut openings = Vec::new();
+    for path in proof.merkle_openings.iter().flatten() {
+        openings.extend(path.leaf_index.to_le_bytes());
+        openings.extend(path.leaf.iter().flat_map(|word| word.to_bytes()));
+        openings.extend(path.siblings.iter().flatten());
+    }
     let files = [
         ("bytecode.bin", table),
         ("public_input.bin", public_input_bytes(&fixture.public_input).to_vec()),
-        ("stream.bin", stream),
+        (
+            "stream.bin",
+            proof
+                .stream
+                .iter()
+                .flat_map(|scalar| [scalar.c0, scalar.c1, scalar.c2])
+                .flat_map(u64::to_le_bytes)
+                .collect(),
+        ),
         ("merkle_openings.bin", openings),
     ];
     let mut command = Command::new("python3");
@@ -86,6 +84,17 @@ fn spawn_python(directory: &Path, stream: &[F192]) -> Child {
         .stderr(Stdio::piped())
         .spawn()
         .expect("run native Python verifier")
+}
+
+/// The run's verdict: its output if it succeeded, its errors if not.
+fn verdict(run: Child) -> String {
+    let output = run.wait_with_output().expect("wait for the Python verifier");
+    let text = if output.status.success() {
+        output.stdout
+    } else {
+        output.stderr
+    };
+    String::from_utf8_lossy(&text).trim().to_string()
 }
 
 fn test_directory(name: &str) -> PathBuf {
@@ -123,11 +132,7 @@ pub(crate) struct Fixture {
     pub program: Program,
     pub public_input: [F192; 2],
     pub proof: leanvm_core::cpu::Proof,
-    pub stats: Stats,
-    /// What verifying it leaves. Its paths, with the proof's stream, are the RAW
-    /// proof: same protocol, each query carrying its own full Merkle path
-    /// instead of one octopus over the batch. The `verifier` crate expands the
-    /// wire form, so the pruning is written once.
+    /// What verifying it leaves.
     pub summary: verifier::Summary,
 }
 
@@ -147,43 +152,38 @@ pub(crate) fn fixture() -> &'static Fixture {
         let ast = parse_with_replacements(SOURCE, &replacements).expect("parse zkDSL program");
         let program = compile(&ast);
         let public_input = public_input();
-        let (proof, stats) = prove(&program, public_input, 1).unwrap();
+        let (proof, _) = prove(&program, public_input, 1).unwrap();
         let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
         Fixture {
             program,
             public_input,
             proof,
-            stats,
             summary,
         }
     })
 }
 
+/// Both verifiers accept the proof at every rate: each walks other rows of the tabulated query counts and another
+/// ladder of level rates.
 #[test]
 fn test_python_verifier() {
-    let Fixture {
-        program, proof, stats, ..
-    } = fixture();
+    let fixture = fixture();
+    let bytecode = Bytecode::new(&fixture.bytecode_table());
+    let public_input = public_input_bytes(&fixture.public_input);
     let directory = test_directory("honest");
-    let verification_started = Instant::now();
-    let output = spawn_python(&directory, &proof.stream)
-        .wait_with_output()
-        .expect("wait for the Python verifier");
-    let verification_time = verification_started.elapsed();
-    assert!(
-        output.status.success(),
-        "native Python verification failed:\n{}",
-        String::from_utf8_lossy(&output.stderr),
-    );
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "verification succeeded",);
-
-    println!(
-        "zkDSL compiled to {} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
-        program.prog.len(),
-        stats.cycles,
-        bincode::serialize(proof).expect("serialize proof").len(),
-        verification_time,
-    );
+    let runs: Vec<Child> = (1..=4)
+        .map(|log_inv_rate| {
+            let proof = match log_inv_rate {
+                1 => scalar_proof(&fixture.proof),
+                _ => scalar_proof(&prove(&fixture.program, fixture.public_input, log_inv_rate).unwrap().0),
+            };
+            verify_execution(&bytecode, &public_input, &proof).expect("the proof verifies");
+            spawn_python(&directory.join(log_inv_rate.to_string()), &proof)
+        })
+        .collect();
+    for (log_inv_rate, run) in (1..).zip(runs) {
+        assert_eq!(verdict(run), "verification succeeded", "rate {log_inv_rate}");
+    }
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
@@ -221,24 +221,21 @@ fn tampers_fail_the_same_check() {
     let runs: Vec<Child> = cases
         .iter()
         .map(|&(position, error)| {
-            let mut stream = fixture.proof.stream.clone();
-            stream[position] += F192::new(0, 0, 1);
-            let (bytes, openings) = encode(&stream, &fixture.summary.merkle_paths);
-            let proof = Proof::load(&bytes, &openings).expect("load the tampered proof");
+            let mut proof = scalar_proof(&fixture.proof);
+            proof.stream[position] += E::new(0, 0, 1);
             assert_eq!(
                 verify_execution(&bytecode, &public_input, &proof),
                 Err(error),
                 "scalar {position}"
             );
-            spawn_python(&directory.join(position.to_string()), &stream)
+            spawn_python(&directory.join(position.to_string()), &proof)
         })
         .collect();
     for ((position, error), run) in cases.into_iter().zip(runs) {
-        let output = run.wait_with_output().expect("wait for the Python verifier");
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(
-            !output.status.success() && stderr.contains(&format!("verification failed: {error}")),
-            "Python did not fail on `{error}` at scalar {position}:\n{stderr}"
+        assert_eq!(
+            verdict(run),
+            format!("verification failed: {error}"),
+            "scalar {position}"
         );
     }
     std::fs::remove_dir_all(directory).expect("remove test directory");

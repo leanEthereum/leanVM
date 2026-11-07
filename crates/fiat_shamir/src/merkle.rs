@@ -24,6 +24,11 @@ pub fn hash_leaf(data: &[u8]) -> Hash {
     primitives::hash::hash(data)
 }
 
+/// Hash one leaf given as its words, little-endian on any host.
+pub fn hash_words(words: &[F64]) -> Hash {
+    hash_leaf(&words.iter().flat_map(|word| word.0.to_le_bytes()).collect::<Vec<u8>>())
+}
+
 /// Hash two children into their parent.
 #[inline]
 pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
@@ -33,77 +38,38 @@ pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
     primitives::hash::hash(&buf)
 }
 
-/// Query positions with duplicates removed, ascending: the order a phase stores
-/// its rows in, and the order the octopus is built and checked against.
-fn sorted_unique(queries: &[usize]) -> Vec<usize> {
-    let mut unique = queries.to_vec();
-    unique.sort_unstable();
-    unique.dedup();
-    unique
-}
-
-/// One opening phase's Merkle data: the rows opened at each distinct queried
-/// position (sorted), and one octopus authenticating all of them.
+/// One query's Merkle opening: its position, the whole leaf image it hashes, and its siblings, bottom level first.
 ///
-/// Leaf data is `F64` because that is what a Merkle preimage is; an `E`-valued
-/// row of width `w` is `3w` words, packed by the opener. The phase never says how
-/// wide a row is: the caller announces that, which is what pins the leaf image the
-/// octopus is checked against. A row may be NARROWER than the image it hashes to,
-/// the missing words being a zero prefix the caller also announces,
-/// which is what keeps a padding-free L0 commitment's absent lanes out of the
-/// proof.
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct PrunedMerklePaths {
-    pub leaf_data: Vec<Vec<F64>>,
-    pub sibling_hashes: Vec<Hash>,
+/// Leaf data is `F64` because that is what a Merkle preimage is; an `E`-valued row of width `w` is `3w` words, packed
+/// by the opener.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MerklePath {
+    pub leaf_index: u64,
+    pub leaf: Vec<F64>,
+    pub siblings: Vec<Hash>,
 }
 
-impl PrunedMerklePaths {
-    /// Prover side: open `positions` of a tree held in pieces, storing one row per distinct position plus a
-    /// single octopus over them. `node(level, i)` is node `i` of `level`, leaves at level 0, and `row(q)` is the
-    /// leaf at `q`.
-    ///
-    /// For `q` queries in a tree of depth `d` the octopus is at most `q · d`
-    /// hashes (what `q` independent paths would cost) and typically much
-    /// smaller, since a sibling shared by several paths is emitted once.
-    pub fn prune<'a>(
-        num_leaves: usize,
-        positions: &[usize],
-        node: impl Fn(usize, usize) -> Hash,
-        row: impl Fn(usize) -> &'a [F64],
-    ) -> Self {
-        assert!(num_leaves.is_power_of_two() && num_leaves > 0);
-        let sorted = sorted_unique(positions);
-        debug_assert!(sorted.iter().all(|&p| p < num_leaves));
+/// Prover side: the paths of `positions` in a tree of `num_leaves` leaves held in pieces. `node(level, i)` is node `i`
+/// of `level`, leaves at level 0, and the leaf at `q` is `row(q)` behind the zeros that make it `leaf_words` long.
+pub fn open<'a>(
+    num_leaves: usize,
+    positions: &[usize],
+    leaf_words: usize,
+    node: impl Fn(usize, usize) -> Hash,
+    row: impl Fn(usize) -> &'a [F64],
+) -> Vec<MerklePath> {
+    assert!(num_leaves.is_power_of_two());
+    let height = num_leaves.trailing_zeros() as usize;
+    let path = |&q: &usize| MerklePath {
+        leaf_index: q as u64,
+        leaf: padded(row(q), leaf_words),
+        siblings: (0..height).map(|level| node(level, q >> level ^ 1)).collect(),
+    };
+    positions.iter().map(path).collect()
+}
 
-        let mut sibling_hashes = Vec::new();
-        let mut active = sorted.clone();
-        let (mut level, mut level_len) = (0usize, num_leaves);
-        while level_len > 1 {
-            let mut next = Vec::with_capacity(active.len());
-            let mut i = 0;
-            while i < active.len() {
-                let p = active[i];
-                // Both children active: they fold into the same parent, so no
-                // sibling is needed. Otherwise the sibling has to be sent.
-                if i + 1 < active.len() && active[i + 1] == (p ^ 1) {
-                    i += 2;
-                } else {
-                    sibling_hashes.push(node(level, p ^ 1));
-                    i += 1;
-                }
-                next.push(p >> 1);
-            }
-            // `next` stays sorted-unique: sibling pairs collapse to one parent,
-            // and `p >> 1` is otherwise strictly increasing.
-            active = next;
-            level += 1;
-            level_len >>= 1;
-        }
-
-        Self {
-            leaf_data: sorted.iter().map(|&q| row(q).to_vec()).collect(),
-            sibling_hashes,
-        }
-    }
+/// The `leaf_words` leaf whose words after the leading zeros are `row`.
+pub(crate) fn padded(row: &[F64], leaf_words: usize) -> Vec<F64> {
+    let zeros = std::iter::repeat_n(F64::ZERO, leaf_words - row.len());
+    zeros.chain(row.iter().copied()).collect()
 }

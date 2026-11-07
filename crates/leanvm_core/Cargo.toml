@@ -18,4 +18,3 @@ tracing.workspace = true
 
 [dev-dependencies]
 lean_compiler.workspace = true
-bincode.workspace = true

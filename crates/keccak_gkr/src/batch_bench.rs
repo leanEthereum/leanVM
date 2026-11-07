@@ -94,11 +94,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
             .expect("the batch proof verifies");
     });
 
-    let merkle_bytes = transcript
-        .merkle
-        .iter()
-        .map(|m| 8 * m.leaf_data.iter().map(Vec::len).sum::<usize>() + 32 * m.sibling_hashes.len())
-        .sum();
+    let merkle_bytes = transcript.to_bytes().len() - 24 * transcript.stream.len();
     Report {
         shape,
         stages,
@@ -185,22 +181,20 @@ pub(crate) fn open_commitment(
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
 }
 
-/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
+/// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
 pub(crate) fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
-        leaf_data: paths
-            .leaf_data
-            .iter()
-            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
-            .collect(),
-        sibling_hashes: paths.sibling_hashes.clone(),
-    });
+    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
+        leaf_index: path.leaf_index,
+        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
+        siblings: path.siblings.clone(),
+    };
+    let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
     verifier::Proof {
         stream: proof
             .stream
             .iter()
             .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
             .collect(),
-        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+        merkle_openings: openings.collect(),
     }
 }

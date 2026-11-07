@@ -2,7 +2,7 @@
 //!
 //! A port of `python-verifier/verifier.py`, kept close enough to read side by side: the same functions, in the same order, with the same constants.
 //!
-//! What the Python has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the pruned Merkle openings a proof travels with (`merkle`), and what the statement of an aggregate adds, [`da`].
+//! What the Python has no counterpart for sits in modules of its own: the prepared [`Bytecode`] and what the statement of an aggregate adds, [`da`].
 //!
 //! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
 
@@ -24,7 +24,7 @@ mod whir;
 pub use bytecode::Bytecode;
 pub use field::{E, K};
 pub use layout::{TAG, gpow};
-pub use merkle::{MerkleOpenings, MerklePath, PrunedMerklePaths};
+pub use merkle::MerklePath;
 pub use transcript::Proof;
 
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
@@ -44,15 +44,14 @@ use whir::verify_whir;
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerifierError {
-    FieldElementLength,
     DigestHalf,
     MultilinearSize,
     NotPowerOfTwo,
-    StreamNotWholeElements,
     StreamExhausted,
     GrindingNonce,
     MerkleOpeningMissing,
     MerkleOpeningShape,
+    MerkleOpeningPosition,
     MerkleRootMismatch,
     StreamNotConsumed,
     MerkleNotConsumed,
@@ -78,15 +77,14 @@ pub enum VerifierError {
 impl std::fmt::Display for VerifierError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            Self::FieldElementLength => "a field element must contain exactly 24 bytes",
             Self::DigestHalf => "a digest half is 128-bit",
             Self::MultilinearSize => "multilinear table has the wrong size",
             Self::NotPowerOfTwo => "expected a power of two",
-            Self::StreamNotWholeElements => "the stream is not a whole number of field elements",
             Self::StreamExhausted => "proof stream exhausted",
             Self::GrindingNonce => "invalid grinding nonce",
             Self::MerkleOpeningMissing => "Merkle opening missing",
             Self::MerkleOpeningShape => "Merkle opening has the wrong shape",
+            Self::MerkleOpeningPosition => "Merkle opening at the wrong position",
             Self::MerkleRootMismatch => "Merkle root mismatch",
             Self::StreamNotConsumed => "proof stream not fully consumed",
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
@@ -126,7 +124,6 @@ fn verify_stacked_opening(
     transcript: &mut Transcript,
     root: Digest,
     stack_log: usize,
-    placed: u64,
     log_inv_rate: usize,
     claims: &[StackClaim],
 ) -> Result<(), VerifierError> {
@@ -137,20 +134,10 @@ fn verify_stacked_opening(
         dot(&scales, &weights)
     };
     let target = dot(&scales, &values);
-    verify_whir(
-        transcript,
-        stack_log,
-        placed,
-        log_inv_rate,
-        target,
-        root,
-        &evaluate_basis,
-    )
+    verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
 }
 
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
-///
-/// With the proof's own stream, which the walk reads whole, it is the proof in the form the recursion guest and the Python verifier consume.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
     /// The announced sizes: the memory's log size and each table's row count.
@@ -161,8 +148,6 @@ pub struct Summary {
     pub bytecode_point: Vec<E>,
     /// The stream positions the Keccak reduction reads.
     pub keccak_scalars: Range<usize>,
-    /// One opening per query, in the order the walk read them.
-    pub merkle_paths: Vec<MerklePath>,
 }
 
 /// Verify that `proof` shows an execution of `bytecode` (the stacked bytecode multilinear) on the 256-bit `public_input`.
@@ -172,7 +157,7 @@ pub fn verify_execution(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 
 /// NOT a verification: the [`Summary`] of `proof`, read out without checking it. An invalid proof is accepted.
 ///
-/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, Keccak and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape.
+/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, Keccak and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape, a Merkle path at a position the protocol did not open.
 pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
     walk(bytecode, public_input, proof, false)
 }
@@ -221,7 +206,7 @@ pub fn verify_keccak_batch(
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
-    verify_stacked_opening(&mut transcript, root, stack_log, 1 << stack_log, log_inv_rate, &claims)?;
+    verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
 }
@@ -329,16 +314,15 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         &mut transcript,
         root,
         layout.stack_log,
-        layout.placed,
         log_inverse_rate as usize,
         &stack_claims,
     )?;
+    transcript.finish()?;
     Ok(Summary {
         log_memory: layout.log_memory,
         table_rows,
         log_inv_rate: log_inverse_rate as usize,
         bytecode_point: bus.bytecode_point,
         keccak_scalars,
-        merkle_paths: transcript.finish()?,
     })
 }

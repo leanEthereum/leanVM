@@ -23,6 +23,5 @@ signatures.workspace = true
 primitives.workspace = true
 bench.workspace = true
 rand.workspace = true
-bincode.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }

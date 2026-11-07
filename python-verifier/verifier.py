@@ -432,12 +432,12 @@ class Transcript:
 
     def merkle(self, root: Digest, block_length: int, queries: Sequence[int], leaf_words: int) -> list[tuple[K, ...]]:
         height = log2_strict(block_length)
+        paths = [(self._merkle_data(8), self._merkle_data(8 * leaf_words), [self._merkle_data(32) for _ in range(height)]) for _ in queries]
+        require([int.from_bytes(index, "little") for index, _, _ in paths] == list(queries), "Merkle opening at the wrong position")
         rows = []
-        for query in queries:
-            leaf = self._merkle_data(8 * leaf_words)
+        for query, (_, leaf, siblings) in zip(queries, paths):
             node = keccak_hash(leaf)
-            for level in range(height):
-                sibling = self._merkle_data(32)
+            for level, sibling in enumerate(siblings):
                 left, right = (node.value, sibling) if query >> level & 1 == 0 else (sibling, node.value)
                 node = keccak_hash(left + right)
             require(node == root, "Merkle root mismatch")
@@ -1524,7 +1524,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("bytecode", type=Path, help="stacked bytecode multilinear, little-endian 64-bit words")
     parser.add_argument("public_input", type=Path, help="256-bit public input")
     parser.add_argument("stream", type=Path, help="the proof's scalar stream, 24-byte little-endian field elements")
-    parser.add_argument("merkle_openings", type=Path, help="every Merkle opening: its leaf's words, then its sibling digests")
+    parser.add_argument("merkle_openings", type=Path, help="every query's Merkle opening: its position, its leaf's words, then its sibling digests")
     arguments = parser.parse_args(argv)
     try:
         encoded_bytecode = arguments.bytecode.read_bytes()

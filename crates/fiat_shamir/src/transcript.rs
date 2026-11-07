@@ -1,21 +1,21 @@
 //! Fiat-Shamir proof transport, prover side. `add_scalar` transmits and binds together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately. The reading side is the `verifier` crate's transcript.
 
 use crate::FiatShamirState;
-use crate::merkle::{Hash, PrunedMerklePaths, hash_to_scalars};
+use crate::merkle::{Hash, MerklePath, hash_to_scalars};
 use primitives::field::{F64, F192};
 
-/// A scalar stream and its Merkle opening phases.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// A scalar stream and its Merkle opening phases, each query's path in the order the verifier samples them.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proof {
     pub stream: Vec<F192>,
-    pub merkle: Vec<PrunedMerklePaths>,
+    pub merkle: Vec<Vec<MerklePath>>,
 }
 
 /// Writes scalars into the stream and opening phases to the side.
 pub struct ProverState {
     fs: FiatShamirState,
     stream: Vec<F192>,
-    merkle: Vec<PrunedMerklePaths>,
+    merkle: Vec<Vec<MerklePath>>,
 }
 
 impl ProverState {
@@ -54,7 +54,7 @@ impl ProverState {
 
     /// Hand the next opening phase's Merkle data to the verifier. Not absorbed:
     /// its binding is the Merkle structure itself.
-    pub fn hint_merkle(&mut self, paths: PrunedMerklePaths) {
+    pub fn hint_merkle(&mut self, paths: Vec<MerklePath>) {
         self.merkle.push(paths);
     }
 

@@ -1,6 +1,5 @@
 //! Field arithmetic: `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^3 + y + 1)`, on plain integers.
 
-use crate::{VerifierError, require};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 /// The low 64 bits of a 64x64 carry-less product, by integer multiplication: with both operands split into the four
@@ -117,12 +116,6 @@ pub const GEN: E = E::new(2, 0, 0);
 impl E {
     pub const fn new(c0: u64, c1: u64, c2: u64) -> Self {
         Self { c0, c1, c2 }
-    }
-
-    pub fn from_bytes(data: &[u8]) -> Result<Self, VerifierError> {
-        require(data.len() == 24, VerifierError::FieldElementLength)?;
-        let limb = |at: usize| u64::from_le_bytes(data[at..at + 8].try_into().unwrap());
-        Ok(Self::new(limb(0), limb(8), limb(16)))
     }
 
     pub fn sum(values: impl IntoIterator<Item = E>) -> E {

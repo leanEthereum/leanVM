@@ -57,14 +57,14 @@ pub(super) fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
 }
 
 /// Config + hints for the recursion guest (`guests/lean_ethereum.py`), built
-/// from the REAL `cpu::layout` of the inner program and the `summary` the
-/// `verifier` crate read out of the child's proof, whose scalars are
-/// `proof_stream` (zero hand-mirroring drift). Nothing here says the child
-/// verifies: the guest's run does.
+/// from the REAL `cpu::layout` of the inner program, the `summary` the
+/// `verifier` crate read out of the child's `proof`, and that proof's Merkle
+/// paths, whose positions and sizes its replay pinned (zero hand-mirroring
+/// drift). Nothing here says the child verifies: the guest's run does.
 pub(super) fn gen_verify(
     program: &Program,
     public_input: [F192; 2],
-    proof_stream: &[F192],
+    proof: &leanvm_core::cpu::Proof,
     summary: &verifier::Summary,
     bytecode_value: F192,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
@@ -81,7 +81,7 @@ pub(super) fn gen_verify(
     // Fixed capacities: every buffer/stride placeholder is a global cap so
     // the placeholder map is SHAPE-INDEPENDENT (the definition of generic). A
     // child that verifies and has an arm fits them; one that does not need not.
-    let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP;
+    let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
         return Err(AggregationError::ChildOutOfRange {
             log_committed: layout.shape.mu,
@@ -181,21 +181,20 @@ pub(super) fn gen_verify(
     // opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
-    let mut openings = summary.merkle_paths.iter();
-    for (&queries, &depth) in stack.config.queries.iter().zip(&stack.depth) {
+    let levels = stack.config.queries.iter().zip(&stack.depth);
+    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
-        for opening in openings.by_ref().take(queries) {
+        for opening in phase {
             query_hints.push((
                 "merkle_leaf_rows",
                 opening.leaf.iter().map(|x| F192::new(x.0, 0, 0)).collect(),
             ));
             let mut path_children = Vec::with_capacity(4 * path_depth);
-            let bytes: Vec<_> = opening.leaf.iter().flat_map(|x| x.to_bytes()).collect();
-            let mut node = pcs::merkle::hash_leaf(&bytes);
+            let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
                 if height >= path_depth {
@@ -236,7 +235,7 @@ pub(super) fn gen_verify(
             // picks it up at `msg_cursor = cursor`, which sits where the Keccak
             // reduction stopped; the ring-switch messages are struct-observed and
             // still do not advance that cursor.
-            let mut stream = proof_stream.to_vec();
+            let mut stream = proof.stream.clone();
             stream.resize(STREAM_CAP, F192::ZERO);
             stream
         }),

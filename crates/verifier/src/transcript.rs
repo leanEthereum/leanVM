@@ -2,31 +2,16 @@
 
 use crate::field::{E, K, ZERO};
 use crate::hash::{Digest, STATE_LANES, keccak_f};
-use crate::merkle::{MerkleOpenings, MerklePath};
+use crate::merkle::MerklePath;
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
 
-/// The scalar stream, and the Merkle openings.
+/// The scalar stream, and the Merkle openings: one phase per commitment opened, each query's path in the order the
+/// verifier samples them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proof {
     pub stream: Vec<E>,
-    pub merkle_openings: MerkleOpenings,
-}
-
-impl Proof {
-    /// From the two encodings: the stream as 24-byte little-endian field elements, and the raw Merkle openings as they are.
-    pub fn load(stream: &[u8], merkle_openings: &[u8]) -> Result<Self, VerifierError> {
-        require(stream.len().is_multiple_of(24), VerifierError::StreamNotWholeElements)?;
-        Ok(Self {
-            stream: stream
-                .as_chunks::<24>()
-                .0
-                .iter()
-                .map(|data| E::from_bytes(data))
-                .collect::<Result<_, _>>()?,
-            merkle_openings: MerkleOpenings::Raw(merkle_openings.to_vec()),
-        })
-    }
+    pub merkle_openings: Vec<Vec<MerklePath>>,
 }
 
 const DS_OBSERVE: u64 = 1;
@@ -93,9 +78,8 @@ pub struct Transcript<'a> {
     proof: &'a Proof,
     sponge: Sponge,
     stream_offset: usize,  // in E field elements
-    opening_offset: usize, // in bytes, or in batches of the pruned form
+    opening_offset: usize, // in phases
     checked: bool,         // false for a replay, which walks the proof and checks none of it
-    paths: Vec<MerklePath>,
 }
 
 impl<'a> Transcript<'a> {
@@ -106,7 +90,6 @@ impl<'a> Transcript<'a> {
             stream_offset: 0,
             opening_offset: 0,
             checked,
-            paths: Vec::new(),
         }
     }
 
@@ -166,65 +149,39 @@ impl<'a> Transcript<'a> {
         Ok(())
     }
 
-    fn merkle_data(&mut self, data: &'a [u8], length: usize) -> Result<&'a [u8], VerifierError> {
-        let end = self.opening_offset + length;
-        require(end <= data.len(), VerifierError::MerkleOpeningMissing)?;
-        let chunk = &data[self.opening_offset..end];
-        self.opening_offset = end;
-        Ok(chunk)
-    }
-
-    /// The leaf images at `queries`, authenticated against `root`. `row_words` is what the pruned form stores of
-    /// each, the rest of the image being a zero prefix; the raw form carries whole images.
+    /// The leaf images at `queries`, authenticated against `root`.
     ///
-    /// Each query's own path is kept for [`Self::finish`], whichever form the proof came in.
+    /// The paths' positions and sizes must be the protocol's, which is reading the proof, as the stream's length is,
+    /// so a replay refuses paths that differ too.
     pub fn merkle(
         &mut self,
         root: Digest,
         block_length: u64,
         queries: &[u64],
-        row_words: usize,
         leaf_words: usize,
-    ) -> Result<Vec<Vec<K>>, VerifierError> {
+    ) -> Result<Vec<&'a [K]>, VerifierError> {
         let height = log2_strict(block_length)?;
-        let paths = match &self.proof.merkle_openings {
-            MerkleOpenings::Raw(data) => {
-                let mut paths = Vec::with_capacity(queries.len());
-                for &leaf_index in queries {
-                    let leaf = self.merkle_data(data, 8 * leaf_words)?;
-                    let mut siblings = Vec::with_capacity(height);
-                    for _ in 0..height {
-                        let sibling = self.merkle_data(data, 32)?;
-                        siblings.push(sibling.try_into().expect("32 bytes were read"));
-                    }
-                    let leaf = leaf.as_chunks().0.iter().map(|&word| K(u64::from_le_bytes(word)));
-                    let path = MerklePath {
-                        leaf_index,
-                        leaf: leaf.collect(),
-                        siblings,
-                    };
-                    if self.checked {
-                        require(path.root() == root, VerifierError::MerkleRootMismatch)?;
-                    }
-                    paths.push(path);
-                }
-                paths
-            }
-            MerkleOpenings::Pruned(batches) => {
-                let batch = batches
-                    .get(self.opening_offset)
-                    .ok_or(VerifierError::MerkleOpeningMissing)?;
-                self.opening_offset += 1;
-                let (batch_root, paths) = batch.expand(height, queries, row_words, leaf_words)?;
-                if self.checked {
-                    require(batch_root == root, VerifierError::MerkleRootMismatch)?;
-                }
-                paths
-            }
-        };
-        let rows = paths.iter().map(|path| path.leaf.clone()).collect();
-        self.paths.extend(paths);
-        Ok(rows)
+        let paths = self
+            .proof
+            .merkle_openings
+            .get(self.opening_offset)
+            .ok_or(VerifierError::MerkleOpeningMissing)?;
+        self.opening_offset += 1;
+        require(
+            paths
+                .iter()
+                .all(|path| path.leaf.len() == leaf_words && path.siblings.len() == height),
+            VerifierError::MerkleOpeningShape,
+        )?;
+        require(
+            paths.iter().map(|path| path.leaf_index).eq(queries.iter().copied()),
+            VerifierError::MerkleOpeningPosition,
+        )?;
+        require(
+            !self.checked || paths.iter().all(|path| path.root() == root),
+            VerifierError::MerkleRootMismatch,
+        )?;
+        Ok(paths.iter().map(|path| &path.leaf[..]).collect())
     }
 
     /// returns q(X) := c0 + c1X + c2X^2 + ...
@@ -245,8 +202,8 @@ impl<'a> Transcript<'a> {
         Ok([vec![claim + eq_factor * E::sum(tail.iter().copied())], tail].concat())
     }
 
-    /// Nothing of the proof is left unread. Returns every query's path, in the order they were opened.
-    pub fn finish(self) -> Result<Vec<MerklePath>, VerifierError> {
+    /// Nothing of the proof is left unread.
+    pub fn finish(self) -> Result<(), VerifierError> {
         require(
             self.stream_offset == self.proof.stream.len(),
             VerifierError::StreamNotConsumed,
@@ -254,8 +211,7 @@ impl<'a> Transcript<'a> {
         require(
             self.opening_offset == self.proof.merkle_openings.len(),
             VerifierError::MerkleNotConsumed,
-        )?;
-        Ok(self.paths)
+        )
     }
 }
 
