@@ -1,6 +1,6 @@
 //! The program a proof is about, prepared once so that verifying many proofs of it hashes its table once.
 
-use crate::field::{E, ZERO, reduce};
+use crate::field::{E, ONE, ZERO, reduce};
 use crate::hash::{Digest, keccak_hash};
 use crate::layout::TAG;
 use crate::multilinear::eq_kernel;
@@ -10,6 +10,9 @@ use crate::{VerifierError, require};
 ///
 /// The table is fixed while the points vary, so its words are sorted once: per block of `2^BLOCK_LOG` words, the
 /// positions of each distinct nonzero word, and the bytes those words have.
+///
+/// A block's eq weights sum to one, so a word with more positions than the block has zeros needs none listed.
+/// The block lists its zeros' positions instead, and that word's weight is one plus every listed sum: the field has characteristic two.
 #[derive(Clone, Debug)]
 pub struct Bytecode {
     len: usize,
@@ -22,12 +25,14 @@ pub struct Bytecode {
     bytes: Vec<u16>,
 }
 
-/// A block with a nonzero word: its index, and where its words and bytes end.
+/// A block with a nonzero word: its index, where its words and bytes end, and the word it complements, if any.
 #[derive(Clone, Copy, Debug)]
 struct Block {
     index: usize,
     words_end: usize,
     bytes_end: usize,
+    /// A word whose positions the block does not list: its weight is one plus every listed word's.
+    complement: Option<u64>,
 }
 
 /// How many low coordinates one block of [`Bytecode::evaluate`] spans: their eq table stays in cache, and a block is long enough to amortize closing it.
@@ -66,6 +71,23 @@ impl Bytecode {
             let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
             members.sort_by_key(|(_, at)| at.len());
             let mut used = std::collections::BTreeSet::new();
+            // The zeros, listed as the word 0 whose buckets no block reads, stand in for a more frequent word.
+            let zeros: Vec<u16> = block
+                .iter()
+                .enumerate()
+                .filter(|&(_, &word)| word == 0)
+                .map(|(position, _)| position as u16)
+                .collect();
+            let mut complement = None;
+            if members.last().is_some_and(|(_, at)| at.len() > zeros.len()) {
+                let (word, _) = members.pop().expect("the block has a nonzero word");
+                used.extend(byte_buckets(word));
+                complement = Some(word);
+                if !zeros.is_empty() {
+                    let at = members.partition_point(|(_, at)| at.len() < zeros.len());
+                    members.insert(at, (0, zeros));
+                }
+            }
             for (word, at) in members {
                 positions.extend(at);
                 words.push((word, positions.len()));
@@ -76,6 +98,7 @@ impl Bytecode {
                 index,
                 words_end: words.len(),
                 bytes_end: bytes.len(),
+                complement,
             });
         }
         Self {
@@ -101,6 +124,7 @@ impl Bytecode {
     /// The low coordinates' eq table weighs the words of every block, and the high coordinates' weighs the blocks.
     /// Within a block, the weights of each distinct word are summed once and credited to the buckets of its bytes,
     /// and each bucket to every bit its byte value sets: then bit `k` of the words holds its sum, which `x^k` scales.
+    /// A block's weights sum to one, so the word it complements sums to one plus every listed word's sum.
     pub fn evaluate(&self, point: &[E]) -> Result<E, VerifierError> {
         require(
             point.len() < 64 && self.len == 1 << point.len(),
@@ -112,14 +136,21 @@ impl Bytecode {
         let (mut words_start, mut positions_start, mut bytes_start) = (0, 0, 0);
         let mut total = ZERO;
         for block in &self.blocks {
+            let mut complement_sum = ONE;
             for &(word, positions_end) in &self.words[words_start..block.words_end] {
                 let members = &self.positions[positions_start..positions_end];
                 let sum = E::sum(members.iter().map(|&position| low_weights[position as usize]));
+                complement_sum += sum;
                 // Every byte, the zero ones into buckets no block reads, so the loop has no branch on the data.
                 for (byte, value) in word.to_le_bytes().into_iter().enumerate() {
                     buckets[256 * byte + value as usize] += sum;
                 }
                 positions_start = positions_end;
+            }
+            if let Some(word) = block.complement {
+                for (byte, value) in word.to_le_bytes().into_iter().enumerate() {
+                    buckets[256 * byte + value as usize] += complement_sum;
+                }
             }
             let mut bit_sums = [ZERO; 64];
             for &bucket in &self.bytes[bytes_start..block.bytes_end] {
@@ -155,7 +186,7 @@ mod tests {
 
     #[test]
     fn evaluate_matches_the_fold() {
-        // An xorshift stream: words with every byte live, short words, a run of zeros, a zero block, and points on both sides of the block split.
+        // An xorshift stream: words with every byte live, short words, a run of zeros, a zero block, a dense block, and points on both sides of the block split.
         let mut state = 0x9E37_79B9_7F4A_7C15u64;
         let mut next = move || {
             state ^= state << 13;
@@ -173,6 +204,16 @@ mod tests {
             }
             for word in table.iter_mut().skip(2 << BLOCK_LOG).take(1 << BLOCK_LOG) {
                 *word = 0;
+            }
+            // Block 1 holds three words and zeros, in about 4 : 2 : 1 : 1, so its most frequent word is complemented.
+            let dense = [next(), next(), next()];
+            for word in table.iter_mut().skip(1 << BLOCK_LOG).take(1 << BLOCK_LOG) {
+                *word = match next() % 8 {
+                    0..4 => dense[0],
+                    4..6 => dense[1],
+                    6 => dense[2],
+                    _ => 0,
+                };
             }
             let point: Vec<E> = (0..variables).map(|_| E::new(next(), next(), next())).collect();
             let words: Vec<K> = table.iter().map(|&word| K(word)).collect();
