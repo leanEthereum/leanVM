@@ -13,6 +13,8 @@
 //! `b(l, x) = sum_t A(l, t) * K_t(x)` over one term per claim and 192 per ring claim, and the table
 //! `P(l, t) = sum_x stack(l, x) * K_t(x)` takes the stack's place in the lane rounds.
 
+use std::ops::Range;
+
 use primitives::bit_fold::BitFold;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::field::{Acc8, F64, F192, F192x8, Weights8, dot_base, msg_lone8_ext, xor_into8};
@@ -155,22 +157,23 @@ impl Terms {
         self.n_claims() + DEGREE_E * self.rings.len()
     }
 
-    /// `P(l, .)` for the lane's words.
+    /// The share of `P(l, .)` of the lane's blocks in `span`: the sums over `x` restricted to them.
     ///
-    /// The lane is swept in runs of `RUN` blocks, one pass per table, so a pattern's packed weights or a ring's
+    /// The blocks are swept in runs of `RUN`, one pass per table, so a pattern's packed weights or a ring's
     /// fold matrices stay in L1 across the run while the run's words stay in L2.
-    fn project_lane<const CHUNKS: usize>(&self, lane: &[F64], row: &mut [F192]) {
+    fn project_lane<const CHUNKS: usize>(&self, lane: &[F64], span: Range<usize>, row: &mut [F192]) {
         const RUN: usize = 32;
-        let n_blocks = lane.len() >> self.low_vars;
+        let n_blocks = span.len();
         let block = |h: usize| &lane[h << self.low_vars..][..1 << self.low_vars];
+        // `q` holds the span's blocks only: block `h` at `h - span.start`.
         let mut q = vec![F192::ZERO; n_blocks * self.patterns.len()];
         let mut sigmas = vec![F192::ZERO; ROWS * self.rings.len()];
         let mut cols = [[0u8; ROWS]; CHUNKS];
-        for start in (0..n_blocks).step_by(RUN) {
-            let blocks = start..(start + RUN).min(n_blocks);
+        for start in span.clone().step_by(RUN) {
+            let blocks = start..(start + RUN).min(span.end);
             for (pattern, q) in self.patterns.iter().zip(q.chunks_exact_mut(n_blocks)) {
                 for h in blocks.clone().filter(|&h| pattern.active[h]) {
-                    q[h] = pattern.low.dot(block(h));
+                    q[h - span.start] = pattern.low.dot(block(h));
                 }
             }
             for h in blocks {
@@ -194,12 +197,16 @@ impl Terms {
                 }
             }
         }
-        // `P(l, c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks.
+        // `P(l, c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks in the span.
         for (p, pattern) in self.patterns.iter().enumerate() {
             let q = &q[p * n_blocks..(p + 1) * n_blocks];
             for &c in &pattern.claims {
-                let range = self.ranges[c].clone();
-                let (gamma, q) = (&self.gamma(c)[range.clone()], &q[range]);
+                let range = self.ranges[c].start.max(span.start)..self.ranges[c].end.min(span.end);
+                if range.is_empty() {
+                    continue;
+                }
+                let gamma = &self.gamma(c)[range.clone()];
+                let q = &q[range.start - span.start..range.end - span.start];
                 let ((g8, g_r), (q8, q_r)) = (gamma.as_chunks::<8>(), q.as_chunks::<8>());
                 let sum = g8.iter().zip(q8).fold(Acc8::ZERO, |mut acc, (g, q)| {
                     acc ^= msg_lone8_ext(g, q);
@@ -216,19 +223,37 @@ impl Terms {
     }
 
     /// `P` over the stack.
+    ///
+    /// A lane is cut into pieces of whole blocks, so that a stack of few lanes still gives every worker a share.
+    /// Each piece writes its share of the lane's row, and the row is their sum: `P` is linear in the stack.
     fn project(&self, stack: &[F64]) -> Vec<F192> {
         let (block, n_terms) = (1usize << self.lane_vars, self.n_terms());
-        let mut p = vec![F192::ZERO; stack.len() / block * n_terms];
-        parallel::chunks_mut(&mut p, n_terms, |l, row| {
+        let n_lanes = stack.len() / block;
+        let n_blocks = 1usize << (self.lane_vars - self.low_vars);
+        let pieces = pieces_per_lane(n_lanes, n_blocks, parallel::num_threads());
+        let piece_blocks = n_blocks / pieces;
+        let mut shares = vec![F192::ZERO; n_lanes * pieces * n_terms];
+        parallel::chunks_mut(&mut shares, n_terms, |task, row| {
+            let (l, k) = (task / pieces, task % pieces);
             let lane = &stack[l * block..(l + 1) * block];
+            let blocks = k * piece_blocks..(k + 1) * piece_blocks;
             match self.low_vars {
-                6 => self.project_lane::<8>(lane, row),
-                7 => self.project_lane::<16>(lane, row),
-                8 => self.project_lane::<32>(lane, row),
-                9 => self.project_lane::<64>(lane, row),
-                _ => self.project_lane::<128>(lane, row),
+                6 => self.project_lane::<8>(lane, blocks, row),
+                7 => self.project_lane::<16>(lane, blocks, row),
+                8 => self.project_lane::<32>(lane, blocks, row),
+                9 => self.project_lane::<64>(lane, blocks, row),
+                _ => self.project_lane::<128>(lane, blocks, row),
             }
         });
+        if pieces == 1 {
+            return shares;
+        }
+        let mut p = vec![F192::ZERO; n_lanes * n_terms];
+        for (row, shares) in p.chunks_exact_mut(n_terms).zip(shares.chunks_exact(pieces * n_terms)) {
+            for share in shares.chunks_exact(n_terms) {
+                row.iter_mut().zip(share).for_each(|(r, &s)| *r += s);
+            }
+        }
         p
     }
 
@@ -295,6 +320,19 @@ impl Terms {
             (u_0, u_2)
         }
     }
+}
+
+/// Blocks a piece of a lane holds at least: a piece pays a pass over the claims' block sums and the ring transposes.
+const MIN_PIECE_BLOCKS: usize = 8;
+
+/// Pieces each of `n_lanes` lanes of `n_blocks` blocks is cut into: a power of two, so that the pieces tile the lane,
+/// and the fewest that give `threads` workers several tasks each.
+fn pieces_per_lane(n_lanes: usize, n_blocks: usize, threads: usize) -> usize {
+    const TASKS_PER_THREAD: usize = 8;
+    let wanted = (TASKS_PER_THREAD * threads)
+        .div_ceil(n_lanes.max(1))
+        .next_power_of_two();
+    wanted.min((n_blocks / MIN_PIECE_BLOCKS).max(1))
 }
 
 /// The opening's weight as terms: its table `P` against the stack, its table `A`, and the lift of `A`'s last row.
