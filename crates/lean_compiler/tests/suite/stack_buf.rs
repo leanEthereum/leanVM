@@ -8,11 +8,11 @@
 //! Since these DSL scalars are K-embedded F192 cells, a `StackBuf(2)` written
 //! cell-by-cell holds the lanes `[v0, 0, v1, 0]`.
 
-use lean_compiler::{compile, parse};
+use lean_compiler::{compile, f192_literal, parse};
 use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F64, F192, g_pow};
 
-use crate::common::{f192_lit, mix};
+use crate::common::mix;
 
 /// The digest cells of the hash of `bytes`: what a `keccak(...)` output `StackBuf(2)` holds
 /// cell-by-cell (lo = word 0/2, hi = word 1/3).
@@ -114,8 +114,8 @@ def main():
     let two = hash_cells(&bytes[..136]);
     bytes.truncate(135);
     let src = src
-        .replace("TWO_0", &f192_lit(two[0]))
-        .replace("TWO_1", &f192_lit(two[1]));
+        .replace("TWO_0", &f192_literal(two[0]))
+        .replace("TWO_1", &f192_literal(two[1]));
     proves(&src, hash_cells(&bytes));
 }
 
@@ -163,8 +163,8 @@ def main():
 ";
     let heap = hash_cells(&scalar_cells(1..=16));
     let src = src
-        .replace("HEAP_0", &f192_lit(heap[0]))
-        .replace("HEAP_1", &f192_lit(heap[1]));
+        .replace("HEAP_0", &f192_literal(heap[0]))
+        .replace("HEAP_1", &f192_literal(heap[1]));
     proves(&src, hash_cells(&scalar_cells(1..=20)));
 }
 

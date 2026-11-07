@@ -98,6 +98,11 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
     eval(&parse_expr(s)?)
 }
 
+/// `v` as the zkDSL literal `f192(c0,c1,c2)`, which a global constant or an expression reads back as `v`.
+pub fn f192_literal(v: F192) -> String {
+    format!("f192({},{},{})", v.c0, v.c1, v.c2)
+}
+
 pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
     let inner = s.trim().strip_prefix("f192(")?.strip_suffix(')')?;
     let parts = split_top(inner, ',');
