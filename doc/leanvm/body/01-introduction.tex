@@ -3,11 +3,11 @@
 
 Ethereum's consensus layer currently uses BLS signatures, its execution layer ECDSA, and its data availability layer KZG. All three are based on elliptic curves, which do not survive a quantum computer~\cite{shor}. Hash-based cryptography, both signatures and snarks (the hash-based ones are sometimes called STARKs~\cite{stark}), is a promising candidate for Ethereum's post-quantum transition:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
-\item BLS $\to$ XMSS~\cite{rfc8391} (using each Ethereum slot as the nonce, statefulness is no longer an issue when attesting: double signing is already a slashable offense). But XMSS has no native aggregation, unlike BLS, so we need a snark to handle it.
-\item ECDSA $\to$ SPHINCS+~\cite{sphincs}. Drawback: dozens of times bigger. Again, snark-based aggregation is a natural solution to mitigate signature size increase.
-\item KZG $\to$ Reed--Solomon encode each blob, and provide the Merkle root of the codeword. A snark guarantees that the root commits to a correct encoding.
+\item BLS $\to$ XMSS~\cite{rfc8391} (using each Ethereum epoch as the nonce, statefulness is no longer an issue when attesting: double signing is already a slashable offense). But XMSS has no native aggregation, unlike BLS, so we need a STARK to handle it.
+\item ECDSA $\to$ SPHINCS+~\cite{sphincs}. Drawback: dozens of times bigger. Again, STARK-based aggregation is a natural solution to mitigate signature size increase.
+\item KZG $\to$ Reed--Solomon encode each blob, and provide the Merkle root of the codeword. A STARK guarantees that the root commits to a correct encoding.
 \end{itemize}
 
 \vspace{4mm}
 
-leanVM is a candidate as the snark machinery required above. It's a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk), with a minimalistic ISA (inspired by Cairo \cite{cairo}). It is based on binary fields, inspired by \cite{DP24}, currently using Keccak-256 \cite{keccak}, Ethereum's hash function.
+leanVM is a candidate as the STARK machinery required above. It's a verifiable virtual machine (commonly a zkVM, for "zero-knowledge virtual machine", though leanVM is not (yet) zk), with a minimalistic ISA (inspired by Cairo \cite{cairo}). It is based on binary fields, inspired by \cite{DP24}, currently using Keccak-256 \cite{keccak}, Ethereum's hash function.

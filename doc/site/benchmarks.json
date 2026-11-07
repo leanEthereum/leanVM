@@ -1,5 +1,6 @@
 {
   "commit": "a71c01873",
+  "proof_kib": { "aggregation": 260, "recursion": 360 },
   "machines": [
     {
       "name": "MacBook Pro M4 Max",

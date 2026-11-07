@@ -18,6 +18,7 @@
 \newcommand{\K}{K}            % F_{2^64}:  addresses, counters, committed lanes
 \newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): words and challenges
 \newcommand{\gen}{\mathsf{g}} % generator of K^*, order 2^64 - 1
+\newcommand{\one}{\mathds{1}}       % the unit of K
 
 % ---------- checked relations ----------
 \newcommand{\qeq}{\stackrel{?}{=}}  % an equality the verifier checks, not one that holds by construction
@@ -81,10 +82,8 @@
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\srcsel}[1]{\mathsf{src}(#1)}
-\newcommand{\nprog}{N_{\mathrm{prog}}}   % program length
-\newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
-\newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
-\newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length: nmem = 2^kmem
+\newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log bytecode length
+\newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length
 \newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
 \newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count

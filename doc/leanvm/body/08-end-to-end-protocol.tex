@@ -3,7 +3,7 @@
 
 \subsection{Bytecode encoding}\label{sec:e2e-bc}
 
-The bytecode (of $\nprog=2^{\kbc}$ instructions) is encoded as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
+The bytecode (of $2^{\kbc}$ instructions) is encoded as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
 \item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,13$, and $0$ everywhere else.
 \item read the resulting $2^{\kbc}\times16$ table as $P$, the low $\kbc$ variables indexing the instruction and the high four its slot, bits low first.
