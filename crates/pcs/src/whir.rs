@@ -90,7 +90,7 @@ pub struct Commitment {
 
 /// Prover-side state retained after commit for the opening phase. The message
 /// itself is not stored; the caller retains it for opening, and an opening of a
-/// [`Codeword::Nothing`] recomputes the rows a query reads from it.
+/// codeword the encode did not keep recomputes the rows a query reads from it.
 pub struct ProverData {
     ntt: AdditiveNttF64,
     codeword: Codeword,
