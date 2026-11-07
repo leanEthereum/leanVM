@@ -74,6 +74,12 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 Merkle trees hash with Keccak-256, apart from the sponge.
 
+\subsection{Merkle pruning}\label{sec:e2e-merkle-pruning}
+
+Multiple paths opened in the same Merkle tree share nodes, so we can reduce proof size by \emph{pruning} them, storing each shared node only once. For simplicity, we keep the verifier implementation handling normal Merkle paths, and we see pruning simply as a compression algorithm, to optimize bandwidth over the network. But unpruning requires knowing the Merkle leaf indexes, which are sampled by Fiat-Shamir. To avoid re-running the verifier, we store the indexes in clear in the proof, and the native verifier ensures they match the Fiat-Shamir output. This way, pruning / unpruning is a standalone, easy operation (at the cost of $\approx$ 1 KiB of additional proof data).
+
+\paragraph{Remark:} The same idea applies to Merkle leaves: their padding zeros (\S\ref{sec:pcs-opt}) are not stored in the proof, and unpruning restores them from the leaf size (stored in the proof).
+
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 
 Each reduction below adds evaluation claims on columns to a shared \emph{claim pool}, proved by the final PCS \textsc{Opening} phase.
