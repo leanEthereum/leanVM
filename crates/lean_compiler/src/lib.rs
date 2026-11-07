@@ -227,7 +227,7 @@ pub fn disassemble(prog: &[Op]) -> String {
     let mut acc = F64::ONE;
     for j in 0..(prog.len() + 512) {
         gmap.entry(acc).or_insert(j);
-        acc *= primitives::field::G;
+        acc *= F64::G;
     }
     // A machine word is 192-bit; K-valued immediates (both high limbs zero) may be small
     // g-powers (code addresses, indices), shown as `gʲ`.

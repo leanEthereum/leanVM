@@ -940,7 +940,7 @@ impl FnLower<'_> {
                     return self.range_check(e, kcell);
                 }
                 let bcell = self.expr(b);
-                let inv = self.const_cell(F192::new(primitives::field::G.inv().0, 0, 0));
+                let inv = self.const_cell(F192::new(F64::G.inv().0, 0, 0));
                 // Interned: the MUL that first writes `Y·g^{-1}` pins it, so every later
                 // check of the same bound in its scope multiplies into that cell.
                 self.pure(PureOp::Mul, bcell, inv)
