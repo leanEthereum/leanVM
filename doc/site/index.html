@@ -182,6 +182,7 @@ dialog .close:hover { color: var(--ink); }
   .results th:last-child, .results td:last-child { padding-right: 0; }
   .results thead th { font-size: 0.85rem; }
   .results .sub { display: block; }
+  .results tbody th { white-space: normal; }
   .info::after { white-space: pre-wrap; width: max-content; max-width: 70vw; }
   dialog { padding: 1.4rem 1.1rem 1.2rem; }
   dialog h2 { font-size: 1.3rem; }
@@ -214,7 +215,7 @@ dialog .close:hover { color: var(--ink); }
 <p class="cpu" id="cpu"></p>
 
 <table class="results">
-  <thead><tr><th></th><th>Proving time</th><th>Peak RAM</th></tr></thead>
+  <thead><tr><th></th><th>Proving time</th><th>Peak RAM</th><th>Proof size</th></tr></thead>
   <tbody id="rows"></tbody>
 </table>
 
@@ -239,13 +240,13 @@ git checkout <span class="sha"></span></code></pre></li>
 
 </main>
 <script>
-// Results come from benchmarks.json: one commit, and per machine its name, CPU, RAM and results[bench][threads] = { time, ram }.
+// Results come from benchmarks.json: one commit, proof_kib[bench] (the same on every machine), and per machine its name, CPU, RAM and results[bench][threads] = { time, ram }.
 const BENCHES = [
   ["aggregation", "Aggregation", "1,500 XMSS", "Rate 1/4"],
   ["recursion", "Recursion 16 \u2192 1", "", "16 proofs of 1,500 XMSS each into one,\nleaves at rate 1/4, the node at rate 1/2"],
 ];
 const REPO = "https://github.com/leanEthereum/leanVM";
-let MACHINES = [], THREADS = [];
+let MACHINES = [], THREADS = [], PROOF_KIB = {};
 const state = { machine: null, threads: null };
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -280,7 +281,7 @@ function render() {
     const info = el("span", { className: "info", tabIndex: 0, textContent: "i" });
     info.dataset.tip = tip;
     const name = sub ? [label, " ", el("span", { className: "sub" }, sub, info)] : [label, info];
-    return el("tr", {}, el("th", {}, ...name), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }));
+    return el("tr", {}, el("th", {}, ...name), el("td", { textContent: num(r && r.time, "s") }), el("td", { textContent: num(r && r.ram, "GiB") }), el("td", { textContent: typeof PROOF_KIB[key] === "number" ? `${PROOF_KIB[key]} KiB` : "\u2013" }));
   }));
   try { localStorage.setItem("leanvm-bench", JSON.stringify(state)); } catch (e) {}
 }
@@ -351,6 +352,7 @@ fetch("benchmarks.json", { cache: "no-store" })
     link.href = `${REPO}/commit/${encodeURIComponent(commit)}`;
     link.textContent = commit.slice(0, 7);
     for (const e of document.querySelectorAll("#howto .sha")) e.textContent = commit;
+    PROOF_KIB = data.proof_kib || {};
     const rank = k => (/^\d+$/.test(k) ? Number(k) : Infinity);
     // Slowest first, by aggregation time at the machine's largest pool ("full" if run).
     const speed = m => {
