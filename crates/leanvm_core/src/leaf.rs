@@ -371,19 +371,13 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         debug_assert!(lens[side] <= 1usize << lay.mu);
     }
 
-    // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
-    // pads this level to that before reading it, and growing it here would copy it.
-    let mut values: [Vec<F192>; 3] = lens.map(|n| {
-        // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
-        // without blocks, below) before anything reads it.
-        let mut v = unsafe { primitives::uninit_vec(n.next_multiple_of(4)) };
-        v.truncate(n);
-        v
-    });
+    // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
+    // without blocks, below) before anything reads it.
+    let mut values: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n) });
     // SAFETY: the chunks write the products of the tuples inside blocks of height
     // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F192>; 3] = lens.map(|n| unsafe { primitives::uninit_vec(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F192>; 3] = lens.map(|n| unsafe { primitives::uninit_vec(n.div_ceil(16)) });
+    let mut fours: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
+    let mut sixteens: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()

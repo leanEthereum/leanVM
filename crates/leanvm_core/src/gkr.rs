@@ -53,6 +53,19 @@ pub(crate) fn products_into(current: &[F192], out: &mut [F192]) {
     }
 }
 
+/// A level of `n` values, with room for the identity tuple tail the layer state pads it to,
+/// so that padding never reallocates and copies the level.
+///
+/// # Safety
+///
+/// The caller writes every value of `0..n` before anything reads it.
+pub(crate) unsafe fn level(n: usize) -> Vec<F192> {
+    // SAFETY: forwarded to the caller.
+    let mut values = unsafe { primitives::uninit_vec(n.next_multiple_of(4)) };
+    values.truncate(n);
+    values
+}
+
 /// The level above `current`: the product of each four-tuple, an incomplete last one
 /// padded with the identity.
 fn next_level(current: &[F192]) -> Vec<F192> {
@@ -60,7 +73,7 @@ fn next_level(current: &[F192]) -> Vec<F192> {
     const ROWS: usize = 1 << 9;
     let full_rows = current.len() / 4;
     // SAFETY: the products below write `next[..full_rows]`, and the tail its last slot.
-    let mut next: Vec<F192> = unsafe { primitives::uninit_vec(current.len().div_ceil(4)) };
+    let mut next = unsafe { level(current.len().div_ceil(4)) };
     if full_rows >= PAR_THRESHOLD {
         // The next level and the GKR read the output long after this pass evicts it.
         parallel::chunks_mut(&mut next[..full_rows], ROWS, |task, destination| {
