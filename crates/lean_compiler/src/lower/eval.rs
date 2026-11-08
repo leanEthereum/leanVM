@@ -87,7 +87,7 @@ impl FnLower<'_> {
         };
         let gpow = |exp: u128| Known {
             int: None,
-            field: Some(g_pow_u128(exp).into()),
+            field: Some(F64::G.pow(exp).into()),
             addr: Some(GAddr {
                 base: None,
                 exp,
@@ -128,7 +128,7 @@ impl FnLower<'_> {
                     Binding::Gaddr(ga) => Known {
                         int,
                         // A constant g-power also reads as that field element.
-                        field: (ga.base.is_none()).then(|| g_pow_u128(ga.exp).into()),
+                        field: (ga.base.is_none()).then(|| F64::G.pow(ga.exp).into()),
                         addr: Some(ga),
                     },
                     // A plain scalar is its own base, unshifted.
@@ -390,6 +390,6 @@ impl FnLower<'_> {
             return None;
         }
         let j = n.trailing_zeros();
-        (u128::from(j) <= FOLD_MAX && k.field? == g_pow_u128(u128::from(j)).into()).then_some(j)
+        (u128::from(j) <= FOLD_MAX && k.field? == F64::G.pow(u128::from(j)).into()).then_some(j)
     }
 }

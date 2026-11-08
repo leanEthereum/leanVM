@@ -234,7 +234,7 @@ impl FnLower<'_> {
         if extra == 0 {
             return (a, 0);
         }
-        let k = self.const_cell(g_pow_u128(extra).into());
+        let k = self.const_cell(F64::G.pow(extra).into());
         (self.pure(PureOp::Mul, a, k), 0)
     }
 
@@ -268,14 +268,14 @@ impl FnLower<'_> {
             GAddr {
                 base: Some(c), exp: 0, ..
             } => c,
-            GAddr { base: None, exp, .. } => self.const_cell(g_pow_u128(exp).into()),
+            GAddr { base: None, exp, .. } => self.const_cell(F64::G.pow(exp).into()),
             GAddr { base: Some(c), exp, .. } => {
                 let mats = self.scope.mat_cells.get(&c).cloned().unwrap_or_default();
                 if let Some(&(_, o)) = mats.iter().find(|m| m.0 == exp) {
                     return o;
                 }
                 let has = |s: &Self, e: u128| {
-                    let v: F192 = g_pow_u128(e).into();
+                    let v: F192 = F64::G.pow(e).into();
                     s.scope.const_cells.contains_key(&[v.c0, v.c1, v.c2])
                 };
                 // Start from the base itself or the nearest materialized step below
@@ -290,8 +290,8 @@ impl FnLower<'_> {
                         .max_by_key(|&(e, _)| e)
                 };
                 let (src, k) = match from {
-                    Some((e, src)) => (src, self.const_cell(g_pow_u128(exp - e).into())),
-                    None => (c, self.const_cell(g_pow_u128(exp).into())),
+                    Some((e, src)) => (src, self.const_cell(F64::G.pow(exp - e).into())),
+                    None => (c, self.const_cell(F64::G.pow(exp).into())),
                 };
                 let o = self.pure(PureOp::Mul, src, k);
                 self.scope.mat_cells.entry(c).or_default().push((exp, o));
