@@ -1,14 +1,15 @@
-//! leanXMSS against the test vectors of EthLib, its Lean specification.
+//! leanXMSS and leanSPHINCS against the test vectors of EthLib, the Lean specification of both schemes.
 //!
-//! `ethlib/xmss/` is EthLib's `tests/cryptography/xmss/`, vendored by `ethlib/sync.sh`.
-//! `ethlib/COMMIT` names the EthLib commit it comes from.
+//! `ethlib/xmss/` and `ethlib/sphincs/` are EthLib's `tests/cryptography/xmss/` and
+//! `tests/cryptography/sphincs/`, vendored by `ethlib/sync.sh`.
+//! `ethlib/COMMIT` names the one EthLib commit both come from.
 //!
 //! Every case runs, and each must give EthLib's output byte for byte:
 //!
 //! - `key_gen`: the public key of a seed.
-//! - `sign`: the signature of a message at a leaf index.
+//! - `sign`: the signature of a message, at a leaf index for leanXMSS.
 //! - `verify`: whether a signature verifies.
-//! - `signature_index`: the leaf index a signature names.
+//! - `signature_index`, leanXMSS only: the leaf index a signature names.
 //!
 //! An output of `null` marks an input EthLib rejects.
 //! Here such an input has the wrong length, so it does not fit the API's fixed-size arrays.
@@ -198,6 +199,63 @@ mod xmss {
                         &LeanXmssPublicKey::from_bytes(&pk),
                         &message,
                         &LeanXmssSignature::from_bytes(&sig),
+                    )
+                    .is_ok(),
+                ),
+                _ => Value::Null,
+            };
+            assert_eq!(output, case.output, "{}", case.name);
+        }
+    }
+}
+
+mod sphincs {
+    use super::*;
+    use signatures::lean_sphincs::*;
+
+    #[test]
+    fn key_gen_matches_ethlib() {
+        for case in cases("sphincs", "key_gen") {
+            let output = match exact::<SEED_LEN>(case.bytes("seed")) {
+                Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.to_bytes().to_vec()),
+                None => Value::Null,
+            };
+            assert_eq!(output, case.output, "{}", case.name);
+        }
+    }
+
+    #[test]
+    fn sign_matches_ethlib() {
+        for case in cases("sphincs", "sign") {
+            let output = match (
+                exact::<SEED_LEN>(case.bytes("seed")),
+                exact::<MESSAGE_LEN>(case.bytes("message")),
+            ) {
+                (Some(seed), Some(message)) => Value::Bytes(
+                    sign(&LeanSphincsSecretKey::from_bytes(&seed), &message)
+                        .unwrap()
+                        .to_bytes()
+                        .to_vec(),
+                ),
+                _ => Value::Null,
+            };
+            assert_eq!(output, case.output, "{}", case.name);
+        }
+    }
+
+    #[test]
+    fn verify_matches_ethlib() {
+        for case in cases("sphincs", "verify") {
+            let output = match (
+                exact::<PUB_KEY_SIZE>(case.bytes("public_key")),
+                exact::<MESSAGE_LEN>(case.bytes("message")),
+                exact::<SIG_SIZE>(case.bytes("signature")),
+            ) {
+                (Some(pk), Some(message), Some(sig)) => Value::Bool(
+                    verify(
+                        &LeanSphincsPublicKey::from_bytes(&pk),
+                        &message,
+                        &LeanSphincsSignature::from_bytes(&sig),
                     )
                     .is_ok(),
                 ),

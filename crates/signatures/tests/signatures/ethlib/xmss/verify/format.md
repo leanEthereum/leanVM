@@ -22,4 +22,8 @@ A signature verifies when both layers' digests are codewords, and the top layer'
 
 Each case named `tampered` flips one bit in the first value of one field of one layer.
 
+Each case named `zeroed` sets the first message byte, or the last sibling of the top layer, to zero.
+
+The case `verify_next_leaf_index` changes the leaf index of the signature to the next leaf.
+
 The valid cases come from the `sign` cases, and the public keys from the `key_gen` cases.
