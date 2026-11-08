@@ -40,9 +40,9 @@ fn public_api_end_to_end() {
         2,
     )
     .unwrap();
-    let left = EthereumProof::from_bytes(&left.to_bytes()).unwrap();
+    let left = EthereumProof::from_proof_bytes(&left.proof_bytes(), left.claims().clone()).unwrap();
     left.verify().unwrap();
-    assert_eq!(left.da_commitment(), Some(commitment));
+    assert_eq!(left.claims().da_commitment, Some(commitment));
     let other_blobs: Vec<_> = blobs.iter().map(|x| x ^ 42).collect();
     let (other_commitment, _) = lean_da::commit(&other_blobs).unwrap();
     let right = aggregate(
@@ -54,66 +54,49 @@ fn public_api_end_to_end() {
         2,
     )
     .unwrap();
-    assert_eq!(right.da_commitment(), Some(other_commitment));
+    assert_eq!(right.claims().da_commitment, Some(other_commitment));
     // A proof carries one blob matrix: the root passes on one child's, by default the first's.
     let root = aggregate(&[left, right], lean_xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
-    assert_eq!(root.num_signature_claims(), 11);
-    assert_eq!(root.da_commitment(), Some(commitment));
+    assert_eq!(root.claims().num_signature_claims(), 11);
+    assert_eq!(root.claims().da_commitment, Some(commitment));
 
-    // 4. Onto the wire, and back to a receiver, which checks the statement itself:
-    //    verifying says these pubkeys signed, the messages being the prover's.
-    let bytes = root.to_bytes();
-    let received = EthereumProof::from_bytes(&bytes).unwrap();
+    // 4. Onto the wire, which carries no claims: the receiver supplies the claims it expects, and
+    //    verifying says exactly these pubkeys signed exactly these messages.
+    let bytes = root.proof_bytes();
+    let received = EthereumProof::from_proof_bytes(&bytes, root.claims().clone()).unwrap();
     received.verify().unwrap();
-    assert_eq!(received.da_commitment(), Some(commitment));
-    let on = |message| received.xmss_signers().iter().filter(|(_, m)| *m == message).count();
+    let on = |message| received.claims().xmss.iter().filter(|(_, m)| *m == message).count();
     assert_eq!((on(MSG_0), on(MSG_1), on(MSG_2)), (3, 4, 1));
+    // Claims the proof does not prove fail, here one signature claim short.
+    let mut fewer = root.claims().clone();
+    fewer.xmss.pop();
+    let wrong = EthereumProof::from_proof_bytes(&bytes, fewer).unwrap();
+    assert!(matches!(wrong.verify(), Err(AggregateVerifyError::Snark(_))));
 
-    // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes.
-    let (dropped_claims, xmss_signers): (Vec<_>, Vec<_>) =
-        received.xmss_signers().iter().cloned().partition(|(_, m)| *m == MSG_1);
-    let mut lean_sphincs_signers = received.lean_sphincs_signers().to_vec();
-    let dropped_signer = lean_sphincs_signers.remove(0);
-    let retained_signatures = SignatureClaims {
-        xmss: xmss_signers,
-        lean_sphincs: lean_sphincs_signers,
-    };
-    let narrowed = aggregate(
-        &[received],
-        vec![],
-        vec![],
-        &[],
-        Some(ClaimSelection {
-            signatures: &retained_signatures,
-            da_commitment: Some(commitment),
-        }),
-        2,
-    )
-    .unwrap();
-    narrowed.verify().unwrap();
-    assert_eq!(narrowed.da_commitment(), Some(commitment));
-    assert_eq!(narrowed.num_signature_claims(), 11 - dropped_claims.len() - 1);
-    assert!(
-        dropped_claims
+    // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes,
+    //    and one leanSPHINCS claim.
+    let retained = EthereumClaims {
+        xmss: received
+            .claims()
+            .xmss
             .iter()
-            .all(|claim| !narrowed.xmss_signers().contains(claim))
-    );
-    assert!(!narrowed.lean_sphincs_signers().contains(&dropped_signer));
+            .filter(|(_, m)| *m != MSG_1)
+            .cloned()
+            .collect(),
+        lean_sphincs: received.claims().lean_sphincs[1..].to_vec(),
+        da_commitment: Some(commitment),
+    };
+    let narrowed = aggregate(&[received], vec![], vec![], &[], Some(&retained), 2).unwrap();
+    narrowed.verify().unwrap();
+    assert_eq!(narrowed.claims(), &retained);
+    assert_eq!(narrowed.claims().num_signature_claims(), 11 - 4 - 1);
 
-    let dropped = aggregate(
-        &[narrowed],
-        vec![],
-        vec![],
-        &[],
-        Some(ClaimSelection {
-            signatures: &retained_signatures,
-            da_commitment: None,
-        }),
-        2,
-    )
-    .unwrap();
+    // And the blob claim.
+    let without_blobs = EthereumClaims {
+        da_commitment: None,
+        ..retained
+    };
+    let dropped = aggregate(&[narrowed], vec![], vec![], &[], Some(&without_blobs), 2).unwrap();
     dropped.verify().unwrap();
-    assert_eq!(dropped.da_commitment(), None);
-    assert_eq!(dropped.xmss_signers(), retained_signatures.xmss);
-    assert_eq!(dropped.lean_sphincs_signers(), retained_signatures.lean_sphincs);
+    assert_eq!(dropped.claims(), &without_blobs);
 }

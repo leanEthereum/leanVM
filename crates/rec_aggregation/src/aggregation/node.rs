@@ -9,7 +9,7 @@ use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{ClaimSelection, EthereumProof, check_signer_set};
+use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -48,7 +48,7 @@ pub fn aggregate(
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[u64],
-    declare: Option<ClaimSelection<'_>>,
+    declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
 ) -> Result<EthereumProof, AggregationError> {
     aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
@@ -60,11 +60,10 @@ pub fn aggregate_with_stats(
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[u64],
-    declare: Option<ClaimSelection<'_>>,
+    declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
 ) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
     let declared_root = declare.map(|claims| claims.da_commitment);
-    let declare = declare.map(|claims| claims.signatures);
     // Otherwise this reaches `cpu::prove`, which asserts rather than reporting.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregationError::InvalidRate { log_inv_rate });
@@ -88,13 +87,13 @@ pub fn aggregate_with_stats(
         _ if direct_root.is_some() => (children.len(), direct_root),
         None => children
             .iter()
-            .position(|child| child.da_root.is_some())
-            .map_or((children.len(), None), |i| (i, children[i].da_root)),
+            .position(|child| child.claims.da_commitment.is_some())
+            .map_or((children.len(), None), |i| (i, children[i].claims.da_commitment)),
         Some(None) => (children.len(), None),
         Some(Some(root)) => {
             let i = children
                 .iter()
-                .position(|child| child.da_root == Some(root))
+                .position(|child| child.claims.da_commitment == Some(root))
                 .ok_or(AggregationError::BlobNotCovered)?;
             (i, Some(root))
         }
@@ -119,23 +118,23 @@ pub fn aggregate_with_stats(
     // recomputed: the batching sumcheck below forces every batched value to be
     // the true evaluation, and the root discharges the one claim they reduce to.
     let _span = tracing::info_span!("Replay children").entered();
-    let mut statements = Vec::with_capacity(children.len());
+    let mut public_inputs = Vec::with_capacity(children.len());
     let child_da: Vec<[u8; 32]> = children
         .iter()
-        .map(|child| verifier::da::digest(child.da_root))
+        .map(|child| verifier::da::digest(child.claims.da_commitment))
         .collect();
-    for (child, &da) in children.iter().zip(&child_da) {
-        check_signer_set(&child.xmss_signers, &child.lean_sphincs_signers).map_err(AggregationError::InvalidChild)?;
-        statements.push(child.statement(da));
+    for child in children {
+        check_signer_set(&child.claims).map_err(AggregationError::InvalidChild)?;
+        public_inputs.push(child.vm_public_input());
     }
     // One single-threaded replay per worker: nothing inside dispatches.
     let bytecode = scalar_bytecode();
     let summaries = parallel::map_collect(children.len(), |i| {
-        let public_input = public_input_bytes(&statements[i]);
+        let public_input = public_input_bytes(&public_inputs[i]);
         verifier::replay_unchecked(bytecode, &public_input, &scalar_proof(&children[i].proof))
     });
     let mut replayed = Vec::with_capacity(children.len());
-    for (pi, summary) in statements.into_iter().zip(summaries) {
+    for (pi, summary) in public_inputs.into_iter().zip(summaries) {
         let summary =
             summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
         replayed.push((pi, summary));
@@ -236,7 +235,7 @@ pub fn aggregate_with_stats(
     for (i, (child, verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
-            vec![count(child.xmss_signers.len()), count(child.lean_sphincs_signers.len())],
+            vec![count(child.claims.xmss.len()), count(child.claims.lean_sphincs.len())],
         );
         for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
             if offsets.is_empty() {
@@ -330,9 +329,11 @@ pub fn aggregate_with_stats(
         prove(&program, public_input, log_inv_rate).map_err(|e| AggregationError::ProofError(SnarkProveError(e)))?;
     Ok((
         EthereumProof {
-            xmss_signers: cover.xmss.signers,
-            lean_sphincs_signers: cover.lean_sphincs.signers,
-            da_root,
+            claims: EthereumClaims {
+                xmss: cover.xmss.signers,
+                lean_sphincs: cover.lean_sphincs.signers,
+                da_commitment: da_root,
+            },
             defer,
             proof,
         },

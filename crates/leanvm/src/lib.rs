@@ -5,8 +5,8 @@
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateVerifyError, AggregationError, ClaimSelection, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
-    MAX_RECURSIONS, SignatureClaims, SnarkProveError, SnarkVerifyError, aggregate,
+    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
+    MAX_RECURSIONS, SnarkProveError, SnarkVerifyError, aggregate,
 };
 
 pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

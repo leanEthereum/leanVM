@@ -5,7 +5,7 @@
 use bench::{Plan, Timing};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use rec_aggregation::{EthereumProof, aggregate, aggregate_with_stats, signers_cache};
+use rec_aggregation::{EthereumClaims, EthereumProof, aggregate, aggregate_with_stats, signers_cache};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
 
@@ -14,9 +14,17 @@ fn blobs(n: usize, seed: u64) -> Vec<u64> {
     (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect()
 }
 
+/// Signatures as the aggregation API takes them, each with its key and message.
+type RawLeanXmss = (LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature);
+type RawLeanSphincs = (
+    lean_sphincs::LeanSphincsPublicKey,
+    lean_sphincs::Message,
+    lean_sphincs::LeanSphincsSignature,
+);
+
 /// Cached signers `[from, to)`, as the aggregation API takes them: one message for
 /// all, each signature at its own signer's leaf index.
-fn signers(from: usize, to: usize) -> Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)> {
+fn signers(from: usize, to: usize) -> Vec<RawLeanXmss> {
     if to == 0 {
         return Vec::new();
     }
@@ -27,14 +35,7 @@ fn signers(from: usize, to: usize) -> Vec<(LeanXmssPublicKey, lean_xmss::Message
 }
 
 /// Each leanSPHINCS signer comes with the message it signed, as the leanXMSS ones do.
-fn lean_sphincs_signers(
-    from: usize,
-    to: usize,
-) -> Vec<(
-    lean_sphincs::LeanSphincsPublicKey,
-    lean_sphincs::Message,
-    lean_sphincs::LeanSphincsSignature,
-)> {
+fn lean_sphincs_signers(from: usize, to: usize) -> Vec<RawLeanSphincs> {
     if to == 0 {
         return Vec::new();
     }
@@ -50,7 +51,7 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, pro
         crate::report::pow(stats.cycles)
     );
     println!("    details                   : {}", stats.details());
-    crate::report::print_proof_size(sig.proof_size());
+    crate::report::print_proof_size(sig.proof_bytes().len());
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are
     // real per-node costs. `--tracing` breaks it down.
@@ -223,8 +224,8 @@ pub fn run_recursion(
     );
     if blobs_per_leaf > 0 {
         assert_eq!(
-            sig.da_commitment(),
-            children[0].da_commitment(),
+            sig.claims().da_commitment,
+            children[0].claims().da_commitment,
             "the first child's root is passed on"
         );
     }
@@ -234,7 +235,8 @@ pub fn run_recursion(
     );
 }
 
-/// Prove a recursion step's `n` leaves and write them to `out`, each proof's bytes after its length.
+/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims, then its proof's
+/// bytes after their length.
 fn write_leaves(
     n: usize,
     per_leaf: usize,
@@ -255,12 +257,74 @@ fn write_leaves(
             None,
             log_inv_rate,
         )
-        .expect("leaf aggregates")
-        .to_bytes();
-        bytes.extend_from_slice(&(leaf.len() as u64).to_le_bytes());
-        bytes.extend_from_slice(&leaf);
+        .expect("leaf aggregates");
+        write_claims(&mut bytes, leaf.claims());
+        let proof = leaf.proof_bytes();
+        bytes.extend((proof.len() as u64).to_le_bytes());
+        bytes.extend(proof);
     }
     std::fs::write(out, bytes).expect("the leaves are written");
+}
+
+/// A leaf's claims in the leaves' file: each list as its length and its `(key, message)` pairs, then
+/// a 0/1 byte for whether there is a DA root and 32 root bytes, zero without one. The proof carries
+/// no claims; the parent trusts its subprocess for them, standing in for a receiver that knows them.
+fn write_claims(out: &mut Vec<u8>, claims: &EthereumClaims) {
+    out.extend((claims.xmss.len() as u64).to_le_bytes());
+    for (pk, message) in &claims.xmss {
+        out.extend(pk.to_bytes());
+        out.extend(message);
+    }
+    out.extend((claims.lean_sphincs.len() as u64).to_le_bytes());
+    for (pk, message) in &claims.lean_sphincs {
+        out.extend(pk.to_bytes());
+        out.extend(message);
+    }
+    out.push(u8::from(claims.da_commitment.is_some()));
+    out.extend(claims.da_commitment.unwrap_or_default());
+}
+
+/// The leaves' file, read back: the bytes not yet read.
+struct LeavesFile<'a>(&'a [u8]);
+
+impl<'a> LeavesFile<'a> {
+    fn take(&mut self, n: usize) -> &'a [u8] {
+        let (head, rest) = self.0.split_at(n);
+        self.0 = rest;
+        head
+    }
+
+    fn array<const N: usize>(&mut self) -> [u8; N] {
+        self.take(N).try_into().expect("N bytes")
+    }
+
+    fn count(&mut self) -> usize {
+        u64::from_le_bytes(self.array()) as usize
+    }
+
+    /// The inverse of [`write_claims`].
+    fn claims(&mut self) -> EthereumClaims {
+        let n = self.count();
+        let xmss = (0..n)
+            .map(|_| (LeanXmssPublicKey::from_bytes(&self.array()), self.array()))
+            .collect();
+        let n = self.count();
+        let lean_sphincs = (0..n)
+            .map(|_| {
+                (
+                    lean_sphincs::LeanSphincsPublicKey::from_bytes(&self.array()),
+                    self.array(),
+                )
+            })
+            .collect();
+        let [has_root] = self.array();
+        let root = self.array();
+        EthereumClaims {
+            xmss,
+            lean_sphincs,
+            da_commitment: (has_root == 1).then_some(root),
+        }
+    }
 }
 
 /// Set by [`leaves_from_subprocess`] on the process it starts: the file that process writes the leaves to.
@@ -279,12 +343,12 @@ fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
     let bytes = std::fs::read(&out).expect("the leaves are read");
     std::fs::remove_file(&out).expect("the leaves' file is removed");
 
-    let mut rest = &bytes[..];
+    let mut file = LeavesFile(&bytes);
     let mut leaves = Vec::with_capacity(n);
-    while let Some((len, tail)) = rest.split_first_chunk::<8>() {
-        let (proof, tail) = tail.split_at(u64::from_le_bytes(*len) as usize);
-        leaves.push(EthereumProof::from_bytes(proof).expect("a leaf proof"));
-        rest = tail;
+    while !file.0.is_empty() {
+        let claims = file.claims();
+        let len = file.count();
+        leaves.push(EthereumProof::from_proof_bytes(file.take(len), claims).expect("a leaf proof"));
     }
     assert_eq!(leaves.len(), n, "one proof per leaf");
     leaves
