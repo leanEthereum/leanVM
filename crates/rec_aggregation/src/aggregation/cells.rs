@@ -4,7 +4,7 @@ use primitives::field::{F192, g_pow};
 
 /// A count as the guest carries it: in the exponent, `g^n`.
 pub(super) fn count(n: usize) -> F192 {
-    F192::new(g_pow(n).0, 0, 0)
+    F192::from(g_pow(n))
 }
 
 /// Bytes, each in the exponent: how the guest bounds a value it rebuilds

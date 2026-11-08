@@ -178,7 +178,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("INV_GEN", dsl_u128(F192::new(F64::G.inv().0, 0, 0)).to_string());
+    ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -350,7 +350,7 @@ fn bus_placeholders(
     ps("N_BUS_CLAIMS", nclaims.to_string());
     let idxc: Vec<u128> = (0..34)
         .map(|i| {
-            let mut g2k = F192::new(F64::G.0, 0, 0);
+            let mut g2k = F192::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
@@ -630,12 +630,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let mut c_ivk = Vec::new();
         for &cl_lv in cl.iter().take(cn) {
             for &v in &pcs::whir::eval_sk_at_vks(cl_lv) {
-                c_svk.push(F192::new(v.0, 0, 0));
-                c_ivk.push(if v == F64::ZERO {
-                    F192::ZERO
-                } else {
-                    F192::new(v.inv().0, 0, 0)
-                });
+                c_svk.push(F192::from(v));
+                c_ivk.push(F192::from(v.inv()));
             }
         }
         OpeningShape {
@@ -813,10 +809,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
     ps("LIG_N_CANDIDATES", (n_log_sizes * n_rates).to_string());
-    ps(
-        "LIG_MIN_SHIFT_INV",
-        dsl_u128(F192::new(g_pow(minm).inv().0, 0, 0)).to_string(),
-    );
+    ps("LIG_MIN_SHIFT_INV", dsl_u128(F192::from(g_pow(minm).inv())).to_string());
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.
