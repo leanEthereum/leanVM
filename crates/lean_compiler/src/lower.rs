@@ -153,7 +153,7 @@ struct Scope {
     /// use in scope. A `SET` first emitted inside a branch must not be named from
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
-    const_cells: HashMap<[u64; 3], Off>,
+    const_cells: HashMap<F192, Off>,
     /// Materialized shifted pointers: base cell → `(exp, cell holding base·g^exp)`.
     /// A later `base·g^k` multiplies the nearest one up by a constant already set,
     /// so an unrolled walk `p·g, p·g^2, …` pays one `SET` of `g` rather than one per step.
@@ -412,13 +412,12 @@ impl FnLower<'_> {
     /// [`Self::one`] above a branch on purpose; the revert is what makes that an
     /// optimization rather than the thing holding the invariant up.
     fn const_cell(&mut self, v: F192) -> Off {
-        let key = [v.c0, v.c1, v.c2];
-        if let Some(&o) = self.scope.const_cells.get(&key) {
+        if let Some(&o) = self.scope.const_cells.get(&v) {
             return o;
         }
         let o = self.fresh();
         self.set_const(o, v);
-        self.scope.const_cells.insert(key, o);
+        self.scope.const_cells.insert(v, o);
         o
     }
 
@@ -879,7 +878,7 @@ impl FnLower<'_> {
     /// the `SET` precedes every use and each later write is the write-once
     /// equality, but a second WRITER on any of those paths would land on all.
     fn bound_cell(&mut self, k: u64) -> Off {
-        self.const_cell(g_pow_u128((k - 1) as u128).into())
+        self.const_cell(F64::G.pow((k - 1) as u128).into())
     }
 
     /// `assert log x < log GEN ** k`: the 3-cycle range check in the exponent
@@ -940,7 +939,7 @@ impl FnLower<'_> {
                     return self.range_check(e, kcell);
                 }
                 let bcell = self.expr(b);
-                let inv = self.const_cell(F192::new(primitives::field::G.inv().0, 0, 0));
+                let inv = self.const_cell(F192::from(F64::G.inv()));
                 // Interned: the MUL that first writes `Y·g^{-1}` pins it, so every later
                 // check of the same bound in its scope multiplies into that cell.
                 self.pure(PureOp::Mul, bcell, inv)
@@ -972,7 +971,7 @@ impl FnLower<'_> {
             // which `gpow_exp` reports.
             Expr::GenPow(e) => {
                 let k = self.gpow_exp(e);
-                self.const_cell(g_pow_u128(k).into())
+                self.const_cell(F64::G.pow(k).into())
             }
             Expr::Pow(b, e) => self.pow_expr(b, e),
             Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {

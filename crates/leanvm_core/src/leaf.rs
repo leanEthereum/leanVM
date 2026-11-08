@@ -85,7 +85,7 @@ pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
         Coord::Col(i) => row[*i],
         Coord::GCol(i, k) => g_pow(*k as usize) * row[*i],
         Coord::Prod(i, j, k) => g_pow(*k as usize) * row[*i] * row[*j],
-        Coord::Sum(cs) => cs.iter().fold(F64::ZERO, |acc, c| acc + coord_at(c, row)),
+        Coord::Sum(cs) => cs.iter().map(|c| coord_at(c, row)).sum(),
         Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
     }
 }
@@ -317,7 +317,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
     let full = src.len() / 4;
     gkr::products_into(&src[..4 * full], &mut dst[..full]);
     if full < dst.len() {
-        dst[full] = src[4 * full..].iter().fold(F192::ONE, |acc, &x| acc * x);
+        dst[full] = src[4 * full..].iter().product();
     }
 }
 
@@ -919,11 +919,7 @@ fn eq_sums(point: &[F192], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Ve
     const LOW: usize = 10;
     if point.len() < 3 {
         let eq = eq_table(point);
-        let dot = |f: &dyn Fn(usize) -> F64| {
-            eq.iter()
-                .enumerate()
-                .fold(F192::ZERO, |acc, (z, &w)| acc + w.mul_base(f(z)))
-        };
+        let dot = |f: &dyn Fn(usize) -> F64| eq.iter().enumerate().map(|(z, &w)| w.mul_base(f(z))).sum();
         return columns
             .iter()
             .map(|c| dot(&|z| c[z]))
@@ -1017,7 +1013,7 @@ mod tests {
             Coord::Prod(i, j, k) => g_pow(*k as usize) * cols[*i][z] * cols[*j][z],
             Coord::Index => g_pow(z),
             Coord::Public(vals) => vals[z],
-            Coord::Sum(cs) => cs.iter().fold(F64::ZERO, |acc, c| acc + coord_value(c, cols, z)),
+            Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, z)).sum(),
         }
     }
 

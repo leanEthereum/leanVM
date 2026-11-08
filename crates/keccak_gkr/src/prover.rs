@@ -18,7 +18,7 @@ use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
-use crate::protocol::{Claim, chi_weights, mu_at, sum};
+use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::PROD_BITS;
 use crate::witness::{Shape, Witness, transpose64, words};
 
@@ -121,7 +121,7 @@ impl Part {
 /// Digit `d` of a weight.
 #[inline(always)]
 fn digit(weight: F192, d: usize) -> usize {
-    let w = [weight.c0, weight.c1, weight.c2];
+    let w = weight.to_limbs();
     (w[d / 8] >> (DIGIT_BITS * (d % 8))) as usize & ((1 << DIGIT_BITS) - 1)
 }
 
@@ -223,7 +223,7 @@ impl Layer<'_> {
                 if g < self.witness.written() {
                     eq[g]
                 } else {
-                    sum(&eq[g..])
+                    eq[g..].iter().sum()
                 }
             })
             .collect()
@@ -262,7 +262,7 @@ impl Layer<'_> {
                 let (_, _, block) = self.block(task);
                 kernel.block_sums(scratch, block);
                 for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
-                    *sum ^= weights[task].mul_unreduced(F192::new(v[0], v[1], v[2]));
+                    *sum ^= weights[task].mul_unreduced(F192::from_limbs(*v));
                 }
             },
             |mut a, b| {
@@ -645,7 +645,7 @@ impl<'a> Round<'a> {
         }
         let mut scratch = vec![0u64; 4 * ROW];
         for (pad, eq) in pads.as_chunks::<ROW>().0.iter().zip(eq.chunks_exact(half)) {
-            self.add_pair(sums, &mut scratch, pad, pad, sum(&eq[first..]));
+            self.add_pair(sums, &mut scratch, pad, pad, eq[first..].iter().sum());
         }
     }
 }
@@ -749,10 +749,10 @@ pub fn prove_layer(
     let per_pack = tracing::info_span!("Product").in_scope(|| layer.pack_products(claim));
     let pack_weights = eq_table(&claim.point[..SKIP + 1]);
     let product: [F192; PROD_BITS] =
-        std::array::from_fn(|c| (0..PACKS).fold(F192::ZERO, |acc, q| acc + pack_weights[q] * per_pack[q][c]));
+        std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
     ps.add_scalars(&product);
     let s = ps.sample();
-    let kappa = sum(&mu_at(s));
+    let kappa = mu_at(s).iter().sum();
     let mut value = poly_eval(&product, s);
     let field = PowerField::new(s).expect("the challenge lies in no proper subfield");
 

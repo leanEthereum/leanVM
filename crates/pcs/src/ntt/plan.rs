@@ -11,7 +11,7 @@ use super::stage::LOG_BATCH;
 /// - It holds numbers only and is `Copy`, so an encode can keep it to read rows back.
 /// - [`AdditiveNttF64::rows`](super::AdditiveNttF64::rows) rebuilds a row from it, so it must come from the same pool size as the encode.
 #[derive(Clone, Copy, Debug)]
-pub struct Plan {
+pub(crate) struct Plan {
     pub(super) log_d: usize,
     pub(super) num_ntts: usize,
     /// The first layer of the encode, where the cosets split.

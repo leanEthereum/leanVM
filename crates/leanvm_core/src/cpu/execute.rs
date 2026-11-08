@@ -216,15 +216,9 @@ impl std::fmt::Display for Fault {
     }
 }
 
-/// A memory word interpreted as a K-valued address: valid only when both
-/// extension limbs are zero (every g-power is a K-element).
-fn as_addr(v: F192) -> Option<F64> {
-    (v.c1 == 0 && v.c2 == 0).then_some(F64(v.c0))
-}
-
-/// [`as_addr`], or why the word is none.
+/// A memory word that has to lie in K, or why it does not.
 fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
-    as_addr(v).ok_or(Fault::NotInK { what, value: v })
+    v.as_base().ok_or(Fault::NotInK { what, value: v })
 }
 
 /// A named witness stream and the next entry `hint_witness` pops from it. Resolved
@@ -650,8 +644,8 @@ impl Program {
                                 // Small integers and small g-powers overlap (8 = x^3
                                 // = g^3): show every reading that applies. Only a
                                 // K-valued word (extension limbs 0) can be a g-power.
-                                let k = as_addr(v).and_then(|lo| g.log(lo));
-                                let small = v.c2 == 0 && v.c1 == 0 && v.c0 < 1 << 32;
+                                let k = v.as_base().and_then(|lo| g.log(lo));
+                                let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
                                 match (k, small) {
                                     (Some(k), true) => eprintln!(
                                         "[print] {label} = {} (g^{})",
@@ -714,7 +708,7 @@ impl Program {
                         } => {
                             assert!(start + nbits <= 192, "a machine word has 192 bits");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
                                 let at = start + j;
@@ -744,7 +738,7 @@ impl Program {
                         } => {
                             assert!(start + width * count <= 192, "a machine word has 192 bits");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
                             for i in 0..*count {
                                 let mut n = 0usize;
@@ -790,7 +784,7 @@ impl Program {
                         RHint::FieldLimbs { value, base, len } => {
                             assert!((1..=3).contains(len), "an F192 value has three K limbs");
                             let v = m.get(fp + value);
-                            let limbs = [v.c0, v.c1, v.c2];
+                            let limbs = v.to_limbs();
                             for j in 0..*len {
                                 m.put(fp + base + j, F192::new(limbs[j as usize], 0, 0))?;
                             }
@@ -879,7 +873,7 @@ impl Program {
                 Op::Deref { o1, o2, o3, mode } => {
                     let a1 = fp + o1;
                     let p = m.read(a1);
-                    let p_addr = as_addr(p).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
+                    let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let a2 = base + o2;
                     let a3 = fp + o3;

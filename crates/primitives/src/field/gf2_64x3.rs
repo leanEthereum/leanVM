@@ -15,6 +15,7 @@
 //! Both folds are GF(2)-linear, so they commute with XOR.
 //! A sum of products therefore accumulates after the y-fold and reduces once.
 
+use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
@@ -51,9 +52,33 @@ impl F192 {
         Self { c0, c1, c2 }
     }
 
+    /// The coefficients of `y^0`, `y^1` and `y^2`, in that order.
+    #[inline]
+    pub const fn to_limbs(self) -> [u64; 3] {
+        [self.c0, self.c1, self.c2]
+    }
+
+    /// The element whose coefficients of `y^0`, `y^1` and `y^2` are `limbs`, in that order.
+    #[inline]
+    pub const fn from_limbs(limbs: [u64; 3]) -> Self {
+        let [c0, c1, c2] = limbs;
+        Self { c0, c1, c2 }
+    }
+
     #[inline]
     pub const fn is_zero(self) -> bool {
         self.c0 == 0 && self.c1 == 0 && self.c2 == 0
+    }
+
+    /// The base-field element this is, or `None` when a `y` coefficient is nonzero.
+    #[inline]
+    #[must_use]
+    pub const fn as_base(self) -> Option<F64> {
+        if self.c1 == 0 && self.c2 == 0 {
+            Some(F64(self.c0))
+        } else {
+            None
+        }
     }
 
     /// Product without the base-field reduction, for XOR accumulation.
@@ -109,7 +134,7 @@ impl F192 {
             all(target_arch = "x86_64", target_feature = "pclmulqdq")
         )))]
         {
-            F192Unreduced::from_wide([self.c0, self.c1, self.c2].map(|c| mul_wide(c, k.0)))
+            F192Unreduced::from_wide(self.to_limbs().map(|c| mul_wide(c, k.0)))
         }
     }
 
@@ -130,7 +155,7 @@ impl F192 {
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
             // Square each coefficient as a 128-bit polynomial.
-            let [s0, s1, s2] = [self.c0, self.c1, self.c2].map(square_wide);
+            let [s0, s1, s2] = self.to_limbs().map(square_wide);
             // Fold y^4 back onto y^2 and y, then reduce each coefficient once.
             F192Unreduced::from_wide([s0, s2, s1 ^ s2]).reduce()
         }
@@ -159,10 +184,7 @@ impl F192 {
     pub fn inv(self) -> Self {
         let m = self.frobenius() * self.frobenius().frobenius();
         let norm = self * m;
-        debug_assert!(
-            (norm.c1, norm.c2) == (0, 0),
-            "the norm of an F192 element must lie in K"
-        );
+        debug_assert!(norm.as_base().is_some(), "the norm of an F192 element must lie in K");
         m.mul_base(F64(norm.c0).inv())
     }
 }
@@ -214,6 +236,34 @@ impl MulAssign for F192 {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
+    }
+}
+
+impl Sum for F192 {
+    #[inline]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |acc, x| acc + x)
+    }
+}
+
+impl<'a> Sum<&'a F192> for F192 {
+    #[inline]
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().sum()
+    }
+}
+
+impl Product for F192 {
+    #[inline]
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ONE, |acc, x| acc * x)
+    }
+}
+
+impl<'a> Product<&'a F192> for F192 {
+    #[inline]
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().product()
     }
 }
 
@@ -393,7 +443,7 @@ impl From<F192> for F192Unreduced {
     #[inline]
     fn from(e: F192) -> Self {
         Self {
-            coeffs: [e.c0, e.c1, e.c2].map(|c| [c, 0]),
+            coeffs: e.to_limbs().map(|c| [c, 0]),
         }
     }
 }
@@ -1040,7 +1090,7 @@ pub mod software {
 
     /// Schoolbook: nine base products into the five coefficients of y^0..y^4, then the y-fold.
     pub fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
-        let (a, b) = ([a.c0, a.c1, a.c2], [b.c0, b.c1, b.c2]);
+        let (a, b) = (a.to_limbs(), b.to_limbs());
         let mut e = [0u128; 5];
         // a_i * b_j lands on y^(i + j).
         for i in 0..3 {
@@ -1116,10 +1166,10 @@ mod tests {
     #[test]
     fn python_vectors_and_modulus() {
         for (a, b, c, s) in VECTORS {
-            let (a, b) = (F192::new(a[0], a[1], a[2]), F192::new(b[0], b[1], b[2]));
-            assert_eq!(a * b, F192::new(c[0], c[1], c[2]));
-            assert_eq!(a.square(), F192::new(s[0], s[1], s[2]));
-            assert_eq!(software::mul(a, b), F192::new(c[0], c[1], c[2]));
+            let (a, b) = (F192::from_limbs(a), F192::from_limbs(b));
+            assert_eq!(a * b, F192::from_limbs(c));
+            assert_eq!(a.square(), F192::from_limbs(s));
+            assert_eq!(software::mul(a, b), F192::from_limbs(c));
         }
         assert_eq!(F192::Y * F192::Y * F192::Y, F192::Y + F192::ONE);
     }
@@ -1186,7 +1236,7 @@ mod tests {
             ];
             assert!((0..16).all(|i| packed[i / 8].get(i % 8) == w[i]));
             let k: [F64; 16] = std::array::from_fn(|_| F64(rng.ext().c0));
-            let want = (0..16).fold(F192::ZERO, |acc, i| acc + w[i].mul_base(k[i]));
+            let want = (0..16).map(|i| w[i].mul_base(k[i])).sum();
             assert_eq!(dot_base(&packed, &k).reduce(), want);
         }
     }
@@ -1308,7 +1358,7 @@ mod tests {
         let d = t + F192::Y; // y^(2^64) − y as a deg ≤ 2 poly over K
         assert!(!d.is_zero());
         let f = vec![1u64, 1, 0, 1]; // y^3 + y + 1
-        let g = poly_gcd(f, vec![d.c0, d.c1, d.c2]);
+        let g = poly_gcd(f, d.to_limbs().to_vec());
         assert_eq!(pdeg(&g), Some(0), "y^3+y+1 has a root in GF(2^64)");
     }
 }

@@ -923,11 +923,14 @@ mod tests {
             let equality = eq_table(&point);
             let [difference, c2, c3, c4] = state.round_message(&SplitEq::new(&point));
             let direct = |point: F192| {
-                (0..width / 2).fold(F192::ZERO, |sum, row| {
-                    let values = [0, 1, 2, 3]
-                        .map(|child| interp(state.values[8 * row + child], state.values[8 * row + 4 + child], point));
-                    sum + equality[row] * values[0] * values[1] * values[2] * values[3]
-                })
+                (0..width / 2)
+                    .map(|row| {
+                        let values = [0, 1, 2, 3].map(|child| {
+                            interp(state.values[8 * row + child], state.values[8 * row + 4 + child], point)
+                        });
+                        equality[row] * values[0] * values[1] * values[2] * values[3]
+                    })
+                    .sum::<F192>()
             };
             let c0 = direct(F192::ZERO);
             let c1 = difference + c2 + c3 + c4;
@@ -980,16 +983,13 @@ mod tests {
     fn level_products_match_scalar() {
         for len in [4, 5, 63, 64, 65, 4 << 12, (4 << 12) + 3, (4 << 13) - 1] {
             let current: Vec<F192> = (0..len).map(|i| element(i, 3)).collect();
-            let want: Vec<F192> = current
-                .chunks(4)
-                .map(|c| c.iter().fold(F192::ONE, |acc, &v| acc * v))
-                .collect();
+            let want: Vec<F192> = current.chunks(4).map(|c| c.iter().product()).collect();
             assert_eq!(next_level(&current), want, "len={len}");
         }
     }
 
     fn product(lane: &[F192]) -> F192 {
-        lane.iter().copied().fold(F192::ONE, |product, value| product * value)
+        lane.iter().copied().product()
     }
 
     /// Rescale lane 1's last leaf so its product matches lane 0's, as the bus's two sides do.

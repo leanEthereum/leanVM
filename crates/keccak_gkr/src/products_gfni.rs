@@ -120,7 +120,7 @@ const fn staged_index(r: usize, a: usize, n_active: usize) -> usize {
 /// Bit `n` of a weight.
 #[inline(always)]
 fn bit(w: F192, n: usize) -> u8 {
-    ([w.c0, w.c1, w.c2][n / 64] >> (n % 64)) as u8 & 1
+    (w.to_limbs()[n / 64] >> (n % 64)) as u8 & 1
 }
 
 /// The 24 matrices of a lane byte's weights: `M_b` maps a column byte (bit `i` = position

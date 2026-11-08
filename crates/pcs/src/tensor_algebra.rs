@@ -26,13 +26,8 @@ pub const DEGREE_E: usize = 192;
 /// ```
 ///
 /// `s_hat_u[w] = t_w` in the ring-switching construction.
-pub fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
-    assert_eq!(
-        s_hat_v.len(),
-        PACKING_WIDTH,
-        "transpose_s_hat: s_hat_v must have one entry per packing bit (64)"
-    );
-    let mut s_hat_u = vec![F64::ZERO; DEGREE_E];
+pub fn transpose_s_hat(s_hat_v: &[F192; PACKING_WIDTH]) -> [F64; DEGREE_E] {
+    let mut s_hat_u = [F64::ZERO; DEGREE_E];
     for (i, elem) in s_hat_v.iter().enumerate() {
         // Deposit bit w of elem into bit i of s_hat_u[w]; scan set bits only.
         let mut c0 = elem.c0;
@@ -64,15 +59,14 @@ mod tests {
 
     /// Bit w of an E element in the tower basis (w in 0..192).
     fn ext_bit(e: F192, w: usize) -> u64 {
-        [e.c0, e.c1, e.c2][w / 64] >> (w % 64) & 1
+        e.to_limbs()[w / 64] >> (w % 64) & 1
     }
 
     #[test]
     fn rect_transpose_bit_relation() {
         let mut rng = Rng::new(1);
-        let s_hat_v = rng.ext_vec(PACKING_WIDTH);
+        let s_hat_v = std::array::from_fn(|_| rng.ext());
         let s_hat_u = transpose_s_hat(&s_hat_v);
-        assert_eq!(s_hat_u.len(), DEGREE_E);
         for i in 0..PACKING_WIDTH {
             for w in 0..DEGREE_E {
                 assert_eq!(

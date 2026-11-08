@@ -191,7 +191,7 @@ pub(super) fn gen_verify(
         for opening in phase {
             query_hints.push((
                 "merkle_leaf_rows",
-                opening.leaf.iter().map(|x| F192::new(x.0, 0, 0)).collect(),
+                opening.leaf.iter().map(|&x| F192::from(x)).collect(),
             ));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);

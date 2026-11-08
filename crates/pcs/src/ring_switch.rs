@@ -128,10 +128,8 @@ pub(crate) const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 /// `3·|S|` `K`-equations, in `192` `K`-unknowns, and with `3·|S| < 192` a
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
-pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
-    (0..DEGREE_E)
-        .map(|w| apply_composed_map(coordinate_basis(w), challenges))
-        .collect()
+pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> [F192; DEGREE_E] {
+    std::array::from_fn(|w| apply_composed_map(coordinate_basis(w), challenges))
 }
 
 /// Applies the composed map `Phi` of [`build_coordinate_weights`] to one value.
@@ -167,11 +165,11 @@ pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
 ///
 /// A caller whose reduction already produced these passes them in, so this is the reference for tests and the unprepared fallback.
-pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
+pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> [F192; PACKING_WIDTH] {
     assert_eq!(packed_witness.len(), suffix_tensor.len());
     parallel::fold_reduce(
         packed_witness.len(),
-        || vec![F192::ZERO; PACKING_WIDTH],
+        || [F192::ZERO; PACKING_WIDTH],
         |acc, i| {
             let w = suffix_tensor[i];
             let mut bits = packed_witness[i].0;
@@ -186,7 +184,7 @@ pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192>
 
 /// XOR-reduce two per-worker partial accumulators of the bit-slice folds
 /// (E addition is XOR, so the reduction order does not matter).
-fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
+fn xor_accs(mut a: [F192; PACKING_WIDTH], b: [F192; PACKING_WIDTH]) -> [F192; PACKING_WIDTH] {
     for (av, bv) in a.iter_mut().zip(b.iter()) {
         *av += *bv;
     }
@@ -201,8 +199,7 @@ fn xor_accs(mut a: Vec<F192>, b: Vec<F192>) -> Vec<F192> {
 ///
 /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
 #[cfg(test)]
-pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192]) -> Vec<F192> {
-    assert_eq!(coordinate_weights.len(), DEGREE_E);
+pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192; DEGREE_E]) -> Vec<F192> {
     parallel::map_collect(suffix_tensor.len(), |i| {
         let elem = suffix_tensor[i];
         let mut acc = F192::ZERO;
@@ -242,7 +239,7 @@ pub(crate) struct DeferredRingSwitchOutput {
 /// value on every coordinate basis element of `E`.
 #[derive(Clone)]
 pub(crate) struct RingWeight {
-    weights: Vec<F192>,
+    weights: [F192; DEGREE_E],
     point: Vec<F192>,
 }
 
@@ -265,8 +262,7 @@ pub(crate) fn coordinate_basis(w: usize) -> F192 {
 }
 
 impl RingWeight {
-    pub(crate) fn new(weights: Vec<F192>, point: Vec<F192>) -> Self {
-        assert_eq!(weights.len(), DEGREE_E);
+    pub(crate) fn new(weights: [F192; DEGREE_E], point: Vec<F192>) -> Self {
         Self { weights, point }
     }
 
@@ -287,7 +283,7 @@ impl RingWeight {
     /// `Phi(value)`.
     pub(crate) fn apply(&self, value: F192) -> F192 {
         let mut acc = F192::ZERO;
-        for (limb, word) in [value.c0, value.c1, value.c2].into_iter().enumerate() {
+        for (limb, word) in value.to_limbs().into_iter().enumerate() {
             let mut bits = word;
             while bits != 0 {
                 acc += self.weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];
@@ -356,12 +352,12 @@ impl RingFold {
 /// The batching scalar is baked into both the target and the map.
 pub(crate) fn prove_finish_deferred(
     state: RingSwitchProveState,
-    coordinate_weights: &[F192],
+    coordinate_weights: &[F192; DEGREE_E],
     lambda: F192,
 ) -> DeferredRingSwitchOutput {
     let s_hat_u = transpose_s_hat(&state.s_hat_v);
     let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
-    let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
+    let scaled_weights = coordinate_weights.map(|x| lambda * x);
     DeferredRingSwitchOutput {
         batched_sumcheck_claim: lambda * sumcheck_claim,
         weight: RingWeight::new(scaled_weights, state.point),
@@ -403,7 +399,7 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 /// that barrier.
 #[derive(Clone)]
 pub struct RingSwitchProveState {
-    s_hat_v: Vec<F192>,
+    s_hat_v: [F192; PACKING_WIDTH],
     point: Vec<F192>,
 }
 
@@ -426,10 +422,7 @@ pub fn prove_prepare(
         "packed witness must have 2^|suffix_point| words"
     );
     let s_hat_v = match precomputed_s_hat_v {
-        Some(v) => {
-            assert_eq!(v.len(), PACKING_WIDTH);
-            v.to_vec()
-        }
+        Some(v) => v.try_into().expect("one slice per packing bit"),
         None => {
             let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
             let mask = eq_lo.len() - 1;
@@ -464,20 +457,24 @@ mod tests {
     fn deferred_batch_matches_materialized_weights() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
         let point = rng.ext_vec(10);
-        let coordinate_weights = rng.ext_vec(DEGREE_E);
+        let coordinate_weights = std::array::from_fn(|_| rng.ext());
         let lambdas = [rng.ext(), rng.ext()];
         let states = (0..2)
             .map(|_| RingSwitchProveState {
-                s_hat_v: rng.ext_vec(PACKING_WIDTH),
+                s_hat_v: std::array::from_fn(|_| rng.ext()),
                 point: point.clone(),
             })
             .collect::<Vec<_>>();
 
         // Reference: one dense weight vector per claim, combined afterwards.
         let dense_basis = fold_ext_elems_naive(&eq_table_serial(&point), &coordinate_weights);
-        let expected_target = states.iter().zip(lambdas).fold(F192::ZERO, |acc, (state, lambda)| {
-            acc + lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
-        });
+        let expected_target: F192 = states
+            .iter()
+            .zip(lambdas)
+            .map(|(state, lambda)| {
+                lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
+            })
+            .sum();
         let expected_basis = dense_basis
             .iter()
             .map(|&w| (lambdas[0] + lambdas[1]) * w)
@@ -488,9 +485,7 @@ mod tests {
             .zip(lambdas)
             .map(|(state, lambda)| prove_finish_deferred(state, &coordinate_weights, lambda))
             .collect::<Vec<_>>();
-        let deferred_target = deferred
-            .iter()
-            .fold(F192::ZERO, |acc, out| acc + out.batched_sumcheck_claim);
+        let deferred_target = deferred.iter().map(|out| out.batched_sumcheck_claim).sum::<F192>();
         let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
         combine_deferred_chunk(&deferred, &mut deferred_basis);
 
@@ -508,7 +503,7 @@ mod tests {
         let mut rng = Rng::new(0xF00D_BEEF_1234_5678);
         for _ in 0..4 {
             let challenges = std::array::from_fn(|_| rng.ext());
-            let s_hat_v = rng.ext_vec(PACKING_WIDTH);
+            let s_hat_v: [F192; PACKING_WIDTH] = std::array::from_fn(|_| rng.ext());
 
             // Column side: sum_w weights[w] * t_w over the transposed K columns.
             let columns = transpose_s_hat(&s_hat_v);
@@ -584,19 +579,17 @@ mod tests {
 
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
-    fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
+    fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> [F192; PACKING_WIDTH] {
         let eq_suffix = eq_table_serial(suffix_point);
-        (0..PACKING_WIDTH)
-            .map(|i| {
-                let mut acc = F192::ZERO;
-                for (word, &w) in packed.iter().zip(eq_suffix.iter()) {
-                    if (word.0 >> i) & 1 == 1 {
-                        acc += w;
-                    }
+        std::array::from_fn(|i| {
+            let mut acc = F192::ZERO;
+            for (word, &w) in packed.iter().zip(eq_suffix.iter()) {
+                if (word.0 >> i) & 1 == 1 {
+                    acc += w;
                 }
-                acc
-            })
-            .collect()
+            }
+            acc
+        })
     }
 
     /// s_hat_v[i] must equal the MLE of the i-th bit-slice at the suffix
@@ -612,7 +605,6 @@ mod tests {
         let eq_suffix = eq_table_serial(&suffix_point);
 
         let s_hat_v = fold_1b_rows(&packed, &eq_suffix);
-        assert_eq!(s_hat_v.len(), PACKING_WIDTH);
 
         // From the flat bit layout: column i is z[y * 64 + i].
         for i in 0..PACKING_WIDTH {
@@ -648,10 +640,7 @@ mod tests {
             }
         }
         assert_eq!(
-            prefix_weights
-                .iter()
-                .zip(&s_ref)
-                .fold(F192::ZERO, |acc, (&w, &s)| acc + w * s),
+            prefix_weights.iter().zip(&s_ref).map(|(&w, &s)| w * s).sum::<F192>(),
             direct,
             "prefix x suffix split must factor the MLE"
         );

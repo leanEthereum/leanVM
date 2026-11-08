@@ -52,11 +52,7 @@ use crate::whir_ntt_ext::*;
 pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
     assert_eq!(witness.len(), b.len());
     if witness.len() < PAR_THRESHOLD {
-        return witness
-            .iter()
-            .zip(b.iter())
-            .map(|(&w, &e)| e.mul_base(w))
-            .fold(F192::ZERO, |a, v| a + v);
+        return witness.iter().zip(b.iter()).map(|(&w, &e)| e.mul_base(w)).sum();
     }
     parallel::map_reduce(
         witness.len(),
@@ -90,7 +86,7 @@ pub struct Commitment {
 
 /// Prover-side state retained after commit for the opening phase. The message
 /// itself is not stored; the caller retains it for opening, and an opening of a
-/// [`Codeword::Nothing`] recomputes the rows a query reads from it.
+/// codeword the encode did not keep recomputes the rows a query reads from it.
 pub struct ProverData {
     ntt: AdditiveNttF64,
     codeword: Codeword,
@@ -921,7 +917,7 @@ fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) 
         let v = ch.sample();
         for j in 0..per.min(count - out.len()) {
             let off = j * d;
-            let limbs = [v.c0, v.c1, v.c2];
+            let limbs = v.to_limbs();
             let (li, sh) = (off / 64, off % 64);
             let mut chunk = limbs[li] >> sh;
             if sh + d > 64 {
@@ -1361,11 +1357,7 @@ mod tests {
 
             let (msg, y) = round_msg_lsb::<true>(&f, &b);
             assert_eq!(msg, msg_ref(&f, &b), "eval message, n={n}");
-            assert_eq!(
-                y,
-                f.iter().zip(&b).fold(F192::ZERO, |a, (&x, &y)| a + x * y),
-                "eval, n={n}"
-            );
+            assert_eq!(y, f.iter().zip(&b).map(|(&x, &y)| x * y).sum(), "eval, n={n}");
 
             let fold =
                 |x: &[F192]| -> Vec<F192> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };

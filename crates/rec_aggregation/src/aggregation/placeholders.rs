@@ -1,6 +1,6 @@
 //! The constants baked into the guest.
 
-use super::cells::{dsl_u128, f192_literal, pack_16_bytes};
+use super::cells::{dsl_u128, pack_16_bytes};
 use super::child::{MU_CAP, MU_MAX, MU_MIN, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
@@ -8,6 +8,7 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
+use lean_compiler::f192_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
@@ -15,7 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use primitives::field::{F64, F192, G, g_pow};
+use primitives::field::{F64, F192, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -177,7 +178,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("INV_GEN", dsl_u128(F192::new(G.inv().0, 0, 0)).to_string());
+    ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -349,7 +350,7 @@ fn bus_placeholders(
     ps("N_BUS_CLAIMS", nclaims.to_string());
     let idxc: Vec<u128> = (0..34)
         .map(|i| {
-            let mut g2k = F192::new(G.0, 0, 0);
+            let mut g2k = F192::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
@@ -629,12 +630,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let mut c_ivk = Vec::new();
         for &cl_lv in cl.iter().take(cn) {
             for &v in &pcs::whir::eval_sk_at_vks(cl_lv) {
-                c_svk.push(F192::new(v.0, 0, 0));
-                c_ivk.push(if v == F64::ZERO {
-                    F192::ZERO
-                } else {
-                    F192::new(v.inv().0, 0, 0)
-                });
+                c_svk.push(F192::from(v));
+                c_ivk.push(F192::from(v.inv()));
             }
         }
         OpeningShape {
@@ -812,10 +809,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
     ps("LIG_N_CANDIDATES", (n_log_sizes * n_rates).to_string());
-    ps(
-        "LIG_MIN_SHIFT_INV",
-        dsl_u128(F192::new(g_pow(minm).inv().0, 0, 0)).to_string(),
-    );
+    ps("LIG_MIN_SHIFT_INV", dsl_u128(F192::from(g_pow(minm).inv())).to_string());
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.

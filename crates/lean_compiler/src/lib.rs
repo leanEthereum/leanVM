@@ -44,7 +44,7 @@ pub use ast::*;
 pub(crate) use ir::*;
 use lower::lower_func;
 pub(crate) use parser::subst_stmts;
-pub use parser::{parse, parse_const, parse_with_replacements};
+pub use parser::{f192_literal, parse, parse_const, parse_with_replacements};
 
 /// Compile an [`Ast`] to a provable [`Program`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
@@ -183,7 +183,7 @@ pub fn compile(ast: &Ast) -> Program {
                                     ptr,
                                     size,
                                     end: cell,
-                                    start_inverse: g_pow_u128(u128::from(start)).inv(),
+                                    start_inverse: F64::G.pow(u128::from(start)).inv(),
                                     tail,
                                 },
                             }
@@ -228,13 +228,15 @@ pub fn disassemble(prog: &[Op]) -> String {
     let mut acc = F64::ONE;
     for j in 0..(prog.len() + 512) {
         gmap.entry(acc).or_insert(j);
-        acc *= primitives::field::G;
+        acc *= F64::G;
     }
     // A machine word is 192-bit; K-valued immediates (both high limbs zero) may be small
     // g-powers (code addresses, indices), shown as `gʲ`.
-    let kfmt = |k: F192| match (k.c1 == 0 && k.c2 == 0).then(|| gmap.get(&F64(k.c0))).flatten() {
-        Some(j) => format!("g^{j}"),
-        None if k.c1 == 0 && k.c2 == 0 => format!("0x{:016x}", k.c0),
+    let kfmt = |k: F192| match k.as_base() {
+        Some(lo) => match gmap.get(&lo) {
+            Some(j) => format!("g^{j}"),
+            None => format!("0x{:016x}", lo.0),
+        },
         None => format!("0x{:016x}{:016x}{:016x}", k.c2, k.c1, k.c0),
     };
 
@@ -284,22 +286,6 @@ pub fn disassemble(prog: &[Op]) -> String {
 /// Embed a `u128` source literal into the low 128 bits of a 192-bit machine word.
 pub(crate) fn lit_field(n: u128) -> F192 {
     F192::new(n as u64, (n >> 64) as u64, 0)
-}
-
-/// `g^e` for a `u128` exponent (square-and-multiply). `field::g_pow` only takes
-/// a `usize`; an index carried in the exponent (a Fibonacci number, say) can
-/// exceed 64 bits (`ord(g) = 2^64 − 1`, so the exponent wraps mod that).
-fn g_pow_u128(mut e: u128) -> F64 {
-    let mut result = F64::ONE;
-    let mut base = primitives::field::G;
-    while e > 0 {
-        if e & 1 == 1 {
-            result *= base;
-        }
-        base = base * base;
-        e >>= 1;
-    }
-    result
 }
 
 fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {

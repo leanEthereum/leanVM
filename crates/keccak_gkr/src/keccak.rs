@@ -113,11 +113,7 @@ mod tests {
         let w = rng.ext_vec(BITS);
         let mut u = vec![false; BITS];
         linear(&a, &mut u, |a, b| a ^ b);
-        let dot = |w: &[F192], a: &[bool]| {
-            w.iter()
-                .zip(a)
-                .fold(F192::ZERO, |s, (&w, &a)| if a { s + w } else { s })
-        };
+        let dot = |w: &[F192], a: &[bool]| w.iter().zip(a).filter(|&(_, &a)| a).map(|(&w, _)| w).sum::<F192>();
         assert_eq!(dot(&w, &u), dot(&linear_transpose(&w), &a));
     }
 }

@@ -45,10 +45,12 @@ mod tests {
             .collect();
         (0..CODEWORD_SYMBOLS)
             .map(|i| {
-                (0..DA_LOG_K).fold(F192::ONE, |product, j| {
-                    let at = F64((i >> j) as u64 & 1) + vhat(j, i >> (j + 1));
-                    product * (F192::ONE + z_powers[j].mul_base(at))
-                })
+                (0..DA_LOG_K)
+                    .map(|j| {
+                        let at = F64((i >> j) as u64 & 1) + vhat(j, i >> (j + 1));
+                        F192::ONE + z_powers[j].mul_base(at)
+                    })
+                    .product()
             })
             .collect()
     }
@@ -57,10 +59,7 @@ mod tests {
     fn check_membership(z: F192, codewords: &[u64]) -> bool {
         let dual = dual_codeword(z);
         codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
-            let residual = dual
-                .iter()
-                .zip(row)
-                .fold(F192::ZERO, |acc, (&l, &w)| acc + l.mul_base(F64(w)));
+            let residual = dual.iter().zip(row).map(|(&l, &w)| l.mul_base(F64(w))).sum::<F192>();
             residual == F192::ZERO
         })
     }
@@ -82,7 +81,7 @@ mod tests {
         for _ in 0..4 {
             let a = encode_rows(&random_rows(&mut rng, BLOB_SYMBOLS));
             let b = encode_rows(&random_rows(&mut rng, BLOB_SYMBOLS));
-            let dot = a.iter().zip(&b).fold(F64::ZERO, |acc, (&x, &y)| acc + F64(x) * F64(y));
+            let dot = a.iter().zip(&b).map(|(&x, &y)| F64(x) * F64(y)).sum::<F64>();
             assert_eq!(dot, F64::ZERO);
         }
     }
@@ -96,10 +95,10 @@ mod tests {
         let want = powers(z, BLOB_SYMBOLS);
         let ntt = AdditiveNttF64::standard(LOG_M);
         for limb in 0..3 {
-            let mut coefficients: Vec<F64> = dual.iter().map(|v| F64([v.c0, v.c1, v.c2][limb])).collect();
+            let mut coefficients: Vec<F64> = dual.iter().map(|v| F64(v.to_limbs()[limb])).collect();
             ntt.inverse_transform(&mut coefficients);
             let (low, high) = coefficients.split_at(BLOB_SYMBOLS);
-            assert!(low.iter().zip(&want).all(|(c, w)| c.0 == [w.c0, w.c1, w.c2][limb]));
+            assert!(low.iter().zip(&want).all(|(c, w)| c.0 == w.to_limbs()[limb]));
             assert!(high.iter().all(|&c| c == F64::ZERO));
         }
     }

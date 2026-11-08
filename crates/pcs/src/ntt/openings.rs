@@ -63,7 +63,7 @@ pub(super) fn built_rows(
 impl AdditiveNttF64 {
     /// The rows at the sorted `positions` of `codeword`, back to back. A [`Codeword::Nothing`] is recomputed from
     /// its lane-major message `msg`, which no other codeword reads.
-    pub fn rows(&self, codeword: &Codeword, msg: &[F64], positions: &[usize]) -> Vec<F64> {
+    pub(crate) fn rows(&self, codeword: &Codeword, msg: &[F64], positions: &[usize]) -> Vec<F64> {
         match *codeword {
             Codeword::Whole(ref words, plan) => gather_rows(words, plan.num_ntts, positions),
             Codeword::BeforeDeep(ref words, plan) => {

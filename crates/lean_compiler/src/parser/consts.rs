@@ -87,15 +87,20 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
     fn eval(e: &Expr) -> Result<F192, String> {
         match e {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
-            Expr::Lit(n) => Ok(F192::new(*n as u64, (*n >> 64) as u64, 0)),
-            Expr::Gen => Ok(g_pow(1).into()),
-            Expr::GPow(k) => Ok(g_pow_u128(*k).into()),
+            Expr::Lit(n) => Ok(crate::lit_field(*n)),
+            Expr::Gen => Ok(F64::G.into()),
+            Expr::GPow(k) => Ok(F64::G.pow(*k).into()),
             Expr::Add(a, b) => Ok(eval(a)? + eval(b)?),
             Expr::Mul(a, b) => Ok(eval(a)? * eval(b)?),
             other => Err(format!("not a constant expression: `{other:?}`")),
         }
     }
     eval(&parse_expr(s)?)
+}
+
+/// `v` as the zkDSL literal `f192(c0,c1,c2)`, which a global constant or an expression reads back as `v`.
+pub fn f192_literal(v: F192) -> String {
+    format!("f192({},{},{})", v.c0, v.c1, v.c2)
 }
 
 pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
@@ -110,7 +115,7 @@ pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
             limbs[i] =
                 u64::try_from(eval_const_int(p.trim())?).map_err(|_| "an f192 limb does not fit in u64".to_string())?;
         }
-        Ok(F192::new(limbs[0], limbs[1], limbs[2]))
+        Ok(F192::from_limbs(limbs))
     })())
 }
 

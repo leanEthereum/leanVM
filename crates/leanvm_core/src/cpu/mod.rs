@@ -60,9 +60,7 @@ const MAX_LOG_ROWS: usize = 32;
 /// anything else; a recursion guest carries the INNER program's IV in its public
 /// input, pinning both with one word pair.
 pub fn fs_seed(program: &Program) -> [F192; 2] {
-    let d = &program.fiat_shamir_iv;
-    let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
-    [F192::new(word(0), word(8), 0), F192::new(word(16), word(24), 0)]
+    fiat_shamir::merkle::hash_to_scalars(&program.fiat_shamir_iv)
 }
 
 /// The two 128-bit halves a digest travels in, as the four words the
@@ -341,7 +339,7 @@ fn airs<'a>(
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..3).fold(F192::ZERO, |acc, s| acc + pows[base + s] * bus.sigmas[s][t]),
+                sigma: (0..3).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
         .collect()

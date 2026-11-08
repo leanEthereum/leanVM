@@ -6,7 +6,7 @@
 //! # The model
 //!
 //! - A buffer is `2^log_d` rows of `num_ntts` words. Each word of a row is one lane: an independent transform.
-//! - A codeword row is a Merkle leaf, so finished rows go to a [`RowSink`] while they are still in cache.
+//! - A codeword row is a Merkle leaf, so finished rows go to a row sink while they are still in cache.
 //! - A codeword is `2^r` cosets of one message, `r` the log inverse rate. The cosets split at layer `r`.
 //! - Layers run neighbors-last: layer 0 pairs rows half the domain apart.
 //! - A transform is bound by memory bandwidth, so the encode minimizes sweeps of the buffer.
@@ -68,7 +68,6 @@ mod tests;
 mod twiddles;
 mod window;
 
-pub use encode::{Codeword, Keep, RowSink};
+pub(crate) use encode::{Codeword, Keep};
 pub(crate) use kernels::transpose_butterfly_lanes;
-pub use plan::Plan;
 pub use twiddles::AdditiveNttF64;

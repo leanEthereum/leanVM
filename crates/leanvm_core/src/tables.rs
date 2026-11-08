@@ -43,9 +43,7 @@ const TOWER_LANES: [&[(usize, usize)]; 3] = [
 /// identity assembles a tower product any more.
 #[cfg(test)]
 fn tower_lane(lane: usize, x: [F64; 3], y: [F64; 3]) -> F64 {
-    TOWER_LANES[lane]
-        .iter()
-        .fold(F64::ZERO, |acc, &(j, k)| acc + x[j] * y[k])
+    TOWER_LANES[lane].iter().map(|&(j, k)| x[j] * y[k]).sum()
 }
 
 // ---- shared bus vocabulary ---------------------------------------------------
@@ -276,8 +274,7 @@ impl<'a> FillCtx<'a> {
 
     /// The three `K`-lanes of the 192-bit word in memory cell `addr`.
     fn limbs(&self, addr: u32) -> [F64; 3] {
-        let w = self.mem.word(addr as usize);
-        [F64(w.c0), F64(w.c1), F64(w.c2)]
+        self.mem.word(addr as usize).to_limbs().map(F64)
     }
 }
 
@@ -587,7 +584,7 @@ impl Table for SetTable {
         ctx.col(out, rows, O, |r| ctx.g_at(imm(r).0));
         ctx.cols(out, rows, K_LO, |r| {
             let k = imm(r).1;
-            [F64(k.c0), F64(k.c1), F64(k.c2)]
+            k.to_limbs().map(F64)
         });
         ctx.col(out, rows, R, |r| ctx.g_at(r.r));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
@@ -668,10 +665,8 @@ impl Table for DerefTable {
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         debug_assert!(
-            rows.iter().all(|r| {
-                let p = ctx.mem.word((r.fp + ins(r).0) as usize);
-                p.c1 == 0 && p.c2 == 0
-            }),
+            rows.iter()
+                .all(|r| ctx.mem.word((r.fp + ins(r).0) as usize).as_base().is_some()),
             "deref pointer must be K-valued"
         );
         // The three offsets, the two mode flags, the pointer lane and the local
@@ -784,7 +779,11 @@ impl Table for JumpTable {
             op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
         };
         let cell = |r: &Jrow, o: u32| ctx.mem.word((r.fp + o) as usize);
-        let cond = |r: &Jrow| cell(r, ins(r).0);
+        let cond = |r: &Jrow| {
+            let c = cell(r, ins(r).0);
+            debug_assert!(c.as_base().is_some(), "a JUMP condition outside K at pc {}", r.pc);
+            F64(c.c0)
+        };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         // The three offsets and the three cells they name come out of ONE decode.
@@ -807,9 +806,10 @@ impl Table for JumpTable {
         // running product of the nonzero conditions before row `i`, so `acc` ends
         // as their full product (nonzero, hence invertible). The taken indicator
         // `b = [c ≠ 0]` falls out of the same pass, so it costs no extra decode.
+        // The conditions lie in K, a subfield, so the inversion runs in K.
         let (w, b) = {
-            let mut acc = F192::ONE;
-            let mut prefix: Vec<F192> = Vec::with_capacity(rows.len());
+            let mut acc = F64::ONE;
+            let mut prefix: Vec<F64> = Vec::with_capacity(rows.len());
             let mut b = vec![F64::ZERO; rows.len()];
             for (i, r) in rows.iter().enumerate() {
                 prefix.push(acc);
@@ -820,7 +820,7 @@ impl Table for JumpTable {
                 }
             }
             let mut inv = acc.inv();
-            let mut w = vec![F192::ZERO; rows.len()];
+            let mut w = vec![F64::ZERO; rows.len()];
             for i in (0..rows.len()).rev() {
                 let c = cond(rows.get(i));
                 if !c.is_zero() {
@@ -830,7 +830,7 @@ impl Table for JumpTable {
             }
             (w, b)
         };
-        ctx.cols_at(out, rows.len(), W, |i| [F64(w[i].c0), b[i]]);
+        ctx.cols_at(out, rows.len(), W, |i| [w[i], b[i]]);
         ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
@@ -979,10 +979,10 @@ mod tests {
     /// is a bus coordinate, the other a `K` identity), so pin the unrolling here.
     #[test]
     fn unrolled_tower_product_matches_field_product() {
-        let lanes = |v: F192| [F64(v.c0), F64(v.c1), F64(v.c2)];
+        let lanes = |v: F192| v.to_limbs().map(F64);
         let (x, y) = (C, C * C + F192::ONE);
         let got = [0, 1, 2].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
-        assert_eq!(F192::new(got[0], got[1], got[2]), x * y);
+        assert_eq!(F192::from_limbs(got), x * y);
     }
 
     /// `JUMP`'s two identities vanish on an honest row, taken or not.
@@ -993,11 +993,7 @@ mod tests {
         // pair is single-lane: `w = c⁻¹` in K too.
         for cond in [F64::ZERO, F64(0x9e37_79b9_7f4a_7c15)] {
             let mut row = vec![F64::ZERO; jump::N];
-            let w = if cond.is_zero() {
-                F64::ZERO
-            } else {
-                F64(F192::from(cond).inv().c0)
-            };
+            let w = cond.inv();
             row[jump::V_COND] = cond;
             row[jump::W] = w;
             row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };

@@ -28,11 +28,7 @@ impl Proof {
         let mut out = Vec::new();
         write_u32(&mut out, self.stream.len());
         for element in &self.stream {
-            out.extend(
-                [element.c0, element.c1, element.c2]
-                    .map(u64::to_le_bytes)
-                    .as_flattened(),
-            );
+            out.extend(element.to_limbs().map(u64::to_le_bytes).as_flattened());
         }
         write_u32(&mut out, self.merkle.len());
         for phase in &self.merkle {

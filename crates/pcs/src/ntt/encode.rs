@@ -16,11 +16,11 @@ use super::window::Window;
 /// - Each row is handed over exactly once.
 /// - Blocks are aligned, and all of one power-of-two size.
 /// - A block is handed over while its rows are still in cache.
-pub type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
+pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
 
 /// What [`AdditiveNttF64::encode_lane_major`](super::AdditiveNttF64::encode_lane_major) is asked to keep of its codeword.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Keep {
+pub(crate) enum Keep {
     /// All of it: the deep pass is written back.
     Whole,
     /// The buffer as the gathered passes leave it.
@@ -33,7 +33,7 @@ pub enum Keep {
 /// What an encode kept of its codeword, for [`AdditiveNttF64::rows`] to read rows from.
 ///
 /// Each carries the encode's [`Plan`].
-pub enum Codeword {
+pub(crate) enum Codeword {
     /// All of it.
     Whole(Vec<F64>, Plan),
     /// The buffer as the gathered passes left it: the deep layers run again on each row read.
@@ -44,15 +44,15 @@ pub enum Codeword {
 
 impl Codeword {
     /// The plan of the encode.
-    pub fn plan(&self) -> &Plan {
+    pub(crate) fn plan(&self) -> &Plan {
         match self {
             Self::Whole(_, plan) | Self::BeforeDeep(_, plan) | Self::Nothing(plan, _) => plan,
         }
     }
 }
 
-/// The encodes: `transform` is the spine, a [`Plan`], gathered passes, a deep pass and a
-/// hand-over, and the three public encodes differ in their source and in what they keep of the codeword.
+/// The encodes: `transform` is the spine, a plan, gathered passes, a deep pass and a
+/// hand-over, and the three encodes differ in their source and in what they keep of the codeword.
 impl AdditiveNttF64 {
     /// RS-encode a message already stored in the codeword's first replica.
     ///
@@ -83,7 +83,7 @@ impl AdditiveNttF64 {
     /// - The encode then runs once per half of the cosets, in one half-size buffer.
     ///   The deep pass goes to `on_rows` only.
     /// - Otherwise the codeword is kept whole, before its deep layers unless `keep` is [`Keep::Whole`].
-    pub fn encode_lane_major(
+    pub(crate) fn encode_lane_major(
         &self,
         msg: &[F64],
         n_lanes: usize,

@@ -253,7 +253,9 @@ impl Terms {
             .iter()
             .map(|ring| {
                 let vars = ring.point.len().min(self.lane_vars);
-                let weights = a[ring.first..ring.first + DEGREE_E].to_vec();
+                let weights = *a[ring.first..]
+                    .first_chunk::<DEGREE_E>()
+                    .expect("a ring claim has one term per coordinate");
                 let weight = RingWeight::new(weights, ring.point[..vars].to_vec()).fold();
                 (weight, ring.x_offset, 1usize << vars)
             })
@@ -264,10 +266,7 @@ impl Terms {
             primitives::filled_vec((1 << (self.lane_vars - self.low_vars)) * n_patterns, |gs| {
                 parallel::chunks_mut(gs, n_patterns.max(1), |h, row| {
                     for (g, pattern) in row.iter_mut().zip(&self.patterns) {
-                        *g = pattern
-                            .claims
-                            .iter()
-                            .fold(F192::ZERO, |sum, &c| sum + a[c] * self.gamma(c)[h]);
+                        *g = pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum();
                     }
                 });
             })

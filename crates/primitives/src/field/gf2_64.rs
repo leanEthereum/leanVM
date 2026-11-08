@@ -6,6 +6,7 @@
 //! (`x86_64::mul`, `aarch64::mul_shift_tail`), which fold it with two more carry-less multiplications by `0x1B`
 //! and so never leave the vector register.
 
+use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use serde::{Deserialize, Serialize};
@@ -21,7 +22,9 @@ pub struct F64(pub u64);
 impl F64 {
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1);
-    /// `x`, with `ord(x) = 2^64 - 1`.
+    /// The generator `g = x`, with `ord(g) = 2^64 - 1`, larger than every index an admissible instance uses (§cpu).
+    ///
+    /// For `k < 64`, `g^k` is the monomial `x^k` (bit `k`), which the WOTS+C encoding check relies on.
     pub const G: Self = Self(2);
 
     #[inline]
@@ -44,6 +47,23 @@ impl F64 {
         {
             Self(reduce(square_wide(self.0)))
         }
+    }
+
+    /// `self^e` by square-and-multiply, low bit first: `O(log e)` products.
+    ///
+    /// The exponent is wider than the order `2^64 - 1`, so a caller need not reduce it first.
+    #[inline]
+    #[must_use]
+    pub fn pow(self, mut e: u128) -> Self {
+        let (mut result, mut base) = (Self::ONE, self);
+        while e > 0 {
+            if e & 1 == 1 {
+                result *= base;
+            }
+            base = base.square();
+            e >>= 1;
+        }
+        result
     }
 
     /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.
@@ -171,6 +191,34 @@ impl MulAssign for F64 {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
+    }
+}
+
+impl Sum for F64 {
+    #[inline]
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ZERO, |acc, x| acc + x)
+    }
+}
+
+impl<'a> Sum<&'a F64> for F64 {
+    #[inline]
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().sum()
+    }
+}
+
+impl Product for F64 {
+    #[inline]
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::ONE, |acc, x| acc * x)
+    }
+}
+
+impl<'a> Product<&'a F64> for F64 {
+    #[inline]
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.copied().product()
     }
 }
 
@@ -536,23 +584,33 @@ mod tests {
         assert_eq!(F64::ZERO.inv(), F64::ZERO);
     }
 
+    #[test]
+    fn pow_matches_repeated_products() {
+        let mut rng = Rng::new(3);
+        let a = F64(rng.next_u64());
+        // Small exponents against a running product: 0 gives one, 1 gives `a`.
+        let mut want = F64::ONE;
+        for e in 0..70u128 {
+            assert_eq!(a.pow(e), want, "a^{e}");
+            want *= a;
+        }
+        // Exponents past 64 bits: `a^(2^64) = a` in GF(2^64), and the order `2^64 - 1` wraps.
+        let order: u128 = (1 << 64) - 1;
+        assert_eq!(a.pow(1 << 64), a);
+        assert_eq!(a.pow(order + 5), a.pow(5));
+        assert_eq!(a.pow(u128::MAX), a.pow(u128::MAX % order));
+        // Zero to a positive power stays zero.
+        assert_eq!(F64::ZERO.pow(order), F64::ZERO);
+    }
+
     /// x is primitive: x^((2^64−1)/q) ≠ 1 for every prime q | 2^64 − 1.
     #[test]
     fn x_is_primitive() {
-        fn pow(mut base: F64, mut e: u128) -> F64 {
-            let mut r = F64::ONE;
-            while e > 0 {
-                if e & 1 == 1 {
-                    r *= base;
-                }
-                base = base.square();
-                e >>= 1;
-            }
-            r
-        }
         let n: u128 = (1 << 64) - 1;
         for q in [3u128, 5, 17, 257, 641, 65537, 6700417] {
-            assert_ne!(pow(F64::G, n / q), F64::ONE, "x^((2^64-1)/{q}) == 1");
+            assert_ne!(F64::G.pow(n / q), F64::ONE, "x^((2^64-1)/{q}) == 1");
         }
+        // The full order closes the cycle.
+        assert_eq!(F64::G.pow(n), F64::ONE);
     }
 }
