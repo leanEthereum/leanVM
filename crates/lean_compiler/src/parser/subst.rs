@@ -12,6 +12,7 @@
 //! to notice it.
 
 use super::*;
+use std::borrow::Cow;
 
 /// Substitute `Var(name)` → `to` through a statement list, stopping after a
 /// statement that rebinds `name` (later uses refer to the new binding). Nested
@@ -28,7 +29,8 @@ pub(crate) fn subst_stmts(stmts: &[Stmt], name: &str, to: &Expr) -> Vec<Stmt> {
 /// when no replacement mentions another name, as for the literals a `Const`
 /// call substitutes.
 pub(crate) fn subst_all(stmts: &[Stmt], subs: &[(&str, &Expr)]) -> Vec<Stmt> {
-    let mut active = subs.to_vec();
+    // Borrowed until a statement rebinds one of the names, which is rare.
+    let mut active = Cow::Borrowed(subs);
     let mut out = Vec::with_capacity(stmts.len());
     for s in stmts {
         if active.is_empty() {
@@ -36,7 +38,9 @@ pub(crate) fn subst_all(stmts: &[Stmt], subs: &[(&str, &Expr)]) -> Vec<Stmt> {
             continue;
         }
         out.push(s.at(subst_kind(&s.kind, &active)));
-        active.retain(|(name, _)| !binds(&s.kind, name));
+        if active.iter().any(|(name, _)| binds(&s.kind, name)) {
+            active.to_mut().retain(|(name, _)| !binds(&s.kind, name));
+        }
     }
     out
 }
@@ -132,36 +136,68 @@ pub(crate) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
 }
 
 fn subst_vars(e: &Expr, subs: &[(&str, &Expr)]) -> Expr {
-    let s = |b: &Expr| Box::new(subst_vars(b, subs));
+    subst_shared(e, subs).unwrap_or_else(|| e.clone())
+}
+
+/// `e` with the substitution applied, or `None` when no substituted name occurs free in it.
+/// An untouched subtree is shared with `e` rather than copied.
+/// So an `unroll` or a specialisation copies only the paths to the uses.
+fn subst_shared(e: &Expr, subs: &[(&str, &Expr)]) -> Option<Expr> {
+    let s = |b: &Arc<Expr>| subst_shared(b, subs).map(Arc::new);
+    let or = |new: Option<Arc<Expr>>, old: &Arc<Expr>| new.unwrap_or_else(|| Arc::clone(old));
+    let pair = |a: &Arc<Expr>, b: &Arc<Expr>, node: fn(Arc<Expr>, Arc<Expr>) -> Expr| match (s(a), s(b)) {
+        (None, None) => None,
+        (x, y) => Some(node(or(x, a), or(y, b))),
+    };
     match e {
-        Expr::Var(v) => match subs.iter().find(|(name, _)| name == v) {
-            Some((_, to)) => (*to).clone(),
-            None => e.clone(),
+        Expr::Var(v) => subs.iter().find(|(name, _)| name == v).map(|(_, to)| (*to).clone()),
+        Expr::Add(a, b) => pair(a, b, Expr::Add),
+        Expr::Mul(a, b) => pair(a, b, Expr::Mul),
+        Expr::Sub(a, b) => pair(a, b, Expr::Sub),
+        Expr::Div(a, b) => pair(a, b, Expr::Div),
+        Expr::FieldDiv(a, b) => pair(a, b, Expr::FieldDiv),
+        Expr::Mod(a, b) => pair(a, b, Expr::Mod),
+        Expr::Index(a, b) => pair(a, b, Expr::Index),
+        Expr::Pow(a, b) => pair(a, b, Expr::Pow),
+        Expr::Slice(a, lo, hi) => match (s(a), s(lo), s(hi)) {
+            (None, None, None) => None,
+            (x, y, z) => Some(Expr::Slice(or(x, a), or(y, lo), or(z, hi))),
         },
-        Expr::Add(a, b) => Expr::Add(s(a), s(b)),
-        Expr::Mul(a, b) => Expr::Mul(s(a), s(b)),
-        Expr::Sub(a, b) => Expr::Sub(s(a), s(b)),
-        Expr::Div(a, b) => Expr::Div(s(a), s(b)),
-        Expr::FieldDiv(a, b) => Expr::FieldDiv(s(a), s(b)),
-        Expr::Mod(a, b) => Expr::Mod(s(a), s(b)),
-        Expr::Index(a, b) => Expr::Index(s(a), s(b)),
-        Expr::Slice(a, lo, hi) => Expr::Slice(s(a), s(lo), s(hi)),
-        Expr::GenPow(e) => Expr::GenPow(s(e)),
-        Expr::Pow(a, b) => Expr::Pow(s(a), s(b)),
-        Expr::HeapBufDyn(sz) => Expr::HeapBufDyn(s(sz)),
-        Expr::ListLit(es) => Expr::ListLit(es.iter().map(|a| subst_vars(a, subs)).collect()),
-        Expr::ListComp(body, var, lo, hi) => Expr::ListComp(
-            if subs.iter().any(|(name, _)| name == var) {
+        Expr::GenPow(x) => s(x).map(Expr::GenPow),
+        Expr::HeapBufDyn(x) => s(x).map(Expr::HeapBufDyn),
+        Expr::ListLit(es) => subst_list(es, subs).map(Expr::ListLit),
+        Expr::ListComp(body, var, lo, hi) => {
+            let body_new = if subs.iter().any(|(name, _)| name == var) {
                 let rest: Vec<_> = subs.iter().copied().filter(|(name, _)| name != var).collect();
-                Box::new(subst_vars(body, &rest))
+                subst_shared(body, &rest).map(Arc::new)
             } else {
                 s(body)
-            },
-            var.clone(),
-            s(lo),
-            s(hi),
-        ),
-        Expr::Call(f, args) => Expr::Call(f.clone(), args.iter().map(|a| subst_vars(a, subs)).collect()),
-        other => other.clone(),
+            };
+            match (body_new, s(lo), s(hi)) {
+                (None, None, None) => None,
+                (x, y, z) => Some(Expr::ListComp(or(x, body), var.clone(), or(y, lo), or(z, hi))),
+            }
+        }
+        Expr::Call(f, args) => subst_list(args, subs).map(|args| Expr::Call(f.clone(), args)),
+        Expr::Lit(_) | Expr::Gen | Expr::GPow(_) | Expr::HeapBuf(_) | Expr::StackBuf(_) => None,
     }
+}
+
+/// The list with the substitution applied, or `None` when no element changes.
+fn subst_list(es: &[Expr], subs: &[(&str, &Expr)]) -> Option<Vec<Expr>> {
+    let mut out: Option<Vec<Expr>> = None;
+    for (i, a) in es.iter().enumerate() {
+        match (subst_shared(a, subs), &mut out) {
+            (Some(new), Some(v)) => v.push(new),
+            (None, Some(v)) => v.push(a.clone()),
+            (Some(new), None) => {
+                let mut v = Vec::with_capacity(es.len());
+                v.extend(es[..i].iter().cloned());
+                v.push(new);
+                out = Some(v);
+            }
+            (None, None) => {}
+        }
+    }
+    out
 }
