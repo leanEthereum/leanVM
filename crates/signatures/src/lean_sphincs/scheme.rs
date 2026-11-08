@@ -6,13 +6,11 @@
 //! FORS public key, the middle key the bottom tree's root, the top key the middle
 //! tree's root, and the top tree's root is `PK.root`.
 
-use serde::{Deserialize, Serialize};
-
 use crate::lean_sphincs::*;
 
 /// Ordered lexicographically on [`Self::to_bytes`], which is what an aggregate's
 /// signer list is sorted and deduplicated by.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanSphincsPublicKey {
     pub(crate) pk_seed: PkSeed,
     pub(crate) root: Digest,

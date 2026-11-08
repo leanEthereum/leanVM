@@ -4,9 +4,10 @@ use super::deferred::{DeferredClaim, scalar_bytecode};
 use super::error::{AggregateVerifyError, SnarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS};
-use bincode::Options as _;
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use primitives::field::F192;
+use signatures::lean_sphincs::LeanSphincsPublicKey;
+use signatures::lean_xmss::LeanXmssPublicKey;
 
 /// A proof that every `(pubkey, message)` in [`Self::xmss_signers`] is backed by a
 /// valid leanXMSS signature, at a leaf index the statement does not record, and every
@@ -38,12 +39,8 @@ pub struct EthereumProof {
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
-/// Everything but the signer set, which a receiver may already hold, the VM proof in its own encoding.
-/// The deferred point goes as limbs, which bincode encodes as it would the field elements.
-type WireCore = (Option<[u8; 32]>, Vec<[u64; 3]>, Vec<u8>);
-
 /// Signature claims grouped by scheme, each a `(pubkey, message)` pair.
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SignatureClaims {
     pub xmss: Vec<LeanXmssClaim>,
     pub lean_sphincs: Vec<LeanSphincsClaim>,
@@ -57,12 +54,123 @@ pub struct ClaimSelection<'a> {
     pub da_commitment: Option<[u8; 32]>,
 }
 
-/// The wire encoding: bincode's fixed-width integers, as the free functions use,
-/// but rejecting trailing bytes, which they do not. Without that an accepted
-/// aggregate has unboundedly many encodings, so anything downstream that dedupes
-/// or indexes on the serialized bytes can be made to see one aggregate as many.
-pub(super) fn wire() -> impl bincode::Options {
-    bincode::DefaultOptions::new().with_fixint_encoding()
+// The wire format, little-endian:
+//
+//     claims : for xmss, then lean_sphincs, a u64 count, then each claim's key (its
+//              scheme's `to_bytes`) and message
+//     core   : the DA root as a byte 0 or 1, then its 32 bytes if 1; the deferred point
+//              as a u64 count of limb triples `c0, c1, c2`; the VM proof as a u64
+//              length and its bytes
+//
+// Decoding rejects trailing bytes. Without that an accepted aggregate has unboundedly
+// many encodings, so anything downstream that dedupes or indexes on the serialized
+// bytes can be made to see one aggregate as many.
+
+/// Everything but the signer set, which a receiver may already hold.
+type WireCore = (Option<[u8; 32]>, Vec<F192>, Vec<u8>);
+
+/// The wire bytes of the claims, if sent, and of the core.
+pub(super) fn encode(
+    claims: Option<(&[LeanXmssClaim], &[LeanSphincsClaim])>,
+    da_root: Option<[u8; 32]>,
+    point: &[F192],
+    proof: &[u8],
+) -> Vec<u8> {
+    fn put_u64(out: &mut Vec<u8>, x: u64) {
+        out.extend(x.to_le_bytes());
+    }
+    let mut out = Vec::new();
+    if let Some((xmss, lean_sphincs)) = claims {
+        put_u64(&mut out, xmss.len() as u64);
+        for (pk, message) in xmss {
+            out.extend(pk.to_bytes());
+            out.extend(message);
+        }
+        put_u64(&mut out, lean_sphincs.len() as u64);
+        for (pk, message) in lean_sphincs {
+            out.extend(pk.to_bytes());
+            out.extend(message);
+        }
+    }
+    match da_root {
+        None => out.push(0),
+        Some(root) => {
+            out.push(1);
+            out.extend(root);
+        }
+    }
+    put_u64(&mut out, point.len() as u64);
+    for limb in point.iter().flat_map(|x| x.to_limbs()) {
+        put_u64(&mut out, limb);
+    }
+    put_u64(&mut out, proof.len() as u64);
+    out.extend(proof);
+    out
+}
+
+/// The claims and the core.
+pub(super) fn decode(bytes: &[u8]) -> Option<(SignatureClaims, WireCore)> {
+    WireReader::parse(bytes, |r| Some((r.claims()?, r.core()?)))
+}
+
+/// The core alone.
+pub(super) fn decode_core(bytes: &[u8]) -> Option<WireCore> {
+    WireReader::parse(bytes, WireReader::core)
+}
+
+/// A cursor over wire bytes: the bytes not yet read.
+struct WireReader<'a>(&'a [u8]);
+
+impl<'a> WireReader<'a> {
+    /// What `read` reads from `bytes`, which it must read to the end: trailing bytes are an error.
+    fn parse<T>(bytes: &'a [u8], read: impl FnOnce(&mut Self) -> Option<T>) -> Option<T> {
+        let mut r = Self(bytes);
+        let value = read(&mut r)?;
+        r.0.is_empty().then_some(value)
+    }
+
+    fn take(&mut self, n: usize) -> Option<&'a [u8]> {
+        let (head, rest) = self.0.split_at_checked(n)?;
+        self.0 = rest;
+        Some(head)
+    }
+
+    fn array<const N: usize>(&mut self) -> Option<[u8; N]> {
+        self.take(N)?.try_into().ok()
+    }
+
+    fn u64(&mut self) -> Option<u64> {
+        self.array().map(u64::from_le_bytes)
+    }
+
+    fn count(&mut self) -> Option<usize> {
+        usize::try_from(self.u64()?).ok()
+    }
+
+    /// A counted list. Every item reads input, so a forged count fails once the input runs out, and the list
+    /// grows only as its items arrive.
+    fn list<T>(&mut self, read: impl Fn(&mut Self) -> Option<T>) -> Option<Vec<T>> {
+        let n = self.count()?;
+        (0..n).map(|_| read(self)).collect()
+    }
+
+    fn claims(&mut self) -> Option<SignatureClaims> {
+        let xmss = self.list(|r| Some((LeanXmssPublicKey::from_bytes(&r.array()?), r.array()?)))?;
+        let lean_sphincs = self.list(|r| Some((LeanSphincsPublicKey::from_bytes(&r.array()?), r.array()?)))?;
+        Some(SignatureClaims { xmss, lean_sphincs })
+    }
+
+    fn core(&mut self) -> Option<WireCore> {
+        let da_root = match self.array()? {
+            [0] => None,
+            [1] => Some(self.array()?),
+            _ => return None,
+        };
+        let point = self.list(|r| Some(F192::new(r.u64()?, r.u64()?, r.u64()?)))?;
+        let n = self.count()?;
+        let proof = self.take(n)?.to_vec();
+        Some((da_root, point, proof))
+    }
 }
 
 /// Reject a signer set that the coverage argument does not cover: strict sorting
@@ -118,24 +226,26 @@ impl EthereumProof {
     /// the VM proof. The claim *value* is not transmitted; [`Self::from_bytes`]
     /// recomputes it, so there is nothing to lie about.
     pub fn to_bytes(&self) -> Vec<u8> {
-        wire()
-            .serialize(&((&self.xmss_signers, &self.lean_sphincs_signers), self.core()))
-            .expect("an aggregate serializes")
+        let claims = (&self.xmss_signers[..], &self.lean_sphincs_signers[..]);
+        encode(
+            Some(claims),
+            self.da_root,
+            &self.defer.bytecode_point,
+            &self.proof.to_bytes(),
+        )
     }
 
     /// Parsing does NOT verify: the proof is untouched, only shapes are checked.
     /// Call [`Self::verify`] before believing any of it.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AggregateVerifyError> {
-        let (claims, core): (SignatureClaims, WireCore) = wire()
-            .deserialize(bytes)
-            .map_err(|_| AggregateVerifyError::MalformedEncoding)?;
+        let (claims, core) = decode(bytes).ok_or(AggregateVerifyError::MalformedEncoding)?;
         Self::from_parts(claims, core)
     }
 
     /// Without the signer set, for a receiver that already knows it. A set other
     /// than the one aggregated fails verification.
     pub fn to_bytes_without_pubkeys(&self) -> Vec<u8> {
-        wire().serialize(&self.core()).expect("an aggregate serializes")
+        encode(None, self.da_root, &self.defer.bytecode_point, &self.proof.to_bytes())
     }
 
     /// The serialized size of the VM proof alone, without the statement.
@@ -145,17 +255,8 @@ impl EthereumProof {
 
     /// Inverse of [`Self::to_bytes_without_pubkeys`], verifying nothing either.
     pub fn from_bytes_without_pubkeys(bytes: &[u8], claims: SignatureClaims) -> Result<Self, AggregateVerifyError> {
-        Self::from_parts(
-            claims,
-            wire()
-                .deserialize(bytes)
-                .map_err(|_| AggregateVerifyError::MalformedEncoding)?,
-        )
-    }
-
-    fn core(&self) -> WireCore {
-        let point = self.defer.bytecode_point.iter().map(|x| x.to_limbs()).collect();
-        (self.da_root, point, self.proof.to_bytes())
+        let core = decode_core(bytes).ok_or(AggregateVerifyError::MalformedEncoding)?;
+        Self::from_parts(claims, core)
     }
 
     fn from_parts(claims: SignatureClaims, core: WireCore) -> Result<Self, AggregateVerifyError> {
@@ -164,7 +265,6 @@ impl EthereumProof {
             lean_sphincs: lean_sphincs_signers,
         } = claims;
         let (da_root, bytecode_point, proof) = core;
-        let bytecode_point = bytecode_point.into_iter().map(F192::from_limbs).collect();
         // Cheap rejections first. `recompute_scalar` below is a pass over the whole stacked
         // bytecode, on a point a peer chose, so
         // anything decidable without it has to be decided before it.

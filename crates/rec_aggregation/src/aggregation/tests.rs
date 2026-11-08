@@ -7,10 +7,9 @@ use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
-use super::proof::{ClaimSelection, EthereumProof, SignatureClaims, check_signer_set, wire};
+use super::proof::{ClaimSelection, EthereumProof, SignatureClaims, check_signer_set, decode, decode_core, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
-use bincode::Options as _;
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
@@ -56,17 +55,32 @@ fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
 }
 
 #[test]
-fn signature_claims_keep_the_wire_layout() {
+fn the_wire_layout_is_pinned() {
+    let b32 = |first: u8| std::array::from_fn::<u8, 32, _>(|i| first + i as u8);
+    let le = u64::to_le_bytes;
     let claims = SignatureClaims {
-        xmss: signer_set(2).into_iter().map(|pk| (pk, message())).collect(),
-        lean_sphincs: vec![(
-            LeanSphincsPublicKey::from_bytes(&[0xa5; lean_sphincs::PUB_KEY_SIZE]),
-            [0x3c; lean_sphincs::MESSAGE_LEN],
-        )],
+        xmss: vec![(LeanXmssPublicKey::from_bytes(&b32(0)), b32(32))],
+        lean_sphincs: vec![(LeanSphincsPublicKey::from_bytes(&b32(64)), b32(96))],
     };
-    let bytes = wire().serialize(&(&claims.xmss, &claims.lean_sphincs)).unwrap();
-    assert_eq!(wire().serialize(&claims).unwrap(), bytes);
-    assert_eq!(wire().deserialize::<SignatureClaims>(&bytes).unwrap(), claims);
+    let claims_bytes = [&le(1)[..], &b32(0), &b32(32), &le(1), &b32(64), &b32(96)].concat();
+    let (point, proof) = (vec![F192::new(1, 2, 3)], vec![9, 8, 7]);
+    let point_and_proof = [&le(1)[..], &le(1), &le(2), &le(3), &le(3), &proof].concat();
+    for (da_root, da_bytes) in [(None, vec![0]), (Some(b32(128)), [&[1][..], &b32(128)].concat())] {
+        let core_bytes = [da_bytes, point_and_proof.clone()].concat();
+        let mut bytes = encode(Some((&claims.xmss, &claims.lean_sphincs)), da_root, &point, &proof);
+        assert_eq!(bytes, [&claims_bytes[..], &core_bytes].concat());
+        assert_eq!(encode(None, da_root, &point, &proof), core_bytes);
+        let core = (da_root, point.clone(), proof.clone());
+        assert_eq!(decode(&bytes), Some((claims.clone(), core.clone())));
+        assert_eq!(decode_core(&core_bytes), Some(core));
+
+        // Trailing bytes, and a DA tag other than 0 or 1, are refused.
+        assert_eq!(decode(&[&bytes[..], &[0]].concat()), None);
+        bytes[claims_bytes.len()] = 2;
+        assert_eq!(decode(&bytes), None);
+    }
+    // A forged count fails on the input running out, whatever it claims.
+    assert_eq!(decode(&le(u64::MAX)), None);
 }
 
 /// The guest compiles to one program, always.

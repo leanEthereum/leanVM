@@ -5,13 +5,11 @@
 use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 
-use serde::{Deserialize, Serialize};
-
 use crate::lean_xmss::*;
 
 /// Ordered lexicographically on `to_bytes()`, which is what an aggregate's claims are
 /// sorted by.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
     pub(crate) merkle_root: Digest,
     pub(crate) public_param: PublicParam,

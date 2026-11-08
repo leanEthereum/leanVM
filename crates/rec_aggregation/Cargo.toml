@@ -19,8 +19,6 @@ signatures.workspace = true
 lean_da.workspace = true
 verifier.workspace = true
 rand = { workspace = true, optional = true }
-bincode.workspace = true
-serde.workspace = true
 tracing.workspace = true
 
 [features]

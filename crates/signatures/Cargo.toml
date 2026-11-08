@@ -15,7 +15,6 @@ mock = []
 primitives.workspace = true
 parallel.workspace = true
 rand.workspace = true
-serde.workspace = true
 
 [dev-dependencies]
 signatures = { path = ".", features = ["mock"] }
