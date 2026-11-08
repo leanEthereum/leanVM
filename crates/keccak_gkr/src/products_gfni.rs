@@ -28,11 +28,15 @@ use primitives::field::F192;
 
 use crate::keccak::BITS;
 use crate::kernels::{PACKS, embed, products};
-use crate::prover::PAYLOAD_BITS;
+use crate::prover::{PAYLOAD_BITS, PROD_STRIDE};
 use crate::witness::words;
 
 /// Staged registers per active lane byte: 32 column bytes each, six coefficient bytes per pack.
 const STAGED: usize = PAYLOAD_BITS / 32;
+const _: () = assert!(
+    PROD_STRIDE == 6 * 8,
+    "the staging writes six coefficient bytes per pack"
+);
 /// Bytes of a weight.
 const WEIGHT_BYTES: usize = 24;
 
@@ -189,7 +193,7 @@ impl ProductSums {
     }
 
     /// The weighted bit sums of a block (`BITS` positions of eight words) into `s.out`: entry
-    /// `48 q + c` is `sum over j of weights[j] * coefficient c of product(q, j)`.
+    /// `PROD_STRIDE * q + c` is `sum over j of weights[j] * coefficient c of product(q, j)`.
     pub fn block_sums(&self, s: &mut Scratch, block: &[u64]) {
         let n_active = self.matrices.len();
         self.stage(block, &mut s.staged, n_active);

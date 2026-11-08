@@ -91,6 +91,7 @@ use keccak::LANE_VARS;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
+use rmfe::PACK_BITS;
 
 mod basis;
 #[cfg(feature = "bench")]
@@ -124,8 +125,10 @@ pub use witness::{Shape, Witness};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
 /// the output state, as words over the instances, evaluated at `instance` (an instance index's
-/// low four variables first). Both must be bound to the transcript before [`Witness::prove`]
-/// runs, the point being a challenge drawn after the commitment.
+/// variables within a pack first).
+///
+/// Both must be bound to the transcript before the reduction runs, the point being a challenge
+/// drawn after the commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
     pub instance: Vec<F192>,
@@ -170,8 +173,8 @@ impl OutputClaim {
 /// segment and lane weights.
 fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
     assert_eq!(output.instance.len(), shape.n_log);
-    let point = [&output.instance[4..], &segment[..]].concat();
-    let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);
+    let point = [&output.instance[PACK_BITS..], &segment[..]].concat();
+    let mut claim = first_claim(shape, &output.instance[..PACK_BITS], point, r_lane);
     let last = eq_table(&segment)[shape.segments() - 1];
     claim.value = last * dot(&eq_table(r_lane)[..keccak::LANES], &output.lanes);
     claim

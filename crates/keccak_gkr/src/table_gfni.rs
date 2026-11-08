@@ -23,6 +23,10 @@ use crate::witness::BLOCK_WORDS;
 
 /// Bytes of a group of a position (16 packs of 16 bits), and of a reduced value.
 const GROUP_BYTES: usize = 32;
+const _: () = assert!(
+    GROUP * crate::rmfe::PACK / 8 == GROUP_BYTES,
+    "the group's bytes hold its packs' bits"
+);
 const VALUE_BYTES: usize = 24;
 /// Positions per register.
 const REGISTER_POSITIONS: usize = 64;

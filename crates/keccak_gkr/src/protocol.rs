@@ -64,7 +64,7 @@ pub fn chi_weights(eq: &[F192], beta: F192) -> Vec<F192> {
 /// The claim the layers start from, once its challenges are drawn, valued at zero: a random
 /// combination of the output lanes as words, bit `z` of a word weighing `x^z`.
 pub fn first_claim(shape: Shape, r_low: &[F192], point: Vec<F192>, r_lane: &[F192]) -> Claim {
-    let mu: [F192; PACK] = eq_table(r_low).try_into().expect("four low variables");
+    let mu: [F192; PACK] = eq_table(r_low).try_into().expect("an instance index within a pack");
     assert_eq!(point.len(), shape.y_vars());
     let lanes = eq_table(r_lane);
     Claim {
