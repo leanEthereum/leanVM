@@ -424,7 +424,6 @@ dependencies = [
  "parallel",
  "primitives",
  "rand",
- "serde",
  "sha3",
 ]
 

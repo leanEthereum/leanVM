@@ -426,10 +426,9 @@ impl FnLower<'_> {
         match f {
             "hint_decompose_bits" | "hint_decompose_bits_exponent" => {
                 let plain = f == "hint_decompose_bits";
-                if args.len() != 3 && !(plain && args.len() == 4) {
+                if args.len() != 3 {
                     self.fail(format!(
-                        "{f} takes `(bits, value, nbits{})`, got {} arguments",
-                        if plain { "[, start]" } else { "" },
+                        "{f} takes `(bits, value, nbits)`, got {} arguments",
                         args.len()
                     ))
                 };
@@ -441,17 +440,10 @@ impl FnLower<'_> {
                 let bits = self.bits_dest(&args[0], nbits, f);
                 let value = self.expr(&args[1]);
                 self.pending.push(Hint::Resolved(if plain {
-                    let start = args.get(3).map_or(0, |start| self.const_index(start));
-                    let end = u64::from(start) + u64::from(nbits);
-                    if end > 192 {
-                        self.fail(format!("{f} reads bits {start}..{end} of a 192-bit word"))
+                    if nbits > 192 {
+                        self.fail(format!("{f} reads {nbits} bits of a 192-bit word"))
                     };
-                    RHint::BitDecompose {
-                        value,
-                        bits,
-                        nbits,
-                        start,
-                    }
+                    RHint::BitDecompose { value, bits, nbits }
                 } else {
                     RHint::BitDecomposeExp { value, bits, nbits }
                 }));

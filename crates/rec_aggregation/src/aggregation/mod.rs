@@ -53,7 +53,6 @@ mod tests;
 
 pub use error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
 pub use guest::{unified_guest, warm_up};
-pub use lean_da::{DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 pub use node::{aggregate, aggregate_with_stats};
 pub use proof::{ClaimSelection, EthereumProof, SignatureClaims};
 use signatures::lean_sphincs::LeanSphincsPublicKey;

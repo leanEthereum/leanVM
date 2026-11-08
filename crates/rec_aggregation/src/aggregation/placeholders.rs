@@ -715,7 +715,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_YR_LOG_LEN", scal(&|c| c.yr_log_len));
         ps("LIG_YR_LEN", scal(&|c| 1usize << c.yr_log_len));
         ps("LIG_TOTAL_FOLDS", scal(&|c| c.folds.iter().sum()));
-        ps("LIG_MAX_QUERIES", scal(&|c| *c.queries.iter().max().unwrap()));
         ps("LIG_MAX_SQUEEZES", scal(&|c| *c.squeezes.iter().max().unwrap()));
         ps("LIG_MAX_INTERLEAVE", scal(&|c| *c.interleaving.iter().max().unwrap()));
         ps(

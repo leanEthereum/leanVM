@@ -154,8 +154,7 @@ class E:
     __rmul__ = __mul__
 
     def __pow__(self, exponent: int) -> E:
-        if exponent < 0:
-            return self.inv() ** -exponent
+        require(exponent >= 0, "a negative exponent in GF(2^192)")
         base, out, n = self, ONE, exponent
         while n:
             if n & 1:
@@ -167,10 +166,6 @@ class E:
     def inv(self) -> E:
         require(bool(self), "division by zero in GF(2^192)")
         return self ** (2**192 - 2)
-
-    def __truediv__(self, other: object) -> E:
-        rhs = self.lift(other)
-        return self * rhs.inv()
 
     def __repr__(self) -> str:
         return f"E(0x{self.c2.value:016x}{self.c1.value:016x}{self.c0.value:016x})"

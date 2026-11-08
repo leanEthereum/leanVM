@@ -396,10 +396,6 @@ pub struct WhirSecurityConfig {
     /// much. This is an RBR target, not a claim that the sum of all interactive
     /// failure probabilities is bounded by `2^-target_security_bits`.
     pub(crate) target_security_bits: usize,
-    /// Identifier of the proximity-gap analysis used. Self-documents which
-    /// theorem the per-level parameters were derived from. Example:
-    /// `"ben_sasson_2025_thm_4_6"`.
-    pub analysis_version: String,
     /// Per-level parameters, in order L0, L1, L2, ....
     pub levels: Vec<WhirLevelConfig>,
     /// Final residual block descriptor.
@@ -923,13 +919,11 @@ impl WhirSecurityConfig {
             });
         }
 
-        let analysis_version = "bchks25_thm_4_6_exact_reduced_rate_row_union_optimized_eta";
         let cfg = Self {
             m,
             log_n,
             initial_k,
             target_security_bits: target_bits,
-            analysis_version: analysis_version.into(),
             levels,
             final_block: FinalBlockConfig {
                 yr_log_n: shape.yr_log_n,

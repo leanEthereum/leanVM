@@ -369,68 +369,6 @@ def main():
     }
 }
 
-#[test]
-fn guest_merkle_path_reaches_the_root() {
-    leanvm_core::init_prover();
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
-    let source = format!(
-        r#"{helpers}
-def main():
-    bits = StackBuf(3)
-    hint_witness(bits[0:3], "bits")
-    for k in unroll(0, 3):
-        bits[k] = bits[k] * bits[k]
-    direction = addr(bits)
-    leaf = StackBuf(2)
-    hint_witness(leaf[0:2], "leaf")
-    root = verify_merkle_path(leaf, direction, 3)
-    public = GEN ** 0
-    assert public[1] == root[0]
-    assert public[GEN] == root[1]
-    return
-"#
-    );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
-    let mut tree = vec![[0u8; 32]; 16];
-    for (i, leaf) in tree[8..].iter_mut().enumerate() {
-        *leaf = pcs::merkle::hash_leaf(&[i as u8; 64]);
-    }
-    for i in (1..8).rev() {
-        tree[i] = pcs::merkle::hash_pair(&tree[2 * i], &tree[2 * i + 1]);
-    }
-    let run = |index: usize, leaf: [u8; 32], pairs: &[[[u8; 32]; 2]], root: [u8; 32]| {
-        let mut hints = Hints::default();
-        hints.push(
-            "bits",
-            (0..3).map(|k| F192::from(F64(((index >> k) & 1) as u64))).collect(),
-        );
-        hints.push("leaf", hash_to_scalars(&leaf).to_vec());
-        hints.push(
-            "merkle_children",
-            pairs.iter().flatten().flat_map(hash_to_scalars).collect(),
-        );
-        let mut program = guest.clone();
-        hints.install(&mut program);
-        program.execute(hash_to_scalars(&root))
-    };
-    for index in 0..8 {
-        let pairs: Vec<_> = (0..3)
-            .map(|level| {
-                let left = ((8 + index) >> level) & !1;
-                [tree[left], tree[left + 1]]
-            })
-            .collect();
-        assert!(
-            run(index, tree[8 + index], &pairs, tree[1])
-                .unwrap()
-                .unconstrained_reads
-                .is_empty()
-        );
-    }
-}
-
 /// The right leaf holds more claims than one loop frame of its list hashes
 /// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
 /// list's group loop and then a partial last group, while the left leaf's list is

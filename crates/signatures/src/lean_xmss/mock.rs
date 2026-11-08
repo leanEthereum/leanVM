@@ -19,12 +19,6 @@ pub struct MockSecretKey {
     leaves: RangeInclusive<LeafIndex>,
 }
 
-impl MockSecretKey {
-    pub fn public_key(&self) -> LeanXmssPublicKey {
-        self.key.public_key()
-    }
-}
-
 pub fn key_gen_from_seed(seed: Seed, first: LeafIndex, last: LeafIndex) -> (MockSecretKey, LeanXmssPublicKey) {
     assert!(first <= last, "an empty range");
     let (key, pk) = generate(seed, first..=last);

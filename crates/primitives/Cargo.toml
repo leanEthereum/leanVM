@@ -10,7 +10,6 @@ workspace = true
 [dependencies]
 parallel.workspace = true
 rand = { workspace = true, optional = true }
-serde.workspace = true
 
 [features]
 # Test-only helpers (`test_rng`) used by this and other crates' tests.

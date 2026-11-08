@@ -148,7 +148,7 @@ mod portable {
         /// One subset-sum table per byte of a row.
         tables: Vec<[F192; 256]>,
         /// The nibble tables of [`avx2::fold_columns`].
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
         nibbles: Vec<super::avx2::Nibbles>,
     }
 
@@ -156,7 +156,7 @@ mod portable {
         pub(super) fn new(weights: &[F192]) -> Self {
             Self {
                 tables: lookup_tables(weights),
-                #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+                #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
                 nibbles: super::avx2::nibble_tables(weights),
             }
         }
@@ -182,10 +182,10 @@ mod portable {
         )]
         #[inline]
         pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
             // SAFETY: AVX2 is enabled at compile time.
             return unsafe { super::avx2::fold_columns(&self.nibbles, cols, out) };
-            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni"))))]
             for (p, o) in out.iter_mut().enumerate() {
                 *o = cols
                     .iter()
@@ -197,15 +197,11 @@ mod portable {
     }
 }
 
-/// The GFNI fold's byte-matrix products as nibble lookups, for AVX2 without the AVX-512 GFNI fold.
+/// The GFNI fold's byte-matrix products as nibble lookups, for AVX2 without GFNI.
 ///
 /// Output byte `o` of a row is `XOR_j A[j][o] * byte j`. A byte matrix applied to a byte is the sum of its
 /// two nibbles' images, each one in-lane byte shuffle of a 16-entry table, 32 rows to a register.
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    not(all(target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi"))
-))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
 mod avx2 {
     use core::arch::x86_64::*;
 

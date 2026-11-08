@@ -833,7 +833,6 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         }
 
         let width = 1usize << round_count;
-        #[allow(unused_mut)]
         let mut trees =
             [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         if SKIP_IDENTITY {

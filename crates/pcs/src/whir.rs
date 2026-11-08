@@ -33,9 +33,8 @@ use primitives::field::{
 use primitives::multilinear::{eq_table, interp};
 
 pub use super::whir_config::{
-    FinalBlockConfig, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
-    ProverConfig, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR, SECURITY_BITS,
-    SUBSEQUENT_FOLDING_FACTOR, WhirLevelConfig, WhirSecurityConfig, validate_log_inv_rate,
+    INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
+    QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
 };
 #[cfg(test)]
 pub use super::whir_config::{default_config, udr_queries};
@@ -267,8 +266,9 @@ pub(crate) struct SumcheckMessage {
 }
 
 /// Transmit the constant and quadratic coefficients; the claim fixes the linear coefficient.
-fn send_msg(ps: &mut ProverState, m: SumcheckMessage, claim: F192) {
-    ps.add_round_poly(&[m.u_0, claim + m.u_2, m.u_2], false);
+fn send_msg(ps: &mut ProverState, m: SumcheckMessage) {
+    ps.add_scalar(m.u_0);
+    ps.add_scalar(m.u_2);
 }
 
 /// Round-quadratic in coefficient form `c + b X + a X^2`.
@@ -797,12 +797,6 @@ impl SumcheckProver {
         (inst, msg)
     }
 
-    /// The claim that fixes the next message's linear coefficient.
-    #[inline]
-    pub(crate) fn claim(&self) -> F192 {
-        self.t_r
-    }
-
     /// One lane round: fold block `2i` with block `2i+1` of both tables (the last one with the
     /// absent zero padding when the block count is odd) and build the message for the round
     /// after it, which is another lane round unless this was the last.
@@ -940,7 +934,7 @@ fn send_ood(sc: &mut SumcheckProver, ps: &mut ProverState, n_vars: usize, count:
         let z = ps.sample_vec(n_vars);
         let (intro, y) = sc.introduce_ood(&z);
         ps.add_scalar(y);
-        send_msg(ps, intro, y);
+        send_msg(ps, intro);
     }
 }
 
@@ -1025,13 +1019,13 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let sumcheck_span = tracing::info_span!("Sumcheck");
     let (mut sc_prover, start_msg) =
         sumcheck_span.in_scope(|| SumcheckProver::new(witness, b_initial, target, lane_block));
-    send_msg(ps, start_msg, target);
+    send_msg(ps, start_msg);
 
     let mut r_lane_fold = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
         let r_j = ps.sample();
         let msg = sumcheck_span.in_scope(|| sc_prover.fold_lane(r_j, j + 1 == initial_k));
-        send_msg(ps, msg, sc_prover.claim());
+        send_msg(ps, msg);
         r_lane_fold.push(r_j);
     }
     drop(sumcheck_span);
@@ -1100,7 +1094,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // Introduce basis_0, then batch the level's claims with powers of lambda_0.
     let span = tracing::info_span!("Introduce", level = 0).entered();
     let intro_msg_0 = sc_prover.introduce_new(basis_0_induced, enforced_sum_0);
-    send_msg(ps, intro_msg_0, enforced_sum_0);
+    send_msg(ps, intro_msg_0);
     sc_prover.glue_pending(lambda_0);
     drop(span);
 
@@ -1114,7 +1108,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         for _ in 0..k_i {
             let ri = ps.sample();
             let msg = sumcheck_span.in_scope(|| sc_prover.fold(ri));
-            send_msg(ps, msg, sc_prover.claim());
+            send_msg(ps, msg);
             level_rs.push(ri);
         }
         drop(sumcheck_span);
@@ -1146,7 +1140,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                 &weights_last,
             );
             let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
-            send_msg(ps, intro_msg_last, enforced_sum_last);
+            send_msg(ps, intro_msg_last);
             sc_prover.glue_pending(lambda_last);
             for j in 0..n_res {
                 let ri = ps.sample();
@@ -1154,7 +1148,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                 // The last round's message is redundant: the verifier gets that
                 // claim from `yr`, so it is never transmitted.
                 if j + 1 < n_res {
-                    send_msg(ps, msg, sc_prover.claim());
+                    send_msg(ps, msg);
                 }
             }
             drop(span);
@@ -1197,7 +1191,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 
         let span = tracing::info_span!("Introduce", level = i + 1).entered();
         let intro_msg_i = sc_prover.introduce_new(basis_i_induced, enforced_sum_i);
-        send_msg(ps, intro_msg_i, enforced_sum_i);
+        send_msg(ps, intro_msg_i);
         sc_prover.glue_pending(lambda_i);
         drop(span);
 

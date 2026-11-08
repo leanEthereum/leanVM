@@ -39,7 +39,8 @@ pub struct EthereumProof {
 }
 
 /// Everything but the signer set, which a receiver may already hold, the VM proof in its own encoding.
-type WireCore = (Option<[u8; 32]>, Vec<F192>, Vec<u8>);
+/// The deferred point goes as limbs, which bincode encodes as it would the field elements.
+type WireCore = (Option<[u8; 32]>, Vec<[u64; 3]>, Vec<u8>);
 
 /// Signature claims grouped by scheme, each a `(pubkey, message)` pair.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -152,8 +153,9 @@ impl EthereumProof {
         )
     }
 
-    fn core(&self) -> (&Option<[u8; 32]>, &[F192], Vec<u8>) {
-        (&self.da_root, &self.defer.bytecode_point, self.proof.to_bytes())
+    fn core(&self) -> WireCore {
+        let point = self.defer.bytecode_point.iter().map(|x| x.to_limbs()).collect();
+        (self.da_root, point, self.proof.to_bytes())
     }
 
     fn from_parts(claims: SignatureClaims, core: WireCore) -> Result<Self, AggregateVerifyError> {
@@ -162,6 +164,7 @@ impl EthereumProof {
             lean_sphincs: lean_sphincs_signers,
         } = claims;
         let (da_root, bytecode_point, proof) = core;
+        let bytecode_point = bytecode_point.into_iter().map(F192::from_limbs).collect();
         // Cheap rejections first. `recompute_scalar` below is a pass over the whole stacked
         // bytecode, on a point a peer chose, so
         // anything decidable without it has to be decided before it.

@@ -295,7 +295,6 @@ LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
 LIG_YR_LEN = LIG_YR_LEN_PLACEHOLDER
 LIG_TOTAL_FOLDS = LIG_TOTAL_FOLDS_PLACEHOLDER
-LIG_MAX_QUERIES = LIG_MAX_QUERIES_PLACEHOLDER
 LIG_MAX_SQUEEZES = LIG_MAX_SQUEEZES_PLACEHOLDER
 LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
 LIG_POSITIONS_LEN = LIG_POSITIONS_LEN_PLACEHOLDER
@@ -1163,25 +1162,6 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 
 
 # ==================================== Merkle paths ==================================
-
-
-@inline
-def verify_merkle_path(leaf, direction_bits, depth: Const):
-    # Hinted child pairs are hashed in order; the boolean query bit selects the
-    # child that must equal the running node, binding each link of the path.
-    path = StackBuf(LIG_PATH_CAP)
-    hint_witness(path[0:4 * depth], "merkle_children")
-    # The selected pair starts at path_ptr * g^(2*bit) = path_ptr + bit * path_step.
-    path_ptr = addr(path)
-    path_step = path_ptr * (1 + GEN ** 2)
-    node = leaf
-    for level in unroll(0, depth):
-        selected = path_ptr + direction_bits[GEN ** level] * path_step
-        selected[GEN ** (4 * level)] = node[0]
-        selected[GEN ** (4 * level + 1)] = node[1]
-        node = StackBuf(KECCAK_STATE)
-        keccak(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
-    return node
 
 
 def verify_merkle_cap(cap, flags, depth: Const):

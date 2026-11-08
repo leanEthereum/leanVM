@@ -18,8 +18,6 @@
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul, MulAssign};
 
-use serde::{Deserialize, Serialize};
-
 use super::gf2_64::F64;
 #[cfg(not(any(
     all(target_arch = "aarch64", target_feature = "aes"),
@@ -30,7 +28,7 @@ use super::gf2_64::mul_wide;
 use super::gf2_64::{reduce, square_wide};
 
 /// An element `c0 + c1*y + c2*y^2`; bit `i` of each coefficient is its coefficient of `x^i`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct F192 {
     /// The coefficient of `y^0`.

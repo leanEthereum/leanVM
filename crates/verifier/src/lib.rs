@@ -23,7 +23,7 @@ mod whir;
 
 pub use bytecode::Bytecode;
 pub use field::{E, K};
-pub use layout::{TAG, gpow};
+pub use layout::TAG;
 pub use merkle::MerklePath;
 pub use transcript::Proof;
 

@@ -127,10 +127,6 @@ impl E {
         Self::new(self.c0 & mask, self.c1 & mask, self.c2 & mask)
     }
 
-    pub fn is_zero(self) -> bool {
-        self == ZERO
-    }
-
     pub fn square(self) -> Self {
         let (s0, s1, s2) = (spread(self.c0), spread(self.c1), spread(self.c2));
         // y^4 = y^2 + y.
