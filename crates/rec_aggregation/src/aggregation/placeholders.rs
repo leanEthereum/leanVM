@@ -16,7 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use primitives::field::{F64, F192, G, g_pow};
+use primitives::field::{F64, F192, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -178,7 +178,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("INV_GEN", dsl_u128(F192::new(G.inv().0, 0, 0)).to_string());
+    ps("INV_GEN", dsl_u128(F192::new(F64::G.inv().0, 0, 0)).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -350,7 +350,7 @@ fn bus_placeholders(
     ps("N_BUS_CLAIMS", nclaims.to_string());
     let idxc: Vec<u128> = (0..34)
         .map(|i| {
-            let mut g2k = F192::new(G.0, 0, 0);
+            let mut g2k = F192::new(F64::G.0, 0, 0);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }

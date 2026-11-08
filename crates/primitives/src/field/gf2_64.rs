@@ -21,7 +21,9 @@ pub struct F64(pub u64);
 impl F64 {
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1);
-    /// `x`, with `ord(x) = 2^64 - 1`.
+    /// The generator `g = x`, with `ord(g) = 2^64 - 1`, larger than every index an admissible instance uses (§cpu).
+    ///
+    /// For `k < 64`, `g^k` is the monomial `x^k` (bit `k`), which the WOTS+C encoding check relies on.
     pub const G: Self = Self(2);
 
     #[inline]
