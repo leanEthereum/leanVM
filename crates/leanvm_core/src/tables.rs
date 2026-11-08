@@ -133,7 +133,7 @@ impl FlushBuilder {
         let mut push = vec![Const(SEP_MEM), addr.clone(), GCol(count, 1)];
         let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
         push.extend_from_slice(&vals);
-        pull.extend_from_slice(&vals);
+        pull.extend(vals);
         self.pair(push, pull);
     }
 

@@ -378,7 +378,7 @@ struct Table<'a> {
 
 impl Table<'_> {
     /// The message of the round that binds variable `m`, while the table is active.
-    fn message(&mut self, eqr: &[F192], m: usize, at_one: bool) -> [F192; 2] {
+    fn message(&self, eqr: &[F192], m: usize, at_one: bool) -> [F192; 2] {
         let (form, half) = (&self.form, 1 << m);
         match &self.state {
             Some(state) => message_e(form, state, eqr, half, at_one),

@@ -115,10 +115,10 @@ fn straight_line(rows: &[Vec<usize>], inputs: usize) -> (Vec<(usize, usize)>, Ve
 
 /// Binary polynomials: the quotient and the remainder of `a` by `m`.
 fn poly_divmod(mut a: u64, m: u64) -> (u64, u64) {
-    let dm = 63 - m.leading_zeros();
+    let dm = m.ilog2();
     let mut q = 0;
-    while a != 0 && 63 - a.leading_zeros() >= dm {
-        let shift = 63 - a.leading_zeros() - dm;
+    while a != 0 && a.ilog2() >= dm {
+        let shift = a.ilog2() - dm;
         q |= 1 << shift;
         a ^= m << shift;
     }
@@ -659,10 +659,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     };
     let (minm, maxm) = (MU_MIN, MU_MAX);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
-    let cands: Vec<_> = rates
-        .clone()
-        .flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r)))
-        .collect();
+    let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
     let maxsvk = cands.iter().map(|c| c.vanish_values.len()).max().unwrap();
     let maxood = cands.iter().flat_map(|c| &c.ood_samples).copied().max().unwrap_or(0);
