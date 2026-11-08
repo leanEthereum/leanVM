@@ -17,7 +17,7 @@ use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, DA_LOG_K, LOG_M, row_count};
 /// Padding rows are not materialized, being zero codewords.
 #[tracing::instrument(name = "Encoding", skip_all)]
 pub fn encode_rows(rows: &[u64]) -> Vec<u64> {
-    let n_rows = row_count(rows.len(), BLOB_SYMBOLS);
+    let n_rows = row_count(rows.len(), BLOB_SYMBOLS).expect("1..=DA_MAX_ROWS whole blobs");
     let (k, m) = (BLOB_SYMBOLS, CODEWORD_SYMBOLS);
     let interpolation = AdditiveNttF64::standard(DA_LOG_K);
     let ntt = AdditiveNttF64::standard(LOG_M);

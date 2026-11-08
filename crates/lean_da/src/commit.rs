@@ -7,7 +7,7 @@
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
-use crate::{CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, encode_rows, row_count};
+use crate::{BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, encode_rows, row_count};
 
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
@@ -39,10 +39,14 @@ impl DaWitness {
 ///
 /// Returns the root, which the builder publishes: the root of the tree over the blob roots,
 /// binding the matrix including its zero padding.
+///
+/// # Errors
+///
+/// If `rows` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) full blobs.
 #[tracing::instrument(name = "Commit", skip_all)]
-pub fn commit(rows: &[u64]) -> (Hash, DaWitness) {
-    let codewords = encode_rows(rows);
-    commit_codewords(codewords)
+pub fn commit(rows: &[u64]) -> Result<(Hash, DaWitness), BlobSizeError> {
+    row_count(rows.len(), BLOB_SYMBOLS).ok_or(BlobSizeError { symbols: rows.len() })?;
+    Ok(commit_codewords(encode_rows(rows)))
 }
 
 /// [`commit`] over rows that are already encoded.
@@ -77,7 +81,7 @@ fn padding_tree() -> Vec<Hash> {
 #[tracing::instrument(name = "Hashing blobs", skip_all)]
 fn blob_trees(codewords: &[u64]) -> Vec<Hash> {
     let m = CODEWORD_SYMBOLS;
-    let n_rows = row_count(codewords.len(), m);
+    let n_rows = row_count(codewords.len(), m).expect("1..=DA_MAX_ROWS whole codewords");
     let padding = padding_tree();
     let mut trees = vec![Hash::default(); n_rows.next_power_of_two() * BLOB_TREE];
     parallel::chunks_mut(&mut trees, BLOB_TREE, |i, tree| {
@@ -129,7 +133,6 @@ fn as_bytes(data: &[u64]) -> &[u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BLOB_SYMBOLS;
     use fiat_shamir::merkle::hash_pair;
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -176,8 +179,8 @@ mod tests {
         let mut extended = rows.clone();
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
 
-        let (short, _) = commit(&rows);
-        let (long, _) = commit(&extended);
+        let (short, _) = commit(&rows).unwrap();
+        let (long, _) = commit(&extended).unwrap();
         assert_eq!(short, long);
     }
 }

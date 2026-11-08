@@ -13,7 +13,7 @@ use super::proof::{ClaimSelection, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_MAX_ROWS};
+use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::{F64, F192};
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -27,7 +27,7 @@ use signatures::{lean_sphincs, lean_xmss};
 ///   the leaf index it carries.
 /// - `raw_lean_sphincs`: list of `(public_key, message, signature)`, any order.
 /// - `blobs`: concatenated blobs, each containing [`BLOB_SYMBOLS`] little-endian `u64` symbols;
-///   at most [`DA_MAX_ROWS`] blobs. A node with blobs publishes their matrix's root, and none
+///   at most [`lean_da::DA_MAX_ROWS`] blobs. A node with blobs publishes their matrix's root, and none
 ///   of its children's.
 /// - `declare`: `None` keeps all signature claims and publishes the blob matrix's root, or else
 ///   the first child's that has one; `Some` specifies exactly the signatures and DA root to
@@ -72,13 +72,12 @@ pub fn aggregate_with_stats(
     if children.len() > MAX_RECURSIONS {
         return Err(AggregationError::TooLarge);
     }
-    if !blobs.len().is_multiple_of(BLOB_SYMBOLS) || blobs.len() / BLOB_SYMBOLS > DA_MAX_ROWS {
-        return Err(AggregationError::InvalidBlobSize { symbols: blobs.len() });
-    }
-    let direct = (!blobs.is_empty()).then(|| {
+    let direct = if blobs.is_empty() {
+        None
+    } else {
         let _span = tracing::info_span!("LeanDA commit").entered();
-        lean_da::commit(blobs)
-    });
+        Some(lean_da::commit(blobs)?)
+    };
     let direct_root = direct.as_ref().map(|&(commitment, _)| commitment);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
         return Err(AggregationError::BlobsUnpublished);

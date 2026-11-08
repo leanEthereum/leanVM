@@ -37,11 +37,29 @@ pub const CELL_SYMBOLS: usize = 1 << DA_LOG_CELL;
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
 const LOG_M: usize = DA_LOG_K + 1;
 
-fn row_count(symbols: usize, width: usize) -> usize {
-    assert!(symbols.is_multiple_of(width), "partial blob row");
+/// The payload is not 1 to [`DA_MAX_ROWS`] full blobs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BlobSizeError {
+    /// The payload's length in symbols.
+    pub symbols: usize,
+}
+
+impl std::fmt::Display for BlobSizeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} symbols: expected 1 to {DA_MAX_ROWS} full blobs of {BLOB_SYMBOLS} symbols",
+            self.symbols
+        )
+    }
+}
+
+impl std::error::Error for BlobSizeError {}
+
+/// How many `width`-symbol rows `symbols` symbols fill, or `None` if that is not 1 to [`DA_MAX_ROWS`] full rows.
+fn row_count(symbols: usize, width: usize) -> Option<usize> {
     let rows = symbols / width;
-    assert!((1..=DA_MAX_ROWS).contains(&rows), "expected 1..=DA_MAX_ROWS blobs");
-    rows
+    (symbols.is_multiple_of(width) && (1..=DA_MAX_ROWS).contains(&rows)).then_some(rows)
 }
 
 #[cfg(test)]
@@ -51,10 +69,10 @@ mod tests {
     #[test]
     fn row_counts_reject_empty_partial_and_oversized_inputs() {
         for width in [BLOB_SYMBOLS, CODEWORD_SYMBOLS] {
-            assert_eq!(row_count(width, width), 1);
-            assert_eq!(row_count(DA_MAX_ROWS * width, width), DA_MAX_ROWS);
+            assert_eq!(row_count(width, width), Some(1));
+            assert_eq!(row_count(DA_MAX_ROWS * width, width), Some(DA_MAX_ROWS));
             for symbols in [0, width - 1, width + 1, (DA_MAX_ROWS + 1) * width, usize::MAX] {
-                assert!(std::panic::catch_unwind(|| row_count(symbols, width)).is_err());
+                assert_eq!(row_count(symbols, width), None);
             }
         }
     }
