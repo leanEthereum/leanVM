@@ -1,6 +1,6 @@
-//! Pins `python-verifier`'s `WHIR_QUERIES` against the Rust query search. The
-//! Python verifier tabulates rather than repeating that search, which would make
-//! cross-language float identity part of the protocol.
+//! Pins both verifiers' `WHIR_QUERIES`, the Rust one's and `python-verifier`'s,
+//! against the prover's query search. They tabulate rather than repeat that search,
+//! which would make cross-language float identity part of the protocol.
 
 use pcs::LOG_PACKING;
 use pcs::whir_config::WhirSecurityConfig;
@@ -67,6 +67,11 @@ fn whir_query_table_matches_rust() {
             config.queries, tabulated,
             "rate {rate}, log_n {log_n}: WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
         );
+        assert_eq!(
+            verifier::whir_queries(log_n, rate),
+            Some(&config.queries[..]),
+            "rate {rate}, log_n {log_n}: crates/verifier's WHIR_QUERIES is stale"
+        );
         // Hardcoded on the Python side, so it must hold wherever the table does.
         let expected_ood: Vec<usize> = std::iter::once(0)
             .chain(std::iter::repeat_n(1, config.queries.len() - 1))
@@ -82,6 +87,9 @@ fn whir_query_table_matches_rust() {
         4 * (max_log - min_log + 1),
         "the table is not the range it claims"
     );
+    // The Rust verifier admits no wider window.
+    assert_eq!(verifier::whir_queries(min_log - 1, 1), None);
+    assert_eq!(verifier::whir_queries(max_log + 1, 1), None);
 }
 
 /// Regenerates the literal the pin above checks: paste its output over `WHIR_QUERIES` in

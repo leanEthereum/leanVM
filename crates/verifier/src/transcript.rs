@@ -93,7 +93,8 @@ impl<'a> Transcript<'a> {
         }
     }
 
-    /// Whether the proof's checks run. Every one a replay skips is behind this, and nothing else is.
+    /// Whether the proof's checks run. Every one a replay skips is behind this, and nothing else is but
+    /// work only a check reads.
     pub fn checked(&self) -> bool {
         self.checked
     }

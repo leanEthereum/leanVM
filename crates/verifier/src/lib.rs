@@ -26,6 +26,7 @@ pub use field::{E, K};
 pub use layout::TAG;
 pub use merkle::MerklePath;
 pub use transcript::Proof;
+pub use whir::whir_queries;
 
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
