@@ -82,7 +82,7 @@ pub(super) fn is_int_arith(e: &Expr) -> bool {
 /// Evaluate a compile-time constant expression (integer literals, `GEN`,
 /// `GEN ** k`, and `+`/`*` combinations of those) to its field element.
 /// Used for the `# public_input: <elt>, <elt>` annotation of `.py` test
-/// programs (see `tests/py_source.rs`).
+/// programs (see `tests/suite/py_source.rs`).
 pub fn parse_const(s: &str) -> Result<F192, String> {
     fn eval(e: &Expr) -> Result<F192, String> {
         match e {

@@ -34,7 +34,7 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same eleven columns, tens of megabytes at production sizes.
+    /// pull carry the same eleven columns.
     Public(Arc<Vec<F64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
@@ -501,7 +501,7 @@ impl BusForm {
     }
 
     /// The same form scaled by `w`. Every coefficient is `E`-valued already, so
-    /// folding the side's `η`-power in here costs three multiplies once per table
+    /// folding the side's `ξ`-power in here costs three multiplies once per table
     /// instead of one per row and round of the zerocheck.
     pub fn scaled(&self, w: F192) -> Self {
         Self {
@@ -801,7 +801,7 @@ pub(crate) struct BusProof {
     pub forms: [Vec<BusForm>; 3],
     /// `sigmas[side][table]`: each form's eq-weighted sum over its table's rows.
     /// Prover-side only. NOTHING here travels: the batch's target is the caller's
-    /// derived `Σ_s η^·totals[s]`, and the shares serve only to build each round's
+    /// derived `Σ_s ξ^·totals[s]`, and the shares serve only to build each round's
     /// waiting line, which rides inside the round polynomial.
     pub sigmas: [Vec<F192>; 3],
 }

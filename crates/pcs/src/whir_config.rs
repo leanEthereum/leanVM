@@ -167,8 +167,7 @@ const UDR_TARGET_BITS: f64 = 100.0;
 /// radius the prover is pinned to a single codeword, so there is no list and
 /// no union-bound term: queries close the full target by themselves.
 /// Per-query soundness saturates below 1 bit (`γ < 1/2`), so slimmer codes
-/// bottom out near `UDR_TARGET_BITS` queries: 243 at rate 1/2, 148 at 1/4,
-/// 121 at 1/8, 110 at 1/16, 105 at 1/32.
+/// approach `UDR_TARGET_BITS` queries from above.
 #[cfg(test)]
 pub fn udr_queries(log_inv_rate: usize) -> usize {
     assert!(log_inv_rate > 0, "log_inv_rate=0 (rate 1) has no soundness");
@@ -181,8 +180,9 @@ pub fn udr_queries(log_inv_rate: usize) -> usize {
 /// [`WhirSecurityConfig::derive_config_with_log_inv_rate`].
 /// `log_n` is the packed-witness log size (= `m - LOG_PACKING`).
 ///
-/// Strategy: 3-bit recursive folds (`k_i = 3`) with **decreasing rate** (one
-/// rate step per level) until the residual is small (`≤ 5` bits), asserting
+/// Strategy: the production ladder's folds ([`SUBSEQUENT_FOLDING_FACTOR`]) with
+/// **decreasing rate** (the smallest step down that fits each level's queries)
+/// until the residual is at most [`RESIDUAL_MAX_LOG`], asserting
 /// `block_len ≥ udr_queries(rate)` at every level. Returns `Err` when no
 /// feasible config exists (e.g. `log_n` too small for the chosen rate).
 ///
@@ -319,8 +319,7 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
 // opening's own post-commit random evaluation claim plays the OOD role (union
 // over the list, `L*mu/q`), so `ood_samples = 0`. Plain Johnson without OOD
 // binding would be unsound at these parameters: the query phase would pay a
-// union bound over the interleaved list (19 to 52 bits here) that the query
-// counts do not include.
+// union bound over the interleaved list that the query counts do not include.
 //
 // Grinding always lands after the level's Merkle root is observed and before
 // its query positions are sampled, the standard FRI/STARK placement.
@@ -388,8 +387,8 @@ pub struct WhirSecurityConfig {
     pub m: usize,
     /// Committed-witness log dimension.
     pub log_n: usize,
-    /// L0 lane fold. Must equal the upstream `PcsParams::log_batch_size` so
-    /// the L0 commit can be reused without re-committing.
+    /// L0 lane fold. Must equal the `log_batch_size` the L0 commit
+    /// ([`crate::whir::commit`]) used, so it can be reused without re-committing.
     pub initial_k: usize,
     /// Round-by-round security target (bits): `validate()` asserts that every
     /// error term associated with a verifier challenge clears at least this
@@ -824,10 +823,9 @@ impl WhirSecurityConfig {
                 ));
             }
 
-            // Per-application proximity gap + fold-challenge grinding must
-            // reach target. (The pg bad event lives on the fold challenges,
-            // so only the fold grind (done before each fold challenge)
-            // boosts it; the query-phase grind does not.)
+            // The proximity gap must reach target on its own: its bad event
+            // lives on the fold challenges, which nothing grinds, and the
+            // query-phase grind does not cover them.
             if pg_pred + 1e-12 < lv.target_security_bits as f64 {
                 return Err(format!(
                     "L{i}: proximity-gap soundness ({pg_pred:.2} bits) < target ({})",
@@ -874,9 +872,8 @@ impl WhirSecurityConfig {
     /// Derive the production security config at witness size `m` for an
     /// explicit L0 rate `2^-log_inv_rate`: Johnson list decoding with OOD
     /// binding and [`SECURITY_BITS`] bits per round under **round-by-round
-    /// soundness**, i.e. every verifier-challenge error term (pg + fold
-    /// grinding, query + query grinding, OOD, and algebraic checks) clears the
-    /// target individually.
+    /// soundness**, i.e. every verifier-challenge error term (pg, query + query
+    /// grinding, OOD, and algebraic checks) clears the target individually.
     pub fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, String> {
         validate_log_inv_rate(log_inv_rate)?;
         let target_bits = SECURITY_BITS;
@@ -958,7 +955,7 @@ mod tests {
         // BCHKS25 Thm 4.6 (list correlated agreement) uses
         // m = ceil(sqrt(rho) / eta). The factor-two-smaller ceil(sqrt(rho) / (2 eta))
         // belongs to the plain, non-list Thm 1.5; Flock's Thm 8 quotes Thm 4.6
-        // with that non-list parameter, which would overstate eps_pg by ~5 bits.
+        // with that non-list parameter, which would overstate eps_pg.
         assert_eq!(johnson_m_param(1, 16, 0.02), 36.0);
 
         // A message of dimension 16 has maximum degree 15, so the theorem's

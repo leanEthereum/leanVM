@@ -176,7 +176,7 @@ pub(super) fn gen_verify(
         "a column group's columns are consecutive"
     );
 
-    // ---- Phase E2 hints (the stacked WHIR opening) ----
+    // ---- Hints for the stacked WHIR opening ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
     // opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
@@ -254,9 +254,8 @@ pub(super) fn gen_verify(
     Ok((hints, deferred))
 }
 
-/// The guest's stacked-size dispatch range: one `match_range` opening arm per
-/// candidate `mu` in `MU_MIN..=MU_MAX` (mirrored by the soundness test's
-/// residual-log cap).
+/// The stacked sizes `2^mu` a child may commit, `mu` in `MU_MIN..=MU_MAX`: the guest
+/// carries one set of opening tables per size and rate.
 pub(super) const MU_MIN: usize = 22;
 pub(super) const MU_MAX: usize = leanvm_core::pcs::MAX_MU;
 

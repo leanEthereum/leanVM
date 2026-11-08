@@ -544,7 +544,7 @@ impl Program {
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
         // place. Copying columns in afterwards would move the whole witness a second
-        // time, a gigabyte at this scale, for no gain: nothing folds the K-columns
+        // time for no gain: nothing folds the K-columns
         // in place, so the stack can be their only home.
         //
         // SAFETY: the allocation is uninitialized. `split_stack` zeroes the pad tail

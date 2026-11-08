@@ -118,7 +118,7 @@ pub unsafe fn alloc_stack(shape: StackShape) -> Vec<F64> {
 ///
 /// Writing each column into its final place is what lets the whole witness be
 /// written once. Copying columns in afterwards would move the entire stack a
-/// second time (a gigabyte at scale) for nothing, and allocating the stack zeroed
+/// second time for nothing, and allocating the stack zeroed
 /// would memset all `2^m` slots only for the columns to overwrite them.
 ///
 /// Safe despite [`alloc_stack`]'s uninitialized allocation: [`placements_of`]

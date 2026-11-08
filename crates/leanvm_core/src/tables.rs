@@ -28,9 +28,8 @@ use primitives::field::{F64, F192, mul_by_g};
 
 /// The tower product `x·y` in `E = K[y]/(y³+y+1)` as three lane sums: lane `i` is
 /// `Σ x_j·y_k` over `TOWER_LANES[i]`. The five partial sums of §sec:tab-mul fold
-/// into `c0 = p0+p3`, `c1 = p1+p3+p4`, `c2 = p2+p4`; written once here because both
-/// `MUL`'s result coordinate ([`arith_result`]) and `JUMP`'s inverse identity need
-/// the same unrolling.
+/// into `c0 = p0+p3`, `c1 = p1+p3+p4`, `c2 = p2+p4`; written once here for `MUL`'s
+/// result coordinate ([`arith_result`]) and the test that pins it against the field.
 const TOWER_LANES: [&[(usize, usize)]; 3] = [
     &[(0, 0), (1, 2), (2, 1)],
     &[(0, 1), (1, 0), (1, 2), (2, 1), (2, 2)],
@@ -973,10 +972,9 @@ mod tests {
 
     const C: F192 = F192::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef, 0x1111_2222_3333_4444);
 
-    /// The hand-unrolled tower product IS `E`'s multiplication, lane by lane. Both
-    /// `MUL`'s result coordinate and `JUMP`'s inverse identity are written out from
-    /// [`TOWER_LANES`], and neither can be checked against the field at run time (one
-    /// is a bus coordinate, the other a `K` identity), so pin the unrolling here.
+    /// The hand-unrolled tower product IS `E`'s multiplication, lane by lane. `MUL`'s
+    /// result coordinate is written out from [`TOWER_LANES`] and rides the bus, where
+    /// nothing checks it against the field at run time, so pin the unrolling here.
     #[test]
     fn unrolled_tower_product_matches_field_product() {
         let lanes = |v: F192| v.to_limbs().map(F64);

@@ -1,13 +1,12 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-// CREDIT: https://github.com/binius-zk/binius64 (`eval_rs_eq`), Apache-2.0.
+// CREDIT: https://github.com/binius-zk/binius64, Apache-2.0.
 // Copyright 2025 The Binius Developers
 // Copyright 2025 Irreducible, Inc.
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// The DP24 iterative `eval_rs_eq` is ported from binius64. The module is
-// the rectangular (f = 64, e = 192) generalization described in
-// the ring-switching-generalized note.
+// The module is the rectangular (f = 64, e = 192) generalization of binius64's
+// DP24 ring switch described in the ring-switching-generalized note.
 
 //! Ring-switching reduction for the 64-bit transition: F_2 to K = GF(2^64)
 //! packing, opened over E = GF(2^192) (the tower [`F192`]).
