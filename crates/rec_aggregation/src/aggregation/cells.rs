@@ -20,10 +20,6 @@ pub(super) fn dsl_u128(value: F192) -> u128 {
         .expect("u128 DSL literal cannot encode the top F192 limb")
 }
 
-pub(super) fn f192_literal(f: F192) -> String {
-    format!("f192({},{},{})", f.c0, f.c1, f.c2)
-}
-
 /// A 16-byte native value as one canonical 128-bit cell.
 pub(super) fn pack_16_bytes(bytes: &[u8]) -> F192 {
     F192::from(u128::from_le_bytes(

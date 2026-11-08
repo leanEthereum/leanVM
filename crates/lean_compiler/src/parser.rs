@@ -18,10 +18,10 @@ use std::collections::BTreeMap;
 mod consts;
 mod expr;
 mod subst;
-pub use consts::parse_const;
 use consts::{
     apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_f192_const, parse_gpow_bound,
 };
+pub use consts::{f192_literal, parse_const};
 use expr::{
     binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
     strip_comment, strip_const_wrapper, top_level_cmp,
@@ -160,7 +160,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             // else a field-valued expression.
             if let Some(value) = parse_f192_const(rhs) {
                 let v = value.map_err(|e| at(format!("global constant `{name}`: {e}")))?;
-                consts.insert(name, format!("f192({},{},{})", v.c0, v.c1, v.c2));
+                consts.insert(name, f192_literal(v));
             } else if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
             } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
@@ -180,7 +180,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                     name,
                     match v.as_u128() {
                         Some(n) => n.to_string(),
-                        None => format!("f192({},{},{})", v.c0, v.c1, v.c2),
+                        None => f192_literal(v),
                     },
                 );
             }
