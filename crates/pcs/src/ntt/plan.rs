@@ -107,9 +107,11 @@ impl Plan {
 
 /// How many rows, as a log, a cache budget of `words` holds.
 ///
-/// At 51 lanes: 2^17 / 51 -> 2^11 rows in L2,  2^18 / 51 -> 2^12 rows in L3.
+/// At 51 lanes: 2^17 / 51 -> 2^11 rows in L2, 2^18 / 51 -> 2^12 rows in L3.
+///
+/// At least 2^1 rows, even when the budget holds fewer: a pass of no layers would never advance.
 pub(super) fn fit(words: usize, num_ntts: usize) -> usize {
-    (words / num_ntts).max(1).ilog2() as usize
+    (words / num_ntts).max(2).ilog2() as usize
 }
 
 /// From 2^12 rows on, a deep pass cuts at least 2^LOG_SUBS_PER_WORKER sub-blocks per worker: this log of them.
