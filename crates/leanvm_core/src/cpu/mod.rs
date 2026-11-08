@@ -170,7 +170,7 @@ impl Program {
 
     /// The [`layout()`] of this program.
     pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
-        layout::layout_of(self.bytecode_columns.clone(), log_mem, rows, pi)
+        layout::layout_of(&self.bytecode_columns, log_mem, rows, pi)
     }
 
     /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
