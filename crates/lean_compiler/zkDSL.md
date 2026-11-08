@@ -240,7 +240,7 @@ A runtime index through such a pointer is unchecked, as on the heap, but it fail
 
 ### Slices: `buf[lo:hi]`
 
-`buf[lo:hi]` names a run of cells (`hi` exclusive). A `keccak` operand spans exactly the cells its position takes (two, four for `tail`, thirteen for a state); `hint_witness` accepts any supported literal length. Two forms:
+`buf[lo:hi]` names a run of cells (`hi` exclusive). A `keccak` operand spans exactly the cells its position takes (two, four for `tail`, thirteen for a state, and one, two or thirteen for `out`); `hint_witness` accepts any supported literal length. Two forms:
 
 - **compile-time bounds** (integers, as for stack indexes): frame cells `base+lo .. base+hi` of a `StackBuf`, or heap cells `ptr·g^lo .. ptr·g^hi` of a `HeapBuf`, so `hb[2:4]` is the pair `g^2, g^3`;
 - **runtime start, heap only**: `buf[i:i + k]` with a runtime g-power index `i` (e.g. a loop counter) and literal length `k` names the cells `buf·i`, `buf·i·g`, and so on; one `MUL` folds `i` into the pointer. The `hi` bound cannot be evaluated, only shape-checked: it must be syntactically `lo + k` (`buf[b * GEN ** 2 : b * GEN ** 2 + 2]` is fine). A `StackBuf` slice cannot have a runtime start: frame offsets are baked into the bytecode operands.
@@ -429,7 +429,7 @@ Both state words are hash outputs, so their top limbs are already zero. Only `d2
 h = StackBuf(13)
 keccak(a, b, h)                       # the hash of the 64 bytes (a, b); h[0:2] is the digest
 d = StackBuf(2)
-keccak(a, b, d)                       # just the digest, copied out of a fresh state
+keccak(a, b, d)                       # just the digest, written in place
 keccak(t[0:2], t[x:x + 2], t[4:6])    # slices of one large StackBuf
 keccak(h[0:2], hb[0:2], hb[2:4])      # HeapBuf slices, input and output
 keccak([tweak, pp], [word, 0], out, len=48)  # a 48-byte message, the padding in b's second cell
@@ -451,7 +451,7 @@ keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 
 The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
 
-Both builtins are **statements**: they write the 13-cell sponge state into `out`, whose first two cells are the digest. A 2-cell `out` receives just the digest, at two copies.
+Both builtins are **statements**: they write into `out` the first cells of the 13-cell sponge state it holds: the whole state for a 13-cell `out`, the digest (its first two cells) for a 2-cell one, its first cell for a 1-cell one. A stack `out` is written in place; a heap one through a stack run of its own size, then copied.
 
 `keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells overwriting lanes 0..16, and lanes 16..25 the five cells a previous output ends with (`cap` that 13-cell output or those five cells). Keccak-256's rate is 17 lanes, 136 bytes, so lane 16 is rate to the hash; the transcript keeps it with the capacity, lanes 17..25, and calls lanes 16..25 its capacity.
 
@@ -459,7 +459,7 @@ Both builtins are **statements**: they write the 13-cell sponge state into `out`
 
 The padding's first byte goes where the message ends and its last byte at the end of the last block: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. A cell wholly past `len` must be a literal `0`, or the compiler rejects it; the bytes past `len` in the cell where the message ends must be zero, which the circuit does not enforce. The exception is `keccak`'s `pad_tail=1`: with `tail` a `StackBuf` slice and `len` ending one of its cells, the compiler sets the slice's cells from `len` on to the padding, so the message is read in place rather than copied, and the program leaves those cells unwritten, as `keccak([pp, a0], [at, kids[0]], out, tail=kids[1:5], len=80, pad_tail=1)` does with `kids = StackBuf(5)` and only `kids[0:2]` written. The compiler refuses `pad_tail=1` on any other tail, any other `len`, or an `a` or `b` reading a cell it sets.
 
-Each `KECCAK` reads four independently addressed cells (`m`), a 4-cell run (`tail`), one cell (`b8`) and a 4-cell run (`cap`, the capacity), and writes a 13-cell run. A first block's cells are the state, with a zero capacity; a later block's are XORed into the previous output, one `XOR` a cell and none for a known zero. The zero `cap`, a zero `tail` and a 64-byte message's `tail` `[pad, 0, 0, 0]` come from one five-cell run `[pad, 0, 0, 0, 0]`, set once per runtime path of a function (reverted at a join like every lazily-set constant) and never left unwritten, since an unwritten cell is the prover's to choose.
+Each `KECCAK` reads four independently addressed cells (`m`), a 4-cell run (`tail`), one cell (`b8`) and a 4-cell run (`cap`, the capacity), and writes the first 1, 2 or 13 cells of the output, as `out` holds them. A first block's cells are the state, with a zero capacity; a later block's are XORed into the previous output, one `XOR` a cell and none for a known zero. The zero `cap`, a zero `tail` and a 64-byte message's `tail` `[pad, 0, 0, 0]` come from one five-cell run `[pad, 0, 0, 0, 0]`, set once per runtime path of a function (reverted at a join like every lazily-set constant) and never left unwritten, since an unwritten cell is the prover's to choose.
 
 Operands:
 
@@ -529,7 +529,7 @@ Five builtins have the prover compute the values at witness generation instead o
 | function call | ≈ `n_args + n_returns + 4` (0 when the callee is `@inline`) |
 | `mul_range` iteration | body + ≈ 1 `MUL` + 1 `XOR` + call overhead |
 | `unroll` iteration | body only (compile-time replication) |
-| `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +2 copies into a 2-cell `out`, +1 `MUL` per runtime slice start |
+| `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +1 `MUL` per runtime slice start |
 | `hint_witness(dest, "name")` | 0 (+1 `MUL` for a runtime slice start) |
 
 Every cost above is the FIRST occurrence. Two identical pure operations in one function share one cell and the second is free, so `hb[i]` twice, or `row[i]` where `row = hb * GEN ** 2`, costs one pointer `MUL` between them. The sharing stops at a branch: a cell whose instruction sits inside an `if` is not reused after the join, because the other path leaves it unwritten and therefore prover-chosen.

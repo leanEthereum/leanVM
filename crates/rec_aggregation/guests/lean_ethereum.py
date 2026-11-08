@@ -1167,45 +1167,37 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 def verify_merkle_cap(cap, flags, depth: Const):
     # Unrolled over the cap's nodes, so every address is an immediate. Every node's
     # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
-    # and an internal node's run is KECCAK_STATE cells long so that its hash can
-    # write its state there, the digest landing on (and so asserting) the hinted
-    # value. An active (flagged) node is hashed; an inactive one pins its children's
-    # flags to zero, so every active node's parent is active too, up to the root,
-    # which is always hashed. The queries flag the parents of the cap leaves they
-    # reach. The run is sized per depth, the cap depths a configuration reaches.
+    # node k at cells 2(k - 1) and 2k - 1, where an internal node's hash writes its
+    # digest, landing on (and so asserting) the hinted value. An active (flagged)
+    # node is hashed; an inactive one pins its children's flags to zero, so every
+    # active node's parent is active too, up to the root, which is always hashed.
+    # The queries flag the parents of the cap leaves they reach. The run is sized
+    # per depth, the cap depths a configuration reaches.
     if depth != 0:
         n_leaves = 2 ** depth
         if const(depth == 4):
-            runs = StackBuf(15 * 16 - 13)
+            runs = StackBuf(4 * 16 - 2)
         elif const(depth == 5):
-            runs = StackBuf(15 * 32 - 13)
+            runs = StackBuf(4 * 32 - 2)
         elif const(depth == 6):
-            runs = StackBuf(15 * 64 - 13)
+            runs = StackBuf(4 * 64 - 2)
         elif const(depth == 7):
-            runs = StackBuf(15 * 128 - 13)
+            runs = StackBuf(4 * 128 - 2)
         else:
-            runs = StackBuf(15 * 256 - 13)
-        # internal node k (1 <= k < n_leaves) at KECCAK_STATE * (k - 1), leaf k after them
+            runs = StackBuf(4 * 256 - 2)
         for node in unroll(1, 2 * n_leaves):
-            if const(node // n_leaves == 0):
-                at = KECCAK_STATE * (node - 1)
-            else:
-                at = KECCAK_STATE * (n_leaves - 1) + 2 * (node - n_leaves)
+            at = 2 * (node - 1)
             runs[at] = cap[GEN ** (2 * node)]
             runs[at + 1] = cap[GEN ** (2 * node + 1)]
         for node in unroll(1, n_leaves):
-            if const(2 * node // n_leaves == 0):
-                left = KECCAK_STATE * (2 * node - 1)
-                right = KECCAK_STATE * (2 * node)
-            else:
-                left = KECCAK_STATE * (n_leaves - 1) + 2 * (2 * node - n_leaves)
-                right = left + 2
-            at = KECCAK_STATE * (node - 1)
+            left = 2 * (2 * node - 1)
+            right = left + 2
+            at = 2 * (node - 1)
             if const(node == 1):
-                keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + KECCAK_STATE])
+                keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + 2])
             else:
                 if flags[GEN ** node] != 0:
-                    keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + KECCAK_STATE])
+                    keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + 2])
                 else:
                     if const(2 * node // n_leaves == 0):  # node has flagged children
                         flags[GEN ** (2 * node)] = 0
@@ -1303,7 +1295,7 @@ def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
     # node with the sibling on the other side of its hinted pair, which binds the link.
     for r in unroll(0, width):
         lvl = lvl0 + r
-        nxt = StackBuf(KECCAK_STATE)
+        nxt = StackBuf(2)
         if const((k // 2 ** r) % 2 == 0):
             keccak([n0, n1], path[4 * lvl + 2:4 * lvl + 4], nxt)
         else:
@@ -1392,7 +1384,7 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
             part += row_word * row_eq_weights[GEN ** l]
         row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
     # Hash the packed row.
-    leaf_hash_state = StackBuf(KECCAK_STATE)
+    leaf_hash_state = StackBuf(2)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
     return row_dot
@@ -3545,7 +3537,7 @@ def is_child(node, kids, k: Const, bit):
 @inline
 def chain_tip(walks, i: Const):
     # Chain i's tip, in the last of its CHAIN_STEPS slots of `walks`.
-    tip = walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE]
+    tip = walks[(i + 1) * CHAIN_STEPS - 1]
     return tip
 
 
@@ -3565,15 +3557,15 @@ def walk(at, pp, walks, tags, powers, i: Const, k: Const, lx: Const):
         else:
             tag = tags[LX_TAG_SLOT[i] - 1]
     if const(k == CHAIN_STEPS):
-        hint_witness(walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE:((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE + 1], "chain_starts")
+        hint_witness(walks[(i + 1) * CHAIN_STEPS - 1:(i + 1) * CHAIN_STEPS], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS):
-            o = (CHAIN_STEPS * i + s) * KECCAK_STATE
+            o = CHAIN_STEPS * i + s
             if const(lx == 1):
-                keccak([pp, at[s]], [value, tag], walks[o:o + KECCAK_STATE])
+                keccak([pp, at[s]], [value, tag], walks[o:o + 1])
             else:
-                keccak([pp, at[0]], [at[1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0), value], walks[o:o + KECCAK_STATE])
+                keccak([pp, at[0]], [at[1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0), value], walks[o:o + 1])
             value = walks[o]
     return
 
@@ -3634,7 +3626,7 @@ def lx_levels(cur, pp, powers, his, out, w: Const, k: Const):
         if const(r + 1 == LX_WINDOW):
             parent = out
         else:
-            parent = StackBuf(KECCAK_STATE)
+            parent = StackBuf(1)
         sibling = hint_witness("lx_path")
         if const((k // 2 ** r) % 2 == 0):
             keccak([pp, at], [cur, sibling], parent)
@@ -3689,7 +3681,7 @@ def verify_lean_xmss(signer, tags):
         # D = Th(P, A, M | R), one block: 80 bytes at the bottom, and 64 at the top,
         # where M is the bottom root.
         rho = hint_witness("randomizer")
-        digest = StackBuf(KECCAK_STATE)
+        digest = StackBuf(1)
         if const(layer == 0):
             keccak([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
         else:
@@ -3703,7 +3695,7 @@ def verify_lean_xmss(signer, tags):
         steps = StackBuf(CHAIN_STEPS)
         for st in unroll(0, CHAIN_STEPS):
             steps[st] = idx + const(TW_CHAIN + st * STEP_MUL)
-        walks = StackBuf(LX_V * CHAIN_STEPS * KECCAK_STATE)
+        walks = StackBuf(LX_V * CHAIN_STEPS)
         digit_product = 1
         encoded = 0
         groups = StackBuf(LX_DIGIT_DISPATCHES)
@@ -3719,12 +3711,12 @@ def verify_lean_xmss(signer, tags):
         assert digit_product == GEN ** LX_TARGET_SUM
 
         # The one-time leaf, then the path to the layer's root, a window at a time.
-        leaf = StackBuf(KECCAK_STATE)
+        leaf = StackBuf(1)
         wots_leaf(pp, idx + TW_LEAF, walks, LX_V, leaf)
         cur = leaf[0]
         for v in unroll(0, LX_LAYER_WINDOWS):
             w = layer * LX_LAYER_WINDOWS + v
-            out = StackBuf(KECCAK_STATE)
+            out = StackBuf(1)
             assert log(windows[w]) < LX_WINDOW_ARMS
             if const(w + 1 == LX_WINDOWS):
                 his[w] = match(log(windows[w]), range(0, LX_WINDOW_ARMS), lambda k: lx_top_window(cur, pp, powers, his, out, w, k))
@@ -3850,9 +3842,9 @@ def sp_fors_at(a1, vals, c: Const, z: Const):
 @inline
 def sp_fors_tree(pp, a0, a1, bits0, bits1, vals, roots, c: Const):
     # FORS tree c: its leaf, hashed from the hinted secret, then climbed up the hinted
-    # ordered pairs to its root, into roots[KECCAK_STATE c].
+    # ordered pairs to its root, into roots[c].
     secret = hint_witness("sp_fors_secrets")
-    held = StackBuf(KECCAK_STATE)
+    held = StackBuf(1)
     keccak([pp, a0], [sp_fors_at(a1, vals, c, 0), secret], held)
     cur = held[0]
     for z in unroll(0, SP_FORS_HEIGHT):
@@ -3863,9 +3855,9 @@ def sp_fors_tree(pp, a0, a1, bits0, bits1, vals, roots, c: Const):
         is_child(cur, kids, 0, sp_md_bit(bits0, bits1, SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - 1 - z))
         node_at = sp_fors_at(a1, vals, c, z + 1)
         if const(z + 1 == SP_FORS_HEIGHT):
-            keccak([pp, a0], [node_at, kids[0]], roots[KECCAK_STATE * c:KECCAK_STATE * (c + 1)], tail=kids[1:5], len=80, pad_tail=1)
+            keccak([pp, a0], [node_at, kids[0]], roots[c:c + 1], tail=kids[1:5], len=80, pad_tail=1)
         else:
-            parent = StackBuf(KECCAK_STATE)
+            parent = StackBuf(1)
             keccak([pp, a0], [node_at, kids[0]], parent, tail=kids[1:5], len=80, pad_tail=1)
             cur = parent[0]
     return
@@ -3894,7 +3886,7 @@ def sp_wots(pp, a0, a1, encoding):
     # digits, each group where the digest holds it, into the digest. One function for
     # the three layers.
     at = [a0, a1]
-    walks = StackBuf(SP_V * CHAIN_STEPS * KECCAK_STATE)
+    walks = StackBuf(SP_V * CHAIN_STEPS)
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
     for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
@@ -3912,9 +3904,9 @@ def sp_wots(pp, a0, a1, encoding):
     digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(at, pp, walks, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert encoded == encoding
     assert digit_product == GEN ** SP_TARGET_SUM
-    leaf = StackBuf(KECCAK_STATE)
+    leaf = StackBuf(1)
     pk_at = a1 + const(SP_WOTS_PK)
-    keccak_cells([sp_word(pp, a0, pk_at, walks, (CHAIN_STEPS - 1) * KECCAK_STATE, CHAIN_STEPS * KECCAK_STATE, j) for j in unroll(0, SP_V + 3)], leaf)
+    keccak_cells([sp_word(pp, a0, pk_at, walks, CHAIN_STEPS - 1, CHAIN_STEPS, j) for j in unroll(0, SP_V + 3)], leaf)
     return leaf[0]
 
 
@@ -3935,7 +3927,7 @@ def sp_path(node, pp, a0, bits1, bits2, lvals, out, off: Const, height: Const):
             parent = out
         else:
             node_at = sp_be16(lvals, off + z + 1, height - z - 1) + node_at
-            parent = StackBuf(KECCAK_STATE)
+            parent = StackBuf(1)
         keccak([pp, a0], [node_at, kids[0]], parent, tail=kids[1:5], len=80, pad_tail=1)
         cur = parent[0]
     return
@@ -3948,7 +3940,7 @@ def sp_layer(pp, a0, key, signed, byte_bits, bits1, bits2, lvals, out, off: Cons
     ctr = StackBuf(SP_COUNTER_BYTES)
     hint_witness(ctr, "sp_counter")
     counter = sp_from_bytes(byte_bits, ctr, SP_COUNTER_BYTES)
-    enc = StackBuf(KECCAK_STATE)
+    enc = StackBuf(1)
     enc_at = key + const(SP_WOTS_ENC)
     keccak([pp, a0], [enc_at, signed], enc, tail=[counter, 0, 0, 0], len=SP_ENCODING_BYTES)
     leaf = sp_wots(pp, a0, key, enc[0])
@@ -3968,8 +3960,8 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     m0 = signer[GEN ** 2]
     m1 = signer[GEN ** 3]
     rho = hint_witness("sp_rand")
-    d0 = StackBuf(KECCAK_STATE)
-    d1 = StackBuf(KECCAK_STATE)
+    d0 = StackBuf(2)
+    d1 = StackBuf(1)
     keccak([rho, pp], [pk_root, m0], d0, tail=[m1, 0, 0, 0], len=SP_HMSG_LEN)
     keccak([rho, pp], [pk_root, m0], d1, tail=[m1, SP_COUNTER_ONE, 0, 0], len=SP_HMSG_LEN)
 
@@ -4035,26 +4027,26 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     # The FORS addresses are the bottom key's: its layer and tree, its leaf the key pair.
     a0_b = lvals[SP_MID] * const(SP_TREE_MUL_0) + tree_mid * const(SP_TREE_MUL_1) + lvals[SP_TOP + 8] * const(SP_TREE_MUL_2)
     key_b = lvals[0] * const(SP_KEY_MUL_0)
-    roots = StackBuf(SP_FORS_TREES * KECCAK_STATE)
+    roots = StackBuf(SP_FORS_TREES)
     fors_at = key_b + const(SP_FORS_TREE)
     for c in unroll(0, SP_FORS_TREES):
         sp_fors_tree(pp, a0_b, fors_at, bits0, bits1, vals, roots, c)
-    fors_pk = StackBuf(KECCAK_STATE)
+    fors_pk = StackBuf(1)
     roots_at = key_b + const(SP_FORS_ROOTS)
-    keccak_cells([sp_word(pp, a0_b, roots_at, roots, 0, KECCAK_STATE, j) for j in unroll(0, 3 + SP_FORS_TREES)], fors_pk)
+    keccak_cells([sp_word(pp, a0_b, roots_at, roots, 0, 1, j) for j in unroll(0, 3 + SP_FORS_TREES)], fors_pk)
 
     # ---- the hypertree: each layer's one-time key signs what the layer below gives ----
     # The bottom key is in the digest's tree at its leaf; the middle key in that tree's
     # top bits at its low byte; the top key in tree zero at the tree's top bits.
-    root_b = StackBuf(KECCAK_STATE)
+    root_b = StackBuf(1)
     sp_layer(pp, a0_b, key_b, fors_pk[0], byte_bits, bits1, bits2, lvals, root_b, 0, SP_HEIGHT_0)
     a0_m = const(SP_LAYER_MUL) + tree_mid * const(SP_TREE_MUL_0) + lvals[SP_TOP + 8] * const(SP_TREE_MUL_1)
     key_m = lvals[SP_MID] * const(SP_KEY_MUL_0)
-    root_m = StackBuf(KECCAK_STATE)
+    root_m = StackBuf(1)
     sp_layer(pp, a0_m, key_m, root_b[0], byte_bits, bits1, bits2, lvals, root_m, SP_HEIGHT_0, SP_HEIGHT_1)
     a0_t = const(2 * SP_LAYER_MUL)
     key_t = tree_mid * const(SP_KEY_MUL_0) + lvals[SP_TOP + 8] * const(SP_KEY_MUL_1)
-    root = StackBuf(KECCAK_STATE)
+    root = StackBuf(1)
     sp_layer(pp, a0_t, key_t, root_m[0], byte_bits, bits1, bits2, lvals, root, SP_HEIGHT_0 + SP_HEIGHT_1, SP_HEIGHT_2)
     assert root[0] == pk_root
     return
@@ -4092,7 +4084,7 @@ def statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer):
         else:
             t = defer[GEN ** (2 * p + 1)]
         pack_pair(cells, STMT_DEFER_OFF + 3 * p, s, t)
-    st = StackBuf(KECCAK_STATE)
+    st = StackBuf(2)
     keccak_cells(cells, st)
     return st[0], st[1]
 
@@ -4133,7 +4125,7 @@ def claim_list_digest(entries_ptr, n_g):
     # The hash of one scheme's declared claims: 64 bytes a claim, the claimed pubkey
     # then the message it signed. An empty list hashes the empty string, and the
     # padding binds the length.
-    digest = StackBuf(KECCAK_STATE)
+    digest = StackBuf(2)
     if n_g == 1:
         keccak([0, 0], [0, 0], digest, len=0)
     else:
@@ -4164,7 +4156,7 @@ def claim_list_digest(entries_ptr, n_g):
 
 
 def claim_list_last(state, blk, k: Const):
-    digest = StackBuf(KECCAK_STATE)
+    digest = StackBuf(2)
     if const(k == 0):
         keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
     else:
@@ -4198,7 +4190,7 @@ def child_claim_list_digest(entries_ptr, region, base, limit_g, n_g):
     # running count, or `base` alone along a strictly increasing gap walk.
     # A list whose slots strictly increase (no duplicate slot among them) takes the
     # cheaper walk; either walk is sound on its own, so the choice is the prover's.
-    digest = StackBuf(KECCAK_STATE)
+    digest = StackBuf(2)
     if n_g == 1:
         keccak([0, 0], [0, 0], digest, len=0)
     else:
@@ -4295,7 +4287,7 @@ def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest
 
 
 def child_claim_list_mono_last(rec, region, mark, limit_g, k: Const):
-    digest = StackBuf(KECCAK_STATE)
+    digest = StackBuf(2)
     if const(k == 0):
         keccak_cells([0], digest, state=rec[0:KECCAK_STATE], len=0)
         cov_end = rec[GEN ** KECCAK_STATE]
@@ -4311,7 +4303,7 @@ def child_claim_list_mono_last(rec, region, mark, limit_g, k: Const):
 
 
 def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
-    digest = StackBuf(KECCAK_STATE)
+    digest = StackBuf(2)
     if const(k == 0):
         keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
     else:
@@ -4410,7 +4402,7 @@ def da_verify_cell(lvals):
         packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
         s = s + lvals[GEN ** (2 * e)] * sym[2 * e]
         s = s + lvals[GEN ** (2 * e + 1)] * sym[2 * e + 1]
-    st = StackBuf(KECCAK_STATE)
+    st = StackBuf(2)
     keccak_cells(packed, st)
     return st[0], st[1], s
 

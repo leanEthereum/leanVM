@@ -12,9 +12,9 @@
 //!
 //! ## The mapping
 //!
-//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to thirteen
-//! cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
-//! the VM reads, and the output is the permutation's, written as it is.
+//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to one, two
+//! or all thirteen cells, each side in one of two layouts ([`cell_lanes`]). The committed input is
+//! the lanes the VM reads, and the output is the permutation's, written as it is.
 
 use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, block_lanes};
@@ -54,7 +54,7 @@ pub fn qkeccak_kappa(n_steps: usize) -> usize {
 pub const STATE_CELLS: usize = 13;
 /// The rate cells of a state, the nine a block of a message laid out in cells covers.
 pub const RATE_CELLS: usize = 9;
-/// Cells one `KECCAK` row touches: thirteen read, thirteen written.
+/// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
 pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
 
 /// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd

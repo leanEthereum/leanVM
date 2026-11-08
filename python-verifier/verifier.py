@@ -752,14 +752,21 @@ class Flushes:
     def state_step(self, pc: int, fp: int) -> None:
         self.state_derived(pc, fp, _col(pc, 1), _col(fp))
 
-    def _counted(self, prefix: Sequence[Form], count: int, suffix: Sequence[Form]) -> None:
-        self.pair((*prefix, _col(count, 1), *suffix), (*prefix, _col(count), *suffix))
+    def _counted(self, prefix: Sequence[Form], counter: Form, count: int, suffix: Sequence[Form]) -> None:
+        """A pull at `count` and a push at `counter`, the same otherwise."""
+        self.pair((*prefix, counter, *suffix), (*prefix, _col(count), *suffix))
 
     def bytecode(self, pc: int, count: int, opcode: int, operands: Sequence[Form]) -> None:
-        self._counted((_const(SEP_BYTECODE), _col(pc)), count, (_const(_gpow(opcode)), *operands))
+        self._counted((_const(SEP_BYTECODE), _col(pc)), _col(count, 1), count, (_const(_gpow(opcode)), *operands))
 
     def memory(self, address: Form, count: int, values: Sequence[Form]) -> None:
-        self._counted((_const(SEP_MEM), address), count, values)
+        self._counted((_const(SEP_MEM), address), _col(count, 1), count, values)
+
+    def memory_if(self, flag: int, address: Form, count: int, values: Sequence[Form]) -> None:
+        """`memory` when the column `flag` is 1. The push's counter is count*(1 + flag*(g + 1)): g*count at 1, and
+        the pull's count at 0, so the pair cancels and touches no cell."""
+        counter = Form.sum([_col(count), _prod(flag, count, 1), _prod(flag, count)])
+        self._counted((_const(SEP_MEM), address), counter, count, values)
 
     def memory_cols(self, address: Form, count: int, *columns: int) -> None:
         self.memory(address, count, [_col(column) for column in columns] + [_const(ZERO)] * (3 - len(columns)))
@@ -891,14 +898,17 @@ def _layout_limb(even: int | None, odd: int | None, flag: int, missing: int | No
 def _flushes_keccak() -> Flushes:
     pc, fp, cnt_bc, free = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc", "free")
     o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
-    o_tail, o_b8, o_cap, o_out, odd_in, odd_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out")
+    o_tail, o_b8, o_cap, o_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out")
+    odd_in, odd_out, out_two, out_all = _cols(KECCAK_COLUMNS, "odd_in", "odd_out", "out_two", "out_all")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)))
+    operands = (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out, out_two, out_all)
+    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in operands))
 
     # The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the
     # thirteen written, each holding its lanes in the layout its flag names: a read cell's
-    # free lane is the column `free`, a written one's zero.
+    # free lane is the column `free`, a written one's zero. Output cell 0 is always written, cell 1
+    # when `out_two` is 1, and cells 2..13 when `out_all` is 1.
     def address(cell: int) -> Form:
         if cell < 4:
             return _prod(fp, o_m[cell])
@@ -914,7 +924,13 @@ def _flushes_keccak() -> Flushes:
 
         for cell in range(KECCAK_CELLS):
             values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
-            flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), KECCAK_CNT + KECCAK_CELLS * side + cell, values)
+            count = KECCAK_CNT + KECCAK_CELLS * side + cell
+            if side == 0:
+                flushes.memory(address(cell), count, values)
+            elif cell == 0:
+                flushes.memory(_prod(fp, o_out, 0), count, values)
+            else:
+                flushes.memory_if(out_two if cell == 1 else out_all, _prod(fp, o_out, cell), count, values)
     return flushes
 
 
@@ -926,6 +942,8 @@ DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
 KECCAK_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
+    # The bytecode's flags for the output cells written: cell 1, and cells 2..13.
+    "out_two", "out_all",
     # The read limb that holds no lane.
     "free",
     # The fifty value lanes: an input lane is a slot of q_keccak (below), and an output lane is not

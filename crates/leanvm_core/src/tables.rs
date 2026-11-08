@@ -112,7 +112,7 @@ impl FlushBuilder {
         );
     }
 
-    /// Bytecode read at `pc`: the program tuple (opcode + ten operand slots),
+    /// Bytecode read at `pc`: the program tuple (opcode + twelve operand slots),
     /// with the per-pc execution count advanced by ×g on the push side.
     pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
         let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
@@ -129,7 +129,18 @@ impl FlushBuilder {
     /// whatever the form says, which removes both the value columns and the
     /// identity that used to tie them (§sec:m3).
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 3]) {
-        let mut push = vec![Const(SEP_MEM), addr.clone(), GCol(count, 1)];
+        self.memory_pushing(GCol(count, 1), addr, count, vals);
+    }
+
+    /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
+    /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
+    pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 3]) {
+        let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
+        self.memory_pushing(counter, addr, count, vals);
+    }
+
+    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 3]) {
+        let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
         let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
         push.extend_from_slice(&vals);
         pull.extend(vals);
@@ -381,12 +392,13 @@ const KECCAK_CELLS: [(usize, u32); crate::keccak::ROW_CELLS] = {
 };
 
 /// A `KECCAK` instruction: its offset operands `m`, `tail`, `b8`, `cap` and `out` in the order of
-/// their bytecode slots, and its two layout flags.
+/// their bytecode slots, its two layout flags, and the output cells it writes.
 #[derive(Clone, Copy)]
 pub(crate) struct KeccakOp {
     offsets: [u32; 8],
     pub(crate) in_odd: bool,
     pub(crate) out_odd: bool,
+    pub(crate) out_cells: crate::cpu::OutCells,
 }
 
 impl KeccakOp {
@@ -400,10 +412,12 @@ impl KeccakOp {
                 out,
                 in_odd,
                 out_odd,
+                out_cells,
             } => Self {
                 offsets: [m[0], m[1], m[2], m[3], tail, b8, cap, out],
                 in_odd,
                 out_odd,
+                out_cells,
             },
             op => unreachable!("not a KECCAK: {op:?}"),
         }
@@ -866,7 +880,9 @@ pub(crate) mod keccakt {
     pub const O_M0: usize = 2; // the g-powers of the eight offset operands, as `KeccakOp` orders them
     pub const IN_ODD: usize = O_M0 + 8; // the layout read …
     pub const OUT_ODD: usize = IN_ODD + 1; // … and the layout written
-    pub const FREE: usize = OUT_ODD + 1; // the read limb that holds no lane
+    pub const OUT_TWO: usize = OUT_ODD + 1; // whether output cell 1 is written …
+    pub const OUT_ALL: usize = OUT_TWO + 1; // … and cells 2..13
+    pub const FREE: usize = OUT_ALL + 1; // the read limb that holds no lane
     pub const V_IN: usize = FREE + 1; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
     pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
@@ -922,10 +938,10 @@ impl Table for KeccakTable {
         use crate::keccak::{STATE_CELLS, cell_lanes};
         use keccakt::*;
         f.state_step(PC, FP);
-        let operands: Vec<Coord> = (O_M0..=OUT_ODD).map(Col).collect();
+        let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
         f.bytecode(PC, RBC, OP_KECCAK, &operands);
-        // Thirteen cells read, then thirteen written. A consecutive cell is a free ×g on the
-        // product's g-power.
+        // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
+        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
         let (even, odd) = (cell_lanes(false), cell_lanes(true));
         for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
             let (s, values, flag, free) = if c < STATE_CELLS {
@@ -935,12 +951,18 @@ impl Table for KeccakTable {
             };
             let lo = layout_limb(even[s].0, odd[s].0, values, flag, free);
             let hi = layout_limb(even[s].1, odd[s].1, values, flag, free);
-            f.memory_coords(Prod(FP, O_M0 + operand, step), R0 + c, [lo, hi, Const(F64::ZERO)]);
+            let (addr, vals) = (Prod(FP, O_M0 + operand, step), [lo, hi, Const(F64::ZERO)]);
+            match c.checked_sub(STATE_CELLS) {
+                None | Some(0) => f.memory_coords(addr, R0 + c, vals),
+                Some(1) => f.memory_coords_if(OUT_TWO, addr, R0 + c, vals),
+                Some(_) => f.memory_coords_if(OUT_ALL, addr, R0 + c, vals),
+            }
         }
     }
-    /// Every column but the input lanes, which are `q_keccak`'s and have no window here.
+    /// Every column but the input lanes, which are `q_keccak`'s and have no window here. The output lanes are the
+    /// input permuted again, since a row writes only the output cells its bytecode requests.
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
-        use crate::keccak::{STATE_CELLS, state_of_cells};
+        use crate::keccak::state_of_cells;
         use keccakt::*;
         let rows = &ctx.trace.keccak;
         let op = |r: &Krow| KeccakOp::of(&ctx.prog[r.pc as usize]);
@@ -953,12 +975,28 @@ impl Table for KeccakTable {
             let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
             let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
             let free = F64(if high { free.c1 } else { free.c0 });
-            [m0, m1, m2, m3, tail, b8, cap, o, flag(k.in_odd), flag(k.out_odd), free]
+            let (two, all) = k.out_cells.flags();
+            [
+                m0,
+                m1,
+                m2,
+                m3,
+                tail,
+                b8,
+                cap,
+                o,
+                flag(k.in_odd),
+                flag(k.out_odd),
+                flag(two),
+                flag(all),
+                free,
+            ]
         });
         ctx.cols(out, rows, V_OUT, |r| {
             let k = op(r);
-            let base = k.cell(r.fp, STATE_CELLS) as usize;
-            state_of_cells(k.out_odd, |c| ctx.mem.word(base + c)).map(F64)
+            let mut lanes = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
+            primitives::hash::keccak_f(&mut lanes);
+            lanes.map(F64)
         });
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));

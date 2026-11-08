@@ -65,7 +65,7 @@ Instruction & Operands & Semantics\\
 \texttt{SET\_CONSTANT} & $[o,k_0,k_1,k_2]$ & $\loc{o}=k_0+k_1y+k_2y^{2}$\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\
-\texttt{KECCAK}           & $\begin{array}[t]{@{}l@{}}[o_{m_0},o_{m_1},o_{m_2},o_{m_3},\\ \;\:o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\\ \;\:\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}]\end{array}$ & one Keccak permutation (see below)\\
+\texttt{KECCAK}           & $\begin{array}[t]{@{}l@{}}[o_{m_0},o_{m_1},o_{m_2},o_{m_3},\\ \;\:o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\\ \;\:\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}},\\ \;\:\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}]\end{array}$ & one Keccak permutation (see below)\\
 \hline
 \end{tabularx}
 \end{center}
@@ -90,7 +90,7 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 
 \vspace{5mm}
 
-\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, top limb zero. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to $\loc{\gen^k\cdot o_{\mathit{out}}}$ ($k<13$). Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}$:
+\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, top limb zero. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to the cells $\loc{\gen^k\cdot o_{\mathit{out}}}$ the flags $\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}\in\{0,1\}$ select: $k=0$ always, $k=1$ when $\mathit{out}_{\mathit{two}}=1$, and $2\le k<13$ when $\mathit{out}_{\mathit{all}}=1$, leaving the others untouched. Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}$:
 \begin{itemize}
 \item even ($0$): cell $c<8$ holds lanes $(2c,2c+1)$, cell $8$ holds $(16,\cdot)$;
 \item odd ($1$): cell $0$ holds $(\cdot,0)$, cell $1\le c\le8$ holds $(2c-1,2c)$;

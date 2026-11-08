@@ -33,8 +33,9 @@ pub enum Op {
         of: u32,
     },
     /// `KECCAK`: the Keccak-f\[1600\] permutation of a 25-lane state held in thirteen cells,
-    /// read in the layout `in_odd` names and written to thirteen consecutive cells from `out` in
-    /// the layout `out_odd` names ([`crate::keccak::cell_lanes`]). The cells read are four
+    /// read in the layout `in_odd` names and written to consecutive cells from `out` in the layout
+    /// `out_odd` names ([`crate::keccak::cell_lanes`]): the first `out_cells` of the thirteen output
+    /// cells, the others left untouched. The cells read are four
     /// independently addressed cells `m`, four consecutive cells from `tail`, the cell `b8`, and
     /// four consecutive cells from `cap` (the capacity lanes 17..25), each canonical (top limb
     /// zero).
@@ -51,7 +52,34 @@ pub enum Op {
         out: u32,
         in_odd: bool,
         out_odd: bool,
+        out_cells: OutCells,
     },
+}
+
+/// How many of a `KECCAK`'s thirteen output cells it writes, from `out` on: the first, the first two (a
+/// 256-bit digest), or all thirteen (a state a later block reads). Two bytecode flags carry the choice, so the
+/// program fixes it, never the prover.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OutCells {
+    One,
+    Two,
+    All,
+}
+
+impl OutCells {
+    /// The cells written.
+    pub const fn cells(self) -> usize {
+        match self {
+            Self::One => 1,
+            Self::Two => 2,
+            Self::All => crate::keccak::STATE_CELLS,
+        }
+    }
+
+    /// The bytecode flags: whether output cell 1 is written, and whether cells `2..13` are.
+    pub(crate) const fn flags(self) -> (bool, bool) {
+        (!matches!(self, Self::One), matches!(self, Self::All))
+    }
 }
 
 /// The source `DEREF` stores at `mem[loc_o1·o2]`: a local cell, the return

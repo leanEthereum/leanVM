@@ -206,7 +206,11 @@ pub fn run_recursion(
         inputs.push(format!("{blobs_per_leaf} blobs"));
     }
     if leaf_log_inv_rate != log_inv_rate {
-        inputs.push(format!("proven at log-inv-rate {leaf_log_inv_rate}"));
+        inputs.push(format!(
+            "leaf rate = 1/{}, recursion rate = 1/{}",
+            2usize.pow(leaf_log_inv_rate as u32),
+            2usize.pow(log_inv_rate as u32)
+        ));
     }
     report(
         &format!("\nrecursion {n}\u{2192}1, over leaves of {}", inputs.join(", ")),

@@ -86,7 +86,7 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
       &\rdf{\dsep{MEM},\fp\cdot o_1,r_1,p,0,0},\\
       &\rdf{\dsep{MEM},\fp\cdot o_3,r_3,v_{3,0},v_{3,1},v_{3,2}},\\
       &\rdf{\dsep{MEM},p\cdot o_2,r_2,\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1},\ \bar f\,v_{3,2}},
-      \qquad \bar f=1+f_{\pc}+f_{\fp}.
+      \quad \bar f=1+f_{\pc}+f_{\fp}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -113,9 +113,9 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \subsection{\texttt{KECCAK}}\label{sec:tab-keccak}
 
-One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $115$ columns:
+One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $117$ columns:
 \begin{itemize}
-\item $\pc$, $\fp$, the eight operand offsets, the two layout flags and $\mathit{free}$, and $27$ read counts, one per cell read or written and one for the bytecode.
+\item $\pc$, $\fp$, the eight operand offsets, the two layout flags, the two output flags $\mathit{out}_{\mathit{two}}$ and $\mathit{out}_{\mathit{all}}$, and $\mathit{free}$, then $27$ read counts, one per cell read or written and one for the bytecode.
 \item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
 \item $\kmid{\ell}$, the $25$ lanes of the state after $12$ rounds. Committing it is an optimization and nothing more: it halves the depth of the reduction. No flush reads it.
 \item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
@@ -127,7 +127,13 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}}$.
+  \item \textbf{Bytecode:}
+    \[
+      \begin{aligned}
+        \dsep{read}\,(&\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\\
+        &\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}},\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}).
+      \end{aligned}
+    \]
   \item \textbf{Memory:} cell $c<13$ is read at $a_c$ under $\mathit{odd}_{\mathit{in}}$ and written at $\gen^{c}\fp\cdot o_{\mathit{out}}$ under $\mathit{odd}_{\mathit{out}}$, where
     \[
       a_c=\begin{cases}
@@ -142,5 +148,6 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
       &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c},0} &&(9\le c<13),
     \end{align*}
     the writes the same with $\kout{\ell}$ and $r_{13+c}$. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
+  \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.
   \end{itemize}
 \end{itemize}

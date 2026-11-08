@@ -154,18 +154,26 @@ impl Flushes {
         self.state_derived(pc, fp, col(pc, 1), col(fp, 0));
     }
 
-    fn counted(&mut self, prefix: &[Form; 2], count: usize, suffix: &[Form]) {
+    /// A pull at `count` and a push at `counter`, the same otherwise.
+    fn counted(&mut self, prefix: &[Form; 2], counter: Form, count: usize, suffix: &[Form]) {
         let side = |counter: Form| [&prefix[..], &[counter], suffix].concat();
-        self.pair(side(col(count, 1)), side(col(count, 0)));
+        self.pair(side(counter), side(col(count, 0)));
     }
 
     fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
         let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
-        self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], count, &suffix);
+        self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], col(count, 1), count, &suffix);
     }
 
     fn memory(&mut self, address: Form, count: usize, values: &[Form; 3]) {
-        self.counted(&[constant(SEP_MEM), address], count, values);
+        self.counted(&[constant(SEP_MEM), address], col(count, 1), count, values);
+    }
+
+    /// `memory` when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`: `g·count` at 1, and
+    /// the pull's `count` at 0, so the pair cancels and touches no cell.
+    fn memory_if(&mut self, flag: usize, address: Form, count: usize, values: &[Form; 3]) {
+        let counter = col(count, 0) + prod(flag, count, 1) + prod(flag, count, 0);
+        self.counted(&[constant(SEP_MEM), address], counter, count, values);
     }
 
     /// The cell's limbs are the named columns, the missing top ones zero.
@@ -322,15 +330,16 @@ fn flushes_keccak() -> Flushes {
     let [pc, fp, free] = cols(KECCAK_HEAD, ["pc", "fp", "free"]);
     let o_m = cols(KECCAK_HEAD, ["o_m0", "o_m1", "o_m2", "o_m3"]);
     let [o_tail, o_b8, o_cap, o_out] = cols(KECCAK_HEAD, ["o_tail", "o_b8", "o_cap", "o_out"]);
-    let [in_odd, out_odd] = cols(KECCAK_HEAD, ["odd_in", "odd_out"]);
+    let [in_odd, out_odd, out_two, out_all] = cols(KECCAK_HEAD, ["odd_in", "odd_out", "out_two", "out_all"]);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    let operands = [
-        o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_b8, o_cap, o_out, in_odd, out_odd,
-    ];
-    flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).to_vec());
+    let operands = o_m
+        .into_iter()
+        .chain([o_tail, o_b8, o_cap, o_out, in_odd, out_odd, out_two, out_all]);
+    flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).collect());
     // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
     // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
+    // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1.
     let address = |cell: usize| match cell {
         0..4 => prod(fp, o_m[cell], 0),
         4..8 => prod(fp, o_tail, cell as u64 - 4),
@@ -347,12 +356,15 @@ fn flushes_keccak() -> Flushes {
                 limb(even[cell].1, odd[cell].1),
                 constant(ZERO),
             ];
-            let at = if side == 0 {
-                address(cell)
-            } else {
-                prod(fp, o_out, cell as u64)
-            };
-            flushes.memory(at, KECCAK_CNT + KECCAK_CELLS * side + cell, &values);
+            let count = KECCAK_CNT + KECCAK_CELLS * side + cell;
+            match (side, cell) {
+                (0, _) => flushes.memory(address(cell), count, &values),
+                (_, 0) => flushes.memory(prod(fp, o_out, 0), count, &values),
+                _ => {
+                    let flag = if cell == 1 { out_two } else { out_all };
+                    flushes.memory_if(flag, prod(fp, o_out, cell as u64), count, &values);
+                }
+            }
         }
     }
     flushes
@@ -377,7 +389,7 @@ const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc
 // read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
 // q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
 #[rustfmt::skip]
-const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "free"];
+const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
 const KECCAK_CELLS: usize = 13; // a sponge state, read then written
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
