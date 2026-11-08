@@ -28,7 +28,7 @@ use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{
     Acc8, F64, F192, F192Unreduced, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext,
-    powers,
+    powers, xor_into8,
 };
 use primitives::multilinear::{eq_table, interp};
 
@@ -649,24 +649,41 @@ fn add_scaled(acc: &mut [F192], v: &[F192], s: F192) {
     }
 }
 
-/// `out[x] = sum_l w_l * cur_l[x]` over `(w_l, cur_l, next_l)`.
+/// `out[x] = sum_l w_l * cur_l[x]` over `(w_l, cur_l, prev_l, next_l)`, or with `DELTA`, `out[x] += sum_l w_l *
+/// (cur_l[x] + prev_l[x])`: `prev_l` is read only then.
 ///
 /// The products stay unreduced across the lanes, one reduction per output, a chunk of outputs at a
 /// time so that their accumulators stay in L1. Each line of `cur_l` read also prefetches the same line
 /// of `next_l` into L2 (when not empty), so the next block streams in while this one multiplies.
 #[inline]
-fn lane_sums<'a>(out: &mut [F192], lanes: impl Iterator<Item = (F192, &'a [F64], &'a [F64])> + Clone) {
+fn lane_sums<'a, const DELTA: bool>(
+    out: &mut [F192],
+    lanes: impl Iterator<Item = (F192, &'a [F64], &'a [F64], &'a [F64])> + Clone,
+) {
     const CHUNK: usize = 64;
     for (k, out) in out.as_chunks_mut::<8>().0.chunks_mut(CHUNK).enumerate() {
         let mut acc = [Prod8::ZERO; CHUNK];
-        for (w, cur, next) in lanes.clone() {
-            for (j, (a, c)) in acc.iter_mut().zip(&cur.as_chunks::<8>().0[CHUNK * k..]).enumerate() {
+        for (w, cur, prev, next) in lanes.clone() {
+            let (cur, prev) = (
+                &cur.as_chunks::<8>().0[CHUNK * k..],
+                &prev.as_chunks::<8>().0[CHUNK * k..],
+            );
+            for (j, (a, c)) in acc.iter_mut().zip(cur).enumerate() {
                 prefetch_l2(next, 8 * (CHUNK * k + j));
-                *a ^= primitives::field::mul_base_splat8(w, c);
+                let v = if DELTA {
+                    std::array::from_fn(|i| c[i] + prev[j][i])
+                } else {
+                    *c
+                };
+                *a ^= primitives::field::mul_base_splat8(w, &v);
             }
         }
         for (o, a) in out.iter_mut().zip(&acc) {
-            *o = a.reduce_lanes().to_array();
+            if DELTA {
+                xor_into8(o, &a.reduce_lanes().to_array());
+            } else {
+                *o = a.reduce_lanes().to_array();
+            }
         }
     }
 }
@@ -688,7 +705,9 @@ fn prefetch_l2(words: &[F64], at: usize) {
 
 /// The witness and the lifted weight after every lane round, and the message of one against the other.
 ///
-/// The witness is straight from the base lanes: `sum_l eq(rs, l) * base_l`.
+/// The witness is straight from the base lanes: `sum_l eq(rs, l) * base_l`. A block that repeats its predecessor
+/// in its lane (`repeats`, or none if empty) adds what that lane added to the block before, so a block of the sum
+/// is the block before it plus the deltas of the lanes whose block changed. A task starts from nothing.
 ///
 /// `lift` turns each witness block into its weight block while the witness block is still in cache, and both
 /// stream out.
@@ -697,10 +716,14 @@ fn fold_all_lanes(
     lane_block: usize,
     rs: &[F192],
     lift_len: usize,
+    repeats: &[bool],
     lift: &(impl Fn(usize, &[F192], &mut [F192]) -> (Acc8, Acc8) + Sync),
 ) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     const TASK: usize = 32;
     let weights = eq_table(rs);
+    let n_blocks = lane_block / lift_len;
+    let n_lanes = base.len() / lane_block;
+    let repeat = |l: usize, h: usize| repeats.get(l * n_blocks + h) == Some(&true);
     let mut sums = (Acc8::ZERO, Acc8::ZERO);
     // Every task streams each of its output blocks below.
     // SAFETY: the fill writes every element before it reads any.
@@ -716,16 +739,29 @@ fn fold_all_lanes(
                 let stream = primitives::stream::Stream::new();
                 for i in 0..out_blocks {
                     let h = c * TASK + i;
-                    let lanes = base.chunks_exact(lane_block).enumerate().map(|(l, lane)| {
+                    // A task's first block, or one where no lane repeats, sums every lane afresh.
+                    let fresh = i == 0 || !(0..n_lanes).any(|l| repeat(l, h));
+                    let lanes = base.chunks_exact(lane_block).enumerate();
+                    let changed = lanes.filter(|&(l, _)| fresh || !repeat(l, h)).map(|(l, lane)| {
+                        let cur = &lane[h * lift_len..(h + 1) * lift_len];
+                        let prev = if fresh {
+                            cur
+                        } else {
+                            &lane[(h - 1) * lift_len..h * lift_len]
+                        };
                         // The lane's next block, when this task reads it.
-                        let next = if i + 1 < out_blocks {
+                        let next = if i + 1 < out_blocks && !repeat(l, h + 1) {
                             &lane[(h + 1) * lift_len..(h + 2) * lift_len]
                         } else {
                             &[][..]
                         };
-                        (weights[l], &lane[h * lift_len..(h + 1) * lift_len], next)
+                        (weights[l], cur, prev, next)
                     });
-                    lane_sums(&mut acc, lanes);
+                    if fresh {
+                        lane_sums::<false>(&mut acc, changed);
+                    } else {
+                        lane_sums::<true>(&mut acc, changed);
+                    }
                     let (t_0, t_2) = lift(h, &acc, &mut weight);
                     u_0 ^= t_0;
                     u_2 ^= t_2;
@@ -814,7 +850,14 @@ impl SumcheckProver {
         let msg = if last {
             let lift = self.lift.take().expect("the lift is taken by the last lane round only");
             let blocks = lift.blocks(&self.combined_basis);
-            let (f, b, msg) = fold_all_lanes(&self.base, self.lane_block, &self.lane_rs, lift.lift_len(), &blocks);
+            let (f, b, msg) = fold_all_lanes(
+                &self.base,
+                self.lane_block,
+                &self.lane_rs,
+                lift.lift_len(),
+                lift.repeats(),
+                &blocks,
+            );
             (self.f, self.combined_basis) = (f, b);
             msg
         } else {

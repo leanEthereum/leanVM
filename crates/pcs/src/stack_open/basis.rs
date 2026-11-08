@@ -113,6 +113,26 @@ impl Low {
     }
 }
 
+/// Adds each ring's pending fold of an ended run of equal blocks into its `sigma`, weighted by the run's mass.
+fn flush(folds: &mut [Option<[F192; ROWS]>], masses: &mut [F192], sigmas: &mut [F192]) {
+    for ((fold, mass), sigma) in folds.iter_mut().zip(masses).zip(sigmas.as_chunks_mut::<ROWS>().0) {
+        if let Some(folded) = fold.take() {
+            for (s, v) in sigma.as_chunks_mut::<8>().0.iter_mut().zip(folded.as_chunks::<8>().0) {
+                xor_into8(s, &scale8(v, *mass));
+            }
+        }
+        *mass = F192::ZERO;
+    }
+}
+
+/// For each block of `2^LOW_VARS` words of `stack`, whether it equals the block before it.
+fn equal_blocks(stack: &[F64]) -> Vec<bool> {
+    let blocks = primitives::cast_slice::<F64, u64>(stack)
+        .as_chunks::<{ 1 << LOW_VARS }>()
+        .0;
+    parallel::map_collect(blocks.len(), |b| b > 0 && blocks[b] == blocks[b - 1])
+}
+
 /// A ring claim's block structure and where its terms sit.
 struct Ring {
     /// Folds a bit row of a block against `e_lo`.
@@ -138,6 +158,8 @@ pub(crate) struct Terms {
     ranges: Vec<std::ops::Range<usize>>,
     patterns: Vec<Pattern>,
     rings: Vec<Ring>,
+    /// Tags the stack's blocks of `2^low_vars` words that equal their predecessor, or is empty.
+    repeats: Vec<bool>,
 }
 
 impl Terms {
@@ -157,43 +179,60 @@ impl Terms {
 
     /// `P(l, .)` for the lane's words.
     ///
-    /// The lane is swept in runs of `RUN` blocks, one pass per table, so a pattern's packed weights or a ring's
+    /// The lane is swept `SWEEP` blocks at a time, one pass per table, so a pattern's packed weights or a ring's
     /// fold matrices stay in L1 across the run while the run's words stay in L2.
-    fn project_lane<const CHUNKS: usize>(&self, lane: &[F64], row: &mut [F192]) {
-        const RUN: usize = 32;
+    ///
+    /// `repeats` tags the lane's blocks that equal the block before them, or is empty. A run of equal blocks
+    /// shares its dots and its folds, a fold weighted by the run's `e_hi` mass, so its words are read once per run.
+    fn project_lane<const CHUNKS: usize>(&self, lane: &[F64], row: &mut [F192], repeats: &[bool]) {
+        const SWEEP: usize = 32;
         let n_blocks = lane.len() >> self.low_vars;
         let block = |h: usize| &lane[h << self.low_vars..][..1 << self.low_vars];
+        let repeat = |h: usize| repeats.get(h) == Some(&true);
         let mut q = vec![F192::ZERO; n_blocks * self.patterns.len()];
         let mut sigmas = vec![F192::ZERO; ROWS * self.rings.len()];
         let mut cols = [[0u8; ROWS]; CHUNKS];
-        for start in (0..n_blocks).step_by(RUN) {
-            let blocks = start..(start + RUN).min(n_blocks);
-            for (pattern, q) in self.patterns.iter().zip(q.chunks_exact_mut(n_blocks)) {
-                for h in blocks.clone().filter(|&h| pattern.active[h]) {
-                    q[h] = pattern.low.dot(block(h));
+        let mut dots = vec![None; self.patterns.len()];
+        let mut folds: Vec<Option<[F192; ROWS]>> = vec![None; self.rings.len()];
+        let mut masses = vec![F192::ZERO; self.rings.len()];
+        for start in (0..n_blocks).step_by(SWEEP) {
+            let blocks = start..(start + SWEEP).min(n_blocks);
+            for ((pattern, q), dot) in self.patterns.iter().zip(q.chunks_exact_mut(n_blocks)).zip(&mut dots) {
+                for h in blocks.clone() {
+                    if !repeat(h) {
+                        *dot = None;
+                    }
+                    if pattern.active[h] {
+                        q[h] = *dot.get_or_insert_with(|| pattern.low.dot(block(h)));
+                    }
                 }
             }
             for h in blocks {
+                if !repeat(h) {
+                    flush(&mut folds, &mut masses, &mut sigmas);
+                }
                 let mut transposed = false;
-                for (ring, sigma) in self.rings.iter().zip(sigmas.as_chunks_mut::<ROWS>().0) {
+                for ((ring, fold), mass) in self.rings.iter().zip(&mut folds).zip(&mut masses) {
                     let e_hi = ring.e_hi[h];
                     if e_hi == F192::ZERO {
                         continue;
                     }
-                    if !transposed {
-                        for (col, group) in cols.iter_mut().zip(block(h).as_chunks::<8>().0) {
-                            bit_transpose_64bytes(&primitives::cast_slice::<F64, [u8; 64]>(group)[0], col);
+                    *mass += e_hi;
+                    fold.get_or_insert_with(|| {
+                        if !transposed {
+                            for (col, group) in cols.iter_mut().zip(block(h).as_chunks::<8>().0) {
+                                bit_transpose_64bytes(&primitives::cast_slice::<F64, [u8; 64]>(group)[0], col);
+                            }
+                            transposed = true;
                         }
-                        transposed = true;
-                    }
-                    let mut folded = [F192::ZERO; ROWS];
-                    ring.fold.fold_columns(&cols, &mut folded);
-                    for (s, v) in sigma.as_chunks_mut::<8>().0.iter_mut().zip(folded.as_chunks::<8>().0) {
-                        xor_into8(s, &scale8(v, e_hi));
-                    }
+                        let mut folded = [F192::ZERO; ROWS];
+                        ring.fold.fold_columns(&cols, &mut folded);
+                        folded
+                    });
                 }
             }
         }
+        flush(&mut folds, &mut masses, &mut sigmas);
         // `P(l, c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks.
         for (p, pattern) in self.patterns.iter().enumerate() {
             let q = &q[p * n_blocks..(p + 1) * n_blocks];
@@ -221,12 +260,14 @@ impl Terms {
         let mut p = vec![F192::ZERO; stack.len() / block * n_terms];
         parallel::chunks_mut(&mut p, n_terms, |l, row| {
             let lane = &stack[l * block..(l + 1) * block];
+            let n_blocks = block >> self.low_vars;
+            let repeats = self.repeats.get(l * n_blocks..(l + 1) * n_blocks).unwrap_or(&[]);
             match self.low_vars {
-                6 => self.project_lane::<8>(lane, row),
-                7 => self.project_lane::<16>(lane, row),
-                8 => self.project_lane::<32>(lane, row),
-                9 => self.project_lane::<64>(lane, row),
-                _ => self.project_lane::<128>(lane, row),
+                6 => self.project_lane::<8>(lane, row, repeats),
+                7 => self.project_lane::<16>(lane, row, repeats),
+                8 => self.project_lane::<32>(lane, row, repeats),
+                9 => self.project_lane::<64>(lane, row, repeats),
+                _ => self.project_lane::<128>(lane, row, repeats),
             }
         });
         p
@@ -235,6 +276,11 @@ impl Terms {
     /// Words of a block of the lift: `2^low_vars`.
     pub(crate) fn lift_len(&self) -> usize {
         1 << self.low_vars
+    }
+
+    /// Tags the stack's blocks of [`Self::lift_len`] words that equal their predecessor, or is empty.
+    pub(crate) fn repeats(&self) -> &[bool] {
+        &self.repeats
     }
 
     /// The weight over one lane block after every lane round, rebuilt from the term table's last row `a`, as
@@ -330,6 +376,12 @@ pub(super) fn initial_basis(
         ranges: Vec::new(),
         patterns: Vec::new(),
         rings: Vec::new(),
+        // Padding repeats blocks, which the projection and the last lane round skip.
+        repeats: if low_vars == LOW_VARS {
+            tracing::info_span!("Repeats").in_scope(|| equal_blocks(stack))
+        } else {
+            Vec::new()
+        },
     };
     // The claims' lane weights, then the rings', each `1 << lane_bits` long.
     let mut lanes: Vec<F192> = Vec::new();

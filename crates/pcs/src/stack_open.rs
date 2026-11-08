@@ -265,7 +265,7 @@ mod tests {
     /// The lane rounds of a projected basis must send the messages of the naive lane rounds on
     /// the dense weight and leave the same witness, weight and next message, across claims inside
     /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, and a
-    /// q_keccak ring both spanning lanes and selected by lane bits.
+    /// q_keccak ring both spanning lanes and selected by lane bits, over a stack with runs of equal blocks.
     #[test]
     fn projected_lane_rounds_match_the_naive_dense_rounds() {
         const LANE_ROUNDS: usize = 6;
@@ -280,9 +280,16 @@ mod tests {
             (12, 5, 13),
             // Sixteen blocks a lane: the claims' sums run eight blocks at a time.
             (14, 3, 15),
+            // Sixty-four blocks a lane: runs of equal blocks cross the projection's sweeps and the lane fold's tasks.
+            (16, 3, 17),
         ] {
             let lane_block = 1usize << lane_vars;
-            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let mut stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            // Runs of equal blocks across lane boundaries and the lane fold's tasks, changing in some lanes only.
+            let block = 1usize << basis::LOW_VARS;
+            for b in (1..stack.len() / block).filter(|&b| b % 5 != 0 && b % 7 != 3) {
+                stack.copy_within((b - 1) * block..b * block, b * block);
+            }
             let qkeccak_len = 1usize << qkeccak_vars;
             for offset in [0, qkeccak_len] {
                 if offset + qkeccak_len > stack.len() {
@@ -309,7 +316,11 @@ mod tests {
                     .collect();
                 let last_lane = (lanes - 1) * lane_block;
                 let shared = rng.ext_vec(lane_vars);
+                // Two claims on one low point at separated offsets: a pattern active on some blocks only.
+                let separated = rng.ext_vec(10);
                 let mut shapes = vec![
+                    (1024, 10, Some(separated.clone())),
+                    (6144, 10, Some(separated)),
                     (offset, qkeccak_vars, None),
                     (offset, qkeccak_vars, None),
                     (last_lane, lane_vars, Some(shared.clone())),
@@ -325,6 +336,7 @@ mod tests {
                         shapes.push((0, lane_vars + spanned, None));
                     }
                 }
+                shapes.retain(|&(offset, vars, _)| offset + (1 << vars) <= stack.len());
                 let claims: Vec<_> = shapes
                     .into_iter()
                     .map(|(offset, vars, point)| StackClaim::Point {
