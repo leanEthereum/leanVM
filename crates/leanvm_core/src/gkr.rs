@@ -125,8 +125,8 @@ impl Leaves {
 /// Build only the levels consumed by radix four: `0,2,4,…`, plus a final
 /// binary root when the logical depth is odd.
 fn build_layers(leaves: Leaves, mu: usize) -> Vec<Vec<F192>> {
-    // At mu = 22 the leaf level alone is hundreds of megabytes, and every level
-    // dies with the proof.
+    // The leaf level alone is large at production sizes, and every level dies
+    // with the proof.
     let mut layers: Vec<Vec<F192>> = (0..=mu).map(|_| Vec::new()).collect();
     layers[0] = leaves.values;
     let mut level = 0;

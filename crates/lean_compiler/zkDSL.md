@@ -62,7 +62,7 @@ p[1] = result_a     # m[p·1]  = m[0], an equality assert against the public inp
 p[GEN] = result_b   # m[p·g] = m[1]
 ```
 
-Test programs under `tests/programs/` declare the public input they expect with a top-of-file annotation of two constant elements (or omit it to run with two zeros); the generic harness `tests/py_source.rs` proves and verifies every program in the directory:
+Test programs under `tests/programs/` declare the public input they expect with a top-of-file annotation of two constant elements (or omit it to run with two zeros); the generic harness `tests/suite/py_source.rs` proves and verifies every program in the directory:
 
 ```python
 # public_input: GEN ** 89, 101229015297003380629709256178361811305

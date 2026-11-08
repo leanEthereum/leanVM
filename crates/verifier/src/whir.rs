@@ -15,7 +15,7 @@ const RESIDUAL_MAX_LOG: usize = 5;
 const QUERY_GRINDING_BITS: u32 = 17;
 
 #[rustfmt::skip]
-const WHIR_QUERIES: [[&[usize]; 14]; 4] = [
+const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
     [&[222,55], &[223,56,30], &[223,56,31], &[223,56,32], &[223,56,32], &[223,56,32,22], &[223,56,32,22], &[224,56,32,23], &[224,56,32,23], &[224,56,32,23,17], &[224,56,32,23,17], &[224,56,32,23,18], &[225,56,32,23,18], &[225,56,32,23,18,14]],
     [&[111,45], &[112,45,27], &[112,45,28], &[112,45,28], &[112,45,28], &[112,45,28,20], &[112,45,28,20], &[112,45,28,21], &[112,45,28,21], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16,13]],
     [&[75,37], &[75,37,24], &[75,37,25], &[75,38,25], &[75,38,25], &[75,38,25,18], &[75,38,25,19], &[75,38,25,19], &[75,38,25,19], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15,13]],
@@ -28,12 +28,18 @@ struct WhirConfig {
     queries: &'static [usize],
 }
 
+/// The tabulated query counts at stacked size `log_n` and rate, `None` outside the admitted shapes.
+#[doc(hidden)]
+pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
+    WHIR_QUERIES
+        .get(log_inv_rate.checked_sub(1)?)?
+        .get(log_n.checked_sub(MIN_STACKED_LOG)?)
+        .copied()
+}
+
 /// The opening shape at this size and rate: the ladder geometry, then the tabulated query counts.
 fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, VerifierError> {
-    require(
-        (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&log_n) && (1..=4).contains(&log_inv_rate),
-        VerifierError::WhirShape,
-    )?;
+    let queries = whir_queries(log_n, log_inv_rate).ok_or(VerifierError::WhirShape)?;
     let mut folds = vec![INITIAL_FOLDING_FACTOR];
     let mut log_inv_rates = vec![log_inv_rate];
     let mut remaining = log_n - INITIAL_FOLDING_FACTOR;
@@ -48,7 +54,6 @@ fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, Verifi
         remaining -= fold;
         folds.push(fold);
     }
-    let queries = WHIR_QUERIES[log_inv_rate - 1][log_n - MIN_STACKED_LOG];
     require(queries.len() == folds.len(), VerifierError::QueryCountLadder)?;
     Ok(WhirConfig {
         log_inv_rates,

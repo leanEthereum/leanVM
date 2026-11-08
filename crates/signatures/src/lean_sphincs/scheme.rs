@@ -242,28 +242,6 @@ pub(crate) fn merkle_levels(
     levels
 }
 
-/// The root that `leaf`, at index `e`, and its `path` reach, showing `visit` the two
-/// children of every node on the way up, `node(z, j, children)` hashing node `j` at
-/// height `z`.
-pub(crate) fn path_fold(
-    leaf: Digest,
-    e: usize,
-    path: &[Digest],
-    mut visit: impl FnMut(&[Digest; 2]),
-    node: impl Fn(usize, usize, &[Digest; 2]) -> Digest,
-) -> Digest {
-    path.iter().enumerate().fold(leaf, |current, (z, sibling)| {
-        let children = ordered(e >> z, current, *sibling);
-        visit(&children);
-        node(z + 1, e >> (z + 1), &children)
-    })
-}
-
-/// A node and its sibling in index order: `bit` says the node is the right one.
-pub(crate) fn ordered(bit: usize, node: Digest, sibling: Digest) -> [Digest; 2] {
-    if bit & 1 == 0 { [node, sibling] } else { [sibling, node] }
-}
-
 /// Node `j` at height `z` of the tree holding `key`, from its two children.
 fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 2]) -> Digest {
     let adrs = key
@@ -358,7 +336,7 @@ pub fn tree_fold(
     path: &[Digest],
     visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
+    crate::path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
         node(pk_seed, key, z, j, pair)
     })
 }

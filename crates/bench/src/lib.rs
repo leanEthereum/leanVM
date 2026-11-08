@@ -94,7 +94,7 @@ fn mean_and_ci(samples: &[f64]) -> (f64, f64) {
 }
 
 /// Two-sided 95% Student-t critical value, via the standard Cornish-Fisher
-/// expansion around the normal quantile (exact to <0.5% for `df >= 3`).
+/// expansion around the normal quantile. It runs low for few degrees of freedom.
 fn t_critical_95(df: usize) -> f64 {
     let z = 1.959_964_f64;
     let df = df as f64;

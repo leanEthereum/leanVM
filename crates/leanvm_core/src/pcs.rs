@@ -18,12 +18,12 @@
 //! committer absorbs them once rather than once per leaf, and at most the image's tail
 //! rides the proof.
 //!
-//! Security: the K configs use rate-1/2 Johnson list decoding with OOD binding
-//! and 128-bit round-by-round soundness ([`::pcs::whir::SECURITY_BITS`]).
-//! L0's opening claim supplies its binding evaluation; each deeper commitment
-//! takes one explicit OOD sample. The base-field
+//! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
+//! Johnson list decoding with OOD binding and 128-bit round-by-round soundness
+//! ([`::pcs::whir::SECURITY_BITS`]). L0's opening claim supplies its binding
+//! evaluation; each deeper commitment takes one explicit OOD sample. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
-//! ingredient is sampled from `E` with the same error terms as before.
+//! ingredient is sampled from `E`.
 
 use crate::transcript::ProverState;
 use primitives::field::F64;

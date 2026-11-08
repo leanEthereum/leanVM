@@ -40,9 +40,12 @@ use signatures::{lean_sphincs, lean_xmss};
 ///
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
-/// - Raw signatures are assumed valid (otherwise `aggregate` will panic).
-/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): any invalid child
-///   proof ends up returning the error [`AggregationError::ProofError`] (TODO return the index of invalid proof).
+/// - Raw signatures are assumed valid: one that does not decode returns
+///   [`AggregationError::MalformedRawSignature`], and any other invalid one fails the guest's run,
+///   [`AggregationError::ProofError`].
+/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): a child the replay
+///   cannot walk returns [`AggregationError::InvalidChild`], and any other invalid child fails the
+///   guest's run, [`AggregationError::ProofError`] (TODO return the index of invalid proof).
 pub fn aggregate(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
@@ -64,7 +67,7 @@ pub fn aggregate_with_stats(
     log_inv_rate: usize,
 ) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
     let declared_root = declare.map(|claims| claims.da_commitment);
-    // Otherwise this reaches `cpu::prove`, which asserts rather than reporting.
+    // `cpu::prove` checks the rate too, but only after the witness is built.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregationError::InvalidRate { log_inv_rate });
     }

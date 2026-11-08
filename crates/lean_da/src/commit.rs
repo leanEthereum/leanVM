@@ -126,8 +126,7 @@ fn fill_levels(tree: &mut [Hash]) {
 
 fn as_bytes(data: &[u64]) -> &[u8] {
     const { assert!(cfg!(target_endian = "little"), "digests use little-endian symbols") };
-    // SAFETY: u64 has no padding; the endian check fixes the byte representation.
-    unsafe { core::slice::from_raw_parts(data.as_ptr().cast::<u8>(), size_of_val(data)) }
+    primitives::cast_slice(data)
 }
 
 #[cfg(test)]

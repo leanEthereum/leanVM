@@ -95,7 +95,7 @@ pub struct Program {
     pub prog: Vec<Op>, // bytecode (size B, power of two)
     /// The Fiat-Shamir IV ([`fs_seed`]), computed once at assembly so proofs of
     /// the same program do not rehash the stacked bytecode multilinear (that
-    /// table is 16·2^kbc words, tens of megabytes at production sizes). Trusted
+    /// table is 16·2^kbc words). Trusted
     /// to match `prog`: always set by [`Program::assemble`] from the bytecode,
     /// so a `Program` cannot carry an IV inconsistent with its own `prog`.
     pub(crate) fiat_shamir_iv: [u8; 32],
@@ -315,8 +315,8 @@ fn table_spans() -> TableSpans {
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order: each
 /// table's committed columns, its summand as one form over them (its identities
-/// weighted by its own `η`-range, its three bus forms by the shared powers at
-/// [`xi_form_base`]), and what that summand sums to, its bus forms' `η`-weighted
+/// weighted by its own `ξ`-range, its three bus forms by the shared powers at
+/// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
 /// shares, since its identities vanish.
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
@@ -345,10 +345,10 @@ fn airs<'a>(
         .collect()
 }
 
-/// Where the three bus forms sit in the batch's `η`-powers: the last three, AFTER
+/// Where the three bus forms sit in the batch's `ξ`-powers: the last three, AFTER
 /// every table's identity range, and shared by all tables rather than one triple
 /// per table. That sharing is what keeps the batch tied to the bus: with a common
-/// `η^{base+s}` per side, the batch's target is `Σ_s η^{FORM_POWS+s}·R_s` for
+/// `ξ^{base+s}` per side, the batch's target is `Σ_s ξ^{base+s}·R_s` for
 /// the sides' table shares `R_s`, which the verifier DERIVES from the leaf claims
 /// (a mismatch fails its table sumcheck's terminal check). Were the
 /// powers per table, the target

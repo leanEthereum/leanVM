@@ -324,21 +324,11 @@ pub fn layer_root(
     e: u32,
     message: &[u8],
     signature: &LayerSignature,
-    mut on_children: impl FnMut(&[Digest; 2]),
+    on_children: impl FnMut(&[Digest; 2]),
 ) -> Option<([u8; V], Digest)> {
     let (codeword, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
-    let root = signature
-        .path
-        .iter()
-        .enumerate()
-        .fold(leaf, |current, (level, sibling)| {
-            let children = if (e >> level) & 1 == 0 {
-                [current, *sibling]
-            } else {
-                [*sibling, current]
-            };
-            on_children(&children);
-            node(pp, layer, level + 1, e >> (level + 1), &children)
-        });
+    let root = crate::path_fold(leaf, e as usize, &signature.path, on_children, |level, j, children| {
+        node(pp, layer, level, j as u32, children)
+    });
     Some((codeword, root))
 }

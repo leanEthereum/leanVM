@@ -1,7 +1,7 @@
 //! The tables' local constraints (§sec:air), proven by one sumcheck for all tables.
 //!
-//! Each table folds its identities with a DISJOINT range of one `η`'s powers, so
-//! the batch is a polynomial in `η` whose coefficients are the individual sums and
+//! Each table folds its identities with a DISJOINT range of one `ξ`'s powers, so
+//! the batch is a polynomial in `ξ` whose coefficients are the individual sums and
 //! matching the batch's target still pins each one. The three bus forms are the
 //! exception: they SHARE their three powers across tables
 //! ([`crate::cpu::xi_form_base`]), so those coefficients are per-side totals and
@@ -56,7 +56,7 @@ pub struct Air<'a> {
     pub sigma: F192,
 }
 
-/// Start of each table's disjoint range of `η`-powers.
+/// Start of each table's disjoint range of `ξ`-powers.
 pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
     n_constraints
         .scan(0usize, |off, n| {

@@ -95,7 +95,7 @@ pub fn fors_recover(
     let roots = std::array::from_fn(|c| {
         let (s, tree) = (leaves[c], &opening[c]);
         let leaf = fors_leaf(pk_seed, idx, c, s, &tree.secret);
-        path_fold(leaf, s, &tree.path, &mut visit, |z, j, pair| {
+        crate::path_fold(leaf, s, &tree.path, &mut visit, |z, j, pair| {
             fors_node(pk_seed, idx, c, z, j, pair)
         })
     });
