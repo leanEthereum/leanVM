@@ -82,10 +82,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
         n_lean_xmss > 0 || n_lean_sphincs > 0 || n_blobs > 0,
         "a leaf needs signatures or blobs"
     );
-    assert!(n_blobs <= lean_da::DA_MAX_ROWS, "too many blobs in one commitment");
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    // Spawn the worker pool before any timed work, so no kernel pays the spawn cost.
-    leanvm_core::init_prover();
     rec_aggregation::warm_up();
     let raw_lean_xmss = signers(0, n_lean_xmss);
     let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
@@ -164,11 +161,6 @@ pub fn run_recursion(
         per_leaf > 0 || lean_sphincs_per_leaf > 0 || blobs_per_leaf > 0,
         "a leaf needs signatures or blobs"
     );
-    assert!(
-        blobs_per_leaf <= lean_da::DA_MAX_ROWS,
-        "too many blobs in one commitment"
-    );
-    leanvm_core::init_prover();
     let started = std::time::Instant::now();
     let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();

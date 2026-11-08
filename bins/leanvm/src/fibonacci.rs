@@ -19,7 +19,7 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
     let (src, pi) = fibonacci_program(n);
     let program = compile(&parse(&src).unwrap());
 
-    // Only the final measured pass of each stage is traced (see `run_recursion`).
+    // Only the final measured pass of each stage is traced (see `run_aggregation`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
         prove(&program, pi, log_inv_rate).expect("the Fibonacci program proves")

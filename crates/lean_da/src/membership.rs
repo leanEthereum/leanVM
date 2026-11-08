@@ -138,7 +138,7 @@ mod tests {
         let mut codewords = encode_rows(&rows);
         let ntt = AdditiveNttF64::standard(LOG_M);
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
-        ntt.encode_interleaved_in_place(crate::encode::as_field_mut(&mut full), 1, 0);
+        ntt.encode_interleaved_in_place(primitives::cast_slice_mut::<u64, F64>(&mut full), 1, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);
 
         assert!(!check_membership(random_challenge(&mut rng), &codewords));

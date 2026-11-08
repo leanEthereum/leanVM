@@ -5,6 +5,7 @@
 //! the first half of the codeword and adds redundancy in the second half.
 
 use pcs::ntt::AdditiveNttF64;
+use primitives::cast_slice_mut;
 use primitives::field::F64;
 
 use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, DA_LOG_K, LOG_M, row_count};
@@ -28,17 +29,11 @@ pub fn encode_rows(rows: &[u64]) -> Vec<u64> {
     let mut codewords = vec![0; n_rows * m];
     for (i, codeword) in codewords.chunks_exact_mut(m).enumerate() {
         codeword[..k].copy_from_slice(&rows[i * k..(i + 1) * k]);
-        let codeword = as_field_mut(codeword);
+        let codeword = cast_slice_mut::<u64, F64>(codeword);
         interpolation.inverse_transform(&mut codeword[..k]);
         ntt.encode_interleaved_in_place(codeword, 1, 1);
     }
     codewords
-}
-
-/// Borrow native symbols as field elements without allocating or copying.
-pub(crate) fn as_field_mut(data: &mut [u64]) -> &mut [F64] {
-    // SAFETY: F64 is repr(transparent) over u64, with every bit pattern valid.
-    unsafe { core::slice::from_raw_parts_mut(data.as_mut_ptr().cast::<F64>(), data.len()) }
 }
 
 #[cfg(test)]
@@ -59,7 +54,7 @@ mod tests {
             .zip(codewords.as_chunks_mut::<CODEWORD_SYMBOLS>().0.iter_mut())
         {
             assert_eq!(&codeword[..BLOB_SYMBOLS], row);
-            ntt.inverse_transform(as_field_mut(codeword));
+            ntt.inverse_transform(cast_slice_mut::<u64, F64>(codeword));
             assert!(codeword[BLOB_SYMBOLS..].iter().all(|&x| x == 0));
         }
     }
