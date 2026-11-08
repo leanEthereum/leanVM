@@ -12,9 +12,9 @@
 //!
 //! ## The mapping
 //!
-//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to the first
-//! one, two or thirteen of thirteen cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
-//! the VM reads, and the output is the permutation's, written as it is.
+//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to one, two
+//! or all thirteen cells, each side in one of two layouts ([`cell_lanes`]). The committed input is
+//! the lanes the VM reads, and the output is the permutation's, written as it is.
 
 use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, block_lanes};

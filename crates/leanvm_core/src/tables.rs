@@ -130,18 +130,18 @@ impl FlushBuilder {
     /// whatever the form says, which removes both the value columns and the
     /// identity that used to tie them (§sec:m3).
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 3]) {
-        let mut push = vec![Const(SEP_MEM), addr.clone(), GCol(count, 1)];
-        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
-        push.extend_from_slice(&vals);
-        pull.extend(vals);
-        self.pair(push, pull);
+        self.memory_pushing(GCol(count, 1), addr, count, vals);
     }
 
-    /// [`Self::memory_coords`] when the column `flag` is 1. At 0 the push carries the count as the pull does, so
-    /// the pair cancels and touches no cell: the push's count is `count·(1 + flag·(g + 1))`, `g·count` at 1.
+    /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
+    /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
     pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 3]) {
-        let counted = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
-        let mut push = vec![Const(SEP_MEM), addr.clone(), counted];
+        let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
+        self.memory_pushing(counter, addr, count, vals);
+    }
+
+    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 3]) {
+        let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
         let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
         push.extend_from_slice(&vals);
         pull.extend(vals);
@@ -881,14 +881,14 @@ pub(crate) mod keccakt {
     pub const O_M0: usize = 2; // the g-powers of the eight offset operands, as `KeccakOp` orders them
     pub const IN_ODD: usize = O_M0 + 8; // the layout read …
     pub const OUT_ODD: usize = IN_ODD + 1; // … and the layout written
-    pub const FREE: usize = OUT_ODD + 1; // the read limb that holds no lane
+    pub const OUT_TWO: usize = OUT_ODD + 1; // whether output cell 1 is written …
+    pub const OUT_ALL: usize = OUT_TWO + 1; // … and cells 2..13
+    pub const FREE: usize = OUT_ALL + 1; // the read limb that holds no lane
     pub const V_IN: usize = FREE + 1; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
     pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
     pub const RBC: usize = R0 + ROW_CELLS;
-    pub const OUT_TWO: usize = RBC + 1; // whether output cell 1 is written …
-    pub const OUT_ALL: usize = OUT_TWO + 1; // … and cells 2..13, both bound by the bytecode read
-    pub const N: usize = OUT_ALL + 1;
+    pub const N: usize = RBC + 1;
 }
 
 /// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
@@ -939,7 +939,7 @@ impl Table for KeccakTable {
         use crate::keccak::{STATE_CELLS, cell_lanes};
         use keccakt::*;
         f.state_step(PC, FP);
-        let operands: Vec<Coord> = (O_M0..=OUT_ODD).chain([OUT_TWO, OUT_ALL]).map(Col).collect();
+        let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
         f.bytecode(PC, RBC, OP_KECCAK, &operands);
         // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
         // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
@@ -976,7 +976,22 @@ impl Table for KeccakTable {
             let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
             let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
             let free = F64(if high { free.c1 } else { free.c0 });
-            [m0, m1, m2, m3, tail, b8, cap, o, flag(k.in_odd), flag(k.out_odd), free]
+            let (two, all) = k.out_cells.flags();
+            [
+                m0,
+                m1,
+                m2,
+                m3,
+                tail,
+                b8,
+                cap,
+                o,
+                flag(k.in_odd),
+                flag(k.out_odd),
+                flag(two),
+                flag(all),
+                free,
+            ]
         });
         ctx.cols(out, rows, V_OUT, |r| {
             let k = op(r);
@@ -986,10 +1001,6 @@ impl Table for KeccakTable {
         });
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
-        ctx.cols(out, rows, OUT_TWO, |r| {
-            let (two, all) = op(r).out_cells.flags();
-            [flag(two), flag(all)]
-        });
     }
 }
 

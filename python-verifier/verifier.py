@@ -752,20 +752,21 @@ class Flushes:
     def state_step(self, pc: int, fp: int) -> None:
         self.state_derived(pc, fp, _col(pc, 1), _col(fp))
 
-    def _counted(self, prefix: Sequence[Form], count: int, suffix: Sequence[Form]) -> None:
-        self.pair((*prefix, _col(count, 1), *suffix), (*prefix, _col(count), *suffix))
+    def _counted(self, prefix: Sequence[Form], counter: Form, count: int, suffix: Sequence[Form]) -> None:
+        """A pull at `count` and a push at `counter`, the same otherwise."""
+        self.pair((*prefix, counter, *suffix), (*prefix, _col(count), *suffix))
 
     def bytecode(self, pc: int, count: int, opcode: int, operands: Sequence[Form]) -> None:
-        self._counted((_const(SEP_BYTECODE), _col(pc)), count, (_const(_gpow(opcode)), *operands))
+        self._counted((_const(SEP_BYTECODE), _col(pc)), _col(count, 1), count, (_const(_gpow(opcode)), *operands))
 
     def memory(self, address: Form, count: int, values: Sequence[Form]) -> None:
-        self._counted((_const(SEP_MEM), address), count, values)
+        self._counted((_const(SEP_MEM), address), _col(count, 1), count, values)
 
     def memory_if(self, flag: int, address: Form, count: int, values: Sequence[Form]) -> None:
-        """`memory` when the column `flag` is 1. At 0 the push's counter is the pull's, count*(1 + flag*(g + 1)),
-        so the pair cancels and touches no cell."""
+        """`memory` when the column `flag` is 1. The push's counter is count*(1 + flag*(g + 1)): g*count at 1, and
+        the pull's count at 0, so the pair cancels and touches no cell."""
         counter = Form.sum([_col(count), _prod(flag, count, 1), _prod(flag, count)])
-        self.pair((_const(SEP_MEM), address, counter, *values), (_const(SEP_MEM), address, _col(count), *values))
+        self._counted((_const(SEP_MEM), address), counter, count, values)
 
     def memory_cols(self, address: Form, count: int, *columns: int) -> None:
         self.memory(address, count, [_col(column) for column in columns] + [_const(ZERO)] * (3 - len(columns)))
@@ -897,8 +898,8 @@ def _layout_limb(even: int | None, odd: int | None, flag: int, missing: int | No
 def _flushes_keccak() -> Flushes:
     pc, fp, cnt_bc, free = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc", "free")
     o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
-    o_tail, o_b8, o_cap, o_out, odd_in, odd_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out")
-    out_two, out_all = _cols(KECCAK_COLUMNS, "out_two", "out_all")
+    o_tail, o_b8, o_cap, o_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out")
+    odd_in, odd_out, out_two, out_all = _cols(KECCAK_COLUMNS, "odd_in", "odd_out", "out_two", "out_all")
     flushes = Flushes()
     flushes.state_step(pc, fp)
     operands = (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out, out_two, out_all)
@@ -941,6 +942,8 @@ DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
 KECCAK_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
+    # The bytecode's flags for the output cells written: cell 1, and cells 2..13.
+    "out_two", "out_all",
     # The read limb that holds no lane.
     "free",
     # The fifty value lanes: an input lane is a slot of q_keccak (below), and an output lane is not
@@ -948,8 +951,6 @@ KECCAK_COLUMNS = (
     *(f"in_{lane}" for lane in range(STATE_LANES)), *(f"out_{lane}" for lane in range(STATE_LANES)),
     # ...and the read counts, each cell read then each written, committed here like every other column.
     *(f"cnt_{cell}" for cell in range(2 * KECCAK_CELLS)), "cnt_bc",
-    # The bytecode's flags for the output cells written: cell 1, and cells 2..13.
-    "out_two", "out_all",
 )  # fmt: skip
 KECCAK_IN, KECCAK_OUT, KECCAK_CNT = (KECCAK_COLUMNS.index(name) for name in ("in_0", "out_0", "cnt_0"))
 # Which slot of q_keccak each local KECCAK column is. The states take the first QKECCAK_SLOTS, the input

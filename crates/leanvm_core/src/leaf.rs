@@ -199,7 +199,14 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
         Coord::Const(v) => *constant += w.mul_base(*v),
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
         Coord::GCol(i, k) => terms.push(Term::Col(*i, w.mul_base(g_pow(*k as usize)))),
-        Coord::Prod(i, j, k) => terms.push(Term::Prod(*i, *j, w.mul_base(g_pow(*k as usize)))),
+        Coord::Prod(i, j, k) => {
+            // A sum's products of one pair (a gated count's) share one term.
+            let v = w.mul_base(g_pow(*k as usize));
+            match terms.last_mut() {
+                Some(Term::Prod(a, b, u)) if (*a, *b) == (*i, *j) => *u += v,
+                _ => terms.push(Term::Prod(*i, *j, v)),
+            }
+        }
         Coord::Index => terms.push(Term::Index(w)),
         Coord::Public(vals) => terms.push(Term::Public(vals.as_slice(), w)),
         Coord::Sum(cs) => {

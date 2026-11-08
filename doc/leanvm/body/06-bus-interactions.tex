@@ -75,6 +75,8 @@ Under the same hypotheses every read address is an entry address $\gen^{i}$, $i<
 
 \paragraph{Instance caps.} The verifier checks the announced sizes against public caps (\S\ref{sec:e2e-unrolled}): at most $2^{32}$ rows per table, at most $2^{32}$ memory cells (\S\ref{sec:memchan}) and at most $2^{32}$ bytecode instructions (\S\ref{sec:bytecode}). A row reads at most twenty-seven times (\texttt{KECCAK}: twenty-six cells and its bytecode entry), so the six tables flush $\nread\le27\cdot6\cdot2^{32}<2^{40}$ reads, far under the $2^{64}-1$ that Lemma~\ref{lem:invcnt} requires.
 
+% \paragraph{Gated reads.} A \texttt{KECCAK} output write may be gated by a bytecode flag $f$ (\S\ref{sec:tab-keccak}): its push counter is $\cnt\,(1+f\,(\gen+1))$. At $f=1$ it is a read; at $f=0$ its push and pull are the same tuple, so it flushes nothing. The theorem therefore covers it when $f\in\{0,1\}$, which the ISA requires of every program (\S\ref{sec:vm}); any other value would make it a read with a step other than $\gen$, which Lemma~\ref{lem:invcnt} does not cover.
+
 \paragraph{Relaxing the hypotheses.} A bus entry may be any polynomial of degree at most $d = 2$ in the row's columns (\S\ref{sec:m3}), so none of the three (address, count, value) need be committed. Example 1: we don't need to commit memory addresses of the form $\fp\cdot o$ (\S\ref{sec:memchan}) when $\fp$ and $o$ are already committed. Example 2: once the pull counter $\cnt$ is committed, no need to commit to the corresponding push counter $\gen\cdot\cnt$.
 
 \subsection{Memory}\label{sec:memchan}

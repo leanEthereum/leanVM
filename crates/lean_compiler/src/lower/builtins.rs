@@ -228,9 +228,8 @@ impl FnLower<'_> {
         kwargs
     }
 
-    /// Where a `keccak` writes: the stack run the instruction targets, the output cells it writes there, and what
-    /// to copy out of it afterwards. The cells written are the ones the destination holds, so the bytecode, not
-    /// the prover, says which they are.
+    /// Where a `keccak` writes: the stack run the instruction targets, the output cells it writes there (the ones
+    /// the destination holds), and what to copy out of it afterwards.
     fn keccak_out(&mut self, e: &Expr) -> KeccakOut {
         let cells = |len: u32| match len {
             1 => OutCells::One,
@@ -253,7 +252,7 @@ impl FnLower<'_> {
             } => KeccakOut {
                 state: self.alloc_stack(len),
                 cells: cells(len),
-                heap: Some((ptr, lo, len)),
+                heap: Some((ptr, lo)),
             },
             _ => self.fail(format!(
                 "a keccak destination is a {STATE_CELLS}-cell run (the state), a 2-cell run (the digest) or a 1-cell run (its first cell)"
@@ -263,8 +262,8 @@ impl FnLower<'_> {
 
     /// Copy what [`Self::keccak_out`] promised out of the state it wrote.
     fn keccak_finish(&mut self, out: KeccakOut) {
-        if let Some((ptr, lo, len)) = out.heap {
-            self.deref_run(ptr, lo, len, out.state);
+        if let Some((ptr, lo)) = out.heap {
+            self.deref_run(ptr, lo, out.cells.cells() as u32, out.state);
         }
     }
 
@@ -715,8 +714,8 @@ fn keccak_pad_value() -> F192 {
 struct KeccakOut {
     state: Off,
     cells: OutCells,
-    /// The heap run `(ptr, lo, len)` the cells are copied to, for a heap destination.
-    heap: Option<(Off, u32, u32)>,
+    /// Where the cells are copied to, `(ptr, lo)`, for a heap destination.
+    heap: Option<(Off, u32)>,
 }
 
 /// One message cell of a `keccak` block, as the lowering knows it.

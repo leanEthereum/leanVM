@@ -973,7 +973,6 @@ impl Program {
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
-                    // Only the output cells the bytecode requests are written; the others are left alone.
                     let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                     for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {

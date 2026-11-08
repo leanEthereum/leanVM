@@ -115,7 +115,7 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $117$ columns:
 \begin{itemize}
-\item $\pc$, $\fp$, the eight operand offsets, the two layout flags and $\mathit{free}$, $27$ read counts, one per cell read or written and one for the bytecode, and the two output flags $\mathit{out}_{\mathit{two}}$ and $\mathit{out}_{\mathit{all}}$.
+\item $\pc$, $\fp$, the eight operand offsets, the two layout flags, the two output flags $\mathit{out}_{\mathit{two}}$ and $\mathit{out}_{\mathit{all}}$, and $\mathit{free}$, then $27$ read counts, one per cell read or written and one for the bytecode.
 \item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
 \item $\kmid{\ell}$, the $25$ lanes of the state after $12$ rounds. Committing it is an optimization and nothing more: it halves the depth of the reduction. No flush reads it.
 \item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
