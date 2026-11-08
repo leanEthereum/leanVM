@@ -4,7 +4,7 @@ import FORS.Classification.Fors
 
 /-!
 The interface of deterministic extraction from an accepted candidate signature: its index and
-verifier trace, the canonical FORS key and the canonical message of every layer's WOTS+C key on
+verifier trace, the canonical FORS roots and the canonical message of every layer's WOTS+C key on
 the index's path (the root of the honest tree below it, the FORS key at the bottom), reference
 certificates for the counter and word of each key, canonical openings, and the explicit exceptional
 branches (`ForsException`, `Exception`). `Classification/Accepted` proves the
@@ -29,9 +29,10 @@ def trace (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) : List HashInput :=
   queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool)
 
+/-- The canonical FORS roots of the instance at `leaf`, which `T_k` compresses to its FORS key. -/
 def canonicalFors (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (leaf : Index) : ForsKey :=
-  evalWithAnswerFn f (Seeded.forsKey parameter leaf seed : OracleComp HashSpec ForsKey)
+  fun κ => Completeness.rootValue f parameter leaf seed κ
 
 /-- The canonical message of a WOTS+C key: the root of the honest tree below it, or the FORS key
 of its instance at the bottom layer. -/
@@ -48,11 +49,13 @@ theorem canonicalMessage_eq (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) 
     (lay : Layer) :
     canonicalMessage f sk.parameter sk.seed leaf lay = Completeness.layerMessageValue f sk leaf lay := rfl
 
-/-- The bottom key signs the FORS key. -/
+/-- The bottom key signs the FORS key, `T_k` of the canonical roots. -/
 theorem canonicalMessage_bottom (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (leaf : Index) :
-    canonicalMessage f parameter seed leaf (layerUp 0) = rootsPayload (canonicalFors f parameter seed leaf) := by
-  have h := Completeness.layerMessageValue_bottom f ⟨seed, parameter, 0⟩ leaf
+    canonicalMessage f parameter seed leaf (layerUp 0) = rootPayload (evalWithAnswerFn f
+      (forsPublicKey parameter leaf (canonicalFors f parameter seed leaf) : OracleComp HashSpec Digest)) := by
+  have h := Completeness.layerMessageValue_bottom f ⟨seed, 0, parameter, 0⟩ leaf
+  rw [Completeness.forsKey_eq] at h
   exact h
 
 /-- A key above the bottom signs the root of the tree below on the path. -/
@@ -64,7 +67,7 @@ theorem canonicalMessage_succ (f : QueryImpl HashSpec Id) (parameter : PublicPar
   have hbelow : (layerUp (j + 1)).val + 1 < numLayers := by simp only [layerUp]; omega
   have hlay : (⟨(layerUp (j + 1)).val + 1, hbelow⟩ : Layer) = layerUp j := by
     apply Fin.ext; simp only [layerUp]; omega
-  have h := Completeness.layerMessageValue_above f ⟨seed, parameter, 0⟩ leaf (layerUp (j + 1)) hbelow
+  have h := Completeness.layerMessageValue_above f ⟨seed, 0, parameter, 0⟩ leaf (layerUp (j + 1)) hbelow
   rw [hlay] at h
   exact h
 
@@ -79,17 +82,20 @@ def ReferenceCertificate (f : QueryImpl HashSpec Id) (parameter : PublicParamete
   evalWithAnswerFn f (encode parameter lay (keyTree leaf lay) (keyLeaf leaf lay)
     (canonicalMessage f parameter seed leaf lay) counter : OracleComp HashSpec (Option Encoding)) = some word
 
-/-- The FORS recovery is always part of the complete verifier's actual execution. -/
+/-- The FORS recovery and its `T_k` are always part of the complete verifier's actual execution. -/
 theorem verification_fors_run (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :
     ContainsRun f (trace f pk message signature)
       (forsRecover pk.parameter (index f pk message signature)
-        (digestLeaves (verificationDigest f pk message signature)) signature.fors) := by
+        (digestLeaves (verificationDigest f pk message signature)) signature.fors >>=
+          forsPublicKey pk.parameter (index f pk message signature)) := by
   have hrun : ContainsRun f
       (queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool))
       (Concrete.verify pk message signature : OracleComp HashSpec Bool) := fun _ hi => hi
   rw [verify_eq_layers] at hrun
-  simpa only [← verify_eq_layers, trace, index, verificationDigest] using hrun.bind_right.bind_left
+  have h := hrun.bind_right
+  rw [← bind_assoc] at h
+  simpa only [← verify_eq_layers, trace, index, verificationDigest] using h.bind_left
 
 theorem canonical_wots_leaf (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
@@ -195,8 +201,8 @@ theorem finishSign_randomness (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey
     (message : Message) (randomness : Randomness) (signature : Signature)
     (hsign : evalWithAnswerFn f (Seeded.finishSign sk message randomness) = some signature) :
     signature.randomness = randomness := by
-  rw [Seeded.finishSign, evalWithAnswerFn_bind, evalWithAnswerFn_bind,
-    evalWithAnswerFn_bind] at hsign
+  rw [Seeded.finishSign] at hsign
+  simp only [evalWithAnswerFn_bind] at hsign
   split at hsign
   next =>
     simp only [evalWithAnswerFn_pure, Option.some.injEq] at hsign

@@ -3,8 +3,8 @@
 //! The message digest picks a bottom leaf `idx`, and so a FORS instance and the
 //! one-time key on every layer above it. Nothing is reserved and nothing is
 //! spent, which is what makes the scheme stateless. The bottom key signs the
-//! FORS key, the middle key the bottom tree's root, the top key the middle
-//! tree's root, and the top tree's root is the public key.
+//! FORS public key, the middle key the bottom tree's root, the top key the middle
+//! tree's root, and the top tree's root is `PK.root`.
 
 use serde::{Deserialize, Serialize};
 
@@ -14,34 +14,39 @@ use crate::lean_sphincs::*;
 /// signer list is sorted and deduplicated by.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LeanSphincsPublicKey {
+    pub(crate) pk_seed: PkSeed,
     pub(crate) root: Digest,
-    pub(crate) public_param: PublicParam,
 }
 
 impl LeanSphincsPublicKey {
-    pub fn public_param(&self) -> &PublicParam {
-        &self.public_param
+    pub fn pk_seed(&self) -> &PkSeed {
+        &self.pk_seed
     }
 
+    pub fn root(&self) -> &Digest {
+        &self.root
+    }
+
+    /// `PK.seed | PK.root`.
     pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0; PUB_KEY_SIZE];
-        out[..N].copy_from_slice(&self.root);
-        out[N..].copy_from_slice(&self.public_param);
+        out[..N].copy_from_slice(&self.pk_seed);
+        out[N..].copy_from_slice(&self.root);
         out
     }
 
     pub fn from_bytes(bytes: &[u8; PUB_KEY_SIZE]) -> Self {
         Self {
-            root: bytes[..N].try_into().unwrap(),
-            public_param: bytes[N..].try_into().unwrap(),
+            pk_seed: bytes[..N].try_into().unwrap(),
+            root: bytes[N..].try_into().unwrap(),
         }
     }
 }
 
-/// The key's seed, all of the key: its [`scheme_seed`] derives every secret.
+/// `SK.seed`, all of the key: [`expand_key`] derives the rest.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
-    seed: Seed,
+    sk_seed: Seed,
 }
 
 impl std::fmt::Debug for LeanSphincsSecretKey {
@@ -51,18 +56,19 @@ impl std::fmt::Debug for LeanSphincsSecretKey {
 }
 
 impl LeanSphincsSecretKey {
-    /// The public key, rebuilt as key generation builds it: the whole top tree.
+    /// The public key, rebuilt as key generation builds it: the whole top tree, on
+    /// `parallel`, so never from inside a `parallel` task.
     pub fn public_key(&self) -> LeanSphincsPublicKey {
-        public_key_of(&scheme_seed(&self.seed))
+        keygen(&expand_key(&self.sk_seed)).0
     }
 
-    /// SECRET KEY MATERIAL: the seed, all of the key.
+    /// SECRET KEY MATERIAL: `SK.seed`, all of the key.
     pub fn to_bytes(&self) -> Seed {
-        self.seed
+        self.sk_seed
     }
 
     pub fn from_bytes(bytes: &Seed) -> Self {
-        Self { seed: *bytes }
+        Self { sk_seed: *bytes }
     }
 }
 
@@ -86,7 +92,7 @@ impl LayerSignature {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeanSphincsSignature {
-    pub(crate) randomizer: Randomizer,
+    pub(crate) randomizer: Digest,
     pub(crate) fors: ForsOpening,
     /// Bottom first.
     pub(crate) layers: [LayerSignature; LAYERS],
@@ -95,7 +101,8 @@ pub struct LeanSphincsSignature {
 }
 
 impl LeanSphincsSignature {
-    pub fn randomizer(&self) -> &Randomizer {
+    /// `R`.
+    pub fn randomizer(&self) -> &Digest {
         &self.randomizer
     }
 
@@ -116,7 +123,7 @@ impl LeanSphincsSignature {
 
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes: the
     /// randomizer, the FORS openings, then each layer from the bottom up, its
-    /// counter, chain values and path.
+    /// counter (big endian), chain values and path.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
         let mut out = [0; SIG_SIZE];
         let mut at = 0;
@@ -130,7 +137,7 @@ impl LeanSphincsSignature {
             put(tree.path.as_flattened());
         }
         for (layer, signed) in self.layers.iter().enumerate() {
-            put(&signed.counter.to_le_bytes());
+            put(&signed.counter.to_be_bytes());
             put(signed.wots.as_flattened());
             put(self.path(layer).as_flattened());
         }
@@ -144,7 +151,7 @@ impl LeanSphincsSignature {
             at += len;
             &bytes[at - len..at]
         };
-        let randomizer = take(RANDOMIZER_LEN).try_into().unwrap();
+        let randomizer = take(N).try_into().unwrap();
         let fors = std::array::from_fn(|_| ForsTreeOpening {
             secret: take(N).try_into().unwrap(),
             path: std::array::from_fn(|_| take(N).try_into().unwrap()),
@@ -152,7 +159,7 @@ impl LeanSphincsSignature {
         let mut paths = Vec::with_capacity(H);
         let layers = std::array::from_fn(|layer| {
             let signed = LayerSignature {
-                counter: u32::from_le_bytes(take(COUNTER_LEN).try_into().unwrap()),
+                counter: u32::from_be_bytes(take(COUNTER_LEN).try_into().unwrap()),
                 wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
             };
             paths.extend((0..LAYER_HEIGHTS[layer]).map(|_| Digest::try_from(take(N)).unwrap()));
@@ -202,35 +209,23 @@ impl std::fmt::Display for LeanSphincsVerifyError {
 
 impl std::error::Error for LeanSphincsVerifyError {}
 
-/// The message digest, `D_0 | D_1` with `D_c = H(P | A_msg(c) | m | R)`, each
-/// call one 80-byte block. `P` binds the key, so the root is not hashed.
-pub fn message_digest_bytes(pp: &PublicParam, rho: &Randomizer, m: &Message) -> [u8; 32 * DIGEST_CALLS] {
-    let mut out = [0; 32 * DIGEST_CALLS];
-    for (c, chunk) in out.as_chunks_mut::<32>().0.iter_mut().enumerate() {
-        *chunk = hasher(pp, &tweak(TWEAK_MSG, c as u32, 0))
-            .update(m)
-            .update(rho)
-            .finalize();
-    }
-    out
-}
-
-/// The index and the FORS leaves a digest spells: read as one little-endian
-/// number, its low `h` bits, then `a` bits per tree.
-pub fn digest_fields(digest: &[u8; 32 * DIGEST_CALLS]) -> (u32, [usize; FORS_TREES]) {
-    let field = |offset: usize, len: usize| {
-        (0..len).fold(0, |value, bit| {
-            let position = offset + bit;
-            value | usize::from(digest[position / 8] >> (position % 8) & 1) << bit
-        })
-    };
-    let leaves = std::array::from_fn(|c| field(H + c * FORS_HEIGHT, FORS_HEIGHT));
-    (field(0, H) as u32, leaves)
+/// The index and the FORS leaves a digest spells (FIPS 205 Algorithm 19): the
+/// first [`MD_BYTES`] give each tree's leaf, `a` bits a tree most significant
+/// first (`base_2b`), the next [`TREE_INDEX_BYTES`] the tree, and the last
+/// [`LEAF_INDEX_BYTES`] its leaf, each a big-endian integer cut to its bits.
+/// The index is the tree then the leaf.
+pub fn digest_fields(digest: &[u8; 32 * DIGEST_CALLS]) -> (u64, [usize; FORS_TREES]) {
+    let bit = |p: usize| usize::from(digest[p / 8] >> (7 - p % 8) & 1);
+    let leaves = std::array::from_fn(|c| (0..FORS_HEIGHT).fold(0, |v, j| v << 1 | bit(FORS_HEIGHT * c + j)));
+    let int = |bytes: &[u8], bits: usize| bytes.iter().fold(0u64, |v, &b| v << 8 | u64::from(b)) & ((1 << bits) - 1);
+    let tree = int(&digest[MD_BYTES..MD_BYTES + TREE_INDEX_BYTES], H - LAYER_HEIGHTS[0]);
+    let leaf = int(&digest[MD_BYTES + TREE_INDEX_BYTES..DIGEST_BYTES], LAYER_HEIGHTS[0]);
+    (tree << LAYER_HEIGHTS[0] | leaf, leaves)
 }
 
 /// The message digest read as the index and the FORS leaves.
-pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u32, [usize; FORS_TREES]) {
-    digest_fields(&message_digest_bytes(pp, rho, m))
+fn message_digest(pk: &LeanSphincsPublicKey, r: &Digest, m: &Message) -> (u64, [usize; FORS_TREES]) {
+    digest_fields(&h_msg(r, &pk.pk_seed, &pk.root, m))
 }
 
 /// The levels of a tree `height` levels over `leaves`, the leaves first,
@@ -249,51 +244,68 @@ pub(crate) fn merkle_levels(
     levels
 }
 
+/// The root that `leaf`, at index `e`, and its `path` reach, showing `visit` the two
+/// children of every node on the way up, `node(z, j, children)` hashing node `j` at
+/// height `z`.
+pub(crate) fn path_fold(
+    leaf: Digest,
+    e: usize,
+    path: &[Digest],
+    mut visit: impl FnMut(&[Digest; 2]),
+    node: impl Fn(usize, usize, &[Digest; 2]) -> Digest,
+) -> Digest {
+    path.iter().enumerate().fold(leaf, |current, (z, sibling)| {
+        let children = ordered(e >> z, current, *sibling);
+        visit(&children);
+        node(z + 1, e >> (z + 1), &children)
+    })
+}
+
 /// A node and its sibling in index order: `bit` says the node is the right one.
 pub(crate) fn ordered(bit: usize, node: Digest, sibling: Digest) -> [Digest; 2] {
     if bit & 1 == 0 { [node, sibling] } else { [sibling, node] }
 }
 
-/// Node `j` on `level` of a tree of the hypertree, from its two children.
-fn node(pp: &PublicParam, key: &OtsKey, level: usize, j: usize, children: &[Digest; 2]) -> Digest {
-    th_digests(
-        pp,
-        &tweak(TWEAK_NODE, level as u32, j as u32).at(key.layer, key.tree),
-        children,
-    )
+/// Node `j` at height `z` of the tree holding `key`, from its two children.
+fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 2]) -> Digest {
+    let adrs = key
+        .tree_adrs()
+        .with_type(TREE)
+        .with_tree_height(z as u32)
+        .with_tree_index(j as u32);
+    th_digests(pk_seed, &adrs, children)
 }
 
 /// The levels of the tree holding `key`, its leaves first and its root last.
-fn tree_levels(pp: &PublicParam, seed: &SchemeSeed, key: &OtsKey) -> Vec<Vec<Digest>> {
+fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
     let leaves = parallel::map_collect(1 << height, |leaf| {
         wots_public_leaf(
-            pp,
-            seed,
+            sk,
             &OtsKey {
                 leaf: leaf as u32,
                 ..*key
             },
         )
     });
-    merkle_levels(leaves, height, |level, j, pair| node(pp, key, level, j, pair))
+    merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
 }
 
-/// `Gen`, deterministic: the seed's [`scheme_seed`] derives the public parameter,
-/// and the top tree gives the root.
+/// `Gen`, deterministic: the seed is `SK.seed`, and the top tree gives `PK.root`.
+/// It builds the tree on `parallel`, so never call it from inside a `parallel` task.
 pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    (LeanSphincsSecretKey { seed }, public_key_of(&scheme_seed(&seed)))
+    (LeanSphincsSecretKey { sk_seed: seed }, keygen(&expand_key(&seed)).0)
 }
 
-/// The public key of the scheme seed `seed`: its public parameter and the top
-/// tree's root.
-fn public_key_of(seed: &SchemeSeed) -> LeanSphincsPublicKey {
-    let public_param = public_param(seed);
-    let top = tree_levels(&public_param, seed, &OtsKey::of_index(LAYERS - 1, 0));
-    LeanSphincsPublicKey {
+/// `slh_keygen_internal`: the public key, `PK.seed` and the top tree's root, with
+/// the top tree's levels, which signing reuses.
+fn keygen(sk: &ExpandedKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
+    let top = tree_levels(sk, &OtsKey::of_index(LAYERS - 1, 0));
+    let pk = LeanSphincsPublicKey {
+        pk_seed: sk.pk_seed,
         root: top[LAYER_HEIGHTS[LAYERS - 1]][0],
-        public_param,
-    }
+    };
+    (pk, top)
 }
 
 /// `Gen`, on a fresh seed from the operating system's randomness.
@@ -301,49 +313,38 @@ pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     key_gen_from_seed(rand::random())
 }
 
-/// The randomizer of a message, `R = Th(P, A_rnd, S | m)` for the scheme seed
-/// `S`, unpredictable without it.
-pub fn randomizer(pp: &PublicParam, seed: &SchemeSeed, m: &Message) -> Randomizer {
-    th(
-        pp,
-        &tweak(TWEAK_RANDOMIZER, 0, 0),
-        [*seed.as_bytes(), *m].as_flattened(),
-    )
-}
-
-/// The bytes of a FORS key, the bottom one-time key's message.
-pub fn fors_key_bytes(key: &ForsKey) -> &[u8] {
-    key.as_flattened().as_flattened()
-}
-
 /// `Sign`. Deterministic and stateless: the digest picks the FORS instance,
 /// which opens the message, and each layer signs what the layer below gives. A
 /// key signs at most `2^30` messages (`doc/lean_sphincs`). It builds its trees on
 /// `parallel`, so never sign from inside a `parallel` task.
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    sign_with(&scheme_seed(&sk.seed), message)
+    sign_with(&expand_key(&sk.sk_seed), message)
 }
 
-/// [`sign`] with the scheme seed `seed`. It builds the FORS instance and the
-/// three trees on the way up.
-fn sign_with(seed: &SchemeSeed, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
-    let pp = &public_param(seed);
-    let rho = randomizer(pp, seed, message);
-    let (idx, leaves) = message_digest(pp, &rho, message);
-    let (fors_key, fors) = fors_open(pp, seed, idx, &leaves);
-    let mut signed = fors_key_bytes(&fors_key).to_vec();
+/// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`). It builds the top
+/// tree for `PK.root` and the top path, then the FORS instance and the two trees
+/// below.
+fn sign_with(sk: &ExpandedKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+    let (pk, mut top) = keygen(sk);
+    let r = prf_msg(&sk.sk_prf, &sk.pk_seed, message);
+    let (idx, leaves) = message_digest(&pk, &r, message);
+    let (mut signed, fors) = fors_open(sk, idx, &leaves);
     let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
     for layer in 0..LAYERS {
         let key = OtsKey::of_index(layer, idx);
-        let (counter, wots) = wots_sign(pp, seed, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
-        let levels = tree_levels(pp, seed, &key);
+        let (counter, wots) = wots_sign(sk, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        let levels = if layer == LAYERS - 1 {
+            std::mem::take(&mut top)
+        } else {
+            tree_levels(sk, &key)
+        };
         let height = LAYER_HEIGHTS[layer];
-        paths.extend((0..height).map(|level| levels[level][(key.leaf as usize >> level) ^ 1]));
+        paths.extend((0..height).map(|z| levels[z][(key.leaf as usize >> z) ^ 1]));
         layers.push(LayerSignature { counter, wots });
-        signed = levels[height][0].to_vec();
+        signed = levels[height][0];
     }
     Ok(LeanSphincsSignature {
-        randomizer: rho,
+        randomizer: r,
         fors,
         layers: layers.try_into().unwrap(),
         paths: paths.try_into().unwrap(),
@@ -353,17 +354,14 @@ fn sign_with(seed: &SchemeSeed, message: &Message) -> Result<LeanSphincsSignatur
 /// `Tree.fold`: the root a key's leaf and its path reach, showing `visit` the two
 /// children of every node on the way up.
 pub fn tree_fold(
-    pp: &PublicParam,
+    pk_seed: &PkSeed,
     key: &OtsKey,
     leaf: Digest,
     path: &[Digest],
-    mut visit: impl FnMut(&[Digest; 2]),
+    visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    let e = key.leaf as usize;
-    path.iter().enumerate().fold(leaf, |current, (level, sibling)| {
-        let children = ordered(e >> level, current, *sibling);
-        visit(&children);
-        node(pp, key, level + 1, e >> (level + 1), &children)
+    path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
+        node(pk_seed, key, z, j, pair)
     })
 }
 
@@ -373,15 +371,14 @@ pub fn verify(
     message: &Message,
     signature: &LeanSphincsSignature,
 ) -> Result<(), LeanSphincsVerifyError> {
-    let pp = &pk.public_param;
-    let (idx, leaves) = message_digest(pp, &signature.randomizer, message);
-    let fors_key = fors_recover(pp, idx, &leaves, &signature.fors, |_| ());
-    let mut signed = fors_key_bytes(&fors_key).to_vec();
+    let pk_seed = &pk.pk_seed;
+    let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
+    let mut signed = fors_recover(pk_seed, idx, &leaves, &signature.fors, |_| ());
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
-        let (_, leaf) = wots_leaf(pp, &key, &signed, layer_sig.counter, &layer_sig.wots)
+        let (_, leaf) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
-        signed = tree_fold(pp, &key, leaf, signature.path(layer), |_| ()).to_vec();
+        signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
     }
     if signed == pk.root {
         Ok(())
@@ -394,8 +391,8 @@ pub fn verify(
 mod tests {
     use super::*;
 
-    /// A known answer, byte for byte, of everything below the tag: the key whose
-    /// scheme seed is `S[i] = 37 i + 11` and its signature of `m[i] = 7 i + 3`.
+    /// A known answer, byte for byte: the key whose `SK.seed` is `S[i] = 37 i + 11`
+    /// and its signature of `m[i] = 7 i + 3`.
     #[test]
     fn known_answer() {
         let mut lines = include_str!("known_answer.hex").lines();
@@ -407,11 +404,11 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         let (pk_bytes, sig_bytes) = (unhex(), unhex());
-        let master = SchemeSeed(std::array::from_fn(|i| (37 * i + 11) as u8));
-        let pk = public_key_of(&master);
+        let sk = expand_key(&std::array::from_fn(|i| (37 * i + 11) as u8));
+        let pk = keygen(&sk).0;
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
-        let signature = sign_with(&master, &message).unwrap();
+        let signature = sign_with(&sk, &message).unwrap();
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
         assert_eq!(verify(&pk, &message, &signature), Ok(()));
     }

@@ -663,8 +663,7 @@ theorem tree_root_value (hboundary : BoundaryCorrect f parameter seed labels)
 /-! ### FORS
 
 Every FORS position is prepared. Its label is the honest value: a leaf the hash of its secret, a
-node the honest node. The scheme does not hash a tree's root: the FORS key is the two level-`(a - 1)`
-nodes of every tree (`keyLabels`). -/
+node the honest node, and `froots` the FORS public key, `T_k` of the trees' roots (`keyLabels`). -/
 
 section ForsTrees
 
@@ -723,35 +722,30 @@ theorem fnode_value (level : Nat) (hlevel : level ≤ forsHeight) (nd : FLeaf)
       congr 4
       exact Fin.ext (Nat.mod_eq_of_lt nd.isLt).symm
 
-/-- The level of a tree's two top nodes as an `fnode` level (`a - 2`: level `a - 1`). -/
-def topNodeLevel : FLevel := ⟨forsHeight - 2, by have := Params.forsHeight_ge; omega⟩
-
-/-- The FORS key as graph labels: the two level-`(a - 1)` nodes of every tree. -/
-def keyLabels : ForsKey :=
-  fun κ' => (truncateHash (labels (.fnode index κ' topNodeLevel ⟨0, Nat.two_pow_pos _⟩)),
-    truncateHash (labels (.fnode index κ' topNodeLevel ⟨1, Nat.one_lt_two_pow (by
-      have := Params.forsHeight_ge; omega)⟩)))
+/-- The FORS public key as a graph label: `T_k` of the tree roots, at `froots`. -/
+def keyLabels : Digest := truncateHash (labels (.froots index))
 
 include hconsistent in
 theorem fors_key_value :
     keyLabels labels index =
-      evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec ForsKey) := by
+      evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest) := by
   have ha := Params.forsHeight_ge
-  have hlevel : forsHeight - 2 + 1 = forsHeight - 1 := by omega
-  have h : ∀ (κ' : FTree) (nd : FLeaf) (_ : nd.val < 2),
-      truncateHash (labels (.fnode index κ' topNodeLevel nd)) =
-        Completeness.forsNodeValue f parameter index κ' seed (forsHeight - 1) nd.val := by
-    intro κ' nd hnd
-    have h1 : truncateHash (labels (.fnode index κ' topNodeLevel nd)) =
-        Completeness.forsNodeValue f parameter index κ' seed (forsHeight - 2 + 1) nd.val :=
-      fnode_value f parameter seed labels hconsistent index κ' (forsHeight - 2 + 1) (by omega) nd
-        (by rw [show forsHeight - (forsHeight - 2 + 1) = 1 by omega]; simpa using hnd)
-    rw [hlevel] at h1
-    exact h1
-  rw [Completeness.forsKey_eq]
+  rw [Completeness.forsKey_eq, Completeness.eval_forsPublicKey, keyLabels,
+    hconsistent (.froots index) trivial]
+  apply congrArg (fun input : HashInput => truncateHash (f input))
+  unfold canonicalGraphInput canonicalGraphSlots
+  simp only [Position.children, Position.domain, List.map_ofFn, rootsPayload]
+  congr 1
+  apply congrArg (fun values : List Digest => values.flatMap (bytesLE 16))
+  apply congrArg List.ofFn
   funext κ'
-  simp only [keyLabels, Completeness.topsValue]
-  rw [h κ' _ (by norm_num), h κ' _ (by norm_num)]
+  simp only [Function.comp_apply, Completeness.rootValue]
+  have h : truncateHash (labels (.fnode index κ' Position.rootLevel ⟨0, Nat.two_pow_pos _⟩)) =
+      Completeness.forsNodeValue f parameter index κ' seed (forsHeight - 1 + 1) 0 :=
+    fnode_value f parameter seed labels hconsistent index κ' (forsHeight - 1 + 1) (by omega)
+      ⟨0, Nat.two_pow_pos _⟩ (Nat.two_pow_pos _)
+  rw [show forsHeight - 1 + 1 = forsHeight by omega] at h
+  exact h
 
 /-! #### Paths -/
 

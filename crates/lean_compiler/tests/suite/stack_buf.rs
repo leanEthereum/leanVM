@@ -282,6 +282,32 @@ fn keccak_cell_past_len_is_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
+/// `pad_tail=1` hashes an 80-byte message read in place: the tail's cells past `len`,
+/// left unwritten, are set to the padding.
+#[test]
+fn keccak_pad_tail_in_place() {
+    let src = "\
+def main():
+    kids = StackBuf(5)
+    kids[0] = 4
+    kids[1] = 5
+    out = StackBuf(2)
+    keccak([1, 2], [3, kids[0]], out, tail=kids[1:5], len=80, pad_tail=1)
+    p = 1
+    p[1] = out[0]
+    p[GEN] = out[1]
+    return
+";
+    proves(src, hash_cells(&scalar_cells(1..=5)));
+}
+
+#[test]
+#[should_panic(expected = "keccak pad_tail=1 needs tail= a StackBuf slice")]
+fn keccak_pad_tail_of_a_list_is_rejected() {
+    let src = "def main():\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, tail=[5, 0, 0, 0], len=80, pad_tail=1)\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
 #[test]
 #[should_panic(expected = "keccak_cells final=0 absorbs whole cells: it takes no len=")]
 fn keccak_cells_non_final_len_is_rejected() {

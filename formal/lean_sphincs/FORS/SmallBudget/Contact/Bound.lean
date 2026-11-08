@@ -54,16 +54,8 @@ theorem cachedDigest_mono {s s' : State} (hext : Extends s s') {parameter : Publ
     (h : cachedDigest s.cache parameter root message randomness = some digest) :
     cachedDigest s'.cache parameter root message randomness = some digest := by
   unfold cachedDigest at h ⊢
-  cases h0 : Completeness.allSome (α := fun _ => HashOutput) fun call : DigestCall =>
-      s.cache (tweakableHashInput parameter (.message call)
-        (messageDigestPayload root message randomness)) with
-  | none =>
-      rw [h0] at h
-      cases h
-  | some w =>
-      rw [h0] at h
-      rw [allSome_of_eq _ w fun call => hext.1 _ _ (allSome_some h0 call)]
-      exact h
+  obtain ⟨w, h0, -⟩ := Option.map_eq_some_iff.mp h
+  rwa [allSome_of_eq _ w fun call => hext.1 _ _ (allSome_some h0 call), ← h0]
 
 /-- **A fresh cache entry keeps the event of A4**: every part of it is monotone in the cache and in
 the guesses. -/
@@ -104,7 +96,7 @@ theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List 
     {forgery : Forgery} {L : QueryLog SigningSpec} {verified : Bool}
     (h : ForsNearRecorded s T K data.root (forgery, L, verified) R) :
     1 ≤ potNF K data wbar Fail s P Ms L d budget := by
-  obtain ⟨hvalid, digest, hdig, hland, hunsigned, κ, -, hcov⟩ := h
+  obtain ⟨hvalid, digest, hdig, -, hunsigned, κ, -, hcov⟩ := h
   set q : Pair := (forgery.message, forgery.signature.randomness) with hq
   have hpb : cachedDigest s.cache K.p data.root forgery.message forgery.signature.randomness =
       (pcache K.p data q.1 s q.2).map truncateMessageDigest := rfl
@@ -118,8 +110,7 @@ theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List 
       have hdig' : truncateMessageDigest u = digest := by simpa using hdig
       subst hdig'
       have hlanded : LandedIn K.p data s q :=
-        ⟨u firstCall, cached_of_pcache K.p data (p := q) h0 firstCall,
-          by rwa [Concrete.digestIndex_truncate] at hland⟩
+        ⟨u firstCall, cached_of_pcache K.p data (p := q) h0 firstCall, landed_full _ _⟩
       have hqP := (hB.pinv.mem q).2 hlanded
       have hv : pview K.p data s q = Lifetime.localDigestView (truncateMessageDigest u) :=
         pview_of_pcache (q := q) h0

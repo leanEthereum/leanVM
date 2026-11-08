@@ -19,6 +19,9 @@ impl FnLower<'_> {
     /// `tail` omitted is none), and the message is their first `len` bytes (by default all of
     /// them, 64 bytes without `tail` and 128 with). A cell wholly past `len` must be a literal
     /// zero; the bytes past `len` in the cell where the message ends must be zero, unchecked.
+    /// `pad_tail=1` is the exception: `tail` a `StackBuf` slice and `len` ending one of its
+    /// cells, the compiler sets the slice's cells from `len` on to the padding, so the message
+    /// is read in place; the program leaves those cells unwritten (`pad_tail_in_place`).
     ///
     /// The output is the 13-cell state, its first two cells the digest. A 13-cell
     /// `out` receives it (a heap run through the stack), a 2-cell `out` just the
@@ -30,7 +33,7 @@ impl FnLower<'_> {
     /// output or those five cells). Lane 16 is in Keccak-256's 17-lane rate, but the
     /// transcript keeps it.
     fn lower_keccak(&mut self, args: &[Expr]) {
-        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap"]);
+        let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap", "pad_tail"]);
         let mut cells = self.keccak_operand(&args[0], 2);
         cells.extend(self.keccak_operand(&args[1], 2));
         if let Some(tail) = kwargs.get("tail") {
@@ -61,9 +64,44 @@ impl FnLower<'_> {
             return;
         }
         let len = self.keccak_len(&kwargs, cells.len() as u32);
+        let padded = kwargs.contains_key("pad_tail");
+        if padded {
+            self.pad_tail_in_place(&kwargs, &cells, len);
+        }
         let out = self.keccak_out(&args[2]);
-        self.emit_keccak_message(cells, Some(len), None, out.state);
+        self.emit_keccak_message(cells, Some(len), None, out.state, padded);
         self.keccak_finish(out);
+    }
+
+    /// `pad_tail=1`: set the cells of the `tail` slice from `len` on to the padding (its first
+    /// byte, then zeros), so the message is read in place instead of copied into a padded run.
+    /// The slice must be a `StackBuf`'s, `len` must end one of its cells, and `a` and `b` must
+    /// not read the cells it sets.
+    fn pad_tail_in_place(&mut self, kwargs: &HashMap<&str, &Expr>, cells: &[SpongeCell], len: u32) {
+        const TAIL: usize = 4;
+        if kwargs.get("pad_tail").and_then(|e| self.try_const_int(e)) != Some(1) {
+            self.fail("keccak pad_tail= takes 1")
+        }
+        let base = match kwargs.get("tail").map(|tail| self.try_cell_run(tail)) {
+            Some(Ok(CellRun::Stack { base, .. })) => base,
+            _ => self.fail("keccak pad_tail=1 needs tail= a StackBuf slice"),
+        };
+        let past = len as usize / 16;
+        if !len.is_multiple_of(16) || !(TAIL..cells.len()).contains(&past) {
+            self.fail(format!(
+                "keccak pad_tail=1 needs len= ending a tail cell (64, 80, 96 or 112), got {len}"
+            ))
+        }
+        let set = base + (past - TAIL) as u32..base + (cells.len() - TAIL) as u32;
+        if cells[..TAIL]
+            .iter()
+            .any(|cell| matches!(cell, SpongeCell::Cell(o) if set.contains(o)))
+        {
+            self.fail("keccak pad_tail=1: a or b reads a cell past len, which the padding sets")
+        }
+        for (k, o) in set.enumerate() {
+            self.set_const(o, if k == 0 { keccak_pad_value() } else { F192::ZERO });
+        }
     }
 
     /// `keccak_cells(cells, out, state=, len=, final=)`: the Keccak-256 of the message the
@@ -125,7 +163,7 @@ impl FnLower<'_> {
             })
         });
         let out = self.keccak_out(&args[1]);
-        self.emit_keccak_message(cells, final_len, state, out.state);
+        self.emit_keccak_message(cells, final_len, state, out.state, false);
         self.keccak_finish(out);
     }
 
@@ -224,15 +262,18 @@ impl FnLower<'_> {
     /// Emit the `KECCAK` blocks absorbing `cells` into `state` (the zero state if `None`), the
     /// last writing the 13-cell run `out`. With `final_len` the message is the cells' first
     /// `final_len` bytes, padded; without, the cells zero-extended to whole blocks.
+    /// `padded`: the cells past `final_len` already hold the padding's first byte and zeros
+    /// (`pad_tail_in_place`).
     fn emit_keccak_message(
         &mut self,
         mut cells: Vec<SpongeCell>,
         final_len: Option<u32>,
         state: Option<Off>,
         out: Off,
+        padded: bool,
     ) {
         let blocks = match final_len {
-            Some(len) => len as usize / RATE + 1,
+            Some(len) => primitives::hash::permutations(len as usize),
             None => (16 * cells.len()).div_ceil(RATE),
         };
         // Block `k` reads the nine cells from `17k / 2`.
@@ -243,13 +284,15 @@ impl FnLower<'_> {
         if let Some(len) = final_len {
             // A cell wholly past the message would be absorbed (or, past the last block,
             // dropped) as if it were part of it.
-            let past = (len as usize).div_ceil(16);
-            if let Some(k) = (past..cells.len()).find(|&k| !matches!(cells[k], SpongeCell::Zero)) {
-                self.fail(format!(
-                    "keccak len= {len} ends before message cell {k}, which is not a literal 0"
-                ))
+            if !padded {
+                let past = (len as usize).div_ceil(16);
+                if let Some(k) = (past..cells.len()).find(|&k| !matches!(cells[k], SpongeCell::Zero)) {
+                    self.fail(format!(
+                        "keccak len= {len} ends before message cell {k}, which is not a literal 0"
+                    ))
+                }
+                self.xor_byte(&mut cells, len as usize, primitives::hash::PAD_FIRST);
             }
-            self.xor_byte(&mut cells, len as usize, primitives::hash::PAD_FIRST);
             self.xor_byte(&mut cells, blocks * RATE - 1, primitives::hash::PAD_LAST);
         }
         // Block `k` is read in the layout of its parity, so each block's output is written in

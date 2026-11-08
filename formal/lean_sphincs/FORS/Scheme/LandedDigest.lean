@@ -6,8 +6,8 @@ import FORS.Scheme.Landing
 section
 
 /-!
-The candidate's message-digest calls: the first `h + k a` bits of their concatenation are the digest,
-so uniform calls give the uniform digest law.
+The candidate's message-digest calls: FIPS 205's Algorithm 19 reads every digest bit from a distinct bit of
+their bytes, so uniform calls give the uniform digest law.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -27,7 +27,7 @@ theorem evalDist_digestBlock_uniform :
 /-- The exact byte string queried for a digest call. -/
 abbrev digestInput (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) : HashInput :=
-  tweakableHashInput parameter (.message call) (messageDigestPayload root message randomness)
+  messageDigestInput parameter root message randomness call
 
 end FORS.Security
 
@@ -36,7 +36,7 @@ end
 section
 
 /-!
-The kept view of a digest (its local index in the pruned subtree and the leaves of all `k` trees), and
+The kept view of a digest (its local index in the kept subtree and the leaves of all `k` trees), and
 the law of a fresh uniform digest that lands: landing with a kept view in a set costs exactly the
 reciprocal number of subtrees times the uniform probability of that set.
 -/

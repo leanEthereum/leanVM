@@ -3,10 +3,10 @@ import FORS.Statement
 import FORS.Base.Prelude
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 
-/-! Finite fresh-table preparation and the candidate's parameter-dependent derivation table.
-Preparation explicitly performs
-oracle queries; later theorems relate it to independent full-output material and its programmed
-cache. Preparation is not silently counted as part of an adversary's existing query budget. -/
+/-! Finite fresh-table preparation: `PK.seed`, the secrets' parameter-dependent derivations and
+`SK.prf`. Preparation explicitly performs oracle queries; later theorems relate it to independent
+full-output material and its programmed cache. Preparation is not silently counted as part of an
+adversary's existing query budget. -/
 
 open OracleComp OracleSpec
 
@@ -214,189 +214,67 @@ set_option backward.isDefEq.respectTransparency false
 
 noncomputable local instance : SampleableType SecretOutputs := secretOutputsSampleableType
 
-/-- Uniform tables of derivation answers. -/
-@[reducible] noncomputable def derivedOutputsSampleableType : SampleableType DerivedOutputs :=
-  SampleableType.ofFintype DerivedOutputs
-
-noncomputable local instance : SampleableType DerivedOutputs := derivedOutputsSampleableType
-
-/-! ### Uniform material gives uniform derivation answers
-
-The answer of a derivation is made of the first halves of the material at its two secrets (chain
-starts or FORS leaves), or is the material at a surrogate, and distinct derivations read distinct
-positions. Each table of answers therefore comes from the same number of materials: one free second
-half per secret. -/
-
-/-- A map all of whose fibres have one size sends the uniform distribution to the uniform
-distribution. -/
-theorem evalDist_map_uniform_of_fiber {A B : Type} [Fintype A] [Nonempty A] [Fintype B]
-    [DecidableEq B] [SampleableType A] [SampleableType B] (g : A → B) (k : ℕ)
-    (hk : ∀ b, (Finset.univ.filter fun a => g a = b).card = k) :
-    𝒟[g <$> ($ᵗ A : ProbComp A)] = 𝒟[($ᵗ B : ProbComp B)] := by
-  have hcard : Fintype.card A = Fintype.card B * k := by
-    have h := Finset.card_eq_sum_card_fiberwise (f := g) (s := Finset.univ) (t := Finset.univ)
-      (fun a _ => Finset.mem_univ _)
-    rw [Finset.card_univ] at h
-    rw [h]
-    simp only [hk, Finset.sum_const, Finset.card_univ, smul_eq_mul]
-  have hk0 : k ≠ 0 := by
-    intro h0
-    have hpos : 0 < Fintype.card A := Fintype.card_pos
-    rw [hcard, h0, Nat.mul_zero] at hpos
-    exact lt_irrefl 0 hpos
-  apply evalDist_ext
-  intro b
-  rw [← probEvent_eq_eq_probOutput, probEvent_map,
-    show ((fun x => x = b) ∘ g) = fun a => g a = b from rfl, probEvent_uniformSample, hk,
-    probOutput_uniformSample, hcard, Nat.cast_mul, div_eq_mul_inv,
-    ENNReal.mul_inv (Or.inr (ENNReal.natCast_ne_top _)) (Or.inl (ENNReal.natCast_ne_top _)),
-    mul_comm, mul_assoc,
-    ENNReal.inv_mul_cancel (Nat.cast_ne_zero.mpr hk0) (ENNReal.natCast_ne_top _), mul_one]
-
-/-- The hash outputs with a given first half: one per second half. The count is the same for every
-first half. (It is kept as a variable below: a closed count such as `2^128` as the cardinality of a
-type must never be evaluated.) -/
-theorem card_filter_truncateHash (value : Digest)
-    [DecidablePred fun output : HashOutput => truncateHash output = value] :
-    (Finset.univ.filter fun output : HashOutput => truncateHash output = value).card =
-      (Finset.univ : Finset Digest).card := by
-  have h : (Finset.univ.filter fun output : HashOutput => truncateHash output = value) =
-      (Finset.univ : Finset Digest).map
-        ⟨joinHalves value, fun left right heq => by
-          have := congrArg upperHash heq
-          rwa [upperHash_joinHalves, upperHash_joinHalves] at this⟩ := by
-    ext output
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_map,
-      Function.Embedding.coeFn_mk]
-    constructor
-    · rintro rfl
-      exact ⟨upperHash output, joinHalves_halves output⟩
-    · rintro ⟨high, rfl⟩
-      exact truncateHash_joinHalves value high
-  rw [h, Finset.card_map]
-
-/-- The number of values a table of answers allows at one secret position, with `count` hash
-outputs per first half. -/
-def fiberSize (count : ℕ) : SecretPosition → ℕ
-  | .inl _ => count
-  | .inr (.inl _) => count
-  | .inr (.inr _) => 1
-
-instance compatibleDecidable (table : DerivedOutputs) (position : SecretPosition) (value : HashOutput) :
-    Decidable (Compatible table position value) :=
-  match position with
-  | .inl p => inferInstanceAs
-      (Decidable (truncateHash value = secretHalf (.inl p) (table (secretDerivation (.inl p)))))
-  | .inr (.inl p) => inferInstanceAs
-      (Decidable (truncateHash value = secretHalf (.inr (.inl p)) (table (secretDerivation (.inr (.inl p))))))
-  | .inr (.inr level) => inferInstanceAs (Decidable (value = table (.inr (.inr level))))
-
-theorem card_compatible (count : ℕ)
-    (hcount : ∀ value : Digest,
-      (Finset.univ.filter fun output : HashOutput => truncateHash output = value).card = count)
-    (table : DerivedOutputs) (position : SecretPosition) :
-    (Finset.univ.filter fun value : HashOutput => Compatible table position value).card =
-      fiberSize count position := by
-  cases position with
-  | inl p =>
-      simp only [fiberSize]
-      rw [← hcount (secretHalf (.inl p) (table (secretDerivation (.inl p))))]
-      exact congrArg Finset.card (Finset.filter_congr fun value _ => Iff.rfl)
-  | inr p =>
-      cases p with
-      | inl p =>
-          simp only [fiberSize]
-          rw [← hcount (secretHalf (.inr (.inl p)) (table (secretDerivation (.inr (.inl p)))))]
-          exact congrArg Finset.card (Finset.filter_congr fun value _ => Iff.rfl)
-      | inr level =>
-          simp only [fiberSize]
-          rw [Finset.card_eq_one]
-          refine ⟨table (.inr (.inr level)), ?_⟩
-          ext value
-          simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton]
-          exact Iff.rfl
-
-/-- Every table of answers comes from the same number of materials. -/
-theorem card_fiber_derivedOutput (count : ℕ)
-    (hcount : ∀ value : Digest,
-      (Finset.univ.filter fun output : HashOutput => truncateHash output = value).card = count)
-    (table : DerivedOutputs)
-    [DecidablePred fun outputs : SecretOutputs => derivedOutput outputs = table] :
-    (Finset.univ.filter fun outputs : SecretOutputs => derivedOutput outputs = table).card =
-      ∏ position, fiberSize count position := by
-  have h : (Finset.univ.filter fun outputs : SecretOutputs => derivedOutput outputs = table) =
-      Fintype.piFinset (fun position => Finset.univ.filter fun value => Compatible table position value) := by
-    ext outputs
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset,
-      derivedOutput_eq_iff]
-  rw [h, Fintype.card_piFinset]
-  exact Finset.prod_congr rfl fun position _ => card_compatible count hcount table position
-
-/-- **The secrets are still independent and uniform.** The answers of the derivations, read off
-uniform material, are a uniform table: one uniform 256-bit answer per derivation. Conversely, the
-two halves of an answer are the secrets of its pair of chains, so uniform independent answers of
-distinct derivations give independent uniform secrets. -/
-theorem evalDist_derivedOutput_uniform :
-    𝒟[derivedOutput <$> ($ᵗ SecretOutputs : ProbComp SecretOutputs)] =
-      𝒟[($ᵗ DerivedOutputs : ProbComp DerivedOutputs)] := by
-  obtain ⟨count, hcount⟩ : ∃ count : ℕ, ∀ value : Digest,
-      (Finset.univ.filter fun output : HashOutput => truncateHash output = value).card = count :=
-    ⟨_, fun value => card_filter_truncateHash value⟩
-  exact evalDist_map_uniform_of_fiber derivedOutput _
-    (fun table => card_fiber_derivedOutput count hcount table)
-
-/-- After the parameter response, all remaining addresses are fixed independently of their
-own answers: one address per derivation. The complete 256-bit responses are stored. -/
+/-- After the parameter response, the secrets' addresses are fixed independently of their own
+answers: one derivation per secret. The complete 256-bit responses are stored. -/
 def derivationInputs (seed : MasterSeed) (parameterOutput : HashOutput)
-    (derivation : Derivation) : HashInput :=
-  keygenHashInput (truncateHash parameterOutput) (derivationDomain derivation) seed
+    (position : SecretPosition) : HashInput :=
+  keygenHashInput (truncateHash parameterOutput) (secretDomain position) seed
 
 theorem derivationInputs_injective (seed : MasterSeed) (parameterOutput : HashOutput) :
     Function.Injective (derivationInputs seed parameterOutput) := by
   intro left right h
-  exact derivationDomain_injective (keygenInput_injective h).2.1
+  exact secretDomain_injective (keygenInput_injective h).2.1
 
 theorem derivationInputs_ne_parameter (seed : MasterSeed) (parameterOutput : HashOutput)
-    (derivation : Derivation) : derivationInputs seed parameterOutput derivation ≠ parameterInput seed := by
-  intro h
-  exact derivationDomain_ne_parameter derivation (keygenInput_injective h).2.1
+    (position : SecretPosition) : derivationInputs seed parameterOutput position ≠ parameterInput seed :=
+  fun h => keySeedInput_ne_keygenHashInput seed seed 0 _ _ h.symm
+
+theorem derivationInputs_ne_prf (seed : MasterSeed) (parameterOutput : HashOutput)
+    (position : SecretPosition) : derivationInputs seed parameterOutput position ≠ prfInput seed :=
+  fun h => keySeedInput_ne_keygenHashInput seed seed 1 _ _ h.symm
 
 /-- The sequential finite-cache construction implements exactly the candidate programming map. -/
 theorem cacheTable_eq_programCache (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) :
-    cacheTable (base.cacheQuery (parameterInput seed) material.1)
-      (derivationInputs seed material.1) (derivedOutput material.2) = programCache base seed material := by
+    (cacheTable (base.cacheQuery (parameterInput seed) (parameterOutput material))
+      (derivationInputs seed (parameterOutput material)) material.2).cacheQuery (prfInput seed) (prf material) =
+      programCache base seed material := by
   classical
   funext input
+  by_cases hprf : input = prfInput seed
+  · subst input
+    rw [QueryCache.cacheQuery_self, programCache_prf]
+  rw [QueryCache.cacheQuery_of_ne _ _ hprf]
   by_cases hp : input = parameterInput seed
   · subst input
     rw [cacheTable_apply_of_not_mem _ _ _ _
-      (fun derivation => (derivationInputs_ne_parameter seed material.1 derivation).symm)]
+      (fun position => (derivationInputs_ne_parameter seed (parameterOutput material) position).symm)]
     rw [QueryCache.cacheQuery_self, programCache_parameter]
-  · by_cases hs : ∃ derivation, input = derivationInputs seed material.1 derivation
-    · obtain ⟨derivation, rfl⟩ := hs
-      rw [cacheTable_apply _ _ (derivationInputs_injective seed material.1)]
-      exact (programCache_derivation base seed material derivation).symm
+  · by_cases hs : ∃ position, input = derivationInputs seed (parameterOutput material) position
+    · obtain ⟨position, rfl⟩ := hs
+      rw [cacheTable_apply _ _ (derivationInputs_injective seed (parameterOutput material))]
+      exact (programCache_secret base seed material position).symm
     · rw [cacheTable_apply_of_not_mem _ _ _ _ (by simpa only [not_exists] using hs),
-        QueryCache.cacheQuery_of_ne _ _ hp, programCache_other _ _ _ _ hp]
+        QueryCache.cacheQuery_of_ne _ _ hp, programCache_other _ _ _ _ hp hprf]
       intro position heq
-      exact hs ⟨secretDerivation position, heq⟩
+      exact hs ⟨position, heq⟩
 
-/-- Explicitly query the parameter first and then every derivation at that parameter. -/
-noncomputable def prepareTable (seed : MasterSeed) : OracleComp HashSpec (HashOutput × DerivedOutputs) := do
+/-- Explicitly query `PK.seed`'s input, then every secret's derivation at that parameter, then
+`SK.prf`'s input: the order of `sampleMaterial`. -/
+noncomputable def prepareTable (seed : MasterSeed) : OracleComp HashSpec Material := do
   let parameterOutput ← liftM (HashSpec.query (parameterInput seed))
   let outputs ← queryTable (derivationInputs seed parameterOutput)
-  return (parameterOutput, outputs)
+  let prf ← liftM (HashSpec.query (prfInput seed))
+  return ((parameterOutput, prf), outputs)
 
 attribute [local irreducible] cacheTable cacheFin programCache
 
-/-- Exact joint distribution of the queried table and the cache: the answers of the derivations of
-independently sampled material and its full programmed cache.
+/-- Exact joint distribution of the queried table and the cache: independently sampled material
+and its full programmed cache.
 No assertion about an arbitrary preexisting honest cache is needed: preparation starts empty. -/
 theorem evalDist_prepareTable (seed : MasterSeed) :
     𝒟[(simulateQ randomOracle (prepareTable seed)).run ∅] =
-      𝒟[(fun material => ((material.1, derivedOutput material.2), programCache ∅ seed material)) <$>
-        sampleMaterial] := by
+      𝒟[(fun material => (material, programCache ∅ seed material)) <$> sampleMaterial] := by
   unfold prepareTable
   simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
   rw [QueryImpl.withCaching_run_none _ (by rfl)]
@@ -404,22 +282,31 @@ theorem evalDist_prepareTable (seed : MasterSeed) :
     sampleMaterial, map_bind]
   apply evalDist_bind_congr'
   intro parameterOutput
-  have hfresh : ∀ derivation, ((∅ : QueryCache HashSpec).cacheQuery
-      (parameterInput seed) parameterOutput) (derivationInputs seed parameterOutput derivation) = none := by
-    intro derivation
-    rw [QueryCache.cacheQuery_of_ne _ _ (derivationInputs_ne_parameter seed parameterOutput derivation)]
+  have hfresh : ∀ position, ((∅ : QueryCache HashSpec).cacheQuery
+      (parameterInput seed) parameterOutput) (derivationInputs seed parameterOutput position) = none := by
+    intro position
+    rw [QueryCache.cacheQuery_of_ne _ _ (derivationInputs_ne_parameter seed parameterOutput position)]
     rfl
   have htable := evalDist_queryTable_fresh (R := HashOutput)
     (derivationInputs seed parameterOutput) (derivationInputs_injective seed parameterOutput)
     ((∅ : QueryCache HashSpec).cacheQuery (parameterInput seed) parameterOutput) hfresh
-  rw [evalDist_map, htable, evalDist_map, ← evalDist_derivedOutput_uniform, ← evalDist_map,
-    ← evalDist_map, Functor.map_map, Functor.map_map, Functor.map_map]
+  rw [evalDist_bind, htable, ← evalDist_bind, bind_map_left]
+  apply evalDist_bind_congr'
+  intro outputs
+  have hprf : (cacheTable ((∅ : QueryCache HashSpec).cacheQuery (parameterInput seed) parameterOutput)
+      (derivationInputs seed parameterOutput) outputs) (prfInput seed) = none := by
+    rw [cacheTable_apply_of_not_mem _ _ _ _
+      (fun position => (derivationInputs_ne_prf seed parameterOutput position).symm),
+      QueryCache.cacheQuery_of_ne _ _ (prfInput_ne_parameterInput seed)]
+    rfl
+  dsimp only
+  rw [QueryImpl.withCaching_run_none _ hprf]
+  simp only [Functor.map_map]
   apply congrArg evalDist
-  apply congrArg (fun g => g <$> ($ᵗ SecretOutputs))
-  funext outputs
-  dsimp only [Function.comp_apply]
-  exact congrArg (fun cache : QueryCache HashSpec => ((parameterOutput, derivedOutput outputs), cache))
-    (cacheTable_eq_programCache (∅ : QueryCache HashSpec) seed (parameterOutput, outputs))
+  apply congrArg (fun g => g <$> ($ᵗ HashOutput))
+  funext prf
+  exact congrArg (fun cache : QueryCache HashSpec => (((parameterOutput, prf), outputs), cache))
+    (cacheTable_eq_programCache (∅ : QueryCache HashSpec) seed ((parameterOutput, prf), outputs))
 
 theorem run'_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α)
@@ -552,9 +439,9 @@ theorem evalDist_prepared_continuation {α : Type} (computation : OracleComp Ora
       𝒟[sampleMaterial >>= fun material =>
         (simulateQ romImpl computation).run' (programCache ∅ seed material)] := by
   rw [evalDist_presample_computation computation
-    (liftM (prepareTable seed) : OracleComp OracleWorld (HashOutput × DerivedOutputs)) ∅,
+    (liftM (prepareTable seed) : OracleComp OracleWorld Material) ∅,
     simulate_lift_hash]
-  trans 𝒟[((fun material => ((material.1, derivedOutput material.2), programCache ∅ seed material)) <$>
+  trans 𝒟[((fun material => (material, programCache ∅ seed material)) <$>
       sampleMaterial) >>= fun result => (simulateQ romImpl computation).run' result.2]
   · rw [evalDist_bind, evalDist_prepareTable, evalDist_bind]
   · rw [bind_map_left]

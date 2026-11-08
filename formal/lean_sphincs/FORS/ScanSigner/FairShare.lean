@@ -22,9 +22,9 @@ set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
-/-- A message-digest input, for any public parameter and payload. -/
+/-- A message-digest input, for any public parameter, root, message, randomizer and call. -/
 def IsMsgInput (input : HashInput) : Prop :=
-  ∃ parameter call payload, input = tweakableHashInput parameter (.message call) payload
+  ∃ parameter root message randomness call, input = messageDigestInput parameter root message randomness call
 
 /-- No query of a hash computation is a message-digest input. -/
 def NoMsg {α : Type} (computation : OracleComp HashSpec α) : Prop :=
@@ -44,34 +44,32 @@ theorem NoMsg.query {input : HashInput} (h : ¬IsMsgInput input) :
   exact fun hm => absurd hm h
 
 theorem not_msg_tweakable (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput)
-    (hdomain : (hashDomainFields domain).tag ≠ 12) : ¬IsMsgInput (tweakableHashInput parameter domain payload) := by
-  rintro ⟨parameter', call', payload', heq⟩
-  have h := (tweakableInput_injective heq).1
-  apply hdomain
-  rw [h]
-  rfl
+    (hpayload : payload.length ≠ 36) : ¬IsMsgInput (tweakableHashInput parameter domain payload) := by
+  rintro ⟨parameter', root, message, randomness, call, heq⟩
+  exact messageDigestInput_ne_tweakableHashInput parameter' parameter root message randomness call domain
+    hpayload heq.symm
 
 theorem NoMsg.tweakableHash (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput)
-    (hdomain : (hashDomainFields domain).tag ≠ 12) :
+    (hpayload : payload.length ≠ 36) :
     NoMsg (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest) := by
   unfold Concrete.tweakableHash
-  exact NoMsg.bind (NoMsg.query (not_msg_tweakable parameter domain payload hdomain)) fun _ => NoMsg.pure' _
+  exact NoMsg.bind (NoMsg.query (not_msg_tweakable parameter domain payload hpayload)) fun _ => NoMsg.pure' _
 
 theorem NoMsg.encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : HashInput) (counter : Counter) :
+    (message : HashInput) (hmessage : message.length = 16) (counter : Counter) :
     NoMsg (Concrete.encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
   unfold Concrete.encode
-  exact NoMsg.bind (NoMsg.tweakableHash _ _ _ (by simp [hashDomainFields, treeFields])) fun _ => NoMsg.pure' _
+  exact NoMsg.bind (NoMsg.tweakableHash _ _ _ (by simp [hmessage, bytesBE_length])) fun _ => NoMsg.pure' _
 
 theorem NoMsg.search (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : HashInput) : ∀ attempts start,
+    (message : HashInput) (hmessage : message.length = 16) : ∀ attempts start,
     NoMsg (ReferenceChoice.search parameter lay tree leaf message attempts start)
   | 0, _ => NoMsg.pure' _
   | attempts + 1, start => by
       rw [ReferenceChoice.search]
-      refine NoMsg.bind (NoMsg.encode _ _ _ _ _ _) fun found => ?_
+      refine NoMsg.bind (NoMsg.encode _ _ _ _ _ hmessage _) fun found => ?_
       cases found with
-      | none => exact NoMsg.search parameter lay tree leaf message attempts (start + 1)
+      | none => exact NoMsg.search parameter lay tree leaf message hmessage attempts (start + 1)
       | some _ => exact NoMsg.pure' _
 
 end FORS.Security.ForsSigner
@@ -213,7 +211,7 @@ attribute [local instance] Classical.propDecidable
 /-- The final assembly after its digest call. -/
 noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (_message : Message)
     (randomness : Randomness) (digest : MessageDigest) : OracleComp CostSpec (Option Signature) := do
-  HiddenCost.tick (forsTrees * treeOpenCost)
+  HiddenCost.tick (forsTrees * treeOpenCost + forsRecoverCost)
   let index := digestIndex digest
   let some found ← sequenceDep (α := fun _ => Counter × Encoding) (layerCostSearch parameter data index)
     | return none
@@ -245,7 +243,7 @@ theorem finishCostSource_eq (parameter : PublicParameter) (data : PublicData) (m
 theorem msgInput_digestInput (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : DigestCall) :
     IsMsgInput (Security.digestInput parameter root message randomness call) :=
-  ⟨parameter, call, _, rfl⟩
+  ⟨parameter, root, message, randomness, call, rfl⟩
 
 /-- A FORS opening reveals its secret and its leaf value, and reads the public path. -/
 theorem avoids_treeCostSource (avoid : HashInput → Prop) (data : PublicData) (index : Index)
@@ -259,18 +257,20 @@ theorem avoids_sequenceDep (avoid : HashInput → Prop) : ∀ {n : Nat} {α : Fi
   | 0, _, _, _ => avoids_pure _ _
   | _ + 1, α, computation, h => by
       unfold sequenceDep
-      refine avoids_bind _ (h 0) fun head => ?_
+      refine avoids_bind _ (h (Fin.last _)) fun head => ?_
       rcases head with _ | head
       · exact avoids_pure _ _
-      · refine avoids_bind _ (avoids_sequenceDep avoid (α := fun i => α i.succ) fun i => h i.succ)
+      · refine avoids_bind _ (avoids_sequenceDep avoid (α := fun i => α i.castSucc) fun i => h i.castSucc)
           fun tail => ?_
         rcases tail with _ | tail <;> exact avoids_pure _ _
 
 theorem avoids_layerCostSearch (parameter : PublicParameter) (data : PublicData) (index : Index)
     (lay : Layer) : Avoids IsMsgInput (layerCostSearch parameter data index lay) := by
   unfold layerCostSearch layerSearch
-  refine avoids_bind _ (avoids_tick _ _) fun _ => ?_
-  refine avoids_bind _ (avoids_liftHash _ _ (NoMsg.search _ _ _ _ _ _ _)) fun found => ?_
+  have hmessage : (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)).length = 16 := by
+    unfold PublicData.keyMessage
+    split <;> simp only [rootPayload, bytesLE_length]
+  refine avoids_bind _ (avoids_liftHash _ _ (NoMsg.search _ _ _ _ _ hmessage _ _)) fun found => ?_
   rcases found with _ | pair
   · exact avoids_pure _ _
   · exact avoids_bind _ (avoids_tick _ _) fun _ => avoids_pure _ _
@@ -327,8 +327,7 @@ abbrev pblk (parameter : PublicParameter) (data : PublicData) (message : Message
 theorem pblk_injective (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) : Function.Injective (pblk parameter data message randomness) := by
   intro call call' heq
-  simpa using hashFields_injective (left := .message call) (right := .message call') trivial trivial
-    (tweakableInput_injective heq).1
+  exact (Security.messageDigestInput_injective heq).2.2.2.2
 
 /-- The blocks of a pair, once the run has cached them all. -/
 noncomputable def pcache (parameter : PublicParameter) (data : PublicData) (message : Message)
@@ -381,7 +380,7 @@ theorem fresh_view_mean (parameter : PublicParameter) (gf : Lifetime.KeptDigestV
         ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] * φ digest := by
     rw [tsum_probOutput_map_mul]
     refine tsum_congr fun u => ?_
-    simp only [φ, viewOf, digestIndex_truncate]
+    simp only [φ, viewOf, landed_full, if_true]
   rw [hsplit]
   have huni : ∀ digest, Pr[= digest | truncateMessageDigest <$>
       ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] =
@@ -477,14 +476,9 @@ noncomputable def landedCount (state : DebtState HashInput HashOutput Coordinate
   (Finset.univ.filter fun ρ : Randomness => ∃ u0, state.cache (blk parameter data message ρ) = some u0 ∧
     Landed parameter (blockIndex u0)).card
 
-theorem payload_randomness_injective (root : Digest) (message : Message) {ρ ρ' : Randomness}
-    (h : messageDigestPayload root message ρ = messageDigestPayload root message ρ') : ρ = ρ' := by
-  have hparts := List.append_inj h (by simp [bytesLE_length])
-  exact bytesLE_injective hparts.2
-
 theorem blk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') :
     blk parameter data message ρ ≠ blk parameter data message ρ' := fun heq =>
-  h (payload_randomness_injective data.root message (tweakableInput_injective heq).2.2)
+  h (Security.messageDigestInput_injective heq).2.2.2.1
 
 theorem related_store (reference state : DebtState HashInput HashOutput Coordinate)
     (hrel : Related parameter data message reference state) (ρ : Randomness)

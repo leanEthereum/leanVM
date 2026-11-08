@@ -84,9 +84,11 @@ theorem same_word_target (message : HashInput) (counter : Counter)
     (Wots.decode_of_encode f parameter lay tree leaf message counter _ h)
     (target_decodes f parameter lay tree leaf referenceMessage)
 
-/-- One target per encoding tweak; the canonical successful input is its only exemption. -/
+/-- One target per encoding tweak; the canonical successful input is its only exemption. The
+message has 16 bytes, as every verifier's: this keeps the input away from the message-digest
+inputs, which only a 32-byte message could spell. -/
 def EncodingMatch (trace : List HashInput) : Prop :=
-  ∃ message counter,
+  ∃ message counter, message.length = 16 ∧
     exemptInput f parameter lay tree leaf referenceMessage ≠
       some (Wots.encodingInput parameter lay tree leaf message counter) ∧
     Wots.encodingInput parameter lay tree leaf message counter ∈ trace ∧
@@ -96,7 +98,7 @@ def EncodingMatch (trace : List HashInput) : Prop :=
 /-- This classification needs no successful honest signature or counter at the leaf. If
 canonical encoding exhausts, recovering the dummy word instead supplies an encoding match. -/
 theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : HashInput)
-    (counter : Counter) (values : ChainIndex → Digest) (candidate : Encoding) (trace : List HashInput)
+    (hmessage : message.length = 16) (counter : Counter) (values : ChainIndex → Digest) (candidate : Encoding) (trace : List HashInput)
     (hencode : evalWithAnswerFn f (encode parameter lay tree leaf message counter :
       OracleComp HashSpec (Option Encoding)) = some candidate)
     (hrun : ContainsRun f trace (otsLeaf parameter lay tree leaf message counter values))
@@ -113,7 +115,7 @@ theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : HashI
     Wots.ChainException f parameter lay tree leaf
       (word f parameter lay tree leaf referenceMessage) secret trace := by
   rcases Wots.otsLeaf_classification f parameter lay tree leaf
-      (word f parameter lay tree leaf referenceMessage) secret message counter values candidate trace
+      (word f parameter lay tree leaf referenceMessage) secret message hmessage counter values candidate trace
       (word_valid f parameter lay tree leaf referenceMessage) hencode hrun hleaf with
     ⟨hword, hvalues⟩ | hmatch | hchain
   · have ht := same_word_target f parameter lay tree leaf referenceMessage message counter
@@ -129,7 +131,7 @@ theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : HashI
           obtain ⟨hm, hc⟩ := Wots.encodingInput_injective parameter lay tree leaf hi
           refine Or.inl ⟨pair.1, ?_, hm.symm, hc.symm, hvalues⟩
           rw [word_of_some f parameter lay tree leaf referenceMessage pair.1 pair.2 hs]
-    · exact Or.inr (Or.inl ⟨message, counter, he,
+    · exact Or.inr (Or.inl ⟨message, counter, hmessage, he,
         hrun.bind_left _ (Wots.encode_query_mem f parameter lay tree leaf message counter), ht⟩)
   · exact Or.inr (Or.inr (Or.inl hmatch))
   · exact Or.inr (Or.inr (Or.inr hchain))

@@ -1,7 +1,7 @@
 import FORS.Scheme.Domains
 
 /-!
-Exact derivation-input parsing and hidden-seed guessing. An input names at most one seed, so it
+Exact seed-input parsing and hidden-seed guessing. An input names at most one seed, so it
 names a uniform seed with probability at most `2^-256`. In the adaptive guessing experiment the
 seed is sampled independently of the strategy's initial state and private randomness, and the
 strategy learns only whether each selected input names that seed.
@@ -16,19 +16,23 @@ variable [Params]
 attribute [local instance] Classical.propDecidable
 set_option maxRecDepth 10000
 
-/-- This complete byte input is a candidate derivation query naming the given master seed. -/
+/-- This complete byte input names the given master seed: a derivation of it, or a hash of
+`leanSPHINCS || seed || d` (`PK.seed` at `d = 0`, `SK.prf` at `d = 1`). -/
 def SeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
-  ∃ parameter domain, keygenHashInput parameter domain seed = input
+  (∃ parameter domain, keygenHashInput parameter domain seed = input) ∨ ∃ domain, keySeedInput seed domain = input
 
-/-- Whatever derivation address an input uses, it can name at most one 256-bit seed. -/
+/-- An input names at most one 256-bit seed. -/
 theorem seedHit_unique {input : HashInput} {seed seed' : MasterSeed}
     (h : SeedHit input seed) (h' : SeedHit input seed') : seed = seed' := by
-  obtain ⟨parameter, domain, heq⟩ := h
-  obtain ⟨parameter', domain', heq'⟩ := h'
-  exact (keygenInput_injective (heq.trans heq'.symm)).2.2
+  rcases h with ⟨parameter, domain, rfl⟩ | ⟨domain, rfl⟩ <;>
+    rcases h' with ⟨parameter', domain', heq⟩ | ⟨domain', heq⟩
+  · exact (keygenInput_injective heq.symm).2.2
+  · exact absurd heq (keySeedInput_ne_keygenHashInput _ _ _ _ _)
+  · exact absurd heq.symm (keySeedInput_ne_keygenHashInput _ _ _ _ _)
+  · exact (bytesLE_injective (List.append_cancel_left (List.append_inj' heq rfl).1)).symm
 
-/-- Exact logical parser for derivation inputs. Invalid inputs produce `none`; valid inputs
-produce the unique seed whose actual 32-byte little-endian serialization occupies the payload. -/
+/-- Exact logical parser for seed inputs. Invalid inputs produce `none`; valid inputs produce the
+unique seed whose 32-byte little-endian serialization they carry. -/
 noncomputable def parseSeed (input : HashInput) : Option MasterSeed :=
   if h : ∃ seed, SeedHit input seed then some (Classical.choose h) else none
 

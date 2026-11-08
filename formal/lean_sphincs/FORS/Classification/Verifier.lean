@@ -2,8 +2,8 @@ import FORS.Classification.Chain
 import FORS.Scheme.Correctness
 
 /-! The verifier's walk up the layers exposes, at every layer, its WOTS+C leaf and its Merkle fold in
-its query trace: the bottom layer's key signs the recovered FORS key, each layer above signs the
-fold of the layer below, and the top layer's fold is the public root. -/
+its query trace: the bottom layer's key signs `T_k` of the recovered FORS roots, each layer above signs
+the fold of the layer below, and the top layer's fold is the public root. -/
 
 open OracleComp OracleSpec
 
@@ -14,7 +14,7 @@ variable [Params]
 open Concrete
 
 attribute [local semireducible] Concrete.verify
-attribute [local irreducible] messageDigest forsRecover otsLeaf treeFold
+attribute [local irreducible] messageDigest forsRecover forsPublicKey otsLeaf treeFold
 
 theorem layerUp_top : layerUp (numLayers - 1) = topLayer := by
   apply Fin.ext
@@ -24,8 +24,9 @@ theorem verify_eq_layers (pk : PublicKey) (message : Message) (signature : Signa
     (Concrete.verify pk message signature : OracleComp HashSpec Bool) = (do
       let digest ← messageDigest pk.parameter pk.root message signature.randomness
       let index := digestIndex digest
-      let fts ← forsRecover pk.parameter index (digestLeaves digest) signature.fors
-      let some root ← verifyLayers pk.parameter index signature numLayers (rootsPayload fts)
+      let roots ← forsRecover pk.parameter index (digestLeaves digest) signature.fors
+      let forsKey ← forsPublicKey pk.parameter index roots
+      let some root ← verifyLayers pk.parameter index signature numLayers (rootPayload forsKey)
         | return false
       return decide (root = pk.root)) := rfl
 
@@ -35,7 +36,7 @@ def verificationDigest (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : M
   evalWithAnswerFn f (messageDigest pk.parameter pk.root message signature.randomness :
     OracleComp HashSpec MessageDigest)
 
-/-- The candidate FORS key recovered before WOTS verification. -/
+/-- The candidate FORS roots recovered before WOTS verification. -/
 def verificationFors (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
     (signature : Signature) : ForsKey :=
   let digest := verificationDigest f pk message signature
@@ -59,10 +60,10 @@ def layerFold (lay : Layer) (value : Digest) : Digest :=
   evalWithAnswerFn f (treeFold parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
     (signaturePath signature lay) (layerHeight lay) value : OracleComp HashSpec Digest)
 
-/-- The message the verifier gives the key of the layer `k` steps above the bottom: the FORS key
-at the bottom, then the fold of the layer below. -/
+/-- The message the verifier gives the key of the layer `k` steps above the bottom: `T_k` of the FORS
+roots at the bottom, then the fold of the layer below. -/
 def walkMessage (key : ForsKey) : Nat → HashInput
-  | 0 => rootsPayload key
+  | 0 => rootPayload (evalWithAnswerFn f (forsPublicKey parameter index key : OracleComp HashSpec Digest))
   | k + 1 => rootPayload (layerFold f parameter index signature (layerUp k)
       ((layerLeaf f parameter index signature (layerUp k) (walkMessage key k)).getD 0))
 
@@ -204,12 +205,16 @@ theorem verified_layers (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : 
       (Concrete.verify pk message signature : OracleComp HashSpec Bool) := fun _ hi => hi
   rw [verify_eq_layers] at hrun hverified
   simp only [evalWithAnswerFn_bind] at hverified
-  have htail := hrun.bind_right.bind_right
-  have hstart : rootsPayload (verificationFors f pk message signature) =
+  have htail := hrun.bind_right.bind_right.bind_right
+  have hstart : rootPayload (evalWithAnswerFn f (forsPublicKey pk.parameter
+      (verificationIndex f pk message signature) (verificationFors f pk message signature)
+        : OracleComp HashSpec Digest)) =
       walkMessage f pk.parameter (verificationIndex f pk message signature) signature
         (verificationFors f pk message signature) 0 := rfl
   change ContainsRun f _ (verifyLayers pk.parameter (verificationIndex f pk message signature) signature
-    numLayers (rootsPayload (verificationFors f pk message signature)) >>= _) at htail
+    numLayers (rootPayload (evalWithAnswerFn f (forsPublicKey pk.parameter
+      (verificationIndex f pk message signature) (verificationFors f pk message signature)
+        : OracleComp HashSpec Digest))) >>= _) at htail
   rw [hstart] at htail
   have hwalkRun := htail.bind_left
   cases hwalk : evalWithAnswerFn f (verifyLayers pk.parameter (verificationIndex f pk message signature)

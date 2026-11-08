@@ -165,7 +165,7 @@ fn aggregate_one_lean_sphincs_signer() {
 }
 
 /// A leanSPHINCS signature's digest and openings are bound in-circuit: a node whose
-/// hints put the digest's unused bits off by one, order a FORS node and its sibling
+/// hints put the digest's unused bytes off by one, order a FORS node and its sibling
 /// the other way, or give a layer another counter fails the guest's run.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
@@ -1080,7 +1080,7 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
     // The bottom layer's counter follows the randomizer and the FORS openings.
     let mut bytes = signature.to_bytes();
-    bytes[lean_sphincs::RANDOMIZER_LEN + lean_sphincs::FORS_TREES * lean_sphincs::FORS_OPENING_SIZE] ^= 1;
+    bytes[lean_sphincs::N + lean_sphincs::FORS_TREES * lean_sphincs::FORS_OPENING_SIZE] ^= 1;
     let signature = LeanSphincsSignature::from_bytes(&bytes);
     assert!(lean_sphincs::verify(&public_key, &signed, &signature).is_err());
     let raw = vec![(public_key, signed, signature)];

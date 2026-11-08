@@ -240,7 +240,7 @@ theorem boundary_inactive (parameter : PublicParameter) (surrogates : Fin maxLay
     (position : Position) (value : Digest) (hboundary : boundary parameter surrogates position = some value) :
     ¬active parameter position := by
   cases position with
-  | chain | fleaf | fnode => simp [boundary] at hboundary
+  | chain | fleaf | fnode | froots => simp [boundary] at hboundary
   | leaf lay tree leaf =>
       simp only [boundary] at hboundary
       split at hboundary

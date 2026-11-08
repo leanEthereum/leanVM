@@ -209,20 +209,22 @@ theorem valid_encoding_classification {reference candidate : Encoding} (hreferen
   · exact Or.inr (Or.inl (unitNeighbor_of_backwardWeight_one hreference hcandidate hone))
   exact Or.inr (Or.inr (backwardWeight_two_witness (by omega)))
 
-/-- All 128 digest bits occur in the candidate's 64 two-bit digits. -/
+/-- All 128 digest bits occur in the candidate's 64 two-bit digits, in `base_2b` order. -/
 theorem digestEncoding_injective : Function.Injective digestEncoding := by
   intro left right hencoding
   apply BitVec.eq_of_getLsbD_eq
   intro bit hbit
   have hbound : bit < 128 := hbit
-  let index : ChainIndex := ⟨bit / 2, by change bit / 2 < 64; omega⟩
+  let index : ChainIndex := ⟨Completeness.digitSlot (bit / 2), by unfold Completeness.digitSlot; change _ < 64; omega⟩
   have hdigit : left.extractLsb' (digitOffset index) 2 = right.extractLsb' (digitOffset index) 2 := by
     apply BitVec.eq_of_toNat_eq
     exact congrArg Fin.val (congrFun hencoding index)
   have hbits := congrArg (fun digit : BitVec 2 => digit.getLsbD (bit % 2)) hdigit
   have hmod : bit % 2 < 2 := by omega
   have hoffset : digitOffset index + bit % 2 = bit := by
-    change 2 * (bit / 2) + bit % 2 = bit
+    change 8 * (Completeness.digitSlot (bit / 2) / 4) + 6 - winternitzBits * (Completeness.digitSlot (bit / 2) % 4) +
+      bit % 2 = bit
+    unfold Completeness.digitSlot winternitzBits
     omega
   simpa only [BitVec.getLsbD_extractLsb', hmod, decide_true, Bool.true_and,
     hoffset] using hbits

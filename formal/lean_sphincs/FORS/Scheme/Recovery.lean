@@ -48,12 +48,6 @@ variable (f : QueryImpl HashSpec Id)
       = truncateHash (f (keygenHashInput parameter domain seed)) := by
   simp [deriveKey]
 
-@[simp] theorem eval_deriveOutput (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) :
-    evalWithAnswerFn f (deriveOutput parameter domain seed : OracleComp HashSpec HashOutput)
-      = f (keygenHashInput parameter domain seed) := by
-  simp [deriveOutput]
-
 @[simp] theorem eval_sequenceFin {α : Type} {n : Nat} (computation : Fin n → OracleComp HashSpec α) :
     evalWithAnswerFn f (sequenceFin computation)
       = fun index => evalWithAnswerFn f (computation index) := by
@@ -112,7 +106,7 @@ theorem eval_recoverChain_walk (parameter : PublicParameter) (lay : Layer) (tree
 
 The signer walks each chain to the digit the encoding names; the verifier walks the rest. -/
 
-/-- One chain's secret, as the seed derives it: a half of the derivation of its pair of chains. -/
+/-- One chain's secret, as the seed derives it: its own derivation. -/
 def otsSecret (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (seed : MasterSeed) (chainIdx : ChainIndex) : Digest :=
   evalWithAnswerFn f (otsStart parameter lay tree leaf chainIdx seed : OracleComp HashSpec Digest)
@@ -120,17 +114,16 @@ def otsSecret (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (le
 theorem otsSecret_eq (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (seed : MasterSeed) (chainIdx : ChainIndex) :
     otsSecret f parameter lay tree leaf seed chainIdx =
-      hashHalf chainIdx.val (f (keygenHashInput parameter (.ots lay tree leaf (chainPair chainIdx)) seed)) := by
-  simp only [otsSecret, otsStart, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_deriveOutput]
+      truncateHash (f (keygenHashInput parameter (.ots lay tree leaf chainIdx) seed)) := by
+  simp only [otsSecret, otsStart, eval_deriveKey]
 
-/-- The 32 derivations of a one-time key give the secret of each of its 64 chains. -/
+/-- The 64 derivations of a one-time key give the secret of each of its 64 chains. -/
 @[simp] theorem eval_otsSecrets (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
     (leaf : LeafIndex) (seed : MasterSeed) :
     evalWithAnswerFn f (otsSecrets parameter lay tree leaf seed : OracleComp HashSpec (ChainIndex → Digest))
       = otsSecret f parameter lay tree leaf seed := by
   funext chainIdx
-  simp only [otsSecrets, otsSecret_eq, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin,
-    eval_deriveOutput]
+  simp only [otsSecrets, otsSecret_eq, eval_sequenceFin, eval_deriveKey]
 
 /-- One chain's public endpoint. -/
 def otsEndpoint (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -294,8 +287,8 @@ theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : T
 
 /-! ## FORS
 
-The opened secret hashes to the honest leaf, the fold climbs the honest tree up to its two top
-nodes, and the `2k` top nodes are the FORS key the bottom layer signed. -/
+The opened secret hashes to the honest leaf, the fold climbs the honest tree up to its root, and
+`T_k` of the `k` roots is the FORS public key the bottom layer signed. -/
 
 section Tree
 
@@ -307,9 +300,8 @@ def forsSecretValue (leaf : FLeaf) : Digest :=
 
 theorem forsSecretValue_eq (leaf : FLeaf) :
     forsSecretValue f parameter index κ seed leaf =
-      hashHalf leaf.val (f (keygenHashInput parameter (.fors index κ (leafPair leaf)) seed)) := by
-  simp only [forsSecretValue, Seeded.forsSecret, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
-    eval_deriveOutput]
+      truncateHash (f (keygenHashInput parameter (.fors index κ leaf) seed)) := by
+  simp only [forsSecretValue, Seeded.forsSecret, eval_deriveKey]
 
 /-- The honest value of a FORS node at tree level `level`. -/
 def forsNodeValue (level node : Nat) : Digest :=
@@ -332,61 +324,13 @@ theorem forsNodeValue_zero (leaf : FLeaf) :
     Fin.ext (Nat.mod_eq_of_lt leaf.isLt)
   rw [forsNodeValue_zero_mod, hl]
 
-/-- The two leaves below a level-1 node are the even and the odd leaf of one pair. -/
-private theorem forsPair_leaves (node : Nat) :
-    2 * node % 2 ^ forsHeight % 2 = 0 ∧ (2 * node + 1) % 2 ^ forsHeight % 2 = 1 ∧
-      (2 * node + 1) % 2 ^ forsHeight / 2 = 2 * node % 2 ^ forsHeight / 2 := by
-  have ha := Params.forsHeight_ge
-  have hpow : 2 ^ forsHeight = 2 * 2 ^ (forsHeight - 1) := by
-    rw [← Nat.pow_succ']; congr 1; omega
-  have hM : 0 < 2 ^ (forsHeight - 1) := Nat.two_pow_pos _
-  rw [hpow]
-  generalize 2 ^ (forsHeight - 1) = M at hM ⊢
-  have heven : 2 * node % (2 * M) = 2 * (node % M) := Nat.mul_mod_mul_left 2 node M
-  have hodd : (2 * node + 1) % (2 * M) = 2 * (node % M) + 1 := by
-    have hlt : 2 * (node % M) + 1 < 2 * M := by have := Nat.mod_lt node hM; omega
-    conv_lhs => rw [← Nat.div_add_mod node M]
-    rw [show 2 * (M * (node / M) + node % M) + 1 = 2 * (node % M) + 1 + 2 * M * (node / M) by ring,
-      Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hlt]
-  rw [heven, hodd]
-  omega
-
-/-- The sibling of a leaf is in its pair. -/
-private theorem forsSibling_pair (leaf : FLeaf) :
-    Nat.xor leaf.val 1 % 2 ^ forsHeight / 2 = leaf.val / 2 := by
-  have hl := leaf.isLt
-  have ha := Params.forsHeight_ge
-  have hpow : 2 ^ forsHeight = 2 * 2 ^ (forsHeight - 1) := by
-    rw [← Nat.pow_succ']; congr 1; omega
-  cases hbit : leaf.val.testBit 0 with
-  | true =>
-      obtain ⟨h1, h2⟩ := odd_parts leaf.val hbit
-      rw [h2, Nat.mod_eq_of_lt (by omega)]
-      omega
-  | false =>
-      obtain ⟨h1, h2⟩ := even_parts leaf.val hbit
-      rw [h2, Nat.mod_eq_of_lt (by omega)]
-      omega
-
 theorem forsNodeValue_succ (level node : Nat) (hlevel : level < forsHeight) :
     forsNodeValue f parameter index κ seed (level + 1) node
       = truncateHash (f (tweakableHashInput parameter
           (.forsNode index κ ⟨level, hlevel⟩ ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (forsNodeValue f parameter index κ seed level (2 * node))
             (forsNodeValue f parameter index κ seed level (2 * node + 1))))) := by
-  cases level with
-  | zero =>
-      obtain ⟨hleft, hright, hpair⟩ := forsPair_leaves node
-      have hp : leafPair ⟨(2 * node + 1) % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ =
-          leafPair ⟨2 * node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ := Fin.ext hpair
-      rw [forsNodeValue_zero_mod, forsNodeValue_zero_mod]
-      rw [forsLeafValue, forsLeafValue, forsSecretValue_eq, forsSecretValue_eq, hp]
-      simp only [forsNodeValue, Seeded.forsNode, forsLeafHash, evalWithAnswerFn_bind, eval_deriveOutput,
-        eval_tweakableHash, hashHalf, Nat.reduceMod, one_ne_zero, ↓reduceIte]
-      rw [if_pos hleft, if_neg (by rw [hright]; decide)]
-  | succ level =>
-      simp only [forsNodeValue, Seeded.forsNode, evalWithAnswerFn_bind, dif_pos hlevel, eval_tweakableHash]
-
+  simp only [forsNodeValue, Seeded.forsNode, evalWithAnswerFn_bind, dif_pos hlevel, eval_tweakableHash]
 
 /-- Folding the honest leaf through the honest siblings reaches the honest node above it. -/
 theorem eval_forsFold_path (leaf : FLeaf) (path : Fin forsHeight → Digest) :
@@ -421,44 +365,26 @@ theorem eval_forsFold_path (leaf : FLeaf) (path : Fin forsHeight → Digest) :
 
 end Tree
 
-section Tops
-
-/-- The two top nodes of a tree in index order: the fold reaches the top node above the leaf and the
-last path element is the other one. -/
-theorem orderTops_eq_iff (value : Nat → Digest) (leaf level : Nat) (hleaf : leaf / 2 ^ level < 2)
-    (current sibling : Digest) :
-    orderTops (leaf.testBit level) current sibling = (value 0, value 1) ↔
-      current = value (leaf / 2 ^ level) ∧ sibling = value (Nat.xor (leaf / 2 ^ level) 1) := by
-  have hbit : leaf.testBit level = (leaf / 2 ^ level).testBit 0 := (testBit_div_pow leaf level).symm
-  rw [hbit]
-  generalize leaf / 2 ^ level = node at hleaf ⊢
-  obtain h | h : node = 0 ∨ node = 1 := by omega
-  · subst h
-    simp only [orderTops, Nat.testBit_zero, Nat.zero_mod, zero_ne_one, decide_false, Bool.false_eq_true,
-      ↓reduceIte, Prod.mk.injEq]
-    exact Iff.rfl
-  · subst h
-    simp only [orderTops, Nat.testBit_zero, Nat.one_mod, decide_true, ↓reduceIte, Prod.mk.injEq]
-    exact and_comm
-
-variable (parameter : PublicParameter) (index : Index) (seed : MasterSeed)
-
-/-- The two honest level-`(a - 1)` nodes of a FORS tree, its part of the FORS key. -/
-def topsValue (κ : FTree) : Digest × Digest :=
-  (forsNodeValue f parameter index κ seed (forsHeight - 1) 0,
-    forsNodeValue f parameter index κ seed (forsHeight - 1) 1)
-
-theorem forsKey_eq :
-    evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec ForsKey) =
-      fun κ => topsValue f parameter index seed κ := by
-  simp only [Seeded.forsKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin]
-  rfl
-
-end Tops
-
 section Key
 
 variable (parameter : PublicParameter) (index : Index) (seed : MasterSeed)
+
+/-- The honest root of a FORS tree, its node at level `a`: its part of the FORS key. -/
+def rootValue (κ : FTree) : Digest :=
+  forsNodeValue f parameter index κ seed forsHeight 0
+
+@[simp] theorem eval_forsPublicKey (roots : ForsKey) :
+    evalWithAnswerFn f (forsPublicKey parameter index roots : OracleComp HashSpec Digest)
+      = truncateHash (f (tweakableHashInput parameter (.forsRoots index) (rootsPayload roots))) := by
+  simp [forsPublicKey]
+
+/-- The FORS public key is `T_k` of the honest roots. -/
+theorem forsKey_eq :
+    evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest) =
+      evalWithAnswerFn f (forsPublicKey parameter index fun κ => rootValue f parameter index seed κ
+        : OracleComp HashSpec Digest) := by
+  simp only [Seeded.forsKey, evalWithAnswerFn_bind, eval_sequenceFin]
+  rfl
 
 /-- The honest opening of one tree. -/
 theorem eval_treeOpen (κ : FTree) (leaf : FLeaf) :
@@ -466,48 +392,43 @@ theorem eval_treeOpen (κ : FTree) (leaf : FLeaf) :
       = ⟨forsSecretValue f parameter index κ seed leaf,
           fun level => forsNodeValue f parameter index κ seed level.val
             (Nat.xor (leaf.val / 2 ^ level.val) 1)⟩ := by
-  have hp : leafPair ⟨Nat.xor leaf.val 1 % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ = leafPair leaf :=
-    Fin.ext (forsSibling_pair leaf)
-  simp only [Seeded.treeOpen, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin,
-    eval_deriveOutput, forsSecretValue_eq]
-  congr 1
-  funext level
-  by_cases h0 : level.val = 0
-  · simp only [h0, if_true, evalWithAnswerFn_pure, pow_zero, Nat.div_one, forsNodeValue, Seeded.forsNode,
-      Seeded.forsSecret, evalWithAnswerFn_bind, eval_deriveOutput, hp]
-  · simp only [h0, if_false, forsNodeValue]
+  simp only [Seeded.treeOpen, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin]
+  rfl
 
-/-- The verifier recovers the two honest top nodes of every tree. -/
+/-- The verifier recovers the honest root of every tree. -/
 theorem eval_treeRecover (κ : FTree) (leaf : FLeaf) :
     evalWithAnswerFn f (treeRecover parameter index κ leaf
         (evalWithAnswerFn f (Seeded.treeOpen parameter index κ leaf seed : OracleComp HashSpec TreeOpening))
-        : OracleComp HashSpec (Digest × Digest))
-      = topsValue f parameter index seed κ := by
-  have ha := Params.forsHeight_ge
+        : OracleComp HashSpec Digest)
+      = rootValue f parameter index seed κ := by
   rw [eval_treeOpen]
   have hleaf : evalWithAnswerFn f (forsLeafHash parameter index κ leaf
       (forsSecretValue f parameter index κ seed leaf) : OracleComp HashSpec Digest) =
       forsNodeValue f parameter index κ seed 0 leaf.val := by
     rw [forsNodeValue_zero, forsLeafHash, eval_tweakableHash]
     rfl
-  simp only [treeRecover, evalWithAnswerFn_bind, evalWithAnswerFn_pure, hleaf]
-  rw [eval_forsFold_path f parameter index κ seed leaf _ (forsHeight - 1) (by omega)
-    (fun level hlevel _ => rfl)]
-  refine (orderTops_eq_iff (fun node => forsNodeValue f parameter index κ seed (forsHeight - 1) node)
-    leaf.val (forsHeight - 1) ?_ _ _).mpr ⟨rfl, rfl⟩
-  have hl := leaf.isLt
-  have : 2 ^ forsHeight = 2 * 2 ^ (forsHeight - 1) := by
-    rw [← Nat.pow_succ']; congr 1; omega
-  exact Nat.div_lt_of_lt_mul (by omega)
+  simp only [treeRecover, evalWithAnswerFn_bind, hleaf]
+  rw [eval_forsFold_path f parameter index κ seed leaf _ forsHeight le_rfl (fun level hlevel _ => rfl),
+    Nat.div_eq_of_lt leaf.isLt]
+  rfl
 
-/-- **The verifier recovers the FORS key the bottom layer signed.** -/
+/-- The verifier recovers the honest roots. -/
 theorem eval_forsRecover (leaves : FTree → FLeaf) :
     evalWithAnswerFn f (forsRecover parameter index leaves
         (evalWithAnswerFn f (Seeded.forsOpen parameter index leaves seed
           : OracleComp HashSpec (FTree → TreeOpening))) : OracleComp HashSpec ForsKey)
-      = evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec ForsKey) := by
-  rw [forsKey_eq]
+      = fun κ => rootValue f parameter index seed κ := by
   simp only [forsRecover, Seeded.forsOpen, eval_sequenceFin, eval_treeRecover]
+
+/-- **The verifier recovers the FORS public key the bottom layer signed.** -/
+theorem eval_forsPublicKey_forsRecover (leaves : FTree → FLeaf) :
+    evalWithAnswerFn f (forsPublicKey parameter index
+        (evalWithAnswerFn f (forsRecover parameter index leaves
+          (evalWithAnswerFn f (Seeded.forsOpen parameter index leaves seed
+            : OracleComp HashSpec (FTree → TreeOpening))) : OracleComp HashSpec ForsKey))
+        : OracleComp HashSpec Digest)
+      = evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest) := by
+  rw [eval_forsRecover, forsKey_eq]
 
 end Key
 

@@ -123,8 +123,7 @@ theorem agrees_iff_extending (known : Knowledge Coordinate) (table : Coordinate 
 def badFor (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (results : OtsKey → Option (Counter × Encoding)) (table : Coordinate → Digest)
     (v : ((Option HiddenBridge.Outcome × List Coordinate) × List (Entry HashInput)) × QueryCache HashSpec) : Prop :=
-  CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-      (compTable parameterOutput fixed highs remaining table results)) v.2 ∨
+  CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table results) v.2 ∨
     ∃ outcome, v.1.1.1 = some outcome ∧
       ForsCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root outcome v.1.1.2 v.2
 
@@ -258,10 +257,11 @@ theorem noQ_bind {bad : HashInput → Prop} [DecidablePred bad] {α β : Type} {
   have := isQueryBoundP_bind (n := 0) (m := 0) h (fun value _ => hnext value)
   simpa using this
 
-/-- The encoding search queries only encoding inputs. -/
-theorem noQ_search {bad : HashInput → Prop} [DecidablePred bad]
+/-- The encoding search queries only its message's encoding inputs. -/
+theorem noQ_search_counter {bad : HashInput → Prop} [DecidablePred bad]
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput)
-    (hbad : ∀ payload, ¬bad (tweakableHashInput parameter (.encoding lay tree leaf) payload)) :
+    (hbad : ∀ counter : Counter,
+      ¬bad (tweakableHashInput parameter (.encoding lay tree leaf) (message ++ bytesBE 4 counter))) :
     ∀ attempts start, (ReferenceChoice.search parameter lay tree leaf message attempts start :
       OracleComp HashSpec (Option (Counter × Encoding))).IsQueryBoundP bad 0
   | 0, _ => trivial
@@ -274,8 +274,16 @@ theorem noQ_search {bad : HashInput → Prop} [DecidablePred bad]
         rw [isQueryBoundP_query_iff]
         exact fun hm => absurd hm (hbad _)
       · cases found with
-        | none => exact noQ_search parameter lay tree leaf message hbad attempts (start + 1)
+        | none => exact noQ_search_counter parameter lay tree leaf message hbad attempts (start + 1)
         | some _ => trivial
+
+/-- The encoding search queries only encoding inputs. -/
+theorem noQ_search {bad : HashInput → Prop} [DecidablePred bad]
+    (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput)
+    (hbad : ∀ payload, ¬bad (tweakableHashInput parameter (.encoding lay tree leaf) payload)) :
+    ∀ attempts start, (ReferenceChoice.search parameter lay tree leaf message attempts start :
+      OracleComp HashSpec (Option (Counter × Encoding))).IsQueryBoundP bad 0 :=
+  noQ_search_counter parameter lay tree leaf message fun _ => hbad _
 
 /-- Encoding inputs are not hidden rows. -/
 theorem not_row_encoding (parameterOutput : HashOutput) (highs : CoordinateHighs) (parameter : PublicParameter)
@@ -290,7 +298,8 @@ theorem not_row_encoding (parameterOutput : HashOutput) (highs : CoordinateHighs
       have hfields := (tweakableInput_injective heq).1
       have htag := congrArg TweakFields.tag hfields
       rcases query with ⟨address, value⟩
-      cases address <;> simp [Address.position, Position.domain, hashDomainFields, tweakFields, treeFields] at htag
+      cases address <;>
+        simp [Address.position, Position.domain, hashDomainFields, tweakFields, treeFields, forsFields] at htag
 
 /-- Every prepared search result was recorded inside the prepared cache. -/
 theorem preparation_parts (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -339,15 +348,15 @@ theorem interp_sequenceDep_none (Inv : State → Prop) : ∀ {n : ℕ} {α : Fin
       rcases h1 with ⟨_, hn, _⟩ | ⟨v, hv, o2, ho2, hres2, _, _⟩
       · rw [hnone] at hn; cases hn
       rcases v with _ | head
-      · exact ⟨0, hbad 0 budget s hs o1 ho1 hv⟩
+      · exact ⟨Fin.last _, hbad (Fin.last _) budget s hs o1 ho1 hv⟩
       obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg initial model _ _ _ _ o2 ho2
       rcases h3 with ⟨_, hn, _⟩ | ⟨w, hw, o4, ho4, hres4, _, _⟩
       · rw [hres2, hn] at hnone; cases hnone
       rcases w with _ | tail
-      · obtain ⟨i, hi⟩ := interp_sequenceDep_none Inv (α := fun i => α i.succ) (fun i => computation i.succ)
-          (fun i => Bad i.succ) (fun i => hinv i.succ) (fun i => hbad i.succ) _ o1.2
-          (hinv 0 budget s hs o1 ho1) o3 ho3 hw
-        exact ⟨i.succ, hi⟩
+      · obtain ⟨i, hi⟩ := interp_sequenceDep_none Inv (α := fun i => α i.castSucc) (fun i => computation i.castSucc)
+          (fun i => Bad i.castSucc) (fun i => hinv i.castSucc) (fun i => hbad i.castSucc) _ o1.2
+          (hinv (Fin.last _) budget s hs o1 ho1) o3 ho3 hw
+        exact ⟨i.castSucc, hi⟩
       · change o4 ∈ support (interp tg initial model (pure _) _ _) at ho4
         rw [interp_pure, support_pure, Set.mem_singleton_iff] at ho4
         rw [hres2, hres4, ho4] at hnone
@@ -369,20 +378,16 @@ theorem layerCostSearch_fail (parameterOutput : HashOutput) (fixed : HiddenGraph
     (hnone : out.1.1 = some none) : prepared.1 (keyAt index lay) = none := by
   set model := sampleModel parameterOutput highs
   unfold layerCostSearch at hout
-  obtain ⟨o1, ho1, h1⟩ := interp_bind_mem tg prepared.2 model _ _ budget s1 out hout
-  rcases h1 with ⟨_, hn, _⟩ | ⟨_, _, o2, ho2, hres2, _, _⟩
-  · rw [hnone] at hn; cases hn
-  have hext1 := interp_extends tg prepared.2 model _ budget s1 o1 ho1
-  obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg prepared.2 model _ _ _ _ o2 ho2
+  obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg prepared.2 model _ _ budget s1 out hout
   rcases h3 with ⟨_, hn, _⟩ | ⟨found, hfound, o4, ho4, hres4, _, _⟩
-  · rw [hres2, hn] at hnone; cases hnone
+  · rw [hnone] at hn; cases hn
   rcases found with _ | pair
   · obtain ⟨c0, r, hr, hr1, hr2⟩ := preparation_parts parameterOutput fixed highs remaining prepared hprepared
       (keyAt index lay)
     have ho3' : o3 ∈ support (interp tg prepared.2 model
         (liftM (ReferenceChoice.search (truncateHash parameterOutput) lay (treeIndexAt index lay)
           (leafIndexAt index lay) (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay))
-          encodingAttemptLimit 0) : OracleComp CostSpec _) (budget - traceCost o1.1.2.2.1) o1.2) := ho3
+          encodingAttemptLimit 0) : OracleComp CostSpec _) budget s1) := ho3
     have hrow := noQ_search (bad := fun x => model.parse x ≠ none)
       (truncateHash parameterOutput) lay (treeIndexAt index lay) (leafIndexAt index lay)
       (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay))
@@ -391,11 +396,11 @@ theorem layerCostSearch_fail (parameterOutput : HashOutput) (fixed : HiddenGraph
       (ReferenceChoice.search (truncateHash parameterOutput) lay (treeIndexAt index lay) (leafIndexAt index lay)
         (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay)) encodingAttemptLimit 0 :
           OracleComp HashSpec (Option (Counter × Encoding)))
-    have hreplay := hstep hrow c0 r hr _ o1.2 (fun x v hx => hext1.1 x v (hprep x v (hr2 x v hx))) o3 ho3'
+    have hreplay := hstep hrow c0 r hr _ s1 (fun x v hx => hprep x v (hr2 x v hx)) o3 ho3'
       none hfound
     rw [← hr1, ← hreplay]
   · exfalso
-    have hmem := interp_result_mem tg prepared.2 model _ _ _ o4 ho4 none (by rw [← hres4, ← hres2, hnone])
+    have hmem := interp_result_mem tg prepared.2 model _ _ _ o4 ho4 none (by rw [← hres4, hnone])
     revert hmem
     dsimp only
     intro hmem
@@ -501,12 +506,12 @@ theorem noQ_sequenceFin {bad : HashInput → Prop} [DecidablePred bad] {α : Typ
       exact noQ_bind (h 0) fun _ => noQ_bind (noQ_sequenceFin (fun i : Fin n => f i.succ) fun i => h i.succ)
         fun _ => trivial
 
+/-- A message-digest input is no tweakable input with a payload of other than 36 bytes. -/
 theorem msg_not_graph (parameter : PublicParameter) (position : Position) (payload x : HashInput)
-    (hx : IsMsgInput x) : x ≠ tweakableHashInput parameter position.domain payload := by
-  obtain ⟨p', call', payload', rfl⟩ := hx
-  intro heq
-  have htag := congrArg TweakFields.tag (tweakableInput_injective heq).1
-  cases position <;> simp [Position.domain, hashDomainFields, tweakFields, treeFields] at htag
+    (hpayload : payload.length ≠ 36) (hx : IsMsgInput x) :
+    x ≠ tweakableHashInput parameter position.domain payload := by
+  obtain ⟨p', root', message', randomness', call', rfl⟩ := hx
+  exact messageDigestInput_ne_tweakableHashInput _ _ _ _ _ _ _ hpayload
 
 /-- **The prepared cache holds no message-digest input.** -/
 theorem prepared_clean (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -522,12 +527,16 @@ theorem prepared_clean (parameterOutput : HashOutput) (fixed : HiddenGraph.Table
       (keyMessages (sampleData parameterOutput fixed highs remaining))).IsQueryBoundP IsMsgInput 0 := by
     unfold searchAll
     exact noQ_bind (noQ_sequenceFin _ fun lay => noQ_sequenceFin _ fun tree => noQ_sequenceFin _ fun leaf =>
-      noQ_search (bad := IsMsgInput) _ _ _ _ _
-        (fun payload => not_msg_tweakable _ _ payload (by simp [hashDomainFields, treeFields])) _ _)
+      noQ_search_counter (bad := IsMsgInput) _ _ _ _ _
+        (fun counter => not_msg_tweakable _ _ _ (by
+          rw [List.length_append, bytesBE_length]
+          unfold keyMessages PublicData.keyMessage
+          split <;> simp only [rootPayload, bytesLE_length] <;> omega)) _ _)
       fun _ => trivial
   rw [randomOracle_run_avoid (P := IsMsgInput) _ hnoQ _ prepared hrun x hx]
   unfold structCache
-  exact programGraphCache_empty_none _ _ _ _ _ x fun position _ => msg_not_graph _ position _ x hx
+  exact programGraphCache_empty_none _ _ _ _ _ x fun position _ =>
+    msg_not_graph _ position _ x (by rw [flatMap_bytesLE_length]; omega) hx
 
 end Clean
 
@@ -544,7 +553,7 @@ theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree :
     (message : HashInput) : ∀ (n t : ℕ),
     (ReferenceChoice.search parameter lay tree leaf message n t : OracleComp HashSpec (Option (Counter × Encoding))) =
       searchLoop (fun c => tweakableHashInput parameter (.encoding lay tree leaf)
-          (message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
+          (message ++ bytesBE 4 (BitVec.ofNat counterBits c)))
         (fun out => TargetSum.decodeDigest (truncateHash out))
         (fun c encoding => pure (BitVec.ofNat counterBits c, encoding)) n t := by
   intro n
@@ -576,7 +585,7 @@ theorem encoding_not_graph (parameter parameter' : PublicParameter) (position : 
       tweakableHashInput parameter position.domain payload := by
   intro heq
   have htag := congrArg TweakFields.tag (tweakableInput_injective heq).1
-  cases position <;> simp [Position.domain, hashDomainFields, tweakFields, treeFields] at htag
+  cases position <;> simp [Position.domain, hashDomainFields, tweakFields, treeFields, forsFields] at htag
 
 /-- **One prepared search fails rarely.** -/
 theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
@@ -773,8 +782,8 @@ def TargetingFor (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (hig
     (∀ x, IsMsgInput x → tg.kind x = .none ∧ tg.digest x) ∧
     ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
       ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
-        (CorrectGuess table s ∨ CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-          (compTable parameterOutput fixed highs remaining table prepared.1)) s.cache) →
+        (CorrectGuess table s ∨
+          CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) s.cache) →
         Hit tg prepared.2 table s
 
 theorem two_mul_inv_pow_succ (n : ℕ) : (2 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ (n + 1) = (2 : ℝ≥0∞)⁻¹ ^ n := by
