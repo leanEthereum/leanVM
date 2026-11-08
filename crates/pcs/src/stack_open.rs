@@ -281,6 +281,8 @@ mod tests {
             (12, 5, 13),
             // Sixteen blocks a lane: the claims' sums run eight blocks at a time.
             (14, 3, 15),
+            // Thirty-two blocks a lane: the projection cuts each lane into four pieces.
+            (15, 2, 16),
         ] {
             let lane_block = 1usize << lane_vars;
             let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
