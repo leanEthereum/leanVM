@@ -15,8 +15,9 @@ pub(super) fn exponent_bytes(bytes: &[u8]) -> Vec<F192> {
 
 /// A field element as the decimal `u128` literal the zkDSL parser accepts.
 pub(super) fn dsl_u128(value: F192) -> u128 {
-    assert_eq!(value.c2, 0, "u128 DSL literal cannot encode the top F192 limb");
-    (value.c0 as u128) | ((value.c1 as u128) << 64)
+    value
+        .as_u128()
+        .expect("u128 DSL literal cannot encode the top F192 limb")
 }
 
 pub(super) fn f192_literal(f: F192) -> String {
@@ -25,8 +26,9 @@ pub(super) fn f192_literal(f: F192) -> String {
 
 /// A 16-byte native value as one canonical 128-bit cell.
 pub(super) fn pack_16_bytes(bytes: &[u8]) -> F192 {
-    let word_at = |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
-    F192::new(word_at(0), word_at(8), 0)
+    F192::from(u128::from_le_bytes(
+        bytes[..16].try_into().expect("a cell packs 16 bytes"),
+    ))
 }
 
 /// A run of canonical 128-bit cells as the byte string the hash takes: each cell
