@@ -25,7 +25,8 @@ impl FnLower<'_> {
     ///
     /// The output is the 13-cell state, its first two cells the digest. A 13-cell
     /// `out` receives it (a heap run through the stack), a 2-cell `out` just the
-    /// digest (write-once: a pre-written `out` asserts it).
+    /// digest, and a 1-cell `out` its first cell (write-once: a pre-written `out` asserts
+    /// it). The instruction writes only the cells `out` holds.
     ///
     /// `cap=` is the Fiat-Shamir duplex step in overwrite mode instead, with no padding: the
     /// eight message cells overwrite lanes `0..16`, and lanes `16..25`, the transcript's
@@ -59,6 +60,7 @@ impl FnLower<'_> {
                 c: out.state,
                 in_odd: false,
                 out_odd: false,
+                out_cells: out.cells,
             });
             self.keccak_finish(out);
             return;
@@ -69,7 +71,7 @@ impl FnLower<'_> {
             self.pad_tail_in_place(&kwargs, &cells, len);
         }
         let out = self.keccak_out(&args[2]);
-        self.emit_keccak_message(cells, Some(len), None, out.state, padded);
+        self.emit_keccak_message(cells, Some(len), None, &out, padded);
         self.keccak_finish(out);
     }
 
@@ -163,7 +165,7 @@ impl FnLower<'_> {
             })
         });
         let out = self.keccak_out(&args[1]);
-        self.emit_keccak_message(cells, final_len, state, out.state, false);
+        self.emit_keccak_message(cells, final_len, state, &out, false);
         self.keccak_finish(out);
     }
 
@@ -226,42 +228,49 @@ impl FnLower<'_> {
         kwargs
     }
 
-    /// Where a `keccak` writes: the 13-cell stack run the instruction targets, and
-    /// what to copy out of it afterwards.
+    /// Where a `keccak` writes: the stack run the instruction targets, the output cells it writes there, and what
+    /// to copy out of it afterwards. The cells written are the ones the destination holds, so the bytecode, not
+    /// the prover, says which they are.
     fn keccak_out(&mut self, e: &Expr) -> KeccakOut {
+        let cells = |len: u32| match len {
+            1 => OutCells::One,
+            2 => OutCells::Two,
+            _ => OutCells::All,
+        };
         match self.cell_run(e) {
-            CellRun::Stack { base, len } if len >= STATE_CELLS => KeccakOut {
+            CellRun::Stack {
+                base,
+                len: len @ (1 | 2 | STATE_CELLS..),
+            } => KeccakOut {
                 state: base,
-                copy: None,
+                cells: cells(len),
+                heap: None,
             },
-            run @ (CellRun::Heap { len: STATE_CELLS, .. }
-            | CellRun::Stack { len: 2, .. }
-            | CellRun::Heap { len: 2, .. }) => KeccakOut {
-                state: self.alloc_stack(STATE_CELLS),
-                copy: Some(run),
+            CellRun::Heap {
+                ptr,
+                lo,
+                len: len @ (1 | 2 | STATE_CELLS),
+            } => KeccakOut {
+                state: self.alloc_stack(len),
+                cells: cells(len),
+                heap: Some((ptr, lo, len)),
             },
             _ => self.fail(format!(
-                "a keccak destination is a {STATE_CELLS}-cell run (the state) or a 2-cell run (the digest)"
+                "a keccak destination is a {STATE_CELLS}-cell run (the state), a 2-cell run (the digest) or a 1-cell run (its first cell)"
             )),
         }
     }
 
     /// Copy what [`Self::keccak_out`] promised out of the state it wrote.
     fn keccak_finish(&mut self, out: KeccakOut) {
-        match out.copy {
-            None => {}
-            Some(CellRun::Stack { base, len }) => {
-                for k in 0..len {
-                    self.copy(out.state + k, base + k);
-                }
-            }
-            Some(CellRun::Heap { ptr, lo, len }) => self.deref_run(ptr, lo, len, out.state),
+        if let Some((ptr, lo, len)) = out.heap {
+            self.deref_run(ptr, lo, len, out.state);
         }
     }
 
     /// Emit the `KECCAK` blocks absorbing `cells` into `state` (the zero state if `None`), the
-    /// last writing the 13-cell run `out`. With `final_len` the message is the cells' first
-    /// `final_len` bytes, padded; without, the cells zero-extended to whole blocks.
+    /// last writing its cells of `out`, each earlier one a whole 13-cell state the next one reads. With `final_len`
+    /// the message is the cells' first `final_len` bytes, padded; without, the cells zero-extended to whole blocks.
     /// `padded`: the cells past `final_len` already hold the padding's first byte and zeros
     /// (`pad_tail_in_place`).
     fn emit_keccak_message(
@@ -269,7 +278,7 @@ impl FnLower<'_> {
         mut cells: Vec<SpongeCell>,
         final_len: Option<u32>,
         state: Option<Off>,
-        out: Off,
+        out: &KeccakOut,
         padded: bool,
     ) {
         let blocks = match final_len {
@@ -300,7 +309,11 @@ impl FnLower<'_> {
         let mut state = state;
         for k in 0..blocks {
             let last = k + 1 == blocks;
-            let c = if last { out } else { self.alloc_stack(STATE_CELLS) };
+            let (c, out_cells) = if last {
+                (out.state, out.cells)
+            } else {
+                (self.alloc_stack(STATE_CELLS), OutCells::All)
+            };
             let block = &cells[17 * k / 2..][..BLOCK_CELLS as usize];
             let (m, tail) = self.keccak_rate(block, state);
             let b8 = match state {
@@ -316,6 +329,7 @@ impl FnLower<'_> {
                 c,
                 in_odd: k % 2 == 1,
                 out_odd: !last && k % 2 == 0,
+                out_cells,
             });
             state = Some(c);
         }
@@ -696,11 +710,13 @@ fn keccak_pad_value() -> F192 {
     F192::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
 }
 
-/// Where a `keccak` writes: the 13-cell stack run its instruction targets, and a
-/// run to copy the state or the digest out to afterwards.
+/// Where a `keccak` writes: the stack run its instruction targets, the output cells it writes there, and a heap
+/// run to copy them to afterwards.
 struct KeccakOut {
     state: Off,
-    copy: Option<CellRun>,
+    cells: OutCells,
+    /// The heap run `(ptr, lo, len)` the cells are copied to, for a heap destination.
+    heap: Option<(Off, u32, u32)>,
 }
 
 /// One message cell of a `keccak` block, as the lowering knows it.

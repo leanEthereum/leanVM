@@ -31,7 +31,7 @@ fn chain_source(steps: usize, unroll: usize) -> String {
     body.push_str("        h0[0] = buff[b]\n");
     body.push_str("        h0[1] = buff[b * GEN]\n");
     for step in 1..=unroll {
-        body.push_str(&format!("        h{step} = StackBuf(13)\n"));
+        body.push_str(&format!("        h{step} = StackBuf(2)\n"));
         body.push_str(&format!(
             "        keccak(h{previous}[0:2], h{previous}[0:2], h{step})\n",
             previous = step - 1

@@ -761,6 +761,12 @@ class Flushes:
     def memory(self, address: Form, count: int, values: Sequence[Form]) -> None:
         self._counted((_const(SEP_MEM), address), count, values)
 
+    def memory_if(self, flag: int, address: Form, count: int, values: Sequence[Form]) -> None:
+        """`memory` when the column `flag` is 1. At 0 the push's counter is the pull's, count*(1 + flag*(g + 1)),
+        so the pair cancels and touches no cell."""
+        counter = Form.sum([_col(count), _prod(flag, count, 1), _prod(flag, count)])
+        self.pair((_const(SEP_MEM), address, counter, *values), (_const(SEP_MEM), address, _col(count), *values))
+
     def memory_cols(self, address: Form, count: int, *columns: int) -> None:
         self.memory(address, count, [_col(column) for column in columns] + [_const(ZERO)] * (3 - len(columns)))
 
@@ -892,13 +898,16 @@ def _flushes_keccak() -> Flushes:
     pc, fp, cnt_bc, free = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc", "free")
     o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
     o_tail, o_b8, o_cap, o_out, odd_in, odd_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out")
+    out_two, out_all = _cols(KECCAK_COLUMNS, "out_two", "out_all")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)))
+    operands = (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out, out_two, out_all)
+    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in operands))
 
     # The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the
     # thirteen written, each holding its lanes in the layout its flag names: a read cell's
-    # free lane is the column `free`, a written one's zero.
+    # free lane is the column `free`, a written one's zero. Output cell 0 is always written, cell 1
+    # when `out_two` is 1, and cells 2..13 when `out_all` is 1.
     def address(cell: int) -> Form:
         if cell < 4:
             return _prod(fp, o_m[cell])
@@ -914,7 +923,13 @@ def _flushes_keccak() -> Flushes:
 
         for cell in range(KECCAK_CELLS):
             values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
-            flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), KECCAK_CNT + KECCAK_CELLS * side + cell, values)
+            count = KECCAK_CNT + KECCAK_CELLS * side + cell
+            if side == 0:
+                flushes.memory(address(cell), count, values)
+            elif cell == 0:
+                flushes.memory(_prod(fp, o_out, 0), count, values)
+            else:
+                flushes.memory_if(out_two if cell == 1 else out_all, _prod(fp, o_out, cell), count, values)
     return flushes
 
 
@@ -933,6 +948,8 @@ KECCAK_COLUMNS = (
     *(f"in_{lane}" for lane in range(STATE_LANES)), *(f"out_{lane}" for lane in range(STATE_LANES)),
     # ...and the read counts, each cell read then each written, committed here like every other column.
     *(f"cnt_{cell}" for cell in range(2 * KECCAK_CELLS)), "cnt_bc",
+    # The bytecode's flags for the output cells written: cell 1, and cells 2..13.
+    "out_two", "out_all",
 )  # fmt: skip
 KECCAK_IN, KECCAK_OUT, KECCAK_CNT = (KECCAK_COLUMNS.index(name) for name in ("in_0", "out_0", "cnt_0"))
 # Which slot of q_keccak each local KECCAK column is. The states take the first QKECCAK_SLOTS, the input

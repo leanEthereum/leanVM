@@ -973,13 +973,18 @@ impl Program {
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
+                    // Only the output cells the bytecode requests are written; the others are left alone.
+                    let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
-                    for (c, &v) in output.iter().enumerate() {
-                        m.put(cells[STATE_CELLS + c], v)?;
+                    for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
+                        m.put(cell, v)?;
                     }
                     // In flush order, so a cell two operands alias still pairs each
-                    // read with its own count.
-                    let r: [u32; ROW_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
+                    // read with its own count. A cell not written keeps count 0.
+                    let mut r = [0; ROW_CELLS];
+                    for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
+                        *count = m.bump_access_count(cell);
+                    }
                     keccak.push(Krow {
                         pc,
                         fp,

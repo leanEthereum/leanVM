@@ -235,9 +235,10 @@ def keccak(
     (all of them by default). A cell wholly past `len` must be a literal 0 (a
     compile error otherwise); the bytes past `len` in the cell where the message
     ends must be zero, which the circuit does not enforce. `out` receives the
-    13-cell sponge state, whose first two cells are the digest, or just the
-    digest when it is a 2-cell run (write-once: if `out` was already written,
-    this asserts it equals the result).
+    13-cell sponge state, whose first two cells are the digest, just the digest
+    when it is a 2-cell run, or its first cell when it is a 1-cell run
+    (write-once: if `out` was already written, this asserts it equals the
+    result). The instruction writes only the cells `out` holds.
 
     `cap=` makes it the Fiat-Shamir duplex step in overwrite mode, with no
     padding: the eight message cells overwrite lanes 0..16, and lanes 16..25,

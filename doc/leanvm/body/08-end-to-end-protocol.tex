@@ -5,24 +5,25 @@
 
 The bytecode (of $2^{\kbc}$ instructions) is encoded as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
-\item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,13$, and $0$ everywhere else.
+\item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,15$, and $0$ everywhere else.
 \item read the resulting $2^{\kbc}\times16$ table as $P$, the low $\kbc$ variables indexing the instruction and the high four its slot, bits low first.
 \end{enumerate}
 \begin{center}
-\begin{tabular}{llllllllllll}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llllllllllllll}
 \hline
-Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13$\\
+Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13$ & $14$ & $15$\\
 \hline
-\texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{KECCAK}        & $\opc{KEC}$ & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{b8}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$ & $\mathit{odd}_{\mathit{in}}$ & $\mathit{odd}_{\mathit{out}}$\\
+\texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{KECCAK}        & $\opc{KEC}$ & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{b8}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$ & $\mathit{odd}_{\mathit{in}}$ & $\mathit{odd}_{\mathit{out}}$ & $\mathit{out}_{\mathit{two}}$ & $\mathit{out}_{\mathit{all}}$\\
 \hline
 \end{tabular}
 \end{center}
-So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,1,1,1,1)=0$.
+So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=0$.
 
 \subsection{Public input}\label{sec:e2e-pi}
 

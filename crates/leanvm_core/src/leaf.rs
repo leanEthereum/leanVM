@@ -34,7 +34,7 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same eleven columns, tens of megabytes at production sizes.
+    /// pull carry the same thirteen columns, tens of megabytes at production sizes.
     Public(Arc<Vec<F64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
@@ -759,7 +759,7 @@ fn decompose_prove(
 }
 
 /// Selector bits of the stacked bytecode polynomial: the public encoding
-/// columns (opcode + ten operand/immediate slots = eleven) stack along
+/// columns (opcode + twelve operand/immediate slots = thirteen) stack along
 /// `2^N_BYTECODE_SELECTORS` slots. A column's slot is its bus tuple coordinate,
 /// which is what fixes the width at sixteen rather than at the column count.
 pub const N_BYTECODE_SELECTORS: usize = 4;

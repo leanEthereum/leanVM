@@ -81,8 +81,8 @@ pub(crate) enum LOp {
         dst: Off,
     },
     /// `KECCAK`: one permutation. The four `m` cells and `b8` are addressed
-    /// independently, `tail` (4 cells), `cap` (4 cells) and the output `c` (13 cells)
-    /// are consecutive runs; the flags name the layouts read and written.
+    /// independently, `tail` (4 cells), `cap` (4 cells) and the output `c` (its first
+    /// `out_cells` cells) are consecutive runs; the flags name the layouts read and written.
     Keccak {
         m: [Off; 4],
         tail: Off,
@@ -91,6 +91,7 @@ pub(crate) enum LOp {
         c: Off,
         in_odd: bool,
         out_odd: bool,
+        out_cells: OutCells,
     },
 }
 

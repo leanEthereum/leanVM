@@ -30,7 +30,7 @@ use std::fmt::Write;
 use std::sync::Arc;
 
 use leanvm_core::cpu::hints::{BitsDest, RHint};
-use leanvm_core::cpu::{DerefMode, Op, Program};
+use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
 use primitives::{
     field::{F64, F192, g_pow},
     pretty_integer,
@@ -265,10 +265,12 @@ pub fn disassemble(prog: &[Op]) -> String {
                 out,
                 in_odd,
                 out_odd,
+                out_cells,
             } => {
                 let layout = |odd: bool| if odd { "odd" } else { "even" };
                 format!(
-                    "KECCAK fp[{out}..+13] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {}",
+                    "KECCAK fp[{out}..+{}] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {}",
+                    out_cells.cells(),
                     layout(*out_odd),
                     m[0],
                     m[1],
@@ -338,6 +340,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             c,
             in_odd,
             out_odd,
+            out_cells,
         } => Op::Keccak {
             m: *m,
             tail: *tail,
@@ -346,6 +349,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             out: *c,
             in_odd: *in_odd,
             out_odd: *out_odd,
+            out_cells: *out_cells,
         },
     }
 }
