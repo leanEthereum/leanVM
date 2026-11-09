@@ -37,6 +37,7 @@ pub(crate) enum Codeword {
     /// All of it.
     Whole(Vec<F64>, Plan),
     /// The buffer as the gathered passes left it: the deep layers run again on each row read.
+    /// With no gathered pass, one replica of the message: every replica is the same.
     BeforeDeep(Vec<F64>, Plan),
     /// No buffer: each row is recomputed from the message of this many lane-major lanes.
     Nothing(Plan, usize),
@@ -124,6 +125,8 @@ impl AdditiveNttF64 {
     /// - The codeword equals the in-place encode's, and every word is written before it is read.
     /// - With `defer_deep`, the deep pass is not written back: each deep sub-block is finished in scratch
     ///   and handed to `on_rows` from there, and the codeword is kept [`Codeword::BeforeDeep`].
+    /// - When every layer is deep, that is the message's replicas: only the message is kept, and no buffer
+    ///   is written at all.
     pub(crate) fn encode_interleaved_with(
         &self,
         msg: &[F64],
@@ -132,6 +135,12 @@ impl AdditiveNttF64 {
         defer_deep: bool,
         on_rows: &RowSink<'_>,
     ) -> Codeword {
+        let log_d = log2_strict_usize(msg.len() / num_ntts) + log_inv_rate;
+        let plan = Plan::new(log_d, num_ntts, log_inv_rate);
+        if defer_deep && plan.deep_start == plan.start && plan.fuses_rows() {
+            DeepPass::new(&plan, Some(on_rows), true).unkept(self, msg);
+            return Codeword::BeforeDeep(msg.to_vec(), plan);
+        }
         let mut done = None;
         // SAFETY: the fill writes every element before it reads any.
         let data = unsafe {
