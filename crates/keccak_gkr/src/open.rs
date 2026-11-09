@@ -9,6 +9,7 @@
 
 use fiat_shamir::transcript::ProverState;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
+use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 
@@ -96,55 +97,66 @@ pub(crate) fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -
 /// of a pack apart: entry `(i + 16 * slot) * 64 + z`.
 ///
 /// The weight of a pack is a product over its index in a run of blocks and the run's own
-/// index. The first factor meets the bits as subset sums, a table per pack of a word and block
-/// of the run, so only a run's sum is multiplied. Every bit of the padding block is that of
-/// its first word, so the blocks it stands for weigh it together.
-fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
+/// index. The first factor is a fixed weight per bit of a run, so a run's bits meet it as one
+/// [`BitFold`] row per position and instance, and only a run's sum is multiplied. Every bit of
+/// the padding block is that of its first word, so the blocks it stands for weigh it together.
+pub(crate) fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let shape = witness.shape;
     let written = witness.written();
     let padding = eq_table(&point[5..])[written..].iter().sum();
     let run_vars = (point.len() - 5).min(3);
     let (low, runs) = (eq_table(&point[..5 + run_vars]), eq_table(&point[5 + run_vars..]));
-    // Table `4 * block + p`: pack `p + 4 * w` of the run's block, over the eight words `w`.
-    let tables: Vec<[F192; 256]> = (0..4 << run_vars)
-        .map(|t| byte_sums(&std::array::from_fn(|w| low[t % 4 + 4 * w + 32 * (t / 4)])))
+    // Bit `w` of byte `4 * block + p` of a row is word `w` of pack `p` of the run's block; the
+    // bytes of the blocks a run of fewer than eight lacks weigh nothing.
+    let weights: Vec<F192> = (0..8 * RUN_BYTES)
+        .map(|b| {
+            let (t, w) = (b / 8, b % 8);
+            low.get(t % 4 + 4 * w + 32 * (t / 4)).copied().unwrap_or(F192::ZERO)
+        })
         .collect();
-    // A task per position of a committed lane: a task per lane would leave threads idle.
-    let positions: Vec<[F192; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
-        let (lane, z) = (task / 64, task % 64);
+    let fold = BitFold::new(&weights);
+    // A task per four positions `j ..` of a committed lane, row `16 * dz + i` of the fold being
+    // instance `i` of a pack at position `j + dz`.
+    let positions: Vec<[F192; BLOCK]> = parallel::map_collect(16 * shape.slots(), |task| {
+        let (lane, j) = (task / 16, 64 * (task / 16 % LANES) + 4 * (task % 16));
         let round = shape.depth * (lane / LANES);
-        let j = 64 * (lane % LANES) + z;
-        let mut acc = [F192Unreduced::ZERO; 16];
+        let mut acc = [F192Unreduced::ZERO; BLOCK];
         for (run, &scale) in runs.iter().enumerate().take(written.div_ceil(1 << run_vars)) {
-            let mut sums = [F192::ZERO; 16];
+            let mut cols = [[0u8; BLOCK]; RUN_BYTES];
             for block in 0..(1 << run_vars).min(written - (run << run_vars)) {
-                let words = state_words(witness, round, (run << run_vars) + block, j);
-                // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
-                // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
-                let mut gathered = [0u8; 64];
-                primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
-                for (i, sum) in sums.iter_mut().enumerate() {
-                    for p in 0..4 {
-                        *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
+                for dz in 0..4 {
+                    let words = state_words(witness, round, (run << run_vars) + block, j + dz);
+                    // Byte `16 * p + i` gathers instance `i` of pack `p` across the eight words.
+                    let mut gathered = [0u8; 64];
+                    primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
+                    for (p, gathered) in gathered.as_chunks::<16>().0.iter().enumerate() {
+                        cols[4 * block + p][16 * dz..][..16].copy_from_slice(gathered);
                     }
                 }
             }
+            let mut sums = [F192::ZERO; BLOCK];
+            fold.fold_columns(&cols, &mut sums);
             for (acc, sum) in acc.iter_mut().zip(sums) {
                 *acc ^= scale.mul_unreduced(sum);
             }
         }
-        let pad = written < shape.n_blocks() && state_words(witness, round, written, j)[0] & 1 == 1;
-        acc.map(|acc| if pad { acc.reduce() + padding } else { acc.reduce() })
+        let pad: [bool; 4] = std::array::from_fn(|dz| {
+            written < shape.n_blocks() && state_words(witness, round, written, j + dz)[0] & 1 == 1
+        });
+        std::array::from_fn(|r| acc[r].reduce() + if pad[r / 16] { padding } else { F192::ZERO })
     });
     let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
     for (task, sums) in positions.iter().enumerate() {
-        let (lane, z) = (task / 64, task % 64);
-        for (i, &sum) in sums.iter().enumerate() {
-            out[(i + 16 * lane) * 64 + z] = sum;
+        let (lane, z) = (task / 16, 4 * (task % 16));
+        for (r, &sum) in sums.iter().enumerate() {
+            out[(r % 16 + 16 * lane) * 64 + z + r / 16] = sum;
         }
     }
     out
 }
+
+/// Bytes of a [`fold_packs`] row: four packs of each of a run's eight blocks.
+const RUN_BYTES: usize = 32;
 
 /// Byte `b` of word `x` at `8 * x + b`.
 fn le_bytes(words: &[u64; BLOCK_WORDS]) -> [u8; 64] {
