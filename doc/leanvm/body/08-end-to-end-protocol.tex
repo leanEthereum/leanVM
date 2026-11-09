@@ -16,7 +16,7 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13
 \hline
 \texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
 \texttt{KECCAK}        & $\opc{KEC}$ & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{b8}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$ & $\mathit{odd}_{\mathit{in}}$ & $\mathit{odd}_{\mathit{out}}$ & $\mathit{out}_{\mathit{two}}$ & $\mathit{out}_{\mathit{all}}$\\
@@ -31,11 +31,11 @@ The first two memory cells must hold the public input, $\mem[\gen^{0}]=\textsf{i
 \[
   \mle{\mem}(X,0,\dots,0)\;=\;(1+X)(\textsf{input}_0+\textsf{input}_1y)+X(\textsf{input}_2+\textsf{input}_3y).
 \]
-Recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as three limbs $\mem_0,\mem_1,\mem_2\in\K^{\le1}[X_1,\dots,X_{\kmem}]$, with $\mem=\mem_0+y\,\mem_1+y^2\,\mem_2$ (\S\ref{sec:memchan}). Since $1,y,y^2$ is a basis of $\E$ over $\K$, the equality holds, as polynomials in $X$, exactly when it holds limb by limb, and every limb's right side is a line the verifier knows. The verifier samples $r_m\in\E$, computes
+Recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as two limbs $\mem_0,\mem_1\in\K^{\le1}[X_1,\dots,X_{\kmem}]$, with $\mem=\mem_0+y\,\mem_1$ (\S\ref{sec:memchan}). Since $1,y$ is a basis of $\E$ over $\K$, the equality holds, as polynomials in $X$, exactly when it holds limb by limb, and every limb's right side is a line the verifier knows. The verifier samples $r_m\in\E$, computes
 \[
   c_0=(1+r_m)\,\textsf{input}_0+r_m\,\textsf{input}_2,\qquad c_1=(1+r_m)\,\textsf{input}_1+r_m\,\textsf{input}_3,
 \]
-and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
+and pools the claims $c_0,c_1$ on $\mem_0,\mem_1$ at $(r_m,0,\dots,0)$. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
 
 \subsection{Padding rows}\label{sec:e2e-pad}
 
@@ -44,7 +44,7 @@ An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}
 The bus does not depend on what a padding row holds:
 
 \begin{proposition}[Padding rows flush nothing]\label{prop:pad}
-Let $P$ (resp.\ $Q$) be the multiset of tuples pushed (resp.\ pulled) by the executed rows and the boundary. If $P\neq Q$, the bus check passes with probability at most $4\cdot2^{\mu}/|\E|$, plus the soundness errors of GKR, the table sumcheck and the PCS.
+Let $P$ (resp.\ $Q$) be the multiset of tuples pushed (resp.\ pulled) by the executed rows and the boundary. If $P\neq Q$, the bus check passes with probability at most $4\cdot2^{\mu}/|\E|$ (before grinding, \S\ref{sec:gp}), plus the soundness errors of GKR, the table sumcheck and the PCS.
 \end{proposition}
 
 \begin{proof}
@@ -67,13 +67,15 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The IV is the hash of a fixed tag naming the proof system's version, \texttt{leanvm-v1}, followed by the bytecode: the tag has a fixed length and comes first, and the padding binds the preimage's length, so no length field is needed. The statement is bound before any challenge is drawn.
 
-\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
+\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar $c_0+c_1y$ over lanes $4i,\dots,4i+3$ as $[c_0,c_1,0,\mathit{tag}]$: its two $\K$-limbs, a zero lane and a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce). It zeroes the rest of the rate and keeps the capacity. On the wire a scalar is $16$ bytes, its two limbs little-endian. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
 
-\paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
+\paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is lanes $0$ and $1$ of its output, read as the limbs $c_0+c_1y$ of an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
 
-\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
+\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce, a scalar, with its tag and draws a challenge, whose low $b$ bits (of $c_0$) must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero. A grind of $b$ bits before a verifier message divides that message's round-by-round error by $2^b$ (\S\ref{sec:iopcs}); every message of the protocol is held to $2^{-120}$ after its grind.
 
-Merkle trees hash with Keccak-256, apart from the sponge.
+\paragraph{Queries.} A level's columns of a domain of size $2^{h}$ are read from successive challenges, $\lfloor128/h\rfloor$ per challenge: the $h$-bit windows of the $128$-bit integer $c_0+2^{64}c_1$, from the low end.
+
+\paragraph{Digests.} Merkle trees hash with Keccak-256, apart from the sponge. A $32$-byte digest $w_0\Vert w_1\Vert w_2\Vert w_3$ (little-endian $64$-bit words) travels and is absorbed as the two scalars $w_0+w_1y$ and $w_2+w_3y$. A Merkle leaf of $\E$-valued entries holds two words per entry.
 
 \subsection{Merkle pruning}\label{sec:e2e-merkle-pruning}
 
@@ -93,13 +95,14 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Commitment.}
 
 \begin{enumerate}
-\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
+\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the two memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
 \end{enumerate}
 
 \paragraph{Bus.}
 
 \begin{enumerate}
+\item \textbf{Prover \& Verifier.} The prover grinds $\max(0,\mu-6)$ bits, $\mu$ the bus tree's depth, which the announced sizes fix (\S\ref{sec:gp}).
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
 \item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
 \item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
@@ -117,7 +120,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends $r_m\in\E$.
-\item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
+\item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1)$ as claims on $\mem_0,\mem_1$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
 \end{enumerate}
 
 \paragraph{KECCAK validity.}
@@ -127,14 +130,14 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} The prover sends the part of the first claim on the committed state after twelve rounds; the part on the output is the table's claims on its output lanes. The parties run the layers of the reduction with the middle state committed (\S\ref{keccak:layer}, \S\ref{keccak:segments}): twelve, one per round of a segment, which take the claim to one on the committed states twelve rounds earlier (\S\ref{keccak:layer}).
 \item \textbf{Prover \& Verifier.} Open the part on the committed state: a sumcheck over the slot leaves one evaluation of $\qkeccak$, an ordinary column claim, which joins the pool last (\S\ref{keccak:segments}).
 \item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the permutations of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends (\S\ref{keccak:openings}).
-\item \textbf{Prover \& Verifier.} The verifier samples the six challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
+\item \textbf{Prover \& Verifier.} The prover grinds $\grind{batch}$ bits (Annex~\ref{annex:pcs}); the verifier samples the sixteen challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
 \end{enumerate}
 
 \paragraph{Opening.}
 
 \begin{enumerate}
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qkeccak$ region.)
-\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
+\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn right after the ring-switching challenges with no prover message between, so the seventeen are one verifier message under the one grind (\S\ref{sec:soundness-outer}). Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J\le512$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
 \item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
 \end{enumerate}

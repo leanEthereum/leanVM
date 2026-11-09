@@ -1,9 +1,11 @@
 //! Ring switching: the 64 slice claims a reduction leaves become one claim on the committed column.
 
+use crate::VerifierError;
 use crate::field::{E, GEN, ONE, ZERO};
 use crate::layout::K_BITS;
 use crate::multilinear::poly_eval;
 use crate::transcript::Transcript;
+use crate::whir::BATCH_GRINDING_BITS;
 
 /// Phi's challenges come in two rows of this many: `f_a` then `g_b`.
 const RING_MAP_WIDTH: usize = 8;
@@ -58,13 +60,20 @@ fn ring_weight(r: &[E], r_prime: &[E], coefficients: &[E]) -> E {
 ///
 /// Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
 /// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure.
-pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> (E, impl Fn(&[E]) -> E + use<>) {
+///
+/// One grind covers the map's challenges and the stacked opening's batching challenge, drawn next.
+pub fn ring_switch(
+    point: Vec<E>,
+    s: &[E],
+    transcript: &mut Transcript,
+) -> Result<(E, impl Fn(&[E]) -> E + use<>), VerifierError> {
+    transcript.grind_check(BATCH_GRINDING_BITS)?;
     let challenges = transcript.samples(2 * RING_MAP_WIDTH);
     let (f, g) = challenges.split_at(RING_MAP_WIDTH);
     let coefficients = ring_coefficients(f, g);
     let images: Vec<E> = s.iter().map(|&value| ring_map(value, f, g)).collect();
     let target = poly_eval(&images, GEN);
-    (target, move |r_prime: &[E]| ring_weight(&point, r_prime, &coefficients))
+    Ok((target, move |r_prime: &[E]| ring_weight(&point, r_prime, &coefficients)))
 }
 
 #[cfg(test)]

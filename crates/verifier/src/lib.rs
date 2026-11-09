@@ -63,6 +63,7 @@ pub enum VerifierError {
     WhirShape,
     QueryCountLadder,
     InducedBasisDimensions,
+    WhirFinalQuery,
     WhirTerminal,
     WhirNoTerminalLevel,
     KeccakProduct,
@@ -72,6 +73,7 @@ pub enum VerifierError {
     AnnouncedHighLimb,
     PcsInverseRate,
     CommittedSize,
+    StackedClaims,
 }
 
 impl std::fmt::Display for VerifierError {
@@ -94,6 +96,7 @@ impl std::fmt::Display for VerifierError {
             Self::WhirShape => "invalid WHIR shape",
             Self::QueryCountLadder => "tabulated query count does not match the ladder",
             Self::InducedBasisDimensions => "bad induced-basis dimensions",
+            Self::WhirFinalQuery => "WHIR final query does not match the final polynomial",
             Self::WhirTerminal => "WHIR terminal check failed",
             Self::WhirNoTerminalLevel => "WHIR verification ended without a terminal level",
             Self::KeccakProduct => "Keccak product polynomial does not carry the claim",
@@ -103,6 +106,7 @@ impl std::fmt::Display for VerifierError {
             Self::AnnouncedHighLimb => "announced size has a nonzero high limb",
             Self::PcsInverseRate => "invalid PCS inverse rate",
             Self::CommittedSize => "committed size outside the PCS window",
+            Self::StackedClaims => "too many stacked claims",
         };
         f.write_str(message)
     }
@@ -113,6 +117,9 @@ impl std::error::Error for VerifierError {}
 fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
+
+/// The stacked opening's batching is accounted for up to this many claims, the ring-switch ones included.
+const MAX_STACKED_CLAIMS: usize = 512;
 
 /// The weight a claim puts on the stack, and the value it claims for it.
 type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
@@ -127,6 +134,7 @@ fn verify_stacked_opening(
     claims: &[StackClaim],
 ) -> Result<(), VerifierError> {
     let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
+    require(claims.len() <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
     let scales = powers(transcript.sample(), claims.len());
     let evaluate_basis = |point: &[E]| {
         let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
@@ -200,7 +208,7 @@ pub fn verify_keccak_batch(
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
-    let (target, weight) = ring_switch(point, &slices, &mut transcript);
+    let (target, weight) = ring_switch(point, &slices, &mut transcript)?;
     let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
@@ -299,7 +307,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
 
     // 7] Ring-switching
     let (point, slices) = openings.inputs;
-    let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript);
+    let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript)?;
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
     let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");

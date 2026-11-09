@@ -52,12 +52,12 @@ Split on the top bit $x_{\kappa-1}$. If $n_{\kappa-1}=0$, every $x$ with $x_{\ka
 \end{proof}
 
 
-\begin{lemma}[Every element outside $\K$ is a cubic generator]\label{lem:kbasis}
-For $\alpha\in\E\setminus\K$, the set $\{1,\alpha,\alpha^{2}\}$ is a $\K$-basis of $\E$.
+\begin{lemma}[Every element outside $\K$ generates $\E$]\label{lem:kbasis}
+For $\alpha\in\E\setminus\K$, the set $\{1,\alpha\}$ is a $\K$-basis of $\E$.
 \end{lemma}
 
 \begin{proof}
-Degrees multiply in the tower $\K\subseteq\K(\alpha)\subseteq\E$, so $[\E:\K(\alpha)]\,[\K(\alpha):\K]=[\E:\K]=3$. That degree is prime and $[\K(\alpha):\K]>1$ because $\alpha\notin\K$, hence $[\K(\alpha):\K]=3$ and $\K(\alpha)=\E$. The minimal polynomial of $\alpha$ over $\K$ then has degree $3$, so $1,\alpha,\alpha^{2}$ are $\K$-independent, and three independent elements of a space of $\K$-dimension $3$ are a basis.
+A $\K$-relation $c_0+c_1\alpha=0$ with $c_1\neq0$ would put $\alpha=-c_0/c_1$ in $\K$, so $c_1=0$ and then $c_0=0$: the two are $\K$-independent, and two independent elements of a space of $\K$-dimension $[\E:\K]=2$ are a basis.
 \end{proof}
 
 \begin{lemma}[Schwartz--Zippel]\label{lem:sz}

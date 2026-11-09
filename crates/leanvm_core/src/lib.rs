@@ -42,10 +42,10 @@ pub fn init_prover() {
     parallel::init();
 }
 
-/// Target soundness of the whole proof, in bits. Every algebraic challenge is
-/// sampled in F128, and the PCS derives a WHIR configuration whose query,
-/// proximity-gap, and OOD-binding terms each clear this target.
-pub const SECURITY_BITS: u32 = 128;
+/// Target soundness in bits: every round-by-round error term, after its grinding, is at
+/// most `2^-SECURITY_BITS`. Challenges are sampled in F128, and the PCS derives a WHIR
+/// configuration whose query, proximity-gap, and OOD-binding terms each clear this target.
+pub const SECURITY_BITS: u32 = 120;
 
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].

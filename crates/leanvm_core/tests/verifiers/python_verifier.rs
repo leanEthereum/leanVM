@@ -186,8 +186,9 @@ fn test_python_verifier() {
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
-/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, and each check of the
-/// Keccak reduction tripped by the scalar it reads last.
+/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, each check of the
+/// Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar, a high-part
+/// scalar and a grinding nonce, each caught by the grind that follows it, and the last tail scalar by the terminal check.
 #[test]
 fn tampers_fail_the_same_check() {
     let fixture = fixture();
@@ -202,8 +203,33 @@ fn tampers_fail_the_same_check() {
     let keccak = fixture.summary.keccak_scalars.clone();
     let input_opening = 2 * (PACK_BITS + SLOT_BITS) + SLICES;
     let output_opening = 2 * SLOT_BITS + 1;
+    // The WHIR opening ends the stream. Its final level, after its `k` rounds of a nonce, five scalars and a nonce:
+    // the `2^mu + k` coefficients of the folded lane, the query nonce, then two scalars a tail round. The level
+    // before ends on its high part, the OOD nonce and value, the query nonce and the batching nonce.
+    let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
+    let stack_log = leanvm_core::cpu::layout::layout(
+        &fixture.program.prog,
+        fixture.summary.log_memory,
+        rows.try_into().expect("one row count a table"),
+        fixture.public_input,
+    )
+    .shape
+    .mu;
+    let (mut mu, mut k) = (stack_log - 6, 6); // the ladder: 6 lane variables, then 4 a level while over 5 remain
+    while mu > 5 {
+        k = mu.min(4);
+        mu -= k;
+    }
+    let end = scalar_proof(&fixture.proof).stream.len();
+    let tail = 2 * mu;
+    let final_coefficients = (1 << mu) + k;
+    let final_level = 7 * k + final_coefficients + 1 + tail;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
+        (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
+        (end - final_level - 5, VerifierError::GrindingNonce),
+        (end - tail - 1, VerifierError::GrindingNonce),
+        (end - 1, VerifierError::WhirTerminal),
         (keccak.start + PRODUCT_COEFFICIENTS, VerifierError::KeccakProduct),
         (
             keccak.end - input_opening - output_opening - 1,
