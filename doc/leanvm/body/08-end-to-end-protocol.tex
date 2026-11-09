@@ -60,7 +60,7 @@ Let $x$ be a padding row of block $b$, whatever it holds. Block $b$ flushes the 
 \[
   L_b(x)\;=\;1+\bform{b}(x)-\bform{b}(\padrow{j})\;=\;1-\pi_\alpha(\tdiff).
 \]
-It does not depend on $\beta$, and it is a nonzero polynomial in $\alpha$, of degree at most one: $\tdiff$ is $0$ in slot $0$, where both tuples hold the same domain separator, so $\pi_\alpha(\tdiff)$ has no constant term, and $L_b(x)$ has constant term $1$.
+It does not depend on $\beta$, and it is a nonzero polynomial in $\alpha$, of degree at most one: $\pi_\alpha(\tdiff)$ is linear in $\alpha$, so it has no constant term, and $L_b(x)$ has constant term $1$.
 
 So the push product is $\padprod{\push}(\alpha)\,\Pi_P(\alpha,\beta)$, where $\padprod{\push}$ multiplies the padding leaves, a nonzero polynomial in $\alpha$ alone, and $\Pi_P$ multiplies the leaves $\beta-\pi_\alpha(t)$, $t\in P$ (Lemma~\ref{lem:gp}). Likewise, the pull product is $\padprod{\pull}\,\Pi_Q$. Suppose $P\neq Q$, and that the two products are the same polynomial. Their highest powers of $\beta$ then match: $\padprod{\push}\beta^{|P|}$ and $\padprod{\pull}\beta^{|Q|}$, so $|P|=|Q|$ and $\padprod{\push}=\padprod{\pull}$. Dividing by it gives $\Pi_P=\Pi_Q$, so $P=Q$ by Lemma~\ref{lem:gp}, a contradiction. The two products are thus different polynomials, of total degree at most $2^{\mu}$, every leaf being of degree at most one, and agree at the random $(\alpha,\beta)$ with probability at most $2^{\mu}/|\E|$ (Corollary~\ref{cor:idtest}).
 \end{proof}

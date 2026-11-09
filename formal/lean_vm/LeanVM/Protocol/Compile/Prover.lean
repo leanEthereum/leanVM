@@ -226,32 +226,6 @@ def prove (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel :
 
 end Prover
 
-/-! ## Histories -/
-
-/-- The commitments of a concatenation are those of each piece, in order. -/
-theorem commits_append (h h' : List Ev) : commits (h ++ h') = commits h ++ commits h' := by
-  induction h with
-  | nil => rfl
-  | cons e es ih => cases e <;> simp [commits, ih]
-
-/-- Following a history in two pieces. -/
-theorem VerifierProgram.after_append {α : Type} :
-    ∀ (P : VerifierProgram α) (h h' : List Ev), P.after (h ++ h') = (P.after h).bind fun p ↦
-        p.after h'
-  | _, [], _ => by simp [VerifierProgram.after]
-  | P, e :: es, h' => by
-    cases P <;> cases e <;> simp only [List.cons_append, VerifierProgram.after,
-        Option.bind_none] <;>
-      first
-      | exact VerifierProgram.after_append _ es h'
-      | (split <;> simp [VerifierProgram.after_append _ es h'])
-
-/-- One more event, after a history that leads to `p`, is read by `p`. -/
-theorem VerifierProgram.after_append_single {α : Type} {P p : VerifierProgram α} {h : List Ev}
-    (e : Ev)
-    (ha : P.after h = some p) : P.after (h ++ [e]) = p.after [e] := by
-  rw [VerifierProgram.after_append, ha, Option.bind_some]
-
 /-! ## From the interactive run to `AcceptsFrom` -/
 
 namespace Strategy

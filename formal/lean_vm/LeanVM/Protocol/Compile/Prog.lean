@@ -43,7 +43,9 @@ verifier.
 * A history records a commitment with its shape and word, an opening with the rows the words
   give (`answer`); `Reachable P h` says `h` is a run of `P` with every opening answered from the
   words committed before it, and every committed word well shaped.
-* The nonce of a proof of work is not recorded: no interactive reading depends on it.
+* The nonce of a proof of work is not recorded: no interactive reading depends on it. A proof of
+  work `Ev.grind b` has `b ≥ 1` bits (`grindProofOfWork` grinds nothing at `0`), and on the
+  verifier's program the challenge after it is drawn by its own permutation (`GrindThenSample`).
 -/
 
 namespace LeanVM.Protocol.Compile
@@ -168,6 +170,39 @@ inductive Reachable (P : VerifierProgram α) : List Ev → Prop where
       answer h i ps = some rows → Reachable P (h ++ [Ev.query rows])
 
 end VerifierProgram
+
+/-! ## Histories -/
+
+/-- The commitments of a concatenation are those of each piece, in order. -/
+theorem commits_append (h h' : List Ev) : commits (h ++ h') = commits h ++ commits h' := by
+  induction h with
+  | nil => rfl
+  | cons e es ih => cases e <;> simp [commits, ih]
+
+/-- Following a history in two pieces. -/
+theorem VerifierProgram.after_append {α : Type} :
+    ∀ (P : VerifierProgram α) (h h' : List Ev), P.after (h ++ h') = (P.after h).bind fun p ↦
+        p.after h'
+  | _, [], _ => by simp [VerifierProgram.after]
+  | P, e :: es, h' => by
+    cases P <;> cases e <;> simp only [List.cons_append, VerifierProgram.after,
+        Option.bind_none] <;>
+      first
+      | exact VerifierProgram.after_append _ es h'
+      | (split <;> simp [VerifierProgram.after_append _ es h'])
+
+/-- One more event, after a history that leads to `p`, is read by `p`. -/
+theorem VerifierProgram.after_append_single {α : Type} {P p : VerifierProgram α} {h : List Ev}
+    (e : Ev)
+    (ha : P.after h = some p) : P.after (h ++ [e]) = p.after [e] := by
+  rw [VerifierProgram.after_append, ha, Option.bind_some]
+
+/-- Every proof of work of the program is followed at once by a challenge. The compiled
+verifier's proof of work permutes and keeps the permutation's first two lanes as the next
+challenge (`absorbNonce`, `ground`), and rejects an absorption while it waits; on such a program
+that challenge is the next event, drawn by the grind's own permutation. -/
+def GrindThenSample {α : Type} (P : VerifierProgram α) : Prop :=
+  ∀ h b k, P.after h = some (.grind b k) → ∃ k', k = .sample k'
 
 /-- A history ends with a prover move (or is empty): the points at which a group of challenges
 can start. -/

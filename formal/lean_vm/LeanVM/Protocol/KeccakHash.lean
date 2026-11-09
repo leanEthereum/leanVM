@@ -83,19 +83,16 @@ theorem digestBytes_injective : Function.Injective digestBytes := by
 /-! ## The digest encoding -/
 
 /-- Decoding the encoding of a digest gives the digest back. -/
-theorem digestOfScalars_digestScalars (d : Digest) :
-    digestFromHalves (digestHalves d) = d := by
+theorem digestOfScalars_digestScalars (d : Digest) : digestFromHalves (digestHalves d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
   | [_, _, _, _], _ => simp [digestFromHalves, digestHalves, limb_ofLimbs]
 
 /-- Encoding a decoded pair gives the pair back: the encoding is a bijection between digests and
-pairs of `E` words. -/
-theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
-    (h : digestFromHalves s = d) : digestHalves d = s := by
-  subst h
+pairs of field elements. -/
+theorem digestScalars_digestOfScalars (s : E × E) : digestHalves (digestFromHalves s) = s := by
   obtain ⟨a, b⟩ := s
-  simp only [digestFromHalves, digestHalves, Vector.getElem_mk, List.getElem_toArray,
+  simp only [digestHalves, digestFromHalves, Vector.getElem_mk, List.getElem_toArray,
     List.getElem_cons_zero, List.getElem_cons_succ, K.ofLane_lane, ofLimbs_limb]
 
 end KeccakHash
