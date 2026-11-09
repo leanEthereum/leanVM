@@ -1,0 +1,125 @@
+module
+
+public import Qrom.Verify
+public import Qrom.OvSearch
+
+@[expose] public section
+
+/-!
+# Assembling the bounds of a game with a classical verifier
+
+The search bound for a game whose adversary is followed by a classical verifier: the probability
+that a value the verifier reads, in the side state the game ends in, is good
+(`Qrom.OvGame.search_withVerifier_le`). The verifier's calls count toward the budget.
+-/
+
+open Matrix OracleSpec
+open scoped Kronecker ENNReal
+
+universe u v w
+
+set_option linter.unusedSectionVars false
+
+namespace Qrom
+
+open Quantum
+
+namespace OvGame
+
+variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] [AddCommGroup Y]
+variable {S P : Type} [Fintype S] [DecidableEq S] {Res : P → Type} [∀ j, Fintype (Res j)]
+  [∀ j, DecidableEq (Res j)]
+
+section bound
+
+variable {L : LocalSig.{u, v}} {spec : QuantumOracleSpec.{0, 0}} {α β : Type}
+
+/-- Call budgets add under sequencing of fixed-register programs. -/
+theorem isTotalQueryBound_bind₂ {A B C : QReg} (x : QuantumComp₂ L spec A B α)
+    {k : α → QuantumComp₂ L spec B C β} {n m : ℕ} (hx : x.IsTotalQueryBound n)
+    (hk : ∀ a, (k a).IsTotalQueryBound m) : (x.bind k).IsTotalQueryBound (n + m) := by
+  induction x using QuantumComp₂.inductionOn generalizing n with
+  | pure A a =>
+    rw [QuantumComp₂.pure_bind]
+    exact (hk a).mono (Nat.le_add_left m n)
+  | primBind A B o k' ih =>
+    rw [QuantumComp₂.primBind_bind]
+    exact (QuantumComp.isTotalQueryBound_primBind_iff _ _ _).mpr fun b ↦
+      ih b ((QuantumComp.isTotalQueryBound_primBind_iff _ _ _).mp hx b) hk
+  | queryBind A B i E ℓ k' ih =>
+    rw [QuantumComp₂.queryBind_bind]
+    obtain ⟨hn, hr⟩ := (QuantumComp.isTotalQueryBound_queryBind_iff _ _ _ _ _).mp hx
+    refine (QuantumComp.isTotalQueryBound_queryBind_iff _ _ _ _ _).mpr ⟨by omega, fun r ↦ ?_⟩
+    exact (ih r (hr r) hk).mono (by omega)
+
+theorem isTotalQueryBound_act {A B : QReg} (p : SubInstrument A B α) :
+    (QComp.act (spec := spec) p).IsTotalQueryBound 0 :=
+  (QuantumComp.isTotalQueryBound_primBind_iff _ _ _).mpr fun _ ↦
+    QuantumComp.isTotalQueryBound_pure _ _
+
+end bound
+
+/-- A classical hash query makes one call. -/
+theorem isTotalQueryBound_hashQuery (t : X) :
+    (hashQuery (S := S) (P := P) (Res := Res) (Y := Y) t).IsTotalQueryBound 1 := by
+  unfold hashQuery QComp.callBasis
+  have hq : (QuantumComp₂.query (L := LocalSig.instruments) (spec := ovSpec X Y S P Res)
+      (A := QReg.of (((ovSpec X Y S P Res).In (Sum.inl ())).carrier × (QReg.of Unit).carrier))
+      (Sum.inl ()) (QReg.of Unit) (Equiv.refl _)).IsTotalQueryBound 1 :=
+    (QuantumComp.isTotalQueryBound_queryBind_iff _ _ _ _ _).mpr ⟨Nat.one_pos, fun _ ↦
+      QuantumComp.isTotalQueryBound_pure _ _⟩
+  exact (isTotalQueryBound_bind₂ (n := 0) (m := 1) _ (isTotalQueryBound_act _) fun _ ↦
+    isTotalQueryBound_bind₂ (n := 1) (m := 0) _ hq fun _ ↦ isTotalQueryBound_act _)
+
+/-- A classical algorithm making at most `m` queries runs to a program making at most `m` calls. -/
+theorem isTotalQueryBound_classicalProg {β : Type} {oa : OracleComp (X →ₒ Y) β} {m : ℕ}
+    (h : OracleComp.IsTotalQueryBound oa m) :
+    (classicalProg (S := S) (P := P) (Res := Res) oa).IsTotalQueryBound m := by
+  induction oa using OracleComp.inductionOn generalizing m with
+  | pure a => exact QuantumComp.isTotalQueryBound_pure _ _
+  | query_bind t k ih =>
+    rw [OracleComp.isTotalQueryBound_query_bind_iff] at h
+    rw [classicalProg, OracleComp.toQuantumAt_query_bind]
+    exact (isTotalQueryBound_bind₂ _ (isTotalQueryBound_hashQuery t) fun y ↦ ih y (h.2 y)).mono
+      (by omega)
+
+/-- The calls of the program and of the verifier add. -/
+theorem isTotalQueryBound_withVerifier {A : QReg} {α β : Type}
+    {adv : QComp (ovSpec X Y S P Res) A (QReg.of Unit) α} {ver : α → OracleComp (X →ₒ Y) β}
+    {n m : ℕ} (hadv : adv.IsTotalQueryBound n) (hver : ∀ a, OracleComp.IsTotalQueryBound (ver a) m) :
+    (withVerifier adv ver).IsTotalQueryBound (n + m) := by
+  refine isTotalQueryBound_bind₂ _ hadv fun a ↦ ?_
+  rw [QuantumComp₂.map_eq_bind_pure]
+  exact (isTotalQueryBound_bind₂ _ (isTotalQueryBound_classicalProg (hver a)) fun _ ↦
+    QuantumComp.isTotalQueryBound_pure _ 0).mono (by omega)
+
+
+/-- **The search bound with a classical verifier.** A program making at most `n` calls, followed by
+a verifier making at most `m` queries and reading at most `k` inputs, reads a good value in the side
+state it ends in with probability at most `λ (√6 (n + m) + 2 k)²`, where every input has a fraction
+at most `λ` of good values. -/
+theorem search_withVerifier_le (g : OvGame X Y S P Res) [Nonempty Y] (good : X → Y → Prop)
+    [∀ z, DecidablePred (good z)] (sb : ℕ) (hs : ∀ z, (Finset.univ.filter (good z)).card ≤ sb)
+    {A : QReg} {α β : Type} [DecidableEq α] [DecidableEq β]
+    (adv : QComp (ovSpec X Y S P Res) A (QReg.of Unit) α) (ver : α → OracleComp (X →ₒ Y) β)
+    (out : β → Finset X) (k : ℕ) (hout : ∀ b, (out b).card ≤ k) (n m : ℕ)
+    (hadv : adv.IsTotalQueryBound n) (hver : ∀ a, OracleComp.IsTotalQueryBound (ver a) m)
+    (ρ : SubState A) :
+    ∑ G : X → Y, (Fintype.card (X → Y) : ℝ≥0∞)⁻¹ * sideW g G .instruments adv ρ (fun p s ↦
+        decide (∃ z ∈ out (evalWithAnswerFn (QueryImpl.ofFn (g.answer s G)) (ver p.2.2)),
+          good z (G z))) ≤
+      ENNReal.ofReal (((sb : ℝ) / Fintype.card Y) * (√6 * (n + m : ℕ) + 2 * k) ^ 2) *
+        ENNReal.ofReal ρ.matrix.trace.re := by
+  have h := ov_search_le g good .instruments sb hs (n + m) k (withVerifier adv ver)
+    (isTotalQueryBound_withVerifier hadv hver) ρ (fun p ↦ out p.2.2.2) fun p ↦ hout _
+  erw [sampledEvalDistMap_apply _ _ _ _ _ (measurableSet_singleton true)] at h
+  refine le_of_eq_of_le (Finset.sum_congr rfl fun G _ ↦ ?_) h
+  congr 1
+  exact (sideW_withVerifier g G adv ver ρ fun ab _ ↦
+    decide (∃ z ∈ out ab.2, good z (G z))).symm.trans
+    (sideW_const g G .instruments (withVerifier adv ver) ρ fun p ↦
+      decide (∃ z ∈ out p.2.2.2, good z (G z)))
+
+end OvGame
+
+end Qrom

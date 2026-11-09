@@ -6,6 +6,7 @@ public import Qrom.HidingMain
 public import Qrom.Deferral
 public import Qrom.Presample
 public import Qrom.Verify
+public import Qrom.Assembly
 
 /-! # Generic results in the quantum random-oracle model
 
@@ -48,3 +49,7 @@ three standard axioms. -/
 /-- info: 'Qrom.OvGame.sideW_withVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.OvGame.sideW_withVerifier
+
+/-- info: 'Qrom.OvGame.search_withVerifier_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.OvGame.search_withVerifier_le
