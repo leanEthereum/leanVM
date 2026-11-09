@@ -85,7 +85,7 @@ theorem Corr.bind_allRet {α γ δ : Type} {P : α → Prop} {S : γ → δ → 
 /-- **The stateful sumcheck makes the specification's moves** for `N` rounds in all: given an
 invariant under which, while rounds remain, the state's `count` coefficients evaluate as the
 round's claim, and which each fold keeps; it draws one challenge per round. -/
-theorem corr_sumcheckBy_lt {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 192)
+theorem corr_sumcheckBy_lt {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 128)
     (claimOf : List E → E) (round : σ → List E) (fold : σ → E → σ) (Inv : List E → σ → Prop)
     (N : ℕ)
     (hround : ∀ pre st, Inv pre st → pre.length < N →
@@ -103,8 +103,8 @@ theorem corr_sumcheckBy_lt {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : c
     obtain ⟨hlen, hev⟩ := hround pre st h hlt
     have hco : coeffsOf (count - 1) (fun x ↦ claimOf (pre ++ [x])) = round st :=
       coeffsOf_eq (by omega) (by omega) hev
-    simp only [sumcheckBy, hSumcheck, hco, ← wire_eq]
-    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
+    simp only [sumcheckBy, hSumcheck, hco, ← wire_eq, Script.bind_assoc', roundGrind_eq hlen]
+    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
     refine Corr.bind (fun a b hab ↦ ?_) _ _
       (corr_sumcheckBy_lt count hc hc' claimOf round fold Inv N hround hfold modes (pre ++ [c])
         (fold st c) (hfold pre st c h hlt)

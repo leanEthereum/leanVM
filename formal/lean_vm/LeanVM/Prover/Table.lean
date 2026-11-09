@@ -38,7 +38,7 @@ open LeanVM.Protocol.EndToEnd.Complete
 /-- **The stateful sumcheck makes the specification's moves**, for at most `N` rounds: as
 `corr_sumcheckBy`, the invariant's round and fold facts needed only before the `N`-th
 challenge; the challenges are as many as the rounds. -/
-theorem corr_sumcheckBy_le {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 192)
+theorem corr_sumcheckBy_le {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : count ≤ 2 ^ 128)
     (claimOf : List E → E) (round : σ → List E) (fold : σ → E → σ) (Inv : List E → σ → Prop)
     (N : ℕ)
     (hround : ∀ pre st, Inv pre st → pre.length < N →
@@ -57,8 +57,8 @@ theorem corr_sumcheckBy_le {σ : Type} (count : ℕ) (hc : 1 ≤ count) (hc' : c
     obtain ⟨hlen, hev⟩ := hround pre st h hlt
     have hco : coeffsOf (count - 1) (fun x ↦ claimOf (pre ++ [x])) = round st :=
       coeffsOf_eq (by omega) (by omega) hev
-    simp only [sumcheckBy, hSumcheck, hco, ← wire_eq]
-    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
+    simp only [sumcheckBy, hSumcheck, hco, ← wire_eq, Script.bind_assoc', roundGrind_eq hlen]
+    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
     refine Corr.bind (fun a b hab ↦ ?_) _ _
       (corr_sumcheckBy_le count hc hc' claimOf round fold Inv N hround hfold modes (pre ++ [c])
         (fold st c) (hfold pre st c h hlt)
@@ -395,7 +395,7 @@ theorem corr_tableFast (cols : Array (Array K))
             []).2)) := by
     intro xi
     have h1 : (1 : ℕ) ≤ 4 := by norm_num
-    have h2 : (4 : ℕ) ≤ 2 ^ 192 := by norm_num
+    have h2 : (4 : ℕ) ≤ 2 ^ 128 := by norm_num
     have hround : ∀ pre st, TInv prog s q bus pre st → pre.length < nRounds s →
         (tableRound bus.point (tableLogs s) (tableTermsOf xi bus)
           (tableSigmas bus.point (tableLogs s) (tableTermsOf xi bus) (tableInit cols)) st).length =

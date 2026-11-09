@@ -50,7 +50,10 @@ theorem corr_keccak (hcol : ColAgree P col' col) {inst : List E} (hi : inst.leng
     (output : List E) :
     Corr (fun _ _ ↦ True) (keccakProve col' P inst output) (hKeccak P col inst output) := by
   unfold keccakProve hKeccak
-  simp only [Script.bind_eq, Script.ret_bind, hOpen_eq]
+  rw [show LeanVM.Protocol.Compile.grindingBits (keccakSegmentBits + keccakLaneBits) = 0 by decide,
+    keccakSegmentBits_eq,
+    show keccakLaneBits = 5 from rfl]
+  simp only [Script.grindBits, ↓reduceIte, Script.bind_eq, Script.ret_bind, hOpen_eq]
   refine Corr.bind (fun seg seg' h ↦ ?_) _ _ (corr_sampleN 1)
   obtain ⟨rfl, hs⟩ := h
   refine Corr.bind (fun ln ln' h ↦ ?_) _ _ (corr_sampleN 5)
