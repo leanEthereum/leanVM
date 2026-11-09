@@ -280,9 +280,14 @@ pub enum RHint {
         width: u32,
         count: u32,
     },
-    /// Write the first `len` K-coordinate limbs of `m[fp+value]` to
+    /// Write the `len` K-coordinate limbs of `m[fp+value]` from limb `first` on to
     /// `m[fp+base..]`. Computed advice; callers constrain the result.
-    FieldLimbs { value: Off, base: Off, len: u32 },
+    FieldLimbs {
+        value: Off,
+        base: Off,
+        first: u32,
+        len: u32,
+    },
     /// Write `m[fp+value]⁻¹` to `m[fp+dst]`, or `0` when the value is zero.
     /// Untrusted: `assert a != b` multiplies the two back together and asserts
     /// `1`, which a zero value cannot satisfy (`FnLower::lower_assert_ne`).

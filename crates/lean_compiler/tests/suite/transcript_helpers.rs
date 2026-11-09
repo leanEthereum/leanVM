@@ -22,11 +22,11 @@ def challenge_from_state(state):
 
 @inline
 def fs_pack(rate, k: Const, x, tag):
-    limbs = StackBuf(3)
-    hint_f192_limbs(limbs, x)
-    assert_in_k(limbs[2], tag)
-    rate[2 * k] = x + Y * Y * limbs[2]
-    rate[2 * k + 1] = limbs[2] + Y * tag
+    c2 = StackBuf(1)
+    hint_f192_limbs(c2, x, 2)
+    assert_in_k(c2[0], tag)
+    rate[2 * k] = x + Y * Y * c2[0]
+    rate[2 * k + 1] = c2[0] + Y * tag
     return
 
 def main():

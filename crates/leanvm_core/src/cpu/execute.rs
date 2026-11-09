@@ -793,12 +793,17 @@ impl Program {
                                 m.put(bb + j, F192::from(primitives::field::g_pow(d as usize)))?;
                             }
                         }
-                        RHint::FieldLimbs { value, base, len } => {
-                            assert!((1..=3).contains(len), "an F192 value has three K limbs");
+                        RHint::FieldLimbs {
+                            value,
+                            base,
+                            first,
+                            len,
+                        } => {
+                            assert!(*len >= 1 && first + len <= 3, "an F192 value has three K limbs");
                             let v = m.get(fp + value);
                             let limbs = v.to_limbs();
                             for j in 0..*len {
-                                m.put(fp + base + j, F192::new(limbs[j as usize], 0, 0))?;
+                                m.put(fp + base + j, F192::new(limbs[(first + j) as usize], 0, 0))?;
                             }
                         }
                         RHint::Inverse { value, dst } => {

@@ -423,6 +423,8 @@ challenge = state[0] + d2[0] * f192(0, 0, 1)
 
 Both state words are hash outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
 
+`hint_f192_limbs(dest, value)` writes `value`'s first `len(dest)` K limbs into the `StackBuf` `dest` (1 to 3 cells), at zero cycles and untrusted; `hint_f192_limbs(dest, value, first)` starts at limb `first`, a literal, so `hint_f192_limbs(c2, x, 2)` with `c2 = StackBuf(1)` hints the top limb alone.
+
 ## KECCAK
 
 ```python
