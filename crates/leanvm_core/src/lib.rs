@@ -14,7 +14,7 @@
 //! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
 //! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
 //! - [`constraints`]: one table sumcheck over all six tables'
-//!   degree-2 identities plus their three bus forms (§sec:air).
+//!   degree-2 identities plus their bus forms, one per bus tree (§sec:air).
 //! - [`tables`]: the six instruction tables (columns, flushes, constraints).
 //! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
 //! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.
@@ -42,10 +42,10 @@ pub fn init_prover() {
     parallel::init();
 }
 
-/// Target soundness in bits: every round-by-round error term, after its grinding, is at
-/// most `2^-SECURITY_BITS`. Challenges are sampled in F128, and the PCS derives a WHIR
-/// configuration whose query, proximity-gap, and OOD-binding terms each clear this target.
-pub const SECURITY_BITS: u32 = 120;
+/// Target soundness in bits: every verifier message's round-by-round error, after its grind, is at
+/// most `2^-SECURITY_BITS`. Challenges are sampled in F128, so a message whose error is `N/|E|`
+/// grinds `fiat_shamir::grinding_bits(N)` bits.
+pub use fiat_shamir::SECURITY_BITS;
 
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].

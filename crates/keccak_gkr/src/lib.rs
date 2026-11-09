@@ -189,6 +189,8 @@ impl Witness {
             1 << shape.stack_log(),
             "the openings are claims on the whole committed block"
         );
+        // One message: the first claim is multilinear in the segment and lane coordinates.
+        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_VARS) as u128));
         let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
         let mut first = first(shape, output, segment, &r_lane);
         let instance = &output.instance;

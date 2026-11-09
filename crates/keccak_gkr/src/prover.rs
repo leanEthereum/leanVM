@@ -751,6 +751,8 @@ pub fn prove_layer(
     let product: [F128; PROD_BITS] =
         std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
     ps.add_scalars(&product);
+    // `s`: the product polynomial has degree PROD_BITS - 1.
+    ps.grind(fiat_shamir::grinding_bits(PROD_BITS as u128 - 1));
     let s = ps.sample();
     let kappa = mu_at(s).iter().sum();
     let mut value = poly_eval(&product, s);
@@ -837,6 +839,8 @@ pub fn prove_layer(
     }
     let t = [t[0][0], t[1][0], t[2][0]];
     ps.add_scalars(&t);
+    // `beta`: the next claim is quadratic in it.
+    ps.grind(fiat_shamir::grinding_bits(2));
     let beta = ps.sample();
     Claim {
         value: t[0] + beta * (t[1] + beta * t[2]),

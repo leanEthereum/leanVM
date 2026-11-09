@@ -11,13 +11,12 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
 //! of degree below `k`. A uniform challenge accepts it with probability at most
-//! `(k-1)/2^128`, which [`DA_GRINDING_BITS`] of grinding lift to `2^-120`. `z` is derived from
+//! `(k-1)/2^128`, which [`DA_GRINDING_BITS`] of grinding lift to `2^-SECURITY_BITS`. `z` is derived from
 //! the root outside the SNARK, and the statement binds it; the guest builds `L` from `z` and
 //! checks the inner products.
 
-use fiat_shamir::{digest_words, merkle::Hash, transcript::ProverState};
+use fiat_shamir::{digest_words, grinding_bits, merkle::Hash, transcript::ProverState};
 use pcs::ntt::AdditiveNttF64;
-use pcs::whir_config::SECURITY_BITS;
 use primitives::field::{F64, F128};
 use primitives::hash::hash;
 
@@ -25,11 +24,8 @@ use crate::{BLOB_SYMBOLS, DA_LOG_K, LOG_M};
 
 const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
-/// PoW bits ground before `z`: `⌈log2(k - 1)⌉ - (128 - SECURITY_BITS)`.
-pub const DA_GRINDING_BITS: u32 = (BLOB_SYMBOLS - 1)
-    .next_power_of_two()
-    .ilog2()
-    .saturating_sub(128 - SECURITY_BITS as u32);
+/// PoW bits ground before `z`, whose error numerator is `k - 1`.
+pub const DA_GRINDING_BITS: u32 = grinding_bits(BLOB_SYMBOLS as u128 - 1);
 
 /// `z`: the VM's transcript seeded with the label's hash as its IV and the root as its public
 /// input, ground with the smallest valid nonce (the search is the grind: every party redoes it,
@@ -98,7 +94,7 @@ mod tests {
     /// fails, `check_membership` is testing the wrong relation.
     #[test]
     fn grinding_bits_at_k_2_14() {
-        assert_eq!(DA_GRINDING_BITS, 6);
+        assert_eq!(DA_GRINDING_BITS, 14);
     }
 
     #[test]

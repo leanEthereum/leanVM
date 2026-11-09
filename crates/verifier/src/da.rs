@@ -7,17 +7,15 @@
 use crate::field::E;
 use crate::hash::{Digest, keccak_hash};
 use crate::merkle::hash_pair;
-use crate::multilinear::log2_ceil;
-use crate::transcript::Sponge;
+use crate::transcript::{Sponge, grinding_bits};
 
 const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
 /// `log2(k)`, `k` the blob's symbols (`lean_da::DA_LOG_K`).
 const DA_LOG_K: usize = 14;
 
-/// A non-codeword passes for at most `k - 1` values of `z`, an error of `2^(ceil(log2(k - 1)) - 128)`: grinding closes
-/// the gap to the 120-bit target.
-const MEMBERSHIP_GRINDING_BITS: u32 = log2_ceil((1 << DA_LOG_K) - 1) as u32 - 8;
+/// A non-codeword passes for at most `k - 1` values of `z`: the error numerator the grind is for.
+const MEMBERSHIP_GRINDING_BITS: u32 = grinding_bits((1 << DA_LOG_K) - 1);
 
 /// `z`: the VM's transcript seeded with the label's hash as its IV and the root as its public input, then ground with
 /// the smallest valid nonce, then squeezed once.

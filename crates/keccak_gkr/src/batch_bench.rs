@@ -7,7 +7,11 @@ use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{Proof, ProverState};
 use pcs::stack_open::StackClaim;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
-use primitives::{field::F64, pretty_integer, test_rng::Rng};
+use primitives::{
+    field::{F64, F128},
+    pretty_integer,
+    test_rng::Rng,
+};
 
 use crate::{Openings, OutputClaim, Shape, Witness};
 
@@ -48,7 +52,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let instance = ps.sample_vec(shape.n_log());
+        let instance = batch_instance(&mut ps, shape);
         let output = tracing::info_span!("Output claim").in_scope(|| OutputClaim::of_inputs(shape, &inputs, instance));
         ps.add_scalars(&output.lanes);
         let output_s = t.elapsed().as_secs_f64();
@@ -177,6 +181,13 @@ pub(crate) fn commit_stack(
     ps.add_root(&commitment.root);
     let pin = pcs::pin::pin_commitment(ps, stack, shape.stack_log(), INITIAL_FOLDING_FACTOR);
     (prover_data, pin)
+}
+
+/// The instance a batch's output is claimed at, after its grind: the point pins the committed middle states, a
+/// multilinear identity of degree `n_log` in it.
+pub(crate) fn batch_instance(ps: &mut ProverState, shape: Shape) -> Vec<F128> {
+    ps.grind(fiat_shamir::grinding_bits(shape.n_log() as u128));
+    ps.sample_vec(shape.n_log())
 }
 
 /// Discharge the reduction's openings and the pin's claims, after them, against the commitment to `stack`, which

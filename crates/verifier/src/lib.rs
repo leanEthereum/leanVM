@@ -28,7 +28,7 @@ pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use whir::whir_queries;
 
-use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
+use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
@@ -39,7 +39,7 @@ use layout::{
 use multilinear::{Placement, dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
-use transcript::Transcript;
+use transcript::{Transcript, grinding_bits};
 use whir::{INITIAL_FOLDING_FACTOR, PIN_GRINDING_BITS, verify_whir};
 
 /// Why a proof was rejected.
@@ -58,6 +58,7 @@ pub enum VerifierError {
     /// The GKR layer whose children do not match its sumcheck.
     GkrLayer(usize),
     BusCountZero,
+    BytecodeLine,
     TableSumcheckTerminal,
     AnnouncedTableSizes,
     WhirShape,
@@ -91,6 +92,7 @@ impl std::fmt::Display for VerifierError {
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
             Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
             Self::BusCountZero => "a bus count is zero",
+            Self::BytecodeLine => "the bytecode line does not match the bytecode",
             Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
             Self::WhirShape => "invalid WHIR shape",
@@ -190,7 +192,8 @@ pub struct Summary {
     pub log_memory: usize,
     pub table_rows: Vec<u64>,
     pub log_inv_rate: usize,
-    /// Where the bus reads the stacked bytecode. Its value there is the claim an aggregate defers.
+    /// The one point the bus keeps on the stacked bytecode, `(zeta_low, alphas_1 + t (alphas_1 + alphas_2))`. Its value
+    /// there, the bytecode line at `t`, is the claim an aggregate defers.
     pub bytecode_point: Vec<E>,
     /// The stream positions the Keccak reduction reads.
     pub keccak_scalars: Range<usize>,
@@ -244,6 +247,8 @@ pub fn verify_keccak_batch(
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
     let pin = read_pin(&mut transcript, stack_log, 1 << INITIAL_FOLDING_FACTOR)?;
+    // The instance pins the committed middle states, a multilinear identity of degree `log_steps` in it.
+    transcript.grind_check(grinding_bits(log_steps as u128))?;
     let instance = transcript.samples(log_steps);
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
@@ -284,14 +289,18 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let root = Digest::from_halves(halves[0], halves[1]);
     let pin = read_pin(&mut transcript, layout.stack_log, layout.committed_lanes)?;
 
-    // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
+    // 3] Bus: two fingerprints, one batched GKR over their push and pull trees and the count tree, the leaf
+    // decomposition, which leaves each table a degree-2 claim per tree, and the bytecode line.
     let bus = verify_bus_balance(&layout, &mut transcript)?;
 
-    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
-    // leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
-    let xi = transcript.sample();
+    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
+    // trees' leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its
+    // constraints, then one power per bus tree, shared by every table. The batch is degree n_powers - 1 in xi.
     let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
-    let xi_powers = powers(xi, n_constraints + 3); // one power per constraint, then one per bus side, shared by every table
+    let n_powers = n_constraints + N_TREES;
+    transcript.grind_check(grinding_bits(n_powers as u128 - 1))?;
+    let xi = transcript.sample();
+    let xi_powers = powers(xi, n_powers);
     let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
     let target = dot(form_powers, &bus.totals);
     let evaluations = table_sumcheck(
@@ -314,7 +323,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     }
 
     // 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
-    // evaluates itself, so the prover sends nothing.
+    // evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
     let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];

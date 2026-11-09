@@ -468,9 +468,10 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("N_TABLES", N_TABLES.to_string());
     ps("FLOORS", literals(leanvm_core::tables::TABLE_LOG_FLOORS));
     // The table sumcheck's xi layout, from the native verifier's own numbers:
-    // a disjoint range of identities per table, then THREE powers shared by every
-    // table, one per bus side. Sharing is what lets the target be derived from the
-    // three leaf claims instead of trusted (leanvm_core::cpu::xi_form_base).
+    // a disjoint range of identities per table, then one power per bus tree
+    // (leanvm_core::leaf::N_BUS_TREES), shared by every table. Sharing is what lets the
+    // target be derived from the trees' leaf claims instead of trusted
+    // (leanvm_core::cpu::xi_form_base).
     let n_id: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_constraints())
@@ -478,7 +479,7 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     let form_base = leanvm_core::cpu::xi_form_base();
     ps("ETA_OFFSET", literals(xi_offsets(n_id.iter().copied())));
     ps("ETA_FORM_BASE", form_base.to_string());
-    ps("N_ETA_POWS", (form_base + 3).to_string());
+    ps("N_ETA_POWS", leanvm_core::cpu::n_xi_powers().to_string());
     let committed: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_committed_columns())

@@ -90,7 +90,7 @@ pub(super) fn gen_verify(
 
     // ---- typed extraction: the proof's stream + the verifier's summary ----
     let scalars = |values: &[verifier::E]| -> Vec<F128> { values.iter().copied().map(from_scalar).collect() };
-    // Push and pull share the bytecode point.
+    // The bus keeps one point on the stacked bytecode, for both fingerprints and both sides.
     let bytecode_point = scalars(&summary.bytecode_point);
     let kbc = bytecode_point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
 
@@ -99,9 +99,9 @@ pub(super) fn gen_verify(
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
 
     // ---- hints ----
-    // The program's whole share of a bytecode leaf: ONE value, the stacked
-    // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
-    // the fingerprint challenges (§sec:e2e-bc). The summary carries the point
+    // The program's whole share of the bytecode leaves: ONE value, the stacked
+    // polynomial at the bus's one point (ζ_lo, α⃗₁ + t·(α⃗₁ + α⃗₂)), which the
+    // bytecode line takes at `t` (§sec:e2e-bc). The summary carries the point
     // only; the caller evaluates it.
     let bcv = vec![bytecode_value];
 

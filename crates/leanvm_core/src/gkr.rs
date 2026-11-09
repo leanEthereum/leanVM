@@ -509,12 +509,20 @@ impl QuaternaryLayerState {
 }
 
 /// Fold every tree by `challenge`, returning the next round's messages.
-fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F128, eq: &SplitEq) -> [[F128; 4]; 3] {
+fn fold_and_message<const N: usize>(
+    trees: &mut [QuaternaryLayerState; N],
+    challenge: F128,
+    eq: &SplitEq,
+) -> [[F128; 4]; N] {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
-            let [a, b, c] = trees.each_mut().map(QuaternaryLayerState::split);
-            let messages = vertical::fold([a.0, b.0, c.0], challenge, eq, [a.1, b.1, c.1]);
+            let (inputs, outs): (Vec<_>, Vec<_>) =
+                trees.each_mut().map(QuaternaryLayerState::split).into_iter().unzip();
+            let (Ok(inputs), Ok(outs)) = (inputs.try_into(), outs.try_into()) else {
+                unreachable!("one input and one output per tree")
+            };
+            let messages = vertical::fold(inputs, challenge, eq, outs);
             for tree in trees.iter_mut() {
                 std::mem::swap(&mut tree.groups, &mut tree.spare);
                 tree.values = Vec::new();
@@ -693,17 +701,17 @@ mod vertical {
 
     /// Fold every tree's rows by `challenge` into its `out`, in one dispatch for the
     /// three, returning the next round's messages.
-    pub(super) fn fold(
-        inputs: [Input; 3],
+    pub(super) fn fold<const N: usize>(
+        inputs: [Input; N],
         challenge: F128,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; 3],
-    ) -> [[F128; 4]; 3] {
+        outs: [&mut Vec<Group>; N],
+    ) -> [[F128; 4]; N] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
         let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
         let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; 3] = std::array::from_fn(|t| {
+        let dst: [parallel::SendPtr<Group>; N] = std::array::from_fn(|t| {
             let out = &mut *outs[t];
             if out.capacity() < n_out[t] {
                 *out = Vec::new();
@@ -715,7 +723,7 @@ mod vertical {
             }
             parallel::SendPtr(out.as_mut_ptr())
         });
-        let tasks: Vec<(usize, usize)> = (0..3)
+        let tasks: Vec<(usize, usize)> = (0..N)
             .flat_map(|t| (0..n_out[t]).step_by(TASK).map(move |g| (t, g)))
             .collect();
         let r = F128x8::splat(challenge);
@@ -736,15 +744,15 @@ mod vertical {
                 // SAFETY: tasks own disjoint groups of the outputs.
                 unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
             }
-            let mut messages = [[F128::ZERO; 4]; 3];
+            let mut messages = [[F128::ZERO; 4]; N];
             messages[t] = message.finish();
             messages
         };
-        let add = |a: [[F128; 4]; 3], b: [[F128; 4]; 3]| std::array::from_fn(|t| add4(a[t], b[t]));
+        let add = |a: [[F128; 4]; N], b: [[F128; 4]; N]| std::array::from_fn(|t| add4(a[t], b[t]));
         if n_out.iter().sum::<usize>() > PARALLEL {
-            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; 3], task, add)
+            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; N], task, add)
         } else {
-            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; 3], add)
+            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; N], add)
         }
     }
 
@@ -779,16 +787,34 @@ mod vertical {
     }
 }
 
-/// The result of a batched grand-product proof: the three leaf evaluations, all reduced to one shared point.
-pub struct ProductTriple {
+/// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
+pub struct Products<const N: usize> {
     pub point: Vec<F128>,
-    pub values: [F128; 3],
+    pub values: [F128; N],
 }
 
-/// Prove three identity-padded grand products as one RLC-batched radix-four GKR.
-/// The first two trees share a product by construction, as the bus's two sides do.
-/// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
-pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+/// A sumcheck round's grind: its polynomial is `eq` times a product of four lines, degree five. In the bus's last
+/// layer the challenge is also a coordinate of `ζ`, which the table sumcheck's zerocheck reads, one more: six, as
+/// many bits.
+const ROUND_GRIND: u32 = fiat_shamir::grinding_bits(4 + 1);
+const _: () = assert!(fiat_shamir::grinding_bits(4 + 1 + 1) == ROUND_GRIND);
+
+/// The grind before a layer's `y`, its `step` coordinates: the children's multilinear has degree `step` in them.
+/// The last layer's are `ζ`'s first coordinates, which the bus's zerocheck also reads, `step` more (every table
+/// sumcheck spans at least two variables, the KECCAK table's floor).
+fn y_grind(step: usize, last: bool) -> u32 {
+    fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
+}
+
+/// Prove `N` identity-padded grand products as one RLC-batched radix-four GKR.
+/// Trees `2i` and `2i + 1` (`2i + 1 < N`) are pairs with one product by construction, as the bus's push and pull
+/// sides of one fingerprint: one root is sent for each pair, then the last tree's, so no verifier can be handed an
+/// unbalanced pair.
+///
+/// Per layer: a grind and the combiner `λ` (the `N` claims, degree `N - 1` in it), the sumcheck rounds (each its
+/// coefficients `c1..c4`, then its grind and challenge), the trees' children, then a grind and `y`.
+pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut ProverState) -> Products<N> {
+    assert!(N % 2 == 1, "pairs, then one tree alone");
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -799,20 +825,23 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
     // In leaves; a layer's rows over level `l` are runs of `2^(l + 2)` leaves.
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
-    let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
-    assert_eq!(roots[0], roots[1], "the first two products must agree");
-    ps.add_scalar(roots[0]);
-    ps.add_scalar(roots[2]);
+    let roots: [F128; N] = std::array::from_fn(|tree| layers[tree][mu][0]);
+    for pair in roots[..N - 1].chunks(2) {
+        assert_eq!(pair[0], pair[1], "a pair's products must agree");
+        ps.add_scalar(pair[0]);
+    }
+    ps.add_scalar(roots[N - 1]);
     let mut point = Vec::new();
     let mut values = roots;
 
     let mut layer = mu;
     while layer > 0 {
+        ps.grind(fiat_shamir::grinding_bits(N as u128 - 1));
         let lambda = ps.sample();
         let round_count = mu - layer;
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let tails = [0, 1, 2].map(|tree| {
+            let tails: [[F128; 2]; N] = std::array::from_fn(|tree| {
                 let below = &layers[tree][layer - 1];
                 match below.as_slice() {
                     [left, right] => [*left, *right],
@@ -823,6 +852,7 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
             for tail in &tails {
                 ps.add_scalars(tail);
             }
+            ps.grind(y_grind(1, layer == 1));
             let challenge = ps.sample();
             for (value, [left, right]) in values.iter_mut().zip(tails) {
                 *value = interp(left, right, challenge);
@@ -833,8 +863,8 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         }
 
         let width = 1usize << round_count;
-        let mut trees =
-            [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
+        let mut trees: [QuaternaryLayerState; N] =
+            std::array::from_fn(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         if SKIP_IDENTITY {
             for (tree, ones) in trees.iter_mut().zip(&identities) {
                 tree.ones = coarsen(ones, layer);
@@ -846,17 +876,22 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
             let eq = SplitEq::new(&point[1..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
-            [[F128::ZERO; 4]; 3]
+            [[F128::ZERO; 4]; N]
         };
         for round in 0..round_count {
+            // `Σ_t λ^t message_t`, by Horner.
             let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
+                messages
+                    .iter()
+                    .rev()
+                    .fold(F128::ZERO, |acc, message| message[coefficient] + lambda * acc)
             });
             // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
             // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
             // claim fixes and the prover therefore never forms.
             coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
             ps.add_scalars(&coeffs);
+            ps.grind(ROUND_GRIND);
             let challenge = ps.sample();
             round_point.push(challenge);
             if round + 1 < round_count {
@@ -874,6 +909,7 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         for tree in &trees {
             ps.add_scalars(&tree.children());
         }
+        ps.grind(y_grind(2, layer == 2));
         let low_challenge = ps.sample();
         let high_challenge = ps.sample();
         for (value, tree) in values.iter_mut().zip(&trees) {
@@ -889,7 +925,7 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         layer -= 2;
     }
 
-    ProductTriple { point, values }
+    Products { point, values }
 }
 
 #[cfg(test)]
@@ -1008,7 +1044,7 @@ mod tests {
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
             let stream = ps.into_proof().stream;
             assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
             for lane in 0..3 {
@@ -1033,14 +1069,14 @@ mod tests {
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
             assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
+            let dense_proved = prove_products(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);

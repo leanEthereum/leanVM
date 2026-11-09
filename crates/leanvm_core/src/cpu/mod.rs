@@ -313,7 +313,7 @@ fn table_spans() -> TableSpans {
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order: each
 /// table's committed columns, its summand as one form over them (its identities
-/// weighted by its own `ξ`-range, its three bus forms by the shared powers at
+/// weighted by its own `ξ`-range, its bus forms, one per tree, by the shared powers at
 /// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
 /// shares, since its identities vanish.
 fn airs<'a>(
@@ -324,7 +324,7 @@ fn airs<'a>(
     xi: F128,
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
-    let pows = primitives::field::powers(xi, base + 3);
+    let pows = primitives::field::powers(xi, n_xi_powers());
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     tables::tables()
         .iter()
@@ -332,28 +332,33 @@ fn airs<'a>(
         .enumerate()
         .map(|(t, (&table, (&tau, &(start, n))))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
-            let bus_forms = (0..3).map(|s| bus.forms[s][t].scaled(pows[base + s]));
+            let bus_forms = (0..leaf::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..3).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
+                sigma: (0..leaf::N_BUS_TREES).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
         .collect()
 }
 
-/// Where the three bus forms sit in the batch's `ξ`-powers: the last three, AFTER
-/// every table's identity range, and shared by all tables rather than one triple
-/// per table. That sharing is what keeps the batch tied to the bus: with a common
-/// `ξ^{base+s}` per side, the batch's target is `Σ_s ξ^{base+s}·R_s` for
-/// the sides' table shares `R_s`, which the verifier DERIVES from the leaf claims
+/// Where the bus forms sit in the batch's `ξ`-powers: the last [`leaf::N_BUS_TREES`], one
+/// per tree, AFTER every table's identity range, and shared by all tables rather than
+/// one set per table. That sharing is what keeps the batch tied to the bus: with a common
+/// `ξ^{base+s}` per tree, the batch's target is `Σ_s ξ^{base+s}·R_s` for
+/// the trees' table shares `R_s`, which the verifier DERIVES from the leaf claims
 /// (a mismatch fails its table sumcheck's terminal check). Were the
 /// powers per table, the target
 /// would not factor through the `R_s` and nothing would pin the tables' share of
 /// the bus.
 pub fn xi_form_base() -> usize {
     tables::tables().iter().map(|t| t.n_constraints()).sum()
+}
+
+/// The batch's `ξ`-powers: one per identity, then one per bus tree. Its error is their count less one over `|E|`.
+pub fn n_xi_powers() -> usize {
+    xi_form_base() + leaf::N_BUS_TREES
 }
 
 /// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on
@@ -484,6 +489,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
             // One sumcheck for all six tables (§constraints).
             // The eq point is the bus GKR's ζ, not a fresh one: that is what lets the
             // batch settle the bus forms alongside the constraints.
+            ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
             constraints::prove(&airs(&l.taus, &bus, &cols, &spans, xi), &bus.point, &mut ps)
         });
@@ -496,7 +502,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     // The PI binding (§sec:e2e-pi) transmits nothing: its claims are the public
     // input's limb lines at `r_pi`, which the verifier evaluates itself. `r_pi`
     // is still a challenge, squeezed after the commitment so the memory cannot
-    // be chosen to fit it.
+    // be chosen to fit it. Its claims are lines in it, numerator one: no grind.
     let r_pi = ps.sample();
     // Memory binds every step's input and output words. Their value columns are
     // virtual: the inputs route to q_keccak through `slot_claims`, the outputs are

@@ -4,7 +4,7 @@ use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
-use crate::batch_bench::{batch_transcript, commit_stack, open_commitment, scalar_proof};
+use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANES, LOCAL_VARS};
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
@@ -98,7 +98,7 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (prover_data, pin) = commit_stack(&mut ps, shape, committed, LOG_INV_RATE_0);
-    let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
+    let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
@@ -122,24 +122,30 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     ps.into_proof()
 }
 
-/// The Keccak check that rejects a change to stream scalar `at`, if the reduction reads it:
-/// after the root and the list pin's nonce and value come the output lanes and the committed outputs'
-/// value, which the first layer's product check meets, then the layers, then the two openings.
+/// The Keccak check that rejects a change to stream scalar `at`, if one meets it before any grind does (a grind of
+/// few bits may still pass a changed transcript, so what catches those is left open). After the root, the list pin's
+/// nonce and value and the instance's nonce come the output lanes, the segment and lane nonce, the committed
+/// outputs' value, which the first layer's product check meets, then the layers, then the two openings. A round is
+/// its scalars and its nonce.
 fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let committed = usize::from(shape.segments() > 1);
-    let layer = PROD_BITS + 2 * shape.y_vars() + 3 * LOCAL_VARS + 3;
-    let start = 4;
-    let layers = start + LANES + committed;
+    let layer = PROD_BITS + 1 + 3 * shape.y_vars() + 4 * LOCAL_VARS + 3 + 1;
+    let first = 5 + LANES + 1;
+    let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
-    let inputs = outputs + committed * (2 * shape.slot_log() + 1);
-    let end = inputs + 2 * (4 + shape.slot_log()) + 64;
+    let word = outputs + committed * 3 * shape.slot_log();
+    let inputs = word + committed;
+    let slices = inputs + 3 * (4 + shape.slot_log());
+    let in_layer = at.wrapping_sub(layers) % layer;
     Some(match at {
-        _ if at < start || at >= end => return None,
-        _ if at < layers => VerifierError::KeccakProduct,
-        _ if at < outputs && (at - layers) % layer < PROD_BITS => VerifierError::KeccakProduct,
-        _ if at < outputs => VerifierError::KeccakLayer,
-        _ if at < inputs => VerifierError::KeccakOutputOpening,
-        _ => VerifierError::KeccakInputOpening,
+        _ if (first..layers).contains(&at) => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && in_layer < PROD_BITS => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && (layer - 4..layer - 1).contains(&in_layer) => {
+            VerifierError::KeccakLayer
+        }
+        _ if (word..inputs).contains(&at) => VerifierError::KeccakOutputOpening,
+        _ if (slices..slices + 64).contains(&at) => VerifierError::KeccakInputOpening,
+        _ => return None,
     })
 }
 
@@ -194,7 +200,7 @@ fn spare_slots_must_be_the_committed_ones() {
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (prover_data, pin) = commit_stack(&mut ps, shape, &committed, LOG_INV_RATE_0);
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);
     open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
@@ -229,7 +235,7 @@ fn a_wrong_pin_value_fails_the_opening() {
         low_point,
         value,
     }];
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &committed, &output);
     open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
@@ -269,7 +275,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
         let padded = Witness::generate(shape, &inputs, &mut committed);
         let stream = |witness: &Witness| {
             let mut ps = ProverState::from_label(LABEL);
-            let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+            let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
             ps.add_scalars(&output.lanes);
             let openings = witness.prove(&mut ps, &committed, &output);
             (openings, ps.into_proof())
