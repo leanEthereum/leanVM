@@ -541,7 +541,7 @@ fn fold_and_message(trees: &mut [QuaternaryLayerState; TREES], challenge: F128, 
 /// kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod vertical {
-    use super::{SplitEq, add4, coarsen, sum_tasks};
+    use super::{SplitEq, TREES, add4, coarsen, sum_tasks};
     use primitives::field::F128;
     use primitives::field::x8::{F128x8, Sum8};
     use primitives::stream::Stream;
