@@ -143,7 +143,7 @@ theorem leanDa_codeBinding_avg [NeZero r]
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
-        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
           (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] +
             Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]))) ^ 2 ≤
       ((Q : ℝ≥0∞) + 2) *
@@ -164,17 +164,17 @@ theorem leanDa_codeBinding_avg [NeZero r]
   have hG := codeBindingExpRpm_le_G r ps A Q hQ
   rw [show Pr{let b ← codeBindingExpG r ps A}[b = true] = prT cb from prT_codeBindingExpG r ps A]
     at hG
-  have hdup : ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
-      2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+  have hdup : ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
+      2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
     rw [div_eq_mul_inv]; ring
   rw [hdup, add_assoc] at hG
   rw [← add_assoc ε₂] at hW
   refine le_trans (pow_le_pow_left₀ zero_le ?_ 2) hW
   rw [tsub_le_iff_right]
   calc Pr{let b ← codeBindingExpRpm r ps A}[b = true]
-      ≤ prT cb + ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := hG
+      ≤ prT cb + ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := hG
     _ ≤ (prT cb - (εks + ε₁) + (εks + ε₁)) +
-          ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := by
+          ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := by
         gcongr; exact le_tsub_add
     _ = _ := by ring
 
@@ -197,18 +197,18 @@ theorem leanDa_codeBinding_core [NeZero r]
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
-        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
           ((Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
-              ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
+              ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
             ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256))) ^ 2 ≤
       ((Q : ℝ≥0∞) + 2) *
         (((forkCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 14 - 1) / 2 ^ 192 + (2 ^ 384)⁻¹) := by
   have h := leanDa_codeBinding_avg r ps ext A Q hQ
   have hks : Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] ≤
       Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] + ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 +
-        2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
-    have hdup : ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
-        2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+        2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+    have hdup : ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
+        2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
       rw [div_eq_mul_inv]; ring
     rw [prT_ksExpH, ← hdup]
     exact (ksIdealG_le r ps ext A Q hQ).trans
@@ -265,8 +265,8 @@ theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
   have hR := rest_le Q (ksCalls r Q) (wpbCalls r Q + 2) (Q + 2 ^ 20) (Q + 2 ^ 22) hK hW (by omega)
     (by omega) (by omega)
   calc _ = Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] +
-        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
-          (((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+          (((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + 2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
           ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 +
           (((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 95 + ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 159 +
             ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 89)) := by ring

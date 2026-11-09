@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Extract
-public import LeanVM.Protocol.Compile.Prover
 
 /-!
 # Decoding a log
@@ -246,10 +245,9 @@ def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Inf
     | some (h1, .grind b k) => forced h1 (.grind b k) ps
     | _ => (.none, fun _ ↦ none)
   | .grd h b k n, _ =>
-    (.st (h ++ [Ev.grind b]) k (some (b, n)), match settle (h ++ [Ev.grind b]) k with
-      | some (h1, .sample k') =>
-        fun u ↦ some (h1 ++ [Ev.sample (challengeOf u)], .node (k' (challengeOf u)))
-      | _ => fun _ ↦ none)
+    (.st (h ++ [Ev.grind b]) k (some (b, n)), fun u ↦ match settle (h ++ [Ev.grind b]) k with
+      | some (h1, .sample k') => some (h1 ++ [Ev.sample (challengeOf u)], .node (k' (challengeOf u)))
+      | _ => none)
   | .bad, _ => (.none, fun _ ↦ none)
 
 /-- A history at which a seed can put the program: reachable, a boundary without proof of work
@@ -519,13 +517,13 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
     have hr' := VerifierProgram.Reachable.grind hr ha
     have ha' := after_grind_step ha
     refine ⟨⟨hr', boundary_append_grind h b, ha', by simp [grindBits_append_grind]⟩, ?_⟩
-    split
+    intro u i hi
+    split at hi
     · rename_i h1 k' hs
       obtain ⟨hr1, ha1⟩ := settle_ok k _ hr' ha' hs
-      intro u i hi
       cases hi
       exact ⟨VerifierProgram.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
-    · exact fun _ _ hi ↦ by simp at hi
+    · simp at hi
   · exact ⟨trivial, fun _ _ hi ↦ by simp [decodeAt] at hi⟩
 
 theorem setInfo_ok {f : (Fin 9 → UInt64) → Option Info} {c : Fin 9 → UInt64} {o : Option Info}

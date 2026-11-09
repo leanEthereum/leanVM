@@ -81,13 +81,11 @@ theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
     rcases pw with _ | ⟨b, n⟩
     · -- after the seed: the group's squeezes are later permutations
       simp only [Option.map_none, Option.getD_none, Nat.zero_min, pow_zero, one_mul] at hcert
-      refine le_trans (le_of_eq_of_le ?_ (avg_le_of_le (c := ind (C.D h) * esc C.D h p)
-        fun u ↦ ?_)) hcert
-      · rfl
-      · simp only [term, powF, stGv, one_mul]
-        by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
-        · rw [ind_of hf, one_mul, gv_fresh C.D hf]
-        · rw [ind_of_not hf, zero_mul]; exact bot_le
+      refine le_trans (avg_le_of_le fun u ↦ ?_) hcert
+      simp only [term, powF, stGv, one_mul]
+      by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
+      · rw [ind_of hf, one_mul, gv_fresh C.D hf]
+      · rw [ind_of_not hf, zero_mul]; exact bot_le
     · -- after a nonce: the permutation draws the proof of work and the first challenge
       simp only [Option.map_some, Option.getD_some] at hcert
       have h1 : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
@@ -101,9 +99,9 @@ theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
         by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
         · rw [ind_of hf, one_mul, gv1_fresh C.D hf]
         · rw [ind_of_not hf, zero_mul]; exact bot_le
-      refine h1.trans ((mul_le_mul_left (sum_powOk_mul_challengeOf_div_le b _) _).trans ?_)
-      rw [avg_escAt]
-      exact hcert
+      have h2 := sum_powOk_mul_challengeOf_div_le b fun c ↦ escAt C.D c h p
+      rw [avg_escAt] at h2
+      exact h1.trans ((mul_le_mul_right h2 _).trans hcert)
   | sq h p =>
     obtain ⟨hr, hb, ha, hg⟩ := hok
     have hcert := ind_mul_esc_le C hε hr hb ha

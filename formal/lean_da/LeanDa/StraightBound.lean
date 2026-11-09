@@ -71,7 +71,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 noncomputable def idealT (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (T : CbOut r Proof → MembershipChallenge → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
     ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).romImpl
+  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels).romImpl
     (advSim r A crs >>= fun out ↦ readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
       simulateQ embG (T out l))).run' ∅
 
@@ -229,26 +229,26 @@ theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipCha
 
 theorem isWeightBound_embG_h {α : Type} {Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α}
     {N : ℕ} (h : QueryCostAtMost Y tCount N) :
-    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 2)) Y) hgCalls N :=
+    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Y) hgCalls N :=
   isWeightBound_simulateQ _ tCount hgCalls (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query hgCalls (.inl k)
     · exact isWeightBound_query hgCalls (.inr (.inl a))) h
 
 theorem isWeightBound_embG_g {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) :
-    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 2)) Y)
+    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Y)
       (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := E) (n := 2)) 0 :=
+      (Z := Draw) (n := nLabels)) 0 :=
   isWeightBound_simulateQ _ (fun _ ↦ 0) _ (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query gCalls (.inl k)
     · exact isWeightBound_query gCalls (.inr (.inl a))) (isWeightBound_zero Y)
 
-theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).Domain → ℕ)
+theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels).Domain → ℕ)
     (hw : ∀ d j, w (.inr (.inr (d, j))) = 1) (d : Common.DigestBytes) :
-    QueryCostAtMost (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 2) d) w 2 := by
+    QueryCostAtMost (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := Draw) (n := nLabels) d) w 2 := by
   refine isWeightBound_map _ ((isWeightBound_mapM _ w 1 (fun j ↦ ?_) _).mono (by simp))
-  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) w
+  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels) w
     (.inr (.inr (d, j)))
   rwa [hw] at this
 
@@ -259,12 +259,12 @@ theorem isWeightBound_tailV_hg (crs : Crs) (out : CbOut r Proof) :
 
 theorem isWeightBound_tailV_g (crs : Crs) (out : CbOut r Proof) :
     QueryCostAtMost (tailV r ps ext crs out)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) 2 :=
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) 2 :=
   ((isWeightBound_readVec gCalls (fun _ _ ↦ rfl) _).bind fun _ ↦ isWeightBound_embG_g _).mono
     (by omega)
 
 theorem hgCalls_eq : (fun t ↦ hCallsG t + gCalls (Msg := List UInt8) (Dg := DigestBytes)
-    (Root := Common.DigestBytes) (Z := E) (n := 2) t) = hgCalls := by
+    (Root := Common.DigestBytes) (Z := Draw) (n := nLabels) t) = hgCalls := by
   funext t
   rcases t with k | m | x <;> rfl
 
@@ -275,7 +275,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hcrs : crs ∈ support ps.setup) :
     QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1) ∧
       QueryCostAtMost (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
+        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
   have hBh := isWeightBound_advS2_h r ps A Q hQ crs hcrs
   have hPh : QueryCostAtMost (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), crs))) hCalls (1 + Q) :=
@@ -291,14 +291,14 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
   have h1 : QueryCostAtMost (advSim r A crs) hCallsG (1 + Q) := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSh
   have h2 : QueryCostAtMost (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSf
   refine ⟨?_, h2⟩
   have := h1.add h2
   rw [hgCalls_eq] at this
   exact this.mono (by omega)
 
-theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α}
+theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels) α}
     {N : ℕ} (h : QueryCostAtMost X hgCalls N) : QueryCostAtMost (simulateQ toV X) vCalls N :=
   isWeightBound_simulateQ _ hgCalls vCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
@@ -306,9 +306,9 @@ theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List 
     · exact isWeightBound_query vCalls (.inr (.inl m))
     · exact isWeightBound_map _ (isWeightBound_query vCalls (.inr (.inr d)))) h
 
-theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α}
+theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels) α}
     {N : ℕ} (h : QueryCostAtMost X (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := E) (n := 2)) N) : QueryCostAtMost (simulateQ toV X) gvCalls N :=
+      (Z := Draw) (n := nLabels)) N) : QueryCostAtMost (simulateQ toV X) gvCalls N :=
   isWeightBound_simulateQ _ gCalls gvCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
     · exact isWeightBound_query gvCalls (.inl k)
@@ -320,7 +320,7 @@ theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List 
 theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (crs : Crs) (ha : QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1))
     (hg : QueryCostAtMost (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q) :
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q) :
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192) := by
@@ -345,7 +345,7 @@ verdict's bound, for a simulated adversary of at most `2 Q + 1` queries of `H` o
 theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (hA : ∀ crs ∈ support ps.setup, QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1) ∧
       QueryCostAtMost (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q) :
+        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q) :
     prT (codeBindingExpG r ps A) ≤ prT (ps.setup >>= ksIdealG r ps ext A) +
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192)) :=
@@ -363,7 +363,7 @@ namespace LeanDa
 
 /-- The duplex lemma's term for `Q` calls of `F`. -/
 noncomputable abbrev dupTerm (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹)
+  ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹)
 
 /-- **The terms besides the argument's knowledge soundness**: the two transfers, the two duplex
 lemmas and the straight-line verdict, at most `(Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247` for

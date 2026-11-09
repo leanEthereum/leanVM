@@ -10,7 +10,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Log
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.RunWithHash
 
 /-!
 # Word extraction from the random oracle

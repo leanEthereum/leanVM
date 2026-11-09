@@ -84,7 +84,7 @@ open LeanVM.Parameters (K.toBytes E.toBytes)
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol (Digest)
 open LeanVM.Protocol.KeccakHash (keccak256With digestHalves littleEndianLane)
-open LeanVM.Protocol.Compile (Sponge absorb squeeze seedInput dsObserve)
+open LeanVM.Protocol.Compile (Sponge absorb absorbNonce squeeze seedInput dsObserve)
 
 /-- An enumeration of `K` through its bits, for proofs only: compiled, it would list `2^64`
 elements when a program starts. -/
@@ -105,8 +105,8 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 /-!
 ## LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM
-`40f877dc2c858f013c5974ab71ca594b31a7aec9`, specified in `doc/leanvm/body/10-ethereum.tex`
+The erasure code commitment of `crates/lean_da` at the leanVM commit `../leanvm-rev` names,
+specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -127,15 +127,19 @@ The erasure code commitment of `crates/lean_da` at leanVM
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the trees for this (`DaWitness::blob_tree`,
   `commit.rs:15-36`) but verifies no sample: `verifyCellWith` is the check these paths determine.
-* **Membership** (`membership.rs:1-15`, `verifier/src/da.rs:1-17`). One challenge `z ∈ E` gives
+* **Membership** (`membership.rs:1-16`, `verifier/src/da.rs:1-34`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`, `membership.rs:58-65`). The challenge is drawn
-  from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:14-17`): its
+  `da_verify`; the crate's test `check_membership`, `membership.rs:59-66`). The challenge is drawn
+  from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:20-34`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs:32-46`, `Field.lean`'s `Sponge`), squeezed once; the end
-  statements draw it by this duplex over the permutation (`membershipChallengeWith`).
+  input (`verifier/src/transcript.rs:34-49`, `Field.lean`'s `Sponge`), then an `11`-bit grind
+  whose nonce is the smallest valid one, not sent, and the ground challenge it draws
+  (`absorbNonce`, `transcript.rs:82-89`); the end statements draw it by this duplex over the
+  permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
+  challenge (the Rust search never ends); the relation then asks every row to be a codeword
+  (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
 The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:59-63`;
 `commit` rejects any other payload with a `BlobSizeError`, `commit.rs:42-50`, `lib.rs:40-57`);
@@ -316,19 +320,52 @@ def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128
   let root ← climbWith π position d opening.path
   pure (decide (opening.path.length = 7 + logPaddedRowCount r) && decide (root = commitment))
 
-/-! ### The membership challenge (`verifier/src/da.rs:14-17`)
+/-! ### The membership challenge (`verifier/src/da.rs:12-34`)
 
 Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`,
-`seedInput`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs:32-74`). -/
+`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π`
+(`verifier/src/transcript.rs:34-90`), after a grind whose nonce is not sent: the smallest valid
+one, which anyone deriving the challenge finds. -/
 
-/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:14-17`): the
+/-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs:17-18`): `grinding_bits(2^14 - 1)`, the bits
+that bring the membership test's error `(2^14 - 1) / 2^128` to `2^-125`,
+`⌈log₂ (2^14 - 1)⌉ - (128 - 125) = 11` (`transcript.rs:92-104`). -/
+def membershipGrindingBits : ℕ := 11
+
+/-- A nonce's proof of work is valid when its low `membershipGrindingBits` bits are zero
+(`& mask == 0`, `verifier/src/da.rs:27-31`). -/
+def powValid (pow : UInt64) : Bool := pow.toNat % 2 ^ membershipGrindingBits = 0
+
+/-- The nonces the search tries: the `u64` values (`E::new(nonce, 0)`, `verifier/src/da.rs:28-31`). -/
+def nonceCount : ℕ := 2 ^ 64
+
+section Search
+
+variable (sponge : Sponge)
+
+/-- **The nonce search** from `nonce`, `fuel` nonces left (`verifier/src/da.rs:28-33`): absorb the
+nonce into a copy of the seeded sponge and permute (`absorbNonce`); a valid proof of work stops
+the search with the ground challenge (`squeeze`). Past the last nonce the Rust search never ends
+(`(0..)` over `u64`, wrapping): there is no challenge (`none`). -/
+def grindWith : ℕ → ℕ → m (Option E)
+  | _, 0 => pure none
+  | nonce, fuel + 1 => do
+    let (pow, ground) ← absorbNonce π sponge (LeanVM.Protocol.Verifier.eOfNat nonce)
+    if powValid pow then
+      let (z, _) ← squeeze π ground
+      pure (some z)
+    else grindWith (nonce + 1) fuel
+
+end Search
+
+/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:20-34`): the
 transcript's sponge seeded with the label's hash as its IV and the root as its public input
-(`Sponge::new`), then one sample. -/
-def membershipChallengeWith (root : DigestBytes) : m E := do
+(`Sponge::new`), then the challenge of the smallest nonce `0, 1, …` whose proof of work is valid
+(`grindWith`), or none if no `u64` nonce is valid. -/
+def membershipChallengeWith (root : DigestBytes) : m (Option E) := do
   let iv ← keccak256With π membershipLabel
   let state ← π (seedInput iv (digestOfBytes root))
-  let (z, _) ← squeeze π ⟨state, []⟩
-  pure z
+  grindWith π ⟨state, [], none⟩ 0 nonceCount
 
 end Monadic
 
@@ -361,6 +398,14 @@ noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (row : Row) : E := ∑ b
 noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * 128) → Cell) : Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
+/-- **The membership check of a root's challenge**: the check on the challenge, or, for a root
+with no valid nonce (where the deployed verifier never returns), the check on every challenge,
+which only codewords pass. -/
+noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 128) → Cell) : Bool :=
+  match z with
+  | some z => membershipCheck z cells
+  | none => @decide (∀ z : E, membershipCheck z cells = true) (Classical.propDecidable _)
+
 /-! ## LeanDA's code and the argument's relation -/
 
 /-- **LeanDA's erasure code**: `r` payloads, encoded row by row and cut into cells. -/
@@ -374,7 +419,7 @@ noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState �
     (root : DigestBytes) (cells : Fin (r * 128) → Cell) : m Bool := do
   let z ← membershipChallengeWith π root
   let d ← commitCellsWith π cells
-  pure (decide (d = root) && membershipCheck z cells)
+  pure (decide (d = root) && membershipCheckOpt z cells)
 
 /-! ## Arguments in the random-permutation model -/
 
