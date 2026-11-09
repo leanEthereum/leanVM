@@ -10,6 +10,8 @@ use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
+use alloc::vec;
+use alloc::vec::Vec;
 
 const PACK_BITS: usize = 4;
 const PACK: usize = 1 << PACK_BITS;
@@ -182,7 +184,7 @@ fn verify_layer(
     // 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
     // Position `j` is `k` columns along from `along(j, 5 - k)`, which moves the lane and keeps `z`.
     let beta = transcript.sample();
-    let lane_weights: [E; STATE_LANES] = std::array::from_fn(|lane| {
+    let lane_weights: [E; STATE_LANES] = core::array::from_fn(|lane| {
         let shifted = |k| eq_lane[along(64 * lane, k) / 64];
         eq_lane[lane] + beta * (shifted(4) + beta * shifted(3))
     });

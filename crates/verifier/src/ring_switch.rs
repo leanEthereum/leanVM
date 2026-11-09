@@ -4,6 +4,7 @@ use crate::field::{E, GEN, ONE, ZERO};
 use crate::layout::K_BITS;
 use crate::multilinear::poly_eval;
 use crate::transcript::Transcript;
+use alloc::vec::Vec;
 
 // The Frobenius shifts of the six stages composing Phi, one challenge each.
 const RING_MAP_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];

@@ -5,6 +5,8 @@ use crate::hash::{Digest, STATE_LANES, keccak_f};
 use crate::merkle::MerklePath;
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// The scalar stream, and the Merkle openings: one phase per commitment opened, each query's path in the order the
 /// verifier samples them.

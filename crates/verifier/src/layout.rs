@@ -6,8 +6,12 @@ use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
-use std::collections::BTreeMap;
-use std::ops::Add;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::ops::Add;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
 
@@ -178,7 +182,7 @@ impl Flushes {
 
     /// The cell's limbs are the named columns, the missing top ones zero.
     fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
-        let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
+        let values = core::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
         self.memory(address, count, &values);
     }
 }
@@ -227,7 +231,7 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     let result = if multiply {
         TOWER_LANES.map(|lane| Form::sum(lane.iter().map(|&(j, k)| prod(va[j], vb[k], 0))))
     } else {
-        std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
+        core::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
     };
     flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
     flushes
@@ -300,7 +304,7 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
 /// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
 /// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
 fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
-    std::array::from_fn(|cell| match (odd, cell) {
+    core::array::from_fn(|cell| match (odd, cell) {
         (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
         (true, _) => (None, Some(0)),
         (false, 8) => (Some(16), None),

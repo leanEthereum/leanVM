@@ -1,6 +1,8 @@
 //! Field arithmetic: `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^3 + y + 1)`, on plain integers.
 
-use std::ops::{Add, AddAssign, Mul, MulAssign};
+use alloc::vec;
+use alloc::vec::Vec;
+use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 /// The low 64 bits of a 64x64 carry-less product, by integer multiplication: with both operands split into the four
 /// classes of their bit positions mod 4, a coefficient below bit 60 sums at most 15 bits, so its carries stay below
@@ -328,7 +330,7 @@ mod tests {
             assert_eq!(K(a) * K(b), K(c));
         }
         let mut state = 0x9E37_79B9_7F4A_7C15u64;
-        let random = std::iter::repeat_with(move || {
+        let random = core::iter::repeat_with(move || {
             state ^= state << 13;
             state ^= state >> 7;
             state ^= state << 17;

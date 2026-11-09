@@ -2,6 +2,8 @@
 
 use crate::field::{E, GEN, ONE, Scaled, ZERO};
 use crate::{VerifierError, require};
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// `eq(i, point)` for every index `i`, LSB-first, at one product per entry: `v * (1 + r) = v + v * r`.
 pub fn eq_kernel(point: &[E]) -> Vec<E> {
@@ -133,7 +135,7 @@ impl Placement {
 
 pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
     let mut order: Vec<usize> = (0..sizes.len()).collect();
-    order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
+    order.sort_by_key(|&index| (core::cmp::Reverse(sizes[index]), index));
     let mut offsets = vec![0; sizes.len()];
     let mut total = 0;
     for index in order {

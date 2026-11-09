@@ -50,8 +50,8 @@ pub const KECCAK_PI: [usize; STATE_LANES] = {
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     for rc in KECCAK_RC {
         // Row by row, so every index is a constant: an index computed per lane vectorizes to gathers.
-        let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
-        let d: [u64; 5] = std::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
+        let c: [u64; 5] = core::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
+        let d: [u64; 5] = core::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
         for row in a.as_chunks_mut::<5>().0 {
             for (lane, d) in row.iter_mut().zip(d) {
                 *lane ^= d;
@@ -62,7 +62,7 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
             b[KECCAK_PI[i]] = a[i].rotate_left(KECCAK_RHO[i]);
         }
         for (row, b) in a.as_chunks_mut::<5>().0.iter_mut().zip(b.as_chunks::<5>().0) {
-            *row = std::array::from_fn(|x| b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]));
+            *row = core::array::from_fn(|x| b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]));
         }
         a[0] ^= rc;
     }
@@ -103,7 +103,7 @@ pub struct Digest(pub [u8; 32]);
 impl Digest {
     /// Its four 64-bit words, the form a seed takes in the sponge's lanes.
     pub fn words(&self) -> [u64; 4] {
-        std::array::from_fn(|i| u64::from_le_bytes(self.0.as_chunks().0[i]))
+        core::array::from_fn(|i| u64::from_le_bytes(self.0.as_chunks().0[i]))
     }
 
     /// Its two 128-bit halves, the one form a digest travels in.
@@ -130,6 +130,9 @@ impl Digest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format;
+    use alloc::string::String;
+    use alloc::vec::Vec;
 
     /// Keccak-256 of the bytes `00 01 ..` (mod 256), from the `sha3` crate's `Keccak256`, on each side of a block
     /// boundary.

@@ -2,6 +2,7 @@
 
 use crate::field::K;
 use crate::hash::{Digest, keccak_hash};
+use alloc::vec::Vec;
 
 pub fn hash_pair(left: &[u8], right: &[u8]) -> Digest {
     let mut pair = [0u8; 64];

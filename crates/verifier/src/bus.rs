@@ -10,6 +10,9 @@ use crate::multilinear::{
 };
 use crate::transcript::{Transcript, sumcheck};
 use crate::{StackClaim, VerifierError, require};
+use alloc::boxed::Box;
+use alloc::vec;
+use alloc::vec::Vec;
 
 fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
     let (shared, count) = (transcript.next_scalar()?, transcript.next_scalar()?);

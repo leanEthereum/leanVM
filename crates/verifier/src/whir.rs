@@ -6,6 +6,9 @@ use crate::layout::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 use crate::multilinear::{dot, eq_eval, eq_kernel, log2_strict, multilinear_eval, poly_eval};
 use crate::transcript::Transcript;
 use crate::{VerifierError, require};
+use alloc::boxed::Box;
+use alloc::vec;
+use alloc::vec::Vec;
 
 const INITIAL_FOLDING_FACTOR: usize = 6;
 const SUBSEQUENT_FOLDING_FACTOR: usize = 4;

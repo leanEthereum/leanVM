@@ -5,6 +5,8 @@ use crate::hash::{Digest, keccak_hash};
 use crate::layout::TAG;
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// The stacked bytecode multilinear, prepared to be evaluated, and the Fiat-Shamir IV it gives every transcript.
 ///
@@ -54,7 +56,7 @@ impl Bytecode {
 
         let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
         for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
-            let mut members = std::collections::BTreeMap::<u64, Vec<u16>>::new();
+            let mut members = alloc::collections::BTreeMap::<u64, Vec<u16>>::new();
             for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
                 members.entry(word).or_default().push(position as u16);
             }
@@ -65,7 +67,7 @@ impl Bytecode {
             // so its loop exit is predicted.
             let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
             members.sort_by_key(|(_, at)| at.len());
-            let mut used = std::collections::BTreeSet::new();
+            let mut used = alloc::collections::BTreeSet::new();
             for (word, at) in members {
                 positions.extend(at);
                 words.push((word, positions.len()));
@@ -123,7 +125,7 @@ impl Bytecode {
             }
             let mut bit_sums = [ZERO; 64];
             for &bucket in &self.bytes[bytes_start..block.bytes_end] {
-                let sum = std::mem::take(&mut buckets[bucket as usize]);
+                let sum = core::mem::take(&mut buckets[bucket as usize]);
                 let (byte, value) = (bucket as usize / 256, bucket as u64 % 256);
                 for (bit, bit_sum) in bit_sums[8 * byte..8 * byte + 8].iter_mut().enumerate() {
                     *bit_sum += sum.masked(0u64.wrapping_sub(value >> bit & 1));
