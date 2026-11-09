@@ -431,6 +431,49 @@ theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : Bus
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
   (input : I.Stmt) (layout : Verifier.Layout)
 
+/-- `n` challenges are a list of `n`: continuations that agree on such lists give one program. -/
+theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → VerifierProgram β),
+    (∀ as, as.length = n → k as = k' as) →
+      (VerifierProgram.sampleChallenges n).bind k = (VerifierProgram.sampleChallenges n).bind k'
+  | 0, k, k', h => h [] rfl
+  | n + 1, k, k', h => by
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
+        VerifierProgram.bind_assoc]
+    exact congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun x ↦
+      sampleN_bind_congr n _ _ fun as has ↦ h (x :: as) (by simp [has]))
+
+/-- The guard that the slot weights are sixteen. -/
+def abGuard (ab : List E × E) : VerifierProgram (List E × E) :=
+  if ab.1.length = 2 ^ busBits then VerifierProgram.ret ab else VerifierProgram.fail
+
+/-- The wire's slot weights are sixteen: guarding them changes nothing. -/
+theorem abProg_bind_guard : abProg.bind abGuard = abProg := by
+  unfold abProg
+  rw [VerifierProgram.bind_assoc]
+  refine sampleN_bind_congr _ _ _ fun as has ↦ ?_
+  rw [VerifierProgram.bind_assoc]
+  refine congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun b ↦ ?_)
+  simp [abGuard, has]
+
+/-- **The fingerprint challenges, with the slot weights' count**: `abSpec` with the length of the
+weights recorded. -/
+noncomputable def abSpec16 {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
+    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) :
+    Spec abProg (HDoom cands (Seam.commit I) input)
+      (fun ab h ↦ ab.1.length = 2 ^ busBits ∧
+        HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) εmax
+      (abError I L₀ + 0) 0 :=
+  let P : List E × E → List Ev → Prop := fun ab h ↦ ab.1.length = 2 ^ busBits ∧
+    HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h
+  let G : ∀ ab : List E × E, Spec (abGuard ab)
+      (fun h ↦ HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) P εmax 0 0 :=
+    fun ab ↦ if h : ab.1.length = 2 ^ busBits then
+      Spec.congr (p := VerifierProgram.ret ab) (by simp [abGuard, h])
+        ((Spec.ret (Post := P) ab).mono (fun _ hp ↦ ⟨h, hp⟩) (fun _ _ hq ↦ hq) le_rfl le_rfl
+          le_rfl)
+    else Spec.congr (p := VerifierProgram.fail) (by simp [abGuard, h]) Spec.fail
+  Spec.congr abProg_bind_guard ((abSpec I cands input hI hfin hcard hlt (T := 0)).bind' G)
+
 /-- The boundary values keep doom: from doom on the grand product's output relation, the values
 sent make doom on the bus seam at the protocol's output. -/
 theorem values_keep {C : Set (∀ i, TheOracle I i)}
@@ -485,8 +528,10 @@ noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β}
     (he : roundError 1 2 + 0 ≤ εmax)
     (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
     (hlb : layout.logBytecode ≤ I.μBus)
-    (K : ∀ w, Spec (k w) (BusAt I hI cands input layout w) Q εmax Lk T)
-    (alphas : List E) (beta : E) (r : E × List E × List E) :
+    (K : ∀ w : BusWit, w.alphas.length = 2 ^ busBits →
+      Spec (k w) (BusAt I hI cands input layout w) Q εmax Lk T)
+    (alphas : List E) (halpha : alphas.length = 2 ^ busBits) (beta : E)
+    (r : E × List E × List E) :
     Spec (busTailK layout k alphas beta r) (GkrPost I cands (input, (toAlpha alphas, beta)) r) Q
       εmax 0 T :=
   let P : List Ev → Prop := fun h ↦ r.2.1.length = I.μBus ∧ r.2.2.length = 3 ∧
@@ -515,7 +560,7 @@ noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β}
       (by rw [hbc, List.length_take, hl, Nat.min_eq_left hlb]; rfl) (P' bf)
       (fun _ l hp ↦ ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.append l⟩)
       (fun _ hp ↦ by obtain ⟨W, hW, -⟩ := hp.2.2.2; exact ⟨W, hW⟩) hLk he).bind' fun s ↦
-      (K ⟨alphas, beta, r.2.1, r.2.2, memory, mf, bf, s.1, s.2.1⟩).mono
+      (K ⟨alphas, beta, r.2.1, r.2.2, memory, mf, bf, s.1, s.2.1⟩ halpha).mono
         (fun _ hp ↦ busAt_of I hI cands input layout hp.1.1 hp.1.2.1 hp.1.2.2.1 hp.2 hp.1.2.2.2)
         (fun _ _ h ↦ h) le_rfl
         le_rfl le_rfl).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
@@ -530,7 +575,8 @@ sumcheck round's, the descendants' combination challenges with the next combiner
 share's rounds) at most `L₀ · 4 / |E|`. -/
 noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β}
     {Q : β → List Ev → Prop} {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
-    (K : ∀ w : BusWit, Spec (f (w.result layout)) (BusAt I hI cands input layout w) Q εmax Lk T)
+    (K : ∀ w : BusWit, w.alphas.length = 2 ^ busBits →
+      Spec (f (w.result layout)) (BusAt I hI cands input layout w) Q εmax Lk T)
     {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hμ : I.μBus ≠ 0)
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
@@ -548,9 +594,12 @@ noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β}
       fun _ hp _ ↦ hp).bind' fun _ ↦
     (Spec.grindP (Post := fun _ h ↦ HDoom cands (Seam.commit I) input h)
       (busGrindingBits I.μBus) (fun _ hp ↦ hp.append _) hab).bind' fun _ ↦
-    (abSpec I cands input hI hfin hcard hlt (T := 0)).bind' fun ab ↦
-      (gkrSpec I cands (input, (toAlpha ab.1, ab.2)) hI hfin hcard hμ he hT hlam).bind'
-        fun r ↦ busTailSpec I hI cands input layout hLk o₀ hs hbc hlb K ab.1 ab.2 r
+    (abSpec16 I hI cands input hfin hcard hlt).bind' fun ab ↦
+      if h : ab.1.length = 2 ^ busBits then
+        ((gkrSpec I cands (input, (toAlpha ab.1, ab.2)) hI hfin hcard hμ he hT hlam).bind'
+          fun r ↦ busTailSpec I hI cands input layout hLk o₀ hs hbc hlb K ab.1 h ab.2 r).mono
+          (fun _ hp ↦ hp.2) (fun _ _ hq ↦ hq) le_rfl le_rfl le_rfl
+      else specOfFalse fun _ hp ↦ h hp.1
 
 /-- **The bus phase** alone: from the commitment's doom to the bus seam on the wire. -/
 noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
@@ -568,7 +617,7 @@ noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
       (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
   Spec.congr (VerifierProgram.bind_ret _)
     (busThenSpec I hI cands input layout hTf
-      (fun w ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
+      (fun w _ ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
         (fun _ hp ↦ ⟨w, rfl, hp⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl)
       hfin hcard hμ hdepth hbc hlb o₀ hlt hab he hT hlam hs)
 

@@ -37,11 +37,14 @@ open scoped NNReal ENNReal
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
   (input : I.Stmt) (layout : Verifier.Layout) {εmax : ℝ≥0∞}
 
-/-- What a read of the bus phase of the right shape is. -/
+/-- What a read of the bus phase of the right shape is, its share the bytecode's. -/
 def BusWit.Shaped (w : BusWit) : Prop :=
-  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 2
+  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 2 ∧
+    w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues layout.bytecode (w.point.take layout.logBytecode))
 
-instance (w : BusWit) : Decidable (w.Shaped I) := inferInstanceAs (Decidable (_ ∧ _))
+open Classical in
+noncomputable instance (w : BusWit) : Decidable (w.Shaped I layout) := Classical.dec _
 
 /-- A lead whose discount by a grind of `b` bits is within `εmax` is within it at `b = 0`. -/
 theorem grindLead_le_of_discount {b : ℕ} {X : ℝ≥0∞} (h : (2 : ℝ≥0∞)⁻¹ ^ b * X ≤ εmax) :
@@ -55,7 +58,8 @@ the wire. The side conditions are the bus phase's (`busThenSpec`: the fingerprin
 discounted error `hab`, the GKR's, the bytecode share's `hs`) and the table phase's
 (`tablePhaseSpec`: `ξ`'s discounted error `hxi`, the rounds' `he3`). -/
 noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
-    (fid : ∀ w : BusWit, w.Shaped I → TableFid I hI input layout colOf w) (hd : I.d ≤ 2)
+    (fid : ∀ w : BusWit, w.Shaped I layout → w.alphas.length = 2 ^ busBits →
+      TableFid I hI input layout colOf w) (hd : I.d ≤ 2)
     {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀)
     (hμ : I.μBus ≠ 0)
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
@@ -73,9 +77,9 @@ noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
       (HDoom cands (Seam.commit I) input) (TablePost I cands input colOf) εmax
       (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
   busThenSpec I hI cands input layout (grindLead_le_of_discount hxi)
-    (fun w ↦ if hw : w.Shaped I then
-      tablePhaseSpec I hI cands input layout colOf w (fid w hw) hd hfin hcard he3 hTf hxi
-    else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1⟩)
+    (fun w h16 ↦ if hw : w.Shaped I layout then
+      tablePhaseSpec I hI cands input layout colOf w (fid w hw h16) hd hfin hcard he3 hTf hxi
+    else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1⟩)
     hfin hcard hμ hdepth hbc hlb o₀ hlt hab he4 hT hlam hs
 
 /-! ## The commitment's doom at the leanISA instance -/
