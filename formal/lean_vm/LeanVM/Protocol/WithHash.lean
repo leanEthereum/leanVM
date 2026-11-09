@@ -89,7 +89,7 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
     match ← findNonceM F bits sp fuel with
     | none => pure none
     | some n => do
-      let r ← powStepM F sp n
+      let r ← absorbNonce F sp n
       let t ← runFromWithHash fuel k (Script.afterGrind S) r.2 cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do
@@ -110,7 +110,7 @@ proof-of-work search finds no nonce below `fuel`. -/
 def runScriptWithHash (P : VerifierProgram Bool) {β : Type} (S : Script β) (seed : KeccakState)
     (fuel : ℕ) :
     m (Option Proof) := do
-  let r ← runFromWithHash H F fuel P (some S) ⟨seed, []⟩ []
+  let r ← runFromWithHash H F fuel P (some S) ⟨seed, [], none⟩ []
   pure (r.map fun t ↦ (⟨t.1, t.2⟩ : Proof))
 
 end Run
