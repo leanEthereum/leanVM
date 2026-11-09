@@ -1,6 +1,6 @@
 //! Pins both verifiers' `WHIR_QUERIES`, the Rust one's and the Lean one's (`formal/Statement/LeanVmVerifier.lean`),
-//! against the prover's query search. They tabulate rather than repeat that search, which would make cross-language
-//! float identity part of the protocol.
+//! against the prover's query search, and both verifiers' grinding constants against the prover's. They tabulate
+//! rather than repeat that search, which would make cross-language float identity part of the protocol.
 
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
@@ -34,22 +34,35 @@ fn lean_literal(rows: &[Vec<String>]) -> String {
     format!("[{}]", rows.join(","))
 }
 
-#[test]
-fn lean_query_table_matches_rust() {
+/// The Lean verifier's source.
+fn lean_verifier() -> String {
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../formal/Statement/LeanVmVerifier.lean"
     );
-    let source = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
-    for (name, value) in [
-        ("minLogStack", leanvm_core::pcs::MIN_MU),
-        ("maxLogStack", leanvm_core::pcs::MAX_MU),
-    ] {
+    std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"))
+}
+
+/// Each constant `def name : ℕ := value` of the Lean verifier is the given value.
+fn assert_lean_constants(source: &str, constants: &[(&str, usize)]) {
+    for (name, value) in constants {
         assert!(
             source.contains(&format!("def {name} : ℕ := {value}\n")),
             "set {name} in formal/Statement/LeanVmVerifier.lean to {value}"
         );
     }
+}
+
+#[test]
+fn lean_query_table_matches_rust() {
+    let source = lean_verifier();
+    assert_lean_constants(
+        &source,
+        &[
+            ("minLogStack", leanvm_core::pcs::MIN_MU),
+            ("maxLogStack", leanvm_core::pcs::MAX_MU),
+        ],
+    );
     let head = "def queryTable : List (List (List ℕ)) :=";
     let body = &source[source.find(head).expect("`queryTable` in the Lean verifier") + head.len()..];
     let lean: String = body[..body.find("\n\n").unwrap_or(body.len())]
@@ -105,8 +118,8 @@ fn print_whir_query_table() {
     println!("{}", lean_literal(&rows));
 }
 
-/// The grinds the verifier hardcodes are the prover's. A verifier asking for fewer bits than the prover grinds still
-/// accepts every honest proof, so only this catches a drift below the target.
+/// The grinds the verifiers hardcode, the Rust one's and the Lean one's, are the prover's. A verifier asking for fewer
+/// bits than the prover grinds still accepts every honest proof, so only this catches a drift below the target.
 #[test]
 fn grinding_constants_match_the_prover() {
     use pcs::whir_config as prover;
@@ -127,4 +140,16 @@ fn grinding_constants_match_the_prover() {
         prover::OOD_SAMPLES as u32,
     ];
     assert_eq!(rust, expected, "crates/verifier's grinding constants");
+    assert_lean_constants(
+        &lean_verifier(),
+        &[
+            ("securityBits", leanvm_core::SECURITY_BITS as usize),
+            ("queryGrindingBits", prover::QUERY_GRINDING_BITS),
+            ("foldGrindingBits", prover::FOLD_GRINDING_BITS),
+            ("batchGrindingBits", prover::BATCH_GRINDING_BITS),
+            ("oodGrindingBits", prover::OOD_GRINDING_BITS),
+            ("oodSamples", prover::OOD_SAMPLES),
+            ("maxStackedClaims", prover::MAX_STACKED_CLAIMS),
+        ],
+    );
 }
