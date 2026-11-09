@@ -340,6 +340,14 @@ class Proof:
 # scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 
 DS_OBSERVE = 1
+SECURITY_BITS = 128  # every verifier message's error, after its grind, is at most 2^-SECURITY_BITS
+
+
+def grinding_bits(numerator: int) -> int:
+    """The grind before a verifier message whose error is numerator / |E|, |E| = 2^128."""
+    return max(0, (numerator - 1).bit_length() - (128 - SECURITY_BITS)) if numerator > 1 else 0
+
+
 DS_POW_NONCE = 4
 RATE_SCALARS = 4
 LANE_MASK = 2**64 - 1
@@ -368,6 +376,7 @@ class Transcript:
         self.proof = proof
         self.state = keccak_f([*fiat_shamir_IV.words(), *public_input.words(), *[0] * 17])
         self.pending: list[tuple[E, int]] = []
+        self.ground: E | None = None  # the challenge a grind's permutation drew, which the next sample returns
         self.stream_offset = 0  # in E field elements
         self.opening_offset = 0  # in bytes
 
@@ -377,6 +386,7 @@ class Transcript:
         self.pending = []
 
     def _absorb(self, value: E, tag: int) -> None:
+        assert self.ground is None, "a grind is followed by a challenge"
         if len(self.pending) == RATE_SCALARS:
             self._duplex()
         self.pending.append((value, tag))
@@ -385,6 +395,9 @@ class Transcript:
         self._absorb(value, DS_OBSERVE)
 
     def sample(self) -> E:
+        if self.ground is not None:
+            challenge, self.ground = self.ground, None
+            return challenge
         self._duplex()
         return E(*self.state[:2])
 
@@ -406,10 +419,13 @@ class Transcript:
         return [self.next_scalar() for _ in range(count)]
 
     def grind_check(self, bits: int) -> None:
-        nonce = self._next()
-        self._absorb(nonce, DS_POW_NONCE)
-        challenge = self.sample()
-        require(nonce == ZERO if bits == 0 else challenge.c0.value & (2**bits - 1) == 0, "invalid grinding nonce")
+        # The permutation drawing the next challenge carries the proof of work in its third lane. Zero bits is no grind.
+        if bits == 0:
+            return
+        self._absorb(self._next(), DS_POW_NONCE)
+        self._duplex()
+        self.ground = E(*self.state[:2])
+        require(self.state[2] & (2**bits - 1) == 0, "invalid grinding nonce")
 
     def _merkle_data(self, length: int) -> bytes:
         end = self.opening_offset + length
@@ -433,13 +449,16 @@ class Transcript:
         return rows
 
     def sumcheck_round_poly(self, count: int, claim: E, eq_factor: E | None = None) -> list[E]:
-        """returns q(X) := c0 + c1X + c2X^2 + ..."""
+        """returns q(X) := c0 + c1X + c2X^2 + ..., after the round's grind: its degree, eq factor included."""
         if eq_factor is None:
             constant, tail = self.next_scalar(), self.next_scalars(count - 2)  # `q(0) + q(1) == claim`. The transcript contains c0, c2, c3 ...
-            return [constant, claim + E.sum(tail), *tail]
-        # `(1 + r) q(0) + r q(1) == claim`. The transcript contains c1, c2, c3 ... (r := eq_factor)
-        tail = self.next_scalars(count - 1)
-        return [claim + eq_factor * E.sum(tail), *tail]
+            poly = [constant, claim + E.sum(tail), *tail]
+        else:
+            # `(1 + r) q(0) + r q(1) == claim`. The transcript contains c1, c2, c3 ... (r := eq_factor)
+            tail = self.next_scalars(count - 1)
+            poly = [claim + eq_factor * E.sum(tail), *tail]
+        self.grind_check(grinding_bits(count - 1 + (eq_factor is not None)))
+        return poly
 
     def finish(self) -> None:
         require(self.stream_offset == len(self.proof.stream), "proof stream not fully consumed")

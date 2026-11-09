@@ -8,7 +8,7 @@ use crate::field::E;
 use crate::hash::{Digest, keccak_hash};
 use crate::merkle::hash_pair;
 use crate::multilinear::log2_ceil;
-use crate::transcript::{DS_POW_NONCE, Sponge};
+use crate::transcript::Sponge;
 
 const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
@@ -30,8 +30,7 @@ pub fn membership_challenge(root: &[u8; 32]) -> E {
     (0..)
         .find_map(|nonce| {
             let mut ground = sponge.clone();
-            ground.absorb(E::new(nonce, 0), DS_POW_NONCE);
-            (ground.sample().c0 & mask == 0).then(|| ground.sample())
+            (ground.absorb_nonce(E::new(nonce, 0)) & mask == 0).then(|| ground.sample())
         })
         .expect("a nonce exists")
 }

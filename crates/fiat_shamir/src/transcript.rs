@@ -89,6 +89,9 @@ impl ProverState {
     /// plain round has `h(0) + h(1) = Σ_{i≥1} c_i = claim`, which fixes `c_1`,
     /// and a round whose `eq` weight `r` was factored out has
     /// `(1 + r)·h(0) + r·h(1) = c_0 + r·Σ_{i≥1} c_i = claim`, which fixes `c_0`.
+    ///
+    /// Then the round's grind: the round's error is its degree over `|E|`, the degree of the whole round
+    /// polynomial, eq factor included.
     pub fn add_round_poly(&mut self, coeffs: &[F128], eq: bool) {
         assert!(coeffs.len() >= 2, "a round polynomial has at least two coefficients");
         let fixed = usize::from(!eq);
@@ -97,16 +100,16 @@ impl ProverState {
                 self.add_scalar(c);
             }
         }
+        self.grind(crate::grinding_bits((coeffs.len() - 1 + usize::from(eq)) as u128));
     }
 
-    /// Proof-of-work grind of `bits` before the next challenge, raising that
-    /// challenge's Schwartz-Zippel soundness by `bits` (the prover must redo
-    /// the PoW to re-roll the challenge). Grinds, binds the nonce into the
-    /// state, and transmits it on the stream as raw transport (already bound
-    /// by the grind, so it is NOT re-absorbed). `bits = 0` is the canonical
-    /// no-work nonce `0`.
+    /// Proof-of-work grind of `bits` before the next challenge, which divides that verifier message's
+    /// round-by-round error by `2^bits` (the prover must redo the work to re-roll it). Binds the nonce and
+    /// transmits it on the stream as raw transport (already bound, so NOT re-absorbed). A grind of zero bits
+    /// is nothing: no nonce, no permutation.
     pub fn grind(&mut self, bits: u32) {
-        let nonce = self.fs.grind_pow(bits);
-        self.stream.push(F128::new(nonce, 0));
+        if let Some(nonce) = self.fs.grind_pow(bits) {
+            self.stream.push(F128::new(nonce, 0));
+        }
     }
 }

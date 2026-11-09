@@ -27,6 +27,8 @@ pub struct Sponge {
     state: [u64; STATE_LANES],
     pending: [(E, u64); RATE_SCALARS],
     n_pending: usize,
+    /// The challenge a grind's permutation drew, which the next [`Self::sample`] returns.
+    ground: Option<E>,
 }
 
 impl Sponge {
@@ -42,6 +44,7 @@ impl Sponge {
             },
             pending: [(ZERO, 0); RATE_SCALARS],
             n_pending: 0,
+            ground: None,
         }
     }
 
@@ -57,6 +60,7 @@ impl Sponge {
     }
 
     pub(crate) fn absorb(&mut self, value: E, tag: u64) {
+        debug_assert!(self.ground.is_none(), "a grind is followed by a challenge");
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }
@@ -69,9 +73,30 @@ impl Sponge {
     }
 
     pub fn sample(&mut self) -> E {
-        self.duplex();
-        E::new(self.state[0], self.state[1])
+        self.ground.take().unwrap_or_else(|| {
+            self.duplex();
+            E::new(self.state[0], self.state[1])
+        })
     }
+
+    /// Absorb a grinding nonce and permute: the output's first two lanes are the next challenge, kept for
+    /// [`Self::sample`], and its third lane is returned, the proof of work.
+    pub(crate) fn absorb_nonce(&mut self, nonce: E) -> u64 {
+        self.absorb(nonce, DS_POW_NONCE);
+        self.duplex();
+        self.ground = Some(E::new(self.state[0], self.state[1]));
+        self.state[2]
+    }
+}
+
+/// Round-by-round target (bits): every verifier message's error, after its grind, is at most `2^-SECURITY_BITS`.
+pub const SECURITY_BITS: u32 = 128;
+
+/// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
+/// bits that bring it to `2^-SECURITY_BITS` (`fiat_shamir::grinding_bits`).
+pub const fn grinding_bits(numerator: u128) -> u32 {
+    let log = if numerator <= 1 { 0 } else { u128::BITS - (numerator - 1).leading_zeros() };
+    log.saturating_sub(128 - SECURITY_BITS)
 }
 
 pub struct Transcript<'a> {
@@ -132,20 +157,17 @@ impl<'a> Transcript<'a> {
         (0..count).map(|_| self.next_scalar()).collect()
     }
 
-    /// The nonce is absorbed with its own tag, and the challenge drawn next, which nothing else uses, must have its low
-    /// `bits` bits zero. With no bits to grind the nonce must be zero.
+    /// The nonce is absorbed with its own tag, and the permutation that draws the next challenge must leave its third
+    /// lane with the low `bits` bits zero. A grind of zero bits is nothing: no nonce, no permutation.
     pub fn grind_check(&mut self, bits: u32) -> Result<(), VerifierError> {
+        if bits == 0 {
+            return Ok(());
+        }
         let nonce = self.next()?;
-        self.sponge.absorb(nonce, DS_POW_NONCE);
-        let challenge = self.sample();
+        let pow = self.sponge.absorb_nonce(nonce);
         if self.checked {
             let mask = 1u64.checked_shl(bits).map_or(u64::MAX, |bit| bit - 1);
-            let valid = if bits == 0 {
-                nonce == ZERO
-            } else {
-                challenge.c0 & mask == 0
-            };
-            require(valid, VerifierError::GrindingNonce)?;
+            require(pow & mask == 0, VerifierError::GrindingNonce)?;
         }
         Ok(())
     }
@@ -185,22 +207,29 @@ impl<'a> Transcript<'a> {
         Ok(paths.iter().map(|path| &path.leaf[..]).collect())
     }
 
-    /// returns q(X) := c0 + c1X + c2X^2 + ...
+    /// returns q(X) := c0 + c1X + c2X^2 + ..., after the round's grind: the round's error is the degree of the whole
+    /// round polynomial, eq factor included, over `|E|`.
     pub fn sumcheck_round_poly(
         &mut self,
         count: usize,
         claim: E,
         eq_factor: Option<E>,
     ) -> Result<Vec<E>, VerifierError> {
-        let Some(eq_factor) = eq_factor else {
+        let poly = match eq_factor {
             // `q(0) + q(1) == claim`. The transcript contains c0, c2, c3 ...
-            let constant = self.next_scalar()?;
-            let tail = self.next_scalars(count - 2)?;
-            return Ok([vec![constant, claim + E::sum(tail.iter().copied())], tail].concat());
+            None => {
+                let constant = self.next_scalar()?;
+                let tail = self.next_scalars(count - 2)?;
+                [vec![constant, claim + E::sum(tail.iter().copied())], tail].concat()
+            }
+            // `(1 + r) q(0) + r q(1) == claim`. The transcript contains c1, c2, c3 ... (r := eq_factor)
+            Some(eq_factor) => {
+                let tail = self.next_scalars(count - 1)?;
+                [vec![claim + eq_factor * E::sum(tail.iter().copied())], tail].concat()
+            }
         };
-        // `(1 + r) q(0) + r q(1) == claim`. The transcript contains c1, c2, c3 ... (r := eq_factor)
-        let tail = self.next_scalars(count - 1)?;
-        Ok([vec![claim + eq_factor * E::sum(tail.iter().copied())], tail].concat())
+        self.grind_check(grinding_bits((count - 1 + usize::from(eq_factor.is_some())) as u128))?;
+        Ok(poly)
     }
 
     /// Nothing of the proof is left unread.

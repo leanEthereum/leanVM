@@ -6,7 +6,9 @@
 //! scalars wait, up to four, and a permutation takes them all: scalar `i` overwrites lanes
 //! `4i..4i + 4` with its two limbs, a zero and a domain tag, the rate past the last scalar is zeroed, and
 //! the capacity carries over. A fifth scalar, or a challenge, permutes what is waiting; every
-//! challenge takes a permutation of its own and is the first two lanes of its output. So sending
+//! challenge takes a permutation of its own and is the first two lanes of its output. A grinding
+//! nonce waits like a scalar, and the challenge drawn next carries the proof of work in its
+//! permutation's third lane, so a grind costs no permutation of its own. So sending
 //! a round's coefficients and drawing its challenge is one permutation, and a guest replays it as
 //! one `KECCAK` instruction whose rate cells are the scalars and whose capacity cells are the
 //! previous output's.
@@ -36,6 +38,16 @@ pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
     std::array::from_fn(|index| F64(u64::from_le_bytes(words[index])))
 }
 
+/// Round-by-round target (bits): every verifier message's error, after its grind, is at most `2^-SECURITY_BITS`.
+pub const SECURITY_BITS: u32 = 128;
+
+/// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
+/// bits that bring it to `2^-SECURITY_BITS`. A message of degree `d` in its challenges has numerator `d`.
+pub const fn grinding_bits(numerator: u128) -> u32 {
+    let log = if numerator <= 1 { 0 } else { u128::BITS - (numerator - 1).leading_zeros() };
+    log.saturating_sub(128 - SECURITY_BITS)
+}
+
 /// Scalars a permutation absorbs.
 pub const RATE_SCALARS: usize = 4;
 
@@ -56,6 +68,8 @@ pub struct FiatShamirState {
     /// `n_pending` scalars absorbed since, then zeros.
     state: [u64; STATE_LANES],
     n_pending: usize,
+    /// The challenge a grind's permutation drew, which the next [`Self::sample`] returns.
+    ground: Option<F128>,
 }
 
 impl FiatShamirState {
@@ -68,6 +82,7 @@ impl FiatShamirState {
         let mut fs = Self {
             state: [0; STATE_LANES],
             n_pending: 0,
+            ground: None,
         };
         for (lane, word) in fs.state.iter_mut().zip(iv.into_iter().chain(public_input)) {
             *lane = word.0;
@@ -84,14 +99,21 @@ impl FiatShamirState {
 
     /// Permute, taking the waiting scalars, and return the output's first two lanes.
     fn duplex(&mut self) -> F128 {
+        self.duplex_with_pow().0
+    }
+
+    /// [`Self::duplex`], also returning the output's third lane, where a grind's proof of work sits.
+    fn duplex_with_pow(&mut self) -> (F128, u64) {
         primitives::hash::keccak_f(&mut self.state);
         let out = F128::new(self.state[0], self.state[1]);
+        let pow = self.state[2];
         self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
-        out
+        (out, pow)
     }
 
     fn absorb(&mut self, x: F128, tag: u64) {
+        assert!(self.ground.is_none(), "a grind is followed by a challenge");
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }
@@ -124,7 +146,7 @@ impl FiatShamirState {
     /// public; soundness comes from each challenge being a random-oracle image of
     /// the entire prior transcript.
     pub fn sample(&mut self) -> F128 {
-        self.duplex()
+        self.ground.take().unwrap_or_else(|| self.duplex())
     }
 
     /// Squeeze `n` challenges, in order.
@@ -132,33 +154,25 @@ impl FiatShamirState {
         (0..n).map(|_| self.sample()).collect()
     }
 
-    /// Whether `nonce` passes a `bits` grind here: absorbed as a nonce, the challenge
-    /// drawn next has its low `bits` bits zero. A CONTIGUOUS low-bit window, so a
-    /// recursive verifier re-checks it with one bit decomposition of the challenge's
-    /// first limb (`grind_check` in `guests/lean_ethereum.py`).
+    /// Whether `nonce` passes a `bits` grind here: absorbed as a nonce, the permutation drawing the next
+    /// challenge leaves its third lane with the low `bits` bits zero. A CONTIGUOUS low-bit window, so a
+    /// recursive verifier re-checks it with one bit decomposition (`grind_check` in `guests/lean_ethereum.py`).
     fn pow_bits_ok(&self, nonce: F128, bits: u32) -> bool {
-        assert!(bits < 64, "the grinding window fits the challenge's low limb");
         let mut probe = self.clone();
         probe.absorb(nonce, DS_POW_NONCE);
-        probe.sample().c0 & ((1u64 << bits) - 1) == 0
+        probe.duplex_with_pow().1 & ((1u64 << bits) - 1) == 0
     }
 
-    /// Absorb a grinding nonce and draw the challenge it is checked against, which
-    /// nothing else uses.
-    fn absorb_nonce(&mut self, nonce: F128) {
-        self.absorb(nonce, DS_POW_NONCE);
-        self.sample();
-    }
-
-    /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero
-    /// bits, then bind it so later challenges depend on it. `bits = 0` is the
-    /// canonical no-work nonce `0`. Parallel search for the larger grinds.
-    pub(crate) fn grind_pow(&mut self, bits: u32) -> u64 {
-        assert!(bits < 64, "the grinding window fits the challenge's low limb");
-        const PARALLEL_GRIND_MIN: u64 = 1 << 13;
-        let nonce = if bits == 0 {
-            0
-        } else if (1u64 << bits) < PARALLEL_GRIND_MIN {
+    /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero bits, bind it, and keep
+    /// the challenge its permutation drew for the next [`Self::sample`]. `bits = 0` is no grind at all.
+    /// Parallel search for the larger grinds.
+    pub(crate) fn grind_pow(&mut self, bits: u32) -> Option<u64> {
+        assert!(bits < 64, "the grinding window fits a lane");
+        if bits == 0 {
+            return None;
+        }
+        const PARALLEL_GRIND_MIN: u64 = 1 << 10;
+        let nonce = if (1u64 << bits) < PARALLEL_GRIND_MIN {
             (0..)
                 .find(|&n| self.pow_bits_ok(F128::new(n, 0), bits))
                 .expect("a nonce exists")
@@ -175,7 +189,7 @@ impl FiatShamirState {
                     state[lane] = first + i as u64;
                 }
                 primitives::hash::keccak_f_many(&mut states);
-                states.iter().position(|s| s[0] & ((1u64 << bits) - 1) == 0)
+                states.iter().position(|s| s[2] & ((1u64 << bits) - 1) == 0)
             };
             // The smallest matching batch and its first match give the smallest nonce.
             let block: u64 = 1 << (bits.min(24) + 1);
@@ -190,8 +204,9 @@ impl FiatShamirState {
                 start = start.saturating_add(block);
             }
         };
-        self.absorb_nonce(F128::new(nonce, 0));
-        nonce
+        self.absorb(F128::new(nonce, 0), DS_POW_NONCE);
+        self.ground = Some(self.duplex());
+        Some(nonce)
     }
 }
 
@@ -248,19 +263,27 @@ mod tests {
         }
     }
     #[test]
+    fn grinding_bits_is_the_ceiling_log() {
+        assert_eq!([0, 1, 2, 3, 4, 5, 46, 64, 65].map(grinding_bits), [0, 0, 1, 2, 2, 3, 6, 6, 7]);
+    }
+
+    #[test]
     fn pow_predicate() {
         let mut sp = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
         sp.observe(f(7));
-        for bits in [0, 8, 13, 17] {
+        for bits in [2, 8, 13, 17] {
             let mut clone = sp.clone();
-            let good = clone.grind_pow(bits);
-            let expected = (0..=good)
-                .find(|&n| bits == 0 || sp.pow_bits_ok(F128::new(n, 0), bits))
-                .unwrap();
+            let good = clone.grind_pow(bits).unwrap();
+            let expected = (0..=good).find(|&n| sp.pow_bits_ok(F128::new(n, 0), bits)).unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
+            // The grind's own permutation draws the next challenge, and the one after is fresh.
             let mut expected_state = sp.clone();
-            expected_state.absorb_nonce(F128::new(good, 0));
+            expected_state.absorb(F128::new(good, 0), DS_POW_NONCE);
+            assert_eq!(clone.sample(), expected_state.sample());
             assert_eq!(clone.sample(), expected_state.sample());
         }
+        let mut clone = sp.clone();
+        assert_eq!(clone.grind_pow(0), None);
+        assert_eq!(clone.sample(), sp.clone().sample());
     }
 }
