@@ -438,6 +438,39 @@ fn aggregate_two_to_one() {
     assert_eq!(node.claims.xmss.len(), SMALL_LEAF_SIZE + big);
 }
 
+/// A child's opening transport is bound in-circuit: a node whose hints put a deeper
+/// level's shared row limb off by one, or send the child's proof stream in one block
+/// fewer than it takes, fails the guest's run.
+#[test]
+fn forged_child_opening_hints_are_rejected() {
+    leanvm_core::init_prover();
+    let signers = get_signers(2 * SMALL_LEAF_SIZE);
+    let children = [
+        prove_leaf(&signers[..SMALL_LEAF_SIZE]),
+        prove_leaf(&signers[SMALL_LEAF_SIZE..]),
+    ];
+    let forgeries: [Forgery; 2] = [
+        Box::new(|hints: &mut Hints| {
+            // The last query's row is the last child's deepest level, an extension row:
+            // its words, then the shared limbs, the first of them w.c2.
+            let row = hints.last_mut("merkle_leaf_rows");
+            let shared = row.len() / 2;
+            row[shared] += F192::ONE;
+        }),
+        Box::new(|hints: &mut Hints| {
+            hints.entry_mut("stream_blocks", 0)[0] *= F192::from(F64::G.inv());
+        }),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE);
+        assert!(
+            matches!(result, Err(AggregationError::ProofError(_))),
+            "a forged hint is rejected"
+        );
+    }
+}
+
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
     let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
     (0..n_rows * (1 << DA_LOG_K))

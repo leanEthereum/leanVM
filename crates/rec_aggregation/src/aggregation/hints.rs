@@ -95,6 +95,13 @@ impl Hints {
         &mut entries[i]
     }
 
+    /// The last entry of stream `name`, for a test to forge.
+    #[cfg(test)]
+    pub(super) fn last_mut(&mut self, name: &str) -> &mut Vec<F192> {
+        let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
+        entries.last_mut().expect("an entry")
+    }
+
     pub(super) fn install(self, guest: &mut Program) {
         for (name, entries) in self.0 {
             guest.set_witness(name, entries);

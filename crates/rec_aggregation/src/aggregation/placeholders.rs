@@ -1,7 +1,7 @@
 //! The constants baked into the guest.
 
 use super::cells::{dsl_u128, pack_16_bytes};
-use super::child::{MU_CAP, MU_MAX, MU_MIN, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
+use super::child::{MU_MAX, MU_MIN, STREAM_BLOCK, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW, SP_FORS_WINDOWS, fors_u_hinted};
@@ -177,12 +177,10 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         rep.insert(format!("{k}_PLACEHOLDER"), v);
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
+    ps("STREAM_BLOCK", STREAM_BLOCK.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
-    ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
-    ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
-    ps("GKR_POINTS_CAP", ((MU_CAP + 1) * MU_CAP).to_string());
     let (nclaims, nbcv) = bus_placeholders(&layout, kbc, &mut ps);
     claim_placeholders(&layout, kbc, nclaims, &mut ps);
     table_placeholders(&mut ps);
@@ -479,7 +477,6 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("N_TABLE_COLS", literals(&committed));
     ps("TABLE_COL_BASE", literals(xi_offsets(committed.iter().copied())));
     ps("N_COL_EVALS", committed.iter().sum::<usize>().to_string());
-    ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
 }
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
@@ -725,18 +722,16 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                     .sum()
             }),
         );
-        let row_cap = cands
-            .iter()
-            .flat_map(|c| {
-                c.interleaving
-                    .iter()
-                    .enumerate()
-                    .map(|(level, &n)| n * if level == 0 { 1 } else { 3 })
-            })
-            .max()
-            .unwrap();
-        ps("LIG_ROW_CAP", row_cap.to_string());
-        ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
+        // A level-0 row is its base-field lanes; a deeper row, word pairs, rides its words
+        // and two shared limbs per pair (`opening_query`).
+        let base_row = cands.iter().map(|c| c.interleaving[0]).max().unwrap();
+        let ext_rows = cands.iter().flat_map(|c| c.interleaving.iter().skip(1));
+        assert!(ext_rows.clone().all(|&n| n % 2 == 0), "a deeper row is word pairs");
+        ps("LIG_BASE_ROW_CAP", base_row.to_string());
+        ps(
+            "LIG_EXT_ROW_CAP",
+            (2 * ext_rows.max().copied().unwrap_or(0)).to_string(),
+        );
         ps(
             "LIG_PATH_CAP",
             cands
