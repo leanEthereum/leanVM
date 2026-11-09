@@ -35,8 +35,10 @@ Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
 COORD_BASIS = COORD_BASIS_PLACEHOLDER
 # Phi, the F2-linear map that batches the 128 transposed ring-switch coordinates, is
-# drawn as two rows of RING_MAP_WIDTH challenges, f_a then g_b.
+# drawn as two rows of RING_MAP_WIDTH challenges, f_p then g_b. RING_W[p] = x^(-2^(64 - 8p)),
+# the inverse of the target's Horner point z_p.
 RING_MAP_WIDTH = 8
+RING_W = RING_W_PLACEHOLDER
 RS_CHUNK = 8  # ring-switch rows (target) or coordinates (weight) per loop iteration
 RS_CHUNK_BITS = 3
 RES_BATCH = 8  # residual queries per loop iteration
@@ -3281,42 +3283,47 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
 
 
 @inline
-def ring_map(v, ch):
-    # Psi(v) = sum_a f_a v^(2^(8a)), then Phi(v) = sum_b g_b Psi(v)^(2^b): 63 squarings
-    # and 16 products, the challenges f_a, g_b at ch[a], ch[RING_MAP_WIDTH + b].
-    psi = ch[0] * v
-    for a in unroll(1, RING_MAP_WIDTH):
-        for k in unroll(0, RING_MAP_WIDTH):
-            v = v * v
-        psi += ch[a] * v
-    phi = ch[RING_MAP_WIDTH] * psi
-    for b in unroll(1, RING_MAP_WIDTH):
-        psi = psi * psi
-        phi += ch[RING_MAP_WIDTH + b] * psi
-    return phi
+def ring_psi(out, r: Const, v, g):
+    # out[r] = Psi(v) = sum_b g_b v^(2^b), the inner stage: 7 squarings and 8 products.
+    psi = g[0] * v
+    for b in unroll(1, RING_MAP_WIDTH - 1):
+        v = v * v
+        psi += g[b] * v
+    v = v * v
+    out[r] = psi + g[RING_MAP_WIDTH - 1] * v
+    return
 
 
 def ring_switch_target(slices, map_challenges):
-    # Evaluate the claim and combine its 64 packing rows, sum_i x^i Phi(slice_i),
-    # RS_CHUNK rows an iteration in Horner form: the running x-power and the
-    # running sum ride one two-slot chain.
-    rs_chain = HeapBuf((BASE_FIELD_BITS // RS_CHUNK + 1) * PAIR_SLOTS)
-    rs_chain[GEN ** 0] = GEN ** 0  # x^(RS_CHUNK j)
-    rs_chain[GEN ** 1] = 0         # the running sum
+    # T = sum_i x^i Phi(s_i) = sum_p f_p (sum_i z_p^i Psi(s_i))^(2^(8p)), z_p = x^(2^(64 - 8p))
+    # in K, so a slice takes Psi alone. The eight sums run Horner over the slices from
+    # the bottom, RS_CHUNK an iteration, in w_p = 1/z_p: they come out as
+    # sum_i w_p^(63 - i) Psi(s_i), and the final x^63 = (z_p^63)^(2^(8p)) restores them all.
+    rs_chain = HeapBuf((BASE_FIELD_BITS // RS_CHUNK + 1) * RING_MAP_WIDTH)
+    for p in unroll(0, RING_MAP_WIDTH):
+        rs_chain[GEN ** p] = 0
     for x_round in mul_range(1, GEN ** (BASE_FIELD_BITS // RS_CHUNK)):
-        ch = StackBuf(2 * RING_MAP_WIDTH)  # read once an iteration, not once a row
-        for i in unroll(0, 2 * RING_MAP_WIDTH):
-            ch[i] = map_challenges[GEN ** i]
+        g = StackBuf(RING_MAP_WIDTH)  # read once an iteration, not once a row
+        for b in unroll(0, RING_MAP_WIDTH):
+            g[b] = map_challenges[GEN ** (RING_MAP_WIDTH + b)]
         rows = slices * x_round ** RS_CHUNK
-        chunk = ring_map(rows[GEN ** (RS_CHUNK - 1)], ch)
-        for r in unroll(1, RS_CHUNK):
-            chunk = chunk * 2 + ring_map(rows[GEN ** (RS_CHUNK - 1 - r)], ch)
-        row = rs_chain * x_round ** PAIR_SLOTS
-        x_pow = row[GEN ** 0]
-        row[GEN ** PAIR_SLOTS] = x_pow * const(2 ** RS_CHUNK)
-        row[GEN ** (PAIR_SLOTS + 1)] = row[GEN ** 1] + x_pow * chunk
-    rs_end = rs_chain * (GEN ** (BASE_FIELD_BITS // RS_CHUNK)) ** PAIR_SLOTS
-    return rs_end[GEN ** 1]
+        psi = StackBuf(RS_CHUNK)
+        for r in unroll(0, RS_CHUNK):
+            ring_psi(psi, r, rows[GEN ** r], g)
+        row = rs_chain * x_round ** RING_MAP_WIDTH
+        for p in unroll(0, RING_MAP_WIDTH):
+            acc = row[GEN ** p]
+            for r in unroll(0, RS_CHUNK):
+                acc = acc * RING_W[p] + psi[r]
+            row[GEN ** (RING_MAP_WIDTH + p)] = acc
+    sums = rs_chain * (GEN ** (BASE_FIELD_BITS // RS_CHUNK)) ** RING_MAP_WIDTH
+    total = map_challenges[GEN ** 0] * sums[GEN ** 0]
+    for p in unroll(1, RING_MAP_WIDTH):
+        h = sums[GEN ** p]
+        for t in unroll(0, RING_MAP_WIDTH * p):
+            h = h * h
+        total += map_challenges[GEN ** p] * h
+    return total * GEN ** (BASE_FIELD_BITS - 1)
 
 
 def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
@@ -3665,9 +3672,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----
     # The input opening's slices were read and bound above; this block only binds
-    # them to the commitment. Phi(v) = sum_b g_b Psi(v)^(2^b), Psi(v) = sum_a f_a v^(2^(8a)):
-    # its expansion has all 64 Frobenius terms soundness needs, while direct
-    # application costs 63 squarings and 16 general multiplications.
+    # them to the commitment. Phi(v) = sum_p f_p Psi(v)^(2^(8p)), Psi(v) = sum_b g_b v^(2^b):
+    # its expansion has all 64 Frobenius terms soundness needs.
     # One grind covers the map's challenges and the batching challenge lam_cl, drawn
     # next: one verifier message.
     rate = StackBuf(8)
@@ -3680,14 +3686,15 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     map_challenges = HeapBuf(2 * RING_MAP_WIDTH)
     for i in unroll(0, 2 * RING_MAP_WIDTH):
         map_challenges[GEN ** i] = ch[i]
-    # The same map as a Frobenius sum, for the transparent weight: c_(8a+b) = g_b f_a^(2^b).
+    # The same map as a Frobenius sum, for the transparent weight: c_(8p+b) = f_p g_b^(2^(8p)).
     c_table = HeapBuf(BASE_FIELD_BITS)
-    for a in unroll(0, RING_MAP_WIDTH):
-        power = ch[a]
-        for b in unroll(0, RING_MAP_WIDTH):
-            c_table[GEN ** (RING_MAP_WIDTH * a + b)] = ch[RING_MAP_WIDTH + b] * power
-            if const(b + 1 != RING_MAP_WIDTH):
-                power = power * power
+    for b in unroll(0, RING_MAP_WIDTH):
+        power = ch[RING_MAP_WIDTH + b]
+        for p in unroll(0, RING_MAP_WIDTH):
+            c_table[GEN ** (RING_MAP_WIDTH * p + b)] = ch[p] * power
+            if const(p + 1 != RING_MAP_WIDTH):
+                for t in unroll(0, RING_MAP_WIDTH):
+                    power = power * power
     target_in = ring_switch_target(slices, map_challenges)
     # ONE batching challenge for the whole pool: N_CLAIMS - 1 fewer Fiat-Shamir
     # hashes than a challenge per claim, and none for the values themselves,

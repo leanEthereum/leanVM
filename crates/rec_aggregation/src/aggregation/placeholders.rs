@@ -645,6 +645,11 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
         })
         .collect();
     ps("COORD_BASIS", flds(&coord_basis));
+    // The ring-switch target's Horner points, inverted: w_p = 1 / z_p, z_p = x^(2^(64 - 8p)) in K.
+    let ring_w: Vec<F128> = (0..8)
+        .map(|p| (0..(64 - 8 * p) % 64).fold(F128::new(2, 0), |z, _| z.square()).inv())
+        .collect();
+    ps("RING_W", flds(&ring_w));
     ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 }
 

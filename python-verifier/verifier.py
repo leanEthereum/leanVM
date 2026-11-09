@@ -1514,14 +1514,21 @@ def verify_keccak(
 
 # Ring switching --------------------------------------------------------------
 
-# Phi's challenges come in two rows of this many: f_a then g_b.
+# Phi's challenges come in two rows of this many: f_p then g_b.
 RING_MAP_WIDTH = 8
 
 
-def _phi(value: E, f: Sequence[E], g: Sequence[E]) -> E:
-    """The drawn map in two stages: `Psi(v) = sum_a f_a v^(2^(8a))`, then `Phi(v) = sum_b g_b Psi(v)^(2^b)`."""
-    psi = E.sum(f_a * value ** (2 ** (RING_MAP_WIDTH * a)) for a, f_a in enumerate(f))
-    return E.sum(g_b * psi ** (2**b) for b, g_b in enumerate(g))
+def _psi(value: E, g: Sequence[E]) -> E:
+    """The inner stage `Psi(v) = sum_b g_b v^(2^b)`; then `Phi(v) = sum_p f_p Psi(v)^(2^(8p))`."""
+    return E.sum(g_b * value ** (2**b) for b, g_b in enumerate(g))
+
+
+def _ring_target(s: Sequence[E], f: Sequence[E], g: Sequence[E]) -> E:
+    """`T = sum_i x^i Phi(s_i) = sum_p f_p (sum_i z_p^i Psi(s_i))^(2^(8p))`, with `z_p = x^(2^(64 - 8p))` in K,
+    so each slice takes `Psi` alone."""
+    images = [_psi(value, g) for value in s]
+    z = [GEN ** (2 ** ((K_BITS - RING_MAP_WIDTH * p) % K_BITS)) for p in range(RING_MAP_WIDTH)]
+    return E.sum(f_p * poly_eval(images, z[p]) ** (2 ** (RING_MAP_WIDTH * p)) for p, f_p in enumerate(f))
 
 
 def _ring_weight(r: MultilinearPoint, r_prime: Sequence[E], coefficients: Sequence[E]) -> E:
@@ -1546,10 +1553,9 @@ def ring_switch(point: MultilinearPoint, s: Sequence[E], transcript: Transcript)
     transcript.grind_check(BATCH_GRINDING_BITS)  # one grind covers the map and the stacked opening's lambda
     challenges = transcript.samples(2 * RING_MAP_WIDTH)
     f, g = challenges[:RING_MAP_WIDTH], challenges[RING_MAP_WIDTH:]
-    # The same map as a Frobenius sum, `Phi(v) = sum_k c_k v^(2^k)` for k < 64: `c_(8a+b) = g_b f_a^(2^b)`.
-    coefficients = [g[k % RING_MAP_WIDTH] * f[k // RING_MAP_WIDTH] ** (2 ** (k % RING_MAP_WIDTH)) for k in range(K_BITS)]
-    target = poly_eval([_phi(value, f, g) for value in s], GEN)
-    return target, lambda r_prime: _ring_weight(point, r_prime, coefficients)
+    # The same map as a Frobenius sum, `Phi(v) = sum_k c_k v^(2^k)` for k < 64: `c_(8p+b) = f_p g_b^(2^(8p))`.
+    coefficients = [f[k // RING_MAP_WIDTH] * g[k % RING_MAP_WIDTH] ** (2 ** (k - k % RING_MAP_WIDTH)) for k in range(K_BITS)]
+    return _ring_target(s, f, g), lambda r_prime: _ring_weight(point, r_prime, coefficients)
 
 
 # Stacked opening -------------------------------------------------------------

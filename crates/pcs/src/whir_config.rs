@@ -472,7 +472,7 @@ fn check_list_terms(
 ) -> Result<(), String> {
     let ell = affine_mca::johnson_list(n, a0, d0).ok_or("level-start threshold below the Johnson radius")?;
     let degree = match position {
-        Position::First => MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE,
+        Position::First => MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR,
         Position::After { prev_queries } => prev_queries + OOD_SAMPLES,
     };
     require_count((degree as u128).checked_mul(ell), g.batch, target, || {

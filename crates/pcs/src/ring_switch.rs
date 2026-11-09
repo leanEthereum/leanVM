@@ -38,7 +38,7 @@
 //!
 //! 1. Take the caller's bound `s_hat_v`.
 //! 2. Sample sixteen challenges `f_0..f_7, g_0..g_7` in E and define
-//!    `Psi(v) = sum_a f_a v^(2^(8a))` and `Phi(v) = sum_b g_b Psi(v)^(2^b)`.
+//!    `Psi(v) = sum_b g_b v^(2^b)` and `Phi(v) = sum_p f_p Psi(v)^(2^(8p))`.
 //!    For the coordinate basis `(b_i)`, define `coord_weights[i] = Phi(b_i)`. Transpose
 //!    `s_hat_v` to `t_i = s_hat_u[i] in K` (see
 //!    `super::tensor_algebra::transpose_s_hat`); the batched target is
@@ -49,9 +49,9 @@
 //!    `sum_y rs_eq_ind[y] * packed[y] == sumcheck_claim`, which is exactly
 //!    the claim shape [`super::stack_open::open_batch_mixed_whir_stacked`]
 //!    proves (with `b_initial = rs_eq_ind`, `target = sumcheck_claim`).
-//!    A nonzero discrepancy gives a nonzero polynomial in the sixteen
-//!    challenges of total degree at most 129, hence its failure probability is
-//!    at most `129 / |E|` before the WHIR list-size factor.
+//!    A nonzero discrepancy survives each stage with probability `1 / |E|`, so
+//!    the check misses it with probability at most `2 / |E|` before the WHIR
+//!    list-size factor.
 //!
 //! ## Building `rs_eq_ind`
 //!
@@ -74,15 +74,15 @@ use primitives::multilinear::eq_table_serial;
 /// The batching map's challenges: `f_0..f_7`, then `g_0..g_7`.
 pub(crate) const MAP_CHALLENGES: usize = 16;
 
-/// Total degree of the batching map's coefficients in its challenges, `1 + 2^7`. This is the degree
-/// used by the WHIR list-size soundness accounting.
-pub(crate) const RING_SWITCH_SOUNDNESS_DEGREE: usize = 1 + (1 << 7);
+/// The map misses a nonzero error with probability at most this many over `|E|`, one per stage. The WHIR list-size
+/// soundness accounting adds it to the batching numerator.
+pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 2;
 
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w = x^i·y^j` (`w = 64j + i`)
 /// is the `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat` produces), and
 ///
 /// ```text
-/// Psi(v) = sum_{a<8} f_a · v^(2^(8a)),    Phi(v) = sum_{b<8} g_b · Psi(v)^(2^b).
+/// Psi(v) = sum_{b<8} g_b · v^(2^b),    Phi(v) = sum_{p<8} f_p · Psi(v)^(2^(8p)).
 /// ```
 ///
 /// The result is `F_2`-linear, so
@@ -90,9 +90,8 @@ pub(crate) const RING_SWITCH_SOUNDNESS_DEGREE: usize = 1 + (1 << 7);
 /// view `y` and the column view `t` of the same tensor-algebra element. That
 /// identity is what lets a verifier evaluate the batched claim from `Phi`'s
 /// sixteen challenges instead of the 128 weights; the recursion guest does exactly
-/// that. Expanding puts a distinct monomial at every Frobenius exponent `0..64`:
-/// `Phi(v) = sum_{k<64} C_k·v^(2^k)` with `C_{8a+b} = g_b·f_a^(2^b)`.
-/// Applying the two stages directly costs 63 squarings and 16 multiplications.
+/// that. Expanding puts one term at every Frobenius exponent `0..64`:
+/// `Phi(v) = sum_{k<64} C_k·v^(2^k)` with `C_{8p+b} = f_p·g_b^(2^(8p))`.
 ///
 /// ## Soundness
 ///
@@ -111,9 +110,11 @@ pub(crate) const RING_SWITCH_SOUNDNESS_DEGREE: usize = 1 + (1 << 7);
 /// `D_j(U) = sum_{i<64} delta_{64j+i}·U^i`, of degree at most 63, vanishes at
 /// `x, x^2, x^4, ..., x^(2^63)`. Those are 64 distinct points, since `x` has
 /// degree 64 over `F_2`, so `D_j = 0` and `delta = 0`. Hence some `V_k != 0`.
-/// The 64 `C_k` are distinct monomials (`k = 8a + b` names `f_a` and `g_b`), so the
-/// discrepancy is a nonzero polynomial in the challenges, of total degree at most
-/// [`RING_SWITCH_SOUNDNESS_DEGREE`].
+/// Grouped by `p`, the discrepancy is `sum_p f_p·M_p` with
+/// `M_p = sum_b g_b^(2^(8p))·V_{8p+b} = (sum_b g_b·V_{8p+b}^(2^(-8p)))^(2^(8p))`. The Frobenius is a bijection, so for
+/// a `p` with some `V_{8p+b} != 0` the inner form is a nonzero linear form in the `g_b`, zero with probability
+/// `1 / |E|`, and otherwise the outer one is nonzero in the `f_p`, zero with probability `1 / |E|`:
+/// [`RING_SWITCH_ERROR_NUMERATOR`] in all.
 ///
 /// The 64 terms are also the floor: the weights must separate any nonzero
 /// error on the 128 transposed `K`-columns, which is `|S|` `E`-equations, i.e.
@@ -129,20 +130,16 @@ fn apply_map(value: F128, challenges: &[F128; MAP_CHALLENGES]) -> F128 {
     let (f, g) = challenges.split_at(MAP_CHALLENGES / 2);
     let mut frobenius = value;
     let mut psi = F128::ZERO;
-    for (a, &f_a) in f.iter().enumerate() {
-        if a > 0 {
-            for _ in 0..8 {
-                frobenius = frobenius.square();
-            }
-        }
-        psi += f_a * frobenius;
+    for &g_b in g {
+        psi += g_b * frobenius;
+        frobenius = frobenius.square();
     }
     let mut phi = F128::ZERO;
-    for (b, &g_b) in g.iter().enumerate() {
-        if b > 0 {
+    for &f_p in f {
+        phi += f_p * psi;
+        for _ in 0..8 {
             psi = psi.square();
         }
-        phi += g_b * psi;
     }
     phi
 }
@@ -506,25 +503,20 @@ mod tests {
         }
     }
 
-    /// The two-stage evaluation (63 squarings, 16 products) against the expanded form
-    /// `sum_k C_k·v^(2^k)` with `C_{8a+b} = g_b·f_a^(2^b)`, the coefficient table a verifier
-    /// builds. The `C_k` are distinct monomials, of top degree [`RING_SWITCH_SOUNDNESS_DEGREE`].
+    /// The two-stage evaluation against the expanded form `sum_k C_k·v^(2^k)` with
+    /// `C_{8p+b} = f_p·g_b^(2^(8p))`, the coefficient table a verifier builds.
     #[test]
     fn map_expands_to_its_coefficients() {
-        assert_eq!(
-            (0..PACKING_WIDTH).map(|k| 1 + (1 << (k % 8))).max(),
-            Some(RING_SWITCH_SOUNDNESS_DEGREE)
-        );
         let mut rng = Rng::new(0x1234_5678_9abc_def0);
         for _ in 0..4 {
             let challenges: [F128; MAP_CHALLENGES] = std::array::from_fn(|_| rng.ext());
             let (f, g) = challenges.split_at(MAP_CHALLENGES / 2);
             let coefficients: [F128; PACKING_WIDTH] = std::array::from_fn(|k| {
-                let mut f_a = f[k / 8];
-                for _ in 0..k % 8 {
-                    f_a = f_a.square();
+                let mut g_b = g[k % 8];
+                for _ in 0..8 * (k / 8) {
+                    g_b = g_b.square();
                 }
-                g[k % 8] * f_a
+                f[k / 8] * g_b
             });
             let value = rng.ext();
             let mut expanded = F128::ZERO;

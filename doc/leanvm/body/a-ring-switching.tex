@@ -103,27 +103,29 @@ We need a random $\Phi$ of support $\{0,\dots,63\}$, cheap to apply. Instead of 
 
 Draw $f_0,\dots,f_7,g_0,\dots,g_7\leftarrow\E$, in this order, once the $s_i$ are fixed, and put, for $a\in\E$,
 \begin{equation}
-\Psi(a)=\sum_{p<8}f_p\,a^{2^{8p}},
+\Psi(a)=\sum_{b<8}g_b\,a^{2^b},
 \qquad
-\Phi(a)=\sum_{b<8}g_b\,\Psi(a)^{2^b}.
+\Phi(a)=\sum_{p<8}f_p\,\Psi(a)^{2^{8p}}.
 \label{eq:phi}
 \end{equation}
-Both stages are $\F_2$-linear, so $\Phi$ is. Squaring is additive, so $\Psi(a)^{2^b}=\sum_pf_p^{2^b}a^{2^{8p+b}}$, and with $k=8p+b$ the composition expands to
+Both stages are $\F_2$-linear, so $\Phi$ is. Squaring is additive, so $\Psi(a)^{2^{8p}}=\sum_bg_b^{2^{8p}}a^{2^{8p+b}}$, and with $k=8p+b$ the composition expands to
 \begin{equation}
 \Phi(a)=\sum_{k=0}^{63}c_k\,a^{2^k},
 \qquad
-c_{8p+b}=g_b\,f_p^{\,2^b}\qquad(p,b<8).
+c_{8p+b}=f_p\,g_b^{\,2^{8p}}\qquad(p,b<8).
 \label{eq:ck}
 \end{equation}
-Each $k$ from $0$ to $63$ occurs exactly once, and the monomial $g_bf_p^{2^b}$ names its pair $(p,b)$ by its two variables, so the $c_k$ are $64$ distinct monomials in the sixteen challenges, one for every Frobenius power the previous section requires.
+Each $k$ from $0$ to $63$ occurs exactly once, one term for every Frobenius power the previous section requires.
 
-\paragraph{Soundness.} Fix a nonzero error before the challenges are drawn. The previous section gives some $\pair_k\neq0$, and distinct monomials cannot cancel, so
+\paragraph{Soundness.} Fix a nonzero error before the challenges are drawn. The previous section gives some $\pair_{8p+b}\neq0$. Group the check by $p$, writing $a^{2^{-8p}}$ for the inverse of the Frobenius $a\mapsto a^{2^{8p}}$, a bijection of $\E$:
 \[
-\sum_{k=0}^{63}c_k\,\pair_k
+\sum_{k=0}^{63}c_k\,\pair_k=\sum_{p<8}f_p\,M_p,
+\qquad
+M_p=\sum_{b<8}g_b^{\,2^{8p}}\,\pair_{8p+b}=\Bigl(\sum_{b<8}g_b\,\pair_{8p+b}^{\,2^{-8p}}\Bigr)^{2^{8p}}.
 \]
-is a nonzero polynomial in $f_0,\dots,f_7,g_0,\dots,g_7$. Its total degree is at most the largest degree of a $c_k$, $1+2^7=129$, reached at $b=7$, so by Schwartz-Zippel (Lemma~\ref{lem:sz}) the check passes with probability at most $129/|\E|$ for one committed polynomial. Against the list a commitment binds (Annex~\ref{annex:pcs}), a union bound pays this once per member; the protocol draws the sixteen challenges with the opening's batching challenge, after one grind of $\grind{batch}$ bits that brings the whole row to $2^{-123}$ (\S\ref{sec:soundness-outer}).
+For that $p$ the inner sum is a nonzero linear form in $g_0,\dots,g_7$, so $M_p=0$ with probability $1/|\E|$; when $M_p\neq0$, the outer sum is a nonzero linear form in $f_0,\dots,f_7$, drawn independently, and vanishes with probability $1/|\E|$. The check passes with probability at most $2/|\E|$ for one committed polynomial. That the $c_k$ reach degree $2^{56}$ in the $g_b$ does not matter: each stage is linear in its own challenges, and the Frobenius only permutes $\E$. Against the list a commitment binds (Annex~\ref{annex:pcs}), a union bound pays this once per member; the protocol draws the sixteen challenges with the opening's batching challenge, after one grind of $\grind{batch}$ bits that brings the whole row to $2^{-123}$ (\S\ref{sec:soundness-outer}).
 
-One stage of sixty-four terms would take sixty-four challenges. Six two-term stages, as in \cite{Flock26}, take six but reach degree near $2^{32}$, too high for $|\E|=2^{128}$. Two stages of eight take sixteen, for degree $129$.
+One stage of sixty-four terms would take sixty-four challenges; two stages of eight take sixteen, and putting the large Frobenius powers outside lets the target share them across the $64$ slices (\S\ref{rs:cost}).
 
 \subsection{Evaluating the weight}\label{rs:weight}
 
@@ -153,20 +155,24 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 
 \subsection{Cost}\label{rs:cost}
 
-One application of $\Phi$ takes $63$ squarings and $16$ multiplications: the powers $a^{2^{8p}}$, $p<8$, are $56$ squarings, $\Psi$ is $8$ multiplications, the powers $\Psi(a)^{2^b}$, $b<8$, are $7$ squarings, and $\Phi$ is $8$ more multiplications. The coefficients of \eqref{eq:ck} take $7$ squarings per $f_p$ and one multiplication per $c_k$.
+The target need not apply $\Phi$ to each slice. Put $z_p=x^{2^{-8p}}$, a constant of $\K$, equal to $x^{2^{64-8p}}$ since the Frobenius of $\K$ has order $64$. Then $x^i\,\Psi(a)^{2^{8p}}=\bigl(z_p^i\,\Psi(a)\bigr)^{2^{8p}}$, and
+\[
+T=\sum_{i=0}^{63}x^i\,\Phi(s_i)=\sum_{p<8}f_p\Bigl(\sum_{i=0}^{63}z_p^i\,\Psi(s_i)\Bigr)^{2^{8p}}.
+\]
+One application of $\Psi$ takes $7$ squarings and $8$ multiplications. The verifier applies it to each slice, takes the eight inner sums by Horner in $z_p$, raises the $p$-th to $2^{8p}$, $224$ squarings in all, and multiplies by $f_p$. The coefficients of \eqref{eq:ck} take $56$ squarings per $g_b$ and one multiplication per $c_k$.
 
 \begin{center}
 \begin{tabular}{lrr}
 & squarings & multiplications\\[2pt]
 \hline
-one application of $\Phi$ & $63$ & $16$\\
-the target $T$, $64$ applications & $4032$ & $1024$\\
-the coefficients $c_k$, once & $56$ & $64$\\
+one application of $\Psi$ & $7$ & $8$\\
+the target $T$, $64$ applications and $8$ sums & $672$ & $520$\\
+the coefficients $c_k$, once & $448$ & $64$\\
 the weight $\mle{W}(r')$ & $63\nkeccak$ & $64\nkeccak$\\
 \end{tabular}
 \end{center}
 
-Everything above is in $\E$. The $64$ products $x^i\,\Phi(s_i)$ in the target are left out: $x^i$ lies in $\K$, so they are cheaper, and stepping $x^i$ to $x^{i+1}$ is a shift.
+Everything above is in $\E$. The $504$ Horner steps in the target are left out: each multiplies by a constant $z_p$ of $\K$, which is cheaper.
 
 \subsection{Credits}\label{rs:credits}
 
