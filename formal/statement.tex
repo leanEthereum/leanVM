@@ -253,8 +253,8 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
+\delta(f) = Q_f\,(1-2^{-25})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
+Q_f = 13263 + 53036\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
