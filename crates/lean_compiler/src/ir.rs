@@ -113,10 +113,11 @@ pub(crate) enum Hint {
     },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint frame for `callee`.
     AllocFrame { ptr: Off, callee: String },
-    /// `AllocFrame` sized to the **largest** of several callees, a shared frame
-    /// for a dispatched call (all `callees` share the arg/return layout; only
-    /// their local count, hence frame size, differs). See `FnLower::lower_dispatched_call`.
-    AllocFrameMax { ptr: Off, callees: Vec<String> },
+    /// The shared frame of a dispatched call (all `callees` share the arg/return
+    /// layout; only their local count, hence frame size, differs), sized to the
+    /// callee the dispatch on `m[fp·g^sel] = g^j` enters, `callees[j]`. See
+    /// `FnLower::lower_dispatched_call`.
+    AllocFrameArm { ptr: Off, sel: Off, callees: Vec<String> },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint heap region of `size`
     /// cells (a `HeapBuf(size)`), addressed by g-power offsets from the pointer.
     AllocBuffer { ptr: Off, size: u32 },

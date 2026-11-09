@@ -237,6 +237,10 @@ pub enum RHint {
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` of a dispatched call's shared frame: `sizes[j]` cells for the arm
+    /// `m[fp+sel] = g^j` enters, the largest when `sel` names no arm yet. Only the
+    /// layout depends on it: the frame pointer is prover-chosen whatever its size.
+    AllocArm { ptr: Off, sel: Off, sizes: Box<[u32]> },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
     WitnessStack { name: String, base: Off, len: u32 },
     /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.

@@ -570,6 +570,7 @@ impl Program {
                         RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
                         RHint::AllocDyn { .. } => "AllocDyn",
+                        RHint::AllocArm { .. } => "AllocArm",
                         RHint::WitnessStack { .. } => "WitnessStack",
                         RHint::WitnessHeap { .. } => "WitnessHeap",
                         RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -587,10 +588,27 @@ impl Program {
                         }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // reads the size from a cell at runtime.
-                        RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                        // reads the size from a cell at runtime, `AllocArm` picks it
+                        // by the arm a dispatch's scrutinee selects.
+                        RHint::Alloc { .. }
+                        | RHint::AllocDyn { .. }
+                        | RHint::AllocFrames { .. }
+                        | RHint::AllocArm { .. } => {
                             let (ptr, size) = match *h {
                                 RHint::Alloc { ptr, size } => (ptr, size),
+                                RHint::AllocArm { ptr, sel, ref sizes } => {
+                                    let c = fp + sel;
+                                    let arm = m
+                                        .written(c)
+                                        .then(|| m.get(c))
+                                        .and_then(|v| v.as_base())
+                                        .and_then(|x| g.log(x));
+                                    let max = || *sizes.iter().max().unwrap();
+                                    (
+                                        ptr,
+                                        arm.and_then(|j| sizes.get(j as usize).copied()).unwrap_or_else(max),
+                                    )
+                                }
                                 RHint::AllocFrames {
                                     ptr,
                                     size,

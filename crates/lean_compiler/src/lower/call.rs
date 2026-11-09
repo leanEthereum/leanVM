@@ -282,8 +282,9 @@ impl FnLower<'_> {
         let one = self.one();
 
         let nfp = self.fresh();
-        self.pending.push(Hint::AllocFrameMax {
+        self.pending.push(Hint::AllocFrameArm {
             ptr: nfp,
+            sel: xo,
             callees: callees.to_vec(),
         });
         for (i, &ao) in arg_offs.iter().enumerate() {
