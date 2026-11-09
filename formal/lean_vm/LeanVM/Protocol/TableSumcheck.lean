@@ -438,18 +438,14 @@ theorem tableSummand_degree (hd : I.d ≤ 2) (ctx : SumcheckRound.Ctx (Data I) (
 
 /-- The nodes are distinct. -/
 theorem nodes_injective : Function.Injective nodes := by
-  have y0 : y ≠ 0 := fun h ↦ by
-    have h3 := y_pow_three
-    rw [h] at h3
-    simp at h3
-  have y1 : y ≠ 1 := fun h ↦ by
-    have h3 := y_pow_three
-    rw [h] at h3
-    simp at h3
-  have y10 : y + 1 ≠ 0 := fun h ↦ by
-    have h3 := y_pow_three
-    rw [h] at h3
-    exact y0 (pow_eq_zero_iff (by norm_num) |>.mp h3)
+  have hy : ∀ a : K, y ≠ ofK a := fun a h ↦ by
+    have h1 : Ext.coeff (Ext.gen : E) ⟨1, eParams.two_le⟩ =
+        Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := congrArg (fun z : E ↦ Ext.coeff z _) h
+    rw [Ext.coeff_gen, Ext.coeff_ofBase] at h1
+    simp at h1
+  have y0 : y ≠ 0 := by simpa using hy 0
+  have y1 : y ≠ 1 := by simpa using hy 1
+  have y10 : y + 1 ≠ 0 := fun h ↦ y1 ((add_eq_zero_iff_eq_neg.mp h).trans (CharTwo.neg_eq 1))
   have y11 : y + 1 ≠ 1 := fun h ↦ y0 (add_eq_right.mp h)
   have y1y : y + 1 ≠ y := fun h ↦ one_ne_zero (add_eq_left.mp h)
   intro i j h

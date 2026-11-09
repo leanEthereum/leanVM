@@ -84,28 +84,19 @@ theorem digestBytes_injective : Function.Injective digestBytes := by
 
 /-- Decoding the encoding of a digest gives the digest back. -/
 theorem digestOfScalars_digestScalars (d : Digest) :
-    digestFromHalves (digestHalves d) = some d := by
+    digestFromHalves (digestHalves d) = d := by
   obtain ⟨⟨l⟩, hl⟩ := d
   match l, hl with
-  | [_, _, _, _], _ => simp [digestFromHalves, digestHalves, IsCanonical128, limb_ofLimbs]
+  | [_, _, _, _], _ => simp [digestFromHalves, digestHalves, limb_ofLimbs]
 
 /-- Encoding a decoded pair gives the pair back: the encoding is a bijection between digests and
-pairs of canonical cells. -/
+pairs of `E` words. -/
 theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
-    (h : digestFromHalves s = some d) : digestHalves d = s := by
+    (h : digestFromHalves s = d) : digestHalves d = s := by
+  subst h
   obtain ⟨a, b⟩ := s
-  unfold digestFromHalves at h
-  split at h
-  · rename_i hc
-    have ha : a.limb 2 = 0 := hc.1
-    have hb : b.limb 2 = 0 := hc.2
-    rw [Option.some.injEq] at h
-    subst h
-    simp only [digestHalves, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
-      List.getElem_cons_succ, K.ofLane_lane, Prod.mk.injEq]
-    exact ⟨E.ext fun i ↦ by fin_cases i <;> simp [limb_ofLimbs, ha],
-      E.ext fun i ↦ by fin_cases i <;> simp [limb_ofLimbs, hb]⟩
-  · exact absurd h (by simp)
+  simp only [digestFromHalves, digestHalves, Vector.getElem_mk, List.getElem_toArray,
+    List.getElem_cons_zero, List.getElem_cons_succ, K.ofLane_lane, ofLimbs_limb]
 
 end KeccakHash
 
