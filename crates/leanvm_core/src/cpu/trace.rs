@@ -91,10 +91,6 @@ impl<T> Rows<T> {
     pub(crate) fn get(&self, i: usize) -> &T {
         &self.chunks[i >> CHUNK_LOG][i & (CHUNK - 1)]
     }
-
-    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
-        self.chunks.iter().flatten()
-    }
 }
 
 pub(crate) struct Trace {
