@@ -7,17 +7,21 @@ public import Statement.Prover.Mle
 # Ring switching and the WHIR opening
 
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
-`crates/verifier/src/ring_switch.rs:40-54`, with `ring_map` and `ring_weight`, `:12-34`) and of the
-stacked opening (`verifyStackedOpening`: `verify_stacked_opening`,
-`crates/verifier/src/lib.rs:124-139`, then `verify_whir`, `crates/verifier/src/whir.rs:142-265`), at
-leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9`, on arrays.
+`crates/verifier/src/ring_switch.rs:70-87`) and of the stacked opening (`verifyStackedOpening`:
+`verify_stacked_opening`, `crates/verifier/src/lib.rs:135-156`, then `verify_whir`,
+`crates/verifier/src/whir.rs:222-345`), the prover's side being `recursive_prover_with_prepared_basis`
+(`crates/pcs/src/whir.rs:783-1000`) at leanVM `f128`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built
 by scatter, a column claim's equality kernel on its block of the stack and the ring claim's `Φ` of
-the equality kernel on `q_keccak`'s block (`basisTableA`). The stack and weight tables are folded
-in place round by round; a level's word is the additive NTT of its lanes (`levelWordFast`), and its
-query table the queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTableA`).
+the equality kernel on `q_keccak`'s block (`basisTableA`). The lanes are tables of novel-basis
+coefficients, coefficient `c` of lane `l` at `c·stride + l` (the Rust's `Dense`): a fold round
+sends the table of the premixed half `H` and of `X H` against the weight (`mulXA`, `roundTableA`)
+and folds the lanes to `G + α H + β X H`, one coefficient longer, and the weight by `γ`. A level's
+word is the additive NTT of the folded lane's low part (`levelWordFast`), its query table the
+queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTableA`). The prover's messages do not
+depend on the running claim, which it does not track.
 -/
 
 @[expose] public section
@@ -81,7 +85,7 @@ def RingOut.claim (r : RingOut) (layout : Layout) : ClaimDesc :=
 
 /-! ## Tables -/
 
-/-- The constant coefficient `Σ_x W(0,x)·g(0,x)` of the round polynomial (`roundC0`). -/
+/-- The constant coefficient `Σ_x W(0,x)·g(0,x)` of a tail round's polynomial (`roundC0`). -/
 def roundC0A (W g : Array E) : E :=
   sumRange (min W.size g.size / 2) fun x ↦ W.getD (2 * x) 0 * g.getD (2 * x) 0
 
@@ -171,41 +175,90 @@ def stackTableA (μ : ℕ) (stack : Array K) : Array E :=
   Array.ofFn (n := 2 ^ μ) fun i ↦
     ofK (stack.getD (i.val / 2 ^ 6 + 2 ^ (μ - 6) * (i.val % 2 ^ 6)) 0)
 
-/-! ## The rounds -/
+/-! ## Multiplication by `X` in the novel basis -/
 
-/-- Send the round polynomial of `(W, g)` (its constant and quadratic coefficients) and return
-the quadratic the verifier builds from them for the claim `claim` (`roundQuad`). -/
-def roundA (claim : E) (W g : Array E) : Script (List E) := do
-  let c0 := roundC0A W g
-  let c2 := roundC2A W g
-  Script.sendE c0
-  Script.sendList [c2]
-  return [c0, claim + sumE [c2], c2]
+/-- `W_t(β_t)`, `t < 64`: the normalizer of `Ŵ_t` (`eval_sk_at_vks`,
+`crates/pcs/src/whir_induce.rs`). -/
+def subspaceRoot (t : ℕ) : K := (vanRow t).getD t 0
 
-/-- A level's fold rounds: receive the challenge, fold both tables in place, send the next round
-polynomial. -/
-def foldRoundsA : ℕ → WhirState → List E → Array E → Array E →
-    Script (WhirState × List E × Array E × Array E)
-  | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
-  | n + 1, s, levelFolds, W, g => do
-    let challenge ← Script.sampleE
-    let W' := foldPairsA challenge W
-    let g' := foldPairsA challenge g
-    let quad ← roundA (polyEval s.runningQuad challenge) W' g'
-    foldRoundsA n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds ++
-        [challenge]) W' g'
+/-- `A_t = a_0 ⋯ a_(t-1)`, `a_i = W_(i+1)(β_(i+1)) / W_i(β_i)^2`, for `t < 64`: `X_c` times `X` has the
+coefficient `A_t` on the two basis elements it reaches, `t` the trailing zeros of `c`
+(`constants`, `crates/pcs/src/xmul.rs:53-64`). -/
+def xmulConsts : Array K :=
+  (List.range 63).foldl (fun a t ↦
+    a.push (a.getD t 1 * subspaceRoot (t + 1) * (subspaceRoot t * subspaceRoot t)⁻¹)) #[1]
 
-/-- The final level's tail rounds. -/
-def tailRoundsA : ℕ → List E → Array E → Array E → Script Unit
-  | 0, _, _, _ => return ()
-  | n + 1, quad, W, g => do
-    let challenge ← Script.sampleE
-    if n = 0 then return ()
-    else do
-      let W' := foldPairsA challenge W
-      let g' := foldPairsA challenge g
-      let quad ← roundA (polyEval quad challenge) W' g'
-      tailRoundsA n quad W' g'
+/-- The trailing zeros of `c ≥ 1`: `c xor (c - 1) = 2^(t+1) - 1`. -/
+def trailingZeros (c : ℕ) : ℕ := Nat.log2 (c ^^^ (c - 1))
+
+/-- **`X` times every lane** of a table of `stride` lanes, coefficient `c` of lane `l` at
+`c·stride + l`, one coefficient longer: `(X h)[0] = 0`,
+`(X h)[c] = A_t (h[c - 1] + h[c + 2^t - 1])`, `t` the trailing zeros of `c`, zero past `h`
+(`mul_x`, `crates/pcs/src/xmul.rs:73-94`; Annex D, Lemma `lem:mulx`). -/
+def mulXA (h : Array E) (stride : ℕ) : Array E :=
+  Array.ofFn (n := (h.size / stride + 1) * stride) fun i ↦
+    let c := i.val / stride
+    let l := i.val % stride
+    if c = 0 then 0
+    else
+      let t := trailingZeros c
+      ofK (xmulConsts.getD t 0) * (h.getD ((c - 1) * stride + l) 0 +
+        h.getD ((c + 2 ^ t - 1) * stride + l) 0)
+
+/-! ## The fold rounds -/
+
+/-- `Σ_i a_i b_i` over the shorter array. -/
+def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
+
+/-- The premixed half `H = F + θ G` of a table `f` of `s` lanes, coefficient by coefficient
+(`Dense::table`, `crates/pcs/src/whir.rs:605-651`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+def premixA (f : Array E) (s : ℕ) (θ : E) : Array E :=
+  Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
+    let c := i.val / (s / 2)
+    let m := i.val % (s / 2)
+    f.getD (c * s + 2 * m) 0 + θ * f.getD (c * s + 2 * m + 1) 0
+
+/-- **A fold round's table** `[u₀, v₀, c₀, v₁, c₁] = [⟨W₀, G⟩, ⟨W₀, H⟩, ⟨W₀, XH⟩, ⟨W₁, H⟩, ⟨W₁, XH⟩]`
+over the low coefficients the weight `w` covers, from the halves' table `f`, `H` and `XH`. -/
+def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
+  let n := w.size / s * (s / 2)
+  let at_ := fun i ↦ (i / (s / 2)) * s + 2 * (i % (s / 2))
+  [sumRange n fun i ↦ w.getD (at_ i) 0 * f.getD (at_ i + 1) 0,
+   sumRange n fun i ↦ w.getD (at_ i) 0 * H.getD i 0,
+   sumRange n fun i ↦ w.getD (at_ i) 0 * XH.getD i 0,
+   sumRange n fun i ↦ w.getD (at_ i + 1) 0 * H.getD i 0,
+   sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
+
+/-- The folded lanes `P = G + α H + β X H`, one coefficient longer (`Dense::fold`,
+`crates/pcs/src/whir.rs:653-700`). -/
+def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
+  Array.ofFn (n := XH.size) fun i ↦
+    let c := i.val / (s / 2)
+    let m := i.val % (s / 2)
+    f.getD (c * s + 2 * m + 1) 0 + α * H.getD i.val 0 + β * XH.getD i.val 0
+
+/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:554-571`): a grind and `θ`, the table,
+a grind and `(γ, α, β)`; the folded lanes and the weight folded by `γ`. -/
+def foldRoundA (f w : Array E) (s : ℕ) : Script (Array E × Array E) := do
+  Script.grindBits Whir.foldGrindingBits
+  let θ ← Script.sampleE
+  let H := premixA f s θ
+  let XH := mulXA H (s / 2)
+  Script.sendList (roundTableA f w s H XH)
+  Script.grindBits Whir.foldGrindingBits
+  let γ ← Script.sampleE
+  let α ← Script.sampleE
+  let β ← Script.sampleE
+  return (foldLanesA f s H XH α β, foldPairsA γ w)
+
+/-- A level's fold rounds, the lanes halving each round. -/
+def foldRoundsA : ℕ → ℕ → Array E → Array E → Script (Array E × Array E)
+  | 0, _, f, w => return (f, w)
+  | n + 1, s, f, w => do
+    let (f, w) ← foldRoundA f w s
+    foldRoundsA n (s / 2) f w
+
+/-! ## The levels -/
 
 /-- The query positions (`sampleQueriesAux`), received as the verifier samples them. -/
 def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
@@ -214,61 +267,63 @@ def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
     if remaining = 0 then return []
     else do
       let bits := eToNat (← Script.sampleE)
-      let n := min (192 / depth) remaining
+      let n := min (128 / depth) remaining
       let chunk := (List.range n).map fun c ↦ (bits >>> (c * depth)) % 2 ^ depth
       let rest ← sampleQueriesS depth fuel (remaining - n)
       return chunk ++ rest
 
-/-- **The WHIR levels** from the level `index`, the verifier's state `s`, the weight table `W` and
-the folded stack `g`. -/
-def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → Array E → Script Unit
-  | _, [], _, _, _ => return ()
-  | index, level :: rest, s, W, g => do
-    let (s, levelFolds, W, g) ← foldRoundsA level.fold s [] W g
-    let messageLog := μ - s.folds.length
-    let (residual, pending, tables) ← match rest with
-      | [] => do
-        Script.sendList g.toList
-        pure (g, ([] : List (List E × (List E → E))), ([] : List (Array E)))
-      | next :: _ => do
-        Script.commitS (levelWordFast (messageLog - next.fold) next.fold next.logInvRate g)
-        let oodPoint ← Script.sampleN messageLog
-        let oodValue := mleA g oodPoint
-        Script.sendE oodValue
-        let T := eqTable oodPoint
-        let quad ← roundA oodValue T g
-        pure (#[], [(quad, fun x ↦ eqEval oodPoint x)], [T])
-    Script.grindS
-    let queries ← sampleQueriesS (messageLog + level.logInvRate) level.queries level.queries
-    let lam ← Script.sampleE
-    let queryWeights := powers lam queries.length
-    let words ← Script.queryS
-    let rows : List (List E) :=
-      if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
-    let enforced := enforcedSum rows levelFolds queryWeights
-    let T := queryTableA messageLog queries queryWeights
-    let quad ← roundA enforced T g
-    let pending := pending ++ [(quad, fun x ↦ inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
-    let W := glueTablesA lam W (tables ++ [T])
+/-- The tail sumcheck on the final level's low part: per round the constant and quadratic
+coefficients, then the challenge, both tables folded (`tail_sumcheck`,
+`crates/pcs/src/whir.rs:749-767`). -/
+def tailA (mu : ℕ) (w g : Array E) : Script Unit :=
+  (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
+    (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate mu none) (w, g)).bind
+    fun _ ↦ .ret ()
+
+/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:783-1000`)
+from a level whose lanes and weight are the tables `f` and `w`, `mu` the variables before its
+folds: its fold rounds; then on the final level the folded lane, the queries and the tail; on
+another the next level's commitment to the folded lane's low part, its high part, the two
+out-of-domain points and values, the queries, `λ`, the openings, and the claims glued into the
+weight. -/
+def levelsA : ℕ → List Whir.Level → Array E → Array E → Script Unit
+  | _, [], _, _ => return ()
+  | mu, level :: rest, f, w => do
+    let (p, w) ← foldRoundsA level.fold (2 ^ level.fold) f w
+    let mu := mu - level.fold
+    let depth := mu + level.logInvRate
     match rest with
-    | [] => tailRoundsA messageLog s.runningQuad W residual
-    | _ :: _ => levelsA μ (index + 1) rest s W g
+    | [] => do
+      Script.sendList p.toList
+      Script.grindBits Whir.queryGrindingBits
+      let _ ← sampleQueriesS depth level.queries level.queries
+      let _ ← Script.queryS
+      tailA mu w (p.extract 0 (2 ^ mu))
+    | next :: _ => do
+      let low := p.extract 0 (2 ^ mu)
+      Script.commitS (levelWordFast (mu - next.fold) next.fold next.logInvRate low)
+      Script.sendList (p.extract (2 ^ mu) p.size).toList
+      let z₁ ← Script.sampleN mu
+      let z₂ ← Script.sampleN mu
+      let e₁ := eqTable z₁
+      let e₂ := eqTable z₂
+      Script.sendList [dotA low e₁, dotA low e₂]
+      Script.grindBits Whir.queryGrindingBits
+      let queries ← sampleQueriesS depth level.queries level.queries
+      Script.grindBits Whir.batchGrindingBits
+      let lam ← Script.sampleE
+      let _ ← Script.queryS
+      levelsA mu rest low (glueTablesA lam w [e₁, e₂, queryTableA mu queries (powers lam queries.length)])
 
 /-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):
-receive the batching challenge, then run the levels from the starting claim with the stack table
-and the weight table of the claims. -/
+receive the batching challenge, then run the levels from the stack table and the weight table of
+the claims. -/
 def openingFast (μ R : ℕ) (stack : Array K) (claims : List ClaimDesc) : Script Unit := do
   let c ← Script.sampleE
   let scales := powers c claims.length
   match Whir.ladder μ R with
   | none => return ()
-  | some config =>
-    let f₀ := stackTableA μ stack
-    let W₀ := basisTableA μ scales claims
-    let target := dot scales (claims.map fun d ↦ d.denote.2)
-    let quad ← roundA target W₀ f₀
-    levelsA μ 0 config ⟨quad, [], []⟩ W₀ f₀
+  | some config => levelsA μ config (stackTableA μ stack) (basisTableA μ scales claims)
 
 end LeanVM.Prover
 
