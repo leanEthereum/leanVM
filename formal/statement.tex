@@ -210,7 +210,11 @@ of siblings, in the order the verifier samples the queries. The verifier opens a
 (\lean{openPhase}, \texttt{Transcript::merkle}) in the Rust's order: it rejects unless every leaf is
 the commitment's width and every path its height (the shape), then unless the phase's positions are
 the queries it sampled, in order (the positions), then unless each path climbs to the committed
-root.
+root. A proof of work of $b$ bits (\lean{grindingBits}, round by round for a $2^{-125}$ error per
+verifier message) reads a nonce from the stream, absorbs it with its own tag and permutes at once:
+the third lane of that permutation must have its low $b$ bits zero, and its first two lanes are the
+next challenge; nothing is absorbed while that challenge waits, and a grind of zero bits is no step
+at all (\lean{run}, \texttt{Transcript::grind\_check}).
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
 (\lean{knowledgeSoundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and
@@ -506,8 +510,9 @@ some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_eth
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
-except that, instead of evaluating $\widehat{B}$ at the point it reaches, it outputs that evaluation
-as the claim $f_i$. It runs on the real Keccak-256 and Keccak-f[1600], the ones the guest program
+except that, where the proof claims a value of $\widehat{B}$ at the point its bytecode sumcheck
+reaches, it does not evaluate $\widehat{B}$ there but requires that point and value to be the claim
+$f_i$ (\lean{claimedBytecodeValue}). It runs on the real Keccak-256 and Keccak-f[1600], the ones the guest program
 computes.
 \item The deferred claim batches the children's (\lean{DeferredClaimBatched}). With no children, its
 point is all-zero (its value is left to the outer verifier); otherwise $\mathrm{batch}\big(
@@ -680,8 +685,9 @@ a sumcheck round's challenge. For $G$'s $16$ children, $M = 17$.
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 
 They speak about one node. A claim the root holds through a child carries no knowledge by itself:
-the deferring verifier reads the bytecode only through its length and takes the bytecode's value at
-the child's point from the witness (the fresh claim $f_i$), which no end statement requires true, so
+the deferring verifier reads the bytecode only through its length and holds the bytecode's value
+the proof claims at the child's point to the witness (the fresh claim $f_i$), which no end statement
+requires true, so
 a proof of any program of $G$'s length, under the node's seed, makes a child of any statement. A
 child's claims mean something only once its fresh claim is true. That needs the root's deferred
 claim recomputed, as the outer verifier does (\lean{AggregateSound} assumes it), and the batching
