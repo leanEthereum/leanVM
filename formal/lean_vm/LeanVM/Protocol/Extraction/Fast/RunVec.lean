@@ -64,7 +64,7 @@ theorem layoutLite_stackLog (layout : Verifier.Layout) :
     MemoryImage layout.logMemory :=
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
-    E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+    E.ofLimbs (limb memory0) (limb memory1)
 
 theorem memoryImageLite_layoutLite (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     memoryImageLite (layoutLite layout) q = memoryImage layout q :=
@@ -79,13 +79,12 @@ theorem stepCapLite_layoutLite (layout : Verifier.Layout) :
   rfl
 
 /-- **The memory image of a stack, as a vector**: `memoryImageLite`, the offsets of the placements
-of `MEMORY_0`, `MEMORY_1`, `MEMORY_2` computed once. -/
+of `MEMORY_0`, `MEMORY_1` computed once. -/
 @[expose] def memoryVec (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     Vector E (2 ^ layout.logMemory) :=
   let o₀ := (layout.placement memory0).index
   let o₁ := (layout.placement memory1).index
-  let o₂ := (layout.placement memory2).index
-  Vector.ofFn fun i ↦ E.ofLimbs (q.getD (o₀ + i) 0) (q.getD (o₁ + i) 0) (q.getD (o₂ + i) 0)
+  Vector.ofFn fun i ↦ E.ofLimbs (q.getD (o₀ + i) 0) (q.getD (o₁ + i) 0)
 
 theorem memoryVec_get (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ))
     (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImageLite layout q i := by
