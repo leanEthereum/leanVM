@@ -104,21 +104,6 @@ To prove that a polynomial $P$ vanishes on $\cube{\kappa}$, the verifier samples
 By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ to the boolean hypercube: the zero polynomial if $P$ vanishes there, and otherwise a nonzero multilinear, which a random $r$ sends to $0$ with probability at most $\kappa/|\E|$ (Lemma~\ref{lem:sz}).
 \end{definition}
 
-\begin{lemma}[Partially fixed zerocheck~\cite{DT24}]\label{lem:fixed-zerocheck}
-Let $g:\cube{\ell}\times\cube{\kappa}\to\Ftwo$ be a nonzero Boolean multilinear. Fix $a\in\E^{\ell}$ such that the values $\{\eq(a,b):b\in\cube{\ell}\}$ are linearly independent over $\Ftwo$. If $r\leftarrow\E^{\kappa}$ is sampled uniformly after $g$ is fixed, then
-\[
-  \Pr_r\bigl[\mle{g}(a,r)=0\bigr]\leq\frac{\kappa}{|\E|}.
-\]
-\end{lemma}
-
-\begin{proof}
-Partially evaluate the first $\ell$ variables at $a$. By Fact~\ref{fact:eq}, the resulting multilinear $h:\cube{\kappa}\to\E$ has values
-\[
-  h(x)=\mle{g}(a,x)=\sum_{b\in\cube{\ell}}g(b,x)\eq(a,b).
-\]
-Because $g$ is nonzero, there is some $x\in\cube{\kappa}$ for which the coefficients $\{g(b,x):b\in\cube{\ell}\}$ are not all zero. These coefficients lie in $\Ftwo$, so the assumed $\Ftwo$-linear independence of the values $\eq(a,b)$ gives $h(x)\neq0$. Thus $h$ is a nonzero multilinear. Its extension satisfies $\mle{h}(r)=\mle{g}(a,r)$, and Lemma~\ref{lem:sz} gives the claimed probability bound.
-\end{proof}
-
 \paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq\rc{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}
