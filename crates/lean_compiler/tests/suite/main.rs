@@ -11,6 +11,7 @@ mod field_div;
 mod field_towers;
 mod hint_log2_ceil;
 mod inline_expr;
+mod inline_returns;
 mod loop_frames;
 mod miscompiles;
 mod pack64x2;
