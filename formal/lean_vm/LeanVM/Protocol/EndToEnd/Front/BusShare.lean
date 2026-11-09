@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.BusSpec
+public import LeanVM.Protocol.EndToEnd.Front.BusGkr
 public import LeanVM.Protocol.EndToEnd.Front.EqKernel
 public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 public import LeanVM.Protocol.ToArkLib.Sumcheck
@@ -47,7 +47,7 @@ open scoped NNReal ENNReal
 
 /-! ## A frame rule -/
 
-namespace Spec
+section Frame
 
 variable {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {Post : α → List Ev → Prop}
   {εmax L T : ENNReal}
@@ -55,8 +55,8 @@ variable {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {Post : �
 open Classical in
 /-- **The frame rule**: a property `Q` of the history before `p`, kept by every later event,
 holds wherever `p` returns. -/
-noncomputable def frame (S : Spec p Pre Post εmax L T) (Q : List Ev → Prop)
-    (hQ : ∀ h l, Q h → Q (h ++ l)) :
+noncomputable def _root_.LeanVM.Protocol.Compile.Spec.frame (S : Spec p Pre Post εmax L T)
+    (Q : List Ev → Prop) (hQ : ∀ h l, Q h → Q (h ++ l)) :
     Spec p (fun h ↦ Q h ∧ Pre h) (fun a h ↦ Q h ∧ Post a h) εmax L T where
   D h₀ l := Q h₀ ∧ S.D h₀ l
   V h₀ l := if Q h₀ then S.V h₀ l else 1
@@ -91,7 +91,7 @@ noncomputable def frame (S : Spec p Pre Post εmax L T) (Q : List Ev → Prop)
   post hl ha hD := ⟨hQ _ _ hD.1, S.post hl ha hD.2⟩
   bound hl hne hm hD := by simp only [hD.1, ↓reduceIte]; exact S.bound hl hne hm hD.2
 
-end Spec
+end Frame
 
 /-! ## Reversing the cube -/
 
@@ -263,6 +263,128 @@ theorem shareWeights (x : ShareX) (k : ℕ) (hk : k < (List.replicate 4 (none : 
   have hk' : k < 4 := by simpa using hk
   simp only [shareFamily, Sumcheck.family, Sumcheck.domain, zero_add, hk', ↓reduceDIte,
     Sumcheck.unitWeights, List.getElem_replicate, wireDomain]
+
+/-! ## The wire's values -/
+
+/-- The slot weights' extension at the slot point is the program's `dot(eq_kernel(slot), w)`. -/
+theorem dot_eqKernel_eq_evalMle {weights slot : List E} (hw : weights.length = 16)
+    (hs : slot.length = 4) :
+    dot (eqKernel slot) weights = evalMle (vecOf (2 ^ 4) weights) (vecOf 4 slot) := by
+  rw [Whir.Complete.dot_eq_sum _ _ (by rw [Whir.Complete.length_eqKernel, hs, hw]; rfl),
+    Whir.Complete.length_eqKernel, hs, evalMle_eq_sum, ← Fin.sum_univ_eq_sum_range]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  rw [mul_comm]
+  congr 1
+  · simp [vecOf]
+  · rw [show (vecOf 4 slot : Vector E 4) = Vector.ofFn fun j : Fin 4 ↦ slot.getD j 0 from rfl,
+      lagrangeBasis_ofFn_getD hs, List.getD_eq_getElem _ _ (by
+        rw [Whir.Complete.length_eqKernel, hs]; exact i.isLt)]
+
+/-- The bytecode's values at the sixteen slots of the tuple at `low`. -/
+def slotValues (words : List K) (low : List E) : CMlPolynomialEval E 4 :=
+  Vector.ofFn fun j : Fin (2 ^ 4) ↦ multilinearEval (words.map ofK) (low ++ boolPoint 4 j)
+
+/-- **The bytecode at `(low, slot)`** is the extension of its values at the slots, at `slot`. -/
+theorem multilinearEval_eq_slotValues {words : List K} {low slot : List E}
+    (hw : words.length = 2 ^ (low.length + 4)) (hs : slot.length = 4) :
+    multilinearEval (words.map ofK) (low ++ slot) =
+      evalMle (slotValues words low) (vecOf 4 slot) := by
+  let t : CMlPolynomialEval E (low.length + 4) := ⟨(words.map ofK).toArray, by simp [hw]⟩
+  have ht : (words.map ofK) = t.toList := by simp [t]
+  have hlow : (vecOf low.length low).toList = low := toList_vecOf low rfl
+  have hslot : (vecOf 4 slot).toList = slot := toList_vecOf slot hs
+  have hv : ∀ v : Vector E 4, multilinearEval (words.map ofK) (low ++ v.toList) =
+      evalMle t (vecOf low.length low ++ v) := fun v ↦ by
+    rw [ht, ← multilinearEval_eq_evalMle, Vector.toList_append, hlow]
+  rw [← hslot, hv, evalMle_split, evalMle_eq_sum]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [mul_comm]
+  congr 1
+  simp only [slotValues, Fin.getElem_fin, Vector.getElem_ofFn]
+  rw [boolPoint_eq_toList_boolVec, hv, evalMle_append_boolVec]
+
+/-! ## The share's specification -/
+
+variable {εmax T : ℝ≥0∞}
+
+/-- The share's sub-program, as the deployed verifier runs it: the share and its sumcheck, then
+the evaluation of the bytecode at the point. -/
+def shareProg (weights low : List E) (words : List K) : VerifierProgram (E × List E × E) :=
+  bytecodeShare weights low >>= fun r ↦ computedBytecodeValue words r.2.1 r.2.2 >>= fun _ ↦
+    VerifierProgram.ret r
+
+/-- One candidate oracle is at most one. -/
+theorem soleCands_ncard (o₀ : ∀ i, TheOracle I i) (W : Word) : (soleCands I o₀ W).ncard ≤ 1 := by
+  simp [soleCands]
+
+open Classical in
+/-- **The share returns only true**: from a property `P` of the history, kept by every event and
+giving a commitment, the share's sub-program returns, with `P` kept, the total of the slot weights
+against the bytecode's slot values; each of its four rounds' challenges escapes at `2/|E|`, the
+rounds' leads `roundError 1 2` (`he`), and the follower's lead is `T`. -/
+noncomputable def shareCheckSpec (o₀ : ∀ i, TheOracle I i) {weights low : List E} {words : List K}
+    (hw : weights.length = 16) (hwords : words.length = 2 ^ (low.length + 4))
+    (P : List Ev → Prop) (hP : ∀ h l, P h → P (h ++ l))
+    (hfw : ∀ h, P h → ∃ W, firstWord h = some W) (hT : T ≤ εmax)
+    (he : roundError 1 2 + 0 ≤ εmax) :
+    Spec (shareProg weights low words) P
+      (fun r h ↦ P h ∧ r.1 = shareTotal (vecOf (2 ^ 4) weights) (slotValues words low)) εmax 0 T :=
+  let W := vecOf (2 ^ 4) weights
+  let B := slotValues words low
+  let x : E → ShareX := fun s ↦ ((W, B), s)
+  have hd : ∀ s h, P h → HDoom (soleCands I o₀) (SumcheckRound.rel (shareFamily I) 0)
+      (x s, (#v[], s)) h := fun s h hp ↦ by
+    rw [shareDoom_iff]
+    refine ⟨hfw h hp, ?_⟩
+    by_cases hs : s = shareTotal W B
+    · exact .inl fun hn ↦ hn hs
+    · exact .inr (by rw [shareClaim_zero]; exact hs)
+  Spec.congr (show (do
+      let share ← VerifierProgram.readScalar
+      let r ← sumcheck share 3 (List.replicate busBits none)
+      let value ← VerifierProgram.readScalar
+      VerifierProgram.require (r.2 = dot (eqKernel r.1) weights * value)
+      computedBytecodeValue words (low ++ r.1) value
+      VerifierProgram.ret (share, low ++ r.1, value)) = shareProg weights low words by
+    simp only [shareProg, bytecodeShare, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+    rfl) <|
+  (Spec.readE (Post := fun s h ↦ P h ∧ HDoom (soleCands I o₀) (SumcheckRound.rel (shareFamily I) 0)
+      (x s, (#v[], s)) h)
+    (fun h₀ s hp ↦ ⟨hP _ _ hp, hd s _ (hP _ _ hp)⟩) zero_le).bind' fun share ↦
+  ((wireSumcheckSpec (T := 0) (shareFamily I) (soleCands I o₀) (shareFamily_consistent I)
+      (shareFamily_sound I) (fun _ ↦ Set.finite_singleton o₀) (soleCands_ncard I o₀) (by norm_num) he
+      (x share) (List.replicate 4 none) 0 #v[] share rfl (shareWeights I (x share))).frame P
+      hP).bind' fun r ↦
+  (Spec.readE (Post := fun value h ↦ P h ∧ (share = shareTotal W B ∨
+      r.2 ≠ evalMle W (vecOf 4 r.1) * evalMle B (vecOf 4 r.1)) ∧ r.1.length = 4)
+    (fun h₀ value hp ↦ by
+      obtain ⟨hp, hl, hD⟩ := hp
+      refine ⟨hP _ _ hp, ?_, by simpa using hl⟩
+      obtain ⟨-, hR⟩ := (shareDoom_iff I o₀ _ _).mp hD
+      simp only [Vector.toList_empty, List.nil_append] at hR
+      rcases hR with hR | hR
+      · exact .inl (by simpa [shareWrong] using hR)
+      · right
+        rw [shareClaim_self] at hR
+        exact hR) hT).bind' fun value ↦
+  (Spec.require (Post := fun _ h ↦ P h ∧ (share = shareTotal W B ∨
+      value ≠ evalMle B (vecOf 4 r.1)) ∧ r.1.length = 4)
+    fun h₀ hp hc ↦ by
+      obtain ⟨hp, hR, hl⟩ := hp
+      refine ⟨hp, ?_, hl⟩
+      rcases hR with hR | hR
+      · exact .inl hR
+      · right
+        intro hv
+        rw [hc, dot_eqKernel_eq_evalMle hw hl, hv] at hR
+        exact hR rfl).bind' fun _ ↦
+  (Spec.require (Post := fun _ h ↦ P h ∧ share = shareTotal W B)
+    fun h₀ hp hc ↦ by
+      obtain ⟨hp, hR, hl⟩ := hp
+      refine ⟨hp, hR.resolve_right fun hn ↦ hn ?_⟩
+      rw [← hc, multilinearEval_eq_slotValues hwords hl]).bind' fun _ ↦
+  (Spec.ret (Post := fun r h ↦ P h ∧ r.1 = shareTotal W B) (share, low ++ r.1, value)).mono
+    (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Front
