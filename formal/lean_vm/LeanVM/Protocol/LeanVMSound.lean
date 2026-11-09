@@ -2,7 +2,7 @@
   LeanVM.Protocol.LeanVMSound
 
   Knowledge soundness of the leanVM verifier in the two-oracle random-oracle model
-  (`LeanVM/Protocol/Rom/Statement.lean`), at 128 bits per query: the step of the proof of
+  (`LeanVM/Protocol/Rom/Statement.lean`), at 125 bits per query: the step of the proof of
   `LeanVM.KnowledgeSoundness` (`Statement/LeanVm.lean`) before the random-permutation model.
 -/
 
@@ -23,7 +23,7 @@ This page proves knowledge soundness in the two-oracle random-oracle model of
 `LeanVM.Protocol.LeanVM` proves completeness there, and `LeanVM.Protocol.LeanVMRpm` moves both to
 the random-permutation model.
 
-The verifier is leanVM's at `40f877dc2c858f013c5974ab71ca594b31a7aec9` (`crates/verifier`), its
+The verifier is leanVM's at the commit `leanvm-rev` names (`crates/verifier`), its
 Fiat-Shamir sponge a duplex sponge over Keccak-f[1600] and its Merkle hash Keccak-256. Both are
 modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KState →ₒ KState)`).
 
@@ -34,11 +34,12 @@ instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Protocol/Ext
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
-`soundnessError Q = (Q + 12006) · (2^-128 + 5·(Q + 12006)/2^256) + 12006/2^256`, which is at most
-`2^-63` for `Q ≤ 2^64` (`soundnessError_le`). The `2^-128` is per oracle query: every group of the
-protocol's challenges, discounted by the proof of work before it, escapes with probability at
-most `2^-128`, certified for every admissible size and rate (`Whir.Params.Deployed`). The
-`12006` bounds the verifier's queries on every statement and proof
+`soundnessError Q = (Q + 13261) · (2^-125 + 5·(Q + 13261)/2^256) + 13261/2^256`, which is at most
+`2^-60` for `Q ≤ 2^64` (`soundnessError_le`, `LeanVM.Protocol.ErrorBounds`). The `2^-125` is per
+oracle query: every group of the protocol's challenges, discounted by the proof of work before it,
+escapes with probability at most `2^-125`, the round-by-round error every verifier message is held
+to after its grind (`SECURITY_BITS`), certified for every admissible size and rate. The
+`13261` bounds the verifier's queries on every statement and proof
 (`Verifier.leanVmQueryBound_eq`).
 
 The proof (`knowledgeSoundnessRom`) runs the experiment over the ordered log of fresh queries, the
@@ -51,7 +52,7 @@ predicts a digest or a sponge state's capacity the log refers to: `5 + 2` per ea
 adversary's part of the log only, returns a valid execution (`Sound.extractor_of_extracted`):
 without failure, every climb to the announced root through the log runs through the adversary's
 queries, unless a fresh Keccak-256 answer of the verifier is the root itself, which has
-probability at most `12006/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
+probability at most `13261/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
 
 **Scope and trust.**
 
@@ -173,23 +174,6 @@ any word at the Johnson threshold are at most `2^12` (level 0's list bound). -/
 theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (W : ℕ → List K) :
     (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 :=
   Sound.spec_candidates_ncard_le h W
-
-/-- **The numbers**: against `2^64` queries, the soundness error is at most `2^-63`. -/
-theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ℝ≥0∞)⁻¹ ^ 63 := by
-  have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((12006 : ℕ) : ℝ≥0∞) := rfl
-  rw [soundnessError, hV, show verifierQueries = 12006 from rfl,
-    Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
-    ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
-    ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 63 256 (by norm_num)]
-  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show 256 - 128 = 128 from rfl, show 256 - 63 = 193 from rfl]
-  have hN : Q + 12006 ≤ 2 ^ 64 + 12006 := by omega
-  calc (Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006
-      ≤ (2 ^ 64 + 12006) * (2 ^ 128 + 5 * (2 ^ 64 + 12006)) + 12006 :=
-        Nat.add_le_add_right (Nat.mul_le_mul hN (Nat.add_le_add_left
-          (Nat.mul_le_mul_left 5 hN) _)) _
-    _ ≤ 2 ^ 193 := by norm_num
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 

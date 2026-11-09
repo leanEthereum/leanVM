@@ -16,9 +16,9 @@ public import LeanVM.Protocol.EndToEnd.Front.TableTerms
 /-!
 # The table sumcheck on doom
 
-`tablePhase layout bus` (`crates/verifier/src/lib.rs:242-266` and `bus.rs:218-259`) is the oracle
-protocol's `tableSumcheck` (`LeanVM.Protocol.TableSumcheck`) on the wire: the batching challenge
-`ξ`, the plain sumcheck of four coefficients per round (one left out on the wire), the evaluations
+`tablePhase layout bus` (`crates/verifier/src/lib.rs:274-293` and `bus.rs:249-297`) is the oracle
+protocol's `tableSumcheck` (`LeanVM.Protocol.TableSumcheck`) on the wire: a grind for the batch's
+degree, which the protocol does not have, the batching challenge `ξ`, the plain sumcheck of four coefficients per round (one left out on the wire), the evaluations
 of every table's columns, and the final check. Its doom is stated on the protocol's relations at the
 protocol's statement `(input, busOut …)` of what the bus phase read (`BusWit`):
 
@@ -50,10 +50,10 @@ open scoped NNReal ENNReal
 def nCons : ℕ := (tables.map Table.nConstraints).sum
 
 /-- The constraint powers of `ξ`. -/
-def cpsOf (ξ : E) : List E := (powers ξ (nCons + 3)).take nCons
+def cpsOf (ξ : E) : List E := (powers ξ (nCons + nTrees)).take nCons
 
 /-- The form powers of `ξ`. -/
-def fpsOf (ξ : E) : List E := (powers ξ (nCons + 3)).drop nCons
+def fpsOf (ξ : E) : List E := (powers ξ (nCons + nTrees)).drop nCons
 
 /-- The rows of the final loop at the point `point` (the challenges reversed). -/
 def rowsOf (layout : Verifier.Layout) (bus : BusResult) (point : List E) :
@@ -174,23 +174,33 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
       le_rfl le_rfl
 
 open Classical in
-/-- **The table sumcheck** (`tablePhase`, `lib.rs:242-266`, `bus.rs:218-259`) after the bus phase
-read `w`: from the bus seam at `w` to the table seam on the wire. `ξ` is charged
-`L₀ · (B + 2) / |E|`, each round `L₀ · 3 / |E|`. -/
+/-- The grind before `ξ`: for the batch's degree in `ξ`, its `n_constraints + N_TREES` powers less
+one (`lib.rs:281-284`). -/
+def xiGrindBits : ℕ := grindingBits (nCons + nTrees - 1)
+
+/-- **The table sumcheck** (`tablePhase`, `lib.rs:274-293`, `bus.rs:249-297`) after the bus phase
+read `w`: from the bus seam at `w` to the table seam on the wire. `ξ`, after a grind of
+`xiGrindBits` bits (`hxi`, the discounted bound), is charged `L₀ · (B + 2) / |E|`, each round
+`L₀ · 3 / |E|`. -/
 noncomputable def tablePhaseSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (fid : TableFid I hI input layout colOf w) (hd : I.d ≤ 2) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) {T : ℝ≥0∞}
-    (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax) :
-    Spec (tablePhaseClaims layout (w.result layout)) (BusAt I hI cands input w)
+    (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax)
+    (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError I L₀ +
+      sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T) ≤ εmax) :
+    Spec (tablePhaseClaims layout (w.result layout)) (BusAt I hI cands input layout w)
       (TablePost I cands input colOf) εmax
-      (xiError I L₀ + sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T)
-      T :=
+      (if xiGrindBits = 0 then
+        xiError I L₀ + sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T
+      else 0) T :=
   let s := busStmt I hI input w
+  (Spec.grindP (Post := fun _ h ↦ BusAt I hI cands input layout w h) xiGrindBits
+    (fun _ hp ↦ ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2.append _⟩) hxi).bind' fun _ ↦
   (Spec.sampleE (xiError I L₀) (Post := fun ξ h ↦ HDoom cands
       (SumcheckRound.rel (tableFamily I) 0)
       ((s, ξ), (#v[], dot (fpsOf ξ) (w.result layout).totals)) h)
     (fun h₀ hp ↦ by
-      obtain ⟨-, -, -, W, hW, hR⟩ := hp
+      obtain ⟨-, -, -, -, W, hW, hR⟩ := hp
       refine le_trans ?_ (xi_escape I (hfin W) (hcard W) s hR)
       gcongr with ξ _
       intro hD
