@@ -193,6 +193,8 @@ struct Layer<'a> {
 
 /// A row of a table in the power basis: three words per position, laid out by word.
 const ROW: usize = 3 * BITS;
+/// The scratch [`Round::add_pair`] takes: four shifted rows, and two for `round_dot`.
+const PAIR_SCRATCH: usize = 6 * ROW;
 
 impl Layer<'_> {
     /// The blocks a segment's tasks walk: those written, then the padding block once, standing
@@ -431,7 +433,7 @@ impl Layer<'_> {
                     target_feature = "gfni"
                 ));
                 (
-                    vec![0u64; 4 * ROW],
+                    vec![0u64; PAIR_SCRATCH],
                     vec![0u64; if gfni { 0 } else { 8 * BITS }],
                     vec![0u64; 2 * ROW],
                 )
@@ -483,11 +485,11 @@ impl Layer<'_> {
 
 /// The sums a round accumulates, unreduced: its values at `0` and at infinity.
 #[derive(Clone, Copy, Default)]
-struct RoundSums([u64; 9], [u64; 9]);
+struct RoundSums([u64; 12], [u64; 12]);
 
 impl RoundSums {
     fn merge(mut self, other: Self) -> Self {
-        for i in 0..9 {
+        for i in 0..12 {
             self.0[i] ^= other.0[i];
             self.1[i] ^= other.1[i];
         }
@@ -519,45 +521,49 @@ impl<'a> Round<'a> {
         }
         Self {
             field,
-            eval: PolyEval::new(s, 72),
+            eval: PolyEval::new(s, 96),
             kappa: field.to_poly(kappa),
             weights,
             constant,
         }
     }
 
-    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]` and `T[j + 2]`, for a
-    /// row `T`.
-    fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
-        // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
+    /// `kappa + T[j + 1]` and `T[j + 2]`, for a row `T`: a lane is 64 positions, five lanes to a
+    /// row.
+    fn shifted(&self, t: &[u64], next: &mut [u64], after: &mut [u64]) {
         for k in 0..3 {
-            let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
+            let (src, next, after) = (
+                &t[k * BITS..][..BITS],
+                &mut next[k * BITS..][..BITS],
+                &mut after[k * BITS..][..BITS],
+            );
             for lane in 0..BITS / 64 {
                 let at = along(64 * lane, 1);
                 for z in 0..64 {
                     next[64 * lane + z] = src[at + z] ^ self.kappa[k];
                 }
-            }
-        }
-        self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
-        for k in 0..3 {
-            let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
+                after[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
             }
         }
     }
 
     /// Add one pair of rows to a round's sums: the values at `0` and at infinity of
-    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`.
+    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`, where
+    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]`.
     fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F192) {
-        let (b, shifted) = scratch.split_at_mut(2 * ROW);
+        let (shifted, rest) = scratch.split_at_mut(4 * ROW);
+        let (next, after) = shifted.split_at_mut(2 * ROW);
         for (half, t) in [low, high].into_iter().enumerate() {
-            self.factors(t, &mut b[half * ROW..][..ROW], &mut shifted[half * ROW..][..ROW]);
+            self.shifted(t, &mut next[half * ROW..][..ROW], &mut after[half * ROW..][..ROW]);
         }
-        let (zero, infinity) = self
-            .field
-            .dot_pair([&b[..ROW], &b[ROW..]], [&shifted[..ROW], &shifted[ROW..]], BITS);
+        let (zero, infinity) = self.field.round_dot(
+            &self.weights,
+            &self.constant,
+            [&next[..ROW], &next[ROW..]],
+            [&after[..ROW], &after[ROW..]],
+            rest,
+            BITS,
+        );
         let weight = self.field.to_poly(eq);
         add_mul(&mut sums.0, &zero, &weight);
         add_mul(&mut sums.1, &infinity, &weight);
@@ -600,7 +606,7 @@ impl<'a> Round<'a> {
                 fold(out, segment, 0);
             }
             let mut sums = RoundSums::default();
-            let mut scratch = vec![0u64; 4 * ROW];
+            let mut scratch = vec![0u64; PAIR_SCRATCH];
             for (pair, &eq) in dst[..to.len() * ROW].as_chunks::<{ 2 * ROW }>().0.iter().zip(eq) {
                 self.add_pair(&mut sums, &mut scratch, &pair[..ROW], &pair[ROW..], eq);
             }
@@ -610,7 +616,7 @@ impl<'a> Round<'a> {
         let (pairs, half) = (to.live.div_ceil(2), to.m / 2);
         let mut sums = parallel::map_reduce_with_state(
             to.segments * pairs,
-            || (vec![0u64; 4 * ROW], vec![0u64; 2 * ROW]),
+            || (vec![0u64; PAIR_SCRATCH], vec![0u64; 2 * ROW]),
             RoundSums::default,
             |(scratch, rows), sums, task| {
                 let (segment, t) = (task / pairs, task % pairs);
@@ -643,7 +649,7 @@ impl<'a> Round<'a> {
         if first == half {
             return;
         }
-        let mut scratch = vec![0u64; 4 * ROW];
+        let mut scratch = vec![0u64; PAIR_SCRATCH];
         for (pad, eq) in pads.as_chunks::<ROW>().0.iter().zip(eq.chunks_exact(half)) {
             self.add_pair(sums, &mut scratch, pad, pad, eq[first..].iter().sum());
         }

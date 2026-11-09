@@ -121,6 +121,58 @@ impl PowerField {
         row_kernel!(width, dot_pair(a, b, width), dot_pair_portable(a, b, width))
     }
 
+    /// `sum of B[j] * b[j]` and `sum of (B[j] + B'[j]) * (b[j] + b'[j])`, unreduced, where
+    /// `B[j] = weights[j] * a[j] + constant[j]` and `B'` likewise of `a'`: a round's values over
+    /// a pair of rows. `scratch` holds two rows where the products are reduced before the sums.
+    pub fn round_dot(
+        &self,
+        weights: &[u64],
+        constant: &[u64],
+        a: [&[u64]; 2],
+        b: [&[u64]; 2],
+        scratch: &mut [u64],
+        width: usize,
+    ) -> ([u64; 9], [u64; 9]) {
+        assert!(
+            [weights, constant]
+                .iter()
+                .chain(&a)
+                .chain(&b)
+                .all(|row| row.len() >= 3 * width)
+        );
+        cfg_select! {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+                if width.is_multiple_of(x86::STEP) {
+                    let _ = scratch;
+                    // SAFETY: the features are enabled at compile time, and every row is bounded above.
+                    unsafe { x86::round_dot(weights, constant, a, b, width) }
+                } else {
+                    self.round_dot_rows(weights, constant, a, b, scratch, width)
+                }
+            }
+            _ => self.round_dot_rows(weights, constant, a, b, scratch, width),
+        }
+    }
+
+    /// [`Self::round_dot`] by reducing `B` and `B'` into `scratch` first: the other arms' form,
+    /// and the x86 kernel's test oracle, whose sums are congruent to these.
+    pub fn round_dot_rows(
+        &self,
+        weights: &[u64],
+        constant: &[u64],
+        a: [&[u64]; 2],
+        b: [&[u64]; 2],
+        scratch: &mut [u64],
+        width: usize,
+    ) -> ([u64; 9], [u64; 9]) {
+        let (b0, b1) = scratch[..6 * width].split_at_mut(3 * width);
+        self.mul_row(b0, weights, a[0], constant, width);
+        self.mul_row(b1, weights, a[1], constant, width);
+        let (zero, infinity) = self.dot_pair([b0, b1], b, width);
+        let pad = |x: [u64; 6]| std::array::from_fn(|i| if i < 6 { x[i] } else { 0 });
+        (pad(zero), pad(infinity))
+    }
+
     /// `dst[j] = lo[j] + challenge * (lo[j] + hi[j])`.
     pub fn fold_row(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
         assert!(dst.len() >= 3 * width && lo.len() >= 3 * width && hi.len() >= 3 * width);
@@ -342,6 +394,62 @@ mod x86 {
         (finish(&acc[0]), finish(&acc[1]))
     }
 
+    /// [`PowerField::round_dot`] without reducing `B`: its six words meet `b` as two halves of
+    /// three, Karatsuba's twelve products where reducing and multiplying take eighteen. `B + B'`
+    /// is `weights * (a + a')`, the constants cancelling.
+    pub unsafe fn round_dot(
+        weights: &[u64],
+        constant: &[u64],
+        a: [&[u64]; 2],
+        b: [&[u64]; 2],
+        width: usize,
+    ) -> ([u64; 9], [u64; 9]) {
+        // Per sum, the 128-bit partial sums by word offset.
+        let mut acc = [[V::zero(); 8]; 2];
+        // The six words of products given by their even and odd entries' partial sums.
+        let words = |p: [[V; 5]; 2]| -> [V; 6] {
+            let [even, odd] = p.map(|half| std::array::from_fn::<V, 6, _>(|w| word(&half, w)));
+            std::array::from_fn(|w| even[w].unpacklo(odd[w]))
+        };
+        for j in (0..width).step_by(STEP) {
+            let (w, c, a0, a1, b0, b1) = unsafe {
+                (
+                    load3(weights, width, j),
+                    load3(constant, width, j),
+                    load3(a[0], width, j),
+                    load3(a[1], width, j),
+                    load3(b[0], width, j),
+                    load3(b[1], width, j),
+                )
+            };
+            let sw = sums(&w);
+            let mut first = words(karatsuba(&w, &sw, &a0, &sums(&a0)));
+            for (f, c) in first.iter_mut().zip(c) {
+                *f = f.xor(c);
+            }
+            let da = xor3(&a0, &a1);
+            let delta = words(karatsuba(&w, &sw, &da, &sums(&da)));
+            for (acc, (f, b)) in acc.iter_mut().zip([(first, b0), (delta, xor3(&b0, &b1))]) {
+                for offset in [0, 3] {
+                    let p = partial(&[f[offset], f[offset + 1], f[offset + 2]], &b);
+                    for s in 0..5 {
+                        acc[offset + s] = acc[offset + s].xor(p[0][s].xor(p[1][s]));
+                    }
+                }
+            }
+        }
+        let finish = |acc: &[V; 8]| {
+            let mut out = [0u64; 9];
+            for (s, sum) in acc.iter().enumerate() {
+                let sum = sum.sum();
+                out[s] ^= sum as u64;
+                out[s + 1] ^= (sum >> 64) as u64;
+            }
+            out
+        };
+        (finish(&acc[0]), finish(&acc[1]))
+    }
+
     pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
         for j in (0..width).step_by(STEP) {
             let w: [V; 4] = std::array::from_fn(|k| unsafe { V::load(wide.as_ptr().add(k * width + j)) });
@@ -541,7 +649,8 @@ mod tests {
     #[test]
     fn arithmetic_matches_the_standard_basis() {
         let mut rng = Rng::new(41);
-        let field = PowerField::new(rng.ext()).unwrap();
+        let s = rng.ext();
+        let field = PowerField::new(s).unwrap();
         let width = 16;
         let elements = |rng: &mut Rng| -> (Vec<F192>, Vec<u64>) {
             let values = rng.ext_vec(width);
@@ -590,5 +699,19 @@ mod tests {
         for j in 0..width {
             assert_eq!(field.to_field(&get(&fast, width, j)), a0[j] * b0[j] + b1[j]);
         }
+
+        // The sums are congruent, not equal: compare their values at `s`.
+        let eval = PolyEval::new(s, 72);
+        let mut scratch = vec![0u64; 6 * width];
+        let (zero, infinity) = field.round_dot(&ra0, &rb0, [&ra1, &rb1], [&rb0, &ra0], &mut scratch, width);
+        let (zero_rows, infinity_rows) =
+            field.round_dot_rows(&ra0, &rb0, [&ra1, &rb1], [&rb0, &ra0], &mut scratch, width);
+        assert_eq!(eval.eval(&zero), eval.eval(&zero_rows));
+        assert_eq!(eval.eval(&infinity), eval.eval(&infinity_rows));
+        let b = |j: usize, a: &[F192]| a0[j] * a[j] + b0[j];
+        let expected: F192 = (0..width).map(|j| b(j, &a1) * b0[j]).sum();
+        assert_eq!(eval.eval(&zero), expected);
+        let expected: F192 = (0..width).map(|j| (b(j, &a1) + b(j, &b1)) * (b0[j] + a0[j])).sum();
+        assert_eq!(eval.eval(&infinity), expected);
     }
 }
