@@ -814,7 +814,8 @@ pub(crate) fn prove_balance(
     let pull_lay = layout(pull);
     let mut count_lay = layout(count);
     check_bus_shape(push, pull, &push_lay, &pull_lay, &count_lay);
-    ps.grind(bus_grinding_bits(push_lay.mu));
+    let bits = bus_grinding_bits(push_lay.mu);
+    tracing::info_span!("Bus grind", mu = push_lay.mu, bits).in_scope(|| ps.grind(bits));
     let w = fingerprint_weights(&ps.sample_vec(N_TUPLE_BITS));
     let beta = ps.sample();
     let count_w = fingerprint_weights(&[F128::ZERO; N_TUPLE_BITS]);
