@@ -27,8 +27,8 @@ INV_GEN = INV_GEN_PLACEHOLDER
 # basis GEN**i, which spans only F64): hint_decompose_bits emits a word's
 # coordinate bits, so a value reconstructs as Σ b_i·COORD_BASIS[i].
 FIELD_BITS = 192
-# A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
-# squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
+# A query position's path bits are dispatched on QW at a time (`walk_path`), whole four-ary levels, and
+# the windows one squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
 QW = 6
 QUERY_WINDOWS_CAP = 56
 BASE_FIELD_BITS = 64
@@ -309,7 +309,6 @@ LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
 LIG_LEAF_CELLS = LIG_LEAF_CELLS_PLACEHOLDER
 LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
 LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
-LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
 LIG_SQUEEZES = LIG_SQUEEZES_PLACEHOLDER
 LIG_POSITIONS_OFF = LIG_POSITIONS_OFF_PLACEHOLDER
@@ -849,10 +848,10 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
     # The squeezed word's bits are advice HERE, in windows: a window of w bits is hinted as g^n, n the integer
     # they spell, range checked below 2^w and read back as n's bit pattern. Each depth-bit group is a query
     # position (little-endian), whose windows are its path bits QW at a time from the bottom, then the cap
-    # child bit, then the cap parent index: `opening_query` dispatches on them, and query j's run of windows
-    # is at win_ptrs_out[g^j]. The bits above the last position are windows too, and the windows' patterns,
-    # shifted to their places, must rebuild the word. A position whose bits cross a 64-bit limb splits there,
-    # the polynomial basis shifting a run as a whole only inside one limb.
+    # leaf's two child bits, then the cap parent index: `opening_query` dispatches on them, and query j's run of
+    # windows is at win_ptrs_out[g^j]. The bits above the last position are windows too, and the windows'
+    # patterns, shifted to their places, must rebuild the word. A position whose bits cross a 64-bit limb splits
+    # there, the polynomial basis shifting a run as a whole only inside one limb.
     per_word = FIELD_BITS // depth
     path = depth - cap_depth
     n_pw = (path + QW - 1) // QW
@@ -868,13 +867,13 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
         p_lo = 0
         p_hi = 0
         for i in unroll(0, n_win):
-            # window i: QW path bits, the last path window's remainder, the cap child bit, the cap index
+            # window i: QW path bits, the last path window's remainder, the cap child bits, the cap index
             if const(i + 2 == n_win):
                 off = path
-                width = 1
+                width = 2
             elif const(i + 1 == n_win):
-                off = path + 1
-                width = cap_depth - 1
+                off = path + 2
+                width = cap_depth - 2
             elif const(i + 3 == n_win):
                 off = QW * i
                 width = path - QW * i
@@ -1165,49 +1164,54 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 
 
 def verify_merkle_cap(cap, flags, depth: Const):
-    # Unrolled over the cap's nodes, so every address is an immediate. Every node's
-    # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
-    # node k at cells 2(k - 1) and 2k - 1, where an internal node's hash writes its
-    # digest, landing on (and so asserting) the hinted value. An active (flagged)
-    # node is hashed; an inactive one pins its children's flags to zero, so every
-    # active node's parent is active too, up to the root, which is always hashed.
-    # The queries flag the parents of the cap leaves they reach. The run is sized
-    # per depth, the cap depths a configuration reaches.
-    if depth != 0:
-        n_leaves = 2 ** depth
-        if const(depth == 4):
-            runs = StackBuf(4 * 16 - 2)
-        elif const(depth == 5):
-            runs = StackBuf(4 * 32 - 2)
-        elif const(depth == 6):
-            runs = StackBuf(4 * 64 - 2)
-        elif const(depth == 7):
-            runs = StackBuf(4 * 128 - 2)
-        else:
-            runs = StackBuf(4 * 256 - 2)
-        for node in unroll(1, 2 * n_leaves):
-            at = 2 * (node - 1)
-            runs[at] = cap[GEN ** (2 * node)]
-            runs[at + 1] = cap[GEN ** (2 * node + 1)]
-        for node in unroll(1, n_leaves):
-            left = 2 * (2 * node - 1)
-            right = left + 2
-            at = 2 * (node - 1)
-            if const(node == 1):
-                keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + 2])
-            else:
-                if flags[GEN ** node] != 0:
-                    keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + 2])
-                else:
-                    if const(2 * node // n_leaves == 0):  # node has flagged children
-                        flags[GEN ** (2 * node)] = 0
-                        flags[GEN ** (2 * node + 1)] = 0
-        root_0 = runs[0]
-        root_1 = runs[1]
+    # Unrolled over the cap's nodes, so every address is an immediate. Node k's hinted
+    # digest is at heap cells 2k, 2k+1, k its binary heap index, though a four-ary tree
+    # fills only the leaves, every second level above them and the root: node k hashes
+    # nodes 4k..4k+3, and a cap of odd depth has a two-child root over nodes 2 and 3.
+    # Every node's hinted digest is read once into a frame run, the filled levels
+    # packed, node 2^t + i at cells 2s, 2s + 1 for s = (2^t + 1) // 3 + i, where its
+    # hash writes its digest, landing on (and so asserting) the hinted value. An
+    # active (flagged) node is hashed; an inactive one pins its children's flags to
+    # zero, so every active node's parent is active too, up to the root, which is
+    # always hashed. The queries flag the parents of the cap leaves they reach.
+    if const(depth == 3):
+        runs = StackBuf(2 * (3 + 8))
+    elif const(depth == 4):
+        runs = StackBuf(2 * (5 + 16))
+    elif const(depth == 5):
+        runs = StackBuf(2 * (11 + 32))
+    elif const(depth == 6):
+        runs = StackBuf(2 * (21 + 64))
+    elif const(depth == 7):
+        runs = StackBuf(2 * (43 + 128))
+    elif const(depth == 8):
+        runs = StackBuf(2 * (85 + 256))
     else:
-        root_0 = cap[GEN ** 2]
-        root_1 = cap[GEN ** 3]
-    return root_0, root_1
+        runs = StackBuf(2 * (171 + 512))
+    for t in unroll(0, depth + 1):
+        if const(t * ((depth - t) % 2) == 0):
+            for i in unroll(0, 2 ** t):
+                at = 2 * ((2 ** t + 1) // 3 + i)
+                runs[at] = cap[GEN ** (2 * (2 ** t + i))]
+                runs[at + 1] = cap[GEN ** (2 * (2 ** t + i) + 1)]
+    if const(depth % 2 == 1):
+        keccak(runs[2:4], runs[4:6], runs[0:2])
+    else:
+        keccak(runs[2:4], runs[4:6], runs[0:2], tail=runs[6:10])
+    # the levels t from the top with four-child nodes, the root's aside
+    for t in unroll(1, depth - 1):
+        if const((depth - t) % 2 == 0):
+            for i in unroll(0, 2 ** t):
+                node = 2 ** t + i
+                at = 2 * ((2 ** t + 1) // 3 + i)
+                kids = 2 * ((2 ** (t + 2) + 1) // 3 + 4 * i)
+                if flags[GEN ** node] != 0:
+                    keccak(runs[kids:kids + 2], runs[kids + 2:kids + 4], runs[at:at + 2], tail=runs[kids + 4:kids + 8])
+                else:
+                    if const(t + 2 != depth):  # node has flagged children
+                        for c in unroll(0, 4):
+                            flags[GEN ** (4 * node + c)] = 0
+    return runs[0], runs[1]
 
 
 # ============================== the stacked WHIR opening ============================
@@ -1290,26 +1294,43 @@ def opening_row_weights(point, out, folds: Const, reverse: Const):
 
 
 @inline
-def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
-    # Levels lvl0..lvl0+width of a Merkle path, whose order bits are k's: each hashes the running
-    # node with the sibling on the other side of its hinted pair, which binds the link.
-    for r in unroll(0, width):
-        lvl = lvl0 + r
+def walk_window(n0, n1, levels: Const, k: Const):
+    # Four-ary levels of a Merkle path, whose child positions are k's bit pairs: each hashes the
+    # running node in its place among the level's three hinted siblings, which binds the link. The
+    # hash's last two children are one run, so a third or fourth child is stored next to the
+    # sibling hinted beside it: a third child's siblings come fourth child first.
+    for r in unroll(0, levels):
+        c = (k // 4 ** r) % 4
         nxt = StackBuf(2)
-        if const((k // 2 ** r) % 2 == 0):
-            keccak([n0, n1], path[4 * lvl + 2:4 * lvl + 4], nxt)
+        if const(c == 0):
+            s = StackBuf(6)
+            hint_witness(s[0:6], "merkle_siblings")
+            keccak([n0, n1], s[0:2], nxt, tail=s[2:6])
+        elif const(c == 1):
+            s = StackBuf(6)
+            hint_witness(s[0:6], "merkle_siblings")
+            keccak(s[0:2], [n0, n1], nxt, tail=s[2:6])
+        elif const(c == 2):
+            s = StackBuf(8)
+            s[0] = n0
+            s[1] = n1
+            hint_witness(s[2:8], "merkle_siblings")
+            keccak(s[4:6], s[6:8], nxt, tail=s[0:4])
         else:
-            keccak(path[4 * lvl:4 * lvl + 2], [n0, n1], nxt)
+            s = StackBuf(8)
+            hint_witness(s[0:6], "merkle_siblings")
+            s[6] = n0
+            s[7] = n1
+            keccak(s[0:2], s[2:4], nxt, tail=s[4:8])
         n0 = nxt[0]
         n1 = nxt[1]
     return n0, n1
 
 
 def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
-    # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
-    # levels' order bits, so it hashes the running node against the sibling its hinted pair holds.
-    path = StackBuf(LIG_PATH_CAP)
-    hint_witness(path[0:4 * path_depth], "merkle_children")
+    # The path, a window of QW bits (QW / 2 four-ary levels) a dispatch (`decode_query_windows`):
+    # each arm knows its levels' child positions, so it places the running node among the
+    # siblings hinted for it.
     for i in unroll(0, (path_depth + QW - 1) // QW):
         if const(QW * i + QW == QW * ((path_depth + QW - 1) // QW)):
             width = path_depth - QW * i
@@ -1317,27 +1338,22 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
             width = QW
         w = wins[GEN ** i]
         if const(width == 6):
-            n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, path, QW * i, 6, k))
-        elif const(width == 5):
-            n0, n1 = match(log(w), range(0, 32), lambda k: walk_window(n0, n1, path, QW * i, 5, k))
+            n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, 3, k))
         elif const(width == 4):
-            n0, n1 = match(log(w), range(0, 16), lambda k: walk_window(n0, n1, path, QW * i, 4, k))
-        elif const(width == 3):
-            n0, n1 = match(log(w), range(0, 8), lambda k: walk_window(n0, n1, path, QW * i, 3, k))
-        elif const(width == 2):
-            n0, n1 = match(log(w), range(0, 4), lambda k: walk_window(n0, n1, path, QW * i, 2, k))
+            n0, n1 = match(log(w), range(0, 16), lambda k: walk_window(n0, n1, 2, k))
         else:
-            n0, n1 = match(log(w), range(0, 2), lambda k: walk_window(n0, n1, path, QW * i, 1, k))
-    # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1, where
-    # parent = 2^(cap_depth-1) + q: the child bit and q are the last two windows, g^bit
-    # and g^q, the constant parts folded into the address immediates. Every cap is at
-    # least two levels deep (`decode_query_windows` gives q cap_depth - 1 bits).
-    wb = wins[GEN ** ((path_depth + QW - 1) // QW)]
+            n0, n1 = match(log(w), range(0, 4), lambda k: walk_window(n0, n1, 1, k))
+    # The reached cap leaf is node 4*parent + c at cells 2*node, 2*node + 1, where
+    # parent = 2^(cap_depth-2) + q: the child position c and q are the last two windows,
+    # g^c and g^q, the constant parts folded into the address immediates. Every cap is at
+    # least three levels deep (`decode_query_windows` gives q cap_depth - 2 bits).
+    wc = wins[GEN ** ((path_depth + QW - 1) // QW)]
     q = wins[GEN ** ((path_depth + QW - 1) // QW + 1)]
     flags_q = flags * q
-    flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
+    flags_q[GEN ** (2 ** (cap_depth - 2))] = 1  # the cap check propagates this obligation to the root
     q2 = q * q
-    leaf = cap * q2 * q2 * (wb * wb)
+    q4 = q2 * q2
+    leaf = cap * q4 * q4 * (wc * wc)
     leaf[GEN ** (2 ** (cap_depth + 1))] = n0
     leaf[GEN ** (2 ** (cap_depth + 1) + 1)] = n1
     return

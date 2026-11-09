@@ -621,6 +621,10 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             offsets
         };
         let cap_depths: Vec<_> = (0..cn).map(|lv| merkle_cap_depth(cq[lv], cd[lv])).collect();
+        assert!(
+            cap_depths.iter().all(|&cap| (3..=9).contains(&cap)),
+            "a cap leaf's parent index, the last query window, is one to seven bits wide"
+        );
         let cap_offsets = psum(&|lv| 1 << cap_depths[lv]);
         let c_qpoff = psum(&|lv| cs[lv] * cp[lv]);
         let c_svkoff = psum(&|lv| cl[lv] + 1);
@@ -737,20 +741,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             .unwrap();
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
-        ps(
-            "LIG_PATH_CAP",
-            cands
-                .iter()
-                .flat_map(|c| {
-                    c.tree_depths
-                        .iter()
-                        .zip(&c.cap_depths)
-                        .map(|(depth, cap)| 4 * (depth - cap))
-                })
-                .max()
-                .unwrap()
-                .to_string(),
-        );
         ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
         ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));

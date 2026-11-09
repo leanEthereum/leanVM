@@ -31,13 +31,36 @@ pub fn hash_words(words: &[F64]) -> Hash {
 /// Hash two children into their parent.
 #[inline]
 pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
-    let mut buf = [0u8; 64];
-    buf[..32].copy_from_slice(left);
-    buf[32..].copy_from_slice(right);
-    primitives::hash::hash(&buf)
+    hash_children(&[*left, *right])
 }
 
-/// One query's Merkle opening: its position, the whole leaf image it hashes, and its siblings, bottom level first.
+/// Hash a node's children, left to right, into it: one permutation for up to four.
+#[inline]
+pub fn hash_children(children: &[Hash]) -> Hash {
+    primitives::hash::hash(children.as_flattened())
+}
+
+/// Children of a node on `level` of a tree `height` bits tall, leaves at level 0: four, and two for the root of an
+/// odd height. Level `j` is `min(2j, height)` bits above the leaves.
+#[inline]
+pub fn arity(height: usize, level: usize) -> usize {
+    if height - 2 * level >= 2 { 4 } else { 2 }
+}
+
+/// Levels above the leaves in a tree `height` bits tall.
+#[inline]
+pub fn levels(height: usize) -> usize {
+    height.div_ceil(2)
+}
+
+/// Siblings on a path in a tree `height` bits tall: three per four-child level, one at a two-child root.
+#[inline]
+pub fn sibling_count(height: usize) -> usize {
+    3 * (height / 2) + height % 2
+}
+
+/// One query's Merkle opening: its position, the whole leaf image it hashes, and its siblings: per level, bottom
+/// first, the other children of the node's parent, left to right.
 ///
 /// Leaf data is `F64` because that is what a Merkle preimage is; an `E`-valued row of width `w` is `3w` words, packed
 /// by the opener.
@@ -59,10 +82,20 @@ pub fn open<'a>(
 ) -> Vec<MerklePath> {
     assert!(num_leaves.is_power_of_two());
     let height = num_leaves.trailing_zeros() as usize;
-    let path = |&q: &usize| MerklePath {
-        leaf_index: q as u64,
-        leaf: padded(row(q), leaf_words),
-        siblings: (0..height).map(|level| node(level, q >> level ^ 1)).collect(),
+    let path = |&q: &usize| {
+        let mut siblings = Vec::new();
+        let mut index = q;
+        for level in 0..levels(height) {
+            let arity = arity(height, level);
+            let first = index - index % arity;
+            siblings.extend((first..first + arity).filter(|&i| i != index).map(|i| node(level, i)));
+            index /= arity;
+        }
+        MerklePath {
+            leaf_index: q as u64,
+            leaf: padded(row(q), leaf_words),
+            siblings,
+        }
     };
     positions.iter().map(path).collect()
 }

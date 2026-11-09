@@ -4,7 +4,7 @@ use super::cells::count;
 use super::deferred::DeferredSubproof;
 use super::error::AggregationError;
 use super::hints::SubHints;
-use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir::merkle::{arity, hash_children, hash_to_scalars, levels};
 use leanvm_core::cpu::{Program, from_scalar};
 use leanvm_core::leaf::Block;
 use primitives::field::F192;
@@ -36,8 +36,11 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     }
 }
 
+/// The depth of the tree top the guest verifies once for all of a level's queries: about one leaf per query, and
+/// of the tree's parity, so the paths below it climb whole four-child levels and its root is the tree's.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
-    (queries.next_power_of_two().ilog2() as usize).min(depth)
+    let cap = (queries.next_power_of_two().ilog2() as usize).min(depth);
+    cap + (depth - cap) % 2
 }
 
 /// The first column of each column group: a maximal run of committed columns, in compact
@@ -178,11 +181,13 @@ pub(super) fn gen_verify(
 
     // ---- Hints for the stacked WHIR opening ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
-    // opaque; the guest authenticates every cap leaf a query reaches.
+    // opaque; the guest authenticates every cap leaf a query reaches. A cap node
+    // sits at its binary heap index, leaves at 2^cap_depth on, so only every
+    // second level above the leaves is filled.
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
-    let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    let levels_of = stack.config.queries.iter().zip(&stack.depth);
+    for ((&queries, &depth), phase) in levels_of.zip(&proof.merkle) {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
@@ -193,29 +198,41 @@ pub(super) fn gen_verify(
                 "merkle_leaf_rows",
                 opening.leaf.iter().map(|&x| F192::from(x)).collect(),
             ));
-            let mut path_children = Vec::with_capacity(4 * path_depth);
             let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);
-            let mut index = (1 << depth) + opening.leaf_index as usize;
-            for (height, sibling) in opening.siblings.iter().enumerate() {
-                if height >= path_depth {
-                    nodes[index] = node;
-                    nodes[index ^ 1] = *sibling;
-                    active[index >> 1] = F192::ONE;
-                }
-                let (left, right) = if index & 1 == 0 {
-                    (&node, sibling)
+            let mut siblings = opening.siblings.iter();
+            for level in 0..levels(depth) {
+                let arity = arity(depth, level);
+                let index = opening.leaf_index as usize >> (2 * level);
+                let first = index - index % arity;
+                let children: Vec<_> = (first..first + arity)
+                    .map(|child| {
+                        if child == index {
+                            node
+                        } else {
+                            *siblings.next().unwrap()
+                        }
+                    })
+                    .collect();
+                if 2 * level < path_depth {
+                    // A level's three siblings, in child order but for a third child's, which the guest stores
+                    // in front of its fourth sibling, taken first.
+                    let order = match index % 4 {
+                        0 => [1, 2, 3],
+                        1 => [0, 2, 3],
+                        2 => [3, 0, 1],
+                        _ => [0, 1, 2],
+                    };
+                    let hint = order.iter().flat_map(|&j| hash_to_scalars(&children[j])).collect();
+                    query_hints.push(("merkle_siblings", hint));
                 } else {
-                    (sibling, &node)
-                };
-                if height < path_depth {
-                    path_children.extend(hash_to_scalars(left));
-                    path_children.extend(hash_to_scalars(right));
+                    // The cap's heap index of the level's node `first`, then its parent's.
+                    let at = (n >> (2 * level - path_depth)) + first;
+                    nodes[at..at + arity].copy_from_slice(&children);
+                    active[at / arity] = F192::ONE;
                 }
-                node = pcs::merkle::hash_pair(left, right);
-                index >>= 1;
+                node = hash_children(&children);
             }
             nodes[1] = node;
-            query_hints.push(("merkle_children", path_children));
         }
         caps.extend(nodes.iter().flat_map(hash_to_scalars));
         cap_active.extend(active);

@@ -426,15 +426,21 @@ class Transcript:
         return chunk
 
     def merkle(self, root: Digest, block_length: int, queries: Sequence[int], leaf_words: int) -> list[tuple[K, ...]]:
+        # A node hashes its four children's digests, left to right; a tree of odd height has a two-child root. A path
+        # carries, per level, the other children of the node's parent.
         height = log2_strict(block_length)
-        paths = [(self._merkle_data(8), self._merkle_data(8 * leaf_words), [self._merkle_data(32) for _ in range(height)]) for _ in queries]
+        count = 3 * (height // 2) + height % 2
+        paths = [(self._merkle_data(8), self._merkle_data(8 * leaf_words), [self._merkle_data(32) for _ in range(count)]) for _ in queries]
         require([int.from_bytes(index, "little") for index, _, _ in paths] == list(queries), "Merkle opening at the wrong position")
         rows = []
         for query, (_, leaf, siblings) in zip(queries, paths):
-            node = keccak_hash(leaf)
-            for level, sibling in enumerate(siblings):
-                left, right = (node.value, sibling) if query >> level & 1 == 0 else (sibling, node.value)
-                node = keccak_hash(left + right)
+            node, index = keccak_hash(leaf), query
+            for at in range(0, count, 3):
+                level = siblings[at : at + 3]
+                arity = len(level) + 1
+                position = index % arity
+                node = keccak_hash(b"".join(level[:position]) + node.value + b"".join(level[position:]))
+                index //= arity
             require(node == root, "Merkle root mismatch")
             rows.append(tuple(K(word) for word in unpack(f"<{leaf_words}Q", leaf)))
         return rows

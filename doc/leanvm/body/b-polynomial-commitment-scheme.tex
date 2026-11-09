@@ -126,6 +126,8 @@ All weights in the protocol are MLE-friendly and multilinear, so every sumcheck 
 
 Completeness is perfect: the honest prover passes every check ($h_j(0) + h_j(1) = \rc{j-1}$ by definition of $h_j$, $c_q = \Enc_i(f^{(i+1)})[x_q]$ by Fact~\ref{fact:fold-decode}, the OOD and residual claims by construction, the final checks as identities).
 
+\paragraph{Oracles.} An oracle $\orc^{(i)}$ is sent as the root of a Merkle tree over Keccak-256 with one leaf per column $x \in \dom_i$, the hash of the column's entries. An inner node is the hash of its four children's 32-byte digests concatenated left to right, 128 bytes and so one permutation; when $\log_2 \blen_i$ is odd, the root alone has two children. Reading column $x_q$ comes with its authentication path: per level, bottom first, the other children of the node's parent, left to right, three of them and one at a two-child root. Four children rather than two take a third of the permutations to build the tree, for paths of $3/2$ times as many digests.
+
 %=====================================================================
 \subsection{Round-by-round soundness}\label{sec:soundness}
 %=====================================================================

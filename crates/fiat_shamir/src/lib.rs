@@ -20,8 +20,8 @@ use primitives::hash::STATE_LANES;
 
 /// `f(a, b) = Keccak-256(a‖b)` on two 256-bit halves laid out little-endian into
 /// 64 bytes, *exactly* one VM `KECCAK` instruction from the zero state: 64 input
-/// bytes → 32-byte digest, split back into four field words. The Merkle trees'
-/// node hash.
+/// bytes → 32-byte digest, split back into four field words. A binary Merkle node's
+/// hash.
 pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {
     let mut input = [0u8; 64];
     for (slot, w) in input.as_chunks_mut::<8>().0.iter_mut().zip(a.into_iter().chain(b)) {

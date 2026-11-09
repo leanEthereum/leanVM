@@ -2,7 +2,7 @@
 
 use crate::field::{E, K, ZERO};
 use crate::hash::{Digest, STATE_LANES, keccak_f};
-use crate::merkle::MerklePath;
+use crate::merkle::{MerklePath, sibling_count};
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
 
@@ -171,7 +171,7 @@ impl<'a> Transcript<'a> {
         require(
             paths
                 .iter()
-                .all(|path| path.leaf.len() == leaf_words && path.siblings.len() == height),
+                .all(|path| path.leaf.len() == leaf_words && path.siblings.len() == sibling_count(height)),
             VerifierError::MerkleOpeningShape,
         )?;
         require(

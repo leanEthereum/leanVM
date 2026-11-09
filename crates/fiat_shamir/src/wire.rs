@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::merkle::{Hash, MerklePath, hash_pair, hash_words, padded};
+use crate::merkle::{Hash, MerklePath, arity, hash_children, hash_words, levels, padded, sibling_count};
 use crate::transcript::Proof;
 use primitives::field::{F64, F192};
 
@@ -18,9 +18,9 @@ impl Proof {
     ///
     /// - The stream: its length, then each element as its three words.
     /// - The number of phases, then each phase pruned: its queries' count and positions, in the order the verifier
-    ///   samples them; the tree's height, the leaf width, and the row width; the leaf at each distinct position,
-    ///   ascending, as its last row-width words, the ones before being zero in every leaf of the phase; then the
-    ///   siblings no other path's node gives, bottom level first and left to right within a level.
+    ///   samples them; the tree's height in bits, the leaf width, and the row width; the leaf at each distinct
+    ///   position, ascending, as its last row-width words, the ones before being zero in every leaf of the phase;
+    ///   then the siblings no other path's node gives, bottom level first and left to right within a level.
     ///
     /// The row width is the least that drops only zeros, and the sibling count follows from the positions.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -57,7 +57,9 @@ impl Proof {
 /// Prune a phase into its octopus: the fewest siblings that authenticate all its paths together, a sibling being left
 /// out where another path's node gives it. No hashing.
 fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
-    let (height, leaf_words) = (paths[0].siblings.len(), paths[0].leaf.len());
+    let (count, leaf_words) = (paths[0].siblings.len(), paths[0].leaf.len());
+    let height = 2 * (count / 3) + count % 3;
+    assert_eq!(sibling_count(height), count, "a path's sibling count");
     assert!(paths.len() <= MAX_QUERIES && leaf_words <= MAX_LEAF_WORDS && height <= MAX_HEIGHT);
     let mut distinct: Vec<&MerklePath> = paths.iter().collect();
     distinct.sort_by_key(|path| path.leaf_index);
@@ -78,17 +80,26 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     for path in &distinct {
         out.extend(path.leaf[zeros..].iter().flat_map(|word| word.0.to_le_bytes()));
     }
-    for level in 0..height {
-        let mut nodes: Vec<(u64, Hash)> = distinct
+    let mut at = 0;
+    for level in 0..levels(height) {
+        let arity = arity(height, level);
+        let mut nodes: Vec<(u64, &[Hash])> = distinct
             .iter()
-            .map(|path| (path.leaf_index >> level, path.siblings[level]))
+            .map(|path| (path.leaf_index >> (2 * level), &path.siblings[at..at + arity - 1]))
             .collect();
         nodes.dedup_by_key(|&mut (node, _)| node);
-        for &(node, sibling) in &nodes {
-            if nodes.binary_search_by_key(&(node ^ 1), |&(node, _)| node).is_err() {
-                out.extend(sibling);
+        // A family's known nodes all carry its other children: the first one's are enough.
+        for family in nodes.chunk_by(|a, b| a.0 / arity as u64 == b.0 / arity as u64) {
+            let (node, siblings) = family[0];
+            let first = node - node % arity as u64;
+            let others = (first..first + arity as u64).filter(|&child| child != node);
+            for (child, sibling) in others.zip(siblings) {
+                if family.binary_search_by_key(&child, |&(node, _)| node).is_err() {
+                    out.extend(sibling);
+                }
             }
         }
+        at += arity - 1;
     }
 }
 
@@ -127,20 +138,24 @@ fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
         .iter()
         .map(|path| (path.leaf_index, hash_words(&path.leaf)))
         .collect();
-    for level in 0..height {
+    for level in 0..levels(height) {
+        let arity = arity(height, level) as u64;
         let mut siblings = BTreeMap::new();
         let mut parents = BTreeMap::new();
-        for (&p, node) in &nodes {
-            let sibling = match nodes.get(&(p ^ 1)) {
-                Some(&sibling) => sibling,
-                None => input.hash()?,
-            };
-            siblings.insert(p, sibling);
-            let (left, right) = if p & 1 == 0 { (node, &sibling) } else { (&sibling, node) };
-            parents.entry(p >> 1).or_insert_with(|| hash_pair(left, right));
+        let known: Vec<u64> = nodes.keys().copied().collect();
+        for family in known.chunk_by(|a, b| a / arity == b / arity) {
+            let first = family[0] - family[0] % arity;
+            let children = (first..first + arity)
+                .map(|child| nodes.get(&child).copied().or_else(|| input.hash()))
+                .collect::<Option<Vec<Hash>>>()?;
+            for &node in family {
+                let others = (first..).zip(&children).filter(|&(child, _)| child != node);
+                siblings.insert(node, others.map(|(_, &hash)| hash).collect::<Vec<_>>());
+            }
+            parents.insert(first / arity, hash_children(&children));
         }
         for path in &mut distinct {
-            path.siblings.push(siblings[&(path.leaf_index >> level)]);
+            path.siblings.extend(&siblings[&(path.leaf_index >> (2 * level))]);
         }
         nodes = parents;
     }
@@ -192,19 +207,20 @@ mod tests {
     /// and nothing else decodes to it.
     #[test]
     fn proof_round_trips_through_its_one_encoding() {
-        let rows = [[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]].map(|row| row.map(F64));
+        let rows: [[F64; 3]; 8] = std::array::from_fn(|q| [0, q as u64 % 2, q as u64 + 1].map(F64));
         let leaf = |q: usize| hash_words(&rows[q]);
         let node = |level: usize, i: usize| match level {
             0 => leaf(i),
-            _ => hash_pair(&leaf(2 * i), &leaf(2 * i + 1)),
+            _ => hash_children(&[leaf(4 * i), leaf(4 * i + 1), leaf(4 * i + 2), leaf(4 * i + 3)]),
         };
         let proof = Proof {
             stream: vec![F192::new(1, 2, 3)],
-            merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
+            merkle: vec![open(8, &[6, 1, 6], 3, node, |q| &rows[q])],
         };
         let bytes = proof.to_bytes();
-        // The stream, then the phase: its queries, three sizes, two rows of two words, and two siblings.
-        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
+        // The stream, then the phase: its queries, three sizes, two rows of two words, and the six leaves no path
+        // gives; the root's two children are both on a path.
+        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 6 * 32);
         assert_eq!(Proof::from_bytes(&bytes), Some(proof));
         assert_eq!(Proof::from_bytes(&[&bytes[..], &[0]].concat()), None);
     }
