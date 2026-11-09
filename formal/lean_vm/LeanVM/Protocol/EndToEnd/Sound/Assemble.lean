@@ -108,6 +108,10 @@ structure OpeningIface : Type where
   /-- The stack's word (`wordOf cs 0`). -/
   word₀ : List (ℕ × ℕ × Word) → Word
   shape_word : ∀ {μ R cs}, ShapeOK₀ μ R cs → firstWordC cs = some (word₀ cs)
+  /-- The stack's root, as `commitStack` reads it, has level 0's shape: what the knowledge
+  statement needs for the root's doom to hold on a run. -/
+  shape_commitStack : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ {e : Ev},
+    (commitStack μ R).after [e] = some (.ret ()) → ShapeOK₀ μ R (commits [e])
   candidates_finite : ∀ {μ R : ℕ} (W : Word), Whir.Admissible μ R →
     (Candidates μ R (thr₀ μ R) W).Finite
   card_candidates_le : ∀ {μ R : ℕ} (W : Word), Whir.Admissible μ R →
