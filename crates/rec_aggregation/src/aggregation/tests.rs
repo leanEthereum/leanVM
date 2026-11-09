@@ -54,6 +54,12 @@ fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
         .collect()
 }
 
+/// The native verifier derives the DA challenge's grind from its own copy of the blob size.
+#[test]
+fn da_block_size_matches_the_verifier() {
+    assert_eq!(verifier::da::DA_LOG_K, DA_LOG_K);
+}
+
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;

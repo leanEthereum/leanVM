@@ -115,3 +115,44 @@ fn print_whir_query_table() {
         .collect();
     println!("WHIR_QUERIES = ({})  # fmt: skip", rates.join(", "));
 }
+
+/// The grinds both verifiers hardcode are the prover's. A verifier asking for fewer bits than the prover grinds still
+/// accepts every honest proof, so only this catches a drift below the target.
+#[test]
+fn grinding_constants_match_the_prover() {
+    use pcs::whir_config as prover;
+    let rust = [
+        verifier::SECURITY_BITS,
+        verifier::QUERY_GRINDING_BITS,
+        verifier::FOLD_GRINDING_BITS,
+        verifier::BATCH_GRINDING_BITS,
+        verifier::OOD_GRINDING_BITS,
+        verifier::OOD_SAMPLES as u32,
+    ];
+    let expected = [
+        leanvm_core::SECURITY_BITS,
+        prover::QUERY_GRINDING_BITS as u32,
+        prover::FOLD_GRINDING_BITS as u32,
+        prover::BATCH_GRINDING_BITS as u32,
+        prover::OOD_GRINDING_BITS as u32,
+        prover::OOD_SAMPLES as u32,
+    ];
+    assert_eq!(rust, expected, "crates/verifier's grinding constants");
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier");
+    let output = Command::new("python3")
+        .arg("-c")
+        .arg(
+            "import sys; sys.path.insert(0, '.'); import verifier as v; print(v.SECURITY_BITS, v.QUERY_GRINDING_BITS, \
+             v.FOLD_GRINDING_BITS, v.BATCH_GRINDING_BITS, v.OOD_GRINDING_BITS, v.OOD_SAMPLES)",
+        )
+        .current_dir(&directory)
+        .output()
+        .expect("run python3 to dump the constants");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let python: Vec<u32> = String::from_utf8(output.stdout)
+        .expect("utf-8")
+        .split_whitespace()
+        .map(|f| f.parse().expect("an integer"))
+        .collect();
+    assert_eq!(python, expected, "python-verifier's grinding constants");
+}

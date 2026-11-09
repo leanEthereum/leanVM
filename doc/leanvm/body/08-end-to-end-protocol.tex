@@ -91,7 +91,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \begin{enumerate}
 \item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the two memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
-\item \textbf{Prover \& Verifier.} The commitment's OOD sample, before any other challenge (\S\ref{sec:protocol}): the prover grinds $\grind{ood}$ bits, the verifier samples $z_0\in\E^{\nv_0}$, and the prover sends the committed multilinear at $z_0$. The value joins the claim pool last.
+\item \textbf{Prover \& Verifier.} The commitment's OOD sample, before any other challenge (\S\ref{sec:protocol}): the prover grinds $\grind{ood}$ bits, the verifier samples $z_0\in\E^{\nv_0}$, and the prover sends the stack's multilinear at $z_0$. The value joins the claim pool last.
 \end{enumerate}
 
 \paragraph{Bus.}

@@ -26,7 +26,10 @@ pub use field::{E, K};
 pub use layout::TAG;
 pub use merkle::MerklePath;
 pub use transcript::Proof;
-pub use whir::whir_queries;
+pub use transcript::SECURITY_BITS;
+pub use whir::{
+    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, OOD_SAMPLES, QUERY_GRINDING_BITS, whir_queries,
+};
 
 use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
@@ -40,7 +43,7 @@ use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::{Transcript, grinding_bits};
-use whir::{OOD_GRINDING_BITS, verify_whir};
+use whir::verify_whir;
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -118,7 +121,8 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
 
-/// The stacked opening's batching is accounted for up to this many claims, the ring-switch ones included.
+/// The stacked opening's batching is accounted for up to this many claims, the ring-switched one included. The count
+/// follows from the announced shape, so a replay checks it too, like the committed size.
 const MAX_STACKED_CLAIMS: usize = 512;
 
 /// The weight a claim puts on the stack, and the value it claims for it.

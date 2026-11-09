@@ -157,7 +157,7 @@ Since $\prod_{k=\tau_j}^{\taumax-1}x_k$ sums to $1$ over $\cube{\taumax-\tau_j}$
 \[
   \sum_{x\in\cube{\taumax}}F(x)\;\qeq\;\sum_{s=1}^{\nside}\xi^{\,\nconstot+s-1}\mathsf{rem}_{s},
 \]
-the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the round-by-round errors are $3/|\E|$ per round (Fact~\ref{fact:sumcheck}) and $(\nconstot+\nside-1)/|\E|$ for $\xi$, the batch's degree in it (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
+the verifier computing the right side itself. Each summand of $F$ has individual degree $d+1=3$, the constraint contributing $d$ and the $\eq$ factor one, so the round-by-round errors are $3/|\E|$ per round (Fact~\ref{fact:sumcheck}), $4/|\E|$ where the round's challenge is also a coordinate of the \texttt{KECCAK} table's point (\S\ref{keccak:segments}), and $(\nconstot+\nside-1)/|\E|$ for $\xi$, the batch's degree in it (Corollary~\ref{cor:idtest}). Rounds bind $X_{\taumax-1}$ first, so $T_j$ joins only at round $\taumax-\tau_j$: hence \emph{back-loaded}. The end yields one claim per column, $T_j$'s at $\fc_{<\tau_j}$, settled by the PCS opening (\S\ref{sec:stacking}).
 
 \subsection{Example: proving elliptic curve multiplication}\label{sec:arith-example}
 

@@ -12,15 +12,15 @@ const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
 const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
-const QUERY_GRINDING_BITS: u32 = 17;
+pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each round's `theta`, and again before its `(gamma, alpha, beta)`.
-const FOLD_GRINDING_BITS: u32 = 6;
+pub const FOLD_GRINDING_BITS: u32 = 6;
 /// Before every batching challenge: each level's lambda, and the stacked opening's map challenges and lambda.
-pub(crate) const BATCH_GRINDING_BITS: u32 = 12;
+pub const BATCH_GRINDING_BITS: u32 = 12;
 /// Before the level-0 OOD sample.
-pub(crate) const OOD_GRINDING_BITS: u32 = 14;
+pub const OOD_GRINDING_BITS: u32 = 14;
 /// Out-of-domain points after each non-final level's commitment, drawn together with no grind.
-const OOD_SAMPLES: usize = 2;
+pub const OOD_SAMPLES: usize = 2;
 
 #[rustfmt::skip]
 const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [

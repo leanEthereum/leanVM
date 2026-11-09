@@ -60,7 +60,7 @@ impl Sponge {
     }
 
     pub(crate) fn absorb(&mut self, value: E, tag: u64) {
-        debug_assert!(self.ground.is_none(), "a grind is followed by a challenge");
+        assert!(self.ground.is_none(), "a grind is followed by a challenge");
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }

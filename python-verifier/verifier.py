@@ -1186,7 +1186,7 @@ def _fold_row(values: Sequence[K | E], x: E, rounds: Sequence[FoldRound]) -> E:
 def _induced_weight(message_log: int, queries: Sequence[int], query_weights: Sequence[E], point: Sequence[E]) -> E:
     """The level's batched query claims, as one weight at `point`.
 
-    Each query contributes the novel-basis column weight of doc annex B, Lemma
+    Each query contributes the novel-basis column weight of doc annex D, Lemma
     lem:colweight, `prod_k (1 + p_k (1 + W-hat_k(x_q)))`, scaled by its power of
     the level's batching challenge.
     """
@@ -1220,7 +1220,7 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
 
     A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X)(F + theta G)` of [CYWZ26, preprint],
     the claim carried by five scalars a round and the weight folded by `gamma`, so the gammas are the weight's point.
-    A non-final level then commits the folded lane's low part, sends its high part, and glues an OOD claim and its
+    A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claims and its
     queries, each opened row folded as the lanes were and corrected by the high part. The final level sends the whole
     folded lane, checks the queries against it, and closes with a sumcheck over the low part."""
     config = derive_config(log_n, log_inv_rate)

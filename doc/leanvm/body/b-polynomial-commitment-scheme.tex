@@ -124,16 +124,16 @@ its low part $P_{\mathrm{low}}$ is a message of the code, and its high part cost
 \emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ has a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and a query count $\nq_i$. The grinding bits are $\grind{ood}$, $\grind{fold}$, $\grind{batch}$ and $\grind{query}$. (The agreement thresholds appear only in the analysis.)
 
 \smallskip
-\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. $\mathbf{V}$ grinds $\grind{ood}$ bits and sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
+\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. After a grind of $\grind{ood}$ bits, $\mathbf{V}$ sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
 
 \smallskip
-\textbf{Open}$\bigl(\{(W_t, c_t)\}_{t = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ grinds $\grind{batch}$ bits and sends $\lambda \leftarrow \E$ (in the stacked opening, with the ring-switching challenges, \S\ref{sec:soundness-outer}). The running claim is $(W, \rc{0}) := \bigl(\sum_{t} \lambda^{t-1} W_t,\; \sum_{t} \lambda^{t-1} c_t\bigr)$, on the lanes $P_u:=\mpoly_{f(u,\cdot)}$, $u\in\cube{\ell_0}$. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
+\textbf{Open}$\bigl(\{(W_t, c_t)\}_{t = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: after a grind of $\grind{batch}$ bits, $\mathbf{V}$ sends $\lambda \leftarrow \E$ (in the stacked opening, with the ring-switching challenges, \S\ref{sec:soundness-outer}). The running claim is $(W, \rc{0}) := \bigl(\sum_{t} \lambda^{t-1} W_t,\; \sum_{t} \lambda^{t-1} c_t\bigr)$, on the lanes $P_u:=\mpoly_{f(u,\cdot)}$, $u\in\cube{\ell_0}$. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
 \begin{enumerate}[itemsep=0.5pt,topsep=2pt]
 \item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes $P$ with $\ell_i-j+1$ lane variables, split as $F$, $G$ by the first:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
-\item $\mathbf{V}$ grinds $\grind{fold}$ bits and sends $\premix_j \leftarrow \E$.
+\item After a grind of $\grind{fold}$ bits, $\mathbf{V}$ sends $\premix_j \leftarrow \E$.
 \item $\mathbf{P}$ sends $u_0, v_0, \tabx{0}, v_1, \tabx{1} \in \E$, honestly $u_\iota = \inner{W_\iota}{G}$, $v_\iota=\inner{W_\iota}{H}$, $\tabx{\iota}=\inner{W_\iota}{XH}$, with $H := F+\premix_j G$ and $W_\iota:=W(\iota,\cdot)$. $\mathbf{V}$ sets $u_1 := \rc{j-1} + v_0 + \premix_j u_0$: the check $(v_0+\premix_ju_0)+u_1\qeq\rc{j-1}$, solved for $u_1$.
-\item $\mathbf{V}$ grinds $\grind{fold}$ bits and sends $\wch_j, \afa_j, \afb_j \leftarrow \E$, in this order.
+\item After a grind of $\grind{fold}$ bits, $\mathbf{V}$ sends $\wch_j, \afa_j, \afb_j \leftarrow \E$, in this order.
 \item Both set $\rc{j} := \sum_{\iota\in\{0,1\}} \eq(\wch_j,\iota)\,\bigl(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota}\bigr)$ and $W \gets \mle{W}(\wch_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\premix_j,\afa_j,\afb_j} = G+(\afa_j+\afb_jX)H$.
 \end{enumerate}
 After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its low $2^\kappa$ coefficients are a message $f^{(i+1)}:\cube{\nv_{i+1}}\to\E$ and its high ones are $\phigh\in\E^{\ell_i}$: $P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\sum_{j<\ell_i}\phigh_j\novel_j$. The running claim $(W,\rc{\ell_i})$ is a weighted claim about $f^{(i+1)}$.
@@ -141,8 +141,8 @@ After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, then $\phigh$.
 \item \emph{(ood)} $\mathbf{V}$ sends two points $z_1,z_2 \leftarrow \E^{\nv_{i+1}}$, one message; $\mathbf{P}$ sends $\cood{1},\cood{2} \in \E$ (honestly $\mle{f^{(i+1)}}(z_s)$).
-\item \emph{(query)} $\mathbf{V}$ grinds $\grind{query}$ bits and sends $\nq_i$ i.i.d.\ columns $\qset_i = (x_q)_{q < \nq_i} \leftarrow \dom_i$.
-\item \emph{(batch)} $\mathbf{V}$ grinds $\grind{batch}$ bits and sends $\lambda\leftarrow\E$.
+\item \emph{(query)} After a grind of $\grind{query}$ bits, $\mathbf{V}$ sends $\nq_i$ i.i.d.\ columns $\qset_i = (x_q)_{q < \nq_i} \leftarrow \dom_i$.
+\item \emph{(batch)} After a grind of $\grind{batch}$ bits, $\mathbf{V}$ sends $\lambda\leftarrow\E$.
 \item \emph{(read)} $\mathbf{V}$ reads $\orc^{(i)}[\cdot, x_q]$ and folds it as the rounds folded the lanes, $c_q := \orc^{(i)}_{\premix_1,\afa_1,\afb_1,\dots}[x_q]$ (honestly $P(x_q)$), then removes the high part, $c'_q := c_q + \Wn{\kappa}(x_q)\sum_{j<\ell_i}\phigh_j\,\novel_j(x_q)$ (honestly $\Enc_i(f^{(i+1)})[x_q]$).
 \item \emph{(next level)} The $J_{i+1}:=\nq_i+3$ claims of level $i+1$, the residual, the two OOD and the $\nq_i$ consistency claims, are batched into one running claim on the lanes $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$:
 \[
@@ -152,7 +152,7 @@ W \gets W + \textstyle\sum_{s}\lambda^{s}\eq(z_s,\cdot) + \lambda^3\textstyle\su
 \]
 where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
 \end{enumerate}
-\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ grinds $\grind{query}$ bits, sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
+\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. After a grind of $\grind{query}$ bits, $\mathbf{V}$ sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
 \end{enumerate}
 $\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\wch,\fc)$ of all weight and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
@@ -313,7 +313,7 @@ At level $\nlev - 1$ the fold rounds end as above: every polynomial of degree at
 \subsection{Optimizations}\label{sec:pcs-opt}
 %=====================================================================
 
-The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements in $\K$, then zeros up to $2^{\nv}$. Let the row index be the stack's most significant $\ell_0$ coordinates: $f(u, x) := q(x, u)$ for $u \in \cube{\ell_0}$ and $x \in \cube{\nv - \ell_0}$, \S\ref{app:ntt}. Row $u$ is then the block of $2^{\nv - \ell_0}$ consecutive elements of $q$ at offset $\langle u \rangle 2^{\nv - \ell_0}$, the padding is whole rows, and only $\nrows=\lceil\nstack/2^{\nv-\ell_0}\rceil$ of the $2^{\ell_0}$ rows hold data. So we get the following optimizations at commitment:
+The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements in $\K$, then zeros up to $2^{\nv}$. Let the row index be the stack's most significant $\ell_0$ coordinates: $f(u, x) := q(x, u)$ for $u \in \cube{\ell_0}$ and $x \in \cube{\nv - \ell_0}$, \S\ref{app:ntt}. Row $u$ is then the block of $2^{\nv - \ell_0}$ consecutive elements of $q$ at offset $\langle u \rangle 2^{\nv - \ell_0}$, the padding is whole rows, and only $\nrows=\lceil\nstack/2^{\nv-\ell_0}\rceil$ of the $2^{\ell_0}$ rows hold data. Claims on the stack, the commitment's OOD claim included, are taken in $q$'s variable order and rotated to $f$'s. So we get the following optimizations at commitment:
 \begin{itemize}[itemsep=1pt,topsep=2pt]
 \item the FFT-encoder only runs on $\nrows$ rows (and not the full $2^{\ell_0}$), since FFT-ing zeros gives zeros;
 \item a Merkle leaf only contains $\nrows$ elements of $\K$ (proof size optimization), we keep the convention of hashing the full $2^{\ell_0}$ values for simplicity, but we hash them in reverse order, starting from the padding zeros;

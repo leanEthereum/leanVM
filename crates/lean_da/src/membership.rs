@@ -11,30 +11,14 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
 //! of degree below `k`. A uniform challenge accepts it with probability at most
-//! `(k-1)/2^128`, which [`DA_GRINDING_BITS`] of grinding lift to `2^-SECURITY_BITS`. `z` is derived from
+//! `(k-1)/2^128`, which the grind before `z` (`verifier::da`) lifts to `2^-SECURITY_BITS`. `z` is derived from
 //! the root outside the SNARK, and the statement binds it; the guest builds `L` from `z` and
 //! checks the inner products.
 
-use fiat_shamir::{digest_words, grinding_bits, merkle::Hash, transcript::ProverState};
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F128};
-use primitives::hash::hash;
+use primitives::field::F64;
 
-use crate::{BLOB_SYMBOLS, DA_LOG_K, LOG_M};
-
-const LABEL: &[u8] = b"leanDA/rs-membership/v1";
-
-/// PoW bits ground before `z`, whose error numerator is `k - 1`.
-pub const DA_GRINDING_BITS: u32 = grinding_bits(BLOB_SYMBOLS as u128 - 1);
-
-/// `z`: the VM's transcript seeded with the label's hash as its IV and the root as its public
-/// input, ground with the smallest valid nonce (the search is the grind: every party redoes it,
-/// so nothing travels), then squeezed once.
-pub fn membership_challenge(root: &Hash) -> F128 {
-    let mut transcript = ProverState::new(digest_words(&hash(LABEL)), digest_words(root));
-    transcript.grind(DA_GRINDING_BITS);
-    transcript.sample()
-}
+use crate::{DA_LOG_K, LOG_M};
 
 /// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
 /// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
@@ -92,11 +76,6 @@ mod tests {
     /// The claim the whole check rests on: over an F_2-subspace domain at rate
     /// 1/2 the code is self-dual, so any two codewords are orthogonal. If this
     /// fails, `check_membership` is testing the wrong relation.
-    #[test]
-    fn grinding_bits_at_k_2_14() {
-        assert_eq!(DA_GRINDING_BITS, 9);
-    }
-
     #[test]
     fn code_is_self_dual() {
         let mut rng = StdRng::seed_from_u64(3);
