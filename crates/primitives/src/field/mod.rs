@@ -30,6 +30,7 @@ pub use f192x8::{
     xor_into8,
 };
 pub use gf2_64::F64;
+use gf2_64::R64;
 pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
 
 // ---------------------------------------------------------------------------
@@ -37,13 +38,24 @@ pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_unreduced4, mul2
 // index encoding (§sec:vm, §sec:e2e-bc).
 // ---------------------------------------------------------------------------
 
-/// Multiply by `x = g` in `K`, where `x^64 = x^4 + x^3 + x + 1` and
-/// `0x1B = x^4 + x^3 + x + 1`.
+/// Multiply by `x = g` in `K`: a shift, and a fold of bit 64 by `x^64 = x^4 + x^3 + x + 1`.
 /// `const` so table constants (`g^k` separators, opcodes) evaluate at compile time.
 #[inline]
 pub const fn mul_by_g(a: F64) -> F64 {
     let carry = a.0 >> 63;
-    F64((a.0 << 1) ^ (0x1B * carry))
+    F64((a.0 << 1) ^ (R64 * carry))
+}
+
+/// Divide by `x = g` in `K`, the inverse of the product by `g`.
+///
+/// Bit 0 of the input says whether that product folded: if so, unfold it and set bit 63.
+#[inline(always)]
+pub const fn div_by_g(a: F64) -> F64 {
+    F64(if a.0 & 1 == 1 {
+        (a.0 ^ R64) >> 1 | 1 << 63
+    } else {
+        a.0 >> 1
+    })
 }
 
 /// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
