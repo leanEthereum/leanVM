@@ -600,6 +600,37 @@ def main():
     assert!(err.to_string().contains("list_split"), "rejected elsewhere: {err}");
 }
 
+/// `grind_check` rebuilds a lane from bit windows: an honest run cannot show a proof of work
+/// is checked, so this pins that a set bit below the window fails and one at or above it passes.
+#[test]
+fn grind_check_reads_the_low_bits() {
+    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
+        .split_once("\ndef main():")
+        .unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    word = hint_witness("w")
+    grind_check(word, exponent_tables() * GEN ** WIN_TAB_AT, 3)
+    return
+"#
+    );
+    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let run = |lane: u64| {
+        let mut hints = Hints::default();
+        hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
+        let mut program = guest.clone();
+        hints.install(&mut program);
+        program.execute([F128::ZERO, F128::ZERO])
+    };
+    for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
+        assert!(run(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
+    }
+    for lane in [1, 0b100, 0xFEDC_BA98_7654_321A] {
+        assert!(run(lane).is_err(), "{lane:#x} has a low bit set");
+    }
+}
+
 /// The guest accepts committed codewords, and rejects a matrix with one symbol of
 /// one row flipped, though its root and vector are that matrix's: the row is no codeword.
 #[test]

@@ -322,7 +322,8 @@ RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS  # above any block or column index
 RANK_KEY_BOUND = SIZE_BITS * RANK_STRIDE   # above any step between two rank keys
 SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS
 WIN_TAB_AT = SIDE_TAB_AT + N_BLOCK_GROUPS  # a bit window's pattern by its g-power: [g^n] = n
-WIN_TAB_LEN = 128
+WIN_TAB_BITS = 11
+WIN_TAB_LEN = 2 ** WIN_TAB_BITS
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
@@ -834,6 +835,14 @@ def assert_window(w, width: Const):
         assert log(w) < 64
     elif const(width == 7):
         assert log(w) < 128
+    elif const(width == 8):
+        assert log(w) < 256
+    elif const(width == 9):
+        assert log(w) < 512
+    elif const(width == 10):
+        assert log(w) < 1024
+    elif const(width == 11):
+        assert log(w) < 2048
     else:
         assert 0 == 1  # no window is wider than the window table covers
     return
@@ -935,21 +944,26 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
 def grind_check(word, tabs, nbits: Const):
     # The permutation that absorbs a grinding nonce must leave its third lane, the first
     # of `word`, its second cell, with the low nbits zero (transcript::grind_check,
-    # 0 < nbits < 64). That lane is rebuilt
-    # from windows of its bits at and above nbits only, which IS the claim, and the
-    # word less it must be Y times a K element, which pins the rebuilt lane as its
-    # first. The honest prover searches the u64 nonces while verification permits the
-    # full field: each candidate still costs one permutation and passes with
-    # probability 2^-nbits.
-    wins = StackBuf(10)
-    lane = 0
-    for i in unroll(0, (BASE_FIELD_BITS - nbits + 6) // 7):
-        start = nbits + 7 * i
-        if const((start + 7) // (BASE_FIELD_BITS + 1) == 0):
-            width = 7
-        else:
-            width = BASE_FIELD_BITS - start
-        lane += query_window(word, wins, tabs, i, start, width) * COORD_BASIS[start]
+    # 0 < nbits < 64). That lane is rebuilt from windows of its bits at and above nbits
+    # only, which IS the claim, and the word less it must be Y times a K element, which
+    # pins the rebuilt lane as its first. The windows are WIN_TAB_BITS wide but the top
+    # one, each range checked and read as its bit pattern, then joined by Horner in x,
+    # which is GEN: no shift leaves the limb. The honest prover searches the u64 nonces
+    # while verification permits the full field: each candidate still costs one
+    # permutation and passes with probability 2^-nbits.
+    n_win = (BASE_FIELD_BITS - nbits + WIN_TAB_BITS - 1) // WIN_TAB_BITS
+    top = BASE_FIELD_BITS - nbits - WIN_TAB_BITS * (n_win - 1)
+    wins = StackBuf(BASE_FIELD_BITS // WIN_TAB_BITS + 1)
+    hint_windows_exponent(wins, word, nbits, WIN_TAB_BITS, n_win - 1, 0)
+    hint_windows_exponent(wins, word, nbits + WIN_TAB_BITS * (n_win - 1), top, 1, n_win - 1)
+    w = wins[n_win - 1]
+    assert_window(w, top)
+    lane = tabs[w]
+    for i in unroll(1, n_win):
+        w = wins[n_win - 1 - i]
+        assert_window(w, WIN_TAB_BITS)
+        lane = lane * GEN ** WIN_TAB_BITS + tabs[w]
+    lane = lane * GEN ** nbits
     high = (word + lane) * Y_INV
     assert_in_k(high, lane)
     return
