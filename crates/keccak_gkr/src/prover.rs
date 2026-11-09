@@ -15,7 +15,7 @@ use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::basis::{PolyEval, add_mul, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
+use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, SkipWeights, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
@@ -349,7 +349,7 @@ impl Layer<'_> {
     /// here. A binary one is a pack, whose sum `binary` already holds. The packs of the padding
     /// block are all equal, so their extension vanishes there.
     fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F192, binary: &[F192; GROUP]) -> Vec<F192> {
-        let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
+        let weights = SkipWeights::new(field, &claim.weights);
         let groups: Vec<Element> = eq_table(&claim.point[SKIP..])
             .iter()
             .map(|&e| field.to_poly(e))
