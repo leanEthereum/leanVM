@@ -129,10 +129,7 @@ theorem step_keccak {l K : ℕ} {ins : List V} (hins : ins.map σ = w.levelIns l
     (Atom.keccak ins [.n (K + 1), .n (K + 2)] false false).Holds rd σ := by
   have hl : ins.length = 13 := by
     have := congrArg List.length hins; simpa [levelIns] using this
-  refine keccak_holds_two.mpr ⟨hl, ?_, ?_, ?_⟩
-  · rw [hins]
-    intro c
-    fin_cases c <;> simp [cells13, levelIns] <;> first | exact w.pc_canonical _ | exact canonical_word _ _
+  refine keccak_holds_two.mpr ⟨hl, ?_, ?_⟩
   · rw [hins, hout 0 (by omega), stepV]
     rfl
   · rw [hins, show K + 2 = K + 1 + 1 by omega, hout 1 (by omega), stepV]
