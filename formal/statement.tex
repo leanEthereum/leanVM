@@ -189,7 +189,7 @@ whole padded sponge path appears as a chain of forward queries from the zero sta
 (\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
 inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks
 whose Reed--Solomon encoding agrees with the word on at least the Johnson threshold of columns (at
-most $2^{12}$ of them, \lean{LeanVM.candidates_ncard_le}, \lean{lean_vm}), and returns a candidate's memory
+most $166$ of them, \lean{Whir.Params.listMax₀_le}, \lean{lean_vm}), and returns a candidate's memory
 image whose halting run is a valid execution, if one exists.
 
 It is an algorithm: every definition it uses is computable and deterministic. It lists the
