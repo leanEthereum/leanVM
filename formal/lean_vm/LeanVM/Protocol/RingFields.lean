@@ -9,7 +9,7 @@
 
 module
 
-public import Statement.Field
+public import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.FrobeniusMap
 import Mathlib.Algebra.CharP.Reduced
 import Mathlib.FieldTheory.Finite.Basic
@@ -21,8 +21,8 @@ import Mathlib.LinearAlgebra.Vandermonde
 Ring switching (`doc/leanvm/body/a-ring-switching.tex`, §A.3 and §A.4;
 `crates/verifier/src/ring_switch.rs` at leanVM `f128`) packs the `64` bit slices of `q_keccak` by
 the powers of `x = g` and draws a random `F_2`-linear map `Φ` of support `{0, …, 63}`. Its
-soundness rests on facts about `K = GF(2^64)` and `E = K[y]/(y^2 + x·y + 1)` (`Statement.Field`),
-stated here on `Statement.Field` alone:
+soundness rests on facts about `K = GF(2^64)` and `E = K[y]/(y^2 + x·y + 1)`
+(`LeanVM.Parameters.Field`):
 
 * `K.eq_sum_bits`: a word of `K` is its bits packed by the powers of `x`,
   `a = Σ_{i < 64} a_i · x^i` (through CompPoly's bridge to `GF(2)[X] / (X^64 + X^4 + X^3 + X + 1)`).
@@ -38,7 +38,7 @@ stated here on `Statement.Field` alone:
   `2/|E|` (`ringSwitch_zero_ratio_le`). Injectivity gives a nonzero `π_k`, `k = 8p + b < 64`,
   and each stage is linear in its own challenges.
 
-`y` is CompPoly's adjoined root `Ext.gen`. The declarations live in `LeanVM.Protocol.Ring`.
+The declarations live in `LeanVM.Protocol.Ring`.
 -/
 
 namespace LeanVM.Protocol.Ring
@@ -47,9 +47,6 @@ open LeanVM.Parameters CompPoly.Extension Finset
 open scoped ENNReal
 
 @[expose] public section
-
-/-- `E` has characteristic two, through `K`. -/
-instance charP_E : CharP E 2 := charP_of_injective_algebraMap (algebraMap K E).injective 2
 
 /-- `|E| = 2^128`, counted with `Nat.card`. -/
 theorem natCard_E : Nat.card E = 2 ^ 128 := by
@@ -84,13 +81,9 @@ theorem K.eq_sum_bits (a : K) :
 
 private theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
 
-private theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
 private theorem ofK_sum {ι : Type*} (s : Finset ι) (f : ι → K) :
     ofK (∑ i ∈ s, f i) = ∑ i ∈ s, ofK (f i) :=
   map_sum (algebraMap K E) f s
-
-private theorem ofK_injective : Function.Injective ofK := (algebraMap K E).injective
 
 /-! ## Frobenius periods -/
 
@@ -152,38 +145,30 @@ theorem eq_zero_of_frob_sums_K (d : Fin 64 → K)
 
 /-! ## The limbs of `E` -/
 
-/-- Every word is its limbs in the basis `1, y`. -/
-theorem E.eq_limbs (x : E) : x = ofK (x.limb 0) + ofK (x.limb 1) * Ext.gen := by
-  apply Ext.toQuot_injective
-  have hx : Ext.toQuot x = ∑ i : Fin 2,
-      algebraMap K (AdjoinRoot eParams.poly) (x.limb i) * Ext.rt eParams ^ (i : ℕ) := rfl
-  rw [hx, Fin.sum_univ_two]
-  simp [Ext.toQuot_add, Ext.toQuot_mul, Ext.toQuot_ofBase, Ext.toQuot_gen]
-
 /-- `y ∉ K`. -/
-theorem gen_ne_ofK (a : K) : (Ext.gen : E) ≠ ofK a := by
+theorem y_ne_ofK (a : K) : y ≠ ofK a := by
   intro h
   have h1 : Ext.coeff (Ext.gen : E) ⟨1, eParams.two_le⟩ =
-      Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := by rw [h]
+      Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := congrArg (fun z : E ↦ Ext.coeff z _) h
   rw [Ext.coeff_gen, Ext.coeff_ofBase] at h1
   simp at h1
 
 /-- `y^(2^k) ∉ K`: the Frobenius maps `K` onto itself and is injective on `E`. -/
-theorem gen_frob_ne_ofK (k : ℕ) (a : K) : (Ext.gen : E) ^ 2 ^ k ≠ ofK a := by
+theorem y_frob_ne_ofK (k : ℕ) (a : K) : y ^ 2 ^ k ≠ ofK a := by
   intro h
   obtain ⟨c, hc⟩ := (Finite.injective_iff_surjective.mp (iterateFrobenius_inj K 2 k)) a
   rw [iterateFrobenius_def] at hc
   rw [← hc, ofK_pow] at h
-  exact gen_ne_ofK c (iterateFrobenius_inj E 2 k (by simpa only [iterateFrobenius_def] using h))
+  exact y_ne_ofK c (iterateFrobenius_inj E 2 k (by simpa only [iterateFrobenius_def] using h))
 
 /-- `1, y^(2^k)` are `K`-independent in `E`. -/
-theorem limbs_eq_zero_of_frob (k : ℕ) (a b : K) (h : ofK a + ofK b * (Ext.gen : E) ^ 2 ^ k = 0) :
+theorem limbs_eq_zero_of_frob (k : ℕ) (a b : K) (h : ofK a + ofK b * y ^ 2 ^ k = 0) :
     a = 0 ∧ b = 0 := by
   by_cases hb : b = 0
   · subst hb
     refine ⟨ofK_injective ?_, rfl⟩
     simpa using h
-  · refine absurd ?_ (gen_frob_ne_ofK k (-a * b⁻¹))
+  · refine absurd ?_ (y_frob_ne_ofK k (-a * b⁻¹))
     have hb' : ofK b ≠ 0 := fun h0 ↦ hb (ofK_injective (h0.trans (map_zero (algebraMap K E)).symm))
     change _ = algebraMap K E (-a * b⁻¹)
     rw [map_mul, map_neg, map_inv₀]
@@ -193,8 +178,8 @@ theorem limbs_eq_zero_of_frob (k : ℕ) (a b : K) (h : ofK a + ofK b * (Ext.gen 
 
 /-- The Frobenius `x ↦ x^(2^k)` on limbs. -/
 theorem frob_limbs (x : E) (k : ℕ) :
-    x ^ 2 ^ k = ofK (x.limb 0 ^ 2 ^ k) + ofK (x.limb 1 ^ 2 ^ k) * (Ext.gen : E) ^ 2 ^ k := by
-  conv_lhs => rw [E.eq_limbs x]
+    x ^ 2 ^ k = ofK (x.limb 0 ^ 2 ^ k) + ofK (x.limb 1 ^ 2 ^ k) * y ^ 2 ^ k := by
+  conv_lhs => rw [E.eq_sum_limbs x]
   rw [add_pow_char_pow, mul_pow, ofK_pow, ofK_pow]
 
 /-! ## Ring switching -/
@@ -212,7 +197,7 @@ theorem ringSwitch_injective (δ : Fin 64 → E)
     apply limbs_eq_zero_of_frob k
     have e : ∀ i : Fin 64, ringW i * δ i ^ 2 ^ k =
         ofK (g ^ i.val * (δ i).limb 0 ^ 2 ^ k) +
-          ofK (g ^ i.val * (δ i).limb 1 ^ 2 ^ k) * (Ext.gen : E) ^ 2 ^ k := by
+          ofK (g ^ i.val * (δ i).limb 1 ^ 2 ^ k) * y ^ 2 ^ k := by
       intro i
       rw [frob_limbs (δ i) k, ofK_mul, ofK_mul]
       change ofK (g ^ i.val) * _ = _
