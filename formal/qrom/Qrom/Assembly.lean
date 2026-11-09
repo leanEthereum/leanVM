@@ -120,6 +120,44 @@ theorem search_withVerifier_le (g : OvGame X Y S P Res) [Nonempty Y] (good : X �
     (sideW_const g G .instruments (withVerifier adv ver) ρ fun p ↦
       decide (∃ z ∈ out p.2.2.2, good z (G z)))
 
+section events
+
+variable {L : LocalSig.{u, v}} {W : QReg → Type w} {A : QReg}
+
+theorem sideW_mono (g : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
+    (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) {ev ev' : (Σ u, W u) → S → Bool}
+    (h : ∀ p s, ev p s = true → ev' p s = true) :
+    sideW g G I x ρ ev ≤ sideW g G I x ρ ev' := by
+  rw [sideW_eq_sum, sideW_eq_sum]
+  refine ENNReal.tsum_le_tsum fun p ↦ Finset.sum_le_sum fun s _ ↦ ?_
+  by_cases he : ev p s = true
+  · rw [ite_eq_left he, ite_eq_left (h p s he)]
+  · rw [ite_eq_right he]
+    exact zero_le
+
+theorem sideW_or_le (g : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
+    (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) (ev ev' : (Σ u, W u) → S → Bool) :
+    sideW g G I x ρ (fun p s ↦ ev p s || ev' p s) ≤ sideW g G I x ρ ev + sideW g G I x ρ ev' := by
+  rw [sideW_eq_sum, sideW_eq_sum, sideW_eq_sum, ← ENNReal.tsum_add]
+  refine ENNReal.tsum_le_tsum fun p ↦ ?_
+  rw [← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun s _ ↦ ?_
+  cases ev p s <;> cases ev' p s <;> simp
+
+/-- The total weight of the leaves and side states is at most the trace of the input. -/
+theorem sideW_true_le (g : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
+    (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) :
+    sideW g G I x ρ (fun _ _ ↦ true) ≤ ENNReal.ofReal ρ.matrix.trace.re := by
+  rw [sideW_const]
+  refine (MeasureTheory.measure_mono (Set.subset_univ _)).trans ?_
+  rw [QuantumRuntime.evalDistMap_apply_univ]
+  set p := (g.sampled G).run I x
+  rw [p.isCPTNIFamily.familyTrace_apply, p.isCPTNIFamily.re_tsum_trace_apply]
+  refine ENNReal.ofReal_le_ofReal ((p.tsum_trace_re_le (ρ.prod _).posSemidef).trans (le_of_eq ?_))
+  simp [SubState.prod, Matrix.trace_kronecker, SubState.matrix_basis]
+
+end events
+
 end OvGame
 
 end Qrom
