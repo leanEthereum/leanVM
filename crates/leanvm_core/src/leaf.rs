@@ -184,11 +184,42 @@ pub fn layout(blocks: &[Block]) -> Layout {
 /// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
 /// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
 /// `GCol` folds the `g^k` factor into the coefficient.
+#[derive(Clone, Copy)]
 enum Term<'a> {
     Col(usize, F192),
     Prod(usize, usize, F192),
     Index(F192),
     Public(&'a [F64], F192),
+}
+
+impl Term<'_> {
+    /// Whether both are one source at one coefficient.
+    fn same(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Term::Col(i, c), Term::Col(j, d)) => (i, c) == (j, d),
+            (Term::Prod(i, j, c), Term::Prod(k, l, d)) => (i, j, c) == (k, l, d),
+            (Term::Index(c), Term::Index(d)) => c == d,
+            (Term::Public(u, c), Term::Public(v, d)) => std::ptr::eq(*u, *v) && c == d,
+            _ => false,
+        }
+    }
+
+    /// `coeff · source(z)`, unreduced, for the index column value `g^z = index`.
+    #[inline(always)]
+    fn at(&self, z: usize, cols: &[&[F64]], index: F64) -> F192Unreduced {
+        match self {
+            Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
+            Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
+            Term::Index(c) => c.mul_base_unreduced(index),
+            Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
+        }
+    }
+
+    fn coeff(&self) -> F192 {
+        match self {
+            Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => *c,
+        }
+    }
 }
 
 /// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
@@ -228,65 +259,107 @@ struct LeafBlock<'a> {
     terms: Vec<Term<'a>>,
 }
 
-impl LeafBlock<'_> {
-    /// The leaf of real row `z`, whose index column value `g^z` is `index`.
-    #[inline]
-    fn leaf(&self, z: usize, cols: &[&[F64]], index: F64) -> F192 {
-        // The α-weighted coordinate sum defers its reductions: each mixed
-        // product contributes its three raw limb products (3 PMULL, no
-        // reduction tail), one combined reduction per row at the end,
-        // bit-identical to summing reduced `mul_base` terms.
-        let mut acc = F192Unreduced::ZERO;
-        for t in &self.terms {
-            acc ^= match t {
-                Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
-                Term::Index(c) => c.mul_base_unreduced(index),
-                Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-            };
+/// Blocks of one shape whose formulas share terms, as an interaction's push and pull
+/// blocks over one table's columns do: member `m`'s leaf is its block's `const_part`
+/// plus `shared` plus its own terms, so the shared products are formed once.
+struct Family<'a, 'b> {
+    shared: Vec<Term<'a>>,
+    members: Vec<(&'b LeafBlock<'a>, Vec<Term<'a>>)>,
+}
+
+/// The most blocks a [`Family`] holds.
+const MEMBERS: usize = 2;
+
+impl<'a, 'b> Family<'a, 'b> {
+    fn single(blk: &'b LeafBlock<'a>) -> Self {
+        Self {
+            shared: blk.terms.clone(),
+            members: vec![(blk, Vec::new())],
         }
-        self.const_part + acc.reduce()
     }
 
-    /// The leaves of rows `z0..z0 + out.len()`.
-    fn fill(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) {
-        let real = self.rows.saturating_sub(z0).min(out.len());
-        let (real_out, padding) = out.split_at_mut(real);
-        // A padding row's leaf is the identity, so it leaves the product alone.
-        padding.fill(F192::ONE);
+    /// `blocks` (of one shape) as families, each block paired with the one sharing the
+    /// most terms with it, if any.
+    fn of(blocks: &[&'b LeafBlock<'a>]) -> Vec<Self> {
+        // The terms of `a` and `b` they share, then `a`'s and `b`'s others.
+        let split = |a: &[Term<'a>], b: &[Term<'a>]| {
+            let (mut shared, mut own_a, mut own_b) = (Vec::new(), Vec::new(), b.to_vec());
+            for t in a {
+                match own_b.iter().position(|u| t.same(u)) {
+                    Some(i) => shared.push(own_b.swap_remove(i)),
+                    None => own_a.push(*t),
+                }
+            }
+            (shared, own_a, own_b)
+        };
+        let mut left = blocks.to_vec();
+        let mut families = Vec::new();
+        while !left.is_empty() {
+            let a = left.remove(0);
+            let best = (0..left.len()).max_by_key(|&i| split(&a.terms, &left[i].terms).0.len());
+            match best {
+                Some(i) if !split(&a.terms, &left[i].terms).0.is_empty() => {
+                    let b = left.remove(i);
+                    let (shared, own_a, own_b) = split(&a.terms, &b.terms);
+                    families.push(Self {
+                        shared,
+                        members: vec![(a, own_a), (b, own_b)],
+                    });
+                }
+                _ => families.push(Self::single(a)),
+            }
+        }
+        families
+    }
+
+    /// Every member's leaves of rows `z0..z0 + len`, into `outs[m]`.
+    fn fill(&self, z0: usize, outs: &mut [&mut [F192]], cols: &[&[F64]]) {
+        debug_assert_eq!(outs.len(), self.members.len());
+        let len = outs[0].len();
+        let real = self.members[0].0.rows.saturating_sub(z0).min(len);
+        for out in outs.iter_mut() {
+            // A padding row's leaf is the identity, so it leaves the product alone.
+            out[real..].fill(F192::ONE);
+        }
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-        let done = self.fill_lanes(z0, real_out, cols);
+        let done = self.fill_lanes(z0, real, outs, cols);
         #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
         let done = 0;
+        // Each mixed product contributes its raw limb products, and a leaf is reduced
+        // once, bit-identical to summing reduced `mul_base` terms.
+        let sum = |terms: &[Term], z: usize, index: F64| {
+            terms
+                .iter()
+                .fold(F192Unreduced::ZERO, |acc, t| acc ^ t.at(z, cols, index))
+        };
         let mut index = g_pow(z0 + done);
-        for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
-            *slot = self.leaf(z0 + i, cols, index);
+        for i in done..real {
+            let shared = sum(&self.shared, z0 + i, index);
+            for ((blk, own), out) in self.members.iter().zip(outs.iter_mut()) {
+                out[i] = blk.const_part + (shared ^ sum(own, z0 + i, index)).reduce();
+            }
             index = mul_by_g(index);
         }
     }
 
-    /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
-    /// product; returns how many rows it wrote.
+    /// [`fill`](Self::fill) over the first `real` rows, [`lanes::N`] at a time, every term one
+    /// lane-wise mixed product; returns how many rows it wrote.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn fill_lanes(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
+    fn fill_lanes(&self, z0: usize, real: usize, outs: &mut [&mut [F192]], cols: &[&[F64]]) -> usize {
         use lanes::{E, K, Mixed, N};
         let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
         // `g^z` for the `N` rows, stepped by `g^N`.
         let mut index = K::new(std::array::from_fn(|i| g_pow(z0 + i)));
         let step = K::splat(g_pow(N));
-        let coeffs: Vec<E> = self
-            .terms
+        let coeffs = |terms: &[Term]| -> Vec<E> { terms.iter().map(|t| E::splat(t.coeff())).collect() };
+        let shared = coeffs(&self.shared);
+        let own: Vec<(E, Vec<E>)> = self
+            .members
             .iter()
-            .map(|t| match t {
-                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => E::splat(*c),
-            })
+            .map(|(blk, terms)| (E::splat(blk.const_part), coeffs(terms)))
             .collect();
-        let constant = E::splat(self.const_part);
-        let (chunks, _) = out.as_chunks_mut::<N>();
-        for (k, slot) in chunks.iter_mut().enumerate() {
-            let z = z0 + N * k;
-            let mut acc = Mixed::ZERO;
-            for (t, &c) in self.terms.iter().zip(&coeffs) {
+        let add = |acc: &mut Mixed, terms: &[Term], coeffs: &[E], z: usize, index: K| {
+            for (t, &c) in terms.iter().zip(coeffs) {
                 match t {
                     Term::Col(i, _) => acc.add(c, load(cols[*i], z)),
                     Term::Prod(i, j, _) => acc.add(c, load(cols[*i], z) * load(cols[*j], z)),
@@ -294,14 +367,23 @@ impl LeafBlock<'_> {
                     Term::Public(vals, _) => acc.add(c, load(vals, z)),
                 }
             }
+        };
+        for k in 0..real / N {
+            let z = z0 + N * k;
+            let mut acc = Mixed::ZERO;
+            add(&mut acc, &self.shared, &shared, z, index);
+            for (((_, terms), (constant, c)), out) in self.members.iter().zip(&own).zip(outs.iter_mut()) {
+                let mut acc = acc;
+                add(&mut acc, terms, c, z, index);
+                (acc.reduce() + *constant).store((&mut out[z - z0..z - z0 + N]).try_into().unwrap());
+            }
             index = index * step;
-            (acc.reduce() + constant).store(slot);
         }
-        N * chunks.len()
+        N * (real / N)
     }
 }
 
-/// The lane-wise kernels [`LeafBlock::fill_lanes`] runs on: eight lanes with AVX-512
+/// The lane-wise kernels [`Family::fill_lanes`] runs on: eight lanes with AVX-512
 /// ([`primitives::field::x8`]), four without ([`primitives::field::x4`]).
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod lanes {
@@ -393,9 +475,12 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         .collect();
     shapes.sort_unstable();
     shapes.dedup();
-    let groups: Vec<Vec<&LeafBlock>> = shapes
+    let groups: Vec<Vec<Family>> = shapes
         .iter()
-        .map(|&shape| blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect())
+        .map(|&shape| {
+            let group: Vec<&LeafBlock> = blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect();
+            Family::of(&group)
+        })
         .collect();
     let tasks: Vec<(usize, Range<usize>)> = shapes
         .iter()
@@ -404,7 +489,8 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         .flat_map(|(g, (&(kappa, _), group))| {
             let height = 1usize << kappa;
             // At least one sixteen per task, or its `sixteens` would go unwritten.
-            let rows = (TASK_LEAVES / group.len()).next_power_of_two().clamp(16, height);
+            let blocks: usize = group.iter().map(|family| family.members.len()).sum();
+            let rows = (TASK_LEAVES / blocks).next_power_of_two().clamp(16, height);
             (0..height).step_by(rows).map(move |z| (g, z..z + rows))
         })
         .collect();
@@ -412,34 +498,39 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         .map(|level| level.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr())));
     parallel::for_each(tasks.len(), |task| {
         let (group, ref rows) = tasks[task];
-        let mut stage = [F192::ZERO; CHUNK];
+        let mut stages = [[F192::ZERO; CHUNK]; MEMBERS];
         let mut stage4 = [F192::ZERO; CHUNK / 4];
         let mut stage16 = [F192::ZERO; CHUNK / 16];
         // The GKR reads all three long after this pass has evicted them.
         let stream = primitives::stream::Stream::new();
         for z0 in rows.clone().step_by(CHUNK) {
             let len = CHUNK.min(rows.len());
-            let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
-            for blk in &groups[group] {
-                blk.fill(z0, leaves, cols);
-                // Past the block's real rows every leaf, and so every tuple's product, is the identity.
-                let live = if gkr::SKIP_IDENTITY {
-                    blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
-                } else {
-                    len
-                };
-                gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
-                gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
-                fours[live / 4..].fill(F192::ONE);
-                sixteens[live / 16..].fill(F192::ONE);
-                let at = blk.offset + z0;
-                // SAFETY: a block's chunks are disjoint ranges of its side's leaves, blocks
-                // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple
-                // of sixteen.
-                unsafe {
-                    stream.copy(ptrs[0][blk.side].slice(at, len), leaves);
-                    stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours);
-                    stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens);
+            let (fours, sixteens) = (&mut stage4[..len / 4], &mut stage16[..len / 16]);
+            for family in &groups[group] {
+                let [first, second] = &mut stages;
+                let n = family.members.len();
+                family.fill(z0, &mut [&mut first[..len], &mut second[..len]][..n], cols);
+                for ((blk, _), stage) in family.members.iter().zip(&stages) {
+                    let leaves = &stage[..len];
+                    // Past the block's real rows every leaf, and so every tuple's product, is the identity.
+                    let live = if gkr::SKIP_IDENTITY {
+                        blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
+                    } else {
+                        len
+                    };
+                    gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
+                    gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
+                    fours[live / 4..].fill(F192::ONE);
+                    sixteens[live / 16..].fill(F192::ONE);
+                    let at = blk.offset + z0;
+                    // SAFETY: a block's chunks are disjoint ranges of its side's leaves, blocks
+                    // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple
+                    // of sixteen.
+                    unsafe {
+                        stream.copy(ptrs[0][blk.side].slice(at, len), leaves);
+                        stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours);
+                        stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens);
+                    }
                 }
             }
         }
@@ -448,7 +539,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
     for (side, v) in values.iter_mut().enumerate() {
         let mut tail = lens[side];
         for blk in blocks.iter().filter(|b| b.side == side && b.kappa < CHUNKED) {
-            blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols);
+            Family::single(blk).fill(0, &mut [&mut v[blk.offset..blk.offset + (1 << blk.kappa)]], cols);
             tail = tail.min(blk.offset);
         }
         if sides[side].0.is_empty() {
