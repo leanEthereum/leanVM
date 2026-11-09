@@ -322,5 +322,71 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
     simp only [not_or, not_not] at h
     exact hex ⟨U, hU, h.2.1, h.2.2.1⟩
 
+/-! ## The batching challenge -/
+
+/-- The glued claim's weight against a member: the running weight, `λ, λ²` times the
+out-of-domain weights and `λ³` times the consistency weight. -/
+def gluedW (Φ : List E → E) (z₁ z₂ : List E) (mu : ℕ) (qs : List ℕ) (lam : E) (x : List E) : E :=
+  Φ x + 1 * lam * eqEval z₁ x + 1 * lam * lam * eqEval z₂ x +
+    1 * lam * lam * lam * Verifier.inducedWeight mu qs (powers lam qs.length) x
+
+/-- The glued claim's value. -/
+def gluedV (σ y₁ y₂ : E) (qs : List ℕ) (c' : ℕ → E) (lam : E) : E :=
+  σ + 1 * lam * y₁ + 1 * lam * lam * y₂ +
+    1 * lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k]
+
+open Classical in
+/-- **The batching step** (Annex B, proof of `thm:rbr`, "Batching challenge"): from `QDoom`, at
+most `(t + 2)·|list|` values `λ` let a member of the next list satisfy the glued claim. -/
+theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
+    (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (Φ : List E → E) (σ : E) (z₁ z₂ : List E)
+    (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) (hq : ∀ q ∈ qs, q < P.n)
+    (hQ : QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs) :
+    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+        ∑ x, gluedW Φ z₁ z₂ P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
+          gluedV σ y₁ y₂ qs c' lam).card ≤
+      (tlist P'.dom Q' (P'.thr 0) (P'.deg 0)).card * (qs.length + 2) := by
+  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+  refine card_filter_exists_le L _ fun U hU ↦ ?_
+  set g := joinMsg hκ (msgT P'.κ U)
+  have h64 : P.κ ≤ 64 := by have := P.h64; omega
+  have hood : ∀ z, oodVal z (msgT P'.κ U) = ∑ x, eqEval z (bitsL x) * g x := fun z ↦ by
+    rw [oodVal, ← sum_joinMsg hκ]
+  -- The discrepancy's coefficients: residual, the two out-of-domain claims, the queries.
+  let e : Fin qs.length → E := fun k ↦ encAt P.κ P.R g qs[k] - c' qs[k]
+  let d : Fin (qs.length + 3) → E :=
+    Fin.cons (∑ x, Φ (bitsL x) * g x - σ) (Fin.cons (oodVal z₁ (msgT P'.κ U) - y₁)
+      (Fin.cons (oodVal z₂ (msgT P'.κ U) - y₂) e))
+  have hd : ∃ k, d k ≠ 0 := by
+    rcases hQ U hU with h | h | h | ⟨q, hqm, hne⟩
+    · exact ⟨0, by simpa [d, sub_eq_zero] using h⟩
+    · exact ⟨1, by simpa [d, sub_eq_zero] using h⟩
+    · exact ⟨(0 : Fin (qs.length + 1)).succ.succ, by
+        simp only [d, Fin.cons_succ, Fin.cons_zero, ne_eq, sub_eq_zero]; exact h⟩
+    · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hqm
+      exact ⟨(⟨k, hk⟩ : Fin qs.length).succ.succ.succ, by
+        simp only [d, Fin.cons_succ, e, ne_eq, sub_eq_zero]; exact hne⟩
+  refine (card_le_card fun lam hlam ↦ ?_).trans
+    ((card_powerBatch_eq_zero_le d hd).trans (by simp))
+  simp only [mem_filter, mem_univ, true_and] at hlam ⊢
+  have hind : ∑ x, Verifier.inducedWeight P.κ qs (powers lam qs.length) (bitsL x) * g x =
+      ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] := by
+    rw [sum_inducedWeight_mul P.R h64 qs _ (length_powers lam _) hq, sum_zip_powers]
+  have hsplit : ∑ x, gluedW Φ z₁ z₂ P.κ qs lam (bitsL x) * g x =
+      ∑ x, Φ (bitsL x) * g x + 1 * lam * oodVal z₁ (msgT P'.κ U) +
+        1 * lam * lam * oodVal z₂ (msgT P'.κ U) +
+        1 * lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] := by
+    rw [hood, hood, ← hind]
+    simp only [gluedW, add_mul, Finset.sum_add_distrib, mul_assoc, ← Finset.mul_sum]
+  rw [hsplit, gluedV] at hlam
+  have hs : ∑ k : Fin qs.length, e k * lam ^ ((k : ℕ) + 1 + 1 + 1) =
+      lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] -
+        lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k] := by
+    rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_sub_distrib]
+    exact Finset.sum_congr rfl fun k _ ↦ by simp only [e]; ring
+  simp only [d, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, Fin.val_zero, pow_zero, mul_one,
+    Fin.val_succ, hs]
+  linear_combination hlam
+
 end
 end LeanVM.Protocol.Whir.Sound
