@@ -26,10 +26,10 @@ def guestSeed : Digest := deployedSeed guestArray
 
 example : guestSeed = deployedSeed guestProgram := by rw [guestSeed, guestArray_eq]
 
-/-- `Manifest.fsSeed`, two canonical cells, as a digest; `none` if a cell has a `y²` limb. -/
+/-- `Manifest.fsSeed`, two cells, as a digest. -/
 def manifestSeed : Option Digest :=
   match Guest.Manifest.fsSeed with
-  | [(a0, a1, 0), (b0, b1, 0)] =>
+  | [(a0, a1), (b0, b1)] =>
       some #v[UInt64.ofNat a0, UInt64.ofNat a1, UInt64.ofNat b0, UInt64.ofNat b1]
   | _ => none
 

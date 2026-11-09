@@ -7,7 +7,7 @@ A program of `2^11` slots whose first instruction is `JUMP [g^2, g^2, g^3]` to t
 every other slot a `SET_CONSTANT` (`jumpProg`), and a valid execution of it, one step on an image
 whose five words are linearly independent over `GF(2)`, so that no `XOR` executes on it at any
 registers or operands (`badImage_no_xor`). The image holds the public words `y` and `x·y`, the
-`JUMP` operand cells `(d, d)` and `1`, and `y²` everywhere else. Its witness has an empty `XOR`
+`JUMP` operand cells `(d, d)` and `1`, and `x²·y` everywhere else. Its witness has an empty `XOR`
 table: a table holds the run's rows, any number of them, and nothing more.
 
 Also the generic arms of `executeWith` and run lemmas the long-run test uses.
@@ -89,13 +89,13 @@ theorem read_lit {κ : ℕ} (L : MemoryImage κ) (j : ℕ) (hκ : κ < 64 := by 
 /-! ## The image -/
 
 /-- `y`, the first public word. -/
-def wA : E := E.ofLimbs 0 1 0
+def wA : E := E.ofLimbs 0 1
 
 /-- `x·y`, the second public word (`K.ofBits 2` is `x`). -/
-def wB : E := E.ofLimbs 0 (K.ofBits 2) 0
+def wB : E := E.ofLimbs 0 (K.ofBits 2)
 
-/-- `y²`, the word of every other cell. -/
-def vS : E := E.ofLimbs 0 0 1
+/-- `x²·y`, the word of every other cell. -/
+def vS : E := E.ofLimbs 0 (K.ofBits 4)
 
 /-- The five words the image holds, for the sentinel counter `d`. -/
 def S (d : K) : List E := [wA, wB, ofK d, ofK 1, vS]
@@ -119,7 +119,7 @@ theorem d₀_ne_one : d₀ ≠ 1 := by decide +kernel
 /-- The sentinel counter of a `2^11`-slot program is not `0`. -/
 theorem d₀_ne_zero : d₀ ≠ 0 := by decide +kernel
 
-/-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `y²`
+/-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `x²·y`
 everywhere else. -/
 def badImage (d : K) : MemoryImage minLogMem := fun i ↦
   match (i : ℕ) with

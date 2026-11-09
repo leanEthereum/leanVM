@@ -109,10 +109,9 @@ theorem opRows_sends {κ : ℕ} (img : MemoryImage κ) (R : List PRow) (op : Opc
 /-- The sends of the memory block: per cell, the seed push and the finalize pull. -/
 def memBlockSends {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) : List (String × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
-    [(MemPush.name, #[addressOfIndex i, 1, (img i).limb 0, (img i).limb 1, (img i).limb 2]),
+    [(MemPush.name, #[addressOfIndex i, 1, (img i).limb 0, (img i).limb 1]),
       (MemPull.name,
-        #[addressOfIndex i, g ^ fin (addressOfIndex i), (img i).limb 0, (img i).limb 1, (img
-            i).limb 2])]
+        #[addressOfIndex i, g ^ fin (addressOfIndex i), (img i).limb 0, (img i).limb 1])]
 
 /-- The sends of the memory block's rows, over any data, are `memBlockSends`. -/
 theorem memBlock_sends {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) (data : ProverData K) :
@@ -225,7 +224,7 @@ theorem chanOf_skelSends_perm (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryIm
 /-- The word at the address of an index, as a memory message. -/
 theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemoryImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
     memMsg img (addressOfIndex i) e =
-      #[addressOfIndex i, g ^ e, (img i).limb 0, (img i).limb 1, (img i).limb 2] := by
+      #[addressOfIndex i, g ^ e, (img i).limb 0, (img i).limb 1] := by
   have h := MemImage.limbsAt_eq_of_read (MemoryImage.read_gpow hκ img i)
   simp [memMsg, memMsgOf, h]
 
@@ -534,7 +533,7 @@ theorem skelWitness_constraints (prog : LeanIsaProgram) (input : PublicInput) {�
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
 theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : Vector K 13}
-    {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
+    {reads : List (K × K × Vector K 2)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
   intro y hy hn

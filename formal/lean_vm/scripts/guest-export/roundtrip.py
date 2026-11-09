@@ -40,7 +40,7 @@ for i, name, entry, length, cs in fns:
     assert all(len(chunks[c]) == 2048 for c in cs[:-1]), name
     prog.extend(code)
 assert len(prog) == code_len
-prog.extend([".set 0 0 0 0"] * ((1 << log_size) - code_len))
+prog.extend([".set 0 0 0"] * ((1 << log_size) - code_len))
 
 # g-powers of K, as the disassembler indexes them.
 gmap = {}
@@ -51,10 +51,10 @@ for j in range(len(prog) + 512):
     acc = ((acc << 1) & (2**64 - 1)) ^ (0x1B * carry)
 
 
-def kfmt(c0, c1, c2):
-    if c1 == 0 and c2 == 0:
+def kfmt(c0, c1):
+    if c1 == 0:
         return f"g^{gmap[c0]}" if c0 in gmap else f"0x{c0:016x}"
-    return f"0x{c2:016x}{c1:016x}{c0:016x}"
+    return f"0x{c1:016x}{c0:016x}"
 
 
 def render(op):
@@ -62,7 +62,7 @@ def render(op):
     k = t[0]
     n = lambda s: int(s)
     if k == ".set":
-        return f"SET    fp[{t[1]}] = {kfmt(n(t[2]), n(t[3]), n(t[4]))}"
+        return f"SET    fp[{t[1]}] = {kfmt(n(t[2]), n(t[3]))}"
     if k == ".xor":
         return f"XOR    fp[{t[3]}] = fp[{t[1]}] ^ fp[{t[2]}]"
     if k == ".mul":
@@ -76,7 +76,8 @@ def render(op):
     if k == ".keccak":
         m0, m1, m2, m3, tail, b8, cap, out = t[1:9]
         lay = lambda b: {"true": "odd", "false": "even"}[b]
-        return (f"KECCAK fp[{out}..+13] {lay(t[10])} = keccak_f(fp[{m0}],fp[{m1}],fp[{m2}],fp[{m3}], "
+        cells = {".one": 1, ".two": 2, ".all": 13}[t[11]]
+        return (f"KECCAK fp[{out}..+{cells}] {lay(t[10])} = keccak_f(fp[{m0}],fp[{m1}],fp[{m2}],fp[{m3}], "
                 f"tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {lay(t[9])}")
     raise ValueError(op)
 

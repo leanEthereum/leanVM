@@ -71,16 +71,9 @@ theorem gLog?_gpow_eq_none {κ j : ℕ} (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 
 
 /-! ## Readers and decision procedures -/
 
-/-- The limbs of the word at `a`, zero when there is none: `read`, as a row's three-limb column
+/-- The limbs of the word at `a`, zero when there is none: `read`, as a row's two-limb column
 (the arithmetization's row builders); specified by `ofLimbs_limbsAt`. -/
-noncomputable def MemoryImage.limbsAt {κ : ℕ} (L : MemoryImage κ) (a : K) : Vector K 3 :=
-  match L.read a with
-  | some v => #v[v.limb 0, v.limb 1, v.limb 2]
-  | none => #v[0, 0, 0]
-
-/-- The two limbs of the word at `a`, zero when there is none: `read`, as a row's two-limb cell
-column; specified by `ofCell_cellAt`. -/
-noncomputable def MemoryImage.cellAt {κ : ℕ} (L : MemoryImage κ) (a : K) : Vector K 2 :=
+noncomputable def MemoryImage.limbsAt {κ : ℕ} (L : MemoryImage κ) (a : K) : Vector K 2 :=
   match L.read a with
   | some v => #v[v.limb 0, v.limb 1]
   | none => #v[0, 0]
@@ -111,7 +104,7 @@ theorem MemoryImage.read_zero {κ : ℕ} (L : MemoryImage κ) : L.read 0 = none 
 /-- The limbs read back at an address that holds a word form that word. -/
 theorem MemoryImage.ofLimbs_limbsAt {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
     (h : L.read a = some v) :
-    E.ofLimbs (L.limbsAt a)[0] (L.limbsAt a)[1] (L.limbsAt a)[2] = v := by
+    E.ofLimbs (L.limbsAt a)[0] (L.limbsAt a)[1] = v := by
   unfold MemoryImage.limbsAt
   rw [h]
   exact ofLimbs_limb v
@@ -122,16 +115,6 @@ theorem MemoryImage.limbsAt_getElem_zero {κ : ℕ} {L : MemoryImage κ} {a : K}
   unfold MemoryImage.limbsAt
   rw [h]
   rfl
-
-/-- The two limbs read back at an address that holds a canonical word form that word. -/
-theorem MemoryImage.ofCell_cellAt {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
-    (h : L.read a = some v) (hc : IsCanonical128 v) : E.ofCell (L.cellAt a) = v := by
-  unfold MemoryImage.cellAt
-  rw [h]
-  show E.ofLimbs (v.limb 0) (v.limb 1) 0 = v
-  calc E.ofLimbs (v.limb 0) (v.limb 1) 0 = E.ofLimbs (v.limb 0) (v.limb 1) (v.limb 2) := by
-        rw [show v.limb 2 = 0 from hc]
-    _ = v := ofLimbs_limb v
 
 /-- The two words determine the input: no lane is dropped or shared. -/
 theorem PublicInput.words_injective :

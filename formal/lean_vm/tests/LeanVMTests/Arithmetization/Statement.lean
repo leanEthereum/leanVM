@@ -8,7 +8,7 @@ A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic
 Keccak-f[1600] permutation, and the bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the program of the execution
-tests, the executor's `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
+tests, the executor's `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
 `4af2cddd`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
 the sentinel after the three instructions, and three blocks run in frames disjoint from the
 program's own, each a loop ending in a `JUMP` back to its first instruction: one `XOR`, one
@@ -67,15 +67,16 @@ namespace LeanVMTests.Arithmetization.Statement
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## The fixture: `mul_192bit_word` with closed walks -/
+/-! ## The fixture: `mul_128bit_word` with closed walks -/
 
--- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
+-- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at
+-- `leanvm-rev`).
 def mulX : E :=
-  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef) (K.ofBits 0x1111222233334444)
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
 def mulY : E :=
-  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0) (K.ofBits 0x5555666677778888)
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0)
 def mulXY : E :=
-  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
+  E.ofLimbs (K.ofBits 0x1b4ac62c35ac2ecc) (K.ofBits 0x421e3037aaa197d0)
 
 -- The executor test `keccak_permutes_in_both_layouts` at leanVM 4af2cddd, its first permutation
 -- (as in `tests/LeanVMTests/Arithmetization/Tables.lean` and `Semantics/Execution.lean`): the
@@ -83,10 +84,10 @@ def mulXY : E :=
 -- first byte in the tail, its last bit in `b8` (whose free high limb `0x5555` holds no lane), and
 -- a zero capacity; the input lanes they hold in the even layout, and their image under `keccak_f`
 -- (`hash.rs:50-69`, computed outside Lean).
-def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
-def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0
-def kPad : E := E.ofLimbs (K.ofBits 0x01) 0 0
-def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555) 0
+def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210)
+def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d)
+def kPad : E := E.ofLimbs (K.ofBits 0x01) 0
+def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555)
 
 def kLin : Vector K 25 :=
   #v[K.ofBits 0x123456789abcdef, K.ofBits 0xfedcba9876543210, K.ofBits 0xdeadbeefcafebabe,
@@ -111,16 +112,16 @@ def kLout : Vector K 25 :=
 of cell `0`, then the lane pairs `(2c - 1, 2c)`. At `kLout` they are the executor's (`kOut` of
 the execution tests). -/
 def outCells (L : Vector K 25) : List E :=
-  [E.ofLimbs 0 L[0] 0, E.ofLimbs L[1] L[2] 0, E.ofLimbs L[3] L[4] 0, E.ofLimbs L[5] L[6] 0,
-    E.ofLimbs L[7] L[8] 0, E.ofLimbs L[9] L[10] 0, E.ofLimbs L[11] L[12] 0,
-    E.ofLimbs L[13] L[14] 0, E.ofLimbs L[15] L[16] 0, E.ofLimbs L[17] L[18] 0,
-    E.ofLimbs L[19] L[20] 0, E.ofLimbs L[21] L[22] 0, E.ofLimbs L[23] L[24] 0]
+  [E.ofLimbs 0 L[0], E.ofLimbs L[1] L[2], E.ofLimbs L[3] L[4], E.ofLimbs L[5] L[6],
+    E.ofLimbs L[7] L[8], E.ofLimbs L[9] L[10], E.ofLimbs L[11] L[12],
+    E.ofLimbs L[13] L[14], E.ofLimbs L[15] L[16], E.ofLimbs L[17] L[18],
+    E.ofLimbs L[19] L[20], E.ofLimbs L[21] L[22], E.ofLimbs L[23] L[24]]
 
 /-- The public input `[w(1), w(2)]`. -/
 def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- A word of `K` as a cell. -/
-def cellK (a : K) : E := E.ofLimbs a 0 0
+def cellK (a : K) : E := E.ofLimbs a 0
 
 /-- The program: the executor's three instructions in frame `1` (slots `0..2`), a `JUMP` to the
 sentinel (`3`), an `XOR` loop in frame `g^5` (`4`, `5`), a `DEREF` loop in the same frame
@@ -195,23 +196,22 @@ def bcCntFin (i : Fin (2 ^ walkProg.logSize)) : K := bcCnt i
 -- Frame `1`: the run.
 /-- Slot `0`, `SET_CONSTANT g^2 ← x`, with read count `c` (`1` for the honest prover). -/
 def setRow0 (c : K) : SetRow K :=
-  ⟨addressOfIndex 0, 1, addressOfIndex 2, #v[mulX.limb 0, mulX.limb 1, mulX.limb 2], c, 1⟩
+  ⟨addressOfIndex 0, 1, addressOfIndex 2, #v[mulX.limb 0, mulX.limb 1], c, 1⟩
 /-- Slot `1`, `SET_CONSTANT g^3 ← y`. -/
-def setRow1 : SetRow K := ⟨addressOfIndex 1, 1, addressOfIndex 3, #v[mulY.limb 0, mulY.limb 1,
-    mulY.limb 2], 1, 1⟩
+def setRow1 : SetRow K := ⟨addressOfIndex 1, 1, addressOfIndex 3, #v[mulY.limb 0, mulY.limb 1], 1, 1⟩
 /-- Slot `2`, `MUL_NATIVE`: the read of `x` with count `rA` (`g` for the honest prover, the
 second read), the second read of `y`, the first of the product. -/
 def mulRow (rA : K) : MulRow K :=
   ⟨addressOfIndex 2, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, #v[mulX.limb 0,
-      mulX.limb 1, mulX.limb 2],
-    #v[mulY.limb 0, mulY.limb 1, mulY.limb 2], rA, g, 1, 1⟩
+      mulX.limb 1],
+    #v[mulY.limb 0, mulY.limb 1], rA, g, 1, 1⟩
 /-- Slot `3`, the `JUMP` to the sentinel: `(g^3, 1) → (g^31, 1)`. -/
 def jumpRow3 : JumpRow K := ⟨addressOfIndex 3, 1, addressOfIndex 41, addressOfIndex 42,
     addressOfIndex 43, 1, addressOfIndex 31, 1, 1, 1, 1, 1⟩
 
 -- Frame `g^5`: the `XOR` and `DEREF` blocks.
 /-- Slot `4`, `XOR 1 1 1` on the zero cell `g^5`: three reads. -/
-def xorRow : XorRow K := ⟨addressOfIndex 4, addressOfIndex 5, 1, 1, 1, #v[0, 0, 0], #v[0, 0, 0], 1,
+def xorRow : XorRow K := ⟨addressOfIndex 4, addressOfIndex 5, 1, 1, 1, #v[0, 0], #v[0, 0], 1,
     g, g ^ 2, 1⟩
 /-- Slot `5`, the `JUMP` back to slot `4`. -/
 def jumpRow5 : JumpRow K := ⟨addressOfIndex 5, addressOfIndex 5, g, addressOfIndex 2, addressOfIndex
@@ -219,7 +219,7 @@ def jumpRow5 : JumpRow K := ⟨addressOfIndex 5, addressOfIndex 5, g, addressOfI
 /-- Slot `6`, `DEREF` in `cell` mode: the pointer `g^5` at `g^11`, the local and target cell
 both `g^5` (its fourth and fifth reads). -/
 def derefRow : DerefRow K :=
-  ⟨addressOfIndex 6, addressOfIndex 5, addressOfIndex 6, 1, 1, 0, 0, addressOfIndex 5, #v[0, 0, 0],
+  ⟨addressOfIndex 6, addressOfIndex 5, addressOfIndex 6, 1, 1, 0, 0, addressOfIndex 5, #v[0, 0],
       g, g ^ 4, g ^ 3, 1⟩
 /-- Slot `7`, the `JUMP` back to slot `6`. -/
 def jumpRow7 : JumpRow K := ⟨addressOfIndex 7, addressOfIndex 5, g, addressOfIndex 3, addressOfIndex
@@ -257,11 +257,10 @@ theorem jumpRaws_size (rs : List (JumpRow K)) :
 def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
   rawRow (memRowOf (walkImage L) i (cnt i))
 
-/-- The memory row's five cells, without evaluating the block's row list. -/
+/-- The memory row's four cells, without evaluating the block's row list. -/
 theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
     memRowArr L cnt i =
-      #[(walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2, addressOfIndex i,
-        cnt i] := by
+      #[(walkImage L i).limb 0, (walkImage L i).limb 1, addressOfIndex i, cnt i] := by
   with_unfolding_all rfl
 
 /-- The memory block's rows, with any finalize counts, agree with its fixed index column: the
@@ -451,7 +450,7 @@ theorem walk_memRows (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
   rw [memRows_data, walk_table6, List.map_ofFn, imageRows, List.toArray_ofFn]
   congr 1
   funext i
-  exact rowPrefix_three_rawRow (walkW L c rA cnt) _
+  exact rowPrefix_two_rawRow (walkW L c rA cnt) _
 
 /-- The image the data names, as one equality of dependent pairs. -/
 theorem walk_imageOf (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
@@ -584,11 +583,11 @@ theorem memT_table (L : Vector K 25) (cnt : ℕ → K) :
 
 /-- The seed message of cell `i`: `(g^i, 1, mem[i])`. -/
 def seedMsg (L : Vector K 25) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+  #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- The finalize message of cell `i`: `(g^i, cnt i, mem[i])`. -/
 def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+  #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- Row `i` of the memory block pushes its seed and pulls its finalize message, over any data. -/
 theorem memRow_sends (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (i : Fin (2 ^ minLogMem)) :
@@ -685,7 +684,7 @@ theorem fins_split (L : Vector K 25) (cnt : ℕ → K) (h : ∀ i, touched ≤ i
   refine congrArg₂ _ rfl (congrArg _ (funext fun j ↦ ?_))
   show #[addressOfIndex (touched + j), cnt (touched + j), (walkImage L (Fin.natAdd touched
       j)).limb 0,
-    (walkImage L (Fin.natAdd touched j)).limb 1, (walkImage L (Fin.natAdd touched j)).limb 2] = _
+    (walkImage L (Fin.natAdd touched j)).limb 1] = _
   rw [h _ (Nat.le_add_right touched j)]
   rfl
 
@@ -1122,7 +1121,7 @@ theorem wrong_lane_witness :
 
 /-- The memory block with its index column shifted by one row. -/
 def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
-  rawRow (⟨#v[(walkImage kLout i).limb 0, (walkImage kLout i).limb 1, (walkImage kLout i).limb 2],
+  rawRow (⟨#v[(walkImage kLout i).limb 0, (walkImage kLout i).limb 1],
     addressOfIndex (i + 1), memCnt i⟩ : MemRow K)
 
 /-- The index column is fixed (§6.5): rows whose row `0` carries `g^1` disagree with the memory

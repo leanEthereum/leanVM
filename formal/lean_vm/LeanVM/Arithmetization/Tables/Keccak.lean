@@ -19,10 +19,10 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `KECCAK` table
 
-At leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9` and Clean pin `b41c196b`. The
-columns are `keccak_columns` (`crates/verifier/src/layout.rs:388-397, 434-443`;
-`crates/leanvm_core/src/tables.rs:880-889`, `keccakt`) and the flushes `flushes_keccak`
-(`layout.rs:329-371`; `tables.rs:937-961`),
+At `leanvm-rev` and Clean pin `b41c196b`. The
+columns are `keccak_columns` (`crates/verifier/src/layout.rs:383-388, 425-434`;
+`crates/leanvm_core/src/tables.rs:856-873`, `keccakt`) and the flushes `flushes_keccak`
+(`layout.rs:324-362`; `tables.rs:919-945`),
 matching specification §7.6 (`doc/leanvm/body/07-instruction-tables.tex`). There is no table constraint: the permutation is
 proved by the Keccak reduction (`verify_keccak`) on the input lanes committed to `q_keccak` and
 the output lanes the table's claims hand it.
@@ -33,8 +33,8 @@ the output lanes the table's claims hand it.
 cell, the thirteen read then the thirteen written or cancelled (`cnt`); the bytecode count
 `r_bc`. A cell's
 limb holding lane `a` in the even layout and `b` in the odd one is `a + flag·a + flag·b`
-(`layout_limb`, `layout.rs:311-327`): `a` at `flag = 0`, `b` at `flag = 1`; every cell's top
-limb is a literal zero.
+(`layout_limb`, `layout.rs:306-322`): `a` at `flag = 0`, `b` at `flag = 1`; a cell is exactly
+its two limbs.
 
 **The output cells.** Output cell `0` is a read (`memRead`); cell `1` is a read gated by
 `out_two` and cells `2..13` reads gated by `out_all` (`memReadIf`, the Rust's `memory_coords_if`):
@@ -68,7 +68,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `KECCAK` columns, in the order of `keccak_columns` (`layout.rs:434-443`). -/
+/-- The `KECCAK` columns, in the order of `keccak_columns` (`layout.rs:425-434`). -/
 structure KeccakRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -179,8 +179,10 @@ theorem KeccakRefines.relation_of_all {κ : ℕ} {mem : MemoryImage κ} {r : Kec
     funext c; exact Option.some.inj ((hin c).symm.trans (hb.in_eq c))
   have houtput : output = laneCells r.outLanes outOdd 0 := by
     funext c; exact Option.some.inj ((hout c c.isLt).symm.trans (hb.out_eq c c.isLt))
-  have h2 := hcells.2
-  rw [hinput, houtput, stateOfCells_laneCells] at h2
+  have h2 := hcells
+  rw [hinput, houtput] at h2
+  unfold KeccakCellsRelation at h2
+  rw [stateOfCells_laneCells] at h2
   have h3 : laneCells r.outLanes outOdd 0 =
       laneCells (stateLanes (keccakF1600 (laneState r.inLanes))) outOdd 0 := by
     funext c; rw [h2 c c.isLt, cellsOfState_eq_laneCells]
@@ -195,10 +197,8 @@ theorem keccak_refines_of {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K}
   refine ⟨inOdd, outOdd, outCells, hf, hb, ?_⟩
   refine (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mpr
     ⟨laneCells r.inLanes inOdd r.free, laneCells r.outLanes outOdd 0, hb.in_eq, hb.out_eq,
-      ⟨fun c ↦ ?_, fun c _ ↦ ?_⟩, rfl⟩
-  · show (E.ofLimbs _ _ 0).limb 2 = 0
-    rw [limb_ofLimbs]; rfl
-  · rw [stateOfCells_laneCells, cellsOfState_eq_laneCells, ← hrel]
+      fun c _ ↦ ?_, rfl⟩
+  rw [stateOfCells_laneCells, cellsOfState_eq_laneCells, ← hrel]
 
 /-! ## The adapter to the prover data -/
 
@@ -262,10 +262,10 @@ theorem of_gate_all {oc : KeccakOutputCells} (h : (keccakOutputFlags oc).2 = 1) 
 /-! ## The table -/
 
 set_option maxHeartbeats 16000000 in
-/-- The `KECCAK` table (`flushes_keccak`, `layout.rs:329-371`): state step, bytecode read of
+/-- The `KECCAK` table (`flushes_keccak`, `layout.rs:324-362`): state step, bytecode read of
 `(KECCAK, o_m₀, …, o_m₃, o_tail, o_b8, o_cap, o_out, odd_in, odd_out, out_two, out_all)`, the
 thirteen cells read, output cell `0` written, cell `1` written as `out_two` says and cells `2..13`
-as `out_all` says (`memReadIf`), each as `(lo, hi, 0)` in its layout. Returns the pushed successor
+as `out_all` says (`memReadIf`), each as `(lo, hi)` in its layout. Returns the pushed successor
 `(g·pc, fp)`; sound under `KeccakRelation`. -/
 def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
   -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
@@ -278,32 +278,32 @@ def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
     bytecodeRead r.pc r.rbc (Expression.const Opcode.keccak.busCode)
       #v[r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout, r.oddIn, r.oddOut,
         r.outTwo, r.outAll]
-    memRead (r.fp * r.om[0]) r.cnt[0] #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]
-    memRead (r.fp * r.om[1]) r.cnt[1] #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]
-    memRead (r.fp * r.om[2]) r.cnt[2] #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]
-    memRead (r.fp * r.om[3]) r.cnt[3] #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]
-    memRead (r.fp * (Expression.const (g ^ 0) * r.otail)) r.cnt[4] #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]
-    memRead (r.fp * (Expression.const (g ^ 1) * r.otail)) r.cnt[5] #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]
-    memRead (r.fp * (Expression.const (g ^ 2) * r.otail)) r.cnt[6] #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]
-    memRead (r.fp * (Expression.const (g ^ 3) * r.otail)) r.cnt[7] #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]
-    memRead (r.fp * r.ob8) r.cnt[8] #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]
-    memRead (r.fp * (Expression.const (g ^ 0) * r.ocap)) r.cnt[9] #v[r.lin[17], r.lin[18], 0]
-    memRead (r.fp * (Expression.const (g ^ 1) * r.ocap)) r.cnt[10] #v[r.lin[19], r.lin[20], 0]
-    memRead (r.fp * (Expression.const (g ^ 2) * r.ocap)) r.cnt[11] #v[r.lin[21], r.lin[22], 0]
-    memRead (r.fp * (Expression.const (g ^ 3) * r.ocap)) r.cnt[12] #v[r.lin[23], r.lin[24], 0]
-    memRead (r.fp * (Expression.const (g ^ 0) * r.oout)) r.cnt[13] #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]
-    memReadIf r.outTwo (r.fp * (Expression.const (g ^ 1) * r.oout)) r.cnt[14] #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 2) * r.oout)) r.cnt[15] #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 3) * r.oout)) r.cnt[16] #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 4) * r.oout)) r.cnt[17] #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 5) * r.oout)) r.cnt[18] #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 6) * r.oout)) r.cnt[19] #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 7) * r.oout)) r.cnt[20] #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 8) * r.oout)) r.cnt[21] #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 9) * r.oout)) r.cnt[22] #v[r.lout[17], r.lout[18], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 10) * r.oout)) r.cnt[23] #v[r.lout[19], r.lout[20], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 11) * r.oout)) r.cnt[24] #v[r.lout[21], r.lout[22], 0]
-    memReadIf r.outAll (r.fp * (Expression.const (g ^ 12) * r.oout)) r.cnt[25] #v[r.lout[23], r.lout[24], 0]
+    memRead (r.fp * r.om[0]) r.cnt[0] #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0]]
+    memRead (r.fp * r.om[1]) r.cnt[1] #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2]]
+    memRead (r.fp * r.om[2]) r.cnt[2] #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4]]
+    memRead (r.fp * r.om[3]) r.cnt[3] #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6]]
+    memRead (r.fp * (Expression.const (g ^ 0) * r.otail)) r.cnt[4] #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8]]
+    memRead (r.fp * (Expression.const (g ^ 1) * r.otail)) r.cnt[5] #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10]]
+    memRead (r.fp * (Expression.const (g ^ 2) * r.otail)) r.cnt[6] #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12]]
+    memRead (r.fp * (Expression.const (g ^ 3) * r.otail)) r.cnt[7] #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14]]
+    memRead (r.fp * r.ob8) r.cnt[8] #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16]]
+    memRead (r.fp * (Expression.const (g ^ 0) * r.ocap)) r.cnt[9] #v[r.lin[17], r.lin[18]]
+    memRead (r.fp * (Expression.const (g ^ 1) * r.ocap)) r.cnt[10] #v[r.lin[19], r.lin[20]]
+    memRead (r.fp * (Expression.const (g ^ 2) * r.ocap)) r.cnt[11] #v[r.lin[21], r.lin[22]]
+    memRead (r.fp * (Expression.const (g ^ 3) * r.ocap)) r.cnt[12] #v[r.lin[23], r.lin[24]]
+    memRead (r.fp * (Expression.const (g ^ 0) * r.oout)) r.cnt[13] #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0]]
+    memReadIf r.outTwo (r.fp * (Expression.const (g ^ 1) * r.oout)) r.cnt[14] #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 2) * r.oout)) r.cnt[15] #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 3) * r.oout)) r.cnt[16] #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 4) * r.oout)) r.cnt[17] #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 5) * r.oout)) r.cnt[18] #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 6) * r.oout)) r.cnt[19] #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 7) * r.oout)) r.cnt[20] #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 8) * r.oout)) r.cnt[21] #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 9) * r.oout)) r.cnt[22] #v[r.lout[17], r.lout[18]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 10) * r.oout)) r.cnt[23] #v[r.lout[19], r.lout[20]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 11) * r.oout)) r.cnt[24] #v[r.lout[21], r.lout[22]]
+    memReadIf r.outAll (r.fp * (Expression.const (g ^ 12) * r.oout)) r.cnt[25] #v[r.lout[23], r.lout[24]]
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`. And the memory
   -- pull: a gated pull of multiplicity `flag` requires the flag to be `0` or `1`, which the
@@ -462,7 +462,7 @@ noncomputable def keccakInputCells {κ : ℕ} (mem : MemoryImage κ) (fp : K) (o
 /-- The row of an execution of `KECCAK om o_tail o_b8 o_cap o_out inOdd outOdd outCells` from
 `(pc, fp)` over the image `mem`: the registers, the operands, the layout and output flags, the
 input lanes the cells read hold and their free limb, the output lanes Keccak-f[1600] of them (all
-twenty-five, as the Rust fills `V_OUT` with the input permuted again, `tables.rs:996-1000`, whatever
+twenty-five, as the Rust fills `V_OUT` with the input permuted again, `tables.rs:977-982`, whatever
 `outCells`), and the counts as parameters. Noncomputable: it reads the image. -/
 noncomputable def keccakRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om : Fin 4 → K)
     (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)
@@ -493,9 +493,9 @@ theorem keccakRowOf_relation {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om :
   rw [hin, laneState_stateLanes]
   funext l; simp [keccakRowOf, KeccakRow.outLanes]
 
-/-- A valid execution of `KECCAK` binds `keccakRowOf`, with any counts: its input cells are
-canonical, so they are the cells of the lanes they hold, and its written output cells are the cells
-of Keccak-f[1600] of those lanes. -/
+/-- A valid execution of `KECCAK` binds `keccakRowOf`, with any counts: its input cells are the
+cells of the lanes they hold, and its written output cells are the cells of Keccak-f[1600] of those
+lanes. -/
 theorem keccakRowOf_bindings {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
     {otail ob8 ocap oout : K} {inOdd outOdd : Bool} {outCells : KeccakOutputCells}
     {next : Registers K}
@@ -516,9 +516,9 @@ theorem keccakRowOf_bindings {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om :
   have hfree : R.free = freeLimb input inOdd := by
     simp [hR, keccakRowOf, hinput]
   refine ⟨fun c ↦ ?_, fun c hc ↦ ?_⟩
-  · rw [hlanes, hfree, laneCells_stateOfCells hcells.1, hR, keccakRowOf_oms]
+  · rw [hlanes, hfree, laneCells_stateOfCells input inOdd, hR, keccakRowOf_oms]
     exact hin c
-  · rw [hlout, ← cellsOfState_eq_laneCells, ← hcells.2 c hc]
+  · rw [hlout, ← cellsOfState_eq_laneCells, ← hcells c hc]
     exact hout c hc
 
 /-- A valid execution of `KECCAK` is represented by `keccakRowOf`, with any counts
