@@ -61,9 +61,9 @@ it then gets every mutation above, with the honest proofs.
 The honest wire proofs are the files `proof.wire` in the fixture directories given, the Rust
 prover's proofs as `Proof::to_bytes` writes them (scripts/export-verifier-fixtures-rust.sh). The
 plain rendering of a proof prunes and hashes nothing: every count a little-endian u32, every word
-and position a little-endian u64; the stream's length and its elements, each three words; the
+and position a little-endian u64; the stream's length and its elements, each two words; the
 number of phases, and for each its number of paths, and for each path its position, its leaf's
-length and words, its siblings' count and their 32 bytes each (the length of `stream.bin` over 24,
+length and words, its siblings' count and their 32 bytes each (the length of `stream.bin` over 16,
 `stream.bin`, then `merkle_phases.bin`).
 
 Usage (from lean_vm; the two sides built first):
@@ -93,7 +93,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LEAN_EXE = ROOT / ".lake" / "build" / "bin" / "wire-diff"
 RUST_EXE = ROOT / "scripts" / "wire-diff" / "target" / "release" / "leanvm-rust-wire"
 VECTOR = ROOT / "tests" / "fixtures" / "wire" / "round-trip-vector.bin"
-VECTOR_LENGTH = (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32
+VECTOR_LENGTH = (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32
 
 MAX_PHASES, MAX_QUERIES, MAX_LEAF_WORDS, MAX_HEIGHT = 8, 256, 64, 32
 
@@ -129,7 +129,7 @@ def mutations(data: bytes, rng: random.Random, random_cases: int, all_phases: bo
     """Every case of the honest bytes `data`: (kind, label, bytes); the phase mutations on every
     phase, or with `all_phases` false on the first and the last only."""
     wire, offsets = parse_wire(data)
-    stream_count = len(wire.stream) // 24
+    stream_count = len(wire.stream) // 16
     phase_count_at = 4 + len(wire.stream)
     cases = []
 
@@ -340,9 +340,9 @@ def main() -> None:
             if not path.exists():
                 sys.exit(f"{path} is missing: the fixtures' files (scripts/export-verifier-fixtures-rust.sh)")
         wire, stream, phases = (path.read_bytes() for path in paths)
-        if len(stream) % 24:
+        if len(stream) % 16:
             sys.exit(f"{paths[1]} is not a whole number of scalars")
-        proofs.append((directory.name, wire, u32(len(stream) // 24) + stream + phases))
+        proofs.append((directory.name, wire, u32(len(stream) // 16) + stream + phases))
 
     # The cases: (proof, kind, label, bytes).
     cases = []
