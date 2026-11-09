@@ -167,7 +167,7 @@ exponent, and the state, whose first root is the stack's; `none` if the steps re
 and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
 `LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
 def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × VerifierProgramState) :=
-  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
+  runPure (announceSizesAndRoot bytecode) ⟨⟨default, [], none⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
 
@@ -712,13 +712,13 @@ def fastStacks (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
 
 /-! ### 7. The execution -/
 
-/-- **The memory image of a stack**: `2^logMemory` words, word `i` the three limbs at cell `i` of
-the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`layout.rs:72-74`), each at its placement's
-offset on the stack. -/
+/-- **The memory image of a stack**: `2^logMemory` words, word `i` the two limbs at cell `i` of
+the memory columns `MEMORY_0`, `MEMORY_1` (`layout.rs`), each at its placement's offset on the
+stack. -/
 def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryImage layout.logMemory :=
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
-    E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+    E.ofLimbs (limb memory0) (limb memory1)
 
 /-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
 fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through

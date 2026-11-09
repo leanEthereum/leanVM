@@ -57,7 +57,7 @@ theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
     unfold relationForPermutationWithHash relationMWithHash
     rw [hcomm]
     simp only [Id.run_bind, Id.run_pure, decide_true, Bool.true_and]
-    exact decide_eq_true_iff.mpr fun i ↦ dot_dual_eq_zero ((mem_code_iff c).mp hcode i) _
+    exact membershipCheckOpt_of_mem_code hcode _
   have h1 := hps π crs hcrs _ _ hrel
   rw [OracleComp.prEvent_eq_one_iff] at h1
   rw [h1 ok hok, Bool.true_and, verifyCellM_id]
