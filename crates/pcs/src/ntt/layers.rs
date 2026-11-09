@@ -13,6 +13,8 @@ impl AdditiveNttF64 {
     /// - The domain has `2^log_d` rows and splits into `2^outer_log` equal sub-blocks.
     /// - The buffer is one of them; its index fixes the global block index, and so the twiddle, of each block.
     /// - Layers fuse into radix-8 sweeps, with radix-4 sweeps where a lone radix-2 would be left over.
+    /// - A buffer larger than L1 runs depth first: after a sweep, each of its blocks finishes alone, while in cache.
+    ///   With `live`, it stays breadth first.
     ///
     /// With `live` (sorted), blocks that hold none of those buffer rows are left alone.
     ///
@@ -101,9 +103,21 @@ impl AdditiveNttF64 {
                 layer += 1;
             }
             src = None;
+            // A buffer larger than L1 goes depth first: each block of the sweep finishes alone, while it is in cache.
+            if live.is_none() && layer < log_d && buf.len() > DEPTH_FIRST_WORDS {
+                let block_elems = num_ntts << (log_d - layer);
+                let first = sub_idx << (layer - outer_log);
+                for (b, block) in buf.chunks_exact_mut(block_elems).enumerate() {
+                    self.run_layers(block, None, log_d, num_ntts, layer, layer, first + b, None);
+                }
+                return;
+            }
         }
     }
 }
+
+/// Words of a buffer whose layers run breadth first: one L1 data cache.
+const DEPTH_FIRST_WORDS: usize = 1 << 12;
 
 /// Call `f` with each block of `1 << log_rows` rows that holds a row of `live` (sorted).
 /// With no `live`, call it with every block of `num_blocks`.
