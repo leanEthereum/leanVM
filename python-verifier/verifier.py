@@ -478,7 +478,7 @@ def sumcheck(transcript: Transcript, claim: E, count: int, equalities: Sequence[
 # Bus balance and decomposition ---------------------------------------------
 
 
-# The trees the bus GKR batches, in its order: push, pull, then the count tree, at alpha = beta = 0.
+# The trees the bus GKR batches, in its order: push, pull, then the count tree, weighing the count alone at beta = 0.
 N_TREES = 3
 
 
@@ -597,8 +597,8 @@ class BusResult:
 
 
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
-    """The bus, in stream order: the grind and the fingerprint (alphas, beta); the batched GKR; the framework blocks'
-    committed columns at zeta."""
+    """The bus, in stream order: the grind and the fingerprint (weights, beta), a weight per tuple slot; the batched
+    GKR; the framework blocks' committed columns at zeta; the bytecode's share and its sumcheck."""
     framework_log_rows = (0, layout.log_memory, layout.log_bytecode)  # state, memory, bytecode
     push_layout = bus_layout(framework_log_rows, layout.push)
     pull_layout = bus_layout(framework_log_rows, layout.pull)
@@ -607,10 +607,9 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     # The announced sizes' caps keep the depth far below this.
     require(push_layout.depth < 64, "invalid announced table sizes")
 
-    # Unequal push and pull multisets pass the product check with probability at most 4 * 2^mu / |E|, mu the push depth.
-    transcript.grind_check(grinding_bits(BUS_BITS << push_layout.depth))
-    alphas = transcript.samples(BUS_BITS)
-    weights = eq_kernel(alphas)
+    # Unequal push and pull multisets pass the product check with probability at most 2^mu / |E|, mu the push depth.
+    transcript.grind_check(grinding_bits(1 << push_layout.depth))
+    weights = transcript.samples(1 << BUS_BITS)
     beta = transcript.sample()
     count_root, point, tree_values = verify_gkr_grand_products(push_layout.depth, transcript)
     require(count_root != ZERO, "a bus count is zero")
@@ -627,23 +626,29 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
     memory_index = index_mle(memory_low)
     bytecode_index = index_mle(bytecode_low)
-    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
+    # The program's share of a bytecode leaf, sum_x weights[x] P(bytecode_low, x) over the stacked bytecode's slots,
+    # then a sumcheck over x, its low bit first, down to one evaluation of P.
+    bytecode_share = transcript.next_scalar()
+    slot_point, claim = sumcheck(transcript, bytecode_share, 3, [None] * BUS_BITS)
+    bytecode_value = transcript.next_scalar()
+    require(claim == dot(eq_kernel(slot_point), weights) * bytecode_value, "bytecode sumcheck terminal mismatch")
+    require(multilinear_eval(layout.bytecode, (*bytecode_low, *slot_point)) == bytecode_value, "bytecode evaluation mismatch")
 
     def framework(pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
-        """The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
+        """The three framework tuples, each its coordinates weighted by the slots' weights; slots past the ones
         named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
         return (
             dot(weights[:3], (SEP_STATE, pc, _gpow(0))),
             dot(weights[:5], (SEP_MEM, memory_index, memory_count, *memory)),
-            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_value,
+            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_share,
         )
 
     final_pc = _gpow(2**layout.log_bytecode - 1)  # the execution ends at the bytecode's last instruction
     sides = (
         (layout.push, push_layout, framework(_gpow(0), ONE, ONE), weights, beta),
         (layout.pull, pull_layout, framework(final_pc, memory_final, bytecode_final), weights, beta),
-        (layout.count, count_layout, (), (ONE,), ZERO),  # The count channel owns no framework block and runs at alpha = beta = 0.
+        (layout.count, count_layout, (), (ONE,), ZERO),  # The count channel owns no framework block and weighs its count alone, at beta = 0.
     )
     totals = []  # what remains to be proven by the next table sumcheck
     forms = tuple(tuple(Form() for _ in range(N_TREES)) for _ in TABLES)

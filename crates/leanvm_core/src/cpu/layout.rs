@@ -366,7 +366,8 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
 
 /// The stacked bytecode polynomial: the thirteen columns at their bus tuple
 /// coordinates, padded to sixteen selector slots, which is what makes the program's
-/// whole share of a bus leaf one evaluation at `(ζ, α⃗)` (§sec:e2e-bc).
+/// whole share of a bus leaf one sum over the slots of this one multilinear, which a
+/// short sumcheck reduces to one evaluation (§sec:e2e-bc).
 ///
 /// This is the multilinear an outermost verifier is handed in place of a
 /// structured program, and what the transcript seed binds ([`super::fs_seed`]).

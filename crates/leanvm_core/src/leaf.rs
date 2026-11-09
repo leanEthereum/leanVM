@@ -2,9 +2,9 @@
 //! interaction wires a table's columns into width-`m` tuples and flushes them in a
 //! direction; the bus balances when pushed and pulled tuples form the same
 //! multiset, proven by grand products over the leaf vectors `β − π_α(σ)` under one
-//! fingerprint `(α⃗, β)`, plus the count tree. One batched GKR reduces the three trees
-//! to leaf claims `Ṽ₀(ζ)` at one point, decomposed into evaluation claims on the
-//! committed columns. Tuple coordinates
+//! fingerprint `(α⃗, β)`, `α⃗` a weight per tuple slot, plus the count tree. One
+//! batched GKR reduces the three trees to leaf claims `Ṽ₀(ζ)` at one point,
+//! decomposed into evaluation claims on the committed columns. Tuple coordinates
 //! `σ_i` are `K`-valued (column entries, g-powers, separators); the fingerprint
 //! challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed `mul_base`
 //! product (2 PMULL per coordinate).
@@ -108,34 +108,25 @@ pub struct ColumnClaim {
     pub value: F128,
 }
 
-/// The fingerprint weights `eq(α⃗, x)` over the `2^N_TUPLE_BITS` slots (§sec:gp).
-/// A tuple is fingerprinted as `Σ_x eq(α⃗, x)·σ_x`, a MULTILINEAR combination
-/// rather than a power chain: each leaf factor is then of total degree
-/// `N_TUPLE_BITS` in the challenges instead of the tuple width, and slot `x`'s
-/// weight is an `eq` weight, which is what lets the aligned bytecode polynomial
-/// be read off at `α⃗` itself (§sec:e2e-bc).
-pub(crate) fn fingerprint_weights(alphas: &[F128]) -> Vec<F128> {
-    debug_assert_eq!(alphas.len(), N_TUPLE_BITS);
-    let mut w = vec![F128::ONE; 1 << N_TUPLE_BITS];
-    for (bit, &a) in alphas.iter().enumerate() {
-        for (x, wx) in w.iter_mut().enumerate() {
-            *wx *= if (x >> bit) & 1 == 1 { a } else { a + F128::ONE };
-        }
-    }
-    w
-}
-
-/// Bits indexing a bus tuple's coordinates: `m = 14` coordinates live in the
-/// `2^4` slots of the bytecode encoding (§sec:m3, §sec:e2e-bc).
+/// Bits indexing a bus tuple's coordinates: its `2^4` slots are those of the bytecode
+/// encoding (§sec:m3, §sec:e2e-bc). A tuple is fingerprinted as `Σ_x α_x·σ_x`, one
+/// independent weight per slot (§sec:gp), so a leaf factor is linear in the challenges.
 pub const N_TUPLE_BITS: usize = 4;
 
 /// The grind before the fingerprint `(α⃗, β)`: unequal push and pull multisets pass the product check with
-/// probability at most `4·2^μ/|E|` (Theorem th:product_check), `μ` the push depth.
+/// probability at most `2^μ/|E|` (Theorem th:product_check), `μ` the push depth.
 pub fn bus_grinding_bits(mu: usize) -> u32 {
-    fiat_shamir::grinding_bits((N_TUPLE_BITS as u128) << mu)
+    fiat_shamir::grinding_bits(1 << mu)
 }
 
-/// The trees the bus GKR batches, in its order: push, pull, then the count tree, which runs at `α⃗ = 0, β = 0`.
+/// The count tree's weights: the count alone, in slot `0` (`α⃗ = (1, 0, …, 0)`, `β = 0`).
+fn count_weights() -> Vec<F128> {
+    let mut w = vec![F128::ZERO; 1 << N_TUPLE_BITS];
+    w[0] = F128::ONE;
+    w
+}
+
+/// The trees the bus GKR batches, in its order: push, pull, then the count tree, which weighs the count alone at `β = 0`.
 pub const N_BUS_TREES: usize = 3;
 
 /// Check the bus layout's shape. Push and pull have the same logical height, and the count
@@ -313,7 +304,7 @@ fn padded_products(src: &[F128], dst: &mut [F128]) {
 }
 
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
-/// tree's fingerprint weights `w = eq(α⃗, ·)`, followed implicitly by the identity `1`
+/// tree's fingerprint weights `w`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
 /// per block into its `const_part`.
 ///
@@ -763,8 +754,7 @@ pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
 /// The bus trees in GKR order (push, pull, count), each its blocks, layout, fingerprint
 /// weights and `β`. The count channel's leaf is the count itself (a single `Col`), so it
-/// runs at `α⃗ = 0` (weight `1` on slot `0`, zero elsewhere), `β = 0`, and its GKR root is
-/// the product of all counts.
+/// runs at [`count_weights`], `β = 0`, and its GKR root is the product of all counts.
 fn sides<'a>(
     blocks: [&'a [Block]; N_BUS_TREES],
     lays: [&'a Layout; N_BUS_TREES],
@@ -777,6 +767,39 @@ fn sides<'a>(
         (blocks[1], lays[1], w, beta),
         (blocks[2], lays[2], count_w, F128::ZERO),
     ]
+}
+
+/// The program's share of a bytecode leaf, `S = Σ_x α_x·P(ζ_lo, x)` over the slots `x` of the
+/// stacked bytecode `P` (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a
+/// sumcheck of [`N_TUPLE_BITS`] degree-two rounds over `x`, the low bit bound first, ending at
+/// `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier checks against the last round.
+/// Every value comes off the public columns' evaluations at `ζ_lo`, which the decomposition cached.
+fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut PublicEvals, ps: &mut ProverState) {
+    let block = push
+        .iter()
+        .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
+        .expect("the push side seeds the bytecode");
+    let zeta_lo = &zeta[..block.kappa];
+    let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
+        .map(|x| match block.coords.get(x) {
+            Some(Coord::Public(vals)) => public_eval(vals, zeta_lo, public),
+            _ => F128::ZERO,
+        })
+        .collect();
+    let mut weights = w.to_vec();
+    ps.add_scalar(weights.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
+    for _ in 0..N_TUPLE_BITS {
+        let pairs = || weights.as_chunks::<2>().0.iter().zip(slots.as_chunks::<2>().0);
+        let c0: F128 = pairs().map(|(a, p)| a[0] * p[0]).sum();
+        let c2: F128 = pairs().map(|(a, p)| (a[0] + a[1]) * (p[0] + p[1])).sum();
+        let c1: F128 = pairs().map(|(a, p)| a[0] * (p[0] + p[1]) + (a[0] + a[1]) * p[0]).sum();
+        ps.add_round_poly(&[c0, c1, c2], false);
+        let r = ps.sample();
+        let fold =
+            |v: &[F128]| -> Vec<F128> { v.as_chunks::<2>().0.iter().map(|h| h[0] + r * (h[0] + h[1])).collect() };
+        (weights, slots) = (fold(&weights), fold(&slots));
+    }
+    ps.add_scalar(slots[0]);
 }
 
 /// Everything the bus hands on: the framework blocks' column claims,
@@ -800,7 +823,8 @@ pub(crate) struct BusProof {
 /// needs), and the block structure is public, so no shape is observed.
 ///
 /// The stream, in order: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the
-/// batched GKR ([`gkr::prove_products`]); the framework blocks' fresh column values.
+/// batched GKR ([`gkr::prove_products`]); the framework blocks' fresh column values; the
+/// bytecode's share ([`prove_bytecode_share`]).
 pub(crate) fn prove_balance(
     push: &[Block],
     pull: &[Block],
@@ -816,9 +840,9 @@ pub(crate) fn prove_balance(
     check_bus_shape(push, pull, &push_lay, &pull_lay, &count_lay);
     let bits = bus_grinding_bits(push_lay.mu);
     tracing::info_span!("Bus grind", mu = push_lay.mu, bits).in_scope(|| ps.grind(bits));
-    let w = fingerprint_weights(&ps.sample_vec(N_TUPLE_BITS));
+    let w = ps.sample_vec(1 << N_TUPLE_BITS);
     let beta = ps.sample();
-    let count_w = fingerprint_weights(&[F128::ZERO; N_TUPLE_BITS]);
+    let count_w = count_weights();
     // The leaves keep the all-one padding implicit; decomposition uses the full logical depth.
     count_lay.mu = push_lay.mu;
     let blocks = [push, pull, count];
@@ -857,6 +881,7 @@ pub(crate) fn prove_balance(
                 ps,
             );
         }
+        prove_bytecode_share(push, &bus_gkr.point, &w, &mut public, ps);
     });
     let (table_evals, prod_sums) = crate::stage!("Bus tables", || tables_and_prods_at(
         cols,
@@ -1058,8 +1083,8 @@ mod tests {
         ];
         let count = vec![block(12, 3001, vec![Col(1)]), block(11, 1 << 11, vec![Col(2)])];
         let lays = [&push, &pull, &count].map(|b| layout(b));
-        let w = fingerprint_weights(&[F128::new(3, 1), F128::new(1, 5), F128::new(2, 6), F128::Y]);
-        let count_w = fingerprint_weights(&[F128::ZERO; N_TUPLE_BITS]);
+        let w: Vec<F128> = (0..1 << N_TUPLE_BITS).map(|_| F128::new(next(), next())).collect();
+        let count_w = count_weights();
         let beta = F128::new(27, 18);
         let sides = sides(
             [&push, &pull, &count],

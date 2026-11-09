@@ -85,8 +85,8 @@ LAYER_SLOTS = 13
 
 # ---------------------------------------------------- the bus: sides and blocks
 # Bus sides, whose blocks the layout gives, and the GKR's trees, one a side: push and
-# pull under the fingerprint (alphas, beta), then count, whose tuples are read at
-# alpha = beta = 0. GKR_ROUNDS_CAP caps the round positions (triangle rounds plus one
+# pull under the fingerprint (fp_w, beta), then count, whose tuples weigh the count
+# alone, at beta = 0. GKR_ROUNDS_CAP caps the round positions (triangle rounds plus one
 # slot per layer) and GKR_POINTS_CAP the point triangle (rows x MU_CAP).
 PUSH_SIDE = 0
 PULL_SIDE = 1
@@ -160,8 +160,8 @@ INDEX_MLE_FACTORS = INDEX_MLE_FACTORS_PLACEHOLDER  # 1 + g^(2^i)
 # Committed-coordinate claims (Col/GCol coords across all sides) and the deferred
 # bytecode values (Public coords).
 N_CLAIMS = N_CLAIMS_PLACEHOLDER
-# A bus tuple's coordinates index the 2^N_TUPLE_BITS fingerprint slots (doc
-# sec:gp). The stacked bytecode has BYTECODE_COLS encoding columns, stacked along
+# A bus tuple's coordinates index the 2^N_TUPLE_BITS fingerprint slots, a weight
+# each (doc sec:gp). The stacked bytecode has BYTECODE_COLS encoding columns, stacked along
 # LOG2_BYTECODE_COLS selector bits into ONE multilinear; push and pull share their
 # GKR point, so the columns are opened ONCE.
 N_TUPLE_BITS = 4
@@ -968,28 +968,6 @@ def grind_check(word, tabs, nbits: Const):
 
 
 # =============================== multilinear primitives =============================
-
-
-@inline
-def eq_weight(ch, count: Const, idx: Const, msb_span: Const):
-    # The eq-tensor weight of compile-time index `idx` against the challenge run
-    # ch[0..count): prod_c eq(bit(idx), ch[c]), where the bit is bit c of idx
-    # (msb_span == 0) or bit (msb_span - 1 - c) (an MSB-first walk over an
-    # msb_span-bit index).
-    w = GEN ** 0
-    for c in unroll(0, count):
-        cv = ch[GEN ** c]
-        if msb_span == 0:
-            if (idx // (2 ** c)) % 2 == 1:
-                w *= cv
-            else:
-                w *= (1 + cv)
-        else:
-            if (idx // (2 ** (msb_span - 1 - c))) % 2 == 1:
-                w *= cv
-            else:
-                w *= (1 + cv)
-    return w
 
 
 @inline
@@ -2286,12 +2264,13 @@ def padding_weight(rows, zeta, tau: Const):
     return (1 + top) * pad, lead, rest
 
 
-def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs):
+def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the sides' GKR leaf values over it, run the ONE
     # table sumcheck they all reduce to, and bind the public input. Pooled claims land
-    # in claim_pool and the reduced point in `chi`; the batch's round count g^n, the
-    # bytecode value (the deferred claim) and the PI point come back.
+    # in claim_pool, the reduced point in `chi` and the bytecode sumcheck's in
+    # `bc_point`; the batch's round count g^n, the bytecode value there (the deferred
+    # claim) and the PI point come back.
     #
     # Bus-leaf packing offsets, for the selector certification. Each side's blocks
     # tile its leaf cube, block b at offset_b, and offsets accumulate as
@@ -2351,18 +2330,16 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # Reconstruct Ṽ₀(ζ) per side and assert it equals the GKR leaf value. The
     # committed-coordinate values ride the stream (observed, pooled); Index
     # coordinates use the factored index MLE; and the program's whole share of a
-    # bytecode leaf is ONE evaluation of the stacked polynomial, since its slots are
-    # aligned with the tuple and the weights are eq(α⃗, ·), so the share IS that
-    # polynomial at (ζ_lo, α⃗) (doc sec:e2e-bc): one hinted value, exported as a
-    # deferred claim, which pins it, with no per-coordinate values and no selector
-    # challenge.
+    # bytecode leaf, its slots being aligned with the tuple, is ONE sum over the
+    # slots of the stacked polynomial at ζ_lo, which rides the stream after the
+    # framework values and a sumcheck reduces to one evaluation, the deferred claim
+    # (doc sec:e2e-bc).
     #
     # Pull's blocks mirror push's (same kappas, same offsets, generator-asserted
     # pairing) and share zeta, so each pull block REUSES its push twin's eq_hi and
     # Index-MLE value instead of recomputing them; its column values are mostly
     # deduped pool reads (COORD_FRESH). The identity check against pull's own GKR
     # claim still binds everything.
-    bc_share = hint_witness("bytecode_val")
     # Each table's padding rows: their weight on a claim at zeta[..tau], dispatched on
     # its hinted log height tau, which this certifies: the least holding its rows, or
     # its floor. A table is at most the stack, so tau has an arm.
@@ -2487,7 +2464,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                                 block_index_mle[GEN ** b] = coord_val
                     if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
                         # The public slots carry no value of their own here: their
-                        # alpha-weighted sum IS bc_share, added once per block below
+                        # weighted sum IS bc_share, added once per block below
                         # (push and pull share zeta, so both get the same one).
                         coord_vals[ci] = 0
                         block_has_public = 1
@@ -2496,12 +2473,54 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         selector_sums[s] = selector_sum
         public_eqs[s] = public_eq
 
+    # ---- the bytecode's share (verifier::bus) ----
+    # S = sum_x fp_w[x] P(ζ_lo, x) over the stacked bytecode P's slots x, after the
+    # framework values, then a sumcheck over x, low bit first, of degree two: each
+    # round sends c0 and c2, and the first round's two join S in the rate.
+    bc_msg = StackBuf(3)  # S, then the first round's c0 and c2
+    for j in unroll(0, 3):
+        if const((N_FRESH + j) % 4 == 0):
+            sp = fs_perm(sp, rate, 4)
+            rate = StackBuf(8)
+        bc_word, cursor = fs_next(rate, (N_FRESH + j) % 4, cursor)
+        bc_msg[j] = bc_word
+    bc_share = bc_msg[0]
+    sp, bc_r, cursor = fs_grind_squeeze(sp, rate, (N_FRESH + 2) % 4 + 1, cursor, tabs, ROUND2_GRIND_BITS)
+    bc_point[GEN ** 0] = bc_r
+    bc_claim = bc_msg[1] + bc_r * (bc_share + (1 + bc_r) * bc_msg[2])
+    bfs0 = sp[8]
+    bfs1 = sp[9]
+    bfs2 = sp[10]
+    bfs3 = sp[11]
+    bfs4 = sp[12]
+    for x in unroll(1, N_TUPLE_BITS):
+        bfs0, bfs1, bfs2, bfs3, bfs4, cursor, bc_claim, bc_r = opening_tail_round(bfs0, bfs1, bfs2, bfs3, bfs4, cursor, bc_claim, tabs)
+        bc_point[GEN ** x] = bc_r
+    # It ends on fp_w's multilinear at bc_point times P(ζ_lo, bc_point), the value read
+    # next, which the deferred claim pins. fp_w folds a round at a time: round j's
+    # 2^(3 - j) values from offset N_TUPLE_SLOTS - 2^(4 - j).
+    sp = fs_cap(bfs0, bfs1, bfs2, bfs3, bfs4)
+    rate = StackBuf(8)
+    bc_value, cursor = fs_next(rate, 0, cursor)
+    w_fold = StackBuf(N_TUPLE_SLOTS - 1)
+    r0 = bc_point[GEN ** 0]
+    for i in unroll(0, N_TUPLE_SLOTS // 2):
+        w_lo = fp_w[GEN ** (2 * i)]
+        w_fold[i] = w_lo + r0 * (w_lo + fp_w[GEN ** (2 * i + 1)])
+    for j in unroll(1, N_TUPLE_BITS):
+        rj = bc_point[GEN ** j]
+        for i in unroll(0, 2 ** (N_TUPLE_BITS - 1 - j)):
+            w_lo = w_fold[N_TUPLE_SLOTS - 2 ** (N_TUPLE_BITS + 1 - j) + 2 * i]
+            w_hi = w_fold[N_TUPLE_SLOTS - 2 ** (N_TUPLE_BITS + 1 - j) + 2 * i + 1]
+            w_fold[N_TUPLE_SLOTS - 2 ** (N_TUPLE_BITS - j) + i] = w_lo + rj * (w_lo + w_hi)
+    assert bc_claim == w_fold[N_TUPLE_SLOTS - 2] * bc_value
+
     # ---- the sides' framework decomposition ----
     # Per side, what its tables' blocks owe: its GKR leaf value less the framework
     # blocks' fingerprints and the padding mass. DERIVED, not read: a transmitted
     # total would be a free value in its own check. The table sumcheck's target pins
     # it below. Pull's padding is push's (same blocks, same padding tuples), and the
-    # count side reads its tuples at alpha = beta = 0.
+    # count side weighs its counts alone, at beta = 0.
     bus_table_total = StackBuf(N_GKR_SIDES)
     beta_1 = beta + 1
     for s in unroll(0, N_GKR_SIDES):
@@ -2574,9 +2593,9 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # kappa = tau, so it holds structurally, but zc_peq below reads zeta[..n] and
     # zeta only holds mu coords: unwritten heap there is prover-chosen.
     assert log(g_bus_mu / g_zc_n) < COUNT_BITS
-    # xi, after its grind, the framework blocks' fresh values waiting: the batch is of
-    # degree N_ETA_POWS - 1 in it.
-    sp, zc_xi, cursor = fs_grind_squeeze(sp, rate, (N_FRESH + 3) % 4 + 1, cursor, tabs, XI_GRIND_BITS)
+    # xi, after its grind, the bytecode value waiting: the batch is of degree
+    # N_ETA_POWS - 1 in it.
+    sp, zc_xi, cursor = fs_grind_squeeze(sp, rate, 1, cursor, tabs, XI_GRIND_BITS)
     zc_xi_pows = StackBuf(N_ETA_POWS)
     zc_xi_pows[0] = 1
     for k in unroll(1, N_ETA_POWS):
@@ -2719,7 +2738,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = hi_0 + rm * (hi_0 + hi_1)
     claim_idx += 1
-    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_share, rm, col_eval_words
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_value, rm, col_eval_words
 
 
 @inline
@@ -3631,29 +3650,24 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     ood_z = HeapBuf(MAX_STACK_LOG)
     fs0, fs1, fs2, fs3, fs4 = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda s: squeeze_point_from(sp[8], sp[9], sp[10], sp[11], sp[12], z_first, ood_z, LIG_MIN_LOG_SIZE + s))
     ood_value = HeapBuf(1)
-    # The bus's grind nonce joins the value: its permutation draws the first alpha.
+    # The bus's grind nonce joins the value: its permutation draws the first weight.
     word0, pow_word, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, ood_value, 1, 1)
 
     # ---- bus challenges ----
-    # They fail with probability at most 4 * 2^mu / |E| (verifier::bus), so a grind of
+    # They fail with probability at most 2^mu / |E| (verifier::bus), so a grind of
     # BUS_GRIND_BITS[mu] comes first, mu the push side's depth: at least MIN_LOG_MEM,
-    # the memory block's. A tuple is fingerprinted multilinearly: slot x weighs
-    # eq(alphas, x), so a leaf factor has total degree N_TUPLE_BITS in the challenges
-    # and the aligned bytecode polynomial is read off at the challenge vector itself
-    # (doc sec:gp, sec:e2e-bc).
+    # the memory block's. A tuple is fingerprinted linearly: slot x weighs its own
+    # challenge fp_w[x] (doc sec:gp).
     bus_grind = g_bus_mu * INV_GEN ** MIN_LOG_MEM
     assert log(bus_grind) < BUS_GRIND_ARMS
     done = match(log(bus_grind), range(0, BUS_GRIND_ARMS), lambda d: bus_grind_check(pow_word, tabs, d))  # a match needs a target
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     no_rate = StackBuf(8)
-    bus_alpha = HeapBuf(N_TUPLE_BITS)
-    bus_alpha[GEN ** 0] = word0
-    for t in unroll(1, N_TUPLE_BITS):
-        sp, av = squeeze(sp, no_rate, 0)
-        bus_alpha[GEN ** t] = av
     fp_w = HeapBuf(N_TUPLE_SLOTS)
-    for x in unroll(0, N_TUPLE_SLOTS):
-        fp_w[GEN ** x] = eq_weight(bus_alpha, N_TUPLE_BITS, x, 0)
+    fp_w[GEN ** 0] = word0
+    for x in unroll(1, N_TUPLE_SLOTS):
+        sp, wx = squeeze(sp, no_rate, 0)
+        fp_w[GEN ** x] = wx
     sp, beta = squeeze(sp, no_rate, 0)
 
     # ---- ONE GKR grand product: every tree batched ----
@@ -3661,7 +3675,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
-    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs)
+    bc_point = HeapBuf(N_TUPLE_BITS)
+    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_value, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)
 
     # ---- KECCAK validity, by GKR over the rounds ----
     tau_keccak_g = dims_g[GEN ** (TABLE_KECCAK + 1)]  # the KECCAK table's certified tau
@@ -3737,8 +3752,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     for k in unroll(0, BYTECODE_LOG):
         defer_out[GEN ** k] = zeta[GEN ** k]
     for k in unroll(0, LOG2_BYTECODE_COLS):
-        defer_out[GEN ** (BYTECODE_LOG + k)] = bus_alpha[GEN ** k]
-    defer_out[GEN ** FRESH_BC_VALUE] = bc_share
+        defer_out[GEN ** (BYTECODE_LOG + k)] = bc_point[GEN ** k]
+    defer_out[GEN ** FRESH_BC_VALUE] = bc_value
     return
 
 

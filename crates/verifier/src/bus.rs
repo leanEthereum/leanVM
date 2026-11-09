@@ -11,13 +11,13 @@ use crate::multilinear::{
 use crate::transcript::{Transcript, grinding_bits, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
-/// The grind before the fingerprint `(alphas, beta)`: unequal push and pull multisets pass the product check with
-/// probability at most `4 * 2^mu / |E|`, `mu` the push depth.
+/// The grind before the fingerprint `(weights, beta)`: unequal push and pull multisets pass the product check with
+/// probability at most `2^mu / |E|`, `mu` the push depth.
 fn bus_grinding_bits(mu: usize) -> u32 {
-    grinding_bits((BUS_BITS as u128) << mu)
+    grinding_bits(1 << mu)
 }
 
-/// The trees the bus GKR batches, in its order: push, pull, then the count tree, at `alpha = beta = 0`.
+/// The trees the bus GKR batches, in its order: push, pull, then the count tree, weighing the count alone at `beta = 0`.
 pub const N_TREES: usize = 3;
 
 /// A GKR round is `eq` times a product of four lines, degree five, and grinds for it. In the last layer its challenge
@@ -121,14 +121,14 @@ type Side<'a> = (&'a [BusBlock], &'a BusLayout, Vec<E>, &'a [E], E);
 
 pub struct BusResult {
     pub claims: Vec<ColumnClaim>,
-    pub bytecode_point: Vec<E>, // where the bus reads the stacked bytecode: zeta's low coordinates, then alpha
+    pub bytecode_point: Vec<E>, // where the bytecode sumcheck leaves the stacked bytecode: zeta's low coordinates, then its point
     pub point: Vec<E>,          // the GKR point zeta, which the table sumcheck reuses
     pub forms: Vec<Vec<Form>>,  // forms[table][tree]
     pub totals: Vec<E>,         // what the tables owe each tree, derived
 }
 
-/// The bus, in stream order: the grind and the fingerprint `(alphas, beta)`; the batched GKR; the framework blocks'
-/// committed columns at zeta.
+/// The bus, in stream order: the grind and the fingerprint `(weights, beta)`, a weight per tuple slot; the batched GKR;
+/// the framework blocks' committed columns at zeta; the bytecode's share and its sumcheck.
 pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Result<BusResult, VerifierError> {
     let framework_log_rows = [0, layout.log_memory, layout.log_bytecode]; // state, memory, bytecode
     let push_layout = bus_layout(&framework_log_rows, &layout.push);
@@ -138,8 +138,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     require(push_layout.depth < 64, VerifierError::AnnouncedTableSizes)?;
 
     transcript.grind_check(bus_grinding_bits(push_layout.depth))?;
-    let alphas = transcript.samples(BUS_BITS);
-    let weights = eq_kernel(&alphas);
+    let weights = transcript.samples(1 << BUS_BITS);
     let beta = transcript.sample();
     let (count_root, point, tree_values) = verify_gkr_grand_products(push_layout.depth, transcript)?;
     if transcript.checked() {
@@ -166,16 +165,25 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     let memory_index = index_mle(memory_low);
     let bytecode_index = index_mle(bytecode_low);
 
-    let bytecode_point = [bytecode_low, &alphas].concat();
-    // A replay leaves the one pass over the table out: the value only feeds the table sumcheck's target, which it does
-    // not check, and is the claim an aggregate defers.
-    let bytecode_value = if transcript.checked() {
-        layout.bytecode.evaluate(&bytecode_point)?
-    } else {
-        ZERO
-    };
+    // The program's share of a bytecode leaf, `sum_x weights[x] P(bytecode_low, x)` over the stacked bytecode's slots,
+    // then a sumcheck over `x`, its low bit first, down to one evaluation of `P`, the claim an aggregate defers. A replay
+    // leaves the one pass over the table out.
+    let bytecode_share = transcript.next_scalar()?;
+    let (slot_point, claim) = sumcheck(transcript, bytecode_share, 3, &[None; BUS_BITS])?;
+    let bytecode_value = transcript.next_scalar()?;
+    let bytecode_point = [bytecode_low, &slot_point].concat();
+    if transcript.checked() {
+        require(
+            claim == dot(&eq_kernel(&slot_point), &weights) * bytecode_value,
+            VerifierError::BytecodeShare,
+        )?;
+        require(
+            layout.bytecode.evaluate(&bytecode_point)? == bytecode_value,
+            VerifierError::BytecodeValue,
+        )?;
+    }
 
-    // The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
+    // The three framework tuples, each its coordinates weighted by the slots' weights; slots past the ones
     // named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
     // with the committed final count and ends at the last pc. Both boundaries sit in frame 0.
     let framework = |pc: E, memory_count: E, bytecode_count: E| {
@@ -185,7 +193,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
                 &weights[..5],
                 &[SEP_MEM, memory_index, memory_count, memory[0], memory[1]],
             ),
-            dot(&weights[..3], &[SEP_BYTECODE, bytecode_index, bytecode_count]) + bytecode_value,
+            dot(&weights[..3], &[SEP_BYTECODE, bytecode_index, bytecode_count]) + bytecode_share,
         ]
     };
 
@@ -199,7 +207,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
             &weights,
             beta,
         ),
-        (&layout.count, &count_layout, vec![], &[ONE], ZERO), // The count channel owns no framework block and runs at alpha = beta = 0.
+        (&layout.count, &count_layout, vec![], &[ONE], ZERO), // The count channel owns no framework block and weighs its count alone, at beta = 0.
     ];
 
     let mut totals = Vec::new(); // what remains to be proven by the next table sumcheck

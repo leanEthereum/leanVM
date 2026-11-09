@@ -188,7 +188,8 @@ fn test_python_verifier() {
 }
 
 /// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, an OOD sample value at
-/// the first grind after it (a wrong value sent honestly fails the opening, `keccak_gkr`'s OOD test), each check of the
+/// the first grind after it (a wrong value sent honestly fails the opening, `keccak_gkr`'s OOD test), the bus's bytecode
+/// share and the evaluation its sumcheck ends on at that sumcheck's terminal check, each check of the
 /// Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar, a high-part
 /// scalar and a grinding nonce, each caught by the grind that follows it, and the last tail scalar by the terminal check.
 #[test]
@@ -235,9 +236,18 @@ fn tampers_fail_the_same_check() {
     // After the announced sizes (the memory, six tables and the rate), the root and the OOD sample's nonce: its value,
     // which the transcript binds, so the first grind after it, the bus's, already fails.
     let ood_value = 1 + 6 + 1 + 2 + 1;
+    // The bytecode sumcheck ends on the stacked bytecode at the summary's point, the scalar the stream holds; its
+    // degree-two rounds over the four slot bits follow the share.
+    let bytecode = Bytecode::new(&fixture.bytecode_table());
+    let bytecode_value = bytecode.evaluate(&fixture.summary.bytecode_point).unwrap();
+    let stream = scalar_proof(&fixture.proof).stream;
+    let bytecode_value = stream.iter().position(|&s| s == bytecode_value).unwrap();
+    let bytecode_share = bytecode_value - 4 * round - 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
         (ood_value, VerifierError::GrindingNonce),
+        (bytecode_share, VerifierError::BytecodeShare),
+        (bytecode_value, VerifierError::BytecodeShare),
         (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
         (end - final_level - 5, VerifierError::GrindingNonce),
         (end - tail - 1, VerifierError::GrindingNonce),
@@ -251,7 +261,6 @@ fn tampers_fail_the_same_check() {
         (keccak.end - 1, VerifierError::KeccakInputOpening),
     ];
 
-    let bytecode = Bytecode::new(&fixture.bytecode_table());
     let public_input = public_input_bytes(&fixture.public_input);
     let directory = test_directory("tampered");
     let runs: Vec<Child> = cases

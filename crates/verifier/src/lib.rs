@@ -61,6 +61,8 @@ pub enum VerifierError {
     /// The GKR layer whose children do not match its sumcheck.
     GkrLayer(usize),
     BusCountZero,
+    BytecodeShare,
+    BytecodeValue,
     TableSumcheckTerminal,
     AnnouncedTableSizes,
     WhirShape,
@@ -94,6 +96,8 @@ impl std::fmt::Display for VerifierError {
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
             Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
             Self::BusCountZero => "a bus count is zero",
+            Self::BytecodeShare => "bytecode sumcheck terminal mismatch",
+            Self::BytecodeValue => "bytecode evaluation mismatch",
             Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
             Self::WhirShape => "invalid WHIR shape",
@@ -167,7 +171,7 @@ pub struct Summary {
     pub log_memory: usize,
     pub table_rows: Vec<u64>,
     pub log_inv_rate: usize,
-    /// Where the bus reads the stacked bytecode, `(zeta_low, alphas)`. Its value there is the claim an aggregate defers.
+    /// Where the bus's bytecode sumcheck leaves the stacked bytecode, `(zeta_low, r)`. Its value there is the claim an aggregate defers.
     pub bytecode_point: Vec<E>,
     /// The stream positions the Keccak reduction reads.
     pub keccak_scalars: Range<usize>,

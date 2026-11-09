@@ -19,11 +19,11 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 Both multisets (\emph{pulls} and \emph{pushes}) carry the same number of tuples, and padding each with factors of $1$, which change no product, makes that number a power of two, $2^{\mu}$.
 
-\emph{Fingerprint.} After a grind of $\mu-3$ bits (below), the verifier samples $\alpha=(\alpha_0,\dots,\alpha_3)\in\E^{4}$ and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
+\emph{Fingerprint.} After a grind of $\mu-5$ bits (below), the verifier samples one weight per slot, $\alpha=(\alpha_\iota)_{\iota\in\cube{4}}\in\E^{16}$, and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
 \[
-\pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\eq(\alpha,\iota)\,\btup_\iota ,
+\pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\alpha_\iota\,\btup_\iota ,
 \]
-the sixteen slots indexed by their bits, low bit first, and smaller tuples padded with $0$.
+the sixteen slots indexed by their bits, low bit first, and smaller tuples padded with $0$. It is linear in the challenges.
 
 \emph{Product check.} The verifier samples $\beta\in\E$, and checks:
 \begin{equation}
@@ -34,30 +34,30 @@ the sixteen slots indexed by their bits, low bit first, and smaller tuples padde
 \end{equation}
 
 \begin{theorem}\label{th:product_check}
-  The protocol above has perfect completeness (equal pulled and pushed multisets always make \eqref{eq:gp} valid) and soundness error $4\cdot 2^{\mu}/|\E|$ (if the pulled and pushed multisets differ, the probability that \eqref{eq:gp} passes over uniform $\alpha \in \E^{4}$ and $\beta \in \E$).
+  The protocol above has perfect completeness (equal pulled and pushed multisets always make \eqref{eq:gp} valid) and soundness error $2^{\mu}/|\E|$ (if the pulled and pushed multisets differ, the probability that \eqref{eq:gp} passes over uniform $\alpha \in \E^{16}$ and $\beta \in \E$).
 \end{theorem}
 
-\paragraph{Grinding.} The error $4\cdot2^{\mu}/|\E|=2^{\mu+2-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\mu+2-5=\mu-3$ bits before $\alpha$ and $\beta$ are drawn, by the rule of \S\ref{sec:grinding}. The announced table sizes fix $\mu$, so both sides know the grind.
+\paragraph{Grinding.} The error $2^{\mu}/|\E|=2^{\mu-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\mu-5$ bits before $\alpha$ and $\beta$ are drawn, by the rule of \S\ref{sec:grinding}. The announced table sizes fix $\mu$, so both sides know the grind.
 
 \begin{lemma}[A product identity is a multiset identity]\label{lem:gp}
 For a multiset $P$ of tuples write
 \[
   \Pi_P(A,X)\;=\;\prod_{\btup\in P}\bigl(X-\pi_A(\btup)\bigr),
 \]
-a polynomial in the five formal variables $A=(A_0,\dots,A_3)$ and $X$, with coefficients in $\K$. The two sides of \eqref{eq:gp} are $\Pi_P(\alpha,\beta)$ for $P$ the pushed multiset and the pulled one.
+a polynomial in the seventeen formal variables $A=(A_\iota)_{\iota\in\cube{4}}$ and $X$, with coefficients in $\K$. The two sides of \eqref{eq:gp} are $\Pi_P(\alpha,\beta)$ for $P$ the pushed multiset and the pulled one.
 
 For finite multisets $P,Q$ of width-$m$ tuples over $\K$, $\Pi_P=\Pi_Q$ if and only if $P=Q$.
 \end{lemma}
 
 \begin{proof}[Proof of Lemma~\ref{lem:gp}]
-Distinct tuples have distinct fingerprints $\pi_A(\btup)$, the $\eq(A,\iota)$ being linearly independent. So $\Pi_P$ is a product of the monic, degree-one, hence irreducible factors $X-\pi_A(\btup)$, and unique factorization in $\K[A][X]$ recovers $P$ from it.
+Distinct tuples have distinct fingerprints $\pi_A(\btup)$, the $A_\iota$ being distinct variables. So $\Pi_P$ is a product of the monic, degree-one, hence irreducible factors $X-\pi_A(\btup)$, distinct tuples giving distinct, hence non-associate, factors, and unique factorization in $\K[A][X]$ recovers $P$ from it.
 \end{proof}
 
 
 \begin{proof}[Proof of Theorem~\ref{th:product_check}]
 \emph{Completeness.} Equal pulled and pushed multisets make \eqref{eq:gp} hold for every $\alpha$ and $\beta$, so completeness is immediate.
 
-\emph{Soundness.} Different pulled and pushed multisets make $\Pi_P\neq\Pi_Q$, by Lemma~\ref{lem:gp}, and \eqref{eq:gp} tests them at the one point $(\alpha_0, \dots, \alpha_3, \beta)$. Both sides have degree at most $4\cdot 2^{\mu}$ in $(\alpha_0, \dots, \alpha_3, \beta)$, since there are at most $2^{\mu}$ factors, of the form $\beta-\pi_\alpha(\btup)$, each of total degree at most $4$. Applying Corollary~\ref{cor:idtest} gives a soundness error of $4\cdot 2^{\mu}/|\E|$.
+\emph{Soundness.} Different pulled and pushed multisets make $\Pi_P\neq\Pi_Q$, by Lemma~\ref{lem:gp}, and \eqref{eq:gp} tests them at the one point $(\alpha, \beta)$. Both sides have total degree at most $2^{\mu}$ in $(\alpha, \beta)$, since there are at most $2^{\mu}$ factors, of the form $\beta-\pi_\alpha(\btup)$, each of total degree $1$. Applying Corollary~\ref{cor:idtest} gives a soundness error of $2^{\mu}/|\E|$.
 \end{proof}
 
 \subsection{Proving the grand product}\label{sec:gkr}
@@ -109,7 +109,7 @@ both sums over the blocks of side $s$.
 \paragraph{Who settles what.} Three kinds of terms:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item \emph{Unused leaves.} Public: the verifier evaluates them.
-\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public input, the program, or the index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
+\item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public input, the program, or the index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones, but for the program's weighted sum, which the prover sends and a short sumcheck reduces to one evaluation (\S\ref{sec:e2e-bc}); the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
 \item \emph{Table blocks.} Nothing is sent for them: the table sumcheck proves them, except for a public term coming from their padding rows (below).
 \end{itemize}
 The verifier subtracts the first two kinds and that public term from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables owe.
@@ -206,7 +206,7 @@ The existence of $T_1$ and $T_2$ verifying the constraints, and balancing the bu
 
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
 \item \textbf{Prover.} Commits the eleven columns. In this example, the two log heights are fixed, $\tau_1=4$ and $\tau_2=2$.
-\item \textbf{Verifier.} Samples and sends $\alpha_0,\alpha_1,\alpha_2,\alpha_3$ and $\beta$.
+\item \textbf{Verifier.} Samples and sends $\alpha_0,\dots,\alpha_{15}$ and $\beta$.
 \item \textbf{Prover.} Builds the leaves $\beta-\pi_\alpha(\btup)$, $16+4+1=21$ per side ($\push$ / $\pull$), and pads to $\mu=5$ with eleven $1$s. The two sides share the same layout (largest blocks first):
 \begin{center}
 \setlength{\tabcolsep}{0pt}
