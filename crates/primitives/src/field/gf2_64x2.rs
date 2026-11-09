@@ -677,8 +677,7 @@ pub mod x86_64 {
         let p0 = _mm_clmulepi64_si128::<0x00>(a01, b01);
         let p1 = _mm_clmulepi64_si128::<0x11>(a01, b01);
         let p01 = _mm_clmulepi64_si128::<0x00>(a_s, b_s);
-        // SAFETY: sse2 is part of the x86-64 baseline.
-        fold(p0, p1, p01, |x, y| _mm_xor_si128(x, y), |p| unsafe { times_x(p) })
+        fold(p0, p1, p01, |x, y| _mm_xor_si128(x, y), |p| times_x(p))
     }
 
     /// One unreduced product.
@@ -854,8 +853,7 @@ pub mod x86_64 {
         // One instruction per base product covers both lanes.
         let mul = |x, y| _mm256_clmulepi64_epi128::<0x00>(x, y);
         let xor = |x, y| _mm256_xor_si256(x, y);
-        // SAFETY: avx2 is enabled on this function.
-        fold(mul(a0, b0), mul(a1, b1), mul(xor(a0, a1), xor(b0, b1)), xor, |p| unsafe {
+        fold(mul(a0, b0), mul(a1, b1), mul(xor(a0, a1), xor(b0, b1)), xor, |p| {
             times_x256(p)
         })
     }
@@ -902,8 +900,7 @@ pub mod x86_64 {
         // One instruction per base product covers all four lanes.
         let mul = |x, y| _mm512_clmulepi64_epi128::<0x00>(x, y);
         let xor = |x, y| _mm512_xor_si512(x, y);
-        // SAFETY: avx512f and avx512bw are enabled on this function.
-        fold(mul(a0, b0), mul(a1, b1), mul(xor(a0, a1), xor(b0, b1)), xor, |p| unsafe {
+        fold(mul(a0, b0), mul(a1, b1), mul(xor(a0, a1), xor(b0, b1)), xor, |p| {
             times_x512(p)
         })
     }

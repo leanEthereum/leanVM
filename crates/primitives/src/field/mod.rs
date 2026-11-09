@@ -15,6 +15,15 @@ pub mod neon;
 pub mod f128x8;
 pub mod gf2_64;
 pub mod gf2_64x2;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "vpclmulqdq",
+    not(target_feature = "avx512f")
+))]
+pub mod x4;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+pub mod x8;
 
 pub use f128x8::{
     Acc8, F64x8, F128x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
