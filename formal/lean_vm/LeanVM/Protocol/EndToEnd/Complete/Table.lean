@@ -17,8 +17,8 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The table phase
 
-Step 4 of `verify_execution` (`tablePhase`, `crates/verifier/src/lib.rs:242-266`, and
-`table_sumcheck`, `bus.rs:218-259`, at leanVM `40f877dc`). The verifier
+Step 4 of `verify_execution` (`tablePhase`, `crates/verifier/src/lib.rs:274-301`, and
+`table_sumcheck`, `bus.rs:256-297`, at leanVM `f128`). The verifier
 samples `ξ`, splits its powers into the constraint powers and the three form powers, and runs one
 plain sumcheck of four coefficients per round over `n = max_t τ_t` coordinates against the target
 `Σ_side ξ^side · total_side`; it then reads every table's row evaluations at the point (the
@@ -430,13 +430,13 @@ section Prover
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
-/-- The constraint powers of `ξ` (`lib.rs:244-247`). -/
+/-- The constraint powers of `ξ` (`lib.rs:280-282`). -/
 def cpOf (xi : E) : List E :=
-  (powers xi ((tables.map Table.nConstraints).sum + 3)).take (tables.map Table.nConstraints).sum
+  (powers xi ((tables.map Table.nConstraints).sum + nTrees)).take (tables.map Table.nConstraints).sum
 
 /-- The form powers of `ξ`, one per side. -/
 def fpOf (xi : E) : List E :=
-  (powers xi ((tables.map Table.nConstraints).sum + 3)).drop (tables.map Table.nConstraints).sum
+  (powers xi ((tables.map Table.nConstraints).sum + nTrees)).drop (tables.map Table.nConstraints).sum
 
 /-- The running claim after the challenges `pre` (the first binding the highest coordinate): the
 honest summand summed over the free coordinates. -/
@@ -444,10 +444,12 @@ def claimOf (cp fp : List E) (bus : BusResult) (pre : List E) : E :=
   ∑ x ∈ range (2 ^ (nRounds s - pre.length)),
     summand prog s q cp fp bus (boolPoint (nRounds s - pre.length) x ++ pre.reverse)
 
-/-- **The honest prover of the table phase**: receive `ξ`, run the honest sumcheck rounds of the
-running claims, send every table's evaluations at the point, and return the verifier's claims. -/
+/-- **The honest prover of the table phase**: pass the grind for the batch's degree in `ξ`,
+receive `ξ`, run the honest sumcheck rounds of the running claims, send every table's evaluations
+at the point, and return the verifier's claims. -/
 noncomputable def hTable (bus : BusResult) : Script (List Verifier.ColumnClaim) :=
-  Script.sampleE.bind fun xi ↦
+  (Script.grindBits (grindingBits ((tables.map Table.nConstraints).sum + nTrees - 1))).bind
+    fun _ ↦ Script.sampleE.bind fun xi ↦
     (hSumcheck 4 (claimOf prog s q (cpOf xi) (fpOf xi) bus) (List.replicate (nRounds s) none)
       []).bind fun r ↦
       (Script.sendList ((pairsAt prog s q bus r.1.reverse).flatMap (·.2))).bind fun _ ↦
@@ -630,10 +632,10 @@ theorem consPart_rowEvals {input : PublicInput} (hq : M3Holds (inst prog s) inpu
 
 /-! ## The output lanes' claims -/
 
-/-- **The honest claims on the output lanes**: lane `l`'s claim on its global column `113 + l`,
+/-- **The honest claims on the output lanes**: lane `l`'s claim on its global column `106 + l`,
 at the point `z` of the `KECCAK` table's coordinates, with the derived column's true value. -/
 def honestLanes (z : Vector E (s.τ 5)) : List Verifier.ColumnClaim :=
-  (List.finRange 25).map fun l ↦ ⟨113 + l.val, z.toList, colEval prog s q (outCol l) z⟩
+  (List.finRange 25).map fun l ↦ ⟨106 + l.val, z.toList, colEval prog s q (outCol l) z⟩
 
 /-- Output lane `l`'s column of the `KECCAK` table, `40 + l`. -/
 def outIdx (l : Fin 25) : Fin (width (opIdx 5)) := ⟨40 + l, by rw [width_keccak]; omega⟩
@@ -654,11 +656,11 @@ theorem zipIdx_map_finRange {α : Type} (n : ℕ) (f : Fin n → α) :
 
 /-- The tables before `KECCAK` claim only columns below its output lanes. -/
 theorem base_lt (t : Fin 6) (ht : t.val < 5) (c : ℕ) (hc : c < width (opIdx t)) :
-    globalColumnBases.getD t 0 + c < 113 := by
+    globalColumnBases.getD t 0 + c < 106 := by
   revert t c; decide +kernel
 
-/-- The `KECCAK` table's columns start at the global column `73`. -/
-theorem base_keccak : globalColumnBases.getD 5 0 = 73 := by decide
+/-- The `KECCAK` table's columns start at the global column `66`. -/
+theorem base_keccak : globalColumnBases.getD 5 0 = 66 := by decide
 
 /-- The claims of a table before `KECCAK` hold no output lane. -/
 theorem filter_tableRow_lt (bus : BusResult) (pt : List E) (t : Fin 6) (ht : t.val < 5) :
@@ -707,7 +709,7 @@ theorem lanes_termsPure (bus : BusResult) (cp fp pt : List E) (hpt : s.τ 5 ≤ 
       (⟨(pt.take (s.τ 5)).toArray, by simp; omega⟩ : Vector E (s.τ 5)) =
       multilinearEval (tableColList prog s q 5 (outIdx l)) (pt.take (s.τ 5)) :=
     colEval_opIdx prog s q 5 (outIdx l) _
-  rw [hv, show globalColumnBases.getD ((5 : Fin 6) : ℕ) 0 = 73 from base_keccak]
+  rw [hv, show globalColumnBases.getD ((5 : Fin 6) : ℕ) 0 = 66 from base_keccak]
   simp only [outIdx, Vector.toList_mk]
   congr 1
   omega
@@ -725,14 +727,16 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
       (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs := by
   unfold tablePhaseClaims tableSumcheckClaims hTable
   simp only [VerifierProgram.bind_eq]
-  refine Follows.bind (fun cs₁ xi xi' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
+  refine Follows.bind (fun cs₀ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
+  subst h
+  refine Follows.bind (fun cs₁ xi xi' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)
   obtain ⟨rfl, rfl⟩ := h
   have hh : (verifierLayout prog s).tableLogHeights = tableLogs s := rfl
   have hfp : (fpOf xi).length = 3 := by
-    simp only [fpOf, List.length_drop, powers, length_powersFrom]; omega
-  rw [show (powers xi ((tables.map Table.nConstraints).sum + 3)).take
+    simp only [fpOf, List.length_drop, powers, length_powersFrom, nTrees]; omega
+  rw [show (powers xi ((tables.map Table.nConstraints).sum + nTrees)).take
       (tables.map Table.nConstraints).sum = cpOf xi from rfl,
-    show (powers xi ((tables.map Table.nConstraints).sum + 3)).drop
+    show (powers xi ((tables.map Table.nConstraints).sum + nTrees)).drop
       (tables.map Table.nConstraints).sum = fpOf xi from rfl]
   have htarget : dot (fpOf xi) bus.totals = claimOf prog s q (cpOf xi) (fpOf xi) bus [] := by
     rw [claimOf]
