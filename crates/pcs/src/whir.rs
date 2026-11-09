@@ -102,6 +102,18 @@ pub struct ProverData {
 ///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
 const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
+/// `LEANVM_KEEP_CODEWORD_MAX_BYTES`, when set to a number, replaces [`KEEP_CODEWORD_MAX_BYTES`]: a prover with
+/// memory to spare (a mempool node) keeps a larger codeword, and its opening reads the rows a query asks for
+/// instead of rebuilding them from the message. The proof is the same either way.
+fn keep_codeword_max_bytes() -> Option<usize> {
+    static MAX: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
+    *MAX.get_or_init(|| {
+        std::env::var("LEANVM_KEEP_CODEWORD_MAX_BYTES")
+            .ok()
+            .and_then(|v| v.trim().parse().ok())
+    })
+}
+
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
 /// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
 /// RS codeword per lane, Merkle-committed one leaf per codeword position, the
@@ -140,9 +152,10 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let codeword =
         tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
             let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
+            let bytes = n_positions.saturating_mul(row_words * size_of::<F64>());
             let keep = if !primitives::REBUILD_OVER_STORE {
                 Keep::Whole
-            } else if n_positions * row_words * size_of::<F64>() > KEEP_CODEWORD_MAX_BYTES {
+            } else if bytes > keep_codeword_max_bytes().unwrap_or(KEEP_CODEWORD_MAX_BYTES) {
                 Keep::Nothing
             } else {
                 Keep::BeforeDeep
