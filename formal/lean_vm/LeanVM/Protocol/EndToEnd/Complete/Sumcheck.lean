@@ -19,10 +19,11 @@ import Mathlib.Algebra.Polynomial.BigOperators
 # Honest sumcheck rounds on the wire
 
 The verifier program's `sumcheck claim count modes` (`LeanVM.Protocol.Verifier.sumcheck`,
-`crates/verifier/src/transcript.rs:188-204, 219-233` at leanVM `40f877dc`) reads,
+`crates/verifier/src/transcript.rs:214-237, 252-266` at leanVM `f128`) reads,
 per round, a polynomial of `count` coefficients with one coefficient left out: in plain mode
 (`none`) the linear one, in equality mode (`some r`) the constant one, which it derives from the
-running claim. Then it samples the challenge and moves to the polynomial's value there.
+running claim. Then it checks the grind for the round's degree (`roundBits`, zero bits at every
+round the verifier runs), samples the challenge and moves to the polynomial's value there.
 
 The honest prover is given the *claims* as a function `claimOf` of the challenges drawn so far:
 the running claim after the challenges `pre`. It is honest for the rounds `modes` from `pre` when
@@ -176,12 +177,25 @@ def wire : Option E → List E → List E
   | none, c => c.headD 0 :: c.drop 2
   | some _, c => c.drop 1
 
-/-- **One round.** A coefficient list whose values at `0` and `1` pass the mode's check meets the
-verifier's `sumcheckRoundPoly`, which rebuilds it from the wire. -/
+/-- Passing a proof of work of `bits` bits meets checking it: nothing at `0` bits. -/
+theorem Follows.grindBits_grindP (bits : ℕ) (cs : Commits) :
+    Follows (fun cs' _ _ ↦ cs' = cs) (Script.grindBits bits)
+      (VerifierProgram.grindProofOfWork bits) cs := by
+  by_cases h : bits = 0 <;>
+    simp [Script.grindBits, Script.grindS, VerifierProgram.grindProofOfWork, h, Follows]
+
+/-- The grind after a round of `count` coefficients in the mode `mode`: for the degree of the
+whole round polynomial, the equality factor included. -/
+def roundBits (count : ℕ) (mode : Option E) : ℕ :=
+  grindingBits (count - 1 + if mode.isSome then 1 else 0)
+
+/-- **One round.** A coefficient list whose values at `0` and `1` pass the mode's check, then the
+round's grind, meets the verifier's `sumcheckRoundPoly`, which rebuilds the list from the wire. -/
 theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (coeffs : List E)
     (hlen : coeffs.length = count) (hcount : 2 ≤ count)
     (hsplit : RoundSplit mode claim (polyEval coeffs 0) (polyEval coeffs 1)) (cs : Commits) :
-    Follows (fun cs' _ b ↦ cs' = cs ∧ b = coeffs) (Script.sendList (wire mode coeffs))
+    Follows (fun cs' _ b ↦ cs' = cs ∧ b = coeffs)
+      ((Script.sendList (wire mode coeffs)).bind fun _ ↦ Script.grindBits (roundBits count mode))
       (sumcheckRoundPoly count claim mode) cs := by
   obtain ⟨c0, c1, rest, rfl⟩ : ∃ c0 c1 rest, coeffs = c0 :: c1 :: rest := by
     match coeffs, hlen with
@@ -196,10 +210,13 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
     simp only [wire, List.headD_cons, List.drop_succ_cons, List.drop_zero, Script.sendList,
       sumcheckRoundPoly, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind,
           Follows]
-    rw [← hrest, ← Script.bind_ret (Script.sendList rest)]
+    rw [← hrest]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs rest)
     obtain ⟨rfl, hb⟩ := h
     subst hb
+    refine Follows.bind (fun cs'' _ _ h ↦ ?_) _ _ _
+      (Follows.grindBits_grindP (grindingBits (count - 1)) cs')
+    subst h
     refine ⟨rfl, ?_⟩
     simp only [List.cons.injEq, true_and, and_true]
     rw [sumE_eq, ← hsplit]
@@ -209,10 +226,13 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
     simp only [wire, List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly,
         VerifierProgram.bind_eq]
     have hl : (c1 :: rest).length = count - 1 := by simp; omega
-    rw [← hl, ← Script.bind_ret (Script.sendList (c1 :: rest))]
+    rw [← hl]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs (c1 :: rest))
     obtain ⟨rfl, hb⟩ := h
     subst hb
+    refine Follows.bind (fun cs'' _ _ h ↦ ?_) _ _ _
+      (Follows.grindBits_grindP (grindingBits ((c1 :: rest).length + 1)) cs')
+    subst h
     refine ⟨rfl, ?_⟩
     simp only [List.cons.injEq, and_true]
     rw [sumE_eq, List.sum_cons, ← hsplit]
@@ -221,14 +241,14 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
 /-! ## The rounds -/
 
 /-- **The honest sumcheck prover** for the rounds `modes`, after the challenges `pre`: per round,
-the coefficients of the next claim as a polynomial of degree below `count`, on the wire; then the
-challenge. Returns the challenges drawn and the final claim. -/
+the coefficients of the next claim as a polynomial of degree below `count`, on the wire, and the
+round's grind; then the challenge. Returns the challenges drawn and the final claim. -/
 noncomputable def hSumcheck (count : ℕ) (claimOf : List E → E) :
     List (Option E) → List E → Script (List E × E)
   | [], pre => .ret ([], claimOf pre)
   | mode :: modes, pre =>
-    (Script.sendList (wire mode (coeffsOf (count - 1) fun x ↦ claimOf (pre ++ [x])))).bind
-      fun _ ↦ Script.sampleE.bind fun c ↦
+    ((Script.sendList (wire mode (coeffsOf (count - 1) fun x ↦ claimOf (pre ++ [x])))).bind
+      fun _ ↦ Script.grindBits (roundBits count mode)).bind fun _ ↦ Script.sampleE.bind fun c ↦
         (hSumcheck count claimOf modes (pre ++ [c])).bind fun r ↦ .ret (c :: r.1, r.2)
 
 /-- **The honest rounds follow the program's.** If every next claim is a polynomial of degree
