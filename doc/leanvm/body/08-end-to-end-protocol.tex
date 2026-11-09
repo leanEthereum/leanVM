@@ -100,21 +100,21 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} The prover grinds $\mu-3$ bits, $\mu$ the bus tree's depth, which the announced sizes fix (\S\ref{sec:gp}).
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
 \item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
-\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). Its challenges need no grind (\S\ref{sec:grinding}): a layer's combiner has degree two, a sumcheck round at most five and the child challenges at most two, plus one for each coordinate of $\zeta$ among them, which the zerocheck of \S\ref{sec:air} also reads. The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
+\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
 \item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), the padding term of \eqref{eq:pad_leaf}, and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta_{<\kbc},\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks of the push and pull sides each belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
 
 \paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
-\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements. Neither $\xi$, of degree $\nconstot+\nside-1$, nor a round, of degree three or four where its challenge is also a coordinate of the \texttt{KECCAK} table's point (\S\ref{keccak:segments}), needs a grind.
+\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
 \item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{KECCAK}'s fifty value lanes are columns of its table but have no region of their own in the stack. An input lane is a slot of $\qkeccak$, so its claim is a claim on $\qkeccak$ at the same point followed by the slot's bits (\S\ref{sec:tab-keccak}). The claims on the output lanes leave the pool: they are the Keccak reduction's claims on the output.
 \end{enumerate}
 
 \paragraph{Public input.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends $r_m\in\E$, with no grind: the identity is a line.
+\item \textbf{Verifier.} Samples and sends $r_m\in\E$.
 \item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1)$ as claims on $\mem_0,\mem_1$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
 \end{enumerate}
 

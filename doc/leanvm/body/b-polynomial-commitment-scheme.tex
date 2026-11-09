@@ -144,7 +144,7 @@ After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, then $\phigh$.
-\item \emph{(ood)} $\mathbf{V}$ sends two points $z_1,z_2 \leftarrow \E^{\nv_{i+1}}$, one message with no grind; $\mathbf{P}$ sends $\cood{1},\cood{2} \in \E$ (honestly $\mle{f^{(i+1)}}(z_s)$).
+\item \emph{(ood)} $\mathbf{V}$ sends two points $z_1,z_2 \leftarrow \E^{\nv_{i+1}}$, one message; $\mathbf{P}$ sends $\cood{1},\cood{2} \in \E$ (honestly $\mle{f^{(i+1)}}(z_s)$).
 \item \emph{(query)} $\mathbf{V}$ grinds $\grind{query}$ bits and sends $\nq_i$ i.i.d.\ columns $\qset_i = (x_q)_{q < \nq_i} \leftarrow \dom_i$.
 \item \emph{(batch)} $\mathbf{V}$ grinds $\grind{batch}$ bits and sends $\lambda\leftarrow\E$.
 \item \emph{(read)} $\mathbf{V}$ reads $\orc^{(i)}[\cdot, x_q]$ and folds it as the rounds folded the lanes, $c_q := \orc^{(i)}_{\premix_1,\afa_1,\afb_1,\dots}[x_q]$ (honestly $P(x_q)$), then removes the high part, $c'_q := c_q + \Wn{\kappa}(x_q)\sum_{j<\ell_i}\phigh_j\,\novel_j(x_q)$ (honestly $\Enc_i(f^{(i+1)})[x_q]$).
@@ -156,7 +156,7 @@ W \gets W + \textstyle\sum_{s}\lambda^{s}\eq(z_s,\cdot) + \lambda^3\textstyle\su
 \]
 where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
 \end{enumerate}
-\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ grinds $\grind{query}$ bits, sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}), not ground, reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
+\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ grinds $\grind{query}$ bits, sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
 \end{enumerate}
 $\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\wch,\fc)$ of all weight and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
@@ -197,7 +197,7 @@ Suppose that, for every level $i$ and round $j$, $(\agr^{(i)}_0)^2>\blen_i\dgr^{
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
 \end{array}
 \]
-Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's, $\binom{L_0}{2}\nv_0/|\E|$. The grinds divide the batching, premix, fold, and query rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$ and $2^{\grind{query}}$, and the pin's by $2^{\grind{pin}}$ (\S\ref{sec:grinding}); the OOD points and the tail rounds are not ground. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
+Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's, $\binom{L_0}{2}\nv_0/|\E|$. The grinds divide the batching, premix, fold, and query rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$ and $2^{\grind{query}}$, and the pin's by $2^{\grind{pin}}$ (\S\ref{sec:grinding}). The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
 \end{theorem}
 
 \paragraph{The opening inside the protocol.}\label{sec:soundness-outer} Two rows at level $0$ come from the protocol around the opening (\S\ref{sec:e2e-unrolled}).
@@ -206,7 +206,7 @@ Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i 
 \item \emph{List pin.} Level $0$ takes no OOD sample, so the commitment binds up to $L_0$ polynomials, and a challenge drawn while several remain would pay a factor $L_0$. The protocol therefore pins the list right after the commitment, before any other challenge: the prover grinds $\grind{pin}$ bits, the verifier samples $z\in\E^{\nv_0}$, and the prover sends $\mle{f}(z)$, which joins the claim pool last as the claim $(\eq(z,\cdot),\mle{f}(z))$. Two distinct list members collide at $z$ with probability at most $\nv_0/|\E|$ (Lemma~\ref{lem:sz}), so the pin fails with probability at most $\binom{L_0}{2}\nv_0/|\E|$, the OOD row at $i=0$, which $\grind{pin}$ grinds. After the pin, every later challenge faces a single candidate.
 \end{itemize}
 
-\paragraph{Parameters.} The implementation fixes $\grind{fold}=6$, $\grind{query}=17$, $\grind{batch}=12$ and $\grind{pin}=14$, the fold, batching and pin grinds being the smallest with which no admitted shape (stack size and rate) needs more queries than with unlimited grinding. It picks the interpolation parameters of each $\epsaff$ by search, and the slack $\slack_i$ that minimizes $\nq_i$ with every ground row at most $2^{-123}$. The tail rows, $2^{-127}$, and the OOD rows of two points are below $2^{-123}$ unground.
+\paragraph{Parameters.} The implementation fixes $\grind{fold}=6$, $\grind{query}=17$, $\grind{batch}=12$ and $\grind{pin}=14$, the fold, batching and pin grinds being the smallest with which no admitted shape (stack size and rate) needs more queries than with unlimited grinding. It picks the interpolation parameters of each $\epsaff$ by search, and the slack $\slack_i$ that minimizes $\nq_i$ with every ground row at most $2^{-123}$.
 
 The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.
 
