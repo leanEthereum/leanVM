@@ -60,6 +60,61 @@ def treeLayers.fast : ℕ → Array E → List (Array E)
   | zero => rfl
   | succ n ih => simp only [treeLayers, treeLayers.fast, ih]
 
+/-- `foldRoundsA`, copied. -/
+def foldRoundsA.fast : ℕ → ℕ → Array E → Array E → Script (Array E × Array E)
+  | 0, _, f, w => return (f, w)
+  | n + 1, s, f, w => do
+    let (f, w) ← foldRoundA f w s
+    foldRoundsA.fast n (s / 2) f w
+
+@[csimp] theorem foldRoundsA.fast_eq : @foldRoundsA = @foldRoundsA.fast := by
+  funext n s f w
+  induction n generalizing s f w with
+  | zero => rfl
+  | succ n ih => simp only [foldRoundsA, foldRoundsA.fast, ih]
+
+/-- `levelsA`, copied. -/
+def levelsA.fast : ℕ → List Whir.Level → Array E → Array E → Script Unit
+  | _, [], _, _ => return ()
+  | mu, level :: rest, f, w => do
+    let (p, w) ← foldRoundsA level.fold (2 ^ level.fold) f w
+    let mu := mu - level.fold
+    let depth := mu + level.logInvRate
+    match rest with
+    | [] => do
+      Script.sendList p.toList
+      Script.grindBits Whir.queryGrindingBits
+      let _ ← sampleQueriesS depth level.queries level.queries
+      let _ ← Script.queryS
+      tailA mu w (p.extract 0 (2 ^ mu))
+    | next :: _ => do
+      let low := p.extract 0 (2 ^ mu)
+      Script.commitS (levelWordFast (mu - next.fold) next.fold next.logInvRate low)
+      Script.sendList (p.extract (2 ^ mu) p.size).toList
+      let z₁ ← Script.sampleN mu
+      let z₂ ← Script.sampleN mu
+      let e₁ := eqTable z₁
+      let e₂ := eqTable z₂
+      Script.sendList [dotA low e₁, dotA low e₂]
+      Script.grindBits Whir.queryGrindingBits
+      let queries ← sampleQueriesS depth level.queries level.queries
+      Script.grindBits Whir.batchGrindingBits
+      let lam ← Script.sampleE
+      let _ ← Script.queryS
+      levelsA.fast mu rest low
+        (glueTablesA lam w [e₁, e₂, queryTableA mu queries (powers lam queries.length)])
+
+@[csimp] theorem levelsA.fast_eq : @levelsA = @levelsA.fast := by
+  funext mu levels f w
+  induction levels generalizing mu f w with
+  | nil => rfl
+  | cons level rest ih =>
+    cases rest with
+    | nil => rfl
+    | cons next rest' =>
+      unfold levelsA levelsA.fast
+      simp only [ih]
+
 namespace KeccakGkr
 
 /-- `layersProve`, copied. -/
