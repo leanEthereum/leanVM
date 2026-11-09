@@ -275,6 +275,10 @@ pub(crate) struct Func {
     /// frame and the argument and return plumbing vanish. The body must be a
     /// single tail `return`, and is never lowered standalone.
     pub inline: bool,
+    /// `@deref_copies`: copy one cell into another (a loop's back edge into the
+    /// next frame, a store of a cell, `assert a == b`) with a `DEREF` rather than a
+    /// `MUL` by one. The loops in its body inherit it.
+    pub deref_copies: bool,
 }
 
 impl Func {

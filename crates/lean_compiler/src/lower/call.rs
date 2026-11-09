@@ -119,26 +119,17 @@ impl FnLower<'_> {
             let nfp = self.pure(PureOp::Mul, own_fp, scale);
             let entry = self.fresh();
             let oc = cond.unwrap_or_else(|| self.one());
-            let one = self.one();
+            let one = (!self.deref_copies).then(|| self.one());
             self.set(entry, KVal::Entry(callee.to_string()));
-            for &(off, ao) in &arg_offs {
-                self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
+            // Into the next frame: the arguments, its own fp, then our return target.
+            let mut copies = arg_offs;
+            copies.extend([(Abi::end(callee_arg_cells, 0), nfp), (Abi::RET_FP, 1), (Abi::RET_PC, 0)]);
+            for (c, a) in copies {
+                match one {
+                    Some(one) => self.emit(LOp::MulNextFrame { a, b: one, c }),
+                    None => self.deref(nfp, c, a, DerefMode::Cell),
+                }
             }
-            self.emit(LOp::MulNextFrame {
-                a: nfp,
-                b: one,
-                c: Abi::end(callee_arg_cells, 0),
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 1,
-                b: one,
-                c: Abi::RET_FP,
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 0,
-                b: one,
-                c: Abi::RET_PC,
-            });
             self.emit(LOp::Jump { oc, od: entry, of: nfp });
             return;
         }
@@ -503,6 +494,7 @@ impl FnLower<'_> {
                 return_shapes: def.return_shapes.clone(),
                 body: substitute_body(&def.body, &substs).into_owned(),
                 inline: false,
+                deref_copies: def.deref_copies,
             });
         }
         (name, runtime.map(|(_, a)| a).collect())

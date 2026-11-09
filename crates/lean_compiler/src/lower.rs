@@ -184,6 +184,9 @@ struct FnLower<'a> {
     /// determine the reserved return area immediately after the arguments.
     return_shapes: &'a [Shape],
     is_main: bool,
+    /// `@deref_copies` ([`Func::deref_copies`]): [`Self::copy`] and a loop's back
+    /// edge copy with a `DEREF` instead of a `MUL`.
+    deref_copies: bool,
     code: Vec<LInstr>,
     /// Declared size of each `HeapBuf`, keyed by its pointer cell. Shifted
     /// aliases resolve to the same base cell through their gaddr, so a
@@ -429,10 +432,16 @@ impl FnLower<'_> {
         });
     }
 
-    /// `dst = src` (no MOV: multiply by `1`).
+    /// `dst = src`: no MOV, so a `MUL` by `1`, or in a `@deref_copies` function a
+    /// `DEREF` through this frame's own pointer.
     fn copy(&mut self, src: Off, dst: Off) {
-        let one = self.one();
-        self.emit(LOp::Mul { a: src, b: one, c: dst });
+        if self.deref_copies {
+            let sfp = self.self_fp();
+            self.deref(sfp, dst, src, DerefMode::Cell);
+        } else {
+            let one = self.one();
+            self.emit(LOp::Mul { a: src, b: one, c: dst });
+        }
     }
 
     /// A frame cell holding this function's own `fp` (the g-power element),
@@ -1295,14 +1304,13 @@ impl FnLower<'_> {
                     self.rebind(n, b);
                 }
             }
-            // `a * 1` into `b`'s own cell: the double write IS the assertion, and no
-            // cell is burned. A MUL rather than `a + b` into the zero cell, since the
-            // recursion guest fills the XOR table first. Not through `pure`: the
+            // `a` copied into `b`'s own cell: the double write IS the assertion, and
+            // no cell is burned. A copy rather than `a + b` into the zero cell, since
+            // the recursion guest fills the XOR table first. Not through `pure`: the
             // write must happen.
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
-                let one = self.one();
-                self.emit(LOp::Mul { a: la, b: one, c: lb });
+                self.copy(la, lb);
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),
@@ -1546,6 +1554,7 @@ impl FnLower<'_> {
             return_shapes: vec![],
             body: loop_body,
             inline: false,
+            deref_copies: self.deref_copies,
         });
 
         // Enter the loop iff it runs at least once: compile-time for constant
@@ -1678,6 +1687,7 @@ pub(crate) fn lower_func(
         arg_cells,
         return_shapes: &f.return_shapes,
         is_main: f.name == "main",
+        deref_copies: f.deref_copies,
         fn_name: &f.name,
         tail_call: false,
         code: Vec::new(),

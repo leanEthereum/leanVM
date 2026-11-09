@@ -185,6 +185,18 @@ An `@inline` `match` arm expands into the dispatching frame like any other call 
 
 Because the body runs in the *caller's* frame, a `Const` parameter whose `if`s fold (below) bakes straight-line, per-case code, the idiom for a `match` arm that must specialize on the arm value. The trade-off is frame cells: each call site gets its own copy, so `@inline` pays off for small, hot callees; inlining a large body at many sites grows the committed witness (more data memory), so it is opt-in, not automatic.
 
+### `@deref_copies`: copies off the `MUL` table
+
+```python
+@deref_copies
+def f(buf, x):
+    for i in mul_range(1, GEN ** 8):   # the back edge copies `buf` and `x` with DEREFs
+        buf[i] = x
+    return
+```
+
+The ISA has no move, so a copy of one cell into another is a `MUL` by `1`: a loop's back edge writing each captured value into the next frame, a value stored into a `StackBuf` cell or returned, an `assert a == b`. In an `@deref_copies` function each of these is a `DEREF` instead, through the next frame's pointer or the function's own (the one `addr` materializes, below), so a copy costs the same cycle and cell in the `DEREF` table. Tables pad to powers of two separately, so this is for code that runs where `MUL` is the fuller table, as the recursion guest's verifier does; it costs one materialization of `fp` in a function that has none. The `mul_range` loops in its body inherit the decorator, an `@inline` body copies as its caller does (so `@inline` and `@deref_copies` do not combine), and a callee keeps its own choice.
+
 ## Variables
 
 Bindings are **immutable**: `x = e` names a fresh cell. Re-binding a name is allowed (it's a new cell; the old value is unaffected), but there is no mutation. Compound assignment (`+=`, `-=`, `*=`, `//=`, `%=`) is sugar for a re-binding: `x += e` desugars to `x = x + e`.
@@ -268,7 +280,7 @@ for j in mul_range(1, n):   # bound its log first, or it never does
 
 A runtime bound is evaluated once at entry and threaded through the loop as an extra parameter (+1 argument per iteration call); entry itself is the same `!=` test, so a bound equal to the start runs zero iterations.
 
-Lowering: the body becomes a tail-recursive helper function whose exit test is folded into the recursion's `JUMP` condition: one call per iteration, no separate is-zero gadget. Free variables of the body are captured **by value** as extra parameters; a `HeapBuf` pointer threads through, and a `StackBuf` as a run of parameter cells, one `MUL` per cell an iteration (every cell is read, so write them all before the loop).
+Lowering: the body becomes a tail-recursive helper function whose exit test is folded into the recursion's `JUMP` condition: one call per iteration, no separate is-zero gadget. Free variables of the body are captured **by value** as extra parameters; a `HeapBuf` pointer threads through, and a `StackBuf` as a run of parameter cells, one copy per cell an iteration (every cell is read, so write them all before the loop), a `MUL` or, under `@deref_copies`, a `DEREF`.
 
 The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
 

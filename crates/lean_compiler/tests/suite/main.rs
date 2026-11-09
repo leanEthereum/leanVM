@@ -4,6 +4,7 @@ mod common;
 
 mod assert_ne;
 mod const_placeholder;
+mod deref_copies;
 mod determinism;
 mod disassemble;
 mod dispatch_frames;
