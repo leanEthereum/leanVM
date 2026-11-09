@@ -1,14 +1,16 @@
 /-
   LeanVM.Protocol.EndToEnd.Complete.Ring
 
-  The honest run of ring switching: no prover message, a grind and sixteen challenges, and the ring-switching
-  claim the program opens on the stack is true of the honest stack and has a multilinear weight,
-  for the true slices of `q_keccak`.
+  The honest run of ring switching: no prover message, a grind and sixteen challenges, and the
+  ring-switching claim the program opens on the stack is true of the honest stack and has a
+  multilinear weight, for the true slices of `q_keccak`.
 -/
 
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
+public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
+public import LeanVM.Protocol.RingVerifier
 public import LeanVM.Protocol.Whir.Complete.Script
 
 /-!
@@ -73,6 +75,7 @@ def hRing (point slices : List E) : Script (E × (List E → E)) :=
   .ret (Ring.ringTarget slices (ch.take 8) (ch.drop 8),
     fun rPrime ↦ ringWeight point rPrime (Ring.ringCoefficients (ch.take 8) (ch.drop 8)))
 
+attribute [local irreducible] Follows in
 /-- **Completeness of ring switching.** For the true slices of the block where the layout places
 `q_keccak`, aligned and inside a stack of `μ` variables, the honest prover follows `ringSwitch`
 for every challenge, and the claim the program opens on the stack holds of it with a multilinear
@@ -90,9 +93,10 @@ theorem follows_ringSwitch {layout : Verifier.Layout} {h₅ off μ : ℕ}
   subst h
   refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ 16)
   obtain ⟨rfl, rfl, hl⟩ := h
-  exact ⟨rfl, rfl, ringClaim_holds_of_slicesTrue hpl hal hfit q hr hl,
+  exact Follows.ret_ret ⟨rfl, rfl, ringClaim_holds_of_slicesTrue hpl hal hfit q hr hl,
     Front.isMultilinearFn_ringWeight _ _ _ _⟩
 
+attribute [local irreducible] Follows in
 /-- **Completeness of ring switching at the verifier's layout**, for a stack of the leanISA
 instance: the true slices of its `q_keccak` block (`τ_KECCAK + 6` variables at the block's
 offset). -/

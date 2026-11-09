@@ -263,7 +263,7 @@ theorem follows_keccakPhase {input : PublicInput} (hq : M3Holds (inst prog s) in
     (z : Vector E (s.τ 5)) (hl : lanesOf claims = honestLanes prog s q z) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
-        slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
+        slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2 ∧ b.1.length ≤ claims.length + 1)
       (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs := by
   have hP : s.τ 5 - 4 + 4 = s.τ 5 := by
     have := s.minSteps_le
@@ -296,8 +296,11 @@ theorem follows_keccakPhase {input : PublicInput} (hq : M3Holds (inst prog s) in
     rw [hP, hinst]; exact midAgree_honest prog s q hq z
   refine Follows.bind (fun cs₂ a b h₂ ↦ ?_) _ _ _
     (follows_keccak (s.τ 5 - 4) (qkH prog s q) hi ho hmid hagree cs₁)
-  obtain ⟨rfl, rfl, hcol, hsl⟩ := h₂
-  refine ⟨rfl, rfl, fun c hc ↦ ?_, by rw [hP] at hsl; exact hsl⟩
+  obtain ⟨rfl, rfl, hcol, hsl, hlen1⟩ := h₂
+  refine ⟨rfl, rfl, fun c hc ↦ ?_, by rw [hP] at hsl; exact hsl, ?_⟩
+  swap
+  · rw [List.length_append, hlen1]
+    exact Nat.add_le_add_right (List.length_filter_le _ _) 1
   rcases List.mem_append.mp hc with hc | hc
   · obtain ⟨hmem, hnot⟩ := List.mem_filter.mp hc
     exact ⟨htrue c hmem, by simpa using hnot⟩
