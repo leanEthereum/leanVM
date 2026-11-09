@@ -72,18 +72,6 @@ ROUND_FS = 0
 ROUND_CURSOR = 5
 ROUND_CLAIM = 6
 ROUND_SLOTS = 7
-# One product layer of the bus GKR.
-LAYER_FS = 0
-LAYER_CURSOR = 5
-LAYER_PUSH = 6
-LAYER_PULL = 7
-LAYER_COUNT = 8
-LAYER_ROW = 9
-LAYER_POS = 10
-LAYER_HALF = 11  # g^(k // 4) at radix-four layer k
-LAYER_PARITY = 12  # g^(k % 4)
-LAYER_PEND = 13  # the four rate cells the layer's first permutation takes: the roots', then zero
-LAYER_SLOTS = 17
 # One OOD sample of a WHIR level.
 OOD_BETA = 0
 OOD_Y = 1
@@ -92,16 +80,32 @@ OOD_C2 = 3
 OOD_SLOTS = 4
 
 # ---------------------------------------------------- the bus: sides and blocks
-# GKR sides. The layer counts mu_s are hinted and certified from the block kappas;
-# GKR_ROUNDS_CAP caps the per-tree round positions (triangle rounds plus one slot
-# per layer) and GKR_POINTS_CAP the point triangle (rows x MU_CAP).
+# GKR sides, the block lists. N_FINGERPRINTS independent fingerprints (alpha, beta) each
+# run a push and a pull tree over the push and pull blocks, and the count tree runs
+# over the count blocks, so the GKR batches N_TREES trees, in TREE order: push, pull
+# per fingerprint, then count. The layer counts mu_s are hinted and certified from
+# the block kappas; GKR_ROUNDS_CAP caps the per-tree round positions (triangle rounds
+# plus one slot per layer) and GKR_POINTS_CAP the point triangle (rows x MU_CAP).
 PUSH_SIDE = 0
 PULL_SIDE = 1
 COUNT_SIDE = 2
 N_GKR_SIDES = 3
+N_FINGERPRINTS = N_FINGERPRINTS_PLACEHOLDER
+N_TREES = 2 * N_FINGERPRINTS + 1
+COUNT_TREE = N_TREES - 1
 GKR_ROUNDS_CAP = GKR_ROUNDS_CAP_PLACEHOLDER
 MU_CAP = MU_CAP_PLACEHOLDER
 GKR_POINTS_CAP = GKR_POINTS_CAP_PLACEHOLDER
+# One product layer of the bus GKR: its sponge, cursor, and each tree's claimed value.
+LAYER_FS = 0
+LAYER_CURSOR = 5
+LAYER_TREES = 6
+LAYER_ROW = LAYER_TREES + N_TREES
+LAYER_POS = LAYER_ROW + 1
+LAYER_HALF = LAYER_ROW + 2  # g^(k // 4) at radix-four layer k
+LAYER_PARITY = LAYER_ROW + 3  # g^(k % 4)
+LAYER_PEND = LAYER_ROW + 4  # the rate the layer's first permutation takes: the roots', then zero
+LAYER_SLOTS = LAYER_PEND + 8
 # Bus blocks, flattened across the 3 sides (side s covers blocks
 # [SIDE_BLOCK_START[s], SIDE_BLOCK_START[s+1])). The block STRUCTURE is
 # protocol-fixed and baked: each block's coord range [BLOCK_COORD_OFF,
@@ -166,21 +170,26 @@ INDEX_MLE_FACTORS = INDEX_MLE_FACTORS_PLACEHOLDER  # 1 + g^(2^i)
 # bytecode values (Public coords).
 N_CLAIMS = N_CLAIMS_PLACEHOLDER
 # A bus tuple's coordinates index the 2^N_TUPLE_BITS fingerprint slots (doc
-# sec:gp). The stacked bytecode has BYTECODE_COLS encoding columns, stacked along
-# LOG2_BYTECODE_COLS selector bits into ONE multilinear; push and pull share their
-# GKR point, so the columns are opened ONCE.
+# sec:gp). A fingerprint's slot weights are an eqtree, its 2^N_TUPLE_BITS weights
+# the last of its FP_STRIDE cells. The stacked bytecode has BYTECODE_COLS encoding
+# columns, stacked along LOG2_BYTECODE_COLS selector bits into ONE multilinear, a
+# column's slot being its tuple coordinate, so they fill the slots from
+# BYTECODE_SLOT on. Their values at ζ's low coordinates ride the stream, and a fresh
+# slot point reduces them to one deferred claim on that multilinear.
 N_TUPLE_BITS = 4
 N_TUPLE_SLOTS = 16
+FP_STRIDE = 2 * N_TUPLE_SLOTS - 2
 BYTECODE_COLS = BYTECODE_COLS_PLACEHOLDER
 LOG2_BYTECODE_COLS = LOG2_BYTECODE_COLS_PLACEHOLDER
+BYTECODE_SLOT = N_TUPLE_SLOTS - BYTECODE_COLS
 
 # --------------------------------------------------------------- the six tables
 # The table sumcheck's batch carries EVERY committed column of a table, because its
 # bus forms read the flushed ones and its constraint the rest; TABLE_COLS_CAP caps
 # the evaluation frame. ETA_OFFSET[t] starts table t's disjoint range of zc_xi
-# powers; the three bus forms take ETA_FORM_BASE + side, the SAME three powers for
+# powers; the bus forms take ETA_FORM_BASE + tree, the SAME N_TREES powers for
 # every table, and that sharing is what makes the batch's target derivable from the
-# three leaf claims. FLOORS[t] is the table's least log height (the Keccak reduction
+# trees' leaf claims. FLOORS[t] is the table's least log height (the Keccak reduction
 # is sized for at least one block of 2^9 steps).
 TABLE_JUMP = 4
 TABLE_KECCAK = 5
@@ -640,15 +649,6 @@ def fs_perm(sp, rate, k: Const):
         keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
     if k == 4:
         keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
-    return nxt
-
-
-@inline
-def fs_perm4(sp, r0, r1, r2, r3):
-    # The permutation whose rate is r0..r3 then zero: up to two waiting scalars, held as
-    # cells rather than in a rate run.
-    nxt = StackBuf(KECCAK_STATE)
-    keccak([r0, r1], [r2, r3], nxt, cap=sp)
     return nxt
 
 
@@ -1765,34 +1765,46 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
 # Fiat-Shamir state pair and the stream cursor, so the sequence is what binds them.
 
 
+@inline
+def tree_claim(layer, lam):
+    # The layer's tree values batched by lam: Horner, tree 0 the constant term.
+    claim = layer[GEN ** (LAYER_TREES + COUNT_TREE)]
+    for i in unroll(1, N_TREES):
+        claim = layer[GEN ** (LAYER_TREES + COUNT_TREE - i)] + lam * claim
+    return claim
+
+
 def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
-    # ONE GKR grand product over push, pull and count, RLC-batched. Push and pull
+    # ONE GKR grand product over the N_TREES trees, RLC-batched. Push and pull
     # have equal depth (matched blocks) and the count tree is padded with identity
-    # leaves up to it (product unchanged), so a single sumcheck serves all three.
+    # leaves up to it (product unchanged), so a single sumcheck serves them all.
     # Radix four contracts two binary levels per layer, each batched by a fresh λ
-    # squeezed at its start. All three trees reduce to the one shared point `zeta`,
-    # which this fills, returning their three leaf values with the walked
-    # Fiat-Shamir state and stream cursor.
+    # squeezed at its start. All trees reduce to the one shared point `zeta`,
+    # which this fills, returning the walked Fiat-Shamir state and stream cursor and
+    # a pointer to the trees' leaf values, in tree order.
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)  # mu + 2 layers
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
     assert log(g_bus_mu) < COUNT_BITS
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
-    root_push, cursor = fs_next(rate, 0, cursor)
-    root_pull = root_push
-    root_count, cursor = fs_next(rate, 1, cursor)
-    assert root_count != 0  # count-tree root nonzero: no read count self-cancels
+    # One root per fingerprint, its push and pull trees' shared product, then the count tree's.
+    for f in unroll(0, N_FINGERPRINTS + 1):
+        root, cursor = fs_next(rate, f, cursor)
+        layers[GEN ** (LAYER_TREES + 2 * f)] = root
+        if const(f != N_FINGERPRINTS):
+            layers[GEN ** (LAYER_TREES + 2 * f + 1)] = root
+    assert root != 0  # count-tree root nonzero: no read count self-cancels
     # The roots wait in the sponge until the first layer's challenge: a layer's first
     # permutation takes its LAYER_PEND cells, which are zero for every later layer.
     for j in unroll(0, FS_CELLS):
         layers[GEN ** (LAYER_FS + j)] = sp[j]
-    for j in unroll(0, 4):
-        layers[GEN ** (LAYER_PEND + j)] = rate[j]
+    for j in unroll(0, 8):
+        if const(j // (2 * N_FINGERPRINTS + 2) == 0):
+            layers[GEN ** (LAYER_PEND + j)] = rate[j]
+        else:
+            layers[GEN ** (LAYER_PEND + j)] = 0
     layers[GEN ** LAYER_CURSOR] = cursor
-    layers[GEN ** LAYER_PUSH] = root_push
-    layers[GEN ** LAYER_PULL] = root_pull
-    layers[GEN ** LAYER_COUNT] = root_count
     layers[GEN ** LAYER_ROW] = gkr_pts
     layers[GEN ** LAYER_POS] = GEN ** 0
     layers[GEN ** LAYER_HALF] = GEN ** 0
@@ -1816,14 +1828,14 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
         # The odd layer is layer 0, so its round state would be written and read
         # back at the same position: read it straight off the layer instead.
         layer_cap = fs_load(layers, LAYER_FS, 1)
-        tail_sp = fs_perm4(layer_cap, layers[GEN ** LAYER_PEND], layers[GEN ** (LAYER_PEND + 1)], layers[GEN ** (LAYER_PEND + 2)], layers[GEN ** (LAYER_PEND + 3)])
+        tail_sp = fs_perm_pending(layer_cap, layers, LAYER_PEND)
         lam = challenge_from_state(tail_sp)
         rate = StackBuf(8)
         tcur = layers[GEN ** LAYER_CURSOR]
-        tclaim = layers[GEN ** LAYER_PUSH] + lam * (layers[GEN ** LAYER_PULL] + lam * layers[GEN ** LAYER_COUNT])
+        tclaim = tree_claim(layers, lam)
         nextrow = layers[GEN ** LAYER_ROW] * GEN ** MU_CAP
-        evals = StackBuf(2 * N_GKR_SIDES)  # the two children of each side, in side order
-        for i in unroll(0, 2 * N_GKR_SIDES):
+        evals = StackBuf(2 * N_TREES)  # the two children of each tree, in tree order
+        for i in unroll(0, 2 * N_TREES):
             if i % 4 == 0:
                 if i != 0:
                     tail_sp = fs_perm(tail_sp, rate, 4)
@@ -1831,19 +1843,19 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
             ev, tcur = fs_next(rate, i % 4, tcur)
             evals[i] = ev
         combined = 0
-        for i in unroll(0, N_GKR_SIDES):
-            side = N_GKR_SIDES - 1 - i  # Horner in lam, so the top side lands last
-            combined = evals[2 * side] * evals[2 * side + 1] + lam * combined
+        for i in unroll(0, N_TREES):
+            tree = COUNT_TREE - i  # Horner in lam, so the last tree lands first
+            combined = evals[2 * tree] * evals[2 * tree + 1] + lam * combined
         assert tclaim == combined
-        tail_sp, c0 = squeeze(tail_sp, rate, (2 * N_GKR_SIDES + 3) % 4 + 1)
+        tail_sp, c0 = squeeze(tail_sp, rate, (2 * N_TREES + 3) % 4 + 1)
         nextrow[GEN ** 0] = c0
         nxt = layers * GEN ** LAYER_SLOTS
         fs_store(nxt, LAYER_FS, 1, tail_sp)
-        for j in unroll(0, 4):
+        for j in unroll(0, 8):
             nxt[GEN ** (LAYER_PEND + j)] = 0
         nxt[GEN ** LAYER_CURSOR] = tcur
-        for side in unroll(0, N_GKR_SIDES):
-            nxt[GEN ** (LAYER_PUSH + side)] = evals[2 * side] + c0 * (evals[2 * side] + evals[2 * side + 1])
+        for tree in unroll(0, N_TREES):
+            nxt[GEN ** (LAYER_TREES + tree)] = evals[2 * tree] + c0 * (evals[2 * tree] + evals[2 * tree + 1])
         nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = GEN
         nxt[GEN ** LAYER_HALF] = GEN ** 0
@@ -1854,7 +1866,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
         x_layer = sq * depth_shift[g_bus_mu]
         layer = layers * x_layer ** LAYER_SLOTS
         layer_cap = fs_load(layer, LAYER_FS, 1)
-        layer_sp = fs_perm4(layer_cap, layer[GEN ** LAYER_PEND], layer[GEN ** (LAYER_PEND + 1)], layer[GEN ** (LAYER_PEND + 2)], layer[GEN ** (LAYER_PEND + 3)])
+        layer_sp = fs_perm_pending(layer_cap, layer, LAYER_PEND)
         lam = challenge_from_state(layer_sp)
         point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
@@ -1864,7 +1876,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
         head = rounds * round_pos
         fs_store(head, ROUND_FS, GKR_ROUNDS_CAP, layer_sp)
         head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_CURSOR]
-        head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
+        head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = tree_claim(layer, lam)
         # 2k rounds, or 2k + 1 when the depth is odd: eight a loop step, the state
         # between them staying in the frame, then 2 (k % 4), then the odd one.
         half = layer[GEN ** LAYER_HALF]
@@ -1902,8 +1914,8 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
         rate = StackBuf(8)
         tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
         tclaim = tail[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
-        evals = StackBuf(4 * N_GKR_SIDES)  # the four children of each side, in side order
-        for i in unroll(0, 4 * N_GKR_SIDES):
+        evals = StackBuf(4 * N_TREES)  # the four children of each tree, in tree order
+        for i in unroll(0, 4 * N_TREES):
             if i % 4 == 0:
                 if i != 0:
                     tail_sp = fs_perm(tail_sp, rate, 4)
@@ -1911,23 +1923,23 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
             ev, tcur = fs_next(rate, i % 4, tcur)
             evals[i] = ev
         combined = 0
-        for i in unroll(0, N_GKR_SIDES):
-            side = N_GKR_SIDES - 1 - i  # Horner in lam, so the top side lands last
-            combined = evals[4 * side] * evals[4 * side + 1] * evals[4 * side + 2] * evals[4 * side + 3] + lam * combined
+        for i in unroll(0, N_TREES):
+            tree = COUNT_TREE - i  # Horner in lam, so the last tree lands first
+            combined = evals[4 * tree] * evals[4 * tree + 1] * evals[4 * tree + 2] * evals[4 * tree + 3] + lam * combined
         assert tclaim == combined
-        tail_sp, c0 = squeeze(tail_sp, rate, (4 * N_GKR_SIDES + 3) % 4 + 1)
+        tail_sp, c0 = squeeze(tail_sp, rate, (4 * N_TREES + 3) % 4 + 1)
         tail_sp, c1 = squeeze(tail_sp, rate, 0)
         nextrow[GEN ** 0] = c0
         nextrow[GEN ** 1] = c1
         nxt = layer * GEN ** (2 * LAYER_SLOTS)
         fs_store(nxt, LAYER_FS, 1, tail_sp)
-        for j in unroll(0, 4):
+        for j in unroll(0, 8):
             nxt[GEN ** (LAYER_PEND + j)] = 0
         nxt[GEN ** LAYER_CURSOR] = tcur
-        for side in unroll(0, N_GKR_SIDES):
-            lo = evals[4 * side] + c0 * (evals[4 * side] + evals[4 * side + 1])
-            hi = evals[4 * side + 2] + c0 * (evals[4 * side + 2] + evals[4 * side + 3])
-            nxt[GEN ** (LAYER_PUSH + side)] = lo + c1 * (lo + hi)
+        for tree in unroll(0, N_TREES):
+            lo = evals[4 * tree] + c0 * (evals[4 * tree] + evals[4 * tree + 1])
+            hi = evals[4 * tree + 2] + c0 * (evals[4 * tree + 2] + evals[4 * tree + 3])
+            nxt[GEN ** (LAYER_TREES + tree)] = lo + c1 * (lo + hi)
         nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = round_pos * x_layer * GEN
         nxt[GEN ** LAYER_HALF] = half * k_mod_next[GEN ** 4 * parity]
@@ -1937,7 +1949,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     final_point_row = last[GEN ** LAYER_ROW]
     for xt in mul_range(1, g_bus_mu):
         zeta[xt] = final_point_row[xt]  # the ONE shared point
-    return last[GEN ** LAYER_FS], last[GEN ** (LAYER_FS + 1)], last[GEN ** (LAYER_FS + 2)], last[GEN ** (LAYER_FS + 3)], last[GEN ** (LAYER_FS + 4)], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
+    return last[GEN ** LAYER_FS], last[GEN ** (LAYER_FS + 1)], last[GEN ** (LAYER_FS + 2)], last[GEN ** (LAYER_FS + 3)], last[GEN ** (LAYER_FS + 4)], cursor, last * GEN ** LAYER_TREES
 
 
 def index_mle(zeta, n: Const):
@@ -2106,12 +2118,12 @@ def padding_weight(rows, zeta, tau: Const):
     return (1 + top) * pad, lead, rest
 
 
-def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count):
+def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, bus_beta, claim_pool, chi, gkr_claims):
     # Settle the bus against the six tables, in four steps: certify each side's
-    # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
-    # table sumcheck they all reduce to, and bind the public input. Pooled claims
-    # land in claim_pool and the reduced point in `chi`; the batch's
-    # round count g^n, the deferred bytecode share and the PI point come back.
+    # leaf-cube tiling, decompose the trees' GKR leaf values (gkr_claims, in tree
+    # order) over it, run the ONE table sumcheck they all reduce to, and bind the
+    # public input. Pooled claims land in claim_pool and the reduced point in `chi`;
+    # the batch's round count g^n, the deferred bytecode claim and the PI point come back.
     #
     # Bus-leaf packing offsets, for the selector certification. Each side's blocks
     # tile its leaf cube, block b at offset_b, and offsets accumulate as
@@ -2124,10 +2136,6 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # count need offsets (pull's slots go unread).
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
-    gkr_claims = StackBuf(N_GKR_SIDES)
-    gkr_claims[PUSH_SIDE] = claim_push
-    gkr_claims[PULL_SIDE] = claim_pull
-    gkr_claims[COUNT_SIDE] = claim_count
     kb = StackBuf(N_TABLES + 2)  # kappa_base, in the frame
     kb[0] = 1
     for t in unroll(0, N_TABLES + 1):
@@ -2171,21 +2179,19 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
             for b in unroll(b0 + 1, BLOCK_GROUP_START[gi + 1]):
                 block_off[b] = block_off[b - 1] * step
 
-    # ---- 3x leaf decomposition (claims pooled; bytecode Public DEFERRED) ----
-    # Reconstruct Ṽ₀(ζ) per side and assert it equals the GKR leaf value. The
+    # ---- leaf decomposition per tree (claims pooled; bytecode Public DEFERRED) ----
+    # Reconstruct Ṽ₀(ζ) per tree and assert it equals the GKR leaf value. The
     # committed-coordinate values ride the stream (observed, pooled); Index
-    # coordinates use the factored index MLE; and the program's whole share of a
-    # bytecode leaf is ONE evaluation of the stacked polynomial, since its slots are
-    # aligned with the tuple and the weights are eq(α⃗, ·), so the share IS that
-    # polynomial at (ζ_lo, α⃗) (doc sec:e2e-bc): one hinted value, exported as a
-    # deferred claim, with no per-coordinate values and no selector challenge.
+    # coordinates use the factored index MLE; and the bytecode block's public slots
+    # take the bytecode's columns at ζ_lo, streamed after the decomposition's words
+    # (doc sec:e2e-bc), so their share joins each tree's total below.
     #
     # Pull's blocks mirror push's (same kappas, same offsets, generator-asserted
     # pairing) and share zeta, so each pull block REUSES its push twin's eq_hi and
     # Index-MLE value instead of recomputing them; its column values are mostly
     # deduped pool reads (COORD_FRESH). The identity check against pull's own GKR
-    # claim still binds everything.
-    bc_share = hint_witness("bytecode_val")
+    # claim still binds everything. A later fingerprint's push and pull trees walk the
+    # same blocks again, reusing all of that and differing only in weights and beta.
     # Each table's padding rows: their weight on a claim at zeta[..tau], dispatched on
     # its hinted log height tau, which this certifies: the least holding its rows, or
     # its floor. A table is at most the stack, so tau has an arm.
@@ -2219,23 +2225,36 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         shared_len[t] = g_bus_mu / tau_g
         assert log(shared_len[t]) < SIZE_BITS
         shared_selector_tables(shared_eq * GEN ** (t * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE), shared_g * GEN ** (t * SEL_TAB_NIBBLES * 16), zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t])
-    bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
+    tree_total = StackBuf(N_TREES)           # per tree, what its tables' blocks owe, bar the bytecode share
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
     block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
-    beta_1 = beta + 1
-    for s in unroll(0, N_GKR_SIDES):
+    side_ones = StackBuf(N_GKR_SIDES)        # per side, 1 + Σ_b eq_hi: the leaves outside every block
+    for tree in unroll(0, N_TREES):
+        if const(tree == COUNT_TREE):
+            s = COUNT_SIDE
+        else:
+            s = tree % 2
+        f = tree // 2
+        again = 0  # a later fingerprint's pass over push's or pull's blocks
+        if const(s != COUNT_SIDE):
+            if const(f != 0):
+                again = 1
+            w = fp_w * GEN ** (f * FP_STRIDE)  # this fingerprint's slot weights
+            beta = bus_beta[GEN ** f]
         acc = 0
         selector_sum = 0
         for b in unroll(SIDE_BLOCK_START[s], SIDE_BLOCK_START[s + 1]):
-            block_has_public = 0
-            kappa_g = kb[BLOCK_KAPPA_SRC[b]] * GEN ** BLOCK_KAPPA_ADJ[b]
-            # Every certified log is under SIZE_BITS (log_mem below COUNT_BITS, a tau
-            # below N_COLUMN_LOGS), so only an adjusted one needs bounding.
-            if const(BLOCK_KAPPA_SRC[b] != 0):
-                if const(BLOCK_KAPPA_ADJ[b] != 0):
-                    assert log(kappa_g) < SIZE_BITS
+            if const(again == 0):
+                kappa_g = kb[BLOCK_KAPPA_SRC[b]] * GEN ** BLOCK_KAPPA_ADJ[b]
+                # Every certified log is under SIZE_BITS (log_mem below COUNT_BITS, a tau
+                # below N_COLUMN_LOGS), so only an adjusted one needs bounding.
+                if const(BLOCK_KAPPA_SRC[b] != 0):
+                    if const(BLOCK_KAPPA_ADJ[b] != 0):
+                        assert log(kappa_g) < SIZE_BITS
             if s == PULL_SIDE:
                 eq_hi = block_eq_hi[b - SIDE_BLOCK_START[PULL_SIDE]]
+            elif const(again == 1):
+                eq_hi = block_eq_hi[b]
             else:
                 # eq_hi over the ζ coords above κ against the selector bits, whose
                 # run is mu_s − κ = g^mu_s / g^κ long. Selector bits = offset >> κ:
@@ -2265,21 +2284,22 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     idxc_hi = idxc_tab * kappa_g
                     eq_hi, goff = match(log(sel_len_g), range(0, SIZE_BITS), lambda n: block_selector(sel_bits, zeta1_hi, idxc_hi, n))
                 assert goff == block_off[b]  # bits == offset >> κ, κ-aligned
-            selector_sum += eq_hi
-            block_eq_hi[b] = eq_hi
+            if const(again == 0):
+                selector_sum += eq_hi
+                block_eq_hi[b] = eq_hi
             # A TABLE's block streams no value here: the table sumcheck settles its
             # fingerprint from that table's column evaluations. Only the framework
             # blocks (boundary, memory, bytecode) still decompose.
             if BLOCK_TABLE[b] == NO_TABLE:
                 # inner fingerprint Σ_i w_i · coord_i(ζ_lo); the count side weighs
-                # slot 0 alone (α⃗ = 0), γ = 0.
+                # slot 0 alone (α⃗ = 0), γ = 0. A later pass reads every value back.
                 inner_sum = 0
                 for i in unroll(0, BLOCK_COORD_COUNT[b]):
                     ci = BLOCK_COORD_OFF[b] + i  # a compile-time index, so `ci` costs nothing
                     if COORD_TYPE[ci] == COORD_KIND_CONST:
                         coord_val = COORD_CONST[ci]
                     if COORD_TYPE[ci] == COORD_KIND_COL:
-                        if COORD_FRESH[ci] == 1:
+                        if const(COORD_FRESH[ci] * (1 - again) == 1):
                             if COORD_FRESH_POS[ci] % 4 == 0:
                                 if COORD_FRESH_POS[ci] != 0:
                                     sp = fs_perm(sp, rate, 4)
@@ -2289,7 +2309,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                         else:
                             coord_val = claim_pool[GEN ** COORD_CLAIM_SLOT[ci]]
                     if COORD_TYPE[ci] == COORD_KIND_GCOL:
-                        if COORD_FRESH[ci] == 1:
+                        if const(COORD_FRESH[ci] * (1 - again) == 1):
                             if COORD_FRESH_POS[ci] % 4 == 0:
                                 if COORD_FRESH_POS[ci] != 0:
                                     sp = fs_perm(sp, rate, 4)
@@ -2302,21 +2322,22 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     if COORD_TYPE[ci] == COORD_KIND_INDEX:
                         if s == PULL_SIDE:
                             coord_val = block_index_mle[GEN ** (b - SIDE_BLOCK_START[PULL_SIDE])]
+                        elif const(again == 1):
+                            coord_val = block_index_mle[GEN ** b]
                         else:
                             coord_val = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
                             if s == PUSH_SIDE:
                                 block_index_mle[GEN ** b] = coord_val
                     if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
-                        # The public slots carry no value of their own here: their
-                        # alpha-weighted sum IS bc_share, added once per block below
-                        # (push and pull share zeta, so both get the same one).
-                        coord_val = 0
-                        block_has_public = 1
-                    if s == COUNT_SIDE:
-                        inner_sum += coord_val
-                    else:
-                        inner_sum += fp_w[GEN ** i] * coord_val
-                inner_sum += block_has_public * bc_share  # the bytecode blocks' public slots
+                        # The public slots' share is added once the stream has
+                        # carried their values (push and pull share this eq_hi).
+                        if const(tree == 0):
+                            bc_eq_hi = eq_hi
+                    if const(COORD_TYPE[ci] != COORD_KIND_PUBLIC):
+                        if s == COUNT_SIDE:
+                            inner_sum += coord_val
+                        else:
+                            inner_sum += w[GEN ** i] * coord_val
                 if s == COUNT_SIDE:
                     acc += eq_hi * inner_sum
                 else:
@@ -2336,24 +2357,58 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                         if s == COUNT_SIDE:
                             coeff = 1
                         else:
-                            coeff = beta_1
+                            coeff = beta + 1
                         for i in unroll(0, BLOCK_COORD_COUNT[b]):
                             ci = BLOCK_COORD_OFF[b] + i
                             if const(COORD_PADDING[ci] != 0):
                                 if s == COUNT_SIDE:
                                     coeff += COORD_PADDING[ci]
                                 else:
-                                    coeff += fp_w[GEN ** i] * COORD_PADDING[ci]
+                                    coeff += w[GEN ** i] * COORD_PADDING[ci]
                         table_sum += block_eq_hi[b] * coeff
                 padding_sum += pad_weight[t] * table_sum
             acc += padding_sum
             if s == PUSH_SIDE:
                 push_padding = padding_sum
-        acc += 1 + selector_sum
-        # What the tables' blocks owe this side: its GKR leaf value less the
+        if const(again == 0):
+            side_ones[s] = 1 + selector_sum
+        acc += side_ones[s]
+        # What the tables' blocks owe this tree: its GKR leaf value less the
         # framework decomposition. DERIVED, not read: a transmitted total would be a
         # free value in its own check. The table sumcheck's target pins it below.
-        bus_table_total[s] = acc + gkr_claims[s]
+        tree_total[tree] = acc + gkr_claims[GEN ** tree]
+
+    # ---- the bytecode's public columns at ζ_lo, then their deferred claim ----
+    # The stream carries them after the decomposition's words, in slot order. Each
+    # fingerprint's share of the bytecode leaves is their weighted sum, at the
+    # bytecode blocks' eq_hi; a fresh slot point r reduces them to ONE claim on the
+    # stacked bytecode at (ζ_lo, r), exported for deferral (doc sec:e2e-bc).
+    bc_cols = StackBuf(BYTECODE_COLS)
+    for j in unroll(0, BYTECODE_COLS):
+        if const((N_FRESH + j) % 4 == 0):
+            if const(N_FRESH + j != 0):
+                sp = fs_perm(sp, rate, 4)
+                rate = StackBuf(8)
+        bv, cursor = fs_next(rate, (N_FRESH + j) % 4, cursor)
+        bc_cols[j] = bv
+    bc_point = HeapBuf(LOG2_BYTECODE_COLS)
+    for k in unroll(0, LOG2_BYTECODE_COLS):
+        if const(k == 0):
+            sp, rk = squeeze(sp, rate, (N_FRESH + BYTECODE_COLS + 3) % 4 + 1)
+        else:
+            sp, rk = squeeze(sp, rate, 0)
+        bc_point[GEN ** k] = rk
+    bc_eq = HeapBuf(FP_STRIDE)  # a column's slot is its tuple coordinate
+    eqtree(bc_point, bc_eq, LOG2_BYTECODE_COLS)
+    bc_value = 0
+    for j in unroll(0, BYTECODE_COLS):
+        bc_value += bc_eq[GEN ** (N_TUPLE_SLOTS - 2 + BYTECODE_SLOT + j)] * bc_cols[j]
+    bc_share = StackBuf(N_FINGERPRINTS)
+    for f in unroll(0, N_FINGERPRINTS):
+        share = 0
+        for j in unroll(0, BYTECODE_COLS):
+            share += fp_w[GEN ** (f * FP_STRIDE + BYTECODE_SLOT + j)] * bc_cols[j]
+        bc_share[f] = bc_eq_hi * share
     claim_idx = N_BUS_CLAIMS  # AIR/PI/pin claims pool after the deduped bus claims
 
     # ---- ONE table sumcheck for all six tables ----
@@ -2377,19 +2432,36 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # kappa = tau, so it holds structurally, but zc_peq below reads zeta[..n] and
     # zeta only holds mu coords: unwritten heap there is prover-chosen.
     assert log(g_bus_mu / g_zc_n) < COUNT_BITS
-    sp, zc_xi = squeeze(sp, rate, (N_FRESH + 3) % 4 + 1)
+    sp, zc_xi = squeeze(sp, rate, 0)
     zc_xi_pows = StackBuf(N_ETA_POWS)
     zc_xi_pows[0] = 1
     for k in unroll(1, N_ETA_POWS):
         zc_xi_pows[k] = zc_xi_pows[k - 1] * zc_xi
     # The eq point is the bus GKR's zeta, NOT a fresh one, which is what lets the
     # batch settle the bus forms alongside the constraints. It is also why no target
-    # is read: what the three sides' tables owe, each in its own shared power of
-    # zc_xi, IS the sum the batch must reach, and zc_xi is squeezed after those
-    # totals are fixed, so hitting one number forces all three side equations.
+    # is read: what each tree's tables owe, each in its own shared power of zc_xi,
+    # IS the sum the batch must reach, and zc_xi is squeezed after those totals are
+    # fixed, so hitting one number forces every tree's equation.
     bus_target = 0
-    for sd in unroll(0, N_GKR_SIDES):
-        bus_target += zc_xi_pows[ETA_FORM_BASE + sd] * bus_table_total[sd]
+    for tree in unroll(0, N_TREES):
+        total = tree_total[tree]
+        if const(tree != COUNT_TREE):
+            total += bc_share[tree // 2]  # the bytecode blocks' public slots
+        bus_target += zc_xi_pows[ETA_FORM_BASE + tree] * total
+    # Fingerprint f's push and pull forms take powers ξ^(ETA_FORM_BASE + 2f) and ξ
+    # times that, and a pull form is its push twin's plus a delta, so they all add
+    # up to (1 + ξ) P + ξ D, with P the push forms and D the deltas taken under the
+    # weights form_w and the beta form_beta that fold in each fingerprint's power.
+    form_w = StackBuf(N_TUPLE_SLOTS)
+    for x in unroll(0, N_TUPLE_SLOTS):
+        wx = 0
+        for f in unroll(0, N_FINGERPRINTS):
+            wx += zc_xi_pows[ETA_FORM_BASE + 2 * f] * fp_w[GEN ** (f * FP_STRIDE + x)]
+        form_w[x] = wx
+    form_beta = 0
+    for f in unroll(0, N_FINGERPRINTS):
+        form_beta += zc_xi_pows[ETA_FORM_BASE + 2 * f] * bus_beta[GEN ** f]
+    push_scale = 1 + zc_xi
     # n vanilla sumcheck rounds: the round polynomial arrives whole, so a round is
     # `h(0) + h(1) == claim` and a fold, with no eq to reapply. The tables still
     # waiting ride inside h, so nothing here is indexed by height; the heights enter
@@ -2449,9 +2521,10 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
             b = col_evals[13]
             constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (b + c * col_evals[12])
             constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (c * (b + 1))
-        # The table's three bus forms, evaluated at the SAME column evaluations:
+        # The table's bus forms, evaluated at the SAME column evaluations:
         # Σ_b eq_hi(b) · (γ + Σ_i α^i · coord_i), the coords read off col_evals at
-        # their local index. This is what replaces opening those columns at ζ.
+        # their local index, every fingerprint's at once under form_w and form_beta.
+        # This is what replaces opening those columns at ζ.
         for sd in unroll(0, N_GKR_SIDES):
             form = 0
             for b in unroll(0, N_BLOCKS):
@@ -2475,7 +2548,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                                             cv += TERM_CONST[tj] * col_evals[TERM_COL_A[tj]]
                                         if TERM_TYPE[tj] == COORD_KIND_PROD:
                                             cv += TERM_CONST[tj] * (col_evals[TERM_COL_A[tj]] * col_evals[TERM_COL_B[tj]])
-                                    dv = fp_w[GEN ** i] * cv
+                                    dv = form_w[i] * cv
                                     if const(differs == 0):
                                         delta = dv
                                     else:
@@ -2505,16 +2578,17 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                                 if sd == COUNT_SIDE:
                                     inner += cv
                                 else:
-                                    inner += fp_w[GEN ** i] * cv
+                                    inner += form_w[i] * cv
                             if sd == COUNT_SIDE:
                                 form += block_eq_hi[b] * inner
                             else:
-                                form += block_eq_hi[b] * (beta + inner)
+                                form += block_eq_hi[b] * (form_beta + inner)
             if const(sd == PUSH_SIDE):
-                push_form = form
+                constraint_eval += push_scale * form
             if const(sd == PULL_SIDE):
-                form = push_form + form
-            constraint_eval += zc_xi_pows[ETA_FORM_BASE + sd] * form
+                constraint_eval += zc_xi * form
+            if const(sd == COUNT_SIDE):
+                constraint_eval += zc_xi_pows[ETA_FORM_BASE + COUNT_TREE] * form
         air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval  # cprod[n - tau] * peq[tau]
     assert air_acc == claim
 
@@ -2532,7 +2606,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = 0
     claim_idx += 1
-    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_share, rm, col_eval_words
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_point, bc_value, rm, col_eval_words
 
 
 @inline
@@ -3407,26 +3481,29 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
     # ---- bus challenges (F192 provides the soundness margin without grinding) ----
     # A tuple is fingerprinted multilinearly: slot x weighs eq(alphas, x), so a leaf
-    # factor has total degree N_TUPLE_BITS in the challenges and the aligned bytecode
-    # polynomial is read off at the challenge vector itself (doc sec:gp, sec:e2e-bc).
-    bus_alpha = HeapBuf(N_TUPLE_BITS)
-    for t in unroll(0, N_TUPLE_BITS):
-        if t == 0:
-            sp, av = squeeze(sp, rate, (N_TABLES + 3) % 4 + 1)
-        else:
-            sp, av = squeeze(sp, rate, 0)
-        bus_alpha[GEN ** t] = av
-    fp_w = HeapBuf(N_TUPLE_SLOTS)
-    for x in unroll(0, N_TUPLE_SLOTS):
-        fp_w[GEN ** x] = eq_weight(bus_alpha, N_TUPLE_BITS, x, 0)
-    sp, beta = squeeze(sp, rate, 0)
+    # factor has total degree N_TUPLE_BITS in the challenges (doc sec:gp). Each of the
+    # N_FINGERPRINTS independent fingerprints draws its alphas, then its beta.
+    fp_tree = HeapBuf(N_FINGERPRINTS * FP_STRIDE)
+    bus_beta = HeapBuf(N_FINGERPRINTS)
+    for f in unroll(0, N_FINGERPRINTS):
+        bus_alpha = HeapBuf(N_TUPLE_BITS)
+        for t in unroll(0, N_TUPLE_BITS):
+            if const(f + t == 0):
+                sp, av = squeeze(sp, rate, (N_TABLES + 3) % 4 + 1)
+            else:
+                sp, av = squeeze(sp, rate, 0)
+            bus_alpha[GEN ** t] = av
+        eqtree(bus_alpha, fp_tree * GEN ** (f * FP_STRIDE), N_TUPLE_BITS)
+        sp, beta = squeeze(sp, rate, 0)
+        bus_beta[GEN ** f] = beta
+    fp_w = fp_tree * GEN ** (N_TUPLE_SLOTS - 2)  # fingerprint f's slot x at f FP_STRIDE + x
 
-    # ---- ONE GKR grand product: push, pull, and count RLC-batched ----
-    fs0, fs1, fs2, fs3, fs4, cursor, claim_push, claim_pull, claim_count = verify_bus_gkr(sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_bus_mu, zeta)
+    # ---- ONE GKR grand product over every tree, RLC-batched ----
+    fs0, fs1, fs2, fs3, fs4, cursor, gkr_claims = verify_bus_gkr(sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_bus_mu, zeta)
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
-    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)
+    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_point, bc_value, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, bus_beta, claim_pool, chi, gkr_claims)
 
     # ---- KECCAK validity, by GKR over the rounds ----
     tau_keccak_g = dims_g[GEN ** (TABLE_KECCAK + 1)]  # the KECCAK table's certified tau
@@ -3508,8 +3585,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     for k in unroll(0, BYTECODE_LOG):
         defer_out[GEN ** k] = zeta[GEN ** k]
     for k in unroll(0, LOG2_BYTECODE_COLS):
-        defer_out[GEN ** (BYTECODE_LOG + k)] = bus_alpha[GEN ** k]
-    defer_out[GEN ** FRESH_BC_VALUE] = bc_share
+        defer_out[GEN ** (BYTECODE_LOG + k)] = bc_point[GEN ** k]
+    defer_out[GEN ** FRESH_BC_VALUE] = bc_value
     return
 
 

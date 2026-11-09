@@ -4,6 +4,7 @@
 //! catches the Python one drifting.
 
 use lean_compiler::{compile, parse_with_replacements};
+use leanvm_core::cpu::layout::layout;
 use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
 use leanvm_core::tables::N_TABLES;
 use primitives::field::{F192, g_pow};
@@ -187,8 +188,51 @@ fn test_python_verifier() {
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
+/// Where the bus stream's parts start: the GKR's sent roots, its root layer's children, and the bytecode slot values.
+struct BusStream {
+    roots: usize,
+    children: usize,
+    child_count: usize,
+    slots: usize,
+    depth: usize,
+}
+
+/// The bus GKR walks the push side's depth: one root per fingerprint and the count's, then per layer its rounds'
+/// four coefficients and each tree's children, two at an odd depth's binary root layer and four after.
+fn bus_stream(fixture: &Fixture) -> BusStream {
+    const ROOTS: usize = 3;
+    const TREES: usize = 5;
+    const FRAMEWORK_VALUES: usize = 5; // the memory's three limbs, then the two final counts
+    let rows: [usize; N_TABLES] = std::array::from_fn(|t| fixture.summary.table_rows[t] as usize);
+    let layout = layout(
+        &fixture.program.prog,
+        fixture.summary.log_memory,
+        rows,
+        fixture.public_input,
+    );
+    let depth = leanvm_core::leaf::layout(&layout.push).mu;
+    let roots = N_TABLES + 4;
+    let children = roots + ROOTS;
+    let mut end = children;
+    let mut layer = depth;
+    while layer > 0 {
+        let step = 2 - layer % 2;
+        end += 4 * (depth - layer) + TREES * (1 << step);
+        layer -= step;
+    }
+    BusStream {
+        roots,
+        children,
+        child_count: 2 - depth % 2,
+        slots: end + FRAMEWORK_VALUES,
+        depth,
+    }
+}
+
 /// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size and on the commitment
-/// root, and each check of the Keccak reduction tripped by the scalar it reads last.
+/// root, the second fingerprint's shared root and one of its pull tree's children (a prover whose second fingerprint
+/// does not balance has to lie in one or the other), a bytecode slot value, and each check of the Keccak reduction
+/// tripped by the scalar it reads last.
 #[test]
 fn tampers_fail_the_same_check() {
     let fixture = fixture();
@@ -200,12 +244,20 @@ fn tampers_fail_the_same_check() {
     const PACK_BITS: usize = 4; // sixteen instances a pack
     const SLOT_BITS: usize = 6; // 25 lanes of the 2 segments' states
     const SLICES: usize = 64;
+    const SECOND_PULL_TREE: usize = 3;
     let keccak = fixture.summary.keccak_scalars.clone();
     let input_opening = 2 * (PACK_BITS + SLOT_BITS) + SLICES;
     let output_opening = 2 * SLOT_BITS + 1;
+    let bus = bus_stream(fixture);
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
         (N_TABLES + 2, VerifierError::DigestHalf),
+        (bus.roots + 1, VerifierError::GkrLayer(bus.depth)),
+        (
+            bus.children + SECOND_PULL_TREE * bus.child_count,
+            VerifierError::GkrLayer(bus.depth),
+        ),
+        (bus.slots, VerifierError::BytecodeSlots),
         (keccak.start + PRODUCT_COEFFICIENTS, VerifierError::KeccakProduct),
         (
             keccak.end - input_opening - output_opening - 1,

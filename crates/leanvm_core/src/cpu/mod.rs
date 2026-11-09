@@ -315,9 +315,9 @@ fn table_spans() -> TableSpans {
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order: each
 /// table's committed columns, its summand as one form over them (its identities
-/// weighted by its own `ξ`-range, its three bus forms by the shared powers at
-/// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
-/// shares, since its identities vanish.
+/// weighted by its own `ξ`-range, its bus forms, one per bus tree, by the shared
+/// powers at [`xi_form_base`]), and what that summand sums to, its bus forms'
+/// `ξ`-weighted shares, since its identities vanish.
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
@@ -326,7 +326,7 @@ fn airs<'a>(
     xi: F192,
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
-    let pows = primitives::field::powers(xi, base + 3);
+    let pows = primitives::field::powers(xi, base + leaf::N_TREES);
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     tables::tables()
         .iter()
@@ -334,19 +334,19 @@ fn airs<'a>(
         .enumerate()
         .map(|(t, (&table, (&tau, &(start, n))))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
-            let bus_forms = (0..3).map(|s| bus.forms[s][t].scaled(pows[base + s]));
+            let bus_forms = (0..leaf::N_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..3).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
+                sigma: (0..leaf::N_TREES).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
         .collect()
 }
 
-/// Where the three bus forms sit in the batch's `ξ`-powers: the last three, AFTER
-/// every table's identity range, and shared by all tables rather than one triple
+/// Where the bus forms sit in the batch's `ξ`-powers: the last [`leaf::N_TREES`], AFTER
+/// every table's identity range, and shared by all tables rather than one set
 /// per table. That sharing is what keeps the batch tied to the bus: with a common
 /// `ξ^{base+s}` per side, the batch's target is `Σ_s ξ^{base+s}·R_s` for
 /// the sides' table shares `R_s`, which the verifier DERIVES from the leaf claims

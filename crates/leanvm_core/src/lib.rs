@@ -14,7 +14,7 @@
 //! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
 //! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
 //! - [`constraints`]: one table sumcheck over all six tables'
-//!   degree-2 identities plus their three bus forms (§sec:air).
+//!   degree-2 identities plus their bus forms, one per bus tree (§sec:air).
 //! - [`tables`]: the six instruction tables (columns, flushes, constraints).
 //! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
 //! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.

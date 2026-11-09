@@ -28,7 +28,7 @@ pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use whir::whir_queries;
 
-use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
+use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
@@ -59,6 +59,7 @@ pub enum VerifierError {
     /// The GKR layer whose children do not match its sumcheck.
     GkrLayer(usize),
     BusCountZero,
+    BytecodeSlots,
     TableSumcheckTerminal,
     AnnouncedTableSizes,
     WhirShape,
@@ -91,6 +92,7 @@ impl std::fmt::Display for VerifierError {
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
             Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
             Self::BusCountZero => "a bus count is zero",
+            Self::BytecodeSlots => "bytecode slot values do not match the bytecode",
             Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
             Self::WhirShape => "invalid WHIR shape",
@@ -236,14 +238,15 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1])?;
 
-    // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
+    // 3] Bus: one batched GKR over each fingerprint's push and pull trees and the count tree, then the leaf decomposition,
+    // which leaves each table a degree-2 claim.
     let bus = verify_bus_balance(&layout, &mut transcript)?;
 
-    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
-    // leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
+    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
+    // trees' leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
     let xi = transcript.sample();
     let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
-    let xi_powers = powers(xi, n_constraints + 3); // one power per constraint, then one per bus side, shared by every table
+    let xi_powers = powers(xi, n_constraints + N_TREES); // one power per constraint, then one per bus tree, shared by every table
     let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
     let target = dot(form_powers, &bus.totals);
     let evaluations = table_sumcheck(

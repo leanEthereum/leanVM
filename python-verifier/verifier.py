@@ -466,10 +466,11 @@ def sumcheck(transcript: Transcript, claim: E, count: int, equalities: Sequence[
 # Bus balance and decomposition ---------------------------------------------
 
 
-def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, MultilinearPoint, tuple[E, E, E]]:
-    shared, count = transcript.next_scalar(), transcript.next_scalar()
+def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, MultilinearPoint, tuple[E, ...]]:
+    shared = transcript.next_scalars(N_FINGERPRINTS)  # push_f and pull_f share one product
+    count = transcript.next_scalar()
     point: list[E] = []
-    values = (shared, shared, count)  # 3 grand product GKR are batched together: push, pull, count
+    values = [*(product for product in shared for _ in range(2)), count]  # N_TREES grand product GKR are batched together: [push_f, pull_f]*, count
 
     layer = depth
     while layer > 0:
@@ -480,7 +481,7 @@ def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, Mu
         # The product is degree 2^step, so one more coefficient than that per round.
         x, claim = sumcheck(transcript, claim, 2**step + 1, point)
 
-        children = [transcript.next_scalars(2**step) for _ in range(3)]
+        children = [transcript.next_scalars(2**step) for _ in range(N_TREES)]
         products = [reduce(mul, child) for child in children]
         require(claim == poly_eval(products, combiner), f"GKR layer {layer}: children do not match the sumcheck")
 
@@ -489,7 +490,7 @@ def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, Mu
         point = [*y, *x]
         layer -= step
 
-    return count, tuple(point), (values[0], values[1], values[2])
+    return count, tuple(point), tuple(values)
 
 
 @dataclass
@@ -563,14 +564,17 @@ class ColumnClaim:
 
 
 BUS_BITS = 4  # bus communicates tuples of 2^BUS_BITS field elements
+N_FINGERPRINTS = 2  # independent (alpha, beta) pairs, each with its own push and pull tree
+N_TREES = 2 * N_FINGERPRINTS + 1  # the count tree is shared
+BYTECODE_SLOTS = 2**BUS_BITS - 3  # an instruction's slots in the bytecode tuple, after separator, pc and count
 
 
 @dataclass(frozen=True)
 class BusResult:
     claims: tuple[ColumnClaim, ...]
     point: MultilinearPoint  # the GKR point zeta, which the table sumcheck reuses
-    forms: tuple[tuple[Form, ...], ...]  # forms[table][side]
-    totals: tuple[E, E, E]  # what the tables owe each side, derived
+    forms: tuple[tuple[Form, ...], ...]  # forms[table][tree]
+    totals: tuple[E, ...]  # what the tables owe each tree, derived
 
 
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
@@ -579,14 +583,12 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     pull_layout = bus_layout(framework_log_rows, layout.pull)
     count_layout = bus_layout((), layout.count)
 
-    alphas = transcript.samples(BUS_BITS)
-    weights = eq_kernel(alphas)
-    beta = transcript.sample()
+    challenges = [(transcript.samples(BUS_BITS), transcript.sample()) for _ in range(N_FINGERPRINTS)]  # (alpha_f, beta_f)
     count_root, point, tree_values = verify_gkr_grand_products(push_layout.depth, transcript)
     require(count_root != ZERO, "a bus count is zero")
 
-    # The framework blocks' committed columns, in the order the two sides first
-    # name them: the memory image on push, then each array's final count on pull.
+    # The framework blocks' committed columns, in the order the two sides first name them: the memory image on push,
+    # then each array's final count on pull. Every fingerprint reads the same columns at the same point.
     memory_low = tuple(point[: layout.log_memory])
     bytecode_low = tuple(point[: layout.log_bytecode])
     memory = transcript.next_scalars(3)
@@ -595,29 +597,37 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     claims = [ColumnClaim(column, memory_low, memory[column]) for column in (MEMORY_0, MEMORY_1, MEMORY_2)]
     claims.append(ColumnClaim(MEMORY_FINAL_COUNTERS, memory_low, memory_final))
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
+    # The bytecode's instruction slots at zeta, which every fingerprint weighs with its own alpha. The verifier checks
+    # them at one random slot point r against the public bytecode.
+    instruction = transcript.next_scalars(BYTECODE_SLOTS)
+    r = transcript.samples(BUS_BITS)
+    require(
+        multilinear_eval(layout.bytecode, (*bytecode_low, *r)) == dot(eq_kernel(r)[3:], instruction),
+        "bytecode slot values do not match the bytecode",
+    )
     memory_index = index_mle(memory_low)
     bytecode_index = index_mle(bytecode_low)
-    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
 
-    def fingerprints(pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
+    def fingerprints(weights: Sequence[E], pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
         """The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
         named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
         return (
             dot(weights[:3], (SEP_STATE, pc, _gpow(0))),
             dot(weights[:6], (SEP_MEM, memory_index, memory_count, *memory)),
-            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_value,
+            dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + dot(weights[3:], instruction),
         )
 
     final_pc = _gpow(2**layout.log_bytecode - 1)  # the execution ends at the bytecode's last instruction
-    sides = (
-        (layout.push, push_layout, fingerprints(_gpow(0), ONE, ONE), weights, beta),
-        (layout.pull, pull_layout, fingerprints(final_pc, memory_final, bytecode_final), weights, beta),
-        (layout.count, count_layout, (), (ONE,), ZERO),  # The count channel owns no framework block and runs at alpha = beta = 0.
-    )
+    trees = []
+    for alphas, beta in challenges:
+        weights = eq_kernel(alphas)
+        trees.append((layout.push, push_layout, fingerprints(weights, _gpow(0), ONE, ONE), weights, beta))
+        trees.append((layout.pull, pull_layout, fingerprints(weights, final_pc, memory_final, bytecode_final), weights, beta))
+    trees.append((layout.count, count_layout, (), (ONE,), ZERO))  # The count channel owns no framework block and runs at alpha = beta = 0.
     totals = []  # what remains to be proven by the next table sumcheck
-    forms = tuple(tuple(Form() for _ in range(3)) for _ in TABLES)
-    for side, (blocks, side_layout, framework_fingerprints, side_weights, side_beta) in enumerate(sides):
+    forms = tuple(tuple(Form() for _ in range(N_TREES)) for _ in TABLES)
+    for tree, (blocks, side_layout, framework_fingerprints, side_weights, side_beta) in enumerate(trees):
         framework_selectors = [p.eq_above(point) for p in side_layout.framework]
         table_selectors = [p.eq_above(point) for p in side_layout.tables]
         known = dot(framework_selectors, [side_beta + fingerprint for fingerprint in framework_fingerprints])
@@ -628,14 +638,14 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
             block_form = _const(side_beta)
             for slot, coordinate in enumerate(block.coordinates):
                 block_form.add_scaled(coordinate, side_weights[slot])  # the fingerprint, one tuple slot at a time
-            forms[block.owner][side].add_scaled(block_form, selector)
+            forms[block.owner][tree].add_scaled(block_form, selector)
             padding = TABLES[block.owner].padding
             padding_rows += selector * padding_weight(point[: block.log_rows], block.rows) * (block_form.evaluate(padding.__getitem__) + ONE)
         # The leaves outside every block hold 1.
         ones_padding = E.sum(framework_selectors + table_selectors) + ONE
-        totals.append(tree_values[side] + known + ones_padding + padding_rows)  # what the forms owe: the GKR value, less framework and padding
+        totals.append(tree_values[tree] + known + ones_padding + padding_rows)  # what the forms owe: the GKR value, less framework and padding
 
-    return BusResult(tuple(claims), point, forms, (totals[0], totals[1], totals[2]))
+    return BusResult(tuple(claims), point, forms, tuple(totals))
 
 
 # Table sumcheck -------------------------------------------------------------
@@ -1490,14 +1500,15 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
     root = Digest.from_halves(*transcript.next_scalars(2))
 
-    # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
+    # 3] Bus: one batched GKR over each fingerprint's push and pull trees and the count tree, then the leaf decomposition,
+    # which leaves each table a degree-2 claim.
     bus = verify_bus_balance(layout, transcript)
 
-    # 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
+    # 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
     # leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
     xi = transcript.sample()
     n_constraints = sum(table.n_constraints for table in TABLES)
-    xi_powers = powers(xi, n_constraints + 3)  # one power per constraint, then one per bus side, shared by every table
+    xi_powers = powers(xi, n_constraints + N_TREES)  # one power per constraint, then one per bus tree, shared by every table
     constraint_powers, form_powers = xi_powers[:n_constraints], xi_powers[n_constraints:]
     target = dot(form_powers, bus.totals)
     evaluations = table_sumcheck(layout.table_log_heights, bus.forms, constraint_powers, form_powers, bus.point, target, transcript)

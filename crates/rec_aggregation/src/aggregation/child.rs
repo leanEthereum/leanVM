@@ -90,20 +90,13 @@ pub(super) fn gen_verify(
 
     // ---- typed extraction: the proof's stream + the verifier's summary ----
     let scalars = |values: &[verifier::E]| -> Vec<F192> { values.iter().copied().map(from_scalar).collect() };
-    // Push and pull share the bytecode point.
+    // The deferred claim's point, (ζ_lo, r); the caller evaluates its value, which the guest derives in-circuit.
     let bytecode_point = scalars(&summary.bytecode_point);
     let kbc = bytecode_point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
 
     let taus = layout.taus;
     // ---- the stacked opening: config + the opening summary ----
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
-
-    // ---- hints ----
-    // The program's whole share of a bytecode leaf: ONE value, the stacked
-    // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
-    // the fingerprint challenges (§sec:e2e-bc). The summary carries the point
-    // only; the caller evaluates it.
-    let bcv = vec![bytecode_value];
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
     // Per side, the packing order read straight off `leaf::layout`'s offsets:
@@ -239,7 +232,6 @@ pub(super) fn gen_verify(
             stream.resize(STREAM_CAP, F192::ZERO);
             stream
         }),
-        ("bytecode_val", bcv),
         ("merkle_caps", caps),
         ("merkle_cap_active", cap_active),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a

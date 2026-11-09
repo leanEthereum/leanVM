@@ -4,7 +4,7 @@
 //! relation `V_i(x)=∏_{a,b∈{0,1}}V_{i-2}(a,b,x)`. Its normalized eq-trick
 //! sumcheck has degree four. An odd-depth tree starts with one binary layer.
 //! Leaves and every layer are `E`-valued (the bus fingerprints mix `K`-columns
-//! into `E` upstream, [`crate::leaf`]).
+//! into `E` upstream, [`crate::leaf`]). Several trees run as one batch.
 //!
 //! On AVX-512 the large rounds run eight pairs of rows at a time in transposed form
 //! (`vertical`), and skip the runs of rows known to be the identity.
@@ -509,12 +509,15 @@ impl QuaternaryLayerState {
 }
 
 /// Fold every tree by `challenge`, returning the next round's messages.
-fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: &SplitEq) -> [[F192; 4]; 3] {
+fn fold_and_message<const N: usize>(
+    trees: &mut [QuaternaryLayerState; N],
+    challenge: F192,
+    eq: &SplitEq,
+) -> [[F192; 4]; N] {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
-            let [a, b, c] = trees.each_mut().map(QuaternaryLayerState::split);
-            let messages = vertical::fold([a.0, b.0, c.0], challenge, eq, [a.1, b.1, c.1]);
+            let messages = vertical::fold(trees.each_mut().map(QuaternaryLayerState::split), challenge, eq);
             for tree in trees.iter_mut() {
                 std::mem::swap(&mut tree.groups, &mut tree.spare);
                 tree.values = Vec::new();
@@ -691,20 +694,19 @@ mod vertical {
         }
     }
 
-    /// Fold every tree's rows by `challenge` into its `out`, in one dispatch for the
-    /// three, returning the next round's messages.
-    pub(super) fn fold(
-        inputs: [Input; 3],
+    /// Fold every tree's rows by `challenge` into its output buffer, in one dispatch
+    /// for all of them, returning the next round's messages.
+    pub(super) fn fold<const N: usize>(
+        trees: [(Input, &mut Vec<Group>); N],
         challenge: F192,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; 3],
-    ) -> [[F192; 4]; 3] {
+    ) -> [[F192; 4]; N] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
-        let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
-        let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; 3] = std::array::from_fn(|t| {
-            let out = &mut *outs[t];
+        let mut trees = trees;
+        let n_out = trees.each_ref().map(|(input, _)| input.len().div_ceil(2));
+        let dst: [parallel::SendPtr<Group>; N] = std::array::from_fn(|t| {
+            let out = &mut *trees[t].1;
             if out.capacity() < n_out[t] {
                 *out = Vec::new();
                 // SAFETY: the tasks below write every group before anything reads it.
@@ -715,7 +717,8 @@ mod vertical {
             }
             parallel::SendPtr(out.as_mut_ptr())
         });
-        let tasks: Vec<(usize, usize)> = (0..3)
+        let inputs = trees.map(|(input, _)| input);
+        let tasks: Vec<(usize, usize)> = (0..N)
             .flat_map(|t| (0..n_out[t]).step_by(TASK).map(move |g| (t, g)))
             .collect();
         let r = F192x8::splat(challenge);
@@ -736,15 +739,15 @@ mod vertical {
                 // SAFETY: tasks own disjoint groups of the outputs.
                 unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
             }
-            let mut messages = [[F192::ZERO; 4]; 3];
+            let mut messages = [[F192::ZERO; 4]; N];
             messages[t] = message.finish();
             messages
         };
-        let add = |a: [[F192; 4]; 3], b: [[F192; 4]; 3]| std::array::from_fn(|t| add4(a[t], b[t]));
+        let add = |a: [[F192; 4]; N], b: [[F192; 4]; N]| std::array::from_fn(|t| add4(a[t], b[t]));
         if n_out.iter().sum::<usize>() > PARALLEL {
-            parallel::map_reduce(tasks.len(), || [[F192::ZERO; 4]; 3], task, add)
+            parallel::map_reduce(tasks.len(), || [[F192::ZERO; 4]; N], task, add)
         } else {
-            (0..tasks.len()).map(task).fold([[F192::ZERO; 4]; 3], add)
+            (0..tasks.len()).map(task).fold([[F192::ZERO; 4]; N], add)
         }
     }
 
@@ -779,16 +782,17 @@ mod vertical {
     }
 }
 
-/// The result of a batched grand-product proof: the three leaf evaluations, all reduced to one shared point.
-pub struct ProductTriple {
+/// The result of a batched grand-product proof: every tree's leaf evaluation, all reduced to one shared point.
+pub struct Products<const N: usize> {
     pub point: Vec<F192>,
-    pub values: [F192; 3],
+    pub values: [F192; N],
 }
 
-/// Prove three identity-padded grand products as one RLC-batched radix-four GKR.
-/// The first two trees share a product by construction, as the bus's two sides do.
-/// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
-pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+/// Prove `N` identity-padded grand products as one RLC-batched radix-four GKR.
+/// Trees `2k` and `2k + 1` share a product by construction, as each bus fingerprint's
+/// push and pull sides do: one root is sent for the pair, so no verifier can be handed
+/// an unbalanced one. An unpaired last tree (the count tree) sends its own.
+pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut ProverState) -> Products<N> {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -799,20 +803,20 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
     // In leaves; a layer's rows over level `l` are runs of `2^(l + 2)` leaves.
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
-    let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
-    assert_eq!(roots[0], roots[1], "the first two products must agree");
-    ps.add_scalar(roots[0]);
-    ps.add_scalar(roots[2]);
+    let roots: [F192; N] = std::array::from_fn(|tree| layers[tree][mu][0]);
+    for pair in roots.chunks(2) {
+        assert_eq!(pair[0], pair[pair.len() - 1], "paired products must agree");
+        ps.add_scalar(pair[0]);
+    }
     let mut point = Vec::new();
     let mut values = roots;
-
     let mut layer = mu;
     while layer > 0 {
         let lambda = ps.sample();
         let round_count = mu - layer;
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let tails = [0, 1, 2].map(|tree| {
+            let tails: [[F192; 2]; N] = std::array::from_fn(|tree| {
                 let below = &layers[tree][layer - 1];
                 match below.as_slice() {
                     [left, right] => [*left, *right],
@@ -833,8 +837,8 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         }
 
         let width = 1usize << round_count;
-        let mut trees =
-            [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
+        let mut trees: [QuaternaryLayerState; N] =
+            std::array::from_fn(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         if SKIP_IDENTITY {
             for (tree, ones) in trees.iter_mut().zip(&identities) {
                 tree.ones = coarsen(ones, layer);
@@ -846,11 +850,14 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
             let eq = SplitEq::new(&point[1..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
-            [[F192::ZERO; 4]; 3]
+            [[F192::ZERO; 4]; N]
         };
         for round in 0..round_count {
             let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
+                messages
+                    .iter()
+                    .rev()
+                    .fold(F192::ZERO, |acc, message| message[coefficient] + lambda * acc)
             });
             // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
             // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
@@ -889,7 +896,7 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         layer -= 2;
     }
 
-    ProductTriple { point, values }
+    Products { point, values }
 }
 
 #[cfg(test)]
@@ -991,27 +998,37 @@ mod tests {
         lane.iter().copied().product()
     }
 
-    /// Rescale lane 1's last leaf so its product matches lane 0's, as the bus's two sides do.
-    fn balance(leaves: &mut [Vec<F192>; 3]) {
-        let last = leaves[1].len() - 1;
-        leaves[1][last] = F192::ONE;
-        leaves[1][last] = product(&leaves[0]) * product(&leaves[1]).inv();
+    /// The bus's five trees: two balanced pairs, as each fingerprint's push and pull sides are, then the count tree.
+    const TREES: usize = 5;
+
+    /// Rescale each pair's second lane's last leaf so its product matches the first's.
+    fn balance(leaves: &mut [Vec<F192>; TREES]) {
+        for pair in [0, 2] {
+            let last = leaves[pair + 1].len() - 1;
+            leaves[pair + 1][last] = F192::ONE;
+            leaves[pair + 1][last] = product(&leaves[pair]) * product(&leaves[pair + 1]).inv();
+        }
+    }
+
+    /// The roots the proof sends: one per balanced pair, then the count tree's.
+    fn roots(leaves: &[Vec<F192>; TREES]) -> [F192; 3] {
+        [0, 2, 4].map(|lane| product(&leaves[lane]))
     }
 
     #[test]
     fn radix_four_claims_are_true_at_even_and_odd_depths() {
         for mu in 0..=10 {
-            let mut leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
+            let mut leaves: [Vec<F192>; TREES] = std::array::from_fn(|lane| {
                 (0..1usize << mu)
                     .map(|row| F192::new((1 + row + lane * 100_003) as u64, row as u64, lane as u64))
                     .collect()
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
             let stream = ps.into_proof().stream;
-            assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
-            for lane in 0..3 {
+            assert_eq!(stream[..3], roots(&leaves));
+            for lane in 0..TREES {
                 assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
             }
         }
@@ -1020,8 +1037,14 @@ mod tests {
     #[test]
     fn implicit_identity_suffix_matches_dense_padding() {
         for mu in 3..=10 {
-            let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
-            let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+            let lengths = [
+                (1usize << mu) - 3,
+                (1usize << (mu - 1)) + 1,
+                (1usize << mu) - 1,
+                (1usize << (mu - 1)) + 2,
+                (1usize << (mu - 2)) + 3,
+            ];
+            let mut leaves: [Vec<F192>; TREES] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
                     .map(|row| F192::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64))
                     .collect()
@@ -1033,14 +1056,14 @@ mod tests {
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
-            for lane in 0..3 {
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
+            for lane in 0..TREES {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
-            assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
+            assert_eq!(proof.stream[..3], roots(&dense));
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
+            let dense_proved = prove_products(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);

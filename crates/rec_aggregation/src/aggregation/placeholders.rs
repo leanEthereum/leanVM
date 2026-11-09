@@ -12,7 +12,7 @@ use lean_compiler::f192_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
-use leanvm_core::leaf::{Block, Coord};
+use leanvm_core::leaf::{Block, Coord, N_FINGERPRINTS, N_TREES};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
@@ -183,6 +183,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
     ps("GKR_POINTS_CAP", ((MU_CAP + 1) * MU_CAP).to_string());
+    ps("N_FINGERPRINTS", N_FINGERPRINTS.to_string());
     let (nclaims, nbcv) = bus_placeholders(&layout, kbc, &mut ps);
     claim_placeholders(&layout, kbc, nclaims, &mut ps);
     table_placeholders(&mut ps);
@@ -461,9 +462,9 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("N_TABLES", N_TABLES.to_string());
     ps("FLOORS", literals(leanvm_core::tables::TABLE_LOG_FLOORS));
     // The table sumcheck's xi layout, from the native verifier's own numbers:
-    // a disjoint range of identities per table, then THREE powers shared by every
-    // table, one per bus side. Sharing is what lets the target be derived from the
-    // three leaf claims instead of trusted (leanvm_core::cpu::xi_form_base).
+    // a disjoint range of identities per table, then one power per bus tree, shared
+    // by every table. Sharing is what lets the target be derived from the trees'
+    // leaf claims instead of trusted (leanvm_core::cpu::xi_form_base).
     let n_id: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_constraints())
@@ -471,7 +472,7 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     let form_base = leanvm_core::cpu::xi_form_base();
     ps("ETA_OFFSET", literals(xi_offsets(n_id.iter().copied())));
     ps("ETA_FORM_BASE", form_base.to_string());
-    ps("N_ETA_POWS", (form_base + 3).to_string());
+    ps("N_ETA_POWS", (form_base + N_TREES).to_string());
     let committed: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_committed_columns())

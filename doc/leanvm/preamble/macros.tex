@@ -83,10 +83,11 @@
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\srcsel}[1]{\mathsf{src}(#1)}
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log bytecode length
+\newcommand{\bcslot}[1]{\mathsf{p}_{#1}}  % the claimed value of the bytecode multilinear at (zeta, slot #1)
 \newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length
 \newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
-\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count
+\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product trees: push and pull per fingerprint, then count
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height
 \newcommand{\ncol}[1]{N_{\mathrm{col},#1}}  % columns of table #1
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1
@@ -123,7 +124,7 @@
 \newcommand{\blen}{n}                    % code block length, the convention
 \newcommand{\dom}{\mathcal{D}}           % evaluation domain           (was S)
 \newcommand{\orc}{Z}                     % oracle / interleaved word   (was C)
-\newcommand{\nrows}{N_{\mathrm{rows}}}    % committed rows of the level-0 oracle (R is the bus root)
+\newcommand{\nrows}{N_{\mathrm{rows}}}    % committed rows of the level-0 oracle (R_1, R_2 are the bus roots)
 \newcommand{\nstack}{N_{\mathrm{stack}}}  % field elements placed in the stack, before the zero padding
 \newcommand{\lst}{\mathcal{L}}           % list of nearby codewords    (was Lambda)
 \newcommand{\ffinal}{f^{\ast}}           % final plaintext table       (was p)

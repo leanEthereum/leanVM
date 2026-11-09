@@ -25,6 +25,12 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13
 \end{center}
 So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=0$.
 
+\paragraph{The bytecode in the bus.} A fingerprint's bytecode blocks need, at the GKR point $\zeta$ (\S\ref{sec:gkr}), the program's share $\sum_{\iota\in\cube{4}}\eq(\alpha,\iota)\,\mle P(\zeta_{<\kbc},\iota)$ (\S\ref{sec:leafstack}). Slots $0,1,2$ of $P$ are zero, so the prover sends the thirteen values $\bcslot{\iota}=\mle P(\zeta_{<\kbc},\iota)$, $\iota=3,\dots,15$, and each fingerprint weighs them with its own $\eq(\alpha,\iota)$. The verifier checks all thirteen at once: it samples $r_{\mathrm{slot}}\in\E^{4}$ and checks
+\[
+  \mle P(\zeta_{<\kbc},r_{\mathrm{slot}})\;\qeq\;\sum_{\iota=3}^{15}\eq(r_{\mathrm{slot}},\iota)\,\bcslot{\iota}.
+\]
+If some $\bcslot{\iota}$ is wrong, the two sides are distinct multilinear polynomials in $r_{\mathrm{slot}}$, so the check passes with probability at most $4/|\E|$ (Lemma~\ref{lem:sz}). The proof thus needs one evaluation of $P$, at $(\zeta_{<\kbc},r_{\mathrm{slot}})$, whatever the number of fingerprints.
+
 \subsection{Public input}\label{sec:e2e-pi}
 
 The first two memory cells must hold the public input, $\mem[\gen^{0}]=\textsf{input}_0+\textsf{input}_1y$ and $\mem[\gen^{1}]=\textsf{input}_2+\textsf{input}_3y$ (\S\ref{sec:vm}). They sit at $(\underbrace{0,\dots,0}_{\kmem})$ and $(1,\underbrace{0,\dots,0}_{\kmem-1})$, so it suffices to check the following (degree 1) polynomial equality:
@@ -44,7 +50,7 @@ An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}
 The bus does not depend on what a padding row holds:
 
 \begin{proposition}[Padding rows flush nothing]\label{prop:pad}
-Let $P$ (resp.\ $Q$) be the multiset of tuples pushed (resp.\ pulled) by the executed rows and the boundary. If $P\neq Q$, the bus check passes with probability at most $4\cdot2^{\mu}/|\E|$, plus the soundness errors of GKR, the table sumcheck and the PCS.
+Let $P$ (resp.\ $Q$) be the multiset of tuples pushed (resp.\ pulled) by the executed rows and the boundary. If $P\neq Q$, the bus check passes with probability at most $(4\cdot2^{\mu}/|\E|)^{2}$, plus the soundness errors of GKR, the table sumcheck and the PCS.
 \end{proposition}
 
 \begin{proof}
@@ -56,7 +62,7 @@ Let $x$ be a padding row of block $b$, whatever it holds. Block $b$ flushes the 
 \]
 It does not depend on $\beta$, and it is a nonzero polynomial in $\alpha$: the weights $\eq(\alpha,\iota)$ sum to $1$, so $L_b(x)=\pi_\alpha(\allone-\tdiff)$ with $\allone$ the all-one tuple, and $\allone-\tdiff$ is $1$ in slot $0$, where both tuples hold the same domain separator.
 
-So the push product is $\padprod{\push}(\alpha)\,\Pi_P(\alpha,\beta)$, where $\padprod{\push}$ multiplies the padding leaves, a nonzero polynomial in $\alpha$ alone, and $\Pi_P$ multiplies the leaves $\beta-\pi_\alpha(t)$, $t\in P$ (Lemma~\ref{lem:gp}). Likewise, the pull product is $\padprod{\pull}\,\Pi_Q$. Suppose $P\neq Q$, and that the two products are the same polynomial. Their highest powers of $\beta$ then match: $\padprod{\push}\beta^{|P|}$ and $\padprod{\pull}\beta^{|Q|}$, so $|P|=|Q|$ and $\padprod{\push}=\padprod{\pull}$. Dividing by it gives $\Pi_P=\Pi_Q$, so $P=Q$ by Lemma~\ref{lem:gp}, a contradiction. The two products are thus different polynomials, of degree at most $4\cdot2^{\mu}$, and agree at the random $(\alpha,\beta)$ with probability at most $4\cdot2^{\mu}/|\E|$ (Corollary~\ref{cor:idtest}).
+So the push product is $\padprod{\push}(\alpha)\,\Pi_P(\alpha,\beta)$, where $\padprod{\push}$ multiplies the padding leaves, a nonzero polynomial in $\alpha$ alone, and $\Pi_P$ multiplies the leaves $\beta-\pi_\alpha(t)$, $t\in P$ (Lemma~\ref{lem:gp}). Likewise, the pull product is $\padprod{\pull}\,\Pi_Q$. Suppose $P\neq Q$, and that the two products are the same polynomial. Their highest powers of $\beta$ then match: $\padprod{\push}\beta^{|P|}$ and $\padprod{\pull}\beta^{|Q|}$, so $|P|=|Q|$ and $\padprod{\push}=\padprod{\pull}$. Dividing by it gives $\Pi_P=\Pi_Q$, so $P=Q$ by Lemma~\ref{lem:gp}, a contradiction. The two products are thus different polynomials, of degree at most $4\cdot2^{\mu}$, and agree at the random $(\alpha,\beta)$ with probability at most $4\cdot2^{\mu}/|\E|$ (Corollary~\ref{cor:idtest}). This holds for each fingerprint, and the two pairs are independent and drawn after the commitment, so both fingerprints' products agree with probability at most $(4\cdot2^{\mu}/|\E|)^{2}$ (\S\ref{sec:gp}).
 \end{proof}
 
 The count tree pads the same way, and whatever its padding leaves are, $R_c\neq0$ still forces every executed row's counts to be nonzero (\S\ref{sec:lookup}).
@@ -100,16 +106,18 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Bus.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
-\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
-\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
-\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), the padding term of \eqref{eq:pad_leaf}, and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
+\item \textbf{Verifier.} Samples and sends the two fingerprint challenge pairs (\S\ref{sec:gp}): $\alpha^{(1)}\in\E^{4}$, then $\beta^{(1)}\in\E$, then $\alpha^{(2)}\in\E^{4}$, then $\beta^{(2)}\in\E$.
+\item \textbf{Prover.} Forms the push and pull leaf vectors of each fingerprint and the \emph{count} leaf vector (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root per fingerprint, $R_1$ then $R_2$, then the count root $R_c$.
+\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all five trees. For the bus, the verifier checks the push and pull products of the first fingerprint against $R_1$ and those of the second against $R_2$; one root for both sides is that fingerprint's balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields five leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
+\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), the padding term of \eqref{eq:pad_leaf}, and each fingerprint's share of the two bytecode blocks, from the thirteen slot values of the next step (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool; both fingerprints read the same columns at the same $\zeta$, so these serve both. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
+\item \textbf{Prover.} Sends the thirteen bytecode slot values $\bcslot{3},\dots,\bcslot{15}$ (\S\ref{sec:e2e-bc}).
+\item \textbf{Verifier.} Samples and sends $r_{\mathrm{slot}}\in\E^{4}$, and checks the slot values against $\mle P(\zeta_{<\kbc},r_{\mathrm{slot}})$ (\S\ref{sec:e2e-bc}).
 \end{enumerate}
 
 \paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
-\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
+\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per tree and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
+\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the five leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
 \item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{KECCAK}'s fifty value lanes are columns of its table but have no region of their own in the stack. An input lane is a slot of $\qkeccak$, so its claim is a claim on $\qkeccak$ at the same point followed by the slot's bits (\S\ref{sec:tab-keccak}). The claims on the output lanes leave the pool: they are the Keccak reduction's claims on the output.
 \end{enumerate}
 
@@ -136,5 +144,5 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qkeccak$ region.)
 \item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, one bus root for both sides of each fingerprint, the nonzero count root, the bytecode slot values, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
 \end{enumerate}

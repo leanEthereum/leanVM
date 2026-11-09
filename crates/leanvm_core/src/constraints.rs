@@ -2,11 +2,11 @@
 //!
 //! Each table folds its identities with a DISJOINT range of one `ξ`'s powers, so
 //! the batch is a polynomial in `ξ` whose coefficients are the individual sums and
-//! matching the batch's target still pins each one. The three bus forms are the
-//! exception: they SHARE their three powers across tables
-//! ([`crate::cpu::xi_form_base`]), so those coefficients are per-side totals and
+//! matching the batch's target still pins each one. The bus forms, one per bus
+//! tree, are the exception: they SHARE their powers across tables
+//! ([`crate::cpu::xi_form_base`]), so those coefficients are per-tree totals and
 //! the target pins the total, which is all the bus needs. The identities vanish on a
-//! valid row, but a table also attaches its three bus forms, whose sums are the
+//! valid row, but a table also attaches its bus forms, whose sums are the
 //! values the bus is owed, so the target is those rather than zero. It is
 //! derived from the bus's leaf claims, never read off the stream.
 //!

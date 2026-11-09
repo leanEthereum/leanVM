@@ -58,6 +58,8 @@ Distinct tuples have distinct fingerprints $\pi_A(\btup)$, the $\eq(A,\iota)$ be
 \emph{Soundness.} Different pulled and pushed multisets make $\Pi_P\neq\Pi_Q$, by Lemma~\ref{lem:gp}, and \eqref{eq:gp} tests them at the one point $(\alpha_0, \dots, \alpha_3, \beta)$. Both sides have degree at most $4\cdot 2^{\mu}$ in $(\alpha_0, \dots, \alpha_3, \beta)$, since there are at most $2^{\mu}$ factors, of the form $\beta-\pi_\alpha(\btup)$, each of total degree at most $4$. Applying Corollary~\ref{cor:idtest} gives a soundness error of $4\cdot 2^{\mu}/|\E|$.
 \end{proof}
 
+\emph{Two fingerprints.} The error of Theorem~\ref{th:product_check} grows with the instance, so the check runs twice: the verifier samples two independent pairs $(\alpha^{(1)},\beta^{(1)})$ and $(\alpha^{(2)},\beta^{(2)})$, each as above, and checks \eqref{eq:gp} under both. The pushed and pulled multisets are fixed before either pair is drawn, so if they differ each check passes with probability at most $4\cdot2^{\mu}/|\E|$ whatever the other pair is, and both pass with probability at most $(4\cdot2^{\mu}/|\E|)^{2}$. Both checks read the same tuples, hence the same committed columns: the second costs two more grand products and nothing else. Below, $\alpha$ and $\beta$ stand for the pair of the fingerprint at hand.
+
 \subsection{Proving the grand product}\label{sec:gkr}
 
 Take one side of \eqref{eq:gp}. Its tuples give its $2^{\mu}$ leaves $V_0(x)=\beta-\pi_\alpha(\btup_x)$, the ones past the last tuple being $1$. Multiply the leaves two by two, then multiply the results two by two, and so on: after $\mu$ layers one value is left, the root $P=\prod_xV_0(x)$. Layer $0$ is the leaves, layer $i$ has $2^{\mu-i}$ nodes, and layer $\mu$ is the root. The prover announces $P$. GKR proves it by walking back down the tree, turning a claim about one layer into a claim about the layer below, until it reaches the leaves and \S\ref{sec:leafstack} takes over.
@@ -93,6 +95,8 @@ Pad every tree with $1$-leaves up to the depth $\mu$ of the deepest. The verifie
 \sum_{s=1}^{\nside}\lambda^{s-1}\widetilde V_i^{s}(r)=\sum_{x\in\cube{\mu-i}}\eq(r,x)\sum_{s=1}^{\nside}\lambda^{s-1}\prod_{a,b\in\{0,1\}}\widetilde V_{i-2}^{s}(a,b,x)
 \]
 All $\nside$ trees leave the pass on claims at one shared terminal point $\zeta$.
+
+In leanVM, $\nside=5$: the push and pull trees of the first fingerprint, then those of the second ($s=1,\dots,4$), then the count tree ($s=5$, \S\ref{sec:lookup}). The count tree uses neither pair, so it is not duplicated. The prover sends one root per fingerprint, the claimed value of both its trees: one root for both sides is the check \eqref{eq:gp}.
 
 \subsection{Stacking the leaves}\label{sec:leafstack}
 

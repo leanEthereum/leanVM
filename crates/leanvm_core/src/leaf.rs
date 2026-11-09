@@ -1,11 +1,12 @@
 //! The bus: a single shared channel balanced by a grand product (§sec:gp through §sec:leafstack). Each
 //! interaction wires a table's columns into width-`m` tuples and flushes them in a
 //! direction; the bus balances when pushed and pulled tuples form the same
-//! multiset, proven by two GKR passes over the leaf vectors `β − π_α(σ)`. Each pass
-//! reduces to a leaf claim `Ṽ₀(ζ)`, decomposed into evaluation claims on the
-//! committed columns. Tuple coordinates `σ_i` are `K`-valued (column entries,
-//! g-powers, separators); the fingerprint challenges `α, β` are `E`-valued, so a
-//! leaf accumulates via the mixed `mul_base` product (2 PMULL per coordinate).
+//! multiset, proven by grand products over the leaf vectors `β − π_α(σ)`, for
+//! [`N_FINGERPRINTS`] independent challenge pairs `(α, β)`, in one batched GKR.
+//! It reduces every leaf vector to a claim `Ṽ₀(ζ)` at one point, decomposed into
+//! evaluation claims on the committed columns. Tuple coordinates `σ_i` are `K`-valued
+//! (column entries, g-powers, separators); the fingerprint challenges `α, β` are
+//! `E`-valued, so a leaf accumulates via the mixed `mul_base` product (2 PMULL per coordinate).
 
 use crate::gkr;
 use crate::transcript::ProverState;
@@ -127,20 +128,40 @@ pub(crate) fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
 /// `2^4` slots of the bytecode encoding (§sec:m3, §sec:e2e-bc).
 pub const N_TUPLE_BITS: usize = 4;
 
-/// Conservative sum of the degree bounds for every random-challenge failure in
-/// the bus argument. A side contains at most `2^mu` leaf factors `β − π_α⃗(t)`,
-/// each of total degree `N_TUPLE_BITS` in `(α⃗, β)` (§sec:gp). The second term
-/// covers all radix-four GKR batching and sumcheck challenges.
-fn soundness_degree_bound(mu: usize) -> u128 {
-    assert!(mu < u128::BITS as usize, "bus layout is too large to bound");
-    let fingerprint = N_TUPLE_BITS as u128 * (1u128 << mu);
-    let gkr = 8u128 * (mu as u128 + 1).pow(2);
-    fingerprint + gkr
+/// Independent fingerprints `(α⃗, β)` of the bus. Each has its own push and pull trees;
+/// the count tree is fingerprint-free.
+pub const N_FINGERPRINTS: usize = 2;
+
+/// The bus GKR's trees: `[push, pull]` per fingerprint, then the count tree.
+pub const N_TREES: usize = 2 * N_FINGERPRINTS + 1;
+
+/// The tree's side, `0` push, `1` pull, `2` count, indexing the per-side block lists.
+pub(crate) const fn tree_side(tree: usize) -> usize {
+    if tree < 2 * N_FINGERPRINTS { tree % 2 } else { 2 }
 }
 
+/// Bits of the challenge field `E = GF(2^192)`.
+const FIELD_BITS: u32 = 192;
+
+/// `⌈log2 degree⌉`, a failure probability `degree/|E|` costing that many bits.
+fn log2_ceil_u128(degree: u128) -> u32 {
+    u128::BITS - (degree - 1).leading_zeros()
+}
+
+/// Bits of soundness the bus argument gets from the challenge field alone. A side
+/// contains at most `2^mu` leaf factors `β − π_α⃗(t)`, each of total degree
+/// `N_TUPLE_BITS` in `(α⃗, β)` (§sec:gp), so one fingerprint fails with probability
+/// at most `N_TUPLE_BITS·2^mu/|E|`; the fingerprints are independent, so all of them
+/// fail with that to the power [`N_FINGERPRINTS`]. The rest is a union bound over the
+/// radix-four GKR's batching and sumcheck challenges and the bytecode slots' reduction.
 fn soundness_bits(mu: usize) -> u32 {
-    let degree = soundness_degree_bound(mu);
-    192u32.saturating_sub(u128::BITS - degree.leading_zeros())
+    assert!(mu < 120, "bus layout is too large to bound");
+    let fingerprint = (N_TUPLE_BITS as u128) << mu;
+    let fingerprints = N_FINGERPRINTS as u32 * FIELD_BITS.saturating_sub(log2_ceil_u128(fingerprint));
+    let challenges = 8 * (mu as u128 + 1).pow(2) + N_TUPLE_BITS as u128;
+    let challenges = FIELD_BITS - log2_ceil_u128(challenges);
+    // The sum of two failure probabilities costs at most one bit more than the larger.
+    fingerprints.min(challenges) - 1
 }
 
 /// Check that the 192-bit challenge field supplies the target bus soundness.
@@ -328,7 +349,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
     }
 }
 
-/// Build the three sides' leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
+/// Build every side's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
 /// side's fingerprint weights `w = eq(α⃗, ·)`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
 /// per block into its `const_part`.
@@ -338,7 +359,7 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
 /// column is read from memory once however many blocks flush it. Each chunk's
 /// four- and sixteen-tuple products, the GKR's levels two and four, are formed while
 /// it is in cache.
-pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
+pub(crate) fn build_leaves<const N: usize>(sides: [Side; N], cols: &[&[F64]]) -> [gkr::Leaves; N] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -348,7 +369,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
     const CHUNKED: usize = 4;
 
     let mut blocks: Vec<LeafBlock> = Vec::new();
-    let mut lens = [1usize; 3];
+    let mut lens = [1usize; N];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
         // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
@@ -380,11 +401,11 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
 
     // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
     // without blocks, below) before anything reads it.
-    let mut values: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n) });
+    let mut values: [Vec<F192>; N] = lens.map(|n| unsafe { gkr::level(n) });
     // SAFETY: the chunks write the products of the tuples inside blocks of height
     // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
+    let mut fours: [Vec<F192>; N] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
+    let mut sixteens: [Vec<F192>; N] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()
@@ -458,10 +479,9 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         padded_products(&v[tail..], &mut fours[side][tail / 4..]);
         padded_products(&fours[side][tail / 4..], &mut sixteens[side][tail / 16..]);
     }
-    let [v0, v1, v2] = values;
-    let [f0, f1, f2] = fours;
-    let [s0, s1, s2] = sixteens;
-    [(0, v0, f0, s0), (1, v1, f1, s1), (2, v2, f2, s2)].map(|(side, values, fours, sixteens)| {
+    let mut levels = values.into_iter().zip(fours).zip(sixteens).enumerate();
+    std::array::from_fn(|_| {
+        let (side, ((values, fours), sixteens)) = levels.next().expect("one level set per side");
         // The padding rows of the chunked blocks, by offset.
         let mut ones: Vec<_> = blocks
             .iter()
@@ -776,27 +796,31 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// bus tuple coordinate.
 pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The three bus sides in `[push, pull, count]` order with their fingerprint
-/// weights. The count channel's leaf is the count itself (a single `Col`), so it
-/// runs at `α⃗ = 0` (weight `1` on slot `0`, zero elsewhere), `β = 0`, and its GKR
-/// root is the product of all counts.
+/// One side of the bus: its blocks, their layout, its fingerprint weights and its `β`.
+type Side<'a> = (&'a [Block], &'a Layout, &'a [F192], F192);
+
+/// The bus GKR's [`N_TREES`] sides: `[push, pull]` under each fingerprint's
+/// `(eq(α⃗, ·), β)`, then the count side. The count channel's leaf is the count itself
+/// (a single `Col`), so it runs at `α⃗ = 0` (weight `1` on slot `0`, zero elsewhere),
+/// `β = 0`, and its GKR root is the product of all counts.
 fn sides<'a>(
     blocks: [&'a [Block]; 3],
     lays: [&'a Layout; 3],
-    w: &'a [F192],
+    fingerprints: &'a [(Vec<F192>, F192); N_FINGERPRINTS],
     count_w: &'a [F192],
-    beta: F192,
-) -> [(&'a [Block], &'a Layout, &'a [F192], F192); 3] {
-    [
-        (blocks[0], lays[0], w, beta),
-        (blocks[1], lays[1], w, beta),
-        (blocks[2], lays[2], count_w, F192::ZERO),
-    ]
+) -> [Side<'a>; N_TREES] {
+    std::array::from_fn(|tree| {
+        let side = tree_side(tree);
+        match fingerprints.get(tree / 2) {
+            Some((w, beta)) if side < 2 => (blocks[side], lays[side], w.as_slice(), *beta),
+            _ => (blocks[side], lays[side], count_w, F192::ZERO),
+        }
+    })
 }
 
-/// Prove the bus balances; returns the per-column claims to open (§sec:leafstack). `alpha`/
-/// `beta` follow the witness commitment (the only ordering the grand product
-/// needs), and the block structure is public, so no shape is observed.
+/// Prove the bus balances; returns the per-column claims to open (§sec:leafstack). The
+/// fingerprint challenges follow the witness commitment (the only ordering the grand
+/// product needs), and the block structure is public, so no shape is observed.
 /// Everything the bus hands on: the framework blocks' column claims,
 /// the shared GKR point (the table sumcheck's eq point), and
 /// per side the tables' linear forms plus what each is claimed to sum to.
@@ -804,13 +828,13 @@ pub(crate) struct BusProof {
     pub claims: Vec<ColumnClaim>,
     /// The GKR point ζ: the zerocheck reuses it, so no fresh point is sampled.
     pub point: Vec<F192>,
-    /// `forms[side][table]`, in `[push, pull, count]` order.
-    pub forms: [Vec<BusForm>; 3],
-    /// `sigmas[side][table]`: each form's eq-weighted sum over its table's rows.
+    /// `forms[tree][table]`, in [`sides`] order.
+    pub forms: [Vec<BusForm>; N_TREES],
+    /// `sigmas[tree][table]`: each form's eq-weighted sum over its table's rows.
     /// Prover-side only. NOTHING here travels: the batch's target is the caller's
     /// derived `Σ_s ξ^·totals[s]`, and the shares serve only to build each round's
     /// waiting line, which rides inside the round polynomial.
-    pub sigmas: [Vec<F192>; 3],
+    pub sigmas: [Vec<F192>; N_TREES],
 }
 
 pub(crate) fn prove_balance(
@@ -826,46 +850,35 @@ pub(crate) fn prove_balance(
     let pull_lay = layout(pull);
     let mut count_lay = layout(count);
     assert_grinding_unnecessary(push, pull, &push_lay, &pull_lay, &count_lay);
-    let alphas: Vec<F192> = (0..N_TUPLE_BITS).map(|_| ps.sample()).collect();
-    let w = fingerprint_weights(&alphas);
+    let fingerprints: [(Vec<F192>, F192); N_FINGERPRINTS] = std::array::from_fn(|_| {
+        let alphas: Vec<F192> = (0..N_TUPLE_BITS).map(|_| ps.sample()).collect();
+        (fingerprint_weights(&alphas), ps.sample())
+    });
     let count_w = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
-    let beta = ps.sample();
     // The leaves keep the all-one padding implicit; decomposition uses the full logical depth.
     count_lay.mu = push_lay.mu;
-    let leaves = crate::stage!("Bus leaves", || {
-        build_leaves(
-            sides(
-                [push, pull, count],
-                [&push_lay, &pull_lay, &count_lay],
-                &w,
-                &count_w,
-                beta,
-            ),
-            cols,
-        )
-    });
-    // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
+    let sides = sides(
+        [push, pull, count],
+        [&push_lay, &pull_lay, &count_lay],
+        &fingerprints,
+        &count_w,
+    );
+    let leaves = crate::stage!("Bus leaves", || build_leaves(sides, cols));
+    // All the trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_product_triple(leaves, ps));
+    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ps));
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
     // every table block becomes a form for the zerocheck instead.
     let mut claims: Vec<ColumnClaim> = Vec::new();
-    let sides = sides(
-        [push, pull, count],
-        [&push_lay, &pull_lay, &count_lay],
-        &w,
-        &count_w,
-        beta,
-    );
-    // Each table's columns at ζ[..τ], computed once and shared by the three sides
+    // Each table's columns at ζ[..τ], computed once and shared by every side
     // (a form's linear part factors through them). Nothing here travels, neither the
     // evaluations nor any total: the verifier derives each side's table share as `Ṽ₀(ζ)` less the
     // framework decomposition and the batch settles it. A
     // transmitted total would appear in exactly one check, which it could always be
     // solved to satisfy, and would settle nothing.
     let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| BusForm::new(n)).collect::<Vec<_>>());
-    let mut frameworks = [F192::ZERO; 3];
+    let mut frameworks = [F192::ZERO; N_TREES];
     let mut public = PublicEvals::new();
     crate::stage!("Bus decompose", || {
         for (s, &(blocks, lay, a, g)) in sides.iter().enumerate() {
@@ -876,7 +889,7 @@ pub(crate) fn prove_balance(
                 &bus_gkr.point,
                 a,
                 g,
-                &owners[s],
+                &owners[tree_side(s)],
                 &mut forms[s],
                 &mut claims,
                 &mut public,
@@ -884,13 +897,27 @@ pub(crate) fn prove_balance(
             );
         }
     });
+    // The public columns at ζ, in block and slot order: the bytecode block's. Each
+    // fingerprint's share of the bytecode leaves is their `eq(α⃗, ·)`-weighted sum, so
+    // the verifier reads every share off these, then reduces them to one claim on the
+    // stacked bytecode at a fresh point (§sec:e2e-bc). The prover has no use for that point.
+    for blk in push {
+        for c in &blk.coords {
+            if let Coord::Public(vals) = c {
+                ps.add_scalar(public_eval(vals, &bus_gkr.point[..blk.kappa], &mut public));
+            }
+        }
+    }
+    for _ in 0..N_TUPLE_BITS {
+        ps.sample();
+    }
     let (table_evals, prod_sums) = crate::stage!("Bus tables", || tables_and_prods_at(
         cols,
         tables,
         &forms,
         &bus_gkr.point
     ));
-    let sigmas: [Vec<F192>; 3] = std::array::from_fn(|s| {
+    let sigmas: [Vec<F192>; N_TREES] = std::array::from_fn(|s| {
         let sigmas: Vec<F192> = forms[s]
             .iter()
             .zip(&table_evals)
@@ -970,7 +997,7 @@ fn eq_sums(point: &[F192], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Ve
 
 /// Every table's committed columns at `ζ[..τ_t]`, and, for every column pair its
 /// forms multiply, `Σ_z eq(ζ[..τ], z)·col_a(z)·col_b(z)`, in one pass per table
-/// ([`eq_sums`]). Pairs are deduped across the three sides and the several blocks
+/// ([`eq_sums`]). Pairs are deduped across the sides and the several blocks
 /// that carry the same address, so an address costs one product however often it is
 /// flushed. `tables[t] = (base, n_cols)` in the global schema; a pair names LOCAL
 /// column indices.
@@ -978,7 +1005,7 @@ fn eq_sums(point: &[F192], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Ve
 fn tables_and_prods_at(
     cols: &[&[F64]],
     tables: &[(usize, usize)],
-    forms: &[Vec<BusForm>; 3],
+    forms: &[Vec<BusForm>],
     zeta: &[F192],
 ) -> (Vec<Vec<F192>>, Vec<Vec<(usize, usize, F192)>>) {
     tables
@@ -1009,7 +1036,7 @@ fn tables_and_prods_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gkr::{Leaves, prove_product_triple};
+    use crate::gkr::{Leaves, prove_products};
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
@@ -1084,17 +1111,17 @@ mod tests {
         ];
         let count = vec![block(12, 3001, vec![Col(1)]), block(11, 1 << 11, vec![Col(2)])];
         let lays = [&push, &pull, &count].map(|b| layout(b));
-        let w = fingerprint_weights(&[F192::new(3, 1, 4), F192::new(1, 5, 9), F192::new(2, 6, 5), F192::Y]);
+        let weights =
+            |a: u64| fingerprint_weights(&[F192::new(3, 1, a), F192::new(1, 5, 9), F192::new(2, 6, 5), F192::Y]);
+        let fingerprints = [(weights(4), F192::new(27, 18, 28)), (weights(7), F192::new(31, 41, 59))];
         let count_w = fingerprint_weights(&[F192::ZERO; N_TUPLE_BITS]);
-        let beta = F192::new(27, 18, 28);
         let sides = sides(
             [&push, &pull, &count],
             [&lays[0], &lays[1], &lays[2]],
-            &w,
+            &fingerprints,
             &count_w,
-            beta,
         );
-        let want: [Vec<F192>; 3] = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
+        let want: [Vec<F192>; N_TREES] = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
 
         let built = build_leaves(sides, &cols);
         for (got, want) in built.iter().zip(&want) {
@@ -1111,27 +1138,26 @@ mod tests {
             );
         }
         assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
-        // The GKR wants its first two products equal, so each side is paired with itself.
+        // The GKR wants each pair of products equal, so each side is paired with itself.
         let reference = want.map(Leaves::new);
-        for side in [0, 1] {
-            let pick = |l: &[Leaves; 3]| [l[side].clone(), l[side].clone(), l[2].clone()];
+        for side in 0..N_TREES - 1 {
+            let pick = |l: &[Leaves; N_TREES]| [l[side].clone(), l[side].clone(), l[N_TREES - 1].clone()];
             let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
             let [ps0, ps1] = &mut proofs;
-            let planned = prove_product_triple(pick(&built), ps0);
-            let reference = prove_product_triple(pick(&reference), ps1);
+            let planned = prove_products(pick(&built), ps0);
+            let reference = prove_products(pick(&reference), ps1);
             assert_eq!((planned.point, planned.values), (reference.point, reference.values));
             let [a, b] = proofs.map(|ps| ps.into_proof().stream);
             assert_eq!(a, b);
         }
     }
 
-    /// The bound is `N_TUPLE_BITS·2^mu` plus the GKR terms: only the bus DEPTH
-    /// costs bits, the multilinear fingerprint having fixed each factor's total
-    /// degree at four, whatever the tuple's width.
+    /// Only the bus DEPTH costs bits, the multilinear fingerprint having fixed each
+    /// factor's total degree at four, whatever the tuple's width; and with
+    /// independent fingerprints the target holds at every depth the bound covers.
     #[test]
     fn bus_soundness_tracks_depth_only() {
-        assert!(soundness_bits(38) >= crate::SECURITY_BITS);
-        assert!(soundness_bits(61) >= crate::SECURITY_BITS);
-        assert!(soundness_bits(62) < crate::SECURITY_BITS);
+        assert!((1..120).all(|mu| soundness_bits(mu) <= soundness_bits(mu - 1)));
+        assert!(soundness_bits(119) >= crate::SECURITY_BITS);
     }
 }
