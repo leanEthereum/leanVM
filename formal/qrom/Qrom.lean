@@ -4,6 +4,7 @@ public import Qrom.QromSearch
 public import Qrom.OvSearch
 public import Qrom.HidingMain
 public import Qrom.Deferral
+public import Qrom.Presample
 
 /-! # Generic results in the quantum random-oracle model
 
@@ -38,3 +39,7 @@ three standard axioms. -/
 /-- info: 'Qrom.OvGame.deferral_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.OvGame.deferral_le
+
+/-- info: 'Qrom.sum_eq_sum_override' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.sum_eq_sum_override
