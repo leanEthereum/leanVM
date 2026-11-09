@@ -16,6 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
+use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
@@ -152,7 +153,6 @@ struct OpeningShape {
     positions_per_squeeze: Vec<usize>,
     squeezes: Vec<usize>,
     interleaving: Vec<usize>,
-    query_grinding_bits: Vec<usize>,
     cap_depths: Vec<usize>,
     cap_offsets: Vec<usize>,
     positions_offsets: Vec<usize>,
@@ -161,7 +161,6 @@ struct OpeningShape {
     residual_fold_offsets: Vec<usize>,
     vanish_values: Vec<F128>,
     vanish_inverses: Vec<F128>,
-    ood_samples: Vec<usize>,
 }
 
 /// The recursion program's placeholder map depends on table structure and bytecode
@@ -451,6 +450,14 @@ fn claim_placeholders(
     assert!((0..claims.len()).all(|j| (claims[j].buffer == POINT_BUF_KECCAK_OUT)
         == (out_pool..out_pool + primitives::hash::STATE_LANES).contains(&j)));
     ps("KECCAK_OUT_POOL", out_pool.to_string());
+    // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
+    // Keccak reduction's claim on its output word; the batching is accounted for up to a cap.
+    let pin = pcs::whir::INITIAL_FOLDING_FACTOR + 1;
+    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + pin;
+    assert!(
+        stacked <= pcs::whir_config::MAX_STACKED_CLAIMS,
+        "too many stacked claims"
+    );
     ps("CLAIM_QKECCAK_SLOT_BITS", literals(&cpqbits));
     ps("QKECCAK_COMMITTED_COL", qkeccak_compact.to_string());
     ps("QKECCAK_VARS_CAP", (33 + slot_log).to_string());
@@ -597,6 +604,9 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let (cn, cr) = (sh.levels, vc.level_steps);
         // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
+        // The guest grinds QUERY_GRIND_BITS before every level's queries and draws one OOD point per non-final level.
+        assert!(vc.grinding_bits.iter().all(|&bits| bits == QUERY_GRINDING_BITS));
+        assert!((0..cn).all(|level| vc.ood_samples[level] == usize::from(level > 0)));
         let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
         let cq = &vc.queries;
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
@@ -643,7 +653,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             positions_per_squeeze: shape.per_squeeze,
             squeezes: cs,
             interleaving: cni,
-            query_grinding_bits: shape.config.grinding_bits,
             cap_depths,
             cap_offsets,
             positions_offsets: c_qpoff,
@@ -652,18 +661,20 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             residual_fold_offsets: c_risstart,
             vanish_values: c_svk,
             vanish_inverses: c_ivk,
-            ood_samples: shape.config.ood_samples,
         }
     };
+    ps("PIN_FOLD", pcs::whir::INITIAL_FOLDING_FACTOR.to_string());
+    ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
+    ps("OOD_GRIND_BITS", OOD_GRINDING_BITS.to_string());
+    ps("QUERY_GRIND_BITS", QUERY_GRINDING_BITS.to_string());
+    ps("BATCH_GRIND_BITS", BATCH_GRINDING_BITS.to_string());
     let (minm, maxm) = (MU_MIN, MU_MAX);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
     let maxsvk = cands.iter().map(|c| c.vanish_values.len()).max().unwrap();
-    let maxood = cands.iter().flat_map(|c| &c.ood_samples).copied().max().unwrap_or(0);
     ps("LIG_MAX_LEVELS", maxlev.to_string());
     ps("LIG_MAX_VANISH_LEN", maxsvk.to_string());
-    ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
@@ -742,8 +753,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 .unwrap()
                 .to_string(),
         );
-        ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
-        ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
         ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
@@ -774,6 +783,17 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 c.log_message_columns
                     .iter()
                     .map(|&columns| columns - c.yr_log_len)
+                    .collect()
+            }),
+        );
+        // A high part's index bits; the guest's HIGH_BITS_CAP is 3.
+        assert!(cands.iter().all(|c| c.folds.iter().all(|&k| k <= 8)));
+        ps(
+            "LIG_HIGH_BITS",
+            flat(&|c| {
+                c.folds
+                    .iter()
+                    .map(|&k| k.next_power_of_two().trailing_zeros() as usize)
                     .collect()
             }),
         );

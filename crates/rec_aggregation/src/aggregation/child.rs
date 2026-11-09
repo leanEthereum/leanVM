@@ -237,13 +237,11 @@ pub(super) fn gen_verify(
 
     let mut hints = vec![
         ("stream", {
-            // The guest replays the WHIR opening off the same stream the native
-            // verifier reads: every transmitted scalar (sumcheck messages, level
-            // roots, OOD claims, grind nonces, `yr`) is already there in protocol
-            // order, so there is nothing to reassemble. The guest's `open_stacked`
-            // picks it up at `msg_cursor = cursor`, which sits where the Keccak
-            // reduction stopped; the ring-switch messages are struct-observed and
-            // still do not advance that cursor.
+            // The guest replays the proof off the same stream the native verifier
+            // reads: every transmitted scalar (the list pin, the fold rounds' tables,
+            // level roots, high parts, OOD values, grind nonces, the final lane, the
+            // closing rounds) is already there in protocol order, so there is nothing
+            // to reassemble.
             let mut stream = proof.stream.clone();
             stream.resize(STREAM_CAP, F128::ZERO);
             stream
@@ -256,6 +254,14 @@ pub(super) fn gen_verify(
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
+        // The committed lanes' count, whose bits the guest certifies and reads the list pin's blocks off.
+        ("pin_lanes", {
+            let lanes = layout.shape.n_lanes;
+            assert!((1..=1 << pcs::whir::INITIAL_FOLDING_FACTOR).contains(&lanes));
+            (0..=pcs::whir::INITIAL_FOLDING_FACTOR)
+                .map(|bit| F128::new(lanes as u64 >> bit & 1, 0))
+                .collect()
+        }),
         ("col_group_order", col_group_order),
         ("block_group_order", sort_order),
     ];
