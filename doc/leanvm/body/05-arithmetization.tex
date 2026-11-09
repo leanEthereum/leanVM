@@ -37,7 +37,7 @@ the sixteen slots indexed by their bits, low bit first, and smaller tuples padde
   The protocol above has perfect completeness (equal pulled and pushed multisets always make \eqref{eq:gp} valid) and soundness error $4\cdot 2^{\mu}/|\E|$ (if the pulled and pushed multisets differ, the probability that \eqref{eq:gp} passes over uniform $\alpha \in \E^{4}$ and $\beta \in \E$).
 \end{theorem}
 
-\paragraph{Grinding.} The error of Theorem~\ref{th:product_check} grows with the bus, $4\cdot2^{\mu}/|\E|=2^{\mu+2-128}$, so the prover grinds $\max(0,\lceil\log_2(4\cdot2^{\mu})\rceil-(128-120))=\max(0,\mu-6)$ bits before $\alpha$ and $\beta$ are drawn (\S\ref{sec:e2e-fiat-shamir}). $\mu$ is fixed by the announced table sizes, so both sides know the grind. Ground, the theorem is a $120$-bit statement: a cheating prover pays $2^{\max(0,\mu-6)}$ queries per draw of $(\alpha,\beta)$, and $4\cdot2^{\mu}\cdot2^{-\max(0,\mu-6)}/|\E|\le2^{-120}$ (\S\ref{sec:iopcs}).
+\paragraph{Grinding.} The error $4\cdot2^{\mu}/|\E|=2^{\mu+2-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\max(0,\mu-6)$ bits before $\alpha$ and $\beta$ are drawn (\S\ref{sec:e2e-fiat-shamir}), the fewest that bring it to $2^{-120}$ (\S\ref{sec:iopcs}). The announced table sizes fix $\mu$, so both sides know the grind.
 
 \begin{lemma}[A product identity is a multiset identity]\label{lem:gp}
 For a multiset $P$ of tuples write

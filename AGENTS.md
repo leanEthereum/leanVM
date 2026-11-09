@@ -93,7 +93,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 ## Three verifiers, one protocol
 
-The verification algorithm is written out three times, and any change to the protocol lands in all three. Every verifier message is held to `2^-120` round-by-round error after its grind (`SECURITY_BITS`), and the PCS folds with the affine combiner of Chiesa, Yogev, Weissenberg and Zheng (a private preprint: cite it as [CYWZ26, preprint], never link it), Annex B of the document. `verifier::TAG`, the version string the Fiat-Shamir IV hashes (nothing derives it), and every Fiat-Shamir label stay at `v1` until leanVM ships on Ethereum.
+The verification algorithm is written out three times, and any change to the protocol lands in all three. Every verifier message is held to `2^-120` round-by-round error after its grind (`SECURITY_BITS`). The PCS folds with the affine combiner of Chiesa, Yogev, Weissenberg and Zheng (Annex B), a private preprint: cite it as [CYWZ26, preprint], never link it. `verifier::TAG`, the version string the Fiat-Shamir IV hashes (nothing derives it), and every Fiat-Shamir label stay at `v1` until leanVM ships on Ethereum.
 
 1. **Rust**, `crates/verifier`: the one native verifier, what `EthereumProof::verify` and `cpu::verify` run. It must stay portable by construction: no dependencies, no `unsafe`, no `core::arch`, no `cfg(target_arch)`, no threads. Pinned by `leanvm_core/tests/verifiers/portable_verifier.rs` and every test that verifies.
 2. **Python**, `python-verifier/verifier.py` (no dependencies), for readability. Pinned by `leanvm_core/tests/verifiers/python_verifier.rs`.
@@ -125,7 +125,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 - **A failed guest `assert` surfaces as a write-once conflict** naming the function and source line. A conflict that `had 0:0` can instead be an ordering bug: a cell read before it was written.
 - **Guests are single-file**; the compiler skips `from snark_lib import *`, which exists only for editors.
 - **One symbol, one meaning, across the leanVM document**, defined in `preamble/macros.tex` (check a letter is free first; Annex B's "Symbols" table maps its letters to WHIR/Ligerito/CYWZ26). A sumcheck challenge is `\fc`, keeping `\rho` for the rate. A rename in the document is a rename in the Rust prover, `crates/verifier`, `verifier.py` and the guest, which name their variables after it.
-- **Doc labels are an API**: crates cite `thm:rbr`, `thm:mca-affine` and sections of `doc/leanvm/main.tex` by label, and `body/NN-*.tex` prefixes match section numbers.
+- **Doc labels are an API**: crates cite `thm:rbr`, `lem:colweight` and sections of `doc/leanvm/main.tex` by label, and `body/NN-*.tex` prefixes match section numbers.
 - **Comments only where necessary**, and concise. **Never put a measurement in a comment, a doc comment, or this file**: it goes stale and nothing rechecks it. Measurements belong in the commit message. A comment may say which way a result went and why, never by how much.
 - **Commit only tests useful against future regressions.** Simpler is better.
 - **No em-dashes or en-dashes** in prose anywhere a human reads it. **Never hard-wrap prose** in Markdown or LaTeX: one paragraph is one line.

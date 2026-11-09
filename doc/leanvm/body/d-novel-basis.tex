@@ -94,7 +94,7 @@ For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\
 
 \subsection{Multiplication by \texorpdfstring{$X$}{X}}\label{sec:ntt-mulx}
 
-In the monomial basis, multiplying by $X$ shifts the coefficients. In the novel basis it does not, but it stays local: the affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$, and the prover computes the result coefficient by coefficient.
+The affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$. In the novel basis this is not a shift of the coefficients, but it stays local.
 
 \begin{lemma}[Multiplication by $X$ in the novel basis]\label{lem:mulx}
 For $0\le i<63$ put $\nbc_i:=\vansub_{i+1}(e_{i+1})/\vansub_i(e_i)^2\in\K^\times$. Then
@@ -107,8 +107,8 @@ X\cdot\novel_c\;=\;\sum_{j<t}\nbc_{<j}\,\novel_{c-2^{j}+1}\;+\;\nbc_{<t}\,\novel
 \]
 where $c-2^j+1$ is $c$ with bits $0,\dots,j-1$ cleared; for $t=0$, $X\cdot\novel_c=\novel_{c+1}$. Moreover:
 \begin{enumerate}[itemsep=1pt,label=(\roman*)]
-\item for $\mu<63$ and $c<2^\mu$, $\novel_{2^\mu+c}=\Wn{\mu}\,\novel_c$;
-\item every index on the right is at least $2^\mu$ when $c\ge2^\mu$, so for a polynomial $H=\sum_ch_c\novel_c$ the coefficients of $XH$ of index below $2^\mu$ depend only on the $h_c$ with $c<2^\mu$.
+\item for $\kappa<63$ and $c<2^\kappa$, $\novel_{2^\kappa+c}=\Wn{\kappa}\,\novel_c$;
+\item every index on the right is at least $2^\kappa$ when $c\ge2^\kappa$, so for a polynomial $H=\sum_ch_c\novel_c$ the coefficients of $XH$ of index below $2^\kappa$ depend only on the $h_c$ with $c<2^\kappa$.
 \end{enumerate}
 \end{lemma}
 
@@ -121,10 +121,10 @@ S_j=\bigl(\Wn{j}+\nbc_j\Wn{j+1}\bigr)\,\Wn{j+1}\cdots\Wn{t-1}\,R=\novel_{c-2^j+1
 \]
 because $\Wn{j}\cdots\Wn{t-1}R$ is the product over the bits of $c$ from $j$ up. And $S_t=\Wn{t}R=\novel_{c+1}$, since adding $1$ clears bits $0,\dots,t-1$ and sets bit $t$. Unrolling from $S_0$ gives the formula.
 
-(i) is Definition~\ref{def:enc}: bit $\mu$ of $2^\mu+c$ is set and its lower bits are those of $c$. For (ii), let $c\ge2^\mu$. The index $c+1$ exceeds $c$. An index $c-2^j+1$, $j<t$, keeps every bit of $c$ from $j$ up, among them bit $j$, a one. If $j\le\mu$, it keeps every bit of $c$ at $\mu$ or above, one of which is set as $c\ge2^\mu$; if $j>\mu$, bit $j$ alone makes it at least $2^j>2^\mu$. Either way the index is at least $2^\mu$, so a coefficient of index at least $2^\mu$ only reaches indices at least $2^\mu$.
+(i) is Definition~\ref{def:enc}: bit $\kappa$ of $2^\kappa+c$ is set and its lower bits are those of $c$. For (ii), let $c\ge2^\kappa$. The index $c+1$ exceeds $c$. An index $c-2^j+1$, $j<t$, keeps every bit of $c$ from $j$ up, among them bit $j$, a one. If $j\le\kappa$, it keeps every bit of $c$ at $\kappa$ or above, one of which is set as $c\ge2^\kappa$; if $j>\kappa$, bit $j$ alone makes it at least $2^j>2^\kappa$. Either way the index is at least $2^\kappa$, so a coefficient of index at least $2^\kappa$ only reaches indices at least $2^\kappa$.
 \end{proof}
 
-The coefficients of $XH$ thus cost one pass over $H$ with, per coefficient, as many terms as trailing ones, which is two on average. Its degree is $\deg H+1$, the coefficient on $\novel_{c+1}$ being $\nbc_{<t}\neq0$.
+So $XH$ costs one pass over $H$, with $t+1$ terms for a coefficient whose index has $t$ trailing ones, two on average. Its degree is $\deg H+1$, as the coefficient on $\novel_{c+1}$ is $\nbc_{<t}\neq0$.
 
 \subsection{Column weights}\label{sec:ntt-weights}
 
