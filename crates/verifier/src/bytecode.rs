@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 
 /// The stacked bytecode multilinear, prepared to be evaluated, and the Fiat-Shamir IV it gives every transcript.
 ///
-/// The table is fixed while the points vary, so its words are sorted once: per block of `2^BLOCK_LOG` words, the
+/// The table is fixed while the points vary, so its words are grouped once: per block of `2^BLOCK_LOG` words, the
 /// positions of each distinct nonzero word, and the bytes those words have.
 #[derive(Clone, Debug)]
 pub struct Bytecode {
@@ -43,6 +43,38 @@ fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
         .map(|(byte, value)| 256 * byte as u16 + value as u16)
 }
 
+/// Where a word's probe into a table of `2^(BLOCK_LOG + 1)` slots starts.
+fn slot_of(word: u64) -> usize {
+    (word.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> (63 - BLOCK_LOG)) as usize
+}
+
+/// A block's distinct nonzero words, in order of first occurrence, and each nonzero position's word among them.
+///
+/// An open-addressing table of twice the block's size, probed linearly, finds a word's group: it never fills, so every
+/// probe ends. A group is only ever given positions holding its word, which is all `evaluate` relies on.
+fn group(block: &[u64], slots: &mut [Option<u16>], group_of: &mut [u16]) -> Vec<u64> {
+    slots.fill(None);
+    let mut distinct = Vec::new();
+    for (position, &word) in block.iter().enumerate() {
+        if word == 0 {
+            continue;
+        }
+        let mut slot = slot_of(word);
+        group_of[position] = loop {
+            match slots[slot] {
+                None => {
+                    slots[slot] = Some(distinct.len() as u16);
+                    distinct.push(word);
+                    break distinct.len() as u16 - 1;
+                }
+                Some(group) if distinct[group as usize] == word => break group,
+                Some(_) => slot = (slot + 1) % slots.len(),
+            }
+        };
+    }
+    distinct
+}
+
 impl Bytecode {
     pub fn new(table: &[u64]) -> Self {
         let fiat_shamir_iv = {
@@ -55,25 +87,45 @@ impl Bytecode {
         };
 
         let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        let mut slots = vec![None; 2 << BLOCK_LOG];
+        let mut group_of = vec![0u16; 1 << BLOCK_LOG];
         for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
-            let mut members = alloc::collections::BTreeMap::<u64, Vec<u16>>::new();
-            for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
-                members.entry(word).or_default().push(position as u16);
-            }
-            if members.is_empty() {
+            let distinct = group(block, &mut slots, &mut group_of);
+            if distinct.is_empty() {
                 continue;
             }
-            // Fewest positions first: the sum over a word's positions then runs one length many times over,
-            // so its loop exit is predicted.
-            let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
-            members.sort_by_key(|(_, at)| at.len());
-            let mut used = alloc::collections::BTreeSet::new();
-            for (word, at) in members {
-                positions.extend(at);
-                words.push((word, positions.len()));
-                used.extend(byte_buckets(word));
+            // Each word's positions, a run per word in the order of `distinct`: count them, then place them.
+            let mut counts = vec![0; distinct.len()];
+            for (position, &word) in block.iter().enumerate() {
+                if word != 0 {
+                    counts[group_of[position] as usize] += 1;
+                }
             }
-            bytes.extend(used);
+            let mut next = Vec::with_capacity(distinct.len());
+            let mut end = positions.len();
+            for (&word, &count) in distinct.iter().zip(&counts) {
+                next.push(end);
+                end += count;
+                words.push((word, end));
+            }
+            positions.resize(end, 0);
+            for (position, &word) in block.iter().enumerate() {
+                if word != 0 {
+                    let at = &mut next[group_of[position] as usize];
+                    positions[*at] = position as u16;
+                    *at += 1;
+                }
+            }
+            // Every bucket some word of the block fills, once.
+            let mut used = vec![false; 8 * 256];
+            for &word in &distinct {
+                for bucket in byte_buckets(word) {
+                    if !used[bucket as usize] {
+                        used[bucket as usize] = true;
+                        bytes.push(bucket);
+                    }
+                }
+            }
             blocks.push(Block {
                 index,
                 words_end: words.len(),
@@ -157,7 +209,7 @@ mod tests {
 
     #[test]
     fn evaluate_matches_the_fold() {
-        // An xorshift stream: words with every byte live, short words, a run of zeros, a zero block, and points on both sides of the block split.
+        // An xorshift stream: words with every byte live, short words, words repeated many times over, a run of zeros, a zero block, and points on both sides of the block split.
         let mut state = 0x9E37_79B9_7F4A_7C15u64;
         let mut next = move || {
             state ^= state << 13;
@@ -172,6 +224,9 @@ mod tests {
             }
             for word in table.iter_mut().skip(50).step_by(3) {
                 *word >>= 40;
+            }
+            for word in table.iter_mut().skip(51).step_by(3) {
+                *word %= 13;
             }
             for word in table.iter_mut().skip(2 << BLOCK_LOG).take(1 << BLOCK_LOG) {
                 *word = 0;
