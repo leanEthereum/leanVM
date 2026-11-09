@@ -452,8 +452,8 @@ meaning ``$pk$ signed $m$'';
 \item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, z)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
 (\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
-three limbs and a zero word), or $32$ zero bytes without one (\lean{zeroDigest};
-\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:19-26}). The claim: some matrix of
+two limbs and two zero words), or $32$ zero bytes without one (\lean{zeroDigest};
+\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:36-43}). The claim: some matrix of
 $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
 (\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds
 $\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}) and checks $\mathit{da} = H(\rho \,\|\, z)$; that
@@ -464,16 +464,15 @@ satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation/statement.rs:85-114}) is
+\texttt{aggregation/statement.rs:81-102}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
 where $\enc(\Cx)$ concatenates, per claim, the key's bytes, a leanXMSS key's root ($16$ bytes)
 then its parameter ($16$), and the message ($32$); $\enc(\Cs)$ likewise, a leanSPHINCS key's bytes
 being $\mathrm{PK.seed}$ then $\mathrm{PK.root}$ (\lean{claimListDigest},
-\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $24$-byte encodings of
-$z_1, \dots, z_{23}, v$,
-padded with one zero element to an even number. The lists' lengths are bound by Keccak's padding;
+\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $16$-byte encodings of
+$z_1, \dots, z_{23}, v$. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
 
@@ -489,7 +488,7 @@ $\sigma = iv_G$.
 $f_i = (\zeta_i, v_i)$ on the bytecode, the evaluation the child's proof leaves to be checked;
 \item the \emph{raw signatures}, leanXMSS and leanSPHINCS, each with the claim it signs;
 \item optionally, one LeanDA matrix the node checks directly, with the DA claim it opens;
-\item the \emph{batching hints}: the round messages of one sumcheck, and a final value.
+\item the \emph{batching hints}: a proof of work's nonce, the round messages of one sumcheck, and a final value.
 \end{itemize}
 
 \subsection{What one node establishes}
@@ -502,7 +501,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4643-4647}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4878-4882}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
@@ -515,7 +514,7 @@ point is all-zero (its value is left to the outer verifier); otherwise $\mathrm{
 \lean{runBatching}; \lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat--Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
-digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
+digest and two claims; checks a proof of work of $2$ bits (\lean{batchLambdaGrindBits}) and squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
 claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
@@ -526,7 +525,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:149-166})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
@@ -715,7 +714,7 @@ every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
 challenges and by the batching coefficient $\lambda$ at the stacked opening; refusing every zero
-challenge is slightly stronger, each challenge being zero with probability $2^{-192}$. An honest
+challenge is slightly stronger, each challenge being zero with probability $2^{-128}$. An honest
 proof is refused with probability at most $2^{-126}$ in the RPM (\lean{HonestProofRarelyRefused}
 below).
 \item The budget: a bound on the run's size, below.
