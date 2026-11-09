@@ -187,8 +187,8 @@ fn test_python_verifier() {
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
-/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, a list pin value at the
-/// first grind after it (a wrong value sent honestly fails the opening, `keccak_gkr`'s pin test), each check of the
+/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, an OOD sample value at
+/// the first grind after it (a wrong value sent honestly fails the opening, `keccak_gkr`'s OOD test), each check of the
 /// Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar, a high-part
 /// scalar and a grinding nonce, each caught by the grind that follows it, and the last tail scalar by the terminal check.
 #[test]
@@ -232,12 +232,12 @@ fn tampers_fail_the_same_check() {
     let tail = round * mu;
     let final_coefficients = (1 << mu) + k;
     let final_level = 7 * k + final_coefficients + 1 + tail;
-    // After the announced sizes (the memory, six tables and the rate), the root and the list pin's nonce: its value,
+    // After the announced sizes (the memory, six tables and the rate), the root and the OOD sample's nonce: its value,
     // which the transcript binds, so the first grind after it, the bus's, already fails.
-    let pin_value = 1 + 6 + 1 + 2 + 1;
+    let ood_value = 1 + 6 + 1 + 2 + 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
-        (pin_value, VerifierError::GrindingNonce),
+        (ood_value, VerifierError::GrindingNonce),
         (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
         (end - final_level - 5, VerifierError::GrindingNonce),
         (end - tail - 1, VerifierError::GrindingNonce),

@@ -48,7 +48,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
 
         let mut ps = batch_transcript(LABEL, shape, log_inv_rate);
         let t = Instant::now();
-        let (prover_data, pin) = commit_stack(&mut ps, shape, &committed, log_inv_rate);
+        let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, log_inv_rate);
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -62,7 +62,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
+        open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
         let open_s = t.elapsed().as_secs_f64();
 
         (
@@ -170,7 +170,7 @@ pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) 
     ProverState::new(iv, statement)
 }
 
-/// Commit to `stack`, send the root and pin the list ([`pcs::pin`]): what precedes the output claim.
+/// Commit to `stack`, send the root and take its OOD sample ([`pcs::ood`]): what precedes the output claim.
 pub(crate) fn commit_stack(
     ps: &mut ProverState,
     shape: Shape,
@@ -179,8 +179,8 @@ pub(crate) fn commit_stack(
 ) -> (ProverData, StackClaim) {
     let (commitment, prover_data) = commit(stack, shape.stack_log(), INITIAL_FOLDING_FACTOR, log_inv_rate);
     ps.add_root(&commitment.root);
-    let pin = pcs::pin::pin_commitment(ps, stack, shape.stack_log());
-    (prover_data, pin)
+    let ood = pcs::ood::ood_sample(ps, stack, shape.stack_log());
+    (prover_data, ood)
 }
 
 /// The instance a batch's output is claimed at, after its grind: the point pins the committed middle states, a
@@ -190,7 +190,7 @@ pub(crate) fn batch_instance(ps: &mut ProverState, shape: Shape) -> Vec<F128> {
     ps.sample_vec(shape.n_log())
 }
 
-/// Discharge the reduction's openings and the pin's claim, after them, against the commitment to `stack`, which
+/// Discharge the reduction's openings and the OOD sample's claim, after them, against the commitment to `stack`, which
 /// holds the committed states alone.
 pub(crate) fn open_commitment(
     ps: &mut ProverState,
@@ -199,10 +199,10 @@ pub(crate) fn open_commitment(
     prover_data: ProverData,
     config: &ProverConfig,
     openings: Openings,
-    pin: StackClaim,
+    ood: StackClaim,
 ) {
     let (ring, outputs) = openings.into_pcs_claims(0);
-    let points: Vec<_> = outputs.into_iter().chain([pin]).collect();
+    let points: Vec<_> = outputs.into_iter().chain([ood]).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
 }
 

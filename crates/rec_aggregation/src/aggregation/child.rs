@@ -238,7 +238,7 @@ pub(super) fn gen_verify(
     let mut hints = vec![
         ("stream", {
             // The guest replays the proof off the same stream the native verifier
-            // reads: every transmitted scalar (the list pin, the fold rounds' tables,
+            // reads: every transmitted scalar (the level-0 OOD value, the fold rounds' tables,
             // level roots, high parts, OOD values, grind nonces, the final lane, the
             // closing rounds) is already there in protocol order, so there is nothing
             // to reassemble.

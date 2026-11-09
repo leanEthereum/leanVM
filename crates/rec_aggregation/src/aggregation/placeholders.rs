@@ -16,7 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_SAMPLES, PIN_GRINDING_BITS, QUERY_GRINDING_BITS};
+use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, OOD_SAMPLES, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
@@ -497,7 +497,7 @@ fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
     use fiat_shamir::grinding_bits;
     use leanvm_core::leaf::{N_BUS_TREES, bus_grinding_bits};
     // The bus grind's bits by the push depth mu. It sends a nonce at every depth the guest admits, which it absorbs
-    // with the list pin's value.
+    // with the OOD sample's value.
     assert!(bus_grinding_bits(leanvm_core::cpu::MIN_LOG_MEM) > 0);
     ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
     for degree in [2, 3, 5] {
@@ -721,7 +721,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         }
     };
     ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
-    ps("PIN_GRIND_BITS", PIN_GRINDING_BITS.to_string());
+    ps("OOD_GRIND_BITS", OOD_GRINDING_BITS.to_string());
     ps("OOD_SAMPLES", OOD_SAMPLES.to_string());
     ps("QUERY_GRIND_BITS", QUERY_GRINDING_BITS.to_string());
     ps("BATCH_GRIND_BITS", BATCH_GRINDING_BITS.to_string());

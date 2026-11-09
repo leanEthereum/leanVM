@@ -2,7 +2,7 @@
 //!
 //! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
 //! inverse-rate `1/2^PCS_LOG_INV_RATE` and opens it through the stacked opener with one point
-//! claim, after the list pin, times each phase, and reports GiB/s over the committed data. The
+//! claim, after the OOD sample, times each phase, and reports GiB/s over the committed data. The
 //! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
@@ -22,7 +22,7 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
-use pcs::pin::pin_commitment;
+use pcs::ood::ood_sample;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
@@ -88,8 +88,8 @@ fn main() {
         let stack = witness.clone();
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
-            let pin = pin_commitment(&mut ch, &stack, log_n);
-            let claims = [&claims[..], &[pin]].concat();
+            let ood = ood_sample(&mut ch, &stack, log_n);
+            let claims = [&claims[..], &[ood]].concat();
             open_batch_mixed_whir_stacked(&mut ch, log_n, stack, pd, &pc, &claims, &ring);
         });
         open_t.push(t.elapsed().as_secs_f64());

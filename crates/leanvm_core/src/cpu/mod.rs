@@ -462,7 +462,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
         digest_words(&public_input),
     );
 
-    // Announce the prover's sizes, then commit and pin the commitment's list, before sampling any other challenge.
+    // Announce the prover's sizes, then commit and take the commitment's OOD sample, before sampling any other challenge.
     announce_public(&mut ps, w.log_mem, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || {
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)

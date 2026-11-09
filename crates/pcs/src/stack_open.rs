@@ -8,7 +8,7 @@
 //! - **point claims** ([`StackClaim`]): plain multilinear evaluations of
 //!   aligned sub-slices of the stack (a claim's weight is `eq(low_point, .)`
 //!   supported on `[offset, offset + 2^|low_point|)`, which may reach past the
-//!   committed lanes, as the list pin's does),
+//!   committed lanes, as the OOD sample's does),
 //! - **ring-switched claims** ([`RingSwitchOpen`]): bit-MLE evaluation claims
 //!   on the packed sub-block `q_keccak = stack[offset .. offset + 2^qkeccak_vars]`,
 //!   reduced per claim by [`super::ring_switch::prove_prepare`] and the

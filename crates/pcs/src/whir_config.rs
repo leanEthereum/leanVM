@@ -16,9 +16,9 @@
 //! - `theta` of a fold round: `ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - `(gamma, alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - batching `lambda` entering a level: `(J - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
-//! - OOD points entering a level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
-//! - the level-0 list pin after the commitment (`crate::pin`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
-//!   [`PIN_GRINDING_BITS`];
+//! - OOD points entering a later level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
+//! - the level-0 OOD sample after the commitment (`crate::ood`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
+//!   [`OOD_GRINDING_BITS`];
 //! - queries: `((A_end - 1) / n)^t`, after [`QUERY_GRINDING_BITS`];
 //! - tail sumcheck rounds: `2 / q`, after the grind of a degree-2 round (`fiat_shamir::grinding_bits(2)`).
 //!
@@ -62,8 +62,8 @@ pub const FOLD_GRINDING_BITS: usize = 6;
 /// least for which the batching terms never cost a query.
 pub const BATCH_GRINDING_BITS: usize = 12;
 
-/// Grinding before the level-0 list pin: the least for which the pin's term never costs a query.
-pub const PIN_GRINDING_BITS: usize = 14;
+/// Grinding before the level-0 OOD sample: the least for which its term never costs a query.
+pub const OOD_GRINDING_BITS: usize = 14;
 
 /// Out-of-domain points after each commitment past level 0, drawn as one verifier message: two independent points
 /// square the OOD term, which then needs no grind.
@@ -114,7 +114,7 @@ pub struct ProverConfig {
     pub grinding_bits: Vec<usize>,
     /// Per-commit-level out-of-domain points (L0, ..., L_r), drawn together right
     /// after the level's Merkle root and high part enter the transcript. `[0]` must be 0:
-    /// L0 is pinned by the caller, right after its root (`crate::pin`).
+    /// L0's OOD sample is the caller's, right after its root (`crate::ood`).
     /// Length = level_steps + 1.
     pub ood_samples: Vec<usize>,
 }
@@ -336,14 +336,15 @@ pub const MAX_STACKED_CLAIMS: usize = 1 << 9;
 pub(crate) struct Grinding {
     pub fold: usize,
     pub batch: usize,
-    pub pin: usize,
+    /// Before the level-0 OOD sample; later levels' OOD points take none.
+    pub ood: usize,
     pub query: usize,
 }
 
 const PRODUCTION_GRINDING: Grinding = Grinding {
     fold: FOLD_GRINDING_BITS,
     batch: BATCH_GRINDING_BITS,
-    pin: PIN_GRINDING_BITS,
+    ood: OOD_GRINDING_BITS,
     query: QUERY_GRINDING_BITS,
 };
 
@@ -369,7 +370,7 @@ pub struct WhirLevelConfig {
     pub queries: usize,
     /// Query-phase grinding bits.
     pub grinding_bits: usize,
-    /// Out-of-domain points after this level's commitment: 0 at L0 (pinned by the caller, `crate::pin`),
+    /// Out-of-domain points after this level's commitment: 0 at L0 (sampled by the caller, `crate::ood`),
     /// [`OOD_SAMPLES`] after.
     pub ood_samples: usize,
     pub(crate) target_security_bits: usize,
@@ -390,7 +391,7 @@ impl WhirLevelConfig {
         self.agreement as f64 / n - ((self.honest_degree() + self.k as u128) as f64 / n).sqrt()
     }
 
-    /// `ell(A_0, d_0)`, the list the level's batching and OOD (or pin) terms union over.
+    /// `ell(A_0, d_0)`, the list the level's batching and OOD terms union over.
     pub fn list_bound(&self) -> Option<u128> {
         let start = self.agreement.checked_sub(self.k as u128)?;
         affine_mca::johnson_list(self.block_len(), start, self.honest_degree())
@@ -451,16 +452,16 @@ fn require_count(
 /// Where a level sits in the opening, for the terms that depend on it.
 #[derive(Clone, Copy)]
 enum Position {
-    /// L0: the outer batching over the stacked claims and the ring-switch map; the list pin for OOD.
+    /// L0: the outer batching over the stacked claims and the ring-switch map; the caller's OOD sample.
     First,
     /// A later level, batching the previous level's `queries` claims, the OOD claims and the running claim.
     After { prev_queries: usize },
 }
 
 /// The terms that depend only on `ell(A_0, d_0)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
-/// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the list pin's
-/// (`crate::pin`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every outer challenge faces a single
-/// list member.
+/// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the
+/// commitment's OOD sample's (`crate::ood`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every
+/// outer challenge faces a single list member.
 fn check_list_terms(
     n: u128,
     d0: u128,
@@ -481,8 +482,8 @@ fn check_list_terms(
     let pairs = ell.checked_mul(ell.saturating_sub(1)).map(|p| p / 2);
     let mu = mu as u128;
     match position {
-        Position::First => require_count(pairs.and_then(|p| p.checked_mul(mu)), g.pin, target, || {
-            format!("pin (list {ell}, {mu} variables)")
+        Position::First => require_count(pairs.and_then(|p| p.checked_mul(mu)), g.ood, target, || {
+            format!("level-0 OOD (list {ell}, {mu} variables)")
         }),
         Position::After { .. } => {
             const _: () = assert!(OOD_SAMPLES == 2, "the OOD term is checked for two points");
@@ -764,13 +765,13 @@ mod tests {
         }
     }
 
-    /// The fold, batching and pin grinding are the least that leave every query count where unlimited grinding would.
+    /// The fold, batching and OOD grinding are the least that leave every query count where unlimited grinding would.
     #[test]
-    fn fold_batch_and_pin_grinding_are_the_least_that_cost_no_queries() {
+    fn fold_batch_and_ood_grinding_are_the_least_that_cost_no_queries() {
         let unlimited = Grinding {
             fold: SECURITY_BITS,
             batch: SECURITY_BITS,
-            pin: SECURITY_BITS,
+            ood: SECURITY_BITS,
             ..PRODUCTION_GRINDING
         };
         let best = queries_with(unlimited);
@@ -781,7 +782,7 @@ mod tests {
                 ..PRODUCTION_GRINDING
             },
             Grinding {
-                pin: PIN_GRINDING_BITS - 1,
+                ood: OOD_GRINDING_BITS - 1,
                 ..PRODUCTION_GRINDING
             },
             Grinding {

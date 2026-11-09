@@ -796,7 +796,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     assert_eq!(config.log_inv_rates.len(), r + 1);
     assert!(r >= 1);
     assert!(initial_k >= 1);
-    // L0 takes no OOD sample: the list pin binds its list.
+    // L0 takes no OOD points here: the caller's OOD sample, right after the root, binds it.
     assert_eq!(config.ood_samples.first().copied().unwrap_or(0), 0);
 
     let log_msg_cols_0 = log_n - initial_k;

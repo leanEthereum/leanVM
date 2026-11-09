@@ -6,8 +6,8 @@
 
 pub mod merkle;
 pub mod ntt;
+pub mod ood;
 pub mod pack;
-pub mod pin;
 pub mod ring_switch;
 pub mod stack_open;
 pub(crate) mod tensor_algebra;

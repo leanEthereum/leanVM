@@ -276,10 +276,10 @@ LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 # The opening's grinding (pcs::whir_config): before each round's theta and again before its
 # (gamma, alpha, beta), before every level's queries, before each batching challenge, the
-# ring switch's map included, and before the level-0 list pin. A non-final level draws
+# ring switch's map included, and before the level-0 OOD sample. A non-final level draws
 # OOD_SAMPLES points with no grind.
 FOLD_GRIND_BITS = FOLD_GRIND_BITS_PLACEHOLDER
-PIN_GRIND_BITS = PIN_GRIND_BITS_PLACEHOLDER
+OOD_GRIND_BITS = OOD_GRIND_BITS_PLACEHOLDER
 QUERY_GRIND_BITS = QUERY_GRIND_BITS_PLACEHOLDER
 BATCH_GRIND_BITS = BATCH_GRIND_BITS_PLACEHOLDER
 OOD_SAMPLES = OOD_SAMPLES_PLACEHOLDER
@@ -3438,7 +3438,7 @@ def selector_tables(point, point1):
     return sel_eq
 
 
-def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_z, gmv):
+def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, ood_z, gmv):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # a q_keccak lane puts its slot's bits between the two.
@@ -3522,10 +3522,10 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
     rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point1, c_table, qkeccakv_g)
     inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
-    # The list pin's claim, after the output word's: eq(z, .) over the stack's m variables.
-    pin_chain = HeapBuf(MAX_STACK_LOG + 1)
-    eq_prefix_chain(pin_chain, lam_out * lam_cl, pin_z, point1, gmv)
-    assert (inner_sum + pin_chain[gmv]) * yr_at_tail == sumcheck_target
+    # The OOD sample's claim, after the output word's: eq(z, .) over the stack's m variables.
+    ood_chain = HeapBuf(MAX_STACK_LOG + 1)
+    eq_prefix_chain(ood_chain, lam_out * lam_cl, ood_z, point1, gmv)
+    assert (inner_sum + ood_chain[gmv]) * yr_at_tail == sumcheck_target
 
 
 def bus_grind_check(word, tabs, d: Const):
@@ -3624,15 +3624,15 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     size_sel = gmv * LIG_MIN_SHIFT_INV  # g^(m - MIN)
     assert log(size_sel) < LIG_N_LOG_SIZES
 
-    # ---- the level-0 list pin (verifier read_pin) ----
+    # ---- the level-0 OOD sample (verifier read_ood) ----
     # A grind, then z of the stack's m variables, the first drawn by the grind's
     # permutation, then the stack's value at z.
-    sp, z_first, cursor = fs_grind_squeeze(sp, rate, (N_TABLES + 3) % 4 + 1, cursor, tabs, PIN_GRIND_BITS)
-    pin_z = HeapBuf(MAX_STACK_LOG)
-    fs0, fs1, fs2, fs3, fs4 = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda s: squeeze_point_from(sp[8], sp[9], sp[10], sp[11], sp[12], z_first, pin_z, LIG_MIN_LOG_SIZE + s))
-    pin_value = HeapBuf(1)
+    sp, z_first, cursor = fs_grind_squeeze(sp, rate, (N_TABLES + 3) % 4 + 1, cursor, tabs, OOD_GRIND_BITS)
+    ood_z = HeapBuf(MAX_STACK_LOG)
+    fs0, fs1, fs2, fs3, fs4 = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda s: squeeze_point_from(sp[8], sp[9], sp[10], sp[11], sp[12], z_first, ood_z, LIG_MIN_LOG_SIZE + s))
+    ood_value = HeapBuf(1)
     # The bus's grind nonce joins the value: its permutation draws the first alpha.
-    word0, pow_word, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, pin_value, 1, 1)
+    word0, pow_word, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, ood_value, 1, 1)
 
     # ---- bus challenges ----
     # They fail with probability at most 4 * 2^mu / |E| (verifier::bus), so a grind of
@@ -3718,8 +3718,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                     target += lam_pow * claim_pool[GEN ** j]
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
-    # The pin's claim closes the batch.
-    target += lam_pow * lam_cl * pin_value[1]
+    # The OOD sample's claim closes the batch.
+    target += lam_pow * lam_cl * ood_value[1]
     # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
     # transcript-bound and range-checked above, so a single compiled guest can
     # dispatch independently for every inner proof in a mixed-rate batch.
@@ -3731,7 +3731,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_z, gmv)
+    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, ood_z, gmv)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):

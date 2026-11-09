@@ -17,8 +17,8 @@ const QUERY_GRINDING_BITS: u32 = 17;
 const FOLD_GRINDING_BITS: u32 = 6;
 /// Before every batching challenge: each level's lambda, and the stacked opening's map challenges and lambda.
 pub(crate) const BATCH_GRINDING_BITS: u32 = 12;
-/// Before the level-0 list pin.
-pub(crate) const PIN_GRINDING_BITS: u32 = 14;
+/// Before the level-0 OOD sample.
+pub(crate) const OOD_GRINDING_BITS: u32 = 14;
 /// Out-of-domain points after each non-final level's commitment, drawn together with no grind.
 const OOD_SAMPLES: usize = 2;
 

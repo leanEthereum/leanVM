@@ -1078,7 +1078,7 @@ RESIDUAL_MAX_LOG = 5
 QUERY_GRINDING_BITS = 17
 FOLD_GRINDING_BITS = 6  # before each round's theta, and again before its (gamma, alpha, beta)
 BATCH_GRINDING_BITS = 12  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
-PIN_GRINDING_BITS = 14  # before the level-0 list pin
+OOD_GRINDING_BITS = 14  # before the level-0 OOD sample
 OOD_SAMPLES = 2  # out-of-domain points after each non-final level's commitment, drawn together with no grind
 
 MIN_STACKED_LOG = 15
@@ -1566,11 +1566,11 @@ MAX_STACKED_CLAIMS = 512  # the batching's soundness is accounted for up to this
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
-def read_pin(transcript: Transcript, stack_log: int) -> StackClaim:
-    """The level-0 list pin, read right after the commitment root: a grind, a point z of the stack's variables, then
+def read_ood(transcript: Transcript, stack_log: int) -> StackClaim:
+    """The level-0 OOD sample, read right after the commitment root: a grind, a point z of the stack's variables, then
     the stack's multilinear at z. Its claim follows every other.
     """
-    transcript.grind_check(PIN_GRINDING_BITS)
+    transcript.grind_check(OOD_GRINDING_BITS)
     z = transcript.samples(stack_log)
     return lambda x: eq_eval(z, x), transcript.next_scalar()
 
@@ -1599,9 +1599,9 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     layout = build_layout(bytecode, log_memory, table_rows)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
-    # 2] parse WHIR commitment: one Merkle root (no OOD inside the PCS: its list is pinned right after).
+    # 2] parse WHIR commitment: one Merkle root (its OOD sample follows, outside the PCS).
     root = Digest.from_halves(*transcript.next_scalars(2))
-    pin = read_pin(transcript, layout.stack_log)
+    ood = read_ood(transcript, layout.stack_log)
 
     # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a
     # degree-2 claim per tree.
@@ -1643,7 +1643,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     qkeccak = layout.placements[QKECCAK]
     ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
     stack_claims = (c.on_stack(layout) for c in claims)
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None), pin])
+    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None), ood])
     transcript.finish()
 
 
