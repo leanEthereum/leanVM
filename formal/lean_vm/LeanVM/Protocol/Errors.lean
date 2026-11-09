@@ -17,7 +17,7 @@ soundness by `soundnessError Q` and completeness by `completenessError fuel`; bu
 functions from one random permutation costs `rpmError q` more, `q` the experiment's permutation
 calls (at most `verifierPermCalls` for the verifier, `completenessPermCalls fuel` for the honest
 prover and the verifier). The end statements bound the sums in bits:
-`LeanVM.Rpm.soundnessRpm_le_bits`, `LeanVM.Rpm.completenessRpm_le`.
+`LeanVM.soundnessRpm_le_statement` (`LeanVM.Protocol.ErrorBounds`), `LeanVM.Rpm.completenessRpm_le`.
 -/
 
 namespace LeanVM
