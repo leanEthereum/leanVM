@@ -1,0 +1,10 @@
+# The `leanvm` crate.
+# The public API.
+
+lean_lib = "Leanvm"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.LeanVm"]

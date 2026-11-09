@@ -1,0 +1,91 @@
+name = "extraction"
+version = "0.1.0"
+defaultTargets = ["HaxExt", "Refinement", "Parallel", "Primitives", "FiatShamir", "Pcs", "KeccakGkr", "Verifier", "LeanvmCore", "LeanCompiler", "Signatures", "LeanDa", "RecAggregation", "Leanvm"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# The statement the claims refine.
+# It pins Mathlib, CompPoly and VCVio for the whole workspace.
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The two libraries the generated code imports.
+# Their revs equal what toolchain.toml's hax resolves: the generated code and its libraries come from one aeneas build.
+#
+# Aeneas: the Lean model of Rust (`RustM`, machine integers, arrays, slices, the spec logic).
+[[require]]
+name = "aeneas"
+git = "https://github.com/cryspen/aeneas"
+rev = "build-41977a5"
+subDir = "backends/lean"
+
+# CoreModels: the Lean models of `core` and `alloc`.
+[[require]]
+name = "hax"
+git = "https://github.com/cryspen/hax-lean"
+rev = "v0.3.34"
+
+# What Aeneas and CoreModels lack, shared by every crate.
+[[lean_lib]]
+name = "HaxExt"
+
+# The claims, the reading of the models as the statement, and the proofs.
+[[lean_lib]]
+name = "Refinement"
+
+# One library per crate under crates/, named as hax names it, in Cargo order.
+# Its srcDir is the crate's stub/ or extraction/, whichever its crate.toml state selects.
+# tools/check-layout.py checks both.
+
+[[lean_lib]]
+name = "Parallel"
+srcDir = "crates/parallel/stub"
+
+[[lean_lib]]
+name = "Primitives"
+srcDir = "crates/primitives/stub"
+
+[[lean_lib]]
+name = "FiatShamir"
+srcDir = "crates/fiat_shamir/stub"
+
+[[lean_lib]]
+name = "Pcs"
+srcDir = "crates/pcs/stub"
+
+[[lean_lib]]
+name = "KeccakGkr"
+srcDir = "crates/keccak_gkr/stub"
+
+[[lean_lib]]
+name = "Verifier"
+srcDir = "crates/verifier/stub"
+
+[[lean_lib]]
+name = "LeanvmCore"
+srcDir = "crates/leanvm_core/stub"
+
+[[lean_lib]]
+name = "LeanCompiler"
+srcDir = "crates/lean_compiler/stub"
+
+[[lean_lib]]
+name = "Signatures"
+srcDir = "crates/signatures/stub"
+
+[[lean_lib]]
+name = "LeanDa"
+srcDir = "crates/lean_da/stub"
+
+[[lean_lib]]
+name = "RecAggregation"
+srcDir = "crates/rec_aggregation/stub"
+
+[[lean_lib]]
+name = "Leanvm"
+srcDir = "crates/leanvm/stub"

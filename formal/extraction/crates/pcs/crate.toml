@@ -1,0 +1,10 @@
+# The `pcs` crate.
+# Additive NTT, Merkle, ring switch, stacked WHIR: commit and open, no verifier.
+
+lean_lib = "Pcs"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.Prover.Ntt", "Statement.Prover.Whir"]

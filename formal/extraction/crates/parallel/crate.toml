@@ -1,0 +1,12 @@
+# The `parallel` crate.
+# The thread pool.
+# Every parallel site writes disjoint slices, so its meaning is the sequential run.
+# Expected to stay a stub whose dispatch runs the items in order.
+
+lean_lib = "Parallel"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = []

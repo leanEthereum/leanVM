@@ -1,0 +1,10 @@
+# The `signatures` crate.
+# leanXMSS and leanSPHINCS over Keccak-256.
+
+lean_lib = "Signatures"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.LeanXmss", "Statement.LeanSphincs"]

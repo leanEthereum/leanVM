@@ -1,0 +1,30 @@
+# The `<crate>` crate.
+# One line on what it is.
+#
+# Copy this directory to crates/<crate>/, add its library to lakefile.toml, run tools/check-layout.py.
+
+# The library hax emits for the crate (`LeanvmCore` for leanvm_core), also the Lake library name.
+lean_lib = "Example"
+
+# "extracted": extraction/, from the whole crate.
+# "scoped":    extraction/, from the items reachable from `start_from`.
+# "stub":      stub/<lean_lib>.lean, by hand.
+state = "stub"
+
+# Cargo features enabled for extraction.
+features = []
+
+# "scoped" only: the charon roots, one `--start-from` each.
+start_from = []
+
+# The statement modules its claims are stated against.
+spec = []
+
+# Paths whose change requires re-extraction; defaults to the crate's src/ and Cargo.toml.
+watch = []
+
+# One entry per hand-written, non-opaque declaration: a transcription of one Rust item.
+#
+# [[mirror]]
+# lean = "example.util.helper"
+# rust = "example::util::helper"

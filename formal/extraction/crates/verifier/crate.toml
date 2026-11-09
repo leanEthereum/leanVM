@@ -1,0 +1,12 @@
+# The `verifier` crate.
+# The native verifier: std only, no dependencies, no `unsafe`, no `cfg(target_arch)`.
+# The first crate to extract.
+# Its refinement of the statement's verifier replaces the differential tests that pin them.
+
+lean_lib = "Verifier"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.LeanVmVerifier"]

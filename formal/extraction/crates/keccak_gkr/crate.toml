@@ -1,0 +1,11 @@
+# The `keccak_gkr` crate.
+# The prover of the VM's `KECCAK` argument.
+# Its optional `bench` and `verifier` dependencies stay off: the extraction enables no feature.
+
+lean_lib = "KeccakGkr"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.Prover.Gkr", "Statement.Prover.Keccak", "Statement.Prover.KeccakLayer"]

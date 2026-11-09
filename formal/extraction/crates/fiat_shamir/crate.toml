@@ -1,0 +1,10 @@
+# The `fiat_shamir` crate.
+# The duplex sponge transcript and the prover's side of the proof transport.
+
+lean_lib = "FiatShamir"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = []

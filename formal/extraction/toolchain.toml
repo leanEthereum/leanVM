@@ -1,0 +1,39 @@
+# The extractor that turns the crates into Lean.
+# One backend for the whole project: models from different backends do not compose.
+
+[extractor]
+# hax's `lean` backend: `cargo hax into lean` runs charon (Rust to LLBC), then aeneas (LLBC to Lean).
+backend = "hax-lean"
+
+# The cargo-hax build.
+# `hax_commit` is the pin.
+# `hax_release` names the release at that commit, or is empty when none is.
+# The same pins as Plonky3-lean: their aeneas build is on this Lean release and the statement's Mathlib.
+hax_release = ""
+hax_commit = "721d1a2710b1d7020a0b32de7291fe791885d215"
+
+# The charon and aeneas builds the pinned hax resolves (`cargo hax tools show`).
+# Restated because a `hax.toml` above a crate would override them.
+# `aeneas` equals the `aeneas` rev in lakefile.toml.
+charon = "nightly-2026.10.17"
+aeneas = "build-41977a5"
+
+# The Rust toolchain charon's driver links against, with the components it needs.
+rust_toolchain = "nightly-2026-09-17"
+rust_components = ["rustc-dev", "llvm-tools", "rust-src"]
+
+# The target charon compiles for.
+# Neither x86-64 nor aarch64, so every AVX2, AVX-512 and NEON arm is excluded.
+# 64-bit with std, so `usize` has the deployed width and the crates build unchanged.
+target = "riscv64gc-unknown-linux-gnu"
+
+# Charon flags for every crate.
+# They restrict scope and edit nothing that is translated.
+# `Debug` bodies become opaque: CoreModels does not model `core::fmt`.
+charon_args = [
+  "--opaque", "{impl core::fmt::Debug for _}",
+]
+
+# The cfg every pre-extraction patch is gated on, set only during extraction.
+# As RUSTFLAGS, it also replaces the repository's `-C target-cpu=native`.
+rustflags = "--cfg hax_backend_lean"
