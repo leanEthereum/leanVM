@@ -122,6 +122,20 @@ theorem not_holds_of_not_mem {S : Set (Column μ)} {z : List E} {y : E} (hs : Oo
     ¬ StackClaim.Holds μ (oodClaim z y) q :=
   fun h ↦ hn (mem_oodCands_of_sep hs hq h)
 
+/-- **The opening's relation from the one candidate left**: if no stack left by the OOD sample
+meets all of the claims `cl`, then under separation every member of `S` violates one of
+`cl ++ [oodClaim z y]`, the opening's claims with the OOD claim last (`StackedPre`'s second
+part). -/
+theorem exists_violated_of_ood {S : Set (Column μ)} {z : List E} {y : E} (hs : OodSep S z)
+    (cl : List StackClaim)
+    (hd : ∀ q ∈ oodCands S z y, ¬ ∀ c ∈ cl, StackClaim.Holds μ c q) :
+    ∀ q ∈ S, ∃ c ∈ cl ++ [oodClaim z y], ¬ StackClaim.Holds μ c q := by
+  intro q hq
+  by_cases hm : q ∈ oodCands S z y
+  · obtain ⟨c, hn⟩ := not_forall.1 (hd q hm)
+    exact ⟨c, List.mem_append_left _ (not_imp.1 hn).1, (not_imp.1 hn).2⟩
+  · exact ⟨_, List.mem_append_right _ List.mem_cons_self, not_holds_of_not_mem hs hq hm⟩
+
 /-- Separation of a set gives separation of a subset. -/
 theorem OodSep.mono {S S' : Set (Column μ)} {z : List E} (hs : OodSep S z) (h : S' ⊆ S) :
     OodSep S' z :=
