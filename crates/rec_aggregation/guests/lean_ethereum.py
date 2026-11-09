@@ -744,6 +744,7 @@ def squeeze(sp, rate, k: Const):
 # ============================ bits, logs, and the exponent ==========================
 
 
+@deref_copies
 def exponent_tables():
     # A read-only lookup table over the exponent domain, indexed at runtime g-powers
     # (so it must be heap, not stack): g_squares[g^j] = g^(2^j) turns integer sums of
@@ -772,6 +773,7 @@ def exponent_tables():
     return g_squares
 
 
+@deref_copies
 def g_power_of_word(value):
     # g^value for a concrete integer `value` < 2^LOG_WORD_BITS: advice-decompose its
     # bits, tie them back to the word, and assemble Π g^(bit_j·2^j).
@@ -788,6 +790,7 @@ def g_power_of_word(value):
     return g_value
 
 
+@deref_copies
 def assert_small_g_power(x, g_squares):
     # x = g^e with e < 2^(4 SEL_TAB_NIBBLES): hinted g-power digits, each range-checked
     # below 16, whose weighted product is x. A g-power past that, a "negative"
@@ -806,6 +809,7 @@ def assert_small_g_power(x, g_squares):
     return
 
 
+@deref_copies
 def log2_ceil_in_the_exponent(g_N, g_squares, floor: Const, nbits: Const):
     # g^L, L = max(log2_ceil(N), floor), given g_N = g^N. L is advice, pinned by
     # 2^L - N >= 0 and, above the floor, N - 2^(L-1) - 1 >= 0, each a g-power with a
@@ -875,6 +879,7 @@ def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: 
     return
 
 
+@deref_copies
 def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth: Const, cap_depth: Const):
     # The squeezed word's bits are advice HERE, in windows: a window of w bits is hinted as g^n, n the integer
     # they spell, range checked below 2^w and read back as n's bit pattern. Each depth-bit group is a query
@@ -939,6 +944,7 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
     return
 
 
+@deref_copies
 def grind_check(word, nbits: Const):
     # WHIR query grinding: the challenge drawn right after the nonce is absorbed must
     # have its low nbits zero (transcript::pow_bits_ok, nbits < 64). That window lives
@@ -1033,6 +1039,7 @@ def eqtree_frame(point_ptr, out, n_coords: Const, count: Const):
     return
 
 
+@deref_copies
 def eq_prefix_chain(chain, seed, a, b1, count_g):
     # Prefix products of eq(a_k, b_k) = a_k + b1_k, b1 = 1 + b, from `seed`, so a
     # reader picks the partial product up at its own certified length. Entry t is
@@ -1043,6 +1050,7 @@ def eq_prefix_chain(chain, seed, a, b1, count_g):
     return
 
 
+@deref_copies
 def eq_prefix_run(chain, seed, a, b1, n: Const):
     chain[GEN ** 0] = seed
     v = seed
@@ -1052,12 +1060,14 @@ def eq_prefix_run(chain, seed, a, b1, n: Const):
     return 0
 
 
+@deref_copies
 def plus_one_run(out, src, n: Const):
     for k in unroll(0, n):
         out[GEN ** k] = 1 + src[GEN ** k]
     return 0
 
 
+@deref_copies
 def rs_eq_rows(row, zs, ps, n: Const):
     # Coordinates 0..n of zs/ps multiply rows 0..64 of `row` into the next row, row k
     # by prod_i (zs_i^(2^k) + ps_i), the Frobenius powers walked inside.
@@ -1080,6 +1090,7 @@ def rs_eq_rows(row, zs, ps, n: Const):
     return nxt
 
 
+@deref_copies
 def rs_eq_run(z_vals, point1, count_g):
     # One run of the telescoped ring-switch product E = sum_k c_k * prod_j
     # (z_j^(2^k) + 1 + ris_j): coordinate x multiplies row k by (z^(2^k) + 1 +
@@ -1113,6 +1124,7 @@ def rs_eq_run(z_vals, point1, count_g):
     return last
 
 
+@deref_copies
 def fold_final_msg(msg, point, log_len: Const):
     weights = StackBuf(2 * YR_LOG_CAP)
     for j in unroll(0, log_len):
@@ -1134,6 +1146,7 @@ def fold_final_msg(msg, point, log_len: Const):
     return cursor[0]
 
 
+@deref_copies
 def sumcheck_round4(rd, msg_cursor, claim):
     # One PLAIN sumcheck round, from the sponge of round record `rd` into the next
     # record's. The prover sends the round polynomial's coefficients bar the one the
@@ -1153,6 +1166,7 @@ def sumcheck_round4(rd, msg_cursor, claim):
     return msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
+@deref_copies
 def gkr_rounds(rd, pt, npt, n: Const):
     # n GKR rounds, from the round record at `rd` (records ROUND_SLOTS apart) to the
     # one n further. The prover sends every coefficient but c0, which the round's
@@ -1179,6 +1193,7 @@ def gkr_rounds(rd, pt, npt, n: Const):
     return 0
 
 
+@deref_copies
 def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
@@ -1199,6 +1214,7 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Cons
 # ==================================== Merkle paths ==================================
 
 
+@deref_copies
 def verify_merkle_cap(cap, flags, depth: Const):
     # Unrolled over the cap's nodes, so every address is an immediate. Every node's
     # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
@@ -1248,6 +1264,7 @@ def verify_merkle_cap(cap, flags, depth: Const):
 # ============================== the stacked WHIR opening ============================
 
 
+@deref_copies
 def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
     # One fold round: its challenge takes the two scalars waiting in the sponge, w0 and
     # w1, and the next round's two coefficients, returned, wait in their place.
@@ -1264,6 +1281,7 @@ def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor * GEN ** 2, claim, c0, c2, r
 
 
+@deref_copies
 def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, point, n: Const):
     # One specialization per point dimension. The first coordinate's permutation takes
     # the rate r0..r7, the scalars waiting in the sponge and zero past them.
@@ -1278,6 +1296,7 @@ def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, p
     return sp[8], sp[9], sp[10], sp[11], sp[12]
 
 
+@deref_copies
 def opening_final_message(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, out, n: Const):
     # The final message's n words, after the two scalars waiting in the sponge, w0 and
     # w1, then the grinding nonce and the permutation its challenge comes from. Returns
@@ -1300,14 +1319,18 @@ def opening_final_message(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, out, n: Const
     return sp[0], sp[8], sp[9], sp[10], sp[11], sp[12], cursor * GEN, nonce
 
 
+@deref_copies
 def opening_row_weights(point, out, folds: Const, reverse: Const):
     # The row's eq weights as their two tensor factors: weight i is
     # out[i % 2^lo] * out[2^lo + i // 2^lo], the low `lo` coordinates first. At
     # level 0 lane i is interleaving index 2^folds - 1 - i, which reverses both.
+    # Each query pays one product per hi factor, so a wide row takes the wider lo.
     if const(folds // 3 == 0):
         lo = folds
-    else:
+    elif const(folds // 6 == 0):
         lo = 3
+    else:
+        lo = 4
     hi = folds - lo
     for i in unroll(0, 2 ** lo):
         if reverse == 1:
@@ -1344,6 +1367,7 @@ def walk_window(n0, n1, path, out, lvl0: Const, width: Const, k: Const):
     return 0
 
 
+@deref_copies
 def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against the sibling its hinted pair holds,
@@ -1421,8 +1445,10 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     # entries shares one hi factor.
     if const(interleave // 8 == 0):
         lo_len = interleave
-    else:
+    elif const(interleave // 64 == 0):
         lo_len = 8
+    else:
+        lo_len = 16
     for h in unroll(0, interleave // lo_len):
         part = 0
         for l in unroll(0, lo_len):
@@ -1437,6 +1463,7 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     return row_dot
 
 
+@deref_copies
 def opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
     # Base-field rows (level 0) run two queries an iteration, sharing the loop
@@ -1474,6 +1501,7 @@ def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     return prefix_eq
 
 
+@deref_copies
 def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
@@ -1812,6 +1840,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
 # Fiat-Shamir state pair and the stream cursor, so the sequence is what binds them.
 
 
+@deref_copies
 def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu):
     # ONE GKR grand product over push, pull and count, RLC-batched. Push and pull
     # have equal depth (matched blocks) and the count tree is padded with identity
@@ -1994,6 +2023,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu):
     return last[GEN ** LAYER_FS], last[GEN ** (LAYER_FS + 1)], last[GEN ** (LAYER_FS + 2)], last[GEN ** (LAYER_FS + 3)], last[GEN ** (LAYER_FS + 4)], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT], last[GEN ** LAYER_ROW]
 
 
+@deref_copies
 def index_mle(zeta, n: Const):
     # The Index coordinate's MLE over the block's n = κ low coords:
     # prod_t (1 + zeta_t * (1 + g^(2^t))).
@@ -2039,6 +2069,7 @@ def sel_g_nibble(out, gs, width: Const):
     return
 
 
+@deref_copies
 def sel_partial_nibble(eq_out, g_out, z, z1, gs, width: Const):
     if const(width != 0):
         sel_eq_nibble(eq_out, z, z1, width)
@@ -2046,6 +2077,7 @@ def sel_partial_nibble(eq_out, g_out, z, z1, gs, width: Const):
     return 0
 
 
+@deref_copies
 def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g):
     # Per nibble j of a selector run of length n = 4q + r (coordinates 4j..4j+3
     # past κ, the last nibble r wide), the eq tables over its low 1..4
@@ -2086,6 +2118,7 @@ def assert_digit(d, width: Const):
     return
 
 
+@deref_copies
 def block_selector_tab(digits, eq_tab, g_tab, n: Const):
     # block_selector off the shared tables: per nibble, a hinted g-power digit g^u,
     # range-checked below the nibble's table size, reads its eq factor and its share
@@ -2108,6 +2141,7 @@ def block_selector_tab(digits, eq_tab, g_tab, n: Const):
     return eq, rebuilt
 
 
+@deref_copies
 def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     # A bus block's eq over its n = mu - κ selector bits, the offset's bits above κ,
     # each boolean-pinned, and g^offset rebuilt from those bits alone (weights
@@ -2126,6 +2160,7 @@ def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     return eq, rebuilt
 
 
+@deref_copies
 def padding_weight(rows, zeta, tau: Const):
     # pad_n(zeta[..tau]) for n = rows <= 2^tau (doc lem:suffix). The advice is the bits
     # of n + (2^tau - 1): the complements of n's low bits, as the step reads them, then
@@ -2160,6 +2195,7 @@ def padding_weight(rows, zeta, tau: Const):
     return (1 + top) * pad, lead, rest
 
 
+@deref_copies
 def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
@@ -2760,6 +2796,7 @@ def keccak_round(sp, cur, run, scale, r_eq, pt, q: Const):
     return nxt, cur, eq_factor * (run + gap * g_1 + (r_eq + challenge * challenge) * g_2), scale * eq_factor
 
 
+@deref_copies
 def keccak_rem_rounds(rd, pp, pt, n: Const):
     # The n < KR_STEP rounds after a layer's loop, from its record at rd: returns the
     # sponge's capacity, the cursor, the claim and the eq scale.
@@ -2776,6 +2813,7 @@ def keccak_rem_rounds(rd, pp, pt, n: Const):
     return sp[at], sp[at + 1], sp[at + 2], sp[at + 3], sp[at + 4], cur, run, scale
 
 
+@deref_copies
 def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, first: Const):
     # One layer (verifier::keccak::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
@@ -2953,6 +2991,7 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor
 
 
+@deref_copies
 def keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, value, point, n: Const, k0: Const):
     # n rounds of a degree-2 sumcheck with no equality factor. With k0 = 1 one scalar
     # already waits in the sponge, rate cells p0 and p1, and the first round's words
@@ -2998,6 +3037,7 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
     return
 
 
+@deref_copies
 def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices):
     # KECCAK validity (verifier::keccak::verify_keccak): a random claim on every segment's output,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. The
@@ -3177,6 +3217,7 @@ def ring_map(lin_eval, map_challenges):
     return lin_eval
 
 
+@deref_copies
 def ring_switch_target(slices, map_challenges):
     # Evaluate the claim and combine its 64 packing rows, sum_i x^i L(slice_i),
     # RS_CHUNK rows an iteration in Horner form: the running x-power and the
@@ -3197,6 +3238,7 @@ def ring_switch_target(slices, map_challenges):
     return rs_end[GEN ** 1]
 
 
+@deref_copies
 def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
     # One ring-switched claim's transparent weight at the opening point.
     prod_final = rs_eq_run(z_vals, point1, qkeccakv_g)
@@ -3206,6 +3248,7 @@ def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
     return rs_weight
 
 
+@deref_copies
 def certify_placement(kappa_base, g_squares):
     # Certify the native order (descending kappa, then ascending column index) group
     # by group: a column group, a run of columns sharing one kappa source, is
@@ -3253,6 +3296,7 @@ def certify_placement(kappa_base, g_squares):
     return g_total, col_off_g
 
 
+@deref_copies
 def column_selector(offset, sel_eq, sel_g, kappa: Const):
     # The column's selector at the complete opening point, from hinted g-power digits
     # of its offset's nibbles at and above kappa // 4, each range-checked below 16.
@@ -3283,6 +3327,7 @@ def column_selector(offset, sel_eq, sel_g, kappa: Const):
     return selector
 
 
+@deref_copies
 def selector_tables(point, point1):
     # Per nibble j of the selector bits, the eq tables over its top 1..4 coordinates,
     # the level-w one at 16 (w - 1), strided: entry u, a multiple of 2^(4 - w), holds
@@ -3306,6 +3351,7 @@ def selector_tables(point, point1):
     return sel_eq
 
 
+@deref_copies
 def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
@@ -3393,6 +3439,7 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
+@deref_copies
 def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
     # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
@@ -4355,6 +4402,7 @@ def child_claims(entries_ptr, region, marks, last_g, blk, n: Const):
     return
 
 
+@deref_copies
 def child_claim_list_digest(entries_ptr, region, base, limit_g, n_g):
     # The hash of one of a child's declared claim lists, over the same 64n bytes the
     # child hashed (`claim_list_digest`), so the digest it rebuilds is the one the
@@ -4379,6 +4427,7 @@ def child_claim_list_digest(entries_ptr, region, base, limit_g, n_g):
     return digest[0], digest[1]
 
 
+@deref_copies
 def child_claim_list_any(entries_ptr, region, base, limit_g, bigs, groups, rest):
     last_g = limit_g / GEN
     chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
@@ -4424,6 +4473,7 @@ def child_claims_mono(cov, ent, mark, blk, out, n: Const):
     return
 
 
+@deref_copies
 def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest):
     # The walk of a list at strictly increasing offsets o_j = e_0 + ... + e_j + j, every
     # e_j in [0, 2^h): its first offset is at least zero, and the count of claims keeps
@@ -4458,6 +4508,7 @@ def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest
     return d0, d1
 
 
+@deref_copies
 def child_claim_list_mono_last(rec, region, mark, limit_g, k: Const):
     digest = StackBuf(2)
     if const(k == 0):
@@ -4474,6 +4525,7 @@ def child_claim_list_mono_last(rec, region, mark, limit_g, k: Const):
     return digest[0], digest[1]
 
 
+@deref_copies
 def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
     digest = StackBuf(2)
     if const(k == 0):
@@ -4839,6 +4891,7 @@ def main():
     return
 
 
+@deref_copies
 def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt):
     # Every child contributes two claims on the stacked bytecode: the one IT
     # deferred (carried in its statement) and the fresh one raised by verifying its
