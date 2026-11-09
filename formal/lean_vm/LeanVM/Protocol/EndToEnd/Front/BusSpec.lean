@@ -25,7 +25,7 @@ keep it. This module specifies, in the calculus of `LeanVM.Protocol.Compile.Spec
 
 * `readNSpec`: reading `n` scalars keeps any property stable under reads;
 * `wireSumcheckSpec`: the verifier program's `sumcheck`
-  (`crates/verifier/src/transcript.rs:188-204, 219-233`), round by round, from doom on stage `j`
+  (`crates/verifier/src/transcript.rs:214-266`), round by round, from doom on stage `j`
   of a sumcheck family to doom on its last stage, each challenge charged `L₀ · d / |E|`: the
   wire's round polynomial (the coefficient the claim fixes left out) is decoded into the
   protocol's message, which passes the protocol's check by construction.
@@ -212,9 +212,22 @@ theorem hdoom_relMid {j : ℕ} {s : SumcheckRound.Stmt X E j} {h : List Ev}
 
 variable {εmax T : ENNReal}
 
-/-- **The wire's round polynomial** (`Transcript::sumcheck_round_poly`, `transcript.rs:188-204`):
+/-- A grind keeps a stable property of the history: whatever it adds, `grindEvs b`. -/
+noncomputable def grindKeepSpec (P : List Ev → Prop) (hP : ∀ h l, P h → P (h ++ l)) (b : ℕ)
+    (hT : T ≤ εmax) :
+    Spec (VerifierProgram.grindProofOfWork b) P (fun _ h ↦ P h) εmax (if b = 0 then T else 0) T :=
+  Spec.grindP b (fun h₀ hp ↦ hP h₀ _ hp)
+    (le_trans (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num))) hT)
+
+/-- The grind's lead is at most the follower's. -/
+theorem grindLead_le (b : ℕ) (T : ENNReal) : (if b = 0 then T else 0) ≤ T := by
+  split_ifs <;> simp
+
+/-- **The wire's round polynomial** (`Transcript::sumcheck_round_poly`, `transcript.rs:214-237`):
 reading it keeps doom, and it returns the protocol's message, which passes the check and is
-doomed. It ends the group of challenges before it: its lead is `0`. -/
+doomed. The grind for the round's degree that follows it (`grindingBits`, zero bits at every
+round the verifier runs) keeps doom too. It starts with a read, so it ends the group of
+challenges before it: its lead is `0`. -/
 noncomputable def wireRoundPolySpec (hd : 1 ≤ d) (j : ℕ) (s : SumcheckRound.Stmt X E j)
     (eq : Option E) (hT : T ≤ εmax) :
     Spec (sumcheckRoundPoly (d + 1) s.2.2 eq) (HDoom cands (SumcheckRound.rel Φ j) s)
@@ -222,9 +235,12 @@ noncomputable def wireRoundPolySpec (hd : 1 ≤ d) (j : ℕ) (s : SumcheckRound.
   match eq with
   | none =>
     (Spec.readE (Post := fun _ h ↦ HDoom cands (SumcheckRound.rel Φ j) s h)
-      (fun h₀ x hp ↦ hdoom_read cands h₀ x hp) hT).bind' fun c ↦
-      (readNSpec (HDoom cands (SumcheckRound.rel Φ j) s) (hdoom_read cands) hT
-        (d + 1 - 2)).bind' fun tail ↦
+      (fun h₀ x hp ↦ hdoom_read cands h₀ x hp)
+      ((grindLead_le _ T).trans hT)).bind' fun c ↦
+      (readNSpec (HDoom cands (SumcheckRound.rel Φ j) s) (hdoom_read cands)
+        ((grindLead_le _ T).trans hT) (d + 1 - 2)).bind' fun tail ↦
+        (grindKeepSpec (fun h ↦ tail.length = d + 1 - 2 ∧ HDoom cands (SumcheckRound.rel Φ j) s h)
+          (fun _ l hp ↦ ⟨hp.1, hp.2.append l⟩) (grindingBits (d + 1 - 1)) hT).bind' fun _ ↦
         (Spec.ret (Post := RoundPolyPost Φ cands j s none)
           (c :: (s.2.2 + sumE tail) :: tail)).mono
           (fun h hp ↦ ⟨by simp [hp.1]; omega, weightedSum_plain _ _ _ (by rw [hp.1]; omega),
@@ -232,14 +248,18 @@ noncomputable def wireRoundPolySpec (hd : 1 ≤ d) (j : ℕ) (s : SumcheckRound.
   | some r =>
     Spec.congr (show (do
         let tail ← VerifierProgram.readScalars (d - 1 + 1)
+        VerifierProgram.grindProofOfWork (grindingBits (d + 1 - 1 + 1))
         return (s.2.2 + r * sumE tail) :: tail : VerifierProgram (List E)) =
           sumcheckRoundPoly (d + 1) s.2.2 (some r) by
         show _ = (do
           let tail ← VerifierProgram.readScalars (d + 1 - 1)
+          VerifierProgram.grindProofOfWork (grindingBits (d + 1 - 1 + 1))
           return (s.2.2 + r * sumE tail) :: tail)
         rw [show d - 1 + 1 = d + 1 - 1 by omega])
-      ((readNSuccSpec (HDoom cands (SumcheckRound.rel Φ j) s) (hdoom_read cands) hT
-        (d - 1)).bind' fun tail ↦
+      ((readNSuccSpec (HDoom cands (SumcheckRound.rel Φ j) s) (hdoom_read cands)
+        ((grindLead_le _ T).trans hT) (d - 1)).bind' fun tail ↦
+        (grindKeepSpec (fun h ↦ tail.length = d - 1 + 1 ∧ HDoom cands (SumcheckRound.rel Φ j) s h)
+          (fun _ l hp ↦ ⟨hp.1, hp.2.append l⟩) (grindingBits (d + 1 - 1 + 1)) hT).bind' fun _ ↦
         (Spec.ret (Post := RoundPolyPost Φ cands j s (some r))
           ((s.2.2 + r * sumE tail) :: tail)).mono
           (fun h hp ↦ ⟨by simp [hp.1]; omega, weightedSum_eq _ _ _ (by rw [hp.1]; omega),
@@ -291,7 +311,7 @@ def SumcheckPost (x : X) (m : ℕ) {j : ℕ} (cv : Vector E j) (r : List E × E)
     Prop :=
   j + r.1.length = m ∧ HDoom cands (SumcheckRound.rel Φ m) (x, (vecOf m (cv.toList ++ r.1), r.2)) h
 
-/-- **The wire's sumcheck** (`sumcheck`, `transcript.rs:219-233`) from stage `j`, the rounds' modes
+/-- **The wire's sumcheck** (`sumcheck`, `transcript.rs:252-266`) from stage `j`, the rounds' modes
 given by `eqs`: from doom on stage `j` at the challenges `cv` so far and the running claim, to doom
 on the last stage `m`; each challenge charged `L₀ · d / |E|`, every group of challenges being one
 challenge followed by a read. -/
