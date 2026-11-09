@@ -53,7 +53,7 @@ def outStates (R : Array (Array K)) (mids : Array KeccakState) : Array KeccakSta
 /-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
 `l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, slot `50 + k` its cell of
 the column `k`, `pc` through `out_all` (`spare_local` and `qkeccak_slot`,
-`crates/verifier/src/layout.rs:399-432`). -/
+`crates/verifier/src/layout.rs:390-423`). -/
 def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : Array K :=
   let p := 2 ^ h
   Array.ofFn (n := 2 ^ (h + 6)) fun i ↦
@@ -63,23 +63,22 @@ def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : A
     else if k < 50 then laneK (mids.getD x zeroState) (k - 25)
     else cellAt R x (k - 50)
 
-/-- The opcode table of a global column from `6` on (by `GLOBAL_COLUMN_BASES`). -/
+/-- The opcode table of a global column from `5` on (by `GLOBAL_COLUMN_BASES`). -/
 def tableIndexOf (c : ℕ) : ℕ :=
-  if c < 21 then 0 else if c < 36 then 1 else if c < 44 then 2 else if c < 59 then 3
-  else if c < 73 then 4 else 5
+  if c < 18 then 0 else if c < 31 then 1 else if c < 38 then 2 else if c < 52 then 3
+  else if c < 66 then 4 else 5
 
-/-- The column of global number `c`: the memory's limbs and finalize counts `0 … 3`, `BFCNT` `4`,
-`QKECCAK` `5`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
+/-- The column of global number `c`: the memory's two limbs and finalize counts `0 … 2`, `BFCNT`
+`3`, `QKECCAK` `4`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
 (its columns `40 … 64`) derived from the twelve-round states `mids`, through the twenty-four-round
 states `outs`. -/
 def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
     (mids outs : Array KeccakState) (c : ℕ) : Array K :=
   if c = 0 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 0
   else if c = 1 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 1
-  else if c = 2 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 2
-  else if c = 3 then acc.mem
-  else if c = 4 then acc.bc
-  else if c = 5 then qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids
+  else if c = 2 then acc.mem
+  else if c = 3 then acc.bc
+  else if c = 4 then qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids
   else
     let j := tableIndexOf c
     let i := c - globalColumnBases.getD j 0
@@ -87,12 +86,12 @@ def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
       Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 40)
     else tableColumn (acc.tabs.getD j #[]) (logs.getD j 0) i
 
-/-- **Every column of the instance**, by its global column number (`165` of them); the
+/-- **Every column of the instance**, by its global column number (`158` of them); the
 `KECCAK` states computed once per row, for `QKECCAK` and the output lanes. -/
 def colsOf {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) : Array (Array K) :=
   let mids := midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0)
   let outs := outStates (acc.tabs.getD 5 #[]) mids
-  Array.ofFn (n := 165) fun c ↦ columnAt img acc logs mids outs c.val
+  Array.ofFn (n := 158) fun c ↦ columnAt img acc logs mids outs c.val
 
 /-! ## The stack -/
 

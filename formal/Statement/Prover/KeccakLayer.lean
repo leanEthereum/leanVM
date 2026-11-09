@@ -16,7 +16,7 @@ the next claim through `keccakLinearTranspose`.
 
 namespace LeanVM.Prover.KeccakGkr
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-! ## The states -/
 
@@ -206,11 +206,12 @@ def batchWeights (p : List E) (beta : E) : List E :=
     e.getD j 0 + beta * (e.getD (keccakAlong j 4) 0 + beta * e.getD (keccakAlong j 3) 0)
 
 /-- **The honest prover of layer `d`** on the column `col` (the states `11 - d` rounds into each
-segment), from `claim`: `G`'s coefficients, the pack rounds, the position rounds, `t`, and the
-next claim. -/
+segment), from `claim`: `G`'s coefficients, a grind and `s`, the pack rounds, the position
+rounds, `t`, a grind and `β`, and the next claim. -/
 def layerProve (col : ℕ → K) (P d : ℕ) (claim : KeccakClaim) : Script KeccakClaim :=
   let masks := layerMasks col P (11 - d)
   (Script.sendList (gCoeffs P masks claim.point claim.weights)).bind fun _ ↦
+  (Script.grindBits (grindingBits (productBits - 1))).bind fun _ ↦
   Script.sampleE.bind fun s ↦
   let mu := keccakInstanceWeights s
   let κ := sumE mu
@@ -223,6 +224,7 @@ def layerProve (col : ℕ → K) (P d : ℕ) (claim : KeccakClaim) : Script Kecc
   let t1 := ps.2.t1.getD 0 0
   let t2 := ps.2.t2.getD 0 0
   (Script.sendList [t0, t1, t2]).bind fun _ ↦
+  (Script.grindBits (grindingBits 2)).bind fun _ ↦
   Script.sampleE.bind fun b ↦
   Script.ret ⟨t0 + b * (t1 + b * t2), mu, pk.1, keccakLinearTranspose (batchWeights ps.1 b)⟩
 
