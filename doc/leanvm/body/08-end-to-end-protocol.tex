@@ -71,10 +71,6 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits, a grinding nonce included; the challenge is lanes $0$ and $1$ of its output, read as the limbs $c_0+c_1y$ of an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's. A grind of $b\ge1$ bits (\S\ref{sec:grinding}) absorbs the prover's nonce, and the permutation drawing the next challenge must leave the low $b$ bits of its lane $2$ zero; a grind of $0$ bits sends nothing.
 
-\paragraph{Queries.} A level's columns of a domain of size $2^{h}$ are read from successive challenges, $\lfloor128/h\rfloor$ per challenge: the $h$-bit windows of the $128$-bit integer $c_0+2^{64}c_1$, from the low end.
-
-\paragraph{Digests.} Merkle trees hash with Keccak-256, apart from the sponge. A $32$-byte digest $w_0\Vert w_1\Vert w_2\Vert w_3$ (little-endian $64$-bit words) travels and is absorbed as the two scalars $w_0+w_1y$ and $w_2+w_3y$. A Merkle leaf of $\E$-valued entries holds two words per entry.
-
 \subsection{Merkle pruning}\label{sec:e2e-merkle-pruning}
 
 Multiple paths opened in the same Merkle tree share nodes, so we can reduce proof size by \emph{pruning} them, storing each shared node only once. For simplicity, we keep the verifier implementation handling normal Merkle paths, and we see pruning simply as a compression algorithm, to optimize bandwidth over the network. But unpruning requires knowing the Merkle leaf indexes, which are sampled by Fiat-Shamir. To avoid re-running the verifier, we store the indexes in clear in the proof, and the native verifier ensures they match the Fiat-Shamir output. This way, pruning / unpruning is a standalone, easy operation (at the cost of $\approx$ 1 KiB of additional proof data).
