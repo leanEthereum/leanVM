@@ -10,19 +10,22 @@ pub type Off = u32;
 /// Cells a program can address: [`GPow`] covers no more.
 pub(crate) const MAX_CELLS: u32 = 1 << 28;
 
-/// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
+/// The powers `g^k` paired with a reverse index `g^k ↦ k`, both grown on demand
 /// (recursion depth, and so the address range, is unbounded).
 ///
 /// The interpreter needs both directions: a cell index becomes the address `g^k`,
 /// and a pointer word read back out of memory must be inverted to the index it
-/// addresses. Three things keep this cheap.
+/// addresses. Four things keep this cheap.
+///
+/// The forward powers are every `STRIDE`th one and the first `STRIDE`, so `g^k` is
+/// one product: a table of every power would be as large as the address space,
+/// built by the interpreter's one thread and read at random.
 ///
 /// A reverse-index slot holds the key beside its exponent, so a probe reads the
-/// slot alone: confirming a candidate against the forward table, as large as the
-/// address space, would cost a cache miss per probe. Keys are field elements,
-/// hence effectively uniform, which is all the placement asks for: one
-/// multiplicative mix, then linear probing. The table stays at most half full to
-/// keep probing short.
+/// slot alone rather than computing the power a candidate exponent names. Keys
+/// are field elements, hence effectively uniform, which is all the placement asks
+/// for: one multiplicative mix, then linear probing. The table stays at most half
+/// full to keep probing short.
 ///
 /// It indexes only the exponents [`Self::note`] announces, or a lookup resolved:
 /// a run addresses millions of cells but stores only the few thousand bases of
@@ -34,10 +37,15 @@ pub(crate) const MAX_CELLS: u32 = 1 << 28;
 /// interpreter could not label, a jump target or a pointer into a buffer, costs at
 /// most `STRIDE` probes once.
 pub struct GPow {
-    pow: Vec<F64>,
+    /// `g^{STRIDE·j}` for every multiple of `STRIDE` covered.
+    strides: Vec<F64>,
+    /// `g^0` to `g^{STRIDE - 1}`.
+    first: [F64; STRIDE],
+    /// Exponents below this are covered.
+    covered: usize,
     /// The announced exponents.
     index: Index,
-    /// Every multiple of `STRIDE` that `pow` covers.
+    /// Every multiple of `STRIDE` covered.
     coarse: Index,
 }
 
@@ -129,8 +137,16 @@ impl Index {
 impl GPow {
     /// Seeded with `g^0 = 1`, grown to cover index `upto`, nothing announced.
     pub fn new(upto: usize) -> Self {
+        let mut p = F64::ONE;
+        let first = std::array::from_fn(|_| {
+            let q = p;
+            p = mul_by_g(p);
+            q
+        });
         let mut g = Self {
-            pow: vec![F64::ONE],
+            strides: vec![F64::ONE],
+            first,
+            covered: 1,
             index: Index::new(1 << 13),
             coarse: Index::new(1 << 4),
         };
@@ -153,18 +169,14 @@ impl GPow {
     /// index the interpreter reads has been covered by a [`Self::grow_to`].
     #[inline(always)]
     pub fn pow(&self, k: usize) -> F64 {
-        self.pow[k]
+        assert!(k < self.covered, "g^{k} is past the covered range");
+        self.strides[k / STRIDE] * self.first[k % STRIDE]
     }
 
-    /// The forward table, `g^0` to `g^{covered - 1}`.
-    pub(crate) fn into_powers(self) -> Vec<F64> {
-        self.pow
-    }
-
-    /// Extend the forward table to cover index `upto`.
+    /// Cover index `upto`.
     #[inline]
     pub fn grow_to(&mut self, upto: usize) {
-        if upto >= self.pow.len() {
+        if upto >= self.covered {
             self.extend(upto);
         }
     }
@@ -172,33 +184,22 @@ impl GPow {
     #[cold]
     fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_CELLS as usize, "address space overflow (program too large)");
-        // At least double, and a quarter more than a large jump asks: the small
-        // extends that follow fill spare capacity instead of copying the table.
-        let n = self.pow.len();
-        if upto >= self.pow.capacity() {
-            let target = (2 * self.pow.capacity())
-                .max(upto + 1 + (upto + 1) / 4)
-                .min(MAX_CELLS as usize);
-            self.pow.reserve_exact(target - n);
-        }
-        // ×g is ×x = `mul_by_g` (shift+fold), not a PMULL.
-        let mut p = *self.pow.last().unwrap();
-        self.pow.extend((n..=upto).map(|_| {
-            p = mul_by_g(p);
-            p
-        }));
-        let to = self.pow.len().div_ceil(STRIDE);
+        let step = mul_by_g(self.first[STRIDE - 1]);
+        let to = upto / STRIDE + 1;
         self.coarse.reserve(to);
-        for j in n.div_ceil(STRIDE)..to {
-            self.coarse.insert(self.pow[j * STRIDE], j * STRIDE);
+        for j in self.strides.len()..to {
+            let p = self.strides[j - 1] * step;
+            self.strides.push(p);
+            self.coarse.insert(p, j * STRIDE);
         }
+        self.covered = upto + 1;
     }
 
     /// Announce that `g^k` may come back for inversion, because the interpreter
     /// is about to store it in memory as an address. Covers `k` first. Idempotent.
     pub fn note(&mut self, k: usize) {
         self.grow_to(k);
-        let x = self.pow[k];
+        let x = self.pow(k);
         if self.index.find(x).is_none() {
             self.index.insert(x, k);
         }
@@ -217,15 +218,16 @@ impl GPow {
     }
 
     /// `log` for an address that is not announced: divide by `g` down to a
-    /// multiple of `STRIDE`, then announce the exponent.
+    /// multiple of `STRIDE`, then announce the exponent. Called on a lookup's miss,
+    /// so `x` is not in the index.
     #[cold]
     fn resolve(&mut self, x: F64) -> Option<u32> {
         let mut y = x;
         for j in 0..STRIDE {
             if let Some(k) = self.coarse.find(y) {
                 let k = k as usize + j;
-                return (k < self.pow.len()).then(|| {
-                    self.note(k);
+                return (k < self.covered).then(|| {
+                    self.index.insert(x, k);
                     k as u32
                 });
             }

@@ -28,8 +28,6 @@ pub struct Execution {
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
-    /// `g^0, g^1, ..` as far as the run indexed them: every pc, frame base and cell it reached.
-    pub(crate) gpow: Vec<F64>,
 }
 
 impl Execution {
@@ -1091,7 +1089,6 @@ impl Program {
             mem_used,
             unconstrained_reads: m.unwritten_reads,
             trace,
-            gpow: g.into_powers(),
         })
     }
 }

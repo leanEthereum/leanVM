@@ -525,12 +525,9 @@ impl Program {
         let sch = schema();
         // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
         // of an O(log) power: a frame base or an operand is below the cells the run used.
-        // The run's own table covers them unless a count outgrew it.
+        // Built here across the pool rather than by the run's one thread.
         let span = exec.mem_used.max(bytecode_size).max(tr.counts);
-        let gpow = match exec.gpow.get(..span) {
-            Some(gpow) => std::borrow::Cow::Borrowed(gpow),
-            None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
-        };
+        let gpow = primitives::field::g_powers(span);
 
         // The public layout (flush/count blocks, placements, boundary, taus) is a pure
         // function of the program + announced sizes + public input, with no committed
