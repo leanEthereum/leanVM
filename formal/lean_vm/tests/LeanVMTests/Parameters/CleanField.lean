@@ -28,12 +28,12 @@ example (x : K) : FiniteField.fromNat (FiniteField.val x) = x := FiniteField.fro
 
 /-! ## Kernel reduction in a plain file -/
 
-/-- `y^3 = y + 1` computes in the kernel to the word with limbs `(1, 1, 0)`; in a `module` the
+/-- `y^2 = x·y + 1` computes in the kernel to the word with limbs `(1, g)`; in a `module` the
 same `decide` is stuck on CompPoly's `Ext.ofFn`. -/
-example : y ^ 3 = E.ofLimbs 1 1 0 := by decide +kernel
+example : y ^ 2 = E.ofLimbs 1 g := by decide +kernel
 
-/-- The predicates decide on words built through `ofK` and `y`. -/
-example : IsInK (ofK (K.ofBits 5)) ∧ ¬ IsInK y ∧ IsCanonical128 y ∧ ¬ IsCanonical128 (y ^ 2) := by
+/-- The predicate decides on words built through `ofK` and `y`. -/
+example : IsInK (ofK (K.ofBits 5)) ∧ ¬ IsInK y := by
   decide +kernel
 
 end LeanVMTests.Parameters

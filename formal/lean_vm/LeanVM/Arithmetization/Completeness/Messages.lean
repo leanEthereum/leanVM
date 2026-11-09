@@ -31,7 +31,7 @@ after the row's twelve columns.
 ## Wrong readings excluded
 
 * The sends of a row are not its columns: the third read of an `XOR` row carries the sums
-  `v_A + v_B`, the `MUL_NATIVE` row's the twelve products folded by `y^3 = y + 1`, the `DEREF`
+  `v_A + v_B`, the `MUL_NATIVE` row's the four products folded by `y^2 = x·y + 1`, the `DEREF`
   row's the store coordinates of its mode; none of these is a column.
 * The pull of a bus read carries the count `r`, the push `g·r` (specification §6.2): a message
   is `(addr, count, v)`, never `(addr, v, count)`.
