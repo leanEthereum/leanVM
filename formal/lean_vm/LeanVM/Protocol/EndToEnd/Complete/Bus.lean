@@ -9,15 +9,18 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
+public import LeanVM.Protocol.EndToEnd.Complete.BusShare
 public import LeanVM.Protocol.EndToEnd.Complete.Gkr
 public import LeanVM.Protocol.EndToEnd.Front.BusPadding
 
 /-!
 # The bus phase
 
-The verifier program's bus phase (`verifyBusBalance`, `crates/verifier/src/bus.rs:106-213` at
-leanVM `40f877dc`), against the honest prover of a stack `q`
-satisfying the leanISA instance's relation with honest padding (`M3Honest`).
+The verifier program's bus phase (`verifyBusBalance`, `crates/verifier/src/bus.rs:130-247` at
+leanVM `f128`), against the honest prover of a stack `q`
+satisfying the leanISA instance's relation with honest padding (`M3Honest`). The prover passes
+the grind for the push tree's depth, then receives the fingerprint: sixteen slot weights `w` and
+`β`.
 
 **The leaves.** Each side of the bus is a grand product over the cube of `2^D` leaves, `D` the
 push side's depth (`busDepth`), every block placed where `bus_layout` places it (`stackLeaves`):
@@ -32,9 +35,11 @@ they are the fingerprints of the instance's push and pull tuples (`prod_framewor
 `prod_tables`), which a balanced bus permutes. `prod_countLeaves_ne_zero`: the count root is
 nonzero when every count cell is. The GKR is fork A's honest prover (`hGkr`,
 `follows_verifyGkrGrandProducts`); after it the prover sends the memory limbs' and the two
-finalize counts' extensions at the point (`memVals`, `mfVal`, `bfVal`).
+finalize counts' extensions at the point (`memVals`, `mfVal`, `bfVal`), then proves the program's
+share of the bytecode leaf (`hShare`, `Complete.BusShare`), whose value the deployed verifier
+checks itself.
 
-**The result** (`honestBus`, `busGood_honestBus`): its five framework claims are true, its forms
+**The result** (`honestBus`, `busGood_honestBus`): its four framework claims are true, its forms
 are the fold `accumulateSide` makes of the blocks, and each side's total, the tree value plus the
 framework, the unused leaves and the padding rows' public term, is the stacking identity's table
 part plus that term (`honestBus_totals`), which is the true total of the forms over every row,
@@ -43,8 +48,8 @@ the honest leaf `1` and the public term `pad_n · (φ(p) + 1)` add up, in charac
 row's own fingerprint `φ(p)` (`sum_block_true`, with `paddingWeight_eq_sum`).
 
 `follows_verifyBusBalance`: the honest prover `hBus` follows `verifyBusBalance` at the verifier's
-layout, ending in `BusGood`. The admissibility of the sizes is not used. No `require` of the bus
-phase fails on the honest prover.
+layout, ending in `BusGood`, for a push tree of depth below `64`. No `require` of the bus phase
+fails on the honest prover.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -73,21 +78,21 @@ def pushTabs (β : E) (w : List E) : ℕ → List E
 /-- The pull side's leaf tables. -/
 def pullTabs (β : E) (w : List E) : ℕ → List E
   | 0 => stateTab β w (Verifier.gpow (2 ^ prog.logSize - 1))
-  | 1 => memTab prog s q β w (colList prog s q (memCol 3))
+  | 1 => memTab prog s q β w (colList prog s q (memCol 2))
   | 2 => bcTab prog β w (colList prog s q bfcntCol)
   | b + 3 => tableTab prog s q β w ((pullBlocks s).getD b default)
 
 /-- The count side's leaf tables: the count cells. -/
 def countTabs : ℕ → List E := fun b ↦ tableTab prog s q 0 [1] ((countBlocks s).getD b default)
 
-/-- The push side's leaves. -/
+/-- The push side's leaves, at the slot weights `alphas`. -/
 def pushLeaves (alphas : List E) (beta : E) : List E :=
-  stackLeaves (sideSizes (fwLogs prog s) (pushBlocks s)) (pushTabs prog s q beta (eqKernel alphas))
+  stackLeaves (sideSizes (fwLogs prog s) (pushBlocks s)) (pushTabs prog s q beta alphas)
     (busDepth prog s)
 
-/-- The pull side's leaves. -/
+/-- The pull side's leaves, at the slot weights `alphas`. -/
 def pullLeaves (alphas : List E) (beta : E) : List E :=
-  stackLeaves (sideSizes (fwLogs prog s) (pullBlocks s)) (pullTabs prog s q beta (eqKernel alphas))
+  stackLeaves (sideSizes (fwLogs prog s) (pullBlocks s)) (pullTabs prog s q beta alphas)
     (busDepth prog s)
 
 /-- The count side's leaves. -/
@@ -165,42 +170,40 @@ theorem prod_split (tabs : ℕ → List E) (m : ℕ) :
     List.prod_nil, mul_one, Function.comp_def, mul_assoc]
 
 /-- **The push leaves' product** is the push tuples' fingerprint product. -/
-theorem prod_pushLeaves (alphas : List E) (halpha : alphas.length = 4) (beta : E) :
+theorem prod_pushLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
     (pushLeaves prog s q alphas beta).prod =
-      (((inst prog s).tuples q .push).map (fpV beta (eqKernel alphas))).prod := by
-  have hw : (eqKernel alphas).length = 16 := by rw [length_eqKernel, halpha]; rfl
+      (((inst prog s).tuples q .push).map (fpV beta alphas)).prod := by
   rw [pushLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pushBlocks s)).length =
     3 + (pushBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pushTabs_add_three]
   rw [map_range_getD (pushBlocks s) default
-    fun b ↦ (tableTab prog s q beta (eqKernel alphas) b).prod]
+    fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pushTabs]
   rw [prod_framework_push prog s q beta _ hw,
     show ((pushBlocks s).map fun b ↦
-        (tableTab prog s q beta (eqKernel alphas) b).prod).prod = _ from
+        (tableTab prog s q beta alphas b).prod).prod = _ from
       prod_tables prog s q beta _ hw .push, mul_comm]
 
 /-- **The pull leaves' product** is the pull tuples' fingerprint product. -/
-theorem prod_pullLeaves (alphas : List E) (halpha : alphas.length = 4) (beta : E) :
+theorem prod_pullLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
     (pullLeaves prog s q alphas beta).prod =
-      (((inst prog s).tuples q .pull).map (fpV beta (eqKernel alphas))).prod := by
-  have hw : (eqKernel alphas).length = 16 := by rw [length_eqKernel, halpha]; rfl
+      (((inst prog s).tuples q .pull).map (fpV beta alphas)).prod := by
   rw [pullLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pullBlocks s)).length =
     3 + (pullBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pullTabs_add_three]
   rw [map_range_getD (pullBlocks s) default
-    fun b ↦ (tableTab prog s q beta (eqKernel alphas) b).prod]
+    fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pullTabs]
   rw [prod_framework_pull prog s q beta _ hw,
     show ((pullBlocks s).map fun b ↦
-        (tableTab prog s q beta (eqKernel alphas) b).prod).prod = _ from
+        (tableTab prog s q beta alphas b).prod).prod = _ from
       prod_tables prog s q beta _ hw .pull, mul_comm]
 
 /-- **The shared root**: a balanced bus makes the push and pull leaves' products equal. -/
 theorem prod_push_eq_pull (hbal : (inst prog s).Balanced q) (alphas : List E)
-    (halpha : alphas.length = 4) (beta : E) :
+    (halpha : alphas.length = 16) (beta : E) :
     (pushLeaves prog s q alphas beta).prod = (pullLeaves prog s q alphas beta).prod := by
   rw [prod_pushLeaves prog s q alphas halpha, prod_pullLeaves prog s q alphas halpha]
   exact (hbal.map _).prod_eq
@@ -344,12 +347,11 @@ theorem sum_zip_range (l : List BusBlock) (f : ℕ → E) (g : E × BusBlock →
 /-- The honest memory limbs at the bus point. -/
 def memVals (point : List E) : List E :=
   [multilinearEval (colList prog s q (memCol 0)) (point.take s.logMem),
-    multilinearEval (colList prog s q (memCol 1)) (point.take s.logMem),
-    multilinearEval (colList prog s q (memCol 2)) (point.take s.logMem)]
+    multilinearEval (colList prog s q (memCol 1)) (point.take s.logMem)]
 
 /-- The honest memory finalize counts at the bus point. -/
 def mfVal (point : List E) : E :=
-  multilinearEval (colList prog s q (memCol 3)) (point.take s.logMem)
+  multilinearEval (colList prog s q (memCol 2)) (point.take s.logMem)
 
 /-- The honest bytecode finalize counts at the bus point. -/
 def bfVal (point : List E) : E :=
@@ -360,47 +362,48 @@ theorem multilinearEval_onesList (z : List E) (n : ℕ) (hz : z.length = n) :
   subst hz; exact multilinearEval_replicate 1 z
 
 /-- **The push framework blocks extend to the verifier's push fingerprints.** -/
-theorem fw_push (L : Verifier.Layout) (hbc : L.bytecode = bytecodeWords prog) (alphas : List E)
-    (halpha : alphas.length = 4) (β : E) (p : List E) (hp : busDepth prog s ≤ p.length) :
+theorem fw_push (w : List E) (hw : w.length = 16) (β : E) (p : List E)
+    (hp : busDepth prog s ≤ p.length) :
     ∀ b < (fwLogs prog s).length,
-      multilinearEval (pushTabs prog s q β (eqKernel alphas) b)
+      multilinearEval (pushTabs prog s q β w b)
           (p.take ((fwLogs prog s).getD b 0)) =
-        β + (fingerprints (eqKernel alphas) (memVals prog s q p) (p.take s.logMem)
-          (p.take prog.logSize) (multilinearEval (L.bytecode.map ofK) (p.take prog.logSize ++ alphas)) (Verifier.gpow 0) 1 1).getD b 0
+        β + (fingerprints w (memVals prog s q p) (p.take s.logMem)
+          (p.take prog.logSize) (bcShare prog w (p.take prog.logSize)) (Verifier.gpow 0) 1
+            1).getD b 0
   | 0, _ => rfl
   | 1, _ => by
     have hz := length_take_of_le ((logMem_le_busDepth prog s).trans hp)
     simp only [pushTabs, fwLogs, fingerprints, memVals, List.getD_cons_succ, List.getD_cons_zero]
-    rw [multilinearEval_memTab prog s q β _ (by rw [length_eqKernel, halpha]; norm_num) _
+    rw [multilinearEval_memTab prog s q β _ (by rw [hw]; norm_num) _
       (by simp [onesList]) _ hz, multilinearEval_onesList _ _ hz]
   | 2, _ => by
     have hz := length_take_of_le ((logSize_le_busDepth prog s).trans hp)
-    simp only [pushTabs, fwLogs, fingerprints, hbc, List.getD_cons_succ, List.getD_cons_zero]
-    rw [multilinearEval_bcTab prog β alphas halpha _ (by simp [onesList]) _ hz,
+    simp only [pushTabs, fwLogs, fingerprints, List.getD_cons_succ, List.getD_cons_zero]
+    rw [multilinearEval_bcTab prog β w (by rw [hw]; norm_num) _ (by simp [onesList]) _ hz,
       multilinearEval_onesList _ _ hz]
   | b + 3, hb => by simp [fwLogs] at hb
 
 /-- **The pull framework blocks extend to the verifier's pull fingerprints.** -/
-theorem fw_pull (L : Verifier.Layout) (hlb : L.logBytecode = prog.logSize)
-    (hbc : L.bytecode = bytecodeWords prog) (alphas : List E)
-    (halpha : alphas.length = 4) (β : E) (p : List E) (hp : busDepth prog s ≤ p.length) :
+theorem fw_pull (L : Verifier.Layout) (hlb : L.logBytecode = prog.logSize) (w : List E)
+    (hw : w.length = 16) (β : E) (p : List E) (hp : busDepth prog s ≤ p.length) :
     ∀ b < (fwLogs prog s).length,
-      multilinearEval (pullTabs prog s q β (eqKernel alphas) b)
+      multilinearEval (pullTabs prog s q β w b)
           (p.take ((fwLogs prog s).getD b 0)) =
-        β + (fingerprints (eqKernel alphas) (memVals prog s q p) (p.take s.logMem)
-          (p.take prog.logSize) (multilinearEval (L.bytecode.map ofK) (p.take prog.logSize ++ alphas)) (Verifier.gpow (2 ^ L.logBytecode - 1)) (mfVal prog s q p)
-          (bfVal prog s q p)).getD b 0
+        β + (fingerprints w (memVals prog s q p) (p.take s.logMem)
+          (p.take prog.logSize) (bcShare prog w (p.take prog.logSize))
+          (Verifier.gpow (2 ^ L.logBytecode - 1)) (mfVal prog s q p) (bfVal prog s q p)).getD b 0
   | 0, _ => by rw [hlb]; rfl
   | 1, _ => by
     have hz := length_take_of_le ((logMem_le_busDepth prog s).trans hp)
     simp only [pullTabs, fwLogs, fingerprints, memVals, List.getD_cons_succ, List.getD_cons_zero]
-    rw [multilinearEval_memTab prog s q β _ (by rw [length_eqKernel, halpha]; norm_num) _
-      (length_colList prog s q (memCol 3)) _ hz]
+    rw [multilinearEval_memTab prog s q β _ (by rw [hw]; norm_num) _
+      (length_colList prog s q (memCol 2)) _ hz]
     rfl
   | 2, _ => by
     have hz := length_take_of_le ((logSize_le_busDepth prog s).trans hp)
-    simp only [pullTabs, fwLogs, fingerprints, hbc, List.getD_cons_succ, List.getD_cons_zero]
-    rw [multilinearEval_bcTab prog β alphas halpha _ (length_colList prog s q bfcntCol) _ hz]
+    simp only [pullTabs, fwLogs, fingerprints, List.getD_cons_succ, List.getD_cons_zero]
+    rw [multilinearEval_bcTab prog β w (by rw [hw]; norm_num) _ (length_colList prog s q bfcntCol)
+      _ hz]
     rfl
   | b + 3, hb => by simp [fwLogs] at hb
 
@@ -412,21 +415,22 @@ def treeVals (alphas : List E) (β : E) (p : List E) : List E :=
     multilinearEval (pullLeaves prog s q alphas β) p,
     multilinearEval (countLeaves prog s q) p]
 
-/-- The honest bus result at the challenges `alphas, β` and the GKR point `p`. -/
-def honestBus (alphas : List E) (β : E) (p : List E) : BusResult :=
+/-- The honest bus result at the slot weights `alphas`, `β`, the GKR point `p` and the bytecode's
+point `bp`. -/
+def honestBus (alphas : List E) (β : E) (p bp : List E) : BusResult :=
   busOut (verifierLayout prog s) alphas β p (treeVals prog s q alphas β p) (memVals prog s q p)
-    (mfVal prog s q p) (bfVal prog s q p)
+    (mfVal prog s q p) (bfVal prog s q p) (bcShare prog alphas (p.take prog.logSize)) bp
 
-theorem honestBus_point (alphas : List E) (β : E) (p : List E) :
-    (honestBus prog s q alphas β p).point = p := rfl
+theorem honestBus_point (alphas : List E) (β : E) (p bp : List E) :
+    (honestBus prog s q alphas β p bp).point = p := rfl
 
-theorem honestBus_forms (alphas : List E) (β : E) (p : List E) :
-    (honestBus prog s q alphas β p).forms =
+theorem honestBus_forms (alphas : List E) (β : E) (p bp : List E) :
+    (honestBus prog s q alphas β p bp).forms =
       accFold 2 [1] 0 (List.zip (sideSels [] (countBlocks s) p 0 (countBlocks s).length)
           (countBlocks s))
-        (accFold 1 (eqKernel alphas) β (List.zip (sideSels (fwLogs prog s) (pullBlocks s) p 3
+        (accFold 1 alphas β (List.zip (sideSels (fwLogs prog s) (pullBlocks s) p 3
             (pullBlocks s).length) (pullBlocks s))
-          (accFold 0 (eqKernel alphas) β (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p 3
+          (accFold 0 alphas β (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p 3
               (pushBlocks s).length) (pushBlocks s))
             (tables.map fun _ ↦ [{}, {}, {}]))) := by
   simp only [honestBus, busOut, accumulateSide_fst]
@@ -438,14 +442,14 @@ def sideTotal (fw : List ℕ) (blocks : List BusBlock) (tabs : ℕ → List E) (
   ∑ i ∈ range blocks.length, blockSel (sideSizes fw blocks) (busDepth prog s) (fw.length + i) p *
     multilinearEval (tabs (fw.length + i)) (p.take (blocks.getD i default).logRows)
 
-theorem honestBus_totals (alphas : List E) (halpha : alphas.length = 4) (β : E) (p : List E)
+theorem honestBus_totals (alphas : List E) (halpha : alphas.length = 16) (β : E) (p bp : List E)
     (hp : p.length = busDepth prog s) :
-    (honestBus prog s q alphas β p).totals =
-      [sideTotal prog s (fwLogs prog s) (pushBlocks s) (pushTabs prog s q β (eqKernel alphas)) p +
-          padSum (eqKernel alphas) β p (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p
+    (honestBus prog s q alphas β p bp).totals =
+      [sideTotal prog s (fwLogs prog s) (pushBlocks s) (pushTabs prog s q β alphas) p +
+          padSum alphas β p (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p
             (fwLogs prog s).length (pushBlocks s).length) (pushBlocks s)),
-        sideTotal prog s (fwLogs prog s) (pullBlocks s) (pullTabs prog s q β (eqKernel alphas)) p +
-          padSum (eqKernel alphas) β p (List.zip (sideSels (fwLogs prog s) (pullBlocks s) p
+        sideTotal prog s (fwLogs prog s) (pullBlocks s) (pullTabs prog s q β alphas) p +
+          padSum alphas β p (List.zip (sideSels (fwLogs prog s) (pullBlocks s) p
             (fwLogs prog s).length (pullBlocks s).length) (pullBlocks s)),
         sideTotal prog s [] (countBlocks s) (countTabs prog s q) p +
           padSum [1] 0 p (List.zip (sideSels [] (countBlocks s) p 0 (countBlocks s).length)
@@ -456,10 +460,10 @@ theorem honestBus_totals (alphas : List E) (halpha : alphas.length = 4) (β : E)
   refine ⟨?_, ?_, ?_⟩
   · exact accumulateSide_total _ 0 (fwLogs prog s) (pushBlocks s) _ _ β _ (busDepth prog s)
       (length_pushTabs prog s q _ _) (total_le_depth prog s) p hp rfl
-      (fw_push prog s q _ rfl alphas halpha β p hp.ge)
+      (fw_push prog s q alphas halpha β p hp.ge)
   · exact accumulateSide_total _ 1 (fwLogs prog s) (pullBlocks s) _ _ β _ (busDepth prog s)
       (length_pullTabs prog s q _ _) ((total_pull prog s).le.trans (total_le_depth prog s)) p hp
-      rfl (fw_pull prog s q _ rfl rfl alphas halpha β p hp.ge)
+      rfl (fw_pull prog s q _ rfl alphas halpha β p hp.ge)
   · exact accumulateSide_total _ 2 [] (countBlocks s) [] [1] 0 _ (busDepth prog s)
       (length_countTabs prog s q) ((total_count_le prog s).trans (total_le_depth prog s)) p hp
       rfl fun b hb ↦ absurd hb (Nat.not_lt_zero b)
@@ -508,9 +512,9 @@ theorem trueClaim_col (c : Col) (col : ℕ) (hcol : col = refCol c) (z : List E)
   rfl
 
 /-- **The honest bus result's claims are true.** -/
-theorem trueClaims_honestBus (alphas : List E) (β : E) (p : List E)
+theorem trueClaims_honestBus (alphas : List E) (β : E) (p bp : List E)
     (hp : p.length = busDepth prog s) :
-    TrueClaims prog s q (honestBus prog s q alphas β p).claims := by
+    TrueClaims prog s q (honestBus prog s q alphas β p bp).claims := by
   have hm : (p.take s.logMem).length = s.logMem :=
     length_take_of_le (hp ▸ logMem_le_busDepth prog s)
   have hb : (p.take prog.logSize).length = prog.logSize :=
@@ -519,11 +523,10 @@ theorem trueClaims_honestBus (alphas : List E) (β : E) (p : List E)
   simp only [honestBus, busOut, memVals, mfVal, bfVal, List.zipWith_cons_cons,
     List.zipWith_nil_left,
     List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hcl
-  rcases hcl with rfl | rfl | rfl | rfl | rfl
+  rcases hcl with rfl | rfl | rfl | rfl
   · exact trueClaim_col prog s q (memCol 0) _ (refCol_memCol 0).symm _ hm
   · exact trueClaim_col prog s q (memCol 1) _ (refCol_memCol 1).symm _ hm
   · exact trueClaim_col prog s q (memCol 2) _ (refCol_memCol 2).symm _ hm
-  · exact trueClaim_col prog s q (memCol 3) _ (refCol_memCol 3).symm _ hm
   · exact trueClaim_col prog s q bfcntCol _ refCol_bfcntCol.symm _ hb
 
 /-- The table blocks' coordinates have degree at most two. -/
@@ -556,9 +559,9 @@ theorem countBlocks_deg2 (sels : List E) :
 
 /-- **The honest bus result is true.** -/
 theorem busGood_honestBus (hP : (inst prog s).PaddingHonest q) (alphas : List E)
-    (halpha : alphas.length = 4) (β : E) (p : List E) (hp : p.length = busDepth prog s) :
-    BusGood prog s q (honestBus prog s q alphas β p) := by
-  set w := eqKernel alphas
+    (halpha : alphas.length = 16) (β : E) (p bp : List E) (hp : p.length = busDepth prog s) :
+    BusGood prog s q (honestBus prog s q alphas β p bp) := by
+  set w := alphas
   set F0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
   set l1 := List.zip (sideSels (fwLogs prog s) (pushBlocks s) p 3 (pushBlocks s).length)
     (pushBlocks s)
@@ -568,23 +571,24 @@ theorem busGood_honestBus (hP : (inst prog s).PaddingHonest q) (alphas : List E)
   set F1 := accFold 0 w β l1 F0
   set F2 := accFold 1 w β l2 F1
   set F3 := accFold 2 [1] 0 l3 F2
-  have hF : (honestBus prog s q alphas β p).forms = F3 := honestBus_forms prog s q alphas β p
+  have hF : (honestBus prog s q alphas β p bp).forms = F3 :=
+    honestBus_forms prog s q alphas β p bp
   obtain ⟨a1, b1, c1, -⟩ := accFold_spec 0 (by norm_num) w β l1 F0 forms0_length forms0_row
     (owner_lt_six s (pushBlocks_owned s) _)
   obtain ⟨a2, b2, c2, -⟩ := accFold_spec 1 (by norm_num) w β l2 F1 a1 b1
     (owner_lt_six s (pullBlocks_owned s) _)
   obtain ⟨a3, b3, c3, -⟩ := accFold_spec 2 (by norm_num) [1] 0 l3 F2 a2 b2
     (owner_lt_six s (countBlocks_owned s) _)
-  refine ⟨trueClaims_honestBus prog s q alphas β p hp, fun t ↦ ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨trueClaims_honestBus prog s q alphas β p bp hp, fun t ↦ ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [honestBus_point, hp]; exact tau_le_busDepth prog s t
   · rw [hF]; exact a3
   · rw [hF]; exact b3
   · rw [hF]
     exact accFold_deg2 _ _ _ _ _ (accFold_deg2 _ _ _ _ _ (accFold_deg2 _ _ _ _ _ forms0_deg
       (blocks_deg2 s .push _)) (blocks_deg2 s .pull _)) (countBlocks_deg2 s _)
-  · rw [honestBus_totals prog s q alphas halpha β p hp]; rfl
+  · rw [honestBus_totals prog s q alphas halpha β p bp hp]; rfl
   · intro side hside
-    rw [honestBus_totals prog s q alphas halpha β p hp, hF, honestBus_point]
+    rw [honestBus_totals prog s q alphas halpha β p bp hp, hF, honestBus_point]
     rcases side with _ | _ | _ | side
     · rw [trueTotal_congr prog s q p 0 fun t ↦ c3 t 0 (by norm_num),
         trueTotal_congr prog s q p 0 fun t ↦ c2 t 0 (by norm_num)]
@@ -605,82 +609,51 @@ end Honest
 
 /-! ## The honest prover -/
 
-/-- The verifier's bus phase after the GKR: the count root's check, the framework values, the
-result. -/
-def busK3 (L : Verifier.Layout) (alphas : List E) (beta : E) (g : E × List E × List E) :
-    VerifierProgram BusResult :=
-  (VerifierProgram.require (g.1 ≠ 0)).bind fun _ ↦ (VerifierProgram.readScalars 3).bind fun memory ↦
-    VerifierProgram.readScalar.bind fun memoryFinal ↦ VerifierProgram.readScalar.bind
-        fun bytecodeFinal ↦
-      VerifierProgram.ret (busOut L alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal)
-
-/-- The verifier's bus phase after `β`. -/
-def busK2 (L : Verifier.Layout) (D : ℕ) (alphas : List E) (beta : E) : VerifierProgram BusResult :=
-  (verifyGkrGrandProducts D).bind (busK3 L alphas beta)
-
-/-- The verifier's bus phase after `α`. -/
-def busK1 (L : Verifier.Layout) (D : ℕ) (alphas : List E) : VerifierProgram BusResult :=
-  VerifierProgram.sampleChallenge.bind (busK2 L D alphas)
-
-theorem verifyBusBalance_eq' (L : Verifier.Layout) :
-    verifyBusBalance computedBytecodeValue L = (VerifierProgram.sampleChallenges busBits).bind
-      (busK1 L (busLayout [0, L.logMemory, L.logBytecode] L.push).depth) := by
-  rw [verifyBusBalance_eq]
-  rfl
-
-/-- The honest prover after the GKR: the framework values, then the result. -/
-noncomputable def hBusK3 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (alphas : List E) (beta : E) (g : E × List E × List E) : Script BusResult :=
-  (Script.sendList (memVals prog s q g.2.1)).bind fun _ ↦
-    (Script.sendE (mfVal prog s q g.2.1)).bind fun _ ↦
-      (Script.sendE (bfVal prog s q g.2.1)).bind fun _ ↦
-        .ret (honestBus prog s q alphas beta g.2.1)
-
-/-- The honest prover after `β`: the GKR over the honest leaves. -/
-noncomputable def hBusK2 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (alphas : List E) (beta : E) : Script BusResult :=
-  (hGkr (busDepth prog s) (pushLeaves prog s q alphas beta) (pullLeaves prog s q alphas beta)
-    (countLeaves prog s q)).bind (hBusK3 prog s q alphas beta)
-
-/-- The honest prover after `α`. -/
-noncomputable def hBusK1 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (alphas : List E) : Script BusResult :=
-  Script.sampleE.bind (hBusK2 prog s q alphas)
-
-/-- **The honest prover of the bus phase**: receive the fingerprint challenges `α` and `β`, run
-the honest GKR over the three sides' leaves, then send the memory limbs' and the two finalize
-counts' extensions at the bus point; return the verifier's bus result. -/
+/-- **The honest prover of the bus phase**: pass the grind for the push tree's depth, receive the
+sixteen slot weights `w` and `β`, run the honest GKR over the three sides' leaves, send the memory
+limbs' and the two finalize counts' extensions at the bus point, then prove the program's share of
+the bytecode leaf; return the verifier's bus result. -/
 noncomputable def hBus (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script BusResult :=
-  (Script.sampleN busBits).bind (hBusK1 prog s q)
+  (Script.grindBits (busGrindingBits (busDepth prog s))).bind fun _ ↦
+  (Script.sampleN (2 ^ busBits)).bind fun w ↦ Script.sampleE.bind fun beta ↦
+  (hGkr (busDepth prog s) (pushLeaves prog s q w beta) (pullLeaves prog s q w beta)
+    (countLeaves prog s q)).bind fun g ↦
+  (Script.sendList (memVals prog s q g.2.1)).bind fun _ ↦
+  (Script.sendE (mfVal prog s q g.2.1)).bind fun _ ↦
+  (Script.sendE (bfVal prog s q g.2.1)).bind fun _ ↦
+  (hShare prog w (g.2.1.take prog.logSize)).bind fun sh ↦
+  .ret (honestBus prog s q w beta g.2.1 sh.2.1)
 
 attribute [local irreducible] Follows in
 /-- **Perfect completeness of the bus phase.** For a stack satisfying the leanISA instance's
-relation, the honest prover follows the verifier program's bus phase at the verifier's layout:
-every `require` holds (the shared root and the nonzero count root), and the result is true
-(`BusGood`): true framework claims, and totals that are the true totals of the forms. -/
+relation, whose push tree has depth below `64`, the honest prover follows the verifier program's
+bus phase at the verifier's layout: every `require` holds (the depth, the shared root, the nonzero
+count root, the bytecode share's last round and its value), and the result is true (`BusGood`):
+true framework claims, and totals that are the true totals of the forms. -/
 theorem follows_verifyBusBalance {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput}
-    {q : Column (leanIsaμ prog s)} (_hs : s.Admissible prog)
+    {q : Column (leanIsaμ prog s)} (hD : busDepth prog s < 64)
     (hq : M3Honest (inst prog s) input q) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
       (verifyBusBalance computedBytecodeValue (verifierLayout prog s)) cs := by
   obtain ⟨⟨-, hbal, hcnt, -, -⟩, hP⟩ := hq
-  rw [verifyBusBalance_eq', busLayout_depth_verifier, hBus]
-  refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs busBits)
+  rw [verifyBusBalance_eq, busLayout_depth_verifier, hBus]
+  simp only [VerifierProgram.require, hD, ↓reduceIte, VerifierProgram.ret_bind,
+    VerifierProgram.bind_eq]
+  refine Follows.bind (fun cs₀ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
+  subst h
+  refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ (2 ^ busBits))
   obtain ⟨rfl, rfl, hlen⟩ := h
-  rw [hBusK1, busK1]
+  have hlen' : a.length = 16 := hlen
   refine Follows.bind (fun cs₂ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs₁)
   obtain ⟨rfl, rfl⟩ := h
-  rw [hBusK2, busK2]
   refine Follows.bind (fun cs₃ g g' h ↦ ?_) _ _ _
     (follows_verifyGkrGrandProducts (busDepth prog s) _ _ _ (length_pushLeaves prog s q a c)
       (length_pullLeaves prog s q a c) (length_countLeaves prog s q)
-      (prod_push_eq_pull prog s q hbal a hlen c) cs₂)
+      (prod_push_eq_pull prog s q hbal a hlen' c) cs₂)
   obtain ⟨rfl, rfl, hcr, hpl, htv⟩ := h
   have hne : g.1 ≠ 0 := hcr ▸ prod_countLeaves_ne_zero prog s q hcnt
-  rw [hBusK3, busK3]
-  simp only [VerifierProgram.require, hne, ne_eq, not_false_eq_true, ↓reduceIte,
-      VerifierProgram.ret_bind]
+  simp only [hne, ne_eq, not_false_eq_true, ↓reduceIte, VerifierProgram.ret_bind]
   refine Follows.bind (fun cs₄ _ mem h ↦ ?_) _ _ _
     (Follows.sendList_readN cs₃ (memVals prog s q g.2.1))
   obtain ⟨rfl, rfl⟩ := h
@@ -688,11 +661,24 @@ theorem follows_verifyBusBalance {prog : LeanIsaProgram} {s : Sizes} {input : Pu
   obtain ⟨rfl, rfl⟩ := h
   refine Follows.bind (fun cs₆ _ bf h ↦ ?_) _ _ _ (Follows.sendE_readE _ cs₅)
   obtain ⟨rfl, rfl⟩ := h
-  have heq : honestBus prog s q a c g.2.1 = busOut (verifierLayout prog s) a c g.2.1 g.2.2
-      (memVals prog s q g.2.1) (mfVal prog s q g.2.1) (bfVal prog s q g.2.1) := by
+  have hz : (g.2.1.take prog.logSize).length = prog.logSize :=
+    length_take_of_le (hpl ▸ logSize_le_busDepth prog s)
+  change Follows _ _ ((bytecodeShare a (g.2.1.take prog.logSize)).bind _) cs₆
+  refine Follows.bind (fun cs₇ sh sh' h ↦ ?_) _ _ _
+    (follows_bytecodeShare prog a _ hlen' hz cs₆)
+  obtain ⟨rfl, rfl, hsh, hval⟩ := h
+  obtain ⟨share, bp, value⟩ := sh
+  simp only at hsh hval ⊢
+  subst hsh
+  change Follows _ _ ((VerifierProgram.require
+    (multilinearEval ((bytecodeWords prog).map ofK) bp = value)).bind _) cs₇
+  simp only [← hval, VerifierProgram.require, ↓reduceIte, VerifierProgram.ret_bind]
+  have heq : honestBus prog s q a c g.2.1 bp = busOut (verifierLayout prog s) a c g.2.1 g.2.2
+      (memVals prog s q g.2.1) (mfVal prog s q g.2.1) (bfVal prog s q g.2.1)
+      (bcShare prog a (g.2.1.take prog.logSize)) bp := by
     rw [honestBus, htv]
     rfl
-  exact Follows.ret_ret ⟨rfl, heq, heq ▸ busGood_honestBus prog s q hP a hlen c g.2.1 hpl⟩
+  exact Follows.ret_ret ⟨rfl, heq, heq ▸ busGood_honestBus prog s q hP a hlen' c g.2.1 bp hpl⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

@@ -413,7 +413,7 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
   simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
   subst h
-  refine Follows.bind (fun cs₀ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
+  refine Follows.bind (fun cs₀ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)
   obtain ⟨rfl, rfl⟩ := h
   rw [hclaim]
   refine Follows.bind (fun cs₁ r r' h ↦ ?_) _ _ _
@@ -447,7 +447,7 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
   simp only [VerifierProgram.require, hreq, ↓reduceIte, VerifierProgram.ret_bind]
   refine Follows.bind (fun cs₄' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs₄)
   subst h
-  refine Follows.bind (fun cs₅ y y' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs₄ step)
+  refine Follows.bind (fun cs₅ y y' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ step)
   obtain ⟨rfl, rfl, hy⟩ := h
   refine ⟨rfl, by simp, by omega, by simp; omega, ?_⟩
   simp only [List.map_cons, List.map_nil]
