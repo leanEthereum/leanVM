@@ -182,10 +182,10 @@ fn render(ast: &Ast, kbc: usize) -> String {
         .unwrap();
     }
     for (name, values) in &ast.const_arrays {
-        let items = list(values.iter().map(|v| format!("({}, {}, {})", v.c0, v.c1, v.c2)));
+        let items = list(values.iter().map(|v| format!("({}, {})", v.c0, v.c1)));
         writeln!(
             out,
-            "/-- The constant array `{name}`. -/\ndef arr_{name} : List (Nat × Nat × Nat) :=\n  {items}\n"
+            "/-- The constant array `{name}`. -/\ndef arr_{name} : List (Nat × Nat) :=\n  {items}\n"
         )
         .unwrap();
     }
@@ -203,8 +203,8 @@ fn render(ast: &Ast, kbc: usize) -> String {
     out
 }
 
-fn word(x: F192) -> String {
-    format!("({}, {}, {})", x.c0, x.c1, x.c2)
+fn word(x: F128) -> String {
+    format!("({}, {})", x.c0, x.c1)
 }
 
 /// The compiler's test programs, each with the public input and the witness streams its
@@ -223,16 +223,16 @@ fn render_programs() -> String {
          test programs, `crates/lean_compiler/tests/programs/*.py`.\n-/\n\nimport LeanVM.Guest.Source\n\n\
          namespace LeanVMTests.Guest.Programs\n\nopen LeanVM.Guest.Source\n\n/-- A test program: its AST, \
          the public input it publishes and its witness streams, each word as its limbs. -/\n\
-         structure TestProgram where\n  name : String\n  program : Program\n  publicInput : List (Nat × Nat × Nat)\n  \
-         streams : List (String × List (List (Nat × Nat × Nat)))\n\n",
+         structure TestProgram where\n  name : String\n  program : Program\n  publicInput : List (Nat × Nat)\n  \
+         streams : List (String × List (List (Nat × Nat)))\n\n",
     );
     let mut names = Vec::new();
     for path in paths {
         let file = path.file_stem().unwrap().to_string_lossy().into_owned();
         let src = std::fs::read_to_string(&path).unwrap();
         let ast = parse(&src).unwrap();
-        let mut public = vec![F192::ZERO; 2];
-        let mut streams: BTreeMap<String, Vec<Vec<F192>>> = BTreeMap::new();
+        let mut public = vec![F128::ZERO; 2];
+        let mut streams: BTreeMap<String, Vec<Vec<F128>>> = BTreeMap::new();
         for line in src.lines().map(str::trim) {
             if let Some(rest) = line.strip_prefix("# public_input:") {
                 public = rest.split(',').map(|s| parse_const(s).unwrap()).collect();
@@ -248,7 +248,7 @@ fn render_programs() -> String {
             format!(
                 "({}, {})",
                 string(name),
-                list(values.iter().map(|v| format!("({}, {}, {})", v.c0, v.c1, v.c2)))
+                list(values.iter().map(|v| format!("({}, {})", v.c0, v.c1)))
             )
         }));
         let streams = list(streams.iter().map(|(k, es)| {
