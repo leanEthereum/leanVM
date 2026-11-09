@@ -199,13 +199,13 @@ dialog .close:hover { color: var(--ink); }
 </header>
 
 <figure class="story">
-  <svg id="subnets" viewBox="0 0 800 275" role="img" aria-label="One slot: 16 subnets of 1,500 leanXMSS signatures, each aggregated into one proof, and the 16 proofs merged into one"></svg>
+  <svg id="subnets" viewBox="0 0 800 275" role="img" aria-label="One slot: 16 subnets of 1,400 leanXMSS signatures, each aggregated into one proof, and the 16 proofs merged into one"></svg>
   <ul class="legend">
-    <li><span class="g"><i style="width:5px;height:5px;background:var(--tree)"></i></span><span><b>16 subnets</b>, 1,500 leanXMSS each</span></li>
+    <li><span class="g"><i style="width:5px;height:5px;background:var(--tree)"></i></span><span><b>16 subnets</b>, 1,400 leanXMSS each</span></li>
     <li><span class="g"><i style="width:7px;height:7px"></i></span><span><b>Aggregation</b>, one proof per subnet</span></li>
     <li><span class="g"><i style="width:11px;height:11px"></i></span><span><b>Recursion 16 → 1</b>, one proof per slot</span></li>
   </ul>
-  <p>768,000 validators = 32 slots × 16 subnets × 1,500 signatures.</p>
+  <p>716,800 validators = 32 slots × 16 subnets × 1,400 signatures.</p>
 </figure>
 
 <div class="controls">
@@ -242,8 +242,8 @@ git checkout <span class="sha"></span></code></pre></li>
 <script>
 // Results come from benchmarks.json: one commit, proof_kib[bench] (the same on every machine), and per machine its name, CPU, RAM and results[bench][threads] = { time, ram }.
 const BENCHES = [
-  ["aggregation", "Aggregation", "1,500 XMSS", "Rate 1/4"],
-  ["recursion", "Recursion 16 \u2192 1", "", "16 proofs of 1,500 XMSS each into one,\nleaves at rate 1/4, the node at rate 1/2"],
+  ["aggregation", "Aggregation", "1,400 XMSS", "Rate 1/4"],
+  ["recursion", "Recursion 16 \u2192 1", "", "16 proofs of 1,400 XMSS each into one,\nleaves at rate 1/4, the node at rate 1/2"],
 ];
 const REPO = "https://github.com/leanEthereum/leanVM";
 let MACHINES = [], THREADS = [], PROOF_KIB = {};
@@ -320,7 +320,7 @@ function render() {
     if (small) return;
     const L = 640;
     add("text", { class: "nm", x: L, y: Y_SIG + 4 }, "16 subnets");
-    add("text", { class: "lb", x: L, y: Y_SIG + 22 }, "1,500 leanXMSS each");
+    add("text", { class: "lb", x: L, y: Y_SIG + 22 }, "1,400 leanXMSS each");
     add("text", { class: "nm", x: L, y: Y_AGG + 4 }, "Aggregation");
     add("text", { class: "lb", x: L, y: Y_AGG + 22 }, "one proof per subnet");
     add("text", { class: "nm", x: L, y: ROOT[1] + 4 }, "Recursion 16 \u2192 1");

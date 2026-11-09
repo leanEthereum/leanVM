@@ -37,11 +37,11 @@ read -ra THREADS <<<"${BENCH_THREADS:-4 8 full}"
 cargo build --release -p leanvm-cli || exit 1
 
 for t in "${THREADS[@]}"; do
-  run "aggregate, 1500 leanXMSS, rate 2" "$t" aggregate --xmss 1500 --log-inv-rate 2 --repeat 3
+  run "aggregate, 1400 leanXMSS, rate 2" "$t" aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 done
 for t in "${THREADS[@]}"; do
-  run "recursion 16 to 1, 1500 leanXMSS/leaf, leaf rate 2, rate 1" "$t" \
-    recursion --n 16 --xmss-per-leaf 1500 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+  run "recursion 16 to 1, 1400 leanXMSS/leaf, leaf rate 2, rate 1" "$t" \
+    recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 done
 
 # One row per benchmark, a time and a RAM column per thread count.
