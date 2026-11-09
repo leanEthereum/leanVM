@@ -64,26 +64,6 @@ fn normalized_sks_at(x: F64, sks_vks: &[F64], inv_sks_vks: &[F64], out: &mut [F6
     }
 }
 
-/// Row entries of an opened level: `F64` at L0 (mixed `mul_base` dot against
-/// the E-valued eq weights), `F128` at every deeper level (full E dot).
-pub(crate) trait RowElem: Copy + Sync {
-    fn dot(row: &[Self], eq: &[F128]) -> F128;
-}
-
-impl RowElem for F64 {
-    #[inline]
-    fn dot(row: &[Self], eq: &[F128]) -> F128 {
-        row.iter().zip(eq.iter()).map(|(&r, &e)| e.mul_base(r)).sum()
-    }
-}
-
-impl RowElem for F128 {
-    #[inline]
-    fn dot(row: &[Self], eq: &[F128]) -> F128 {
-        row.iter().zip(eq.iter()).map(|(&r, &e)| r * e).sum()
-    }
-}
-
 fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
     sks_vks
         .iter()
@@ -91,27 +71,12 @@ fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
         .collect()
 }
 
-/// Dense induce: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`,
-/// `enforced_sum = Σ_i w_i · <row_i, eq(v_challenges, ·)>`, for the per-query
-/// batching weights `w` of [`primitives::field::powers`].
+/// Dense induce: `basis_poly[j] = Σ_i w_i · X_j(q_i)`, the queries' column weights batched by `weights`.
 ///
-/// `W-hat_j(q) = Π_k W-hat_k(q)^(bit k of j)` is a K value and a tensor over the
+/// `X_j(q) = Π_k W-hat_k(q)^(bit k of j)` is a K value and a tensor over the
 /// bits of `j`. Split at `lo` bits, `basis_poly[j] = Σ_i (w_i · high_i(j >> lo)) ·
 /// low_i(j mod 2^lo)`: one packed mixed dot over the queries per output.
-pub(crate) fn induce_sumcheck_poly<T: RowElem>(
-    log_msg_cols: usize,
-    sks_vks: &[F64],
-    opened_rows: &[T],
-    v_challenges: &[F128],
-    queries: &[usize],
-    weights: &[F128],
-) -> (Vec<F128>, F128) {
-    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
-    (induce_basis(log_msg_cols, sks_vks, queries, weights), enforced_sum)
-}
-
-/// The basis half of [`induce_sumcheck_poly`]: `basis_poly[j] = Σ_i w_i · W-hat_j(q_i)`.
-fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usize], weights: &[F128]) -> Vec<F128> {
+pub(crate) fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usize], weights: &[F128]) -> Vec<F128> {
     let n_queries = queries.len();
     assert_eq!(weights.len(), n_queries);
     let inv_sks_vks = invert_sks(sks_vks);
@@ -168,24 +133,6 @@ fn extend_tensor_k(out: &mut Vec<F64>, s: &[F64]) {
             out.push(out[j] * x);
         }
     }
-}
-
-/// The `enforced_sum` half of [`induce_sumcheck_poly`]:
-///   `enforced_sum = Σ_i w_i · <opened_rows[i], eq(v_challenges, ·)>`
-fn induce_sumcheck_enforced_sum<T: RowElem>(
-    opened_rows: &[T],
-    v_challenges: &[F128],
-    queries: &[usize],
-    weights: &[F128],
-) -> F128 {
-    let eq = primitives::multilinear::eq_table_serial(v_challenges);
-    assert_eq!(opened_rows.len(), queries.len() * eq.len());
-    debug_assert_eq!(weights.len(), queries.len());
-    let mut sum = F128::ZERO;
-    for (row, &w) in opened_rows.chunks_exact(eq.len()).zip(weights) {
-        sum += w * T::dot(row, &eq);
-    }
-    sum
 }
 
 /// The transposed forward butterfly, applied to each pair of E elements as K words. The forward
@@ -365,24 +312,19 @@ fn transpose_rows<'a>(tile: &mut [F128], k: usize, plan: impl Iterator<Item = &'
     }
 }
 
-/// `F^T`-based fast path for [`induce_sumcheck_poly`]: scatter per-query
+/// `F^T`-based fast path for [`induce_basis`]: scatter per-query
 /// E-weights into the codeword domain, apply `F^T` with K-twiddles, keep the
 /// low `2^log_msg_cols` outputs. Byte-identical output to the dense path
 /// (pinned by `induce_via_ntt_matches_dense`).
-pub(crate) fn induce_sumcheck_poly_via_ntt_base(
+pub(crate) fn induce_basis_via_ntt(
     log_msg_cols: usize,
     log_inv_rate: usize,
-    opened_rows: &[F64],
-    v_challenges: &[F128],
     queries: &[usize],
     weights: &[F128],
-) -> (Vec<F128>, F128) {
+) -> Vec<F128> {
     let log_block = log_msg_cols + log_inv_rate;
-    let enforced_sum = induce_sumcheck_enforced_sum(opened_rows, v_challenges, queries, weights);
-
     let ntt = AdditiveNttF64::standard(log_block);
-    let coeffs = transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_inv_rate);
-    (coeffs, enforced_sum)
+    transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, log_inv_rate)
 }
 
 /// Query density threshold for choosing the sparse NTT over dense expansion.
@@ -395,23 +337,46 @@ pub(crate) fn induce_use_ntt_heuristic(log_msg_cols: usize, log_inv_rate: usize,
     log_msg_cols >= 12 && n_queries > NTT_QUERIES_PER_BLOWUP * (1usize << log_inv_rate)
 }
 
-/// Dispatch between the dense [`induce_sumcheck_poly`] and the sparse
-/// [`induce_sumcheck_poly_via_ntt_base`] for L0 (base-field rows): in the recursive PCS this fires
-/// only at the top level (large message domain, many queries); deeper levels
-/// stay dense. Both paths produce identical output, so a mis-dispatch only
-/// costs time.
-pub(crate) fn induce_sumcheck_poly_auto_base(
+/// Dispatch between the dense [`induce_basis`] and the sparse [`induce_basis_via_ntt`]: in the recursive PCS the
+/// latter fires only at the top level (large message domain, many queries). Both produce identical output, so a
+/// mis-dispatch only costs time.
+pub(crate) fn induce_basis_auto(
     log_msg_cols: usize,
     log_inv_rate: usize,
-    sks_vks: &[F64],
-    opened_rows: &[F64],
-    v_challenges: &[F128],
     queries: &[usize],
     weights: &[F128],
-) -> (Vec<F128>, F128) {
+) -> Vec<F128> {
     if induce_use_ntt_heuristic(log_msg_cols, log_inv_rate, queries.len()) {
-        induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
+        induce_basis_via_ntt(log_msg_cols, log_inv_rate, queries, weights)
     } else {
-        induce_sumcheck_poly(log_msg_cols, sks_vks, opened_rows, v_challenges, queries, weights)
+        induce_basis(log_msg_cols, &eval_sk_at_vks(log_msg_cols), queries, weights)
     }
+}
+
+/// `W-hat_i(x)` for `i <= mu`.
+pub(crate) fn novel_basis_at(x: F64, mu: usize) -> Vec<F64> {
+    let sks_vks = eval_sk_at_vks(mu);
+    let mut out = vec![F64::ZERO; mu + 1];
+    normalized_sks_at(x, &sks_vks, &invert_sks(&sks_vks), &mut out);
+    out
+}
+
+/// `X_c(x)` from `what = W-hat_i(x)` for every bit `i` of `c`.
+#[inline]
+pub(crate) fn novel_x_c(c: usize, what: &[F64]) -> F64 {
+    (0..usize::BITS as usize)
+        .filter(|&i| (c >> i) & 1 == 1)
+        .map(|i| what[i])
+        .product()
+}
+
+/// `sum_j p_high[j] X_(2^mu + j)(x)`, from `what = W-hat_i(x)` for `i <= mu`: what the coefficients from `2^mu` on
+/// add to a polynomial at `x`.
+pub(crate) fn high_part_at(p_high: &[F128], what: &[F64]) -> F128 {
+    let mu = what.len() - 1;
+    p_high
+        .iter()
+        .enumerate()
+        .map(|(j, &p)| p.mul_base(novel_x_c((1 << mu) + j, what)))
+        .sum()
 }

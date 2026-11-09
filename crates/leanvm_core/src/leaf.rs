@@ -127,36 +127,25 @@ pub(crate) fn fingerprint_weights(alphas: &[F128]) -> Vec<F128> {
 /// `2^4` slots of the bytecode encoding (§sec:m3, §sec:e2e-bc).
 pub const N_TUPLE_BITS: usize = 4;
 
-/// Conservative sum of the degree bounds for every random-challenge failure in
-/// the bus argument. A side contains at most `2^mu` leaf factors, each of total
-/// degree `N_TUPLE_BITS` in `α⃗` and one in `β`. The second term covers all
-/// radix-four GKR batching and sumcheck challenges.
-fn soundness_degree_bound(mu: usize) -> u128 {
-    assert!(mu < u128::BITS as usize, "bus layout is too large to bound");
-    let fingerprint = (N_TUPLE_BITS as u128 + 1) * (1u128 << mu);
-    let gkr = 8u128 * (mu as u128 + 1).pow(2);
-    fingerprint + gkr
+/// PoW bits before sampling `(α⃗, β)`, `max(0, μ + 2 - 8)`: Theorem th:product_check's `4·2^μ/|E|` to `2^-SECURITY_BITS`.
+pub fn bus_grinding_bits(mu: usize) -> u32 {
+    let log_error = fingerprint_log_degree(mu) + crate::SECURITY_BITS;
+    log_error.saturating_sub(LOG_E)
 }
 
-fn soundness_bits(mu: usize) -> u32 {
-    let degree = soundness_degree_bound(mu);
-    128u32.saturating_sub(u128::BITS - degree.leading_zeros())
+/// `log2 |E|`.
+const LOG_E: u32 = 128;
+
+/// `⌈log2⌉` of the product check's degree `N_TUPLE_BITS·2^μ`.
+fn fingerprint_log_degree(mu: usize) -> u32 {
+    assert!(mu < 64, "bus layout is too large to bound");
+    ((N_TUPLE_BITS as u128) << mu).next_power_of_two().ilog2()
 }
 
-// TODO(f128 phase 2): bus grinding. The 128-bit field alone falls short of `SECURITY_BITS`;
-// until the bus grinds the deficit, the check below tolerates the 64 bits the field lost.
-const PHASE1_BUS_SLACK: u32 = 64;
-
-/// Check that the 128-bit challenge field supplies the target bus soundness.
-/// Push and pull have the same logical height, and the count product is checked
-/// by the same GKR rather than by a separate root-at-random test.
-fn assert_grinding_unnecessary(
-    push_blocks: &[Block],
-    pull_blocks: &[Block],
-    push: &Layout,
-    pull: &Layout,
-    count: &Layout,
-) {
+/// Check the bus layout's shape and return the grinding bits for its depth. Push and pull
+/// have the same logical height, and the count product is checked by the same GKR rather
+/// than by a separate root-at-random test.
+fn bus_grinding(push_blocks: &[Block], pull_blocks: &[Block], push: &Layout, pull: &Layout, count: &Layout) -> u32 {
     assert_eq!(
         push.mu, pull.mu,
         "push/pull bus blocks are paired, so their layouts match"
@@ -169,10 +158,12 @@ fn assert_grinding_unnecessary(
         .max()
         .unwrap_or(0);
     assert!(widest <= 1 << N_TUPLE_BITS, "a tuple's coordinates index its slots");
+    let bits = bus_grinding_bits(push.mu);
     assert!(
-        soundness_bits(push.mu) + PHASE1_BUS_SLACK >= crate::SECURITY_BITS,
-        "bus layout exceeds the unground F128 soundness budget"
+        fingerprint_log_degree(push.mu) + crate::SECURITY_BITS <= LOG_E + bits,
+        "the ground bus challenges fall short of the soundness target"
     );
+    bits
 }
 
 /// Stack blocks largest-first at aligned offsets; `μ = ⌈log2 Σ 2^{κ_b}⌉`.
@@ -800,7 +791,7 @@ fn sides<'a>(
 
 /// Prove the bus balances; returns the per-column claims to open (§sec:leafstack). `alpha`/
 /// `beta` follow the witness commitment (the only ordering the grand product
-/// needs), and the block structure is public, so no shape is observed.
+/// needs) and the [`bus_grinding_bits`] grind, and the block structure is public, so no shape is observed.
 /// Everything the bus hands on: the framework blocks' column claims,
 /// the shared GKR point (the table sumcheck's eq point), and
 /// per side the tables' linear forms plus what each is claimed to sum to.
@@ -829,7 +820,7 @@ pub(crate) fn prove_balance(
     let push_lay = layout(push);
     let pull_lay = layout(pull);
     let mut count_lay = layout(count);
-    assert_grinding_unnecessary(push, pull, &push_lay, &pull_lay, &count_lay);
+    ps.grind(bus_grinding(push, pull, &push_lay, &pull_lay, &count_lay));
     let alphas: Vec<F128> = (0..N_TUPLE_BITS).map(|_| ps.sample()).collect();
     let w = fingerprint_weights(&alphas);
     let count_w = fingerprint_weights(&[F128::ZERO; N_TUPLE_BITS]);
@@ -1129,14 +1120,13 @@ mod tests {
         }
     }
 
-    /// The bound is `(N_TUPLE_BITS + 1)·2^mu` plus the GKR terms: only the bus
-    /// DEPTH costs bits now, the multilinear fingerprint having fixed each factor's
-    /// degree at four in `α⃗` and one in `β`, whatever the tuple's width.
+    /// Only the bus depth costs bits: the multilinear fingerprint fixes each factor's degree
+    /// at four, whatever the tuple's width.
     #[test]
     fn bus_soundness_tracks_depth_only() {
-        assert_eq!(soundness_bits(38), 87);
-        assert_eq!(soundness_bits(61), 64);
-        assert!(soundness_bits(61) + PHASE1_BUS_SLACK >= crate::SECURITY_BITS);
-        assert!(soundness_bits(62) + PHASE1_BUS_SLACK < crate::SECURITY_BITS);
+        assert_eq!(bus_grinding_bits(6), 0);
+        assert_eq!(bus_grinding_bits(7), 1);
+        assert_eq!(bus_grinding_bits(24), 18);
+        assert_eq!(bus_grinding_bits(38), 32);
     }
 }

@@ -15,7 +15,7 @@ pub struct Proof {
 }
 
 const DS_OBSERVE: u64 = 1;
-const DS_POW_NONCE: u64 = 4;
+pub(crate) const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, its two limbs, a zero lane and a tag.
 const RATE_SCALARS: usize = 4;
 
@@ -56,7 +56,7 @@ impl Sponge {
         self.n_pending = 0;
     }
 
-    fn absorb(&mut self, value: E, tag: u64) {
+    pub(crate) fn absorb(&mut self, value: E, tag: u64) {
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }

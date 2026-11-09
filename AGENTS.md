@@ -14,7 +14,7 @@ A minimal virtual machine and recursive SNARK for signature aggregation and blob
 - `formal/lean_xmss/`, `formal/lean_sphincs/`: Lean 4 (VCVio) proofs of 127-bit classical security in the random-oracle model. Each `Scheme.lean` models every hash input's bytes as the crate computes them, so changing any of them in the crate invalidates the proof. `lake exe cache get` once, then `lake build`.
 - `crates/lean_compiler/zkDSL.md`: the zkDSL, a Python subset that compiles to the ISA.
 
-The one hash function is Ethereum's Keccak-256 (FIPS 202 but for the padding's first byte, `hash::PAD_FIRST`), in `primitives::hash`. The VM's `KECCAK` opcode, one permutation of a state held in thirteen memory cells (`keccak::cell_lanes`), is proven by `crates/keccak_gkr`: its crate docs describe the prover, Annex C the protocol.
+The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*y + 1)` (`primitives::field::F128`, two `K` limbs); a VM word is one `E` element. The one hash function is Ethereum's Keccak-256 (FIPS 202 but for the padding's first byte, `hash::PAD_FIRST`), in `primitives::hash`. The VM's `KECCAK` opcode, one permutation of a state held in thirteen memory cells (`keccak::cell_lanes`), is proven by `crates/keccak_gkr`: its crate docs describe the prover, Annex C the protocol.
 
 ## Layout
 
@@ -93,7 +93,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 ## Three verifiers, one protocol
 
-The verification algorithm is written out three times, and any change to the protocol lands in all three. `verifier::TAG`, the version string the Fiat-Shamir IV hashes (nothing derives it), and every Fiat-Shamir label stay at `v1` until leanVM ships on Ethereum.
+The verification algorithm is written out three times, and any change to the protocol lands in all three. Every verifier message is held to `2^-120` round-by-round error after its grind (`SECURITY_BITS`), and the PCS folds with the affine combiner of Chiesa, Yogev, Weissenberg and Zheng (a private preprint: cite it as [CYWZ26, preprint], never link it), Annex B of the document. `verifier::TAG`, the version string the Fiat-Shamir IV hashes (nothing derives it), and every Fiat-Shamir label stay at `v1` until leanVM ships on Ethereum.
 
 1. **Rust**, `crates/verifier`: the one native verifier, what `EthereumProof::verify` and `cpu::verify` run. It must stay portable by construction: no dependencies, no `unsafe`, no `core::arch`, no `cfg(target_arch)`, no threads. Pinned by `leanvm_core/tests/verifiers/portable_verifier.rs` and every test that verifies.
 2. **Python**, `python-verifier/verifier.py` (no dependencies), for readability. Pinned by `leanvm_core/tests/verifiers/python_verifier.rs`.
@@ -113,7 +113,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 
 - **The prover can be memory-bandwidth bound.** Reduce memory traffic before assuming more workers or fewer instructions help. `primitives::stream::Stream` stores without the read-for-ownership, but only pays where nothing reads the destination again before it is evicted; on Apple silicon it is a plain copy.
 - **NEON is the width ceiling on Apple silicon** (no SVE; SME2 has no polynomial multiply), so an AVX-512 win that is purely width does not port. Shape does: NEON wants a butterfly at a time over whole rows, not the register-resident tiles of the AVX-512 arms.
-- **A `[F192; N]` in a NEON kernel spills** where on AVX-512 it is one register. Keep quads as tuples or named values; arrays only inside the batched-product helpers (`primitives::field::mul4`), on the target that wants them.
+- **A `[F128; N]` in a NEON kernel spills** where on AVX-512 it is one register. Keep quads as tuples or named values; arrays only inside the batched-product helpers (`primitives::field::mul4`), on the target that wants them.
 - **Rebuild or store is a per-machine choice**, made once in `primitives::REBUILD_OVER_STORE`: x86 rebuilds an intermediate, Apple silicon stores it. A new trade of that kind takes its choice from the same constant.
 - **A hot NEON helper that is `#[inline(always)]` stays so.** A `#[target_feature]` function cannot be forced inline, and LLVM then leaves field helpers out of line in hot loops. Split a product's halves by hand rather than with `array::map`. A helper that needs `unsafe` is an `unsafe fn` its callers wrap.
 - **On Zen 4, 512-bit cross-lane moves are half-rate**: prefer kernels where both qwords of every 128-bit lane carry a product and nothing crosses lanes.
@@ -122,10 +122,10 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 - **Fiat-Shamir:** `ProverState::add_scalar` and `Transcript::next_scalar` bind into the transcript as a side effect, and the public statement seeds it at construction. Never re-observe data that rode the stream.
 - **Prover and verifiers derive the layout identically** from announced sizes: a change to `placements_of` or the schema lands in the prover and all three verifiers (`crates/verifier`'s `layout.rs` is the native one). `col_kappas` is derived from `col_kappa_sources`; keep it that way.
 - **The opening's lane fold binds the committed witness's top variables** (`whir::commit` documents the layout), so every verifier rotates the terminal point left by `INITIAL_FOLDING_FACTOR` before evaluating the basis, while every other read of the opening's point stays in round order.
-- **A failed guest `assert` surfaces as a write-once conflict** naming the function and source line. A conflict that `had 0:0:0` can instead be an ordering bug: a cell read before it was written.
+- **A failed guest `assert` surfaces as a write-once conflict** naming the function and source line. A conflict that `had 0:0` can instead be an ordering bug: a cell read before it was written.
 - **Guests are single-file**; the compiler skips `from snark_lib import *`, which exists only for editors.
-- **One symbol, one meaning, across the leanVM document**, defined in `preamble/macros.tex` (check a letter is free first; Annex B's "Symbols" table maps its letters to WHIR/Ligerito/BCHKS25). A sumcheck challenge is `\fc`, keeping `\rho` for the rate. A rename in the document is a rename in the Rust prover, `crates/verifier`, `verifier.py` and the guest, which name their variables after it.
-- **Doc labels are an API**: crates cite `thm:rbr`, `thm:mca-johnson` and sections of `doc/leanvm/main.tex` by label, and `body/NN-*.tex` prefixes match section numbers.
+- **One symbol, one meaning, across the leanVM document**, defined in `preamble/macros.tex` (check a letter is free first; Annex B's "Symbols" table maps its letters to WHIR/Ligerito/CYWZ26). A sumcheck challenge is `\fc`, keeping `\rho` for the rate. A rename in the document is a rename in the Rust prover, `crates/verifier`, `verifier.py` and the guest, which name their variables after it.
+- **Doc labels are an API**: crates cite `thm:rbr`, `thm:mca-affine` and sections of `doc/leanvm/main.tex` by label, and `body/NN-*.tex` prefixes match section numbers.
 - **Comments only where necessary**, and concise. **Never put a measurement in a comment, a doc comment, or this file**: it goes stale and nothing rechecks it. Measurements belong in the commit message. A comment may say which way a result went and why, never by how much.
 - **Commit only tests useful against future regressions.** Simpler is better.
 - **No em-dashes or en-dashes** in prose anywhere a human reads it. **Never hard-wrap prose** in Markdown or LaTeX: one paragraph is one line.

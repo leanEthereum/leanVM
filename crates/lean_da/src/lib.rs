@@ -18,7 +18,7 @@ mod membership;
 
 pub use commit::{DaWitness, commit, commit_codewords, padding_root};
 pub use encode::encode_rows;
-pub use membership::subspace_above;
+pub use membership::{DA_GRINDING_BITS, membership_challenge, subspace_above};
 
 /// Payload symbols per blob, as a logarithm (128 KiB).
 pub const DA_LOG_K: usize = 14;

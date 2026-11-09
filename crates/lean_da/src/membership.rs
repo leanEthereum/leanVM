@@ -11,15 +11,34 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
 //! of degree below `k`. A uniform challenge accepts it with probability at most
-//! `(k-1)/2^128`. The verifier crate derives `z` from the root, outside the SNARK, and the
-//! statement binds it; the guest builds `L` from `z` and checks the inner products.
+//! `(k-1)/2^128`, which [`DA_GRINDING_BITS`] of grinding lift to `2^-120`. `z` is derived from
+//! the root outside the SNARK, and the statement binds it; the guest builds `L` from `z` and
+//! checks the inner products.
 
-// TODO(f128 phase 2): `(k-1)/2^128` is below 120 bits at `k = 2^14`; the LeanDA challenge needs a margin.
-
+use fiat_shamir::{digest_words, merkle::Hash, transcript::ProverState};
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::F64;
+use pcs::whir_config::SECURITY_BITS;
+use primitives::field::{F64, F128};
+use primitives::hash::hash;
 
-use crate::{DA_LOG_K, LOG_M};
+use crate::{BLOB_SYMBOLS, DA_LOG_K, LOG_M};
+
+const LABEL: &[u8] = b"leanDA/rs-membership/v1";
+
+/// PoW bits ground before `z`: `⌈log2(k - 1)⌉ - (128 - SECURITY_BITS)`.
+pub const DA_GRINDING_BITS: u32 = (BLOB_SYMBOLS - 1)
+    .next_power_of_two()
+    .ilog2()
+    .saturating_sub(128 - SECURITY_BITS as u32);
+
+/// `z`: the VM's transcript seeded with the label's hash as its IV and the root as its public
+/// input, ground with the smallest valid nonce (the search is the grind: every party redoes it,
+/// so nothing travels), then squeezed once.
+pub fn membership_challenge(root: &Hash) -> F128 {
+    let mut transcript = ProverState::new(digest_words(&hash(LABEL)), digest_words(root));
+    transcript.grind(DA_GRINDING_BITS);
+    transcript.sample()
+}
 
 /// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
 /// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
@@ -77,6 +96,11 @@ mod tests {
     /// The claim the whole check rests on: over an F_2-subspace domain at rate
     /// 1/2 the code is self-dual, so any two codewords are orthogonal. If this
     /// fails, `check_membership` is testing the wrong relation.
+    #[test]
+    fn grinding_bits_at_k_2_14() {
+        assert_eq!(DA_GRINDING_BITS, 6);
+    }
+
     #[test]
     fn code_is_self_dual() {
         let mut rng = StdRng::seed_from_u64(3);

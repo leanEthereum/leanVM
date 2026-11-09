@@ -8,6 +8,8 @@
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
 //! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: profile]
+//! PCS_POINT_CLAIMS   point claims, each on its own quarter of the witness after the first [default 1]
+//! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
 //! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)
 //!
 //! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p pcs --bench throughput
@@ -20,7 +22,7 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
-use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
     field::{F64, F128},
@@ -47,15 +49,30 @@ fn main() {
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
     let point: Vec<F128> = rng.ext_vec(log_n);
     let target = inner_product_base_ext(&witness, &eq_table_serial(&point));
-    // One point claim over the whole witness and no ring-switched claim: the opener's work shape.
-    let claims = [StackClaim::Point {
+    // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
+    let mut claims = vec![StackClaim::Point {
         offset: 0,
         low_point: point,
         value: target,
     }];
+    for c in 1..env_usize("PCS_POINT_CLAIMS", 1) {
+        let offset = (c % 4) << (log_n - 2);
+        let low_point = rng.ext_vec(log_n - 2);
+        let value = inner_product_base_ext(&witness[offset..offset + (n >> 2)], &eq_table_serial(&low_point));
+        claims.push(StackClaim::Point {
+            offset,
+            low_point,
+            value,
+        });
+    }
     let ring = RingSwitchOpen {
         offset: 0,
-        claims: Vec::new(),
+        claims: (0..env_usize("PCS_RING_CLAIMS", 0))
+            .map(|_| RingSwitchClaim {
+                suffix_point: rng.ext_vec(log_n - 1),
+                s_hat_v: None,
+            })
+            .collect(),
     };
 
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());

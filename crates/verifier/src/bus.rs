@@ -78,6 +78,12 @@ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
     }
 }
 
+/// The bus's challenges fail with probability at most `4 * 2^mu / |E|`, `mu` the log of the stacked leaves, so
+/// grinding closes the gap to the 120-bit target.
+fn bus_grinding_bits(mu: usize) -> u32 {
+    (mu + 2).saturating_sub(8) as u32
+}
+
 pub struct ColumnClaim {
     pub column: usize,
     pub point: Vec<E>,
@@ -109,6 +115,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     let pull_layout = bus_layout(&framework_log_rows, &layout.pull);
     let count_layout = bus_layout(&[], &layout.count);
 
+    transcript.grind_check(bus_grinding_bits(push_layout.depth))?;
     let alphas = transcript.samples(BUS_BITS);
     let weights = eq_kernel(&alphas);
     let beta = transcript.sample();

@@ -572,6 +572,8 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     pull_layout = bus_layout(framework_log_rows, layout.pull)
     count_layout = bus_layout((), layout.count)
 
+    # The challenges fail with probability at most 4 * 2^mu / |E|, mu the log of the stacked leaves: grinding closes the gap to 120 bits.
+    transcript.grind_check(max(0, push_layout.depth + 2 - 8))
     alphas = transcript.samples(BUS_BITS)
     weights = eq_kernel(alphas)
     beta = transcript.sample()
@@ -1029,11 +1031,14 @@ RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 3
 RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR = 1
 RESIDUAL_MAX_LOG = 5
 QUERY_GRINDING_BITS = 17
+FOLD_GRINDING_BITS = 4  # before each round's theta, and again before its (gamma, alpha, beta)
+BATCH_GRINDING_BITS = 7  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
+OOD_GRINDING_BITS = 15  # before each non-final level's out-of-domain point
 
 MIN_STACKED_LOG = 15
 MAX_STACKED_LOG = 28
 
-WHIR_QUERIES = (((222,55), (223,56,30), (223,56,31), (223,56,32), (223,56,32), (223,56,32,22), (223,56,32,22), (224,56,32,23), (224,56,32,23), (224,56,32,23,17), (224,56,32,23,17), (224,56,32,23,18), (225,56,32,23,18), (225,56,32,23,18,14)), ((111,45), (112,45,27), (112,45,28), (112,45,28), (112,45,28), (112,45,28,20), (112,45,28,20), (112,45,28,21), (112,45,28,21), (112,45,28,21,16), (112,45,28,21,16), (112,45,28,21,16), (112,45,28,21,16), (112,45,28,21,16,13)), ((75,37), (75,37,24), (75,37,25), (75,38,25), (75,38,25), (75,38,25,18), (75,38,25,19), (75,38,25,19), (75,38,25,19), (75,38,25,19,15), (75,38,25,19,15), (75,38,25,19,15), (75,38,25,19,15), (75,38,25,19,15,13)), ((56,32), (56,32,22), (56,32,22), (56,32,23), (56,32,23), (56,32,23,17), (56,32,23,17), (56,32,23,18), (56,32,23,18), (56,32,23,18,14), (56,32,23,18,14), (56,32,23,18,14), (56,32,23,18,15), (56,32,23,18,15,12)))  # fmt: skip
+WHIR_QUERIES = (((224,59), (218,57,39), (216,55,36), (216,54,34), (216,53,32), (217,53,31,25), (217,53,31,24), (218,52,31,23), (218,52,30,22), (219,52,30,22,19), (219,52,30,22,18), (220,52,30,21,17), (220,52,30,21,17), (220,52,30,21,17,15)), ((109,46), (109,45,33), (109,44,31), (109,43,29), (109,43,28), (110,42,27,23), (110,42,27,21), (110,42,27,21), (110,42,27,20), (111,42,26,20,17), (111,42,26,20,17), (112,42,26,20,16), (112,42,26,19,16), (112,42,26,19,16,14)), ((73,38), (73,37,29), (73,36,27), (74,36,26), (74,35,25), (74,35,24,21), (74,35,24,20), (75,35,24,19), (75,35,24,18), (75,35,24,18,16), (75,35,24,18,15), (76,35,23,18,15), (76,35,23,18,15), (76,35,23,18,15,13)), ((55,32), (56,31,25), (56,31,24), (56,31,23), (56,30,22), (57,30,22,19), (57,30,22,18), (57,30,21,17), (57,30,21,17), (58,30,21,17,15), (58,30,21,17,14), (59,30,21,17,14), (59,30,21,16,14), (59,30,21,16,14,12)))  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -1077,14 +1082,6 @@ def sample_queries(transcript: Transcript, block_length: int, count: int) -> lis
     return result
 
 
-def _enforced_sum(rows: Sequence[Sequence[K | E]], folds: Sequence[E], query_weights: Sequence[E]) -> E:
-    lane_weights = eq_kernel(folds)
-    total = ZERO
-    for query_weight, row in zip(query_weights, rows, strict=True):
-        total += query_weight * dot(row, lane_weights)
-    return total
-
-
 def _subspace_roots(log_n: int) -> list[E]:
     roots = [ONE]
     layer = [E(2**i) for i in range(1, log_n + 1)]
@@ -1092,6 +1089,52 @@ def _subspace_roots(log_n: int) -> list[E]:
         layer = [value**2 + roots[-1] * value for value in layer]
         roots.append(layer.pop(0))
     return roots
+
+
+def _subspace(mu: int) -> list[tuple[E, E]]:
+    """Each `W_i(beta_i)` for `i <= mu`, with its inverse."""
+    return [(root, root.inv()) for root in _subspace_roots(mu)]
+
+
+def _normalized_subspace(subspace: Sequence[tuple[E, E]], x: E) -> list[E]:
+    """`What_i(x) = W_i(x) / W_i(beta_i)` for every root given, by `W_(i+1) = W_i^2 + W_i(beta_i) W_i`."""
+    values = []
+    basis = x
+    for root, inverse in subspace:
+        values.append(basis * inverse)
+        basis = basis**2 + root * basis
+    return values
+
+
+def _novel_eval(coefficients: Sequence[E], what: Sequence[E]) -> E:
+    """`P(x) = sum_c p_c X_c(x)`, `X_c(x) = prod_(i: c_i = 1) What_i(x)` (Annex D's novel basis)."""
+    total = ZERO
+    for c, p in enumerate(coefficients):
+        basis = ONE
+        for i, value in enumerate(what):
+            if c >> i & 1:
+                basis *= value
+        total += p * basis
+    return total
+
+
+@dataclass(frozen=True)
+class FoldRound:
+    """The challenges of one fold round that act on the oracle: `P = G + (alpha + beta X)(F + theta G)`."""
+
+    theta: E
+    alpha: E
+    beta: E
+
+
+def _fold_row(values: Sequence[K | E], x: E, rounds: Sequence[FoldRound]) -> E:
+    """One opened row, its lanes in eq_kernel order, folded at its domain point `x` round by round as the prover
+    folds the lanes, `F` and `G` the lanes `2m` and `2m + 1` ([CYWZ26, preprint], Corollary 5.2)."""
+    for r in rounds:
+        affine = r.alpha + r.beta * x
+        values = [g + affine * (f + r.theta * g) for f, g in zip(values[0::2], values[1::2], strict=True)]
+    require(len(values) == 1, "one round per lane variable")
+    return E.lift(values[0])
 
 
 def _induced_weight(message_log: int, queries: Sequence[int], query_weights: Sequence[E], point: Sequence[E]) -> E:
@@ -1102,22 +1145,19 @@ def _induced_weight(message_log: int, queries: Sequence[int], query_weights: Seq
     the level's batching challenge.
     """
     require(len(point) == message_log, "bad induced-basis dimensions")
-    roots = _subspace_roots(message_log)
-    inverses = [value.inv() if value else ZERO for value in roots]
+    subspace = _subspace(message_log)[:message_log]
     total = ZERO
     for weight, query in zip(query_weights, queries, strict=True):
-        basis = E(query)
         product = weight
-        for coordinate, challenge in enumerate(point):
-            product *= ONE + challenge * (ONE + basis * inverses[coordinate])
-            basis = basis**2 + roots[coordinate] * basis
+        for challenge, value in zip(point, _normalized_subspace(subspace, E(query)), strict=True):
+            product *= ONE + challenge * (ONE + value)
         total += product
     return total
 
 
 @dataclass(frozen=True)
 class GluedClaim:
-    """One claim folded into the running sumcheck, and the weight it owes back.
+    """One claim glued into the running claim, and the weight it owes back.
 
     A level's batched queries and an out-of-domain claim differ only in that
     weight: both are a power of the level's lambda times a function of the
@@ -1125,86 +1165,91 @@ class GluedClaim:
     """
 
     scalar: E  # the power of lambda it was glued with
-    fold_start: int  # how many fold challenges preceded the level
+    fold_start: int  # how many gammas preceded the level
     weight_at: Callable[[Sequence[E]], E]
 
 
 def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E, root: Digest, evaluate_basis: Callable[[Sequence[E]], E]) -> None:
-    """Verify the base-field multilevel opening with a one-point terminal check."""
+    """Verify the base-field multilevel opening with a one-point terminal check.
+
+    A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X)(F + theta G)` of [CYWZ26, preprint],
+    the claim carried by five scalars a round and the weight folded by `gamma`, so the gammas are the weight's point.
+    A non-final level then commits the folded lane's low part, sends its high part, and glues an OOD claim and its
+    queries, each opened row folded as the lanes were and corrected by the high part. The final level sends the whole
+    folded lane, checks the queries against it, and closes with a sumcheck over the low part."""
     config = derive_config(log_n, log_inv_rate)
     levels = len(config.folds)
 
-    running_quad = transcript.sumcheck_round_poly(3, target)
-    folds: list[E] = []
+    claim = target
+    gammas: list[E] = []
     glued: list[GluedClaim] = []
     current_root = root
 
     for level, (fold_count, level_rate) in enumerate(zip(config.folds, config.log_inv_rates, strict=True)):
-        level_folds: list[E] = []
+        rounds: list[FoldRound] = []
         for _ in range(fold_count):
-            challenge = transcript.sample()
-            folds.append(challenge)
-            level_folds.append(challenge)
-            running_quad = transcript.sumcheck_round_poly(3, poly_eval(running_quad, challenge))
+            transcript.grind_check(FOLD_GRINDING_BITS)
+            theta = transcript.sample()
+            u0, v0, c0, v1, c1 = transcript.next_scalars(5)
+            u1 = claim + v0 + theta * u0  # the F lanes' share `v0 + theta u0` and the G lanes' `u1` make up the claim
+            transcript.grind_check(FOLD_GRINDING_BITS)
+            gamma, alpha, beta = transcript.samples(3)
+            claim = (ONE + gamma) * (u0 + alpha * v0 + beta * c0) + gamma * (u1 + alpha * v1 + beta * c1)
+            gammas.append(gamma)
+            rounds.append(FoldRound(theta, alpha, beta))
 
-        message_log = log_n - len(folds)
-        final_level = level == levels - 1
-        # The level's claims, held until its batching challenge is drawn: the
-        # OOD claims first, then the query batch (Annex B, Protocol 1 step 1).
-        pending: list[tuple[Sequence[E], Callable[[Sequence[E]], E]]] = []
-        if final_level:
-            residual = tuple(transcript.next_scalars(2**message_log))
-        else:
-            next_root = Digest.from_halves(*transcript.next_scalars(2))
-            ood_point = tuple(transcript.samples(message_log))
-            ood_value = transcript.next_scalar()
-            pending.append((transcript.sumcheck_round_poly(3, ood_value), lambda x, z=ood_point: eq_eval(z, x)))
-
-        transcript.grind_check(QUERY_GRINDING_BITS)
-        block_length = 2 ** (message_log + level_rate)
-        queries = sample_queries(transcript, block_length, config.queries[level])
-        # One batching challenge per level, drawn once every claim it batches is
-        # fixed: the OOD claims above and these query positions.
-        lam = transcript.sample()
-        query_weights = powers(lam, len(queries))
-        # Level 0 committed the K witness, one leaf word per lane; every deeper
+        mu = log_n - len(gammas)
+        subspace = _subspace(mu)
+        block_length = 2 ** (mu + level_rate)
+        # Level 0 committed the K witness, one leaf word per lane, its lanes in eq_kernel order reversed; every deeper
         # level a folded E one, two words per lane.
         lanes = 2**fold_count
-        words = transcript.merkle(current_root, block_length, queries, lanes if level == 0 else 2 * lanes)
-        rows: list[Sequence[K | E]] = [tuple(reversed(row)) for row in words] if level == 0 else [_ext_row(row) for row in words]
-        enforced = _enforced_sum(rows, level_folds, query_weights)
+        words = lanes if level == 0 else 2 * lanes
 
-        # Every commitment, including the last one, enters through an intro
-        # message; the level's claims are then batched with powers of `lam`,
-        # the running claim keeping lam^0 = 1.
-        batch = (message_log, tuple(queries), tuple(query_weights))
-        pending.append((transcript.sumcheck_round_poly(3, enforced), lambda x, b=batch: _induced_weight(*b, x)))
-        scalar = ONE
-        for intro, weight_at in pending:
-            scalar *= lam
-            running_quad = [q + scalar * i for q, i in zip(running_quad, intro, strict=True)]
-            glued.append(GluedClaim(scalar, len(folds), weight_at))
+        def lanes_of(row: Sequence[K], level: int = level) -> Sequence[K | E]:
+            return tuple(reversed(row)) if level == 0 else _ext_row(row)
 
-        if final_level:
-            # Finish the remaining sumcheck rounds and close on one evaluation
-            # of every basis at the resulting point.
-            tail_folds: list[E] = []
-            for round_index in range(message_log):
-                challenge = transcript.sample()
-                running_target = poly_eval(running_quad, challenge)
-                tail_folds.append(challenge)
-                if round_index + 1 < message_log:
-                    running_quad = transcript.sumcheck_round_poly(3, running_target)
-            # Each glued claim is rebound at the terminal point: the fold
-            # challenges its level fixed after it was made, then the tail.
-            point = folds + tail_folds
+        if level == levels - 1:
+            folded = transcript.next_scalars(2**mu + fold_count)
+            transcript.grind_check(QUERY_GRINDING_BITS)
+            queries = sample_queries(transcript, block_length, config.queries[level])
+            for query, row in zip(queries, transcript.merkle(current_root, block_length, queries, words), strict=True):
+                x = E(query)
+                value = _fold_row(lanes_of(row), x, rounds)
+                require(value == _novel_eval(folded, _normalized_subspace(subspace, x)), "WHIR final query does not match the final polynomial")
+            tail, claim = sumcheck(transcript, claim, 3, [None] * mu)
+            # Each glued claim is rebound at the terminal point: the gammas its
+            # level drew after it was made, then the tail.
+            point = gammas + list(tail)
             lane_folds = config.folds[0]
             weight = evaluate_basis(point[lane_folds:] + point[:lane_folds])
-            for claim in glued:
-                weight += claim.scalar * claim.weight_at(folds[claim.fold_start :] + tail_folds)
-            terminal = weight * multilinear_eval(residual, tail_folds)
-            require(terminal == running_target, "WHIR terminal check failed")
+            for glued_claim in glued:
+                weight += glued_claim.scalar * glued_claim.weight_at(point[glued_claim.fold_start :])
+            require(weight * multilinear_eval(folded[: 2**mu], tail) == claim, "WHIR terminal check failed")
             return
+
+        next_root = Digest.from_halves(*transcript.next_scalars(2))
+        high = transcript.next_scalars(fold_count)
+        transcript.grind_check(OOD_GRINDING_BITS)
+        ood_point = tuple(transcript.samples(mu))
+        ood_value = transcript.next_scalar()
+        transcript.grind_check(QUERY_GRINDING_BITS)
+        queries = sample_queries(transcript, block_length, config.queries[level])
+        transcript.grind_check(BATCH_GRINDING_BITS)
+        lam = transcript.sample()
+        query_weights = powers(lam, len(queries))
+        # Each row folds to the folded lane at its point; less the high part, `What_mu(x) sum_j p_(2^mu + j) X_j(x)`,
+        # it is the low part's value there, which the column weight reads.
+        batched = ZERO
+        for query, row, query_weight in zip(queries, transcript.merkle(current_root, block_length, queries, words), query_weights, strict=True):
+            x = E(query)
+            what = _normalized_subspace(subspace, x)
+            batched += query_weight * (_fold_row(lanes_of(row), x, rounds) + _novel_eval(high, what) * what[mu])
+        # The OOD claim takes lambda, the query batch lambda^2 times its own powers of lambda.
+        claim += lam * ood_value + lam**2 * batched
+        glued.append(GluedClaim(lam, len(gammas), lambda x, z=ood_point: eq_eval(z, x)))
+        batch = (mu, tuple(queries), tuple(query_weights))
+        glued.append(GluedClaim(lam**2, len(gammas), lambda x, b=batch: _induced_weight(*b, x)))
         current_root = next_root
 
     raise VerificationError("WHIR verification ended without a terminal level")
@@ -1444,6 +1489,7 @@ def ring_switch(point: MultilinearPoint, s: Sequence[E], transcript: Transcript)
 
     Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
     MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure."""
+    transcript.grind_check(BATCH_GRINDING_BITS)  # one grind covers the map and the stacked opening's lambda
     challenges = transcript.samples(2 * RING_MAP_WIDTH)
     f, g = challenges[:RING_MAP_WIDTH], challenges[RING_MAP_WIDTH:]
     # The same map as a Frobenius sum, `Phi(v) = sum_k c_k v^(2^k)` for k < 64: `c_(8a+b) = g_b f_a^(2^b)`.
@@ -1455,6 +1501,8 @@ def ring_switch(point: MultilinearPoint, s: Sequence[E], transcript: Transcript)
 # Stacked opening -------------------------------------------------------------
 
 
+MAX_STACKED_CLAIMS = 512  # the batching's soundness is accounted for up to this many claims
+
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
@@ -1462,6 +1510,7 @@ def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int,
     """Discharge every claim on the committed stack in one opening: the same powers of one challenge
     batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
     """
+    require(len(claims) <= MAX_STACKED_CLAIMS, "too many stacked claims")
     weights, values = zip(*claims, strict=True)
     scales = powers(transcript.sample(), len(claims))
     verify_whir(transcript, stack_log, log_inv_rate, dot(scales, values), root, lambda point: dot(scales, [weight(point) for weight in weights]))
