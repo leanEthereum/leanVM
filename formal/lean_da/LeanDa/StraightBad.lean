@@ -9,23 +9,28 @@ public import LeanDa.WithHash
 /-!
 # The straight-line world and its bad events
 
-The world of the straight-line proof of code binding (`LeanDa.Straight`): `H` and the challenges
-`G` two lazily sampled random oracles, `G` from roots to vectors `E^2` (`VSpec`, the duplex
-lemma's world with the challenges as one oracle of vectors). Its caches are **good**
-(`Good`) when `H` is injective on its cached inputs and, for every root `d` with cached
-challenges `v`, every matrix whose commitment's inputs are all cached, which commits to `d` and
-passes the membership test on `v`, is a codeword.
+The world of the straight-line proof of code binding (`LeanDa.Straight`): `H` and the draws `G`
+two lazily sampled random oracles, `G` on a root and a label (`GSpec`, the duplex lemma's world).
+Its caches are **good** (`Good`) when `H` is injective on its cached inputs and, for every root
+`d` and the draw the nonce search would select so far (`FirstValid`: the first cached nonce's draw
+with a valid proof of work), every matrix whose commitment's inputs are all cached, which commits
+to `d` and passes the membership test on its challenge, is a codeword.
 
 * **A fresh answer of `H` keeps a cache good** unless it collides with a cached answer, is a
-  digest a cached input or the query carries (`chunks`), or is a root with cached challenges
+  digest a cached input or the query carries (`chunks`), or is a root a draw is cached for
   (`good_insertH`): a matrix whose tree the new entry completes would hash a node to a digest an
-  older input already carries. At most `65 N` values for a cache of `N` entries.
-* **Fresh challenges keep a cache good** unless the one matrix committed to the root (`H`
-  injective: `commit_unique`), fixed before the challenges are drawn, is not a codeword and passes
-  the membership test: at most `(2^14 - 1) / 2^128`, the test's soundness (`checker_sound`).
-* So a run of `N` queries, `Q_G` of them of `G`, ends in a bad cache with probability at most
-  `N · 65 N / 2^256 + Q_G · (2^14 - 1) / 2^128` (`prob_not_good_le`, by the bad-event budget with two
-  weights, `prEvent_run_bad_le₂`).
+  older input already carries. At most `65 N` values for a cache of `N` inputs and roots.
+* **A fresh draw keeps a cache good** unless the search would select it, a valid proof of work
+  after no valid cached one, and its challenge accepts the one matrix committed to the root (`H`
+  injective: `commit_unique`), fixed before, which is not a codeword: a valid proof of work and an
+  accepting challenge are independent, at most `2^-11 · (2^14 - 1) / 2^128` (`prob_insertG_le`).
+* So a run of `Q₁` queries, `Q₂` of them of draws, ends in a bad cache with probability at most
+  `Q₁ · 65 N / 2^256 + Q₂ · 2^-11 · (2^14 - 1) / 2^128` (`prob_run_not_good_le`, by the bad-event
+  budget with two weights, `prEvent_run_bad_le₂`).
+* **The verifier's reading of a root's draws**, label by label as the nonce search tries the
+  nonces, spoils a good cache with probability at most `(2^14 - 1) / 2^128` in all
+  (`prob_readVec_not_good_le`): it stops selecting at its first valid draw, whose challenge is
+  uniform whatever the proofs of work.
 * A coin-free computation's run is read off its final cache (`replay_of_mem_support`): replayed
   against the cache as a partial function, it returns the run's result.
 

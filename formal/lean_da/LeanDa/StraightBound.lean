@@ -13,11 +13,11 @@ root (`idealT`) is, for each table `h` of `H`, Wagner's world with the verdict's
 (`idealT_evalDistEq`, the chain of `cbIdealG_evalDistEq`). So a code-binding win, a
 knowledge-soundness break and a true straight-line verdict are three events of one experiment,
 and the first is at most the other two (`prT_cbIdealG_le`, by `postP_imp`). The straight-line
-verdict is a bad cache of the world with the challenges one random oracle of vectors
-(`run'_romImpl_evalDistEq_vec`, `not_good_of_tail`), whose probability is bounded by the
-world's queries (`prob_not_good_le`): at most `2 Q + 2^20` queries, `Q + 2` of them of the
-challenges, for an adversary of `Q` permutation calls and `r ≤ 1024` rows
-(`codeBindingExpG_le`).
+verdict is a bad cache of the world with a random oracle of the draws per root and label
+(`not_good_of_tail`), whose probability is bounded phase by phase (`prob_world_not_good_le`): the
+adversary's at most `2 Q + 1` queries, `Q` of them of draws, by the bad-event budget; the
+verifier's reading of its root's draws, one fresh try; the verdict's hashes, by the budget again
+(`prT_idealT_tailH_le`, `codeBindingExpG_le`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA; the

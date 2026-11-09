@@ -23,13 +23,13 @@ or else whether the first opening that disagrees with `w` verifies.
   `w` is not a codeword. So `Pr[code binding] ≤ Pr[knowledge soundness] + Pr[verdict]`
   (`prT_cbIdealG_le`), the three read through Wagner's world for each table (`idealT_evalDistEq`).
 * **The verdict is a bad cache** (`not_good_of_tail`): in the world of `LeanDa.StraightBad`, a
-  true verdict leaves a cache that is not good: either the root's challenges were drawn when the
-  one matrix committed to it was not a codeword and passes, or `H` collides (the disagreeing
+  true verdict leaves a cache that is not good: either the draw the nonce search selects was drawn
+  when the one matrix committed to the root was not a codeword and passes (with no valid nonce the
+  check is on every challenge, which only codewords pass), or `H` collides (the disagreeing
   opening verifies, `verifyCell_agree`), or a fresh answer of `H` hit a digest already carried
-  (the matrix's tree completed after its challenges).
-* **The bad cache's probability** is `N · 65 N / 2^256 + Q_G · (2^14 - 1) / 2^192` for the world's `N`
-  queries and `Q_G` queries of `G` (`prob_not_good_le`): `N ≤ 2 Q + 2^20` and `Q_G ≤ Q + 2`
-  (`codeBindingExpG_le`).
+  (the matrix's tree completed after the root's draws).
+* **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 +
+  (2^14 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA. The
