@@ -181,7 +181,7 @@ fn fold_row(mut values: Vec<E>, x: K, rounds: &[FoldRound]) -> E {
 
 /// The level's batched query claims, as one weight at `point`.
 ///
-/// Each query contributes the novel-basis column weight of doc annex B, Lemma
+/// Each query contributes the novel-basis column weight of doc annex D, Lemma
 /// lem:colweight, `prod_k (1 + p_k (1 + W-hat_k(x_q)))`, scaled by its power of
 /// the level's batching challenge.
 fn induced_weight(message_log: usize, queries: &[u64], query_weights: &[E], point: &[E]) -> Result<E, VerifierError> {

@@ -12,7 +12,7 @@ Define the following two finite fields:
 We use $\gen = x$, a generator of $\K^{\times}$ (of order $2^{64}-1$).
 
 An element of $\K$ is a polynomial in $x$ of degree below $64$, written in hexadecimal with the coefficient of $x^{i}$ in bit $i$, so $\mathtt{2}$ is $x$ and $\mathtt{3}$ is $x+1$. An element of $\E$ is two of those, its \emph{limbs}, the coefficients on $1$ and $y$. The product is $(a_0+a_1y)(b_0+b_1y)=(a_0b_0+a_1b_1)+(a_0b_1+a_1b_0+x\,a_1b_1)\,y$, since $y^2=xy+1$.
- 
+
 \vspace{5mm}
 
 LeanVM ISA, also known as leanISA, is inspired by Cairo \cite{cairo}. The Virtual Machine takes as input a bytecode (of $2^{\kbc}$ instructions) and some public input $\textsf{input} \in \cube{256} \simeq (\textsf{input}_0, \dots, \textsf{input}_3) \in \K^4$. The Virtual Machine then initializes its two $\K$-valued registers:
@@ -96,6 +96,6 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 \item odd ($1$): cell $0$ holds $(\cdot,0)$, cell $1\le c\le8$ holds $(2c-1,2c)$;
 \item both: cell $9\le c<13$ holds $(2c-1,2c)$.
 \end{itemize}
-The 64-bit of the cell 8 (even) or 0 (odd) (denoted $\cdot$ above) is ignored for the input and set to zero for the output.
+The \emph{free} limb, marked $\cdot$ above (cell $8$ even, cell $0$ odd), is ignored on input and set to zero on output.
 
 

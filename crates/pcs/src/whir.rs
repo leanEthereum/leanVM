@@ -69,7 +69,7 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F128]) -> F128 {
 
 /// Derive the shared prover/verifier config for a K-witness of `2^log_n` F64
 /// elements at L0 inverse-rate logarithm `log_inv_rate`, using the production
-/// 128-bit Johnson/OOD profile at `m = log_n + LOG_PACKING`.
+/// Production Johnson/OOD profile at `m = log_n + LOG_PACKING`.
 pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
     let sec = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)?;
     sec.to_config()
@@ -1009,7 +1009,7 @@ mod tests {
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
-    /// Pin the production 128-bit Johnson/OOD profile rather than the small-
+    /// Pin the production Johnson/OOD profile rather than the small-
     /// size test fallback.
     #[test]
     fn configs_johnson_profile_shape() {

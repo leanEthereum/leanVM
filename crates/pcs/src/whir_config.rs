@@ -20,7 +20,7 @@
 //! - the level-0 list pin after the commitment (`crate::pin`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
 //!   [`PIN_GRINDING_BITS`];
 //! - queries: `((A_end - 1) / n)^t`, after [`QUERY_GRINDING_BITS`];
-//! - tail sumcheck rounds: `2 / q`, after the 1-bit grind of a degree-2 round.
+//! - tail sumcheck rounds: `2 / q`, after the grind of a degree-2 round (`fiat_shamir::grinding_bits(2)`).
 //!
 //! Round-by-round soundness means every entry individually clears [`SECURITY_BITS`]: the Fiat-Shamir error per
 //! random-oracle query is the maximum of the entries, not their sum. Every entry but the queries' is compared with

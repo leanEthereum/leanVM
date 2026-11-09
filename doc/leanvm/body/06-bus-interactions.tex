@@ -29,7 +29,7 @@ A finite balanced multigraph is a union of edge-disjoint closed walks: follow un
 
 \subsection{The lookup protocol}\label{sec:lookup}
 
-We use a similar idea to~\cite[Protocol.~4.27]{DP23}.
+We use a similar idea to~\cite[Protocol~4.27]{DP23}.
 
 \paragraph{Setting.} A \emph{lookup array} $\lut$ holds $2^{\kappa}$ entries, entry $\lut[i]$ being a tuple of $\ncomp$ elements of $\K$. Its \emph{components} $\lut_0,\dots,\lut_{\ncomp-1}$ are the multilinears of height $2^{\kappa}$ holding one coordinate of the entry each: they are either committed or public. A \emph{read} is a row of a table (\S\ref{sec:m3}) naming an address $a\in\K$ and a value $v\in\K^{\ncomp}$, and is correct when $a=\gen^{i}$ and $v=\lut[i]$ for some $i<2^{\kappa}$.
 
@@ -91,7 +91,8 @@ The memory is an array of $2^{\kmem}$ cells, $16\le\kmem\le32$ (\S\ref{sec:vm}).
 The bytecode is an array of $2^{\kbc}$ instructions, $\kbc \le 32$ (\S\ref{sec:e2e-bc}). Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. An instruction is an opcode plus twelve operands, so $\ncomp=13$: with the separator, the address and the count ahead of them, this is the widest entry on the bus at $16$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Coordinate $3$ is the opcode, naming the instruction:
 \[
   \opc{XOR}=\gen^{0},\quad \opc{MUL}=\gen^{1},\quad \opc{SET}=\gen^{2},\quad \opc{DRF}=\gen^{3},\quad \opc{JMP}=\gen^{4},\quad \opc{KEC}=\gen^{5}.
-\] The program is public, i.e. not committed, the verifier can evaluate it directly.
+\]
+The program is public, i.e.\ not committed: the verifier evaluates it directly.
 
 \subsection{The index column}\label{sec:idxcol}
 

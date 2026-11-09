@@ -53,14 +53,14 @@ Split on the top bit $x_{\kappa-1}$. If $n_{\kappa-1}=0$, every $x$ with $x_{\ka
 
 
 \begin{lemma}[Every element outside $\K$ generates $\E$]\label{lem:kbasis}
-For $\alpha\in\E\setminus\K$, the set $\{1,\alpha\}$ is a $\K$-basis of $\E$.
+For $a\in\E\setminus\K$, the set $\{1,a\}$ is a $\K$-basis of $\E$.
 \end{lemma}
 
 \begin{proof}
-A $\K$-relation $c_0+c_1\alpha=0$ with $c_1\neq0$ would put $\alpha=-c_0/c_1$ in $\K$, so $c_1=0$ and then $c_0=0$: the two are $\K$-independent, and two independent elements of a space of $\K$-dimension $[\E:\K]=2$ are a basis.
+A $\K$-relation $c_0+c_1a=0$ with $c_1\neq0$ would put $a=-c_0/c_1$ in $\K$, so $c_1=0$ and then $c_0=0$: the two are $\K$-independent, and two independent elements of a space of $\K$-dimension $[\E:\K]=2$ are a basis.
 \end{proof}
 
-\begin{lemma}[Schwartz--Zippel]\label{lem:sz}
+\begin{lemma}[Schwartz-Zippel]\label{lem:sz}
 A nonzero $P\in\E[X_1,\dots,X_{\kappa}]$ of total degree at most $d$ satisfies
 \[
   \Pr_{r\leftarrow\E^{\kappa}}\bigl[P(r)=0\bigr]\;\le\;\frac{d}{|\E|}.
@@ -105,21 +105,21 @@ By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ t
 \end{definition}
 
 \begin{lemma}[Partially fixed zerocheck~\cite{DT24}]\label{lem:fixed-zerocheck}
-Let $g:\cube{\ell}\times\cube{m}\to\Ftwo$ be a nonzero Boolean multilinear. Fix $a\in\E^{\ell}$ such that the values $\{\eq(a,b):b\in\cube{\ell}\}$ are linearly independent over $\Ftwo$. If $s\leftarrow\E^m$ is sampled uniformly after $g$ is fixed, then
+Let $g:\cube{\ell}\times\cube{\kappa}\to\Ftwo$ be a nonzero Boolean multilinear. Fix $a\in\E^{\ell}$ such that the values $\{\eq(a,b):b\in\cube{\ell}\}$ are linearly independent over $\Ftwo$. If $r\leftarrow\E^{\kappa}$ is sampled uniformly after $g$ is fixed, then
 \[
-  \Pr_s\bigl[\mle{g}(a,s)=0\bigr]\leq\frac{m}{|\E|}.
+  \Pr_r\bigl[\mle{g}(a,r)=0\bigr]\leq\frac{\kappa}{|\E|}.
 \]
 \end{lemma}
 
 \begin{proof}
-Partially evaluate the first $\ell$ variables at $a$. By Fact~\ref{fact:eq}, the resulting multilinear $h:\cube{m}\to\E$ has values
+Partially evaluate the first $\ell$ variables at $a$. By Fact~\ref{fact:eq}, the resulting multilinear $h:\cube{\kappa}\to\E$ has values
 \[
-  h(y)=\mle{g}(a,y)=\sum_{b\in\cube{\ell}}g(b,y)\eq(a,b).
+  h(x)=\mle{g}(a,x)=\sum_{b\in\cube{\ell}}g(b,x)\eq(a,b).
 \]
-Because $g$ is nonzero, there is some $y\in\cube{m}$ for which the coefficients $\{g(b,y):b\in\cube{\ell}\}$ are not all zero. These coefficients lie in $\Ftwo$, so the assumed $\Ftwo$-linear independence of the values $\eq(a,b)$ gives $h(y)\neq0$. Thus $h$ is a nonzero multilinear. Its extension satisfies $\mle{h}(s)=\mle{g}(a,s)$, and Lemma~\ref{lem:sz} gives the claimed probability bound.
+Because $g$ is nonzero, there is some $x\in\cube{\kappa}$ for which the coefficients $\{g(b,x):b\in\cube{\ell}\}$ are not all zero. These coefficients lie in $\Ftwo$, so the assumed $\Ftwo$-linear independence of the values $\eq(a,b)$ gives $h(x)\neq0$. Thus $h$ is a nonzero multilinear. Its extension satisfies $\mle{h}(r)=\mle{g}(a,r)$, and Lemma~\ref{lem:sz} gives the claimed probability bound.
 \end{proof}
 
-\paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq s_{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
+\paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq\rc{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}
 A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ asserting $\inner{W}{g}=c$, with $c\in\E$ and the weight $W:\cube{M}\to\E$ \emph{MLE-friendly}: the verifier can evaluate $\mle{W}$ anywhere in $\mathrm{poly}(M)$ operations. An \emph{inner-product commitment scheme} commits to $g$ and later proves any such claim,
@@ -129,4 +129,4 @@ A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ 
 The commitment is over $\K$, the opening over $\E$. An evaluation claim $\mle{g}(r)=c$ is the case $W=\eq(r,\cdot)$, by Fact~\ref{fact:eq}.
 \end{definition}
 
-We use WHIR~\cite{ACFY25} / Ligerito~\cite{NA25} as inner-product commitment scheme (see annex \ref{annex:pcs}). The two are essentially the same scheme when WHIR is instantiated with an interleaved code and Ligerito with a Reed--Solomon code.
+We use WHIR~\cite{ACFY25} / Ligerito~\cite{NA25}, folding with the affine combiner of~\cite{CYWZ26}, as inner-product commitment scheme (see Annex~\ref{annex:pcs}). The two are essentially the same scheme when WHIR is instantiated with an interleaved code and Ligerito with a Reed-Solomon code.

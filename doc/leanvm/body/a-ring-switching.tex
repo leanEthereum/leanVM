@@ -22,7 +22,7 @@ The weight $W$ and target $T$ are $\E$-valued, the committed values are $\K$-val
 
 What arrives is not of that shape. It is $64$ claimed values $s_i\in\E$, one per bit polynomial, at a point $r\in\E^{\nkeccak}$ they all share.
 \[
-s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nkeccak}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64,
+s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nkeccak}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64.
 \]
 
 Ring switching~\cite{DP24} turns those $64$ claims into a single statement the opening can prove.
