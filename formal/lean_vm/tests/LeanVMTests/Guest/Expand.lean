@@ -19,7 +19,7 @@ def logs : Std.HashMap Nat Nat := Id.run do
     x := x * g
   return m
 
-def wordOf (c : Nat × Nat × Nat) : E := word c.1 c.2.1 c.2.2
+def wordOf (c : Nat × Nat) : E := word c.1 c.2
 
 /-- Expand `p` and run its `main` on the public input `pi` and the witness streams. -/
 def runMain (p : Source.Program) (pi : List E) (streams : List (String × List (List E)) := []) :
@@ -389,7 +389,7 @@ def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
   return (atomsList f.body).all fun
     | .const v x => match off[v]? with
       | some k => code.any fun
-          | .set k' c0 c1 c2 => k' == k && limbsOf x == (c0, c1, c2)
+          | .set k' c0 c1 => k' == k && limbsOf x == (c0, c1)
           | _ => false
       | none => true
     | _ => true
