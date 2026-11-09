@@ -7,7 +7,7 @@
 //! `LEANVM_GUEST_DIFF=<dir> cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored`
 //! writes `<dir>/<case>.txt`.
 //!
-//! The tokens: a field element is its three limbs in hex, a `K` word one hex token, a byte string one hex token, a
+//! The tokens: a field element is its two limbs in hex, a `K` word one hex token, a byte string one hex token, a
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
