@@ -14,8 +14,8 @@ def set_pows(p):
 
 def word_exp(w):
     """The exponent `e` with `constOk w e`: the word is `g^e`, `e < 2^20`."""
-    c0, c1, c2 = w
-    if c1 or c2: return None
+    c0, c1 = w
+    if c1: return None
     e = POWS.get(c0)
     if e is None and c0 > 0 and c0 & (c0 - 1) == 0 and c0 < 2**64: e = c0.bit_length() - 1
     if e is None or e >= 2**20: return None
