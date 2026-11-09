@@ -20,7 +20,8 @@ in bits. With `V = verifierQueries = 13261`:
   `KnowledgeSoundness`: the verifier's `V / 2^256` and the transfer's error are each at most
   `2^-125`, and `Q + V + 2 ≤ Q + 2^14`;
 * `soundnessRpm_le_bits`: for `Q ≤ 2^120`, at most `(Q + 2^14) · 2^-124`;
-* `soundnessRpm_le`: for `Q ≤ 2^64`, at most `2^-60`;
+* `soundnessRpm_le`: for `Q ≤ 2^64`, at most `2^-60`, as `soundnessError Q` alone
+  (`soundnessError_le`);
 * `rpmError_completenessPermCalls_le`: at a fuel of `2^33` nonces per proof of work, the
   completeness transfer's error is at most `2^-257`.
 -/
@@ -55,6 +56,17 @@ theorem rpmError_eq (q : ℕ) :
   rw [rpmError, Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat]
 
 theorem verifierPermCalls_eq : verifierPermCalls = 13261 * 2 ^ 32 := rfl
+
+/-- **The random-oracle soundness error against `2^64` queries**: at most `2^-60`. -/
+theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ℝ≥0∞)⁻¹ ^ 60 := by
+  rw [soundnessError_eq, inv_two_pow_eq_div 60 256 (by norm_num)]
+  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
+  have hN : Q + 13261 ≤ 2 ^ 64 + 13261 := by omega
+  calc (Q + 13261) * (2 ^ 131 + 5 * (Q + 13261)) + 13261
+      ≤ (2 ^ 64 + 13261) * (2 ^ 131 + 5 * (2 ^ 64 + 13261)) + 13261 :=
+        Nat.add_le_add_right (Nat.mul_le_mul hN (Nat.add_le_add_left
+          (Nat.mul_le_mul_left 5 hN) _)) _
+    _ ≤ 2 ^ (256 - 60) := by norm_num
 
 /-- **The knowledge-soundness bound against `2^64` queries**: at most `2^-60`. -/
 theorem soundnessRpm_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) :

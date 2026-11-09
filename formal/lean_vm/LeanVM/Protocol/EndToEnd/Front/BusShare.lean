@@ -266,12 +266,22 @@ theorem shareWeights (x : ShareX) (k : ℕ) (hk : k < (List.replicate 4 (none : 
 
 /-! ## The wire's values -/
 
-/-- The slot weights' extension at the slot point is the program's `dot(eq_kernel(slot), w)`. -/
-theorem dot_eqKernel_eq_evalMle {weights slot : List E} (hw : weights.length = 16)
-    (hs : slot.length = 4) :
+/-- `dot` sums over its left list's indices, the right list read as zero past its end. -/
+theorem dot_eq_sum_left : ∀ (l r : List E),
+    dot l r = ∑ i ∈ Finset.range l.length, l.getD i 0 * r.getD i 0
+  | [], _ => by simp
+  | a :: l, [] => by simp
+  | a :: l, b :: r => by
+    rw [Whir.Complete.dot_cons, dot_eq_sum_left l r, List.length_cons, Finset.sum_range_succ']
+    simp only [List.getD_cons_succ, List.getD_cons_zero]
+    ring
+
+/-- The slot weights' extension at the slot point is the program's `dot(eq_kernel(slot), w)`,
+the weights read as zero past the sixteenth. -/
+theorem dot_eqKernel_eq_evalMle {weights slot : List E} (hs : slot.length = 4) :
     dot (eqKernel slot) weights = evalMle (vecOf (2 ^ 4) weights) (vecOf 4 slot) := by
-  rw [Whir.Complete.dot_eq_sum _ _ (by rw [Whir.Complete.length_eqKernel, hs, hw]; rfl),
-    Whir.Complete.length_eqKernel, hs, evalMle_eq_sum, ← Fin.sum_univ_eq_sum_range]
+  rw [dot_eq_sum_left, Whir.Complete.length_eqKernel, hs, evalMle_eq_sum,
+    ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   rw [mul_comm]
   congr 1
@@ -323,7 +333,7 @@ giving a commitment, the share's sub-program returns, with `P` kept, the total o
 against the bytecode's slot values; each of its four rounds' challenges escapes at `2/|E|`, the
 rounds' leads `roundError 1 2` (`he`), and the follower's lead is `T`. -/
 noncomputable def shareCheckSpec (o₀ : ∀ i, TheOracle I i) {weights low : List E} {words : List K}
-    (hw : weights.length = 16) (hwords : words.length = 2 ^ (low.length + 4))
+    (hwords : words.length = 2 ^ (low.length + 4))
     (P : List Ev → Prop) (hP : ∀ h l, P h → P (h ++ l))
     (hfw : ∀ h, P h → ∃ W, firstWord h = some W) (hT : T ≤ εmax)
     (he : roundError 1 2 + 0 ≤ εmax) :
@@ -376,7 +386,7 @@ noncomputable def shareCheckSpec (o₀ : ∀ i, TheOracle I i) {weights low : Li
       · exact .inl hR
       · right
         intro hv
-        rw [hc, dot_eqKernel_eq_evalMle hw hl, hv] at hR
+        rw [hc, dot_eqKernel_eq_evalMle hl, hv] at hR
         exact hR rfl).bind' fun _ ↦
   (Spec.require (Post := fun _ h ↦ P h ∧ share = shareTotal W B)
     fun h₀ hp hc ↦ by
