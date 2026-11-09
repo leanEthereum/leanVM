@@ -439,9 +439,9 @@ theorem tableSummand_degree (hd : I.d ≤ 2) (ctx : SumcheckRound.Ctx (Data I) (
 /-- The nodes are distinct. -/
 theorem nodes_injective : Function.Injective nodes := by
   have hy : ∀ a : K, y ≠ ofK a := fun a h ↦ by
-    have h1 : Ext.coeff (Ext.gen : E) ⟨1, eParams.two_le⟩ =
-        Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := congrArg (fun z : E ↦ Ext.coeff z _) h
-    rw [Ext.coeff_gen, Ext.coeff_ofBase] at h1
+    have h1 : CompPoly.Extension.Ext.coeff (CompPoly.Extension.Ext.gen : E) ⟨1, eParams.two_le⟩ =
+        CompPoly.Extension.Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := congrArg (fun z : E ↦ CompPoly.Extension.Ext.coeff z _) h
+    rw [CompPoly.Extension.Ext.coeff_gen, CompPoly.Extension.Ext.coeff_ofBase] at h1
     simp at h1
   have y0 : y ≠ 0 := by simpa using hy 0
   have y1 : y ≠ 1 := by simpa using hy 1

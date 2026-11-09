@@ -176,6 +176,12 @@ theorem bind_congr {α β : Type} {Q : α → Prop} {f g : α → VerifierProgra
   | commit _ ih => exact congrArg (VerifierProgram.commit _ _) ih
   | query _ ih => exact congrArg (VerifierProgram.query _ _) (funext ih)
 
+/-- Peel the binds of a program down to its returns, splitting the matches on what it binds. -/
+local macro "allret_chain" : tactic =>
+  `(tactic| repeat (first
+    | refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
+    | split))
+
 theorem allRet_readN : ∀ n : ℕ, AllRet (VerifierProgram.readScalars n) fun xs ↦ xs.length = n
   | 0 => .ret rfl
   | n + 1 => .read fun x ↦
@@ -287,16 +293,7 @@ theorem allRet_verifyBusBalance (ev : List K → List E → E → VerifierProgra
     AllRet (verifyBusBalance ev layout) BusOk := by
   unfold verifyBusBalance
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun r _ ↦ ?_) _ (allRet_true _)
-  obtain ⟨countRoot, point, treeValues⟩ := r
-  dsimp only
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun memory _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
+  allret_chain
   refine .ret ⟨?_, fun c hc ↦ ?_⟩
   · simp only [accumulateSide_length, List.length_map]
   · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc ⊢
@@ -449,17 +446,7 @@ theorem allRet_verifyKeccak (logSteps : ℕ) (inst output : List E) :
   unfold verifyKeccak
   simp only [h1, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.ret_bind]
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
+  allret_chain
   refine .ret ?_
   intro c hc
   simp only [List.mem_singleton] at hc
@@ -631,6 +618,7 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
   simp only [VerifierProgram.bind_eq]
   refine bind_congr (Q := fun x ↦ LayoutOk x.1) (fun x hl ↦ ?_) _ (allRet_readSizes bytecode)
   refine bind_congr (Q := fun _ ↦ True) (fun _ _ ↦ ?_) _ (allRet_true _)
+  refine bind_congr (Q := fun _ ↦ True) (fun ood _ ↦ ?_) _ (allRet_true _)
   refine bind_congr (fun bus hb ↦ ?_) _ (allRet_verifyBusBalance ev x.1)
   rw [tablePhaseClaims_eq, VerifierProgram.bind_assoc]
   refine bind_congr (fun rows hr ↦ ?_) _ (allRet_tablePhase hl hb)
@@ -656,7 +644,7 @@ theorem verifyExecution_claims (ev : List K → List E → E → VerifierProgram
   have hfm := filterMap_onStack hl _ hlt
   rw [List.filter_append,
     (List.filter_eq_self (l := r.1)).mpr fun c hc ↦ by rw [hout c hc]; decide] at hfm
-  exact congrArg (fun l ↦ verifyStackedOpening x.1.stackLog x.2 (_ :: l)) hfm
+  exact congrArg (fun l ↦ verifyStackedOpening x.1.stackLog x.2 (_ :: l ++ [ood])) hfm
 
 
 /-- The verifier program on the claim-list form. -/
