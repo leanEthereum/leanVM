@@ -703,6 +703,7 @@ class Layout:
     count: tuple[BusBlock, ...]
     placements: tuple[Placement | None, ...]  # None for a column nothing commits: the KECCAK output lanes
     stack_log: int
+    committed_lanes: int  # the level-0 lanes that carry data: the placed columns rounded up to a whole lane
     table_log_heights: tuple[int, ...]
 
 
@@ -1013,6 +1014,7 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
+    committed_lanes = max(1, -(-sum(2**kappa for kappa in blocks.values()) // 2 ** (stack_log - INITIAL_FOLDING_FACTOR)))
 
     def placement(column: int, kappa: int) -> Placement | None:
         if (slot := slots[column]) is not None:
@@ -1020,7 +1022,18 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
         return None if column in outputs else Placement(kappa, offsets[column])
 
     placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
-    return Layout(log_memory, log_bytecode, bytecode, tuple(push), tuple(pull), tuple(count), tuple(placements), stack_log, tuple(table_log_heights))
+    return Layout(
+        log_memory,
+        log_bytecode,
+        bytecode,
+        tuple(push),
+        tuple(pull),
+        tuple(count),
+        tuple(placements),
+        stack_log,
+        committed_lanes,
+        tuple(table_log_heights),
+    )
 
 
 # WHIR opening ----------------------------------------------------------------
@@ -1032,13 +1045,13 @@ RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR = 1
 RESIDUAL_MAX_LOG = 5
 QUERY_GRINDING_BITS = 17
 FOLD_GRINDING_BITS = 4  # before each round's theta, and again before its (gamma, alpha, beta)
-BATCH_GRINDING_BITS = 7  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
-OOD_GRINDING_BITS = 15  # before each non-final level's out-of-domain point
+BATCH_GRINDING_BITS = 9  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
+OOD_GRINDING_BITS = 15  # before each non-final level's out-of-domain point, and before the level-0 list pin
 
 MIN_STACKED_LOG = 15
 MAX_STACKED_LOG = 28
 
-WHIR_QUERIES = (((224,59), (218,57,39), (216,55,36), (216,54,34), (216,53,32), (217,53,31,25), (217,53,31,24), (218,52,31,23), (218,52,30,22), (219,52,30,22,19), (219,52,30,22,18), (220,52,30,21,17), (220,52,30,21,17), (220,52,30,21,17,15)), ((109,46), (109,45,33), (109,44,31), (109,43,29), (109,43,28), (110,42,27,23), (110,42,27,21), (110,42,27,21), (110,42,27,20), (111,42,26,20,17), (111,42,26,20,17), (112,42,26,20,16), (112,42,26,19,16), (112,42,26,19,16,14)), ((73,38), (73,37,29), (73,36,27), (74,36,26), (74,35,25), (74,35,24,21), (74,35,24,20), (75,35,24,19), (75,35,24,18), (75,35,24,18,16), (75,35,24,18,15), (76,35,23,18,15), (76,35,23,18,15), (76,35,23,18,15,13)), ((55,32), (56,31,25), (56,31,24), (56,31,23), (56,30,22), (57,30,22,19), (57,30,22,18), (57,30,21,17), (57,30,21,17), (58,30,21,17,15), (58,30,21,17,14), (59,30,21,17,14), (59,30,21,16,14), (59,30,21,16,14,12)))  # fmt: skip
+WHIR_QUERIES = (((223,59), (217,56,39), (214,55,36), (211,54,34), (210,53,32), (209,53,31,25), (208,53,31,24), (208,52,31,23), (207,52,30,22), (207,52,30,22,19), (207,52,30,22,18), (207,52,30,21,17), (207,52,30,21,17), (207,52,30,21,17,15)), ((108,46), (107,45,33), (106,44,31), (105,43,29), (105,43,28), (104,42,27,23), (104,42,27,21), (104,42,27,21), (104,42,27,20), (104,42,26,20,17), (104,42,26,20,17), (104,42,26,20,16), (104,42,26,19,16), (104,42,26,19,16,14)), ((71,38), (71,37,29), (70,36,27), (70,36,26), (70,35,25), (70,35,24,21), (69,35,24,20), (69,35,24,19), (69,35,24,18), (69,35,24,18,16), (69,35,24,18,15), (69,35,23,18,15), (69,35,23,18,15), (69,35,23,18,15,13)), ((53,32), (53,31,25), (53,31,24), (52,31,23), (52,30,22), (52,30,22,19), (52,30,22,18), (52,30,21,17), (52,30,21,17), (52,30,21,17,15), (52,30,21,17,14), (52,30,21,17,14), (52,30,21,16,14), (52,30,21,16,14,12)))  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -1506,6 +1519,24 @@ MAX_STACKED_CLAIMS = 512  # the batching's soundness is accounted for up to this
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
+def read_pin(transcript: Transcript, stack_log: int, committed_lanes: int) -> list[StackClaim]:
+    """The level-0 list pin, read right after the commitment root: a grind, a point z of the largest block's variable
+    count, then one value per aligned block of the committed lanes (their count's binary expansion, largest first),
+    each the block's multilinear at z's first coordinates. Its claims follow every other point claim.
+    """
+    lane_vars = stack_log - INITIAL_FOLDING_FACTOR
+    blocks, offset = [], 0
+    for bit in reversed(range(committed_lanes.bit_length())):
+        if committed_lanes >> bit & 1:
+            blocks.append(Placement(lane_vars + bit, offset))
+            offset += 2 ** (lane_vars + bit)
+    transcript.grind_check(OOD_GRINDING_BITS)
+    z = transcript.samples(blocks[0].variables)
+    values = transcript.next_scalars(len(blocks))
+    points = [block.stack_point(z[: block.variables], stack_log) for block in blocks]
+    return [(lambda x, point=point: eq_eval(point, x), value) for point, value in zip(points, values, strict=True)]
+
+
 def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int, log_inv_rate: int, claims: Sequence[StackClaim]) -> None:
     """Discharge every claim on the committed stack in one opening: the same powers of one challenge
     batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
@@ -1530,8 +1561,9 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     layout = build_layout(bytecode, log_memory, table_rows)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
-    # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
+    # 2] parse WHIR commitment: one Merkle root (no OOD inside the PCS: its list is pinned right after).
     root = Digest.from_halves(*transcript.next_scalars(2))
+    pin = read_pin(transcript, layout.stack_log, layout.committed_lanes)
 
     # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
     bus = verify_bus_balance(layout, transcript)
@@ -1569,7 +1601,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     qkeccak = layout.placements[QKECCAK]
     ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
     stack_claims = (c.on_stack(layout) for c in claims)
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None)])
+    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None), *pin])
     transcript.finish()
 
 

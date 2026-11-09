@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{Proof, ProverState};
+use pcs::stack_open::StackClaim;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
@@ -43,8 +44,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
 
         let mut ps = batch_transcript(LABEL, shape, log_inv_rate);
         let t = Instant::now();
-        let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, log_inv_rate);
-        ps.add_root(&commitment.root);
+        let (prover_data, pin) = commit_stack(&mut ps, shape, &committed, log_inv_rate);
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -58,7 +58,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        open_commitment(&mut ps, shape, committed, prover_data, &config, openings);
+        open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
         let open_s = t.elapsed().as_secs_f64();
 
         (
@@ -166,8 +166,21 @@ pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) 
     ProverState::new(iv, statement)
 }
 
-/// Discharge the reduction's openings against the commitment to `stack`, which holds the
-/// committed states alone.
+/// Commit to `stack`, send the root and pin the list ([`pcs::pin`]): what precedes the output claim.
+pub(crate) fn commit_stack(
+    ps: &mut ProverState,
+    shape: Shape,
+    stack: &[F64],
+    log_inv_rate: usize,
+) -> (ProverData, Vec<StackClaim>) {
+    let (commitment, prover_data) = commit(stack, shape.stack_log(), INITIAL_FOLDING_FACTOR, log_inv_rate);
+    ps.add_root(&commitment.root);
+    let pin = pcs::pin::pin_commitment(ps, stack, shape.stack_log(), INITIAL_FOLDING_FACTOR);
+    (prover_data, pin)
+}
+
+/// Discharge the reduction's openings and the pin's claims, after them, against the commitment to `stack`, which
+/// holds the committed states alone.
 pub(crate) fn open_commitment(
     ps: &mut ProverState,
     shape: Shape,
@@ -175,9 +188,10 @@ pub(crate) fn open_commitment(
     prover_data: ProverData,
     config: &ProverConfig,
     openings: Openings,
+    pin: Vec<StackClaim>,
 ) {
     let (ring, outputs) = openings.into_pcs_claims(0);
-    let points: Vec<_> = outputs.into_iter().collect();
+    let points: Vec<_> = outputs.into_iter().chain(pin).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
 }
 

@@ -97,6 +97,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \begin{enumerate}
 \item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the two memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
+\item \textbf{Prover \& Verifier.} Pin the commitment's list, before any other challenge (\S\ref{sec:soundness-outer}): the prover grinds $\grind{ood}$ bits, the verifier samples $z\in\E^{m}$, and the prover sends one value per block of the committed lanes, the block's multilinear at $z_{<m_b}$. The values join the claim pool last.
 \end{enumerate}
 
 \paragraph{Bus.}
@@ -137,7 +138,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qkeccak$ region.)
-\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn right after the ring-switching challenges with no prover message between, so the seventeen are one verifier message under the one grind (\S\ref{sec:soundness-outer}). Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J\le512$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
+\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn right after the ring-switching challenges with no prover message between, so the seventeen are one verifier message under the one grind (\S\ref{sec:soundness-outer}). Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first, the pooled column claims after, then the pin's claims: the $J\le512$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
 \item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
 \end{enumerate}

@@ -16,12 +16,14 @@
 //! - `theta` of a fold round: `ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - `(gamma, alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - batching `lambda` entering a level: `(J - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
-//! - OOD sample: `C(ell, 2) mu / q`, after [`OOD_GRINDING_BITS`];
-//! - queries: `(A_end / n)^t`, after [`QUERY_GRINDING_BITS`];
+//! - OOD sample: `C(ell, 2) mu / q`, after [`OOD_GRINDING_BITS`]; at L0 the list pin after the commitment
+//!   (`crate::pin`), whose blocks have at most `mu = log_n` variables;
+//! - queries: `((A_end - 1) / n)^t`, after [`QUERY_GRINDING_BITS`];
 //! - tail sumcheck rounds: `2 / q`.
 //!
 //! Round-by-round soundness means every entry individually clears [`SECURITY_BITS`]: the Fiat-Shamir error per
-//! random-oracle query is the maximum of the entries, not their sum.
+//! random-oracle query is the maximum of the entries, not their sum. Every entry but the queries' is compared with
+//! its budget exactly, as an integer count of `1 / q`.
 
 mod affine_mca;
 
@@ -56,9 +58,10 @@ pub const FOLD_GRINDING_BITS: usize = 4;
 
 /// Grinding before each level's batching challenge `lambda` and the stacked opening's outer batching challenge: the
 /// least for which the batching terms never cost a query.
-pub const BATCH_GRINDING_BITS: usize = 7;
+pub const BATCH_GRINDING_BITS: usize = 9;
 
-/// Grinding before each level's out-of-domain sample: the least for which the OOD terms never cost a query.
+/// Grinding before each level's out-of-domain sample and the level-0 list pin: the least for which the OOD terms never
+/// cost a query.
 pub const OOD_GRINDING_BITS: usize = 15;
 
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
@@ -106,8 +109,8 @@ pub struct ProverConfig {
     pub grinding_bits: Vec<usize>,
     /// Per-commit-level out-of-domain samples (L0, ..., L_r), taken right
     /// after the level's Merkle root enters the transcript. `[0]` must be 0:
-    /// L0 is bound by the opening's own (post-commit, random-point)
-    /// evaluation claim. Length = level_steps + 1.
+    /// L0 is pinned by the caller, right after its root (`crate::pin`).
+    /// Length = level_steps + 1.
     pub ood_samples: Vec<usize>,
 }
 
@@ -312,11 +315,12 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
 // Per level: block length `n`, honest lane degree `d_0 = 2^log_msg_cols - 1`, `k` fold rounds. Round `j = 1..=k` is
 // analysed against degree `d_j = d_0 + j` at threshold `A_j = A_end - (k - j)` (one coordinate of agreement lost per
 // round), and the level starts at `A_0 = A_end - k`. `A_end` is the integer the search picks per level, the smallest
-// that clears every term below, which minimises the queries `(A_end / n)^t`. `ell(A, d)` is the Johnson list of
+// that clears every term below, which minimises the queries `((A_end - 1) / n)^t`. `ell(A, d)` is the Johnson list of
 // Lemma 3.11 [CYWZ26, preprint] (`affine_mca::johnson_list(n, A, d)`).
 
 /// `log2 |E|` for the soundness analysis.
-pub const ANALYSIS_LOG_Q: f64 = 128.0;
+pub const ANALYSIS_LOG_Q: f64 = LOG_Q_BITS as f64;
+const LOG_Q_BITS: usize = 128;
 
 /// Upper bound on the claims the stacked opening batches (the ring-switched claim and the committed columns'
 /// point claims), `J_0` of the outer batching term.
@@ -353,11 +357,11 @@ pub struct WhirLevelConfig {
     pub(crate) agreement: u128,
     /// Lemma 4.1's witness for each fold round `j = 1..=k`.
     pub(crate) rounds: Vec<affine_mca::AffineWitness>,
-    /// Query count `t`, with `(A_end / n)^t <= 2^-(target - grinding_bits)`.
+    /// Query count `t`, with `((A_end - 1) / n)^t <= 2^-(target - grinding_bits)`.
     pub queries: usize,
     /// Query-phase grinding bits.
     pub grinding_bits: usize,
-    /// Out-of-domain samples after this level's commitment: 0 at L0 (bound by the opening's own claims), 1 after.
+    /// Out-of-domain samples after this level's commitment: 0 at L0 (pinned by the caller, `crate::pin`), 1 after.
     pub ood_samples: usize,
     pub(crate) target_security_bits: usize,
 }
@@ -406,27 +410,38 @@ pub struct WhirSecurityConfig {
     pub final_block: FinalBlockConfig,
 }
 
-/// Fails unless `log2 err <= -(target - grind)`.
-fn require_bits(err_log2: f64, grind: usize, target: usize, what: impl FnOnce() -> String) -> Result<(), String> {
-    let budget = -(target.saturating_sub(grind) as f64);
-    if err_log2 <= budget {
-        Ok(())
-    } else {
-        Err(format!("{}: 2^{err_log2:.2} > 2^{budget}", what()))
+/// The largest count `c` with `c / q <= 2^-(target - grind)`.
+fn budget(grind: usize, target: usize) -> u128 {
+    let bits = LOG_Q_BITS.saturating_sub(target.saturating_sub(grind));
+    if bits >= 128 { u128::MAX } else { 1 << bits }
+}
+
+/// Fails unless the error `count / q` is at most `2^-(target - grind)`, exactly; `None` is a count past `u128`.
+fn require_count(
+    count: Option<u128>,
+    grind: usize,
+    target: usize,
+    what: impl FnOnce() -> String,
+) -> Result<(), String> {
+    let budget = budget(grind, target);
+    match count {
+        Some(count) if count <= budget => Ok(()),
+        _ => Err(format!("{}: {count:?} / q > {budget} / q", what())),
     }
 }
 
 /// Where a level sits in the opening, for the terms that depend on it.
 #[derive(Clone, Copy)]
 enum Position {
-    /// L0: the outer batching over the stacked claims and the ring-switch map; no OOD.
+    /// L0: the outer batching over the stacked claims and the ring-switch map; the list pin for OOD.
     First,
     /// A later level, batching the previous level's `queries` claims, the OOD claim and the running claim.
     After { prev_queries: usize },
 }
 
-/// The terms that depend only on `ell(A_0, d_0)`: batching (`(J - 1) ell / q`), then OOD (`C(ell, 2) mu / q`) or, at
-/// L0, binding (`ell mu / q`).
+/// The terms that depend only on `ell(A_0, d_0)`: batching (`(J - 1) ell / q`), then OOD (`C(ell, 2) mu / q`). At L0
+/// the OOD term is the list pin's (`crate::pin`): its blocks have at most `mu` variables, and after it every outer
+/// challenge faces a single list member.
 fn check_list_terms(
     n: u128,
     d0: u128,
@@ -441,25 +456,13 @@ fn check_list_terms(
         Position::First => MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE,
         Position::After { prev_queries } => prev_queries + 1,
     };
-    require_bits(
-        (degree as f64 * ell as f64).log2() - ANALYSIS_LOG_Q,
-        g.batch,
-        target,
-        || format!("batching (degree {degree}, list {ell})"),
-    )?;
-    match position {
-        // L0 takes no OOD sample: the opening's claims, at points sampled after the commitment, single out one list
-        // member except with `ell mu / q`, which nothing grinds.
-        Position::First => require_bits((ell as f64 * mu as f64).log2() - ANALYSIS_LOG_Q, 0, target, || {
-            format!("L0 binding (list {ell}, {mu} variables)")
-        }),
-        Position::After { .. } => {
-            let pairs = (ell * ell.saturating_sub(1) / 2) as f64;
-            require_bits((pairs * mu as f64).log2() - ANALYSIS_LOG_Q, g.ood, target, || {
-                format!("OOD (list {ell}, {mu} variables)")
-            })
-        }
-    }
+    require_count((degree as u128).checked_mul(ell), g.batch, target, || {
+        format!("batching (degree {degree}, list {ell})")
+    })?;
+    let pairs = ell.checked_mul(ell.saturating_sub(1)).map(|p| p / 2);
+    require_count(pairs.and_then(|p| p.checked_mul(mu as u128)), g.ood, target, || {
+        format!("OOD (list {ell}, {mu} variables)")
+    })
 }
 
 /// The fold round errors for round `j` against its witness.
@@ -471,10 +474,13 @@ fn check_fold_round(
     g: &Grinding,
     target: usize,
 ) -> Result<(), String> {
-    let (theta, combiner) =
-        affine_mca::fold_round_errors_log2(n, d, a, w).ok_or("the fold round's witness does not hold")?;
-    require_bits(theta, g.fold, target, || "theta".into())?;
-    require_bits(combiner, g.fold, target, || "(gamma, alpha, beta)".into())
+    let ell = affine_mca::johnson_list(n, a - 1, d).ok_or("theta threshold below the Johnson radius")?;
+    require_count(Some(ell), g.fold, target, || "theta".into())?;
+    match affine_mca::combiner_within(n, d, a, w, budget(g.fold, target)) {
+        Some(true) => Ok(()),
+        Some(false) => Err("(gamma, alpha, beta) over its budget".into()),
+        None => Err("the fold round's witness does not hold".into()),
+    }
 }
 
 /// A witness for every fold round of a level ending at `a_end`, when every round clears the target.
@@ -491,7 +497,7 @@ fn fold_witnesses(
         let (d, a) = (d0 + j, a_end.checked_sub(k as u128 - j)?);
         // The cheap `theta` term first: it already rules out thresholds below the Johnson radius.
         let ell = affine_mca::johnson_list(n, a - 1, d)?;
-        require_bits((ell as f64).log2() - ANALYSIS_LOG_Q, g.fold, target, String::new).ok()?;
+        require_count(Some(ell), g.fold, target, String::new).ok()?;
         let (w, _) = affine_mca::find_witness(n, d, a)?;
         check_fold_round(n, d, a, &w, g, target).ok()?;
         rounds.push(w);
@@ -499,9 +505,10 @@ fn fold_witnesses(
     Some(rounds)
 }
 
-/// Queries closing `target - grind` bits at agreement `a_end` out of `n`.
+/// Queries closing `target - grind` bits when a query passes with probability `(a_end - 1) / n`: a word whose
+/// candidate's encoding left the list agrees with it on at most `a_end - 1` positions.
 fn query_count(n: u128, a_end: u128, grind: usize, target: usize) -> usize {
-    let per_query = -(a_end as f64 / n as f64).log2();
+    let per_query = -((a_end - 1) as f64 / n as f64).log2();
     let bits = target.saturating_sub(grind) as f64;
     let mut queries = (bits / per_query).ceil() as usize;
     while (queries as f64) * per_query < bits {
@@ -605,8 +612,10 @@ impl WhirSecurityConfig {
                 check_fold_round(n, d0 + j, lv.agreement - (k - j), w, g, target)
                     .map_err(|e| at(format!("round {j}: {e}")))?;
             }
-            let queries_log2 = lv.queries as f64 * (lv.agreement as f64 / n as f64).log2();
-            require_bits(queries_log2, lv.grinding_bits, target, || at("queries".into()))?;
+            let queries_log2 = lv.queries as f64 * ((lv.agreement - 1) as f64 / n as f64).log2();
+            if queries_log2 > -(target.saturating_sub(lv.grinding_bits) as f64) {
+                return Err(at(format!("queries: 2^{queries_log2:.2}")));
+            }
             if lv.queries as u128 > n {
                 return Err(at("more queries than positions".into()));
             }
@@ -619,7 +628,7 @@ impl WhirSecurityConfig {
             ));
         }
         // Each tail sumcheck round: a degree-2 polynomial.
-        require_bits(1.0 - ANALYSIS_LOG_Q, 0, target, || "tail round".into())
+        require_count(Some(2), 0, target, || "tail round".into())
     }
 
     /// Derive the production config at witness size `m` and L0 rate `2^-log_inv_rate`: every round-by-round error
@@ -675,9 +684,13 @@ impl WhirSecurityConfig {
         Ok(cfg)
     }
 
-    /// The shared prover/verifier config: the level shape, queries, grinding and OOD samples.
+    /// The shared prover/verifier config: the level shape, queries, grinding and OOD samples. Only a config at the
+    /// production target and grinding, which the prover and the verifiers hardcode.
     pub fn to_config(&self) -> Result<ProverConfig, String> {
         self.validate()?;
+        if self.grinding != PRODUCTION_GRINDING || self.target_security_bits != SECURITY_BITS {
+            return Err("the target or grinding differs from the production constants".into());
+        }
         Ok(ProverConfig {
             log_inv_rates: self.levels.iter().map(|lv| lv.log_inv_rate).collect(),
             level_steps: self.levels.len() - 1,
@@ -745,6 +758,17 @@ mod tests {
         ] {
             assert_ne!(queries_with(less), best, "{less:?} costs no queries either");
         }
+    }
+
+    /// The prover and the verifiers hardcode the grinding, so a config derived with other grinding is no config.
+    #[test]
+    fn to_config_rejects_other_grinding() {
+        let more = Grinding {
+            query: QUERY_GRINDING_BITS + 1,
+            ..PRODUCTION_GRINDING
+        };
+        let cfg = WhirSecurityConfig::derive_with(20 + crate::LOG_PACKING, 1, more).unwrap();
+        assert!(cfg.to_config().is_err());
     }
 
     /// A tampered threshold or witness fails validation.

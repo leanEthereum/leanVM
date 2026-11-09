@@ -1,7 +1,8 @@
 //! Finite form of the affine-combiner mutual correlated agreement bound [CYWZ26, preprint], Lemma 4.1 with the
 //! interpolation inequality of Lemma 4.2, for `RS[n, d]` (degree at most `d`) at agreement threshold `A` (out of `n`).
 //!
-//! Every hypothesis is checked in exact integer arithmetic; only the final error is a float.
+//! Every hypothesis and the round's error against its budget are checked in exact integer arithmetic; the float error
+//! only steers the search.
 
 /// `log2 |E|`.
 const LOG_Q: f64 = super::ANALYSIS_LOG_Q;
@@ -134,16 +135,65 @@ fn interpolation(n: u128, d: u128, a: u128) -> Option<(u128, u128)> {
 /// `eps_aff = (D^2 + ell_B max(q, C(n, 2)) + 4 d^2 M^2 D^3 (n / (A - B))^2) / q^2`,
 /// with `ell_B` the Johnson list at agreement `B` against degree `d + 1`.
 pub(crate) fn affine_error_log2(n: u128, d: u128, a: u128, w: &AffineWitness) -> Option<f64> {
-    let big_m = interpolation_holds(n, d, a, w.m, w.big_d)?;
-    if !(d + 1 < w.b && w.b < a) {
-        return None;
-    }
-    let ell_b = johnson_list(n, w.b, d + 1)?;
+    let (big_m, ell_b) = hypotheses(n, d, a, w)?;
     let (nf, df, mf, bd) = (n as f64, d as f64, big_m as f64, w.big_d as f64);
     let q = LOG_Q.exp2();
     let pairs = nf * (nf - 1.0) / 2.0;
     let interp = 4.0 * df * df * mf * mf * bd.powi(3) * (nf / (a - w.b) as f64).powi(2);
     Some((bd * bd + ell_b as f64 * q.max(pairs) + interp).log2() - 2.0 * LOG_Q)
+}
+
+/// Lemma 4.1's hypotheses for a witness (Lemmas 4.2 and 3.11 need `A <= n`): `(M, ell_B)` when they hold.
+fn hypotheses(n: u128, d: u128, a: u128, w: &AffineWitness) -> Option<(u128, u128)> {
+    if a > n || !(d + 1 < w.b && w.b < a) {
+        return None;
+    }
+    let big_m = interpolation_holds(n, d, a, w.m, w.big_d)?;
+    Some((big_m, johnson_list(n, w.b, d + 1)?))
+}
+
+/// `a * b` as its `(high, low)` 128-bit halves, which compare as the 256-bit product.
+fn mul_wide(a: u128, b: u128) -> (u128, u128) {
+    let (a1, a0, b1, b0) = (a >> 64, a as u64 as u128, b >> 64, b as u64 as u128);
+    let (low, mid0, mid1, high) = (a0 * b0, a0 * b1, a1 * b0, a1 * b1);
+    let (mid, carry) = mid0.overflowing_add(mid1);
+    let (lo, carry_lo) = low.overflowing_add(mid << 64);
+    let hi = high + (mid >> 64) + ((carry as u128) << 64) + carry_lo as u128;
+    (hi, lo)
+}
+
+/// Whether one fold round's `(gamma, alpha, beta)` error `eps_aff + 2 ell(A - 1, d) / q` is at most `budget / q`,
+/// exactly. `C(n, 2) < q` since `n < 2^64`, so `q eps_aff = ell_B + (D^2 + I) / q` with
+/// `I = 4 d^2 M^2 D^3 (n / (A - B))^2`, and the check is `(D^2 + I)(A - B)^2 <= s q (A - B)^2` for the integer slack
+/// `s = budget - ell_B - 2 ell`. `None` when a hypothesis fails; an intermediate overflow counts as a miss.
+pub(crate) fn combiner_within(n: u128, d: u128, a: u128, w: &AffineWitness, budget: u128) -> Option<bool> {
+    let (big_m, ell_b) = hypotheses(n, d, a, w)?;
+    let ell = johnson_list(n, a - 1, d)?;
+    assert!(n < 1 << 64, "C(n, 2) < q");
+    let Some(slack) = ell
+        .checked_mul(2)
+        .and_then(|l| budget.checked_sub(l)?.checked_sub(ell_b))
+    else {
+        return Some(false);
+    };
+    let gap2 = (a - w.b) * (a - w.b);
+    // The right side is `(s (A - B)^2, 0)`: past 2^256 when its high half overflows, beyond any left side.
+    let Some(rhs_high) = slack.checked_mul(gap2) else {
+        return Some(true);
+    };
+    let interp = [4, d, d, big_m, big_m, w.big_d, w.big_d, w.big_d]
+        .into_iter()
+        .try_fold(1u128, u128::checked_mul);
+    let (Some(interp), Some(square)) = (interp, w.big_d.checked_mul(w.big_d)) else {
+        return Some(false);
+    };
+    let (h1, l1) = mul_wide(interp, n * n);
+    let (h2, l2) = mul_wide(square, gap2);
+    let (lo, carry) = l1.overflowing_add(l2);
+    let Some(hi) = h1.checked_add(h2).and_then(|h| h.checked_add(carry as u128)) else {
+        return Some(false);
+    };
+    Some((hi, lo) <= (rhs_high, 0))
 }
 
 /// A witness for `(n, d, A)`: the smallest feasible `m` and its smallest `D`, then the `B = A - 2^i` minimising the
@@ -162,16 +212,6 @@ pub(crate) fn find_witness(n: u128, d: u128, a: u128) -> Option<(AffineWitness, 
         }
     }
     best
-}
-
-/// Errors (log2) of one fold round against degree `d` at threshold `A`: `theta` costs `ell(A - 1, d) / q`, and
-/// `(gamma, alpha, beta)` costs `eps_aff + 2 ell(A - 1, d) / q`.
-pub(crate) fn fold_round_errors_log2(n: u128, d: u128, a: u128, w: &AffineWitness) -> Option<(f64, f64)> {
-    let ell = johnson_list(n, a - 1, d)? as f64;
-    let theta = ell.log2() - LOG_Q;
-    let eps_aff = affine_error_log2(n, d, a, w)?;
-    let combiner = (eps_aff.exp2() + 2.0 * (theta.exp2())).log2();
-    Some((theta, combiner))
 }
 
 #[cfg(test)]
@@ -195,9 +235,20 @@ mod tests {
         // The bound is the list term, `ell_B / q`.
         let err = affine_error_log2(n, d, a, &w).unwrap();
         assert!((err - (6f64.log2() - LOG_Q)).abs() < 1e-9);
+        // `q` times the round's error is `ell_B + 2 ell = 16` plus a fraction.
+        assert_eq!(combiner_within(n, d, a, &w, 16), Some(false));
+        assert_eq!(combiner_within(n, d, a, &w, 17), Some(true));
+        assert_eq!(combiner_within(n, d, n + 1, &w, 17), None);
         // The search does at least as well.
         let (_, found) = find_witness(n, d, a).unwrap();
         assert!(found <= err + 1e-9);
+    }
+
+    #[test]
+    fn wide_product() {
+        assert_eq!(mul_wide(u128::MAX, u128::MAX), (u128::MAX - 1, 1));
+        assert_eq!(mul_wide(1 << 100, 1 << 100), (1 << 72, 0));
+        assert_eq!(mul_wide(12345, 678), (0, 12345 * 678));
     }
 
     /// The closed forms against the sums they replace.

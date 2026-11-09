@@ -9,7 +9,7 @@
 // DP24 ring switch described in the ring-switching-generalized note.
 
 //! Ring-switching reduction for the 64-bit transition: F_2 to K = GF(2^64)
-//! packing, opened over E = GF(2^128) = K[y]/(y^2 + x*y + 1) ([`F128`]).
+//! packing, opened over E = GF(2^128) = K\[y\]/(y^2 + x*y + 1) ([`F128`]).
 //!
 //! With f = 64 (packing degree over F_2) and e = 128 (opening degree), this
 //! converts one evaluation claim on

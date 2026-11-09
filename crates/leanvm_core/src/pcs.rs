@@ -19,15 +19,16 @@
 //! rides the proof.
 //!
 //! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
-//! Johnson list decoding with OOD binding and 128-bit round-by-round soundness
-//! ([`::pcs::whir::SECURITY_BITS`]). L0's opening claim supplies its binding
-//! evaluation; each deeper commitment takes one explicit OOD sample. The base-field
+//! Johnson list decoding with OOD binding and round-by-round soundness
+//! ([`::pcs::whir::SECURITY_BITS`]). L0's list is pinned right after its root
+//! ([`::pcs::pin`]); each deeper commitment takes one explicit OOD sample. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
 use crate::transcript::ProverState;
 use primitives::field::F64;
 
+use ::pcs::pin::pin_commitment;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::whir::ProverConfig;
@@ -81,11 +82,13 @@ pub struct Committed {
     pub mu: usize,
     /// L0 inverse-rate logarithm bound into the transcript before this commitment.
     pub log_inv_rate: usize,
+    /// The list pin's claims ([`::pcs::pin`]), which the opening discharges after the caller's.
+    pub pin: Vec<SlotClaim>,
 }
 
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
-/// [`crate::witness::placements_of`]) and bind its root into the transcript,
-/// before any challenge is sampled.
+/// [`crate::witness::placements_of`]), bind its root into the transcript
+/// before any challenge is sampled, and pin its list ([`::pcs::pin`]).
 ///
 /// `witness` is the stack truncated to the lane blocks that carry data
 /// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
@@ -109,10 +112,12 @@ pub fn commit(
     );
     let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
     ps.add_root(&commitment.root);
+    let pin = pin_commitment(ps, witness, mu, LOG_BATCH);
     Committed {
         prover_data,
         mu,
         log_inv_rate,
+        pin,
     }
 }
 
@@ -135,13 +140,15 @@ pub fn commit(
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
 /// sub-block (§cpu), so every opening is stacked.
 ///
-/// The opening consumes the commitment: it frees the codeword and tree once the L0 queries are answered.
+/// The pin's claims follow `points`. The opening consumes the commitment: it frees the codeword and tree once
+/// the L0 queries are answered.
 pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, points, ring)
+    let points = [points, &c.pin].concat();
+    open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, &points, ring)
 }
 
 #[cfg(test)]

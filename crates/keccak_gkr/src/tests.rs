@@ -4,7 +4,7 @@ use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
-use crate::batch_bench::{batch_transcript, open_commitment, scalar_proof};
+use crate::batch_bench::{batch_transcript, commit_stack, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANES, LOCAL_VARS};
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
@@ -91,14 +91,13 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
 fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F128) -> Proof {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
+    let (prover_data, pin) = commit_stack(&mut ps, shape, committed, LOG_INV_RATE_0);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
@@ -119,22 +118,23 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
         let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
         assert!(openings.inputs.slices == slices, "inputs");
     }
-    open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings);
+    open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings, pin);
     ps.into_proof()
 }
 
 /// The Keccak check that rejects a change to stream scalar `at`, if the reduction reads it:
-/// after the root come the output lanes and the committed outputs' value, which the first
-/// layer's product check meets, then the layers, then the two openings.
+/// after the root and the list pin's nonce and value come the output lanes and the committed outputs'
+/// value, which the first layer's product check meets, then the layers, then the two openings.
 fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let committed = usize::from(shape.segments() > 1);
     let layer = PROD_BITS + 2 * shape.y_vars() + 3 * LOCAL_VARS + 3;
-    let layers = 2 + LANES + committed;
+    let start = 4;
+    let layers = start + LANES + committed;
     let outputs = layers + shape.depth() * layer;
     let inputs = outputs + committed * (2 * shape.slot_log() + 1);
     let end = inputs + 2 * (4 + shape.slot_log()) + 64;
     Some(match at {
-        _ if at < 2 || at >= end => return None,
+        _ if at < start || at >= end => return None,
         _ if at < layers => VerifierError::KeccakProduct,
         _ if at < outputs && (at - layers) % layer < PROD_BITS => VerifierError::KeccakProduct,
         _ if at < outputs => VerifierError::KeccakLayer,
@@ -175,7 +175,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
 /// is what lets other columns ride there at all.
 #[test]
 fn spare_slots_must_be_the_committed_ones() {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
 
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
@@ -193,13 +193,47 @@ fn spare_slots_must_be_the_committed_ones() {
 
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
+    let (prover_data, pin) = commit_stack(&mut ps, shape, &committed, LOG_INV_RATE_0);
     let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);
-    open_commitment(&mut ps, shape, committed, prover_data, &config, openings);
+    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
     verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
+}
+
+/// The list pin's value is a claim the opening discharges: a prover that sends a wrong one is rejected there.
+#[test]
+fn a_wrong_pin_value_fails_the_opening() {
+    use pcs::stack_open::StackClaim;
+    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir_config::OOD_GRINDING_BITS;
+
+    let mut rng = Rng::new(83);
+    let (n, depth) = (600, 12);
+    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let shape = Shape::new(n, depth);
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let witness = Witness::generate(shape, &inputs, &mut committed);
+
+    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
+    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+    ps.add_root(&commitment.root);
+    // The whole stack is one block.
+    ps.grind(OOD_GRINDING_BITS as u32);
+    let low_point = ps.sample_vec(shape.stack_log());
+    let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
+    ps.add_scalar(value);
+    let pin = vec![StackClaim::Point {
+        offset: 0,
+        low_point,
+        value,
+    }];
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+    ps.add_scalars(&output.lanes);
+    let openings = witness.prove(&mut ps, &committed, &output);
+    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, pin);
+    assert_eq!(verify(shape, &ps.into_proof()), Err(VerifierError::WhirTerminal));
 }
 
 #[test]
