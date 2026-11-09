@@ -57,7 +57,6 @@ theorem xrun_after {α : Type} :
   | .read k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨_, _, hr⟩ := hr
       obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
@@ -65,6 +64,7 @@ theorem xrun_after {α : Type} :
       intro ht w W hm
       simp only [List.mem_cons, reduceCtorEq, false_or] at hm
       exact hw _ _ _ hm
+    · simp at hr
   | .sample k, s, h, _, _, _, hr => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
     obtain ⟨_, _, hr⟩ := hr
@@ -76,9 +76,8 @@ theorem xrun_after {α : Type} :
   | .grind bits k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨_, _, _, _, hr⟩ := hr
+      obtain ⟨_, _, hr⟩ := hr
       split at hr
       · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
         refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
@@ -86,21 +85,20 @@ theorem xrun_after {α : Type} :
         simp only [List.mem_cons, reduceCtorEq, false_or] at hm
         exact hw _ _ _ hm
       · simp at hr
+    · simp at hr
   | .commit height width k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
     · simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨_, _, _, _, hr⟩ := hr
-      split at hr
-      · obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
-        refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
-        intro ht w W hm
-        rcases List.mem_cons.1 hm with he | hm
-        · simp only [Ev.commit.injEq] at he
-          obtain ⟨-, rfl, rfl⟩ := he
-          exact wellShaped_extract _ _ _ _
-        · exact hw _ _ _ hm
-      · simp at hr
+      obtain ⟨l, rfl, hl, hw⟩ := xrun_after _ _ _ hr
+      refine ⟨_ :: l, List.append_assoc _ _ _, by simpa [VerifierProgram.after] using hl, ?_⟩
+      intro ht w W hm
+      rcases List.mem_cons.1 hm with he | hm
+      · simp only [Ev.commit.injEq] at he
+        obtain ⟨-, rfl, rfl⟩ := he
+        exact wellShaped_extract _ _ _ _
+      · exact hw _ _ _ hm
     · simp at hr
   | .query i ps k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
@@ -145,13 +143,18 @@ theorem verifyExecution_ne_ret (bytecode : List K) (publicInput : Digest) (u : U
   obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
   exact readSizes_ne_ret bytecode a ha
 
-/-- The bus phase starts with its fingerprint challenges. -/
-theorem verifyBusBalance_ne_ret (layout : Layout) (b : BusResult) :
-    verifyBusBalance computedBytecodeValue layout ≠ .ret b := by
+/-- The bus phase starts with its check of the push tree's depth, its grind and its fingerprint
+challenges. -/
+theorem verifyBusBalance_ne_ret (bytecodeValue : List K → List E → E → VerifierProgram Unit)
+    (layout : Layout) (b : BusResult) : verifyBusBalance bytecodeValue layout ≠ .ret b := by
   intro h
-  obtain ⟨x, hx, -⟩ := bind_eq_ret_iff h
+  unfold verifyBusBalance at h
+  dsimp only at h
+  obtain ⟨u, -, h⟩ := bind_eq_ret_iff h
+  obtain ⟨u', -, h⟩ := bind_eq_ret_iff h
+  obtain ⟨w, hw, -⟩ := bind_eq_ret_iff h
   simp [busBits, VerifierProgram.sampleChallenges, VerifierProgram.sampleChallenge,
-      VerifierProgram.bind] at hx
+      VerifierProgram.bind] at hw
 
 /-- **The stack's root returns after exactly one commitment**, of the shape of the ladder's first
 level. -/
