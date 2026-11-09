@@ -98,6 +98,12 @@ pub struct LeanSphincsSignature {
     pub(crate) paths: [Digest; H],
 }
 
+/// Where layer `layer`'s path sits among a signature's path nodes: after every layer below it.
+fn path_range(layer: usize) -> std::ops::Range<usize> {
+    let start = LAYER_HEIGHTS[..layer].iter().sum();
+    start..start + LAYER_HEIGHTS[layer]
+}
+
 impl LeanSphincsSignature {
     /// `R`.
     pub fn randomizer(&self) -> &Digest {
@@ -115,8 +121,7 @@ impl LeanSphincsSignature {
 
     /// Layer `layer`'s path in its tree, from the leaf up.
     pub fn path(&self, layer: usize) -> &[Digest] {
-        let start: usize = LAYER_HEIGHTS[..layer].iter().sum();
-        &self.paths[start..start + LAYER_HEIGHTS[layer]]
+        &self.paths[path_range(layer)]
     }
 
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes: the
@@ -154,13 +159,15 @@ impl LeanSphincsSignature {
             secret: take(N).try_into().unwrap(),
             path: std::array::from_fn(|_| take(N).try_into().unwrap()),
         });
-        let mut paths = Vec::with_capacity(H);
+        let mut paths = [[0; N]; H];
         let layers = std::array::from_fn(|layer| {
             let signed = LayerSignature {
                 counter: u32::from_be_bytes(take(COUNTER_LEN).try_into().unwrap()),
                 wots: std::array::from_fn(|_| take(N).try_into().unwrap()),
             };
-            paths.extend((0..LAYER_HEIGHTS[layer]).map(|_| Digest::try_from(take(N)).unwrap()));
+            for node in &mut paths[path_range(layer)] {
+                *node = take(N).try_into().unwrap();
+            }
             signed
         });
         debug_assert_eq!(at, SIG_SIZE);
@@ -168,7 +175,7 @@ impl LeanSphincsSignature {
             randomizer,
             fors,
             layers,
-            paths: paths.try_into().unwrap(),
+            paths,
         }
     }
 }
@@ -305,25 +312,30 @@ fn sign_with(sk: &ExpandedKey, message: &Message) -> Result<LeanSphincsSignature
     let r = prf_msg(&sk.sk_prf, &sk.pk_seed, message);
     let (idx, leaves) = message_digest(&pk, &r, message);
     let (mut signed, fors) = fors_open(sk, idx, &leaves);
-    let (mut layers, mut paths) = (Vec::with_capacity(LAYERS), Vec::with_capacity(H));
-    for layer in 0..LAYERS {
+    let mut layers = [LayerSignature {
+        counter: 0,
+        wots: [[0; N]; V],
+    }; LAYERS];
+    let mut paths = [[0; N]; H];
+    for (layer, signature) in layers.iter_mut().enumerate() {
         let key = OtsKey::of_index(layer, idx);
         let (counter, wots) = wots_sign(sk, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        *signature = LayerSignature { counter, wots };
         let levels = if layer == LAYERS - 1 {
             std::mem::take(&mut top)
         } else {
             tree_levels(sk, &key)
         };
-        let height = LAYER_HEIGHTS[layer];
-        paths.extend((0..height).map(|z| levels[z][(key.leaf as usize >> z) ^ 1]));
-        layers.push(LayerSignature { counter, wots });
-        signed = levels[height][0];
+        for (z, node) in paths[path_range(layer)].iter_mut().enumerate() {
+            *node = levels[z][(key.leaf as usize >> z) ^ 1];
+        }
+        signed = levels[LAYER_HEIGHTS[layer]][0];
     }
     Ok(LeanSphincsSignature {
         randomizer: r,
         fors,
-        layers: layers.try_into().unwrap(),
-        paths: paths.try_into().unwrap(),
+        layers,
+        paths,
     })
 }
 
