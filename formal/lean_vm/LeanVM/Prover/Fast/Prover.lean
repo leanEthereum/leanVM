@@ -73,29 +73,6 @@ def foldRoundsA.fast : ℕ → ℕ → Array E → Array E → Script (Array E �
   | zero => rfl
   | succ n ih => simp only [foldRoundsA, foldRoundsA.fast, ih]
 
-namespace KeccakGkr
-
-/-- `layersProve`, copied. -/
-def layersProve.fast (col : ℕ → K) (P : ℕ) : List ℕ → KeccakClaim → Script KeccakClaim
-  | [], claim => .ret claim
-  | d :: ds, claim => (layerProve col P d claim).bind fun c ↦ layersProve.fast col P ds c
-
-@[csimp] theorem layersProve.fast_eq : @layersProve = @layersProve.fast := by
-  funext col P ds claim
-  induction ds generalizing claim with
-  | nil => rfl
-  | cons d ds ih => simp only [layersProve, layersProve.fast, ih]
-
-end KeccakGkr
-
-end LeanVM.Prover
-
-fast_copy_modules Statement.Prover
-
-namespace LeanVM.Prover
-
-open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
-
 /-- `levelsA`, copied. -/
 def levelsA.fast : ℕ → List Whir.Level → Array E → Array E → Script Unit
   | _, [], _, _ => return ()
@@ -133,8 +110,33 @@ def levelsA.fast : ℕ → List Whir.Level → Array E → Array E → Script Un
   | nil => rfl
   | cons level rest ih =>
     cases rest with
-    | nil => simp only [levelsA, levelsA.fast]
-    | cons next rest => rw [levelsA, levelsA.fast]; simp only [ih]
+    | nil => rfl
+    | cons next rest' =>
+      unfold levelsA levelsA.fast
+      simp only [ih]
+
+namespace KeccakGkr
+
+/-- `layersProve`, copied. -/
+def layersProve.fast (col : ℕ → K) (P : ℕ) : List ℕ → KeccakClaim → Script KeccakClaim
+  | [], claim => .ret claim
+  | d :: ds, claim => (layerProve col P d claim).bind fun c ↦ layersProve.fast col P ds c
+
+@[csimp] theorem layersProve.fast_eq : @layersProve = @layersProve.fast := by
+  funext col P ds claim
+  induction ds generalizing claim with
+  | nil => rfl
+  | cons d ds ih => simp only [layersProve, layersProve.fast, ih]
+
+end KeccakGkr
+
+end LeanVM.Prover
+
+fast_copy_modules Statement.Prover
+
+namespace LeanVM.Prover
+
+open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-- `gkrLayersA`, copied. -/
 def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Script GkrState
