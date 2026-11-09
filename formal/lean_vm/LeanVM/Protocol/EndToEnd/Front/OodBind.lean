@@ -166,12 +166,12 @@ theorem card_not_oodSep_le {S : Set (Column μ)} (hS : S.Finite) {L : ℕ} (hL :
 /-! ## The group of the point -/
 
 /-- Every node of the program is a sample, a return or a rejection. -/
-private inductive SamplesOnly {α : Type} : VerifierProgram α → Prop where
+inductive SamplesOnly {α : Type} : VerifierProgram α → Prop where
   | ret (a : α) : SamplesOnly (VerifierProgram.ret a)
   | sample {k : E → VerifierProgram α} : (∀ c, SamplesOnly (k c)) →
       SamplesOnly (VerifierProgram.sample k)
 
-private theorem SamplesOnly.after {α : Type} {p q : VerifierProgram α} (hp : SamplesOnly p) :
+theorem SamplesOnly.after {α : Type} {p q : VerifierProgram α} (hp : SamplesOnly p) :
     ∀ {l : List Ev}, p.after l = some q → SamplesOnly q := by
   intro l
   induction l generalizing p with
@@ -184,22 +184,27 @@ private theorem SamplesOnly.after {α : Type} {p q : VerifierProgram α} (hp : S
       cases e <;> simp [VerifierProgram.after] at h
       exact ih (hk _) h
 
-private theorem SamplesOnly.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+theorem SamplesOnly.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
     (hp : SamplesOnly p) (hf : ∀ a, SamplesOnly (f a)) : SamplesOnly (p.bind f) := by
   induction hp with
   | ret a => exact hf a
   | sample _ ih => exact SamplesOnly.sample ih
 
-private theorem samplesOnly_sampleN : ∀ n, SamplesOnly (sampleChallenges n)
+theorem samplesOnly_sampleN : ∀ n, SamplesOnly (sampleChallenges n)
   | 0 => SamplesOnly.ret []
   | n + 1 => (SamplesOnly.sample fun c ↦ SamplesOnly.ret c).bind fun _ ↦
       (samplesOnly_sampleN n).bind fun _ ↦ SamplesOnly.ret _
 
+/-- A program of samples makes no prover move: the hypothesis of `Spec.ofNoMove`. -/
+theorem SamplesOnly.noMove {α : Type} {p : VerifierProgram α} (hp : SamplesOnly p) {h₀ l : List Ev}
+    {q : VerifierProgram α} (_ : p.Reach h₀ l) (ha : p.after l = some q) : ¬ q.IsMove := by
+  cases hp.after ha <;> simp [VerifierProgram.IsMove]
+
 /-- The point's draw makes no prover move. -/
 theorem sampleN_noMove (n : ℕ) {h₀ l : List Ev} {q : VerifierProgram (List E)}
-    (_ : (sampleChallenges n).Reach h₀ l) (ha : (sampleChallenges n).after l = some q) :
-    ¬ q.IsMove := by
-  cases (samplesOnly_sampleN n).after ha <;> simp [VerifierProgram.IsMove]
+    (hl : (sampleChallenges n).Reach h₀ l) (ha : (sampleChallenges n).after l = some q) :
+    ¬ q.IsMove :=
+  (samplesOnly_sampleN n).noMove hl ha
 
 /-- The OOD error, `C(L, 2)·μ/|E|`. -/
 noncomputable def oodError (L μ : ℕ) : ℝ≥0∞ := ((L.choose 2 * μ : ℕ) : ℝ≥0∞) / Fintype.card E
