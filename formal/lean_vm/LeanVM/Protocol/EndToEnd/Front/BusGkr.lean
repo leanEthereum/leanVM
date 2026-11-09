@@ -17,11 +17,16 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The grand-product walk on doom
 
-The verifier program's `gkrStep step s` (`crates/verifier/src/bus.rs:23-46` at leanVM
-`40f877dc`) is one layer step of the oracle protocol's
+The verifier program's `gkrStep step last s` (`crates/verifier/src/bus.rs:39-71`) is one layer
+step of the oracle protocol's
 `layerStep` (`LeanVM.Protocol.ToArkLib.GrandProduct`) at radix `2 ^ step`: both draw the
 combiner first. Its state `s` (`GkrState`: three values, the point) is the protocol's layer
 statement (`layerStmtOf`), and its doom is stated on the protocol's relations:
+
+Its two grinds, before the combiner (`grindingBits 2`) and before the combination challenges
+(`grindingBits step`, `grindingBits (2 · step)` on the last layer), are of zero bits at the radixes
+the walk takes (`step ≤ 2`), so the step is `gkrStepCore`, the step without them
+(`gkrStep_eq_core`); its challenges are one group with the next step's combiner.
 
 * before: doom on the layer relation (`layerRel`);
 * after the combiner: doom on stage `0` of the layer's tracked family (`familyT`), the combiner
@@ -124,6 +129,48 @@ theorem interpDone_eq {ρ m : ℕ} (x y : List E) (children : List (List E))
     toList_vecOf _ (hch _ (List.getElem_mem ht)), toList_vecOf _ hy]
 
 end State
+
+/-! ## A step's grinds are of zero bits -/
+
+/-- A grind for a numerator at most `8` is of zero bits. -/
+theorem grindingBits_eq_zero {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits
+  split_ifs with h
+  · rfl
+  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
+
+/-- A grind of zero bits is no step. -/
+theorem grindProofOfWork_zero : VerifierProgram.grindProofOfWork 0 = .ret () := rfl
+
+/-- A layer step without its grinds: the combiner, the sumcheck, the descendants and their check,
+the combination challenges. -/
+def gkrStepCore (step : ℕ) (state : GkrState) : VerifierProgram GkrState := do
+  let combiner ← VerifierProgram.sampleChallenge
+  let claim := polyEval state.values combiner
+  let (x, claim) ← sumcheck claim (2 ^ step + 1) (state.point.map some)
+  let child0 ← VerifierProgram.readScalars (2 ^ step)
+  let child1 ← VerifierProgram.readScalars (2 ^ step)
+  let child2 ← VerifierProgram.readScalars (2 ^ step)
+  let children := [child0, child1, child2]
+  let products := children.map prodE
+  VerifierProgram.require (claim = polyEval products combiner)
+  let y ← VerifierProgram.sampleChallenges step
+  let values := children.map (multilinearEval · y)
+  return ⟨values, y ++ x⟩
+
+/-- **A step of radix at most four grinds nothing**: the grind before its combiner is for the
+three trees' batch (`grindingBits 2`), the one before its combination challenges for degree `step`
+or, on the last layer, `2 · step`, at most `4`; every one of them is of zero bits, so the step is
+`gkrStepCore`. -/
+theorem gkrStep_eq_core {step : ℕ} (hs : step ≤ 2) (last : Bool) (s : GkrState) :
+    gkrStep step last s = gkrStepCore step s := by
+  unfold gkrStep gkrStepCore
+  rw [grindingBits_eq_zero (show nTrees - 1 ≤ 8 by decide),
+    grindingBits_eq_zero (show (if last = true then 2 * step else step) ≤ 8 by split <;> omega),
+    grindProofOfWork_zero]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.ret_bind]
 
 /-! ## The combination challenges -/
 
@@ -302,7 +349,7 @@ noncomputable def stepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hm : m + ρ ≤ μ)
     (he : roundError L₀ (2 ^ ρ) + 0 ≤ εmax) (hT : interpLead L₀ ρ T' ≤ εmax)
     (s : GkrState) :
-    Spec (gkrStep ρ s) (StepPre (m := m) leaves riders cands data s)
+    Spec (gkrStepCore ρ s) (StepPre (m := m) leaves riders cands data s)
       (StepPost leaves riders cands data T) εmax (lambdaError L₀ + 0) T' :=
   if hs : s.point.length = m ∧ s.values.length = 3 then
     (Spec.sampleE (lambdaError L₀) (Post := fun c h ↦ HDoom cands
@@ -461,11 +508,12 @@ the walk's doom with `n - ρOf n` layers left. -/
 noncomputable def walkStepSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (he : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (n m : ℕ) (h : m + n = μ) (hn : n ≠ 0)
-    (s : GkrState) :
-    Spec (gkrStep (ρOf n) s) (LayersPre leaves riders cands data n m h s)
+    (last : Bool) (s : GkrState) :
+    Spec (gkrStep (ρOf n) last s) (LayersPre leaves riders cands data n m h s)
       (fun s' ↦ LayersPre leaves riders cands data (n - ρOf n) (m + ρOf n)
         (by have := ρOf_le hn; omega) s') εmax (lambdaError L₀ + 0)
       (nextError L₀ (n - ρOf n)) :=
+  Spec.congr (gkrStep_eq_core (ρOf_le_two n) last s).symm <|
   (stepSpec leaves riders cands data (trackOf riders n m h) (T' := nextError L₀ (n - ρOf n)) hfin
     hcard (by have := ρOf_le hn; omega)
     (le_trans (by simpa using roundError_mono L₀ (Nat.pow_le_pow_right (by norm_num)
@@ -498,7 +546,7 @@ noncomputable def gkrLayersSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
       (fun _ hp ↦ by unfold LayersPre at hp ⊢; simpa using hp) (fun _ _ h ↦ h) le_rfl
       (by simp [nextError]) le_rfl
   | 1, m, h, s =>
-    ((walkStepSpec leaves riders cands data hfin hcard he hT 1 m h one_ne_zero s).bind' fun s' ↦
+    ((walkStepSpec leaves riders cands data hfin hcard he hT 1 m h one_ne_zero true s).bind' fun s' ↦
       (gkrLayersSpec hfin hcard he hT 0 (m + 1) (by omega) s').mono
         (fun _ hp ↦ layersPre_congr leaves riders cands data (by simp [ρOf]) (by simp [ρOf]) hp)
         (fun _ _ h ↦ h) le_rfl (by simp [nextError, ρOf]) le_rfl).mono
@@ -509,7 +557,7 @@ noncomputable def gkrLayersSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
         have hρ : ρOf (n + 2) = 1 := by simp [ρOf, hodd]
         Spec.congr (by rw [hρ])
           (((walkStepSpec leaves riders cands data hfin hcard he hT (n + 2) m h (by omega)
-            s).bind' fun s' ↦ (gkrLayersSpec hfin hcard he hT (n + 1) (m + 1) (by omega) s').mono
+            false s).bind' fun s' ↦ (gkrLayersSpec hfin hcard he hT (n + 1) (m + 1) (by omega) s').mono
               (fun _ hp ↦ layersPre_congr leaves riders cands data (by rw [hρ]; omega) (by rw [hρ])
                 hp)
               (fun _ _ h ↦ h) le_rfl (le_of_eq (by rw [hρ]; rfl)) le_rfl).mono
@@ -520,7 +568,7 @@ noncomputable def gkrLayersSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
           simp [ρOf, this]
         Spec.congr (by rw [hρ])
           (((walkStepSpec leaves riders cands data hfin hcard he hT (n + 2) m h (by omega)
-            s).bind' fun s' ↦ (gkrLayersSpec hfin hcard he hT n (m + 2) (by omega) s').mono
+            (decide (n = 0)) s).bind' fun s' ↦ (gkrLayersSpec hfin hcard he hT n (m + 2) (by omega) s').mono
               (fun _ hp ↦ layersPre_congr leaves riders cands data (by rw [hρ]; omega) (by rw [hρ])
                 hp)
               (fun _ _ h ↦ h) le_rfl (le_of_eq (by rw [hρ]; rfl)) le_rfl).mono

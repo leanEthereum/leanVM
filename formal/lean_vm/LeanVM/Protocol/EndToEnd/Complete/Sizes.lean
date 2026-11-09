@@ -15,9 +15,9 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 # The announced sizes and the commitment
 
 Steps 1 and 2 of `verify_execution` (`readAnnouncedSizes`, `commitStack`;
-`crates/verifier/src/lib.rs:219-237` at leanVM `40f877dc`). The honest prover sends the eight
+`crates/verifier/src/lib.rs:249-267` at leanVM `f128`). The honest prover sends the eight
 scalars `announce s ρ` (`Front.announce`: the memory's log-size, the six tables' row counts, then
-the WHIR rate, each the scalar `E::new(n, 0, 0)`), then the stack's level-0 word.
+the WHIR rate, each the scalar `E::new(n, 0)`), then the stack's level-0 word.
 
 * `follows_readSizes`: for sizes admissible for the program and a valid rate, every `require` of
   `readAnnouncedSizes` passes, and it returns `(verifierLayout prog s, ρ)`: the converse of
@@ -38,10 +38,8 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir
 
 /-! ## The announced scalars -/
 
-/-- The scalar `E::new(n, 0, 0)` has zero upper limbs. -/
+/-- The scalar `E::new(n, 0)` has a zero upper limb. -/
 theorem eOfNat_limb_one (n : ℕ) : (eOfNat n).limb 1 = 0 := by simp [eOfNat]
-
-theorem eOfNat_limb_two (n : ℕ) : (eOfNat n).limb 2 = 0 := by simp [eOfNat]
 
 /-- The low limb of `E::new(n, 0, 0)`, read back (`value.c0`), is `n` for a word-sized `n`. -/
 theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = n := by
@@ -65,9 +63,8 @@ theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible
   rw [← hlen, ← Script.bind_ret (Script.sendList (announce s ρ))]
   refine Follows.bind (fun cs' _ b hb ↦ ?_) _ _ _ (Follows.sendList_readN cs _)
   obtain ⟨rfl, rfl⟩ := hb
-  have hlimbs : ((announce s ρ).all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) =
-      true := by
-    simp [announce, eOfNat_limb_one, eOfNat_limb_two]
+  have hlimbs : ((announce s ρ).all fun value ↦ decide (value.limb 1 = 0)) = true := by
+    simp [announce, eOfNat_limb_one]
   have hmem : s.logMem < 2 ^ 64 := by
     have : s.logMem ≤ 32 := h2
     omega

@@ -17,7 +17,7 @@ public import LeanVM.Protocol.WithHashBridge
 
 The claimed evaluator (`claimedBytecodeValue c`) answers only at the point of `c`, so a run of
 the deferring verifier that returns passes through its call at `c`'s point, which is the
-verifier's own: the bus's `bytecodeLow ++ alphas`. Its length is fixed by the program
+verifier's own: the bus's `bytecodeLow` and the bytecode share's sumcheck point. Its length is fixed by the program
 (`verifyDeferred_shaped`).
 
 The run is read through `VerifierProgram.Returns` (`returns_of_runProof`: an accepted proof's
@@ -54,30 +54,35 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
   | read k ih =>
     intro s a s' h
     simp only [runWithHash] at h
-    split at h
-    · simp at h
-    · next x xs hs => exact .read x (ih x h)
+    rcases hs : s.stream with _ | ⟨x, xs⟩ <;> rcases hg : s.sponge.ground with _ | g <;>
+      simp only [hs, hg] at h
+    · simp [pure] at h
+    · simp [pure] at h
+    · exact .read x (ih x h)
+    · simp [pure] at h
   | sample k ih => intro s a s' h; simp only [runWithHash] at h; exact .sample _ (ih _ h)
   | grind bits k ih =>
     intro s a s' h
     simp only [runWithHash] at h
-    split at h
-    · simp at h
-    · next n xs hs =>
+    rcases hs : s.stream with _ | ⟨n, xs⟩ <;> rcases hg : s.sponge.ground with _ | g <;>
+      simp only [hs, hg] at h
+    · simp [pure] at h
+    · simp [pure] at h
+    · revert h
+      generalize absorbNonce F s.sponge n = pr
+      obtain ⟨pow, sp⟩ := pr
+      intro h
       change (if _ then _ else _) = _ at h
       split at h
       · exact .grind bits (ih h)
-      · simp at h
+      · simp [pure] at h
+    · simp [pure] at h
   | commit height width k ih =>
     intro s a s' h
     simp only [runWithHash] at h
-    split at h
-    · next x0 x1 xs hs =>
-      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _ at h
-      split at h
-      · next root hroot => exact .commit height width (ih h)
-      · simp at h
-    · simp at h
+    rcases hs : s.stream with _ | ⟨x0, _ | ⟨x1, xs⟩⟩ <;>
+      rcases hg : s.sponge.ground with _ | g <;> simp only [hs, hg] at h
+    all_goals first | exact .commit height width (ih h) | simp [pure] at h
   | query i ps k ih =>
     intro s a s' h
     obtain ⟨_, _, _, _, _, rows, _, _, _, hk⟩ := (runWithHash_query_eq_some_iff H F i ps k s _).mp h
@@ -88,7 +93,7 @@ theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id Ke
     {seed : KeccakState} {π : Proof} (h : runProofWithHash H F P seed π = true) : Returns P true := by
   unfold runProofWithHash at h
   revert h
-  match hr : runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : runWithHash H F P ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => exact fun _ ↦ returns_of_run H F hr
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
@@ -142,12 +147,14 @@ theorem returns_sumcheck {count : ℕ} :
     rw [VerifierProgram.returns_ret h, List.length_cons, List.length_cons, ← returns_sumcheck hp]
 
 /-- A GKR step of `step` levels adds `step` coordinates to the point. -/
-theorem returns_gkrStep {step : ℕ} {s t : GkrState} (h : VerifierProgram.Returns (gkrStep step
-    s) t) :
+theorem returns_gkrStep {step : ℕ} {last : Bool} {s t : GkrState}
+    (h : VerifierProgram.Returns (gkrStep step last s) t) :
     t.point.length = step + s.point.length := by
   unfold gkrStep at h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨⟨x, cl⟩, hx, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
@@ -187,12 +194,22 @@ theorem returns_verifyGkrGrandProducts {depth : ℕ} {x : E × List E × List E}
   rw [VerifierProgram.returns_ret h]
   exact (returns_gkrLayers depth ht).trans (add_zero _)
 
-/-- The claimed bytecode value is given only at the claimed point. -/
+/-- The claimed bytecode value is checked only at the claimed point. -/
 theorem returns_claimed_bytecode {c : BytecodeClaim} {words : List K} {point : List E} {v : E}
-    (h : VerifierProgram.Returns (claimedBytecodeValue c words point) v) :
-    point = c.bytecodePoint := by
-  obtain ⟨_, h, -⟩ := VerifierProgram.returns_bind h
-  exact VerifierProgram.returns_require h
+    {u : Unit} (h : VerifierProgram.Returns (claimedBytecodeValue c words point v) u) :
+    point = c.bytecodePoint :=
+  (VerifierProgram.returns_require h).1
+
+/-- The bytecode share's point is the bytecode's low coordinates, then one per tuple slot bit. -/
+theorem returns_bytecodeShare {weights low : List E} {x : E × List E × E}
+    (h : VerifierProgram.Returns (bytecodeShare weights low) x) :
+    x.2.1.length = low.length + busBits := by
+  unfold bytecodeShare at h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨⟨pt, cl⟩, hp, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  rw [VerifierProgram.returns_ret h, List.length_append, returns_sumcheck hp, List.length_replicate]
 
 /-- `log2Strict` gives `Nat.log2`. -/
 theorem log2Strict_eq {n k : ℕ} (h : log2Strict n = some k) : k = Nat.log2 n := by
@@ -267,19 +284,22 @@ theorem verifyBusBalance_bytecodePoint {c : BytecodeClaim} {layout : Layout} {b 
     (h : VerifierProgram.Returns (verifyBusBalance (claimedBytecodeValue c) layout) b) :
     c.bytecodePoint.length = layout.logBytecode + busBits := by
   unfold verifyBusBalance at h
-  obtain ⟨alphas, ha, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨⟨cr, point, tv⟩, hg, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨⟨share, bp, value⟩, hs, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, hv, -⟩ := VerifierProgram.returns_bind h
   have hd := busLayout_depth_ge layout.logMemory layout.logBytecode layout.push
   have hp : point.length = _ := returns_verifyGkrGrandProducts hg
-  rw [← returns_claimed_bytecode hv, List.length_append, List.length_take,
-      VerifierProgram.returns_sampleN ha,
-    hp]
+  have hb := returns_bytecodeShare hs
+  simp only at hb
+  rw [← returns_claimed_bytecode hv, hb, List.length_take, hp]
   omega
 
 /-- **The verifier's claims, of the verifier's shapes**: a run of the verifier on the claimed
@@ -290,6 +310,7 @@ theorem verifyExecution_shaped {c : BytecodeClaim} {bytecode : List K} {publicIn
     c.bytecodePoint.length = Nat.log2 bytecode.length := by
   unfold verifyExecutionClaims at h
   obtain ⟨⟨layout, r⟩, hl, h⟩ := VerifierProgram.returns_bind h
+  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   obtain ⟨_, hb, -⟩ := VerifierProgram.returns_bind h
   rw [verifyBusBalance_bytecodePoint hb]

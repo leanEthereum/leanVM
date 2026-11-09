@@ -170,6 +170,25 @@ theorem gOf_append (a b : Fin 8 → E) : gOf (List.ofFn (Fin.append a b : Fin 16
     List.getElem?_append_right (by simp), List.getElem?_ofFn]
   simp
 
+/-- A list of sixteen challenges is its two halves. -/
+theorem take_eq_ofFn_fOf {ch : List E} (h : ch.length = 16) : ch.take 8 = List.ofFn (fOf ch) := by
+  apply List.ext_getElem (by simp [h])
+  intro i h1 h2
+  simp only [List.getElem_take, List.getElem_ofFn, fOf]
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at h2; omega), Option.getD_some]
+
+theorem drop_eq_ofFn_gOf {ch : List E} (h : ch.length = 16) : ch.drop 8 = List.ofFn (gOf ch) := by
+  apply List.ext_getElem (by simp [h])
+  intro i h1 h2
+  simp only [List.getElem_drop, List.getElem_ofFn, gOf]
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at h2; omega), Option.getD_some]
+
+/-- **The bad event at a list of sixteen**: the target at its halves meets the honest value. -/
+theorem ringBad_iff {sv : List E} {z : Fin 64 → E} {ch : List E} (h : ch.length = 16) :
+    RingBad sv z ch ↔ ringTarget sv (List.ofFn (fOf ch)) (List.ofFn (gOf ch)) =
+      ∑ i : Fin 64, ringW i * frobPhi 8 (fOf ch) (gOf ch) (z i) := by
+  rw [RingBad, take_eq_ofFn_fOf h, drop_eq_ofFn_gOf h]
+
 open Classical in
 /-- **The bad challenge lists are few**: for slice claims `s ≠ z`, at most `2·|E|^15` of the
 `|E|^16` lists. -/
