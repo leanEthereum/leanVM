@@ -113,20 +113,22 @@ theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
   simp only [hex, ↓reduceDIte]
   exact romComplete_at hex.choose_spec.choose_spec hfuel
 
-/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
-below `2^-257`: at most `2^44` queries, each missing with probability `(1 - 2^-17)^(2^25) ≤ 2^-320`
-(`missProb_pow_four_le`). -/
-theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 44 := by decide
-  have hmiss : missProb Whir.queryGrindingBits ^ (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ (44 + 276) := by
-    have := missProb_pow_four_le Whir.queryGrindingBits 64
-    rwa [show 2 ^ Whir.queryGrindingBits * 4 * 64 = 2 ^ 25 by decide] at this
-  unfold completenessError
-  calc (completenessQueries (2 ^ 25) : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ 2 ^ 25
-      ≤ (2 : ℝ≥0∞) ^ 44 * (2 : ℝ≥0∞)⁻¹ ^ (44 + 276) := by
+/-- **The numbers**: at a fuel of `2^33` nonces per proof of work, the completeness error is
+below `2^-257`: fewer than `2^51` queries, each missing a proof of work of at most `25` bits with
+probability `(1 - 2^-25)^(2^33) ≤ 2^-320` (`missProb_pow_four_le`). -/
+theorem completenessError_two_pow_33_le :
+    LeanVM.completenessError (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
+  have hQ : LeanVM.completenessQueries (2 ^ 33) ≤ 2 ^ 51 := by
+    norm_num [LeanVM.completenessQueries]
+  have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 25) ^ (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ (51 + 269) := by
+    have := missProb_pow_four_le 25 64
+    rwa [missProb, show 2 ^ 25 * 4 * 64 = 2 ^ 33 by norm_num] at this
+  unfold LeanVM.completenessError
+  calc (LeanVM.completenessQueries (2 ^ 33) : ℝ≥0∞) * (1 - (2 : ℝ≥0∞)⁻¹ ^ 25) ^ 2 ^ 33
+      ≤ (2 : ℝ≥0∞) ^ 51 * (2 : ℝ≥0∞)⁻¹ ^ (51 + 269) := by
         gcongr
         exact_mod_cast hQ
-    _ = (2 : ℝ≥0∞)⁻¹ ^ 276 := by
+    _ = (2 : ℝ≥0∞)⁻¹ ^ 269 := by
         rw [pow_add, ← mul_assoc, ← mul_pow,
           ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=

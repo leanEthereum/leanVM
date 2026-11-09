@@ -91,12 +91,11 @@ theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
   rw [romExperiment_map, prEvent_map]
   exact h
 
-/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the statement's completeness
+/-- **The numbers**: at a fuel of `2^33` nonces per proof of work, the statement's completeness
 error is below `2^-257`. -/
 theorem statement_completenessError_le :
-    LeanVM.completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  rw [completenessError_eq]
-  exact completenessError_le
+    LeanVM.completenessError (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
+  completenessError_two_pow_33_le
 
 /-- **Completeness holds**, with the honest prover `honestComp` (which always makes a proof). -/
 theorem completeness_holds : LeanVM.CompletenessRom :=
