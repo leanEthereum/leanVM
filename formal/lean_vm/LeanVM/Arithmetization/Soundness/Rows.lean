@@ -54,7 +54,7 @@ guarantees of a row are those of its memory and bytecode pulls.
 
 **Without the permutation** (`OpRow`'s last clause). Under its constraints and the guarantees
 alone a row is a step of the reduction-blind semantics `keccakFree` (`Statement.LeanIsa`), whose
-`KECCAK` asks only canonical cells with the written cells' free limb zero: a `KECCAK` row is bound
+`KECCAK` asks only the written cells' free limb zero: a `KECCAK` row is bound
 to the image by the table's circuit without its assumption (`keccakTableFree`), and its cells are
 cells of lanes (`keccak_free_exec`); every other table assumes nothing, and a deployed step is a
 reduction-blind one (`executeWithB_free_of_executeWith`).
@@ -97,10 +97,10 @@ structure RowRec where
   /-- The bytecode coordinates `(opcode, op₁, …, op₁₂)`. -/
   e : Vector K 13
   /-- The memory reads `(addr, count, limbs)`. -/
-  reads : List (K × K × Vector K 3)
+  reads : List (K × K × Vector K 2)
   /-- The gated memory reads `(flag, addr, count, limbs)` (`memReadIf`): a `KECCAK` row's output
   cells past the first, after the reads. -/
-  gated : List (K × K × K × Vector K 3)
+  gated : List (K × K × K × Vector K 2)
 
 /-- A record exists. -/
 instance : Inhabited RowRec := ⟨⟨0, 0, ⟨0, 0⟩, 0, 0, [], []⟩⟩
@@ -111,11 +111,11 @@ def RowRec.sends (x : RowRec) : List (String × Array K) :=
 
 /-- The reads a row makes: its reads and its gated reads at flag `1`. A gated read at flag `0` is a
 cancelled pair, and makes none. -/
-def RowRec.real (x : RowRec) : List (K × K × Vector K 3) :=
+def RowRec.real (x : RowRec) : List (K × K × Vector K 2) :=
   x.reads ++ (x.gated.filter fun y ↦ y.1 = 1).map (·.2)
 
 /-- The cancelled pairs of a row: its gated reads at flag `0`. -/
-def RowRec.skips (x : RowRec) : List (K × K × Vector K 3) :=
+def RowRec.skips (x : RowRec) : List (K × K × Vector K 2) :=
   (x.gated.filter fun y ↦ y.1 = 0).map (·.2)
 
 /-- The pulled state of a record. -/
@@ -146,8 +146,8 @@ def OpRow (c : Component K) (env : Environment K) : Prop :=
         executeWithB keccakFree (imageOf env.data).2.read x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))
 
-/-- **A deployed step is a reduction-blind step**: the cells Keccak-f writes are canonical with
-their free limb zero. -/
+/-- **A deployed step is a reduction-blind step**: the cells Keccak-f writes have their free limb
+zero. -/
 theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Registers K} {ins :
     LeanIsaInstruction}
     (h : executeWith read r ins = some next) : executeWithB keccakFree read r ins = some next := by
@@ -156,7 +156,7 @@ theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Regis
     simp only [executeWith, executeWithB, Option.bind_eq_bind, Option.bind_eq_some_iff] at h ⊢
     obtain ⟨input, hin, output, hout, u, hu, hnext⟩ := h
     refine ⟨input, hin, output, hout, (), ?_, hnext⟩
-    have hc := canonicalKeccak_of_keccakCells (guard_eq_some hu)
+    have hc := freeLimbZero_of_keccakCells (guard_eq_some hu)
     unfold guard
     simp only [keccakFree, hc, ↓reduceIte]
     rfl
@@ -200,7 +200,7 @@ theorem xor_opRow (env : Environment K) : OpRow (opcodeComponent xorTable) env :
   refine opRow_of_assumptions trivial
     ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, busEntry (.xor r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
-     (r.fp * r.oC, r.rC, #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]])], []⟩,
+     (r.fp * r.oC, r.rC, #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1]])], []⟩,
     ?_, rfl, by simp, ?_⟩
   · rw [rowSends_mk, xor_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, gatedSends, memMsgOf, bcMsgOf, busEntry]
@@ -217,7 +217,7 @@ theorem set_opRow (env : Environment K) : OpRow (opcodeComponent setTable) env :
   set r := (opcodeComponent setTable).rowInput env with hr
   have hx : eval env (varFromOffset SetRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
-    #v[Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0, 0, 0],
+    #v[Opcode.setConstant.busCode, r.o, r.k[0], r.k[1], 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [(r.fp * r.o, r.r, r.k)], []⟩, ?_, rfl, by simp, ?_⟩
   · rw [rowSends_mk, set_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, gatedSends, memMsgOf, bcMsgOf]
@@ -225,7 +225,7 @@ theorem set_opRow (env : Environment K) : OpRow (opcodeComponent setTable) env :
     obtain ⟨hs, -⟩ := Component.weakSoundness ha hc hg
     have hs' : SetRefines (imageOf env.data).2 r ((opcodeComponent setTable).rowOutput env) := hs
     obtain ⟨-, hnext⟩ := (set_refines_iff _ _ _).mp hs'
-    refine ⟨.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]), by simp [busEntry, limb_ofLimbs],
+    refine ⟨.setConstant r.o (E.ofLimbs r.k[0] r.k[1]), by simp [busEntry, limb_ofLimbs],
       ?_, fun _ ↦ rfl⟩
     rw [← show ((opcodeComponent setTable).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
     exact hs'.exec_eq
@@ -237,10 +237,8 @@ theorem mul_opRow (env : Environment K) : OpRow (opcodeComponent mulTable) env :
   refine opRow_of_assumptions trivial
     ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, busEntry (.mulNative r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
-     (r.fp * r.oC, r.rC, #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1],
-          r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1] +
-            r.vA[2] * r.vB[2],
-          r.vA[0] * r.vB[2] + r.vA[1] * r.vB[1] + r.vA[2] * r.vB[0] + r.vA[2] * r.vB[2]])], []⟩,
+     (r.fp * r.oC, r.rC, #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[1],
+          r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + g * (r.vA[1] * r.vB[1])])], []⟩,
     ?_, rfl, by simp, ?_⟩
   · rw [rowSends_mk, mul_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, gatedSends, memMsgOf, bcMsgOf, busEntry]
@@ -259,9 +257,9 @@ theorem deref_opRow (env : Environment K) : OpRow (opcodeComponent derefTable) e
   have hx : eval env (varFromOffset DerefRow 0) = r := eval_varFromOffset_valueFromOffset ..
   refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
     #v[Opcode.deref.busCode, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0, 0, 0],
-    [(r.fp * r.o1, r.r1, #v[r.p, 0, 0]),
+    [(r.fp * r.o1, r.r1, #v[r.p, 0]),
      (r.p * r.o2, r.r2, #v[(1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
-          (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]),
+          (1 + r.fpc + r.ffp) * r.v3[1]]),
      (r.fp * r.o3, r.r3, r.v3)], []⟩,
     ?_, rfl, by simp, ?_⟩
   · rw [rowSends_mk, deref_sends_gen _ _ _ _ hx]
@@ -354,24 +352,16 @@ def keccakTableFree : GeneralFormalCircuit K KeccakRow Registers :=
         · have h25 := h25 (by rw [gate_all (by simp at hc; omega)])
           · cases outOdd <;> simp [laneCells, cellLanes, laneLimb, KeccakRow.outLanes, Vector.getElem_map] at h25 ⊢ <;> exact h25 }
 
-/-- The cells of lanes in a layout satisfy the reduction-blind check: canonical, the written
-cells' free limb zero; the cells past those written are not read and are `0`. -/
-theorem canonicalKeccak_laneCells (L L' : Fin 25 → K) (inOdd outOdd : Bool) (free : K)
-    (outCells : KeccakOutputCells) :
-    CanonicalKeccak (laneCells L inOdd free) inOdd
-      (fun c ↦ if c.val < outCells.cellCount then laneCells L' outOdd 0 c else 0) outOdd
+/-- The cells of lanes in a layout satisfy the reduction-blind check: the written cells' free limb
+is zero; the cells past those written are not read and are `0`. -/
+theorem freeLimbZero_laneCells (L' : Fin 25 → K) (outOdd : Bool) (outCells : KeccakOutputCells) :
+    FreeLimbZero (fun c ↦ if c.val < outCells.cellCount then laneCells L' outOdd 0 c else 0) outOdd
       outCells := by
-  refine ⟨fun c ↦ ?_, fun c hc ↦ ?_, ?_⟩
-  · show (E.ofLimbs _ _ 0).limb 2 = 0
-    rw [limb_ofLimbs]; rfl
-  · simp only [hc, ↓reduceIte]
-    show (E.ofLimbs _ _ 0).limb 2 = 0
-    rw [limb_ofLimbs]; rfl
-  · have h0 : 0 < outCells.cellCount := by cases outCells <;> decide
-    cases outOdd
-    · intro h8
-      simp [h8, laneCells, cellLanes, laneLimb, limb_ofLimbs]
-    · simp [FreeLimbZero, h0, laneCells, cellLanes, laneLimb, limb_ofLimbs]
+  have h0 : 0 < outCells.cellCount := by cases outCells <;> decide
+  cases outOdd
+  · intro h8
+    simp [h8, laneCells, cellLanes, laneLimb, limb_ofLimbs]
+  · simp [FreeLimbZero, h0, laneCells, cellLanes, laneLimb, limb_ofLimbs]
 
 /-- A bound `KECCAK` row executes under the reduction-blind semantics. -/
 theorem keccak_free_exec {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K} {inOdd outOdd : Bool}
@@ -389,7 +379,7 @@ theorem keccak_free_exec {κ : ℕ} {mem : MemoryImage κ} {r : KeccakRow K} {in
         fun c hc ↦ by split_ifs <;> first | omega | rfl⟩
   simp only [executeWithB, keccakFree, hin, hout, Option.bind_eq_bind, Option.bind_some]
   unfold guard
-  simp only [canonicalKeccak_laneCells, ↓reduceIte]
+  simp only [freeLimbZero_laneCells, ↓reduceIte]
   rfl
 
 /-- The record of a `KECCAK` row: the state step, the bytecode read of its thirteen coordinates,
@@ -399,40 +389,40 @@ def keccakRecOf (r : KeccakRow K) : RowRec :=
   ⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
     #v[Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3], r.otail, r.ob8, r.ocap, r.oout,
       r.oddIn, r.oddOut, r.outTwo, r.outAll],
-    [(r.fp * r.om[0], r.cnt[0], #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]),
-     (r.fp * r.om[1], r.cnt[1], #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]),
-     (r.fp * r.om[2], r.cnt[2], #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]),
-     (r.fp * r.om[3], r.cnt[3], #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]),
-     (r.fp * (g ^ 0 * r.otail), r.cnt[4], #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]),
-     (r.fp * (g ^ 1 * r.otail), r.cnt[5], #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]),
-     (r.fp * (g ^ 2 * r.otail), r.cnt[6], #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]),
-     (r.fp * (g ^ 3 * r.otail), r.cnt[7], #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]),
-     (r.fp * r.ob8, r.cnt[8], #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]),
-     (r.fp * (g ^ 0 * r.ocap), r.cnt[9], #v[r.lin[17], r.lin[18], 0]),
-     (r.fp * (g ^ 1 * r.ocap), r.cnt[10], #v[r.lin[19], r.lin[20], 0]),
-     (r.fp * (g ^ 2 * r.ocap), r.cnt[11], #v[r.lin[21], r.lin[22], 0]),
-     (r.fp * (g ^ 3 * r.ocap), r.cnt[12], #v[r.lin[23], r.lin[24], 0]),
-     (r.fp * (g ^ 0 * r.oout), r.cnt[13], #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0])],
-    [(r.outTwo, r.fp * (g ^ 1 * r.oout), r.cnt[14], #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]),
-     (r.outAll, r.fp * (g ^ 2 * r.oout), r.cnt[15], #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]),
-     (r.outAll, r.fp * (g ^ 3 * r.oout), r.cnt[16], #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]),
-     (r.outAll, r.fp * (g ^ 4 * r.oout), r.cnt[17], #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]),
-     (r.outAll, r.fp * (g ^ 5 * r.oout), r.cnt[18], #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]),
-     (r.outAll, r.fp * (g ^ 6 * r.oout), r.cnt[19], #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]),
-     (r.outAll, r.fp * (g ^ 7 * r.oout), r.cnt[20], #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]),
-     (r.outAll, r.fp * (g ^ 8 * r.oout), r.cnt[21], #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]),
-     (r.outAll, r.fp * (g ^ 9 * r.oout), r.cnt[22], #v[r.lout[17], r.lout[18], 0]),
-     (r.outAll, r.fp * (g ^ 10 * r.oout), r.cnt[23], #v[r.lout[19], r.lout[20], 0]),
-     (r.outAll, r.fp * (g ^ 11 * r.oout), r.cnt[24], #v[r.lout[21], r.lout[22], 0]),
-     (r.outAll, r.fp * (g ^ 12 * r.oout), r.cnt[25], #v[r.lout[23], r.lout[24], 0])]⟩
+    [(r.fp * r.om[0], r.cnt[0], #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0]]),
+     (r.fp * r.om[1], r.cnt[1], #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2]]),
+     (r.fp * r.om[2], r.cnt[2], #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4]]),
+     (r.fp * r.om[3], r.cnt[3], #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6]]),
+     (r.fp * (g ^ 0 * r.otail), r.cnt[4], #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8]]),
+     (r.fp * (g ^ 1 * r.otail), r.cnt[5], #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10]]),
+     (r.fp * (g ^ 2 * r.otail), r.cnt[6], #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12]]),
+     (r.fp * (g ^ 3 * r.otail), r.cnt[7], #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14]]),
+     (r.fp * r.ob8, r.cnt[8], #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16]]),
+     (r.fp * (g ^ 0 * r.ocap), r.cnt[9], #v[r.lin[17], r.lin[18]]),
+     (r.fp * (g ^ 1 * r.ocap), r.cnt[10], #v[r.lin[19], r.lin[20]]),
+     (r.fp * (g ^ 2 * r.ocap), r.cnt[11], #v[r.lin[21], r.lin[22]]),
+     (r.fp * (g ^ 3 * r.ocap), r.cnt[12], #v[r.lin[23], r.lin[24]]),
+     (r.fp * (g ^ 0 * r.oout), r.cnt[13], #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0]])],
+    [(r.outTwo, r.fp * (g ^ 1 * r.oout), r.cnt[14], #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2]]),
+     (r.outAll, r.fp * (g ^ 2 * r.oout), r.cnt[15], #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4]]),
+     (r.outAll, r.fp * (g ^ 3 * r.oout), r.cnt[16], #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6]]),
+     (r.outAll, r.fp * (g ^ 4 * r.oout), r.cnt[17], #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8]]),
+     (r.outAll, r.fp * (g ^ 5 * r.oout), r.cnt[18], #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10]]),
+     (r.outAll, r.fp * (g ^ 6 * r.oout), r.cnt[19], #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12]]),
+     (r.outAll, r.fp * (g ^ 7 * r.oout), r.cnt[20], #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14]]),
+     (r.outAll, r.fp * (g ^ 8 * r.oout), r.cnt[21], #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16]]),
+     (r.outAll, r.fp * (g ^ 9 * r.oout), r.cnt[22], #v[r.lout[17], r.lout[18]]),
+     (r.outAll, r.fp * (g ^ 10 * r.oout), r.cnt[23], #v[r.lout[19], r.lout[20]]),
+     (r.outAll, r.fp * (g ^ 11 * r.oout), r.cnt[24], #v[r.lout[21], r.lout[22]]),
+     (r.outAll, r.fp * (g ^ 12 * r.oout), r.cnt[25], #v[r.lout[23], r.lout[24]])]⟩
 
 /-- A read is a read the row makes. -/
-theorem RowRec.mem_real_of_read {x : RowRec} {y : K × K × Vector K 3} (h : y ∈ x.reads) :
+theorem RowRec.mem_real_of_read {x : RowRec} {y : K × K × Vector K 2} (h : y ∈ x.reads) :
     memMsgOf y.1 y.2.1 y.2.2 ∈ x.real.map fun y ↦ memMsgOf y.1 y.2.1 y.2.2 :=
   List.mem_map_of_mem (List.mem_append_left _ h)
 
 /-- A gated read at flag `1` is a read the row makes. -/
-theorem RowRec.mem_real_of_gated {x : RowRec} {y : K × K × K × Vector K 3} (h : y ∈ x.gated)
+theorem RowRec.mem_real_of_gated {x : RowRec} {y : K × K × K × Vector K 2} (h : y ∈ x.gated)
     (h1 : y.1 = 1) :
     memMsgOf y.2.1 y.2.2.1 y.2.2.2 ∈ x.real.map fun y ↦ memMsgOf y.1 y.2.1 y.2.2 :=
   List.mem_map_of_mem (List.mem_append_right _
@@ -453,58 +443,58 @@ theorem keccak_mults_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ) (
        ((BytecodePush.name, #[r.pc, g * r.rbc, Opcode.keccak.busCode, r.om[0], r.om[1], r.om[2], r.om[3],
             r.otail, r.ob8,
           r.ocap, r.oout, r.oddIn, r.oddOut, r.outTwo, r.outAll]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * r.om[0]) (r.cnt[0]) #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * r.om[0]) (g * r.cnt[0]) #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * r.om[1]) (r.cnt[1]) #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * r.om[1]) (g * r.cnt[1]) #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * r.om[2]) (r.cnt[2]) #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * r.om[2]) (g * r.cnt[2]) #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * r.om[3]) (r.cnt[3]) #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * r.om[3]) (g * r.cnt[3]) #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.otail)) (r.cnt[4]) #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.otail)) (g * r.cnt[4]) #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.otail)) (r.cnt[5]) #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.otail)) (g * r.cnt[5]) #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.otail)) (r.cnt[6]) #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.otail)) (g * r.cnt[6]) #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.otail)) (r.cnt[7]) #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.otail)) (g * r.cnt[7]) #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * r.ob8) (r.cnt[8]) #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * r.ob8) (g * r.cnt[8]) #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.ocap)) (r.cnt[9]) #v[r.lin[17], r.lin[18], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.ocap)) (g * r.cnt[9]) #v[r.lin[17], r.lin[18], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.ocap)) (r.cnt[10]) #v[r.lin[19], r.lin[20], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.ocap)) (g * r.cnt[10]) #v[r.lin[19], r.lin[20], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.ocap)) (r.cnt[11]) #v[r.lin[21], r.lin[22], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.ocap)) (g * r.cnt[11]) #v[r.lin[21], r.lin[22], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.ocap)) (r.cnt[12]) #v[r.lin[23], r.lin[24], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.ocap)) (g * r.cnt[12]) #v[r.lin[23], r.lin[24], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.oout)) (r.cnt[13]) #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]), (1 : K)),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.oout)) (g * r.cnt[13]) #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.oout)) (r.cnt[14]) #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]), r.outTwo),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.oout)) (r.cnt[14] + g * (r.outTwo * r.cnt[14]) + r.outTwo * r.cnt[14]) #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.oout)) (r.cnt[15]) #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.oout)) (r.cnt[15] + g * (r.outAll * r.cnt[15]) + r.outAll * r.cnt[15]) #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.oout)) (r.cnt[16]) #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.oout)) (r.cnt[16] + g * (r.outAll * r.cnt[16]) + r.outAll * r.cnt[16]) #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 4 * r.oout)) (r.cnt[17]) #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 4 * r.oout)) (r.cnt[17] + g * (r.outAll * r.cnt[17]) + r.outAll * r.cnt[17]) #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 5 * r.oout)) (r.cnt[18]) #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 5 * r.oout)) (r.cnt[18] + g * (r.outAll * r.cnt[18]) + r.outAll * r.cnt[18]) #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 6 * r.oout)) (r.cnt[19]) #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 6 * r.oout)) (r.cnt[19] + g * (r.outAll * r.cnt[19]) + r.outAll * r.cnt[19]) #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 7 * r.oout)) (r.cnt[20]) #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 7 * r.oout)) (r.cnt[20] + g * (r.outAll * r.cnt[20]) + r.outAll * r.cnt[20]) #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 8 * r.oout)) (r.cnt[21]) #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 8 * r.oout)) (r.cnt[21] + g * (r.outAll * r.cnt[21]) + r.outAll * r.cnt[21]) #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 9 * r.oout)) (r.cnt[22]) #v[r.lout[17], r.lout[18], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 9 * r.oout)) (r.cnt[22] + g * (r.outAll * r.cnt[22]) + r.outAll * r.cnt[22]) #v[r.lout[17], r.lout[18], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 10 * r.oout)) (r.cnt[23]) #v[r.lout[19], r.lout[20], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 10 * r.oout)) (r.cnt[23] + g * (r.outAll * r.cnt[23]) + r.outAll * r.cnt[23]) #v[r.lout[19], r.lout[20], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 11 * r.oout)) (r.cnt[24]) #v[r.lout[21], r.lout[22], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 11 * r.oout)) (r.cnt[24] + g * (r.outAll * r.cnt[24]) + r.outAll * r.cnt[24]) #v[r.lout[21], r.lout[22], 0]), (1 : K)),
-       ((MemPull.name, memMsgOf (r.fp * (g ^ 12 * r.oout)) (r.cnt[25]) #v[r.lout[23], r.lout[24], 0]), r.outAll),
-       ((MemPush.name, memMsgOf (r.fp * (g ^ 12 * r.oout)) (r.cnt[25] + g * (r.outAll * r.cnt[25]) + r.outAll * r.cnt[25]) #v[r.lout[23], r.lout[24], 0]), (1 : K))] := by
+       ((MemPull.name, memMsgOf (r.fp * r.om[0]) (r.cnt[0]) #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * r.om[0]) (g * r.cnt[0]) #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * r.om[1]) (r.cnt[1]) #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * r.om[1]) (g * r.cnt[1]) #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * r.om[2]) (r.cnt[2]) #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * r.om[2]) (g * r.cnt[2]) #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * r.om[3]) (r.cnt[3]) #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * r.om[3]) (g * r.cnt[3]) #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.otail)) (r.cnt[4]) #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.otail)) (g * r.cnt[4]) #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.otail)) (r.cnt[5]) #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.otail)) (g * r.cnt[5]) #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.otail)) (r.cnt[6]) #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.otail)) (g * r.cnt[6]) #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.otail)) (r.cnt[7]) #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.otail)) (g * r.cnt[7]) #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * r.ob8) (r.cnt[8]) #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * r.ob8) (g * r.cnt[8]) #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.ocap)) (r.cnt[9]) #v[r.lin[17], r.lin[18]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.ocap)) (g * r.cnt[9]) #v[r.lin[17], r.lin[18]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.ocap)) (r.cnt[10]) #v[r.lin[19], r.lin[20]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.ocap)) (g * r.cnt[10]) #v[r.lin[19], r.lin[20]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.ocap)) (r.cnt[11]) #v[r.lin[21], r.lin[22]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.ocap)) (g * r.cnt[11]) #v[r.lin[21], r.lin[22]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.ocap)) (r.cnt[12]) #v[r.lin[23], r.lin[24]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.ocap)) (g * r.cnt[12]) #v[r.lin[23], r.lin[24]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 0 * r.oout)) (r.cnt[13]) #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0]]), (1 : K)),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 0 * r.oout)) (g * r.cnt[13]) #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 1 * r.oout)) (r.cnt[14]) #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2]]), r.outTwo),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 1 * r.oout)) (r.cnt[14] + g * (r.outTwo * r.cnt[14]) + r.outTwo * r.cnt[14]) #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 2 * r.oout)) (r.cnt[15]) #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 2 * r.oout)) (r.cnt[15] + g * (r.outAll * r.cnt[15]) + r.outAll * r.cnt[15]) #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 3 * r.oout)) (r.cnt[16]) #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 3 * r.oout)) (r.cnt[16] + g * (r.outAll * r.cnt[16]) + r.outAll * r.cnt[16]) #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 4 * r.oout)) (r.cnt[17]) #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 4 * r.oout)) (r.cnt[17] + g * (r.outAll * r.cnt[17]) + r.outAll * r.cnt[17]) #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 5 * r.oout)) (r.cnt[18]) #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 5 * r.oout)) (r.cnt[18] + g * (r.outAll * r.cnt[18]) + r.outAll * r.cnt[18]) #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 6 * r.oout)) (r.cnt[19]) #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 6 * r.oout)) (r.cnt[19] + g * (r.outAll * r.cnt[19]) + r.outAll * r.cnt[19]) #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 7 * r.oout)) (r.cnt[20]) #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 7 * r.oout)) (r.cnt[20] + g * (r.outAll * r.cnt[20]) + r.outAll * r.cnt[20]) #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 8 * r.oout)) (r.cnt[21]) #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 8 * r.oout)) (r.cnt[21] + g * (r.outAll * r.cnt[21]) + r.outAll * r.cnt[21]) #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 9 * r.oout)) (r.cnt[22]) #v[r.lout[17], r.lout[18]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 9 * r.oout)) (r.cnt[22] + g * (r.outAll * r.cnt[22]) + r.outAll * r.cnt[22]) #v[r.lout[17], r.lout[18]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 10 * r.oout)) (r.cnt[23]) #v[r.lout[19], r.lout[20]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 10 * r.oout)) (r.cnt[23] + g * (r.outAll * r.cnt[23]) + r.outAll * r.cnt[23]) #v[r.lout[19], r.lout[20]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 11 * r.oout)) (r.cnt[24]) #v[r.lout[21], r.lout[22]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 11 * r.oout)) (r.cnt[24] + g * (r.outAll * r.cnt[24]) + r.outAll * r.cnt[24]) #v[r.lout[21], r.lout[22]]), (1 : K)),
+       ((MemPull.name, memMsgOf (r.fp * (g ^ 12 * r.oout)) (r.cnt[25]) #v[r.lout[23], r.lout[24]]), r.outAll),
+       ((MemPush.name, memMsgOf (r.fp * (g ^ 12 * r.oout)) (r.cnt[25] + g * (r.outAll * r.cnt[25]) + r.outAll * r.cnt[25]) #v[r.lout[23], r.lout[24]]), (1 : K))] := by
   subst hx
   obtain ⟨pc, fp, om, otail, ob8, ocap, oout, oddIn, oddOut, outTwo, outAll, free, lin, lout, cnt,
     rbc⟩ := x
@@ -531,119 +521,119 @@ theorem keccak_guarded_gen (x : Var KeccakRow K) (env : Environment K) (n : ℕ)
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[0]), (r.cnt[0]), #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[0]), (r.cnt[0]), #v[r.lin[0] + r.oddIn * r.lin[0] + r.oddIn * r.free, r.lin[1] + r.oddIn * r.lin[1] + r.oddIn * r.lin[0]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[1]), (r.cnt[1]), #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[1]), (r.cnt[1]), #v[r.lin[2] + r.oddIn * r.lin[2] + r.oddIn * r.lin[1], r.lin[3] + r.oddIn * r.lin[3] + r.oddIn * r.lin[2]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[2]), (r.cnt[2]), #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[2]), (r.cnt[2]), #v[r.lin[4] + r.oddIn * r.lin[4] + r.oddIn * r.lin[3], r.lin[5] + r.oddIn * r.lin[5] + r.oddIn * r.lin[4]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[3]), (r.cnt[3]), #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.om[3]), (r.cnt[3]), #v[r.lin[6] + r.oddIn * r.lin[6] + r.oddIn * r.lin[5], r.lin[7] + r.oddIn * r.lin[7] + r.oddIn * r.lin[6]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.otail)), (r.cnt[4]), #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.otail)), (r.cnt[4]), #v[r.lin[8] + r.oddIn * r.lin[8] + r.oddIn * r.lin[7], r.lin[9] + r.oddIn * r.lin[9] + r.oddIn * r.lin[8]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 1 * r.otail)), (r.cnt[5]), #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 1 * r.otail)), (r.cnt[5]), #v[r.lin[10] + r.oddIn * r.lin[10] + r.oddIn * r.lin[9], r.lin[11] + r.oddIn * r.lin[11] + r.oddIn * r.lin[10]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 2 * r.otail)), (r.cnt[6]), #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 2 * r.otail)), (r.cnt[6]), #v[r.lin[12] + r.oddIn * r.lin[12] + r.oddIn * r.lin[11], r.lin[13] + r.oddIn * r.lin[13] + r.oddIn * r.lin[12]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 3 * r.otail)), (r.cnt[7]), #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 3 * r.otail)), (r.cnt[7]), #v[r.lin[14] + r.oddIn * r.lin[14] + r.oddIn * r.lin[13], r.lin[15] + r.oddIn * r.lin[15] + r.oddIn * r.lin[14]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.ob8), (r.cnt[8]), #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * r.ob8), (r.cnt[8]), #v[r.lin[16] + r.oddIn * r.lin[16] + r.oddIn * r.lin[15], r.free + r.oddIn * r.free + r.oddIn * r.lin[16]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.ocap)), (r.cnt[9]), #v[r.lin[17], r.lin[18], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.ocap)), (r.cnt[9]), #v[r.lin[17], r.lin[18]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 1 * r.ocap)), (r.cnt[10]), #v[r.lin[19], r.lin[20], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 1 * r.ocap)), (r.cnt[10]), #v[r.lin[19], r.lin[20]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 2 * r.ocap)), (r.cnt[11]), #v[r.lin[21], r.lin[22], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 2 * r.ocap)), (r.cnt[11]), #v[r.lin[21], r.lin[22]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 3 * r.ocap)), (r.cnt[12]), #v[r.lin[23], r.lin[24], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 3 * r.ocap)), (r.cnt[12]), #v[r.lin[23], r.lin[24]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h2]
-    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.oout)), (r.cnt[13]), #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0], 0]))
+    exact List.mem_map_of_mem (f := fun y ↦ memMsgOf y.1 y.2.1 y.2.2) (a := ((r.fp * (g ^ 0 * r.oout)), (r.cnt[13]), #v[r.lout[0] + r.oddOut * r.lout[0], r.lout[1] + r.oddOut * r.lout[1] + r.oddOut * r.lout[0]]))
       (List.mem_append_left _ (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]))
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outTwo, (r.fp * (g ^ 1 * r.oout)), (r.cnt[14]), #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outTwo, (r.fp * (g ^ 1 * r.oout)), (r.cnt[14]), #v[r.lout[2] + r.oddOut * r.lout[2] + r.oddOut * r.lout[1], r.lout[3] + r.oddOut * r.lout[3] + r.oddOut * r.lout[2]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 2 * r.oout)), (r.cnt[15]), #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 2 * r.oout)), (r.cnt[15]), #v[r.lout[4] + r.oddOut * r.lout[4] + r.oddOut * r.lout[3], r.lout[5] + r.oddOut * r.lout[5] + r.oddOut * r.lout[4]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 3 * r.oout)), (r.cnt[16]), #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 3 * r.oout)), (r.cnt[16]), #v[r.lout[6] + r.oddOut * r.lout[6] + r.oddOut * r.lout[5], r.lout[7] + r.oddOut * r.lout[7] + r.oddOut * r.lout[6]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 4 * r.oout)), (r.cnt[17]), #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 4 * r.oout)), (r.cnt[17]), #v[r.lout[8] + r.oddOut * r.lout[8] + r.oddOut * r.lout[7], r.lout[9] + r.oddOut * r.lout[9] + r.oddOut * r.lout[8]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 5 * r.oout)), (r.cnt[18]), #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 5 * r.oout)), (r.cnt[18]), #v[r.lout[10] + r.oddOut * r.lout[10] + r.oddOut * r.lout[9], r.lout[11] + r.oddOut * r.lout[11] + r.oddOut * r.lout[10]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 6 * r.oout)), (r.cnt[19]), #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 6 * r.oout)), (r.cnt[19]), #v[r.lout[12] + r.oddOut * r.lout[12] + r.oddOut * r.lout[11], r.lout[13] + r.oddOut * r.lout[13] + r.oddOut * r.lout[12]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 7 * r.oout)), (r.cnt[20]), #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 7 * r.oout)), (r.cnt[20]), #v[r.lout[14] + r.oddOut * r.lout[14] + r.oddOut * r.lout[13], r.lout[15] + r.oddOut * r.lout[15] + r.oddOut * r.lout[14]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 8 * r.oout)), (r.cnt[21]), #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 8 * r.oout)), (r.cnt[21]), #v[r.lout[16] + r.oddOut * r.lout[16] + r.oddOut * r.lout[15], r.oddOut * r.lout[16]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 9 * r.oout)), (r.cnt[22]), #v[r.lout[17], r.lout[18], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 9 * r.oout)), (r.cnt[22]), #v[r.lout[17], r.lout[18]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 10 * r.oout)), (r.cnt[23]), #v[r.lout[19], r.lout[20], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 10 * r.oout)), (r.cnt[23]), #v[r.lout[19], r.lout[20]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 11 * r.oout)), (r.cnt[24]), #v[r.lout[21], r.lout[22], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 11 * r.oout)), (r.cnt[24]), #v[r.lout[21], r.lout[22]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
   · rw [h3] at hm
     rw [h2]
-    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 12 * r.oout)), (r.cnt[25]), #v[r.lout[23], r.lout[24], 0]))
+    exact RowRec.mem_real_of_gated (x := keccakRecOf r) (y := (r.outAll, (r.fp * (g ^ 12 * r.oout)), (r.cnt[25]), #v[r.lout[23], r.lout[24]]))
       (by simp only [keccakRecOf, List.mem_cons, true_or, or_true]) hm
   · rw [h1] at hn; exact absurd hn (by decide)
 
@@ -714,8 +704,8 @@ theorem jump_opRow (env : Environment K) : OpRow (opcodeComponent jumpTable) env
   refine opRow_of_assumptions trivial
     ⟨⟨r.pc, r.fp, (opcodeComponent jumpTable).rowOutput env, r.rbc,
     busEntry (.jump r.oc r.od r.of),
-    [(r.fp * r.oc, r.rc, #v[r.vcond, 0, 0]), (r.fp * r.od, r.rd, #v[r.vpc, 0, 0]),
-     (r.fp * r.of, r.rf, #v[r.vfp, 0, 0])], []⟩, ?_, rfl, by simp, ?_⟩
+    [(r.fp * r.oc, r.rc, #v[r.vcond, 0]), (r.fp * r.od, r.rd, #v[r.vpc, 0]),
+     (r.fp * r.of, r.rf, #v[r.vfp, 0])], []⟩, ?_, rfl, by simp, ?_⟩
   · have ho : (opcodeComponent jumpTable).rowOutput env = _ :=
       jump_output_gen _ env (size JumpRow) r hx _ rfl
     rw [rowSends_mk, jump_sends_gen _ _ _ _ hx _ rfl, ho]

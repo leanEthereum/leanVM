@@ -41,7 +41,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 /-! ## The fixture: four words, two slots -/
 
 /-- The image: four words, `κ = 2`. -/
-def memWords : Array (Vector K 3) := #[#v[1, K.ofBits 2, K.ofBits 3], #v[K.ofBits 4, K.ofBits 5, K.ofBits 6], #v[K.ofBits 7, K.ofBits 8, K.ofBits 9], #v[0, 0, 0]]
+def memWords : Array (Vector K 2) := #[#v[1, K.ofBits 2], #v[K.ofBits 4, K.ofBits 5], #v[K.ofBits 7, K.ofBits 8], #v[0, 0]]
 
 /-- The program: an `XOR` and a `JUMP`, `logSize = 1`, a `Program` value (public, not data). -/
 def bProg : LeanIsaProgram := ⟨1,
@@ -51,7 +51,7 @@ def bProg : LeanIsaProgram := ⟨1,
 (as in the channel and table tests). -/
 def bData : ProverData K := fun _ n ↦
   match n with
-  | 3 => memWords
+  | 2 => memWords
   | _ => #[]
 
 theorem bData_logSize : (imageOf bData).1 = 2 := by
@@ -64,10 +64,10 @@ theorem bData_wellShaped : WellShapedData bData where
   memRows_size := by rw [bData_logSize]; rfl
 
 /-- The word at `g^k` of the fixture's image, as limbs. -/
-theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 4 := by decide)
+theorem read_at (k : ℕ) (v : Vector K 2) (hk : k < 4 := by decide)
     (hv : memWords[k]'(by rw [show memWords.size = 4 from rfl]; exact hk) = v :=
       by decide +kernel) :
-    (imageOf bData).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1] v[2]) := by
+    (imageOf bData).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1]) := by
   have hk' : k < 2 ^ (imageOf bData).1 := by rw [bData_logSize]; omega
   rw [show addressOfIndex k = addressOfIndex ((⟨k, hk'⟩ : Fin (2 ^ (imageOf bData).1)) : ℕ)
       from rfl,
@@ -144,21 +144,21 @@ example : size PublicIO = 4 := rfl
 
 /-! ## The memory block -/
 
-/-- The honest seed row of word `1`: `(g^1, g^3, (4, 5, 6))`, read three times. -/
-def memRow1 : MemRow K := ⟨#v[K.ofBits 4, K.ofBits 5, K.ofBits 6], addressOfIndex 1,
+/-- The honest seed row of word `1`: `(g^1, g^3, (4, 5))`, read three times. -/
+def memRow1 : MemRow K := ⟨#v[K.ofBits 4, K.ofBits 5], addressOfIndex 1,
     addressOfIndex 3⟩
 
 /-- The honest row is bound to the image. -/
-theorem memRow1_spec : MemSpec memRow1 bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
+theorem memRow1_spec : MemSpec memRow1 bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5]⟩
 
 /-- Nothing checks the finalize count (specification §6.2): the same row with count `0` is
 bound too. -/
-example : MemSpec { memRow1 with cntFin := 0 } bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
+example : MemSpec { memRow1 with cntFin := 0 } bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5]⟩
 
 /-- The row `memRowOf` builds from the image is the honest row. -/
 example : memRowOf (imageOf bData).2 ⟨1,
     by rw [bData_logSize]; decide⟩ (addressOfIndex 3) = memRow1 := by
-  rw [memRowOf, imageOf_apply bData_wellShaped _ (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
+  rw [memRowOf, imageOf_apply bData_wellShaped _ (v := #v[K.ofBits 4, K.ofBits 5]) (by decide +kernel)]
   simp only [limb_ofLimbs]
   rfl
 
@@ -175,12 +175,11 @@ example : ConstraintsHold.Completeness (rowEnv bData)
   mem_word_complete _ _
 
 /-- A changed limb: the row is no word of the image, so it is not bound … -/
-def memRow1' : MemRow K := { memRow1 with m := #v[K.ofBits 4, K.ofBits 5, K.ofBits 7] }
+def memRow1' : MemRow K := { memRow1 with m := #v[K.ofBits 4, K.ofBits 7] }
 
 theorem memRow1'_not_spec : ¬ MemSpec memRow1' bData := by
   rintro ⟨h⟩
-  rw [show memRow1'.idx = addressOfIndex 1 from rfl, read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits
-      6]] at h
+  rw [show memRow1'.idx = addressOfIndex 1 from rfl, read_at 1 #v[K.ofBits 4, K.ofBits 5]] at h
   exact absurd (Option.some.inj h) (by decide +kernel)
 
 /-- … and the constraints `main` emits on it fail in every environment over the data: its pull
@@ -192,13 +191,13 @@ example (get : ℕ → K) :
       trivial h).1
 
 /-- The address `0` is no address: a row there is bound to nothing. -/
-example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨m, 0, cntFin⟩ bData := by
+example (cntFin : K) (m : Vector K 2) : ¬ MemSpec ⟨m, 0, cntFin⟩ bData := by
   rintro ⟨h⟩
   rw [MemoryImage.read_zero] at h
   cases h
 
 /-- An address past the image, `g^4` at `κ = 2`, is no address either. -/
-example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨m, addressOfIndex 4, cntFin⟩ bData := by
+example (cntFin : K) (m : Vector K 2) : ¬ MemSpec ⟨m, addressOfIndex 4, cntFin⟩ bData := by
   rintro ⟨h⟩
   rw [MemoryImage.read, gLog?_gpow_eq_none (by rw [bData_logSize]; decide) (by decide),
     Option.map_none] at h

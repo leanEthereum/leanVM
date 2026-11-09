@@ -136,7 +136,7 @@ def setV (fr : Nat) (v : V) (x : E) : IM Unit := assign (.val fr v) x
 
 /-- A word in `K`, required. -/
 def needK (x : E) (what : String) : IM K := do
-  if x.limb 1 = 0 ∧ x.limb 2 = 0 then return x.limb 0 else throw s!"{what} is not in K"
+  if x.limb 1 = 0 then return x.limb 0 else throw s!"{what} is not in K"
 
 /-- The memory node of `p·g^off`. -/
 def memAt (p : E) (off : Nat) : IM Node := do
@@ -211,7 +211,7 @@ def execHint (fr : Nat) : Hint → IM Unit
   | .limbs value dest => do
       let x ← needV fr value
       ((List.range dest.length).zip dest).forM fun (j, v) =>
-        setV fr v (ofK (x.limb ⟨j % 3, Nat.mod_lt _ (by decide)⟩))
+        setV fr v (ofK (x.limb ⟨j % 2, Nat.mod_lt _ (by decide)⟩))
   | .log2Ceil bits nbits floor dst => do
       let nodes ← destNodes fr bits
       let mut word := 0
@@ -400,10 +400,10 @@ def run (cfg : Cfg) (f : String) (args : List E) (fuel : Nat := 1000000000) :
 
 /-! ## Printing -/
 
-/-- A word: its low limb in decimal when the others are zero, else its three limbs. -/
+/-- A word: its low limb in decimal when the other is zero, else its two limbs. -/
 def showE (x : E) : String :=
-  let (c0, c1, c2) := limbsOf x
-  if c1 = 0 && c2 = 0 then s!"{c0}" else s!"({c0}, {c1}, {c2})"
+  let (c0, c1) := limbsOf x
+  if c1 = 0 then s!"{c0}" else s!"({c0}, {c1})"
 
 /-- A position step. -/
 def showSeg : Seg → String

@@ -70,7 +70,7 @@ def many {α : Type} (item : R α) : R (List α) := do
   let n ← nat
   (List.range n).mapM fun _ => item
 
-def eR : R E := do return word (← hex) (← hex) (← hex)
+def eR : R E := do return word (← hex) (← hex)
 
 def kR : R K := do return K.ofBits (← hex)
 
@@ -185,7 +185,10 @@ def caseR : R Case := do
   let pairs := fun (xs : List E) => (List.range (xs.length / 2)).map fun i => (xs[2 * i]!, xs[2 * i + 1]!)
   let bc ← many eR
   let stars ← many eR
-  let hints : BatchingHints := ⟨pairs bc, stars.getD 0 0⟩
+  -- The lambda grind's nonce leads `bc_sumcheck_msgs`; a leaf batches nothing.
+  let hints : BatchingHints := match bc with
+    | nonce :: rounds => ⟨nonce, pairs rounds, stars.getD 0 0⟩
+    | [] => ⟨0, [], stars.getD 0 0⟩
   expect "streams"
   let streams ← many do
     expect "stream"
@@ -284,8 +287,8 @@ def limits (c : Case) : List (String × Bool) :=
     List (String × Bool))
 
 def showLimbs (x : E) : String :=
-  let (c0, c1, c2) := limbsOf x
-  s!"({c0}, {c1}, {c2})"
+  let (c0, c1) := limbsOf x
+  s!"({c0}, {c1})"
 
 /-- The first difference of two streams, if any. -/
 def entryDiff (a b : List Entry) : Option String :=
