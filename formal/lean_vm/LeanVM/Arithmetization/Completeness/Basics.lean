@@ -80,13 +80,13 @@ theorem rowMessagesOn_eq (t : Air.Flat.Table K) (r : Array K) (c : RawChannel K)
         (·.channel.name = c.name)).map (·.msg) := by
   rw [rowMessagesOn, Operations.interactionValues, Component.interactions_eq]
 
-/-- The memory block's two interactions, on a row's variables (the limbs in cells `0`-`2`, the
-address in `3`, the finalize count in `4`): the seed push at count `1` and the finalize pull. -/
+/-- The memory block's two interactions, on a row's variables (the limbs in cells `0`-`1`, the
+address in `2`, the finalize count in `3`): the seed push at count `1` and the finalize pull. -/
 theorem memTable_rowOps (κ : ℕ) :
     (memComponent κ).rowOperations.interactions =
-      [⟨MemPush.toRaw, .push, 1, toElements (⟨var ⟨3⟩, 1, #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩]⟩ :
+      [⟨MemPush.toRaw, .push, 1, toElements (⟨var ⟨2⟩, 1, #v[var ⟨0⟩, var ⟨1⟩]⟩ :
           MemMsg (Expression K))⟩,
-       ⟨MemPull.toRaw, .pull, 1, toElements (⟨var ⟨3⟩, var ⟨4⟩, #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩]⟩ :
+       ⟨MemPull.toRaw, .pull, 1, toElements (⟨var ⟨2⟩, var ⟨3⟩, #v[var ⟨0⟩, var ⟨1⟩]⟩ :
           MemMsg (Expression K))⟩] := by
   with_unfolding_all rfl
 

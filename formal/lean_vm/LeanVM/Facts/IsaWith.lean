@@ -25,8 +25,7 @@ open LeanVM.Parameters
 The relation `KECCAK` checks of its cells is a parameter of the machine here
 (`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCellsRelation`; the reduction-blind one,
 `keccakFree`, only asks what the bus enforces of a `KECCAK` row when the proof does not bind the
-row to the permutation: the cells read are canonical, and the cells written are canonical with
-the limb holding no lane zero. Every definition below is `Statement/LeanIsa.lean`'s with the
+row to the permutation: the limb of the cells written holding no lane is zero. Every definition below is `Statement/LeanIsa.lean`'s with the
 check replaced, and is that one at `keccakDeployed` (`executeWithB_deployed`, `runB_deployed`,
 `validExecutionB_deployed`). -/
 
@@ -51,21 +50,10 @@ instance {output : Fin 13 → E} {odd : Bool} {outCells : KeccakOutputCells} :
     Decidable (FreeLimbZero output odd outCells) := by
   unfold FreeLimbZero; infer_instance
 
-/-- The cells read and the cells written are canonical, and the limb of the cells written holding
-no lane is zero: all `keccakFree` asks. A cell past the first `outCells.cellCount` is not
-written, and nothing is asked of it. -/
-def CanonicalKeccak (input : Fin 13 → E) (_inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
-    (outCells : KeccakOutputCells) : Prop :=
-  (∀ c, IsCanonical128 (input c)) ∧
-    (∀ c : Fin 13, c.val < outCells.cellCount → IsCanonical128 (output c)) ∧
-    FreeLimbZero output outOdd outCells
-
-instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd : Bool}
-    {outCells : KeccakOutputCells} : Decidable (CanonicalKeccak input inOdd output outOdd outCells) := by
-  unfold CanonicalKeccak; infer_instance
-
-/-- **The reduction-blind semantics**: any canonical output with its free limb zero. -/
-def keccakFree : KeccakSem := ⟨CanonicalKeccak, fun _ _ _ _ _ ↦ inferInstance⟩
+/-- **The reduction-blind semantics**: any output with its free limb zero. A cell past the first
+`outCells.cellCount` is not written, and nothing is asked of it. -/
+def keccakFree : KeccakSem :=
+  ⟨fun _ _ output outOdd outCells ↦ FreeLimbZero output outOdd outCells, fun _ _ _ _ _ ↦ inferInstance⟩
 
 /-- `executeWith` under the semantics `S`. -/
 def executeWithB (S : KeccakSem) (read : K → Option E) (r : Registers K) : LeanIsaInstruction → Option (Registers K)

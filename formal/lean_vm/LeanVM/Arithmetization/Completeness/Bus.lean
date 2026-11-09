@@ -62,7 +62,7 @@ theorem flatMap_singleton_eq_map {α β : Type} (f : α → β) (l : List α) :
 
 /-- A row sends one state pull, `(pc, fp)`. -/
 theorem sendsOf_statePull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePull.name)).map (·.2) =
       [#[pc, fp]] := by
   simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -70,7 +70,7 @@ theorem sendsOf_statePull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector
 
 /-- A row sends one state push, the successor. -/
 theorem sendsOf_statePush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = StatePush.name)).map (·.2) =
       [#[next.pc, next.fp]] := by
   simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -78,7 +78,7 @@ theorem sendsOf_statePush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector
 
 /-- A row sends one bytecode pull, the entry with the count `rbc`. -/
 theorem sendsOf_bcPull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePull.name)).map (·.2) =
       [bcMsgOf pc rbc e] := by
   simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -86,7 +86,7 @@ theorem sendsOf_bcPull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 
 
 /-- A row sends one bytecode push, the entry with the count `g · rbc`. -/
 theorem sendsOf_bcPush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = BytecodePush.name)).map (·.2) =
       [bcMsgOf pc (g * rbc) e] := by
   simp [sendsOf, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -94,7 +94,7 @@ theorem sendsOf_bcPush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 
 
 /-- A row sends a memory pull per read. -/
 theorem sendsOf_memPull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPull.name)).map (·.2) =
       reads.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
   simp only [sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
@@ -103,7 +103,7 @@ theorem sendsOf_memPull (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K
 
 /-- A row sends a memory push per read, with the count `g · count`. -/
 theorem sendsOf_memPush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) :
+    (reads : List (K × K × Vector K 2)) :
     ((sendsOf pc fp next rbc e reads).filter (·.1 = MemPush.name)).map (·.2) =
       reads.map fun x ↦ memMsgOf x.1 (g * x.2.1) x.2.2 := by
   simp only [sendsOf, List.filter_append, List.map_append, List.filter_flatMap]
@@ -111,42 +111,42 @@ theorem sendsOf_memPush (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K
     map_flatMap_singleton]
 
 /-- Cancelled pairs send nothing on a channel other than the memory pair. -/
-theorem skipSends_filter_eq_nil (l : List (K × K × Vector K 3)) {n : String}
+theorem skipSends_filter_eq_nil (l : List (K × K × Vector K 2)) {n : String}
     (h1 : n ≠ MemPull.name) (h2 : n ≠ MemPush.name) :
     ((skipSends l).filter (·.1 = n)).map (·.2) = [] := by
   simp only [skipSends, List.filter_flatMap]
   simp [Ne.symm h1, Ne.symm h2]
 
 /-- Cancelled pairs pull their tuples. -/
-theorem skipSends_memPull (l : List (K × K × Vector K 3)) :
+theorem skipSends_memPull (l : List (K × K × Vector K 2)) :
     ((skipSends l).filter (·.1 = MemPull.name)).map (·.2) =
       l.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
   simp only [skipSends, List.filter_flatMap]
   simp [MemPull, MemPush, map_flatMap_singleton]
 
 /-- … and push the same tuples. -/
-theorem skipSends_memPush (l : List (K × K × Vector K 3)) :
+theorem skipSends_memPush (l : List (K × K × Vector K 2)) :
     ((skipSends l).filter (·.1 = MemPush.name)).map (·.2) =
       l.map fun x ↦ memMsgOf x.1 x.2.1 x.2.2 := by
   simp only [skipSends, List.filter_flatMap]
   simp [MemPull, MemPush, map_flatMap_singleton]
 
 /-- Gated reads send nothing on a channel other than the memory pair. -/
-theorem gatedSends_filter_eq_nil (l : List (K × K × K × Vector K 3)) {n : String}
+theorem gatedSends_filter_eq_nil (l : List (K × K × K × Vector K 2)) {n : String}
     (h1 : n ≠ MemPull.name) (h2 : n ≠ MemPush.name) :
     ((gatedSends l).filter (·.1 = n)).map (·.2) = [] := by
   simp only [gatedSends, List.filter_flatMap]
   simp [Ne.symm h1, Ne.symm h2]
 
 /-- Gated reads pull their tuples. -/
-theorem gatedSends_memPull (l : List (K × K × K × Vector K 3)) :
+theorem gatedSends_memPull (l : List (K × K × K × Vector K 2)) :
     ((gatedSends l).filter (·.1 = MemPull.name)).map (·.2) =
       l.map fun y ↦ memMsgOf y.2.1 y.2.2.1 y.2.2.2 := by
   simp only [gatedSends, List.filter_flatMap]
   simp [MemPull, MemPush, map_flatMap_singleton]
 
 /-- … and push them with the gated counter. -/
-theorem gatedSends_memPush (l : List (K × K × K × Vector K 3)) :
+theorem gatedSends_memPush (l : List (K × K × K × Vector K 2)) :
     ((gatedSends l).filter (·.1 = MemPush.name)).map (·.2) =
       l.map fun y ↦ memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2 := by
   simp only [gatedSends, List.filter_flatMap]
@@ -267,7 +267,7 @@ theorem PRow.memPulls_eq {κ : ℕ} (img : MemoryImage κ) (r : PRow)
   rw [PRow.sends, List.filter_append, List.map_append, skipSends_memPull, sendsOf_memPull,
     readsOf]
   congr 1
-  have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 3)) r.exps
+  have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 2)) r.exps
     (readAddrs img r.sk.fp r.sk.ins) h
   simp only [PRow.cnt] at *
   rw [this, List.map_zipWith]
@@ -283,7 +283,7 @@ theorem PRow.memPushes_eq {κ : ℕ} (img : MemoryImage κ) (r : PRow)
   rw [PRow.sends, List.filter_append, List.map_append, skipSends_memPush, sendsOf_memPush,
     readsOf]
   congr 1
-  have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 3)) r.exps
+  have := mapIdx_eq_zipWith (fun a e ↦ ((a, g ^ e, img.limbsAt a) : K × K × Vector K 2)) r.exps
     (readAddrs img r.sk.fp r.sk.ins) h
   simp only [PRow.cnt] at *
   rw [this, List.map_zipWith]
