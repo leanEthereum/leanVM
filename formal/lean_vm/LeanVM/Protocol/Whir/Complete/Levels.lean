@@ -304,5 +304,81 @@ theorem laneCodes_eq (κ k : ℕ) (t : List E) (ht : t.length = 2 ^ κ * 2 ^ k) 
   rw [Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
     add_comm, mul_comm c]
 
+/-! ## Gluing a level's claims -/
+
+theorem glueLevel_eq (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (y₁ y₂ : E)
+    (qs : List ℕ) (ws : List E) (b : E) :
+    glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b =
+      { claim := sv.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * b,
+        gammas := sv.gammas,
+        glued := sv.glued ++ [⟨1 * lam, sv.gammas.length, fun x ↦ eqEval z₁ x⟩,
+          ⟨1 * lam * lam, sv.gammas.length, fun x ↦ eqEval z₂ x⟩,
+          ⟨1 * lam * lam * lam, sv.gammas.length, Verifier.inducedWeight mu qs ws⟩] } := by
+  simp [glueLevel, powers, powersFrom, Whir.oodSamples, List.append_assoc]
+
+theorem runW_glue (B : List E → E) (lf : ℕ) (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E)
+    (y₁ y₂ : E) (qs : List ℕ) (ws : List E) (b : E) (x : List E) :
+    runW B lf (glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b) x =
+      runW B lf sv x + lam * eqEval z₁ x + lam * lam * eqEval z₂ x +
+        lam * lam * lam * Verifier.inducedWeight mu qs ws x := by
+  rw [glueLevel_eq]
+  simp only [runW, List.foldl_append, List.foldl_cons, List.foldl_nil, List.drop_left]
+  ring
+
+theorem toList_glued (lam : E) (W T₁ T₂ T₃ : Array E) :
+    (glueTablesA lam W [T₁, T₂, T₃]).toList =
+      axpy (1 * lam * lam * lam) (axpy (1 * lam * lam) (axpy (1 * lam) W.toList T₁.toList)
+        T₂.toList) T₃.toList := by
+  rw [toList_glueTablesA]
+  simp [glueTables]
+
+theorem mle_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (x : List E) :
+    multilinearEval (glueTablesA lam W [T₁, T₂, T₃]).toList x =
+      multilinearEval W.toList x + lam * multilinearEval T₁.toList x +
+        lam * lam * multilinearEval T₂.toList x + lam * lam * lam * multilinearEval T₃.toList x := by
+  rw [toList_glued, multilinearEval_axpy _ _ _ _ (by
+      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
+      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
+    multilinearEval_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
+    multilinearEval_axpy _ _ _ _ (by simpa using h₁)]
+  ring
+
+theorem dot_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (g : List E) :
+    dot (glueTablesA lam W [T₁, T₂, T₃]).toList g =
+      dot W.toList g + lam * dot T₁.toList g + lam * lam * dot T₂.toList g +
+        lam * lam * lam * dot T₃.toList g := by
+  rw [toList_glued, dot_axpy _ _ _ _ (by
+      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
+      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
+    dot_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
+    dot_axpy _ _ _ _ (by simpa using h₁)]
+  ring
+
+theorem size_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) :
+    (glueTablesA lam W [T₁, T₂, T₃]).size = W.size := by
+  rw [← Array.length_toList, toList_glued,
+    length_axpy _ _ _ (by
+      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
+      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
+    length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
+    length_axpy _ _ _ (by simpa using h₁)]
+  simp
+
+/-- The extension of an equality table. -/
+theorem mle_eqTable (z x : List E) (hx : x.length = z.length) :
+    multilinearEval (eqTable z).toList x = eqEval z x := by
+  rw [toList_eqTable, eqKernel_eq_tableOf z rfl,
+    multilinearEval_tableOf (isMultilinearFn_eqEval z) x hx]
+
+/-- The extension of a query table. -/
+theorem mle_queryTableA {κ : ℕ} (hκ : κ ≤ 64) (qs : List ℕ) (ws : List E) (x : List E)
+    (hx : x.length = κ) :
+    multilinearEval (queryTableA κ qs ws).toList x = Verifier.inducedWeight κ qs ws x := by
+  rw [toList_queryTableA hκ, queryTable_eq hκ,
+    multilinearEval_tableOf (isMultilinearFn_inducedWeight κ qs ws) x hx]
+
 end
 end LeanVM.Protocol.Whir.Complete
