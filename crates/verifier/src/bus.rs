@@ -250,7 +250,7 @@ pub fn table_sumcheck(
             let n_constraints = table.n_constraints();
             let summand = dot(
                 &constraint_powers[cursor..cursor + n_constraints],
-                &(table.constraints)(evaluations),
+                &table.constraints(evaluations),
             );
             let form_values: Vec<E> = forms.iter().map(|form| form.evaluate(evaluations)).collect();
             terminal += weight * (summand + dot(form_powers, &form_values));

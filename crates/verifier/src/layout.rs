@@ -176,17 +176,27 @@ impl Flushes {
     }
 }
 
-/// One instruction's table: its bus flushes, its constraints. Its columns are the constants below.
+/// One instruction's table: its bus flushes. Its columns are the constants below, its constraints `constraints`.
 pub struct Table {
     pub opcode: usize,   // also its index in the table list, so g^opcode is its bytecode tag
     pub padding: Vec<E>, // the row a padding row holds
     pub flushes: Flushes,
-    pub constraints: fn(&[E]) -> Vec<E>,
 }
+
+/// How many constraints each table has: JUMP's two, and none elsewhere.
+const N_CONSTRAINTS: [usize; N_TABLES] = [0, 0, 0, 0, 2, 0];
 
 impl Table {
     pub fn n_constraints(&self) -> usize {
-        (self.constraints)(&vec![ZERO; self.width()]).len()
+        N_CONSTRAINTS[self.opcode]
+    }
+
+    /// Its constraints at a row's `columns`, `n_constraints` of them.
+    pub fn constraints(&self, columns: &[E]) -> Vec<E> {
+        match self.opcode {
+            OP_JUMP => jump_constraints(columns).to_vec(),
+            _ => Vec::new(),
+        }
     }
 
     pub fn width(&self) -> usize {
@@ -276,9 +286,9 @@ fn flushes_jump() -> Flushes {
     flushes
 }
 
-fn jump_constraints(columns: &[E]) -> Vec<E> {
+fn jump_constraints(columns: &[E]) -> [E; 2] {
     let [condition, inverse, flag] = [jump::V_COND, jump::W, jump::B].map(|index| columns[index]);
-    vec![flag + condition * inverse, condition * (flag + ONE)]
+    [flag + condition * inverse, condition * (flag + ONE)]
 }
 
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
@@ -499,13 +509,12 @@ fn qkeccak_slot(column: usize) -> Option<usize> {
 }
 
 pub fn tables() -> Vec<Table> {
-    let table = |opcode: usize, flushes, constraints| Table {
+    let table = |opcode: usize, flushes| Table {
         opcode,
         padding: vec![ZERO; TABLE_WIDTHS[opcode]],
         flushes,
-        constraints,
     };
-    let mut keccak = table(OP_KECCAK, flushes_keccak(), |_| vec![]);
+    let mut keccak = table(OP_KECCAK, flushes_keccak());
     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
     let mut output = [0; STATE_LANES];
     keccak_f(&mut output);
@@ -513,11 +522,11 @@ pub fn tables() -> Vec<Table> {
         *padding = E::new(lane, 0, 0);
     }
     vec![
-        table(OP_XOR, flushes_arith(OP_XOR, false), |_| vec![]),
-        table(OP_MUL, flushes_arith(OP_MUL, true), |_| vec![]),
-        table(OP_SET, flushes_set(), |_| vec![]),
-        table(OP_DEREF, flushes_deref(), |_| vec![]),
-        table(OP_JUMP, flushes_jump(), jump_constraints),
+        table(OP_XOR, flushes_arith(OP_XOR, false)),
+        table(OP_MUL, flushes_arith(OP_MUL, true)),
+        table(OP_SET, flushes_set()),
+        table(OP_DEREF, flushes_deref()),
+        table(OP_JUMP, flushes_jump()),
         keccak,
     ]
 }
@@ -642,4 +651,19 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constraint_counts_match_the_constraints() {
+        for table in tables() {
+            assert_eq!(
+                table.constraints(&vec![ZERO; table.width()]).len(),
+                table.n_constraints()
+            );
+        }
+    }
 }
