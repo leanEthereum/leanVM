@@ -56,7 +56,7 @@ structure DuplexSpec (Msg Dg St Root Z W Cp : Type) (n : ℕ) where
   /-- A branch keeps the first answer's capacity. -/
   cap_next : ∀ j y, capW (build.symm (next j y)).2 = capW (build.symm y).2
   /-- Different branches of one answer have different states. -/
-  next_inj : ∀ j j' y, next j y = next j' y → j = j'
+  next_inj : ∀ j j' y, j.val ≠ 0 → j'.val ≠ 0 → next j y = next j' y → j = j'
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
 

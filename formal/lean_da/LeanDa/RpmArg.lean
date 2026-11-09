@@ -502,7 +502,7 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
   have hA : ∀ crs ∈ support (psV r ps).setup,
       QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs) hgCalls (2 * Q + 1) ∧
         QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs)
-          (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
+          (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
     intro crs hcrs
     obtain ⟨h1, h2⟩ := isWeightBound_advSim r (psV r ps) _ Q hQ0 crs hcrs
     rw [relabelAdv_advV0, advSim_map] at h1 h2

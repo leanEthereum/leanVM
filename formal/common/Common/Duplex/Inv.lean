@@ -71,10 +71,10 @@ theorem labOf_record_branch (s : SimSt Dg St Root n) (x y : St) (r : Root) (j k 
   simp only [SimSt.labOf, e, List.find?_append]
   obtain ⟨p, hp⟩ : ∃ p, (children D r y).find? (fun p ↦ decide (p.1 = D.next k y)) = some p :=
     Option.isSome_iff_exists.mp (List.find?_isSome.mpr ⟨_, hmem, by simp⟩)
-  obtain ⟨k', -, rfl⟩ := (mem_children D).mp (List.mem_of_find?_eq_some hp)
+  obtain ⟨k', hk', rfl⟩ := (mem_children D).mp (List.mem_of_find?_eq_some hp)
   have h1 := List.find?_some hp
   simp only [decide_eq_true_eq] at h1
-  rw [D.next_inj k' k y h1] at hp
+  rw [D.next_inj k' k y hk' hk h1] at hp
   rw [hp]
   rfl
 

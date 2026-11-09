@@ -90,25 +90,25 @@ duplex's samples of its root over `π` (the deployed challenge component `1`), a
 statement and its proof. -/
 noncomputable def ksAdv : KsAdvB Crs Proof := fun crs ↦ do
   let out ← A ((), crs)
-  let z ← membershipChallengePairM keccakA (lanePerm piA) out.1.1
+  let z ← membershipChallengeVecM keccakA (lanePerm piA) out.1.1
   pure (((), out.1.1, z), out.1.2)
 
 /-- The same game with the challenges computed by the verifier's direct calls. -/
 noncomputable def postK (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
     OracleComp Rom2 Bool := do
-  let z ← membershipChallengePairM hR pR out.1.1
+  let z ← membershipChallengeVecM hR pR out.1.1
   ksPost r ps ext crs (((), out.1.1, z), out.1.2)
 
 theorem toOne_chal (root : Common.DigestBytes) :
     simulateQ (toOne (E := KRest) (C := KCap)) (simulateQ (advEmbed (Msg := List UInt8))
-        (membershipChallengePairM keccakA (lanePerm piA) root)) =
+        (membershipChallengeVecM keccakA (lanePerm piA) root)) =
       simulateQ (toOne (E := KRest) (C := KCap)) (simulateQ (hfEmbed (Msg := List UInt8))
-        (membershipChallengePairM hR pR root)) := by
-  have m1 := membershipChallengePairM_map
+        (membershipChallengeVecM hR pR root)) := by
+  have m1 := membershipChallengeVecM_map
     (fun {α} (x : OracleComp AdvSpec α) ↦ simulateQ (toOne (E := KRest) (C := KCap))
       (simulateQ (advEmbed (Msg := List UInt8)) x)) (fun _ ↦ rfl)
     (fun x f ↦ by simp only [simulateQ_bind]) keccakA (lanePerm piA) root
-  have m2 := membershipChallengePairM_map
+  have m2 := membershipChallengeVecM_map
     (fun {α} (x : OracleComp Rom2 α) ↦ simulateQ (toOne (E := KRest) (C := KCap))
       (simulateQ (hfEmbed (Msg := List UInt8)) x)) (fun _ ↦ rfl)
     (fun x f ↦ by simp only [simulateQ_bind]) hR pR root
@@ -183,15 +183,27 @@ variable {ι : Type} {spec : OracleSpec ι} (w : ι → ℕ) (H : List UInt8 →
   (P : Lanes → OracleComp spec Lanes) (hH : QueryCostAtMost (H membershipLabel) w 1)
   (hP : ∀ L, QueryCostAtMost (P L) w 1)
 
+include hP in
+theorem isWeightBound_branchDrawsM (y : Lanes) : ∀ js : List (Fin nLabels),
+    QueryCostAtMost (branchDrawsM P y js) w js.length
+  | [] => isWeightBound_pure _ _ _
+  | j :: js => by
+    unfold branchDrawsM
+    exact ((hP _).bind fun _ ↦ (isWeightBound_branchDrawsM y js).bind fun _ ↦
+      isWeightBound_pure _ _ 0).mono (by simp; omega)
+
 include hH hP in
-/-- **The duplex's two samples take `3` calls**: the label's hash, the fresh sponge and the
-sample. -/
-theorem isWeightBound_membershipChallengePairM (root : Common.DigestBytes) :
-    QueryCostAtMost (membershipChallengePairM H P root) w 3 := by
-  unfold membershipChallengePairM Sponge.newWith Sponge.sampleWith Sponge.duplexWith
+/-- **The duplex's draws take `nLabels + 1` calls**: the label's hash, the fresh sponge and one
+per nonce. -/
+theorem isWeightBound_membershipChallengeVecM (root : Common.DigestBytes) :
+    QueryCostAtMost (membershipChallengeVecM H P root) w (nLabels + 1) := by
+  unfold membershipChallengeVecM Sponge.newWith
+  have hl := Common.SeedDuplex.branchIdx_length (n := nLabels)
+  generalize Common.SeedDuplex.branchIdx nLabels = js at hl ⊢
   exact (hH.bind fun _ ↦ ((hP _).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun _ ↦
-    (((hP _).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun _ ↦ isWeightBound_pure _ _ 0).bind
-      fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
+    (isWeightBound_branchDrawsM w P hP _ js).bind fun _ ↦ isWeightBound_pure _ _ 0).mono
+      (by have h0 : 0 < nLabels := by simp
+          rw [hl]; omega)
 
 end ChalWeight
 
@@ -222,8 +234,8 @@ theorem isWeightBound_ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × M
   exact (h.bind fun _ ↦ isWeightBound_pure _ _ 0).mono (le_of_eq (by ring))
 
 theorem isWeightBound_postK (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
-    QueryCostAtMost (postK r ps ext crs out) rCalls (3 + relCalls r) :=
-  (isWeightBound_membershipChallengePairM rCalls hR pR
+    QueryCostAtMost (postK r ps ext crs out) rCalls (nLabels + 1 + relCalls r) :=
+  (isWeightBound_membershipChallengeVecM rCalls hR pR
     ((isWeightBound_query rCalls (.inr (.inl membershipLabel))).mono
         (by simp [rCalls, label_calls]))
     (fun L ↦ isWeightBound_map _ (isWeightBound_query rCalls (.inr (.inr _)))) _).bind fun _ ↦
@@ -237,7 +249,7 @@ theorem isWeightBound_advEmbed_A (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGam
   (hQ.of_bind_mem_support hx).of_bind
 
 /-- The permutation calls of the knowledge-soundness game of `ksAdv A`. -/
-abbrev ksCalls (r Q : ℕ) : ℕ := Q + (3 + relCalls r)
+abbrev ksCalls (r Q : ℕ) : ℕ := Q + (nLabels + 1 + relCalls r)
 
 theorem isWeightBound_postKGame (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     QueryCostAtMost (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postK r ps ext)) permCalls2
@@ -252,12 +264,12 @@ theorem isWeightBound_ksGame (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r
     fun x hx ↦ (?_ : QueryCostAtMost _ permCalls2 (ksCalls r Q))).mono (by omega)
   have e : simulateQ (advEmbed (Msg := List UInt8) (Dg := DigestBytes) (E := KRest) (C := KCap))
       (ksAdv r A x) = simulateQ advEmbed (A ((), x)) >>= fun out ↦
-        simulateQ advEmbed (membershipChallengePairM keccakA (lanePerm piA) out.1.1) >>= fun z ↦
+        simulateQ advEmbed (membershipChallengeVecM keccakA (lanePerm piA) out.1.1) >>= fun z ↦
           pure (((), out.1.1, z), out.1.2) := by
     simp only [ksAdv, simulateQ_bind, simulateQ_pure]
   rw [e]
   refine (((isWeightBound_advEmbed_A r ps A Q hQ x hx).bind fun out ↦
-    (isWeightBound_advEmbed (isWeightBound_membershipChallengePairM permCallsB keccakA (lanePerm piA)
+    (isWeightBound_advEmbed (isWeightBound_membershipChallengeVecM permCallsB keccakA (lanePerm piA)
       ((isWeightBound_query permCallsB (.inr (.inl membershipLabel))).mono
         (by simp [permCallsB, label_calls]))
       (fun L ↦ isWeightBound_map _ (isWeightBound_query permCallsB (.inr (.inr (.forward _)))))
@@ -282,7 +294,7 @@ noncomputable def ksPostH (crs : Crs) (out : (Common.DigestBytes × Proof) × Li
     (l : MembershipChallenge) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   pure (ps.verify crs ((), out.1.1, l) out.1.2 &&
-    !(decide (root = out.1.1) && membershipCheck (l 1) (ext crs ((), out.1.1, l) out.1.2)))
+    !(decide (root = out.1.1) && membershipCheckOpt (selectChal l) (ext crs ((), out.1.1, l) out.1.2)))
 
 theorem ksPost_embH (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
     (l : MembershipChallenge) :
@@ -294,7 +306,7 @@ theorem ksPost_embH (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fi
 theorem postK_eq (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
     postK r ps ext crs out = chalR out.1.1 >>= fun zs ↦
       simulateQ embH (ksPostH r ps ext crs out (toVec zs)) := by
-  rw [postK, membershipChallengePairM_eq_chalP, bind_map_left]
+  rw [postK, membershipChallengeVecM_eq_chalP, bind_map_left]
   exact bind_congr fun zs ↦ ksPost_embH r ps ext crs out _
 
 theorem duplexP_embH {α : Type} (X : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
@@ -312,7 +324,7 @@ theorem duplex_postK (crs : Crs) (out : (Common.DigestBytes × Proof) × List (F
     Duplex KState.zero keccakNF (postK r ps ext crs out) [] := by
   rw [postK]
   exact duplex_of_duplexP (Q := fun _ _ ↦ True) <|
-    duplexP_bind (duplexP_membershipChallengePairR _ []) fun zs _ _ ↦ by
+    duplexP_bind (duplexP_membershipChallengeVecR _ []) fun zs _ _ ↦ by
       rw [ksPost_embH]; exact duplexP_embH _ _
 
 /-- **From the two-oracle model to the RPM**: the knowledge-soundness game with the simulated
@@ -330,7 +342,7 @@ theorem rom2_le_ksExpRpm (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps 
 
 /-- **The simulated world of knowledge soundness** for a crs. -/
 noncomputable def ksIdealG (crs : Crs) : ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).romImpl
+  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels).romImpl
     ((simulateQ (simImpl daDuplex hP gaP) (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
         advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init >>= fun out ↦
       readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
@@ -341,7 +353,7 @@ theorem ksIdealG_le (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) pe
     Pr{let b ← ps.setup >>= ksIdealG r ps ext A}[b = true] ≤
       Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
         advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postK r ps ext x a)}[b = true] +
-        ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
+        ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
   have hsplit : Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>=
         fun x ↦ advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postK r ps ext x a)}[
           b = true] =
@@ -381,7 +393,7 @@ noncomputable def ksP (h : HTab) (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (l : MembershipChallenge) : Bool :=
   ps.verify crs ((), out.1.1, l) out.1.2 &&
     !(decide (commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1) &&
-      membershipCheck (l 1) (ext crs ((), out.1.1, l) out.1.2))
+      membershipCheckOpt (selectChal l) (ext crs ((), out.1.1, l) out.1.2))
 
 theorem run_ksPostH_phiG (h : HTab) (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (l : MembershipChallenge) (s : HCache) :
@@ -442,14 +454,15 @@ theorem ksIdealG_evalDistEq {crs : Crs} (hcrs : crs ∈ support ps.setup) :
 theorem run'_readVecW (f : MembershipChallenge → Bool) (d : Common.DigestBytes) (c : WCache) :
     (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl (f <$> readVecW d)).run' c =ᵈ
       (fun w ↦ f w.1) <$> roStep d c := by
-  have hfin : List.finRange 2 = (0 : Fin 2) :: (List.finRange 1).map Fin.succ :=
+  have hfin : List.finRange nLabels = (0 : Fin nLabels) :: (List.finRange nonceCount).map Fin.succ :=
     List.finRange_succ
   rw [readVecW, Functor.map_map, StateT.run'_eq, simulateQ_map, StateT.run_map, hfin,
     Functor.map_map]
   refine ((run_mapM_wQ d (fun j v ↦ v j) 0 _ c).map _).trans ?_
   rw [Functor.map_map]
-  have hv : ∀ v : MembershipChallenge, (fun j : Fin 2 ↦
-      (List.map (fun b ↦ v b) (0 :: List.map Fin.succ (List.finRange 1))).getD j default) = v := by
+  have hv : ∀ v : MembershipChallenge, (fun j : Fin nLabels ↦
+      (List.map (fun b ↦ v b) (0 :: List.map Fin.succ (List.finRange nonceCount))).getD j default) =
+        v := by
     intro v
     rw [← hfin]
     funext j

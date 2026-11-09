@@ -2,7 +2,7 @@ module
 
 public import PqDas.Defs
 public import Common.SimDefs
-public import Common.Duplex.Spec
+public import Common.Duplex.Defs
 public import Common.Lanes
 public import LeanDa.WithHash
 public import Statement.Field
@@ -36,36 +36,67 @@ namespace LeanDa
 
 open PqDas
 
-/-- **The challenges of the duplex**: its two samples, the first state's and the second's. The
-deployed challenge of the membership test (`membership_challenge`) is component `1`, the second
-sample (`membershipChallengePairM`, `pairM_one`); the checker and the relation read it alone. -/
-abbrev MembershipChallenge : Type := Fin 2 → E
+/-- **A draw**: what an answer of the grind carries, the challenge of its lanes `0, 1` and its
+lane `2`, the proof of work. -/
+abbrev Draw : Type := E × K
 
-/-- **The duplex's two samples of a root**, in any monad: the transcript's sponge seeded with the
-label's hash and the root (`Sponge::new`), its state read as a challenge, then one sample
-(`sample`), which is the deployed challenge (`membershipChallengeMWithHash`). -/
-def membershipChallengePairM {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestBytes)
+/-- The labels of a root's derivation: the seeded sponge's answer, then one per nonce. -/
+abbrev nLabels : ℕ := nonceCount + 1
+
+/-- **The challenges of the duplex**: the draws of the seeded sponge's answer (label `0`) and of
+every nonce's answer (label `nonce + 1`). The deployed challenge of the membership test
+(`membership_challenge`) is read off them by the nonce search (`selectChal`); the checker and the
+relation read it alone. -/
+abbrev MembershipChallenge : Type := Fin nLabels → Draw
+
+/-- The draw of an answer: lanes `0, 1` as the challenge, lane `2` the proof of work. -/
+def drawOfState (y : LeanVM.Semantics.KeccakState) : Draw := (chalOfState y, K.ofLane y[2])
+
+/-- The draw of label `j`, zero past the labels. -/
+def drawAt (v : MembershipChallenge) (j : ℕ) : Draw := if h : j < nLabels then v ⟨j, h⟩ else (0, 0)
+
+/-- **The nonce search over the draws** (`grindMWithHash` read off the draws): from `nonce`, with
+`fuel` nonces left, the first nonce whose draw has a valid proof of work gives its challenge; past
+the last nonce, none. -/
+def selectFrom (v : MembershipChallenge) : ℕ → ℕ → Option E
+  | _, 0 => none
+  | nonce, fuel + 1 =>
+    if powValid (drawAt v (nonce + 1)).2.lane then some (drawAt v (nonce + 1)).1
+    else selectFrom v (nonce + 1) fuel
+
+/-- **The deployed challenge of a root's draws**: the nonce search from nonce `0`. -/
+def selectChal (v : MembershipChallenge) : Option E := selectFrom v 0 nonceCount
+
+/-- The draws of the nonces of the labels `js`, from the seeded sponge's answer `y`. -/
+def branchDrawsM {m : Type → Type} [Monad m]
+    (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState)
+    (y : LeanVM.Semantics.KeccakState) : List (Fin nLabels) → m (List Draw)
+  | [] => pure []
+  | j :: js => do
+    let o ← P (nonceInput y (j.val - 1))
+    let zs ← branchDrawsM P y js
+    pure (drawOfState o :: zs)
+
+/-- The draws of a list, label by label. -/
+def drawsVec (zs : List Draw) : MembershipChallenge := fun j ↦ zs.getD j default
+
+/-- **The duplex's draws of a root**, in any monad: the transcript's sponge seeded with the
+label's hash and the root (`Sponge::new`), its answer's draw, then every nonce's
+(`absorb_nonce` on a copy of the seeded sponge). The nonce search reads the deployed challenge
+off them (`selectChal`). -/
+def membershipChallengeVecM {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestBytes)
     (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState) (root : Common.DigestBytes) :
     m MembershipChallenge := do
   let iv ← H membershipLabel
   let s ← Sponge.newWith P iv root
-  let (z, _) ← Sponge.sampleWith P s
-  pure ![ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), z]
-
-/-- The pair's component `1` is the deployed challenge. -/
-theorem pairM_one {m : Type → Type} [Monad m] [LawfulMonad m]
-    (H : List UInt8 → m Common.DigestBytes)
-    (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState) (root : Common.DigestBytes) :
-    (fun z : MembershipChallenge ↦ z 1) <$> membershipChallengePairM H P root =
-      membershipChallengeMWithHash H P root := by
-  simp only [membershipChallengePairM, membershipChallengeMWithHash, map_bind, map_pure]
-  rfl
+  let zs ← branchDrawsM P s.state (Common.SeedDuplex.branchIdx nLabels)
+  pure (drawsVec (drawOfState s.state :: zs))
 
 /-- **Wagner's relation for LeanDA**: the cells commit to the root and pass the membership test on
-the challenge the statement carries. -/
+the challenge the statement's draws give. -/
 noncomputable def Relation (r : ℕ) (H : List UInt8 → Common.DigestBytes) (stmt : Unit × Common.DigestBytes × MembershipChallenge)
     (c : Fin (r * 128) → Cell) : Bool :=
-  decide (commitCellsWithHash H c = stmt.2.1) && membershipCheck (stmt.2.2 1) c
+  decide (commitCellsWithHash H c = stmt.2.1) && membershipCheckOpt (selectChal stmt.2.2) c
 
 /-- An argument of knowledge for `Relation r H`. -/
 abbrev Argument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : Type) :=
@@ -73,15 +104,15 @@ abbrev Argument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : T
       (Relation r H)
 
 /-- **Verification of an opening** in Wagner's scheme, with a hash `H` and the sponge's
-permutation `P` in any monad: the challenge of the commitment's root from the deployed duplex
-over `P`, the argument's verification, and the opening's. -/
+permutation `P` in any monad: the draws of the commitment's root from the deployed duplex over
+`P`, the argument's verification, and the opening's. -/
 def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestBytes)
     (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState)
     (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : m
         Bool := do
-  let z ← membershipChallengePairM H P com.1
+  let z ← membershipChallengeVecM H P com.1
   let v ← verifyCellMWithHash H r com.1 p x τ
   pure (ps.verify crs ((), com.1, z) com.2 && v)
 
@@ -160,7 +191,7 @@ theorem toBytes_eq_shift (a : K) :
 
 /-- **LeanDA's code checker**: the membership test on the deployed challenge, component `1`. -/
 noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) MembershipChallenge :=
-    ⟨fun z c ↦ membershipCheck (z 1) c⟩
+    ⟨fun z c ↦ membershipCheckOpt (selectChal z) c⟩
 
 /-- **LeanDA's vector commitment** with hash `H`: the root of the tree of blob trees, cells
 opened by their paths in it. It needs no key. -/
@@ -316,7 +347,7 @@ noncomputable def ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × Membe
     OracleComp Rom2 Bool := do
   let root ← commitCellsMWithHash hR (ext crs out.1 out.2)
   pure (ps.verify crs out.1 out.2 &&
-    !(decide (root = out.1.2.1) && membershipCheck (out.1.2.2 1) (ext crs out.1 out.2)))
+    !(decide (root = out.1.2.1) && membershipCheckOpt (selectChal out.1.2.2) (ext crs out.1 out.2)))
 
 /-- The knowledge-soundness game in the two-oracle form. -/
 noncomputable def ksGame2 (B : KsAdvB Crs Proof) :
@@ -447,13 +478,27 @@ theorem splitEquiv_snd {m k : ℕ} (f : Fin (m + k) → UInt8) (j : Fin k) :
     (splitEquiv m k f).2 j = f (Fin.natAdd m j) := by
   simp [splitEquiv, Equiv.sumArrowEquivProdArrow, Equiv.arrowCongr]
 
-/-- **The challenge of 24 bytes**: three lanes, the limbs of an element of `E`. -/
-def limbsEquiv : (Fin 24 → UInt8) ≃ E :=
+/-- Three lanes as a draw: the first two the limbs of the challenge, the third the proof of work. -/
+def lanesDrawEquiv : (Fin 3 → K) ≃ Draw where
+  toFun g := (ofLimbs (g 0) (g 1), g 2)
+  invFun d := ![limb d.1 0, limb d.1 1, d.2]
+  left_inv g := by
+    funext a
+    fin_cases a <;> rfl
+  right_inv d := by
+    obtain ⟨x, k⟩ := d
+    refine Prod.ext (CompPoly.Extension.Ext.ext fun i ↦ ?_) rfl
+    obtain ⟨i, hi⟩ := i
+    have hi' : i < 2 := hi
+    interval_cases i <;> rfl
+
+/-- **The draw of 24 bytes**: three lanes, the limbs of the challenge and the proof of work. -/
+def limbsEquiv : (Fin 24 → UInt8) ≃ Draw :=
   (Equiv.arrowCongr (finProdFinEquiv (m := 3) (n := 8)).symm (Equiv.refl UInt8)).trans <|
     (Equiv.curry _ _ _).trans <|
       (Equiv.arrowCongr (Equiv.refl _)
         ((arrayVectorEquivFin UInt8 8).symm.trans laneBytes.symm)).trans
-        (CompPoly.Extension.Ext.equivFn BF64.ext3Params).symm
+        lanesDrawEquiv
 
 /-- The rest of an answer after its challenge: bytes `24 … 127`, and the capacity, bytes
 `128 … 199`. -/
@@ -462,8 +507,8 @@ abbrev DaW := (Fin 104 → UInt8) × (Fin 72 → UInt8)
 /-- The capacity: bytes `128 … 199`, lanes `16 … 24`. -/
 abbrev DaCp := Fin 72 → UInt8
 
-/-- **An answer from its challenge and its rest.** -/
-def daBuild : E × DaW ≃ KState :=
+/-- **An answer from its draw and its rest.** -/
+def daBuild : Draw × DaW ≃ KState :=
   (Equiv.prodCongr limbsEquiv.symm (splitEquiv 104 72).symm).trans
     ((splitEquiv 24 176).symm.trans bytesEquiv.symm)
 
@@ -485,8 +530,10 @@ def daInit (iv : Common.DigestBytes) : KState := lanesToState (freshSpongeInput 
 the root's words in lanes `4 … 7`, the rest zero. -/
 def daFirst (root iv : Common.DigestBytes) : KState := lanesToState (freshSpongeInput iv root)
 
-/-- The state of a sample after the answer `y`: the rate zeroed, the capacity kept. -/
-def daNext (y : KState) : KState := lanesToState (duplexInput ⟨stateToLanes y, []⟩)
+/-- **The state of label `j`'s nonce, `j - 1`, after the seeded sponge's answer `y`**: the nonce
+and its tag over the rate, the capacity kept (`absorb_nonce` on a copy of the seeded sponge). -/
+def daNext (j : Fin nLabels) (y : KState) : KState :=
+  lanesToState (nonceInput (stateToLanes y) (j.val - 1))
 
 theorem duplexInput_high (s : Sponge) (i : ℕ) (hi : 16 ≤ i) (hi' : i < 25) :
     (duplexInput s)[i] = s.state[i] := by
@@ -568,11 +615,37 @@ theorem daDec_iff (iv : Common.DigestBytes) (x : KState) (r : Common.DigestBytes
     congr 1
     exact daFirst_injective iv (hx.choose_spec.trans h.symm)
 
-/-- **LeanDA's challenge as a duplex** (`membership_challenge`): a root's chain starts at
-`daFirst r iv`, the label's hash and the root, and samples twice; the deployed challenge is the
-second sample (`membershipChallengeMWithHash`: `Sponge::new` permutes, `sample` permutes again).
-Every state of a chain has the capacity of `daInit iv`, zero, or keeps its answer's. -/
-noncomputable def daDuplex : DuplexSpec (List UInt8) DigestBytes KState Common.DigestBytes E DaW DaCp 2 where
+/-- Lane `0` of a nonce's state is the nonce. -/
+theorem nonceInput_lane0 (y : Lanes) (a : ℕ) :
+    (nonceInput y a)[0] = (K.ofBits a).lane := by
+  have h : limb (LeanVM.Protocol.Verifier.eOfNat a) 0 = K.ofBits a := by
+    rfl
+  simp [nonceInput, duplexInput, rateLanes, rateWords, h]
+
+theorem lane_ofBits_toNat (a : ℕ) : (K.ofBits a).lane.toNat = a % 2 ^ 64 := by
+  show (BitVec.ofNat 64 a).toNat = a % 2 ^ 64
+  simp
+
+/-- **Different nonces, different states.** -/
+theorem daNext_inj (j j' : Fin nLabels) (y : KState) (hj : j.val ≠ 0) (hj' : j'.val ≠ 0)
+    (h : daNext j y = daNext j' y) : j = j' := by
+  have h' := congrArg (fun L : Lanes ↦ L[0]) (lanesToState_injective h)
+  simp only [nonceInput_lane0] at h'
+  have e := congrArg UInt64.toNat h'
+  rw [lane_ofBits_toNat, lane_ofBits_toNat] at e
+  have h1 := j.isLt
+  have h2 := j'.isLt
+  simp only [nLabels, nonceCount] at h1 h2
+  rw [Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)] at e
+  exact Fin.ext (by omega)
+
+/-- **LeanDA's challenge as a duplex** (`membership_challenge`): a root's derivation starts at
+`daFirst r iv`, the label's hash and the root, and branches from its answer, label `j` absorbing
+the nonce `j - 1` (`daNext`); the deployed challenge is read off the nonces' draws by the nonce
+search (`selectChal`). Every state has the capacity of `daInit iv`, zero, or keeps the seeded
+answer's. -/
+noncomputable def daDuplex :
+    DuplexSpec (List UInt8) DigestBytes KState Common.DigestBytes Draw DaW DaCp nLabels where
   label := membershipLabel
   init := daInit
   first := daFirst
@@ -581,15 +654,16 @@ noncomputable def daDuplex : DuplexSpec (List UInt8) DigestBytes KState Common.D
   capW := Prod.snd
   dec := daDec
   dec_iff := daDec_iff
-  n_pos := by norm_num
+  n_pos := by simp
   cap_first r d := by
     funext j
     rw [daBuild_symm_cap, daBuild_symm_cap]
     exact byteAt_freshSpongeInput d r _ _ (by omega) (by omega)
-  cap_next y := by
+  cap_next _ y := by
     funext j
     rw [daBuild_symm_cap, daBuild_symm_cap]
     exact byteAt_duplexInput y _ _ (by omega) (by omega)
+  next_inj := daNext_inj
 
 end LeanDa
 
@@ -641,7 +715,7 @@ noncomputable def tImpl (h : HTab) : QueryImpl (unifSpec + TSpec) (StateT HCache
 
 /-- The simulated world's oracles from a table `h` of `H`. -/
 noncomputable def phiG (h : HTab) :
-    QueryImpl (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) (StateT HCache (OracleComp WSpec)) :=
+    QueryImpl (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels) (StateT HCache (OracleComp WSpec)) :=
   tImpl h ∘ₛ (swapImpl ∘ₛ toV)
 
 section Adversary
@@ -659,7 +733,7 @@ noncomputable def fixCrs (crs : Crs) : Crs := by
 /-- The adversary in the simulated world: `H` queried at the label, then the RPM adversary with
 its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
 noncomputable def advSim (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
-    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2)
+    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels)
       ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :=
   (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
     advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init
