@@ -478,30 +478,49 @@ def sumcheck(transcript: Transcript, claim: E, count: int, equalities: Sequence[
 # Bus balance and decomposition ---------------------------------------------
 
 
-def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, MultilinearPoint, tuple[E, E, E]]:
-    shared, count = transcript.next_scalar(), transcript.next_scalar()
+# Independent fingerprints (alphas_f, beta_f), drawn as one verifier message with no grind. Unequal push and pull
+# multisets pass one product check with probability at most 4 * 2^mu / |E|, so both with at most (4 * 2^mu / |E|)^2,
+# which is at most 2^-SECURITY_BITS while mu <= MAX_BUS_LOG.
+FINGERPRINTS = 2
+MAX_BUS_LOG = (2 * 128 - SECURITY_BITS) // 2 - 2
+# The trees the bus GKR batches, in its order: push and pull of the first fingerprint, push and pull of the second,
+# then the count tree, at alpha = beta = 0.
+N_TREES = 2 * FINGERPRINTS + 1
+
+
+def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, MultilinearPoint, list[E]]:
+    """The batched GKR over the N_TREES trees. The stream: one root per fingerprint (its push and pull products are one),
+    then the count root; then each layer from the root down: a grind and the combiner, the sumcheck rounds, every tree's
+    children, a grind and `y`."""
+    shared = transcript.next_scalars(FINGERPRINTS)
+    count = transcript.next_scalar()
+    values = [*(root for root in shared for _ in range(2)), count]
     point: list[E] = []
-    values = (shared, shared, count)  # 3 grand product GKR are batched together: push, pull, count
 
     layer = depth
     while layer > 0:
         # Two levels a step. An odd depth starts with one.
         step = 1 if layer % 2 else 2
+        # The combiner batches the trees' claims, degree N_TREES - 1 in it.
+        transcript.grind_check(grinding_bits(N_TREES - 1))
         combiner = transcript.sample()
         claim = poly_eval(values, combiner)
         # The product is degree 2^step, so one more coefficient than that per round.
         x, claim = sumcheck(transcript, claim, 2**step + 1, point)
 
-        children = [transcript.next_scalars(2**step) for _ in range(3)]
+        children = [transcript.next_scalars(2**step) for _ in range(N_TREES)]
         products = [reduce(mul, child) for child in children]
         require(claim == poly_eval(products, combiner), f"GKR layer {layer}: children do not match the sumcheck")
 
+        # `y`: each child's multilinear is degree `step` in it. The last layer's are zeta's first coordinates, which the
+        # table sumcheck's zerocheck also reads, `step` more.
+        transcript.grind_check(grinding_bits(2 * step if layer == step else step))
         y = transcript.samples(step)
         values = [multilinear_eval(child, y) for child in children]
         point = [*y, *x]
         layer -= step
 
-    return count, tuple(point), (values[0], values[1], values[2])
+    return count, tuple(point), values
 
 
 @dataclass
@@ -580,26 +599,28 @@ BUS_BITS = 4  # bus communicates tuples of 2^BUS_BITS field elements
 @dataclass(frozen=True)
 class BusResult:
     claims: tuple[ColumnClaim, ...]
+    bytecode_point: MultilinearPoint  # the one point the bus keeps on the stacked bytecode: zeta's low coordinates, then the line's slots at t
     point: MultilinearPoint  # the GKR point zeta, which the table sumcheck reuses
-    forms: tuple[tuple[Form, ...], ...]  # forms[table][side]
-    totals: tuple[E, E, E]  # what the tables owe each side, derived
+    forms: tuple[tuple[Form, ...], ...]  # forms[table][tree]
+    totals: tuple[E, ...]  # what the tables owe each tree, derived
 
 
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
+    """The bus, in stream order: the fingerprints (alphas_1, beta_1, alphas_2, beta_2), drawn with no grind; the batched
+    GKR; the framework blocks' committed columns at zeta; the bytecode line, its grind and its challenge `t`."""
     framework_log_rows = (0, layout.log_memory, layout.log_bytecode)  # state, memory, bytecode
     push_layout = bus_layout(framework_log_rows, layout.push)
     pull_layout = bus_layout(framework_log_rows, layout.pull)
     count_layout = bus_layout((), layout.count)
 
-    # The challenges fail with probability at most 4 * 2^mu / |E|, mu the log of the stacked leaves: grinding closes the gap to 120 bits.
-    transcript.grind_check(max(0, push_layout.depth + 2 - 8))
-    alphas = transcript.samples(BUS_BITS)
-    weights = eq_kernel(alphas)
-    beta = transcript.sample()
+    # The announced sizes' caps keep the depth far below this.
+    require(push_layout.depth <= MAX_BUS_LOG, "invalid announced table sizes")
+
+    fingerprints = [(transcript.samples(BUS_BITS), transcript.sample()) for _ in range(FINGERPRINTS)]
     count_root, point, tree_values = verify_gkr_grand_products(push_layout.depth, transcript)
     require(count_root != ZERO, "a bus count is zero")
 
-    # The framework blocks' committed columns, in the order the two sides first
+    # The framework blocks' committed columns, in the order the trees first
     # name them: the memory image on push, then each array's final count on pull.
     memory_low = tuple(point[: layout.log_memory])
     bytecode_low = tuple(point[: layout.log_bytecode])
@@ -611,9 +632,19 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
     memory_index = index_mle(memory_low)
     bytecode_index = index_mle(bytecode_low)
-    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
 
-    def fingerprints(pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
+    # The bytecode line h(t) = B(zeta_low, (1 + t) alphas_1 + t alphas_2), B the stacked bytecode, its BUS_BITS + 1
+    # coefficients low first: h(0) and h(1) are the two fingerprints' bytecode values. Then a grind, h being of degree
+    # BUS_BITS, and `t`: the bus keeps the one point of B the line is at `t`, where B must be h(t).
+    line = transcript.next_scalars(BUS_BITS + 1)
+    transcript.grind_check(grinding_bits(BUS_BITS))
+    t = transcript.sample()
+    slots = (first + t * (first + second) for first, second in zip(fingerprints[0][0], fingerprints[1][0], strict=True))
+    bytecode_point = (*bytecode_low, *slots)
+    require(multilinear_eval(layout.bytecode, bytecode_point) == poly_eval(line, t), "the bytecode line does not match the bytecode")
+    bytecode_values = (line[0], E.sum(line))
+
+    def framework(weights: Sequence[E], bytecode_value: E, pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
         """The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
         named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
@@ -624,13 +655,14 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         )
 
     final_pc = _gpow(2**layout.log_bytecode - 1)  # the execution ends at the bytecode's last instruction
-    sides = (
-        (layout.push, push_layout, fingerprints(_gpow(0), ONE, ONE), weights, beta),
-        (layout.pull, pull_layout, fingerprints(final_pc, memory_final, bytecode_final), weights, beta),
-        (layout.count, count_layout, (), (ONE,), ZERO),  # The count channel owns no framework block and runs at alpha = beta = 0.
-    )
+    sides = []
+    for (alphas, beta), bytecode_value in zip(fingerprints, bytecode_values, strict=True):
+        weights = eq_kernel(alphas)
+        sides.append((layout.push, push_layout, framework(weights, bytecode_value, _gpow(0), ONE, ONE), weights, beta))
+        sides.append((layout.pull, pull_layout, framework(weights, bytecode_value, final_pc, memory_final, bytecode_final), weights, beta))
+    sides.append((layout.count, count_layout, (), (ONE,), ZERO))  # The count channel owns no framework block and runs at alpha = beta = 0.
     totals = []  # what remains to be proven by the next table sumcheck
-    forms = tuple(tuple(Form() for _ in range(3)) for _ in TABLES)
+    forms = tuple(tuple(Form() for _ in range(N_TREES)) for _ in TABLES)
     for side, (blocks, side_layout, framework_fingerprints, side_weights, side_beta) in enumerate(sides):
         framework_selectors = [p.eq_above(point) for p in side_layout.framework]
         table_selectors = [p.eq_above(point) for p in side_layout.tables]
@@ -649,7 +681,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         ones_padding = E.sum(framework_selectors + table_selectors) + ONE
         totals.append(tree_values[side] + known + ones_padding + padding_rows)  # what the forms owe: the GKR value, less framework and padding
 
-    return BusResult(tuple(claims), point, forms, (totals[0], totals[1], totals[2]))
+    return BusResult(tuple(claims), bytecode_point, point, forms, tuple(totals))
 
 
 # Table sumcheck -------------------------------------------------------------
@@ -1411,7 +1443,9 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
         iota += segments[segment] * E.sum(claim.weights[z] for z in range(64) if constant >> z & 1)
     require(projected + iota * E.sum(claim.mu) == claim.value, "Keccak product polynomial does not carry the claim")
 
-    # 2] At a random point a pack is one field element, and the polynomial's value a sumcheck claim.
+    # 2] At a random point a pack is one field element, and the polynomial's value a sumcheck claim. The polynomial has
+    # degree PRODUCT_BITS - 1.
+    transcript.grind_check(grinding_bits(PRODUCT_BITS - 1))
     s = transcript.sample()
     mu = keccak_instance_weights(s)
     kappa = E.sum(mu)
@@ -1437,7 +1471,8 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
     )
 
     # 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
-    # Position `j` is `k` columns along from `keccak_along(j, 5 - k)`.
+    # Position `j` is `k` columns along from `keccak_along(j, 5 - k)`. The next claim is quadratic in beta.
+    transcript.grind_check(grinding_bits(2))
     beta = transcript.sample()
     weights = [eq[j] + beta * (eq[keccak_along(j, 4)] + beta * eq[keccak_along(j, 3)]) for j in range(KECCAK_BITS)]
     return KeccakClaim(t[0] + beta * (t[1] + beta * t[2]), mu, tuple(point), keccak_linear_transpose(weights))
@@ -1467,6 +1502,8 @@ def verify_keccak(
     one point, and the column's 64 slices at another."""
     pack_bits = log_steps - PACK_BITS
     r_low = instance[:PACK_BITS]
+    # One message, the segment then the lane: the first claim is multilinear in them.
+    transcript.grind_check(grinding_bits(KECCAK_SEGMENT_BITS + KECCAK_LANE_BITS))
     segment = transcript.samples(KECCAK_SEGMENT_BITS)
     point = (*instance[PACK_BITS:], *segment)
     # The first claim combines the output lanes as words: bit z of a word weighs x^z.
@@ -1588,14 +1625,18 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     root = Digest.from_halves(*transcript.next_scalars(2))
     pin = read_pin(transcript, layout.stack_log, layout.committed_lanes)
 
-    # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
+    # 3] Bus: two fingerprints, one batched GKR over their push and pull trees and the count tree, the leaf
+    # decomposition, which leaves each table a degree-2 claim per tree, and the bytecode line.
     bus = verify_bus_balance(layout, transcript)
 
-    # 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
-    # leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
-    xi = transcript.sample()
+    # 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
+    # trees' leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its
+    # constraints, then one power per bus tree, shared by every table. The batch is degree n_powers - 1 in xi.
     n_constraints = sum(table.n_constraints for table in TABLES)
-    xi_powers = powers(xi, n_constraints + 3)  # one power per constraint, then one per bus side, shared by every table
+    n_powers = n_constraints + N_TREES
+    transcript.grind_check(grinding_bits(n_powers - 1))
+    xi = transcript.sample()
+    xi_powers = powers(xi, n_powers)
     constraint_powers, form_powers = xi_powers[:n_constraints], xi_powers[n_constraints:]
     target = dot(form_powers, bus.totals)
     evaluations = table_sumcheck(layout.table_log_heights, bus.forms, constraint_powers, form_powers, bus.point, target, transcript)
@@ -1604,7 +1645,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
         claims.extend(ColumnClaim(base + local, point, value) for local, value in enumerate(values))
 
     # 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
-    # evaluates itself, so the prover sends nothing.
+    # evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
     public_challenge = transcript.sample()
     first, second = public_input.halves()
     public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1)))
