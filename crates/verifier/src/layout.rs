@@ -6,29 +6,40 @@ use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
-use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Add;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
 
+/// A monomial of degree at most 2 in a table's columns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Monomial {
+    One,
+    X(usize),
+    /// `x_i * x_j`, `i <= j`.
+    Xy(usize, usize),
+}
+
 /// A polynomial of degree at most 2 in a table's columns.
 #[derive(Clone, Debug, Default)]
 pub struct Form {
-    terms: BTreeMap<Vec<usize>, E>, // monomial -> coefficient; [] is 1, [i] is x_i, [i, j] is x_i*x_j
+    terms: Vec<(Monomial, E)>, // each monomial once, with its coefficient, in the order first added
 }
 
 impl Form {
-    fn term(monomial: Vec<usize>, coefficient: E) -> Self {
+    fn term(monomial: Monomial, coefficient: E) -> Self {
         Self {
-            terms: BTreeMap::from([(monomial, coefficient)]),
+            terms: vec![(monomial, coefficient)],
         }
     }
 
     pub fn add_scaled(&mut self, other: &Form, weight: E) {
-        for (monomial, &coefficient) in &other.terms {
-            *self.terms.entry(monomial.clone()).or_default() += weight * coefficient;
+        for &(monomial, coefficient) in &other.terms {
+            match self.terms.iter_mut().find(|(m, _)| *m == monomial) {
+                Some((_, c)) => *c += weight * coefficient,
+                None => self.terms.push((monomial, weight * coefficient)),
+            }
         }
     }
 
@@ -38,11 +49,11 @@ impl Form {
     }
 
     pub fn evaluate(&self, column: &[E]) -> E {
-        E::sum(
-            self.terms
-                .iter()
-                .map(|(monomial, &c)| monomial.iter().fold(c, |acc, &index| acc * column[index])),
-        )
+        E::sum(self.terms.iter().map(|&(monomial, c)| match monomial {
+            Monomial::One => c,
+            Monomial::X(i) => c * column[i],
+            Monomial::Xy(i, j) => c * column[i] * column[j],
+        }))
     }
 }
 
@@ -109,15 +120,15 @@ pub fn gpow(index: u64) -> E {
 }
 
 pub fn constant(value: E) -> Form {
-    Form::term(vec![], value)
+    Form::term(Monomial::One, value)
 }
 
 fn col(index: usize, exponent: u64) -> Form {
-    Form::term(vec![index], gpow(exponent))
+    Form::term(Monomial::X(index), gpow(exponent))
 }
 
 fn prod(a: usize, b: usize, exponent: u64) -> Form {
-    Form::term(vec![a.min(b), a.max(b)], gpow(exponent))
+    Form::term(Monomial::Xy(a.min(b), a.max(b)), gpow(exponent))
 }
 
 pub const SEP_STATE: E = ONE;
@@ -625,12 +636,15 @@ pub fn build_layout<'a>(
         .collect();
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
+    let mut offsets = vec![None; kappas.len()];
+    for (&column, offset) in blocks.iter().zip(block_offsets) {
+        offsets[column] = Some(offset);
+    }
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
+            Some(slot) => offsets[QKECCAK]? + ((slot as u64) << kappa),
+            None => offsets[column]?,
         };
         Some(Placement {
             variables: kappa,
