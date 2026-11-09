@@ -98,13 +98,6 @@ pub(super) fn gen_verify(
     // ---- the stacked opening: config + the opening summary ----
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
 
-    // ---- hints ----
-    // The program's whole share of the bytecode leaves: ONE value, the stacked
-    // polynomial at the bus's one point (ζ_lo, α⃗₁ + t·(α⃗₁ + α⃗₂)), which the
-    // bytecode line takes at `t` (§sec:e2e-bc). The summary carries the point
-    // only; the caller evaluates it.
-    let bcv = vec![bytecode_value];
-
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
     // Per side, the packing order read straight off `leaf::layout`'s offsets:
     // sort_order[side_base + rank] = g^{global index of the rank-r block}. The
@@ -246,7 +239,6 @@ pub(super) fn gen_verify(
             stream.resize(STREAM_CAP, F128::ZERO);
             stream
         }),
-        ("bytecode_val", bcv),
         ("merkle_caps", caps),
         ("merkle_cap_active", cap_active),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a

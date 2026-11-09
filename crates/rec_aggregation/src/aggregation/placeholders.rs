@@ -186,6 +186,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     claim_placeholders(&layout, kbc, nclaims, &mut ps);
     table_placeholders(&mut ps);
     keccak_placeholders(&mut ps);
+    grind_placeholders(&mut ps);
     field_placeholders(&mut ps);
     opening_placeholders(kbc, &mut ps);
     bytecode_placeholders(kbc, nbcv, &mut ps);
@@ -261,6 +262,7 @@ fn bus_placeholders(
     }
     ps("SIDE_BLOCK_START", literals(&sblk));
     ps("N_BLOCKS", nblocks.to_string());
+    ps("N_COORDS", coordinates.len().to_string());
     let bks = leanvm_core::cpu::block_kappa_sources(kbc);
     // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
     // segments are identical; the guest computes only push's side total and
@@ -488,6 +490,44 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("TABLE_COL_BASE", literals(xi_offsets(committed.iter().copied())));
     ps("N_COL_EVALS", committed.iter().sum::<usize>().to_string());
     ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
+}
+
+/// The outer protocol's grinds, each `grinding_bits` of its challenge's numerator as the prover takes it (zero bits
+/// is no nonce): a sumcheck round of degree `d`, eq factor included, then each other challenge the guest grinds for.
+fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
+    use fiat_shamir::grinding_bits;
+    use leanvm_core::leaf::{N_BUS_TREES, N_TUPLE_BITS};
+    for degree in [2, 3, 5] {
+        ps(&format!("ROUND{degree}_GRIND_BITS"), grinding_bits(degree).to_string());
+    }
+    // A bus GKR round of the last layer, whose challenge zeta's zerocheck also reads, grinds as any other.
+    assert_eq!(grinding_bits(4 + 1 + 1), grinding_bits(4 + 1));
+    ps(
+        "GKR_COMBINER_GRIND_BITS",
+        grinding_bits(N_BUS_TREES as u128 - 1).to_string(),
+    );
+    // y: a binary layer's (only ever the root-most, never the last), a radix-four one's, the last layer's doubled.
+    ps("GKR_Y1_GRIND_BITS", grinding_bits(1).to_string());
+    ps("GKR_Y_GRIND_BITS", grinding_bits(2).to_string());
+    ps("GKR_Y_LAST_GRIND_BITS", grinding_bits(4).to_string());
+    // The guest absorbs a radix-four layer's y nonce before it knows which of the two it checks.
+    assert!(grinding_bits(2) > 0 && grinding_bits(4) > 0);
+    ps("LINE_GRIND_BITS", grinding_bits(N_TUPLE_BITS as u128).to_string());
+    ps(
+        "XI_GRIND_BITS",
+        grinding_bits(leanvm_core::cpu::n_xi_powers() as u128 - 1).to_string(),
+    );
+    let shape = keccak_gkr::Shape::new(leanvm_core::keccak::MIN_STEPS, leanvm_core::keccak::DEPTH);
+    // The segment then the lane, 25 lanes in five coordinates.
+    ps(
+        "KECCAK_SEG_GRIND_BITS",
+        grinding_bits((shape.seg_log() + 5) as u128).to_string(),
+    );
+    ps(
+        "KECCAK_S_GRIND_BITS",
+        grinding_bits(keccak_gkr::rmfe::PROD_BITS as u128 - 1).to_string(),
+    );
+    ps("KECCAK_BETA_GRIND_BITS", grinding_bits(2).to_string());
 }
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
