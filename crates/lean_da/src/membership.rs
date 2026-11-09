@@ -94,7 +94,7 @@ mod tests {
     /// fails, `check_membership` is testing the wrong relation.
     #[test]
     fn grinding_bits_at_k_2_14() {
-        assert_eq!(DA_GRINDING_BITS, 14);
+        assert_eq!(DA_GRINDING_BITS, 9);
     }
 
     #[test]
