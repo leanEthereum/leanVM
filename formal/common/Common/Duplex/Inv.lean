@@ -7,10 +7,10 @@ public import Common.Duplex.Table
 /-!
 # The simulator's invariant
 
-Without collision, the simulator's records describe the challenge chains: every programmed answer
-carries its challenge (`Inv`), and every next state of a chain is either answered with the next
-challenge or would be programmed with it (`NextOK`). A fresh step without collision keeps this
-(`inv_step`).
+Without collision, the simulator's records describe the derivations: every programmed answer
+carries its challenge (`Inv`), and every branch of a programmed first answer is either answered
+with its challenge or would be programmed with it (`NextOK`). A fresh step without collision keeps
+this (`inv_record`).
 -/
 
 set_option linter.unusedSectionVars false
@@ -46,30 +46,51 @@ theorem iv_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin
 theorem labOf_record_none (s : SimSt Dg St Root n) (x y : St) (x' : St) :
     (s.record D x y none).labOf x' = s.labOf x' := rfl
 
-theorem labOf_record_some (s : SimSt Dg St Root n) (x y : St) (r : Root) (j : Fin n) (x' : St) :
-    (s.record D x y (some (r, j))).labOf x' =
-      if h : j.val + 1 < n then
-        if s.labOf (D.next y) = none ∧ x' = D.next y then some (r, ⟨j.val + 1, h⟩)
-        else s.labOf x'
-      else s.labOf x' := by
-  by_cases h1 : j.val + 1 < n
-  · by_cases h2 : s.labOf (D.next y) = none
-    · have e : (s.record D x y (some (r, j))).lab = (D.next y, (r, ⟨j.val + 1, h1⟩)) :: s.lab := by
-        simp [SimSt.record, h1, h2]
-      by_cases hx : x' = D.next y
-      · subst hx
-        simp only [h1, ↓reduceDIte, h2, and_self, ↓reduceIte]
-        simp [SimSt.labOf, e]
-      · simp only [h1, ↓reduceDIte, h2, hx, and_false, ↓reduceIte]
-        simp only [SimSt.labOf, e]
-        rw [List.find?_cons_of_neg (by simpa [eq_comm] using hx)]
-    · have e : (s.record D x y (some (r, j))).lab = s.lab := by
-        simp [SimSt.record, h1, h2]
-      simp only [h1, ↓reduceDIte, h2, false_and, ↓reduceIte]
-      simp only [SimSt.labOf, e]
-  · have e : (s.record D x y (some (r, j))).lab = s.lab := by simp [SimSt.record, h1]
-    simp only [h1, ↓reduceDIte]
-    simp only [SimSt.labOf, e]
+theorem mem_children {r : Root} {y : St} {p : St × (Root × Fin n)} :
+    p ∈ children D r y ↔ ∃ k : Fin n, k.val ≠ 0 ∧ p = (D.next k y, (r, k)) := by
+  simp only [children, List.mem_map, List.mem_filter, List.mem_finRange, true_and,
+    decide_eq_true_eq]
+  exact ⟨fun ⟨k, hk, h⟩ ↦ ⟨k, hk, h.symm⟩, fun ⟨k, hk, h⟩ ↦ ⟨k, hk, h.symm⟩⟩
+
+theorem lab_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
+    (s.record D x y lbl).lab = s.lab ∨
+      ∃ r j, lbl = some (r, j) ∧ j.val = 0 ∧ (s.record D x y lbl).lab = children D r y ++ s.lab := by
+  rcases lbl with _ | ⟨r, j⟩
+  · exact Or.inl rfl
+  · by_cases hj : j.val = 0
+    · exact Or.inr ⟨r, j, rfl, hj, by simp [SimSt.record, hj]⟩
+    · exact Or.inl (by simp [SimSt.record, hj])
+
+/-- A branch of a programmed first answer is registered with its challenge. -/
+theorem labOf_record_branch (s : SimSt Dg St Root n) (x y : St) (r : Root) (j k : Fin n)
+    (hj : j.val = 0) (hk : k.val ≠ 0) :
+    (s.record D x y (some (r, j))).labOf (D.next k y) = some (r, k) := by
+  have e : (s.record D x y (some (r, j))).lab = children D r y ++ s.lab := by
+    simp [SimSt.record, hj]
+  have hmem : (D.next k y, (r, k)) ∈ children D r y := (mem_children D).mpr ⟨k, hk, rfl⟩
+  simp only [SimSt.labOf, e, List.find?_append]
+  obtain ⟨p, hp⟩ : ∃ p, (children D r y).find? (fun p ↦ decide (p.1 = D.next k y)) = some p :=
+    Option.isSome_iff_exists.mp (List.find?_isSome.mpr ⟨_, hmem, by simp⟩)
+  obtain ⟨k', -, rfl⟩ := (mem_children D).mp (List.mem_of_find?_eq_some hp)
+  have h1 := List.find?_some hp
+  simp only [decide_eq_true_eq] at h1
+  rw [D.next_inj k' k y h1] at hp
+  rw [hp]
+  rfl
+
+/-- Away from the branches of the answer `y`, a step keeps the registered challenges. -/
+theorem labOf_record_ne (s : SimSt Dg St Root n) (x y : St) (P : Option (Root × Fin n)) {x' : St}
+    (hne : ∀ k : Fin n, x' ≠ D.next k y) : (s.record D x y P).labOf x' = s.labOf x' := by
+  rcases lab_record D s x y P with h | ⟨r, j, -, -, h⟩
+  · simp only [SimSt.labOf, h]
+  · simp only [SimSt.labOf, h, List.find?_append]
+    have hnone : (children D r y).find? (fun p ↦ decide (p.1 = x')) = none := by
+      rw [List.find?_eq_none]
+      intro p hp hpx
+      obtain ⟨k, -, rfl⟩ := (mem_children D).mp hp
+      exact hne k (of_decide_eq_true hpx).symm
+    rw [hnone]
+    rfl
 
 theorem mem_forb_of_key {s : SimSt Dg St Root n} {e} (he : e ∈ s.log) :
     D.cap e.1 ∈ forb D s := by
@@ -98,14 +119,14 @@ theorem answer_eq_none {s : SimSt Dg St Root n} {x : St} (h : s.answer x = none)
 
 theorem cap_first' (r : Root) (d : Dg) : D.cap (D.first r d) = D.cap (D.init d) := D.cap_first r d
 
-theorem cap_next' (y : St) : D.cap (D.next y) = D.cap y := D.cap_next y
+theorem cap_next' (j : Fin n) (y : St) : D.cap (D.next j y) = D.cap y := D.cap_next j y
 
 theorem out_build (z : Z) (w : W) : D.out (D.build (z, w)) = z := by
   simp [DuplexSpec.out]
 
 /-! ## The invariant -/
 
-/-- A next state of a chain is answered with its challenge, or would be programmed with it. -/
+/-- A branch state is answered with its challenge, or would be programmed with it. -/
 def NextOK (s : SimSt Dg St Root n) (x : St) (L : Root × Fin n) : Prop :=
   (s.answer x = none → efflab D s x = some L) ∧ ∀ e ∈ s.log, e.1 = x → e.2.2 = some L
 
@@ -117,11 +138,11 @@ structure Inv (g : Tab Root Z n) (iv : Dg) (s : SimSt Dg St Root n) : Prop where
   out : ∀ e ∈ s.log, ∀ r j, e.2.2 = some (r, j) → D.out e.2.1 = g.at r j
   place : ∀ e ∈ s.log, ∀ r (j : Fin n), e.2.2 = some (r, j) →
     (j.val = 0 → e.1 = D.first r iv) ∧
-    (∀ j' : Fin n, j.val = j'.val + 1 → ∃ e' ∈ s.log, e'.2.2 = some (r, j') ∧ e.1 = D.next e'.2.1)
-  lab : ∀ p ∈ s.lab, ∃ j' : Fin n, p.2.2.val = j'.val + 1 ∧
-    ∃ e' ∈ s.log, e'.2.2 = some (p.2.1, j') ∧ p.1 = D.next e'.2.1
-  nxt : ∀ e ∈ s.log, ∀ r (j : Fin n) (h : j.val + 1 < n), e.2.2 = some (r, j) →
-    NextOK D s (D.next e.2.1) (r, ⟨j.val + 1, h⟩)
+    (j.val ≠ 0 → ∃ e' ∈ s.log, e'.2.2 = some (r, ⟨0, D.n_pos⟩) ∧ e.1 = D.next j e'.2.1)
+  lab : ∀ p ∈ s.lab, p.2.2.val ≠ 0 ∧
+    ∃ e' ∈ s.log, e'.2.2 = some (p.2.1, ⟨0, D.n_pos⟩) ∧ p.1 = D.next p.2.2 e'.2.1
+  nxt : ∀ e ∈ s.log, ∀ r, e.2.2 = some (r, ⟨0, D.n_pos⟩) → ∀ j : Fin n, j.val ≠ 0 →
+    NextOK D s (D.next j e.2.1) (r, j)
   fst : ∀ r, NextOK D s (D.first r iv) (r, ⟨0, D.n_pos⟩)
   uniq : ∀ e ∈ s.log, ∀ e' ∈ s.log, e.2.2 = e'.2.2 → e.2.2 ≠ none → e = e'
 
@@ -143,12 +164,12 @@ theorem Inv.used_zero {g : Tab Root Z n} {iv : Dg} {s : SimSt Dg St Root n} (hI 
   rw [← hx]
   exact answer_ne_none_of_mem he
 
-/-- A used next challenge: its state is answered. -/
-theorem Inv.used_succ {g : Tab Root Z n} {iv : Dg} {s : SimSt Dg St Root n} (hI : Inv D g iv s)
-    {e} (he : e ∈ s.log) {r : Root} {j : Fin n} (hl : e.2.2 = some (r, j)) (h : j.val + 1 < n)
-    (hu : (r, (⟨j.val + 1, h⟩ : Fin n)) ∈ s.used) : s.answer (D.next e.2.1) ≠ none := by
+/-- A used branch challenge: its state is answered. -/
+theorem Inv.used_branch {g : Tab Root Z n} {iv : Dg} {s : SimSt Dg St Root n} (hI : Inv D g iv s)
+    {e} (he : e ∈ s.log) {r : Root} (hl : e.2.2 = some (r, ⟨0, D.n_pos⟩)) {j : Fin n}
+    (hj : j.val ≠ 0) (hu : (r, j) ∈ s.used) : s.answer (D.next j e.2.1) ≠ none := by
   obtain ⟨e'', he'', hl''⟩ := mem_used_iff.mp hu
-  obtain ⟨e', he', hl', hx⟩ := (hI.place e'' he'' r _ hl'').2 j rfl
+  obtain ⟨e', he', hl', hx⟩ := (hI.place e'' he'' r _ hl'').2 hj
   have : e' = e := hI.uniq e' he' e he (by rw [hl', hl]) (by simp [hl'])
   subst this
   rw [← hx]
@@ -183,19 +204,9 @@ theorem labOf_of_cap (hI : Inv D g iv s) (hv : ∀ e ∈ s.log, D.cap y ≠ D.ca
     (hx' : D.cap x' = D.cap y) : s.labOf x' = none := by
   simp only [SimSt.labOf, Option.map_eq_none_iff, List.find?_eq_none, decide_eq_true_eq]
   intro p hp hpx
-  obtain ⟨j', -, e', he', -, hpe⟩ := hI.lab p hp
+  obtain ⟨-, e', he', -, hpe⟩ := hI.lab p hp
   apply hv e' he'
   rw [← hx', ← hpx, hpe, cap_next']
-
-theorem labOf_record_ne (P : Option (Root × Fin n)) {x' : St} (hne : x' ≠ D.next y) :
-    (s.record D x y P).labOf x' = s.labOf x' := by
-  rcases P with _ | ⟨r, j⟩
-  · rfl
-  · rw [labOf_record_some]
-    split_ifs with h1 h2
-    · exact absurd h2.2 hne
-    · rfl
-    · rfl
 
 theorem efflab_record_of (P : Option (Root × Fin n)) {x' : St}
     (hl : (s.record D x y P).labOf x' = s.labOf x') :
@@ -235,9 +246,9 @@ theorem progLbl_efflab {L : Root × Fin n} (h : progLbl D s x = some L) :
   · next L' hL' => split_ifs at h; cases h; exact hL'
   · cases h
 
-/-- The next states of the chains stay described after a step elsewhere. -/
+/-- The branch states stay described after a step elsewhere. -/
 theorem nextOK_record (hx : s.answer x = none) {x' : St} {L : Root × Fin n}
-    (hok : NextOK D s x' L) (hne : x' ≠ D.next y)
+    (hok : NextOK D s x' L) (hne : ∀ k : Fin n, x' ≠ D.next k y)
     (hprog : x' = x → progLbl D s x = some L) :
     NextOK D (s.record D x y (progLbl D s x)) x' L := by
   by_cases hxx : x' = x
@@ -248,7 +259,7 @@ theorem nextOK_record (hx : s.answer x = none) {x' : St} {L : Root × Fin n}
     · exact absurd hk (answer_eq_none hx e he)
   · refine ⟨fun ha ↦ ?_, fun e he hk ↦ ?_⟩
     · rw [answer_record, ite_neg' hxx] at ha
-      rw [efflab_record_of _ (labOf_record_ne _ hne)]
+      rw [efflab_record_of _ (labOf_record_ne D s x y _ hne)]
       exact hok.1 ha
     · rcases List.mem_cons.mp he with rfl | he
       · exact absurd hk.symm hxx
@@ -261,6 +272,9 @@ theorem inv_record (hI : Inv D g iv s) (hx : s.answer x = none)
     Inv D g iv (s.record D x y (progLbl D s x)) := by
   obtain ⟨hcx, hck, hcv, hc0⟩ := not_mem_insert_forb hcol
   have hsx0 := hI.x0
+  -- a state with another capacity than `y`'s is no branch of `y`
+  have hbr : ∀ {x' : St}, D.cap x' ≠ D.cap y → ∀ k : Fin n, x' ≠ D.next k y :=
+    fun h k h' ↦ h (by rw [h', cap_next'])
   constructor
   · exact hsx0
   · simp only [log_record, List.map_cons, List.nodup_cons]
@@ -276,82 +290,62 @@ theorem inv_record (hI : Inv D g iv s) (hx : s.answer x = none)
     rcases List.mem_cons.mp he with rfl | he
     · -- the new entry: its challenge came from `efflab`
       simp only at hl
-      have hL : efflab D s x = some (r, j) := by
-        unfold progLbl at hl
-        split at hl
-        · next L hL => split_ifs at hl; cases hl; exact hL
-        · cases hl
+      have hL : efflab D s x = some (r, j) := progLbl_efflab hl
       rcases efflab_spec hL with ⟨d, hd, hfd, hj⟩ | ⟨p, hp, hpx, hpl⟩
       · rw [hI.ivEq] at hd
         cases hd
-        exact ⟨fun _ ↦ hfd.symm, fun j' hj' ↦ by omega⟩
-      · obtain ⟨j', hj', e', he', hl', hx'⟩ := hI.lab p hp
-        rw [hpl] at hj' hl'
-        refine ⟨fun hj ↦ by simp at hj'; omega, fun j'' hj'' ↦ ?_⟩
-        have : j'' = j' := Fin.ext (by simp at hj'; omega)
-        subst this
+        exact ⟨fun _ ↦ hfd.symm, fun hj' ↦ absurd hj hj'⟩
+      · obtain ⟨hp0, e', he', hl', hx'⟩ := hI.lab p hp
+        rw [hpl] at hp0 hl' hx'
+        refine ⟨fun hj ↦ absurd hj hp0, fun _ ↦ ?_⟩
         exact ⟨e', List.mem_cons_of_mem _ he', hl', hpx ▸ hx'⟩
     · obtain ⟨h1, h2⟩ := hI.place e he r j hl
-      exact ⟨h1, fun j' hj' ↦ by
-        obtain ⟨e', he', hl', hx'⟩ := h2 j' hj'
+      exact ⟨h1, fun hj ↦ by
+        obtain ⟨e', he', hl', hx'⟩ := h2 hj
         exact ⟨e', List.mem_cons_of_mem _ he', hl', hx'⟩⟩
   · intro p hp
-    rcases hP : progLbl D s x with _ | ⟨r0, j0⟩
-    · rw [hP] at hp
-      obtain ⟨j', hj', e', he', hl', hx'⟩ := hI.lab p hp
-      exact ⟨j', hj', e', List.mem_cons_of_mem _ he', hl', hx'⟩
-    · rw [hP] at hp
-      have hold : p ∈ s.lab → ∃ j' : Fin n, p.2.2.val = j'.val + 1 ∧
-          ∃ e' ∈ (s.record D x y (some (r0, j0))).log, e'.2.2 = some (p.2.1, j') ∧
-            p.1 = D.next e'.2.1 := fun hp ↦ by
-        obtain ⟨j', hj', e', he', hl', hx'⟩ := hI.lab p hp
-        exact ⟨j', hj', e', List.mem_cons_of_mem _ he', hl', hx'⟩
-      by_cases h1 : j0.val + 1 < n
-      · by_cases h2 : s.labOf (D.next y) = none
-        · have he : (s.record D x y (some (r0, j0))).lab =
-              (D.next y, (r0, ⟨j0.val + 1, h1⟩)) :: s.lab := by simp [SimSt.record, h1, h2]
-          rw [he] at hp
-          rcases List.mem_cons.mp hp with rfl | hp'
-          · exact ⟨j0, rfl, (x, y, some (r0, j0)), List.mem_cons_self, rfl, rfl⟩
-          · exact hold hp'
-        · have he : (s.record D x y (some (r0, j0))).lab = s.lab := by
-            simp [SimSt.record, h1, h2]
-          rw [he] at hp
-          exact hold hp
-      · have he : (s.record D x y (some (r0, j0))).lab = s.lab := by simp [SimSt.record, h1]
-        rw [he] at hp
-        exact hold hp
-  · intro e he r j h hl
+    have hold : p ∈ s.lab → p.2.2.val ≠ 0 ∧ ∃ e' ∈ (s.record D x y (progLbl D s x)).log,
+        e'.2.2 = some (p.2.1, ⟨0, D.n_pos⟩) ∧ p.1 = D.next p.2.2 e'.2.1 := fun hp ↦ by
+      obtain ⟨h0, e', he', hl', hx'⟩ := hI.lab p hp
+      exact ⟨h0, e', List.mem_cons_of_mem _ he', hl', hx'⟩
+    rcases lab_record D s x y (progLbl D s x) with h | ⟨r0, j0, hP, hj0, h⟩
+    · rw [h] at hp
+      exact hold hp
+    · rw [h] at hp
+      rcases List.mem_append.mp hp with hp | hp
+      · obtain ⟨k, hk, rfl⟩ := (mem_children D).mp hp
+        have hj0' : j0 = ⟨0, D.n_pos⟩ := Fin.ext hj0
+        refine ⟨hk, (x, y, progLbl D s x), List.mem_cons_self, ?_, rfl⟩
+        rw [hP, hj0']
+      · exact hold hp
+  · intro e he r hl j hj
     rcases List.mem_cons.mp he with rfl | he
     · simp only at hl ⊢
-      have hny : D.next y ≠ x := fun h' ↦ hcx (by rw [← cap_next' D y, h'])
-      have hans : s.answer (D.next y) = none := answer_of_cap hck (cap_next' D y)
-      have hans' : (s.record D x y (progLbl D s x)).answer (D.next y) = none := by
+      have hny : D.next j y ≠ x := fun h' ↦ hcx (by rw [← cap_next' D j y, h'])
+      have hans : s.answer (D.next j y) = none := answer_of_cap hck (cap_next' D j y)
+      have hans' : (s.record D x y (progLbl D s x)).answer (D.next j y) = none := by
         rw [answer_record, ite_neg' hny, hans]
       refine ⟨fun _ ↦ ?_, fun e2 he2 hk ↦ absurd hans'
         (by rw [← hk]; exact answer_ne_none_of_mem he2)⟩
-      have hlab0 : s.labOf (D.next y) = none := labOf_of_cap hI hcv (cap_next' D y)
-      have hd : D.dec iv (D.next y) = none := by
-        rcases hdd : D.dec iv (D.next y) with _ | r'
+      have hd : D.dec iv (D.next j y) = none := by
+        rcases hdd : D.dec iv (D.next j y) with _ | r'
         · rfl
         · have := (D.dec_iff _ _ _).mp hdd
-          exact absurd (by rw [← cap_next' D y, ← this, cap_first']) (hc0 _ hsx0)
+          exact absurd (by rw [← cap_next' D j y, ← this, cap_first']) (hc0 _ hsx0)
       unfold efflab
       rw [iv_record, hI.ivEq]
       simp only [hd]
-      rw [hl, labOf_record_some]
-      simp only [h, ↓reduceDIte, hlab0, true_and, ↓reduceIte]
-    · have hok := hI.nxt e he r j h hl
-      have hus : (r, (⟨j.val + 1, h⟩ : Fin n)) ∈ s.used → s.answer (D.next e.2.1) ≠ none :=
-        hI.used_succ he hl h
+      rw [hl, labOf_record_branch D s x y r _ j rfl hj]
+    · have hok := hI.nxt e he r hl j hj
+      have hus : (r, j) ∈ s.used → s.answer (D.next j e.2.1) ≠ none := hI.used_branch he hl hj
       exact nextOK_record hx hok
-        (fun h' ↦ hcv e he (by rw [← cap_next' D y, ← h', cap_next']))
+        (hbr (fun h' ↦ hcv e he (by rw [← h', cap_next'])))
         (fun hxx ↦ by
           subst hxx
           exact progLbl_of (hok.1 hx) (fun hu ↦ hus hu hx))
   · intro r
     exact nextOK_record hx (hI.fst r)
-      (fun h' ↦ hc0 _ hsx0 (by rw [← cap_next' D y, ← h', cap_first']))
+      (hbr (fun h' ↦ hc0 _ hsx0 (by rw [← h', cap_first'])))
       (fun hxx ↦ by
         subst hxx
         exact progLbl_of ((hI.fst r).1 hx) (fun hu ↦ hI.used_zero r hu hx))
