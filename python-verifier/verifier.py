@@ -1063,14 +1063,15 @@ RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 3
 RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR = 1
 RESIDUAL_MAX_LOG = 5
 QUERY_GRINDING_BITS = 17
-FOLD_GRINDING_BITS = 4  # before each round's theta, and again before its (gamma, alpha, beta)
-BATCH_GRINDING_BITS = 9  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
-OOD_GRINDING_BITS = 15  # before each non-final level's out-of-domain point, and before the level-0 list pin
+FOLD_GRINDING_BITS = 12  # before each round's theta, and again before its (gamma, alpha, beta)
+BATCH_GRINDING_BITS = 17  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
+PIN_GRINDING_BITS = 18  # before the level-0 list pin
+OOD_SAMPLES = 2  # out-of-domain points after each non-final level's commitment, drawn together with no grind
 
 MIN_STACKED_LOG = 15
 MAX_STACKED_LOG = 28
 
-WHIR_QUERIES = (((223,59), (217,56,39), (214,55,36), (211,54,34), (210,53,32), (209,53,31,25), (208,53,31,24), (208,52,31,23), (207,52,30,22), (207,52,30,22,19), (207,52,30,22,18), (207,52,30,21,17), (207,52,30,21,17), (207,52,30,21,17,15)), ((108,46), (107,45,33), (106,44,31), (105,43,29), (105,43,28), (104,42,27,23), (104,42,27,21), (104,42,27,21), (104,42,27,20), (104,42,26,20,17), (104,42,26,20,17), (104,42,26,20,16), (104,42,26,19,16), (104,42,26,19,16,14)), ((71,38), (71,37,29), (70,36,27), (70,36,26), (70,35,25), (70,35,24,21), (69,35,24,20), (69,35,24,19), (69,35,24,18), (69,35,24,18,16), (69,35,24,18,15), (69,35,23,18,15), (69,35,23,18,15), (69,35,23,18,15,13)), ((53,32), (53,31,25), (53,31,24), (52,31,23), (52,30,22), (52,30,22,19), (52,30,22,18), (52,30,21,17), (52,30,21,17), (52,30,21,17,15), (52,30,21,17,14), (52,30,21,17,14), (52,30,21,16,14), (52,30,21,16,14,12)))  # fmt: skip
+WHIR_QUERIES = (((240,64), (234,61,42), (230,59,38), (228,58,36), (226,57,35), (225,57,34,27), (224,57,33,26), (224,56,33,25), (223,56,33,24), (223,56,33,24,20), (223,56,32,23,19), (223,56,32,23,19), (223,56,32,23,18), (223,56,32,23,18,16)), ((117,50), (115,48,36), (114,47,33), (113,46,31), (113,46,30), (112,46,30,24), (112,45,29,23), (112,45,29,22), (112,45,29,22), (112,45,29,21,19), (112,45,28,21,18), (112,45,28,21,17), (112,45,28,21,17), (112,45,28,21,17,15)), ((77,41), (76,40,31), (76,39,29), (75,38,28), (75,38,27), (75,38,26,22), (75,38,26,21), (75,38,26,20), (75,38,25,20), (75,38,25,20,17), (75,38,25,19,17), (75,38,25,19,16), (75,38,25,19,16), (75,38,25,19,16,14)), ((57,35), (57,34,27), (57,33,26), (56,33,25), (56,33,24), (56,33,24,20), (56,32,23,19), (56,32,23,19), (56,32,23,18), (56,32,23,18,16), (56,32,23,18,15), (56,32,23,18,15), (56,32,23,18,15), (56,32,23,18,15,13)))  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -1262,9 +1263,9 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
 
         next_root = Digest.from_halves(*transcript.next_scalars(2))
         high = transcript.next_scalars(fold_count)
-        transcript.grind_check(OOD_GRINDING_BITS)
-        ood_point = tuple(transcript.samples(mu))
-        ood_value = transcript.next_scalar()
+        # The OOD points, one message with no grind, then their values.
+        ood_points = [tuple(transcript.samples(mu)) for _ in range(OOD_SAMPLES)]
+        ood_values = transcript.next_scalars(OOD_SAMPLES)
         transcript.grind_check(QUERY_GRINDING_BITS)
         queries = sample_queries(transcript, block_length, config.queries[level])
         transcript.grind_check(BATCH_GRINDING_BITS)
@@ -1277,11 +1278,14 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
             x = E(query)
             what = _normalized_subspace(subspace, x)
             batched += query_weight * (_fold_row(lanes_of(row), x, rounds) + _novel_eval(high, what) * what[mu])
-        # The OOD claim takes lambda, the query batch lambda^2 times its own powers of lambda.
-        claim += lam * ood_value + lam**2 * batched
-        glued.append(GluedClaim(lam, len(gammas), lambda x, z=ood_point: eq_eval(z, x)))
+        # OOD claim s takes lambda^(s + 1), the query batch lambda^(OOD_SAMPLES + 1) times its own powers of lambda.
+        scalars = powers(lam, OOD_SAMPLES + 2)
+        for z, value, scalar in zip(ood_points, ood_values, scalars[1:], strict=False):
+            claim += scalar * value
+            glued.append(GluedClaim(scalar, len(gammas), lambda x, z=z: eq_eval(z, x)))
+        claim += scalars[OOD_SAMPLES + 1] * batched
         batch = (mu, tuple(queries), tuple(query_weights))
-        glued.append(GluedClaim(lam**2, len(gammas), lambda x, b=batch: _induced_weight(*b, x)))
+        glued.append(GluedClaim(scalars[OOD_SAMPLES + 1], len(gammas), lambda x, b=batch: _induced_weight(*b, x)))
         current_root = next_root
 
     raise VerificationError("WHIR verification ended without a terminal level")
@@ -1549,7 +1553,7 @@ def read_pin(transcript: Transcript, stack_log: int, committed_lanes: int) -> li
         if committed_lanes >> bit & 1:
             blocks.append(Placement(lane_vars + bit, offset))
             offset += 2 ** (lane_vars + bit)
-    transcript.grind_check(OOD_GRINDING_BITS)
+    transcript.grind_check(PIN_GRINDING_BITS)
     z = transcript.samples(blocks[0].variables)
     values = transcript.next_scalars(len(blocks))
     points = [block.stack_point(z[: block.variables], stack_log) for block in blocks]
