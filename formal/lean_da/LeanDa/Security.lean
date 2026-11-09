@@ -153,6 +153,27 @@ theorem selectFrom_eq (v : MembershipChallenge) : ∀ fuel nonce,
     · rfl
     · exact selectFrom_eq v fuel (nonce + 1)
 
+/-- **The label the search selects**: past `nonce`, within the fuel, with a valid proof of work,
+and every label between invalid. -/
+theorem selIdxFrom_spec (k : Fin nLabels → K) : ∀ fuel nonce j, selIdxFrom k nonce fuel = some j →
+    nonce < j ∧ j ≤ nonce + fuel ∧ powValid (powAt k j).lane = true ∧
+      ∀ i, nonce < i → i < j → powValid (powAt k i).lane = false
+  | 0, _, _, h => by cases h
+  | fuel + 1, nonce, j, h => by
+    simp only [selIdxFrom] at h
+    split at h
+    · next hv =>
+      cases h
+      exact ⟨by omega, by omega, hv, fun i h1 h2 ↦ by omega⟩
+    · next hv =>
+      obtain ⟨h1, h2, h3, h4⟩ := selIdxFrom_spec k fuel (nonce + 1) j h
+      refine ⟨by omega, by omega, h3, fun i hi1 hi2 ↦ ?_⟩
+      by_cases hi : i = nonce + 1
+      · subst hi
+        simpa using hv
+      · exact h4 i (by omega) hi2
+
+
 /-- The label the nonce search selects from nonce `0`, label `0` if none. -/
 def selIdx (k : Fin nLabels → K) : Fin nLabels :=
   ⟨(selIdxFrom k 0 nonceCount).getD 0, by

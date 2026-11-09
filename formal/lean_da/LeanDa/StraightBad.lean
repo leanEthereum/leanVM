@@ -357,9 +357,8 @@ def hgCalls : (unifSpec + GW).Domain → ℕ
   | .inr _ => 1
 
 /-- Queries of the draws, one each. -/
-def gwCalls : (unifSpec + GW).Domain → ℕ
-  | .inr (.inr _) => 1
-  | _ => 0
+abbrev gwCalls : (unifSpec + GW).Domain → ℕ :=
+  gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)
 
 /-- The world's side invariant: finitely many cached inputs of `H` and roots of draws. -/
 def GFin (c : GCache) : Prop := (domH c).Finite ∧ (domG c).Finite
@@ -493,7 +492,7 @@ theorem prob_run_not_good_le (r : ℕ) {α : Type} (Y : OracleComp (unifSpec + G
       rcases h : c (.inl a) with _ | u
       · rw [roStep_of_none h, bind_pure_comp, prEvent_map]
         refine (prob_insertH_le hgood hfin h N (by simpa [hgCalls] using hN)).trans ?_
-        simp [hgCalls, gwCalls]
+        simp [hgCalls, gwCalls, gCalls]
       · rw [roStep_of_some h]
         simp only [prEvent_pure]
         simp [hgood]
@@ -502,7 +501,7 @@ theorem prob_run_not_good_le (r : ℕ) {α : Type} (Y : OracleComp (unifSpec + G
       · rw [roStep_of_none h, bind_pure_comp, prEvent_map]
         obtain ⟨d, j⟩ := e
         refine (prob_insertG_le hgood h).trans ?_
-        simp [hgCalls, gwCalls]
+        simp [hgCalls, gwCalls, gCalls]
       · rw [roStep_of_some h]
         simp only [prEvent_pure]
         simp [hgood]

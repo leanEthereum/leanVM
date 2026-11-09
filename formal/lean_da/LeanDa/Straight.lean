@@ -243,86 +243,110 @@ end Tail
 
 section World
 
-/-- Queries of `H` or of the challenges in the simulated world, one each. -/
-def hgCalls : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels).Domain → ℕ
-  | .inl _ => 0
-  | .inr _ => 1
-
-/-- `H` as the simulated world queries it, the challenges one oracle of vectors. -/
-theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
-    (hY : NoCoins Y) : NoCoins (simulateQ (toV (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := Draw) (n := nLabels)) (simulateQ embG Y)) := by
+/-- `H` as the straight-line world queries it. -/
+theorem noCoins_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
+    (hY : NoCoins Y) : NoCoins (simulateQ (embG (Root := Common.DigestBytes) (Z := Draw)
+      (n := nLabels)) Y : OracleComp (unifSpec + GW) α) := by
   induction Y using OracleComp.inductionOn with
   | pure a => exact noCoins_pure _
   | query_bind t k ih =>
     rcases t with n | a
     · exact hY.elim
     have hk : ∀ u, NoCoins (k u) := hY
-    rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query]
-    simp only [embG, hP, simulateQ_spec_query, toV]
-    exact (noCoins_hq_bind (hs := VS) (.inl a) _).mpr fun u ↦ ih u (hk u)
+    rw [simulateQ_bind, simulateQ_spec_query]
+    simp only [embG, hP]
+    exact (noCoins_hq_bind (hs := GW) (.inl a) _).mpr fun u ↦ ih u (hk u)
 
-theorem noCoins_toV_readVec (d : Common.DigestBytes) :
-    NoCoins (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := Draw) (n := nLabels) d)) := by
-  rw [readVec, simulateQ_map]
-  refine noCoins_map _ ?_
-  rw [mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
-    (fun x f ↦ simulateQ_bind _ x f)]
-  refine noCoins_mapM _ (fun j ↦ ?_) _
-  simp only [gaP, simulateQ_spec_query, toV]
-  exact noCoins_map _ (noCoins_hq (hs := VS) (.inr d))
+theorem noCoins_readL (L : List (Fin nLabels)) (d : Common.DigestBytes) : NoCoins (readL L d) := by
+  rw [readL]
+  refine noCoins_map _ (noCoins_mapM _ (fun j ↦ ?_) _)
+  exact noCoins_hq (hs := GW) (.inr (d, j))
 
 /-- A cache's `H` as a partial function on the simulated world's computations with coins and
 `H`. -/
-def lookupH (c : VCache) : QueryImpl (unifSpec + roSpec (List UInt8) DigestBytes) Option
+def lookupH (c : GCache) : QueryImpl (unifSpec + roSpec (List UInt8) DigestBytes) Option
   | .inl _ => none
   | .inr a => c (.inl a)
 
-theorem replay_toV_embG (c : VCache) {α : Type}
+theorem replay_embG (c : GCache) {α : Type}
     (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) :
-    simulateQ (replayImpl c) (simulateQ toV (simulateQ embG Y)) = simulateQ (lookupH c) Y := by
-  rw [← QueryImpl.simulateQ_compose, ← QueryImpl.simulateQ_compose]
+    simulateQ (replayImpl c) (simulateQ (embG (Root := Common.DigestBytes) (Z := Draw)
+      (n := nLabels)) Y) = simulateQ (lookupH c) Y := by
+  rw [← QueryImpl.simulateQ_compose]
   congr 1
   funext t
   rcases t with n | a
-  · simp only [QueryImpl.apply_compose, embG, simulateQ_spec_query, toV]
+  · simp only [QueryImpl.apply_compose, embG, simulateQ_spec_query]
     rfl
-  · simp only [QueryImpl.apply_compose, embG, hP, simulateQ_spec_query, toV]
+  · simp only [QueryImpl.apply_compose, embG, hP, simulateQ_spec_query]
     simp [replayImpl, lookupH]
 
-theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : MembershipChallenge)
-    (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes)
-      (n := nLabels) d)) = some l) : c (.inr d) = some l := by
-  rw [readVec, simulateQ_map, simulateQ_map,
-    mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
-      (fun x f ↦ simulateQ_bind _ x f),
-    mapM_map (fun x ↦ simulateQ (replayImpl c) x) (fun a ↦ simulateQ_pure _ a)
-      (fun x f ↦ simulateQ_bind _ x f)] at h
-  have hq : ∀ j : Fin 2, simulateQ (replayImpl c) (simulateQ toV
-      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : MembershipChallenge ↦ v j) <$> c (.inr d) := by
+/-- **The draws a replay reads** are the cache's. -/
+theorem replay_mapM_gaP (c : GCache) (d : Common.DigestBytes) : ∀ (L : List (Fin nLabels))
+    (ls : List Draw), simulateQ (replayImpl c) (L.mapM (gaP (Msg := List UInt8)
+      (Dg := DigestBytes) d)) = some ls →
+      ∃ h : ls.length = L.length, ∀ i (hi : i < L.length), c (.inr (d, L[i])) = some (ls[i]'(h ▸ hi))
+  | [], ls, h => by
+    simp only [List.mapM_nil, simulateQ_pure] at h
+    cases h
+    exact ⟨rfl, fun i hi ↦ absurd hi (Nat.not_lt_zero _)⟩
+  | j :: L, ls, h => by
+    simp only [List.mapM_cons, simulateQ_bind, simulateQ_pure] at h
+    rw [show simulateQ (replayImpl c) (gaP (Msg := List UInt8) (Dg := DigestBytes) d j) =
+      c (.inr (d, j)) from by simp [gaP, replayImpl]] at h
+    simp only [Option.bind_eq_bind', Option.bind_eq_some_iff, Option.pure_def,
+      Option.some.injEq] at h
+    obtain ⟨x, hj, ls', hL, rfl⟩ := h
+    obtain ⟨hlen, hval⟩ := replay_mapM_gaP c d L ls' hL
+    refine ⟨by simp [hlen], fun i hi ↦ ?_⟩
+    cases i with
+    | zero => simpa using hj
+    | succ i => simpa using hval i (by simpa using hi)
+
+/-- **A replay of the reading of all labels** reads the cache's draws. -/
+theorem replay_readL (c : GCache) (d : Common.DigestBytes) (L : List (Fin nLabels))
+    (hlen : L.length = nLabels) (hidx : ∀ i (hi : i < L.length), (L[i]).val = i)
+    (l : MembershipChallenge) (h : simulateQ (replayImpl c) (readL L d) = some l) :
+    ∀ j : Fin nLabels, c (.inr (d, j)) = some (l j) := by
+  rw [readL, simulateQ_map] at h
+  rcases hL : simulateQ (replayImpl c) (L.mapM (gaP (Msg := List UInt8) (Dg := DigestBytes) d))
+    with _ | ls
+  · rw [hL] at h; cases h
+  · rw [hL] at h
+    simp only [Option.map_eq_map, Option.map_some, Option.some.injEq] at h
+    subst h
+    obtain ⟨hl, hval⟩ := replay_mapM_gaP c d L ls hL
     intro j
-    simp only [gaP, simulateQ_spec_query, toV, simulateQ_map]
-    rfl
-  simp only [hq] at h
-  rcases hd : c (.inr d) with _ | v
-  · rw [hd] at h
-    simp [List.finRange_succ] at h
-  · rw [hd] at h
-    have hm : ∀ l : List (Fin 2), l.mapM (fun j : Fin 2 ↦ (fun v : MembershipChallenge ↦ v j) <$>
-        some v) =
-        some (l.map fun j ↦ v j) := by
-      intro l
-      induction l with
-      | nil => rfl
-      | cons j l ih => rw [List.mapM_cons, ih]; rfl
-    rw [hm] at h
-    injection h with h'
-    subst h'
-    congr 1
-    funext j
-    dsimp only
-    rw [List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_finRange]; omega), List.getElem_map, List.getElem_finRange]
-    rfl
+    have hj : j.val < L.length := by rw [hlen]; exact j.isLt
+    have hLj : L[j.val] = j := Fin.ext (hidx j.val hj)
+    have := hval j.val hj
+    rw [hLj] at this
+    rw [this]
+    show some ls[j.val] = some (ls.getD j.val default)
+    rw [List.getD_eq_getElem _ _ (by rw [hl]; exact hj)]
+
+/-- **A cached draw selected by the nonce search is the first cached valid one.** -/
+theorem firstValid_of_selectChal {c : GCache} {d : Common.DigestBytes} {l : MembershipChallenge}
+    (hall : ∀ j : Fin nLabels, c (.inr (d, j)) = some (l j)) {z : E} (hs : selectChal l = some z) :
+    ∃ j x, FirstValid c d j x ∧ x.1 = z := by
+  rw [selectChal, selectFrom_eq] at hs
+  rcases hsi : selIdxFrom (fun j ↦ (l j).2) 0 nonceCount with _ | j₀
+  · rw [hsi] at hs; cases hs
+  · rw [hsi] at hs
+    simp only [Option.map_some, Option.some.injEq] at hs
+    obtain ⟨h1, h2, h3, h4⟩ := selIdxFrom_spec _ nonceCount 0 j₀ hsi
+    have hj : j₀ < nLabels := by simp only [nLabels]; omega
+    have hpow : ∀ i (hi : i < nLabels), powAt (fun j ↦ (l j).2) i = (l ⟨i, hi⟩).2 := fun i hi ↦ by
+      simp [powAt, hi]
+    refine ⟨⟨j₀, hj⟩, l ⟨j₀, hj⟩, ⟨by simp only; omega, hall _, by rw [← hpow]; exact h3,
+      fun i hi0 hij y hy ↦ ?_⟩, ?_⟩
+    · rw [hall i] at hy
+      cases hy
+      have := h4 i.val (by omega) hij
+      rw [hpow i.val i.isLt] at this
+      exact this
+    · rw [← hs]
+      simp [drawAt, hj]
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
   (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
@@ -330,28 +354,28 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
   (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
-/-- The tail of the simulated world: the challenges of the root, then the straight-line verdict. -/
-noncomputable def tailV (crs : Crs) (out : CbOut r Proof) :
-    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels) Bool :=
-  readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
-    simulateQ embG (tailH r ps ext crs out l)
+/-- The tail of the simulated world, the draws read at the labels `L`: then the straight-line
+verdict. -/
+noncomputable def tailL (L : List (Fin nLabels)) (crs : Crs) (out : CbOut r Proof) :
+    OracleComp (unifSpec + GW) Bool :=
+  readL L out.1.1 >>= fun l ↦ simulateQ embG (tailH r ps ext crs out l)
 
-/-- **A true verdict leaves a bad cache.** -/
-theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Bool × VCache}
-    (hz : z ∈ support ((simulateQ VS.romImpl (simulateQ toV (tailV r ps ext crs out))).run c))
+/-- **A true verdict leaves a bad cache**, the draws read at all labels. -/
+theorem not_good_of_tail (L : List (Fin nLabels)) (hlen : L.length = nLabels)
+    (hidx : ∀ i (hi : i < L.length), (L[i]).val = i) (crs : Crs) (out : CbOut r Proof)
+    (c : GCache) {z : Bool × GCache}
+    (hz : z ∈ support ((simulateQ GW.romImpl (tailL r ps ext L crs out)).run c))
     (htrue : z.1 = true) : ¬ Good r z.2 := by
   classical
   intro hgood
-  have hnc : NoCoins (simulateQ toV (tailV r ps ext crs out)) := by
-    rw [tailV, simulateQ_bind]
-    exact noCoins_bind (noCoins_toV_readVec _) fun l ↦
-      noCoins_toV_embG _ (noCoins_tailH r ps ext crs out l)
+  have hnc : NoCoins (tailL r ps ext L crs out) :=
+    noCoins_bind (noCoins_readL L _) fun l ↦ noCoins_embG _ (noCoins_tailH r ps ext crs out l)
   obtain ⟨-, hrep⟩ := replay_of_mem_support _ hnc c hz
-  rw [htrue, tailV, simulateQ_bind, simulateQ_bind] at hrep
+  rw [htrue, tailL, simulateQ_bind] at hrep
   simp only [Option.bind_eq_bind', Option.bind_eq_some_iff] at hrep
   obtain ⟨l, hl, hrep⟩ := hrep
-  have hd := replay_toV_readVec z.2 out.1.1 l hl
-  rw [replay_toV_embG] at hrep
+  have hall := replay_readL z.2 out.1.1 L hlen hidx l hl
+  rw [replay_embG] at hrep
   set g : List UInt8 → Option Common.DigestBytes := fun a ↦ z.2 (.inl a)
   have hg : ∀ a u, g a = some u → u = fOf z.2 a := fun a u hu ↦ (fOf_of_mem hu).symm
   have hHg : ∀ a, simulateQ (lookupH z.2) (LeanDa.hH a) = g a := fun a ↦ by
@@ -374,13 +398,20 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
   by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
       membershipCheckOpt (selectChal l) w = true
   · rw [ite_eq_left hc] at hrep
-    have hcode := hgood.2 out.1.1 l hd w hin' (hroot'.symm.trans hc.2.1) hc.2.2
+    have hcode : w ∈ (leanDaErasureCode r).code := by
+      have hm := hc.2.2
+      generalize hs : selectChal l = o at hm
+      cases o with
+      | none => exact mem_code_of_forall_check ((membershipCheckOpt_none w).mp hm)
+      | some zz =>
+        obtain ⟨j, x, hfv, hx⟩ := firstValid_of_selectChal hall hs
+        exact hgood.2 out.1.1 j x hfv w hin' (hroot'.symm.trans hc.2.1) (hx ▸ hm)
     rw [ite_eq_left hcode] at hrep
     rcases hfb : firstBad r w out.2 with _ | o
     · simp [hfb, hpO] at hrep
     · simp only [hfb] at hrep
-      by_cases hlen : o.2.2.path.length = 7 + logPaddedRowCount r
-      · rw [ite_eq_left hlen, verifyCellM_map (fun x ↦ simulateQ (lookupH z.2) x) hpO hbO] at hrep
+      by_cases hlen' : o.2.2.path.length = 7 + logPaddedRowCount r
+      · rw [ite_eq_left hlen', verifyCellM_map (fun x ↦ simulateQ (lookupH z.2) x) hpO hbO] at hrep
         simp only [hHg] at hrep
         obtain ⟨hb, hvin⟩ := verifyCellM_some (fOf z.2) hg out.1.1 o.1 o.2.1 o.2.2 true hrep
         have hag := verifyCell_agree hgood.1 hin' (fun a ha ↦ hvin a ha)
@@ -388,7 +419,7 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
         have hne := List.find?_some (by simpa only [firstBad] using hfb)
         simp only [decide_eq_true_eq] at hne
         exact hne hag
-      · rw [ite_eq_right hlen] at hrep
+      · rw [ite_eq_right hlen'] at hrep
         simp [hpO] at hrep
   · rw [ite_eq_right hc] at hrep
     simp [hpO] at hrep

@@ -307,20 +307,6 @@ end PositionBinding
 /-! ## Code binding -/
 
 /-- **A discarded computation is invisible** in the random-oracle model. -/
-theorem run'_bind_const {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
-    [∀ t : hs.Domain, SampleableType (hs.Range t)] {β γ : Type}
-    (X : OracleComp (unifSpec + hs) β) (Y : OracleComp (unifSpec + hs) γ) (c : hs.QueryCache) :
-    (simulateQ hs.romImpl (X >>= fun _ ↦ Y)).run' c =ᵈ (simulateQ hs.romImpl Y).run' c := by
-  have h := run_bind_bind_comm X Y (fun _ r ↦ pure r) c
-  simp only [bind_pure] at h
-  rw [StateT.run'_eq, StateT.run'_eq]
-  refine (h.map Prod.fst).trans ?_
-  rw [simulateQ_bind, StateT.run_bind, map_bind, map_eq_bind_pure_comp]
-  refine EvalDistEq.bind_right _ fun z ↦ ?_
-  rw [simulateQ_bind, StateT.run_bind, map_bind]
-  simp only [simulateQ_pure, StateT.run_pure, map_pure, Function.comp_apply]
-  exact EvalDistEq.bind_const _ _
-
 section CodeBinding
 
 variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
