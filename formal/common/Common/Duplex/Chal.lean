@@ -9,7 +9,7 @@ public import Common.Duplex.Inv
 
 From a good state of the table world, running the challenge derivation `chalP` over the
 simulator ends, unless a collision occurs, with the table's challenges of the root, the cache
-unchanged (`chal_ok`): every state of the chain is answered, or programmed, with its challenge.
+unchanged (`chal_ok`): the first state and every branch are answered, or programmed, with its challenge.
 -/
 
 set_option linter.unusedSectionVars false
@@ -69,10 +69,6 @@ theorem fstep_label (g : Tab Root Z n) (iv : Dg) (x : St) (L : Root × Fin n)
   · rw [h]
     refine ⟨rfl, (x, z.1, progLbl D s x), List.mem_cons_self, rfl, hfp ha⟩
 
-/-- An entry of the log answering `y` with the challenge `L`. -/
-def HasEntry (s : SimSt Dg St Root n) (y : St) (L : Root × Fin n) : Prop :=
-  ∃ e ∈ s.log, e.2.1 = y ∧ e.2.2 = some L
-
 theorem run_fQ_bind {β : Type} (g : Tab Root Z n) (x : St)
     (f : St → OracleComp (Rom2 Msg Dg St) β)
     (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
@@ -83,54 +79,64 @@ theorem run_fQ_bind {β : Type} (g : Tab Root Z n) (x : St)
       simulateQ_spec_query _ _]
   rfl
 
-/-- **The rest of a chain** is the table's challenges. -/
-theorem chain_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (k : ℕ) :
-    ∀ (y : St) (j : Fin n) (_ : j.val + k + 1 = n) (s : SimSt Dg St Root n)
-      (c : (GSpec Msg Dg Root Z n).QueryCache), Good D g iv (s, c) → HasEntry s y (r, j) →
-      ∀ z ∈ support ((simulateQ (tabImpl D g) (chainP D k y)).run (s, c)),
-        z.2.1.bad = false → z.2.2 = c ∧ ∃ _ : z.1.length = k,
-          ∀ i (hi : i < z.1.length), z.1[i] = g.at r ⟨j.val + 1 + i, by omega⟩ := by
-  induction k with
-  | zero =>
-    intro y j hj s c hG hE z hz hb
-    simp only [chainP, simulateQ_pure, StateT.run_pure, support_pure,
+/-- A call of `F` keeps the log's entries. -/
+theorem log_mono_F (g : Tab Root Z n) (x : St) (s : SimSt Dg St Root n)
+    (c : (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree c) {z}
+    (hz : z ∈ support ((tabImpl D g (.inr (.inr x))).run (s, c))) {e} (he : e ∈ s.log) :
+    e ∈ z.2.1.log := by
+  rcases tab_F D g x s c hc hz with ⟨-, h⟩ | ⟨-, h, -⟩
+  · rw [h]; exact he
+  · rw [h, log_record]; exact List.mem_cons_of_mem _ he
+
+/-- **The branches of a root** are the table's challenges. -/
+theorem branches_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (e₀ : St × St × Option (Root × Fin n))
+    (hl : e₀.2.2 = some (r, ⟨0, D.n_pos⟩)) :
+    ∀ (js : List (Fin n)) (_ : ∀ j ∈ js, j.val ≠ 0) (s : SimSt Dg St Root n)
+      (c : (GSpec Msg Dg Root Z n).QueryCache), Good D g iv (s, c) → e₀ ∈ s.log →
+      ∀ z ∈ support ((simulateQ (tabImpl D g) (branchesP D e₀.2.1 js)).run (s, c)),
+        z.2.1.bad = false → z.2.2 = c ∧ z.1 = js.map (g.at r) := by
+  intro js
+  induction js with
+  | nil =>
+    intro _ s c _ _ z hz _
+    simp only [branchesP, simulateQ_pure, StateT.run_pure, support_pure,
       Set.mem_singleton_iff] at hz
     subst hz
-    exact ⟨rfl, rfl, fun i hi ↦ absurd hi (Nat.not_lt_zero _)⟩
-  | succ k ih =>
-    intro y j hj s c hG hE z hz hb
-    obtain ⟨e, he, hey, hel⟩ := hE
-    have h1 : j.val + 1 < n := by omega
-    have hok := hG.inv.nxt e he r j h1 hel
-    rw [chainP, run_fQ_bind] at hz
+    exact ⟨rfl, rfl⟩
+  | cons j js ih =>
+    intro hjs s c hG he₀ z hz hb
+    have hj := hjs j List.mem_cons_self
+    rw [branchesP, run_fQ_bind] at hz
     simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff, simulateQ_pure,
       StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
     obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
     have hb₁ : w₁.2.1.bad = false := by
-      by_contra h
-      have := tab_run_bad g _ w₁.2 (good_step g iv _ _ hG hw₁ (by
-        cases hh : w₁.2.1.bad
-        · rfl
-        · exfalso
-          have := tab_run_bad g (chainP D k w₁.1) w₁.2 (gfree_step g _ _ hG.gfree hw₁) hh hw₂
-          simp_all)).gfree (by simpa using h) hw₂
-      simp_all
-    rw [hey] at hok
+      cases h : w₁.2.1.bad
+      · rfl
+      · exfalso
+        have := tab_run_bad g _ w₁.2 (gfree_step g _ _ hG.gfree hw₁) h hw₂
+        simp_all
+    have hok := hG.inv.nxt e₀ he₀ r hl j hj
     obtain ⟨hG₁, hc₁, e₁, he₁, he₁y, he₁l⟩ := fstep_label g iv _ _ s c hG hok
-      (fun ha ↦ progLbl_of (hok.1 ha) (fun hu ↦ hG.inv.used_succ he hel h1 hu (hey ▸ ha))) hw₁ hb₁
-    obtain ⟨hc₂, hlen, hval⟩ := ih w₁.1 ⟨j.val + 1, h1⟩ (by simp; omega) w₁.2.1 w₁.2.2 hG₁
-      ⟨e₁, he₁, he₁y, he₁l⟩ w₂ hw₂ hb
-    refine ⟨hc₂.trans hc₁, by simp [hlen], fun i hi ↦ ?_⟩
-    cases i with
-    | zero =>
-      simp only [List.getElem_cons_zero]
-      rw [← he₁y, hG₁.inv.out e₁ he₁ r _ he₁l]
-    | succ i =>
-      simp only [List.getElem_cons_succ]
-      rw [hval i (by simp at hi; omega)]
-      congr 2
-      simp only
-      omega
+      (fun ha ↦ progLbl_of (hok.1 ha) (fun hu ↦ hG.inv.used_branch he₀ hl hj hu ha)) hw₁ hb₁
+    obtain ⟨hc₂, hz₂⟩ := ih (fun j' hj' ↦ hjs j' (List.mem_cons_of_mem _ hj')) w₁.2.1 w₁.2.2 hG₁
+      (log_mono_F g _ s c hG.gfree hw₁ he₀) w₂ hw₂ hb
+    refine ⟨hc₂.trans hc₁, ?_⟩
+    simp only [List.map_cons, hz₂]
+    rw [← he₁y, hG₁.inv.out e₁ he₁ r j he₁l]
+
+theorem branchIdx_length : (branchIdx n).length = n - 1 := by
+  simp [branchIdx]
+
+theorem branchIdx_getElem (i : ℕ) (hi : i < (branchIdx n).length) :
+    (branchIdx n)[i] = ⟨i + 1, by have := branchIdx_length (n := n); omega⟩ := by
+  simp [branchIdx]
+
+theorem branchIdx_ne_zero : ∀ j ∈ branchIdx n, j.val ≠ 0 := by
+  intro j hj
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hj
+  rw [branchIdx_getElem]
+  exact Nat.succ_ne_zero i
 
 theorem run_hQ_bind {β : Type} (g : Tab Root Z n) (m : Msg)
     (f : Dg → OracleComp (Rom2 Msg Dg St) β)
@@ -171,22 +177,21 @@ theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt Dg St Root n)
     · exfalso
       have := tab_run_bad g _ w₂.2 (gfree_step g _ _ hG.gfree hw₂) h hw₃
       simp_all
-  -- the first state of the chain
+  -- the first state
   have hok := hG.inv.fst r
   obtain ⟨hG₂, hc₂, e₂, he₂, he₂y, he₂l⟩ := fstep_label g iv _ _ s c hG hok
     (fun ha ↦ progLbl_of (hok.1 ha) (fun hu ↦ hG.inv.used_zero r hu ha)) hw₂ hb₂
-  obtain ⟨hc₃, hlen, hval⟩ := chain_ok g iv r (n - 1) (show St from w₂.1) ⟨0, D.n_pos⟩
-    (by simp; have := D.n_pos; omega) w₂.2.1 w₂.2.2 hG₂ ⟨e₂, he₂, he₂y, he₂l⟩ w₃ hw₃ hb₃
-  refine ⟨hc₃.trans hc₂, by simp [hlen]; have := D.n_pos; omega, fun i hi ↦ ?_⟩
+  rw [← he₂y] at hw₃
+  obtain ⟨hc₃, hz₃⟩ := branches_ok g iv r e₂ he₂l (branchIdx n) branchIdx_ne_zero w₂.2.1 w₂.2.2
+    hG₂ he₂ w₃ hw₃ hb₃
+  refine ⟨hc₃.trans hc₂, by simp [hz₃, branchIdx_length]; have := D.n_pos; omega, fun i hi ↦ ?_⟩
   cases i with
   | zero =>
     simp only [List.getElem_cons_zero]
     rw [← he₂y, hG₂.inv.out e₂ he₂ r _ he₂l]
   | succ i =>
     simp only [List.getElem_cons_succ]
-    rw [hval i (by simp at hi; omega)]
-    congr 2
-    simp only
-    omega
+    have hi' : i < (branchIdx n).length := by simp [hz₃] at hi; simpa using hi
+    simp only [hz₃, List.getElem_map, branchIdx_getElem]
 
 end Common.SeedDuplex

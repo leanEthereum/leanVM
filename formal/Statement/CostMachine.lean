@@ -325,7 +325,7 @@ instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩
 instance {w : ℕ} : MachineEncoding (BitVec w) := ⟨fun v ↦ .nat v.toNat⟩
 instance : MachineEncoding K := ⟨fun a ↦ .nat a.lane.toNat⟩
 instance : MachineEncoding E :=
-  ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
+  ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1)]⟩
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (List α) :=
   ⟨fun l ↦ .ofList (l.map encodeValue)⟩
@@ -394,8 +394,7 @@ def encodeLeanVmKnowledgeExtractorInput (program : Semantics.LeanIsaProgram) (in
 
 /-- A word of `E` from its encoding (each limb modulo `2^64`). -/
 def decodeExtensionElement : MachineValue → Option E
-  | .constructor 0 [.nat a, .nat b, .nat c] =>
-    some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64) (K.ofLane c.toUInt64))
+  | .constructor 0 [.nat a, .nat b] => some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64))
   | _ => none
 
 /-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;

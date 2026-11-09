@@ -195,23 +195,23 @@ theorem isWeightBound_fQ (x : St) :
     QueryCostAtMost (fQ (Msg := Msg) (Dg := Dg) x) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) 1 :=
   isWeightBound_query (spec := Rom2 Msg Dg St) _ (.inr (.inr x))
 
-theorem isWeightBound_chainP (k : ℕ) (y : St) :
-    QueryCostAtMost (chainP D k y) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) k := by
-  induction k generalizing y with
-  | zero => exact isWeightBound_pure _ _ _
-  | succ k ih =>
-    unfold chainP
-    exact ((isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.next y)).bind fun y' ↦
-      (ih y').bind fun zs ↦ isWeightBound_pure (D.out y' :: zs) _ 0).mono (by omega)
+theorem isWeightBound_branchesP (y₀ : St) (js : List (Fin n)) :
+    QueryCostAtMost (branchesP D y₀ js) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) js.length := by
+  induction js with
+  | nil => exact isWeightBound_pure _ _ _
+  | cons j js ih =>
+    unfold branchesP
+    exact ((isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.next j y₀)).bind fun y ↦
+      ih.bind fun zs ↦ isWeightBound_pure (D.out y :: zs) _ 0).mono (by simp; omega)
 
 theorem isWeightBound_chalP (r : Root) :
     QueryCostAtMost (chalP D r) (fCalls (Msg := Msg) (Dg := Dg) (St := St)) (n + 1) := by
   unfold chalP
   have := D.n_pos
   exact ((isWeightBound_hQ (Dg := Dg) (St := St) D.label).bind fun iv ↦
-    (isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.first r iv)).bind fun y₁ ↦
-      (isWeightBound_chainP (D := D) (n - 1) y₁).bind fun zs ↦
-        isWeightBound_pure (D.out y₁ :: zs) _ 0).mono (by omega)
+    (isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.first r iv)).bind fun y₀ ↦
+      (isWeightBound_branchesP (D := D) y₀ (branchIdx n)).bind fun zs ↦
+        isWeightBound_pure (D.out y₀ :: zs) _ 0).mono (by simp [branchIdx]; omega)
 
 /-! ## The challenges read from the table -/
 
