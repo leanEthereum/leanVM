@@ -3,7 +3,7 @@
 
 A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. Following Flock~\cite{Flock26}, we do not use out-of-domain (OOD) sampling at commitment, so our PCS is only list binding; the protocol around it pins the list right after the commitment (\S\ref{sec:soundness-outer}). The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$, with $|\E|=2^{128}$.
 
-A fold round combines two halves with the \emph{affine combiner} of~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, Remark~\ref{rem:scalar-fold}), so a $128$-bit field carries the $120$-bit target. Each fold round costs one coordinate of agreement, one degree, and five field elements from the prover.
+A fold round combines two halves with the \emph{affine combiner} of~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, Remark~\ref{rem:scalar-fold}), so a $128$-bit field carries the $128$-bit target with a few bits of grinding. Each fold round costs one coordinate of agreement, one degree, and five field elements from the prover.
 
 \paragraph{Symbols.}
 
@@ -40,7 +40,7 @@ $\nrows$       & (none)       & committed rows of $\orc^{(0)}$, $\nrows \le 2^{\
 $\nstack$      & (none)       & elements placed in the stack, \S\ref{sec:stacking}\\
 $\lst$         & $\lambda_\gamma$, $L$ & list of polynomial tuples close to a word\\
 $W$, $c$       & $w$, $v$, $\Lambda$ & weight and value of a claim, as in \S\ref{sec:stacking}\\
-$\cood$        & $y$          & out-of-domain answer\\
+$\cood{s}$     & $y$          & out-of-domain answer at $z_s$\\
 $\phigh$       & (none)       & high coefficients of a folded lane, sent in the clear\\
 $\grind{\cdot}$ & (none)      & grinding bits before a verifier message\\
 $\vansub_i$, $\Wn{i}$ & $W_i$, $\widehat W_i$ & subspace polynomial, normalized\\
@@ -101,7 +101,7 @@ A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varep
 
 Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
-\paragraph{Grinding.} A verifier message may be preceded by a grind of $b$ bits (\S\ref{sec:e2e-fiat-shamir}): the prover sends a nonce, and the challenge drawn after it, used for nothing else, must have its low $b$ bits zero. Each fresh draw of the message then costs $2^{b}$ random-oracle queries on average, so its RBR error $\varepsilon_i$ counts as $\varepsilon_i\,2^{-b}$. The security target is $\varepsilon_i\,2^{-b_i}\le2^{-120}$ for every verifier message $i$, where $b_i$ is the grind before it ($0$ for none).
+\paragraph{Grinding.} A verifier message may be preceded by a grind of $b$ bits (\S\ref{sec:e2e-fiat-shamir}): the prover sends a nonce, and the permutation that draws the message's first challenge must leave $b$ bits of its output zero. Each fresh draw of the message then costs $2^{b}$ random-oracle queries on average, so its RBR error $\varepsilon_i$ counts as $\varepsilon_i\,2^{-b}$. The security target is $\varepsilon_i\,2^{-b_i}\le2^{-128}$ for every verifier message $i$, where $b_i$ is the grind before it ($0$ for none).
 
 %=====================================================================
 \subsection{Reed-Solomon codes over binary fields}\label{sec:binary-rs}
@@ -125,7 +125,7 @@ its low part $P_{\mathrm{low}}$ is a message of the code, and its high part cost
 
 \begin{protocol}[WHIR/Ligerito with affine folds]\label{fig:protocol}
 \ \par\smallskip
-\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ has a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and a query count $\nq_i$. The grinding bits are $\grind{fold}$, $\grind{batch}$, $\grind{ood}$ and $\grind{query}$. (The agreement thresholds appear only in the analysis.)
+\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ has a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and a query count $\nq_i$. The grinding bits are $\grind{fold}$, $\grind{batch}$ and $\grind{query}$, and one bit before each tail round. (The agreement thresholds appear only in the analysis.)
 
 \smallskip
 \textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. No OOD sample is taken.
@@ -144,19 +144,19 @@ After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, then $\phigh$.
-\item \emph{(ood)} $\mathbf{V}$ grinds $\grind{ood}$ bits and sends $z \leftarrow \E^{\nv_{i+1}}$; $\mathbf{P}$ sends $\cood \in \E$ (honestly $\mle{f^{(i+1)}}(z)$).
+\item \emph{(ood)} $\mathbf{V}$ sends two points $z_1,z_2 \leftarrow \E^{\nv_{i+1}}$, one message with no grind; $\mathbf{P}$ sends $\cood{1},\cood{2} \in \E$ (honestly $\mle{f^{(i+1)}}(z_s)$).
 \item \emph{(query)} $\mathbf{V}$ grinds $\grind{query}$ bits and sends $\nq_i$ i.i.d.\ columns $\qset_i = (x_q)_{q < \nq_i} \leftarrow \dom_i$.
 \item \emph{(batch)} $\mathbf{V}$ grinds $\grind{batch}$ bits and sends $\lambda\leftarrow\E$.
 \item \emph{(read)} $\mathbf{V}$ reads $\orc^{(i)}[\cdot, x_q]$ and folds it as the rounds folded the lanes, $c_q := \orc^{(i)}_{\premix_1,\afa_1,\afb_1,\dots}[x_q]$ (honestly $P(x_q)$), then removes the high part, $c'_q := c_q + \Wn{\kappa}(x_q)\sum_{j<\ell_i}\phigh_j\,\novel_j(x_q)$ (honestly $\Enc_i(f^{(i+1)})[x_q]$).
-\item \emph{(next level)} The $J_{i+1}:=\nq_i+2$ claims of level $i+1$, the residual, the OOD and the $\nq_i$ consistency claims, are batched into one running claim on the lanes $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$:
+\item \emph{(next level)} The $J_{i+1}:=\nq_i+3$ claims of level $i+1$, the residual, the two OOD and the $\nq_i$ consistency claims, are batched into one running claim on the lanes $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$:
 \[
-W \gets W + \lambda\,\eq(z,\cdot) + \lambda^2\textstyle\sum_q \lambda^{q} W^{(i)}_{x_q},
+W \gets W + \textstyle\sum_{s}\lambda^{s}\eq(z_s,\cdot) + \lambda^3\textstyle\sum_q \lambda^{q} W^{(i)}_{x_q},
 \qquad
-\rc{0} := \rc{\ell_i} + \lambda\,\cood + \lambda^2\textstyle\sum_{q}\lambda^{q}c'_q,
+\rc{0} := \rc{\ell_i} + \textstyle\sum_{s}\lambda^{s}\cood{s} + \lambda^3\textstyle\sum_{q}\lambda^{q}c'_q,
 \]
 where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
 \end{enumerate}
-\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ grinds $\grind{query}$ bits, sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
+\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ grinds $\grind{query}$ bits, sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}), each challenge after a grind of one bit, reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
 \end{enumerate}
 $\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\wch,\fc)$ of all weight and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
@@ -192,12 +192,12 @@ Suppose that, for every level $i$ and round $j$, $(\agr^{(i)}_0)^2>\blen_i\dgr^{
 \textnormal{batching } \lambda \textnormal{ entering level } i: & \varepsilon^{\mathrm{batch}}_i &=& \dfrac{(J_i - 1)\, L_i}{|\E|} , \\[2ex]
 \textnormal{premix } \premix_j, \textnormal{ level } i: & \varepsilon^{\mathrm{mix}}_{i,j} &=& \dfrac{\jl(\agr_j-1,\dgr_j)}{|\E|} , \\[2ex]
 \textnormal{fold } (\wch_j,\afa_j,\afb_j), \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \epsaff(\blen,\dgr_j,\agr_j) + \dfrac{2\,\jl(\agr_j-1,\dgr_j)}{|\E|} , \\[2ex]
-\textnormal{OOD challenge entering level } i: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \cdot \dfrac{\nv_i}{|\E|} , \\[2ex]
+\textnormal{OOD points entering level } i: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \cdot \Bigl(\dfrac{\nv_i}{|\E|}\Bigr)^{2} , \\[2ex]
 \textnormal{query message } \qset_i: & \varepsilon^{\mathrm{query}}_i &=& \Bigl(\dfrac{\agr^{(i)}_{\ell_i}-1}{\blen_i}\Bigr)^{\nq_i} , \\[2ex]
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
 \end{array}
 \]
-Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's. The grinds divide the batching, premix, fold, OOD and query rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$, $2^{\grind{ood}}$ and $2^{\grind{query}}$ (\S\ref{sec:iopcs}); the tail rounds are not ground. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
+Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's, $\binom{L_0}{2}\nv_0/|\E|$. The grinds divide the batching, premix, fold, query and tail rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$, $2^{\grind{query}}$ and $2$, and the pin's by $2^{\grind{pin}}$ (\S\ref{sec:iopcs}); the OOD points are not ground. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
 \end{theorem}
 
 \paragraph{The opening inside the protocol.}\label{sec:soundness-outer} Two rows at level $0$ come from the protocol around the opening (\S\ref{sec:e2e-unrolled}).
@@ -205,13 +205,13 @@ Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i 
 \item \emph{Ring switching.} The sixteen ring-switching challenges (Annex~\ref{annex:rs}) and $\lambda$ are one verifier message, after one grind of $\grind{batch}$ bits. For a list member that violates some input claim, the batched discrepancy is a nonzero polynomial in the seventeen challenges: the ring-switched claim's discrepancy has degree at most $129$ in the map's challenges and is multiplied by a power of $\lambda$, so the total degree is at most $J_0-1+129$. Lemma~\ref{lem:sz} and a union over the list give $(J_0-1+129)\,L_0/|\E|$.
 \item \emph{List pin.} Level $0$ takes no OOD sample, so the commitment binds up to $L_0$ polynomials, and a challenge drawn while several remain would pay a factor $L_0$. The protocol therefore pins the list right after the commitment, before any other challenge. The stack's \emph{committed lanes} are the first lanes of $\orc^{(0)}$ up to the last one holding a placed column, a count the layout fixes; they split into aligned blocks of $2^{m_b}$ entries, one per set bit of that count, largest first.
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt]
-\item The prover grinds $\grind{ood}$ bits, and the verifier samples $z\in\E^{m}$, with $m\le\nv_0$ the largest block's variable count.
+\item The prover grinds $\grind{pin}$ bits, and the verifier samples $z\in\E^{m}$, with $m\le\nv_0$ the largest block's variable count.
 \item The prover sends, for each block, its multilinear at $z_{<m_b}$. Each value joins the claim pool as an evaluation claim on its block, after every other claim.
 \end{enumerate}
-Two list members that differ on the committed lanes differ on some block, and their multilinears there collide at $z_{<m_b}$ with probability at most $m/|\E|$ (Lemma~\ref{lem:sz}). So the pin separates the members that differ on the committed lanes except with probability at most $\binom{L_0}{2}\,m/|\E|\le\binom{L_0}{2}\,\nv_0/|\E|$, the OOD row at $i=0$. Members that agree there answer every claim alike, as every claim's weight vanishes past them. After the pin, every later challenge faces a single candidate.
+Two list members that differ on the committed lanes differ on some block, and their multilinears there collide at $z_{<m_b}$ with probability at most $m/|\E|$ (Lemma~\ref{lem:sz}). So the pin separates the members that differ on the committed lanes except with probability at most $\binom{L_0}{2}\,m/|\E|\le\binom{L_0}{2}\,\nv_0/|\E|$, the OOD row at $i=0$, which $\grind{pin}$ grinds: one point suffices. Members that agree there answer every claim alike, as every claim's weight vanishes past them. After the pin, every later challenge faces a single candidate.
 \end{itemize}
 
-\paragraph{Parameters.} The implementation fixes $\grind{fold}=4$, $\grind{query}=17$, $\grind{batch}=9$ and $\grind{ood}=15$, the last two being the smallest that keep the batching and OOD rows of every admitted shape (stack size and rate) at most $2^{-120}$. It picks the interpolation parameters of each $\epsaff$ by search, and the slack $\slack_i$ that minimizes $\nq_i$ with every row at most $2^{-120}$. The tail rows are $2^{-127}$.
+\paragraph{Parameters.} The implementation fixes $\grind{fold}=12$, $\grind{query}=17$, $\grind{batch}=17$ and $\grind{pin}=18$, the fold, batching and pin grinds being the smallest with which no admitted shape (stack size and rate) needs more queries than with unlimited grinding. It picks the interpolation parameters of each $\epsaff$ by search, and the slack $\slack_i$ that minimizes $\nq_i$ with every ground row at most $2^{-128}$. The OOD rows of two points are at most $2^{-128}$ unground, and the tail rows are $2^{-127}$, $2^{-128}$ after their one-bit grind.
 
 The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.
 
@@ -244,7 +244,7 @@ Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $t\ge1$, a
 For $t=1$ this is \cite[Thm.~1.1]{CYWZ26}, with the finite count of its Lemma~4.1 in place of its closed form. The count holds for every admissible triple, as the proofs of \cite[Lemmas~4.2 to 4.7]{CYWZ26} use the specific $\imul$, $\iyz$ and $\ithr$ only through (i) to (iii). For $t>1$, \cite[\S5.1, Interleaving and shared agreement]{CYWZ26} packs the $t$ lanes into one word over the degree-$t$ extension of $\E$, with $(\afa,\afb)$ still drawn from $\E$ and acting lane by lane. Interpolation and the degree bounds are unchanged over the extension, a nonzero affine constraint on $(\afa,\afb)$ still has at most $|\E|$ solutions, and the Johnson count depends only on agreement sets, so the same error bounds simultaneous agreement of all lanes, with no union over lanes.
 
 \begin{remark}[Why not a scalar fold]\label{rem:scalar-fold}
-A scalar fold, $\orc[(0,u'),\cdot]+\fc\,\orc[(1,u'),\cdot]$ or the multilinear fold of the original schemes, cannot have an MCA error much below $\blen/|\E|$: for every agreement loss $s\ge0$ with $\agr-s-1>\dgr$, some words give an exceptional $\fc$ with probability at least $\bigl(1+\lfloor(\blen-\agr)/(s+1)\rfloor\bigr)/|\E|$ \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}. Over $|\E|=2^{128}$, a fold round on a block of $\blen\ge2^{20}$ would then need more than $10$ bits of grinding to reach $2^{-120}$, and the bound of \cite[Thm.~4.6]{BCHKS25} more. The affine combiner's error is of order $1/|\E|+\blen^2/|\E|^2$, and its loss of one coordinate is necessary: with no loss, affine combiners too have error at least $(\blen-\agr+1)/(2|\E|)$ \cite[Prop.~6.2]{CYWZ26}.
+A scalar fold, $\orc[(0,u'),\cdot]+\fc\,\orc[(1,u'),\cdot]$ or the multilinear fold of the original schemes, cannot have an MCA error much below $\blen/|\E|$: for every agreement loss $s\ge0$ with $\agr-s-1>\dgr$, some words give an exceptional $\fc$ with probability at least $\bigl(1+\lfloor(\blen-\agr)/(s+1)\rfloor\bigr)/|\E|$ \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}. Over $|\E|=2^{128}$, a fold round on a block of $\blen\ge2^{20}$ would then need more than $18$ bits of grinding to reach $2^{-128}$, and the bound of \cite[Thm.~4.6]{BCHKS25} more. The affine combiner's error is of order $1/|\E|+\blen^2/|\E|^2$, and its loss of one coordinate is necessary: with no loss, affine combiners too have error at least $(\blen-\agr+1)/(2|\E|)$ \cite[Prop.~6.2]{CYWZ26}.
 \end{remark}
 
 \begin{lemma}[An affine fold round]\label{lem:fold-list}
@@ -272,11 +272,11 @@ Suppose neither occurs, and let $P\in\lst(\orc_{\premix,\afa,\afb};\agr,\dgr)$, 
 \end{proof}
 
 \begin{lemma}[OOD separation]\label{lem:ood}
-Let $\orc$ be an interleaved word with $|\lst(\orc;\agr,\dgr)| \le L$, $\dgr$ below $2^\kappa$, decoding to $\nv$-variable messages. Then $\Pr_{z \leftarrow \E^{\nv}}[\exists \text{ distinct } U, U' \in \lst(\orc;\agr,\dgr) : \mle{g_U}(z) = \mle{g_{U'}}(z)] \le \binom{L}{2} \nv / |\E|$.
+Let $\orc$ be an interleaved word with $|\lst(\orc;\agr,\dgr)| \le L$, $\dgr$ below $2^\kappa$, decoding to $\nv$-variable messages. For independent $z_1,z_2 \leftarrow \E^{\nv}$, $\Pr[\exists \text{ distinct } U, U' \in \lst(\orc;\agr,\dgr) : \mle{g_U}(z_s) = \mle{g_{U'}}(z_s) \text{ for } s=1,2] \le \binom{L}{2} (\nv / |\E|)^2$.
 \end{lemma}
 
 \begin{proof}
-Distinct tuples have distinct multilinear extensions; apply Lemma~\ref{lem:sz} to each difference and union bound.
+Distinct tuples have distinct multilinear extensions, so by Lemma~\ref{lem:sz} a pair agrees at each $z_s$ with probability at most $\nv/|\E|$, independently; union bound over the pairs.
 \end{proof}
 
 \subsubsection{Proof of the main theorem}\label{pcs:proof}
@@ -288,7 +288,7 @@ We now define the invariant required by Definition~\ref{def:rbr}, a condition on
 \item \emph{Start of level $i$} (before any message for $i = 0$, after the query message $\qset_{i-1}$ otherwise): every $U \in \lst(\orc^{(i)};\agr_0,\dgr_0)$ violates at least one of the level's $J_i$ claims (the input claims for $i = 0$, the claims of step 2(f) of Protocol~\ref{fig:protocol} otherwise).
 \item \emph{After the batching challenge $\lambda$ of level $i$, and after each fold message $(\wch_j,\afa_j,\afb_j)$:} every $P \in \lst(\orc^{(i)}_{j};\agr_j,\dgr_j)$ violates the round-$j$ claim ($\lambda$ being the case $j = 0$).
 \item \emph{After the premix $\premix_j$:} the round-$(j{-}1)$ condition holds, and $\premix_j$ is good for $\orc^{(i)}_{j-1}$ at degree $\dgr_j$ and threshold $\agr_j$ (Lemma~\ref{lem:fold-list}).
-\item \emph{After the OOD challenge $z$ entering level $i+1$:} the round-$\ell_i$ condition holds, and the multilinear extensions decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$ are pairwise distinct at $z$.
+\item \emph{After the OOD points $(z_1,z_2)$ entering level $i+1$:} the round-$\ell_i$ condition holds, and no two of the multilinear extensions decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$ agree at both $z_1$ and $z_2$.
 \item \emph{After the final query message $\qset_{\nlev-1}$:} the low part $f^{(\nlev)}$ of the sent $P$ violates the running claim $(W,\rc{\ell_{\nlev-1}})$.
 \item \emph{After each of the $\nv_\nlev$ tail rounds (complete transcript):} $f^{(\nlev)}$ violates the running sumcheck claim. The terminal one $\mathbf{V}$ checks against $\mle{f^{(\nlev)}}$ itself, so it rejects.
 \end{itemize}
@@ -306,11 +306,11 @@ Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr_{j-1})$ violates 
 \medskip\noindent\emph{The level interface.}
 After the last fold round of level $i < \nlev - 1$, every polynomial $P$ of degree at most $\dgr_{\ell_i}$ agreeing with the single word $w := \orc^{(i)}_{\ell_i} \in \E^{\dom_i}$ on at least $\agr_{\ell_i}$ coordinates violates the residual claim $(W,\rc{\ell_i})$. The prover now sends the new oracle $\orc^{(i+1)}$ and $\phigh$.
 
-\medskip\noindent\emph{OOD challenge $z$.}
-After $z$, two properties must hold: the one above, which does not involve $z$; and pairwise distinctness at $z$ of the multilinear extensions decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$, a list already determined by the prover's message. The latter fails with probability at most $\binom{L_{i+1}}{2} \nv_{i+1} / |\E|$ over $z$, by Lemma~\ref{lem:ood}.
+\medskip\noindent\emph{OOD points $(z_1,z_2)$.}
+After them, two properties must hold: the one above, which does not involve them; and that no two of the multilinear extensions decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$, a list already determined by the prover's message, agree at both points. The latter fails with probability at most $\binom{L_{i+1}}{2} (\nv_{i+1} / |\E|)^2$, by Lemma~\ref{lem:ood}.
 
 \medskip\noindent\emph{Query message $\qset_i$.}
-Assume both properties of the previous step; the prover has since sent its answer $\cood$. The values $\mle{g_U}(z)$ are pairwise distinct across $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$, so at most one member $U^\ast$ can satisfy $\mle{g_{U^\ast}}(z) = \cood$: every other member violates the OOD claim $(\eq(z, \cdot),\, \cood)$, whatever $\qset_i$ is. If no such $U^\ast$ exists, we are done. Otherwise write $g^\ast := g_{U^\ast}$, a message on $\cube{\nv_{i+1}}$, and $P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j$, of degree at most $\dgr_{\ell_i}$, with low part $g^\ast$; distinguish two cases.
+Assume both properties of the previous step; the prover has since sent its answers $\cood{1},\cood{2}$. No two members of $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)}_0)$ agree at both points, so at most one member $U^\ast$ can satisfy $\mle{g_{U^\ast}}(z_s) = \cood{s}$ for $s=1,2$: every other member violates an OOD claim $(\eq(z_s, \cdot),\, \cood{s})$, whatever $\qset_i$ is. If no such $U^\ast$ exists, we are done. Otherwise write $g^\ast := g_{U^\ast}$, a message on $\cube{\nv_{i+1}}$, and $P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j$, of degree at most $\dgr_{\ell_i}$, with low part $g^\ast$; distinguish two cases.
 \begin{itemize}[itemsep=1pt]
 \item \emph{$P^\ast$ agrees with $w$ on at least $\agr_{\ell_i}$ coordinates.} Then $P^\ast$ violates the residual claim by assumption, and $\inner{W}{P^\ast}=\inner{W}{g^\ast}$ as the claim does not weigh the high part: $g^\ast$ violates the residual claim, whatever $\qset_i$ is.
 \item \emph{Otherwise.} A uniform column $x \leftarrow \dom_i$ satisfies $P^\ast(x) = w(x)$ with probability at most $(\agr_{\ell_i}-1)/\blen_i$, so all $\nq_i$ i.i.d.\ queries do so simultaneously with probability at most $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$; and any disagreeing query $x_q$ makes $g^\ast$ violate the consistency claim $(W^{(i)}_{x_q},\, c'_q)$, since $\Enc_i(g^\ast)[x_q]$ and $c'_q$ are $P^\ast(x_q)\neq w(x_q)=c_q$, each corrected by the same high part.

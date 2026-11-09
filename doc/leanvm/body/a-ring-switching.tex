@@ -121,7 +121,7 @@ Each $k$ from $0$ to $63$ occurs exactly once, and the monomial $g_bf_p^{2^b}$ n
 \[
 \sum_{k=0}^{63}c_k\,\pair_k
 \]
-is a nonzero polynomial in $f_0,\dots,f_7,g_0,\dots,g_7$. Its total degree is at most the largest degree of a $c_k$, $1+2^7=129$, reached at $b=7$, so by Schwartz-Zippel (Lemma~\ref{lem:sz}) the check passes with probability at most $129/|\E|<2^{-120.9}$ for one committed polynomial. Against the list a commitment binds (Annex~\ref{annex:pcs}), a union bound pays this once per member; the protocol draws the sixteen challenges with the opening's batching challenge, after one grind (\S\ref{sec:soundness-outer}).
+is a nonzero polynomial in $f_0,\dots,f_7,g_0,\dots,g_7$. Its total degree is at most the largest degree of a $c_k$, $1+2^7=129$, reached at $b=7$, so by Schwartz-Zippel (Lemma~\ref{lem:sz}) the check passes with probability at most $129/|\E|$ for one committed polynomial. Against the list a commitment binds (Annex~\ref{annex:pcs}), a union bound pays this once per member; the protocol draws the sixteen challenges with the opening's batching challenge, after one grind of $\grind{batch}$ bits that brings the whole row to $2^{-128}$ (\S\ref{sec:soundness-outer}).
 
 One stage of sixty-four terms would take sixty-four challenges. Six two-term stages, as in \cite{Flock26}, take six but reach degree near $2^{32}$, too high for $|\E|=2^{128}$. Two stages of eight take sixteen, for degree $129$.
 

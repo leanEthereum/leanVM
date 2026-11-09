@@ -86,7 +86,7 @@
 \newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length
 \newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
-\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count
+\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product trees: push and pull per fingerprint, count
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height
 \newcommand{\ncol}[1]{N_{\mathrm{col},#1}}  % columns of table #1
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1
@@ -123,7 +123,7 @@
 \newcommand{\nrows}{N_{\mathrm{rows}}}    % committed rows of the level-0 oracle (R is the bus root)
 \newcommand{\nstack}{N_{\mathrm{stack}}}  % field elements placed in the stack, before the zero padding
 \newcommand{\lst}{\mathcal{L}}           % list of nearby polynomial tuples
-\newcommand{\cood}{c_{\mathrm{ood}}}     % out-of-domain answer        (was y)
+\newcommand{\cood}[1]{c_{\mathrm{ood},#1}} % out-of-domain answer at point #1 (was y)
 \newcommand{\polyset}{\mathcal{G}}       % polynomials bound by a commitment
 \newcommand{\relopen}{\mathsf{R}_{\mathrm{open}}}
 \newcommand{\aset}{\mathcal{A}}          % an agreement set

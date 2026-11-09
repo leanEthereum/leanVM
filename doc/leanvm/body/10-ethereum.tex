@@ -139,7 +139,7 @@ Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. Each row 
 
 A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
 
-The challenge is one element $\dachal\in\E$, drawn from the VM's transcript (\S\ref{sec:e2e-fiat-shamir}) with the hash of \texttt{leanDA/rs-membership/v1} as IV and $\daroot$ as public input, after a grind of $\lceil\log_2(\kdim-1)\rceil-8=6$ bits: the transcript absorbs the smallest nonce whose grinding challenge has its low $6$ bits zero, and $\dachal$ is the challenge after it. The nonce is not sent: whoever derives $\dachal$ finds it, and a prover trying roots for a bad $\dachal$ pays $2^6$ permutations per root. It defines $\dual$ by \eqref{eq:dual-product} and $\davec=(\dual(x))_{x\in\dom}$. The statement carries $H(\daroot,\dachal)$, $\dachal$ serialized as its two little-endian $64$-bit limbs and two zero words.
+The challenge is one element $\dachal\in\E$, drawn from the VM's transcript (\S\ref{sec:e2e-fiat-shamir}) with the hash of \texttt{leanDA/rs-membership/v1} as IV and $\daroot$ as public input, after a grind of $\lceil\log_2(\kdim-1)\rceil=14$ bits: the transcript absorbs the smallest nonce whose permutation leaves the low $14$ bits of lane $2$ zero, and $\dachal$ is that permutation's challenge. The nonce is not sent: whoever derives $\dachal$ finds it, and a prover trying roots for a bad $\dachal$ pays $2^{14}$ permutations per root. It defines $\dual$ by \eqref{eq:dual-product} and $\davec=(\dual(x))_{x\in\dom}$. The statement carries $H(\daroot,\dachal)$, $\dachal$ serialized as its two little-endian $64$-bit limbs and two zero words.
 
 The guest recomputes $\daroot$, takes $\dachal$ as a hint, computes $\davec$ and checks
 \[
@@ -151,4 +151,4 @@ for every row $w_i$. Factor $j$ of \eqref{eq:dual-product} depends only on the b
 
 The native verifier derives $\dachal$ from $\daroot$ outside the SNARK, as the security proof requires, and checks the proof against $H(\daroot,\dachal)$. A node passing on a child's root passes its digest unchanged.
 
-Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-114}$ (Proposition~\ref{prop:rs-membership}), which the $6$-bit grind brings to $2^{-120}$ per root tried (\S\ref{sec:iopcs}).
+Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-114}$ (Proposition~\ref{prop:rs-membership}), which the $14$-bit grind brings to $2^{-128}$ per root tried (\S\ref{sec:e2e-fiat-shamir}).
