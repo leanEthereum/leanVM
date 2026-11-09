@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
-import XmssSecurity.Proof.WinningEventReduction
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
+public import XmssSecurity.Proof.WinningEventReduction
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

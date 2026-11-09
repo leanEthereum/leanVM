@@ -1,5 +1,9 @@
-import FORS.CoverPotential.GenericWitness
-import FORS.CoverBound.NearMoment
+module
+
+public import FORS.CoverPotential.GenericWitness
+public import FORS.CoverBound.NearMoment
+
+@[expose] public section
 
 /-! **The near witness.** A target is near covered at tree `κ` when the leaf it selects in every
 other tree is disclosed by a disclosed view at its index; the witness counts the trees at which the
@@ -45,8 +49,8 @@ theorem witnessNear_props : WitnessProps witnessNear := by
   unfold witnessNear
   refine Finset.sum_le_sum fun κ _ => ?_
   by_cases h : NearSub v κ small
-  · rw [if_pos h, if_pos (nearSub_mono hle h)]
-  · rw [if_neg h]; exact zero_le
+  · rw [ite_eq_left h, ite_eq_left (nearSub_mono hle h)]
+  · rw [ite_eq_right h]; exact zero_le
 
 /-- A tree covered by the reveals is covered by disclosed views accounting for the reveals. -/
 theorem treeCovered_of_treeCov {R : List Coordinate} {d : Multiset View} (hD : DInv R d) (digest : MessageDigest)
@@ -66,7 +70,7 @@ theorem nearWitness_pos {R : List Coordinate} {d : Multiset View} (hD : DInv R d
   unfold witnessNear
   refine le_trans ?_ (Finset.single_le_sum (f := fun κ => if NearSub (Lifetime.localDigestView digest) κ d
     then (1 : ℝ≥0∞) else 0) (fun _ _ => zero_le) (Finset.mem_univ κ))
-  rw [if_pos hsub]
+  rw [ite_eq_left hsub]
 
 end FORS.Security.ForsPotential
 
@@ -110,13 +114,13 @@ theorem priceNear_decomp (d : Multiset View) :
     unfold witnessNear
     refine Finset.sum_congr rfl fun κ _ => ?_
     by_cases h : NearSub (l, τ) κ d
-    · rw [if_pos h]
-      exact (Finset.prod_eq_one fun κ' _ => if_pos ((nearSub_iff l τ κ d).1 h κ')).symm
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+      exact (Finset.prod_eq_one fun κ' _ => ite_eq_left ((nearSub_iff l τ κ d).1 h κ')).symm
+    · rw [ite_eq_right h]
       rw [nearSub_iff] at h
       push Not at h
       obtain ⟨κ', hκ'⟩ := h
-      exact (Finset.prod_eq_zero (Finset.mem_univ κ') (if_neg (by
+      exact (Finset.prod_eq_zero (Finset.mem_univ κ') (ite_eq_right (by
         rintro (h1 | h1)
         · exact hκ'.1 h1
         · exact hκ'.2 h1))).symm

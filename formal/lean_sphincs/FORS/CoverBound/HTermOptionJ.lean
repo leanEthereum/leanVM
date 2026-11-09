@@ -1,6 +1,10 @@
-import FORS.CoverBound.HTermOption
-import FORS.CoverBound.ClassLaw
-import FORS.CoverBound.IntTables
+module
+
+public import FORS.CoverBound.HTermOption
+public import FORS.CoverBound.ClassLaw
+public import FORS.CoverBound.IntTables
+
+@[expose] public section
 
 /-! **The option of the split by big indices.** An option fixes the cap `c1`, the Chernoff parameters
 `θ_0, …, θ_m`, the threshold `cthr`, the number `nb` of views above which an index is big (with
@@ -294,9 +298,9 @@ theorem zN_spec {H k a : ℕ} {o : OptJ} {j : ℕ} (hcap : 0 < capQ H k a o j) (
     exact_mod_cast Iff.rfl
   unfold zQ zN
   by_cases h : 1 ≤ n ∧ n ^ k * c.den < c.num.toNat * 2 ^ (H + a * k)
-  · rw [if_pos ⟨h.1, hiff.mpr h.2⟩, if_pos h]
+  · rw [ite_eq_left ⟨h.1, hiff.mpr h.2⟩, ite_eq_left h]
     exact ⟨by unfold c2Q; push_cast; rfl, Nat.pow_pos h.1, by positivity⟩
-  · rw [if_neg (fun h' => h ⟨h'.1, hiff.mp h'.2⟩), if_neg h]
+  · rw [ite_eq_right (fun h' => h ⟨h'.1, hiff.mp h'.2⟩), ite_eq_right h]
     exact ⟨rat_eq_num_div_den hcap.le, hcn, c.den_pos⟩
 
 theorem A2Jn_eq {H k a : ℕ} {o : OptJ} {P j : ℕ} (hθ : 0 < o.θ j) (hcap : 0 < capQ H k a o j) (n : ℕ) :
@@ -780,7 +784,7 @@ theorem avgN_aS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
   · rw [avgN_zero_of_card fun Ms hMs => ?_]
     · positivity
     unfold aS
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · refine le_trans (avgN_mono (aS_le_hS _ _ _) n 0) ?_
     refine le_trans (avgN_law_le hH hb hk ha (hnx n h2) hT (fun x => Real.exp ((o.θ j : ℝ) * min x (o.c1 : ℝ)))
       (fun _ => (Real.exp_pos _).le) (expMin_mono _ _ hθ') (fun Y => expAtN (o.θ j) o.c1 (H + a * k) Y o.s t.P)

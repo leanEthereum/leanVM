@@ -1,5 +1,9 @@
-import FORS.CoverBound.IndexFactor
-import FORS.Scheme
+module
+
+public import FORS.CoverBound.IndexFactor
+public import FORS.Scheme
+
+@[expose] public section
 
 /-! **One FORS tree.** A target leaf of a tree is covered by a multiset `X` of disclosed leaves of
 the same tree (at the same index) when it is one of them. The cover indicator is
@@ -67,22 +71,6 @@ theorem avgNR_prod_map (g : α → ℝ) : ∀ n X,
         funext fun x => by ring, avgR_const_mul, pow_succ]
       ring
 
-theorem avgR_prod_pi {κ β : Type} [Fintype κ] [DecidableEq κ] [Fintype β] (G : κ → β → ℝ) :
-    avgR (fun x : κ → β => ∏ c, G c (x c)) = ∏ c, avgR (G c) := by
-  unfold avgR
-  rw [Finset.prod_mul_distrib, Fintype.prod_sum, Finset.prod_const, Finset.card_univ, Fintype.card_fun,
-    Nat.cast_pow, inv_pow]
-
-theorem avgR_prod_type {β γ : Type} [Fintype β] [Fintype γ] (g : β × γ → ℝ) :
-    avgR g = avgR fun b : β => avgR fun c : γ => g (b, c) := by
-  unfold avgR
-  rw [Fintype.card_prod, Nat.cast_mul, mul_inv, Fintype.sum_prod_type, mul_assoc, Finset.mul_sum]
-
-theorem avgR_equiv {β : Type} [Fintype β] (e : α ≃ β) (g : α → ℝ) :
-    avgR g = avgR fun b : β => g (e.symm b) := by
-  unfold avgR
-  rw [Fintype.card_congr e, Equiv.sum_comp e.symm g]
-
 theorem avgR_const [Nonempty α] (c : ℝ) : avgR (fun _ : α => c) = c := by
   unfold avgR
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← mul_assoc,
@@ -109,7 +97,6 @@ theorem avgNR_avgR {β : Type} [Fintype β] (f : β → Multiset α → ℝ) (n 
 
 end Real
 
-
 /-! ### One tree -/
 
 /-- The cover indicator of a target leaf by the disclosed leaves `X`. -/
@@ -121,9 +108,6 @@ noncomputable def missR (t x : FLeaf) : ℝ := if x = t then 0 else 1
 theorem coverR_nonneg (t : FLeaf) (X : Multiset FLeaf) : 0 ≤ coverR t X := by
   unfold coverR; split_ifs <;> norm_num
 
-theorem coverR_le_one (t : FLeaf) (X : Multiset FLeaf) : coverR t X ≤ 1 := by
-  unfold coverR; split_ifs <;> norm_num
-
 /-- **The cover indicator as a product over the disclosed leaves.** -/
 theorem coverR_eq (t : FLeaf) (X : Multiset FLeaf) : coverR t X = 1 - (X.map (missR t)).prod := by
   induction X using Multiset.induction_on with
@@ -133,11 +117,11 @@ theorem coverR_eq (t : FLeaf) (X : Multiset FLeaf) : coverR t X = 1 - (X.map (mi
       by_cases hx : x = t
       · subst hx
         simp [coverR, missR]
-      · rw [show missR t x = 1 from if_neg hx, one_mul, ← ih]
+      · rw [show missR t x = 1 from ite_eq_right hx, one_mul, ← ih]
         unfold coverR
         by_cases h : t ∈ X
-        · rw [if_pos h, if_pos (Multiset.mem_cons_of_mem h)]
-        · rw [if_neg h, if_neg (fun h' => (Multiset.mem_cons.1 h').elim (fun e => hx e.symm) h)]
+        · rw [ite_eq_left h, ite_eq_left (Multiset.mem_cons_of_mem h)]
+        · rw [ite_eq_right h, ite_eq_right (fun h' => (Multiset.mem_cons.1 h').elim (fun e => hx e.symm) h)]
 
 /-- The number of leaves of a tree, as a real number. -/
 noncomputable def leavesR : ℝ := 2 ^ forsHeight
@@ -148,7 +132,7 @@ theorem card_fleaf : (Fintype.card FLeaf : ℝ) = leavesR := by
   rw [Fintype.card_fin, leavesR]; push_cast; rfl
 
 theorem sum_ind (t : FLeaf) : ∑ x : FLeaf, (if x = t then (1 : ℝ) else 0) = 1 := by
-  rw [Finset.sum_ite_eq' Finset.univ t, if_pos (Finset.mem_univ t)]
+  rw [Finset.sum_ite_eq' Finset.univ t, ite_eq_left (Finset.mem_univ t)]
 
 /-- A uniform leaf misses a given leaf with probability `1 - 1/A`. -/
 theorem avgR_missR (t : FLeaf) : avgR (missR t) = 1 - 1 / leavesR := by
@@ -164,11 +148,11 @@ theorem avgR_missR_mul (t t' : FLeaf) :
     avgR (fun x => missR t x * missR t' x) = if t' = t then 1 - 1 / leavesR else 1 - 2 / leavesR := by
   by_cases htt : t' = t
   · subst htt
-    rw [if_pos rfl, ← avgR_missR t']
+    rw [ite_eq_left rfl, ← avgR_missR t']
     congr 1
     funext x
     unfold missR; split_ifs <;> norm_num
-  · rw [if_neg htt]
+  · rw [ite_eq_right htt]
     unfold avgR
     have h : ∀ x, missR t x * missR t' x = 1 - (if x = t then 1 else 0) - if x = t' then 1 else 0 := by
       intro x

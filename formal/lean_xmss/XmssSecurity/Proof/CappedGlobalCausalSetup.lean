@@ -1,13 +1,17 @@
-import XmssSecurity.Proof.CappedGlobalKeygen
-import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-import XmssSecurity.Proof.CappedChain.ChainTracedGame
-import XmssSecurity.Proof.PrecomputedKeygenCache
-import XmssSecurity.Proof.CappedGlobalChainOrigin
-import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
-import XmssSecurity.Proof.CappedChain.SignatureChainValue
-import XmssSecurity.Proof.RevealProbeOracleSimulation
-import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.CappedGlobalKeygen
+public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
+public import XmssSecurity.Proof.CappedChain.ChainTracedGame
+public import XmssSecurity.Proof.PrecomputedKeygenCache
+public import XmssSecurity.Proof.CappedGlobalChainOrigin
+public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
+public import XmssSecurity.Proof.CappedChain.SignatureChainValue
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+public import XmssSecurity.Proof.CappedChain.CausalSigningKeygenCoupling
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -19,13 +23,13 @@ noncomputable def trajectoryProgrammedGlobalChainKeygen :
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
 
 theorem evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist coupledGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    (coupledGlobalChainKeygen) =ᵈ
+      (trajectoryProgrammedGlobalChainKeygen) :=
   evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories
 
 theorem evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist actualGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    (actualGlobalChainKeygen) =ᵈ
+      (trajectoryProgrammedGlobalChainKeygen) :=
   evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_table
@@ -33,8 +37,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_table
     (hresult : result ∈ support trajectoryProgrammedGlobalChainKeygen) :
     globalKeygenChainValueTable result.cache result.secretKey = result.table := by
   apply actualGlobalChainKeygen_support_table result
-  exact (mem_support_iff_of_evalDist_eq
-    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed result).mpr hresult
+  exact (OracleComp.support_eq_of_evalDistEq
+    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed).symm.subset hresult
 
 abbrev GlobalChainActionTracedResult :=
   ((ProgrammedGlobalChainKeygenView × (GameOutcome × QueryCache HashSpec)) ×
@@ -47,7 +51,6 @@ def eraseGlobalChainKeygenView
   ((((result.1.1.publicKey, Concrete.materializePrecomputation
       result.1.1.cache result.1.1.secretKey), result.1.1.cache),
     result.1.2), result.2)
-
 
 structure GlobalCausalHashState where
   cache : QueryCache HashSpec
@@ -304,7 +307,6 @@ theorem revealGlobalSignatureChains_run_isProbeQueryBoundP
       exact ih (replaceSignatureChainValue signature chain value)
         (state.recordReveal index value)
 
-
 noncomputable def revealGlobalSignatureTopChains
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature →
@@ -445,7 +447,6 @@ theorem revealGlobalSignatureTopChains_run_isProbeQueryBoundP
       intro value _hvalue
       exact ih (replaceSignatureTopChainValue signature chain value)
         (state.recordReveal index value)
-
 
 theorem Signature.eq_of_fields
     (left right : Signature)
@@ -781,8 +782,8 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_keyResult
     view.keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅) := by
   apply actualGlobalChainKeygen_support_keyResult view
-  exact (mem_support_iff_of_evalDist_eq
-    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed view).mpr hview
+  exact (OracleComp.support_eq_of_evalDistEq
+    evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed).symm.subset hview
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_treeCacheStable
     (view : ProgrammedGlobalChainKeygenView)
@@ -992,8 +993,6 @@ theorem GlobalSigningRevealsAgree.globalSignatureRevealResult
       apply ih
       exact hagrees.recordReveal (chain, .inl request.leafIndex, encoding chain)
 
-
-
 theorem GlobalSigningRevealsAgree.globalSignatureTopRevealResult
     {table : GlobalChainValueIndex → Digest}
     {state : GlobalCausalHashState}
@@ -1017,8 +1016,6 @@ theorem GlobalSigningRevealsAgree.globalSignatureTopRevealResult
             (table (chain, .inr (topKeyOf request.leafIndex), encoding chain)))).2
       apply ih
       exact hagrees.recordReveal (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-
-
 
 theorem GlobalSigningRevealsAgree.globalSignatureFullRevealResult
     {table : GlobalChainValueIndex → Digest}
@@ -1047,17 +1044,6 @@ def ProgrammedGlobalChainKeygenFullCacheRelation
         leftEndpoints left.cache ∧
       ReplayEndpointsMatch right.1.secretKey.parameter
         right.1.secretKey.keyChainStart rightEndpoints right.1.cache
-
-theorem Concrete.CacheView.encodingInput_ne_leafInput
-    (parameter : PublicParameter) (encodingLeafIndex leafIndex : LeafIndex)
-    (message : Message) (randomness : Randomness)
-    (endpoints : ChainIndex → Digest) :
-    Concrete.CacheView.encodingInput parameter encodingLeafIndex
-        (message, randomness) ≠
-      Concrete.CacheView.leafInput parameter leafIndex endpoints := by
-  intro heq
-  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-  simp at hdomain
 
 def GlobalTreeSigningCacheRelation
     (parameter : PublicParameter)

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.IdealStatement
+module
+
+public import XmssSecurity.Proof.IdealStatement
+
+@[expose] public section
 
 /-! The WOTS chain walk: the first-order form of the statement's monadic `chainWalk`, used by the proof's pure cache replays and extraction arguments. -/
 

@@ -1,0 +1,46 @@
+name = "statement"
+version = "0.1.0"
+defaultTargets = ["Statement"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# PolyFun is VCVio's requirement, pinned at the revision every project of the repository uses.
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio.git"
+rev = "5f9baf12d29d25ef7e754765d28030d53e728aac"
+
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "e28da34817c3775cfb935376acf5d416f555d64f"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.35.0"
+
+# The statement files are `Statement/*.lean` (modules `Statement.<Name>`), the generated guest
+# data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that
+# make the compiled definitions fast; the package directory is `Statement/`, so the sources are
+# found from its parent.
+[[lean_lib]]
+name = "Statement"
+srcDir = ".."
+globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", "Statement.HashSignatures", "Statement.LeanXmss", "Statement.LeanSphincs",
+  "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
+  "Statement.LeanVm", "Statement.LeanVmGuestBatching", "Statement.LeanVmGuest",
+  "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",
+  "Statement.Theorems",
+  "Statement.Corollaries",
+  "Statement.Data.+", "Statement.Fast.+", "Statement.Prover.+"]

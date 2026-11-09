@@ -1,5 +1,9 @@
-import FORS.GraphView.Pruned
-import FORS.Classification.Fors
+module
+
+public import FORS.GraphView.Pruned
+public import FORS.Classification.Fors
+
+@[expose] public section
 
 /-! Canonical graph labels agree with actual seeded computations. The only graph hypotheses are
 its query-response consistency and untouched surrogate boundary, which `Reduction/PreparedSample` supplies
@@ -12,7 +16,6 @@ variable [Params]
 open Concrete Completeness Graph PrunedGraph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 set_option allowUnsafeReducibility true
 attribute [local reducible] digestBits HashSpec Id
@@ -61,7 +64,7 @@ theorem keptPosition_lt (lay : Layer) :
   by_cases h : lay.val = 0
   · have hl : lay = topLayer := Fin.ext h
     subst hl
-    have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+    have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
     rw [hpos, Completeness.keptHeight_top, Completeness.layerHeight_top]
     have h1 := Completeness.maxLayerHeight_add
     have h2 := Completeness.heightBelow_le_subtree
@@ -180,13 +183,13 @@ theorem treePosition_active_below (lay : Layer) (tree : TreeIndex) (htree : Tree
       unfold NodeActive
       by_cases htop : lay = topLayer
       · subst htop
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         refine ⟨treeActive_top parameter tree htree, ?_⟩
-        have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+        have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
         unfold KeptNode
-        rw [if_pos hlower, ← hpos]
+        rw [ite_eq_left hlower, ← hpos]
         exact hkept
-      · rw [if_neg htop]
+      · rw [ite_eq_right htop]
         have hpow : 2 ^ (level + 1) * 2 ^ (layerHeight lay - (level + 1)) = 2 ^ layerHeight lay := by
           rw [← pow_add]; congr 1; omega
         have hleaf : index.val * 2 ^ (level + 1) < 2 ^ maxLayerHeight := by
@@ -248,7 +251,7 @@ theorem spineIndex_range (level : Nat) (hlower : keptHeight topLayer ≤ level)
   apply (Nat.div_lt_iff_lt_mul (by positivity)).2
   rw [← Nat.pow_add]
   have hk := keptPosition_lt parameter topLayer
-  have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+  have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
   rw [hpos, Completeness.layerHeight_top] at hk
   rw [show maxLayerHeight - level + (level - keptHeight topLayer) =
     maxLayerHeight - keptHeight topLayer by omega]
@@ -267,7 +270,7 @@ theorem spinePosition_active (level : Nat) (hlower : keptHeight topLayer ≤ lev
     active parameter (treePosition topLayer rootTree level hupper
       ⟨spineIndex parameter level, (spineIndex_range parameter level hlower hupper).trans_le
         (Nat.pow_le_pow_right (by decide) (Nat.sub_le _ _))⟩) := by
-  have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+  have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
   cases level with
   | zero =>
       have hb : keptHeight topLayer = 0 := by omega
@@ -286,7 +289,7 @@ theorem spinePosition_active (level : Nat) (hlower : keptHeight topLayer ≤ lev
   | succ level =>
       change NodeActive parameter topLayer rootTree (level + 1) (spineIndex parameter (level + 1))
       unfold NodeActive
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       refine ⟨rfl, ?_⟩
       unfold KeptNode
       split
@@ -357,7 +360,7 @@ theorem spine_value (hboundary : BoundaryCorrect f parameter seed labels) (steps
     truncateHash (labels (treePosition topLayer rootTree (keptHeight topLayer + steps) hupper
       ⟨spineIndex parameter (keptHeight topLayer + steps), spineIndex_lt parameter _⟩)) =
       evalWithAnswerFn f (Seeded.spineNode parameter topLayer rootTree seed steps : OracleComp HashSpec Digest) := by
-  have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+  have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
   have htree : TreeActive parameter topLayer rootTree := by
     refine ⟨⟨subtreePosition parameter * 2 ^ subtreeHeight, ?_⟩, ?_, Completeness.treeIndexAt_top _⟩
     · rw [← subtree_size_mul]
@@ -469,7 +472,7 @@ theorem canonicalPath_below (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     canonicalTreePath f parameter lay tree seed leaf level =
       node f parameter lay tree seed level (Nat.xor (leaf.val / 2 ^ level) 1) := by
   have hlevel : level < layerHeight lay := hlower.trans_le (Completeness.keptHeight_le lay)
-  rw [canonicalTreePath, dif_pos hlevel, eval_treePath, if_pos hlower]
+  rw [canonicalTreePath, dite_eq_left hlevel, eval_treePath, ite_eq_left hlower]
 
 omit f seed labels hconsistent in
 /-- Above the kept part there is only the top layer's spine. -/
@@ -519,7 +522,7 @@ theorem tree_path_value (hboundary : BoundaryCorrect f parameter seed labels)
     subst htop
     have htree := treeActive_top parameter tree (treeActive_of_key parameter _ tree leaf hactive)
     subst htree
-    have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+    have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
     have hb : keptHeight topLayer ≤ level := by omega
     have hsum : keptHeight topLayer + (level - keptHeight topLayer) = level := Nat.add_sub_of_le hb
     have hindex : leaf.val / 2 ^ level = spineIndex parameter level := by
@@ -560,7 +563,7 @@ theorem tree_path_sibling (hboundary : BoundaryCorrect f parameter seed labels)
     subst htop
     have htree := treeActive_top parameter tree (treeActive_of_key parameter _ tree leaf hactive)
     subst htree
-    have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+    have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
     have hb : keptHeight topLayer ≤ level := by omega
     have hindex : leaf.val / 2 ^ level = spineIndex parameter level := by
       have hsum : keptHeight topLayer + (level - keptHeight topLayer) = level := Nat.add_sub_of_le hb
@@ -617,7 +620,7 @@ theorem tree_path_active (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     subst htop
     have htree := treeActive_top parameter tree (treeActive_of_key parameter _ tree leaf hactive)
     subst htree
-    have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+    have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
     have hb : keptHeight topLayer ≤ level := by omega
     have hsum : keptHeight topLayer + (level - keptHeight topLayer) = level := Nat.add_sub_of_le hb
     have hindex : leaf.val / 2 ^ level = spineIndex parameter level := by
@@ -642,7 +645,7 @@ theorem tree_root_value (hboundary : BoundaryCorrect f parameter seed labels)
     have hb := Completeness.keptHeight_le topLayer
     have hsum : keptHeight topLayer + (layerHeight topLayer - keptHeight topLayer) = layerHeight topLayer :=
       Nat.add_sub_of_le hb
-    have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+    have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
     have hindex : spineIndex parameter (layerHeight topLayer) = 0 := by
       have hk := keptPosition_lt parameter topLayer
       rw [hpos] at hk
@@ -813,7 +816,7 @@ theorem fors_path_sibling (leaf : FLeaf) (level : Nat) (hlevel : level < forsHei
         Nat.xor_lt_two_pow ((Nat.div_le_self _ _).trans_lt leaf.isLt)
           (Nat.one_lt_two_pow (by have := Params.forsHeight_ge; omega))⟩)) =
       Fors.extendPath (Fors.canonicalPath f parameter index κ seed leaf) level := by
-  rw [Fors.extendPath, dif_pos hlevel, Fors.canonicalPath]
+  rw [Fors.extendPath, dite_eq_left hlevel, Fors.canonicalPath]
   exact fnode_value f parameter seed labels hconsistent index κ level (Nat.le_of_lt hlevel) _
     (Nat.xor_lt_two_pow (quotient_range forsHeight level leaf.val (Nat.le_of_lt hlevel) leaf.isLt)
       (Nat.one_lt_two_pow (by omega)))
@@ -841,7 +844,7 @@ theorem fors_path_input (leaf : FLeaf) (level : Nat) (hlevel : level < forsHeigh
     simpa only [Nat.zero_add] using (Nat.testBit_add leaf.val 0 level).symm
   rw [hbit]
   congr 1
-  rw [Fors.forsDomain, dif_pos ⟨by omega, by omega⟩]
+  rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
   congr 1
   apply Fin.ext
   change leaf.val / 2 ^ level / 2 = leaf.val / 2 ^ (level + 1) % 2 ^ forsHeight
@@ -877,7 +880,7 @@ theorem materialSurrogates_eq (material : SeedModel.Material)
     materialSurrogates material = surrogates f (SeedModel.parameter material) seed := by
   funext level
   unfold surrogates
-  rw [Seeded.surrogate, dif_pos level.isLt]
+  rw [Seeded.surrogate, dite_eq_left level.isLt]
   exact (SeedModel.eval_surrogate_prepared f seed material hagrees level).symm
 
 end FORS.Security.GraphCorrectness

@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.Bridge.Translate
-import XmssSecurity.Proof.Deterministic.TableSigner
-import XmssSecurity.Proof.Seeded.FiniteTable
-import XmssSecurity.Proof.Seeded.SeedGuessing
-import XmssSecurity.Proof.Seeded.CacheCoupling
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import XmssSecurity.Proof.Bridge.Translate
+public import XmssSecurity.Proof.Deterministic.TableSigner
+public import XmssSecurity.Proof.Seeded.FiniteTable
+public import XmssSecurity.Proof.Seeded.SeedGuessing
+public import XmssSecurity.Proof.Seeded.CacheCoupling
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 /-!
 # The seed derivations of the real scheme
@@ -41,18 +45,18 @@ def paramInput (seed : MasterSeed) : HashInput :=
   LeanXmss.keygenHashInput 0 .parameter seed
 
 def bottomInput (parameter : PublicParameter) (seed : MasterSeed) (pos : BottomPos) : HashInput :=
-  LeanXmss.keygenHashInput parameter (.ots LeanXmss.bottomLayer pos.1 pos.2) seed
+  LeanXmss.keygenHashInput parameter (.oneTimeChainPair LeanXmss.bottomLayer pos.1 pos.2) seed
 
 def topInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopOtsPos) : HashInput :=
-  LeanXmss.keygenHashInput parameter (.ots LeanXmss.topLayer (topKey pos.1) pos.2) seed
+  LeanXmss.keygenHashInput parameter (.oneTimeChainPair LeanXmss.topLayer (topKey pos.1) pos.2) seed
 
 def rndInput (parameter : PublicParameter) (seed : MasterSeed) (request : SignRequest) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.bottomLayer request.leafIndex seed
-    (LeanXmss.bytesLE 32 request.message)
+    (HashSig.littleEndianBytes 32 request.message)
 
 def topRndInput (parameter : PublicParameter) (seed : MasterSeed) (pos : TopRndPos) : HashInput :=
   LeanXmss.randomizerHashInput parameter LeanXmss.topLayer (topKey pos.1) seed
-    (LeanXmss.bytesLE 16 pos.2)
+    (HashSig.littleEndianBytes 16 pos.2)
 
 /-! ## Input layout -/
 
@@ -110,9 +114,6 @@ theorem ofNat_inj {w a b : Nat} (ha : a < 2 ^ w) (hb : b < 2 ^ w)
     (h : BitVec.ofNat w a = BitVec.ofNat w b) : a = b := by
   have := congrArg BitVec.toNat h
   rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
-
-theorem tag_of_fields {a b c d a' b' c' d' : Nat} (h : tweakFields a b c d = tweakFields a' b' c' d') :
-    BitVec.ofNat 5 a = BitVec.ofNat 5 a' := congrArg TweakFields.tag h
 
 theorem hi_of_fields {a b c d a' b' c' d' : Nat} (h : tweakFields a b c d = tweakFields a' b' c' d')
     (hc : c < 2 ^ 24) (hc' : c' < 2 ^ 24) : c = c' := ofNat_inj hc hc' (congrArg TweakFields.hi h)

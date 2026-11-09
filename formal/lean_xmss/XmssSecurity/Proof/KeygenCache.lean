@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.MerkleQueryBound
-import XmssSecurity.Proof.Execution
-import XmssSecurity.Proof.LazyScheme
+module
+
+public import XmssSecurity.Proof.MerkleQueryBound
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.LazyScheme
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

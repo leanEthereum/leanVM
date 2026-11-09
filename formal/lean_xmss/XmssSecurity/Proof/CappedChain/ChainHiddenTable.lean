@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedChain.ChainOriginProbability
-import XmssSecurity.Proof.ChainKey
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainOriginProbability
+public import XmssSecurity.Proof.ChainKey
+
+@[expose] public section
 
 open OracleSpec
 
@@ -9,28 +13,6 @@ abbrev ChainValueIndex := ChainKey × Digit
 
 def chainStepDigit (step : ChainStep) : Digit :=
   ⟨step.val, step.isLt.trans (by decide)⟩
-
-theorem Concrete.CacheView.chainInput_eq_iff
-    (parameter : PublicParameter)
-    (leftLeafIndex rightLeafIndex : LeafIndex) (leftChain rightChain : ChainIndex)
-    (leftStep rightStep : ChainStep) (leftValue rightValue : Digest) :
-    Concrete.CacheView.chainInput parameter leftLeafIndex leftChain leftStep leftValue =
-        Concrete.CacheView.chainInput parameter rightLeafIndex rightChain rightStep rightValue ↔
-      leftLeafIndex = rightLeafIndex ∧ leftChain = rightChain ∧
-        leftStep = rightStep ∧ leftValue = rightValue := by
-  constructor
-  · intro heq
-    have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-    simp only [HashDomain.chain.injEq] at hdomain
-    obtain ⟨hleafIndex, hchain, hstep⟩ := hdomain
-    subst rightLeafIndex
-    subst rightChain
-    subst rightStep
-    refine ⟨rfl, rfl, rfl, ?_⟩
-    exact Concrete.CacheView.chainInput_injective parameter leftLeafIndex leftChain
-      leftStep heq
-  · rintro ⟨rfl, rfl, rfl, rfl⟩
-    rfl
 
 noncomputable def keygenChainValueTable
     (keygenCache : QueryCache HashSpec) (secretKey : SecretKey)

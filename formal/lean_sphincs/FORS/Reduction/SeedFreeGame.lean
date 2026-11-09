@@ -1,6 +1,10 @@
-import FORS.Reduction.UntilSeed
-import FORS.LazyRun.Cost
-import FORS.Seed.Guess
+module
+
+public import FORS.Reduction.UntilSeed
+public import FORS.LazyRun.Cost
+public import FORS.Seed.Guess
+
+@[expose] public section
 
 /-! The seed-free, budget-capped graph-view game: the canonical graph cache and answer function of
 a sample without any seed-addressed entry, the seed-free run and experiment averaged over
@@ -42,7 +46,6 @@ theorem programGraphCache_congr_base (parameter : PublicParameter)
 noncomputable local instance reduceLabelsSampleable : SampleableType CanonicalGraphLabels :=
   graphLabelsSampleable
 
-
 /-- The canonical graph cache without any seed-addressed entry. -/
 noncomputable def graphCache (material : Material) (answers : CanonicalGraphLabels) :
     QueryCache HashSpec :=
@@ -72,71 +75,30 @@ theorem sampleCoordinates_eq (material : Material) (seed : MasterSeed) (answers 
     ← GraphCorrectness.materialOts_eq _ seed material (sample_agreement material seed answers table),
     ← GraphCorrectness.materialFts_eq _ seed material (sample_agreement material seed answers table)]
 
-/-- Every realized capped trace respects the budget. -/
-theorem costRun_cap_cost_le {α : Type} (f : HashInput → HashOutput) (table : HiddenGraph.Table)
-    (computation : OracleComp CostSpec α) (budget : Nat)
-    (result : Option α × List (Entry HashInput))
-    (hresult : result ∈ support (costRun f table (cap computation budget))) :
-    traceCost result.2 ≤ budget := by
-  induction computation using OracleComp.inductionOn generalizing budget result with
-  | pure value =>
-      rw [cap_pure', costRun_pure, support_pure, Set.mem_singleton_iff] at hresult
-      subst hresult
-      simp [traceCost]
-  | query_bind input next ih =>
-      rw [cap_query_bind'] at hresult
-      split at hresult
-      · rename_i hcost
-        rw [costRun_query_bind, mem_support_bind_iff] at hresult
-        obtain ⟨answer, _, hmap⟩ := hresult
-        rw [support_map] at hmap
-        obtain ⟨tail, htail, rfl⟩ := hmap
-        have h := ih answer (budget - sourceCost input) tail htail
-        simp only [traceCost_append, recorded_cost]
-        omega
-      · rw [costRun_pure, support_pure, Set.mem_singleton_iff] at hresult
-        subst hresult
-        simp [traceCost]
-
-/-- One seed-free capped graph-view run, with the randomizer walks of the step table `steps`. -/
-noncomputable def seedFreeRun (adversary : Adversary) (q : Nat) (steps : Message → Randomness)
-    (material : Material) (answers : CanonicalGraphLabels) (table : Eager.Table) :
-    ProbComp (Option Bool × List (Entry HashInput)) :=
-  costRun (graphFn material answers table) (graphCoordinates material answers)
-    (cap (costGame (parameter material) (publicData (labelsOf material answers) steps) adversary) q)
-
-/-- The seed-free experiment for a fixed table of walk steps. -/
-noncomputable def seedFreeExperiment (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
-    ProbComp (Option Bool × List (Entry HashInput)) := do
-  let material ← sampleMaterial
-  let answers ← $ᵗ CanonicalGraphLabels
-  let table ← $ᵗ Eager.Table
-  seedFreeRun adversary q steps material answers table
-
 def Win (result : Option Bool × List (Entry HashInput)) : Prop :=
   ∃ value, result.1 = some value ∧ value = true
 
 theorem probEvent_bind_le_add {α β γ δ : Type} (p : ProbComp α) (k : α → ProbComp β)
     (k₁ : α → ProbComp γ) (k₂ : α → ProbComp δ) (event : β → Prop) (event₁ : γ → Prop)
-    (event₂ : δ → Prop) (h : ∀ a, Pr[event | k a] ≤ Pr[event₁ | k₁ a] + Pr[event₂ | k₂ a]) :
-    Pr[event | p >>= k] ≤ Pr[event₁ | p >>= k₁] + Pr[event₂ | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum]
+    (event₂ : δ → Prop) (h : ∀ a, Pr{let x ← k a}[event x] ≤ Pr{let x ← k₁ a}[event₁ x] + Pr{let x ← k₂ a}[event₂ x]) :
+    Pr{let x ← p >>= k}[event x] ≤ Pr{let x ← p >>= k₁}[event₁ x] + Pr{let x ← p >>= k₂}[event₂ x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
   rw [← ENNReal.tsum_add]
   exact ENNReal.tsum_le_tsum fun a => (mul_le_mul' le_rfl (h a)).trans_eq (mul_add ..)
 
 theorem probEvent_bind_le_of {α β : Type} (p : ProbComp α) (k : α → ProbComp β) (event : β → Prop)
-    (bound : ℝ≥0∞) (h : ∀ a, Pr[event | k a] ≤ bound) : Pr[event | p >>= k] ≤ bound := by
-  rw [probEvent_bind_eq_tsum]
+    (bound : ℝ≥0∞) (h : ∀ a, Pr{let x ← k a}[event x] ≤ bound) : Pr{let x ← p >>= k}[event x] ≤ bound := by
+  rw [OracleComp.prEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' a, Pr[= a | p] * bound := ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
+    _ ≤ ∑' a, Pr{let x ← p}[x = a] * bound := ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
     _ ≤ bound := by
       rw [ENNReal.tsum_mul_right]
-      exact mul_le_of_le_one_left bot_le tsum_probOutput_le_one
+      exact mul_le_of_le_one_left bot_le (OracleComp.tsum_prEvent_le_one _)
 
 theorem probEvent_bind_mono {α β : Type} (p : ProbComp α) (k₁ k₂ : α → ProbComp β)
-    (event : β → Prop) (h : ∀ a, Pr[event | k₁ a] ≤ Pr[event | k₂ a]) :
-    Pr[event | p >>= k₁] ≤ Pr[event | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum]
+    (event : β → Prop) (h : ∀ a, Pr{let x ← k₁ a}[event x] ≤ Pr{let x ← k₂ a}[event x]) :
+    Pr{let x ← p >>= k₁}[event x] ≤ Pr{let x ← p >>= k₂}[event x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
   exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (h a)
 
 end FORS.Security.Reduce

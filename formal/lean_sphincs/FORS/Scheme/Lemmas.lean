@@ -1,4 +1,8 @@
-import FORS.Scheme
+module
+
+public import FORS.Scheme
+
+@[expose] public section
 
 /-! Facts about the specification (`Scheme.lean`): the definitions that only the proofs use, the
 randomizer walk, which does not come back within `2^128` steps (`walk_iterate_ne`), and the bounds
@@ -76,8 +80,7 @@ theorem walk_iterate (step y : Randomness) (j : Nat) :
   induction j with
   | zero => simp
   | succ j ih =>
-      rw [Function.iterate_succ_apply', ih]
-      push_cast
+      rw [Function.iterate_succ_apply', ih, Nat.cast_succ]
       ring
 
 /-- A walk with an odd step does not come back within `2^128` steps. -/
@@ -86,7 +89,7 @@ theorem walk_iterate_ne (half y : Randomness) (j : Nat) (hj : j + 1 < 2 ^ 128) :
   rw [walk_iterate]
   intro h
   have hzero : ((j + 1 : Nat) : Randomness) * walkStep half = 0 := by
-    push_cast
+    rw [Nat.cast_succ]
     linear_combination h
   have h2 := congrArg BitVec.toNat hzero
   have hd : (2 : Nat) ^ digestBits = 2 ^ 128 := rfl

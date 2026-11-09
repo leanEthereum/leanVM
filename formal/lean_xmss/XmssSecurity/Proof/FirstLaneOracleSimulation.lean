@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.IdealStatement
+module
+
+public import XmssSecurity.Proof.IdealStatement
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -70,7 +74,7 @@ noncomputable instance : DecidablePred (IsSpecialQuery (Index := Index)) :=
 noncomputable instance : DecidablePred (IsHazardQuery (Index := Index)) :=
   Classical.decPred _
 
-noncomputable instance : IsUniformSpec (World Index) :=
-  IsUniformSpec.ofFintypeInhabited _
+noncomputable instance : UniformAnswerMeasure (World Index) :=
+  UniformAnswerMeasure.ofFiniteNonempty _
 
 end XmssSecurity.FirstLaneOracleSimulation

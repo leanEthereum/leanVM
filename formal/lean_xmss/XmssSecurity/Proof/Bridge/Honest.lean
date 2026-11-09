@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Bridge.Program
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.Bridge.Program
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 /-!
 # The honest preparation

@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedGlobalChainHighReduction
-import XmssSecurity.Proof.FirstLaneOracleSimulation
-import XmssSecurity.Proof.CappedEncodingActionTrace
-import XmssSecurity.Proof.FirstLaneEagerSimulation
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighReduction
+public import XmssSecurity.Proof.FirstLaneOracleSimulation
+public import XmssSecurity.Proof.CappedEncodingActionTrace
+public import XmssSecurity.Proof.FirstLaneEagerSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -1114,7 +1118,6 @@ theorem globalFirstLaneVerifierImpl_hash
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def appendAttackerActionTrace
     (input : (OracleWorld + SigningSpec).Domain)
@@ -1496,7 +1499,7 @@ theorem simulate_globalFirstLaneEagerTrace_chainProjection
           FirstLaneOracleSimulation.eagerImpl,
           FirstLaneOracleSimulation.traceFragment,
           FirstLaneOracleSimulation.ActionTrace.chainActions,
-          QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+          WriterT.run_tell]
         rw [RevealProbeOracleSimulation.simulate_eagerTrace_liftProbComp]
     | uniform n | probe _ _ | reveal _ =>
         simp [globalFirstLaneEraseImpl,
@@ -1510,6 +1513,6 @@ theorem simulate_globalFirstLaneEagerTrace_chainProjection
           RevealProbeOracleSimulation.eagerTraceImpl,
           RevealProbeOracleSimulation.eagerImpl,
           RevealProbeOracleSimulation.traceFragment,
-          QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+          WriterT.run_tell]
 
 end XmssSecurity.CappedChain

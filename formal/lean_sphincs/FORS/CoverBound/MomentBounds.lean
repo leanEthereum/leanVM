@@ -1,4 +1,8 @@
-import FORS.CoverBound.SecondMoment
+module
+
+public import FORS.CoverBound.SecondMoment
+
+@[expose] public section
 
 /-! **Rational upper bounds of the per-tree moments.** The closed forms of `Ψ1(n)` and `Ψ2(n)`
 (`CoverBound/FirstMoment`, `CoverBound/SecondMoment`) are exact fractions over `A^n` and `A^(n+1)`,

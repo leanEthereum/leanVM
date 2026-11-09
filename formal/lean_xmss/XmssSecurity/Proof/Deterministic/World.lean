@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.RandomizedStatement
+module
+
+public import XmssSecurity.Proof.RandomizedStatement
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

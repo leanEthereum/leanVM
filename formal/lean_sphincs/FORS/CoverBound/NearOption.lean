@@ -1,6 +1,10 @@
-import FORS.CoverBound.MomentTable
-import FORS.SmallBudget.Contact.NearWitness
-import FORS.LargeBudget.Covers
+module
+
+public import FORS.CoverBound.MomentTable
+public import FORS.SmallBudget.Contact.NearWitness
+public import FORS.LargeBudget.Covers
+
+@[expose] public section
 
 /-! **The near H-term certificate.** The per-index near value is dominated by a convex increasing
 table `n̄` (extended linearly beyond `n1`) above `k κ Ψ1(n)^(k-1)` and the cap `k κ`; the near

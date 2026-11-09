@@ -1,9 +1,13 @@
-import FORS.Statement
-import FORS.Scheme.Correctness
-import FORS.Scheme.RandomOracle
-import FORS.Scheme.Search
-import FORS.Classification.Tree
-import FORS.Scheme.Domains
+module
+
+public import FORS.Statement
+public import FORS.Scheme.Correctness
+public import FORS.Scheme.RandomOracle
+public import FORS.Scheme.Search
+public import FORS.Classification.Tree
+public import FORS.Scheme.Domains
+
+@[expose] public section
 
 section
 

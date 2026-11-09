@@ -1,10 +1,13 @@
-import XmssSecurity.Proof.MerkleQueryPresence
+module
+
+public import XmssSecurity.Proof.MerkleQueryPresence
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option maxHeartbeats 2000000
 set_option linter.constructorNameAsVariable false
 
 def verificationAfterEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
@@ -300,7 +303,7 @@ theorem authenticationRoot_query_cached_as_in_largerCache
                 Concrete.nodePayload (Concrete.signaturePath signature levels) current
               else Concrete.nodePayload current
                 (Concrete.signaturePath signature levels))) = some output
-          rw [if_pos hbit]
+          rw [ite_eq_left hbit]
           exact hcached
         · have hbitFalse : leafIndex.val.testBit levels = false :=
             Bool.eq_false_of_not_eq_true hbit
@@ -319,7 +322,7 @@ theorem authenticationRoot_query_cached_as_in_largerCache
                 Concrete.nodePayload (Concrete.signaturePath signature levels) current
               else Concrete.nodePayload current
                 (Concrete.signaturePath signature levels))) = some output
-          rw [if_neg hbit]
+          rw [ite_eq_right hbit]
           exact hcached
       · have htargetLt : target.val < levels := by omega
         obtain ⟨output, hcached⟩ := ih htargetLt (Nat.le_of_succ_le hlevels)

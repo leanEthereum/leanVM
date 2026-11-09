@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CacheReplayEval
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import XmssSecurity.Proof.CacheReplayEval
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

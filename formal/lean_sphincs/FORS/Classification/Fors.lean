@@ -1,4 +1,8 @@
-import FORS.Classification.Chain
+module
+
+public import FORS.Classification.Chain
+
+@[expose] public section
 
 /-!
 Deterministic extraction for the FORS opening. An opening whose FORS public key (`T_k` of the
@@ -40,14 +44,14 @@ theorem merkleFold_forsFold (parameter : PublicParameter) (index : Index) (κ : 
       rw [merkleFold, forsFold, ih (by omega)]
       apply bind_congr
       intro current
-      rw [dif_pos hl]
+      rw [dite_eq_left hl]
       have hdom : forsDomain index κ (levels + 1) (leaf.val / 2 ^ (levels + 1)) =
           .forsNode index κ ⟨levels, hl⟩ ⟨leaf.val / 2 ^ (levels + 1),
             Nat.lt_of_le_of_lt (Nat.div_le_self _ _) leaf.isLt⟩ := by
-        rw [forsDomain, dif_pos ⟨by omega, by omega⟩]
+        rw [forsDomain, dite_eq_left ⟨by omega, by omega⟩]
         congr 1
         exact Fin.ext (Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) leaf.isLt))
-      rw [hdom, extendPath, dif_pos hl]
+      rw [hdom, extendPath, dite_eq_left hl]
       cases leaf.val.testBit levels <;> rfl
 
 section Tree
@@ -117,7 +121,7 @@ theorem tree_classification (leaf : FLeaf) (secret : Digest) (path : Fin forsHei
   · by_cases hsecret : secret = Completeness.forsSecretValue f parameter index κ seed leaf
     · refine Or.inl ⟨hsecret, ?_⟩
       funext level
-      simpa only [extendPath, dif_pos level.isLt] using hpath level.val level.isLt
+      simpa only [extendPath, dite_eq_left level.isLt] using hpath level.val level.isLt
     · exact Or.inr (Or.inl ⟨hsecret, hleaf⟩)
   · exact Or.inr (Or.inr hmatch)
 

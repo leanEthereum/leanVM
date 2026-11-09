@@ -1,6 +1,10 @@
-import FORS.Scheme.Code
-import FORS.Scheme.Counter
-import FORS.Scheme.Uniform
+module
+
+public import FORS.Scheme.Code
+public import FORS.Scheme.Counter
+public import FORS.Scheme.Uniform
+
+@[expose] public section
 
 /-!
 # What one encoding trial rejects
@@ -20,16 +24,12 @@ open TargetSum
 
 /-- The accepted share is the code's size over the digest space. -/
 theorem probEvent_accept :
-    Pr[fun u : HashOutput => (decodeDigest (truncateHash u)).isSome |
-        ($ᵗ HashOutput : ProbComp HashOutput)]
+    Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[(decodeDigest (truncateHash u)).isSome]
       = ((univ.filter fun d : Digest => (decodeDigest d).isSome).card : ℝ≥0∞)
           / (Fintype.card Digest : ℝ≥0∞) := by
   rw [← FORS.probEvent_uniform_truncateHash_mem
     (univ.filter fun d : Digest => (decodeDigest d).isSome)]
-  apply probEvent_congr'
-  · intro u _
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-  · rfl
+  exact prEvent_congr _ _ _ fun u => by simp only [Finset.mem_filter, Finset.mem_univ, true_and]
 
 /-- One trial rejects at most `1 - 2 ^ -14` of the answers. -/
 theorem failMass_encoding_add_le :
@@ -39,18 +39,16 @@ theorem failMass_encoding_add_le :
   have hnat : (2 : Nat) ^ 114 ≤ accepted := haccepted ▸ two_pow_le_card_accepting
   have hcard : (Fintype.card Digest : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 128 := by
     rw [show Fintype.card Digest = 2 ^ 128 by simp [digestBits], Nat.cast_pow, Nat.cast_ofNat]
-  have hcompl := probEvent_compl ($ᵗ HashOutput : ProbComp HashOutput)
-    (fun u => (decodeDigest (truncateHash u)).isSome)
-  have hreject : Pr[fun u : HashOutput => ¬ (decodeDigest (truncateHash u)).isSome = true |
-      ($ᵗ HashOutput : ProbComp HashOutput)]
+  have hcompl : Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[(decodeDigest (truncateHash u)).isSome]
+      + Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ (decodeDigest (truncateHash u)).isSome = true]
+      = 1 := by
+    rw [OracleComp.prEvent_not_eq_one_sub]
+    exact add_tsub_cancel_of_le (prEvent_le_one _)
+  have hreject : Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[¬ (decodeDigest (truncateHash u)).isSome = true]
       = failMass (fun out => decodeDigest (truncateHash out)) := by
     rw [failMass_eq_probEvent]
-    apply probEvent_congr'
-    · intro u _
-      cases decodeDigest (truncateHash u) <;> simp
-    · rfl
-  have hfail : Pr[⊥ | ($ᵗ HashOutput : ProbComp HashOutput)] = 0 := by simp
-  rw [hreject, probEvent_accept, hfail, tsub_zero, hcard, haccepted] at hcompl
+    exact prEvent_congr _ _ _ fun u => by cases decodeDigest (truncateHash u) <;> simp
+  rw [hreject, probEvent_accept, hcard, haccepted] at hcompl
   have hshare : ((2 : ℝ≥0∞) ^ 14)⁻¹ ≤ (accepted : ℝ≥0∞) / (2 : ℝ≥0∞) ^ 128 := by
     rw [ENNReal.le_div_iff_mul_le (Or.inl (by simp)) (Or.inl (by simp)),
       show (2 : ℝ≥0∞) ^ 128 = 2 ^ 14 * 2 ^ 114 by rw [← pow_add],

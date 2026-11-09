@@ -1,6 +1,10 @@
-import FORS.Classification.Verifier
-import FORS.Classification.Wots
-import FORS.Classification.Fors
+module
+
+public import FORS.Classification.Verifier
+public import FORS.Classification.Wots
+public import FORS.Classification.Fors
+
+@[expose] public section
 
 /-!
 The interface of deterministic extraction from an accepted candidate signature: its index and

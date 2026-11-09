@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.EncodingLemmas
-import XmssSecurity.Proof.RandomOracle
+module
+
+public import XmssSecurity.Proof.EncodingLemmas
+public import XmssSecurity.Proof.RandomOracle
+
+@[expose] public section
 
 namespace XmssSecurity
 

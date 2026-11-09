@@ -1,5 +1,9 @@
-import FORS.LazyRun.GraphRows
-import FORS.Base.Prelude
+module
+
+public import FORS.LazyRun.GraphRows
+public import FORS.Base.Prelude
+
+@[expose] public section
 
 /-! Exact independent-coordinate decomposition of the material secret table and the graph's
 full-output labels. Every hidden digest is extracted from a distinct actual sampled answer;
@@ -12,7 +16,6 @@ variable [Params]
 open Graph SeedModel UniformTableSplit
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 
 abbrev SampleCell := SecretPosition ⊕ Position
@@ -70,11 +73,11 @@ noncomputable def splitCoordinateRows :
     (funext fun coordinate => congrArg Prod.snd (Prefix.split_combine (pair.1 coordinate) (pair.2 coordinate)))
 
 theorem uniform_coordinate_rows :
-    PMF.uniformOfFintype (Coordinate → HashOutput) =
-      (PMF.uniformOfFintype Table).bind (fun lows =>
-        (PMF.uniformOfFintype CoordinateHighs).map
+    Cslib.Probability.PMF.uniformOfFintype (Coordinate → HashOutput) =
+      (Cslib.Probability.PMF.uniformOfFintype Table).bind (fun lows =>
+        (Cslib.Probability.PMF.uniformOfFintype CoordinateHighs).map
           (fun highs coordinate => Prefix.combine (lows coordinate) (highs coordinate))) := by
-  have h := PMF.uniformOfFintype_map_of_bijective splitCoordinateRows.symm splitCoordinateRows.symm.bijective
+  have h := Cslib.Probability.PMF.uniformOfFintype_map_of_bijective splitCoordinateRows.symm splitCoordinateRows.symm.bijective
   rw [uniform_product, PMF.map_bind] at h
   simpa only [PMF.map_comp, Function.comp_def, splitCoordinateRows, Equiv.coe_fn_symm_mk] using h.symm
 
@@ -96,10 +99,10 @@ theorem assemble_remaining (lows : Table) (highs : CoordinateHighs) (remaining :
 
 /-- All low coordinates, high halves, and other sampled answers are independent. -/
 theorem uniform_joined_outputs :
-    PMF.uniformOfFintype JoinedOutputs =
-      (PMF.uniformOfFintype Table).bind (fun lows =>
-        (PMF.uniformOfFintype CoordinateHighs).bind (fun highs =>
-          (PMF.uniformOfFintype RemainingOutputs).map (assemble lows highs))) := by
+    Cslib.Probability.PMF.uniformOfFintype JoinedOutputs =
+      (Cslib.Probability.PMF.uniformOfFintype Table).bind (fun lows =>
+        (Cslib.Probability.PMF.uniformOfFintype CoordinateHighs).bind (fun highs =>
+          (Cslib.Probability.PMF.uniformOfFintype RemainingOutputs).map (assemble lows highs))) := by
   rw [uniform_join coordinateCell coordinateCell_injective, uniform_coordinate_rows]
   simp only [PMF.bind_bind, PMF.bind_map, Function.comp_def]
   rfl
@@ -115,14 +118,14 @@ theorem joinedPair_bijective : Function.Bijective joinedPair :=
 /-- This is the actual product sampling used by material preparation and graph presampling,
 decomposed into the independent coordinate table required by the stopped reveal experiment. -/
 theorem uniform_material_graph_outputs :
-    (PMF.uniformOfFintype SecretOutputs).bind (fun secrets =>
-      (PMF.uniformOfFintype CanonicalGraphLabels).map (fun labels => (secrets, labels))) =
-      (PMF.uniformOfFintype Table).bind (fun lows =>
-        (PMF.uniformOfFintype CoordinateHighs).bind (fun highs =>
-          (PMF.uniformOfFintype RemainingOutputs).map
+    (Cslib.Probability.PMF.uniformOfFintype SecretOutputs).bind (fun secrets =>
+      (Cslib.Probability.PMF.uniformOfFintype CanonicalGraphLabels).map (fun labels => (secrets, labels))) =
+      (Cslib.Probability.PMF.uniformOfFintype Table).bind (fun lows =>
+        (Cslib.Probability.PMF.uniformOfFintype CoordinateHighs).bind (fun highs =>
+          (Cslib.Probability.PMF.uniformOfFintype RemainingOutputs).map
             (fun remaining => joinedPair (assemble lows highs remaining)))) := by
   rw [← uniform_product]
-  rw [← PMF.uniformOfFintype_map_of_bijective joinedPair joinedPair_bijective, uniform_joined_outputs]
+  rw [← Cslib.Probability.PMF.uniformOfFintype_map_of_bijective joinedPair joinedPair_bijective, uniform_joined_outputs]
   simp only [PMF.map_bind, PMF.map_comp, Function.comp_def]
 
 def otsFromOutputs (outputs : SecretOutputs) (lay : Layer) (tree : TreeIndex)
@@ -175,40 +178,44 @@ noncomputable def sampleSplitPair : ProbComp (SecretOutputs × CanonicalGraphLab
   let highs ← $ᵗ CoordinateHighs
   (fun remaining => joinedPair (assemble lows highs remaining)) <$> ($ᵗ RemainingOutputs)
 
-private theorem lift_pmf_bind {α β : Type} (distribution : PMF α) (next : α → PMF β) :
-    (liftM (distribution.bind next) : SPMF β) =
-      (liftM distribution >>= fun value => liftM (next value)) := liftM_bind distribution next
-
-private theorem lift_pmf_map {α β : Type} (distribution : PMF α) (next : α → β) :
-    (liftM (distribution.map next) : SPMF β) = next <$> liftM distribution := liftM_map next distribution
+private theorem uniformSample_evalDistEq_pmf (T : Type) [Fintype T] [Nonempty T] [SampleableType T] :
+    ($ᵗ T : ProbComp T) =ᵈ Cslib.Probability.PMF.uniformOfFintype T := by
+  refine evalDistEq_iff_forall_prEvent_eq_output.mpr fun x => ?_
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, PMF.probOutput_eq_apply,
+    Cslib.Probability.PMF.uniformOfFintype_apply]
 
 /-- The probability-program version uses the very secret and graph sampling instances of
 the seeded-material and graph-preparation modules. -/
 theorem evalDist_sampleSplitPair :
-    𝒟[($ᵗ SecretOutputs) >>= fun secrets =>
-      (fun labels => (secrets, labels)) <$> ($ᵗ CanonicalGraphLabels)] =
-        𝒟[sampleSplitPair] := by
-  have h := congrArg (fun distribution : PMF (SecretOutputs × CanonicalGraphLabels) =>
-    (liftM distribution : SPMF (SecretOutputs × CanonicalGraphLabels))) uniform_material_graph_outputs
-  simp only [lift_pmf_bind, lift_pmf_map] at h
-  simp only [sampleSplitPair, evalDist_bind, evalDist_map, evalDist_uniformSample]
-  exact h
+    (($ᵗ SecretOutputs) >>= fun secrets =>
+      (fun labels => (secrets, labels)) <$> ($ᵗ CanonicalGraphLabels)) =ᵈ sampleSplitPair := by
+  have hl : (($ᵗ SecretOutputs) >>= fun secrets =>
+      (fun labels => (secrets, labels)) <$> ($ᵗ CanonicalGraphLabels)) =ᵈ
+      ((Cslib.Probability.PMF.uniformOfFintype SecretOutputs).bind fun secrets =>
+        (Cslib.Probability.PMF.uniformOfFintype CanonicalGraphLabels).map fun labels => (secrets, labels)) :=
+    (uniformSample_evalDistEq_pmf _).bind fun _ => (uniformSample_evalDistEq_pmf _).map _
+  have hr : sampleSplitPair =ᵈ ((Cslib.Probability.PMF.uniformOfFintype Table).bind fun lows =>
+      (Cslib.Probability.PMF.uniformOfFintype CoordinateHighs).bind fun highs =>
+        (Cslib.Probability.PMF.uniformOfFintype RemainingOutputs).map
+          fun remaining => joinedPair (assemble lows highs remaining)) :=
+    (uniformSample_evalDistEq_pmf _).bind fun _ => (uniformSample_evalDistEq_pmf _).bind fun _ =>
+      (uniformSample_evalDistEq_pmf _).map _
+  rw [uniform_material_graph_outputs] at hl
+  exact hl.trans hr.symm
 
 /-- The public-parameter and `SK.prf` answers remain independently sampled outside the
 coordinate split. This is an exact law of the actual prepared material and independently
 sampled graph labels. -/
 theorem evalDist_sampleMaterial_graph :
-    𝒟[sampleMaterial >>= fun material =>
-      (fun labels => (material, labels)) <$> ($ᵗ CanonicalGraphLabels)] =
-      𝒟[($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
-        (fun pair => (((parameterOutput, prf), pair.1), pair.2)) <$> sampleSplitPair] := by
+    (sampleMaterial >>= fun material =>
+      (fun labels => (material, labels)) <$> ($ᵗ CanonicalGraphLabels)) =ᵈ
+      (($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
+        (fun pair => (((parameterOutput, prf), pair.1), pair.2)) <$> sampleSplitPair) := by
   simp only [sampleMaterial, bind_assoc, pure_bind]
-  apply evalDist_bind_congr'
-  intro parameterOutput
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro prf
-  have h := evalDist_map_eq_of_evalDist_eq evalDist_sampleSplitPair
+  refine EvalDistEq.bind_right _ fun parameterOutput => ?_
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  refine EvalDistEq.bind_right _ fun prf => ?_
+  have h := EvalDistEq.map evalDist_sampleSplitPair
     (fun pair : SecretOutputs × CanonicalGraphLabels => (((parameterOutput, prf), pair.1), pair.2))
   simpa only [map_bind, Functor.map_map, Function.comp_def] using h
 
@@ -216,11 +223,10 @@ theorem evalDist_sampleMaterial_graph :
 can follow the exact material/coordinate decomposition. -/
 theorem evalDist_material_graph_continuation {α : Type}
     (next : Material → CanonicalGraphLabels → ProbComp α) :
-    𝒟[sampleMaterial >>= fun material => ($ᵗ CanonicalGraphLabels) >>= next material] =
-      𝒟[($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
-        sampleSplitPair >>= fun pair => next ((parameterOutput, prf), pair.1) pair.2] := by
-  have h := congrArg (fun distribution : SPMF (Material × CanonicalGraphLabels) =>
-    distribution >>= fun pair => evalDist (next pair.1 pair.2)) evalDist_sampleMaterial_graph
-  simpa only [← evalDist_bind, bind_assoc, bind_map_left] using h
+    (sampleMaterial >>= fun material => ($ᵗ CanonicalGraphLabels) >>= next material) =ᵈ
+      (($ᵗ HashOutput) >>= fun parameterOutput => ($ᵗ HashOutput) >>= fun prf =>
+        sampleSplitPair >>= fun pair => next ((parameterOutput, prf), pair.1) pair.2) := by
+  have h := evalDist_sampleMaterial_graph.bind_left (fun pair => next pair.1 pair.2)
+  simpa only [bind_assoc, bind_map_left] using h
 
 end FORS.Security.HiddenGraph

@@ -1,4 +1,8 @@
-import FORS.SmallBudget.Linear.Run
+module
+
+public import FORS.SmallBudget.Linear.Run
+
+@[expose] public section
 
 /-! **The linear potential on the small-budget route: the sample's setting.** The targeting,
 context and payoff of the linear potential for the sample's comparison, started from the prepared
@@ -97,7 +101,7 @@ theorem ctxA_sec : ∀ x, SecondOrderInput (ctxA parameterOutput fixed highs rem
     (ctxA parameterOutput fixed highs remaining prepared known ρ).R x →
     (ctxA parameterOutput fixed highs remaining prepared known ρ).tg.kind x = .none := by
   intro x hx
-  exact if_pos hx
+  exact ite_eq_left hx
 
 theorem ctxA_msg : ∀ x, ForsSigner.IsMsgInput x →
     (ctxA parameterOutput fixed highs remaining prepared known ρ).tg.kind x = .none := by
@@ -135,7 +139,7 @@ theorem pot_start (K : Ctx) (known : Knowledge Coordinate) (_hρ : 0 ≤ K.ρ) (
   have hfr : ∀ x u, ¬K.Fr (DebtState.start K.initial known) x u := fun x u => fr_start K known x u
   have hCB : ∀ l i, K.ContactB (DebtState.start K.initial known) l i = ∅ := fun l i => by
     ext v
-    simp only [Ctx.ContactB, Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
+    simp only [Ctx.ContactB, Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
     rintro ⟨x, u, -, h, -⟩
     exact hfr x u h
   have hMk : ∀ l i, ¬K.Marker (DebtState.start K.initial known) l i := fun l i ⟨_, _, u, _, h, _⟩ => hfr _ u h
@@ -151,7 +155,7 @@ theorem pot_start (K : Ctx) (known : Knowledge Coordinate) (_hρ : 0 ≤ K.ρ) (
       simp at hne
   have hdone : K.done (DebtState.start K.initial known) = 0 := by
     unfold Ctx.done
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro (hr | ⟨l, -, hb⟩)
     · rcases hr with ⟨input, output, value, hcache, hinitial, -⟩ | ⟨c, v, -, hv⟩
       · change K.initial input = some output at hcache
@@ -169,7 +173,7 @@ theorem pot_start (K : Ctx) (known : Knowledge Coordinate) (_hρ : 0 ≤ K.ρ) (
     · rfl
   have hUA : K.UAset (DebtState.start K.initial known) = ∅ := by
     ext x
-    simp only [Ctx.UAset, Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
+    simp only [Ctx.UAset, Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
     rintro ⟨l, i, u, -, -, h, -⟩
     exact hfr x u h
   have hrate : K.rate (DebtState.start K.initial known) = ENNReal.ofReal K.ρ := by
@@ -189,7 +193,7 @@ theorem pot_start (K : Ctx) (known : Knowledge Coordinate) (_hρ : 0 ≤ K.ρ) (
       unfold Ctx.kf
       simp [hcw]
     unfold Ctx.rate Ctx.vrate
-    rw [if_neg hA, hC, hKF, mul_zero, add_zero, add_zero]
+    rw [ite_eq_right hA, hC, hKF, mul_zero, add_zero, add_zero]
   have hlat : K.latent (DebtState.start K.initial known) = 0 := by
     unfold Ctx.latent Ctx.ng Ctx.pp
     simp [hcw]

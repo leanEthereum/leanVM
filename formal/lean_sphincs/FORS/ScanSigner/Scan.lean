@@ -1,6 +1,10 @@
-import FORS.ScanSigner.AfterSigning
-import FORS.ScanSigner.Group
-import FORS.CoverPotential.Presample
+module
+
+public import FORS.ScanSigner.AfterSigning
+public import FORS.ScanSigner.Group
+public import FORS.CoverPotential.Presample
+
+@[expose] public section
 
 /-! The scan signer `R = R0 + i δ` in the interpreted lazy run: from a start, the weight of the signed
 pair is at most the walk value of `LoopWalk` over the digest cache of the message (cached landed
@@ -30,8 +34,7 @@ theorem nextRand_pow (half : Randomness) (j : ℕ) (ρ : Randomness) :
   induction j with
   | zero => simp
   | succ j ih =>
-      rw [pow_succ', Equiv.Perm.mul_apply, ih, nextRand_apply]
-      push_cast
+      rw [pow_succ', Equiv.Perm.mul_apply, ih, nextRand_apply, Nat.cast_succ]
       ring
 
 /-- The scan does not return to a randomizer within `2^128` steps. -/
@@ -40,8 +43,7 @@ theorem nextRand_pow_ne (half ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < 
   obtain ⟨i, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by omega⟩
   have h := walk_iterate_ne half ρ i hj
   rwa [walk_iterate, show ρ + walkStep half + (i : Randomness) * walkStep half =
-    ρ + ((i + 1 : ℕ) : Randomness) * walkStep half by push_cast; ring, ← nextRand_pow] at h
-
+    ρ + ((i + 1 : ℕ) : Randomness) * walkStep half by rw [Nat.cast_succ]; ring, ← nextRand_pow] at h
 
 theorem signCostSourceLoop_succ (parameter : PublicParameter) (data : PublicData) (message : Message)
     (attempts : ℕ) (randomness : Randomness) :
@@ -57,10 +59,6 @@ section Pairs
 
 variable (parameter : PublicParameter) (data : PublicData) (message : Message)
 
-/-- The index block of a randomizer is the block of its first call. -/
-theorem blk_eq_pblk (ρ : Randomness) :
-    blk parameter data message ρ = pblk parameter data message ρ firstCall := rfl
-
 /-- Blocks of distinct randomizers differ, whatever their calls. -/
 theorem pblk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') (call call' : DigestCall) :
     pblk parameter data message ρ call ≠ pblk parameter data message ρ' call' := fun heq =>
@@ -74,16 +72,6 @@ def PairInv (state : DebtState HashInput HashOutput Coordinate) : Prop :=
       ∀ call, state.cache (pblk parameter data message ρ call) = none) ∧
     (∀ u0, state.cache (blk parameter data message ρ) = some u0 → Landed parameter (blockIndex u0) →
       ∀ call, (state.cache (pblk parameter data message ρ call)).isSome)
-
-/-- **The first half of the pair invariant**: a pair whose index block is uncached is wholly
-uncached. A signing call preserves this half whether or not it completes. -/
-def PairFresh (state : DebtState HashInput HashOutput Coordinate) : Prop :=
-  ∀ ρ, state.cache (blk parameter data message ρ) = none →
-    ∀ call, state.cache (pblk parameter data message ρ call) = none
-
-theorem pairFresh_of_pairInv {state : DebtState HashInput HashOutput Coordinate}
-    (hinv : PairInv parameter data message state) : PairFresh parameter data message state :=
-  fun ρ => (hinv ρ).1
 
 /-- Storing a rejected index block keeps the pair invariant: its pair is no longer fresh, and it
 does not land. -/
@@ -212,41 +200,41 @@ theorem trial_boundS
     (cont : OracleComp CostSpec (Option Signature))
     (hih : ∀ s', Related parameter data message reference s' → PairInv parameter data message s' →
       (∀ x, (∀ call, x ≠ pblk parameter data message ρ call) → s'.cache x = state.cache x) → ∀ b,
-        ∑' out, Pr[= out | interp tg initial model cont b s'] * W out.1.1 out.2 ≤ bound)
+        ∑' out, Pr{let x ← interp tg initial model cont b s'}[x = out] * W out.1.1 out.2 ≤ bound)
     (budget : ℕ) :
-    ∑' out, Pr[= out | interp tg initial model
+    ∑' out, Pr{let x ← (interp tg initial model
         (liftM (CostSpec.query (.inl (.inr (.inl (blk parameter data message ρ))))) >>= fun first =>
           if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
-          else cont) budget state] *
+          else cont) budget state)}[x = out] *
         W out.1.1 out.2 ≤
       (state.cache (blk parameter data message ρ)).elim
-        (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+        (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
           (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound))
         (fun u0 => if Landed parameter (blockIndex u0) then poolValue parameter data message reference gp ρ
           else bound) := by
   have hfinish : ∀ (s' : DebtState HashInput HashOutput Coordinate) (u : DigestCall → HashOutput) (b : ℕ),
       RelatedOff parameter data message reference s' ρ →
       (∀ call, s'.cache (pblk parameter data message ρ call) = some (u call)) →
-      ∑' out, Pr[= out | interp tg initial model (finishCostSource parameter data message ρ) b s'] *
+      ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message ρ) b s'}[x = out] *
           W out.1.1 out.2 ≤ pairWeight parameter data message reference gf gp ρ u := by
     intro s' u b hrel' hs'
     refine le_trans (ENNReal.tsum_le_tsum fun out => ?_) (finish_boundAll tg initial model parameter data message ρ
       (hparse ρ) s' u hs' _ b)
     by_cases hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')
     · exact mul_le_mul_right (hWfin s' u b hrel' hs' out hout) _
-    · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
+    · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
   rw [interp_ordinary]
   split_ifs with h1
   · rw [ordinaryStep, hparse ρ firstCall]
     simp only
-    rw [tsum_probOutput_bind_mul]
-    simp only [tsum_probOutput_map_mul]
+    rw [OracleComp.tsum_prEvent_bind_mul]
+    simp only [OracleComp.tsum_prEvent_map_mul]
     cases hc : state.cache (blk parameter data message ρ) with
     | some u0 =>
-        rw [readOutside_cached _ state u0 hc, tsum_probOutput_pure_mul]
+        rw [readOutside_cached _ state u0 hc, OracleComp.tsum_prEvent_pure_mul]
         simp only [Option.elim]
         by_cases hl : Landed parameter (blockIndex u0)
-        · rw [if_pos hl, if_pos hl]
+        · rw [ite_eq_left hl, ite_eq_left hl]
           obtain ⟨u, hu, hucall⟩ :=
             pcache_of_isSome parameter data message state ρ ((hinv ρ).2 u0 hc hl)
           have hu0 : u firstCall = u0 := Option.some_inj.1 ((hucall firstCall).symm.trans hc)
@@ -260,19 +248,19 @@ theorem trial_boundS
             unfold poolValue
             rw [hpcsame.trans hu]
             simp only [Option.elim, hu0]
-            rw [if_pos hl]
+            rw [ite_eq_left hl]
           have hpw : pairWeight parameter data message reference gf gp ρ u = gp ρ (viewOf u) := by
             unfold pairWeight
-            rw [if_neg (by rw [href]; simp)]
+            rw [ite_eq_right (by rw [href]; simp)]
           rw [hpv, ← hpw]
           exact hfinish state u _ (fun ρ' _ => hrel ρ') hucall
-        · rw [if_neg hl, if_neg hl]
+        · rw [ite_eq_right hl, ite_eq_right hl]
           exact hih state hrel hinv (fun _ _ => rfl) _
     | none =>
         have hfresh : ∀ call, state.cache (pblk parameter data message ρ call) = none := (hinv ρ).1 hc
         have href : reference.cache (blk parameter data message ρ) = none := by
           rw [← hpair firstCall]; exact hc
-        rw [readOutside_fresh _ state hc, tsum_probOutput_map_mul]
+        rw [readOutside_fresh _ state hc, OracleComp.tsum_prEvent_map_mul]
         simp only [Option.elim]
         refine le_trans (interp_presample_new tg initial model (pblk parameter data message ρ)
           (pblk_injective parameter data message ρ) (hkind ρ) firstCall
@@ -286,20 +274,20 @@ theorem trial_boundS
         rw [hcard]
         refine mul_le_mul' le_rfl (Finset.sum_le_sum fun u _ => ?_)
         by_cases hl : Landed parameter (blockIndex (u firstCall))
-        · rw [if_pos hl, if_pos hl]
+        · rw [ite_eq_left hl, ite_eq_left hl]
           have hall : ∀ call, (storeAll (pblk parameter data message ρ) u state).cache
               (pblk parameter data message ρ call) = some (u call) :=
             fun call => storeAll_cache_self _ (pblk_injective parameter data message ρ) u state call
           have hpw : pairWeight parameter data message reference gf gp ρ u = gf (viewOf u) := by
             unfold pairWeight
-            rw [if_pos href, if_pos hl]
+            rw [ite_eq_left href, ite_eq_left hl]
           rw [← hpw]
           exact hfinish _ u _ (relatedOff_storeAll parameter data message reference state hrel ρ u) hall
-        · rw [if_neg hl, if_neg hl]
+        · rw [ite_eq_right hl, ite_eq_right hl]
           exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
             (pairInv_storeAll parameter data message state hinv ρ u hl)
             (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     rw [hWabort]
     exact zero_le
 
@@ -329,7 +317,7 @@ theorem scan_boundW
       (∀ i, i < attempts → ∀ call,
         state.cache (pblk parameter data message ((nextRand (data.steps message) ^ i) ρ) call) =
         reference.cache (pblk parameter data message ((nextRand (data.steps message) ^ i) ρ) call)) →
-      ∑' out, Pr[= out | interp tg initial model (signCostSourceLoop parameter data message (data.step message) attempts ρ) budget state] *
+      ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message (data.step message) attempts ρ) budget state}[x = out] *
           W out.1.1 out.2 ≤
         walk (nextRand (data.steps message)) ForsPrice.landing (stOf parameter data message reference)
           (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts ρ := by
@@ -337,8 +325,8 @@ theorem scan_boundW
   induction attempts with
   | zero =>
       intro _ budget state ρ hrel _ _
-      change ∑' out, Pr[= out | interp tg initial model (pure none) budget state] * W out.1.1 out.2 ≤ _
-      rw [interp_pure, tsum_probOutput_pure_mul]
+      change ∑' out, Pr{let x ← interp tg initial model (pure none) budget state}[x = out] * W out.1.1 out.2 ≤ _
+      rw [interp_pure, OracleComp.tsum_prEvent_pure_mul]
       change W (some none) state ≤ _
       rw [hWnone state hrel]
       exact bot_le
@@ -347,7 +335,7 @@ theorem scan_boundW
       rw [signCostSourceLoop_succ]
       have hnext : ∀ s', Related parameter data message reference s' → PairInv parameter data message s' →
           (∀ x, (∀ call, x ≠ pblk parameter data message ρ call) → s'.cache x = state.cache x) → ∀ b,
-          ∑' out, Pr[= out | interp tg initial model (signCostSourceLoop parameter data message (data.step message) attempts (nextRand (data.steps message) ρ)) b s'] *
+          ∑' out, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data message (data.step message) attempts (nextRand (data.steps message) ρ)) b s'}[x = out] *
             W out.1.1 out.2 ≤
           walk (nextRand (data.steps message)) ForsPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
@@ -372,25 +360,25 @@ theorem scan_boundW
           set bound := walk (nextRand (data.steps message)) ForsPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
             (nextRand (data.steps message) ρ)
-          have hsplit : (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+          have hsplit : (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
               (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound)) =
-              (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) +
-              bound * ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              bound * ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then 0 else 1) := by
             rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
             refine tsum_congr fun u => ?_
             split_ifs
-            · simp
-            · simp [mul_comm]
+            · simp [-SampleableType.prEvent_uniformSample]
+            · simp [-SampleableType.prEvent_uniformSample, mul_comm]
           rw [hsplit, unlanded_mass parameter, fresh_view_mean parameter gf, mul_comm bound]
       | some u0 =>
           simp only [Option.elim]
           by_cases hl : Landed parameter (blockIndex u0)
           · have hst : stOf parameter data message reference ρ = .hit := by simp [stOf, hc, hl]
-            rw [walk_succ_hit _ _ _ _ hst, if_pos hl]
+            rw [walk_succ_hit _ _ _ _ hst, ite_eq_left hl]
           · have hst : stOf parameter data message reference ρ = .miss := by simp [stOf, hc, hl]
-            rw [walk_succ_miss _ _ _ _ hst, if_neg hl]
+            rw [walk_succ_miss _ _ _ _ hst, ite_eq_right hl]
 
 end Scan
 
@@ -446,7 +434,7 @@ theorem scan_post (hparse : ∀ ρ call, model.parse (pblk parameter data messag
                 prepared_store initial s hprep _ u hc0⟩
         obtain ⟨hb0, hb0s, hrest, hprep1⟩ := hstep
         by_cases hl : Landed parameter (blockIndex res.1)
-        · rw [if_pos hl] at ho
+        · rw [ite_eq_left hl] at ho
           obtain ⟨u, hu0s, hpc, hfother, hfrev, hfsig, hffail⟩ :=
             finish_post tg initial model parameter data message hparse Fail hfail ρ _ res.2 hprep1 o ho r hr
           have hufirst : u firstCall = res.1 := by
@@ -460,7 +448,7 @@ theorem scan_post (hparse : ∀ ρ call, model.parse (pblk parameter data messag
               (hrest _ (blk_ne_of_ne parameter data message hρ')))
           · obtain ⟨hrv, hfl⟩ := hffail hn
             exact ⟨hrv, fun _ => hfl⟩
-        · rw [if_neg hl] at ho
+        · rw [ite_eq_right hl] at ho
           have hrel1 : ∀ ρ', RelatedAt parameter data message s res.2 ρ' := by
             intro ρ'
             by_cases hρ : ρ' = ρ
@@ -521,69 +509,6 @@ theorem finish_pcache (hparse : ∀ ρ call, model.parse (pblk parameter data me
   rw [hst, (interp_extends tg initial model _ b s2 o ho).1 _ _ (hs2 call)]
   rfl
 
-/-- **The scan keeps fresh pairs whole**, whether or not it completes: a trial caches the index
-block of its own pair alone, and the final assembly reads only the pair it signs. -/
-theorem scan_pairFresh (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none) :
-    ∀ attempts budget (s : DebtState HashInput HashOutput Coordinate) (ρ : Randomness),
-      PairFresh parameter data message s →
-      ∀ out ∈ support (interp tg initial model (signCostSourceLoop parameter data message (data.step message) attempts ρ) budget s),
-        PairFresh parameter data message out.2 := by
-  intro attempts
-  induction attempts with
-  | zero =>
-      intro budget s ρ hfresh out hout
-      change out ∈ support (interp tg initial model (pure none) budget s) at hout
-      rw [interp_pure, support_pure, Set.mem_singleton_iff] at hout
-      rw [hout]
-      exact hfresh
-  | succ attempts ih =>
-      intro budget s ρ hfresh out hout
-      rw [signCostSourceLoop_succ, interp_ordinary] at hout
-      split_ifs at hout with h1
-      · rw [ordinaryStep, hparse ρ firstCall] at hout
-        simp only at hout
-        rw [support_bind] at hout
-        obtain ⟨res, hres, hout⟩ := Set.mem_iUnion₂.1 hout
-        rw [support_map] at hout
-        obtain ⟨o, ho, rfl⟩ := hout
-        show PairFresh parameter data message o.2
-        have hstep : res.2.cache (blk parameter data message ρ) = some res.1 ∧
-            (∀ x, x ≠ blk parameter data message ρ → res.2.cache x = s.cache x) := by
-          cases hc0 : s.cache (blk parameter data message ρ) with
-          | some v =>
-              rw [readOutside_cached _ s v hc0, support_pure, Set.mem_singleton_iff] at hres
-              rw [hres]
-              exact ⟨hc0, fun _ _ => rfl⟩
-          | none =>
-              rw [readOutside_fresh _ s hc0, support_map] at hres
-              obtain ⟨v, _, rfl⟩ := hres
-              exact ⟨by simp [DebtState.store], fun x hx => store_cache_ne s _ x hx v⟩
-        obtain ⟨hb0, hrest⟩ := hstep
-        have hfresh1 : PairFresh parameter data message res.2 := by
-          intro ρ' hρ' call
-          by_cases hρ : ρ' = ρ
-          · exact absurd hρ' (by rw [hρ, hb0]; simp)
-          · exact (hrest _ (pblk_ne_of_ne parameter data message hρ call firstCall)).trans
-              (hfresh ρ' ((hrest _ (blk_ne_of_ne parameter data message hρ)).symm.trans hρ') call)
-        by_cases hl : Landed parameter (blockIndex res.1)
-        · rw [if_pos hl] at ho
-          have hkeep := finish_keeps_msg tg initial model parameter data message ρ (budget - 1) res.2 o ho
-          intro ρ' hρ' call
-          by_cases hρ : ρ' = ρ
-          · rw [hρ] at hρ'
-            exact absurd (((interp_extends tg initial model _ (budget - 1) res.2 o ho).1 _ _ hb0).symm.trans hρ')
-              (by simp)
-          · have hcall : ∀ c, o.2.cache (pblk parameter data message ρ' c) =
-                res.2.cache (pblk parameter data message ρ' c) := fun c =>
-              hkeep _ (msgInput_digestInput parameter data.root message ρ' c)
-                fun c' => pblk_ne_of_ne parameter data message hρ c c'
-            exact (hcall call).trans (hfresh1 ρ' ((hcall firstCall).symm.trans hρ') call)
-        · rw [if_neg hl] at ho
-          exact ih _ res.2 _ hfresh1 o ho
-      · rw [support_pure, Set.mem_singleton_iff] at hout
-        rw [hout]
-        exact hfresh
-
 /-- **The scan keeps the pair invariant** of a call that completes. An aborted call can leave a
 landed pair half read, so the second half of the invariant needs the result. -/
 theorem scan_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none) :
@@ -625,7 +550,7 @@ theorem scan_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data mes
               exact ⟨by simp [DebtState.store], fun x hx => store_cache_ne s _ x hx v, Or.inr rfl⟩
         obtain ⟨hb0, hrest, hres2⟩ := hstep
         by_cases hl : Landed parameter (blockIndex res.1)
-        · rw [if_pos hl] at ho
+        · rw [ite_eq_left hl] at ho
           have hkeep := finish_keeps_msg tg initial model parameter data message ρ (budget - 1) res.2 o ho
           have hall := finish_pcache tg initial model parameter data message hparse ρ (budget - 1) res.2 o ho
             (by rw [hr]; simp)
@@ -646,7 +571,7 @@ theorem scan_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data mes
               fun v h0 hland call => ?_⟩
             rw [hcall call]
             exact (hinv ρ').2 v ((hcall firstCall).symm.trans h0) hland call
-        · rw [if_neg hl] at ho
+        · rw [ite_eq_right hl] at ho
           have hinv1 : PairInv parameter data message res.2 := by
             rcases hres2 with h | h
             · rw [h]; exact hinv
@@ -655,18 +580,6 @@ theorem scan_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data mes
       · rw [support_pure, Set.mem_singleton_iff] at hout
         rw [hout] at hr
         cases hr
-
-/-- **The scan signer keeps fresh pairs whole.** -/
-theorem source_pairFresh (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
-    (budget : ℕ) (s : DebtState HashInput HashOutput Coordinate)
-    (hfresh : PairFresh parameter data message s) :
-    ∀ out ∈ support (interp tg initial model (signCostSource parameter data message) budget s),
-      PairFresh parameter data message out.2 := by
-  intro out hout
-  unfold signCostSource at hout
-  rw [interp_liftProb_bind, support_bind] at hout
-  obtain ⟨ρ, _, hout⟩ := Set.mem_iUnion₂.1 hout
-  exact scan_pairFresh tg initial model parameter data message hparse _ budget s ρ hfresh out hout
 
 /-- **The scan signer keeps the pair invariant** of a call that completes. -/
 theorem source_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)

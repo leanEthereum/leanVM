@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

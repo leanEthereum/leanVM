@@ -1,4 +1,8 @@
-import FORS.Scheme.Bytes
+module
+
+public import FORS.Scheme.Bytes
+
+@[expose] public section
 
 /-! The signature's byte layout: the randomizer, then per FORS tree the secret and the `a` auth
 nodes, then per layer from the bottom up the WOTS+C counter, chain values and authentication path,
@@ -24,12 +28,12 @@ def serializeSignature (signature : Signature) : List UInt8 :=
 
 theorem serializeTree_length (opening : TreeOpening) :
     (serializeTree opening).length = 16 * (forsHeight + 1) := by
-  simp only [serializeTree, List.length_append, bytesLE_length, ofFn_flatMap_bytesLE_length]
+  simp only [serializeTree, List.length_append, bytesLE_digest_length, ofFn_flatMap_bytesLE_length]
   ring
 
 theorem serializeLayer_length {lay : Layer} (part : LayerSignature lay) :
     (serializeLayer part).length = 1028 + 16 * layerHeight lay := by
-  simp only [serializeLayer, List.length_append, bytesBE_length, ofFn_flatMap_bytesLE_length]
+  simp only [serializeLayer, List.length_append, ofFn_flatMap_bytesLE_length]
   change 4 + 16 * 64 + 16 * layerHeight lay = _
   omega
 
@@ -48,12 +52,12 @@ theorem sum_layerHeight : ∑ lay : Layer, layerHeight lay = totalHeight := by
     unfold layerHeight
     by_cases h : lay.val = 0
     · have hl : lay = topLayer := Fin.ext h
-      rw [if_pos h, if_pos hl]
+      rw [ite_eq_left h, ite_eq_left hl]
       omega
     · have hl : lay ≠ topLayer := fun e => h (congrArg Fin.val e)
-      rw [if_neg h, if_neg hl, Nat.add_zero]
+      rw [ite_eq_right h, ite_eq_right hl, Nat.add_zero]
   rw [Finset.sum_congr rfl fun lay _ => hsplit lay, Finset.sum_add_distrib, Finset.sum_const,
-    Finset.card_univ, Fintype.card_fin, smul_eq_mul, Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+    Finset.card_univ, Fintype.card_fin, smul_eq_mul, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
   unfold maxLayerHeight at hmax ⊢
   have : lowerHeight * numLayers = lowerHeight * (numLayers - 1) + lowerHeight := by
     rw [← Nat.mul_succ]; congr 1; omega
@@ -74,7 +78,7 @@ theorem layerUp_bijective : Function.Bijective fun k : Fin numLayers => layerUp 
 theorem signature_size (signature : Signature) :
     (serializeSignature signature).length =
       16 + 16 * forsTrees * (forsHeight + 1) + 1028 * numLayers + 16 * totalHeight := by
-  simp only [serializeSignature, List.length_append, bytesLE_length, List.length_flatten,
+  simp only [serializeSignature, List.length_append, bytesLE, List.length_ofFn, List.length_flatten,
     List.map_ofFn, Function.comp_def, serializeTree_length, serializeLayer_length, List.sum_ofFn,
     Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
   rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul,

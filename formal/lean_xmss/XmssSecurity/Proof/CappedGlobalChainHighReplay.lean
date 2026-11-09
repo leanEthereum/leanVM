@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
-import XmssSecurity.Proof.ObservedTraceMonitor
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
+public import XmssSecurity.Proof.ObservedTraceMonitor
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -7,7 +11,6 @@ open OracleComp.ProgramLogic.Relational
 namespace XmssSecurity.CappedChain
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -48,7 +51,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafRedirect
   simp only [globalFilteredCausalUncachedAttackerHashPlan]
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
-  rw [hhidden, if_pos hmatch, hkeygen]
+  rw [hhidden, ite_eq_left hmatch, hkeygen]
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -66,11 +69,10 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   simp only [globalFilteredCausalUncachedAttackerHashPlan]
   rw [globalFilteredCausalLeafHashPlan, globalLeafInputData?_leafInput]
   simp only
-  rw [hhidden, if_neg hmatch]
+  rw [hhidden, ite_eq_right hmatch]
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem globalLeaf_not_match_endpoint_miss
     (table : GlobalChainValueIndex → Digest)
@@ -217,7 +219,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
 
 
 set_option maxRecDepth 10000000
-set_option maxHeartbeats 2000000
 
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -334,7 +335,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
@@ -468,7 +468,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
 
 
 set_option maxRecDepth 10000000
-set_option maxHeartbeats 2000000
 
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
@@ -820,9 +819,9 @@ theorem globalMonitoredFilteredStateRelation_initial
   refine ⟨AdaptiveRevealMonitor.State.empty, ?_,
     RevealProbeOracleSimulation.stateAgrees_empty right.2, ?_, hstate,
       hretained⟩
-  · simp [GlobalMonitoredCausalState.observed,
-      RevealProbeOracleSimulation.advanceObserved,
-      RevealProbeOracleSimulation.tableHits, hnoHit]
+  · simp only [GlobalMonitoredCausalState.observed, RevealProbeOracleSimulation.advanceObserved]
+    rw [RevealProbeOracleSimulation.tableHits, decide_eq_false hnoHit]
+    rfl
   funext index
   simp [AdaptiveRevealMonitor.State.empty, hhidden index]
 

@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Merkle
-import XmssSecurity.Proof.SecurityBudget
-import XmssSecurity.Proof.WotsExtraction
+module
+
+public import XmssSecurity.Proof.Merkle
+public import XmssSecurity.Proof.SecurityBudget
+public import XmssSecurity.Proof.WotsExtraction
+
+@[expose] public section
 
 namespace XmssSecurity
 

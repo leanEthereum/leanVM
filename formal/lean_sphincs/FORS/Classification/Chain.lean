@@ -1,4 +1,8 @@
-import FORS.Classification.Tree
+module
+
+public import FORS.Classification.Tree
+
+@[expose] public section
 
 /-! Chain divergence and prefix-inversion contacts on the actual verifier query trace.
 No hash-injectivity assumption is used. -/
@@ -81,7 +85,7 @@ theorem honestChain_succ (position : Nat) (hposition : position < chainLength - 
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨position, hposition⟩)
           ((bytesLE 16) (honestChain f parameter lay tree leaf chainIdx secret position)))) := by
-  simp only [honestChain, chainWalk, evalWithAnswerFn_bind, Nat.zero_add, dif_pos hposition,
+  simp only [honestChain, chainWalk, evalWithAnswerFn_bind, Nat.zero_add, dite_eq_left hposition,
     Completeness.eval_tweakableHash]
 
 theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat)
@@ -90,7 +94,7 @@ theorem walkValue_succ (start : Nat) (value : Digest) (steps : Nat)
       = truncateHash (f (tweakableHashInput parameter
           (.chain lay tree leaf chainIdx ⟨start + steps, hrange⟩)
           ((bytesLE 16) (walkValue f parameter lay tree leaf chainIdx start value steps)))) := by
-  simp only [walkValue, chainWalk, evalWithAnswerFn_bind, dif_pos hrange, Completeness.eval_tweakableHash]
+  simp only [walkValue, chainWalk, evalWithAnswerFn_bind, dite_eq_left hrange, Completeness.eval_tweakableHash]
 
 /-- A hit at a chain step: something other than the honest value at `position` hashing to the honest
 value at `position + 1`. -/

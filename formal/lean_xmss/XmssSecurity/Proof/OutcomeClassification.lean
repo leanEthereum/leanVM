@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.ConcreteCorrectness
-import XmssSecurity.Proof.DetailedExecution
+module
+
+public import XmssSecurity.Proof.ConcreteCorrectness
+public import XmssSecurity.Proof.DetailedExecution
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators

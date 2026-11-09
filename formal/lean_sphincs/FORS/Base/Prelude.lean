@@ -1,41 +1,46 @@
-import Batteries.Data.Fin.Coding
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.FreeMonoid.Basic
-import Mathlib.Algebra.Group.Hom.End
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Combinatorics.Enumerative.InclusionExclusion
-import Mathlib.Combinatorics.Enumerative.Stirling
-import Mathlib.Data.BitVec
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.List.GetD
-import Mathlib.Data.List.Infix
-import Mathlib.Data.List.Sort
-import Mathlib.Data.Nat.Bitwise
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Data.Set.Card.Arithmetic
-import Mathlib.Order.Interval.Finset.Fin
-import Mathlib.Probability.Distributions.Poisson.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Tactic.DeriveFintype
-import Mathlib.Tactic.IrreducibleDef
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.QueryBound
-import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
-import VCVio.OracleComp.QueryTracking.RandomOracle.EagerTable
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import VCVio.OracleComp.QueryTracking.SubSpec
-import VCVio.OracleComp.QueryTracking.WriterCost
-import VCVio.ProgramLogic.Relational.ProgrammingOracle
-import VCVio.ProgramLogic.Relational.Quantitative
+module
+
+public import Batteries.Data.Fin.Coding
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.FreeMonoid.Basic
+public import Mathlib.Algebra.Group.Hom.End
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Combinatorics.Enumerative.InclusionExclusion
+public import Mathlib.Combinatorics.Enumerative.Stirling
+public import Mathlib.Data.BitVec
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.List.GetD
+public import Mathlib.Data.List.Infix
+public import Mathlib.Data.List.Sort
+public import Mathlib.Data.Nat.Bitwise
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Data.Set.Card.Arithmetic
+public import Mathlib.Order.Interval.Finset.Fin
+public import Mathlib.Probability.Distributions.Poisson.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Tactic.DeriveFintype
+public import Mathlib.Tactic.IrreducibleDef
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.QueryBound
+public import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+public import VCVio.OracleComp.QueryTracking.RandomOracle.EagerTable
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.SubSpec
+public import VCVio.OracleComp.QueryTracking.WriterCost
+public import VCVio.ProgramLogic.Relational.ProgrammingOracle
+public import VCVio.ProgramLogic.Relational.Quantitative
+public import FORS.Base.Probability
+
+@[expose] public section
 
 /-!
 Generic oracle and sampling lemmas the proof uses: counting selected queries (`QueryCap.counted`),
@@ -74,7 +79,7 @@ theorem counted_query (input : spec.Domain) :
   change (do
     let answer ← liftM (spec.query input)
     pure (answer, (if selected input then 1 else 0) + 0)) = _
-  simp only [Nat.add_zero, bind_pure_comp]
+  simp only [Nat.add_zero, pure_bind, bind_pure_comp]
 
 theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
     (impl : QueryImpl spec m) (computation : OracleComp spec α) :
@@ -85,7 +90,7 @@ theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
   | query_bind input next ih =>
       simp only [counted_query_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_pure, ih,
         WriterT.run_bind]
-      simp [QueryImpl.withAddCost, QueryImpl.withCost, QueryImpl.withTraceBefore_apply,
+      simp [QueryImpl.withAddCost, QueryImpl.withCost,
         WriterT.run_bind, WriterT.run_liftM, WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc]
       rfl
 
@@ -152,45 +157,45 @@ noncomputable def join (embed : Index → Cell) (hinj : Function.Injective embed
   exact congrFun h cell
 
 theorem uniform_product {Left Right : Type} [Fintype Left] [Fintype Right] [Nonempty Left] [Nonempty Right] :
-    PMF.uniformOfFintype (Left × Right) =
-      (PMF.uniformOfFintype Left).bind (fun left => (PMF.uniformOfFintype Right).map (fun right => (left, right))) := by
+    Cslib.Probability.PMF.uniformOfFintype (Left × Right) =
+      (Cslib.Probability.PMF.uniformOfFintype Left).bind (fun left => (Cslib.Probability.PMF.uniformOfFintype Right).map (fun right => (left, right))) := by
   classical
-  letI : DecidableEq Left := Classical.decEq Left
-  letI : DecidableEq Right := Classical.decEq Right
+  let : DecidableEq Left := Classical.decEq Left
+  let : DecidableEq Right := Classical.decEq Right
   apply PMF.ext
   rintro ⟨left, right⟩
   have hmap : ∀ a : Left,
-      (PMF.uniformOfFintype Right).map (fun b => (a, b)) (left, right) =
-        if a = left then PMF.uniformOfFintype Right right else 0 := by
+      (Cslib.Probability.PMF.uniformOfFintype Right).map (fun b => (a, b)) (left, right) =
+        if a = left then Cslib.Probability.PMF.uniformOfFintype Right right else 0 := by
     intro a
     rw [PMF.map_apply]
     by_cases ha : a = left
     · subst a
-      rw [if_pos rfl, tsum_eq_single right]
-      · rw [if_pos rfl]
+      rw [ite_eq_left rfl, tsum_eq_single right]
+      · rw [ite_eq_left rfl]
       · intro b hb
-        exact if_neg (fun h => hb (congrArg Prod.snd h).symm)
-    · rw [if_neg ha]
+        exact ite_eq_right (fun h => hb (congrArg Prod.snd h).symm)
+    · rw [ite_eq_right ha]
       apply ENNReal.tsum_eq_zero.mpr
       intro b
-      exact if_neg (fun h => ha (congrArg Prod.fst h).symm)
+      exact ite_eq_right (fun h => ha (congrArg Prod.fst h).symm)
   rw [PMF.bind_apply]
   simp only [hmap, mul_ite, mul_zero]
   rw [tsum_eq_single left]
-  · simp only [if_true, PMF.uniformOfFintype_apply]
+  · simp only [ite_true, Cslib.Probability.PMF.uniformOfFintype_apply]
     rw [Fintype.card_prod, Nat.cast_mul, ENNReal.mul_inv (by simp) (by simp)]
   · intro a ha
-    exact if_neg ha
+    exact ite_eq_right ha
 
 variable [Fintype Index] [Fintype Cell] [Fintype Answer] [Nonempty Answer]
   [DecidableEq Index] [DecidableEq Cell]
 
 theorem uniform_join (embed : Index → Cell) (hinj : Function.Injective embed) :
-    PMF.uniformOfFintype (Cell → Answer) =
-      (PMF.uniformOfFintype (Index → Answer)).bind (fun rows =>
-        (PMF.uniformOfFintype (Outside embed → Answer)).map (join embed hinj rows)) := by
+    Cslib.Probability.PMF.uniformOfFintype (Cell → Answer) =
+      (Cslib.Probability.PMF.uniformOfFintype (Index → Answer)).bind (fun rows =>
+        (Cslib.Probability.PMF.uniformOfFintype (Outside embed → Answer)).map (join embed hinj rows)) := by
   unfold join
-  have h := PMF.uniformOfFintype_map_of_bijective (split (Answer := Answer) embed hinj).symm
+  have h := Cslib.Probability.PMF.uniformOfFintype_map_of_bijective (split (Answer := Answer) embed hinj).symm
     (split embed hinj).symm.bijective
   rw [uniform_product, PMF.map_bind] at h
   simpa only [PMF.map_comp, Function.comp_def] using h.symm
@@ -206,14 +211,13 @@ variable {Cell Answer : Type} [DecidableEq Cell] [_root_.Finite Cell] [_root_.Fi
 
 theorem evalDist_table_extract {Result : Type} (cell : Cell)
     (next : (Cell → Answer) → Answer → ProbComp Result) :
-    𝒟[do let table ← ($ᵗ (Cell → Answer) : ProbComp _); next table (table cell)] =
-      𝒟[do
+    (do let table ← ($ᵗ (Cell → Answer) : ProbComp _); next table (table cell)) =ᵈ (do
         let answer ← ($ᵗ Answer : ProbComp _)
         let table ← ($ᵗ (Cell → Answer) : ProbComp _)
-        next (Function.update table cell answer) answer] := by
-  have h := congrArg (fun distribution : SPMF (Cell → Answer) =>
-    distribution >>= fun table => 𝒟[next table (table cell)])
-    (evalDist_uniformSample_bind_update (R := Answer) cell)
-  simpa only [evalDist_bind, bind_assoc, evalDist_pure, pure_bind, Function.update_self] using h.symm
+        next (Function.update table cell answer) answer) := by
+  let : MeasurableSpace Answer := ⊤
+  let : MeasurableSpace Result := ⊤
+  exact EvalDistEq.of_evalDist_eq <| evalDist_bind_cell_extract ($ᵗ Answer) ($ᵗ (Cell → Answer))
+    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample cell next
 
 end FORS.FiniteGraphSampling

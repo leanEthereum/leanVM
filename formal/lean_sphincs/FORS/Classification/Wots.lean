@@ -1,5 +1,11 @@
-import FORS.Classification.Chain
-import FORS.Classification.Encoding
+module
+
+public import FORS.Classification.Chain
+public import FORS.Classification.Encoding
+
+@[expose] public section
+
+set_option backward.isDefEq.respectTransparency false
 
 /-! WOTS+C extraction from the actual verifier trace.
 The exceptional cases remain explicit: leaf or forward-chain output matches, two linked prefix

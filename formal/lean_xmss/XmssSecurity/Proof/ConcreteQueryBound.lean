@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.HashAddress
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.HashAddress
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -279,61 +283,6 @@ theorem Concrete.leafAt_queryBound_zero_merkleAddress
   exact Concrete.tweakableHash_queryBound_atOtherAddress parameter
     (.merkle targetLevel targetNode) (.leaf leafIndex)
     (Concrete.leafPayload endpoints) (by simp)
-
-theorem Concrete.chainWalk_queryBound_zero_encodingAddress
-    (parameter : PublicParameter) (leafIndex targetLeafIndex : LeafIndex)
-    (chain : ChainIndex) (position steps : Nat) (value : Digest) :
-    (Concrete.chainWalk parameter leafIndex chain position steps value :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (AtHashAddress parameter (.encoding targetLeafIndex)) 0 := by
-  apply Concrete.chainWalk_queryBound_zero_of_avoids
-  simp
-
-theorem Concrete.oneTimePublicKey_queryBound_zero_encodingAddress
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (leafIndex targetLeafIndex : LeafIndex) :
-    (Concrete.oneTimePublicKey parameter secret leafIndex :
-      OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP
-        (AtHashAddress parameter (.encoding targetLeafIndex)) 0 := by
-  rw [Concrete.oneTimePublicKey]
-  exact Concrete.sequenceFin_queryBound_zero _ _ fun chain =>
-    Concrete.chainWalk_queryBound_zero_encodingAddress parameter leafIndex targetLeafIndex
-      chain 0 (chainLength - 1) (secret leafIndex chain)
-
-theorem Concrete.leafAt_queryBound_zero_encodingAddress
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (leafIndex targetLeafIndex : LeafIndex) :
-    (Concrete.leafAt parameter secret leafIndex : OracleComp HashSpec Digest).IsQueryBoundP
-      (AtHashAddress parameter (.encoding targetLeafIndex)) 0 := by
-  rw [Concrete.leafAt]
-  refine OracleComp.isQueryBoundP_bind (m := 0)
-    (Concrete.oneTimePublicKey_queryBound_zero_encodingAddress parameter secret leafIndex
-      targetLeafIndex) ?_
-  intro endpoints _
-  exact Concrete.tweakableHash_queryBound_atOtherAddress parameter
-    (.encoding targetLeafIndex) (.leaf leafIndex) (Concrete.leafPayload endpoints) (by simp)
-
-theorem Concrete.treeNode_queryBound_zero_encodingAddress
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (targetLeafIndex : LeafIndex) (levels : Nat) (node : MerkleNode) :
-    (Concrete.treeNode parameter secret levels node :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (AtHashAddress parameter (.encoding targetLeafIndex)) 0 := by
-  induction levels generalizing node with
-  | zero =>
-      rw [Concrete.treeNode_zero_eq]
-      exact Concrete.leafAt_queryBound_zero_encodingAddress parameter secret node targetLeafIndex
-  | succ levels ih =>
-      rw [Concrete.treeNode_succ_eq]
-      refine OracleComp.isQueryBoundP_bind (m := 0) (ih _) ?_
-      intro left _
-      refine OracleComp.isQueryBoundP_bind (m := 0) (ih _) ?_
-      intro right _
-      split
-      · exact Concrete.tweakableHash_queryBound_atOtherAddress parameter
-          (.encoding targetLeafIndex) (.merkle ⟨levels, by assumption⟩ node)
-          (Concrete.nodePayload left right) (by simp)
-      · simp
 
 theorem Concrete.encodingHash_queryBound_zero_at_other_input
     (parameter : PublicParameter) (leafIndex : LeafIndex)

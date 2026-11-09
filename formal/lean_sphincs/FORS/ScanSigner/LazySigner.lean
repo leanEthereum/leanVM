@@ -1,5 +1,9 @@
-import FORS.LazyRun.Presample
-import FORS.CoverPotential.Price
+module
+
+public import FORS.LazyRun.Presample
+public import FORS.CoverPotential.Price
+
+@[expose] public section
 
 /-! The signer inside the interpreted lazy comparison. Lifted private randomness is drawn as is;
 lifted hash computations that avoid a set of inputs leave the cache unchanged there. These are
@@ -85,14 +89,14 @@ theorem avoids_bind (avoid : D → Prop) {α β : Type} {first : OracleComp (Sou
 
 omit [Fintype ι] [SampleableType R] in
 theorem avoids_tick (avoid : D → Prop) (amount : ℕ) :
-    Avoids avoid (tick (D := D) (R := R) (ι := ι) amount) := by
+    Avoids avoid (tick (H := Empty) (D := D) (R := R) (ι := ι) amount) := by
   unfold tick
-  rw [← bind_pure (liftM ((SourceCostSpec D R ι).query (.inr amount)))]
+  rw [← bind_pure (liftM ((SourceCostSpec D R ι).query (.inr (.inl amount))))]
   exact (avoids_query_bind avoid _ _).2 ⟨fun bytes h => (by cases h), fun _ => trivial⟩
 
 omit [Fintype ι] [SampleableType R] in
 theorem avoids_reveal (avoid : D → Prop) (coordinate : ι) :
-    Avoids avoid (reveal (D := D) (R := R) coordinate) := by
+    Avoids avoid (reveal (H := Empty) (D := D) (R := R) coordinate) := by
   unfold reveal
   rw [← bind_pure (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inr coordinate)))))]
   exact (avoids_query_bind avoid _ _).2 ⟨fun bytes h => (by cases h), fun _ => trivial⟩
@@ -150,7 +154,7 @@ theorem interp_avoids_cache (avoid : D → Prop) {α : Type} (computation : Orac
         obtain ⟨result, hresult, inner, hinner, rfl⟩ := hout
         rw [ih result.1 (hnext result.1) _ result.2 inner hinner x hx]
         -- one step keeps the avoided entry
-        rcases input with (draw | (bytes | coordinate)) | amount
+        rcases input with (draw | (bytes | coordinate)) | (amount | honest)
         · change result ∈ support ((fun v => (v, state)) <$> (liftM (unifSpec.query draw) : ProbComp _)) at hresult
           rw [support_map] at hresult
           obtain ⟨v, _, rfl⟩ := hresult
@@ -181,6 +185,7 @@ theorem interp_avoids_cache (avoid : D → Prop) {α : Type} (computation : Orac
         · change result ∈ support (pure ((), state) : ProbComp _) at hresult
           rw [support_pure, Set.mem_singleton_iff] at hresult
           rw [hresult]
+        · exact Empty.elim honest
       · rw [support_pure, Set.mem_singleton_iff] at hout
         rw [hout]
 
@@ -193,7 +198,7 @@ theorem interp_ordinary {β : Type} (x : D) (next : R → OracleComp (SourceCost
     interp tg initial model (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl x)))) >>= next) budget state =
       if 1 ≤ budget then ordinaryStep model x state.known state >>= fun result =>
         (fun out => ((out.1.1, out.1.2.1, Sum.inl x :: out.1.2.2.1,
-          touch tg initial state (.inl (.inr (.inl x))) ++ out.1.2.2.2), out.2)) <$>
+          touch (H := Empty) tg initial state (.inl (.inr (.inl x))) ++ out.1.2.2.2), out.2)) <$>
             interp tg initial model (next result.1) (budget - 1) result.2
       else pure ((none, [], [], []), state) := by
   rw [interp_query_bind]
@@ -246,5 +251,36 @@ theorem interp_result_mem {α : Type} (computation : OracleComp (SourceCostSpec 
       · rw [support_pure, Set.mem_singleton_iff] at hout
         rw [hout] at hv
         cases hv
+
+/-! ### With honest reads
+
+The same facts for the cost interface with honest reads (`SourceCostSpec D R ι H`): an honest read
+is answered by the comparison step of its raw input, so it keeps an avoided entry exactly as an
+ordinary read of an input outside the avoided set does. -/
+
+section Honest
+
+variable {H : Type} [HonestInputs H D]
+
+omit [Fintype ι] in
+/-- A private draw is drawn directly and changes nothing else, with honest reads. -/
+theorem interp_drawH {β : Type} (draw : ℕ)
+    (next : Fin (draw + 1) → OracleComp (SourceCostSpec D R ι H) β) (budget : ℕ) (state : DebtState D R ι) :
+    interp tg initial model (liftM ((SourceCostSpec D R ι H).query (.inl (.inl draw))) >>= next) budget state =
+      (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1))) >>= fun value =>
+        interp tg initial model (next value) budget state := by
+  rw [interp_query_bind]
+  split_ifs with h
+  · change ((fun v => (v, state)) <$> (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))) >>=
+        (fun result => (fun out : Run D ι β × DebtState D R ι => ((out.1.1, [] ++ out.1.2.1, [] ++ out.1.2.2.1,
+          [] ++ out.1.2.2.2), out.2)) <$> interp tg initial model (next result.1) (budget - 0) result.2) = _
+    rw [bind_map_left]
+    refine bind_congr fun value => ?_
+    simp only [List.nil_append, Nat.sub_zero]
+    rw [show (fun out : Run D ι β × DebtState D R ι =>
+        ((out.1.1, out.1.2.1, out.1.2.2.1, out.1.2.2.2), out.2)) = id from rfl, id_map]
+  · exact absurd (Nat.zero_le budget) h
+
+end Honest
 
 end FORS.Security.HiddenDebt

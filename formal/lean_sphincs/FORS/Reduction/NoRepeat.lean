@@ -1,4 +1,8 @@
-import FORS.Statement
+module
+
+public import FORS.Statement
+
+@[expose] public section
 
 /-! Programs and adversaries that never request a signature on the same message twice (the
 definitions only, so that their users do not depend on the potential modules). -/

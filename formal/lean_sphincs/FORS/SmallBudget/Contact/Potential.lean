@@ -1,4 +1,8 @@
-import FORS.SmallBudget.Contact.Weights
+module
+
+public import FORS.SmallBudget.Contact.Weights
+
+@[expose] public section
 
 /-! **The FORS contact potential (A4).** A recorded FORS leaf query is a contact with weight
 `cw` (one if decided, `2^-128` while its written coordinate is unexposed). It is *settled*
@@ -33,12 +37,12 @@ attribute [local instance] Classical.propDecidable
 /-! ### Capped expectations -/
 
 theorem tsum_min_leF {α : Type} (mx : ProbComp α) (X : α → ℝ≥0∞) :
-    ∑' a, Pr[= a | mx] * min 1 (X a) ≤ min 1 (∑' a, Pr[= a | mx] * X a) := by
+    ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ min 1 (∑' a, Pr{let x ← mx}[x = a] * X a) := by
   refine le_min ?_ (ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_right _ _) _)
-  calc ∑' a, Pr[= a | mx] * min 1 (X a) ≤ ∑' a, Pr[= a | mx] * 1 :=
+  calc ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ ∑' a, Pr{let x ← mx}[x = a] * 1 :=
         ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_left _ _) _
-    _ = ∑' a, Pr[= a | mx] := by simp only [mul_one]
-    _ ≤ 1 := tsum_probOutput_le_one
+    _ = ∑' a, Pr{let x ← mx}[x = a] := by simp only [mul_one]
+    _ ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
 
 theorem pairE_min_leF (F : (DigestCall → HashOutput) → ℝ≥0∞) :
     pairE (fun a => min 1 (F a)) ≤ min 1 (pairE F) :=
@@ -319,8 +323,8 @@ theorem potNF_newPair (hw : wbar ≤ 1) {s : State} {P : List Pair} {Ms : List M
       potNF K data wbar Fail s P Ms L d (j + 1) := by
   unfold potNF potG
   by_cases hL : False ∨ signatureLimit < L.length
-  · simp only [if_pos hL, pairE_const, le_refl]
-  · simp only [if_neg hL]
+  · simp only [ite_eq_left hL, pairE_const, le_refl]
+  · simp only [ite_eq_right hL]
     have h := coreG_newPair wbar 0 Fail witnessNear_props hw ENNReal.zero_ne_top hP hM hp0 L hrate d
       (signatureLimit - L.length) j
     rwa [add_zero] at h
@@ -358,198 +362,9 @@ theorem coinPotF_newPair {s : State} {Ms : List Message} (hM : MInv K.p data s M
         ring
     _ ≤ _ := by gcongr
 
-/-- **A new pair.** With as many landed pairs of unsigned messages as the cap the potential is at
-least one; otherwise the coin pays the creation rate. -/
-theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot ≤ Cmax) :
-    NewPairPaysF K data Qtot model (psiF K data wbar κ Fail Lmax) := by
-  intro budget s P Ms L d R hb hB p hp0
-  have hw := hfair.le_one
-  set ℓ := (livePairs L P).length with hℓ
-  by_cases hcap : 1 ≤ lam Lmax ℓ budget
-  · refine Or.inl (le_trans hcap ?_)
-    unfold psiF psiCoreF
-    exact le_add_self
-  refine Or.inr ?_
-  have hlen : ℓ ≤ Lmax := by
-    by_contra hlt
-    exact hcap (one_le_lam (by omega) budget)
-  have hrate : MsgLive L p.1 → Rate K.p data wbar s p.1 := fun hlive =>
-    rate_of_fair hfair s p.1 (by have := hB.count p.1; omega) (le_trans (landedCount_le hB.pinv L hlive) hlen)
-  have hM := hB.minv
-  obtain ⟨y, rfl⟩ : ∃ y, budget = y + 1 := ⟨budget - 1, by omega⟩
-  simp only [Nat.add_sub_cancel]
-  -- the cap term keeps its mean
-  have hlam : pairE (fun u => lam Lmax (livePairs L (addPair K.p P p u)).length y) ≤ lam Lmax ℓ (y + 1) := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y =
-          if Landed K.p (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) y else lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, if_pos (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      exact le_of_eq (lam_newPair K.p Lmax ℓ y)
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y = lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, if_neg (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.le_succ y)
-  unfold psiF psiCoreF
-  rw [pairE_add]
-  refine add_le_add ?_ hlam
-  by_cases hL : signatureLimit < L.length
-  · simp only [if_pos hL, pairE_const, le_refl]
-  simp only [if_neg hL]
-  have hfresh : ∀ call, s.cache (pblk K.p data p call) = none := hB.pinv.first p hp0
-  have hi : ∀ call, K.initial (pblk K.p data p call) = none := fun call =>
-    initial_none_of_fresh K.initial s hB.inv.prepared _ (hfresh call)
-  have hnf : ∀ (call : DigestCall) (f : FIn), pblk K.p data p call ≠ f.input K.p := fun call f =>
-    msg_ne_fleaf (msgInput_digestInput K.p data.root p.1 p.2 call)
-  have hw' : ∀ (g : FIn → ℝ≥0∞) u, K.wsum g (withPair K.p data s p u) = K.wsum g s := fun g u =>
-    K.wsum_storeAll_other g _ u s (pblk_call_injective K.p data p) hfresh hi hnf
-  set wS := K.wsum (gA R 0) s with hwS
-  set wU := K.wsum (fun f => if Settled R f then 0 else 1) s with hwU
-  have hpt : ∀ u, K.wsum (gA R (coefU K data wbar Fail (withPair K.p data s p u) (addPair K.p P p u)
-        (addMsg Ms p.1) L d y)) (withPair K.p data s p u) =
-      wS + wU * (sigRiskF L + coinRiskF K data (withPair K.p data s p u) (addMsg Ms p.1) L y +
-        min 1 (potNF K data wbar Fail (withPair K.p data s p u) (addPair K.p P p u) (addMsg Ms p.1) L d y)) := by
-    intro u
-    rw [hw', wsum_gA]
-    rfl
-  simp only [hpt]
-  rw [pairE_add, pairE_add, pairE_add, pairE_const, pairE_const_mul, pairE_add, pairE_add, pairE_const,
-    pairE_const_mul, pairE_sum_range]
-  have h0 := coinPotF_newPair K data hM L p hp0 y
-  have h1 := coinRiskF_newPair K data hM L p hp0 y
-  have h2 : pairE (fun u => min 1 (potNF K data wbar Fail (withPair K.p data s p u) (addPair K.p P p u)
-      (addMsg Ms p.1) L d y)) ≤ min 1 (potNF K data wbar Fail s P Ms L d (y + 1)) :=
-    le_trans (pairE_min_leF _)
-      (min_le_min le_rfl (potNF_newPair K data wbar Fail hw hB.pinv hM hp0 L hrate d y))
-  have h3 : ∑ j ∈ Finset.range y, pairE (fun u =>
-      potNF K data wbar Fail (withPair K.p data s p u) (addPair K.p P p u) (addMsg Ms p.1) L d j) ≤
-      ∑ j ∈ Finset.range (y + 1), potNF K data wbar Fail s P Ms L d j := by
-    rw [Finset.sum_range_succ']
-    exact le_trans (Finset.sum_le_sum fun j _ =>
-      potNF_newPair K data wbar Fail hw hB.pinv hM hp0 L hrate d j) le_self_add
-  rw [wsum_gA K R (coefU K data wbar Fail s P Ms L d (y + 1)) s, ← hwS, ← hwU]
-  unfold coefU
-  gcongr
-
 end NewPair
 
 /-! ### Any other ordinary query -/
-
-section Ordinary
-
-variable (K : Ctx) (data : PublicData) (wbar κ : ℝ≥0∞) (Fail : Finset (Fin (2 ^ subtreeHeight))) (Qtot : ℕ)
-  (model : HiddenRows.Model HashInput HashOutput Address Coordinate)
-
-/-- **Any other ordinary query**, paying `2^-128 (N rate) + payB` at a FORS leaf input, once
-`2^-128 ≤ payB + κ 2^-128`. -/
-theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActive K.p))
-    (hMi : model.incoming = Address.inputCoordinate) (hw : wbar ≤ 1) {payB : ℝ≥0∞}
-    (hκ : ν ≤ payB + κ * ν) (Lmax : ℕ) :
-    OrdinaryPaysF K data Qtot model (IsFleafIn K.p) (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB)
-      (psiF K data wbar κ Fail Lmax) := by
-  intro budget s P Ms L d R hb hB x hnew
-  obtain ⟨y, rfl⟩ : ∃ y, budget = y + 1 := ⟨budget - 1, by omega⟩
-  simp only [Nat.add_sub_cancel]
-  have hmass : ∑' r, Pr[= r | ordinaryStep model x s.known s] = 1 := by simp
-  unfold psiF psiCoreF
-  simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
-  rw [add_right_comm]
-  refine add_le_add ?_ (lam_mono le_rfl (Nat.le_succ y))
-  by_cases hL : signatureLimit < L.length
-  · simp only [if_pos hL, mul_zero, tsum_zero, zero_le]
-  simp only [if_neg hL]
-  set C0 := coefU K data wbar Fail s P Ms L d y with hC0
-  set Q := potNF K data wbar Fail s P Ms L d y with hQ
-  set S := ∑ j ∈ Finset.range y, potNF K data wbar Fail s P Ms L d j with hS
-  set f1 : ℝ≥0∞ := if IsFleafIn K.p x then 1 else 0 with hf1
-  have hpt : ∀ r ∈ support (ordinaryStep model x s.known s),
-      K.wsum (gA R (coefU K data wbar Fail r.2 P Ms L d y)) r.2 + coinPotF K data r.2 Ms L y +
-          κ * ν * ∑ j ∈ Finset.range y, potNF K data wbar Fail r.2 P Ms L d j ≤
-        K.wsum (gA R C0) r.2 + coinPotF K data s Ms L y + κ * ν * S := by
-    intro r hr
-    have hext := ordinaryStep_extends model x s r hr
-    have hblocks := same_blocks (parameter := K.p) (data := data) hext (ordinaryStep_cache_ne model x s r hr) hnew
-    have hcalls : ∀ q : Pair, LandedIn K.p data s q → ∀ call,
-        r.2.cache (pblk K.p data q call) = s.cache (pblk K.p data q call) := by
-      intro q hq call
-      obtain ⟨w, hw⟩ := Option.ne_none_iff_exists'.1 (hB.pinv.all q hq call)
-      rw [hw]
-      exact hext.1 _ w hw
-    have hcoin : coinRiskF K data r.2 Ms L y = coinRiskF K data s Ms L y := by
-      unfold coinRiskF
-      simp only [offMass_blocks hblocks]
-    have hgrow : ∀ j, potNF K data wbar Fail r.2 P Ms L d j ≤ potNF K data wbar Fail s P Ms L d j := fun j =>
-      potG_grow wbar 0 Fail witnessNear_props (fun _ _ _ h => h) hw ENNReal.zero_ne_top hext hblocks
-        hcalls (fun q hq => (hB.pinv.mem q).1 hq) Ms L d le_rfl
-    have hcoinP : coinPotF K data r.2 Ms L y = coinPotF K data s Ms L y := by
-      unfold coinPotF
-      simp only [offMass_blocks hblocks]
-    refine add_le_add (add_le_add (wsum_mono_g K (fun f => gA_mono R ?_ f) r.2) (le_of_eq hcoinP))
-      (mul_le_mul_right (Finset.sum_le_sum fun j _ => hgrow j) _)
-    rw [hC0]; unfold coefU; rw [hcoin]
-    gcongr
-    exact hgrow y
-  have hC : ∀ f : FIn, x = f.input K.p → s.known f.inC = none → gA R C0 f ≤ C0 := by
-    intro f _ hk
-    unfold gA
-    rw [if_neg (not_settled_of_unknown hB.rinv hk)]
-  have hmean := K.wsum_ordinary model hMp hMi hB.inv hB.gc x (gA R C0) C0 hC
-  have hf1le : f1 ≤ 1 := by rw [hf1]; split_ifs <;> simp
-  have hC0le : ν * C0 * f1 ≤ (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 + ν * coinRiskF K data s Ms L y +
-      κ * ν * Q := by
-    have hsig : sigRiskF L ≤ (signatureLimit : ℝ≥0∞) * revRate := by
-      unfold sigRiskF
-      gcongr
-      exact_mod_cast Nat.sub_le _ _
-    calc ν * C0 * f1 = (ν * sigRiskF L + ν * min 1 Q) * f1 + ν * coinRiskF K data s Ms L y * f1 := by
-          rw [hC0]; unfold coefU; ring
-      _ ≤ (ν * ((signatureLimit : ℝ≥0∞) * revRate) + (payB + κ * ν * Q)) * f1 + ν * coinRiskF K data s Ms L y * 1 := by
-          gcongr
-          exact capped_splitF hκ Q
-      _ = (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 + ν * coinRiskF K data s Ms L y +
-            κ * ν * Q * f1 := by ring
-      _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_right' hf1le)
-  calc _ ≤ ∑' r, Pr[= r | ordinaryStep model x s.known s] *
-        (K.wsum (gA R C0) r.2 + coinPotF K data s Ms L y + κ * ν * S) := by
-        refine ENNReal.tsum_le_tsum fun r => ?_
-        by_cases hr : r ∈ support (ordinaryStep model x s.known s)
-        · exact mul_le_mul_right (hpt r hr) _
-        · rw [probOutput_eq_zero_of_not_mem_support hr, zero_mul, zero_mul]
-    _ = ∑' r, Pr[= r | ordinaryStep model x s.known s] * K.wsum (gA R C0) r.2 +
-          (coinPotF K data s Ms L y + κ * ν * S) := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
-        ring
-    _ ≤ (K.wsum (gA R C0) s + ν * C0 * f1) + (coinPotF K data s Ms L y + κ * ν * S) :=
-        add_le_add hmean le_rfl
-    _ ≤ K.wsum (gA R C0) s + ((ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 +
-          ν * coinRiskF K data s Ms L y + κ * ν * Q) + (coinPotF K data s Ms L y + κ * ν * S) := by
-        gcongr
-    _ = K.wsum (gA R C0) s + (coinPotF K data s Ms L y + ν * coinRiskF K data s Ms L y) + κ * ν * (S + Q) +
-          (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 := by ring
-    _ ≤ K.wsum (gA R (coefU K data wbar Fail s P Ms L d (y + 1))) s +
-          coinPotF K data s Ms L (y + 1) +
-          κ * ν * ∑ j ∈ Finset.range (y + 1), potNF K data wbar Fail s P Ms L d j +
-          (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * f1 := by
-        rw [Finset.sum_range_succ, ← coinPotF_succ]
-        gcongr
-        refine wsum_mono_g K (fun f => gA_mono R ?_ f) s
-        rw [hC0]; unfold coefU
-        gcongr
-        · exact coinRiskF_mono K data s Ms L (Nat.le_succ y)
-        · exact potNF_mono K data wbar Fail hw s P (fun q hq => (hB.pinv.mem q).1 hq) Ms L d
-            (Nat.le_succ y)
-
-end Ordinary
 
 /-! ### The start -/
 
@@ -561,7 +376,7 @@ theorem potNF_start (known : HiddenReveal.Knowledge Coordinate) (total : ℕ) :
     potNF K data wbar Fail (DebtState.start K.initial known) [] [] [] 0 total =
       total * (startNearF wbar total + failMass Fail) + signatureLimit * failMass Fail := by
   unfold potNF potG
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   unfold coreG
   simp only [List.map_nil, List.sum_nil, zero_add, List.length_nil, Nat.sub_zero]
   rfl
@@ -579,11 +394,11 @@ theorem psiF_start (Lmax : ℕ) (known : HiddenReveal.Knowledge Coordinate) (tot
         κ * ν * ∑ j ∈ Finset.range total, ((j : ℝ≥0∞) * (startNearF wbar j + failMass Fail) +
           signatureLimit * failMass Fail) + lam Lmax 0 total := by
   unfold psiF psiCoreF
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   have hw0 : ∀ g, K.wsum g (DebtState.start K.initial known) = 0 := fun g => by
     unfold Ctx.wsum
     refine Finset.sum_eq_zero fun f _ => ?_
-    rw [if_neg]
+    rw [ite_eq_right]
     intro h
     cases h
   rw [hw0, zero_add]

@@ -64,7 +64,7 @@ pub struct BusBlock {
 /// The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
 /// transcript. Its length is fixed and Keccak's padding binds the preimage's, so the bytecode that
 /// follows needs no length field of its own. Nothing derives it from the constants below: any change
-/// to the constraint system bumps it by hand. Mirrored in `python-verifier/verifier.py`.
+/// to the constraint system bumps it by hand. Mirrored in `formal/Statement/LeanVmVerifier.lean`.
 pub const TAG: &[u8] = b"leanvm-v1";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.

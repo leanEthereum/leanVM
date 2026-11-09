@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.AdaptiveLeafIndexCollision
-import XmssSecurity.Proof.EncodingTargetMap
-import XmssSecurity.Proof.SigningCacheTrace
+module
+
+public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.SigningCacheTrace
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -122,50 +126,6 @@ noncomputable def encodingActionTraceUpdate
   match encodingObservation? secretKey input initialState output finalState with
   | none => trace
   | some observation => trace ++ [observation]
-
-noncomputable def encodingTracedLiftOf
-    {m : Type → Type} [Monad m]
-    (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (baseState : σ → τ)
-    (encodingTrace : σ → EncodingActionTrace)
-    (set : σ → τ → EncodingActionTrace → σ)
-    (cache : τ → QueryCache HashSpec)
-    (base : StateT τ m ((OracleWorld + SigningSpec).Range input)) :
-    StateT σ m
-      ((OracleWorld + SigningSpec).Range input) :=
-  StateT.mk fun initial =>
-    (fun result => (result.1, set initial result.2
-      (encodingActionTraceUpdate secretKey input
-        (cache (baseState initial), []) result.1 (cache result.2, [])
-          (encodingTrace initial)))) <$>
-      base.run (baseState initial)
-
-noncomputable def encodingTracedLift
-    {m : Type → Type} [Monad m]
-    (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (cache : σ → QueryCache HashSpec)
-    (base : StateT σ m ((OracleWorld + SigningSpec).Range input)) :
-    StateT (σ × EncodingActionTrace) m
-      ((OracleWorld + SigningSpec).Range input) :=
-  encodingTracedLiftOf secretKey input Prod.fst Prod.snd
-    (fun _ next trace => (next, trace)) cache base
-
-@[simp]
-theorem encodingTracedLift_run
-    {m : Type → Type} [Monad m]
-    (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (cache : σ → QueryCache HashSpec)
-    (base : StateT σ m ((OracleWorld + SigningSpec).Range input))
-    (initial : σ × EncodingActionTrace) :
-    (encodingTracedLift secretKey input cache base).run initial =
-      (fun result => (result.1, (result.2,
-        encodingActionTraceUpdate secretKey input
-          (cache initial.1, []) result.1 (cache result.2, []) initial.2))) <$>
-        base.run initial.1 := by
-  rfl
 
 theorem encodingActionTraceUpdate_eq_or_append
     (secretKey : SecretKey)

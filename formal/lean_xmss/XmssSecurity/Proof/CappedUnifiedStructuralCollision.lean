@@ -1,13 +1,16 @@
-import XmssSecurity.Proof.CappedGlobalCollisionProbability
-import XmssSecurity.Proof.CappedLeafEventProbability
-import XmssSecurity.Proof.GlobalWinningChainValueRevealed
-import XmssSecurity.Proof.TopStructural
+module
+
+public import XmssSecurity.Proof.CappedGlobalCollisionProbability
+public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.GlobalWinningChainValueRevealed
+public import XmssSecurity.Proof.TopStructural
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-set_option maxHeartbeats 10000
 
 noncomputable def keygenStructuralTargetInput
     (secretKey : SecretKey) (cache : QueryCache HashSpec)
@@ -347,12 +350,9 @@ theorem winningStructuralCollision_afterKeygen_orientation
 
 theorem winningStructuralCollision_probability_le_expectedMovedQueries
     (adversary : Adversary) :
-    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-      WinningStructuralCollisionOccurs execution.2 execution.1 |
-      detailedGameWithCache Concrete.scheme adversary] ≤
+    Pr{let execution ← detailedGameWithCache Concrete.scheme adversary}[WinningStructuralCollisionOccurs execution.2 execution.1] ≤
       (∑' keyResult,
-        Pr[= keyResult |
-          (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+        Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
           expectedSimulatedQueryCount romImpl
             (Rom.IsRelevantHashQuery fun input =>
               keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)

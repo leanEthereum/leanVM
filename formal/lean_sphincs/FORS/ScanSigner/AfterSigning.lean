@@ -1,5 +1,9 @@
-import FORS.ScanSigner.FairShare
-import FORS.LazyRun.InterpreterFacts
+module
+
+public import FORS.ScanSigner.FairShare
+public import FORS.LazyRun.InterpreterFacts
+
+@[expose] public section
 
 /-! What a completed signing call leaves behind in the lazy run: at most one selected pair, wholly
 cached, every other randomizer of the message unchanged or rejected, FORS coordinates revealed
@@ -24,7 +28,7 @@ theorem allSome_of_eq {n : Nat} {α : Type} (values : Fin n → Option α) (u : 
     (h : ∀ index, values index = some (u index)) :
     Completeness.allSome (α := fun _ => α) values = some u := by
   unfold Completeness.allSome
-  rw [dif_pos fun index => by rw [h index]; rfl]
+  rw [dite_eq_left fun index => by rw [h index]; rfl]
   refine congrArg some (funext fun index => Option.some_injective _ ?_)
   rw [Option.some_get, h index]
 
@@ -173,7 +177,7 @@ theorem revealsIn_finishRest (parameter : PublicParameter) (data : PublicData) (
     exact revealsIn_pure _ _
 
 theorem revealsIn_false_tick (amount : ℕ) :
-    RevealsIn (D := HashInput) (R := HashOutput) (ι := Coordinate) (fun _ => False) (tick amount) :=
+    RevealsIn (D := HashInput) (R := HashOutput) (ι := Coordinate) (H := Empty) (fun _ => False) (tick amount) :=
   revealsIn_tick _ _
 
 section Finish

@@ -1,6 +1,12 @@
-import FORS.Scheme.Bytes
-import FORS.Scheme.Encoding
-import FORS.Scheme.RandomOracle
+module
+
+public import FORS.Scheme.Bytes
+public import FORS.Scheme.Encoding
+public import FORS.Scheme.RandomOracle
+
+@[expose] public section
+
+set_option backward.isDefEq.respectTransparency false
 
 /-! Injectivity and separation of the candidate's exact byte inputs. These facts keep the
 derivation and verification addresses distinct in later random-oracle reductions. -/

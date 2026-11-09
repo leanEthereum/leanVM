@@ -1,5 +1,9 @@
-import FORS.Scheme.Code
-import FORS.Scheme.Uniform
+module
+
+public import FORS.Scheme.Code
+public import FORS.Scheme.Uniform
+
+@[expose] public section
 
 /-! Candidate WOTS+C encoding classification and exact small-neighborhood bounds.
 The code uses 64 two-bit digits without padding. -/

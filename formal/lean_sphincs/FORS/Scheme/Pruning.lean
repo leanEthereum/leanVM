@@ -1,4 +1,8 @@
-import FORS.Scheme.Recovery
+module
+
+public import FORS.Scheme.Recovery
+
+@[expose] public section
 
 /-!
 Correctness of the pruned Merkle path, including the surrogate spine, at every layer: the top
@@ -19,10 +23,10 @@ variable (f : QueryImpl HashSpec Id)
 
 /-! ### The shape of the layers -/
 
-theorem layerHeight_top : layerHeight topLayer = maxLayerHeight := if_pos rfl
+theorem layerHeight_top : layerHeight topLayer = maxLayerHeight := ite_eq_left rfl
 
 theorem layerHeight_of_ne_top (lay : Layer) (h : lay.val ≠ 0) : layerHeight lay = lowerHeight :=
-  if_neg h
+  ite_eq_right h
 
 theorem heightBelow_top : heightBelow topLayer = lowerHeight * (numLayers - 1) := by
   simp [heightBelow, topLayer]
@@ -39,10 +43,10 @@ theorem maxLayerHeight_add : heightBelow topLayer + maxLayerHeight = totalHeight
 theorem heightBelow_le_subtree : heightBelow topLayer ≤ subtreeHeight := by
   rw [heightBelow_top]; exact Params.below_le
 
-theorem keptHeight_top : keptHeight topLayer = subtreeHeight - heightBelow topLayer := if_pos rfl
+theorem keptHeight_top : keptHeight topLayer = subtreeHeight - heightBelow topLayer := ite_eq_left rfl
 
 theorem keptHeight_of_ne_top (lay : Layer) (h : lay.val ≠ 0) : keptHeight lay = layerHeight lay :=
-  if_neg h
+  ite_eq_right h
 
 theorem keptHeight_le (lay : Layer) : keptHeight lay ≤ layerHeight lay := by
   by_cases h : lay.val = 0
@@ -55,7 +59,7 @@ theorem keptHeight_le (lay : Layer) : keptHeight lay ≤ layerHeight lay := by
   · rw [keptHeight_of_ne_top lay h]
 
 theorem keptPosition_of_ne_top (parameter : PublicParameter) (lay : Layer) (h : lay.val ≠ 0) :
-    keptPosition parameter lay = 0 := if_neg h
+    keptPosition parameter lay = 0 := ite_eq_right h
 
 /-- Below the top layer, a leaf of a tree is kept. -/
 theorem kept_of_ne_top (parameter : PublicParameter) (lay : Layer) (h : lay.val ≠ 0)
@@ -195,10 +199,10 @@ theorem eval_treeFold_pruned_path (parameter : PublicParameter) (lay : Layer) (t
   apply eval_treeFold_spine f parameter lay tree seed leaf hkept path
   · intro level hlevel
     have hlt : level < layerHeight lay := lt_of_lt_of_le hlevel hb
-    rw [hpath level hlt, eval_treePath, if_pos hlevel]
+    rw [hpath level hlt, eval_treePath, ite_eq_left hlevel]
   · intro t ht
     have hlt : keptHeight lay + t < layerHeight lay := by omega
     rw [hpath _ hlt, eval_treePath,
-      if_neg (show ¬keptHeight lay + t < keptHeight lay by omega)]
+      ite_eq_right (show ¬keptHeight lay + t < keptHeight lay by omega)]
 
 end FORS.Completeness

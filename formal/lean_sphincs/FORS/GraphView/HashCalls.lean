@@ -1,5 +1,9 @@
-import FORS.GraphView.Secrets
-import FORS.Seed.Coupling
+module
+
+public import FORS.GraphView.Secrets
+public import FORS.Seed.Coupling
+
+@[expose] public section
 
 section
 
@@ -33,7 +37,8 @@ theorem hashCalls_bind {α β : Type} (f : QueryImpl HashSpec Id)
   simp only [hashCalls, queriedInputs_bind, List.length_append]
 
 @[simp] theorem hashCalls_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
-    hashCalls f (oracleHash input : OracleComp HashSpec HashOutput) = 1 := rfl
+    hashCalls f (oracleHash input : OracleComp HashSpec HashOutput) = 1 := by
+  simp [hashCalls, oracleHash]
 
 @[simp] theorem hashCalls_tweakableHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
@@ -69,7 +74,7 @@ theorem hashCalls_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParam
   induction steps generalizing start value with
   | zero => simp only [chainWalk, hashCalls_pure]
   | succ steps ih =>
-      rw [chainWalk, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
+      rw [chainWalk, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash, ih _ _ (by omega)]
 
 /-- The 64 chain starts of a one-time key cost 64 seed derivations. -/
 theorem hashCalls_otsSecrets (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -115,24 +120,11 @@ theorem hashCalls_forsNode (f : QueryImpl HashSpec Id) (parameter : PublicParame
         hashCalls_tweakableHash]
       rfl
   | succ level ih =>
-      rw [Seeded.forsNode, hashCalls_bind, hashCalls_bind, dif_pos (by omega), hashCalls_tweakableHash,
+      rw [Seeded.forsNode, hashCalls_bind, hashCalls_bind, dite_eq_left (by omega), hashCalls_tweakableHash,
         ih _ (by omega), ih _ (by omega)]
       have hp : 0 < 2 ^ level := Nat.two_pow_pos level
       rw [pow_succ]
       omega
-
-/-- Building the FORS key costs `k · (3 · 2^a - 1) + 1` hash calls: the `k` trees to their roots, then
-`T_k` of the roots. -/
-theorem hashCalls_forsKey (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (seed : MasterSeed) :
-    hashCalls f (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest) =
-      forsTrees * (3 * 2 ^ forsHeight - 1) + 1 := by
-  have hroot (κ : FTree) :
-      hashCalls f (Seeded.forsNode parameter index κ seed forsHeight 0 : OracleComp HashSpec Digest) =
-        3 * 2 ^ forsHeight - 1 :=
-    hashCalls_forsNode f parameter index κ seed forsHeight 0 le_rfl
-  rw [Seeded.forsKey, hashCalls_bind, hashCalls_sequenceFin, forsPublicKey, hashCalls_tweakableHash]
-  simp only [hroot, Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
 
 theorem hashCalls_encode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput) (counter : Counter) :
@@ -148,7 +140,8 @@ def seqCost : {n : Nat} → (Fin n → Bool) → (Fin n → Nat) → Nat
 
 theorem hashCalls_messageDigestCall (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (root : Digest) (message : Message) (randomness : Randomness) (call : DigestCall) :
-    hashCalls f (messageDigestCall parameter root message randomness call : OracleComp HashSpec HashOutput) = 1 := rfl
+    hashCalls f (messageDigestCall parameter root message randomness call : OracleComp HashSpec HashOutput) = 1 := by
+  simp [hashCalls, messageDigestCall, oracleHash]
 
 theorem hashCalls_messageDigest (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (root : Digest) (message : Message) (randomness : Randomness) :
@@ -192,7 +185,7 @@ theorem counted_lift_hash {α : Type} (computation : OracleComp HashSpec α) :
   | query_bind input next ih =>
       simp only [liftM_bind]
       change counted SourceHash (liftM (OracleWorld.query (.inr input)) >>= fun output => liftM (next output)) = _
-      simp only [counted_query_bind, SourceHash, if_true, ih, liftM_bind, liftM_pure]
+      simp only [counted_query_bind, SourceHash, ite_true, ih, liftM_bind, liftM_pure]
       rfl
 
 theorem eval_counted_hash {α : Type} (f : QueryImpl HashSpec Id) (computation : OracleComp HashSpec α) :
@@ -203,9 +196,8 @@ theorem eval_counted_hash {α : Type} (f : QueryImpl HashSpec Id) (computation :
   | query_bind input next ih =>
       simp only [counted_query_bind, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
         show evalWithAnswerFn f (liftM (HashSpec.query input)) = f input from simulateQ_spec_query f input,
-        ih, if_true]
-      change (_, 1 + hashCalls f (next (f input))) = (_, (input :: queriedInputs f (next (f input))).length)
-      simp only [List.length_cons, hashCalls, Nat.add_comm]
+        ih, ite_true]
+      simp only [hashCalls, queriedInputs_query_bind, List.length_cons, Nat.add_comm]
 
 theorem fixedHashWorld_counted_lift_hash {α : Type} (f : QueryImpl HashSpec Id)
     (computation : OracleComp HashSpec α) :
@@ -234,7 +226,6 @@ attribute [local irreducible] Seeded.treeNode Seeded.spineNode Seeded.treeRoot
   programCache
 set_option backward.isDefEq.respectTransparency false
 
-
 theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (steps : Nat)
     (hsteps : steps ≤ layerHeight lay - keptHeight lay) :
@@ -247,7 +238,7 @@ theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParam
       have hll := layerHeight_le lay
       have hlevel : keptHeight lay + steps < maxLayerHeight := by omega
       rw [Seeded.spineNode, hashCalls_bind, ih (by omega), hashCalls_bind]
-      simp only [Seeded.surrogate, dif_pos hlevel, hashCalls_deriveKey]
+      simp only [Seeded.surrogate, dite_eq_left hlevel, hashCalls_deriveKey]
       split <;> rw [hashCalls_tweakableHash] <;> omega
 
 /-- The cost of a layer's tree root: its kept part and its spine. -/
@@ -289,7 +280,6 @@ open SeedCoupling
 open QueryCap
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 40000
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 noncomputable def fixedWorldCost (f : QueryImpl HashSpec Id) :

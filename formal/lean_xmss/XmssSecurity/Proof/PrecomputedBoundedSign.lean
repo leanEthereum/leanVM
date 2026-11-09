@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.PrecomputedKeyConsistency
+module
+
+public import XmssSecurity.Proof.PrecomputedKeyConsistency
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

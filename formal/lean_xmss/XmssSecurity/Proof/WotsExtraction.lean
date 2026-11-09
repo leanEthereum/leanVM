@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.Wots
-import XmssSecurity.Proof.EncodingLemmas
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.Wots
+public import XmssSecurity.Proof.EncodingLemmas
+
+@[expose] public section
 
 namespace XmssSecurity.Wots
 

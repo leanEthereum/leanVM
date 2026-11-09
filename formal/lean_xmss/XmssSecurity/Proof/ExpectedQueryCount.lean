@@ -1,5 +1,10 @@
-import VCVio.OracleComp.QueryTracking.QueryBound
-import VCVio.OracleComp.ProbComp
+module
+
+public import VCVio.OracleComp.QueryTracking.QueryBound
+public import VCVio.OracleComp.ProbComp
+public import VCVio.OracleComp.EvalDist.Sum
+
+@[expose] public section
 
 open OracleSpec OracleComp ENNReal
 
@@ -16,7 +21,7 @@ noncomputable def expectedSimulatedQueryCount
     (fun _ _ => 0)
     (fun input _ continuationCounts currentState =>
       (if predicate input then 1 else 0) +
-        ∑' result, Pr[= result | (implementation input).run currentState] *
+        ∑' result, Pr{let x ← (implementation input).run currentState}[x = result] *
           continuationCounts result.1 result.2)) initialState
 
 @[simp]
@@ -39,101 +44,10 @@ theorem expectedSimulatedQueryCount_query_bind
     expectedSimulatedQueryCount implementation predicate
         (liftM (spec.query input) >>= next) initialState =
       (if predicate input then 1 else 0) +
-        ∑' result, Pr[= result | (implementation input).run initialState] *
+        ∑' result, Pr{let x ← (implementation input).run initialState}[x = result] *
           expectedSimulatedQueryCount implementation predicate
             (next result.1) result.2 := by
   rfl
-
-/-- A pathwise source-query bound controls the expected count in every stateful implementation. -/
-theorem expectedSimulatedQueryCount_le_of_isQueryBoundP
-    {ι : Type} {spec : OracleSpec ι} {α state : Type}
-    (implementation : QueryImpl spec (StateT state ProbComp))
-    (predicate : spec.Domain → Prop) [DecidablePred predicate]
-    (computation : OracleComp spec α) (initialState : state) (q : Nat)
-    (hbound : computation.IsQueryBoundP predicate q) :
-    expectedSimulatedQueryCount implementation predicate computation initialState ≤ q := by
-  induction computation using OracleComp.inductionOn generalizing initialState q with
-  | pure value => simp
-  | query_bind input next ih =>
-      rw [OracleComp.isQueryBoundP_query_bind_iff] at hbound
-      rw [expectedSimulatedQueryCount_query_bind]
-      by_cases hinput : predicate input
-      · simp only [hinput, if_true]
-        have hqpos : 0 < q := hbound.1.resolve_left (not_not.mpr hinput)
-        have hq : 1 ≤ q := hqpos
-        calc
-          1 + ∑' result, Pr[= result | (implementation input).run initialState] *
-                expectedSimulatedQueryCount implementation predicate
-                  (next result.1) result.2 ≤
-              1 + ∑' result, Pr[= result | (implementation input).run initialState] *
-                (q - 1 : Nat) := by
-                  gcongr with result
-                  exact ih result.1 result.2 (q - 1)
-                    (by simpa [hinput] using hbound.2 result.1)
-          _ = 1 + (∑' result,
-                Pr[= result | (implementation input).run initialState]) *
-                  (q - 1 : Nat) := by
-                    rw [ENNReal.tsum_mul_right]
-          _ ≤ 1 + 1 * (q - 1 : Nat) := by
-                  gcongr
-                  exact tsum_probOutput_le_one
-          _ = q := by
-                  rw [one_mul, ← Nat.cast_one, ← Nat.cast_add,
-                    Nat.add_sub_of_le hq]
-      · simp only [hinput, if_false, zero_add]
-        calc
-          ∑' result, Pr[= result | (implementation input).run initialState] *
-                expectedSimulatedQueryCount implementation predicate
-                  (next result.1) result.2 ≤
-              ∑' result, Pr[= result | (implementation input).run initialState] * q := by
-                  apply ENNReal.tsum_le_tsum
-                  intro result
-                  gcongr
-                  exact ih result.1 result.2 q
-                    (by simpa [hinput] using hbound.2 result.1)
-          _ = (∑' result,
-                Pr[= result | (implementation input).run initialState]) * q := by
-                  rw [ENNReal.tsum_mul_right]
-          _ ≤ 1 * q := by
-                  gcongr
-                  exact tsum_probOutput_le_one
-          _ = q := one_mul _
-
-/-- Enlarging the source predicate can only increase its expected simulated count. -/
-theorem expectedSimulatedQueryCount_mono
-    {ι : Type} {spec : OracleSpec ι} {α state : Type}
-    (implementation : QueryImpl spec (StateT state ProbComp))
-    (left right : spec.Domain → Prop) [DecidablePred left] [DecidablePred right]
-    (hsubset : ∀ input, left input → right input)
-    (computation : OracleComp spec α) (initialState : state) :
-    expectedSimulatedQueryCount implementation left computation initialState ≤
-      expectedSimulatedQueryCount implementation right computation initialState := by
-  induction computation using OracleComp.recOn generalizing initialState with
-  | pure value =>
-      change expectedSimulatedQueryCount implementation left
-          (pure value : OracleComp spec α) initialState ≤
-        expectedSimulatedQueryCount implementation right
-          (pure value : OracleComp spec α) initialState
-      simp
-  | queryBind input next ih =>
-      change (if left input then 1 else 0) +
-          ∑' result, Pr[= result | (implementation input).run initialState] *
-            expectedSimulatedQueryCount implementation left
-              (next result.1) result.2 ≤
-        (if right input then 1 else 0) +
-          ∑' result, Pr[= result | (implementation input).run initialState] *
-            expectedSimulatedQueryCount implementation right
-              (next result.1) result.2
-      have hindicator : (if left input then (1 : ENNReal) else 0) ≤
-          if right input then 1 else 0 := by
-        by_cases hleft : left input
-        · simp [hleft, hsubset input hleft]
-        · simp [hleft]
-      apply add_le_add hindicator
-      apply ENNReal.tsum_le_tsum
-      intro result
-      gcongr
-      exact ih result.1 result.2
 
 /-- Expected simulated query count decomposes into the head count plus the expected continuation
 count. -/
@@ -146,19 +60,20 @@ theorem expectedSimulatedQueryCount_bind
     expectedSimulatedQueryCount implementation predicate
         (head >>= continuation) initialState =
       expectedSimulatedQueryCount implementation predicate head initialState +
-        ∑' result, Pr[= result | (simulateQ implementation head).run initialState] *
+        ∑' result, Pr{let x ← (simulateQ implementation head).run initialState}[x = result] *
           expectedSimulatedQueryCount implementation predicate
             (continuation result.1) result.2 := by
   induction head using OracleComp.inductionOn generalizing initialState with
   | pure value =>
-      simp [simulateQ_pure, tsum_probOutput_pure_mul]
+      simp only [simulateQ_pure, StateT.run_pure, OracleComp.tsum_prEvent_pure_mul]
+      simp
   | query_bind input next ih =>
       rw [bind_assoc, expectedSimulatedQueryCount_query_bind,
         expectedSimulatedQueryCount_query_bind]
       simp_rw [ih, mul_add]
       rw [ENNReal.tsum_add]
       rw [simulateQ_bind, StateT.run_bind, simulateQ_query,
-        tsum_probOutput_bind_mul]
+        OracleComp.tsum_prEvent_bind_mul]
       simp only [OracleQuery.input_query, OracleQuery.cont_query]
       rw [id_map]
       ac_rfl
@@ -180,87 +95,12 @@ theorem expectedSimulatedQueryCount_map
     _ = expectedSimulatedQueryCount implementation predicate computation
           initialState +
         ∑' result,
-          Pr[= result | (simulateQ implementation computation).run initialState] *
+          Pr{let x ← (simulateQ implementation computation).run initialState}[x = result] *
             expectedSimulatedQueryCount implementation predicate
               (pure (project result.1)) result.2 :=
       expectedSimulatedQueryCount_bind implementation predicate computation
         (fun value => pure (project value)) initialState
     _ = _ := by simp
-
-/-- A resource that grows by at most one on each matching interpreted query has expected final
-value at most its initial value plus the expected matching-query count. -/
-theorem expectedResource_le_initial_add_expectedSimulatedQueryCount
-    {ι : Type} {spec : OracleSpec ι} {α state : Type}
-    (implementation : QueryImpl spec (StateT state ProbComp))
-    (predicate : spec.Domain → Prop) [DecidablePred predicate]
-    (resource : state → ENNReal)
-    (hstep : ∀ input initialState result,
-      result ∈ support ((implementation input).run initialState) →
-        resource result.2 ≤ resource initialState +
-          if predicate input then 1 else 0)
-    (computation : OracleComp spec α) (initialState : state) :
-    (∑' result,
-      Pr[= result | (simulateQ implementation computation).run initialState] *
-        resource result.2) ≤
-      resource initialState +
-        expectedSimulatedQueryCount implementation predicate computation initialState := by
-  induction computation using OracleComp.inductionOn generalizing initialState with
-  | pure value =>
-      simp [simulateQ_pure, tsum_probOutput_pure_mul]
-  | query_bind input next ih =>
-      rw [simulateQ_bind, StateT.run_bind, simulateQ_query,
-        tsum_probOutput_bind_mul]
-      simp only [OracleQuery.input_query, OracleQuery.cont_query, id_map,
-        expectedSimulatedQueryCount_query_bind]
-      let head := (implementation input).run initialState
-      let indicator : ENNReal := if predicate input then 1 else 0
-      have hhead :
-          (∑' result, Pr[= result | head] * resource result.2) ≤
-            resource initialState + indicator := by
-        calc
-          _ ≤ ∑' result, Pr[= result | head] *
-                (resource initialState + indicator) := by
-              apply ENNReal.tsum_le_tsum
-              intro result
-              by_cases hresult : result ∈ support head
-              · exact mul_le_mul_right (hstep input initialState result hresult) _
-              · rw [probOutput_eq_zero_of_not_mem_support hresult]
-                simp
-          _ = (∑' result, Pr[= result | head]) *
-                (resource initialState + indicator) :=
-              ENNReal.tsum_mul_right
-          _ ≤ 1 * (resource initialState + indicator) := by
-              gcongr
-              exact tsum_probOutput_le_one
-          _ = resource initialState + indicator := one_mul _
-      calc
-        (∑' result, Pr[= result | head] *
-            ∑' finalResult,
-              Pr[= finalResult |
-                (simulateQ implementation (next result.1)).run result.2] *
-                resource finalResult.2) ≤
-          ∑' result, Pr[= result | head] *
-            (resource result.2 +
-              expectedSimulatedQueryCount implementation predicate
-                (next result.1) result.2) := by
-            apply ENNReal.tsum_le_tsum
-            intro result
-            exact mul_le_mul_right (ih result.1 result.2) _
-        _ = (∑' result, Pr[= result | head] * resource result.2) +
-            ∑' result, Pr[= result | head] *
-              expectedSimulatedQueryCount implementation predicate
-                (next result.1) result.2 := by
-            simp_rw [mul_add]
-            rw [ENNReal.tsum_add]
-        _ ≤ (resource initialState + indicator) +
-            ∑' result, Pr[= result | head] *
-              expectedSimulatedQueryCount implementation predicate
-                (next result.1) result.2 := add_le_add hhead le_rfl
-        _ = resource initialState +
-            (indicator +
-              ∑' result, Pr[= result | head] *
-                expectedSimulatedQueryCount implementation predicate
-                  (next result.1) result.2) := by ac_rfl
 
 /-- Expected simulated query counts add exactly for disjoint source predicates. -/
 theorem expectedSimulatedQueryCount_or_of_disjoint
@@ -285,15 +125,15 @@ theorem expectedSimulatedQueryCount_or_of_disjoint
       simp
   | queryBind input next ih =>
       change (if left input ∨ right input then 1 else 0) +
-          ∑' result, Pr[= result | (implementation input).run initialState] *
+          ∑' result, Pr{let x ← (implementation input).run initialState}[x = result] *
             expectedSimulatedQueryCount implementation
               (fun input => left input ∨ right input) (next result.1) result.2 =
         ((if left input then 1 else 0) +
-          ∑' result, Pr[= result | (implementation input).run initialState] *
+          ∑' result, Pr{let x ← (implementation input).run initialState}[x = result] *
             expectedSimulatedQueryCount implementation left
               (next result.1) result.2) +
         ((if right input then 1 else 0) +
-          ∑' result, Pr[= result | (implementation input).run initialState] *
+          ∑' result, Pr{let x ← (implementation input).run initialState}[x = result] *
             expectedSimulatedQueryCount implementation right
               (next result.1) result.2)
       simp_rw [ih, mul_add]

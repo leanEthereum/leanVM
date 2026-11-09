@@ -1,5 +1,9 @@
-import XmssSecurity.Scan.Reach
-import XmssSecurity.Proof.CappedEncodingRejection
+module
+
+public import XmssSecurity.Scan.Reach
+public import XmssSecurity.Proof.CappedEncodingRejection
+
+@[expose] public section
 
 /-!
 # The partner potential

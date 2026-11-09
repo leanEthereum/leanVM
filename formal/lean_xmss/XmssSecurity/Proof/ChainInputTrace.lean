@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.IdealStatement
+module
+
+public import XmssSecurity.Proof.IdealStatement
+
+@[expose] public section
 
 namespace XmssSecurity
 

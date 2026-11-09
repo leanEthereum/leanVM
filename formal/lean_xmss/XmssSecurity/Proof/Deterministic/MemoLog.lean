@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.Memoize
+module
+
+public import XmssSecurity.Proof.Deterministic.Memoize
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

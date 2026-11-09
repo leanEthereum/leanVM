@@ -1,5 +1,9 @@
-import FORS.CoverPotential.OneCoin
-import FORS.ScanSigner.SignatureLaw
+module
+
+public import FORS.CoverPotential.OneCoin
+public import FORS.ScanSigner.SignatureLaw
+
+@[expose] public section
 
 /-! The heavy message of the large route, term level. The one-coin potential of the scan signer pays
 a digest query of a live message by one future coin while the group of the message keeps mass on the
@@ -143,75 +147,7 @@ def TotalInv (Qtot : ℕ) (s : State) (budget : ℕ) : Prop := totalCount parame
 /-- More than half of the total budget was spent on the digests of the message. -/
 def Heavy (Qtot : ℕ) (s : State) (m : Message) : Prop := Qtot < 2 * cachedCount parameter data m s
 
-/-- The index blocks of all pairs. -/
-noncomputable def pairInputs : Finset HashInput :=
-  Finset.univ.image fun q : Pair => pblk parameter data q firstCall
-
 variable {parameter data}
-
-theorem totalCount_eq (s : State) :
-    totalCount parameter data s = ((pairInputs parameter data).filter fun x => s.cache x ≠ none).card := by
-  unfold totalCount pairInputs
-  rw [Finset.filter_image,
-    Finset.card_image_of_injective _ (fun a b h => (pblk_injective parameter data h).1)]
-
-theorem cachedCount_le_total (m : Message) (s : State) :
-    cachedCount parameter data m s ≤ totalCount parameter data s := by
-  unfold cachedCount totalCount
-  refine Finset.card_le_card_of_injOn (fun ρ => ((m, ρ) : Pair)) (fun ρ hρ => ?_)
-    (fun a _ b _ h => (Prod.ext_iff.1 h).2)
-  rw [Finset.mem_coe, Finset.mem_filter] at hρ
-  have h2 : s.cache (pblk parameter data (m, ρ) firstCall) ≠ none := hρ.2
-  rw [Finset.mem_coe, Finset.mem_filter]
-  exact ⟨by simp, h2⟩
-
-theorem cachedCount_add_le {m m' : Message} (h : m ≠ m') (s : State) :
-    cachedCount parameter data m s + cachedCount parameter data m' s ≤ totalCount parameter data s := by
-  have h1 : cachedCount parameter data m s =
-      ((Finset.univ.filter fun ρ : Randomness => s.cache (blk parameter data m ρ) ≠ none).image
-        fun ρ => ((m, ρ) : Pair)).card :=
-    (Finset.card_image_of_injective _ (fun a b hab => (Prod.ext_iff.1 hab).2)).symm
-  have h2 : cachedCount parameter data m' s =
-      ((Finset.univ.filter fun ρ : Randomness => s.cache (blk parameter data m' ρ) ≠ none).image
-        fun ρ => ((m', ρ) : Pair)).card :=
-    (Finset.card_image_of_injective _ (fun a b hab => (Prod.ext_iff.1 hab).2)).symm
-  have hdisj : Disjoint
-      ((Finset.univ.filter fun ρ : Randomness => s.cache (blk parameter data m ρ) ≠ none).image
-        fun ρ => ((m, ρ) : Pair))
-      ((Finset.univ.filter fun ρ : Randomness => s.cache (blk parameter data m' ρ) ≠ none).image
-        fun ρ => ((m', ρ) : Pair)) := by
-    rw [Finset.disjoint_left]
-    intro q hq1 hq2
-    obtain ⟨ρ, _, rfl⟩ := Finset.mem_image.1 hq1
-    obtain ⟨ρ', _, h'⟩ := Finset.mem_image.1 hq2
-    exact h (congrArg Prod.fst h').symm
-  rw [h1, h2, ← Finset.card_union_of_disjoint hdisj]
-  unfold totalCount
-  refine Finset.card_le_card fun q hq => ?_
-  rw [Finset.mem_union, Finset.mem_image, Finset.mem_image] at hq
-  rw [Finset.mem_filter]
-  rcases hq with ⟨ρ, hρ, rfl⟩ | ⟨ρ, hρ, rfl⟩
-  · have h2 : s.cache (pblk parameter data (m, ρ) firstCall) ≠ none := (Finset.mem_filter.1 hρ).2
-    exact ⟨by simp, h2⟩
-  · have h2 : s.cache (pblk parameter data (m', ρ) firstCall) ≠ none := (Finset.mem_filter.1 hρ).2
-    exact ⟨by simp, h2⟩
-
-/-- The total invariant implies the count invariant of every message. -/
-theorem TotalInv.countInv {Qtot : ℕ} {s : State} {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) :
-    CountInv parameter data Qtot s budget := by
-  intro m
-  have := cachedCount_le_total (parameter := parameter) (data := data) m s
-  unfold TotalInv at hT
-  omega
-
-/-- **At most one message is heavy.** -/
-theorem heavy_unique {Qtot : ℕ} {s : State} {budget : ℕ} (hT : TotalInv parameter data Qtot s budget)
-    {m m' : Message} (h : Heavy parameter data Qtot s m) (h' : Heavy parameter data Qtot s m') : m = m' := by
-  by_contra hne
-  have := cachedCount_add_le (parameter := parameter) (data := data) hne s
-  unfold Heavy at h h'
-  unfold TotalInv at hT
-  omega
 
 /-- A message that is not heavy has at most `Qtot / 2` cached digests. -/
 theorem cachedCount_le_of_not_heavy {Qtot : ℕ} {s : State} {m : Message} (h : ¬Heavy parameter data Qtot s m) :
@@ -257,47 +193,6 @@ theorem card_filter_le_off {α : Type} [Fintype α] [DecidableEq α] {f g : α �
       exact Finset.mem_insert_self _ _
     · exact Finset.mem_insert_of_mem (Finset.mem_filter.2 ⟨Finset.mem_univ _, (h x hxa).1 hx.2⟩)
   exact le_trans (Finset.card_le_card hsub) (Finset.card_insert_le _ _)
-
-/-- A state whose index blocks change at one pair only has at most one more cached pair. -/
-theorem totalCount_off (s s' : State) (p : Pair)
-    (h : ∀ q : Pair, q ≠ p → s'.cache (pblk parameter data q firstCall) =
-      s.cache (pblk parameter data q firstCall)) :
-    totalCount parameter data s' ≤ totalCount parameter data s + 1 := by
-  unfold totalCount
-  exact card_filter_le_off p fun q hq => by rw [h q hq]
-
-theorem totalCount_withPair (s : State) (p : Pair) (u : DigestCall → HashOutput) :
-    totalCount parameter data (withPair parameter data s p u) ≤ totalCount parameter data s + 1 :=
-  totalCount_off s _ p fun q hqp => withPair_other_pair s p q hqp u firstCall
-
-/-- **A new pair keeps the total invariant.** -/
-theorem totalInv_withPair {s : State} {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget)
-    (p : Pair) (u : DigestCall → HashOutput) : TotalInv parameter data Qtot (withPair parameter data s p u) (budget - 1) := by
-  have := totalCount_withPair (parameter := parameter) (data := data) s p u
-  unfold TotalInv at hT ⊢
-  omega
-
-/-- **An ordinary query keeps the total invariant.** -/
-theorem totalInv_ordinary {s : State} {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget)
-    (x : HashInput) (r : HashOutput × State) (hr : r ∈ support (ordinaryStep model x s.known s)) :
-    TotalInv parameter data Qtot r.2 (budget - 1) := by
-  have h1 : totalCount parameter data r.2 ≤ totalCount parameter data s + 1 := by
-    rw [totalCount_eq, totalCount_eq]
-    exact costStep_card_le model _ (.inl (.inr (.inl x))) s r (by rw [costStep_ordinary]; exact hr)
-  unfold TotalInv at hT ⊢
-  omega
-
-/-- **A program keeps the total invariant**, in particular a signing call. -/
-theorem totalInv_interp {α : Type} (prog : OracleComp CostSpec α) {s : State} {budget : ℕ}
-    (hT : TotalInv parameter data Qtot s budget) (out : Run HashInput Coordinate α × State)
-    (hout : out ∈ support (interp tg initial model prog budget s)) :
-    TotalInv parameter data Qtot out.2 (budget - traceCost out.1.2.2.1) := by
-  have h1 : totalCount parameter data out.2 ≤ totalCount parameter data s + traceCost out.1.2.2.1 := by
-    rw [totalCount_eq, totalCount_eq]
-    exact interp_card_le tg initial model _ _ budget s out hout
-  have h2 := interp_traceCost_le tg initial model _ budget s out hout
-  unfold TotalInv at hT ⊢
-  omega
 
 end TotalKept
 
@@ -377,12 +272,6 @@ theorem heavyMsg_eq_some {s : State} {l : List Message} {h : Message} (hmem : h 
   | some h' =>
       obtain ⟨h1, h2⟩ := heavyMsg_some hfind
       rw [huniq h' h1 h2]
-
-/-- Under the total invariant: `some h` iff `h` is in the list and heavy. -/
-theorem heavyMsg_eq_some_iff {s : State} {budget : ℕ} (hT : TotalInv parameter data Qtot s budget)
-    {l : List Message} {h : Message} :
-    heavyMsg parameter data Qtot s l = some h ↔ h ∈ l ∧ Heavy parameter data Qtot s h :=
-  ⟨heavyMsg_some, fun hh => heavyMsg_eq_some hh.1 hh.2 fun _ _ hm => heavy_unique hT hm hh.2⟩
 
 theorem find?_congr' {α : Type} {p q : α → Bool} : ∀ (l : List α), (∀ a ∈ l, p a = q a) → l.find? p = l.find? q
   | [], _ => rfl
@@ -574,8 +463,8 @@ theorem extOf_excl_mono (s : State) {excl excl' : Pair → Prop} (h : ∀ q, exc
     (ρ : Randomness) : extOf parameter data s excl' m ρ ≤ extOf parameter data s excl m ρ := by
   unfold extOf
   by_cases hx : excl (m, ρ)
-  · rw [if_pos hx, if_pos (h _ hx)]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx, ite_eq_left (h _ hx)]
+  · rw [ite_eq_right hx]
     split_ifs
     · exact bot_le
     · exact le_rfl
@@ -744,7 +633,7 @@ theorem termH_addMsg {s : State} {Ms : List Message} (hM : MInv parameter data s
     rw [List.filter_cons]
     split_ifs with hlive
     · unfold lightMsgs heavyMsg
-      rw [List.filter_cons, if_pos (by simpa using hnh), List.find?_cons_of_neg (by simpa using hnh)]
+      rw [List.filter_cons, ite_eq_left (by simpa using hnh), List.find?_cons_of_neg (by simpa using hnh)]
       exact grpM_untouched s excl m hun _ d
     · rfl
 
@@ -816,9 +705,9 @@ theorem grpAll_probeG (hw : w ≤ 1) (s : State) (p : Pair) (hp0 : s.cache (pblk
     rw [grpM_withPair_self,
       grp_congr _ _ (fun e => grpAll_withPair_other s p u excl (G I) Ms' hnot e) d]
     by_cases hl : Landed parameter (blockIndex (u firstCall))
-    · simp only [hl, if_true]
+    · simp only [hl, ite_true]
       rfl
-    · simp only [hl, if_false]
+    · simp only [hl, ite_false]
       exact grp_congr_ext _ (fun ρ hρ => by
         by_cases h : ρ = p.2
         · subst h; rw [Function.update_self] at hρ; cases hρ
@@ -886,9 +775,9 @@ theorem sgnM_probe (s : State) (p : Pair) (hp0 : s.cache (pblk parameter data p 
     intro u
     rw [sgnM_withPair_self]
     by_cases hl : Landed parameter (blockIndex (u firstCall))
-    · simp only [hl, if_true]
+    · simp only [hl, ite_true]
       rfl
-    · simp only [hl, if_false]
+    · simp only [hl, ite_false]
       exact sgn_congr_ext _ (fun ρ hρ => by
         by_cases h : ρ = p.2
         · subst h; rw [Function.update_self] at hρ; cases hρ
@@ -906,7 +795,7 @@ message without disclosing anything. -/
 theorem sgnM_stop (s : State) (p : Pair) (excl : Pair → Prop) (hx : excl p) (u : DigestCall → HashOutput)
     (hl : Landed parameter (blockIndex (u firstCall))) {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (d : Multiset View) :
     sgnM parameter data (withPair parameter data s p u) excl p.1 X d ≤ sgnM parameter data s excl p.1 X d := by
-  rw [sgnM_withPair_self, if_pos hl, if_pos hx]
+  rw [sgnM_withPair_self, ite_eq_left hl, ite_eq_left hx]
   exact sgn_stop_le landing_le_one Finset.univ_nonempty _ _ hX d p.2
 
 /-- The value with a heavy message: the law of its signed view outside the groups. -/
@@ -950,101 +839,6 @@ theorem mix_ge {B : ℝ≥0∞} {C : View → ℝ≥0∞} (h : ∀ v, B ≤ C v)
         calc B = freshAvg Finset.univ (fun _ : View => B) := (freshAvg_const _ Finset.univ_nonempty _).symm
           _ ≤ _ := freshAvg_mono _ fun v _ => h v
 
-/-- **The cases of a new pair.** Either the light and heavy messages are the same before and after
-(the message of the pair is light before and after, or not live), or the message of the pair is the
-heavy one after: it was heavy before, or it was light and no live message was heavy. -/
-theorem newPair_cases {s : State} {Ms : List Message} (hM : MInv parameter data s Ms) {budget : ℕ}
-    (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget) (p : Pair)
-    (hp0 : s.cache (pblk parameter data p firstCall) = none) (L : QueryLog SigningSpec) (excl : Pair → Prop)
-    (f : Multiset View → ℝ≥0∞) (d : Multiset View) (n : ℕ) :
-    ((∀ u I, baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I =
-        valH parameter data w (withPair parameter data s p u) excl
-          (lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)))
-          (heavyMsg parameter data Qtot s (live L (addMsg Ms p.1))) f n I d) ∧
-      heavyMsg parameter data Qtot s (live L (addMsg Ms p.1)) ≠ some p.1 ∧
-      (p.1 ∈ lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)) ∨ p.1 ∉ live L (addMsg Ms p.1))) ∨
-    (∃ rest : List Message, p.1 ∉ rest ∧
-      (∀ u I, baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I =
-        valH parameter data w (withPair parameter data s p u) excl rest (some p.1) f n I d) ∧
-      ((∀ I, valH parameter data w s excl rest (some p.1) f n I d =
-          baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I) ∨
-        (∀ I, valH parameter data w s excl (p.1 :: rest) none f n I d =
-          baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I))) := by
-  set Lv := live L (addMsg Ms p.1) with hLv
-  have hnd : Lv.Nodup := live_nodup L (addMsg_nodup hM.nodup _)
-  have hoth : ∀ u m, m ≠ p.1 → (Heavy parameter data Qtot (withPair parameter data s p u) m ↔
-      Heavy parameter data Qtot s m) := fun u m hm => heavy_withPair_other s p u hm
-  have hself : ∀ u, Heavy parameter data Qtot (withPair parameter data s p u) p.1 ↔
-      Qtot < 2 * (cachedCount parameter data p.1 s + 1) := fun u => heavy_withPair_self hp0 u
-  by_cases hmem : p.1 ∈ Lv
-  swap
-  · -- the message is not live
-    left
-    have hc : ∀ u, ∀ m ∈ Lv, (Heavy parameter data Qtot (withPair parameter data s p u) m ↔
-        Heavy parameter data Qtot s m) := fun u m hm => hoth u m (fun h => hmem (h ▸ hm))
-    refine ⟨fun u I => ?_, fun h => hmem (heavyMsg_some h).1, Or.inr hmem⟩
-    unfold baseH
-    rw [lightMsgs_congr (hc u), heavyMsg_congr (hc u)]
-  by_cases hH : Heavy parameter data Qtot s p.1
-  · -- heavy before and after
-    right
-    have hsome : heavyMsg parameter data Qtot s Lv = some p.1 := (heavyMsg_eq_some_iff hT).2 ⟨hmem, hH⟩
-    have hA : Qtot < 2 * (cachedCount parameter data p.1 s + 1) := by unfold Heavy at hH; omega
-    have hc : ∀ u, ∀ m ∈ Lv, (Heavy parameter data Qtot (withPair parameter data s p u) m ↔
-        Heavy parameter data Qtot s m) := by
-      intro u m hm
-      by_cases hmp : m = p.1
-      · rw [hmp]; exact ⟨fun _ => hH, fun _ => (hself u).2 hA⟩
-      · exact hoth u m hmp
-    refine ⟨lightMsgs parameter data Qtot s Lv, fun h => (mem_lightMsgs.1 h).2 hH, fun u I => ?_, Or.inl fun I => ?_⟩
-    · unfold baseH
-      rw [lightMsgs_congr (hc u), heavyMsg_congr (hc u), hsome]
-    · unfold baseH
-      rw [hsome]
-  by_cases hA : Qtot < 2 * (cachedCount parameter data p.1 s + 1)
-  · -- light before, heavy after: no other live message is heavy
-    right
-    have hlight : ∀ m ∈ Lv, m ≠ p.1 → ¬Heavy parameter data Qtot s m := by
-      intro m _ hne hm
-      have := cachedCount_add_le (parameter := parameter) (data := data) hne s
-      unfold Heavy at hm
-      unfold TotalInv at hT
-      omega
-    have hnone : heavyMsg parameter data Qtot s Lv = none := by
-      refine heavyMsg_eq_none.2 fun m hm => ?_
-      by_cases hmp : m = p.1
-      · rw [hmp]; exact hH
-      · exact hlight m hm hmp
-    have hsome : ∀ u, heavyMsg parameter data Qtot (withPair parameter data s p u) Lv = some p.1 := fun u =>
-      heavyMsg_eq_some hmem ((hself u).2 hA) fun m hm hm' => by
-        by_contra hne
-        exact hlight m hm hne ((hoth u m hne).1 hm')
-    have hrest : ∀ u, lightMsgs parameter data Qtot (withPair parameter data s p u) Lv = Lv.erase p.1 := by
-      intro u
-      rw [hnd.erase_eq_filter]
-      unfold lightMsgs
-      refine List.filter_congr fun m hm => ?_
-      rw [Bool.eq_iff_iff]
-      simp only [bne_iff_ne, ne_eq, decide_eq_true_eq]
-      exact ⟨fun hnh heq => hnh (heq ▸ (hself u).2 hA), fun hne hm' => hlight m hm hne ((hoth u m hne).1 hm')⟩
-    refine ⟨Lv.erase p.1, fun h => (List.Nodup.mem_erase_iff hnd).1 h |>.1 rfl, fun u I => ?_, Or.inr fun I => ?_⟩
-    · unfold baseH
-      rw [hrest u, hsome u]
-    · unfold baseH
-      rw [hnone, lightMsgs_of_none hnone]
-      exact valH_perm_msgs s excl (List.perm_cons_erase hmem).symm none f n I d
-  · -- light before and after
-    left
-    have hc : ∀ u, ∀ m ∈ Lv, (Heavy parameter data Qtot (withPair parameter data s p u) m ↔
-        Heavy parameter data Qtot s m) := by
-      intro u m hm
-      by_cases hmp : m = p.1
-      · rw [hmp]; exact ⟨fun h => absurd ((hself u).1 h) hA, fun h => absurd h hH⟩
-      · exact hoth u m hmp
-    refine ⟨fun u I => ?_, fun h => hH (heavyMsg_some h).2, Or.inl (mem_lightMsgs.2 ⟨hmem, hH⟩)⟩
-    unfold baseH
-    rw [lightMsgs_congr (hc u), heavyMsg_congr (hc u)]
-
 /-- The heavy alternatives of `newPair_cases` are below the old base. -/
 theorem heavy_alt_le {f : Multiset View → ℝ≥0∞} (hf : Monotone' f) (s : State) (excl : Pair → Prop) (m : Message)
     (rest : List Message) (n : ℕ) (d : Multiset View) {B : List View → ℝ≥0∞}
@@ -1056,151 +850,9 @@ theorem heavy_alt_le {f : Multiset View → ℝ≥0∞} (hf : Monotone' f) (s : 
   · rw [← h I]
     exact sgnM_le_spare hf s excl m rest n I d
 
-/-- **A new pair, the base of a term**, in the mean over its block. -/
-theorem baseH_newPair (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hf : MonoFin f) {s : State} {Ms : List Message}
-    (hM : MInv parameter data s Ms) {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget)
-    (p : Pair) (hp0 : s.cache (pblk parameter data p firstCall) = none) (L : QueryLog SigningSpec) (excl : Pair → Prop)
-    (hrate : MsgLive L p.1 → ¬Heavy parameter data Qtot s p.1 → Rate parameter data w s p.1)
-    (d : Multiset View) (n : ℕ) (I : List View) :
-    pairE (fun u => baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I) ≤
-      (1 - landing) * baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I +
-        landing * freshAvg Finset.univ (fun v => baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n (v :: I)) := by
-  have hnd : (live L (addMsg Ms p.1)).Nodup := live_nodup L (addMsg_nodup hM.nodup _)
-  have hmix : ∀ B : ℝ≥0∞, B ≤ baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I →
-      B ≤ (1 - landing) * baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I +
-        landing * freshAvg Finset.univ (fun v => baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n (v :: I)) :=
-    fun B hB => le_trans hB (mix_ge fun v => baseH_cons hw hf s _ L excl d n v I)
-  rcases newPair_cases (w := w) hM hT hb p hp0 L excl f d n with ⟨hsame, hne, hor⟩ | ⟨rest, hnot, hsame, halt⟩
-  · have hbl : ∀ u h, heavyMsg parameter data Qtot s (live L (addMsg Ms p.1)) = some h →
-        ∀ ρ call, (withPair parameter data s p u).cache (pblk parameter data (h, ρ) call) =
-          s.cache (pblk parameter data (h, ρ) call) :=
-      fun u h hh ρ call => withPair_other_pair s p (h, ρ)
-        (fun heq => hne (hh.trans (congrArg some (congrArg Prod.fst heq)))) u call
-    rcases hor with hlight | hnotin
-    · -- the message is light before and after: one coin pays
-      obtain ⟨hmem, hnh⟩ := mem_lightMsgs.1 hlight
-      have hlive : MsgLive L p.1 := (mem_live.1 hmem).2
-      rw [show (fun u => baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I) =
-          fun u => grpAll parameter data (withPair parameter data s p u) excl
-            (lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)))
-            (innerH parameter data w s excl (heavyMsg parameter data Qtot s (live L (addMsg Ms p.1))) f n I) d
-          from funext fun u => (hsame u I).trans
-            (grpAll_congr _ excl
-              (fun e => innerH_blocksOn excl (fun h hh ρ => hbl u h hh ρ firstCall)
-                (fun h hh ρ _ => hbl u h hh ρ) f n I e) _ d)]
-      exact grpAll_probeG hw s p hp0 excl _ (lightMsgs_nodup hnd) hlight (hrate hlive hnh)
-        (fun I => innerH parameter data w s excl (heavyMsg parameter data Qtot s (live L (addMsg Ms p.1))) f n I)
-        (fun I => innerH_mono hf.1 s excl _ n I) (fun I e => innerH_ne_top hw hf.2 s excl _ n I e)
-        (fun v I e => innerH_coin s excl _ f n v I e) I d
-    · -- the message is not live: nothing changes
-      have hoth : ∀ (u : DigestCall → HashOutput) m,
-          m ∈ lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)) → ∀ ρ call,
-            (withPair parameter data s p u).cache (pblk parameter data (m, ρ) call) =
-              s.cache (pblk parameter data (m, ρ) call) :=
-        fun u m hm ρ call => withPair_other_pair s p (m, ρ)
-          (fun heq => by
-            have h1 : m = p.1 := congrArg Prod.fst heq
-            have hmm := (mem_lightMsgs.1 hm).1
-            rw [h1] at hmm
-            exact hnotin hmm) u call
-      have hpt : ∀ u, baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I =
-          baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I := fun u =>
-        (hsame u I).trans (valH_blocksOn excl (hoth u) (hbl u) f n I d)
-      simp only [hpt, pairE_const]
-      exact hmix _ le_rfl
-  · -- the message is the heavy one after: the law of its signed view keeps its mean
-    have hX : Monotone' (grpAll parameter data s excl rest (virtualOnce Finset.univ w f n I)) :=
-      grpAll_mono s excl (virtualOnce_mono hf.1 n I) rest
-    have hXfin : ∀ e, grpAll parameter data s excl rest (virtualOnce Finset.univ w f n I) e ≠ ⊤ :=
-      grpAll_ne_top s excl (virtualOnce_ne_top Finset.univ_nonempty hw hf.2 n I) rest
-    rw [show (fun u => baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I) =
-        fun u => sgnM parameter data (withPair parameter data s p u) excl p.1
-          (grpAll parameter data s excl rest (virtualOnce Finset.univ w f n I)) d
-        from funext fun u => (hsame u I).trans (valH_heavy_withPair s p u excl hnot f n I d)]
-    exact hmix _ (le_trans (sgnM_probe s p hp0 excl hX hXfin d) (heavy_alt_le hf.1 s excl p.1 rest n d halt I))
-
-/-- **A new pair, one term.** In the mean the forecast of a term after the block of a new pair is at
-most its forecast with one more future pair. The rate is needed only for a live message that is not
-heavy. -/
-theorem termH_newPair (hw : w ≤ 1) {f : Multiset View → ℝ≥0∞} (hf : MonoFin f) {s : State} {Ms : List Message}
-    (hM : MInv parameter data s Ms) {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget)
-    (p : Pair) (hp0 : s.cache (pblk parameter data p firstCall) = none) (L : QueryLog SigningSpec) (excl : Pair → Prop)
-    (hrate : MsgLive L p.1 → ¬Heavy parameter data Qtot s p.1 → Rate parameter data w s p.1)
-    (d : Multiset View) (n k : ℕ) :
-    pairE (fun u => termH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n k) ≤
-      termH parameter data Qtot w s Ms L excl f d n (k + 1) := by
-  rw [← termH_addMsg hM L excl p.1 f d n (k + 1)]
-  unfold termH pairE
-  rw [creations_tsum, ← creations_one]
-  refine creations_mono (fun I => ?_) k []
-  exact baseH_newPair hw hf hM hT hb p hp0 L excl hrate d n I
-
-/-- **The new candidate.** A new landed pair that is excluded stops the walks of its message
-without disclosing anything: its forecast in the new state is at most its forecast in the old one. -/
-theorem termH_stop {f : Multiset View → ℝ≥0∞} (hf : MonoFin f) {s : State} {Ms : List Message}
-    (hM : MInv parameter data s Ms) {budget : ℕ} (hT : TotalInv parameter data Qtot s budget) (hb : 1 ≤ budget)
-    (p : Pair) (hp0 : s.cache (pblk parameter data p firstCall) = none)
-    (L : QueryLog SigningSpec) (excl : Pair → Prop) (hx : excl p) (u : DigestCall → HashOutput)
-    (hl : Landed parameter (blockIndex (u firstCall))) (d : Multiset View) (n k : ℕ) :
-    termH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n k ≤
-      termH parameter data Qtot w s Ms L excl f d n k := by
-  rw [← termH_addMsg hM L excl p.1 f d n k]
-  have hnd : (live L (addMsg Ms p.1)).Nodup := live_nodup L (addMsg_nodup hM.nodup _)
-  refine creations_mono (fun I => ?_) k []
-  rcases newPair_cases (w := w) hM hT hb p hp0 L excl f d n with ⟨hsame, hne, hor⟩ | ⟨rest, hnot, hsame, halt⟩
-  · have hbl : ∀ h, heavyMsg parameter data Qtot s (live L (addMsg Ms p.1)) = some h →
-        ∀ ρ call, (withPair parameter data s p u).cache (pblk parameter data (h, ρ) call) =
-          s.cache (pblk parameter data (h, ρ) call) :=
-      fun h hh ρ call => withPair_other_pair s p (h, ρ)
-        (fun heq => hne (hh.trans (congrArg some (congrArg Prod.fst heq)))) u call
-    rcases hor with hlight | hnotin
-    · set Ls := lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)) with hLs
-      set G := innerH parameter data w s excl (heavyMsg parameter data Qtot s (live L (addMsg Ms p.1))) f n I with hG
-      have hGmono : Monotone' G := innerH_mono hf.1 s excl _ n I
-      have hLnd : Ls.Nodup := lightMsgs_nodup hnd
-      set rest := Ls.erase p.1 with hrest
-      have hperm : Ls.Perm (p.1 :: rest) := List.perm_cons_erase hlight
-      have hnot : p.1 ∉ rest := fun h => (List.Nodup.mem_erase_iff hLnd).1 h |>.1 rfl
-      have hst : stOf parameter data p.1 s p.2 = .fresh := by
-        have h : s.cache (blk parameter data p.1 p.2) = none := hp0
-        simp [stOf, h]
-      have h1 : baseH parameter data Qtot w (withPair parameter data s p u) (addMsg Ms p.1) L excl f d n I =
-          grpAll parameter data (withPair parameter data s p u) excl Ls G d :=
-        (hsame u I).trans (grpAll_congr _ excl
-          (fun e => innerH_blocksOn excl (fun h hh ρ => hbl h hh ρ firstCall)
-            (fun h hh ρ _ => hbl h hh ρ) f n I e) _ d)
-      have h2 : baseH parameter data Qtot w s (addMsg Ms p.1) L excl f d n I = grpAll parameter data s excl Ls G d := rfl
-      rw [h1, h2, grpAll_perm _ excl _ hperm d, grpAll_perm _ excl _ hperm d]
-      simp only [grpAll]
-      rw [grpM_withPair_self, if_pos hl, if_pos hx,
-        grp_congr _ _ (fun e => grpAll_withPair_other s p u excl G rest hnot e) d]
-      exact grp_stop_le landing_le_one Finset.univ_nonempty _ _ (grpAll_mono s excl hGmono rest) d p.2 hst
-    · have hoth : ∀ m, m ∈ lightMsgs parameter data Qtot s (live L (addMsg Ms p.1)) → ∀ ρ call,
-          (withPair parameter data s p u).cache (pblk parameter data (m, ρ) call) =
-            s.cache (pblk parameter data (m, ρ) call) :=
-        fun m hm ρ call => withPair_other_pair s p (m, ρ)
-          (fun heq => by
-            have h1 : m = p.1 := congrArg Prod.fst heq
-            have hmm := (mem_lightMsgs.1 hm).1
-            rw [h1] at hmm
-            exact hnotin hmm) u call
-      exact le_of_eq ((hsame u I).trans (valH_blocksOn excl hoth hbl f n I d))
-  · have hX : Monotone' (grpAll parameter data s excl rest (virtualOnce Finset.univ w f n I)) :=
-      grpAll_mono s excl (virtualOnce_mono hf.1 n I) rest
-    rw [hsame u I, valH_heavy_withPair s p u excl hnot f n I d]
-    exact le_trans (sgnM_stop s p excl hx u hl hX d) (heavy_alt_le hf.1 s excl p.1 rest n d halt I)
-
 end NewPairH
 
 /-! ### Signing a message for the first time -/
-
-section SignHeavy
-
-variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
-  (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
-  (parameter : PublicParameter) (data : PublicData) (m : Message)
-
-end SignHeavy
 
 section SignUpperH
 
@@ -1234,15 +886,6 @@ theorem valH_succ (excl : Pair → Prop) (Ls : List Message) (hv : Option Messag
   exact congrArg (freshAvg Finset.univ) (funext fun v => grpAll_shift s excl _ {v} Ls e)
 
 end SignUpperH
-
-section SignExpectH
-
-variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : HiddenOutside.Cache HashInput HashOutput)
-  (model : HiddenRows.Model HashInput HashOutput A Coordinate)
-  {parameter : PublicParameter} {data : PublicData} {Qtot : ℕ} {w : ℝ≥0∞} {m : Message} {s : State} {n : ℕ}
-  {d : Multiset View} {f : Multiset View → ℝ≥0∞}
-
-end SignExpectH
 
 section SignPointH
 

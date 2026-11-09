@@ -1,4 +1,8 @@
-import VCVio.OracleComp.SimSemantics.StateT.Basic
+module
+
+public import VCVio.OracleComp.SimSemantics.StateT.Basic
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

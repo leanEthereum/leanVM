@@ -1,4 +1,8 @@
-import FORS.Scheme.Lemmas
+module
+
+public import FORS.Scheme.Lemmas
+
+@[expose] public section
 
 /-!
 # How many digests the target-sum code accepts
@@ -162,10 +166,10 @@ theorem digestEncoding_pack (x : Encoding) : digestEncoding (pack x) = x := by
   have hp : (2 : Nat) ^ digitOffset i = 4 ^ digitSlot i.val := by
     rw [hoff, pow_mul]; norm_num
   rw [hp, packNat, digit_of_sum 4 (by decide) (fun j => digit x (digitSlot j)) (fun j => digit_lt x _)
-    numChains (digitSlot i.val) (digitSlot_lt i.isLt), digitSlot_digitSlot, digit, dif_pos i.isLt]
+    numChains (digitSlot i.val) (digitSlot_lt i.isLt), digitSlot_digitSlot, digit, dite_eq_left i.isLt]
 
 theorem decodeDigest_pack (x : Encoding) (hx : Valid x) : decodeDigest (pack x) = some x := by
-  rw [decodeDigest, digestEncoding_pack, if_pos hx]
+  rw [decodeDigest, digestEncoding_pack, ite_eq_left hx]
 
 /-- At least one in 16384 uniformly sampled 128-bit digests is an admissible WOTS+C codeword. -/
 theorem two_pow_le_card_accepting :

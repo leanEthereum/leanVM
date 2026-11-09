@@ -1,5 +1,9 @@
-import VCVio.OracleComp.Constructions.SampleableType
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import VCVio.OracleComp.Constructions.SampleableType
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

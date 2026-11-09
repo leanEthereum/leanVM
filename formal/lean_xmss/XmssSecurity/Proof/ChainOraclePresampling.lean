@@ -1,12 +1,16 @@
-import XmssSecurity.Proof.QueryPresence
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.ChainTableUniformity
-import XmssSecurity.Proof.AdaptiveFreshTarget
-import XmssSecurity.Proof.RandomOraclePresampling
-import XmssSecurity.Proof.HiddenValue
-import XmssSecurity.Proof.UniformFiniteTable
-import XmssSecurity.Proof.HonestKeygenRun
-import XmssSecurity.Proof.TopKeygenFacts
+module
+
+public import XmssSecurity.Proof.QueryPresence
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.ChainTableUniformity
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.RandomOraclePresampling
+public import XmssSecurity.Proof.HiddenValue
+public import XmssSecurity.Proof.UniformFiniteTable
+public import XmssSecurity.Proof.HonestKeygenRun
+public import XmssSecurity.Proof.TopKeygenFacts
+
+@[expose] public section
 
 /-!
 # Presampling the chains of key generation
@@ -362,8 +366,8 @@ theorem ChainTableEdgesMatch.mono
   exact ⟨output, hle hcached, htarget⟩
 
 theorem evalDist_listOfFn_uniform_eq_drawList (count : Nat) :
-    𝒟[List.ofFn <$> ($ᵗ (Fin count → Digest))] =
-      𝒟[OracleComp.drawList ($ᵗ Digest) count] :=
+    (List.ofFn <$> ($ᵗ (Fin count → Digest))) =ᵈ
+      (OracleComp.drawList ($ᵗ Digest) count) :=
   (evalDist_drawList_uniform_eq_uniformFunction Digest count).symm
 
 theorem keygenChainValueTable_seedsMatch
@@ -411,11 +415,11 @@ theorem evalDist_run_eq_keyChainHash_then
       ((simulateQ randomOracle
         (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
           OracleComp HashSpec Digest)).run initialCache)) :
-    𝒟[(simulateQ randomOracle computation).run prefixCache] =
-      𝒟[(simulateQ randomOracle
+    ((simulateQ randomOracle computation).run prefixCache) =ᵈ
+      ((simulateQ randomOracle
         (Concrete.keyChainHash parameter key chain ⟨steps, hvalid⟩ previous :
           OracleComp HashSpec Digest)).run prefixCache >>= fun hashResult =>
-        (simulateQ randomOracle computation).run hashResult.2] := by
+        (simulateQ randomOracle computation).run hashResult.2) := by
   let target := Concrete.CacheView.keyChainInput parameter key chain ⟨steps, hvalid⟩ previous
   have hcached : ∀ result ∈ support ((simulateQ randomOracle computation).run prefixCache),
       ∃ output, result.2 target = some output := by
@@ -434,9 +438,9 @@ theorem evalDist_run_eq_keyChainHash_then
     rw [← hreplay]
     exact houtput
   calc
-    𝒟[(simulateQ randomOracle computation).run prefixCache] =
-        𝒟[(randomOracle (spec := HashSpec) target).run prefixCache >>= fun queryResult =>
-          (simulateQ randomOracle computation).run queryResult.2] :=
+    ((simulateQ randomOracle computation).run prefixCache) =ᵈ
+        ((randomOracle (spec := HashSpec) target).run prefixCache >>= fun queryResult =>
+          (simulateQ randomOracle computation).run queryResult.2) :=
       OracleComp.evalDist_randomOracle_run_eq_query_then_of_cached computation prefixCache
         target hcached
     _ = _ := by
@@ -447,30 +451,30 @@ theorem evalDist_run_eq_keyChainWalk_then
     (hcovers : CoversKeyChains parameter start computation)
     (key : ChainKey) (chain : ChainIndex) (steps : Nat)
     (hsteps : steps ≤ chainLength - 1) (initialCache : QueryCache HashSpec) :
-    𝒟[(simulateQ randomOracle computation).run initialCache] =
-      𝒟[(simulateQ randomOracle
+    ((simulateQ randomOracle computation).run initialCache) =ᵈ
+      ((simulateQ randomOracle
         (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
           OracleComp HashSpec Digest)).run initialCache >>= fun chainResult =>
-        (simulateQ randomOracle computation).run chainResult.2] := by
+        (simulateQ randomOracle computation).run chainResult.2) := by
   induction steps generalizing initialCache with
   | zero => simp [Concrete.keyChainWalk]
   | succ steps ih =>
       have hvalid : steps < chainLength - 1 := by omega
       calc
-        _ = 𝒟[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
               (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
                 OracleComp HashSpec Digest)).run initialCache >>= fun prefixResult =>
-              (simulateQ randomOracle computation).run prefixResult.2] :=
+              (simulateQ randomOracle computation).run prefixResult.2) :=
           ih (by omega) initialCache
-        _ = 𝒟[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
               (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
                 OracleComp HashSpec Digest)).run initialCache >>= fun prefixResult =>
               (simulateQ randomOracle
                 (Concrete.keyChainHash parameter key chain ⟨steps, hvalid⟩
                   prefixResult.1 : OracleComp HashSpec Digest)).run
                     prefixResult.2 >>= fun hashResult =>
-              (simulateQ randomOracle computation).run hashResult.2] := by
-          apply evalDist_bind_congr
+              (simulateQ randomOracle computation).run hashResult.2) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro prefixResult hprefix
           exact evalDist_run_eq_keyChainHash_then parameter start computation hcovers key chain
             steps prefixResult.1 initialCache prefixResult.2 hvalid hprefix
@@ -513,14 +517,14 @@ theorem evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (position steps : Nat) (value : Digest)
     (initialCache : QueryCache HashSpec) :
-    𝒟[(fun result : Vector Digest (steps + 1) × QueryCache HashSpec =>
+    ((fun result : Vector Digest (steps + 1) × QueryCache HashSpec =>
       (result.1.back, result.2)) <$>
         (simulateQ randomOracle
           (Concrete.chainTrajectory parameter key chain position steps value)).run
-            initialCache] =
-      𝒟[(simulateQ randomOracle
+            initialCache) =ᵈ
+      ((simulateQ randomOracle
         (Concrete.keyChainWalk parameter key chain position steps value :
-          OracleComp HashSpec Digest)).run initialCache] := by
+          OracleComp HashSpec Digest)).run initialCache) := by
   rw [← StateT.run_map]
   rw [← simulateQ_map]
   rw [Concrete.chainTrajectory_back_map_eq_keyChainWalk]
@@ -530,27 +534,26 @@ theorem evalDist_run_eq_chainTrajectory_then {α : Type} (parameter : PublicPara
     (hcovers : CoversKeyChains parameter start computation)
     (key : ChainKey) (chain : ChainIndex) (steps : Nat)
     (hsteps : steps ≤ chainLength - 1) (initialCache : QueryCache HashSpec) :
-    𝒟[(simulateQ randomOracle computation).run initialCache] =
-      𝒟[(simulateQ randomOracle
+    ((simulateQ randomOracle computation).run initialCache) =ᵈ
+      ((simulateQ randomOracle
         (Concrete.chainTrajectory parameter key chain 0 steps (start key chain))).run
           initialCache >>= fun trajectoryResult =>
-        (simulateQ randomOracle computation).run trajectoryResult.2] := by
+        (simulateQ randomOracle computation).run trajectoryResult.2) := by
   calc
-    _ = 𝒟[(simulateQ randomOracle
+    _ =ᵈ ((simulateQ randomOracle
           (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
             OracleComp HashSpec Digest)).run initialCache >>= fun chainResult =>
-          (simulateQ randomOracle computation).run chainResult.2] :=
+          (simulateQ randomOracle computation).run chainResult.2) :=
       evalDist_run_eq_keyChainWalk_then parameter start computation hcovers key chain steps
         hsteps initialCache
-    _ = 𝒟[((fun result : Vector Digest (steps + 1) × QueryCache HashSpec =>
+    _ =ᵈ (((fun result : Vector Digest (steps + 1) × QueryCache HashSpec =>
           (result.1.back, result.2)) <$>
             (simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache) >>= fun chainResult =>
-          (simulateQ randomOracle computation).run chainResult.2] := by
-      conv_lhs => rw [evalDist_bind]
-      conv_rhs => rw [evalDist_bind]
-      rw [evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache]
+          (simulateQ randomOracle computation).run chainResult.2) := by
+      exact (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
+        steps (start key chain) initialCache).symm.bind_left _
     _ = _ := by
       simp [map_eq_bind_pure_comp, bind_assoc]
 
@@ -678,77 +681,62 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_replay_in_largerCache
             (hrestInfo.1.trans hlarger)
       · exact ih first.2 rest largerCache hrest hlarger
 
-theorem Concrete.fixedSeedChainTrajectoriesFromCache_table_eq_in_largerCache
-    (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
-    (chain : ChainIndex) (initialCache : QueryCache HashSpec)
-    (result : List FullChainTrajectory × QueryCache HashSpec)
-    (largerCache : QueryCache HashSpec)
-    (hresult : result ∈ support
-      (Concrete.fixedSeedChainTrajectoriesFromCache parameter start chain
-        (chainLength - 1) initialCache allChainKeys))
-    (hle : result.2 ≤ largerCache)
-    (secretKey : SecretKey) (hparameter : secretKey.parameter = parameter)
-    (hstart : secretKey.keyChainStart = start) :
-    chainValueTableOfList result.1 = keygenChainValueTable largerCache secretKey chain := by
-  have hinfo := Concrete.fixedSeedChainTrajectoriesFromCache_support_info
-    parameter start chain (chainLength - 1) allChainKeys initialCache result hresult
-  have hpairs :=
-    Concrete.fixedSeedChainTrajectoriesFromCache_replay_in_largerCache
-      parameter start chain (chainLength - 1) allChainKeys initialCache result largerCache
-      hresult hle
-  funext index
-  unfold chainValueTableOfList
-  split
-  · rename_i htableLength
-    let position := chainKeyPosition index.1
-    have hresultPosition : position.val < result.1.length := by
-      rw [← htableLength]
-      exact position.isLt
-    have hpair := hpairs.get position.isLt hresultPosition
-    have hkey : allChainKeys.get position = index.1 := by
-      exact allChainKeys_get_chainKeyPosition index.1
-    rw [hkey] at hpair
-    have hvalue := congrArg
-      (fun trajectory : FullChainTrajectory =>
-        trajectory[index.2.val]'(by
-          have hdigit := index.2.isLt
-          omega)) hpair
-    rw [Concrete.chainTrajectory_getElem] at hvalue
-    rw [keygenChainValueTable, hparameter, hstart]
-    exact hvalue.symm
-  · rename_i htableLength
-    exact (htableLength hinfo.2.1.symm).elim
-
 theorem evalDist_run_eq_fixedSeedTrajectories_then {α : Type} (parameter : PublicParameter)
     (start : ChainKey → ChainIndex → Digest) (computation : OracleComp HashSpec α)
     (hcovers : CoversKeyChains parameter start computation)
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1)
     (keys : List ChainKey) (initialCache : QueryCache HashSpec) :
-    𝒟[(simulateQ randomOracle computation).run initialCache] =
-      𝒟[Concrete.fixedSeedChainTrajectoriesFromCache
+    ((simulateQ randomOracle computation).run initialCache) =ᵈ
+      (Concrete.fixedSeedChainTrajectoriesFromCache
         parameter start chain steps initialCache keys >>= fun trajectoryResult =>
-        (simulateQ randomOracle computation).run trajectoryResult.2] := by
+        (simulateQ randomOracle computation).run trajectoryResult.2) := by
   induction keys generalizing initialCache with
   | nil => simp
   | cons key keys ih =>
       calc
-        _ = 𝒟[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache >>= fun first =>
-              (simulateQ randomOracle computation).run first.2] :=
+              (simulateQ randomOracle computation).run first.2) :=
           evalDist_run_eq_chainTrajectory_then parameter start computation hcovers key chain
             steps hsteps initialCache
-        _ = 𝒟[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache >>= fun first =>
               Concrete.fixedSeedChainTrajectoriesFromCache
                 parameter start chain steps first.2 keys >>= fun rest =>
-              (simulateQ randomOracle computation).run rest.2] := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+              (simulateQ randomOracle computation).run rest.2) := by
+          apply EvalDistEq.bind_right
           intro first
           exact ih first.2
         _ = _ := by
           rw [Concrete.fixedSeedChainTrajectoriesFromCache_cons]
           simp only [bind_assoc, pure_bind]
+
+end XmssSecurity
+
+namespace XmssSecurity
+
+theorem Concrete.simulateQ_keyChainHash_run (parameter : PublicParameter) (key : ChainKey)
+    (chain : ChainIndex) (step : ChainStep) (value : Digest) (cache : QueryCache HashSpec) :
+    (simulateQ randomOracle
+      (Concrete.keyChainHash parameter key chain step value : OracleComp HashSpec Digest)).run cache =
+      (fun result : HashOutput × QueryCache HashSpec => (truncateHash result.1, result.2)) <$>
+        (randomOracle (Concrete.CacheView.keyChainInput parameter key chain step value)).run cache := by
+  simp only [Concrete.keyChainHash, Concrete.tweakableHash, Concrete.oracleHash,
+    HasQuery.instOfMonadLift_query, bind_pure_comp, simulateQ_map, StateT.run_map, simulateQ_spec_query]
+  rfl
+
+theorem Concrete.simulateQ_encodingHash_run (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) (cache : QueryCache HashSpec) :
+    (simulateQ randomOracle
+      (Concrete.encodingHash parameter leafIndex message randomness :
+        OracleComp HashSpec Digest)).run cache =
+      (fun result : HashOutput × QueryCache HashSpec => (truncateHash result.1, result.2)) <$>
+        (randomOracle (Concrete.CacheView.encodingInput parameter leafIndex
+          (message, randomness))).run cache := by
+  simp only [Concrete.encodingHash, Concrete.tweakableHash, Concrete.oracleHash,
+    HasQuery.instOfMonadLift_query, bind_pure_comp, simulateQ_map, StateT.run_map, simulateQ_spec_query]
+  rfl
 
 end XmssSecurity

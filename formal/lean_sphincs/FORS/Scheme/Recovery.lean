@@ -1,5 +1,9 @@
-import FORS.Scheme.Lemmas
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import FORS.Scheme.Lemmas
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Recovery: what the signer produces, the verifier accepts
@@ -16,7 +20,6 @@ here is probabilistic, and nothing depends on the answers being uniform.
 open OracleComp
 
 set_option maxRecDepth 100000
-set_option maxHeartbeats 1000000
 
 namespace FORS.Completeness
 
@@ -278,11 +281,11 @@ theorem eval_treeFold_path (parameter : PublicParameter) (lay : Layer) (tree : T
       cases hbit : leaf.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd leaf.val levels hbit
-          simp only [if_true, eval_tweakableHash]
+          simp only [ite_true, eval_tweakableHash]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even leaf.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash]
           rw [hsib, hcur]
 
 /-! ## FORS
@@ -330,7 +333,7 @@ theorem forsNodeValue_succ (level node : Nat) (hlevel : level < forsHeight) :
           (.forsNode index κ ⟨level, hlevel⟩ ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
           (nodePayload (forsNodeValue f parameter index κ seed level (2 * node))
             (forsNodeValue f parameter index κ seed level (2 * node + 1))))) := by
-  simp only [forsNodeValue, Seeded.forsNode, evalWithAnswerFn_bind, dif_pos hlevel, eval_tweakableHash]
+  simp only [forsNodeValue, Seeded.forsNode, evalWithAnswerFn_bind, dite_eq_left hlevel, eval_tweakableHash]
 
 /-- Folding the honest leaf through the honest siblings reaches the honest node above it. -/
 theorem eval_forsFold_path (leaf : FLeaf) (path : Fin forsHeight → Digest) :
@@ -348,7 +351,7 @@ theorem eval_forsFold_path (leaf : FLeaf) (path : Fin forsHeight → Digest) :
       have hlevels : levels < forsHeight := Nat.lt_of_succ_le hheight
       rw [forsFold, evalWithAnswerFn_bind,
         ih (Nat.le_of_succ_le hheight) (fun level hlevel hlt => hpath level hlevel (Nat.lt_succ_of_lt hlt))]
-      rw [dif_pos hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
+      rw [dite_eq_left hlevels, hpath levels hlevels (Nat.lt_succ_self levels),
         forsNodeValue_succ f parameter index κ seed levels _ hlevels]
       have hnode : (⟨leaf.val / 2 ^ (levels + 1), Nat.lt_of_le_of_lt (Nat.div_le_self _ _) leaf.isLt⟩ : FLeaf)
           = ⟨leaf.val / 2 ^ (levels + 1) % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ :=
@@ -356,11 +359,11 @@ theorem eval_forsFold_path (leaf : FLeaf) (path : Fin forsHeight → Digest) :
       cases hbit : leaf.val.testBit levels with
       | true =>
           obtain ⟨hcur, hsib⟩ := parts_odd leaf.val levels hbit
-          simp only [if_true, eval_tweakableHash, hnode]
+          simp only [ite_true, eval_tweakableHash, hnode]
           rw [hsib, hcur]
       | false =>
           obtain ⟨hcur, hsib⟩ := parts_even leaf.val levels hbit
-          simp only [Bool.false_eq_true, if_false, eval_tweakableHash, hnode]
+          simp only [Bool.false_eq_true, ite_false, eval_tweakableHash, hnode]
           rw [hsib, hcur]
 
 end Tree

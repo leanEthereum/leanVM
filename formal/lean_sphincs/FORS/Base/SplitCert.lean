@@ -1,4 +1,8 @@
-import FORS.Base.Split
+module
+
+public import FORS.Base.Split
+
+@[expose] public section
 
 /-! Rational bounds for the kernel-checkable certificates of the split bound of the one-coin H-term
 (the FORS certificates are in `CoverBound/HTermCertificate.lean`): dyadic rounding, exponentials

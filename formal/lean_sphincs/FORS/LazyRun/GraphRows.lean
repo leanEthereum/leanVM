@@ -1,5 +1,9 @@
-import FORS.LazyRun.Graph
-import FORS.GraphView.Sampling
+module
+
+public import FORS.LazyRun.Graph
+public import FORS.GraphView.Sampling
+
+@[expose] public section
 
 /-! Exact connection between the graph preparation table and the candidate hidden-row
 oracle. Secret coordinates come from the material tables; all other coordinates and the
@@ -12,7 +16,6 @@ variable [Params]
 open Graph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 
 def coordinates
@@ -141,9 +144,9 @@ theorem programGraphCache_row_lookup (positions : List Position) (cache : QueryC
         if value = coordinates otsSecret ftsSecret labels address.inputCoordinate then
           some (labels address.position) else cache (input parameter (address, value)) := by
   by_cases heq : value = coordinates otsSecret ftsSecret labels address.inputCoordinate
-  · rw [if_pos heq, heq, coordinates_input]
+  · rw [ite_eq_left heq, heq, coordinates_input]
     exact programGraphCache_label parameter otsSecret ftsSecret labels positions cache _ hposition
-  · rw [if_neg heq]
+  · rw [ite_eq_right heq]
     exact programGraphCache_row_miss parameter otsSecret ftsSecret labels positions cache address value heq
 
 end FORS.Security.HiddenGraph

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedEncodingEventProbability
-import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+module
+
+public import XmssSecurity.Proof.CappedEncodingEventProbability
+public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -8,11 +12,6 @@ namespace XmssSecurity
 def WinningEncodingEventOccurs
     (cache : QueryCache HashSpec) (outcome : GameOutcome) : Prop :=
   WinningGlobalBadEventOccurs cache outcome .encoding
-
-/-- A winning execution with a bad event of the top layer. -/
-def WinningTopBadEventOccurs
-    (cache : QueryCache HashSpec) (outcome : GameOutcome) : Prop :=
-  WinningGlobalBadEventOccurs cache outcome .top
 
 def WinningUnifiedBadEventOccurs
     (cache : QueryCache HashSpec) (outcome : GameOutcome) : Prop :=

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedSigningCacheTrace
+module
+
+public import XmssSecurity.Proof.CappedSigningCacheTrace
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

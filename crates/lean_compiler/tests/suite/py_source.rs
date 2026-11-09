@@ -11,6 +11,8 @@
 //! ```
 //!
 //! or omits it to run with the empty public input (two zeros).
+//!
+//! `formal/lean_vm/scripts/export-rust.sh` includes this file for [`public_input`] and [`witness`].
 
 use std::fs;
 
@@ -18,8 +20,8 @@ use lean_compiler::{compile, parse, parse_const};
 use leanvm_core::cpu::{prove, verify};
 use primitives::field::F192;
 
-/// The `# public_input: <elt>, <elt>` annotation, or `[0, 0]` if absent.
-fn public_input(src: &str) -> [F192; 2] {
+/// The `# public_input: <elt>, <elt>` annotation, if any.
+pub(crate) fn public_input(src: &str) -> Option<[F192; 2]> {
     for line in src.lines() {
         if let Some(rest) = line.trim().strip_prefix("# public_input:") {
             let parts: Vec<&str> = rest.split(',').collect();
@@ -29,16 +31,16 @@ fn public_input(src: &str) -> [F192; 2] {
                 "`# public_input:` needs two field elements, got `{rest}`"
             );
             let elt = |s: &str| parse_const(s).unwrap_or_else(|e| panic!("bad public_input: {e}"));
-            return [elt(parts[0]), elt(parts[1])];
+            return Some([elt(parts[0]), elt(parts[1])]);
         }
     }
-    [F192::ZERO; 2]
+    None
 }
 
 /// The `# witness <name>: <elt>, …` annotations: one line per *entry*
 /// (repeated lines with the same name are the stream's successive entries,
 /// popped by successive `hint_witness` calls).
-fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F192>>> {
+pub(crate) fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F192>>> {
     let mut streams: std::collections::HashMap<String, Vec<Vec<F192>>> = Default::default();
     for rest in src.lines().filter_map(|l| l.trim().strip_prefix("# witness ")) {
         let (name, vals) = rest.split_once(':').expect("`# witness` needs `name: values`");
@@ -66,7 +68,7 @@ fn all_py_programs() {
     for path in paths {
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
         let src = fs::read_to_string(&path).unwrap_or_else(|e| panic!("{name}: read: {e}"));
-        let want = public_input(&src);
+        let want = public_input(&src).unwrap_or([F192::ZERO; 2]);
         let ast = parse(&src).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
         let mut program = compile(&ast);
         for (stream, entries) in witness(&src) {

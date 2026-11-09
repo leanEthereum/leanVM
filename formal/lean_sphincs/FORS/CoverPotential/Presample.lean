@@ -1,4 +1,8 @@
-import FORS.LazyRun.Presample
+module
+
+public import FORS.LazyRun.Presample
+
+@[expose] public section
 
 /-! Fixing the answer to an untargeted, unparsed outside input in advance commutes with the
 interpreted lazy comparison: the lazy oracle would draw the same uniform value on first use. So
@@ -22,6 +26,10 @@ variable {D R A ι : Type} [Fintype ι] [SampleableType R]
 attribute [local instance] saturationDecEqCoordinate
 variable (tg : Targeting D R ι) (initial : Cache D R) (model : HiddenRows.Model D R A ι)
 
+omit [Fintype ι] [SampleableType R] in
+private theorem evalDistEq_of_eq {α : Type} {mx my : ProbComp α} (h : mx = my) : mx =ᵈ my :=
+  h ▸ EvalDistEq.rfl
+
 /-- Fix the answer to an outside input in advance. -/
 noncomputable def presample (x : D) (state : DebtState D R ι) : ProbComp (DebtState D R ι) :=
   match state.cache x with
@@ -43,29 +51,28 @@ theorem store_comm (state : DebtState D R ι) (x y : D) (hxy : x ≠ y) (u v : R
     (state.store x u).store y v = (state.store y v).store x u := by
   simp only [DebtState.store]
   congr 1
-  exact Function.update_comm hxy _ _ _
+  exact QueryCache.cacheQuery_comm _ hxy _ _
 
 omit [Fintype ι] in
 /-- Presampling commutes with an outside read. -/
 theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => readOutside y s >>= next] =
-      𝒟[readOutside y state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => readOutside y s >>= next) =ᵈ (readOutside y state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   by_cases hxy : y = x
   · subst hxy
     cases hc : state.cache y with
     | some v =>
-        simp only [presample_cached y state v hc, readOutside_cached y state v hc, pure_bind]
+        simp only [presample_cached y state v hc, readOutside_cached y state v hc, pure_bind, EvalDistEq.refl]
     | none =>
         rw [presample_fresh y state hc, readOutside_fresh y state hc, bind_map_left, bind_map_left]
-        congr 1
+        apply evalDistEq_of_eq
         refine bind_congr fun u => ?_
         have hst : (state.store y u).cache y = some u := by simp [DebtState.store]
         simp only [readOutside_cached y _ u hst, presample_cached y _ u hst, pure_bind]
   · cases hcx : state.cache x with
     | some v =>
         rw [presample_cached x state v hcx, pure_bind]
-        congr 1
+        apply evalDistEq_of_eq
         apply bind_congr_of_forall_mem_support
         intro r hr
         rcases readOutside_support y state r hr with h | ⟨_, h⟩
@@ -82,7 +89,7 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
         cases hcy : state.cache y with
         | some v =>
             rw [readOutside_cached y state v hcy, pure_bind, presample_fresh x state hcx, bind_map_left]
-            congr 1
+            apply evalDistEq_of_eq
             refine bind_congr fun u => ?_
             rw [readOutside_cached y _ v (by rw [store_cache_ne state x y hxy u]; exact hcy), pure_bind]
         | none =>
@@ -91,8 +98,8 @@ theorem presample_readOutside {γ : Type} (x y : D) (state : DebtState D R ι)
                 (fun v => (v, (state.store x u).store y v)) <$> ($ᵗ R : ProbComp R) := fun u =>
               readOutside_fresh y _ (by rw [store_cache_ne state x y hxy u]; exact hcy)
             simp only [hL, bind_map_left]
-            rw [evalDist_bind_bind_swap]
-            congr 1
+            refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+            apply evalDistEq_of_eq
             refine bind_congr fun v => ?_
             rw [presample_fresh x _ (by rw [store_cache_ne state y x (Ne.symm hxy) v]; exact hcx), bind_map_left]
             refine bind_congr fun u => ?_
@@ -150,8 +157,7 @@ theorem presample_setKnown (x : D) (state : DebtState D R ι) (known : Knowledge
 omit [Fintype ι] in
 theorem presample_sampleCoordinate {γ : Type} (x : D) (coordinate : ι) (state : DebtState D R ι)
     (next : Digest × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => sampleCoordinate coordinate s >>= next] =
-      𝒟[sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => sampleCoordinate coordinate s >>= next) =ᵈ (sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   have hstep : ∀ s ∈ support (presample x state), sampleCoordinate coordinate s =
       (fun r => (r.1, { s with known := r.2 })) <$>
         (randomOracle (spec := ι →ₒ Digest) coordinate).run state.known := by
@@ -163,8 +169,8 @@ theorem presample_sampleCoordinate {γ : Type} (x : D) (coordinate : ι) (state 
     bind_congr_of_forall_mem_support _ fun s hs => by rw [hstep s hs]
   rw [hcongr]
   simp only [sampleCoordinate, bind_map_left]
-  rw [evalDist_bind_bind_swap]
-  congr 1
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  apply evalDistEq_of_eq
   refine bind_congr fun r => ?_
   rw [presample_setKnown x state r.2, bind_map_left]
 
@@ -172,15 +178,14 @@ omit [Fintype ι] in
 /-- Presampling commutes with an outside read after a deterministic update of the guesses. -/
 theorem presample_readOutside_record {γ : Type} (x bytes : D) (state : DebtState D R ι) (guess : ι × Digest)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => readOutside bytes (s.record guess) >>= next] =
-      𝒟[readOutside bytes (state.record guess) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
-  rw [← presample_readOutside x bytes (state.record guess) next, presample_record, bind_map_left]
+    (presample x state >>= fun s => readOutside bytes (s.record guess) >>= next) =ᵈ (readOutside bytes (state.record guess) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
+  refine EvalDistEq.trans ?_ (presample_readOutside x bytes (state.record guess) next)
+  rw [presample_record, bind_map_left]
 
 omit [Fintype ι] in
 theorem presample_ordinaryStep {γ : Type} (x bytes : D) (state : DebtState D R ι)
     (next : R × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next] =
-      𝒟[ordinaryStep model bytes state.known state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next) =ᵈ (ordinaryStep model bytes state.known state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   cases hp : model.parse bytes with
   | none =>
       simp only [ordinaryStep, hp]
@@ -192,46 +197,44 @@ theorem presample_ordinaryStep {γ : Type} (x bytes : D) (state : DebtState D R 
           exact presample_readOutside_record x bytes state _ next
       | some canonical =>
           by_cases heq : query.2 = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq, bind_map_left]
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq, bind_map_left]
             exact presample_sampleCoordinate x _ state _
-          · simp only [ordinaryStep, hp, hk, if_neg heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq]
             exact presample_readOutside x bytes state next
 
 omit [Params] [Fintype ι] in
 theorem presample_indep {T γ : Type} (x : D) (state : DebtState D R ι) (query : ProbComp T)
     (next : T × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => ((fun v => (v, s)) <$> query) >>= next] =
-      𝒟[((fun v => (v, state)) <$> query) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
+    (presample x state >>= fun s => ((fun v => (v, s)) <$> query) >>= next) =ᵈ (((fun v => (v, state)) <$> query) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
   simp only [bind_map_left]
-  exact evalDist_bind_bind_swap _ _ _
+  exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 omit [Fintype ι] in
 theorem presample_costStep {γ : Type} (x : D) (input : (SourceCostSpec D R ι).Domain) (state : DebtState D R ι)
     (next : (SourceCostSpec D R ι).Range input × DebtState D R ι → ProbComp γ) :
-    𝒟[presample x state >>= fun s => costStep model input s >>= next] =
-      𝒟[costStep model input state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)] := by
-  rcases input with (draw | (bytes | coordinate)) | amount
+    (presample x state >>= fun s => costStep model input s >>= next) =ᵈ (costStep model input state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)) := by
+  rcases input with (draw | (bytes | coordinate)) | (amount | honest)
   · exact presample_indep x state (liftM (unifSpec.query draw) : ProbComp _) next
-  · have hcongr : (presample x state >>= fun s => costStep model (.inl (.inr (.inl bytes))) s >>= next) =
+  · have hcongr : (presample x state >>= fun s => costStep (H := Empty) model (.inl (.inr (.inl bytes))) s >>= next) =
         (presample x state >>= fun s => ordinaryStep model bytes state.known s >>= next) :=
       bind_congr_of_forall_mem_support _ fun s hs => by
         rw [costStep_ordinary, (presample_known x state s hs).1]
     rw [hcongr, costStep_ordinary]
     exact presample_ordinaryStep model x bytes state next
-  · change 𝒟[presample x state >>= fun s => sampleCoordinate coordinate s >>= next] =
-      𝒟[sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s)]
+  · change (presample x state >>= fun s => sampleCoordinate coordinate s >>= next) =ᵈ
+      (sampleCoordinate coordinate state >>= fun r => presample x r.2 >>= fun s => next (r.1, s))
     exact presample_sampleCoordinate x coordinate state next
-  · change 𝒟[presample x state >>= fun s => (pure ((), s) : ProbComp _) >>= next] =
-      𝒟[(pure ((), state) : ProbComp _) >>= fun r => presample x r.2 >>= fun s => next (r.1, s)]
-    simp only [pure_bind]
+  · change (presample x state >>= fun s => (pure ((), s) : ProbComp _) >>= next) =ᵈ
+      ((pure ((), state) : ProbComp _) >>= fun r => presample x r.2 >>= fun s => next (r.1, s))
+    simp only [pure_bind, EvalDistEq.refl]
+  · exact Empty.elim honest
 
 omit [Fintype ι] in
 /-- **Presampling an untargeted input commutes with the interpreter.** -/
 theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) :
-    ∀ budget state, 𝒟[presample x state >>= fun s => interp tg initial model computation budget s] =
-      𝒟[interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2] := by
+    ∀ budget state, (presample x state >>= fun s => interp tg initial model computation budget s) =ᵈ (interp tg initial model computation budget state >>= fun out =>
+        (fun s => (out.1, s)) <$> presample x out.2) := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
       intro budget state
@@ -247,11 +250,12 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
         have htouch : ∀ s ∈ support (presample x state),
             touch tg initial s input = touch tg initial state input := by
           intro s hs
-          rcases input with (draw | (bytes | coordinate)) | amount
+          rcases input with (draw | (bytes | coordinate)) | (amount | honest)
           · rfl
           · simp only [touch, realized_presample tg initial x hk state s hs]
           · rfl
           · rfl
+          · exact Empty.elim honest
         have hcongr : (presample x state >>= fun s => costStep model input s >>= fun result =>
             (fun out => ((out.1.1, revealed input ++ out.1.2.1, recorded input ++ out.1.2.2.1,
               touch tg initial s input ++ out.1.2.2.2), out.2)) <$>
@@ -260,22 +264,13 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
               (fun out => (φ out.1, out.2)) <$>
                 interp tg initial model (next result.1) (budget - sourceCost input) result.2) :=
           bind_congr_of_forall_mem_support _ fun s hs => by rw [htouch s hs]
-        rw [hcongr, presample_costStep model x input state, bind_assoc, evalDist_bind, evalDist_bind]
-        congr 1
-        funext result
-        have hih := ih result.1 (budget - sourceCost input) result.2
-        calc 𝒟[presample x result.2 >>= fun s => (fun out => (φ out.1, out.2)) <$>
-              interp tg initial model (next result.1) (budget - sourceCost input) s]
-            = (fun out => (φ out.1, out.2)) <$> 𝒟[presample x result.2 >>= fun s =>
-                interp tg initial model (next result.1) (budget - sourceCost input) s] := by
-              rw [← evalDist_map, map_bind]
-          _ = (fun out => (φ out.1, out.2)) <$> 𝒟[interp tg initial model (next result.1)
-                (budget - sourceCost input) result.2 >>= fun out => (fun s => (out.1, s)) <$> presample x out.2] := by
-              rw [hih]
-          _ = _ := by
-              rw [← evalDist_map, map_bind, bind_map_left]
-              simp only [Functor.map_map]
-              rfl
+        rw [hcongr]
+        refine (presample_costStep model x input state _).trans ?_
+        rw [bind_assoc]
+        refine EvalDistEq.bind_right _ fun result => ?_
+        have h := (ih result.1 (budget - sourceCost input) result.2).map (fun out => (φ out.1, out.2))
+        simp only [map_bind, Functor.map_map, bind_map_left] at h ⊢
+        exact h
       · simp only [pure_bind]
         rw [map_eq_bind_pure_comp]
         rfl
@@ -284,11 +279,8 @@ theorem presample_interp (x : D) (hk : tg.kind x = .none) {α : Type}
 
 omit [Params] [Fintype ι] in
 theorem presample_mass (x : D) (state : DebtState D R ι) :
-    ∑' s, Pr[= s | presample x state] = 1 := by
-  refine tsum_probOutput_eq_one' ?_
-  cases hc : state.cache x with
-  | some v => rw [presample_cached x state v hc]; simp
-  | none => rw [presample_fresh x state hc]; simp
+    ∑' s, Pr{let y ← presample x state}[y = s] = 1 := by
+  exact OracleComp.tsum_prEvent_eq_one _
 
 omit [Fintype ι] in
 /-- A final value that can only grow when an untargeted input is presampled at the end. -/
@@ -296,49 +288,27 @@ theorem interp_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (s : DebtState D R ι), s ∈ support (presample x out.2) → F out ≤ F (out.1, s)) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-      ∑' s, Pr[= s | presample x state] *
-        ∑' out, Pr[= out | interp tg initial model computation budget s] * F out := by
-  have heq : ∑' s, Pr[= s | presample x state] *
-      ∑' out, Pr[= out | interp tg initial model computation budget s] * F out =
-      ∑' out, Pr[= out | interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2] * F out := by
-    rw [← tsum_probOutput_bind_mul]
-    exact tsum_congr fun out => congrArg (· * _) (probOutput_congr rfl
-      (presample_interp tg initial model x hk computation budget state))
-  rw [heq, tsum_probOutput_bind_mul]
+    ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] * F out ≤
+      ∑' s, Pr{let y ← presample x state}[y = s] *
+        ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out := by
+  have heq : ∑' s, Pr{let y ← presample x state}[y = s] *
+      ∑' out, Pr{let x ← interp tg initial model computation budget s}[x = out] * F out =
+      ∑' out, Pr{let y ← (interp tg initial model computation budget state >>= fun out =>
+        (fun s => (out.1, s)) <$> presample x out.2)}[y = out] * F out := by
+    rw [← OracleComp.tsum_prEvent_bind_mul]
+    exact tsum_congr fun out => congrArg (· * _) ((presample_interp tg initial model x hk computation budget state).prEvent_eq _)
+  rw [heq, OracleComp.tsum_prEvent_bind_mul]
   refine ENNReal.tsum_le_tsum fun out => ?_
   by_cases hout : out ∈ support (interp tg initial model computation budget state)
   · refine mul_le_mul_right ?_ _
-    rw [tsum_probOutput_map_mul]
-    calc F out = ∑' s, Pr[= s | presample x out.2] * F out := by
+    rw [OracleComp.tsum_prEvent_map_mul]
+    calc F out = ∑' s, Pr{let y ← presample x out.2}[y = s] * F out := by
           rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
       _ ≤ _ := ENNReal.tsum_le_tsum fun s => by
           by_cases hs : s ∈ support (presample x out.2)
           · exact mul_le_mul_right (hF out s hs) _
-          · rw [probOutput_eq_zero_of_not_mem_support hs, zero_mul, zero_mul]
-  · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
-
-omit [Fintype ι] in
-/-- A value of the run alone is unchanged by presampling. -/
-theorem interp_presample_eq (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
-    (F : Run D ι α → ℝ≥0∞) :
-    ∑' s, Pr[= s | presample x state] *
-        ∑' out, Pr[= out | interp tg initial model computation budget s] * F out.1 =
-      ∑' out, Pr[= out | interp tg initial model computation budget state] * F out.1 := by
-  have heq : ∑' s, Pr[= s | presample x state] *
-      ∑' out, Pr[= out | interp tg initial model computation budget s] * F out.1 =
-      ∑' out, Pr[= out | interp tg initial model computation budget state >>= fun out =>
-        (fun s => (out.1, s)) <$> presample x out.2] * F out.1 := by
-    rw [← tsum_probOutput_bind_mul]
-    exact tsum_congr fun out => congrArg (· * _) (probOutput_congr rfl
-      (presample_interp tg initial model x hk computation budget state))
-  rw [heq, tsum_probOutput_bind_mul]
-  refine tsum_congr fun out => ?_
-  rw [tsum_probOutput_map_mul]
-  simp only
-  rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
+          · rw [(prEvent_eq_zero_of_not_mem_support _) hs, zero_mul, zero_mul]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
 
 /-! ### Storing a family of inputs -/
 
@@ -388,7 +358,7 @@ theorem storeAll_perm {n : ℕ} (x : Fin n → D) (hx : Function.Injective x) (u
     storeAll (x ∘ σ) (u ∘ σ) state = storeAll x u state := by
   have hx' : Function.Injective (x ∘ σ) := hx.comp σ.injective
   have hcache : (storeAll (x ∘ σ) (u ∘ σ) state).cache = (storeAll x u state).cache := by
-    funext y
+    ext y : 1
     by_cases hy : ∃ j, x (σ j) = y
     · obtain ⟨j, rfl⟩ := hy
       have h1 : (storeAll (x ∘ σ) (u ∘ σ) state).cache (x (σ j)) = some (u (σ j)) :=
@@ -417,8 +387,8 @@ variable [Fintype R]
 omit [Fintype ι] in
 /-- The mean against a uniform answer as a normalized finite sum. -/
 theorem tsum_uniform_eq (G : R → ℝ≥0∞) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] * G v = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, G v := by
-  simp only [probOutput_uniformSample]
+    ∑' v, Pr{let z ← ($ᵗ R : ProbComp R)}[z = v] * G v = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, G v := by
+  simp only [SampleableType.prEvent_uniformSample_eq_singleton]
   rw [ENNReal.tsum_mul_left, tsum_fintype]
 
 omit [Fintype ι] in
@@ -427,9 +397,9 @@ theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
     (hx : state.cache x = none) (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-        (state.store x v)] * F out := by
+    ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
+      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+        (state.store x v))}[z = out] * F out := by
   refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
   · cases hc : out.2.cache x with
     | some w =>
@@ -439,7 +409,7 @@ theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
         rw [presample_fresh x out.2 hc, support_map] at hs
         obtain ⟨v, _, rfl⟩ := hs
         exact hF out x v hc
-  · rw [presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
+  · rw [presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
 omit [Fintype ι] in
 /-- **Presampling an injective family of fresh untargeted inputs** helps a final value monotone
@@ -449,9 +419,9 @@ theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCost
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
     ∀ {n : ℕ} (x : Fin n → D), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
       ∀ state : DebtState D R ι, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
+        ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
           ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out
+            ∑' out, Pr{let z ← interp tg initial model computation budget (storeAll x u state)}[z = out] * F out
   | 0, x, _, _, state, _ => by
       simp only [pow_zero, inv_one, one_mul]
       rw [Fintype.sum_unique]
@@ -460,23 +430,23 @@ theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCost
       have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
       refine le_trans (interp_presample_fresh_le tg initial model (x 0) (hk 0) computation budget state
         (hfresh 0) F hF) ?_
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget (state.store (x 0) v)] * F out ≤
-          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr[= out | interp tg initial model
-            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out := fun v =>
+      have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model computation budget (state.store (x 0) v)}[z = out] * F out ≤
+          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr{let z ← (interp tg initial model
+            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out := fun v =>
         interp_presampleAll_le computation budget F hF (Fin.tail x) hxt (fun i => hk i.succ) _ fun i => by
           show (state.store (x 0) v).cache (x i.succ) = none
           rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
           exact hfresh i.succ
-      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-              (state.store (x 0) v)] * F out
+      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+              (state.store (x 0) v))}[z = out] * F out
           ≤ (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out) := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out) := by
             gcongr with v
             exact hrest v
         _ = ((Fintype.card R : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll x (Fin.cons v w) state))}[z = out] * F out := by
             rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
               (Or.inl (ENNReal.natCast_ne_top _))]
             rfl
@@ -494,19 +464,19 @@ theorem interp_presample_new {α : Type} {n : ℕ} (x : Fin n → D) (hx : Funct
     (budget : ℕ) (state : DebtState D R ι) (hfresh : ∀ i, state.cache (x i) = none)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
+    ∑' v, Pr{let z ← ($ᵗ R : ProbComp R)}[z = v] *
+        ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out ≤
       ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out := by
+        ∑' out, Pr{let z ← interp tg initial model (next (u c)) budget (storeAll x u state)}[z = out] * F out := by
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by have := c.isLt; omega⟩
   set σ : Equiv.Perm (Fin (m + 1)) := Equiv.swap 0 c with hσ
   set x' : Fin (m + 1) → D := x ∘ σ with hx'
   have hx'inj : Function.Injective x' := hx.comp σ.injective
   have hx'0 : x' 0 = x c := by simp [hx', hσ]
   have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
-      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr[= out | interp tg initial model
-        (next v) budget (storeAll x' (Fin.cons v w) state)] * F out := by
+  have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out ≤
+      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr{let z ← (interp tg initial model
+        (next v) budget (storeAll x' (Fin.cons v w) state))}[z = out] * F out := by
     intro v
     rw [← hx'0]
     exact interp_presampleAll_le tg initial model (next v) budget F hF (Fin.tail x') hxt (fun i => hk _) _
@@ -515,116 +485,14 @@ theorem interp_presample_new {α : Type} {n : ℕ} (x : Fin n → D) (hx : Funct
         rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
         exact hfresh _
   rw [tsum_uniform_eq]
-  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out
+  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+          (state.store (x c) v))}[z = out] * F out
       ≤ (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out) := by
+          ∑' out, Pr{let z ← interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)}[z = out] * F out) := by
         gcongr with v
         exact hrest v
     _ = ((Fintype.card R : ℝ≥0∞) ^ (m + 1))⁻¹ * ∑ u' : Fin (m + 1) → R,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out := by
-        rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
-          (Or.inl (ENNReal.natCast_ne_top _))]
-        congr 1
-        rw [← Fintype.sum_prod_type']
-        exact Fintype.sum_equiv (Fin.consEquiv fun _ => R) _ _ fun p => rfl
-    _ = _ := by
-        congr 1
-        refine Fintype.sum_equiv (σ.arrowCongr (Equiv.refl R)) _ _ fun u' => ?_
-        have hu : (σ.arrowCongr (Equiv.refl R)) u' ∘ σ = u' := by
-          funext i
-          simp [Equiv.arrowCongr_apply, hσ, Equiv.swap_apply_self]
-        conv_lhs => rw [← hu]
-        rw [storeAll_perm x hx _ σ state]
-        congr 3
-
-omit [Fintype ι] in
-/-- Presampling one fresh untargeted input keeps a value of the run alone. -/
-theorem interp_presample_fresh_eq (x : D) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
-    (hx : state.cache x = none) (F : Run D ι α → ℝ≥0∞) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out.1 =
-      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-        (state.store x v)] * F out.1 := by
-  rw [← interp_presample_eq tg initial model x hk computation budget state F,
-    presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
-
-omit [Fintype ι] in
-/-- **Presampling an injective family of fresh untargeted inputs** keeps a value of the run alone. -/
-theorem interp_presampleAll_eq {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
-    (F : Run D ι α → ℝ≥0∞) :
-    ∀ {n : ℕ} (x : Fin n → D), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
-      ∀ state : DebtState D R ι, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out.1 =
-          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out.1
-  | 0, x, _, _, state, _ => by
-      simp only [pow_zero, inv_one, one_mul]
-      rw [Fintype.sum_unique]
-      rfl
-  | n + 1, x, hx, hk, state, hfresh => by
-      have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
-      rw [interp_presample_fresh_eq tg initial model (x 0) (hk 0) computation budget state (hfresh 0) F]
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget (state.store (x 0) v)] * F out.1 =
-          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr[= out | interp tg initial model
-            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out.1 := fun v =>
-        interp_presampleAll_eq computation budget F (Fin.tail x) hxt (fun i => hk i.succ) _ fun i => by
-          show (state.store (x 0) v).cache (x i.succ) = none
-          rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
-          exact hfresh i.succ
-      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-              (state.store (x 0) v)] * F out.1
-          = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out.1) :=
-            congrArg (fun A => (Fintype.card R : ℝ≥0∞)⁻¹ * A) (Finset.sum_congr rfl fun v _ => hrest v)
-        _ = ((Fintype.card R : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out.1 := by
-            rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
-              (Or.inl (ENNReal.natCast_ne_top _))]
-            rfl
-        _ = _ := by
-            congr 1
-            rw [← Fintype.sum_prod_type']
-            exact Fintype.sum_equiv (Fin.consEquiv fun _ => R) _ _ fun p => rfl
-
-omit [Fintype ι] in
-/-- **A query of one input of a fresh family**, for a value of the run alone: the uniform answer at
-input `c` followed by the run has the same mean as the run after storing uniform answers at the
-whole family. -/
-theorem interp_presample_new_eq {α : Type} {n : ℕ} (x : Fin n → D) (hx : Function.Injective x)
-    (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : R → OracleComp (SourceCostSpec D R ι) α)
-    (budget : ℕ) (state : DebtState D R ι) (hfresh : ∀ i, state.cache (x i) = none)
-    (F : Run D ι α → ℝ≥0∞) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out.1 =
-      ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out.1 := by
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by have := c.isLt; omega⟩
-  set σ : Equiv.Perm (Fin (m + 1)) := Equiv.swap 0 c with hσ
-  set x' : Fin (m + 1) → D := x ∘ σ with hx'
-  have hx'inj : Function.Injective x' := hx.comp σ.injective
-  have hx'0 : x' 0 = x c := by simp [hx', hσ]
-  have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out.1 =
-      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr[= out | interp tg initial model
-        (next v) budget (storeAll x' (Fin.cons v w) state)] * F out.1 := by
-    intro v
-    rw [← hx'0]
-    exact interp_presampleAll_eq tg initial model (next v) budget F (Fin.tail x') hxt (fun i => hk _) _
-      fun i => by
-        show (state.store (x' 0) v).cache (x' i.succ) = none
-        rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
-        exact hfresh _
-  rw [tsum_uniform_eq]
-  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out.1
-      = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out.1) :=
-        congrArg (fun A => (Fintype.card R : ℝ≥0∞)⁻¹ * A) (Finset.sum_congr rfl fun v _ => hrest v)
-    _ = ((Fintype.card R : ℝ≥0∞) ^ (m + 1))⁻¹ * ∑ u' : Fin (m + 1) → R,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out.1 := by
+          ∑' out, Pr{let z ← interp tg initial model (next (u' 0)) budget (storeAll x' u' state)}[z = out] * F out := by
         rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
           (Or.inl (ENNReal.natCast_ne_top _))]
         congr 1

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CacheReplayEval
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import XmssSecurity.Proof.CacheReplayEval
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 open OracleSpec
 

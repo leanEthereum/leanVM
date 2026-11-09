@@ -1,4 +1,8 @@
-import FORS.Scheme.Domains
+module
+
+public import FORS.Scheme.Domains
+
+@[expose] public section
 
 /-!
 Exact seed-input parsing and hidden-seed guessing. An input names at most one seed, so it
@@ -56,21 +60,16 @@ theorem parseSeed_eq_some_iff (input : HashInput) (seed : MasterSeed) :
 
 /-- Each fixed byte input contributes at most one equality guess against a uniform hidden seed. -/
 theorem seedHit_probability_le (input : HashInput) :
-    Pr[SeedHit input | sampleMasterSeed] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
+    Pr{let x ← sampleMasterSeed}[(SeedHit input) x] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
   classical
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) from rfl,
-    probEvent_uniformSample]
+    SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter (SeedHit input)).card ≤ 1 := by
     apply Finset.card_le_one.mpr
     intro seed hseed seed' hseed'
     exact seedHit_unique (Finset.mem_filter.mp hseed).2 (Finset.mem_filter.mp hseed').2
   rw [show Fintype.card MasterSeed = 2 ^ 256 by simp, Nat.cast_pow, Nat.cast_ofNat]
   exact ENNReal.div_le_div_right (by exact_mod_cast hcard) _
-
-/-- An adaptive query choice and its state transition after an equality-oracle reply. -/
-structure Trial (σ : Type) where
-  input : HashInput
-  next : Bool → σ
 
 end FORS.Security.SeedGuess

@@ -12,6 +12,10 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.h26_layered
 
+/-- info: 'FORS.Lifetimes.h26_layered_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Lifetimes.h26_layered_adversary
+
 /-- info: 'FORS.Configurations.keccak256_h26_layered_k24' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Configurations.keccak256_h26_layered_k24
@@ -20,25 +24,25 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Configurations.size_h26_layered_k24
 
-/-- info: 'FORS.Security.ForsPotential.det_bitsFH' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.ForsPotential.det_bitsF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.ForsPotential.det_bitsFH
+#print axioms FORS.Security.ForsPotential.det_bitsF
 
-/-- info: 'FORS.Security.Det.forgeAdvantage_le_seedFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.AdvCount.forgeAdvantage_le_seedFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.forgeAdvantage_le_seedFree
+#print axioms FORS.Security.AdvCount.forgeAdvantage_le_seedFree
 
-/-- info: 'FORS.Security.Det.budgetedWinMaster_le_seedFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.AdvCount.budgetedWinAdv_le_seedFreeH' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.Det.budgetedWinMaster_le_seedFree
+#print axioms FORS.Security.AdvCount.budgetedWinAdv_le_seedFreeH
 
 /-- info: 'FORS.Security.Det.evalDist_rtable_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.Det.evalDist_rtable_split
 
-/-- info: 'FORS.Security.DetValue.avg_advDet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.AdvCount.win_avg_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.DetValue.avg_advDet
+#print axioms FORS.Security.AdvCount.win_avg_le
 
 /-- info: 'FORS.Security.SeedCoupling.evalDist_prepared_continuation' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -60,9 +64,9 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.Prefix.hashCalls_keygenFromSeed
 
-/-- info: 'FORS.Security.GraphView.hashCalls_finishSign_exact' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Concrete.verify_calls' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.GraphView.hashCalls_finishSign_exact
+#print axioms FORS.Concrete.verify_calls
 
 /-- info: 'FORS.Security.GraphView.scan_boundW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -92,9 +96,9 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.verified_layers
 
-/-- info: 'FORS.Security.PotentialA.smallRoute_potentialF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.PotentialA.smallRoute_potentialHFrom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.PotentialA.smallRoute_potentialF
+#print axioms FORS.Security.PotentialA.smallRoute_potentialHFrom
 
 /-- info: 'FORS.Security.ForsPotential.reveal_le_all' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -112,9 +116,9 @@ one an unfinished proof or a compiled decision procedure adds.
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Security.ForsPotential.det_smallF
 
-/-- info: 'FORS.Security.ForsPotential.det_largeW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'FORS.Security.ForsPotential.forgeAdvantage_le_largeWH' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms FORS.Security.ForsPotential.det_largeW
+#print axioms FORS.Security.ForsPotential.forgeAdvantage_le_largeWH
 
 /-- info: 'FORS.Concrete.fullDigestView_bijective' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -147,6 +151,14 @@ one an unfinished proof or a compiled decision procedure adds.
 /-- info: 'FORS.Cost.verification_compressions' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms FORS.Cost.verification_compressions
+
+/-- info: 'FORS.Crate.eval_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.eval_keygen
+
+/-- info: 'FORS.Crate.eval_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms FORS.Crate.eval_sign
 
 open Lean in
 run_cmd do

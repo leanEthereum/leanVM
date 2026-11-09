@@ -1,6 +1,10 @@
-import FORS.LazyRun.ExposedUniform
-import FORS.SmallBudget.Linear.ForsSteps
-import FORS.ScanSigner.Scan
+module
+
+public import FORS.LazyRun.ExposedUniform
+public import FORS.SmallBudget.Linear.ForsSteps
+public import FORS.ScanSigner.Scan
+
+@[expose] public section
 
 /-! Facts about interpreted runs used by the FORS contact potential: recorded guesses come from
 cached parsed queries; a run that never queries a row writing a coordinate exposes it only by a
@@ -61,12 +65,12 @@ theorem ordinaryStep_shape (bytes : HashInput) (s : State) (r : HashOutput × St
               exact ⟨rfl, rfl⟩
       | some canonical =>
           by_cases heq : v = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq] at hr
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq] at hr
             right; right
             rw [support_map] at hr
             obtain ⟨res, hres, rfl⟩ := hr
             exact ⟨a, v, _, rfl, sampleCoordinate_expose _ s res hres⟩
-          · simp only [ordinaryStep, hp, hk, if_neg heq] at hr
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq] at hr
             left
             refine ⟨fun a' v' h => ?_, readOutside_support bytes s r hr⟩
             cases h
@@ -129,10 +133,11 @@ theorem guessCached_ordinary (bytes : HashInput) (s : State) (h : GuessCached mo
   · rw [h1] at hg
     exact hold hg
 
-theorem guessCached_costStep (input : (SourceCostSpec HashInput HashOutput Coordinate).Domain) (s : State)
+theorem guessCached_costStep {H : Type} [HonestInputs H HashInput]
+    (input : (SourceCostSpec HashInput HashOutput Coordinate H).Domain) (s : State)
     (h : GuessCached model s) : ∀ r ∈ support (costStep model input s), GuessCached model r.2 := by
   intro r hr
-  rcases input with (draw | (bytes | coordinate)) | amount
+  rcases input with (draw | (bytes | coordinate)) | (amount | honest)
   · change r ∈ support ((fun v => (v, s)) <$> (liftM (unifSpec.query draw) : ProbComp _)) at hr
     rw [support_map] at hr
     obtain ⟨v, _, rfl⟩ := hr
@@ -146,9 +151,12 @@ theorem guessCached_costStep (input : (SourceCostSpec HashInput HashOutput Coord
     rw [support_pure, Set.mem_singleton_iff] at hr
     subst hr
     exact h
+  · rw [costStep_honest, costStep_ordinary] at hr
+    exact guessCached_ordinary model _ s h r hr
 
-/-- **Guesses stay backed by cached queries** along any run. -/
-theorem interp_guessCached {α : Type} (computation : OracleComp CostSpec α) :
+/-- **Guesses stay backed by cached queries** along any run, honest reads included. -/
+theorem interp_guessCachedH {H : Type} [HonestInputs H HashInput] {α : Type}
+    (computation : OracleComp (SourceCostSpec HashInput HashOutput Coordinate H) α) :
     ∀ budget (s : State), GuessCached model s →
       ∀ out ∈ support (interp tg initial model computation budget s), GuessCached model out.2 := by
   induction computation using OracleComp.inductionOn with
@@ -169,6 +177,12 @@ theorem interp_guessCached {α : Type} (computation : OracleComp CostSpec α) :
         subst hout
         exact h
 
+/-- **Guesses stay backed by cached queries** along any run. -/
+theorem interp_guessCached {α : Type} (computation : OracleComp CostSpec α) :
+    ∀ budget (s : State), GuessCached model s →
+      ∀ out ∈ support (interp tg initial model computation budget s), GuessCached model out.2 :=
+  interp_guessCachedH tg initial model computation
+
 end Guess
 
 /-! ### Exposures by reveals only -/
@@ -181,18 +195,35 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
 /-- The inputs whose canonical continuation writes a coordinate. -/
 def Writes (c : Coordinate) (x : HashInput) : Prop := ∃ a v, model.parse x = some (a, v) ∧ model.outgoing a = c
 
-theorem costStep_known_new (input : (SourceCostSpec HashInput HashOutput Coordinate).Domain) (s : State)
-    (c : Coordinate) (hin : ∀ bytes, input = .inl (.inr (.inl bytes)) → ¬Writes model c bytes) :
+/-- A computation over the cost interface with honest reads whose ordinary queries avoid a class
+(`ScanSigner.Avoids` with honest reads; nothing is asked of the honest reads). -/
+def AvoidsH {H : Type} (avoid : HashInput → Prop) {α : Type}
+    (computation : OracleComp (SourceCostSpec HashInput HashOutput Coordinate H) α) : Prop :=
+  OracleComp.construct (fun _ => True)
+    (fun input _ next => (∀ bytes, input = .inl (.inr (.inl bytes)) → ¬avoid bytes) ∧ ∀ value, next value)
+    computation
+
+theorem avoidsH_query_bind {H : Type} (avoid : HashInput → Prop) {α : Type}
+    (input : (SourceCostSpec HashInput HashOutput Coordinate H).Domain)
+    (next : (SourceCostSpec HashInput HashOutput Coordinate H).Range input →
+      OracleComp (SourceCostSpec HashInput HashOutput Coordinate H) α) :
+    AvoidsH avoid (liftM ((SourceCostSpec HashInput HashOutput Coordinate H).query input) >>= next) ↔
+      (∀ bytes, input = .inl (.inr (.inl bytes)) → ¬avoid bytes) ∧ ∀ value, AvoidsH avoid (next value) :=
+  Iff.rfl
+
+/-- Without honest reads, `AvoidsH` is `Avoids`. -/
+theorem avoidsH_of_avoids (avoid : HashInput → Prop) {α : Type} (computation : OracleComp CostSpec α)
+    (h : Avoids avoid computation) : AvoidsH avoid computation := h
+
+theorem costStep_known_new {H : Type} [HonestInputs H HashInput]
+    (input : (SourceCostSpec HashInput HashOutput Coordinate H).Domain) (s : State)
+    (c : Coordinate) (hin : ∀ bytes, input = .inl (.inr (.inl bytes)) → ¬Writes model c bytes)
+    (hhonest : ∀ honest, input = .inr (.inr honest) → ¬Writes model c (HonestInputs.toInput honest)) :
     ∀ r ∈ support (costStep model input s), r.2.known c ≠ none →
       s.known c ≠ none ∨ c ∈ HiddenBridge.revealed input := by
-  intro r hr hk
-  rcases input with (draw | (bytes | coordinate)) | amount
-  · change r ∈ support ((fun v => (v, s)) <$> (liftM (unifSpec.query draw) : ProbComp _)) at hr
-    rw [support_map] at hr
-    obtain ⟨v, _, rfl⟩ := hr
-    exact Or.inl hk
-  · rw [costStep_ordinary] at hr
-    left
+  have hord : ∀ bytes, ¬Writes model c bytes → ∀ r ∈ support (ordinaryStep model bytes s.known s),
+      r.2.known c ≠ none → s.known c ≠ none := by
+    intro bytes hw r hr hk
     rcases ordinaryStep_shape bytes s r hr with ⟨_, h1 | ⟨_, h1⟩⟩ | ⟨a, v, hp, _, ⟨hc, h1⟩ | ⟨hc, h1⟩⟩ |
         ⟨a, v, val, hp, h1⟩
     · rwa [h1] at hk
@@ -200,8 +231,16 @@ theorem costStep_known_new (input : (SourceCostSpec HashInput HashOutput Coordin
     · rwa [h1] at hk
     · rwa [h1] at hk
     · rw [h1] at hk
-      have hne : c ≠ model.outgoing a := fun h => hin bytes rfl ⟨a, v, hp, h.symm⟩
+      have hne : c ≠ model.outgoing a := fun h => hw ⟨a, v, hp, h.symm⟩
       rwa [known_expose_ne s val hne] at hk
+  intro r hr hk
+  rcases input with (draw | (bytes | coordinate)) | (amount | honest)
+  · change r ∈ support ((fun v => (v, s)) <$> (liftM (unifSpec.query draw) : ProbComp _)) at hr
+    rw [support_map] at hr
+    obtain ⟨v, _, rfl⟩ := hr
+    exact Or.inl hk
+  · rw [costStep_ordinary] at hr
+    exact Or.inl (hord bytes (hin bytes rfl) r hr hk)
   · change r ∈ support (sampleCoordinate coordinate s) at hr
     rw [sampleCoordinate_expose _ s r hr] at hk
     by_cases hcc : c = coordinate
@@ -214,10 +253,15 @@ theorem costStep_known_new (input : (SourceCostSpec HashInput HashOutput Coordin
     rw [support_pure, Set.mem_singleton_iff] at hr
     subst hr
     exact Or.inl hk
+  · rw [costStep_honest, costStep_ordinary] at hr
+    exact Or.inl (hord _ (hhonest honest rfl) r hr hk)
 
-/-- **A run that never asks a row writing `c` exposes `c` only by revealing it.** -/
-theorem interp_known_new {α : Type} (computation : OracleComp CostSpec α) (c : Coordinate)
-    (h : Avoids (Writes model c) computation) :
+/-- **A run that never asks a row writing `c` exposes `c` only by revealing it**, honest reads of
+unparsed inputs included (an unparsed input writes nothing). -/
+theorem interp_known_newH {H : Type} [HonestInputs H HashInput] {α : Type}
+    (computation : OracleComp (SourceCostSpec HashInput HashOutput Coordinate H) α) (c : Coordinate)
+    (h : AvoidsH (Writes model c) computation)
+    (hhonest : HonestWith (R := HashOutput) (ι := Coordinate) (fun x => model.parse x = none) computation) :
     ∀ budget (s : State), ∀ out ∈ support (interp tg initial model computation budget s),
       out.2.known c ≠ none → s.known c ≠ none ∨ c ∈ out.1.2.1 := by
   induction computation using OracleComp.inductionOn with
@@ -228,7 +272,8 @@ theorem interp_known_new {α : Type} (computation : OracleComp CostSpec α) (c :
       exact Or.inl hk
   | query_bind input next ih =>
       intro budget s out hout hk
-      obtain ⟨hin, hnext⟩ := (avoids_query_bind (Writes model c) input next).1 h
+      obtain ⟨hin, hnext⟩ := (avoidsH_query_bind (Writes model c) input next).1 h
+      obtain ⟨hhin, hhnext⟩ := (honestWith_query_bind _ input next).1 hhonest
       rw [interp_query_bind] at hout
       split_ifs at hout with hcost
       · rw [support_bind] at hout
@@ -236,14 +281,26 @@ theorem interp_known_new {α : Type} (computation : OracleComp CostSpec α) (c :
         obtain ⟨result, hresult, inner, hinner, rfl⟩ := hout
         change inner.2.known c ≠ none at hk
         change s.known c ≠ none ∨ c ∈ HiddenBridge.revealed input ++ inner.1.2.1
-        rcases ih result.1 (hnext result.1) _ result.2 inner hinner hk with h1 | h1
-        · rcases costStep_known_new model input s c hin result hresult h1 with h2 | h2
+        rcases ih result.1 (hnext result.1) (hhnext result.1) _ result.2 inner hinner hk with h1 | h1
+        · rcases costStep_known_new model input s c hin
+            (fun honest he hw => by
+              obtain ⟨a, v, hp, -⟩ := hw
+              rw [hhin honest he] at hp
+              cases hp) result hresult h1 with h2 | h2
           · exact Or.inl h2
           · exact Or.inr (List.mem_append_left _ h2)
         · exact Or.inr (List.mem_append_right _ h1)
       · rw [support_pure, Set.mem_singleton_iff] at hout
         subst hout
         exact Or.inl hk
+
+/-- **A run that never asks a row writing `c` exposes `c` only by revealing it.** -/
+theorem interp_known_new {α : Type} (computation : OracleComp CostSpec α) (c : Coordinate)
+    (h : Avoids (Writes model c) computation) :
+    ∀ budget (s : State), ∀ out ∈ support (interp tg initial model computation budget s),
+      out.2.known c ≠ none → s.known c ≠ none ∨ c ∈ out.1.2.1 :=
+  interp_known_newH tg initial model computation c (avoidsH_of_avoids _ computation h)
+    (honestWith_empty _ computation)
 
 end Known
 

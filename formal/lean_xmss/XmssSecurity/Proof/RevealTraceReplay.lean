@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.RevealProbeOracleSimulation
+module
+
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -40,24 +44,6 @@ theorem ReplaysCausalReveals.append
   | reveal initial middle index value trace changed hchange _ ih =>
       exact .reveal initial final index value (trace ++ right) changed hchange
         (ih hright)
-
-theorem ReplaysCausalReveals.initial_none_of_final_none
-    {Index : Type} [DecidableEq Index]
-    {initial final : Index → Option Digest}
-    {trace : RevealProbeOracleSimulation.ActionTrace Index}
-    (hreplay : ReplaysCausalReveals initial trace final)
-    (index : Index) (hfinal : final index = none) :
-    initial index = none := by
-  induction hreplay with
-  | nil => exact hfinal
-  | probe initial final _ _ _ _ ih => exact ih hfinal
-  | reveal initial final changedIndex value trace changed hchange _ ih =>
-      have hchanged : changed index = none := ih hfinal
-      by_cases heq : index = changedIndex
-      · subst index
-        simp [hchange.1] at hchanged
-      · rw [hchange.2 index heq] at hchanged
-        exact hchanged
 
 end XmssSecurity
 

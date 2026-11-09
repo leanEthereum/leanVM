@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.HonestKeygenRun
+module
+
+public import XmssSecurity.Proof.HonestKeygenRun
+
+@[expose] public section
 
 /-!
 # Key generation queries each top chain, leaf and Merkle address at most once
@@ -65,13 +69,6 @@ theorem topCovers_zero_iff (node : TopNode) (key : TopIndex) :
   · rintro rfl
     unfold TopCovers
     simp
-
-theorem topCovers_unique {levels : Nat} {left right : TopNode} {key : TopIndex}
-    (hleft : TopCovers levels left key) (hright : TopCovers levels right key) :
-    left = right := by
-  unfold TopCovers at hleft hright
-  apply Fin.ext
-  rw [← Nat.div_eq_of_lt_le hleft.1 hleft.2, ← Nat.div_eq_of_lt_le hright.1 hright.2]
 
 theorem topSubtreeValid_mono {small large : Nat} {node : TopNode}
     (hle : small ≤ large) (hvalid : TopSubtreeValid large node) :
@@ -157,7 +154,7 @@ theorem Concrete.topLeafAt_queryBound_chainAddress
   rw [Concrete.topLeafAt]
   by_cases hkey : key = targetKey
   · subst targetKey
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     refine OracleComp.isQueryBoundP_bind (m := 0) ?_ fun endpoints _ => hleaf endpoints
     rw [Concrete.topOneTimePublicKey]
     apply Concrete.sequenceFin_queryBound_one _ _ targetChain
@@ -168,7 +165,7 @@ theorem Concrete.topLeafAt_queryBound_chainAddress
       intro offset _ hvalid heq
       simp only [HashDomain.topChain.injEq] at heq
       exact hchain heq.2.1
-  · rw [if_neg hkey]
+  · rw [ite_eq_right hkey]
     refine OracleComp.isQueryBoundP_bind (m := 0) ?_ fun endpoints _ => hleaf endpoints
     rw [Concrete.topOneTimePublicKey]
     refine Concrete.sequenceFin_queryBound_zero _ _ fun chain => ?_
@@ -194,11 +191,11 @@ theorem Concrete.topLeafAt_queryBound_leafAddress
   rw [Concrete.topLeafAt]
   by_cases hkey : key = targetKey
   · subst targetKey
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact OracleComp.isQueryBoundP_bind (n := 0) (m := 1) hchains fun endpoints _ =>
       Concrete.tweakableHash_queryBound_atAddress parameter (.topLeaf key)
         (Concrete.leafPayload endpoints)
-  · rw [if_neg hkey]
+  · rw [ite_eq_right hkey]
     exact OracleComp.isQueryBoundP_bind (n := 0) (m := 0) hchains fun endpoints _ =>
       Concrete.tweakableHash_queryBound_atOtherAddress parameter (.topLeaf targetKey)
         (.topLeaf key) (Concrete.leafPayload endpoints) (by simpa using hkey)
@@ -286,7 +283,7 @@ theorem topMerkleInSubtree_step_sum
       simp only at hlevelEq
       omega
     unfold TopMerkleInSubtree
-    simp only [hlt, hparentLt, true_and, hdomain, if_false, add_zero]
+    simp only [hlt, hparentLt, true_and, hdomain, ite_false, add_zero]
     rw [hexponent]
     exact hpartition
   · by_cases heq : targetLevel.val = levels
@@ -294,7 +291,7 @@ theorem topMerkleInSubtree_step_sum
         apply Fin.ext
         exact heq
       subst targetLevel
-      simp only [TopMerkleInSubtree, lt_self_iff_false, false_and, if_false,
+      simp only [TopMerkleInSubtree, lt_self_iff_false, false_and, ite_false,
         Nat.lt_succ_self, true_and, Nat.sub_self, topCovers_zero_iff,
         HashDomain.topMerkle.injEq]
       simp
@@ -336,13 +333,13 @@ theorem Concrete.topTreeNode_queryBound_merkleAddress
       simp only [hlevel, ↓reduceDIte]
       by_cases heq : HashDomain.topMerkle ⟨levels, hlevel⟩ node =
           .topMerkle targetLevel targetNode
-      · simp only [heq, if_pos]
+      · simp only [heq, ite_eq_left]
         obtain ⟨hlevelEq, hnodeEq⟩ := HashDomain.topMerkle.inj heq
         subst targetLevel
         subst targetNode
         exact Concrete.tweakableHash_queryBound_atAddress parameter
           (.topMerkle ⟨levels, hlevel⟩ node) (Concrete.nodePayload left right)
-      · simp only [heq, if_false]
+      · simp only [heq, ite_false]
         exact Concrete.tweakableHash_queryBound_atOtherAddress parameter
           (.topMerkle targetLevel targetNode) (.topMerkle ⟨levels, hlevel⟩ node)
           (Concrete.nodePayload left right) heq

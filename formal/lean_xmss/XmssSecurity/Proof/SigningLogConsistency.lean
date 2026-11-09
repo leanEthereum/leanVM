@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.OutcomeClassification
+module
+
+public import XmssSecurity.Proof.OutcomeClassification
+
+@[expose] public section
 
 open OracleSpec
 

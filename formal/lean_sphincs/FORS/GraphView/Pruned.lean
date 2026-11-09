@@ -1,5 +1,9 @@
-import FORS.Classification.Tree
-import FORS.GraphView.Cache
+module
+
+public import FORS.Classification.Tree
+public import FORS.GraphView.Cache
+
+@[expose] public section
 
 section
 
@@ -15,7 +19,6 @@ namespace FORS.Security
 variable [Params]
 open Concrete
 attribute [local irreducible] Seeded.treeNode Seeded.treeRoot Seeded.spineNode
-set_option maxHeartbeats 600000
 
 theorem xor_one_ne (index : Nat) : Nat.xor index 1 ≠ index := by
   intro heq
@@ -49,7 +52,7 @@ theorem boundary_not_kept (parameter : PublicParameter) (level : Nat)
     simp only [le_refl, ↓reduceIte, Nat.sub_self, pow_zero, Nat.div_one,
       boundaryIndex, spineIndex]
     exact xor_one_ne _
-  · rw [if_neg (by omega : ¬level ≤ keptHeight topLayer)]
+  · rw [ite_eq_right (by omega : ¬level ≤ keptHeight topLayer)]
     exact xor_one_ne _
 
 end FORS.Security
@@ -252,7 +255,7 @@ theorem boundary_inactive (parameter : PublicParameter) (surrogates : Fin maxLay
         rw [hleafAt, hlay] at hkept
         unfold Kept at hkept
         rw [hzero, pow_zero, Nat.div_one, hleaf] at hkept
-        have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+        have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
         rw [hpos] at hkept
         simp only [boundaryIndex, spineIndex, hzero, Nat.sub_self, pow_zero, Nat.div_one] at hkept
         exact xor_one_ne _ hkept
@@ -266,7 +269,7 @@ theorem boundary_inactive (parameter : PublicParameter) (surrogates : Fin maxLay
           obtain ⟨hlay, htree, hlevel', hindex⟩ := h
           change ¬NodeActive parameter lay tree (level.val + 1) index.val
           unfold NodeActive
-          rw [if_pos hlay, hindex]
+          rw [ite_eq_left hlay, hindex]
           exact fun hkept => boundary_not_kept parameter (level.val + 1) hlevel' hkept.2
         next => simp at hboundary
       next => simp at hboundary

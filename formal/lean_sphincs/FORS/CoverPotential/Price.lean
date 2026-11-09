@@ -1,5 +1,9 @@
-import FORS.Base.Virtual
-import FORS.Scheme.LandedDigest
+module
+
+public import FORS.Base.Virtual
+public import FORS.Scheme.LandedDigest
+
+@[expose] public section
 
 /-! The FORS price over multisets of disclosed kept views. A target view is covered when, in every
 tree, the leaf it selects is disclosed by a disclosed view at the same index. The cover indicator is
@@ -46,8 +50,8 @@ theorem witness_mono (target : View) : Monotone' (witness target) := by
   unfold witness
   by_cases hs : CoverAll target small
   · have hl : CoverAll target large := fun κ => treeCovered_mono hle (hs κ)
-    rw [if_pos hs, if_pos hl]
-  · rw [if_neg hs]; exact zero_le
+    rw [ite_eq_left hs, ite_eq_left hl]
+  · rw [ite_eq_right hs]; exact zero_le
 
 /-! ### The fresh-digest price and its excess over a baseline -/
 

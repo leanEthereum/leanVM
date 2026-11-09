@@ -1,4 +1,8 @@
-import FORS.CoverBound.HTermCertificate
+module
+
+public import FORS.CoverBound.HTermCertificate
+
+@[expose] public section
 
 /-! **Integer tables.** The leaf tables of the certificates are computed in integers: numerators over a
 power of two, made convex and increasing (`convexZ`), read as rationals (`overP`), extended with the

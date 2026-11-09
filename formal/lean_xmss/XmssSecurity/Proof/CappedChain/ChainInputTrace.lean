@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-import XmssSecurity.Proof.ChainInputTrace
-import XmssSecurity.Proof.QueryBoundSupport
+module
+
+public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
+public import XmssSecurity.Proof.ChainInputTrace
+public import VCVio.OracleComp.QueryTracking.QueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -47,32 +51,6 @@ def attackerActionFragment
   | .inr request => [.sign request output]
 
 @[simp]
-theorem attackerActionFragment_uniform
-    (index : unifSpec.Domain) (output : unifSpec.Range index) :
-    attackerActionFragment (.inl (.inl index)) output = [] := rfl
-
-@[simp]
-theorem attackerActionFragment_hash (input : HashInput) (output : HashOutput) :
-    attackerActionFragment (.inl (.inr input)) output = [.hash input] := rfl
-
-@[simp]
-theorem attackerActionFragment_sign
-    (request : SignRequest) (signature : Option Signature) :
-    attackerActionFragment (.inr request) signature = [.sign request signature] := rfl
-
-@[simp]
-theorem attackerActionFragment_hashInputs
-    (input : (OracleWorld + SigningSpec).Domain)
-    (output : (OracleWorld + SigningSpec).Range input) :
-    (attackerActionFragment input output).hashInputs =
-      match input with
-      | .inl (.inr hashInput) => [hashInput]
-      | _ => [] := by
-  cases input with
-  | inl worldInput => cases worldInput <;> rfl
-  | inr request => rfl
-
-@[simp]
 theorem attackerActionFragment_toSigningLog
     (input : (OracleWorld + SigningSpec).Domain)
     (output : (OracleWorld + SigningSpec).Range input) :
@@ -80,12 +58,5 @@ theorem attackerActionFragment_toSigningLog
   cases input with
   | inl worldInput => cases worldInput <;> rfl
   | inr request => rfl
-
-noncomputable def sourceActionTracedMappedAdversaryImpl
-    (publicKey : PublicKey) (secretKey : SecretKey) :
-    QueryImpl (OracleWorld + SigningSpec)
-      (WriterT AttackerActionTrace (OracleComp OracleWorld)) :=
-  (sourceUnloggedMappedAdversaryImpl publicKey secretKey).withTraceAppend
-    attackerActionFragment
 
 end XmssSecurity.CappedChain

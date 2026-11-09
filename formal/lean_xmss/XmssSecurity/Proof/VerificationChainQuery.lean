@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ChainOraclePresampling
+module
+
+public import XmssSecurity.Proof.ChainOraclePresampling
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

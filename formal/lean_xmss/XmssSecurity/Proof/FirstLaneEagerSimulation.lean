@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.FirstLaneOracleSimulation
-import XmssSecurity.Proof.EncodingOracleSimulation
-import XmssSecurity.Proof.RevealProbeOracleSimulation
-import XmssSecurity.Proof.CappedEncodingMonitor
+module
+
+public import XmssSecurity.Proof.FirstLaneOracleSimulation
+public import XmssSecurity.Proof.EncodingOracleSimulation
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+public import XmssSecurity.Proof.CappedEncodingMonitor
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -99,8 +103,12 @@ theorem simulate_eagerTrace_liftProbComp
         (fun result => (result, ([] : ActionTrace Index))) <$> computation := by
   unfold liftProbComp
   rw [← QueryImpl.simulateQ_compose]
-  change (simulateQ ((QueryImpl.id' unifSpec).withTraceAppend
-    (fun _ _ => ([] : ActionTrace Index))) computation).run = _
+  have himpl : eagerTraceImpl table ∘ₛ uniformForwardImpl =
+      (QueryImpl.id' unifSpec).withTraceAppend (fun _ _ => ([] : ActionTrace Index)) := by
+    funext n
+    simp [eagerTraceImpl, uniformForwardImpl, uniformQuery, QueryImpl.apply_compose, eagerImpl,
+      traceFragment]
+  rw [himpl]
   simpa using QueryImpl.run_simulateQ_withTraceAppend_const_empty
     (Log := ActionTrace Index) (QueryImpl.id' unifSpec) computation
 
@@ -127,7 +135,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
       cases input with
       | uniform n =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           obtain ⟨output, rfl⟩ := hhead
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -138,7 +146,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
           | zero => simp [IsHazardQuery] at hbound
           | succ remaining =>
               simp [eagerTraceImpl, eagerImpl, traceFragment,
-                QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+                WriterT.run_tell] at hhead
               obtain ⟨output, _houtput, rfl⟩ := hhead
               rw [support_map] at htail
               obtain ⟨tail, htail, rfl⟩ := htail
@@ -147,7 +155,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
               simpa [Prod.map, hazardCount] using Nat.succ_le_succ htailCount
       | encodingSignAttempt leafIndex =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           obtain ⟨output, _houtput, rfl⟩ := hhead
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail
@@ -158,7 +166,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
           | zero => simp [IsHazardQuery] at hbound
           | succ remaining =>
               simp [eagerTraceImpl, eagerImpl, traceFragment,
-                QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+                WriterT.run_tell] at hhead
               subst head
               rw [support_map] at htail
               obtain ⟨tail, htail, rfl⟩ := htail
@@ -167,7 +175,7 @@ theorem simulate_eagerTrace_support_hazardCount_le
               simpa [Prod.map, hazardCount] using Nat.succ_le_succ htailCount
       | reveal index =>
           simp [eagerTraceImpl, eagerImpl, traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell] at hhead
+            WriterT.run_tell] at hhead
           subst head
           rw [support_map] at htail
           obtain ⟨tail, htail, rfl⟩ := htail

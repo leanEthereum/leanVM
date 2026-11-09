@@ -1,5 +1,9 @@
-import FORS.SmallBudget.Linear.Payoff
-import FORS.SmallBudget.Linear.Payments
+module
+
+public import FORS.SmallBudget.Linear.Payoff
+public import FORS.SmallBudget.Linear.Payments
+
+@[expose] public section
 
 /-! The linear potential of the small-budget route pays, besides the digest baseline, a fixed
 amount at every FORS leaf query (the hash of a FORS secret). A fresh FORS leaf query costs the
@@ -14,7 +18,6 @@ open OracleComp OracleSpec ENNReal
 namespace FORS.Security.HiddenBridge
 
 variable [Params]
-
 
 /-- The FORS leaf inputs of a public parameter: hashes of a FORS secret. -/
 def IsFleafIn (parameter : PublicParameter) (input : HashInput) : Prop :=
@@ -46,7 +49,6 @@ theorem arith_fleaf {ρ x : ℝ} (hN : Numeric ρ x) (hx : 0 ≤ x) {Y : ℝ≥0
         congr 1
         ring
 
-
 namespace Ctx
 
 variable (K : Ctx)
@@ -68,7 +70,7 @@ theorem arithFF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0
   have hbase : 1 + Y + ENNReal.ofReal (K.ρ - 1 - xr) ≤ ENNReal.ofReal K.ρ := arith_fleaf hN hxr hY
   set d := ENNReal.ofReal (K.ρ - 1 - xr) with hd
   by_cases hr : Recd s f
-  · rw [if_pos hr]
+  · rw [ite_eq_left hr]
     calc g + (Y + K.kf s) + d ≤ (1 + Y + d) + K.kf s := by
           calc g + (Y + K.kf s) + d ≤ 1 + (Y + K.kf s) + d := add_le_add (add_le_add hg le_rfl) le_rfl
             _ = (1 + Y + d) + K.kf s := by ring
@@ -76,7 +78,7 @@ theorem arithFF (s : St) {f : FIn} {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0
       _ ≤ K.vrate s + K.kf s := add_le_add (K.vrate_ge hN.high s) le_rfl
       _ ≤ _ := K.rate_ge_kf s
   · have hg0 : g = 0 := hrec.resolve_right hr
-    rw [hg0, if_neg hr, zero_add]
+    rw [hg0, ite_eq_right hr, zero_add]
     calc 1 + d ≤ 1 + Y + d := add_le_add le_self_add le_rfl
       _ ≤ ENNReal.ofReal K.ρ := hbase
       _ ≤ _ := K.rate_ge_rho hN s
@@ -94,13 +96,13 @@ include hN hxr hY in
 /-- A fresh FORS leaf query pays its guess and the slack. -/
 theorem fresh_fleafF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {f : FIn}
     (hxF : x = f.input K.p) (hk : K.tg.kind x = .none) {g : ℝ≥0∞} (hg : g ≤ 1) (hrec : g = 0 ∨ Recd s f) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤
       K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx
   have h := K.step_fleaf y' hx hi hxF hk
   have ha := K.arithFF hN hxr hY s hg hrec
   rw [K.pot_succ]
-  calc ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr)
+  calc ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * g + ν * ENNReal.ofReal (K.ρ - 1 - xr)
       ≤ K.pot y' s + ν * (if Recd s f then (y' : ℝ≥0∞) * ν + K.kf s else 1) + ν * g +
           ν * ENNReal.ofReal (K.ρ - 1 - xr) :=
         add_le_add (add_le_add h le_rfl) le_rfl
@@ -113,7 +115,7 @@ include hN hxr hY hsec in
 theorem guess_freshF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) (q : Address × Digest)
     (hp : HiddenGraph.parse K.p (candidateActive K.p) x = some q) (hk : s.known q.1.inputCoordinate = none)
     (hF : IsFleafIn K.p x) :
-    ∑' r, Pr[= r | readOutside x (s.record (q.1.inputCoordinate, q.2))] * K.pot y' r.2 +
+    ∑' r, Pr{let y ← readOutside x (s.record (q.1.inputCoordinate, q.2))}[y = r] * K.pot y' r.2 +
       ν * ENNReal.ofReal (K.ρ - 1 - xr) ≤ K.pot (y' + 1) s := by
   obtain ⟨rfl, -⟩ := (parse_some_iff _ _ x q).1 hp
   obtain ⟨addr, v⟩ := q
@@ -142,11 +144,11 @@ theorem guess_freshF {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x =
       have hrec := K.pot_record (y' + 1) s ((Address.fleaf index κ leaf).inputCoordinate, v) hk hKF
       rw [mul_one] at main
       refine (ENNReal.add_le_add_iff_right ν_ne_top).1 ?_
-      calc ∑' r, Pr[= r | readOutside ((FIn.mk index κ leaf v).input K.p)
-              (s.record ((Address.fleaf index κ leaf).inputCoordinate, v))] * K.pot y' r.2 +
+      calc ∑' r, Pr{let x ← (readOutside ((FIn.mk index κ leaf v).input K.p)
+              (s.record ((Address.fleaf index κ leaf).inputCoordinate, v)))}[x = r] * K.pot y' r.2 +
             ν * ENNReal.ofReal (K.ρ - 1 - xr) + ν
-          = ∑' r, Pr[= r | readOutside ((FIn.mk index κ leaf v).input K.p)
-              (s.record ((Address.fleaf index κ leaf).inputCoordinate, v))] * K.pot y' r.2 + ν +
+          = ∑' r, Pr{let x ← (readOutside ((FIn.mk index κ leaf v).input K.p)
+              (s.record ((Address.fleaf index κ leaf).inputCoordinate, v)))}[x = r] * K.pot y' r.2 + ν +
             ν * ENNReal.ofReal (K.ρ - 1 - xr) := by ring
         _ ≤ K.pot (y' + 1) (s.record ((Address.fleaf index κ leaf).inputCoordinate, v)) := main
         _ ≤ _ := hrec
@@ -199,17 +201,17 @@ unknown secret. -/
 theorem stepFleaf {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
     (hsec : ∀ x, SecondOrderInput K.p K.R x → K.tg.kind x = .none)
     (bytes : HashInput) (hF : IsFleafIn K.p bytes) (budget : ℕ) (s : St) (hinv : K.Inv s) (hcost : 1 ≤ budget) :
-    ∑' r, Pr[= r | costStep M (.inl (.inr (.inl bytes))) s] * K.potCap total (budget - 1) r.2 +
+    ∑' r, Pr{let x ← costStep (H := Empty) M (.inl (.inr (.inl bytes))) s}[x = r] * K.potCap total (budget - 1) r.2 +
       ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128) ≤ K.potCap total budget s := by
   unfold potCap
   by_cases hb : budget ≤ total
   swap
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     exact le_top
-  rw [if_pos hb]
+  rw [ite_eq_left hb]
   have hpot : ∀ r : HashOutput × St,
       (if budget - 1 ≤ total then K.pot (budget - 1) r.2 else ⊤) = K.pot (budget - 1) r.2 :=
-    fun r => if_pos ((Nat.sub_le _ _).trans hb)
+    fun r => ite_eq_left ((Nat.sub_le _ _).trans hb)
   simp only [hpot]
   have hxr : (0 : ℝ) ≤ (total : ℝ) / 2 ^ 128 := by positivity
   obtain ⟨y', rfl⟩ : ∃ y', budget = y' + 1 := ⟨budget - 1, by omega⟩
@@ -224,7 +226,7 @@ theorem stepFleaf {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
       rw [lazyStep_unparsed M bytes s hp]
       cases hc : s.cache bytes with
       | some u =>
-          rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+          rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
           exact hsame
       | none =>
           have h := K.fresh_fleafF hN hxr hY hinv hc hxF hkF (g := 0) bot_le (Or.inl rfl)
@@ -239,13 +241,13 @@ theorem stepFleaf {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
           cases hc : s.cache bytes with
           | some u =>
               have hc' : (s.record (q.1.inputCoordinate, q.2)).cache bytes = some u := hc
-              rw [readOutside_cached bytes _ u hc', tsum_probOutput_pure_mul]
+              rw [readOutside_cached bytes _ u hc', OracleComp.tsum_prEvent_pure_mul]
               exact K.guess_cachedF hN hxr y' hinv hc q hq hk
           | none => exact K.guess_freshF hN hxr hY hsec hinv hc q hq hk ⟨f, hxF⟩
       | some canonical =>
           by_cases heq : q.2 = canonical
-          · rw [lazyStep_canonical M bytes s q hp canonical hk heq, tsum_probOutput_map_mul]
-            calc ∑' r, Pr[= r | sampleCoordinate (M.outgoing q.1) s] * K.pot y' r.2 +
+          · rw [lazyStep_canonical M bytes s q hp canonical hk heq, OracleComp.tsum_prEvent_map_mul]
+            calc ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot y' r.2 +
                   ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128)
                 ≤ K.pot y' s + ν * ENNReal.ofReal (K.ρ - 1 - (total : ℝ) / 2 ^ 128) :=
                   add_le_add (K.sample_mean y' s _) le_rfl
@@ -253,7 +255,7 @@ theorem stepFleaf {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
           · rw [lazyStep_other M bytes s q hp canonical hk heq]
             cases hc : s.cache bytes with
             | some u =>
-                rw [readOutside_cached bytes s u hc, tsum_probOutput_pure_mul]
+                rw [readOutside_cached bytes s u hc, OracleComp.tsum_prEvent_pure_mul]
                 exact hsame
             | none =>
                 have h := K.fresh_fleafF hN hxr hY hinv hc hxF hkF (g := 0) bot_le (Or.inl rfl)
@@ -262,13 +264,13 @@ theorem stepFleaf {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
 
 theorem digestCount_fleaf (tg' : Targeting HashInput HashOutput Coordinate)
     (hdig : tg'.digest = ForsSigner.IsMsgInput) (bytes : HashInput) (hF : IsFleafIn K.p bytes) :
-    digestCount tg' (recorded (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inl (.inr (.inl bytes)))) =
+    digestCount tg' (recorded (H := Empty) (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inl (.inr (.inl bytes)))) =
       0 := by
   have hnm : ¬ForsSigner.IsMsgInput bytes := by
     obtain ⟨f, rfl⟩ := hF
     exact fun hd => msg_ne_fleaf hd rfl
   have h := digestCount_bytes tg' bytes
-  rw [hdig, if_neg hnm] at h
+  rw [hdig, ite_eq_right hnm] at h
   exact_mod_cast h
 
 include hMp hMi hMo in
@@ -279,22 +281,81 @@ theorem stepF (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.dige
     (hmsg : ∀ x, ForsSigner.IsMsgInput x → K.tg.kind x = .none)
     (input : (SourceCostSpec HashInput HashOutput Coordinate).Domain) (budget : ℕ) (s : St) (hinv : K.Inv s)
     (hcost : sourceCost input ≤ budget) :
-    ∑' r, Pr[= r | costStep M input s] * K.potCap total (budget - sourceCost input) r.2 +
+    ∑' r, Pr{let x ← costStep M input s}[x = r] * K.potCap total (budget - sourceCost input) r.2 +
       ENNReal.ofReal (K.ρ / 2 ^ 128) * digestCount tg' (recorded input) +
       ENNReal.ofReal ((K.ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128) * fleafCount (IsFleafIn K.p) (recorded input) ≤
         K.potCap total budget s := by
   by_cases hF : ∃ bytes, input = .inl (.inr (.inl bytes)) ∧ IsFleafIn K.p bytes
   · obtain ⟨bytes, rfl, hF⟩ := hF
-    have hc1 : sourceCost (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inl (.inr (.inl bytes))) = 1 :=
+    have hc1 : sourceCost (H := Empty) (D := HashInput) (R := HashOutput) (ι := Coordinate) (.inl (.inr (.inl bytes))) = 1 :=
       rfl
     rw [hc1] at hcost ⊢
     rw [K.digestCount_fleaf tg' hdig bytes hF, Nat.cast_zero, mul_zero, add_zero, fleafCount_recorded_inl,
-      if_pos hF, mul_one, payment_eq]
+      ite_eq_left hF, mul_one, payment_eq]
     exact K.stepFleaf M hMp hMi hN hsec bytes hF budget s hinv hcost
   · have hfc : fleafCount (IsFleafIn K.p) (recorded input) = 0 :=
       fleafCount_recorded_eq_zero _ input fun bytes h hb => hF ⟨bytes, h, hb⟩
     rw [hfc, Nat.cast_zero, mul_zero, add_zero]
     exact K.step M hMp hMi hMo tg' hdig hN hsec hmsg input budget s hinv hcost
+
+/-! ### Honest reads -/
+
+/-- The raw inputs an honest read of the small route may stand for: unparsed, and prepared in the
+initial cache (answered from it) or a message-digest input (no potential term reads its answer). -/
+def LinearHonest (x : HashInput) : Prop :=
+  M.parse x = none ∧ (K.initial x ≠ none ∨ ForsSigner.IsMsgInput x)
+
+/-- **An honest read keeps the potential at the same budget.** A prepared input is answered from
+the cache; a fresh message-digest input is untargeted, so its answer raises no term. -/
+theorem honest_readOutside (hmsg : ∀ x, ForsSigner.IsMsgInput x → K.tg.kind x = .none)
+    {total : ℕ} {x : HashInput} (hx : K.LinearHonest M x) (budget : ℕ) (s : St) (hinv : K.Inv s) :
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.potCap total budget r.2 ≤ K.potCap total budget s := by
+  unfold potCap
+  by_cases hb : budget ≤ total
+  swap
+  · rw [ite_eq_right hb]
+    exact le_top
+  simp only [ite_eq_left hb]
+  cases hc : s.cache x with
+  | some u =>
+      rw [readOutside_cached x s u hc, OracleComp.tsum_prEvent_pure_mul]
+  | none =>
+      have hi := initial_none_of_fresh K.initial s hinv.prepared x hc
+      have hd : ForsSigner.IsMsgInput x := hx.2.resolve_left fun h => h hi
+      have h := K.step_other budget hc hi (fun l _ => ⟨fun i h => ?_, fun i v h => ?_⟩)
+        (fun l msg ctr _ hlen h => msg_ne_enc hd (by omega) h) (fun f h => msg_ne_fleaf hd h)
+      · rwa [K.kindUnit_none (hmsg x hd), mul_zero, add_zero] at h
+      · obtain ⟨st, pay, -, h⟩ := h
+        exact msg_ne_chain hd h
+      · obtain ⟨st, -, h⟩ := h
+        exact msg_ne_chain hd h
+
+include hMp hMi hMo in
+/-- **One step with both payments, honest reads of the small route's class included.** -/
+theorem stepFH {H : Type} [HonestInputs H HashInput] (tg' : Targeting HashInput HashOutput Coordinate)
+    (hdig : tg'.digest = ForsSigner.IsMsgInput)
+    {total : ℕ} (hN : Numeric K.ρ ((total : ℝ) / 2 ^ 128))
+    (hsec : ∀ x, SecondOrderInput K.p K.R x → K.tg.kind x = .none)
+    (hmsg : ∀ x, ForsSigner.IsMsgInput x → K.tg.kind x = .none)
+    (input : (SourceCostSpec HashInput HashOutput Coordinate H).Domain) (budget : ℕ) (s : St) (hinv : K.Inv s)
+    (hcost : sourceCost input ≤ budget)
+    (hgood : ∀ honest, input = .inr (.inr honest) → K.LinearHonest M (HonestInputs.toInput honest)) :
+    ∑' r, Pr{let x ← costStep M input s}[x = r] * K.potCap total (budget - sourceCost input) r.2 +
+      ENNReal.ofReal (K.ρ / 2 ^ 128) * digestCount tg' (recorded input) +
+      ENNReal.ofReal ((K.ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128) * fleafCount (IsFleafIn K.p) (recorded input) ≤
+        K.potCap total budget s := by
+  rcases input with ((draw | bytes | c)) | (amount | honest)
+  · exact K.stepF M hMp hMi hMo tg' hdig hN hsec hmsg (.inl (.inl draw)) budget s hinv hcost
+  · exact K.stepF M hMp hMi hMo tg' hdig hN hsec hmsg (.inl (.inr (.inl bytes))) budget s hinv hcost
+  · exact K.stepF M hMp hMi hMo tg' hdig hN hsec hmsg (.inl (.inr (.inr c))) budget s hinv hcost
+  · exact K.stepF M hMp hMi hMo tg' hdig hN hsec hmsg (.inr (.inl amount)) budget s hinv hcost
+  · have hx := hgood honest rfl
+    have hc0 : sourceCost (D := HashInput) (R := HashOutput) (ι := Coordinate)
+        (.inr (.inr honest) : (SourceCostSpec HashInput HashOutput Coordinate H).Domain) = 0 := rfl
+    have hr0 : recorded (D := HashInput) (R := HashOutput) (ι := Coordinate)
+        (.inr (.inr honest) : (SourceCostSpec HashInput HashOutput Coordinate H).Domain) = [] := rfl
+    rw [hc0, hr0, Nat.sub_zero, costStep_honest, costStep_inl, lazyStep_unparsed M _ s hx.1]
+    simpa [digestCount, fleafCount] using K.honest_readOutside M hmsg hx budget s hinv
 
 end Model
 
@@ -306,41 +367,10 @@ variable (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : Coo
   (remaining : RemainingOutputs) (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
   (known : Knowledge Coordinate) (ρ : ℝ)
 
-/-- **Linear potential on the small-budget route, paying every FORS leaf query.** Besides the
-digest baseline `ρ / 2^128`, every FORS leaf query of the trace (fresh or cached) is paid
-`(ρ - 1 - x) / 2^128`, `x = total / 2^128`. -/
-theorem smallRoute_potentialF
-    (hknown : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
-      (knownOf (truncateHash parameterOutput) fixed)))
-    (tg : Targeting HashInput HashOutput Coordinate) (hdigest : tg.digest = ForsSigner.IsMsgInput)
-    (total : ℕ) (hN : Numeric ρ ((total : ℝ) / 2 ^ 128))
-    {α : Type} (comp : OracleComp (SourceCostSpec HashInput HashOutput Coordinate) α) :
-    ∑' out, Pr[= out | interp tg prepared.2 (sampleModel parameterOutput highs) comp total
-        (DebtState.start prepared.2 known)] *
-      (endValue (payoffA parameterOutput fixed highs remaining prepared known ρ) out.2 +
-        ENNReal.ofReal (ρ / 2 ^ 128) * digestCount tg out.1.2.2.1 +
-        ENNReal.ofReal ((ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128) *
-          fleafCount (IsFleafIn (truncateHash parameterOutput)) out.1.2.2.1) ≤
-      ENNReal.ofReal (ρ * total / 2 ^ 128) := by
-  set K := ctxA parameterOutput fixed highs remaining prepared known ρ with hK
-  have hMp : (sampleModel parameterOutput highs).parse = HiddenGraph.parse K.p (candidateActive K.p) :=
-    sampleModel_parse parameterOutput highs
-  have hMi := sampleModel_incoming parameterOutput highs
-  have hMo := sampleModel_outgoing parameterOutput highs
-  have h := interp_potential2 tg prepared.2 (sampleModel parameterOutput highs) (IsFleafIn K.p) K.Inv
-    (K.potCap total) K.payoff (ENNReal.ofReal (K.ρ / 2 ^ 128))
-    (ENNReal.ofReal ((K.ρ - 1 - (total : ℝ) / 2 ^ 128) / 2 ^ 128))
-    (fun budget state _ => K.endValue_le_cap total budget state)
-    (fun input budget state hinv hcost => K.stepF (sampleModel parameterOutput highs) hMp hMi hMo tg hdigest hN
-      (ctxA_sec parameterOutput fixed highs remaining prepared known ρ)
-      (ctxA_msg parameterOutput fixed highs remaining prepared known ρ) input budget state hinv hcost)
-    (fun input state hinv => K.inv_step (sampleModel parameterOutput highs) hMp hMi input state hinv)
-    comp total (DebtState.start prepared.2 known)
-    (inv_start parameterOutput fixed highs remaining prepared known ρ hknown)
-  refine h.trans (le_of_eq ?_)
-  unfold Ctx.potCap
-  rw [if_pos le_rfl]
-  exact pot_start K known (show (0 : ℝ) ≤ ρ by linarith [hN.low]) total
+/-- The raw inputs an honest read of the small route may stand for: unparsed, and prepared in the
+initial cache or a message-digest input (`Ctx.LinearHonest` at the route's context). -/
+def SmallHonest (x : HashInput) : Prop :=
+  (sampleModel parameterOutput highs).parse x = none ∧ (prepared.2 x ≠ none ∨ ForsSigner.IsMsgInput x)
 
 end Sample
 

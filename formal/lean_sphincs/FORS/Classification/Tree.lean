@@ -1,6 +1,12 @@
-import FORS.Scheme.Pruning
-import FORS.Scheme.Landing
-import FORS.Scheme.Bytes
+module
+
+public import FORS.Scheme.Pruning
+public import FORS.Scheme.Landing
+public import FORS.Scheme.Bytes
+
+@[expose] public section
+
+set_option backward.isDefEq.respectTransparency false
 
 /-!
 Deterministic Merkle extraction, by a first-divergence argument.
@@ -27,7 +33,14 @@ def queriedInputs {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashS
 @[simp] theorem queriedInputs_query_bind {α : Type} (f : QueryImpl HashSpec Id)
     (input : HashInput) (next : HashOutput → OracleComp HashSpec α) :
     queriedInputs f (liftM (HashSpec.query input) >>= next) =
-      input :: queriedInputs f (next (f input)) := rfl
+      input :: queriedInputs f (next (f input)) := by
+  simp [queriedInputs]
+  rfl
+
+@[simp] theorem queriedInputs_query (f : QueryImpl HashSpec Id) (input : HashInput) :
+    queriedInputs f (liftM (HashSpec.query input) : OracleComp HashSpec HashOutput) = [input] := by
+  have h := queriedInputs_query_bind f input pure
+  rwa [bind_pure, queriedInputs_pure] at h
 
 theorem queriedInputs_bind {α β : Type} (f : QueryImpl HashSpec Id)
     (oa : OracleComp HashSpec α) (next : α → OracleComp HashSpec β) :
@@ -115,10 +128,6 @@ def merkleInput (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
   tweakableHashInput parameter (domain (level + 1) (index / 2 ^ (level + 1)))
     (orderedPayload (index.testBit level)
       (merkleValue f parameter domain index path value level) (path level))
-
-@[simp] theorem merkleValue_zero (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (domain : Nat → Nat → HashDomain) (index : Nat) (path : Nat → Digest) (value : Digest) :
-    merkleValue f parameter domain index path value 0 = value := rfl
 
 theorem merkleValue_succ (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (domain : Nat → Nat → HashDomain) (index : Nat) (path : Nat → Digest)
@@ -278,8 +287,8 @@ theorem canonicalTreePath_surrogate (f : QueryImpl HashSpec Id) (parameter : Pub
     (hlow : keptHeight lay ≤ level) (hhigh : level < layerHeight lay) :
     canonicalTreePath f parameter lay tree seed leaf level =
       evalWithAnswerFn f (Seeded.surrogate parameter seed level : OracleComp HashSpec Digest) := by
-  rw [canonicalTreePath, dif_pos hhigh, Completeness.eval_treePath,
-    if_neg (Nat.not_lt.mpr hlow)]
+  rw [canonicalTreePath, dite_eq_left hhigh, Completeness.eval_treePath,
+    ite_eq_right (Nat.not_lt.mpr hlow)]
 
 theorem canonicalTreePath_root (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (leaf : LeafIndex)
@@ -291,7 +300,7 @@ theorem canonicalTreePath_root (f : QueryImpl HashSpec Id) (parameter : PublicPa
   rw [merkleValue, merkleFold_treeFold]
   apply Completeness.eval_treeFold_pruned_path f parameter lay tree seed leaf hkept
   intro level hlevel
-  exact dif_pos hlevel
+  exact dite_eq_left hlevel
 
 /-- A concrete query below a surrogate's level produces that surrogate. Unlike `MerkleMatch`,
 the target has no honest node-domain preimage: the key generated it by seed derivation. -/

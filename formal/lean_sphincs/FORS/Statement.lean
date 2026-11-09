@@ -1,5 +1,9 @@
-import FORS.Scheme
-import VCVio.OracleComp.QueryTracking.WriterCost
+module
+
+public import FORS.Scheme
+public import VCVio.OracleComp.QueryTracking.WriterCost
+
+@[expose] public section
 
 /-!
 # The security statement
@@ -11,9 +15,9 @@ adversaries, and the counted experiment. The secret key is a uniform 32-byte `SK
 the deterministic `Seeded.sign` (`Scheme.lean`; the Rust signer's), whose randomizers are derived
 from `SK.prf`, `PK.seed` and the message (a repeated request returns the same signature). Every hash
 call counts, including repeated calls and the calls of the honest parties, the two that derive
-`PK.seed` and `SK.prf` among them. The module ends with the forgery advantage, the hash-query budget
-and the security-bits target `SecurityBits P bits`; `Main.lean` spells out `SecurityBits P 127` as
-`Secure127 P` and states it for each configuration `P`.
+`PK.seed` and `SK.prf` among them. The module ends with the forgery advantage; the security target,
+which charges only the adversary's own hash queries (`Security.AdvCount.AdvHash`), is `Secure127` of
+`Main.lean`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -89,22 +93,8 @@ noncomputable def experiment (adversary : Adversary) : ProbComp (Bool × Nat) :=
 
 /-- The probability that the adversary wins. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => result.1 = true | experiment adversary]
-
-/-- Every run of the experiment makes at most `q` hash queries. -/
-def HasHashQueryBound (adversary : Adversary) (q : Nat) : Prop :=
-  ∀ result ∈ support (experiment adversary), result.2 ≤ q
-
-/-- `bits` bits of classical security: an adversary whose runs make at most `q ≥ 1` hash queries
-wins with probability at most `q / 2^bits`. -/
-def HasClassicalSecurityBits (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound adversary q →
-    forgeAdvantage adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+  Pr{let result ← experiment adversary}[result.1 = true]
 
 end Security
-
-/-- **The security target**: the scheme with parameters `P` has `bits` bits of classical security,
-`HasClassicalSecurityBits` of the instance `P`. -/
-abbrev SecurityBits (P : Params) (bits : Nat) : Prop := @Security.HasClassicalSecurityBits P bits
 
 end FORS

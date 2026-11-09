@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedChain.ChainInputTrace
+module
+
+public import XmssSecurity.Proof.CappedChain.ChainInputTrace
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

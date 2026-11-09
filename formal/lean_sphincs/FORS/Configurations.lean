@@ -1,4 +1,8 @@
-import FORS.Scheme.VerificationCost
+module
+
+public import FORS.Scheme.VerificationCost
+
+@[expose] public section
 
 /-! **The configuration's size and verification cost.** Height 26, three layers of 10 + 8 + 8, FORS
 of 24 trees of height 10, Keccak-256 (`Layout.signature_size`, `Cost.verification_compressions`): the
@@ -31,7 +35,7 @@ theorem keccak256_h26_layered_k24 (f : QueryImpl HashSpec Id) (pk : PublicKey) (
     have hle := Params.lower_le
     have hbottom : bottomHeight = lowerHeight := by
       unfold bottomHeight layerHeight
-      rw [if_neg (by simp only [hd]; omega)]
+      rw [ite_eq_right (by simp only [hd]; omega)]
     unfold digestCalls digestBytes mdBytes treeIndexBytes leafIndexBytes
     rw [hbottom, hH, hk, ha]
     rw [hH, hd] at hle

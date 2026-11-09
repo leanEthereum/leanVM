@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.ChainHiddenTable
-import XmssSecurity.Proof.ChainTrajectoryComposition
-import Init.Data.Vector.OfFn
+module
+
+public import XmssSecurity.Proof.ChainHiddenTable
+public import XmssSecurity.Proof.ChainTrajectoryComposition
+public import Init.Data.Vector.OfFn
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

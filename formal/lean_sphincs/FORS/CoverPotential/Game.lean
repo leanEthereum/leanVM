@@ -1,4 +1,8 @@
-import FORS.CoverPotential.Basic
+module
+
+public import FORS.CoverPotential.Basic
+
+@[expose] public section
 
 /-! The rest of the game of an arbitrary adaptive adversary as a cost program (`advProg`): every
 adversary step is a draw, an ordinary hash query or a signing call, and verification is a lifted

@@ -1,7 +1,11 @@
-import FORS.Statement
-import FORS.Classification.Signature
-import FORS.Scheme.Domains
-import FORS.Base.Prelude
+module
+
+public import FORS.Statement
+public import FORS.Classification.Signature
+public import FORS.Scheme.Domains
+public import FORS.Base.Prelude
+
+@[expose] public section
 
 section
 
@@ -85,7 +89,7 @@ instance (input : OracleWorld.Domain) : Decidable (SourceHash input) := by
 
 /-- Fresh private uniform sampling together with a supplied fixed hash function. -/
 noncomputable def fixedHashWorld (outside : QueryImpl HashSpec Id) : QueryImpl OracleWorld PMF
-  | .inl _sample => PMF.uniformOfFintype _
+  | .inl _sample => Cslib.Probability.PMF.uniformOfFintype _
   | .inr bytes => PMF.pure (outside bytes)
 
 end FORS.Security.Prefix

@@ -1,5 +1,9 @@
-import FORS.ScanSigner.LoopWalk
-import FORS.Base.VirtualMono
+module
+
+public import FORS.ScanSigner.LoopWalk
+public import FORS.Base.VirtualMono
+
+@[expose] public section
 
 /-!
 # The group of one message in the virtual future

@@ -1,4 +1,8 @@
-import XmssSecurity.Scan.LoopWalk
+module
+
+public import XmssSecurity.Scan.LoopWalk
+
+@[expose] public section
 
 /-!
 # Reaching positions under one more query
@@ -82,25 +86,7 @@ theorem reach_probe (hp : p ≤ 1) (st : α → St) {x : α} (hx : st x = .fresh
                 reach_succ_fresh A hry h, ← ih]
               ring
 
-/-- The martingale for a set of targets. -/
-theorem sum_reach_probe (hp : p ≤ 1) (st : α → St) {x : α} (hx : st x = .fresh) (P : Finset α) (A : ℕ)
-    (hA : ∀ j, 0 < j → j < A → (σ ^ j) x ≠ x) (r : α) :
-    p * ∑ y ∈ P, reach σ p (Function.update st x .hit) y A r +
-        (1 - p) * ∑ y ∈ P, reach σ p (Function.update st x .miss) y A r =
-      ∑ y ∈ P, reach σ p st y A r := by
-  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun y _ => reach_probe hp st hx y A hA r
-
 variable [Fintype α]
-
-/-- The martingale for a set of targets, summed over the starts. -/
-theorem sum_sum_reach_probe (hp : p ≤ 1) (st : α → St) {x : α} (hx : st x = .fresh) (P : Finset α) (A : ℕ)
-    (hA : ∀ j, 0 < j → j < A → (σ ^ j) x ≠ x) :
-    p * ∑ r, ∑ y ∈ P, reach σ p (Function.update st x .hit) y A r +
-        (1 - p) * ∑ r, ∑ y ∈ P, reach σ p (Function.update st x .miss) y A r =
-      ∑ r, ∑ y ∈ P, reach σ p st y A r := by
-  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun r _ => sum_reach_probe hp st hx P A hA r
 
 variable (σ p) in
 /-- Probability that the walk from `r` stops at a cached hit. -/
@@ -115,7 +101,7 @@ theorem hitReach_eq_walk (st : α → St) :
       cases h : st r with
       | hit =>
           rw [walk_succ_hit _ _ _ _ h, hitReach, Finset.sum_eq_single r]
-          · rw [if_pos h, reach_self]
+          · rw [ite_eq_left h, reach_self]
           · intro z _ hz
             split_ifs
             · exact reach_succ_hit A (Ne.symm hz) h
@@ -180,8 +166,8 @@ theorem mass_hit_le (hp : p ≤ 1) (st : α → St) (A : ℕ) (hA : ∀ x j, 0 <
       (if st r = .fresh then walk σ p st (fun _ => 1) 0 0 A r else 0) + (if st r ≠ .fresh then 1 else 0) := by
     intro r
     by_cases hr : st r = .fresh
-    · rw [if_pos hr, if_neg (not_not.2 hr), add_zero, hitReach_eq_walk]
-    · rw [if_neg hr, if_pos hr, zero_add]
+    · rw [ite_eq_left hr, ite_eq_right (not_not.2 hr), add_zero, hitReach_eq_walk]
+    · rw [ite_eq_right hr, ite_eq_left hr, zero_add]
       exact hitReach_le_one hp st A r
   have hcard : ∑ r, (if st r ≠ .fresh then (1 : ℝ≥0∞) else 0) = (Finset.univ.filter fun r => st r ≠ .fresh).card := by
     rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]

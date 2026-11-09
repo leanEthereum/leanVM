@@ -1,6 +1,10 @@
-import FORS.Certificates.Closing
-import FORS.CoverBound.MomentTable
-import FORS.CoverBound.IntTables
+module
+
+public import FORS.Certificates.Closing
+public import FORS.CoverBound.MomentTable
+public import FORS.CoverBound.IntTables
+
+@[expose] public section
 
 section
 
@@ -49,10 +53,6 @@ def chainQ (K N qtop : ℕ) (ps : List (ℚ × ℚ)) : ℕ → List EntryF → B
 def checkCoverQ (H b K N qstart : ℕ) (c : CoverW) (ps : List (ℚ × ℚ)) : Bool :=
   checkRate H b N c.qtop c.tab && checkPT c.tab && chainQ K N c.qtop ps qstart c.entries
 
-/-- The checks of a heavy cover that do not open its options. -/
-def checkCoverQH (H b K N qstart : ℕ) (c : CoverW) (ps : List (ℚ × ℚ)) : Bool :=
-  checkRateH H b N c.qtop c.tab && checkPT c.tab && chainQ K N c.qtop ps qstart c.entries
-
 theorem checkEntryQ_map (K N : ℕ) (opts : List Opt) (e : EntryF) :
     checkEntryQ K N (opts.map fun o => (o.cthr, o.B)) e = checkEntryF K N opts e := by
   unfold checkEntryQ checkEntryF
@@ -84,15 +84,6 @@ theorem checkCoverW_of {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ �
   obtain ⟨h1, h2⟩ := checkOptB_all ho
   simp only [checkCoverQ, Bool.and_eq_true] at h
   simp only [checkCoverW, Bool.and_eq_true]
-  exact ⟨⟨⟨h.1.1, h.1.2⟩, h1⟩, by rw [← chainQ_map, h2]; exact h.2⟩
-
-/-- **A heavy cover from its options checked one by one.** -/
-theorem checkCoverH_of {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ × ℚ))
-    (ho : List.Forall₂ (fun o p => checkOptB H b k a c.tab o p = true) c.opts ps)
-    (h : checkCoverQH H b K N qstart c ps = true) : checkCoverH H b k a K N qstart c = true := by
-  obtain ⟨h1, h2⟩ := checkOptB_all ho
-  simp only [checkCoverQH, Bool.and_eq_true] at h
-  simp only [checkCoverH, Bool.and_eq_true]
   exact ⟨⟨⟨h.1.1, h.1.2⟩, h1⟩, by rw [← chainQ_map, h2]; exact h.2⟩
 
 end FORS.Security.H0
@@ -253,8 +244,8 @@ theorem checkOptB_build {H b k a : ℕ} {t : PoisT} {c1 θ : ℚ} {s : ℕ} {cth
     checkOptB H b k a t (.F (buildOpt H b k a t c1 θ s cthr)) p = true := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨h1, h2⟩, h3⟩ := h
-  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true, decide_eq_true_eq]
-  exact ⟨⟨checkOptF_build h1, h2⟩, h3⟩
+  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true]
+  exact ⟨⟨checkOptF_build h1, decide_eq_true h2⟩, decide_eq_true h3⟩
 
 /-! ### Near certificates -/
 
@@ -340,14 +331,6 @@ theorem checkCoverW_of_pt {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (�
     checkCoverW H b k a K N qstart c = true := by
   simp only [Bool.and_eq_true] at h
   exact checkCoverW_of ps ho (by simp only [checkCoverQ, h.1, hpt, h.2, Bool.and_self])
-
-/-- **A heavy cover from its options and its table checked separately.** -/
-theorem checkCoverH_of_pt {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ × ℚ))
-    (ho : List.Forall₂ (fun o p => checkOptB H b k a c.tab o p = true) c.opts ps) (hpt : checkPT c.tab = true)
-    (h : (checkRateH H b N c.qtop c.tab && chainQ K N c.qtop ps qstart c.entries) = true) :
-    checkCoverH H b k a K N qstart c = true := by
-  simp only [Bool.and_eq_true] at h
-  exact checkCoverH_of ps ho (by simp only [checkCoverQH, h.1, hpt, h.2, Bool.and_self])
 
 end FORS.Security.H0
 

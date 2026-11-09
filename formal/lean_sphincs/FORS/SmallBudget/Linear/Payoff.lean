@@ -1,4 +1,8 @@
-import FORS.SmallBudget.Linear.Start
+module
+
+public import FORS.SmallBudget.Linear.Start
+
+@[expose] public section
 
 /-! The refined events of a final state against the payoff of the linear potential. The
 prepared cache holds structural inputs and the encoding search queries only, and no search
@@ -13,7 +17,7 @@ namespace FORS.Security.PotentialA
 
 variable [Params]
 
-open Concrete Completeness Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
+open Concrete Completeness _root_.FORS.Security.Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
   TargetAssignment
 
 set_option backward.isDefEq.respectTransparency false
@@ -22,7 +26,6 @@ set_option linter.unusedSectionVars false
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] ReferenceChoice.selection encodingAttemptLimit
-
 
 section Prepared
 
@@ -209,7 +212,7 @@ theorem hit_of_bad
       exact prepared_clean parameterOutput fixed highs remaining prepared hprepared T input answer hinit hmem
   | none =>
       have hkind : (ctxA parameterOutput fixed highs remaining prepared known ρ).tg.kind input =
-          (sampleTargeting parameterOutput fixed highs remaining prepared.1).kind input := if_neg hsec
+          (sampleTargeting parameterOutput fixed highs remaining prepared.1).kind input := ite_eq_right hsec
       rcases target_kind parameterOutput fixed highs remaining T hfix prepared.1 input _ hmsg hmem with
         hfixed | ⟨coordinate, hhidden, hvalue⟩
       · exact Or.inl (Or.inl ⟨input, answer, _, hcache, hinit, hkind.trans hfixed, rfl⟩)
@@ -348,7 +351,7 @@ theorem badA_split (hfix : tableExtending (knownOf (truncateHash parameterOutput
       payoffA parameterOutput fixed highs remaining prepared known ρ T s = 1 := by
     intro P hP hp
     unfold payoffA Ctx.payoff
-    exact if_pos (hP hp)
+    exact ite_eq_left (hP hp)
   rcases h with hhit | hw | hrev | htwo | ⟨outcome, hres, hnear | hcov⟩
   · exact Or.inl (hpay _ (fun h => Or.inl (hit_of_bad parameterOutput fixed highs remaining prepared hprepared
       known ρ s hinv T hT hfix h)) hhit)
@@ -393,40 +396,5 @@ theorem inv_interp (K : Ctx) (M : HiddenRows.Model HashInput HashOutput Address 
       · rw [support_pure, Set.mem_singleton_iff] at hout
         rw [hout]
         exact hs
-
-section Final
-
-variable (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
-  (remaining : RemainingOutputs) (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
-  (known : Knowledge Coordinate) (ρ : ℝ)
-  (hknown : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
-    (knownOf (truncateHash parameterOutput) fixed)))
-  (tg : Targeting HashInput HashOutput Coordinate) {α : Type}
-  (comp : OracleComp (SourceCostSpec HashInput HashOutput Coordinate) α) (total : ℕ)
-
-include hknown in
-/-- **The invariant at the end of the run**, for the inclusion lemmas. -/
-theorem inv_final (out : Run HashInput Coordinate α × St)
-    (hout : out ∈ support (interp tg prepared.2 (sampleModel parameterOutput highs) comp total
-      (DebtState.start prepared.2 known))) :
-    (ctxA parameterOutput fixed highs remaining prepared known ρ).Inv out.2 :=
-  inv_interp (ctxA parameterOutput fixed highs remaining prepared known ρ) (sampleModel parameterOutput highs)
-    (sampleModel_parse parameterOutput highs)
-    (sampleModel_incoming parameterOutput highs) tg prepared.2 comp total _
-    (inv_start parameterOutput fixed highs remaining prepared known ρ hknown) out hout
-
-include hknown in
-/-- A table extending the final exposed coordinates extends the fixed knowledge. -/
-theorem knownOf_extending_final (out : Run HashInput Coordinate α × St)
-    (hout : out ∈ support (interp tg prepared.2 (sampleModel parameterOutput highs) comp total
-      (DebtState.start prepared.2 known)))
-    (T : Coordinate → Digest) (hT : tableExtending out.2.known T = T) :
-    tableExtending (knownOf (truncateHash parameterOutput) fixed) T = T := by
-  have hext := interp_extends tg prepared.2 (sampleModel parameterOutput highs) comp total _ out hout
-  have hbase := (exposeR_known _ _ _ hknown).1
-  rw [← hT]
-  exact tableExtending_of_extends _ _ (fun c v h => hext.2.1 c v (hbase c v h)) T
-
-end Final
 
 end FORS.Security.PotentialA

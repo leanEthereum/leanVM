@@ -1,4 +1,8 @@
-import FORS.Scheme.Lemmas
+module
+
+public import FORS.Scheme.Lemmas
+
+@[expose] public section
 
 /-! The uncounted shared random-oracle interpreter, and the replay of a lazy random-oracle run by
 any answer function that extends its cache. -/

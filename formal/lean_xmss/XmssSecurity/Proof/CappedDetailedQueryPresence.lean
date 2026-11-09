@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedConcreteExecution
-import XmssSecurity.Proof.QueryPresence
+module
+
+public import XmssSecurity.Proof.CappedConcreteExecution
+public import XmssSecurity.Proof.QueryPresence
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

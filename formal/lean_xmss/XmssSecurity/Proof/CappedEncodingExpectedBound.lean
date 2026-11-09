@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedEncodingQueryBound
-import XmssSecurity.Proof.ExpectedQueryCount
-import XmssSecurity.Proof.EncodingTargetMap
+module
+
+public import XmssSecurity.Proof.CappedEncodingQueryBound
+public import XmssSecurity.Proof.ExpectedQueryCount
+public import XmssSecurity.Proof.EncodingTargetMap
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -42,14 +46,5 @@ theorem cappedUnloggedMappedAdversary_simulateQ_run_eq_source
           computation)).run cache := by
   rw [cappedUnloggedMappedAdversaryImpl_eq_source_compose,
     QueryImpl.simulateQ_compose]
-
-noncomputable def expectedPostKeygenEncodingQueries
-    (adversary : Adversary) : ENNReal :=
-  ∑' keyResult,
-    Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
-      expectedSimulatedQueryCount romImpl
-        (IsEncodingHashQuery keyResult.1.2.parameter)
-        (cappedSourceUnloggedDetailedGameAfterKeygen adversary
-          keyResult.1.1 keyResult.1.2) keyResult.2
 
 end XmssSecurity.CappedEncodingMonitor

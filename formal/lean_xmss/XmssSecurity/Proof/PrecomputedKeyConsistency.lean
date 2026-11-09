@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedChain.TreeCacheStable
-import XmssSecurity.Proof.MerkleQueryPresence
-import XmssSecurity.Proof.PrecomputedKeygenCache
+module
+
+public import XmssSecurity.Proof.CappedChain.TreeCacheStable
+public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.PrecomputedKeygenCache
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -33,8 +37,9 @@ theorem Concrete.oldKeygen_support_materializedPrecomputedKeygen
       ((simulateQ romImpl Concrete.keygen).run ∅)) :
     Concrete.materializeCachedKeyResult keyResult ∈ support
       ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) := by
-  apply (mem_support_iff_of_evalDist_eq
-    Concrete.evalDist_materialized_keygen_eq_precomputedKeygen _).mp
+  rw [← OracleComp.support_eq_of_evalDistEq
+    Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
+
   rw [support_map]
   exact ⟨keyResult, hmem, rfl⟩
 
@@ -275,56 +280,4 @@ theorem Concrete.precomputedKeygen_cache_has_chainValue_preimage
       unfold Wots.signChain
       rw [show digit.val = previous.val + 1 by dsimp only [previous]; omega]
       simp only [Wots.walk, zero_add]
-theorem Concrete.precomputedKeygen_cache_has_merkleInput_in_largerCache
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hmem : keyResult ∈ support
-      ((simulateQ romImpl Concrete.precomputedKeygen).run ∅))
-    (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
-    (level : MerkleLevel) (node : MerkleNode)
-    (hnode : node.val < 2 ^ (treeHeight - (level.val + 1))) :
-    ∃ output, keyResult.2
-      (Concrete.CacheView.merkleInput keyResult.1.2.parameter level node
-        (Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-          keyResult.1.2.chainStart level.val (Concrete.childNode node false))
-        (Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-          keyResult.1.2.chainStart level.val (Concrete.childNode node true))) = some output :=
-  Concrete.keygen_cache_has_merkleInput_in_largerCache _
-    (Concrete.precomputedKeygen_support_oldKeygen keyResult hmem) largerCache hle level node
-    (hnode.trans_le (Nat.pow_le_pow_right (by omega) (by omega)))
-theorem Concrete.precomputedKeygen_cache_merkleInput_eq_none_of_ne_in_largerCache
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hmem : keyResult ∈ support
-      ((simulateQ romImpl Concrete.precomputedKeygen).run ∅))
-    (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
-    (level : MerkleLevel) (node : MerkleNode)
-    (hnode : node.val < 2 ^ (treeHeight - (level.val + 1)))
-    (left right : Digest)
-    (hne : (left, right) ≠
-      (Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-          keyResult.1.2.chainStart level.val (Concrete.childNode node false),
-        Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-          keyResult.1.2.chainStart level.val (Concrete.childNode node true))) :
-    keyResult.2
-      (Concrete.CacheView.merkleInput keyResult.1.2.parameter level node left right) = none :=
-  Concrete.keygen_cache_merkleInput_eq_none_of_ne_in_largerCache _
-    (Concrete.precomputedKeygen_support_oldKeygen keyResult hmem) largerCache hle level node
-    (hnode.trans_le (Nat.pow_le_pow_right (by omega) (by omega))) left right hne
-theorem Concrete.precomputedKeygen_merkleChildren_eq_of_cache_le
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hmem : keyResult ∈ support
-      ((simulateQ romImpl Concrete.precomputedKeygen).run ∅))
-    (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
-    (level : MerkleLevel) (node : MerkleNode)
-    (hnode : node.val < 2 ^ (treeHeight - (level.val + 1))) :
-    (Concrete.CacheReplay.treeNode keyResult.2 keyResult.1.2.parameter
-        keyResult.1.2.chainStart level.val (Concrete.childNode node false),
-      Concrete.CacheReplay.treeNode keyResult.2 keyResult.1.2.parameter
-        keyResult.1.2.chainStart level.val (Concrete.childNode node true)) =
-    (Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-        keyResult.1.2.chainStart level.val (Concrete.childNode node false),
-      Concrete.CacheReplay.treeNode largerCache keyResult.1.2.parameter
-        keyResult.1.2.chainStart level.val (Concrete.childNode node true)) :=
-  Concrete.keygen_merkleChildren_eq_of_cache_le _
-    (Concrete.precomputedKeygen_support_oldKeygen keyResult hmem) largerCache hle level node
-    (hnode.trans_le (Nat.pow_le_pow_right (by omega) (by omega)))
 end XmssSecurity

@@ -1,5 +1,9 @@
-import FORS.GraphView.Graph
-import FORS.Seed.Coupling
+module
+
+public import FORS.GraphView.Graph
+public import FORS.Seed.Coupling
+
+@[expose] public section
 
 /-! The structural reference table of a canonical graph: active positions exempt their canonical
 input, and omitted positions carry their surrogate targets. Programmed seed material leaves every
@@ -16,7 +20,6 @@ open Concrete Completeness TargetAssignment
 attribute [local instance] Classical.propDecidable
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 512
-set_option maxHeartbeats 400000
 attribute [local irreducible] canonicalGraphInput canonicalGraphSlots
 
 noncomputable def positionAt (fields : TweakFields) : Option Position :=
@@ -62,7 +65,7 @@ theorem referenceTable_active (active : Position → Prop) (boundary : Position 
           truncateHash (labels position)⟩ := by
   unfold referenceTable
   rw [(positionAt_some_iff _ position).2 rfl]
-  exact if_pos hactive
+  exact ite_eq_left hactive
 
 theorem referenceTable_boundary (active : Position → Prop) (boundary : Position → Option Digest)
     (labels : CanonicalGraphLabels) (position : Position) (hactive : ¬active position)
@@ -71,7 +74,7 @@ theorem referenceTable_boundary (active : Position → Prop) (boundary : Positio
       (hashDomainFields position.domain) = some ⟨none, value⟩ := by
   unfold referenceTable
   rw [(positionAt_some_iff _ position).2 rfl]
-  simp only [if_neg hactive, hboundary, Option.map_some]
+  simp only [ite_eq_right hactive, hboundary, Option.map_some]
 
 /-- Preparation starts with no structural addresses populated; seed material satisfies this
 because its serialized domain tags are disjoint. -/

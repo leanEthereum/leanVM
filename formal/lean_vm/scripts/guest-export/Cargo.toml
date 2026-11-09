@@ -1,0 +1,56 @@
+# The aggregation guest of leanVM as Lean data, for `Statement/Data/` (the bytecode) and
+# `lean_vm/LeanVM/Guest/Data/` (and the test programs, node vectors and guest-diff cases). leanVM no
+# longer carries the `LEANVM_WRITE_*` tests that wrote these, so this crate compiles leanVM's
+# `rec_aggregation` sources as its own (an overlay: `build.rs` copies them into `OUT_DIR` and
+# appends one line declaring `aggregation::lean_export`, this crate's `src/export/`), which lets the
+# exporters read the guest's private pieces (`placeholder_map`, `statement_digest`, the batching,
+# the hint streams) exactly as the in-tree tests did.
+#
+# leanVM is this repository (`../../../..`), as for `rust-verifier-cli`; `Cargo.lock` is its. The
+# data is generated from this tree; its headers name `../../../leanvm-rev`, the commit the
+# formalization's citations were checked at, not the tree's HEAD (`build.rs`).
+[package]
+name = "leanvm-guest-export"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+
+# Its own workspace, not a member of leanVM's; leanVM's crates still inherit that one's settings.
+# The overlay's sources (`build.rs` copies `rec_aggregation` into `OUT_DIR`) use these, which
+# cargo-machete, reading this crate's own sources, cannot see.
+[package.metadata.cargo-machete]
+ignored = ["fiat_shamir", "keccak_gkr", "parallel", "pcs", "tracing"]
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "guest-export"
+path = "src/main.rs"
+
+[dependencies]
+# rec_aggregation's own dependencies (crates/rec_aggregation/Cargo.toml), by path.
+primitives = { path = "../../../../crates/primitives" }
+fiat_shamir = { path = "../../../../crates/fiat_shamir" }
+parallel = { path = "../../../../crates/parallel" }
+pcs = { path = "../../../../crates/pcs" }
+keccak_gkr = { path = "../../../../crates/keccak_gkr" }
+leanvm_core = { path = "../../../../crates/leanvm_core" }
+lean_compiler = { path = "../../../../crates/lean_compiler" }
+signatures = { path = "../../../../crates/signatures", features = ["mock"] }
+lean_da = { path = "../../../../crates/lean_da" }
+verifier = { path = "../../../../crates/verifier" }
+rand = "0.9"
+tracing = "0.1.26"
+
+[features]
+default = ["signers-cache"]
+# rec_aggregation's feature: the cached benchmark signers, for the guest-diff cases.
+signers-cache = []
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

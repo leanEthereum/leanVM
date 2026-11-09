@@ -1,4 +1,11 @@
-import FORS.Scheme.Lemmas
+module
+
+public import FORS.Scheme.Lemmas
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.EvalDist.Sum
+public import VCVio.EvalDist.ProbabilityBounds
+
+@[expose] public section
 
 /-!
 # Exhausting a search
@@ -39,20 +46,19 @@ noncomputable def failMass (decode : HashOutput → Option β) : ℝ≥0∞ :=
 
 /-- The rejection share is the probability that one uniform answer is rejected. -/
 theorem failMass_eq_probEvent (decode : HashOutput → Option β) :
-    failMass decode = Pr[fun u => decode u = none | ($ᵗ HashOutput : ProbComp HashOutput)] :=
-  (probEvent_uniformSample HashOutput _).symm
+    failMass decode = Pr{let u ← ($ᵗ HashOutput : ProbComp HashOutput)}[decode u = none] :=
+  (SampleableType.prEvent_uniformSample _).symm
 
 /-- A query on an uncached input samples its answer uniformly. -/
 theorem fresh_run (input : HashInput) (cache : QueryCache HashSpec) (hfresh : cache input = none)
     {δ : Type} (next : HashOutput × QueryCache HashSpec → ProbComp δ) (p : δ → Prop) :
-    Pr[p | (randomOracle (spec := HashSpec) input).run cache >>= next]
+    Pr{let x ← (randomOracle (spec := HashSpec) input).run cache >>= next}[p x]
       = ∑' u : HashOutput, (Fintype.card HashOutput : ℝ≥0∞)⁻¹
-          * Pr[p | next (u, cache.cacheQuery input u)] := by
-  rw [randomOracle, QueryImpl.withCaching_run_none _ hfresh, map_eq_bind_pure_comp, bind_assoc]
-  simp only [Function.comp_def, pure_bind]
-  rw [show (uniformSampleImpl (spec := HashSpec) input) = ($ᵗ HashOutput : ProbComp HashOutput)
-    from rfl, probEvent_bind_eq_tsum]
-  exact tsum_congr fun u => by rw [probOutput_uniformSample]
+          * Pr{let x ← next (u, cache.cacheQuery input u)}[p x] := by
+  rw [randomOracle, QueryImpl.withCaching_run_none _ hfresh, bind_map_left,
+    show (uniformSampleImpl (spec := HashSpec) input) = ($ᵗ HashOutput : ProbComp HashOutput)
+      from rfl, OracleComp.prEvent_bind_eq_tsum]
+  exact tsum_congr fun u => by rw [SampleableType.prEvent_uniformSample_eq_singleton]
 
 /-- A search over fresh inputs, distinct below `bound`, exhausts all `n` trials with probability at most the per-trial rejection share to the `n`. The bound is what the counter search needs: its inputs carry a 32-bit counter, so they repeat only after `2 ^ 32` trials, which is exactly its trial budget. -/
 theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput → Option β)
@@ -60,8 +66,7 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
     (hinj : ∀ s s', s < bound → s' < bound → inputs s = inputs s' → s = s') :
     ∀ (n t : Nat), t + n ≤ bound → ∀ cache : QueryCache HashSpec,
       (∀ s, t ≤ s → s < bound → cache (inputs s) = none) →
-      Pr[fun r => r.1 = none |
-          (simulateQ randomOracle (searchLoop inputs decode success n t)).run cache]
+      Pr{let r ← (simulateQ randomOracle (searchLoop inputs decode success n t)).run cache}[r.1 = none]
         ≤ failMass decode ^ n := by
   intro n
   induction n with
@@ -73,19 +78,19 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
         StateT.run_bind]
       rw [fresh_run (inputs t) cache (hfresh t (Nat.le_refl t) (by omega))]
       have hterm : ∀ u : HashOutput,
-          Pr[fun r => r.1 = none | (simulateQ randomOracle
+          Pr{let r ← ((simulateQ randomOracle
               (match decode u with
                 | some value => some <$> success t value
                 | none => searchLoop inputs decode success n (t + 1))).run
-              (cache.cacheQuery (inputs t) u)]
+              (cache.cacheQuery (inputs t) u))}[r.1 = none]
             ≤ (if decode u = none then failMass decode ^ n else 0) := by
         intro u
         cases hu : decode u with
         | some value =>
-            simp only [reduceCtorEq, if_false, simulateQ_map, StateT.run_map, probEvent_map]
+            simp only [reduceCtorEq, ite_false, simulateQ_map, StateT.run_map, prEvent_map]
             simp
         | none =>
-            simp only [if_true]
+            simp only [ite_true]
             refine ih (t + 1) (by omega) _ (fun s hs hsb => ?_)
             have hne : inputs s ≠ inputs t := fun hcon => by
               have hst := hinj s t hsb (by omega) hcon

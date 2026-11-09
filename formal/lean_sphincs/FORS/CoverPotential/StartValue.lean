@@ -1,6 +1,12 @@
-import FORS.LazyRun.PreparedRun
-import FORS.Reduction.Memo
-import FORS.CoverPotential.OneCoinGame
+module
+
+public import FORS.LazyRun.PreparedRun
+public import FORS.Reduction.Memo
+public import FORS.CoverPotential.Game
+public import FORS.Reduction.NoRepeat
+public import FORS.CoverPotential.OneCoin
+
+@[expose] public section
 
 /-! The one-coin excess forecast of a new pair at the start of the run (`startExcessO`), which is
 the start value of the future-pair term of the one-coin FORS potential. -/
@@ -21,7 +27,7 @@ attribute [local instance] Classical.propDecidable
 
 section TotalO
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable

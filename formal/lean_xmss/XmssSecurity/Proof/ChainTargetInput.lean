@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

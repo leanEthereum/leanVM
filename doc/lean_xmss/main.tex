@@ -44,7 +44,7 @@
 \begin{abstract}
 leanXMSS is a stateful hash-based signature scheme: two layers of XMSS~\cite{RFC8391} of height 16 over WOTS$^+$C one-time keys~\cite{HK22C,DKKW25}. Each leaf of the top tree signs the root of one bottom tree, so a key signs at $2^{32}$ leaf indices.
 \begin{itemize}
-  \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}, with 127 bits of classical security proved in Lean (Section~\ref{sec:security}).
+  \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}, with 127 bits of classical security proved in Lean, per hash call of the adversary itself (Section~\ref{sec:security}).
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 2404 bytes} ($4+1200+1200$: the leaf index and the two layers).
   \item \textbf{Verification: 186 permutations} of Keccak-f.
@@ -199,13 +199,15 @@ so an encoding takes about $2^{20}$ trials on average, one permutation each, and
 \section{Security}
 \label{sec:security}
 
-Model $\hash$ as one shared random oracle. The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary, which may adaptively query the hash and request signatures $\Sig(\sk,\idx,m)$ on messages $m$ at leaf indices $\idx$ of its choice, never the same leaf index twice. It finally returns $(m^*,\sigma^*)$ and wins exactly when $\Ver(\pk,m^*,\sigma^*)=1$ and no signing request for $m^*$ returned $\sigma^*$: \emph{strong unforgeability}. A query budget $q$ bounds every hash call of the complete experiment: key generation, signing, the adversary's queries and the final verification, repeated inputs included.
+Model $\hash$ as one shared random oracle. The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary, which may adaptively query the hash and request signatures $\Sig(\sk,\idx,m)$ on messages $m$ at leaf indices $\idx$ of its choice, never the same leaf index twice. It finally returns $(m^*,\sigma^*)$ and wins exactly when $\Ver(\pk,m^*,\sigma^*)=1$ and no signing request for $m^*$ returned $\sigma^*$: \emph{strong unforgeability}. A query budget $q$ bounds the adversary's own hash calls, on every path of the game; key generation, the signer's hashing and the final verification are not charged to it, and the adversary makes at most $2^{32}$ signing requests.
 
 \begin{theorem}
-For every $q\ge1$ and every adversary with budget $q$, the adversary wins with probability at most $q/2^{127}$.
+For every $q$ and every adversary with budget $q$, the adversary wins with probability at most $(q+2^{10}-1)/2^{127}$.
 \end{theorem}
 
-The theorem is proved in Lean~4 over VCVio~\cite{VCVio}, with only Lean's three standard axioms, in \texttt{formal/lean\_xmss/} (\texttt{XmssSecurity.leanXmss\_has\_127\_bits\_of\_classical\_security}, of statement \texttt{LeanXmss.LeanXmssSecurityStatement}), for the scheme of this document byte for byte: its hash inputs, its codewords and its signer. \texttt{formal/lean\_xmss/PROOF.md} outlines the route: once the seed is eliminated, a win implies a bad event on one of the two layers, a hash call that hits an honest output from another input or guesses a chain value not yet revealed, and each call raises one with probability at most $2^{-127}$.
+The theorem is proved in Lean~4 over VCVio~\cite{VCVio}, with only Lean's three standard axioms, in \texttt{formal/lean\_xmss/} (\texttt{XmssSecurity.leanXmss\_rom\_adversary\_bound}; the proof gives $(q+530)/2^{127}$), for the scheme of this document byte for byte: its hash inputs, its codewords and its signer. It is a step of the proof: the end statement, \texttt{LeanXmssStronglyUnforgeable} in \texttt{formal/Statement/LeanXmss.lean}, moves it to the model where Keccak-f[1600] is a random permutation that the adversary queries forward and inverse, and bounds the winning probability by $(q+2^{10})\cdot2^{-127}$ for an adversary making $q$ calls of the permutation and its inverse itself. The proof, in \texttt{formal/lean\_xmss/}, goes as follows: once the seed is eliminated, a win implies a bad event on one of the two layers, a hash call that hits an honest output from another input or guesses a chain value not yet revealed, and each call raises one with probability at most $2^{-127}$.
+
+\paragraph{What the budget counts.} Only the adversary's own calls: the signer's grinding, up to $\amax=2^{32}$ trials per layer, costs the adversary nothing, so the bound holds for any number of signatures up to the lifetime. The constant $2^{10}$ pays for the final verification's calls and the proof's lower-order terms. The game has one key.
 
 \paragraph{Using a key.} The theorem covers a signer that uses each leaf index at most once, which the signer's state must enforce. Signing is deterministic, so signing the same message again at the same leaf index returns the same signature, but the game counts no run that repeats a leaf index as a win, so the theorem does not cover it. Two different messages at one leaf index break the key (Section~\ref{sec:scheme}).
 

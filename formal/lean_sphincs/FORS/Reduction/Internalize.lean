@@ -1,5 +1,9 @@
-import FORS.Reduction.ShortInputs
-import FORS.Seed.Coupling
+module
+
+public import FORS.Reduction.ShortInputs
+public import FORS.Seed.Coupling
+
+@[expose] public section
 
 /-! Long adversarial hash inputs are simulated privately by the adversary. No honest party or
 verifier queries an input longer than 2084 bytes, so the adversary can answer its long inputs from
@@ -81,6 +85,9 @@ noncomputable def count2 {α : Type} (oa : OracleComp OracleWorld α) :
     OracleComp OracleWorld ((α × Nat) × Nat) :=
   QueryCap.counted ShortQuery (QueryCap.counted LongQuery oa)
 
+theorem count2_pure {α : Type} (value : α) :
+    count2 (pure value : OracleComp OracleWorld α) = pure ((value, 0), 0) := rfl
+
 theorem count2_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) :
     count2 (liftM (OracleWorld.query input) >>= next) = (do
@@ -92,26 +99,6 @@ theorem count2_query_bind {α : Type} (input : OracleWorld.Domain)
     pure_bind, Nat.add_zero]
   rfl
 
-theorem count2_pure {α : Type} (value : α) :
-    count2 (pure value : OracleComp OracleWorld α) = pure ((value, 0), 0) := rfl
-
-theorem countHashQueries_eq_count2 {α : Type} (oa : OracleComp OracleWorld α) :
-    countHashQueries oa = (fun result => (result.1.1, result.2 + result.1.2)) <$> count2 oa := by
-  induction oa using OracleComp.inductionOn with
-  | pure value => rfl
-  | query_bind input next ih =>
-      rw [countHashQueries_query_bind, count2_query_bind]
-      simp only [ih, map_bind, map_pure, bind_map_left]
-      apply bind_congr
-      intro answer
-      apply bind_congr
-      intro result
-      congr 2
-      cases input with
-      | inl draw => simp [LongQuery, ShortQuery]
-      | inr bytes =>
-          by_cases hshort : IsShort bytes <;> simp [LongQuery, ShortQuery, hshort] <;> omega
-
 theorem bind_map_congr' {α β β' γ : Type} (x : ProbComp α) (f : α → β) (g : α → β')
     (k₁ : β → ProbComp γ) (k₂ : β' → ProbComp γ) (h : ∀ a, k₁ (f a) = k₂ (g a)) :
     (f <$> x) >>= k₁ = (g <$> x) >>= k₂ := by
@@ -120,25 +107,25 @@ theorem bind_map_congr' {α β β' γ : Type} (x : ProbComp α) (f : α → β) 
 
 /-- Overlay the short entries of one cache on the long entries of another. -/
 def merge (short long : QueryCache HashSpec) : QueryCache HashSpec :=
-  fun input => if IsShort input then short input else long input
+  QueryCache.ofFn fun input => if IsShort input then short input else long input
 
 theorem merge_cacheQuery_short (short long : QueryCache HashSpec) {input : HashInput}
     (hinput : IsShort input) (answer : HashOutput) :
     (merge short long).cacheQuery input answer = merge (short.cacheQuery input answer) long := by
-  funext query
+  refine QueryCache.ext fun query => ?_
   by_cases hq : query = input
   · subst query
     simp [merge, hinput, QueryCache.cacheQuery_self]
-  · simp only [merge, QueryCache.cacheQuery_of_ne _ _ hq]
+  · simp only [merge, QueryCache.ofFn_apply, QueryCache.cacheQuery_of_ne _ _ hq]
 
 theorem merge_cacheQuery_long (short long : QueryCache HashSpec) {input : HashInput}
     (hinput : ¬IsShort input) (answer : HashOutput) :
     (merge short long).cacheQuery input answer = merge short (long.cacheQuery input answer) := by
-  funext query
+  refine QueryCache.ext fun query => ?_
   by_cases hq : query = input
   · subst query
     simp [merge, hinput, QueryCache.cacheQuery_self]
-  · simp only [merge, QueryCache.cacheQuery_of_ne _ _ hq]
+  · simp only [merge, QueryCache.ofFn_apply, QueryCache.cacheQuery_of_ne _ _ hq]
 
 /-- A short-only world computation sees only the short part of the cache and leaves the long
 part unchanged. -/
@@ -254,31 +241,26 @@ theorem leftRun_short {α : Type} (oa : OracleComp OracleWorld α) (h : OnlyW oa
 
 /-- Relating two computations through a shared distributional quotient. -/
 theorem evalDist_bind_rel {X Y Z W : Type} (x : ProbComp X) (y : ProbComp Y)
-    (F : X → W) (G : Y → W) (hxy : 𝒟[F <$> x] = 𝒟[G <$> y])
+    (F : X → W) (G : Y → W) (hxy : (F <$> x) =ᵈ (G <$> y))
     (f : X → ProbComp Z) (g : Y → ProbComp Z) (k : W → ProbComp Z)
-    (hf : ∀ r, 𝒟[f r] = 𝒟[k (F r)]) (hg : ∀ r, 𝒟[g r] = 𝒟[k (G r)]) :
-    𝒟[x >>= f] = 𝒟[y >>= g] := by
-  calc 𝒟[x >>= f] = 𝒟[x >>= fun r => k (F r)] := evalDist_bind_congr' x (fun r => hf r)
-    _ = 𝒟[(F <$> x) >>= k] := by rw [bind_map_left]
-    _ = 𝒟[(G <$> y) >>= k] := by rw [evalDist_bind, hxy, ← evalDist_bind]
-    _ = 𝒟[y >>= fun r => k (G r)] := by rw [bind_map_left]
-    _ = 𝒟[y >>= g] := (evalDist_bind_congr' y (fun r => hg r)).symm
+    (hf : ∀ r, f r =ᵈ k (F r)) (hg : ∀ r, g r =ᵈ k (G r)) :
+    (x >>= f) =ᵈ (y >>= g) := by
+  calc (x >>= f) =ᵈ (x >>= fun r => k (F r)) := EvalDistEq.bind_right x hf
+    _ = ((F <$> x) >>= k) := by rw [bind_map_left]
+    _ =ᵈ ((G <$> y) >>= k) := hxy.bind_left k
+    _ = (y >>= fun r => k (G r)) := by rw [bind_map_left]
+    _ =ᵈ (y >>= g) := (EvalDistEq.bind_right y hg).symm
 
-theorem evalDist_map_congr_of_evalDist_eq {X W : Type} (x y : ProbComp X) (h : 𝒟[x] = 𝒟[y])
-    (f g : X → W) (hfg : ∀ a, f a = g a) : 𝒟[f <$> x] = 𝒟[g <$> y] := by
-  rw [evalDist_map, evalDist_map, h, funext hfg]
+theorem evalDist_map_congr_of_evalDist_eq {X W : Type} (x y : ProbComp X) (h : x =ᵈ y)
+    (f g : X → W) (hfg : ∀ a, f a = g a) : (f <$> x) =ᵈ (g <$> y) := by
+  rw [funext hfg]
+  exact h.map g
 
 theorem evalDist_map_rel {X Y V W : Type} (x : ProbComp X) (y : ProbComp Y) (vX : X → V)
-    (vY : Y → V) (h : 𝒟[vX <$> x] = 𝒟[vY <$> y]) (c : V → W) (f : X → W) (g : Y → W)
-    (hf : ∀ a, f a = c (vX a)) (hg : ∀ b, g b = c (vY b)) : 𝒟[f <$> x] = 𝒟[g <$> y] := by
-  have hf' : f = c ∘ vX := funext hf
-  have hg' : g = c ∘ vY := funext hg
-  rw [hf', hg']
-  calc 𝒟[(c ∘ vX) <$> x] = 𝒟[c <$> (vX <$> x)] := by rw [Functor.map_map]; rfl
-    _ = c <$> 𝒟[vX <$> x] := evalDist_map _ _
-    _ = c <$> 𝒟[vY <$> y] := by rw [h]
-    _ = 𝒟[c <$> (vY <$> y)] := (evalDist_map _ _).symm
-    _ = 𝒟[(c ∘ vY) <$> y] := by rw [Functor.map_map]; rfl
+    (vY : Y → V) (h : (vX <$> x) =ᵈ (vY <$> y)) (c : V → W) (f : X → W) (g : Y → W)
+    (hf : ∀ a, f a = c (vX a)) (hg : ∀ b, g b = c (vY b)) : (f <$> x) =ᵈ (g <$> y) := by
+  rw [funext hf, funext hg]
+  simpa only [Functor.map_map, Function.comp_def] using h.map c
 
 /-! ### The internalized adversary -/
 
@@ -389,19 +371,8 @@ theorem OnlyW.verifyPart (publicKey : PublicKey) (output : Forgery × QueryLog S
   OnlyW.bind (OnlyW.liftHash (Short.Only.verify _ _ _)) (fun _ => OnlyW.pure' _)
 
 theorem merge_empty : merge ∅ ∅ = (∅ : QueryCache HashSpec) := by
-  funext input
+  refine QueryCache.ext fun input => ?_
   simp [merge]
-
-/-- The short-count run and the total-count run are projections of one split-count run. -/
-theorem leftRun_eq_split {α : Type} (oa : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    leftRun oa cache = (fun result => ((result.1.1.1, result.1.2), result.2)) <$>
-      (simulateQ romImpl (count2 oa)).run cache := by
-  rw [leftRun, countShort_eq_count2, simulateQ_map, StateT.run_map]
-
-theorem rightRun_eq_split {α : Type} (oa : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    rightRun oa cache = (fun result => ((result.1.1.1, result.1.2 + result.1.1.2), result.2)) <$>
-      (simulateQ romImpl (count2 oa)).run cache := by
-  rw [rightRun, countHashQueries_eq_count2, simulateQ_map, StateT.run_map]
 
 end FORS.Security.Internalize
 
