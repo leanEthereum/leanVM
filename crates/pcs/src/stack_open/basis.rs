@@ -448,11 +448,13 @@ impl Projection {
     }
 }
 
-/// The opening's weight as terms: its table `A`, and the terms, which project lanes onto them and lift a row of `A`.
+/// The opening's weight as terms: its table `A`, a row for each of the `2^(log_n - lane_vars)` lanes, and the terms,
+/// which project lanes onto them and lift a row of `A`.
 ///
-/// Every claim must lie inside the stack, and `lane_vars` must be at least 6.
+/// `stack` is the committed lanes, `lane_vars` must be at least 6, and every claim must lie inside `2^log_n` words.
 pub(super) fn initial_basis(
     stack: &[F64],
+    log_n: usize,
     lane_vars: usize,
     claims: &[StackClaim],
     lambdas: &[F128],
@@ -466,13 +468,9 @@ pub(super) fn initial_basis(
         "a lane block holds at least one row of bits"
     );
     let block = 1usize << lane_vars;
-    let n_lanes = stack.len() / block;
-    assert_eq!(stack.len(), n_lanes * block, "the stack is whole lane blocks");
-    let (low_vars, lane_bits) = (
-        lane_vars.min(LOW_VARS),
-        (usize::BITS - (n_lanes - 1).leading_zeros()) as usize,
-    );
-    let bits = lane_vars + lane_bits;
+    assert!(stack.len().is_multiple_of(block), "the stack is whole lane blocks");
+    let (low_vars, lane_bits, bits) = (lane_vars.min(LOW_VARS), log_n - lane_vars, log_n);
+    let n_lanes = 1usize << lane_bits;
 
     // Claim terms: A(l, c) = lambda_c * L_c(l), and the pattern each claim's low factors fall in.
     let mut terms = Terms {

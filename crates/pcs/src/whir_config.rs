@@ -459,8 +459,8 @@ enum Position {
 
 /// The terms that depend only on `ell(A_0, d_0)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
 /// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the list pin's
-/// (`crate::pin`, `C(ell, 2) mu / q`): its blocks have at most `mu` variables, and after it every outer challenge faces
-/// a single list member.
+/// (`crate::pin`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every outer challenge faces a single
+/// list member.
 fn check_list_terms(
     n: u128,
     d0: u128,

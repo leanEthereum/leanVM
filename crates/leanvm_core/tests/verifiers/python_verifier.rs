@@ -232,8 +232,8 @@ fn tampers_fail_the_same_check() {
     let tail = round * mu;
     let final_coefficients = (1 << mu) + k;
     let final_level = 7 * k + final_coefficients + 1 + tail;
-    // After the announced sizes (the memory, six tables and the rate), the root and the list pin's nonce: its first
-    // value, which the transcript binds, so the first grind after it, the bus's, already fails.
+    // After the announced sizes (the memory, six tables and the rate), the root and the list pin's nonce: its value,
+    // which the transcript binds, so the first grind after it, the bus's, already fails.
     let pin_value = 1 + 6 + 1 + 2 + 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),

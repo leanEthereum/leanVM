@@ -228,16 +228,15 @@ fn a_wrong_pin_value_fails_the_opening() {
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
-    // The whole stack is one block.
     ps.grind(PIN_GRINDING_BITS as u32);
     let low_point = ps.sample_vec(shape.stack_log());
     let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
     ps.add_scalar(value);
-    let pin = vec![StackClaim::Point {
+    let pin = StackClaim::Point {
         offset: 0,
         low_point,
         value,
-    }];
+    };
     let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &committed, &output);

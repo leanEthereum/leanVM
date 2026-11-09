@@ -10,7 +10,9 @@
 //! round's pairs `(P_0 + theta P_1, P_1)`, projecting `X` times the first as it goes. Round 1's pairs are the stack's
 //! lanes, read in place. The last fold's one lane is written out at the end, and the weight is lifted for it.
 //!
-//! The stack's absent lanes are zero, and so are their rows of `A`: a lane without a partner folds against zero.
+//! The stack's absent lanes are zero, so they take no projection, but `A` keeps a row for every lane: a claim's weight
+//! may reach past the committed lanes. A lane without a partner folds against zero, its row of `A` against its
+//! partner's.
 //!
 //! Where the stack's blocks under a lane `X H` repeat, its blocks repeat past their first few words (one more per
 //! round, from multiplying by `X`), so a block of `X H` is a repeat when those words are too.
@@ -161,7 +163,7 @@ pub(crate) struct LaneRounds {
     n_stack: usize,
     terms: Terms,
     n_terms: usize,
-    /// The current lanes: their count, one row of `A` each and their projections.
+    /// The current lanes that carry data: their count and their projections; `A` has a row for every lane.
     n_lanes: usize,
     a: Vec<F128>,
     p: Vec<F128>,
@@ -178,7 +180,7 @@ impl LaneRounds {
         assert!(lane_block > 0 && stack.len().is_multiple_of(lane_block));
         assert_eq!(lane_block, 1 << terms.lane_vars());
         let n_lanes = stack.len() / lane_block;
-        assert_eq!(a.len(), n_lanes * n_terms);
+        assert!(a.len().is_multiple_of(n_terms) && a.len() >= n_lanes * n_terms);
         Self {
             stack,
             lane_block,
@@ -390,7 +392,7 @@ impl LaneRounds {
         assert_eq!(theta, ch.theta);
         let (nt, n_pairs) = (self.n_terms, self.n_lanes.div_ceil(2));
         let FoldChallenges { gamma, alpha, beta, .. } = *ch;
-        self.a = (0..n_pairs * nt)
+        self.a = (0..(self.a.len() / nt).div_ceil(2) * nt)
             .map(|i| {
                 let (m, t) = (i / nt, i % nt);
                 let a0 = self.a[2 * m * nt + t];
@@ -408,7 +410,11 @@ impl LaneRounds {
     /// The one lane left, low coefficients then high, the weight lifted over its low coefficients, and the committed
     /// lanes if `keep_stack`.
     pub(crate) fn finish(self, keep_stack: bool) -> (Vec<F128>, Vec<F128>, Vec<F64>) {
-        assert_eq!(self.n_lanes, 1, "every lane variable is folded");
+        assert_eq!(
+            (self.n_lanes, self.a.len()),
+            (1, self.n_terms),
+            "every lane variable is folded"
+        );
         let (pairs, ch) = self.folded.as_ref().expect("a fold before the end");
         let folded = self.view(pairs, *ch);
         let (len, lb) = (folded.len(), self.lane_block);

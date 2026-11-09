@@ -36,11 +36,11 @@ use layout::{
     GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MIN_STACKED_LOG, N_TABLES, OP_KECCAK,
     QKECCAK, build_layout,
 };
-use multilinear::{Placement, dot, eq_eval, multilinear_eval};
+use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::{Transcript, grinding_bits};
-use whir::{INITIAL_FOLDING_FACTOR, PIN_GRINDING_BITS, verify_whir};
+use whir::{PIN_GRINDING_BITS, verify_whir};
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -147,40 +147,13 @@ fn verify_stacked_opening(
     verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
 }
 
-/// The level-0 list pin, read right after the commitment root: a grind, a point `z` of the largest block's variable
-/// count, then one value per aligned block of the `committed_lanes` lanes (their count's binary expansion, largest
-/// first), each the block's multilinear at `z`'s first coordinates. Its claims follow every other point claim.
-fn read_pin(
-    transcript: &mut Transcript,
-    stack_log: usize,
-    committed_lanes: u64,
-) -> Result<Vec<StackClaim<'static>>, VerifierError> {
-    let lane_vars = stack_log - INITIAL_FOLDING_FACTOR;
-    let mut blocks = Vec::new();
-    let mut offset = 0u64;
-    for bit in (0..u64::BITS as usize)
-        .rev()
-        .filter(|&bit| committed_lanes >> bit & 1 == 1)
-    {
-        let variables = lane_vars + bit;
-        blocks.push(Placement {
-            variables,
-            index: offset,
-        });
-        offset += 1 << variables;
-    }
+/// The level-0 list pin, read right after the commitment root: a grind, a point `z` of the stack's variables, then
+/// the stack's multilinear at `z`. Its claim follows every other.
+fn read_pin(transcript: &mut Transcript, stack_log: usize) -> Result<StackClaim<'static>, VerifierError> {
     transcript.grind_check(PIN_GRINDING_BITS)?;
-    let z = transcript.samples(blocks[0].variables);
-    let values = transcript.next_scalars(blocks.len())?;
-    Ok(blocks
-        .into_iter()
-        .zip(values)
-        .map(|(block, value)| {
-            let point = block.stack_point(&z[..block.variables], stack_log);
-            let claim: StackClaim = (Box::new(move |x| eq_eval(&point, x)), value);
-            claim
-        })
-        .collect())
+    let z = transcript.samples(stack_log);
+    let value = transcript.next_scalar()?;
+    Ok((Box::new(move |x| eq_eval(&z, x)), value))
 }
 
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
@@ -243,7 +216,7 @@ pub fn verify_keccak_batch(
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let pin = read_pin(&mut transcript, stack_log, 1 << INITIAL_FOLDING_FACTOR)?;
+    let pin = read_pin(&mut transcript, stack_log)?;
     // The instance pins the committed middle states, a multilinear identity of degree `log_steps` in it.
     transcript.grind_check(grinding_bits(log_steps as u128))?;
     let instance = transcript.samples(log_steps);
@@ -255,7 +228,7 @@ pub fn verify_keccak_batch(
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
-    claims.extend(pin);
+    claims.push(pin);
     verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
@@ -284,7 +257,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 2] parse WHIR commitment: one Merkle root (no OOD inside the PCS: its list is pinned right after).
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let pin = read_pin(&mut transcript, layout.stack_log, layout.committed_lanes)?;
+    let pin = read_pin(&mut transcript, layout.stack_log)?;
 
     // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table
     // a degree-2 claim per tree.
@@ -365,7 +338,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     );
     let mut stack_claims = vec![ringswitch];
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
-    stack_claims.extend(pin);
+    stack_claims.push(pin);
     verify_stacked_opening(
         &mut transcript,
         root,

@@ -254,14 +254,6 @@ pub(super) fn gen_verify(
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
-        // The committed lanes' count, whose bits the guest certifies and reads the list pin's blocks off.
-        ("pin_lanes", {
-            let lanes = layout.shape.n_lanes;
-            assert!((1..=1 << pcs::whir::INITIAL_FOLDING_FACTOR).contains(&lanes));
-            (0..=pcs::whir::INITIAL_FOLDING_FACTOR)
-                .map(|bit| F128::new(lanes as u64 >> bit & 1, 0))
-                .collect()
-        }),
         ("col_group_order", col_group_order),
         ("block_group_order", sort_order),
     ];

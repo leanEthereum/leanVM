@@ -50,11 +50,6 @@ RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # reproduce itself from this many bits).
 COUNT_BITS = 33
 SIZE_BITS = 34
-# The level-0 list pin: a lane is 2^(m - PIN_FOLD) words, and the committed lanes'
-# count, at most 2^PIN_FOLD, has PIN_BITS bits.
-PIN_FOLD = PIN_FOLD_PLACEHOLDER
-PIN_BITS = PIN_FOLD + 1
-PIN_COUNTS = PIN_BITS + 1  # a block count is at most PIN_BITS
 LOG_WORD_BITS = 6
 
 # ------------------------------------------------------------------- Fiat-Shamir
@@ -3436,39 +3431,7 @@ def selector_tables(point, point1):
     return sel_eq
 
 
-def pin_target(values, scale, lam, c: Const):
-    # The pin's c values batched from `scale` on.
-    total = 0
-    for j in unroll(0, c):
-        total += scale * values[GEN ** j]
-        if const(j + 1 != c):
-            scale = scale * lam
-    return total
-
-
-def pin_weights(st, pin_bits, sel_eq, sel_g, g_squares, chain, lam, g_top_vars):
-    # Each set bit of the committed lane count, the top one first, is a block of
-    # 2^vars words, vars = lane_vars + its index, at the running offset: its claim's
-    # weight is eq(z[..vars], x[..vars]) times its selector. The record per bit
-    # carries the running sum, power of lam and g^offset.
-    for xi in mul_range(1, GEN ** PIN_BITS):
-        row = st * xi ** 3
-        nxt = row * GEN ** 3
-        kappa_g = g_top_vars / xi
-        if pin_bits[xi] == 1:
-            off = row[GEN ** 2]
-            sel = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(off, sel_eq, sel_g, kappa))
-            nxt[1] = row[1] + row[GEN] * chain[kappa_g] * sel
-            nxt[GEN] = row[GEN] * lam
-            nxt[GEN ** 2] = off * g_squares[kappa_g]
-        else:
-            nxt[1] = row[1]
-            nxt[GEN] = row[GEN]
-            nxt[GEN ** 2] = row[GEN ** 2]
-    return 0
-
-
-def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_bits, pin_z, g_pin_vars, g_top_vars):
+def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_z, gmv):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # a q_keccak lane puts its slot's bits between the two.
@@ -3552,15 +3515,10 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
     rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point1, c_table, qkeccakv_g)
     inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
-    # The list pin's claims, after the output word's.
-    pin_chain = HeapBuf(N_COLUMN_LOGS + 1)
-    eq_prefix_chain(pin_chain, 1, pin_z, point1, g_pin_vars)
-    st = HeapBuf(3 * (PIN_BITS + 1))
-    st[1] = inner_sum
-    st[GEN] = lam_out * lam_cl
-    st[GEN ** 2] = GEN ** 0
-    done = pin_weights(st, pin_bits, sel_eq, sel_g, g_squares, pin_chain, lam_cl, g_top_vars)
-    assert st[GEN ** (3 * PIN_BITS)] * yr_at_tail == sumcheck_target
+    # The list pin's claim, after the output word's: eq(z, .) over the stack's m variables.
+    pin_chain = HeapBuf(MAX_STACK_LOG + 1)
+    eq_prefix_chain(pin_chain, lam_out * lam_cl, pin_z, point1, gmv)
+    assert (inner_sum + pin_chain[gmv]) * yr_at_tail == sumcheck_target
 
 
 def bus_grind_check(word, tabs, d: Const):
@@ -3660,36 +3618,14 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     assert log(size_sel) < LIG_N_LOG_SIZES
 
     # ---- the level-0 list pin (verifier read_pin) ----
-    # The committed lanes, 2^(m - INITIAL_FOLDING_FACTOR) words each, n = ceil(placed / 2^lane_vars),
-    # their bits hinted and certified by n 2^lane_vars >= placed > (n - 1) 2^lane_vars.
-    g_lane_vars = gmv * INV_GEN ** PIN_FOLD
-    pin_bits = HeapBuf(GEN ** PIN_BITS)  # n's bits, the top one first
-    bits = StackBuf(PIN_BITS)
-    hint_witness(bits, "pin_lanes")
-    g_covered = GEN ** 0  # g^(n 2^lane_vars)
-    g_count = GEN ** 0  # g^popcount(n), the blocks
-    g_top = GEN ** 0  # g^(the top bit's index)
-    for i in unroll(0, PIN_BITS):
-        b = bits[i]
-        bits[i] = b * b
-        pin_bits[GEN ** (PIN_BITS - 1 - i)] = b
-        g_covered *= 1 + b * (1 + g_squares[g_lane_vars * GEN ** i])
-        g_count *= 1 + b * (1 + GEN)
-        if const(i != 0):
-            g_top += b * (g_top + GEN ** i)
-    assert_small_g_power(g_covered / g_total, g_squares)
-    assert_small_g_power(g_total * INV_GEN * g_squares[g_lane_vars] / g_covered, g_squares)
-    # A grind, then z of the largest block's variables, the first drawn by the grind's
-    # permutation, then a value per block, largest first.
+    # A grind, then z of the stack's m variables, the first drawn by the grind's
+    # permutation, then the stack's value at z.
     sp, z_first, cursor = fs_grind_squeeze(sp, rate, (N_TABLES + 3) % 4 + 1, cursor, tabs, PIN_GRIND_BITS)
-    pin_z = HeapBuf(N_COLUMN_LOGS)
-    g_pin_vars = g_lane_vars * g_top
-    assert log(g_pin_vars) < N_COLUMN_LOGS
-    fs0, fs1, fs2, fs3, fs4 = match(log(g_pin_vars), range(0, N_COLUMN_LOGS), lambda n: squeeze_point_from(sp[8], sp[9], sp[10], sp[11], sp[12], z_first, pin_z, n))
-    pin_values = HeapBuf(GEN ** PIN_BITS)
-    assert log(g_count) < PIN_COUNTS
-    # The bus's grind nonce joins the values: its permutation draws the first alpha.
-    word0, pow_word, fs0, fs1, fs2, fs3, fs4, cursor = match(log(g_count), range(0, PIN_COUNTS), lambda c: opening_message(fs0, fs1, fs2, fs3, fs4, cursor, pin_values, c, 1))
+    pin_z = HeapBuf(MAX_STACK_LOG)
+    fs0, fs1, fs2, fs3, fs4 = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda s: squeeze_point_from(sp[8], sp[9], sp[10], sp[11], sp[12], z_first, pin_z, LIG_MIN_LOG_SIZE + s))
+    pin_value = HeapBuf(1)
+    # The bus's grind nonce joins the value: its permutation draws the first alpha.
+    word0, pow_word, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, pin_value, 1, 1)
 
     # ---- bus challenges ----
     # They fail with probability at most 4 * 2^mu / |E| (verifier::bus), so a grind of
@@ -3775,10 +3711,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                     target += lam_pow * claim_pool[GEN ** j]
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
-    # The pin's claims close the batch, largest block first.
-    pin_scale = lam_pow * lam_cl
-    pin_sum = match(log(g_count), range(0, PIN_COUNTS), lambda c: pin_target(pin_values, pin_scale, lam_cl, c))
-    target += pin_sum
+    # The pin's claim closes the batch.
+    target += lam_pow * lam_cl * pin_value[1]
     # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
     # transcript-bound and range-checked above, so a single compiled guest can
     # dispatch independently for every inner proof in a mixed-rate batch.
@@ -3790,7 +3724,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_bits, pin_z, g_pin_vars, g_lane_vars * GEN ** (PIN_BITS - 1))
+    check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target, pin_z, gmv)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):

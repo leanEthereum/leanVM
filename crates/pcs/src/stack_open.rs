@@ -3,12 +3,12 @@
 //!
 //! The committed witness is a stack of `2^log_n` [`F64`] words (committed via
 //! [`super::whir::commit`], which only encodes and only transmits the lane blocks
-//! that carry data: every claim lives inside them and the weight is zero past
-//! them), and one WHIR run discharges
+//! that carry data, the stack being zero past them), and one WHIR run discharges
 //!
 //! - **point claims** ([`StackClaim`]): plain multilinear evaluations of
 //!   aligned sub-slices of the stack (a claim's weight is `eq(low_point, .)`
-//!   supported on `[offset, offset + 2^|low_point|)`),
+//!   supported on `[offset, offset + 2^|low_point|)`, which may reach past the
+//!   committed lanes, as the list pin's does),
 //! - **ring-switched claims** ([`RingSwitchOpen`]): bit-MLE evaluation claims
 //!   on the packed sub-block `q_keccak = stack[offset .. offset + 2^qkeccak_vars]`,
 //!   reduced per claim by [`super::ring_switch::prove_prepare`] and the
@@ -133,9 +133,7 @@ impl RingSwitchOpen {
 ///
 /// `stack` is the committed message (not stored in [`ProverData`]), consumed: it goes once nothing reads it, after
 /// the first fold round or, when the commit kept no codeword, after the L0 open. It is the `2^log_n`-word stack truncated
-/// to the lane blocks that
-/// carry data, so every claim must live inside it and the padding past it is
-/// exactly the weight's zero region. `config.initial_k` / `config.log_inv_rates[0]`
+/// to the lane blocks that carry data, zero past them. `config.initial_k` / `config.log_inv_rates[0]`
 /// must match the commit's `log_batch_size` / `log_inv_rate` (enforced by shape
 /// asserts inside the WHIR prover).
 pub fn open_batch_mixed_whir_stacked(
@@ -157,8 +155,8 @@ pub fn open_batch_mixed_whir_stacked(
         "q_keccak slice must fit inside the stack"
     );
     assert!(
-        point_claims.iter().all(|c| c.range().1 <= stack.len()),
-        "every claim must live inside the committed lanes"
+        point_claims.iter().all(|c| c.range().1 <= 1 << log_n),
+        "every claim must live inside the stack"
     );
     assert!(
         ring.claims.len() + point_claims.len() <= MAX_STACKED_CLAIMS,
@@ -215,7 +213,7 @@ pub fn open_batch_mixed_whir_stacked(
     let lane_vars = log_n - config.initial_k;
     let rings: Vec<_> = rs_outputs.into_iter().map(|output| output.weight).collect();
     let initial_basis = tracing::info_span!("Basis")
-        .in_scope(|| basis::initial_basis(&stack, lane_vars, point_claims, lambdas_pd, ring, &rings));
+        .in_scope(|| basis::initial_basis(&stack, log_n, lane_vars, point_claims, lambdas_pd, ring, &rings));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    prover takes the stack; no copy).
@@ -236,8 +234,9 @@ mod tests {
 
     /// The level-0 rounds on a projected basis must send the tables of the dense rounds on the transposed stack and
     /// dense weight, and leave the same lane and weight, across claims inside
-    /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, and a
-    /// q_keccak ring both spanning lanes and selected by lane bits, over a stack with runs of equal blocks.
+    /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, one over the whole stack
+    /// past its lanes, and a q_keccak ring both spanning lanes and selected by lane bits, over a stack with runs of
+    /// equal blocks.
     #[test]
     fn projected_lane_rounds_match_the_dense_rounds() {
         const LANE_ROUNDS: usize = 6;
@@ -309,6 +308,8 @@ mod tests {
                     }
                 }
                 shapes.retain(|&(offset, vars, _)| offset + (1 << vars) <= stack.len());
+                // The whole stack, past the committed lanes.
+                shapes.push((0, lane_vars + LANE_ROUNDS, None));
                 let claims: Vec<_> = shapes
                     .into_iter()
                     .map(|(offset, vars, point)| StackClaim::Point {
@@ -320,7 +321,7 @@ mod tests {
                 let lambdas = rng.ext_vec(claims.len());
 
                 // Oracle: the dense weight written out naively, one eq entry at a time.
-                let mut dense = vec![F128::ZERO; stack.len()];
+                let mut dense = vec![F128::ZERO; lane_block << LANE_ROUNDS];
                 ring_switch::combine_deferred_chunk(&rs_outputs, &mut dense[offset..offset + qkeccak_len]);
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
                     let StackClaim::Point { offset, low_point, .. } = claim;
@@ -333,26 +334,28 @@ mod tests {
                 }
 
                 let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
-                let projected = basis::initial_basis(&stack, lane_vars, &claims, &lambdas, &ring, &rings);
+                let projected = basis::initial_basis(
+                    &stack,
+                    lane_vars + LANE_ROUNDS,
+                    lane_vars,
+                    &claims,
+                    &lambdas,
+                    &ring,
+                    &rings,
+                );
                 let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
-                // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, absent ones zero.
+                // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, the stack's
+                // absent ones zero.
                 let stride = 1usize << LANE_ROUNDS;
                 let transpose = |v: &dyn Fn(usize) -> F128| -> Vec<F128> {
                     (0..lane_block * stride)
-                        .map(|i| {
-                            let (c, l) = (i / stride, i % stride);
-                            if l < lanes_count {
-                                v(l * lane_block + c)
-                            } else {
-                                F128::ZERO
-                            }
-                        })
+                        .map(|i| v(i % stride * lane_block + i / stride))
                         .collect()
                 };
                 let mut reference = Dense {
-                    f: transpose(&|i| F128::from(stack[i])),
+                    f: transpose(&|i| stack.get(i).map_or(F128::ZERO, |&word| F128::from(word))),
                     w: transpose(&|i| dense[i]),
                     stride,
                 };

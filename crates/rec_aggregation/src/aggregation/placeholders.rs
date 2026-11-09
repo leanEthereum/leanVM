@@ -454,8 +454,7 @@ fn claim_placeholders(
     ps("KECCAK_OUT_POOL", out_pool.to_string());
     // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
     // Keccak reduction's claim on its output word; the batching is accounted for up to a cap.
-    let pin = pcs::whir::INITIAL_FOLDING_FACTOR + 1;
-    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + pin;
+    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + 1;
     assert!(
         stacked <= pcs::whir_config::MAX_STACKED_CLAIMS,
         "too many stacked claims"
@@ -498,7 +497,7 @@ fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
     use fiat_shamir::grinding_bits;
     use leanvm_core::leaf::{N_BUS_TREES, bus_grinding_bits};
     // The bus grind's bits by the push depth mu. It sends a nonce at every depth the guest admits, which it absorbs
-    // with the list pin's values.
+    // with the list pin's value.
     assert!(bus_grinding_bits(leanvm_core::cpu::MIN_LOG_MEM) > 0);
     ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
     for degree in [2, 3, 5] {
@@ -716,7 +715,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             vanish_inverses: c_ivk,
         }
     };
-    ps("PIN_FOLD", pcs::whir::INITIAL_FOLDING_FACTOR.to_string());
     ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
     ps("PIN_GRIND_BITS", PIN_GRINDING_BITS.to_string());
     ps("OOD_SAMPLES", OOD_SAMPLES.to_string());

@@ -82,8 +82,8 @@ pub struct Committed {
     pub mu: usize,
     /// L0 inverse-rate logarithm bound into the transcript before this commitment.
     pub log_inv_rate: usize,
-    /// The list pin's claims ([`::pcs::pin`]), which the opening discharges after the caller's.
-    pub pin: Vec<SlotClaim>,
+    /// The list pin's claim ([`::pcs::pin`]), which the opening discharges after the caller's.
+    pub pin: SlotClaim,
 }
 
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
@@ -112,7 +112,7 @@ pub fn commit(
     );
     let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
     ps.add_root(&commitment.root);
-    let pin = pin_commitment(ps, witness, mu, LOG_BATCH);
+    let pin = pin_commitment(ps, witness, mu);
     Committed {
         prover_data,
         mu,
@@ -140,14 +140,14 @@ pub fn commit(
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
 /// sub-block (§cpu), so every opening is stacked.
 ///
-/// The pin's claims follow `points`. The opening consumes the commitment: it frees the codeword and tree once
+/// The pin's claim follows `points`. The opening consumes the commitment: it frees the codeword and tree once
 /// the L0 queries are answered.
 pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    let points = [points, &c.pin].concat();
+    let points = [points, &[c.pin]].concat();
     open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, &points, ring)
 }
 

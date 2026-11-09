@@ -545,21 +545,6 @@ fn forged_da_hints_are_rejected() {
     }
 }
 
-/// The committed lanes' count is advice the list pin reads its blocks off: a count one off fails the guest's run.
-#[test]
-fn forged_pin_lanes_are_rejected() {
-    leanvm_core::init_prover();
-    let child = prove_leaf(&get_signers(SMALL_LEAF_SIZE));
-    FORGE.with(|forge| {
-        *forge.borrow_mut() = Some(Box::new(|hints: &mut Hints| {
-            let bit = &mut hints.entry_mut("pin_lanes", 0)[0];
-            *bit += F128::ONE;
-        }))
-    });
-    let result = aggregate(std::slice::from_ref(&child), vec![], vec![], &[], None, LOG_INV_RATE);
-    assert!(matches!(result, Err(AggregationError::ProofError(_))));
-}
-
 /// A list hash's split is advice the guest then dispatches on, so the claim count
 /// after the last group has to be bounded before the `match`: a negative
 /// exponent that satisfies the product identity must fail the range check in

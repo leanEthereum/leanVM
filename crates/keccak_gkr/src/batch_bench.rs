@@ -176,10 +176,10 @@ pub(crate) fn commit_stack(
     shape: Shape,
     stack: &[F64],
     log_inv_rate: usize,
-) -> (ProverData, Vec<StackClaim>) {
+) -> (ProverData, StackClaim) {
     let (commitment, prover_data) = commit(stack, shape.stack_log(), INITIAL_FOLDING_FACTOR, log_inv_rate);
     ps.add_root(&commitment.root);
-    let pin = pcs::pin::pin_commitment(ps, stack, shape.stack_log(), INITIAL_FOLDING_FACTOR);
+    let pin = pcs::pin::pin_commitment(ps, stack, shape.stack_log());
     (prover_data, pin)
 }
 
@@ -190,7 +190,7 @@ pub(crate) fn batch_instance(ps: &mut ProverState, shape: Shape) -> Vec<F128> {
     ps.sample_vec(shape.n_log())
 }
 
-/// Discharge the reduction's openings and the pin's claims, after them, against the commitment to `stack`, which
+/// Discharge the reduction's openings and the pin's claim, after them, against the commitment to `stack`, which
 /// holds the committed states alone.
 pub(crate) fn open_commitment(
     ps: &mut ProverState,
@@ -199,10 +199,10 @@ pub(crate) fn open_commitment(
     prover_data: ProverData,
     config: &ProverConfig,
     openings: Openings,
-    pin: Vec<StackClaim>,
+    pin: StackClaim,
 ) {
     let (ring, outputs) = openings.into_pcs_claims(0);
-    let points: Vec<_> = outputs.into_iter().chain(pin).collect();
+    let points: Vec<_> = outputs.into_iter().chain([pin]).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
 }
 

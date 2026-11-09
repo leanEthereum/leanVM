@@ -690,7 +690,7 @@ impl Dense {
     }
 }
 
-/// The weight the opening starts from, as terms: the table `A`, one row of `n_terms` per committed lane, and the
+/// The weight the opening starts from, as terms: the table `A`, one row of `n_terms` per lane, and the
 /// terms themselves, which project lanes onto them and lift a row of `A` over a lane.
 pub(crate) struct InitialBasis {
     pub(crate) a: Vec<F128>,
@@ -770,15 +770,8 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// `witness` is owned: where the L0 open recomputes the codeword rows it reads, it keeps it until then.
 /// Otherwise round 1 reads it last, and the large committed stack is gone before the level-1 commit allocates.
 ///
-/// PRECONDITION, and the reason `witness` may be shorter than `2^log_n`: it is a
-/// whole number of lane blocks, and `b_initial` must stand for the weight restricted to
-/// them, with the weight VANISHING at every boolean point of
-/// `[witness.len(), 2^log_n)`. The level-0 rounds treat the absent blocks as zero
-/// while a verifier evaluates the weight's closed form over the whole cube,
-/// so a weight that is nonzero out there produces a proof that fails only at the
-/// terminal check. `stack_open` discharges this by bounding every claim's support
-/// by `stack.len()`; `ood_samples[0] == 0` is what keeps a full-tensor OOD weight
-/// out of these rounds.
+/// `witness` may be shorter than `2^log_n`: it is a whole number of lane blocks, zero past them. The level-0 rounds
+/// project only those, while `b_initial` keeps the weight over every lane.
 ///
 /// Every level folds its lanes with [`FoldChallenges`], commits the low part of the folded lane (the next level's
 /// message) and sends its high part, binds the next level with OOD samples, then opens its own oracle at its
@@ -803,10 +796,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     assert_eq!(config.log_inv_rates.len(), r + 1);
     assert!(r >= 1);
     assert!(initial_k >= 1);
-    // L0 takes no OOD sample, and the padding-free truncation depends on it: the level-0
-    // rounds are the only ones folding the truncated witness against a weight over the
-    // whole `2^log_n` cube, and an OOD weight `eq(z, .)` is a full tensor that does NOT
-    // vanish on the absent lanes, unlike every claim weight.
+    // L0 takes no OOD sample: the list pin binds its list.
     assert_eq!(config.ood_samples.first().copied().unwrap_or(0), 0);
 
     let log_msg_cols_0 = log_n - initial_k;
@@ -1056,14 +1046,14 @@ mod tests {
                 let used = n_lanes * lane_block;
                 let mut witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
                 witness[used..].fill(F64::ZERO);
-                // The first and the last committed lane: nothing the weight touches lies past them.
+                // The first and the last committed lane, and the whole stack, whose weight reaches past them.
                 let lane_vars = log_n - pc.initial_k;
-                let claims: Vec<_> = [0, used - lane_block]
+                let claims: Vec<_> = [(0, lane_vars), (used - lane_block, lane_vars), (0, log_n)]
                     .into_iter()
-                    .map(|offset| {
-                        let low_point = rng.ext_vec(lane_vars);
+                    .map(|(offset, vars)| {
+                        let low_point = rng.ext_vec(vars);
                         let value = inner_product_base_ext(
-                            &witness[offset..offset + lane_block],
+                            &witness[offset..offset + (1 << vars)],
                             &primitives::multilinear::eq_table(&low_point),
                         );
                         StackClaim::Point {

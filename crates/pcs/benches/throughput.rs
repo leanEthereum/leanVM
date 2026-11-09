@@ -88,8 +88,8 @@ fn main() {
         let stack = witness.clone();
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
-            let pin = pin_commitment(&mut ch, &stack, log_n, pc.initial_k);
-            let claims = [&claims[..], &pin].concat();
+            let pin = pin_commitment(&mut ch, &stack, log_n);
+            let claims = [&claims[..], &[pin]].concat();
             open_batch_mixed_whir_stacked(&mut ch, log_n, stack, pd, &pc, &claims, &ring);
         });
         open_t.push(t.elapsed().as_secs_f64());

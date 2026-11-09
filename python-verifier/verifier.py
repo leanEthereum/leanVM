@@ -738,7 +738,6 @@ class Layout:
     count: tuple[BusBlock, ...]
     placements: tuple[Placement | None, ...]  # None for a column nothing commits: the KECCAK output lanes
     stack_log: int
-    committed_lanes: int  # the level-0 lanes that carry data: the placed columns rounded up to a whole lane
     table_log_heights: tuple[int, ...]
 
 
@@ -1049,7 +1048,6 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
-    committed_lanes = max(1, -(-sum(2**kappa for kappa in blocks.values()) // 2 ** (stack_log - INITIAL_FOLDING_FACTOR)))
 
     def placement(column: int, kappa: int) -> Placement | None:
         if (slot := slots[column]) is not None:
@@ -1066,7 +1064,6 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
         tuple(count),
         tuple(placements),
         stack_log,
-        committed_lanes,
         tuple(table_log_heights),
     )
 
@@ -1563,22 +1560,13 @@ MAX_STACKED_CLAIMS = 512  # the batching's soundness is accounted for up to this
 type StackClaim = tuple[Callable[[Sequence[E]], E], E]  # the weight it puts on the stack, and the value it claims for it
 
 
-def read_pin(transcript: Transcript, stack_log: int, committed_lanes: int) -> list[StackClaim]:
-    """The level-0 list pin, read right after the commitment root: a grind, a point z of the largest block's variable
-    count, then one value per aligned block of the committed lanes (their count's binary expansion, largest first),
-    each the block's multilinear at z's first coordinates. Its claims follow every other point claim.
+def read_pin(transcript: Transcript, stack_log: int) -> StackClaim:
+    """The level-0 list pin, read right after the commitment root: a grind, a point z of the stack's variables, then
+    the stack's multilinear at z. Its claim follows every other.
     """
-    lane_vars = stack_log - INITIAL_FOLDING_FACTOR
-    blocks, offset = [], 0
-    for bit in reversed(range(committed_lanes.bit_length())):
-        if committed_lanes >> bit & 1:
-            blocks.append(Placement(lane_vars + bit, offset))
-            offset += 2 ** (lane_vars + bit)
     transcript.grind_check(PIN_GRINDING_BITS)
-    z = transcript.samples(blocks[0].variables)
-    values = transcript.next_scalars(len(blocks))
-    points = [block.stack_point(z[: block.variables], stack_log) for block in blocks]
-    return [(lambda x, point=point: eq_eval(point, x), value) for point, value in zip(points, values, strict=True)]
+    z = transcript.samples(stack_log)
+    return lambda x: eq_eval(z, x), transcript.next_scalar()
 
 
 def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int, log_inv_rate: int, claims: Sequence[StackClaim]) -> None:
@@ -1607,7 +1595,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
 
     # 2] parse WHIR commitment: one Merkle root (no OOD inside the PCS: its list is pinned right after).
     root = Digest.from_halves(*transcript.next_scalars(2))
-    pin = read_pin(transcript, layout.stack_log, layout.committed_lanes)
+    pin = read_pin(transcript, layout.stack_log)
 
     # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a
     # degree-2 claim per tree.
@@ -1649,7 +1637,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     qkeccak = layout.placements[QKECCAK]
     ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
     stack_claims = (c.on_stack(layout) for c in claims)
-    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None), *pin])
+    verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c for c in stack_claims if c is not None), pin])
     transcript.finish()
 
 

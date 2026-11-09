@@ -164,18 +164,20 @@ pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
     fold_ladder(rows, &point[low_vars..])
 }
 
-/// [`mle_eval`] with the rows spread over the worker pool.
+/// [`mle_eval`] with the rows spread over the worker pool. A shorter `table` is zero past its end, which must be a
+/// whole number of rows.
 /// A caller already inside a dispatch must use [`mle_eval`] to avoid nesting.
 pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
-    assert_eq!(table.len(), 1 << point.len());
-    if table.len() < PAR_THRESHOLD {
+    assert!(table.len() <= 1 << point.len());
+    if table.len() == 1 << point.len() && table.len() < PAR_THRESHOLD {
         return mle_eval(table, point);
     }
     let low_vars = point.len().min(MLE_LOW_VARS);
+    assert!(low_vars >= 3 && table.len().is_multiple_of(1 << low_vars));
     let low = packed_eq(&point[..low_vars]);
     let high = eq_table(&point[low_vars..]);
     let eval = |row: usize| high[row] * dot_base(&low, &table[row << low_vars..(row + 1) << low_vars]).reduce();
-    parallel::map_reduce(high.len(), || F128::ZERO, eval, |a, b| a + b)
+    parallel::map_reduce(table.len() >> low_vars, || F128::ZERO, eval, |a, b| a + b)
 }
 
 /// The variables of the L1-resident low `eq` table of an MLE evaluation.
