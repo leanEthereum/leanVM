@@ -364,23 +364,28 @@ theorem avg_escAt : ∀ (h : List Ev) (p : VerifierProgram Bool),
     · simp
   | h, .ret a => by
     simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    exact ENNReal.mul_div_cancel_left (by exact_mod_cast Fintype.card_ne_zero)
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
       (ENNReal.natCast_ne_top _)
   | h, .fail => by
     simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    exact ENNReal.mul_div_cancel_left (by exact_mod_cast Fintype.card_ne_zero)
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
       (ENNReal.natCast_ne_top _)
   | h, .read k => by
     simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    exact ENNReal.mul_div_cancel_left (by exact_mod_cast Fintype.card_ne_zero)
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
       (ENNReal.natCast_ne_top _)
   | h, .grind b k => by
     simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    exact ENNReal.mul_div_cancel_left (by exact_mod_cast Fintype.card_ne_zero)
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
       (ENNReal.natCast_ne_top _)
   | h, .commit ht w k => by
     simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    exact ENNReal.mul_div_cancel_left (by exact_mod_cast Fintype.card_ne_zero)
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
       (ENNReal.natCast_ne_top _)
 
 end Gv

@@ -9,8 +9,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Extract
-public import LeanVM.Protocol.Compile.Prover
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.RunWithHash
 
 /-!
 # The extracted history of a run
@@ -63,28 +62,25 @@ noncomputable def xrun {α : Type} : VerifierProgram α → VerifierProgramState
     VerifierProgramState × List Ev)
   | .ret a, s, h => some (a, s, h)
   | .fail, _, _ => none
-  | .read k, s, h => match s.stream with
-    | [] => none
-    | x :: xs => (absorb (m := Option) F s.sponge x dsObserve).bind fun sp ↦
+  | .read k, s, h => match s.stream, s.sponge.ground with
+    | x :: xs, none => (absorb (m := Option) F s.sponge x dsObserve).bind fun sp ↦
       xrun (k x) { s with sponge := sp, stream := xs } (h ++ [Ev.read x])
+    | _, _ => none
   | .sample k, s, h => (squeeze (m := Option) F s.sponge).bind fun r ↦
       xrun (k r.1) { s with sponge := r.2 } (h ++ [Ev.sample r.1])
-  | .grind bits k, s, h => match s.stream with
-    | [] => none
-    | n :: xs => (absorb (m := Option) F s.sponge n dsPowNonce).bind fun sp ↦
-      (squeeze (m := Option) F sp).bind fun r ↦
-      if powOk bits n r.1 then
+  | .grind bits k, s, h => match s.stream, s.sponge.ground with
+    | n :: xs, none => (absorbNonce (m := Option) F s.sponge n).bind fun r ↦
+      if powOk bits r.1 then
         xrun k { s with sponge := r.2, stream := xs } (h ++ [Ev.grind bits])
       else none
-  | .commit height width k, s, h => match s.stream with
-    | x0 :: x1 :: xs => (absorb (m := Option) F s.sponge x0 dsObserve).bind fun sp0 ↦
+    | _, _ => none
+  | .commit height width k, s, h => match s.stream, s.sponge.ground with
+    | x0 :: x1 :: xs, none => (absorb (m := Option) F s.sponge x0 dsObserve).bind fun sp0 ↦
       (absorb (m := Option) F sp0 x1 dsObserve).bind fun sp1 ↦
-      match digestFromHalves (x0, x1) with
-      | some root =>
-        xrun k { s with sponge := sp1, stream := xs, roots := s.roots ++ [(root, height, width)] }
-          (h ++ [Ev.commit height width (extract H root height width)])
-      | none => none
-    | _ => none
+      let root := digestFromHalves (x0, x1)
+      xrun k { s with sponge := sp1, stream := xs, roots := s.roots ++ [(root, height, width)] }
+        (h ++ [Ev.commit height width (extract H root height width)])
+    | _, _ => none
   | .query i ps k, s, h => match s.roots[i]?, s.openings with
     | some (root, height, width), phase :: rest =>
       match openPhaseWithHash H root height width ps phase with
@@ -105,13 +101,13 @@ theorem xrun_of_run {α : Type} :
   | .read k, s, h, _, _, hr => by
     simp only [runWithHash] at hr
     split at hr
-    · simp [pure] at hr
-    · rename_i x xs hs
+    · rename_i x xs hs hg
       simp only [bind, Option.bind_eq_some_iff] at hr
       obtain ⟨sp, hsp, hr⟩ := hr
       obtain ⟨hist, hh⟩ := xrun_of_run (k x) _ (h ++ [Ev.read x]) hr
       refine ⟨hist, ?_⟩
-      simp only [xrun, hs, hsp, Option.bind_some, hh]
+      simp only [xrun, hs, hg, hsp, Option.bind_some, hh]
+    · simp [pure] at hr
   | .sample k, s, h, _, _, hr => by
     simp only [runWithHash, bind, Option.bind_eq_some_iff] at hr
     obtain ⟨r, hr0, hr⟩ := hr
@@ -120,27 +116,24 @@ theorem xrun_of_run {α : Type} :
   | .grind bits k, s, h, _, _, hr => by
     simp only [runWithHash] at hr
     split at hr
-    · simp [pure] at hr
-    · rename_i n xs hs
+    · rename_i n xs hs hg
       simp only [bind, Option.bind_eq_some_iff] at hr
-      obtain ⟨sp, hsp, r, hr0, hr⟩ := hr
+      obtain ⟨r, hr0, hr⟩ := hr
       split at hr
       · rename_i hp
         obtain ⟨hist, hh⟩ := xrun_of_run k _ (h ++ [Ev.grind bits]) hr
-        exact ⟨hist, by simp only [xrun, hs, hsp, hr0, Option.bind_some, hp, ↓reduceIte, hh]⟩
+        exact ⟨hist, by simp only [xrun, hs, hg, hr0, Option.bind_some, hp, ↓reduceIte, hh]⟩
       · simp [pure] at hr
+    · simp [pure] at hr
   | .commit height width k, s, h, _, _, hr => by
     simp only [runWithHash] at hr
     split at hr
-    · rename_i x0 x1 xs hs
+    · rename_i x0 x1 xs hs hg
       simp only [bind, Option.bind_eq_some_iff] at hr
       obtain ⟨sp0, h0, sp1, h1, hr⟩ := hr
-      split at hr
-      · rename_i root hroot
-        obtain ⟨hist, hh⟩ := xrun_of_run k _
-          (h ++ [Ev.commit height width (extract H root height width)]) hr
-        exact ⟨hist, by simp only [xrun, hs, h0, h1, Option.bind_some, hroot, hh]⟩
-      · simp [pure] at hr
+      obtain ⟨hist, hh⟩ := xrun_of_run k _
+        (h ++ [Ev.commit height width (extract H (digestFromHalves (x0, x1)) height width)]) hr
+      exact ⟨hist, by simp only [xrun, hs, hg, h0, h1, Option.bind_some, hh]⟩
     · simp [pure] at hr
   | .query i ps k, s, h, _, _, hr => by
     simp only [runWithHash] at hr
@@ -166,10 +159,10 @@ theorem xrun_prefix {α : Type} :
   | .read k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨_, _, hr⟩ := hr
       exact (List.prefix_append _ _).trans (xrun_prefix _ _ _ hr)
+    · simp at hr
   | .sample k, s, h, _, _, _, hr => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
     obtain ⟨_, _, hr⟩ := hr
@@ -177,20 +170,18 @@ theorem xrun_prefix {α : Type} :
   | .grind bits k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨_, _, _, _, hr⟩ := hr
+      obtain ⟨_, _, hr⟩ := hr
       split at hr
       · exact (List.prefix_append _ _).trans (xrun_prefix _ _ _ hr)
       · simp at hr
+    · simp at hr
   | .commit height width k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
     split at hr
     · simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨_, _, _, _, hr⟩ := hr
-      split at hr
-      · exact (List.prefix_append _ _).trans (xrun_prefix _ _ _ hr)
-      · simp at hr
+      exact (List.prefix_append _ _).trans (xrun_prefix _ _ _ hr)
     · simp at hr
   | .query i ps k, s, h, _, _, _, hr => by
     simp only [xrun] at hr
@@ -299,7 +290,7 @@ theorem rootsInv_append_commit {H : Bytes → Option Digest} {s : VerifierProgra
 noncomputable def extractedFrom (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState)
     (σ : Seed) (p : VerifierProgram Bool) (h₀ : List Ev) (π : Proof) : List Ev :=
   match σ.run H F with
-  | some seed => match xrun H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ with
+  | some seed => match xrun H F p ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ h₀ with
     | some (_, _, hist) => hist
     | none => []
   | none => []
@@ -313,7 +304,7 @@ noncomputable def extractedHistory (H : Bytes → Option Digest) (F : KeccakStat
 theorem xrun_of_verify_from {H : Bytes → Option Digest} {F : KeccakState → Option KeccakState} {σ : Seed}
     {p : VerifierProgram Bool} {π : Proof} (h₀ : List Ev) (hv : verify H F σ p π = some true) :
     ∃ seed s, σ.run H F = some seed ∧
-      xrun H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ =
+      xrun H F p ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ h₀ =
         some (true, s, extractedFrom H F σ p h₀ π) := by
   simp only [verify, bind, Option.bind_eq_some_iff] at hv
   obtain ⟨seed, hseed, hv⟩ := hv
@@ -330,7 +321,7 @@ theorem xrun_of_verify_from {H : Bytes → Option Digest} {F : KeccakState → O
 theorem xrun_of_verify {H : Bytes → Option Digest} {F : KeccakState → Option KeccakState} {σ : Seed}
     {P : VerifierProgram Bool} {π : Proof} (hv : verify H F σ P π = some true) :
     ∃ seed s, σ.run H F = some seed ∧
-      xrun H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] =
+      xrun H F P ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ [] =
         some (true, s, extractedHistory H F σ P π) :=
   xrun_of_verify_from [] hv
 
