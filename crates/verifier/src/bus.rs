@@ -11,17 +11,14 @@ use crate::multilinear::{
 use crate::transcript::{Transcript, grinding_bits, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
-/// Independent fingerprints `(alphas_f, beta_f)`, drawn as one verifier message with no grind. Unequal push and pull
-/// multisets pass one product check with probability at most `4 * 2^mu / |E|`, so both with at most
-/// `(4 * 2^mu / |E|)^2`, which is at most `2^-SECURITY_BITS` while `mu <= MAX_BUS_LOG`.
-pub const FINGERPRINTS: usize = 2;
+/// The grind before the fingerprint `(alphas, beta)`: unequal push and pull multisets pass the product check with
+/// probability at most `4 * 2^mu / |E|`, `mu` the push depth.
+fn bus_grinding_bits(mu: usize) -> u32 {
+    grinding_bits((BUS_BITS as u128) << mu)
+}
 
-/// The deepest bus two fingerprints cover: `(4 * 2^mu / 2^128)^2 <= 2^-SECURITY_BITS`.
-const MAX_BUS_LOG: usize = (2 * 128 - crate::transcript::SECURITY_BITS as usize) / 2 - 2;
-
-/// The trees the bus GKR batches, in its order: push and pull of the first fingerprint, push and pull of the
-/// second, then the count tree, at `alpha = beta = 0`.
-pub const N_TREES: usize = 2 * FINGERPRINTS + 1;
+/// The trees the bus GKR batches, in its order: push, pull, then the count tree, at `alpha = beta = 0`.
+pub const N_TREES: usize = 3;
 
 /// A GKR round is `eq` times a product of four lines, degree five, and grinds for it. In the last layer its challenge
 /// is also a coordinate of zeta, which the table sumcheck's zerocheck reads, one more: six, as many bits.
@@ -29,14 +26,13 @@ const _: () = assert!(grinding_bits(4 + 1 + 1) == grinding_bits(4 + 1));
 /// The zerocheck reads at least zeta's first two coordinates, the last layer's `y`.
 const _: () = assert!(KECCAK_MIN_STEPS_LOG >= 2);
 
-/// The batched GKR over the [`N_TREES`] trees. The stream: one root per fingerprint (its push and pull products are
-/// one), then the count root; then each layer from the root down: a grind and the combiner, the sumcheck rounds (each
-/// its coefficients, its grind and its challenge), every tree's children, a grind and `y`. Returns the count root, the
-/// point zeta and the trees' leaf values there.
+/// The batched GKR over the [`N_TREES`] trees. The stream: the push and pull trees' one root, then the count root;
+/// then each layer from the root down: a grind and the combiner, the sumcheck rounds (each its coefficients, its grind
+/// and its challenge), every tree's children, a grind and `y`. Returns the count root, the point zeta and the trees'
+/// leaf values there.
 fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
-    let shared = transcript.next_scalars(FINGERPRINTS)?;
-    let count = transcript.next_scalar()?;
-    let mut values: Vec<E> = shared.iter().flat_map(|&root| [root, root]).chain([count]).collect();
+    let (shared, count) = (transcript.next_scalar()?, transcript.next_scalar()?);
+    let mut values = vec![shared, shared, count];
     let mut point: Vec<E> = Vec::new();
 
     let mut layer = depth;
@@ -125,25 +121,26 @@ type Side<'a> = (&'a [BusBlock], &'a BusLayout, Vec<E>, &'a [E], E);
 
 pub struct BusResult {
     pub claims: Vec<ColumnClaim>,
-    pub bytecode_point: Vec<E>, // the one point the bus keeps on the stacked bytecode: zeta's low coordinates, then the line's slots at t
+    pub bytecode_point: Vec<E>, // where the bus reads the stacked bytecode: zeta's low coordinates, then alpha
     pub point: Vec<E>,          // the GKR point zeta, which the table sumcheck reuses
     pub forms: Vec<Vec<Form>>,  // forms[table][tree]
     pub totals: Vec<E>,         // what the tables owe each tree, derived
 }
 
-/// The bus, in stream order: the fingerprints `(alphas_1, beta_1, alphas_2, beta_2)`, drawn with no grind; the batched
-/// GKR; the framework blocks' committed columns at zeta; the bytecode line, its grind and its challenge `t`.
+/// The bus, in stream order: the grind and the fingerprint `(alphas, beta)`; the batched GKR; the framework blocks'
+/// committed columns at zeta.
 pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Result<BusResult, VerifierError> {
     let framework_log_rows = [0, layout.log_memory, layout.log_bytecode]; // state, memory, bytecode
     let push_layout = bus_layout(&framework_log_rows, &layout.push);
     let pull_layout = bus_layout(&framework_log_rows, &layout.pull);
     let count_layout = bus_layout(&[], &layout.count);
     // The announced sizes' caps keep the depth far below this.
-    require(push_layout.depth <= MAX_BUS_LOG, VerifierError::AnnouncedTableSizes)?;
+    require(push_layout.depth < 64, VerifierError::AnnouncedTableSizes)?;
 
-    let fingerprints: Vec<(Vec<E>, E)> = (0..FINGERPRINTS)
-        .map(|_| (transcript.samples(BUS_BITS), transcript.sample()))
-        .collect();
+    transcript.grind_check(bus_grinding_bits(push_layout.depth))?;
+    let alphas = transcript.samples(BUS_BITS);
+    let weights = eq_kernel(&alphas);
+    let beta = transcript.sample();
     let (count_root, point, tree_values) = verify_gkr_grand_products(push_layout.depth, transcript)?;
     if transcript.checked() {
         require(count_root != ZERO, VerifierError::BusCountZero)?;
@@ -169,32 +166,19 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     let memory_index = index_mle(memory_low);
     let bytecode_index = index_mle(bytecode_low);
 
-    // The bytecode line `h(t) = B(zeta_low, (1 + t) alphas_1 + t alphas_2)`, B the stacked bytecode, its BUS_BITS + 1
-    // coefficients low first: `h(0)` and `h(1)` are the two fingerprints' bytecode values. Then a grind, `h` being of
-    // degree BUS_BITS, and `t`: the bus keeps the one point of B the line is at `t`, where B must be `h(t)`.
-    let line = transcript.next_scalars(BUS_BITS + 1)?;
-    transcript.grind_check(grinding_bits(BUS_BITS as u128))?;
-    let t = transcript.sample();
-    let slots: Vec<E> = fingerprints[0]
-        .0
-        .iter()
-        .zip(&fingerprints[1].0)
-        .map(|(&first, &second)| first + t * (first + second))
-        .collect();
-    let bytecode_point = [bytecode_low, &slots].concat();
-    // A replay leaves the one pass over the table out: its value is the claim an aggregate defers.
-    if transcript.checked() {
-        require(
-            layout.bytecode.evaluate(&bytecode_point)? == poly_eval(&line, t),
-            VerifierError::BytecodeLine,
-        )?;
-    }
-    let bytecode_values = [line[0], E::sum(line.iter().copied())];
+    let bytecode_point = [bytecode_low, &alphas].concat();
+    // A replay leaves the one pass over the table out: the value only feeds the table sumcheck's target, which it does
+    // not check, and is the claim an aggregate defers.
+    let bytecode_value = if transcript.checked() {
+        layout.bytecode.evaluate(&bytecode_point)?
+    } else {
+        ZERO
+    };
 
     // The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
     // named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
     // with the committed final count and ends at the last pc. Both boundaries sit in frame 0.
-    let framework = |weights: &[E], bytecode_value: E, pc: E, memory_count: E, bytecode_count: E| {
+    let framework = |pc: E, memory_count: E, bytecode_count: E| {
         vec![
             dot(&weights[..3], &[SEP_STATE, pc, gpow(0)]),
             dot(
@@ -206,15 +190,17 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     };
 
     let final_pc = gpow((1 << layout.log_bytecode) - 1); // the execution ends at the bytecode's last instruction
-    let weights: Vec<Vec<E>> = fingerprints.iter().map(|(alphas, _)| eq_kernel(alphas)).collect();
-    let mut sides: Vec<Side> = Vec::with_capacity(N_TREES);
-    for ((weights, &(_, beta)), &bytecode_value) in weights.iter().zip(&fingerprints).zip(&bytecode_values) {
-        let push = framework(weights, bytecode_value, gpow(0), ONE, ONE);
-        let pull = framework(weights, bytecode_value, final_pc, memory_final, bytecode_final);
-        sides.push((&layout.push, &push_layout, push, weights, beta));
-        sides.push((&layout.pull, &pull_layout, pull, weights, beta));
-    }
-    sides.push((&layout.count, &count_layout, vec![], &[ONE], ZERO)); // The count channel owns no framework block and runs at alpha = beta = 0.
+    let sides: [Side; N_TREES] = [
+        (&layout.push, &push_layout, framework(gpow(0), ONE, ONE), &weights, beta),
+        (
+            &layout.pull,
+            &pull_layout,
+            framework(final_pc, memory_final, bytecode_final),
+            &weights,
+            beta,
+        ),
+        (&layout.count, &count_layout, vec![], &[ONE], ZERO), // The count channel owns no framework block and runs at alpha = beta = 0.
+    ];
 
     let mut totals = Vec::new(); // what remains to be proven by the next table sumcheck
     let mut forms = vec![vec![Form::default(); N_TREES]; layout.tables.len()];

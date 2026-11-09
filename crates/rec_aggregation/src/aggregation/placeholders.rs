@@ -496,7 +496,11 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
 /// is no nonce): a sumcheck round of degree `d`, eq factor included, then each other challenge the guest grinds for.
 fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
     use fiat_shamir::grinding_bits;
-    use leanvm_core::leaf::{N_BUS_TREES, N_TUPLE_BITS};
+    use leanvm_core::leaf::{N_BUS_TREES, bus_grinding_bits};
+    // The bus grind's bits by the push depth mu. It sends a nonce at every depth the guest admits, which it absorbs
+    // with the list pin's values.
+    assert!(bus_grinding_bits(leanvm_core::cpu::MIN_LOG_MEM) > 0);
+    ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
     for degree in [2, 3, 5] {
         ps(&format!("ROUND{degree}_GRIND_BITS"), grinding_bits(degree).to_string());
     }
@@ -510,9 +514,6 @@ fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("GKR_Y1_GRIND_BITS", grinding_bits(1).to_string());
     ps("GKR_Y_GRIND_BITS", grinding_bits(2).to_string());
     ps("GKR_Y_LAST_GRIND_BITS", grinding_bits(4).to_string());
-    // The guest absorbs a radix-four layer's y nonce before it knows which of the two it checks.
-    assert!(grinding_bits(2) > 0 && grinding_bits(4) > 0);
-    ps("LINE_GRIND_BITS", grinding_bits(N_TUPLE_BITS as u128).to_string());
     ps(
         "XI_GRIND_BITS",
         grinding_bits(leanvm_core::cpu::n_xi_powers() as u128 - 1).to_string(),
@@ -532,6 +533,13 @@ fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
         "BATCH_LAM_GRIND_BITS",
         super::deferred::BATCH_LAM_GRIND_BITS.to_string(),
     );
+    // The batching hints: the challenge's nonce, if it grinds, then per round (g1, g_inf) and its nonce, if any.
+    let nonces = |bits: u32| usize::from(bits > 0);
+    ps(
+        "BC_LAM_WORDS",
+        nonces(super::deferred::BATCH_LAM_GRIND_BITS).to_string(),
+    );
+    ps("BC_ROUND_WORDS", (2 + nonces(grinding_bits(2))).to_string());
 }
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.

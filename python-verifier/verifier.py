@@ -478,23 +478,15 @@ def sumcheck(transcript: Transcript, claim: E, count: int, equalities: Sequence[
 # Bus balance and decomposition ---------------------------------------------
 
 
-# Independent fingerprints (alphas_f, beta_f), drawn as one verifier message with no grind. Unequal push and pull
-# multisets pass one product check with probability at most 4 * 2^mu / |E|, so both with at most (4 * 2^mu / |E|)^2,
-# which is at most 2^-SECURITY_BITS while mu <= MAX_BUS_LOG.
-FINGERPRINTS = 2
-MAX_BUS_LOG = (2 * 128 - SECURITY_BITS) // 2 - 2
-# The trees the bus GKR batches, in its order: push and pull of the first fingerprint, push and pull of the second,
-# then the count tree, at alpha = beta = 0.
-N_TREES = 2 * FINGERPRINTS + 1
+# The trees the bus GKR batches, in its order: push, pull, then the count tree, at alpha = beta = 0.
+N_TREES = 3
 
 
 def verify_gkr_grand_products(depth: int, transcript: Transcript) -> tuple[E, MultilinearPoint, list[E]]:
-    """The batched GKR over the N_TREES trees. The stream: one root per fingerprint (its push and pull products are one),
-    then the count root; then each layer from the root down: a grind and the combiner, the sumcheck rounds, every tree's
-    children, a grind and `y`."""
-    shared = transcript.next_scalars(FINGERPRINTS)
-    count = transcript.next_scalar()
-    values = [*(root for root in shared for _ in range(2)), count]
+    """The batched GKR over the N_TREES trees. The stream: the push and pull trees' one root, then the count root; then
+    each layer from the root down: a grind and the combiner, the sumcheck rounds, every tree's children, a grind and `y`."""
+    shared, count = transcript.next_scalar(), transcript.next_scalar()
+    values = [shared, shared, count]
     point: list[E] = []
 
     layer = depth
@@ -599,24 +591,27 @@ BUS_BITS = 4  # bus communicates tuples of 2^BUS_BITS field elements
 @dataclass(frozen=True)
 class BusResult:
     claims: tuple[ColumnClaim, ...]
-    bytecode_point: MultilinearPoint  # the one point the bus keeps on the stacked bytecode: zeta's low coordinates, then the line's slots at t
     point: MultilinearPoint  # the GKR point zeta, which the table sumcheck reuses
     forms: tuple[tuple[Form, ...], ...]  # forms[table][tree]
     totals: tuple[E, ...]  # what the tables owe each tree, derived
 
 
 def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
-    """The bus, in stream order: the fingerprints (alphas_1, beta_1, alphas_2, beta_2), drawn with no grind; the batched
-    GKR; the framework blocks' committed columns at zeta; the bytecode line, its grind and its challenge `t`."""
+    """The bus, in stream order: the grind and the fingerprint (alphas, beta); the batched GKR; the framework blocks'
+    committed columns at zeta."""
     framework_log_rows = (0, layout.log_memory, layout.log_bytecode)  # state, memory, bytecode
     push_layout = bus_layout(framework_log_rows, layout.push)
     pull_layout = bus_layout(framework_log_rows, layout.pull)
     count_layout = bus_layout((), layout.count)
 
     # The announced sizes' caps keep the depth far below this.
-    require(push_layout.depth <= MAX_BUS_LOG, "invalid announced table sizes")
+    require(push_layout.depth < 64, "invalid announced table sizes")
 
-    fingerprints = [(transcript.samples(BUS_BITS), transcript.sample()) for _ in range(FINGERPRINTS)]
+    # Unequal push and pull multisets pass the product check with probability at most 4 * 2^mu / |E|, mu the push depth.
+    transcript.grind_check(grinding_bits(BUS_BITS << push_layout.depth))
+    alphas = transcript.samples(BUS_BITS)
+    weights = eq_kernel(alphas)
+    beta = transcript.sample()
     count_root, point, tree_values = verify_gkr_grand_products(push_layout.depth, transcript)
     require(count_root != ZERO, "a bus count is zero")
 
@@ -632,19 +627,9 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
     memory_index = index_mle(memory_low)
     bytecode_index = index_mle(bytecode_low)
+    bytecode_value = multilinear_eval(layout.bytecode, (*bytecode_low, *alphas))
 
-    # The bytecode line h(t) = B(zeta_low, (1 + t) alphas_1 + t alphas_2), B the stacked bytecode, its BUS_BITS + 1
-    # coefficients low first: h(0) and h(1) are the two fingerprints' bytecode values. Then a grind, h being of degree
-    # BUS_BITS, and `t`: the bus keeps the one point of B the line is at `t`, where B must be h(t).
-    line = transcript.next_scalars(BUS_BITS + 1)
-    transcript.grind_check(grinding_bits(BUS_BITS))
-    t = transcript.sample()
-    slots = (first + t * (first + second) for first, second in zip(fingerprints[0][0], fingerprints[1][0], strict=True))
-    bytecode_point = (*bytecode_low, *slots)
-    require(multilinear_eval(layout.bytecode, bytecode_point) == poly_eval(line, t), "the bytecode line does not match the bytecode")
-    bytecode_values = (line[0], E.sum(line))
-
-    def framework(weights: Sequence[E], bytecode_value: E, pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
+    def framework(pc: E, memory_count: E, bytecode_count: E) -> tuple[E, E, E]:
         """The three framework tuples, each its coordinates weighted by eq(alpha, .); slots past the ones
         named are zero. A side differs only here: push seeds each array at count one, pull finalizes it
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
@@ -655,12 +640,11 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         )
 
     final_pc = _gpow(2**layout.log_bytecode - 1)  # the execution ends at the bytecode's last instruction
-    sides = []
-    for (alphas, beta), bytecode_value in zip(fingerprints, bytecode_values, strict=True):
-        weights = eq_kernel(alphas)
-        sides.append((layout.push, push_layout, framework(weights, bytecode_value, _gpow(0), ONE, ONE), weights, beta))
-        sides.append((layout.pull, pull_layout, framework(weights, bytecode_value, final_pc, memory_final, bytecode_final), weights, beta))
-    sides.append((layout.count, count_layout, (), (ONE,), ZERO))  # The count channel owns no framework block and runs at alpha = beta = 0.
+    sides = (
+        (layout.push, push_layout, framework(_gpow(0), ONE, ONE), weights, beta),
+        (layout.pull, pull_layout, framework(final_pc, memory_final, bytecode_final), weights, beta),
+        (layout.count, count_layout, (), (ONE,), ZERO),  # The count channel owns no framework block and runs at alpha = beta = 0.
+    )
     totals = []  # what remains to be proven by the next table sumcheck
     forms = tuple(tuple(Form() for _ in range(N_TREES)) for _ in TABLES)
     for side, (blocks, side_layout, framework_fingerprints, side_weights, side_beta) in enumerate(sides):
@@ -681,7 +665,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         ones_padding = E.sum(framework_selectors + table_selectors) + ONE
         totals.append(tree_values[side] + known + ones_padding + padding_rows)  # what the forms owe: the GKR value, less framework and padding
 
-    return BusResult(tuple(claims), bytecode_point, point, forms, tuple(totals))
+    return BusResult(tuple(claims), point, forms, tuple(totals))
 
 
 # Table sumcheck -------------------------------------------------------------
@@ -1625,8 +1609,8 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     root = Digest.from_halves(*transcript.next_scalars(2))
     pin = read_pin(transcript, layout.stack_log, layout.committed_lanes)
 
-    # 3] Bus: two fingerprints, one batched GKR over their push and pull trees and the count tree, the leaf
-    # decomposition, which leaves each table a degree-2 claim per tree, and the bytecode line.
+    # 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a
+    # degree-2 claim per tree.
     bus = verify_bus_balance(layout, transcript)
 
     # 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the

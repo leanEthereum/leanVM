@@ -126,21 +126,24 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
 /// few bits may still pass a changed transcript, so what catches those is left open). After the root, the list pin's
 /// nonce and value and the instance's nonce come the output lanes, the segment and lane nonce, the committed
 /// outputs' value, which the first layer's product check meets, then the layers, then the two openings. A round is
-/// its scalars and its nonce.
+/// its scalars and its nonce, and a grind of zero bits sends none.
 fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
+    let nonce = |numerator: usize| usize::from(fiat_shamir::grinding_bits(numerator as u128) > 0);
     let committed = usize::from(shape.segments() > 1);
-    let layer = PROD_BITS + 1 + 3 * shape.y_vars() + 4 * LOCAL_VARS + 3 + 1;
-    let first = 5 + LANES + 1;
+    // A sumcheck round of degree 2 or 3 sends two scalars; the bit position's, of degree 3 with no eq factor, three.
+    let (round2, round3) = (2 + nonce(2), 2 + nonce(3));
+    let layer = PROD_BITS + nonce(PROD_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_VARS + 3 + nonce(2);
+    let first = 2 + 1 + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + 5);
     let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
-    let word = outputs + committed * 3 * shape.slot_log();
+    let word = outputs + committed * round2 * shape.slot_log();
     let inputs = word + committed;
-    let slices = inputs + 3 * (4 + shape.slot_log());
+    let slices = inputs + round2 * (4 + shape.slot_log());
     let in_layer = at.wrapping_sub(layers) % layer;
     Some(match at {
         _ if (first..layers).contains(&at) => VerifierError::KeccakProduct,
         _ if (layers..outputs).contains(&at) && in_layer < PROD_BITS => VerifierError::KeccakProduct,
-        _ if (layers..outputs).contains(&at) && (layer - 4..layer - 1).contains(&in_layer) => {
+        _ if (layers..outputs).contains(&at) && (layer - 3 - nonce(2)..layer - nonce(2)).contains(&in_layer) => {
             VerifierError::KeccakLayer
         }
         _ if (word..inputs).contains(&at) => VerifierError::KeccakOutputOpening,
