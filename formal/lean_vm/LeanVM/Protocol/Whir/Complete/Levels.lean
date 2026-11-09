@@ -456,5 +456,127 @@ theorem batched_eq (L : List K → List E) (word : Word) (rounds : List FoldRoun
   rw [Enc.array_getD_toList, he]
   ring
 
+/-! ## The levels -/
+
+/-- The ladder's arithmetic the honest levels use: each level folds at most its variables and at
+most `2^κ` rounds (its high part fits below `X_(2^(κ+1))`), on stacks of at most `28` variables. -/
+def ladderOK : ℕ → List Whir.Level → Bool
+  | _, [] => false
+  | mu, [level] => decide (level.fold ≤ mu) && decide (level.fold ≤ 2 ^ (mu - level.fold)) &&
+      decide (mu ≤ 28)
+  | mu, level :: next :: rest => decide (level.fold ≤ mu) &&
+      decide (level.fold ≤ 2 ^ (mu - level.fold)) && decide (mu ≤ 28) &&
+      ladderOK (mu - level.fold) (next :: rest)
+
+/-- Every admissible ladder satisfies `ladderOK`. -/
+theorem ladderOK_of_ladder {μ R : ℕ} (h : Whir.Admissible μ R) {levels : List Whir.Level}
+    (hl : Whir.ladder μ R = some levels) : ladderOK μ levels = true := by
+  have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
+      ∀ levels, Whir.ladder μ r = some levels → ladderOK μ levels = true := by decide +kernel
+  exact key μ (Nat.lt_succ_of_le h.2.1) R (Nat.lt_succ_of_le h.2.2.2) h levels hl
+
+theorem require_bind_of {α : Type} {c : Prop} [Decidable c] (hc : c) (G : Unit → VerifierProgram α) :
+    (VerifierProgram.require c).bind G = G () := by
+  simp [VerifierProgram.require, hc]
+
+theorem zip_map_self {β : Type} (f : ℕ → β) : ∀ l : List ℕ, l.zip (l.map f) = l.map fun a ↦ (a, f a)
+  | [] => rfl
+  | a :: l => by simp [zip_map_self f l]
+
+/-- The rows the verifier reads at level `index`. -/
+def lanesOfV (index : ℕ) (row : List K) : List E :=
+  if index = 0 then row.reverse.map ofK else extRow row
+
+/-- **The honest levels follow the verifier's.** -/
+theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
+    ∀ (levels : List Whir.Level) (index mu : ℕ) (f w : Array E) (sv : WhirState) (cs : Commits)
+      (word : Word) (width : ℕ), ladderOK mu levels = true → cs.length = index + 1 →
+      (∀ level ∈ levels.head?, cs[index]? = some (mu - level.fold + level.logInvRate, width, word) ∧
+        FoldInv μ lf B (mu - level.fold) (2 ^ (mu - level.fold + level.logInvRate))
+          (fun p ↦ lanesOfV index (word p)) 0 level.fold sv f w []) →
+      Follows (fun _ _ _ ↦ True) (levelsA mu levels f w) (whirLevels μ lf B index levels sv) cs
+  | [], _, _, _, _, _, _, _, _, hok, _, _ => by simp [ladderOK] at hok
+  | level :: rest, index, mu, f, w, sv, cs, word, width, hok, hcs, hpre => by
+    obtain ⟨hcsi, hI⟩ := hpre level rfl
+    unfold levelsA whirLevels
+    simp only [Script.bind_eq, VerifierProgram.bind_eq]
+    refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _
+      (follows_foldRoundsA (μ := μ) cs level.fold 0 sv f w [] hI)
+    obtain ⟨hcs₁, hrl, hI'⟩ := h
+    subst hcs₁
+    obtain ⟨p, w'⟩ := a
+    obtain ⟨sv', rounds⟩ := b
+    simp only [Nat.zero_add, List.nil_append] at hrl hI' ⊢
+    set κ := mu - level.fold with hκ
+    obtain ⟨hw', hp', hcols, hclaim, hlen, hW, hrows⟩ := hI'
+    have hmu : μ - sv'.gammas.length = κ := by omega
+    rw [hmu]
+    have hrow0 : ∀ q < 2 ^ (κ + level.logInvRate),
+        foldRow (lanesOfV index (word q)) (K.ofBits q) rounds = laneVal p 0 0 (K.ofBits q) := by
+      intro q hq
+      obtain ⟨hl1, hv⟩ := hrows q hq
+      rw [foldRow, ← hv 0 (by simp)]
+      obtain ⟨v, hv'⟩ := List.length_eq_one_iff.mp (by simpa using hl1)
+      simp only [vfold] at hv'
+      rw [vfold, hv']
+      rfl
+    have hans : ∀ qs : List ℕ, (∀ q ∈ qs, q < 2 ^ (κ + level.logInvRate)) →
+        answerOf cs₁ index qs = some (qs.map word) := by
+      intro qs hqs
+      rw [answerOf, hcsi, Option.map_some]
+      exact congrArg some (List.map_congr_left fun q hq ↦ by
+        simp only; rw [Nat.mod_eq_of_lt (hqs q hq)])
+    cases rest with
+    | nil =>
+      dsimp only
+      have hplen : p.toList.length = 2 ^ κ + level.fold := by simp [hp']
+      rw [← hplen]
+      refine Follows.bind (fun cs₂ _ folded h ↦ ?_) _ _ _ (Follows.sendList_readN cs₁ p.toList)
+      obtain ⟨rfl, rfl⟩ := h
+      refine Follows.bind (fun cs₃ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs₂)
+      subst h
+      rw [sampleQueries]
+      refine Follows.bind (fun cs₄ _ queries h ↦ ?_) _ _ _ (follows_sampleQueriesS _ cs₃ _ _)
+      obtain ⟨rfl, rfl, hq⟩ := h
+      refine Follows.bind (fun cs₅ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP (hans _ hq))
+      obtain ⟨rfl, -, rfl⟩ := h
+      rw [require_bind_of]
+      · unfold tailA
+        have hg : (p.extract 0 (2 ^ κ)).size = 2 ^ κ := by simp [hp']
+        have hgD : ∀ i < 2 ^ κ, (p.extract 0 (2 ^ κ)).getD i 0 = p.getD i 0 := fun i hi ↦ by
+          have hi2 : i < (p.extract 0 (2 ^ κ)).size := by rw [hg]; exact hi
+          rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hi2, Option.getD_some,
+            Array.getElem_extract]
+          simp [Array.getD_eq_getD_getElem?, show i < p.size by rw [hp']; omega]
+        have hcl : sv'.claim = dot w'.toList (p.extract 0 (2 ^ κ)).toList := by
+          rw [hclaim, dot_eq_sum _ _ (by rw [Array.length_toList, Array.length_toList, hw', hg]; simp)]
+          simp only [Array.length_toList, hw', pow_zero, mul_one]
+          exact sum_congr rfl fun i hi ↦ by
+            rw [Enc.array_getD_toList, Enc.array_getD_toList, hgD i (mem_range.mp hi)]
+        rw [hcl]
+        refine Follows.bind (fun cs₆ _ b h ↦ ?_) _ _ _
+          (follows_tail cs₅ κ w' (p.extract 0 (2 ^ κ)) (by simp [hw']) hg)
+        obtain ⟨-, hbl, hb⟩ := h
+        refine Follows.ret_require ?_ trivial
+        have ht : List.take (2 ^ κ) p.toList = (p.extract 0 (2 ^ κ)).toList := by
+          simp [Array.toList_extract]
+        change runW B lf sv' b.1 * _ = _
+        rw [hW b.1 (by simp [hbl]), ht, hb]
+      · simp only [lanesOfV] at hrow0
+        have hl := hok
+        simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at hl
+        rw [zip_map_self, List.all_eq_true]
+        intro x hx
+        obtain ⟨q, hq', rfl⟩ := List.mem_map.mp hx
+        refine decide_eq_true ?_
+        have h2 : level.fold ≤ 2 ^ κ := hl.1.2
+        have h3 : mu ≤ 28 := hl.2
+        rw [hrow0 q (hq q hq'), novelEval_subspaceAt (by omega) _ (by
+            rw [hplen, pow_succ]; omega), laneVal_zero]
+        simp only [hplen, Enc.array_getD_toList]
+        rw [hp']; simp
+    | cons next rest' =>
+      done
+
 end
 end LeanVM.Protocol.Whir.Complete
