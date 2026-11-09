@@ -91,7 +91,7 @@ def GroupStep (rd : Reader) (m nb : ℕ) (chain entries x : E) : Prop :=
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -206,7 +206,7 @@ theorem groups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb) {chain
 /-- **A loop of frames of `m` claims**: called as `callIf (1 + N) f [1, N, chain, entries]` with
 `N = g^a`, `a < 2^34`, it gives every frame's step. -/
 theorem frames_of_loop {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
