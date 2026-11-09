@@ -19,7 +19,7 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 Both multisets (\emph{pulls} and \emph{pushes}) carry the same number of tuples, and padding each with factors of $1$, which change no product, makes that number a power of two, $2^{\mu}$.
 
-\emph{Fingerprint.} The verifier samples $\alpha=(\alpha_0,\dots,\alpha_3)\in\E^{4}$ and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
+\emph{Fingerprint.} After a grind of $\mu-3$ bits (below), the verifier samples $\alpha=(\alpha_0,\dots,\alpha_3)\in\E^{4}$ and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
 \[
 \pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\eq(\alpha,\iota)\,\btup_\iota ,
 \]
@@ -37,7 +37,7 @@ the sixteen slots indexed by their bits, low bit first, and smaller tuples padde
   The protocol above has perfect completeness (equal pulled and pushed multisets always make \eqref{eq:gp} valid) and soundness error $4\cdot 2^{\mu}/|\E|$ (if the pulled and pushed multisets differ, the probability that \eqref{eq:gp} passes over uniform $\alpha \in \E^{4}$ and $\beta \in \E$).
 \end{theorem}
 
-\paragraph{Two fingerprints.} The error $4\cdot2^{\mu}/|\E|=2^{\mu+2-128}$ of Theorem~\ref{th:product_check} grows with the bus. Rather than grind, the verifier draws two independent fingerprints $(\alpha,\beta)$ and $(\alpha',\beta')$ as one message, with no grind, and \eqref{eq:gp} is proven under each. Both tests evaluate the same two polynomials of Lemma~\ref{lem:gp} at independent points, so unequal multisets pass both with probability at most $(4\cdot2^{\mu}/|\E|)^2$, at most $2^{-128}$ for $\mu\le62$ (\S\ref{sec:iopcs}). The announced table sizes fix $\mu$, and the verifier checks the bound. (The example of \S\ref{sec:arith-example} keeps one fingerprint.)
+\paragraph{Grinding.} The error $4\cdot2^{\mu}/|\E|=2^{\mu+2-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\mu+2-5=\mu-3$ bits before $\alpha$ and $\beta$ are drawn, by the rule of \S\ref{sec:e2e-fiat-shamir}. The announced table sizes fix $\mu$, so both sides know the grind.
 
 \begin{lemma}[A product identity is a multiset identity]\label{lem:gp}
 For a multiset $P$ of tuples write
@@ -100,7 +100,7 @@ All $\nside$ trees leave the pass on claims at one shared terminal point $\zeta$
 
 GKR (\S\ref{sec:gkr}) leaves one claim per side $s$: the value of $\widetilde V^{s}_0(\zeta)$, the extension of that side's leaves at the terminal point $\zeta\in\E^{\mu}$. This subsection reduces it to one sum per table, over its rows, of a polynomial of degree at most $d=2$ in its columns: exactly what the \emph{table sumcheck} (\S\ref{sec:air}) proves.
 
-\paragraph{Blocks.} The leaves of side $s$ are a stack (\S\ref{sec:stacking}) whose pieces are its \emph{blocks}: one per flush of each table on that side, and one per boundary set (\S\ref{sec:m3}, \S\ref{sec:lookup}). Block $b$ holds $2^{\kappa_b}$ leaves $L_b(x)$ and sits at the public selector $\mathsf{sel}_b$; for the block of a flush $\btup_{j,f}$, $\kappa_b=\tau_j$, and $L_b(x)$ is $\beta-\pi_\alpha(\btup_{j,f}(x))$ on an executed row, $(\alpha,\beta)$ the fingerprint of side $s$; an honest prover puts $1$ on a padding row. One difference with the stacking at commitment (\S\ref{sec:stacking}) is the padding: $1$s rather than $0$s.
+\paragraph{Blocks.} The leaves of side $s$ are a stack (\S\ref{sec:stacking}) whose pieces are its \emph{blocks}: one per flush of each table on that side, and one per boundary set (\S\ref{sec:m3}, \S\ref{sec:lookup}). Block $b$ holds $2^{\kappa_b}$ leaves $L_b(x)$ and sits at the public selector $\mathsf{sel}_b$; for the block of a flush $\btup_{j,f}$, $\kappa_b=\tau_j$, and $L_b(x)$ is $\beta-\pi_\alpha(\btup_{j,f}(x))$ on an executed row, $(\alpha,\beta)$ the fingerprint; an honest prover puts $1$ on a padding row. One difference with the stacking at commitment (\S\ref{sec:stacking}) is the padding: $1$s rather than $0$s.
 \begin{equation}\label{eq:gkr_leaves}
   \widetilde V^{s}_0(\zeta)\;=\;\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\;\widetilde L_b(\zeta_{<\kappa_b})\;+\;\underbrace{\Bigl(1-\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\Bigr)}_{\text{unused leaves}},
 \end{equation}
@@ -126,7 +126,7 @@ The last term is the public term above: $\padw{\nexec{j}}$ is the multilinear ex
 \begin{equation}\label{eq:bus_poly}
   B^{s}_j(x)\;=\;\sum_{b\,\in\,T_j}\eq(\mathsf{sel}_b,\zeta_{\ge\tau_j})\,\bform{b}(x),
 \end{equation}
-of degree at most $d$ in $T_j$'s columns, with coefficients the verifier builds from side $s$'s fingerprint and the selectors. What remains of side $s$ is
+of degree at most $d$ in $T_j$'s columns, with coefficients the verifier builds from $\alpha$, $\beta$ and the selectors. What remains of side $s$ is
 \begin{equation}\label{eq:bus}
   \sum_{j=1}^{\ntab}\ \sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,B^{s}_j(x)\;\qeq\;\mathsf{rem}_{s},
   \qquad s\in\{1,\dots,\nside\}.
