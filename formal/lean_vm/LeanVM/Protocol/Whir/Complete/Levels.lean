@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Whir.Complete.Rounds
 public import LeanVM.Protocol.Whir.Complete.Script
+public import LeanVM.Protocol.Whir.Complete.Encoding
 
 namespace LeanVM.Protocol.Whir.Complete
 
@@ -194,6 +195,114 @@ theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 
     refine ⟨rfl, by simp [hl], ?_⟩
     simp only [multilinearEval_cons, ← toList_foldPairsA]
     exact hb
+
+/-! ## Reading the honest words -/
+
+/-- `X_(2^i)(x) = Ŵ_i(x)`. -/
+theorem novelAt_two_pow {i : ℕ} (hi : i < 64) (x : K) : novelAt (2 ^ i) x = normVanishingAt i x := by
+  have h := novelAt_two_pow_sub i (i + 1) (by omega) (by omega) x
+  rw [show 2 ^ (i + 1) - 2 ^ i = 2 ^ i by rw [pow_succ]; omega, Nat.Ico_succ_singleton,
+    prod_singleton] at h
+  exact h
+
+/-- `X_(2^i + c)(x) = X_c(x) Ŵ_i(x)` for `c < 2^i`. -/
+theorem novelAt_two_pow_add {i c : ℕ} (hi : i < 64) (hc : c < 2 ^ i) (x : K) :
+    novelAt (2 ^ i + c) x = novelAt c x * normVanishingAt i x := by
+  have h := novelAt_two_pow_mul_add i 1 c hc x
+  rw [mul_one, novelAt_two_pow hi] at h
+  rw [h, mul_comm]
+
+private theorem foldl_stop (count : ℕ) : ∀ (vals : List K) (b : List K), count ≤ b.length →
+    vals.foldl (fun basis value ↦
+      if count ≤ basis.length then basis else basis ++ basis.map (· * value)) b = b
+  | [], _, _ => rfl
+  | v :: vals, b, h => by
+    rw [List.foldl_cons]
+    simp only [h, ↓reduceIte]
+    exact foldl_stop count vals b h
+
+private theorem novelBasis_aux (x : K) (count : ℕ) : ∀ (n i : ℕ), i + n ≤ 64 →
+    count ≤ 2 ^ (i + n) →
+    (((List.range' i n).map fun t ↦ normVanishingAt t x).foldl (fun basis value ↦
+      if count ≤ basis.length then basis else basis ++ basis.map (· * value))
+        ((List.range (2 ^ i)).map fun c ↦ novelAt c x)).take count =
+      (List.range count).map fun c ↦ novelAt c x
+  | 0, i, _, hc => by
+    rw [List.range'_zero, List.map_nil, List.foldl_nil, ← List.map_take, List.take_range,
+      min_eq_left (by simpa using hc)]
+  | n + 1, i, hin, hc => by
+    rw [List.range'_succ, List.map_cons, List.foldl_cons]
+    by_cases hstop : count ≤ ((List.range (2 ^ i)).map fun c ↦ novelAt c x).length
+    · simp only [hstop, ↓reduceIte]
+      rw [foldl_stop _ _ _ hstop, ← List.map_take, List.take_range,
+        min_eq_left (by simpa using hstop)]
+    · simp only [hstop, ↓reduceIte]
+      have hb : ((List.range (2 ^ i)).map fun c ↦ novelAt c x) ++
+          ((List.range (2 ^ i)).map fun c ↦ novelAt c x).map (· * normVanishingAt i x) =
+          (List.range (2 ^ (i + 1))).map fun c ↦ novelAt c x := by
+        rw [pow_succ, mul_two, List.range_add, List.map_append, List.map_map, List.map_map]
+        refine congrArg (_ ++ ·) (List.map_congr_left fun c hc ↦ ?_)
+        simp only [Function.comp_apply]
+        rw [novelAt_two_pow_add (by omega) (List.mem_range.mp hc)]
+      rw [hb]
+      exact novelBasis_aux x count n (i + 1) (by omega) (by rwa [show i + 1 + n = i + (n + 1) by ring])
+
+/-- **The verifier's novel basis**: `novelBasis (subspaceAt κ x) L` is `X_0(x), …, X_(L-1)(x)` for
+`L ≤ 2^(κ+1)`. -/
+theorem novelBasis_subspaceAt {κ L : ℕ} (hκ : κ < 64) (hL : L ≤ 2 ^ (κ + 1)) (x : K) :
+    novelBasis (subspaceAt κ x) L = (List.range L).map fun c ↦ novelAt c x := by
+  have h1 : ((List.range (2 ^ 0)).map fun c ↦ novelAt c x) = [1] := by simp [novelAt]
+  have := novelBasis_aux x L (κ + 1) 0 (by omega) (by simpa using hL)
+  rw [h1] at this
+  rw [novelBasis, subspaceAt_eq, List.range_eq_range']
+  exact this
+
+/-- **`novelEval`** is `Σ_c p_c X_c(x)`. -/
+theorem novelEval_subspaceAt {κ : ℕ} (hκ : κ < 64) (p : List E) (hp : p.length ≤ 2 ^ (κ + 1))
+    (x : K) :
+    novelEval p (subspaceAt κ x) = ∑ c ∈ range p.length, p.getD c 0 * ofK (novelAt c x) := by
+  rw [novelEval, novelBasis_subspaceAt hκ hp, sumE_eq]
+  have : ∀ (q : List E) (k : ℕ),
+      (List.zipWith (fun p b ↦ p * ofK b) q ((List.range' k q.length).map fun c ↦ novelAt c x)).sum =
+        ∑ c ∈ range q.length, q.getD c 0 * ofK (novelAt (k + c) x) := by
+    intro q
+    induction q with
+    | nil => simp
+    | cons a q ih =>
+      intro k
+      rw [List.length_cons, List.range'_succ, List.map_cons, List.zipWith_cons_cons, List.sum_cons,
+        ih (k + 1), sum_range_succ']
+      simp only [List.getD_cons_succ, List.getD_cons_zero, add_zero]
+      rw [add_comm]
+      exact congrArg₂ (· + ·) (sum_congr rfl fun c _ ↦ by rw [show k + 1 + c = k + (c + 1) by ring])
+        rfl
+  rw [List.range_eq_range', this p 0]
+  simp
+
+/-- `laneVal` of one lane. -/
+theorem laneVal_zero (t : Array E) (x : K) :
+    laneVal t 0 0 x = ∑ c ∈ range t.size, t.getD c 0 * ofK (novelAt c x) := by
+  simp [laneVal]
+
+/-- An encoded lane at a position. -/
+theorem encAt_laneMsg (κ k : ℕ) (t : List E) (j p : ℕ) :
+    encAt κ (laneMsg κ k t j) p =
+      ∑ c ∈ range (2 ^ κ), t.getD (j + 2 ^ k * c) 0 * ofK (novelAt c (K.ofBits p)) := by
+  rw [encAt, sum_cube]
+  refine sum_congr rfl fun c hc ↦ ?_
+  rw [laneMsg, bitsToNat_testBit (mem_range.mp hc)]
+
+/-- **The lanes' codeword entries** are the table's lanes at the point. -/
+theorem laneCodes_eq (κ k : ℕ) (t : List E) (ht : t.length = 2 ^ κ * 2 ^ k) (p : ℕ) :
+    (laneCodes κ k t p).length = 2 ^ k ∧ ∀ l < 2 ^ k,
+      (laneCodes κ k t p).getD l 0 = laneVal t.toArray k l (K.ofBits p) := by
+  refine ⟨by simp [laneCodes], fun l hl ↦ ?_⟩
+  rw [laneCodes, List.getD_eq_getElem _ _ (by simpa using hl), List.getElem_map,
+    List.getElem_range, encAt_laneMsg, laneVal]
+  simp only [List.size_toArray, ht, Nat.mul_div_cancel _ (Nat.two_pow_pos k)]
+  refine sum_congr rfl fun c _ ↦ ?_
+  rw [Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
+    add_comm, mul_comm c]
 
 end
 end LeanVM.Protocol.Whir.Complete
