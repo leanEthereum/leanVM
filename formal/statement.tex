@@ -224,12 +224,14 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \[
 \boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (\mathit{prog},x,\text{proof}) \text{ and the}\\
 \text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
-\le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
+\le (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
-Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $12006\cdot 2^{32}$, the IV
-hashing a bytecode of up to $2^{32}$ instructions) and two further terms of at most $2^{-128}$ each:
-the transfer to the RPM, which pays for those calls, and the verifier's own $12006/2^{256}$.
+(\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
+round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
+the verifier's $13261$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
+$13261\cdot 2^{32}$, the IV hashing a bytecode of up to $2^{32}$ instructions) and two further terms
+of at most $2^{-128}$ each: the transfer to the RPM, which pays for those calls, and the verifier's own
+$13261/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -547,7 +549,7 @@ What does that establish about $s$? The answer has three parts, each an end theo
 \item \textbf{The zkVM is knowledge sound} (\lean{KnowledgeSoundness},
 Section~\ref{sec:zkvm}). Except with probability
 \[
-\varepsilon(Q) = (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256},
+\varepsilon(Q) = (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256},
 \]
 the extractor returns a valid execution $t$ of $G$ on $x$. This is the only step with an oracle
 and a probability.
