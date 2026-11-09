@@ -1,5 +1,9 @@
-import LeanXmss.Scheme
-import VCVio.OracleComp.QueryTracking.WriterCost
+module
+
+public import LeanXmss.Scheme
+public import VCVio.OracleComp.QueryTracking.WriterCost
+public import Statement.LeanXmss
+public import Common.WithHash
 
 /-!
 # leanXMSS security statement
@@ -13,62 +17,33 @@ open OracleComp OracleSpec ENNReal
 
 namespace LeanXmss
 
-/-- A signing request: a leaf index and a 32-byte message. -/
-structure SignRequest where
-  leafIndex : LeafIndex
-  message : Message
-deriving DecidableEq
+open HashSig
 
-/-- A claimed forgery: a message and a signature, which carries its leaf index. -/
-structure Forgery where
-  message : Message
-  signature : Signature
-deriving DecidableEq
-
-/-- The signing oracle answers a request with a signature, or `none` if the signer fails. -/
-abbrev SigningSpec := SignRequest →ₒ Option Signature
-
-namespace SigningTranscript
-
-/-- A transcript is valid when no leaf index occurs twice. -/
-def Valid (log : QueryLog SigningSpec) : Prop :=
-  (log.map fun entry => entry.1.leafIndex).Nodup
-
-instance (log : QueryLog SigningSpec) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable ((log.map fun entry => entry.1.leafIndex).Nodup))
-
-/-- The signer returned the forgery: some request for its message was answered with its signature.
-Any other signature of a signed message is a strong forgery. -/
-def Contains (log : QueryLog SigningSpec) (forgery : Forgery) : Prop :=
-  ∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature
-
-instance (log : QueryLog SigningSpec) (forgery : Forgery) : Decidable (Contains log forgery) :=
-  inferInstanceAs
-    (Decidable (∃ entry ∈ log, entry.1.message = forgery.message ∧ entry.2 = some forgery.signature))
-
-end SigningTranscript
+@[expose] public section
 
 namespace Security
 
 /-- A probabilistic adaptive adversary with private randomness and access to hashing and signing. -/
 structure Adversary where
-  main : PublicKey → OracleComp (OracleWorld + SigningSpec) Forgery
+  main : PublicKey → OracleComp (OracleWorld + SigningOracleSpec) Forgery
 
 /-- Record each signing request and its answer. -/
-def signingOracle (sk : Seeded.SecretKey) :
-    QueryImpl SigningSpec (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) :=
+def signingOracle (sk : LeanXmss.SchemeSeedKey) :
+    QueryImpl SigningOracleSpec (WriterT (QueryLog SigningOracleSpec) (OracleComp OracleWorld)) :=
   QueryImpl.withLogging fun request =>
-    liftM (Seeded.sign sk request.leafIndex request.message : OracleComp HashSpec _)
+    liftM (KeyGenerationAndSigning.signWithHash sk request.leafIndex request.message : OracleComp
+        HashSpec _)
 
 /-- Sample the master seed, then run all parties with one shared hash oracle. -/
 noncomputable def gameCore (adversary : Adversary) : OracleComp OracleWorld Bool := do
   let seed ← liftM sampleMasterSeed
-  let (pk, sk) ← liftM (Seeded.keygenFromSeed seed)
-  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
-    (simulateQ (QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
+  let (pk, sk) ← liftM (KeyGenerationAndSigning.keygenFromSeedWithHash seed)
+  let ((forgery, log) : Forgery × QueryLog SigningOracleSpec) ←
+    (simulateQ (QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningOracleSpec) (OracleComp OracleWorld)) +
       signingOracle sk) (adversary.main pk)).run
-  let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
+  let verified ← liftM (Verification.verifyWithHash pk forgery.message forgery.signature : OracleComp HashSpec Bool)
+  return decide (SigningTranscript.NoLeafIndexReused log ∧ ¬SigningTranscript.Contains log forgery)
+      && verified
 
 /-- Forward private sampling for free; answer hash queries consistently and count every call,
 including cache hits. -/
@@ -83,20 +58,23 @@ noncomputable def experiment (adversary : Adversary) : ProbComp (Bool × Nat) :=
 
 /-- The probability of a successful forgery. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => result.1 = true | experiment adversary]
+  Pr{let result ← experiment adversary}[result.1 = true]
 
 /-- Every execution uses at most `q` hash calls, including key generation, signing and verification. -/
 def HasHashQueryBound (adversary : Adversary) (q : Nat) : Prop :=
   ∀ result ∈ support (experiment adversary), result.2 ≤ q
 
-/-- Every adversary with query budget `q ≥ 1` wins with probability at most `q / 2^bits`. -/
-def HasClassicalSecurityBits (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound adversary q →
-    forgeAdvantage adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+/-- The adversary's own hash calls: at most `q` on every path. The signing oracle's calls, key
+generation's and the final verification's are not the adversary's. -/
+def AdversaryHashQueryBound (adversary : Adversary) (q : Nat) : Prop :=
+  ∀ pk, IsQueryBoundP (adversary.main pk) (fun input => input matches .inl (.inr _)) q
+
+/-- At most `s` signing requests on every path. -/
+def SigningRequestBound (adversary : Adversary) (s : Nat) : Prop :=
+  ∀ pk, IsQueryBoundP (adversary.main pk) (fun input => input matches .inr _) s
 
 end Security
 
-/-- The security claim. -/
-abbrev LeanXmssSecurityStatement : Prop := Security.HasClassicalSecurityBits 127
+end
 
 end LeanXmss

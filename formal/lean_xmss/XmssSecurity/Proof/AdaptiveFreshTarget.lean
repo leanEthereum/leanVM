@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.Execution
-import XmssSecurity.Proof.RandomOracle
+module
+
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.Execution
+public import XmssSecurity.Proof.RandomOracle
+
+@[expose] public section
 
 open OracleComp ENNReal
 
@@ -9,9 +13,9 @@ namespace XmssSecurity.Rom
 
 /-- A uniform 256-bit oracle output has any fixed 128-bit truncation with probability exactly `2^-128`. -/
 theorem uniform_truncate_probability (target : Digest) :
-    Pr[fun output : HashOutput => truncateHash output = target | $ᵗ HashOutput] =
+    Pr{let output ← $ᵗ HashOutput}[truncateHash output = target] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_uniformSample]
+  rw [SampleableType.prEvent_uniformSample]
   change ((matchingOutputs target).card : ℝ≥0∞) /
       (Fintype.card HashOutput : ℝ≥0∞) = _
   rw [card_matchingOutputs, card_hashOutput, hashOutputBits_eq, Nat.pow_add,
@@ -31,8 +35,8 @@ theorem uniform_truncate_probability (target : Digest) :
 
 open OracleSpec
 
-noncomputable local instance : IsUniformSpec HashSpec :=
-  IsUniformSpec.ofFintypeInhabited _
+noncomputable local instance : UniformAnswerMeasure HashSpec :=
+  UniformAnswerMeasure.ofFiniteNonempty _
 
 /-- Each fresh query may select its own target digest without adding an index-set loss. -/
 def AdaptiveFreshDigestCollisionWith (initialCache finalCache : QueryCache HashSpec)
@@ -42,20 +46,5 @@ def AdaptiveFreshDigestCollisionWith (initialCache finalCache : QueryCache HashS
       initialCache (targetInput input) = some targetOutput ∧
       Concrete.CacheView.digestAt finalCache input =
         Concrete.CacheView.digestAt finalCache (targetInput input)
-
-/-- The event, with the target input named by an equation and the outputs typed `HashOutput`.
-At concrete inputs the anonymous constructor makes the kernel compare the output types of two
-different inputs, unfolding both inputs first; over free inputs that comparison is immediate. -/
-theorem AdaptiveFreshDigestCollisionWith.of_target {initialCache finalCache : QueryCache HashSpec}
-    {targetInput : HashInput → HashInput} {input honestInput : HashInput}
-    {output honestOutput : HashOutput}
-    (hcached : finalCache input = some output) (hfresh : initialCache input = none)
-    (htarget : targetInput input = honestInput)
-    (hhonest : initialCache honestInput = some honestOutput)
-    (hdigest : Concrete.CacheView.digestAt finalCache input =
-      Concrete.CacheView.digestAt finalCache honestInput) :
-    AdaptiveFreshDigestCollisionWith initialCache finalCache targetInput := by
-  subst htarget
-  exact ⟨input, output, honestOutput, hcached, hfresh, hhonest, hdigest⟩
 
 end XmssSecurity.Rom

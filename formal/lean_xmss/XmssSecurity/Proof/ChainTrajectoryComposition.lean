@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ChainTrajectoryUniformity
+module
+
+public import XmssSecurity.Proof.ChainTrajectoryUniformity
+
+@[expose] public section
 
 namespace XmssSecurity
 
@@ -6,15 +10,6 @@ abbrev FullChainTrajectory := Vector Digest (chainLength - 1 + 1)
 
 noncomputable def allLeafIndices : List LeafIndex :=
   Finset.univ.toList
-
-theorem allLeafIndices_nodup : allLeafIndices.Nodup := by
-  exact Finset.nodup_toList Finset.univ
-
-theorem mem_allLeafIndices (leafIndex : LeafIndex) : leafIndex ∈ allLeafIndices := by
-  simp [allLeafIndices]
-
-theorem allLeafIndices_length : allLeafIndices.length = lifetime := by
-  simp [allLeafIndices, LeafIndex]
 
 /-- Every one-time key of both layers, in a fixed order. -/
 noncomputable def allChainKeys : List ChainKey :=

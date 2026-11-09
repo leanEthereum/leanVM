@@ -1,8 +1,8 @@
 //! A self-contained verifier for leanVM execution proofs: single threaded, std only, plain integer arithmetic.
 //!
-//! A port of `python-verifier/verifier.py`, kept close enough to read side by side: the same functions, in the same order, with the same constants.
+//! Kept close enough to the Lean transcription (`formal/Statement/LeanVmVerifier.lean`) to read side by side: the same functions, in the same order, with the same constants.
 //!
-//! What the Python has no counterpart for sits in modules of its own: the prepared [`Bytecode`] and what the statement of an aggregate adds, [`da`].
+//! What the transcription has no counterpart for sits in modules of its own: the prepared [`Bytecode`] and what the statement of an aggregate adds, [`da`].
 //!
 //! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
 

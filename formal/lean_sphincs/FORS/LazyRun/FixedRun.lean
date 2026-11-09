@@ -1,4 +1,8 @@
-import FORS.LazyRun.PreparedEncodings
+module
+
+public import FORS.LazyRun.PreparedEncodings
+
+@[expose] public section
 
 /-! Support facts for fixed-function runs of the rich graph-view program: decomposition over
 binds, hash-only and private-only phases, and reveals. -/
@@ -119,10 +123,10 @@ theorem costRun_withReveals_liftProb {α : Type} (oa : ProbComp α) (result : Ru
 
 theorem costRun_withReveals_tick (amount : Nat) (result : RunResult Unit)
     (hresult : result ∈ support (costRun f table (withReveals
-      (HiddenCost.tick (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount)))) :
+      (HiddenCost.tick (H := Empty) (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount)))) :
     result = (((), []), [.inr amount]) := by
-  have h : HiddenCost.tick (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount =
-      liftM (CostSpec.query (.inr amount)) >>= fun value => pure value := by
+  have h : HiddenCost.tick (H := Empty) (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount =
+      liftM (CostSpec.query (.inr (.inl amount))) >>= fun value => pure value := by
     rw [bind_pure]
     rfl
   rw [h, costRun_withReveals_query_bind, mem_support_bind_iff] at hresult
@@ -133,9 +137,9 @@ theorem costRun_withReveals_tick (amount : Nat) (result : RunResult Unit)
 
 theorem costRun_withReveals_reveal (coordinate : HiddenGraph.Coordinate) (result : RunResult Digest)
     (hresult : result ∈ support (costRun f table (withReveals
-      (HiddenCost.reveal (D := HashInput) (R := HashOutput) coordinate)))) :
+      (HiddenCost.reveal (H := Empty) (D := HashInput) (R := HashOutput) coordinate)))) :
     result = ((table coordinate, [coordinate]), []) := by
-  have h : HiddenCost.reveal (D := HashInput) (R := HashOutput) coordinate =
+  have h : HiddenCost.reveal (H := Empty) (D := HashInput) (R := HashOutput) coordinate =
       liftM (CostSpec.query (.inl (.inr (.inr coordinate)))) >>= fun value => pure value := by
     rw [bind_pure]
     rfl
@@ -181,7 +185,7 @@ theorem costRun_withReveals_cap {α : Type} (computation : OracleComp CostSpec �
 theorem costRun_withReveals_sequenceReveal {n : Nat} (which : Fin n → HiddenGraph.Coordinate)
     (result : RunResult (Fin n → Digest))
     (hresult : result ∈ support (costRun f table (withReveals
-      (Concrete.sequenceFin fun index => HiddenCost.reveal (D := HashInput) (R := HashOutput) (which index))))) :
+      (Concrete.sequenceFin fun index => HiddenCost.reveal (H := Empty) (D := HashInput) (R := HashOutput) (which index))))) :
     result = (((fun index => table (which index)), List.ofFn which), []) := by
   induction n with
   | zero =>
@@ -322,7 +326,7 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
       rw [Concrete.sequenceDep, costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at hresult
       subst result
       simp only [Completeness.allSome]
-      rw [dif_pos (fun i => Fin.elim0 i)]
+      rw [dite_eq_left (fun i => Fin.elim0 i)]
       congr 2
       funext i
       exact i.elim0
@@ -341,7 +345,7 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
           subst r2
           simp only [List.nil_append, Prod.mk.injEq, and_true]
           unfold Completeness.allSome
-          rw [dif_neg (fun hall => by simpa [hhead] using hall (Fin.last _))]
+          rw [dite_eq_right (fun hall => by simpa [hhead] using hall (Fin.last _))]
       | some head =>
           rw [hhead] at h2
           obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ r2 h2
@@ -353,7 +357,7 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
           dsimp only at h4 ⊢
           by_cases hall : ∀ i : Fin n, (v i.castSucc).isSome
           · have hsome : Completeness.allSome (fun i : Fin n => v i.castSucc) =
-                some fun i => (v i.castSucc).get (hall i) := dif_pos hall
+                some fun i => (v i.castSucc).get (hall i) := dite_eq_left hall
             rw [hsome] at h4
             rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h4
             subst r4
@@ -361,20 +365,20 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
               intro i
               refine Fin.lastCases ?_ (fun j => hall j) i
               simp [hhead]
-            have hsome' : Completeness.allSome v = some fun i => (v i).get (hall' i) := dif_pos hall'
+            have hsome' : Completeness.allSome v = some fun i => (v i).get (hall' i) := dite_eq_left hall'
             simp only [List.nil_append, Prod.mk.injEq, and_true, hsome']
             congr 1
             funext i
             refine Fin.lastCases ?_ (fun j => ?_) i
             · simp [hhead]
             · simp
-          · have hnone : Completeness.allSome (fun i : Fin n => v i.castSucc) = none := dif_neg hall
+          · have hnone : Completeness.allSome (fun i : Fin n => v i.castSucc) = none := dite_eq_right hall
             rw [hnone] at h4
             rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h4
             subst r4
             simp only [List.nil_append, Prod.mk.injEq, and_true]
             have hnone' : Completeness.allSome v = none :=
-              dif_neg (fun hall' : ∀ i : Fin (n + 1), (v i).isSome => hall fun i => hall' i.castSucc)
+              dite_eq_right (fun hall' : ∀ i : Fin (n + 1), (v i).isSome => hall fun i => hall' i.castSucc)
             exact hnone'.symm
 
 theorem finish_support (parameter : PublicParameter) (data : PublicData) (message : Message)
@@ -522,11 +526,12 @@ theorem costRun_withReveals_plainQuery (input : CostSpec.Domain)
   obtain ⟨answer, _, hresult⟩ := hresult
   rw [costRun_withReveals_pure, map_pure, support_pure, Set.mem_singleton_iff] at hresult
   subst result
-  rcases input with (draw | (bytes | coordinate)) | amount
+  rcases input with (draw | (bytes | coordinate)) | (amount | honest)
   · rfl
   · rfl
   · exact (hreveal coordinate rfl).elim
   · rfl
+  · exact Empty.elim honest
 
 theorem interaction_support (parameter : PublicParameter) (seed : MasterSeed) (data : PublicData)
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)

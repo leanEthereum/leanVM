@@ -267,14 +267,14 @@ pub fn powers(base: E, count: usize) -> Vec<E> {
 mod tests {
     use super::*;
 
-    /// Independent Python reference vectors: (a, b, a * b).
+    /// Independent reference vectors: (a, b, a * b).
     const K_VECTORS: [(u64, u64, u64); 3] = [
         (0x01090913877ed8ed, 0x66ab35ac2768468f, 0x50c4519dc383744a),
         (0xa7715ae18f12a3b5, 0x05743059f43fa4f5, 0xeb64cd9cd9cda6df),
         (0xbd3efb4705e79ddd, 0x3aff618604de4ae0, 0xc3d7a95fa9cb59bb),
     ];
 
-    /// Independent Python reference vectors: (a, b, a * b, a * a, a^-1).
+    /// Independent reference vectors: (a, b, a * b, a * a, a^-1).
     type ReferenceVector = ([u64; 2], [u64; 2], [u64; 2], [u64; 2], [u64; 2]);
     const E_VECTORS: [ReferenceVector; 4] = [
         (

@@ -1,4 +1,8 @@
-import FORS.Classification.Accepted
+module
+
+public import FORS.Classification.Accepted
+
+@[expose] public section
 
 /-! Deterministic core: a winning non-stopped run of the rich program yields a cached hit of
 a fixed target or a covered FORS digest. -/
@@ -9,12 +13,11 @@ namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
-open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
+open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
-
 
 /-! ### The honest counter is the canonical one -/
 
@@ -262,54 +265,11 @@ theorem costRun_entries_short {α : Type} (f : HashInput → HashOutput) (table 
       obtain ⟨tail, htail, rfl⟩ := hresult
       intro bytes hbytes
       rcases List.mem_append.mp hbytes with hrec | hrest
-      · rcases input with (draw | (other | coordinate)) | amount <;> simp [HiddenCost.recorded] at hrec
+      · rcases input with (draw | (other | coordinate)) | (amount | honest) <;> simp [HiddenCost.recorded] at hrec
         subst hrec
         by_contra hlong
         exact hinput hlong
       · exact ih answer (hnext answer) tail htail bytes hrest
-
-theorem costRun_withReveals_cap_cost {α : Type} (f : HashInput → HashOutput) (table : HiddenGraph.Table)
-    (computation : OracleComp GraphView.CostSpec α) (budget : Nat)
-    (result : (Option α × List HiddenGraph.Coordinate) × List (HiddenCost.Entry HashInput))
-    (hresult : result ∈ support (Stop.costRun f table (withReveals (HiddenCost.cap computation budget)))) :
-    HiddenCost.traceCost result.2 ≤ budget := by
-  induction computation using OracleComp.inductionOn generalizing budget result with
-  | pure value =>
-      change result ∈ support (Stop.costRun f table (withReveals
-        (pure (some value) : OracleComp GraphView.CostSpec _))) at hresult
-      rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at hresult
-      subst result
-      simp [HiddenCost.traceCost]
-  | query_bind input next ih =>
-      rw [cap_query_bind_gen] at hresult
-      split at hresult
-      · rename_i hcost
-        rw [costRun_withReveals_query_bind, mem_support_bind_iff] at hresult
-        obtain ⟨answer, _, hresult⟩ := hresult
-        rw [support_map] at hresult
-        obtain ⟨tail, htail, rfl⟩ := hresult
-        have h := ih answer _ tail htail
-        rw [HiddenCost.traceCost_append, HiddenCost.recorded_cost]
-        omega
-      · rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at hresult
-        subst result
-        simp [HiddenCost.traceCost]
-
-theorem ordinary_length_le_cost (entries : List (HiddenCost.Entry HashInput)) :
-    (entries.filterMap fun entry => match entry with
-      | .inl input => some input
-      | .inr _ => none).length ≤ HiddenCost.traceCost entries := by
-  induction entries with
-  | nil => simp
-  | cons entry entries ih =>
-      cases entry with
-      | inl input =>
-          simp only [List.filterMap_cons, List.length_cons, HiddenCost.traceCost, List.map_cons,
-            List.sum_cons, HiddenCost.entryCost] at ih ⊢
-          omega
-      | inr amount =>
-          simp only [List.filterMap_cons, HiddenCost.traceCost, List.map_cons, List.sum_cons] at ih ⊢
-          omega
 
 /-- A seed named by none of fewer than 2^256 inputs. -/
 theorem exists_seed_avoiding (inputs : List HashInput) (hlength : inputs.length < 2 ^ 256) :
@@ -343,12 +303,13 @@ theorem costRun_support_congr {α : Type} (f g : HashInput → HashOutput) (tabl
       have htailAgree : ∀ x, Sum.inl x ∈ tail.2 → f x = g x :=
         fun x hx => hagree x (List.mem_append_right _ hx)
       refine ⟨answer, ?_, by rw [support_map]; exact ⟨tail, ih answer tail htail htailAgree, rfl⟩⟩
-      rcases input with (draw | (bytes | coordinate)) | amount
+      rcases input with (draw | (bytes | coordinate)) | (amount | honest)
       · exact hanswer
       · have hb := hagree bytes (by simp [HiddenCost.recorded])
         simpa [Stop.fixedCostP, hb] using hanswer
       · exact hanswer
       · exact hanswer
+      · exact Empty.elim honest
 
 /-! ### Reachable coordinates of the sample model -/
 
@@ -356,6 +317,7 @@ theorem knownOf_known (parameter : PublicParameter) (fixed : HiddenGraph.Table) 
     (value : Digest) (h : knownOf parameter fixed coordinate = some value) :
     KnownCoordinate parameter coordinate := by
   unfold knownOf at h
+  rw [QueryCache.toFn_ofFn] at h
   split at h
   · assumption
   · cases h
@@ -554,7 +516,7 @@ theorem finalFn_unparsed (parameterOutput : HashOutput) (highs : CoordinateHighs
   | none => rfl
   | some query =>
       simp only [Option.elim_some]
-      rw [if_neg (hnot query hparse)]
+      rw [ite_eq_right (hnot query hparse)]
 
 theorem encoding_not_row (parameterOutput : HashOutput) (highs : CoordinateHighs) (table : HiddenGraph.Table)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput) (counter : Counter) :
@@ -660,7 +622,7 @@ theorem cached_hit (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (h
   refine ⟨input, answer, hanswer, ?_⟩
   have hvalue : f input = answer := (hagree input hentry).trans hfin
   unfold digestFreeTargets
-  rw [if_neg hmsg, ← hvalue]
+  rw [ite_eq_right hmsg, ← hvalue]
   exact hmem
 
 /-- A queried honest FORS secret was revealed. -/
@@ -1048,96 +1010,5 @@ theorem sampleFn_final (parameterOutput : HashOutput) (fixed : HiddenGraph.Table
   rw [sampleFn_answer parameterOutput fixed highs remaining table htable seed _ input hnot]
   unfold outsideFn
   exact answer_extend_final _ table _ cacheF hstruct input hshort
-
-/-- **Win implication.** In every non-stopped lazy run of the rich program whose outcome wins
-the original game, either a cached answer hits one of the sample's fixed targets, or the run's
-reveals cover the FORS openings of a cached, landed, unsigned forgery digest. -/
-theorem win_implies_bad (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : Nat) (hq : q < 2 ^ 256)
-    (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
-    (remaining : RemainingOutputs) (steps : Message → Randomness)
-    (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
-    (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
-    (table : HiddenGraph.Table)
-    (htable : tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table)
-    (outcome : Outcome) (reveals : List Coordinate) (entries : List (HiddenCost.Entry HashInput))
-    (cacheF : QueryCache HashSpec)
-    (hstop : some (((some outcome, reveals), entries), cacheF) ∈ support
-      (HiddenOutside.stopped (sampleModel parameterOutput highs) table
-        (HiddenCost.erase (HiddenCost.trace (richProgram (Internalize.internalize adversary) q
-          (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps))))
-        (knownOf (truncateHash parameterOutput) fixed) prepared.2))
-    (hwin : outcomeWins outcome = true) :
-    CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) cacheF ∨
-      ForsCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root
-        outcome reveals cacheF := by
-  obtain ⟨hgrow, hrun, hguess⟩ := lazy_support (sampleModel parameterOutput highs) table _
-    (knownOf (truncateHash parameterOutput) fixed) prepared.2 cacheF _ entries hstop
-  obtain ⟨-, hcached⟩ := lazy_cached (sampleModel parameterOutput highs) table _
-    (knownOf (truncateHash parameterOutput) fixed) prepared.2 cacheF _ entries hstop
-  have hOnly : OnlyC (richProgram (Internalize.internalize adversary) q (truncateHash parameterOutput)
-      (sampleData parameterOutput fixed highs remaining steps)) :=
-    OnlyC.withReveals (OnlyC.cap (OnlyC.costGameX _ _ adversary) q)
-  have hshortE := costRun_entries_short _ table _ hOnly _ hrun
-  have hcost := costRun_withReveals_cap_cost _ table _ q _ hrun
-  obtain ⟨seed, hseed⟩ := exists_seed_avoiding
-    (entries.filterMap fun entry => match entry with | .inl input => some input | .inr _ => none)
-    (lt_of_le_of_lt ((ordinary_length_le_cost entries).trans hcost) hq)
-  have hseed' : ∀ input, Sum.inl input ∈ entries → ¬SeedGuess.SeedHit input seed :=
-    fun input hinput => hseed input (List.mem_filterMap.mpr ⟨_, hinput, rfl⟩)
-  have hstructPrep := (preparation_support _ _ _ prepared hprepared
-    (preferCache prepared.2 (sampleFn (materialT parameterOutput fixed highs remaining table) seed
-      (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF)))
-    (preferCache_agrees _ _))
-  have hstruct : ∀ input answer, structCache (splitMaterial parameterOutput highs remaining fixed)
-      (splitAnswers highs remaining fixed) input = some answer → cacheF input = some answer :=
-    fun input answer h => hgrow input answer (hstructPrep.1 h)
-  have hagreeAll := sampleFn_final parameterOutput fixed highs remaining table htable cacheF seed hstruct
-  have hagree : ∀ input, Sum.inl input ∈ entries →
-      sampleFn (materialT parameterOutput fixed highs remaining table) seed
-        (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF) input =
-      finalFn (sampleModel parameterOutput highs) table cacheF input :=
-    fun input hinput => hagreeAll input (hshortE input hinput) (hseed' input hinput)
-  set f' := sampleFn (materialT parameterOutput fixed highs remaining table) seed
-    (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF) with hf'
-  have hrun' := costRun_support_congr _ f' table _ _ hrun (fun input hinput => (hagree input hinput).symm)
-  have hagreement := sample_agreement (materialT parameterOutput fixed highs remaining table) seed
-    (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF)
-  have hcons := sample_consistent (materialT parameterOutput fixed highs remaining table) seed
-    (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF)
-  have hbound := sample_boundary (materialT parameterOutput fixed highs remaining table) seed
-    (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF)
-  have hdata : GraphView.DataCorrect f' (truncateHash parameterOutput) seed
-      (sampleData parameterOutput fixed highs remaining steps) := by
-    have h := GraphView.publicData_correct f' _ seed _ hcons hbound steps
-    rwa [publicData_T] at h
-  have hcoord : GraphView.CoordinatesCorrect f' (truncateHash parameterOutput) seed table := by
-    have h := GraphView.coordinates_correct f' _ seed _ hcons
-    have heq := (Reduce.sampleCoordinates_eq (materialT parameterOutput fixed highs remaining table) seed
-      (answersT parameterOutput fixed highs remaining table) (finalTable parameterOutput highs table cacheF)).trans
-      (graphCoordinates_T parameterOutput fixed highs remaining table htable)
-    unfold Assembly.sampleCoordinates at heq
-    rwa [heq] at h
-  obtain ⟨hverified, htrace, hgood⟩ := rich_support f' table (Internalize.internalize adversary) q
-    (truncateHash parameterOutput) seed (sampleData parameterOutput fixed highs remaining steps) hdata hcoord
-    outcome reveals entries hrun'
-  have hencAgree : ∀ (key : OtsKey) (counter : Counter),
-      f' (Wots.encodingInput (truncateHash parameterOutput) key.1 key.2.1 key.2.2
-        (keyMessages (sampleData parameterOutput fixed highs remaining) key) counter) =
-      preferCache prepared.2 f' (Wots.encodingInput (truncateHash parameterOutput) key.1 key.2.1 key.2.2
-        (keyMessages (sampleData parameterOutput fixed highs remaining) key) counter) :=
-    fun key counter => encoding_preferCache parameterOutput highs table cacheF prepared.2 f' seed
-      (fun input hshort hnot => hagreeAll input hshort hnot) hgrow _ _ _ _
-      (shortMessage_keyMessage _ _ _ _) counter
-  have hselection := selection_of_agree (truncateHash parameterOutput)
-    (keyMessages (sampleData parameterOutput fixed highs remaining)) prepared.1 f' (preferCache prepared.2 f')
-    hstructPrep.2 hencAgree
-  have hfull := fullTable_eq parameterOutput fixed highs remaining table prepared.1 f' seed hagreement
-    hselection
-  obtain ⟨forgery, log, verified⟩ := outcome
-  simp only [outcomeWins, Bool.and_eq_true, decide_eq_true_eq] at hwin
-  obtain ⟨⟨hvalid, hnotContains⟩, rfl⟩ := hwin
-  exact bad_of_accepted hb parameterOutput fixed highs remaining steps table htable prepared.1 cacheF reveals entries
-    f' seed hcons hbound hdata hcoord hfull hagree hcached hguess forgery log htrace hgood
-    hverified.symm hvalid hnotContains
 
 end FORS.Security.HiddenBridge

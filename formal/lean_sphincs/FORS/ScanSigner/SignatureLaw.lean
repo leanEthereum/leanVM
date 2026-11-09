@@ -1,4 +1,8 @@
-import FORS.ScanSigner.Group
+module
+
+public import FORS.ScanSigner.Group
+
+@[expose] public section
 
 /-!
 # The true law of the signature of a message

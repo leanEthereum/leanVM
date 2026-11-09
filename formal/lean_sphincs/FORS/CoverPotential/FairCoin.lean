@@ -1,6 +1,10 @@
-import FORS.CoverPotential.OneCoin
-import FORS.Base.Virtual
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import FORS.CoverPotential.OneCoin
+public import FORS.Base.Virtual
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-! The fair share `wbarOf q` of the grinding signer at budget `q`, its fair-share hypotheses, real
 forms of the landing probability, and the final real inequality behind

@@ -1,5 +1,9 @@
-import FORS.Classification.Reference
-import FORS.Scheme.DigestView
+module
+
+public import FORS.Classification.Reference
+public import FORS.Scheme.DigestView
+
+@[expose] public section
 
 /-! The stopped hidden-row proof uses one hidden predecessor guess or one noncanonical
 output match at a chain address, and one query of an unrevealed FORS secret. The older two-edge/contact extraction implies this simpler

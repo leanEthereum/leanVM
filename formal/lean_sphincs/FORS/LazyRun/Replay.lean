@@ -1,4 +1,8 @@
-import FORS.LazyRun.InterpreterFacts
+module
+
+public import FORS.LazyRun.InterpreterFacts
+
+@[expose] public section
 
 /-! Replaying a recorded hash computation: once every answer of a lazily sampled run is cached,
 the interpreter returns the same result. Applied to the prepared encoding searches, a failed
@@ -92,7 +96,8 @@ theorem interp_liftHash_replay [DecidableEq D] {α : Type} (c : OracleComp (D �
       have hst : s.cache t = some a.1 := hcache t a.1 (randomOracle_run_grows (next a.1) a.2 r hr t a.1 hans)
       rw [liftM_bind] at hout
       change out ∈ support (interp tg initial model
-        (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl t)))) >>= fun u => liftM (next u)) budget s) at hout
+        (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl t)))) >>= fun u =>
+          (liftM (next u) : OracleComp (SourceCostSpec D R ι) α)) budget s) at hout
       rw [interp_ordinary] at hout
       split_ifs at hout with h1
       · rw [ordinaryStep, hparse] at hout
@@ -164,34 +169,33 @@ theorem sequenceFin_prob [DecidableEq D] {α : Type} (Inv : QueryCache (D →ₒ
     (B : ℝ≥0∞) :
     ∀ {n : ℕ} (f : Fin n → OracleComp (D →ₒ R) α) (i : Fin n),
       (∀ j, j ≠ i → ∀ c, Inv c → ∀ r ∈ support ((simulateQ (randomOracle (spec := D →ₒ R)) (f j)).run c), Inv r.2) →
-      (∀ c, Inv c → Pr[fun r => bad r.1 | (simulateQ (randomOracle (spec := D →ₒ R)) (f i)).run c] ≤ B) →
-      ∀ c0, Inv c0 → Pr[fun res => bad (res.1 i) |
-        (simulateQ (randomOracle (spec := D →ₒ R)) (Concrete.sequenceFin f)).run c0] ≤ B
+      (∀ c, Inv c → Pr{let r ← (simulateQ (randomOracle (spec := D →ₒ R)) (f i)).run c}[bad r.1] ≤ B) →
+      ∀ c0, Inv c0 → Pr{let res ← (simulateQ (randomOracle (spec := D →ₒ R)) (Concrete.sequenceFin f)).run c0}[bad (res.1 i)] ≤ B
   | 0, _, i, _, _, _, _ => i.elim0
   | n + 1, f, i, hkeep, hone, c0, hc0 => by
       unfold Concrete.sequenceFin
       simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure]
-      rw [probEvent_bind_eq_tsum]
+      rw [OracleComp.prEvent_bind_eq_tsum]
       refine Fin.cases ?_ (fun j => ?_) i hkeep hone
       · intro _ hone0
-        calc _ ≤ ∑' a, Pr[= a | (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0] *
+        calc _ ≤ ∑' a, Pr{let x ← (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0}[x = a] *
               (if bad a.1 then 1 else 0) := by
               refine ENNReal.tsum_le_tsum fun a => mul_le_mul_right ?_ _
               split_ifs with hb
-              · exact probEvent_le_one
-              · refine le_of_eq (probEvent_eq_zero fun res hres hbad => hb ?_)
+              · exact (prEvent_le_one _)
+              · refine le_of_eq (prEvent_eq_zero_of_forall_mem_support _ _ fun res hres hbad => hb ?_)
                 rw [support_bind] at hres
                 obtain ⟨t, _, ht⟩ := Set.mem_iUnion₂.1 hres
                 rw [support_pure, Set.mem_singleton_iff] at ht
                 rw [ht] at hbad
                 exact hbad
-          _ = Pr[fun r => bad r.1 | (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0] := by
-              rw [probEvent_eq_tsum_ite]
+          _ = Pr{let r ← (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0}[bad r.1] := by
+              rw [OracleComp.prEvent_eq_tsum_ite]
               refine tsum_congr fun a => ?_
               split_ifs <;> simp
           _ ≤ B := hone0 c0 hc0
       · intro hkeep' hone'
-        calc _ ≤ ∑' a, Pr[= a | (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0] * B := by
+        calc _ ≤ ∑' a, Pr{let x ← (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0}[x = a] * B := by
               refine ENNReal.tsum_le_tsum fun a => ?_
               by_cases ha : a ∈ support ((simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0)
               · refine mul_le_mul_right ?_ _
@@ -200,14 +204,14 @@ theorem sequenceFin_prob [DecidableEq D] {α : Type} (Inv : QueryCache (D →ₒ
                   (fun j' hj' c hc r hr => hkeep' j'.succ (fun e => hj' (Fin.succ_injective _ e)) c hc r hr)
                   hone' a.2 hinv
                 refine le_trans (le_of_eq ?_) h
-                rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+                rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_eq_tsum_ite]
                 refine tsum_congr fun t => ?_
-                rw [probEvent_pure]
+                rw [prEvent_pure]
                 simp only [Fin.cases_succ]
                 split_ifs <;> simp
-              · rw [probOutput_eq_zero_of_not_mem_support ha, zero_mul, zero_mul]
+              · rw [(prEvent_eq_zero_of_not_mem_support _) ha, zero_mul, zero_mul]
           _ ≤ B := by
               rw [ENNReal.tsum_mul_right]
-              exact mul_le_of_le_one_left' tsum_probOutput_le_one
+              exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 end FORS.Security.HiddenDebt

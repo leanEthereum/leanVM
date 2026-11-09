@@ -1,6 +1,10 @@
-import FORS.Classification.Win
-import FORS.ScanSigner.FairShare
-import FORS.LazyRun.InterpreterFacts
+module
+
+public import FORS.Classification.Win
+public import FORS.ScanSigner.FairShare
+public import FORS.LazyRun.InterpreterFacts
+
+@[expose] public section
 
 /-! Hit inclusion: the sample's fixed targets, read as a `Targeting` of the saturation potential.
 Row addresses (chain steps and FORS leaves) target their output coordinate; every other address
@@ -14,7 +18,7 @@ namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
-open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
+open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -195,7 +199,7 @@ theorem sampleTargeting_kind (results : OtsKey → Option (Counter × Encoding))
       kindAt parameterOutput fixed highs remaining results fields := by
   rw [sampleTargeting_kind_eq]
   unfold sampleKind
-  rw [if_neg hmsg, hf]
+  rw [ite_eq_right hmsg, hf]
   exact Option.elim_some _ _ _
 
 theorem kindAt_row (results : OtsKey → Option (Counter × Encoding)) (fields : TweakFields) (address : Address)
@@ -219,7 +223,7 @@ theorem sampleTargeting_msg (results : OtsKey → Option (Counter × Encoding)) 
     (sampleTargeting parameterOutput fixed highs remaining results).kind input = .none := by
   rw [sampleTargeting_kind_eq]
   unfold sampleKind
-  exact if_pos h
+  exact ite_eq_left h
 
 theorem sampleTargeting_compatible (results : OtsKey → Option (Counter × Encoding)) :
     HiddenDebt.Compatible (sampleTargeting parameterOutput fixed highs remaining results)
@@ -318,7 +322,7 @@ theorem target_kind (table : HiddenGraph.Table)
                   unfold referenceTable
                   rw [(positionAt_some_iff _ address.position).2 rfl]
                   dsimp only
-                  rw [if_neg hactive, boundary_row]
+                  rw [ite_eq_right hactive, boundary_row]
                   exact Option.map_none _
                 rw [hnone] at he
                 cases he

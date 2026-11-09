@@ -1,0 +1,154 @@
+name = "lean-vm"
+version = "0.1.0"
+defaultTargets = ["LeanVM"]
+# Tests are `#guard`s and `example`s checked while the test library compiles.
+testDriver = "LeanVMTests"
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# The statement: definitions and end statements only (`Statement/`), knowledge soundness and
+# completeness in the random-permutation model among them (`Statement/LeanVm.lean`).
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The proofs shared by the projects: the random-permutation model's indifferentiability and the
+# ROM-to-RPM transfers for Keccak-256, the duplex lemma.
+[[require]]
+name = "common"
+path = "../common"
+
+# The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
+# and LeanDA, whose security formal/lean_da proves: the schemes are in `Statement/`, and the
+# guest's modules import what is left of their Scheme modules, built here with this package's
+# toolchain and dependencies, so they come first: a later requirement's versions take precedence.
+[[require]]
+name = "lean-xmss-security"
+path = "../lean_xmss"
+
+[[require]]
+name = "lean-sphincs-security"
+path = "../lean_sphincs"
+
+[[require]]
+name = "lean-da-security"
+path = "../lean_da"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.35.0"
+
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "e28da34817c3775cfb935376acf5d416f555d64f"
+
+# Clean's last main commit on this toolchain before `ProverData` became a structure (f3abad7c);
+# from d7b65e4a its `Vector.get_eq_getElem` also clashes with Batteries' (imported through CompPoly).
+# Older Clean, before its bus API changed (0d764091, b4af9072), no longer builds on this Mathlib.
+[[require]]
+name = "Clean"
+git = "https://github.com/Verified-zkEVM/clean"
+rev = "b41c196b10cf0f389d2badf5e19e1435e78e6d98"
+
+# Root requirements take precedence over inherited manifests. Mathlib stays on the release
+# matching the toolchain.
+[[require]]
+name = "Arklib"
+git = "https://github.com/Verified-zkEVM/ArkLib"
+rev = "31ff7ddf9bc209ffaeab516359cd17f47d9bd6f1"
+
+# Native probability carriers and the free monads used by Protocol oracle computations.
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio"
+rev = "5f9baf12d29d25ef7e754765d28030d53e728aac"
+
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
+
+[[lean_lib]]
+name = "LeanVM"
+globs = ["LeanVM.*"]
+
+[[lean_lib]]
+# Tests deliberately load full module bodies for kernel evaluation and axiom inspection.
+name = "LeanVMTests"
+srcDir = "tests"
+globs = ["LeanVMTests.+"]
+allowNonModules = true
+
+# The deployed verifier, compiled, on the four proof files of the Rust prover; not a default
+# target. scripts/fuzz-verifier.py runs it against the Rust verifier, and reads the mutation
+# positions of an honest proof from its `--events` mode.
+[[lean_exe]]
+name = "leanvm-verify"
+root = "LeanvmVerify"
+srcDir = "cli"
+
+# The statement's honest prover (`LeanVM.Prover.prove`), compiled, on a program, its public input
+# and an execution (cli/LeanvmProve.lean): writes the proof in the four-file format; not a
+# default target. scripts/prover-diff.py runs it against the Lean and the Rust verifier.
+[[lean_exe]]
+name = "leanvm-prove"
+root = "LeanvmProve"
+srcDir = "cli"
+
+# The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
+# statement's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
+[[lean_exe]]
+name = "node-vectors"
+root = "NodeVectors"
+srcDir = "cli"
+
+# EthLib's test vectors of the signature schemes on the statement's leanSPHINCS and leanXMSS,
+# compiled (cli/SchemeVectors.lean): key generation, signing and verification against the crate's;
+# CI runs it after `lake test`.
+[[lean_exe]]
+name = "scheme-vectors"
+root = "SchemeVectors"
+srcDir = "cli"
+
+# Writes the guest's core IR as data (`LeanVM/Guest/Data/Core*.lean`); `--check` fails when it
+# is stale, as CI runs it.
+[[lean_exe]]
+name = "guest-core"
+root = "GuestCore"
+srcDir = "cli"
+
+# Writes the certificates of the guest's compiled functions (`LeanVM/Guest/Data/Cert*.lean`,
+# `Pows.lean`) and the kernel's checks of them; `--check` fails when they are stale, as CI runs it.
+[[lean_exe]]
+name = "guest-cert"
+root = "GuestCert"
+srcDir = "cli"
+
+# The guest's mirror and honest hint generator against real aggregations (cli/GuestDiff.lean): on
+# the cases the exporter's ignored test `guest_diff` writes; not a default target.
+[[lean_exe]]
+name = "guest-diff"
+root = "GuestDiff"
+srcDir = "cli"
+
+# Writes the guest's kernel-checked memory-layer facts (`LeanVM/Guest/Memory/GuestFresh*`,
+# `GuestWf*`); `--check` fails when they are stale.
+[[lean_exe]]
+name = "guest-memory"
+root = "GuestMemory"
+srcDir = "cli"
+
+# The statement's proof wire encoding (`Proof.fromBytes`, `Proof.toBytes`), compiled, on byte files
+# (cli/WireDiff.lean); not a default target. scripts/wire-diff.py runs it against the Rust's
+# `Proof::from_bytes` and `Proof::to_bytes` (scripts/wire-diff).
+[[lean_exe]]
+name = "wire-diff"
+root = "WireDiff"
+srcDir = "cli"

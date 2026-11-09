@@ -1,6 +1,10 @@
-import FORS.GraphView.EncodingPreparation
-import FORS.LazyRun.GraphRows
-import FORS.GraphView.Correctness
+module
+
+public import FORS.GraphView.EncodingPreparation
+public import FORS.LazyRun.GraphRows
+public import FORS.GraphView.Correctness
+
+@[expose] public section
 
 /-! Signature assembly from public structural labels and explicit coordinate disclosures.
 This file establishes the exact output view; preservation of the original internal hash cost
@@ -84,13 +88,13 @@ theorem publicData_correct (f : QueryImpl HashSpec Id) (parameter : PublicParame
     exact tree_root_value f parameter seed labels hconsistent hboundary lay tree htree
   · intro lay tree leaf hactive
     funext level
-    simpa only [publicData, canonicalTreePath, dif_pos level.isLt] using
+    simpa only [publicData, canonicalTreePath, dite_eq_left level.isLt] using
       tree_path_sibling f parameter seed labels hconsistent hboundary lay tree
         leaf hactive level.val level.isLt
   · intro index κ leaf
     funext level
     have h := fors_path_sibling f parameter seed labels hconsistent index κ leaf level.val level.isLt
-    simpa only [publicData, Fors.extendPath, dif_pos level.isLt] using h
+    simpa only [publicData, Fors.extendPath, dite_eq_left level.isLt] using h
 
 /-- The public message of a retained key is the message the signer computes. -/
 theorem DataCorrect.keyMessage {f : QueryImpl HashSpec Id} {parameter : PublicParameter}
@@ -100,10 +104,10 @@ theorem DataCorrect.keyMessage {f : QueryImpl HashSpec Id} {parameter : PublicPa
       (Seeded.keyMessage parameter seed lay tree leaf : OracleComp HashSpec HashInput) := by
   unfold PublicData.keyMessage Seeded.keyMessage
   by_cases hbelow : lay.val + 1 < numLayers
-  · rw [dif_pos hbelow, dif_pos hbelow,
+  · rw [dite_eq_left hbelow, dite_eq_left hbelow,
       hdata.treeRoot _ _ (treeActive_child parameter lay tree leaf hactive hbelow)]
     simp only [evalWithAnswerFn_bind, evalWithAnswerFn_pure]
-  · rw [dif_neg hbelow, dif_neg hbelow, hdata.forsKey]
+  · rw [dite_eq_right hbelow, dite_eq_right hbelow, hdata.forsKey]
     simp only [evalWithAnswerFn_bind, evalWithAnswerFn_pure]
 
 def CoordinatesCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -125,7 +129,7 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     by_cases hz : position.val = 0
     · simp only [coordinates, hz, ↓reduceDIte, Chain.honestChain, chainWalk]
       rfl
-    · rw [coordinates, dif_neg hz]
+    · rw [coordinates, dite_eq_right hz]
       have hstep : position.val - 1 < chainLength - 1 := by have := position.isLt; omega
       have h := chain_value f parameter seed labels hconsistent lay tree leaf hactive
         chain ⟨position.val - 1, hstep⟩
@@ -135,21 +139,8 @@ theorem coordinates_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
 
 abbrev HashViewSpec := HashSpec + (Coordinate →ₒ Digest)
 
-def reveal (coordinate : Coordinate) : OracleComp HashViewSpec Digest :=
-  liftM ((Coordinate →ₒ Digest).query coordinate)
-
 def fixedView (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table) : QueryImpl HashViewSpec Id :=
   f + (show QueryImpl (Coordinate →ₒ Digest) Id from table)
-
-/-- Reveal the secret and the leaf of one opened tree. -/
-def revealTree (index : Index) (κ : FTree) (leaf : FLeaf) : OracleComp HashViewSpec (Fin 2 → Digest) :=
-  sequenceFin fun k : Fin 2 => reveal (.fors index κ leaf k)
-
-/-- One tree's opening from the revealed secret and the public path. -/
-def treeSource (data : PublicData) (index : Index) (κ : FTree) (leaf : FLeaf) :
-    OracleComp HashViewSpec TreeOpening := do
-  let values ← revealTree index κ leaf
-  return ⟨values 0, data.forsPath index κ leaf⟩
 
 /-- The counter search of the key of layer `lay` on the path of `index`, on its public message. -/
 def layerSearch (parameter : PublicParameter) (data : PublicData) (index : Index) (lay : Layer) :
@@ -157,29 +148,11 @@ def layerSearch (parameter : PublicParameter) (data : PublicData) (index : Index
   ReferenceChoice.search parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
     (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0
 
-/-- The counter searches of every layer, stopping at the first failure. -/
-def layersSearch (parameter : PublicParameter) (data : PublicData) (index : Index) :
-    OracleComp HashSpec (Option (Layer → Counter × Encoding)) :=
-  sequenceDep (α := fun _ => Counter × Encoding) fun lay => layerSearch parameter data index lay
-
 /-- The layer signatures from the found counters and words, the revealed chain values and the
 public paths. -/
 def layerSignatures (data : PublicData) (index : Index) (found : Layer → Counter × Encoding)
     (values : Layer → ChainIndex → Digest) : (lay : Layer) → LayerSignature lay := fun lay =>
   ⟨(found lay).1, values lay, data.treePath lay (treeIndexAt index lay) (leafIndexAt index lay)⟩
-
-/-- No coordinate is revealed when a WOTS encoding fails. On success only the 64 frontiers of every
-layer and the opened FORS secrets and leaves are read; all path values are public structural labels. -/
-def finishSource (parameter : PublicParameter) (data : PublicData)
-    (message : Message) (randomness : Randomness) : OracleComp HashViewSpec (Option Signature) := do
-  let digest ← liftM (messageDigest parameter data.root message randomness :
-    OracleComp HashSpec MessageDigest)
-  let index := digestIndex digest
-  let some found ← liftM (layersSearch parameter data index) | return none
-  let values ← sequenceFin fun lay : Layer => sequenceFin fun chain =>
-    reveal (.chain lay (treeIndexAt index lay) (leafIndexAt index lay) chain ((found lay).2 chain))
-  let opening ← sequenceFin fun κ => treeSource data index κ (digestLeaves digest κ)
-  return some ⟨randomness, opening, layerSignatures data index found values⟩
 
 /-- The FORS opening read from a coordinate table. -/
 def assembledFors (data : PublicData) (table : HiddenGraph.Table) (index : Index)
@@ -259,7 +232,7 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
   rw [Seeded.finishSign]
   simp only [evalWithAnswerFn_bind, Completeness.eval_forsPublicKey_forsRecover]
   rw [Completeness.eval_signLayers f ⟨seed, prf, parameter, data.root⟩ _ hland]
-  simp only [assembled, evalWithAnswerFn_bind,
+  simp only [assembled,
     eval_signLayer_assembled f parameter seed data table hdata htable prf _ _ hland,
     Completeness.allSome_map, eval_forsOpen_assembled f parameter seed data table hdata htable,
     assembledEncodings]

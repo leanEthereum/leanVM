@@ -1,5 +1,9 @@
-import FORS.CoverBound.HTermOptionJ
-import FORS.LargeBudget.Route
+module
+
+public import FORS.CoverBound.HTermOptionJ
+public import FORS.LargeBudget.Route
+
+@[expose] public section
 
 /-! FORS split-bound covers at the survival-weighted baseline `baselineW` (thresholds `betaWQ`): a
 successful cover check bounds the large-route term at every budget it covers. -/

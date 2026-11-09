@@ -1,5 +1,9 @@
-import FORS.CoverPotential.Game
-import FORS.LazyRun.Replay
+module
+
+public import FORS.CoverPotential.Game
+public import FORS.LazyRun.Replay
+
+@[expose] public section
 
 /-! Shared pieces of the routes that run saturation and the FORS potential on the same lazy run:
 the start state, from the stopped experiment to the interpreted run, failing indices of the
@@ -18,7 +22,6 @@ set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
-
 
 section Rest
 
@@ -64,29 +67,6 @@ section Tick
 variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
 
-/-- A leading tick only shortens the budget. -/
-theorem interp_tick_bind {β : Type} (amount : ℕ) (next : Unit → OracleComp CostSpec β) (budget : ℕ) (s : State)
-    (h : amount ≤ budget) :
-    interp tg initial model (HiddenCost.tick amount >>= next) budget s =
-      (fun out => ((out.1.1, out.1.2.1, Sum.inr amount :: out.1.2.2.1, out.1.2.2.2), out.2)) <$>
-        interp tg initial model (next ()) (budget - amount) s := by
-  unfold HiddenCost.tick
-  rw [interp_query_bind]
-  split_ifs with hc
-  · change (pure ((), s) : ProbComp _) >>= _ = _
-    rw [pure_bind]
-    rfl
-  · exact absurd h hc
-
-theorem interp_tick_bind_abort {β : Type} (amount : ℕ) (next : Unit → OracleComp CostSpec β) (budget : ℕ) (s : State)
-    (h : ¬amount ≤ budget) :
-    interp tg initial model (HiddenCost.tick amount >>= next) budget s = pure ((none, [], [], []), s) := by
-  unfold HiddenCost.tick
-  rw [interp_query_bind]
-  split_ifs with hc
-  · exact absurd hc h
-  · rfl
-
 /-- No hit is decided at the start, and nothing is owed. -/
 theorem not_hit_start (known : Knowledge Coordinate) (table : Coordinate → Digest) :
     ¬Hit tg initial table (DebtState.start initial known) := by
@@ -101,7 +81,7 @@ end Tick
 
 section Chain
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -127,116 +107,6 @@ def badFor (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : C
     ∃ outcome, v.1.1.1 = some outcome ∧
       ForsCover (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining).root outcome v.1.1.2 v.2
 
-/-- One table: the stopped run against the comparison run. -/
-theorem stopped_table_le (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
-    (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
-    (remaining : RemainingOutputs) (steps : Message → Randomness)
-    (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
-    (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
-    (table : Coordinate → Digest) (hagree : Agrees (knownOf (truncateHash parameterOutput) fixed) table) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stopped (sampleModel parameterOutput highs) table
-        (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-          (sampleData parameterOutput fixed highs remaining steps))))
-        (knownOf (truncateHash parameterOutput) fixed) prepared.2] ≤
-      Pr[fun r => CorrectGuess table r.2 ∨
-          badFor parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache) |
-        fixedRun (sampleModel parameterOutput highs) table
-          (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-            (sampleData parameterOutput fixed highs remaining steps))))
-          (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed))] := by
-  have htable := (agrees_iff_extending _ table).1 hagree
-  refine le_trans (probEvent_mono fun r hr hwin => ?_)
-    (stopped_le_fixedRun (sampleModel parameterOutput highs) table _ _
-      (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) hagree)
-  rcases r with _ | ⟨⟨⟨res, reveals⟩, entries⟩, cacheF⟩
-  · trivial
-  · obtain ⟨outcome, hres, hw⟩ := hwin
-    simp only at hres
-    subst hres
-    rcases win_implies_bad hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared table htable
-      outcome reveals entries cacheF hr hw with h | h
-    · exact Or.inl h
-    · exact Or.inr ⟨outcome, rfl, h⟩
-
-set_option maxRecDepth 100000 in
-/-- **From the stopped experiment to the interpreted run.** -/
-theorem stopped_le_interp (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ) (hq : q < 2 ^ 256)
-    (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
-    (remaining : RemainingOutputs) (steps : Message → Randomness)
-    (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
-    (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
-    (tg : Targeting HashInput HashOutput Coordinate) :
-    Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
-        (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-          (sampleData parameterOutput fixed highs remaining steps))))
-        (knownOf (truncateHash parameterOutput) fixed) prepared.2] ≤
-      Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-          badFor parameterOutput fixed highs remaining prepared.1 x.1 (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache) |
-        interp tg prepared.2 (sampleModel parameterOutput highs)
-          (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-            (internalize adversary)) q (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) >>=
-          fun result => (fun table => (table, result)) <$> completion result.2.known] := by
-  unfold HiddenOutside.stoppedExperiment
-  rw [probEvent_bind_eq_tsum]
-  calc _ ≤ ∑' table, Pr[= table | completion (knownOf (truncateHash parameterOutput) fixed)] *
-        Pr[fun r => CorrectGuess table r.2 ∨
-            badFor parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache) |
-          fixedRun (sampleModel parameterOutput highs) table
-            (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-              (sampleData parameterOutput fixed highs remaining steps))))
-            (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed))] := by
-        refine ENNReal.tsum_le_tsum fun table => ?_
-        by_cases htab : table ∈ support (completion (knownOf (truncateHash parameterOutput) fixed))
-        · have hag : Agrees (knownOf (truncateHash parameterOutput) fixed) table := by
-            unfold completion at htab
-            rw [support_map] at htab
-            obtain ⟨t, _, rfl⟩ := htab
-            exact fun c v hc => completion_known _ c v hc t
-          have := stopped_table_le hb adversary q hq parameterOutput fixed highs remaining steps prepared
-            hprepared table hag
-          exact mul_le_mul_right this _
-        · rw [probOutput_eq_zero_of_not_mem_support htab, zero_mul, zero_mul]
-    _ = Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-            badFor parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache) |
-          withTable (fun table => fixedRun (sampleModel parameterOutput highs) table
-            (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-              (sampleData parameterOutput fixed highs remaining steps))))
-            (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)))
-            (knownOf (truncateHash parameterOutput) fixed)] := by
-        unfold withTable
-        rw [probEvent_bind_eq_tsum]
-        refine tsum_congr fun table => ?_
-        rw [probEvent_map]
-        rfl
-    _ = Pr[fun x => CorrectGuess x.1 x.2.2 ∨
-            badFor parameterOutput fixed highs remaining prepared.1 x.1 (x.2.1, x.2.2.cache) |
-          lazyRun (sampleModel parameterOutput highs)
-            (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-              (sampleData parameterOutput fixed highs remaining steps))))
-            (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) >>= fun result =>
-              (fun table => (table, result)) <$> completion result.2.known] :=
-        probEvent_congr' (fun _ _ => Iff.rfl) (withTable_fixedRun _ _ _)
-    _ = _ := by
-        unfold richProgram
-        rw [lazyRun_wrapped tg prepared.2]
-        have hcomp : ((fun out : Run HashInput Coordinate HiddenBridge.Outcome × State =>
-              (((out.1.1, out.1.2.1), out.1.2.2.1), out.2)) <$>
-            interp tg prepared.2 (sampleModel parameterOutput highs)
-              (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-                (internalize adversary)) q (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed))) >>=
-              (fun result => (fun table => (table, result)) <$> completion result.2.known) =
-            (fun x : (Coordinate → Digest) × (Run HashInput Coordinate HiddenBridge.Outcome × State) =>
-              (x.1, (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2))) <$>
-            (interp tg prepared.2 (sampleModel parameterOutput highs)
-              (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-                (internalize adversary)) q (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)) >>=
-              fun result => (fun table => (table, result)) <$> completion result.2.known) := by
-          rw [bind_map_left, map_bind]
-          refine bind_congr fun out => ?_
-          rw [Functor.map_map]
-        rw [hcomp, probEvent_map]
-        rfl
-
 /-- Keygen cost credited before the adversary runs. -/
 abbrev keygenCost : ℕ := Prefix.keygenHashCost
 
@@ -246,7 +116,7 @@ end Chain
 
 section FailSet
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -462,7 +332,7 @@ end FailSet
 
 section Total
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -470,23 +340,23 @@ attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSamp
 /-- A bound per sample, averaged. -/
 theorem tsum_bound_le {α : Type} (mx : ProbComp α) (g : α → ℝ≥0∞) (A C : ℝ≥0∞) (φ : α → ℝ≥0∞)
     (h : ∀ x ∈ support mx, g x ≤ A + C * φ x) :
-    ∑' x, Pr[= x | mx] * g x ≤ A + C * ∑' x, Pr[= x | mx] * φ x := by
-  calc ∑' x, Pr[= x | mx] * g x ≤ ∑' x, Pr[= x | mx] * (A + C * φ x) := by
+    ∑' x, Pr{let y ← mx}[y = x] * g x ≤ A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := by
+  calc ∑' x, Pr{let y ← mx}[y = x] * g x ≤ ∑' x, Pr{let y ← mx}[y = x] * (A + C * φ x) := by
         refine ENNReal.tsum_le_tsum fun x => ?_
         by_cases hx : x ∈ support mx
         · exact mul_le_mul_right (h x hx) _
-        · rw [probOutput_eq_zero_of_not_mem_support hx, zero_mul, zero_mul]
-    _ = (∑' x, Pr[= x | mx]) * A + C * ∑' x, Pr[= x | mx] * φ x := by
+        · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]
+    _ = (∑' x, Pr{let y ← mx}[y = x]) * A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := by
         simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, mul_left_comm _ C, ENNReal.tsum_mul_left]
-    _ ≤ A + C * ∑' x, Pr[= x | mx] * φ x := add_le_add (mul_le_of_le_one_left' tsum_probOutput_le_one) le_rfl
+    _ ≤ A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) le_rfl
 
 /-- Expected share of failing indices over the samples and their preparations. -/
 noncomputable def expectedFail : ℝ≥0∞ :=
-  ∑' parameterOutput, Pr[= parameterOutput | ($ᵗ HashOutput : ProbComp HashOutput)] *
-  ∑' fixed, Pr[= fixed | ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)] *
-  ∑' highs, Pr[= highs | ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)] *
-  ∑' remaining, Pr[= remaining | ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)] *
-  ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+  ∑' parameterOutput, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = parameterOutput] *
+  ∑' fixed, Pr{let x ← ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)}[x = fixed] *
+  ∑' highs, Pr{let x ← ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)}[x = highs] *
+  ∑' remaining, Pr{let x ← ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)}[x = remaining] *
+  ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
     failMass (failSet prepared.1)
 
 end Total
@@ -495,7 +365,7 @@ end Total
 
 section Clean
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 theorem noQ_sequenceFin {bad : HashInput → Prop} [DecidablePred bad] {α : Type} :
     ∀ {n : ℕ} (f : Fin n → OracleComp HashSpec α), (∀ i, (f i).IsQueryBoundP bad 0) →
@@ -544,7 +414,7 @@ end Clean
 
 section FailBound
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -571,8 +441,8 @@ theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree :
 theorem search_fail_le (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (cache : QueryCache HashSpec)
     (hfresh : ∀ s, s < encodingAttemptLimit → cache (encodeInput parameter lay tree leaf message s) = none) :
-    Pr[fun r => r.1 = none | (simulateQ (randomOracle (spec := HashSpec))
-        (ReferenceChoice.search parameter lay tree leaf message encodingAttemptLimit 0)).run cache] ≤
+    Pr{let r ← ((simulateQ (randomOracle (spec := HashSpec))
+        (ReferenceChoice.search parameter lay tree leaf message encodingAttemptLimit 0)).run cache)}[r.1 = none] ≤
       Completeness.failMass (fun out => TargetSum.decodeDigest (truncateHash out)) ^ encodingAttemptLimit := by
   rw [search_eq_searchLoop]
   exact probEvent_searchLoop _ _ _ encodingAttemptLimit
@@ -590,7 +460,7 @@ theorem encoding_not_graph (parameter parameter' : PublicParameter) (position : 
 /-- **One prepared search fails rarely.** -/
 theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (key : OtsKey) :
-    Pr[fun prepared => prepared.1 key = none | preparation parameterOutput fixed highs remaining] ≤
+    Pr{let prepared ← preparation parameterOutput fixed highs remaining}[prepared.1 key = none] ≤
       Completeness.failMass (fun out => TargetSum.decodeDigest (truncateHash out)) ^ encodingAttemptLimit := by
   have hrw : preparation parameterOutput fixed highs remaining =
       (fun r => ((fun key : OtsKey => r.1 key.1 key.2.1 key.2.2), r.2)) <$>
@@ -604,7 +474,7 @@ theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) 
     simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure]
     rw [map_eq_bind_pure_comp]
     rfl
-  rw [hrw, probEvent_map]
+  rw [hrw, prEvent_map]
   let Bad : HashInput → Prop := fun x => ∃ t, x = encodeInput (truncateHash parameterOutput) key.1 key.2.1 key.2.2
     (keyMessages (sampleData parameterOutput fixed highs remaining) key) t
   let Inv : QueryCache HashSpec → Prop := fun c => ∀ s, s < encodingAttemptLimit →
@@ -695,7 +565,7 @@ theorem failMass_le_count (R : OtsKey → Option (Counter × Encoding)) :
     calc failMass (failSet R) ≤ 1 := by
           unfold failMass
           calc _ ≤ freshAvg Finset.univ (fun _ : View => (1 : ℝ≥0∞)) :=
-                freshAvg_mono _ fun v _ => by split_ifs <;> simp
+                freshAvg_mono _ fun v _ => by split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
             _ = 1 := freshAvg_const _ Finset.univ_nonempty 1
       _ = (R i).elim (1 : ℝ≥0∞) fun _ => 0 := by rw [hi]; rfl
       _ ≤ _ := Finset.single_le_sum (f := fun i : OtsKey => (R i).elim (1 : ℝ≥0∞) fun _ => 0)
@@ -707,33 +577,32 @@ theorem failMass_le_count (R : OtsKey → Option (Counter × Encoding)) :
       exact h _ hi
     rw [hempty]
     unfold failMass freshAvg
-    simp only [Finset.notMem_empty, if_false, Finset.sum_const_zero, mul_zero]
+    simp only [Finset.notMem_empty, ite_false, Finset.sum_const_zero, mul_zero]
     exact bot_le
 
 theorem tsum_elim_le {β : Type} (mx : ProbComp ((OtsKey → Option β) × QueryCache HashSpec)) (i : OtsKey) :
-    ∑' x, Pr[= x | mx] * (x.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) ≤ Pr[fun x => x.1 i = none | mx] := by
-  rw [probEvent_eq_tsum_indicator]
+    ∑' x, Pr{let y ← mx}[y = x] * (x.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) ≤ Pr{let x ← mx}[x.1 i = none] := by
+  classical
+  rw [OracleComp.prEvent_eq_tsum_ite mx (fun x => x.1 i = none)]
   refine ENNReal.tsum_le_tsum fun x => ?_
   cases hx : x.1 i with
-  | none =>
-      rw [Set.indicator_of_mem (show x ∈ {x | x.1 i = none} from hx)]
-      simp
+  | none => simp
   | some v => simp
 
 /-- **Expected share of failing indices.** -/
 theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
   have hinner : ∀ parameterOutput fixed highs remaining,
-      ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+      ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
         failMass (failSet prepared.1) ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
     intro parameterOutput fixed highs remaining
-    calc _ ≤ ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+    calc _ ≤ ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
           ∑ i : OtsKey, (prepared.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) :=
           ENNReal.tsum_le_tsum fun prepared => mul_le_mul_right (failMass_le_count prepared.1) _
-      _ = ∑ i : OtsKey, ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
+      _ = ∑ i : OtsKey, ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
           (prepared.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) := by
           simp only [Finset.mul_sum]
           rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
-      _ ≤ ∑ i : OtsKey, Pr[fun prepared => prepared.1 i = none | preparation parameterOutput fixed highs remaining] :=
+      _ ≤ ∑ i : OtsKey, Pr{let prepared ← preparation parameterOutput fixed highs remaining}[prepared.1 i = none] :=
           Finset.sum_le_sum fun i _ => tsum_elim_le _ i
       _ ≤ ∑ _i : OtsKey, (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 18) :=
           Finset.sum_le_sum fun i _ => (prep_fail_le parameterOutput fixed highs remaining i).trans fail_pow_le
@@ -755,10 +624,10 @@ theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
             ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_pow, one_mul]
           exact mul_le_of_le_one_right' (pow_le_one₀ bot_le (by norm_num))
   have hconst : ∀ {α : Type} (mx : ProbComp α) (g : α → ℝ≥0∞) (c : ℝ≥0∞), (∀ x, g x ≤ c) →
-      ∑' x, Pr[= x | mx] * g x ≤ c := by
+      ∑' x, Pr{let y ← mx}[y = x] * g x ≤ c := by
     intro α mx g c hg
-    calc _ ≤ ∑' x, Pr[= x | mx] * c := ENNReal.tsum_le_tsum fun x => mul_le_mul_right (hg x) _
-      _ ≤ c := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' tsum_probOutput_le_one
+    calc _ ≤ ∑' x, Pr{let y ← mx}[y = x] * c := ENNReal.tsum_le_tsum fun x => mul_le_mul_right (hg x) _
+      _ ≤ c := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   unfold expectedFail
   exact hconst _ _ _ fun parameterOutput => hconst _ _ _ fun fixed => hconst _ _ _ fun highs =>
     hconst _ _ _ fun remaining => hinner parameterOutput fixed highs remaining
@@ -769,7 +638,7 @@ end FailBound
 
 section Close
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable

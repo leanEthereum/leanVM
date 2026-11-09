@@ -1,4 +1,8 @@
-import FORS.Base.Poisson
+module
+
+public import FORS.Base.Poisson
+
+@[expose] public section
 
 /-! The split majorant of the excess of a price `Σ_l y_l` over a threshold (for FORS, `y_l` is the
 cover probability at index `l`, `excess_le_split`). With `m_l = min(y_l, c1)` and `M = Σ_l m_l`,
@@ -70,8 +74,8 @@ theorem splitTerm_ge (y : ι → ℝ) (big : ι → Prop) [DecidablePred big] (c
   rw [Finset.mul_sum, Real.exp_sum]
   refine Finset.prod_congr rfl fun l _ => ?_
   by_cases hl : l ∈ T
-  · rw [if_pos hl, if_pos (hT l hl)]
-  · rw [if_neg hl, hout l hl]
+  · rw [ite_eq_left hl, ite_eq_left (hT l hl)]
+  · rw [ite_eq_right hl, hout l hl]
 
 /-- **The split by the number of big indices.** If every index that is not big has `y ≤ c2 ≤ c1`,
 the excess is at most `Σ (y - c1)^+` plus, for `j ≤ m`, the Chernoff prefactor at `θ_j` times the
@@ -100,7 +104,7 @@ theorem split_J (y : ι → ℝ) (big : ι → Prop) [DecidablePred big] (c c1 c
     rcases lt_or_ge J.card m with hlt | hge
     · refine ⟨J.card, Finset.mem_range.2 (by omega), ?_⟩
       have hge := splitTerm_ge y big c1 (if J.card < m then c2 else c1) (θ J.card) J hJbig (fun l hl => by
-        rw [if_pos hlt]
+        rw [ite_eq_left hlt]
         have hnb : ¬ big l := fun hb => hl (Finset.mem_filter.2 ⟨Finset.mem_univ l, hb⟩)
         have h1 := hsmall l hnb
         rw [min_eq_left h1, min_eq_left (le_trans h1 hc2)])
@@ -109,7 +113,7 @@ theorem split_J (y : ι → ℝ) (big : ι → Prop) [DecidablePred big] (c c1 c
     · obtain ⟨T, hTJ, hTc⟩ := Finset.exists_subset_card_eq hge
       refine ⟨m, Finset.mem_range.2 (by omega), ?_⟩
       have hge' := splitTerm_ge y big c1 (if m < m then c2 else c1) (θ m) T (fun l hl => hJbig l (hTJ hl))
-        (fun l _ => by rw [if_neg (lt_irrefl m)])
+        (fun l _ => by rw [ite_eq_right (lt_irrefl m)])
       rw [hTc] at hge'
       exact le_trans (chernoff_real M c (θ m) (hθ _ le_rfl))
         (mul_le_mul_of_nonneg_left hge' (div_nonneg (Real.exp_pos _).le (mul_pos (Real.exp_pos 1) (hθ _ le_rfl)).le))
@@ -135,9 +139,9 @@ theorem pois_sepSum (a : ℝ≥0) (j : ι) (h : ι → ℕ → ℝ≥0∞) (k : 
   refine Finset.sum_congr rfl fun l _ => ?_
   by_cases hl : l = j
   · subst hl
-    simp only [if_true, Pi.add_apply, Pi.single_eq_same]
+    simp only [ite_true, Pi.add_apply, Pi.single_eq_same]
     rfl
-  · simp only [if_neg hl, Pi.add_apply, Pi.single_eq_of_ne hl, add_zero]
+  · simp only [ite_eq_right hl, Pi.add_apply, Pi.single_eq_of_ne hl, add_zero]
     rw [ENNReal.tsum_mul_right, poisW_tsum, one_mul]
 
 theorem pois_sepProd (a : ℝ≥0) (j : ι) (g : ι → ℕ → ℝ≥0∞) (k : ι → ℕ) :
@@ -152,12 +156,12 @@ theorem pois_sepProd (a : ℝ≥0) (j : ι) (g : ι → ℕ → ℝ≥0∞) (k :
       rw [Pi.add_apply, Pi.single_eq_of_ne (Finset.ne_of_mem_erase hl), add_zero]
   have hrest' : ∏ l ∈ Finset.univ.erase j, (if l = j then pois1 a (g l) (k l) else g l (k l)) = R := by
     refine Finset.prod_congr rfl fun l hl => ?_
-    rw [if_neg (Finset.ne_of_mem_erase hl)]
+    rw [ite_eq_right (Finset.ne_of_mem_erase hl)]
   unfold pois
   calc ∑' n, poisW a n * ∏ l, g l ((k + Pi.single j n : ι → ℕ) l)
       = ∑' n, poisW a n * g j (k j + n) * R := tsum_congr fun n => by rw [hterm n, mul_assoc]
     _ = pois1 a (g j) (k j) * R := by rw [ENNReal.tsum_mul_right]; rfl
-    _ = _ := by rw [prod_split j, if_pos rfl, hrest']
+    _ = _ := by rw [prod_split j, ite_eq_left rfl, hrest']
 
 theorem poisList_sepSum (a : ℝ≥0) : ∀ (ls : List ι), ls.Nodup → ∀ (h : ι → ℕ → ℝ≥0∞) (k : ι → ℕ),
     poisList a ls (fun x => ∑ l, h l (x l)) k = ∑ l, (if l ∈ ls then pois1 a (h l) (k l) else h l (k l))
@@ -204,7 +208,7 @@ theorem poisIID_sepSum (a : ℝ≥0) (h : ℕ → ℝ≥0∞) :
     poisIID a (fun x : ι → ℕ => ∑ l, h (x l)) 0 = (Fintype.card ι : ℝ≥0∞) * poisMean a h := by
   unfold poisIID
   rw [poisList_sepSum a _ (Finset.nodup_toList _) (fun _ => h)]
-  simp only [Finset.mem_toList, Finset.mem_univ, if_true, Pi.zero_apply, pois1_zero, Finset.sum_const,
+  simp only [Finset.mem_toList, Finset.mem_univ, ite_true, Pi.zero_apply, pois1_zero, Finset.sum_const,
     Finset.card_univ, nsmul_eq_mul]
 
 /-- Iid Poisson mean of a separable product: `E[g(K)]^L`. -/
@@ -212,7 +216,7 @@ theorem poisIID_sepProd (a : ℝ≥0) (g : ℕ → ℝ≥0∞) :
     poisIID a (fun x : ι → ℕ => ∏ l, g (x l)) 0 = poisMean a g ^ Fintype.card ι := by
   unfold poisIID
   rw [poisList_sepProd a _ (Finset.nodup_toList _) (fun _ => g)]
-  simp only [Finset.mem_toList, Finset.mem_univ, if_true, Pi.zero_apply, pois1_zero, Finset.prod_const,
+  simp only [Finset.mem_toList, Finset.mem_univ, ite_true, Pi.zero_apply, pois1_zero, Finset.prod_const,
     Finset.card_univ]
 
 /-! ### Iid Poisson means of the terms of the split by big indices -/
@@ -234,7 +238,7 @@ theorem poisIID_prod (a : ℝ≥0) (g : ι → ℕ → ℝ≥0∞) :
     poisIID a (fun x : ι → ℕ => ∏ l, g l (x l)) 0 = ∏ l, poisMean a (g l) := by
   unfold poisIID
   rw [poisList_sepProd a _ (Finset.nodup_toList _) g]
-  simp only [Finset.mem_toList, Finset.mem_univ, if_true, Pi.zero_apply, pois1_zero]
+  simp only [Finset.mem_toList, Finset.mem_univ, ite_true, Pi.zero_apply, pois1_zero]
 
 /-- **The iid Poisson mean of a term of the split**:
 `Σ_{|T| = j} Π_{l ∈ T} E[f] Π_{l ∉ T} E[g] = C(L, j) E[f]^j E[g]^(L - j)`. -/

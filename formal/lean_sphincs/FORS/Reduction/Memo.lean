@@ -1,5 +1,9 @@
-import FORS.Reduction.NoRepeat
-import FORS.Reduction.Internalize
+module
+
+public import FORS.Reduction.NoRepeat
+public import FORS.Reduction.Internalize
+
+@[expose] public section
 
 section
 

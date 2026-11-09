@@ -1,4 +1,8 @@
-import LeanXmss.Scheme
+module
+
+public import LeanXmss.Scheme
+
+@[expose] public section
 
 /-!
 # The codewords
@@ -16,6 +20,8 @@ open Finset
 set_option maxRecDepth 100000
 
 namespace LeanXmss.Codeword
+
+open HashSig
 
 /-- A base above every coefficient, so the coefficients are the digits. -/
 def base : Nat := 2 ^ 117
@@ -70,11 +76,11 @@ theorem sum_digits_eq (B : Nat) (hB : 0 < B) :
       omega
 
 theorem weight_pow (B : Nat) :
-    (∑ d : Digit, B ^ d.val) ^ numChains = ∑ x : Encoding, B ^ (sum x) := by
-  have hcard : (Finset.univ : Finset ChainIndex).card = numChains := by
+    (∑ d : WinternitzDigit, B ^ d.val) ^ chainCount = ∑ x : Encoding, B ^ (sum x) := by
+  have hcard : (Finset.univ : Finset ChainIndex).card = chainCount := by
     simp [Finset.card_univ]
-  have h1 : (∑ d : Digit, B ^ d.val) ^ numChains
-      = ∏ _i : ChainIndex, ∑ d : Digit, B ^ d.val := by
+  have h1 : (∑ d : WinternitzDigit, B ^ d.val) ^ chainCount
+      = ∏ _i : ChainIndex, ∑ d : WinternitzDigit, B ^ d.val := by
     rw [Finset.prod_const, hcard]
   rw [h1, Finset.prod_univ_sum, Fintype.piFinset_univ]
   apply Finset.sum_congr rfl
@@ -89,7 +95,7 @@ theorem sum_lt_175 (x : Encoding) : sum x < 175 := by
   have : sum x ≤ ∑ _i : ChainIndex, 3 :=
     Finset.sum_le_sum (fun i _ => Nat.le_of_lt_succ (x i).isLt)
   simp only [Finset.sum_const, Finset.card_univ, smul_eq_mul] at this
-  have hcard : Fintype.card ChainIndex = 58 := by simp [numChains]
+  have hcard : Fintype.card ChainIndex = 58 := by simp [chainCount]
   rw [hcard] at this
   omega
 
@@ -105,14 +111,15 @@ theorem sum_encoding_pow (B : Nat) :
 theorem codeCount_lt_base (s : Nat) : codeCount s < base := by
   have h : codeCount s ≤ Fintype.card Encoding := Finset.card_filter_le _ _
   have hcard : Fintype.card Encoding = 4 ^ 58 := by
-    simp [numChains, chainLength, winternitzBits]
+    simp [chainCount, chainLength, winternitzBits]
   rw [hcard] at h
   exact Nat.lt_of_le_of_lt h (by decide)
 
-theorem weight_eq : (∑ d : Digit, base ^ d.val) = (base ^ 4 - 1) / (base - 1) := by decide
+theorem weight_eq : (∑ d : WinternitzDigit, base ^ d.val) = (base ^ 4 - 1) / (base - 1) := by decide
 
 theorem codeCount_target_eq_digit :
-    codeCount targetSum = (∑ d : Digit, base ^ d.val) ^ numChains / base ^ targetSum % base := by
+    codeCount targetSum = (∑ d : WinternitzDigit, base ^ d.val) ^ chainCount / base ^ targetSum %
+        base := by
   rw [weight_pow, sum_encoding_pow]
   exact (digit_of_sum base (by decide) codeCount codeCount_lt_base 175 targetSum (by decide)).symm
 
@@ -125,7 +132,7 @@ theorem codeCount_target : codeCount targetSum = 3235044185624819946188075094875
 
 /-- The value of digit `j` of a word, `0` past `v`. -/
 def wordDigit (x : Encoding) (j : Nat) : Nat :=
-  if h : j < numChains then (x ⟨j, h⟩).val else 0
+  if h : j < chainCount then (x ⟨j, h⟩).val else 0
 
 theorem wordDigit_lt (x : Encoding) (j : Nat) : wordDigit x j < 4 := by
   unfold wordDigit
@@ -134,7 +141,7 @@ theorem wordDigit_lt (x : Encoding) (j : Nat) : wordDigit x j < 4 := by
   · decide
 
 /-- `Σ_j x_j 4^j`. -/
-def packNat (x : Encoding) : Nat := ∑ j ∈ range numChains, wordDigit x j * 4 ^ j
+def packNat (x : Encoding) : Nat := ∑ j ∈ range chainCount, wordDigit x j * 4 ^ j
 
 theorem packNat_lt (x : Encoding) : packNat x < 2 ^ 116 := by
   have hlt : ∀ n, ∑ j ∈ range n, wordDigit x j * 4 ^ j < 4 ^ n := by
@@ -146,8 +153,8 @@ theorem packNat_lt (x : Encoding) : packNat x < 2 ^ 116 := by
         have h3 : wordDigit x n * 4 ^ n ≤ 3 * 4 ^ n :=
           Nat.mul_le_mul_right _ (by have := wordDigit_lt x n; omega)
         omega
-  have := hlt numChains
-  simpa [packNat, numChains, show (4 : Nat) ^ 58 = 2 ^ 116 by norm_num] using this
+  have := hlt chainCount
+  simpa [packNat, chainCount, show (4 : Nat) ^ 58 = 2 ^ 116 by norm_num] using this
 
 /-- The digest of a word. -/
 def pack (x : Encoding) : Digest := BitVec.ofNat digestBits (packNat x)
@@ -156,69 +163,39 @@ theorem toNat_pack (x : Encoding) : (pack x).toNat = packNat x := by
   rw [pack, BitVec.toNat_ofNat, digestBits,
     Nat.mod_eq_of_lt (lt_trans (packNat_lt x) (by norm_num))]
 
-theorem digit_val (d : Digest) (i : Nat) : (digit d i).val = d.toNat / 4 ^ i % 4 := by
-  simp [digit, BitVec.extractLsb', winternitzBits, Nat.shiftRight_eq_div_pow, pow_mul]
+theorem digit_val {n : Nat} (d : Digest) (i : Fin n) :
+    (digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
+  simp [digestDigits, BitVec.extractLsb', winternitzBits, Nat.shiftRight_eq_div_pow, pow_mul]
 
-theorem encoding_pack (x : Encoding) : encoding (pack x) = x := by
+theorem encoding_pack (x : Encoding) : (digestDigits (pack x) : Encoding) = x := by
   funext i
   apply Fin.ext
-  rw [encoding, digit_val, toNat_pack, packNat,
-    digit_of_sum 4 (by decide) (wordDigit x) (wordDigit_lt x) numChains i.val i.isLt,
-    wordDigit, dif_pos i.isLt]
+  rw [digit_val, toNat_pack, packNat,
+    digit_of_sum 4 (by decide) (wordDigit x) (wordDigit_lt x) chainCount i.val i.isLt,
+    wordDigit, dite_eq_left i.isLt]
 
 theorem valid_pack {x : Encoding} (hx : sum x = targetSum) : Valid (pack x) := by
   refine ⟨?_, by rw [encoding_pack]; exact hx⟩
   rw [toNat_pack]
-  exact Nat.div_eq_of_lt (by simpa [winternitzBits, numChains] using packNat_lt x)
+  exact Nat.div_eq_of_lt (by simpa [winternitzBits, chainCount] using packNat_lt x)
 
 /-- A codeword is the digest of its digits. -/
-theorem pack_encoding {d : Digest} (hd : Valid d) : pack (encoding d) = d := by
+theorem pack_encoding {d : Digest} (hd : Valid d) : pack (digestDigits d) = d := by
   apply BitVec.eq_of_toNat_eq
   rw [toNat_pack]
-  have hlt : d.toNat < 4 ^ numChains := by
+  have hlt : d.toNat < 4 ^ chainCount := by
     have h0 := hd.1
-    simp only [winternitzBits, numChains] at h0
+    simp only [winternitzBits, chainCount] at h0
     have := (Nat.div_eq_zero_iff_lt (by positivity)).mp h0
-    simpa [numChains, show (4 : Nat) ^ 58 = 2 ^ 116 by norm_num] using this
-  rw [← sum_digits_eq 4 (by decide) numChains d.toNat hlt, packNat]
+    simpa [chainCount, show (4 : Nat) ^ 58 = 2 ^ 116 by norm_num] using this
+  rw [← sum_digits_eq 4 (by decide) chainCount d.toNat hlt, packNat]
   apply Finset.sum_congr rfl
   intro j hj
-  rw [wordDigit, dif_pos (Finset.mem_range.mp hj), encoding, digit_val]
+  rw [wordDigit, dite_eq_left (Finset.mem_range.mp hj), digit_val]
 
 /-- Two codewords with the same digits are the same digest. -/
 theorem eq_of_encoding_eq {d d' : Digest} (hd : Valid d) (hd' : Valid d')
-    (h : encoding d = encoding d') : d = d' := by
+    (h : (digestDigits d : Encoding) = digestDigits d') : d = d' := by
   rw [← pack_encoding hd, ← pack_encoding hd', h]
-
-/-- There are `codeCount T` codewords. -/
-theorem card_valid :
-    (Finset.univ.filter fun d : Digest => Valid d).card = codeCount targetSum := by
-  rw [codeCount]
-  apply Finset.card_bij' (fun d _ => encoding d) (fun x _ => pack x)
-  · intro d hd; exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, (Finset.mem_filter.mp hd).2.2⟩
-  · intro x hx; exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, valid_pack (Finset.mem_filter.mp hx).2⟩
-  · intro d hd; exact pack_encoding (Finset.mem_filter.mp hd).2
-  · intro x _; exact encoding_pack x
-
-/-- Chain walks only raise digits, so a revealed codeword cannot be turned into another one. -/
-theorem encoding_antichain {x y : Encoding} (hx : sum x = targetSum) (hy : sum y = targetSum)
-    (hle : ∀ i, (x i).val ≤ (y i).val) : x = y := by
-  have hsum : sum x = sum y := hx.trans hy.symm
-  funext i
-  refine Fin.ext (le_antisymm (hle i) ?_)
-  by_contra hnot
-  have hstrict : (x i).val < (y i).val := by omega
-  have : sum x < sum y :=
-    Finset.sum_lt_sum (fun j _ => hle j) ⟨i, Finset.mem_univ i, hstrict⟩
-  omega
-
-/-- Verification walks `3v - T = 68` chain steps. -/
-theorem verification_chain_steps (word : Encoding) (hword : sum word = targetSum) :
-    (∑ i : ChainIndex, (chainLength - 1 - (word i).val)) = 68 := by
-  have hle : ∀ i ∈ (Finset.univ : Finset ChainIndex), (word i).val ≤ chainLength - 1 :=
-    fun i _ => Nat.le_of_lt_succ (word i).isLt
-  rw [Finset.sum_tsub_distrib Finset.univ hle,
-    show (∑ i : ChainIndex, (word i).val) = targetSum from hword]
-  simp [chainLength, winternitzBits, numChains, targetSum]
 
 end LeanXmss.Codeword

@@ -1,0 +1,20 @@
+# leanVM's proof wire encoding (`crates/fiat_shamir/src/wire.rs`, `Proof::to_bytes` and
+# `Proof::from_bytes`) on byte files, so that `scripts/wire-diff.py` can set its results beside the
+# Lean transcription's (`lake exe wire-diff`, `Proof.fromBytes` and `Proof.toBytes`).
+#
+# leanVM is this repository (`../../../..`), as for `rust-verifier-cli`; `Cargo.lock` is its.
+[package]
+name = "leanvm-rust-wire"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Its own workspace, not a member of leanVM's, whose members still inherit that one's settings.
+[workspace]
+
+[dependencies]
+fiat_shamir = { path = "../../../../crates/fiat_shamir" }
+primitives = { path = "../../../../crates/primitives" }
+
+[profile.release]
+codegen-units = 1

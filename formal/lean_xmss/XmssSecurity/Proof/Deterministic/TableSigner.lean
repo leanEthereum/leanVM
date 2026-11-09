@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Seeded.Erasure
+module
+
+public import XmssSecurity.Proof.Seeded.Erasure
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

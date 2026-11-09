@@ -475,7 +475,7 @@ mod tests {
     }
 
     /// The contract between the native opener and every verifier that batches
-    /// from `Phi`'s coefficients (the recursion guest, the Python reference
+    /// from `Phi`'s coefficients (the recursion guest, the Lean
     /// verifier): weighting the COLUMN view by `build_coordinate_weights` must
     /// equal applying `Phi` to the ROW view and combining with `x^j`. If this
     /// drifts, the guest computes a different opening target than the prover.

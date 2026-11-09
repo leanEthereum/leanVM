@@ -1,5 +1,9 @@
-import FORS.Base.Domination
-import Mathlib
+module
+
+public import FORS.Base.Domination
+public import Mathlib
+
+@[expose] public section
 
 section
 

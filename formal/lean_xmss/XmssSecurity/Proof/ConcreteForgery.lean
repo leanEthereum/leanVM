@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.ForgeryCases
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.ForgeryCases
+
+@[expose] public section
 
 open OracleSpec
 

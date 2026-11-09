@@ -1,4 +1,8 @@
-import FORS.Base.VirtualOnce
+module
+
+public import FORS.Base.VirtualOnce
+
+@[expose] public section
 
 /-! The one-coin virtual future for monotone base functions. The FORS witness (a cover
 indicator) is monotone but not supermodular, so the lemmas that add coins by their gains do

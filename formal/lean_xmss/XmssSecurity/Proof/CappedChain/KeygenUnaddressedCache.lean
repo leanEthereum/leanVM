@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.KeygenCache
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -12,77 +16,6 @@ def KeygenAddressedHashInput
 noncomputable instance (parameter : PublicParameter) :
     DecidablePred (KeygenAddressedHashInput parameter) :=
   Classical.decPred _
-
-theorem Concrete.tweakableHash_queryBound_zero_unaddressed
-    (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
-    (Concrete.tweakableHash parameter domain payload :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  simp [Concrete.tweakableHash, Concrete.oracleHash,
-    KeygenAddressedHashInput]
-
-theorem Concrete.chainWalk_queryBound_zero_unaddressed
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (position steps : Nat) (value : Digest) :
-    (Concrete.chainWalk parameter leafIndex chain position steps value :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  induction steps with
-  | zero => simp [Concrete.chainWalk]
-  | succ steps ih =>
-      rw [Concrete.chainWalk]
-      refine OracleComp.isQueryBoundP_bind (m := 0) ih ?_
-      intro previous _
-      split
-      · exact Concrete.tweakableHash_queryBound_zero_unaddressed parameter _ _
-      · simp
-
-theorem Concrete.oneTimePublicKey_queryBound_zero_unaddressed
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (leafIndex : LeafIndex) :
-    (Concrete.oneTimePublicKey parameter secret leafIndex :
-      OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP
-        (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  rw [Concrete.oneTimePublicKey]
-  apply Concrete.sequenceFin_queryBound_zero
-  intro chain
-  exact Concrete.chainWalk_queryBound_zero_unaddressed parameter leafIndex chain
-    0 (chainLength - 1) (secret leafIndex chain)
-
-theorem Concrete.leafAt_queryBound_zero_unaddressed
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (leafIndex : LeafIndex) :
-    (Concrete.leafAt parameter secret leafIndex :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  rw [Concrete.leafAt]
-  refine OracleComp.isQueryBoundP_bind (m := 0)
-    (Concrete.oneTimePublicKey_queryBound_zero_unaddressed parameter secret
-      leafIndex) ?_
-  intro endpoints _
-  exact Concrete.tweakableHash_queryBound_zero_unaddressed parameter _ _
-
-theorem Concrete.treeNode_queryBound_zero_unaddressed
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
-    (levels : Nat) (node : MerkleNode) :
-    (Concrete.treeNode parameter secret levels node :
-      OracleComp HashSpec Digest).IsQueryBoundP
-        (fun input => ¬ KeygenAddressedHashInput parameter input) 0 := by
-  induction levels generalizing node with
-  | zero =>
-      rw [Concrete.treeNode_zero_eq]
-      exact Concrete.leafAt_queryBound_zero_unaddressed parameter secret node
-  | succ levels ih =>
-      rw [Concrete.treeNode_succ_eq]
-      refine OracleComp.isQueryBoundP_bind (m := 0)
-        (ih (Concrete.childNode node false)) ?_
-      intro left _
-      refine OracleComp.isQueryBoundP_bind (m := 0)
-        (ih (Concrete.childNode node true)) ?_
-      intro right _
-      split
-      · exact Concrete.tweakableHash_queryBound_zero_unaddressed parameter _ _
-      · simp
 
 theorem Concrete.honestKeygen_queryBound_zero_unaddressed
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)

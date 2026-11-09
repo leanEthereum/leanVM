@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.GlobalBadEvent
-import XmssSecurity.Proof.CappedSuffixEventProbability
-import XmssSecurity.Proof.CappedMerkleEventProbability
-import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
+module
+
+public import XmssSecurity.Proof.GlobalBadEvent
+public import XmssSecurity.Proof.CappedSuffixEventProbability
+public import XmssSecurity.Proof.CappedMerkleEventProbability
+public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -21,10 +25,9 @@ theorem outcomePredicate_probability_le_expectedMovedQueries_of_afterKeygen_fres
         event execution →
           Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
             (targetInput keyResult.1 keyResult.2)) :
-    Pr[event | detailedGameWithCache Concrete.scheme adversary] ≤
+    Pr{let x ← detailedGameWithCache Concrete.scheme adversary}[event x] ≤
       (∑' keyResult,
-        Pr[= keyResult |
-          (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+        Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
           expectedSimulatedQueryCount romImpl
             (Rom.IsRelevantHashQuery fun input =>
               targetInput keyResult.1 keyResult.2 input ≠ input)

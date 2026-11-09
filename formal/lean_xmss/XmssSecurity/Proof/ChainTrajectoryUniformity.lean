@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.ConcreteQueryBound
-import XmssSecurity.Proof.ChainKey
+module
+
+public import XmssSecurity.Proof.ConcreteQueryBound
+public import XmssSecurity.Proof.ChainKey
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -58,8 +62,8 @@ theorem Concrete.chainTrajectory_back
         position steps value := by
   induction steps with
   | zero =>
-      change value = value
-      rfl
+      rw [Concrete.chainTrajectory_zero, evalWithAnswerFn_pure]
+      simp [Wots.walk, Vector.back]
   | succ steps ih =>
       rw [Concrete.chainTrajectory_succ]
       simp only [evalWithAnswerFn_bind, ih, Wots.walk]
@@ -78,7 +82,8 @@ theorem Concrete.chainTrajectory_getElem
   | zero =>
       have : offset = 0 := by omega
       subst offset
-      rfl
+      rw [Concrete.chainTrajectory_zero, evalWithAnswerFn_pure]
+      simp [Wots.walk]
   | succ steps ih =>
       rw [Concrete.chainTrajectory_succ]
       simp only [evalWithAnswerFn_bind]

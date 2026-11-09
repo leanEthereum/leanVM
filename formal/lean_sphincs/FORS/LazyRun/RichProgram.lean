@@ -1,4 +1,8 @@
-import FORS.LazyRun.ShortQueries
+module
+
+public import FORS.LazyRun.ShortQueries
+
+@[expose] public section
 
 /-! A richer graph-view program returning the forgery, the signing log, the verifier's
 answer and every revealed coordinate. The original win event is a function of its result. -/
@@ -17,33 +21,33 @@ attribute [local instance] Classical.propDecidable
 
 section Generic
 
-variable {D R ι : Type}
+variable {D R ι H : Type}
 
-def revealed : (SourceCostSpec D R ι).Domain → List ι
+def revealed : (SourceCostSpec D R ι H).Domain → List ι
   | .inl (.inr (.inr coordinate)) => [coordinate]
   | _ => []
 
 /-- Record the coordinates of every privileged reveal, in order. -/
-def withReveals {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) :
-    OracleComp (SourceCostSpec D R ι) (α × List ι) :=
+def withReveals {α : Type} (computation : OracleComp (SourceCostSpec D R ι H) α) :
+    OracleComp (SourceCostSpec D R ι H) (α × List ι) :=
   OracleComp.construct (fun value => pure (value, []))
     (fun input _ next => do
-      let value ← liftM ((SourceCostSpec D R ι).query input)
+      let value ← liftM ((SourceCostSpec D R ι H).query input)
       let result ← next value
       return (result.1, revealed input ++ result.2)) computation
 
 theorem withReveals_pure {α : Type} (value : α) :
-    withReveals (pure value : OracleComp (SourceCostSpec D R ι) α) = pure (value, []) := rfl
+    withReveals (pure value : OracleComp (SourceCostSpec D R ι H) α) = pure (value, []) := rfl
 
-theorem withReveals_query_bind {α : Type} (input : (SourceCostSpec D R ι).Domain)
-    (next : (SourceCostSpec D R ι).Range input → OracleComp (SourceCostSpec D R ι) α) :
-    withReveals (liftM ((SourceCostSpec D R ι).query input) >>= next) =
-      liftM ((SourceCostSpec D R ι).query input) >>= fun value =>
+theorem withReveals_query_bind {α : Type} (input : (SourceCostSpec D R ι H).Domain)
+    (next : (SourceCostSpec D R ι H).Range input → OracleComp (SourceCostSpec D R ι H) α) :
+    withReveals (liftM ((SourceCostSpec D R ι H).query input) >>= next) =
+      liftM ((SourceCostSpec D R ι H).query input) >>= fun value =>
         (fun result => (result.1, revealed input ++ result.2)) <$> withReveals (next value) := by
   simp only [withReveals, OracleComp.construct_query_bind, map_eq_bind_pure_comp]
   rfl
 
-theorem fst_withReveals {α : Type} (computation : OracleComp (SourceCostSpec D R ι) α) :
+theorem fst_withReveals {α : Type} (computation : OracleComp (SourceCostSpec D R ι H) α) :
     Prod.fst <$> withReveals computation = computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => rfl
@@ -54,14 +58,14 @@ theorem fst_withReveals {α : Type} (computation : OracleComp (SourceCostSpec D 
       rw [Functor.map_map]
       exact ih value
 
-theorem cap_query_bind_gen {α : Type} (input : (SourceCostSpec D R ι).Domain)
-    (next : (SourceCostSpec D R ι).Range input → OracleComp (SourceCostSpec D R ι) α) (budget : Nat) :
-    cap (liftM ((SourceCostSpec D R ι).query input) >>= next) budget =
+theorem cap_query_bind_gen {α : Type} (input : (SourceCostSpec D R ι H).Domain)
+    (next : (SourceCostSpec D R ι H).Range input → OracleComp (SourceCostSpec D R ι H) α) (budget : Nat) :
+    cap (liftM ((SourceCostSpec D R ι H).query input) >>= next) budget =
       if sourceCost input ≤ budget then
-        liftM ((SourceCostSpec D R ι).query input) >>= fun value => cap (next value) (budget - sourceCost input)
+        liftM ((SourceCostSpec D R ι H).query input) >>= fun value => cap (next value) (budget - sourceCost input)
       else pure none := rfl
 
-theorem cap_map {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι) α)
+theorem cap_map {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι H) α)
     (budget : Nat) : cap (g <$> computation) budget = Option.map g <$> cap computation budget := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value => rfl
@@ -74,7 +78,7 @@ theorem cap_map {α β : Type} (g : α → β) (computation : OracleComp (Source
         exact ih value _
       · rfl
 
-theorem trace_map {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι) α) :
+theorem trace_map {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι H) α) :
     trace (g <$> computation) = (fun result => (g result.1, result.2)) <$> trace computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => rfl
@@ -84,7 +88,7 @@ theorem trace_map {α β : Type} (g : α → β) (computation : OracleComp (Sour
       funext value
       rw [ih value, Functor.map_map, Functor.map_map]
 
-theorem erase_map {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι) α) :
+theorem erase_map [HonestInputs H D] {α β : Type} (g : α → β) (computation : OracleComp (SourceCostSpec D R ι H) α) :
     erase (g <$> computation) = g <$> erase computation := by
   simp only [erase, simulateQ_map]
 
@@ -126,7 +130,6 @@ theorem outside_stopped_map {A α β : Type}
       · rw [outside_stopped_reveal, outside_stopped_reveal]
         exact ih _ _ cache
 
-
 /-- Forgery, signing log and verifier answer of the graph-view game. -/
 abbrev Outcome := Forgery × QueryLog SigningSpec × Bool
 
@@ -146,20 +149,10 @@ noncomputable def costGameX (parameter : PublicParameter) (data : PublicData) (a
   HiddenCost.tick Prefix.keygenHashCost
   costRestX parameter data adversary
 
-theorem costGame_eq_map (parameter : PublicParameter) (data : PublicData) (adversary : Adversary) :
-    costGame parameter data adversary = outcomeWins <$> costGameX parameter data adversary := by
-  simp only [costGame, costGameX, costRest, costRestX, map_bind, map_pure, outcomeWins]
-
 /-- The rich program run in the stopped and comparison worlds. -/
 noncomputable def richProgram (adversary : Adversary) (q : Nat) (parameter : PublicParameter)
     (data : PublicData) : OracleComp CostSpec (Option Outcome × List HiddenGraph.Coordinate) :=
   withReveals (cap (costGameX parameter data adversary) q)
-
-theorem cap_costGame_eq (adversary : Adversary) (q : Nat) (parameter : PublicParameter)
-    (data : PublicData) :
-    cap (costGame parameter data adversary) q =
-      (fun result => Option.map outcomeWins result.1) <$> richProgram adversary q parameter data := by
-  rw [richProgram, ← Functor.map_map, fst_withReveals, costGame_eq_map, cap_map]
 
 open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize
 

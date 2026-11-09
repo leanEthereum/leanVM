@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ConcreteQueryBound
+module
+
+public import XmssSecurity.Proof.ConcreteQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

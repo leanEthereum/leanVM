@@ -1,4 +1,8 @@
-import FORS.CoverBound.PerIndex
+module
+
+public import FORS.CoverBound.PerIndex
+
+@[expose] public section
 
 /-! **The class law of the cover probability at `n` views.** At an index with `n` views, each FORS
 tree has `D ∈ {n, n - 1, ≤ n - 2}` distinct disclosed leaves, with the exact occupancy probabilities
@@ -82,7 +86,7 @@ theorem yM_toReal_le_card (Ms : Multiset (FTree → FLeaf)) :
   unfold yM
   rw [ENNReal.toReal_prod]
   calc ∏ κ, (φF (Ms.map fun m => m κ)).toReal ≤ ∏ _κ : FTree, ((Ms.card : ℝ) / leavesR) := by
-        refine Finset.prod_le_prod (fun κ _ => ENNReal.toReal_nonneg) fun κ _ => ?_
+        refine Finset.prod_le_prod₀ (fun κ _ => ENNReal.toReal_nonneg) fun κ _ => ?_
         rw [φF_toReal]
         have h := distinctD_le_card (Ms.map fun m => m κ)
         rw [Multiset.card_map] at h
@@ -134,22 +138,22 @@ theorem occW_succ (A n d : ℕ) :
     occW A (n + 1) d = d * occW A n d + if d = 0 then 0 else (A + 1 - d) * occW A n (d - 1) := rfl
 
 theorem occW_gt (A : ℕ) : ∀ n d, n < d → occW A n d = 0
-  | 0, d, h => by simp only [occW]; rw [if_neg (by omega)]
+  | 0, d, h => by simp only [occW]; rw [ite_eq_right (by omega)]
   | n + 1, d, h => by
-      rw [occW_succ, occW_gt A n d (by omega), occW_gt A n (d - 1) (by omega), if_neg (by omega)]
+      rw [occW_succ, occW_gt A n d (by omega), occW_gt A n (d - 1) (by omega), ite_eq_right (by omega)]
       simp
 
 theorem occW_self (A : ℕ) : ∀ n, occW A n n = A.descFactorial n
   | 0 => by simp [occW]
   | n + 1 => by
-      rw [occW_succ, occW_gt A n (n + 1) (by omega), if_neg (by omega), Nat.add_sub_cancel, occW_self A n,
+      rw [occW_succ, occW_gt A n (n + 1) (by omega), ite_eq_right (by omega), Nat.add_sub_cancel, occW_self A n,
         Nat.descFactorial_succ, Nat.add_sub_add_right]
       ring
 
 theorem occW_pred (A : ℕ) : ∀ n, occW A (n + 1) n = (n + 1).choose 2 * A.descFactorial n
   | 0 => by simp [occW]
   | n + 1 => by
-      rw [occW_succ, if_neg (by omega), Nat.add_sub_cancel, occW_self, occW_pred A n, Nat.descFactorial_succ,
+      rw [occW_succ, ite_eq_right (by omega), Nat.add_sub_cancel, occW_self, occW_pred A n, Nat.descFactorial_succ,
         Nat.add_sub_add_right, Nat.choose_succ_succ (n + 1) 1, Nat.choose_one_right]
       ring
 
@@ -168,7 +172,7 @@ theorem topD_iter_zero : ∀ n (f : ℕ → ℝ≥0∞), (topD^[n] f) 0 =
       simp only [h1, add_mul, Finset.sum_add_distrib]
       rw [Finset.sum_range_succ (fun d => (d : ℝ≥0∞) * _ * _ * _), occW_gt _ n (n + 1) (by omega),
         Finset.sum_range_succ' (fun d => (if d = 0 then 0 else _) * _ * _)]
-      simp only [if_pos, Nat.succ_ne_zero, if_false, Nat.add_sub_cancel, Nat.add_sub_add_right, Nat.cast_zero,
+      simp only [ite_eq_left, Nat.succ_ne_zero, ite_false, Nat.add_sub_cancel, Nat.add_sub_add_right, Nat.cast_zero,
         mul_zero, zero_mul, add_zero, ← Finset.sum_add_distrib]
       refine Finset.sum_congr rfl fun d _ => ?_
       unfold topD
@@ -193,7 +197,7 @@ theorem avgN_ind (n e : ℕ) (he : e ≤ n) :
       (occW (2 ^ forsHeight) n e : ℝ≥0∞) * leafInv ^ n := by
   rw [avgN_distinct (fun d => if d = e then (1 : ℝ≥0∞) else 0) n 0, distinctD_zero, topD_iter_zero]
   simp only [mul_ite, mul_one, mul_zero]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_range.2 (by omega))]
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_range.2 (by omega))]
 
 theorem avgN_clsI0 (n : ℕ) : avgN (clsI0 n) n 0 = (lawW0 forsHeight n : ℝ≥0∞) * leafInv ^ n := by
   rw [show clsI0 n = fun Xs => if distinctD Xs = n then (1 : ℝ≥0∞) else 0 from rfl, avgN_ind n n le_rfl,
@@ -218,10 +222,10 @@ theorem pow_mul_leafInv (n : ℕ) : (((2 ^ forsHeight) ^ n : ℕ) : ℝ≥0∞) 
 theorem clsI_sum (n : ℕ) (hn : 1 ≤ n) (Xs : Multiset FLeaf) : clsI0 n Xs + clsI1 n Xs + clsI2 n Xs = 1 := by
   unfold clsI0 clsI1 clsI2
   by_cases h0 : distinctD Xs = n
-  · rw [if_pos h0, if_neg (by omega), if_neg (by omega)]; simp
+  · rw [ite_eq_left h0, ite_eq_right (by omega), ite_eq_right (by omega)]; simp
   · by_cases h1 : distinctD Xs = n - 1
-    · rw [if_neg h0, if_pos h1, if_neg (by omega)]; simp
-    · rw [if_neg h0, if_neg h1, if_pos ⟨h0, h1⟩]; simp
+    · rw [ite_eq_right h0, ite_eq_left h1, ite_eq_right (by omega)]; simp
+    · rw [ite_eq_right h0, ite_eq_right h1, ite_eq_left ⟨h0, h1⟩]; simp
 
 theorem avgN_clsI_sum (n : ℕ) (hn : 1 ≤ n) :
     (lawW0 forsHeight n : ℝ≥0∞) * leafInv ^ n + (lawW1 forsHeight n : ℝ≥0∞) * leafInv ^ n +
@@ -356,17 +360,17 @@ theorem classLaw_pointwise (n T : ℕ) (F : ℝ → ℝ) (hFm : Monotone F)
     refine Finset.prod_eq_one fun κ _ => ?_
     unfold clsPsi
     by_cases h2 : κ ∈ t2
-    · rw [if_pos h2]
+    · rw [ite_eq_left h2]
       simp only [t2, Finset.mem_filter, Finset.mem_univ, true_and] at h2
-      unfold clsI2; exact if_pos h2
-    · rw [if_neg h2]
+      unfold clsI2; exact ite_eq_left h2
+    · rw [ite_eq_right h2]
       by_cases h1 : κ ∈ t
-      · rw [if_pos h1]
+      · rw [ite_eq_left h1]
         simp only [t, t2, Finset.mem_filter, Finset.mem_univ, true_and] at h1 h2
-        unfold clsI1; exact if_pos (by by_contra h; exact h2 ⟨h1, h⟩)
-      · rw [if_neg h1]
+        unfold clsI1; exact ite_eq_left (by by_contra h; exact h2 ⟨h1, h⟩)
+      · rw [ite_eq_right h1]
         simp only [t, Finset.mem_filter, Finset.mem_univ, true_and, not_not] at h1
-        unfold clsI0; exact if_pos h1
+        unfold clsI0; exact ite_eq_left h1
   have hr : ∀ κ, distinctD (Ms.map fun m => m κ) ≤ if κ ∈ t2 then n - 2 else if κ ∈ t then n - 1 else n := by
     intro κ
     have := hD κ
@@ -382,7 +386,7 @@ theorem classLaw_pointwise (n T : ℕ) (F : ℝ → ℝ) (hFm : Monotone F)
     calc ∏ κ, (φF (Ms.map fun m => m κ)).toReal = ∏ κ, ((distinctD (Ms.map fun m => m κ) : ℝ) / leavesR) :=
           Finset.prod_congr rfl fun κ _ => φF_toReal _
       _ ≤ ∏ κ, (((if κ ∈ t2 then n - 2 else if κ ∈ t then n - 1 else n : ℕ) : ℝ) / leavesR) :=
-          Finset.prod_le_prod (fun _ _ => div_nonneg (Nat.cast_nonneg _) leavesR_pos.le) fun κ _ =>
+          Finset.prod_le_prod₀ (fun _ _ => div_nonneg (Nat.cast_nonneg _) leavesR_pos.le) fun κ _ =>
             div_le_div_of_nonneg_right (by exact_mod_cast hr κ) leavesR_pos.le
       _ = _ := by rw [Finset.prod_div_distrib, Finset.prod_const, Finset.card_univ, card_ftree, hY, Nat.cast_prod]
   have hrep : lawY forsTrees n t.card t2.card ≤
@@ -487,7 +491,7 @@ theorem avgN_classLaw (k a n T : ℕ) (hk : forsTrees = k) (ha : forsHeight = a)
     have hrep : ∀ w ∈ Finset.Ico T (forsTrees + 1), ∀ v, clsRep n T w v = κE.toReal * (lawY forsTrees n T 0 : ℝ) /
         L ^ forsTrees := by
       intro w hw v
-      rw [clsRep, if_neg (by have := Finset.mem_Ico.1 hw; omega), hL, leavesR]
+      rw [clsRep, ite_eq_right (by have := Finset.mem_Ico.1 hw; omega), hL, leavesR]
     have hmass : ∑ w ∈ Finset.Ico T (forsTrees + 1), ∑ v ∈ Finset.range (w + 1), lawWt forsTrees forsHeight n w v =
         (2 ^ forsHeight) ^ (n * forsTrees) - lawMass forsTrees forsHeight n T := by
       have h := lawWt_total forsTrees n hn1
@@ -516,7 +520,7 @@ theorem avgN_classLaw (k a n T : ℕ) (hk : forsTrees = k) (ha : forsHeight = a)
   have hrep' : ∀ w ∈ Finset.range T, ∀ v, clsRep n T w v = κE.toReal * (lawY forsTrees n w v : ℝ) /
       L ^ forsTrees := by
     intro w hw v
-    rw [clsRep, if_pos (Finset.mem_range.1 hw), hL, leavesR]
+    rw [clsRep, ite_eq_left (Finset.mem_range.1 hw), hL, leavesR]
   have hnn : ∀ (x : ℕ) (y : ℝ), 0 ≤ (x : ℝ) * F y * (1 / L ^ (n * forsTrees)) := fun x y =>
     mul_nonneg (mul_nonneg (Nat.cast_nonneg _) (hF0 y)) (by positivity)
   simp only [key]

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.RandomizedStatement
+module
+
+public import XmssSecurity.Proof.RandomizedStatement
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -68,23 +72,5 @@ theorem resolves_of_run {α : Type} (computation : OracleComp (D →ₒ R) α)
       have hle := cache_le_of_run (next step.1) step.2 result htail
       exact .query input step.1 (hle (query_caches input before step hstep)) next result.1
         (ih step.1 step.2 result htail)
-
-theorem Resolves.run_eq_pure {α : Type} {cache : QueryCache (D →ₒ R)}
-    {computation : OracleComp (D →ₒ R) α} {value : α}
-    (h : Resolves cache computation value) :
-    (simulateQ randomOracle computation).run cache = Pure.pure (value, cache) := by
-  induction h with
-  | pure value => rfl
-  | query input answer hanswer next value _ ih =>
-      rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-        QueryImpl.withCaching_run_some _ hanswer, pure_bind, ih]
-
-/-- Repeating a deterministic execution gives the same answer, even after more oracle queries. -/
-theorem replay_run {α : Type} (computation : OracleComp (D →ₒ R) α)
-    (before : QueryCache (D →ₒ R)) (result : α × QueryCache (D →ₒ R))
-    (h : result ∈ support ((simulateQ randomOracle computation).run before))
-    (after : QueryCache (D →ₒ R)) (hle : result.2 ≤ after) :
-    (simulateQ randomOracle computation).run after = pure (result.1, after) :=
-  ((resolves_of_run computation before result h).mono hle).run_eq_pure
 
 end DeterministicSigning

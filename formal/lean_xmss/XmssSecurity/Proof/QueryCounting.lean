@@ -1,5 +1,10 @@
-import VCVio.OracleComp.QueryTracking.WriterCost
-import VCVio.OracleComp.QueryTracking.QueryBound
+module
+
+public import VCVio.OracleComp.QueryTracking.WriterCost
+public import VCVio.OracleComp.QueryTracking.QueryBound
+
+@[expose] public section
+
 namespace XmssSecurity.QueryCounting
 
 open _root_.OracleComp OracleSpec
@@ -32,7 +37,7 @@ theorem simulate_withCost {m : Type → Type} [Monad m] [LawfulMonad m]
   | query_bind input next ih =>
       simp only [counted_query_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_pure, ih,
         WriterT.run_bind]
-      simp [QueryImpl.withAddCost, QueryImpl.withCost, QueryImpl.withTraceBefore_apply,
+      simp [QueryImpl.withAddCost, QueryImpl.withCost,
         WriterT.run_bind, WriterT.run_liftM, WriterT.run_tell, map_eq_bind_pure_comp, bind_assoc]
       rfl
 
@@ -52,11 +57,5 @@ theorem counted_bind (computation : OracleComp spec Result) (next : Result → O
   | pure result => simp only [pure_bind, counted_pure, zero_add, Prod.mk.eta, bind_pure]
   | query_bind input continuation ih =>
       simp only [bind_assoc, counted_query_bind, ih, pure_bind, Nat.add_assoc]
-
-theorem counted_map (computation : OracleComp spec Result) (f : Result → Next) :
-    counted selected (f <$> computation) = (fun result => (f result.1, result.2)) <$> counted selected computation := by
-  rw [show f <$> computation = computation >>= fun result => pure (f result) from (bind_pure_comp f computation).symm,
-    counted_bind]
-  simp only [counted_pure, Nat.add_zero, bind_pure_comp, map_pure]
 
 end XmssSecurity.QueryCounting

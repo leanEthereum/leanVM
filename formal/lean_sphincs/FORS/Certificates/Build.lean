@@ -1,6 +1,10 @@
-import FORS.Certificates.Closing
-import FORS.CoverBound.MomentTable
-import FORS.CoverBound.IntTables
+module
+
+public import FORS.Certificates.Closing
+public import FORS.CoverBound.MomentTable
+public import FORS.CoverBound.IntTables
+
+@[expose] public section
 
 section
 
@@ -49,10 +53,6 @@ def chainQ (K N qtop : ℕ) (ps : List (ℚ × ℚ)) : ℕ → List EntryF → B
 def checkCoverQ (H b K N qstart : ℕ) (c : CoverW) (ps : List (ℚ × ℚ)) : Bool :=
   checkRate H b N c.qtop c.tab && checkPT c.tab && chainQ K N c.qtop ps qstart c.entries
 
-/-- The checks of a heavy cover that do not open its options. -/
-def checkCoverQH (H b K N qstart : ℕ) (c : CoverW) (ps : List (ℚ × ℚ)) : Bool :=
-  checkRateH H b N c.qtop c.tab && checkPT c.tab && chainQ K N c.qtop ps qstart c.entries
-
 theorem checkEntryQ_map (K N : ℕ) (opts : List Opt) (e : EntryF) :
     checkEntryQ K N (opts.map fun o => (o.cthr, o.B)) e = checkEntryF K N opts e := by
   unfold checkEntryQ checkEntryF
@@ -86,15 +86,6 @@ theorem checkCoverW_of {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ �
   simp only [checkCoverW, Bool.and_eq_true]
   exact ⟨⟨⟨h.1.1, h.1.2⟩, h1⟩, by rw [← chainQ_map, h2]; exact h.2⟩
 
-/-- **A heavy cover from its options checked one by one.** -/
-theorem checkCoverH_of {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ × ℚ))
-    (ho : List.Forall₂ (fun o p => checkOptB H b k a c.tab o p = true) c.opts ps)
-    (h : checkCoverQH H b K N qstart c ps = true) : checkCoverH H b k a K N qstart c = true := by
-  obtain ⟨h1, h2⟩ := checkOptB_all ho
-  simp only [checkCoverQH, Bool.and_eq_true] at h
-  simp only [checkCoverH, Bool.and_eq_true]
-  exact ⟨⟨⟨h.1.1, h.1.2⟩, h1⟩, by rw [← chainQ_map, h2]; exact h.2⟩
-
 end FORS.Security.H0
 
 end
@@ -118,25 +109,22 @@ open FORS.Base.H0
 
 /-- The numerators of `gBound` over `2^191`, `n ≤ n1`, for `k` trees of height `a`. -/
 def gZ (H k a n1 : ℕ) (c1 : ℚ) : List ℤ :=
-  zipTab n1 (fun x y : ℕ => min (cdivZ (((x ^ k : ℕ) : ℤ) * 2 ^ 191) (p2 (H + 128 * k)))
-    (cdivZ (((y ^ k : ℕ) * c1.den : ℕ) * 2 ^ 191) (p2 (2 * H + 128 * k) * 4 * c1.num))) (P1L a) (P2L a)
+  zipTab n1 (fun x y : ℕ => (gNat H k c1.num.toNat c1.den x y : ℤ)) (P1L a) (P2L a)
 
 /-- The numerators of `hBound` over `2^128`, `n ≤ n1`, with `E = ⌈(eC - 1) 2^128⌉`. -/
 def hZ (H k a n1 : ℕ) (θ A2 : ℚ) (E : ℤ) : List ℤ :=
-  zipTab n1 (fun x y : ℕ => min E
-    (cdivZ ((θ.num * A2.den * ((x ^ k : ℕ) : ℤ) * p2 H + A2.num * θ.den * ((y ^ k : ℕ) : ℤ)) * 2 ^ 128)
-      (θ.den * A2.den * p2 (2 * H + 128 * k)))) (P1L a) (P2L a)
+  zipTab n1 (fun x y : ℕ => ((min E.toNat (hNat H k θ.num.toNat θ.den A2.num.toNat A2.den x y) : ℕ) : ℤ))
+    (P1L a) (P2L a)
 
 /-- The numerators of `nBound` over `2^191`, `n ≤ n1`. -/
 def nZ (H k a n1 : ℕ) : List ℤ :=
-  zipTab n1 (fun x _ : ℕ => cdivZ (((k * x ^ (k - 1) : ℕ) : ℤ) * 2 ^ 191) (p2 (H + 128 * (k - 1))))
-    (P1L a) (P1L a)
+  zipTab n1 (fun x _ : ℕ => (cdiv (k * Nat.pow x (k - 1) * 2 ^ 191) (2 ^ (H + 128 * (k - 1))) : ℤ)) (P1L a) (P1L a)
 
 theorem gZ_bound {H k a n1 n : ℕ} {o : OptF} (hc : 0 < o.c1) (hn1 : n1 ≤ 150) (hn : n < n1 + 1) :
     gBound H k a o n ≤ ((gZ H k a n1 o.c1).getD n 0 : ℚ) / 2 ^ 191 := by
   have l1 : n1 + 1 ≤ (P1L a).length := by rw [length_P1L]; omega
   have l2 : n1 + 1 ≤ (P2L a).length := by rw [length_P2L]; omega
-  rw [gZ, getD_zipTab (a := 0) (b := 0) l1 l2 hn, min_overP, gBound, getD_tab (P1L_eq a) (by omega),
+  rw [gZ, getD_zipTab (a := 0) (b := 0) l1 l2 hn, gNat_eq hc, min_overP, gBound, getD_tab (P1L_eq a) (by omega),
     getD_tab (P2L_eq a) (by omega)]
   have hu : 0 < o.c1.num := Rat.num_pos.mpr hc
   have hc1 : (o.c1 : ℚ) = o.c1.num / o.c1.den := (Rat.num_div_den o.c1).symm
@@ -150,11 +138,13 @@ theorem gZ_bound {H k a n1 n : ℕ} {o : OptF} (hc : 0 < o.c1) (hn1 : n1 ≤ 150
     have : (0 : ℚ) < o.c1.den := by exact_mod_cast o.c1.den_pos
     field_simp; ring
 
-theorem hZ_bound {H k a n1 n : ℕ} {o : OptF} {E : ℤ} (hE : o.eC - 1 ≤ (E : ℚ) / 2 ^ 128) (hn1 : n1 ≤ 150)
-    (hn : n < n1 + 1) : hBound H k a o n ≤ ((hZ H k a n1 o.θ o.A2 E).getD n 0 : ℚ) / 2 ^ 128 := by
+theorem hZ_bound {H k a n1 n : ℕ} {o : OptF} {E : ℤ} (hE : o.eC - 1 ≤ (E : ℚ) / 2 ^ 128) (hE0 : 0 ≤ E)
+    (hθ : 0 ≤ o.θ) (hA : 0 ≤ o.A2) (hn1 : n1 ≤ 150) (hn : n < n1 + 1) :
+    hBound H k a o n ≤ ((hZ H k a n1 o.θ o.A2 E).getD n 0 : ℚ) / 2 ^ 128 := by
   have l1 : n1 + 1 ≤ (P1L a).length := by rw [length_P1L]; omega
   have l2 : n1 + 1 ≤ (P2L a).length := by rw [length_P2L]; omega
-  rw [hZ, getD_zipTab (a := 0) (b := 0) l1 l2 hn, min_overP, hBound, getD_tab (P1L_eq a) (by omega),
+  rw [hZ, getD_zipTab (a := 0) (b := 0) l1 l2 hn, Nat.cast_min, Int.toNat_of_nonneg hE0, hNat_eq hθ hA,
+    min_overP, hBound, getD_tab (P1L_eq a) (by omega),
     getD_tab (P2L_eq a) (by omega)]
   have hθ : (o.θ : ℚ) = o.θ.num / o.θ.den := (Rat.num_div_den o.θ).symm
   have hA : (o.A2 : ℚ) = o.A2.num / o.A2.den := (Rat.num_div_den o.A2).symm
@@ -169,7 +159,9 @@ theorem hZ_bound {H k a n1 n : ℕ} {o : OptF} {E : ℤ} (hE : o.eC - 1 ≤ (E :
 theorem nZ_bound {H k a n1 n : ℕ} (hn1 : n1 ≤ 150) (hn : n < n1 + 1) :
     nBound H k a n ≤ ((nZ H k a n1).getD n 0 : ℚ) / 2 ^ 191 := by
   have l1 : n1 + 1 ≤ (P1L a).length := by rw [length_P1L]; omega
-  rw [nZ, getD_zipTab (a := 0) (b := 0) l1 l1 hn, nBound, getD_tab (P1L_eq a) (by omega)]
+  rw [nZ, getD_zipTab (a := 0) (b := 0) l1 l1 hn, Nat.pow_eq, ← cdivZ_natCast _ _ (by positivity), nBound,
+    getD_tab (P1L_eq a) (by omega)]
+  push_cast
   apply le_cdivZ_div (p2_pos _)
   unfold κQ; simp only [tab_pow]; push_cast; field_simp; ring
 
@@ -216,8 +208,18 @@ theorem checkOptF_build {H b k a : ℕ} {t : PoisT} {c1 θ : ℚ} {s : ℕ} {cth
     rw [le_div_iff₀ (by positivity)]; exact Int.le_ceil _
   have p12 : ∀ n < t.n1 + 1, gBound H k a o n ≤ o.gt.getD n 0 := fun n hn' =>
     le_overP (lt_of_lt_of_eq hn' lgz.symm) (gZ_bound (o := o) h1 hn hn')
+  have hθc : 0 < θ * c1 := mul_pos (show 0 < θ from h2) (show 0 < c1 from h1)
+  have he1 : 1 + θ * c1 ≤ expUp (θ * c1) s t.P := by
+    have hexp : Real.exp ((θ * c1 : ℚ) : ℝ) ≤ (expUp (θ * c1) s t.P : ℝ) := exp_le_expUp _ _ _ (by positivity) h4
+    have := Real.add_one_le_exp ((θ * c1 : ℚ) : ℝ)
+    exact_mod_cast (show ((1 + θ * c1 : ℚ) : ℝ) ≤ (expUp (θ * c1) s t.P : ℝ) by push_cast at hexp this ⊢; linarith)
+  have hE0 : 0 ≤ ⌈(o.eC - 1) * 2 ^ 128⌉ := Int.ceil_nonneg (mul_nonneg
+    (by show (0 : ℚ) ≤ expUp (θ * c1) s t.P - 1; linarith) (by positivity))
+  have hA0 : 0 ≤ o.A2 := by
+    show 0 ≤ rup ((expUp (θ * c1) s t.P - 1 - θ * c1) / c1 ^ 2) (2 * 127 + 64)
+    exact le_trans (div_nonneg (by linarith) (sq_nonneg _)) (le_rup _ _)
   have p13 : ∀ n < t.n1 + 1, hBound H k a o n ≤ o.ht.getD n 0 := fun n hn' =>
-    le_overP (lt_of_lt_of_eq hn' lhz.symm) (hZ_bound (o := o) hE hn hn')
+    le_overP (lt_of_lt_of_eq hn' lhz.symm) (hZ_bound (o := o) hE hE0 h2.le hA0 hn hn')
   have hL : expLow (o.θ * o.cthr) t.J t.P =
       (expLowN (θ * cthr).num.toNat (θ * cthr).den t.P t.J 0 (2 ^ t.P) 0 : ℚ) / 2 ^ t.P := by
     have h0 : 0 ≤ (θ * cthr).num := Rat.num_nonneg.mpr (mul_nonneg h2.le h3)
@@ -242,8 +244,8 @@ theorem checkOptB_build {H b k a : ℕ} {t : PoisT} {c1 θ : ℚ} {s : ℕ} {cth
     checkOptB H b k a t (.F (buildOpt H b k a t c1 θ s cthr)) p = true := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨h1, h2⟩, h3⟩ := h
-  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true, decide_eq_true_eq]
-  exact ⟨⟨checkOptF_build h1, h2⟩, h3⟩
+  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true]
+  exact ⟨⟨checkOptF_build h1, decide_eq_true h2⟩, decide_eq_true h3⟩
 
 /-! ### Near certificates -/
 
@@ -329,14 +331,6 @@ theorem checkCoverW_of_pt {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (�
     checkCoverW H b k a K N qstart c = true := by
   simp only [Bool.and_eq_true] at h
   exact checkCoverW_of ps ho (by simp only [checkCoverQ, h.1, hpt, h.2, Bool.and_self])
-
-/-- **A heavy cover from its options and its table checked separately.** -/
-theorem checkCoverH_of_pt {H b k a K N qstart : ℕ} {c : CoverW} (ps : List (ℚ × ℚ))
-    (ho : List.Forall₂ (fun o p => checkOptB H b k a c.tab o p = true) c.opts ps) (hpt : checkPT c.tab = true)
-    (h : (checkRateH H b N c.qtop c.tab && chainQ K N c.qtop ps qstart c.entries) = true) :
-    checkCoverH H b k a K N qstart c = true := by
-  simp only [Bool.and_eq_true] at h
-  exact checkCoverH_of ps ho (by simp only [checkCoverQH, h.1, hpt, h.2, Bool.and_self])
 
 end FORS.Security.H0
 

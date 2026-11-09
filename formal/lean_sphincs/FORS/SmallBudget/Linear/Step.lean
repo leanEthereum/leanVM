@@ -1,4 +1,8 @@
-import FORS.SmallBudget.Linear.Rate
+module
+
+public import FORS.SmallBudget.Linear.Rate
+
+@[expose] public section
 
 /-! One step of the cost-level comparison against the linear potential: every input class of a
 fresh answer, guesses at parsed inputs, canonical continuations, reveals, draws and ticks. -/
@@ -69,7 +73,7 @@ theorem kindUnit_le_one (x : HashInput) : K.kindUnit x ≤ 1 := by
 
 theorem kindUnit_none {x : HashInput} (h : K.tg.kind x = .none) : K.kindUnit x = 0 := by
   unfold kindUnit
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 section Fresh
 
@@ -79,7 +83,7 @@ variable {xr : ℝ} (hN : Numeric K.ρ xr) (hxr : 0 ≤ xr) {y' : ℕ} (hY : (y'
 include hN hxr hY hsec in
 /-- **A fresh answer without a guess.** -/
 theorem fresh_zero {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 ≤ K.pot (y' + 1) s := by
   by_cases hA : ∃ l i, Retained K.p l ∧ K.IsA l i x
   · obtain ⟨l, i, hl, hA⟩ := hA
     simpa using K.fresh_A hN hinv hx hl hA (hsec x (K.secondOrder_of_isA hA)) (g := 0) bot_le
@@ -104,7 +108,7 @@ include hN in
 /-- **A fresh message-digest query** pays the baseline from the rate. -/
 theorem fresh_digest (hmsg : ∀ x, ForsSigner.IsMsgInput x → K.tg.kind x = .none) {s : St} (hinv : K.Inv s)
     {x : HashInput} (hx : s.cache x = none) (hd : ForsSigner.IsMsgInput x) :
-    ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * ENNReal.ofReal K.ρ ≤ K.pot (y' + 1) s := by
+    ∑' r, Pr{let y ← readOutside x s}[y = r] * K.pot y' r.2 + ν * ENNReal.ofReal K.ρ ≤ K.pot (y' + 1) s := by
   refine K.fresh_other hN hinv hx (fun l _ => ⟨fun i h => ?_, fun i v h => ?_⟩)
     (fun l msg ctr _ hlen h => msg_ne_enc hd (by omega) h) (fun f h => msg_ne_fleaf hd h)
     (by rw [K.kindUnit_none (hmsg x hd), add_zero])
@@ -117,14 +121,14 @@ include hN hxr hY hsec in
 /-- **A guess at a fresh parsed input.** The guess pays one unit, the answer its class. -/
 theorem guess_fresh {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) (q : Address × Digest)
     (hp : HiddenGraph.parse K.p (candidateActive K.p) x = some q) (hk : s.known q.1.inputCoordinate = none) :
-    ∑' r, Pr[= r | readOutside x (s.record (q.1.inputCoordinate, q.2))] * K.pot y' r.2 ≤
+    ∑' r, Pr{let y ← readOutside x (s.record (q.1.inputCoordinate, q.2))}[y = r] * K.pot y' r.2 ≤
       K.pot (y' + 1) s := by
   obtain ⟨rfl, hact⟩ := (parse_some_iff _ _ x q).1 hp
   obtain ⟨addr, v⟩ := q
   have hinv₁ := hinv.record (addr.inputCoordinate, v)
   have hx₁ : (s.record (addr.inputCoordinate, v)).cache (HiddenGraph.input K.p (addr, v)) = none := hx
-  suffices main : ∑' r, Pr[= r | readOutside (HiddenGraph.input K.p (addr, v))
-        (s.record (addr.inputCoordinate, v))] * K.pot y' r.2 + ν * 1 ≤
+  suffices main : ∑' r, Pr{let x ← (readOutside (HiddenGraph.input K.p (addr, v))
+        (s.record (addr.inputCoordinate, v)))}[x = r] * K.pot y' r.2 + ν * 1 ≤
         K.pot (y' + 1) (s.record (addr.inputCoordinate, v)) ∧
       (∀ f : FIn, (addr.inputCoordinate, v) = (f.inC, f.v) → K.FE s f → (addr.inputCoordinate, v) ∈ s.guesses) by
     have hrec := K.pot_record (y' + 1) s (addr.inputCoordinate, v) hk main.2

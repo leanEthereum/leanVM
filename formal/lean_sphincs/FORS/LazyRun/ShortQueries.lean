@@ -1,4 +1,8 @@
-import FORS.LazyRun.OutsideTable
+module
+
+public import FORS.LazyRun.OutsideTable
+
+@[expose] public section
 
 section
 
@@ -70,11 +74,11 @@ theorem OnlyC.liftProb {α : Type} (oa : ProbComp α) : OnlyC (liftM oa : Oracle
       exact OnlyC.query (fun h => h)
 
 theorem OnlyC.tick (amount : Nat) :
-    OnlyC (HiddenCost.tick (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount) :=
+    OnlyC (HiddenCost.tick (H := Empty) (D := HashInput) (R := HashOutput) (ι := HiddenGraph.Coordinate) amount) :=
   OnlyC.query (fun h => h)
 
 theorem OnlyC.reveal (coordinate : HiddenGraph.Coordinate) :
-    OnlyC (HiddenCost.reveal (D := HashInput) (R := HashOutput) coordinate) :=
+    OnlyC (HiddenCost.reveal (H := Empty) (D := HashInput) (R := HashOutput) coordinate) :=
   OnlyC.query (fun h => h)
 
 theorem OnlyC.sequenceFin {α : Type} {n : Nat} (computation : Fin n → OracleComp CostSpec α)
@@ -141,7 +145,7 @@ theorem OnlyC.erase {α : Type} {computation : OracleComp CostSpec α} (h : Only
       have hbind : OnlyShort (HiddenCost.eraseQuery input >>= fun value => HiddenCost.erase (next value)) := by
         have hfirst : OnlyShort (HiddenCost.eraseQuery (D := HashInput) (R := HashOutput)
             (ι := HiddenGraph.Coordinate) input) := by
-          rcases input with source | amount
+          rcases input with source | (amount | honest)
           · change OnlyShort (liftM ((HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate).query
               source) : OracleComp _ _)
             rw [OnlyShort, isQueryBoundP_query_iff]
@@ -152,10 +156,10 @@ theorem OnlyC.erase {α : Type} {computation : OracleComp CostSpec α} (h : Only
             · exact hlong.elim
           · exact (trivial : (pure () : OracleComp (HiddenRows.SourceSpec HashInput HashOutput
               HiddenGraph.Coordinate) Unit).IsQueryBoundP LongSource 0)
+          · exact Empty.elim honest
         have := isQueryBoundP_bind (n := 0) (m := 0) hfirst (fun value _ => ih value (hnext value))
         simpa [OnlyShort] using this
       simpa only [HiddenCost.erase, simulateQ_bind, simulateQ_spec_query] using hbind
-
 
 attribute [local irreducible] ReferenceChoice.search encodingAttemptLimit digestAttemptLimit
   Concrete.messageDigest Concrete.messageDigestCall
@@ -251,14 +255,6 @@ theorem OnlyC.costInteraction (parameter : PublicParameter) (data : PublicData) 
         rw [QueryImpl.run_withLogging_apply]
         exact OnlyC.bind (OnlyC.signCostSource _ _ _) (fun _ => OnlyC.pure' _)
 
-theorem OnlyC.costGame (parameter : PublicParameter) (data : PublicData) (adversary : Adversary) :
-    OnlyC (GraphView.costGame parameter data (internalize adversary)) := by
-  unfold GraphView.costGame GraphView.costRest
-  refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)
-  refine OnlyC.bind ?_ (fun output => ?_)
-  · exact OnlyC.costInteraction _ _ _ (OnlyAdv.map _ (OnlyAdv.internal _ _))
-  · exact OnlyC.bind (OnlyC.liftHash (Short.Only.verify _ _ _)) (fun _ => OnlyC.pure' _)
-
 end FORS.Security.HiddenBridge
 
 end
@@ -286,20 +282,18 @@ theorem evalDist_stoppedExperiment_lazy {A α : Type}
     (cache : QueryCache HashSpec)
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stoppedExperiment model (extend cache outside) computation known] =
-      𝒟[Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known cache] := by
+    (($ᵗ Eager.Table) >>= fun outside =>
+        HiddenRows.stoppedExperiment model (extend cache outside) computation known) =ᵈ (Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known cache) := by
   unfold HiddenRows.stoppedExperiment HiddenOutside.stoppedExperiment
-  rw [evalDist_bind_bind_swap, map_bind, evalDist_bind, evalDist_bind]
-  congr 1
-  funext table
-  exact evalDist_stopped_lazy model table computation hshort known cache
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  rw [map_bind]
+  exact EvalDistEq.bind_right _ fun table => evalDist_stopped_lazy model table computation hshort known cache
 
 theorem probEvent_bind_congr₂ {α β γ : Type} (p : ProbComp α) (k₁ : α → ProbComp β)
     (k₂ : α → ProbComp γ) (event₁ : β → Prop) (event₂ : γ → Prop)
-    (h : ∀ a, Pr[event₁ | k₁ a] = Pr[event₂ | k₂ a]) :
-    Pr[event₁ | p >>= k₁] = Pr[event₂ | p >>= k₂] := by
-  simp only [probEvent_bind_eq_tsum, h]
+    (h : ∀ a, Pr{let x ← k₁ a}[event₁ x] = Pr{let x ← k₂ a}[event₂ x]) :
+    Pr{let x ← p >>= k₁}[event₁ x] = Pr{let x ← p >>= k₂}[event₂ x] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum, h]
 
 end FORS.Security.HiddenBridge
 

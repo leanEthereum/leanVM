@@ -1,7 +1,11 @@
-import FORS.CoverBound.SecondMoment
-import FORS.CoverPotential.Price
-import FORS.CoverPotential.Basic
-import FORS.Base.Split
+module
+
+public import FORS.CoverBound.SecondMoment
+public import FORS.CoverPotential.Price
+public import FORS.CoverPotential.Basic
+public import FORS.Base.Split
+
+@[expose] public section
 
 /-! **From the FORS price to per-index moments.** The cover price of a multiset of disclosed views
 is a sum over the indices of the probability that a uniform mark is covered by the marks at the
@@ -102,13 +106,13 @@ theorem price_decomp (d : Multiset View) :
     intro l τ
     unfold witness
     by_cases h : CoverAll (l, τ) d
-    · rw [if_pos h]
-      exact (Finset.prod_eq_one fun κ _ => if_pos ((coverAll_iff l τ d).1 h κ)).symm
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+      exact (Finset.prod_eq_one fun κ _ => ite_eq_left ((coverAll_iff l τ d).1 h κ)).symm
+    · rw [ite_eq_right h]
       rw [coverAll_iff] at h
       push Not at h
       obtain ⟨κ, hκ⟩ := h
-      exact (Finset.prod_eq_zero (Finset.mem_univ κ) (if_neg hκ)).symm
+      exact (Finset.prod_eq_zero (Finset.mem_univ κ) (ite_eq_right hκ)).symm
   simp only [hw]
   have hy : ∀ l : Fin (2 ^ subtreeHeight), (freshAvg Finset.univ fun τ : FTree → FLeaf =>
       ∏ κ, if CoverF (τ κ) ((marksAt l d).map fun m => m κ) then (1 : ℝ≥0∞) else 0) = yM (marksAt l d) := by
@@ -160,8 +164,8 @@ theorem φF_eq (Xs : Multiset FLeaf) : φF Xs = ENNReal.ofReal (avgR fun t : FLe
     intro t
     unfold coverR CoverF
     by_cases h : t ∈ Xs
-    · rw [if_pos h, if_pos h, ENNReal.ofReal_one]
-    · rw [if_neg h, if_neg h, ENNReal.ofReal_zero]
+    · rw [ite_eq_left h, ite_eq_left h, ENNReal.ofReal_one]
+    · rw [ite_eq_right h, ite_eq_right h, ENNReal.ofReal_zero]
   simp only [hpt]
   exact freshAvg_ofReal _ (fun t => coverR_nonneg _ _)
 
@@ -200,7 +204,7 @@ theorem φF_le_one (Xs : Multiset FLeaf) : φF Xs ≤ 1 := by
     _ = 1 := freshAvg_const _ Finset.univ_nonempty 1
 
 theorem yM_le_one (Ms : Multiset (FTree → FLeaf)) : yM Ms ≤ 1 :=
-  Finset.prod_le_one' fun _ _ => φF_le_one _
+  Finset.prod_le_one fun _ _ => φF_le_one _
 
 theorem yM_ne_top (Ms : Multiset (FTree → FLeaf)) : yM Ms ≠ ⊤ :=
   ne_top_of_le_ne_top ENNReal.one_ne_top (yM_le_one Ms)

@@ -1,4 +1,8 @@
-import FORS.LazyRun.Interpreter
+module
+
+public import FORS.LazyRun.Interpreter
+
+@[expose] public section
 
 /-! Storing the answer to an untargeted, unparsed outside input changes neither the debts nor the
 realized values of the interpreted lazy comparison (`debts_store_untargeted`,
@@ -32,7 +36,7 @@ omit [Fintype ι] [SampleableType R] in
 theorem debts_store_untargeted (state : DebtState D R ι) (x : D) (u : R) (hk : tg.kind x = .none)
     (coordinate : ι) : debts tg initial (state.store x u) coordinate = debts tg initial state coordinate := by
   ext value
-  simp only [debts, DebtState.store, Set.mem_union, Set.mem_setOf_eq]
+  simp only [debts, DebtState.store, Set.mem_union, Set.mem_ofPred_eq]
   refine or_congr Iff.rfl ⟨?_, ?_⟩
   · rintro ⟨input, out, hcache, hinit, hkind, htrunc⟩
     have hne : input ≠ x := by rintro rfl; rw [hk] at hkind; cases hkind
@@ -73,8 +77,14 @@ noncomputable def ordinaryStep (bytes : D) (known : Knowledge ι) (state : DebtS
         else readOutside bytes state
 
 omit [Fintype ι] in
-theorem costStep_ordinary (bytes : D) (state : DebtState D R ι) :
-    (costStep model (.inl (.inr (.inl bytes))) state : ProbComp (R × DebtState D R ι)) =
+/-- An honest read steps as the raw query it stands for. -/
+theorem costStep_honest {H : Type} [HonestInputs H D] (honest : H) (state : DebtState D R ι) :
+    (costStep model (.inr (.inr honest)) state : ProbComp (R × DebtState D R ι)) =
+      costStep (H := H) model (.inl (.inr (.inl (HonestInputs.toInput honest)))) state := rfl
+
+omit [Fintype ι] in
+theorem costStep_ordinary {H : Type} [HonestInputs H D] (bytes : D) (state : DebtState D R ι) :
+    (costStep (H := H) model (.inl (.inr (.inl bytes))) state : ProbComp (R × DebtState D R ι)) =
       ordinaryStep model bytes state.known state := by
   rw [costStep_inl]
   cases hp : model.parse bytes with
@@ -88,9 +98,9 @@ theorem costStep_ordinary (bytes : D) (state : DebtState D R ι) :
           exact lazyStep_guess model bytes state query hp hk
       | some canonical =>
           by_cases heq : query.2 = canonical
-          · simp only [ordinaryStep, hp, hk, if_pos heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_left heq]
             exact lazyStep_canonical model bytes state query hp canonical hk heq
-          · simp only [ordinaryStep, hp, hk, if_neg heq]
+          · simp only [ordinaryStep, hp, hk, ite_eq_right heq]
             exact lazyStep_other model bytes state query hp canonical hk heq
 
 end FORS.Security.HiddenDebt

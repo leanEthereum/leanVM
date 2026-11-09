@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.MerkleVerificationQueryPresence
-import XmssSecurity.Proof.ChainOraclePresampling
+module
+
+public import XmssSecurity.Proof.MerkleVerificationQueryPresence
+public import XmssSecurity.Proof.ChainOraclePresampling
+
+@[expose] public section
 
 /-!
 # The top layer's queries in a successful verification
@@ -175,7 +179,7 @@ theorem topAuthenticationRoot_query_cached_as_in_largerCache
             (if key.val.testBit levels then
               Concrete.nodePayload (path ⟨levels, hlevel⟩) current
             else Concrete.nodePayload current (path ⟨levels, hlevel⟩))) = some output
-          rw [if_pos hbit]
+          rw [ite_eq_left hbit]
           exact hcached
         · have hbitFalse : key.val.testBit levels = false :=
             Bool.eq_false_of_not_eq_true hbit
@@ -190,7 +194,7 @@ theorem topAuthenticationRoot_query_cached_as_in_largerCache
             (if key.val.testBit levels then
               Concrete.nodePayload (path ⟨levels, hlevel⟩) current
             else Concrete.nodePayload current (path ⟨levels, hlevel⟩))) = some output
-          rw [if_neg hbit]
+          rw [ite_eq_right hbit]
           exact hcached
       · have htargetLt : target.val < levels := by omega
         obtain ⟨output, hcached⟩ := ih htargetLt (Nat.le_of_succ_le hlevels)

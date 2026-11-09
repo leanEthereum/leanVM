@@ -1,5 +1,9 @@
-import FORS.Scheme.Bytes
-import FORS.Scheme.Search
+module
+
+public import FORS.Scheme.Bytes
+public import FORS.Scheme.Search
+
+@[expose] public section
 
 /-!
 # The counter search

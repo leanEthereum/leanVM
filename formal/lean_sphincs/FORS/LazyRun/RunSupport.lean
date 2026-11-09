@@ -1,4 +1,8 @@
-import FORS.LazyRun.RichProgram
+module
+
+public import FORS.LazyRun.RichProgram
+
+@[expose] public section
 
 /-! Every non-stopped lazy run is a run of one fixed answer function read off its final
 cache, and each canonical row query in it had a reachable incoming coordinate: initially
@@ -136,7 +140,7 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
       intro known cache cacheF value entries h
       rw [erase_trace_withReveals_query_bind] at h
       rw [withReveals_query_bind', costRun_query_bind]
-      rcases input with (draw | (bytes | coordinate)) | amount
+      rcases input with (draw | (bytes | coordinate)) | (amount | honest)
       · -- private draw
         change some _ ∈ support (HiddenOutside.stopped model table
           (liftM ((HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate).query (.inl draw)) >>= _)
@@ -191,11 +195,11 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
         | some query =>
             simp only [hp] at h
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
-            · rw [if_pos hstop] at h
+            · rw [ite_eq_left hstop] at h
               simp at h
-            · rw [if_neg hstop] at h
+            · rw [ite_eq_right hstop] at h
               by_cases hmatch : query.2 = table (model.incoming query.1)
-              · rw [if_pos hmatch, outside_stopped_map] at h
+              · rw [ite_eq_left hmatch, outside_stopped_map] at h
                 have hknown : known (model.incoming query.1) ≠ none := fun hnone => hstop ⟨hnone, hmatch⟩
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
                 simp only [Prod.mk.injEq] at heq
@@ -222,7 +226,7 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
                       exact .succ query.1 (.known _ _ hincoming)
                     · rw [QueryCache.cacheQuery_of_ne _ _ heq] at hc
                       exact .known _ _ hc
-              · rw [if_neg hmatch, mem_support_bind_iff] at h
+              · rw [ite_eq_right hmatch, mem_support_bind_iff] at h
                 obtain ⟨read, hread, h⟩ := h
                 rw [outside_stopped_map] at h
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
@@ -283,6 +287,7 @@ theorem lazy_support {β : Type} (computation : OracleComp CostSpec β) :
         · intro bytes hmem query hparse hmatch
           simp only [recorded, List.singleton_append, List.mem_cons, reduceCtorEq, false_or] at hmem
           exact hguess bytes hmem query hparse hmatch
+      · exact Empty.elim honest
 
 /-- Queried inputs other than canonical row inputs are in the final outside cache. -/
 def CachedQueries (cacheF : QueryCache HashSpec) (entries : List (Entry HashInput)) : Prop :=
@@ -308,7 +313,7 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
   | query_bind input next ih =>
       intro known cache cacheF value entries h
       rw [erase_trace_withReveals_query_bind] at h
-      rcases input with (draw | (bytes | coordinate)) | amount
+      rcases input with (draw | (bytes | coordinate)) | (amount | honest)
       · change some _ ∈ support (HiddenOutside.stopped model table
           (liftM ((HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate).query (.inl draw)) >>= _)
           known cache) at h
@@ -357,11 +362,11 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
         | some query =>
             simp only [hp] at h
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
-            · rw [if_pos hstop] at h
+            · rw [ite_eq_left hstop] at h
               simp at h
-            · rw [if_neg hstop] at h
+            · rw [ite_eq_right hstop] at h
               by_cases hmatch : query.2 = table (model.incoming query.1)
-              · rw [if_pos hmatch, outside_stopped_map] at h
+              · rw [ite_eq_left hmatch, outside_stopped_map] at h
                 obtain ⟨⟨⟨value', entries'⟩, cacheF'⟩, hinner, heq⟩ := mem_support_option_map _ _ _ h
                 simp only [Prod.mk.injEq] at heq
                 obtain ⟨⟨rfl, rfl⟩, rfl⟩ := heq
@@ -371,7 +376,7 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
                 · cases heq
                   exact absurd hmatch (hnot query hp)
                 · exact hcached other hmem hnot
-              · rw [if_neg hmatch] at h
+              · rw [ite_eq_right hmatch] at h
                 exact hreadCase h
       · change some _ ∈ support (HiddenOutside.stopped model table
           (liftM ((HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate).query
@@ -393,6 +398,7 @@ theorem lazy_cached {β : Type} (computation : OracleComp CostSpec β) :
         refine ⟨hcache, fun bytes hmem => ?_⟩
         simp only [recorded, List.singleton_append, List.mem_cons, reduceCtorEq, false_or] at hmem
         exact hcached bytes hmem
+      · exact Empty.elim honest
 
 end Support
 

@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.FirstLaneEagerBound
+module
+
+public import XmssSecurity.Proof.FirstLaneEagerBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

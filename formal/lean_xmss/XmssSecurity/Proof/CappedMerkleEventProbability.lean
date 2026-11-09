@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
-import XmssSecurity.Proof.CappedLeafEventProbability
-import XmssSecurity.Proof.MerkleVerificationQueryPresence
-import XmssSecurity.Proof.TopKeygenCache
+module
+
+public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
+public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.MerkleVerificationQueryPresence
+public import XmssSecurity.Proof.TopKeygenCache
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

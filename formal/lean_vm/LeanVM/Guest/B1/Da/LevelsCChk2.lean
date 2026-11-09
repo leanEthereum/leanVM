@@ -1,0 +1,16 @@
+module
+
+public import LeanVM.Guest.B1.Da.LevelsCDefs
+
+namespace LeanVM.Guest.B1.Da
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+theorem dlc_ok5 : dlCEntryOk 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem dlc_ok6 : dlCEntryOk 6 = true := by decide +kernel
+
+end
+end LeanVM.Guest.B1.Da

@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.Deterministic.Replay
-import XmssSecurity.Proof.Deterministic.Memoize
-import XmssSecurity.Proof.Seeded.Erasure
+module
+
+public import XmssSecurity.Proof.Deterministic.Replay
+public import XmssSecurity.Proof.Deterministic.Memoize
+public import XmssSecurity.Proof.Seeded.Erasure
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

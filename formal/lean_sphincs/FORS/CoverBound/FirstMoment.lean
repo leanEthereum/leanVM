@@ -1,4 +1,8 @@
-import FORS.CoverBound.Moments
+module
+
+public import FORS.CoverBound.Moments
+
+@[expose] public section
 
 /-! **The first per-tree moment.** The cover fraction of one tree, averaged over `n` independent
 uniform disclosed leaves, is the probability that a target leaf is among them:

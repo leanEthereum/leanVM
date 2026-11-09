@@ -1,7 +1,13 @@
-import FORS.LazyRun.FixedRun
-import FORS.Classification.Reference
-import FORS.Classification.Hidden
-import FORS.ScanSigner.FairShare
+module
+
+public import FORS.LazyRun.FixedRun
+public import FORS.Classification.Reference
+public import FORS.Classification.Hidden
+public import FORS.ScanSigner.FairShare
+
+@[expose] public section
+
+set_option backward.isDefEq.respectTransparency false
 
 /-! Accepted-signature classification, walking down the layers. At each layer the verifier's fold
 equals the honest root of the layer's tree on the forgery's path (the public root at the top):
@@ -52,7 +58,7 @@ theorem crossing_boundary (parameter : PublicParameter) (leaf reference : LeafIn
     (hparent : leaf.val / 2 ^ (level + 1) = reference.val / 2 ^ (level + 1))
     (hbit : leaf.val.testBit level ≠ reference.val.testBit level) :
     leaf.val / 2 ^ level = boundaryIndex parameter level := by
-  have hpos : keptPosition parameter topLayer = subtreePosition parameter := if_pos rfl
+  have hpos : keptPosition parameter topLayer = subtreePosition parameter := ite_eq_left rfl
   have hspine : reference.val / 2 ^ level = spineIndex parameter level := by
     have hsum : keptHeight topLayer + (level - keptHeight topLayer) = level := Nat.add_sub_of_le hlower
     rw [← hsum, Completeness.kept_div parameter topLayer reference hreference, hpos]
@@ -238,7 +244,7 @@ theorem layer_step (f : QueryImpl HashSpec Id) (pk : PublicKey) (seed : MasterSe
       · simp only [chosenCounter, ← hleafdef, hselected, Option.map_some]
       · funext level
         have hp := hopen.2 level.val level.isLt
-        simpa only [signaturePath, canonicalTreePath, dif_pos level.isLt] using hp
+        simpa only [signaturePath, canonicalTreePath, dite_eq_left level.isLt] using hp
     · exact Or.inr (Or.inr (Or.inl hencoding))
     · exact Or.inr (Or.inr (Or.inr (Or.inl hleafMatch)))
     · exact Or.inr (Or.inr (Or.inr (Or.inr hchain)))
@@ -416,7 +422,7 @@ namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
-open Concrete Completeness Graph GraphCorrectness TargetAssignment
+open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -458,7 +464,7 @@ theorem active_hit (position : Position) (hactive : PrunedGraph.active parameter
   unfold graphTable
   rw [targets_at_entry parameter _ position.domain payload _
     (referenceTable_active parameter _ _ _ _ labels position hactive)]
-  rw [if_neg (fun h => hne (Option.some.inj h).symm)]
+  rw [ite_eq_right (fun h => hne (Option.some.inj h).symm)]
   rw [hout]
   exact Finset.mem_singleton_self _
 
@@ -582,7 +588,7 @@ theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : 
     · have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
           HashDomain.forsNode index κ ⟨level, by omega⟩
             ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩ := by
-        rw [Fors.forsDomain, dif_pos ⟨by omega, by omega⟩]
+        rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
         congr 2
         exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
       exact ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩
@@ -689,7 +695,7 @@ theorem encodingAt_encoding (key : OtsKey) :
   have hex : ∃ key' : OtsKey, hashDomainFields (.encoding key.1 key.2.1 key.2.2) =
       hashDomainFields (.encoding key'.1 key'.2.1 key'.2.2) := ⟨key, rfl⟩
   unfold encodingAt
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact congrArg some (encoding_fields_injective hex.choose_spec).symm
 
 attribute [local irreducible] encodingAt
@@ -763,7 +769,7 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   unfold Wots.encodingInput
   rw [targets_at_entry _ _ _ _ _ hentry]
   simp only []
-  rw [if_neg hexempt']
+  rw [ite_eq_right hexempt']
   exact Finset.mem_singleton.mpr hout
 
 end FORS.Security.HiddenBridge

@@ -9,40 +9,124 @@ on:
 permissions:
   contents: read
 
+# A new push cancels a pull request's run, never main's: each push to main checks its own diff, so a
+# cancelled run could leave a change to `crates/` unchecked, and main's runs save the caches.
 concurrency:
   group: lean-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # The statement: definitions and end statements only (`Statement/`), what every other job proves.
+  statement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/Statement
+      # No lakefile sets an option that skips the kernel (`debug.skipKernelTC`, any `debug.` option).
+      - name: Forbid kernel-skipping options in the lakefiles
+        run: |
+          ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
+      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs.
+      - name: Keep the statement apart from the proofs
+        run: |
+          ! grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake formal/Statement \
+              | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/Statement/.lake
+            !formal/Statement/.lake/packages/mathlib/.lake
+          key: lake-statement-${{ runner.os }}-${{ hashFiles('formal/Statement/lean-toolchain', 'formal/Statement/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/Statement/**/*.lean') }}
+          restore-keys: lake-statement-${{ runner.os }}-${{ hashFiles('formal/Statement/lean-toolchain', 'formal/Statement/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/Statement
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      # The generated guest data's modules are heavy: `lake-build.py` admits them by memory. Fails on
+      # any warning.
+      - name: Build
+        working-directory: formal/Statement
+        run: python3 -I ../lake-build.py .
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/Statement/.lake
+            !formal/Statement/.lake/packages/mathlib/.lake
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+
+  common:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/common
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/common
+      - name: Forbid deprecated API
+        working-directory: formal/common
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: Common.*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check the axiom footprint
+        working-directory: formal/common
+        run: |
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge"
+          { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+
   lean-xmss-formalization:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Cheap first pass: the axiom guard in `XmssSecurity.lean` catches a `sorry`,
-      # a `native_decide` or an `axiom` reaching the root theorem, this catches one
-      # parked anywhere in the project, and a kernel check switched off.
+      # Cheap first pass: the axiom guard in `XmssSecurity.lean` catches a `sorry`
+      # or a `native_decide` reaching the root theorem, this catches one parked
+      # anywhere in the project.
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
-              --include='*.lean' --exclude-dir=.lake formal/lean_xmss | grep -vE ':[0-9]+: *(--|/-)'
-      # Installs the toolchain from `formal/lean_xmss/lean-toolchain`, fetches the
+          python3 -I formal/tools/escape-scan.py formal/lean_xmss
+      # Installs the toolchain from `lean_xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default targets, which
       # elaborate the root module and with it the `#guard_msgs` check. The
       # checked-in manifest is used as is: no `lake update`.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/lean_xmss
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
       - name: Check the axiom footprint
         working-directory: formal/lean_xmss
         run: |
-          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n' \
+          theorems="leanXmss_rom_adversary_bound leanXmss_rpm_security"
+          { echo 'import XmssSecurity'; for t in $theorems; do echo "#print axioms XmssSecurity.$t"; done; } \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'XmssSecurity.leanXmss_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-            "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+              "$RUNNER_TEMP/axioms.txt"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: lean-xmss-axioms
@@ -54,8 +138,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
-              --include='*.lean' --exclude-dir=.lake formal/lean_sphincs | grep -vE ':[0-9]+: *(--|/-)'
+          python3 -I formal/tools/escape-scan.py formal/lean_sphincs
       # Without Mathlib's build, which `lake exe cache get` fetches, an entry takes
       # a small share of the repository's cache. Only `main` saves one; every
       # branch restores it, and GitHub drops it after a week unused.
@@ -66,32 +149,34 @@ jobs:
           path: |
             formal/lean_sphincs/.lake
             !formal/lean_sphincs/.lake/packages/mathlib/.lake
-          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean') }}
-          restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-
-      # Every module maps Mathlib's build, which Lake's parallel jobs share; the
-      # kernel-checked certificates add little to it. The swap is margin.
-      - name: Add swap
-        run: |
-          sudo fallocate -l 8G /swapfile.lean
-          sudo chmod 600 /swapfile.lean
-          sudo mkswap /swapfile.lean
-          sudo swapon /swapfile.lean
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_sphincs
           use-github-cache: false
           build: false
+      # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB:
+      # `lake-build.py` admits the modules by their recorded memory (`lean_sphincs/lake-build.tsv`).
+      # Fails on any warning.
       - name: Build
         working-directory: formal/lean_sphincs
-        run: lake build
+        run: |
+          set -o pipefail
+          python3 -I ../lake-build.py . 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Forbid deprecated API
+        run: "! grep -E '^warning: (Sphincs|FORS)/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
       - name: Check the axiom footprint
         working-directory: formal/lean_sphincs
         run: |
-          printf 'import FORS\n#print axioms FORS.h26_layered\n' \
-            > "$RUNNER_TEMP/axioms.lean"
+          theorems="Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered"
+          { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'FORS.h26_layered' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-            "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -99,8 +184,235 @@ jobs:
           path: |
             formal/lean_sphincs/.lake
             !formal/lean_sphincs/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: lean-sphincs-axioms
           path: ${{ runner.temp }}/axioms.txt
+
+  lean-da-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/lean_da
+      # As for sphincs: VCVio and CompPoly build from source, so `main` saves the Lake build,
+      # without Mathlib's, which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_da/.lake
+            !formal/lean_da/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_da/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      # Builds the default target, whose root module checks the front-page theorems' axioms with
+      # `#guard_msgs`.
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/lean_da
+          use-github-cache: false
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/lean_da
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
+      # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
+      # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
+      - name: Check the axiom footprint
+        working-directory: formal/lean_da
+        run: |
+          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork LeanDa.codeBindingRpmFork_of_codeBindingRpm"
+          { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_da/.lake
+            !formal/lean_da/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-da-axioms
+          path: ${{ runner.temp }}/axioms.txt
+
+  # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
+  # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
+  # against the Rust it transcribes (`guest-export --check`, the differentials), so a change to those
+  # (`crates`, the Cargo manifests) re-runs it too: otherwise `Statement/Data` and the transcriptions
+  # could go stale with green CI. A skipped job counts as passed for branch protection.
+  lean-vm-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
+            echo changed=true >> "$GITHUB_OUTPUT"
+          # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
+          # builds all of them.
+          elif git diff --name-only "$BASE" HEAD -- formal crates Cargo.toml Cargo.lock \
+              .github/workflows/lean.yml | grep -q .; then
+            echo changed=true >> "$GITHUB_OUTPUT"
+          else
+            echo changed=false >> "$GITHUB_OUTPUT"
+          fi
+
+  lean-vm-formalization:
+    needs: lean-vm-changes
+    if: needs.lean-vm-changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
+    timeout-minutes: 360
+    defaults:
+      run:
+        working-directory: formal/lean_vm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I ../tools/escape-scan.py .
+      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/lean_xmss/.lake/build
+            formal/lean_sphincs/.lake/build
+            formal/lean_da/.lake/build
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean') }}
+          restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/lean_vm
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      # The tests' build exceeds the runner's memory at its peak, and so does a module that runs
+      # beside a heavy one; the swap goes on the runner's scratch disk.
+      - name: Add swap
+        run: |
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
+      # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
+      # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
+      # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
+      # runs the one `lake build` with the modules admitted by their recorded memory, those of the
+      # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
+      - name: Build
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
+      # The end theorems' axioms asked from outside the build, as for the other projects.
+      - name: Check the axiom footprint
+        run: |
+          theorems="LeanVM.theorems_hold LeanVM.corollaries_hold LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable"
+          { echo 'import LeanVM'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+      # Every executable in one build, before the cache is saved, so a cache hit holds them all.
+      - name: Build the executables
+        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove
+      # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
+      # vector digests.
+      - name: The Rust vectors' costly checks
+        run: .lake/build/bin/node-vectors
+      - name: The guest's core IR data is current
+        run: .lake/build/bin/guest-core --check
+      - name: The guest's certificates are current
+        run: .lake/build/bin/guest-cert --check
+      - name: The guest's memory-layer checks are current
+        run: .lake/build/bin/guest-memory --check
+      # Their inputs evaluated from the build (`decoder-tables-inputs.lean`: one line each).
+      - name: The guest decoder's tables and their chunked checks are current
+        run: |
+          lake env lean scripts/decoder-tables-inputs.lean > "$RUNNER_TEMP/decoder.txt"
+          for k in entries rows split; do sed -n "s/^$k: //p" "$RUNNER_TEMP/decoder.txt" > "$RUNNER_TEMP/$k.txt"; done
+          python3 -I scripts/decoder-tables --entries "$RUNNER_TEMP/entries.txt" --check
+          python3 -I scripts/decoder-table-chunks --row-lengths "$RUNNER_TEMP/rows.txt" \
+            --split-lengths "$RUNNER_TEMP/split.txt" --check
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/lean_xmss/.lake/build
+            formal/lean_sphincs/.lake/build
+            formal/lean_da/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+      - uses: dtolnay/rust-toolchain@stable
+      # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
+      # statement's schemes compiled: verification only (key generation and signing are checked by
+      # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
+      - name: The statement's verifiers are the crate's (scheme-vectors)
+        run: .lake/build/bin/scheme-vectors
+      # The guest's bytecode, source, manifest, test programs and node vectors are what
+      # `scripts/guest-export` writes from this repository's sources.
+      - name: The guest's data is leanVM's
+        run: |
+          cargo build --release --manifest-path scripts/guest-export/Cargo.toml
+          scripts/guest-export/target/release/guest-export . --check
+      # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
+      # list, a node over them): the witness holds the statement, the honest hint generator gives
+      # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.
+      - name: The honest hints are the Rust's (guest-diff)
+        run: |
+          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release \
+            --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
+          .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
+      # The Lean verifier and the Rust verifier must agree on the committed proofs and on
+      # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
+      - name: Rust-vs-Lean differential
+        run: |
+          cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
+          python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
+      # The statement's wire encoding (`Proof.fromBytes`, `Proof.toBytes`) and the Rust's
+      # (`Proof::from_bytes`, `Proof::to_bytes`) must agree on every fixture's wire proof, the Rust
+      # test's vector and mutations of them: the same verdicts and decoded proofs, and the round trip.
+      - name: The wire encoding, Rust-vs-Lean (wire-diff)
+        run: |
+          cargo build --release --manifest-path scripts/wire-diff/Cargo.toml
+          python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 4
+      # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
+      # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
+      # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and
+      # every mutation of it rejected by both.
+      - name: The statement's prover against both verifiers (prover-diff)
+        run: |
+          scripts/export-prover-traces-rust.sh "$RUNNER_TEMP/prover-cases" > /dev/null
+          python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
+            --identical --expected tests/fixtures/verifier

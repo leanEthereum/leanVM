@@ -1,5 +1,10 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -17,14 +22,6 @@ namespace Concrete
 
 noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
   SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
-
-@[simp]
-theorem probOutput_sampleSecret
-    (secret : LeafIndex → ChainIndex → Digest) :
-    Pr[= secret | sampleSecret] =
-      (Fintype.card (LeafIndex → ChainIndex → Digest) : ENNReal)⁻¹ := by
-  rw [sampleSecret_eq]
-  exact probOutput_uniformSample (LeafIndex → ChainIndex → Digest) secret
 
 noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter
@@ -86,13 +83,6 @@ noncomputable def sign (secretKey : SecretKey)
   let randomness ← liftM signingRandomness
   liftM (signAttempt secretKey leafIndex message randomness :
     OracleComp HashSpec (Option Signature))
-
-theorem sign_eq (secretKey : SecretKey)
-    (leafIndex : LeafIndex) (message : Message) :
-    sign secretKey leafIndex message = (do
-      let randomness ← liftM signingRandomness
-      liftM (signAttempt secretKey leafIndex message randomness :
-        OracleComp HashSpec (Option Signature))) := rfl
 
 attribute [irreducible] sign
 

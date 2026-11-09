@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.KeygenCache
+module
+
+public import XmssSecurity.Proof.KeygenCache
+
+@[expose] public section
 
 /-!
 # Runs inside key generation's honest computation

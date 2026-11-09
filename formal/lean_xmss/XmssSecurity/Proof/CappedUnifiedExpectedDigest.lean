@@ -1,7 +1,15 @@
-import XmssSecurity.Proof.CappedEncodingExpectedBound
-import XmssSecurity.Proof.CappedUnifiedStructuralCollision
-import XmssSecurity.Proof.ExactKeygenQueryCount
-import XmssSecurity.Proof.LossDecomposition
+module
+
+public import XmssSecurity.Proof.CappedEncodingExpectedBound
+public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
+public import XmssSecurity.Proof.CacheReplayEval
+public import XmssSecurity.Proof.DetailedExecution
+public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.LossDecomposition
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
@@ -88,22 +96,10 @@ theorem encodingHashQuery_structuralQuery_disjoint
           exact hstructural
             (keygenStructuralTargetInput_encodingInput secretKey cache leafIndex payload)
 
-theorem cappedSourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
-    (q : Nat) (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkeyResult : keyResult ∈ support
-      ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    HashQueryBound (cappedSourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
-      keyResult.2 (q) :=
-  (hashQueryBound_iff_of_map_eq
-    (cappedDetailedGameAfterKeygen_unloggedProjection adversary keyResult.1.1 keyResult.1.2) _ _).mp
-      (afterKeygen_hashQueryBound adversary q hbound keyResult hkeyResult)
-
 noncomputable def expectedPostKeygenStructuralQueries
     (adversary : Adversary) : ENNReal :=
   ∑' keyResult,
-    Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+    Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
       expectedSimulatedQueryCount romImpl
         (Rom.IsRelevantHashQuery fun input =>
           keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)
@@ -135,9 +131,7 @@ theorem expectedStructuralQueries_detailed_eq_source
 
 theorem winningStructuralCollision_probability_le_expectedPostKeygenStructuralQueries
     (adversary : Adversary) :
-    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-      WinningStructuralCollisionOccurs execution.2 execution.1 |
-      detailedGameWithCache Concrete.scheme adversary] ≤
+    Pr{let execution ← detailedGameWithCache Concrete.scheme adversary}[WinningStructuralCollisionOccurs execution.2 execution.1] ≤
       expectedPostKeygenStructuralQueries adversary /
         ((2 ^ digestBits : Nat) : ENNReal) := by
   apply (winningStructuralCollision_probability_le_expectedMovedQueries
@@ -148,105 +142,5 @@ theorem winningStructuralCollision_probability_le_expectedPostKeygenStructuralQu
   intro keyResult
   congr 1
   exact expectedStructuralQueries_detailed_eq_source adversary keyResult
-
-theorem expectedSimulatedHashQueryCount_le {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) (q : Nat) (hbound : HashQueryBound computation cache q) :
-    expectedSimulatedQueryCount romImpl IsHashQuery computation cache ≤ q := by
-  induction computation using OracleComp.inductionOn generalizing cache q with
-  | pure value => simp
-  | query_bind input next ih =>
-      let cost : Nat := if IsHashQuery input then 1 else 0
-      have hstep (result : OracleWorld.Range input × QueryCache HashSpec)
-          (hr : result ∈ support ((romImpl input).run cache)) :
-          cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
-        have h := hashQueryBound_query_bind input next cache q hbound result hr
-        cases input <;> simpa [cost, IsHashQuery] using h
-      obtain ⟨result, hr⟩ := probComp_support_nonempty ((romImpl input).run cache)
-      have hcost := (hstep result hr).1
-      have hsum :
-          (∑' result, Pr[= result | (romImpl input).run cache] *
-            expectedSimulatedQueryCount romImpl IsHashQuery (next result.1) result.2) ≤
-          (∑' result, Pr[= result | (romImpl input).run cache]) * (q - cost : Nat) := by
-        rw [← ENNReal.tsum_mul_right]
-        apply ENNReal.tsum_le_tsum
-        intro result
-        by_cases hr : result ∈ support ((romImpl input).run cache)
-        · exact mul_le_mul' le_rfl (ih result.1 result.2 (q - cost) (hstep result hr).2)
-        · simp only [probOutput_eq_zero_of_not_mem_support hr, zero_mul, le_refl]
-      rw [expectedSimulatedQueryCount_query_bind]
-      have hprefix : (if IsHashQuery input then (1 : ENNReal) else 0) = (cost : ENNReal) := by
-        simp only [cost, Nat.cast_ite, Nat.cast_one, Nat.cast_zero]
-      rw [hprefix]
-      calc
-        _ ≤ (cost : ENNReal) + (∑' result, Pr[= result | (romImpl input).run cache]) * (q - cost : Nat) :=
-          add_le_add le_rfl hsum
-        _ ≤ (cost : ENNReal) + 1 * (q - cost : Nat) :=
-          add_le_add le_rfl (mul_le_mul' tsum_probOutput_le_one le_rfl)
-        _ = q := by rw [one_mul, ← Nat.cast_add, Nat.add_sub_of_le hcost]
-
-theorem postKeygenEncoding_add_structural_expected_le
-    (q : Nat) (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q) :
-    CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary +
-        expectedPostKeygenStructuralQueries adversary ≤
-      q := by
-  unfold CappedEncodingMonitor.expectedPostKeygenEncodingQueries
-    expectedPostKeygenStructuralQueries
-  rw [← ENNReal.tsum_add]
-  simp_rw [← mul_add]
-  calc
-    _ ≤ ∑' keyResult,
-        Pr[= keyResult |
-          (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
-          q := by
-      apply ENNReal.tsum_le_tsum
-      intro keyResult
-      by_cases hkeyResult : keyResult ∈ support
-          ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
-      · apply mul_le_mul_right
-        let encodingPredicate :=
-          CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter
-        let structuralPredicate := Rom.IsRelevantHashQuery fun input =>
-          keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input
-        let source := cappedSourceUnloggedDetailedGameAfterKeygen adversary
-          keyResult.1.1 keyResult.1.2
-        calc
-          expectedSimulatedQueryCount romImpl encodingPredicate source keyResult.2 +
-              expectedSimulatedQueryCount romImpl structuralPredicate source
-                keyResult.2 =
-            expectedSimulatedQueryCount romImpl
-              (fun input => encodingPredicate input ∨ structuralPredicate input)
-              source keyResult.2 := by
-                symm
-                exact expectedSimulatedQueryCount_or_of_disjoint romImpl
-                  encodingPredicate structuralPredicate
-                  (encodingHashQuery_structuralQuery_disjoint
-                    keyResult.1.2 keyResult.2) source keyResult.2
-          _ ≤ expectedSimulatedQueryCount romImpl IsHashQuery source
-              keyResult.2 := by
-            apply expectedSimulatedQueryCount_mono
-            intro input hinput
-            cases input with
-            | inl index =>
-                rcases hinput with hencoding | hstructural
-                · simp [encodingPredicate,
-                    CappedEncodingMonitor.IsEncodingHashQuery] at hencoding
-                · simp [structuralPredicate, Rom.IsRelevantHashQuery] at hstructural
-            | inr hashInput => simp [IsHashQuery]
-          _ ≤ q := by
-            apply expectedSimulatedHashQueryCount_le
-            exact cappedSourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
-              q adversary hbound keyResult hkeyResult
-      · rw [probOutput_eq_zero_of_not_mem_support hkeyResult, zero_mul]
-        exact zero_le
-    _ = (∑' keyResult,
-          Pr[= keyResult |
-            (simulateQ romImpl Concrete.scheme.keygen).run ∅]) *
-        q := by
-      rw [ENNReal.tsum_mul_right]
-    _ ≤ 1 * q := by
-      gcongr
-      exact tsum_probOutput_le_one
-    _ = _ := one_mul _
 
 end XmssSecurity

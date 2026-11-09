@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.ChainOraclePresampling
+module
+
+public import XmssSecurity.Proof.ChainOraclePresampling
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -33,6 +37,7 @@ theorem simulate_keyChainWalk_run_eq_pure_of_table_matches
         obtain ⟨output, hcached, htruncate⟩ := hedges edge
         let input := chainTableEdgeInput
           secretKey.parameter chain table edge
+        rw [Concrete.simulateQ_keyChainHash_run]
         change (fun result : HashOutput × QueryCache HashSpec =>
           (truncateHash result.1, result.2)) <$>
             (randomOracle input).run cache = _

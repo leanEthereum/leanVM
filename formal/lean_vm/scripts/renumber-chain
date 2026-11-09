@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""Rename the compiled chain's on-demand functions after the chain changes.
+
+The cost compiler names a function compiled on demand by its head and its index
+(`LeanVM.Cost.Auto.<head>.c<index>`), and allocates indices in the order the chain compiles: a
+change early in the chain (a function added, removed or moved) moves every later index, and the
+bounds that name those functions (`…add.c49.costEq`, `…prefixesNF.c188.lam0.costIdx = 202`) must
+follow. This script does it mechanically, from two listings of the chain's compiled functions:
+
+  scripts/renumber-chain dump OUT
+      Write the current chain's listing (`index head body` per line) to OUT: evaluates the
+      compiler's registry with `lake env lean` over the chain's last modules (build them first,
+      kernel on: `lake env` reads `.lake/build`; with --dev, `lake-build.py --dev`'s
+      `.lake/build-dev`).
+
+  scripts/renumber-chain apply BEFORE AFTER [FILES…]   (default FILES: every .lean file under
+      LeanVM/Cost/Bounds and tests/LeanVMTests/Cost)
+      In FILES, rename every `<name>.c<i>` naming an on-demand function of BEFORE (`<name>` the
+      last component of its head) to its index in AFTER: the k-th function of a head and its
+      fixed type arguments (their printed form's hash) in BEFORE, by index, is the k-th of the same in AFTER. A head with fewer functions in AFTER
+      than in BEFORE is reported, and its references left alone (the bounds about a function no
+      longer compiled). Also rewrites the literal indices of `X.costIdx = <i> := rfl`.
+      Prints each file it changes, and with --check changes nothing and fails if a file would
+      change. Apply it once per chain change (an index may map onto another moved one: a second
+      application would move it again); to rename the bounds of a later branch, apply the same
+      pair to its files alone.
+
+Run from lean_vm/.
+"""
+import argparse
+import re
+import subprocess
+import sys
+import tempfile
+from collections import defaultdict
+from pathlib import Path
+
+LAST_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.Decoder.Top", "LeanVM.Cost.Extractor.PMLane"]
+
+DUMP_LEAN = """{imports}
+
+open Lean LeanVM.Cost.Compiler in
+#eval show MetaM Unit from do
+  let m := compiledExt.getState (← getEnv)
+  let env ← getEnv
+  let mut acc : Array (Nat × Name × Name × UInt64 × Name) := #[]
+  for (h, fs) in m do
+    for f in fs do
+      -- the type arguments only: instances and proofs differ between compiles of one function
+      let tys ← f.static.toList.filterM fun e ↦ do return (← Meta.whnf (← Meta.inferType e)).isSort
+      let strs ← tys.mapM fun e ↦ do return toString (← Meta.ppExpr e)
+      let mod := match env.getModuleIdxFor? f.body with
+        | some i => env.header.moduleNames[i.toNat]!
+        | none => `none
+      acc := acc.push (f.index, h, f.body, (String.intercalate "|" strs).hash, mod)
+  let sorted := acc.qsort (fun a b => a.1 < b.1)
+  let lines := sorted.toList.map fun (i, h, n, k, m) ↦ s!"{{i}} {{h}} {{n}} {{k}} {{m}}"
+  IO.FS.writeFile "{out}" (String.intercalate "\\n" lines ++ "\\n")
+"""
+
+
+def dump(out: Path, dev: bool) -> None:
+    imports = "\n".join(f"import {m}" for m in LAST_MODULES)
+    with tempfile.TemporaryDirectory() as d:
+        src = Path(d) / "Dump.lean"
+        src.write_text(DUMP_LEAN.format(imports=imports, out=out.resolve()))
+        lake = ["lake", "--file", ".lake/lakefile.dev.toml"] if dev else ["lake"]
+        subprocess.run(lake + ["env", "lean", str(src)], check=True)
+
+
+def read(path: Path):
+    rows = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        i, head, body, key, mod = line.split()
+        rows.append((int(i), head + "#" + key, body, mod))
+    return rows
+
+
+# `<name>.c<i>`, `<name>` an identifier component, possibly `«…»`-quoted.
+NAME_RE = r"(«[^»]+»|[A-Za-z_][\w?!']*)\.c(\d+)\b"
+
+
+def auto_index_map(before, after):
+    """Old index -> new index for on-demand functions (bodies `…Auto.<head>.c<i>.costBody`), and
+    for every body (by name after renaming) its new index."""
+    def autos(rows):
+        by = defaultdict(list)
+        for i, head, body, _ in rows:
+            if body.startswith("LeanVM.Cost.Auto.") and re.search(r"\.c\d+\.costBody$", body):
+                by[head].append(i)
+        return by
+    b, a = autos(before), autos(after)
+    mapping, missing = {}, []
+    for head, olds in b.items():
+        news = a.get(head, [])
+        for k, old in enumerate(sorted(olds)):
+            if k < len(news):
+                mapping[old] = (head, sorted(news)[k])
+            else:
+                missing.append((head, old))
+    return mapping, missing
+
+
+def rename(text, mapping):
+    def repl(m):
+        name, idx = m.group(1), int(m.group(2))
+        if idx in mapping:
+            head, new = mapping[idx]
+            if head.split("#")[0].split(".")[-1] == name.strip("«»"):
+                return f"{name}.c{new}"
+        return m.group(0)
+    return re.sub(NAME_RE, repl, text)
+
+
+def fix_literals(text, after):
+    """`X.costIdx = <i> := rfl` with X's index in AFTER (X a body name less `.costBody`)."""
+    index = {}
+    for i, _, body, _ in after:
+        index[body[: -len(".costBody")]] = i
+    def repl(m):
+        name = m.group(1)
+        for full, i in index.items():
+            if full.endswith("." + name) or full == name:
+                return f"{name}.costIdx = {i} := rfl"
+        return m.group(0)
+    return re.sub(r"([\w.?!']+)\.costIdx = (\d+) := rfl", repl, text)
+
+
+CHAIN_PREFIXES = ("LeanVM.Cost.Extractor.", "LeanVM.Cost.Decoder.")
+
+def fix_imports(text, after, order):
+    """Make the file's import of the chain reach the module that compiles every function it names
+    (by index or by name): a function compiled later than before is out of reach of an import of
+    an earlier module of the chain."""
+    mod_of_idx = {i: m for i, _, _, m in after}
+    mod_of_name = {body.split(".")[-2]: m for _, _, body, m in after if ".Auto." not in body}
+    need = set()
+    for m in re.finditer(NAME_RE, text):
+        i = int(m.group(2))
+        if i in mod_of_idx and mod_of_idx[i].startswith(CHAIN_PREFIXES):
+            need.add(mod_of_idx[i])
+    for m in re.finditer(r"\b(\w+C)\.cost", text):
+        if m.group(1) in mod_of_name and mod_of_name[m.group(1)].startswith(CHAIN_PREFIXES):
+            need.add(mod_of_name[m.group(1)])
+    if not need:
+        return text
+    latest = max(need, key=lambda m: order.get(m, -1))
+    imps = re.findall(r"^(public )?import (LeanVM\.Cost\.(?:Extractor|Decoder)\.\w+)$", text, re.M)
+    if not imps:
+        return text
+    known = [m for _, m in imps if m in order]
+    if not known:
+        return text
+    have = max(known, key=lambda m: order.get(m, -1))
+    if order.get(have, -1) >= order.get(latest, -1):
+        return text
+    return re.sub(r"^((?:public )?import )" + re.escape(have) + "$", lambda mm: mm.group(1) + latest,
+                  text, count=1, flags=re.M)
+
+
+def apply(before_p: Path, after_p: Path, files, check: bool) -> int:
+    before, after = read(before_p), read(after_p)
+    mapping, missing = auto_index_map(before, after)
+    # only the indices that move
+    mapping = {o: (h, n) for o, (h, n) in mapping.items() if o != n}
+    for head, old in missing:
+        print(f"no longer compiled: {head.split('#')[0]} (was c{old})", file=sys.stderr)
+    order = {}
+    for i, _, _, m in after:
+        order.setdefault(m, i)
+    changed = 0
+    for f in files:
+        p = Path(f)
+        s = p.read_text()
+        t = fix_imports(fix_literals(rename(s, mapping), after), after, order)
+        if t != s:
+            changed += 1
+            print(p)
+            if not check:
+                p.write_text(t)
+    return 1 if (check and changed) else 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    d = sub.add_parser("dump")
+    d.add_argument("out", type=Path)
+    d.add_argument("--dev", action="store_true", help="read the --dev build (.lake/build-dev)")
+    a = sub.add_parser("apply")
+    a.add_argument("before", type=Path)
+    a.add_argument("after", type=Path)
+    a.add_argument("files", nargs="*")
+    a.add_argument("--check", action="store_true")
+    args = ap.parse_args()
+    if args.cmd == "dump":
+        dump(args.out, args.dev)
+        return 0
+    files = args.files or sorted(str(p) for root in ("LeanVM/Cost/Bounds", "tests/LeanVMTests/Cost")
+                                 for p in Path(root).rglob("*.lean"))
+    return apply(args.before, args.after, files, args.check)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

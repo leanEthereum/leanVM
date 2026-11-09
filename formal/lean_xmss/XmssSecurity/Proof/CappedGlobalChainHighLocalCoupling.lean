@@ -1,7 +1,11 @@
-import VCVio.ProgramLogic.Relational.FromUnary
-import XmssSecurity.Proof.CappedGlobalChainHighSetup
-import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
-import XmssSecurity.Proof.RunObservedAppend
+module
+
+public import VCVio.ProgramLogic.Relational.FromUnary
+public import XmssSecurity.Proof.CappedGlobalChainHighSetup
+public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
+public import XmssSecurity.Proof.RunObservedAppend
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -146,7 +150,6 @@ noncomputable def globalFilteredCausalLeafHashPlan
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 noncomputable def globalFilteredCausalUncachedAttackerHashPlan
     (secretKey : SecretKey) (input : HashInput)
@@ -348,7 +351,6 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
@@ -483,7 +485,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
@@ -584,7 +585,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
 
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
 
 def GlobalFilteredHashUntilHitRelation
     (left : ProgrammedGlobalChainKeygenView)
@@ -608,7 +608,7 @@ theorem simulate_eagerTrace_globalProbeQuery
     RevealProbeOracleSimulation.eagerTraceImpl,
     RevealProbeOracleSimulation.eagerImpl,
     RevealProbeOracleSimulation.traceFragment,
-    QueryImpl.withTraceAppend_apply, WriterT.run_tell]
+    WriterT.run_tell]
 
 theorem globalRunObserved_probe_hit_hidden
     (table : GlobalChainValueIndex → Digest)
@@ -622,8 +622,7 @@ theorem globalRunObserved_probe_hit_hidden
         true := by
   rw [RevealProbeOracleSimulation.runObserved, hhidden]
   apply RevealProbeOracleSimulation.runObserved_eq_true_of_initial_tableHit
-  unfold RevealProbeOracleSimulation.tableHits
-  simp only [decide_eq_true_eq]
+  rw [RevealProbeOracleSimulation.tableHits, decide_eq_true_eq]
   refine ⟨index, ?_⟩
   simp [AdaptiveRevealMonitor.State.addPending, hhit]
 

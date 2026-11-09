@@ -1,7 +1,11 @@
-import FORS.GraphView.Signer
-import FORS.GraphView.Secrets
-import FORS.GraphView.HashCalls
-import FORS.LazyRun.Cost
+module
+
+public import FORS.GraphView.Signer
+public import FORS.GraphView.Secrets
+public import FORS.GraphView.HashCalls
+public import FORS.LazyRun.Cost
+
+@[expose] public section
 
 section
 
@@ -15,12 +19,12 @@ namespace FORS.Security.GraphView
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph
 attribute [local instance] Classical.propDecidable
-attribute [local irreducible] finishSource Seeded.finishSign digestAttemptLimit
+attribute [local irreducible] Seeded.finishSign digestAttemptLimit
 set_option backward.isDefEq.respectTransparency false
 
 noncomputable def fixedSource (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table) :
     QueryImpl HiddenGraph.SourceSpec PMF :=
-  (fun input => PMF.uniformOfFintype (unifSpec.Range input) : QueryImpl unifSpec PMF) +
+  (fun input => Cslib.Probability.PMF.uniformOfFintype (unifSpec.Range input) : QueryImpl unifSpec PMF) +
     (fixedView f table).liftTarget PMF
 
 end FORS.Security.GraphView
@@ -85,21 +89,6 @@ theorem hashCalls_published_values (f : QueryImpl HashSpec Id) (parameter : Publ
   rw [show TargetSum.sum word = targetSum from hword]
   rfl
 
-/-- A layer signs exactly when its counter search succeeds. -/
-theorem eval_signLayer_isSome (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey) (index : Index)
-    (lay : Layer) :
-    (evalWithAnswerFn f (Seeded.signLayer sk index lay :
-      OracleComp HashSpec (Option (LayerSignature lay)))).isSome =
-    (firstEncoding f sk.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-      (Completeness.layerMessageValue f sk index lay) encodingAttemptLimit 0).isSome := by
-  simp only [Seeded.signLayer, Seeded.signLayerWith, evalWithAnswerFn_bind, Seeded.otsSign,
-    otsSignFrom_eq_firstEncoding, Completeness.layerMessageValue]
-  cases firstEncoding f sk.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-      (evalWithAnswerFn f (Seeded.layerMessage sk index lay : OracleComp HashSpec HashInput))
-      encodingAttemptLimit 0 <;>
-    simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,
-      Option.isSome_none, Option.isSome_some]
-
 theorem hashCalls_otsSignFrom_search (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : HashInput)
     (attempts start : Nat) :
@@ -126,7 +115,6 @@ theorem hashCalls_otsSignFrom_search (f : QueryImpl HashSpec Id) (parameter : Pu
             hashCalls_bind, hashCalls_encode, he, hashCalls_pure, hpub,
             Option.isSome_some, ↓reduceIte, Nat.add_zero]
 
-
 /-- The cost of the authentication path of a layer: kept nodes below `keptHeight`, one derivation
 per surrogate above. -/
 def treePathCost (lay : Layer) : Nat :=
@@ -142,7 +130,7 @@ theorem hashCalls_treePath_exact (f : QueryImpl HashSpec Id) (parameter : Public
   split
   · exact hashCalls_treeNode f parameter lay tree seed _ _
   · have hlevel : level.val < maxLayerHeight := level.isLt.trans_le (layerHeight_le lay)
-    simp only [Seeded.surrogate, dif_pos hlevel, hashCalls_deriveKey]
+    simp only [Seeded.surrogate, dite_eq_left hlevel, hashCalls_deriveKey]
 
 /-- Folding a leaf up `levels` levels costs one call per level. -/
 theorem hashCalls_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (lay : Layer)
@@ -163,7 +151,7 @@ theorem hashCalls_forsFold (f : QueryImpl HashSpec Id) (parameter : PublicParame
   | levels + 1, value, hlevels => by
       rw [forsFold, hashCalls_bind,
         hashCalls_forsFold f parameter index κ leaf path levels value (by omega)]
-      simp only [dif_pos (show levels < forsHeight by omega)]
+      simp only [dite_eq_left (show levels < forsHeight by omega)]
       split <;> simp only [hashCalls_tweakableHash]
 
 /-- The cost of recovering the FORS public key from an opening: each tree's leaf and its `a` path
@@ -200,8 +188,8 @@ theorem hashCalls_otsLeaf_of_encode (f : QueryImpl HashSpec Id) (parameter : Pub
         OracleComp HashSpec Digest) = chainLength - 1 - (word chain).val :=
     hashCalls_chainWalk f parameter lay tree leaf chain _ _ value
       (by have := (word chain).isLt; omega)
-  simp only [otsLeaf, hashCalls_bind, hashCalls_encode, evalWithAnswerFn_bind, hencode,
-    evalWithAnswerFn_pure, hashCalls_sequenceFin, hwalk, Completeness.verification_chain_steps word hvalid,
+  simp only [otsLeaf, hashCalls_bind, hashCalls_encode, hencode,
+    hashCalls_sequenceFin, hwalk, Completeness.verification_chain_steps word hvalid,
     leafHash, hashCalls_tweakableHash, hashCalls_pure]
 
 /-- The cost of recovering a layer's root below the top layer, which the layer above signs: the
@@ -236,8 +224,8 @@ theorem hashCalls_signLayerWith (f : QueryImpl HashSpec Id) (sk : Seeded.SecretK
       message encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, Option.isSome_none, Option.isSome_some,
       Bool.false_eq_true, ↓reduceIte, hashCalls_pure, hashCalls_bind, hashCalls_treePath_exact,
-      Nat.add_zero] <;>
-    omega
+      Nat.add_zero]
+  all_goals omega
 
 /-- The cost of one layer of the signer on any value from below: the counter search, and on success
 the chain values, the path and, below the top, the recovery of the root. -/
@@ -297,9 +285,9 @@ theorem hashCalls_sequenceThread {σ : Type} (f : QueryImpl HashSpec Id) (state 
       have ih := hashCalls_sequenceThread f state (α := fun i => α i.castSucc)
         (fun i => computation i.castSucc) (fun i => hnext i.castSucc)
       rw [Nat.add_sub_cancel]
-      simp only [sequenceThread, hashCalls_bind, seqCost, Fin.val_last, Fin.coe_castSucc]
+      simp only [sequenceThread, hashCalls_bind, seqCost, Fin.val_last, Fin.val_castSucc]
       cases hhead : evalWithAnswerFn f (computation (Fin.last n) (state n)) with
-      | none => simp only [hashCalls_pure, Option.isSome_none, Bool.false_eq_true, ↓reduceIte, hhead]
+      | none => simp only [hashCalls_pure, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
       | some pair =>
           obtain ⟨last, next⟩ := pair
           have hstate : hashCalls f (sequenceThread (α := fun i => α i.castSucc)
@@ -311,85 +299,10 @@ theorem hashCalls_sequenceThread {σ : Type} (f : QueryImpl HashSpec Id) (state 
               rfl
             · rw [hnext (Fin.last n) last next (by simp; omega) hhead]
               exact ih
-          simp only [Option.isSome_some, ↓reduceIte, hashCalls_bind, hstate, hhead]
+          simp only [Option.isSome_some, ↓reduceIte, hashCalls_bind, hstate]
           cases evalWithAnswerFn f (sequenceThread (α := fun i => α i.castSucc)
               (fun i => computation i.castSucc) next) <;>
             simp only [hashCalls_pure, Nat.add_zero]
-
-/-- The cost of the layer `lay` of a signature, from the public data: the counter search, and on
-success the chain values, the path and the recovery of the root. -/
-noncomputable def layerHashCost (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (index : Index) (lay : Layer) : Nat :=
-  hashCalls f (layerSearch parameter data index lay) +
-    if (firstEncoding f parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-      (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0).isSome
-    then 192 + treePathCost lay + recoverCost lay else 0
-
-/-- Whether the counter search of the layer `lay` of a signature succeeds. -/
-noncomputable def layerFound (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (index : Index) (lay : Layer) : Bool :=
-  (firstEncoding f parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
-    (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0).isSome
-
-noncomputable def finishHashCost (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (data : PublicData) (message : Message) (randomness : Randomness) : Nat :=
-  let index := digestIndex (evalWithAnswerFn f
-    (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))
-  digestCalls + forsTrees * treeOpenCost + forsRecoverCost +
-    seqCost (layerFound f parameter data index) (layerHashCost f parameter data index)
-
-/-- The digest calls, the FORS opening (secrets and all authentication nodes) and the recovery of the
-FORS public key come first; the layers follow from the bottom up, each with the counter search, and
-on success the chain values, the path and the recovery of its root, until the first failed search. -/
-theorem hashCalls_finishSign_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (seed : MasterSeed) (prf : HashOutput) (data : PublicData) (hdata : DataCorrect f parameter seed data)
-    (message : Message) (randomness : Randomness)
-    (hland : Landed parameter (digestIndex (evalWithAnswerFn f
-      (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest)))) :
-    hashCalls f (Seeded.finishSign ⟨seed, prf, parameter, data.root⟩ message randomness) =
-      finishHashCost f parameter data message randomness := by
-  simp only [Seeded.finishSign, hashCalls_bind, hashCalls_messageDigest, hashCalls_forsOpen_exact,
-    hashCalls_forsRecover, hashCalls_forsPublicKey, finishHashCost, forsRecoverCost,
-    evalWithAnswerFn_bind, Completeness.eval_forsPublicKey_forsRecover]
-  generalize digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
-    OracleComp HashSpec MessageDigest)) = index at hland ⊢
-  set sk : Seeded.SecretKey := ⟨seed, prf, parameter, data.root⟩
-  have hmsg : ∀ lay : Layer, rootPayload (Completeness.belowValue f sk index lay) =
-      data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay) := fun lay => by
-    rw [Completeness.rootPayload_belowValue]
-    exact (hdata.keyMessage lay _ _ ⟨index, hland, rfl, rfl⟩).symm
-  let state : Nat → Digest := fun v =>
-    if h : v < numLayers then Completeness.belowValue f sk index ⟨v, h⟩ else 0
-  have hstate : ∀ lay : Layer, state lay.val = Completeness.belowValue f sk index lay := fun lay => by
-    simp only [state, dif_pos lay.isLt]
-  have hbottom : evalWithAnswerFn f (Seeded.forsKey parameter index seed : OracleComp HashSpec Digest) =
-      state (numLayers - 1) := by
-    rw [show numLayers - 1 = bottomLayer.val from rfl, hstate, Completeness.belowValue,
-      dif_neg (by change ¬(numLayers - 1 + 1 < numLayers); omega)]
-  have hnext : ∀ (lay : Layer) (part : LayerSignature lay) (next : Digest), lay.val ≠ 0 →
-      evalWithAnswerFn f (Seeded.layerStep sk index lay (state lay.val)) = some (part, next) →
-        next = state (lay.val - 1) := by
-    intro lay part next hlay h
-    rw [hstate lay, Completeness.eval_layerStep f sk index hland lay] at h
-    simp only [Option.map_eq_some_iff, Prod.mk.injEq] at h
-    obtain ⟨_, _, _, hnext⟩ := h
-    rw [← hnext, dif_neg hlay, ← hstate]
-    rfl
-  have hlayers : hashCalls f (sequenceThread (fun lay below => Seeded.layerStep sk index lay below)
-      (state (numLayers - 1))) =
-      seqCost (layerFound f parameter data index) (layerHashCost f parameter data index) := by
-    rw [hashCalls_sequenceThread f state _ hnext]
-    congr 1
-    · funext lay
-      rw [hstate lay, Completeness.eval_layerStep f sk index hland lay, Option.isSome_map,
-        eval_signLayer_isSome, ← Completeness.rootPayload_belowValue, hmsg lay]
-      rfl
-    · funext lay
-      rw [hstate lay, hashCalls_layerStep, hmsg lay]
-      rfl
-  rw [hbottom, ← hlayers]
-  cases evalWithAnswerFn f (sequenceThread (fun lay below => Seeded.layerStep sk index lay below)
-      (state (numLayers - 1))) <;> simp only [hashCalls_pure] <;> omega
 
 end FORS.Security.GraphView
 

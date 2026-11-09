@@ -1,5 +1,9 @@
-import FORS.Scheme.Uniform
-import Mathlib.Data.BitVec
+module
+
+public import FORS.Scheme.Uniform
+public import Mathlib.Data.BitVec
+
+@[expose] public section
 
 /-!
 The full view of a message digest (its index and the leaf index of each of the `k` FORS trees) is a
@@ -66,17 +70,16 @@ theorem fullDigestView_injective : Function.Injective fullDigestView := by
 theorem fullDigestView_bijective : Function.Bijective fullDigestView := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨fullDigestView_injective, ?_⟩
-  rw [card_bitVec, Fintype.card_prod, Fintype.card_fin, Fintype.card_fun,
+  rw [Fintype.card_bitVec, Fintype.card_prod, Fintype.card_fin, Fintype.card_fun,
     Fintype.card_fin, Fintype.card_fin, ← pow_mul, ← pow_add]
   congr 1
   unfold messageDigestBits
   ring
 
 theorem evalDist_fullDigestView_uniform :
-    𝒟[fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)] =
-    𝒟[($ᵗ FullDigestView : ProbComp FullDigestView)] :=
-  evalDist_map_bijective_uniform_cross (α := MessageDigest) (β := FullDigestView)
-    fullDigestView fullDigestView_bijective
+    (fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)) =ᵈ ($ᵗ FullDigestView : ProbComp FullDigestView) :=
+  SampleableType.map_uniformSample_evalDistEq_of_bijective (α := MessageDigest) (β := FullDigestView)
+    fullDigestView_bijective
 
 /-! ### Reading the digest bit by bit
 
@@ -112,13 +115,13 @@ theorem testBit_digestOutputByte (outputs : DigestCall → HashOutput) (j t : Na
   rw [digestOutputBytes_eq, List.getD_eq_getElem?_getD, List.getElem?_ofFn, outputBit]
   by_cases hj : j < digestCalls * 32
   · have hc : (8 * j + t) / 256 < digestCalls := by omega
-    rw [dif_pos hj, dif_pos hc]
+    rw [dite_eq_left hj, dite_eq_left hc]
     have h1 : (8 * j + t) / 256 = j / 32 := by omega
     have h2 : (8 * j + t) % 256 = 8 * (j % 32) + t := by omega
     simp only [Option.getD_some, UInt8.toNat_ofBitVec, BitVec.testBit_toNat, BitVec.getLsbD_extractLsb', ht,
       decide_true, Bool.true_and, h1, h2]
   · have hc : ¬ (8 * j + t) / 256 < digestCalls := by omega
-    rw [dif_neg hj, dif_neg hc]
+    rw [dite_eq_right hj, dite_eq_right hc]
     simp
 
 /-- The bit of a byte string read least significant bit first that holds bit `p` of the string read most
@@ -229,7 +232,7 @@ theorem testBit_packed (a : Nat) (ha : 0 < a) : ∀ {k : Nat} (f : Fin k → Nat
     have hdm := Nat.div_add_mod i a
     split_ifs with h1 h2 h2
     · have h3 : i / a < k := (Nat.div_lt_iff_lt_mul ha).2 (by rw [mul_comm]; exact h1)
-      rw [ih, dif_pos h3]
+      rw [ih, dite_eq_left h3]
       rfl
     · exact absurd (Nat.lt_succ_of_lt ((Nat.div_lt_iff_lt_mul ha).2 (by rw [mul_comm]; exact h1))) h2
     · have h3 : i / a = k := by
@@ -281,8 +284,8 @@ theorem testBit_digestFieldsValue (bytes : List UInt8) (q : Nat) : (digestFields
     (fun κ : FTree => msbField bytes (forsHeight * κ.val) forsHeight) hfield (q - totalHeight)
   rw [digestFieldsValue, hsum, add_comm, Nat.testBit_two_pow_mul_add _ (digestIndexValue_lt bytes)]
   by_cases h : q < totalHeight
-  · rw [if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h]
     exact hp
 
 /-- The FORS leaf bits, `base_2b` reads them: digest bit `q ≥ h` is bit `forsBit q` of the string read most
@@ -340,14 +343,14 @@ theorem digestTarget_source {q : Nat} (hq : q < messageDigestBits) : digestTarge
   unfold digestSource
   split_ifs with h1 h2
   · unfold digestTarget
-    rw [if_neg (by omega), if_neg (by omega)]
+    rw [ite_eq_right (by omega), ite_eq_right (by omega)]
     omega
   · unfold digestTarget
-    rw [if_neg (by omega), if_pos (by omega)]
+    rw [ite_eq_right (by omega), ite_eq_left (by omega)]
     omega
   · have hp := forsBit_lt (by omega) hq
     unfold digestTarget
-    rw [if_pos (by unfold msbPos; omega), msbPos_msbPos, forsTarget_forsBit (by omega)]
+    rw [ite_eq_left (by unfold msbPos; omega), msbPos_msbPos, forsTarget_forsBit (by omega)]
 
 theorem digestSource_lt {q : Nat} (hq : q < messageDigestBits) : digestSource q < hashOutputBits * digestCalls := by
   have hb := bottomHeight_le
@@ -369,13 +372,13 @@ theorem getLsbD_truncateMessageDigest (outputs : DigestCall → HashOutput) {q :
   rw [truncateMessageDigest, BitVec.getLsbD_ofNat, decide_eq_true hq, Bool.true_and, testBit_digestFieldsValue]
   by_cases hbq : q < bottomHeight
   · have hh : q < totalHeight := by omega
-    rw [if_pos hh, testBit_digestIndexValue, if_pos hbq, digestSource, if_pos hbq, testBit_beInt,
+    rw [ite_eq_left hh, testBit_digestIndexValue, ite_eq_left hbq, digestSource, ite_eq_left hbq, testBit_beInt,
       length_take_drop _ _ _ (by omega), getD_take_drop _ _ _ _ (by omega),
       testBit_digestOutputByte _ _ _ (by omega), decide_eq_true (by omega), Bool.true_and]
     congr 2
     omega
   · by_cases hh : q < totalHeight
-    · rw [if_pos hh, testBit_digestIndexValue, if_neg hbq, digestSource, if_neg hbq, if_pos hh, testBit_beInt,
+    · rw [ite_eq_left hh, testBit_digestIndexValue, ite_eq_right hbq, digestSource, ite_eq_right hbq, ite_eq_left hh, testBit_beInt,
         length_take_drop _ _ _ (by omega), getD_take_drop _ _ _ _ (by omega),
         testBit_digestOutputByte _ _ _ (by omega), decide_eq_true (by omega), decide_eq_true (by omega),
         Bool.true_and, Bool.true_and]
@@ -384,7 +387,7 @@ theorem getLsbD_truncateMessageDigest (outputs : DigestCall → HashOutput) {q :
     · have hk : (q - totalHeight) / forsHeight < forsTrees := by
         unfold messageDigestBits at hq
         exact (Nat.div_lt_iff_lt_mul forsHeight_pos).2 (by omega)
-      rw [if_neg hh, dif_pos hk, digestSource, if_neg hbq, if_neg hh, testBit_msbField,
+      rw [ite_eq_right hh, dite_eq_left hk, digestSource, ite_eq_right hbq, ite_eq_right hh, testBit_msbField,
         decide_eq_true (Nat.mod_lt _ forsHeight_pos), Bool.true_and, msbBit_digestOutputBytes]
       unfold forsBit
       cases outputBit outputs _ <;> rfl
@@ -417,7 +420,7 @@ theorem outputs_ext {left right : DigestCall → HashOutput}
   have h1 : (256 * call.val + i) / 256 = call.val := by omega
   have h2 : (256 * call.val + i) % 256 = i := by omega
   unfold outputBit at hbit
-  rw [dif_pos (by omega), dif_pos (by omega)] at hbit
+  rw [dite_eq_left (by omega), dite_eq_left (by omega)] at hbit
   simpa only [h1, h2, Fin.eta] using hbit
 
 theorem splitCalls_bijective : Function.Bijective splitCalls := by
@@ -435,20 +438,23 @@ theorem splitCalls_bijective : Function.Bijective splitCalls := by
   · have hd : Fintype.card DroppedBit = hashOutputBits * digestCalls - messageDigestBits := by
       rw [Fintype.card_coe, Finset.card_compl, Finset.card_image_of_injective _ sourceFin_injective,
         Finset.card_univ, Fintype.card_fin, Fintype.card_fin]
-    simp only [Fintype.card_prod, Fintype.card_fun, Fintype.card_bool, hd, card_bitVec, Fintype.card_fin]
+    simp only [Fintype.card_prod, Fintype.card_fun, Fintype.card_bool, hd, Fintype.card_bitVec,
+      Fintype.card_fin]
     rw [← pow_mul, ← pow_add, Nat.add_sub_cancel' messageDigestBits_le, mul_comm]
 
 /-- Uniform outputs of the digest calls give a uniform digest. -/
 theorem evalDist_truncateMessageDigest_uniform :
-    𝒟[truncateMessageDigest <$> ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] =
-      𝒟[($ᵗ MessageDigest : ProbComp MessageDigest)] := by
+    (truncateMessageDigest <$> ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))) =ᵈ
+      ($ᵗ MessageDigest : ProbComp MessageDigest) := by
   have hmap : truncateMessageDigest <$> ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput)) =
       Prod.fst <$> (splitCalls <$> ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))) := by
     simp [Functor.map_map, splitCalls]
-  rw [hmap, evalDist_map,
-    evalDist_map_bijective_uniform_cross (α := DigestCall → HashOutput)
-      (β := MessageDigest × (DroppedBit → Bool)) splitCalls splitCalls_bijective, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+  rw [hmap]
+  refine ((SampleableType.map_uniformSample_evalDistEq_of_bijective (α := DigestCall → HashOutput)
+    (β := MessageDigest × (DroppedBit → Bool)) splitCalls_bijective).map Prod.fst).trans ?_
+  exact EvalDistEq.of_forall_prEvent_eq fun p => by
+    simpa only [prEvent_map] using SampleableType.prEvent_uniformSample_fst
+      (β := DroppedBit → Bool) p
 
 /-! ### Coverage -/
 

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.PrecomputedBoundedSign
-import XmssSecurity.Proof.PrecomputedSignQueryBound
+module
+
+public import XmssSecurity.Proof.PrecomputedBoundedSign
+public import XmssSecurity.Proof.PrecomputedSignQueryBound
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

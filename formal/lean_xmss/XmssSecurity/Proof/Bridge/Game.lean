@@ -1,5 +1,10 @@
-import XmssSecurity.Proof.Bridge.Signer
-import XmssSecurity.Proof.Deterministic.TranscriptReduction
+module
+
+public import XmssSecurity.Proof.Bridge.Signer
+public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+public import Common.WithHash
+
+@[expose] public section
 
 /-!
 # The real game as the model's
@@ -66,9 +71,10 @@ theorem liftM_hash_map {α β : Type} (f : α → β) (c : OracleComp HashSpec �
 
 /-! ## The adversary -/
 
-def toModelReq (request : LeanXmss.SignRequest) : SignRequest := ⟨request.leafIndex, request.message⟩
+def toModelReq (request : LeanXmss.SigningRequest) : SignRequest := ⟨request.leafIndex, request.message⟩
 
-def toRealReq (request : SignRequest) : LeanXmss.SignRequest := ⟨request.leafIndex, request.message⟩
+def toRealReq (request : SignRequest) : LeanXmss.SigningRequest := ⟨request.leafIndex,
+    request.message⟩
 
 /-- A real forgery as the model's: its signature's leaf index moves to the claim. -/
 def toModelForgery (forgery : LeanXmss.Forgery) : Forgery :=
@@ -76,7 +82,8 @@ def toModelForgery (forgery : LeanXmss.Forgery) : Forgery :=
 
 /-- Answer the statement adversary's queries with the model's oracles, translating each signature. -/
 def adversaryImpl :
-    QueryImpl (LeanXmss.OracleWorld + LeanXmss.SigningSpec) (OracleComp (OracleWorld + SigningSpec))
+    QueryImpl (LeanXmss.OracleWorld + LeanXmss.SigningOracleSpec) (OracleComp (OracleWorld +
+        SigningSpec))
   | .inl input => liftM ((OracleWorld + SigningSpec).query (.inl input))
   | .inr request => Option.map (toRealSig request.leafIndex) <$>
       liftM ((OracleWorld + SigningSpec).query (.inr (toModelReq request)))
@@ -87,19 +94,21 @@ noncomputable def toModelAdversary (adversary : LeanXmss.Security.Adversary) : A
 
 /-- A model transcript entry as the real one. -/
 def toRealEntry (entry : (_ : SignRequest) × Option Signature) :
-    (_ : LeanXmss.SignRequest) × Option LeanXmss.Signature :=
+    (_ : LeanXmss.SigningRequest) × Option LeanXmss.Signature :=
   ⟨toRealReq entry.1, entry.2.map (toRealSig entry.1.leafIndex)⟩
 
 theorem valid_map (log : QueryLog SigningSpec) :
-    LeanXmss.SigningTranscript.Valid (log.map toRealEntry) ↔ SigningTranscript.Valid log := by
-  simp only [LeanXmss.SigningTranscript.Valid, SigningTranscript.Valid, List.map_map]
+    LeanXmss.SigningTranscript.NoLeafIndexReused (log.map toRealEntry) ↔ SigningTranscript.Valid
+        log := by
+  simp only [LeanXmss.SigningTranscript.NoLeafIndexReused, SigningTranscript.Valid, List.map_map]
   rfl
 
 theorem contains_map (log : QueryLog SigningSpec) (forgery : LeanXmss.Forgery) :
     LeanXmss.SigningTranscript.Contains (log.map toRealEntry) forgery ↔
       SigningTranscript.Contains log (toModelForgery forgery) := by
   rcases forgery with ⟨fmessage, fsignature⟩
-  simp only [LeanXmss.SigningTranscript.Contains, SigningTranscript.Contains, List.mem_map]
+  simp only [LeanXmss.SigningTranscript.Contains, Common.SufCma.SignerReturnedForgery, SigningTranscript.Contains,
+    List.mem_map]
   constructor
   · rintro ⟨_, ⟨entry, hentry, rfl⟩, hmessage, hsignature⟩
     obtain ⟨request, answer⟩ := entry
@@ -126,21 +135,22 @@ theorem contains_map (log : QueryLog SigningSpec) (forgery : LeanXmss.Forgery) :
 /-! ## The real game -/
 
 /-- The real game after key generation. -/
-noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey : LeanXmss.PublicKey)
-    (secretKey : LeanXmss.Seeded.SecretKey) : OracleComp LeanXmss.OracleWorld Bool := do
-  let ((forgery, log) : LeanXmss.Forgery × QueryLog LeanXmss.SigningSpec) ←
+noncomputable def realRest (adversary : LeanXmss.Security.Adversary) (publicKey : HashSig.PublicKey)
+    (secretKey : LeanXmss.SchemeSeedKey) : OracleComp LeanXmss.OracleWorld
+        Bool := do
+  let ((forgery, log) : LeanXmss.Forgery × QueryLog LeanXmss.SigningOracleSpec) ←
     (simulateQ (QueryImpl.ofLift LeanXmss.OracleWorld
-      (WriterT (QueryLog LeanXmss.SigningSpec) (OracleComp LeanXmss.OracleWorld)) +
+      (WriterT (QueryLog LeanXmss.SigningOracleSpec) (OracleComp LeanXmss.OracleWorld)) +
         LeanXmss.Security.signingOracle secretKey) (adversary.main publicKey)).run
-  let verified ← liftM (LeanXmss.Concrete.verify publicKey forgery.message forgery.signature :
+  let verified ← liftM (LeanXmss.Verification.verifyWithHash publicKey forgery.message forgery.signature :
     OracleComp LeanXmss.HashSpec Bool)
-  return decide (LeanXmss.SigningTranscript.Valid log ∧ ¬LeanXmss.SigningTranscript.Contains log forgery) &&
+  return decide (LeanXmss.SigningTranscript.NoLeafIndexReused log ∧ ¬LeanXmss.SigningTranscript.Contains log forgery) &&
     verified
 
 theorem gameCore_eq (adversary : LeanXmss.Security.Adversary) :
     LeanXmss.Security.gameCore adversary = (do
-      let seed ← liftM LeanXmss.sampleMasterSeed
-      let keys ← liftM (LeanXmss.Seeded.keygenFromSeed seed)
+      let seed ← liftM HashSig.sampleMasterSeed
+      let keys ← liftM (LeanXmss.KeyGenerationAndSigning.keygenFromSeedWithHash seed)
       realRest adversary keys.1 keys.2) := rfl
 
 namespace Prepared
@@ -149,11 +159,11 @@ variable {seed : MasterSeed} {d : Derivations}
   {result : (Digest × (TopIndex → Option (Randomness × Encoding))) × QueryLog HashSpec}
   {cache : QueryCache HashSpec}
 
-theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.OracleWorld + LeanXmss.SigningSpec).Domain) :
+theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.OracleWorld + LeanXmss.SigningOracleSpec).Domain) :
     Erases (worldKnown cache)
       ((QueryImpl.ofLift LeanXmss.OracleWorld
-        (WriterT (QueryLog LeanXmss.SigningSpec) (OracleComp LeanXmss.OracleWorld)) +
-          LeanXmss.Security.signingOracle ⟨seed, d.parameter, result.1.1⟩) input).run
+        (WriterT (QueryLog LeanXmss.SigningOracleSpec) (OracleComp LeanXmss.OracleWorld)) +
+          LeanXmss.Security.signingOracle ⟨seed, d.parameter⟩) input).run
       ((fun p => (p.1, p.2.map toRealEntry)) <$>
         (((forwardOracles + signingOracle (tableScheme d.rnd) (modelSecretKey d result)) ∘ₛ adversaryImpl)
           input).run) := by
@@ -161,7 +171,7 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
   | inl input =>
       simp only [QueryImpl.add_apply_inl, QueryImpl.apply_compose, adversaryImpl, simulateQ_spec_query,
         forwardOracles, QueryImpl.ofLift_apply]
-      show Erases _ ((fun a => (a, ([] : QueryLog LeanXmss.SigningSpec))) <$>
+      show Erases _ ((fun a => (a, ([] : QueryLog LeanXmss.SigningOracleSpec))) <$>
           (liftM (OracleWorld.query input) : OracleComp OracleWorld _))
         ((fun p => (p.1, p.2.map toRealEntry)) <$> ((fun a => (a, ([] : QueryLog SigningSpec))) <$>
           (liftM (OracleWorld.query input) : OracleComp OracleWorld _)))
@@ -172,11 +182,12 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
         simulateQ_spec_query, WriterT.run_map', LeanXmss.Security.signingOracle, signingOracle,
         QueryImpl.run_withLogging_apply, tableScheme]
       have key := (h.erases_sign request.leafIndex request.message).lift_hash.bind
-        (fun u => (pure (u, [(⟨request, u⟩ : (r : LeanXmss.SignRequest) × Option LeanXmss.Signature)]) :
+        (fun u => (pure (u, [(⟨request, u⟩ : (r : LeanXmss.SigningRequest) × Option LeanXmss.Signature)]) :
           OracleComp OracleWorld _))
-        (fun u => (pure (u, [(⟨request, u⟩ : (r : LeanXmss.SignRequest) × Option LeanXmss.Signature)]) :
+        (fun u => (pure (u, [(⟨request, u⟩ : (r : LeanXmss.SigningRequest) × Option LeanXmss.Signature)]) :
           OracleComp OracleWorld _)) fun u => .pure _
-      convert key using 1 <;> try rfl
+      convert key using 1
+      · rfl
       simp only [liftM_hash_map, map_bind, bind_map_left, map_pure, Prod.map_apply, id_eq, List.map_cons,
         List.map_nil]
       rfl
@@ -185,7 +196,7 @@ theorem erases_oracles (h : Prepared seed d result cache) (input : (LeanXmss.Ora
 
 theorem erases_rest (h : Prepared seed d result cache) (adversary : LeanXmss.Security.Adversary) :
     Erases (worldKnown cache)
-      (realRest adversary ⟨result.1.1, d.parameter⟩ ⟨seed, d.parameter, result.1.1⟩)
+      (realRest adversary ⟨result.1.1, d.parameter⟩ ⟨seed, d.parameter⟩)
       (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary) (modelPublicKey d result)
         (modelSecretKey d result)) := by
   unfold realRest Seeded.gameRest toModelAdversary

@@ -1,122 +1,111 @@
-//! Pins both verifiers' `WHIR_QUERIES`, the Rust one's and `python-verifier`'s,
-//! against the prover's query search. They tabulate rather than repeat that search,
-//! which would make cross-language float identity part of the protocol.
+//! Pins both verifiers' `WHIR_QUERIES`, the Rust one's and the Lean one's (`formal/Statement/LeanVmVerifier.lean`),
+//! against the prover's query search. They tabulate rather than repeat that search, which would make cross-language
+//! float identity part of the protocol.
 
 use pcs::LOG_PACKING;
-use pcs::whir_config::WhirSecurityConfig;
-use std::path::Path;
-use std::process::Command;
+use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
 
-/// The range, then `rate log_n q0 q1 …` per entry.
-const DUMP: &str = "\
-import sys; sys.path.insert(0, '.')
-import verifier as v
-print(v.MIN_STACKED_LOG, v.MAX_STACKED_LOG)
-for rate in range(1, 5):
-    for log_n in range(v.MIN_STACKED_LOG, v.MAX_STACKED_LOG + 1):
-        row = v.WHIR_QUERIES[rate - 1][log_n - v.MIN_STACKED_LOG]
-        print(rate, log_n, ' '.join(map(str, row)))
-";
+/// The prover's query search at a packed size and rate.
+fn search(log_n: usize, rate: usize) -> ProverConfig {
+    // `log_n` is the packed size; the Rust search unpacks it itself.
+    WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, rate)
+        .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: the search itself failed: {e}"))
+        .to_config()
+        .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: {e}"))
+}
+
+/// A table's entries, per rate `1..=4`, per stack size in the window, each a list `[q,…]`.
+fn entries(queries: impl Fn(usize, usize) -> Vec<usize>) -> Vec<Vec<String>> {
+    (1..=4)
+        .map(|rate| {
+            (leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU)
+                .map(|log_n| {
+                    let counts: Vec<String> = queries(log_n, rate).iter().map(usize::to_string).collect();
+                    format!("[{}]", counts.join(","))
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The table as the Lean literal, without whitespace: `[[[q,…],…],…]`.
+fn lean_literal(rows: &[Vec<String>]) -> String {
+    let rows: Vec<String> = rows.iter().map(|row| format!("[{}]", row.join(","))).collect();
+    format!("[{}]", rows.join(","))
+}
 
 #[test]
-fn whir_query_table_matches_rust() {
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier");
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(DUMP)
-        .current_dir(&directory)
-        .output()
-        .expect("run python3 to dump the table");
-    assert!(
-        output.status.success(),
-        "dumping WHIR_QUERIES failed:\n{}",
-        String::from_utf8_lossy(&output.stderr)
+fn lean_query_table_matches_rust() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../formal/Statement/LeanVmVerifier.lean"
     );
-    let dumped = String::from_utf8(output.stdout).expect("table dump is utf-8");
-    let mut lines = dumped.lines();
-
-    let mut range = lines.next().expect("range line").split_whitespace();
-    let mut next_bound = || range.next().expect("a bound").parse::<usize>().expect("a bound");
-    let (min_log, max_log) = (next_bound(), next_bound());
-    // Every verifier admits the same committed-size window, and `pcs::MAX_MU` is the
-    // one knob that sets it. `python-verifier` is standalone and dependency-free, so
-    // it cannot read the Rust constant and keeps a literal; this is what stops the
-    // two drifting, and names the edit when the knob moves.
-    assert_eq!(
-        (min_log, max_log),
-        (leanvm_core::pcs::MIN_MU, leanvm_core::pcs::MAX_MU),
-        "set MIN_STACKED_LOG / MAX_STACKED_LOG in python-verifier/verifier.py to {} / {}",
-        leanvm_core::pcs::MIN_MU,
-        leanvm_core::pcs::MAX_MU
-    );
-
-    let mut checked = 0;
-    for line in lines {
-        let mut fields = line.split_whitespace().map(|f| f.parse::<usize>().expect("an integer"));
-        let rate = fields.next().expect("rate");
-        let log_n = fields.next().expect("log_n");
-        let tabulated: Vec<usize> = fields.collect();
-
-        // Python's `log_n` is the packed size; the Rust search unpacks it itself.
-        let m = log_n + LOG_PACKING;
-        let config = WhirSecurityConfig::derive_config_with_log_inv_rate(m, rate)
-            .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: the search itself failed: {e}"))
-            .to_config()
-            .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: {e}"));
-        assert_eq!(
-            config.queries, tabulated,
-            "rate {rate}, log_n {log_n}: WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
+    let source = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
+    for (name, value) in [
+        ("minLogStack", leanvm_core::pcs::MIN_MU),
+        ("maxLogStack", leanvm_core::pcs::MAX_MU),
+    ] {
+        assert!(
+            source.contains(&format!("def {name} : ℕ := {value}\n")),
+            "set {name} in formal/Statement/LeanVmVerifier.lean to {value}"
         );
-        assert_eq!(
-            verifier::whir_queries(log_n, rate),
-            Some(&config.queries[..]),
-            "rate {rate}, log_n {log_n}: crates/verifier's WHIR_QUERIES is stale"
-        );
-        // Hardcoded on the Python side, so it must hold wherever the table does.
-        let expected_ood: Vec<usize> = std::iter::once(0)
-            .chain(std::iter::repeat_n(2, config.queries.len() - 1))
-            .collect();
-        assert_eq!(
-            config.ood_samples, expected_ood,
-            "rate {rate}, log_n {log_n}: OOD points are no longer 'none at level 0, two after'"
-        );
-        checked += 1;
     }
+    let head = "def queryTable : List (List (List ℕ)) :=";
+    let body = &source[source.find(head).expect("`queryTable` in the Lean verifier") + head.len()..];
+    let lean: String = body[..body.find("\n\n").unwrap_or(body.len())]
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    let rust = lean_literal(&entries(|log_n, rate| {
+        verifier::whir_queries(log_n, rate).expect("in the window").to_vec()
+    }));
     assert_eq!(
-        checked,
-        4 * (max_log - min_log + 1),
-        "the table is not the range it claims"
+        lean, rust,
+        "the Lean verifier's queryTable differs from crates/verifier's WHIR_QUERIES: regenerate both with print_whir_query_table"
     );
-    // The Rust verifier admits no wider window.
+}
+
+#[test]
+fn whir_query_table_matches_the_search() {
+    let (min_log, max_log) = (leanvm_core::pcs::MIN_MU, leanvm_core::pcs::MAX_MU);
+    for rate in 1..=4 {
+        for log_n in min_log..=max_log {
+            let config = search(log_n, rate);
+            assert_eq!(
+                verifier::whir_queries(log_n, rate),
+                Some(&config.queries[..]),
+                "rate {rate}, log_n {log_n}: crates/verifier's WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
+            );
+            // Hardcoded in the verifiers, so it must hold wherever the table does.
+            let expected_ood: Vec<usize> = std::iter::once(0)
+                .chain(std::iter::repeat_n(2, config.queries.len() - 1))
+                .collect();
+            assert_eq!(
+                config.ood_samples, expected_ood,
+                "rate {rate}, log_n {log_n}: OOD points are no longer 'none at level 0, two after'"
+            );
+        }
+    }
+    // The verifier admits exactly the prover's committed-size window, which `pcs::MAX_MU` sets.
     assert_eq!(verifier::whir_queries(min_log - 1, 1), None);
     assert_eq!(verifier::whir_queries(max_log + 1, 1), None);
 }
 
-/// Regenerates the literal the pin above checks: paste its output over `WHIR_QUERIES` in
-/// `python-verifier/verifier.py`.
+/// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,
+/// the last line over `queryTable` in `formal/Statement/LeanVmVerifier.lean`.
 /// `cargo test --release -p leanvm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
 #[test]
 #[ignore = "manual table regeneration"]
 fn print_whir_query_table() {
-    let rates: Vec<String> = (1..=4)
-        .map(|rate| {
-            let rows: Vec<String> = (leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU)
-                .map(|log_n| {
-                    let config = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, rate)
-                        .unwrap()
-                        .to_config()
-                        .unwrap();
-                    let queries: Vec<String> = config.queries.iter().map(usize::to_string).collect();
-                    format!("({})", queries.join(","))
-                })
-                .collect();
-            format!("({})", rows.join(", "))
-        })
-        .collect();
-    println!("WHIR_QUERIES = ({})  # fmt: skip", rates.join(", "));
+    let rows = entries(|log_n, rate| search(log_n, rate).queries);
+    for row in &rows {
+        let row: Vec<String> = row.iter().map(|entry| format!("&{entry}")).collect();
+        println!("    [{}],", row.join(", "));
+    }
+    println!("{}", lean_literal(&rows));
 }
 
-/// The grinds both verifiers hardcode are the prover's. A verifier asking for fewer bits than the prover grinds still
+/// The grinds the verifier hardcodes are the prover's. A verifier asking for fewer bits than the prover grinds still
 /// accepts every honest proof, so only this catches a drift below the target.
 #[test]
 fn grinding_constants_match_the_prover() {
@@ -138,21 +127,4 @@ fn grinding_constants_match_the_prover() {
         prover::OOD_SAMPLES as u32,
     ];
     assert_eq!(rust, expected, "crates/verifier's grinding constants");
-    let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../python-verifier");
-    let output = Command::new("python3")
-        .arg("-c")
-        .arg(
-            "import sys; sys.path.insert(0, '.'); import verifier as v; print(v.SECURITY_BITS, v.QUERY_GRINDING_BITS, \
-             v.FOLD_GRINDING_BITS, v.BATCH_GRINDING_BITS, v.OOD_GRINDING_BITS, v.OOD_SAMPLES)",
-        )
-        .current_dir(&directory)
-        .output()
-        .expect("run python3 to dump the constants");
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    let python: Vec<u32> = String::from_utf8(output.stdout)
-        .expect("utf-8")
-        .split_whitespace()
-        .map(|f| f.parse().expect("an integer"))
-        .collect();
-    assert_eq!(python, expected, "python-verifier's grinding constants");
 }

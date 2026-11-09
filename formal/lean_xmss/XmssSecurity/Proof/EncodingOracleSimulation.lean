@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.EncodingActionTrace
-import VCVio.OracleComp.Constructions.SampleableType
+module
+
+public import XmssSecurity.Proof.EncodingActionTrace
+public import VCVio.OracleComp.Constructions.SampleableType
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

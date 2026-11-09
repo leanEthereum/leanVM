@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.EncodingOracleSimulation
+module
+
+public import XmssSecurity.Proof.EncodingOracleSimulation
+
+@[expose] public section
 
 open OracleComp ENNReal
 

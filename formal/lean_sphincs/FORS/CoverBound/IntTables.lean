@@ -1,4 +1,8 @@
-import FORS.CoverBound.HTermCertificate
+module
+
+public import FORS.CoverBound.HTermCertificate
+
+@[expose] public section
 
 /-! **Integer tables.** The leaf tables of the certificates are computed in integers: numerators over a
 power of two, made convex and increasing (`convexZ`), read as rationals (`overP`), extended with the
@@ -97,6 +101,34 @@ theorem shape_convexZ : ∀ xs : List ℤ, LeafShape (convexZ xs)
   | [_] => ⟨fun n hn => by simp [convexZ] at hn, fun n hn => by simp [convexZ] at hn⟩
   | x :: y :: xs => shape_convexGoZ x (max y x) xs (le_max_right _ _)
 
+/-- The loop of `convexN`. -/
+def convexGoN : ℕ → ℕ → List ℕ → List ℕ
+  | _, _, [] => []
+  | a, b, x :: xs => max x (2 * b - a) :: convexGoN b (max x (2 * b - a)) xs
+
+/-- `convexZ` on natural numbers (`convexN_map`), which the kernel evaluates in fewer steps. -/
+def convexN : List ℕ → List ℕ
+  | [] => []
+  | [x] => [x]
+  | x :: y :: xs => x :: max y x :: convexGoN x (max y x) xs
+
+theorem convexGoN_map : ∀ (a b : ℕ) (xs : List ℕ),
+    (convexGoN a b xs).map (↑) = convexGoZ a b (xs.map (↑) : List ℤ)
+  | _, _, [] => rfl
+  | a, b, x :: xs => by
+      have e : ((max x (2 * b - a) : ℕ) : ℤ) = max (x : ℤ) (2 * b - a) := by omega
+      simp only [convexGoN, convexGoZ, List.map_cons, e, convexGoN_map b _ xs]
+
+theorem convexN_map : ∀ xs : List ℕ, (convexN xs).map (↑) = convexZ (xs.map (↑) : List ℤ)
+  | [] => rfl
+  | [_] => rfl
+  | x :: y :: xs => by
+      have e : ((max y x : ℕ) : ℤ) = max (y : ℤ) x := by omega
+      simp only [convexN, convexZ, List.map_cons, e, convexGoN_map]
+
+theorem length_convexN (xs : List ℕ) : (convexN xs).length = xs.length := by
+  rw [← List.length_map (f := ((↑) : ℕ → ℤ)), convexN_map, length_convexZ, List.length_map]
+
 /-- The rationals of the numerators `ks` over `2^P`. -/
 def overP (P : ℕ) (ks : List ℤ) : List ℚ := ks.map fun k : ℤ => (k : ℚ) / 2 ^ P
 
@@ -145,6 +177,14 @@ theorem le_overP {P : ℕ} {ks : List ℤ} {n : ℕ} (h : n < ks.length) {f : �
 theorem min_overP (a b : ℤ) (P : ℕ) : ((min a b : ℤ) : ℚ) / 2 ^ P = min ((a : ℚ) / 2 ^ P) ((b : ℚ) / 2 ^ P) := by
   rw [Int.cast_min, min_div_div_right (by positivity)]
 
+/-- `rup` of a quotient of integers. -/
+theorem rup_intCast_div (N : ℤ) (D P : ℕ) : rup ((N : ℚ) / D) P = mkRat (cdivZ (N * 2 ^ P) D) (2 ^ P) := by
+  unfold rup
+  rw [Rat.mkRat_eq_div, cdivZ_eq_ceil]
+  push_cast
+  congr 2
+  ring_nf
+
 /-! ### Tables from the moment tables -/
 
 /-- `f` on the first `n1 + 1` entries of two lists. -/
@@ -173,6 +213,48 @@ theorem p2_pos (k : ℕ) : 0 < p2 k := by unfold p2; exact_mod_cast Nat.two_pow_
 /-- A power of a moment-table entry, over one power of two. -/
 theorem tab_pow (x : ℚ) (k : ℕ) : (x / 2 ^ 128) ^ k = x ^ k / 2 ^ (128 * k) := by
   rw [div_pow, ← pow_mul]
+
+/-! ### Entries in natural numbers
+
+The kernel evaluates an entry of a table in `ℕ` in far fewer steps than the same entry in `ℤ`;
+`gNat_eq` and `hNat_eq` give the `ℤ` forms the bounds are proved for. -/
+
+/-- The excess entry from the moment numerators `x`, `y` and the cap `cn / cd` (over `2^191`). -/
+def gNat (H k cn cd x y : ℕ) : ℕ :=
+  min (cdiv (Nat.pow x k * 2 ^ 191) (2 ^ (H + 128 * k)))
+    (cdiv (Nat.pow y k * cd * 2 ^ 191) (2 ^ (2 * H + 128 * k) * 4 * cn))
+
+/-- The quadratic entry from the moment numerators `x`, `y`, `θ = tn / td` and `A2 = an / ad`
+(over `2^128`). -/
+def hNat (H k tn td an ad x y : ℕ) : ℕ :=
+  cdiv ((tn * ad * Nat.pow x k * 2 ^ H + an * td * Nat.pow y k) * 2 ^ 128) (td * ad * 2 ^ (2 * H + 128 * k))
+
+theorem gNat_eq {c1 : ℚ} (hc : 0 < c1) (H k x y : ℕ) :
+    (gNat H k c1.num.toNat c1.den x y : ℤ) = min (cdivZ (((x ^ k : ℕ) : ℤ) * 2 ^ 191) (p2 (H + 128 * k)))
+      (cdivZ (((y ^ k * c1.den : ℕ) : ℤ) * 2 ^ 191) (p2 (2 * H + 128 * k) * 4 * c1.num)) := by
+  have hn : c1.num = (c1.num.toNat : ℤ) := (Int.toNat_of_nonneg (Rat.num_pos.mpr hc).le).symm
+  have hn' : 0 < c1.num.toNat := by have := Rat.num_pos.mpr hc; omega
+  unfold gNat p2
+  rw [Nat.cast_min]
+  conv_rhs => rw [hn]
+  congr 1
+  · rw [show ((x ^ k : ℕ) : ℤ) * 2 ^ 191 = ((Nat.pow x k * 2 ^ 191 : ℕ) : ℤ) by push_cast; rfl,
+      cdivZ_natCast _ _ (by positivity)]
+  · rw [show ((y ^ k * c1.den : ℕ) : ℤ) * 2 ^ 191 = ((Nat.pow y k * c1.den * 2 ^ 191 : ℕ) : ℤ) by push_cast; rfl,
+      show ((2 ^ (2 * H + 128 * k) : ℕ) : ℤ) * 4 * (c1.num.toNat : ℤ) =
+        ((2 ^ (2 * H + 128 * k) * 4 * c1.num.toNat : ℕ) : ℤ) by push_cast; rfl,
+      cdivZ_natCast _ _ (by positivity)]
+
+theorem hNat_eq {θ A2 : ℚ} (hθ : 0 ≤ θ) (hA : 0 ≤ A2) (H k x y : ℕ) :
+    (hNat H k θ.num.toNat θ.den A2.num.toNat A2.den x y : ℤ) =
+      cdivZ ((θ.num * A2.den * ((x ^ k : ℕ) : ℤ) * p2 H + A2.num * θ.den * ((y ^ k : ℕ) : ℤ)) * 2 ^ 128)
+        (θ.den * A2.den * p2 (2 * H + 128 * k)) := by
+  have hθn : θ.num = (θ.num.toNat : ℤ) := (Int.toNat_of_nonneg (Rat.num_nonneg.mpr hθ)).symm
+  have hAn : A2.num = (A2.num.toNat : ℤ) := (Int.toNat_of_nonneg (Rat.num_nonneg.mpr hA)).symm
+  unfold hNat p2
+  rw [hθn, hAn, ← cdivZ_natCast _ _ (by have := θ.den_pos; have := A2.den_pos; positivity)]
+  push_cast
+  rfl
 
 /-! ### Means -/
 

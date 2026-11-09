@@ -1,4 +1,8 @@
-import FORS.Scheme.Lemmas
+module
+
+public import FORS.Scheme.Lemmas
+
+@[expose] public section
 
 /-! Byte encoding and domain separation. -/
 namespace FORS
@@ -48,17 +52,30 @@ theorem bytesBE_injective {n : Nat} {x y : BitVec (8 * n)} (h : bytesBE n x = by
   have hsum : 8 * (i / 8) + i % 8 = i := by omega
   simpa [hmod, hsum] using hlsb
 
+theorem bytesLE_digest_length (x : Digest) : (bytesLE 16 x).length = 16 :=
+  bytesLE_length 16 x
+
+theorem bytesLE_parameter_length (x : PublicParameter) : (bytesLE 16 x).length = 16 :=
+  bytesLE_length 16 x
+
+theorem flatMap_bytesLE_length_of {n : Nat} (values : List (BitVec (8 * n))) :
+    (values.flatMap (bytesLE n)).length = n * values.length := by
+  induction values with
+  | nil => rfl
+  | cons value values ih =>
+    rw [List.flatMap_cons, List.length_append, bytesLE_length, ih, List.length_cons]
+    ring
+
 theorem flatMap_bytesLE_length (values : List Digest) :
-    (values.flatMap (bytesLE 16)).length = 16 * values.length := by
-  simp [List.length_flatMap, bytesLE_length]
-  exact Nat.mul_comm _ _
+    (values.flatMap (bytesLE 16)).length = 16 * values.length :=
+  flatMap_bytesLE_length_of (n := 16) values
 
 theorem ofFn_flatMap_bytesLE_length {n : Nat} (values : Fin n → Digest) :
     ((List.ofFn values).flatMap (bytesLE 16)).length = 16 * n := by
   rw [flatMap_bytesLE_length, List.length_ofFn]
 
 theorem nodePayload_length (left right : Digest) : (Concrete.nodePayload left right).length = 32 := by
-  simp [Concrete.nodePayload, bytesLE_length]
+  simp [Concrete.nodePayload, bytesLE_digest_length]
 
 theorem leafPayload_length (endpoints : ChainIndex → Digest) : (Concrete.leafPayload endpoints).length = 1024 := by
   rw [Concrete.leafPayload, ofFn_flatMap_bytesLE_length]
@@ -72,11 +89,13 @@ theorem rootPayload_length (root : Digest) : (Concrete.rootPayload root).length 
 
 theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     (tweakableHashInput parameter domain payload).length = 48 + payload.length := by
-  simp only [tweakableHashInput, tweakBytes, fieldBytes, List.length_append, bytesLE_length, bytesBE_length]
+  simp only [tweakableHashInput, tweakBytes, fieldBytes, List.length_append, bytesLE_parameter_length,
+    bytesBE_length]
 
 theorem keygenHashInput_length (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     (keygenHashInput parameter domain seed).length = 80 := by
-  simp only [keygenHashInput, fieldBytes, List.length_append, bytesLE_length, bytesBE_length]
+  simp only [keygenHashInput, fieldBytes, List.length_append, bytesLE_parameter_length, bytesBE_length]
+  rfl
 
 /-- The 32 address bytes determine every word of the address. -/
 theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldBytes t2) : t1 = t2 := by

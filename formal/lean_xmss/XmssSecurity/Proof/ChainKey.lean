@@ -1,5 +1,10 @@
-import XmssSecurity.Proof.HashInputLemmas
-import XmssSecurity.Proof.HashAddress
+module
+
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.HashAddress
+import all Init.Data.Sum.Basic
+
+@[expose] public section
 
 /-!
 # One-time keys of either layer
@@ -44,11 +49,6 @@ theorem ChainKey.chainDomain_injective {leftKey rightKey : ChainKey}
     leftKey = rightKey ∧ leftChain = rightChain ∧ leftStep = rightStep := by
   cases leftKey <;> cases rightKey <;> simp_all [ChainKey.chainDomain]
 
-theorem ChainKey.domainSuffix_chainDomain (key : ChainKey) (chain : ChainIndex)
-    (step : ChainStep) :
-    domainSuffix (key.chainDomain chain step) = bytesLE 16 (BitVec.ofNat 128 chain.val) := by
-  cases key <;> rfl
-
 /-- The chain starts of a key of either layer. -/
 def SecretKey.keyChainStart (secretKey : SecretKey) : ChainKey → ChainIndex → Digest :=
   Sum.elim secretKey.chainStart secretKey.topChainStart
@@ -67,16 +67,6 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def keyChainHash (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (value : Digest) : m Digest :=
   tweakableHash parameter (key.chainDomain chain step) (bytesLE 16 value)
-
-theorem keyChainHash_inl (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    keyChainHash (m := m) parameter (.inl leafIndex) chain step value =
-      chainHash parameter leafIndex chain step value := rfl
-
-theorem keyChainHash_inr (parameter : PublicParameter) (key : TopIndex)
-    (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    keyChainHash (m := m) parameter (.inr key) chain step value =
-      topChainHash parameter key chain step value := rfl
 
 /-- A chain walk of a key of either layer, as `chainWalk`. -/
 def keyChainWalk (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex) :
@@ -112,12 +102,6 @@ def keyChainInput (parameter : PublicParameter) (key : ChainKey) (chain : ChainI
     (position : ChainStep) (value : Digest) : HashInput :=
   XmssSecurity.tweakableHashInput parameter (key.chainDomain chain position)
     (Concrete.digestBytes value)
-
-@[simp] theorem keyChainInput_inl (parameter : PublicParameter) (leafIndex : LeafIndex) :
-    keyChainInput parameter (.inl leafIndex) = chainInput parameter leafIndex := rfl
-
-@[simp] theorem keyChainInput_inr (parameter : PublicParameter) (key : TopIndex) :
-    keyChainInput parameter (.inr key) = topChainInput parameter key := rfl
 
 theorem keyChainInput_eq_iff (parameter : PublicParameter)
     (leftKey rightKey : ChainKey) (leftChain rightChain : ChainIndex)
@@ -170,12 +154,6 @@ def keyLeafInput (parameter : PublicParameter) (key : ChainKey)
     (endpoints : ChainIndex → Digest) : HashInput :=
   XmssSecurity.tweakableHashInput parameter key.leafDomain (Concrete.leafPayload endpoints)
 
-@[simp] theorem keyLeafInput_inl (parameter : PublicParameter) (leafIndex : LeafIndex) :
-    keyLeafInput parameter (.inl leafIndex) = leafInput parameter leafIndex := rfl
-
-@[simp] theorem keyLeafInput_inr (parameter : PublicParameter) (key : TopIndex) :
-    keyLeafInput parameter (.inr key) = topLeafInput parameter key := rfl
-
 theorem keyLeafInput_eq_iff (parameter : PublicParameter) (leftKey rightKey : ChainKey)
     (left right : ChainIndex → Digest) :
     keyLeafInput parameter leftKey left = keyLeafInput parameter rightKey right ↔
@@ -190,14 +168,6 @@ theorem keyLeafInput_eq_iff (parameter : PublicParameter) (leftKey rightKey : Ch
       (payload_eq_of_tweakableHashInput_eq parameter _ heq)⟩
   · rintro ⟨rfl, rfl⟩
     rfl
-
-theorem keyChainInput_ne_keyLeafInput (parameter : PublicParameter) (key : ChainKey)
-    (chain : ChainIndex) (step : ChainStep) (value : Digest) (leafKey : ChainKey)
-    (endpoints : ChainIndex → Digest) :
-    keyChainInput parameter key chain step value ≠ keyLeafInput parameter leafKey endpoints := by
-  intro heq
-  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-  cases key <;> cases leafKey <;> simp_all [ChainKey.chainDomain, ChainKey.leafDomain]
 
 end CacheView
 

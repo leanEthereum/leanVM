@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.TranscriptReduction
+module
+
+public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -26,25 +30,18 @@ theorem evaluateSource_support {α : Type} (sign : SignRequest → OracleComp Ha
 
 theorem prob_sourceGame_le_memo (sign : SignRequest → OracleComp HashSpec (Option Signature))
     (publicKey : PublicKey) (adversary : Adversary) (cache : QueryCache HashSpec) :
-    Pr[= true | evaluateSource sign (sourceGame publicKey adversary) cache] ≤
-      Pr[= true | evaluateSource sign (sourceGame publicKey (memoAdversary adversary)) cache] := by
+    Pr{let x ← evaluateSource sign (sourceGame publicKey adversary) cache}[x = true] ≤
+      Pr{let x ← evaluateSource sign (sourceGame publicKey (memoAdversary adversary)) cache}[x = true] := by
   unfold evaluateSource
-  rw [probOutput_congr rfl (evalDist_runSigning_memoize sign (sourceGame publicKey adversary) cache)]
-  change Pr[= true | evaluateSource sign (memoize (sourceGame publicKey adversary) ∅) cache] ≤
-    Pr[= true | evaluateSource sign (sourceGame publicKey (memoAdversary adversary)) cache]
+  refine le_of_eq_of_le ((evalDist_runSigning_memoize sign (sourceGame publicKey adversary)
+    cache).prEvent_eq (· = true)) ?_
+  change Pr{let x ← evaluateSource sign (memoize (sourceGame publicKey adversary) ∅) cache}[x = true] ≤
+    Pr{let x ← evaluateSource sign (sourceGame publicKey (memoAdversary adversary)) cache}[x = true]
   rw [← fst_transcriptReduction, ← snd_transcriptReduction, evaluateSource_map, evaluateSource_map]
-  simp only [← probEvent_eq_eq_probOutput, probEvent_map]
-  apply probEvent_mono
+  simp only [prEvent_map]
+
+  apply prEvent_mono_of_support
   intro result hresult hwin
   exact transcriptReduction_win publicKey adversary result (evaluateSource_support sign _ cache hresult) hwin
-
-theorem hashQueryBound_sourceGame_memo (sign : SignRequest → OracleComp HashSpec (Option Signature))
-    (publicKey : PublicKey) (adversary : Adversary) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (runSigning sign (sourceGame publicKey adversary)) cache q) :
-    HashQueryBound (runSigning sign (sourceGame publicKey (memoAdversary adversary))) cache q := by
-  have h := hashQueryBound_runSigning_memoize sign (sourceGame publicKey adversary) cache q hbound
-  rw [← fst_transcriptReduction, runSigning, simulateQ_map, hashQueryBound_map_iff] at h
-  rw [← snd_transcriptReduction, runSigning, simulateQ_map, hashQueryBound_map_iff]
-  exact h
 
 end XmssSecurity.Seeded

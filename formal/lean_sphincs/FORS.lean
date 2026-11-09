@@ -1,167 +1,201 @@
-import FORS.Base.Domination
-import FORS.Base.Poisson
-import FORS.Base.Prelude
-import FORS.Base.Split
-import FORS.Base.SplitCert
-import FORS.Base.Virtual
-import FORS.Base.VirtualMono
-import FORS.Base.VirtualOnce
-import FORS.Scheme
-import FORS.Scheme.Bytes
-import FORS.Scheme.Code
-import FORS.Scheme.Correctness
-import FORS.Scheme.Counter
-import FORS.Scheme.DigestView
-import FORS.Scheme.Domains
-import FORS.Scheme.Encoding
-import FORS.Scheme.LandedDigest
-import FORS.Scheme.Landing
-import FORS.Scheme.Layout
-import FORS.Scheme.Lemmas
-import FORS.Scheme.Pruning
-import FORS.Scheme.RandomOracle
-import FORS.Scheme.Recovery
-import FORS.Scheme.Search
-import FORS.Scheme.Uniform
-import FORS.Scheme.VerificationCost
-import FORS.Statement
-import FORS.Seed.Coupling
-import FORS.Seed.Guess
-import FORS.Seed.Model
-import FORS.Reduction.CostProgram
-import FORS.Reduction.EagerOracle
-import FORS.Reduction.Internalize
-import FORS.Reduction.InternalizeGame
-import FORS.Reduction.Memo
-import FORS.Reduction.NoRepeat
-import FORS.Reduction.PreparedSample
-import FORS.Reduction.SeedElimination
-import FORS.Reduction.SeedFreeGame
-import FORS.Reduction.ShortInputs
-import FORS.Reduction.UntilSeed
-import FORS.Reduction.WinValue
-import FORS.ScanSigner.AfterSigning
-import FORS.ScanSigner.FairShare
-import FORS.ScanSigner.Group
-import FORS.ScanSigner.LazySigner
-import FORS.ScanSigner.LoopWalk
-import FORS.ScanSigner.Scan
-import FORS.ScanSigner.ScanReveals
-import FORS.ScanSigner.SignatureLaw
-import FORS.GraphView.Cache
-import FORS.GraphView.Correctness
-import FORS.GraphView.Cost
-import FORS.GraphView.CountedGame
-import FORS.GraphView.EncodingPreparation
-import FORS.GraphView.Graph
-import FORS.GraphView.HashCalls
-import FORS.GraphView.Position
-import FORS.GraphView.Pruned
-import FORS.GraphView.Sampling
-import FORS.GraphView.Secrets
-import FORS.GraphView.Signer
-import FORS.GraphView.Targets
-import FORS.LazyRun.Cost
-import FORS.LazyRun.Debt
-import FORS.LazyRun.Expose
-import FORS.LazyRun.ExposedUniform
-import FORS.LazyRun.FixedRun
-import FORS.LazyRun.Graph
-import FORS.LazyRun.GraphRows
-import FORS.LazyRun.GraphSampling
-import FORS.LazyRun.HiddenOracle
-import FORS.LazyRun.Interpreter
-import FORS.LazyRun.InterpreterFacts
-import FORS.LazyRun.Outside
-import FORS.LazyRun.OutsideTable
-import FORS.LazyRun.PreparedEncodings
-import FORS.LazyRun.PreparedRun
-import FORS.LazyRun.Presample
-import FORS.LazyRun.Replay
-import FORS.LazyRun.Resample
-import FORS.LazyRun.Reveal
-import FORS.LazyRun.RichProgram
-import FORS.LazyRun.RouteStart
-import FORS.LazyRun.Rows
-import FORS.LazyRun.RunSupport
-import FORS.LazyRun.Saturation
-import FORS.LazyRun.ShortQueries
-import FORS.LazyRun.UntilHidden
-import FORS.Classification.Accepted
-import FORS.Classification.Chain
-import FORS.Classification.Encoding
-import FORS.Classification.Fors
-import FORS.Classification.Hidden
-import FORS.Classification.RecoveredFors
-import FORS.Classification.Reference
-import FORS.Classification.RefinedEvents
-import FORS.Classification.RefinedOutcome
-import FORS.Classification.Signature
-import FORS.Classification.SignedReveals
-import FORS.Classification.Targeting
-import FORS.Classification.Tree
-import FORS.Classification.Verifier
-import FORS.Classification.Win
-import FORS.Classification.WinRefined
-import FORS.Classification.Wots
-import FORS.CoverPotential.Presample
-import FORS.CoverPotential.Basic
-import FORS.CoverPotential.FairCoin
-import FORS.CoverPotential.Game
-import FORS.CoverPotential.GenericWitness
-import FORS.CoverPotential.Groups
-import FORS.CoverPotential.OneCoin
-import FORS.CoverPotential.OneCoinGame
-import FORS.CoverPotential.Price
-import FORS.CoverPotential.StartValue
-import FORS.CoverBound.ClassLaw
-import FORS.CoverBound.FirstMoment
-import FORS.CoverBound.HTerm
-import FORS.CoverBound.HTermCertificate
-import FORS.CoverBound.HTermOption
-import FORS.CoverBound.HTermOptionJ
-import FORS.CoverBound.IndexFactor
-import FORS.CoverBound.IntTables
-import FORS.CoverBound.MarkAverage
-import FORS.CoverBound.MomentBounds
-import FORS.CoverBound.MomentTable
-import FORS.CoverBound.Moments
-import FORS.CoverBound.NearMoment
-import FORS.CoverBound.NearOption
-import FORS.CoverBound.PerIndex
-import FORS.CoverBound.SecondMoment
-import FORS.SmallBudget.Closing
-import FORS.SmallBudget.Contact.Bound
-import FORS.SmallBudget.Contact.NearWitness
-import FORS.SmallBudget.Contact.PaidPotential
-import FORS.SmallBudget.Contact.Potential
-import FORS.SmallBudget.Contact.RevealRate
-import FORS.SmallBudget.Contact.RunFacts
-import FORS.SmallBudget.Contact.Signing
-import FORS.SmallBudget.Contact.Weights
-import FORS.SmallBudget.Linear.ForsSteps
-import FORS.SmallBudget.Linear.FreshAnswer
-import FORS.SmallBudget.Linear.Invariant
-import FORS.SmallBudget.Linear.Payments
-import FORS.SmallBudget.Linear.Payoff
-import FORS.SmallBudget.Linear.Potential
-import FORS.SmallBudget.Linear.Rate
-import FORS.SmallBudget.Linear.Run
-import FORS.SmallBudget.Linear.Start
-import FORS.SmallBudget.Linear.Step
-import FORS.SmallBudget.SampleBound
-import FORS.SmallBudget.SampleEvents
-import FORS.LargeBudget.Covers
-import FORS.LargeBudget.HeavyPotential
-import FORS.LargeBudget.HeavyRoute
-import FORS.LargeBudget.HeavyTerm
-import FORS.LargeBudget.Route
-import FORS.LargeBudget.SurvivalWeight
-import FORS.LargeBudget.WeightedPotential
-import FORS.LargeBudget.WeightedScan
-import FORS.Certificates.Build
-import FORS.Certificates.Closing
-import FORS.Certificates.H26
-import FORS.Lifetimes
-import FORS.Configurations
-import FORS.Main
+module
+
+public import FORS.Base.Domination
+public import FORS.Base.Poisson
+public import FORS.Base.Prelude
+public import FORS.Base.Probability
+public import FORS.Base.Split
+public import FORS.Base.SplitCert
+public import FORS.Base.Virtual
+public import FORS.Base.VirtualMono
+public import FORS.Base.VirtualOnce
+public import FORS.Scheme
+public import FORS.Scheme.Bytes
+public import FORS.Scheme.Code
+public import FORS.Scheme.Correctness
+public import FORS.Scheme.Counter
+public import FORS.Scheme.DigestView
+public import FORS.Scheme.Domains
+public import FORS.Scheme.Encoding
+public import FORS.Scheme.LandedDigest
+public import FORS.Scheme.Landing
+public import FORS.Scheme.Layout
+public import FORS.Scheme.Lemmas
+public import FORS.Scheme.Pruning
+public import FORS.Scheme.RandomOracle
+public import FORS.Scheme.Recovery
+public import FORS.Scheme.Search
+public import FORS.Scheme.Uniform
+public import FORS.Scheme.VerificationCost
+public import FORS.Statement
+public import FORS.Seed.Coupling
+public import FORS.Seed.Guess
+public import FORS.Seed.Model
+public import FORS.Reduction.AdvCountGame
+public import FORS.Reduction.CostProgram
+public import FORS.Reduction.EagerOracle
+public import FORS.Reduction.Internalize
+public import FORS.Reduction.InternalizeGame
+public import FORS.Reduction.Memo
+public import FORS.Reduction.NoRepeat
+public import FORS.Reduction.PreparedSample
+public import FORS.Reduction.SeedElimination
+public import FORS.Reduction.SeedEliminationAdv
+public import FORS.Reduction.AdvProgBridgeH
+public import FORS.Reduction.SeedFreeGame
+public import FORS.Reduction.ShortInputs
+public import FORS.Reduction.UntilSeed
+public import FORS.Reduction.UntilSeedH
+public import FORS.Reduction.WinValue
+public import FORS.Reduction.WinValueAdv
+public import FORS.ScanSigner.AfterSigning
+public import FORS.ScanSigner.FairShare
+public import FORS.ScanSigner.Group
+public import FORS.ScanSigner.LazySigner
+public import FORS.ScanSigner.LoopWalk
+public import FORS.ScanSigner.Scan
+public import FORS.ScanSigner.ScanReveals
+public import FORS.ScanSigner.SignatureLaw
+public import FORS.GraphView.Cache
+public import FORS.GraphView.Correctness
+public import FORS.GraphView.Cost
+public import FORS.GraphView.CountedGame
+public import FORS.GraphView.EncodingPreparation
+public import FORS.GraphView.Graph
+public import FORS.GraphView.HashCalls
+public import FORS.GraphView.HonestGame
+public import FORS.GraphView.HonestSigner
+public import FORS.GraphView.PreparedSearch
+public import FORS.GraphView.Position
+public import FORS.GraphView.Pruned
+public import FORS.GraphView.Sampling
+public import FORS.GraphView.Secrets
+public import FORS.GraphView.Signer
+public import FORS.GraphView.Targets
+public import FORS.LazyRun.Cost
+public import FORS.LazyRun.Debt
+public import FORS.LazyRun.Expose
+public import FORS.LazyRun.ExposedUniform
+public import FORS.LazyRun.FixedRun
+public import FORS.LazyRun.Graph
+public import FORS.LazyRun.GraphRows
+public import FORS.LazyRun.GraphSampling
+public import FORS.LazyRun.HiddenOracle
+public import FORS.LazyRun.Interpreter
+public import FORS.LazyRun.InterpreterFacts
+public import FORS.LazyRun.HonestRead
+public import FORS.LazyRun.HonestReadFrom
+public import FORS.LazyRun.Outside
+public import FORS.LazyRun.OutsideTable
+public import FORS.LazyRun.PreparedEncodings
+public import FORS.LazyRun.PreparedRun
+public import FORS.LazyRun.Presample
+public import FORS.LazyRun.Replay
+public import FORS.LazyRun.Resample
+public import FORS.LazyRun.Reveal
+public import FORS.LazyRun.RichProgram
+public import FORS.LazyRun.Rows
+public import FORS.LazyRun.RunSupport
+public import FORS.LazyRun.Saturation
+public import FORS.LazyRun.ShortQueries
+public import FORS.LazyRun.UntilHidden
+public import FORS.Classification.Accepted
+public import FORS.Classification.Chain
+public import FORS.Classification.Encoding
+public import FORS.Classification.Fors
+public import FORS.Classification.Hidden
+public import FORS.Classification.RecoveredFors
+public import FORS.Classification.Reference
+public import FORS.Classification.RefinedEvents
+public import FORS.Classification.RefinedOutcome
+public import FORS.Classification.Signature
+public import FORS.Classification.SignedReveals
+public import FORS.Classification.Targeting
+public import FORS.Classification.Tree
+public import FORS.Classification.Verifier
+public import FORS.Classification.Win
+public import FORS.Classification.WinRefined
+public import FORS.Classification.Wots
+public import FORS.CoverPotential.Presample
+public import FORS.CoverPotential.Basic
+public import FORS.CoverPotential.FairCoin
+public import FORS.CoverPotential.Game
+public import FORS.CoverPotential.GameH
+public import FORS.CoverPotential.GenericWitness
+public import FORS.CoverPotential.Groups
+public import FORS.CoverPotential.OneCoin
+public import FORS.CoverPotential.OneCoinH
+public import FORS.CoverPotential.Price
+public import FORS.CoverPotential.StartValue
+public import FORS.CoverBound.ClassLaw
+public import FORS.CoverBound.FirstMoment
+public import FORS.CoverBound.HTerm
+public import FORS.CoverBound.HTermCertificate
+public import FORS.CoverBound.HTermOption
+public import FORS.CoverBound.HTermOptionJ
+public import FORS.CoverBound.IndexFactor
+public import FORS.CoverBound.IntTables
+public import FORS.CoverBound.MarkAverage
+public import FORS.CoverBound.MomentBounds
+public import FORS.CoverBound.MomentTable
+public import FORS.CoverBound.Moments
+public import FORS.CoverBound.NearMoment
+public import FORS.CoverBound.NearOption
+public import FORS.CoverBound.PerIndex
+public import FORS.CoverBound.SecondMoment
+public import FORS.SmallBudget.Closing
+public import FORS.SmallBudget.ClosingH
+public import FORS.SmallBudget.BridgeH
+public import FORS.SmallBudget.Contact.Bound
+public import FORS.SmallBudget.Contact.HonestBase
+public import FORS.SmallBudget.Contact.NearWitness
+public import FORS.SmallBudget.Contact.PaidPotential
+public import FORS.SmallBudget.Contact.PaidPotentialH
+public import FORS.SmallBudget.Contact.Potential
+public import FORS.SmallBudget.Contact.PotentialH
+public import FORS.SmallBudget.Contact.RevealRate
+public import FORS.SmallBudget.Contact.RunFacts
+public import FORS.SmallBudget.Contact.Signing
+public import FORS.SmallBudget.Contact.SigningH
+public import FORS.SmallBudget.Contact.Weights
+public import FORS.SmallBudget.Linear.ForsSteps
+public import FORS.SmallBudget.Linear.FreshAnswer
+public import FORS.SmallBudget.Linear.HonestFrom
+public import FORS.SmallBudget.Linear.HonestSignerFrom
+public import FORS.SmallBudget.Linear.Invariant
+public import FORS.SmallBudget.Linear.Payments
+public import FORS.SmallBudget.Linear.Payoff
+public import FORS.SmallBudget.Linear.Potential
+public import FORS.SmallBudget.Linear.Rate
+public import FORS.SmallBudget.Linear.Run
+public import FORS.SmallBudget.Linear.Start
+public import FORS.SmallBudget.Linear.Step
+public import FORS.SmallBudget.SampleBound
+public import FORS.SmallBudget.SampleEvents
+public import FORS.LargeBudget.HonestCoupling
+public import FORS.LargeBudget.Covers
+public import FORS.LargeBudget.HeavyPotential
+public import FORS.LargeBudget.HeavyPotentialH
+public import FORS.LargeBudget.HeavyRoute
+public import FORS.LargeBudget.HeavyRouteH
+public import FORS.LargeBudget.HeavyTerm
+public import FORS.LargeBudget.Route
+public import FORS.LargeBudget.RouteH
+public import FORS.LargeBudget.RouteStartH
+public import FORS.LargeBudget.SurvivalWeight
+public import FORS.LargeBudget.WeightedPotential
+public import FORS.LargeBudget.WeightedPotentialH
+public import FORS.LargeBudget.WeightedScan
+public import FORS.Certificates.Build
+public import FORS.Certificates.Closing
+public import FORS.Certificates.ClosingAdv
+public import FORS.Certificates.H26
+public import FORS.Certificates.VerifyCost
+public import FORS.Lifetimes
+public import FORS.Configurations
+public import FORS.Crate
+public import FORS.CrateStatic
+public import FORS.CrateShort
+public import FORS.Main
+
+@[expose] public section

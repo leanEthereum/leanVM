@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.TranscriptReduction
-import XmssSecurity.Proof.Deterministic.TrialSampling
+module
+
+public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+public import XmssSecurity.Proof.Deterministic.TrialSampling
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

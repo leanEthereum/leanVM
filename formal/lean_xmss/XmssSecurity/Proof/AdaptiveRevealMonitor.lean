@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+module
+
+public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+
+@[expose] public section
 
 open OracleComp ENNReal
 open scoped BigOperators

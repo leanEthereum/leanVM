@@ -1,6 +1,10 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-import Mathlib.Data.BitVec
+module
+
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import Mathlib.Data.BitVec
+
+@[expose] public section
 
 /-!
 # leanSPHINCS: SLH-DSA (FIPS 205) on Keccak-256 with WOTS+C
@@ -1002,7 +1006,7 @@ full key lands at first, compute the digest, open FORS and recover its public ke
 then from the bottom layer up sign the message of the layer below with WOTS+C, attach the path, and
 recover the root the layer above signs. It returns the Rust signer's signature and, on every run,
 makes no more hash calls than the Rust signer, which is what carrying the bound over to the crate
-needs (`README.md`, "The signer's hash calls"); the calls themselves differ. -/
+needs; the calls themselves differ. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let walk ← deriveRandomizer secretKey.prf secretKey.parameter message
   let some (randomness, _) ← signDigestLoop secretKey message walk.2 digestAttemptLimit walk.1

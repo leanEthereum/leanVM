@@ -1,5 +1,9 @@
-import FORS.Seed.Guess
-import FORS.Scheme.Recovery
+module
+
+public import FORS.Seed.Guess
+public import FORS.Scheme.Recovery
+
+@[expose] public section
 
 /-!
 Seed-independent prepared key material and its exact full-output oracle programming interface.
@@ -103,7 +107,7 @@ theorem secretInput_ne_prfInput (seed : MasterSeed) (material : Material)
 /-- Program the two key-seed outputs and every secret over a base cache. This definition overwrites
 its specified entries; a later lemma explicitly requires those entries fresh to preserve the base. -/
 noncomputable def programCache (base : QueryCache HashSpec) (seed : MasterSeed)
-    (material : Material) : QueryCache HashSpec := fun input =>
+    (material : Material) : QueryCache HashSpec := QueryCache.ofFn fun input =>
   if input = parameterInput seed then some (parameterOutput material)
   else if input = prfInput seed then some (prf material)
   else if h : ∃ position, input = secretInput seed material position then
@@ -116,17 +120,19 @@ theorem programCache_parameter (base : QueryCache HashSpec) (seed : MasterSeed) 
 
 theorem programCache_prf (base : QueryCache HashSpec) (seed : MasterSeed) (material : Material) :
     programCache base seed material (prfInput seed) = some (prf material) := by
-  rw [programCache, if_neg (prfInput_ne_parameterInput seed), if_pos rfl]
+  rw [programCache, QueryCache.ofFn_apply, ite_eq_right (prfInput_ne_parameterInput seed),
+    ite_eq_left rfl]
 
 theorem programCache_secret (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) (position : SecretPosition) :
     programCache base seed material (secretInput seed material position) =
       some (material.2 position) := by
-  rw [programCache, if_neg (secretInput_ne_parameterInput seed material position),
-    if_neg (secretInput_ne_prfInput seed material position)]
+  rw [programCache, QueryCache.ofFn_apply,
+    ite_eq_right (secretInput_ne_parameterInput seed material position),
+    ite_eq_right (secretInput_ne_prfInput seed material position)]
   have h : ∃ other, secretInput seed material position = secretInput seed material other :=
     ⟨position, rfl⟩
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact congrArg (fun p => some (material.2 p))
     (secretInput_injective seed material (Classical.choose_spec h).symm)
 
@@ -136,8 +142,8 @@ theorem programCache_other (base : QueryCache HashSpec) (seed : MasterSeed) (mat
     (input : HashInput) (hparameter : input ≠ parameterInput seed) (hprf : input ≠ prfInput seed)
     (hsecret : ∀ position, input ≠ secretInput seed material position) :
     programCache base seed material input = base input := by
-  simp only [programCache, hparameter, hprf, ↓reduceIte]
-  refine dif_neg ?_
+  simp only [programCache, QueryCache.ofFn_apply, hparameter, hprf, ↓reduceIte]
+  refine dite_eq_right ?_
   rintro ⟨position, hd⟩
   exact hsecret position hd
 

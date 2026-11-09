@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Bridge.Honest
+module
+
+public import XmssSecurity.Proof.Bridge.Honest
+
+@[expose] public section
 
 /-!
 # What the prepared cache resolves

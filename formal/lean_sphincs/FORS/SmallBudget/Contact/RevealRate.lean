@@ -1,6 +1,10 @@
-import FORS.SmallBudget.Contact.RunFacts
-import FORS.SmallBudget.Contact.NearWitness
-import FORS.ScanSigner.ScanReveals
+module
+
+public import FORS.SmallBudget.Contact.RunFacts
+public import FORS.SmallBudget.Contact.NearWitness
+public import FORS.ScanSigner.ScanReveals
+
+@[expose] public section
 
 /-! **One signing call opens a given FORS leaf rarely.** A fresh landed digest selects leaf `leaf` of
 tree `κ` at the index of a given secret with probability `2^-b · 2^-a`: the digest picks the index
@@ -33,7 +37,7 @@ noncomputable def revRate : ℝ≥0∞ := ((2 ^ subtreeHeight * 2 ^ forsHeight :
 
 theorem opensAt_le_one (index : Index) (κ : FTree) (leaf : FLeaf) (v : View) : opensAt index κ leaf v ≤ 1 := by
   unfold opensAt
-  split_ifs <;> simp
+  split_ifs <;> simp [-SampleableType.prEvent_uniformSample]
 
 /-- **A uniform kept view selects a given leaf with probability the reveal rate.** -/
 theorem freshAvg_opensAt (index : Index) (κ : FTree) (leaf : FLeaf) :
@@ -42,13 +46,13 @@ theorem freshAvg_opensAt (index : Index) (κ : FTree) (leaf : FLeaf) :
       (if v.1 = localIdx index then 1 else 0) *
         ∏ κ', (fun κ' (t : FLeaf) => if κ' = κ then (if t = leaf then (1 : ℝ≥0∞) else 0) else 1) κ' (v.2 κ') := by
     intro v
-    rw [Finset.prod_eq_single κ (fun κ' _ hκ' => by simp only [if_neg hκ']) (fun h => absurd (Finset.mem_univ κ) h)]
-    simp only [if_true, opensAt]
+    rw [Finset.prod_eq_single κ (fun κ' _ hκ' => by simp only [ite_eq_right hκ']) (fun h => absurd (Finset.mem_univ κ) h)]
+    simp only [ite_true, opensAt]
     split_ifs <;> simp_all
   have hleaf : freshAvg (Finset.univ : Finset FLeaf) (fun t => if t = leaf then (1 : ℝ≥0∞) else 0) =
       ((2 ^ forsHeight : ℕ) : ℝ≥0∞)⁻¹ := by
     unfold freshAvg
-    rw [Finset.card_univ, Fintype.card_fin, Finset.sum_ite_eq' Finset.univ leaf, if_pos (Finset.mem_univ _), mul_one]
+    rw [Finset.card_univ, Fintype.card_fin, Finset.sum_ite_eq' Finset.univ leaf, ite_eq_left (Finset.mem_univ _), mul_one]
   rw [show (Finset.univ : Finset View) = (Finset.univ : Finset (Fin (2 ^ subtreeHeight) × (FTree → FLeaf)))
     from rfl, H0Avg.freshAvg_prod]
   simp only [hsplit]
@@ -68,15 +72,15 @@ theorem freshAvg_opensAt (index : Index) (κ : FTree) (leaf : FLeaf) :
       if κ' = κ then (if t = leaf then (1 : ℝ≥0∞) else 0) else 1) κ' (τ κ'))).trans ?_
     rw [H0Avg.freshAvg_pi_prod (fun κ' (t : FLeaf) => if κ' = κ then (if t = leaf then (1 : ℝ≥0∞) else 0) else 1)]
     congr 1
-    rw [Finset.prod_eq_single κ (fun κ' _ hκ' => by simp only [if_neg hκ']; exact H0Avg.freshAvg_const' 1)
+    rw [Finset.prod_eq_single κ (fun κ' _ hκ' => by simp only [ite_eq_right hκ']; exact H0Avg.freshAvg_const' 1)
       (fun h => absurd (Finset.mem_univ κ) h)]
-    simp only [if_true]
+    simp only [ite_true]
     exact hleaf
   simp only [hinner]
   unfold freshAvg revRate
   rw [Finset.card_univ, Fintype.card_fin]
   simp only [ite_mul, one_mul, zero_mul]
-  rw [Finset.sum_ite_eq' Finset.univ (localIdx index), if_pos (Finset.mem_univ _), Nat.cast_mul,
+  rw [Finset.sum_ite_eq' Finset.univ (localIdx index), ite_eq_left (Finset.mem_univ _), Nat.cast_mul,
     ENNReal.mul_inv (Or.inr (by simp)) (Or.inr (by simp))]
 
 /-! ### One signing call -/
@@ -170,7 +174,7 @@ theorem reveal_scan_all (hparse : ∀ p call, model.parse (pblk parameter data p
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)
     {s : State} (hpi : PairInv parameter data m s) (attempts : ℕ) (hA : attempts ≤ 2 ^ 128) (budget : ℕ)
     (start : Randomness) (index : Index) (κ : FTree) (leaf : FLeaf) :
-    ∑' o1, Pr[= o1 | interp tg initial model (signCostSourceLoop parameter data m (data.step m) attempts start) budget s] *
+    ∑' o1, Pr{let x ← interp tg initial model (signCostSourceLoop parameter data m (data.step m) attempts start) budget s}[x = o1] *
         (if ∃ q, Coordinate.fors index κ leaf q ∈ o1.1.2.1 then 1 else 0) ≤
       walk (nextRand (data.steps m)) landing (stOf parameter data m s) (fun _ => 1) revRate 0 attempts start := by
   have hparse' : ∀ ρ call, model.parse (pblk parameter data (m, ρ) call) = none := fun ρ => hparse (m, ρ)
@@ -181,7 +185,7 @@ theorem reveal_scan_all (hparse : ∀ p call, model.parse (pblk parameter data p
     if ∃ q, Coordinate.fors index κ leaf q ∈ L then 1 else 0 with hV
   have hV0 : V [] = 0 := by
     simp only [hV]
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro ⟨q, h⟩
     cases h
   have hVfin : ∀ (ρ : Randomness) (s' : State) (u : DigestCall → HashOutput) (b : ℕ),
@@ -200,7 +204,7 @@ theorem reveal_scan_all (hparse : ∀ p call, model.parse (pblk parameter data p
       hout _ hmem index κ leaf q rfl
     have hhit : opensAt index κ leaf (viewOf u) = 1 := by
       unfold opensAt viewOf
-      rw [if_pos]
+      rw [ite_eq_left]
       exact ⟨by rw [localDigestView_fst, hi], by rw [localDigestView_snd, hleaf]⟩
     unfold pairWeight
     split_ifs
@@ -227,17 +231,17 @@ theorem reveal_le_all (hparse : ∀ p call, model.parse (pblk parameter data p c
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)
     {s : State} (hpi : PairInv parameter data m s) (budget : ℕ)
     (index : Index) (κ : FTree) (leaf : FLeaf) :
-    ∑' o1, Pr[= o1 | interp tg initial model (signCostSource parameter data m) budget s] *
+    ∑' o1, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = o1] *
         (if ∃ q, Coordinate.fors index κ leaf q ∈ o1.1.2.1 then 1 else 0) ≤
       revRate + hitMass parameter data s m := by
   set cinv := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
   have hcard : cinv * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
     ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
   unfold signCostSource
-  rw [interp_liftProb_bind, tsum_probOutput_bind_mul]
-  have hpr : ∀ ρ, Pr[= ρ | ($ᵗ Randomness : ProbComp Randomness)] = cinv := by
+  rw [interp_liftProb_bind, OracleComp.tsum_prEvent_bind_mul]
+  have hpr : ∀ ρ, Pr{let x ← ($ᵗ Randomness : ProbComp Randomness)}[x = ρ] = cinv := by
     intro ρ
-    rw [probOutput_uniformSample]
+    rw [SampleableType.prEvent_uniformSample_eq_singleton]
   simp only [hpr]
   rw [ENNReal.tsum_mul_left, tsum_fintype]
   calc _ ≤ cinv * ∑ start : Randomness, (revRate +

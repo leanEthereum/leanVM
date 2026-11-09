@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedGlobalCausalSetup
-import XmssSecurity.Proof.RevealProbeOracleSimulation
+module
+
+public import XmssSecurity.Proof.CappedGlobalCausalSetup
+public import XmssSecurity.Proof.RevealProbeOracleSimulation
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -19,7 +23,7 @@ theorem simulate_eagerTrace_globalCausalUniformImpl
     RevealProbeOracleSimulation.eagerTraceImpl,
     RevealProbeOracleSimulation.eagerImpl,
     RevealProbeOracleSimulation.traceFragment,
-    QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+    WriterT.run_tell,
     map_eq_bind_pure_comp]
 
 end XmssSecurity.CappedChain

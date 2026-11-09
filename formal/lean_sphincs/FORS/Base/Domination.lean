@@ -1,6 +1,10 @@
-import Mathlib
-import VCVio.OracleComp.EvalDist
-import VCVio.OracleComp.ProbComp
+module
+
+public import Mathlib
+public import VCVio.OracleComp.EvalDist
+public import VCVio.OracleComp.ProbComp
+
+@[expose] public section
 
 /-! Potentials of independent virtual disclosures. A potential is a function of the multiset of
 disclosed views that is monotone and has increasing differences (supermodular). Independent coins,

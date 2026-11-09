@@ -1,4 +1,8 @@
-import FORS.Scheme.Domains
+module
+
+public import FORS.Scheme.Domains
+
+@[expose] public section
 
 /-! Finite structural positions and their exact serialized addresses. The position type deliberately
 overapproximates the single retained subtree; pruning selects the positions that are actually

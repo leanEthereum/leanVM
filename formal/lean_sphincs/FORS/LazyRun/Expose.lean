@@ -1,4 +1,8 @@
-import FORS.LazyRun.PreparedRun
+module
+
+public import FORS.LazyRun.PreparedRun
+
+@[expose] public section
 
 /-! Exposing chain values at the start. The stopped experiment may start from any knowledge that
 agrees with the coordinate table, in particular one that also exposes the chain values at and
@@ -43,13 +47,13 @@ theorem knownAgrees_exposeT (table : ι → Digest) :
 /-- **Exposure commutes with completion.** -/
 theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Knowledge ι → ProbComp β) :
     ∀ (cs : List ι) (known : Knowledge ι),
-      𝒟[completion known >>= fun table => next table (exposeT table cs known)] =
-        𝒟[exposeR cs known >>= fun known' => completion known' >>= fun table => next table known']
-  | [], _ => by simp only [exposeT, exposeR, pure_bind]
+      (completion known >>= fun table => next table (exposeT table cs known)) =ᵈ (exposeR cs known >>= fun known' => completion known' >>= fun table => next table known')
+  | [], _ => by simp only [exposeT, exposeR, pure_bind, EvalDistEq.refl]
   | c :: cs, known => by
       simp only [exposeT, exposeR, bind_assoc]
-      rw [completion_reveal known c (fun value table => next table (exposeT table cs (known.cacheQuery c value)))]
-      apply evalDist_bind_congr
+      refine (completion_reveal known c
+        (fun value table => next table (exposeT table cs (known.cacheQuery c value)))).trans ?_
+      refine OracleComp.EvalDistEq.bind_congr_of_support _ ?_
       rintro ⟨value, known'⟩ hr
       have hcache := HiddenDebt.randomOracle_known_support known c _ hr
       dsimp only at hcache ⊢
@@ -58,59 +62,10 @@ theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Know
 
 end Generic
 
-open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
-
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
-
-set_option maxRecDepth 100000 in
-/-- **Seed-free to stopped, with exposure.** The stopped experiment may start from the known
-coordinates together with any list of table coordinates, chosen from the public, structural and
-outside samples. -/
-theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message → Randomness)
-    (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop)
-    (cs : HashOutput → HiddenGraph.Table → CoordinateHighs → RemainingOutputs → Eager.Table → List Coordinate) :
-    Pr[event | seedFreeExperiment adversary q steps] ≤
-      Pr[HiddenReveal.StopOr event | do
-        let parameterOutput ← $ᵗ HashOutput
-        let fixed ← $ᵗ HiddenGraph.Table
-        let highs ← $ᵗ CoordinateHighs
-        let remaining ← $ᵗ RemainingOutputs
-        let outsideTable ← $ᵗ Eager.Table
-        let known ← exposeR (cs parameterOutput fixed highs remaining outsideTable)
-          (knownOf (truncateHash parameterOutput) fixed)
-        HiddenRows.stoppedExperiment (sampleModel parameterOutput highs)
-          (outsideFn (splitMaterial parameterOutput highs remaining fixed)
-            (splitAnswers highs remaining fixed) outsideTable)
-          (HiddenCost.erase (HiddenCost.trace
-            (sampleProgram adversary q steps parameterOutput fixed highs remaining)))
-          known] := by
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_seedFree_completion adversary q steps)]
-  refine probEvent_bind_mono_support _ _ _ _ _ fun parameterOutput _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun fixed _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun highs _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun remaining _ => ?_
-  refine probEvent_bind_mono_support _ _ _ _ _ fun outsideTable _ => ?_
-  unfold HiddenRows.stoppedExperiment
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_completion_exposeT
-    (fun table known => HiddenRows.stopped (sampleModel parameterOutput highs) table
-      (outsideFn (splitMaterial parameterOutput highs remaining fixed)
-        (splitAnswers highs remaining fixed) outsideTable)
-      (HiddenCost.erase (HiddenCost.trace (sampleProgram adversary q steps parameterOutput fixed highs remaining)))
-      known)
-    (cs parameterOutput fixed highs remaining outsideTable) (knownOf (truncateHash parameterOutput) fixed)).symm]
-  refine probEvent_bind_mono_support _ _ _ _ _ fun table htable => ?_
-  have hagree : HiddenRows.KnownAgrees table (knownOf (truncateHash parameterOutput) fixed) := by
-    unfold completion at htable
-    rw [support_map] at htable
-    obtain ⟨t, _, rfl⟩ := htable
-    exact HiddenRows.knownAgrees_completion _ t
-  rw [hiddenRun_eq]
-  exact costRun_le_stopped (sampleModel parameterOutput highs) table
-    (outsideFn (splitMaterial parameterOutput highs remaining fixed) (splitAnswers highs remaining fixed) outsideTable)
-    (sampleProgram adversary q steps parameterOutput fixed highs remaining) _
-    (knownAgrees_exposeT table _ _ hagree) event
 
 /-- The preparation's search results read off an answer function. -/
 noncomputable def resultsOf (parameter : PublicParameter) (message : OtsKey → HashInput)
@@ -129,27 +84,24 @@ theorem evalDist_expose_prep {A α : Type}
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cs : (OtsKey → Option (Counter × Encoding)) → List Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+    (($ᵗ Eager.Table) >>= fun outside =>
         exposeR (cs (resultsOf parameter message (extend base outside))) known >>= fun known' =>
-          HiddenRows.stoppedExperiment model (extend base outside) computation known'] =
-      𝒟[(simulateQ randomOracle (searchAll parameter message)).run base >>= fun prepared =>
+          HiddenRows.stoppedExperiment model (extend base outside) computation known') =ᵈ ((simulateQ randomOracle (searchAll parameter message)).run base >>= fun prepared =>
         exposeR (cs prepared.1) known >>= fun known' =>
-          Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known' prepared.2] := by
-  rw [evalDist_eager_prefix (searchAll parameter message) (Only.searchAll parameter message hmessage) base
+          Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known' prepared.2) := by
+  refine (evalDist_eager_prefix (searchAll parameter message) (Only.searchAll parameter message hmessage) base
     (fun f => exposeR (cs (resultsOf parameter message f)) known >>= fun known' =>
-      HiddenRows.stoppedExperiment model f computation known')]
-  apply evalDist_bind_congr
-  intro prepared hprepared
+      HiddenRows.stoppedExperiment model f computation known')).trans ?_
+  refine OracleComp.EvalDistEq.bind_congr_of_support _ fun prepared hprepared => ?_
   have hres : ∀ outside, resultsOf parameter message (extend prepared.2 outside) = prepared.1 := by
     intro outside
     funext key
     exact (preparation_support parameter message base prepared hprepared (extend prepared.2 outside)
       (extend_agrees _ _)).2 key
   simp only [hres]
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
-  intro known'
-  exact evalDist_stoppedExperiment_lazy model _ computation hshort known'
+  refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+  exact EvalDistEq.bind_right _ fun known' =>
+    evalDist_stoppedExperiment_lazy model _ computation hshort known'
 
 /-- The prepared word of a key (the dummy word when the search failed). -/
 noncomputable def preparedWord (results : OtsKey → Option (Counter × Encoding)) (key : OtsKey) : Encoding :=

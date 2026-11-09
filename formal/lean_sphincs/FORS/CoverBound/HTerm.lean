@@ -1,4 +1,8 @@
-import FORS.CoverBound.PerIndex
+module
+
+public import FORS.CoverBound.PerIndex
+
+@[expose] public section
 
 /-! **The FORS H-term.** With per-index majorants `ḡ ≥ E[g(y) | n]` and `h̄ ≥ E[h(y) | n]` that
 are increasing and convex in the number of views `n`, the separable count function
@@ -78,7 +82,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
       rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi hj => by simp [hi]),
         hR (fun l => k l + if l = j then 1 else 0) (fun l hi hj => by simp [hj]),
         hR (fun l => k l + (if l = i then 1 else 0) + if l = j then 1 else 0) (fun l hi hj => by simp [hi, hj])]
-      simp only [if_true, if_neg hij, if_neg (Ne.symm hij), add_zero]
+      simp only [ite_true, ite_eq_right hij, ite_eq_right (Ne.symm hij), add_zero]
       set R := ∏ l ∈ (Finset.univ.erase i).erase j, h (k l)
       have hc := cross_le (hh.mono (Nat.le_succ (k i))) (hh.mono (Nat.le_succ (k j)))
       calc h (k i + 1) * h (k j) * R + h (k i) * h (k j + 1) * R =
@@ -103,7 +107,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
       refine Finset.sum_le_sum fun l _ => ?_
       by_cases hi : l = i
       · subst hi
-        simp only [if_true]
+        simp only [ite_true]
         exact hg.convex (k l)
       · simp [hi]
     have hprod : (∏ l, h (k l + if l = i then 1 else 0)) + ∏ l, h (k l + if l = i then 1 else 0) ≤
@@ -116,7 +120,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
         rw [he l (Finset.mem_erase.1 hl).1]
       rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi => by simp [hi]),
         hR (fun l => k l + (if l = i then 1 else 0) + if l = i then 1 else 0) (fun l hi => by simp [hi])]
-      simp only [if_true]
+      simp only [ite_true]
       set R := ∏ l ∈ Finset.univ.erase i, h (k l)
       calc h (k i + 1) * R + h (k i + 1) * R = (h (k i + 1) + h (k i + 1)) * R := by ring
         _ ≤ (h (k i + 2) + h (k i)) * R := mul_le_mul_left (hh.convex (k i)) R
@@ -140,7 +144,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
             Finset.sum_le_sum fun l _ => le_trans (hCg _) (mul_le_mul_right (hpow l) _)
         _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]; ring
     have h2 : ∏ l, h (k l) ≤ (Ch : ℝ≥0∞) ^ Fintype.card ι * 2 ^ ∑ l, k l := by
-      calc ∏ l, h (k l) ≤ ∏ l, (Ch : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod' fun l _ => hCh _
+      calc ∏ l, h (k l) ≤ ∏ l, (Ch : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod fun l _ => hCh _
         _ = _ := by rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ, Finset.prod_pow_eq_pow_sum]
     calc ∑ l, g (k l) + A * ∏ l, h (k l) ≤ (Fintype.card ι : ℝ≥0∞) * Cg * 2 ^ ∑ l, k l +
           A * ((Ch : ℝ≥0∞) ^ Fintype.card ι * 2 ^ ∑ l, k l) := add_le_add h1 (mul_le_mul_right h2 A)
@@ -272,7 +276,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
     CountGood (fun k : ι → ℕ => ∏ l, g l (k l)) where
   mono := by
     intro k k' hk
-    exact Finset.prod_le_prod' fun l _ => (hg l).mono (hk l)
+    exact Finset.prod_le_prod fun l _ => (hg l).mono (hk l)
   super := by
     intro k i j hij
     simp only [Pi.add_apply, Pi.single_apply]
@@ -287,7 +291,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
     rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi hj => by simp [hi]),
       hR (fun l => k l + if l = j then 1 else 0) (fun l hi hj => by simp [hj]),
       hR (fun l => k l + (if l = i then 1 else 0) + if l = j then 1 else 0) (fun l hi hj => by simp [hi, hj])]
-    simp only [if_true, if_neg hij, if_neg (Ne.symm hij), add_zero]
+    simp only [ite_true, ite_eq_right hij, ite_eq_right (Ne.symm hij), add_zero]
     set R := ∏ l ∈ (Finset.univ.erase i).erase j, g l (k l)
     have hc := cross_le ((hg i).mono (Nat.le_succ (k i))) ((hg j).mono (Nat.le_succ (k j)))
     calc g i (k i + 1) * g j (k j) * R + g i (k i) * g j (k j + 1) * R =
@@ -305,7 +309,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
       rw [he l (Finset.mem_erase.1 hl).1]
     rw [hR (fun l => k l + if l = i then 1 else 0) (fun l hi => by simp [hi]),
       hR (fun l => k l + (if l = i then 1 else 0) + if l = i then 1 else 0) (fun l hi => by simp [hi])]
-    simp only [if_true]
+    simp only [ite_true]
     set R := ∏ l ∈ Finset.univ.erase i, g l (k l)
     calc g i (k i + 1) * R + g i (k i + 1) * R = (g i (k i + 1) + g i (k i + 1)) * R := by ring
       _ ≤ (g i (k i + 2) + g i (k i)) * R := mul_le_mul_left ((hg i).convex (k i)) R
@@ -313,7 +317,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
   growth := by
     choose C hC using fun l => (hg l).growth
     refine ⟨∏ l, C l, 2, fun k => ?_⟩
-    calc ∏ l, g l (k l) ≤ ∏ l, (C l : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod' fun l _ => hC l _
+    calc ∏ l, g l (k l) ≤ ∏ l, (C l : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod fun l _ => hC l _
       _ = _ := by
           rw [Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum]
           push_cast
@@ -333,8 +337,8 @@ theorem splitJ_countGood {g : ℕ → ℝ≥0∞} (hg : SepGood g) (S : Finset �
   rw [e]
   refine prod_countGood (fun l n => if l ∈ T then a j n else h j n) fun l => ?_
   by_cases hl : l ∈ T
-  · simp only [hl, if_true]; exact ha j hj
-  · simp only [hl, if_false]; exact hh j hj
+  · simp only [hl, ite_true]; exact ha j hj
+  · simp only [hl, ite_false]; exact hh j hj
 
 theorem poisIID_splitJ (μ : ℝ≥0) (g : ℕ → ℝ≥0∞) (S : Finset ℕ) (A : ℕ → ℝ≥0∞) (a h : ℕ → ℕ → ℝ≥0∞) :
     poisIID μ (fun k : ι → ℕ => ∑ l, g (k l) + ∑ j ∈ S, A j * ∑ T ∈ Finset.powersetCard j Finset.univ,
@@ -380,10 +384,10 @@ theorem dominated_of_splitJ {M : Type} [Fintype M] [Nonempty M] {f : Multiset (�
   refine mul_le_mul_right (Finset.sum_le_sum fun T _ => ?_) _
   rw [avgL_prod_marks (fun l Ms => if l ∈ T then a j Ms else h j Ms)]
   simp only [marksAt_zero]
-  refine Finset.prod_le_prod' fun l _ => ?_
+  refine Finset.prod_le_prod fun l _ => ?_
   by_cases hl : l ∈ T
-  · simp only [hl, if_true]; exact ha j hj _
-  · simp only [hl, if_false]; exact hh j hj _
+  · simp only [hl, ite_true]; exact ha j hj _
+  · simp only [hl, ite_false]; exact hh j hj _
 
 /-! ### The FORS H-term by the number of big indices -/
 

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.Preparation
-import XmssSecurity.Proof.Deterministic.MemoLog
+module
+
+public import XmssSecurity.Proof.Deterministic.Preparation
+public import XmssSecurity.Proof.Deterministic.MemoLog
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

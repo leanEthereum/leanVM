@@ -1,6 +1,10 @@
-import FORS.LazyRun.Rows
-import FORS.GraphView.Secrets
-import FORS.GraphView.Pruned
+module
+
+public import FORS.LazyRun.Rows
+public import FORS.GraphView.Secrets
+public import FORS.GraphView.Pruned
+
+@[expose] public section
 
 /-! A concrete programmed graph for the candidate's hash inputs. Canonical WOTS chain and FORS leaf
 answers are programmed from independent digest coordinates. Ordinary queries are monitored before a
@@ -12,7 +16,6 @@ namespace FORS.Security.HiddenGraph
 variable [Params]
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 200000
 attribute [local instance] Classical.propDecidable
 
 inductive Coordinate where

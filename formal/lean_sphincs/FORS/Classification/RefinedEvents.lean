@@ -1,4 +1,8 @@
-import FORS.LazyRun.Expose
+module
+
+public import FORS.LazyRun.Expose
+
+@[expose] public section
 
 /-! Events of the refined classification for small budgets. A cached answer that hits its target
 is a first-order event unless its input is a chain step that is not at or above the prepared word

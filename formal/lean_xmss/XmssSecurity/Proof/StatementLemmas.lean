@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.Wots
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.Wots
+
+@[expose] public section
 
 /-!
 Proof-side mirrors of the sealed statement definitions, and rewrite lemmas restating them so proofs can unfold them without unsealing.

@@ -1,4 +1,8 @@
-import FORS.Lifetimes
+module
+
+public import FORS.Lifetimes
+
+@[expose] public section
 
 /-!
 # leanSPHINCS: the security theorem
@@ -7,14 +11,15 @@ import FORS.Lifetimes
 certificates of `Certificates/H26.lean`; here it is a single reference, so a statement below that is
 not exactly the one proved does not typecheck.
 
-**What is proved.** `Secure127 P` (below) for the scheme with parameters `P`: in the SUF-CMA game
-(`Statement.lean`), the secret key is a uniform 32-byte `SK.seed`, from which key generation derives
-`PK.seed`, `SK.prf` and every secret, and the adversary gets the public key, the hash (a random
-oracle) and a signing oracle that it may ask for at most `N` signatures (the signature limit of `P`);
-it wins if it outputs a message and a signature that verify, other than a pair the signing oracle
-answered. If every run of the game makes at most `q ≥ 1` hash queries in total (the adversary's, and
-those of key generation, the two hashes deriving `PK.seed` and `SK.prf` included, signing and
-verification), it wins with probability at most `q / 2^127`.
+**What is proved.** `Secure127 P slack` (below) for the scheme with parameters `P`: in the SUF-CMA
+game (`Statement.lean`), the secret key is a uniform 32-byte `SK.seed`, from which key generation
+derives `PK.seed`, `SK.prf` and every secret, and the adversary gets the public key, the hash (a
+random oracle) and a signing oracle that it may ask for at most `N` signatures (the signature limit of
+`P`); it wins if it outputs a message and a signature that verify, other than a pair the signing
+oracle answered. If the adversary itself makes at most `q` hash queries on every path
+(`AdvCount.AdvHash`: key generation's, the signer's and the final verification's are not charged), it
+wins with probability at most `(q + slack) / 2^127`; for the deployed parameters `slack = 265072`, key
+generation's 264193 hash calls and verification's 879.
 
 **The parameters** (`Scheme.lean`): `.layered (h := 26) (d := 3) (ℓ := 8) (k := 24) (a := 10)
 (N := 1_182_000_000)`, an index of 26 bits, a hypertree of three layers, the two lower ones of height 8
@@ -28,18 +33,16 @@ namespace FORS
 
 open Security ENNReal
 
-/-- **The claim**, for the scheme with parameters `P`: every adversary whose runs of the SUF-CMA game
-make at most `q ≥ 1` hash queries in total forges with probability at most `q / 2^127`. -/
-def Secure127 (P : Params) : Prop :=
+/-- **The claim**, for the scheme with parameters `P`: every adversary that itself makes at most `q`
+hash queries on every path forges with probability at most `(q + slack) / 2^127`. -/
+def Secure127 (P : Params) (slack : ℕ) : Prop :=
   letI := P
-  ∀ q : ℕ, 1 ≤ q → ∀ adversary : Adversary, HasHashQueryBound adversary q →
-    forgeAdvantage adversary ≤ q / ((2 ^ 127 : ℕ) : ℝ≥0∞)
+  ∀ (adversary : Adversary) (q : ℕ), (∀ pk, (adversary.main pk).IsQueryBoundP AdvCount.AdvHash q) →
+    forgeAdvantage adversary ≤ ((q : ℝ≥0∞) + (slack : ℝ≥0∞)) / ((2 ^ 127 : ℕ) : ℝ≥0∞)
 
-/-- Layered key, 10 + 8 + 8: 1,182,000,000 signatures. -/
-theorem h26_layered : Secure127 (.layered (h := 26) (d := 3) (ℓ := 8) (k := 24) (a := 10) (N := 1_182_000_000)) :=
-  Lifetimes.h26_layered_bits
-
-/-- `Secure127` is the target `SecurityBits P 127` of `Statement.lean`, spelled out. -/
-theorem secure127_iff (P : Params) : Secure127 P ↔ SecurityBits P 127 := Iff.rfl
+/-- Layered key, 10 + 8 + 8: 1,182,000,000 signatures, at the adversary's own count. -/
+theorem h26_layered :
+    Secure127 (.layered (h := 26) (d := 3) (ℓ := 8) (k := 24) (a := 10) (N := 1_182_000_000)) 265072 :=
+  fun adversary q hq => Lifetimes.h26_layered_adversary adversary q hq
 
 end FORS

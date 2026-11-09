@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-import XmssSecurity.Proof.HonestKeygenRun
+module
+
+public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
+public import XmssSecurity.Proof.HonestKeygenRun
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

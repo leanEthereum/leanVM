@@ -1,5 +1,9 @@
-import FORS.Classification.Chain
-import FORS.Scheme.Correctness
+module
+
+public import FORS.Classification.Chain
+public import FORS.Scheme.Correctness
+
+@[expose] public section
 
 /-! The verifier's walk up the layers exposes, at every layer, its WOTS+C leaf and its Merkle fold in
 its query trace: the bottom layer's key signs `T_k` of the recovered FORS roots, each layer above signs
@@ -104,7 +108,7 @@ theorem walk_spec (key : ForsKey) (trace : List HashInput) :
       have hn : n < numLayers := by omega
       have hlay : (⟨n, hn⟩ : Layer) = layerUp k := by
         apply Fin.ext; simp only [layerUp]; omega
-      rw [verifyLayers, dif_pos hn] at hroot hrun
+      rw [verifyLayers, dite_eq_left hn] at hroot hrun
       rw [hlay] at hroot hrun
       simp only [evalWithAnswerFn_bind] at hroot
       have hrunLeaf := hrun.bind_left
@@ -150,7 +154,7 @@ theorem walk_spec (key : ForsKey) (trace : List HashInput) :
             have hk : k = numLayers - 1 := by omega
             subst hk
             refine ⟨hroot.symm.trans hfoldEq.symm, fun j hj1 hj2 => hcur j hj1 (by omega) hj2⟩
-          · simp only [if_neg hzero] at hroot hrest2
+          · simp only [ite_eq_right hzero] at hroot hrest2
             have hmsg : rootPayload (evalWithAnswerFn f (treeFold parameter (layerUp k)
                 (treeIndexAt index (layerUp k)) (leafIndexAt index (layerUp k))
                 (signaturePath signature (layerUp k)) (layerHeight (layerUp k)) value

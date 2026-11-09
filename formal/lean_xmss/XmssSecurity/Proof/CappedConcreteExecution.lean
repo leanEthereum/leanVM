@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.OutcomeClassification
-import XmssSecurity.Proof.PrecomputedKeygenCache
+module
+
+public import XmssSecurity.Proof.OutcomeClassification
+public import XmssSecurity.Proof.PrecomputedKeygenCache
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

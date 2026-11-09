@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.EncodingTargetMap
-import XmssSecurity.Proof.SigningCacheTrace
-import XmssSecurity.Proof.WinningEventReduction
+module
+
+public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.SigningCacheTrace
+public import XmssSecurity.Proof.WinningEventReduction
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

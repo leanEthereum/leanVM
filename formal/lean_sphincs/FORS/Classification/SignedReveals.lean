@@ -1,4 +1,8 @@
-import FORS.LazyRun.FixedRun
+module
+
+public import FORS.LazyRun.FixedRun
+
+@[expose] public section
 
 /-! Signed entries reveal their own coordinates. In every fixed-function run of the rich program,
 each logged signature's leaf search succeeded, and the coordinates the signer reveals for the

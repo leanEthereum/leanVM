@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.RandomizedStatement
+module
+
+public import XmssSecurity.Proof.RandomizedStatement
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -37,7 +41,6 @@ noncomputable def precomputedCappedSign (secretKey : SecretKey)
   return if topSignedAt secretKey leafIndex then result else none
 
 attribute [irreducible] signingRandomness precomputedCappedSign
-
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
@@ -88,16 +91,6 @@ end Concrete
 noncomputable def Concrete.scheme : Scheme SecretKey where
   keygen := Concrete.precomputedKeygen
   sign := Concrete.precomputedCappedSign
-  verify := fun publicKey leafIndex message signature =>
-    liftM (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)
-
-/-- The security claim: `127` bits of classical strong unforgeability in the random-oracle model. -/
-abbrev IndependentSecurityStatement : Prop :=
-  HasClassicalSecurityBits Concrete.scheme 127
-
-noncomputable def Seeded.randomizedScheme : Scheme Seeded.SecretKey where
-  keygen := Seeded.keygen
-  sign := fun sk => Concrete.precomputedCappedSign sk.precomputed
   verify := fun publicKey leafIndex message signature =>
     liftM (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)
 

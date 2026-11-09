@@ -1,5 +1,9 @@
-import FORS.LazyRun.Cost
-import FORS.Seed.Guess
+module
+
+public import FORS.LazyRun.Cost
+public import FORS.Seed.Guess
+
+@[expose] public section
 
 section
 
@@ -11,7 +15,6 @@ namespace FORS.Security.HiddenReveal
 variable [Params]
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 variable {ι : Type} [Fintype ι]
 
@@ -35,7 +38,6 @@ namespace FORS.Security.HiddenOutside
 variable [Params]
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 
 abbrev Cache (D R : Type) := QueryCache (D →ₒ R)

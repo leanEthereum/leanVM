@@ -1,4 +1,8 @@
-import FORS.Base.Virtual
+module
+
+public import FORS.Base.Virtual
+
+@[expose] public section
 
 /-! A virtual future for signers that never sign a message twice. A slot is one future signature:
 a fresh uniform view, disclosed. An item (a cached landed pair of a message not yet signed) has one

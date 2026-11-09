@@ -1,5 +1,9 @@
-import FORS.GraphView.Position
-import FORS.GraphView.Targets
+module
+
+public import FORS.GraphView.Position
+public import FORS.GraphView.Targets
+
+@[expose] public section
 
 /-! Canonical structural graph preparation. The retained positions can be any subset;
 positions omitted by pruning retain their initial labels (in particular surrogate values).
@@ -52,7 +56,7 @@ theorem canonicalGraphInput_congr (position : Position) (left right : CanonicalG
   apply congrArg (fun values : List Digest =>
     tweakableHashInput parameter position.domain (values.flatMap (bytesLE 16)))
   cases position <;> simp only [canonicalGraphSlots] <;>
-    first | rfl | exact hmap | (split_ifs <;> first | rfl | exact hmap)
+    first | exact hmap | (split_ifs <;> first | rfl | exact hmap)
 
 noncomputable def graphOrder (active : Position → Prop) : List Position := by
   classical

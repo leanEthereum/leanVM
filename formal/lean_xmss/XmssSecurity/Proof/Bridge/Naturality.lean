@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 /-!
 # The model's key generation is natural in its monad

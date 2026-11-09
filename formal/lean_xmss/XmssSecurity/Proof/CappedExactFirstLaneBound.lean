@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
-import XmssSecurity.Proof.BoundedFirstLaneCoupling
-import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
-import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+module
+
+public import XmssSecurity.Proof.CappedExactFirstLaneTransportReduction
+public import XmssSecurity.Proof.BoundedFirstLaneCoupling
+public import XmssSecurity.Proof.CappedGlobalTopGuessOrigin
+public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
@@ -102,13 +106,13 @@ theorem relTriple_globalHighMonitored_firstLane_action
               input).run (GlobalHighDirectTracedState.mk highState.1.causal
                 highState.2))).run)) := by
   classical
-  letI : DecidableEq
+  let : DecidableEq
       (((OracleWorld + SigningSpec).Range input ×
         GlobalHighDirectTracedState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalDist
+  exact .of_eq
     (map_globalHighMonitored_action_eq_firstLane keyView base edgeHigh input
       highState)
 
@@ -200,22 +204,6 @@ def SourceFirstLaneExactGoodStateRelation
     List.Sublist
       (CappedEncodingMonitor.validObservedSignLeafIndices trace.encodingActions)
       (firstLaneState.attackerTrace.toSigningLog.map fun entry => entry.1.leafIndex)
-
-theorem cappedBothTracedMappedAdversaryImpl_cache_projection
-    (publicKey : PublicKey) (secretKey : SecretKey) (input : (OracleWorld + SigningSpec).Domain)
-    (state : SourceExactTracedState) :
-    (fun result => (result.1, result.2.1.1.1)) <$>
-      (cappedBothTracedMappedAdversaryImpl publicKey secretKey input).run state =
-        (simulateQ romImpl (sourceUnloggedMappedAdversaryImpl publicKey secretKey input)).run state.1.1.1 := by
-  rw [cappedBothTracedMappedAdversaryImpl_query_eq_sourceExactMap,
-    sourceSigningTracedMappedAdversaryImpl_query_eq_map]
-  simp only [Functor.map_map, sourceExactQueryResult, sourceSigningTracedQueryResult,
-    sourceSigningTracedStateProjection, sourceExactSigningProjection]
-  unfold sourceDirectTracedMappedAdversaryImpl actionTracedStateImpl
-  simp only [StateT.run_mk, map_bind, map_pure]
-  rw [sourceDirectMappedAdversaryImpl_eq_compose]
-  simp only [QueryImpl.apply_compose, Prod.mk.eta, bind_pure]
-
 
 theorem relTriple_sourceExact_firstLane_action
     (used : Nat)
@@ -333,7 +321,6 @@ theorem relTriple_sourceExact_firstLane_action
         attackerActionFragment_hashInputs_length]
   · apply Or.inr
     exact ⟨hprojectionFacts.combinedHit_of_bad right.1.2 hbad, htotalCount⟩
-
 
 def sourceExactVerifierResult
     (initialState : SourceExactTracedState)
@@ -485,12 +472,12 @@ theorem relTriple_globalHighMonitored_firstLane_verifier_action
               (GlobalHighDirectTracedState.mk highState.1.causal
                 highState.2))).run)) := by
   classical
-  letI : DecidableEq
+  let : DecidableEq
       ((OracleWorld.Range input × GlobalHighDirectTracedState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalDist
+  exact .of_eq
     (map_globalHighMonitored_verifier_action_eq_firstLane keyView base
       edgeHigh input highState)
 
@@ -772,238 +759,6 @@ theorem SourceFirstLaneExactGoodStateRelation.appendVerification
       firstLaneAppendVerificationState] using happendSub
   · simpa [firstLaneAppendVerificationState] using hvalidFinal
 
-theorem relTriple_sourceExact_firstLane_detailedExecution_boundedHit
-    (countLimit hitLimit : Nat)
-    (adversary : Adversary)
-    (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
-    (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
-      trajectoryProgrammedGlobalChainKeygen)
-    (hsourceBound :
-      HashQueryBound (sourceUnloggedDetailedGameAfterKeygen adversary
-        (Concrete.materializeCachedKeyResult left.keyResult).1.1
-        (Concrete.materializeCachedKeyResult left.keyResult).1.2)
-          (Concrete.materializeCachedKeyResult left.keyResult).2 countLimit)
-    (hlimits : countLimit ≤ hitLimit) :
-    RelTriple
-      (sourceGlobalExactTracedDetailedExecution adversary left)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalFirstLaneExactTracedDetailedExecution adversary right.1.1
-          right.2).run (GlobalHighDirectTracedState.initial
-            (globalFilteredCausalKeygenState right.1.1)))).run)
-      (fun leftResult firstLaneResult =>
-        ((leftResult.1 = firstLaneResult.1.1 ∧
-          SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2
-            firstLaneResult.1.2 firstLaneResult.2 ∧
-          FirstLaneOracleSimulation.hazardCount firstLaneResult.2 ≤
-            countLimit) ∨
-        FirstLaneOracleSimulation.CombinedHit right.1.2
-          (FirstLaneOracleSimulation.enforceHazardTrace hitLimit
-            firstLaneResult.2))) := by
-  let secretKey :=
-    Concrete.materializePrecomputation left.cache left.secretKey
-  let sourceInitial : SourceExactTracedState := ((((left.cache, []), []), []))
-  let highInitial : GlobalMonitoredTracedState :=
-    (⟨globalFilteredCausalKeygenState right.1.1, []⟩, [])
-  let firstLaneInitial : GlobalHighDirectTracedState :=
-    GlobalHighDirectTracedState.initial
-      (globalFilteredCausalKeygenState right.1.1)
-  have hinitial : SourceFirstLaneExactGoodStateRelation left right.1
-      sourceInitial firstLaneInitial [] := by
-    refine ⟨?_, ?_, ?_⟩
-    · simpa [sourceInitial, highInitial, firstLaneInitial,
-        globalStateOfFirstLane, sourceExactSigningProjection,
-        FirstLaneOracleSimulation.ActionTrace.chainActions] using
-        globalSigningMonitoredTracedStateRelation_initial left right hrel
-          hleftSupport hrightSupport
-    · simp [sourceInitial,
-        FirstLaneOracleSimulation.ActionTrace.encodingActions]
-    · simp [CappedEncodingMonitor.validObservedSignLeafIndices,
-        FirstLaneOracleSimulation.ActionTrace.encodingActions,
-        CappedEncodingMonitor.validActions,
-        EncodingMonitor.observedSignLeafIndices]
-  let finish : Forgery → OracleComp OracleWorld (Forgery × Bool) :=
-    fun forgery => Prod.mk forgery <$> Concrete.scheme.verify
-      left.publicKey forgery.leafIndex forgery.message forgery.signature
-  let Budget := fun
-    (rest : OracleComp (OracleWorld + SigningSpec) Forgery)
-    (remaining : Nat) (state : SourceExactTracedState) =>
-      HashQueryBound (simulateQ
-        (sourceUnloggedMappedAdversaryImpl left.publicKey secretKey) rest >>=
-          finish) state.1.1.1 remaining
-  let leftFinish := fun (forgery : Forgery)
-    (initial : SourceExactTracedState) => do
-      let verified ← (simulateQ sourceSigningTracedVerifierImpl
-        (Concrete.scheme.verify left.publicKey forgery.leafIndex forgery.message
-          forgery.signature)).run (sourceExactSigningProjection initial)
-      pure ((forgery, verified.1),
-        ((verified.2.1,
-          appendVerificationEncodingObservation secretKey forgery
-            initial.1.1.1 verified.2.1.1 initial.1.2), verified.2.2))
-  let rightFinish := fun (forgery : Forgery)
-    (initial : GlobalHighDirectTracedState) => do
-      let verified ← (simulateQ
-        (globalFirstLaneExactTracedVerifierImpl right.1.1 right.2)
-        (Concrete.scheme.verify left.publicKey forgery.leafIndex forgery.message
-          forgery.signature)).run initial
-      pure ((forgery, verified.1),
-        firstLaneAppendVerificationState right.1.1.secretKey forgery initial
-          verified.2)
-  have hfullBound : Budget (adversary.main left.publicKey) countLimit sourceInitial := by
-    unfold Budget finish
-    unfold sourceUnloggedDetailedGameAfterKeygen at hsourceBound
-    exact hsourceBound
-  have hcoupling := relTriple_simulateQ_bind_bounded_firstLane right.1.2
-    (cappedBothTracedMappedAdversaryImpl left.publicKey secretKey)
-    (globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
-    leftFinish rightFinish directHashActionCost
-    (SourceFirstLaneExactGoodStateRelation left right.1)
-    (fun state spent => state.2.hashInputs.length = spent) Budget
-    (by
-      intro input next remaining state result hrest hresult
-      unfold Budget at hrest ⊢
-      rw [simulateQ_query_bind, bind_assoc] at hrest
-      have hr : (result.1, result.2.1.1.1) ∈ support
-          ((simulateQ romImpl (sourceUnloggedMappedAdversaryImpl left.publicKey secretKey input)).run state.1.1.1) := by
-        rw [← cappedBothTracedMappedAdversaryImpl_cache_projection, support_map]
-        exact ⟨result, hresult, rfl⟩
-      exact sourceUnloggedMappedAdversaryImpl_consistent_query_bound left.publicKey secretKey input
-        (fun response => simulateQ (sourceUnloggedMappedAdversaryImpl left.publicKey secretKey)
-          (next ((OracleSpec.query input).cont response)) >>= finish) state.1.1.1 remaining hrest _ hr)
-    (by
-      intro spent input state firstState history hstates hprefix hacct
-      apply relTriple_post_mono
-        (relTriple_sourceExact_firstLane_action spent left right hrel
-          hleftSupport hrightSupport input state firstState history hstates
-            hprefix)
-      intro leftResult firstResult hresult
-      rcases hresult with hgood | hhit
-      · exact Or.inl ⟨hgood.1, hgood.2.1, hgood.2.2.1, by
-          rw [hgood.2.2.2, hacct]⟩
-      · exact Or.inr hhit)
-    countLimit hitLimit
-    (by
-      intro forgery spent remaining state firstState history hremaining
-        hstates hcount hacct htotal
-      unfold Budget finish at hremaining
-      simp only [simulateQ_pure, pure_bind] at hremaining
-      have hverifyBound :
-          HashQueryBound (Concrete.scheme.verify left.publicKey forgery.leafIndex forgery.message
-            forgery.signature) state.1.1.1 remaining :=
-        (hashQueryBound_map_iff _ _ _ _).mp hremaining
-      have hverifier :=
-        relTriple_sourceExact_firstLane_verifier_boundedHit countLimit hitLimit
-          spent remaining left right hrel hleftSupport hrightSupport
-            (Concrete.scheme.verify left.publicKey forgery.leafIndex
-              forgery.message forgery.signature) state hverifyBound firstState
-                history hstates hcount htotal hlimits
-      let sourceFinish := fun verified : Bool × SourceExactTracedState =>
-        ((forgery, verified.1),
-          sourceAppendVerificationState secretKey forgery state verified.2)
-      let firstFinish := fun verified :
-          ((Bool × GlobalHighDirectTracedState) ×
-            FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex) =>
-        (((forgery, verified.1.1),
-          firstLaneAppendVerificationState right.1.1.secretKey forgery
-            firstState verified.1.2), verified.2)
-      have hlifted : RelTriple
-          (sourceFinish <$>
-            (simulateQ sourceExactTracedVerifierImpl
-              (Concrete.scheme.verify left.publicKey forgery.leafIndex
-                forgery.message forgery.signature)).run state)
-          (firstFinish <$>
-            (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-              ((simulateQ
-                (globalFirstLaneExactTracedVerifierImpl right.1.1 right.2)
-                (Concrete.scheme.verify left.publicKey forgery.leafIndex
-                  forgery.message forgery.signature)).run firstState)).run)
-          (fun leftResult firstResult =>
-            (leftResult.1 = firstResult.1.1 ∧
-              SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2
-                firstResult.1.2 (history ++ firstResult.2) ∧
-              FirstLaneOracleSimulation.hazardCount
-                (history ++ firstResult.2) ≤ countLimit) ∨
-            FirstLaneOracleSimulation.CombinedHit right.1.2
-              (FirstLaneOracleSimulation.enforceHazardTrace hitLimit
-                (history ++ firstResult.2))) := by
-        apply relTriple_map
-        apply relTriple_post_mono (relTriple_with_support hverifier)
-        intro leftVerified firstVerified hvertified
-        obtain ⟨hverifiedRelation, hleftVerifiedSupport,
-          hfirstVerifiedSupport⟩ := hvertified
-        rcases hverifiedRelation with hgood | hhit
-        · exact Or.inl ⟨congrArg (Prod.mk forgery) hgood.1,
-            SourceFirstLaneExactGoodStateRelation.appendVerification left right
-              hrel hleftSupport hrightSupport forgery state leftVerified.2
-                firstState firstVerified.1.2 history
-                  (history ++ firstVerified.2) hstates hgood.2.1 (by
-                    rw [FirstLaneOracleSimulation.ActionTrace.encodingActions_append]
-                    have hpublicKey : left.publicKey =
-                        right.1.1.publicKey := hrel.1.toStable.1.2.1
-                    rw [hpublicKey] at hfirstVerifiedSupport
-                    have hlocal :=
-                      globalFirstLaneExactTracedVerifier_append_trace_sublist
-                        right.1.2 right.1.1 right.2 forgery firstState
-                          leftVerified.2.1.2
-                          (by
-                            have hkeyResult :=
-                              trajectoryProgrammedGlobalChainKeygen_support_keyResult
-                                right.1.1 hrightSupport
-                            exact keygen_parameter_eq right.1.1.keyResult
-                              hkeyResult)
-                          firstVerified hfirstVerifiedSupport
-                    have hleftEncoding : leftVerified.2.1.2 = state.1.2 := by
-                      rw [sourceExactTracedVerifierImpl_run_eq, support_map]
-                        at hleftVerifiedSupport
-                      obtain ⟨baseResult, _hbase, heq⟩ := hleftVerifiedSupport
-                      subst leftVerified
-                      rfl
-                    have hencodingInitial := hstates.2.1
-                    have hencodingFinal : List.Sublist leftVerified.2.1.2
-                        history.encodingActions := by
-                      rw [hleftEncoding]
-                      exact hencodingInitial
-                    exact hlocal.trans
-                      (hencodingFinal.append (List.Sublist.refl _))),
-            hgood.2.2⟩
-        · exact Or.inr hhit
-      have hsource : leftFinish forgery state = sourceFinish <$>
-          (simulateQ sourceExactTracedVerifierImpl
-            (Concrete.scheme.verify left.publicKey forgery.leafIndex
-              forgery.message forgery.signature)).run state := by
-        unfold leftFinish
-        rw [sourceExactTracedVerifierImpl_run_eq]
-        simp [sourceFinish, sourceAppendVerificationState, Functor.map_map]
-      have hright :
-          (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-            (rightFinish forgery firstState)).run =
-          firstFinish <$>
-            (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-              ((simulateQ
-                (globalFirstLaneExactTracedVerifierImpl right.1.1 right.2)
-                (Concrete.scheme.verify left.publicKey forgery.leafIndex
-                  forgery.message forgery.signature)).run firstState)).run := by
-        unfold rightFinish
-        rw [simulateQ_bind, WriterT.run_bind']
-        simp [firstFinish, firstLaneAppendVerificationState]
-      rw [hsource, hright]
-      exact hlifted)
-    0 countLimit (adversary.main left.publicKey) sourceInitial
-      firstLaneInitial hfullBound [] hinitial
-      (by simp [FirstLaneOracleSimulation.hazardCount]) (by rfl) (by omega)
-        hlimits
-  have hpublicKey : left.publicKey = right.1.1.publicKey :=
-    hrel.1.toStable.1.2.1
-  unfold sourceGlobalExactTracedDetailedExecution
-    globalFirstLaneExactTracedDetailedExecution
-  simp only [StateT.run_mk]
-  rw [← hpublicKey]
-  exact hcoupling
-
 set_option maxRecDepth 1000000
 
 abbrev GlobalFirstLaneExactCoupledProgramResult :=
@@ -1035,43 +790,6 @@ def SourceFirstLaneExactBoundedProgramRelation
       FirstLaneOracleSimulation.hazardCount right.2.2 ≤ countLimit) ∨
     FirstLaneOracleSimulation.CombinedHit right.1.1.2
       (FirstLaneOracleSimulation.enforceHazardTrace hitLimit right.2.2))
-
-theorem relTriple_sourceGlobalExact_firstLane_program_boundedHit_sub_keygen
-    (q hitLimit : Nat)
-    (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q)
-    (hlimits : q ≤ hitLimit) :
-    RelTriple (sourceGlobalExactTracedProgram adversary)
-      (globalFirstLaneExactCoupledProgram adversary)
-      (SourceFirstLaneExactBoundedProgramRelation
-        (q) hitLimit) := by
-  unfold sourceGlobalExactTracedProgram globalFirstLaneExactCoupledProgram
-  apply relTriple_bind
-    (relTriple_with_support
-      relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
-  intro left right hkeygen
-  obtain ⟨hrel, hleftSupport, hrightSupport⟩ := hkeygen
-  have hrightViewSupport :=
-    coupledGlobalChainKeygenWithBaseHighFull_support_keyView right
-      hrightSupport
-  have hleftKeyResult :=
-    trajectoryProgrammedGlobalChainKeygen_support_keyResult left hleftSupport
-  have hmaterializedKeyResult :
-      Concrete.materializeCachedKeyResult left.keyResult ∈ support
-        ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
-    exact Concrete.oldKeygen_support_materializedPrecomputedKeygen
-      left.keyResult hleftKeyResult
-  have hsourceBound :=
-    sourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
-      q adversary hbound (Concrete.materializeCachedKeyResult left.keyResult)
-        hmaterializedKeyResult
-  apply relTriple_bind
-    (relTriple_sourceExact_firstLane_detailedExecution_boundedHit
-      (q) hitLimit adversary left right hrel
-        hleftSupport hrightViewSupport hsourceBound hlimits)
-  intro leftExecution rightExecution hexecution
-  apply relTriple_pure_pure
-  exact ⟨hrel, hexecution⟩
 
 def globalFirstLaneExactCoupledProjection
     (result : GlobalFirstLaneExactCoupledProgramResult) :
@@ -1148,44 +866,41 @@ theorem globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
 
 theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
     (adversary : Adversary) :
-    evalDist (globalFirstLaneExactCoupledProjection <$>
-      globalFirstLaneExactCoupledProgram adversary) =
-    evalDist (FirstLaneOracleSimulation.eagerExperiment
+    (globalFirstLaneExactCoupledProjection <$>
+      globalFirstLaneExactCoupledProgram adversary) =ᵈ
+    (FirstLaneOracleSimulation.eagerExperiment
       (globalFirstLaneExactTracedProgram adversary)) := by
   rw [globalFirstLaneExactCoupledProgram_projection_eq_parameterFirst]
   calc
-    evalDist (do
+    (do
         let parameter ← Concrete.samplePublicParameter
         let base ← independentGlobalChainValueTable
-        globalFirstLaneExactCoupledContinuation adversary parameter base) =
-      evalDist (do
+        globalFirstLaneExactCoupledContinuation adversary parameter base) =ᵈ
+      (do
         let base ← independentGlobalChainValueTable
         let parameter ← Concrete.samplePublicParameter
         globalFirstLaneExactCoupledContinuation adversary parameter base) := by
-          exact OracleComp.DeferredSampling.evalDist_bind_comm
+          exact OracleComp.EvalDistEq.bind_bind_swap
             Concrete.samplePublicParameter independentGlobalChainValueTable _
-    _ = evalDist (do
+    _ =ᵈ (do
         let base ← independentGlobalChainValueTable
         let result ← (simulateQ
           (FirstLaneOracleSimulation.eagerTraceImpl base)
           (globalFirstLaneExactTracedProgram adversary)).run
-        pure (base, result)) := by
-          rw [evalDist_bind, evalDist_bind]
-          apply bind_congr
-          intro base
-          exact congrArg evalDist
+        pure (base, result) : ProbComp _) := by
+
+          exact EvalDistEq.bind_right _ fun base => .of_eq
             (globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
               adversary base)
-    _ = _ := by
+    _ = (FirstLaneOracleSimulation.eagerExperiment
+          (globalFirstLaneExactTracedProgram adversary)) := by
       unfold FirstLaneOracleSimulation.eagerExperiment
-      rw [evalDist_bind, evalDist_bind]
+
       unfold independentGlobalChainValueTable
         RevealProbeOracleSimulation.eagerTableSample
       rfl
 
-
 set_option maxRecDepth 2000000
-set_option maxHeartbeats 2000000
 set_option linter.constructorNameAsVariable false
 
 def liftGlobalChainTrace
@@ -1252,7 +967,7 @@ theorem simulate_eagerTrace_lift_emitObservedTrace
             FirstLaneOracleSimulation.eagerTraceImpl,
             FirstLaneOracleSimulation.eagerImpl,
             FirstLaneOracleSimulation.traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            WriterT.run_tell,
             liftGlobalChainTrace]
           change (fun x => (x.1,
               FirstLaneOracleSimulation.ObservedAction.chain
@@ -1272,7 +987,7 @@ theorem simulate_eagerTrace_lift_emitObservedTrace
             FirstLaneOracleSimulation.eagerTraceImpl,
             FirstLaneOracleSimulation.eagerImpl,
             FirstLaneOracleSimulation.traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell, hvalue,
+            WriterT.run_tell, hvalue,
             liftGlobalChainTrace]
           change (fun x => (x.1,
               FirstLaneOracleSimulation.ObservedAction.chain
@@ -1306,7 +1021,7 @@ theorem simulate_eagerTrace_bind_lift_emitObservedTrace_keep
       (result.1, result.2 ++ liftGlobalChainTrace (suffix result.1))) <$>
       (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
         computation).run := by
-  rw [simulateQ_bind, WriterT.run_bind']
+  rw [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
   apply bind_congr
   intro result
   rcases result with ⟨result, trace⟩
@@ -1525,8 +1240,8 @@ theorem sourceWinningExactFirstLane_good_implies_public_combinedHit
     exact ⟨left, hleftSupport, rfl⟩
   have hboth : both ∈ support
       (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) :=
-    (mem_support_iff_of_evalDist_eq
-      (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary) both).mp
+    (OracleComp.support_eq_of_evalDistEq
+      (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary)).subset
         hbothMapped
   have hencodingSupport : cappedBothEncodingProjection both ∈ support
       (cappedDetailedGameWithEncodingTrace adversary) := by
@@ -1774,29 +1489,24 @@ theorem sourceWinningExactFirstLane_implies_coupled_enforcedHit
 
 theorem evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
     (adversary : Adversary) :
-    evalDist (globalFirstLaneExactCoupledPublicProjection <$>
-      globalFirstLaneExactCoupledProgram adversary) =
-    evalDist (globalFirstLaneExactPublicEagerExperiment adversary) := by
+    (globalFirstLaneExactCoupledPublicProjection <$>
+      globalFirstLaneExactCoupledProgram adversary) =ᵈ
+    (globalFirstLaneExactPublicEagerExperiment adversary) := by
   calc
-    evalDist (globalFirstLaneExactCoupledPublicProjection <$>
-        globalFirstLaneExactCoupledProgram adversary) =
-      evalDist (appendGlobalFirstLaneExactPublicTrace <$>
+    (globalFirstLaneExactCoupledPublicProjection <$>
+        globalFirstLaneExactCoupledProgram adversary) =ᵈ
+      (appendGlobalFirstLaneExactPublicTrace <$>
         (globalFirstLaneExactCoupledProjection <$>
           globalFirstLaneExactCoupledProgram adversary)) := by
-            apply congrArg evalDist
+            refine .of_eq ?_
             rw [Functor.map_map]
             rfl
-    _ = evalDist (appendGlobalFirstLaneExactPublicTrace <$>
+    _ =ᵈ (appendGlobalFirstLaneExactPublicTrace <$>
         FirstLaneOracleSimulation.eagerExperiment
           (globalFirstLaneExactTracedProgram adversary)) := by
-      exact evalDist_map_congr_of_evalDist_eq
-        appendGlobalFirstLaneExactPublicTrace
-        (globalFirstLaneExactCoupledProjection <$>
-          globalFirstLaneExactCoupledProgram adversary)
-        (FirstLaneOracleSimulation.eagerExperiment
-          (globalFirstLaneExactTracedProgram adversary))
-        (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
-          adversary)
+      exact (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
+        adversary).map appendGlobalFirstLaneExactPublicTrace
+
     _ = _ := by
       unfold globalFirstLaneExactPublicEagerExperiment
       rw [eagerExperiment_globalFirstLaneExactTracedPublicProgram_eq_append]
@@ -1806,35 +1516,14 @@ def GlobalFirstLaneExactPublicEnforcedHit
   FirstLaneOracleSimulation.CombinedHit result.1
     (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2)
 
-theorem sourceWinningExactFirstLane_probability_le_coupled_enforcedHit
-    (q fuel : Nat)
-    (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q)
-    (hfuel : q + forgeryProbeCount ≤ fuel) :
-    Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] ≤
-      Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] := by
-  apply probEvent_le_of_relTriple
-    (relTriple_with_support
-      (relTriple_sourceGlobalExact_firstLane_program_boundedHit_sub_keygen
-        q fuel adversary hbound (by omega)))
-  intro left right hrelation hevent
-  exact sourceWinningExactFirstLane_implies_coupled_enforcedHit
-    (q) fuel adversary left right
-      hrelation.2.1 hrelation.2.2 hrelation.1 hfuel hevent
-
 theorem coupled_enforcedHit_probability_eq_public_eager
     (fuel : Nat) (adversary : Adversary) :
-    Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] =
-      Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] := by
+    Pr{let x ← globalFirstLaneExactCoupledProgram adversary}[(GlobalFirstLaneExactCoupledEnforcedHit fuel) x] =
+      Pr{let x ← globalFirstLaneExactPublicEagerExperiment adversary}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] := by
   calc
-    _ = Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactCoupledPublicProjection <$>
-          globalFirstLaneExactCoupledProgram adversary] := by
-      rw [probEvent_map]
+    _ = Pr{let x ← (globalFirstLaneExactCoupledPublicProjection <$>
+          globalFirstLaneExactCoupledProgram adversary)}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] := by
+      rw [prEvent_map]
       rfl
     _ = _ := probEvent_eq_of_evalDist_eq _
       (evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
@@ -1842,29 +1531,25 @@ theorem coupled_enforcedHit_probability_eq_public_eager
 
 theorem public_eager_enforcedHit_probability_le
     (fuel : Nat) (adversary : Adversary) :
-    Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] ≤
+    Pr{let x ← globalFirstLaneExactPublicEagerExperiment adversary}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] ≤
       (fuel : ENNReal) / ((2 ^ digestBits : Nat) : ENNReal) := by
   calc
-    _ = Pr[FirstLaneOracleSimulation.ExperimentHit |
-        FirstLaneOracleSimulation.enforceEagerResult fuel <$>
+    _ = Pr{let x ← (FirstLaneOracleSimulation.enforceEagerResult fuel <$>
           FirstLaneOracleSimulation.eagerExperiment
-            (globalFirstLaneExactTracedPublicProgram adversary)] := by
+            (globalFirstLaneExactTracedPublicProgram adversary))}[FirstLaneOracleSimulation.ExperimentHit x] := by
       unfold GlobalFirstLaneExactPublicEnforcedHit
         globalFirstLaneExactPublicEagerExperiment
-      rw [probEvent_map]
+      rw [prEvent_map]
       rfl
-    _ = Pr[FirstLaneOracleSimulation.ExperimentHit |
-        FirstLaneOracleSimulation.eagerExperiment
+    _ = Pr{let x ← (FirstLaneOracleSimulation.eagerExperiment
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary))] := by
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[FirstLaneOracleSimulation.ExperimentHit x] := by
       rw [FirstLaneOracleSimulation.eagerExperiment_enforceHazardBound_eq_map]
-    _ = Pr[(fun hit : Bool => hit = true) |
-        FirstLaneOracleSimulation.structuralExperiment
+    _ = Pr{let hit ← (FirstLaneOracleSimulation.structuralExperiment
           (some EncodingMonitor.State.empty)
           AdaptiveRevealMonitor.State.empty fuel
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary))] := by
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] := by
       exact FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
         fuel (FirstLaneOracleSimulation.enforceHazardBound fuel
           (globalFirstLaneExactTracedPublicProgram adversary))
@@ -1873,39 +1558,5 @@ theorem public_eager_enforcedHit_probability_le
     _ ≤ _ := FirstLaneOracleSimulation.structuralExperiment_empty_true_probability_le
       fuel (FirstLaneOracleSimulation.enforceHazardBound fuel
         (globalFirstLaneExactTracedPublicProgram adversary))
-
-theorem sourceWinningExactFirstLane_probability_le
-    (q : Nat)
-    (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q) :
-    Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] ≤
-      ((q + forgeryProbeCount : Nat) : ENNReal) /
-        ((2 ^ digestBits : Nat) : ENNReal) := by
-  let fuel := q + forgeryProbeCount
-  calc
-    _ ≤ Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] :=
-      sourceWinningExactFirstLane_probability_le_coupled_enforcedHit q fuel
-        adversary hbound (by simp [fuel])
-    _ = Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] :=
-      coupled_enforcedHit_probability_eq_public_eager fuel adversary
-    _ ≤ _ := public_eager_enforcedHit_probability_le fuel adversary
-
-theorem hasExactFirstLaneBound_of_hashQueryBound
-    (q : Nat) (adversary : Adversary)
-    (hbound : HasAfterKeygenHashQueryBound Concrete.scheme adversary q) :
-    HasExactFirstLaneBound q adversary := by
-  unfold HasExactFirstLaneBound
-  rw [cappedExactFirstLane_probability_eq_sourceGlobalExact]
-  refine (sourceWinningExactFirstLane_probability_le q adversary hbound).trans ?_
-  have hslack : forgeryProbeCount ≤ firstLaneSlack := by
-    simp [forgeryProbeCount, firstLaneSlack, numChains, chainLength, winternitzBits]
-  gcongr
-
-theorem hasExactFirstLaneBounds : HasExactFirstLaneBounds := by
-  intro q adversary hbound
-  exact hasExactFirstLaneBound_of_hashQueryBound q adversary hbound
 
 end XmssSecurity.CappedChain

@@ -14,7 +14,7 @@ fn hash_leaf(image: &[K]) -> Digest {
     keccak_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
 }
 
-/// One query's own opening, the form the Rust and Python verifiers read.
+/// One query's own opening, the form the Rust and Lean verifiers read.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MerklePath {
     pub leaf_index: u64,

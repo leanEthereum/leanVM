@@ -1,8 +1,14 @@
-import FORS.SmallBudget.Contact.Bound
-import FORS.Classification.RefinedOutcome
-import FORS.CoverPotential.OneCoinGame
-import FORS.CoverPotential.StartValue
-import FORS.CoverBound.NearOption
+module
+
+public import FORS.SmallBudget.Contact.Bound
+public import FORS.Classification.RefinedOutcome
+public import FORS.CoverPotential.Game
+public import FORS.Reduction.NoRepeat
+public import FORS.CoverPotential.OneCoin
+public import FORS.CoverPotential.StartValue
+public import FORS.CoverBound.NearOption
+
+@[expose] public section
 
 /-! **One sample of the small-budget route.** On the stopped experiment with the above-word values
 exposed, a correct guess or the refined bad event of a valid finished run is a payoff event of the
@@ -25,8 +31,7 @@ set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
-
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -36,11 +41,12 @@ section Flagged
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]
 variable (tg : Targeting D R ι) (initial : HiddenOutside.Cache D R) (model : HiddenRows.Model D R A ι)
+variable {H : Type} [HonestInputs H D]
 
 omit [Fintype ι] [SampleableType R] in
-theorem flaggedCount_touch_leF (state : DebtState D R ι) (input : (SourceCostSpec D R ι).Domain) :
+theorem flaggedCount_touch_leF (state : DebtState D R ι) (input : (SourceCostSpec D R ι H).Domain) :
     flaggedCount tg (touch tg initial state input) ≤ digestCount tg (recorded input) := by
-  rcases input with (draw | (bytes | coordinate)) | amount
+  rcases input with (draw | (bytes | coordinate)) | (amount | honest)
   · simp [touch, flaggedCount, recorded, digestCount]
   · by_cases hd : tg.digest bytes
     · simp only [touch, flaggedCount, recorded, digestCount, hd, List.filter_cons, List.filter_nil]
@@ -48,9 +54,10 @@ theorem flaggedCount_touch_leF (state : DebtState D R ι) (input : (SourceCostSp
     · simp [touch, flaggedCount, recorded, digestCount, hd]
   · simp [touch, flaggedCount, recorded, digestCount]
   · simp [touch, flaggedCount, recorded, digestCount]
+  · simp [touch, flaggedCount, recorded, digestCount]
 
 omit [Fintype ι] in
-theorem flagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι) α) :
+theorem flagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι H) α) :
     ∀ budget s, ∀ out ∈ support (interp tg initial model comp budget s),
       flaggedCount tg out.1.2.2.2 ≤ digestCount tg out.1.2.2.1 := by
   induction comp using OracleComp.inductionOn with
@@ -73,82 +80,25 @@ theorem flagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι
         simp [flaggedCount, digestCount]
 
 omit [Fintype ι] in
-theorem expectedFlagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ)
+theorem expectedFlagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpec D R ι H) α) (budget : ℕ)
     (s : DebtState D R ι) :
     expectedFlagged tg initial model comp budget s ≤
-      ∑' out, Pr[= out | interp tg initial model comp budget s] * (digestCount tg out.1.2.2.1 : ℝ≥0∞) := by
+      ∑' out, Pr{let x ← interp tg initial model comp budget s}[x = out] * (digestCount tg out.1.2.2.1 : ℝ≥0∞) := by
   unfold expectedFlagged
   refine ENNReal.tsum_le_tsum fun out => ?_
   by_cases hout : out ∈ support (interp tg initial model comp budget s)
   · exact mul_le_mul_right (by exact_mod_cast flagged_le_digestF tg initial model comp budget s out hout) _
-  · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
 
 end Flagged
 
 /-! ### The pointwise split of the refined bad event -/
 
-section Pointwise
-
-open Completeness SeedModel Graph Assembly Reduce Internalize
-
-variable (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
-  (remaining : RemainingOutputs) (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
-  (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
-  (known : Knowledge Coordinate)
-  (hk : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
-    (knownOf (truncateHash parameterOutput) fixed)))
-  (ρ : ℝ) (adversary : Adversary) (q : ℕ)
-
-include hprepared hk in
-/-- **Pointwise split.** A correct guess or the refined bad event of a valid finished run is a
-payoff event of the linear potential, the contact event A4, or a cover without a decided hit. -/
-theorem small_pointwiseF (steps : Message → Randomness) (out : Run HashInput Coordinate HiddenBridge.Outcome × State)
-    (hout : out ∈ support (interp (targetingA parameterOutput fixed highs remaining prepared.1) prepared.2
-      (sampleModel parameterOutput highs)
-      (costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-        (internalize adversary)) q (DebtState.start prepared.2 known)))
-    (T : Coordinate → Digest) (hTe : tableExtending out.2.known T = T)
-    (h : CorrectGuess T out.2 ∨ badAV parameterOutput fixed highs remaining prepared.1 T
-      (((out.1.1, out.1.2.1), out.1.2.2.1), out.2.cache)) :
-    payoffA parameterOutput fixed highs remaining prepared known ρ T out.2 = 1 ∨
-      (∃ outcome, out.1.1 = some outcome ∧ SigningTranscript.Valid outcome.2.1 ∧
-        A4ev (ctxA parameterOutput fixed highs remaining prepared known ρ)
-          (sampleData parameterOutput fixed highs remaining).root T out.2 outcome out.1.2.1) ∨
-      finalValue (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-        (targetingA parameterOutput fixed highs remaining prepared.1) prepared.2 [] out = 1 := by
-  set K := ctxA parameterOutput fixed highs remaining prepared known ρ with hK
-  have hinv := inv_final parameterOutput fixed highs remaining prepared known ρ hk
-    (targetingA parameterOutput fixed highs remaining prepared.1) _ q out hout
-  have hfix := knownOf_extending_final (parameterOutput := parameterOutput) (fixed := fixed) (highs := highs)
-    (prepared := prepared) (known := known) hk (tg := targetingA parameterOutput fixed highs remaining prepared.1)
-    (comp := costGameX (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
-      (internalize adversary)) (total := q) out hout T hTe
-  have hpay : Hit K.tg prepared.2 T out.2 → payoffA parameterOutput fixed highs remaining prepared known ρ T out.2 = 1 := by
-    intro hh
-    unfold payoffA Ctx.payoff
-    exact if_pos (Or.inl hh)
-  rcases h with hg | ⟨hbad, outcome, hres, hvalid⟩
-  · exact Or.inl (hpay (hit_of_correctGuess parameterOutput fixed highs remaining prepared known ρ out.2 T hTe hg))
-  · rcases badA_split parameterOutput fixed highs remaining prepared hprepared known ρ out.2 hinv T hTe hfix
-      out.1.1 out.1.2.1 out.1.2.2.1 hbad with hp | ⟨index, c, sp, hrev, hrec⟩ | ⟨outcome', hres', hnear | hcov⟩
-    · exact Or.inl hp
-    · exact Or.inr (Or.inl ⟨outcome, hres, hvalid, Or.inl ⟨index, c, sp, hrev, hrec⟩⟩)
-    · exact Or.inr (Or.inl ⟨outcome', hres', hnear.1, Or.inr hnear⟩)
-    · by_cases hreal : Realized K.tg prepared.2 out.2
-      · exact Or.inl (hpay (Or.inl hreal))
-      · refine Or.inr (Or.inr ?_)
-        unfold finalValue
-        rw [hres']
-        simp only [Option.elim, List.nil_append]
-        exact if_pos ⟨hcov, hreal⟩
-
-end Pointwise
-
 /-! ### Helpers -/
 
 section Helpers
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 theorem targetingA_msgF (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (results : OtsKey → Option (Counter × Encoding)) (x : HashInput)
@@ -172,8 +122,8 @@ theorem numeric_monoF {ρ x x' : ℝ} (h : Numeric ρ x) (hx : x' ≤ x) (_hx0 :
 
 theorem probEvent_le_endValueF (payoff : (Coordinate → Digest) → State → ℝ≥0∞) (s : State)
     (E : (Coordinate → Digest) → Prop) (h : ∀ T, E T → payoff T s = 1) :
-    Pr[E | completion s.known] ≤ endValue payoff s := by
-  rw [probEvent_eq_tsum_ite]
+    Pr{let x ← completion s.known}[E x] ≤ endValue payoff s := by
+  rw [OracleComp.prEvent_eq_tsum_ite]
   unfold endValue
   refine ENNReal.tsum_le_tsum fun T => ?_
   split_ifs with hT

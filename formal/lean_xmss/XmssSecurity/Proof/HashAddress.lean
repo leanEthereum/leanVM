@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CacheQuerySupport
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.HashInputLemmas
+module
+
+public import XmssSecurity.Proof.CacheQuerySupport
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.HashInputLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

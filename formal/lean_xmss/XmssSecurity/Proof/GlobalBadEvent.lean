@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.CappedSigningLogReplay
+module
+
+public import XmssSecurity.Proof.CappedSigningLogReplay
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
@@ -13,7 +17,12 @@ inductive GlobalBadEvent where
   | leaf
   | merkle
   | top
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+instance : Fintype GlobalBadEvent where
+  elems := ⟨([.encoding, .chain, .suffixCollision, .leaf, .merkle, .top] : List GlobalBadEvent),
+    by decide⟩
+  complete event := by cases event <;> decide
 
 def GlobalOutcomeBadEventOccurs
     (cache : QueryCache HashSpec) (outcome : GameOutcome) :

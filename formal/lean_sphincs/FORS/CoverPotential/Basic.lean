@@ -1,7 +1,11 @@
-import FORS.ScanSigner.AfterSigning
-import FORS.CoverPotential.Presample
-import FORS.Base.VirtualMono
-import FORS.Classification.Win
+module
+
+public import FORS.ScanSigner.AfterSigning
+public import FORS.CoverPotential.Presample
+public import FORS.Base.VirtualMono
+public import FORS.Classification.Win
+
+@[expose] public section
 
 /-! Ingredients of the FORS potential of the lazy run. Every cached landed message-randomizer pair
 is an item; the unsigned ones are candidates. A pair owns one digest block per call
@@ -51,10 +55,6 @@ theorem pblk_ne_of_ne {p q : Pair} (h : p ≠ q) (call call' : DigestCall) :
     pblk parameter data p call ≠ pblk parameter data q call' := fun heq =>
   h (pblk_injective parameter data heq).1
 
-theorem pblk_ne_call {p : Pair} {call call' : DigestCall} (h : call ≠ call') :
-    pblk parameter data p call ≠ pblk parameter data p call' := fun heq =>
-  h (pblk_injective parameter data heq).2
-
 /-- The blocks of a pair, read through `GraphView.pcache`, when every call is cached. -/
 theorem pcache_of_cached {s : State} {p : Pair} {u : DigestCall → HashOutput}
     (h : ∀ call, s.cache (pblk parameter data p call) = some (u call)) :
@@ -65,11 +65,6 @@ theorem cached_of_pcache {s : State} {p : Pair} {u : DigestCall → HashOutput}
     (h : pcache parameter data p.1 s p.2 = some u) (call : DigestCall) :
     s.cache (pblk parameter data p call) = some (u call) :=
   HiddenBridge.allSome_some h call
-
-theorem pcache_of_uncached {s : State} {p : Pair} {call : DigestCall}
-    (h : s.cache (pblk parameter data p call) = none) : pcache parameter data p.1 s p.2 = none := by
-  unfold pcache Completeness.allSome
-  exact dif_neg fun hall => by simpa [h] using hall call
 
 theorem first_of_pcache {s : State} {mes : Message} {ρ : Randomness} {u : DigestCall → HashOutput}
     (h : pcache parameter data mes s ρ = some u) : s.cache (blk parameter data mes ρ) = some (u firstCall) :=
@@ -163,15 +158,15 @@ theorem landing_le_one : landing ≤ 1 := ForsPrice.landing_le_one
 
 /-- **Mean over a fresh pair.** Only the block of `firstCall` decides landing. -/
 theorem pair_mean (parameter : PublicParameter) (F : View → ℝ≥0∞) (C : ℝ≥0∞) :
-    ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else C) =
       landing * freshAvg Finset.univ F + (1 - landing) * C := by
   have hsplit : ∀ u : DigestCall → HashOutput,
-      Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else C) =
-      Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else 0) +
-      C * (Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      C * (Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then 0 else 1)) := by
     intro u
     split_ifs <;> ring
@@ -194,7 +189,7 @@ section PairE
 
 /-- Expectation over the fresh blocks of a pair, one per digest call. -/
 noncomputable def pairE (F : (DigestCall → HashOutput) → ℝ≥0∞) : ℝ≥0∞ :=
-  ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] * F u
+  ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] * F u
 
 theorem pairE_add (F G : (DigestCall → HashOutput) → ℝ≥0∞) :
     pairE (fun a => F a + G a) = pairE F + pairE G := by
@@ -204,7 +199,7 @@ theorem pairE_mono {F G : (DigestCall → HashOutput) → ℝ≥0∞} (h : ∀ a
   ENNReal.tsum_le_tsum fun a => mul_le_mul_right (h a) _
 
 theorem pairE_const (c : ℝ≥0∞) : pairE (fun _ => c) = c := by
-  simp only [pairE, ENNReal.tsum_mul_right, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul]
+  simp only [pairE, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _, one_mul]
 
 theorem pairE_const_mul (c : ℝ≥0∞) (F : (DigestCall → HashOutput) → ℝ≥0∞) :
     pairE (fun a => c * F a) = c * pairE F := by
@@ -314,7 +309,7 @@ theorem pinv_withPair {s : State} {P : List Pair} (hP : PInv parameter data s P)
       · rintro ⟨u0, hu, hl⟩
         rw [withPair_self s q u firstCall] at hu
         cases hu
-        rw [if_pos hl]
+        rw [ite_eq_left hl]
         exact List.mem_cons_self ..
     · rw [hland q hqp, ← hP.mem q]
       unfold addPair
@@ -452,39 +447,12 @@ theorem ordinaryStep_cache_ne (x : HashInput) (s : State) :
 theorem ordinaryStep_extends (x : HashInput) (s : State) :
     ∀ r ∈ support (ordinaryStep model x s.known s), Extends s r.2 := by
   intro r hr
-  exact extends_costStep model (.inl (.inr (.inl x))) s r (by rw [costStep_ordinary]; exact hr)
+  exact extends_costStep (H := Empty) model (.inl (.inr (.inl x))) s r (by rw [costStep_ordinary]; exact hr)
 
 variable (parameter : PublicParameter) (data : PublicData)
 
 theorem finalValue_abort (R : List Coordinate) (s : State) :
     finalValue parameter data tg initial R ((none, [], [], []), s) = 0 := rfl
-
-theorem interp_mass {α : Type} (computation : OracleComp CostSpec α) (budget : ℕ) (s : State) :
-    ∑' out, Pr[= out | interp tg initial model computation budget s] = 1 :=
-  tsum_probOutput_eq_one' probFailure_eq_zero
-
-theorem finalValue_ordinary (R : List Coordinate) (x : HashInput)
-    (next : HashOutput → OracleComp CostSpec HiddenBridge.Outcome) (budget : ℕ) (hb : 1 ≤ budget) (s : State) :
-    ∑' out, Pr[= out | interp tg initial model (liftM (CostSpec.query (.inl (.inr (.inl x)))) >>= next) budget s] *
-        finalValue parameter data tg initial R out =
-      ∑' r, Pr[= r | ordinaryStep model x s.known s] *
-        ∑' out, Pr[= out | interp tg initial model (next r.1) (budget - 1) r.2] *
-          finalValue parameter data tg initial R out := by
-  rw [interp_ordinary, if_pos hb, tsum_probOutput_bind_mul]
-  simp only [tsum_probOutput_map_mul]
-  rfl
-
-theorem flagged_ordinary (x : HashInput) (next : HashOutput → OracleComp CostSpec HiddenBridge.Outcome)
-    (budget : ℕ) (hb : 1 ≤ budget) (s : State) :
-    expectedFlagged tg initial model (liftM (CostSpec.query (.inl (.inr (.inl x)))) >>= next) budget s =
-      (pays tg initial s (.inl (.inr (.inl x))) : ℝ≥0∞) +
-        ∑' r, Pr[= r | ordinaryStep model x s.known s] *
-          expectedFlagged tg initial model (next r.1) (budget - 1) r.2 := by
-  unfold expectedFlagged
-  rw [interp_ordinary, if_pos hb, tsum_probOutput_bind_mul]
-  simp only [tsum_probOutput_map_mul, flaggedCount_append, flaggedCount_touch, Nat.cast_add, mul_add,
-    ENNReal.tsum_add, ENNReal.tsum_mul_right, interp_mass]
-  rw [one_mul, tsum_probOutput_eq_one' probFailure_eq_zero, one_mul]
 
 /-- Without a new pair, an ordinary query keeps the items and their views. A query of a later call
 of a pair whose first block is cached changes no item: landing reads the first block alone. -/
@@ -539,141 +507,9 @@ theorem witness_pos_of_covered {R : List Coordinate} {d : Multiset View} (hD : D
     obtain ⟨v, hv, h1, h2⟩ := hD _ _ _ _ hκ
     exact ⟨v, hv, by rw [localDigestView_fst]; exact h1, by rw [localDigestView_snd]; exact h2⟩
   unfold witness
-  rw [if_pos hall]
+  rw [ite_eq_left hall]
 
 /-! ### Presampling the other calls of a pair -/
-
-section PresampleFamily
-
-variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
-  (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
-
-/-- `HiddenDebt.interp_presample_fresh_le` with the growth hypothesis only at the presampled
-input: the final value of the run is not monotone under a store at a *targeted* input. -/
-theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α : Type}
-    (computation : OracleComp CostSpec α) (budget : ℕ) (state : State) (hx : state.cache x = none)
-    (F : Run HashInput Coordinate α × State → ℝ≥0∞)
-    (hF : ∀ out (v : HashOutput), out.2.cache x = none → F out ≤ F (out.1, out.2.store x v)) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-      (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model
-        computation budget (state.store x v)] * F out := by
-  refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
-  · cases hc : out.2.cache x with
-    | some w =>
-        rw [presample_cached x out.2 w hc, support_pure, Set.mem_singleton_iff] at hs
-        rw [hs]
-    | none =>
-        rw [presample_fresh x out.2 hc, support_map] at hs
-        obtain ⟨v, _, rfl⟩ := hs
-        exact hF out v hc
-  · rw [presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
-
-set_option maxRecDepth 100000 in
-/-- `HiddenDebt.interp_presampleAll_le` with the growth hypothesis only at the family. -/
-theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpec α) (budget : ℕ)
-    (F : Run HashInput Coordinate α × State → ℝ≥0∞) :
-    ∀ {n : ℕ} (x : Fin n → HashInput), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
-      (∀ out (i : Fin n) (v : HashOutput), out.2.cache (x i) = none →
-        F out ≤ F (out.1, out.2.store (x i) v)) →
-      ∀ state : State, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-          ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → HashOutput,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out
-  | 0, _, _, _, _, _, _ => by
-      simp only [pow_zero, inv_one, one_mul]
-      rw [Fintype.sum_unique]
-      rfl
-  | n + 1, x, hx, hk, hF, state, hfresh => by
-      have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
-      refine le_trans (interp_presample_fresh_leF tg initial model (x 0) (hk 0) computation budget state
-        (hfresh 0) F fun out v hc => hF out 0 v hc) ?_
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget
-            (state.store (x 0) v)] * F out ≤
-          ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → HashOutput, ∑' out,
-            Pr[= out | interp tg initial model computation budget
-              (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out := fun v =>
-        interp_presampleAll_leF computation budget F (Fin.tail x) hxt (fun i => hk i.succ)
-          (fun out i v' hc => hF out i.succ v' hc) _ fun i => by
-            show (state.store (x 0) v).cache (x i.succ) = none
-            rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
-            exact hfresh i.succ
-      calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model
-              computation budget (state.store (x 0) v)] * F out
-          ≤ (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ *
-              ∑ w : Fin n → HashOutput, ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out) := by
-            gcongr with v
-            exact hrest v
-        _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → HashOutput,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out := by
-            rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
-              (Or.inl (ENNReal.natCast_ne_top _))]
-            rfl
-        _ = _ := by
-            refine congrArg (fun z : ℝ≥0∞ => ((Fintype.card HashOutput : ℝ≥0∞) ^ (n + 1))⁻¹ * z) ?_
-            rw [← Fintype.sum_prod_type']
-            exact Fintype.sum_equiv (Fin.consEquiv fun _ => HashOutput) _ _ fun _ => rfl
-
-set_option maxRecDepth 100000 in
-/-- **A query of one call of a fresh pair**: `HiddenDebt.interp_presample_new` with the growth
-hypothesis only at the family. -/
-theorem interp_presample_newF {α : Type} {n : ℕ} (x : Fin n → HashInput) (hx : Function.Injective x)
-    (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : HashOutput → OracleComp CostSpec α)
-    (budget : ℕ) (state : State) (hfresh : ∀ i, state.cache (x i) = none)
-    (F : Run HashInput Coordinate α × State → ℝ≥0∞)
-    (hF : ∀ out (i : Fin n) (v : HashOutput), out.2.cache (x i) = none →
-      F out ≤ F (out.1, out.2.store (x i) v)) :
-    ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
-      ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → HashOutput,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out := by
-  obtain ⟨mm, rfl⟩ : ∃ mm, n = mm + 1 := ⟨n - 1, by have := c.isLt; omega⟩
-  set σ : Equiv.Perm (Fin (mm + 1)) := Equiv.swap 0 c with hσ
-  set x' : Fin (mm + 1) → HashInput := x ∘ σ with hx'
-  have hx'inj : Function.Injective x' := hx.comp σ.injective
-  have hx'0 : x' 0 = x c := by simp [hx', hσ]
-  have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-        (state.store (x c) v)] * F out ≤
-      ((Fintype.card HashOutput : ℝ≥0∞) ^ mm)⁻¹ * ∑ w : Fin mm → HashOutput, ∑' out,
-        Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out := by
-    intro v
-    rw [← hx'0]
-    exact interp_presampleAll_leF tg initial model (next v) budget F (Fin.tail x') hxt
-      (fun i => hk _) (fun out i v' hc => hF out (σ i.succ) v' hc) _ fun i => by
-        show (state.store (x' 0) v).cache (x' i.succ) = none
-        rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
-        exact hfresh _
-  rw [tsum_uniform_eq]
-  calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out
-      ≤ (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card HashOutput : ℝ≥0∞) ^ mm)⁻¹ *
-          ∑ w : Fin mm → HashOutput, ∑' out, Pr[= out | interp tg initial model (next v) budget
-            (storeAll x' (Fin.cons v w) state)] * F out) := by
-        gcongr with v
-        exact hrest v
-    _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * ∑ v, ∑ w : Fin mm → HashOutput,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget
-            (storeAll x' (Fin.cons v w) state)] * F out := by
-        rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
-          (Or.inl (ENNReal.natCast_ne_top _))]
-    _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * ∑ u' : Fin (mm + 1) → HashOutput,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out := by
-        refine congrArg (fun z : ℝ≥0∞ => ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * z) ?_
-        rw [← Fintype.sum_prod_type']
-        exact Fintype.sum_equiv (Fin.consEquiv fun _ => HashOutput) _ _ fun _ => rfl
-    _ = _ := by
-        refine congrArg (fun z : ℝ≥0∞ => ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * z) ?_
-        refine Fintype.sum_equiv (σ.arrowCongr (Equiv.refl HashOutput)) _ _ fun u' => ?_
-        have hu : (σ.arrowCongr (Equiv.refl HashOutput)) u' ∘ σ = u' := by
-          funext i
-          simp [Equiv.arrowCongr_apply, hσ, Equiv.swap_apply_self]
-        conv_lhs => rw [← hu]
-        rw [storeAll_perm x hx _ σ state]
-        congr 3
-
-end PresampleFamily
 
 /-! ### What a signing call adds -/
 
@@ -725,16 +561,6 @@ variable {parameter : PublicParameter} {data : PublicData} {m : Message}
 theorem pview_of_pcache {s' : State} {q : Pair} {u : DigestCall → HashOutput}
     (h0 : pcache parameter data q.1 s' q.2 = some u) : pview parameter data s' q = viewOf u := by
   simp only [pview, h0, Option.elim]
-
-theorem pview_of_cached {s' : State} {q : Pair} {u : DigestCall → HashOutput}
-    (h0 : ∀ call, s'.cache (pblk parameter data q call) = some (u call)) :
-    pview parameter data s' q = viewOf u :=
-  pview_of_pcache (pcache_of_cached parameter data h0)
-
-theorem landed_of_cached {s : State} {P : List Pair} (hP : PInv parameter data s P) {q : Pair}
-    (hq : q ∈ P) : ∃ u0, s.cache (pblk parameter data q firstCall) = some u0 ∧
-      Landed parameter (blockIndex u0) :=
-  (hP.mem q).1 hq
 
 end SignParams
 
@@ -815,7 +641,7 @@ theorem sign_shape {reveals : List Coordinate} {r : Option Signature} {s' : Stat
       rcases r with _ | sig
       · rfl
       · simp only [Option.elim]
-        rw [hsig sig rfl, if_pos hn]
+        rw [hsig sig rfl, ite_eq_left hn]
     · rcases r with _ | sig
       · left
         refine ⟨newRand_eq_empty_of_pool parameter data m hothers (by rw [he]; exact Option.some_ne_none _), ?_⟩
@@ -826,7 +652,7 @@ theorem sign_shape {reveals : List Coordinate} {r : Option Signature} {s' : Stat
         unfold poolDisc
         rw [hres]
         simp only [Option.elim]
-        rw [hsig sig rfl, if_neg (by rw [he]; exact Option.some_ne_none _)]
+        rw [hsig sig rfl, ite_eq_right (by rw [he]; exact Option.some_ne_none _)]
         congr 1
         exact pview_of_pcache (q := (m, ρ)) hs0
 
@@ -841,26 +667,5 @@ theorem unsigned_of_append {L : QueryLog SigningSpec} {e : (_ : Message) × Opti
 theorem not_unsigned_signed {m : Message} {L : QueryLog SigningSpec} {sig : Signature} :
     ¬Unsigned (L ++ [⟨m, some sig⟩]) (m, sig.randomness) := fun h =>
   h ⟨m, some sig⟩ (List.mem_append_right _ (List.mem_singleton_self _)) sig rfl ⟨rfl, rfl⟩
-
-section SignGood
-
-variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : HiddenOutside.Cache HashInput HashOutput)
-  (model : HiddenRows.Model HashInput HashOutput A Coordinate)
-
-theorem interpThen_some {α β : Type} (next : α → OracleComp CostSpec β) (budget : ℕ)
-    (o1 : Run HashInput Coordinate α × State) (v : α) (hv : o1.1.1 = some v) :
-    interpThen tg initial model next budget o1 =
-      (fun o2 => ((o2.1.1, o1.1.2.1 ++ o2.1.2.1, o1.1.2.2.1 ++ o2.1.2.2.1, o1.1.2.2.2 ++ o2.1.2.2.2), o2.2)) <$>
-        interp tg initial model (next v) (budget - traceCost o1.1.2.2.1) o1.2 := by
-  unfold interpThen
-  rw [hv]
-
-theorem interpThen_none {α β : Type} (next : α → OracleComp CostSpec β) (budget : ℕ)
-    (o1 : Run HashInput Coordinate α × State) (hv : o1.1.1 = none) :
-    interpThen tg initial model next budget o1 = pure ((none, o1.1.2.1, o1.1.2.2.1, o1.1.2.2.2), o1.2) := by
-  unfold interpThen
-  rw [hv]
-
-end SignGood
 
 end FORS.Security.ForsPotential

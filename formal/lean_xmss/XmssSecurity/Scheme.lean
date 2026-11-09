@@ -1,5 +1,9 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+module
+
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+
+@[expose] public section
 
 /-!
 # The leanXMSS model

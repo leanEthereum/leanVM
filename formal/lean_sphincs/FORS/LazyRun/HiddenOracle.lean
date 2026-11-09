@@ -1,5 +1,9 @@
-import FORS.LazyRun.UntilHidden
-import FORS.LazyRun.GraphSampling
+module
+
+public import FORS.LazyRun.UntilHidden
+public import FORS.LazyRun.GraphSampling
+
+@[expose] public section
 
 /-! The seed-free graph oracle is the candidate hidden-row oracle: canonical WOTS chain rows and
 FORS leaf rows read the coordinate table, every other input reads a structural cache over an
@@ -116,7 +120,7 @@ theorem graphFn_eq_answer (material : Material) (answers : CanonicalGraphLabels)
       split_ifs with hvalue
       · simp only [graphFn, extend, graphCache]
         rw [programGraphCache_row_lookup p ots fts labels _ ∅ address hmem value,
-          if_pos (show value = coordinates ots fts labels address.inputCoordinate from hvalue)]
+          ite_eq_left (show value = coordinates ots fts labels address.inputCoordinate from hvalue)]
         change labels address.position = Prefix.combine (coordinates ots fts labels address.outputCoordinate)
           (highHalves labels address)
         rw [coordinates_outgoing]
@@ -212,7 +216,7 @@ section Split
 variable (parameterOutput : HashOutput) (highs : CoordinateHighs) (remaining : RemainingOutputs)
 
 /-- `SK.prf` is fixed: the seed-free run never reads it (the `rfl` in `evalDist_seedFree_completion`
-and the `hprog` step of `Det.budgetedWinMaster_le_seedFree`). -/
+and the `hprog` step of `AdvCount.budgetedWinAdv_le_seedFreeH`). -/
 noncomputable def splitMaterial (lows : HiddenGraph.Table) : Material :=
   ((parameterOutput, 0), joinedSecrets (assemble lows highs remaining))
 
@@ -398,7 +402,7 @@ noncomputable def mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.T
 
 noncomputable def knownOf (parameter : PublicParameter) (fixed : HiddenGraph.Table) :
     HiddenReveal.Knowledge Coordinate :=
-  fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
+  QueryCache.ofFn fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
     else none
 
 theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) (coordinate : Coordinate)
@@ -408,7 +412,7 @@ theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table
 theorem masked_mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) :
     masked parameter (mix parameter fixed fresh) = tableExtending (knownOf parameter fixed) fresh := by
   funext coordinate
-  simp only [masked, mix, tableExtending, knownOf]
+  simp only [masked, mix, tableExtending, knownOf, QueryCache.ofFn_apply]
   by_cases hknown : KnownCoordinate parameter coordinate
   · simp [hknown]
   · have hmask : ¬Masked parameter coordinate := fun h => hknown (known_of_masked _ _ h)
@@ -430,30 +434,30 @@ theorem graphCoordinates_split (lows : HiddenGraph.Table) :
       by_cases hzero : position.val = 0
       · have hm : ¬Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
           fun h => h.1 hzero
-        rw [if_neg hm, ← hcoord]
-        simp only [HiddenGraph.coordinates, dif_pos hzero]
+        rw [ite_eq_right hm, ← hcoord]
+        simp only [HiddenGraph.coordinates, dite_eq_left hzero]
         rfl
       · by_cases hland : PrunedGraph.KeyActive (truncateHash parameterOutput) lay tree leaf
         · have hm : ¬Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
             fun h => h.2 hland
-          rw [if_neg hm, ← hcoord]
-          simp only [HiddenGraph.coordinates, dif_neg hzero]
+          rw [ite_eq_right hm, ← hcoord]
+          simp only [HiddenGraph.coordinates, dite_eq_right hzero]
           rw [completed_active_label _ _ _ _ hland]
           rfl
         · have hm : Masked (truncateHash parameterOutput) (.chain lay tree leaf chainIdx position) :=
             ⟨hzero, hland⟩
-          rw [if_pos hm]
-          simp only [HiddenGraph.coordinates, dif_neg hzero, completedLabels]
-          rw [if_neg (fun hmem => hland ((mem_graphOrder _ _).mp hmem))]
+          rw [ite_eq_left hm]
+          simp only [HiddenGraph.coordinates, dite_eq_right hzero, completedLabels]
+          rw [ite_eq_right (fun hmem => hland ((mem_graphOrder _ _).mp hmem))]
           simp only [PrunedGraph.initialLabels, PrunedGraph.boundary]
           rfl
   | fors index κ leaf position =>
-      rw [if_neg (show ¬Masked (truncateHash parameterOutput) (.fors index κ leaf position) from
+      rw [ite_eq_right (show ¬Masked (truncateHash parameterOutput) (.fors index κ leaf position) from
         fun h => h), ← hcoord]
       by_cases hzero : position.val = 0
-      · simp only [HiddenGraph.coordinates, if_pos hzero]
+      · simp only [HiddenGraph.coordinates, ite_eq_left hzero]
         rfl
-      · simp only [HiddenGraph.coordinates, if_neg hzero]
+      · simp only [HiddenGraph.coordinates, ite_eq_right hzero]
         rw [completed_active_label _ _ _ _ trivial]
         rfl
 
@@ -461,33 +465,6 @@ theorem mix_agree (fixed fresh : HiddenGraph.Table) (coordinate : Coordinate)
     (h : KnownCoordinate (truncateHash parameterOutput) coordinate) :
     mix (truncateHash parameterOutput) fixed fresh coordinate = fixed coordinate :=
   mix_known _ fixed fresh coordinate h
-
-/-- The seed-free run at a mixed coordinate table is the hidden-row run whose coordinate
-table completes the known coordinates of the fixed table with the fresh table. Nothing else
-depends on the fresh table. -/
-theorem seedFreeRun_mix (adversary : Adversary) (q : Nat) (steps : Message → Randomness)
-    (fixed fresh : HiddenGraph.Table) (table : Eager.Table) :
-    seedFreeRun adversary q steps
-        (splitMaterial parameterOutput highs remaining (mix (truncateHash parameterOutput) fixed fresh))
-        (splitAnswers highs remaining (mix (truncateHash parameterOutput) fixed fresh)) table =
-      Stop.costRun
-        (HiddenGraph.answer (truncateHash parameterOutput) (candidateActive (truncateHash parameterOutput))
-          (tableExtending (knownOf (truncateHash parameterOutput) fixed) fresh)
-          (fun address => highs address.outputCoordinate)
-          (outsideFn (splitMaterial parameterOutput highs remaining fixed)
-            (splitAnswers highs remaining fixed) table))
-        (tableExtending (knownOf (truncateHash parameterOutput) fixed) fresh)
-        (HiddenCost.cap (GraphView.costGame (truncateHash parameterOutput)
-          (GraphView.publicData (labelsOf (splitMaterial parameterOutput highs remaining fixed)
-            (splitAnswers highs remaining fixed)) steps) adversary) q) := by
-  have hagree := mix_agree parameterOutput (fixed := fixed) (fresh := fresh)
-  unfold seedFreeRun
-  rw [graphFn_eq_answer, graphCoordinates_split, masked_mix, splitMaterial_parameter,
-    publicData_agree parameterOutput highs remaining _ fixed steps hagree]
-  rw [answer_congr_high _ _ _ _ (fun address => highs address.outputCoordinate) _
-    (fun address hactive => highHalves_split parameterOutput highs remaining _ address hactive)]
-  unfold outsideFn
-  rw [structCache_agree parameterOutput highs remaining _ fixed hagree]
 
 end Split
 

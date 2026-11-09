@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedGlobalChainHighCoverage
-import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
-import XmssSecurity.Proof.TopStructural
+module
+
+public import XmssSecurity.Proof.CappedGlobalChainHighCoverage
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
+public import XmssSecurity.Proof.TopStructural
+
+@[expose] public section
 
 /-!
 # The origin of a top guess

@@ -1,4 +1,8 @@
-import FORS.SmallBudget.SampleBound
+module
+
+public import FORS.SmallBudget.SampleEvents
+
+@[expose] public section
 
 /-! **The deterministic signer at 127 bits.** Small budgets (`q - keygenCost ≤ qh`):
 the sample bound averaged over the prepared samples, in closed form from one rational check
@@ -20,7 +24,7 @@ set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -111,7 +115,6 @@ theorem small_realFF (x qh q N ρ B c M : ℝ) (hx0 : 0 ≤ x) (hxq : x ≤ qh) 
   linarith
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **The small-budget bound in closed form**, with the two cap terms of the scan signer. -/
 theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh) (hqh : qh ≤ 2 ^ 127)
     (hN : signatureLimit ≤ 2 ^ 70) (ρ : ℝ) (hρ : 0 ≤ ρ) (B c : ℚ) (hB : 0 ≤ B) (hc : 0 ≤ c)
@@ -172,86 +175,6 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
   exact ENNReal.ofReal_le_ofReal hreal
 
 /-! ### The seed-free bound and the deterministic signer -/
-
-section Close
-
-open Completeness SeedModel Graph Assembly Reduce Internalize
-
-set_option maxRecDepth 100000 in
-/-- **Small budgets, seed-free win.** -/
-theorem small_seedFree_boundF (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
-    (steps : Message → Randomness) (hq : q < 2 ^ 256)
-    (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
-    (κ : ℚ) (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
-      (signatureLimit : ℝ) * (((2 : ℝ) ^ subtreeHeight * 2 ^ forsHeight)⁻¹) ≤ (κ : ℝ))
-    (H b k a N : ℕ) (hHH : totalHeight = H) (hbb : subtreeHeight = b) (hkk : forsTrees = k)
-    (haa : forsHeight = a) (hNN : signatureLimit = N)
-    (t : H0.PoisT) (o : H0.Opt) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
-    (hrt : H0.checkRate H b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
-    (ho : H0.checkOpt H b k a t o = true) (hon : H0.checkOptN H k a t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q steps] ≤
-      (smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) +
-        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost)) + smallFailF q * expectedFail := by
-  refine le_trans (seedFree_le_exposeP adversary q steps) ?_
-  set A := smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) +
-    2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) with hA
-  set C := smallFailF q with hC
-  have hκ1R : (κ : ℝ) ≤ 1 := by exact_mod_cast hκ1
-  have hsample : ∀ parameterOutput fixed highs remaining prepared,
-      prepared ∈ support (preparation parameterOutput fixed highs remaining) →
-      ∀ known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
-        (knownOf (truncateHash parameterOutput) fixed)),
-      Pr[HiddenReveal.StopOr RichWin | HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
-          (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
-            (sampleData parameterOutput fixed highs remaining steps)))) known prepared.2] ≤
-        A + C * failMass (failSet prepared.1) := by
-    intro parameterOutput fixed highs remaining prepared hprepared known hk
-    refine le_trans (sample_boundF hb adversary hnr q hq parameterOutput fixed highs remaining steps prepared
-      hprepared known hk ρ hN (κ : ℝ) hκ hκ1R H b k a N hHH hbb hkk haa hNN t o on hpt qtop hrt hqtop ho hon
-      hcthr) (le_of_eq ?_)
-    rw [hA, hC]
-    unfold smallMainFF smallFailF
-    rw [Rat.cast_mul, ENNReal.ofReal_mul (Rat.cast_nonneg.2 hκ0)]
-    ring
-  simp only [probEvent_bind_eq_tsum]
-  refine le_trans (tsum_bound_le _ _ A C (fun parameterOutput => ∑' fixed, Pr[= fixed | ($ᵗ HiddenGraph.Table :
-    ProbComp HiddenGraph.Table)] *
-    ∑' highs, Pr[= highs | ($ᵗ CoordinateHighs : ProbComp CoordinateHighs)] *
-    ∑' remaining, Pr[= remaining | ($ᵗ RemainingOutputs : ProbComp RemainingOutputs)] *
-    ∑' prepared, Pr[= prepared | preparation parameterOutput fixed highs remaining] *
-      failMass (failSet prepared.1)) fun parameterOutput _ => ?_) le_rfl
-  refine tsum_bound_le _ _ A C _ fun fixed _ => ?_
-  refine tsum_bound_le _ _ A C _ fun highs _ => ?_
-  refine tsum_bound_le _ _ A C _ fun remaining _ => ?_
-  refine tsum_bound_le _ _ A C _ fun prepared hprepared => ?_
-  refine le_trans (tsum_bound_le _ _ A C (fun _ => failMass (failSet prepared.1))
-    fun known hk => hsample parameterOutput fixed highs remaining prepared hprepared known hk) ?_
-  refine add_le_add le_rfl (mul_le_mul_right ?_ _)
-  rw [ENNReal.tsum_mul_right]
-  exact mul_le_of_le_one_left' tsum_probOutput_le_one
-
-/-- **Small budgets, deterministic signer.** -/
-theorem det_smallF (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ)
-    (hbound : HasHashQueryBound adversary q) (hq : q < 2 ^ 256)
-    (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
-    (κ : ℚ) (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
-      (signatureLimit : ℝ) * (((2 : ℝ) ^ subtreeHeight * 2 ^ forsHeight)⁻¹) ≤ (κ : ℝ))
-    (H b k a N : ℕ) (hHH : totalHeight = H) (hbb : subtreeHeight = b) (hkk : forsTrees = k)
-    (haa : forsHeight = a) (hNN : signatureLimit = N)
-    (t : H0.PoisT) (o : H0.Opt) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
-    (hrt : H0.checkRate H b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
-    (ho : H0.checkOpt H b k a t o = true) (hon : H0.checkOptN H k a t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
-    forgeAdvantage adversary ≤
-      smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
-        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := by
-  refine le_trans (Det.forgeAdvantage_le_seedFree adversary q hbound _ fun steps =>
-    small_seedFree_boundF hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q steps hq ρ hN
-      κ hκ0 hκ1 hκ H b k a N hHH hbb hkk haa hNN t o on hpt qtop hrt hqtop ho hon hcthr)
-    (add_le_add ?_ le_rfl)
-  rw [add_right_comm]
-  exact add_le_add (add_le_add le_rfl (mul_le_mul_right expectedFail_le _)) le_rfl
-
-end Close
 
 /-! ### The rational check -/
 

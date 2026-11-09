@@ -1,4 +1,8 @@
-import FORS.Scheme.Uniform
+module
+
+public import FORS.Scheme.Uniform
+
+@[expose] public section
 
 /-! Exact probability that a fresh message digest lands in the kept subtree; a full key keeps every index. -/
 
@@ -51,13 +55,13 @@ theorem landed_full (parameter : PublicParameter) (index : Index) : Landed param
   rw [subtreePosition_eq_zero, Params.full, Nat.div_eq_of_lt index.isLt]
 
 theorem evalDist_blockIndex_uniform :
-    𝒟[Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-    𝒟[($ᵗ Index : ProbComp Index)] := by
+    (Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)) =ᵈ ($ᵗ Index : ProbComp Index) := by
   have heq : Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput) =
       BitVec.toFin <$> ((fun u : HashOutput => u.extractLsb' 0 totalHeight) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) := by rw [Functor.map_map]; rfl
-  rw [heq, evalDist_map, evalDist_hashOutput_extract_uniform totalHeight_le_hashOutput, ← evalDist_map]
-  exact evalDist_map_bijective_uniform_cross (α := BitVec totalHeight) (β := Index) BitVec.toFin
-    ⟨fun _ _ h => congrArg BitVec.ofFin h, fun i => ⟨BitVec.ofFin i, rfl⟩⟩
+  rw [heq]
+  exact ((evalDist_hashOutput_extract_uniform totalHeight_le_hashOutput).map BitVec.toFin).trans
+    (SampleableType.map_uniformSample_evalDistEq_of_bijective (α := BitVec totalHeight) (β := Index)
+      ⟨fun _ _ h => congrArg BitVec.ofFin h, fun i => ⟨BitVec.ofFin i, rfl⟩⟩)
 
 end FORS

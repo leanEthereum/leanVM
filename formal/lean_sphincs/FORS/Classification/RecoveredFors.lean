@@ -1,4 +1,8 @@
-import FORS.Classification.Accepted
+module
+
+public import FORS.Classification.Accepted
+
+@[expose] public section
 
 /-! The FORS part of the classification that keeps the recovered FORS roots
 (`accepted_recovered_classification`, `Classification/Accepted.lean`), refined tree by tree. Roots
@@ -40,7 +44,7 @@ theorem tree_refined (leaf : FLeaf) (secret : Digest) (path : Fin forsHeight →
     ⟨hleaf, hpath⟩ | hmatch
   · refine Or.inl ⟨?_, ?_⟩
     · funext level
-      simpa only [extendPath, dif_pos level.isLt] using hpath level.val level.isLt
+      simpa only [extendPath, dite_eq_left level.isLt] using hpath level.val level.isLt
     · by_cases hsecret : secret = Completeness.forsSecretValue f parameter index κ seed leaf
       · exact Or.inl hsecret
       · exact Or.inr ⟨hsecret, hleaf⟩

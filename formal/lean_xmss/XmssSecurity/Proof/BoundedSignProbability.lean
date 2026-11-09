@@ -1,5 +1,11 @@
-import XmssSecurity.Proof.SignCacheHitProbability
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.EncodingTargetMap
+public import XmssSecurity.Proof.SigningRandomnessUniformity
+public import Mathlib.Data.Set.Card.Arithmetic
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

@@ -1,6 +1,10 @@
-import FORS.CoverBound.HTermOption
-import FORS.CoverBound.ClassLaw
-import FORS.CoverBound.IntTables
+module
+
+public import FORS.CoverBound.HTermOption
+public import FORS.CoverBound.ClassLaw
+public import FORS.CoverBound.IntTables
+
+@[expose] public section
 
 /-! **The option of the split by big indices.** An option fixes the cap `c1`, the Chernoff parameters
 `θ_0, …, θ_m`, the threshold `cthr`, the number `nb` of views above which an index is big (with
@@ -26,10 +30,15 @@ set_option linter.unusedSectionVars false
 
 /-! ### The exponential in integers -/
 
-/-- Iterated squaring of a numerator over `2^P`, rounded up. -/
-def sqUpN (P : ℕ) : ℕ → ℕ → ℕ
-  | 0, x => x
-  | s + 1, x => sqUpN P s ((x * x + (2 ^ P - 1)) / 2 ^ P)
+/-- Iterated squaring of a numerator over `2^P`, rounded up. A plain `Nat.rec` over the `Nat`
+operations, which the kernel steps through faster than the recursion the equation compiler builds. -/
+def sqUpN (P s x : ℕ) : ℕ :=
+  Nat.rec (motive := fun _ => ℕ → ℕ) (fun x => x)
+    (fun _ ih x => ih (Nat.div (Nat.add (Nat.mul x x) (Nat.sub (Nat.pow 2 P) 1)) (Nat.pow 2 P))) s x
+
+theorem sqUpN_zero (P x : ℕ) : sqUpN P 0 x = x := rfl
+
+theorem sqUpN_succ (P s x : ℕ) : sqUpN P (s + 1) x = sqUpN P s ((x * x + (2 ^ P - 1)) / 2 ^ P) := rfl
 
 /-- The numerator over `2^P` of an upper bound of `e^(un / ud)`: `(1 - u / 2^s)^(-2^s)`, rounded up. -/
 def expUpN (un ud s P : ℕ) : ℕ :=
@@ -44,9 +53,9 @@ theorem le_ceilDiv' (a d : ℕ) (hd : 0 < d) : (a : ℝ) / d ≤ (((a + (d - 1))
 
 theorem sqUpN_ge (P : ℕ) : ∀ (s x : ℕ) (y : ℝ), 0 ≤ y → y ≤ (x : ℝ) / 2 ^ P →
     y ^ (2 ^ s) ≤ (sqUpN P s x : ℝ) / 2 ^ P
-  | 0, x, y, _, h => by simpa [sqUpN] using h
+  | 0, x, y, _, h => by simpa [sqUpN_zero] using h
   | s + 1, x, y, hy, h => by
-      simp only [sqUpN]
+      rw [sqUpN_succ]
       have h2 : y ^ 2 ≤ (((x * x + (2 ^ P - 1)) / 2 ^ P : ℕ) : ℝ) / 2 ^ P := by
         have hx : (0 : ℝ) ≤ (x : ℝ) / 2 ^ P := le_trans hy h
         calc y ^ 2 ≤ ((x : ℝ) / 2 ^ P) ^ 2 := pow_le_pow_left₀ hy h 2
@@ -126,6 +135,63 @@ theorem one_le_expUpN_div (un ud s P : ℕ) (hd : 0 < ud) (hus : un < 2 ^ s * ud
     (1 : ℝ) ≤ (expUpN un ud s P : ℝ) / 2 ^ P :=
   le_trans (Real.one_le_exp (by positivity)) (exp_le_expUpN un ud s P hd hus)
 
+/-- `expUpN` reads `un / ud` only. -/
+theorem expUpN_congr {un ud un' ud' : ℕ} (s P : ℕ) (hd : 0 < ud) (hd' : 0 < ud') (h : un * ud' = un' * ud) :
+    expUpN un ud s P = expUpN un' ud' s P := by
+  unfold expUpN
+  congr 1
+  by_cases hB : un < 2 ^ s * ud
+  · have hB' : un' < 2 ^ s * ud' := by
+      by_contra hc
+      rw [not_lt] at hc
+      have : un' * ud ≥ 2 ^ s * ud' * ud := Nat.mul_le_mul_right _ hc
+      have : un * ud' < 2 ^ s * ud * ud' := Nat.mul_lt_mul_of_pos_right hB hd'
+      nlinarith
+    have e : ∀ A B : ℕ, 0 < B → (A + (B - 1)) / B = cdiv A B := fun A B hB => by
+      unfold cdiv; congr 1; omega
+    rw [show 2 ^ s * ud - un - 1 = (2 ^ s * ud - un) - 1 by omega,
+      show 2 ^ s * ud' - un' - 1 = (2 ^ s * ud' - un') - 1 by omega, e _ _ (by omega), e _ _ (by omega)]
+    apply Nat.cast_injective (R := ℤ)
+    rw [← cdivZ_natCast _ _ (by omega), ← cdivZ_natCast _ _ (by omega), cdivZ_eq_ceil, cdivZ_eq_ceil]
+    congr 1
+    push_cast
+    rw [Nat.cast_sub hB.le, Nat.cast_sub hB'.le]
+    have hq : (un : ℚ) * ud' = un' * ud := by exact_mod_cast h
+    have h1 : (0 : ℚ) < 2 ^ s * ud - un := by
+      have : ((un : ℕ) : ℚ) < ((2 ^ s * ud : ℕ) : ℚ) := by exact_mod_cast hB
+      push_cast at this; linarith
+    have h2 : (0 : ℚ) < 2 ^ s * ud' - un' := by
+      have : ((un' : ℕ) : ℚ) < ((2 ^ s * ud' : ℕ) : ℚ) := by exact_mod_cast hB'
+      push_cast at this; linarith
+    push_cast
+    rw [div_eq_div_iff h1.ne' h2.ne']
+    linear_combination (2 : ℚ) ^ P * 2 ^ s * hq
+  · have hB' : ¬ un' < 2 ^ s * ud' := by
+      intro hc
+      have : un' * ud < 2 ^ s * ud' * ud := Nat.mul_lt_mul_of_pos_right hc hd
+      have : un * ud' ≥ 2 ^ s * ud * ud' := Nat.mul_le_mul_right _ (not_lt.mp hB)
+      nlinarith
+    rw [Nat.sub_eq_zero_of_le (not_lt.mp hB), Nat.sub_eq_zero_of_le (not_lt.mp hB'), Nat.div_zero, Nat.div_zero]
+
+/-- A nonnegative rational from its numerator and its denominator. -/
+theorem rat_eq_num_div_den {q : ℚ} (hq : 0 ≤ q) : q = (q.num.toNat : ℚ) / q.den := by
+  rw [show ((q.num.toNat : ℕ) : ℚ) = (q.num : ℚ) by exact_mod_cast Int.toNat_of_nonneg (Rat.num_nonneg.mpr hq),
+    Rat.num_div_den]
+
+/-- `expQN` at `θ zn / zd`, from the numerator and the denominator of `θ`. -/
+theorem expQN_mul_eq {θ : ℚ} (hθ : 0 ≤ θ) {zn zd : ℕ} (hzd : 0 < zd) (s P : ℕ) :
+    expQN (θ * ((zn : ℚ) / zd)) s P = expUpN (θ.num.toNat * zn) (θ.den * zd) s P := by
+  unfold expQN
+  have hu : 0 ≤ θ * ((zn : ℚ) / zd) := by positivity
+  apply expUpN_congr s P (Rat.den_pos _) (by have := θ.den_pos; positivity)
+  have hd1 : (0 : ℚ) < (θ * ((zn : ℚ) / zd)).den := by exact_mod_cast Rat.den_pos _
+  have hd2 : (0 : ℚ) < θ.den := by exact_mod_cast θ.den_pos
+  have hzd' : (0 : ℚ) < zd := by exact_mod_cast hzd
+  have key : ((θ * ((zn : ℚ) / zd)).num.toNat : ℚ) / (θ * ((zn : ℚ) / zd)).den =
+      (θ.num.toNat : ℚ) / θ.den * ((zn : ℚ) / zd) := by rw [← rat_eq_num_div_den hu, ← rat_eq_num_div_den hθ]
+  rw [div_mul_div_comm, div_eq_div_iff hd1.ne' (by positivity)] at key
+  exact_mod_cast key
+
 /-- The quotient of two naturals, below its numerator rounded up over `2^R`. -/
 theorem div_le_cdiv_divR (R : ℕ) {x d : ℕ} (hd : 0 < d) :
     (x : ℝ) / d ≤ ((cdiv (2 ^ R * x) d : ℕ) : ℝ) / 2 ^ R := by
@@ -188,8 +254,7 @@ tables elsewhere. -/
 def gEntryJ (H k a : ℕ) (o : OptJ) (n : ℕ) : ℤ :=
   if n ^ k * o.c1.den ≤ o.c1.num.toNat * 2 ^ (H + a * k) then 0
   else if n ∈ o.nx then (lawGN H k a n o.T o.c1 : ℤ)
-  else min (cdivZ (((p1N a n ^ k : ℕ) : ℤ) * 2 ^ 191) (p2 (H + 128 * k)))
-    (cdivZ (((p2N a n ^ k * o.c1.den : ℕ) : ℤ) * 2 ^ 191) (p2 (2 * H + 128 * k) * 4 * o.c1.num))
+  else (gNat H k o.c1.num.toNat o.c1.den (p1N a n) (p2N a n) : ℤ)
 
 /-- The numerator over `2^P` of the bound of `e^{θ_j c1}`. -/
 def eAN (o : OptJ) (P j : ℕ) : ℕ := expQN (o.θ j * o.c1) o.s P
@@ -205,10 +270,64 @@ def eH1N (H k a : ℕ) (o : OptJ) (P j : ℕ) : ℕ := cdiv (2 ^ 128 * (eHN H k 
 def zQ (H k a : ℕ) (o : OptJ) (j n : ℕ) : ℚ :=
   if 1 ≤ n ∧ c2Q H k a n < capQ H k a o j then c2Q H k a n else capQ H k a o j
 
-/-- The quadratic coefficient `(e^{θ z} - 1 - θ z) / z^2` at `z = zQ`, rounded up. -/
+/-- `zQ` as a numerator and a denominator. -/
+def zN (H k a : ℕ) (o : OptJ) (j n : ℕ) : ℕ × ℕ :=
+  if 1 ≤ n ∧ n ^ k * (capQ H k a o j).den < (capQ H k a o j).num.toNat * 2 ^ (H + a * k) then
+    (n ^ k, 2 ^ (H + a * k))
+  else ((capQ H k a o j).num.toNat, (capQ H k a o j).den)
+
+/-- The quadratic coefficient `(e^{θ z} - 1 - θ z) / z^2` at `z = zQ`, rounded up (`A2Jn_eq`), computed
+in integers from the numerators and the denominators of `θ` and `z`. -/
 def A2Jn (H k a : ℕ) (o : OptJ) (P j n : ℕ) : ℚ :=
-  rup (((expQN (o.θ j * zQ H k a o j n) o.s P : ℚ) / 2 ^ P - 1 - o.θ j * zQ H k a o j n) / zQ H k a o j n ^ 2)
-    (2 * 127 + 64)
+  let tn := (o.θ j).num.toNat
+  let td := (o.θ j).den
+  let zn := (zN H k a o j n).1
+  let zd := (zN H k a o j n).2
+  mkRat (cdivZ ((((expUpN (tn * zn) (td * zd) o.s P * td * zd : ℕ) : ℤ) -
+      ((2 ^ P * td * zd + 2 ^ P * tn * zn : ℕ) : ℤ)) * zd * 2 ^ (2 * 127 + 64)) (2 ^ P * td * zn ^ 2 : ℕ))
+    (2 ^ (2 * 127 + 64))
+
+theorem zN_spec {H k a : ℕ} {o : OptJ} {j : ℕ} (hcap : 0 < capQ H k a o j) (n : ℕ) :
+    zQ H k a o j n = ((zN H k a o j n).1 : ℚ) / (zN H k a o j n).2 ∧ 0 < (zN H k a o j n).1 ∧
+      0 < (zN H k a o j n).2 := by
+  set c := capQ H k a o j
+  have hcn : 0 < c.num.toNat := by have := Rat.num_pos.mpr hcap; omega
+  have hiff : c2Q H k a n < c ↔ n ^ k * c.den < c.num.toNat * 2 ^ (H + a * k) := by
+    rw [rat_eq_num_div_den hcap.le, c2Q, div_lt_div_iff₀ (by positivity) (by exact_mod_cast c.den_pos)]
+    simp only [← rat_eq_num_div_den hcap.le]
+    exact_mod_cast Iff.rfl
+  unfold zQ zN
+  by_cases h : 1 ≤ n ∧ n ^ k * c.den < c.num.toNat * 2 ^ (H + a * k)
+  · rw [ite_eq_left ⟨h.1, hiff.mpr h.2⟩, ite_eq_left h]
+    exact ⟨by unfold c2Q; push_cast; rfl, Nat.pow_pos h.1, by positivity⟩
+  · rw [ite_eq_right (fun h' => h ⟨h'.1, hiff.mp h'.2⟩), ite_eq_right h]
+    exact ⟨rat_eq_num_div_den hcap.le, hcn, c.den_pos⟩
+
+theorem A2Jn_eq {H k a : ℕ} {o : OptJ} {P j : ℕ} (hθ : 0 < o.θ j) (hcap : 0 < capQ H k a o j) (n : ℕ) :
+    A2Jn H k a o P j n =
+      rup (((expQN (o.θ j * zQ H k a o j n) o.s P : ℚ) / 2 ^ P - 1 - o.θ j * zQ H k a o j n) / zQ H k a o j n ^ 2)
+        (2 * 127 + 64) := by
+  obtain ⟨hz, hzn, hzd⟩ := zN_spec hcap n (o := o) (j := j)
+  unfold A2Jn
+  simp only
+  rw [hz, expQN_mul_eq hθ.le hzd]
+  set zn := (zN H k a o j n).1
+  set zd := (zN H k a o j n).2
+  set E := expUpN ((o.θ j).num.toNat * zn) ((o.θ j).den * zd) o.s P
+  set tn := (o.θ j).num.toNat
+  set td := (o.θ j).den
+  have e2 : o.θ j = (tn : ℚ) / td := rat_eq_num_div_den hθ.le
+  have hd2 : (0 : ℚ) < td := by exact_mod_cast (o.θ j).den_pos
+  have hzd' : (0 : ℚ) < zd := by exact_mod_cast hzd
+  have hzn' : (0 : ℚ) < zn := by exact_mod_cast hzn
+  have hx : ((E : ℚ) / 2 ^ P - 1 - o.θ j * ((zn : ℚ) / zd)) / ((zn : ℚ) / zd) ^ 2 =
+      ((((E * td * zd : ℕ) : ℤ) - ((2 ^ P * td * zd + 2 ^ P * tn * zn : ℕ) : ℤ)) * zd : ℤ) /
+        ((2 ^ P * td * zn ^ 2 : ℕ) : ℚ) := by
+    rw [e2]
+    push_cast
+    field_simp
+    ring
+  rw [hx, rup_intCast_div]
 
 /-- The numerator over `2^128` of `ā_j(n)`. -/
 def aEntryJ (H k a : ℕ) (o : OptJ) (P j n : ℕ) : ℤ :=
@@ -220,13 +339,34 @@ def aEntryJ (H k a : ℕ) (o : OptJ) (P j n : ℕ) : ℤ :=
 def hEntryJ (H k a : ℕ) (o : OptJ) (P j n : ℕ) : ℤ :=
   if j < o.m ∧ o.nb < n then (eH1N H k a o P j : ℤ)
   else if n ∈ o.nx then ((lawEN H k a n o.T o.s P (o.θ j) (capQ H k a o j) - 2 ^ 128 : ℕ) : ℤ)
-  else min (eH1N H k a o P j : ℤ)
-    (cdivZ (((o.θ j).num * (A2Jn H k a o P j n).den * ((p1N a n ^ k : ℕ) : ℤ) * p2 H +
-      (A2Jn H k a o P j n).num * (o.θ j).den * ((p2N a n ^ k : ℕ) : ℤ)) * 2 ^ 128)
-      ((o.θ j).den * (A2Jn H k a o P j n).den * p2 (2 * H + 128 * k)))
+  else (min (eH1N H k a o P j) (hNat H k (o.θ j).num.toNat (o.θ j).den (A2Jn H k a o P j n).num.toNat
+    (A2Jn H k a o P j n).den (p1N a n) (p2N a n)) : ℕ)
 
-/-- A table of numerators over `n ≤ n1`, made convex. -/
-def tabJ (n1 : ℕ) (f : ℕ → ℤ) : List ℤ := convexZ ((List.range (n1 + 1)).map f)
+/-- A table of numerators over `n ≤ n1`, made convex (in `ℕ`, `tabJ_eq`). -/
+def tabJ (n1 : ℕ) (f : ℕ → ℤ) : List ℤ := (convexN ((List.range (n1 + 1)).map fun n => (f n).toNat)).map (↑)
+
+theorem tabJ_eq {n1 : ℕ} {f : ℕ → ℤ} (hf : ∀ n, 0 ≤ f n) : tabJ n1 f = convexZ ((List.range (n1 + 1)).map f) := by
+  rw [tabJ, convexN_map, List.map_map]
+  congr 1
+  exact List.map_congr_left fun n _ => Int.toNat_of_nonneg (hf n)
+
+theorem length_tabJ (n1 : ℕ) (f : ℕ → ℤ) : (tabJ n1 f).length = n1 + 1 := by
+  simp [tabJ, length_convexN]
+
+theorem gEntryJ_nonneg (H k a : ℕ) (o : OptJ) (n : ℕ) : 0 ≤ gEntryJ H k a o n := by
+  unfold gEntryJ; split_ifs <;> positivity
+
+theorem aEntryJ_nonneg (H k a : ℕ) (o : OptJ) (P j n : ℕ) : 0 ≤ aEntryJ H k a o P j n := by
+  unfold aEntryJ; split_ifs <;> positivity
+
+theorem hEntryJ_nonneg (H k a : ℕ) (o : OptJ) (P j n : ℕ) : 0 ≤ hEntryJ H k a o P j n := by
+  unfold hEntryJ; split_ifs <;> positivity
+
+theorem checkLeaf_tabJ {n1 P : ℕ} {f : ℕ → ℤ} (hf : ∀ n, 0 ≤ f n) (h1 : 1 ≤ n1)
+    (h0 : 0 ≤ (overP P (tabJ n1 f)).getD 0 0) (cap : ℚ) :
+    checkLeaf (overP P (tabJ n1 f)) (leafJ n1 (overP P (tabJ n1 f)) cap) = true := by
+  rw [tabJ_eq hf] at h0 ⊢
+  exact checkLeaf_overP (by simp) h1 h0 cap
 
 /-- `ḡ` (numerators over `2^191`). -/
 def gkJ (H k a : ℕ) (t : PoisT) (o : OptJ) : List ℤ := tabJ t.n1 (gEntryJ H k a o)
@@ -627,7 +767,8 @@ theorem avgN_gS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
     unfold lawGN
     push_cast
     rfl
-  · exact avgN_gS_le_mom hH hb hk ha o.c1 hc1 n hn
+  · rw [gNat_eq hc1]
+    exact avgN_gS_le_mom hH hb hk ha o.c1 hc1 n hn
 
 /-- **The entries of `ā_j`.** -/
 theorem avgN_aS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeight = b) (hk : forsTrees = k)
@@ -643,7 +784,7 @@ theorem avgN_aS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
   · rw [avgN_zero_of_card fun Ms hMs => ?_]
     · positivity
     unfold aS
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · refine le_trans (avgN_mono (aS_le_hS _ _ _) n 0) ?_
     refine le_trans (avgN_law_le hH hb hk ha (hnx n h2) hT (fun x => Real.exp ((o.θ j : ℝ) * min x (o.c1 : ℝ)))
       (fun _ => (Real.exp_pos _).le) (expMin_mono _ _ hθ') (fun Y => expAtN (o.θ j) o.c1 (H + a * k) Y o.s t.P)
@@ -741,7 +882,7 @@ theorem avgN_hS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
         ((zQ H k a o j n : ℚ) : ℝ) ^ 2 ≤ (A2 : ℝ) := by
       have he := exp_le_expQN (o.θ j * zQ H k a o j n) o.s t.P (by positivity) hzs
       have hr0 : ((expQN (o.θ j * zQ H k a o j n) o.s t.P : ℚ) / 2 ^ t.P - 1 - o.θ j * zQ H k a o j n) /
-          zQ H k a o j n ^ 2 ≤ A2 := le_rup _ _
+          zQ H k a o j n ^ 2 ≤ A2 := by rw [show A2 = _ from A2Jn_eq hθ hcap n]; exact le_rup _ _
       have hr := (Rat.cast_le (K := ℝ)).mpr hr0
       push_cast at he hr
       refine le_trans ?_ hr
@@ -765,7 +906,12 @@ theorem avgN_hS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
         rw [min_eq_left (hy.trans hlt.le), min_eq_left hy]
       · rfl
     have hmom := le_trans hzeq (avgN_hS_le_mom hH hb hk ha (zQ H k a o j n) (o.θ j) A2 hz0 hθ hA2 n hn)
-    rw [Int.cast_min, ← min_div_div_right (by positivity)]
+    have hA0 : 0 ≤ A2 := by
+      have h1 := Real.add_one_le_exp ((o.θ j : ℝ) * zQ H k a o j n)
+      have h2 : (0 : ℝ) ≤ (Real.exp ((o.θ j : ℝ) * zQ H k a o j n) - 1 - (o.θ j : ℝ) * zQ H k a o j n) /
+          ((zQ H k a o j n : ℚ) : ℝ) ^ 2 := div_nonneg (by linarith) (by positivity)
+      exact_mod_cast h2.trans hA2
+    rw [Nat.cast_min, hNat_eq hθ.le hA0, Int.cast_min, ← min_div_div_right (by positivity)]
     rcases min_choice (((eH1N H k a o t.P j : ℤ) : ℚ) / 2 ^ 128)
       (((cdivZ (((o.θ j).num * A2.den * ((p1N a n ^ k : ℕ) : ℤ) * p2 H +
         A2.num * (o.θ j).den * ((p2N a n ^ k : ℕ) : ℤ)) * 2 ^ 128)
@@ -777,12 +923,12 @@ theorem avgN_hS_le_entry {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHei
 
 /-- A convex table of entry bounds, extended with the slope to its cap, bounds an average at every
 count of views. -/
-theorem avgN_le_tab {φ : Multiset (FTree → FLeaf) → ℝ≥0∞} (c0 : ℝ≥0∞) {n1 P : ℕ} (f : ℕ → ℤ) (cap : ℚ)
-    (h1 : 1 ≤ n1) (h0 : 0 ≤ (overP P (convexZ ((List.range (n1 + 1)).map f))).getD 0 0)
+theorem avgN_le_tab {φ : Multiset (FTree → FLeaf) → ℝ≥0∞} (c0 : ℝ≥0∞) {n1 P : ℕ} (f : ℕ → ℤ)
+    (hf : ∀ n, 0 ≤ f n) (cap : ℚ) (h1 : 1 ≤ n1) (h0 : 0 ≤ (overP P (tabJ n1 f)).getD 0 0)
     (hent : ∀ n < n1 + 1, avgN φ n 0 ≤ c0 + ENNReal.ofReal ((((f n : ℤ) : ℚ) / 2 ^ P : ℚ) : ℝ))
     (hcap : ∀ n, avgN φ n 0 ≤ c0 + ENNReal.ofReal ((cap : ℚ) : ℝ)) (n : ℕ) :
-    avgN φ n 0 ≤ c0 + ENNReal.ofReal ((leafQ (overP P (convexZ ((List.range (n1 + 1)).map f)))
-      (leafJ n1 (overP P (convexZ ((List.range (n1 + 1)).map f))) cap) n : ℚ) : ℝ) := by
+    avgN φ n 0 ≤ c0 + ENNReal.ofReal ((leafQ (overP P (tabJ n1 f)) (leafJ n1 (overP P (tabJ n1 f)) cap) n : ℚ) : ℝ) := by
+  rw [tabJ_eq hf] at h0 ⊢
   set ks := (List.range (n1 + 1)).map f with hks
   have hl : ks.length = n1 + 1 := by rw [hks, List.length_map, List.length_range]
   have hlo : (overP P (convexZ ks)).length = n1 + 1 := by rw [length_overP, length_convexZ, hl]
@@ -803,7 +949,7 @@ theorem avgN_gS_le_tabJ {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeig
     avgN (gS (o.c1 : ℝ)) n 0 ≤ ENNReal.ofReal ((leafQ (gtJ H k a t o) (JgJ H k a t o) n : ℚ) : ℝ) := by
   obtain ⟨hc1, -, -, -, -, -, -, -, h1, h150, hg0, -⟩ := okJ_parts ho
   have hc1' : (0 : ℝ) < (o.c1 : ℝ) := by exact_mod_cast hc1
-  have h := avgN_le_tab (φ := gS (o.c1 : ℝ)) 0 (P := 191) (gEntryJ H k a o) (κQ H) h1 hg0
+  have h := avgN_le_tab (φ := gS (o.c1 : ℝ)) 0 (P := 191) (gEntryJ H k a o) (gEntryJ_nonneg H k a o) (κQ H) h1 hg0
     (fun n hn => by rw [zero_add]; exact avgN_gS_le_entry hH hb hk ha ho n (by omega))
     (fun n => by
       rw [zero_add]
@@ -822,7 +968,7 @@ theorem avgN_aS_le_tabJ {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeig
   obtain ⟨-, -, -, -, -, -, -, -, h1, -, -, hht0, -⟩ := okJ_parts ho
   obtain ⟨hc1, hθ, -, -, hs, -⟩ := okJ_facts ho j hj
   have h := avgN_le_tab (φ := aS (o.c1 : ℝ) (o.θ j : ℝ) o.nb) 0 (P := 128) (aEntryJ H k a o t.P j)
-    ((eAN o t.P j : ℚ) / 2 ^ t.P) h1 (hht0 j hj).1
+    (aEntryJ_nonneg H k a o t.P j) ((eAN o t.P j : ℚ) / 2 ^ t.P) h1 (hht0 j hj).1
     (fun n _ => by rw [zero_add]; exact avgN_aS_le_entry hH hb hk ha ho j hj n)
     (fun n => by
       rw [zero_add]
@@ -846,7 +992,7 @@ theorem avgN_hS_le_tabJ {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeig
   obtain ⟨-, -, -, -, -, -, -, -, h1, h150, -, hht0, -⟩ := okJ_parts ho
   obtain ⟨-, hθ, hcap, -, -, hs⟩ := okJ_facts ho j hj
   exact avgN_le_tab (φ := hS (capQ H k a o j : ℝ) (o.θ j : ℝ)) 1 (P := 128) (hEntryJ H k a o t.P j)
-    ((eHN H k a o t.P j : ℚ) / 2 ^ t.P - 1) h1 (hht0 j hj).2
+    (hEntryJ_nonneg H k a o t.P j) ((eHN H k a o t.P j : ℚ) / 2 ^ t.P - 1) h1 (hht0 j hj).2
     (fun n hn => avgN_hS_le_entry hH hb hk ha ho j hj n (by omega))
     (fun n => by
       refine le_trans (avgN_mono (hS_le_cap _ _ (by exact_mod_cast hθ)) n 0) ?_
@@ -927,9 +1073,9 @@ theorem hTermO_le_optJ {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeigh
     (fun n => ENNReal.ofReal ((leafQ (gtJ H k a t o) (JgJ H k a t o) n : ℚ) : ℝ))
     (fun j n => ENNReal.ofReal ((leafQ (atJ H k a t o j) (JaJ H k a t o j) n : ℚ) : ℝ))
     (fun j n => 1 + ENNReal.ofReal ((leafQ (htJ H k a t o j) (JhJ H k a t o j) n : ℚ) : ℝ))
-    (leaf_sepGood (checkLeaf_overP (by simp) h1 hg0 _))
-    (fun j hj => leaf_sepGood (checkLeaf_overP (by simp) h1 (hah0 j (Finset.mem_range.1 hj)).1 _))
-    (fun j hj => SepGood.one_add (leaf_sepGood (checkLeaf_overP (by simp) h1 (hah0 j (Finset.mem_range.1 hj)).2 _)))
+    (leaf_sepGood (checkLeaf_tabJ (gEntryJ_nonneg H k a o) h1 hg0 _))
+    (fun j hj => leaf_sepGood (checkLeaf_tabJ (aEntryJ_nonneg H k a o t.P j) h1 (hah0 j (Finset.mem_range.1 hj)).1 _))
+    (fun j hj => SepGood.one_add (leaf_sepGood (checkLeaf_tabJ (hEntryJ_nonneg H k a o t.P j) h1 (hah0 j (Finset.mem_range.1 hj)).2 _)))
     (avgN_gS_le_tabJ hH hb hk ha hok)
     (fun j hj n => avgN_aS_le_tabJ hH hb hk ha hok j (Finset.mem_range.1 hj) n)
     (fun j hj n => by
@@ -942,25 +1088,25 @@ theorem hTermO_le_optJ {H b k a : ℕ} (hH : totalHeight = H) (hb : subtreeHeigh
   have hp : 2 ≤ t.pm.length := by unfold PoisT.n1 at h1; omega
   have hEg : poisMean μ (fun n => ENNReal.ofReal ((leafQ (gtJ H k a t o) (JgJ H k a t o) n : ℚ) : ℝ)) ≤
       ENNReal.ofReal (EgJ H b k a t o : ℝ) := by
-    refine le_trans (poisMean_leaf_le ht (checkLeaf_overP (by simp) h1 hg0 _) (by simp [gtJ, gkJ, tabJ,
-      length_overP, length_convexZ])) (ENNReal.ofReal_le_ofReal ((Rat.cast_le (K := ℝ)).mpr ?_))
+    refine le_trans (poisMean_leaf_le ht (checkLeaf_tabJ (gEntryJ_nonneg H k a o) h1 hg0 _) (by simp [gtJ, gkJ, tabJ,
+      length_overP, length_convexN])) (ENNReal.ofReal_le_ofReal ((Rat.cast_le (K := ℝ)).mpr ?_))
     exact (meanZ_eq (P := 191) (ks := gkJ H k a t o) (JgJ H k a t o)
-      (by simp [gkJ, tabJ, length_convexZ]) hp).trans_le (le_rup _ _)
+      (by simp [gkJ, length_tabJ]) hp).trans_le (le_rup _ _)
   have hEa : ∀ j ∈ S, poisMean μ (fun n => ENNReal.ofReal ((leafQ (atJ H k a t o j) (JaJ H k a t o j) n : ℚ) : ℝ)) ≤
       ENNReal.ofReal (EaJ H b k a t o j : ℝ) := fun j hj => by
-    refine le_trans (poisMean_leaf_le ht (checkLeaf_overP (by simp) h1 (hah0 j (Finset.mem_range.1 hj)).1 _)
-      (by simp [atJ, akJ, tabJ, length_overP, length_convexZ])) (ENNReal.ofReal_le_ofReal ((Rat.cast_le (K := ℝ)).mpr ?_))
+    refine le_trans (poisMean_leaf_le ht (checkLeaf_tabJ (aEntryJ_nonneg H k a o t.P j) h1 (hah0 j (Finset.mem_range.1 hj)).1 _)
+      (by simp [atJ, akJ, tabJ, length_overP, length_convexN])) (ENNReal.ofReal_le_ofReal ((Rat.cast_le (K := ℝ)).mpr ?_))
     exact (meanZ_eq (P := 128) (ks := akJ H k a t o j) (JaJ H k a t o j)
-      (by simp [akJ, tabJ, length_convexZ]) hp).trans_le (le_rup _ _)
+      (by simp [akJ, length_tabJ]) hp).trans_le (le_rup _ _)
   have hEh : ∀ j ∈ S, poisMean μ (fun n => 1 + ENNReal.ofReal ((leafQ (htJ H k a t o j) (JhJ H k a t o j) n : ℚ) : ℝ)) ≤
       ENNReal.ofReal ((1 + EhJ H b k a t o j : ℚ) : ℝ) := fun j hj => by
     rw [poisMean_one_add, show ((1 + EhJ H b k a t o j : ℚ) : ℝ) = 1 + (EhJ H b k a t o j : ℝ) by push_cast; ring,
       ENNReal.ofReal_add zero_le_one (by exact_mod_cast (hEah0 j (Finset.mem_range.1 hj)).2), ENNReal.ofReal_one]
-    refine add_le_add le_rfl (le_trans (poisMean_leaf_le ht (checkLeaf_overP (by simp) h1
-      (hah0 j (Finset.mem_range.1 hj)).2 _) (by simp [htJ, hkJ, tabJ, length_overP, length_convexZ]))
+    refine add_le_add le_rfl (le_trans (poisMean_leaf_le ht (checkLeaf_tabJ (hEntryJ_nonneg H k a o t.P j) h1
+      (hah0 j (Finset.mem_range.1 hj)).2 _) (by simp [htJ, hkJ, tabJ, length_overP, length_convexN]))
       (ENNReal.ofReal_le_ofReal ((Rat.cast_le (K := ℝ)).mpr ?_)))
     exact (meanZ_eq (P := 128) (ks := hkJ H k a t o j) (JhJ H k a t o j)
-      (by simp [hkJ, tabJ, length_convexZ]) hp).trans_le (le_rup _ _)
+      (by simp [hkJ, length_tabJ]) hp).trans_le (le_rup _ _)
   -- the terms
   have hterm : ∀ j ∈ S, ENNReal.ofReal (prefR ((o.θ j : ℚ) : ℝ) (o.cthr : ℝ)) *
       (((Fintype.card (Fin (2 ^ subtreeHeight))).choose j : ℝ≥0∞) *

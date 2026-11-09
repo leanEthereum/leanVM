@@ -1,8 +1,12 @@
-import XmssSecurity.Proof.GlobalBadEvent
-import XmssSecurity.Proof.AdaptiveFreshTarget
-import XmssSecurity.Proof.TopKeygenCache
-import XmssSecurity.Proof.TopVerificationQueryPresence
-import XmssSecurity.Proof.CappedSuffixEventProbability
+module
+
+public import XmssSecurity.Proof.GlobalBadEvent
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.TopKeygenCache
+public import XmssSecurity.Proof.TopVerificationQueryPresence
+public import XmssSecurity.Proof.CappedSuffixEventProbability
+
+@[expose] public section
 
 /-!
 # The top layer's bad events
@@ -124,7 +128,7 @@ theorem keygenTopTargetInput_topChainInput (secretKey : SecretKey) (cache : Quer
         Concrete.CacheView.topChainInput secretKey.parameter address.1 address.2.1 address.2.2
           value' := ⟨(key, chain, step), value, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topChain.injEq] at hdomain
@@ -149,7 +153,7 @@ theorem keygenTopTargetInput_topLeafInput (secretKey : SecretKey) (cache : Query
       Concrete.CacheView.topLeafInput secretKey.parameter key endpoints =
         Concrete.CacheView.topLeafInput secretKey.parameter key' endpoints' := ⟨key, endpoints, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot, dif_pos hex]
+  rw [dite_eq_right hnot, dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topLeaf.injEq] at hdomain
@@ -180,7 +184,7 @@ theorem keygenTopTargetInput_topMerkleInput (secretKey : SecretKey) (cache : Que
         Concrete.CacheView.topMerkleInput secretKey.parameter address.1 address.2 left' right' :=
     ⟨(level, node), left, right, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot1, dif_neg hnot2, dif_pos hex]
+  rw [dite_eq_right hnot1, dite_eq_right hnot2, dite_eq_left hex]
   obtain ⟨_, _, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topMerkle.injEq] at hdomain
@@ -216,7 +220,7 @@ theorem keygenTopTargetInput_topEncodingInput (secretKey : SecretKey) (cache : Q
         Concrete.CacheView.topEncodingInput secretKey.parameter key' payload' :=
     ⟨key, payload, rfl⟩
   unfold keygenTopTargetInput
-  rw [dif_neg hnot1, dif_neg hnot2, dif_neg hnot3, dif_pos hex]
+  rw [dite_eq_right hnot1, dite_eq_right hnot2, dite_eq_right hnot3, dite_eq_left hex]
   obtain ⟨_, hinput⟩ := hex.choose_spec
   have hdomain := domain_eq_of_tweakableHashInput_eq secretKey.parameter hinput
   simp only [HashDomain.topEncoding.injEq] at hdomain
@@ -233,6 +237,7 @@ variable (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
 
 include hkeygen hle
 
+set_option maxRecDepth 10000 in
 /-- A cached top chain step that collides with the honest one at its address. -/
 theorem topChainCollision_afterKeygen
     (key : TopIndex) (chain : ChainIndex) (step : ChainStep) (forgedValue : Digest)
@@ -256,12 +261,15 @@ theorem topChainCollision_afterKeygen
     Concrete.precomputedKeygen_cache_has_topChainInput keyResult hkeygen key chain step
   have hforgedInitial := Concrete.precomputedKeygen_cache_topChainInput_eq_none_of_ne keyResult
     hkeygen key chain step forgedValue (fun heq => hne (heq.trans hstable))
-  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
-    (keygenTopTargetInput_topChainInput _ _ _ _ _ _) hhonest ?_
-  rw [hstable]
-  rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
+  refine ⟨Concrete.CacheView.topChainInput keyResult.1.2.parameter key chain step forgedValue,
+    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
+  · rw [keygenTopTargetInput_topChainInput]
+    exact hhonest
+  · rw [keygenTopTargetInput_topChainInput, hstable]
+    rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
       Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt] at hstepCollision
 
+set_option maxRecDepth 10000 in
 /-- A cached top leaf that collides with the honest one of its key. -/
 theorem topLeafCollision_afterKeygen
     (key : TopIndex) (forgedEndpoints : ChainIndex → Digest) (forgedOutput : HashOutput)
@@ -280,10 +288,12 @@ theorem topLeafCollision_afterKeygen
     Concrete.precomputedKeygen_cache_has_topLeafInput keyResult hkeygen key
   have hforgedInitial := Concrete.precomputedKeygen_cache_topLeafInput_eq_none_of_ne keyResult
     hkeygen key forgedEndpoints (fun heq => hcollision.1 (heq.trans hstable))
-  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
-    (keygenTopTargetInput_topLeafInput _ _ _ _) hhonest ?_
-  rw [hstable]
-  exact hcollision.2
+  refine ⟨Concrete.CacheView.topLeafInput keyResult.1.2.parameter key forgedEndpoints,
+    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
+  · rw [keygenTopTargetInput_topLeafInput]
+    exact hhonest
+  · rw [keygenTopTargetInput_topLeafInput, hstable]
+    exact hcollision.2
 
 /-- The children of a top node, ordered as the path's bit at its level orders them. -/
 def topOrderedNodePair (key : TopIndex) (level : Nat) (current sibling : Digest) :
@@ -350,6 +360,7 @@ theorem topOrdered_honestNodePair_eq_children (cache : QueryCache HashSpec)
     rcases hchildren with ⟨hleft, hright⟩
     simp [topOrderedNodePair, hbitFalse, hleft, hright]
 
+set_option maxRecDepth 10000 in
 /-- A cached top node on a path that collides with the honest one at its address. -/
 theorem topMerkleCollision_afterKeygen
     (key : TopIndex) (level : MerkleLevel)
@@ -394,16 +405,18 @@ theorem topMerkleCollision_afterKeygen
       intro hordered
       exact hne (topOrderedNodePair_injective key level.val hordered))
   rw [← topNodeInput_eq_topMerkleInput_ordered] at hforgedInitial
-  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
-    (by rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput])
-    hhonestCached ?_
-  · rw [topNodeInput_eq_topMerkleInput_ordered]
+  refine ⟨Concrete.CacheView.topNodeInput keyResult.1.2.parameter key level forgedCurrent
+    forgedSibling, forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
+  · rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput]
+    exact hhonestCached
+  · rw [topNodeInput_eq_topMerkleInput_ordered, keygenTopTargetInput_topMerkleInput]
     unfold Concrete.CacheView.topNodeHash at heq
-    rw [dif_pos level.isLt, dif_pos level.isLt] at heq
+    rw [dite_eq_left level.isLt, dite_eq_left level.isLt] at heq
     rw [topNodeInput_eq_topMerkleInput_ordered, topNodeInput_eq_topMerkleInput_ordered,
       hhonestInitial] at heq
     exact heq
 
+set_option maxRecDepth 10000 in
 /-- A cached top message digest input, other than the honest selected trial, with its digest. -/
 theorem topEncodingCollision_afterKeygen
     (key : TopIndex) (randomness : Randomness) (encoding : Encoding)
@@ -443,10 +456,12 @@ theorem topEncodingCollision_afterKeygen
         simp only [Option.some.injEq, Prod.mk.injEq] at hselected
         apply hne
         rw [← hroot, ← hforgedRoot, hselected.1]
-  refine Rom.AdaptiveFreshDigestCollisionWith.of_target hforgedCached hforgedInitial
-    (keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned) hhonest ?_
-  rw [hroot]
-  exact heq.symm
+  refine ⟨Concrete.CacheView.topEncodingInput keyResult.1.2.parameter key forgedInput,
+    forgedOutput, honestOutput, hforgedCached, hforgedInitial, ?_, ?_⟩
+  · rw [keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned]
+    exact hhonest
+  · rw [keygenTopTargetInput_topEncodingInput _ _ _ _ randomness encoding hsigned, hroot]
+    exact heq.symm
 
 end Collisions
 
@@ -719,10 +734,6 @@ theorem CappedTop.detailed_execution_topQueriesCached
     finalCache finalCache htop le_rfl
   rw [hparameter] at hcached
   exact hcached
-
-namespace CappedTop
-
-end CappedTop
 
 /-- The forgery's top value at a chain is the honest one at its own digit. -/
 noncomputable def OutcomeTopChainValueRevealed (cache : QueryCache HashSpec)

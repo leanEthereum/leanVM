@@ -1,4 +1,8 @@
-import FORS.Base.Poisson
+module
+
+public import FORS.Base.Poisson
+
+@[expose] public section
 
 /-! **Averaging out the marks.** The one-coin H-term over views `ι × M` (an index and a mark) is at
 most the H-term over indices alone of any function `F` of index multisets that dominates the mark

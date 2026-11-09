@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.CappedConcreteExecution
-import XmssSecurity.Proof.PrecomputedBoundedSign
-import XmssSecurity.Proof.SigningLogConsistency
-import XmssSecurity.Proof.WinningEventReduction
+module
+
+public import XmssSecurity.Proof.CappedConcreteExecution
+public import XmssSecurity.Proof.PrecomputedBoundedSign
+public import XmssSecurity.Proof.SigningLogConsistency
+public import XmssSecurity.Proof.WinningEventReduction
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators

@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.IdealStatement
-import XmssSecurity.Proof.StatementLemmas
-import XmssSecurity.Proof.EncodingLemmas
-import Mathlib.Tactic.NormNum
+module
+
+public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.EncodingLemmas
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 open OracleSpec
 
@@ -32,6 +36,16 @@ def hashDomainNats : HashDomain → Nat × Nat × Nat
 theorem length_bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) :
     (bytesLE byteCount value).length = byteCount := by
   simp [bytesLE]
+
+@[simp]
+theorem length_bytesLE_digest (value : Digest) : (bytesLE 16 value).length = 16 :=
+  length_bytesLE 16 value
+
+@[simp]
+theorem length_bytesLE_publicParameter (value : PublicParameter) :
+    (bytesLE 16 value).length = 16 :=
+  length_bytesLE 16 value
+
 
 theorem bytesLE_injective (byteCount : Nat) : Function.Injective (bytesLE byteCount) := by
   intro left right heq
@@ -241,19 +255,21 @@ theorem encodingPayload_injective :
   have hpairs :
       messageBytes leftMessage ++ randomnessBytes leftRandomness =
         messageBytes rightMessage ++ randomnessBytes rightRandomness := heq
-  obtain ⟨hmessage, hrandomness⟩ := List.append_inj hpairs (by simp [messageBytes])
+  obtain ⟨hmessage, hrandomness⟩ := List.append_inj hpairs
+    ((length_bytesLE 32 leftMessage).trans (length_bytesLE 32 rightMessage).symm)
   exact Prod.ext (messageBytes_injective hmessage) (randomnessBytes_injective hrandomness)
 
 theorem leafPayload_injective : Function.Injective leafPayload := by
   intro left right heq
   apply List.ofFn_injective
   exact flatMap_injective_of_eq_length digestBytes digestBytes_injective 16
-    (fun value => by simp [digestBytes]) (by simp) heq
+    (fun value => length_bytesLE 16 value) (by simp) heq
 
 theorem nodePayload_injective :
     Function.Injective fun input : Digest × Digest => nodePayload input.1 input.2 := by
   rintro ⟨leftFirst, leftSecond⟩ ⟨rightFirst, rightSecond⟩ heq
-  obtain ⟨hfirst, hsecond⟩ := List.append_inj heq (by simp)
+  obtain ⟨hfirst, hsecond⟩ := List.append_inj heq
+    ((length_bytesLE 16 leftFirst).trans (length_bytesLE 16 rightFirst).symm)
   exact Prod.ext (digestBytes_injective hfirst) (digestBytes_injective hsecond)
 
 namespace CacheView

@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.Deterministic.LoggedSigning
-import XmssSecurity.Proof.Deterministic.TableSigner
+module
+
+public import XmssSecurity.Proof.Deterministic.LoggedSigning
+public import XmssSecurity.Proof.Deterministic.TableSigner
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -39,10 +43,6 @@ noncomputable def transcriptReduction (publicKey : PublicKey) (adversary : Adver
     (Concrete.verify publicKey result.1.1.leafIndex result.1.1.message result.1.1.signature : OracleComp HashSpec Bool) :
       OracleComp OracleWorld Bool)
   return (transcriptWin result.1.1 result.1.2 verified, transcriptWin result.1.1 result.2 verified)
-
-theorem runSigning_baseLift {α : Type} (sign : SignRequest → OracleComp HashSpec (Option Signature))
-    (computation : OracleComp OracleWorld α) : runSigning sign (baseLift computation) = computation := by
-  rw [runSigning, simulateQ_baseLift, simulateQ_ofLift_eq_self]
 
 theorem runSigning_sourceGame (randomizers : RandomizerOutputs) (secretKey : XmssSecurity.SecretKey)
     (publicKey : PublicKey) (adversary : Adversary) :

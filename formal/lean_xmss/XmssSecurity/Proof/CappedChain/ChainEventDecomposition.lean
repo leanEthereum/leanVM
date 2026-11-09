@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.CappedLeafEventProbability
-import XmssSecurity.Proof.CappedSuffixEventProbability
-import XmssSecurity.Proof.ChainTargetInput
+module
+
+public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.CappedSuffixEventProbability
+public import XmssSecurity.Proof.ChainTargetInput
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

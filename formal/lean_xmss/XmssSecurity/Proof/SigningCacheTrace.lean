@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.SigningLogConsistency
+module
+
+public import XmssSecurity.Proof.SigningLogConsistency
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -33,14 +37,6 @@ theorem SigningTranscript.returned_toSigningLog_iff
   · rintro ⟨entry, hentry, hrequest, hsignature⟩
     refine ⟨⟨entry.request, entry.signature⟩, ?_, hrequest, hsignature⟩
     exact List.mem_map.mpr ⟨entry, hentry, rfl⟩
-
-def SigningCacheEntry.EncodingInputPrehit
-    (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
-  ∃ signature output,
-    entry.signature = some signature ∧
-    entry.initialCache
-      (Concrete.CacheView.encodingInput secretKey.parameter entry.request.leafIndex
-        (entry.request.message, signature.randomness)) = some output
 
 def SigningCacheEntry.PreexistingEncodingCollision
     (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
@@ -127,22 +123,6 @@ def SigningCacheEntry.SuccessfulEncodingCached
 def SigningCacheTrace.SuccessfulEncodingsCached
     (secretKey : SecretKey) (trace : SigningCacheTrace) : Prop :=
   ∀ entry ∈ trace, entry.SuccessfulEncodingCached secretKey
-
-theorem SigningCacheEntry.preexistingEncodingCollision_cases
-    (secretKey : SecretKey) (entry : SigningCacheEntry)
-    (hevent : entry.PreexistingEncodingCollision secretKey) :
-    entry.EncodingInputPrehit secretKey ∨
-      entry.FreshSigningEncodingCollision secretKey := by
-  obtain ⟨signature, signedOutput, oldInput, oldOutput, hsignature,
-    hsigned, hold, hne, hdigest⟩ := hevent
-  cases hinitial : entry.initialCache
-      (Concrete.CacheView.encodingInput secretKey.parameter entry.request.leafIndex
-        (entry.request.message, signature.randomness)) with
-  | none =>
-      exact Or.inr ⟨signature, signedOutput, oldInput, oldOutput, hsignature,
-        hinitial, hsigned, hold, hne, hdigest⟩
-  | some output =>
-      exact Or.inl ⟨signature, output, hsignature, hinitial⟩
 
 def signingLogFragment
     (input : (OracleWorld + SigningSpec).Domain)

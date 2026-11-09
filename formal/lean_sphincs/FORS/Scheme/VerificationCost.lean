@@ -1,6 +1,12 @@
-import FORS.Scheme.Layout
-import FORS.Scheme.Code
-import FORS.Scheme.Correctness
+module
+
+public import FORS.Scheme.Layout
+public import FORS.Scheme.Code
+public import FORS.Scheme.Correctness
+
+@[expose] public section
+
+set_option backward.isDefEq.respectTransparency false
 
 /-!
 Compression counts of the actual verifier's logged hash inputs, for each of three hashes. An
@@ -51,7 +57,9 @@ def compressions {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashSp
 @[simp] theorem hashTrace_query_bind {α : Type} (f : QueryImpl HashSpec Id)
     (input : HashInput) (next : HashOutput → OracleComp HashSpec α) :
     hashTrace f (liftM (HashSpec.query input) >>= next) =
-      input :: hashTrace f (next (f input)) := rfl
+      input :: hashTrace f (next (f input)) := by
+  simp [hashTrace]
+  rfl
 
 theorem hashTrace_bind {α β : Type} (f : QueryImpl HashSpec Id)
     (oa : OracleComp HashSpec α) (next : α → OracleComp HashSpec β) :
@@ -75,7 +83,10 @@ theorem compressions_bind {α β : Type} (f : QueryImpl HashSpec Id)
   simp [compressions, hashTrace_bind]
 
 @[simp] theorem compressions_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
-    compressions H f (oracleHash input : OracleComp HashSpec HashOutput) = H.cost input.length := rfl
+    compressions H f (oracleHash input : OracleComp HashSpec HashOutput) = H.cost input.length := by
+  have h := hashTrace_query_bind f input pure
+  rw [bind_pure, hashTrace_pure] at h
+  simp [compressions, oracleHash, h]
 
 @[simp] theorem compressions_tweakableHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
@@ -104,7 +115,7 @@ theorem compressions_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicPa
   induction steps with
   | zero => simp [chainWalk]
   | succ steps ih =>
-      rw [chainWalk, compressions_bind, dif_pos (by omega), compressions_tweakableHash,
+      rw [chainWalk, compressions_bind, dite_eq_left (by omega), compressions_tweakableHash,
         bytesLE_length, ih (by omega), Nat.succ_mul]
 
 @[simp] theorem compressions_recoverChain (f : QueryImpl HashSpec Id)
@@ -160,7 +171,7 @@ theorem compressions_forsFold (leaf : FLeaf) (path : Fin forsHeight → Digest)
   induction levels with
   | zero => simp [forsFold]
   | succ levels ih =>
-      rw [forsFold, compressions_bind, ih (by omega), dif_pos (by omega), Nat.succ_mul]
+      rw [forsFold, compressions_bind, ih (by omega), dite_eq_left (by omega), Nat.succ_mul]
       dsimp only
       split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length]
 
@@ -191,7 +202,7 @@ end Tree
     compressions H f (messageDigest parameter root message randomness) = digestCalls * H.cost 84 := by
   simp only [messageDigest, compressions_bind, compressions_sequenceFin, messageDigestCall,
     compressions_oracleHash, messageDigestInput, List.length_append,
-    bytesLE_length, bytesBE_length, List.length_cons, List.length_nil, compressions_pure, Nat.add_zero,
+    bytesLE_length, bytesBE_length, compressions_pure, Nat.add_zero,
     Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
 
 theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -265,7 +276,7 @@ theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : Publi
           layerCost H (layerUp k) +
             ∑ j ∈ Finset.Ico (k + 1) numLayers, layerCost H (layerUp j) :=
         Finset.sum_eq_sum_Ico_succ_bot (by omega) _
-      rw [verifyLayers, dif_pos hn, hlay, compressions_bind, compressions_otsLeaf]
+      rw [verifyLayers, dite_eq_left hn, hlay, compressions_bind, compressions_otsLeaf]
       simp only [evalWithAnswerFn_bind]
       cases hleaf : evalWithAnswerFn f (otsLeaf parameter (layerUp k) (treeIndexAt index (layerUp k))
           (leafIndexAt index (layerUp k)) message (signature.layers (layerUp k)).counter

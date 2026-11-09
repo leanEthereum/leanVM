@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.UnifiedBadEvent
+module
+
+public import XmssSecurity.Proof.UnifiedBadEvent
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

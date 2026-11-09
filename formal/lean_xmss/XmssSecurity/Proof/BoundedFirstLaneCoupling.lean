@@ -1,15 +1,18 @@
-import XmssSecurity.Proof.FirstLaneEagerBound
-import XmssSecurity.Proof.FirstLaneHazardEnforcement
-import XmssSecurity.Proof.MarginalCoupling
-import XmssSecurity.Proof.CacheAgreement
-import VCVio.ProgramLogic.Relational.FromUnary
+module
+
+public import XmssSecurity.Proof.FirstLaneEagerBound
+public import XmssSecurity.Proof.FirstLaneHazardEnforcement
+public import XmssSecurity.Proof.MarginalCoupling
+public import XmssSecurity.Proof.CacheAgreement
+public import VCVio.ProgramLogic.Relational.FromUnary
+
+@[expose] public section
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity
 
-set_option maxHeartbeats 2000000
 
 theorem relTriple_enforcedHit_append
     [Fintype Index] [DecidableEq Index]

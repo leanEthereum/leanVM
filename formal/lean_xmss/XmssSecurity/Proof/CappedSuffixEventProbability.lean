@@ -1,6 +1,10 @@
-import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
-import XmssSecurity.Proof.CappedLeafEventProbability
-import XmssSecurity.Proof.VerificationChainQuery
+module
+
+public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
+public import XmssSecurity.Proof.CappedLeafEventProbability
+public import XmssSecurity.Proof.VerificationChainQuery
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 

@@ -1,4 +1,8 @@
-import FORS.CoverBound.PerIndex
+module
+
+public import FORS.CoverBound.PerIndex
+
+@[expose] public section
 
 /-! **The near moment.** A target is *near covered* at the free tree `κ` when every other tree is
 covered. The near value of the marks at an index, summed over the free tree, has per-index mean
@@ -23,7 +27,7 @@ noncomputable def nearFactor (κ κ' : FTree) (Xs : Multiset FLeaf) : ℝ≥0∞
 
 theorem nearFactor_self (κ : FTree) (Xs : Multiset FLeaf) : nearFactor κ κ Xs = 1 := by
   unfold nearFactor
-  simp only [true_or, if_true]
+  simp only [true_or, ite_true]
   exact freshAvg_const _ Finset.univ_nonempty 1
 
 theorem nearFactor_of_ne {κ κ' : FTree} (h : κ' ≠ κ) (Xs : Multiset FLeaf) : nearFactor κ κ' Xs = φF Xs := by
@@ -31,8 +35,8 @@ theorem nearFactor_of_ne {κ κ' : FTree} (h : κ' ≠ κ) (Xs : Multiset FLeaf)
   congr 1
   funext t
   by_cases hc : CoverF t Xs
-  · rw [if_pos (Or.inr hc), if_pos hc]
-  · rw [if_neg (fun h' => h'.elim h hc), if_neg hc]
+  · rw [ite_eq_left (Or.inr hc), ite_eq_left hc]
+  · rw [ite_eq_right (fun h' => h'.elim h hc), ite_eq_right hc]
 
 /-- **The near value of a multiset of disclosed marks at one index.** -/
 noncomputable def yN (Ms : Multiset (FTree → FLeaf)) : ℝ≥0∞ :=
@@ -78,7 +82,7 @@ theorem nearFactor_le_one (κ κ' : FTree) (Xs : Multiset FLeaf) : nearFactor κ
 theorem yN_le (Ms : Multiset (FTree → FLeaf)) : yN Ms ≤ forsTrees := by
   unfold yN
   calc ∑ κ, ∏ κ', nearFactor κ κ' (Ms.map fun m => m κ') ≤ ∑ _κ : FTree, (1 : ℝ≥0∞) :=
-        Finset.sum_le_sum fun κ _ => Finset.prod_le_one' fun κ' _ => nearFactor_le_one κ κ' _
+        Finset.sum_le_sum fun κ _ => Finset.prod_le_one fun κ' _ => nearFactor_le_one κ κ' _
     _ = forsTrees := by
         simp only [Finset.sum_const, Finset.card_univ, card_ftree, nsmul_eq_mul, mul_one]
 

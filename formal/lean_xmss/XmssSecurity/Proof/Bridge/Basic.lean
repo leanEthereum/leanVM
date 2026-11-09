@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.Deterministic.Preparation
+module
+
+public import XmssSecurity.Proof.Deterministic.Preparation
+
+@[expose] public section
 
 /-!
 # Deterministic executions, query counts and query domains
@@ -19,7 +23,7 @@ variable {D R : Type}
 /-- The first query of a computation and its continuation. -/
 def headQuery {α : Type} : OracleComp (D →ₒ R) α → Option (D × (R → OracleComp (D →ₒ R) α))
   | .pure _ => none
-  | .roll x k => some (x, k)
+  | .liftBind x k => some (x, k)
 
 theorem query_bind_inj {α : Type} {x y : D} {f g : R → OracleComp (D →ₒ R) α}
     (h : (liftM ((D →ₒ R).query x) >>= f : OracleComp (D →ₒ R) α) = liftM ((D →ₒ R).query y) >>= g) :
@@ -82,17 +86,6 @@ theorem Resolves.unique {α : Type} {cache : QueryCache (D →ₒ R)} {c : Oracl
       subst answer'
       exact ih htail
 
-theorem Resolves.map {α β : Type} {cache : QueryCache (D →ₒ R)} {c : OracleComp (D →ₒ R) α}
-    {v : α} (h : Resolves cache c v) (g : α → β) : Resolves cache (g <$> c) (g v) := by
-  rw [map_eq_bind_pure_comp]
-  exact h.bind (.pure _)
-
-theorem Resolves.of_map {α β : Type} {cache : QueryCache (D →ₒ R)} {c : OracleComp (D →ₒ R) α}
-    {g : α → β} {w : β} (h : Resolves cache (g <$> c) w) : ∃ v, Resolves cache c v ∧ g v = w := by
-  rw [map_eq_bind_pure_comp] at h
-  obtain ⟨v, hv, hw⟩ := h.of_bind
-  exact ⟨v, hv, hw.pure_inv⟩
-
 theorem Resolves.sequenceFin {α : Type} {cache : QueryCache (D →ₒ R)} {n : Nat}
     {c : Fin n → OracleComp (D →ₒ R) α} {v : Fin n → α} (h : ∀ i, Resolves cache (c i) (v i)) :
     Resolves cache (XmssSecurity.Concrete.sequenceFin c) v := by
@@ -149,16 +142,6 @@ open DeterministicSigning
 set_option backward.isDefEq.respectTransparency false
 
 variable {D R : Type}
-
-theorem Erases.mono {α : Type} {known known' : QueryCache (D →ₒ R)}
-    {left right : OracleComp (D →ₒ R) α} (h : Erases known left right) (hle : known ≤ known') :
-    Erases known' left right := by
-  induction h with
-  | pure value => exact .pure value
-  | query input left right _ ih => exact .query input left right ih
-  | skip input answer hknown next right _ ih => exact .skip input answer (hle hknown) next right ih
-  | cached input answer hknown left right _ ih => exact .cached input answer (hle hknown) left right ih
-  | trans _ _ first second => exact .trans first second
 
 /-- An erasure of known queries resolves wherever its result resolves. -/
 theorem Erases.resolves {α : Type} {known cache : QueryCache (D →ₒ R)}
@@ -307,16 +290,6 @@ theorem OnlyQueries.withQueryLog {α : Type} {c : OracleComp (D →ₒ R) α} (h
       rw [OracleComp.run_simulateQ_loggingOracle_query_bind]
       exact .query x hx _ fun a => (ih a).map _
 
-theorem OnlyQueries.eval_congr {α : Type} {c : OracleComp (D →ₒ R) α} (hc : OnlyQueries S c)
-    {f g : QueryImpl (D →ₒ R) Id} (hfg : ∀ x, S x → f x = g x) :
-    evalWithAnswerFn f c = evalWithAnswerFn g c := by
-  induction hc with
-  | pure a => rfl
-  | query x hx next _ ih =>
-      rw [evalWithAnswerFn_bind, evalWithAnswerFn_bind, DeterministicSigning.eval_liftM_query,
-        DeterministicSigning.eval_liftM_query, hfg x hx]
-      exact ih _
-
 theorem Resolves.congr {α : Type} {cache cache' : QueryCache (D →ₒ R)}
     {c : OracleComp (D →ₒ R) α} {v : α} (h : Resolves cache c v) (hc : OnlyQueries S c)
     (hagree : ∀ x, S x → cache' x = cache x) : Resolves cache' c v := by
@@ -328,7 +301,7 @@ theorem Resolves.congr {α : Type} {cache cache' : QueryCache (D →ₒ R)}
 
 /-- `E` laid over `C`: `E`'s entries, and `C`'s where `E` has none. -/
 def overlay (E C : QueryCache (D →ₒ R)) : QueryCache (D →ₒ R) :=
-  fun x => match E x with
+  QueryCache.ofFn fun x => match E x with
     | some a => some a
     | none => C x
 
@@ -337,12 +310,12 @@ theorem overlay_of_none {E C : QueryCache (D →ₒ R)} {x : D} (hx : E x = none
   simp [overlay, hx]
 
 theorem overlay_empty (E : QueryCache (D →ₒ R)) : overlay E ∅ = E := by
-  funext x
+  refine QueryCache.ext fun x => ?_
   cases h : E x <;> simp [overlay, h]
 
 theorem overlay_cacheQuery [DecidableEq D] {E C : QueryCache (D →ₒ R)} {x : D} (hx : E x = none) (a : R) :
     (overlay E C).cacheQuery x a = overlay E (C.cacheQuery x a) := by
-  funext y
+  refine QueryCache.ext fun y => ?_
   by_cases hy : y = x
   · subst y
     simp [overlay, hx]
@@ -390,7 +363,7 @@ theorem randomOracle_run_cache_eq (input : HashInput) (initial middle : QueryCac
   | some cached =>
       rw [QueryImpl.withCaching_run_some _ hcached, support_pure, Set.mem_singleton_iff] at hmem
       cases hmem
-      funext candidate
+      refine QueryCache.ext fun candidate => ?_
       by_cases heq : candidate = input
       · subst candidate
         rw [QueryCache.cacheQuery_self, hcached]

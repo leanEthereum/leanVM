@@ -1,13 +1,16 @@
-import FORS.Scheme.Pruning
-import FORS.Scheme.DigestView
-import FORS.Scheme.Landing
+module
+
+public import FORS.Scheme.Pruning
+public import FORS.Scheme.DigestView
+public import FORS.Scheme.Landing
+
+@[expose] public section
 
 /-! Signer/verifier correctness for every height and shape, with the full key every configuration has
 (`Params.full`). -/
 
 open OracleComp
 
-set_option maxHeartbeats 250000
 
 namespace FORS.Completeness
 
@@ -61,7 +64,7 @@ theorem layerMessageValue_above (secretKey : Seeded.SecretKey) (index : Index) (
     layerMessageValue f secretKey index lay = rootPayload (evalWithAnswerFn f
       (Seeded.treeRoot secretKey.parameter ⟨lay.val + 1, hbelow⟩
         (treeIndexAt index ⟨lay.val + 1, hbelow⟩) secretKey.seed : OracleComp HashSpec Digest)) := by
-  simp only [layerMessageValue, Seeded.layerMessage, Seeded.keyMessage, dif_pos hbelow,
+  simp only [layerMessageValue, Seeded.layerMessage, Seeded.keyMessage, dite_eq_left hbelow,
     evalWithAnswerFn_bind, evalWithAnswerFn_pure, childTree_path_above index lay hbelow]
 
 /-- The message of the bottom layer is the FORS public key. -/
@@ -70,7 +73,7 @@ theorem layerMessageValue_bottom (secretKey : Seeded.SecretKey) (index : Index) 
       (Seeded.forsKey secretKey.parameter index secretKey.seed : OracleComp HashSpec Digest)) := by
   have h : ¬(bottomLayer.val + 1 < numLayers) := by
     change ¬(numLayers - 1 + 1 < numLayers); have := numLayers_pos; omega
-  simp only [layerMessageValue, Seeded.layerMessage, Seeded.keyMessage, dif_neg h,
+  simp only [layerMessageValue, Seeded.layerMessage, Seeded.keyMessage, dite_eq_right h,
     evalWithAnswerFn_bind, evalWithAnswerFn_pure, childTree_path_bottom]
 
 def digestValue (secretKey : Seeded.SecretKey) (message : Message) (randomness : Randomness) :
@@ -95,12 +98,12 @@ theorem allSome_map {n : Nat} {α β : Fin n → Type} (values : (i : Fin n) →
     (allSome fun i => (values i).map (g i)) = (allSome values).map fun found i => g i (found i) := by
   unfold allSome
   by_cases h : ∀ i, (values i).isSome
-  · rw [dif_pos h, dif_pos (fun i => by simpa using h i)]
+  · rw [dite_eq_left h, dite_eq_left (fun i => by simpa using h i)]
     simp only [Option.map_some]
     congr 1
     funext i
     exact Option.get_map
-  · rw [dif_neg h, dif_neg (fun h' => h fun i => by simpa using h' i)]
+  · rw [dite_eq_right h, dite_eq_right (fun h' => h fun i => by simpa using h' i)]
     rfl
 
 theorem allSome_spec {n : Nat} {α : Fin n → Type} {values : (i : Fin n) → Option (α i)}
@@ -124,7 +127,7 @@ theorem eval_sequenceThread {σ : Type} (state : Nat → σ) : ∀ {n : Nat} {α
       allSome fun i => (evalWithAnswerFn f (computation i (state i.val))).map Prod.fst
   | 0, _, _, _ => by
       simp only [sequenceThread, evalWithAnswerFn_pure, allSome]
-      rw [dif_pos (fun i => Fin.elim0 i)]
+      rw [dite_eq_left (fun i => Fin.elim0 i)]
       congr 1
       funext i
       exact Fin.elim0 i
@@ -136,7 +139,7 @@ theorem eval_sequenceThread {σ : Type} (state : Nat → σ) : ∀ {n : Nat} {α
       cases hhead : evalWithAnswerFn f (computation (Fin.last n) (state n)) with
       | none =>
           simp only [evalWithAnswerFn_pure, allSome]
-          rw [dif_neg (fun h => by simpa [hhead] using h (Fin.last n))]
+          rw [dite_eq_right (fun h => by simpa [hhead] using h (Fin.last n))]
       | some pair =>
           obtain ⟨last, next⟩ := pair
           have hstate : evalWithAnswerFn f (sequenceThread (α := fun i => α i.castSucc)
@@ -146,7 +149,7 @@ theorem eval_sequenceThread {σ : Type} (state : Nat → σ) : ∀ {n : Nat} {α
             rcases Nat.eq_zero_or_pos n with hn | hn
             · subst hn
               simp only [sequenceThread, evalWithAnswerFn_pure, allSome]
-              rw [dif_pos (fun i => Fin.elim0 i)]
+              rw [dite_eq_left (fun i => Fin.elim0 i)]
               congr 1
               funext i
               exact Fin.elim0 i
@@ -155,22 +158,22 @@ theorem eval_sequenceThread {σ : Type} (state : Nat → σ) : ∀ {n : Nat} {α
           simp only [evalWithAnswerFn_bind, hstate, allSome]
           by_cases hall : ∀ i : Fin n,
               ((evalWithAnswerFn f (computation i.castSucc (state i.val))).map Prod.fst).isSome
-          · rw [dif_pos hall]
+          · rw [dite_eq_left hall]
             simp only [evalWithAnswerFn_pure]
             have hall' : ∀ i : Fin (n + 1),
                 ((evalWithAnswerFn f (computation i (state i.val))).map Prod.fst).isSome := by
               intro i
               refine Fin.lastCases ?_ (fun j => by simpa using hall j) i
               simp [hhead]
-            rw [dif_pos hall']
+            rw [dite_eq_left hall']
             congr 1
             funext i
             refine Fin.lastCases ?_ (fun j => ?_) i
             · simp [hhead]
             · simp
-          · rw [dif_neg hall]
+          · rw [dite_eq_right hall]
             simp only [evalWithAnswerFn_pure]
-            rw [dif_neg (fun h => hall fun i => by simpa using h i.castSucc)]
+            rw [dite_eq_right (fun h => hall fun i => by simpa using h i.castSucc)]
 
 /-- The accepting counter recovers the honest leaf, and the path folds to the root of the layer's
 tree, for a layer signature on its own. -/
@@ -198,11 +201,11 @@ theorem eval_layerRecover (secretKey : Seeded.SecretKey) (index : Index) (lay : 
         secretKey.seed : OracleComp HashSpec Digest) := by
     apply eval_treeFold_pruned_path f _ _ _ _ _ (kept_leafIndexAt secretKey.parameter index hland lay)
     intro level hlevel
-    rw [partPath, dif_pos hlevel, hpath]
+    rw [partPath, dite_eq_left hlevel, hpath]
   simp only [layerRecover, evalWithAnswerFn_bind, hleaf, hfold, evalWithAnswerFn_pure]
 
 /-- The layer above a layer below the top. -/
-def aboveLayer (lay : Layer) (h : lay.val ≠ 0) : Layer := ⟨lay.val - 1, by have := lay.isLt; omega⟩
+def aboveLayer (lay : Layer) (_h : lay.val ≠ 0) : Layer := ⟨lay.val - 1, by have := lay.isLt; omega⟩
 
 /-- What the key of a layer signs, as a digest: the root of the tree below, or the FORS public key
 at the bottom layer. -/
@@ -217,8 +220,8 @@ theorem rootPayload_belowValue (secretKey : Seeded.SecretKey) (index : Index) (l
     rootPayload (belowValue f secretKey index lay) = layerMessageValue f secretKey index lay := by
   unfold belowValue
   by_cases hbelow : lay.val + 1 < numLayers
-  · rw [dif_pos hbelow, layerMessageValue_above f secretKey index lay hbelow]
-  · rw [dif_neg hbelow]
+  · rw [dite_eq_left hbelow, layerMessageValue_above f secretKey index lay hbelow]
+  · rw [dite_eq_right hbelow]
     have hlay : lay = bottomLayer := Fin.ext (by change lay.val = numLayers - 1; omega)
     subst hlay
     rw [layerMessageValue_bottom]
@@ -233,7 +236,7 @@ theorem belowValue_aboveLayer (secretKey : Seeded.SecretKey) (index : Index) (la
   have hlay : (⟨(aboveLayer lay h).val + 1, hbelow⟩ : Layer) = lay :=
     Fin.ext (by simp only [aboveLayer]; omega)
   unfold belowValue
-  rw [dif_pos hbelow, hlay]
+  rw [dite_eq_left hbelow, hlay]
 
 /-- One step of the signer from the honest value below its layer: the layer's signature, and the
 honest value below the layer above (the same value at the top, which has none above). -/
@@ -264,7 +267,7 @@ theorem eval_layerStep (secretKey : Seeded.SecretKey) (index : Index)
       dsimp only
       by_cases htop : lay.val = 0
       · simp [htop]
-      · rw [if_neg htop, dif_neg htop, rootPayload_belowValue]
+      · rw [ite_eq_right htop, dite_eq_right htop, rootPayload_belowValue]
         simp only [evalWithAnswerFn_bind, eval_layerRecover f secretKey index lay hland hspec,
           evalWithAnswerFn_pure, Option.map_some, belowValue_aboveLayer]
 
@@ -280,11 +283,11 @@ theorem eval_signLayers (secretKey : Seeded.SecretKey) (index : Index)
   let state : Nat → Digest := fun v =>
     if h : v < numLayers then belowValue f secretKey index ⟨v, h⟩ else 0
   have hstate : ∀ lay : Layer, state lay.val = belowValue f secretKey index lay := fun lay => by
-    simp only [state, dif_pos lay.isLt]
+    simp only [state, dite_eq_left lay.isLt]
   have hbottom : evalWithAnswerFn f (Seeded.forsKey secretKey.parameter index secretKey.seed
       : OracleComp HashSpec Digest) = state (numLayers - 1) := by
     rw [show numLayers - 1 = bottomLayer.val from rfl, hstate, belowValue,
-      dif_neg (by change ¬(numLayers - 1 + 1 < numLayers); omega)]
+      dite_eq_right (by change ¬(numLayers - 1 + 1 < numLayers); omega)]
   rw [hbottom, eval_sequenceThread f state (fun lay below => Seeded.layerStep secretKey index lay below)]
   · congr 1
     funext lay
@@ -295,7 +298,7 @@ theorem eval_signLayers (secretKey : Seeded.SecretKey) (index : Index)
     rw [hstate lay, eval_layerStep f secretKey index hland lay] at h
     simp only [Option.map_eq_some_iff, Prod.mk.injEq] at h
     obtain ⟨_, _, _, hnext⟩ := h
-    rw [← hnext, dif_neg hlay, ← hstate]
+    rw [← hnext, dite_eq_right hlay, ← hstate]
     rfl
 
 attribute [local irreducible] Seeded.signDigestLoop Seeded.signLayer Seeded.forsOpen
@@ -351,7 +354,7 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
       (leafIndexAt index lay) secretKey.seed _ hots, node_zero]
   · apply eval_treeFold_pruned_path f _ _ _ _ _ (kept_leafIndexAt secretKey.parameter index hland lay)
     intro level hlevel
-    rw [signaturePath, dif_pos hlevel, hpath]
+    rw [signaturePath, dite_eq_left hlevel, hpath]
 
 /-- The walk up the layers from layer `r` reaches the root of the top layer's tree. -/
 theorem eval_verifyLayers (secretKey : Seeded.SecretKey) (index : Index)
@@ -368,14 +371,14 @@ theorem eval_verifyLayers (secretKey : Seeded.SecretKey) (index : Index)
   | zero =>
       intro hr
       obtain ⟨hleaf, hfold⟩ := eval_layer f secretKey index ⟨0, hr⟩ hland signature (hlayers _)
-      rw [verifyLayers, dif_pos hr]
-      simp only [evalWithAnswerFn_bind, hleaf, hfold, if_pos, evalWithAnswerFn_pure]
+      rw [verifyLayers, dite_eq_left hr]
+      simp only [evalWithAnswerFn_bind, hleaf, hfold, ite_eq_left, evalWithAnswerFn_pure]
       rw [show (⟨0, hr⟩ : Layer) = topLayer from rfl, treeIndexAt_top]
   | succ r ih =>
       intro hr
       obtain ⟨hleaf, hfold⟩ := eval_layer f secretKey index ⟨r + 1, hr⟩ hland signature (hlayers _)
-      rw [verifyLayers, dif_pos hr]
-      simp only [evalWithAnswerFn_bind, hleaf, hfold, Nat.add_one_ne_zero, if_false]
+      rw [verifyLayers, dite_eq_left hr]
+      simp only [evalWithAnswerFn_bind, hleaf, hfold, Nat.add_one_ne_zero, ite_false]
       have habove := layerMessageValue_above f secretKey index ⟨r, by omega⟩ hr
       rw [← habove]
       exact ih (by omega)

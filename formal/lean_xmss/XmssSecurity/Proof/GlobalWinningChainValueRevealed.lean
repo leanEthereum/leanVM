@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.GlobalBadEvent
-import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
+module
+
+public import XmssSecurity.Proof.GlobalBadEvent
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
+
+@[expose] public section
 
 open OracleComp OracleSpec
 

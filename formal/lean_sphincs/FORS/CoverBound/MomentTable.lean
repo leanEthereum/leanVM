@@ -1,4 +1,8 @@
-import FORS.CoverBound.MomentBounds
+module
+
+public import FORS.CoverBound.MomentBounds
+
+@[expose] public section
 
 /-! **The per-tree moment tables.** Upper bounds of `Ψ1(n)` and `Ψ2(n)` for `n ≤ 150`, as the lists
 of their numerators over `2^128` (`P1L`, `P2L`, which `Certificates/Build.lean` reads) and the

@@ -1,4 +1,8 @@
-import FORS.CoverBound.FirstMoment
+module
+
+public import FORS.CoverBound.FirstMoment
+
+@[expose] public section
 
 /-! **The second per-tree moment.** The square of the cover fraction is the average over pairs of
 target leaves of the product of their cover indicators. Two leaves are both disclosed by `n` uniform

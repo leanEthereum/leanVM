@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.AdaptiveFreshTarget
-import VCVio.OracleComp.Constructions.SampleableType
+module
+
+public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import VCVio.OracleComp.Constructions.SampleableType
+
+@[expose] public section
 
 open OracleComp ENNReal
 open scoped BigOperators
@@ -96,10 +100,6 @@ attribute [irreducible] State.pendingCount
 inductive ObservedAction where
   | query (leafIndex : LeafIndex) (output : HashOutput)
   | sign (leafIndex : LeafIndex) (output : HashOutput)
-
-def ObservedAction.IsSignAt (target : LeafIndex) : ObservedAction → Prop
-  | .query _ _ => False
-  | .sign leafIndex _ => leafIndex = target
 
 def observedSignLeafIndices : List ObservedAction → List LeafIndex
   | [] => []

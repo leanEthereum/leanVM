@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.KeygenCache
-import XmssSecurity.Proof.CausalAuthenticationPathIndependence
-import XmssSecurity.Proof.ChainOraclePresampling
-import XmssSecurity.Proof.MerkleQueryPresence
-import XmssSecurity.Proof.CausalKeygenCoupling
-import XmssSecurity.Proof.StatementLemmas
+module
+
+public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.CausalAuthenticationPathIndependence
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.CausalKeygenCoupling
+public import XmssSecurity.Proof.StatementLemmas
+
+@[expose] public section
 
 open OracleComp OracleSpec
 
@@ -35,11 +39,6 @@ theorem merkleHashInput_topMerkleInput (parameter : PublicParameter) (level : Me
     MerkleHashInput parameter
       (Concrete.CacheView.topMerkleInput parameter level node left right) :=
   ⟨.topMerkle level node, trivial, (atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl⟩
-
-theorem merkleHashInput_topEncodingInput (parameter : PublicParameter) (key : TopIndex)
-    (input : Digest × Randomness) :
-    MerkleHashInput parameter (Concrete.CacheView.topEncodingInput parameter key input) :=
-  ⟨.topEncoding key, trivial, (atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl⟩
 
 theorem not_merkleHashInput_of_atHashAddress (parameter : PublicParameter) (domain : HashDomain)
     (input : HashInput) (haddress : AtHashAddress parameter domain input)
@@ -74,35 +73,6 @@ def ReplayEndpointsMatch
   ∀ key,
     endpoints key = Concrete.CacheReplay.keyOneTimePublicKey cache parameter start key
 
-/-- An input outside every chain-step address of both layers. -/
-def ChainFreeInput (parameter : PublicParameter) (input : HashInput) : Prop :=
-  ∀ key chain step value,
-    input ≠ Concrete.CacheView.keyChainInput parameter key chain step value
-
-theorem chainFreeInput_of_atHashAddress (parameter : PublicParameter) (domain : HashDomain)
-    (input : HashInput) (haddress : AtHashAddress parameter domain input)
-    (hdomain : ∀ (key : ChainKey) chain step, domain ≠ key.chainDomain chain step) :
-    ChainFreeInput parameter input := by
-  intro key chain step value heq
-  subst input
-  exact hdomain key chain step (atHashAddress_unique parameter _ _ _ haddress
-    (Concrete.CacheView.keyChainInput_atHashAddress parameter key chain step value))
-
-theorem MerkleHashInput.chainFree {parameter : PublicParameter} {input : HashInput}
-    (hinput : MerkleHashInput parameter input) : ChainFreeInput parameter input := by
-  obtain ⟨domain, hretained, haddress⟩ := hinput
-  apply chainFreeInput_of_atHashAddress parameter domain input haddress
-  intro key chain step heq
-  subst domain
-  cases key <;> exact hretained
-
-theorem chainFreeInput_keyLeafInput (parameter : PublicParameter) (key : ChainKey)
-    (endpoints : ChainIndex → Digest) :
-    ChainFreeInput parameter (Concrete.CacheView.keyLeafInput parameter key endpoints) :=
-  fun chainKey chain step value heq =>
-    Concrete.CacheView.keyChainInput_ne_keyLeafInput parameter chainKey chain step value key
-      endpoints heq.symm
-
 theorem merkleHashInput_ne_keyLeafInput
     (parameter : PublicParameter) (key : ChainKey)
     (endpoints : ChainIndex → Digest) (input : HashInput)
@@ -115,123 +85,6 @@ theorem merkleHashInput_ne_keyLeafInput
     ((atHashAddress_tweakableHashInput_iff parameter key.leafDomain key.leafDomain _).2 rfl)
   subst domain
   cases key <;> exact hretained
-
-theorem Concrete.CacheView.keyChainStep_cacheQuery_of_chainFree
-    (cache : QueryCache HashSpec) (output : HashOutput)
-    (parameter : PublicParameter) (input : HashInput)
-    (hinput : ChainFreeInput parameter input) (key : ChainKey) (chain : ChainIndex) :
-    Concrete.CacheView.keyChainStep (cache.cacheQuery input output) parameter key chain =
-      Concrete.CacheView.keyChainStep cache parameter key chain := by
-  funext position value
-  unfold Concrete.CacheView.keyChainStep
-  split
-  · unfold Concrete.CacheView.digestAt
-    rw [QueryCache.cacheQuery_of_ne]
-    exact fun heq => hinput key chain _ value heq.symm
-  · rfl
-
-theorem Concrete.CacheReplay.keyOneTimePublicKey_cacheQuery_of_chainFree
-    (cache : QueryCache HashSpec) (output : HashOutput)
-    (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
-    (input : HashInput) (hinput : ChainFreeInput parameter input) (key : ChainKey) :
-    Concrete.CacheReplay.keyOneTimePublicKey (cache.cacheQuery input output) parameter start key =
-      Concrete.CacheReplay.keyOneTimePublicKey cache parameter start key := by
-  unfold Concrete.CacheReplay.keyOneTimePublicKey
-  funext chain
-  rw [Concrete.CacheView.keyChainStep_cacheQuery_of_chainFree _ _ _ _ hinput]
-
-theorem ReplayEndpointsMatch.cacheQuery_of_chainFree
-    {parameter : PublicParameter} {start endpoints : ChainKey → ChainIndex → Digest}
-    {cache : QueryCache HashSpec}
-    (hrel : ReplayEndpointsMatch parameter start endpoints cache)
-    (input : HashInput) (hinput : ChainFreeInput parameter input) (output : HashOutput) :
-    ReplayEndpointsMatch parameter start endpoints (cache.cacheQuery input output) := by
-  intro key
-  rw [Concrete.CacheReplay.keyOneTimePublicKey_cacheQuery_of_chainFree _ _ _ _ _ hinput]
-  exact hrel key
-
-theorem Concrete.CacheView.chainInput_ne_merkleInput
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (step : ChainStep) (value : Digest) (level : MerkleLevel)
-    (node : MerkleNode) (left right : Digest) :
-    Concrete.CacheView.chainInput parameter leafIndex chain step value ≠
-      Concrete.CacheView.merkleInput parameter level node left right := by
-  intro heq
-  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-  simp at hdomain
-
-theorem Concrete.CacheView.chainInput_ne_leafInput
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (step : ChainStep) (value : Digest) (targetLeafIndex : LeafIndex)
-    (endpoints : ChainIndex → Digest) :
-    Concrete.CacheView.chainInput parameter leafIndex chain step value ≠
-      Concrete.CacheView.leafInput parameter targetLeafIndex endpoints := by
-  intro heq
-  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-  simp at hdomain
-
-theorem Concrete.CacheView.leafInput_ne_merkleInput
-    (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (endpoints : ChainIndex → Digest) (level : MerkleLevel)
-    (node : MerkleNode) (left right : Digest) :
-    Concrete.CacheView.leafInput parameter leafIndex endpoints ≠
-      Concrete.CacheView.merkleInput parameter level node left right := by
-  intro heq
-  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-  simp at hdomain
-
-theorem Concrete.CacheView.chainStep_cacheQuery_merkleInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (level : MerkleLevel) (node : MerkleNode) (left right : Digest) :
-    Concrete.CacheView.chainStep
-        (cache.cacheQuery
-          (Concrete.CacheView.merkleInput parameter level node left right)
-          output) parameter leafIndex chain =
-      Concrete.CacheView.chainStep cache parameter leafIndex chain := by
-  funext position value
-  unfold Concrete.CacheView.chainStep
-  split
-  · unfold Concrete.CacheView.digestAt
-    rw [QueryCache.cacheQuery_of_ne]
-    exact Concrete.CacheView.chainInput_ne_merkleInput parameter leafIndex chain
-      _ value level node left right
-  · rfl
-
-theorem Concrete.CacheView.chainStep_cacheQuery_leafInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (targetLeafIndex : LeafIndex) (endpoints : ChainIndex → Digest) :
-    Concrete.CacheView.chainStep
-        (cache.cacheQuery
-          (Concrete.CacheView.leafInput parameter targetLeafIndex endpoints)
-          output) parameter leafIndex chain =
-      Concrete.CacheView.chainStep cache parameter leafIndex chain := by
-  funext position value
-  unfold Concrete.CacheView.chainStep
-  split
-  · unfold Concrete.CacheView.digestAt
-    rw [QueryCache.cacheQuery_of_ne]
-    exact Concrete.CacheView.chainInput_ne_leafInput parameter leafIndex chain
-      _ value targetLeafIndex endpoints
-  · rfl
-
-theorem Concrete.CacheView.leafInput_eq_iff
-    (parameter : PublicParameter)
-    (leftLeafIndex rightLeafIndex : LeafIndex)
-    (leftEndpoints rightEndpoints : ChainIndex → Digest) :
-    Concrete.CacheView.leafInput parameter leftLeafIndex leftEndpoints =
-        Concrete.CacheView.leafInput parameter rightLeafIndex rightEndpoints ↔
-      leftLeafIndex = rightLeafIndex ∧ leftEndpoints = rightEndpoints := by
-  constructor
-  · intro heq
-    have hleafIndex : leftLeafIndex = rightLeafIndex := by
-      have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
-      simpa using hdomain
-    subst rightLeafIndex
-    exact ⟨rfl, Concrete.CacheView.leafInput_injective parameter leftLeafIndex heq⟩
-  · rintro ⟨rfl, rfl⟩
-    rfl
 
 theorem LeafCacheOutputsCorrespond.cacheQuery_distinct
     (parameter : PublicParameter)

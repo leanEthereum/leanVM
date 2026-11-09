@@ -1,5 +1,9 @@
-import XmssSecurity.Proof.CappedEncodingRejection
-import LeanXmss.Code
+module
+
+public import XmssSecurity.Proof.CappedEncodingRejection
+public import LeanXmss.Code
+
+@[expose] public section
 
 /-!
 # The number of codewords

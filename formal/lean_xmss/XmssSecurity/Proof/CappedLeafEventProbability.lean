@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
-import XmssSecurity.Proof.CappedDetailedQueryPresence
-import XmssSecurity.Proof.CappedSigningLogReplay
-import XmssSecurity.Proof.LeafTargetInput
+module
+
+public import XmssSecurity.Proof.ExpectedAdaptiveFreshTarget
+public import XmssSecurity.Proof.CappedDetailedQueryPresence
+public import XmssSecurity.Proof.CappedSigningLogReplay
+public import XmssSecurity.Proof.LeafTargetInput
+
+@[expose] public section
 
 open OracleComp OracleSpec ENNReal
 
