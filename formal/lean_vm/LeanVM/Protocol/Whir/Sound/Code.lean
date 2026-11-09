@@ -42,6 +42,8 @@ structure LevelCode where
   A : ℕ
   /-- The domain fits in `K`. -/
   h64 : κ + R ≤ 64
+  /-- Rate at most `1/2`. -/
+  hR : 1 ≤ R
 
 namespace LevelCode
 
@@ -61,6 +63,9 @@ abbrev thr (j : ℕ) : ℕ := P.A - (P.ℓ - j)
 
 /-- The list bound the level starts on, `jl(n, A_0, d_0)`. -/
 abbrev listMax : ℕ := jl P.n (P.thr 0) (P.deg 0)
+
+/-- The message variables are fewer than `64`. -/
+theorem κ_lt : P.κ < 64 := by have := P.h64; have := P.hR; omega
 
 end LevelCode
 

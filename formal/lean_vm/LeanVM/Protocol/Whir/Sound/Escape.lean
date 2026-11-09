@@ -185,5 +185,142 @@ theorem card_oodSep2_bad_le (P' : LevelCode) {m κ : ℕ} (hκ : κ = m + P'.κ)
   obtain ⟨U, hU, U', hU', hne, h1, h2⟩ := hz
   exact ⟨U, hU, U', hU', hne, by rw [← hval, ← hval, h1], by rw [← hval, ← hval, h2]⟩
 
+/-! ## Batching sums -/
+
+/-- The batched sum with `powers λ`: `Σ_q λ^q f(q)`. -/
+theorem sum_zip_powersFrom (lam acc : E) (qs : List ℕ) (f : ℕ → E) :
+    (((powersFrom acc lam qs.length).zip qs).map fun wq ↦ wq.1 * f wq.2).sum =
+      ∑ k : Fin qs.length, acc * lam ^ (k : ℕ) * f qs[k] := by
+  induction qs generalizing acc with
+  | nil => simp
+  | cons q qs ih =>
+    simp only [List.length_cons, powersFrom, List.zip_cons_cons, List.map_cons, List.sum_cons, ih,
+      Fin.sum_univ_succ, Fin.val_zero, pow_zero, mul_one, Fin.val_succ]
+    refine congrArg (_ + ·) (Finset.sum_congr rfl fun k _ ↦ ?_)
+    simp only [pow_succ]
+    ring_nf
+    rfl
+
+theorem sum_zip_powers (lam : E) (qs : List ℕ) (f : ℕ → E) :
+    (((powers lam qs.length).zip qs).map fun wq ↦ wq.1 * f wq.2).sum =
+      ∑ k : Fin qs.length, lam ^ (k : ℕ) * f qs[k] := by
+  rw [powers, sum_zip_powersFrom]
+  simp
+
+/-- `powers λ t` has `t` entries. -/
+theorem length_powers (lam : E) (t : ℕ) : (powers lam t).length = t := by
+  rw [powers]
+  suffices h : ∀ acc, (powersFrom acc lam t).length = t from h 1
+  induction t with
+  | zero => intro; rfl
+  | succ t ih => intro acc; simp [powersFrom, ih]
+
+/-! ## The query step -/
+
+/-- The normalized subspace polynomial `Ŵ_κ` over `E`. -/
+noncomputable def hatE (κ : ℕ) : E[X] := (normVanishing κ).map (algebraMap K E)
+
+theorem hatE_eq (κ : ℕ) :
+    hatE κ = vanE κ * C (ofK (vanishingAt κ (basisVec κ))⁻¹) := by
+  rw [hatE, normVanishing, Polynomial.map_mul, Polynomial.map_C, vanE, mul_comm]
+  rfl
+
+theorem eval_hatE (κ : ℕ) (x : K) : (hatE κ).eval (ofK x) = ofK (normVanishingAt κ x) := by
+  rw [hatE, eval_map, show ofK x = algebraMap K E x from rfl, eval₂_hom, eval_normVanishing]
+  rfl
+
+theorem natDegree_hatE_mul_le {κ : ℕ} (hκ : κ < 64) (H : E[X]) :
+    (hatE κ * H).natDegree ≤ 2 ^ κ + H.natDegree := by
+  refine natDegree_mul_le.trans (Nat.add_le_add_right ?_ _)
+  rw [hatE, natDegree_map, natDegree_normVanishing hκ]
+
+/-- The low part of `P_g + Ŵ_κ H` is `g`. -/
+theorem lowMsg_msgPoly_add_hat {κ : ℕ} (hκ : κ ≤ 64) (g : (Fin κ → Bool) → E) (H : E[X]) :
+    lowMsg κ (msgPoly κ g + hatE κ * H) = g := by
+  rw [hatE_eq, mul_assoc]
+  exact lowMsg_msgPoly_add hκ g _
+
+/-- **The doom after the query positions**: every member of the list of the next oracle `Q'`
+violates the running claim `(Φ, σ)`, an out-of-domain claim `(eq(z_s, ·), y_s)`, or the
+consistency claim at a queried column, whose value the verifier derives is `c' q`. -/
+def QDoom (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E)
+    (Φ : List E → E) (σ : E) (z₁ z₂ : List E) (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) : Prop :=
+  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+    ∑ x, Φ (bitsL x) * joinMsg hκ (msgT P'.κ U) x ≠ σ ∨ oodVal z₁ (msgT P'.κ U) ≠ y₁ ∨
+      oodVal z₂ (msgT P'.κ U) ≠ y₂ ∨ ∃ q ∈ qs, encAt P.κ P.R (joinMsg hκ (msgT P'.κ U)) q ≠ c' q
+
+/-- **The query step** (Annex B, proof of `thm:rbr`, "Query message"). Let every tuple of degree
+at most `2^κ − 1 + ℓ` close to the folded word `C` violate the running claim, the out-of-domain
+points separate the next list, and `c' q` be `C` at `x_q` corrected by the high part `Ŵ_κ H`
+(`deg H < ℓ`). The positions that break `QDoom` all lie in a set of at most `A − 1` columns. -/
+theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A)
+    (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
+    (z₁ z₂ : List E) (y₁ y₂ : E) (H : E[X]) (hH : H.natDegree + 1 ≤ P.ℓ) (c' : ℕ → E)
+    (hc' : ∀ q (h : q < P.n), c' q = C ⟨q, h⟩ + (hatE P.κ * H).eval (P.dom ⟨q, h⟩))
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) (P.deg P.ℓ))
+    (hsep : OodSep2 P' Q' z₁ z₂) :
+    ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧ ∀ qs : List ℕ,
+      ¬ QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs → ∀ q ∈ qs, ∀ h : q < P.n,
+        (⟨q, h⟩ : Fin P.n) ∈ S := by
+  classical
+  have h64 := P.κ_lt
+  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+  by_cases hex : ∃ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ ∧ oodVal z₂ (msgT P'.κ U) = y₂
+  · obtain ⟨U₀, hU₀, ho₁, ho₂⟩ := hex
+    set g := joinMsg hκ (msgT P'.κ U₀)
+    set Pst := msgPoly P.κ g + hatE P.κ * H
+    -- The one member consistent with both answers, as a single polynomial.
+    have huniq : ∀ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ → oodVal z₂ (msgT P'.κ U) = y₂ → U = U₀ := by
+      intro U hU h₁ h₂
+      by_contra hne
+      rcases hsep U hU U₀ hU₀ hne with h | h
+      · exact h (h₁.trans ho₁.symm)
+      · exact h (h₂.trans ho₂.symm)
+    have hdeg : DegLE (P.deg P.ℓ) (fun _ : Fin 0 → Bool ↦ Pst) := fun _ ↦ by
+      refine (natDegree_add_le _ _).trans (max_le ?_ ?_)
+      · have := natDegree_msgPoly_lt (show P.κ ≤ 64 by omega) g
+        have h1 := Nat.one_le_two_pow (n := P.κ)
+        have : (msgPoly P.κ g).natDegree < 2 ^ P.κ := by
+          by_cases h0 : msgPoly P.κ g = 0
+          · rw [h0, natDegree_zero]; omega
+          · exact (natDegree_lt_iff_degree_lt h0).mpr (by exact_mod_cast this)
+        simp only [LevelCode.deg]; omega
+      · have := natDegree_hatE_mul_le h64 H
+        have h1 := Nat.one_le_two_pow (n := P.κ)
+        simp only [LevelCode.deg]; omega
+    have hclaim : tclaim P.κ Φ (fun _ : Fin 0 → Bool ↦ Pst) = ∑ x, Φ (bitsL x) * g x := by
+      rw [tclaim, claimSum_zero, lowMsg_msgPoly_add_hat (by omega)]
+    set S := agreeT P.dom (fun _ : Fin 0 → Bool ↦ Pst) (fun _ ↦ C)
+    by_cases hS : P.A ≤ S.card
+    · -- `P*` is close, so it violates the running claim, and so does every member: no escape.
+      have hv := hviol _ hdeg (by simpa [LevelCode.thr] using hS)
+      rw [hclaim] at hv
+      refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
+      intro U hU
+      by_cases h₁ : oodVal z₁ (msgT P'.κ U) = y₁
+      · by_cases h₂ : oodVal z₂ (msgT P'.κ U) = y₂
+        · rw [huniq U hU h₁ h₂]; exact Or.inl hv
+        · exact Or.inr (Or.inr (Or.inl h₂))
+      · exact Or.inr (Or.inl h₁)
+    · refine ⟨S, by omega, fun qs hqs q hq hlt ↦ ?_⟩
+      simp only [QDoom, not_forall, not_or, not_not, exists_prop, not_exists, not_and] at hqs
+      obtain ⟨U, hU, -, h₁, h₂, hall⟩ := hqs
+      obtain rfl := huniq U hU h₁ h₂
+      have he := hall q hq
+      rw [encAt, dite_eq_left_of_eq_true (eq_true hlt), hc' q hlt,
+        enc_eq_evalOnPoints (show P.κ + P.R ≤ 64 from P.h64)] at he
+      rw [mem_agreeT]
+      intro _
+      change (msgPoly P.κ g).eval (P.dom ⟨q, hlt⟩) = _ at he
+      simp only [Pst, Polynomial.eval_add]
+      rw [he]
+      linear_combination (CharTwo.two_eq_zero (R := E)) *
+        (eval (P.dom ⟨q, hlt⟩) (hatE P.κ * H))
+  · refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
+    intro U hU
+    by_contra h
+    simp only [not_or, not_not] at h
+    exact hex ⟨U, hU, h.2.1, h.2.2.1⟩
+
 end
 end LeanVM.Protocol.Whir.Sound
