@@ -102,11 +102,14 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; S
 
 /// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
 pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] {
-    let lanes = cell_lanes(odd);
-    std::array::from_fn(|c| {
-        let (lo, hi) = lanes[c];
-        F192::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]), 0)
-    })
+    // The layout is a constant, so the loop compiles to straight-line moves.
+    fn write<const ODD: bool>(s: &[u64; STATE_LANES]) -> [F192; STATE_CELLS] {
+        std::array::from_fn(|c| {
+            let (lo, hi) = const { cell_lanes(ODD) }[c];
+            F192::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]), 0)
+        })
+    }
+    if odd { write::<true>(s) } else { write::<false>(s) }
 }
 
 /// What a `KECCAK` instruction writes, given the cells it reads.

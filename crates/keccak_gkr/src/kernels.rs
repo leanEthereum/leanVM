@@ -5,9 +5,11 @@
 //! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
 //! vector forms are compiled only where their features are.
 
+use primitives::field::F192;
 use primitives::field::gf2_64::mul_wide;
 
 use crate::keccak::row_positions;
+use crate::power::{Element, PowerField};
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
@@ -258,9 +260,18 @@ cfg_select! {
         target_feature = "vpclmulqdq",
         target_feature = "gfni"
     ) => {
-        pub(crate) use x86::SkipBlock;
+        pub(crate) use x86::{SkipBlock, SkipWeights};
     }
     _ => {
+        /// The position weights a block's [`SkipBlock::run`] reads, in the power basis.
+        pub(crate) struct SkipWeights(Vec<Element>);
+
+        impl SkipWeights {
+            pub fn new(field: &PowerField, weights: &[F192]) -> Self {
+                Self(weights.iter().map(|&w| field.to_poly(w)).collect())
+            }
+        }
+
         /// [`skip_row`] over every row and slice of a block, a position at a time.
         pub(crate) struct SkipBlock {
             acc: Box<SkipAcc>,
@@ -276,7 +287,7 @@ cfg_select! {
             }
 
             /// Sum a block, the position weights as elements.
-            pub fn run(&mut self, block: &[u64], weights: &[[u64; 3]]) {
+            pub fn run(&mut self, block: &[u64], weights: &SkipWeights) {
                 self.acc.clear();
                 for r in 0..5 {
                     for z in 0..64 {
@@ -284,12 +295,13 @@ cfg_select! {
                         for x in 0..5 {
                             embed_extend(crate::witness::words(block, js[x]), &mut self.extended[x]);
                         }
-                        skip_row(&mut self.acc, &self.extended, std::array::from_fn(|x| &weights[js[x]]));
+                        skip_row(&mut self.acc, &self.extended, std::array::from_fn(|x| &weights.0[js[x]]));
                     }
                 }
             }
 
-            /// The three partial products of slot `i`.
+            /// The three partial products of slot `i`, a polynomial congruent to the slot's sum
+            /// modulo the minimal polynomial.
             pub fn get(&self, i: usize) -> [u128; 3] {
                 self.acc.get(i)
             }
@@ -417,11 +429,10 @@ mod x86 {
         }
     }
 
-    /// The packs of eight consecutive positions, embedded: `out[q]` holds pack `q` of position
-    /// `i` in word `i`. The positions' words are transposed first, so a register holds one word
-    /// of each, and a pack is then a field of every word alike.
+    /// The words of eight consecutive positions, transposed: register `w` holds word `w` of
+    /// position `i` in its word `i`, so a pack is a field of every word alike.
     #[inline(always)]
-    unsafe fn embed8(positions: *const u64, out: &mut [__m512i; PACKS]) {
+    unsafe fn transpose_words(positions: *const u64) -> [__m512i; BLOCK_WORDS] {
         unsafe {
             let a: [__m512i; 8] = std::array::from_fn(|i| _mm512_loadu_si512(positions.add(BLOCK_WORDS * i).cast()));
             let b: [__m512i; 8] = std::array::from_fn(|i| {
@@ -441,7 +452,7 @@ mod x86 {
                 let (x, y) = (b[4 * m + t % 2], b[4 * m + 2 + t % 2]);
                 if t < 2 { low(x, y) } else { high(x, y) }
             });
-            let words = [
+            [
                 low(c[0], c[4]),
                 low(c[1], c[5]),
                 low(c[2], c[6]),
@@ -450,7 +461,15 @@ mod x86 {
                 high(c[1], c[5]),
                 high(c[2], c[6]),
                 high(c[3], c[7]),
-            ];
+            ]
+        }
+    }
+
+    /// The packs of some of [`transpose_words`]'s words, embedded: `out[4 w + t]` holds pack
+    /// `t` of `words[w]`, of position `i` in word `i`.
+    #[inline(always)]
+    unsafe fn embed_words(words: &[__m512i], out: &mut [__m512i]) {
+        unsafe {
             let zero = _mm512_setzero_si512();
             for (w, &v) in words.iter().enumerate() {
                 let low = _mm512_or_si512(embedding_byte(v, 0), _mm512_slli_epi16(embedding_byte(v, 1), 8));
@@ -466,110 +485,321 @@ mod x86 {
         }
     }
 
-    /// [`extend_group`] on registers, each of eight positions' values.
+    /// The bytes of the eight packs of two of [`transpose_words`]'s words: `out[h]` holds byte
+    /// `h` of pack `k` of position `i` in byte `k` of word `i`.
     #[inline(always)]
-    unsafe fn extend8(v: &[__m512i], out: &mut [__m512i; MIXED]) {
+    unsafe fn pack_bytes(words: [__m512i; 2]) -> [__m512i; 2] {
         unsafe {
-            let x = |a: [__m512i; 4], b: [__m512i; 4]| -> [__m512i; 4] {
-                std::array::from_fn(|l| _mm512_xor_si512(a[l], b[l]))
+            // Per word, its four low bytes then its four high ones, and the other way round.
+            let split = _mm512_broadcast_i32x4(_mm_setr_epi8(0, 2, 4, 6, 1, 3, 5, 7, 8, 10, 12, 14, 9, 11, 13, 15));
+            let swapped = _mm512_broadcast_i32x4(_mm_setr_epi8(1, 3, 5, 7, 0, 2, 4, 6, 9, 11, 13, 15, 8, 10, 12, 14));
+            let a = _mm512_shuffle_epi8(words[0], split);
+            let b = _mm512_shuffle_epi8(words[1], swapped);
+            let low = _mm512_mask_blend_epi32(0xaaaa, a, b);
+            let high = _mm512_mask_blend_epi32(0xaaaa, b, a);
+            [low, _mm512_shuffle_epi32::<0b10_11_00_01>(high)]
+        }
+    }
+
+    /// Per word, an 8x8 transpose of bytes across the registers: `out[k]` byte `u` of word `i` is
+    /// `r[u]` byte `k` of word `i`.
+    #[inline(always)]
+    unsafe fn transpose_bytes(r: [__m512i; 8]) -> [__m512i; 8] {
+        unsafe {
+            // A 128-bit lane `m` holds word `2 m + parity` of each: `a[2 u + parity]` 16-bit field
+            // `k` is bytes `2 u, 2 u + 1` of `k`.
+            let a: [__m512i; 8] = std::array::from_fn(|i| {
+                let (x, y) = (r[2 * (i / 2)], r[2 * (i / 2) + 1]);
+                if i % 2 == 0 {
+                    _mm512_unpacklo_epi8(x, y)
+                } else {
+                    _mm512_unpackhi_epi8(x, y)
+                }
+            });
+            // `b[4 v + 2 h + parity]` 32-bit field `k` is bytes `4 v ..` of `4 h + k`.
+            let b: [__m512i; 8] = std::array::from_fn(|i| {
+                let (v, h, parity) = (i / 4, i / 2 % 2, i % 2);
+                let (x, y) = (a[4 * v + parity], a[4 * v + 2 + parity]);
+                if h == 0 {
+                    _mm512_unpacklo_epi16(x, y)
+                } else {
+                    _mm512_unpackhi_epi16(x, y)
+                }
+            });
+            // `c[4 h + 2 p + parity]` 64-bit field `t` is all of `4 h + 2 p + t`.
+            let c: [__m512i; 8] = std::array::from_fn(|i| {
+                let (h, p, parity) = (i / 4, i / 2 % 2, i % 2);
+                let (x, y) = (b[2 * h + parity], b[4 + 2 * h + parity]);
+                if p == 0 {
+                    _mm512_unpacklo_epi32(x, y)
+                } else {
+                    _mm512_unpackhi_epi32(x, y)
+                }
+            });
+            std::array::from_fn(|k| {
+                let (x, y) = (c[k & !1], c[k | 1]);
+                if k % 2 == 0 {
+                    _mm512_unpacklo_epi64(x, y)
+                } else {
+                    _mm512_unpackhi_epi64(x, y)
+                }
+            })
+        }
+    }
+
+    /// Bytes of an element.
+    const ELEMENT_BYTES: usize = 24;
+    /// The matrices of a position.
+    const WEIGHT_MATRICES: usize = 2 * ELEMENT_BYTES;
+
+    /// Per position, the affine byte maps sending byte `h` of a pack to byte `b` of the
+    /// position's weight times the pack's embedding, reduced modulo the minimal polynomial:
+    /// matrix `m = ELEMENT_BYTES * h + b` of position `j` at
+    /// `WEIGHT_MATRICES * 8 * (j / 8) + 8 * m + j % 8`, so that eight consecutive positions' are
+    /// one register, and theirs are contiguous.
+    pub struct SkipWeights(Vec<u64>);
+
+    impl SkipWeights {
+        pub fn new(field: &PowerField, weights: &[F192]) -> Self {
+            assert!(weights.len() >= BITS);
+            let per_position = parallel::map_collect(BITS, |j| {
+                let w = field.to_poly(weights[j]);
+                let v: [Element; 16] = std::array::from_fn(|t| field.mul(&w, &[RMFE.emb[t] as u64, 0, 0]));
+                std::array::from_fn::<u64, WEIGHT_MATRICES, _>(|m| {
+                    let (h, b) = (m / ELEMENT_BYTES, m % ELEMENT_BYTES);
+                    // Byte `i` is byte `b` of input bit `i`'s image; an affine byte map reads
+                    // output bit `u` off matrix byte `7 - u`.
+                    let images = (0..8).fold(0u64, |q, i| {
+                        q | (v[8 * h + i][b / 8] >> (8 * (b % 8)) & 0xff) << (8 * i)
+                    });
+                    transpose_bits8x8(images).swap_bytes()
+                })
+            });
+            let mut matrices = vec![0u64; WEIGHT_MATRICES * BITS];
+            for (j, m) in per_position.iter().enumerate() {
+                for (k, &m) in m.iter().enumerate() {
+                    matrices[WEIGHT_MATRICES * 8 * (j / 8) + 8 * k + j % 8] = m;
+                }
+            }
+            Self(matrices)
+        }
+    }
+
+    /// Bit `8 c + r` of `x` at bit `8 r + c`.
+    const fn transpose_bits8x8(mut x: u64) -> u64 {
+        let t = (x ^ (x >> 7)) & 0x00aa_00aa_00aa_00aa;
+        x ^= t ^ (t << 7);
+        let t = (x ^ (x >> 14)) & 0x0000_cccc_0000_cccc;
+        x ^= t ^ (t << 14);
+        let t = (x ^ (x >> 28)) & 0x0000_0000_f0f0_f0f0;
+        x ^ t ^ (t << 28)
+    }
+
+    /// One octet of a pivot's weighted packs into `out[k][8 o ..]`, per word `k`: `sum over terms
+    /// of weights[x] * embed(pack)`, a term being position `x`'s matrices and the bytes of the
+    /// other factor's packs ([`pack_bytes`]).
+    #[inline(always)]
+    unsafe fn weigh<const N: usize>(terms: [(*const u64, [__m512i; 2]); N], out: &mut [[__m512i; GROUP]], o: usize) {
+        unsafe {
+            for (k, out) in out[..3].iter_mut().enumerate() {
+                let image = transpose_bytes(std::array::from_fn(|u| {
+                    terms.iter().fold(_mm512_setzero_si512(), |g, &(m, [low, high])| {
+                        let matrix = |h: usize| _mm512_loadu_si512(m.add(8 * (ELEMENT_BYTES * h + 8 * k + u)).cast());
+                        _mm512_ternarylogic_epi64(
+                            g,
+                            _mm512_gf2p8affine_epi64_epi8(low, matrix(0), 0),
+                            _mm512_gf2p8affine_epi64_epi8(high, matrix(1), 0),
+                            0x96,
+                        )
+                    })
+                }));
+                for (out, image) in out[8 * o..][..8].iter_mut().zip(image) {
+                    *out = image;
+                }
+            }
+        }
+    }
+
+    /// The quantities of a half block, by pivot: its packs embedded, then each word of its
+    /// weighted packs, over the group's 16 packs.
+    type Quantities = [[__m512i; GROUP]; 12];
+
+    /// A quantity's value at high point `K` of [`extend_group`] and low lane `l`.
+    #[inline(always)]
+    unsafe fn high<const K: usize>(q: &[__m512i; GROUP], l: usize) -> __m512i {
+        unsafe {
+            let (g, xor) = (|m: usize| q[4 * m + l], _mm512_xor_si512);
+            match K {
+                0..4 => g(K),
+                4 => xor(g(0), g(1)),
+                5 => xor(g(2), g(3)),
+                6 => xor(g(0), g(2)),
+                7 => xor(g(1), g(3)),
+                _ => _mm512_ternarylogic_epi64(xor(g(0), g(1)), g(2), g(3), 0x96),
+            }
+        }
+    }
+
+    /// Shapes of [`values`]: of a high point's lanes `w`, `w0 + w1, w2 + w3` and their sum; `w0,
+    /// w1` and theirs; `w2, w3` and theirs; `w0 + w2, w1 + w3` and theirs.
+    const LOW_SUMS: usize = 0;
+    const FIRST: usize = 1;
+    const SECOND: usize = 2;
+    const CROSS: usize = 3;
+
+    /// A quantity's values at `S` outputs of high point `K`, of the given shape.
+    #[inline(always)]
+    unsafe fn values<const K: usize, const SHAPE: usize, const S: usize>(q: &[__m512i; GROUP]) -> [__m512i; S] {
+        unsafe {
+            let w = |l: usize| high::<K>(q, l);
+            let xor = _mm512_xor_si512;
+            let (a, b) = match SHAPE {
+                LOW_SUMS => (xor(w(0), w(1)), xor(w(2), w(3))),
+                FIRST => (w(0), w(1)),
+                SECOND => (w(2), w(3)),
+                _ => (xor(w(0), w(2)), xor(w(1), w(3))),
             };
-            let q = |k: usize| -> [__m512i; 4] { std::array::from_fn(|l| v[4 * k + l]) };
-            let (w4, w5) = (x(q(0), q(1)), x(q(2), q(3)));
-            let w = [q(0), q(1), q(2), q(3), w4, w5, x(q(0), q(2)), x(q(1), q(3)), x(w4, w5)];
-            for (k, w) in w[4..].iter().enumerate() {
-                out[4 * k..][..4].copy_from_slice(w);
-            }
-            for (k, w) in w.iter().enumerate() {
-                let low = x([w[0], w[2], w[0], w[1]], [w[1], w[3], w[2], w[3]]);
-                out[20 + 4 * k..][..4].copy_from_slice(&low);
-                out[56 + k] = _mm512_xor_si512(low[0], low[1]);
-            }
+            let v = [a, b, xor(a, b)];
+            std::array::from_fn(|s| v[s])
         }
     }
 
     /// [`skip_row`] over every row and slice of a block, eight slices at a time: each register
     /// holds one value of eight positions, so the extension is a sum of registers and each slot's
-    /// products are a register's lanes, weighted by eight positions' weights at once.
+    /// products are a register's lanes.
+    ///
+    /// A row's five products `weights[x] * e[x + 1] * e[x + 2]` go by three pivots, each a
+    /// factor its products share: `e[2] * (weights[0] * e[1] + weights[1] * e[3])`,
+    /// `e[4] * (weights[2] * e[3] + weights[3] * e[0])` and `e[1] * (weights[4] * e[0])`. A
+    /// weight times an embedding is linear in the pack's bits, so [`SkipWeights`]' affine byte
+    /// maps give the weighted packs, reduced to three words, and the extension is a sum of those
+    /// too. A slot then takes three carry-less products per pivot, where weighing each product
+    /// would take four per row position.
+    ///
+    /// A half block at a time, so that its slots' sums stay in cache. The extension is built a
+    /// high point at a time from the group's values, and each word's sums of a high point's
+    /// slots stay in registers over the pivots.
     pub struct SkipBlock {
-        /// Per slot, the even and odd positions' sums of each partial product.
-        acc: Vec<[__m512i; 6]>,
-        packs: [[__m512i; PACKS]; 5],
-        extended: [[__m512i; MIXED]; 5],
-        /// The weights by word: word `k` of position `j` at `k * BITS + j`.
-        weights: Vec<u64>,
+        /// Per slot, the sums of each word's products.
+        acc: Vec<[__m512i; 3]>,
     }
 
     impl SkipBlock {
         pub fn new() -> Box<Self> {
             let zero = unsafe { _mm512_setzero_si512() };
             Box::new(Self {
-                acc: vec![[zero; 6]; 2 * MIXED],
-                packs: [[zero; PACKS]; 5],
-                extended: [[zero; MIXED]; 5],
-                weights: vec![0; 3 * BITS],
+                acc: vec![[zero; 3]; 2 * MIXED],
             })
         }
 
-        /// Sum a block, the position weights as elements.
-        pub fn run(&mut self, block: &[u64], weights: &[[u64; 3]]) {
-            assert!(block.len() >= BITS * BLOCK_WORDS && weights.len() >= BITS);
-            for (j, w) in weights[..BITS].iter().enumerate() {
-                for (k, &w) in w.iter().enumerate() {
-                    self.weights[k * BITS + j] = w;
-                }
-            }
+        /// Sum a block.
+        pub fn run(&mut self, block: &[u64], weights: &SkipWeights) {
+            assert!(block.len() >= BITS * BLOCK_WORDS && weights.0.len() >= WEIGHT_MATRICES * BITS);
             // SAFETY: the features are enabled at compile time, and every position read is in
-            // the block, every weight in the table.
+            // the block, every matrix in the table.
             unsafe {
-                self.acc.fill([_mm512_setzero_si512(); 6]);
-                for r in 0..5 {
-                    for z in (0..64).step_by(8) {
-                        let js = row_positions(r, z);
-                        for (packs, &j) in self.packs.iter_mut().zip(&js) {
-                            embed8(block.as_ptr().add(BLOCK_WORDS * j), packs);
-                        }
-                        let w: [[__m512i; 3]; 5] = std::array::from_fn(|x| {
-                            std::array::from_fn(|k| {
-                                _mm512_loadu_si512(self.weights.as_ptr().add(k * BITS + js[x]).cast())
-                            })
-                        });
-                        for half in 0..2 {
-                            for (extended, packs) in self.extended.iter_mut().zip(&self.packs) {
-                                extend8(&packs[GROUP * half..][..GROUP], extended);
+                let zero = _mm512_setzero_si512();
+                self.acc.fill([zero; 3]);
+                let mut q: Quantities = [[zero; GROUP]; 12];
+                for half in 0..2 {
+                    for r in 0..5 {
+                        for z in (0..64).step_by(8) {
+                            let js = row_positions(r, z);
+                            let words: [[__m512i; GROUP / 4]; 5] = std::array::from_fn(|x| {
+                                let words = transpose_words(block.as_ptr().add(BLOCK_WORDS * js[x]));
+                                std::array::from_fn(|w| words[GROUP / 4 * half + w])
+                            });
+                            let m = |x: usize| weights.0.as_ptr().add(WEIGHT_MATRICES * js[x]);
+                            for o in 0..2 {
+                                let bytes = |x: usize| pack_bytes([words[x][2 * o], words[x][2 * o + 1]]);
+                                let (b0, b1, b3) = (bytes(0), bytes(1), bytes(3));
+                                weigh([(m(0), b1), (m(1), b3)], &mut q[1..4], o);
+                                weigh([(m(2), b3), (m(3), b0)], &mut q[5..8], o);
+                                weigh([(m(4), b0)], &mut q[9..12], o);
                             }
-                            for i in 0..MIXED {
-                                let e: [__m512i; 5] = std::array::from_fn(|x| self.extended[x][i]);
-                                let mut sums = [_mm512_setzero_si512(); 6];
-                                for x in 0..5 {
-                                    let (b, c) = (e[(x + 1) % 5], e[(x + 2) % 5]);
-                                    let even = _mm512_clmulepi64_epi128(b, c, 0x00);
-                                    let odd = _mm512_clmulepi64_epi128(b, c, 0x11);
-                                    for k in 0..3 {
-                                        let (s, w) = (&mut sums[2 * k..], w[x][k]);
-                                        s[0] = _mm512_xor_si512(s[0], _mm512_clmulepi64_epi128(even, w, 0x00));
-                                        s[1] = _mm512_xor_si512(s[1], _mm512_clmulepi64_epi128(odd, w, 0x10));
-                                    }
-                                }
-                                let acc = &mut self.acc[slot(half, i)];
-                                for (acc, sum) in acc.iter_mut().zip(sums) {
-                                    *acc = _mm512_xor_si512(*acc, sum);
-                                }
+                            for (p, pivot) in [2, 4, 1].into_iter().enumerate() {
+                                embed_words(&words[pivot], &mut q[4 * p]);
                             }
+                            self.multiply(half, &q);
                         }
                     }
                 }
             }
         }
 
-        /// The three partial products of slot `i`.
+        /// Every output of [`extend_group`] of the quantities: its products into its slot.
+        #[inline(always)]
+        unsafe fn multiply(&mut self, half: usize, q: &Quantities) {
+            unsafe {
+                self.high_point::<0>(half, q);
+                self.high_point::<1>(half, q);
+                self.high_point::<2>(half, q);
+                self.high_point::<3>(half, q);
+                self.high_point::<4>(half, q);
+                self.high_point::<5>(half, q);
+                self.high_point::<6>(half, q);
+                self.high_point::<7>(half, q);
+                self.high_point::<8>(half, q);
+            }
+        }
+
+        /// The outputs of high point `K`: the binary low points of a new high point, its low
+        /// mixed points, then their lane sum.
+        #[inline(always)]
+        unsafe fn high_point<const K: usize>(&mut self, half: usize, q: &Quantities) {
+            unsafe {
+                let (lows, sum) = ([20 + 4 * K, 21 + 4 * K, 22 + 4 * K, 23 + 4 * K], 56 + K);
+                if K < 4 {
+                    self.add_products::<K, LOW_SUMS, 3>(half, [lows[0], lows[1], sum], q);
+                    self.add_products::<K, CROSS, 2>(half, [lows[2], lows[3]], q);
+                } else {
+                    let binary = 4 * (K - 4);
+                    self.add_products::<K, FIRST, 3>(half, [binary, binary + 1, lows[0]], q);
+                    self.add_products::<K, SECOND, 3>(half, [binary + 2, binary + 3, lows[1]], q);
+                    self.add_products::<K, CROSS, 3>(half, [lows[2], lows[3], sum], q);
+                }
+            }
+        }
+
+        /// For `S` outputs of high point `K`, given by `SHAPE`, every pivot's products into
+        /// their slots.
+        #[inline(always)]
+        unsafe fn add_products<const K: usize, const SHAPE: usize, const S: usize>(
+            &mut self,
+            half: usize,
+            outputs: [usize; S],
+            q: &Quantities,
+        ) {
+            unsafe {
+                let mut acc: [[__m512i; 3]; S] = std::array::from_fn(|s| self.acc[slot(half, outputs[s])]);
+                for p in 0..3 {
+                    let e = values::<K, SHAPE, S>(&q[4 * p]);
+                    for k in 0..3 {
+                        let l = values::<K, SHAPE, S>(&q[4 * p + 1 + k]);
+                        for s in 0..S {
+                            acc[s][k] = _mm512_ternarylogic_epi64(
+                                acc[s][k],
+                                _mm512_clmulepi64_epi128(l[s], e[s], 0x00),
+                                _mm512_clmulepi64_epi128(l[s], e[s], 0x11),
+                                0x96,
+                            );
+                        }
+                    }
+                }
+                for (s, acc) in acc.into_iter().enumerate() {
+                    self.acc[slot(half, outputs[s])] = acc;
+                }
+            }
+        }
+
+        /// The three partial products of slot `i`, a polynomial congruent to the slot's sum
+        /// modulo the minimal polynomial.
         pub fn get(&self, i: usize) -> [u128; 3] {
             std::array::from_fn(|k| {
-                let mut lanes = [[0u128; 4]; 2];
-                for (lanes, &acc) in lanes.iter_mut().zip(&self.acc[i][2 * k..2 * k + 2]) {
-                    // SAFETY: four 128-bit lanes to a register.
-                    unsafe { _mm512_storeu_si512(lanes.as_mut_ptr().cast(), acc) };
-                }
-                lanes.as_flattened().iter().fold(0, |a, &b| a ^ b)
+                let mut lanes = [0u128; 4];
+                // SAFETY: four 128-bit lanes to a register.
+                unsafe { _mm512_storeu_si512(lanes.as_mut_ptr().cast(), self.acc[i][k]) };
+                lanes.iter().fold(0, |a, &b| a ^ b)
             })
         }
     }
@@ -1054,12 +1284,15 @@ mod tests {
             assert_eq!(fold_groups(&e, &fold), fold_groups_portable(&e, &fold));
         }
         let block: Vec<u64> = (0..crate::witness::BLOCK_LEN).map(|_| rng.next_u64()).collect();
-        let weights: Vec<[u64; 3]> = (0..BITS).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let field = PowerField::new(rng.ext()).unwrap();
+        let weights = rng.ext_vec(BITS);
         let mut skip = SkipBlock::new();
-        skip.run(&block, &weights);
-        let expected = skip_block_portable(&block, &weights);
+        skip.run(&block, &SkipWeights::new(&field, &weights));
+        let polys: Vec<Element> = weights.iter().map(|&w| field.to_poly(w)).collect();
+        let expected = skip_block_portable(&block, &polys);
+        let reduce = |sum: &[u128; 3]| field.reduce(&crate::basis::carry::<3, 6>(sum));
         for (i, expected) in expected.iter().enumerate() {
-            assert_eq!(&skip.get(i), expected, "slot {i}");
+            assert_eq!(reduce(&skip.get(i)), reduce(expected), "slot {i}");
         }
     }
 }

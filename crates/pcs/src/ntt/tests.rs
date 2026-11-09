@@ -292,13 +292,20 @@ fn lane_major_encode_matches_transpose_then_in_place() {
 /// must equal the full encode's, wherever the plan splits off a deep pass. Whether a shape
 /// splits depends on the cache budget and the pool, so only some shape must.
 ///
-/// A deep-only plan with a separate message builds the whole codeword and returns `None`.
+/// A deep-only plan with a separate message keeps only the message, and finishes each row from one replica of it:
+/// `(9, 8, 1)` and, with tasks of several replicas, `(10, 48, 7)`.
 /// The in-place, deep-only, deferred branch runs in `lane_major_encode_matches_transpose_then_in_place`,
 /// at shape `(5, 2, 7)`.
 #[test]
 fn deferred_deep_rows_match_the_full_encode() {
     let mut rng = Rng::new(0xDEE9);
-    let shapes = [(14usize, 51usize, 1usize), (15, 64, 2), (9, 8, 1), (4, 8, 4)];
+    let shapes = [
+        (14usize, 51usize, 1usize),
+        (15, 64, 2),
+        (9, 8, 1),
+        (10, 48, 7),
+        (4, 8, 4),
+    ];
     let mut splits = 0;
     for (log_d, lanes, log_inv_rate) in shapes {
         let ntt = AdditiveNttF64::standard(log_d);

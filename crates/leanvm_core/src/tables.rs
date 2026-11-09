@@ -14,7 +14,7 @@
 //! so a relation on machine words is written out lane by lane. A table hands its
 //! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
+use crate::cpu::{Jrow, Memory, Op, Rows, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
@@ -183,6 +183,9 @@ pub struct FillCtx<'a> {
 /// buffer if the column is virtual.
 pub(crate) type ColumnOut<'a> = &'a mut [F64];
 
+/// Rows a fill gathers before streaming them out: a cache line of each column.
+const LINE: usize = 8;
+
 impl<'a> FillCtx<'a> {
     pub(crate) fn new(
         trace: &'a Trace,
@@ -218,59 +221,58 @@ impl<'a> FillCtx<'a> {
         }
     }
 
-    /// Write local column `at`: `f` over the trace rows, then its padding value to the
-    /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &Rows<R>, at: usize, f: impl Fn(&R) -> F64 + Sync) {
-        self.cols(out, rows, at, |r| [f(r)]);
-    }
-
-    /// Write the `N` local columns at `at..at + N` from one closure per row.
-    /// Columns fed by the same read fill together: the three lanes of a 192-bit
-    /// memory word are one random access, and splitting them across `N` passes
-    /// pays for it `N` times.
+    /// Write the local columns `cols` from one closure per row, then each column's
+    /// padding value to the end of its window. A table fills all its columns in one
+    /// pass: the row, its instruction and the memory words it names are read once,
+    /// and the three lanes of a 192-bit word are one random access.
     fn cols<const N: usize, R: Sync>(
         &self,
         out: &mut [ColumnOut],
         rows: &Rows<R>,
-        at: usize,
+        cols: [usize; N],
         f: impl Fn(&R) -> [F64; N] + Sync,
     ) {
-        self.cols_at(out, rows.len(), at, |i| f(rows.get(i)));
+        self.lines(out, rows.len(), cols, |start, len, buf| {
+            for j in 0..len {
+                let v = f(rows.get(start + j));
+                for k in 0..N {
+                    buf[k][j] = v[k];
+                }
+            }
+        });
     }
 
-    /// [`Self::cols`] over row indices, for values held in a side buffer rather
-    /// than read off the row.
-    fn cols_at<const N: usize>(
+    /// [`Self::cols`] a line of rows at a time: `f(start, len, buf)` writes trace rows
+    /// `start..start + len` of column `cols[k]` to `buf[k][..len]`.
+    fn lines<const N: usize>(
         &self,
         out: &mut [ColumnOut],
         n_rows: usize,
-        at: usize,
-        f: impl Fn(usize) -> [F64; N] + Sync,
+        cols: [usize; N],
+        f: impl Fn(usize, usize, &mut [[F64; LINE]; N]) + Sync,
     ) {
         let n = self.height;
-        let dst: [parallel::SendPtr<F64>; N] = std::array::from_fn(|k| {
-            assert_eq!(out[at + k].len(), n, "column {} has the wrong window length", at + k);
-            let col = at + k;
+        let dst: [parallel::SendPtr<F64>; N] = cols.map(|col| {
+            assert_eq!(out[col].len(), n, "column {col} has the wrong window length");
             self.written[col / 64].fetch_or(1 << (col % 64), std::sync::atomic::Ordering::Relaxed);
-            parallel::SendPtr(out[at + k].as_mut_ptr())
+            parallel::SendPtr(out[col].as_mut_ptr())
         });
         assert!(n_rows <= n, "a table's rows must fit its cube");
-        let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
+        let padding: [F64; N] = cols.map(|col| self.padding[col]);
         // A cache line of rows is gathered column by column, then streamed out: the
         // stack is read by a later pass, so its lines need not be fetched.
-        const LINE: usize = 8;
         parallel::for_each_chunk(n.div_ceil(LINE), |first, end| {
             let stream = primitives::stream::Stream::new();
             for b in first..end {
                 let start = b * LINE;
                 let len = LINE.min(n - start);
                 let mut buf = [[F64::ZERO; LINE]; N];
-                for j in 0..len {
-                    let i = start + j;
-                    let v = if i < n_rows { f(i) } else { padding };
-                    for k in 0..N {
-                        buf[k][j] = v[k];
-                    }
+                let rows = len.min(n_rows.saturating_sub(start));
+                if rows > 0 {
+                    f(start, rows, &mut buf);
+                }
+                for (column, &pad) in buf.iter_mut().zip(&padding) {
+                    column[rows..len].fill(pad);
                 }
                 for (p, column) in dst.iter().zip(&buf) {
                     // SAFETY: block `b` writes rows `start..start + len` of each of the
@@ -521,14 +523,15 @@ impl Table for Arith {
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
         use arith::*;
         let rows = if self.is_xor { &ctx.trace.xor } else { &ctx.trace.mul };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        // The offsets and both operand words come out of ONE bytecode decode: split
-        // across passes, the row's instruction is fetched once per pass.
-        ctx.cols(out, rows, OA, |r| {
+        let cols = [
+            PC, FP, OA, OB, OC, VA_LO, VA_HI, VA_TOP, VB_LO, VB_HI, VB_TOP, RA, RB, RC, RBC,
+        ];
+        ctx.cols(out, rows, cols, |r| {
             let (a, b, c) = ctx.ternary_operands(r.pc);
             let (va, vb) = (ctx.limbs(r.fp + a), ctx.limbs(r.fp + b));
             [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
                 ctx.g_at(a),
                 ctx.g_at(b),
                 ctx.g_at(c),
@@ -538,10 +541,12 @@ impl Table for Arith {
                 vb[0],
                 vb[1],
                 vb[2],
+                ctx.g_at(r.ra),
+                ctx.g_at(r.rb),
+                ctx.g_at(r.rc),
+                ctx.g_at(r.bytecode_read),
             ]
         });
-        ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -588,19 +593,23 @@ impl Table for SetTable {
         use set::*;
         let rows = &ctx.trace.set;
         // The offset and the stored immediate are the instruction's.
-        let imm = |r: &Srow| match ctx.prog[r.pc as usize] {
-            Op::Set { o, k } => (o, k),
-            op => unreachable!("a SET row's pc {} holds {op:?}", r.pc),
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        ctx.col(out, rows, O, |r| ctx.g_at(imm(r).0));
-        ctx.cols(out, rows, K_LO, |r| {
-            let k = imm(r).1;
-            k.to_limbs().map(F64)
+        ctx.cols(out, rows, [PC, FP, O, K_LO, K_HI, K_TOP, R, RBC], |r| {
+            let (o, k) = match ctx.prog[r.pc as usize] {
+                Op::Set { o, k } => (o, k),
+                op => unreachable!("a SET row's pc {} holds {op:?}", r.pc),
+            };
+            let k = k.to_limbs().map(F64);
+            [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
+                ctx.g_at(o),
+                k[0],
+                k[1],
+                k[2],
+                ctx.g_at(r.r),
+                ctx.g_at(r.bytecode_read),
+            ]
         });
-        ctx.col(out, rows, R, |r| ctx.g_at(r.r));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -671,36 +680,33 @@ impl Table for DerefTable {
         let rows = &ctx.trace.deref;
         // Offsets and store mode are the instruction's. Neither the store target's
         // address nor its value is committed.
-        let ins = |r: &Drow| match ctx.prog[r.pc as usize] {
-            Op::Deref { o1, o2, o3, mode } => (o1, o2, o3, mode),
-            op => unreachable!("a DEREF row's pc {} holds {op:?}", r.pc),
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        debug_assert!(
-            rows.iter()
-                .all(|r| ctx.mem.word((r.fp + ins(r).0) as usize).as_base().is_some()),
-            "deref pointer must be K-valued"
-        );
-        // The three offsets, the two mode flags, the pointer lane and the local
-        // word all follow from ONE bytecode decode.
-        ctx.cols(out, rows, O1, |r| {
-            let (o1, o2, o3, mode) = ins(r);
+        let cols = [PC, FP, O1, O2, O3, FPC, FFP, P, V3_LO, V3_HI, V3_TOP, R1, R2, R3, RBC];
+        ctx.cols(out, rows, cols, |r| {
+            let (o1, o2, o3, mode) = match ctx.prog[r.pc as usize] {
+                Op::Deref { o1, o2, o3, mode } => (o1, o2, o3, mode),
+                op => unreachable!("a DEREF row's pc {} holds {op:?}", r.pc),
+            };
+            let p = ctx.mem.word((r.fp + o1) as usize);
+            debug_assert!(p.as_base().is_some(), "deref pointer must be K-valued");
             let v3 = ctx.limbs(r.fp + o3);
             [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
                 ctx.g_at(o1),
                 ctx.g_at(o2),
                 ctx.g_at(o3),
                 mode.f_pc(),
                 mode.f_fp(),
-                F64(ctx.mem.word((r.fp + o1) as usize).c0),
+                F64(p.c0),
                 v3[0],
                 v3[1],
                 v3[2],
+                ctx.g_at(r.r1),
+                ctx.g_at(r.r2),
+                ctx.g_at(r.r3),
+                ctx.g_at(r.bytecode_read),
             ]
         });
-        ctx.cols(out, rows, R1, |r| [r.r1, r.r2, r.r3].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -792,60 +798,62 @@ impl Table for JumpTable {
             op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
         };
         let cell = |r: &Jrow, o: u32| ctx.mem.word((r.fp + o) as usize);
-        let cond = |r: &Jrow| {
-            let c = cell(r, ins(r).0);
-            debug_assert!(c.as_base().is_some(), "a JUMP condition outside K at pc {}", r.pc);
-            F64(c.c0)
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        // The three offsets and the three cells they name come out of ONE decode.
-        // Those cells are K-valued on every row, taken or not (`cpu::execute`
-        // rejects anything else), so each is one lane and the memory flush carries
-        // literal zeros above it.
-        ctx.cols(out, rows, OC, |r| {
-            let (oc, od, of) = ins(r);
-            [
-                ctx.g_at(oc),
-                ctx.g_at(od),
-                ctx.g_at(of),
-                F64(cell(r, oc).c0),
-                F64(cell(r, od).c0),
-                F64(cell(r, of).c0),
-            ]
-        });
-        // The is-nonzero witness `w = c⁻¹` (0 where c = 0) for every row, in one
-        // batched Montgomery inversion. `prefix[i]` is the
-        // running product of the nonzero conditions before row `i`, so `acc` ends
-        // as their full product (nonzero, hence invertible). The taken indicator
-        // `b = [c ≠ 0]` falls out of the same pass, so it costs no extra decode.
-        // The conditions lie in K, a subfield, so the inversion runs in K.
-        let (w, b) = {
+        // Every column, in local order, so `buf[c]` is column `c`.
+        let cols: [usize; N] = std::array::from_fn(|c| c);
+        ctx.lines(out, rows.len(), cols, |start, len, buf| {
+            // The is-nonzero witness `w = c⁻¹` (0 where c = 0) by one batched Montgomery
+            // inversion per line: `prefix[j]` is the running product of the nonzero
+            // conditions before row `j`, so `acc` ends as their full product (nonzero,
+            // hence invertible). The conditions lie in K, a subfield, so the inversion
+            // runs in K.
+            let mut prefix = [F64::ONE; LINE];
             let mut acc = F64::ONE;
-            let mut prefix: Vec<F64> = Vec::with_capacity(rows.len());
-            let mut b = vec![F64::ZERO; rows.len()];
-            for (i, r) in rows.iter().enumerate() {
-                prefix.push(acc);
-                let c = cond(r);
-                if !c.is_zero() {
+            for j in 0..len {
+                let r = rows.get(start + j);
+                let (oc, od, of) = ins(r);
+                // The three cells are K-valued on every row, taken or not
+                // (`cpu::execute` rejects anything else), so each is one lane and the
+                // memory flush carries literal zeros above it.
+                let c = cell(r, oc);
+                debug_assert!(c.as_base().is_some(), "a JUMP condition outside K at pc {}", r.pc);
+                let c = F64(c.c0);
+                let row = [
+                    (PC, ctx.g_at(r.pc)),
+                    (FP, ctx.g_at(r.fp)),
+                    (OC, ctx.g_at(oc)),
+                    (OD, ctx.g_at(od)),
+                    (OF, ctx.g_at(of)),
+                    (V_COND, c),
+                    (V_PC, F64(cell(r, od).c0)),
+                    (V_FP, F64(cell(r, of).c0)),
+                    (RC, ctx.g_at(r.rc)),
+                    (RD, ctx.g_at(r.rd)),
+                    (RF, ctx.g_at(r.rf)),
+                    (RBC, ctx.g_at(r.bytecode_read)),
+                ];
+                for (col, v) in row {
+                    buf[col][j] = v;
+                }
+                prefix[j] = acc;
+                // The taken indicator `b = [c ≠ 0]`.
+                let taken = !c.is_zero();
+                buf[B][j] = F64(u64::from(taken));
+                if taken {
                     acc *= c;
-                    b[i] = F64::ONE;
                 }
             }
             let mut inv = acc.inv();
-            let mut w = vec![F64::ZERO; rows.len()];
-            for i in (0..rows.len()).rev() {
-                let c = cond(rows.get(i));
-                if !c.is_zero() {
-                    w[i] = inv * prefix[i];
+            for j in (0..len).rev() {
+                let c = buf[V_COND][j];
+                buf[W][j] = if c.is_zero() {
+                    F64::ZERO
+                } else {
+                    let w = inv * prefix[j];
                     inv *= c;
-                }
+                    w
+                };
             }
-            (w, b)
-        };
-        ctx.cols_at(out, rows.len(), W, |i| [w[i], b[i]]);
-        ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+        });
     }
 }
 
@@ -962,44 +970,43 @@ impl Table for KeccakTable {
     /// Every column but the input lanes, which are `q_keccak`'s and have no window here. The output lanes are the
     /// input permuted again, since a row writes only the output cells its bytecode requests.
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
-        use crate::keccak::state_of_cells;
+        use crate::keccak::{ROW_CELLS, state_of_cells};
         use keccakt::*;
+        use primitives::hash::STATE_LANES;
         let rows = &ctx.trace.keccak;
-        let op = |r: &Krow| KeccakOp::of(&ctx.prog[r.pc as usize]);
         let flag = |b: bool| F64(u64::from(b));
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        ctx.cols(out, rows, O_M0, |r| {
-            let k = op(r);
-            let [m0, m1, m2, m3, tail, b8, cap, o] = k.offsets.map(|o| ctx.g_at(o));
-            let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
-            let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
-            let free = F64(if high { free.c1 } else { free.c0 });
-            let (two, all) = k.out_cells.flags();
-            [
-                m0,
-                m1,
-                m2,
-                m3,
-                tail,
-                b8,
-                cap,
-                o,
-                flag(k.in_odd),
-                flag(k.out_odd),
-                flag(two),
-                flag(all),
-                free,
-            ]
+        // Every column but the input lanes, in local order: `buf[c]` is column `c` below
+        // `V_IN`, and column `c + STATE_LANES` from there.
+        const COLS: usize = N - STATE_LANES;
+        let cols: [usize; COLS] = std::array::from_fn(|c| if c < V_IN { c } else { c + STATE_LANES });
+        ctx.lines(out, rows.len(), cols, |start, len, buf| {
+            for j in 0..len {
+                let r = rows.get(start + j);
+                let k = KeccakOp::of(&ctx.prog[r.pc as usize]);
+                buf[PC][j] = ctx.g_at(r.pc);
+                buf[FP][j] = ctx.g_at(r.fp);
+                for (i, &o) in k.offsets.iter().enumerate() {
+                    buf[O_M0 + i][j] = ctx.g_at(o);
+                }
+                let (two, all) = k.out_cells.flags();
+                buf[IN_ODD][j] = flag(k.in_odd);
+                buf[OUT_ODD][j] = flag(k.out_odd);
+                buf[OUT_TWO][j] = flag(two);
+                buf[OUT_ALL][j] = flag(all);
+                let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
+                let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
+                buf[FREE][j] = F64(if high { free.c1 } else { free.c0 });
+                let mut lanes = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
+                primitives::hash::keccak_f(&mut lanes);
+                for (l, &lane) in lanes.iter().enumerate() {
+                    buf[V_OUT - STATE_LANES + l][j] = F64(lane);
+                }
+                for c in 0..ROW_CELLS {
+                    buf[R0 - STATE_LANES + c][j] = ctx.g_at(r.r[c]);
+                }
+                buf[RBC - STATE_LANES][j] = ctx.g_at(r.bytecode_read);
+            }
         });
-        ctx.cols(out, rows, V_OUT, |r| {
-            let k = op(r);
-            let mut lanes = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
-            primitives::hash::keccak_f(&mut lanes);
-            lanes.map(F64)
-        });
-        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 

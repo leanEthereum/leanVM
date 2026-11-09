@@ -164,6 +164,17 @@ impl F192x8 {
         std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(3 * j + k) / 8][(3 * j + k) % 8])))
     }
 
+    /// Eight runs of sixteen consecutive elements, transposed: `out[j]` lane `p` is `src[16p + j]`.
+    #[inline(always)]
+    pub fn load_blocks(src: &[F192; 128]) -> [Self; 16] {
+        let q = src.as_ptr().cast::<u64>();
+        // As in `load_runs`, over six blocks of each run's 48 qwords.
+        // SAFETY: the 128 elements are 384 readable qwords.
+        let blocks: [[__m512i; 8]; 6] =
+            std::array::from_fn(|b| transpose8(std::array::from_fn(|p| unsafe { load_u64x8(q.add(48 * p + 8 * b)) })));
+        std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(3 * j + k) / 8][(3 * j + k) % 8])))
+    }
+
     /// The even lanes of `a` then of `b`, and the odd lanes of `a` then of `b`.
     #[inline(always)]
     pub fn deinterleave(a: Self, b: Self) -> (Self, Self) {

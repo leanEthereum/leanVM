@@ -10,18 +10,22 @@ pub type Off = u32;
 /// Cells a program can address: [`GPow`] covers no more.
 pub(crate) const MAX_CELLS: u32 = 1 << 28;
 
-/// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
+/// The powers `g^k` paired with a reverse index `g^k ↦ k`, both grown on demand
 /// (recursion depth, and so the address range, is unbounded).
 ///
 /// The interpreter needs both directions: a cell index becomes the address `g^k`,
 /// and a pointer word read back out of memory must be inverted to the index it
-/// addresses. Three things keep this cheap.
+/// addresses. Four things keep this cheap.
 ///
-/// The reverse index holds nothing but the exponent, confirming a candidate slot
-/// against the forward table, so a slot is four bytes where a `HashMap` bucket is
-/// sixteen plus a control byte. Keys are field elements, hence effectively
-/// uniform, which is all the placement asks for: one multiplicative mix, then
-/// linear probing. The table stays at most half full to keep probing short.
+/// The forward powers are every `STRIDE`th one and the first `STRIDE`, so `g^k` is
+/// one product: a table of every power would be as large as the address space,
+/// built by the interpreter's one thread and read at random.
+///
+/// A reverse-index slot holds the key beside its exponent, so a probe reads the
+/// slot alone rather than computing the power a candidate exponent names. Keys
+/// are field elements, hence effectively uniform, which is all the placement asks
+/// for: one multiplicative mix, then linear probing. The table stays at most half
+/// full to keep probing short.
 ///
 /// It indexes only the exponents [`Self::note`] announces, or a lookup resolved:
 /// a run addresses millions of cells but stores only the few thousand bases of
@@ -33,27 +37,120 @@ pub(crate) const MAX_CELLS: u32 = 1 << 28;
 /// interpreter could not label, a jump target or a pointer into a buffer, costs at
 /// most `STRIDE` probes once.
 pub struct GPow {
-    pow: Vec<F64>,
-    /// `k + 1` at the slot `g^k` mixes to, for the announced `k`; 0 marks an empty
-    /// slot. Power-of-two length.
-    index: Vec<u32>,
-    announced: usize,
-    /// The same for every multiple `k` of `STRIDE` that `pow` covers.
-    coarse: Vec<u32>,
+    /// `g^{STRIDE·j}` for every multiple of `STRIDE` covered.
+    strides: Vec<F64>,
+    /// `g^0` to `g^{STRIDE - 1}`.
+    first: [F64; STRIDE],
+    /// Exponents below this are covered.
+    covered: usize,
+    /// The announced exponents.
+    index: Index,
+    /// Every multiple of `STRIDE` covered.
+    coarse: Index,
 }
 
 /// Spacing of the coarse index, and so the most probes a missed lookup costs.
 const STRIDE: usize = 64;
 
+/// Exponents by their g-power, open-addressed. A zero key marks an empty slot: no
+/// g-power is zero.
+///
+/// Bit `t` of `tags[s]` is set when a key mixing to home slot `s` and tag `t`, three
+/// more bits of its mix, is in. A lookup of an absent key almost always misses its
+/// tag and reads no slot, which is what a [`GPow::log`] that resolves does on all
+/// but one of its probes: the tags are a sixteenth of the slots' size, so they stay
+/// in cache where the slots do not.
+struct Index {
+    slots: Vec<(u64, u32)>,
+    tags: Vec<u8>,
+    len: usize,
+}
+
+impl Index {
+    fn new(slots: usize) -> Self {
+        Self {
+            slots: vec![(0, 0); slots],
+            tags: vec![0; slots],
+            len: 0,
+        }
+    }
+
+    /// The home slot of `key` and its tag bit.
+    #[inline(always)]
+    fn home(&self, key: u64) -> (usize, u8) {
+        // Bits 32..64 of the mix are the well-distributed ones.
+        let mix = (key.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 32) as usize;
+        let slots = self.slots.len();
+        (mix & (slots - 1), 1 << ((mix >> slots.trailing_zeros()) & 7))
+    }
+
+    #[inline]
+    fn find(&self, x: F64) -> Option<u32> {
+        let (mut i, tag) = self.home(x.0);
+        if self.tags[i] & tag == 0 {
+            return None;
+        }
+        let mask = self.slots.len() - 1;
+        loop {
+            let (key, k) = self.slots[i];
+            if key == 0 {
+                return None;
+            }
+            if key == x.0 {
+                return Some(k);
+            }
+            i = (i + 1) & mask;
+        }
+    }
+
+    /// Add `x = g^k`, which is not in the index yet.
+    fn insert(&mut self, x: F64, k: usize) {
+        self.reserve(self.len + 1);
+        self.place(x.0, k as u32);
+        self.len += 1;
+    }
+
+    /// Make room for `n` entries, staying at most half full.
+    fn reserve(&mut self, n: usize) {
+        if 2 * n > self.slots.len() {
+            let slots = (2 * n).next_power_of_two();
+            self.tags = vec![0; slots];
+            for (key, k) in std::mem::replace(&mut self.slots, vec![(0, 0); slots]) {
+                if key != 0 {
+                    self.place(key, k);
+                }
+            }
+        }
+    }
+
+    fn place(&mut self, key: u64, k: u32) {
+        let (mut i, tag) = self.home(key);
+        self.tags[i] |= tag;
+        let mask = self.slots.len() - 1;
+        while self.slots[i].0 != 0 {
+            i = (i + 1) & mask;
+        }
+        self.slots[i] = (key, k);
+    }
+}
+
 impl GPow {
     /// Seeded with `g^0 = 1`, grown to cover index `upto`, nothing announced.
     pub fn new(upto: usize) -> Self {
+        let mut p = F64::ONE;
+        let first = std::array::from_fn(|_| {
+            let q = p;
+            p = mul_by_g(p);
+            q
+        });
         let mut g = Self {
-            pow: vec![F64::ONE],
-            index: vec![0; 1 << 13],
-            announced: 0,
-            coarse: Vec::new(),
+            strides: vec![F64::ONE],
+            first,
+            covered: 1,
+            index: Index::new(1 << 13),
+            coarse: Index::new(1 << 4),
         };
+        g.coarse.insert(F64::ONE, 0);
         g.extend(upto);
         g
     }
@@ -72,18 +169,14 @@ impl GPow {
     /// index the interpreter reads has been covered by a [`Self::grow_to`].
     #[inline(always)]
     pub fn pow(&self, k: usize) -> F64 {
-        self.pow[k]
+        assert!(k < self.covered, "g^{k} is past the covered range");
+        self.strides[k / STRIDE] * self.first[k % STRIDE]
     }
 
-    /// The forward table, `g^0` to `g^{covered - 1}`.
-    pub(crate) fn into_powers(self) -> Vec<F64> {
-        self.pow
-    }
-
-    /// Extend the forward table to cover index `upto`.
+    /// Cover index `upto`.
     #[inline]
     pub fn grow_to(&mut self, upto: usize) {
-        if upto >= self.pow.len() {
+        if upto >= self.covered {
             self.extend(upto);
         }
     }
@@ -91,47 +184,25 @@ impl GPow {
     #[cold]
     fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_CELLS as usize, "address space overflow (program too large)");
-        // At least double, and a quarter more than a large jump asks: the small
-        // extends that follow fill spare capacity instead of copying the table.
-        let n = self.pow.len();
-        if upto >= self.pow.capacity() {
-            let target = (2 * self.pow.capacity())
-                .max(upto + 1 + (upto + 1) / 4)
-                .min(MAX_CELLS as usize);
-            self.pow.reserve_exact(target - n);
+        let step = mul_by_g(self.first[STRIDE - 1]);
+        let to = upto / STRIDE + 1;
+        self.coarse.reserve(to);
+        for j in self.strides.len()..to {
+            let p = self.strides[j - 1] * step;
+            self.strides.push(p);
+            self.coarse.insert(p, j * STRIDE);
         }
-        // ×g is ×x = `mul_by_g` (shift+fold), not a PMULL.
-        let mut p = *self.pow.last().unwrap();
-        self.pow.extend((n..=upto).map(|_| {
-            p = mul_by_g(p);
-            p
-        }));
-        let (mut from, to) = (n.div_ceil(STRIDE), self.pow.len().div_ceil(STRIDE));
-        if 2 * to > self.coarse.len() {
-            self.coarse = vec![0; (2 * to).next_power_of_two()];
-            from = 0;
-        }
-        for j in from..to {
-            insert(&mut self.coarse, self.pow[j * STRIDE], j * STRIDE);
-        }
+        self.covered = upto + 1;
     }
 
     /// Announce that `g^k` may come back for inversion, because the interpreter
     /// is about to store it in memory as an address. Covers `k` first. Idempotent.
     pub fn note(&mut self, k: usize) {
         self.grow_to(k);
-        if find(&self.index, &self.pow, self.pow[k]).is_some() {
-            return;
+        let x = self.pow(k);
+        if self.index.find(x).is_none() {
+            self.index.insert(x, k);
         }
-        if 2 * (self.announced + 1) > self.index.len() {
-            let wider = vec![0; 2 * self.index.len()];
-            let old = std::mem::replace(&mut self.index, wider);
-            for e in old.into_iter().filter(|&e| e != 0) {
-                insert(&mut self.index, self.pow[e as usize - 1], e as usize - 1);
-            }
-        }
-        insert(&mut self.index, self.pow[k], k);
-        self.announced += 1;
     }
 
     /// The discrete log of `x`, if it is a covered g-power.
@@ -143,19 +214,20 @@ impl GPow {
     /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
     #[inline]
     pub(crate) fn lookup(&self, x: F64) -> Option<u32> {
-        find(&self.index, &self.pow, x)
+        self.index.find(x)
     }
 
     /// `log` for an address that is not announced: divide by `g` down to a
-    /// multiple of `STRIDE`, then announce the exponent.
+    /// multiple of `STRIDE`, then announce the exponent. Called on a lookup's miss,
+    /// so `x` is not in the index.
     #[cold]
     fn resolve(&mut self, x: F64) -> Option<u32> {
         let mut y = x;
         for j in 0..STRIDE {
-            if let Some(k) = find(&self.coarse, &self.pow, y) {
+            if let Some(k) = self.coarse.find(y) {
                 let k = k as usize + j;
-                return (k < self.pow.len()).then(|| {
-                    self.note(k);
+                return (k < self.covered).then(|| {
+                    self.index.insert(x, k);
                     k as u32
                 });
             }
@@ -163,31 +235,6 @@ impl GPow {
         }
         None
     }
-}
-
-/// The `k` of a slot of `table` that holds `x = pow[k]`.
-#[inline]
-fn find(table: &[u32], pow: &[F64], x: F64) -> Option<u32> {
-    let mask = table.len() - 1;
-    let mut i = slot_of(x.0, mask);
-    while table[i] != 0 {
-        let k = table[i] - 1;
-        if pow[k as usize] == x {
-            return Some(k);
-        }
-        i = (i + 1) & mask;
-    }
-    None
-}
-
-/// Put `k` in the first free slot of `table` from where `g^k = key` mixes to.
-fn insert(table: &mut [u32], key: F64, k: usize) {
-    let mask = table.len() - 1;
-    let mut i = slot_of(key.0, mask);
-    while table[i] != 0 {
-        i = (i + 1) & mask;
-    }
-    table[i] = k as u32 + 1;
 }
 
 /// The inverse of [`mul_by_g`]: bit 0 of its output says whether it folded.
@@ -198,13 +245,6 @@ fn div_by_g(a: F64) -> F64 {
     } else {
         a.0 >> 1
     })
-}
-
-/// Bits 32..64 of the mix are the well-distributed ones; the mask keeps as many
-/// of them as the table is wide.
-#[inline(always)]
-fn slot_of(key: u64, mask: usize) -> usize {
-    (key.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 32) as usize & mask
 }
 
 /// Where a computed-advice bit buffer lives. Frame cells are ordinary memory, so
