@@ -6,11 +6,10 @@ use crate::layout::{
     SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
 use crate::multilinear::{
-    Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
+    Placement, dot, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
 };
 use crate::transcript::{Transcript, sumcheck};
-use crate::{StackClaim, VerifierError, require};
-use alloc::boxed::Box;
+use crate::{StackClaim, StackWeight, VerifierError, require};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -89,9 +88,12 @@ pub struct ColumnClaim {
 
 impl ColumnClaim {
     /// `None` for a column nothing commits, whose claim never reaches the stack.
-    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
+    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim> {
         let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
-        Some((Box::new(move |x| eq_eval(&point, x)), self.value))
+        Some(StackClaim {
+            weight: StackWeight::Eq(point),
+            value: self.value,
+        })
     }
 }
 
