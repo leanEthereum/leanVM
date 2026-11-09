@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
+public import LeanVM.Protocol.EndToEnd.Sound.Runs
 public import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
@@ -554,6 +555,49 @@ noncomputable def veSpec (bytecode : List K) :
 
 end Whole
 
+
+
+/-! ## The leanVM verifier and its certificate -/
+
+section Program
+
+variable (O : OpeningIface) {prog : LeanIsaProgram} {input : PublicInput} {pd : Digest}
+  (F : FrontIface computedBytecodeValue prog input pd)
+
+/-- **The specification of the leanVM verifier program**: from no doom, rejecting where it returns
+in doom, every group at most `2^-125` after its grind, lead `0`. -/
+@[irreducible] noncomputable def leanVmSpec (bytecode : List K) :
+    Spec (leanVmVerifierProgram bytecode pd) (fun _ ↦ False) (fun b _ ↦ b = false) εmsg 0 0 :=
+  ((veSpec O F moves_computedBytecodeValue bytecode).bind' fun _ ↦
+    (Spec.ret (Post := fun b _ ↦ b = false) (T := 0) true).mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h)
+      le_rfl le_rfl le_rfl).congr (leanVmProgram_eq _ _).symm
+
+/-- Doom never holds at the empty history: the announced sizes are not at stake. -/
+theorem leanVmSpec_D_nil (bytecode : List K) : ¬ (leanVmSpec O F bytecode).D [] [] := by
+  intro hD
+  rw [leanVmSpec, Spec.congr_D] at hD
+  have hs : (verifyExecutionClaims computedBytecodeValue bytecode pd).retSplit [] = none :=
+    retSplit_eq_none_of_after rfl (verifyExecution_ne_ret _ _)
+  have h1 := (Spec.bindD_none hs).1 hD
+  rw [veSpec, Spec.congr_D] at h1
+  have hs' : (readAnnouncedSizes bytecode).retSplit [] = none :=
+    retSplit_eq_none_of_after rfl (readSizes_ne_ret _)
+  exact (Spec.bindD_none hs').1 h1
+
+/-- **The doom certificate of the leanVM verifier.** -/
+noncomputable def leanVmCert (bytecode : List K) : Cert (leanVmVerifierProgram bytecode pd) :=
+  (leanVmSpec O F bytecode).toCert
+
+/-- **The certificate's bound**: every escape bound, discounted by the proof of work before its
+group (`2^-min(b, 64)`), is at most `2^-125`, the random-oracle theorem's hypothesis. -/
+theorem leanVmCert_bound (bytecode : List K) (h : List Ev) :
+    (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (leanVmCert O F bytecode).ε h ≤ εmsg := by
+  by_cases hr : (leanVmVerifierProgram bytecode pd).Reachable h
+  · rw [min_eq_left (grindBits_le_of_reachable _ _ hr)]
+    exact Spec.toCert_bound _ (fun hD ↦ absurd hD (leanVmSpec_D_nil O F bytecode)) h
+  · simp only [leanVmCert, Spec.toCert_ε, hr, false_and, ↓reduceIte, mul_zero, zero_le]
+
+end Program
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
