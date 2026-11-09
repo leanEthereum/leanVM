@@ -196,7 +196,8 @@ impl FiatShamirState {
                 states.iter().position(|s| s[2] & ((1u64 << bits) - 1) == 0)
             };
             // The smallest matching batch and its first match give the smallest nonce.
-            let block: u64 = 1 << (bits.min(24) + 1);
+            // Blocks of a quarter of the expected search, so a hit rarely waits on a long tail.
+            let block: u64 = (1u64 << (bits.min(26) - 2)).max(BATCH as u64);
             let mut start: u64 = 0;
             loop {
                 if let Some(i) =
