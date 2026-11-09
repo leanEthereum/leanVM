@@ -85,9 +85,10 @@ The statement's sponge (`Field.lean`, tags in `ℕ`) runs as the proofs' (`Spong
 
 open LeanVM.Protocol.Compile (pendingLanes challengeOf seedInput)
 
-/-- The statement's sponge of a proofs' sponge: the tags as the numbers of their lanes. -/
+/-- The statement's sponge of a proofs' sponge: the tags as the numbers of their lanes, no ground
+challenge. -/
 def Sponge.toCompile (s : Sponge) : LeanVM.Protocol.Compile.Sponge :=
-  ⟨s.state, s.pending.map fun x ↦ (x.1, x.2.lane.toNat)⟩
+  ⟨s.state, s.pending.map fun x ↦ (x.1, x.2.lane.toNat), none⟩
 
 theorem pendingLanes_toCompile (pending : List (E × K)) :
     pendingLanes (pending.map fun x ↦ (x.1, x.2.lane.toNat)) = (rateWords pending).map K.lane := by
@@ -96,7 +97,8 @@ theorem pendingLanes_toCompile (pending : List (E × K)) :
   | cons x xs ih =>
     simp only [List.map_cons, pendingLanes, List.flatMap_cons, rateWords, List.map_append] at ih ⊢
     rw [ih]
-    simp [limb]
+    simp only [List.map_nil, limb, UInt64.ofNat_toNat, Nat.toUInt64_eq]
+    rfl
 
 theorem duplexInput_toCompile (s : Sponge) :
     LeanVM.Protocol.Compile.duplexInput s.toCompile = duplexInput s := by
@@ -109,20 +111,36 @@ theorem duplexInput_toCompile (s : Sponge) :
   · simp only [h, ↓reduceIte, show ¬ i < rateLanes from h, Sponge.toCompile]
     simp [LeanVM.Semantics.Keccak.lane, hi]
 
-theorem challengeOf_eq (state : KeccakState) :
-    challengeOf state = ofLimbs (K.ofLane state[0]) (K.ofLane state[1]) (K.ofLane state[2]) := by
-  simp [challengeOf, LeanVM.Semantics.Keccak.lane]
+theorem challengeOf_eq (state : KeccakState) : challengeOf state = chalOfState state := by
+  simp [challengeOf, chalOfState, LeanVM.Semantics.Keccak.lane]
+  rfl
+
+/-- The state a nonce is permuted from, in the statement's sponge. -/
+theorem duplexInput_nonce (y : KeccakState) (nonce : ℕ) :
+    LeanVM.Protocol.Compile.duplexInput
+        ⟨y, [(LeanVM.Protocol.Verifier.eOfNat nonce, LeanVM.Protocol.Compile.dsPowNonce)], none⟩ =
+      nonceInput y nonce := by
+  rw [nonceInput, ← duplexInput_toCompile]
   rfl
 
 section Monadic
 
 variable {m : Type → Type} [Monad m] (P : KeccakState → m KeccakState)
 
-theorem duplex_toCompile [LawfulMonad m] (s : Sponge) :
-    LeanVM.Protocol.Compile.duplex P s.toCompile = Sponge.toCompile <$> Sponge.duplexWith P s := by
-  simp only [LeanVM.Protocol.Compile.duplex, Sponge.duplexWith, duplexInput_toCompile,
-    map_bind, map_pure]
-  rfl
+/-- **The statement's nonce search is the proofs'.** -/
+theorem grindWith_eq [LawfulMonad m] (y : KeccakState) : ∀ (fuel nonce : ℕ),
+    grindWith P ⟨y, [], none⟩ nonce fuel = grindMWithHash P y nonce fuel
+  | 0, _ => rfl
+  | fuel + 1, nonce => by
+    simp only [grindWith, grindMWithHash, LeanVM.Protocol.Compile.absorbNonce,
+      LeanVM.Protocol.Compile.absorb, LeanVM.Protocol.Compile.duplex,
+      LeanVM.Protocol.Compile.squeeze, LeanVM.Protocol.Compile.rateScalars, List.length_nil,
+      show (0 = 4) = False from by decide, ite_false, pure_bind, bind_assoc, List.nil_append,
+      duplexInput_nonce]
+    refine bind_congr fun o ↦ ?_
+    have h2 : LeanVM.Semantics.Keccak.lane o 2 = o[2] := by
+      simp [LeanVM.Semantics.Keccak.lane]
+    simp only [h2, challengeOf_eq, grindWith_eq y fuel (nonce + 1)]
 
 /-- The IV's words are the words of its bytes, the root's those of `digestOfBytes`. -/
 theorem freshSpongeInput_toBytes (iv : LeanVM.Protocol.Digest) (root : DigestBytes) :
@@ -142,16 +160,11 @@ theorem membershipChallengeM_eq_withHash [LawfulMonad m] (root : DigestBytes) :
     membershipChallengeWith P root =
       membershipChallengeMWithHash (keccakDigestBytes P) P root := by
   simp only [membershipChallengeWith, membershipChallengeMWithHash, keccakDigestBytes,
-    Sponge.newWith, Sponge.sampleWith, LeanVM.Protocol.Compile.squeeze, map_eq_bind_pure_comp,
-    bind_assoc, pure_bind, Function.comp_apply]
+    Sponge.newWith, map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
   refine bind_congr fun iv ↦ ?_
   rw [freshSpongeInput_toBytes]
   refine bind_congr fun state ↦ ?_
-  have hs : (⟨state, []⟩ : LeanVM.Protocol.Compile.Sponge) = Sponge.toCompile ⟨state, []⟩ := rfl
-  rw [hs, duplex_toCompile, map_eq_bind_pure_comp, bind_assoc]
-  refine bind_congr fun s ↦ ?_
-  simp only [Function.comp_apply, pure_bind, challengeOf_eq]
-  rfl
+  exact grindWith_eq P state _ _
 
 theorem walkM_eq_withHash : ∀ (idx : ℕ) (node : DigestBytes) (path : List DigestBytes),
     climbWith P idx node path = walkMWithHash (keccakDigestBytes P) idx node path

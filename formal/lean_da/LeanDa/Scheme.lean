@@ -85,7 +85,7 @@ variable (H : List UInt8 → Common.DigestBytes)
   (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
 
 /-- **The challenge of a root** with a pure hash and permutation (`membership_challenge`). -/
-def membershipChallenge (root : Common.DigestBytes) : E :=
+def membershipChallenge (root : Common.DigestBytes) : Option E :=
   Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
 /-! ## The dual codeword as the guest builds it (`membership.rs:22-56`) -/
