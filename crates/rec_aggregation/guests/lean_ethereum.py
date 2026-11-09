@@ -2551,7 +2551,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                 push_padding = padding_sum
         acc += 1 + selector_sums[s]
         bus_table_total[s] = acc + gkr_leaves[GEN ** s]
-    claim_idx = N_BUS_CLAIMS  # AIR/PI/pin claims pool after the deduped bus claims
+    claim_idx = N_BUS_CLAIMS  # the table and public-input claims follow the deduped bus claims
 
     # ---- ONE table sumcheck for all six tables ----
     # Mirrors leanvm_core::constraints::verify. zc_xi ONCE, each table folding its own
