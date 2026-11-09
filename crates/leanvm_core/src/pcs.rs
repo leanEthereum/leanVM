@@ -21,7 +21,7 @@
 //! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
 //! Johnson list decoding with OOD binding and round-by-round soundness
 //! ([`::pcs::whir::SECURITY_BITS`]). L0's list is pinned right after its root
-//! ([`::pcs::pin`]); each deeper commitment takes one explicit OOD sample. The base-field
+//! ([`::pcs::pin`]); each deeper commitment takes two explicit OOD points. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
@@ -44,8 +44,6 @@ pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
 pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
 /// The `log_inv_rate` values a WHIR configuration can be derived for.
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-// The PCS and the unground F128 bus argument both target `SECURITY_BITS`.
-const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
 /// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
 pub const MIN_MU: usize = 15;
 /// Largest committed size accepted by all verifiers and compiled into the recursion guest.

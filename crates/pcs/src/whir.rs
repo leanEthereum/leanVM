@@ -32,7 +32,7 @@ use primitives::field::{
 };
 use primitives::multilinear::{eq_table, interp};
 
-use super::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
+use super::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS};
 pub use super::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
     QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
@@ -254,6 +254,7 @@ pub(crate) fn ligero_commit_ext(
 // Each round sends (u_0, u_2) of the quadratic
 // q(X) = u_0 + u_1 X + u_2 X^2 with q(0) + q(1) = T_r, verifier derives
 // u_1 = T_r + u_2 (char 2), round eval q(r) = u_0 + r T_r + (r + r^2) u_2.
+// Then the round's grind, as for every round polynomial of degree two.
 
 /// (u_0, u_2) per round in E.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -262,10 +263,9 @@ pub(crate) struct SumcheckMessage {
     pub(crate) u_2: F128,
 }
 
-/// Transmit the constant and quadratic coefficients; the claim fixes the linear coefficient.
+/// Transmit the constant and quadratic coefficients (the claim fixes the linear one), then the round's grind.
 fn send_msg(ps: &mut ProverState, m: SumcheckMessage) {
-    ps.add_scalar(m.u_0);
-    ps.add_scalar(m.u_2);
+    ps.add_round_poly(&[m.u_0, F128::ZERO, m.u_2], false);
 }
 
 /// Round-quadratic in coefficient form `c + b X + a X^2`.
@@ -913,25 +913,23 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         ps.add_root(&wtns_next.root());
         ps.add_scalars(&p_high);
 
-        // Bind the next level's list before drawing this level's queries; the claims stay pending until the
-        // level's batching challenge.
-        let mut pending = Vec::new();
-        for _ in 0..config.ood_samples.get(level + 1).copied().unwrap_or(0) {
-            ps.grind(OOD_GRINDING_BITS as u32);
-            let z = ps.sample_vec(mu);
-            let eq = eq_table(&z);
-            let y = parallel::map_reduce(
-                p.len().div_ceil(ROUND_CHUNK),
-                || F128::ZERO,
-                |t| {
-                    let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(p.len());
-                    p[at.clone()].iter().zip(&eq[at]).map(|(&a, &b)| a * b).sum()
-                },
-                |a, b| a + b,
-            );
-            ps.add_scalar(y);
-            pending.push((eq, y));
-        }
+        // Bind the next level's list before drawing this level's queries: the OOD points, one verifier message with
+        // no grind, then their values, all in one pass. The claims stay pending until the level's batching challenge.
+        let n_ood = config.ood_samples[level + 1];
+        let eqs: Vec<Vec<F128>> = (0..n_ood).map(|_| eq_table(&ps.sample_vec(mu))).collect();
+        let ys = parallel::map_reduce(
+            p.len().div_ceil(ROUND_CHUNK),
+            || vec![F128::ZERO; n_ood],
+            |t| {
+                let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(p.len());
+                eqs.iter()
+                    .map(|eq| p[at.clone()].iter().zip(&eq[at.clone()]).map(|(&a, &b)| a * b).sum())
+                    .collect()
+            },
+            |a, b| a.iter().zip(&b).map(|(&a, &b)| a + b).collect(),
+        );
+        ps.add_scalars(&ys);
+        let mut pending: Vec<(Vec<F128>, F128)> = eqs.into_iter().zip(ys).collect();
 
         ps.grind(config.grinding_bits[level] as u32);
         let queries = sample_queries_ordered(ps, block_len, config.queries[level]);

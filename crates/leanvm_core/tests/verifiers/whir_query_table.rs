@@ -74,11 +74,11 @@ fn whir_query_table_matches_rust() {
         );
         // Hardcoded on the Python side, so it must hold wherever the table does.
         let expected_ood: Vec<usize> = std::iter::once(0)
-            .chain(std::iter::repeat_n(1, config.queries.len() - 1))
+            .chain(std::iter::repeat_n(2, config.queries.len() - 1))
             .collect();
         assert_eq!(
             config.ood_samples, expected_ood,
-            "rate {rate}, log_n {log_n}: OOD samples are no longer 'none at level 0, one after'"
+            "rate {rate}, log_n {log_n}: OOD points are no longer 'none at level 0, two after'"
         );
         checked += 1;
     }

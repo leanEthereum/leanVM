@@ -40,7 +40,7 @@ use multilinear::{Placement, dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::Transcript;
-use whir::{INITIAL_FOLDING_FACTOR, OOD_GRINDING_BITS, verify_whir};
+use whir::{INITIAL_FOLDING_FACTOR, PIN_GRINDING_BITS, verify_whir};
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -126,6 +126,9 @@ type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
 
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
+///
+/// The challenge is drawn right after the ring switch's map challenges, one verifier message under their one grind
+/// (`BATCH_GRINDING_BITS`), so it takes no grind of its own.
 fn verify_stacked_opening(
     transcript: &mut Transcript,
     root: Digest,
@@ -166,7 +169,7 @@ fn read_pin(
         });
         offset += 1 << variables;
     }
-    transcript.grind_check(OOD_GRINDING_BITS)?;
+    transcript.grind_check(PIN_GRINDING_BITS)?;
     let z = transcript.samples(blocks[0].variables);
     let values = transcript.next_scalars(blocks.len())?;
     Ok(blocks

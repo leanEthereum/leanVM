@@ -16,7 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
+use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_SAMPLES, PIN_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
@@ -604,9 +604,9 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let (cn, cr) = (sh.levels, vc.level_steps);
         // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
-        // The guest grinds QUERY_GRIND_BITS before every level's queries and draws one OOD point per non-final level.
+        // The guest grinds QUERY_GRIND_BITS before every level's queries and draws OOD_SAMPLES points per level past 0.
         assert!(vc.grinding_bits.iter().all(|&bits| bits == QUERY_GRINDING_BITS));
-        assert!((0..cn).all(|level| vc.ood_samples[level] == usize::from(level > 0)));
+        assert!((0..cn).all(|level| vc.ood_samples[level] == if level == 0 { 0 } else { OOD_SAMPLES }));
         let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
         let cq = &vc.queries;
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
@@ -665,7 +665,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     };
     ps("PIN_FOLD", pcs::whir::INITIAL_FOLDING_FACTOR.to_string());
     ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
-    ps("OOD_GRIND_BITS", OOD_GRINDING_BITS.to_string());
+    ps("PIN_GRIND_BITS", PIN_GRINDING_BITS.to_string());
+    ps("OOD_SAMPLES", OOD_SAMPLES.to_string());
     ps("QUERY_GRIND_BITS", QUERY_GRINDING_BITS.to_string());
     ps("BATCH_GRIND_BITS", BATCH_GRINDING_BITS.to_string());
     let (minm, maxm) = (MU_MIN, MU_MAX);

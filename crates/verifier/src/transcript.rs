@@ -95,7 +95,11 @@ pub const SECURITY_BITS: u32 = 128;
 /// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
 /// bits that bring it to `2^-SECURITY_BITS` (`fiat_shamir::grinding_bits`).
 pub const fn grinding_bits(numerator: u128) -> u32 {
-    let log = if numerator <= 1 { 0 } else { u128::BITS - (numerator - 1).leading_zeros() };
+    let log = if numerator <= 1 {
+        0
+    } else {
+        u128::BITS - (numerator - 1).leading_zeros()
+    };
     log.saturating_sub(128 - SECURITY_BITS)
 }
 

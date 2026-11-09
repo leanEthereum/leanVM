@@ -206,7 +206,7 @@ fn spare_slots_must_be_the_committed_ones() {
 fn a_wrong_pin_value_fails_the_opening() {
     use pcs::stack_open::StackClaim;
     use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
-    use pcs::whir_config::OOD_GRINDING_BITS;
+    use pcs::whir_config::PIN_GRINDING_BITS;
 
     let mut rng = Rng::new(83);
     let (n, depth) = (600, 12);
@@ -220,7 +220,7 @@ fn a_wrong_pin_value_fails_the_opening() {
     let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
     // The whole stack is one block.
-    ps.grind(OOD_GRINDING_BITS as u32);
+    ps.grind(PIN_GRINDING_BITS as u32);
     let low_point = ps.sample_vec(shape.stack_log());
     let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
     ps.add_scalar(value);
