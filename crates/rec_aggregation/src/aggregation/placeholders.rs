@@ -4,7 +4,7 @@ use super::cells::{dsl_u128, pack_16_bytes};
 use super::child::{MU_CAP, MU_MAX, MU_MIN, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
-use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
+use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW, SP_FORS_WINDOWS, fors_u_hinted};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -943,6 +943,16 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     }
     ps("SP_FORS_TREES", lean_sphincs::FORS_TREES.to_string());
     ps("SP_FORS_HEIGHT", lean_sphincs::FORS_HEIGHT.to_string());
+    for (w, size) in SP_FORS_WINDOWS.iter().enumerate() {
+        ps(&format!("SP_FW_{w}"), size.to_string());
+    }
+    let hinted = (0..lean_sphincs::FORS_HEIGHT).map(|y| usize::from(fors_u_hinted(y)));
+    ps("SP_FORS_U_HINT", format!("{:?}", hinted.collect::<Vec<_>>()));
+    // (GEN^8 M0 + M1) / M0: the bits of a tree index past its last byte, moved to the
+    // byte before, as a multiple of that index times M0.
+    let word = |adrs: Adrs| pack_16_bytes(&adrs.as_bytes()[16..]);
+    let (m0, m1) = (word(at.with_tree_index(1)), word(at.with_tree_index(1 << 8)));
+    ps("SP_GAMMA", f192_literal((F192::from(g_pow(8)) * m0 + m1) * m0.inv()));
     ps("SP_DIGEST_BYTES", lean_sphincs::DIGEST_BYTES.to_string());
     for (name, t) in [
         ("SP_WOTS_PK", lean_sphincs::WOTS_PK),

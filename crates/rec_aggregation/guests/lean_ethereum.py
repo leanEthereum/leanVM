@@ -460,12 +460,35 @@ LX_N_TAGS = LX_N_TAGS_PLACEHOLDER
 # cells), then the payload.
 SP_V = SP_V_PLACEHOLDER
 SP_TARGET_SUM = SP_TARGET_SUM_PLACEHOLDER
+# A chain step's A1 (`sp_step_at`): A1 plus 4q chain indices for each block q of four
+# chains, then from SP_AD_STEP the 3r + s cell holding r chain indices and s hash
+# addresses, so a step adds one cell to its block's.
+SP_AD_STEP = SP_V // 4
+SP_AD = SP_AD_STEP + 4 * CHAIN_STEPS
 SP_HEIGHT_0 = SP_HEIGHT_0_PLACEHOLDER
 SP_HEIGHT_1 = SP_HEIGHT_1_PLACEHOLDER
 SP_HEIGHT_2 = SP_HEIGHT_2_PLACEHOLDER
 SP_H = SP_HEIGHT_0 + SP_HEIGHT_1 + SP_HEIGHT_2
 SP_FORS_TREES = SP_FORS_TREES_PLACEHOLDER
 SP_FORS_HEIGHT = SP_FORS_HEIGHT_PLACEHOLDER
+# A FORS leaf index is dispatched in SP_FWIN windows of SP_FW_w bits from bit SP_FW_AT_w
+# (`sp_fors_win`); a tree's u_0..u_10 take SP_FU cells, SP_FORS_U_HINT marks the u_y
+# hinted, and SP_GAMMA reads an index's bits past its last byte off u_{y + 8}.
+SP_FW_0 = SP_FW_0_PLACEHOLDER
+SP_FW_1 = SP_FW_1_PLACEHOLDER
+SP_FW_2 = SP_FW_2_PLACEHOLDER
+SP_FWIN = 3
+SP_FW = [SP_FW_0, SP_FW_1, SP_FW_2]
+SP_FW_AT_1 = SP_FW_0
+SP_FW_AT_2 = SP_FW_0 + SP_FW_1
+SP_FW_AT = [0, SP_FW_AT_1, SP_FW_AT_2]
+SP_FA_0 = 2 ** SP_FW_0
+SP_FA_1 = 2 ** SP_FW_1
+SP_FA_2 = 2 ** SP_FW_2
+SP_FU = SP_FORS_HEIGHT + 1
+SP_FD_GEN = 2 * SP_FORS_HEIGHT
+SP_FORS_U_HINT = SP_FORS_U_HINT_PLACEHOLDER
+SP_GAMMA = SP_GAMMA_PLACEHOLDER
 # The message digest is H_msg's two calls: the first call's two cells, then the low
 # two bytes of the second call's first cell. Its first SP_MD_BYTES bytes are the
 # FORS leaves, SP_FORS_HEIGHT bits each, most significant first; then the tree index,
@@ -3554,12 +3577,26 @@ def is_child(node, kids, k: Const, bit):
 
 
 @inline
+def sp_step_at(wb, ad, i: Const, s: Const):
+    # A leanSPHINCS chain step's A1: chain i's block base ad[i // 4] (A1 itself for the
+    # first block), then i % 4 and s, one cell of `ad` for each pair, the bits of the
+    # two never carrying into each other.
+    if const(i // 4 == 0):
+        at = wb[SP_WB_A1]
+    else:
+        at = ad[i // 4]
+    if const(i % 4 + s != 0):
+        at = at + ad[SP_AD_STEP + 3 * (i % 4) + s]
+    return at
+
+
+@inline
 def walk(wb, pp, tags, powers, i: Const, k: Const, lx: Const):
     # Walk chain i from position k to its end, its tip into the record. A leanSPHINCS
-    # step's address is A0 and A1 with i and s added, the value last; a leanXMSS one
-    # carries only s, at[s] computed once per key, i riding after the value, read off a
-    # cell set outside the dispatch (the zero cell, `powers` or `tags`), so an arm names
-    # it rather than setting it again.
+    # step's address is A0 and A1 with i and s added (`sp_step_at`, `tags` its table),
+    # the value last; a leanXMSS one carries only s, at[s] computed once per key, i
+    # riding after the value, read off a cell set outside the dispatch (the zero cell,
+    # `powers` or `tags`), so an arm names it rather than setting it again.
     if const(lx == 1):
         if const(i == 0):
             tag = 0
@@ -3581,7 +3618,7 @@ def walk(wb, pp, tags, powers, i: Const, k: Const, lx: Const):
                 else:
                     keccak([pp, wb[s]], [value, tag], out)
             else:
-                a1 = wb[SP_WB_A1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0)
+                a1 = sp_step_at(wb, tags, i, s)
                 if const(s + 1 == CHAIN_STEPS):
                     keccak([pp, wb[SP_WB_A0]], [a1, value], wb[o:o + 1])
                 else:
@@ -3788,47 +3825,6 @@ def sp_from_bytes(byte_bits, marks, n: Const):
 
 
 @inline
-def sp_md_bit(bits0, bits1, p: Const):
-    # Bit p of the digest read most significant first, as base_2b reads it: bit
-    # 7 - p % 8 of byte p // 8, from the bit runs of the first call's two cells.
-    b = bits0[(8 * (p // 8) + 7 - p % 8) % SP_CELL_BITS]
-    if const(p // SP_CELL_BITS == 1):
-        b = bits1[8 * (p // 8) + 7 - p % 8 - SP_CELL_BITS]
-    return b
-
-
-@inline
-def sp_fors_field(bits0, bits1, vals, c: Const):
-    # FORS tree c's leaf, the digest's SP_FORS_HEIGHT bits from bit SP_FORS_HEIGHT c,
-    # and its right shifts, each with tree c's place across the trees: vals[SP_FORS_HEIGHT
-    # c + z] is the FIPS 205 tree index of the leaf's ancestor at height z, c 2^(height - z)
-    # plus its index in tree c.
-    vals[SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - 1] = sp_md_bit(bits0, bits1, SP_FORS_HEIGHT * c) + const(2 * c)
-    for r in unroll(1, SP_FORS_HEIGHT):
-        vals[SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - 1 - r] = sp_md_bit(bits0, bits1, SP_FORS_HEIGHT * c + r) + GEN * vals[SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - r]
-    return
-
-
-@inline
-def sp_md_byte(vals, i: Const):
-    # Digest byte i < SP_MD_BYTES where its cell holds it, from the shifts of field c,
-    # the one its first bit is in, and of c + 1 if it reaches it. A byte inside c is c
-    # shifted past the bits after the byte, masked to eight bits; a byte across both is
-    # c's low bits raised past c + 1's high ones. It keeps the trees' places vals carries,
-    # which the caller takes out.
-    c = 8 * i // SP_FORS_HEIGHT
-    if const(c == (8 * i + 7) // SP_FORS_HEIGHT):
-        v = vals[SP_FORS_HEIGHT * (2 * c + 1) - 8 * i - 8]
-        if const(8 * i != SP_FORS_HEIGHT * c):
-            v = v + vals[SP_FORS_HEIGHT * (2 * c + 1) - 8 * i] * GEN ** 8
-        v = v * const(2 ** (8 * (i % 16)))
-    else:
-        v = (vals[SP_FORS_HEIGHT * c] + vals[SP_FORS_HEIGHT * (2 * c + 1) - 8 * i] * GEN ** (SP_FORS_HEIGHT * (c + 1) - 8 * i)) * const(2 ** (8 * (i % 16) + 8 * i + 8 - SP_FORS_HEIGHT * (c + 1)))
-        v = v + vals[SP_FORS_HEIGHT * (2 * c + 3) - 8 * i - 8] * const(2 ** (8 * (i % 16)))
-    return v
-
-
-@inline
 def sp_leaf_bit(bits1, bits2, b: Const):
     # Bit b of the three layers' leaves one after the other, bottom first, which the
     # digest's last four bytes hold: the bottom leaf the last byte (the second call's
@@ -3863,46 +3859,71 @@ def sp_be16(vals, at: Const, n: Const):
     return v
 
 
+# FORS climbs each tree a window of index bits at a time, SP_FW[w] bits from bit
+# SP_FW_AT[w], low first: the window is hinted in the exponent, range checked and
+# dispatched on, its arm hashing the window's levels in the order its bits give
+# (`sp_fors_win`), so no node is checked against its sibling. A node's A1 at height y
+# rides u_y = v_y M0 + B_y, v_y being its tree index across the trees (c 2^(10 - y)
+# plus the leaf's index shifted down y bits), M0 the cell bit of the word's last byte
+# and B_y the A1 at height y of index zero; then u_y = GEN u_{y+1} + dt[2y + b_y], b_y
+# being the leaf's bit y, and the A1 is u_y with what passes the last byte moved to the
+# byte before (`sp_fors_at`). The u_y a lower window reads before the window above
+# derives them are hinted, which that window's writes then check.
+
+
 @inline
-def sp_fors_at(a1, vals, c: Const, z: Const):
-    # The A1 of tree c's node at height z on the opened leaf's path, `a1` being the
-    # trees' with neither: z, then the node's tree index across the trees in the word's
-    # last two bytes, big endian. vals holds the index below the root, whose high byte is
-    # c's part alone from height SP_FORS_HEIGHT - 8 on, a constant added first so that trees
-    # sharing it share the sum; at the root the index is c.
-    at = a1 + const(z * SP_WORD2_MUL)
-    if const(z == SP_FORS_HEIGHT):
-        at = at + const(c * SP_WORD3_MUL_0)
-    elif const(z // (SP_FORS_HEIGHT - 8) == 0):
-        at = at + sp_be16(vals, SP_FORS_HEIGHT * c + z, 16)
-    else:
-        at = at + const(c // 2 ** (z - (SP_FORS_HEIGHT - 8))) * (GEN ** 8 * const(SP_WORD3_MUL_0) + const(SP_WORD3_MUL_1))
-        at = at + sp_be16(vals, SP_FORS_HEIGHT * c + z, 8)
+def sp_fors_at(u, ct, cr, c: Const, y: Const):
+    # The A1 of tree c's node at height y >= 1 on the opened leaf's path: u_y, and the
+    # bits of its index past the last byte, c's alone from height 2 on (ct), and at
+    # height 1 c's and the leaf's top bit (cr[c]).
+    at = u[SP_FU * c + y]
+    if const(y == 1):
+        at = at + cr[c]
+    elif const(c // 2 ** (y - 2) != 0):
+        at = at + ct[c // 2 ** (y - 2)]
     return at
 
 
 @inline
-def sp_fors_tree(pp, a0, a1, bits0, bits1, vals, roots, c: Const):
-    # FORS tree c: its leaf, hashed from the hinted secret, then climbed up the hinted
-    # ordered pairs to its root, into roots[c].
-    secret = hint_witness("sp_fors_secrets")
-    held = StackBuf(1)
-    keccak([pp, a0], [sp_fors_at(a1, vals, c, 0), secret], held)
-    cur = held[0]
-    for z in unroll(0, SP_FORS_HEIGHT):
-        # The two children, then three cells the compiler sets to the padding, so the
-        # node's hash reads the right child in place (`pad_tail=1`).
-        kids = StackBuf(5)
-        hint_witness(kids[0:2], "sp_fors_nodes")
-        is_child(cur, kids, 0, sp_md_bit(bits0, bits1, SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - 1 - z))
-        node_at = sp_fors_at(a1, vals, c, z + 1)
-        if const(z + 1 == SP_FORS_HEIGHT):
-            keccak([pp, a0], [node_at, kids[0]], roots[c:c + 1], tail=kids[1:5], len=80, pad_tail=1)
-        else:
-            parent = StackBuf(1)
-            keccak([pp, a0], [node_at, kids[0]], parent, tail=kids[1:5], len=80, pad_tail=1)
-            cur = parent[0]
+def sp_fors_node(pp, a0, at, cur, out, ob: Const, b: Const):
+    # The parent of `cur` and its hinted sibling, at A1 `at`, into out[ob:]: `cur` the
+    # left child at b = 0. The right child heads a run whose other cells the compiler
+    # sets to the padding (`pad_tail=1`), so the hash reads it in place: the sibling
+    # hinted there, or `cur` copied there.
+    run = StackBuf(4)
+    if const(b == 0):
+        hint_witness(run[0:1], "sp_fors_nodes")
+        keccak([pp, a0], [at, cur], out[ob:ob + 1], tail=run[0:4], len=80, pad_tail=1)
+    else:
+        run[0] = cur
+        sibling = hint_witness("sp_fors_nodes")
+        keccak([pp, a0], [at, sibling], out[ob:ob + 1], tail=run[0:4], len=80, pad_tail=1)
     return
+
+
+@inline
+def sp_fors_win(pp, a0, u, dt, ct, cr, held, wo, roots, c: Const, w: Const, k: Const):
+    # Window w of tree c at bits k: its u_y down from the one above it, then its levels
+    # climbed from the node below it (tree c's leaf, or the top node of the window
+    # below, in wo) to its top node (in wo, or tree c's root). Returns the u_y at its
+    # lowest height, which the dispatch writes where that is hinted.
+    for t in unroll(1, SP_FW[w]):
+        u[SP_FU * c + SP_FW_AT[w] + SP_FW[w] - t] = dt[SP_FD_GEN] * u[SP_FU * c + SP_FW_AT[w] + SP_FW[w] - t + 1] + dt[2 * (SP_FW_AT[w] + SP_FW[w] - t) + (k // 2 ** (SP_FW[w] - t)) % 2]
+    if const(w == 0):
+        cur = held[c]
+    else:
+        cur = wo[SP_FWIN * c + w - 1]
+    for r in unroll(0, SP_FW[w]):
+        at = sp_fors_at(u, ct, cr, c, SP_FW_AT[w] + r + 1)
+        if const(r + 1 != SP_FW[w]):
+            mid = StackBuf(1)
+            sp_fors_node(pp, a0, at, cur, mid, 0, (k // 2 ** r) % 2)
+            cur = mid[0]
+        elif const(w + 1 != SP_FWIN):
+            sp_fors_node(pp, a0, at, cur, wo, SP_FWIN * c + w, (k // 2 ** r) % 2)
+        else:
+            sp_fors_node(pp, a0, at, cur, roots, c, (k // 2 ** r) % 2)
+    return dt[SP_FD_GEN] * u[SP_FU * c + SP_FW_AT[w] + 1] + dt[2 * SP_FW_AT[w] + k % 2]
 
 
 @inline
@@ -3936,18 +3957,29 @@ def sp_wots(pp, a0, a1, encoding):
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
     for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
+    # The chain steps' address table (`sp_step_at`): each block base one XOR, of one of
+    # four constants, from the last.
+    ad = StackBuf(SP_AD)
+    ad[1] = wb[SP_WB_A1] + const(4 * SP_WORD2_MUL)
+    for q in unroll(2, SP_AD_STEP):
+        ad[q] = ad[q - 1] + (const(4 * q * SP_WORD2_MUL) + const(4 * (q - 1) * SP_WORD2_MUL))
+    for r in unroll(0, 4):
+        for s in unroll(0, CHAIN_STEPS):
+            if const(r + s != 0):
+                ad[SP_AD_STEP + 3 * r + s] = const(r * SP_WORD2_MUL + s * SP_WORD3_MUL_0)
+    groups = StackBuf(SP_V // DIGIT_GROUP + 1)
+    for p in unroll(0, SP_V // DIGIT_GROUP):
+        hint_witness(groups[p:p + 1], "digits")
+        assert log(groups[p]) < DIGIT_GROUPS
+    # The chain the groups leave over.
+    hint_witness(groups[SP_V // DIGIT_GROUP:SP_V // DIGIT_GROUP + 1], "digits")
+    assert log(groups[SP_V // DIGIT_GROUP]) < CHAIN_LENGTH
     digit_product = 1
     encoded = 0
-    # A leanSPHINCS chain index rides its step's address, so the chain-index table a
-    # leanXMSS walk reads is unused here and `powers` stands in for it.
+    # Back to back, each arm entering the next dispatch.
     for p in unroll(0, SP_V // DIGIT_GROUP):
-        group = hint_witness("digits")
-        assert log(group) < DIGIT_GROUPS
-        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(wb, cx[0], pp, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
-    # The chain the groups leave over.
-    group = hint_witness("digits")
-    assert log(group) < CHAIN_LENGTH
-    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(wb, cx[0], pp, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
+        digit_product, encoded = match(log(groups[p]), range(0, DIGIT_GROUPS), lambda k: walk_group(wb, cx[0], pp, ad, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
+    digit_product, encoded = match(log(groups[SP_V // DIGIT_GROUP]), range(0, CHAIN_LENGTH), lambda k: walk_group(wb, cx[0], pp, ad, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert encoded == encoding
     assert digit_product == GEN ** SP_TARGET_SUM
     leaf = StackBuf(1)
@@ -3962,7 +3994,7 @@ def sp_path(node, pp, a0, bits1, bits2, lvals, out, off: Const, height: Const):
     # order, the root into out.
     cur = node
     for z in unroll(0, height):
-        # The two children, then three cells the compiler pads (as in sp_fors_tree).
+        # The two children, then three cells the compiler pads (as in sp_fors_node).
         kids = StackBuf(5)
         hint_witness(kids[0:2], "siblings")
         is_child(cur, kids, 0, sp_leaf_bit(bits1, bits2, off + z))
@@ -4010,58 +4042,28 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     keccak([rho, pp], [pk_root, m0], d0, tail=[m1, 0, 0, 0], len=SP_HMSG_LEN)
     keccak([rho, pp], [pk_root, m0], d1, tail=[m1, SP_COUNTER_ONE, 0, 0], len=SP_HMSG_LEN)
 
-    # The digest's bits are advice pinned Boolean, and the digest is rebuilt from them:
-    # byte by byte from the FORS leaves' values, which their shifts give, then the tree
-    # index and the bottom leaf from the layers' leaves, the six bits the tree index
-    # leaves from their own bits, and the second call's unused bytes as hinted bytes
-    # (sp_from_bytes). Its high lane is what the rest leaves, checked to be a lane.
-    bits0 = StackBuf(SP_CELL_BITS)
+    # The layers' leaves come off the digest's last bits: those bits are advice pinned
+    # Boolean, the tree index and the bottom leaf rebuilt from them, and the second
+    # call's unused bytes hinted bytes (sp_from_bytes). Its high lane is what the rest
+    # leaves, checked to be a lane. The FORS leaves are rebuilt from the windows below.
     bits1 = StackBuf(SP_CELL_BITS)
     bits2 = StackBuf(8 * SP_TAIL_BYTES)
-    hint_decompose_bits(bits0, d0[0], SP_CELL_BITS)
     hint_decompose_bits(bits1, d0[1], SP_CELL_BITS)
     hint_decompose_bits(bits2, d1[0], 8 * SP_TAIL_BYTES)
-    for b in unroll(0, SP_CELL_BITS):
-        bits0[b] = bits0[b] * bits0[b]
+    for b in unroll(SP_TREE_HI_BIT, SP_CELL_BITS):
         bits1[b] = bits1[b] * bits1[b]
     for b in unroll(0, 8 * SP_TAIL_BYTES):
         bits2[b] = bits2[b] * bits2[b]
-    vals = StackBuf(SP_FORS_TREES * SP_FORS_HEIGHT)
-    for c in unroll(0, SP_FORS_TREES):
-        sp_fors_field(bits0, bits1, vals, c)
     lvals = StackBuf(SP_H)
     sp_leaf_shifts(bits1, bits2, lvals, 0, SP_HEIGHT_0)
     sp_leaf_shifts(bits1, bits2, lvals, SP_MID, SP_HEIGHT_1)
     sp_leaf_shifts(bits1, bits2, lvals, SP_TOP, SP_HEIGHT_2)
-    md0 = sp_md_byte(vals, 0)
-    for i in unroll(1, 16):
-        md0 = md0 + sp_md_byte(vals, i)
-    md1 = sp_md_byte(vals, 16)
-    for i in unroll(17, SP_MD_BYTES):
-        md1 = md1 + sp_md_byte(vals, i)
-    # vals carries each tree's place across the trees (sp_fors_field), which the digest's
-    # bytes do not: take it out again, a constant per byte.
-    corr0 = 0
-    corr1 = 0
-    for i in unroll(0, SP_MD_BYTES):
-        fc = 8 * i // SP_FORS_HEIGHT
-        pc = 0
-        if const(fc != (8 * i + 7) // SP_FORS_HEIGHT):
-            pc = const((fc + 1) * 2 ** (8 * i + 8 - SP_FORS_HEIGHT * (fc + 1))) * const(2 ** (8 * (i % 16)))
-        elif const(8 * i == SP_FORS_HEIGHT * fc):
-            pc = const(fc * 256) * const(2 ** (8 * (i % 16)))
-        if const(i // 16 == 0):
-            corr0 = corr0 + pc
-        else:
-            corr1 = corr1 + pc
     # The tree index's middle byte, the top leaf's low byte; its high byte holds the top
     # leaf's two high bits, then six unused ones.
     tree_mid = lvals[SP_TOP] + lvals[SP_TOP + 8] * GEN ** 8
     pad = bits1[SP_TREE_HI_BIT + 7]
     for b in unroll(1, SP_PAD_BITS):
         pad = bits1[SP_TREE_HI_BIT + 7 - b] + GEN * pad
-    d0[0] = md0 + corr0
-    d0[1] = md1 + corr1 + (lvals[SP_TOP + 8] + pad * GEN ** SP_TOP_HIGH_BITS) * const(2 ** SP_TREE_HI_BIT) + tree_mid * const(2 ** SP_TREE_MID_BIT)
     unused_bytes = StackBuf(SP_UNUSED_BYTES)
     hint_witness(unused_bytes, "sp_unused")
     unused = sp_from_bytes(byte_bits, unused_bytes, SP_UNUSED_BYTES)
@@ -4072,10 +4074,90 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     # The FORS addresses are the bottom key's: its layer and tree, its leaf the key pair.
     a0_b = lvals[SP_MID] * const(SP_TREE_MUL_0) + tree_mid * const(SP_TREE_MUL_1) + lvals[SP_TOP + 8] * const(SP_TREE_MUL_2)
     key_b = lvals[0] * const(SP_KEY_MUL_0)
-    roots = StackBuf(SP_FORS_TREES)
+
     fors_at = key_b + const(SP_FORS_TREE)
+    # The u_y steps (`sp_fors_win`): dt[2y + b] = GEN B_{y+1} + B_y + b M0.
+    dt = StackBuf(SP_FD_GEN + 1)
+    fa = fors_at * (GEN + 1)
+    for y in unroll(0, SP_FORS_HEIGHT):
+        dt[2 * y] = fa + (GEN * const((y + 1) * SP_WORD2_MUL) + const(y * SP_WORD2_MUL))
+        dt[2 * y + 1] = dt[2 * y] + const(SP_WORD3_MUL_0)
+    dt[SP_FD_GEN] = GEN
+    # What an index carries past the word's last byte, moved to the byte before: the
+    # high bits v from height 2 on are c's alone (ct[v]); at heights 0 and 1 they are
+    # the top of v_{y + 8}, read off u_{y + 8} times SP_GAMMA, plus that of B_{y + 8}.
+    ct = StackBuf(SP_FORS_TREES)
+    for v in unroll(1, SP_FORS_TREES):
+        ct[v] = const(v) * (GEN ** 8 * const(SP_WORD3_MUL_0) + const(SP_WORD3_MUL_1))
+    fg = fors_at * SP_GAMMA
+    b8 = fg + const(8 * SP_WORD2_MUL) * SP_GAMMA
+    b9 = fg + const(9 * SP_WORD2_MUL) * SP_GAMMA
+    u = StackBuf(SP_FU * SP_FORS_TREES)
+    wins = StackBuf(SP_FWIN * SP_FORS_TREES)
+    cr = StackBuf(SP_FORS_TREES)
+    held = StackBuf(SP_FORS_TREES)
+    wo = StackBuf(SP_FWIN * SP_FORS_TREES)
+    roots = StackBuf(SP_FORS_TREES)
     for c in unroll(0, SP_FORS_TREES):
-        sp_fors_tree(pp, a0_b, fors_at, bits0, bits1, vals, roots, c)
+        hint_witness(wins[SP_FWIN * c:SP_FWIN * (c + 1)], "sp_fors_windows")
+        assert log(wins[SP_FWIN * c]) < SP_FA_0
+        assert log(wins[SP_FWIN * c + 1]) < SP_FA_1
+        assert log(wins[SP_FWIN * c + 2]) < SP_FA_2
+        for y in unroll(0, SP_FORS_HEIGHT):
+            if const(SP_FORS_U_HINT[y] == 1):
+                hint_witness(u[SP_FU * c + y:SP_FU * c + y + 1], "sp_fors_u")
+        # u_10 is c M0 + B_10, each tree's one constant from the last's.
+        if const(c == 0):
+            u[SP_FORS_HEIGHT] = fors_at + const(SP_FORS_HEIGHT * SP_WORD2_MUL)
+        else:
+            u[SP_FU * c + SP_FORS_HEIGHT] = u[SP_FU * c - 1] + (const(c * SP_WORD3_MUL_0) + const((c - 1) * SP_WORD3_MUL_0))
+        cr[c] = u[SP_FU * c + 9] * SP_GAMMA + b9
+        secret = hint_witness("sp_fors_secrets")
+        keccak([pp, a0_b], [u[SP_FU * c] + u[SP_FU * c + 8] * SP_GAMMA + b8, secret], held[c:c + 1])
+    # Every window of every tree back to back, each arm entering the next dispatch.
+    for c in unroll(0, SP_FORS_TREES):
+        u[SP_FU * c] = match(log(wins[SP_FWIN * c]), range(0, SP_FA_0), lambda k: sp_fors_win(pp, a0_b, u, dt, ct, cr, held, wo, roots, c, 0, k))
+        u[SP_FU * c + SP_FW_AT_1] = match(log(wins[SP_FWIN * c + 1]), range(0, SP_FA_1), lambda k: sp_fors_win(pp, a0_b, u, dt, ct, cr, held, wo, roots, c, 1, k))
+        u[SP_FU * c + SP_FW_AT_2] = match(log(wins[SP_FWIN * c + 2]), range(0, SP_FA_2), lambda k: sp_fors_win(pp, a0_b, u, dt, ct, cr, held, wo, roots, c, 2, k))
+    # The digest's FORS bytes from the u's, times M0: tree c's leaf has its bits from h
+    # up at the start of byte b (p1), the h below at the top of byte b + 1 (p2), where
+    # they are v_h less c's part and v_0 + GEN^h v_h, and v_y M0 = u_y + B_y. The B_y and
+    # c's parts sum to fors_at times f, plus kc, per cell.
+    acc0 = 0
+    acc1 = 0
+    f0 = 0
+    f1 = 0
+    kc0 = 0
+    kc1 = 0
+    for c in unroll(0, SP_FORS_TREES):
+        hb = const(SP_FORS_HEIGHT * c // 8)
+        h = const(SP_FORS_HEIGHT * c + SP_FORS_HEIGHT - 8 * hb - 8)
+        p1 = const(2 ** (8 * (hb % 16)))
+        p2 = const(2 ** (8 * ((hb + 1) % 16) + 8 - h))
+        k1 = const(h * SP_WORD2_MUL) * p1 + const(c * 2 ** (SP_FORS_HEIGHT - h)) * const(SP_WORD3_MUL_0) * p1
+        k2 = const(h * SP_WORD2_MUL) * GEN ** h * p2
+        if const(hb // 16 == (hb + 1) // 16):
+            t = u[SP_FU * c + h] * (p1 + GEN ** h * p2) + u[SP_FU * c] * p2
+            if const(hb // 16 == 0):
+                acc0 = acc0 + t
+                f0 = f0 + (p1 + p2 + GEN ** h * p2)
+                kc0 = kc0 + (k1 + k2)
+            else:
+                acc1 = acc1 + t
+                f1 = f1 + (p1 + p2 + GEN ** h * p2)
+                kc1 = kc1 + (k1 + k2)
+        else:
+            acc0 = acc0 + u[SP_FU * c + h] * p1
+            f0 = f0 + p1
+            kc0 = kc0 + k1
+            acc1 = acc1 + (u[SP_FU * c + h] * (GEN ** h * p2) + u[SP_FU * c] * p2)
+            f1 = f1 + (p2 + GEN ** h * p2)
+            kc1 = kc1 + k2
+    chk = StackBuf(2)
+    chk[0] = d0[0] * const(SP_WORD3_MUL_0)
+    chk[0] = acc0 + fors_at * f0 + kc0
+    chk[1] = (d0[1] + (lvals[SP_TOP + 8] + pad * GEN ** SP_TOP_HIGH_BITS) * const(2 ** SP_TREE_HI_BIT) + tree_mid * const(2 ** SP_TREE_MID_BIT)) * const(SP_WORD3_MUL_0)
+    chk[1] = acc1 + fors_at * f1 + kc1
     fors_pk = StackBuf(1)
     roots_at = key_b + const(SP_FORS_ROOTS)
     keccak_cells([sp_word(pp, a0_b, roots_at, roots, 0, 1, j) for j in unroll(0, 3 + SP_FORS_TREES)], fors_pk)

@@ -4,7 +4,7 @@ use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
-use super::hints::{FORGE, Forgery, Hints, LX_DIGIT_GROUP, lean_xmss_hints};
+use super::hints::{FORGE, Forgery, Hints, LX_DIGIT_GROUP, SP_FORS_WINDOWS, fors_u_hinted, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, check_signer_set, decode, encode};
@@ -170,17 +170,27 @@ fn aggregate_one_lean_sphincs_signer() {
 }
 
 /// A leanSPHINCS signature's digest and openings are bound in-circuit: a node whose
-/// hints put the digest's unused bytes off by one, order a FORS node and its sibling
-/// the other way, or give a layer another counter fails the guest's run.
+/// hints put the digest's unused bytes off by one, dispatch a FORS window other than
+/// the digest's, hint a FORS `u_y` a window derives or one the A1 at height 0 reads
+/// off, give a FORS sibling another value, or give a layer another counter fails the
+/// guest's run.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
     leanvm_core::init_prover();
     let signers = get_lean_sphincs_signers(1);
-    let forgeries: [Forgery; 3] = [
+    let forgeries: [Forgery; 6] = [
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("sp_unused", 0)[0] *= count(1);
         }),
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0).swap(0, 1)),
+        Box::new(|hints: &mut Hints| {
+            let window = &mut hints.entry_mut("sp_fors_windows", 0)[1];
+            let arms = 1 << SP_FORS_WINDOWS[1];
+            let k = (0..arms).find(|&k| count(k) == *window).expect("a window");
+            *window = count((k + 1) % arms);
+        }),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_u", fors_u_entry(SP_FORS_WINDOWS[0]))[0] += F192::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_u", fors_u_entry(8))[0] += F192::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0)[0] += F192::ONE),
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("sp_counter", 1)[0] *= count(1);
         }),
@@ -193,6 +203,11 @@ fn forged_lean_sphincs_hints_are_rejected() {
             "a forged hint is rejected"
         );
     }
+}
+
+/// The `sp_fors_u` entry of the first tree's `u_y`.
+fn fors_u_entry(y: usize) -> usize {
+    (0..y).filter(|&h| fors_u_hinted(h)).count()
 }
 
 /// The guest's `INLINE_STEPS`: the chain steps a digit group's dispatch arm walks itself.
