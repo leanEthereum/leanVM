@@ -309,6 +309,7 @@ XI_GRIND_BITS = XI_GRIND_BITS_PLACEHOLDER
 KECCAK_SEG_GRIND_BITS = KECCAK_SEG_GRIND_BITS_PLACEHOLDER
 KECCAK_S_GRIND_BITS = KECCAK_S_GRIND_BITS_PLACEHOLDER
 KECCAK_BETA_GRIND_BITS = KECCAK_BETA_GRIND_BITS_PLACEHOLDER
+BATCH_LAM_GRIND_BITS = BATCH_LAM_GRIND_BITS_PLACEHOLDER
 # A level's high part has at most 2^HIGH_BITS_CAP coefficients, one per fold.
 HIGH_BITS_CAP = 3
 MAX_STACK_LOG = LIG_MIN_LOG_SIZE + LIG_N_LOG_SIZES - 1
@@ -1176,16 +1177,16 @@ def gkr_rounds(rd, pt, tabs, n: Const):
     return 0
 
 
-def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Const):
+def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, tabs, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
-    # (g(1) and g(inf)), the split fixing the third against the running claim, and
-    # the challenges collected into `point`.
+    # (g(1) and g(inf)) and the degree-two round's nonce, the split fixing the third
+    # against the running claim, and the challenges collected into `point`.
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     for rd in unroll(0, n_rounds):
         rate = StackBuf(8)
-        msg_g1, c = fs_next(rate, 0, msgs * GEN ** (2 * rd))
+        msg_g1, c = fs_next(rate, 0, msgs * GEN ** (3 * rd))
         msg_ginf, c = fs_next(rate, 1, c)
-        sp, rv = squeeze(sp, rate, 2)
+        sp, rv, c = fs_grind_squeeze(sp, rate, 2, c, tabs, ROUND2_GRIND_BITS)
         point[GEN ** rd] = rv
         g_zero = running + msg_g1
         c_one = g_zero + msg_g1 + msg_ginf
@@ -4948,7 +4949,7 @@ def main():
             defer_stmt[GEN ** k] = 0
         defer_stmt[GEN ** DEFER_STMT_BC_VALUE] = leaf_value
     else:
-        aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)
+        aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt, g_squares * GEN ** WIN_TAB_AT)
 
     own_0, own_1 = statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da[1], da[GEN], defer_stmt)
     pub_ptr = GEN ** 0
@@ -4957,14 +4958,14 @@ def main():
     return
 
 
-def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt):
+def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt, tabs):
     # Every child contributes two claims on the stacked bytecode: the one IT
     # deferred (carried in its statement) and the fresh one raised by verifying its
     # proof. A fresh transcript binds all of them, samples the batching
     # coefficient, and one sumcheck reduces the lot to one claim, which is what the
     # node then defers in its own statement.
-    bc_msgs = HeapBuf(2 * BYTECODE_VARS)
-    hint_witness(bc_msgs[0:2 * BYTECODE_VARS], "bc_sumcheck_msgs")
+    bc_msgs = HeapBuf(1 + 3 * BYTECODE_VARS)  # the batching challenge's nonce, then (g1, g_inf, nonce) a round
+    hint_witness(bc_msgs[0:1 + 3 * BYTECODE_VARS], "bc_sumcheck_msgs")
     bytecode_star = hint_witness("bc_star_hint")
 
     # ---- one transcript over every child's statement and both its claim sets ----
@@ -5015,13 +5016,16 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
     absorbed = absorb * n_children_g ** PEND_SLOTS
 
     # ---- the batching sumcheck (BYTECODE_VARS variables, 2 claims per child) ----
-    # One challenge lam, its permutation taking the last full rate: child i's fresh
+    # One challenge lam, after a grind whose nonce follows the last full rate: child i's fresh
     # claim takes lam^(2i), its carried one lam^(2i+1). Fresh and carried share one
     # layout (point, then value), so the two differ only in which buffer they come
     # from. Each record holds the child's power of lam^2, then the running value.
     absorbed_cap = fs_load(absorbed, 0, 1)
-    st = fs_perm_pending(absorbed_cap, absorbed, FS_CELLS)
-    lam = challenge_from_state(st)
+    full = fs_perm_pending(absorbed_cap, absorbed, FS_CELLS)
+    nonce_rate = StackBuf(8)
+    st = fs_absorb_nonce(full, nonce_rate, 0, bc_msgs[GEN ** 0])
+    grind_check(st[1], tabs, BATCH_LAM_GRIND_BITS)
+    lam = st[0]
     lam_sq = lam * lam
     bc_chain = HeapBuf((n_children_g * GEN) ** PAIR_SLOTS)
     bc_chain[GEN ** 0] = 1
@@ -5037,7 +5041,7 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
     bc_end = bc_chain * n_children_g ** PAIR_SLOTS
     bc_running = bc_end[GEN ** 1]
     bc_point = HeapBuf(BYTECODE_VARS)
-    fs0, fs1, fs2, fs3, fs4, bc_running = batch_sumcheck(st[8], st[9], st[10], st[11], st[12], bc_msgs, bc_running, bc_point, BYTECODE_VARS)
+    fs0, fs1, fs2, fs3, fs4, bc_running = batch_sumcheck(st[8], st[9], st[10], st[11], st[12], bc_msgs * GEN, bc_running, bc_point, tabs, BYTECODE_VARS)
     bc_point1 = HeapBuf(BYTECODE_VARS)  # 1 + bc_point, so an eq factor is one XOR
     for k in unroll(0, BYTECODE_VARS):
         bc_point1[GEN ** k] = 1 + bc_point[GEN ** k]

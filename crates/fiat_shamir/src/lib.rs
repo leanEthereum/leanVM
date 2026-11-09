@@ -170,7 +170,7 @@ impl FiatShamirState {
     /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero bits, bind it, and keep
     /// the challenge its permutation drew for the next [`Self::sample`]. `bits = 0` is no grind at all.
     /// Parallel search for the larger grinds.
-    pub(crate) fn grind_pow(&mut self, bits: u32) -> Option<u64> {
+    pub fn grind(&mut self, bits: u32) -> Option<u64> {
         assert!(bits < 64, "the grinding window fits a lane");
         if bits == 0 {
             return None;
@@ -280,7 +280,7 @@ mod tests {
         sp.observe(f(7));
         for bits in [2, 8, 13, 17] {
             let mut clone = sp.clone();
-            let good = clone.grind_pow(bits).unwrap();
+            let good = clone.grind(bits).unwrap();
             let expected = (0..=good).find(|&n| sp.pow_bits_ok(F128::new(n, 0), bits)).unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
             // The grind's own permutation draws the next challenge, and the one after is fresh.
@@ -290,7 +290,7 @@ mod tests {
             assert_eq!(clone.sample(), expected_state.sample());
         }
         let mut clone = sp.clone();
-        assert_eq!(clone.grind_pow(0), None);
+        assert_eq!(clone.grind(0), None);
         assert_eq!(clone.sample(), sp.clone().sample());
     }
 }

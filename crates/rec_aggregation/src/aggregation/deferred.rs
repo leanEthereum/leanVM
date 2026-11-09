@@ -215,9 +215,12 @@ fn round_msg(u: &[F128], m: &[F128]) -> (F128, F128) {
     })
 }
 
+/// The grind before the batching challenge, whose powers weigh at most `2 MAX_RECURSIONS` claims.
+pub(super) const BATCH_LAM_GRIND_BITS: u32 = fiat_shamir::grinding_bits(2 * super::MAX_RECURSIONS as u128 - 1);
+
 /// One round of a batching sumcheck, in the transcript order the guest mirrors
-/// word for word: observe `(g1, g_inf)`, squeeze the fold challenge, record
-/// both, and advance the running claim through the compressed round polynomial.
+/// word for word: observe `(g1, g_inf)`, grind for the round's degree two, squeeze the fold challenge, record
+/// the two words and the nonce, and advance the running claim through the compressed round polynomial.
 /// Returns the challenge, which the caller folds its tables with.
 fn absorb_round(
     transcript: &mut FiatShamirState,
@@ -228,8 +231,11 @@ fn absorb_round(
 ) -> F128 {
     transcript.observe(g1);
     transcript.observe(gi);
+    let nonce = transcript
+        .grind(fiat_shamir::grinding_bits(2))
+        .expect("a degree-two round grinds");
     let challenge = transcript.sample();
-    messages.extend([g1, gi]);
+    messages.extend([g1, gi, F128::new(nonce, 0)]);
     challenges.push(challenge);
     let g0 = *claim + g1;
     let c1 = g0 + g1 + gi;
@@ -274,6 +280,9 @@ pub(super) fn aggregate_deferred_claims(
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
     // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1).
+    let lam_nonce = transcript
+        .grind(BATCH_LAM_GRIND_BITS)
+        .expect("the batching challenge grinds");
     let lam = transcript.sample();
     let gbc: Vec<F128> = std::iter::successors(Some(F128::ONE), |&power| Some(power * lam))
         .take(2 * child_count)
@@ -289,7 +298,7 @@ pub(super) fn aggregate_deferred_claims(
         .flat_map(|(subproof, carried)| [subproof.bytecode_value, carried.bytecode_value])
         .collect();
     let mut brun: F128 = (0..2 * child_count).map(|index| gbc[index] * values[index]).sum();
-    let mut bscr = Vec::new();
+    let mut bscr = vec![F128::new(lam_nonce, 0)];
     let mut r_bc = Vec::new();
     // The low rounds, on each claim's sums against its `eq` on the low rows, scaled by its power of `lam`.
     assert_eq!(sums.len(), points.len(), "sums for every claim");

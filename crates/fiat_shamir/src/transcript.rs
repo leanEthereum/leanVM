@@ -108,7 +108,7 @@ impl ProverState {
     /// transmits it on the stream as raw transport (already bound, so NOT re-absorbed). A grind of zero bits
     /// is nothing: no nonce, no permutation.
     pub fn grind(&mut self, bits: u32) {
-        if let Some(nonce) = self.fs.grind_pow(bits) {
+        if let Some(nonce) = self.fs.grind(bits) {
             self.stream.push(F128::new(nonce, 0));
         }
     }

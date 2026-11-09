@@ -528,6 +528,10 @@ fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
         grinding_bits(keccak_gkr::rmfe::PROD_BITS as u128 - 1).to_string(),
     );
     ps("KECCAK_BETA_GRIND_BITS", grinding_bits(2).to_string());
+    ps(
+        "BATCH_LAM_GRIND_BITS",
+        super::deferred::BATCH_LAM_GRIND_BITS.to_string(),
+    );
 }
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
