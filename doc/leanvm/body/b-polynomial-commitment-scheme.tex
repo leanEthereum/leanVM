@@ -101,7 +101,7 @@ A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varep
 
 Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
-\paragraph{Grinding.} A verifier message may be preceded by a grind of $b$ bits (\S\ref{sec:e2e-fiat-shamir}): the prover sends a nonce, and the permutation that draws the message's first challenge must leave $b$ bits of its output zero. Each fresh draw of the message then costs $2^{b}$ random-oracle queries on average, so its RBR error $\varepsilon_i$ counts as $\varepsilon_i\,2^{-b}$. The security target is $\varepsilon_i\,2^{-b_i}\le2^{-123}$ for every verifier message $i$, where $b_i$ is the grind before it ($0$ for none).
+\paragraph{Grinding.} A verifier message may be preceded by a grind of $b$ bits, which counts its RBR error $\varepsilon_i$ as $\varepsilon_i\,2^{-b}$ (\S\ref{sec:grinding}). The security target is $\varepsilon_i\,2^{-b_i}\le2^{-123}$ for every verifier message $i$, where $b_i$ is the grind before it ($0$ for none).
 
 %=====================================================================
 \subsection{Reed-Solomon codes over binary fields}\label{sec:binary-rs}
@@ -197,7 +197,7 @@ Suppose that, for every level $i$ and round $j$, $(\agr^{(i)}_0)^2>\blen_i\dgr^{
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
 \end{array}
 \]
-Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's, $\binom{L_0}{2}\nv_0/|\E|$. The grinds divide the batching, premix, fold, and query rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$ and $2^{\grind{query}}$, and the pin's by $2^{\grind{pin}}$ (\S\ref{sec:iopcs}); the OOD points and the tail rounds are not ground. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
+Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 3$ for $i \ge 1$. At $i=0$ the batching and OOD rows belong to the protocol around the opening (\S\ref{sec:soundness-outer}): the batching row is $(J_0-1+129)\,L_0/|\E|$ when $\lambda$ comes with the ring-switching challenges, and the OOD row is the list pin's, $\binom{L_0}{2}\nv_0/|\E|$. The grinds divide the batching, premix, fold, and query rows by $2^{\grind{batch}}$, $2^{\grind{fold}}$, $2^{\grind{fold}}$ and $2^{\grind{query}}$, and the pin's by $2^{\grind{pin}}$ (\S\ref{sec:grinding}); the OOD points and the tail rounds are not ground. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest ground row over all rounds.
 \end{theorem}
 
 \paragraph{The opening inside the protocol.}\label{sec:soundness-outer} Two rows at level $0$ come from the protocol around the opening (\S\ref{sec:e2e-unrolled}).
