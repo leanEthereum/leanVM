@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Verifier
 # Completeness of the batched GKR
 
 The verifier is `verifyGkrGrandProducts` (`LeanVM.Protocol.Verifier`,
-`crates/verifier/src/bus.rs:14-51` at leanVM `40f877dc`). It
+`crates/verifier/src/bus.rs:29-75` at leanVM `f128`). It
 reads one root shared by the first two trees and the third tree's root, then walks the three trees
 from the root to the leaves, one level first when the remaining depth is odd and two at a time
 after, each step drawing its combiner `λ` first. Nothing here is specific to the bus: the trees
@@ -365,15 +365,19 @@ structure GkrInv (L₀ L₁ L₂ : List E) (D n : ℕ) (s : GkrState) : Prop whe
     multilinearEval (up n L₂) s.point]
 
 /-- **The honest prover of one step** of `step` levels, down to the layers `k` levels above the
-leaves: after the combiner, the sumcheck's round polynomials, the three trees' children, then
+leaves: after a grind and the combiner, the sumcheck's round polynomials, the three trees'
+children, then a grind for their degree in the fresh coordinates (doubled on the `last` step) and
 the fresh coordinates. Returns the verifier's next state. -/
-noncomputable def hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (s : GkrState) : Script GkrState :=
+noncomputable def hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (last : Bool) (s : GkrState) :
+    Script GkrState :=
+  (Script.grindBits (grindingBits (nTrees - 1))).bind fun _ ↦
   Script.sampleE.bind fun c ↦
   (hSumcheck (2 ^ step + 1) (stepClaim (up k L₀) (up k L₁) (up k L₂) step s.point c)
       (s.point.map some) []).bind fun r ↦
     (Script.sendList (child (up k L₀) step r.1)).bind fun _ ↦
     (Script.sendList (child (up k L₁) step r.1)).bind fun _ ↦
     (Script.sendList (child (up k L₂) step r.1)).bind fun _ ↦
+    (Script.grindBits (grindingBits (if last then 2 * step else step))).bind fun _ ↦
     (Script.sampleN step).bind fun y ↦
     .ret ⟨[multilinearEval (child (up k L₀) step r.1) y,
       multilinearEval (child (up k L₁) step r.1) y,
@@ -393,10 +397,10 @@ theorem prodE_eq (l : List E) : prodE l = l.prod := by
 /-- **One step keeps the invariant**: from the layers `k + step` levels above the leaves to the
 layers `k` levels above them. Every `require` of the step holds. -/
 theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length = 2 ^ D)
-    (h₁ : L₁.length = 2 ^ D) (h₂ : L₂.length = 2 ^ D) (k step : ℕ) (s : GkrState)
+    (h₁ : L₁.length = 2 ^ D) (h₂ : L₂.length = 2 ^ D) (k step : ℕ) (last : Bool) (s : GkrState)
     (hI : GkrInv L₀ L₁ L₂ D (k + step) s) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ GkrInv L₀ L₁ L₂ D k b)
-      (hStep L₀ L₁ L₂ k step s) (gkrStep step s) cs := by
+      (hStep L₀ L₁ L₂ k step last s) (gkrStep step last s) cs := by
   obtain ⟨hle, hpl, hv⟩ := hI
   have hC : ∀ L : List E, L.length = 2 ^ D →
       (up k L).length = 2 ^ (step + s.point.length) := fun L hL ↦
@@ -407,6 +411,8 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
     exact stepClaim_nil (hC L₀ h₀) (hC L₁ h₁) (hC L₂ h₂) _
   unfold gkrStep hStep
   simp only [VerifierProgram.bind_eq]
+  refine Follows.bind (fun cs' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
+  subst h
   refine Follows.bind (fun cs₀ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
   obtain ⟨rfl, rfl⟩ := h
   rw [hclaim]
@@ -439,6 +445,8 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
     rw [stepClaim_self _ _ _ _ _ _ _ hl]
     simp only [stepF, List.map_cons, List.map_nil, prodE_eq]
   simp only [VerifierProgram.require, hreq, ↓reduceIte, VerifierProgram.ret_bind]
+  refine Follows.bind (fun cs₄' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs₄)
+  subst h
   refine Follows.bind (fun cs₅ y y' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs₄ step)
   obtain ⟨rfl, rfl, hy⟩ := h
   refine ⟨rfl, by simp, by omega, by simp; omega, ?_⟩
@@ -450,10 +458,10 @@ theorem follows_gkrStep {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length 
 level first when `n` is odd, two at a time after. -/
 noncomputable def hLayers (L₀ L₁ L₂ : List E) : ℕ → GkrState → Script GkrState
   | 0, s => .ret s
-  | 1, s => (hStep L₀ L₁ L₂ 0 1 s).bind (hLayers L₀ L₁ L₂ 0)
+  | 1, s => (hStep L₀ L₁ L₂ 0 1 true s).bind (hLayers L₀ L₁ L₂ 0)
   | n + 2, s =>
-    if n % 2 = 1 then (hStep L₀ L₁ L₂ (n + 1) 1 s).bind (hLayers L₀ L₁ L₂ (n + 1))
-    else (hStep L₀ L₁ L₂ n 2 s).bind (hLayers L₀ L₁ L₂ n)
+    if n % 2 = 1 then (hStep L₀ L₁ L₂ (n + 1) 1 false s).bind (hLayers L₀ L₁ L₂ (n + 1))
+    else (hStep L₀ L₁ L₂ n 2 (n = 0) s).bind (hLayers L₀ L₁ L₂ n)
 
 /-- **The walk reaches the leaves**: from the invariant `n` levels up, the honest prover follows
 `gkrLayers n` to a state whose values are the leaves' extensions at its point. -/
@@ -465,7 +473,7 @@ theorem follows_gkrLayers {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.lengt
   | 0, s, cs, hI => ⟨rfl, rfl, hI⟩
   | 1, s, cs, hI => by
     simp only [hLayers, gkrLayers, VerifierProgram.bind_eq]
-    refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _ (follows_gkrStep h₀ h₁ h₂ 0 1 s hI cs)
+    refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _ (follows_gkrStep h₀ h₁ h₂ 0 1 true s hI cs)
     obtain ⟨rfl, rfl, hI'⟩ := h
     exact follows_gkrLayers h₀ h₁ h₂ 0 a cs' hI'
   | n + 2, s, cs, hI => by
@@ -473,12 +481,12 @@ theorem follows_gkrLayers {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.lengt
     split_ifs
     · simp only [VerifierProgram.bind_eq]
       refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _
-        (follows_gkrStep h₀ h₁ h₂ (n + 1) 1 s hI cs)
+        (follows_gkrStep h₀ h₁ h₂ (n + 1) 1 false s hI cs)
       obtain ⟨rfl, rfl, hI'⟩ := h
       exact follows_gkrLayers h₀ h₁ h₂ (n + 1) a cs' hI'
     · simp only [VerifierProgram.bind_eq]
       refine Follows.bind (fun cs' a b h ↦ ?_) _ _ _
-        (follows_gkrStep h₀ h₁ h₂ n 2 s hI cs)
+        (follows_gkrStep h₀ h₁ h₂ n 2 (n = 0) s hI cs)
       obtain ⟨rfl, rfl, hI'⟩ := h
       exact follows_gkrLayers h₀ h₁ h₂ n a cs' hI'
 
