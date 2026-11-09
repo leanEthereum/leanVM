@@ -241,8 +241,8 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
-per proof of work,
+most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{33}$ nonces
+per proof of work (the widest grind within that size is the bus's, $25$ bits),
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
 \]
@@ -256,8 +256,8 @@ Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
-$4\cdot 2^{\kappa} + 2^{\ell} + 15h_{\mathrm{xor}} + 15h_{\mathrm{mul}} + 8h_{\mathrm{set}} +
-15h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
+$3\cdot 2^{\kappa} + 2^{\ell} + 13h_{\mathrm{xor}} + 13h_{\mathrm{mul}} + 7h_{\mathrm{set}} +
+14h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
 $2^\ell$ the bytecode size, $h_{op}$ the least power of two at least the number of executed
 instructions of opcode $op$, and $k$ the same for \texttt{KECCAK}, at least $2^9$.
 

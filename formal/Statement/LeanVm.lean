@@ -90,19 +90,20 @@ def leanVmHonestProver : HonestProver :=
 /-- **The committed size of an execution**: the number of cells the honest prover commits to, every
 committed column at its table's height, the least power of two holding the table's rows (`1` for no
 row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`crates/verifier/src/layout.rs:490`). The memory has four columns of `2^κ` rows, and the bytecode's
-counts (`BFCNT`) one of `2^logSize` rows. Each opcode has a table of one row per instruction of that
-opcode the execution executes (`Execution.opcodeCount`), with `15, 15, 8, 15, 14, 28` committed
-columns for `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's
-`92` columns, the `25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes
-are not committed, `layout.rs:388-432`); and `q_keccak` has `2^6` rows per row of the `KECCAK`
-table. -/
+`crates/verifier/src/layout.rs:481`). The memory has three columns of `2^κ` rows (its two limbs and
+its final counts), and the bytecode's counts one of `2^logSize` rows (`NUM_GLOBAL_COLUMNS`,
+`layout.rs:71-76`, `kappas`, `:525-529`). Each opcode has a table of one row per instruction of
+that opcode the execution executes (`Execution.opcodeCount`), with `13, 13, 7, 14, 14, 28`
+committed columns for `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`
+(`layout.rs:373-378`; of the `KECCAK` table's `92` columns, the `25` input lanes and `14` more ride
+`q_keccak`'s slots and the `25` output lanes are not committed, `layout.rs:380-432`); and
+`q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
 noncomputable def Semantics.Execution.committedSize {program : LeanIsaProgram}
     (execution : Execution program) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (execution.opcodeCount op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (execution.opcodeCount .keccak)) 9
-  4 * 2 ^ execution.logMemorySize + 2 ^ program.logSize +
-    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+  3 * 2 ^ execution.logMemorySize + 2 ^ program.logSize +
+    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-! ### The experiment -/
@@ -197,13 +198,15 @@ noncomputable def completenessExperiment (honestProver : HonestProver) (program 
     | none => pure false
     | some proof => leanVmVerifier queryPermutation program input proof
 
-/-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
+/-- **Completeness in the random-permutation model**: trying `2^33` nonces per proof of work, the
 honest prover's (`leanVmHonestProver`) proof of an execution within the verifier's size cap is
-rejected with probability at most `2^-256`. -/
+rejected with probability at most `2^-256`. Within that cap the widest grind is the bus's,
+`busGrindingBits` of a push tree of depth at most `28`, `25` bits, and `2^33 = 2^25 · 2^8` nonces
+miss a `25`-bit proof of work with probability at most `2^-320`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 25)}[
+    Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 33)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256
 
