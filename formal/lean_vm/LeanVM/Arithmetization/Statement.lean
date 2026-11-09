@@ -83,22 +83,21 @@ the six tables carries a nonzero count, message index `1` (bus coordinate 2) of 
 bytecode tuple (§6.2 "The count product"; `layout.rs:136` and `:463-479`, the count channel
 stacks the read-count columns of the six tables and nothing else, so the finalize counts of
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
-the M3 part of the announcement checks (`read_public` at `a386121f`; at the pin, `walk` and
-`build_layout`, `verifier/src/lib.rs:229-247` and `verifier/src/layout.rs:478-489`, behind the
-wrapper `crates/leanvm_core/src/cpu/mod.rs:673-686`), which make eight checks: (1) the
-announced sizes have zero upper limbs (`verifier/src/lib.rs:250-254` at `leanvm-rev`, the
-transcript format) and (2) the two public words are two-limb words (`cpu/mod.rs:627` at
-`leanvm-rev`, `[F128; 2]`), both by type here (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
-(`cpu/mod.rs:688`, `verifier/src/layout.rs:483` and `:487`), `Program`'s by type
+the M3 part of the announcement checks (`read_public` at `a386121f`; at `leanvm-rev`, `walk` and
+`build_layout`, `verifier/src/lib.rs:245-263` and `verifier/src/layout.rs:483-494`, behind the
+wrapper `crates/leanvm_core/src/cpu/mod.rs:627-639`), which make eight checks: (1) the
+announced sizes have zero upper limbs (`verifier/src/lib.rs:250-254`, the transcript format) and
+(2) the two public words are two-limb words (`cpu/mod.rs:627`, `[F128; 2]`), both by type here
+(`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
+(`cpu/mod.rs:629`, `verifier/src/layout.rs:488` and `:492`), `Program`'s by type
 (`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
-`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:485`); (5) every table has at most
-`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:417` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover announces each table's row count, the rows
+`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:490`); (5) every table has at most
+`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:491`; the prover announces each table's row count, the rows
 past it in the table's height being padding rows, which the bus never sees, so the witness's tables
 are the executed rows only); (6) the `KECCAK` table's height floor (`TABLE_LOG_FLOORS`) is the
 protocol layer's, its padding rows being outside the bus; (7) the WHIR rate
-(`verifier/src/lib.rs:242`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
-(`verifier/src/lib.rs:244-247`) are parameters of the commitment, left to the protocol layer, which
+(`verifier/src/lib.rs:258`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
+(`verifier/src/lib.rs:260-263`) are parameters of the commitment, left to the protocol layer, which
 reads them off the same announcement. `Caps` transcribes (4), on the announced `κ`, and (5). That
 the prover data is well shaped (`WellShapedData`, so that `imageOf` drops no row) is no longer a
 hypothesis: the data is the memory block's `2^κ` rows (`Caps.well_shaped`). These caps are what
@@ -317,17 +316,17 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
       ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
 
 /-- The M3 checks of the announced instance, two of the verifier's announcement checks
-(`crates/verifier/src/layout.rs:457-461`; §6.2 "Instance caps"): the window of the announced memory
+(`crates/verifier/src/layout.rs:489-494` at `leanvm-rev`; §6.2 "Instance caps"): the window of the announced memory
 log-size `κ` and the row cap. The bytecode length and the public words' two limbs are checked by
 type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol layer's (see
 the module docstring). -/
 structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
-  /-- `MIN_LOG_MEM ≤ log_mem` (`:388`). -/
+  /-- `MIN_LOG_MEM ≤ log_mem` (`:490`). -/
   minLogMem_le_logMem : minLogMem ≤ κ
-  /-- `log_mem ≤ MAX_LOG_MEM` (`:388`). -/
+  /-- `log_mem ≤ MAX_LOG_MEM` (`:490`). -/
   logMem_le_maxLogMem : κ ≤ maxLogMem
-  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:500`
-  at `40f877dc`; the rows are the executed ones, announced as counts). The verifier is not among
+  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:491`
+  at `leanvm-rev`; the rows are the executed ones, announced as counts). The verifier is not among
   `w.tables`. -/
   heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows
 
