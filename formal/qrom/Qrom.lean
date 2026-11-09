@@ -3,6 +3,7 @@ module
 public import Qrom.QromSearch
 public import Qrom.OvSearch
 public import Qrom.HidingMain
+public import Qrom.Deferral
 
 /-! # Generic results in the quantum random-oracle model
 
@@ -25,3 +26,15 @@ three standard axioms. -/
 /-- info: 'Qrom.OvGame.hiding_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.OvGame.hiding_le
+
+/-- info: 'Qrom.OvGame.hiding_side_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.OvGame.hiding_side_le
+
+/-- info: 'Qrom.OvGame.sum_sideW_protHit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.OvGame.sum_sideW_protHit_le
+
+/-- info: 'Qrom.OvGame.deferral_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.OvGame.deferral_le
