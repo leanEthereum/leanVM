@@ -16,29 +16,23 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop358`, window 0, part 0. -/
+/-- `__loop251`, window 0, part 0. -/
 theorem cw836_0_0 : cplWin 836 0 0 = true := by decide +kernel
 
-/-- `__loop359`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L19_L4_L3_L1928_L12_L4_L1`, window 0, part 0. -/
 theorem cw837_0_0 : cplWin 837 0 0 = true := by decide +kernel
 
-/-- `__loop360`, window 0, part 0. -/
+/-- `__loop252`, window 0, part 0. -/
 theorem cw838_0_0 : cplWin 838 0 0 = true := by decide +kernel
 
-/-- `__loop361`, window 0, part 0. -/
+/-- `__loop252`, window 0, part 1. -/
+theorem cw838_0_1 : cplWin 838 0 1 = true := by decide +kernel
+
+/-- `__loop253`, window 0, part 0. -/
 theorem cw839_0_0 : cplWin 839 0 0 = true := by decide +kernel
 
-/-- `__loop362`, window 0, part 0. -/
-theorem cw840_0_0 : cplWin 840 0 0 = true := by decide +kernel
-
-/-- `__loop363`, window 0, part 0. -/
-theorem cw841_0_0 : cplWin 841 0 0 = true := by decide +kernel
-
-/-- `__loop364`, window 0, part 0. -/
-theorem cw842_0_0 : cplWin 842 0 0 = true := by decide +kernel
-
-/-- `__loop365`, window 0, part 0. -/
-theorem cw843_0_0 : cplWin 843 0 0 = true := by decide +kernel
+/-- `__loop253`, window 0, part 1. -/
+theorem cw839_0_1 : cplWin 839 0 1 = true := by decide +kernel
 
 theorem ok836 : CplOk 836 := by
   intro i hi k hk
@@ -65,60 +59,22 @@ theorem ok838 : CplOk 838 := by
   have hc : (certOf 838).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 838 0 = 1 := by decide +kernel
+  · have hn : nParts 838 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw838_0_0
+    · exact cw838_0_1
 
 theorem ok839 : CplOk 839 := by
   intro i hi k hk
   have hc : (certOf 839).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 839 0 = 1 := by decide +kernel
+  · have hn : nParts 839 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw839_0_0
-
-theorem ok840 : CplOk 840 := by
-  intro i hi k hk
-  have hc : (certOf 840).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 840 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw840_0_0
-
-theorem ok841 : CplOk 841 := by
-  intro i hi k hk
-  have hc : (certOf 841).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 841 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw841_0_0
-
-theorem ok842 : CplOk 842 := by
-  intro i hi k hk
-  have hc : (certOf 842).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 842 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw842_0_0
-
-theorem ok843 : CplOk 843 := by
-  intro i hi k hk
-  have hc : (certOf 843).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 843 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw843_0_0
+    · exact cw839_0_1
 
 end
 end LeanVM.Guest.B2C.Cplw
