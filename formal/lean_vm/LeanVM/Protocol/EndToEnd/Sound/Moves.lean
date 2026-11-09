@@ -2,51 +2,48 @@
   LeanVM.Protocol.EndToEnd.Sound.Moves
 
   The prover moves a verifier program allows: a structural predicate on programs of the verifier
-  language (which proofs of work it checks, whether it reads commitments), its rules, and its
-  instances on every phase of leanVM's deployed verifier program.
+  language (the bits of its proofs of work, whether it reads commitments, what it returns, and
+  that a challenge follows each proof of work), its rules, and its instances on every phase of
+  leanVM's verifier program.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Compile.Spec
-public import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
 # The prover moves of the leanVM verifier
 
-`MovesOK g c p` says that every proof of work `p` checks has its bits in `g`, and that `p` reads a
-commitment only if `c` holds. It is a structural predicate on the program, with no arithmetic,
-and it composes through `bind` (`MovesOK.bind`, `MovesOK.seq`) and survives along histories
-(`MovesOK.after`). Its two uses:
+`Moves g c Q G p` says that every proof of work `p` checks has its bits in `g` and is followed at
+once by a challenge, inside `p` or, where `p` returns right after it a value satisfying `G`, by
+the follower; that `p` reads a commitment only if `c` holds; and that every value `p` returns
+satisfies `Q`. It is structural, with no arithmetic, and composes through `bind` (`Moves.seq`):
+the follower of a return right after a proof of work must start with a challenge
+(`VerifierProgram.StartsSample`). It survives along histories (`Moves.after`). Its uses:
 
-* `MovesOK.reach_commits`: a sub-program that reads no commitment (`c := False`) adds none to a
-  run, so the words its openings answer from are the ones committed before it;
-* `MovesOK.grindBits_le`: on a program whose proofs of work have at most `B` bits, every reachable
+* `Moves.grindThenSample`: a whole program whose returns need no follower (`G := False`) has
+  `GrindThenSample`, the property the random-oracle theorem's grind step reads
+  (`LeanVM.Protocol.Compile.Prog`): the challenge after a proof of work is drawn by the grind's own
+  permutation;
+* `Moves.reach_commits`: a sub-program that reads no commitment (`c := False`) adds none to a run,
+  so the words its openings answer from are the ones committed before it;
+* `Moves.grindBits_le`: on a program whose proofs of work have at most `B` bits, every reachable
   history ends with a proof of work of at most `B` bits.
 
-The instances follow the phases of `leanVmVerifierProgram` (`LeanVM.Protocol.Verifier`) with the
-unfoldings and inductions of `LeanVM.Protocol.Verifier.Cost`: the sizes, the bus, the table
-sumcheck, the public input, the Keccak reduction and ring switching make no prover move other than
-reads; the
-stack's root is the one commitment outside WHIR; the stacked opening commits WHIR's levels and
-checks WHIR's query proofs of work, of `Whir.queryGrindingBits = 17` bits. Hence
-`grind_bits_eq`: every proof of work of the leanVM verifier has exactly `17` bits (the
-completeness theorem's one condition on the hash: its `17`-bit search succeeds), and
-`grindBits_le_of_reachable`: every reachable history ends with a proof of work of at most `64`
-bits, the cap at which the random-oracle theorem discounts a group's escape
-(`LeanVM.Protocol.Compile.Rom.Step`).
-
-## Deployed behaviour
-
-The statements are on the program `leanVmVerifierProgram` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, as transcribed in `LeanVM.Protocol.Verifier`.
+The instances follow `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`, leanVM `f128`)
+phase by phase. Every grind is followed by a challenge: the sumcheck rounds' grinds by the round's
+challenge, the bus's by the slot weights, a GKR step's by its combiner and its `y`, the table
+phase's by `ξ`, the Keccak reduction's by its segment, `s` and `β`, ring switching's by its map,
+WHIR's fold grinds by `θ` and `(γ, α, β)`, its query grinds by the first query sample (every
+deployed level queries, `ladder_queries_pos`) and its batching grinds by `λ`, and the commitment's
+OOD grind by its point, which has at least `minLogStack` coordinates (`readAnnouncedSizes`
+checks it). Every grind has at most `64` bits (`grindingBits_le_sixtyFour`): the theorem
+`grindBits_le_of_reachable` is the cap at which the random-oracle theorem discounts a group.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier VerifierProgram
 
 @[expose] public section
 
@@ -54,133 +51,159 @@ variable {α β : Type}
 
 /-! ## The predicate -/
 
-/-- Every prover move of `p` is allowed: every proof of work's bits satisfy `g`, and a commitment
-occurs only if `c`. -/
-def MovesOK (g : ℕ → Prop) (c : Prop) : VerifierProgram α → Prop
-  | .ret _ => True
+/-- Every prover move of `p` is allowed, every proof of work followed by a challenge, and every
+return satisfies `Q`: see the module docstring. -/
+def Moves (g : ℕ → Prop) (c : Prop) (Q G : α → Prop) : VerifierProgram α → Prop
+  | .ret a => Q a
   | .fail => True
-  | .read k => ∀ x, MovesOK g c (k x)
-  | .sample k => ∀ x, MovesOK g c (k x)
-  | .grind b k => g b ∧ MovesOK g c k
-  | .commit _ _ k => c ∧ MovesOK g c k
-  | .query _ _ k => ∀ rows, MovesOK g c (k rows)
+  | .read k => ∀ x, Moves g c Q G (k x)
+  | .sample k => ∀ x, Moves g c Q G (k x)
+  | .grind b k => g b ∧ k.StartsSample G ∧ Moves g c Q G k
+  | .commit _ _ k => c ∧ Moves g c Q G k
+  | .query _ _ k => ∀ rows, Moves g c Q G (k rows)
 
-namespace MovesOK
+/-- The moves of a phase that returns anything and may end on a proof of work. -/
+abbrev MovesOK (g : ℕ → Prop) (c : Prop) (p : VerifierProgram α) : Prop :=
+  Moves g c (fun _ ↦ True) (fun _ ↦ True) p
 
-variable {g : ℕ → Prop} {c : Prop}
+namespace Moves
 
-/-- Monotonicity in the allowed proofs of work and commitments. -/
-theorem mono {g g' : ℕ → Prop} {c c' : Prop} (hg : ∀ b, g b → g' b) (hc : c → c') :
-    ∀ {p : VerifierProgram α}, MovesOK g c p → MovesOK g' c' p
-  | .ret _, _ => trivial
+variable {g : ℕ → Prop} {c : Prop} {Q G : α → Prop}
+
+theorem startsSample_mono {R R' : α → Prop} (hR : ∀ a, R a → R' a) :
+    ∀ {q : VerifierProgram α}, q.StartsSample R → q.StartsSample R'
+  | .sample _, _ => trivial
+  | .ret a, h => hR a h
+
+/-- Monotonicity. -/
+theorem mono {g' : ℕ → Prop} {c' : Prop} {Q' G' : α → Prop} (hg : ∀ b, g b → g' b)
+    (hc : c → c') (hQ : ∀ a, Q a → Q' a) (hG : ∀ a, G a → G' a) :
+    ∀ {p : VerifierProgram α}, Moves g c Q G p → Moves g' c' Q' G' p
+  | .ret a, h => hQ a h
   | .fail, _ => trivial
-  | .read _, h => fun x ↦ mono hg hc (h x)
-  | .sample _, h => fun x ↦ mono hg hc (h x)
-  | .grind b _, h => ⟨hg b h.1, mono hg hc h.2⟩
-  | .commit _ _ _, h => ⟨hc h.1, mono hg hc h.2⟩
-  | .query _ _ _, h => fun rows ↦ mono hg hc (h rows)
+  | .read _, h => fun x ↦ mono hg hc hQ hG (h x)
+  | .sample _, h => fun x ↦ mono hg hc hQ hG (h x)
+  | .grind b _, h => ⟨hg b h.1, startsSample_mono hG h.2.1, mono hg hc hQ hG h.2.2⟩
+  | .commit _ _ _, h => ⟨hc h.1, mono hg hc hQ hG h.2⟩
+  | .query _ _ _, h => fun rows ↦ mono hg hc hQ hG (h rows)
 
-/-- A program with no prover move other than reads is allowed under any constraint. -/
-theorem of_none {g : ℕ → Prop} {c : Prop} {p : VerifierProgram α} (h : MovesOK (fun _ ↦ False)
-    False p) :
-    MovesOK g c p :=
-  mono (fun _ h ↦ h.elim) False.elim h
-
-/-- **Sequencing.** -/
-theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : MovesOK g c p) (hf : ∀ a,
-    MovesOK g c (f a)) :
-    MovesOK g c (p.bind f) := by
+/-- **Sequencing**: the follower runs on every value `p` returns, and starts with a challenge
+where `p` returns right after a proof of work. -/
+theorem bind {Q' G' : β → Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    (hp : Moves g c Q G p) (hf : ∀ a, Q a → Moves g c Q' G' (f a))
+    (hs : ∀ a, Q a → G a → (f a).StartsSample G') : Moves g c Q' G' (p.bind f) := by
   induction p with
-  | ret a => exact hf a
+  | ret a => exact hf a hp
   | fail => trivial
   | read k ih => exact fun x ↦ ih x (hp x)
   | sample k ih => exact fun x ↦ ih x (hp x)
-  | grind b k ih => exact ⟨hp.1, ih hp.2⟩
+  | grind b k ih =>
+    refine ⟨hp.1, ?_, ih hp.2.2⟩
+    obtain ⟨-, hk, hm⟩ := hp
+    cases k with
+    | sample k' => trivial
+    | ret a => exact hs a hm hk
+    | _ => exact hk.elim
   | commit ht w k ih => exact ⟨hp.1, ih hp.2⟩
   | query i ps k ih => exact fun rows ↦ ih rows (hp rows)
 
 /-- Sequencing in `do` notation. -/
-theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : MovesOK g c p) (hf : ∀ a,
-    MovesOK g c (f a)) :
-    MovesOK g c (p >>= f) :=
-  bind hp hf
+theorem seq {Q' G' : β → Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    (hp : Moves g c Q G p) (hf : ∀ a, Q a → Moves g c Q' G' (f a))
+    (hs : ∀ a, Q a → G a → (f a).StartsSample G') : Moves g c Q' G' (p >>= f) :=
+  bind hp hf hs
 
-/-- A rejection is allowed. -/
-theorem fail : MovesOK g c (VerifierProgram.fail : VerifierProgram α) := trivial
+/-- Sequencing after a part that never returns right after a proof of work. -/
+theorem seq' {Q' G' : β → Prop} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    (hp : Moves g c Q (fun _ ↦ False) p) (hf : ∀ a, Q a → Moves g c Q' G' (f a)) :
+    Moves g c Q' G' (p >>= f) :=
+  bind hp hf fun _ _ h ↦ h.elim
 
-/-- `pure` is allowed. -/
-theorem pure (a : α) : MovesOK g c (Pure.pure a : VerifierProgram α) := trivial
+theorem fail : Moves g c Q G (VerifierProgram.fail : VerifierProgram α) := trivial
 
-/-- A read is allowed. -/
-theorem readE : MovesOK g c VerifierProgram.readScalar := fun _ ↦ trivial
+theorem pure {a : α} (h : Q a) : Moves g c Q G (Pure.pure a : VerifierProgram α) := h
 
-/-- A sample is allowed. -/
-theorem sampleE : MovesOK g c VerifierProgram.sampleChallenge := fun _ ↦ trivial
+theorem ret {a : α} (h : Q a) : Moves g c Q G (VerifierProgram.ret a) := h
 
-/-- `n` reads are allowed. -/
-theorem readN : ∀ n, MovesOK g c (VerifierProgram.readScalars n)
-  | 0 => trivial
-  | n + 1 => seq readE fun _ ↦ seq (readN n) fun _ ↦ trivial
+theorem readE {G : E → Prop} : Moves g c (fun _ ↦ True) G readScalar := fun _ ↦ trivial
 
-/-- `n` samples are allowed. -/
-theorem sampleN : ∀ n, MovesOK g c (VerifierProgram.sampleChallenges n)
-  | 0 => trivial
-  | n + 1 => seq sampleE fun _ ↦ seq (sampleN n) fun _ ↦ trivial
+theorem sampleE {G : E → Prop} : Moves g c (fun _ ↦ True) G sampleChallenge := fun _ ↦ trivial
 
-/-- A check is allowed. -/
-theorem require (q : Prop) [Decidable q] : MovesOK g c (VerifierProgram.require q) := by
+/-- `n` reads, `n` values. -/
+theorem readN : ∀ n, Moves g c (fun xs ↦ xs.length = n) (fun _ ↦ False) (readScalars n)
+  | 0 => rfl
+  | n + 1 => seq' readE fun _ _ ↦ seq' (readN n) fun xs hxs ↦ by
+      change (_ :: xs).length = n + 1
+      rw [List.length_cons, hxs]
+
+/-- `n` samples, `n` values. -/
+theorem sampleN : ∀ n, Moves g c (fun xs ↦ xs.length = n) (fun _ ↦ False) (sampleChallenges n)
+  | 0 => rfl
+  | n + 1 => seq' sampleE fun _ _ ↦ seq' (sampleN n) fun xs hxs ↦ by
+      change (_ :: xs).length = n + 1
+      rw [List.length_cons, hxs]
+
+/-- A check. -/
+theorem require (q : Prop) [Decidable q] :
+    Moves g c (fun _ ↦ q) (fun _ ↦ False) (VerifierProgram.require q) := by
   unfold VerifierProgram.require
-  split <;> trivial
+  split
+  · exact ‹q›
+  · trivial
 
-/-- A pure step that may fail is allowed. -/
-theorem liftOption (o : Option α) : MovesOK g c (Verifier.liftOption o) := by
-  cases o <;> trivial
+/-- A pure step that may fail returns the option's value. -/
+theorem liftOption (o : Option α) : Moves g c (fun a ↦ o = some a) (fun _ ↦ False)
+    (Verifier.liftOption o) := by
+  cases o
+  · trivial
+  · rfl
 
-/-- A proof of work is allowed when its bits are. -/
-theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (VerifierProgram.grindProofOfWork b) := ⟨hb,
-    trivial⟩
+/-- A proof of work. -/
+theorem grindP {b : ℕ} (hb : b ≠ 0 → g b) :
+    Moves g c (fun _ ↦ True) (fun _ ↦ True) (grindProofOfWork b) := by
+  unfold grindProofOfWork
+  split_ifs with h
+  · trivial
+  · exact ⟨hb h, trivial, trivial⟩
 
-/-- A commitment is allowed when commitments are. -/
-theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (VerifierProgram.readCommitment ht w) := ⟨hc,
-    trivial⟩
+/-- A commitment. -/
+theorem commitP (hc : c) (ht w : ℕ) :
+    Moves g c (fun _ ↦ True) (fun _ ↦ False) (readCommitment ht w) := ⟨hc, trivial⟩
 
-/-- An opening is allowed. -/
-theorem queryP (i : ℕ) (ps : List ℕ) : MovesOK g c (VerifierProgram.queryOpenings i ps) := fun _ ↦
-    trivial
+/-- An opening. -/
+theorem queryP (i : ℕ) (ps : List ℕ) :
+    Moves g c (fun _ ↦ True) (fun _ ↦ False) (queryOpenings i ps) := fun _ ↦ trivial
 
-/-- A conditional is allowed when both branches are. -/
-theorem ite {q : Prop} [Decidable q] {p p' : VerifierProgram α} (hp : q → MovesOK g c p)
-    (hp' : ¬ q → MovesOK g c p') : MovesOK g c (if q then p else p') := by
+/-- A conditional. -/
+theorem ite {q : Prop} [Decidable q] {p p' : VerifierProgram α} (hp : q → Moves g c Q G p)
+    (hp' : ¬ q → Moves g c Q G p') : Moves g c Q G (if q then p else p') := by
   split
   · exact hp ‹_›
   · exact hp' ‹_›
 
+/-! ## Challenges first -/
+
+theorem startsSample_sampleChallenge {R : β → Prop} (k : E → VerifierProgram β) :
+    (sampleChallenge >>= k).StartsSample R := trivial
+
+theorem startsSample_sampleChallenges {R : β → Prop} {n : ℕ} (hn : n ≠ 0)
+    (k : List E → VerifierProgram β) : (sampleChallenges n >>= k).StartsSample R := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
+  trivial
+
 /-! ## Along histories -/
 
 /-- The program after a history of an allowed program is allowed. -/
-theorem after {p : VerifierProgram α} (hp : MovesOK g c p) :
-    ∀ {l : List Ev} {q : VerifierProgram α}, p.after l = some q → MovesOK g c q := by
+theorem after {p : VerifierProgram α} (hp : Moves g c Q G p) :
+    ∀ {l : List Ev} {q : VerifierProgram α}, p.after l = some q → Moves g c Q G q := by
   induction p with
-  | ret a =>
+  | ret a | fail =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
     · simp only [VerifierProgram.after, Option.some.injEq] at h
       exact h ▸ hp
     · cases e <;> simp [VerifierProgram.after] at h
-  | fail =>
-    intro l q h
-    rcases l with _ | ⟨e, l⟩
-    · simp only [VerifierProgram.after, Option.some.injEq] at h
-      exact h ▸ hp
-    · cases e <;> simp [VerifierProgram.after] at h
-  | read k ih =>
-    intro l q h
-    rcases l with _ | ⟨e, l⟩
-    · simp only [VerifierProgram.after, Option.some.injEq] at h
-      exact h ▸ hp
-    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
-      exact ih _ (hp _) h
-  | sample k ih =>
+  | read k ih | sample k ih | query i ps k ih =>
     intro l q h
     rcases l with _ | ⟨e, l⟩
     · simp only [VerifierProgram.after, Option.some.injEq] at h
@@ -194,7 +217,7 @@ theorem after {p : VerifierProgram α} (hp : MovesOK g c p) :
       exact h ▸ hp
     · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
       split at h
-      · exact ih hp.2 h
+      · exact ih hp.2.2 h
       · cases h
   | commit ht w k ih =>
     intro l q h
@@ -205,13 +228,16 @@ theorem after {p : VerifierProgram α} (hp : MovesOK g c p) :
       split at h
       · exact ih hp.2 h
       · cases h
-  | query i ps k ih =>
-    intro l q h
-    rcases l with _ | ⟨e, l⟩
-    · simp only [VerifierProgram.after, Option.some.injEq] at h
-      exact h ▸ hp
-    · cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at h
-      exact ih _ (hp _) h
+
+/-- **A challenge follows every proof of work** of a program that never returns right after one. -/
+theorem grindThenSample {P : VerifierProgram α} (hP : Moves g c Q (fun _ ↦ False) P) :
+    GrindThenSample P := by
+  intro l b k h
+  have hs := (hP.after h).2.1
+  cases k with
+  | sample k' => exact ⟨k', rfl⟩
+  | ret a => exact hs.elim
+  | _ => exact hs.elim
 
 /-- The commitments of a history extended by one event. -/
 private theorem commits_snoc (l : List Ev) (e : Ev) :
@@ -221,8 +247,7 @@ private theorem commits_snoc (l : List Ev) (e : Ev) :
   | cons e' l ih => cases e' <;> simp [commits, ih]
 
 /-- A program without commitments commits nothing along a run. -/
-theorem reach_commits {g : ℕ → Prop} {p : VerifierProgram α} (hp : MovesOK g False p) {h₀ l :
-    List Ev}
+theorem reach_commits {p : VerifierProgram α} (hp : Moves g False Q G p) {h₀ l : List Ev}
     (hl : p.Reach h₀ l) : commits l = [] := by
   induction hl with
   | nil => rfl
@@ -233,8 +258,7 @@ theorem reach_commits {g : ℕ → Prop} {p : VerifierProgram α} (hp : MovesOK 
   | query _ _ _ ih => simp [commits_snoc, ih, commits]
 
 /-- Along a reachable history, the last proof of work's bits are at most `B`. -/
-theorem grindBits_le {B : ℕ} {c : Prop} {P : VerifierProgram α} (hP : MovesOK
-    (· ≤ B) c P) {h : List Ev}
+theorem grindBits_le {B : ℕ} {P : VerifierProgram α} (hP : Moves (· ≤ B) c Q G P) {h : List Ev}
     (hh : P.Reachable h) : grindBits h ≤ B := by
   cases hh with
   | nil => simp [grindBits]
@@ -244,305 +268,447 @@ theorem grindBits_le {B : ℕ} {c : Prop} {P : VerifierProgram α} (hP : MovesOK
   | commit word _ _ _ => simp [grindBits]
   | query _ _ _ => simp [grindBits]
 
-end MovesOK
+end Moves
+
+/-! ## The grinds' widths -/
+
+/-- A grind of `grindingBits N` bits has at most `64` bits for `N ≤ 2^67`. -/
+theorem grindingBits_le_sixtyFour {N : ℕ} (hN : N ≤ 2 ^ 67) : grindingBits N ≤ 64 := by
+  unfold grindingBits
+  split_ifs with h
+  · omega
+  · have : Nat.log2 (N - 1) < 67 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
+
+/-- The proofs of work the leanVM verifier checks: at most `64` bits. -/
+abbrev G64 : ℕ → Prop := (· ≤ 64)
 
 section Phases
 
-/- The phases' programs are large closed terms; `MovesOK` is kept folded so that elaborating a
+/- The phases' programs are large closed terms; `Moves` is kept folded so that elaborating a
 rule's conclusion does not unfold the program it is about. -/
-attribute [local irreducible] MovesOK
+attribute [local irreducible] Moves
 
 /-! ## Sumcheck and the bus -/
 
-/-- A round polynomial is reads. -/
-theorem movesOK_sumcheckRoundPoly (count : ℕ) (claim : E) (eq : Option E) :
-    MovesOK (fun _ ↦ False) False (sumcheckRoundPoly count claim eq) := by
+/-- A round polynomial: reads, then a grind the caller's challenge follows. -/
+theorem moves_sumcheckRoundPoly {count : ℕ} (hc : count ≤ 2 ^ 67) (claim : E) (eq : Option E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ True) (sumcheckRoundPoly count claim eq) := by
   cases eq with
   | none =>
-    exact MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.pure _
-  | some r => exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.pure _
+    exact Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' (Moves.readN _) fun _ _ ↦
+      Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by omega)) (fun _ _ ↦
+        Moves.pure trivial) fun _ _ _ ↦ trivial
+  | some r =>
+    exact Moves.seq' (Moves.readN _) fun _ _ ↦
+      Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by omega)) (fun _ _ ↦
+        Moves.pure trivial) fun _ _ _ ↦ trivial
 
-/-- A sumcheck is reads and samples. -/
-theorem movesOK_sumcheck (count : ℕ) : ∀ (claim : E) (eqs : List (Option E)),
-    MovesOK (fun _ ↦ False) False (sumcheck claim count eqs)
-  | _, [] => MovesOK.pure _
+/-- A sumcheck: each round's grind followed by its challenge. -/
+theorem moves_sumcheck {count : ℕ} (hc : count ≤ 2 ^ 67) : ∀ (claim : E) (eqs : List (Option E)),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sumcheck claim count eqs)
+  | _, [] => Moves.pure trivial
   | claim, e :: es =>
-    MovesOK.seq (movesOK_sumcheckRoundPoly count claim e) fun _ ↦
-      MovesOK.seq MovesOK.sampleE fun _ ↦
-        MovesOK.seq (movesOK_sumcheck count _ es) fun r ↦ by
+    Moves.seq (moves_sumcheckRoundPoly hc claim e)
+      (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+        Moves.seq' (moves_sumcheck hc _ es) fun r _ ↦ by
           obtain ⟨point, final⟩ := r
-          exact MovesOK.pure _
+          exact Moves.pure trivial)
+      fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-/-- One GKR step is reads and samples. -/
-theorem movesOK_gkrStep (step : ℕ) (s : GkrState) :
-    MovesOK (fun _ ↦ False) False (gkrStep step s) := by
-  refine MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
+/-- One GKR step of `1` or `2` levels. -/
+theorem moves_gkrStep {step : ℕ} (h1 : 1 ≤ step) (h2 : step ≤ 2) (last : Bool) (s : GkrState) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrStep step last s) := by
+  have hpow : 2 ^ step + 1 ≤ 2 ^ 67 := by
+    have : 2 ^ step ≤ 2 ^ 2 := Nat.pow_le_pow_right (by norm_num) h2
+    omega
+  refine Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by decide))
+    (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' (moves_sumcheck hpow _ _) fun r _ ↦ ?_)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
   obtain ⟨x, claim⟩ := r
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.readN _) fun _ ↦
-    MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-      MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.pure _
+  refine Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.readN _) fun _ _ ↦
+    Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+      Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour ?_)
+        (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.pure trivial)
+        fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by omega) _
+  split <;> omega
 
-/-- The GKR walk is reads and samples. -/
-theorem movesOK_gkrLayers : ∀ (n : ℕ) (s : GkrState),
-    MovesOK (fun _ ↦ False) False (gkrLayers n s)
-  | 0, _ => MovesOK.pure _
-  | 1, s => MovesOK.seq (movesOK_gkrStep 1 s) fun t ↦ movesOK_gkrLayers 0 t
+/-- The GKR walk. -/
+theorem moves_gkrLayers : ∀ (n : ℕ) (s : GkrState),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrLayers n s)
+  | 0, _ => Moves.pure trivial
+  | 1, s => Moves.seq' (moves_gkrStep le_rfl (by norm_num) true s) fun t _ ↦ moves_gkrLayers 0 t
   | n + 2, s => by
     simp only [gkrLayers]
     split
-    · exact MovesOK.seq (movesOK_gkrStep 1 s) fun t ↦ movesOK_gkrLayers (n + 1) t
-    · exact MovesOK.seq (movesOK_gkrStep 2 s) fun t ↦ movesOK_gkrLayers n t
+    · exact Moves.seq' (moves_gkrStep le_rfl (by norm_num) false s) fun t _ ↦
+        moves_gkrLayers (n + 1) t
+    · exact Moves.seq' (moves_gkrStep (by norm_num) le_rfl (n = 0) s) fun t _ ↦ moves_gkrLayers n t
 
-/-- The GKR grand products are reads and samples. -/
-theorem movesOK_verifyGkrGrandProducts (depth : ℕ) :
-    MovesOK (fun _ ↦ False) False (verifyGkrGrandProducts depth) :=
-  MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
-    MovesOK.seq (movesOK_gkrLayers depth _) fun _ ↦ MovesOK.pure _
+theorem moves_verifyGkrGrandProducts (depth : ℕ) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyGkrGrandProducts depth) :=
+  Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+    Moves.seq' (moves_gkrLayers depth _) fun _ _ ↦ Moves.pure trivial
 
-/-- The bus makes no prover move other than reads. -/
-theorem movesOK_verifyBusBalance (layout : Layout) :
-    MovesOK (fun _ ↦ False) False (verifyBusBalance computedBytecodeValue layout) := by
-  refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
-    MovesOK.seq (movesOK_verifyGkrGrandProducts _) fun r ↦ ?_
+theorem moves_bytecodeShare (weights bytecodeLow : List E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeShare weights bytecodeLow) := by
+  refine Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' (moves_sumcheck (by norm_num) _ _) fun r _ ↦ ?_
+  obtain ⟨slotPoint, claim⟩ := r
+  exact Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦ Moves.pure trivial
+
+/-- **The bus**, for a check of the fixed polynomial's value that makes no prover move. -/
+theorem moves_verifyBusBalance {bytecodeValue : List K → List E → E → VerifierProgram Unit}
+    (hb : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
+    (layout : Layout) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyBusBalance bytecodeValue layout) := by
+  refine Moves.seq' (Moves.require _) fun _ hd ↦
+    Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour ?_)
+      (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+        Moves.seq' (moves_verifyGkrGrandProducts _) fun r _ ↦ ?_)
+      fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by simp [busBits]) _
+  · exact Nat.pow_le_pow_right (by norm_num) (by omega)
   obtain ⟨countRoot, point, treeValues⟩ := r
-  exact MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (MovesOK.readN 3) fun _ ↦
-    MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
-      MovesOK.seq (MovesOK.pure _) fun _ ↦ MovesOK.pure _
+  refine Moves.seq' (Moves.require _) fun _ _ ↦ Moves.seq' (Moves.readN 2) fun _ _ ↦
+    Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+      Moves.seq' (moves_bytecodeShare _ _) fun r _ ↦ ?_
+  obtain ⟨share, bytecodePoint, value⟩ := r
+  exact Moves.seq' (hb _ _ _) fun _ _ ↦ Moves.pure trivial
 
 /-! ## The sizes, the table sumcheck and the public input -/
 
-/-- The announced sizes are reads. -/
-theorem movesOK_readSizes (bytecode : List K) :
-    MovesOK (fun _ ↦ False) False (readAnnouncedSizes bytecode) :=
-  MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-    MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (MovesOK.liftOption _) fun _ ↦
-      MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.pure _
+/-- **The announced sizes**: reads; the stack has at least `minLogStack` variables. -/
+theorem moves_readSizes (bytecode : List K) :
+    Moves G64 False (fun a ↦ Whir.minLogStack ≤ a.1.stackLog) (fun _ ↦ False)
+      (readAnnouncedSizes bytecode) :=
+  Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+    Moves.seq' (Moves.require _) fun _ _ ↦ Moves.seq' (Moves.liftOption _) fun _ _ ↦
+      Moves.seq' (Moves.require _) fun _ h ↦ Moves.pure h.1
 
-/-- The tables' row evaluations are reads. -/
-theorem movesOK_tableTerms (constraintPowers formPowers point : List E) :
-    ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim),
-      MovesOK (fun _ ↦ False) False
-        (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
-  | [], _, _, _ => MovesOK.pure _
-  | (_, _, _, _) :: rest, _, _, _ =>
-    MovesOK.seq (MovesOK.readN _) fun _ ↦
-      movesOK_tableTerms constraintPowers formPowers point rest _ _ _
+theorem moves_tableTerms (constraintPowers formPowers point : List E) :
+    ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E),
+      Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
+        (tableTerms constraintPowers formPowers point rows cursor final)
+  | [], _, _ => Moves.pure trivial
+  | (table, height, forms, weight) :: rest, cursor, final =>
+    Moves.seq' (Moves.readN _) fun _ _ ↦
+      Moves.seq' (moves_tableTerms constraintPowers formPowers point rest _ _) fun r _ ↦ by
+        obtain ⟨final, rows⟩ := r
+        exact Moves.pure trivial
 
-/-- The table sumcheck is reads and samples. -/
-theorem movesOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
+theorem moves_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    MovesOK (fun _ ↦ False) False
-      (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
-  refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
+      (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) := by
+  refine Moves.seq' (moves_sumcheck (by norm_num) _ _) fun r _ ↦ ?_
   obtain ⟨challenges, claim⟩ := r
-  refine MovesOK.seq (movesOK_tableTerms _ _ _ _ 0 0 []) fun r ↦ ?_
-  obtain ⟨final, claims⟩ := r
-  exact MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.pure _
+  refine Moves.seq' (moves_tableTerms _ _ _ _ _ _) fun r _ ↦ ?_
+  obtain ⟨final, evaluations⟩ := r
+  exact Moves.seq' (Moves.require _) fun _ _ ↦ Moves.pure trivial
 
-/-- The table phase makes no prover move other than reads. -/
-theorem movesOK_tablePhase (layout : Layout) (bus : BusResult) :
-    MovesOK (fun _ ↦ False) False (tablePhaseClaims layout bus) :=
-  MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_tableSumcheck _ _ _ _ _ _) fun _ ↦
-    MovesOK.pure _
+/-- **The table phase**: its grind followed by `ξ`. -/
+theorem moves_tablePhase (layout : Layout) (bus : BusResult) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (tablePhase layout bus) :=
+  Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by decide))
+    (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ moves_tableSumcheck _ _ _ _ _ _)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-/-- The public-input phase makes no prover move: one challenge. -/
-theorem movesOK_publicInputPhase (layout : Layout) (publicInput : Digest) :
-    MovesOK (fun _ ↦ False) False (publicInputPhase layout publicInput) :=
-  MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.pure _
+theorem moves_publicInputPhase (layout : Layout) (publicInput : Digest) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (publicInputPhase layout publicInput) :=
+  Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial
 
 /-! ## The Keccak reduction and ring switching -/
 
-/-- The pack rounds are reads and samples. -/
-theorem movesOK_keccakPackRounds : ∀ (rs : List E) (value scale : E),
-    MovesOK (fun _ ↦ False) False (keccakPackRounds rs value scale)
-  | [], _, _ => MovesOK.pure _
-  | _ :: rs, _, _ =>
-    MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
-      MovesOK.seq (movesOK_keccakPackRounds rs _ _) fun r ↦ by
-        obtain ⟨value, scale, point⟩ := r
-        exact MovesOK.pure _
+theorem moves_keccakPackRounds : ∀ (rs : List E) (value scale : E),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value scale)
+  | [], _, _ => Moves.pure trivial
+  | r :: rs, value, scale =>
+    Moves.seq (moves_sumcheckRoundPoly (by norm_num) _ _)
+      (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+        Moves.seq' (moves_keccakPackRounds rs _ _) fun r _ ↦ by
+          obtain ⟨value, scale, point⟩ := r
+          exact Moves.pure trivial)
+      fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-/-- A Keccak layer is reads and samples. -/
-theorem movesOK_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
-    MovesOK (fun _ ↦ False) False (verifyKeccakLayer logSteps step claim) := by
-  refine MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_keccakPackRounds _ _ _) fun r ↦ ?_
+theorem moves_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccakLayer logSteps step claim) := by
+  refine Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+    Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by decide))
+      (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+        Moves.seq' (moves_keccakPackRounds _ _ _) fun r _ ↦ ?_)
+      fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
   obtain ⟨value, scale, point⟩ := r
-  refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
-  obtain ⟨localPoint, value'⟩ := r
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.pure _
+  refine Moves.seq' (moves_sumcheck (by norm_num) _ _) fun r _ ↦ ?_
+  obtain ⟨localPoint, value⟩ := r
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+    Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by decide))
+      (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial)
+      fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-/-- The Keccak layers are reads and samples. -/
-theorem movesOK_keccakLayers (logSteps : ℕ) : ∀ (steps : List ℕ) (claim : KeccakClaim),
-    MovesOK (fun _ ↦ False) False (keccakLayers logSteps steps claim)
-  | [], _ => MovesOK.pure _
-  | _ :: steps, _ => MovesOK.seq (movesOK_verifyKeccakLayer _ _ _) fun _ ↦
-      movesOK_keccakLayers logSteps steps _
+theorem moves_keccakLayers (logSteps : ℕ) : ∀ (steps : List ℕ) (claim : KeccakClaim),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakLayers logSteps steps claim)
+  | [], _ => Moves.pure trivial
+  | step :: steps, claim =>
+    Moves.seq' (moves_verifyKeccakLayer logSteps step claim) fun c _ ↦
+      moves_keccakLayers logSteps steps c
 
-/-- Opening `q_keccak` is a sumcheck. -/
-theorem movesOK_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
-    MovesOK (fun _ ↦ False) False (keccakOpen logSteps claim first count value) := by
-  refine MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
-  obtain ⟨slot, value'⟩ := r
-  exact MovesOK.pure _
+theorem moves_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
+      (keccakOpen logSteps claim first count value) := by
+  refine Moves.seq' (moves_sumcheck (by norm_num) _ _) fun r _ ↦ ?_
+  obtain ⟨slot, value⟩ := r
+  exact Moves.pure trivial
 
-/-- The Keccak reduction is reads and samples. -/
-theorem movesOK_verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    MovesOK (fun _ ↦ False) False (verifyKeccak logSteps inst output) := by
-  unfold verifyKeccak
-  refine MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq (MovesOK.sampleN _) fun _ ↦
-    MovesOK.seq MovesOK.readE fun _ ↦
-      MovesOK.seq (movesOK_keccakLayers _ _ _) fun _ ↦ ?_
-  simp only [show 1 < keccakSegments from by decide, ↓reduceIte]
-  refine MovesOK.seq (movesOK_keccakOpen _ _ _ _ _) fun r ↦ ?_
+/-- **The Keccak reduction**: its first grind followed by the segment. -/
+theorem moves_verifyKeccak (logSteps : ℕ) (inst output : List E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccak logSteps inst output) := by
+  have hopen : ∀ (claim : KeccakClaim) (first count : ℕ) (value : E) (f : List E × List E × E →
+      VerifierProgram (List ColumnClaim × List E × List E)),
+      (∀ r, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (f r)) →
+      Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakOpen logSteps claim first count value >>= f) :=
+    fun _ _ _ _ _ hf ↦ Moves.seq' (moves_keccakOpen _ _ _ _ _) fun r _ ↦ hf r
+  refine Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_sixtyFour (by decide)) (fun _ _ ↦ ?_)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by decide) _
+  refine Moves.seq' (Moves.sampleN _) fun segment _ ↦ Moves.seq' (Moves.sampleN _) fun lanePoint _ ↦ ?_
+  -- `keccakSegments = 2`: the committed outputs are read.
+  refine Moves.seq' Moves.readE fun committed _ ↦ ?_
+  refine Moves.seq' (moves_keccakLayers _ _ _) fun claim _ ↦ ?_
+  simp only [show (1 < keccakSegments) ↔ True from iff_true_intro (by decide), ↓reduceIte]
+  refine hopen _ _ _ _ _ fun r ↦ ?_
   obtain ⟨slot, weights, value⟩ := r
-  refine MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-    MovesOK.seq (MovesOK.pure _) fun _ ↦ MovesOK.seq (movesOK_sumcheck _ _ _) fun r ↦ ?_
-  obtain ⟨low, value'⟩ := r
-  refine MovesOK.seq (movesOK_keccakOpen _ _ _ _ _) fun r ↦ ?_
-  obtain ⟨slot', weights', value''⟩ := r
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.require _) fun _ ↦
-    MovesOK.pure _
+  refine Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+    Moves.seq' (Moves.pure (Q := fun _ ↦ True) trivial) fun outputs _ ↦ ?_
+  refine Moves.seq' (moves_sumcheck (by norm_num) _ _) fun r _ ↦ ?_
+  obtain ⟨low, value⟩ := r
+  refine hopen _ _ _ _ _ fun r ↦ ?_
+  obtain ⟨slot, weights, value⟩ := r
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+    Moves.pure trivial
 
-/-- The Keccak phase makes no prover move other than reads. -/
-theorem movesOK_keccakPhase (layout : Layout) (claims : List ColumnClaim) :
-    MovesOK (fun _ ↦ False) False (keccakPhaseClaims layout claims) :=
-  MovesOK.seq (MovesOK.require _) fun _ ↦ MovesOK.seq (movesOK_verifyKeccak _ _ _) fun r ↦ by
-    obtain ⟨outputs, point, slices⟩ := r
-    exact MovesOK.pure _
+theorem moves_keccakPhase (layout : Layout) (evaluations : List (List E × List E)) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakPhase layout evaluations) :=
+  moves_verifyKeccak _ _ _
 
-/-- Ring switching only samples. -/
-theorem movesOK_ringSwitch (point s : List E) :
-    MovesOK (fun _ ↦ False) False (ringSwitch point s) :=
-  MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.pure _
+/-- **Ring switching**: its grind followed by the map's sixteen challenges. -/
+theorem moves_ringSwitch (point s : List E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) :=
+  Moves.seq (Moves.grindP fun _ ↦ by decide)
+    (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.pure trivial)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by decide) _
 
-/-! ## WHIR -/
+/-! ## The WHIR opening -/
 
-/-- A WHIR level's fold rounds are reads and samples. -/
-theorem movesOK_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    MovesOK (fun _ ↦ False) False (foldRoundsT n s levelFolds)
-  | 0, _, _ => MovesOK.pure _
-  | n + 1, _, _ =>
-    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ none)
-      fun _ ↦ movesOK_foldRounds n _ _
+/-- The phases that commit nothing, as moves of the whole program. -/
+theorem Moves.lift {p : VerifierProgram α} {Q : α → Prop}
+    (h : Moves G64 False Q (fun _ ↦ False) p) : Moves G64 True Q (fun _ ↦ False) p :=
+  h.mono (fun _ h ↦ h) False.elim (fun _ h ↦ h) (fun _ h ↦ h)
 
-/-- The final WHIR level's tail rounds are reads and samples. -/
-theorem movesOK_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
-    MovesOK (fun _ ↦ False) False (tailRoundsT n target quad)
-  | 0, _, _ => MovesOK.pure _
-  | n + 1, _, _ =>
-    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.ite (fun _ ↦ MovesOK.pure _) fun _ ↦
-      MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ none) fun _ ↦
-        MovesOK.seq (movesOK_tailRounds n _ _) fun r ↦ by
-          obtain ⟨rest, target⟩ := r
-          exact MovesOK.pure _
 
-/-- The query sampling loop only samples. -/
-theorem movesOK_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
-    MovesOK (fun _ ↦ False) False (sampleQueriesAux depth fuel remaining)
-  | 0, _ => MovesOK.pure _
+theorem moves_foldRound (s : WhirState) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRound s) :=
+  Moves.seq (Moves.grindP fun _ ↦ by decide)
+    (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+      Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+        Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+          Moves.seq (Moves.grindP fun _ ↦ by decide)
+            (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+              Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial)
+            fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
+
+theorem moves_foldRounds : ∀ (n : ℕ) (s : WhirState),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRounds n s)
+  | 0, _ => Moves.pure trivial
+  | n + 1, s => Moves.seq' (moves_foldRound s) fun r _ ↦ by
+      obtain ⟨s, round⟩ := r
+      exact Moves.seq' (moves_foldRounds n s) fun r _ ↦ by
+        obtain ⟨s, rounds⟩ := r
+        exact Moves.pure trivial
+
+theorem moves_sampleOodPoints (mu : ℕ) : ∀ (count : ℕ),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleOodPoints mu count)
+  | 0 => Moves.pure trivial
+  | count + 1 => Moves.seq' (Moves.sampleN _) fun _ _ ↦
+      Moves.seq' (moves_sampleOodPoints mu count) fun _ _ ↦ Moves.pure trivial
+
+theorem moves_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleQueriesAux depth fuel remaining)
+  | 0, _ => Moves.pure trivial
   | fuel + 1, _ =>
-    MovesOK.ite (fun _ ↦ MovesOK.pure _) fun _ ↦ MovesOK.seq MovesOK.sampleE fun _ ↦
-      MovesOK.seq (movesOK_sampleQueriesAux depth fuel _) fun _ ↦ MovesOK.pure _
+    Moves.ite (fun _ ↦ Moves.pure trivial) fun _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+      Moves.seq' (moves_sampleQueriesAux depth fuel _) fun _ _ ↦ Moves.pure trivial
 
-/-- WHIR's query proof of work has at most `64` bits. -/
-theorem queryGrindingBits_le : Whir.queryGrindingBits ≤ 64 := by decide
+/-- The query positions of a level that queries start with a challenge. -/
+theorem startsSample_sampleQueries {R : β → Prop} {depth count : ℕ} (hc : count ≠ 0)
+    (k : List ℕ → VerifierProgram β) : (sampleQueries depth count >>= k).StartsSample R := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hc
+  unfold sampleQueries sampleQueriesAux
+  simp only [Nat.add_one_ne_zero, ↓reduceIte]
+  trivial
 
-/-- The WHIR levels: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
-theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT),
-      MovesOK (· = Whir.queryGrindingBits) True (whirLevelsT logN laneFolds evaluateBasis index levels s)
-  | [], _, _ => MovesOK.fail
-  | [level], index, s => by
-    refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
-    obtain ⟨s', levelFolds⟩ := r
-    refine MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.pure _) fun _ ↦
-      MovesOK.seq (MovesOK.grindP rfl) fun _ ↦
-        MovesOK.seq (MovesOK.of_none (movesOK_sampleQueriesAux _ _ _)) fun queries ↦
-          MovesOK.seq MovesOK.sampleE fun lam ↦ MovesOK.seq (MovesOK.queryP index queries)
-            fun words ↦ MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none))
-              fun intro ↦ MovesOK.seq (MovesOK.of_none (movesOK_tailRounds _ _ _)) fun r ↦ ?_
-    obtain ⟨tailFolds, target⟩ := r
-    exact MovesOK.require _
-  | level :: next :: rest, index, s => by
-    refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
-    obtain ⟨s', levelFolds⟩ := r
-    exact MovesOK.seq (MovesOK.commitP trivial _ _) fun _ ↦
-      MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
-        MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
-          MovesOK.seq (MovesOK.pure _) fun _ ↦
-            MovesOK.seq (MovesOK.grindP rfl) fun _ ↦
-              MovesOK.seq (MovesOK.of_none (movesOK_sampleQueriesAux _ _ _)) fun queries ↦
-                MovesOK.seq MovesOK.sampleE fun lam ↦
-                  MovesOK.seq (MovesOK.queryP index queries) fun words ↦
-                    MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none))
-                      fun intro ↦ movesOK_whirLevels logN laneFolds evaluateBasis
-                        (next :: rest) (index + 1) _
+/-- **The WHIR levels**, every one of which queries. -/
+theorem moves_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
+    ∀ (index : ℕ) (levels : List Whir.Level), (∀ l ∈ levels, l.queries ≠ 0) → ∀ (s : WhirState),
+      Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
+        (whirLevels logN laneFolds evaluateBasis index levels s)
+  | _, [], _, _ => Moves.fail
+  | index, level :: rest, hq, s => by
+    have hq0 : level.queries ≠ 0 := hq level List.mem_cons_self
+    refine Moves.seq' ((moves_foldRounds level.fold s).mono (fun _ h ↦ h) False.elim (fun _ h ↦ h)
+      (fun _ h ↦ h)) fun r _ ↦ ?_
+    obtain ⟨s', rounds⟩ := r
+    cases rest with
+    | nil =>
+      exact Moves.seq' (Moves.readN _) fun _ _ ↦
+        Moves.seq (Moves.grindP fun _ ↦ by decide)
+          (fun _ _ ↦ Moves.seq' (Moves.lift (moves_sampleQueriesAux _ _ _)) fun _ _ ↦
+            Moves.seq' (Moves.queryP _ _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
+              Moves.seq' ((moves_sumcheck (by norm_num) _ _).mono (fun _ h ↦ h) False.elim (fun _ h ↦ h)
+                (fun _ h ↦ h)) fun r _ ↦ by
+                obtain ⟨tail, claim⟩ := r
+                exact (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h))
+          fun _ _ _ ↦ startsSample_sampleQueries hq0 _
+    | cons next rest' =>
+      exact Moves.seq' (Moves.commitP trivial _ _) fun _ _ ↦
+        Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.lift (moves_sampleOodPoints _ _)) fun _ _ ↦
+          Moves.seq' (Moves.readN _) fun _ _ ↦
+            Moves.seq (Moves.grindP fun _ ↦ by decide)
+              (fun _ _ ↦ Moves.seq' (Moves.lift (moves_sampleQueriesAux _ _ _)) fun _ _ ↦
+                Moves.seq (Moves.grindP fun _ ↦ by decide)
+                  (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+                    Moves.seq' (Moves.queryP _ _) fun _ _ ↦
+                      moves_whirLevels logN laneFolds evaluateBasis (index + 1) (next :: rest')
+                        (fun l hl ↦ hq l (List.mem_cons_of_mem _ hl)) _)
+                  fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
+              fun _ _ _ ↦ startsSample_sampleQueries hq0 _
 
-/-- WHIR: its levels' commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
-theorem movesOK_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyWhirT logN logInvRate target evaluateBasis) :=
-  MovesOK.seq (MovesOK.liftOption _) fun config ↦
-    MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
-      movesOK_whirLevels logN _ evaluateBasis config 0 _
+/-- Every count of the query table is positive. -/
+theorem queryTable_pos : ∀ row ∈ Whir.queryTable, ∀ r ∈ row, ∀ q ∈ r, q ≠ 0 := by
+  decide
+
+private theorem getD_mem_or {γ : Type} (l : List (List γ)) (i : ℕ) :
+    l.getD i [] ∈ l ∨ l.getD i [] = [] := by
+  rw [List.getD_eq_getElem?_getD]
+  rcases h : l[i]? with _ | x
+  · exact .inr rfl
+  · exact .inl (List.mem_of_getElem? h)
+
+/-- Every count the table gives a shape is positive. -/
+theorem queryTable_getD_pos (i j : ℕ) : ∀ q ∈ (Whir.queryTable.getD i []).getD j [], q ≠ 0 := by
+  intro q hq
+  rcases getD_mem_or Whir.queryTable i with hrow | hrow
+  · rcases getD_mem_or (Whir.queryTable.getD i []) j with hr | hr
+    · exact queryTable_pos _ hrow _ hr q hq
+    · rw [hr] at hq; simp at hq
+  · rw [hrow] at hq; simp at hq
+
+/-- **Every level of a deployed ladder queries.** -/
+theorem ladder_queries_pos {μ R : ℕ} {config : List Whir.Level} (h : Whir.ladder μ R = some config) :
+    ∀ l ∈ config, l.queries ≠ 0 := by
+  unfold Whir.ladder at h
+  dsimp only at h
+  split_ifs at h
+  simp only [Option.some.injEq] at h
+  subst h
+  intro l hl
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hl
+  simp only [List.getElem_zipWith]
+  simp only [List.length_zipWith] at hi
+  exact queryTable_getD_pos _ _ _ (List.getElem_mem (by omega))
+
+theorem moves_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
+      (verifyWhir logN logInvRate target evaluateBasis) :=
+  Moves.seq' (Moves.liftOption _) fun _ h ↦
+    moves_whirLevels _ _ _ _ _ (ladder_queries_pos h) _
 
 /-- The stack's root: one commitment, no proof of work. -/
-theorem movesOK_commitStack (logN logInvRate : ℕ) :
-    MovesOK (fun _ ↦ False) True (commitStack logN logInvRate) := by
-  refine MovesOK.seq (MovesOK.liftOption _) fun config ↦ ?_
+theorem moves_commitStack (logN logInvRate : ℕ) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (commitStack logN logInvRate) := by
+  refine Moves.seq' ((Moves.liftOption _).mono (fun _ h ↦ h) False.elim (fun _ _ ↦ trivial) (fun _ h ↦ h))
+    fun config _ ↦ ?_
   cases config with
-  | nil => exact MovesOK.fail
-  | cons level rest => exact MovesOK.commitP trivial _ _
+  | nil => exact Moves.fail
+  | cons level rest => exact Moves.commitP trivial _ _
 
-/-- The stacked opening: WHIR's commitments and its proofs of work of `Whir.queryGrindingBits`
-bits. -/
-theorem movesOK_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyStackedOpening stackLog logInvRate claims) := by
-  rw [verifyStackedOpening_eq_target]
-  exact MovesOK.seq MovesOK.sampleE fun _ ↦ movesOK_verifyWhir _ _ _ _
+/-- **The commitment's OOD sample**: its grind followed by the point. -/
+theorem moves_readOod {stackLog : ℕ} (h : stackLog ≠ 0) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) :=
+  Moves.seq (Moves.grindP fun _ ↦ by decide)
+    (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+      Moves.pure trivial)
+    fun _ _ _ ↦ Moves.startsSample_sampleChallenges h _
+
+theorem moves_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
+      (verifyStackedOpening stackLog logInvRate claims) :=
+  Moves.seq' ((Moves.require _).mono (fun _ h ↦ h) False.elim (fun _ _ ↦ trivial) (fun _ h ↦ h)) fun _ _ ↦
+    Moves.seq' Moves.sampleE fun _ _ ↦ moves_verifyWhir _ _ _ _
 
 /-! ## The whole program -/
 
-/-- `verify_execution`: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
-theorem movesOK_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (verifyExecutionClaims computedBytecodeValue bytecode publicInput) := by
-  refine MovesOK.seq (MovesOK.of_none (movesOK_readSizes bytecode)) fun p ↦ ?_
+/-- **`verify_execution`**, for a check of the fixed polynomial's value that makes no prover
+move. -/
+theorem moves_verifyExecution {bytecodeValue : List K → List E → E → VerifierProgram Unit}
+    (hb : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
+    (bytecode : List K) (publicInput : Digest) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
+      (verifyExecution bytecodeValue bytecode publicInput) := by
+  refine Moves.seq' (Moves.lift (moves_readSizes bytecode)) fun p hp ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
-  refine MovesOK.seq ((movesOK_commitStack _ _).mono (fun _ h ↦ h.elim) id) fun _ ↦
-    MovesOK.seq (MovesOK.of_none (movesOK_verifyBusBalance layout)) fun bus ↦
-      MovesOK.seq (MovesOK.of_none (movesOK_tablePhase layout bus)) fun _ ↦
-        MovesOK.seq (MovesOK.of_none (movesOK_publicInputPhase layout publicInput)) fun _ ↦
-          MovesOK.seq (MovesOK.of_none (movesOK_keccakPhase _ _)) fun r ↦ ?_
-  obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
-  refine MovesOK.seq (MovesOK.of_none (movesOK_ringSwitch keccakPoint keccakSlices)) fun r ↦ ?_
+  have h0 : layout.stackLog ≠ 0 := by
+    have : Whir.minLogStack ≤ layout.stackLog := hp
+    simp only [Whir.minLogStack] at this
+    omega
+  refine Moves.seq' (moves_commitStack _ _) fun _ _ ↦
+    Moves.seq' (Moves.lift (moves_readOod h0)) fun _ _ ↦
+      Moves.seq' (Moves.lift (moves_verifyBusBalance hb layout)) fun bus _ ↦
+        Moves.seq' (Moves.lift (moves_tablePhase layout bus)) fun _ _ ↦
+          Moves.seq' (Moves.lift (moves_publicInputPhase layout publicInput)) fun _ _ ↦
+            Moves.seq' (Moves.lift (moves_keccakPhase _ _)) fun r _ ↦ ?_
+  obtain ⟨outputs, keccakPoint, keccakSlices⟩ := r
+  refine Moves.seq' (Moves.lift (moves_ringSwitch keccakPoint keccakSlices)) fun r _ ↦ ?_
   obtain ⟨ringTarget, ringWeight⟩ := r
-  exact movesOK_verifyStackedOpening _ _ _
+  exact moves_verifyStackedOpening _ _ _
+
+theorem moves_computedBytecodeValue (w : List K) (p : List E) (v : E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (computedBytecodeValue w p v) :=
+  (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
+
+theorem moves_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (claimedBytecodeValue claim w p v) :=
+  (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
 
 end Phases
 
-/-- **The leanVM verifier program**: its commitments, and proofs of work of
-`Whir.queryGrindingBits = 17` bits. -/
-theorem movesOK_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    MovesOK (· = Whir.queryGrindingBits) True (leanVmVerifierProgram bytecode publicInput) := by
-  rw [leanVmProgram_eq]
-  exact MovesOK.seq (movesOK_verifyExecution bytecode publicInput) fun _ ↦ MovesOK.pure _
+/-- **The leanVM verifier program's moves.** -/
+theorem moves_leanVmProgram (bytecode : List K) (publicInput : Digest) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (leanVmVerifierProgram bytecode publicInput) :=
+  Moves.seq' (moves_verifyExecution moves_computedBytecodeValue bytecode publicInput) fun _ _ ↦
+    Moves.pure trivial
+
+/-- **The deferring verifier program's moves.** -/
+theorem moves_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
+    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
+      (deferringVerifierProgram claim bytecode publicInput) :=
+  Moves.seq' (moves_verifyExecution (moves_claimedBytecodeValue claim) bytecode publicInput)
+    fun _ _ ↦ Moves.pure trivial
+
+/-- **A challenge follows every proof of work of the leanVM verifier.** -/
+theorem grindThenSample_leanVmProgram (bytecode : List K) (publicInput : Digest) :
+    GrindThenSample (leanVmVerifierProgram bytecode publicInput) :=
+  (moves_leanVmProgram bytecode publicInput).grindThenSample
+
+/-- **A challenge follows every proof of work of the deferring verifier.** -/
+theorem grindThenSample_deferringProgram (claim : BytecodeClaim) (bytecode : List K)
+    (publicInput : Digest) : GrindThenSample (deferringVerifierProgram claim bytecode publicInput) :=
+  (moves_deferringProgram claim bytecode publicInput).grindThenSample
 
 /-- **Every reachable history of the leanVM verifier ends with a proof of work of at most 64
 bits.** -/
 theorem grindBits_le_of_reachable (bytecode : List K) (publicInput : Digest) {h : List Ev}
     (hh : (leanVmVerifierProgram bytecode publicInput).Reachable h) : grindBits h ≤ 64 :=
-  ((movesOK_leanVmProgram bytecode publicInput).mono (fun _ hb ↦ hb ▸ queryGrindingBits_le)
-    id).grindBits_le hh
-
-/-- **Every proof of work of the leanVM verifier has `Whir.queryGrindingBits = 17` bits**, along
-any history. -/
-theorem grind_bits_eq (bytecode : List K) (publicInput : Digest) {h : List Ev} {bits : ℕ}
-    {k : VerifierProgram Bool} (hg : (leanVmVerifierProgram bytecode publicInput).after h = some
-        (.grind bits k)) :
-    bits = Whir.queryGrindingBits :=
-  ((movesOK_leanVmProgram bytecode publicInput).after hg).1
+  (moves_leanVmProgram bytecode publicInput).grindBits_le hh
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
