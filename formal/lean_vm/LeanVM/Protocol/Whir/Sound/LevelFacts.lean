@@ -94,5 +94,55 @@ theorem batchedOf_eq (P : LevelCode) (i : ℕ) (cs : List (ℕ × ℕ × Word)) 
     show P.dom ⟨wq.2, hlt⟩ = ofK (K.ofBits wq.2) from rfl, eval_hatE, mul_comm (ofK _)]
   rfl
 
+/-! ## The next level's invariant -/
+
+variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+
+/-- The running weight of a glued state. -/
+theorem runW_glueLevel (s : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (y₁ y₂ : E)
+    (qs : List ℕ) (batched : E) (x : List E) :
+    runW w ℓ₀ (glueLevel s lam mu [z₁, z₂] [y₁, y₂] qs (powers lam qs.length) batched) x =
+      gluedW (runW w ℓ₀ s) z₁ z₂ mu qs lam x := by
+  rw [glueLevel_eq, gluedW, runW_eq, runW_eq]
+  simp only [List.map_append, List.sum_append, List.map_cons, List.map_nil, List.sum_cons,
+    List.sum_nil, List.drop_length, List.nil_append, add_zero]
+  ring
+
+/-- **After `λ`**: if no member of the next list satisfies the glued claim, the next level's
+invariant holds with no round. -/
+theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List FoldRound)
+    (cs : List (ℕ × ℕ × Word)) (hI : RoundInv μ ℓ₀ w i P pre s rounds cs)
+    (hr : rounds.length = P.ℓ) (z₁ z₂ : List E) (hz₁ : z₁.length = P.κ) (hz₂ : z₂.length = P.κ)
+    (y₁ y₂ : E) (qs : List ℕ) (c' : ℕ → E) (lam batched : E)
+    (hb : batched = ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k])
+    (hlam : ¬ ∃ U ∈ tlist P'.dom (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (P'.thr 0) (P'.deg 0),
+      ∑ x, gluedW (runW w ℓ₀ s) z₁ z₂ P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
+        gluedV s.claim y₁ y₂ qs c' lam) :
+    RoundInv μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
+      (glueLevel s lam P.κ [z₁, z₂] [y₁, y₂] qs (powers lam qs.length) batched) [] cs := by
+  obtain ⟨hlen, -, hκ₀, hg, -⟩ := hI
+  have hgl := glueLevel_eq s lam P.κ z₁ z₂ y₁ y₂ qs (powers lam qs.length) batched
+  refine ⟨by rw [hgl]; simp [hlen, hr], by simp, by omega, ?_, ?_⟩
+  · intro c hc
+    rw [hgl] at hc ⊢
+    simp only [List.mem_append, List.mem_cons, List.mem_nil_iff, or_false] at hc
+    rcases hc with hc | rfl | rfl | rfl
+    · exact hg c hc
+    · refine ⟨le_rfl, ?_⟩
+      rw [show μ - s.gammas.length = z₁.length by omega]
+      exact isMultiaffine_eqEval z₁
+    · refine ⟨le_rfl, ?_⟩
+      rw [show μ - s.gammas.length = z₂.length by omega]
+      exact isMultiaffine_eqEval z₂
+    · refine ⟨le_rfl, ?_⟩
+      rw [show μ - s.gammas.length = P.κ by omega]
+      exact isMultiaffine_inducedWeight P.κ qs _ (length_powers _ _)
+  · intro U hU hag heq
+    refine hlam ⟨U, (mem_tlist _ _ _ _ _).mpr ⟨hU, by simpa [foldsA_nil] using hag⟩, ?_⟩
+    change claimSum _ (msgT P'.κ U) = _ at heq
+    rw [← sum_joinMsg hκ] at heq
+    simp only [runW_glueLevel] at heq
+    rw [heq, hgl, hb, gluedV]
+
 end
 end LeanVM.Protocol.Whir.Sound
