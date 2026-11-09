@@ -1,0 +1,19 @@
+# The RV64IM image of the verifier: `crates/verifier` behind an entry that reads its inputs from memory and halts with
+# the verdict. Its own workspace: it builds for bare-metal RV64IM only.
+[workspace]
+
+[package]
+name = "verifier-rv64"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+verifier = { path = "../../../crates/verifier" }
+
+[profile.release]
+opt-level = 2
+lto = false
+codegen-units = 1
+panic = "abort"
+debug = false
