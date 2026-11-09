@@ -178,154 +178,62 @@ impl Terms {
         self.n_claims() + DEGREE_E * self.rings.len()
     }
 
-    /// Adds `scale * P(l, .)` of the words `lane` of a lane, from block `first` on, to `row`, for the terms `live`
-    /// marks.
-    ///
-    /// The words are swept `SWEEP` blocks at a time, one pass per table, so a pattern's packed weights or a ring's
-    /// fold matrices stay in L1 across the run while the run's words stay in L2.
-    ///
-    /// `repeats` tags the blocks that equal the block before them, or is empty. A run of equal blocks shares its
-    /// dots and its folds, a fold weighted by the run's `e_hi` mass, so its words are read once per run.
-    fn project_lane<const CHUNKS: usize>(
-        &self,
-        lane: &[F64],
-        first: usize,
-        row: &mut [F128],
-        scale: F128,
-        repeats: &[bool],
-        live: &[bool],
-    ) {
-        const SWEEP: usize = 32;
-        let n_blocks = lane.len() >> self.low_vars;
-        let block = |h: usize| &lane[h << self.low_vars..][..1 << self.low_vars];
-        let repeat = |h: usize| repeats.get(h) == Some(&true);
-        let patterns: Vec<_> = self
-            .patterns
-            .iter()
-            .filter(|pattern| pattern.claims.iter().any(|&c| live[c]))
-            .collect();
-        let rings: Vec<_> = self
-            .rings
-            .iter()
-            .filter(|ring| live[ring.first..ring.first + DEGREE_E].contains(&true))
-            .collect();
-        let mut q = vec![F128::ZERO; n_blocks * patterns.len()];
-        let mut sigmas = vec![F128::ZERO; ROWS * rings.len()];
-        let mut cols = [[0u8; ROWS]; CHUNKS];
-        let mut dots = vec![None; patterns.len()];
-        let mut folds: Vec<Option<[F128; ROWS]>> = vec![None; rings.len()];
-        let mut masses = vec![F128::ZERO; rings.len()];
-        for start in (0..n_blocks).step_by(SWEEP) {
-            let blocks = start..(start + SWEEP).min(n_blocks);
-            for ((pattern, q), dot) in patterns.iter().zip(q.chunks_exact_mut(n_blocks)).zip(&mut dots) {
-                for h in blocks.clone() {
-                    if !repeat(h) {
-                        *dot = None;
-                    }
-                    if pattern.active[first + h] {
-                        q[h] = *dot.get_or_insert_with(|| pattern.low.dot(block(h)));
-                    }
-                }
-            }
-            for h in blocks {
-                if !repeat(h) {
-                    flush(&mut folds, &mut masses, &mut sigmas);
-                }
-                let mut transposed = false;
-                for ((ring, fold), mass) in rings.iter().zip(&mut folds).zip(&mut masses) {
-                    let e_hi = ring.e_hi[first + h];
-                    if e_hi == F128::ZERO {
-                        continue;
-                    }
-                    *mass += e_hi;
-                    fold.get_or_insert_with(|| {
-                        if !transposed {
-                            for (col, group) in cols.iter_mut().zip(block(h).as_chunks::<8>().0) {
-                                bit_transpose_64bytes(&primitives::cast_slice::<F64, [u8; 64]>(group)[0], col);
-                            }
-                            transposed = true;
-                        }
-                        let mut folded = [F128::ZERO; ROWS];
-                        ring.fold.fold_columns(&cols, &mut folded);
-                        folded
-                    });
-                }
-            }
-        }
-        flush(&mut folds, &mut masses, &mut sigmas);
-        // `P(l, c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks.
-        let mine = first..first + n_blocks;
-        for (pattern, q) in patterns.iter().zip(q.chunks_exact(n_blocks)) {
-            for &c in &pattern.claims {
-                let range = self.ranges[c].start.max(mine.start)..self.ranges[c].end.min(mine.end);
-                if range.is_empty() {
-                    continue;
-                }
-                let gamma = &self.gamma(c)[range.clone()];
-                let q = &q[range.start - first..range.end - first];
-                let ((g8, g_r), (q8, q_r)) = (gamma.as_chunks::<8>(), q.as_chunks::<8>());
-                let sum = g8.iter().zip(q8).fold(Acc8::ZERO, |mut acc, (g, q)| {
-                    acc ^= msg_lone8_ext(g, q);
-                    acc
-                });
-                row[c] += scale * g_r.iter().zip(q_r).fold(sum.reduce(), |sum, (&g, &q)| sum + g * q);
-            }
-        }
-        for (ring, sigma) in rings.iter().zip(sigmas.as_chunks::<ROWS>().0.iter()) {
-            for (slot, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(sigma)) {
-                *slot += scale.mul_base(k);
-            }
-        }
-    }
-
-    /// Adds `scale * P` of `words`, which start at block `first` of a lane, to `row`, for the terms `live` marks.
-    pub(crate) fn project_words(
-        &self,
-        words: &[F64],
-        first: usize,
-        row: &mut [F128],
-        scale: F128,
-        repeats: &[bool],
-        live: &[bool],
-    ) {
-        match self.low_vars {
-            6 => self.project_lane::<8>(words, first, row, scale, repeats, live),
-            7 => self.project_lane::<16>(words, first, row, scale, repeats, live),
-            8 => self.project_lane::<32>(words, first, row, scale, repeats, live),
-            9 => self.project_lane::<64>(words, first, row, scale, repeats, live),
-            _ => self.project_lane::<128>(words, first, row, scale, repeats, live),
+    /// The patterns and rings some term `live` marks needs.
+    fn live<'a>(&'a self, live: &[bool]) -> Live<'a> {
+        Live {
+            patterns: self
+                .patterns
+                .iter()
+                .filter(|pattern| pattern.claims.iter().any(|&c| live[c]))
+                .collect(),
+            rings: self
+                .rings
+                .iter()
+                .filter(|ring| live[ring.first..ring.first + DEGREE_E].contains(&true))
+                .collect(),
         }
     }
 
     /// Projections of `n_lanes` lanes, `slots` rows of [`Self::n_terms`] each, for the terms `live` marks, a range of
-    /// blocks per task: `range(lane, blocks, emit)` hands `emit` a slot and words of the range, with their repeat
-    /// tags and a scale, once or more, and the slot's row adds the scaled projection of the words.
+    /// blocks per task: `task(lane, blocks, feed)` hands `feed` a slot, the first block of some words of the range,
+    /// the words and their repeat tags, in order of blocks per slot, [`SWEEP`] blocks or more at a time.
+    ///
+    /// A repeat tag says a block equals the block fed before it to its slot, and means nothing on the slot's first
+    /// block. Tags may be empty.
     pub(crate) fn project_rows(
         &self,
         n_lanes: usize,
         slots: usize,
         live: &[bool],
-        range: impl Fn(usize, std::ops::Range<usize>, &mut dyn FnMut(usize, &[F64], &[bool], F128)) + Sync,
+        task: impl Fn(usize, std::ops::Range<usize>, &mut dyn FnMut(usize, usize, &[F64], &[bool])) + Sync,
     ) -> Vec<F128> {
         let n_terms = self.n_terms();
         let n_blocks = 1usize << (self.lane_vars - self.low_vars);
+        let live = self.live(live);
         // Enough tasks to balance the pool, each at least one sweep of blocks where the lane allows.
         let want = (8 * parallel::num_threads()).div_ceil(n_lanes.max(1));
-        let per = (n_blocks / want.next_power_of_two()).max(32.min(n_blocks));
+        let per = (n_blocks / want.next_power_of_two()).max(SWEEP.min(n_blocks));
         let n_ranges = n_blocks.div_ceil(per);
-        let parts = parallel::map_collect(n_lanes * n_ranges, |task| {
-            let (lane, k) = (task / n_ranges, task % n_ranges);
+        let parts = parallel::map_collect(n_lanes * n_ranges, |t| {
+            let (lane, k) = (t / n_ranges, t % n_ranges);
             let blocks = k * per..((k + 1) * per).min(n_blocks);
-            let mut out = vec![F128::ZERO; slots * n_terms];
-            range(lane, blocks.clone(), &mut |slot, words, repeats, scale| {
-                let row = &mut out[slot * n_terms..][..n_terms];
-                self.project_words(words, blocks.start, row, scale, repeats, live)
+            let mut projections: Vec<Option<Projection>> = (0..slots).map(|_| None).collect();
+            task(lane, blocks.clone(), &mut |slot, start, words, repeats| {
+                projections[slot]
+                    .get_or_insert_with(|| Projection::new(&live, blocks.clone()))
+                    .feed(self, &live, start, words, repeats);
             });
+            let mut out = vec![F128::ZERO; slots * n_terms];
+            for (projection, row) in projections.into_iter().zip(out.chunks_exact_mut(n_terms)) {
+                if let Some(projection) = projection {
+                    projection.finish(self, &live, row);
+                }
+            }
             out
         });
         let mut rows = vec![F128::ZERO; n_lanes * slots * n_terms];
-        for (task, part) in parts.iter().enumerate() {
-            let rows = &mut rows[task / n_ranges * slots * n_terms..][..slots * n_terms];
+        for (t, part) in parts.iter().enumerate() {
+            let rows = &mut rows[t / n_ranges * slots * n_terms..][..slots * n_terms];
             rows.iter_mut().zip(part).for_each(|(r, &p)| *r += p);
         }
         rows
@@ -405,6 +313,137 @@ impl Terms {
                     }
                 });
             })
+        }
+    }
+}
+
+/// Blocks a projection sweeps at a time, one pass per table, so a pattern's packed weights or a ring's fold matrices
+/// stay in L1 across the sweep while its words stay in L2.
+pub(crate) const SWEEP: usize = 32;
+
+/// The patterns and rings a projection computes.
+struct Live<'a> {
+    patterns: Vec<&'a Pattern>,
+    rings: Vec<&'a Ring>,
+}
+
+/// `P(l, .)` of one lane over a range of its blocks, fed the blocks in order.
+///
+/// A run of equal blocks shares its dots and its folds, a fold weighted by the run's `e_hi` mass, so its words are
+/// read once per run.
+struct Projection {
+    blocks: std::ops::Range<usize>,
+    /// Each pattern's dot with every block of the range.
+    q: Vec<F128>,
+    sigmas: Vec<F128>,
+    dots: Vec<Option<F128>>,
+    folds: Vec<Option<[F128; ROWS]>>,
+    masses: Vec<F128>,
+}
+
+impl Projection {
+    fn new(live: &Live, blocks: std::ops::Range<usize>) -> Self {
+        Self {
+            q: vec![F128::ZERO; blocks.len() * live.patterns.len()],
+            sigmas: vec![F128::ZERO; ROWS * live.rings.len()],
+            dots: vec![None; live.patterns.len()],
+            folds: vec![None; live.rings.len()],
+            masses: vec![F128::ZERO; live.rings.len()],
+            blocks,
+        }
+    }
+
+    /// Feeds `words`, which start at block `start` of the lane, with their repeat tags.
+    fn feed(&mut self, terms: &Terms, live: &Live, start: usize, words: &[F64], repeats: &[bool]) {
+        match terms.low_vars {
+            6 => self.sweep::<8>(terms, live, start, words, repeats),
+            7 => self.sweep::<16>(terms, live, start, words, repeats),
+            8 => self.sweep::<32>(terms, live, start, words, repeats),
+            9 => self.sweep::<64>(terms, live, start, words, repeats),
+            _ => self.sweep::<128>(terms, live, start, words, repeats),
+        }
+    }
+
+    fn sweep<const CHUNKS: usize>(
+        &mut self,
+        terms: &Terms,
+        live: &Live,
+        start: usize,
+        words: &[F64],
+        repeats: &[bool],
+    ) {
+        let low = terms.low_vars;
+        let n_blocks = words.len() >> low;
+        debug_assert!(self.blocks.start <= start && start + n_blocks <= self.blocks.end);
+        let block = |h: usize| &words[h << low..][..1 << low];
+        let repeat = |h: usize| repeats.get(h) == Some(&true);
+        let range = self.blocks.len();
+        let mut cols = [[0u8; ROWS]; CHUNKS];
+        for first in (0..n_blocks).step_by(SWEEP) {
+            let blocks = first..(first + SWEEP).min(n_blocks);
+            for (p, (pattern, dot)) in live.patterns.iter().zip(&mut self.dots).enumerate() {
+                for h in blocks.clone() {
+                    if !repeat(h) {
+                        *dot = None;
+                    }
+                    if pattern.active[start + h] {
+                        self.q[p * range + start + h - self.blocks.start] =
+                            *dot.get_or_insert_with(|| pattern.low.dot(block(h)));
+                    }
+                }
+            }
+            for h in blocks {
+                if !repeat(h) {
+                    flush(&mut self.folds, &mut self.masses, &mut self.sigmas);
+                }
+                let mut transposed = false;
+                for ((ring, fold), mass) in live.rings.iter().zip(&mut self.folds).zip(&mut self.masses) {
+                    let e_hi = ring.e_hi[start + h];
+                    if e_hi == F128::ZERO {
+                        continue;
+                    }
+                    *mass += e_hi;
+                    fold.get_or_insert_with(|| {
+                        if !transposed {
+                            for (col, group) in cols.iter_mut().zip(block(h).as_chunks::<8>().0) {
+                                bit_transpose_64bytes(&primitives::cast_slice::<F64, [u8; 64]>(group)[0], col);
+                            }
+                            transposed = true;
+                        }
+                        let mut folded = [F128::ZERO; ROWS];
+                        ring.fold.fold_columns(&cols, &mut folded);
+                        folded
+                    });
+                }
+            }
+        }
+    }
+
+    /// Adds the projection to `row`.
+    fn finish(mut self, terms: &Terms, live: &Live, row: &mut [F128]) {
+        flush(&mut self.folds, &mut self.masses, &mut self.sigmas);
+        // `P(l, c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks.
+        let mine = &self.blocks;
+        for (pattern, q) in live.patterns.iter().zip(self.q.chunks_exact(mine.len())) {
+            for &c in &pattern.claims {
+                let range = terms.ranges[c].start.max(mine.start)..terms.ranges[c].end.min(mine.end);
+                if range.is_empty() {
+                    continue;
+                }
+                let gamma = &terms.gamma(c)[range.clone()];
+                let q = &q[range.start - mine.start..range.end - mine.start];
+                let ((g8, g_r), (q8, q_r)) = (gamma.as_chunks::<8>(), q.as_chunks::<8>());
+                let sum = g8.iter().zip(q8).fold(Acc8::ZERO, |mut acc, (g, q)| {
+                    acc ^= msg_lone8_ext(g, q);
+                    acc
+                });
+                row[c] += g_r.iter().zip(q_r).fold(sum.reduce(), |sum, (&g, &q)| sum + g * q);
+            }
+        }
+        for (ring, sigma) in live.rings.iter().zip(self.sigmas.as_chunks::<ROWS>().0.iter()) {
+            for (slot, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(sigma)) {
+                *slot += F128::from(k);
+            }
         }
     }
 }

@@ -845,8 +845,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         rounds.push(ch);
     }
     // A rebuilding L0 open recomputes its rows from the stack, so that lives until then. Otherwise it goes now.
-    let mut stack = lanes.take_stack(matches!(prover_data.codeword, Codeword::Nothing(..)));
-    let (mut p, mut w) = lanes.finish();
+    let (mut p, mut w, mut stack) = lanes.finish(matches!(prover_data.codeword, Codeword::Nothing(..)));
     let mut prover_data = Some(prover_data);
     let mut wtns_prev: Option<LigeroWitness> = None;
 
@@ -1167,7 +1166,7 @@ mod tests {
                 let (w0, w1) = (lane(&dense.w, 2 * m, low), lane(&dense.w, 2 * m + 1, low));
                 let h: Vec<F128> = f.iter().zip(&g).map(|(&f, &g)| f + ch.theta * g).collect();
                 let mut xh = vec![F128::ZERO; n_cols + 1];
-                crate::xmul::mul_x_lane(&h, 0, &mut xh);
+                crate::xmul::mul_x(&h, 1, 0, &mut xh);
                 let ip = |w: &[F128], v: &[F128]| w.iter().zip(v).map(|(&a, &b)| a * b).sum::<F128>();
                 for (s, v) in want
                     .iter_mut()

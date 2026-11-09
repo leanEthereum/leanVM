@@ -16,6 +16,18 @@ use crate::field::F128;
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
 
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))
+))]
+/// A byte's subset-sum table: 256 entries, then a cache line of padding.
+type Table = [F128; 256 + 4];
+
 /// The weights of every bit of a row, prepared for folding.
 #[derive(Clone, Debug)]
 pub struct BitFold {
@@ -72,13 +84,16 @@ impl BitFold {
     ))
 ))]
 /// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
-fn lookup_tables(weights: &[F128]) -> Vec<[F128; 256]> {
+///
+/// A table is a cache line longer than its entries, so one entry of every table does not fall in one cache set: rows of
+/// mostly zero bytes would otherwise evict each other's lines.
+fn lookup_tables(weights: &[F128]) -> Vec<Table> {
     weights
         .as_chunks::<8>()
         .0
         .iter()
         .map(|w| {
-            let mut sums = [F128::ZERO; 256];
+            let mut sums: Table = [F128::ZERO; _];
             // Each entry adds its lowest set bit's weight to an entry already built.
             for v in 1..256usize {
                 let low = v.isolate_lowest_one();
@@ -100,8 +115,8 @@ fn lookup_tables(weights: &[F128]) -> Vec<[F128; 256]> {
 ))]
 /// The fold of one row through the byte tables: one lookup and one XOR per byte.
 #[inline(always)]
-fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F128; 256]], row: &[u8; CHUNKS]) -> F128 {
-    let tables: &[[F128; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
+fn fold_row_lookup<const CHUNKS: usize>(tables: &[Table], row: &[u8; CHUNKS]) -> F128 {
+    let tables: &[Table; CHUNKS] = tables.try_into().expect("one table per byte");
     row.iter().zip(tables).map(|(&v, sums)| sums[usize::from(v)]).sum()
 }
 
@@ -131,13 +146,13 @@ use gfni::Imp;
     target_feature = "avx512vbmi"
 )))]
 mod portable {
-    use super::{BLOCK, F128, fold_row_lookup, lookup_tables};
+    use super::{BLOCK, F128, Table, fold_row_lookup, lookup_tables};
 
     /// The byte tables.
     #[derive(Clone, Debug)]
     pub(super) struct Imp {
         /// One subset-sum table per byte of a row.
-        tables: Vec<[F128; 256]>,
+        tables: Vec<Table>,
         /// The nibble tables of [`avx2::fold_columns`].
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
         nibbles: Vec<super::avx2::Nibbles>,

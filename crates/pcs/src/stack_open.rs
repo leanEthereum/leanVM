@@ -57,7 +57,7 @@ use super::whir_config::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS};
 
 mod basis;
 
-pub(crate) use basis::Terms;
+pub(crate) use basis::{SWEEP, Terms};
 
 // ---------------------------------------------------------------------------
 // Claim types
@@ -368,7 +368,7 @@ mod tests {
                     reference.fold(&h, &ch);
                     lanes.fold(&ch);
                 }
-                let (p, w) = lanes.finish();
+                let (p, w, _) = lanes.finish(false);
                 assert_eq!(p, reference.f, "{context}, lane");
                 assert_eq!(w, reference.w, "{context}, weight");
             }
