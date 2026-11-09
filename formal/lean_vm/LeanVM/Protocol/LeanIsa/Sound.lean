@@ -142,10 +142,9 @@ theorem image_sigma_eq {κ κ' : ℕ} (h : κ = κ') (f : MemoryImage κ) (g : M
   funext i
   exact hfg i
 
-/-- The word of the image at index `x`: the three memory columns' cells. -/
+/-- The word of the image at index `x`: the two limb columns' cells. -/
 abbrev imageWord (x : Fin (2 ^ s.logMem)) : E :=
   E.ofLimbs (cell prog s q (memCol 0) x) (cell prog s q (memCol 1) x)
-    (cell prog s q (memCol 2) x)
 
 /-- Within the memory cap, the image the witness's data names is the memory columns, word by
 word, at the announced memory size. -/
@@ -161,16 +160,14 @@ theorem imageOf_witnessOf (h : s.logMem ≤ maxLogMem) :
   simp [imageRows, hi]
   rfl
 
-/-- The three public lines fix the first two cells of the three memory columns. -/
+/-- The two public lines fix the first two cells of the two limb columns. -/
 theorem publicLines_cells {input : PublicInput}
     (hp : (leanIsaInstance prog s).PublicLinesHold input q) :
     cell0 prog s q 0 = input.lanes 0 ∧ cell1 prog s q 0 = input.lanes 2 ∧
-      cell0 prog s q 1 = input.lanes 1 ∧ cell1 prog s q 1 = input.lanes 3 ∧
-      cell0 prog s q 2 = 0 ∧ cell1 prog s q 2 = 0 := by
-  have h0 := hp _ (List.mem_cons_self (l := [_, _]))
-  have h1 := hp _ (List.mem_cons_of_mem _ (List.mem_cons_self (l := [_])))
-  have h2 := hp _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self (l := []))))
-  exact ⟨h0.1, h0.2, h1.1, h1.2, h2.1, h2.2⟩
+      cell0 prog s q 1 = input.lanes 1 ∧ cell1 prog s q 1 = input.lanes 3 := by
+  have h0 := hp _ (List.mem_cons_self (l := [_]))
+  have h1 := hp _ (List.mem_cons_of_mem _ (List.mem_cons_self (l := [])))
+  exact ⟨h0.1, h0.2, h1.1, h1.2⟩
 
 /-! ## The constraints and the caps -/
 
@@ -253,7 +250,7 @@ theorem satisfiedByB_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   have hA := agrees_witnessOf prog s q hκ hr
   have hpairs := (balanced_iff_pairs hA).mp hbal
   have himg := imageOf_witnessOf prog s q hmax
-  obtain ⟨c00, c01, c10, c11, c20, c21⟩ := publicLines_cells prog s q hpl
+  obtain ⟨c00, c01, c10, c11⟩ := publicLines_cells prog s q hpl
   refine ⟨?_, constraints_witnessOf prog s q hκ hr hcv, hpairs 0, hpairs 1, hpairs 2,
     (countsNonzero_iff hA).mpr hcnt, caps_witnessOf prog s q hs, ?_, ?_⟩
   · show publicInputOf prog s q = PublicIO.ofInput input
@@ -261,15 +258,15 @@ theorem satisfiedByB_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   · rw [himg]
     have := MemoryImage.read_gpow hκ (imageWord prog s q) ⟨0, Nat.two_pow_pos _⟩
     refine this.trans ?_
-    show some (E.ofLimbs (cell0 prog s q 0) (cell0 prog s q 1) (cell0 prog s q 2)) = _
-    rw [c00, c10, c20]
+    show some (E.ofLimbs (cell0 prog s q 0) (cell0 prog s q 1)) = _
+    rw [c00, c10]
     rfl
   · rw [himg]
     have := MemoryImage.read_gpow hκ (imageWord prog s q)
       ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩
     refine this.trans ?_
-    show some (E.ofLimbs (cell1 prog s q 0) (cell1 prog s q 1) (cell1 prog s q 2)) = _
-    rw [c01, c11, c21]
+    show some (E.ofLimbs (cell1 prog s q 0) (cell1 prog s q 1)) = _
+    rw [c01, c11]
     rfl
 
 /-- **The adaptor, soundness.** If the announced sizes are admissible and the stack `q`
