@@ -1,5 +1,5 @@
 use fiat_shamir::transcript::{Proof, ProverState};
-use primitives::field::F192;
+use primitives::field::F128;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 use verifier::VerifierError;
@@ -20,13 +20,13 @@ fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
 }
 
 /// A claim's value, from its definition.
-fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192 {
+fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F128 {
     let eq = eq_table(&claim.point);
-    let mut acc = F192::ZERO;
+    let mut acc = F128::ZERO;
     for (segment, state) in states.iter().enumerate() {
         for (g, block) in state.as_chunks::<BLOCK_LEN>().0.iter().enumerate() {
             for j in 0..BITS {
-                let mut inner = F192::ZERO;
+                let mut inner = F128::ZERO;
                 for w in 0..BLOCK_WORDS {
                     let word = block[j * BLOCK_WORDS + w];
                     for p in 0..4 {
@@ -90,7 +90,7 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
-fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F192) -> Proof {
+fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F128) -> Proof {
     use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
@@ -104,7 +104,7 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
     // The states must be the honest ones; what rides the spare slots past them is free.
-    if lane_error == F192::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
+    if lane_error == F128::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
         // Each opening is what the commitment scheme means by it.
         let mut stack = committed.to_vec();
         stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
@@ -158,11 +158,11 @@ fn end_to_end(n_instances: usize, depth: usize) {
     for word in &mut committed[shape.slots() * shape.n()..] {
         *word = primitives::field::F64(rng.next_u64());
     }
-    let proof = prove(shape, &inputs, &committed, F192::ZERO);
+    let proof = prove(shape, &inputs, &committed, F128::ZERO);
     verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
         let mut bad = proof.clone();
-        bad.stream[at] += F192::ONE;
+        bad.stream[at] += F128::ONE;
         let err = verify(shape, &bad).expect_err("a changed scalar is rejected");
         if let Some(check) = keccak_check(shape, at) {
             assert_eq!(err, check, "scalar {at}");
@@ -255,17 +255,17 @@ fn a_broken_committed_state_is_rejected() {
     let shape = Shape::new(inputs.len(), 6);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
-    let accepts = |committed: &[primitives::field::F64], lane_error: F192| {
+    let accepts = |committed: &[primitives::field::F64], lane_error: F128| {
         verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()
     };
-    assert!(accepts(&committed, F192::ZERO), "the honest column");
+    assert!(accepts(&committed, F128::ZERO), "the honest column");
     // A lane of the input and of each state between.
     for slot in [3, 30, 60, 80, 99] {
         let mut bad = committed.clone();
         bad[slot * shape.n() + 17].0 ^= 1 << 40;
-        assert!(!accepts(&bad, F192::ZERO), "slot {slot}");
+        assert!(!accepts(&bad, F128::ZERO), "slot {slot}");
     }
-    assert!(!accepts(&committed, F192::ONE), "the output");
+    assert!(!accepts(&committed, F128::ONE), "the output");
 }
 
 /// An extent whose size would wrap is refused, not allocated short.

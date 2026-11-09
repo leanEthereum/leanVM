@@ -16,10 +16,10 @@ use std::fs;
 
 use lean_compiler::{compile, parse, parse_const};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// The `# public_input: <elt>, <elt>` annotation, or `[0, 0]` if absent.
-fn public_input(src: &str) -> [F192; 2] {
+fn public_input(src: &str) -> [F128; 2] {
     for line in src.lines() {
         if let Some(rest) = line.trim().strip_prefix("# public_input:") {
             let parts: Vec<&str> = rest.split(',').collect();
@@ -32,14 +32,14 @@ fn public_input(src: &str) -> [F192; 2] {
             return [elt(parts[0]), elt(parts[1])];
         }
     }
-    [F192::ZERO; 2]
+    [F128::ZERO; 2]
 }
 
 /// The `# witness <name>: <elt>, …` annotations: one line per *entry*
 /// (repeated lines with the same name are the stream's successive entries,
 /// popped by successive `hint_witness` calls).
-fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F192>>> {
-    let mut streams: std::collections::HashMap<String, Vec<Vec<F192>>> = Default::default();
+fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F128>>> {
+    let mut streams: std::collections::HashMap<String, Vec<Vec<F128>>> = Default::default();
     for rest in src.lines().filter_map(|l| l.trim().strip_prefix("# witness ")) {
         let (name, vals) = rest.split_once(':').expect("`# witness` needs `name: values`");
         let entry = vals

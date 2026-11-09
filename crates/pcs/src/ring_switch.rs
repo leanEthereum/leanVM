@@ -9,7 +9,7 @@
 // DP24 ring switch described in the ring-switching-generalized note.
 
 //! Ring-switching reduction for the 64-bit transition: F_2 to K = GF(2^64)
-//! packing, opened over E = GF(2^192) (the tower [`F192`]).
+//! packing, opened over E = GF(2^192) (the tower [`F128`]).
 //!
 //! With f = 64 (packing degree over F_2) and e = 192 (opening degree), this
 //! converts one evaluation claim on
@@ -65,7 +65,7 @@
 use fiat_shamir::transcript::ProverState;
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::xor_into8;
-use primitives::field::{F64, F192, mul4};
+use primitives::field::{F64, F128, mul4};
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
@@ -127,12 +127,12 @@ pub(crate) const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 /// `3·|S|` `K`-equations, in `192` `K`-unknowns, and with `3·|S| < 192` a
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
-pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> [F192; DEGREE_E] {
+pub(crate) fn build_coordinate_weights(challenges: &[F128; COMPOSITION_SHIFTS.len()]) -> [F128; DEGREE_E] {
     std::array::from_fn(|w| apply_composed_map(coordinate_basis(w), challenges))
 }
 
 /// Applies the composed map `Phi` of [`build_coordinate_weights`] to one value.
-fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> F192 {
+fn apply_composed_map(mut value: F128, challenges: &[F128; COMPOSITION_SHIFTS.len()]) -> F128 {
     for (&challenge, &shift) in challenges.iter().zip(COMPOSITION_SHIFTS.iter()) {
         let mut frobenius = value;
         for _ in 0..shift {
@@ -145,7 +145,7 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
 
 /// Sample the composed map's challenges after every ring-switch message has
 /// been bound.
-pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.len()] {
+pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F128; COMPOSITION_SHIFTS.len()] {
     std::array::from_fn(|_| ch.sample())
 }
 
@@ -164,11 +164,11 @@ pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
 ///
 /// A caller whose reduction already produced these passes them in, so this is the reference for tests and the unprepared fallback.
-pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> [F192; PACKING_WIDTH] {
+pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F128]) -> [F128; PACKING_WIDTH] {
     assert_eq!(packed_witness.len(), suffix_tensor.len());
     parallel::fold_reduce(
         packed_witness.len(),
-        || [F192::ZERO; PACKING_WIDTH],
+        || [F128::ZERO; PACKING_WIDTH],
         |acc, i| {
             let w = suffix_tensor[i];
             let mut bits = packed_witness[i].0;
@@ -183,7 +183,7 @@ pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> [F192; PA
 
 /// XOR-reduce two per-worker partial accumulators of the bit-slice folds
 /// (E addition is XOR, so the reduction order does not matter).
-fn xor_accs(mut a: [F192; PACKING_WIDTH], b: [F192; PACKING_WIDTH]) -> [F192; PACKING_WIDTH] {
+fn xor_accs(mut a: [F128; PACKING_WIDTH], b: [F128; PACKING_WIDTH]) -> [F128; PACKING_WIDTH] {
     for (av, bv) in a.iter_mut().zip(b.iter()) {
         *av += *bv;
     }
@@ -198,10 +198,10 @@ fn xor_accs(mut a: [F192; PACKING_WIDTH], b: [F192; PACKING_WIDTH]) -> [F192; PA
 ///
 /// Naive reference: a per-position bit-scan over the three 64-bit limbs.
 #[cfg(test)]
-pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192; DEGREE_E]) -> Vec<F192> {
+pub fn fold_ext_elems_naive(suffix_tensor: &[F128], coordinate_weights: &[F128; DEGREE_E]) -> Vec<F128> {
     parallel::map_collect(suffix_tensor.len(), |i| {
         let elem = suffix_tensor[i];
-        let mut acc = F192::ZERO;
+        let mut acc = F128::ZERO;
         let mut c0 = elem.c0;
         while c0 != 0 {
             let w = c0.trailing_zeros() as usize;
@@ -230,7 +230,7 @@ pub fn fold_ext_elems_naive(suffix_tensor: &[F192], coordinate_weights: &[F192; 
 /// `rs_eq_ind` vector per claim. The map already contains the claim's batching
 /// scalar, so combining several claims needs only additions.
 pub(crate) struct DeferredRingSwitchOutput {
-    pub(crate) batched_sumcheck_claim: F192,
+    pub(crate) batched_sumcheck_claim: F128,
     pub(crate) weight: RingWeight,
 }
 
@@ -238,30 +238,30 @@ pub(crate) struct DeferredRingSwitchOutput {
 /// value on every coordinate basis element of `E`.
 #[derive(Clone)]
 pub(crate) struct RingWeight {
-    weights: [F192; DEGREE_E],
-    point: Vec<F192>,
+    weights: [F128; DEGREE_E],
+    point: Vec<F128>,
 }
 
 /// A [`RingWeight`] ready to fill its values: the factored `eq(point, ·)` and `Phi` as bit folds.
 pub(crate) struct RingFold {
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
+    eq_lo: Vec<F128>,
+    eq_hi: Vec<F128>,
     /// The weights of a product row's low 128 bits and of its top 64, to fold 64 rows at a time.
     fold: (BitFold, BitFold),
 }
 
 /// The `w`-th `F_2`-coordinate basis element of `E`: bits 0..64 are K's power
 /// basis, and bits 64/128 shift it by Y / Y^2.
-pub(crate) fn coordinate_basis(w: usize) -> F192 {
+pub(crate) fn coordinate_basis(w: usize) -> F128 {
     match w / PACKING_WIDTH {
-        0 => F192::new(1u64 << (w % PACKING_WIDTH), 0, 0),
-        1 => F192::new(0, 1u64 << (w % PACKING_WIDTH), 0),
-        _ => F192::new(0, 0, 1u64 << (w % PACKING_WIDTH)),
+        0 => F128::new(1u64 << (w % PACKING_WIDTH), 0, 0),
+        1 => F128::new(0, 1u64 << (w % PACKING_WIDTH), 0),
+        _ => F128::new(0, 0, 1u64 << (w % PACKING_WIDTH)),
     }
 }
 
 impl RingWeight {
-    pub(crate) fn new(weights: [F192; DEGREE_E], point: Vec<F192>) -> Self {
+    pub(crate) fn new(weights: [F128; DEGREE_E], point: Vec<F128>) -> Self {
         Self { weights, point }
     }
 
@@ -275,13 +275,13 @@ impl RingWeight {
         }
     }
 
-    pub(crate) fn point(&self) -> &[F192] {
+    pub(crate) fn point(&self) -> &[F128] {
         &self.point
     }
 
     /// `Phi(value)`.
-    pub(crate) fn apply(&self, value: F192) -> F192 {
-        let mut acc = F192::ZERO;
+    pub(crate) fn apply(&self, value: F128) -> F128 {
+        let mut acc = F128::ZERO;
         for (limb, word) in value.to_limbs().into_iter().enumerate() {
             let mut bits = word;
             while bits != 0 {
@@ -295,7 +295,7 @@ impl RingWeight {
 
 impl RingFold {
     /// `out[j] += Phi(eq(point, start + j))`.
-    pub(crate) fn add_chunk(&self, start: usize, out: &mut [F192]) {
+    pub(crate) fn add_chunk(&self, start: usize, out: &mut [F128]) {
         let block_len = self.eq_lo.len();
         assert!(start + out.len() <= block_len * self.eq_hi.len());
         let mut done = 0;
@@ -311,15 +311,15 @@ impl RingFold {
 
     /// `out[j] += Phi(e_lo[j] * e_hi)`, 64 products at a time through the bit fold.
     #[inline]
-    fn fold_products(&self, e_lo: &[F192], e_hi: F192, out: &mut [F192]) {
+    fn fold_products(&self, e_lo: &[F128], e_hi: F128, out: &mut [F128]) {
         debug_assert_eq!(e_lo.len(), out.len());
         let mut head = [[0u64; 2]; BLOCK];
         let mut tail = [0u64; BLOCK];
-        let mut folded = [F192::ZERO; BLOCK];
+        let mut folded = [F128::ZERO; BLOCK];
         for (e_lo, out) in e_lo.chunks(BLOCK).zip(out.chunks_mut(BLOCK)) {
             let n = e_lo.len();
             let (lo4, lo_r) = e_lo.as_chunks::<4>();
-            let mut put = |i: usize, p: F192| {
+            let mut put = |i: usize, p: F128| {
                 head[i] = [p.c0, p.c1];
                 tail[i] = p.c2;
             };
@@ -351,8 +351,8 @@ impl RingFold {
 /// The batching scalar is baked into both the target and the map.
 pub(crate) fn prove_finish_deferred(
     state: RingSwitchProveState,
-    coordinate_weights: &[F192; DEGREE_E],
-    lambda: F192,
+    coordinate_weights: &[F128; DEGREE_E],
+    lambda: F128,
 ) -> DeferredRingSwitchOutput {
     let s_hat_u = transpose_s_hat(&state.s_hat_v);
     let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
@@ -365,7 +365,7 @@ pub(crate) fn prove_finish_deferred(
 
 /// The dense weight of several deferred claims, accumulated into `out`: the reference for tests.
 #[cfg(test)]
-pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], out: &mut [F192]) {
+pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], out: &mut [F128]) {
     for claim in outputs {
         claim.weight.fold().add_chunk(0, out);
     }
@@ -381,7 +381,7 @@ fn split_n_lo(n: usize) -> usize {
 /// (LSB-first indexing, matching `eq_table_serial`). Materializes
 /// `2^n_lo + 2^(n - n_lo)` entries instead of `2^n`; field multiplication is
 /// exact, so the reconstructed entries are bit-identical to the full build.
-fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
+fn build_eq_split_ext(point: &[F128]) -> (Vec<F128>, Vec<F128>) {
     let n_lo = split_n_lo(point.len());
     (eq_table_serial(&point[..n_lo]), eq_table_serial(&point[n_lo..]))
 }
@@ -398,8 +398,8 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 /// that barrier.
 #[derive(Clone)]
 pub struct RingSwitchProveState {
-    s_hat_v: [F192; PACKING_WIDTH],
-    point: Vec<F192>,
+    s_hat_v: [F128; PACKING_WIDTH],
+    point: Vec<F128>,
 }
 
 /// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
@@ -412,8 +412,8 @@ pub struct RingSwitchProveState {
 /// caller that wants them folded out of the witness instead.
 pub fn prove_prepare(
     packed_witness: &[F64],
-    suffix_point: &[F192],
-    precomputed_s_hat_v: Option<&[F192]>,
+    suffix_point: &[F128],
+    precomputed_s_hat_v: Option<&[F128]>,
 ) -> RingSwitchProveState {
     assert_eq!(
         packed_witness.len(),
@@ -426,7 +426,7 @@ pub fn prove_prepare(
             let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
             let mask = eq_lo.len() - 1;
             let shift = eq_lo.len().trailing_zeros();
-            let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
+            let full: Vec<F128> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
             fold_1b_rows(packed_witness, &full)
         }
     };
@@ -467,7 +467,7 @@ mod tests {
 
         // Reference: one dense weight vector per claim, combined afterwards.
         let dense_basis = fold_ext_elems_naive(&eq_table_serial(&point), &coordinate_weights);
-        let expected_target: F192 = states
+        let expected_target: F128 = states
             .iter()
             .zip(lambdas)
             .map(|(state, lambda)| {
@@ -484,8 +484,8 @@ mod tests {
             .zip(lambdas)
             .map(|(state, lambda)| prove_finish_deferred(state, &coordinate_weights, lambda))
             .collect::<Vec<_>>();
-        let deferred_target = deferred.iter().map(|out| out.batched_sumcheck_claim).sum::<F192>();
-        let mut deferred_basis = vec![F192::ZERO; expected_basis.len()];
+        let deferred_target = deferred.iter().map(|out| out.batched_sumcheck_claim).sum::<F128>();
+        let mut deferred_basis = vec![F128::ZERO; expected_basis.len()];
         combine_deferred_chunk(&deferred, &mut deferred_basis);
 
         assert_eq!(deferred_target, expected_target);
@@ -502,16 +502,16 @@ mod tests {
         let mut rng = Rng::new(0xF00D_BEEF_1234_5678);
         for _ in 0..4 {
             let challenges = std::array::from_fn(|_| rng.ext());
-            let s_hat_v: [F192; PACKING_WIDTH] = std::array::from_fn(|_| rng.ext());
+            let s_hat_v: [F128; PACKING_WIDTH] = std::array::from_fn(|_| rng.ext());
 
             // Column side: sum_w weights[w] * t_w over the transposed K columns.
             let columns = transpose_s_hat(&s_hat_v);
             let lhs = inner_product_base_ext(&columns, &build_coordinate_weights(&challenges));
 
             // Row side: sum_j x^j * Phi(y_j), the guest's loop.
-            let x = F192::new(2, 0, 0);
-            let mut rhs = F192::ZERO;
-            let mut x_pow = F192::ONE;
+            let x = F128::new(2, 0, 0);
+            let mut rhs = F128::ZERO;
+            let mut x_pow = F128::ONE;
             for y in &s_hat_v {
                 let phi = apply_composed_map(*y, &challenges);
                 rhs += x_pow * phi;
@@ -549,13 +549,13 @@ mod tests {
         );
 
         let mut rng = Rng::new(0x1234_5678_9abc_def0);
-        let challenges: [F192; COMPOSITION_SHIFTS.len()] = std::array::from_fn(|_| rng.ext());
-        let mut coefficients = [F192::ZERO; LINEARIZED_TERMS];
-        coefficients[0] = F192::ONE;
+        let challenges: [F128; COMPOSITION_SHIFTS.len()] = std::array::from_fn(|_| rng.ext());
+        let mut coefficients = [F128::ZERO; LINEARIZED_TERMS];
+        coefficients[0] = F128::ONE;
         for (&challenge, &shift) in challenges.iter().zip(COMPOSITION_SHIFTS.iter()) {
             let previous = coefficients;
             for (i, mut coefficient) in previous.into_iter().enumerate().take(LINEARIZED_TERMS - shift) {
-                if coefficient == F192::ZERO {
+                if coefficient == F128::ZERO {
                     continue;
                 }
                 for _ in 0..shift {
@@ -564,10 +564,10 @@ mod tests {
                 coefficients[i + shift] = challenge * coefficient;
             }
         }
-        assert!(coefficients.iter().all(|coefficient| *coefficient != F192::ZERO));
+        assert!(coefficients.iter().all(|coefficient| *coefficient != F128::ZERO));
 
         let value = rng.ext();
-        let mut expanded = F192::ZERO;
+        let mut expanded = F128::ZERO;
         let mut frobenius = value;
         for coefficient in coefficients {
             expanded += coefficient * frobenius;
@@ -578,10 +578,10 @@ mod tests {
 
     /// Reference s_hat_v: brute-force partial evaluation of each bit-column
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
-    fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> [F192; PACKING_WIDTH] {
+    fn s_hat_v_reference(packed: &[F64], suffix_point: &[F128]) -> [F128; PACKING_WIDTH] {
         let eq_suffix = eq_table_serial(suffix_point);
         std::array::from_fn(|i| {
-            let mut acc = F192::ZERO;
+            let mut acc = F128::ZERO;
             for (word, &w) in packed.iter().zip(eq_suffix.iter()) {
                 if (word.0 >> i) & 1 == 1 {
                     acc += w;
@@ -607,7 +607,7 @@ mod tests {
 
         // From the flat bit layout: column i is z[y * 64 + i].
         for i in 0..PACKING_WIDTH {
-            let mut expected = F192::ZERO;
+            let mut expected = F128::ZERO;
             for (y, &w) in eq_suffix.iter().enumerate() {
                 if bits[(y << LOG_PACKING) | i] {
                     expected += w;
@@ -632,14 +632,14 @@ mod tests {
 
         let s_ref = s_hat_v_reference(&packed, suffix_point);
         let eq_full = eq_table_serial(&point);
-        let mut direct = F192::ZERO;
+        let mut direct = F128::ZERO;
         for (x, &w) in eq_full.iter().enumerate() {
             if bits[x] {
                 direct += w;
             }
         }
         assert_eq!(
-            prefix_weights.iter().zip(&s_ref).map(|(&w, &s)| w * s).sum::<F192>(),
+            prefix_weights.iter().zip(&s_ref).map(|(&w, &s)| w * s).sum::<F128>(),
             direct,
             "prefix x suffix split must factor the MLE"
         );

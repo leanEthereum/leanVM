@@ -32,7 +32,7 @@ use std::sync::Arc;
 use leanvm_core::cpu::hints::{BitsDest, RHint};
 use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
 use primitives::{
-    field::{F64, F192, g_pow},
+    field::{F64, F128, g_pow},
     pretty_integer,
 };
 
@@ -67,7 +67,7 @@ pub fn compile(ast: &Ast) -> Program {
     // Definitions by name, for Const-parameter specialization at call sites.
     let defs: HashMap<&str, &Func> = ast.funcs.iter().map(|f| (f.name.as_str(), f)).collect();
     // Constant arrays by name, resolved at lowering (`NAME[i]`, `len(NAME)`).
-    let const_arrays: HashMap<&str, &[F192]> = ast
+    let const_arrays: HashMap<&str, &[F128]> = ast
         .const_arrays
         .iter()
         .map(|(name, values)| (name.as_str(), values.as_slice()))
@@ -209,7 +209,7 @@ pub fn compile(ast: &Ast) -> Program {
     }
 
     // Pad the bytecode to `B` (the sentinel slot g^{B-1} must exist for execution).
-    prog.resize(bytecode_size, Op::Set { o: 0, k: F192::ZERO });
+    prog.resize(bytecode_size, Op::Set { o: 0, k: F128::ZERO });
     let mut program = Program::assemble(prog, hints, frame_size["main"]);
     program.src_lines = src_lines;
     program.fn_ranges = lowered
@@ -232,7 +232,7 @@ pub fn disassemble(prog: &[Op]) -> String {
     }
     // A machine word is 192-bit; K-valued immediates (both high limbs zero) may be small
     // g-powers (code addresses, indices), shown as `gʲ`.
-    let kfmt = |k: F192| match k.as_base() {
+    let kfmt = |k: F128| match k.as_base() {
         Some(lo) => match gmap.get(&lo) {
             Some(j) => format!("g^{j}"),
             None => format!("0x{:016x}", lo.0),
@@ -286,12 +286,12 @@ pub fn disassemble(prog: &[Op]) -> String {
 }
 
 /// Embed a `u128` source literal into the low 128 bits of a 192-bit machine word.
-pub(crate) fn lit_field(n: u128) -> F192 {
-    F192::new(n as u64, (n >> 64) as u64, 0)
+pub(crate) fn lit_field(n: u128) -> F128 {
+    F128::new(n as u64, (n >> 64) as u64, 0)
 }
 
 fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {
-    let resolve_kval = |kv: &KVal| -> F192 {
+    let resolve_kval = |kv: &KVal| -> F128 {
         match kv {
             KVal::FrameSize => g_pow(frame_size as usize).into(),
             KVal::Const(c) => *c,

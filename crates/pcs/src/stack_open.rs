@@ -49,7 +49,7 @@
 //! batching step of `thm:rbr`).
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F64, F192, powers};
+use primitives::field::{F64, F128, powers};
 
 use super::ring_switch;
 use super::whir::{ProverConfig, ProverData};
@@ -70,14 +70,14 @@ pub enum StackClaim {
     /// `2^|low_point|`.
     Point {
         offset: usize,
-        low_point: Vec<F192>,
-        value: F192,
+        low_point: Vec<F128>,
+        value: F128,
     },
 }
 
 impl StackClaim {
     #[inline]
-    pub fn value(&self) -> F192 {
+    pub fn value(&self) -> F128 {
         let StackClaim::Point { value, .. } = self;
         *value
     }
@@ -98,8 +98,8 @@ impl StackClaim {
 /// layer only binds them to the commitment. `None` asks the prover to fold the slices from the witness.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RingSwitchClaim {
-    pub suffix_point: Vec<F192>,
-    pub s_hat_v: Option<Vec<F192>>,
+    pub suffix_point: Vec<F128>,
+    pub s_hat_v: Option<Vec<F128>>,
 }
 
 /// Prover-side bundle of the ring-switched claims discharged in the same
@@ -196,7 +196,7 @@ pub fn open_batch_mixed_whir_stacked(
     // 3. Combined target and lifted stack weight b_stack: the lambda-weighted
     //    rs_eq_ind sum scattered at the q_keccak slice, plus the point-claim
     //    eq tensors scattered at their offsets (the weight itself stays factored).
-    let target = rs_outputs.iter().map(|out| out.batched_sumcheck_claim).sum::<F192>()
+    let target = rs_outputs.iter().map(|out| out.batched_sumcheck_claim).sum::<F128>()
         + point_claims
             .iter()
             .zip(lambdas_pd)
@@ -227,14 +227,14 @@ mod tests {
     use crate::whir::{SumcheckMessage, SumcheckProver};
 
     /// `(u_0, u_2)` of the pairs of blocks `(2i, 2i + 1)`, a last odd block against zeros.
-    fn blocks_msg(f: &[F192], b: &[F192], block: usize) -> SumcheckMessage {
-        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+    fn blocks_msg(f: &[F128], b: &[F128], block: usize) -> SumcheckMessage {
+        let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
         for (f, b) in f.chunks(2 * block).zip(b.chunks(2 * block)) {
             for x in 0..block {
                 let (f0, b0) = (f[x], b[x]);
                 let (f1, b1) = (
-                    f.get(block + x).copied().unwrap_or(F192::ZERO),
-                    b.get(block + x).copied().unwrap_or(F192::ZERO),
+                    f.get(block + x).copied().unwrap_or(F128::ZERO),
+                    b.get(block + x).copied().unwrap_or(F128::ZERO),
                 );
                 u_0 += f0 * b0;
                 u_2 += (f0 + f1) * (b0 + b1);
@@ -244,8 +244,8 @@ mod tests {
     }
 
     /// `(u_0, u_2)` of the adjacent pairs `(2j, 2j + 1)`.
-    fn adjacent_msg(f: &[F192], b: &[F192]) -> SumcheckMessage {
-        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+    fn adjacent_msg(f: &[F128], b: &[F128]) -> SumcheckMessage {
+        let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
         for (f, b) in f.as_chunks::<2>().0.iter().zip(b.as_chunks::<2>().0.iter()) {
             u_0 += f[0] * b[0];
             u_2 += (f[0] + f[1]) * (b[0] + b[1]);
@@ -255,9 +255,9 @@ mod tests {
 
     /// One lane round: block `2j` and block `2j + 1` fold into block `j` as `x0 + r (x0 + x1)`,
     /// a last odd block against zeros.
-    fn fold_blocks(x: &[F192], block: usize, r: F192) -> Vec<F192> {
+    fn fold_blocks(x: &[F128], block: usize, r: F128) -> Vec<F128> {
         x.chunks(2 * block)
-            .flat_map(|pair| (0..block).map(move |i| (pair[i], pair.get(block + i).copied().unwrap_or(F192::ZERO))))
+            .flat_map(|pair| (0..block).map(move |i| (pair[i], pair.get(block + i).copied().unwrap_or(F128::ZERO))))
             .map(|(x0, x1)| primitives::multilinear::interp(x0, x1, r))
             .collect()
     }
@@ -348,13 +348,13 @@ mod tests {
                 let lambdas = rng.ext_vec(claims.len());
 
                 // Oracle: the dense weight written out naively, one eq entry at a time.
-                let mut dense = vec![F192::ZERO; stack.len()];
+                let mut dense = vec![F128::ZERO; stack.len()];
                 ring_switch::combine_deferred_chunk(&rs_outputs, &mut dense[offset..offset + qkeccak_len]);
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
                     let StackClaim::Point { offset, low_point, .. } = claim;
                     for j in 0..1usize << low_point.len() {
                         let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
-                            w * if (j >> i) & 1 == 1 { p_i } else { F192::ONE + p_i }
+                            w * if (j >> i) & 1 == 1 { p_i } else { F128::ONE + p_i }
                         });
                         dense[offset + j] += w;
                     }
@@ -366,7 +366,7 @@ mod tests {
                 let (mut prover, msg) = SumcheckProver::new(stack.clone(), projected, target, lane_block);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes}, qkeccak_vars={qkeccak_vars}, offset={offset}");
-                let mut f: Vec<F192> = stack.iter().map(|&word| F192::from(word)).collect();
+                let mut f: Vec<F128> = stack.iter().map(|&word| F128::from(word)).collect();
                 assert_eq!(msg, blocks_msg(&f, &dense, lane_block), "{context}, round 0");
                 for round in 1..=LANE_ROUNDS {
                     let r = rng.ext();

@@ -21,19 +21,19 @@
 //!
 //! Every butterfly acts on each coefficient alone, so the encode runs as the base transform over `3n` lanes.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 // An E element is exactly three K words, with no padding, so the two views line up.
-const _: () = assert!(size_of::<F192>() == 3 * size_of::<F64>());
-const _: () = assert!(align_of::<F192>() == align_of::<F64>());
+const _: () = assert!(size_of::<F128>() == 3 * size_of::<F64>());
+const _: () = assert!(align_of::<F128>() == align_of::<F64>());
 
 /// A slice of E elements as its K words, shared.
-pub(crate) fn words(v: &[F192]) -> &[F64] {
+pub(crate) fn words(v: &[F128]) -> &[F64] {
     primitives::cast_slice(v)
 }
 
 /// A slice of E elements as its K words.
-pub(crate) fn words_mut(v: &mut [F192]) -> &mut [F64] {
+pub(crate) fn words_mut(v: &mut [F128]) -> &mut [F64] {
     primitives::cast_slice_mut(v)
 }
 
@@ -45,7 +45,7 @@ mod tests {
     use primitives::test_rng::Rng;
 
     /// Reference E-valued transform: one butterfly at a time, with the E-by-K product.
-    fn forward_scalar(ntt: &AdditiveNttF64, data: &mut [F192], num_ntts: usize, start_layer: usize) {
+    fn forward_scalar(ntt: &AdditiveNttF64, data: &mut [F128], num_ntts: usize, start_layer: usize) {
         let log_d = log2_strict_usize(data.len() / num_ntts);
         for layer in start_layer..log_d {
             // At this layer, each block pairs its top half with its bottom half.
@@ -98,7 +98,7 @@ mod tests {
             let ntt = AdditiveNttF64::standard(log_d);
             let msg = rng.ext_vec((lanes << log_d) >> rate);
             // Reference: 2^rate explicit copies, then the E-valued transform from the rate layer.
-            let mut want: Vec<F192> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
+            let mut want: Vec<F128> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
             forward_scalar(&ntt, &mut want, lanes, rate);
             // Under test: the encode of the message held apart.
             let codeword = ntt.encode_interleaved_with(words(&msg), 3 * lanes, rate, false, &|_, _| {});

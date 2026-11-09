@@ -1,6 +1,6 @@
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::F192;
+use primitives::field::F128;
 
 use crate::common::mix;
 
@@ -22,7 +22,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::new(5, 7, 0), F192::new(5, 7, 0)];
+    let want = [F128::new(5, 7, 0), F128::new(5, 7, 0)];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     let counts = mix(src, want);
     assert_eq!(

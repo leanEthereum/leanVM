@@ -1,6 +1,6 @@
-//! Weighted sums of packed bit rows, the fold that turns witness bits into F192 values.
+//! Weighted sums of packed bit rows, the fold that turns witness bits into F128 values.
 //!
-//! A row is `8 * CHUNKS` bits and every bit carries a fixed F192 weight:
+//! A row is `8 * CHUNKS` bits and every bit carries a fixed F128 weight:
 //!
 //! ```text
 //!     fold(row) = sum_{s : bit s of row is set} w_s
@@ -11,7 +11,7 @@
 //! - Portable: a 256-entry subset-sum table per byte, one lookup per byte.
 //! - GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 
-use crate::field::F192;
+use crate::field::F128;
 
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
@@ -31,7 +31,7 @@ impl BitFold {
     /// # Panics
     ///
     /// Panics unless a row is 8, 16, 32, 64 or 128 bytes.
-    pub fn new(weights: &[F192]) -> Self {
+    pub fn new(weights: &[F128]) -> Self {
         let n_chunks = weights.len() / 8;
         assert!(
             weights.len() == 8 * n_chunks && n_chunks.is_power_of_two() && (8..=128).contains(&n_chunks),
@@ -53,7 +53,7 @@ impl BitFold {
         tail: &Self,
         head_rows: &[[u8; A]],
         tail_rows: &[[u8; B]],
-        out: &mut [F192; BLOCK],
+        out: &mut [F128; BLOCK],
     ) {
         debug_assert!(A == self.n_chunks && B == tail.n_chunks);
         assert!(head_rows.len() <= BLOCK && head_rows.len() == tail_rows.len());
@@ -65,7 +65,7 @@ impl BitFold {
     /// This is the form [`crate::bits::bit_transpose_64bytes`] leaves a block of words in, and the GFNI fold's own
     /// intermediate, so it skips the fold's input transpose.
     #[inline]
-    pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+    pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
         assert_eq!(CHUNKS, self.n_chunks);
         self.imp.fold_columns(cols, out);
     }
@@ -81,13 +81,13 @@ impl BitFold {
     ))
 ))]
 /// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
-fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
+fn lookup_tables(weights: &[F128]) -> Vec<[F128; 256]> {
     weights
         .as_chunks::<8>()
         .0
         .iter()
         .map(|w| {
-            let mut sums = [F192::ZERO; 256];
+            let mut sums = [F128::ZERO; 256];
             // Each entry adds its lowest set bit's weight to an entry already built.
             for v in 1..256usize {
                 let low = v.isolate_lowest_one();
@@ -109,8 +109,8 @@ fn lookup_tables(weights: &[F192]) -> Vec<[F192; 256]> {
 ))]
 /// The fold of one row through the byte tables: one lookup and one XOR per byte.
 #[inline(always)]
-fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F192; 256]], row: &[u8; CHUNKS]) -> F192 {
-    let tables: &[[F192; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
+fn fold_row_lookup<const CHUNKS: usize>(tables: &[[F128; 256]], row: &[u8; CHUNKS]) -> F128 {
+    let tables: &[[F128; 256]; CHUNKS] = tables.try_into().expect("one table per byte");
     row.iter().zip(tables).map(|(&v, sums)| sums[usize::from(v)]).sum()
 }
 
@@ -140,20 +140,20 @@ use gfni::Imp;
     target_feature = "avx512vbmi"
 )))]
 mod portable {
-    use super::{BLOCK, F192, fold_row_lookup, lookup_tables};
+    use super::{BLOCK, F128, fold_row_lookup, lookup_tables};
 
     /// The byte tables.
     #[derive(Clone, Debug)]
     pub(super) struct Imp {
         /// One subset-sum table per byte of a row.
-        tables: Vec<[F192; 256]>,
+        tables: Vec<[F128; 256]>,
         /// The nibble tables of [`avx2::fold_columns`].
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
         nibbles: Vec<super::avx2::Nibbles>,
     }
 
     impl Imp {
-        pub(super) fn new(weights: &[F192]) -> Self {
+        pub(super) fn new(weights: &[F128]) -> Self {
             Self {
                 tables: lookup_tables(weights),
                 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
@@ -167,12 +167,12 @@ mod portable {
             tail: &Self,
             head_rows: &[[u8; A]],
             tail_rows: &[[u8; B]],
-            out: &mut [F192; BLOCK],
+            out: &mut [F128; BLOCK],
         ) {
             for ((o, head), tail_row) in out.iter_mut().zip(head_rows).zip(tail_rows) {
                 *o = fold_row_lookup(&self.tables, head) + fold_row_lookup(&tail.tables, tail_row);
             }
-            out[head_rows.len()..].fill(F192::ZERO);
+            out[head_rows.len()..].fill(F128::ZERO);
         }
 
         // With AVX2 and GFNI the columns go through `gfni256`, which keeps these tables for rows only.
@@ -181,7 +181,7 @@ mod portable {
             allow(dead_code)
         )]
         #[inline]
-        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
             #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
             // SAFETY: AVX2 is enabled at compile time.
             return unsafe { super::avx2::fold_columns(&self.nibbles, cols, out) };
@@ -205,15 +205,15 @@ mod portable {
 mod avx2 {
     use core::arch::x86_64::*;
 
-    use super::{BLOCK, F192};
+    use super::{BLOCK, F128};
     use crate::{load_at, store_at};
 
     /// The images of the low and the high nibble of input byte `j` in output byte `o`, each table in both 128-bit lanes.
     pub(super) type Nibbles = [[u8; 32]; 2];
 
     /// Entry `24 j + o`: the [`Nibbles`] of input byte `j` and output byte `o`.
-    pub(super) fn nibble_tables(weights: &[F192]) -> Vec<Nibbles> {
-        let byte = |w: &F192, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
+    pub(super) fn nibble_tables(weights: &[F128]) -> Vec<Nibbles> {
+        let byte = |w: &F128, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
         let mut out = Vec::with_capacity(3 * weights.len());
         for w in weights.as_chunks::<8>().0 {
             for o in 0..24 {
@@ -237,7 +237,7 @@ mod avx2 {
     pub(super) fn fold_columns<const CHUNKS: usize>(
         tables: &[Nibbles],
         cols: &[[u8; BLOCK]; CHUNKS],
-        out: &mut [F192; BLOCK],
+        out: &mut [F128; BLOCK],
     ) {
         assert_eq!(tables.len(), 24 * CHUNKS);
         let mask = _mm256_set1_epi8(0x0f);
@@ -284,7 +284,7 @@ mod avx2 {
             }
         }
         for (p, o) in out.iter_mut().enumerate() {
-            *o = F192::new(words[0][p], words[1][p], words[2][p]);
+            *o = F128::new(words[0][p], words[1][p], words[2][p]);
         }
     }
 }
@@ -301,7 +301,7 @@ mod gfni {
     //! ```text
     //!     1. transpose   64 rows x CHUNKS bytes  ->  CHUNKS registers, register j = byte j of the 64 rows
     //!     2. multiply    out byte o += A[j][o] * (register j), one affine instruction for all 64 rows
-    //!     3. transpose   24 registers of output bytes  ->  64 F192 values
+    //!     3. transpose   24 registers of output bytes  ->  64 F128 values
     //! ```
     //!
     //! Both transposes are butterflies of two-register byte permutes.
@@ -312,10 +312,10 @@ mod gfni {
     use std::mem::MaybeUninit;
     use std::sync::LazyLock;
 
-    use super::{BLOCK, F192};
+    use super::{BLOCK, F128};
     use crate::simd::{self, from_words, xor};
 
-    /// Bytes of an F192.
+    /// Bytes of an F128.
     pub const OUT_BYTES: usize = 24;
 
     /// One butterfly stage: registers `z` and `z | zbit` exchange bytes through two permutes.
@@ -401,7 +401,7 @@ mod gfni {
     /// The CPU must have the target features this function enables.
     #[inline]
     #[target_feature(enable = "avx512f,avx512bw,avx512vbmi,gfni")]
-    pub fn store_f192(acc: &[__m512i; OUT_BYTES], out: &mut [F192; BLOCK]) {
+    pub fn store_f192(acc: &[__m512i; OUT_BYTES], out: &mut [F128; BLOCK]) {
         let [c0, c1, c2] = coefficients(acc);
 
         // Interleave the three coefficients of values 8k..8k+8 into 24 consecutive qwords.
@@ -473,7 +473,7 @@ mod gfni {
     /// The CPU must have the target features this function enables.
     #[inline]
     #[target_feature(enable = "avx512f,avx512bw,avx512vbmi,gfni")]
-    pub fn weight_matrices(w: &[F192; 8]) -> [u64; OUT_BYTES] {
+    pub fn weight_matrices(w: &[F128; 8]) -> [u64; OUT_BYTES] {
         let v: [__m512i; 3] = std::array::from_fn(|i| simd::load(w, i));
         // Byte t of each qword is the unit vector 1 << (7 - t).
         let reversed_identity = _mm512_set1_epi64(0x0102_0408_1020_4080);
@@ -582,11 +582,11 @@ mod gfni {
     }
 
     impl Imp {
-        pub(super) fn new(weights: &[F192]) -> Self {
+        pub(super) fn new(weights: &[F128]) -> Self {
             let n_chunks = weights.len() / 8;
             let c = n_chunks.trailing_zeros() as usize;
 
-            let bytes: &[[F192; 8]] = weights.as_chunks().0;
+            let bytes: &[[F128; 8]] = weights.as_chunks().0;
             // SAFETY: the module is compiled only with these target features enabled.
             let matrices = (0..n_chunks)
                 .flat_map(|r| unsafe { weight_matrices(&bytes[byte_of_reg(c, r)]) })
@@ -603,7 +603,7 @@ mod gfni {
             tail: &Self,
             head_rows: &[[u8; A]],
             tail_rows: &[[u8; B]],
-            out: &mut [F192; BLOCK],
+            out: &mut [F128; BLOCK],
         ) {
             let (mut acc, tail_acc) = (self.accumulate_rows(head_rows), tail.accumulate_rows(tail_rows));
             acc.iter_mut().zip(&tail_acc).for_each(|(a, t)| *a = xor(*a, *t));
@@ -655,7 +655,7 @@ mod gfni {
         }
 
         #[inline]
-        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
             // SAFETY: the module is compiled only with these target features enabled.
             unsafe { store_f192(&self.fold_columns_full::<CHUNKS>(cols), out) }
         }
@@ -705,7 +705,7 @@ mod gfni256 {
     //!
     //! ```text
     //!     per 32 rows:  out byte o  +=  A[j][o] * (column j),  one affine instruction per column and output byte
-    //!                   then a byte transpose of the 24 output-byte registers into 32 F192 values
+    //!                   then a byte transpose of the 24 output-byte registers into 32 F128 values
     //! ```
     //!
     //! Sixteen registers hold eight accumulators at a time, so the columns are read three times. The row-major
@@ -713,9 +713,9 @@ mod gfni256 {
 
     use core::arch::x86_64::*;
 
-    use super::{BLOCK, F192};
+    use super::{BLOCK, F128};
 
-    /// Bytes of an F192.
+    /// Bytes of an F128.
     const OUT_BYTES: usize = 24;
 
     /// The GFNI matrices, and the byte tables for the row-major fold.
@@ -728,7 +728,7 @@ mod gfni256 {
     }
 
     /// Byte `o` of a weight.
-    fn byte(w: F192, o: usize) -> u8 {
+    fn byte(w: F128, o: usize) -> u8 {
         (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8
     }
 
@@ -742,7 +742,7 @@ mod gfni256 {
     }
 
     impl Imp {
-        pub(super) fn new(weights: &[F192]) -> Self {
+        pub(super) fn new(weights: &[F128]) -> Self {
             // The affine instruction reads result bit `k` off matrix byte `7 - k`: its bit `s` is bit `k` of byte `o`
             // of the weight of bit `s` of the input byte.
             let matrices = weights
@@ -770,20 +770,20 @@ mod gfni256 {
             tail: &Self,
             head_rows: &[[u8; A]],
             tail_rows: &[[u8; B]],
-            out: &mut [F192; BLOCK],
+            out: &mut [F128; BLOCK],
         ) {
             self.lookup.fold_block_pair(&tail.lookup, head_rows, tail_rows, out);
         }
 
         #[inline]
-        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
             assert_eq!(self.matrices.len(), CHUNKS);
             // SAFETY: AVX2 and GFNI are enabled at compile time (the module's cfg).
             unsafe { self.fold_columns_avx2(cols, out) }
         }
 
         #[target_feature(enable = "avx2", enable = "gfni")]
-        fn fold_columns_avx2<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F192; BLOCK]) {
+        fn fold_columns_avx2<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
             let mats: &[[u64; OUT_BYTES]; CHUNKS] = self.matrices.as_slice().try_into().expect("one per byte");
             for half in 0..2 {
                 // Column `j`'s bytes of rows `32 half ..`.
@@ -809,7 +809,7 @@ mod gfni256 {
                 for k in 0..16 {
                     for l in 0..2 {
                         let (v, w) = (words(lo[k]), words(hi[k]));
-                        out[32 * half + 16 * l + k] = F192::new(v[2 * l], v[2 * l + 1], w[2 * l]);
+                        out[32 * half + 16 * l + k] = F128::new(v[2 * l], v[2 * l + 1], w[2 * l]);
                     }
                 }
             }
@@ -826,13 +826,13 @@ mod tests {
     #[test]
     fn fold_columns_matches_lookup() {
         fn check<const CHUNKS: usize>(rng: &mut Rng) {
-            let weights: Vec<F192> = (0..8 * CHUNKS).map(|_| rng.ext()).collect();
+            let weights: Vec<F128> = (0..8 * CHUNKS).map(|_| rng.ext()).collect();
             let (fold, tables) = (BitFold::new(&weights), lookup_tables(&weights));
             let rows: Vec<[u8; CHUNKS]> = (0..BLOCK)
                 .map(|_| std::array::from_fn(|_| rng.next_u64() as u8))
                 .collect();
             let cols: [[u8; BLOCK]; CHUNKS] = std::array::from_fn(|j| std::array::from_fn(|p| rows[p][j]));
-            let mut out = [F192::ZERO; BLOCK];
+            let mut out = [F128::ZERO; BLOCK];
             fold.fold_columns(&cols, &mut out);
             for (p, row) in rows.iter().enumerate() {
                 assert_eq!(out[p], fold_row_lookup(&tables, row), "CHUNKS={CHUNKS}, row {p}");
@@ -850,7 +850,7 @@ mod tests {
     #[test]
     fn fold_block_pair_matches_lookup() {
         let mut rng = Rng::new(0x0009_A12B);
-        let weights: Vec<F192> = (0..192).map(|_| rng.ext()).collect();
+        let weights: Vec<F128> = (0..192).map(|_| rng.ext()).collect();
         let (head, tail) = (BitFold::new(&weights[..128]), BitFold::new(&weights[128..]));
         let (head_tables, tail_tables) = (lookup_tables(&weights[..128]), lookup_tables(&weights[128..]));
         for len in [BLOCK, 5] {
@@ -860,7 +860,7 @@ mod tests {
             let tail_rows: Vec<[u8; 8]> = (0..len)
                 .map(|_| std::array::from_fn(|_| rng.next_u64() as u8))
                 .collect();
-            let mut out = [F192::ZERO; BLOCK];
+            let mut out = [F128::ZERO; BLOCK];
             head.fold_block_pair(&tail, &head_rows, &tail_rows, &mut out);
             for p in 0..len {
                 let want = fold_row_lookup(&head_tables, &head_rows[p]) + fold_row_lookup(&tail_tables, &tail_rows[p]);
@@ -873,7 +873,7 @@ mod tests {
     #[test]
     fn lookup_matches_definition() {
         let mut rng = Rng::new(0x5E7_B175);
-        let weights: Vec<F192> = (0..64).map(|_| rng.ext()).collect();
+        let weights: Vec<F128> = (0..64).map(|_| rng.ext()).collect();
         let tables = lookup_tables(&weights);
         for _ in 0..64 {
             let row: [u8; 8] = std::array::from_fn(|_| rng.next_u64() as u8);

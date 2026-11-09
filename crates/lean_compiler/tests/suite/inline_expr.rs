@@ -8,7 +8,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 #[test]
 fn inline_call_in_expression_positions() {
@@ -48,7 +48,7 @@ def main():
     let y = f7 * (f3 * (one + f5));
     // heap-store RHS: idx 3 -> 3·5
     let o = f3 * f5;
-    let want = [F192::from(x), F192::from(y + o)];
+    let want = [F128::from(x), F128::from(y + o)];
 
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("expression-position inline calls compute correctly");

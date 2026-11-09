@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use crate::merkle::{Hash, MerklePath, hash_pair, hash_words, padded};
 use crate::transcript::Proof;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 /// The most phases a proof, queries a phase, leaf words and tree height may have: at least the protocol's own, and few
 /// enough that hostile bytes unprune to a bounded size. Encoding asserts them, so an honest proof always decodes.
@@ -46,7 +46,7 @@ impl Proof {
             .as_chunks()
             .0
             .iter()
-            .map(|[c0, c1, c2]| F192::new(c0.0, c1.0, c2.0))
+            .map(|[c0, c1, c2]| F128::new(c0.0, c1.0, c2.0))
             .collect();
         let phases = input.u32().filter(|&phases| phases as usize <= MAX_PHASES)?;
         let merkle = (0..phases).map(|_| read_phase(&mut input)).collect::<Option<_>>()?;
@@ -199,7 +199,7 @@ mod tests {
             _ => hash_pair(&leaf(2 * i), &leaf(2 * i + 1)),
         };
         let proof = Proof {
-            stream: vec![F192::new(1, 2, 3)],
+            stream: vec![F128::new(1, 2, 3)],
             merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
         };
         let bytes = proof.to_bytes();

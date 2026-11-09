@@ -23,7 +23,7 @@ use bench::{Plan, Timing, env_usize};
 use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
-    field::{F64, F192},
+    field::{F64, F128},
     multilinear::eq_table_serial,
     pretty_integer,
     test_rng::Rng,
@@ -45,7 +45,7 @@ fn main() {
     let mut rng = Rng::new(0x0192_0000 ^ log_n as u64);
     let n = 1usize << log_n;
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
-    let point: Vec<F192> = rng.ext_vec(log_n);
+    let point: Vec<F128> = rng.ext_vec(log_n);
     let target = inner_product_base_ext(&witness, &eq_table_serial(&point));
     // One point claim over the whole witness and no ring-switched claim: the opener's work shape.
     let claims = [StackClaim::Point {

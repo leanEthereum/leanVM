@@ -83,8 +83,8 @@ pub(super) fn is_int_arith(e: &Expr) -> bool {
 /// `GEN ** k`, and `+`/`*` combinations of those) to its field element.
 /// Used for the `# public_input: <elt>, <elt>` annotation of `.py` test
 /// programs (see `tests/suite/py_source.rs`).
-pub fn parse_const(s: &str) -> Result<F192, String> {
-    fn eval(e: &Expr) -> Result<F192, String> {
+pub fn parse_const(s: &str) -> Result<F128, String> {
+    fn eval(e: &Expr) -> Result<F128, String> {
         match e {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
             Expr::Lit(n) => Ok(crate::lit_field(*n)),
@@ -99,11 +99,11 @@ pub fn parse_const(s: &str) -> Result<F192, String> {
 }
 
 /// `v` as the zkDSL literal `f192(c0,c1,c2)`, which a global constant or an expression reads back as `v`.
-pub fn f192_literal(v: F192) -> String {
+pub fn f192_literal(v: F128) -> String {
     format!("f192({},{},{})", v.c0, v.c1, v.c2)
 }
 
-pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
+pub(super) fn parse_f192_const(s: &str) -> Option<Result<F128, String>> {
     let inner = s.trim().strip_prefix("f192(")?.strip_suffix(')')?;
     let parts = split_top(inner, ',');
     Some((|| {
@@ -115,7 +115,7 @@ pub(super) fn parse_f192_const(s: &str) -> Option<Result<F192, String>> {
             limbs[i] =
                 u64::try_from(eval_const_int(p.trim())?).map_err(|_| "an f192 limb does not fit in u64".to_string())?;
         }
-        Ok(F192::from_limbs(limbs))
+        Ok(F128::from_limbs(limbs))
     })())
 }
 

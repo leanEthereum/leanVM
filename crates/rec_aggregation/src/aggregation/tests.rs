@@ -15,7 +15,7 @@ use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::cpu::from_scalar;
 use leanvm_core::cpu::verify;
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 use primitives::multilinear::mle_eval_par;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -57,7 +57,7 @@ fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
-    let (point, proof) = (vec![F192::new(1, 2, 3), F192::new(4, 5, 6)], vec![9, 8, 7]);
+    let (point, proof) = (vec![F128::new(1, 2, 3), F128::new(4, 5, 6)], vec![9, 8, 7]);
     let bytes = encode(&point, &proof);
     assert_eq!(
         bytes,
@@ -146,8 +146,8 @@ fn guest_addresses_are_the_native_ones() {
         for layer in 0..2 {
             for (hi, lo, step) in [(0u32, 0u32, 0usize), (5, 0x1234_5678, 2), (16, u32::MAX, 0)] {
                 let tw = lean_xmss::tweak(tag, lean_xmss::layer_hi(layer, hi), lo).step(step);
-                let fields = F192::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0, 0);
-                let guest = cell(lean_xmss::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F192::ZERO };
+                let fields = F128::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0, 0);
+                let guest = cell(lean_xmss::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F128::ZERO };
                 assert_eq!(guest, cell(tw));
             }
         }
@@ -203,7 +203,7 @@ fn forged_lean_xmss_hints_are_rejected() {
     leanvm_core::init_prover();
     let signers = signing(&get_signers(1), 0);
     let forgeries: [Forgery; 3] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F192::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("lx_digits", 0)[0] *= count(1);
@@ -338,29 +338,29 @@ def main():
 "#
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
-    let run = |point: &[F192], offset: usize, kappa: usize, expected: F192| {
+    let run = |point: &[F128], offset: usize, kappa: usize, expected: F128| {
         let mut hints = Hints::default();
         hints.push("point", point.to_vec());
         hints.push("offset", vec![count(offset)]);
         hints.push("kappa", vec![count(kappa)]);
         let mut program = guest.clone();
         hints.install(&mut program);
-        program.execute([expected, F192::ZERO])
+        program.execute([expected, F128::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
     for mu in MU_MIN..=MU_MAX {
-        let mut point: Vec<F192> = (0..mu)
+        let mut point: Vec<F128> = (0..mu)
             .map(|_| {
                 let (c0, c1, c2) = rand::Rng::random(&mut rng);
-                F192::new(c0, c1, c2)
+                F128::new(c0, c1, c2)
             })
             .collect();
-        point.resize(MU_MAX, F192::ZERO);
+        point.resize(MU_MAX, F128::ZERO);
         for kappa in 0..=mu {
             let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
             for offset in [0, mask, 0x0555_5555 & mask] {
                 let selector: Vec<_> = (kappa..mu)
-                    .map(|k| F192::from(F64(((offset >> k) & 1) as u64)))
+                    .map(|k| F128::from(F64(((offset >> k) & 1) as u64)))
                     .collect();
                 let expected = primitives::multilinear::eq_eval(&selector, &point[kappa..mu]);
                 assert!(
@@ -521,7 +521,7 @@ fn forged_da_hints_are_rejected() {
     let child = aggregate(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE).unwrap();
     let forgeries: [(Forgery, bool); 4] = [
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F192::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F128::ONE),
             false,
         ),
         (
@@ -533,7 +533,7 @@ fn forged_da_hints_are_rejected() {
             true,
         ),
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += F192::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += F128::ONE),
             true,
         ),
     ];
@@ -569,7 +569,7 @@ def main():
 "#
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-    let run = |body: F192, rest: F192| {
+    let run = |body: F128, rest: F128| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
@@ -581,7 +581,7 @@ def main():
     assert!(run(count(0), count(6)).is_ok());
     // One group and -11 claims after it: the product identity holds, the range
     // check must not.
-    let negative = F192::from(g_pow(11).inv());
+    let negative = F128::from(g_pow(11).inv());
     let Err(err) = run(count(1), negative) else {
         panic!("a negative last-block count was accepted");
     };
@@ -615,7 +615,7 @@ fn da_guest_checks_codeword_membership() {
                     "da_symbols",
                     words[start..start + CELL_SYMBOLS]
                         .iter()
-                        .map(|&w| F192::from(F64(w)))
+                        .map(|&w| F128::from(F64(w)))
                         .collect(),
                 );
             }
@@ -844,9 +844,9 @@ def main():
 "#
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-    let claim = |i: u64| [1, 2, 3, 4].map(|k| F192::new(i * 7919 + k, k, 0));
-    let table: Vec<F192> = [claim(0), claim(1)].concat();
-    let run = |child: &[[F192; 4]], gaps: &[F192]| {
+    let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k, 0));
+    let table: Vec<F128> = [claim(0), claim(1)].concat();
+    let run = |child: &[[F128; 4]], gaps: &[F128]| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(child.len())]);
         hints.push("claims", table.clone());
@@ -860,7 +860,7 @@ def main():
         program.execute(claim_list_digest(child.iter().copied()))
     };
     assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
-    let back = F192::from(g_pow(1).inv());
+    let back = F128::from(g_pow(1).inv());
     assert!(
         run(&[claim(0), claim(0)], &[count(0), back]).is_err(),
         "a walk revisited a slot"
@@ -961,9 +961,9 @@ fn leaf_claim_matches_the_general_path() {
 #[test]
 fn scalar_deferred_claim_matches_the_prover() {
     let mut rng = StdRng::seed_from_u64(7);
-    let mut point = |len: usize| -> Vec<F192> {
+    let mut point = |len: usize| -> Vec<F128> {
         let limbs = (0..len).map(|_| rand::Rng::random::<(u64, u64, u64)>(&mut rng));
-        limbs.map(|(c0, c1, c2)| F192::new(c0, c1, c2)).collect()
+        limbs.map(|(c0, c1, c2)| F128::new(c0, c1, c2)).collect()
     };
     let bytecode_point = point(bytecode_vars());
     assert_eq!(
@@ -978,8 +978,8 @@ fn bytecode_sums_give_the_bytecode_value() {
     let mut rng = StdRng::seed_from_u64(11);
     let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64, u64)>(&mut rng));
     let points = [
-        limbs.map(|(c0, c1, c2)| F192::new(c0, c1, c2)).collect(),
-        vec![F192::ZERO; bytecode_vars()],
+        limbs.map(|(c0, c1, c2)| F128::new(c0, c1, c2)).collect(),
+        vec![F128::ZERO; bytecode_vars()],
     ];
     for (sums, point) in bytecode_sums(&points).iter().zip(&points) {
         assert_eq!(bytecode_value(sums, point), mle_eval_par(stacked_bytecode(), point));

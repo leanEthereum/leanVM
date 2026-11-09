@@ -16,7 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -56,7 +56,7 @@ fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String 
     )
 }
 
-fn flds(v: &[F192]) -> String {
+fn flds(v: &[F128]) -> String {
     format!(
         "[{}]",
         v.iter().map(|&x| f192_literal(x)).collect::<Vec<_>>().join(", ")
@@ -159,8 +159,8 @@ struct OpeningShape {
     vanish_offsets: Vec<usize>,
     fold_offsets: Vec<usize>,
     residual_fold_offsets: Vec<usize>,
-    vanish_values: Vec<F192>,
-    vanish_inverses: Vec<F192>,
+    vanish_values: Vec<F128>,
+    vanish_inverses: Vec<F128>,
     ood_samples: Vec<usize>,
 }
 
@@ -170,7 +170,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // Only block and coordinate structure is used here; dummy instructions and
     // table sizes let us derive it before the guest's bytecode exists.
     let stand_in = vec![leanvm_core::cpu::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
-    let layout = leanvm_core::cpu::layout(&stand_in, 20, [1 << 10; N_TABLES], [F192::ZERO, F192::ZERO]);
+    let layout = leanvm_core::cpu::layout(&stand_in, 20, [1 << 10; N_TABLES], [F128::ZERO, F128::ZERO]);
 
     let mut rep = BTreeMap::new();
     let mut ps = |k: &str, v: String| {
@@ -178,7 +178,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
+    ps("INV_GEN", dsl_u128(F128::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -350,11 +350,11 @@ fn bus_placeholders(
     ps("N_BUS_CLAIMS", nclaims.to_string());
     let idxc: Vec<u128> = (0..34)
         .map(|i| {
-            let mut g2k = F192::from(F64::G);
+            let mut g2k = F128::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
-            dsl_u128(F192::ONE + g2k)
+            dsl_u128(F128::ONE + g2k)
         })
         .collect();
     ps("INDEX_MLE_FACTORS", literals(&idxc));
@@ -569,21 +569,21 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("KECCAK_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
 }
 
-/// The F192 tower and its coordinate basis.
+/// The F128 tower and its coordinate basis.
 fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
-    // Tower F192 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
+    // Tower F128 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
     // AIR lane reassembly; Y_INV splits a canonical word into its two K limbs.
-    let y_tower = F192::new(0, 1, 0);
+    let y_tower = F128::new(0, 1, 0);
     ps("Y_TOWER", dsl_u128(y_tower).to_string());
     ps("Y_INV", f192_literal(y_tower.inv()));
-    // Coordinate basis e_i of F192 over F2 (spans the whole field): the 64
+    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64
     // binary basis vectors in each of the three tower limbs. The guest uses
     // these vectors to reconstruct a word from its 192 coordinate bits.
-    let coord_basis: Vec<F192> = (0..192)
+    let coord_basis: Vec<F128> = (0..192)
         .map(|i| match i / 64 {
-            0 => F192::new(1u64 << i, 0, 0),
-            1 => F192::new(0, 1u64 << (i - 64), 0),
-            2 => F192::new(0, 0, 1u64 << (i - 128)),
+            0 => F128::new(1u64 << i, 0, 0),
+            1 => F128::new(0, 1u64 << (i - 64), 0),
+            2 => F128::new(0, 0, 1u64 << (i - 128)),
             _ => unreachable!(),
         })
         .collect();
@@ -630,8 +630,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let mut c_ivk = Vec::new();
         for &cl_lv in cl.iter().take(cn) {
             for &v in &pcs::whir::eval_sk_at_vks(cl_lv) {
-                c_svk.push(F192::from(v));
-                c_ivk.push(F192::from(v.inv()));
+                c_svk.push(F128::from(v));
+                c_ivk.push(F128::from(v.inv()));
             }
         }
         OpeningShape {
@@ -757,7 +757,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
         ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
         // 128-bit cells per leaf row: level 0's committed rows are base-field
-        // F64 (8 bytes/lane); deeper levels are native F192 (24 bytes/word,
+        // F64 (8 bytes/lane); deeper levels are native F128 (24 bytes/word,
         // received as three embedded K limbs each).
         ps(
             "LIG_LEAF_CELLS",
@@ -794,8 +794,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             let padded_len = svk2.len() + maxsvk;
             svk2.extend_from_slice(&candidate.vanish_values);
             ivk2.extend_from_slice(&candidate.vanish_inverses);
-            svk2.resize(padded_len, F192::ZERO);
-            ivk2.resize(padded_len, F192::ZERO);
+            svk2.resize(padded_len, F128::ZERO);
+            ivk2.resize(padded_len, F128::ZERO);
         }
         ps("LIG_VANISH_VALS", flds(&svk2));
         ps("LIG_VANISH_INVS", flds(&ivk2));
@@ -805,7 +805,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
     ps("LIG_N_CANDIDATES", (n_log_sizes * n_rates).to_string());
-    ps("LIG_MIN_SHIFT_INV", dsl_u128(F192::from(g_pow(minm).inv())).to_string());
+    ps("LIG_MIN_SHIFT_INV", dsl_u128(F128::from(g_pow(minm).inv())).to_string());
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.

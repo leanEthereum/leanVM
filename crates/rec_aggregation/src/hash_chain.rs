@@ -6,11 +6,11 @@ use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
 use leanvm_core::vmhash::compress;
 use primitives::{
-    field::{F64, F192},
+    field::{F64, F128},
     pretty_f64, pretty_integer,
 };
 
-fn instruction_counts(source: &str, public_input: [F192; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
+fn instruction_counts(source: &str, public_input: [F128; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
     compile(&parse(source).expect("parse"))
         .execute(public_input)
         .unwrap()
@@ -77,8 +77,8 @@ fn keccak_hash_chain() {
         digest = compress(digest, digest);
     }
     let public_input = [
-        F192::new(digest[0].0, digest[1].0, 0),
-        F192::new(digest[2].0, digest[3].0, 0),
+        F128::new(digest[0].0, digest[1].0, 0),
+        F128::new(digest[2].0, digest[3].0, 0),
     ];
 
     let source = chain_source(steps, unroll);

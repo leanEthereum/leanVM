@@ -43,7 +43,7 @@ pub fn init_prover() {
 }
 
 /// Target soundness of the whole proof, in bits. Every algebraic challenge is
-/// sampled in F192, and the PCS derives a WHIR configuration whose query,
+/// sampled in F128, and the PCS derives a WHIR configuration whose query,
 /// proximity-gap, and OOD-binding terms each clear this target.
 pub const SECURITY_BITS: u32 = 128;
 

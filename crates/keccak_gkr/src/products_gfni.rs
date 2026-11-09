@@ -24,7 +24,7 @@
 
 use core::arch::x86_64::*;
 
-use primitives::field::F192;
+use primitives::field::F128;
 
 use crate::keccak::BITS;
 use crate::kernels::{PACKS, embed, products};
@@ -119,7 +119,7 @@ const fn staged_index(r: usize, a: usize, n_active: usize) -> usize {
 
 /// Bit `n` of a weight.
 #[inline(always)]
-fn bit(w: F192, n: usize) -> u8 {
+fn bit(w: F128, n: usize) -> u8 {
     (w.to_limbs()[n / 64] >> (n % 64)) as u8 & 1
 }
 
@@ -127,7 +127,7 @@ fn bit(w: F192, n: usize) -> u8 {
 /// `COLUMN_BIT_POSITION[i]`) to byte `b` of the sum of the weights it selects. An affine byte map
 /// reads output bit `i` off matrix byte `7 - i`, whose bit `k` is then bit `8 b + i` of
 /// `w[COLUMN_BIT_POSITION[k]]`.
-fn lane_byte_matrices(w: &[F192]) -> [u64; WEIGHT_BYTES] {
+fn lane_byte_matrices(w: &[F128]) -> [u64; WEIGHT_BYTES] {
     std::array::from_fn(|b| {
         (0..8).fold(0u64, |m, i| {
             let row = (0..8).fold(0u8, |row, k| row | bit(w[COLUMN_BIT_POSITION[k]], 8 * b + i) << k);
@@ -155,12 +155,12 @@ pub struct Scratch {
 }
 
 impl ProductSums {
-    pub fn new(weights: &[F192]) -> Self {
+    pub fn new(weights: &[F128]) -> Self {
         assert!(weights.len() >= BITS);
         let lane_bytes: Vec<Option<[u64; WEIGHT_BYTES]>> = (0..BITS / 8)
             .map(|o| {
                 let w = &weights[8 * o..8 * o + 8];
-                w.iter().any(|&x| x != F192::ZERO).then(|| lane_byte_matrices(w))
+                w.iter().any(|&x| x != F128::ZERO).then(|| lane_byte_matrices(w))
             })
             .collect();
         let mut row_bytes = Vec::new();

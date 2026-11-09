@@ -10,7 +10,7 @@
 //! are down to one row.
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F192, F192Unreduced};
+use primitives::field::{F128, F128Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::basis::{PolyEval, add_mul, carry};
@@ -120,7 +120,7 @@ impl Part {
 
 /// Digit `d` of a weight.
 #[inline(always)]
-fn digit(weight: F192, d: usize) -> usize {
+fn digit(weight: F128, d: usize) -> usize {
     let w = weight.to_limbs();
     (w[d / 8] >> (DIGIT_BITS * (d % 8))) as usize & ((1 << DIGIT_BITS) - 1)
 }
@@ -133,7 +133,7 @@ struct Groups {
 }
 
 impl Groups {
-    fn new(weights: &[F192]) -> Self {
+    fn new(weights: &[F128]) -> Self {
         let mut order = vec![[0u16; BITS]; DIGITS];
         let mut starts = vec![[0u16; (1 << DIGIT_BITS) + 1]; DIGITS];
         for (d, (order, starts)) in order.iter_mut().zip(&mut starts).enumerate() {
@@ -214,7 +214,7 @@ impl Layer<'_> {
 
     /// Each task's weight in `eq`, a table over the blocks then the segment: the padding block's
     /// is the sum over the blocks it stands for.
-    fn task_weights(&self, eq: &[F192]) -> Vec<F192> {
+    fn task_weights(&self, eq: &[F128]) -> Vec<F128> {
         let nb = self.witness.shape.n_blocks();
         (0..self.n_tasks())
             .map(|task| {
@@ -239,7 +239,7 @@ impl Layer<'_> {
     /// over positions is taken bit by bit, by GFNI outer products where they are compiled
     /// (`products_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
     /// the block's weight, as field elements.
-    fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
+    fn pack_products(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
         cfg_select! {
             all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
                 self.pack_products_gfni(claim)
@@ -250,19 +250,19 @@ impl Layer<'_> {
 
     /// [`Self::pack_products`] by GFNI outer products (`products_gfni`): the same sums.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
-    fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
+    fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
         use crate::products_gfni::ProductSums;
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let kernel = ProductSums::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
             || kernel.scratch(),
-            || vec![F192Unreduced::ZERO; PAYLOAD_BITS],
+            || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
             |scratch, sums, task| {
                 let (_, _, block) = self.block(task);
                 kernel.block_sums(scratch, block);
                 for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
-                    *sum ^= weights[task].mul_unreduced(F192::from_limbs(*v));
+                    *sum ^= weights[task].mul_unreduced(F128::from_limbs(*v));
                 }
             },
             |mut a, b| {
@@ -283,7 +283,7 @@ impl Layer<'_> {
         all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
         allow(dead_code)
     )]
-    fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
+    fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let groups = Groups::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
@@ -295,7 +295,7 @@ impl Layer<'_> {
                     Box::new([Part::ZERO; 1 << DIGIT_BITS]),
                 )
             },
-            || vec![F192Unreduced::ZERO; PAYLOAD_BITS],
+            || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
             |(payloads, rows, digit_sums), sums, task| {
                 let (_, _, block) = self.block(task);
                 for r in 0..5 {
@@ -325,7 +325,7 @@ impl Layer<'_> {
                         transpose64(column);
                     }
                     for (t, sum) in sums[64 * m..][..64].iter_mut().enumerate() {
-                        *sum ^= weights[task].mul_unreduced(F192::new(columns[0][t], columns[1][t], columns[2][t]));
+                        *sum ^= weights[task].mul_unreduced(F128::new(columns[0][t], columns[1][t], columns[2][t]));
                     }
                 }
             },
@@ -348,7 +348,7 @@ impl Layer<'_> {
     /// A point at infinity in some variable keeps only the product `u[j + 1] * u[j + 2]`, summed
     /// here. A binary one is a pack, whose sum `binary` already holds. The packs of the padding
     /// block are all equal, so their extension vanishes there.
-    fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F192, binary: &[F192; GROUP]) -> Vec<F192> {
+    fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F128, binary: &[F128; GROUP]) -> Vec<F128> {
         let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
         let groups: Vec<Element> = eq_table(&claim.point[SKIP..])
             .iter()
@@ -379,7 +379,7 @@ impl Layer<'_> {
             },
         );
         let eval = PolyEval::new(s, 56);
-        let mut sums = vec![F192::ZERO; TERNARY];
+        let mut sums = vec![F128::ZERO; TERNARY];
         for (slot, p) in mixed_points().into_iter().enumerate() {
             sums[p] = eval.eval(&mixed[slot]);
         }
@@ -396,12 +396,12 @@ impl Layer<'_> {
     fn table(
         &self,
         round: &Round,
-        challenges: &[F192],
-        eq: &[F192],
+        challenges: &[F128],
+        eq: &[F128],
         layout: Rows,
         table: &mut [u64],
         pads: &mut [u64],
-    ) -> (F192, F192) {
+    ) -> (F128, F128) {
         let field = round.field;
         let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
         let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
@@ -506,7 +506,7 @@ struct Round<'a> {
 }
 
 impl<'a> Round<'a> {
-    fn new(field: &'a PowerField, claim: &Claim, s: F192, kappa: F192) -> Self {
+    fn new(field: &'a PowerField, claim: &Claim, s: F128, kappa: F128) -> Self {
         let (mut weights, mut constant) = (vec![0u64; ROW], vec![0u64; ROW]);
         for j in 0..BITS {
             set(&mut weights, BITS, j, &field.to_poly(claim.weights[j]));
@@ -550,7 +550,7 @@ impl<'a> Round<'a> {
 
     /// Add one pair of rows to a round's sums: the values at `0` and at infinity of
     /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`.
-    fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F192) {
+    fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F128) {
         let (b, shifted) = scratch.split_at_mut(2 * ROW);
         for (half, t) in [low, high].into_iter().enumerate() {
             self.factors(t, &mut b[half * ROW..][..ROW], &mut shifted[half * ROW..][..ROW]);
@@ -563,7 +563,7 @@ impl<'a> Round<'a> {
         add_mul(&mut sums.1, &infinity, &weight);
     }
 
-    fn finish(&self, sums: &RoundSums) -> (F192, F192) {
+    fn finish(&self, sums: &RoundSums) -> (F128, F128) {
         (self.eval.eval(&sums.0), self.eval.eval(&sums.1))
     }
 
@@ -576,8 +576,8 @@ impl<'a> Round<'a> {
         dst: &mut [u64],
         pads: &[u64],
         challenge: &Element,
-        eq: &[F192],
-    ) -> (F192, F192) {
+        eq: &[F128],
+    ) -> (F128, F128) {
         let to = from.next();
         let ptr = parallel::SendPtr(dst.as_mut_ptr());
         let fold = |out: &mut [u64], segment: usize, r: usize| {
@@ -638,7 +638,7 @@ impl<'a> Round<'a> {
 
     /// Add the pairs of two padding rows of a table laid out as `layout`, weighted by `eq`: each
     /// segment's padding row, once, at the sum of their weights.
-    fn add_padding(&self, sums: &mut RoundSums, layout: Rows, pads: &[u64], eq: &[F192]) {
+    fn add_padding(&self, sums: &mut RoundSums, layout: Rows, pads: &[u64], eq: &[F128]) {
         let (first, half) = (layout.live.div_ceil(2), layout.m / 2);
         if first == half {
             return;
@@ -692,10 +692,10 @@ impl Rows {
 
 /// A round of the sumcheck over bit positions, on small tables in the standard basis: the
 /// coefficients of `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
-fn local_round(w: &[F192], t: &[Vec<F192>; 3], kappa: F192) -> [F192; 4] {
-    let mut h = [F192::ZERO; 4];
+fn local_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
+    let mut h = [F128::ZERO; 4];
     for i in 0..w.len() / 2 {
-        let line = |v: &[F192]| (v[2 * i], v[2 * i] + v[2 * i + 1]);
+        let line = |v: &[F128]| (v[2 * i], v[2 * i] + v[2 * i + 1]);
         let (w, t0, t1, t2) = (line(w), line(&t[0]), line(&t[1]), line(&t[2]));
         let u = (kappa + t1.0, t1.1);
         let a = [
@@ -748,7 +748,7 @@ pub fn prove_layer(
 
     let per_pack = tracing::info_span!("Product").in_scope(|| layer.pack_products(claim));
     let pack_weights = eq_table(&claim.point[..SKIP + 1]);
-    let product: [F192; PROD_BITS] =
+    let product: [F128; PROD_BITS] =
         std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
     ps.add_scalars(&product);
     let s = ps.sample();
@@ -758,16 +758,16 @@ pub fn prove_layer(
 
     // The packs of a group, from sums of bit-level products. A pack's own sum is its product
     // polynomial at `s`, over both groups of the block.
-    let binary: [F192; GROUP] = std::array::from_fn(|q| {
+    let binary: [F128; GROUP] = std::array::from_fn(|q| {
         let half = claim.point[SKIP];
-        (F192::ONE + half) * poly_eval(&per_pack[q], s) + half * poly_eval(&per_pack[GROUP + q], s)
+        (F128::ONE + half) * poly_eval(&per_pack[q], s) + half * poly_eval(&per_pack[GROUP + q], s)
     });
     let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &field, s, &binary));
-    let mut scale = F192::ONE;
+    let mut scale = F128::ONE;
     let mut point = Vec::with_capacity(claim.point.len());
     for i in 0..SKIP {
         let later = eq_table(&claim.point[i + 1..SKIP]);
-        let mut h = [F192::ZERO; 3];
+        let mut h = [F128::ZERO; 3];
         for (b, &eq) in later.iter().enumerate() {
             for (d, h) in h.iter_mut().enumerate() {
                 *h += eq * sums[d + 3 * ternary(b)];
@@ -811,21 +811,21 @@ pub fn prove_layer(
 
     // The bit positions, in the standard basis.
     let cube = 1usize << LOCAL_VARS;
-    let standard = |row: &[u64]| -> Vec<F192> {
-        let mut out: Vec<F192> = (0..BITS).map(|j| field.to_field(&get(row, BITS, j))).collect();
-        out.resize(cube, F192::ZERO);
+    let standard = |row: &[u64]| -> Vec<F128> {
+        let mut out: Vec<F128> = (0..BITS).map(|j| field.to_field(&get(row, BITS, j))).collect();
+        out.resize(cube, F128::ZERO);
         out
     };
     let t0 = standard(table);
-    let shift = |k: usize| -> Vec<F192> {
+    let shift = |k: usize| -> Vec<F128> {
         (0..cube)
-            .map(|j| if j < BITS { t0[along(j, k)] } else { F192::ZERO })
+            .map(|j| if j < BITS { t0[along(j, k)] } else { F128::ZERO })
             .collect()
     };
     let (t1, t2) = (shift(1), shift(2));
     let mut t = [t0, t1, t2];
     let mut w = claim.weights.clone();
-    w.resize(cube, F192::ZERO);
+    w.resize(cube, F128::ZERO);
     let mut local = Vec::with_capacity(LOCAL_VARS);
     for _ in 0..LOCAL_VARS {
         let coeffs = local_round(&w, &t, kappa).map(|c| scale * c);
@@ -850,15 +850,15 @@ pub fn prove_layer(
 /// in the claim is `at`: the claim's `eq` factor on it moves into `scale`.
 fn bind(
     ps: &mut ProverState,
-    coeffs: &[F192; 3],
-    at: F192,
-    value: &mut F192,
-    scale: &mut F192,
-    point: &mut Vec<F192>,
-) -> F192 {
+    coeffs: &[F128; 3],
+    at: F128,
+    value: &mut F128,
+    scale: &mut F128,
+    point: &mut Vec<F128>,
+) -> F128 {
     ps.add_round_poly(coeffs, true);
     let challenge = ps.sample();
-    let eq = F192::ONE + at + challenge;
+    let eq = F128::ONE + at + challenge;
     *value = eq * poly_eval(coeffs, challenge);
     *scale *= eq;
     point.push(challenge);
@@ -867,7 +867,7 @@ fn bind(
 
 /// The coefficients of a round polynomial `h`, scaled, from its values at `0` and infinity:
 /// `(1 + r) h(0) + r h(1) = value` gives the value at one.
-fn round_coefficients(scale: F192, zero: F192, infinity: F192, value: F192, r: F192) -> [F192; 3] {
+fn round_coefficients(scale: F128, zero: F128, infinity: F128, value: F128, r: F128) -> [F128; 3] {
     let (c0, c2) = (scale * zero, scale * infinity);
     // value = c0 + r (c1 + c2).
     let c1 = (value + c0) * r.inv() + c2;
@@ -909,7 +909,7 @@ mod gfni_tests {
                             || (mode == "sparse" && ((j / 8) % 3 == 1 || j % 7 == 0))
                             || (mode == "lanes" && j >= 4 * 64)
                         {
-                            F192::ZERO
+                            F128::ZERO
                         } else {
                             rng.ext()
                         }

@@ -10,7 +10,7 @@
 //!
 //! One layer turns a claim on the states after a round into a claim on the states before it.
 
-use primitives::field::{F192, powers};
+use primitives::field::{F128, powers};
 use primitives::multilinear::eq_table;
 
 use crate::keccak::{BITS, along};
@@ -19,18 +19,18 @@ use crate::witness::Shape;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {
-    pub value: F192,
+    pub value: F128,
     /// The weight of each instance of a pack.
-    pub mu: [F192; PACK],
+    pub mu: [F128; PACK],
     /// A pack index, then a segment index.
-    pub point: Vec<F192>,
+    pub point: Vec<F128>,
     /// The weight of each bit position.
-    pub weights: Vec<F192>,
+    pub weights: Vec<F128>,
 }
 
 /// The instance weights of a claim made at the polynomial point `s`: the value at `s` of each
 /// unit vector's embedding.
-pub fn mu_at(s: F192) -> [F192; PACK] {
+pub fn mu_at(s: F128) -> [F128; PACK] {
     let powers = powers(s, EMBED_BITS);
     std::array::from_fn(|i| {
         (0..EMBED_BITS)
@@ -40,7 +40,7 @@ pub fn mu_at(s: F192) -> [F192; PACK] {
     })
 }
 
-pub fn dot(a: &[F192], b: &[F192]) -> F192 {
+pub fn dot(a: &[F128], b: &[F128]) -> F128 {
     a.iter().zip(b).map(|(&x, &y)| x * y).sum()
 }
 
@@ -48,8 +48,8 @@ pub fn dot(a: &[F192], b: &[F192]) -> F192 {
 ///
 /// The layer ends with `t[k] = sum_j eq[j] * T[j + k]` for `k` in `0..3`, which `beta` batches
 /// into one weighted sum of `T`.
-pub fn chi_weights(eq: &[F192], beta: F192) -> Vec<F192> {
-    let mut out = vec![F192::ZERO; BITS];
+pub fn chi_weights(eq: &[F128], beta: F128) -> Vec<F128> {
+    let mut out = vec![F128::ZERO; BITS];
     for j in 0..BITS {
         out[j] += eq[j];
         out[along(j, 1)] += beta * eq[j];
@@ -60,16 +60,16 @@ pub fn chi_weights(eq: &[F192], beta: F192) -> Vec<F192> {
 
 /// The claim the layers start from, once its challenges are drawn, valued at zero: a random
 /// combination of the output lanes as words, bit `z` of a word weighing `x^z`.
-pub fn first_claim(shape: Shape, r_low: &[F192], point: Vec<F192>, r_lane: &[F192]) -> Claim {
-    let mu: [F192; PACK] = eq_table(r_low).try_into().expect("four low variables");
+pub fn first_claim(shape: Shape, r_low: &[F128], point: Vec<F128>, r_lane: &[F128]) -> Claim {
+    let mu: [F128; PACK] = eq_table(r_low).try_into().expect("four low variables");
     assert_eq!(point.len(), shape.y_vars());
     let lanes = eq_table(r_lane);
     Claim {
-        value: F192::ZERO,
+        value: F128::ZERO,
         mu,
         point,
         weights: (0..BITS)
-            .map(|j| lanes[j / 64] * F192::new(1 << (j % 64), 0, 0))
+            .map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0, 0))
             .collect(),
     }
 }

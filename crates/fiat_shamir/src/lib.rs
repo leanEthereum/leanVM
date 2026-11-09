@@ -15,7 +15,7 @@ pub mod merkle;
 pub mod transcript;
 mod wire;
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 
 /// `f(a, b) = Keccak-256(a‖b)` on two 256-bit halves laid out little-endian into
@@ -83,15 +83,15 @@ impl FiatShamirState {
     }
 
     /// Permute, taking the waiting scalars, and return the output's first three lanes.
-    fn duplex(&mut self) -> F192 {
+    fn duplex(&mut self) -> F128 {
         primitives::hash::keccak_f(&mut self.state);
-        let out = F192::new(self.state[0], self.state[1], self.state[2]);
+        let out = F128::new(self.state[0], self.state[1], self.state[2]);
         self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
         out
     }
 
-    fn absorb(&mut self, x: F192, tag: u64) {
+    fn absorb(&mut self, x: F128, tag: u64) {
         if self.n_pending == RATE_SCALARS {
             self.duplex();
         }
@@ -103,19 +103,19 @@ impl FiatShamirState {
     /// The capacity as the five VM cells a permutation reads it from: lane 16 alone, then
     /// lanes 17 to 24 two to a cell. With nothing waiting, it is all a later
     /// permutation keeps, so it is what a guest needs of a seeded state.
-    pub fn capacity_cells(&self) -> [F192; 5] {
+    pub fn capacity_cells(&self) -> [F128; 5] {
         assert_eq!(
             self.n_pending, 0,
             "the capacity is the whole state only with nothing waiting"
         );
         std::array::from_fn(|c| match c {
-            0 => F192::new(self.state[16], 0, 0),
-            _ => F192::new(self.state[15 + 2 * c], self.state[16 + 2 * c], 0),
+            0 => F128::new(self.state[16], 0, 0),
+            _ => F128::new(self.state[15 + 2 * c], self.state[16 + 2 * c], 0),
         })
     }
 
     /// Absorb one scalar.
-    pub fn observe(&mut self, x: F192) {
+    pub fn observe(&mut self, x: F128) {
         self.absorb(x, DS_OBSERVE);
     }
 
@@ -123,12 +123,12 @@ impl FiatShamirState {
     /// output's first three lanes are the challenge. In Fiat-Shamir everything is
     /// public; soundness comes from each challenge being a random-oracle image of
     /// the entire prior transcript.
-    pub fn sample(&mut self) -> F192 {
+    pub fn sample(&mut self) -> F128 {
         self.duplex()
     }
 
     /// Squeeze `n` challenges, in order.
-    pub fn sample_vec(&mut self, n: usize) -> Vec<F192> {
+    pub fn sample_vec(&mut self, n: usize) -> Vec<F128> {
         (0..n).map(|_| self.sample()).collect()
     }
 
@@ -136,7 +136,7 @@ impl FiatShamirState {
     /// drawn next has its low `bits` bits zero. A CONTIGUOUS low-bit window, so a
     /// recursive verifier re-checks it with one bit decomposition of the challenge's
     /// first limb (`grind_check` in `guests/lean_ethereum.py`).
-    fn pow_bits_ok(&self, nonce: F192, bits: u32) -> bool {
+    fn pow_bits_ok(&self, nonce: F128, bits: u32) -> bool {
         assert!(bits < 64, "the grinding window fits the challenge's low limb");
         let mut probe = self.clone();
         probe.absorb(nonce, DS_POW_NONCE);
@@ -145,7 +145,7 @@ impl FiatShamirState {
 
     /// Absorb a grinding nonce and draw the challenge it is checked against, which
     /// nothing else uses.
-    fn absorb_nonce(&mut self, nonce: F192) {
+    fn absorb_nonce(&mut self, nonce: F128) {
         self.absorb(nonce, DS_POW_NONCE);
         self.sample();
     }
@@ -160,13 +160,13 @@ impl FiatShamirState {
             0
         } else if (1u64 << bits) < PARALLEL_GRIND_MIN {
             (0..)
-                .find(|&n| self.pow_bits_ok(F192::new(n, 0, 0), bits))
+                .find(|&n| self.pow_bits_ok(F128::new(n, 0, 0), bits))
                 .expect("a nonce exists")
         } else {
             // Many candidates at once through the batched permutation: each one's input is the
             // state with a zero nonce absorbed, its nonce written into that scalar's first lane.
             let mut base = self.clone();
-            base.absorb(F192::ZERO, DS_POW_NONCE);
+            base.absorb(F128::ZERO, DS_POW_NONCE);
             let lane = 4 * (base.n_pending - 1);
             const BATCH: usize = 2 * primitives::hash::LANES;
             let batch = |first: u64| {
@@ -190,7 +190,7 @@ impl FiatShamirState {
                 start = start.saturating_add(block);
             }
         };
-        self.absorb_nonce(F192::new(nonce, 0, 0));
+        self.absorb_nonce(F128::new(nonce, 0, 0));
         nonce
     }
 }
@@ -199,8 +199,8 @@ impl FiatShamirState {
 mod tests {
     use super::*;
 
-    fn f(k: u64) -> F192 {
-        F192::new(k, k ^ 0x1234, k.rotate_left(17))
+    fn f(k: u64) -> F128 {
+        F128::new(k, k ^ 0x1234, k.rotate_left(17))
     }
 
     fn pi(k: u64) -> [F64; 4] {
@@ -243,7 +243,7 @@ mod tests {
                 a.observe(f(k + 1));
                 b.observe(f(k + 1));
             }
-            b.observe(F192::ZERO);
+            b.observe(F128::ZERO);
             assert_ne!(a.sample(), b.sample(), "{n} scalars");
         }
     }
@@ -255,11 +255,11 @@ mod tests {
             let mut clone = sp.clone();
             let good = clone.grind_pow(bits);
             let expected = (0..=good)
-                .find(|&n| bits == 0 || sp.pow_bits_ok(F192::new(n, 0, 0), bits))
+                .find(|&n| bits == 0 || sp.pow_bits_ok(F128::new(n, 0, 0), bits))
                 .unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
             let mut expected_state = sp.clone();
-            expected_state.absorb_nonce(F192::new(good, 0, 0));
+            expected_state.absorb_nonce(F128::new(good, 0, 0));
             assert_eq!(clone.sample(), expected_state.sample());
         }
     }

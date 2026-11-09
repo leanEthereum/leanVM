@@ -10,7 +10,7 @@
 
 //! The rectangular `K ⊗ E` tensor-algebra transpose used by ring switching.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 use crate::pack::PACKING_WIDTH;
 
@@ -26,7 +26,7 @@ pub const DEGREE_E: usize = 192;
 /// ```
 ///
 /// `s_hat_u[w] = t_w` in the ring-switching construction.
-pub fn transpose_s_hat(s_hat_v: &[F192; PACKING_WIDTH]) -> [F64; DEGREE_E] {
+pub fn transpose_s_hat(s_hat_v: &[F128; PACKING_WIDTH]) -> [F64; DEGREE_E] {
     let mut s_hat_u = [F64::ZERO; DEGREE_E];
     for (i, elem) in s_hat_v.iter().enumerate() {
         // Deposit bit w of elem into bit i of s_hat_u[w]; scan set bits only.
@@ -58,7 +58,7 @@ mod tests {
     use primitives::test_rng::Rng;
 
     /// Bit w of an E element in the tower basis (w in 0..192).
-    fn ext_bit(e: F192, w: usize) -> u64 {
+    fn ext_bit(e: F128, w: usize) -> u64 {
         e.to_limbs()[w / 64] >> (w % 64) & 1
     }
 

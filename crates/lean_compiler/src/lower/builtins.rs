@@ -102,7 +102,7 @@ impl FnLower<'_> {
             self.fail("keccak pad_tail=1: a or b reads a cell past len, which the padding sets")
         }
         for (k, o) in set.enumerate() {
-            self.set_const(o, if k == 0 { keccak_pad_value() } else { F192::ZERO });
+            self.set_const(o, if k == 0 { keccak_pad_value() } else { F128::ZERO });
         }
     }
 
@@ -339,9 +339,9 @@ impl FnLower<'_> {
         let (cell, byte) = (at / 16, at % 16);
         let w = u64::from(v) << (8 * (byte % 8));
         let v = if byte < 8 {
-            F192::new(w, 0, 0)
+            F128::new(w, 0, 0)
         } else {
-            F192::new(0, w, 0)
+            F128::new(0, w, 0)
         };
         cells[cell] = match cells[cell] {
             SpongeCell::Zero => SpongeCell::Const(v),
@@ -421,7 +421,7 @@ impl FnLower<'_> {
         for (j, &c) in cells.iter().enumerate() {
             let dst = t + j as u32;
             match c {
-                SpongeCell::Zero => self.set_const(dst, F192::ZERO),
+                SpongeCell::Zero => self.set_const(dst, F128::ZERO),
                 SpongeCell::Const(v) => self.set_const(dst, v),
                 SpongeCell::Cell(o) => self.copy(o, dst),
             }
@@ -645,7 +645,7 @@ impl FnLower<'_> {
         }
         let o = self.alloc_stack(5);
         for k in 0..5 {
-            let value = if k == 0 { keccak_pad_value() } else { F192::ZERO };
+            let value = if k == 0 { keccak_pad_value() } else { F128::ZERO };
             self.set_const(o + k, value);
             self.scope.const_cells.entry(value).or_insert(o + k);
         }
@@ -700,13 +700,13 @@ const BLOCK_CELLS: u32 = leanvm_core::keccak::RATE_CELLS as u32;
 const RATE: usize = primitives::hash::RATE;
 
 /// The last rate lane of a 64-byte message's one block: the padding's closing `0x80` byte.
-pub(super) fn two_to_one_close() -> F192 {
-    F192::new(0x80 << 56, 0, 0)
+pub(super) fn two_to_one_close() -> F128 {
+    F128::new(0x80 << 56, 0, 0)
 }
 
 /// A cell holding the padding's first byte at its start: `0x01` in the low lane.
-fn keccak_pad_value() -> F192 {
-    F192::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
+fn keccak_pad_value() -> F128 {
+    F128::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
 }
 
 /// Where a `keccak` writes: the stack run its instruction targets, the output cells it writes there, and a heap
@@ -722,6 +722,6 @@ struct KeccakOut {
 #[derive(Clone, Copy, Debug)]
 enum SpongeCell {
     Zero,
-    Const(F192),
+    Const(F128),
     Cell(Off),
 }

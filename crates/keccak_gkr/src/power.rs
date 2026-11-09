@@ -8,7 +8,7 @@
 //!
 //! A table row is laid out by word: word `k` of entry `j` at `k * width + j`.
 
-use primitives::field::F192;
+use primitives::field::F128;
 
 use crate::basis::{PolyEval, PowerBasis, add_mul};
 
@@ -59,9 +59,9 @@ fn mul_wide3(a: &Element, b: &Element) -> [u64; 6] {
 
 impl PowerField {
     /// `None` when `s` lies in a proper subfield.
-    pub fn new(s: F192) -> Option<Self> {
+    pub fn new(s: F128) -> Option<Self> {
         let basis = PowerBasis::new(s)?;
-        let mut power = F192::ONE;
+        let mut power = F128::ONE;
         for _ in 0..192 {
             power *= s;
         }
@@ -90,11 +90,11 @@ impl PowerField {
         })
     }
 
-    pub fn to_poly(&self, a: F192) -> Element {
+    pub fn to_poly(&self, a: F128) -> Element {
         self.basis.to_poly(a)
     }
 
-    pub fn to_field(&self, a: &Element) -> F192 {
+    pub fn to_field(&self, a: &Element) -> F128 {
         self.eval.eval(a)
     }
 
@@ -543,7 +543,7 @@ mod tests {
         let mut rng = Rng::new(41);
         let field = PowerField::new(rng.ext()).unwrap();
         let width = 16;
-        let elements = |rng: &mut Rng| -> (Vec<F192>, Vec<u64>) {
+        let elements = |rng: &mut Rng| -> (Vec<F128>, Vec<u64>) {
             let values = rng.ext_vec(width);
             let mut row = vec![0u64; 3 * width];
             for (j, &v) in values.iter().enumerate() {

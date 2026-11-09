@@ -6,7 +6,7 @@
 use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
 use leanvm_core::tables::N_TABLES;
-use primitives::field::{F192, g_pow};
+use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -101,7 +101,7 @@ fn test_directory(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("leanvm-python-verifier-{name}-{}", std::process::id()))
 }
 
-fn public_input() -> [F192; 2] {
+fn public_input() -> [F128; 2] {
     let message: Vec<u8> = [5u64, 7]
         .repeat(5)
         .into_iter()
@@ -110,14 +110,14 @@ fn public_input() -> [F192; 2] {
         .collect();
     let digest = primitives::hash::hash(&message);
     let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
-    let digest = [F192::new(word(0), word(1), 0), F192::new(word(2), word(3), 0)];
+    let digest = [F128::new(word(0), word(1), 0), F128::new(word(2), word(3), 0)];
     let mut value = digest[0];
-    let mut index = F192::ONE;
-    let generator = F192::from(g_pow(1));
+    let mut index = F128::ONE;
+    let generator = F128::from(g_pow(1));
     for _ in 0..LOOP_STEPS {
         let candidate = value + index;
         let product = candidate * generator;
-        value = (if product == F192::ZERO {
+        value = (if product == F128::ZERO {
             candidate
         } else {
             product + candidate
@@ -130,7 +130,7 @@ fn public_input() -> [F192; 2] {
 /// One honest proof of the program above, shared by the tests of both verifiers.
 pub(crate) struct Fixture {
     pub program: Program,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     pub proof: leanvm_core::cpu::Proof,
     /// What verifying it leaves.
     pub summary: verifier::Summary,

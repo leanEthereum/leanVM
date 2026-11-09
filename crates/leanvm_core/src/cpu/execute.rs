@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use super::hints::MAX_CELLS;
 use super::*;
 use primitives::{
-    field::{F64, F192, mul_by_g},
+    field::{F64, F128, mul_by_g},
     pretty_f64, pretty_integer,
 };
 
@@ -61,14 +61,14 @@ enum State {
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub(crate) struct Cell {
-    pub(crate) word: F192,
+    pub(crate) word: F128,
     pub(crate) count: u32,
     state: State,
 }
 
 impl Cell {
     pub(crate) const UNWRITTEN: Self = Self {
-        word: F192::ZERO,
+        word: F128::ZERO,
         count: 0,
         state: State::Unwritten,
     };
@@ -93,8 +93,8 @@ impl Memory {
     }
 
     /// The word in cell `i`.
-    pub fn word(&self, i: usize) -> F192 {
-        self.page(i >> PAGE_LOG).map_or(F192::ZERO, |p| p[i & (PAGE - 1)].word)
+    pub fn word(&self, i: usize) -> F128 {
+        self.page(i >> PAGE_LOG).map_or(F128::ZERO, |p| p[i & (PAGE - 1)].word)
     }
 
     /// Page `p`'s cells, `None` past the last one.
@@ -126,19 +126,19 @@ pub enum Fault {
     /// names the hint that wrote it, if one did.
     Conflict {
         cell: u32,
-        had: F192,
-        new: F192,
+        had: F128,
+        new: F128,
         hint: Option<&'static str>,
     },
     /// A `DEREF` through a word that is no small g-power: a wild pointer, or a failed
     /// range check.
-    WildPointer { value: F192 },
+    WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
-    NotInK { what: &'static str, value: F192 },
+    NotInK { what: &'static str, value: F128 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
     /// A `KECCAK` input cell outside the 128-bit embedding.
-    NotCanonical { cell: usize, value: F192 },
+    NotCanonical { cell: usize, value: F128 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -176,7 +176,7 @@ impl std::fmt::Display for ExecError {
 impl std::error::Error for ExecError {}
 
 /// A word as its limbs, most significant first.
-fn word(w: F192) -> String {
+fn word(w: F128) -> String {
     format!("{:x}:{:x}:{:x}", w.c2, w.c1, w.c0)
 }
 
@@ -217,7 +217,7 @@ impl std::fmt::Display for Fault {
 }
 
 /// A memory word that has to lie in K, or why it does not.
-fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
+fn in_k(what: &'static str, v: F128) -> Result<F64, Fault> {
     v.as_base().ok_or(Fault::NotInK { what, value: v })
 }
 
@@ -225,12 +225,12 @@ fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
 /// once per run, so a pop indexes it rather than hashing its name.
 struct Stream<'a> {
     name: &'a str,
-    entries: Option<&'a [Vec<F192>]>,
+    entries: Option<&'a [Vec<F128>]>,
     next: usize,
 }
 
 impl<'a> Stream<'a> {
-    fn pop(&mut self, len: u32) -> Result<&'a [F192], Fault> {
+    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
             .entries
@@ -260,7 +260,7 @@ impl Program {
     /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
-    pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
+    pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
         self.execute_with(public_input, &mut |_| {})
     }
 
@@ -268,7 +268,7 @@ impl Program {
     /// and as the row runs.
     pub(crate) fn execute_with(
         &self,
-        public_input: [F192; 2],
+        public_input: [F128; 2],
         keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
     ) -> Result<Execution, ExecError> {
         use super::hints::{BitsDest, GPow, RHint};
@@ -408,13 +408,13 @@ impl Program {
             // A hint's read, which writes nothing: what a hint computes is advice the
             // instructions go on to check.
             #[inline(always)]
-            fn get(&self, cell: u32) -> F192 {
-                self.covered(cell).map_or(F192::ZERO, |c| c.word)
+            fn get(&self, cell: u32) -> F128 {
+                self.covered(cell).map_or(F128::ZERO, |c| c.word)
             }
             // An instruction's read. An unwritten cell reads as ZERO, which is then written
             // there: the row is filled from the final image, which has to agree.
             #[inline(always)]
-            fn read(&mut self, cell: u32) -> F192 {
+            fn read(&mut self, cell: u32) -> F128 {
                 self.ensure(cell as usize);
                 let c = self.at(cell);
                 let word = c.word;
@@ -426,7 +426,7 @@ impl Program {
             }
             // Write-once store, carried to every cell linked to this one.
             #[inline(always)]
-            fn put(&mut self, cell: u32, v: F192) -> Result<(), ExecError> {
+            fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
                 if self.store(cell, v)? {
                     self.spread(cell, v)?;
                 }
@@ -434,7 +434,7 @@ impl Program {
             }
             // `put` on one cell; whether it was linked.
             #[inline(always)]
-            fn store(&mut self, cell: u32, v: F192) -> Result<bool, ExecError> {
+            fn store(&mut self, cell: u32, v: F128) -> Result<bool, ExecError> {
                 self.ensure(cell as usize);
                 let c = self.at(cell);
                 let s = c.state;
@@ -446,7 +446,7 @@ impl Program {
                 Ok(s == State::Linked)
             }
             #[cold]
-            fn spread(&mut self, cell: u32, v: F192) -> Result<(), ExecError> {
+            fn spread(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
                 let mut todo = vec![cell];
                 while let Some(c) = todo.pop() {
                     for p in self.links.remove(&c).unwrap_or_default() {
@@ -468,7 +468,7 @@ impl Program {
                 }
             }
             #[cold]
-            fn conflict(&self, cell: u32, v: F192) -> ExecError {
+            fn conflict(&self, cell: u32, v: F128) -> ExecError {
                 let fault = Fault::Conflict {
                     cell,
                     had: self.get(cell),
@@ -634,7 +634,7 @@ impl Program {
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
                                 m.ensure(next_free as usize);
-                                m.put(cell, F192::from(g.pow(base as usize)))?;
+                                m.put(cell, F128::from(g.pow(base as usize)))?;
                             }
                         }
                         RHint::Print { label, cell } => {
@@ -698,7 +698,7 @@ impl Program {
                                 u128::BITS - (word - 1).leading_zeros()
                             };
                             let mu = cl.max(*floor);
-                            m.put(fp + dst, F192::from(primitives::field::g_pow(mu as usize)))?;
+                            m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
                         }
                         RHint::BitDecompose { value, bits, nbits } => {
                             assert!(*nbits <= 192, "a machine word has 192 bits");
@@ -707,7 +707,7 @@ impl Program {
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
                                 let bit = (limbs[j as usize / 64] >> (j % 64)) & 1;
-                                m.put(bb + j, F192::new(bit, 0, 0))?;
+                                m.put(bb + j, F128::new(bit, 0, 0))?;
                             }
                         }
                         RHint::BitDecomposeExp { value, bits, nbits } => {
@@ -719,7 +719,7 @@ impl Program {
                                 .map_err(fail)?;
                             for j in 0..*nbits {
                                 let bit = ((n >> j) & 1) as u64;
-                                m.put(bb + j, F192::new(bit, 0, 0))?;
+                                m.put(bb + j, F128::new(bit, 0, 0))?;
                             }
                         }
                         RHint::WindowsExp {
@@ -740,7 +740,7 @@ impl Program {
                                     let bit = start + i * width + j;
                                     n |= (((limbs[bit as usize / 64] >> (bit % 64)) & 1) as usize) << j;
                                 }
-                                m.put(bb + at + i, F192::from(primitives::field::g_pow(n)))?;
+                                m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
                             }
                         }
                         RHint::DigitDecomposeExp {
@@ -772,20 +772,20 @@ impl Program {
                             for j in 0..*ndigits {
                                 let at = s + digit_bits * j;
                                 let d = if at >= 128 { 0 } else { (n >> at) & mask };
-                                m.put(bb + j, F192::from(primitives::field::g_pow(d as usize)))?;
+                                m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {
-                            assert!((1..=3).contains(len), "an F192 value has three K limbs");
+                            assert!((1..=3).contains(len), "an F128 value has three K limbs");
                             let v = m.get(fp + value);
                             let limbs = v.to_limbs();
                             for j in 0..*len {
-                                m.put(fp + base + j, F192::new(limbs[j as usize], 0, 0))?;
+                                m.put(fp + base + j, F128::new(limbs[j as usize], 0, 0))?;
                             }
                         }
                         RHint::Inverse { value, dst } => {
                             let v = m.get(fp + value);
-                            m.put(fp + dst, if v.is_zero() { F192::ZERO } else { v.inv() })?;
+                            m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
                         }
                     }
                     m.dbg_hint = None;
@@ -889,12 +889,12 @@ impl Program {
                             // The return target and the frame base are stored as
                             // addresses, and JUMP reads them back.
                             g.note(pc as usize + 2);
-                            let v = F192::from(g.pow(pc as usize + 2));
+                            let v = F128::from(g.pow(pc as usize + 2));
                             m.put(a2, v)?;
                         }
                         DerefMode::Fp => {
                             g.note(fp as usize);
-                            let v = F192::from(g.pow(fp as usize));
+                            let v = F128::from(g.pow(fp as usize));
                             m.put(a2, v)?;
                         }
                     }
@@ -959,7 +959,7 @@ impl Program {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let k = crate::tables::KeccakOp::of(&op);
                     let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
-                    let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
+                    let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // The table reads every cell with a literal zero top limb, so anything
                     // else could not balance the bus.
                     for (cell, &value) in input.iter().enumerate() {

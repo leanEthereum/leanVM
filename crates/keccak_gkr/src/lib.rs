@@ -88,7 +88,7 @@
 
 use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;
-use primitives::field::{F64, F192, F192Unreduced};
+use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
 
@@ -128,15 +128,15 @@ pub use witness::{Shape, Witness};
 /// runs, the point being a challenge drawn after the commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
-    pub instance: Vec<F192>,
-    pub lanes: [F192; keccak::LANES],
+    pub instance: Vec<F128>,
+    pub lanes: [F128; keccak::LANES],
 }
 
 impl OutputClaim {
     /// The true claim at `instance` on the batch of `inputs`, padded with all-zero inputs, by
     /// running the permutation: what a caller without a claim of its own (a test, a benchmark)
     /// binds and passes.
-    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F192>) -> Self {
+    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F128>) -> Self {
         let permute = |mut state: [u64; keccak::LANES]| {
             primitives::hash::keccak_f(&mut state);
             state
@@ -145,7 +145,7 @@ impl OutputClaim {
         let eq = eq_table(&instance);
         let lanes = parallel::fold_reduce(
             shape.n(),
-            || [F192Unreduced::ZERO; keccak::LANES],
+            || [F128Unreduced::ZERO; keccak::LANES],
             |acc, i| {
                 let output = inputs.get(i).map_or(padding, |&x| permute(x));
                 for (acc, word) in acc.iter_mut().zip(output) {
@@ -161,14 +161,14 @@ impl OutputClaim {
         );
         Self {
             instance,
-            lanes: lanes.map(F192Unreduced::reduce),
+            lanes: lanes.map(F128Unreduced::reduce),
         }
     }
 }
 
 /// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
 /// segment and lane weights.
-fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
+fn first(shape: Shape, output: &OutputClaim, segment: Vec<F128>, r_lane: &[F128]) -> Claim {
     assert_eq!(output.instance.len(), shape.n_log);
     let point = [&output.instance[4..], &segment[..]].concat();
     let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);

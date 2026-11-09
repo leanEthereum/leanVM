@@ -2,7 +2,7 @@
 //! compiler. Each is now rejected with a diagnostic, or compiled as written.
 
 use lean_compiler::{compile, parse};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 #[test]
 fn ambiguous_programs_are_rejected_when_parsed() {
@@ -86,13 +86,13 @@ fn ill_formed_calls_are_rejected_when_lowered() {
 
 #[test]
 fn programs_compile_as_written() {
-    let runs = |src: &str, witness: &[(&str, F192)]| {
+    let runs = |src: &str, witness: &[(&str, F128)]| {
         let mut program = compile(&parse(src).unwrap());
         for &(name, v) in witness {
             program.set_witness(name, vec![vec![v]]);
         }
         program
-            .execute([F192::ZERO; 2])
+            .execute([F128::ZERO; 2])
             .unwrap_or_else(|e| panic!("{e:?}, for:\n{src}"));
     };
     // Integers past `u32` were compared as field elements, `2^33 XOR 2^33 = 0`.
@@ -103,7 +103,7 @@ fn programs_compile_as_written() {
     // The stream name was substituted too, so the run read stream `8`.
     runs(
         "SEED = 8\n\ndef main():\n    s = StackBuf(1)\n    hint_witness(s, \"SEED\")\n    assert s[0] == 8\n    return\n",
-        &[("SEED", F192::from(F64(8)))],
+        &[("SEED", F128::from(F64(8)))],
     );
     // Identical builtin arms were taken for a fused dispatch to a function named `f192`.
     runs(

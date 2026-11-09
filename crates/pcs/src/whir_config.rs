@@ -31,7 +31,7 @@
 // ===================================================================
 
 // The production WHIR configuration: rate-1/2 Johnson list decoding with
-// OOD binding and 128-bit round-by-round soundness over F192.
+// OOD binding and 128-bit round-by-round soundness over F128.
 
 /// Round-by-round soundness target (bits): every verifier-challenge transition
 /// must have conditional failure probability at most `2^-SECURITY_BITS`.
@@ -503,7 +503,7 @@ fn johnson_interleaved_list_log2(log_inv_rate: usize, log_msg_cols: usize, eta: 
 /// A degree-`d` identity test unioned over a Johnson list of size `L` fails
 /// with probability at most `dL/|F|`. The relevant degrees are:
 ///
-/// - the total degree of the GF64-to-GF192 ring-switch batching map (L0 only,
+/// - the total degree of the GF64-to-GF128 ring-switch batching map (L0 only,
 ///   but included at every level so the bound also dominates the claim batch
 ///   entering the next level's list, whatever its query count);
 /// - `J − 1 = prev_queries + ood_samples`, the batch polynomial's degree in the

@@ -1,36 +1,27 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! `K = F64 = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and
-//! `E = F192 = K[y]/(y^3 + y + 1)`. Addresses, pc/fp, counters, and physical
-//! committed columns are K-valued. A machine word is `c0 + c1*y + c2*y² ∈ E`
-//! with `c0,c1,c2 ∈ K`; challenges, sumcheck/GKR values, and transcript scalars
+//! `E = F128 = K[y]/(y^2 + x*y + 1)`. Addresses, pc/fp, counters, and physical
+//! committed columns are K-valued. A machine word is `c0 + c1*y ∈ E`
+//! with `c0,c1 ∈ K`; challenges, sumcheck/GKR values, and transcript scalars
 //! are E-valued.
 //!
 //! - [`F64`]: GF(2^64), polynomial x^64 + x^4 + x^3 + x + 1
-//! - [`F192`]: `K[y]/(y^3 + y + 1)`
-//! - [`F192Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
+//! - [`F128`]: `K[y]/(y^2 + x*y + 1)`
+//! - [`F128Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
 
 #[cfg(target_arch = "aarch64")]
 pub mod neon;
 
-pub mod f192x8;
+pub mod f128x8;
 pub mod gf2_64;
-pub mod gf2_64x3;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "vpclmulqdq",
-    not(target_feature = "avx512f")
-))]
-pub mod x4;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-pub mod x8;
+pub mod gf2_64x2;
 
-pub use f192x8::{
-    Acc8, F64x8, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
+pub use f128x8::{
+    Acc8, F64x8, F128x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
     xor_into8,
 };
 pub use gf2_64::F64;
-pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
+pub use gf2_64x2::{F128, F128Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
 
 // ---------------------------------------------------------------------------
 // leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power
@@ -48,9 +39,9 @@ pub const fn mul_by_g(a: F64) -> F64 {
 
 /// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
 /// with the powers of one challenge, rather than `n` independent ones.
-pub fn powers(x: F192, n: usize) -> Vec<F192> {
+pub fn powers(x: F128, n: usize) -> Vec<F128> {
     let mut out = Vec::with_capacity(n);
-    let mut p = F192::ONE;
+    let mut p = F128::ONE;
     for _ in 0..n {
         out.push(p);
         p *= x;
@@ -117,11 +108,11 @@ pub fn g_pow32_by_lookup(i: u32) -> F64 {
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,
 /// evaluated at an `E`-point: `∏_k (1 + ζ_k·(1 + g^{2^k}))` in `O(n)` (§sec:idxcol).
 /// The `g^{2^k}` factors are `K`-constants, so each term is one mixed product.
-pub fn index_mle(zeta: &[F192]) -> F192 {
-    let mut acc = F192::ONE;
+pub fn index_mle(zeta: &[F128]) -> F128 {
+    let mut acc = F128::ONE;
     let mut g2k = F64::G; // g^{2^0} = g
     for &z in zeta {
-        acc *= F192::ONE + z.mul_base(F64::ONE + g2k);
+        acc *= F128::ONE + z.mul_base(F64::ONE + g2k);
         g2k = g2k * g2k;
     }
     acc

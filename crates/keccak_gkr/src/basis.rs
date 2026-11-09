@@ -5,7 +5,7 @@
 //! basis once, accumulates unreduced polynomials in `s`, and evaluates each total at `s` at the end.
 
 use primitives::field::gf2_64::mul_wide;
-use primitives::field::{F192, powers};
+use primitives::field::{F128, powers};
 
 fn xor3(a: &mut [u64; 3], b: &[u64; 3]) {
     for (x, y) in a.iter_mut().zip(b) {
@@ -20,10 +20,10 @@ pub struct PowerBasis {
 
 impl PowerBasis {
     /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
-    pub fn new(s: F192) -> Option<Self> {
+    pub fn new(s: F128) -> Option<Self> {
         // Row `r` holds bit `r` of every power, beside the identity.
         let mut rows = vec![([0u64; 3], [0u64; 3]); 192];
-        let mut power = F192::ONE;
+        let mut power = F128::ONE;
         for b in 0..192 {
             let p = power.to_limbs();
             for (r, row) in rows.iter_mut().enumerate() {
@@ -66,7 +66,7 @@ impl PowerBasis {
         Some(Self { tables })
     }
 
-    pub fn to_poly(&self, a: F192) -> [u64; 3] {
+    pub fn to_poly(&self, a: F128) -> [u64; 3] {
         let a = a.to_limbs();
         let mut p = [0u64; 3];
         for (k, table) in self.tables.iter().enumerate() {
@@ -77,8 +77,8 @@ impl PowerBasis {
 }
 
 /// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
-pub fn byte_sums(weights: &[F192; 8]) -> [F192; 256] {
-    let mut t = [F192::ZERO; 256];
+pub fn byte_sums(weights: &[F128; 8]) -> [F128; 256] {
+    let mut t = [F128::ZERO; 256];
     for (bit, &w) in weights.iter().enumerate() {
         for byte in 1usize << bit..2 << bit {
             t[byte] = t[byte - (1 << bit)] + w;
@@ -89,11 +89,11 @@ pub fn byte_sums(weights: &[F192; 8]) -> [F192; 256] {
 
 /// Evaluation at `s` of binary polynomials of at most `8 * n_bytes` coefficients.
 pub struct PolyEval {
-    tables: Vec<[F192; 256]>,
+    tables: Vec<[F128; 256]>,
 }
 
 impl PolyEval {
-    pub fn new(s: F192, n_bytes: usize) -> Self {
+    pub fn new(s: F128, n_bytes: usize) -> Self {
         Self {
             tables: powers(s, 8 * n_bytes)
                 .as_chunks::<8>()
@@ -105,8 +105,8 @@ impl PolyEval {
     }
 
     #[inline]
-    pub fn eval(&self, words: &[u64]) -> F192 {
-        let mut acc = F192::ZERO;
+    pub fn eval(&self, words: &[u64]) -> F128 {
+        let mut acc = F128::ZERO;
         for (k, table) in self.tables.iter().enumerate() {
             acc += table[(words[k / 8] >> (8 * (k % 8))) as usize & 0xff];
         }
@@ -157,6 +157,6 @@ mod tests {
             let pb = eval.eval(&[b, 0, 0, 0, 0]);
             assert_eq!(eval.eval(&[product[0], product[1], product[2], product[3], 0]), a * pb);
         }
-        assert!(PowerBasis::new(F192::ONE).is_none());
+        assert!(PowerBasis::new(F128::ONE).is_none());
     }
 }

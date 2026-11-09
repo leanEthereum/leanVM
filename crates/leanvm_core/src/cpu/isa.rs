@@ -1,6 +1,6 @@
 //! The ISA and the `DEREF` store modes.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
@@ -17,9 +17,9 @@ pub enum Op {
     Set {
         o: u32,
         /// The immediate stored into `mem[fp·o]`. A full 192-bit machine word
-        /// (`E = F192`); K-valued constants (addresses, small ints) ride the
+        /// (`E = F128`); K-valued constants (addresses, small ints) ride the
         /// low lane with `c1 = c2 = 0`.
-        k: F192,
+        k: F128,
     },
     Deref {
         o1: u32,

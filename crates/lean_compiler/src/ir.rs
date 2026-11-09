@@ -12,7 +12,7 @@ pub(crate) enum KVal {
     FrameSize,
     /// A 192-bit machine-word constant. Source literals fill only c0/c1, while
     /// compiler-generated constants may use the full field.
-    Const(F192),
+    Const(F128),
     Entry(String),
     /// The halt sentinel pc `g^{B-1}` (last bytecode slot), fixed once the
     /// padded bytecode size `B` is known. `main` jumps here, with `fp = g^0`, to

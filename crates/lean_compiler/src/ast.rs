@@ -1,6 +1,6 @@
 //! The surface AST produced by the parser: expressions, statements, functions.
 
-use primitives::field::F192;
+use primitives::field::F128;
 use std::sync::Arc;
 
 /// An expression. Arithmetic is the field's own: `+` is `XOR`, `*` is `MUL`.
@@ -295,7 +295,7 @@ pub struct Ast {
     /// Indexed `NAME[i]` and measured `len(NAME)` at compile time only, `i` being
     /// a literal, a constant or an `unroll` variable. Unlike a scalar constant
     /// these are not textually substituted, but resolved at lowering.
-    pub const_arrays: Vec<(String, Vec<F192>)>,
+    pub const_arrays: Vec<(String, Vec<F128>)>,
 }
 
 // Free-variable analysis: pure AST, no lowering state. Its one consumer is the

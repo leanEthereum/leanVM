@@ -93,7 +93,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
     // positions that demand a parse-time literal (`StackBuf`, `**`, `assert log
     // _ < _`).
     let mut consts: BTreeMap<String, String> = BTreeMap::new();
-    let mut const_arrays: Vec<(String, Vec<F192>)> = Vec::new();
+    let mut const_arrays: Vec<(String, Vec<F128>)> = Vec::new();
     let mut start = 0;
     while start < lines.len() {
         let Line {
@@ -150,7 +150,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                     v.map_err(|e| at(format!("global constant array `{name}`: {e}")))?
                 } else {
                     let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
-                    F192::new(n as u64, (n >> 64) as u64, 0)
+                    F128::new(n as u64, (n >> 64) as u64, 0)
                 };
                 elems.push(elem);
             }

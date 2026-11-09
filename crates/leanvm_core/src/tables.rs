@@ -6,7 +6,7 @@
 //!
 //! Columns are `K`-valued (`F64`). The pc/fp, operands, counts, opcodes and
 //! separators are single `K`-columns; a **machine word** (memory value) is
-//! 192-bit (`E = F192`), committed as THREE `K`-lane columns. Nothing a row
+//! 192-bit (`E = F128`), committed as THREE `K`-lane columns. Nothing a row
 //! DERIVES is a column at all: an operand address `fp·o`, an `XOR`/`MUL` result,
 //! the `DEREF` store, the `JUMP` successors are each written out as the degree-2
 //! bus coordinate that carries them (§sec:m3), which leaves `JUMP`'s is-nonzero
@@ -17,7 +17,7 @@
 use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
-use primitives::field::{F64, F192, mul_by_g};
+use primitives::field::{F64, F128, mul_by_g};
 
 // ---- the identities ----------------------------------------------------------
 //
@@ -338,7 +338,7 @@ pub trait Table: Sync {
     /// indexed past its end panics rather than reaching into the next table's range.
     /// The default is the constraint-free case; a table that declares constraints and
     /// forgets to state them trips the assert instead of dropping them.
-    fn constraint(&self, pows: &[F192]) -> BusForm {
+    fn constraint(&self, pows: &[F128]) -> BusForm {
         assert!(pows.is_empty(), "a table with constraints must state them");
         BusForm::new(self.n_committed_columns())
     }
@@ -755,7 +755,7 @@ impl Table for JumpTable {
     /// The condition is `K`-valued, so both identities are single-lane. Its memory
     /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
     /// `K` cannot balance the bus; the interpreter rejects one outright.
-    fn constraint(&self, pows: &[F192]) -> BusForm {
+    fn constraint(&self, pows: &[F128]) -> BusForm {
         use jump::*;
         let mut form = BusForm::new(N);
         form.coeffs[B] = pows[0];
@@ -1008,23 +1008,23 @@ mod tests {
     use super::*;
     use primitives::field::powers;
 
-    const C: F192 = F192::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef, 0x1111_2222_3333_4444);
+    const C: F128 = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef, 0x1111_2222_3333_4444);
 
     /// The hand-unrolled tower product IS `E`'s multiplication, lane by lane. `MUL`'s
     /// result coordinate is written out from [`TOWER_LANES`] and rides the bus, where
     /// nothing checks it against the field at run time, so pin the unrolling here.
     #[test]
     fn unrolled_tower_product_matches_field_product() {
-        let lanes = |v: F192| v.to_limbs().map(F64);
-        let (x, y) = (C, C * C + F192::ONE);
+        let lanes = |v: F128| v.to_limbs().map(F64);
+        let (x, y) = (C, C * C + F128::ONE);
         let got = [0, 1, 2].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
-        assert_eq!(F192::from_limbs(got), x * y);
+        assert_eq!(F128::from_limbs(got), x * y);
     }
 
     /// `JUMP`'s two identities vanish on an honest row, taken or not.
     #[test]
     fn jump_identities_vanish_on_an_honest_row() {
-        let pows = powers(F192::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0, 7), 2);
+        let pows = powers(F128::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0, 7), 2);
         // The condition is K-valued (`memory_k` on its read, §sec:tab-jump), so the
         // pair is single-lane: `w = c⁻¹` in K too.
         for cond in [F64::ZERO, F64(0x9e37_79b9_7f4a_7c15)] {
@@ -1033,10 +1033,10 @@ mod tests {
             row[jump::V_COND] = cond;
             row[jump::W] = w;
             row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };
-            let row: Vec<F192> = row.into_iter().map(F192::from).collect();
+            let row: Vec<F128> = row.into_iter().map(F128::from).collect();
             assert_eq!(
                 JumpTable.constraint(&pows).eval(&row, false),
-                F192::ZERO,
+                F128::ZERO,
                 "cond = {cond:?}"
             );
         }

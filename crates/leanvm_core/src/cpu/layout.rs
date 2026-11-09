@@ -145,7 +145,7 @@ pub struct Layout {
     pub shape: witness::StackShape,
     /// Public input: the first two memory cells `m[0], m[1]` (each a 192-bit
     /// word), bound to the committed memory at verification (§sec:e2e-pi).
-    pub pi: [F192; 2],
+    pub pi: [F128; 2],
     pub taus: [usize; tables::N_TABLES],
     /// Rows per table the program executed, at most `2^taus[t]`: the rest are padding
     /// rows (§sec:e2e-pad).
@@ -394,7 +394,7 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
 /// reference columns only by INDEX and the program only through its public columns, so
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
-pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
     layout_of(&bytecode_columns(prog), log_mem, rows, pi)
 }
 
@@ -403,7 +403,7 @@ pub(crate) fn layout_of(
     prog_cols: &BytecodeColumns,
     log_mem: usize,
     rows: [usize; tables::N_TABLES],
-    pi: [F192; 2],
+    pi: [F128; 2],
 ) -> Layout {
     let taus = table_logs(rows);
     let bytecode_size = prog_cols[0].len();
