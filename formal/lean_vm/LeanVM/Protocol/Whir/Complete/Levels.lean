@@ -128,5 +128,72 @@ theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf
     rw [show j + (n + 1) = j + 1 + n by ring]
     simpa using hI''
 
+/-! ## The queries -/
+
+/-- **The query positions**: the script receives the verifier's, each below `2^depth`. -/
+theorem follows_sampleQueriesS (depth : ℕ) (cs : Commits) : ∀ (fuel rem : ℕ),
+    Follows (fun cs' (a b : List ℕ) ↦ cs' = cs ∧ a = b ∧ ∀ q ∈ b, q < 2 ^ depth)
+      (sampleQueriesS depth fuel rem) (sampleQueriesAux depth fuel rem) cs
+  | 0, rem => by simp [sampleQueriesS, sampleQueriesAux, Follows]
+  | fuel + 1, rem => by
+    by_cases h0 : rem = 0
+    · simp [sampleQueriesS, sampleQueriesAux, h0, Follows]
+    · simp only [sampleQueriesS, sampleQueriesAux, h0, ite_false, Script.bind_eq,
+        VerifierProgram.bind_eq, Script.pure_eq, VerifierProgram.pure_eq]
+      refine Follows.bind (fun cs₁ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
+      obtain ⟨hcs, rfl⟩ := h
+      refine Follows.bind (fun cs₂ a b h ↦ ?_) _ _ _ (follows_sampleQueriesS depth cs₁ fuel _)
+      obtain ⟨hcs', rfl, hb⟩ := h
+      refine ⟨hcs'.trans hcs, rfl, fun q hq ↦ ?_⟩
+      rcases List.mem_append.mp hq with hq | hq
+      · obtain ⟨c, -, rfl⟩ := List.mem_map.mp hq
+        exact Nat.mod_lt _ (Nat.two_pow_pos _)
+      · exact hb q hq
+
+/-! ## The tail sumcheck -/
+
+theorem grindingBits_two : grindingBits 2 = 0 := by decide
+
+/-- **The tail sumcheck follows the verifier's**: from the claim `⟨w, g⟩` on tables of `2^n`
+entries, it ends at the challenges' point on the claim `w̃(r) g̃(r)`. -/
+theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 ^ n → g.size = 2 ^ n →
+    Follows (fun cs' _ (b : List E × E) ↦ cs' = cs ∧ b.1.length = n ∧
+        b.2 = multilinearEval w.toList b.1 * multilinearEval g.toList b.1)
+      (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
+        (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate n none) (w, g))
+      (sumcheck (dot w.toList g.toList) 3 (List.replicate n none)) cs
+  | 0, w, g, hw, hg => by
+    have h1 : w.toList.length = 1 := by simp [hw]
+    have h2 : g.toList.length = 1 := by simp [hg]
+    obtain ⟨a, ha⟩ := List.length_eq_one_iff.mp h1
+    obtain ⟨b, hb⟩ := List.length_eq_one_iff.mp h2
+    show cs = cs ∧ ([] : List E).length = 0 ∧
+      dot w.toList g.toList = multilinearEval w.toList [] * multilinearEval g.toList []
+    rw [ha, hb]
+    simp [dot, multilinearEval]
+  | n + 1, w, g, hw, hg => by
+    simp only [List.replicate_succ, sumcheckBy, sumcheck, wire, roundGrind, Option.isSome_none,
+      Bool.false_eq_true, ite_false, add_zero, List.length_cons,
+      Nat.add_one_sub_one, grindingBits_two, Script.grindBits, ite_true, List.headD_cons,
+      List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly, VerifierProgram.grindProofOfWork,
+      VerifierProgram.bind_eq, VerifierProgram.pure_eq, Script.sendList, Script.sampleE,
+      VerifierProgram.readScalar, VerifierProgram.readScalars, VerifierProgram.sampleChallenge,
+      Script.bind, VerifierProgram.bind]
+    intro c
+    have hW : w.toList.length = g.toList.length := by simp [hw, hg]
+    have hE : Even w.toList.length := by simp [hw, pow_succ]
+    have hpoly := polyEval_roundQuad c w.toList g.toList hW hE
+    simp only [roundQuad, ← roundC0A_eq, ← roundC2A_eq] at hpoly
+    beta_reduce
+    rw [hpoly, ← toList_foldPairsA, ← toList_foldPairsA]
+    have hs : ∀ t : Array E, t.size = 2 ^ (n + 1) → (foldPairsA c t).size = 2 ^ n := fun t ht ↦ by
+      simp [foldPairsA, ht, pow_succ]
+    refine Follows.bind (fun cs₂ _ b h ↦ ?_) _ _ _
+      (follows_tail cs n (foldPairsA c w) (foldPairsA c g) (hs w hw) (hs g hg))
+    obtain ⟨rfl, hl, hb⟩ := h
+    refine ⟨rfl, by simp [hl], ?_⟩
+    simp only [multilinearEval_cons, ← toList_foldPairsA]
+    exact hb
+
 end
 end LeanVM.Protocol.Whir.Complete
