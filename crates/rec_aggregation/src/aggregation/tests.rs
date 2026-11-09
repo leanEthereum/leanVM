@@ -4,7 +4,7 @@ use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
-use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
+use super::hints::{FORGE, Forgery, Hints, LX_DIGIT_GROUP, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, check_signer_set, decode, encode};
@@ -195,18 +195,48 @@ fn forged_lean_sphincs_hints_are_rejected() {
     }
 }
 
+/// The guest's `INLINE_STEPS`: the chain steps a digit group's dispatch arm walks itself.
+const INLINE_STEPS: usize = 7;
+
+/// The `chain_starts` entry of a chain the guest's `walk_far` walks: the first of a digit
+/// group's chains to take its steps past `INLINE_STEPS`.
+fn far_chain_start(hints: &mut Hints) -> usize {
+    let len = lean_xmss::CHAIN_LEN;
+    for layer in 0..2 {
+        let groups = hints.entry_mut("lx_digits", layer).clone();
+        for (p, group) in groups.iter().enumerate() {
+            let k = (0..len.pow(LX_DIGIT_GROUP as u32))
+                .find(|&k| count(k) == *group)
+                .expect("a digit group");
+            let mut walked = 0;
+            for r in 0..LX_DIGIT_GROUP.min(lean_xmss::V - LX_DIGIT_GROUP * p) {
+                walked += len - 1 - k / len.pow(r as u32) % len;
+                if walked > INLINE_STEPS {
+                    return layer * lean_xmss::V + LX_DIGIT_GROUP * p + r;
+                }
+            }
+        }
+    }
+    panic!("the signature walks every chain in its dispatch arms")
+}
+
 /// A leanXMSS signature's leaf index and codeword are bound in-circuit: a node whose
-/// hints change the index, dispatch a path window other than the index's, or
-/// dispatch a digit group other than the digest's fails the guest's run.
+/// hints change the index, dispatch a path window other than the index's, dispatch a
+/// digit group other than the digest's, or start a chain walked outside its dispatch
+/// arm elsewhere fails the guest's run.
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
     leanvm_core::init_prover();
     let signers = signing(&get_signers(1), 0);
-    let forgeries: [Forgery; 3] = [
+    let forgeries: [Forgery; 4] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F192::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("lx_digits", 0)[0] *= count(1);
+        }),
+        Box::new(|hints: &mut Hints| {
+            let chain = far_chain_start(hints);
+            hints.entry_mut("chain_starts", chain)[0] += F192::ONE;
         }),
     ];
     for forgery in forgeries {

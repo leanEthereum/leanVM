@@ -404,6 +404,20 @@ DIGIT_GROUP = DIGIT_GROUP_PLACEHOLDER
 DIGIT_GROUPS = CHAIN_LENGTH ** DIGIT_GROUP
 # The digit sum of group k, at k.
 DIGIT_SUMS = DIGIT_SUMS_PLACEHOLDER
+# A dispatch arm walks its group's leading chains while their steps total at most
+# INLINE_STEPS (`walk_group`): more saves `walk_far` calls, fewer saves the cells
+# every arm reserves.
+INLINE_STEPS = 7
+# Where a walk record (`walk`) keeps P and the first tip, by scheme (lx), and the
+# other cells a leanSPHINCS step reads.
+SP_WB_A1 = 0
+SP_WB_PP = 1
+SP_WB_A0 = 2
+SP_WB_TIPS = 4
+LX_WB_PP = 3
+LX_WB_TIPS = 5
+WB_PP = [SP_WB_PP, LX_WB_PP]
+WB_TIPS = [SP_WB_TIPS, LX_WB_TIPS]
 
 # ----------------------------------------------------- leanXMSS (host-supplied)
 # Two layers of trees of height LX_HEIGHT over keys of LX_V chains. A layer's digest
@@ -3517,9 +3531,14 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 # Every addressed hash input is P | A | M with P, each value of M and each half of A
 # 16 bytes (A is one cell in leanXMSS, two in leanSPHINCS), so each is one cell: a
 # hash's output feeds the next hash where it lands, and a hinted value needs no check
-# of its own, the KECCAK table reading only canonical cells. A chain's steps land in
-# fixed slots of a `walks` run, so its tip is one cell whatever the digit, read there
-# by the leaf's hash.
+# of its own, the KECCAK table reading only canonical cells. A one-time key's walk
+# record (`wb`) holds what a chain step reads besides its value, then the leaf's input,
+# P, the leaf's address and the chain tips: leanXMSS [at[0], at[1], at[2], P, A, tips],
+# leanSPHINCS [A1, P, A0, A, tips]. A dispatch arm walks its leading chains while their
+# steps total at most INLINE_STEPS, each step but the last into a cell of its own, which
+# the arms share, and the last into the record; `walk_far` walks the rest in a frame
+# sized to them. So a key's cells are about the steps its codeword asks for, not the
+# most any could.
 
 
 @inline
@@ -3535,20 +3554,12 @@ def is_child(node, kids, k: Const, bit):
 
 
 @inline
-def chain_tip(walks, i: Const):
-    # Chain i's tip, in the last of its CHAIN_STEPS slots of `walks`.
-    tip = walks[(i + 1) * CHAIN_STEPS - 1]
-    return tip
-
-
-@inline
-def walk(at, pp, walks, tags, powers, i: Const, k: Const, lx: Const):
-    # Walk chain i from position k to its end, the step leaving position s landing in
-    # chain i's slot s of `walks`, so the tip is chain_tip(walks, i) whatever k is. A
-    # leanSPHINCS step's address is at[0] and at[1] with i and s added, the value last;
-    # a leanXMSS one carries only s, at[s] computed once per key, i riding after the
-    # value, read off a cell set outside the dispatch (the zero cell, `powers` or
-    # `tags`), so an arm names it rather than setting it again.
+def walk(wb, pp, tags, powers, i: Const, k: Const, lx: Const):
+    # Walk chain i from position k to its end, its tip into the record. A leanSPHINCS
+    # step's address is A0 and A1 with i and s added, the value last; a leanXMSS one
+    # carries only s, at[s] computed once per key, i riding after the value, read off a
+    # cell set outside the dispatch (the zero cell, `powers` or `tags`), so an arm names
+    # it rather than setting it again.
     if const(lx == 1):
         if const(i == 0):
             tag = 0
@@ -3557,27 +3568,72 @@ def walk(at, pp, walks, tags, powers, i: Const, k: Const, lx: Const):
         else:
             tag = tags[LX_TAG_SLOT[i] - 1]
     if const(k == CHAIN_STEPS):
-        hint_witness(walks[(i + 1) * CHAIN_STEPS - 1:(i + 1) * CHAIN_STEPS], "chain_starts")
+        hint_witness(wb[WB_TIPS[lx] + i:WB_TIPS[lx] + i + 1], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS):
-            o = CHAIN_STEPS * i + s
+            o = WB_TIPS[lx] + i
+            if const(s + 1 != CHAIN_STEPS):
+                out = StackBuf(1)
             if const(lx == 1):
-                keccak([pp, at[s]], [value, tag], walks[o:o + 1])
+                if const(s + 1 == CHAIN_STEPS):
+                    keccak([pp, wb[s]], [value, tag], wb[o:o + 1])
+                else:
+                    keccak([pp, wb[s]], [value, tag], out)
             else:
-                keccak([pp, at[0]], [at[1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0), value], walks[o:o + 1])
-            value = walks[o]
+                a1 = wb[SP_WB_A1] + const(i * SP_WORD2_MUL + s * SP_WORD3_MUL_0)
+                if const(s + 1 == CHAIN_STEPS):
+                    keccak([pp, wb[SP_WB_A0]], [a1, value], wb[o:o + 1])
+                else:
+                    keccak([pp, wb[SP_WB_A0]], [a1, value], out)
+            if const(s + 1 != CHAIN_STEPS):
+                value = out[0]
+    return
+
+
+def walk_far(cx, i0: Const, m: Const, kd: Const, lx: Const):
+    # `walk` for the m chains from i0 on, at the digits of kd (low first), in this
+    # frame: what a dispatch arm leaves over. `cx` points at the walk record, read for
+    # the step addresses and P, written with the tips.
+    pp = cx[GEN ** WB_PP[lx]]
+    for r in unroll(0, m):
+        if const((kd // CHAIN_LENGTH ** r) % CHAIN_LENGTH == CHAIN_STEPS):
+            hint_witness(cx[WB_TIPS[lx] + i0 + r:WB_TIPS[lx] + i0 + r + 1], "chain_starts")
+        else:
+            value = hint_witness("chain_starts")
+            for s in unroll((kd // CHAIN_LENGTH ** r) % CHAIN_LENGTH, CHAIN_STEPS):
+                o = WB_TIPS[lx] + i0 + r
+                if const(s + 1 != CHAIN_STEPS):
+                    out = StackBuf(1)
+                if const(lx == 1):
+                    if const(s + 1 == CHAIN_STEPS):
+                        keccak([pp, cx[GEN ** s]], [value, const(i0 + r)], cx[o:o + 1])
+                    else:
+                        keccak([pp, cx[GEN ** s]], [value, const(i0 + r)], out)
+                else:
+                    a1 = cx[GEN ** SP_WB_A1] + const((i0 + r) * SP_WORD2_MUL + s * SP_WORD3_MUL_0)
+                    if const(s + 1 == CHAIN_STEPS):
+                        keccak([pp, cx[GEN ** SP_WB_A0]], [a1, value], cx[o:o + 1])
+                    else:
+                        keccak([pp, cx[GEN ** SP_WB_A0]], [a1, value], out)
+                if const(s + 1 != CHAIN_STEPS):
+                    value = out[0]
     return
 
 
 @inline
-def walk_group(at, pp, walks, tags, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
+def walk_group(wb, cx, pp, tags, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
     # The n chains from `first` on, at the digits of k (its low n), one dispatch for
-    # all of them. Folds the digits' sum into `product`, in the exponent (`powers[s]` is
-    # GEN ** s), and the digits into `encoded`, where the encoding digest holds them:
-    # leanXMSS's low first, leanSPHINCS's most significant first in each byte (base_2b).
+    # all of them: those whose steps, with the ones before, total at most
+    # INLINE_STEPS here, the rest in one `walk_far`. Folds the digits' sum into
+    # `product`, in the exponent (`powers[s]` is GEN ** s), and the digits into
+    # `encoded`, where the encoding digest holds them: leanXMSS's low first,
+    # leanSPHINCS's most significant first in each byte (base_2b).
     for r in unroll(0, n):
-        walk(at, pp, walks, tags, powers, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
+        if const((CHAIN_STEPS * (r + 1) - DIGIT_SUMS[k % CHAIN_LENGTH ** (r + 1)]) // (INLINE_STEPS + 1) == 0):
+            walk(wb, pp, tags, powers, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
+        elif const((CHAIN_STEPS * r - DIGIT_SUMS[k % CHAIN_LENGTH ** r]) // (INLINE_STEPS + 1) == 0):
+            walk_far(cx, first + r, n - r, k // CHAIN_LENGTH ** r, lx)
     if const(lx == 1):
         digits = const(k % CHAIN_LENGTH ** n * CHAIN_LENGTH ** first)
     else:
@@ -3585,25 +3641,6 @@ def walk_group(at, pp, walks, tags, first: Const, n: Const, k: Const, lx: Const,
         for r in unroll(0, n):
             digits = digits + const(((k // CHAIN_LENGTH ** r) % CHAIN_LENGTH) * 2 ** (8 * ((first + r) // SP_DIGITS_PER_BYTE) + W * (SP_DIGITS_PER_BYTE - 1 - (first + r) % SP_DIGITS_PER_BYTE)))
     return product * powers[DIGIT_SUMS[k % CHAIN_LENGTH ** n]], encoded + digits
-
-
-@inline
-def leaf_word(p0, p1, walks, j: Const):
-    # Word j of a one-time leaf's input: the prefix (p0, p1), then the chain tips.
-    w = p0
-    if const(j == 1):
-        w = p1
-    if const(j != 0):
-        if const(j != 1):
-            w = chain_tip(walks, j - 2)
-    return w
-
-
-@inline
-def wots_leaf(p0, p1, walks, n: Const, leaf):
-    # The hash of the prefix (p0, p1) and the n chain tips, each read where its walk left it.
-    keccak_cells([leaf_word(p0, p1, walks, j) for j in unroll(0, n + 2)], leaf)
-    return
 
 
 # ========================= leanXMSS signature verification ========================
@@ -3670,9 +3707,12 @@ def verify_lean_xmss(signer, tags):
     hint_witness(his, "lx_index")
     windows = StackBuf(LX_WINDOWS)
     hint_witness(windows, "lx_windows")
+    # GEN ** s, multiplied up rather than set: the loop's SETs are the scarcer.
     powers = StackBuf(LX_DIGIT_GROUP * CHAIN_STEPS + 1)
-    for s in unroll(0, LX_DIGIT_GROUP * CHAIN_STEPS + 1):
-        powers[s] = GEN ** s
+    powers[0] = 1
+    powers[1] = GEN
+    for s in unroll(2, LX_DIGIT_GROUP * CHAIN_STEPS + 1):
+        powers[s] = powers[s - 1] * powers[1]
     for layer in unroll(0, 2):
         if const(layer == 0):
             idx = his[0]
@@ -3692,10 +3732,12 @@ def verify_lean_xmss(signer, tags):
         # and folding its digits in: their sums into a product that must be the
         # target sum, and the digits, each where the digest holds it, into D, which
         # also checks the digits past LX_V are zero.
-        steps = StackBuf(CHAIN_STEPS)
+        wb = StackBuf(LX_WB_TIPS + LX_V)
         for st in unroll(0, CHAIN_STEPS):
-            steps[st] = idx + const(TW_CHAIN + st * STEP_MUL)
-        walks = StackBuf(LX_V * CHAIN_STEPS)
+            wb[st] = idx + const(TW_CHAIN + st * STEP_MUL)
+        wb[LX_WB_PP] = pp
+        wb[LX_WB_PP + 1] = idx + TW_LEAF
+        cx = [addr(wb)]  # materialized once, above the dispatches
         digit_product = 1
         encoded = 0
         groups = StackBuf(LX_DIGIT_DISPATCHES)
@@ -3706,13 +3748,13 @@ def verify_lean_xmss(signer, tags):
         # Back to back, each arm entering the next dispatch. The last group's table is as
         # wide as the others, its range check what keeps it to LX_DIGIT_TAIL digits.
         for p in unroll(0, LX_DIGIT_DISPATCHES):
-            digit_product, encoded = match(log(groups[p]), range(0, LX_DIGIT_GROUPS), lambda k: walk_group(steps, pp, walks, tags, LX_DIGIT_GROUP * p, LX_GROUP_SIZES[p], k, 1, powers, digit_product, encoded))
+            digit_product, encoded = match(log(groups[p]), range(0, LX_DIGIT_GROUPS), lambda k: walk_group(wb, cx[0], pp, tags, LX_DIGIT_GROUP * p, LX_GROUP_SIZES[p], k, 1, powers, digit_product, encoded))
         digest[0] = encoded  # the digits, stored where D already is
         assert digit_product == GEN ** LX_TARGET_SUM
 
         # The one-time leaf, then the path to the layer's root, a window at a time.
         leaf = StackBuf(1)
-        wots_leaf(pp, idx + TW_LEAF, walks, LX_V, leaf)
+        keccak_cells(wb[LX_WB_PP:LX_WB_TIPS + LX_V], leaf)
         cur = leaf[0]
         for v in unroll(0, LX_LAYER_WINDOWS):
             w = layer * LX_LAYER_WINDOWS + v
@@ -3866,7 +3908,7 @@ def sp_fors_tree(pp, a0, a1, bits0, bits1, vals, roots, c: Const):
 @inline
 def sp_word(pp, a0, a1, run, first: Const, stride: Const, j: Const):
     # Word j of a T_l input: PK.seed, the address, then the values, value i at
-    # run[first + stride i] (the FORS roots, or a one-time key's chain tips).
+    # run[first + stride i] (the FORS roots).
     w = pp
     if const(j == 1):
         w = a0
@@ -3885,8 +3927,12 @@ def sp_wots(pp, a0, a1, encoding):
     # digits in: their sums into a product that must be the target sum, and the
     # digits, each group where the digest holds it, into the digest. One function for
     # the three layers.
-    at = [a0, a1]
-    walks = StackBuf(SP_V * CHAIN_STEPS)
+    wb = StackBuf(SP_WB_TIPS + SP_V)
+    wb[SP_WB_A1] = a1
+    wb[SP_WB_PP] = pp
+    wb[SP_WB_A0] = a0
+    wb[SP_WB_PP + 2] = a1 + const(SP_WOTS_PK)
+    cx = [addr(wb)]  # materialized once, above the dispatches
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
     for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
@@ -3897,16 +3943,15 @@ def sp_wots(pp, a0, a1, encoding):
     for p in unroll(0, SP_V // DIGIT_GROUP):
         group = hint_witness("digits")
         assert log(group) < DIGIT_GROUPS
-        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(at, pp, walks, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
+        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(wb, cx[0], pp, powers, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
     # The chain the groups leave over.
     group = hint_witness("digits")
     assert log(group) < CHAIN_LENGTH
-    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(at, pp, walks, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
+    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(wb, cx[0], pp, powers, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert encoded == encoding
     assert digit_product == GEN ** SP_TARGET_SUM
     leaf = StackBuf(1)
-    pk_at = a1 + const(SP_WOTS_PK)
-    keccak_cells([sp_word(pp, a0, pk_at, walks, CHAIN_STEPS - 1, CHAIN_STEPS, j) for j in unroll(0, SP_V + 3)], leaf)
+    keccak_cells(wb[SP_WB_PP:SP_WB_TIPS + SP_V], leaf)
     return leaf[0]
 
 
