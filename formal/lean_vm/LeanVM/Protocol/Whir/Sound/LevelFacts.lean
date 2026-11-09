@@ -144,5 +144,80 @@ theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List 
     simp only [runW_glueLevel] at heq
     rw [heq, hgl, hb, gluedV]
 
+/-! ## The groups' escapes -/
+
+/-- The two out-of-domain points as two tuples. -/
+theorem sampleOodPoints_two (mu : ℕ) :
+    sampleOodPoints mu 2 = (sampleChallenges mu).bind fun p₁ ↦
+      (sampleChallenges mu).bind fun p₂ ↦ VerifierProgram.ret [p₁, p₂] := by
+  simp only [sampleOodPoints, bind_eq, pure_eq, VerifierProgram.bind_assoc, ret_bind]
+
+/-- **The out-of-domain group's expectation**, for a function of the points alone. -/
+theorem retExp_oodPoints (G : List (List E) → ENNReal) (mu : ℕ) (h₀ : List Ev) :
+    retExp (fun pts _ ↦ G pts) h₀ [] (sampleOodPoints mu 2) =
+      (Fintype.card E : ENNReal)⁻¹ ^ mu * ∑ f₁ : Fin mu → E,
+        (Fintype.card E : ENNReal)⁻¹ ^ mu * ∑ f₂ : Fin mu → E, G [List.ofFn f₁, List.ofFn f₂] := by
+  rw [sampleOodPoints_two, retExp_bind]
+  have hin : ∀ (p₁ : List E) (h : List Ev),
+      retExp (fun pts _ ↦ G pts) h [] ((sampleChallenges mu).bind fun p₂ ↦
+        VerifierProgram.ret [p₁, p₂]) =
+      (Fintype.card E : ENNReal)⁻¹ ^ mu * ∑ f₂ : Fin mu → E, G [p₁, List.ofFn f₂] := by
+    intro p₁ h
+    rw [retExp_bind]
+    have : (fun a (h' : List Ev) ↦ retExp (fun pts _ ↦ G pts) h' [] (VerifierProgram.ret [p₁, a])) =
+        fun a _ ↦ G [p₁, a] := by
+      funext a h'; simp [retExp]
+    rw [this]
+    exact retExp_sampleN (fun v ↦ G [p₁, v]) mu h []
+  simp only [hin]
+  exact retExp_sampleN (fun v ↦ (Fintype.card E : ENNReal)⁻¹ ^ mu *
+    ∑ f₂ : Fin mu → E, G [v, List.ofFn f₂]) mu h₀ []
+
+open Classical in
+/-- **The out-of-domain group's escape**: a predicate of the points and the commitments breaks
+at most on the pairs of `bad`. -/
+theorem escRet_oodPoints_le (Q : List (List E) → List (ℕ × ℕ × Word) → Prop) (mu : ℕ)
+    (h₀ : List Ev) (bad : Finset ((Fin mu → E) × (Fin mu → E)))
+    (hbad : ∀ f₁ f₂, ¬ Q [List.ofFn f₁, List.ofFn f₂] (commits h₀) → (f₁, f₂) ∈ bad) :
+    escRet (fun pts h ↦ Q pts (commits h)) h₀ [] (sampleOodPoints mu 2) ≤
+      (Fintype.card E : ENNReal)⁻¹ ^ mu * (Fintype.card E : ENNReal)⁻¹ ^ mu * bad.card := by
+  unfold escRet
+  have hc := retExp_commits (fun a cs ↦ if Q a cs then (0 : ENNReal) else 1)
+    (sampleOodPoints mu 2) h₀ []
+  rw [hc, List.append_nil, retExp_oodPoints (fun pts ↦ if Q pts (commits h₀) then 0 else 1)]
+  simp only [← Finset.mul_sum, ← mul_assoc]
+  gcongr
+  rw [← Fintype.sum_prod_type' (f := fun f₁ f₂ ↦
+    if Q [List.ofFn f₁, List.ofFn f₂] (commits h₀) then (0 : ENNReal) else 1)]
+  calc ∑ p : (Fin mu → E) × (Fin mu → E),
+        (if Q [List.ofFn p.1, List.ofFn p.2] (commits h₀) then (0 : ENNReal) else 1)
+      ≤ ∑ p : (Fin mu → E) × (Fin mu → E), (if p ∈ bad then (1 : ENNReal) else 0) :=
+        Finset.sum_le_sum fun p _ ↦ by
+          by_cases hq : Q [List.ofFn p.1, List.ofFn p.2] (commits h₀)
+          · simp [hq]
+          · simp [hq, hbad p.1 p.2 hq]
+    _ = bad.card := by rw [Finset.sum_boole]; simp
+
+open Classical in
+/-- **The query group's escape**: if the positions breaking a predicate (in range, `t` of
+them) all lie in `S`, its escape is at most `(|S| / 2^depth)^t`. -/
+theorem escRet_queries_le (Q : List ℕ → List (ℕ × ℕ × Word) → Prop) (depth t : ℕ)
+    (h1 : 1 ≤ depth) (h128 : depth ≤ 128) (h₀ : List Ev) (S : ℕ → Prop) [DecidablePred S]
+    (hS : ∀ qs : List ℕ, (∀ q ∈ qs, q < 2 ^ depth) → qs.length = t → ¬ Q qs (commits h₀) →
+      ∀ q ∈ qs, S q) :
+    escRet (fun qs h ↦ Q qs (commits h)) h₀ [] (sampleQueries depth t) ≤
+      ((univ.filter fun j : Fin (2 ^ depth) ↦ S j).card / 2 ^ depth : ENNReal) ^ t := by
+  unfold escRet
+  have hc := retExp_commits (fun a cs ↦ if Q a cs then (0 : ENNReal) else 1)
+    (sampleQueries depth t) h₀ []
+  rw [hc, List.append_nil, sampleQueries,
+    retExp_sampleQueriesAux_restrict_len depth h1 h128 _ t t le_rfl]
+  refine le_trans (retExp_mono (g' := fun qs _ ↦ allIn S qs) (fun qs _ ↦ ?_) _ _ _)
+    (retExp_sampleQueries_le depth t h1 h128 S h₀ [])
+  split_ifs with hr hQ <;> simp only [allIn, zero_le]
+  · split_ifs with hall
+    · exact le_rfl
+    · exact absurd (hS qs hr.1 hr.2 hQ) hall
+
 end
 end LeanVM.Protocol.Whir.Sound
