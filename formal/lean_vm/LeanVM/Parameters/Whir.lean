@@ -28,12 +28,11 @@ namespace LeanVM.Parameters.Whir
 
 /-! ## Parameters no end statement reaches, moved here from the statement -/
 
-/-- Out-of-domain samples taken after a level's commitment: none at level 0, whose commitment the
-opening's own evaluation claim binds, and one at every later level (`whir_config.rs:107-114`).
-The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:974, 986`);
-for 15 to 21 it is the deployed verifier's, which takes one sample per level after the first
-(`crates/verifier/src/whir.rs:174-183`). -/
-def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
+/-- Out-of-domain points taken inside the opening after a level's commitment: none at level 0,
+whose commitment's single point the caller takes (`read_ood`, `crates/verifier/src/lib.rs:158-165`),
+and `oodSamples` at every later level (`crates/verifier/src/whir.rs:307-309`; the prover's
+`whir_config.rs:618-623, 697`). -/
+def oodSamplesAt (level : ℕ) : ℕ := if level = 0 then 0 else oodSamples
 
 /-- The variables left after every fold: the size of the residual sent in the clear. -/
 def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((ladderShape μ logInvRate).map Prod.fst).sum
