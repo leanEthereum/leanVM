@@ -19,7 +19,7 @@ public import Std.Data.HashMap
 is the witness generation of `leanvm_core::cpu::execute` on the core IR: an atom whose inputs are
 known computes its output, and one whose output is known back-solves its single unknown input
 (`a / b` as `mul a q b`, the range check's complement, `a + b` with the sum known), and a
-`KECCAK` computes Keccak-f[1600] of its canonical input cells (`Statement/Fast/Keccak`'s `@[csimp]`
+`KECCAK` computes Keccak-f[1600] of its input cells (`Statement/Fast/Keccak`'s `@[csimp]`
 lemmas make it fast); a word read
 through a pointer and the memory cell it names are unified, so a load before the store sees the
 stored word. A second write of a value or a cell is the write-once check.
@@ -270,8 +270,6 @@ def execAtom (fr : Nat) : Atom → IM Unit
       if ins.length != 13 || !(outs.length == 1 || outs.length == 2 || outs.length == 13) then
         throw "a KECCAK atom not of thirteen cells read and one, two or thirteen written"
       let xs ← ins.mapM (needV fr)
-      if !(xs.all fun x => decide (IsCanonical128 x)) then
-        throw "a KECCAK input cell is not canonical"
       let out := keccakF1600 (stateOfCells (fun c => xs.getD c.val 0) inOdd)
       ((List.finRange 13).zip outs).forM fun (c, v) => setV fr v (cellsOfState out outOdd c)
   | .frameAddr p run => do
