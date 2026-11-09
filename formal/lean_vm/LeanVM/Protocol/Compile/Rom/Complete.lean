@@ -489,36 +489,61 @@ theorem proverSp_absorb {sp sp' : Sponge} (hsp : ProverSp sp) {x : E}
     · exact hsp.2 e he
     · rw [List.mem_singleton] at he; subst he; rfl
 
+/-- The honest strategy's moves along a history: every scalar the history reads is the one `S`
+sends at the history before it, and every word it commits the one `S` commits there. The
+challenges and the openings' rows are anything. -/
+def _root_.LeanVM.Protocol.Compile.Strategy.Follows (S : Strategy) (h : List Ev) : Prop :=
+  ∀ l e, l ++ [e] <+: h → (∀ x, e = .read x → x = S.msg l) ∧
+    (∀ ht w W, e = .commit ht w W → W = S.word l)
+
+theorem _root_.LeanVM.Protocol.Compile.Strategy.follows_nil (S : Strategy) : S.Follows [] := by
+  intro l e he
+  have := he.length_le
+  simp at this
+
+/-- One more event that is `S`'s move at the history, or no move of the prover's. -/
+theorem _root_.LeanVM.Protocol.Compile.Strategy.Follows.snoc {S : Strategy} {h : List Ev}
+    (hf : S.Follows h) {e : Ev}
+    (hread : ∀ x, e = .read x → x = S.msg h)
+    (hcommit : ∀ ht w W, e = .commit ht w W → W = S.word h) : S.Follows (h ++ [e]) := by
+  intro l e' he'
+  rcases List.prefix_concat_iff.mp he' with heq | hp
+  · obtain ⟨rfl, he⟩ := List.append_inj' heq rfl
+    obtain rfl : e' = e := by simpa using he
+    exact ⟨hread, hcommit⟩
+  · exact hf l e' hp
+
 /-- **The prover fails only at a proof of work.** If the honest prover, run with the queries
 answered in `Option`, fails, then some proof-of-work search along the program fails, at a sponge
-the honest prover keeps. -/
+the honest prover keeps, at a history on which the prover made its strategy's moves. -/
 theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fuel : ℕ)
     {P : VerifierProgram Bool} :
     ∀ (p : VerifierProgram Bool) (sp : Sponge) (h : List Ev) (cs : List Tree), P.after h = some p →
-      ProverSp sp → proveFromM H F S fuel p sp h cs = some none →
-      ∃ h' bits k sp', P.after h' = some (.grind bits k) ∧ ProverSp sp' ∧
+      ProverSp sp → S.Follows h → proveFromM H F S fuel p sp h cs = some none →
+      ∃ h' bits k sp', P.after h' = some (.grind bits k) ∧ S.Follows h' ∧ ProverSp sp' ∧
         findNonceM F bits sp' fuel = some none
-  | .ret _, _, _, _, _, _, hp => by cases hp
-  | .fail, _, _, _, _, _, hp => by cases hp
-  | .read k, sp, h, cs, ha, hsp, hp => by
+  | .ret _, _, _, _, _, _, _, hp => by cases hp
+  | .fail, _, _, _, _, _, _, hp => by cases hp
+  | .read k, sp, h, cs, ha, hsp, hfo, hp => by
     have ha' := after_read_step ha (S.msg h)
     change (Compile.absorb F sp _ _).bind _ = _ at hp
     obtain ⟨sp', hsp', hp⟩ := Option.bind_eq_some_iff.mp hp
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases r with _ | _
-    · exact proveFromM_eq_some_none S fuel _ sp' _ _ ha' (proverSp_absorb hsp hsp') hr
+    · exact proveFromM_eq_some_none S fuel _ sp' _ _ ha' (proverSp_absorb hsp hsp')
+        (hfo.snoc (fun x hx ↦ by cases hx; rfl) (fun _ _ _ hx ↦ by cases hx)) hr
     · cases hp
-  | .sample k, sp, h, cs, ha, hsp, hp => by
+  | .sample k, sp, h, cs, ha, hsp, hfo, hp => by
     change (squeeze F sp).bind _ = _ at hp
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     exact proveFromM_eq_some_none S fuel _ _ _ _ (after_sample_step ha _)
-      (proverSp_squeeze hsp hr) hp
-  | .grind bits k, sp, h, cs, ha, hsp, hp => by
+      (proverSp_squeeze hsp hr) (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) hp
+  | .grind bits k, sp, h, cs, ha, hsp, hfo, hp => by
     have ha' := after_grind_step ha
     change (findNonceM F bits sp fuel).bind _ = _ at hp
     obtain ⟨o, ho, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases o with _ | n
-    · exact ⟨h, bits, k, sp, ha, hsp, ho⟩
+    · exact ⟨h, bits, k, sp, ha, hfo, hsp, ho⟩
     · change (absorbNonce F sp n).bind _ = _ at hp
       obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
       obtain ⟨t, ht, hp⟩ := Option.bind_eq_some_iff.mp hp
@@ -526,9 +551,10 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
         obtain ⟨sp', -, u, -, rfl⟩ := (absorbNonce_option _ _ _ _).mp hr
         exact ⟨by simp, by simp⟩
       rcases t with _ | _
-      · exact proveFromM_eq_some_none S fuel _ _ _ _ ha' hsp' ht
+      · exact proveFromM_eq_some_none S fuel _ _ _ _ ha' hsp'
+          (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) ht
       · cases hp
-  | .commit ht w k, sp, h, cs, ha, hsp, hp => by
+  | .commit ht w k, sp, h, cs, ha, hsp, hfo, hp => by
     have ha' := after_commit_step ha (S.word h)
     change (buildTreeWithHash H ht (S.word h)).bind _ = _ at hp
     obtain ⟨tree, -, hp⟩ := Option.bind_eq_some_iff.mp hp
@@ -539,9 +565,10 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
     obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases r with _ | _
     · exact proveFromM_eq_some_none S fuel _ sp1 _ _ ha'
-        (proverSp_absorb (proverSp_absorb hsp h0) h1) hr
+        (proverSp_absorb (proverSp_absorb hsp h0) h1)
+        (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx; rfl)) hr
     · cases hp
-  | .query i ps k, sp, h, cs, ha, hsp, hp => by
+  | .query i ps k, sp, h, cs, ha, hsp, hfo, hp => by
     simp only [proveFromM] at hp
     split at hp
     · cases hp
@@ -549,7 +576,8 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
       have ha' := after_query_step ha (ps.map fun q ↦ tree.word (q % 2 ^ tree.height))
       obtain ⟨r, hr, hp⟩ := Option.bind_eq_some_iff.mp hp
       rcases r with _ | _
-      · exact proveFromM_eq_some_none S fuel _ sp _ _ ha' hsp hr
+      · exact proveFromM_eq_some_none S fuel _ sp _ _ ha' hsp
+          (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) hr
       · cases hp
 
 end Failure
@@ -580,7 +608,7 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hP : GrindThenSample P)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≤ bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
     {z : (Proof × Bool) × Log} (hz : z ∈ support (logExperiment (honestComp σ P S fuel)
       (verifierComp σ P))) (hrej : z.1.2 = false) :
     1 ≤ powPot bits fuel z.2 := by
@@ -633,10 +661,10 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
       cases t with
       | none => exact ht
       | some _ => cases hr
-    obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
+    obtain ⟨h', b', k, sp, ha, hfo, hsp, hf⟩ :=
       proveFromM_eq_some_none S fuel P ⟨seed, [], none⟩ [] [] (VerifierProgram.after.eq_1 P)
-          ⟨by simp, by simp⟩ hr'
-    have hbB := hg h' b' k ha
+          ⟨by simp, by simp⟩ S.follows_nil hr'
+    have hbB := hg h' b' k ha hfo
     have hall' := findNonceM_eq_some_none hf
     have hall : ∀ n < fuel, ∃ r, absorbNonce (lookF ℓ) sp (nonceOf n) = some r ∧
         powOk bits r.1 = false := fun n hn ↦ by
@@ -694,13 +722,14 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     exact Finset.single_le_sum (fun _ _ ↦ bot_le) hmem
 
 /-- **Completeness in the random-oracle model.** For a verifier program `P` whose proofs of work
-each ask for at most `bits ≤ 64` bits and are each followed at once by a challenge, a strategy `S` that wins every interactive run of `P` with
+are each followed at once by a challenge and ask for at most `bits ≤ 64` bits wherever the prover
+has made the strategy's moves (`Strategy.Follows`), a strategy `S` that wins every interactive run of `P` with
 well-shaped words, the seeding `σ`, and a fuel of at most `2^64` nonces: with `Q` the queries of
 the honest prover and the verifier together, the verifier rejects the honest prover's proof with
 probability at most `Q · (1 - 2^-bits)^fuel`. -/
 theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
     (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) (hPg : GrindThenSample P)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≤ bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hP : P.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P)}[z.1.2 = false] ≤
