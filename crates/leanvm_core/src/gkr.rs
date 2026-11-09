@@ -7,7 +7,7 @@
 //! into `E` upstream, [`crate::leaf`]).
 //!
 //! On AVX-512 the large rounds run eight pairs of rows at a time in transposed form
-//! (`vertical`), and skip the runs of rows known to be the identity.
+//! (`vertical`), two rounds a pass, and skip the runs of rows known to be the identity.
 
 use std::ops::Range;
 
@@ -225,6 +225,22 @@ fn quartic_summand(lines: [[F192; 2]; 4], equality: F192) -> [F192Unreduced; 4] 
     [c0 ^ at_one, cross_even ^ c0 ^ c4 ^ middle, cross_high ^ middle ^ c4, c4]
 }
 
+/// `p(r)` for a quartic `p`, from `[p(0), p(1), [X⁴]p, p(y), p(1 + y)]`. The cubic
+/// `p - p(0) - [X⁴]p·X⁴ = c1·X + c2·X² + c3·X³` has its values at `1`, `y` and `1 + y`,
+/// and with `y³ = y + 1` and `(1 + y)³ = y²` they give `c3`, `c2` then `c1`.
+fn interpolate(at: [F192; 5], r: F192) -> F192 {
+    let [p0, p1, c4, py, p1y] = at;
+    let y = F192::Y;
+    let cubic = |value: F192, x: F192| value + p0 + c4 * x.square().square();
+    let [a, b, c] = [cubic(p1, F192::ONE), cubic(py, y), cubic(p1y, F192::ONE + y)];
+    // `(y² + y)·(1 + y) = y³ + y = 1`.
+    let inverse = F192::ONE + y;
+    let c3 = (a + b + c) * inverse;
+    let c2 = (b + a * y + c3) * inverse;
+    let c1 = a + c2 + c3;
+    p0 + r * (c1 + r * (c2 + r * (c3 + r * c4)))
+}
+
 /// The rows of a level `shift` binary levels up whose children are all in `ones`.
 fn coarsen(ones: &[Range<usize>], shift: usize) -> Vec<Range<usize>> {
     ones.iter()
@@ -261,6 +277,11 @@ fn runs<'a>(range: Range<usize>, ones: &'a [Range<usize>]) -> impl Iterator<Item
 /// be the identity: they contribute nothing to a round message and fold to the
 /// identity. Not yet measured on aarch64, so it keeps computing them.
 pub(crate) const SKIP_IDENTITY: bool = cfg!(target_arch = "x86_64");
+
+/// Threads from which the vertical kernels bind two rounds a pass. That doubles their
+/// products to save a third of their traffic, which pays once the threads together
+/// outrun memory; with fewer, the products are what takes the time.
+const QUAD_THREADS: usize = 8;
 
 /// Below this logical height a layer runs the scalar kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
@@ -508,18 +529,54 @@ impl QuaternaryLayerState {
     }
 }
 
-/// Fold every tree by `challenge`, returning the next round's messages.
-fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: &SplitEq) -> [[F192; 4]; 3] {
+/// The trees' messages for the next round and, when the pass formed them, the round
+/// after's at the five points of [`interpolate`].
+type Messages = ([[F192; 4]; 3], Option<[[[F192; 4]; 5]; 3]>);
+
+/// Every tree's first message. Given the second's weights `ahead`, the vertical kernels
+/// form it in the same pass, so the next pass binds two rounds.
+fn first_messages(trees: &[QuaternaryLayerState; 3], eq: &SplitEq, ahead: Option<&SplitEq>) -> Messages {
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    if let Some(ahead) = ahead
+        && trees[0].logical_rows >= VERTICAL_ROWS
+    {
+        let quads = trees
+            .each_ref()
+            .map(|tree| vertical::quad_message(&tree.values, &tree.ones, eq, ahead));
+        return vertical::split(quads, true);
+    }
+    // Only the vertical kernels look ahead.
+    let _ = ahead;
+    (trees.each_ref().map(|tree| tree.round_message(eq)), None)
+}
+
+/// Fold every tree by `challenges`, returning the next round's messages. Two challenges,
+/// which only the vertical kernels take, fold two rounds in one pass, which forms the
+/// round after's too given its weights `ahead`, while the next pass can bind two rounds.
+fn fold_and_message(
+    trees: &mut [QuaternaryLayerState; 3],
+    challenges: &[F192],
+    eq: &SplitEq,
+    ahead: Option<&SplitEq>,
+) -> Messages {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
-        if trees[0].logical_rows >= VERTICAL_ROWS {
+        let rows = trees[0].logical_rows;
+        if rows >= VERTICAL_ROWS {
+            let depth = challenges.len();
+            let ahead = ahead.filter(|_| rows / 4 >= VERTICAL_ROWS);
             let [a, b, c] = trees.each_mut().map(QuaternaryLayerState::split);
-            let messages = vertical::fold([a.0, b.0, c.0], challenge, eq, [a.1, b.1, c.1]);
+            let (inputs, outs) = ([a.0, b.0, c.0], [a.1, b.1, c.1]);
+            let messages = match *challenges {
+                [r] => (vertical::fold(inputs, r, eq, outs), None),
+                [r, s] => vertical::split(vertical::fold2(inputs, [r, s], eq, ahead, outs), ahead.is_some()),
+                _ => unreachable!("a pass binds one round or two"),
+            };
             for tree in trees.iter_mut() {
                 std::mem::swap(&mut tree.groups, &mut tree.spare);
                 tree.values = Vec::new();
-                tree.logical_rows /= 2;
-                tree.ones = coarsen(&tree.ones, 1);
+                tree.logical_rows >>= depth;
+                tree.ones = coarsen(&tree.ones, depth);
             }
             return messages;
         }
@@ -527,13 +584,38 @@ fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: 
             tree.leave_groups();
         }
     }
-    trees.each_mut().map(|tree| tree.fold_and_message_scalar(challenge, eq))
+    // Only the vertical kernels look ahead.
+    let _ = ahead;
+    let &[challenge] = challenges else {
+        unreachable!("only the vertical kernels bind two rounds a pass")
+    };
+    (
+        trees.each_mut().map(|tree| tree.fold_and_message_scalar(challenge, eq)),
+        None,
+    )
+}
+
+/// Send the λ-batched round message and draw the round's challenge.
+fn send_round(ps: &mut ProverState, lambda: F192, messages: [[F192; 4]; 3]) -> F192 {
+    let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
+        messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
+    });
+    // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
+    // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
+    // claim fixes and the prover therefore never forms.
+    coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
+    ps.add_scalars(&coeffs);
+    ps.sample()
 }
 
 /// The AVX-512 kernels: eight pairs of rows at a time, transposed so that every
 /// product is lane-wise ([`primitives::field::x8`]). After its first fold a layer
 /// keeps its rows transposed, in [`Group`]s, until it is small enough for the scalar
 /// kernels.
+///
+/// A pass reads quads of rows: besides the next round's message it forms the one after,
+/// as a quartic in the next challenge, so the following pass binds both rounds, reading
+/// a level once and writing a quarter of it.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod vertical {
     use super::{SplitEq, add4, coarsen, sum_tasks};
@@ -632,6 +714,69 @@ mod vertical {
         }
     }
 
+    /// A tree's message for a round, then the next round's as a quartic in this round's
+    /// challenge, in [`super::interpolate`]'s order: zero where the pass does not form it.
+    type Quad = [[F192; 4]; 6];
+
+    /// A task's [`Quad`]: the round's message over its groups, in `message`, and with
+    /// `ahead` the next round's over the pairs of them.
+    struct Sums<'a> {
+        message: Message<'a>,
+        ahead: Option<[Message<'a>; 5]>,
+    }
+
+    impl<'a> Sums<'a> {
+        fn new(eq: &'a SplitEq, ahead: Option<&'a SplitEq>, first: usize) -> Self {
+            Self {
+                message: Message::new(eq, first),
+                ahead: ahead.map(|eq| [(); 5].map(|()| Message::new(eq, first / 2))),
+            }
+        }
+
+        /// Add the round after's terms of groups `g` and `g + 1`, `g` even.
+        #[inline(always)]
+        fn add_ahead(&mut self, g: usize, [a, b]: &[Group; 2]) {
+            let Some(ahead) = &mut self.ahead else { return };
+            // Folding the pair by `r` makes each child's rows `lo + r·(lo + hi)`, as in
+            // `fold_pairs`; bound at the five points, the lanes are deinterleaved once.
+            let mut at = [[F192x8::splat(F192::ZERO); 8]; 5];
+            for c in 0..4 {
+                let (even_lo, odd_lo) = F192x8::deinterleave(a[c], b[c]);
+                let (even_hi, odd_hi) = F192x8::deinterleave(a[4 + c], b[4 + c]);
+                for (k, lo, hi) in [(c, even_lo, even_hi), (4 + c, odd_lo, odd_hi)] {
+                    let slope = lo + hi;
+                    let y = slope.mul_y();
+                    [at[0][k], at[1][k], at[2][k], at[3][k], at[4][k]] = [lo, hi, slope, lo + y, hi + y];
+                }
+            }
+            for (message, group) in ahead.iter_mut().zip(&at) {
+                message.add(g / 2, group);
+            }
+        }
+
+        fn finish(self) -> Quad {
+            let mut quad = [[F192::ZERO; 4]; 6];
+            quad[0] = self.message.finish();
+            if let Some(ahead) = self.ahead {
+                for (slot, message) in quad[1..].iter_mut().zip(ahead) {
+                    *slot = message.finish();
+                }
+            }
+            quad
+        }
+    }
+
+    /// `Σ_t f(t)` over `0..tasks`, in parallel when asked.
+    fn sum_quads<const N: usize>(tasks: usize, parallel: bool, f: impl Fn(usize) -> [Quad; N] + Sync) -> [Quad; N] {
+        let zero = [[[F192::ZERO; 4]; 6]; N];
+        let add = |a: [Quad; N], b: [Quad; N]| std::array::from_fn(|t| std::array::from_fn(|i| add4(a[t][i], b[t][i])));
+        if parallel {
+            parallel::map_reduce(tasks, || zero, f, add)
+        } else {
+            (0..tasks).map(f).fold(zero, add)
+        }
+    }
+
     /// The round message of a row table; identity pairs add nothing.
     pub(super) fn message(values: &[F192], ones: &[Range<usize>], eq: &SplitEq) -> [F192; 4] {
         let groups = values.len().div_ceil(64);
@@ -645,6 +790,40 @@ mod vertical {
             }
             message.finish()
         })
+    }
+
+    /// The first two rounds' messages of a row table; identity pairs add nothing.
+    pub(super) fn quad_message(values: &[F192], ones: &[Range<usize>], eq: &SplitEq, ahead: &SplitEq) -> Quad {
+        let groups = values.len().div_ceil(64);
+        let [messages] = sum_quads(groups.div_ceil(TASK), groups > TASK, |task| {
+            let range = task * TASK..((task + 1) * TASK).min(groups);
+            let mut sums = Sums::new(eq, Some(ahead), range.start);
+            let identity = [F192x8::splat(F192::ONE); 8];
+            let mut pair = [identity; 2];
+            for g in range.step_by(2) {
+                let mut live = false;
+                for (h, group) in pair.iter_mut().enumerate() {
+                    if g + h < groups && !covered(ones, 16 * (g + h)..16 * (g + h) + 16) {
+                        *group = load(values, g + h);
+                        sums.message.add(g + h, group);
+                        live = true;
+                    } else {
+                        *group = identity;
+                    }
+                }
+                if live {
+                    sums.add_ahead(g, &pair);
+                }
+            }
+            [sums.finish()]
+        });
+        messages
+    }
+
+    /// The trees' [`super::Messages`], from their [`Quad`]s.
+    pub(super) fn split(quads: [Quad; 3], ahead: bool) -> super::Messages {
+        let next = ahead.then(|| quads.map(|quad| std::array::from_fn(|k| quad[1 + k])));
+        (quads.map(|quad| quad[0]), next)
     }
 
     /// Fold sixteen pairs, `a`'s then `b`'s, into the eight pairs their sixteen rows make.
@@ -748,6 +927,79 @@ mod vertical {
         }
     }
 
+    /// [`fold`] by both `challenges`, two rounds, returning with `ahead` the round after's
+    /// messages too.
+    pub(super) fn fold2(
+        inputs: [Input; 3],
+        challenges: [F192; 2],
+        eq: &SplitEq,
+        ahead: Option<&SplitEq>,
+        outs: [&mut Vec<Group>; 3],
+    ) -> [Quad; 3] {
+        /// Groups below which a dispatch costs more than it saves.
+        const PARALLEL: usize = 8 * TASK;
+        let n_out = inputs.each_ref().map(|input| input.len().div_ceil(4));
+        let mut outs = outs;
+        let dst: [parallel::SendPtr<Group>; 3] = std::array::from_fn(|t| {
+            let out = &mut *outs[t];
+            if out.capacity() < n_out[t] {
+                *out = Vec::new();
+                // SAFETY: the tasks below write every group `ones` does not cover before
+                // anything reads it, and the readers (`Input::get`, `to_rows`) never read
+                // a covered one.
+                *out = unsafe { primitives::uninit_vec(n_out[t]) };
+            } else {
+                // SAFETY: as above; `Group` is plain data.
+                unsafe { out.set_len(n_out[t]) };
+            }
+            parallel::SendPtr(out.as_mut_ptr())
+        });
+        // `TASK` is even, so a task's groups pair up as the round after reads them.
+        let tasks: Vec<(usize, usize)> = (0..3)
+            .flat_map(|t| (0..n_out[t]).step_by(TASK).map(move |g| (t, g)))
+            .collect();
+        let [r, s] = challenges.map(F192x8::splat);
+        let ones = inputs.each_ref().map(|input| coarsen(input.ones, 2));
+        let task = |i: usize| {
+            let (t, first) = tasks[i];
+            let end = (first + TASK).min(n_out[t]);
+            let stream = Stream::new();
+            let mut sums = Sums::new(eq, ahead, first);
+            let identity = [F192x8::splat(F192::ONE); 8];
+            let mut pair = [identity; 2];
+            for g in (first..end).step_by(2) {
+                let mut live = false;
+                for (h, group) in pair.iter_mut().enumerate() {
+                    let g = g + h;
+                    // Identity rows fold to identity rows, which add nothing, and their
+                    // group is left unwritten.
+                    if g >= end || covered(&ones[t], 16 * g..16 * g + 16) {
+                        *group = identity;
+                        continue;
+                    }
+                    let input = |k| inputs[t].get(4 * g + k);
+                    *group = fold_pairs(
+                        &fold_pairs(&input(0), &input(1), r),
+                        &fold_pairs(&input(2), &input(3), r),
+                        s,
+                    );
+                    sums.message.add(g, group);
+                    // The next pass reads it, long after this pass evicted it.
+                    // SAFETY: tasks own disjoint groups of the outputs, and `g < n_out[t]`.
+                    unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(group)) };
+                    live = true;
+                }
+                if live {
+                    sums.add_ahead(g, &pair);
+                }
+            }
+            let mut quads = [[[F192::ZERO; 4]; 6]; 3];
+            quads[t] = sums.finish();
+            quads
+        };
+        sum_quads(tasks.len(), n_out.iter().sum::<usize>() > PARALLEL, task)
+    }
+
     pub(super) fn to_rows(groups: &[Group], ones: &[Range<usize>]) -> Vec<F192> {
         let mut values = vec![F192::ZERO; 64 * groups.len()];
         for (g, group) in groups.iter().enumerate() {
@@ -789,6 +1041,12 @@ pub struct ProductTriple {
 /// The first two trees share a product by construction, as the bus's two sides do.
 /// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
 pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+    prove_product_triple_with(leaves, ps, parallel::num_threads() >= QUAD_THREADS)
+}
+
+/// [`prove_product_triple`], binding two rounds a pass on the vertical kernels when `quad`:
+/// the same proof either way.
+fn prove_product_triple_with(leaves: [Leaves; 3], ps: &mut ProverState, quad: bool) -> ProductTriple {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -842,31 +1100,35 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         }
         let mut round_point = Vec::with_capacity(round_count);
         // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
-        let mut messages = if round_count > 0 {
-            let eq = SplitEq::new(&point[1..]);
-            trees.each_ref().map(|tree| tree.round_message(&eq))
+        let eq = |round: usize| SplitEq::new(&point[1 + round..]);
+        let ahead_eq = |round: usize| (quad && round + 1 < round_count).then(|| eq(round + 1));
+        let (mut messages, mut ahead) = if round_count > 0 {
+            first_messages(&trees, &eq(0), ahead_eq(0).as_ref())
         } else {
-            [[F192::ZERO; 4]; 3]
+            ([[F192::ZERO; 4]; 3], None)
         };
-        for round in 0..round_count {
-            let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
-            });
-            // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
-            // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
-            // claim fixes and the prover therefore never forms.
-            coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
-            ps.add_scalars(&coeffs);
-            let challenge = ps.sample();
+        while round_point.len() < round_count {
+            let challenge = send_round(ps, lambda, messages);
             round_point.push(challenge);
-            if round + 1 < round_count {
-                let eq = SplitEq::new(&point[2 + round..]);
-                messages = fold_and_message(&mut trees, challenge, &eq);
+            let mut challenges = vec![challenge];
+            // The pass that formed this round's message formed the next one's as a
+            // quartic in this round's challenge, and the next pass binds both.
+            if let Some(ahead) = ahead.take() {
+                messages = ahead.map(|at| std::array::from_fn(|i| interpolate(at.map(|m| m[i]), challenge)));
+                let second = send_round(ps, lambda, messages);
+                round_point.push(second);
+                challenges.push(second);
+            }
+            let round = round_point.len();
+            if round < round_count {
+                (messages, ahead) = fold_and_message(&mut trees, &challenges, &eq(round), ahead_eq(round).as_ref());
             } else {
                 // The final round has no next message to weight, and needs the
                 // fold alone. Both kernels stay for that reason; `fold` is not dead.
                 for tree in &mut trees {
-                    tree.fold(challenge);
+                    for &challenge in &challenges {
+                        tree.fold(challenge);
+                    }
                 }
             }
         }
@@ -942,38 +1204,76 @@ mod tests {
         }
     }
 
-    /// The fused and the vertical kernels against the scalar fold and message, every round.
+    /// The fused and the vertical kernels, two rounds a pass where they can, against the
+    /// scalar fold and message, every round.
     #[test]
     fn fused_fold_matches_separate_fold_and_message() {
-        for width in [4usize, 16, 1 << 11, 1 << 14] {
+        for (width, quad) in [4usize, 16, 1 << 11, 1 << 13, 1 << 14]
+            .into_iter()
+            .flat_map(|width| [(width, false), (width, true)])
+        {
             let lens = [1, 4, 5, 7, 8, 9, 31, 32, 33, 4 * width - 5, 4 * width - 1, 4 * width];
             for three in lens.windows(3).filter(|l| l.iter().all(|&n| n <= 4 * width)) {
                 let tree = |n: usize| QuaternaryLayerState::new((0..n).map(|i| element(i, n)).collect(), width);
                 let mut reference = [three[0], three[1], three[2]].map(tree);
                 let mut fused = [three[0], three[1], three[2]].map(tree);
-                let point: Vec<F192> = (0..width.ilog2() - 1)
-                    .map(|i| F192::new(31 + u64::from(i), 7, 11))
-                    .collect();
-                let eq = SplitEq::new(&point);
-                for (f, r) in fused.iter().zip(&reference) {
-                    assert_eq!(f.round_message(&eq), r.round_message_scalar(&eq));
-                }
+                let rounds = width.ilog2() as usize;
+                let point: Vec<F192> = (0..rounds - 1).map(|i| F192::new(31 + i as u64, 7, 11)).collect();
+                let eq = |round: usize| SplitEq::new(&point[round..]);
+                let ahead_eq = |round: usize| (quad && round + 1 < rounds).then(|| eq(round + 1));
+                let (mut messages, mut ahead) = first_messages(&fused, &eq(0), ahead_eq(0).as_ref());
                 let mut round = 0;
-                while reference[0].logical_rows > 2 {
-                    round += 1;
-                    let challenge = F192::new(reference[0].logical_rows as u64, 13, 19);
-                    let eq = SplitEq::new(&point[round..]);
-                    let messages = fold_and_message(&mut fused, challenge, &eq);
-                    for (r, message) in reference.iter_mut().zip(messages) {
-                        r.fold_scalar(challenge);
-                        assert_eq!(message, r.round_message_scalar(&eq), "width={width}, lens={three:?}");
+                loop {
+                    for (r, message) in reference.iter().zip(messages) {
+                        assert_eq!(
+                            message,
+                            r.round_message_scalar(&eq(round)),
+                            "width={width}, quad={quad}, lens={three:?}"
+                        );
                     }
+                    if round + 1 == rounds {
+                        break;
+                    }
+                    let mut challenges = vec![F192::new(reference[0].logical_rows as u64, 13, 19)];
+                    round += 1;
+                    if let Some(ahead) = ahead.take() {
+                        for r in &mut reference {
+                            r.fold_scalar(challenges[0]);
+                        }
+                        messages =
+                            ahead.map(|at| std::array::from_fn(|i| interpolate(at.map(|m| m[i]), challenges[0])));
+                        for (r, message) in reference.iter().zip(messages) {
+                            assert_eq!(
+                                message,
+                                r.round_message_scalar(&eq(round)),
+                                "width={width}, quad={quad}, lens={three:?}"
+                            );
+                        }
+                        challenges.push(F192::new(round as u64, 3, 5));
+                        round += 1;
+                    }
+                    for r in &mut reference {
+                        r.fold_scalar(*challenges.last().unwrap());
+                    }
+                    (messages, ahead) = fold_and_message(&mut fused, &challenges, &eq(round), ahead_eq(round).as_ref());
                 }
                 for (f, r) in fused.iter_mut().zip(&mut reference) {
                     r.fold(F192::Y);
                     f.fold(F192::Y);
                     assert_eq!(f.children(), r.children());
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn interpolate_matches_direct_evaluation() {
+        for seed in 0..50 {
+            let c: [F192; 5] = std::array::from_fn(|i| element(7 * seed + i, seed));
+            let p = |x: F192| c[0] + x * (c[1] + x * (c[2] + x * (c[3] + x * c[4])));
+            let at = [p(F192::ZERO), p(F192::ONE), c[4], p(F192::Y), p(F192::ONE + F192::Y)];
+            for r in [F192::ZERO, F192::ONE, F192::Y, F192::ONE + F192::Y, element(seed, 99)] {
+                assert_eq!(interpolate(at, r), p(r));
             }
         }
     }
