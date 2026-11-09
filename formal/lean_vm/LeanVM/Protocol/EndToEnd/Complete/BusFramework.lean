@@ -15,8 +15,8 @@ public import LeanVM.Protocol.LeanIsa.Bus
 /-!
 # The framework blocks
 
-The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs:106-213` at leanVM `40f877dc`)
-evaluates the three framework blocks of each side itself (`fingerprints`, `bus.rs:147-159`): the
+The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs:130-247` at leanVM `f128`)
+evaluates the three framework blocks of each side itself (`fingerprints`, `bus.rs:189-198`): the
 state boundary, the memory's `2^logMemory` rows and the bytecode's `2^logBytecode` rows. The honest
 leaves of these blocks are, row by row, `β` plus the fingerprint of the row's tuple (`stateTab`,
 `memTab`, `bcTab`). This module proves
@@ -24,7 +24,8 @@ leaves of these blocks are, row by row, `β` plus the fingerprint of the row's t
 * `multilinearEval_memTab`, `multilinearEval_bcTab`: their extensions at the block's own
   coordinates are `β` plus the verifier's fingerprint computed from the honest claims (the
   memory limbs' and the counts' extensions there, the index column's `index_mle`, and the
-  bytecode's `multilinear_eval` at the point followed by the fingerprint challenges);
+  program's share of the bytecode leaf, `bcShare`, the slot weights against the stacked
+  bytecode's slots at the point);
 * `memTab_eq`, `bcTab_eq`, `stateTab_eq`: every leaf is the fingerprint of the instance's boundary
   tuple of that row (`LeanIsa.boundary`), so the framework's product is the boundary tuples'.
 -/
@@ -181,12 +182,12 @@ theorem multilinearEval_colList (c : Col) (z : Vector E (kappa prog s c)) :
 /-- The state block's one leaf: `β` plus the fingerprint of `(SEP_STATE, pc, g⁰)`. -/
 def stateTab (β : E) (w : List E) (pc : E) : List E := [β + dot (w.take 3) [sepState, pc, gpow 0]]
 
-/-- The memory block's leaves: `β` plus the fingerprint of `(SEP_MEM, gⁱ, count_i, m_i)`. -/
+/-- The memory block's leaves: `β` plus the fingerprint of `(SEP_MEM, gⁱ, count_i, m_i)`, the
+word `m_i` its two limbs. -/
 def memTab (β : E) (w : List E) (cnt : List E) : List E :=
-  (List.range (2 ^ s.logMem)).map fun y ↦ β + dot (w.take 6)
+  (List.range (2 ^ s.logMem)).map fun y ↦ β + dot (w.take 5)
     ([sepMem, Verifier.gpow y, cnt.getD y 0] ++
-      [(colList prog s q (memCol 0)).getD y 0, (colList prog s q (memCol 1)).getD y 0,
-        (colList prog s q (memCol 2)).getD y 0])
+      [(colList prog s q (memCol 0)).getD y 0, (colList prog s q (memCol 1)).getD y 0])
 
 /-- The bytecode block's leaves: `β` plus the fingerprint of `(SEP_BYTECODE, gⁱ, count_i)` and
 of the instruction's sixteen slots. -/
@@ -204,66 +205,61 @@ theorem length_bcTab (β : E) (w cnt : List E) :
 
 /-- **The memory block's extension** is `β` plus the verifier's memory fingerprint at the honest
 claims. -/
-theorem multilinearEval_memTab (β : E) (w : List E) (hw : 6 ≤ w.length) (cnt : List E)
+theorem multilinearEval_memTab (β : E) (w : List E) (hw : 5 ≤ w.length) (cnt : List E)
     (hcnt : cnt.length = 2 ^ s.logMem) (z : List E) (hz : z.length = s.logMem) :
     multilinearEval (memTab prog s q β w cnt) z =
-      β + dot (w.take 6) ([sepMem, indexMle z, multilinearEval cnt z] ++
+      β + dot (w.take 5) ([sepMem, indexMle z, multilinearEval cnt z] ++
         [multilinearEval (colList prog s q (memCol 0)) z,
-          multilinearEval (colList prog s q (memCol 1)) z,
-          multilinearEval (colList prog s q (memCol 2)) z]) := by
+          multilinearEval (colList prog s q (memCol 1)) z]) := by
   have h := multilinearEval_fingerprint s.logMem β w
     [fun _ ↦ sepMem, Verifier.gpow, fun y ↦ cnt.getD y 0,
       fun y ↦ (colList prog s q (memCol 0)).getD y 0,
-      fun y ↦ (colList prog s q (memCol 1)).getD y 0,
-      fun y ↦ (colList prog s q (memCol 2)).getD y 0] (by simpa using hw) (fun _ ↦ 0) z hz
-  have hm : ∀ i : Fin 4, (colList prog s q (memCol i)).length = 2 ^ s.logMem := fun i ↦
+      fun y ↦ (colList prog s q (memCol 1)).getD y 0] (by simpa using hw) (fun _ ↦ 0) z hz
+  have hm : ∀ i : Fin 3, (colList prog s q (memCol i)).length = 2 ^ s.logMem := fun i ↦
     length_colList prog s q (memCol i)
   simp only [List.length_cons, List.length_nil, List.map_cons, List.map_nil, zero_mul,
     sum_const_zero, add_zero, sum_const_eqEval s.logMem _ z hz,
     sum_getD_eqEval s.logMem _ hcnt z hz, sum_getD_eqEval s.logMem _ (hm 0) z hz,
-    sum_getD_eqEval s.logMem _ (hm 1) z hz, sum_getD_eqEval s.logMem _ (hm 2) z hz] at h
+    sum_getD_eqEval s.logMem _ (hm 1) z hz] at h
   rw [show ∑ y ∈ range (2 ^ s.logMem), Verifier.gpow y * eqEval (boolPoint s.logMem y) z =
     indexMle z by rw [indexMle_eq, hz]] at h
   exact h
 
-/-- The bytecode's slots against the fingerprint weights extend to the bytecode's extension at
-the point followed by the weights' challenges. -/
-theorem sum_bytecode_eqEval (alphas : List E) (halpha : alphas.length = 4) (z : List E)
-    (hz : z.length = prog.logSize) :
+/-- Slot `k` of the stacked bytecode at the point `z` of the instructions' coordinates,
+`P(z, k)`. -/
+def bcSlot (k : ℕ) (z : List E) : E :=
+  ∑ y ∈ range (2 ^ prog.logSize),
+    ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0 *
+      eqEval (boolPoint prog.logSize y) z
+
+/-- **The program's share of the bytecode leaf** at `z`: the slot weights against the stacked
+bytecode's slots there, `Σ_k w_k P(z, k)`, what the bytecode sumcheck proves. -/
+def bcShare (w z : List E) : E := ∑ k ∈ range 16, w.getD k 0 * bcSlot prog k z
+
+/-- The bytecode's slots against the fingerprint weights extend to the share. -/
+theorem sum_bytecode_eqEval (w z : List E) :
     ∑ y ∈ range (2 ^ prog.logSize), ((List.range 16).map fun k ↦
-        (eqKernel alphas).getD k 0 *
-          ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0).sum *
-        eqEval (boolPoint prog.logSize y) z =
-      multilinearEval ((bytecodeWords prog).map ofK) (z ++ alphas) := by
-  have hlen : ((bytecodeWords prog).map ofK).length = 2 ^ (z.length + 4) := by
-    rw [List.length_map, length_bytecodeWords, hz]
-  rw [multilinearEval_eq_foldAll, foldAll_append, ← multilinearEval_eq_foldAll,
-    multilinearEval_eq_sum 4 _ alphas (length_foldAll z _ 4 hlen) halpha]
-  simp only [← sum_range_eq_list, sum_mul]
+        w.getD k 0 * ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0).sum *
+        eqEval (boolPoint prog.logSize y) z = bcShare prog w z := by
+  simp only [← sum_range_eq_list, sum_mul, bcShare, bcSlot, mul_sum]
   rw [sum_comm]
-  refine sum_congr rfl fun k hk ↦ ?_
-  rw [getD_foldAll z _ 4 k hlen (mem_range.mp hk), sum_mul, hz]
-  refine sum_congr rfl fun y _ ↦ ?_
-  rw [getD_eqKernel alphas k (by rw [halpha]; exact mem_range.mp hk), halpha]
-  ring
+  exact sum_congr rfl fun k _ ↦ sum_congr rfl fun y _ ↦ by ring
 
 /-- **The bytecode block's extension** is `β` plus the verifier's bytecode fingerprint at the
-honest claim. -/
-theorem multilinearEval_bcTab (β : E) (alphas : List E) (halpha : alphas.length = 4)
+honest claim and the honest share. -/
+theorem multilinearEval_bcTab (β : E) (w : List E) (hw : 3 ≤ w.length)
     (cnt : List E) (hcnt : cnt.length = 2 ^ prog.logSize) (z : List E)
     (hz : z.length = prog.logSize) :
-    multilinearEval (bcTab prog β (eqKernel alphas) cnt) z =
-      β + (dot ((eqKernel alphas).take 3) [sepBytecode, indexMle z, multilinearEval cnt z] +
-        multilinearEval ((bytecodeWords prog).map ofK) (z ++ alphas)) := by
-  have hw : 3 ≤ (eqKernel alphas).length := by rw [length_eqKernel, halpha]; norm_num
-  have h := multilinearEval_fingerprint prog.logSize β (eqKernel alphas)
+    multilinearEval (bcTab prog β w cnt) z =
+      β + (dot (w.take 3) [sepBytecode, indexMle z, multilinearEval cnt z] +
+        bcShare prog w z) := by
+  have h := multilinearEval_fingerprint prog.logSize β w
     [fun _ ↦ sepBytecode, Verifier.gpow, fun y ↦ cnt.getD y 0] (by simpa using hw)
     (fun y ↦ ((List.range 16).map fun k ↦
-        (eqKernel alphas).getD k 0 *
-          ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0).sum) z hz
+        w.getD k 0 * ((bytecodeWords prog).map ofK).getD (y + 2 ^ prog.logSize * k) 0).sum) z hz
   simp only [List.length_cons, List.length_nil, List.map_cons, List.map_nil,
     sum_const_eqEval prog.logSize _ z hz, sum_getD_eqEval prog.logSize _ hcnt z hz,
-    sum_bytecode_eqEval prog alphas halpha z hz] at h
+    sum_bytecode_eqEval prog w z] at h
   rw [show ∑ y ∈ range (2 ^ prog.logSize), Verifier.gpow y * eqEval (boolPoint prog.logSize y) z =
     indexMle z by rw [indexMle_eq, hz]] at h
   rw [← add_assoc, ← h, bcTab]
@@ -336,7 +332,7 @@ theorem ofK_gpow (n : ℕ) : ofK (Parameters.addressOfIndex n) = Verifier.gpow n
   rfl
 
 /-- A memory column's entry is the instance's cell. -/
-theorem getD_colList_mem (i : Fin 4) (x : Fin (2 ^ s.logMem)) :
+theorem getD_colList_mem (i : Fin 3) (x : Fin (2 ^ s.logMem)) :
     (colList prog s q (memCol i)).getD x 0 =
       ofK (cell prog s q (memCol i) x) :=
   getD_colList prog s q (memCol i) x x.isLt
@@ -350,12 +346,11 @@ theorem memTab_getD (β : E) (w : List E) (hw : w.length = 16) (cnt : List E)
         (#[Parameters.addressOfIndex x, c] ++ (memLimbs s q x).toArray)) := by
   rw [fpV_tupleOf β w hw _ _ (by simp), List.getD_eq_getElem _ _ (by simp [memTab])]
   simp only [memTab, List.getElem_map, List.getElem_range]
-  rw [dot_take_eq w _ 6 rfl (by omega)]
+  rw [dot_take_eq w _ 5 rfl (by omega)]
   simp only [List.length_cons, List.length_nil, Array.size_append, List.size_toArray, memLimbs]
   simp only [sum_range_succ, sum_range_zero, zero_add, List.getD_cons_zero,
     List.getD_cons_succ, List.cons_append, List.nil_append]
-  rw [hc, getD_colList_mem prog s q 0 x, getD_colList_mem prog s q 1 x,
-    getD_colList_mem prog s q 2 x]
+  rw [hc, getD_colList_mem prog s q 0 x, getD_colList_mem prog s q 1 x]
   simp only [ofK_gpow, sepMem, Fin.isValue, Array.getElem?_append, List.getElem?_toArray]
   simp [gen, Verifier.gpow]
   simp only [ofK_gpow, Verifier.gpow, gen]
@@ -444,14 +439,14 @@ theorem prod_framework_push (β : E) (w : List E) (hw : w.length = 16) :
 /-- **The pull side's framework product** is the pull boundary tuples' fingerprint product. -/
 theorem prod_framework_pull (β : E) (w : List E) (hw : w.length = 16) :
     (stateTab β w (Verifier.gpow (2 ^ prog.logSize - 1))).prod *
-        (memTab prog s q β w (colList prog s q (memCol 3))).prod *
+        (memTab prog s q β w (colList prog s q (memCol 2))).prod *
         (bcTab prog β w (colList prog s q bfcntCol)).prod =
       (((inst prog s).boundaryTuples q .pull).map (fpV β w)).prod := by
   rw [boundaryTuples_pull s q, stateTab_pull prog β w hw]
   simp only [List.map_append, List.prod_append, List.map_cons, List.map_nil, List.prod_cons,
     List.prod_nil, List.map_map]
-  rw [eq_map_finRange (memTab prog s q β w (colList prog s q (memCol 3))) _ (length_memTab ..) _
-      fun x ↦ memTab_getD β w hw _ x _ (getD_colList_mem prog s q 3 x),
+  rw [eq_map_finRange (memTab prog s q β w (colList prog s q (memCol 2))) _ (length_memTab ..) _
+      fun x ↦ memTab_getD β w hw _ x _ (getD_colList_mem prog s q 2 x),
     eq_map_finRange (bcTab prog β w (colList prog s q bfcntCol)) _ (length_bcTab ..) _
       fun i ↦ bcTab_getD β w hw _ i _ (getD_colList prog s q bfcntCol i i.isLt)]
   rfl

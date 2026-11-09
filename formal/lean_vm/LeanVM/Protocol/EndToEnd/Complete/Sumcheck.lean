@@ -177,13 +177,6 @@ def wire : Option E → List E → List E
   | none, c => c.headD 0 :: c.drop 2
   | some _, c => c.drop 1
 
-/-- Passing a proof of work of `bits` bits meets checking it: nothing at `0` bits. -/
-theorem Follows.grindBits_grindP (bits : ℕ) (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs) (Script.grindBits bits)
-      (VerifierProgram.grindProofOfWork bits) cs := by
-  by_cases h : bits = 0 <;>
-    simp [Script.grindBits, Script.grindS, VerifierProgram.grindProofOfWork, h, Follows]
-
 /-- The grind after a round of `count` coefficients in the mode `mode`: for the degree of the
 whole round polynomial, the equality factor included. -/
 def roundBits (count : ℕ) (mode : Option E) : ℕ :=
@@ -207,13 +200,15 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
   cases mode with
   | none =>
     simp only [RoundSplit, List.sum_cons] at hsplit
+    have hrb : roundBits count none = grindingBits (count - 1) := by simp [roundBits]
     simp only [wire, List.headD_cons, List.drop_succ_cons, List.drop_zero, Script.sendList,
       sumcheckRoundPoly, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind,
-          Follows]
+      hrb]
     rw [← hrest]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs rest)
     obtain ⟨rfl, hb⟩ := h
     subst hb
+    rw [← Script.bind_ret (Script.grindBits _)]
     refine Follows.bind (fun cs'' _ _ h ↦ ?_) _ _ _
       (Follows.grindBits_grindP (grindingBits (count - 1)) cs')
     subst h
@@ -223,13 +218,16 @@ theorem follows_sumcheckRoundPoly (count : ℕ) (claim : E) (mode : Option E) (c
     linear_combination (CharTwo.two_eq_zero (R := E)) * (c0 + b.sum)
   | some r =>
     simp only [RoundSplit, List.sum_cons] at hsplit
-    simp only [wire, List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly,
-        VerifierProgram.bind_eq]
     have hl : (c1 :: rest).length = count - 1 := by simp; omega
+    have hrb : roundBits count (some r) = grindingBits ((c1 :: rest).length + 1) := by
+      simp [roundBits, hl]
+    simp only [wire, List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly,
+        VerifierProgram.bind_eq, hrb]
     rw [← hl]
     refine Follows.bind (fun cs' _ b h ↦ ?_) _ _ _ (Follows.sendList_readN cs (c1 :: rest))
     obtain ⟨rfl, hb⟩ := h
     subst hb
+    rw [← Script.bind_ret (Script.grindBits _)]
     refine Follows.bind (fun cs'' _ _ h ↦ ?_) _ _ _
       (Follows.grindBits_grindP (grindingBits ((c1 :: rest).length + 1)) cs')
     subst h
