@@ -2,7 +2,7 @@
   LeanVM.Protocol.Whir.Sound.Queries
 
   The query positions of the deployed WHIR verifier are i.i.d. uniform: `sample_queries` cuts each
-  uniform 192-bit sample into disjoint chunks of `depth` bits, so all `t` positions land in a set
+  uniform 128-bit sample into disjoint chunks of `depth` bits, so all `t` positions land in a set
   of `a` columns with probability at most `(a / 2^depth)^t`.
 -/
 
@@ -14,16 +14,16 @@ public import LeanVM.Protocol.ToArkLib.Whir.Counting
 /-!
 # Uniformity of the query positions
 
-`sample_queries(transcript, 2^depth, t)` (`crates/verifier/src/whir.rs:75-90` at leanVM
-`40f877dc`, `LeanVM.Protocol.Verifier.sampleQueries`) draws
-samples `c ∈ E` and reads `int(c)` (`eToNat`, the three limbs as one 192-bit integer); the chunks
-`(int(c) >> (k·depth)) mod 2^depth`, `k < min(192/depth, remaining)`, are the positions.
+`sample_queries(transcript, 2^depth, t)` (`crates/verifier/src/whir.rs:78-93`,
+`LeanVM.Protocol.Verifier.sampleQueries`) draws samples `c ∈ E` and reads `int(c)` (`eToNat`,
+the two limbs as one 128-bit integer); the chunks
+`(int(c) >> (k·depth)) mod 2^depth`, `k < min(128/depth, remaining)`, are the positions.
 
-* `eNatEquiv`: `eToNat` is a bijection `E ≃ [0, 2^192)` (three independent 64-bit limbs).
-* `card_chunks`: of the `2^192` samples, exactly `2^(192 − n·depth)·a^n` have their first `n`
-  chunks in a set `S` with `a` elements in `[0, 2^depth)`, for `n·depth ≤ 192`.
+* `eNatEquiv`: `eToNat` is a bijection `E ≃ [0, 2^128)` (two independent 64-bit limbs).
+* `card_chunks`: of the `2^128` samples, exactly `2^(128 − n·depth)·a^n` have their first `n`
+  chunks in a set `S` with `a` elements in `[0, 2^depth)`, for `n·depth ≤ 128`.
 * `retExp_sampleQueries_le`: the probability that all `t` positions land in `S` is at most
-  `(a / 2^depth)^t`, for `1 ≤ depth ≤ 192`.
+  `(a / 2^depth)^t`, for `1 ≤ depth ≤ 128`.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -33,10 +33,10 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Verifier
 
 @[expose] public section
 
-/-! ## `int(e)` is uniform on `[0, 2^192)` -/
+/-! ## `int(e)` is uniform on `[0, 2^128)` -/
 
 /-- The limbs of a word as `64`-bit digits. -/
-def limbDigits (e : E) : Fin 3 → Fin (2 ^ 64) := fun i ↦ (e.limb i).toBitVec.toFin
+def limbDigits (e : E) : Fin 2 → Fin (2 ^ 64) := fun i ↦ (e.limb i).toBitVec.toFin
 
 theorem limbDigits_injective : Function.Injective limbDigits := by
   intro e e' h
@@ -47,12 +47,12 @@ theorem limbDigits_injective : Function.Injective limbDigits := by
 
 /-- `int(e)` as a digit expansion. -/
 theorem eToNat_eq (e : E) : eToNat e = (finFunctionFinEquiv (limbDigits e) : ℕ) := by
-  rw [finFunctionFinEquiv_apply, Fin.sum_univ_three]
-  simp only [eToNat, kToNat, limbDigits, BitVec.val_toFin, Fin.val_zero, Fin.val_one, Fin.val_two]
+  rw [finFunctionFinEquiv_apply, Fin.sum_univ_two]
+  simp only [eToNat, kToNat, limbDigits, BitVec.val_toFin, Fin.val_zero, Fin.val_one]
   ring
 
-/-- **`int` is a bijection `E ≃ [0, 2^192)`.** -/
-noncomputable def eNatEquiv : E ≃ Fin ((2 ^ 64) ^ 3) :=
+/-- **`int` is a bijection `E ≃ [0, 2^128)`.** -/
+noncomputable def eNatEquiv : E ≃ Fin ((2 ^ 64) ^ 2) :=
   Equiv.ofBijective (fun e ↦ finFunctionFinEquiv (limbDigits e))
     ((Fintype.bijective_iff_injective_and_card _).mpr
       ⟨finFunctionFinEquiv.injective.comp limbDigits_injective, by
@@ -84,14 +84,14 @@ theorem chunk_add_mul {depth n k : ℕ} (hk : k < n) (y u : ℕ) :
       (2 ^ depth) ^ j * 2 ^ depth * u = 2 ^ depth * ((2 ^ depth) ^ j * u) by ring,
     Nat.add_mul_mod_self_left]
 
-/-- **The chunk count**: exactly `2^(192 − n·depth)·a^n` samples have their first `n` chunks in
-`S`, with `a` the number of elements of `S` below `2^depth`, for `n·depth ≤ 192`. -/
-theorem card_chunks (depth n : ℕ) (hn : n * depth ≤ 192) (S : ℕ → Prop) [DecidablePred S] :
+/-- **The chunk count**: exactly `2^(128 − n·depth)·a^n` samples have their first `n` chunks in
+`S`, with `a` the number of elements of `S` below `2^depth`, for `n·depth ≤ 128`. -/
+theorem card_chunks (depth n : ℕ) (hn : n * depth ≤ 128) (S : ℕ → Prop) [DecidablePred S] :
     (univ.filter fun e : E ↦ ∀ k < n, S (chunk depth k (eToNat e))).card =
-      2 ^ (192 - n * depth) * (univ.filter fun j : Fin (2 ^ depth) ↦ S j).card ^ n := by
+      2 ^ (128 - n * depth) * (univ.filter fun j : Fin (2 ^ depth) ↦ S j).card ^ n := by
   set M := 2 ^ depth
-  set U := 2 ^ (192 - n * depth)
-  have hUL : (2 ^ 64) ^ 3 = U * M ^ n := by
+  set U := 2 ^ (128 - n * depth)
+  have hUL : (2 ^ 64) ^ 2 = U * M ^ n := by
     simp only [U, M, ← pow_mul, ← pow_add]
     rw [Nat.mul_comm depth n, Nat.sub_add_cancel hn]
   let P : ℕ → Prop := fun x ↦ ∀ k < n, S (chunk depth k x)
@@ -145,7 +145,7 @@ theorem allIn_append (S : ℕ → Prop) [DecidablePred S] (a b : List ℕ) :
   split_ifs <;> simp_all
 
 /-- One sample: the probability that its `n` chunks land in `S`. -/
-theorem avg_chunks (depth n : ℕ) (hn : n * depth ≤ 192) (S : ℕ → Prop) [DecidablePred S] :
+theorem avg_chunks (depth n : ℕ) (hn : n * depth ≤ 128) (S : ℕ → Prop) [DecidablePred S] :
     (Fintype.card E : ENNReal)⁻¹ * ∑ c : E,
         allIn S ((List.range n).map fun k ↦ (eToNat c >>> (k * depth)) % 2 ^ depth) =
       ((univ.filter fun j : Fin (2 ^ depth) ↦ S j).card / 2 ^ depth : ENNReal) ^ n := by
@@ -158,19 +158,19 @@ theorem avg_chunks (depth n : ℕ) (hn : n * depth ≤ 192) (S : ℕ → Prop) [
   rw [Finset.sum_boole, card_chunks depth n hn, card_E]
   set a := (univ.filter fun j : Fin (2 ^ depth) ↦ S j).card
   simp only [Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat]
-  have h192 : (2 : ENNReal) ^ 192 = 2 ^ (192 - n * depth) * (2 ^ depth) ^ n := by
+  have h128 : (2 : ENNReal) ^ 128 = 2 ^ (128 - n * depth) * (2 ^ depth) ^ n := by
     rw [← pow_mul, ← pow_add, Nat.mul_comm depth n, Nat.sub_add_cancel hn]
-  rw [h192, ENNReal.mul_inv (by simp) (by simp), ENNReal.div_eq_inv_mul, mul_pow]
-  have hx : ((2 : ENNReal) ^ (192 - n * depth))⁻¹ * 2 ^ (192 - n * depth) = 1 :=
+  rw [h128, ENNReal.mul_inv (by simp) (by simp), ENNReal.div_eq_inv_mul, mul_pow]
+  have hx : ((2 : ENNReal) ^ (128 - n * depth))⁻¹ * 2 ^ (128 - n * depth) = 1 :=
     ENNReal.inv_mul_cancel (by simp) (by simp)
-  calc _ = (((2 : ENNReal) ^ (192 - n * depth))⁻¹ * 2 ^ (192 - n * depth)) *
+  calc _ = (((2 : ENNReal) ^ (128 - n * depth))⁻¹ * 2 ^ (128 - n * depth)) *
         (((2 ^ depth) ^ n)⁻¹ * (a : ENNReal) ^ n) := by ring
     _ = _ := by rw [hx, one_mul, ENNReal.inv_pow]
 
-/-- **The query positions are i.i.d. uniform.** With `1 ≤ depth ≤ 192` and `rem ≤ fuel`, the
+/-- **The query positions are i.i.d. uniform.** With `1 ≤ depth ≤ 128` and `rem ≤ fuel`, the
 probability that all positions of `sampleQueriesAux depth fuel rem` land in `S` is at most
 `(a / 2^depth)^rem`. -/
-theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h192 : depth ≤ 192)
+theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h128 : depth ≤ 128)
     (S : ℕ → Prop) [DecidablePred S] :
     ∀ (fuel rem : ℕ), rem ≤ fuel → ∀ h₀ l,
       retExp (fun qs _ ↦ allIn S qs) h₀ l (sampleQueriesAux depth fuel rem) ≤
@@ -183,10 +183,10 @@ theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h192 : dept
     by_cases h0 : rem = 0
     · subst h0
       simp [sampleQueriesAux, retExp, allIn]
-    set n := min (192 / depth) rem with hn
-    have hn1 : 1 ≤ n := le_min ((Nat.one_le_div_iff (by omega)).mpr h192) (by omega)
-    have hnd : n * depth ≤ 192 :=
-      (Nat.mul_le_mul_right _ (min_le_left _ _)).trans (Nat.div_mul_le_self 192 depth)
+    set n := min (128 / depth) rem with hn
+    have hn1 : 1 ≤ n := le_min ((Nat.one_le_div_iff (by omega)).mpr h128) (by omega)
+    have hnd : n * depth ≤ 128 :=
+      (Nat.mul_le_mul_right _ (min_le_left _ _)).trans (Nat.div_mul_le_self 128 depth)
     have hnr : n ≤ rem := min_le_right _ _
     simp only [sampleQueriesAux, h0, ite_false, bind_eq, pure_eq]
     rw [show sampleChallenge = (sample ret : VerifierProgram E) from rfl, VerifierProgram.bind]
@@ -206,7 +206,7 @@ theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h192 : dept
         funext a h; simp [retExp, allIn_append]
       rw [this, retExp_const_mul]
       gcongr
-      exact retExp_sampleQueriesAux_le depth h1 h192 S fuel (rem - n) (by omega) _ _
+      exact retExp_sampleQueriesAux_le depth h1 h128 S fuel (rem - n) (by omega) _ _
     calc (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, _
         ≤ (Fintype.card E : ENNReal)⁻¹ * ∑ c : E,
           allIn S ((List.range n).map fun k ↦ (eToNat c >>> (k * depth)) % 2 ^ depth) *
@@ -217,11 +217,11 @@ theorem retExp_sampleQueriesAux_le (depth : ℕ) (h1 : 1 ≤ depth) (h192 : dept
 
 /-- **`sample_queries` positions are i.i.d. uniform**: all `t` positions land in `S` with
 probability at most `(a / 2^depth)^t`. -/
-theorem retExp_sampleQueries_le (depth t : ℕ) (h1 : 1 ≤ depth) (h192 : depth ≤ 192)
+theorem retExp_sampleQueries_le (depth t : ℕ) (h1 : 1 ≤ depth) (h128 : depth ≤ 128)
     (S : ℕ → Prop) [DecidablePred S] (h₀ l : List Ev) :
     retExp (fun qs _ ↦ allIn S qs) h₀ l (sampleQueries depth t) ≤
       ((univ.filter fun j : Fin (2 ^ depth) ↦ S j).card / 2 ^ depth : ENNReal) ^ t :=
-  retExp_sampleQueriesAux_le depth h1 h192 S t t le_rfl h₀ l
+  retExp_sampleQueriesAux_le depth h1 h128 S t t le_rfl h₀ l
 
 end
 end LeanVM.Protocol.Whir.Sound
