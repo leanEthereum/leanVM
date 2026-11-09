@@ -112,15 +112,15 @@ where
   stackWordOf (codes : Array (Array K)) (p : ℕ) : List K :=
     ((List.range 64).map fun u ↦ (codes.getD u #[]).getD p 0).reverse
 
-/-- The codewords of a level's lanes, limb by limb: entry `3j + l` encodes limb `l` of the lane
+/-- The codewords of a level's lanes, limb by limb: entry `2j + l` encodes limb `l` of the lane
 `j`, `x ↦ g[j + 2^k·x]`. -/
 def levelCodes (κ k R : ℕ) (g : Array E) : Array (Array K) :=
   let tws := nttTwiddles (κ + R) κ
-  Array.ofFn (n := 3 * 2 ^ k) fun jl ↦
+  Array.ofFn (n := 2 * 2 ^ k) fun jl ↦
     ntt tws κ R (Array.ofFn (n := 2 ^ κ) fun v ↦
-      (g.getD (jl.val / 3 + 2 ^ k * v.val) 0).limb ⟨jl.val % 3, Nat.mod_lt _ (by decide)⟩)
+      (g.getD (jl.val / 2 + 2 ^ k * v.val) 0).limb ⟨jl.val % 2, Nat.mod_lt _ (by decide)⟩)
 
-/-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
+/-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, two limbs
 each. -/
 @[macro_inline] def levelWordFast (κ k R : ℕ) (g : Array E) : Word :=
   levelWordOf k (levelCodes κ k R g)
@@ -128,8 +128,7 @@ where
   /-- The word from the lanes' codewords `codes`, computed once (as for `stackWordFast`). -/
   levelWordOf (k : ℕ) (codes : Array (Array K)) (p : ℕ) : List K :=
     (List.range (2 ^ k)).flatMap fun j ↦
-      [(codes.getD (3 * j) #[]).getD p 0, (codes.getD (3 * j + 1) #[]).getD p 0,
-        (codes.getD (3 * j + 2) #[]).getD p 0]
+      [(codes.getD (2 * j) #[]).getD p 0, (codes.getD (2 * j + 1) #[]).getD p 0]
 
 end LeanVM.Prover
 

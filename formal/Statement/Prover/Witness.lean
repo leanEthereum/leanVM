@@ -107,20 +107,20 @@ def opCount (steps : Array Step) (op : Opcode) : ℕ :=
 def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ log2Ceil (count op)
   let keccakHeight : ℕ := 2 ^ max (log2Ceil (count .keccak)) 9
-  4 * 2 ^ κ + 2 ^ logSize +
-    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+  3 * 2 ^ κ + 2 ^ logSize +
+    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
-/-- The greatest committed size the verifier admits, `2^28` (`MAX_MU`, `pcs.rs:51`). -/
+/-- The greatest committed size the verifier admits, `2^28` (`MAX_MU`, `pcs.rs:52`). -/
 def maxCommitted : ℕ := 2 ^ 28
 
 /-! ## The rows -/
 
 /-- The limbs of the word at `a`, zero when there is none (`MemoryImage.limbsAt`, computed). -/
-def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Vector K 3 :=
+def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Vector K 2 :=
   match readIn memIdx img a with
-  | some v => #v[v.limb 0, v.limb 1, v.limb 2]
-  | none => #v[0, 0, 0]
+  | some v => #v[v.limb 0, v.limb 1]
+  | none => #v[0, 0]
 
 /-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
 computed): a `KECCAK`'s thirteen cells read, then the output cells it writes, the first
@@ -160,12 +160,12 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (p
   | .xor oA oB oC | .mulNative oA oB oC =>
     let vA := limbsIn memIdx img (fp * oA)
     let vB := limbsIn memIdx img (fp * oB)
-    #[pc, fp, oA, oB, oC, vA[0], vA[1], vA[2], vB[0], vB[1], vB[2], c 0, c 1, c 2, rbc]
-  | .setConstant o k => #[pc, fp, o, k.limb 0, k.limb 1, k.limb 2, c 0, rbc]
+    #[pc, fp, oA, oB, oC, vA[0], vA[1], vB[0], vB[1], c 0, c 1, c 2, rbc]
+  | .setConstant o k => #[pc, fp, o, k.limb 0, k.limb 1, c 0, rbc]
   | .deref o1 o2 o3 mode =>
     let v3 := limbsIn memIdx img (fp * o3)
     #[pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
-      (limbsIn memIdx img (fp * o1))[0], v3[0], v3[1], v3[2], c 0, c 1, c 2, rbc]
+      (limbsIn memIdx img (fp * o1))[0], v3[0], v3[1], c 0, c 1, c 2, rbc]
   | .jump oc od of =>
     let vc := (limbsIn memIdx img (fp * oc))[0]
     #[pc, fp, oc, od, of, vc, (limbsIn memIdx img (fp * od))[0],

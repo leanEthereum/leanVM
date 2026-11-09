@@ -29,39 +29,55 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 /-! ## Ring switching -/
 
 /-- What ring switching leaves for the opening: the target `Σ_i x^i Φ(s_i)`, the Keccak
-reduction's point on `q_keccak`, and the six coefficients of the staged map `Φ`. -/
+reduction's point on `q_keccak`, and the map's challenges `f` and `g`. -/
 structure RingOut where
   target : E
   point : List E
-  challenges : List E
+  f : List E
+  g : List E
 
-/-- **The honest prover of ring switching**: it sends nothing; it receives the six coefficients
-and returns the target with the point and the coefficients. -/
+/-- **The honest prover of ring switching** (`ring_switch`,
+`crates/verifier/src/ring_switch.rs:70-87`; the prover's `sample_map_challenges`,
+`crates/pcs/src/ring_switch.rs:149-151`): it sends nothing; a grind, then the sixteen challenges,
+`f` then `g`; the target with the point and the challenges. -/
 def ringFast (point slices : List E) : Script RingOut := do
-  let challenges ← Script.sampleN ringMapShifts.length
-  return ⟨polyEval (slices.map (phiMap · challenges)) gen, point, challenges⟩
+  Script.grindBits Whir.batchGrindingBits
+  let challenges ← Script.sampleN (2 * ringMapWidth)
+  let f := challenges.take ringMapWidth
+  let g := challenges.drop ringMapWidth
+  return ⟨ringTarget slices f g, point, f, g⟩
+
+/-- `Φ(value) = Σ_p f_p Ψ(value)^(2^(8p))`, `Ψ(v) = Σ_b g_b v^(2^b)`, stage by stage, by squarings
+(`apply_map`, `crates/pcs/src/ring_switch.rs:129-145`). -/
+def ringPhi (f g : List E) (value : E) : E :=
+  (f.foldl (fun (acc : E × E) fP ↦
+    (acc.1 + fP * acc.2, Nat.repeat (fun v ↦ v * v) ringMapWidth acc.2)) (0, ringPsi value g)).1
 
 /-! ## The claims -/
 
 /-- A claim on the stack, as the opening receives it. -/
 inductive ClaimDesc where
-  /-- The ring-switching claim: its target, the Keccak reduction's point and the coefficients
-  of `Φ`. -/
-  | ring (layout : Layout) (target : E) (point challenges : List E)
+  /-- The ring-switching claim: its target, the Keccak reduction's point and the map's
+  challenges `f`, `g`. -/
+  | ring (layout : Layout) (target : E) (point f g : List E)
   /-- A column claim. -/
   | column (layout : Layout) (claim : ColumnClaim)
+  /-- The stack commitment's out-of-domain claim: the stack's multilinear at `z` is `value`. -/
+  | ood (z : List E) (value : E)
 
 /-- **The stack claim a description stands for**: the ring-switching claim with the weight
-`ringWeight point · (ringCoefficients challenges)`, or the column claim on the stack. -/
+`ringWeight point · (ringCoefficients f g)`, the column claim on the stack, or the out-of-domain
+claim. -/
 def ClaimDesc.denote : ClaimDesc → StackClaim
-  | .ring layout target point challenges =>
-    ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients challenges)
+  | .ring layout target point f g =>
+    ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients f g)
   | .column layout c =>
     (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x, c.value)
+  | .ood z value => (fun x ↦ eqEval z x, value)
 
 /-- The ring-switching claim of ring switching's result. -/
 def RingOut.claim (r : RingOut) (layout : Layout) : ClaimDesc :=
-  .ring layout r.target r.point r.challenges
+  .ring layout r.target r.point r.f r.g
 
 /-! ## Tables -/
 
@@ -110,7 +126,8 @@ def addFull (μ : ℕ) (w : List E → E) (s : E) (acc : Array E) : Array E :=
   Array.ofFn (n := acc.size) fun y ↦ acc.getD y.val 0 + s * w (cubePoint μ y.val)
 
 /-- Add `s` times a claim's weight on the cube of `2^μ` positions, in the stack's order: a column
-claim's equality kernel on its block, the ring claim's `Φ ∘ eq` on the block of `q_keccak`. -/
+claim's equality kernel on its block, the ring claim's `Φ ∘ eq` on the block of `q_keccak`, the
+out-of-domain claim's equality kernel on the whole stack. -/
 def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
   match d with
   | .column layout c =>
@@ -119,11 +136,17 @@ def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
       let vals := eqTable c.point
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
-  | .ring layout _ point challenges =>
+  | .ring layout _ point f g =>
     let pl := layout.placement qkeccak
-    if point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ challenges.length = 6 then
-      let vals := (eqTable point).map (phiMap · challenges)
+    if point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ f.length = ringMapWidth ∧
+        g.length = ringMapWidth then
+      let vals := (eqTable point).map (ringPhi f g)
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
+    else addFull μ d.denote.1 s acc
+  | .ood z _ =>
+    if z.length = μ then
+      let vals := eqTable z
+      addSlice 0 vals s vals.size acc
     else addFull μ d.denote.1 s acc
 
 /-- The batched weight `Σ_k s_k·w_k` on the cube, in the stack's order. -/
