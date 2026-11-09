@@ -76,10 +76,7 @@ fn keccak_hash_chain() {
     for _ in 0..steps {
         digest = compress(digest, digest);
     }
-    let public_input = [
-        F128::new(digest[0].0, digest[1].0, 0),
-        F128::new(digest[2].0, digest[3].0, 0),
-    ];
+    let public_input = [F128::new(digest[0].0, digest[1].0), F128::new(digest[2].0, digest[3].0)];
 
     let source = chain_source(steps, unroll);
     let program = compile(&parse(&source).expect("parse"));

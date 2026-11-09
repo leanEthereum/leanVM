@@ -106,7 +106,7 @@ pub(super) fn lean_xmss_hints(
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
     let mut hints: SubHints = vec![
-        ("lx_index", windows.clone().map(|x| F128::new(x, 0, 0)).collect()),
+        ("lx_index", windows.clone().map(|x| F128::new(x, 0)).collect()),
         (
             "lx_windows",
             windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),

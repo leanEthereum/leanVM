@@ -27,7 +27,7 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
     let levels = config.level_shapes(mu);
     let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
-    let per_squeeze = depth.iter().map(|&d| 192 / d).collect();
+    let per_squeeze = depth.iter().map(|&d| 128 / d).collect();
     WhirShape {
         config,
         levels,
@@ -182,17 +182,26 @@ pub(super) fn gen_verify(
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
     let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F128::ZERO; n];
         for opening in phase {
-            query_hints.push((
-                "merkle_leaf_rows",
-                opening.leaf.iter().map(|&x| F128::from(x)).collect(),
-            ));
+            // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
+            let row = if level == 0 {
+                opening.leaf.iter().map(|&x| F128::from(x)).collect()
+            } else {
+                opening
+                    .leaf
+                    .as_chunks()
+                    .0
+                    .iter()
+                    .map(|&[c0, c1]| F128::new(c0.0, c1.0))
+                    .collect()
+            };
+            query_hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;

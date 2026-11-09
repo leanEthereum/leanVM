@@ -19,25 +19,24 @@ STREAM_CAP = STREAM_CAP_PLACEHOLDER
 MIN_LOG_MEM = MIN_LOG_MEM_PLACEHOLDER
 INV_GEN = INV_GEN_PLACEHOLDER
 
-# ------------------------------------------------------------- the field, GF(2^192)
-# Tower F192 = F64[Y]/(Y^3+Y+1). Y_TOWER embeds Y for reassembling
-# e192(lo,hi,top) = lo + hi*Y + top*Y², and Y_INV also deduces a top limb at the
-# opening boundary once the low and high limbs are transmitted. COORD_BASIS is the
-# coordinate basis e_i of F192 (which spans the WHOLE field, unlike the g-power
-# basis GEN**i, which spans only F64): hint_decompose_bits emits a word's
-# coordinate bits, so a value reconstructs as Σ b_i·COORD_BASIS[i].
-FIELD_BITS = 192
+# ------------------------------------------------------------- the field, GF(2^128)
+# Tower F128 = F64[Y]/(Y^2+x*Y+1). Y_TOWER embeds Y for reassembling a word
+# lo + hi*Y, and Y_INV = Y + x splits a word into its limbs once the low one is
+# hinted. COORD_BASIS is the coordinate basis e_i of F128 (which spans the WHOLE
+# field, unlike the g-power basis GEN**i, which spans only F64): hint_decompose_bits
+# emits a word's coordinate bits, so a value reconstructs as Σ b_i·COORD_BASIS[i].
+FIELD_BITS = 128
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
 # squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
 QW = 6
-QUERY_WINDOWS_CAP = 56
+QUERY_WINDOWS_CAP = 36
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
 COORD_BASIS = COORD_BASIS_PLACEHOLDER
-# Six challenges compose the F2-linear map that batches the 192 transposed
-# ring-switch coordinates.
-RING_MAP_SHIFTS = [32, 16, 8, 4, 2, 1]
+# Phi, the F2-linear map that batches the 128 transposed ring-switch coordinates, is
+# drawn as two rows of RING_MAP_WIDTH challenges, f_a then g_b.
+RING_MAP_WIDTH = 8
 RS_CHUNK = 8  # ring-switch rows (target) or coordinates (weight) per loop iteration
 RS_CHUNK_BITS = 3
 RES_BATCH = 8  # residual queries per loop iteration
@@ -364,15 +363,13 @@ AGG_SEED_3 = AGG_SEED_3_PLACEHOLDER
 AGG_SEED_4 = AGG_SEED_4_PLACEHOLDER
 AGG_CHILD_PAD = AGG_CHILD_PAD_PLACEHOLDER
 AGG_CHILD_WORDS = 2 + DEFER_SIZE + DEFER_STMT_CELLS
-# The statement digest's preimage: the STMT_HEADER header values as the 16-byte
-# cells they already are (the seed, then the leanXMSS and leanSPHINCS claim-list
-# digests and the DA one), then the deferred cells' tower limbs, two to a cell. No
-# domain tag: every field has a fixed width, and the seed leads, binding this
-# bytecode and the proof system's version.
+# The statement digest's preimage: the STMT_HEADER header cells (the seed, then the
+# leanXMSS and leanSPHINCS claim-list digests and the DA one), then the deferred
+# cells. No domain tag: every field has a fixed width, and the seed leads, binding
+# this bytecode and the proof system's version.
 STMT_HEADER = STMT_HEADER_PLACEHOLDER
 STMT_DEFER_OFF = STMT_HEADER
-STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
-STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
+STMT_CELLS = STMT_DEFER_OFF + DEFER_STMT_CELLS
 
 # ------------------------------------------------------------------ the hash
 # Every hash is Keccak-256 (primitives::hash::hash): a block is 136 bytes, eight and a
@@ -396,7 +393,7 @@ MONO_REC = KECCAK_STATE + 2
 # dispatched a group at a time (leanSPHINCS DIGIT_GROUP and the last chain alone,
 # leanXMSS LX_DIGIT_GROUP and the rest), and the leanXMSS address, a cell whose low
 # lane is lo:32 | hi:24 | type:5 | step:3; TW_* hold the type. Every 16-byte native
-# value is one canonical cell.
+# value is one cell.
 W = W_PLACEHOLDER
 CHAIN_LENGTH = 2 ** W
 CHAIN_STEPS = CHAIN_LENGTH - 1
@@ -544,9 +541,10 @@ DA_SUM = 4 * DA_CELLS                           # where a blob's running sum sta
 DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
 
 # =================================== field packing ==================================
-# Serializing a word means exposing its three K limbs, and the tower representation
-# is unique, so proving that the exposed lanes are in K and weight back to the word
-# is the whole check: no equality to make, one less hint to distrust.
+# A word is a cell, so a value a KECCAK hashes or a transcript absorbs needs no check
+# of its own. Exposing a word's two K limbs is the one thing that does: the tower
+# representation is unique, so proving that the exposed lanes are in K and weight
+# back to the word is the whole check, no equality to make, one less hint to distrust.
 
 
 @inline
@@ -555,51 +553,21 @@ def pack64x2(a, b):
     return a + Y_TOWER * b
 
 
-def assert_canonical(word):
-    # Hint the low limb and derive the quotient by Y. Requiring both in K proves
-    # `word = lo + Y*hi`, hence that its top limb is zero.
-    lo = StackBuf(1)
-    hint_f192_limbs(lo, word)
-    hi = (word + lo[0]) * Y_INV
-    assert_in_k(lo[0], hi)
-    return 0
-
-
 @inline
-def canonical_limbs(word):
-    # assert_canonical, keeping the two limbs it binds.
+def split_limbs(word):
+    # Hint the low limb and derive the quotient by Y. Requiring both in K proves
+    # `word = lo + Y*hi`, which binds them.
     lo = StackBuf(1)
-    hint_f192_limbs(lo, word)
+    hint_f128_limbs(lo, word)
     hi = (word + lo[0]) * Y_INV
     assert_in_k(lo[0], hi)
     return lo[0], hi
 
 
 @inline
-def pack_pair(out, at: Const, s, t):
-    # Two field elements as three canonical cells out[at..at+3], (s0,s1) (s2,t0) (t1,t2):
-    # each top limb derived from the two hinted below it, each pack proving its lanes in K.
-    s_lo = StackBuf(2)
-    t_lo = StackBuf(2)
-    hint_f192_limbs(s_lo, s)
-    hint_f192_limbs(t_lo, t)
-    out[at] = pack64x2(s_lo[0], s_lo[1])
-    out[at + 1] = pack64x2(((s + s_lo[0]) * Y_INV + s_lo[1]) * Y_INV, t_lo[0])
-    out[at + 2] = pack64x2(t_lo[1], ((t + t_lo[0]) * Y_INV + t_lo[1]) * Y_INV)
-    return
-
-
-@inline
 def challenge_from_state(state):
-    # Both words are hash outputs with zero top limbs.
-    # Hint d2 and derive d3 = (state[1] + d2)/Y.
-    # Requiring both in K binds d2 by the tower representation.
-    # The challenge uses d2; d3 is checked and discarded.
-    d2 = StackBuf(1)
-    hint_f192_limbs(d2, state[1])
-    d3 = (state[1] + d2[0]) * Y_INV
-    assert_in_k(d2[0], d3)
-    return state[0] + Y_TOWER * Y_TOWER * d2[0]
+    # A challenge is the sponge's first two lanes, its first cell.
+    return state[0]
 
 
 # ==================================== Fiat-Shamir ===================================
@@ -613,14 +581,10 @@ def challenge_from_state(state):
 
 
 @inline
-def fs_pack(rate, k: Const, x, tag):
-    # Scalar x as lanes (c0, c1, c2, tag) over rate cells 2k and 2k + 1. KECCAK requires
-    # both cells' top limbs to be zero, which binds the hinted c2.
-    limbs = StackBuf(3)
-    hint_f192_limbs(limbs, x)
-    assert_in_k(limbs[2], tag)
-    rate[2 * k] = x + Y_TOWER * Y_TOWER * limbs[2]
-    rate[2 * k + 1] = limbs[2] + Y_TOWER * tag
+def fs_pack(rate, k: Const, x, tag: Const):
+    # Scalar x as lanes (c0, c1, 0, tag) over rate cells 2k and 2k + 1: x itself, then a constant.
+    rate[2 * k] = x
+    rate[2 * k + 1] = Y_TOWER * tag
     return
 
 
@@ -704,7 +668,7 @@ def fs_next(rate, k: Const, cursor):
 
 @inline
 def squeeze(sp, rate, k: Const):
-    # A challenge: the permutation taking the k waiting scalars, read off its first three
+    # A challenge: the permutation taking the k waiting scalars, read off its first two
     # lanes. Returns the new sponge and the challenge.
     nxt = fs_perm(sp, rate, k)
     challenge = challenge_from_state(nxt)
@@ -917,14 +881,11 @@ def grind_check(word, nbits: Const):
     # prover searches the deterministic u64 subset while verification permits the
     # full field: each candidate still costs one permutation and succeeds with
     # probability 2^-bits.
-    lanes = StackBuf(1)
-    hint_f192_limbs(lanes, word)
-    high = (word + lanes[0]) * Y_INV
-    assert_in_k(lanes[0], high)
+    lane, high = split_limbs(word)
     # The lane is rebuilt from its bits at and above nbits only, which IS the claim
     # that its low nbits coordinates are zero; the hinted low bits go unread.
     lane_bits = StackBuf(BASE_FIELD_BITS)
-    hint_decompose_bits(lane_bits, lanes[0], BASE_FIELD_BITS)
+    hint_decompose_bits(lane_bits, lane, BASE_FIELD_BITS)
     # Horner from the top bit, by the one constant X: no constant per bit.
     acc = 0
     for i in unroll(nbits, BASE_FIELD_BITS):
@@ -934,7 +895,7 @@ def grind_check(word, nbits: Const):
             acc = b
         else:
             acc = acc * COORD_BASIS[1] + b
-    assert acc * COORD_BASIS[nbits] == lanes[0]
+    assert acc * COORD_BASIS[nbits] == lane
     return
 
 
@@ -1346,23 +1307,20 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
 @inline
 def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # One query: hash the hinted row up its Merkle path into the shared cap, and
-    # return its dot product with the row's eq weights.
-    if base == 1:
-        row_len = interleave
-    else:
-        row_len = 3 * interleave
+    # return its dot product with the row's eq weights. A row is one hinted word a
+    # lane: a K lane at level 0, an E word deeper, which is already the leaf's cell.
     row = StackBuf(LIG_ROW_CAP)
-    hint_witness(row[0:row_len], "merkle_leaf_rows")
+    hint_witness(row[0:interleave], "merkle_leaf_rows")
     row_dot = 0
-    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
+    leaf_hash_state = StackBuf(2)
     if base == 1:
         # Packing proves each hinted lane is in K before hashing or folding it.
+        packed_row = StackBuf(LIG_PACKED_ROW_CAP)
         for jb in unroll(0, interleave // 2):
             packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+        keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     else:
-        # Pack the checked tower limbs into the leaf's contiguous byte image.
-        for jb in unroll(0, 3 * interleave // 2):
-            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+        keccak_cells(row[0:leaf_cells], leaf_hash_state)
     # The weights' tensor factors (opening_row_weights): a run of lo_len row
     # entries shares one hi factor.
     if const(interleave // 8 == 0):
@@ -1372,20 +1330,8 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     for h in unroll(0, interleave // lo_len):
         part = 0
         for l in unroll(0, lo_len):
-            jw = lo_len * h + l
-            if base == 1:
-                row_word = row[jw]
-            elif 3 * jw % 2 == 0:
-                # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
-            else:
-                # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-            part += row_word * row_eq_weights[GEN ** l]
+            part += row[lo_len * h + l] * row_eq_weights[GEN ** l]
         row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
-    # Hash the packed row.
-    leaf_hash_state = StackBuf(2)
-    keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
     return row_dot
 
@@ -1443,7 +1389,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
 
     # The opening's scalars (sumcheck messages, level roots, nonces, final message)
     # ride the SHARED stream, walked on in protocol order. The K opener binds a
-    # Merkle root as its two F192 scalars, not as a byte string, and every digest
+    # Merkle root as its two F128 scalars, not as a byte string, and every digest
     # uses ONE 128/128 encoding, so those scalars are exactly the root's two cells.
     # Between rounds the sponge rides fs0..fs4, its capacity, and w0, w1, the two
     # scalars waiting in it: the last round polynomial's sent coefficients.
@@ -1506,11 +1452,6 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             fs_pack(rate, 1, w1, DS_OBSERVE)
             next_root_a, msg_cursor = fs_next(rate, 2, msg_cursor)
             next_root_b, msg_cursor = fs_next(rate, 3, msg_cursor)
-            # A non-canonical half is rejected (`Digest::from_halves` in `crates/verifier`), as
-            # the commitment root was at its own read.
-            canon = StackBuf(2)
-            canon[0] = assert_canonical(next_root_a)
-            canon[1] = assert_canonical(next_root_b)
             level_roots[GEN ** (2 * lvl + 2)] = next_root_a
             level_roots[GEN ** (2 * lvl + 3)] = next_root_b
             # OOD binding for the newly observed level-(lvl+1) commitment. The
@@ -2521,16 +2462,14 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # ---- public-input binding claim: one per MEM limb, read off no stream ----
     # The VM's bind_pi_claim claims each committed MEM limb at [rm, 0..] equals
     # that limb's line through the public words, lo_0 + rm*(lo_0 + lo_1) and so
-    # on, which the statement alone determines. canonical_limbs binds each word's
-    # limbs and proves its top limb zero, so the top claim is zero (doc sec:e2e-pi).
+    # on, which the statement alone determines. split_limbs binds each word's
+    # limbs (doc sec:e2e-pi).
     sp, rm = squeeze(sp, rate, (N_COL_EVALS + 3) % 4 + 1)
-    lo_0, hi_0 = canonical_limbs(pi_0)
-    lo_1, hi_1 = canonical_limbs(pi_1)
+    lo_0, hi_0 = split_limbs(pi_0)
+    lo_1, hi_1 = split_limbs(pi_1)
     claim_pool[GEN ** claim_idx] = lo_0 + rm * (lo_0 + lo_1)
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = hi_0 + rm * (hi_0 + hi_1)
-    claim_idx += 1
-    claim_pool[GEN ** claim_idx] = 0
     claim_idx += 1
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_share, rm, col_eval_words
 
@@ -3090,27 +3029,36 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
 
 
 @inline
-def ring_map(lin_eval, map_challenges):
-    for stage in unroll(0, len(RING_MAP_SHIFTS)):
-        frobenius = lin_eval
-        for k in unroll(0, RING_MAP_SHIFTS[stage]):
-            frobenius *= frobenius
-        lin_eval += map_challenges[GEN ** stage] * frobenius
-    return lin_eval
+def ring_map(v, ch):
+    # Psi(v) = sum_a f_a v^(2^(8a)), then Phi(v) = sum_b g_b Psi(v)^(2^b): 63 squarings
+    # and 16 products, the challenges f_a, g_b at ch[a], ch[RING_MAP_WIDTH + b].
+    psi = ch[0] * v
+    for a in unroll(1, RING_MAP_WIDTH):
+        for k in unroll(0, RING_MAP_WIDTH):
+            v = v * v
+        psi += ch[a] * v
+    phi = ch[RING_MAP_WIDTH] * psi
+    for b in unroll(1, RING_MAP_WIDTH):
+        psi = psi * psi
+        phi += ch[RING_MAP_WIDTH + b] * psi
+    return phi
 
 
 def ring_switch_target(slices, map_challenges):
-    # Evaluate the claim and combine its 64 packing rows, sum_i x^i L(slice_i),
+    # Evaluate the claim and combine its 64 packing rows, sum_i x^i Phi(slice_i),
     # RS_CHUNK rows an iteration in Horner form: the running x-power and the
     # running sum ride one two-slot chain.
     rs_chain = HeapBuf((BASE_FIELD_BITS // RS_CHUNK + 1) * PAIR_SLOTS)
     rs_chain[GEN ** 0] = GEN ** 0  # x^(RS_CHUNK j)
     rs_chain[GEN ** 1] = 0         # the running sum
     for x_round in mul_range(1, GEN ** (BASE_FIELD_BITS // RS_CHUNK)):
+        ch = StackBuf(2 * RING_MAP_WIDTH)  # read once an iteration, not once a row
+        for i in unroll(0, 2 * RING_MAP_WIDTH):
+            ch[i] = map_challenges[GEN ** i]
         rows = slices * x_round ** RS_CHUNK
-        chunk = ring_map(rows[GEN ** (RS_CHUNK - 1)], map_challenges)
+        chunk = ring_map(rows[GEN ** (RS_CHUNK - 1)], ch)
         for r in unroll(1, RS_CHUNK):
-            chunk = chunk * 2 + ring_map(rows[GEN ** (RS_CHUNK - 1 - r)], map_challenges)
+            chunk = chunk * 2 + ring_map(rows[GEN ** (RS_CHUNK - 1 - r)], ch)
         row = rs_chain * x_round ** PAIR_SLOTS
         x_pow = row[GEN ** 0]
         row[GEN ** PAIR_SLOTS] = x_pow * const(2 ** RS_CHUNK)
@@ -3399,13 +3347,9 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
         sp = fs_perm(sp, rate, 4)
         rate = StackBuf(8)
     commit_root_1, cursor = fs_next(rate, (N_TABLES + 3) % 4, cursor)
-    # A non-canonical half is rejected here (`Digest::from_halves` in `crates/verifier`); the level
-    # roots get the same treatment at their own read.
-    root_cells = StackBuf(2)
-    root_cells[0] = assert_canonical(commit_root_0)
-    root_cells[1] = assert_canonical(commit_root_1)
 
-    # ---- bus challenges (F192 provides the soundness margin without grinding) ----
+    # ---- bus challenges ----
+    # TODO(f128 phase 2): bus grinding; F192 gave the soundness margin without it.
     # A tuple is fingerprinted multilinearly: slot x weighs eq(alphas, x), so a leaf
     # factor has total degree N_TUPLE_BITS in the challenges and the aligned bytecode
     # polynomial is read off at the challenge vector itself (doc sec:gp, sec:e2e-bc).
@@ -3437,29 +3381,26 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----
     # The input opening's slices were read and bound above; this block only binds
-    # them to the commitment. Compose six two-term F2-linear maps with shifts
-    # 32,16,8,4,2,1: their expansion has all 64 Frobenius terms soundness needs,
-    # while direct application costs 63 squarings and only six general
-    # multiplications.
-    map_challenges = HeapBuf(6)  # len(RING_MAP_SHIFTS)
-    c_table = HeapBuf(BASE_FIELD_BITS)
+    # them to the commitment. Phi(v) = sum_b g_b Psi(v)^(2^b), Psi(v) = sum_a f_a v^(2^(8a)):
+    # its expansion has all 64 Frobenius terms soundness needs, while direct
+    # application costs 63 squarings and 16 general multiplications.
+    ch = StackBuf(2 * RING_MAP_WIDTH)  # f_0 .. f_7, then g_0 .. g_7
     # verify_keccak drew the first, which the last slices waited for.
-    map_challenges[GEN ** 0] = map_0
-    for stage in unroll(1, len(RING_MAP_SHIFTS)):
+    ch[0] = map_0
+    for i in unroll(1, 2 * RING_MAP_WIDTH):
         sp, map_challenge = squeeze(sp, rate, 0)
-        map_challenges[GEN ** stage] = map_challenge
-    # Expand the same composition once for the later transparent-weight evaluation.
-    # Before shift d, the populated coefficients are exactly at multiples of 2d; the
-    # new branch fills the adjacent d-offset entries.
-    c_table[GEN ** 0] = 1
-    for stage in unroll(0, len(RING_MAP_SHIFTS)):
-        shift = RING_MAP_SHIFTS[stage]
-        map_challenge = map_challenges[GEN ** stage]
-        for slot in unroll(0, BASE_FIELD_BITS // (2 * shift)):
-            coefficient = c_table[GEN ** (slot * 2 * shift)]
-            for k in unroll(0, shift):
-                coefficient *= coefficient
-            c_table[GEN ** (slot * 2 * shift + shift)] = map_challenge * coefficient
+        ch[i] = map_challenge
+    map_challenges = HeapBuf(2 * RING_MAP_WIDTH)
+    for i in unroll(0, 2 * RING_MAP_WIDTH):
+        map_challenges[GEN ** i] = ch[i]
+    # The same map as a Frobenius sum, for the transparent weight: c_(8a+b) = g_b f_a^(2^b).
+    c_table = HeapBuf(BASE_FIELD_BITS)
+    for a in unroll(0, RING_MAP_WIDTH):
+        power = ch[a]
+        for b in unroll(0, RING_MAP_WIDTH):
+            c_table[GEN ** (RING_MAP_WIDTH * a + b)] = ch[RING_MAP_WIDTH + b] * power
+            if const(b + 1 != RING_MAP_WIDTH):
+                power = power * power
     target_in = ring_switch_target(slices, map_challenges)
     # ONE batching challenge for the whole pool: N_CLAIMS - 1 fewer Fiat-Shamir
     # hashes than a challenge per claim, and none for the values themselves,
@@ -3517,7 +3458,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 # Every addressed hash input is P | A | M with P, each value of M and each half of A
 # 16 bytes (A is one cell in leanXMSS, two in leanSPHINCS), so each is one cell: a
 # hash's output feeds the next hash where it lands, and a hinted value needs no check
-# of its own, the KECCAK table reading only canonical cells. A chain's steps land in
+# of its own, every cell being a 16-byte value. A chain's steps land in
 # fixed slots of a `walks` run, so its tip is one cell whatever the digit, read there
 # by the leaf's hash.
 
@@ -4065,9 +4006,7 @@ def statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer):
     # claims read out of the parent's own tables.
     #
     # The preimage is fixed-length, so a plain hash beats the Fiat-Shamir chain.
-    # A header value is a canonical cell and needs no check, the KECCAK table
-    # reading only cells whose top limb is zero. A deferred cell is a full field
-    # element, so two fill three cells (`pack_pair`).
+    # Every value is one cell, hashed as its two lanes.
     cells = StackBuf(STMT_CELLS)
     cells[0] = seed_0  # the STMT_HEADER header cells
     cells[1] = seed_1
@@ -4077,13 +4016,8 @@ def statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer):
     cells[5] = sd_1
     cells[6] = da_0
     cells[7] = da_1
-    for p in unroll(0, STMT_PAIRS):
-        s = defer[GEN ** (2 * p)]
-        if const(2 * p + 1 == DEFER_STMT_CELLS):
-            t = 0  # an odd cell count pairs the last one with a zero partner
-        else:
-            t = defer[GEN ** (2 * p + 1)]
-        pack_pair(cells, STMT_DEFER_OFF + 3 * p, s, t)
+    for i in unroll(0, DEFER_STMT_CELLS):
+        cells[STMT_DEFER_OFF + i] = defer[GEN ** i]
     st = StackBuf(2)
     keccak_cells(cells, st)
     return st[0], st[1]
@@ -4321,7 +4255,7 @@ def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
 
 
 def da_verify(g_squares):
-    # Returns the commitment root and the membership challenge, two canonical cells each.
+    # Returns the commitment root, two cells, and the membership challenge, one.
     # Only the tree over the blob roots walks the padded count; a padding blob's root
     # is a constant, which the gap loop writes without hashing anything.
     shape = StackBuf(2)
@@ -4330,10 +4264,8 @@ def da_verify(g_squares):
     g_log_pad = shape[1]
     n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
 
-    # The challenge as its 32 bytes, two cells whose top limbs the KECCAK hashing them checks.
+    # The challenge, hashed below as its two lanes and two zero ones.
     z = hint_witness("da_challenge")
-    z_cells = StackBuf(2)
-    fs_pack(z_cells, 0, z, 0)
     zs, top_leaves, cell_factors, offsets = da_vector(z)
 
     # A blob's region: its tree, then its running sum, a fresh write-once cell per column.
@@ -4360,7 +4292,7 @@ def da_verify(g_squares):
         pad[1] = DA_PAD_BLOB_0
         pad[GEN] = DA_PAD_BLOB_1
     r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(roots, 2 ** k, k))
-    return r0, r1, z_cells[0], z_cells[1]
+    return r0, r1, z
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -4601,8 +4533,8 @@ def main():
     da_digests = HeapBuf((n_children_g * GEN) ** 2)
     own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
-        root_0, root_1, z_0, z_1 = da_verify(g_squares)
-        keccak([root_0, root_1], [z_0, z_1], own_da[0:2])
+        root_0, root_1, z = da_verify(g_squares)
+        keccak([root_0, root_1], [z, 0], own_da[0:2])
     else:
         own_da[1] = 0
         own_da[GEN] = 0

@@ -8,7 +8,7 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_compiler::f192_literal;
+use lean_compiler::f128_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
@@ -59,7 +59,7 @@ fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String 
 fn flds(v: &[F128]) -> String {
     format!(
         "[{}]",
-        v.iter().map(|&x| f192_literal(x)).collect::<Vec<_>>().join(", ")
+        v.iter().map(|&x| f128_literal(x)).collect::<Vec<_>>().join(", ")
     )
 }
 
@@ -372,7 +372,7 @@ fn claim_placeholders(
         .iter()
         .map(|t| t.n_committed_columns())
         .sum();
-    let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
+    let ncl = nclaims + evtot + 2; // bus + constraint + the two PI memory-limb claims
 
     // ---- claim descriptor buffer ids (structural) ----
     let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
@@ -571,20 +571,18 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
 
 /// The F128 tower and its coordinate basis.
 fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
-    // Tower F128 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
-    // AIR lane reassembly; Y_INV splits a canonical word into its two K limbs.
-    let y_tower = F128::new(0, 1, 0);
+    // Tower F128 = F64[Y]/(Y^2 + xY + 1). Y_TOWER embeds Y for AIR lane reassembly;
+    // Y_INV = Y + x splits a word into its two K limbs.
+    let y_tower = F128::new(0, 1);
     ps("Y_TOWER", dsl_u128(y_tower).to_string());
-    ps("Y_INV", f192_literal(y_tower.inv()));
-    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64
-    // binary basis vectors in each of the three tower limbs. The guest uses
-    // these vectors to reconstruct a word from its 192 coordinate bits.
-    let coord_basis: Vec<F128> = (0..192)
+    ps("Y_INV", f128_literal(y_tower.inv()));
+    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
+    // basis vectors in each of the two tower limbs. The guest uses these vectors to
+    // reconstruct a word from its 128 coordinate bits.
+    let coord_basis: Vec<F128> = (0..128)
         .map(|i| match i / 64 {
-            0 => F128::new(1u64 << i, 0, 0),
-            1 => F128::new(0, 1u64 << (i - 64), 0),
-            2 => F128::new(0, 0, 1u64 << (i - 128)),
-            _ => unreachable!(),
+            0 => F128::new(1u64 << i, 0),
+            _ => F128::new(0, 1u64 << (i - 64)),
         })
         .collect();
     ps("COORD_BASIS", flds(&coord_basis));
@@ -606,7 +604,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let cni: Vec<usize> = ck.iter().map(|&k| 1usize << k).collect();
         assert!(
             cni.iter().enumerate().all(|(lv, &n)| {
-                let bytes = if lv == 0 { 8 * n } else { 24 * n };
+                let bytes = if lv == 0 { 8 * n } else { 16 * n };
                 bytes <= 1024 && n % 4 == 0
             }),
             "recursive WHIR guest supports Merkle rows of at most 1024 bytes, packed four words to two cells"
@@ -725,18 +723,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                     .sum()
             }),
         );
-        let row_cap = cands
-            .iter()
-            .flat_map(|c| {
-                c.interleaving
-                    .iter()
-                    .enumerate()
-                    .map(|(level, &n)| n * if level == 0 { 1 } else { 3 })
-            })
-            .max()
-            .unwrap();
+        // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
+        let row_cap = cands.iter().flat_map(|c| c.interleaving.iter().copied()).max().unwrap();
+        let packed_cap = cands.iter().map(|c| c.interleaving[0] / 2).max().unwrap();
         ps("LIG_ROW_CAP", row_cap.to_string());
-        ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
+        ps("LIG_PACKED_ROW_CAP", packed_cap.to_string());
         ps(
             "LIG_PATH_CAP",
             cands
@@ -757,15 +748,15 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
         ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
         // 128-bit cells per leaf row: level 0's committed rows are base-field
-        // F64 (8 bytes/lane); deeper levels are native F128 (24 bytes/word,
-        // received as three embedded K limbs each).
+        // F64 (8 bytes/lane, two lanes a cell); deeper levels are native F128,
+        // one word a cell.
         ps(
             "LIG_LEAF_CELLS",
             flat(&|c| {
                 c.interleaving
                     .iter()
                     .enumerate()
-                    .map(|(level, &n)| if level == 0 { n / 2 } else { 3 * n / 2 })
+                    .map(|(level, &n)| if level == 0 { n / 2 } else { n })
                     .collect()
             }),
         );
@@ -830,10 +821,7 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
         "AGG_CHILD_PAD",
         (child_words.next_multiple_of(RATE_SCALARS) - child_words).to_string(),
     );
-    let defer_cells = kbc + log2_bc_cols + 1;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
-    let pairs = defer_cells.div_ceil(2);
-    ps("STMT_PAIRS", pairs.to_string());
 }
 
 /// LeanDA (`doc/leanvm` §sec:leanda).
@@ -843,8 +831,8 @@ fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
-    ps("DA_PAD_BLOB_0", f192_literal(pad_blob[0]));
-    ps("DA_PAD_BLOB_1", f192_literal(pad_blob[1]));
+    ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));
+    ps("DA_PAD_BLOB_1", f128_literal(pad_blob[1]));
     // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
     // order: `j` the bit `n` splits, the point its path's bits make.
     let vhat = lean_da::subspace_above();

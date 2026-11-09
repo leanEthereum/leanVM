@@ -42,7 +42,7 @@ pub struct EthereumProof {
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
-// The wire format: the deferred point as a little-endian u64 count of limb triples `c0, c1, c2`,
+// The wire format: the deferred point as a little-endian u64 count of limb pairs `c0, c1`,
 // each a little-endian u64, then the VM proof in its own encoding, to the end. The claims are not
 // sent: the receiver knows what it expects a proof to attest, and supplies it.
 //
@@ -62,13 +62,10 @@ pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
 pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     let (count, rest) = bytes.split_first_chunk::<8>()?;
     let count = usize::try_from(u64::from_le_bytes(*count)).ok()?;
-    let (limbs, proof) = rest.split_at_checked(count.checked_mul(24)?)?;
+    let (limbs, proof) = rest.split_at_checked(count.checked_mul(16)?)?;
     let limb = |bytes: &[u8; 8]| u64::from_le_bytes(*bytes);
-    let triples = limbs.as_chunks::<8>().0.as_chunks::<3>().0;
-    let point = triples
-        .iter()
-        .map(|[c0, c1, c2]| F128::new(limb(c0), limb(c1), limb(c2)))
-        .collect();
+    let pairs = limbs.as_chunks::<8>().0.as_chunks::<2>().0;
+    let point = pairs.iter().map(|[c0, c1]| F128::new(limb(c0), limb(c1))).collect();
     Some((point, proof))
 }
 

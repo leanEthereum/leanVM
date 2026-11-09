@@ -57,12 +57,9 @@ fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
-    let (point, proof) = (vec![F128::new(1, 2, 3), F128::new(4, 5, 6)], vec![9, 8, 7]);
+    let (point, proof) = (vec![F128::new(1, 2), F128::new(4, 5)], vec![9, 8, 7]);
     let bytes = encode(&point, &proof);
-    assert_eq!(
-        bytes,
-        [&le(2)[..], &le(1), &le(2), &le(3), &le(4), &le(5), &le(6), &proof].concat()
-    );
+    assert_eq!(bytes, [&le(2)[..], &le(1), &le(2), &le(4), &le(5), &proof].concat());
     assert_eq!(decode(&bytes), Some((point, &proof[..])));
     // A count beyond the input, or beyond any input, fails whatever it claims.
     assert_eq!(decode(&[&le(3)[..], &bytes[8..]].concat()), None);
@@ -146,7 +143,7 @@ fn guest_addresses_are_the_native_ones() {
         for layer in 0..2 {
             for (hi, lo, step) in [(0u32, 0u32, 0usize), (5, 0x1234_5678, 2), (16, u32::MAX, 0)] {
                 let tw = lean_xmss::tweak(tag, lean_xmss::layer_hi(layer, hi), lo).step(step);
-                let fields = F128::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0, 0);
+                let fields = F128::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0);
                 let guest = cell(lean_xmss::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F128::ZERO };
                 assert_eq!(guest, cell(tw));
             }
@@ -351,8 +348,8 @@ def main():
     for mu in MU_MIN..=MU_MAX {
         let mut point: Vec<F128> = (0..mu)
             .map(|_| {
-                let (c0, c1, c2) = rand::Rng::random(&mut rng);
-                F128::new(c0, c1, c2)
+                let (c0, c1) = rand::Rng::random(&mut rng);
+                F128::new(c0, c1)
             })
             .collect();
         point.resize(MU_MAX, F128::ZERO);
@@ -596,7 +593,7 @@ fn da_guest_checks_codeword_membership() {
     let source = include_str!("../../guests/lean_ethereum.py");
     let (helpers, _) = source.split_once("\ndef main():").unwrap();
     let source = format!(
-        "{helpers}\ndef main():\n    squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
+        "{helpers}\ndef main():\n    squares = exponent_tables()\n    a, b, z = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [z, 0], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
     let n_rows = 3usize;
@@ -844,7 +841,7 @@ def main():
 "#
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-    let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k, 0));
+    let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
     let table: Vec<F128> = [claim(0), claim(1)].concat();
     let run = |child: &[[F128; 4]], gaps: &[F128]| {
         let mut hints = Hints::default();
@@ -962,8 +959,8 @@ fn leaf_claim_matches_the_general_path() {
 fn scalar_deferred_claim_matches_the_prover() {
     let mut rng = StdRng::seed_from_u64(7);
     let mut point = |len: usize| -> Vec<F128> {
-        let limbs = (0..len).map(|_| rand::Rng::random::<(u64, u64, u64)>(&mut rng));
-        limbs.map(|(c0, c1, c2)| F128::new(c0, c1, c2)).collect()
+        let limbs = (0..len).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
+        limbs.map(|(c0, c1)| F128::new(c0, c1)).collect()
     };
     let bytecode_point = point(bytecode_vars());
     assert_eq!(
@@ -976,9 +973,9 @@ fn scalar_deferred_claim_matches_the_prover() {
 #[test]
 fn bytecode_sums_give_the_bytecode_value() {
     let mut rng = StdRng::seed_from_u64(11);
-    let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64, u64)>(&mut rng));
+    let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
     let points = [
-        limbs.map(|(c0, c1, c2)| F128::new(c0, c1, c2)).collect(),
+        limbs.map(|(c0, c1)| F128::new(c0, c1)).collect(),
         vec![F128::ZERO; bytecode_vars()],
     ];
     for (sums, point) in bytecode_sums(&points).iter().zip(&points) {

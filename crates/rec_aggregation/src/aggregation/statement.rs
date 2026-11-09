@@ -33,7 +33,7 @@ pub(super) fn list_split(n: usize) -> Vec<F128> {
 /// the message it signed, and an empty list hashes the empty string. The guest
 /// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
 pub(super) fn claim_list_digest(claims: impl IntoIterator<Item = [F128; 4]>) -> [F128; 2] {
-    hash_to_scalars(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
+    cell_hash(claims.into_iter().flatten())
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
@@ -62,11 +62,9 @@ pub(super) fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F12
 /// end-to-end statement check holds the two spellings together.
 pub(super) const STATEMENT_HEADER: usize = 8;
 
-/// A plain hash over a lane stream, two lanes a 128-bit cell: what the guest gets
-/// from `keccak_cells` over the same cells.
-fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F128; 2] {
-    let bytes: Vec<u8> = lanes.flat_map(u64::to_le_bytes).collect();
-    hash_to_scalars(&primitives::hash::hash(&bytes))
+/// A plain hash over cells: what the guest gets from `keccak_cells` over the same cells.
+fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
+    hash_to_scalars(&primitives::hash::hash(&cell_bytes(cells)))
 }
 
 /// A node's public statement, hashed to the two words the VM publishes. The
@@ -77,11 +75,9 @@ fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F128; 2] {
 /// Fixed-length preimage, so a plain hash, with no domain tag of its own: every
 /// field has a fixed width, and the header leads with the environment digest, which
 /// binds this bytecode and the proof system's version and so already separates the
-/// preimage from every other use of the hash here. The header is hashed as the
-/// canonical cells it already is (two lanes each, whence the assert, the guest being
-/// unable to hash a third), then all three lanes of each deferred cell. Each claim
-/// list's digest binds its own length through the hash's padding, so the pair binds
-/// both lists whole.
+/// preimage from every other use of the hash here. The header cells, then the
+/// deferred cells, each hashed as its two lanes. Each claim list's digest binds its
+/// own length through the hash's padding, so the pair binds both lists whole.
 pub(super) fn statement_digest(
     xmss_signers: &[LeanXmssClaim],
     lean_sphincs_signers: &[LeanSphincsClaim],
@@ -102,13 +98,5 @@ pub(super) fn statement_digest(
         da_digest[0],
         da_digest[1],
     ];
-    let mut cells = defer.cells();
-    if !cells.len().is_multiple_of(2) {
-        cells.push(F128::ZERO); // the guest pairs the odd cell with a zero scalar
-    }
-    let head = header.iter().flat_map(|x| {
-        assert_eq!(x.c2, 0, "a header value is a canonical cell");
-        [x.c0, x.c1]
-    });
-    lane_hash(head.chain(cells.iter().flat_map(|x| x.to_limbs())))
+    cell_hash(header.into_iter().chain(defer.cells()))
 }

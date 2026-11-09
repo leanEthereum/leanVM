@@ -17,7 +17,7 @@ pub(super) enum ClaimSite {
     Framework { column: usize, source: (usize, usize) },
     /// A table column, a KECCAK value lane's ([`keccak_value`]) included.
     TableColumn { column: usize, table: usize },
-    /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
+    /// One of the two PI memory limbs (MEM_LO, MEM_HI).
     MemoryLimb { column: usize },
 }
 
@@ -148,11 +148,7 @@ pub(super) fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut vis
             });
         }
     }
-    for &column in &[
-        leanvm_core::cpu::MEM_LO,
-        leanvm_core::cpu::MEM_HI,
-        leanvm_core::cpu::MEM_TOP,
-    ] {
+    for &column in &[leanvm_core::cpu::MEM_LO, leanvm_core::cpu::MEM_HI] {
         visit(ClaimSite::MemoryLimb { column });
     }
 }
