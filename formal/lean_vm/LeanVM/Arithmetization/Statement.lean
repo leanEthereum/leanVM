@@ -86,9 +86,9 @@ the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" say
 the M3 part of the announcement checks (`read_public` at `a386121f`; at the pin, `walk` and
 `build_layout`, `verifier/src/lib.rs:229-247` and `verifier/src/layout.rs:478-489`, behind the
 wrapper `crates/leanvm_core/src/cpu/mod.rs:673-686`), which make eight checks: (1) the
-announced sizes have zero upper limbs (`verifier/src/lib.rs:234-238`, the transcript format)
-and (2) the two public words have a zero third limb (`cpu/mod.rs:676-678`), both by type here
-(`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
+announced sizes have zero upper limbs (`verifier/src/lib.rs:250-254` at `leanvm-rev`, the
+transcript format) and (2) the two public words are two-limb words (`cpu/mod.rs:627` at
+`leanvm-rev`, `[F128; 2]`), both by type here (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
 (`cpu/mod.rs:688`, `verifier/src/layout.rs:483` and `:487`), `Program`'s by type
 (`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
 `[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:485`); (5) every table has at most
@@ -109,9 +109,10 @@ keeps the total read count below `2^64 - 1`, the bound the bus argument of `Soun
 it, three hypotheses of `SatisfiedBy`). The memory block's index column is fixed to `g^i`, so
 `IndexColumnsAreRowIndices w` is a theorem (§6.5, the index column the verifier computes;
 `layout.rs:431` and `:442`, `Index`). The prover data is derived from the rows, and the memory
-block, named `"mem"`, holds the limbs in its first three cells, so the image the data names *is* the
+block, named `"mem"`, holds the limbs in its first two cells, so the image the data names *is* the
 block (`memRows_data`) and `SeedRowsAreTheImage w` is a theorem (§6.2 "Seed" and "Finalize";
-`layout.rs:425-448`, `MEM_LO, MEM_HI, MEM_TOP` and `MFCNT`, the index and finalize columns free).
+`cpu/layout.rs:431-440` at `leanvm-rev`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
+columns free).
 The bytecode block's counter and entry columns are fixed to the program's, so
 `BytecodeRowsAreTheProgram prog w` is a theorem (§8.6 Bus 4: the verifier forms "the program's
 whole share of the two bytecode blocks" itself; `layout.rs:354-356` and `:449-461`,
@@ -317,7 +318,7 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
 
 /-- The M3 checks of the announced instance, two of the verifier's announcement checks
 (`crates/verifier/src/layout.rs:457-461`; §6.2 "Instance caps"): the window of the announced memory
-log-size `κ` and the row cap. The bytecode length and the public words' third limbs are checked by
+log-size `κ` and the row cap. The bytecode length and the public words' two limbs are checked by
 type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol layer's (see
 the module docstring). -/
 structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
@@ -343,12 +344,12 @@ def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog κ)) : 
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
 some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
-MEM_HI, MEM_TOP` are the image (§6.2 "Seed" and "Finalize"; `layout.rs:425-448`). -/
+MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs:431-440` at `leanvm-rev`). -/
 def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K,
     memBlockRows w = List.ofFn fun i ↦
-      (toElements (⟨#v[((imageOf w.data).2 i).limb 0, ((imageOf w.data).2 i).limb 1,
-        ((imageOf w.data).2 i).limb 2], idx i, cntFin i⟩ : MemRow K)).toArray
+      (toElements (⟨#v[((imageOf w.data).2 i).limb 0, ((imageOf w.data).2 i).limb 1], idx i,
+        cntFin i⟩ : MemRow K)).toArray
 
 /-- The bytecode block's rows are the program's: for some finalize-count column `cntFin`, the
 block's raw rows are `bytecodeRowOf prog i (cntFin i)` for `i < 2 ^ prog.logSize`, in order.
@@ -510,8 +511,8 @@ block is the program: the three facts that were hypotheses of the statement unti
 columns, now theorems of every witness (`SatisfiedBy.index_columns`, `SatisfiedBy.seed_rows`,
 `SatisfiedBy.bytecode_rows`), and the data is well shaped (`Caps.well_shaped`). -/
 
-/-- The memory block's rows have five cells: its input, no local witness. -/
-theorem memComponent_width : (memComponent κ).width = 5 := rfl
+/-- The memory block's rows have four cells: its input, no local witness. -/
+theorem memComponent_width : (memComponent κ).width = 4 := rfl
 /-- The bytecode block's rows have fifteen cells. -/
 theorem bytecodeComponent_width : (bytecodeComponent prog).width = 15 := rfl
 
@@ -526,10 +527,10 @@ theorem tableAt_mem (w : EnsembleWitness (leanIsaEnsemble prog κ)) (j : Fin 8) 
     tableAt w j ∈ w.tables := List.getElem_mem _
 
 /-- **The image is the memory block.** The prover data's `"mem"` table, which `imageOf` reads, is
-Clean's derivation from the witness: the memory block's rows cut at three cells, its limbs. -/
+Clean's derivation from the witness: the memory block's rows cut at two cells, its limbs. -/
 theorem memRows_data (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
-    memRows w.data = ((memBlockRows w).map (Air.Flat.rowPrefix 3)).toArray := by
-  have h := Air.Flat.deriveProverData_eq_of_mem w.tables (names_nodup w) (tableAt_mem w 6) 3
+    memRows w.data = ((memBlockRows w).map (Air.Flat.rowPrefix 2)).toArray := by
+  have h := Air.Flat.deriveProverData_eq_of_mem w.tables (names_nodup w) (tableAt_mem w 6) 2
   rw [tableAt_component] at h
   exact h
 
@@ -628,7 +629,7 @@ theorem bytecodeRowsAreTheProgram (w : EnsembleWitness (leanIsaEnsemble prog κ)
   exact Fin.ext hnat
 
 theorem memRowAt_m (w : EnsembleWitness (leanIsaEnsemble prog κ)) (row : Array K) :
-    (memRowAt w row).m = Air.Flat.rowPrefix 3 row := by
+    (memRowAt w row).m = Air.Flat.rowPrefix 2 row := by
   rw [memRowAt_eq]
   ext j hj
   interval_cases j <;> simp [Air.Flat.rowPrefix, explicit_provable_type, circuit_norm]
@@ -649,7 +650,7 @@ theorem seedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) (hκ
   rw [List.getElem_ofFn]
   conv_lhs => rw [← toElements_rowPrefix hw, ← memRowAt_eq w]
   have himg := imageOf_apply hws ⟨k, by simpa using hk'⟩
-    (v := Air.Flat.rowPrefix 3 (memBlockRows w)[k]) (by simp [memRows_data])
+    (v := Air.Flat.rowPrefix 2 (memBlockRows w)[k]) (by simp [memRows_data])
   rw [himg]
   have hm := memRowAt_m w (memBlockRows w)[k]
   simp only []
