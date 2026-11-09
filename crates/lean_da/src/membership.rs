@@ -11,8 +11,10 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
 //! of degree below `k`. A uniform challenge accepts it with probability at most
-//! `(k-1)/2^192`. The verifier crate derives `z` from the root, outside the SNARK, and the
+//! `(k-1)/2^128`. The verifier crate derives `z` from the root, outside the SNARK, and the
 //! statement binds it; the guest builds `L` from `z` and checks the inner products.
+
+// TODO(f128 phase 2): `(k-1)/2^128` is below 120 bits at `k = 2^14`; the LeanDA challenge needs a margin.
 
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::F64;
@@ -65,7 +67,7 @@ mod tests {
     }
 
     fn random_challenge(rng: &mut StdRng) -> F128 {
-        F128::new(rng.random(), rng.random(), rng.random())
+        F128::new(rng.random(), rng.random())
     }
 
     fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
@@ -94,7 +96,7 @@ mod tests {
         let dual = dual_codeword(z);
         let want = powers(z, BLOB_SYMBOLS);
         let ntt = AdditiveNttF64::standard(LOG_M);
-        for limb in 0..3 {
+        for limb in 0..2 {
             let mut coefficients: Vec<F64> = dual.iter().map(|v| F64(v.to_limbs()[limb])).collect();
             ntt.inverse_transform(&mut coefficients);
             let (low, high) = coefficients.split_at(BLOB_SYMBOLS);

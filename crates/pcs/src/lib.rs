@@ -2,7 +2,7 @@
 //! Tower-field polynomial commitment infrastructure.
 //!
 //! Boolean witnesses are packed into `K = GF(2^64)` and WHIR opens them
-//! over its cubic extension `E = GF(2^192)`.
+//! over its quadratic extension `E = GF(2^128)`.
 
 pub mod merkle;
 pub mod ntt;

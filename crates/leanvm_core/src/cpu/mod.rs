@@ -2,8 +2,8 @@
 //! sharing the state / memory / bytecode buses, bound to one field-valued
 //! commitment and verified oracle-free. Addresses, the program counter, and read
 //! counts are g-powers, so every increment is a free ×g. Machine-word arithmetic
-//! is over `E = F128 = K[y]/(y³+y+1)` (XOR degree 1, MUL_NATIVE degree 2),
-//! with each word carried by three committed `K = F64` limbs. `KECCAK` adds the
+//! is over `E = F128 = K[y]/(y²+x·y+1)` (XOR degree 1, MUL_NATIVE degree 2),
+//! with each word carried by two committed `K = F64` limbs. `KECCAK` adds the
 //! memory/state/bytecode plumbing for one Keccak-f sponge step whose relation
 //! is discharged by the Keccak reduction (see [`crate::keccak`]). All
 //! challenges and transcript scalars live in the same tower E.
@@ -64,9 +64,7 @@ pub fn fs_seed(program: &Program) -> [F128; 2] {
 }
 
 /// The two 128-bit halves a digest travels in, as the four words the
-/// Fiat-Shamir sponge absorbs. Only defined for a real digest, whose halves have
-/// no third limb; [`verify`] rejects a public input that has one, so a
-/// third limb can never be silently dropped from what the transcript binds.
+/// Fiat-Shamir sponge absorbs.
 fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
     [
         F64(halves[0].c0),
@@ -83,11 +81,11 @@ fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
 /// here; it seeds the transcript at construction (see [`fs_seed`]). The boundary
 /// states are derived from the program, so they need no binding.
 fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
-    ps.add_scalar(F128::new(log_mem as u64, 0, 0));
+    ps.add_scalar(F128::new(log_mem as u64, 0));
     for n in rows {
-        ps.add_scalar(F128::new(n as u64, 0, 0));
+        ps.add_scalar(F128::new(n as u64, 0));
     }
-    ps.add_scalar(F128::new(log_inv_rate as u64, 0, 0));
+    ps.add_scalar(F128::new(log_inv_rate as u64, 0));
 }
 
 #[derive(Clone)]
@@ -269,7 +267,7 @@ impl std::error::Error for ProveError {}
 /// Why [`verify`] rejected a proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CpuError {
-    /// The statement is malformed: the public input is not two 128-bit halves, or the bytecode's length is not a power of two.
+    /// The statement is malformed: the bytecode's length is not a power of two.
     PublicInput,
     /// The `verifier` crate rejected the proof.
     Verifier(verifier::VerifierError),
@@ -454,10 +452,6 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
-    debug_assert!(
-        public_input.iter().all(|h| h.c2 == 0),
-        "a public input is a 256-bit digest"
-    );
     let mut ps = ProverState::new(
         fiat_shamir::digest_words(&program.fiat_shamir_iv),
         digest_words(&public_input),
@@ -538,7 +532,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
 
 /// Everything the PCS has to open, in the ORDER that feeds the batch's weights:
 /// the bus's framework claims, then the table sumcheck's per-table column claims (less the
-/// `KECCAK` output lanes', which go to the reduction), then the three public-input limb
+/// `KECCAK` output lanes', which go to the reduction), then the two public-input limb
 /// claims, each located in its committed slot. Every verifier assembles the same list in
 /// the same order.
 fn finish_claims(
@@ -571,13 +565,13 @@ fn finish_claims(
 /// `(r, 0,…,0)` must equal the line through that limb of `pi[0]` and `pi[1]`.
 /// The public input is the statement, so both sides evaluate the lines
 /// themselves and build byte-identical claims from their layouts; the prover
-/// sends nothing. The verifier has rejected a nonzero top limb, so that claim is 0.
-fn bind_pi_claim(r: F128, l: &Layout) -> [ColumnClaim; 3] {
+/// sends nothing.
+fn bind_pi_claim(r: F128, l: &Layout) -> [ColumnClaim; 2] {
     let [a, b] = l.pi;
-    let limbs = [(a.c0, b.c0), (a.c1, b.c1), (a.c2, b.c2)];
+    let limbs = [(a.c0, b.c0), (a.c1, b.c1)];
     let mut point = vec![F128::ZERO; l.placements[MEM_LO].n_vars];
     point[0] = r;
-    [MEM_LO, MEM_HI, MEM_TOP].map(|col| {
+    [MEM_LO, MEM_HI].map(|col| {
         let (x, y) = limbs[col - MEM_LO];
         ColumnClaim {
             col,
@@ -589,11 +583,11 @@ fn bind_pi_claim(r: F128, l: &Layout) -> [ColumnClaim; 3] {
 
 /// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
 pub fn to_scalar(value: &F128) -> verifier::E {
-    verifier::E::new(value.c0, value.c1, value.c2)
+    verifier::E::new(value.c0, value.c1)
 }
 
 pub fn from_scalar(value: verifier::E) -> F128 {
-    F128::new(value.c0, value.c1, value.c2)
+    F128::new(value.c0, value.c1)
 }
 
 /// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
@@ -610,7 +604,7 @@ pub fn scalar_proof(proof: &Proof) -> verifier::Proof {
     }
 }
 
-/// The statement as the 32 bytes the `verifier` crate takes: the low two limbs of each half.
+/// The statement as the 32 bytes the `verifier` crate takes: the two limbs of each half.
 pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
     let mut bytes = [0; 32];
     let limbs = public_input.iter().flat_map(|half| [half.c0, half.c1]);
@@ -625,9 +619,8 @@ pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
 /// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
 #[tracing::instrument(name = "Verify", skip_all)]
 pub fn verify(program: &Program, public_input: &[F128; 2], proof: &Proof) -> Result<verifier::Summary, CpuError> {
-    // The statement is two 128-bit halves, so a third limb would be dropped and two statements would share a proof.
     // `Program::prog` is public, and the stacked table below is only defined for a power-of-two bytecode.
-    if public_input.iter().any(|half| half.c2 != 0) || !program.prog.len().is_power_of_two() {
+    if !program.prog.len().is_power_of_two() {
         return Err(CpuError::PublicInput);
     }
     let table: Vec<u64> = layout::bytecode_table(&program.prog)
@@ -673,9 +666,9 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
 mod tests {
     use super::*;
 
-    /// A K-embedded immediate (both extension limbs zero).
+    /// A K-embedded immediate (extension limb zero).
     fn w(x: u64) -> F128 {
-        F128::new(x, 0, 0)
+        F128::new(x, 0)
     }
 
     /// A hand-built straight-line program with two KECCAK rows. The first reads, in the even
@@ -782,10 +775,10 @@ mod tests {
     #[test]
     fn keccak_permutes_in_both_layouts() {
         use crate::keccak::{STATE_CELLS, permute_cells, state_of_cells};
-        let a = F128::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0);
-        let b = F128::new(0xdead_beef_cafe_babe, 0x0bad_f00d_0bad_f00d, 0);
-        let pad = F128::new(primitives::hash::PAD_FIRST as u64, 0, 0);
-        let end = F128::new(primitives::hash::END_BIT, 0x5555, 0);
+        let a = F128::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210);
+        let b = F128::new(0xdead_beef_cafe_babe, 0x0bad_f00d_0bad_f00d);
+        let pad = F128::new(primitives::hash::PAD_FIRST as u64, 0);
+        let end = F128::new(primitives::hash::END_BIT, 0x5555);
         let program = keccak_program(a, b, [pad, F128::ZERO, F128::ZERO, F128::ZERO], end);
         let pi = [w(7), w(11)];
         let exec = program.execute(pi).unwrap();
@@ -809,18 +802,6 @@ mod tests {
 
         let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("a hand-assembled program verifies");
-    }
-
-    /// A state cell carries `(lo, hi, 0)`. This is not an extra AIR constraint: the
-    /// memory bus makes a read carrying a literal zero in limb 2 match only such a
-    /// stored word.
-    #[test]
-    fn keccak_requires_zero_third_limb() {
-        let err = keccak_program(F128::new(0, 0, 1), F128::ZERO, [F128::ZERO; 4], F128::ZERO)
-            .execute([w(7), w(11)])
-            .err()
-            .expect("the run must fail");
-        assert!(matches!(err.fault, Fault::NotCanonical { cell: 0, .. }), "{err}");
     }
 
     /// The last slot in a frame other than main's is an ordinary slot: the machine halts in the
@@ -863,13 +844,11 @@ mod tests {
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
     }
 
-    /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb
-    /// constants are why this one is hand-written bytecode: a source literal fills
-    /// only the low two limbs.
+    /// A 128-bit-word MUL: the E-product of two full machine words.
     #[test]
-    fn mul_192bit_word() {
-        let x = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef, 0x1111_2222_3333_4444);
-        let y = F128::new(0x9999_aaaa_bbbb_cccc, 0x1357_9bdf_2468_ace0, 0x5555_6666_7777_8888);
+    fn mul_128bit_word() {
+        let x = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
+        let y = F128::new(0x9999_aaaa_bbbb_cccc, 0x1357_9bdf_2468_ace0);
         let prog = vec![
             Op::Set { o: 2, k: x },
             Op::Set { o: 3, k: y },

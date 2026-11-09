@@ -100,12 +100,12 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; S
     if odd { read::<true>(cell) } else { read::<false>(cell) }
 }
 
-/// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
+/// The thirteen state cells holding 25 lanes in a layout, a free lane zero.
 pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
     let lanes = cell_lanes(odd);
     std::array::from_fn(|c| {
         let (lo, hi) = lanes[c];
-        F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]), 0)
+        F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]))
     })
 }
 
@@ -262,7 +262,7 @@ mod tests {
             // What the columns riding the spare slots left there is none of the reduction's
             // business, but both openings fold it, so the two runs have to see the same.
             q_keccak[states..].fill(f(0x5151_5151));
-            let point = (0..n_steps_log(n)).map(|i| F128::new(3 + i as u64, 5, 7)).collect();
+            let point = (0..n_steps_log(n)).map(|i| F128::new(3 + i as u64, 5)).collect();
             let output = OutputClaim::of_inputs(shape(n), &instances, point);
             let mut ps = ProverState::from_label(b"blocks");
             let deferred = (witness.prove(&mut ps, &q_keccak, &output), ps.into_proof());
@@ -296,7 +296,7 @@ mod tests {
                 .iter()
                 .map(|c| {
                     let w = |k: usize| u64::from_le_bytes(c[8 * k..8 * k + 8].try_into().unwrap());
-                    F128::new(w(0), w(1), 0)
+                    F128::new(w(0), w(1))
                 })
                 .collect();
             let mut state = [F128::ZERO; STATE_CELLS];

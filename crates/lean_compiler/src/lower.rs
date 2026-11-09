@@ -557,7 +557,7 @@ impl FnLower<'_> {
         // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
-        // A builtin arm (`f192(…)`, `hint_log2_ceil(…)`) has no entry to dispatch to.
+        // A builtin arm (`hint_log2_ceil(…)`) has no entry to dispatch to.
         if arms
             .iter()
             .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| !d.inline)))
@@ -1029,8 +1029,6 @@ impl FnLower<'_> {
                 self.emit(LOp::Mul { a: q, b: lb, c: la });
                 q
             }
-            // A well-formed one folds above, so this is a malformed call.
-            Expr::Call(f, _) if f == "f192" => self.fail("f192 needs three literal u64 limbs"),
             // Folded above when it is what it claims to be, so reaching here means
             // it is not: name that, rather than reporting an unknown function.
             Expr::Call(f, args) if f == "const" => {

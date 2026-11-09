@@ -10,7 +10,7 @@ fn pack64x2_proves_and_verifies() {
 @inline
 def pack64x2(a, b):
     assert_in_k(a, b)
-    return a + f192(0, 1, 0) * b
+    return a + 18446744073709551616 * b
 
 def main():
     a = 5
@@ -22,7 +22,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F128::new(5, 7, 0), F128::new(5, 7, 0)];
+    let want = [F128::new(5, 7), F128::new(5, 7)];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     let counts = mix(src, want);
     assert_eq!(

@@ -4,9 +4,9 @@
 //!
 //! The state is 25 lanes: the rate is lanes `0..16` and the capacity lanes `16..25`. Absorbed
 //! scalars wait, up to four, and a permutation takes them all: scalar `i` overwrites lanes
-//! `4i..4i + 4` with its three limbs and a domain tag, the rate past the last scalar is zeroed, and
+//! `4i..4i + 4` with its two limbs, a zero and a domain tag, the rate past the last scalar is zeroed, and
 //! the capacity carries over. A fifth scalar, or a challenge, permutes what is waiting; every
-//! challenge takes a permutation of its own and is the first three lanes of its output. So sending
+//! challenge takes a permutation of its own and is the first two lanes of its output. So sending
 //! a round's coefficients and drawing its challenge is one permutation, and a guest replays it as
 //! one `KECCAK` instruction whose rate cells are the scalars and whose capacity cells are the
 //! previous output's.
@@ -42,7 +42,7 @@ pub const RATE_SCALARS: usize = 4;
 /// The rate's lanes, four per scalar.
 const RATE_LANES: usize = 4 * RATE_SCALARS;
 
-// Domain tags, the fourth lane of an absorbed scalar. Nonzero, so a scalar never reads as the
+// Domain tags, the fourth lane of an absorbed scalar (the third is zero). Nonzero, so a scalar never reads as the
 // zeroed rate past the last one, and distinct, so a grinding nonce never reads as a sent scalar.
 const DS_OBSERVE: u64 = 1;
 const DS_POW_NONCE: u64 = 4;
@@ -82,10 +82,10 @@ impl FiatShamirState {
         Self::new(digest_words(&primitives::hash::hash(label)), [F64::ZERO; 4])
     }
 
-    /// Permute, taking the waiting scalars, and return the output's first three lanes.
+    /// Permute, taking the waiting scalars, and return the output's first two lanes.
     fn duplex(&mut self) -> F128 {
         primitives::hash::keccak_f(&mut self.state);
-        let out = F128::new(self.state[0], self.state[1], self.state[2]);
+        let out = F128::new(self.state[0], self.state[1]);
         self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
         out
@@ -96,7 +96,7 @@ impl FiatShamirState {
             self.duplex();
         }
         let i = 4 * self.n_pending;
-        self.state[i..i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);
+        self.state[i..i + 4].copy_from_slice(&[x.c0, x.c1, 0, tag]);
         self.n_pending += 1;
     }
 
@@ -109,8 +109,8 @@ impl FiatShamirState {
             "the capacity is the whole state only with nothing waiting"
         );
         std::array::from_fn(|c| match c {
-            0 => F128::new(self.state[16], 0, 0),
-            _ => F128::new(self.state[15 + 2 * c], self.state[16 + 2 * c], 0),
+            0 => F128::new(self.state[16], 0),
+            _ => F128::new(self.state[15 + 2 * c], self.state[16 + 2 * c]),
         })
     }
 
@@ -120,7 +120,7 @@ impl FiatShamirState {
     }
 
     /// Squeeze a challenge: a permutation of its own, taking whatever waits, whose
-    /// output's first three lanes are the challenge. In Fiat-Shamir everything is
+    /// output's first two lanes are the challenge. In Fiat-Shamir everything is
     /// public; soundness comes from each challenge being a random-oracle image of
     /// the entire prior transcript.
     pub fn sample(&mut self) -> F128 {
@@ -160,7 +160,7 @@ impl FiatShamirState {
             0
         } else if (1u64 << bits) < PARALLEL_GRIND_MIN {
             (0..)
-                .find(|&n| self.pow_bits_ok(F128::new(n, 0, 0), bits))
+                .find(|&n| self.pow_bits_ok(F128::new(n, 0), bits))
                 .expect("a nonce exists")
         } else {
             // Many candidates at once through the batched permutation: each one's input is the
@@ -190,7 +190,7 @@ impl FiatShamirState {
                 start = start.saturating_add(block);
             }
         };
-        self.absorb_nonce(F128::new(nonce, 0, 0));
+        self.absorb_nonce(F128::new(nonce, 0));
         nonce
     }
 }
@@ -200,7 +200,7 @@ mod tests {
     use super::*;
 
     fn f(k: u64) -> F128 {
-        F128::new(k, k ^ 0x1234, k.rotate_left(17))
+        F128::new(k, k ^ 0x1234)
     }
 
     fn pi(k: u64) -> [F64; 4] {
@@ -255,11 +255,11 @@ mod tests {
             let mut clone = sp.clone();
             let good = clone.grind_pow(bits);
             let expected = (0..=good)
-                .find(|&n| bits == 0 || sp.pow_bits_ok(F128::new(n, 0, 0), bits))
+                .find(|&n| bits == 0 || sp.pow_bits_ok(F128::new(n, 0), bits))
                 .unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
             let mut expected_state = sp.clone();
-            expected_state.absorb_nonce(F128::new(good, 0, 0));
+            expected_state.absorb_nonce(F128::new(good, 0));
             assert_eq!(clone.sample(), expected_state.sample());
         }
     }

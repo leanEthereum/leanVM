@@ -98,25 +98,9 @@ pub fn parse_const(s: &str) -> Result<F128, String> {
     eval(&parse_expr(s)?)
 }
 
-/// `v` as the zkDSL literal `f192(c0,c1,c2)`, which a global constant or an expression reads back as `v`.
-pub fn f192_literal(v: F128) -> String {
-    format!("f192({},{},{})", v.c0, v.c1, v.c2)
-}
-
-pub(super) fn parse_f192_const(s: &str) -> Option<Result<F128, String>> {
-    let inner = s.trim().strip_prefix("f192(")?.strip_suffix(')')?;
-    let parts = split_top(inner, ',');
-    Some((|| {
-        if parts.len() != 3 {
-            return Err("f192 needs exactly three limbs".into());
-        }
-        let mut limbs = [0u64; 3];
-        for (i, p) in parts.iter().enumerate() {
-            limbs[i] =
-                u64::try_from(eval_const_int(p.trim())?).map_err(|_| "an f192 limb does not fit in u64".to_string())?;
-        }
-        Ok(F128::from_limbs(limbs))
-    })())
+/// `v` as the zkDSL integer literal whose bits spell its limbs, which a global constant or an expression reads back as `v`.
+pub fn f128_literal(v: F128) -> String {
+    crate::word_int(v).to_string()
 }
 
 /// A range bound (`mul_range` bounds and `assert log _ < log _` bounds): a

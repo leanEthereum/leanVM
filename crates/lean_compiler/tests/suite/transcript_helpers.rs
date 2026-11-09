@@ -2,37 +2,29 @@
 //! the rate, a `keccak(.., cap=)` duplex step, and a challenge read off the output,
 //! against the duplex sponge of `fiat_shamir::FiatShamirState`.
 
-use lean_compiler::{compile, f192_literal, parse};
+use lean_compiler::{compile, f128_literal, parse};
 use primitives::field::F128;
 use primitives::hash::{STATE_LANES, keccak_f};
 
 const SRC: &str = r#"
 from snark_lib import *
 
-Y = f192(0, 1, 0)
-Y_INV = Y_INV_LIT
+Y = 18446744073709551616
 
 @inline
 def challenge_from_state(state):
-    d2 = StackBuf(1)
-    hint_f192_limbs(d2, state[1])
-    d3 = (state[1] + d2[0]) * Y_INV
-    assert_in_k(d2[0], d3)
-    return state[0] + Y * Y * d2[0]
+    return state[0]
 
 @inline
 def fs_pack(rate, k: Const, x, tag):
-    limbs = StackBuf(3)
-    hint_f192_limbs(limbs, x)
-    assert_in_k(limbs[2], tag)
-    rate[2 * k] = x + Y * Y * limbs[2]
-    rate[2 * k + 1] = limbs[2] + Y * tag
+    rate[2 * k] = x
+    rate[2 * k + 1] = Y * tag
     return
 
 def main():
     seed = [CAP_0, CAP_1, CAP_2, CAP_3, CAP_4]
     rate = StackBuf(2)
-    fs_pack(rate, 0, f192(5, 6, 7), 1)
+    fs_pack(rate, 0, X_LIT, 1)
     sp = StackBuf(13)
     keccak(rate[0:2], [0, 0], sp, cap=seed)
     first = challenge_from_state(sp)
@@ -46,12 +38,12 @@ def main():
 "#;
 
 /// One overwrite-mode duplex step: lanes `0..16` are `rate` then zeros, lanes `16..25`
-/// carry over. Returns the challenge, the output's first three lanes.
+/// carry over. Returns the challenge, the output's first two lanes.
 fn duplex(state: &mut [u64; STATE_LANES], rate: &[u64]) -> F128 {
     state[..16].fill(0);
     state[..rate.len()].copy_from_slice(rate);
     keccak_f(state);
-    F128::new(state[0], state[1], state[2])
+    F128::new(state[0], state[1])
 }
 
 #[test]
@@ -60,20 +52,21 @@ fn guest_transcript_step_matches_the_native_duplex() {
     keccak_f(&mut state);
     // The capacity cells as the VM reads them: lane 16 alone, then lanes 17..25 two a cell.
     let cap: [F128; 5] = std::array::from_fn(|c| match c {
-        0 => F128::new(state[16], 0, 0),
-        _ => F128::new(state[15 + 2 * c], state[16 + 2 * c], 0),
+        0 => F128::new(state[16], 0),
+        _ => F128::new(state[15 + 2 * c], state[16 + 2 * c]),
     });
-    let mut src = SRC.replace("Y_INV_LIT", &f192_literal(F128::new(0, 1, 0).inv()));
+    // A scalar rides its four lanes as `[c0, c1, 0, tag]`.
+    let mut src = SRC.replace("X_LIT", &f128_literal(F128::new(5, 6)));
     for (c, x) in cap.into_iter().enumerate() {
-        src = src.replace(&format!("CAP_{c}"), &f192_literal(x));
+        src = src.replace(&format!("CAP_{c}"), &f128_literal(x));
     }
-    let first = duplex(&mut state, &[5, 6, 7, 1]);
+    let first = duplex(&mut state, &[5, 6, 0, 1]);
     let second = duplex(&mut state, &[]);
 
     let program = compile(&parse(&src).expect("parse"));
     program
         .execute([first, second])
         .expect("the guest's step is the native duplex");
-    let wrong = second + F128::new(1, 0, 0);
+    let wrong = second + F128::new(1, 0);
     assert!(program.execute([first, wrong]).is_err());
 }

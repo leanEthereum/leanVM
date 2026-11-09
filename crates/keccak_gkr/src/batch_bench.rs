@@ -94,7 +94,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
             .expect("the batch proof verifies");
     });
 
-    let merkle_bytes = transcript.to_bytes().len() - 24 * transcript.stream.len();
+    let merkle_bytes = transcript.to_bytes().len() - 16 * transcript.stream.len();
     Report {
         shape,
         stages,
@@ -147,7 +147,7 @@ impl Report {
             pretty_integer((n as f64 / pass_s).round() as u64),
             pass.spread()
         );
-        let proof_bytes = 24 * self.stream_len + self.merkle_bytes;
+        let proof_bytes = 16 * self.stream_len + self.merkle_bytes;
         println!(
             "  {:<32}: {:>11.1} KiB  ({} scalars, {:.1} KiB of Merkle openings)",
             "proof size",
@@ -190,11 +190,7 @@ pub(crate) fn scalar_proof(proof: &Proof) -> verifier::Proof {
     };
     let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
     verifier::Proof {
-        stream: proof
-            .stream
-            .iter()
-            .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
-            .collect(),
+        stream: proof.stream.iter().map(|x| verifier::E::new(x.c0, x.c1)).collect(),
         merkle_openings: openings.collect(),
     }
 }

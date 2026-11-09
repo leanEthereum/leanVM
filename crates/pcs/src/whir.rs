@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 //! WHIR with `K = GF(2)[x]/(x^64+x^4+x^3+x+1)` and
-//! `E = K[y]/(y^3+y+1)`.
+//! `E = K[y]/(y^2+x*y+1)`.
 //!
 //! The committed message is a
 //! vector of [`F64`] values; every verifier challenge, sumcheck message, basis
@@ -13,13 +13,13 @@
 //! Representations:
 //! - committed message / L0 codeword / L0 opened rows: `F64` (8 bytes)
 //! - challenges, sumcheck messages, folded witnesses, deeper-level codewords
-//!   and opened rows, `b_initial`, betas, alphas, `yr`: `F128` (24 bytes)
+//!   and opened rows, `b_initial`, betas, alphas, `yr`: `F128` (16 bytes)
 //! - the RS-encoding evaluation domain and all LCH twiddles stay in K, so the
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
-//!   [`F128::mul_base`] (3 PMULL) instead of a full E multiplication.
+//!   [`F128::mul_base`] (2 PMULL) instead of a full E multiplication.
 //!
-//! Soundness note: [`WhirSecurityConfig`] analyzes the actual challenge
-//! field size `q = 2^192`; the committed alphabet remains `K = GF(2^64)`.
+//! Soundness note: [`WhirSecurityConfig`] analyzes the challenge field
+//! `E`; the committed alphabet remains `K = GF(2^64)`.
 
 use crate::merkle::{self, Hash};
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
@@ -164,7 +164,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 }
 
 /// Codeword + Merkle tree for one deeper WHIR commitment level: a row is one position across the
-/// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 24` bytes.
+/// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 16` bytes.
 ///
 /// A codeword kept before its deep layers has them finished on the rows a query opens.
 pub(crate) struct LigeroWitness {
@@ -185,16 +185,14 @@ impl LigeroWitness {
     fn open(&self, queries: &[usize]) -> (Vec<F128>, Vec<MerklePath>) {
         let group = self.tree.group_positions(queries);
         let group_rows = self.opened_words(&group);
-        let row_words = 3 * self.num_interleaved;
+        let row_words = 2 * self.num_interleaved;
         let row = |q| fetched_row(&group, &group_rows, row_words, q);
         let mut rows = Vec::with_capacity(queries.len() * self.num_interleaved);
-        rows.extend(queries.iter().flat_map(|&q| {
-            row(q)
-                .as_chunks::<3>()
-                .0
+        rows.extend(
+            queries
                 .iter()
-                .map(|w| F128::new(w[0].0, w[1].0, w[2].0))
-        }));
+                .flat_map(|&q| row(q).as_chunks::<2>().0.iter().map(|w| F128::new(w[0].0, w[1].0))),
+        );
         let paths = self.tree.open(queries, row_words, row_words, &group_rows, row);
         (rows, paths)
     }
@@ -223,7 +221,7 @@ pub(crate) fn ligero_commit_ext(
     assert_eq!(poly.len(), num_interleaved * msg_cols);
 
     // One leaf per row, its F128s as K words: hashed as the encode finishes each block.
-    let row_words = 3 * num_interleaved;
+    let row_words = 2 * num_interleaved;
     let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
     let codeword = tracing::info_span!(
         "NTT",
@@ -404,7 +402,7 @@ fn round_msg_lsb<const EVAL: bool>(f: &[F128], b: &[F128]) -> (SumcheckMessage, 
 /// still in flight.
 const FOLD_STAGE: usize = 256;
 
-/// Fold outputs of at least this many elements (12 MiB) take streaming stores.
+/// Fold outputs of at least this many elements (8 MiB) take streaming stores.
 ///
 /// An output this large is evicted from a worker's share of the L3 before the next round reads it, so an ordinary
 /// store only adds the line fetch.
@@ -940,15 +938,15 @@ impl SumcheckProver {
 }
 
 /// Sample `count` query positions in transcript order: no dedup, no sort.
-/// `block_len = 2^d`; each squeezed field element yields `⌊192/d⌋` positions as
-/// its disjoint d-bit chunks (low bits first), matching the scheme the recursive guest derives (fixed `192/d` per
+/// `block_len = 2^d`; each squeezed field element yields `⌊128/d⌋` positions as
+/// its disjoint d-bit chunks (low bits first), matching the scheme the recursive guest derives (fixed `128/d` per
 /// squeeze, dup-tolerant: soundness matches the deployed PCS with the same
 /// `config.queries`). Duplicates are harmless, a repeated position re-opens the
 /// same Merkle-authenticated row.
 ///
 fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) -> Vec<usize> {
     let d = block_len.trailing_zeros() as usize;
-    let per = 192 / d;
+    let per = 128 / d;
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
         let v = ch.sample();

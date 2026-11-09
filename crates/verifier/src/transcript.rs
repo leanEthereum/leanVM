@@ -16,7 +16,7 @@ pub struct Proof {
 
 const DS_OBSERVE: u64 = 1;
 const DS_POW_NONCE: u64 = 4;
-/// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, three limbs and a tag.
+/// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, its two limbs, a zero lane and a tag.
 const RATE_SCALARS: usize = 4;
 
 /// A duplex sponge over Keccak-f\[1600\], in overwrite mode. The rate is lanes 0..16 and the capacity lanes
@@ -49,7 +49,7 @@ impl Sponge {
         let mut input = self.state;
         input[..16].fill(0);
         for (i, &(value, tag)) in self.pending[..self.n_pending].iter().enumerate() {
-            input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, value.c2, tag]);
+            input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, 0, tag]);
         }
         keccak_f(&mut input);
         self.state = input;
@@ -70,7 +70,7 @@ impl Sponge {
 
     pub fn sample(&mut self) -> E {
         self.duplex();
-        E::new(self.state[0], self.state[1], self.state[2])
+        E::new(self.state[0], self.state[1])
     }
 }
 

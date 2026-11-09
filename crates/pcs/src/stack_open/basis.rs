@@ -10,7 +10,7 @@
 //! ```
 //!
 //! `Phi` is F2-linear, so a ring claim is `sum_w bit_w(e(x)) * Phi(basis_w * s(l))`. The weight is then
-//! `b(l, x) = sum_t A(l, t) * K_t(x)` over one term per claim and 192 per ring claim, and the table
+//! `b(l, x) = sum_t A(l, t) * K_t(x)` over one term per claim and 128 per ring claim, and the table
 //! `P(l, t) = sum_x stack(l, x) * K_t(x)` takes the stack's place in the lane rounds.
 
 use primitives::bit_fold::BitFold;
@@ -142,7 +142,7 @@ struct Ring {
     point: Vec<F128>,
     /// Where `e` starts inside a lane block.
     x_offset: usize,
-    /// The first of its 192 terms.
+    /// The first of its 128 terms.
     first: usize,
 }
 
@@ -288,7 +288,7 @@ impl Terms {
     /// `f` in `out`, and returns the unreduced message terms of `f` against it.
     ///
     /// `b[h * 2^m + x] = sum_claims A[c] * gamma_c(h) * pi_c(x) + sum_rings Phi'(e(x))`, where
-    /// `Phi'` weighs the ring's coordinates by its 192 terms of `a`.
+    /// `Phi'` weighs the ring's coordinates by its 128 terms of `a`.
     ///
     /// The setup is each pattern's weight on each block, `sum_c a[c] * gamma_c(h)` over its claims, and the
     /// ring weights. A block is built in the caller's buffer, and the dense patterns share one reduction per vector.

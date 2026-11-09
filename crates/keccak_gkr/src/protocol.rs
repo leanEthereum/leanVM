@@ -68,8 +68,6 @@ pub fn first_claim(shape: Shape, r_low: &[F128], point: Vec<F128>, r_lane: &[F12
         value: F128::ZERO,
         mu,
         point,
-        weights: (0..BITS)
-            .map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0, 0))
-            .collect(),
+        weights: (0..BITS).map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0)).collect(),
     }
 }

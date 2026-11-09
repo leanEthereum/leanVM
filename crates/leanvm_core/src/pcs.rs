@@ -1,5 +1,5 @@
 //! Witness commitment: an inner-product PCS committing over `K = F_{2^64}` and
-//! opening over `E = F_{2^192}` (doc §sec:stacking, §annex:pcs), through **WHIR**. An
+//! opening over `E = F_{2^128}` (doc §sec:stacking, §annex:pcs), through **WHIR**. An
 //! opening proves `Σ_x q(x)·W(x) = C` against any verifier-evaluable `E`-valued
 //! weight `W` (a point evaluation `q̂(r)` is `W = eq(r,·)`). A batch of claims
 //! `q̂(point_j) = value_j` folds with random `γ`s into one weight and target,

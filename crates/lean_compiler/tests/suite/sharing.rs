@@ -220,7 +220,7 @@ def main():
     h[1] = public[GEN]
     return
 "#;
-    let value = F128::new(17, 31, 43);
+    let value = F128::new(17, 31);
     let mut program = compile(&parse(source).unwrap());
     program.set_witness("values", vec![vec![value, F128::ONE, value]]);
     for branch in [F128::ZERO, F128::ONE] {

@@ -88,24 +88,22 @@ def _as_k(value: object) -> K | None:
 
 @dataclass(frozen=True, slots=True, init=False)
 class E:
-    """K[y]/(y^3 + y + 1): the challenge field, a degree-3 extension of K. Limbs may be given as plain integers, which are lifted."""
+    """K[y]/(y^2 + x*y + 1): the challenge field, a degree-2 extension of K. Limbs may be given as plain integers, which are lifted."""
 
     c0: K
     c1: K
-    c2: K
 
-    def __init__(self, c0: K | int = 0, c1: K | int = 0, c2: K | int = 0) -> None:
+    def __init__(self, c0: K | int = 0, c1: K | int = 0) -> None:
         object.__setattr__(self, "c0", c0 if isinstance(c0, K) else K(c0))
         object.__setattr__(self, "c1", c1 if isinstance(c1, K) else K(c1))
-        object.__setattr__(self, "c2", c2 if isinstance(c2, K) else K(c2))
 
     @classmethod
     def from_bytes(cls, data: bytes) -> E:
-        require(len(data) == 24, "a field element must contain exactly 24 bytes")
-        return cls(*unpack("<3Q", data))
+        require(len(data) == 16, "a field element must contain exactly 16 bytes")
+        return cls(*unpack("<2Q", data))
 
     def to_bytes(self) -> bytes:
-        return pack("<3Q", self.c0, self.c1, self.c2)
+        return pack("<2Q", self.c0, self.c1)
 
     @staticmethod
     def lift(value: object) -> E:
@@ -122,39 +120,35 @@ class E:
         return sum(values, ZERO)
 
     def __int__(self) -> int:
-        return self.c0.value | self.c1.value << 64 | self.c2.value << 128
+        return self.c0.value | self.c1.value << 64
 
     def __bool__(self) -> bool:
-        return bool(self.c0 or self.c1 or self.c2)
+        return bool(self.c0 or self.c1)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, E):
-            return self.c0 == other.c0 and self.c1 == other.c1 and self.c2 == other.c2
-        return not (self.c1 or self.c2) and self.c0 == other
+            return self.c0 == other.c0 and self.c1 == other.c1
+        return not self.c1 and self.c0 == other
 
     def __hash__(self) -> int:
         return hash(int(self))
 
     def __add__(self, other: object) -> E:
         rhs = self.lift(other)
-        return E(self.c0 + rhs.c0, self.c1 + rhs.c1, self.c2 + rhs.c2)
+        return E(self.c0 + rhs.c0, self.c1 + rhs.c1)
 
     __radd__ = __add__
 
     def __mul__(self, other: object) -> E:
         rhs = self.lift(other)
-        # y^3 = y + 1 folds the degree-4 product back into three limbs.
-        p0 = self.c0 * rhs.c0
-        p1 = self.c0 * rhs.c1 + self.c1 * rhs.c0
-        p2 = self.c0 * rhs.c2 + self.c1 * rhs.c1 + self.c2 * rhs.c0
-        p3 = self.c1 * rhs.c2 + self.c2 * rhs.c1
-        p4 = self.c2 * rhs.c2
-        return E(p0 + p3, p1 + p3 + p4, p2 + p4)
+        # y^2 = x*y + 1 folds the y^2 term back into two limbs.
+        top = self.c1 * rhs.c1
+        return E(self.c0 * rhs.c0 + top, self.c0 * rhs.c1 + self.c1 * rhs.c0 + K(2) * top)
 
     __rmul__ = __mul__
 
     def __pow__(self, exponent: int) -> E:
-        require(exponent >= 0, "a negative exponent in GF(2^192)")
+        require(exponent >= 0, "a negative exponent in GF(2^128)")
         base, out, n = self, ONE, exponent
         while n:
             if n & 1:
@@ -164,11 +158,11 @@ class E:
         return out
 
     def inv(self) -> E:
-        require(bool(self), "division by zero in GF(2^192)")
-        return self ** (2**192 - 2)
+        require(bool(self), "division by zero in GF(2^128)")
+        return self ** (2**128 - 2)
 
     def __repr__(self) -> str:
-        return f"E(0x{self.c2.value:016x}{self.c1.value:016x}{self.c0.value:016x})"
+        return f"E(0x{self.c1.value:016x}{self.c0.value:016x})"
 
 
 ZERO = E(0)
@@ -224,7 +218,6 @@ class Digest:
 
     @classmethod
     def from_halves(cls, low: E, high: E) -> Digest:
-        require(not (low.c2 or high.c2), "a digest half is 128-bit")
         return cls(pack("<4Q", low.c0, low.c1, high.c0, high.c1))
 
 
@@ -336,14 +329,14 @@ class Proof:
     @classmethod
     def load(cls, stream: Path, merkle_openings: Path) -> Proof:
         data = stream.read_bytes()
-        require(len(data) % 24 == 0, "the stream is not a whole number of field elements")
-        return cls(tuple(E.from_bytes(data[at : at + 24]) for at in range(0, len(data), 24)), merkle_openings.read_bytes())
+        require(len(data) % 16 == 0, "the stream is not a whole number of field elements")
+        return cls(tuple(E.from_bytes(data[at : at + 16]) for at in range(0, len(data), 16)), merkle_openings.read_bytes())
 
 
 # Fiat--Shamir ---------------------------------------------------------------
 # A duplex sponge over the VM's KECCAK step, in overwrite mode. The rate is lanes 0..16 and the
 # capacity lanes 16..25. Up to four absorbed scalars wait; a permutation writes scalar i over lanes
-# 4i..4i+4 (three limbs and a tag), zeroes the rest of the rate and keeps the capacity. A fifth
+# 4i..4i+4 (two limbs, a zero lane and a tag), zeroes the rest of the rate and keeps the capacity. A fifth
 # scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 
 DS_OBSERVE = 1
@@ -379,7 +372,7 @@ class Transcript:
         self.opening_offset = 0  # in bytes
 
     def _duplex(self) -> None:
-        rate = [lane for value, tag in self.pending for lane in (value.c0.value, value.c1.value, value.c2.value, tag)]
+        rate = [lane for value, tag in self.pending for lane in (value.c0.value, value.c1.value, 0, tag)]
         self.state = keccak_f([*rate, *[0] * (16 - len(rate)), *self.state[16:]])
         self.pending = []
 
@@ -393,7 +386,7 @@ class Transcript:
 
     def sample(self) -> E:
         self._duplex()
-        return E(*self.state[:3])
+        return E(*self.state[:2])
 
     def samples(self, count: int) -> list[E]:
         return [self.sample() for _ in range(count)]
@@ -589,10 +582,10 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
     # name them: the memory image on push, then each array's final count on pull.
     memory_low = tuple(point[: layout.log_memory])
     bytecode_low = tuple(point[: layout.log_bytecode])
-    memory = transcript.next_scalars(3)
+    memory = transcript.next_scalars(2)
     memory_final = transcript.next_scalar()
     bytecode_final = transcript.next_scalar()
-    claims = [ColumnClaim(column, memory_low, memory[column]) for column in (MEMORY_0, MEMORY_1, MEMORY_2)]
+    claims = [ColumnClaim(column, memory_low, memory[column]) for column in (MEMORY_0, MEMORY_1)]
     claims.append(ColumnClaim(MEMORY_FINAL_COUNTERS, memory_low, memory_final))
     claims.append(ColumnClaim(BYTECODE_FINAL_COUNTERS, bytecode_low, bytecode_final))
     memory_index = index_mle(memory_low)
@@ -605,7 +598,7 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         with the committed final count and ends at the last pc. Both boundaries sit in frame 0."""
         return (
             dot(weights[:3], (SEP_STATE, pc, _gpow(0))),
-            dot(weights[:6], (SEP_MEM, memory_index, memory_count, *memory)),
+            dot(weights[:5], (SEP_MEM, memory_index, memory_count, *memory)),
             dot(weights[:3], (SEP_BYTECODE, bytecode_index, bytecode_count)) + bytecode_value,
         )
 
@@ -679,8 +672,8 @@ def table_sumcheck(
 TAG = b"leanvm-v1"
 
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
-NUM_GLOBAL_COLUMNS = 6
-MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QKECCAK = range(NUM_GLOBAL_COLUMNS)
+NUM_GLOBAL_COLUMNS = 5
+MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QKECCAK = range(NUM_GLOBAL_COLUMNS)
 
 K_BITS = 64
 
@@ -769,7 +762,7 @@ class Flushes:
         self._counted((_const(SEP_MEM), address), counter, count, values)
 
     def memory_cols(self, address: Form, count: int, *columns: int) -> None:
-        self.memory(address, count, [_col(column) for column in columns] + [_const(ZERO)] * (3 - len(columns)))
+        self.memory(address, count, [_col(column) for column in columns] + [_const(ZERO)] * (2 - len(columns)))
 
 
 # The instruction tables ------------------------------------------------------
@@ -808,17 +801,18 @@ class Table:
 
 def _flushes_arith(opcode: int, multiply: bool) -> Flushes:
     pc, fp, o_a, o_b, o_c, cnt_a, cnt_b, cnt_c, cnt_bc = _cols(ARITH_COLUMNS, "pc", "fp", "o_a", "o_b", "o_c", "cnt_a", "cnt_b", "cnt_c", "cnt_bc")
-    va, vb = _cols(ARITH_COLUMNS, "va_0", "va_1", "va_2"), _cols(ARITH_COLUMNS, "vb_0", "vb_1", "vb_2")
+    va, vb = _cols(ARITH_COLUMNS, "va_0", "va_1"), _cols(ARITH_COLUMNS, "vb_0", "vb_1")
     flushes = Flushes()
     flushes.state_step(pc, fp)
     flushes.bytecode(pc, cnt_bc, opcode, (_col(o_a), _col(o_b), _col(o_c), _const(ZERO), _const(ZERO)))
     flushes.memory_cols(_prod(fp, o_a), cnt_a, *va)
     flushes.memory_cols(_prod(fp, o_b), cnt_b, *vb)
-    TOWER_LANES = (((0, 0), (1, 2), (2, 1)), ((0, 1), (1, 0), (1, 2), (2, 1), (2, 2)), ((0, 2), (1, 1), (2, 0), (2, 2)))
+    # Each product lane's terms g^e * va_j * vb_k, as (j, k, e): y^2 = x*y + 1, and x = g.
+    TOWER_LANES = (((0, 0, 0), (1, 1, 0)), ((0, 1, 0), (1, 0, 0), (1, 1, 1)))
     result = (
-        tuple(Form.sum(_prod(va[j], vb[k]) for j, k in lane) for lane in TOWER_LANES)
+        tuple(Form.sum(_prod(va[j], vb[k], e) for j, k, e in lane) for lane in TOWER_LANES)
         if multiply
-        else tuple(_col(va[i]) + _col(vb[i]) for i in range(3))
+        else tuple(_col(va[i]) + _col(vb[i]) for i in range(2))
     )
     flushes.memory(_prod(fp, o_c), cnt_c, result)
     return flushes
@@ -826,10 +820,10 @@ def _flushes_arith(opcode: int, multiply: bool) -> Flushes:
 
 def _flushes_set() -> Flushes:
     pc, fp, o, cnt, cnt_bc = _cols(SET_COLUMNS, "pc", "fp", "o", "cnt", "cnt_bc")
-    k = _cols(SET_COLUMNS, "k_0", "k_1", "k_2")
+    k = _cols(SET_COLUMNS, "k_0", "k_1")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_SET, (_col(o), *(_col(limb) for limb in k), _const(ZERO)))
+    flushes.bytecode(pc, cnt_bc, OP_SET, (_col(o), *(_col(limb) for limb in k), _const(ZERO), _const(ZERO)))
     flushes.memory_cols(_prod(fp, o), cnt, *k)
     return flushes
 
@@ -837,13 +831,13 @@ def _flushes_set() -> Flushes:
 def _flushes_deref() -> Flushes:
     pc, fp, o1, o2, o3, f_pc, f_fp, ptr = _cols(DEREF_COLUMNS, "pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr")
     cnt_ptr, cnt_target, cnt_local, cnt_bc = _cols(DEREF_COLUMNS, "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc")
-    v3 = _cols(DEREF_COLUMNS, "v3_0", "v3_1", "v3_2")
+    v3 = _cols(DEREF_COLUMNS, "v3_0", "v3_1")
 
     def gated(lane: int) -> list[Form]:
         return [_col(lane), _prod(f_pc, lane), _prod(f_fp, lane)]
 
     # v2 = (1 + f_pc + f_fp)*v3 + f_pc*(g^2*pc) + f_fp*fp, lane-wise: only the low lane takes the two K-valued sources.
-    store = (Form.sum((*gated(v3[0]), _prod(f_pc, pc, 2), _prod(f_fp, fp))), Form.sum(gated(v3[1])), Form.sum(gated(v3[2])))
+    store = (Form.sum((*gated(v3[0]), _prod(f_pc, pc, 2), _prod(f_fp, fp))), Form.sum(gated(v3[1])))
     flushes = Flushes()
     flushes.state_step(pc, fp)
     flushes.bytecode(pc, cnt_bc, OP_DEREF, (_col(o1), _col(o2), _col(o3), _col(f_pc), _col(f_fp)))
@@ -923,7 +917,7 @@ def _flushes_keccak() -> Flushes:
             return None if lane is None else lanes + lane
 
         for cell in range(KECCAK_CELLS):
-            values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
+            values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)]
             count = KECCAK_CNT + KECCAK_CELLS * side + cell
             if side == 0:
                 flushes.memory(address(cell), count, values)
@@ -936,9 +930,9 @@ def _flushes_keccak() -> Flushes:
 
 OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK = range(6)
 
-ARITH_COLUMNS = ("pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc",)  # fmt: skip
-SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc")
-DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2",  "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc",)  # fmt: skip
+ARITH_COLUMNS = ("pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc",)  # fmt: skip
+SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc")
+DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc",)  # fmt: skip
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
 KECCAK_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
@@ -1004,7 +998,7 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
 
     # Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
     qkeccak_kappa = table_log_heights[OP_KECCAK] + QKECCAK_SLOT_BITS
-    kappas = [log_memory, log_memory, log_memory, log_memory, log_bytecode, qkeccak_kappa]
+    kappas = [log_memory, log_memory, log_memory, log_bytecode, qkeccak_kappa]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
 
@@ -1068,13 +1062,13 @@ def derive_config(log_n: int, log_inv_rate: int) -> WhirConfig:
 
 
 def _ext_row(words: Sequence[K]) -> tuple[E, ...]:
-    """Regroup a level's leaf words into the E values they encode, three per lane."""
-    return tuple(E(*words[i : i + 3]) for i in range(0, len(words), 3))
+    """Regroup a level's leaf words into the E values they encode, two per lane."""
+    return tuple(E(*words[i : i + 2]) for i in range(0, len(words), 2))
 
 
 def sample_queries(transcript: Transcript, block_length: int, count: int) -> list[int]:
     depth = log2_strict(block_length)
-    per_word = 192 // depth
+    per_word = 128 // depth
     result: list[int] = []
     while len(result) < count:
         bits = int(transcript.sample())
@@ -1174,9 +1168,9 @@ def verify_whir(transcript: Transcript, log_n: int, log_inv_rate: int, target: E
         lam = transcript.sample()
         query_weights = powers(lam, len(queries))
         # Level 0 committed the K witness, one leaf word per lane; every deeper
-        # level a folded E one, three words per lane.
+        # level a folded E one, two words per lane.
         lanes = 2**fold_count
-        words = transcript.merkle(current_root, block_length, queries, lanes if level == 0 else 3 * lanes)
+        words = transcript.merkle(current_root, block_length, queries, lanes if level == 0 else 2 * lanes)
         rows: list[Sequence[K | E]] = [tuple(reversed(row)) for row in words] if level == 0 else [_ext_row(row) for row in words]
         enforced = _enforced_sum(rows, level_folds, query_weights)
 
@@ -1421,15 +1415,14 @@ def verify_keccak(
 
 # Ring switching --------------------------------------------------------------
 
-# The Frobenius shifts of the six stages composing Phi, one challenge each.
-RING_MAP_SHIFTS = (32, 16, 8, 4, 2, 1)
+# Phi's challenges come in two rows of this many: f_a then g_b.
+RING_MAP_WIDTH = 8
 
 
-def _phi(value: E, challenges: Sequence[E]) -> E:
-    """The drawn map, stage by stage: `a_p+1 = a_p + f_p a_p^(2^shift)`."""
-    for challenge, shift in zip(challenges, RING_MAP_SHIFTS, strict=True):
-        value += challenge * value ** (2**shift)
-    return value
+def _phi(value: E, f: Sequence[E], g: Sequence[E]) -> E:
+    """The drawn map in two stages: `Psi(v) = sum_a f_a v^(2^(8a))`, then `Phi(v) = sum_b g_b Psi(v)^(2^b)`."""
+    psi = E.sum(f_a * value ** (2 ** (RING_MAP_WIDTH * a)) for a, f_a in enumerate(f))
+    return E.sum(g_b * psi ** (2**b) for b, g_b in enumerate(g))
 
 
 def _ring_weight(r: MultilinearPoint, r_prime: Sequence[E], coefficients: Sequence[E]) -> E:
@@ -1451,10 +1444,11 @@ def ring_switch(point: MultilinearPoint, s: Sequence[E], transcript: Transcript)
 
     Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
     MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure."""
-    challenges = transcript.samples(len(RING_MAP_SHIFTS))
-    # The same map as a Frobenius sum, `Phi(a) = sum_k c_k a^(2^k)` for k < 64.
-    coefficients = [reduce(mul, (f ** (2 ** (k % s)) for f, s in zip(challenges, RING_MAP_SHIFTS) if k & s), ONE) for k in range(K_BITS)]
-    target = poly_eval([_phi(value, challenges) for value in s], GEN)
+    challenges = transcript.samples(2 * RING_MAP_WIDTH)
+    f, g = challenges[:RING_MAP_WIDTH], challenges[RING_MAP_WIDTH:]
+    # The same map as a Frobenius sum, `Phi(v) = sum_k c_k v^(2^k)` for k < 64: `c_(8a+b) = g_b f_a^(2^b)`.
+    coefficients = [g[k % RING_MAP_WIDTH] * f[k // RING_MAP_WIDTH] ** (2 ** (k % RING_MAP_WIDTH)) for k in range(K_BITS)]
+    target = poly_eval([_phi(value, f, g) for value in s], GEN)
     return target, lambda r_prime: _ring_weight(point, r_prime, coefficients)
 
 
@@ -1479,7 +1473,7 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
 
     # 1] memory log-size, table row counts, and log-inv-rate in WHIR
     announced = transcript.next_scalars(2 + len(TABLES))
-    require(all(value.c1 == value.c2 == 0 for value in announced), "announced size has a nonzero high limb")
+    require(all(value.c1 == 0 for value in announced), "announced size has a nonzero high limb")
     log_memory = int(announced[0].c0)
     table_rows = tuple(int(value.c0) for value in announced[1 : 1 + len(TABLES)])
     log_inverse_rate = int(announced[-1].c0)
@@ -1506,12 +1500,12 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
         claims.extend(ColumnClaim(base + local, point, value) for local, value in enumerate(values))
 
     # 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
-    # evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
+    # evaluates itself, so the prover sends nothing.
     public_challenge = transcript.sample()
     first, second = public_input.halves()
-    public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)))
+    public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1)))
     public_point = (public_challenge, *[ZERO] * (layout.placements[MEMORY_0].variables - 1))
-    claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
+    claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1), public_limbs))
 
     # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
     # the permutation's output: they leave the batch, their columns having no placement.
@@ -1536,7 +1530,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verify a leanVM execution proof")
     parser.add_argument("bytecode", type=Path, help="stacked bytecode multilinear, little-endian 64-bit words")
     parser.add_argument("public_input", type=Path, help="256-bit public input")
-    parser.add_argument("stream", type=Path, help="the proof's scalar stream, 24-byte little-endian field elements")
+    parser.add_argument("stream", type=Path, help="the proof's scalar stream, 16-byte little-endian field elements")
     parser.add_argument("merkle_openings", type=Path, help="every query's Merkle opening: its position, its leaf's words, then its sibling digests")
     arguments = parser.parse_args(argv)
     try:

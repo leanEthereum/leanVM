@@ -212,7 +212,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     // y·x, i.e. the tower coefficient shifted, NOT g^65.
-    let want = [F128::new(0, 2, 0); 2];
+    let want = [F128::new(0, 2); 2];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("2^64 is the tower element y, not g^64");
 }
@@ -449,7 +449,7 @@ def main():
     return
 ";
     let program = compile(&parse(captured).expect("a constant may be captured"));
-    let want = [F128::new(5, 0, 0), g_pow(0).into()];
+    let want = [F128::new(5, 0), g_pow(0).into()];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the captured constant reaches the body");
 }
@@ -516,8 +516,8 @@ def main():
     return
 ";
     let mut program = compile(&parse(ok).expect("parse"));
-    program.set_witness("w", vec![vec![F128::new(1234, 0, 0), F128::new(5678, 0, 0)]]);
-    let want = [F128::new(1234, 0, 0), g_pow(0).into()];
+    program.set_witness("w", vec![vec![F128::new(1234, 0), F128::new(5678, 0)]]);
+    let want = [F128::new(1234, 0), g_pow(0).into()];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("an in-bounds runtime-start slice still works");
 }
@@ -672,11 +672,10 @@ fn a_value_may_ask_for_the_integer_regime() {
 /// the body is never reached and its constraints silently disappear: `def const(x)`
 /// with an `assert` in it was skipped outright by `v = const(4)`, and skipped or
 /// not depending on whether the ARGUMENT folded, so one call site had two
-/// meanings. True of `f192` before `const` existed, so this is the class, not one
-/// name.
+/// meanings. This is the class, not one name.
 #[test]
 fn a_function_may_not_shadow_a_builtin() {
-    for name in ["const", "f192", "addr", "keccak", "len", "hint_witness", "StackBuf"] {
+    for name in ["const", "addr", "keccak", "len", "hint_witness", "StackBuf"] {
         let src = format!("def {name}(x):\n    assert x == 99\n    return x\n\ndef main():\n    return\n");
         let err = parse(&src).expect_err(&format!("`def {name}` must be rejected"));
         assert!(err.contains("is a builtin"), "got `{err}`");
@@ -728,7 +727,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     };
     let fold = |cond: &str| {
         let program = compile(&parse(&prog(cond)).unwrap_or_else(|e| panic!("{cond}: {e}")));
-        let want = [F128::new(5, 0, 0), g_pow(0).into()];
+        let want = [F128::new(5, 0), g_pow(0).into()];
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("`{cond}` did not take the then arm: {e:?}"));
     };
@@ -778,7 +777,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     // A variable that merely starts with `const` is not a near miss.
     let plain = "def main():\n    const = 4\n    hb = HeapBuf(4)\n    if const == 4:\n        hb[GEN ** 0] = 5\n    else:\n        hb[GEN ** 0] = 7\n    p = GEN ** 0\n    p[1] = hb[GEN ** 0]\n    p[GEN] = GEN ** 0\n    return\n";
     let program = compile(&parse(plain).expect("a name beginning with `const` is an ordinary name"));
-    let want = [F128::new(5, 0, 0), g_pow(0).into()];
+    let want = [F128::new(5, 0), g_pow(0).into()];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("`const == 4` is a comparison, not a wrapper");
 
@@ -812,8 +811,8 @@ def main():
     return
 ";
     let mut program = compile(&parse(src).expect("a `,`, `#` or `]` inside a string is part of the name"));
-    program.set_witness("x,y#z]w", vec![vec![F128::new(7, 0, 0)]]);
-    let want = [F128::new(7, 0, 0), g_pow(0).into()];
+    program.set_witness("x,y#z]w", vec![vec![F128::new(7, 0)]]);
+    let want = [F128::new(7, 0), g_pow(0).into()];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the stream name survived parsing intact");
 }
@@ -848,10 +847,10 @@ def main():
 ";
     let mut program = compile(&parse(src).expect("parse"));
     program.set_witness("r", vec![vec![g_pow(0).into()]]);
-    program.set_witness("vals", vec![(10u64..14).map(|v| F128::new(v, 0, 0)).collect()]);
+    program.set_witness("vals", vec![(10u64..14).map(|v| F128::new(v, 0)).collect()]);
     // `r` is 1, so the index is `K` itself: cell 1, holding 11. Reading the
     // integer view instead would name cell 2, holding 12.
-    let want = [F128::new(11, 0, 0), g_pow(0).into()];
+    let want = [F128::new(11, 0), g_pow(0).into()];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the index means what the value means");
 }

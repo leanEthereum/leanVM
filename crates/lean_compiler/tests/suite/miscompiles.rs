@@ -105,9 +105,9 @@ fn programs_compile_as_written() {
         "SEED = 8\n\ndef main():\n    s = StackBuf(1)\n    hint_witness(s, \"SEED\")\n    assert s[0] == 8\n    return\n",
         &[("SEED", F128::from(F64(8)))],
     );
-    // Identical builtin arms were taken for a fused dispatch to a function named `f192`.
+    // Identical builtin arms were taken for a fused dispatch to a function named after the builtin.
     runs(
-        "def main():\n    r = match(log(GEN), range(0, 2), lambda j: f192(1, 2, 3))\n    assert r == f192(1, 2, 3)\n    return\n",
+        "def main():\n    r = match(log(GEN), range(0, 2), lambda j: const(36893488147419103233))\n    assert r == 36893488147419103233\n    return\n",
         &[],
     );
     // A call in a runtime bound ran twice, popping the stream twice.

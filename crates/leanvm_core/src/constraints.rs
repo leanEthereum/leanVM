@@ -512,7 +512,7 @@ mod tests {
     }
 
     fn random_e(state: &mut u64) -> F128 {
-        F128::new(splitmix(state), splitmix(state), splitmix(state))
+        F128::new(splitmix(state), splitmix(state))
     }
 
     fn random_columns(state: &mut u64, rows: usize) -> Vec<Vec<F64>> {

@@ -24,7 +24,7 @@ def main():
 fn hashing_pi() -> [F128; 2] {
     let h = [F64(5), F64(0), F64(7), F64(0)];
     let d = compress(h, h);
-    [F128::new(d[0].0, d[1].0, 0), F128::new(d[2].0, d[3].0, 0)]
+    [F128::new(d[0].0, d[1].0), F128::new(d[2].0, d[3].0)]
 }
 
 fn hashing_proof() -> (leanvm_core::cpu::Program, [F128; 2], Proof) {
@@ -78,7 +78,7 @@ fn any_number_of_steps_proves() {
         for _ in 0..n {
             h = compress(h, h);
         }
-        let pi = [F128::new(h[0].0, h[1].0, 0), F128::new(h[2].0, h[3].0, 0)];
+        let pi = [F128::new(h[0].0, h[1].0), F128::new(h[2].0, h[3].0)];
         let program = compile(&parse(&source).expect("parse"));
         let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");

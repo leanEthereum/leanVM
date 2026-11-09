@@ -33,8 +33,8 @@ use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
-    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
-    OP_KECCAK, QKECCAK, build_layout,
+    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MIN_STACKED_LOG, N_TABLES, OP_KECCAK,
+    QKECCAK, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
@@ -45,7 +45,6 @@ use whir::verify_whir;
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerifierError {
-    DigestHalf,
     MultilinearSize,
     NotPowerOfTwo,
     StreamExhausted,
@@ -78,7 +77,6 @@ pub enum VerifierError {
 impl std::fmt::Display for VerifierError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            Self::DigestHalf => "a digest half is 128-bit",
             Self::MultilinearSize => "multilinear table has the wrong size",
             Self::NotPowerOfTwo => "expected a power of two",
             Self::StreamExhausted => "proof stream exhausted",
@@ -197,7 +195,7 @@ pub fn verify_keccak_batch(
     }
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    let root = Digest::from_halves(halves[0], halves[1]);
     let instance = transcript.samples(log_steps);
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
@@ -219,7 +217,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 1] memory log-size, table row counts, and log-inv-rate in WHIR
     let announced = transcript.next_scalars(2 + N_TABLES)?;
     require(
-        announced.iter().all(|value| value.c1 == 0 && value.c2 == 0),
+        announced.iter().all(|value| value.c1 == 0),
         VerifierError::AnnouncedHighLimb,
     )?;
     let log_memory = announced[0].c0;
@@ -234,7 +232,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
 
     // 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
     let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    let root = Digest::from_halves(halves[0], halves[1]);
 
     // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
     let bus = verify_bus_balance(&layout, &mut transcript)?;
@@ -266,13 +264,13 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     }
 
     // 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
-    // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
+    // evaluates itself, so the prover sends nothing.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
     let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
     public_point[0] = public_challenge;
-    let public_pairs = [(first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)];
-    for (column, (low, high)) in [MEMORY_0, MEMORY_1, MEMORY_2].into_iter().zip(public_pairs) {
+    let public_pairs = [(first.c0, second.c0), (first.c1, second.c1)];
+    for (column, (low, high)) in [MEMORY_0, MEMORY_1].into_iter().zip(public_pairs) {
         claims.push(ColumnClaim {
             column,
             point: public_point.clone(),

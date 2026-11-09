@@ -8,7 +8,7 @@
 //! Since these DSL scalars are K-embedded F128 cells, a `StackBuf(2)` written
 //! cell-by-cell holds the lanes `[v0, 0, v1, 0]`.
 
-use lean_compiler::{compile, f192_literal, parse};
+use lean_compiler::{compile, f128_literal, parse};
 use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
 
@@ -19,7 +19,7 @@ use crate::common::mix;
 fn hash_cells(bytes: &[u8]) -> [F128; 2] {
     let d = primitives::hash::hash(bytes);
     let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
-    [F128::new(word(0), word(8), 0), F128::new(word(16), word(24), 0)]
+    [F128::new(word(0), word(8)), F128::new(word(16), word(24))]
 }
 
 /// The bytes of cells each holding one small scalar in its low lane.
@@ -114,8 +114,8 @@ def main():
     let two = hash_cells(&bytes[..136]);
     bytes.truncate(135);
     let src = src
-        .replace("TWO_0", &f192_literal(two[0]))
-        .replace("TWO_1", &f192_literal(two[1]));
+        .replace("TWO_0", &f128_literal(two[0]))
+        .replace("TWO_1", &f128_literal(two[1]));
     proves(&src, hash_cells(&bytes));
 }
 
@@ -163,8 +163,8 @@ def main():
 ";
     let heap = hash_cells(&scalar_cells(1..=16));
     let src = src
-        .replace("HEAP_0", &f192_literal(heap[0]))
-        .replace("HEAP_1", &f192_literal(heap[1]));
+        .replace("HEAP_0", &f128_literal(heap[0]))
+        .replace("HEAP_1", &f128_literal(heap[1]));
     proves(&src, hash_cells(&scalar_cells(1..=20)));
 }
 
@@ -232,7 +232,7 @@ def main():
     let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
-        program.set_witness("flag", vec![vec![F128::new(flag, 0, 0)]]);
+        program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("post-join padding run is initialized on both paths");
     }
@@ -260,7 +260,7 @@ def main():
     let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
-        program.set_witness("flag", vec![vec![F128::new(flag, 0, 0)]]);
+        program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("each branch initializes its padding run");
     }

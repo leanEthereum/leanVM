@@ -6,8 +6,8 @@ use std::sync::Arc;
 /// An expression. Arithmetic is the field's own: `+` is `XOR`, `*` is `MUL`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    /// Integer / field literal: the source syntax provides a raw 128-bit value,
-    /// embedded into the low two limbs of the 192-bit tower element (`c2 = 0`).
+    /// Integer / field literal: a raw 128-bit value, the tower element whose
+    /// two limbs its bits spell.
     Lit(u128),
     /// The generator `g`, written `GEN`. A logical index `i` rides the exponent
     /// as `gⁱ`, so `GEN` is the unit step.

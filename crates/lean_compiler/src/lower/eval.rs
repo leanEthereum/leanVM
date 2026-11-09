@@ -195,22 +195,12 @@ impl FnLower<'_> {
             // bits spell.
             Expr::Index(..) => match self.const_array_elem(e) {
                 Some(v) => Known {
-                    int: (v.c2 == 0).then_some(v.c0 as u128 | ((v.c1 as u128) << 64)),
+                    int: Some(crate::word_int(v)),
                     field: Some(v),
                     addr: None,
                 },
                 None => Known::default(),
             },
-            Expr::Call(f, args) if f == "f192" && args.len() == 3 => {
-                let limb = |i: usize| match &args[i] {
-                    Expr::Lit(n) => u64::try_from(*n).ok(),
-                    _ => None,
-                };
-                Known {
-                    field: (|| Some(F128::new(limb(0)?, limb(1)?, limb(2)?)))(),
-                    ..Known::default()
-                }
-            }
             // `const(e)`: the one construct that asks for the INTEGER reading in a
             // position that would otherwise take the field one. It reinterprets the
             // OPERATORS, so its leaves must mean the same thing either way.

@@ -107,6 +107,6 @@ impl ProverState {
     /// no-work nonce `0`.
     pub fn grind(&mut self, bits: u32) {
         let nonce = self.fs.grind_pow(bits);
-        self.stream.push(F128::new(nonce, 0, 0));
+        self.stream.push(F128::new(nonce, 0));
     }
 }

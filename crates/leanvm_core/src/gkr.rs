@@ -386,7 +386,7 @@ impl QuaternaryLayerState {
                 return [F128::ONE; 4];
             }
             // One slice, not eight indexes: the bounds checks and the
-            // index-by-24 multiplies fall out.
+            // index-by-16 multiplies fall out.
             let v = &values[8 * row..8 * row + 8];
             let folds = mul4(std::array::from_fn(|child| v[child] + v[4 + child]), [challenge; 4]);
             std::array::from_fn(|child| v[child] + folds[child])
@@ -910,7 +910,7 @@ mod tests {
     }
 
     fn element(i: usize, salt: usize) -> F128 {
-        F128::new((17 * i + salt + 1) as u64, (i * i + 3) as u64, (5 * i + 7) as u64)
+        F128::new((17 * i + salt + 1) as u64, (i * i + 3) as u64)
     }
 
     #[test]
@@ -952,7 +952,7 @@ mod tests {
                 let mut reference = [three[0], three[1], three[2]].map(tree);
                 let mut fused = [three[0], three[1], three[2]].map(tree);
                 let point: Vec<F128> = (0..width.ilog2() - 1)
-                    .map(|i| F128::new(31 + u64::from(i), 7, 11))
+                    .map(|i| F128::new(31 + u64::from(i), 7))
                     .collect();
                 let eq = SplitEq::new(&point);
                 for (f, r) in fused.iter().zip(&reference) {
@@ -961,7 +961,7 @@ mod tests {
                 let mut round = 0;
                 while reference[0].logical_rows > 2 {
                     round += 1;
-                    let challenge = F128::new(reference[0].logical_rows as u64, 13, 19);
+                    let challenge = F128::new(reference[0].logical_rows as u64, 13);
                     let eq = SplitEq::new(&point[round..]);
                     let messages = fold_and_message(&mut fused, challenge, &eq);
                     for (r, message) in reference.iter_mut().zip(messages) {
@@ -1003,7 +1003,7 @@ mod tests {
         for mu in 0..=10 {
             let mut leaves: [Vec<F128>; 3] = [0, 1, 2].map(|lane| {
                 (0..1usize << mu)
-                    .map(|row| F128::new((1 + row + lane * 100_003) as u64, row as u64, lane as u64))
+                    .map(|row| F128::new((1 + row + lane * 100_003) as u64, (row + lane) as u64))
                     .collect()
             });
             balance(&mut leaves);
@@ -1023,7 +1023,7 @@ mod tests {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
             let mut leaves: [Vec<F128>; 3] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
-                    .map(|row| F128::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64))
+                    .map(|row| F128::new((3 + row + lane * 10_007) as u64, (row + lane) as u64))
                     .collect()
             });
             balance(&mut leaves);

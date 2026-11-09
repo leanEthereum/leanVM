@@ -5,7 +5,6 @@
 
 use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
-use leanvm_core::tables::N_TABLES;
 use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -66,7 +65,7 @@ fn spawn_python(directory: &Path, proof: &Proof) -> Child {
             proof
                 .stream
                 .iter()
-                .flat_map(|scalar| [scalar.c0, scalar.c1, scalar.c2])
+                .flat_map(|scalar| [scalar.c0, scalar.c1])
                 .flat_map(u64::to_le_bytes)
                 .collect(),
         ),
@@ -110,7 +109,7 @@ fn public_input() -> [F128; 2] {
         .collect();
     let digest = primitives::hash::hash(&message);
     let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
-    let digest = [F128::new(word(0), word(1), 0), F128::new(word(2), word(3), 0)];
+    let digest = [F128::new(word(0), word(1)), F128::new(word(2), word(3))];
     let mut value = digest[0];
     let mut index = F128::ONE;
     let generator = F128::from(g_pow(1));
@@ -187,8 +186,8 @@ fn test_python_verifier() {
     std::fs::remove_dir_all(directory).expect("remove test directory");
 }
 
-/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size and on the commitment
-/// root, and each check of the Keccak reduction tripped by the scalar it reads last.
+/// Both verifiers reject a tampered scalar at the same check: a high limb on an announced size, and each check of the
+/// Keccak reduction tripped by the scalar it reads last.
 #[test]
 fn tampers_fail_the_same_check() {
     let fixture = fixture();
@@ -205,7 +204,6 @@ fn tampers_fail_the_same_check() {
     let output_opening = 2 * SLOT_BITS + 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
-        (N_TABLES + 2, VerifierError::DigestHalf),
         (keccak.start + PRODUCT_COEFFICIENTS, VerifierError::KeccakProduct),
         (
             keccak.end - input_opening - output_opening - 1,
@@ -222,7 +220,7 @@ fn tampers_fail_the_same_check() {
         .iter()
         .map(|&(position, error)| {
             let mut proof = scalar_proof(&fixture.proof);
-            proof.stream[position] += E::new(0, 0, 1);
+            proof.stream[position] += E::new(0, 1);
             assert_eq!(
                 verify_execution(&bytecode, &public_input, &proof),
                 Err(error),

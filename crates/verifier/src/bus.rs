@@ -2,8 +2,8 @@
 
 use crate::field::{E, ONE, ZERO};
 use crate::layout::{
-    BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, Layout, MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS,
-    SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
+    BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, Layout, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, SEP_BYTECODE,
+    SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
 use crate::multilinear::{
     Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
@@ -121,7 +121,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
     // name them: the memory image on push, then each array's final count on pull.
     let memory_low = &point[..layout.log_memory];
     let bytecode_low = &point[..layout.log_bytecode];
-    let memory = transcript.next_scalars(3)?;
+    let memory = transcript.next_scalars(2)?;
     let memory_final = transcript.next_scalar()?;
     let bytecode_final = transcript.next_scalar()?;
     let claim = |column: usize, point: &[E], value: E| ColumnClaim {
@@ -129,7 +129,7 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
         point: point.to_vec(),
         value,
     };
-    let mut claims: Vec<ColumnClaim> = [MEMORY_0, MEMORY_1, MEMORY_2]
+    let mut claims: Vec<ColumnClaim> = [MEMORY_0, MEMORY_1]
         .map(|column| claim(column, memory_low, memory[column]))
         .into();
     claims.push(claim(MEMORY_FINAL_COUNTERS, memory_low, memory_final));
@@ -151,8 +151,8 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
         vec![
             dot(&weights[..3], &[SEP_STATE, pc, gpow(0)]),
             dot(
-                &weights[..6],
-                &[SEP_MEM, memory_index, memory_count, memory[0], memory[1], memory[2]],
+                &weights[..5],
+                &[SEP_MEM, memory_index, memory_count, memory[0], memory[1]],
             ),
             dot(&weights[..3], &[SEP_BYTECODE, bytecode_index, bytecode_count]) + bytecode_value,
         ]

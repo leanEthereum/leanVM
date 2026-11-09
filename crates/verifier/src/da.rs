@@ -16,11 +16,11 @@ pub fn membership_challenge(root: &[u8; 32]) -> E {
     Sponge::new(keccak_hash(LABEL), Digest(*root)).sample()
 }
 
-/// What the statement of an aggregate carries for its DA root: `H(root ‖ z)`, `z` as its three little-endian limbs
-/// and a zero word, or zeros without a root.
+/// What the statement of an aggregate carries for its DA root: `H(root ‖ z)`, `z` as its two little-endian limbs
+/// and two zero words, or zeros without a root.
 pub fn digest(root: Option<[u8; 32]>) -> [u8; 32] {
     root.map_or([0; 32], |root| {
         let z = membership_challenge(&root);
-        hash_pair(&root, [z.c0, z.c1, z.c2, 0].map(u64::to_le_bytes).as_flattened()).0
+        hash_pair(&root, [z.c0, z.c1, 0, 0].map(u64::to_le_bytes).as_flattened()).0
     })
 }

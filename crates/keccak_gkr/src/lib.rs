@@ -69,8 +69,8 @@
 //! Every step loses at most a polynomial's degree over the field size: 46 for step 2, three per
 //! round of steps 3 and 4, two for step 5. The first claim's challenges add one per variable, the
 //! openings two per round. With `n` instances, `S` segment variables and `L` slot variables,
-//! that is at most `depth (69 + 3 S + 3 log n) + log n + S + 4 L + 13` over `2^192`, next to the
-//! commitment scheme's own error. At the VM's depth of 12 it is the `(37 log n + 902) / 2^192`
+//! that is at most `depth (69 + 3 S + 3 log n) + log n + S + 4 L + 13` over `2^128`, next to the
+//! commitment scheme's own error. At the VM's depth of 12 it is the `(37 log n + 902) / 2^128`
 //! derived in `doc/leanvm` Annex C (`keccak:soundness`).
 //!
 //! # Prover

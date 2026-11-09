@@ -29,7 +29,7 @@ fn ternary(b: usize) -> usize {
 
 /// Digits a weight splits into, and the values of one.
 const DIGIT_BITS: usize = 8;
-const DIGITS: usize = 192 / DIGIT_BITS;
+const DIGITS: usize = 128 / DIGIT_BITS;
 /// The bits of a block position's products, 48 to each pack.
 pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX-512 the
@@ -156,7 +156,7 @@ impl Groups {
     /// `sum over positions of weight[j] (x) payloads[j]` into `rows`: row `DIGIT_BITS * d + i`
     /// sums the payloads whose weight has that bit set. Each group is summed in registers, so
     /// the payloads are only read.
-    fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 192], sums: &mut [Part; 1 << DIGIT_BITS]) {
+    fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128], sums: &mut [Part; 1 << DIGIT_BITS]) {
         for (rows, (order, starts)) in rows
             .as_chunks_mut::<DIGIT_BITS>()
             .0
@@ -191,8 +191,8 @@ struct Layer<'a> {
     rounds: Vec<usize>,
 }
 
-/// A row of a table in the power basis: three words per position, laid out by word.
-const ROW: usize = 3 * BITS;
+/// A row of a table in the power basis: two words per position, laid out by word.
+const ROW: usize = 2 * BITS;
 
 impl Layer<'_> {
     /// The blocks a segment's tasks walk: those written, then the padding block once, standing
@@ -291,7 +291,7 @@ impl Layer<'_> {
             || {
                 (
                     vec![[Part::ZERO; BITS]; PACKS / PART],
-                    vec![[Part::ZERO; 192]; PACKS / PART],
+                    vec![[Part::ZERO; 128]; PACKS / PART],
                     Box::new([Part::ZERO; 1 << DIGIT_BITS]),
                 )
             },
@@ -315,7 +315,7 @@ impl Layer<'_> {
                 }
                 // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
                 // field elements, which the block's weight multiplies.
-                let mut columns = [[0u64; 64]; 3];
+                let mut columns = [[0u64; 64]; 2];
                 for m in 0..PAYLOAD_BITS / 64 {
                     let (q, w) = (m / PART_WORDS, m % PART_WORDS);
                     for (k, column) in columns.iter_mut().enumerate() {
@@ -325,7 +325,7 @@ impl Layer<'_> {
                         transpose64(column);
                     }
                     for (t, sum) in sums[64 * m..][..64].iter_mut().enumerate() {
-                        *sum ^= weights[task].mul_unreduced(F128::new(columns[0][t], columns[1][t], columns[2][t]));
+                        *sum ^= weights[task].mul_unreduced(F128::new(columns[0][t], columns[1][t]));
                     }
                 }
             },
@@ -358,14 +358,14 @@ impl Layer<'_> {
         let mixed = parallel::map_reduce_with_state(
             self.rounds.len() * written,
             SkipBlock::new,
-            || vec![[0u64; 7]; MIXED],
+            || vec![[0u64; 5]; MIXED],
             |skip, total, task| {
                 let (segment, g) = (task / written, task % written);
                 let (row, block) = (g + nb * segment, self.witness.layer(self.rounds[segment], g));
                 skip.run(block, &weights);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry::<3, 4>(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                        add_mul(total, &carry::<2, 3>(&skip.get(slot(half, i))), &groups[2 * row + half]);
                     }
                 }
             },
@@ -378,7 +378,7 @@ impl Layer<'_> {
                 a
             },
         );
-        let eval = PolyEval::new(s, 56);
+        let eval = PolyEval::new(s, 40);
         let mut sums = vec![F128::ZERO; TERNARY];
         for (slot, p) in mixed_points().into_iter().enumerate() {
             sums[p] = eval.eval(&mixed[slot]);
@@ -404,7 +404,7 @@ impl Layer<'_> {
     ) -> (F128, F128) {
         let field = round.field;
         let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
-        let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
+        let fold: [[u64; GROUP]; 2] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
         let weights = self.task_weights(eq);
         #[cfg(all(
             target_arch = "x86_64",
@@ -432,7 +432,7 @@ impl Layer<'_> {
                 ));
                 (
                     vec![0u64; 4 * ROW],
-                    vec![0u64; if gfni { 0 } else { 8 * BITS }],
+                    vec![0u64; if gfni { 0 } else { 6 * BITS }],
                     vec![0u64; 2 * ROW],
                 )
             },
@@ -456,17 +456,17 @@ impl Layer<'_> {
                         row_maps.rows(block, rows, halves);
                     }
                     _ => {
-                        // Both groups' unreduced sums, four words each and laid out by word, then reduced.
+                        // Both groups' unreduced sums, three words each and laid out by word, then reduced.
                         for j in 0..BITS {
                             let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
-                            for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                                let sum: [u64; 4] = carry(sum);
+                            for (wide, sum) in wide.as_chunks_mut::<{ 3 * BITS }>().0[..halves].iter_mut().zip(&sums) {
+                                let sum: [u64; 3] = carry(sum);
                                 for (k, &word) in sum.iter().enumerate() {
                                     wide[k * BITS + j] = word;
                                 }
                             }
                         }
-                        for (t, wide) in rows.as_chunks_mut::<ROW>().0.iter_mut().zip(wide.as_chunks::<{ 4 * BITS }>().0) {
+                        for (t, wide) in rows.as_chunks_mut::<ROW>().0.iter_mut().zip(wide.as_chunks::<{ 3 * BITS }>().0) {
                             field.reduce_row(t, wide, BITS);
                         }
                     }
@@ -483,11 +483,11 @@ impl Layer<'_> {
 
 /// The sums a round accumulates, unreduced: its values at `0` and at infinity.
 #[derive(Clone, Copy, Default)]
-struct RoundSums([u64; 9], [u64; 9]);
+struct RoundSums([u64; 6], [u64; 6]);
 
 impl RoundSums {
     fn merge(mut self, other: Self) -> Self {
-        for i in 0..9 {
+        for i in 0..6 {
             self.0[i] ^= other.0[i];
             self.1[i] ^= other.1[i];
         }
@@ -519,7 +519,7 @@ impl<'a> Round<'a> {
         }
         Self {
             field,
-            eval: PolyEval::new(s, 72),
+            eval: PolyEval::new(s, 48),
             kappa: field.to_poly(kappa),
             weights,
             constant,
@@ -530,7 +530,7 @@ impl<'a> Round<'a> {
     /// row `T`.
     fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
         // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
-        for k in 0..3 {
+        for k in 0..2 {
             let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
             for lane in 0..BITS / 64 {
                 let at = along(64 * lane, 1);
@@ -540,7 +540,7 @@ impl<'a> Round<'a> {
             }
         }
         self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
-        for k in 0..3 {
+        for k in 0..2 {
             let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
             for lane in 0..BITS / 64 {
                 dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);

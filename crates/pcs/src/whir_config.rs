@@ -401,6 +401,8 @@ pub struct WhirSecurityConfig {
     pub final_block: FinalBlockConfig,
 }
 
+// TODO(f128 phase 2): `E` is GF(2^128) now; redo the analysis at `q = 2^128`, where the L0 claim pool
+// (a few hundred) also exceeds the ring-switch degree (129) that `johnson_algebraic_bits_for` takes.
 /// Extension-field size used for soundness analysis: `q = 2^192`.
 const ANALYSIS_LOG_Q: f64 = 192.0;
 

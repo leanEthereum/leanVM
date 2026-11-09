@@ -7,24 +7,24 @@
 use primitives::field::gf2_64::mul_wide;
 use primitives::field::{F128, powers};
 
-fn xor3(a: &mut [u64; 3], b: &[u64; 3]) {
+fn xor2(a: &mut [u64; 2], b: &[u64; 2]) {
     for (x, y) in a.iter_mut().zip(b) {
         *x ^= y;
     }
 }
 
-/// The map from a field element to its coefficients on `1, s, ..., s^191`.
+/// The map from a field element to its coefficients on `1, s, ..., s^127`.
 pub struct PowerBasis {
-    tables: Vec<[[u64; 3]; 256]>,
+    tables: Vec<[[u64; 2]; 256]>,
 }
 
 impl PowerBasis {
     /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
     pub fn new(s: F128) -> Option<Self> {
         // Row `r` holds bit `r` of every power, beside the identity.
-        let mut rows = vec![([0u64; 3], [0u64; 3]); 192];
+        let mut rows = vec![([0u64; 2], [0u64; 2]); 128];
         let mut power = F128::ONE;
-        for b in 0..192 {
+        for b in 0..128 {
             let p = power.to_limbs();
             for (r, row) in rows.iter_mut().enumerate() {
                 row.0[b / 64] |= (p[r / 64] >> (r % 64) & 1) << (b % 64);
@@ -34,31 +34,31 @@ impl PowerBasis {
         for (r, row) in rows.iter_mut().enumerate() {
             row.1[r / 64] = 1 << (r % 64);
         }
-        for b in 0..192 {
-            let pivot = (b..192).find(|&r| rows[r].0[b / 64] >> (b % 64) & 1 == 1)?;
+        for b in 0..128 {
+            let pivot = (b..128).find(|&r| rows[r].0[b / 64] >> (b % 64) & 1 == 1)?;
             rows.swap(b, pivot);
             let (pa, pi) = rows[b];
             for (r, row) in rows.iter_mut().enumerate() {
                 if r != b && row.0[b / 64] >> (b % 64) & 1 == 1 {
-                    xor3(&mut row.0, &pa);
-                    xor3(&mut row.1, &pi);
+                    xor2(&mut row.0, &pa);
+                    xor2(&mut row.1, &pi);
                 }
             }
         }
         // Row `b` of the inverse is coefficient `b` as a function of the element's bits.
-        let mut columns = [[0u64; 3]; 192];
+        let mut columns = [[0u64; 2]; 128];
         for (b, row) in rows.iter().enumerate() {
             for (r, column) in columns.iter_mut().enumerate() {
                 column[b / 64] |= (row.1[r / 64] >> (r % 64) & 1) << (b % 64);
             }
         }
-        let tables = (0..24)
+        let tables = (0..16)
             .map(|k| {
-                let mut t = [[0u64; 3]; 256];
+                let mut t = [[0u64; 2]; 256];
                 for byte in 1..256usize {
                     let low = byte.trailing_zeros() as usize;
                     t[byte] = t[byte & (byte - 1)];
-                    xor3(&mut t[byte], &columns[8 * k + low]);
+                    xor2(&mut t[byte], &columns[8 * k + low]);
                 }
                 t
             })
@@ -66,11 +66,11 @@ impl PowerBasis {
         Some(Self { tables })
     }
 
-    pub fn to_poly(&self, a: F128) -> [u64; 3] {
+    pub fn to_poly(&self, a: F128) -> [u64; 2] {
         let a = a.to_limbs();
-        let mut p = [0u64; 3];
+        let mut p = [0u64; 2];
         for (k, table) in self.tables.iter().enumerate() {
-            xor3(&mut p, &table[(a[k / 8] >> (8 * (k % 8))) as usize & 0xff]);
+            xor2(&mut p, &table[(a[k / 8] >> (8 * (k % 8))) as usize & 0xff]);
         }
         p
     }
@@ -151,11 +151,11 @@ mod tests {
         for _ in 0..50 {
             let (a, b) = (rng.ext(), rng.next_u64());
             let pa = basis.to_poly(a);
-            assert_eq!(eval.eval(&[pa[0], pa[1], pa[2], 0, 0]), a);
-            let acc: [u128; 3] = std::array::from_fn(|k| mul_wide(pa[k], b));
-            let product: [u64; 4] = carry(&acc);
+            assert_eq!(eval.eval(&[pa[0], pa[1], 0, 0, 0]), a);
+            let acc: [u128; 2] = std::array::from_fn(|k| mul_wide(pa[k], b));
+            let product: [u64; 3] = carry(&acc);
             let pb = eval.eval(&[b, 0, 0, 0, 0]);
-            assert_eq!(eval.eval(&[product[0], product[1], product[2], product[3], 0]), a * pb);
+            assert_eq!(eval.eval(&[product[0], product[1], product[2], 0, 0]), a * pb);
         }
         assert!(PowerBasis::new(F128::ONE).is_none());
     }

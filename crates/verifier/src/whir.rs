@@ -62,25 +62,20 @@ fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, Verifi
     })
 }
 
-/// Regroup a level's leaf words into the E values they encode, three per lane.
+/// Regroup a level's leaf words into the E values they encode, two per lane.
 fn ext_row(words: &[K]) -> Vec<E> {
-    words
-        .as_chunks()
-        .0
-        .iter()
-        .map(|&[c0, c1, c2]| E::new(c0.0, c1.0, c2.0))
-        .collect()
+    words.as_chunks().0.iter().map(|&[c0, c1]| E::new(c0.0, c1.0)).collect()
 }
 
 fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) -> Result<Vec<u64>, VerifierError> {
     let depth = log2_strict(block_length)?;
-    let per_word = 192 / depth;
+    let per_word = 128 / depth;
     let mut result = Vec::with_capacity(count);
     while result.len() < count {
         let sample = transcript.sample();
-        let bits = [sample.c0, sample.c1, sample.c2, 0];
+        let bits = [sample.c0, sample.c1, 0];
         for chunk in 0..per_word.min(count - result.len()) {
-            // The `depth` bits at `chunk * depth` of the 192-bit integer, which may straddle two limbs.
+            // The `depth` bits at `chunk * depth` of the 128-bit integer, which may straddle two limbs.
             let (limb, shift) = (chunk * depth / 64, chunk * depth % 64);
             let window = (bits[limb] as u128 | (bits[limb + 1] as u128) << 64) >> shift;
             result.push(window as u64 & (block_length - 1));
@@ -175,7 +170,7 @@ pub fn verify_whir(
             residual = transcript.next_scalars(1 << message_log)?;
         } else {
             let halves = transcript.next_scalars(2)?;
-            next_root = Digest::from_halves(halves[0], halves[1])?;
+            next_root = Digest::from_halves(halves[0], halves[1]);
             let ood_point = transcript.samples(message_log);
             let ood_value = transcript.next_scalar()?;
             let intro = transcript.sumcheck_round_poly(3, ood_value, None)?;
@@ -190,9 +185,9 @@ pub fn verify_whir(
         let lam = transcript.sample();
         let query_weights = powers(lam, queries.len());
         // Level 0 committed the K witness, one leaf word per lane; every deeper
-        // level a folded E one, three words per lane.
+        // level a folded E one, two words per lane.
         let lanes = 1 << fold_count;
-        let leaf_words = if level == 0 { lanes } else { 3 * lanes };
+        let leaf_words = if level == 0 { lanes } else { 2 * lanes };
         let words = transcript.merkle(current_root, block_length, &queries, leaf_words)?;
         let lane_weights = eq_kernel(&level_folds);
         let row_values: Vec<E> = if level == 0 {

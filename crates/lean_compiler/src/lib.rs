@@ -44,7 +44,7 @@ pub use ast::*;
 pub(crate) use ir::*;
 use lower::lower_func;
 pub(crate) use parser::subst_stmts;
-pub use parser::{f192_literal, parse, parse_const, parse_with_replacements};
+pub use parser::{f128_literal, parse, parse_const, parse_with_replacements};
 
 /// Compile an [`Ast`] to a provable [`Program`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
@@ -230,14 +230,14 @@ pub fn disassemble(prog: &[Op]) -> String {
         gmap.entry(acc).or_insert(j);
         acc *= F64::G;
     }
-    // A machine word is 192-bit; K-valued immediates (both high limbs zero) may be small
+    // A machine word is 128-bit; K-valued immediates (high limb zero) may be small
     // g-powers (code addresses, indices), shown as `gʲ`.
     let kfmt = |k: F128| match k.as_base() {
         Some(lo) => match gmap.get(&lo) {
             Some(j) => format!("g^{j}"),
             None => format!("0x{:016x}", lo.0),
         },
-        None => format!("0x{:016x}{:016x}{:016x}", k.c2, k.c1, k.c0),
+        None => format!("0x{:016x}{:016x}", k.c1, k.c0),
     };
 
     let mut out = String::new();
@@ -285,9 +285,14 @@ pub fn disassemble(prog: &[Op]) -> String {
     out
 }
 
-/// Embed a `u128` source literal into the low 128 bits of a 192-bit machine word.
+/// A `u128` source literal as the machine word whose limbs its bits spell.
 pub(crate) fn lit_field(n: u128) -> F128 {
-    F128::new(n as u64, (n >> 64) as u64, 0)
+    F128::new(n as u64, (n >> 64) as u64)
+}
+
+/// The inverse of [`lit_field`]: the integer whose bits spell a word's limbs.
+pub(crate) fn word_int(v: F128) -> u128 {
+    v.c0 as u128 | (v.c1 as u128) << 64
 }
 
 fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {
