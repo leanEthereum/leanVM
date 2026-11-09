@@ -60,43 +60,6 @@ def treeLayers.fast : ℕ → Array E → List (Array E)
   | zero => rfl
   | succ n ih => simp only [treeLayers, treeLayers.fast, ih]
 
-/-- `foldRoundsA`, copied. -/
-def foldRoundsA.fast : ℕ → WhirState → List E → Array E → Array E →
-    Script (WhirState × List E × Array E × Array E)
-  | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
-  | n + 1, s, levelFolds, W, g => do
-    let challenge ← Script.sampleE
-    let W' := foldPairsA challenge W
-    let g' := foldPairsA challenge g
-    let quad ← roundA (polyEval s.runningQuad challenge) W' g'
-    foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds
-        ++ [challenge])
-      W' g'
-
-@[csimp] theorem foldRoundsA.fast_eq : @foldRoundsA = @foldRoundsA.fast := by
-  funext n s levelFolds W g
-  induction n generalizing s levelFolds W g with
-  | zero => rfl
-  | succ n ih => simp only [foldRoundsA, foldRoundsA.fast, ih]
-
-/-- `tailRoundsA`, copied. -/
-def tailRoundsA.fast : ℕ → List E → Array E → Array E → Script Unit
-  | 0, _, _, _ => return ()
-  | n + 1, quad, W, g => do
-    let challenge ← Script.sampleE
-    if n = 0 then return ()
-    else do
-      let W' := foldPairsA challenge W
-      let g' := foldPairsA challenge g
-      let quad ← roundA (polyEval quad challenge) W' g'
-      tailRoundsA.fast n quad W' g'
-
-@[csimp] theorem tailRoundsA.fast_eq : @tailRoundsA = @tailRoundsA.fast := by
-  funext n quad W g
-  induction n generalizing quad W g with
-  | zero => rfl
-  | succ n ih => simp only [tailRoundsA, tailRoundsA.fast, ih]
-
 namespace KeccakGkr
 
 /-- `layersProve`, copied. -/
@@ -124,13 +87,15 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Script GkrState
   | 0, s => .ret s
   | 1, s =>
-    (gkrStepA (A₀.getD 0 #[]) (A₁.getD 0 #[]) (A₂.getD 0 #[]) 1 s).bind (gkrLayersA.fast A₀ A₁ A₂ 0)
+    (gkrStepA (A₀.getD 0 #[]) (A₁.getD 0 #[]) (A₂.getD 0 #[]) 1 true s).bind
+      (gkrLayersA.fast A₀ A₁ A₂ 0)
   | n + 2, s =>
     if n % 2 = 1 then
-      (gkrStepA (A₀.getD (n + 1) #[]) (A₁.getD (n + 1) #[]) (A₂.getD (n + 1) #[]) 1 s).bind
+      (gkrStepA (A₀.getD (n + 1) #[]) (A₁.getD (n + 1) #[]) (A₂.getD (n + 1) #[]) 1 false
+        s).bind
         (gkrLayersA.fast A₀ A₁ A₂ (n + 1))
     else
-      (gkrStepA (A₀.getD n #[]) (A₁.getD n #[]) (A₂.getD n #[]) 2 s).bind
+      (gkrStepA (A₀.getD n #[]) (A₁.getD n #[]) (A₂.getD n #[]) 2 (n = 0) s).bind
         (gkrLayersA.fast A₀ A₁ A₂ n)
 
 @[csimp] theorem gkrLayersA.fast_eq : @gkrLayersA = @gkrLayersA.fast := by
@@ -146,50 +111,6 @@ def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Scr
       have h0 : gkrLayersA A₀ A₁ A₂ n = gkrLayersA.fast A₀ A₁ A₂ n :=
         funext fun s ↦ ih n (by omega) s
       simp only [gkrLayersA, gkrLayersA.fast, h1, h0]
-
-/-- `levelsA`, copied. -/
-def levelsA.fast (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → Array E → Script Unit
-  | _, [], _, _, _ => return ()
-  | index, level :: rest, s, W, g => do
-    let (s, levelFolds, W, g) ← foldRoundsA level.fold s [] W g
-    let messageLog := μ - s.folds.length
-    let (residual, pending, tables) ← match rest with
-      | [] => do
-        Script.sendList g.toList
-        pure (g, ([] : List (List E × (List E → E))), ([] : List (Array E)))
-      | next :: _ => do
-        Script.commitS (levelWordFast (messageLog - next.fold) next.fold next.logInvRate g)
-        let oodPoint ← Script.sampleN messageLog
-        let oodValue := mleA g oodPoint
-        Script.sendE oodValue
-        let T := eqTable oodPoint
-        let quad ← roundA oodValue T g
-        pure (#[], [(quad, fun x ↦ eqEval oodPoint x)], [T])
-    Script.grindS
-    let queries ← sampleQueriesS (messageLog + level.logInvRate) level.queries level.queries
-    let lam ← Script.sampleE
-    let queryWeights := powers lam queries.length
-    let words ← Script.queryS
-    let rows : List (List E) :=
-      if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
-    let enforced := enforcedSum rows levelFolds queryWeights
-    let T := queryTableA messageLog queries queryWeights
-    let quad ← roundA enforced T g
-    let pending := pending ++ [(quad, fun x ↦ inducedWeight messageLog queries queryWeights x)]
-    let s := glue lam s pending
-    let W := glueTablesA lam W (tables ++ [T])
-    match rest with
-    | [] => tailRoundsA messageLog s.runningQuad W residual
-    | _ :: _ => levelsA.fast μ (index + 1) rest s W g
-
-@[csimp] theorem levelsA.fast_eq : @levelsA = @levelsA.fast := by
-  funext μ index levels s W g
-  induction levels generalizing index s W g with
-  | nil => rfl
-  | cons level rest ih =>
-    cases rest with
-    | nil => simp only [levelsA, levelsA.fast]
-    | cons next rest => rw [levelsA, levelsA.fast]; simp only [ih]
 
 end LeanVM.Prover
 
@@ -207,8 +128,8 @@ variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 def searchM.fast (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
-    let r ← powStepM F sp (nonceOf n)
-    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
+    let r ← absorbNonce F sp (nonceOf n)
+    if powOk bits r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
 
 @[csimp] theorem searchM.fast_eq : @searchM = @searchM.fast := by
   funext m _ F bits sp n count
@@ -247,7 +168,7 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
     match ← findNonceM F bits sp fuel with
     | none => pure none
     | some n => do
-      let r ← powStepM F sp n
+      let r ← absorbNonce F sp n
       let t ← runFrom.fast fuel k (Script.afterGrind S) r.2 cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht _ k, S, sp, cs => do

@@ -13,15 +13,15 @@ import LeanVM.Cli.Common
 * `bytecode.bin`: the program's bytecode table (the sixteen slots of every instruction, slot by
   slot), decoded into a `Program` (`decodeProgram`, checked to re-encode to the same words);
 * `public_input.bin`: the public input's 32 bytes;
-* `memory.bin`: the execution's memory, 24 bytes per cell;
+* `memory.bin`: the execution's memory, 16 bytes per cell;
 * `trace.txt`: `<log2 cells> <steps> <rate>`;
 
 runs `LeanVM.Prover.prove` with Keccak-256 and Keccak-f[1600] (the deployed hashes, `Id`),
 compiled as its copy with `E`'s arithmetic on machine words (`LeanVM.Prover.Fast.Prover`), at
-`fuel` nonces per proof of work (default `2^25`), and writes the proof in the case directory in
+`fuel` nonces per proof of work (default `2^64`, every `u64` nonce the Rust's search tries), and writes the proof in the case directory in
 the forms of the Rust prover's fixtures, which `leanvm-verify` and the Rust verifier read:
 
-* `lean_stream.bin`: the scalars, three little-endian `u64` limbs each;
+* `lean_stream.bin`: the scalars, two little-endian `u64` limbs each;
 * `lean_merkle_phases.bin`: the structured unpruned openings, the Rust `Vec<Vec<MerklePath>>`, all
   little-endian: the `u32` phase count; per phase its `u32` path count; per path its `u64` position,
   its `u32` leaf length and that many `u64` words, its `u32` sibling count and that many 32-byte
@@ -66,7 +66,7 @@ def instrOf? (e : Array K) : Option LeanIsaInstruction := do
   match op with
   | .xor => some (.xor (x 1) (x 2) (x 3))
   | .mulNative => some (.mulNative (x 1) (x 2) (x 3))
-  | .setConstant => some (.setConstant (x 1) (E.ofLimbs (x 2) (x 3) (x 4)))
+  | .setConstant => some (.setConstant (x 1) (E.ofLimbs (x 2) (x 3)))
   | .deref => do
     let mode ← derefModeOf? (x 4) (x 5)
     some (.deref (x 1) (x 2) (x 3) mode)
@@ -98,7 +98,7 @@ def decodeProgram (words : Array K) : Except String LeanIsaProgram := do
 def main (args : List String) : IO UInt32 := do
   match args with
   | dir :: rest =>
-    let fuel := (rest.head?.bind String.toNat?).getD (2 ^ 25)
+    let fuel := (rest.head?.bind String.toNat?).getD (2 ^ 64)
     let read := fun (p : String) => do return (← IO.FS.readBinFile (dir ++ "/" ++ p)).toList
     let some words := decodeWords (← read "bytecode.bin") | do IO.eprintln "bad bytecode"; return 2
     let some digest := decodeDigest (← read "public_input.bin") | do
