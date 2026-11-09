@@ -186,6 +186,13 @@ impl F192x8 {
         )
     }
 
+    /// The lane-wise product by `y`: with `y³ = y + 1`, `y·(a0 + a1·y + a2·y²) = a2 + (a0 + a2)·y + a1·y²`.
+    #[inline(always)]
+    pub fn mul_y(self) -> Self {
+        let [a0, a1, a2] = self.0;
+        Self([a2, xor(a0, a2), a1])
+    }
+
     /// The even-lane and odd-lane unreduced products, y-folded.
     #[inline(always)]
     fn products(self, b: Self) -> ([__m512i; 3], [__m512i; 3]) {
@@ -367,6 +374,7 @@ mod tests {
             assert_eq!(va.to_array(), a);
             assert_eq!((va * vb).to_array(), std::array::from_fn(|i| a[i] * b[i]));
             assert_eq!((va + vb).to_array(), std::array::from_fn(|i| a[i] + b[i]));
+            assert_eq!(va.mul_y().to_array(), a.map(|e| e * F192::Y));
             let dot = (0..8).map(|i| a[i] * b[i]).sum();
             assert_eq!(va.mul_sum(vb).reduce(), dot);
             assert_eq!((va.mul_sum(vb) ^ vb.mul_sum(va)).reduce(), F192::ZERO);
