@@ -214,8 +214,11 @@ pub fn verify_keccak_batch(
     log_inv_rate: usize,
     proof: &Proof,
 ) -> Result<(), VerifierError> {
+    // A batch past the largest stack fails the next check too: bounding it first keeps the sum below from overflowing.
     require(
-        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && ROUNDS.is_multiple_of(depth),
+        (layout::KECCAK_MIN_STEPS_LOG..=MAX_STACKED_LOG).contains(&log_steps)
+            && depth > 0
+            && ROUNDS.is_multiple_of(depth),
         VerifierError::CommittedSize,
     )?;
     let shape = KeccakShape { log_steps, depth };
@@ -313,7 +316,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
-    let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
+    let mut public_point = vec![ZERO; layout.log_memory];
     public_point[0] = public_challenge;
     let public_pairs = [(first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)];
     for (column, (low, high)) in [MEMORY_0, MEMORY_1, MEMORY_2].into_iter().zip(public_pairs) {
@@ -348,7 +351,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript);
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
-    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
+    let qkeccak = layout.qkeccak;
     let ringswitch = StackClaim {
         weight: StackWeight::PlacedRing(qkeccak, ringswitch_weight),
         value: ringswitch_target,

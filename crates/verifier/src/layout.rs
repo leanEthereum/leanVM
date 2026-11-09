@@ -110,6 +110,8 @@ pub struct Layout<'a> {
     pub count: Vec<BusBlock>,
     /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
     pub placements: Vec<Option<Placement>>,
+    /// Where q_keccak sits, its entry of `placements`.
+    pub qkeccak: Placement,
     pub stack_log: usize,
     pub table_log_heights: Vec<usize>,
     pub keccak: KeccakShape,
@@ -636,15 +638,20 @@ pub fn build_layout<'a>(
         .collect();
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    let mut offsets = vec![None; kappas.len()];
+    let mut offsets = vec![0; kappas.len()]; // a block's offset, at the block's column
     for (&column, offset) in blocks.iter().zip(block_offsets) {
-        offsets[column] = Some(offset);
+        offsets[column] = offset;
     }
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
+    let qkeccak = Placement {
+        variables: qkeccak_kappa,
+        index: offsets[QKECCAK],
+    };
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[QKECCAK]? + ((slot as u64) << kappa),
-            None => offsets[column]?,
+            Some(slot) => qkeccak.index + ((slot as u64) << kappa),
+            None if outputs.contains(&column) => return None,
+            None => offsets[column],
         };
         Some(Placement {
             variables: kappa,
@@ -661,6 +668,7 @@ pub fn build_layout<'a>(
         pull,
         count,
         placements,
+        qkeccak,
         stack_log,
         table_log_heights,
         keccak,
