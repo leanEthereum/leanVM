@@ -340,7 +340,7 @@ class Proof:
 # scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 
 DS_OBSERVE = 1
-SECURITY_BITS = 123  # every verifier message's error, after its grind, is at most 2^-SECURITY_BITS
+SECURITY_BITS = 125  # every verifier message's error, after its grind, is at most 2^-SECURITY_BITS
 
 
 def grinding_bits(numerator: int) -> int:
@@ -1081,15 +1081,15 @@ RS_DOMAIN_INITIAL_REDUCTION_FACTOR = 3
 RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR = 1
 RESIDUAL_MAX_LOG = 5
 QUERY_GRINDING_BITS = 17
-FOLD_GRINDING_BITS = 6  # before each round's theta, and again before its (gamma, alpha, beta)
-BATCH_GRINDING_BITS = 12  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
-OOD_GRINDING_BITS = 14  # before the level-0 OOD sample
+FOLD_GRINDING_BITS = 9  # before each round's theta, and again before its (gamma, alpha, beta)
+BATCH_GRINDING_BITS = 14  # before every batching challenge: each level's lambda, and the stacked opening's map and lambda
+OOD_GRINDING_BITS = 15  # before the level-0 OOD sample
 OOD_SAMPLES = 2  # out-of-domain points after each non-final level's commitment, drawn together with no grind
 
 MIN_STACKED_LOG = 15
 MAX_STACKED_LOG = 28
 
-WHIR_QUERIES = (((230,61), (223,58,40), (220,56,37), (217,55,35), (216,55,33), (215,54,32,26), (214,54,32,25), (214,54,31,24), (213,54,31,23), (213,54,31,22,19), (213,54,31,22,18), (213,54,31,22,18), (213,54,31,22,18), (213,54,31,22,17,15)), ((111,48), (110,46,34), (109,45,31), (108,44,30), (108,44,29), (107,44,28,23), (107,43,28,22), (107,43,28,21), (107,43,27,21), (107,43,27,20,18), (107,43,27,20,17), (107,43,27,20,17), (107,43,27,20,16), (107,43,27,20,16,14)), ((74,39), (73,38,30), (72,37,28), (72,37,26), (72,36,26), (72,36,25,21), (71,36,25,20), (71,36,24,19), (71,36,24,19), (71,36,24,19,16), (71,36,24,19,16), (71,36,24,18,15), (71,36,24,18,15), (71,36,24,18,15,14)), ((55,33), (54,32,26), (54,32,25), (54,31,24), (54,31,23), (54,31,22,19), (54,31,22,18), (54,31,22,18), (54,31,22,18), (54,31,22,17,15), (54,31,22,17,15), (54,31,22,17,14), (54,31,22,17,14), (54,31,22,17,14,13)))  # fmt: skip
+WHIR_QUERIES = (((234,62), (228,59,41), (224,58,37), (221,57,35), (220,56,34), (219,55,33,27), (218,55,32,25), (218,55,32,24), (217,55,32,23), (217,55,32,23,20), (217,55,32,23,19), (217,55,32,22,18), (217,55,31,22,18), (217,55,31,22,18,16)), ((114,48), (112,47,35), (111,46,32), (110,45,30), (110,45,29), (109,44,29,24), (109,44,28,22), (109,44,28,22), (109,44,28,21), (109,44,28,21,18), (109,44,28,21,17), (109,44,28,20,17), (109,44,28,20,17), (109,44,28,20,16,15)), ((75,40), (74,39,30), (74,38,28), (73,37,27), (73,37,26), (73,37,25,22), (73,37,25,20), (73,37,25,20), (73,37,25,19), (73,37,25,19,17), (73,37,25,19,16), (73,37,25,19,16), (73,37,25,19,15), (73,37,25,19,15,14)), ((56,34), (55,33,27), (55,32,25), (55,32,24), (55,32,23), (55,32,23,20), (55,32,23,19), (55,32,22,18), (55,31,22,18), (55,31,22,18,16), (55,31,22,17,15), (55,31,22,17,15), (55,31,22,17,14), (55,31,22,17,14,13)))  # fmt: skip
 
 
 @dataclass(frozen=True)

@@ -90,7 +90,7 @@ impl Sponge {
 }
 
 /// Round-by-round target (bits): every verifier message's error, after its grind, is at most `2^-SECURITY_BITS`.
-pub const SECURITY_BITS: u32 = 123;
+pub const SECURITY_BITS: u32 = 125;
 
 /// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
 /// bits that bring it to `2^-SECURITY_BITS` (`fiat_shamir::grinding_bits`).

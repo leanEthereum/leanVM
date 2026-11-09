@@ -39,7 +39,7 @@ pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
 }
 
 /// Round-by-round target (bits): every verifier message's error, after its grind, is at most `2^-SECURITY_BITS`.
-pub const SECURITY_BITS: u32 = 123;
+pub const SECURITY_BITS: u32 = 125;
 
 /// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
 /// bits that bring it to `2^-SECURITY_BITS`. A message of degree `d` in its challenges has numerator `d`.
@@ -270,8 +270,8 @@ mod tests {
     #[test]
     fn grinding_bits_is_the_ceiling_log() {
         assert_eq!(
-            [0, 1, 2, 32, 33, 46, 64, 65, 1 << 20].map(grinding_bits),
-            [0, 0, 0, 0, 1, 1, 1, 2, 15]
+            [0, 1, 2, 8, 9, 31, 46, 64, 65, 1 << 20].map(grinding_bits),
+            [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
         );
     }
 

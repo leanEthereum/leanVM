@@ -19,7 +19,7 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 Both multisets (\emph{pulls} and \emph{pushes}) carry the same number of tuples, and padding each with factors of $1$, which change no product, makes that number a power of two, $2^{\mu}$.
 
-\emph{Fingerprint.} After a grind of $\mu-5$ bits (below), the verifier samples one weight per slot, $\alpha=(\alpha_\iota)_{\iota\in\cube{4}}\in\E^{16}$, and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
+\emph{Fingerprint.} After a grind of $\mu-3$ bits (below), the verifier samples one weight per slot, $\alpha=(\alpha_\iota)_{\iota\in\cube{4}}\in\E^{16}$, and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
 \[
 \pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\alpha_\iota\,\btup_\iota ,
 \]
@@ -37,7 +37,7 @@ the sixteen slots indexed by their bits, low bit first, and smaller tuples padde
   The protocol above has perfect completeness (equal pulled and pushed multisets always make \eqref{eq:gp} valid) and soundness error $2^{\mu}/|\E|$ (if the pulled and pushed multisets differ, the probability that \eqref{eq:gp} passes over uniform $\alpha \in \E^{16}$ and $\beta \in \E$).
 \end{theorem}
 
-\paragraph{Grinding.} The error $2^{\mu}/|\E|=2^{\mu-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\mu-5$ bits before $\alpha$ and $\beta$ are drawn, by the rule of \S\ref{sec:grinding}. The announced table sizes fix $\mu$, so both sides know the grind.
+\paragraph{Grinding.} The error $2^{\mu}/|\E|=2^{\mu-128}$ of Theorem~\ref{th:product_check} grows with the bus, so the prover grinds $\mu-3$ bits before $\alpha$ and $\beta$ are drawn, by the rule of \S\ref{sec:grinding}. The announced table sizes fix $\mu$, so both sides know the grind.
 
 \begin{lemma}[A product identity is a multiset identity]\label{lem:gp}
 For a multiset $P$ of tuples write

@@ -103,7 +103,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{Bus.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} The prover grinds $\mu-5$ bits, $\mu$ the bus tree's depth, which the announced sizes fix (\S\ref{sec:gp}).
+\item \textbf{Prover \& Verifier.} The prover grinds $\mu-3$ bits, $\mu$ the bus tree's depth, which the announced sizes fix (\S\ref{sec:gp}).
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{16}$, a weight per slot, and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
 \item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
 \item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
