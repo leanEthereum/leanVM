@@ -390,16 +390,24 @@ impl Program {
                         .push(unsafe { Box::<[Cell]>::new_zeroed_slice(PAGE).assume_init() });
                 }
             }
-            /// Cell `c`, which `ensure` has covered.
+            /// Cell `c`, covered first.
             #[inline(always)]
             fn at(&mut self, c: u32) -> &mut Cell {
                 let c = c as usize;
-                &mut self.pages[c >> PAGE_LOG][c & (PAGE - 1)]
+                self.ensure(c);
+                // SAFETY: `ensure` grew the pages past cell `c`.
+                unsafe {
+                    self.pages
+                        .get_unchecked_mut(c >> PAGE_LOG)
+                        .get_unchecked_mut(c & (PAGE - 1))
+                }
             }
             #[inline(always)]
             fn covered(&self, c: u32) -> Option<&Cell> {
                 let c = c as usize;
-                (c < self.used).then(|| &self.pages[c >> PAGE_LOG][c & (PAGE - 1)])
+                // SAFETY: every cell below `used` is in a page.
+                (c < self.used)
+                    .then(|| unsafe { self.pages.get_unchecked(c >> PAGE_LOG).get_unchecked(c & (PAGE - 1)) })
             }
             #[inline(always)]
             fn written(&self, cell: u32) -> bool {
@@ -411,18 +419,21 @@ impl Program {
             fn get(&self, cell: u32) -> F192 {
                 self.covered(cell).map_or(F192::ZERO, |c| c.word)
             }
-            // An instruction's read. An unwritten cell reads as ZERO, which is then written
-            // there: the row is filled from the final image, which has to agree.
+            // An instruction's read, which advances the cell's access count as
+            // `bump_access_count` does: the word and the count before. An unwritten cell
+            // reads as ZERO, which is then written there: the row is filled from the final
+            // image, which has to agree.
             #[inline(always)]
-            fn read(&mut self, cell: u32) -> F192 {
-                self.ensure(cell as usize);
+            fn read(&mut self, cell: u32) -> (F192, u32) {
                 let c = self.at(cell);
-                let word = c.word;
-                if c.state != State::Written {
-                    c.state = State::Written;
+                let (word, count, fresh) = (c.word, c.count, c.state != State::Written);
+                c.count = count + 1;
+                c.state = State::Written;
+                self.counts = self.counts.max(count + 1);
+                if fresh {
                     self.unwritten_reads.push(cell);
                 }
-                word
+                (word, count)
             }
             // Write-once store, carried to every cell linked to this one.
             #[inline(always)]
@@ -432,10 +443,27 @@ impl Program {
                 }
                 Ok(())
             }
+            // An instruction's `put`, which advances the cell's access count as
+            // `bump_access_count` does: the count before.
+            #[inline(always)]
+            fn put_counted(&mut self, cell: u32, v: F192) -> Result<u32, ExecError> {
+                let c = self.at(cell);
+                let (s, count) = (c.state, c.count);
+                if s == State::Written && c.word != v {
+                    return Err(self.conflict(cell, v));
+                }
+                c.word = v;
+                c.state = State::Written;
+                c.count = count + 1;
+                self.counts = self.counts.max(count + 1);
+                if s == State::Linked {
+                    self.spread(cell, v)?;
+                }
+                Ok(count)
+            }
             // `put` on one cell; whether it was linked.
             #[inline(always)]
             fn store(&mut self, cell: u32, v: F192) -> Result<bool, ExecError> {
-                self.ensure(cell as usize);
                 let c = self.at(cell);
                 let s = c.state;
                 if s == State::Written && c.word != v {
@@ -459,7 +487,6 @@ impl Program {
             }
             fn link(&mut self, a: u32, b: u32) {
                 for (x, y) in [(a, b), (b, a)] {
-                    self.ensure(x as usize);
                     let c = self.at(x);
                     if c.state == State::Unwritten {
                         c.state = State::Linked;
@@ -481,7 +508,6 @@ impl Program {
             // exponent. A run makes fewer than `2^32` accesses in all, so it cannot wrap.
             #[inline(always)]
             fn bump_access_count(&mut self, cell: u32) -> u32 {
-                self.ensure(cell as usize);
                 let c = self.at(cell);
                 let count = c.count;
                 c.count = count + 1;
@@ -830,13 +856,12 @@ impl Program {
                             m.put(if ha { ab } else { aa }, m.get(ac) * vk.inv())?;
                         }
                     }
-                    let va = m.read(aa);
-                    let vb = m.read(ab);
+                    // Each access advances its cell's count, in flush order, so a cell two
+                    // operands alias still pairs each access with its own count.
+                    let (va, ra) = m.read(aa);
+                    let (vb, rb) = m.read(ab);
                     let vc = if is_xor { va + vb } else { va * vb };
-                    m.put(ac, vc)?;
-                    let ra = m.bump_access_count(aa);
-                    let rb = m.bump_access_count(ab);
-                    let rc = m.bump_access_count(ac);
+                    let rc = m.put_counted(ac, vc)?;
                     let row = Xrow {
                         pc,
                         fp,
@@ -853,9 +878,7 @@ impl Program {
                     pc += 1;
                 }
                 Op::Set { o, k } => {
-                    let a = fp + o;
-                    m.put(a, k)?;
-                    let r = m.bump_access_count(a);
+                    let r = m.put_counted(fp + o, k)?;
                     set.push(Srow {
                         pc,
                         fp,
@@ -866,7 +889,7 @@ impl Program {
                 }
                 Op::Deref { o1, o2, o3, mode } => {
                     let a1 = fp + o1;
-                    let p = m.read(a1);
+                    let (p, r1) = m.read(a1);
                     let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let a2 = base + o2;
@@ -898,7 +921,6 @@ impl Program {
                             m.put(a2, v)?;
                         }
                     }
-                    let r1 = m.bump_access_count(a1);
                     let r2 = m.bump_access_count(a2);
                     let r3 = m.bump_access_count(a3);
                     deref.push(Drow {
@@ -919,16 +941,16 @@ impl Program {
                     // otherwise not balance. A guest branches on g-powers; the one
                     // idiom that once branched on a word, `assert a != b`, takes an
                     // inverse hint instead (§sec:prog-div-ne).
-                    let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
-                    let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
-                    let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
+                    let (c, rc) = m.read(ac);
+                    let c = in_k("JUMP condition", c).map_err(fail)?;
+                    let (d, rd) = m.read(ad);
+                    let d = in_k("JUMP target", d).map_err(fail)?;
+                    let (f, rf) = m.read(af);
+                    let f = in_k("JUMP fp", f).map_err(fail)?;
                     // The is-nonzero witness `w = c⁻¹` is never used for control
                     // flow, only recorded as a witness column, so it is not
                     // computed here at all: `JumpTable::fill` batch-inverts every
                     // row's condition at once (§the trace rows in `cpu::trace`).
-                    let rc = m.bump_access_count(ac);
-                    let rd = m.bump_access_count(ad);
-                    let rf = m.bump_access_count(af);
                     let taken = !c.is_zero();
                     jump.push(Jrow {
                         pc,
@@ -958,8 +980,13 @@ impl Program {
                 Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let k = crate::tables::KeccakOp::of(&op);
-                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
-                    let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
+                    // The counts in flush order, so a cell two operands alias still pairs
+                    // each access with its own count.
+                    let mut r = [0; ROW_CELLS];
+                    let mut input = [F192::ZERO; STATE_CELLS];
+                    for c in 0..STATE_CELLS {
+                        (input[c], r[c]) = m.read(k.cell(fp, c));
+                    }
                     // The table reads every cell with a literal zero top limb, so anything
                     // else could not balance the bus.
                     for (cell, &value) in input.iter().enumerate() {
@@ -973,16 +1000,10 @@ impl Program {
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                     keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
-                    let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
-                    for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
-                        m.put(cell, v)?;
-                    }
-                    // In flush order, so a cell two operands alias still pairs each
-                    // read with its own count. A cell not written keeps count 0.
-                    let mut r = [0; ROW_CELLS];
-                    for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
-                        *count = m.bump_access_count(cell);
+                    // A cell not written keeps count 0.
+                    for (c, &v) in output[..k.out_cells.cells()].iter().enumerate() {
+                        r[STATE_CELLS + c] = m.put_counted(k.cell(fp, STATE_CELLS + c), v)?;
                     }
                     keccak.push(Krow {
                         pc,
