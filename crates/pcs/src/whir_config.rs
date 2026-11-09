@@ -56,14 +56,14 @@ pub const QUERY_GRINDING_BITS: usize = 17;
 
 /// Grinding before each fold round's `theta` and before its `(gamma, alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
-pub const FOLD_GRINDING_BITS: usize = 12;
+pub const FOLD_GRINDING_BITS: usize = 6;
 
 /// Grinding before each level's batching challenge `lambda` and the stacked opening's outer batching challenge: the
 /// least for which the batching terms never cost a query.
-pub const BATCH_GRINDING_BITS: usize = 17;
+pub const BATCH_GRINDING_BITS: usize = 12;
 
 /// Grinding before the level-0 list pin: the least for which the pin's term never costs a query.
-pub const PIN_GRINDING_BITS: usize = 18;
+pub const PIN_GRINDING_BITS: usize = 14;
 
 /// Out-of-domain points after each commitment past level 0, drawn as one verifier message: two independent points
 /// square the OOD term, which then needs no grind.
