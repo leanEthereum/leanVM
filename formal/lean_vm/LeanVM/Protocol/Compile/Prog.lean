@@ -11,7 +11,7 @@ module
 public import Statement.LeanVmVerifier
 public import Statement.Prover.Script
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Field
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic

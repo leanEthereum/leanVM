@@ -11,7 +11,7 @@ public import LeanVM.Protocol.EndToEnd.Completeness
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.WithHash
 

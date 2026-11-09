@@ -11,7 +11,7 @@ public import VCVio.OracleComp.ProbCompLift
 public import VCVio.OracleComp.Coercions.Add.Basic
 public import VCVio.OracleComp.EvalDist.Sum
 public import Statement.Fast.FieldWords
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.Keccak
 
 /-!

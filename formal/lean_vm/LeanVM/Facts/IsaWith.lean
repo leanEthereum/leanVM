@@ -10,7 +10,7 @@
 module
 
 public import Statement.LeanIsa
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 
 namespace LeanVM.Semantics

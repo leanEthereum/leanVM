@@ -12,7 +12,7 @@ import Statement.LeanVm
 import Common.Transfer
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.CubicExt
+import Statement.Fast.QuadExt
 import Statement.Fast.FieldWords
 import Common.Prob
 import LeanVM.Protocol.WithHash

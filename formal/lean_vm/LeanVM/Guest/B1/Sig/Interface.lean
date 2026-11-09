@@ -15,7 +15,7 @@ public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.B1.Main.Frames

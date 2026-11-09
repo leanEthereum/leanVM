@@ -10,7 +10,7 @@
 module
 
 public import Statement.Field
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import Statement.Fast.Keccak
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic

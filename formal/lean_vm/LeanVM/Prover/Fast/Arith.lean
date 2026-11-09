@@ -4,7 +4,7 @@ import Mathlib.Tactic.Ring
 /-!
 # Products in `E` on machine words
 
-`E`'s product compiles generically (`Statement.Fast.CubicExt`: `Ext.mulCubic`, each coefficient
+`E`'s product compiles generically (`Statement.Fast.QuadExt`: `Ext.mulCubic`, each coefficient
 product a call of `BF64.mul`), and a `K` word that is no small number is a big natural number at
 run time, so every product of `K` words converts its factors to machine words and its result back,
 each conversion of a big number a few allocations. Here the product of two elements of `E`

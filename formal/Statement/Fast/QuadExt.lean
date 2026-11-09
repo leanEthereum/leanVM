@@ -1,9 +1,9 @@
 /-
-  Statement.Fast.CubicExt
+  Statement.Fast.QuadExt
 
-  The product of CompPoly's extension fields of degree three, unrolled: the nine coefficient
-  products and the two reduced monomials, proved equal to `Ext.mul` and swapped in for
-  compilation together with the instances that use it. Candidate for CompPoly.
+  The product of CompPoly's extension fields of degree two, unrolled: the four coefficient
+  products and the reduced monomial, proved equal to `Ext.mul` and swapped in for compilation
+  together with the instances that use it. Candidate for CompPoly.
 
   Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
   compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
@@ -14,15 +14,14 @@ module
 public import CompPoly.Fields.Extension
 
 /-!
-# Degree-three extensions, unrolled
+# Degree-two extensions, unrolled
 
 `Ext.mul` compiles to `Ext.mulTbl`: the `2d - 1` convolution coefficients and their contraction
-against the table of reduced monomials, each a loop over a closure. At `d = 3` this module
-computes the same product directly (`mulCubic`): the coefficients
-`c_k = Σ_{i + j = k} x_i y_j` of the unreduced product, of which `c_0, c_1, c_2` stand and
-`c_3, c_4` enter through the reduced monomials `X^3 mod f`, `X^4 mod f`
-(`mul_eq_mulCubic`). `mulFast` takes it at `d = 3` and `Ext.mul` otherwise; `addFast` adds the
-three coefficients directly at `d = 3`.
+against the table of reduced monomials, each a loop over a closure. At `d = 2` this module
+computes the same product directly (`mulQuad`): the coefficients
+`c_k = Σ_{i + j = k} x_i y_j` of the unreduced product, of which `c_0, c_1` stand and `c_2`
+enters through the reduced monomial `X^2 mod f` (`mul_eq_mulQuad`). `mulFast` takes it at
+`d = 2` and `Ext.mul` otherwise; `addFast` adds the two coefficients directly at `d = 2`.
 
 The `@[csimp]` lemmas swap the instances `Ext.instMul`, `Ext.instAdd`, `Ext.instPowNat`,
 `Ext.instInv` and `Ext.instDiv` for restatements compiled here, the last three word for word
@@ -66,30 +65,24 @@ theorem coeffNat_monomialMod_of_lt {k m : ℕ} (hk : k < P.d) (hm : m < P.d) :
 
 /-! ## The product -/
 
-/-- The product at `d = 3`: `x_0, x_1, x_2` times `y_0, y_1, y_2`, the coefficients of `X^3` and
-`X^4` reduced by `monomialMod`. -/
+/-- The product at `d = 2`: `x_0, x_1` times `y_0, y_1`, the coefficient of `X^2` reduced by
+`monomialMod`. -/
 @[specialize P]
-def mulCubic (h : P.d = 3) (x y : Ext P) : Ext P :=
+def mulQuad (h : P.d = 2) (x y : Ext P) : Ext P :=
   let x0 := coeffNat x 0
   let x1 := coeffNat x 1
-  let x2 := coeffNat x 2
   let y0 := coeffNat y 0
   let y1 := coeffNat y 1
-  let y2 := coeffNat y 2
-  let c3 := x1 * y2 + x2 * y1
-  let c4 := x2 * y2
-  let t3 : Ext P := monomialMod 3
-  let t4 : Ext P := monomialMod 4
-  ofVector ⟨#[x0 * y0 + c3 * coeffNat t3 0 + c4 * coeffNat t4 0,
-      x0 * y1 + x1 * y0 + c3 * coeffNat t3 1 + c4 * coeffNat t4 1,
-      x0 * y2 + x1 * y1 + x2 * y0 + c3 * coeffNat t3 2 + c4 * coeffNat t4 2], by simp [h]⟩
+  let c2 := x1 * y1
+  let t2 : Ext P := monomialMod 2
+  ofVector ⟨#[x0 * y0 + c2 * coeffNat t2 0, x0 * y1 + x1 * y0 + c2 * coeffNat t2 1], by simp [h]⟩
 
-/-- **`mulCubic` is the product.** -/
-theorem mul_eq_mulCubic (h : P.d = 3) (x y : Ext P) : mul x y = mulCubic h x y := by
+/-- **`mulQuad` is the product.** -/
+theorem mul_eq_mulQuad (h : P.d = 2) (x y : Ext P) : mul x y = mulQuad h x y := by
   apply Ext.ext
   rintro ⟨m, hm⟩
-  have hm3 : m < 3 := h ▸ hm
-  have he : ∀ k, k < 3 → coeffNat (monomialMod k : Ext P) m = if k = m then 1 else 0 :=
+  have hm2 : m < 2 := h ▸ hm
+  have he : ∀ k, k < 2 → coeffNat (monomialMod k : Ext P) m = if k = m then 1 else 0 :=
     fun k hk ↦ coeffNat_monomialMod_of_lt (by omega) hm
   have hsum : coeffNat (mul x y) m = ∑ i ∈ Finset.range P.d, ∑ j ∈ Finset.range P.d,
       coeffNat x i * coeffNat y j * coeffNat (monomialMod (i + j) : Ext P) m := by
@@ -103,30 +96,28 @@ theorem mul_eq_mulCubic (h : P.d = 3) (x y : Ext P) : mul x y = mulCubic h x y :
     rw [coeffNat_coe, coeffNat_coe, coeffNat_of_lt _ hm]
   rw [← coeffNat_of_lt _ hm, ← coeffNat_of_lt _ hm, hsum, h]
   simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add, Nat.reduceAdd]
-  rw [he 0 (by omega), he 1 (by omega), he 2 (by omega)]
-  interval_cases m <;>
-    simp [mulCubic, coeffNat, h, coeff, ofVector, add_mul] <;> abel
+  rw [he 0 (by omega), he 1 (by omega)]
+  interval_cases m <;> simp [mulQuad, coeffNat, h, coeff, ofVector, add_assoc]
 
-/-- The product, unrolled at `d = 3`. Specialised at the modulus, so that at a constant modulus
-the reduced monomials are constants, computed once. -/
+/-- The product, unrolled at `d = 2`. Specialised at the modulus, so that at a constant modulus
+the reduced monomial is a constant, computed once. -/
 @[specialize P]
-def mulFast (x y : Ext P) : Ext P := if h : P.d = 3 then mulCubic h x y else mul x y
+def mulFast (x y : Ext P) : Ext P := if h : P.d = 2 then mulQuad h x y else mul x y
 
 /-- `mulFast` is the product. -/
 theorem mul_eq_mulFast : @mul F _ P = mulFast := by
   funext x y
   unfold mulFast
   split
-  · exact mul_eq_mulCubic _ x y
+  · exact mul_eq_mulQuad _ x y
   · rfl
 
 /-! ## The sum -/
 
-/-- The sum, unrolled at `d = 3`. -/
+/-- The sum, unrolled at `d = 2`. -/
 def addFast (x y : Ext P) : Ext P :=
-  if h : P.d = 3 then
-    ofVector ⟨#[coeffNat x 0 + coeffNat y 0, coeffNat x 1 + coeffNat y 1,
-      coeffNat x 2 + coeffNat y 2], by simp [h]⟩
+  if h : P.d = 2 then
+    ofVector ⟨#[coeffNat x 0 + coeffNat y 0, coeffNat x 1 + coeffNat y 1], by simp [h]⟩
   else x + y
 
 /-- `addFast` is the sum. -/
@@ -137,7 +128,7 @@ theorem add_eq_addFast (x y : Ext P) : x + y = addFast x y := by
     apply Ext.ext
     intro m
     obtain ⟨m, hm⟩ := m
-    have hm3 : m < 3 := h ▸ hm
+    have hm2 : m < 2 := h ▸ hm
     rw [coeff_add]
     interval_cases m <;> simp [coeffNat, h, coeff, ofVector]
   · rfl

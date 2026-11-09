@@ -12,7 +12,7 @@ import Statement.LeanSphincs
 import Statement.Fast.Schemes
 import LeanDa.Scheme
 import Statement.Fast.Keccak
-import Statement.Fast.CubicExt
+import Statement.Fast.QuadExt
 import Statement.Fast.FieldWords
 import LeanVM.Facts.Verifier
 
