@@ -187,12 +187,16 @@ theorem sideKraus_leak (g : OvGame X Y S P Res) (hclosed : ∀ j s, (g.trans j s
 
 theorem sideKraus_agree (hclosed₁ : ∀ j s, (g₁.trans j s).2 ∈ U → s ∈ U)
     (hclosed₂ : ∀ j s, (g₂.trans j s).2 ∈ U → s ∈ U)
-    (htr : ∀ s ∈ U, ∀ j, g₁.trans j s = g₂.trans j s) (j : P) (r : Res j × S) :
+    (htr : ∀ s ∈ U, ∀ j, (g₁.trans j s).2 ∈ U ∨ (g₂.trans j s).2 ∈ U →
+      g₁.trans j s = g₂.trans j s) (j : P) (r : Res j × S) :
     ((1 : Matrix Unit Unit ℂ) ⊗ₖ sideProj U) * g₁.sideKraus Unit j r =
       ((1 : Matrix Unit Unit ℂ) ⊗ₖ sideProj U) * g₂.sideKraus Unit j r := by
   rw [sideProj_mul_sideKraus, sideProj_mul_sideKraus]
   by_cases h0 : r.2 ∈ U
-  · rw [sideKraus, sideKraus, htr r.2 h0 j]
+  · by_cases hU : (g₁.trans j r.2).2 ∈ U ∨ (g₂.trans j r.2).2 ∈ U
+    · rw [sideKraus, sideKraus, htr r.2 h0 j hU]
+    · push Not at hU
+      simp [hU.1, hU.2]
   · have h1 : (g₁.trans j r.2).2 ∉ U := fun h ↦ h0 (hclosed₁ j r.2 h)
     have h2 : (g₂.trans j r.2).2 ∉ U := fun h ↦ h0 (hclosed₂ j r.2 h)
     simp [h1, h2]
@@ -210,7 +214,8 @@ theorem sampKraus_leak (g : OvGame X Y S P Res) (hclosed : ∀ j s, (g.trans j s
 
 theorem sampKraus_agree (hclosed₁ : ∀ j s, (g₁.trans j s).2 ∈ U → s ∈ U)
     (hclosed₂ : ∀ j s, (g₂.trans j s).2 ∈ U → s ∈ U) (hov : ∀ s ∈ U, g₁.ov s = g₂.ov s)
-    (htr : ∀ s ∈ U, ∀ j, g₁.trans j s = g₂.trans j s) (G : X → Y)
+    (htr : ∀ s ∈ U, ∀ j, (g₁.trans j s).2 ∈ U ∨ (g₂.trans j s).2 ∈ U →
+      g₁.trans j s = g₂.trans j s) (G : X → Y)
     (i : (ovSpec X Y S P Res).Port) (r : (ovSpec X Y S P Res).Result i) :
     ((1 : Matrix ((ovSpec X Y S P Res).Out i) ((ovSpec X Y S P Res).Out i) ℂ) ⊗ₖ sideProj U) *
         g₁.sampKraus G i r *
@@ -231,7 +236,8 @@ variable {L : LocalSig.{u, v}} {W : QReg → Type w} {A : QReg}
 theorem conj_jointPost_eq_of_agreeOn (I : L.Interp)
     (hclosed₁ : ∀ j s, (g₁.trans j s).2 ∈ U → s ∈ U)
     (hclosed₂ : ∀ j s, (g₂.trans j s).2 ∈ U → s ∈ U) (hov : ∀ s ∈ U, g₁.ov s = g₂.ov s)
-    (htr : ∀ s ∈ U, ∀ j, g₁.trans j s = g₂.trans j s) (hinit : g₁.init = g₂.init) (G : X → Y)
+    (htr : ∀ s ∈ U, ∀ j, (g₁.trans j s).2 ∈ U ∨ (g₂.trans j s).2 ∈ U →
+      g₁.trans j s = g₂.trans j s) (hinit : g₁.init = g₂.init) (G : X → Y)
     (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) (p : Σ u, W u) :
     (MatrixMap.conj (sideProj U)).amplifyLeft p.1 ((g₁.sampled G).jointPost I x ρ p).matrix =
       (MatrixMap.conj (sideProj U)).amplifyLeft p.1 ((g₂.sampled G).jointPost I x ρ p).matrix :=
@@ -244,7 +250,8 @@ theorem conj_jointPost_eq_of_agreeOn (I : L.Interp)
 theorem queryWeight_eq_of_agreeOn (I : L.Interp)
     (hclosed₁ : ∀ j s, (g₁.trans j s).2 ∈ U → s ∈ U)
     (hclosed₂ : ∀ j s, (g₂.trans j s).2 ∈ U → s ∈ U) (hov : ∀ s ∈ U, g₁.ov s = g₂.ov s)
-    (htr : ∀ s ∈ U, ∀ j, g₁.trans j s = g₂.trans j s) (hinit : g₁.init = g₂.init) (G : X → Y)
+    (htr : ∀ s ∈ U, ∀ j, (g₁.trans j s).2 ∈ U ∨ (g₂.trans j s).2 ∈ U →
+      g₁.trans j s = g₂.trans j s) (hinit : g₁.init = g₂.init) (G : X → Y)
     (w : ∀ i : (ovSpec X Y S P Res).Port, Matrix ((ovSpec X Y S P Res).In i × (S × Unit))
       ((ovSpec X Y S P Res).In i × (S × Unit)) ℂ → ℝ≥0∞)
     (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) (j : ℕ) :

@@ -102,8 +102,9 @@ theorem sideW_eq_sum (g' : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
 /-- **Reading a protected input.** -/
 theorem sum_sideW_protHit_le
     (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) →
-      (g h).ov s = (g h').ov s ∧ ∀ j, (g h).trans j s = (g h').trans j s)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+      (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
     (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
       ε * Fintype.card ({k // k ∉ rev s} → Z))
@@ -122,12 +123,11 @@ theorem sum_sideW_protHit_le
   have hagree : ∀ a b b', blockW s (((g (e.symm (a, b))).sampled G).jointPost I x ρ p).matrix =
       blockW s (((g (e.symm (a, b'))).sampled G).jointPost I x ρ p).matrix := by
     intro a b b'
-    have hag : ∀ s' ∈ below rev s, ∀ k ∈ rev s', e.symm (a, b) k = e.symm (a, b') k :=
-      fun s' hs' k hk ↦ splitE_symm_agree rev s a b b' k ((mem_below rev).mp hs' hk)
     have hj := conj_jointPost_eq_of_agreeOn (U := below rev s) I
       (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
       (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (fun s' hs' ↦ (hlocal _ _ s' (hag s' hs')).1) (fun s' hs' ↦ (hlocal _ _ s' (hag s' hs')).2)
+      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).1
+      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).2
       (hinit _ _) G x ρ p
     rw [← blockW_proj (below rev s) s ((mem_below rev).mpr subset_rfl), hj,
       blockW_proj (below rev s) s ((mem_below rev).mpr subset_rfl)]

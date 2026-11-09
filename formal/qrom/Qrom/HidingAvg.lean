@@ -178,11 +178,28 @@ variable (g : (K → Z) → OvGame X Y S P Res)
   (Prot : (K → Z) → S → X → Prop) [∀ h s, DecidablePred (Prot h s)]
 variable {L : LocalSig.{u, v}} {W : QReg → Type w} {A : QReg}
 
+/-- Data agreeing on the keys revealed in `s` give games that agree on the side states below `s`:
+the same overrides, and the same transitions into them. -/
+theorem agree_below
+    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+      (g h).trans j s = (g h').trans j s)
+    {s : S} {h h' : K → Z} (hag : ∀ k ∈ rev s, h k = h' k) :
+    (∀ s' ∈ below rev s, (g h).ov s' = (g h').ov s') ∧
+      ∀ s' ∈ below rev s, ∀ j, ((g h).trans j s').2 ∈ below rev s ∨
+        ((g h').trans j s').2 ∈ below rev s → (g h).trans j s' = (g h').trans j s' := by
+  refine ⟨fun s' hs' ↦ hlocal _ _ s' fun k hk ↦ hag k ((mem_below rev).mp hs' hk),
+    fun s' _ j hU ↦ ?_⟩
+  rcases hU with hU | hU
+  · exact hlocalTr _ _ j s' fun k hk ↦ hag k ((mem_below rev).mp hU hk)
+  · exact (hlocalTr _ _ j s' fun k hk ↦ (hag k ((mem_below rev).mp hU hk)).symm).symm
+
 /-- **The protected mass of one side state, averaged over the hidden data.** -/
 theorem sum_queryWeight_massS_le
     (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) →
-      (g h).ov s = (g h').ov s ∧ ∀ j, (g h).trans j s = (g h').trans j s)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+      (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
     (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
       ε * Fintype.card ({k // k ∉ rev s} → Z))
@@ -202,12 +219,11 @@ theorem sum_queryWeight_massS_le
           (fun i σ ↦ w i ((MatrixMap.conj (sideProj (below rev s))).amplifyLeft _ σ)) x
           (ρ.matrix ⊗ₖ ((g (e.symm (a, b'))).sampled G).init.matrix) j := by
     intro a b b' w
-    have hag : ∀ s' ∈ below rev s, ∀ k ∈ rev s', e.symm (a, b) k = e.symm (a, b') k :=
-      fun s' hs' k hk ↦ splitE_symm_agree rev s a b b' k ((mem_below rev).mp hs' hk)
     exact queryWeight_eq_of_agreeOn I
       (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
       (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (fun s' hs' ↦ (hlocal _ _ s' (hag s' hs')).1) (fun s' hs' ↦ (hlocal _ _ s' (hag s' hs')).2)
+      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).1
+      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).2
       (hinit _ _) G w x ρ j
   obtain ⟨b₀⟩ : Nonempty ({k // k ∉ rev s} → Z) := inferInstance
   have hrun : ∀ a b (Q : X → Prop) [DecidablePred Q],
@@ -255,8 +271,9 @@ theorem sum_queryWeight_massS_le
 /-- **The protected mass, averaged over the hidden data.** -/
 theorem sum_queryWeight_protMass_le
     (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) →
-      (g h).ov s = (g h').ov s ∧ ∀ j, (g h).trans j s = (g h').trans j s)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+      (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
     (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
       ε * Fintype.card ({k // k ∉ rev s} → Z))
@@ -305,7 +322,7 @@ theorem sum_queryWeight_protMass_le
       ≤ ∑ s, ENNReal.ofReal ε * ∑ h, ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
           (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j :=
         Finset.sum_le_sum fun s _ ↦
-          sum_queryWeight_massS_le rev g Prot hmono hlocal hinit hε0 hprot I G x ρ j s
+          sum_queryWeight_massS_le rev g Prot hmono hlocal hlocalTr hinit hε0 hprot I G x ρ j s
     _ = ENNReal.ofReal ε * ∑ h, ∑ s, ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
           (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
         rw [← Finset.mul_sum, Finset.sum_comm]

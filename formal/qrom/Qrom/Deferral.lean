@@ -154,8 +154,9 @@ theorem mem_pref {s s' : S} : s' ∈ pref sig s ↔ sig s' <+: sig s := by
 theorem blockW_eq_of_corr
     (hmonoA : ∀ Dg j s, sig s <+: sig ((gA Dg).trans j s).2)
     (hmonoB : ∀ δ j s, sig s <+: sig ((gB δ).trans j s).2)
-    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ →
-      (gA Dg).ov s = (gB δ).ov s ∧ ∀ j, (gA Dg).trans j s = (gB δ).trans j s)
+    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ → (gA Dg).ov s = (gB δ).ov s)
+    (hcorrTr : ∀ Dg δ j s, Corr (sig ((gA Dg).trans j s).2) Dg δ ∨
+      Corr (sig ((gB δ).trans j s).2) Dg δ → (gA Dg).trans j s = (gB δ).trans j s)
     (hinit : ∀ Dg δ, (gA Dg).init = (gB δ).init) (I : L.Interp) (G : X → Y)
     (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) (p : Σ u, W u) (s : S)
     {Dg : M → V} {δ : Fin q → V} (h : Corr (sig s) Dg δ) :
@@ -164,8 +165,9 @@ theorem blockW_eq_of_corr
   have hj := conj_jointPost_eq_of_agreeOn (U := pref sig s) (g₁ := gA Dg) (g₂ := gB δ) I
     (fun j' s' hs ↦ (mem_pref sig).mpr ((hmonoA Dg j' s').trans ((mem_pref sig).mp hs)))
     (fun j' s' hs ↦ (mem_pref sig).mpr ((hmonoB δ j' s').trans ((mem_pref sig).mp hs)))
-    (fun s' hs' ↦ (hcorr Dg δ s' (h.of_prefix ((mem_pref sig).mp hs'))).1)
-    (fun s' hs' ↦ (hcorr Dg δ s' (h.of_prefix ((mem_pref sig).mp hs'))).2)
+    (fun s' hs' ↦ hcorr Dg δ s' (h.of_prefix ((mem_pref sig).mp hs')))
+    (fun s' _ j hU ↦ hcorrTr Dg δ j s' (hU.imp (fun h' ↦ h.of_prefix ((mem_pref sig).mp h'))
+      fun h' ↦ h.of_prefix ((mem_pref sig).mp h')))
     (hinit Dg δ) G x ρ p
   rw [← blockW_proj (pref sig s) s ((mem_pref sig).mpr List.prefix_rfl), hj,
     blockW_proj (pref sig s) s ((mem_pref sig).mpr List.prefix_rfl)]
@@ -174,8 +176,9 @@ theorem blockW_eq_of_corr
 theorem deferral_block_le (hnd : ∀ s, (sig s).Nodup) (hlen : ∀ s, (sig s).length ≤ q)
     (hmonoA : ∀ Dg j s, sig s <+: sig ((gA Dg).trans j s).2)
     (hmonoB : ∀ δ j s, sig s <+: sig ((gB δ).trans j s).2)
-    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ →
-      (gA Dg).ov s = (gB δ).ov s ∧ ∀ j, (gA Dg).trans j s = (gB δ).trans j s)
+    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ → (gA Dg).ov s = (gB δ).ov s)
+    (hcorrTr : ∀ Dg δ j s, Corr (sig ((gA Dg).trans j s).2) Dg δ ∨
+      Corr (sig ((gB δ).trans j s).2) Dg δ → (gA Dg).trans j s = (gB δ).trans j s)
     (hinit : ∀ Dg δ, (gA Dg).init = (gB δ).init)
     (eA : (M → V) → (Σ u, W u) → S → Bool) (eB : (Fin q → V) → (Σ u, W u) → S → Bool)
     (hev : ∀ Dg δ p s, Corr (sig s) Dg δ → eA Dg p s = true → eB δ p s = true)
@@ -190,7 +193,7 @@ theorem deferral_block_le (hnd : ∀ s, (sig s).Nodup) (hlen : ∀ s, (sig s).le
   have hk : k ≤ q := hlen s
   have hkM : k ≤ Fintype.card M := (hnd s).length_le_card
   have hblk := fun {Dg} {δ} (h : Corr l Dg δ) ↦
-    blockW_eq_of_corr gA gB sig hmonoA hmonoB hcorr hinit I G x ρ p s h
+    blockW_eq_of_corr gA gB sig hmonoA hmonoB hcorr hcorrTr hinit I G x ρ p s h
   obtain ⟨v₀⟩ : Nonempty V := inferInstance
   rw [← Finset.sum_fiberwise Finset.univ (preA l), ← Finset.sum_fiberwise Finset.univ (preB hk),
     Finset.mul_sum, Finset.mul_sum]
@@ -275,8 +278,9 @@ theorem deferral_block_le (hnd : ∀ s, (sig s).Nodup) (hlen : ∀ s, (sig s).le
 theorem deferral_le (hnd : ∀ s, (sig s).Nodup) (hlen : ∀ s, (sig s).length ≤ q)
     (hmonoA : ∀ Dg j s, sig s <+: sig ((gA Dg).trans j s).2)
     (hmonoB : ∀ δ j s, sig s <+: sig ((gB δ).trans j s).2)
-    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ →
-      (gA Dg).ov s = (gB δ).ov s ∧ ∀ j, (gA Dg).trans j s = (gB δ).trans j s)
+    (hcorr : ∀ Dg δ s, Corr (sig s) Dg δ → (gA Dg).ov s = (gB δ).ov s)
+    (hcorrTr : ∀ Dg δ j s, Corr (sig ((gA Dg).trans j s).2) Dg δ ∨
+      Corr (sig ((gB δ).trans j s).2) Dg δ → (gA Dg).trans j s = (gB δ).trans j s)
     (hinit : ∀ Dg δ, (gA Dg).init = (gB δ).init)
     (eA : (M → V) → (Σ u, W u) → S → Bool) (eB : (Fin q → V) → (Σ u, W u) → S → Bool)
     (hev : ∀ Dg δ p s, Corr (sig s) Dg δ → eA Dg p s = true → eB δ p s = true)
@@ -291,7 +295,7 @@ theorem deferral_le (hnd : ∀ s, (sig s).Nodup) (hlen : ∀ s, (sig s).length �
   rw [Finset.sum_comm, Finset.sum_comm (s := Finset.univ (α := Fin q → V)), Finset.mul_sum,
     Finset.mul_sum]
   exact Finset.sum_le_sum fun s _ ↦
-    deferral_block_le gA gB sig hnd hlen hmonoA hmonoB hcorr hinit eA eB hev I G x ρ p s
+    deferral_block_le gA gB sig hnd hlen hmonoA hmonoB hcorr hcorrTr hinit eA eB hev I G x ρ p s
 
 end presample
 
