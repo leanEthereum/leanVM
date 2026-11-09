@@ -241,8 +241,8 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
-per proof of work,
+most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{33}$ nonces
+per proof of work (the widest grind within that size is the bus's, $25$ bits),
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
 \]
@@ -256,8 +256,8 @@ Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
-$4\cdot 2^{\kappa} + 2^{\ell} + 15h_{\mathrm{xor}} + 15h_{\mathrm{mul}} + 8h_{\mathrm{set}} +
-15h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
+$3\cdot 2^{\kappa} + 2^{\ell} + 13h_{\mathrm{xor}} + 13h_{\mathrm{mul}} + 7h_{\mathrm{set}} +
+14h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
 $2^\ell$ the bytecode size, $h_{op}$ the least power of two at least the number of executed
 instructions of opcode $op$, and $k$ the same for \texttt{KECCAK}, at least $2^9$.
 
@@ -712,7 +712,7 @@ coverage table, one slot per raw signature and per entry of a child's lists
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
-($2^{25}$ nonces per proof of work) of an execution of $G$ of
+($2^{33}$ nonces per proof of work) of an execution of $G$ of
 committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
 the guest program checks and leanVM's aggregator pads every aggregate to) on
 $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
@@ -806,7 +806,7 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 \end{itemize}
 
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
-prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{25}$ nonces per proof of work, it
+prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{33}$ nonces per proof of work, it
 makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
 rejects its proof, of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$,
 with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so
