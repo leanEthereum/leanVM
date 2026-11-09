@@ -12,6 +12,7 @@
 use std::ops::Range;
 
 use crate::PAR_THRESHOLD;
+use crate::leaf::N_BUS_TREES as TREES;
 use crate::transcript::ProverState;
 use primitives::field::{F128, F128Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp};
@@ -509,11 +510,7 @@ impl QuaternaryLayerState {
 }
 
 /// Fold every tree by `challenge`, returning the next round's messages.
-fn fold_and_message<const N: usize>(
-    trees: &mut [QuaternaryLayerState; N],
-    challenge: F128,
-    eq: &SplitEq,
-) -> [[F128; 4]; N] {
+fn fold_and_message(trees: &mut [QuaternaryLayerState; TREES], challenge: F128, eq: &SplitEq) -> [[F128; 4]; TREES] {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
@@ -701,17 +698,17 @@ mod vertical {
 
     /// Fold every tree's rows by `challenge` into its `out`, in one dispatch for the
     /// three, returning the next round's messages.
-    pub(super) fn fold<const N: usize>(
-        inputs: [Input; N],
+    pub(super) fn fold(
+        inputs: [Input; TREES],
         challenge: F128,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; N],
-    ) -> [[F128; 4]; N] {
+        outs: [&mut Vec<Group>; TREES],
+    ) -> [[F128; 4]; TREES] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
         let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
         let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; N] = std::array::from_fn(|t| {
+        let dst: [parallel::SendPtr<Group>; TREES] = std::array::from_fn(|t| {
             let out = &mut *outs[t];
             if out.capacity() < n_out[t] {
                 *out = Vec::new();
@@ -723,7 +720,7 @@ mod vertical {
             }
             parallel::SendPtr(out.as_mut_ptr())
         });
-        let tasks: Vec<(usize, usize)> = (0..N)
+        let tasks: Vec<(usize, usize)> = (0..TREES)
             .flat_map(|t| (0..n_out[t]).step_by(TASK).map(move |g| (t, g)))
             .collect();
         let r = F128x8::splat(challenge);
@@ -744,15 +741,15 @@ mod vertical {
                 // SAFETY: tasks own disjoint groups of the outputs.
                 unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
             }
-            let mut messages = [[F128::ZERO; 4]; N];
+            let mut messages = [[F128::ZERO; 4]; TREES];
             messages[t] = message.finish();
             messages
         };
-        let add = |a: [[F128; 4]; N], b: [[F128; 4]; N]| std::array::from_fn(|t| add4(a[t], b[t]));
+        let add = |a: [[F128; 4]; TREES], b: [[F128; 4]; TREES]| std::array::from_fn(|t| add4(a[t], b[t]));
         if n_out.iter().sum::<usize>() > PARALLEL {
-            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; N], task, add)
+            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; TREES], task, add)
         } else {
-            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; N], add)
+            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; TREES], add)
         }
     }
 
@@ -788,9 +785,9 @@ mod vertical {
 }
 
 /// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
-pub struct Products<const N: usize> {
+pub struct Products {
     pub point: Vec<F128>,
-    pub values: [F128; N],
+    pub values: [F128; TREES],
 }
 
 /// A sumcheck round's grind: its polynomial is `eq` times a product of four lines, degree five. In the bus's last
@@ -806,15 +803,12 @@ fn y_grind(step: usize, last: bool) -> u32 {
     fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
 }
 
-/// Prove `N` identity-padded grand products as one RLC-batched radix-four GKR.
-/// Trees `2i` and `2i + 1` (`2i + 1 < N`) are pairs with one product by construction, as the bus's push and pull
-/// sides of one fingerprint: one root is sent for each pair, then the last tree's, so no verifier can be handed an
-/// unbalanced pair.
+/// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
+/// and pull have one product by construction, so one root is sent for both, then the count's.
 ///
-/// Per layer: a grind and the combiner `λ` (the `N` claims, degree `N - 1` in it), the sumcheck rounds (each its
-/// coefficients `c1..c4`, then its grind and challenge), the trees' children, then a grind and `y`.
-pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut ProverState) -> Products<N> {
-    assert!(N % 2 == 1, "pairs, then one tree alone");
+/// Per layer: a grind and the combiner `λ` (degree two in it), the sumcheck rounds (each its coefficients `c1..c4`,
+/// then its grind and challenge), the trees' children, then a grind and `y`.
+pub(crate) fn prove_products(leaves: [Leaves; TREES], ps: &mut ProverState) -> Products {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -825,23 +819,21 @@ pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut Prove
     // In leaves; a layer's rows over level `l` are runs of `2^(l + 2)` leaves.
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
-    let roots: [F128; N] = std::array::from_fn(|tree| layers[tree][mu][0]);
-    for pair in roots[..N - 1].chunks(2) {
-        assert_eq!(pair[0], pair[1], "a pair's products must agree");
-        ps.add_scalar(pair[0]);
-    }
-    ps.add_scalar(roots[N - 1]);
+    let roots: [F128; TREES] = std::array::from_fn(|tree| layers[tree][mu][0]);
+    assert_eq!(roots[0], roots[1], "push and pull products must agree");
+    ps.add_scalar(roots[0]);
+    ps.add_scalar(roots[2]);
     let mut point = Vec::new();
     let mut values = roots;
 
     let mut layer = mu;
     while layer > 0 {
-        ps.grind(fiat_shamir::grinding_bits(N as u128 - 1));
+        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
         let lambda = ps.sample();
         let round_count = mu - layer;
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let tails: [[F128; 2]; N] = std::array::from_fn(|tree| {
+            let tails: [[F128; 2]; TREES] = std::array::from_fn(|tree| {
                 let below = &layers[tree][layer - 1];
                 match below.as_slice() {
                     [left, right] => [*left, *right],
@@ -863,7 +855,7 @@ pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut Prove
         }
 
         let width = 1usize << round_count;
-        let mut trees: [QuaternaryLayerState; N] =
+        let mut trees: [QuaternaryLayerState; TREES] =
             std::array::from_fn(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         if SKIP_IDENTITY {
             for (tree, ones) in trees.iter_mut().zip(&identities) {
@@ -876,7 +868,7 @@ pub(crate) fn prove_products<const N: usize>(leaves: [Leaves; N], ps: &mut Prove
             let eq = SplitEq::new(&point[1..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
-            [[F128::ZERO; 4]; N]
+            [[F128::ZERO; 4]; TREES]
         };
         for round in 0..round_count {
             // `Σ_t λ^t message_t`, by Horner.

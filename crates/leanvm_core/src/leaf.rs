@@ -321,10 +321,10 @@ fn padded_products(src: &[F128], dst: &mut [F128]) {
 /// which read the same columns) are built together, a chunk of rows at a time, so a
 /// column is read from memory once however many blocks flush it. Each chunk's four- and sixteen-tuple products, the GKR's levels two and four,
 /// are formed while it is in cache.
-pub(crate) fn build_leaves<const N: usize>(
-    sides: [(&[Block], &Layout, &[F128], F128); N],
+pub(crate) fn build_leaves(
+    sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
-) -> [gkr::Leaves; N] {
+) -> [gkr::Leaves; N_BUS_TREES] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -334,7 +334,7 @@ pub(crate) fn build_leaves<const N: usize>(
     const CHUNKED: usize = 4;
 
     let mut blocks: Vec<LeafBlock> = Vec::new();
-    let mut lens = [1usize; N];
+    let mut lens = [1usize; N_BUS_TREES];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
         // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
@@ -366,11 +366,11 @@ pub(crate) fn build_leaves<const N: usize>(
 
     // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
     // without blocks, below) before anything reads it.
-    let mut values: [Vec<F128>; N] = lens.map(|n| unsafe { gkr::level(n) });
+    let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n) });
     // SAFETY: the chunks write the products of the tuples inside blocks of height
     // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F128>; N] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F128>; N] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
+    let mut fours: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
+    let mut sixteens: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()
@@ -796,7 +796,7 @@ pub(crate) struct BusProof {
 }
 
 /// Prove the bus balances; returns the per-column claims to open (§sec:leafstack). The
-/// fingerprints follow the witness commitment (the only ordering the grand product
+/// fingerprint follows the witness commitment (the only ordering the grand product
 /// needs), and the block structure is public, so no shape is observed.
 ///
 /// The stream, in order: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the
