@@ -241,8 +241,8 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
-per proof of work,
+most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{33}$ nonces
+per proof of work (the widest grind within that size is the bus's, $25$ bits),
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
 \]
