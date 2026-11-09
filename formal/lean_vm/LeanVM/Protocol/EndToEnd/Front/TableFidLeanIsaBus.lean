@@ -22,10 +22,10 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 
 The table phase's identities (`TableFid`, `LeanVM.Protocol.EndToEnd.Front.TablePhase`) compare the
 verifier program's bus result, `BusWit.result` (`verify_bus_balance`,
-`crates/verifier/src/bus.rs:106-213` at leanVM `40f877dc`), with the oracle protocol's output on the
+`crates/verifier/src/bus.rs:130-247`), with the oracle protocol's output on the
 same reads, `Bus.busOut`. This module proves the two agree at the leanISA instance and the
 verifier's layout, for every read whose GKR point has `μ_bus` coordinates, whose memory values are
-three and whose fingerprint challenges are four:
+two, whose slot weights are sixteen and whose share is the bytecode's:
 
 * `formAt_busOut_forms`: the protocol's form of side `k` on opcode table `t`, evaluated at any
   values of the table's columns in `E`, is the verifier's `forms[t][k]` evaluated there;
@@ -42,9 +42,8 @@ columns likewise (`countSrcs_map_arkG`).
 
 **The forms** (`formAt_busOut_forms`). A block's form is linear in its weight (`formAt_form`); at
 weight one a flush of table `t` puts `β − Σ_i eq(α, i) · P_i(e)` on `t`, which is the verifier's
-`β + Σ_slot w_slot · coordinate_slot(e)` in characteristic two once the weights agree
-(`fingerprintWeights_toAlpha`: the verifier's `eq_kernel(α)` is the protocol's `lagrangeBasis` for
-four `α`). The verifier's three folds (`Complete.accFold_spec`) leave on each side exactly that
+`β + Σ_slot w_slot · coordinate_slot(e)` in characteristic two, the weights the same
+(`fingerprintWeights_toAlpha`: the verifier's sixteen slot weights are the protocol's `α`). The verifier's three folds (`Complete.accFold_spec`) leave on each side exactly that
 side's blocks owned by `t` (`result_form_eval`).
 
 **The totals** (`busOut_totals`). The protocol's total subtracts from the leaf claim the boundary
@@ -52,7 +51,7 @@ blocks' values and the pad's weight; the verifier's adds the framework's fingerp
 weight. The boundary blocks are the framework, block for block (`bnd_push`, `bnd_pull`): the
 separators (`channelSep_state`, …), `index_mle` against the index column (`indexMle_take`), the
 values sent against the boundary columns (`valueOf_leanIsa`), and the bytecode entries against
-`multilinear_eval` of the bytecode (`multilinearEval_bytecodeWords`).
+the bytecode's share, the true one (`bytecode_entries`, from `BusAt`).
 
 **At every Keccak region.** Everything is stated at `leanIsaWith prog s fl`, the leanISA instance
 with a Keccak region `fl` (`Front.InstanceWith`), which nothing here reads: the deployed instance
@@ -150,7 +149,7 @@ theorem sumcheckB_leanIsa : (leanIsaWith prog s fl).B = 2 := by
 
 /-- **The boundary columns**: the memory columns, then `BFCNT`. -/
 theorem boundaryColumns_leanIsa : (leanIsaWith prog s fl).boundaryColumns =
-    [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol] := by
+    [memCol 0, memCol 1, memCol 2, bfcntCol] := by
   simp [M3Instance.boundaryColumns, LeanIsa.boundary, LeanIsa.coords, Vector.toList_ofFn,
     List.ofFn_succ, Coord.committed?]
   rfl
@@ -217,7 +216,7 @@ theorem evalRow_oneRow (j : Fin I.ntab) (e : Fin (I.width j) → E) :
   eval₂_one' _ e
 
 /-- **A block's form is linear in its weight.** -/
-theorem formAt_form (src : Bus.Source I) (hd : 1 ≤ I.d) (w : E) (α : Fin 4 → E) (β : E)
+theorem formAt_form (src : Bus.Source I) (hd : 1 ≤ I.d) (w : E) (α : Fin 16 → E) (β : E)
     (j : Fin I.ntab) (e : Fin (I.width j) → E) :
     formAt (src.form hd w α β j) e = w * formAt (src.form hd 1 α β j) e := by
   cases src with
@@ -240,7 +239,7 @@ theorem formAt_form (src : Bus.Source I) (hd : 1 ≤ I.d) (w : E) (α : Fin 4 �
 
 /-- **The protocol's form of a side and a sumcheck table**, evaluated, is the sum over the side's
 blocks in order of the verifier's selector times the block's form at weight `1`. -/
-theorem formAt_forms (k : Fin 3) (x₀ : Bus.Source I) (α : Fin 4 → E) (β : E)
+theorem formAt_forms (k : Fin 3) (x₀ : Bus.Source I) (α : Fin 16 → E) (β : E)
     (ζ : Vector E I.μBus) (j : I.SumcheckTables) (e : Fin (I.width j.1) → E) :
     formAt (Bus.forms h k α β ζ j) e =
       ∑ i ∈ range (Bus.sources I k).length,
@@ -403,12 +402,10 @@ end Sides
 
 /-! ## The fingerprint weights -/
 
-/-- The wire's weights are the protocol's fingerprint weights, for four `α`. -/
-theorem fingerprintWeights_toAlpha {alphas : List E} (ha : alphas.length = 4) (k : Fin 16) :
-    (fingerprintWeights (toAlpha alphas))[k.val] = (eqKernel alphas).getD k 0 := by
-  have h := lagrangeBasis_ofFn_getD ha k
-  rw [List.getD_eq_getElem _ _ (by rw [Whir.Complete.length_eqKernel, ha]; exact k.isLt)]
-  exact h
+/-- The wire's slot weights are the protocol's fingerprint weights. -/
+theorem fingerprintWeights_toAlpha {alphas : List E} (_ : alphas.length = 16) (k : Fin 16) :
+    (fingerprintWeights (toAlpha alphas))[k.val] = alphas.getD k 0 := by
+  simp [fingerprintWeights, toAlpha]
 
 /-! ## The forms, block by block -/
 
@@ -443,7 +440,7 @@ theorem blockVal_eq_wsum (β : E) (w : List E) (b : BusBlock) (col : ℕ → E)
 section Forms
 
 variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
-  (α : Fin 4 → E) (β : E)
+  (α : Fin 16 → E) (β : E)
 
 variable (fl) in
 /-- The weight-one form a block of the instance puts on opcode table `t₀`, at values `e` of the
@@ -487,12 +484,12 @@ theorem arkG_flush_self (t₀ : Fin 6)
   ring
 
 /-- The protocol's fingerprint of a flush at values in `E`, in the verifier's weighted sum. -/
-theorem flushValue_eq_wsum {alphas : List E} (ha : alphas.length = 4) (t₀ : Fin 6)
+theorem flushValue_eq_wsum {alphas : List E} (ha : alphas.length = 16) (t₀ : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E)
     (fu : Side × Vector (CMvPolynomial ((leanIsaWith prog s fl).width (opI prog s fl t₀)) K)
       16) :
     β - ∑ i : Fin 16, (fingerprintWeights (toAlpha alphas))[i.val] * evalRow fu.2[i] e =
-      β + wsum (eqKernel alphas) (fu.2.toList.map fun P ↦ P.eval₂ (algebraMap K E) e) := by
+      β + wsum alphas (fu.2.toList.map fun P ↦ P.eval₂ (algebraMap K E) e) := by
   rw [CharTwo.sub_eq_add, wsum, ← Fin.sum_univ_eq_sum_range]
   refine congrArg (β + ·) ?_
   refine Finset.sum_congr rfl fun i _ ↦ ?_
@@ -564,26 +561,26 @@ theorem map_eq_zeros {X : Type} (l : List X) (g : X → E) (h : ∀ x ∈ l, g x
 
 /-- **Opcode table `t`'s flushes of a side put on table `t₀` what the verifier's blocks put**, at
 values `e` of `t₀`'s columns in `E`. -/
-theorem flushSrcs_map_arkG {alphas : List E} (ha : alphas.length = 4) (side : Side) (t t₀ : Fin 6)
+theorem flushSrcs_map_arkG {alphas : List E} (ha : alphas.length = 16) (side : Side) (t t₀ : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E) :
     (flushSrcs prog s fl side t).map (arkG prog s fl (toAlpha alphas) β t₀ e) =
-      (refBlocks s side t).map (refG β t₀ (eqKernel alphas) (rowE e)) := by
+      (refBlocks s side t).map (refG β t₀ alphas (rowE e)) := by
   by_cases ht : t = t₀
   · subst ht
     have hL : (flushSrcs prog s fl side t).map (arkG prog s fl (toAlpha alphas) β t e) =
         ((((leanIsaWith prog s fl).flushes (opI prog s fl t)).filter fun f ↦
           decide (f.1 = side)).map fun fl ↦
             fl.2.toList.map fun P ↦ P.eval₂ (algebraMap K E) e).map
-          fun l ↦ β + wsum (eqKernel alphas) l := by
+          fun l ↦ β + wsum alphas l := by
       rw [flushSrcs, List.map_map, filter_eq_map_finRange
         ((leanIsaWith prog s fl).flushes (opI prog s fl t)), List.map_map, List.map_map]
       refine List.map_congr_left fun f _ ↦ ?_
       simp only [Function.comp_apply]
       rw [arkG_flush_self, flushValue_eq_wsum prog s β ha]
-    have hR : (refBlocks s side t).map (refG β t (eqKernel alphas) (rowE e)) =
+    have hR : (refBlocks s side t).map (refG β t alphas (rowE e)) =
         ((Complete.refSide t side).map fun coords ↦
           (List.range 16).map fun k ↦ (coords.getD k {}).evaluate (rowE e)).map
-          fun l ↦ β + wsum (eqKernel alphas) l := by
+          fun l ↦ β + wsum alphas l := by
       rw [refBlocks, List.map_map, List.map_map]
       refine List.map_congr_left fun c hc ↦ ?_
       simp only [Function.comp_apply, refG]
@@ -603,7 +600,7 @@ theorem flushSrcs_map_arkG {alphas : List E} (ha : alphas.length = 4) (side : Si
       exact arkG_flush_ne prog s _ β ht e f
 
 /-- **Opcode table `t`'s count columns put on table `t₀` what the verifier's count blocks put.** -/
-theorem countSrcs_map_arkG (α : Fin 4 → E) (t t₀ : Fin 6)
+theorem countSrcs_map_arkG (α : Fin 16 → E) (t t₀ : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E) :
     (countSrcs prog s fl t).map (arkG prog s fl α β t₀ e) =
       (refCountBlocks s t).map (refG 0 t₀ [1] (rowE e)) := by
@@ -664,20 +661,20 @@ theorem countSources_map_κ :
   exact congrArg (fun g ↦ (List.finRange 6).flatMap g) (funext fun t ↦ countSrcs_map_κ prog s t)
 
 /-- The forms a side's blocks put on table `t₀`: nothing from the framework, then the verifier's. -/
-theorem sideSources_map_arkG {alphas : List E} (ha : alphas.length = 4) (side : Side)
+theorem sideSources_map_arkG {alphas : List E} (ha : alphas.length = 16) (side : Side)
     (blocks : List BusBlock) (hb : blocks = (List.finRange 6).flatMap (refBlocks s side))
     (t₀ : Fin 6) (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E) :
     (Bus.sideSources (leanIsaWith prog s fl) side).map
         (arkG prog s fl (toAlpha alphas) β t₀ e) =
       List.replicate ((boundary prog s).filter fun b ↦ decide (b.side = side)).length 0 ++
-        blocks.map (refG β t₀ (eqKernel alphas) (rowE e)) := by
+        blocks.map (refG β t₀ alphas (rowE e)) := by
   rw [sideSources_leanIsa, List.map_append, List.map_map, hb, List.map_flatMap, List.map_flatMap]
   refine congrArg₂ (· ++ ·) ?_ (congrArg (fun g ↦ (List.finRange 6).flatMap g)
     (funext fun t ↦ flushSrcs_map_arkG prog s β ha side t t₀ e))
   rw [map_eq_zeros _ _ fun b _ ↦ by simp [arkG, Bus.Source.form, formAt]]
 
 /-- The forms the count side's blocks put on table `t₀` are the verifier's. -/
-theorem countSources_map_arkG (α : Fin 4 → E) (t₀ : Fin 6)
+theorem countSources_map_arkG (α : Fin 16 → E) (t₀ : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E) :
     (Bus.countSources (leanIsaWith prog s fl)).map (arkG prog s fl α β t₀ e) =
       List.replicate ([] : List ℕ).length 0 ++
@@ -697,17 +694,18 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- The bus phase's result on what it read is the tail of `verify_bus_balance` on those reads. -/
 theorem result_eq_busOut (L : Verifier.Layout) (w : BusWit) :
-    w.result L = Complete.busOut L w.alphas w.beta w.point w.values w.memory w.mf w.bf := rfl
+    w.result L = Complete.busOut L w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
+      w.bytecodePoint := rfl
 
 /-- **The verifier's forms**: the three sides' folds over their blocks with their selectors. -/
 theorem result_forms (w : BusWit) :
     (w.result (verifierLayout prog s)).forms =
       Complete.accFold 2 [1] 0 (List.zip (Complete.sideSels [] (Complete.countBlocks s) w.point 0
           (Complete.countBlocks s).length) (Complete.countBlocks s))
-        (Complete.accFold 1 (eqKernel w.alphas) w.beta (List.zip (Complete.sideSels
+        (Complete.accFold 1 w.alphas w.beta (List.zip (Complete.sideSels
             (Complete.fwLogs prog s) (Complete.pullBlocks s) w.point 3
             (Complete.pullBlocks s).length) (Complete.pullBlocks s))
-          (Complete.accFold 0 (eqKernel w.alphas) w.beta (List.zip (Complete.sideSels
+          (Complete.accFold 0 w.alphas w.beta (List.zip (Complete.sideSels
               (Complete.fwLogs prog s) (Complete.pushBlocks s) w.point 3
               (Complete.pushBlocks s).length) (Complete.pushBlocks s))
             (tables.map fun _ ↦ [{}, {}, {}]))) := by
@@ -724,21 +722,21 @@ def foldSum (w : List E) (β : E) (l : List (E × BusBlock)) (t : ℕ) (col : �
 adds. -/
 theorem result_form_eval (w : BusWit) (t : Fin 6) (col : ℕ → E) :
     (((w.result (verifierLayout prog s)).forms.getD t []).getD 0 {}).evaluate col =
-        foldSum (eqKernel w.alphas) w.beta (List.zip (Complete.sideSels (Complete.fwLogs prog s)
+        foldSum w.alphas w.beta (List.zip (Complete.sideSels (Complete.fwLogs prog s)
           (Complete.pushBlocks s) w.point 3 (Complete.pushBlocks s).length)
           (Complete.pushBlocks s)) t col ∧
       (((w.result (verifierLayout prog s)).forms.getD t []).getD 1 {}).evaluate col =
-        foldSum (eqKernel w.alphas) w.beta (List.zip (Complete.sideSels (Complete.fwLogs prog s)
+        foldSum w.alphas w.beta (List.zip (Complete.sideSels (Complete.fwLogs prog s)
           (Complete.pullBlocks s) w.point 3 (Complete.pullBlocks s).length)
           (Complete.pullBlocks s)) t col ∧
       (((w.result (verifierLayout prog s)).forms.getD t []).getD 2 {}).evaluate col =
         foldSum [1] 0 (List.zip (Complete.sideSels [] (Complete.countBlocks s) w.point 0
           (Complete.countBlocks s).length) (Complete.countBlocks s)) t col := by
   rw [result_forms]
-  obtain ⟨a1, a2, a3, a4⟩ := Complete.accFold_spec 0 (by norm_num) (eqKernel w.alphas) w.beta
+  obtain ⟨a1, a2, a3, a4⟩ := Complete.accFold_spec 0 (by norm_num) w.alphas w.beta
     _ _ Complete.forms0_length Complete.forms0_row
     (Complete.owner_lt_six s (Complete.pushBlocks_owned s) _)
-  obtain ⟨b1, b2, b3, b4⟩ := Complete.accFold_spec 1 (by norm_num) (eqKernel w.alphas) w.beta
+  obtain ⟨b1, b2, b3, b4⟩ := Complete.accFold_spec 1 (by norm_num) w.alphas w.beta
     _ _ a1 a2 (Complete.owner_lt_six s (Complete.pullBlocks_owned s) _)
   obtain ⟨-, -, c3, c4⟩ := Complete.accFold_spec 2 (by norm_num) [1] 0
     _ _ b1 b2 (Complete.owner_lt_six s (Complete.countBlocks_owned s) _)
@@ -784,7 +782,7 @@ def srcDefault : Bus.Source (leanIsaWith prog s fl) :=
 read, the form of side `k` on opcode table `t₀`, evaluated at any values `e` of the table's
 columns in `E`, is the verifier's form `forms[t₀][k]` evaluated at `e`. -/
 theorem formAt_busOut_forms (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (ha : w.alphas.length = 4) (k : Fin 3) (t₀ : Fin 6)
+    (ha : w.alphas.length = 16) (k : Fin 3) (t₀ : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (opI prog s fl t₀)) → E) :
     formAt ((Bus.busOut (leanIsaWith_conditions prog s fl)
         (w.layer (leanIsaWith prog s fl) input)
@@ -902,22 +900,22 @@ variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape p
 
 variable (fl) in
 /-- A boundary block's value at the low coordinates of a point, as the verifier has it. -/
-def arkBWith (α : Fin 4 → E) (β : E) (vals : Vector E (leanIsaWith prog s fl).busClaims)
+def arkBWith (α : Fin 16 → E) (β : E) (vals : Vector E (leanIsaWith prog s fl).busClaims)
     (p : List E) (src : Bus.Source (leanIsaWith prog s fl)) : E :=
   src.publicValue α β vals (vecOf src.κ p)
 
 /-- `arkBWith` at the deployed instance. -/
-abbrev arkB (α : Fin 4 → E) (β : E) (vals : Vector E (leanIsaInstance prog s).busClaims)
+abbrev arkB (α : Fin 16 → E) (β : E) (vals : Vector E (leanIsaInstance prog s).busClaims)
     (p : List E) (src : Bus.Source (leanIsaInstance prog s)) : E :=
   arkBWith prog s (some (keccakRegion prog s)) α β vals p src
 
 /-- The weighted coordinates of a boundary block written from a list. -/
-theorem sum_coords {alphas : List E} (ha : alphas.length = 4) {κ : ℕ}
+theorem sum_coords {alphas : List E} (ha : alphas.length = 16) {κ : ℕ}
     (vals : Vector E (leanIsaWith prog s fl).busClaims)
     (cs : List (Coord (shape prog s) κ)) (z : Vector E κ) :
     ∑ i : Fin 16, (fingerprintWeights (toAlpha alphas))[i.val] *
         Bus.coordValue (I := leanIsaWith prog s fl) vals (LeanIsa.coords cs)[i] z =
-      ∑ k ∈ range 16, (eqKernel alphas).getD k 0 *
+      ∑ k ∈ range 16, alphas.getD k 0 *
         Bus.coordValue (I := leanIsaWith prog s fl) vals (cs.getD k (.const 0)) z := by
   rw [← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
@@ -926,17 +924,17 @@ theorem sum_coords {alphas : List E} (ha : alphas.length = 4) {κ : ℕ}
 
 /-- The weighted coordinates of a boundary block of at most sixteen coordinates, as the verifier's
 `dot` of the weights against the coordinates' values. -/
-theorem sum_coords_dot {alphas : List E} (ha : alphas.length = 4) {κ : ℕ}
+theorem sum_coords_dot {alphas : List E} (ha : alphas.length = 16) {κ : ℕ}
     (vals : Vector E (leanIsaWith prog s fl).busClaims)
     (cs : List (Coord (shape prog s) κ)) (hcs : cs.length ≤ 16) (z : Vector E κ) :
     ∑ i : Fin 16, (fingerprintWeights (toAlpha alphas))[i.val] *
         Bus.coordValue (I := leanIsaWith prog s fl) vals (LeanIsa.coords cs)[i] z =
-      dot ((eqKernel alphas).take cs.length)
+      dot (alphas.take cs.length)
         (cs.map fun c ↦ Bus.coordValue (I := leanIsaWith prog s fl) vals c z) := by
   rw [sum_coords prog s ha, Complete.dot_take_eq _ _ cs.length (by simp)
-    (by rw [Whir.Complete.length_eqKernel, ha]; norm_num; exact hcs),
+    (by rw [ha]; exact hcs),
     ← Finset.sum_range_add_sum_Ico _ hcs]
-  have hz : ∑ k ∈ Ico cs.length 16, (eqKernel alphas).getD k 0 *
+  have hz : ∑ k ∈ Ico cs.length 16, alphas.getD k 0 *
       Bus.coordValue (I := leanIsaWith prog s fl) vals (cs.getD k (.const 0)) z = 0 :=
     Finset.sum_eq_zero fun k hk ↦ by
       rw [List.getD_eq_default _ _ (Finset.mem_Ico.mp hk).1]
@@ -977,12 +975,11 @@ theorem dot_take_map_append {X : Type} (W : List E) (a b : List X) (f : X → E)
   simp only [List.length_map, ← List.map_append, List.length_append] at this ⊢
   exact this
 
-/-- The values sent for the boundary columns: the memory columns, `MFCNT`, `BFCNT`. -/
-theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 3) :
+/-- The values sent for the boundary columns: the memory limbs, `MFCNT`, `BFCNT`. -/
+theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 2) :
     Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 0) = w.memory.getD 0 0 ∧
       Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 1) = w.memory.getD 1 0 ∧
-      Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 2) = w.memory.getD 2 0 ∧
-      Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 3) = w.mf ∧
+      Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 2) = w.mf ∧
       Bus.valueOf (w.vals (leanIsaWith prog s fl)) bfcntCol = w.bf := by
   have hl : (w.memory ++ [w.mf, w.bf]).length = (leanIsaWith prog s fl).busClaims := by
     show _ = (leanIsaWith prog s fl).boundaryColumns.length
@@ -991,65 +988,81 @@ theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 3) :
     rfl
   have ht : (w.vals (leanIsaWith prog s fl)).toList = w.memory ++ [w.mf, w.bf] :=
     toList_vecOf _ hl
-  have hmem : ∀ c ∈ [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol],
+  have hmem : ∀ c ∈ [memCol 0, memCol 1, memCol 2, bfcntCol],
       c ∈ (leanIsaWith prog s fl).boundaryColumns := fun c hc ↦ by
     rw [boundaryColumns_leanIsa]; exact hc
   have hidx : ∀ (c : Col) (i : ℕ),
-      [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol].idxOf c = i →
+      [memCol 0, memCol 1, memCol 2, bfcntCol].idxOf c = i →
       (leanIsaWith prog s fl).boundaryColumns.idxOf c = i := fun c i h ↦ by
     rw [boundaryColumns_leanIsa]; exact h
-  have key : ∀ (c : Col) (i : ℕ), c ∈ [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol] →
-      [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol].idxOf c = i →
+  have key : ∀ (c : Col) (i : ℕ), c ∈ [memCol 0, memCol 1, memCol 2, bfcntCol] →
+      [memCol 0, memCol 1, memCol 2, bfcntCol].idxOf c = i →
       Bus.valueOf (w.vals (leanIsaWith prog s fl)) c = (w.memory ++ [w.mf, w.bf]).getD i 0 :=
     fun c i hc hi ↦ (valueOf_eq _ (hmem c hc)).trans (by
       rw [ht]; exact congrArg (fun j ↦ (w.memory ++ [w.mf, w.bf]).getD j 0) (hidx c i hi))
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · rw [key _ 0 (by simp) (by decide), List.getD_append _ _ _ _ (by omega)]
   · rw [key _ 1 (by simp) (by decide), List.getD_append _ _ _ _ (by omega)]
-  · rw [key _ 2 (by simp) (by decide), List.getD_append _ _ _ _ (by omega)]
+  · rw [key _ 2 (by simp) (by decide), List.getD_append_right _ _ _ _ (by omega), hm]
+    rfl
   · rw [key _ 3 (by simp) (by decide), List.getD_append_right _ _ _ _ (by omega), hm]
     rfl
-  · rw [key _ 4 (by simp) (by decide), List.getD_append_right _ _ _ _ (by omega), hm]
-    rfl
 
-/-- The bytecode entries' weighted extensions: the verifier's `multilinear_eval` of the bytecode at
-`(low, α)`. -/
-theorem bytecode_entries {alphas : List E} (ha : alphas.length = 4) (p : List E)
-    (hp : prog.logSize ≤ p.length) :
-    multilinearEval ((verifierLayout prog s).bytecode.map ofK) (p.take prog.logSize ++ alphas) =
-      ∑ k ∈ range 13, (eqKernel alphas).getD (3 + k) 0 *
+/-- The bytecode's value at slot `x` of the tuple at `z`: the entry column `x - 3`'s extension at
+`z` for `x ≥ 3`, none below. -/
+theorem slotValues_entries (p : List E) (hp : prog.logSize ≤ p.length) (x : Fin (2 ^ 4)) :
+    (slotValues (verifierLayout prog s).bytecode (p.take prog.logSize))[x] =
+      ∑ k : Fin 13, (if x.val = k.val + 3 then (1 : E) else 0) *
+        eval₂Mle (entryColumn prog k).values (algebraMap K E) (vecOf prog.logSize p) := by
+  have hz : p.take prog.logSize = (vecOf prog.logSize p).toList := (toList_vecOf_take p hp).symm
+  simp only [slotValues, Fin.getElem_fin, Vector.getElem_ofFn]
+  rw [hz, boolPoint_eq_toList_boolVec, show (verifierLayout prog s).bytecode = bytecodeWords prog
+    from rfl, multilinearEval_bytecodeWords]
+  refine Finset.sum_congr rfl fun k _ ↦ congrArg (· * _) ?_
+  have h := lagrangeBasis_boolVec (R := E) x ⟨k.val + 3, by omega⟩
+  simp only at h
+  rw [h]
+  by_cases hx : x.val = k.val + 3
+  · simp [Fin.ext_iff, hx]
+  · have hx' : (⟨k.val + 3, by omega⟩ : Fin (2 ^ 4)) ≠ x := fun he ↦ hx (congrArg Fin.val he).symm
+    simp only [hx', hx, ↓reduceIte]
+
+/-- The bytecode entries' weighted extensions: the true share of the bytecode at `low`. -/
+theorem bytecode_entries {alphas : List E} (p : List E) (hp : prog.logSize ≤ p.length) :
+    shareTotal (vecOf (2 ^ 4) alphas)
+        (slotValues (verifierLayout prog s).bytecode (p.take prog.logSize)) =
+      ∑ k ∈ range 13, alphas.getD (3 + k) 0 *
         ((List.finRange 13).map fun k ↦ Bus.coordValue (I := leanIsaWith prog s fl)
           (vals := 0) (.known (entryColumn prog k)) (vecOf prog.logSize p)).getD k 0 := by
-  have hz : p.take prog.logSize = (vecOf prog.logSize p).toList := (toList_vecOf_take p hp).symm
-  have hw : alphas = (Vector.ofFn (toAlpha alphas)).toList := by
-    apply List.ext_getElem (by simp [ha])
-    intro i h1 h2
-    simp [toAlpha, List.getElem?_eq_getElem h1]
-  rw [show p.take prog.logSize ++ alphas =
-      (vecOf prog.logSize p).toList ++ (Vector.ofFn (toAlpha alphas)).toList by rw [← hz, ← hw],
-    show (verifierLayout prog s).bytecode = bytecodeWords prog from rfl,
-    multilinearEval_bytecodeWords, ← Fin.sum_univ_eq_sum_range]
+  rw [shareTotal_eq]
+  simp only [slotValues_entries prog s p hp, Finset.mul_sum]
+  rw [Finset.sum_comm, ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun k _ ↦ ?_
+  rw [Finset.sum_eq_single ⟨k.val + 3, by omega⟩ (fun b _ hb ↦ by
+      have hb' : b.val ≠ k.val + 3 := fun he ↦ hb (Fin.ext he)
+      simp only [hb', ↓reduceIte, zero_mul, mul_zero])
+    (fun h ↦ absurd (Finset.mem_univ _) h)]
+  simp only [↓reduceIte, one_mul]
   rw [List.getD_eq_getElem ((List.finRange 13).map _) _ (by simp), List.getElem_map,
     List.getElem_finRange]
-  have h3 := fingerprintWeights_toAlpha ha ⟨k.val + 3, by omega⟩
-  simp only at h3
-  rw [show 3 + k.val = k.val + 3 by omega, ← h3]
-  rfl
+  simp only [vecOf, Bus.coordValue, Fin.cast_mk, Fin.getElem_fin, Vector.getElem_ofFn]
+  rw [show 3 + k.val = k.val + 3 by omega]
 
 /-- **The push side's boundary blocks are the verifier's framework fingerprints.** -/
-theorem bnd_pushWith (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length = 3)
+theorem bnd_pushWith (w : BusWit) (ha : w.alphas.length = 16) (hm : w.memory.length = 2)
+    (hsh : w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues (verifierLayout prog s).bytecode (w.point.take prog.logSize)))
     (hlm : s.logMem ≤ w.point.length) (hls : prog.logSize ≤ w.point.length) :
     ((boundary prog s).filter fun b ↦ decide (b.side = Side.push)).map (fun b ↦
         arkBWith prog s fl (toAlpha w.alphas) w.beta (w.vals _) w.point (.boundary b)) =
-      (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
+      (fingerprints w.alphas w.memory (w.point.take s.logMem)
         (w.point.take prog.logSize)
-        (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas)) (Verifier.gpow 0) 1 1).map
+        w.share (Verifier.gpow 0) 1 1).map
           (w.beta + ·) := by
-  obtain ⟨v0, v1, v2, -, -⟩ := valueOf_leanIsa prog s (fl := fl) w hm
-  obtain ⟨a, b, c, habc⟩ : ∃ a b c, w.memory = [a, b, c] := by
+  obtain ⟨v0, v1, -, -⟩ := valueOf_leanIsa prog s (fl := fl) w hm
+  obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+    | [a, b], _ => exact ⟨a, b, rfl⟩
   simp only [boundary, List.filter_cons, List.filter_nil, decide_true, decide_false, reduceCtorEq,
     ↓reduceIte, List.map_cons, List.map_nil, arkBWith, Bus.Source.publicValue, Bus.Source.κ,
     fingerprints]
@@ -1059,10 +1072,10 @@ theorem bnd_pushWith (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.leng
   simp only [List.cons.injEq, and_true, CharTwo.sub_eq_add]
   refine ⟨congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_, congrArg (w.beta + ·) ?_⟩
   · simp [Bus.coordValue, channelSep_state.1, sepState, Verifier.gpow]
-  · simp [Bus.coordValue, channelSep_mem.1, v0, v1, v2, sepMem,
+  · simp [Bus.coordValue, channelSep_mem.1, v0, v1, sepMem,
       ← indexMle_take w.point hlm, habc, ← Complete.gen_eq_ofK]
-  · rw [dot_take_map_append _ _ _ _ (by simp [Whir.Complete.length_eqKernel, ha]),
-      bytecode_entries prog s (fl := fl) ha w.point hls]
+  · rw [dot_take_map_append _ _ _ _ (by simp [ha]),
+      hsh, bytecode_entries prog s (fl := fl) w.point hls]
     refine congrArg₂ (· + ·) ?_ ?_
     · simp [Bus.coordValue, channelSep_bytecode.1, sepBytecode, ← indexMle_take w.point hls,
         Complete.ofK_gpow, Verifier.gpow]
@@ -1071,31 +1084,33 @@ theorem bnd_pushWith (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.leng
       simp only [List.map_map, Function.comp_def, Bus.coordValue]
 
 /-- `bnd_pushWith` at the deployed instance. -/
-theorem bnd_push (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length = 3)
+theorem bnd_push (w : BusWit) (ha : w.alphas.length = 16) (hm : w.memory.length = 2)
+    (hsh : w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues (verifierLayout prog s).bytecode (w.point.take prog.logSize)))
     (hlm : s.logMem ≤ w.point.length) (hls : prog.logSize ≤ w.point.length) :
     ((boundary prog s).filter fun b ↦ decide (b.side = Side.push)).map (fun b ↦
         arkB prog s (toAlpha w.alphas) w.beta (w.vals _) w.point (.boundary b)) =
-      (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
+      (fingerprints w.alphas w.memory (w.point.take s.logMem)
         (w.point.take prog.logSize)
-        (multilinearEval ((verifierLayout prog s).bytecode.map ofK)
-          (w.point.take prog.logSize ++ w.alphas)) (Verifier.gpow 0) 1 1).map
+        w.share (Verifier.gpow 0) 1 1).map
           (w.beta + ·) :=
-  bnd_pushWith prog s w ha hm hlm hls
+  bnd_pushWith prog s w ha hm hsh hlm hls
 
 /-- **The pull side's boundary blocks are the verifier's framework fingerprints.** -/
-theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length = 3)
+theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 16) (hm : w.memory.length = 2)
+    (hsh : w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues (verifierLayout prog s).bytecode (w.point.take prog.logSize)))
     (hlm : s.logMem ≤ w.point.length) (hls : prog.logSize ≤ w.point.length) :
     ((boundary prog s).filter fun b ↦ decide (b.side = Side.pull)).map (fun b ↦
         arkBWith prog s fl (toAlpha w.alphas) w.beta (w.vals _) w.point (.boundary b)) =
-      (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
+      (fingerprints w.alphas w.memory (w.point.take s.logMem)
         (w.point.take prog.logSize)
-        (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas))
-        (Verifier.gpow (2 ^ (verifierLayout prog s).logBytecode - 1)) w.mf w.bf).map
+        w.share (Verifier.gpow (2 ^ (verifierLayout prog s).logBytecode - 1)) w.mf w.bf).map
           (w.beta + ·) := by
-  obtain ⟨v0, v1, v2, v3, v4⟩ := valueOf_leanIsa prog s (fl := fl) w hm
-  obtain ⟨a, b, c, habc⟩ : ∃ a b c, w.memory = [a, b, c] := by
+  obtain ⟨v0, v1, v3, v4⟩ := valueOf_leanIsa prog s (fl := fl) w hm
+  obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+    | [a, b], _ => exact ⟨a, b, rfl⟩
   simp only [boundary, List.filter_cons, List.filter_nil, decide_true, decide_false, reduceCtorEq,
     ↓reduceIte, List.map_cons, List.map_nil, arkBWith, Bus.Source.publicValue, Bus.Source.κ,
     fingerprints]
@@ -1107,10 +1122,10 @@ theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
   · simp [Bus.coordValue, channelSep_state.2, sepState, Verifier.gpow, LeanIsaProgram.pcFinal,
       Complete.ofK_gpow]
     rfl
-  · simp [Bus.coordValue, channelSep_mem.2, v0, v1, v2, v3, sepMem,
+  · simp [Bus.coordValue, channelSep_mem.2, v0, v1, v3, sepMem,
       ← indexMle_take w.point hlm, habc, ← Complete.gen_eq_ofK]
-  · rw [dot_take_map_append _ _ _ _ (by simp [Whir.Complete.length_eqKernel, ha]),
-      bytecode_entries prog s (fl := fl) ha w.point hls]
+  · rw [dot_take_map_append _ _ _ _ (by simp [ha]),
+      hsh, bytecode_entries prog s (fl := fl) w.point hls]
     refine congrArg₂ (· + ·) ?_ ?_
     · simp [Bus.coordValue, channelSep_bytecode.2, sepBytecode, ← indexMle_take w.point hls,
         Complete.ofK_gpow, Verifier.gpow, v4]
@@ -1181,7 +1196,7 @@ theorem padWeight_vecOf (t : Fin 6) {p : List E} (hp : p.length = (leanIsaWith p
 
 /-- A flush block's public value is its padding term: one less its form at the padding row,
 times the padding weight. -/
-theorem arkB_flush (α : Fin 4 → E) (β : E)
+theorem arkB_flush (α : Fin 16 → E) (β : E)
     (vals : Vector E (leanIsaWith prog s fl).busClaims) (p : List E) (t : Fin 6)
     (f : Fin ((leanIsaWith prog s fl).flushes (opI prog s fl t)).length) :
     arkBWith prog s fl α β vals p (.flush (opI prog s fl t) f) =
@@ -1202,12 +1217,12 @@ theorem arkB_flush (α : Fin 4 → E) (β : E)
   rfl
 
 /-- **A side's flush blocks' public values are the verifier's padding terms.** -/
-theorem flushSrcs_map_arkB {alphas : List E} (ha : alphas.length = 4) (side : Side) (β : E)
+theorem flushSrcs_map_arkB {alphas : List E} (ha : alphas.length = 16) (side : Side) (β : E)
     (vals : Vector E (leanIsaWith prog s fl).busClaims) (p : List E)
     (hp : p.length = (leanIsaWith prog s fl).μBus) :
     ((List.finRange 6).flatMap (flushSrcs prog s fl side)).map
         (arkBWith prog s fl (toAlpha alphas) β vals p) =
-      ((List.finRange 6).flatMap (refBlocks s side)).map (refPad (eqKernel alphas) β p) := by
+      ((List.finRange 6).flatMap (refBlocks s side)).map (refPad alphas β p) := by
   rw [List.map_flatMap, List.map_flatMap]
   refine congrArg (fun g ↦ (List.finRange 6).flatMap g) (funext fun t ↦ ?_)
   have h1 : (flushSrcs prog s fl side t).map (arkBWith prog s fl (toAlpha alphas) β vals p) =
@@ -1221,13 +1236,13 @@ theorem flushSrcs_map_arkB {alphas : List E} (ha : alphas.length = 4) (side : Si
   rw [h1, flushSrcs_map_arkG prog s β ha side t t, List.map_map]
   refine List.map_congr_left fun b hb ↦ ?_
   obtain ⟨c, -, rfl⟩ := List.mem_map.mp hb
-  show (1 - refG β t (eqKernel alphas) (rowE (padE prog s fl t)) ⟨s.τ t, s.rows t, c, t⟩) *
-      Bus.padWeight (s.rows t) (vecOf (s.τ t) p) = refPad (eqKernel alphas) β p ⟨s.τ t, s.rows t, c, t⟩
+  show (1 - refG β t alphas (rowE (padE prog s fl t)) ⟨s.τ t, s.rows t, c, t⟩) *
+      Bus.padWeight (s.rows t) (vecOf (s.τ t) p) = refPad alphas β p ⟨s.τ t, s.rows t, c, t⟩
   rw [refG, ite_eq_left rfl, rowE_padE, refPad, padWeight_vecOf prog s t hp, CharTwo.sub_eq_add]
   ring
 
 /-- **The count blocks' public values are the verifier's padding terms.** -/
-theorem countSources_map_arkB (α : Fin 4 → E) (β : E)
+theorem countSources_map_arkB (α : Fin 16 → E) (β : E)
     (vals : Vector E (leanIsaWith prog s fl).busClaims) (p : List E)
     (hp : p.length = (leanIsaWith prog s fl).μBus) :
     (Bus.countSources (leanIsaWith prog s fl)).map (arkBWith prog s fl α β vals p) =
@@ -1360,7 +1375,7 @@ theorem lowAt_eq (k : Fin 3) (b : Fin (Bus.blocks (leanIsaWith prog s fl) k).n) 
   exact Vector.getElem_ofFn hi
 
 /-- The protocol's public sum of a side, read over the side's blocks in order. -/
-theorem sum_weight_publicValue (k : Fin 3) (α : Fin 4 → E) (β : E)
+theorem sum_weight_publicValue (k : Fin 3) (α : Fin 16 → E) (β : E)
     (vals : Vector E (leanIsaWith prog s fl).busClaims) (p : List E)
     (hp : p.length = (leanIsaWith prog s fl).μBus) :
     ∑ b : Fin (Bus.blocks (leanIsaWith prog s fl) k).n,
@@ -1382,7 +1397,7 @@ theorem sum_weight_publicValue (k : Fin 3) (α : Fin 4 → E) (β : E)
 
 /-- A side's total, from its blocks' heights and public values over the verifier's framework and
 blocks. -/
-theorem total_eq (k : Fin 3) (α : Fin 4 → E) (β v : E)
+theorem total_eq (k : Fin 3) (α : Fin 16 → E) (β v : E)
     (vals : Vector E (leanIsaWith prog s fl).busClaims) (p : List E)
     (hp : p.length = (leanIsaWith prog s fl).μBus) (fw : List ℕ) (blocks : List BusBlock)
     (A : List E) (pyv : BusBlock → E) (hκ : (Bus.sources (leanIsaWith prog s fl) k).map
@@ -1409,7 +1424,9 @@ theorem total_eq (k : Fin 3) (α : Fin 4 → E) (β v : E)
 /-- **The bus phase's totals are the verifier's**: at the protocol's output on what the bus phase
 read, the total of side `k` is the verifier's `totals[k]`. -/
 theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (ha : w.alphas.length = 4) (hm : w.memory.length = 3) (k : Fin 3) :
+    (ha : w.alphas.length = 16) (hm : w.memory.length = 2)
+    (hsh : w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues (verifierLayout prog s).bytecode (w.point.take prog.logSize))) (k : Fin 3) :
     (Bus.busOut (leanIsaWith_conditions prog s fl) (w.layer (leanIsaWith prog s fl) input)
         (w.vals (leanIsaWith prog s fl))).totals k =
       (w.result (verifierLayout prog s)).totals.getD k 0 := by
@@ -1421,19 +1438,19 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl
     (c := bfcntCol) (by
       rw [boundaryColumns_leanIsa]
       exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        (List.mem_cons_of_mem _ List.mem_cons_self))))
+        List.mem_cons_self)))
   rw [result_eq_busOut]
   match k with
   | ⟨0, _⟩ =>
     have hG : (Bus.sources (leanIsaWith prog s fl) 0).map
         (arkBWith prog s fl (toAlpha w.alphas) w.beta (w.vals _) w.point) =
-        (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
+        (fingerprints w.alphas w.memory (w.point.take s.logMem)
           (w.point.take prog.logSize)
-          (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas)) (Verifier.gpow 0) 1 1).map
-            (w.beta + ·) ++ (Complete.pushBlocks s).map (refPad (eqKernel w.alphas) w.beta w.point) := by
+          w.share (Verifier.gpow 0) 1 1).map
+            (w.beta + ·) ++ (Complete.pushBlocks s).map (refPad w.alphas w.beta w.point) := by
       rw [sources_zero, sideSources_leanIsa, List.map_append, List.map_map,
         flushSrcs_map_arkB prog s ha .push w.beta _ _ hp, ← pushBlocks_eq]
-      exact congrArg (· ++ _) (bnd_pushWith prog s w ha hm hlm hls)
+      exact congrArg (· ++ _) (bnd_pushWith prog s w ha hm hsh hlm hls)
     refine (total_eq prog s 0 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ prog s .push _ (pushBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
@@ -1443,14 +1460,13 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl
   | ⟨1, _⟩ =>
     have hG : (Bus.sources (leanIsaWith prog s fl) 1).map
         (arkBWith prog s fl (toAlpha w.alphas) w.beta (w.vals _) w.point) =
-        (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
+        (fingerprints w.alphas w.memory (w.point.take s.logMem)
           (w.point.take prog.logSize)
-          (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas))
-          (Verifier.gpow (2 ^ (verifierLayout prog s).logBytecode - 1)) w.mf w.bf).map
-            (w.beta + ·) ++ (Complete.pullBlocks s).map (refPad (eqKernel w.alphas) w.beta w.point) := by
+          w.share (Verifier.gpow (2 ^ (verifierLayout prog s).logBytecode - 1)) w.mf w.bf).map
+            (w.beta + ·) ++ (Complete.pullBlocks s).map (refPad w.alphas w.beta w.point) := by
       rw [sources_one, sideSources_leanIsa, List.map_append, List.map_map,
         flushSrcs_map_arkB prog s ha .pull w.beta _ _ hp, ← pullBlocks_eq]
-      exact congrArg (· ++ _) (bnd_pull prog s w ha hm hlm hls)
+      exact congrArg (· ++ _) (bnd_pull prog s w ha hm hsh hlm hls)
     refine (total_eq prog s 1 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ prog s .pull _ (pullBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
