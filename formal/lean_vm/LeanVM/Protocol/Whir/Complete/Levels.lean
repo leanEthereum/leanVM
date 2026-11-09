@@ -380,5 +380,81 @@ theorem mle_queryTableA {κ : ℕ} (hκ : κ ≤ 64) (qs : List ℕ) (ws : List 
   rw [toList_queryTableA hκ, queryTable_eq hκ,
     multilinearEval_tableOf (isMultilinearFn_inducedWeight κ qs ws) x hx]
 
+/-! ## A level's query batch -/
+
+private theorem list_sum_finset_sum {α : Type} (L : List α) (s : Finset ℕ) (f : α → ℕ → E) :
+    (L.map fun a ↦ ∑ i ∈ s, f a i).sum = ∑ i ∈ s, (L.map fun a ↦ f a i).sum := by
+  induction L with
+  | nil => simp
+  | cons a L ih => simp [ih, sum_add_distrib]
+
+/-- The verifier's batch over the opened rows as a sum over the queries. -/
+theorem sumE_zipWith_rows {β : Type} (word : ℕ → β) (G : ℕ → β → E) :
+    ∀ (qs : List ℕ) (ws : List E),
+    sumE (List.zipWith (fun (qr : ℕ × β) (a : E) ↦ a * G qr.1 qr.2) (List.zip qs (qs.map word)) ws) =
+      ((List.zip ws qs).map fun wq ↦ wq.1 * G wq.2 (word wq.2)).sum
+  | [], _ => by simp [sumE]
+  | _ :: _, [] => by simp [sumE]
+  | q :: qs, a :: ws => by
+    have ih := sumE_zipWith_rows word G qs ws
+    rw [sumE_eq] at ih ⊢
+    simp only [List.map_cons, List.zip_cons_cons, List.zipWith_cons_cons, List.sum_cons, ih]
+
+/-- **The low part at a queried point**: an opened row folded by the level's rounds, less the
+high part's share, is the folded lane's low part there. -/
+theorem fold_add_high (p : Array E) {κ ℓ : ℕ} (hp : p.size = 2 ^ κ + ℓ) (hℓ : ℓ ≤ 2 ^ κ)
+    (hκ : κ + 1 < 64) (x : K) :
+    laneVal p 0 0 x + novelEval (p.extract (2 ^ κ) p.size).toList (subspaceAt κ x) *
+        ofK ((subspaceAt κ x).getD κ 0) =
+      ∑ c ∈ range (2 ^ κ), p.getD c 0 * ofK (novelAt c x) := by
+  set high := (p.extract (2 ^ κ) p.size).toList with hhigh
+  have hlen : high.length = ℓ := by simp [hhigh, hp]
+  have hget : ∀ j < ℓ, high.getD j 0 = p.getD (2 ^ κ + j) 0 := fun j hj ↦ by
+    have hj2 : j < (p.extract (2 ^ κ) p.size).size := by simp [hp]; omega
+    rw [hhigh, Enc.array_getD_toList, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hj2,
+      Option.getD_some, Array.getElem_extract, Array.getD_eq_getD_getElem?,
+      Array.getElem?_eq_getElem (by omega), Option.getD_some]
+  rw [laneVal_zero, novelEval_subspaceAt (by omega) _ (by rw [hlen, pow_succ]; omega), hlen, hp,
+    sum_range_add, subspaceAt_eq, List.getD_eq_getElem _ _ (by simp), List.getElem_map,
+    List.getElem_range, sum_mul]
+  have hhi : ∀ j ∈ range ℓ, high.getD j 0 * ofK (novelAt j x) * ofK (normVanishingAt κ x) =
+      p.getD (2 ^ κ + j) 0 * ofK (novelAt (2 ^ κ + j) x) := by
+    intro j hj
+    have hj' := mem_range.mp hj
+    rw [novelAt_two_pow_add (by omega) (by omega), ofK_mul, hget j hj']
+    ring
+  rw [sum_congr rfl hhi, add_assoc, ← two_mul, show (2 : E) = 0 from CharTwo.two_eq_zero, zero_mul,
+    add_zero]
+
+/-- **The level's query batch** is the query table paired with the folded lane's low part. -/
+theorem batched_eq (L : List K → List E) (word : Word) (rounds : List FoldRound) (p : Array E)
+    {κ ℓ : ℕ} (hp : p.size = 2 ^ κ + ℓ) (hℓ : ℓ ≤ 2 ^ κ) (hκ : κ + 1 < 64) (qs : List ℕ)
+    (ws : List E) (hrow : ∀ q ∈ qs, foldRow (L (word q)) (K.ofBits q) rounds = laneVal p 0 0 (K.ofBits q)) :
+    sumE (List.zipWith (fun (qr : ℕ × List K) (a : E) ↦ a * (foldRow (L qr.2) (K.ofBits qr.1) rounds +
+        novelEval (p.extract (2 ^ κ) p.size).toList (subspaceAt κ (K.ofBits qr.1)) *
+          ofK ((subspaceAt κ (K.ofBits qr.1)).getD κ 0))) (List.zip qs (qs.map word)) ws) =
+      dot (queryTableA κ qs ws).toList (p.extract 0 (2 ^ κ)).toList := by
+  rw [sumE_zipWith_rows word (fun q row ↦ foldRow (L row) (K.ofBits q) rounds +
+    novelEval (p.extract (2 ^ κ) p.size).toList (subspaceAt κ (K.ofBits q)) *
+      ofK ((subspaceAt κ (K.ofBits q)).getD κ 0))]
+  rw [toList_queryTableA (by omega), dot_eq_sum _ _ (by simp [queryTable, hp])]
+  simp only [queryTable, List.length_map, List.length_range]
+  rw [sum_congr rfl fun i hi ↦ by
+    rw [List.getD_eq_getElem _ _ (by simpa using mem_range.mp hi), List.getElem_map,
+      List.getElem_range, ← List.sum_map_mul_right]]
+  rw [← list_sum_finset_sum]
+  refine congrArg List.sum (List.map_congr_left fun wq hwq ↦ ?_)
+  have hq := (List.of_mem_zip hwq).2
+  rw [hrow _ hq, fold_add_high p hp hℓ hκ, mul_sum]
+  refine sum_congr rfl fun i hi ↦ ?_
+  have hi' := mem_range.mp hi
+  have hi2 : i < (p.extract 0 (2 ^ κ)).size := by simp [hp]; omega
+  have he : (p.extract 0 (2 ^ κ)).getD i 0 = p.getD i 0 := by
+    rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hi2, Option.getD_some,
+      Array.getElem_extract]
+    simp [Array.getD_eq_getD_getElem?, show i < p.size by omega]
+  rw [Enc.array_getD_toList, he]
+  ring
+
 end
 end LeanVM.Protocol.Whir.Complete
