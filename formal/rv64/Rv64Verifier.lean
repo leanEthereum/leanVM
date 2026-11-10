@@ -10,6 +10,7 @@ import Rv64Verifier.Model.Transcript
 import Rv64Verifier.Model.Bus
 import Rv64Verifier.Model.Whir
 import Rv64Verifier.Model.Layout
+import Rv64Verifier.Model.KeccakGkr
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Sym
@@ -113,3 +114,12 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.LayoutMirror.ColumnClaimRust.onStack_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.ColumnClaimRust.onStack_eq
+
+/-- info: 'Rv64Verifier.Model.Gkr.verifyKeccakRust_sim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Gkr.verifyKeccakRust_sim
+
+/-- info: 'Rv64Verifier.Model.Gkr.verifyLayerRust_sim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Gkr.verifyLayerRust_sim
+
+/-- info: 'Rv64Verifier.Model.Gkr.openRust_sim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Gkr.openRust_sim
