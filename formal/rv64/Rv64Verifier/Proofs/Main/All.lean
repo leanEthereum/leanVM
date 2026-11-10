@@ -3,6 +3,7 @@ import Rv64Verifier.Proofs.Main.Iv
 import Rv64Verifier.Proofs.Main.ParseHead
 import Rv64Verifier.Proofs.Main.ParseEnd
 import Rv64Verifier.Proofs.Main.NewHead
+import Rv64Verifier.Proofs.Main.NewProbe3
 
 /-!
 # `main`, and soundness from `walk`'s contract
