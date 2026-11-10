@@ -358,22 +358,14 @@ pub struct WhirLevelConfig {
     pub log_inv_rate: usize,
     /// Log of the coefficients per lane; `log_msg_cols + log_inv_rate = log2(n)`.
     pub log_msg_cols: usize,
-    /// Log of the lanes per Merkle leaf, folded at this level: `k`.
-    pub(crate) log_num_interleaved: usize,
-    /// Fold rounds at this level.
+    /// Fold rounds at this level, the log of the lanes per Merkle leaf.
     pub k: usize,
     /// The agreement threshold `A_end` at the level's last fold round.
     pub(crate) agreement: u128,
     /// Lemma 4.1's witness for each fold round `j = 1..=k`.
     pub(crate) rounds: Vec<affine_mca::AffineWitness>,
-    /// Query count `t`, with `((A_end - 1) / n)^t <= 2^-(target - grinding_bits)`.
+    /// Query count `t`, with `((A_end - 1) / n)^t <= 2^-(target - query grind)`.
     pub queries: usize,
-    /// Query-phase grinding bits.
-    pub grinding_bits: usize,
-    /// Out-of-domain points after this level's commitment: 0 at L0 (sampled by the caller, `crate::ood`),
-    /// [`OOD_SAMPLES`] after.
-    pub ood_samples: usize,
-    pub(crate) target_security_bits: usize,
 }
 
 impl WhirLevelConfig {
@@ -592,7 +584,7 @@ impl WhirSecurityConfig {
             ));
         }
         let l0 = self.levels.first().ok_or_else(|| "empty levels".to_string())?;
-        if l0.k != self.initial_k || l0.log_num_interleaved != self.initial_k {
+        if l0.k != self.initial_k {
             return Err(format!("L0 must fold initial_k ({}) lanes", self.initial_k));
         }
         let target = self.target_security_bits;
@@ -603,7 +595,7 @@ impl WhirSecurityConfig {
             if lv.log_inv_rate == 0 || lv.log_msg_cols == 0 {
                 return Err(at("rate-one code or empty lanes".into()));
             }
-            if lv.log_msg_cols + lv.log_num_interleaved != dim_in || lv.k != lv.log_num_interleaved {
+            if lv.log_msg_cols + lv.k != dim_in {
                 return Err(at(format!("shape does not consume the input dimension {dim_in}")));
             }
             if let Some(next) = self.levels.get(i + 1) {
@@ -618,13 +610,6 @@ impl WhirSecurityConfig {
                     )));
                 }
             }
-            if lv.ood_samples != if i == 0 { 0 } else { OOD_SAMPLES } {
-                return Err(at(format!("OOD points must be 0 at L0 and {OOD_SAMPLES} after")));
-            }
-            if lv.target_security_bits < target || lv.grinding_bits != g.query {
-                return Err(at("level target or query grinding differs from the config's".into()));
-            }
-
             let (n, d0, k) = (lv.block_len(), lv.honest_degree(), lv.k as u128);
             if lv.rounds.len() != lv.k || lv.agreement > n || lv.agreement <= k {
                 return Err(at("malformed thresholds".into()));
@@ -642,7 +627,7 @@ impl WhirSecurityConfig {
                     .map_err(|e| at(format!("round {j}: {e}")))?;
             }
             let queries_log2 = lv.queries as f64 * ((lv.agreement - 1) as f64 / n as f64).log2();
-            if queries_log2 > -(target.saturating_sub(lv.grinding_bits) as f64) {
+            if queries_log2 > -(target.saturating_sub(g.query) as f64) {
                 return Err(at(format!("queries: 2^{queries_log2:.2}")));
             }
             if lv.queries as u128 > n {
@@ -688,14 +673,10 @@ impl WhirSecurityConfig {
             levels.push(WhirLevelConfig {
                 log_inv_rate: rate,
                 log_msg_cols: cols,
-                log_num_interleaved: k,
                 k,
                 agreement,
                 rounds,
                 queries: query_count(1 << (cols + rate), agreement, grinding.query, target),
-                grinding_bits: grinding.query,
-                ood_samples: if i == 0 { 0 } else { OOD_SAMPLES },
-                target_security_bits: target,
             });
         }
         let cfg = Self {
@@ -726,8 +707,10 @@ impl WhirSecurityConfig {
             initial_k: self.initial_k,
             level_ks: self.levels.iter().skip(1).map(|lv| lv.k).collect(),
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
-            grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
-            ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
+            grinding_bits: vec![QUERY_GRINDING_BITS; self.levels.len()],
+            ood_samples: (0..self.levels.len())
+                .map(|i| if i == 0 { 0 } else { OOD_SAMPLES })
+                .collect(),
         })
     }
 }
