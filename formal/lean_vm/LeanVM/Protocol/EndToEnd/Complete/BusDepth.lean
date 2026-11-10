@@ -18,7 +18,7 @@ The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs:130-247` at lea
 `busGrindingBits(D) = grindingBits(2^D)` bits before its fingerprint, `D` the push tree's depth
 (`bus_grinding_bits`, `bus.rs:14-18`), and requires `D < 64`.
 
-* `blocks_total_eq`: the stack's blocks total `Σ_c 2^κ_c` over the committed columns, grouped by
+* `blocks_total_eq_sum`: the stack's blocks total `Σ_c 2^κ_c` over the committed columns, grouped by
   table (`committedCount`).
 * `pushTotal_le_blocks`: the push side's leaves, `1 + 2^κ + 2^ℓ + Σ_t (pushes of t)·2^τ_t`, are at
   most the stack's committed cells, `3·2^κ + 2^ℓ + 2^(τ_5 + 6) + Σ_t (committed columns of t)·2^τ_t`:
@@ -40,7 +40,7 @@ def committedCount (j : Fin 9) : ℕ :=
   ((List.finRange (width j)).filter fun i ↦ !decide (IsVirtual ⟨j, i⟩)).length
 
 /-- **The stack's blocks total**: `Σ_j (committed columns of j)·2^(height j)`. -/
-theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) :
+theorem blocks_total_eq_sum (prog : LeanIsaProgram) (s : Sizes) :
     (blocks prog s).total = ∑ j : Fin 9, committedCount j * 2 ^ height prog s j := by
   rw [Blocks.total_eq_sum]
   have h1 : ∑ b : Fin (blocks prog s).n, 2 ^ (blocks prog s).size b =
@@ -78,7 +78,7 @@ theorem pushTotal_le_blocks (prog : LeanIsaProgram) (s : Sizes) :
     obtain ⟨c0, c1, c2⟩ := committedCount_framework
     simp only [Fin.succ_zero_eq_one, Fin.succ_one_eq_two, c0, c1, c2, one_mul]
     rfl
-  rw [blockTotal_sideSizes, blocks_total_eq, pushBlocks, sum_flatten_ofFn, hsplit]
+  rw [blockTotal_sideSizes, blocks_total_eq_sum, pushBlocks, sum_flatten_ofFn, hsplit]
   simp only [fwLogs, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero,
     List.map_map, Function.comp_def, List.map_const', List.sum_replicate, smul_eq_mul]
   have ht : ∑ t : Fin 6, (refSide t .push).length * 2 ^ s.τ t ≤

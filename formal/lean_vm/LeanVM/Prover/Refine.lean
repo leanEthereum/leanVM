@@ -161,7 +161,7 @@ theorem runScript_eq_proveM (P : VerifierProgram Bool) {β : Type} (Hs : Script 
     (fuel : ℕ) :
     runScriptWithHash H F P Hs seed fuel = proveM H F P (Strategy.ofScript Hs 0) seed fuel := by
   unfold runScriptWithHash proveM
-  rw [runFrom_eq_proveFromM H F fuel Hs P (some Hs) ⟨seed, []⟩ [] [] rfl]
+  rw [runFrom_eq_proveFromM H F fuel Hs P (some Hs) ⟨seed, [], none⟩ [] [] rfl]
 
 end Bridge
 

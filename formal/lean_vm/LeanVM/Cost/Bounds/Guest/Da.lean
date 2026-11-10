@@ -195,7 +195,7 @@ theorem dvRowVW_cost (hP : Includes P Decoder.dvRowVWC.costDeps) (cw : E × E) (
   have := powSqK_cost_lt P (by includes) Parameters.g i k hk0 (by omega) hi
   have := powSqK_cost_lt P (by includes) Parameters.g j 7 (by norm_num) (by norm_num) (by omega)
   have := hS (.n 1); have := hS (.n 32)
-  have := hF 404 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ j),
+  have := hF 433 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ j),
     cw.2] [] a (by norm_num) (by simp)
   omega
 

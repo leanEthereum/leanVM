@@ -35,9 +35,9 @@ def sample : Chain E := do
 (`absorbNonce`), the challenge it draws kept for the next `sample`; whether the permutation's third
 lane has `bits` low zero bits (`powOk`). -/
 def grind (bits : ℕ) (nonce : E) : Chain Bool := do
-  let (pow, sp) := Id.run (Compile.absorbNonce (m := Id) keccakF1600 (← get) nonce)
-  set sp
-  return powOk bits pow
+  let r := Id.run (Compile.absorbNonce (m := Id) keccakF1600 (← get) nonce)
+  set r.2
+  return powOk bits r.1
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
