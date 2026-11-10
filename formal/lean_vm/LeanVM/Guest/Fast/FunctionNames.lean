@@ -88,7 +88,7 @@ theorem name_da_expand_L7_L8 : decoderFunctionName 432 = "da_expand__L7_L8" := b
 theorem name_loop25 : decoderFunctionName 433 = "__loop25" := by decide +kernel
 
 /-- `open_stacked__L{m}` is function `331 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 331 + m
+def openStackedIdx (m : ℕ) : ℕ := 332 + m
 
 end
 end LeanVM.Guest.Fast
