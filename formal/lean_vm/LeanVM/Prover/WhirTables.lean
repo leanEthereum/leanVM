@@ -101,6 +101,10 @@ theorem eqKernel_eq_tableOf {m : ℕ} (z : List E) (hz : z.length = m) :
 
 /-! ## Gluing -/
 
+/-- Gluing tables into a weight table with the powers of `λ`, on lists. -/
+def glueTables (lam : E) (W : List E) (Ts : List (List E)) : List E :=
+  (Ts.foldl (fun (acc : List E × E) T ↦ (axpy (acc.2 * lam) acc.1 T, acc.2 * lam)) (W, 1)).1
+
 theorem toList_glueTablesA_aux (lam : E) : ∀ (Ts : List (Array E)) (W : Array E) (sc : E),
     (Ts.foldl (fun (acc : Array E × E) T ↦
       let s := acc.2 * lam

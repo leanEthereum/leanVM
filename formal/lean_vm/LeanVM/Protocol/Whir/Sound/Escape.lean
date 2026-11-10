@@ -1,11 +1,11 @@
 /-
   LeanVM.Protocol.Whir.Sound.Escape
 
-  The escape counts of a WHIR level interface: the out-of-domain point separates the next
-  oracle's list except at `C(L, 2)·κ·|E|^(κ−1)` points; the query positions then catch the one
-  candidate consistent with the out-of-domain answer unless they all land in an agreement set of
-  fewer than `A` columns; and the level's batching challenge `λ` keeps every list member violating
-  the glued claim except at `(t + 1)·L` values (`t` on the final level, no list).
+  The escape counts of a WHIR level interface: the two out-of-domain points separate the next
+  oracle's list except on `L²·(κ|E|^(κ−1))²` pairs; the query positions then catch the one member
+  consistent with the out-of-domain answers unless they all land in an agreement set of fewer than
+  `A` columns; and the level's batching challenge `λ` keeps every member violating the glued claim
+  except at `(t + 2)·L` values.
 -/
 
 module
@@ -17,49 +17,71 @@ public import LeanVM.Protocol.ToArkLib.Whir.Counting
 /-!
 # Escapes at the level interface
 
-Annex B of the leanVM specification (leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`,
-`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), proof of Theorem `thm:rbr`, "OOD
-challenge", "Query message" and "Batching challenge", for the deployed order of messages
-(`verify_whir`, `crates/verifier/src/whir.rs:167-232` at `40f877dc`): commitment of the next
-oracle `O'`, the out-of-domain point `z` and answer `y` with its intro polynomial, the proof of
-work, the query positions, `λ`, the openings, the query intro polynomial. The level's claims are
-glued with powers of `λ`: the running claim with `λ⁰`, the out-of-domain claim with `λ`, the `t`
-consistency claims with `λ^(2+q)`. On the final level the residual `f` is sent instead of `O'`,
-and the consistency claims get `λ^(1+q)`.
+Annex B (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), proof of Theorem `thm:rbr`, "The
+level interface", "OOD points", "Query message", "Batching challenge", for the deployed order of
+messages (`verify_whir`, `crates/verifier/src/whir.rs:304-341`): the next oracle `Q'` and the
+folded lane's high part, the two out-of-domain points `z₁, z₂` and answers `y₁, y₂`, the queries,
+`λ`, the openings. The level's claims are glued with powers of `λ`: the running claim with `λ⁰`,
+the out-of-domain claims with `λ`, `λ²`, the `t` consistency claims with `λ^(3+q)`.
 
-* `OodSep P' Q z`: the members of the list of the next oracle `Q` have pairwise distinct
-  out-of-domain values at `z`, i.e. distinct `claimSum (eqEval z)` of their decoded messages.
-  `card_oodSep_bad_le`: at most `C(listMax', 2)·κ·|E|^(κ−1)` points `z` break it
-  (`card_ood_collision_image_le`).
-* `QueryGood`: after positions `qs`, every member `V` of the next list violates the running claim,
-  or the out-of-domain claim, or the consistency claim at some queried column. `exists_agreeSet`:
-  under the doom before the positions, there is a set `A` of at most `thr − 1` columns such that
-  positions breaking `QueryGood` all lie in `A`: the one candidate `V*` with the right
-  out-of-domain value (`OodSep`) either is close to the folded word, then it violates the running
-  claim by the doom, or agrees with it on fewer than `thr` columns.
-* `card_lambda_bad_le`: under `QueryGood`, at most `(t + 1)·listMax'` values `λ` let a member
-  satisfy the glued claim: its discrepancy is a nonzero polynomial of degree `t + 1` in `λ`.
-* The final level: `exists_agreeSet_final`, `card_lambda_bad_le_final` (degree `t`, the residual
-  alone).
+The next level's members are tuples `U` of `ℓ'` lanes of degree below `2^κ'`; `msgT κ' U` is
+their messages and `joinMsg` the message on the current level's `κ = ℓ' + κ'` variables.
+
+* `OodSep2 P' Q' z₁ z₂`: distinct members of the list of `Q'` differ at `z₁` or at `z₂`;
+  `card_oodSep2_bad_le`: at most `L² (κ |E|^(κ−1))²` pairs of points break it.
+* `QDoom`: after the positions `qs`, every member violates the running claim, an out-of-domain
+  claim, or the consistency claim at a queried column, `c' q` being the value the verifier
+  derives from the opened row (`P(x_q)` corrected by the high part).
+* `exists_agreeSet`: positions breaking `QDoom` all lie in a set of at most `A − 1` columns: the
+  agreement set of the one member `U*` consistent with both answers, through the polynomial
+  `P* = P_(g*) + Ŵ_κ H` of degree at most `2^κ − 1 + ℓ` (`H` the high part).
+* `card_lambda_bad_le`: from `QDoom`, at most `(t + 2)·|list|` values `λ` let a member satisfy
+  the glued claim.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir Finset CompPoly
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir Finset Polynomial CompPoly
   CMlPolynomialEval
 
 @[expose] public section
 
+/-! ## Messages of tuples -/
+
+/-- The messages of a tuple's lanes. -/
+noncomputable def msgT {m : ℕ} (κ : ℕ) (U : (Fin m → Bool) → E[X]) :
+    (Fin m → Bool) → (Fin κ → Bool) → E :=
+  fun u ↦ lowMsg κ (U u)
+
+/-- A polynomial of degree below `2^κ` is the message polynomial of its low part. -/
+theorem msgPoly_lowMsg_of_deg {κ : ℕ} (hκ : κ ≤ 64) {P : E[X]} (hP : P.natDegree ≤ 2 ^ κ - 1) :
+    msgPoly κ (lowMsg κ P) = P := by
+  rw [msgPoly_lowMsg hκ, (modByMonic_eq_self_iff (vanE_monic κ)).mpr]
+  rw [degree_eq_natDegree (vanE_monic κ).ne_zero, natDegree_vanE]
+  refine degree_le_natDegree.trans_lt ?_
+  have := Nat.one_le_two_pow (n := κ)
+  exact_mod_cast (show P.natDegree < 2 ^ κ by omega)
+
+/-- Tuples of degree below `2^κ` are determined by their messages. -/
+theorem msgT_inj {m κ : ℕ} (hκ : κ ≤ 64) {U U' : (Fin m → Bool) → E[X]}
+    (hU : DegLE (2 ^ κ - 1) U) (hU' : DegLE (2 ^ κ - 1) U') (h : msgT κ U = msgT κ U') :
+    U = U' :=
+  funext fun u ↦ by
+    rw [← msgPoly_lowMsg_of_deg hκ (hU u), ← msgPoly_lowMsg_of_deg hκ (hU' u)]
+    exact congrArg (msgPoly κ) (congrFun h u)
+
 /-! ## Out-of-domain separation -/
 
-/-- The out-of-domain value of a decoded member: its claim against `eq_eval(z, ·)`. -/
+/-- The out-of-domain value of a message: its claim against `eq_eval(z, ·)`. -/
 def oodVal {m κ : ℕ} (z : List E) (g : (Fin m → Bool) → (Fin κ → Bool) → E) : E :=
   claimSum (eqEval z) g
 
-/-- The members of the list of `Q` have pairwise distinct out-of-domain values at `z`. -/
-def OodSep (P : LevelCode) {m : ℕ} (Q : (Fin m → Bool) → Fin P.n → E) (z : List E) : Prop :=
-  ∀ V ∈ iList P.code P.thr Q, ∀ V' ∈ iList P.code P.thr Q, V ≠ V' →
-    oodVal z (decode P V) ≠ oodVal z (decode P V')
+/-- Distinct members of the list of `Q'` differ at `z₁` or at `z₂`. -/
+def OodSep2 (P' : LevelCode) {m : ℕ} (Q : (Fin m → Bool) → Fin P'.n → E) (z₁ z₂ : List E) :
+    Prop :=
+  ∀ U ∈ tlist P'.dom Q (P'.thr 0) (P'.deg 0), ∀ U' ∈ tlist P'.dom Q (P'.thr 0) (P'.deg 0),
+    U ≠ U' → oodVal z₁ (msgT P'.κ U) ≠ oodVal z₁ (msgT P'.κ U') ∨
+      oodVal z₂ (msgT P'.κ U) ≠ oodVal z₂ (msgT P'.κ U')
 
 /-- The out-of-domain claim against a vector point reads the extension of the table. -/
 theorem sum_eqEval_vec {κ : ℕ} (v : Vector E κ) (G : (Fin κ → Bool) → E) :
@@ -75,13 +97,6 @@ theorem sum_eqEval_vec {κ : ℕ} (v : Vector E κ) (G : (Fin κ → Bool) → E
     rw [bitsEquiv_val, testBit_bitsToNat]
     simp [List.getD_eq_getElem?_getD]
   rw [ht, hl, mul_comm]
-
-/-- Decoding is injective on interleaved codewords. -/
-theorem decode_injOn (P : LevelCode) {ρ : Type*} {V V' : ρ → Fin P.n → E}
-    (hV : IsInterleavedCodeword P.code V) (hV' : IsInterleavedCodeword P.code V')
-    (h : decode P V = decode P V') : V = V' := by
-  funext u
-  rw [← enc_decode P hV u, ← enc_decode P hV' u, h]
 
 /-- The table of a message is injective in the message. -/
 theorem tableOf_injective {κ : ℕ} : Function.Injective (tableOf (n := κ)) := by
@@ -100,30 +115,75 @@ theorem joinMsg_injective {n m κ' : ℕ} (hn : n = m + κ') :
   simpa [joinMsg] using this
 
 open Classical in
-/-- **Out-of-domain separation** (Annex B, `lem:ood`): at most `C(listMax, 2)·κ·|E|^(κ−1)` points
-`z` leave two members of the list of `Q` with equal out-of-domain values. -/
-theorem card_oodSep_bad_le (P : LevelCode) {m κ : ℕ} (hκ : κ = m + P.κ)
-    (Q : (Fin m → Bool) → Fin P.n → E) :
-    (univ.filter fun v : Vector E κ ↦ ¬ OodSep P Q v.toList).card ≤
-      P.listMax.choose 2 * (κ * Fintype.card E ^ (κ - 1)) := by
-  set L := iList P.code P.thr Q
-  let dec : ((Fin m → Bool) → Fin P.n → E) → CMlPolynomialEval E κ :=
-    fun V ↦ tableOf (joinMsg hκ (decode P V))
-  have hval : ∀ V (v : Vector E κ), oodVal v.toList (decode P V) = evalMle (dec V) v := by
-    intro V v
-    rw [oodVal, ← sum_joinMsg hκ, sum_eqEval_vec]
+/-- Points as functions: the Schwartz-Zippel count of `card_evalMle_eq_le`. -/
+theorem card_evalMle_eq_fn_le {κ : ℕ} {g g' : CMlPolynomialEval E κ} (hne : g ≠ g') :
+    (univ.filter fun f : Fin κ → E ↦ evalMle g (Vector.ofFn f) = evalMle g' (Vector.ofFn f)).card ≤
+      κ * Fintype.card E ^ (κ - 1) := by
+  refine le_trans ?_ (card_evalMle_eq_le hne)
+  refine card_le_card_of_injOn Vector.ofFn (fun f hf ↦ ?_) fun f _ f' _ h ↦ ?_
+  · simp only [coe_filter, mem_univ, true_and, Set.mem_ofPred_eq] at hf ⊢
+    exact hf
+  · funext k
+    have := congrArg (fun v : Vector E κ ↦ v[k]) h
+    simpa using this
+
+open Classical in
+/-- **Out-of-domain separation at two points** (Annex B, `lem:ood`): at most
+`|L|² (κ |E|^(κ−1))²` pairs of points leave two members of `L` with equal extensions at both. -/
+theorem card_ood2_collision_le {X : Type*} {κ : ℕ} (L : Finset X)
+    (dec : X → CMlPolynomialEval E κ) (hinj : Set.InjOn dec L) :
+    (univ.filter fun zz : (Fin κ → E) × (Fin κ → E) ↦ ∃ U ∈ L, ∃ U' ∈ L, U ≠ U' ∧
+        evalMle (dec U) (Vector.ofFn zz.1) = evalMle (dec U') (Vector.ofFn zz.1) ∧
+        evalMle (dec U) (Vector.ofFn zz.2) = evalMle (dec U') (Vector.ofFn zz.2)).card ≤
+      L.card ^ 2 * (κ * Fintype.card E ^ (κ - 1)) ^ 2 := by
+  let S : X × X → Finset (Fin κ → E) := fun p ↦
+    univ.filter fun f ↦ evalMle (dec p.1) (Vector.ofFn f) = evalMle (dec p.2) (Vector.ofFn f)
+  let B : X × X → Finset ((Fin κ → E) × (Fin κ → E)) := fun p ↦
+    if p.1 = p.2 then ∅ else S p ×ˢ S p
+  calc _ ≤ ((L ×ˢ L).biUnion B).card := by
+        refine card_le_card fun zz hz ↦ ?_
+        simp only [mem_filter, mem_univ, true_and] at hz
+        obtain ⟨U, hU, U', hU', hne, h1, h2⟩ := hz
+        refine mem_biUnion.mpr ⟨(U, U'), mem_product.mpr ⟨hU, hU'⟩, ?_⟩
+        simp only [B, hne, ite_false, mem_product, S, mem_filter, mem_univ, true_and]
+        exact ⟨h1, h2⟩
+    _ ≤ ∑ p ∈ L ×ˢ L, (B p).card := card_biUnion_le
+    _ ≤ ∑ _p ∈ L ×ˢ L, (κ * Fintype.card E ^ (κ - 1)) ^ 2 := by
+        refine sum_le_sum fun p hp ↦ ?_
+        simp only [B]
+        split_ifs with h
+        · simp
+        · rw [card_product, sq]
+          have hp' := mem_product.mp hp
+          have hS := card_evalMle_eq_fn_le (fun he ↦ h (hinj hp'.1 hp'.2 he))
+          exact Nat.mul_le_mul hS hS
+    _ = _ := by rw [sum_const, card_product, smul_eq_mul]; ring
+
+open Classical in
+/-- **Out-of-domain separation of the next list**: at most `|list|² (κ |E|^(κ−1))²` pairs of
+points break `OodSep2`. -/
+theorem card_oodSep2_bad_le (P' : LevelCode) {m κ : ℕ} (hκ : κ = m + P'.κ)
+    (Q : (Fin m → Bool) → Fin P'.n → E) :
+    (univ.filter fun zz : (Fin κ → E) × (Fin κ → E) ↦
+        ¬ OodSep2 P' Q (List.ofFn zz.1) (List.ofFn zz.2)).card ≤
+      (tlist P'.dom Q (P'.thr 0) (P'.deg 0)).card ^ 2 * (κ * Fintype.card E ^ (κ - 1)) ^ 2 := by
+  set L := tlist P'.dom Q (P'.thr 0) (P'.deg 0)
+  let dec : ((Fin m → Bool) → E[X]) → CMlPolynomialEval E κ :=
+    fun U ↦ tableOf (joinMsg hκ (msgT P'.κ U))
+  have hval : ∀ U (f : Fin κ → E), oodVal (List.ofFn f) (msgT P'.κ U) =
+      evalMle (dec U) (Vector.ofFn f) := by
+    intro U f
+    rw [oodVal, ← sum_joinMsg hκ, ← sum_eqEval_vec, Vector.toList_ofFn]
   have hinj : Set.InjOn dec L := by
-    intro V hV V' hV' h
-    exact decode_injOn P ((mem_iList _ _ _ _).mp hV).1 ((mem_iList _ _ _ _).mp hV').1
+    intro U hU U' hU' h
+    have h64 : P'.κ ≤ 64 := by have := P'.h64; omega
+    exact msgT_inj h64 ((mem_tlist _ _ _ _ _).mp hU).1 ((mem_tlist _ _ _ _ _).mp hU').1
       (joinMsg_injective hκ (tableOf_injective h))
-  refine (Finset.card_le_card fun v hv ↦ ?_).trans
-    ((card_ood_collision_image_le L dec hinj).trans
-      (Nat.mul_le_mul_right _ (Nat.choose_le_choose 2 (P.card_iList_le Q))))
-  have hv' := (Finset.mem_filter.mp hv).2
-  simp only [OodSep, not_forall, not_not, exists_prop] at hv'
-  obtain ⟨V, hV, V', hV', hne, heq⟩ := hv'
-  exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, V, hV, V', hV', hne, by
-    rw [← hval, ← hval, heq]⟩
+  refine (card_le_card fun zz hz ↦ ?_).trans (card_ood2_collision_le L dec hinj)
+  simp only [mem_filter, mem_univ, true_and, OodSep2, not_forall, not_or, not_not,
+    exists_prop] at hz ⊢
+  obtain ⟨U, hU, U', hU', hne, h1, h2⟩ := hz
+  exact ⟨U, hU, U', hU', hne, by rw [← hval, ← hval, h1], by rw [← hval, ← hval, h2]⟩
 
 /-! ## Batching sums -/
 
@@ -155,140 +215,178 @@ theorem length_powers (lam : E) (t : ℕ) : (powers lam t).length = t := by
   | zero => intro; rfl
   | succ t ih => intro acc; simp [powersFrom, ih]
 
-/-! ## Query positions -/
+/-! ## The query step -/
 
-/-- An entry of a word at an integer position (`0` outside). -/
-def wordAt {n : ℕ} (C : Fin n → E) (q : ℕ) : E := if h : q < n then C ⟨q, h⟩ else 0
+/-- The normalized subspace polynomial `Ŵ_κ` over `E`. -/
+noncomputable def hatE (κ : ℕ) : E[X] := (normVanishing κ).map (algebraMap K E)
 
-/-- After positions `qs`, every member of the list of `Q'` violates the running claim `(Φ, σ)`,
-the out-of-domain claim `(eq_eval(z, ·), y)`, or the consistency claim at a queried column of the
-folded word `C`. -/
-def QueryGood (P P' : LevelCode) {m : ℕ} (hκ : P.κ = m + P'.κ)
-    (Q' : (Fin m → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
-    (z : List E) (y : E) (qs : List ℕ) : Prop :=
-  ∀ V ∈ iList P'.code P'.thr Q', claimSum Φ (decode P' V) ≠ σ ∨ oodVal z (decode P' V) ≠ y ∨
-    ∃ q ∈ qs, encAt P.κ P.R (joinMsg hκ (decode P' V)) q ≠ wordAt C q
+theorem hatE_eq (κ : ℕ) :
+    hatE κ = vanE κ * C (ofK (vanishingAt κ (basisVec κ))⁻¹) := by
+  rw [hatE, normVanishing, Polynomial.map_mul, Polynomial.map_C, vanE, mul_comm]
+  rfl
 
-/-- A message whose encoding agrees with the folded word on `thr` columns is caught by the
-running claim. -/
-theorem viol_of_close (P : LevelCode) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
-    (hviol : Viol P (fun _ : Fin 0 → Bool ↦ C) Φ σ) (G : (Fin P.κ → Bool) → E)
-    (hclose : P.thr ≤ (univ.filter fun x ↦ enc P.κ P.R G x = C x).card) :
-    ∑ x, Φ (bitsL x) * G x ≠ σ := by
-  have hmem : (fun _ : Fin 0 → Bool ↦ enc P.κ P.R G) ∈ iList P.code P.thr fun _ ↦ C := by
-    rw [mem_iList]
-    refine ⟨fun _ ↦ ?_, _, hclose, fun _ x hx ↦ ((Finset.mem_filter.mp hx).2).symm⟩
-    show _ ∈ ReedSolomon.code (domain P.κ P.R P.h64) (2 ^ P.κ)
-    rw [← range_enc P.h64]; exact LinearMap.mem_range_self _ _
-  have := hviol _ hmem
-  rwa [decode_enc P (fun _ ↦ G), claimSum_zero] at this
+theorem eval_hatE (κ : ℕ) (x : K) : (hatE κ).eval (ofK x) = ofK (normVanishingAt κ x) := by
+  rw [hatE, eval_map, show ofK x = algebraMap K E x from rfl, eval₂_hom, eval_normVanishing]
+  rfl
 
-/-- **The query step.** Under the doom before the positions (every member of the list of the
-folded word `C` violates `(Φ, σ)`, and the out-of-domain values separate the list of `Q'`), the
-positions breaking `QueryGood` all lie in a set of at most `thr − 1` columns. -/
-theorem exists_agreeSet (P P' : LevelCode) {m : ℕ} (hκ : P.κ = m + P'.κ)
-    (Q' : (Fin m → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
-    (z : List E) (y : E) (hviol : Viol P (fun _ : Fin 0 → Bool ↦ C) Φ σ)
-    (hsep : OodSep P' Q' z) :
-    ∃ A : Finset (Fin P.n), A.card + 1 ≤ P.thr ∧ ∀ qs : List ℕ,
-      ¬ QueryGood P P' hκ Q' C Φ σ z y qs → ∀ q ∈ qs, ∀ h : q < P.n, (⟨q, h⟩ : Fin P.n) ∈ A := by
-  by_cases hex : ∃ V ∈ iList P'.code P'.thr Q', claimSum Φ (decode P' V) = σ ∧
-      oodVal z (decode P' V) = y
-  · obtain ⟨V₀, hV₀, hclaim, hood⟩ := hex
-    set G := joinMsg hκ (decode P' V₀)
-    refine ⟨univ.filter fun x ↦ enc P.κ P.R G x = C x, ?_, fun qs hqs q hq ↦ ?_⟩
-    · by_contra hlt
-      exact viol_of_close P C Φ σ hviol G (Nat.lt_succ_iff.mp (not_le.mp hlt))
-        (by rw [sum_joinMsg]; exact hclaim)
-    · intro hlt
-      simp only [QueryGood, not_forall, not_or, not_not, exists_prop, not_exists, not_and] at hqs
-      obtain ⟨V, hV, hc, ho, hall⟩ := hqs
-      have hVV : V = V₀ := by
-        by_contra hne
-        exact hsep V hV V₀ hV₀ hne (ho.trans hood.symm)
-      subst hVV
-      have h := hall q hq
-      exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, by
-        simpa [encAt, wordAt, LevelCode.n, hlt] using h⟩
-  · refine ⟨∅, by simpa using Nat.succ_le_of_lt (Nat.lt_of_lt_of_le (Nat.two_pow_pos _)
-      P.two_pow_le_thr), fun qs hqs ↦ absurd ?_ hqs⟩
-    intro V hV
+theorem natDegree_hatE_mul_le {κ : ℕ} (hκ : κ < 64) (H : E[X]) :
+    (hatE κ * H).natDegree ≤ 2 ^ κ + H.natDegree := by
+  refine natDegree_mul_le.trans (Nat.add_le_add_right ?_ _)
+  rw [hatE, natDegree_map, natDegree_normVanishing hκ]
+
+/-- The low part of `P_g + Ŵ_κ H` is `g`. -/
+theorem lowMsg_msgPoly_add_hat {κ : ℕ} (hκ : κ ≤ 64) (g : (Fin κ → Bool) → E) (H : E[X]) :
+    lowMsg κ (msgPoly κ g + hatE κ * H) = g := by
+  rw [hatE_eq, mul_assoc]
+  exact lowMsg_msgPoly_add hκ g _
+
+/-- **The doom after the query positions**: every member of the list of the next oracle `Q'`
+violates the running claim `(Φ, σ)`, an out-of-domain claim `(eq(z_s, ·), y_s)`, or the
+consistency claim at a queried column, whose value the verifier derives is `c' q`. -/
+def QDoom (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E)
+    (Φ : List E → E) (σ : E) (z₁ z₂ : List E) (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) : Prop :=
+  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+    ∑ x, Φ (bitsL x) * joinMsg hκ (msgT P'.κ U) x ≠ σ ∨ oodVal z₁ (msgT P'.κ U) ≠ y₁ ∨
+      oodVal z₂ (msgT P'.κ U) ≠ y₂ ∨ ∃ q ∈ qs, encAt P.κ P.R (joinMsg hκ (msgT P'.κ U)) q ≠ c' q
+
+/-- **The query step** (Annex B, proof of `thm:rbr`, "Query message"). Let every tuple of degree
+at most `2^κ − 1 + ℓ` close to the folded word `C` violate the running claim, the out-of-domain
+points separate the next list, and `c' q` be `C` at `x_q` corrected by the high part `Ŵ_κ H`
+(`deg H < ℓ`). The positions that break `QDoom` all lie in a set of at most `A − 1` columns. -/
+theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A)
+    (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
+    (z₁ z₂ : List E) (y₁ y₂ : E) (H : E[X]) (hH : H.natDegree + 1 ≤ P.ℓ) (c' : ℕ → E)
+    (hc' : ∀ q (h : q < P.n), c' q = C ⟨q, h⟩ + (hatE P.κ * H).eval (P.dom ⟨q, h⟩))
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) (P.deg P.ℓ))
+    (hsep : OodSep2 P' Q' z₁ z₂) :
+    ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧ ∀ qs : List ℕ,
+      ¬ QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs → ∀ q ∈ qs, ∀ h : q < P.n,
+        (⟨q, h⟩ : Fin P.n) ∈ S := by
+  classical
+  have h64 := P.κ_lt
+  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+  by_cases hex : ∃ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ ∧ oodVal z₂ (msgT P'.κ U) = y₂
+  · obtain ⟨U₀, hU₀, ho₁, ho₂⟩ := hex
+    set g := joinMsg hκ (msgT P'.κ U₀)
+    set Pst := msgPoly P.κ g + hatE P.κ * H
+    -- The one member consistent with both answers, as a single polynomial.
+    have huniq : ∀ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ → oodVal z₂ (msgT P'.κ U) = y₂ → U = U₀ := by
+      intro U hU h₁ h₂
+      by_contra hne
+      rcases hsep U hU U₀ hU₀ hne with h | h
+      · exact h (h₁.trans ho₁.symm)
+      · exact h (h₂.trans ho₂.symm)
+    have hdeg : DegLE (P.deg P.ℓ) (fun _ : Fin 0 → Bool ↦ Pst) := fun _ ↦ by
+      refine (natDegree_add_le _ _).trans (max_le ?_ ?_)
+      · have := natDegree_msgPoly_lt (show P.κ ≤ 64 by omega) g
+        have h1 := Nat.one_le_two_pow (n := P.κ)
+        have : (msgPoly P.κ g).natDegree < 2 ^ P.κ := by
+          by_cases h0 : msgPoly P.κ g = 0
+          · rw [h0, natDegree_zero]; omega
+          · exact (natDegree_lt_iff_degree_lt h0).mpr (by exact_mod_cast this)
+        simp only [LevelCode.deg]; omega
+      · have := natDegree_hatE_mul_le h64 H
+        have h1 := Nat.one_le_two_pow (n := P.κ)
+        simp only [LevelCode.deg]; omega
+    have hclaim : tclaim P.κ Φ (fun _ : Fin 0 → Bool ↦ Pst) = ∑ x, Φ (bitsL x) * g x := by
+      rw [tclaim, claimSum_zero, lowMsg_msgPoly_add_hat (by omega)]
+    set S := agreeT P.dom (fun _ : Fin 0 → Bool ↦ Pst) (fun _ ↦ C)
+    by_cases hS : P.A ≤ S.card
+    · -- `P*` is close, so it violates the running claim, and so does every member: no escape.
+      have hv := hviol _ hdeg (by simpa [LevelCode.thr] using hS)
+      rw [hclaim] at hv
+      refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
+      intro U hU
+      by_cases h₁ : oodVal z₁ (msgT P'.κ U) = y₁
+      · by_cases h₂ : oodVal z₂ (msgT P'.κ U) = y₂
+        · rw [huniq U hU h₁ h₂]; exact Or.inl hv
+        · exact Or.inr (Or.inr (Or.inl h₂))
+      · exact Or.inr (Or.inl h₁)
+    · refine ⟨S, by omega, fun qs hqs q hq hlt ↦ ?_⟩
+      simp only [QDoom, not_forall, not_or, not_not, exists_prop, not_exists, not_and] at hqs
+      obtain ⟨U, hU, -, h₁, h₂, hall⟩ := hqs
+      obtain rfl := huniq U hU h₁ h₂
+      have he := hall q hq
+      rw [encAt, dite_eq_left_of_eq_true (eq_true hlt), hc' q hlt,
+        enc_eq_evalOnPoints (show P.κ + P.R ≤ 64 from P.h64)] at he
+      rw [mem_agreeT]
+      intro _
+      change (msgPoly P.κ g).eval (P.dom ⟨q, hlt⟩) = _ at he
+      simp only [Pst, Polynomial.eval_add]
+      rw [he]
+      linear_combination (CharTwo.two_eq_zero (R := E)) *
+        (eval (P.dom ⟨q, hlt⟩) (hatE P.κ * H))
+  · refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
+    intro U hU
     by_contra h
     simp only [not_or, not_not] at h
-    exact hex ⟨V, hV, h.1, h.2.1⟩
+    exact hex ⟨U, hU, h.2.1, h.2.2.1⟩
 
 /-! ## The batching challenge -/
 
-/-- **The batching step.** If a member violates one of the running, out-of-domain and `t`
-consistency claims, the glued claim with powers `1, λ, λ^2, …, λ^(t+1)` holds at at most `t + 1`
-values `λ`. -/
-theorem card_glue_bad_le {t : ℕ} (a σ b y : E) (e c : Fin t → E)
-    (h : a ≠ σ ∨ b ≠ y ∨ ∃ k, e k ≠ c k) :
-    (univ.filter fun lam : E ↦ a + lam * b + lam * lam * ∑ k : Fin t, lam ^ (k : ℕ) * e k =
-        σ + lam * y + lam * lam * ∑ k : Fin t, lam ^ (k : ℕ) * c k).card ≤ t + 1 := by
-  let d : Fin (t + 2) → E := Fin.cons (a - σ) (Fin.cons (b - y) fun k ↦ e k - c k)
+/-- The glued claim's weight against a member: the running weight, `λ, λ²` times the
+out-of-domain weights and `λ³` times the consistency weight. -/
+def gluedW (Φ : List E → E) (z₁ z₂ : List E) (mu : ℕ) (qs : List ℕ) (lam : E) (x : List E) : E :=
+  Φ x + 1 * lam * eqEval z₁ x + 1 * lam * lam * eqEval z₂ x +
+    1 * lam * lam * lam * Verifier.inducedWeight mu qs (powers lam qs.length) x
+
+/-- The glued claim's value. -/
+def gluedV (σ y₁ y₂ : E) (qs : List ℕ) (c' : ℕ → E) (lam : E) : E :=
+  σ + 1 * lam * y₁ + 1 * lam * lam * y₂ +
+    1 * lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k]
+
+open Classical in
+/-- **The batching step** (Annex B, proof of `thm:rbr`, "Batching challenge"): from `QDoom`, at
+most `(t + 2)·|list|` values `λ` let a member of the next list satisfy the glued claim. -/
+theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
+    (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (Φ : List E → E) (σ : E) (z₁ z₂ : List E)
+    (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) (hq : ∀ q ∈ qs, q < P.n)
+    (hQ : QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs) :
+    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+        ∑ x, gluedW Φ z₁ z₂ P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
+          gluedV σ y₁ y₂ qs c' lam).card ≤
+      (tlist P'.dom Q' (P'.thr 0) (P'.deg 0)).card * (qs.length + 2) := by
+  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+  refine card_filter_exists_le L _ fun U hU ↦ ?_
+  set g := joinMsg hκ (msgT P'.κ U)
+  have h64 : P.κ ≤ 64 := by have := P.h64; omega
+  have hood : ∀ z, oodVal z (msgT P'.κ U) = ∑ x, eqEval z (bitsL x) * g x := fun z ↦ by
+    rw [oodVal, ← sum_joinMsg hκ]
+  -- The discrepancy's coefficients: residual, the two out-of-domain claims, the queries.
+  let e : Fin qs.length → E := fun k ↦ encAt P.κ P.R g qs[k] - c' qs[k]
+  let d : Fin (qs.length + 3) → E :=
+    Fin.cons (∑ x, Φ (bitsL x) * g x - σ) (Fin.cons (oodVal z₁ (msgT P'.κ U) - y₁)
+      (Fin.cons (oodVal z₂ (msgT P'.κ U) - y₂) e))
   have hd : ∃ k, d k ≠ 0 := by
-    rcases h with h | h | ⟨k, hk⟩
+    rcases hQ U hU with h | h | h | ⟨q, hqm, hne⟩
     · exact ⟨0, by simpa [d, sub_eq_zero] using h⟩
     · exact ⟨1, by simpa [d, sub_eq_zero] using h⟩
-    · exact ⟨k.succ.succ, by simpa [d, sub_eq_zero] using hk⟩
-  refine (Finset.card_le_card fun lam hlam ↦ ?_).trans (card_powerBatch_eq_zero_le d hd)
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hlam ⊢
-  have hs : ∑ k : Fin t, (e k - c k) * lam ^ ((k : ℕ) + 1 + 1) =
-      lam * lam * ∑ k : Fin t, lam ^ (k : ℕ) * e k -
-        lam * lam * ∑ k : Fin t, lam ^ (k : ℕ) * c k := by
+    · exact ⟨(0 : Fin (qs.length + 1)).succ.succ, by
+        simp only [d, Fin.cons_succ, Fin.cons_zero, ne_eq, sub_eq_zero]; exact h⟩
+    · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hqm
+      exact ⟨(⟨k, hk⟩ : Fin qs.length).succ.succ.succ, by
+        simp only [d, Fin.cons_succ, e, ne_eq, sub_eq_zero]; exact hne⟩
+  refine (card_le_card fun lam hlam ↦ ?_).trans
+    ((card_powerBatch_eq_zero_le d hd).trans (by simp))
+  simp only [mem_filter, mem_univ, true_and] at hlam ⊢
+  have hind : ∑ x, Verifier.inducedWeight P.κ qs (powers lam qs.length) (bitsL x) * g x =
+      ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] := by
+    rw [sum_inducedWeight_mul P.R h64 qs _ (length_powers lam _) hq, sum_zip_powers]
+  have hsplit : ∑ x, gluedW Φ z₁ z₂ P.κ qs lam (bitsL x) * g x =
+      ∑ x, Φ (bitsL x) * g x + 1 * lam * oodVal z₁ (msgT P'.κ U) +
+        1 * lam * lam * oodVal z₂ (msgT P'.κ U) +
+        1 * lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] := by
+    rw [hood, hood, ← hind]
+    simp only [gluedW, add_mul, Finset.sum_add_distrib, mul_assoc, ← Finset.mul_sum]
+  rw [hsplit, gluedV] at hlam
+  have hs : ∑ k : Fin qs.length, e k * lam ^ ((k : ℕ) + 1 + 1 + 1) =
+      lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] -
+        lam * lam * lam * ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k] := by
     rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_sub_distrib]
-    exact Finset.sum_congr rfl fun k _ ↦ by ring
+    exact Finset.sum_congr rfl fun k _ ↦ by simp only [e]; ring
   simp only [d, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, Fin.val_zero, pow_zero, mul_one,
     Fin.val_succ, hs]
   linear_combination hlam
-
-/-- **The final batching step.** If the residual violates the running claim or a consistency
-claim, the glued claim with powers `1, λ, …, λ^t` holds at at most `t` values `λ`. -/
-theorem card_glue_bad_le_final {t : ℕ} (a σ : E) (e c : Fin t → E)
-    (h : a ≠ σ ∨ ∃ k, e k ≠ c k) :
-    (univ.filter fun lam : E ↦ a + lam * ∑ k : Fin t, lam ^ (k : ℕ) * e k =
-        σ + lam * ∑ k : Fin t, lam ^ (k : ℕ) * c k).card ≤ t := by
-  let d : Fin (t + 1) → E := Fin.cons (a - σ) fun k ↦ e k - c k
-  have hd : ∃ k, d k ≠ 0 := by
-    rcases h with h | ⟨k, hk⟩
-    · exact ⟨0, by simpa [d, sub_eq_zero] using h⟩
-    · exact ⟨k.succ, by simpa [d, sub_eq_zero] using hk⟩
-  refine (Finset.card_le_card fun lam hlam ↦ ?_).trans (card_powerBatch_eq_zero_le d hd)
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hlam ⊢
-  have hs : ∑ k : Fin t, (e k - c k) * lam ^ ((k : ℕ) + 1) =
-      lam * ∑ k : Fin t, lam ^ (k : ℕ) * e k - lam * ∑ k : Fin t, lam ^ (k : ℕ) * c k := by
-    rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_sub_distrib]
-    exact Finset.sum_congr rfl fun k _ ↦ by ring
-  simp only [d, Fin.sum_univ_succ, Fin.cons_zero, Fin.cons_succ, Fin.val_zero, pow_zero, mul_one,
-    Fin.val_succ, hs]
-  linear_combination hlam
-
-/-! ## The final level's query step -/
-
-/-- After positions `qs` on the final level, the residual `G` violates the running claim or the
-consistency claim at a queried column. -/
-def QueryGoodFinal (P : LevelCode) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
-    (G : (Fin P.κ → Bool) → E) (qs : List ℕ) : Prop :=
-  ∑ x, Φ (bitsL x) * G x ≠ σ ∨ ∃ q ∈ qs, encAt P.κ P.R G q ≠ wordAt C q
-
-/-- **The final query step.** Positions breaking `QueryGoodFinal` lie in a set of at most
-`thr − 1` columns. -/
-theorem exists_agreeSet_final (P : LevelCode) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
-    (hviol : Viol P (fun _ : Fin 0 → Bool ↦ C) Φ σ) (G : (Fin P.κ → Bool) → E) :
-    ∃ A : Finset (Fin P.n), A.card + 1 ≤ P.thr ∧ ∀ qs : List ℕ,
-      ¬ QueryGoodFinal P C Φ σ G qs → ∀ q ∈ qs, ∀ h : q < P.n, (⟨q, h⟩ : Fin P.n) ∈ A := by
-  by_cases hc : ∑ x, Φ (bitsL x) * G x = σ
-  · refine ⟨univ.filter fun x ↦ enc P.κ P.R G x = C x, ?_, fun qs hqs q hq ↦ ?_⟩
-    · by_contra hlt
-      exact viol_of_close P C Φ σ hviol G (Nat.lt_succ_iff.mp (not_le.mp hlt)) hc
-    · simp only [QueryGoodFinal, not_or, not_not, not_exists, not_and] at hqs
-      intro hlt
-      have h := hqs.2 q hq
-      exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, by
-        simpa [encAt, wordAt, LevelCode.n, hlt] using h⟩
-  · refine ⟨∅, by simpa using Nat.succ_le_of_lt (Nat.lt_of_lt_of_le (Nat.two_pow_pos _)
-      P.two_pow_le_thr), fun qs hqs ↦ absurd (Or.inl hc) hqs⟩
 
 end
 end LeanVM.Protocol.Whir.Sound
