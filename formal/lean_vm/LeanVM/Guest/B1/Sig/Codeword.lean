@@ -201,9 +201,9 @@ theorem digitSum_three (k : Nat) : digitSum k 3 = k % 4 + k / 4 % 4 + k / 16 % 4
 theorem digitSum_one (k : Nat) (hk : k < 4) : digitSum k 1 = k := by
   simp [digitSum]; omega
 
-theorem eOfNat192_add_shift {S k s : Nat} (hS : S < 2 ^ s) :
-    eOfNat192 S + eOfNat192 (2 ^ s * k) = eOfNat192 (S + 2 ^ s * k) := by
-  rw [← eOfNat192_xor, Nat.xor_comm, two_pow_mul_xor hS, add_comm]
+theorem eOfNat128_add_shift {S k s : Nat} (hS : S < 2 ^ s) :
+    eOfNat128 S + eOfNat128 (2 ^ s * k) = eOfNat128 (S + 2 ^ s * k) := by
+  rw [← eOfNat128_xor, Nat.xor_comm, two_pow_mul_xor hS, add_comm]
 
 theorem sum_lt_pow64 (K : Nat → Nat) (hK : ∀ q, K q < 64) :
     ∀ p, ∑ q ∈ Finset.range p, K q * 4 ^ (3 * q) < 2 ^ (6 * p)
@@ -324,7 +324,7 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
         ∑ q ∈ Finset.range p, K q * 4 ^ (3 * q) := fun p hp =>
       Finset.sum_congr rfl fun q hq => by simp [K', show q < G by simp at hq; omega]
     have hen : ∀ p < G, σ (encT W (p == 0) 3 (cwState W b p).2.2) =
-        eOfNat192 (∑ q ∈ Finset.range (p + 1), K q * 4 ^ (3 * q)) := by
+        eOfNat128 (∑ q ∈ Finset.range (p + 1), K q * 4 ^ (3 * q)) := by
       intro p hp
       induction p with
       | zero =>
@@ -344,20 +344,20 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
             lit_eq _ (group_lit_bound (hK64 (p + 1) hp) (by omega))]
           show σ (encT W (p == 0) 3 (cwState W b p).2.2) + _ = _
           rw [ih (by omega), show K (p + 1) * 4 ^ (3 * (p + 1)) = 2 ^ (6 * (p + 1)) * K (p + 1) by
-            rw [h4, mul_comm], eOfNat192_add_shift hlt]
+            rw [h4, mul_comm], eOfNat128_add_shift hlt]
     have hlast := (harm G le_rfl).enc
     rw [hE] at hlast
     simp only [cwN, lt_irrefl, ↓reduceIte, show (G == 0) = false by simp; omega,
       Bool.false_eq_true] at hlast
     rw [hlast]
     obtain ⟨G', rfl⟩ : ∃ G', G = G' + 1 := ⟨G - 1, by omega⟩
-    have e1 : σ (cwState W b (G' + 1)).2.1 = eOfNat192 (∑ q ∈ Finset.range (G' + 1), K q * 4 ^ (3 * q)) :=
+    have e1 : σ (cwState W b (G' + 1)).2.1 = eOfNat128 (∑ q ∈ Finset.range (G' + 1), K q * 4 ^ (3 * q)) :=
       hen G' (by omega)
     have hlt := sum_lt_pow64 K' hK' (G' + 1)
     rw [hsum (G' + 1) (by omega)] at hlt
     have hbound : K (G' + 1) * 4 ^ (3 * (G' + 1)) < 2 ^ 128 := last_lit_bound hKG (by omega)
     rw [e1, lit_eq _ hbound, show K (G' + 1) * 4 ^ (3 * (G' + 1)) = 2 ^ (6 * (G' + 1)) * K (G' + 1) by
-      rw [h4, mul_comm], eOfNat192_add_shift hlt]
+      rw [h4, mul_comm], eOfNat128_add_shift hlt]
     have hN : ∑ q ∈ Finset.range (G' + 1), K q * 4 ^ (3 * q) + 2 ^ (6 * (G' + 1)) * K (G' + 1) =
         ∑ i ∈ Finset.range (3 * (G' + 1) + 1), cwDigit W (G' + 1) b σ i * 4 ^ i := by
       rw [Finset.sum_range_succ (n := 3 * (G' + 1)), sum_range_three_mul]

@@ -338,10 +338,10 @@ theorem cellsBytes_counterCell_zero (cs : List E) (ctr : Nat) :
 /-! ## Constants added to an address cell -/
 
 /-- A canonical cell is the 192-bit word of its number. -/
-theorem cellOf128_eq_eOfNat192 {n : Nat} (h : n < 2 ^ 128) :
-    cellOf128 (BitVec.ofNat 128 n) = eOfNat192 n := by
+theorem cellOf128_eq_eOfNat128 {n : Nat} (h : n < 2 ^ 128) :
+    cellOf128 (BitVec.ofNat 128 n) = eOfNat128 n := by
   have h2 : n / 2 ^ 128 = 0 := Nat.div_eq_of_lt h
-  simp only [cellOf128, eOfNat192, h2]
+  simp only [cellOf128, eOfNat128, h2]
   congr 1
   · apply BF64.toBitVec_injective
     simp only [K.ofBits, BF64.toBitVec_ofBitVec]
@@ -370,8 +370,8 @@ theorem adrsNat1_lt (type keyPair word2 word3 : Nat) : adrsNat1 type keyPair wor
 
 /-- The second address cell is the 192-bit word of its number. -/
 theorem adrsCell1_eq (type keyPair word2 word3 : Nat) :
-    adrsCell1 type keyPair word2 word3 = eOfNat192 (adrsNat1 type keyPair word2 word3) :=
-  cellOf128_eq_eOfNat192 (adrsNat1_lt type keyPair word2 word3)
+    adrsCell1 type keyPair word2 word3 = eOfNat128 (adrsNat1 type keyPair word2 word3) :=
+  cellOf128_eq_eOfNat128 (adrsNat1_lt type keyPair word2 word3)
 
 /-- **Words 2 and 3 added to an address cell whose words 2 and 3 are zero** (field addition is
 XOR, and the bits are disjoint). -/
@@ -389,7 +389,7 @@ theorem adrsCell1_add_words23 (type keyPair word2 word3 : Nat) :
     simp only [adrsNat1, beWordAt_of_zero, beWordAt_eq 1 keyPair]; ring
   have hlo : adrsNat1 type keyPair 0 0 < 2 ^ 64 := by rw [hN]; omega
   rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 2 word2 + beWordAt 3 word3) (by rw [hc]; omega),
-    ← eOfNat192_xor, hc, Nat.xor_comm, two_pow_mul_xor hlo, hN]
+    ← eOfNat128_xor, hc, Nat.xor_comm, two_pow_mul_xor hlo, hN]
   congr 1
   simp only [adrsNat1, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2, beWordAt_eq 3 word3]
   ring
@@ -403,7 +403,7 @@ theorem adrsCell1_add_word0 (type keyPair word2 word3 : Nat) :
     simp only [adrsNat1, beWordAt_of_zero, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2,
       beWordAt_eq 3 word3]
     ring
-  rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 0 type) (by omega), ← eOfNat192_xor, hN,
+  rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 0 type) (by omega), ← eOfNat128_xor, hN,
     two_pow_mul_xor hr]
   congr 1
   simp only [adrsNat1, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2, beWordAt_eq 3 word3]

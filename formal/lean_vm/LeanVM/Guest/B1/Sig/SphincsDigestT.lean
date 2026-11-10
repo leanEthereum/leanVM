@@ -276,7 +276,7 @@ def sCheck : List Stmt :=
   [addS (.n 1363) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n 1365) (sLVal 0) (.n 1364),
     addS (.n 1366) (.n 1363) (.n 1365), cst 1367 (word 65536 0),
     mulS (.n 1368) sUnused.2.2 (.n 1367), addS (.n 1369) (.n 1366) (.n 1368),
-    cst 1370 (word 1 0 1), mulS (.n 1371) (.n 1369) (.n 1370),
+    cst 1370 (word 2 1), mulS (.n 1371) (.n 1369) (.n 1370),
     .atom (.assertInK (.n 1371) sUnused.2.2)]
 
 /-- **The message digest's block**: `verify_sig_lean_sphincs`'s statements up to the digest's

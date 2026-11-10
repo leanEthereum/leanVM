@@ -99,8 +99,8 @@ theorem spX_digest (digest : Digest) : spX (spDigitsOf digest) 64 = digest.toNat
   rw [digest_quad digest hk', show (4 : Nat) ^ k = 2 ^ spDigitPos (spDigitOfQuad k) by
     rw [spDigitPos_quad, pow_mul]; norm_num, spX_digit hd hi]
 
-theorem cellOf128_eq_eOfNat192' (v : BitVec 128) : cellOf128 v = eOfNat192 v.toNat := by
-  rw [← cellOf128_eq_eOfNat192 v.isLt, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+theorem cellOf128_eq_eOfNat128' (v : BitVec 128) : cellOf128 v = eOfNat128 v.toNat := by
+  rw [← cellOf128_eq_eOfNat128 v.isLt, BitVec.ofNat_toNat, BitVec.setWidth_eq]
 
 variable {C : CallRel} {rd : Reader}
 
@@ -126,7 +126,7 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
     rw [ev, cellVal_cellOf128] at e
     rw [e]
     exact (cellOf128_cellVal (canon_hcell _)).symm
-  refine ⟨σ, h0, by rw [hpk, h1, h2], by rw [h3, spX_digest]; exact (cellOf128_eq_eOfNat192' digest).symm, ?_⟩
+  refine ⟨σ, h0, by rw [hpk, h1, h2], by rw [h3, spX_digest]; exact (cellOf128_eq_eOfNat128' digest).symm, ?_⟩
   rw [← hleaf]
   exact hh
 

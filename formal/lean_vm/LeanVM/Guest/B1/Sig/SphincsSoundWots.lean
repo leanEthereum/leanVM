@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSig
 `sp_wots_sound_cells` (over cells) gives the leaf as `spLeafCell` of the digits `spDigitR σ` and
 the starts `spStartR σ`, the encoding digest the `XOR` of the digits' fields (`spX`). Here:
 
-* `cellVal_eOfNat192`, `base2bDigits_spX`: the statement's `base_2b` digits of that cell are the
+* `cellVal_eOfNat128`, `base2bDigits_spX`: the statement's `base_2b` digits of that cell are the
   digits (`spX_digit`), so they reach the target sum (`valid_spX`);
 * `spChainStep_cells`, `chainWalk_cells`: a chain step of the statement at a key's address is
   `spStepCell` (`adrsCell1_add_step`), a walk `chainT`;
@@ -41,16 +41,16 @@ open HashSig HashSig.OverPermutation
 /-! ## The digits -/
 
 /-- A canonical cell's value. -/
-theorem cellVal_eOfNat192 {X : Nat} (hX : X < 2 ^ 128) : cellVal (eOfNat192 X) = BitVec.ofNat 128 X :=
-  BitVec.eq_of_toNat_eq (by rw [toNat_cellVal, cellNat_eOfNat192 hX, BitVec.toNat_ofNat,
+theorem cellVal_eOfNat128 {X : Nat} (hX : X < 2 ^ 128) : cellVal (eOfNat128 X) = BitVec.ofNat 128 X :=
+  BitVec.eq_of_toNat_eq (by rw [toNat_cellVal, cellNat_eOfNat128 hX, BitVec.toNat_ofNat,
     Nat.mod_eq_of_lt hX])
 
 /-- **The statement's `base_2b` digits of the encoding cell are the digits.** -/
 theorem base2bDigits_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (i : Sphincs.ChainIndex) :
-    (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat192 (spX d 64))) i).val = d i.val := by
+    (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat128 (spX d 64))) i).val = d i.val := by
   have hi := i.isLt
   have hX := spX_lt hd (m := 64) le_rfl
-  rw [cellVal_eOfNat192 hX, ← spX_digit hd (i := i.val) hi]
+  rw [cellVal_eOfNat128 hX, ← spX_digit hd (i := i.val) hi]
   unfold Sphincs.TargetSum.base2bDigits
   rw [BitVec.val_toFin]
   show (BitVec.extractLsb' (8 * (i.val / 4) + 6 - 2 * (i.val % 4)) 2
@@ -64,7 +64,7 @@ theorem base2bDigits_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (i : Sphincs.Ch
 
 /-- **Digits of sum `128` are a codeword.** -/
 theorem valid_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (hs : ∑ i ∈ Finset.range 64, d i = 128) :
-    Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat192 (spX d 64)))) := by
+    Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat128 (spX d 64)))) := by
   unfold Sphincs.TargetSum.Valid Sphincs.TargetSum.sum
   simp only [base2bDigits_spX hd]
   exact (Fin.sum_univ_eq_sum_range d 64).trans hs

@@ -84,7 +84,7 @@ theorem sp_wots_complete_cells {pp a0 a1 : E} (hpp : IsCanonical128 pp) (ha0 : I
     (ha1 : IsCanonical128 a1) {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hv : ∀ i, IsCanonical128 (vals i))
     (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat192 (spX d 64) ∧
+    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) := by
   obtain ⟨σ', h0, h1, h2, h3, hh⟩ := sp_wots_completeT (C := C) hpp ha0 ha1 hd hsum hv hm
   have e : ∀ j ≤ 29, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by

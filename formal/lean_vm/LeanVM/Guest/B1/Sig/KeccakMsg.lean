@@ -589,7 +589,7 @@ theorem kMsg_sound_cells {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len 
     intro k hk
     obtain ⟨-, -, O', hk', hw⟩ := hbl k hk
     rw [Nat.zero_add] at hk' hw
-    exact ⟨O', hk', fun c hc => (hw c hc).trans (hk'.2 c c.isLt)⟩
+    exact ⟨O', hk', fun c hc => (hw c hc).trans (hk' c c.isLt)⟩
   have hprev : ∀ k < B, ∀ c : Fin 13, prevVal σ (stAt tr none k) c = O k c := by
     intro k hk c
     cases k with
@@ -618,10 +618,7 @@ theorem kMsg_sound_cells {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len 
       rw [hlenB] at hk
       rw [hin k hk c]
       simp [show ¬ c.val < 9 by omega])
-    (fun k hk => by
-      rw [hlenB] at hk ⊢
-      obtain ⟨O', hk', -⟩ := hblk k hk
-      exact ⟨hk'.1, fun c _ => rfl⟩)
+    (fun k _ c _ => rfl)
   rw [List.nil_append, hlenB] at hfinal
   rw [← hfinal]
   obtain ⟨B', hB'⟩ : ∃ B', B = B' + 1 := ⟨B - 1, by omega⟩

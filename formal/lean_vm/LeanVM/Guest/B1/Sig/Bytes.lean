@@ -261,8 +261,8 @@ theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
 /-! ## Addresses -/
 
 /-- A cell's bytes from its 128-bit number. -/
-theorem cellNat_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat192 n) = n := by
-  simp only [cellNat, eOfNat192, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
+theorem cellNat_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat128 n) = n := by
+  simp only [cellNat, eOfNat128, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
   have h2 : n / 2 ^ 64 < 2 ^ 64 := by
     rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
     calc n < 2 ^ 128 := h
@@ -271,8 +271,8 @@ theorem cellNat_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat192 n) = 
   have := Nat.mod_add_div n (2 ^ 64)
   omega
 
-theorem cellBytes_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat192 n) = leBytes n 16 := by
-  rw [cellBytes_eq_leBytes, cellNat_eOfNat192 h]
+theorem cellBytes_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat128 n) = leBytes n 16 := by
+  rw [cellBytes_eq_leBytes, cellNat_eOfNat128 h]
 
 /-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs:73-81`): `lo`, `hi`
 from bit 32, the type and step byte from bit 56; its high eight bytes are zero. -/
@@ -303,8 +303,8 @@ theorem addressBytes_eq (f : LeanXmss.TweakFields) :
 
 /-- **An address is the cell of its packed number.** -/
 theorem addressBytes_eq_cell (f : LeanXmss.TweakFields) :
-    LeanXmss.addressBytes f = cellBytes (eOfNat192 (tweakNat f)) := by
-  rw [addressBytes_eq, cellBytes_eOfNat192 (lt_trans (tweakNat_lt f) (by norm_num))]
+    LeanXmss.addressBytes f = cellBytes (eOfNat128 (tweakNat f)) := by
+  rw [addressBytes_eq, cellBytes_eOfNat128 (lt_trans (tweakNat_lt f) (by norm_num))]
 
 /-- The number an address's four fields pack into: `lo`, `hi` from bit 32, the type and step byte
 from bit 56. -/

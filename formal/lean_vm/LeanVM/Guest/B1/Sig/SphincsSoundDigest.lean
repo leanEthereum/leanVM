@@ -166,14 +166,14 @@ theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
 /-! ## The message -/
 
 theorem word_eq192 {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
-    word a b = eOfNat192 (a + 2 ^ 64 * b) := by
-  unfold word eOfNat192
+    word a b = eOfNat128 (a + 2 ^ 64 * b) := by
+  unfold word eOfNat128
   rw [← ofBits_mod (a + 2 ^ 64 * b), show (a + 2 ^ 64 * b) % 2 ^ 64 = a by omega,
     show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega, show (a + 2 ^ 64 * b) / 2 ^ 128 = 0 by omega]
 
 theorem pw_64 : word 0 1 = pw 64 := by simp [pw]
 
-theorem mul_word_y {a : Nat} (ha : a < 2 ^ 64) : eOfNat a * word 0 1 = eOfNat192 (2 ^ 64 * a) := by
+theorem mul_word_y {a : Nat} (ha : a < 2 ^ 64) : eOfNat a * word 0 1 = eOfNat128 (2 ^ 64 * a) := by
   rw [pw_64, pw_mul (by norm_num) (by simpa using ha)]
 
 /-- **The message, sound**: the claim's keys and its message's two cells loaded. -/
@@ -339,8 +339,8 @@ theorem sCheckA_sound {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h : Atom
 /-- **The tree index's two high bytes placed**: with `md1`, the first call's second cell. -/
 theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (byteN T 31))
     (pad : σ (.n 1294) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
-    (h1 : σ (.n 1297) = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
-    σ (.n 1303) + σ (.n 1305) = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) := by
+    (h1 : σ (.n 1297) = eOfNat128 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
+    σ (.n 1303) + σ (.n 1305) = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) := by
   have k6 : σ (.n 1298) = word 4 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
   have m7 : σ (.n 1299) = σ (.n 1294) * σ (.n 1298) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
   have a8 : σ (.n 1300) = σ (sLVal 24) + σ (.n 1299) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
@@ -359,12 +359,12 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
     rw [e, show 8 * 30 = 240 by norm_num]
     generalize T / 2 ^ 240 = X
     omega
-  have e41 : σ (.n 1303) = eOfNat192 (T / 2 ^ 128 % 2 ^ 120) := by
+  have e41 : σ (.n 1303) = eOfNat128 (T / 2 ^ 128 % 2 ^ 120) := by
     rw [a1, m0, b30, k9, h1, pw_mul (by norm_num) (by have := byteN_lt T 30; norm_num; omega),
-      eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
+      eOfNat128_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
       mod_split (T / 2 ^ 128) 112 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
   rw [e41, m3, k2, tm, pw_mul (by norm_num) (by have := byteN_lt T 31; norm_num; omega),
-    eOfNat192_add_shift (Nat.mod_lt _ (by positivity)), show (128 : Nat) = 120 + 8 by norm_num,
+    eOfNat128_add_shift (Nat.mod_lt _ (by positivity)), show (128 : Nat) = 120 + 8 by norm_num,
     mod_split (T / 2 ^ (120 + 8)) 120 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
 
 /-- **The second call's high lane**: its cell, the leaves' bytes and the unused bytes `N`, times
@@ -393,10 +393,10 @@ theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOf
 /-- **The check, sound**: the first call's cells are the digest's bytes `0 … 31` the bits spell,
 the second call's low two bytes its bytes `32`, `33`. -/
 theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
-    {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h0 : σ sMd0.2.2 + corr0W = eOfNat192 (T % 2 ^ 128))
-    (h1 : σ sMd1.2.2 + corr1W = eOfNat192 (T / 2 ^ 128 % 2 ^ 112)) (h : AtomsHold L.read σ sCheck) :
-    σ sTreeMid = eOfNat (byteN T 31) ∧ σ sHm0 = eOfNat192 (T % 2 ^ 128) ∧
-      σ sHm0b = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) ∧ cellNat (σ sHm1) % 2 ^ 16 = T / 2 ^ 256 % 2 ^ 16 := by
+    {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h0 : σ sMd0.2.2 + corr0W = eOfNat128 (T % 2 ^ 128))
+    (h1 : σ sMd1.2.2 + corr1W = eOfNat128 (T / 2 ^ 128 % 2 ^ 112)) (h : AtomsHold L.read σ sCheck) :
+    σ sTreeMid = eOfNat (byteN T 31) ∧ σ sHm0 = eOfNat128 (T % 2 ^ 128) ∧
+      σ sHm0b = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) ∧ cellNat (σ sHm1) % 2 ^ 16 = T / 2 ^ 256 % 2 ^ 16 := by
   rw [sCheck_split] at h
   have hK := h.right
   have hC := h.left.right
@@ -512,7 +512,7 @@ theorem sDigestBlock_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
   rw [← d0, hmsgNat]
   dsimp only
   rw [← d1]
-  rw [c0, c1, cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)),
+  rw [c0, c1, cellNat_eOfNat128 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat128 (Nat.mod_lt _ (by norm_num)),
     c2]
   omega
 
@@ -672,8 +672,8 @@ theorem treeOfIndex_digest {T : Nat} (hT : T < 2 ^ 272) (l : Sphincs.Layer) :
 
 /-! ## The block, against the statement -/
 
-theorem canon_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : IsCanonical128 (eOfNat192 n) := by
-  rw [eOfNat192, isCanonical128_ofLimbs_iff, Nat.div_eq_of_lt h, Value.ofBits_zero]
+theorem canon_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : IsCanonical128 (eOfNat128 n) := by
+  rw [eOfNat128, isCanonical128_ofLimbs_iff, Nat.div_eq_of_lt h, Value.ofBits_zero]
 
 theorem cellPairVal_toNat (lo hi : E) : (cellPairVal lo hi).toNat = cellNat lo + 2 ^ 128 * cellNat hi := by
   rw [cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal, Nat.shiftLeft_eq, mul_comm,

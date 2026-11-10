@@ -68,10 +68,10 @@ def unusedOf (y : E) : Nat := kToNat (y.limb 0) / 2 ^ 16
 theorem unusedOf_lt (y : E) : unusedOf y < 2 ^ 48 := by
   have := kToNat_lt (y.limb 0); unfold unusedOf; omega
 
-theorem canon_eq192 {x : E} (h : IsCanonical128 x) : x = eOfNat192 (cellNat x) := by
+theorem canon_eq192 {x : E} (h : IsCanonical128 x) : x = eOfNat128 (cellNat x) := by
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
-  rw [eq_ofLimbs_of_canonical h, eOfNat192, cellNat]
+  rw [eq_ofLimbs_of_canonical h, eOfNat128, cellNat]
   simp only [ofLimbs_limb0, ofLimbs_limb1]
   rw [show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) / 2 ^ 64 = kToNat (x.limb 1) by omega,
     show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) / 2 ^ 128 = 0 by omega,
@@ -159,12 +159,12 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
   have hl1 : LValsAt σ1 T := sLeafShifts_sound hb1 (AtomsHold.right (xs := sForsFields) hA2)
   have hmd : AtomsHold rd σ1 sMdBytes := AtomsHold.right (xs := sForsFields ++ sLeafShifts) hA3
   have hmd2 : AtomsHold rd σ1 ((sMdByte 0 1067).1 ++ sMd0.1) := AtomsHold.left (ys := sMd1.1) hmd
-  have m0 : σ1 sMd0.2.2 + corr0W = eOfNat192 (T % 2 ^ 128) :=
+  have m0 : σ1 sMd0.2.2 + corr0W = eOfNat128 (T % 2 ^ 128) :=
     sMd0_sound hv1 (AtomsHold.left (ys := sMd0.1) hmd2) (AtomsHold.right (xs := (sMdByte 0 1067).1) hmd2)
-  have m1 : σ1 sMd1.2.2 + corr1W = eOfNat192 (T / 2 ^ 128 % 2 ^ 112) :=
+  have m1 : σ1 sMd1.2.2 + corr1W = eOfNat128 (T / 2 ^ 128 % 2 ^ 112) :=
     sMd1_sound hv1 (AtomsHold.right (xs := (sMdByte 0 1067).1 ++ sMd0.1) hmd)
   obtain ⟨tm1, pad1⟩ := sCheckA_sound hb1 hl1 (AtomsHold.right (xs := sForsFields ++ sLeafShifts ++ sMdBytes) hh1)
-  have v0 : σ1 sHm0 = eOfNat192 (T % 2 ^ 128) := by
+  have v0 : σ1 sHm0 = eOfNat128 (T % 2 ^ 128) := by
     rw [show sHm0 = .n 17 from rfl, t1 _ (by norm_num), blow _ (by norm_num), ← show sHm0 = .n 17 from rfl,
       canon_eq192 hc0]
     congr 1; simp only [hT, digestNatOf]; omega
@@ -187,7 +187,7 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
     (by rw [t2 _ (by norm_num)]; exact pad1)
     (by rw [a20, k19, show sMd1.2.2 = .n 1276 by decide +kernel, t2 _ (by norm_num), ← show sMd1.2.2 = .n 1276 by
       decide +kernel]; exact m1) hh2
-  have v0b : σ2 sHm0b = eOfNat192 (T / 2 ^ 128 % 2 ^ 128) := by
+  have v0b : σ2 sHm0b = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) := by
     rw [show sHm0b = .n 18 from rfl, t2 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num),
       ← show sHm0b = .n 18 from rfl, canon_eq192 hc0b]
     congr 1; simp only [hT, digestNatOf]; omega
@@ -254,7 +254,7 @@ theorem canon_dh2 (d) : IsCanonical128 (digestHalves d).2 := by simp [IsCanonica
 
 theorem hmsgNat_lt (d0 d1 : E × E) : hmsgNat d0 d1 < 2 ^ 272 := digestNatOf_lt d0.1 d0.2 d1.1
 
-theorem cellOf128_eq192 (v : BitVec 128) : cellOf128 v = eOfNat192 v.toNat := by
+theorem cellOf128_eq192 (v : BitVec 128) : cellOf128 v = eOfNat128 v.toNat := by
   rw [canon_eq192 (isCanonical128_cellOf128 v), cellNat_cellOf128]
 
 theorem sDigestBlock_split : sDigestBlock = sMsg ++ (sDigests ++
@@ -281,32 +281,32 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
         msg)).toNat ∧ DigestPtrs σ' bb) := by
   set M := msg.toNat with hMdef
   have hM : M < 2 ^ 256 := msg.isLt
-  have e0 : cellOf128 (msg.extractLsb' 0 128) = eOfNat192 (M % 2 ^ 128) := by
+  have e0 : cellOf128 (msg.extractLsb' 0 128) = eOfNat128 (M % 2 ^ 128) := by
     rw [cellOf128_eq192, BitVec.extractLsb'_toNat, Nat.shiftRight_zero]
-  have e1 : cellOf128 (msg.extractLsb' 128 128) = eOfNat192 (M / 2 ^ 128) := by
+  have e1 : cellOf128 (msg.extractLsb' 128 128) = eOfNat128 (M / 2 ^ 128) := by
     rw [cellOf128_eq192, BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, Nat.mod_eq_of_lt (by omega)]
   rw [e0, e1] at hcl
   rw [sDigestBlock_split]
   refine Completes.append (m := 6) (by norm_num) (by norm_num) sMsg_nb
     (sMsg_complete hcl σ h0) (fun σ1 he1 ⟨pP, pR, m0, m1⟩ => ?_)
-  have hm0 : IsCanonical128 (σ1 sM0) := by rw [m0]; exact canon_eOfNat192 (Nat.mod_lt _ (by norm_num))
-  have hm1 : IsCanonical128 (σ1 sM1) := by rw [m1]; exact canon_eOfNat192 (by omega)
+  have hm0 : IsCanonical128 (σ1 sM0) := by rw [m0]; exact canon_eOfNat128 (Nat.mod_lt _ (by norm_num))
+  have hm1 : IsCanonical128 (σ1 sM1) := by rw [m1]; exact canon_eOfNat128 (by omega)
   refine Completes.append (m := 28) (by norm_num) (by norm_num) sDigests_nb
     (sDigests_complete (C := C) (rd := rd) (Rho := cellOf128 R) (isCanonical128_cellOf128 R) σ1
       (by rw [pP]; exact isCanonical128_cellOf128 _) (by rw [pR]; exact isCanonical128_cellOf128 _) hm0 hm1)
     (fun σ2 he2 ⟨rR, hpad, d0, d1⟩ => ?_)
   have t21 : ∀ k < 6, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
   have hcells : ∀ i, hmsgCells σ2 i = [cellOf128 R, cellOf128 pk.publicSeed, cellOf128 pk.root,
-      eOfNat192 (M % 2 ^ 128), eOfNat192 (M / 2 ^ 128), word (i * 2 ^ 24) 0] := by
+      eOfNat128 (M % 2 ^ 128), eOfNat128 (M / 2 ^ 128), word (i * 2 ^ 24) 0] := by
     intro i
     simp only [hmsgCells]
     rw [rR, show sPP = .n 2 from rfl, t21 2 (by norm_num), show sRoot = .n 3 from rfl, t21 3 (by norm_num),
       show sM0 = .n 4 from rfl, t21 4 (by norm_num), show sM1 = .n 5 from rfl, t21 5 (by norm_num)]
     rw [← show sPP = .n 2 from rfl, pP, ← show sRoot = .n 3 from rfl, pR, ← show sM0 = .n 4 from rfl, m0,
       ← show sM1 = .n 5 from rfl, m1]
-  have hmn : msgNat (eOfNat192 (M % 2 ^ 128)) (eOfNat192 (M / 2 ^ 128)) = M := by
+  have hmn : msgNat (eOfNat128 (M % 2 ^ 128)) (eOfNat128 (M / 2 ^ 128)) = M := by
     simp only [msgNat]
-    rw [cellNat_eOfNat192 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat192 (by omega)]
+    rw [cellNat_eOfNat128 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat128 (by omega)]
     omega
   rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d0
   rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d1

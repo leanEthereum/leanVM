@@ -25,7 +25,7 @@ bottom first, are byte 33, byte 32 and byte 31 below the low two bits of byte 30
 
 * `shiftsG_sound`: a field read most significant bit first from bits pinned to values and its right
   shifts (`shifts` in any bit order);
-* `pw_eq`, `pw_mul`: the compiler's words `2^s` and products by them, as `eOfNat192`;
+* `pw_eq`, `pw_mul`: the compiler's words `2^s` and products by them, as `eOfNat128`;
 * `sMdByte_sound`, `sMdSum_sound`: `sp_md_byte`'s value is the digest's byte placed at its bit in the
   cell, the running sums the cells' low bytes.
 -/
@@ -197,7 +197,7 @@ theorem shiftsP_sound {bit : Nat → V} {n o P : Nat} {f : Nat → Bool} (hn : 0
 /-! ## Words `2^s` -/
 
 theorem pw_eq {s : Nat} (hs : s < 128) : pw s = coordBasis s := by
-  unfold pw coordBasis eOfNat192 word
+  unfold pw coordBasis eOfNat128 word
   split_ifs with h
   · rw [Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) h),
       Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) (by omega))]
@@ -209,7 +209,7 @@ theorem pw_eq {s : Nat} (hs : s < 128) : pw s = coordBasis s := by
 
 /-- **A word times `2^s`**: below the limb's top, the bit pattern `2^s · v`. -/
 theorem pw_mul {s v : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) :
-    eOfNat v * pw s = eOfNat192 (2 ^ s * v) := by
+    eOfNat v * pw s = eOfNat128 (2 ^ s * v) := by
   rw [pw_eq hs, mul_comm, coordBasis_mul_eOfNat (by omega) h]
 
 theorem pw_lo {s : Nat} (hs : s < 64) : pw s = word (2 ^ s) 0 := by
@@ -218,8 +218,8 @@ theorem pw_lo {s : Nat} (hs : s < 64) : pw s = word (2 ^ s) 0 := by
 theorem pw_zero : pw 0 = 1 := by
   rw [pw_lo (by norm_num), pow_zero, word_eq_eOfNat, Value.eOfNat_one]
 
-/-- `eOfNat192` of a value below `2^64` is `eOfNat`. -/
-theorem eOfNat_eq192 {v : Nat} (h : v < 2 ^ 64) : eOfNat v = eOfNat192 v := (eOfNat192_of_lt h).symm
+/-- `eOfNat128` of a value below `2^64` is `eOfNat`. -/
+theorem eOfNat_eq192 {v : Nat} (h : v < 2 ^ 64) : eOfNat v = eOfNat128 v := (eOfNat128_of_lt h).symm
 
 /-- A value and its high bits shifted back XOR to its low bits. -/
 theorem eOfNat_low (x k : Nat) : eOfNat x + eOfNat (2 ^ k * (x >>> k)) = eOfNat (x % 2 ^ k) := by
@@ -230,10 +230,10 @@ theorem eOfNat_low (x k : Nat) : eOfNat x + eOfNat (2 ^ k * (x >>> k)) = eOfNat 
   rw [e, add_comm (eOfNat (2 ^ k * _)), add_assoc, e_add_self, add_zero]
 
 /-- Two words of disjoint bits under one shift. -/
-theorem eOfNat192_shift_add {s k X q : Nat} (hq : q < 2 ^ k) :
-    eOfNat192 (2 ^ s * (2 ^ k * X)) + eOfNat192 (2 ^ s * q) = eOfNat192 (2 ^ s * (2 ^ k * X + q)) := by
+theorem eOfNat128_shift_add {s k X q : Nat} (hq : q < 2 ^ k) :
+    eOfNat128 (2 ^ s * (2 ^ k * X)) + eOfNat128 (2 ^ s * q) = eOfNat128 (2 ^ s * (2 ^ k * X + q)) := by
   rw [add_comm, show 2 ^ s * (2 ^ k * X) = 2 ^ (s + k) * X by rw [pow_add]; ring,
-    eOfNat192_add_shift (s := s + k) (by
+    eOfNat128_add_shift (s := s + k) (by
       rw [pow_add]; exact Nat.mul_lt_mul_of_pos_left hq (by positivity))]
   congr 1
   rw [pow_add]
@@ -349,7 +349,7 @@ theorem mdIn_mask_sound {T c z b : Nat} (hc : c < 24) (hz : z + 8 < 10) (hv : FV
 /-- **A byte placed at bit `s`**. -/
 theorem mdScale_sound {s v : Nat} {m : List Stmt × Nat × V} (hs : s < 128) (hs56 : s % 64 ≤ 56)
     (hv : v < 2 ^ 8) (hm : AtomsHold rd σ m.1 → σ m.2.2 = eOfNat v)
-    (h : AtomsHold rd σ (mdScale s m).1) : σ (mdScale s m).2.2 = eOfNat192 (2 ^ s * v) := by
+    (h : AtomsHold rd σ (mdScale s m).1) : σ (mdScale s m).2.2 = eOfNat128 (2 ^ s * v) := by
   unfold mdScale at h ⊢
   by_cases hs0 : s = 0
   · simp only [hs0, ↓reduceIte] at h ⊢
@@ -364,7 +364,7 @@ theorem mdScale_sound {s v : Nat} {m : List Stmt × Nat × V} (hs : s < 128) (hs
 theorem mdScale_place_sound {s v p : Nat} {m : List Stmt × Nat × V} (hs : s < 128)
     (hs56 : s % 64 ≤ 56) (hv : v < 2 ^ 8) (hm : AtomsHold rd σ m.1 → σ m.2.2 = eOfNat v + eOfNat p)
     (h : AtomsHold rd σ (mdScale s m).1) :
-    σ (mdScale s m).2.2 = eOfNat192 (2 ^ s * v) + eOfNat p * pw s := by
+    σ (mdScale s m).2.2 = eOfNat128 (2 ^ s * v) + eOfNat p * pw s := by
   unfold mdScale at h ⊢
   by_cases hs0 : s = 0
   · simp only [hs0, ↓reduceIte] at h ⊢
@@ -379,7 +379,7 @@ theorem mdScale_place_sound {s v p : Nat} {m : List Stmt × Nat × V} (hs : s < 
 stays (the first one's cancels). -/
 theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk7 : k1 ≤ 7)
     (hs : s < 128) (hs56 : s % 64 ≤ 56) (hv : FValsAt σ T) (h : AtomsHold rd σ (mdAcross c k1 s b).1) :
-    σ (mdAcross c k1 s b).2.2 = eOfNat192 (2 ^ s * (2 ^ (8 - k1) * (forsLeafN T c % 2 ^ k1) +
+    σ (mdAcross c k1 s b).2.2 = eOfNat128 (2 ^ s * (2 ^ (8 - k1) * (forsLeafN T c % 2 ^ k1) +
       forsLeafN T (c + 1) >>> (2 + k1))) + eOfNat (2 ^ (8 - k1) * (c + 1)) * pw s := by
   have hq : forsLeafN T (c + 1) >>> (2 + k1) < 2 ^ (8 - k1) := by
     have := forsLeaf_shift_lt_pow T (c + 1) (2 + k1) (by omega)
@@ -422,7 +422,7 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
       Nat.sub_zero, show ∀ a b d : E, a + b + (a + d) = b + d from fun a b d => by
         rw [add_add_add_comm, e_add_self, zero_add],
       eOfNat_low]
-  have e4 : σ (.n (b + 4)) = eOfNat192 (2 ^ (s + 8 - k1) * (forsLeafN T c % 2 ^ k1)) := by
+  have e4 : σ (.n (b + 4)) = eOfNat128 (2 ^ (s + 8 - k1) * (forsLeafN T c % 2 ^ k1)) := by
     rw [m4, e2, k3, pw_mul (by omega) (two_pow_mod_mul_lt (k := k1) (by omega) hX)]
   have hsk : 2 ^ (s + 8 - k1) * (forsLeafN T c % 2 ^ k1) = 2 ^ s * (2 ^ (8 - k1) * (forsLeafN T c % 2 ^ k1)) := by
     rw [← mul_assoc, ← pow_add, show s + (8 - k1) = s + 8 - k1 by omega]
@@ -436,7 +436,7 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
       h.atom (a := .add (.n (b + 5)) _ _) (by simp [addS])
     rw [a5, e4, hv1, ← add_assoc, eOfNat_eq192 (forsLeaf_shift_lt _ _ _), hsk, hs0, pw_zero, mul_one]
     congr 1
-    simpa only [pow_zero, one_mul] using eOfNat192_shift_add (s := 0) (X := forsLeafN T c % 2 ^ k1) hq
+    simpa only [pow_zero, one_mul] using eOfNat128_shift_add (s := 0) (X := forsLeafN T c % 2 ^ k1) hq
   · simp only [hs0, ↓reduceIte] at h ⊢
     have k5 : σ (.n (b + 5)) = pw s := h.atom (a := .const (.n (b + 5)) _) (by simp [cst])
     have m6 : σ (.n (b + 6)) = σ (sFVal (c + 1) (2 + k1)) * σ (.n (b + 5)) :=
@@ -444,7 +444,7 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
     have a7 : σ (.n (b + 7)) = σ (.n (b + 4)) + σ (.n (b + 6)) :=
       h.atom (a := .add (.n (b + 7)) _ _) (by simp [addS])
     rw [a7, e4, m6, k5, hv1, add_mul, pw_mul hs (two_pow_mod_mul_lt (k := 8 - k1) (by omega) hq),
-      ← add_assoc, hsk, eOfNat192_shift_add hq]
+      ← add_assoc, hsk, eOfNat128_shift_add hq]
 
 /-- **The place `vals` adds to digest byte `i`** (`G:4001-4007`): in a byte inside a field only
 where the field starts (`c · 256`), in a byte across two the second field's
@@ -503,7 +503,7 @@ theorem corr_eq : corr0W = mdPlaces 0 16 ∧ corr1W = mdPlaces 16 14 := by
 its place. -/
 theorem sMdByte_sound {T i b : Nat} (hi : i < 30) (hv : FValsAt σ T)
     (h : AtomsHold rd σ (sMdByte i b).1) :
-    σ (sMdByte i b).2.2 = eOfNat192 (2 ^ (8 * (i % 16)) * byteN T i) + mdPlace i := by
+    σ (sMdByte i b).2.2 = eOfNat128 (2 ^ (8 * (i % 16)) * byteN T i) + mdPlace i := by
   have hc24 : 8 * i / 10 < 24 := by omega
   have hs : 8 * (i % 16) % 64 ≤ 56 := by omega
   have hs128 : 8 * (i % 16) < 128 := by omega
@@ -538,10 +538,10 @@ theorem mod_split (X r n : Nat) : X % 2 ^ (r + n) = 2 ^ r * (X / 2 ^ r % 2 ^ n) 
 `16`) before `i`, each at its bit in the cell, with their places. -/
 theorem sMdSum_sound {T i0 : Nat} (hi0 : i0 = 0 ∨ i0 = 16) (hv : FValsAt σ T) :
     ∀ (m i : Nat) (acc : V) (b : Nat), i0 ≤ i → i + m ≤ 30 → i + m ≤ i0 + 16 →
-      σ acc = eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i - i0))) + mdPlaces i0 (i - i0) →
+      σ acc = eOfNat128 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i - i0))) + mdPlaces i0 (i - i0) →
       AtomsHold rd σ (sMdSum m i acc b).1 →
       σ (sMdSum m i acc b).2.2 =
-        eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + m - i0))) + mdPlaces i0 (i + m - i0)
+        eOfNat128 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + m - i0))) + mdPlaces i0 (i + m - i0)
   | 0, i, acc, b, _, _, _, hacc, _ => by simpa [sMdSum] using hacc
   | m + 1, i, acc, b, h1, h2, h3, hacc, h => by
       have h' : AtomsHold rd σ ((sMdByte i b).1 ++ [addS (.n (sMdByte i b).2.1) acc (sMdByte i b).2.2] ++
@@ -551,9 +551,9 @@ theorem sMdSum_sound {T i0 : Nat} (hi0 : i0 = 0 ∨ i0 = 16) (hv : FValsAt σ T)
         h'.left.right.atom (a := .add (.n (sMdByte i b).2.1) acc (sMdByte i b).2.2) (by simp [addS])
       have hmod : i % 16 = i - i0 := by omega
       have hnext : σ (.n (sMdByte i b).2.1) =
-          eOfNat192 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + 1 - i0))) + mdPlaces i0 (i + 1 - i0) := by
+          eOfNat128 (T / 2 ^ (8 * i0) % 2 ^ (8 * (i + 1 - i0))) + mdPlaces i0 (i + 1 - i0) := by
         rw [ha, hacc, hx, add_add_add_comm, show i + 1 - i0 = i - i0 + 1 by omega, mdPlaces_succ,
-          show i0 + (i - i0) = i by omega, hmod, eOfNat192_add_shift (Nat.mod_lt _ (by positivity)),
+          show i0 + (i - i0) = i by omega, hmod, eOfNat128_add_shift (Nat.mod_lt _ (by positivity)),
           show 8 * (i - i0 + 1) = 8 * (i - i0) + 8 by omega, mod_split, byteN, Nat.div_div_eq_div_mul,
           ← pow_add, show 8 * i0 + 8 * (i - i0) = 8 * i by omega, Nat.add_comm (2 ^ (8 * (i - i0)) * _)]
       have := sMdSum_sound hi0 hv m (i + 1) _ _ (by omega) (by omega) (by omega) hnext h'.right
@@ -562,7 +562,7 @@ theorem sMdSum_sound {T i0 : Nat} (hi0 : i0 = 0 ∨ i0 = 16) (hv : FValsAt σ T)
 
 /-- **`md0`** with `corr0`: the first call's first cell, the digest's bytes `0 … 15`. -/
 theorem sMd0_sound {T : Nat} (hv : FValsAt σ T) (h0 : AtomsHold rd σ (sMdByte 0 1067).1)
-    (h : AtomsHold rd σ sMd0.1) : σ sMd0.2.2 + corr0W = eOfNat192 (T % 2 ^ 128) := by
+    (h : AtomsHold rd σ sMd0.1) : σ sMd0.2.2 + corr0W = eOfNat128 (T % 2 ^ 128) := by
   have hb := sMdByte_sound (T := T) (i := 0) (b := 1067) (by norm_num) hv h0
   have := sMdSum_sound (Or.inl rfl) hv 15 1 _ _ (by norm_num) (by norm_num) (by norm_num)
     (by rw [hb]; simp [byteN, mdPlaces]) h
@@ -573,7 +573,7 @@ theorem sMd0_sound {T : Nat} (hv : FValsAt σ T) (h0 : AtomsHold rd σ (sMdByte 
 /-- **`md1`** with `corr1`: the digest's bytes `16 … 29`, at the first call's second cell's low
 bits. -/
 theorem sMd1_sound {T : Nat} (hv : FValsAt σ T) (h : AtomsHold rd σ sMd1.1) :
-    σ sMd1.2.2 + corr1W = eOfNat192 (T / 2 ^ 128 % 2 ^ 112) := by
+    σ sMd1.2.2 + corr1W = eOfNat128 (T / 2 ^ 128 % 2 ^ 112) := by
   have h' : AtomsHold rd σ ((sMdByte 16 sMd0.2.1).1 ++
       (sMdSum 13 17 (sMdByte 16 sMd0.2.1).2.2 (sMdByte 16 sMd0.2.1).2.1).1) := h
   have hb := sMdByte_sound (T := T) (i := 16) (b := sMd0.2.1) (by norm_num) hv h'.left

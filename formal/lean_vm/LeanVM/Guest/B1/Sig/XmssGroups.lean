@@ -183,7 +183,7 @@ theorem lx_enc_step (K : Nat → Nat) {p : Nat} (hp : p < 15) :
   obtain ⟨c, hc⟩ := hd
   rw [lit_eq _ (by have := h120 p (by omega); omega), lit_eq _ ht,
     lit_eq _ (by have := h120 (p + 1) (by omega); omega), Finset.sum_range_succ, hc,
-    eOfNat192_add_shift hs]
+    eOfNat128_add_shift hs]
 
 end
 end LeanVM.Guest.B1.Sig

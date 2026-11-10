@@ -115,11 +115,10 @@ theorem word_zero : word 0 0 = 0 := by
   simp only [word, Value.ofBits_zero]
   exact Value.zero_eq_ofLimbs.symm
 
-/-- The literal `lit c` is the 192-bit word of `c < 2^128`. -/
-theorem lit_eq (c : Nat) (hc : c < 2 ^ 128) : lit c = Value.eOfNat192 c := by
-  simp only [lit, word, Value.eOfNat192]
-  rw [Nat.div_eq_of_lt (b := 2 ^ 128) hc, Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega),
-    Value.ofBits_mod]
+/-- The literal `lit c` is the 128-bit word of `c < 2^128`. -/
+theorem lit_eq (c : Nat) (hc : c < 2 ^ 128) : lit c = Value.eOfNat128 c := by
+  simp only [lit, word, Value.eOfNat128]
+  rw [Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega), Value.ofBits_mod]
 
 /-- What arm `k` establishes, chain `r` starting at `start r`. -/
 structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Nat → Nat → Nat)

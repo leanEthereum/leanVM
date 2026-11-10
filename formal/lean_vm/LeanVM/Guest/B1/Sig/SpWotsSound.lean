@@ -71,7 +71,7 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : 
     (∀ i < 64, σ (spTip i) = chainT (spStepCell (σ (.n 0)) (σ (.n 4)) (σ (.n 5))) i
       (3 - spDigit σ i) (spDigit σ i) (σ (spStart σ i))) ∧
     σ (.n (spProd false 1 (spState 21).2.2)) = gen ^ (∑ i ∈ Finset.range 64, spDigit σ i) ∧
-    σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat192 (spX (spDigit σ) 64) := by
+    σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat128 (spX (spDigit σ) 64) := by
   have harm : ∀ p < 22, spDigitWord σ p < 4 ^ spN p ∧
       SpArmOK σ (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 (spDigitWord σ p)
         (spStartOf (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1
@@ -134,7 +134,7 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : 
 theorem sp_wots_soundT {rets : List E}
     (h : Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ (∀ i, spDigit σ i < 4) ∧
-      ∑ i ∈ Finset.range 64, spDigit σ i = 128 ∧ σ (.n 3) = eOfNat192 (spX (spDigit σ) 64) ∧
+      ∑ i ∈ Finset.range 64, spDigit σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigit σ) 64) ∧
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigit σ) fun i => σ (spStart σ i) := by
   rw [spBodyT_parts] at h
   -- the copies
@@ -182,7 +182,7 @@ theorem sp_wots_soundT {rets : List E}
     hc.atom (a := .const (.n (spC + 1)) _) (by simp [spChecks, cst])
   have eL2 : σ (.n (spC + 2)) = σ (.n 2) + σ (.n (spC + 1)) :=
     hc.atom (a := .add (.n (spC + 2)) (.n 2) (.n (spC + 1))) (by simp [spChecks, addS])
-  have henc3 : σ (.n 3) = eOfNat192 (spX (spDigit σ) 64) :=
+  have henc3 : σ (.n 3) = eOfNat128 (spX (spDigit σ) 64) :=
     ((Value.e_add_eq_zero_iff).mp e2).symm.trans henc
   have hdlt : ∀ j, spDigit σ j < 4 := fun j => Nat.mod_lt _ (by norm_num)
   have hsum : ∑ i ∈ Finset.range 64, spDigit σ i = 128 := by
@@ -254,7 +254,7 @@ the digits `spDigitR σ` sum to `128`, the fourth argument is their encoding (`s
 theorem sp_wots_sound_cells {rets : List E}
     (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ (∀ i, spDigitR σ i < 4) ∧
-      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat192 (spX (spDigitR σ) 64) ∧
+      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigitR σ) 64) ∧
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by
   rw [spBody_eq, spBody, Stmt.holdsList_rename] at h
   obtain ⟨leaf, h1, h2, h3, h4, h5, h6⟩ := sp_wots_soundT h

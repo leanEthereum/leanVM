@@ -36,21 +36,21 @@ open LeanVM.Protocol.Verifier (eOfNat)
 
 /-- A value times `2^s` in the low limb. -/
 theorem eOfNat_mul_lit_lo {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) (hs : s < 64) :
-    eOfNat a * lit (2 ^ s) = eOfNat192 (2 ^ s * a) := by
+    eOfNat a * lit (2 ^ s) = eOfNat128 (2 ^ s * a) := by
   rw [lit_of_lt (Nat.pow_lt_pow_right (by norm_num) hs), word_eq_eOfNat, mul_comm,
-    eOfNat_two_pow_mul h, eOfNat192_of_lt h]
+    eOfNat_two_pow_mul h, eOfNat128_of_lt h]
 
 /-- A value times `2^(64 + s)`, in the high limb. -/
 theorem eOfNat_mul_lit_hi {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) (hs : s < 64) :
-    eOfNat a * lit (2 ^ (64 + s)) = eOfNat192 (2 ^ (64 + s) * a) := by
+    eOfNat a * lit (2 ^ (64 + s)) = eOfNat128 (2 ^ (64 + s) * a) := by
   rw [pow_add, lit_hi (Nat.pow_lt_pow_right (by norm_num) hs), eOfNat_mul_word_hi' h,
     word_eq192 (by norm_num) h, Nat.zero_add, mul_assoc]
 
 /-- Three shifted values with disjoint bits, a byte apart. -/
 theorem e192_three {s a b c : Nat} (ha : a < 2 ^ 8) (hb : b < 2 ^ 8) :
-    eOfNat192 (2 ^ (s + 16) * c) + eOfNat192 (2 ^ (s + 8) * b) + eOfNat192 (2 ^ s * a) =
-      eOfNat192 (2 ^ s * (a + 2 ^ 8 * b + 2 ^ 16 * c)) := by
-  rw [← eOfNat192_xor, ← eOfNat192_xor, pow_add, pow_add, mul_assoc, mul_assoc,
+    eOfNat128 (2 ^ (s + 16) * c) + eOfNat128 (2 ^ (s + 8) * b) + eOfNat128 (2 ^ s * a) =
+      eOfNat128 (2 ^ s * (a + 2 ^ 8 * b + 2 ^ 16 * c)) := by
+  rw [← eOfNat128_xor, ← eOfNat128_xor, pow_add, pow_add, mul_assoc, mul_assoc,
     pow_mul_xor_pow_mul, pow_mul_xor_pow_mul, show (2 : Nat) ^ 16 = 2 ^ 8 * 2 ^ 8 by norm_num,
     mul_assoc, pow_mul_xor_pow_mul, two_pow_mul_xor hb, two_pow_mul_xor ha]
   congr 2
@@ -58,8 +58,8 @@ theorem e192_three {s a b c : Nat} (ha : a < 2 ^ 8) (hb : b < 2 ^ 8) :
 
 /-- Two shifted values with disjoint bits, a byte apart. -/
 theorem e192_two {s a b : Nat} (ha : a < 2 ^ 8) :
-    eOfNat192 (2 ^ (s + 8) * b) + eOfNat192 (2 ^ s * a) = eOfNat192 (2 ^ s * (a + 2 ^ 8 * b)) := by
-  rw [← eOfNat192_xor, pow_add, mul_assoc, pow_mul_xor_pow_mul, two_pow_mul_xor ha]
+    eOfNat128 (2 ^ (s + 8) * b) + eOfNat128 (2 ^ s * a) = eOfNat128 (2 ^ s * (a + 2 ^ 8 * b)) := by
+  rw [← eOfNat128_xor, pow_add, mul_assoc, pow_mul_xor_pow_mul, two_pow_mul_xor ha]
   congr 2
   ring
 
@@ -112,13 +112,13 @@ theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sFo
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 1373) = eOfNat192 (2 ^ (104 + 16) * layerLeafN T 1) := by
+  have p1 : σ (.n 1373) = eOfNat128 (2 ^ (104 + 16) * layerLeafN T 1) := by
     rw [m1, v8, c0, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p3 : σ (.n 1375) = eOfNat192 (2 ^ (104 + 8) * m) := by
+  have p3 : σ (.n 1375) = eOfNat128 (2 ^ (104 + 8) * m) := by
     rw [m3, vm, hm', c2, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p6 : σ (.n 1378) = eOfNat192 (2 ^ 104 * q) := by
+  have p6 : σ (.n 1378) = eOfNat128 (2 ^ 104 * q) := by
     rw [m6, v24, hq', c5, show (2 : Nat) ^ 104 = 2 ^ (64 + 40) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 0 + beWordAt 2 (layerTreeN T 0 / 2 ^ 32) + beWordAt 3 (layerTreeN T 0) =
@@ -131,7 +131,7 @@ theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sFo
     ring
   constructor
   · rw [a7, a4, p1, p3, p6, e192_three (by omega) (by omega), adrsCell0, hN,
-      cellOf128_eq_eOfNat192 (by omega)]
+      cellOf128_eq_eOfNat128 (by omega)]
   · rw [m9, c8, v0, eOfNat_mul_lit_lo (by omega) (by norm_num), adrsCell1_eq]
     congr 1
     rw [adrsNat1, show layerLeafN T 0 = layerLeafN T 0 + 256 * 0 + 65536 * 0 + 16777216 * 0 by ring,
@@ -142,7 +142,7 @@ theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sFo
 /-- A one-time key's second address cell, its leaf `L < 2^16` the key pair, type `WOTS_HASH`: the
 leaf's two low bytes at bits `56` and `48`. -/
 theorem keyCell_eq {m q : Nat} (hm : m < 256) (hq : q < 256) :
-    eOfNat192 (2 ^ 48 * (q + 2 ^ 8 * m)) = adrsCell1 0 (m + 256 * q) 0 0 := by
+    eOfNat128 (2 ^ 48 * (q + 2 ^ 8 * m)) = adrsCell1 0 (m + 256 * q) 0 0 := by
   rw [adrsCell1_eq]
   congr 1
   rw [adrsNat1, show m + 256 * q = m + 256 * q + 65536 * 0 + 16777216 * 0 by ring,
@@ -168,10 +168,10 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p2 : σ (.n 5400) = eOfNat192 (2 ^ (112 + 8) * m) := by
+  have p2 : σ (.n 5400) = eOfNat128 (2 ^ (112 + 8) * m) := by
     rw [m2, vm, hm', c1, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p5 : σ (.n 5403) = eOfNat192 (2 ^ 112 * q) := by
+  have p5 : σ (.n 5403) = eOfNat128 (2 ^ 112 * q) := by
     rw [m5, v24, hq', c4, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 1 + beWordAt 2 (layerTreeN T 1 / 2 ^ 32) + beWordAt 3 (layerTreeN T 1) =
@@ -184,7 +184,7 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
     ring
   constructor
   · rw [a6, a3, add_assoc, p2, p5, e192_two (by omega), c0, lit_eq _ (by norm_num),
-      eOfNat192_add_shift (by norm_num), adrsCell0, hN, cellOf128_eq_eOfNat192 (by omega)]
+      eOfNat128_add_shift (by norm_num), adrsCell0, hN, cellOf128_eq_eOfNat128 (by omega)]
   · rw [m8, c7, v8, eOfNat_mul_lit_lo (by omega) (by norm_num),
       show 2 ^ 56 * layerLeafN T 1 = 2 ^ 48 * (0 + 2 ^ 8 * layerLeafN T 1) by ring,
       keyCell_eq b1 (by norm_num)]
@@ -205,12 +205,12 @@ theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTop
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 5557) = eOfNat192 (2 ^ (48 + 8) * m) := by
+  have p1 : σ (.n 5557) = eOfNat128 (2 ^ (48 + 8) * m) := by
     rw [m1, vm, hm', c0, eOfNat_mul_lit_lo (by omega) (by norm_num)]
-  have p3 : σ (.n 5559) = eOfNat192 (2 ^ 48 * q) := by
+  have p3 : σ (.n 5559) = eOfNat128 (2 ^ 48 * q) := by
     rw [m3, v24, hq', c2, eOfNat_mul_lit_lo (by omega) (by norm_num)]
   constructor
-  · rw [c5, lit_eq _ (by norm_num), adrsCell0, cellOf128_eq_eOfNat192 (by
+  · rw [c5, lit_eq _ (by norm_num), adrsCell0, cellOf128_eq_eOfNat128 (by
       simp only [layerTreeN, beWordAt]; norm_num)]
     congr 1
     simp only [layerTreeN, beWordAt]

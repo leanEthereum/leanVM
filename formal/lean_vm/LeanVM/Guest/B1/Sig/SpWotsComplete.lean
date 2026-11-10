@@ -357,7 +357,7 @@ theorem spVals {d : Nat → Nat} (hd : ∀ i, d i < 4) (hsum : ∑ i ∈ Finset.
     {vals : Nat → E} {σ : Val} {rest : List Stmt} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (spGs.1 ++ (spLast.1 ++ rest)) next kret)
     (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hgp : ∀ q < 22, SpGP d vals q σ) :
-    σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat192 (spX d 64) ∧
+    σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat128 (spX d 64) ∧
       σ (.n (spProd false 1 (spState 21).2.2)) = spTarget := by
   rw [spGs_fst] at h
   obtain ⟨s2, hpad, hg⟩ := spGroupsT_sound (C := C) (rd := rd) (σ := σ) 21 0 (by norm_num) h
@@ -531,14 +531,14 @@ theorem sp_wots_completeT {pp a0 a1 : E} (hpp : IsCanonical128 pp) (ha0 : IsCano
     (ha1 : IsCanonical128 a1) {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hv : ∀ i, IsCanonical128 (vals i))
     (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat192 (spX d 64) ∧
+    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) := by
   set σI : Val := Function.update (Function.update (Function.update (Function.update (fun _ => 0)
-    (.n 0) pp) (.n 1) a0) (.n 2) a1) (.n 3) (eOfNat192 (spX d 64)) with hσI
+    (.n 0) pp) (.n 1) a0) (.n 2) a1) (.n 3) (eOfNat128 (spX d 64)) with hσI
   have i0 : σI (.n 0) = pp := by simp [hσI]
   have i1 : σI (.n 1) = a0 := by simp [hσI]
   have i2 : σI (.n 2) = a1 := by simp [hσI]
-  have i3 : σI (.n 3) = eOfNat192 (spX d 64) := by simp [hσI]
+  have i3 : σI (.n 3) = eOfNat128 (spX d 64) := by simp [hσI]
   have hC := spC_ge
   have c0 : IsCanonical128 (σI (.n 0)) := by rw [i0]; exact hpp
   have c1 : IsCanonical128 (σI (.n 1)) := by rw [i1]; exact ha0
@@ -551,7 +551,7 @@ theorem sp_wots_completeT {pp a0 a1 : E} (hpp : IsCanonical128 pp) (ha0 : IsCano
     refine Completes.append (m := spC) (by omega) (by omega) hnbA hA.withHolds
       (fun σ2 he2 ⟨⟨hpow, hgp, hgd⟩, hh2⟩ => ?_)
     have hag2 : AgreeBelow 4 σI σ2 := he2.agree
-    have h23 : σ2 (.n 3) = eOfNat192 (spX d 64) := by rw [← hag2 3 (by norm_num)]; exact i3
+    have h23 : σ2 (.n 3) = eOfNat128 (spX d 64) := by rw [← hag2 3 (by norm_num)]; exact i3
     have h22 : σ2 (.n 2) = σI (.n 2) := (hag2 2 (by norm_num)).symm
     have hs := (holdsList_split_atoms (xs := spCopies ++ spPowers) rfl hh2).2
     rw [show spGs.1 ++ spLast.1 = spGs.1 ++ (spLast.1 ++ []) by simp] at hs
@@ -604,7 +604,7 @@ theorem sp_wots_completeT {pp a0 a1 : E} (hpp : IsCanonical128 pp) (ha0 : IsCano
   have f0 : σf (.n 0) = pp := by rw [hef.apply (Or.inl (by norm_num))]; exact i0
   have f1 : σf (.n 1) = a0 := by rw [hef.apply (Or.inl (by norm_num))]; exact i1
   have f2 : σf (.n 2) = a1 := by rw [hef.apply (Or.inl (by norm_num))]; exact i2
-  have f3 : σf (.n 3) = eOfNat192 (spX d 64) := by rw [hef.apply (Or.inl (by norm_num))]; exact i3
+  have f3 : σf (.n 3) = eOfNat128 (spX d 64) := by rw [hef.apply (Or.inl (by norm_num))]; exact i3
   have hbody : spBodyT = (((spHead ++ spChecks) ++ spLeafK.1) ++
       [copyS (.n spLeafK.2.1) (.n spLeafK.2.2)]) ++ [.ret [.n spLeafK.2.1]] := by
     rw [spBodyT_parts, spHead]
