@@ -30,7 +30,8 @@ theorem deferredProgram_execWith (c : BytecodeClaim) (bytecode : List K) (public
     deferringVerifierProgram c bytecode publicInput =
       (execWith (claimedBytecodeValue c) verifyStackedOpening bytecode publicInput).bind
         fun _ ↦ VerifierProgram.ret true := by
-  rw [deferredProgram_eq]
+  unfold deferringVerifierProgram verifyExecution execWith
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   rfl
 
 /-- **An accepted run of the deferring program has its claim at the prefix's point.** -/
@@ -47,7 +48,7 @@ theorem point_of_run_deferred (H : Bytes → Id Digest) (F : KeccakState → Id 
   rw [hp] at h
   refine ⟨y, s1, rfl, ?_⟩
   by_contra hne
-  have hne' : ¬ busPoint y = c.bytecodePoint := fun e ↦ hne e.symm
+  have hne' : ¬ y.bytecodePoint = c.bytecodePoint := fun e ↦ hne e.symm
   simp only [Option.bind_some, claimedBytecodeValue, VerifierProgram.require,
       VerifierProgram.bind_eq, VerifierProgram.pure_eq, hne',
     ↓reduceIte, VerifierProgram.bind] at h
