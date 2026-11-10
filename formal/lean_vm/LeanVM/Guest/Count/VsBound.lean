@@ -31,12 +31,17 @@ theorem vs_frames : B2C.fs "verify_sub" = 2032 ∧ B2C.fs "log2_ceil_in_the_expo
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The statically bounded callees' words: the grind checks, the opening message, the two
-dispatches' largest arms. -/
+/-- The statically bounded callees' words: the grind checks, the opening message, the squeeze
+dispatch's largest arm. -/
 theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1" = 58 ∧
-    wSB "grind_check__L14" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 498 ∧
-    B1.VerifySub.armMax wSB B1.VerifySub.busGrindNames = 61 := by
+    wSB "grind_check__L14" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 498 := by
   rw [← wSBFast_eq]; decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- The bus grind dispatch's largest arm with its grind check's frame. -/
+theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = 61 := by
+  unfold B1.VerifySub.busGrindMax
+  rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s words for a child at candidate `candidate μ r`** at the deployed instance:
@@ -54,8 +59,8 @@ theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
     vkBound_eq, termBound_eq, show vsWords.Kst = wSB from rfl, show vsWords.B14 = 3204 from rfl,
     show B1.Tables.cpSizes.sum = 130 from rfl]
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vs_frames
-  obtain ⟨k1, k2, k3, k4, k5⟩ := vs_static
-  rw [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, k5]
+  obtain ⟨k1, k2, k3, k4⟩ := vs_static
+  rw [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
   simp only [List.sum_cons, List.sum_nil]
   omega
 
