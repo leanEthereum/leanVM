@@ -32,7 +32,6 @@ theorem deferredProgram_execWith (c : BytecodeClaim) (bytecode : List K) (public
         fun _ ↦ VerifierProgram.ret true := by
   unfold deferringVerifierProgram verifyExecution execWith
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
-  rfl
 
 /-- **An accepted run of the deferring program has its claim at the prefix's point.** -/
 theorem point_of_run_deferred (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
@@ -49,9 +48,12 @@ theorem point_of_run_deferred (H : Bytes → Id Digest) (F : KeccakState → Id 
   refine ⟨y, s1, rfl, ?_⟩
   by_contra hne
   have hne' : ¬ y.bytecodePoint = c.bytecodePoint := fun e ↦ hne e.symm
-  simp only [Option.bind_some, claimedBytecodeValue, VerifierProgram.require,
-      VerifierProgram.bind_eq, VerifierProgram.pure_eq, hne',
-    ↓reduceIte, VerifierProgram.bind] at h
+  simp only [Option.bind_some, claimedBytecodeValue, VerifierProgram.require, hne', false_and,
+    ↓reduceIte] at h
+  have e : (((VerifierProgram.fail : VerifierProgram Unit).bind
+      fun _ ↦ suffixProg verifyStackedOpening publicInput y).bind
+      fun _ ↦ VerifierProgram.ret true) = (VerifierProgram.fail : VerifierProgram Bool) := rfl
+  rw [e] at h
   simp [Compile.runWithHash] at h
 
 /-- **The deferring verifier's acceptance places its claim at the prefix's point**, from the seed
@@ -59,7 +61,7 @@ of `iv` and the public input on the proof, whatever the claim. -/
 theorem point_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
     {proof : Proof} (h : verifyDeferred bytecode iv publicInput c proof = true) :
     ∃ y s1, Compile.runWithHash (m := Id) keccak256 keccakF1600 (prefixProg bytecode)
-        ⟨⟨keccakF1600 (seedInput iv publicInput), []⟩, proof.stream, proof.openings, []⟩ =
+        ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings, []⟩ =
           some (y, s1) ∧ c.bytecodePoint = busPoint y := by
   rw [verifyDeferred_eq_withHash] at h
   have h2 : Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
@@ -69,7 +71,7 @@ theorem point_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest} {c
   unfold runProofWithHash at h2
   cases hr : Compile.runWithHash (m := Id) keccak256 keccakF1600
       (deferringVerifierProgram c bytecode publicInput)
-      ⟨⟨keccakF1600 (seedInput iv publicInput), []⟩, proof.stream, proof.openings, []⟩ with
+      ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings, []⟩ with
   | none => rw [hr] at h2; cases h2
   | some r => exact point_of_run_deferred _ _ hr
 
