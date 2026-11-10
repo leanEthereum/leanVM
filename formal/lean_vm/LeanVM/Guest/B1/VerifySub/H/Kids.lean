@@ -167,8 +167,8 @@ def cW : ℕ := S.cR bs + S.xsR.length
 /-- The tables' evaluations' cursor (`col_eval_words`). -/
 def cE : ℕ := S.cT bs + 13 + 1 + 3 * S.nT
 
-/-- The output lanes' cursor: `col_eval_words·g^107`. -/
-def cL : ℕ := S.cE bs + 107
+/-- The output lanes' cursor: `col_eval_words·g^101` (`KECCAK_OUT_POOL - N_BUS_CLAIMS`). -/
+def cL : ℕ := S.cE bs + 101
 
 /-- `verify_tables`' buffers, its GKR leaves at `leaves`. -/
 def vtB (sqE leaves : ℕ) : Tables.VtBases :=

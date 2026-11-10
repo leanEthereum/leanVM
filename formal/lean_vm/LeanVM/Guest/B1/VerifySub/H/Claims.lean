@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.Claims
 
-  `verify_tables`' honest claims (B1-c's `VtHonest`): their values are `claim_pool`'s words,
-  their columns `claimColumns`, their points the bus point's prefixes, the table sumcheck's point's
-  prefixes (`chi`), and the public input's point.
+  `verify_tables`' honest claims (`VtHonest`): their columns are `claimColumns`, their values the
+  framework words, the tables' evaluations and the public input's, their points the bus point's
+  prefixes, the table sumcheck's point's prefixes (`chi`) and the public input's point.
 -/
 
 module
@@ -14,9 +14,11 @@ public import LeanVM.Guest.B1.VerifySub.H.Vt
 # The honest claims
 
 `termsPure_snd`: the table loop's claims, table by table. For an accepted honest run
-(`VtHonest.Ok`, six row counts): `vtH_values` (the values are `poolW`), `vtH_columns`
-(`claimColumns`), `vtH_points` (by position: the bus point cut to `logMemory` four times and to
-`logBytecode` once, then evaluation `k`'s table's height of `chiW`, then the public input's point).
+(`VtHonest.Ok`, six row counts): `claims_split` (the bus's four, the tables' `153`, the public
+input's two), `vtH_columns` (`claimColumns`), `vtH_values` (the framework words, the evaluations,
+`pcW`), `vtH_points` (by position: the bus point cut to `logMemory` three times and to
+`logBytecode` once, then evaluation `k`'s table's height of `chiW`, then the public input's
+point).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -81,68 +83,14 @@ theorem flatMap_rows {Y : Type} (F : Table → ℕ → List E → List Y) (G : T
 
 /-- Evaluation `k`'s table, by the tables' widths. -/
 def vsEvTab (k : ℕ) : ℕ :=
-  (List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
+  (List.replicate 13 0 ++ List.replicate 13 1 ++ List.replicate 7 2 ++ List.replicate 14 3 ++
     List.replicate 14 4 ++ List.replicate 92 5).getD k 0
 
-theorem vsEvTab_blocks : (List.range 159).map vsEvTab =
-    List.replicate 15 0 ++ List.replicate 15 1 ++ List.replicate 8 2 ++ List.replicate 15 3 ++
+theorem vsEvTab_blocks : (List.range 153).map vsEvTab =
+    List.replicate 13 0 ++ List.replicate 13 1 ++ List.replicate 7 2 ++ List.replicate 14 3 ++
       List.replicate 14 4 ++ List.replicate 92 5 := by decide +kernel
 
 theorem tables_widths_list : tables.map (·.width) = vtW6 := by decide +kernel
-
-namespace VtHonest
-
-variable {H : VtHonest}
-
-theorem evsT_lengths (h : H.Ok) (hr : H.rows.length = 6) : H.evsT.map List.length = vtW6 := by
-  obtain ⟨h6, hw⟩ := vtH_evsT_shape h hr
-  apply List.ext_getElem (by simp [h6]; rfl)
-  intro i h1 h2
-  simp only [List.length_map] at h1
-  rw [List.getElem_map, ← List.getD_eq_getElem _ [] h1, hw i (by omega),
-    List.getD_eq_getElem _ 0 h2]
-
-theorem rowsT_heights (hr : H.rows.length = 6) :
-    H.rowsT.map (·.2.1) = tableHeightsOf H.rows := by
-  have hf : H.busH.forms.length = 6 :=
-    (vt_forms3_shape H.bc H.lm hr H.alphas H.beta H.point (H.xs5.take 3) (H.xs5.getD 3 0)
-      (H.xs5.getD 4 0) H.bv (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
-  simp only [VtHonest.rowsT, vtRows]
-  rw [show (fun x : Table × ℕ × List Form × E ↦ x.2.1) =
-      (fun x : ℕ × List Form × E ↦ x.1) ∘ (fun x ↦ x.2) from rfl, ← List.map_map,
-    List.map_snd_zip (by
-      simp only [List.length_zip, hh, hf, LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
-      decide),
-    List.map_fst_zip (by
-      simp only [List.length_zip, hh, hf, LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
-      omega)]
-  rfl
-
-/-- The honest claims, in three parts. -/
-theorem claims_split (h : H.Ok) :
-    H.claims = H.busH.claims ++ (List.zip H.rowsT H.evsT).flatMap (rowClaims H.pts.reverse) ++
-      H.pclaims := by
-  rw [(vt_spec h).2.2.1, VtHonest.terms, termsPure_snd]
-  rfl
-
-/-- **The honest claims' values are `claim_pool`'s words.** -/
-theorem vtH_values (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.value) = H.poolW := by
-  rw [claims_split h, List.map_append, List.map_append, VtHonest.poolW]
-  have h6 : H.rowsT.length = H.evsT.length := by rw [vtH_rowsT_length hr, (vtH_evsT_shape h hr).1]
-  congr 1
-  congr 1
-  · simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil]
-    have hx := vt_xs5_split h.hx5
-    have h3 : (H.xs5.take 3).length = 3 := by simp [h.hx5]
-    match hm : H.xs5.take 3, h3 with
-    | [a, b, c], _ =>
-      rw [hx, hm]; rfl
-  · rw [List.map_flatMap]
-    simp only [rowClaims_values]
-    rw [vt_flatMap_snd, List.map_snd_zip (by omega)]
-
-end VtHonest
 
 theorem flatMap_zip_fst {Y : Type} (g : Table → List Y) :
     ∀ (ts : List Table) (hs : List ℕ), ts.length ≤ hs.length →
@@ -163,15 +111,79 @@ theorem flatMap_zip_width {Y : Type} (g : ℕ → Y) :
     simp only [List.zip_cons_cons, List.flatMap_cons, List.map_cons]
     rw [flatMap_zip_width g ts hs]
 
+theorem xs4_two {xs4 : List E} (h : xs4.length = 4) : (xs4.take 2).length = 2 := by simp [h]
+
 namespace VtHonest
 
 variable {H : VtHonest}
 
-theorem pclaims_columns : H.pclaims.map (·.column) = [memory0, memory1, memory2] := rfl
+theorem evsT_lengths (h : H.Ok) (hr : H.rows.length = 6) : H.evsT.map List.length = vtW6 := by
+  have hl : H.evsT.length = 6 := by rw [h.hevl, vtH_rowsT_length hr]
+  apply List.ext_getElem (by simp [hl]; rfl)
+  intro i h1 h2
+  simp only [List.length_map] at h1
+  have hz : (H.rowsT[i]'(by rw [vtH_rowsT_length hr]; omega), H.evsT[i]) ∈
+      List.zip H.rowsT H.evsT := by
+    rw [List.mem_iff_getElem]
+    exact ⟨i, by simp [vtH_rowsT_length hr, hl]; omega, by simp⟩
+  have hw := h.hevw _ hz
+  simp only at hw
+  have ht1 : (H.rowsT[i]'(by rw [vtH_rowsT_length hr]; omega)).1 = tables.getD i default := by
+    have := congrArg (·[i]?) (rowsT_fst H hr)
+    simp only [List.getElem?_map] at this
+    rw [List.getElem?_eq_getElem (by rw [vtH_rowsT_length hr]; omega),
+      List.getElem?_eq_getElem (show i < tables.length by show i < 6; omega)] at this
+    simp only [Option.map_some, Option.some.injEq] at this
+    rw [this, List.getD_eq_getElem]
+  rw [List.getElem_map, hw, ht1, vt_tables_widths i (by omega), List.getD_eq_getElem _ 0 h2]
+
+theorem rowsT_heights (hr : H.rows.length = 6) :
+    H.rowsT.map (·.2.1) = tableHeightsOf H.rows := by
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  simp only [VtHonest.rowsT, vtRows]
+  rw [show (fun x : Table × ℕ × List Form × E ↦ x.2.1) =
+      (fun x : ℕ × List Form × E ↦ x.1) ∘ (fun x ↦ x.2) from rfl, ← List.map_map,
+    List.map_snd_zip (by
+      simp only [List.length_zip, hh, busH_forms_length hr,
+        LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
+      decide),
+    List.map_fst_zip (by
+      simp only [List.length_zip, hh, busH_forms_length hr,
+        LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
+      omega)]
+  rfl
+
+/-- The honest claims, in three parts. -/
+theorem claims_split (h : H.Ok) :
+    H.claims = H.busH.claims ++ (List.zip H.rowsT H.evsT).flatMap (rowClaims H.pts.reverse) ++
+      H.pclaims := by
+  rw [(vt_spec h).2.2.2.1, VtHonest.terms, termsPure_snd]
+  rfl
+
+theorem busH_claims_values (h : H.Ok) : H.busH.claims.map (·.value) = H.xs4 := by
+  have hx := vt_xs4_split h.hx4
+  have h2 := xs4_two h.hx4
+  simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil]
+  generalize hm : H.xs4.take 2 = m at h2
+  match m, h2 with
+  | [a, b], _ =>
+    rw [hx, hm]
+    rfl
+
+/-- **The honest claims' values**: the framework words, the evaluations, the public input's. -/
+theorem vtH_values (h : H.Ok) :
+    H.claims.map (·.value) = H.xs4 ++ H.evsT.flatten ++ H.pcW := by
+  have h6 : H.rowsT.length = H.evsT.length := by rw [h.hevl]
+  rw [claims_split h, List.map_append, List.map_append, busH_claims_values h, List.map_flatMap]
+  simp only [rowClaims_values]
+  rw [vt_flatMap_snd, List.map_snd_zip (by omega)]
+  rfl
+
+theorem pclaims_columns : H.pclaims.map (·.column) = [memory0, memory1] := rfl
 
 theorem pclaims_points :
     H.pclaims.map (·.point) =
-      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := rfl
+      List.replicate 2 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := rfl
 
 /-- **The honest claims' columns.** -/
 theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.column) = claimColumns := by
@@ -183,18 +195,17 @@ theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.colum
     (by rw [evsT_lengths h hr, tables_widths_list])]
   rw [flatMap_zip_fst (fun t ↦ (List.range t.width).map (globalColumnBases.getD t.opcode 0 + ·))
     tables _ (by simp [vtH_rowsT_length hr]; decide)]
-  have hx := vt_xs5_split h.hx5
-  have h3 : (H.xs5.take 3).length = 3 := by simp [h.hx5]
+  have h2 := xs4_two h.hx4
   simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil]
-  match H.xs5.take 3, h3 with
-  | [a, b, c], _ => rfl
+  generalize H.xs4.take 2 = m at h2
+  match m, h2 with
+  | [a, b], _ => rfl
 
-set_option maxRecDepth 2048 in
 /-- **The honest claims' points**, by position. -/
 theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23) :
-    H.claims.map (·.point) = List.replicate 4 (H.point.take H.lm) ++ [H.point.take 19] ++
-      (List.range 159).map (fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))) ++
-      List.replicate 3 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := by
+    H.claims.map (·.point) = List.replicate 3 (H.point.take H.lm) ++ [H.point.take 19] ++
+      (List.range 153).map (fun k ↦ H.chiW.take (vtHt H.rows (vsEvTab k))) ++
+      List.replicate 2 (H.rm :: List.replicate ((H.L.placement memory0).variableCount - 1) 0) := by
   have hlb : H.L.logBytecode = 19 := by
     show Nat.log2 H.bc.length - busBits = 19
     rw [hbc, Nat.log2_two_pow]; rfl
@@ -206,20 +217,20 @@ theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 
     (by rw [evsT_lengths h hr, tables_widths_list])]
   rw [flatMap_zip_width (fun hh ↦ H.pts.reverse.take hh), tables_widths_list, rowsT_heights hr]
   have hsl : (tableHeightsOf H.rows).length = 6 := vt_tableHeights_length hr
-  have hx := vt_xs5_split h.hx5
-  have h3 : (H.xs5.take 3).length = 3 := by simp [h.hx5]
+  have h2 := xs4_two h.hx4
   have hchi : H.chiW = H.pts.reverse := rfl
   have hlm : H.L.logMemory = H.lm := rfl
   rw [hchi]
   simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil, hlb,
     hlm]
-  have e : (List.range 159).map (fun k ↦ H.pts.reverse.take (vtHt H.rows (vsEvTab k))) =
-      ((List.range 159).map vsEvTab).map (fun t ↦ H.pts.reverse.take (vtHt H.rows t)) := by
+  have e : (List.range 153).map (fun k ↦ H.pts.reverse.take (vtHt H.rows (vsEvTab k))) =
+      ((List.range 153).map vsEvTab).map (fun t ↦ H.pts.reverse.take (vtHt H.rows t)) := by
     rw [List.map_map]; rfl
   rw [e, vsEvTab_blocks]
-  match hhs : tableHeightsOf H.rows, hsl, H.xs5.take 3, h3 with
-  | [h0, h1, h2, h3', h4, h5], _, [a, b, c], _ =>
-    simp [vtW6, vtHt, hhs, List.replicate_succ, VtHonest.L]
+  generalize H.xs4.take 2 = m at h2
+  match hhs : tableHeightsOf H.rows, hsl, m, h2 with
+  | [h0, h1, h2, h3', h4, h5], _, [a, b], _ =>
+    simp [vtW6, vtHt, hhs, List.replicate_succ]
 
 end VtHonest
 

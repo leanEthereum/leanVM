@@ -61,9 +61,10 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 @[irreducible] noncomputable def osMax (fs Bnd Kr : String → ℕ) : ℕ :=
   lmax ((List.range 29).flatMap fun μ ↦ (List.range 5).map (osBosAt fs Bnd Kr μ))
 
-/-- The `bus_grind_check` dispatch's bound over its arms: an arm's frame and its `grind_check`'s. -/
+/-- The `bus_grind_check` dispatch's bound over its arms: an arm's frame and its `grind_check`'s
+(arm `j` grinds `13 + j` bits, `busGrindBits_eq`). -/
 def busGrindMax (fs : String → ℕ) : ℕ :=
-  lmax ((List.range 18).map fun j ↦ fs (busGrindName j) + fs (grindCheckName (busGrindBits j)))
+  lmax ((List.range 18).map fun j ↦ fs (busGrindName j) + fs (grindCheckName (13 + j)))
 
 /-- **`verify_sub`'s callees' words facts with `open_stacked`'s**: its leaves' and residual loops'
 (`Bnd`, `Kr`). -/
