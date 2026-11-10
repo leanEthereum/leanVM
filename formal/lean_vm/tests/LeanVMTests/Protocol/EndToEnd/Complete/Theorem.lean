@@ -29,7 +29,7 @@ attribute [local irreducible] Follows
 
 example : ∀ {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ
     prog s)},
-    s.Admissible prog → M3Honest (inst prog s) input q → ∀ (cs : Commits),
+    busDepth prog s < 64 → M3Honest (inst prog s) input q → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
       (verifyBusBalance computedBytecodeValue (verifierLayout prog s)) cs :=
   follows_verifyBusBalance
@@ -38,7 +38,7 @@ example : ∀ {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)
     PublicInput},
     M3Holds (inst prog s) input q → ∀ (bus : BusResult), BusGood prog s q bus → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
-        ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+        ∃ tc, b = bus.claims ++ tc ∧ tc.length = 153 ∧ ∃ z : Vector E (s.τ 5),
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
       (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs :=
   follows_tablePhase
@@ -49,7 +49,7 @@ example : ∀ (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)
     ∀ (z : Vector E (s.τ 5)), lanesOf claims = honestLanes prog s q z → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
-        KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
+        KeccakGkr.slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2 ∧ b.1.length ≤ claims.length + 1)
       (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs :=
   follows_keccakPhase
 

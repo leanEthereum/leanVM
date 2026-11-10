@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.Memory.SizeTotal
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.NZProgram
 
 /-!
 # `open_stacked`, placed: the statements
@@ -32,9 +33,9 @@ loop, `queries / 8` iterations of `Kr` words (`OsLoopBounds`) and its phantom fr
 **The statements**: `open_stacked_completeAtD_Spec`, at every candidate `μ ∈ [22, 28]`,
 `r ∈ [1, 4]`, for certificates whose frame runs fit (`Lift.RunsFit`, `RunsConsec`), on memories
 defined below `2^κ`, `11 ≤ κ` (the grinds' range checks): on an accepting run of
-`whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings agreeing in the
-caps, where every memory holding the caller's words reads `xs` at the cursor and the window
-tables at `tabs`, the candidate's specialization is complete placed returning `OsOut μ w`.
+`whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge, no combiner vanishing at a
+queried point (`NoZeroCombiner`) and openings agreeing in the caps, where every memory holding
+the caller's words reads `xs` at the cursor and the window tables at `tabs`, the candidate's specialization is complete placed returning `OsOut μ w`.
 `open_stacked_completeAtB_Spec`: within `osBosAt` words.
 -/
 
@@ -97,6 +98,14 @@ def osBosAt (fs Bnd Kr : String → ℕ) (μ r : ℕ) : ℕ :=
 
 /-! ## The statements -/
 
+/-- **No combiner vanishes at a queried point**: the run passes `Limits.whirOpenNZ`, which also
+refuses a zero challenge (`opening_queries` divides by each round's `α + β·x`). -/
+def NoZeroCombiner (μ r : ℕ) (target : E) (S : KeccakState) (xs : List E)
+    (os : List (List Opening)) (root : Digest) : Prop :=
+  ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
+    RunsWith (LeanVM.Guest.Limits.whirOpenNZ μ r target) ⟨capOf S, []⟩ xs os
+      [(root, stackShape μ r)] w s' roots'
+
 /-- **`open_stacked` is complete placed at every candidate.** -/
 def open_stacked_completeAtD_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
@@ -105,7 +114,8 @@ def open_stacked_completeAtD_Spec : Prop :=
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →
+        NoZeroChallenge μ r target S xs os root → NoZeroCombiner μ r target S xs os root →
+        CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
           CompleteAtD fs cert κ (openName μ r) Lin
             (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
@@ -121,7 +131,8 @@ def open_stacked_completeAtB_Spec : Prop :=
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        NoZeroChallenge μ r target S xs os root → CapsAgree μ r target S xs os root →
+        NoZeroChallenge μ r target S xs os root → NoZeroCombiner μ r target S xs os root →
+        CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
           CompleteAtB fs cert κ (openName μ r) Lin
             (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])

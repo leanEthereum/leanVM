@@ -3,10 +3,10 @@
 
   The verifier refusing what makes the guest divide by zero: a zero fold challenge `γ`, a zero
   closing-round challenge, a zero batching challenge `λ` of a non-final level, and a combiner
-  `α + β·x` vanishing at a queried point `x` (G:1460, 1693, 1810, 1817; G = `lean_ethereum.py` at
-  leanVM `98ceacf2`), as copies of the verifier's programs with a `require` at each. The
-  statement's honest child refuses a zero challenge anywhere
-  (`VerifierProgram.refusingZeroChallenge`, `Statement/LeanVmGuestCompleteness.lean`).
+  `α + β·x` vanishing at a queried point `x` (G:1449, 1644, 1781, 1787; G = `lean_ethereum.py` at
+  the pin), as copies of the verifier's programs with a `require` at each. The statement's honest
+  child refuses a zero challenge anywhere and a vanishing combiner
+  (`verifierRefusingZero`, `Statement/LeanVmGuestCompleteness.lean`).
 -/
 
 module
@@ -14,7 +14,9 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import Statement.LeanVmGuest
+public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.B1.Whir.Split
 
 @[expose] public section
 
@@ -26,7 +28,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRound` refusing a zero `γ`: the guest divides by the `γ`s past level 0 in its residual
-pass (G:1810). -/
+pass (G:1781). -/
 def foldRoundNZ (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   VerifierProgram.grindProofOfWork Whir.foldGrindingBits
   let theta ← VerifierProgram.sampleChallenge
@@ -53,7 +55,7 @@ def foldRoundsNZ : ℕ → WhirState → VerifierProgram (WhirState × List Fold
     return (s, round :: rounds)
 
 /-- `sumcheck` refusing a zero challenge: the closing rounds' challenges, which the residual pass
-divides by (G:1817). -/
+divides by (G:1787). -/
 def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -64,12 +66,10 @@ def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (
     return (challenge :: point, final)
 
 /-- No round's combiner `α + β·x` vanishes at a queried point `x`: an opened row's fold divides
-by it (`opening_query`, G:1460). -/
-def CombinersNZ (queries : List ℕ) (rounds : List FoldRound) : Prop :=
-  ∀ q ∈ queries, ∀ r ∈ rounds, r.alpha + r.beta * ofK (K.ofBits q) ≠ 0
-
-instance (queries : List ℕ) (rounds : List FoldRound) : Decidable (CombinersNZ queries rounds) :=
-  inferInstanceAs (Decidable (∀ q ∈ queries, ∀ r ∈ rounds, _))
+by it (`opening_query`, `lean_ethereum.py:1447-1449`); the statement's
+`Completeness.CombinersNonzero`. -/
+abbrev CombinersNZ (queries : List ℕ) (rounds : List FoldRound) : Prop :=
+  Completeness.CombinersNonzero queries rounds
 
 /-- `whirLevels` refusing a zero `γ`, closing-round challenge or non-final `λ`, and a vanishing
 combiner at a queried point. -/
@@ -124,6 +124,86 @@ def verifyWhirNZ (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E �
     Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   whirLevelsNZ logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config ⟨target, [], []⟩
+
+/-- `whirLevelsNZ` without its final `require`: it returns what the terminal reads
+(`B1.Whir.whirLevelsOpen` refusing what makes the guest divide by zero). -/
+def whirLevelsOpenNZ (logN laneFolds : ℕ) :
+    ℕ → List Whir.Level → WhirState → VerifierProgram B1.Whir.WhirEnd
+  | _, [], _ => VerifierProgram.fail
+  | index, level :: rest, s => do
+    let (s, rounds) ← foldRoundsNZ level.fold s
+    let mu := logN - s.gammas.length
+    let depth := mu + level.logInvRate
+    let lanesOf : List K → List E := fun row ↦
+      if index = 0 then row.reverse.map ofK else extRow row
+    match rest with
+    | [] => do
+      let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNZ queries rounds)
+      let words ← VerifierProgram.queryOpenings index queries
+      VerifierProgram.require ((List.zip queries words).all fun (query, row) ↦
+        foldRow (lanesOf row) (K.ofBits query) rounds =
+          novelEval folded (subspaceAt mu (K.ofBits query)))
+      let (tail, claim) ← sumcheckNZ s.claim 3 (List.replicate mu none)
+      let point := s.gammas ++ tail
+      let inner := s.glued.foldl
+        (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart)) 0
+      return ⟨point.drop laneFolds ++ point.take laneFolds, inner,
+        multilinearEval (folded.take (2 ^ mu)) tail, claim⟩
+    | next :: _ => do
+      let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
+      VerifierProgram.readCommitment height width
+      let high ← VerifierProgram.readScalars level.fold
+      let oodPoints ← sampleOodPoints mu Whir.oodSamples
+      let oodValues ← VerifierProgram.readScalars Whir.oodSamples
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNZ queries rounds)
+      VerifierProgram.grindProofOfWork Whir.batchGrindingBits
+      let lam ← VerifierProgram.sampleChallenge
+      VerifierProgram.require (lam ≠ 0)
+      let queryWeights := powers lam queries.length
+      let words ← VerifierProgram.queryOpenings index queries
+      let batched := sumE (List.zipWith (fun (query, row) queryWeight ↦
+        let what := subspaceAt mu (K.ofBits query)
+        queryWeight * (foldRow (lanesOf row) (K.ofBits query) rounds +
+          novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
+      let s := glueLevel s lam mu oodPoints oodValues queries queryWeights batched
+      whirLevelsOpenNZ logN laneFolds (index + 1) rest s
+
+/-- `verifyWhirNZ` up to its terminal (`B1.Whir.whirOpen` refusing what makes the guest divide by
+zero). -/
+def whirOpenNZ (logN logInvRate : ℕ) (target : E) : VerifierProgram B1.Whir.WhirEnd := do
+  let config ← liftOption (Whir.ladder logN logInvRate)
+  whirLevelsOpenNZ logN ((config.head?.map (·.fold)).getD 0) 0 config ⟨target, [], []⟩
+
+theorem whirLevelsNZ_split (logN laneFolds : ℕ) (eb : List E → E) :
+    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirState),
+      whirLevelsNZ logN laneFolds eb index levels s =
+        (whirLevelsOpenNZ logN laneFolds index levels s).bind fun w ↦
+          VerifierProgram.require (w.Accepts eb)
+  | _, [], _ => rfl
+  | index, [level], s => by
+    rw [whirLevelsNZ, whirLevelsOpenNZ]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+      VerifierProgram.ret_bind, B1.Whir.WhirEnd.Accepts]
+    repeat refine B1.Whir.prog_bind_congr fun _ ↦ ?_
+    rw [B1.Whir.foldl_add_shift _ (eb _), add_comm (eb _)]
+    congr 1
+  | index, level :: next :: rest, s => by
+    rw [whirLevelsNZ, whirLevelsOpenNZ]
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc,
+      whirLevelsNZ_split logN laneFolds eb (index + 1) (next :: rest)]
+
+/-- **`verifyWhirNZ` is `whirOpenNZ`, then the terminal's check.** -/
+theorem verifyWhirNZ_split (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
+    verifyWhirNZ logN logInvRate target eb = (do
+      let w ← whirOpenNZ logN logInvRate target
+      VerifierProgram.require (w.Accepts eb)) := by
+  simp only [verifyWhirNZ, whirOpenNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc,
+    whirLevelsNZ_split]
 
 /-- `verifyStackedOpening` refusing what makes the guest divide by zero. -/
 def verifyStackedOpeningNZ (stackLog logInvRate : ℕ) (claims : List StackClaim) : VerifierProgram

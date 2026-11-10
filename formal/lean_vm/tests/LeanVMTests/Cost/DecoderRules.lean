@@ -64,7 +64,7 @@ cost_compile mkDa := mkDa
 
 def mkWitness (cs : List Child) (xs : List (LeanXmssClaim × LeanXmss.Signature))
     (ss : List (LeanSphincsClaim × Sphincs.Signature)) (d : Option (DaClaim × LeanVM.Da.MatrixWitness))
-    (m : List (E × E)) (v : E) : NodeWitness := ⟨cs, xs, ss, d, ⟨m, v⟩⟩
+    (n : E) (m : List (E × E)) (v : E) : NodeWitness := ⟨cs, xs, ss, d, ⟨n, m, v⟩⟩
 cost_compile mkWitness := mkWitness
 
 def mkDecoded (seed : LeanVM.Protocol.Digest) (s : NodeStatement) (w : NodeWitness) :
@@ -139,11 +139,11 @@ def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest x [[K.ofLane
 #guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue x, encodeValue [[K.ofLane 1]]] ==
   some (encodeValue da)
 
-def witness : NodeWitness := mkWitness [child] (raws (mkKey r p, m) xsig) [] da [(x, x)] x
+def witness : NodeWitness := mkWitness [child] (raws (mkKey r p, m) xsig) [] da x [(x, x)] x
 #guard runOn mkWitness.costDeps mkWitness.costIdx
   [encodeValue [child], encodeValue (raws (mkKey r p, m) xsig),
   encodeValue ([] : List (LeanSphincsClaim × Sphincs.Signature)),
-  encodeValue da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
+  encodeValue da, encodeValue x, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
 
 def decoded : SeedStatementAndWitness := mkDecoded digest stmt witness
 #guard runOn mkDecoded.costDeps mkDecoded.costIdx

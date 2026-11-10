@@ -62,6 +62,17 @@ def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
     (deferringVerifierProgram claim bytecode publicInput).refusingZeroChallenge
     (keccakF1600 (seedInput iv publicInput)) proof)
 
+/-- **The deployed deferring verifier refusing a zero where the guest divides**: the deferring
+verifier with the statement's check that no fold combiner vanishes at a queried point
+(`verifyExecutionRefusingZeroCombiner`) and every sampled challenge `0` a failure. -/
+def verifyDeferredRefusingZeroCombiner (bytecode : List K) (iv publicInput : Digest)
+    (claim : BytecodeClaim) (proof : Proof) : Bool :=
+  Id.run (runProof (m := Id) keccakF1600
+    (do
+      Completeness.verifyExecutionRefusingZeroCombiner (claimedBytecodeValue claim) bytecode publicInput
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    (keccakF1600 (seedInput iv publicInput)) proof)
+
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
 `query` step as its tree's height and its positions, each with its opening in the phase it
 consumes. -/
@@ -144,7 +155,10 @@ each child, `ChildrenProven`'s two conditions and the deployed ones:
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1400, 1709, 1714). -/
+  challenges and each level's batching challenge `λ`, G:1644, 1781, 1787);
+* no vanishing combiner: so does the one also refusing a fold combiner `α + β·x` vanishing at a
+  queried point (`verifyDeferredRefusingZeroCombiner`), by which `opening_query` divides
+  (G:1447-1449). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
@@ -164,6 +178,10 @@ structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : 
     Limits.OpeningsAgree step.1 step.2
   /-- The deferring verifier refusing a zero challenge accepts its proof. -/
   noZeroChallenge : Limits.verifyDeferredRefusingZero bytecode seed
+    (statementDigest seed child.statement) child.freshClaim child.proof = true
+  /-- The deferring verifier refusing a zero challenge and a vanishing combiner accepts its
+  proof. -/
+  noZeroCombiner : Limits.verifyDeferredRefusingZeroCombiner bytecode seed
     (statementDigest seed child.statement) child.freshClaim child.proof = true
 
 namespace Completeness

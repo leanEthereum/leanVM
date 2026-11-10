@@ -169,7 +169,7 @@ structure FinFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level)
 /-- The final level's callees and the closing rounds', by their meanings. -/
 structure FinCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     Prop where
-  round : ∀ a r, C "opening_round" a r → MeaningOpeningRound rd a r
+  round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
   fmsg : ∀ a r, C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1") a r →
     MeaningOpeningMessage (c.yrLen + lv.folds) 1 rd a r
   g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
@@ -245,7 +245,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   set D := recsDeficit recs ws.gammas with hD
   -- the folds
   obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg, lc⟩ :=
-    osRounds_sound hcal.round c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
+    osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
       hin.claim hoF
   -- the final lane
   obtain ⟨fold, nn, hM⟩ := osFinalMsg_sound hcal.fmsg hfs0 hm0 hco0 hoM
