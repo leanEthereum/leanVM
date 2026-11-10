@@ -113,12 +113,11 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   unfold l5COk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hneeds⟩, hcalls⟩ := hok
+  obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneeds⟩, hcalls⟩ := hok
   set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
     s0, s1, cpi, gsq, cfresh] with hargs
   set w := l5W ex es cx0 cx1 cs0 cs1 p0 p1 with hw
   set σ := l5σ rd args w with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w l5Body args hchk
   rw [show args.length = 16 from rfl, show l5Body = l5Pre ++ [l5Tail, .ret []] from rfl, hst] at hgs
   have hg : ∀ a ∈ atomsIn l5Pre, Good rd l5S w σ a := fun a ha =>
@@ -213,9 +212,8 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
     · rw [hk, hx, hy, ← pow_add, show e + (K - e) = K by omega]
     · rw [g2, hy]; exact low_load hlow (by omega)
   -- the atoms but the stores, then the stores
-  have hA : ∀ i ∈ ([] : List ℕ), IsCanonical128 (σ (.n i)) := by simp
   have hat : ∀ a ∈ atomsIn l5Pre, a.Holds rd σ := by
-    refine atoms_holds_stores (S := l5S) (w := w) hidx hcanA hg hA
+    refine atoms_holds_stores (S := l5S) (w := w) hg
       (fun a ha hnS hns => Or.inl ?_) (fun _ a ha haS => ?_)
     · have := hneeds a ha
       simp only [hns, Bool.true_eq_false, false_or] at this
