@@ -26,6 +26,13 @@ def emul (a0 a1 a2 b0 b1 b2 : BitVec 64) : BitVec 64 × BitVec 64 × BitVec 64 :
   let e3 := cl (a1 ^^^ a2) (b1 ^^^ b2) ^^^ p1 ^^^ p2
   (BF64.reduce (p0 ^^^ e3), BF64.reduce (e1 ^^^ e3 ^^^ p2), BF64.reduce (e2 ^^^ p2))
 
+/-- XOR identities between atoms: AC-normalize, then cancel equal pairs. -/
+macro "xor_cancel" : tactic => `(tactic| (
+  simp only [← BitVec.xor_assoc, BitVec.xor_self, BitVec.zero_xor, BitVec.xor_zero] <;>
+  ac_nf <;>
+  simp only [← BitVec.xor_assoc, BitVec.xor_self, BitVec.zero_xor, BitVec.xor_zero] <;>
+  ac_nf))
+
 theorem cl_xor_left (a b c : BitVec 64) : cl (a ^^^ b) c = cl a c ^^^ cl b c := by
   apply BF64.bitVec_toPoly_injective
   simp only [cl, BinaryField.toPoly_xor,
@@ -39,14 +46,20 @@ theorem cl_xor_right (a b c : BitVec 64) : cl a (b ^^^ c) = cl a b ^^^ cl a c :=
   ring
 
 theorem split128 (x : BitVec 128) : x = x.extractLsb' 64 64 ++ x.extractLsb' 0 64 := by
-  bv_decide
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  rw [BitVec.getLsbD_append]
+  by_cases h : i < 64
+  · simp [h, hi]
+  · simp [h, show i - 64 < 64 by omega, show 64 + (i - 64) = i by omega]
 
 theorem reduce_xor (x y : BitVec 128) : BF64.reduce (x ^^^ y) = BF64.reduce x ^^^ BF64.reduce y := by
   have h : ∀ z : BitVec 128, BF64.reduce z = reduceWords (z.extractLsb' 64 64) (z.extractLsb' 0 64) :=
     fun z ↦ by rw [reduceWords_eq, ← split128]
   rw [h, h x, h y]
-  simp only [reduceWords]
-  bv_decide
+  simp only [reduceWords, BitVec.extractLsb'_xor, BitVec.ushiftRight_xor_distrib,
+    BitVec.shiftLeft_xor_distrib]
+  ac_rfl
 
 theorem reduce_cl (a b : BF64) : BF64.reduce (cl a.toBitVec b.toBitVec) = (a * b).toBitVec :=
   (BF64.toBitVec_mul a b).symm
@@ -103,6 +116,11 @@ theorem emul_eq (x y : E) :
   simp only [emul, cl_xor_left, cl_xor_right, reduce_xor, reduce_cl, toBitVec_add]
   clear h30 h31 h32 h40 h41 h42 hxy
   simp only [Prod.mk.injEq, BF64.mul_def]
-  refine ⟨?_, ?_, ?_⟩ <;> bv_decide
+  generalize (BF64.mul x0 y0).toBitVec = p00, (BF64.mul x0 y1).toBitVec = p01,
+    (BF64.mul x0 y2).toBitVec = p02, (BF64.mul x1 y0).toBitVec = p10,
+    (BF64.mul x1 y1).toBitVec = p11, (BF64.mul x1 y2).toBitVec = p12,
+    (BF64.mul x2 y0).toBitVec = p20, (BF64.mul x2 y1).toBitVec = p21,
+    (BF64.mul x2 y2).toBitVec = p22
+  refine ⟨?_, ?_, ?_⟩ <;> xor_cancel
 
 end Rv64Verifier.Model

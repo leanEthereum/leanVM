@@ -63,22 +63,37 @@ def calleeSaved : List Reg :=
 /-- The convention's frame: the callee-saved registers keep their values. -/
 def Preserves (s t : MachineState) : Prop := ∀ r ∈ calleeSaved, t.getReg r = s.getReg r
 
-/-- A function's contract: from every state at `entry` satisfying `pre`, the code returns to the
-caller with the callee-saved registers restored and `post` relating entry and exit states. The
-memory the function may change is `post`'s to say. -/
+/-- A dead end that cannot accept: the machine stops here (a trap, or the `HALT` call), and if it is
+the `HALT` call its verdict is not `1`. A panic ends in one (the guest halts with `2`), and so does
+a word that does not decode. -/
+def Dead (code : Code) (t : MachineState) : Prop :=
+  step code t = none ∧ (Halting code t → t.getReg .x10 ≠ 1)
+
+/-- A function's contract: from every state at `entry` satisfying `pre`, the code either returns
+to the caller with the callee-saved registers restored and `post` relating entry and exit
+states, or reaches a dead end. The memory the function may change is `post`'s to say. -/
 def FunSpec (code : Code) (entry : Word) (pre : MachineState → Prop)
     (post : MachineState → MachineState → Prop) : Prop :=
-  ∀ s, s.pc = entry → pre s →
-    ∃ t, Reaches code s t ∧ t.pc = returnAddress s ∧ Preserves s t ∧ post s t
+  ∀ s, s.pc = entry → pre s → ∃ t, Reaches code s t ∧
+    ((t.pc = returnAddress s ∧ Preserves s t ∧ post s t) ∨ Dead code t)
 
 /-- A call: once the caller's state `c` has jumped to the callee's entry (`c'`), the callee's
-contract brings it back to the return address. -/
+contract brings it back to the return address, or to a dead end. -/
 theorem FunSpec.call {entry : Word} {pre : MachineState → Prop}
     {post : MachineState → MachineState → Prop} (h : FunSpec code entry pre post)
     {c c' : MachineState} (hjump : Reaches code c c') (hpc : c'.pc = entry) (hpre : pre c') :
-    ∃ t, Reaches code c t ∧ t.pc = returnAddress c' ∧ Preserves c' t ∧ post c' t := by
-  obtain ⟨t, ht, hpc', hpres, hpost⟩ := h c' hpc hpre
-  exact ⟨t, hjump.trans ht, hpc', hpres, hpost⟩
+    ∃ t, Reaches code c t ∧
+      ((t.pc = returnAddress c' ∧ Preserves c' t ∧ post c' t) ∨ Dead code t) := by
+  obtain ⟨t, ht, hout⟩ := h c' hpc hpre
+  exact ⟨t, hjump.trans ht, hout⟩
+
+/-- A run that reaches a dead end does not halt with `1` from there on. -/
+theorem Dead.not_accept {t : MachineState} (h : Dead code t) {n : Nat} :
+    ¬ HaltsWith code t n 1 := by
+  rintro ⟨u, hu, hhalt, ha0⟩
+  cases n with
+  | zero => cases hu; exact h.2 hhalt ha0
+  | succ n => obtain ⟨_, hs, _⟩ := hu; rw [h.1] at hs; cases hs
 
 /-! ## Loops -/
 

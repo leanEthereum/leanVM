@@ -27,3 +27,10 @@ rev = "v4.35.0"
 [[lean_lib]]
 name = "Rv64Verifier"
 globs = ["Rv64Verifier.+"]
+
+# Block specifications of a function of the image, generated (`scripts/Gen.lean`).
+[[lean_exe]]
+name = "rv64-gen"
+srcDir = "scripts"
+root = "Gen"
+supportInterpreter = true

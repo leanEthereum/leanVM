@@ -1,4 +1,5 @@
 import Rv64Verifier.Sym.Api
+import Rv64Verifier.Sym.Code
 
 /-!
 # A reflective symbolic executor for RV64IM straight-line code

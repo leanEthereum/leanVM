@@ -94,7 +94,9 @@ theorem reduceWords_eq (hi lo : BitVec 64) : reduceWords hi lo = BF64.reduce (hi
   rw [← h]
   simp only [reduceWords, BF64.reduceWords, BF64.tailLow, BF64.tailHigh, UInt64.toBitVec_xor,
     UInt64.toBitVec_shiftLeft, UInt64.toBitVec_shiftRight]
-  bv_decide
+  simp only [BitVec.shiftLeft_eq', BitVec.ushiftRight_eq', BitVec.toNat_umod, UInt64.toNat_toBitVec,
+    UInt64.reduceToNat, BitVec.shiftLeft_xor_distrib]
+  ac_rfl
 
 /-- **`base_mul` is `GF(2^64)` multiplication.** -/
 theorem baseMul_eq (a b : BF64) : baseMul a.toBitVec b.toBitVec = (a * b).toBitVec := by
