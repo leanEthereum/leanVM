@@ -101,6 +101,8 @@ structure TableFid (colOf : I.ColumnId → ℕ) (w : BusWit) : Prop where
       (⟨colOf c.col, c.point.toList, c.value⟩ : Verifier.ColumnClaim) ∈
         (w.result layout).claims ++ (refTableTerms (cpsOf ξ) (fpsOf ξ) ch.reverse
           (rowsOf layout (w.result layout) ch.reverse) evs 0 0 []).2
+  /-- Every table has a row of the loop, so the final values are read after the last round. -/
+  rows : ∀ pt, rowsOf layout (w.result layout) pt ≠ []
 
 /-- **The table seam on the wire**: the protocol's output at what was read is doomed, its input
 statement is `input`, its claims are among the program's, and it is the table sumcheck's output
@@ -127,13 +129,24 @@ def TableSumcheckPost (w : BusWit) (ξ : E) (claims' : List Verifier.ColumnClaim
     HDoom cands (Seam.table I) (tableOut I (tableStmt I hI input w ξ ch claim)
       (vecOf I.tableColumns evs.flatten)) h
 
+theorem sumcheckLead_mono (eqs : List (Option E)) {T T' : ℝ≥0∞} (h : T ≤ T') :
+    sumcheckLead eqs T ≤ sumcheckLead eqs T' := by
+  cases eqs <;> simp [sumcheckLead, h]
+
+theorem rowsLead_eq_zero {rows : List (Table × ℕ × List Form × E)} (h : rows ≠ []) (T : ℝ≥0∞) :
+    rowsLead rows T = 0 := by
+  cases rows with
+  | nil => exact absurd rfl h
+  | cons _ _ => rfl
+
 /-- **The table sumcheck's rounds and final values** (`table_sumcheck`, `bus.rs:218-259`),
 from doom on the sumcheck's input relation after `ξ`: the plain sumcheck, each round charged
-`L₀ · 3 / |E|`, then the evaluations and the final check. -/
+`L₀ · 3 / |E|`, then the evaluations and the final check. The evaluations are read after the last round, so
+the last round's group does not carry the follower's lead `T`. -/
 noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (fid : TableFid I hI input layout colOf w) (hd : I.d ≤ 2) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) {T : ℝ≥0∞}
-    (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax) (ξ : E) :
+    (he : roundError L₀ 3 ≤ εmax) (hT : T ≤ εmax) (ξ : E) :
     Spec (Verifier.tableSumcheckClaims layout.tableLogHeights (w.result layout).forms (cpsOf ξ)
         (fpsOf ξ) (w.result layout).point (dot (fpsOf ξ) (w.result layout).totals))
       (HDoom cands (SumcheckRound.rel (tableFamily I) 0)
@@ -143,8 +156,8 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
   let s := busStmt I hI input w
   let bus := w.result layout
   let n := layout.tableLogHeights.foldl max 0
-  (wireSumcheckSpec (T := T) (tableFamily I) cands (tableFamily_consistent I hd)
-    (tableFamily_sound I) hfin hcard (by norm_num) he (s, ξ) (List.replicate n none) 0 #v[]
+  ((wireSumcheckSpec (T := 0) (tableFamily I) cands (tableFamily_consistent I hd)
+    (tableFamily_sound I) hfin hcard (by norm_num) (by rwa [add_zero]) (s, ξ) (List.replicate n none) 0 #v[]
     (dot (fpsOf ξ) bus.totals) (by simp [n, fid.rounds]) (fun k hk ↦ by
       have hk' : k < I.τmax := by simpa [n, fid.rounds] using hk
       simp [tableFamily, Sumcheck.familyInv, Sumcheck.domain, Sumcheck.unitWeights, wireDomain,
@@ -153,7 +166,7 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     let rows := rowsOf layout bus ch.reverse
     ((tableTermsSpec hT P (fun _ _ hp ↦ ⟨hp.1, hp.2.append _⟩) (cpsOf ξ) (fpsOf ξ) ch.reverse
       rows (rowsOf_width_pos layout bus _) 0 0 []).mono (fun _ hp ↦ hp) (fun _ _ hp ↦ hp) le_rfl
-      (rowsLead_le _ _) le_rfl).bind' fun ⟨final, claims⟩ ↦
+      (le_of_eq (rowsLead_eq_zero (fid.rows _) T)) le_rfl).bind' fun ⟨final, claims⟩ ↦
     (Spec.require (c := final = claim) (Post := fun _ h ↦ ∃ evs, ReadShape rows evs ∧
         ch.length = I.τmax ∧
         claims = (refTableTerms (cpsOf ξ) (fpsOf ξ) ch.reverse rows evs 0 0 []).2 ∧
@@ -171,7 +184,7 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
         rw [← fid.formula ξ ch evs hl hs, ← hfst, hc])).bind' fun _ ↦
     (Spec.ret (Post := TableSumcheckPost I hI cands input layout w ξ) claims).mono
       (fun _ ⟨evs, hs, hl, hc, hD⟩ ↦ ⟨ch, claim, evs, hs, hl, hc, hD⟩) (fun _ _ h ↦ h) le_rfl
-      le_rfl le_rfl
+      le_rfl le_rfl).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (sumcheckLead_mono _ zero_le) le_rfl
 
 open Classical in
 /-- The grind before `ξ`: for the batch's degree in `ξ`, its `n_constraints + N_TREES` powers less
@@ -185,7 +198,7 @@ read `w`: from the bus seam at `w` to the table seam on the wire. `ξ`, after a 
 noncomputable def tablePhaseSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
     (fid : TableFid I hI input layout colOf w) (hd : I.d ≤ 2) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀) {T : ℝ≥0∞}
-    (he : roundError L₀ 3 + T ≤ εmax) (hT : T ≤ εmax)
+    (he : roundError L₀ 3 ≤ εmax) (hT : T ≤ εmax)
     (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError I L₀ +
       sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T) ≤ εmax) :
     Spec (tablePhaseClaims layout (w.result layout)) (BusAt I hI cands input layout w)
