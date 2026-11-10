@@ -30,30 +30,35 @@ open LeanVM.Guest.B1.Fwd
 /-- The stores of `layerT first`: the next claim's instance weights and `κ`, the pack rounds'
 first record, the local point, the next claim's value, point, local point, lanes and flips. -/
 def layerSt (first : ℕ) : List Atom :=
-  (List.range 16).map (fun i ↦ .load (.n (rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
-  [.load (.n 958) (.n 12) 1,
-    .load (.n 866) (.n 1053) 0, .load (.n 867) (.n 1053) 16, .load (.n 868) (.n 1053) 32,
-    .load (.n 869) (.n 1053) 48, .load (.n 870) (.n 1053) 64, .load (.n 1055) (.n 1053) 80,
-    .load (.n 1050) (.n 1053) 96, .load (.n 1056) (.n 1053) 112] ++
-  (List.range 11).map (fun i ↦ .load (.n (1133 + 60 * i)) (.n 1081) i) ++
-  [.load (.n (weightEnd first + 32)) (.n 12) 0, .load (.n 1052) (.n 12) 2,
-    .load (.n 1081) (.n 12) 4] ++
-  (List.range 25).map (fun i ↦ .load (.n (weightEnd first + 37 + 4 * i))
-    (.n (weightEnd first + 33)) i) ++
-  [.load (.n (weightEnd first + 33)) (.n 12) 3] ++
-  (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first) + 46 + 43 * i))
-    (.n (topV (weightEnd first) + 3)) i) ++
-  [.load (.n (topV (weightEnd first) + 3)) (.n 12) 5]
+  (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
+  [.load (.n (layOff first + 625)) (.n 12) 1,
+    .load (.n (layOff first + 539)) (.n (layOff first + 720)) 0,
+    .load (.n (layOff first + 540)) (.n (layOff first + 720)) 16,
+    .load (.n (layOff first + 541)) (.n (layOff first + 720)) 32,
+    .load (.n (layOff first + 542)) (.n (layOff first + 720)) 48,
+    .load (.n (layOff first + 543)) (.n (layOff first + 720)) 64,
+    .load (.n (layOff first + 722)) (.n (layOff first + 720)) 80,
+    .load (.n (layOff first + 717)) (.n (layOff first + 720)) 96,
+    .load (.n (layOff first + 723)) (.n (layOff first + 720)) 112] ++
+  (List.range 11).map (fun i ↦ .load (.n (layOff first + 773 + 33 * i)) (.n (layOff first + 748)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 26)) (.n 12) 0,
+    .load (.n (layOff first + 719)) (.n 12) 2, .load (.n (layOff first + 748)) (.n 12) 4] ++
+  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 31 + 4 * i))
+    (.n (weightEnd first (layOff first) + 27)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 27)) (.n 12) 3] ++
+  (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
+    (.n (topV (weightEnd first (layOff first)) + 3)) i) ++
+  [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n 12) 5]
 
 /-- The checker's count after the body. -/
-def layerN (first : ℕ) : ℕ := if first = 1 then 2475 else 2824
+def layerN (first : ℕ) : ℕ := if first = 1 then 1838 else 2167
 
 theorem layer_chk {first : ℕ} (hf : first < 2) :
-    Fwd.chk 14 (layerT first) = some (layerN first) := by
+    Fwd.chk 15 (layerT first) = some (layerN first) := by
   interval_cases first <;> decide +kernel
 
 theorem layer_stores {first : ℕ} (hf : first < 2) :
-    storesOf 14 (layerT first) = layerSt first := by
+    storesOf 15 (layerT first) = layerSt first := by
   interval_cases first <;> decide +kernel
 
 /-- **The honest valuation of a layer.** -/
@@ -63,14 +68,14 @@ noncomputable def layerσ (rd : Reader) (w : ℕ → E) (args : List E) (first :
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E} {first : ℕ}
 
-theorem layer_good (hf : first < 2) (hl : args.length = 14) :
+theorem layer_good (hf : first < 2) (hl : args.length = 15) :
     ∀ s ∈ layerT first, GoodS rd (layerSt first) w (layerσ rd w args first) s := by
   have h := (ev_spec rd w (layerT first) args (by rw [hl]; exact layer_chk hf)).2.2
   rw [hl, layer_stores hf] at h
   exact h
 
-theorem layer_param (hf : first < 2) (hl : args.length = 14) {i : ℕ}
-    (hi : i < 14) : layerσ rd w args first (.n i) = args.getD i 0 :=
+theorem layer_param (hf : first < 2) (hl : args.length = 15) {i : ℕ}
+    (hi : i < 15) : layerσ rd w args first (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact layer_chk hf) (by rw [hl]; exact hi)
 
 theorem layerσ_idx (v : V) : layerσ rd w args first v = layerσ rd w args first (.n v.idx) :=
