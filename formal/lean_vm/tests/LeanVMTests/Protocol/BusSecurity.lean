@@ -13,21 +13,15 @@ import LeanVMTests.Protocol.Bus
   products at the tests' challenge: the state after the challenges is false there, and true only
   at a collision.
 
-* **Padding rows flush nothing only behind a separator** (Proposition `prop:pad`). On a table
-  with a padding row, the verifier replaces the row's leaf `φ(x)` by `φ(x) + 1 − φ(p)`, the
-  fingerprint of the tuple `1 − t + t(p)`; the condition `separator` (slot 0 of a flush is
-  constant) makes that tuple's slot 0 equal to `1`. `noSep` drops it: one table of two rows, one
+* **Padding rows under the linear fingerprint** (Proposition `prop:pad`). On a table with a
+  padding row, the verifier replaces the row's leaf `φ(x)` by `φ(x) + 1 − φ(p)`, which is
+  `1 − π_α(t − t(p))` under the linear fingerprint: `1` on an honest row, a nonconstant polynomial
+  in `α` otherwise, with no separator needed. `noSep` has none: one table of two rows, one
   executed, pushing `(X₀, …, X₀)` and pulling `(X₁, …, X₁)`. On `collide` (executed row `(0, 1)`,
   padding row `(1, 1)` against the public `(0, 0)`) the bus is unbalanced and only the balance
-  fails, yet both sides' padding tuple is the zero tuple, so both products are `0` at every
-  challenge. Then the challenges have no security below error one
-  (`padding_collision_no_security`, over any instance with such a stack, the facts the kernel
-  cannot evaluate checked by the guards), where the side conditions give `4·2^{μ_bus}/|E|`.
-  The separator is what rules it out: `noSep` meets every other side condition and fails exactly
-  `separator` (kernel), under the side conditions no padding tuple is zero
-  (`zeroTuple_not_mem`), and `withSep`, the same instance with a constant slot 0, meets them; on
-  the same stack its padding tuples are `(1, 0, …)` and the products differ at the tests'
-  challenge.
+  fails; both sides' padding difference is the all-ones tuple, and the products differ at the
+  tests' challenge. `withSep`, the same instance with a constant slot 0, meets the side
+  conditions, its challenges sound at `2^{μ_bus}/|E|`.
 
 The refutation of the check `R_c ≠ 0` is in the bus tests (`roots_unchecked_no_security`).
 -/
@@ -69,50 +63,10 @@ def pullUnbalanced : CMlPolynomialEval E busToy.μBus := pullLeaves busToy α β
 #guard (∏ x : Fin (2 ^ busToy.μBus), pushUnbalanced[x]) ≠
   ∏ x : Fin (2 ^ busToy.μBus), pullUnbalanced[x]
 
-/-! ## Padding rows flush nothing only behind a separator (Proposition `prop:pad`) -/
+/-! ## Padding rows under the linear fingerprint (Proposition `prop:pad`) -/
 
-/-- The zero tuple. -/
-def zeroTuple : Vector K 16 := Vector.replicate 16 0
-
-/-- The zero tuple's fingerprint is `0` at every `α`. -/
-theorem fingerprint_zeroTuple (α : Fin 4 → E) : fingerprint α zeroTuple = 0 := by
-  simp only [fingerprint]
-  refine Finset.sum_eq_zero fun i _ ↦ ?_
-  change _ * algebraMap K E zeroTuple[i.val] = 0
-  simp [zeroTuple]
-
-/-- A side whose padding tuples include the zero tuple has padding product `0`. -/
-theorem padProduct_of_zeroTuple_mem (α : Fin 4 → E) {U : List (Vector K 16)}
-    (h : zeroTuple ∈ U) : padProduct α (U : Multiset (Vector K 16)) = 0 := by
-  rw [padProduct, Multiset.map_coe, Multiset.prod_coe]
-  exact List.prod_eq_zero (List.mem_map.mpr ⟨zeroTuple, h, fingerprint_zeroTuple α⟩)
-
-/-- **Without the separator the challenges have no security.** A stack outside `M3Holds` whose
-push and pull padding tuples both include the zero tuple, whose count product is nonzero and
-that meets the clauses no challenge touches, enters `afterChallenge` at every challenge: both
-products are `0`. So no security of the challenges from `Seam.commit` to `afterChallenge` has an
-error below one, whatever the extractor. -/
-theorem padding_collision_no_security {I : M3Instance} (s : I.Stmt) (q : Column I.μ)
-    (hs : ¬ M3Holds I s q) (hfit : (blocks I 1).total ≤ 2 ^ I.μBus)
-    (hpush : zeroTuple ∈ sidePadTuples I q .push) (hpull : zeroTuple ∈ sidePadTuples I q .pull)
-    (hcount : ∀ (α : Fin 4 → E) (β : E), ∏ x : Fin (2 ^ I.μBus), (sideLeaves I 2 α β q)[x] ≠ 0)
-    (hc : I.ConstraintsVanish q) (hl : I.PublicLinesHold s q) (ha : I.aux q) {e : ℝ≥0}
-    (S : Typed.Security (challengeStep I) (Seam.commit I) (afterChallenge I)
-      (Typed.drawErrors _ e)) : 1 ≤ e := by
-  let o : ∀ i, TheOracle I i := fun _ ↦ q
-  refine Typed.sampleChallenge_one_le S s o (fun _ hw ↦ hs hw) rfl fun ab ↦
-    ⟨(), ?_, hcount ab.1 ab.2, hc, hl, ha⟩
-  change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 q)[x] =
-    ∏ x : Fin (2 ^ I.μBus), (sideLeaves I 1 ab.1 ab.2 q)[x]
-  rw [prod_pushLeaves, prod_sideLeaves_eq rfl ab.1 ab.2 q hfit,
-    padProduct_of_zeroTuple_mem _ hpush, padProduct_of_zeroTuple_mem _ hpull, mul_zero, mul_zero]
-
-/-- **The separator rules it out**: under the side conditions no padding tuple is the zero
-tuple, since its slot 0 is `1` (`padTuple_ne_zero`). -/
-theorem zeroTuple_not_mem {I : M3Instance} (h : Conditions I) (q : Column I.μ) (s : Side) :
-    zeroTuple ∉ sidePadTuples I q s := fun h0 ↦ by
-  obtain ⟨i, hi⟩ := padTuple_ne_zero h h0
-  exact hi (by simp [zeroTuple])
+/-- The all-ones tuple. -/
+def onesTuple : Vector K 16 := Vector.replicate 16 1
 
 /-- A variable has total degree at most two. -/
 theorem X_totalDegree (i : Fin 2) : (CMvPolynomial.X i : CMvPolynomial 2 K).totalDegree ≤ 2 := by
@@ -182,10 +136,11 @@ def honestPad : Column 2 := ⟨#v[1, 0, 1, 0]⟩
   noSep.PublicLinesHold () collide ∧ noSep.aux collide
 #guard ¬ noSep.Balanced collide
 #guard ¬ M3Holds noSep () collide
--- Its padding row is dishonest, and both sides' padding tuple is the zero tuple.
+-- Its padding row is dishonest: both sides' padding difference with the public row is the all-ones
+-- tuple, a padding leaf `1 − π_α(1, …, 1)`.
 #guard ¬ noSep.PaddingHonest collide
-#guard (sidePadTuples noSep collide .push).map (·.toList) = [zeroTuple.toList]
-#guard (sidePadTuples noSep collide .pull).map (·.toList) = [zeroTuple.toList]
+#guard (sidePadTuples noSep collide .push).map (·.toList) = [onesTuple.toList]
+#guard (sidePadTuples noSep collide .pull).map (·.toList) = [onesTuple.toList]
 #guard (blocks noSep 1).total ≤ 2 ^ noSep.μBus
 
 /-- `collide`'s leaf stacks on `noSep` at the tests' challenge. -/
@@ -193,10 +148,9 @@ def pushNoSep : CMlPolynomialEval E noSep.μBus := pushLeaves noSep α β collid
 def pullNoSep : CMlPolynomialEval E noSep.μBus := pullLeaves noSep α β collide
 def countNoSep : CMlPolynomialEval E noSep.μBus := Bus.sideLeaves noSep 2 α β collide
 
--- Both products are `0`: they collide although the bus is unbalanced. No count column, so the
--- count product is the pad's `1` at every challenge.
-#guard (∏ x : Fin (2 ^ noSep.μBus), pushNoSep[x]) = e0 ∧
-  (∏ x : Fin (2 ^ noSep.μBus), pullNoSep[x]) = e0
+-- The products differ at the tests' challenge, the bus unbalanced, with no separator. No count
+-- column, so the count product is the pad's `1` at every challenge.
+#guard (∏ x : Fin (2 ^ noSep.μBus), pushNoSep[x]) ≠ ∏ x : Fin (2 ^ noSep.μBus), pullNoSep[x]
 #guard (∏ x : Fin (2 ^ noSep.μBus), countNoSep[x]) = e1
 
 -- An honest padding row is harmless without the separator too: its padding leaves are `1`.
@@ -244,16 +198,16 @@ theorem withSep_conditions : Conditions withSep where
       simp [pullSep]
     · simp at hf
 
-/-- So its challenges are sound at the slot's error, `4·2^{μ_bus}/|E|`. -/
+/-- So its challenges are sound at the slot's error, `2^{μ_bus}/|E|`. -/
 example : Typed.Security (challengeStep withSep) (Seam.commit withSep) (afterChallenge withSep)
-    (Typed.drawErrors _ (overE (4 * 2 ^ withSep.μBus))) :=
+    (Typed.drawErrors _ (overE (2 ^ withSep.μBus))) :=
   challengeSecurity withSep_conditions
 
--- On `withSep` the same stack is unbalanced and its padding tuples are `(1, 0, …)`: the products
--- differ at the tests' challenge.
+-- On `withSep` the same stack is unbalanced and its padding differences are `(0, 1, …, 1)`: the
+-- products differ at the tests' challenge.
 #guard ¬ withSep.Balanced collide
-#guard (sidePadTuples withSep collide .push).map (·.toList) = [1 :: List.replicate 15 0]
-#guard (sidePadTuples withSep collide .pull).map (·.toList) = [1 :: List.replicate 15 0]
+#guard (sidePadTuples withSep collide .push).map (·.toList) = [0 :: List.replicate 15 1]
+#guard (sidePadTuples withSep collide .pull).map (·.toList) = [0 :: List.replicate 15 1]
 #guard (∏ x : Fin (2 ^ withSep.μBus), (pushLeaves withSep α β collide)[x]) ≠
   ∏ x : Fin (2 ^ withSep.μBus), (pullLeaves withSep α β collide)[x]
 

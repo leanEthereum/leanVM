@@ -39,7 +39,7 @@ constructor remains the opening phase's responsibility.
 open LeanVM.Parameters CompPoly CMlPolynomialEval OracleComp
 open scoped NNReal ENNReal
 
-private def u : E := E.ofLimbs 0 1 0
+private def u : E := E.ofLimbs 0 1
 private def q : Column 1 := ⟨#v[K.ofBits 2, K.ofBits 3]⟩
 private def weights : Fin 2 → Weight E 1 := ![eqWeight #v[u], eqWeight #v[u + 1]]
 private def tables : Fin 2 → CMlPolynomialEval E 1 := fun j ↦ (weights j).onCube
