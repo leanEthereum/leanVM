@@ -87,7 +87,7 @@ theorem vt_pushSel_data : ∀ i < 51,
       (vtPushSel.getD i default).2.2.2.2.2.1 = vtEqV ((vtPushSel.getD i default).2.2.2.1 - 1) ∧
       (((vtPushSel.getD i default).2.2.2.2.2.2.1 = vtGV ((vtPushSel.getD i default).2.2.2.1 - 1) ∧
         (vtPushSel.getD i default).2.2.2.2.2.2.2 = 21299200) ∨
-       ((vtPushSel.getD i default).2.2.2.1 = 2 ∧ (vtPushSel.getD i default).2.2.2.2.2.2.1 = 706 ∧
+       ((vtPushSel.getD i default).2.2.2.1 = 2 ∧ (vtPushSel.getD i default).2.2.2.2.2.2.1 = 702 ∧
         (vtPushSel.getD i default).2.2.2.2.2.2.2 = 299140177199104))) := by decide
 
 /-- The count blocks' data. -/
@@ -104,7 +104,7 @@ theorem vt_countSel_data : ∀ i < 45,
       (vtCountSel.getD i default).2.2.2.2.2.1 = vtEqV ((vtCountSel.getD i default).2.2.2.1 - 1) ∧
       (((vtCountSel.getD i default).2.2.2.2.2.2.1 = vtGV ((vtCountSel.getD i default).2.2.2.1 - 1) ∧
         (vtCountSel.getD i default).2.2.2.2.2.2.2 = 21299200) ∨
-       ((vtCountSel.getD i default).2.2.2.1 = 2 ∧ (vtCountSel.getD i default).2.2.2.2.2.2.1 = 706 ∧
+       ((vtCountSel.getD i default).2.2.2.1 = 2 ∧ (vtCountSel.getD i default).2.2.2.2.2.2.1 = 702 ∧
         (vtCountSel.getD i default).2.2.2.2.2.2.2 = 299140177199104))) := by
   decide
 

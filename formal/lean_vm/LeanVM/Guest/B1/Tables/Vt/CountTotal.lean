@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.CountTotal
 
-  `verify_tables`' count side total: the padding sum over its blocks, the selector sum and the GKR
-  count value.
+  `verify_tables`' count side total: the padding sum over its blocks (counts alone, at `β = 0`),
+  the selector sum and the GKR count value.
 -/
 
 module
@@ -10,10 +10,10 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PullTotal
 
 /-!
-# The count side's total (G:2316-2348)
+# The count side's total (G:2521-2580)
 
-The count side has no framework blocks and its blocks' padding coefficient is `1`.
-`vt_count_total`: `bus_table_total[COUNT]`.
+`vtCountPadData` lists the count side's blocks with their table and copy. `vt_count_total`:
+`bus_table_total[COUNT]` is the padding sum, `1 + selector_sum` and the GKR count value.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -25,94 +25,157 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 /-- The count side's blocks: block, table, copy value, no padding terms. -/
 def vtCountPadData : List (ℕ × ℕ × ℕ × List (ℕ × ℕ)) :=
-  [(108, 0, 2077, []), (109, 0, 2082, []), (110, 0, 2087, []), (111, 0, 2092, []),
-    (112, 1, 2101, []), (113, 1, 2110, []), (114, 1, 2119, []), (115, 1, 2128, []),
-    (116, 2, 2137, []), (117, 2, 2146, []), (118, 3, 2155, []), (119, 3, 2164, []),
-    (120, 3, 2173, []), (121, 3, 2182, []), (122, 4, 2191, []), (123, 4, 2200, []),
-    (124, 4, 2209, []), (125, 4, 2218, []), (126, 5, 2227, []), (127, 5, 2236, []),
-    (128, 5, 2245, []), (129, 5, 2254, []), (130, 5, 2263, []), (131, 5, 2272, []),
-    (132, 5, 2281, []), (133, 5, 2290, []), (134, 5, 2299, []), (135, 5, 2308, []),
-    (136, 5, 2317, []), (137, 5, 2326, []), (138, 5, 2335, []), (139, 5, 2344, []),
-    (140, 5, 2353, []), (141, 5, 2362, []), (142, 5, 2371, []), (143, 5, 2380, []),
-    (144, 5, 2389, []), (145, 5, 2398, []), (146, 5, 2407, []), (147, 5, 2416, []),
-    (148, 5, 2425, []), (149, 5, 2434, []), (150, 5, 2443, []), (151, 5, 2452, []),
-    (152, 5, 2461, [])]
+  [(108, 0, 1440, []), (109, 0, 1445, []), (110, 0, 1450, []), (111, 0, 1455, []),
+    (112, 1, 1464, []), (113, 1, 1473, []), (114, 1, 1482, []), (115, 1, 1491, []),
+    (116, 2, 1500, []), (117, 2, 1509, []), (118, 3, 1518, []), (119, 3, 1527, []),
+    (120, 3, 1536, []), (121, 3, 1545, []), (122, 4, 1554, []), (123, 4, 1563, []),
+    (124, 4, 1572, []), (125, 4, 1581, []), (126, 5, 1590, []), (127, 5, 1599, []),
+    (128, 5, 1608, []), (129, 5, 1617, []), (130, 5, 1626, []), (131, 5, 1635, []),
+    (132, 5, 1644, []), (133, 5, 1653, []), (134, 5, 1662, []), (135, 5, 1671, []),
+    (136, 5, 1680, []), (137, 5, 1689, []), (138, 5, 1698, []), (139, 5, 1707, []),
+    (140, 5, 1716, []), (141, 5, 1725, []), (142, 5, 1734, []), (143, 5, 1743, []),
+    (144, 5, 1752, []), (145, 5, 1761, []), (146, 5, 1770, []), (147, 5, 1779, []),
+    (148, 5, 1788, []), (149, 5, 1797, []), (150, 5, 1806, []), (151, 5, 1815, []),
+    (152, 5, 1824, [])]
 
 set_option maxRecDepth 100000 in
-/-- **The count side's total.** -/
-theorem vt_count_total {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
-    σ (.n 2515) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W 1 vtCountPadData +
-      (1 + σ (.n 2460)) + σ (.n 27) := by
-  have a5098 := h.atomAt 2533 (.add (.n 2462) (.n 2077) (.n 2082)) (by decide +kernel)
-  have a5099 := h.atomAt 2534 (.add (.n 2463) (.n 2462) (.n 2087)) (by decide +kernel)
-  have a5100 := h.atomAt 2535 (.add (.n 2464) (.n 2463) (.n 2092)) (by decide +kernel)
-  have a5101 := h.atomAt 2536 (.mul (.n 2465) (.n 587) (.n 2464)) (by decide +kernel)
-  have a5102 := h.atomAt 2537 (.add (.n 2466) (.n 2101) (.n 2110)) (by decide +kernel)
-  have a5103 := h.atomAt 2538 (.add (.n 2467) (.n 2466) (.n 2119)) (by decide +kernel)
-  have a5104 := h.atomAt 2539 (.add (.n 2468) (.n 2467) (.n 2128)) (by decide +kernel)
-  have a5105 := h.atomAt 2540 (.mul (.n 2469) (.n 600) (.n 2468)) (by decide +kernel)
-  have a5106 := h.atomAt 2541 (.add (.n 2470) (.n 2465) (.n 2469)) (by decide +kernel)
-  have a5107 := h.atomAt 2542 (.add (.n 2471) (.n 2137) (.n 2146)) (by decide +kernel)
-  have a5108 := h.atomAt 2543 (.mul (.n 2472) (.n 613) (.n 2471)) (by decide +kernel)
-  have a5109 := h.atomAt 2544 (.add (.n 2473) (.n 2470) (.n 2472)) (by decide +kernel)
-  have a5110 := h.atomAt 2545 (.add (.n 2474) (.n 2155) (.n 2164)) (by decide +kernel)
-  have a5111 := h.atomAt 2546 (.add (.n 2475) (.n 2474) (.n 2173)) (by decide +kernel)
-  have a5112 := h.atomAt 2547 (.add (.n 2476) (.n 2475) (.n 2182)) (by decide +kernel)
-  have a5113 := h.atomAt 2548 (.mul (.n 2477) (.n 626) (.n 2476)) (by decide +kernel)
-  have a5114 := h.atomAt 2549 (.add (.n 2478) (.n 2473) (.n 2477)) (by decide +kernel)
-  have a5115 := h.atomAt 2550 (.add (.n 2479) (.n 2191) (.n 2200)) (by decide +kernel)
-  have a5116 := h.atomAt 2551 (.add (.n 2480) (.n 2479) (.n 2209)) (by decide +kernel)
-  have a5117 := h.atomAt 2552 (.add (.n 2481) (.n 2480) (.n 2218)) (by decide +kernel)
-  have a5118 := h.atomAt 2553 (.mul (.n 2482) (.n 639) (.n 2481)) (by decide +kernel)
-  have a5119 := h.atomAt 2554 (.add (.n 2483) (.n 2478) (.n 2482)) (by decide +kernel)
-  have a5120 := h.atomAt 2555 (.add (.n 2484) (.n 2227) (.n 2236)) (by decide +kernel)
-  have a5121 := h.atomAt 2556 (.add (.n 2485) (.n 2484) (.n 2245)) (by decide +kernel)
-  have a5122 := h.atomAt 2557 (.add (.n 2486) (.n 2485) (.n 2254)) (by decide +kernel)
-  have a5123 := h.atomAt 2558 (.add (.n 2487) (.n 2486) (.n 2263)) (by decide +kernel)
-  have a5124 := h.atomAt 2559 (.add (.n 2488) (.n 2487) (.n 2272)) (by decide +kernel)
-  have a5125 := h.atomAt 2560 (.add (.n 2489) (.n 2488) (.n 2281)) (by decide +kernel)
-  have a5126 := h.atomAt 2561 (.add (.n 2490) (.n 2489) (.n 2290)) (by decide +kernel)
-  have a5127 := h.atomAt 2562 (.add (.n 2491) (.n 2490) (.n 2299)) (by decide +kernel)
-  have a5128 := h.atomAt 2563 (.add (.n 2492) (.n 2491) (.n 2308)) (by decide +kernel)
-  have a5129 := h.atomAt 2564 (.add (.n 2493) (.n 2492) (.n 2317)) (by decide +kernel)
-  have a5130 := h.atomAt 2565 (.add (.n 2494) (.n 2493) (.n 2326)) (by decide +kernel)
-  have a5131 := h.atomAt 2566 (.add (.n 2495) (.n 2494) (.n 2335)) (by decide +kernel)
-  have a5132 := h.atomAt 2567 (.add (.n 2496) (.n 2495) (.n 2344)) (by decide +kernel)
-  have a5133 := h.atomAt 2568 (.add (.n 2497) (.n 2496) (.n 2353)) (by decide +kernel)
-  have a5134 := h.atomAt 2569 (.add (.n 2498) (.n 2497) (.n 2362)) (by decide +kernel)
-  have a5135 := h.atomAt 2570 (.add (.n 2499) (.n 2498) (.n 2371)) (by decide +kernel)
-  have a5136 := h.atomAt 2571 (.add (.n 2500) (.n 2499) (.n 2380)) (by decide +kernel)
-  have a5137 := h.atomAt 2572 (.add (.n 2501) (.n 2500) (.n 2389)) (by decide +kernel)
-  have a5138 := h.atomAt 2573 (.add (.n 2502) (.n 2501) (.n 2398)) (by decide +kernel)
-  have a5139 := h.atomAt 2574 (.add (.n 2503) (.n 2502) (.n 2407)) (by decide +kernel)
-  have a5140 := h.atomAt 2575 (.add (.n 2504) (.n 2503) (.n 2416)) (by decide +kernel)
-  have a5141 := h.atomAt 2576 (.add (.n 2505) (.n 2504) (.n 2425)) (by decide +kernel)
-  have a5142 := h.atomAt 2577 (.add (.n 2506) (.n 2505) (.n 2434)) (by decide +kernel)
-  have a5143 := h.atomAt 2578 (.add (.n 2507) (.n 2506) (.n 2443)) (by decide +kernel)
-  have a5144 := h.atomAt 2579 (.add (.n 2508) (.n 2507) (.n 2452)) (by decide +kernel)
-  have a5145 := h.atomAt 2580 (.add (.n 2509) (.n 2508) (.n 2461)) (by decide +kernel)
-  have a5146 := h.atomAt 2581 (.mul (.n 2510) (.n 652) (.n 2509)) (by decide +kernel)
-  have a5147 := h.atomAt 2582 (.add (.n 2511) (.n 2483) (.n 2510)) (by decide +kernel)
-  have a5148 := h.atomAt 2583 (.const (.n 2512) (word 1 0)) (by decide +kernel)
-  have a5149 := h.atomAt 2584 (.add (.n 2513) (.n 2512) (.n 2460)) (by decide +kernel)
-  have a5150 := h.atomAt 2585 (.add (.n 2514) (.n 2511) (.n 2513)) (by decide +kernel)
-  have a5151 := h.atomAt 2586 (.add (.n 2515) (.n 2514) (.n 27)) (by decide +kernel)
-  simp only [Atom.Holds] at a5098 a5099 a5100 a5101 a5102 a5103 a5104 a5105 a5106 a5107
-  simp only [Atom.Holds] at a5108 a5109 a5110 a5111 a5112 a5113 a5114 a5115 a5116 a5117
-  simp only [Atom.Holds] at a5118 a5119 a5120 a5121 a5122 a5123 a5124 a5125 a5126 a5127
-  simp only [Atom.Holds] at a5128 a5129 a5130 a5131 a5132 a5133 a5134 a5135 a5136 a5137
-  simp only [Atom.Holds] at a5138 a5139 a5140 a5141 a5142 a5143 a5144 a5145 a5146 a5147
-  simp only [Atom.Holds] at a5148 a5149 a5150 a5151
-  simp only [a5098, a5099, a5100, a5101, a5102, a5103, a5104, a5105, a5106, a5107, a5108, a5109, a5110,
-    a5111, a5112, a5113, a5114, a5115, a5116, a5117, a5118, a5119, a5120, a5121, a5122, a5123,
-    a5124, a5125, a5126, a5127, a5128, a5129, a5130, a5131, a5132, a5133, a5134, a5135, a5136,
-    a5137, a5138, a5139, a5140, a5141, a5142, a5143, a5144, a5145, a5146, a5147, a5148, a5149,
-    a5150, a5151]
-  simp (config := { decide := true }) only [vtPadSum, vtPadTable, vtCountPadData, vtPadV,
-    List.filter_cons, List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
-    ↓reduceIte, add_zero, mul_one]
-  rw [tb_word_one]
+theorem vt_countPadT0 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2491) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 0 := by
+  have a2536 := h.atomAt 2536 (.add (.n 2489) (.n 1440) (.n 1445)) (by decide +kernel)
+  have a2537 := h.atomAt 2537 (.add (.n 2490) (.n 2489) (.n 1450)) (by decide +kernel)
+  have a2538 := h.atomAt 2538 (.add (.n 2491) (.n 2490) (.n 1455)) (by decide +kernel)
+  simp only [Atom.Holds] at a2536 a2537 a2538
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2536, a2537, a2538]
   ring
+
+set_option maxRecDepth 100000 in
+theorem vt_countPadT1 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2495) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 1 := by
+  have a2540 := h.atomAt 2540 (.add (.n 2493) (.n 1464) (.n 1473)) (by decide +kernel)
+  have a2541 := h.atomAt 2541 (.add (.n 2494) (.n 2493) (.n 1482)) (by decide +kernel)
+  have a2542 := h.atomAt 2542 (.add (.n 2495) (.n 2494) (.n 1491)) (by decide +kernel)
+  simp only [Atom.Holds] at a2540 a2541 a2542
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2540, a2541, a2542]
+  ring
+
+set_option maxRecDepth 100000 in
+theorem vt_countPadT2 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2498) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 2 := by
+  have a2545 := h.atomAt 2545 (.add (.n 2498) (.n 1500) (.n 1509)) (by decide +kernel)
+  simp only [Atom.Holds] at a2545
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2545]
+
+set_option maxRecDepth 100000 in
+theorem vt_countPadT3 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2503) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 3 := by
+  have a2548 := h.atomAt 2548 (.add (.n 2501) (.n 1518) (.n 1527)) (by decide +kernel)
+  have a2549 := h.atomAt 2549 (.add (.n 2502) (.n 2501) (.n 1536)) (by decide +kernel)
+  have a2550 := h.atomAt 2550 (.add (.n 2503) (.n 2502) (.n 1545)) (by decide +kernel)
+  simp only [Atom.Holds] at a2548 a2549 a2550
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2548, a2549, a2550]
+  ring
+
+set_option maxRecDepth 100000 in
+theorem vt_countPadT4 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2508) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 4 := by
+  have a2553 := h.atomAt 2553 (.add (.n 2506) (.n 1554) (.n 1563)) (by decide +kernel)
+  have a2554 := h.atomAt 2554 (.add (.n 2507) (.n 2506) (.n 1572)) (by decide +kernel)
+  have a2555 := h.atomAt 2555 (.add (.n 2508) (.n 2507) (.n 1581)) (by decide +kernel)
+  simp only [Atom.Holds] at a2553 a2554 a2555
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2553, a2554, a2555]
+  ring
+
+set_option maxRecDepth 100000 in
+theorem vt_countPadT5 {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2536) = vtPadTable (fun c ↦ σ (.n c)) W 1 vtCountPadData 5 := by
+  have a2558 := h.atomAt 2558 (.add (.n 2511) (.n 1590) (.n 1599)) (by decide +kernel)
+  have a2559 := h.atomAt 2559 (.add (.n 2512) (.n 2511) (.n 1608)) (by decide +kernel)
+  have a2560 := h.atomAt 2560 (.add (.n 2513) (.n 2512) (.n 1617)) (by decide +kernel)
+  have a2561 := h.atomAt 2561 (.add (.n 2514) (.n 2513) (.n 1626)) (by decide +kernel)
+  have a2562 := h.atomAt 2562 (.add (.n 2515) (.n 2514) (.n 1635)) (by decide +kernel)
+  have a2563 := h.atomAt 2563 (.add (.n 2516) (.n 2515) (.n 1644)) (by decide +kernel)
+  have a2564 := h.atomAt 2564 (.add (.n 2517) (.n 2516) (.n 1653)) (by decide +kernel)
+  have a2565 := h.atomAt 2565 (.add (.n 2518) (.n 2517) (.n 1662)) (by decide +kernel)
+  have a2566 := h.atomAt 2566 (.add (.n 2519) (.n 2518) (.n 1671)) (by decide +kernel)
+  have a2567 := h.atomAt 2567 (.add (.n 2520) (.n 2519) (.n 1680)) (by decide +kernel)
+  have a2568 := h.atomAt 2568 (.add (.n 2521) (.n 2520) (.n 1689)) (by decide +kernel)
+  have a2569 := h.atomAt 2569 (.add (.n 2522) (.n 2521) (.n 1698)) (by decide +kernel)
+  have a2570 := h.atomAt 2570 (.add (.n 2523) (.n 2522) (.n 1707)) (by decide +kernel)
+  have a2571 := h.atomAt 2571 (.add (.n 2524) (.n 2523) (.n 1716)) (by decide +kernel)
+  have a2572 := h.atomAt 2572 (.add (.n 2525) (.n 2524) (.n 1725)) (by decide +kernel)
+  have a2573 := h.atomAt 2573 (.add (.n 2526) (.n 2525) (.n 1734)) (by decide +kernel)
+  have a2574 := h.atomAt 2574 (.add (.n 2527) (.n 2526) (.n 1743)) (by decide +kernel)
+  have a2575 := h.atomAt 2575 (.add (.n 2528) (.n 2527) (.n 1752)) (by decide +kernel)
+  have a2576 := h.atomAt 2576 (.add (.n 2529) (.n 2528) (.n 1761)) (by decide +kernel)
+  have a2577 := h.atomAt 2577 (.add (.n 2530) (.n 2529) (.n 1770)) (by decide +kernel)
+  have a2578 := h.atomAt 2578 (.add (.n 2531) (.n 2530) (.n 1779)) (by decide +kernel)
+  have a2579 := h.atomAt 2579 (.add (.n 2532) (.n 2531) (.n 1788)) (by decide +kernel)
+  have a2580 := h.atomAt 2580 (.add (.n 2533) (.n 2532) (.n 1797)) (by decide +kernel)
+  have a2581 := h.atomAt 2581 (.add (.n 2534) (.n 2533) (.n 1806)) (by decide +kernel)
+  have a2582 := h.atomAt 2582 (.add (.n 2535) (.n 2534) (.n 1815)) (by decide +kernel)
+  have a2583 := h.atomAt 2583 (.add (.n 2536) (.n 2535) (.n 1824)) (by decide +kernel)
+  simp only [Atom.Holds] at a2558 a2559 a2560 a2561 a2562 a2563 a2564 a2565 a2566 a2567
+  simp only [Atom.Holds] at a2568 a2569 a2570 a2571 a2572 a2573 a2574 a2575 a2576 a2577
+  simp only [Atom.Holds] at a2578 a2579 a2580 a2581 a2582 a2583
+  simp (config := { decide := true }) only [vtPadTable, vtCountPadData, List.filter_cons,
+    List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
+    mul_one, add_zero]
+  simp only [a2558, a2559, a2560, a2561, a2562, a2563, a2564, a2565, a2566, a2567, a2568, a2569,
+    a2570, a2571, a2572, a2573, a2574, a2575, a2576, a2577, a2578, a2579, a2580, a2581, a2582,
+    a2583]
+  ring
+
+set_option maxRecDepth 100000 in
+/-- **The count side's padding sum.** -/
+theorem vt_count_pad {rd : Reader} {σ : Val} (h : VtH rd σ) (W : ℕ → E) :
+    σ (.n 2538) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W 1 vtCountPadData := by
+  have a2539 := h.atomAt 2539 (.mul (.n 2492) (.n 583) (.n 2491)) (by decide +kernel)
+  have a2543 := h.atomAt 2543 (.mul (.n 2496) (.n 596) (.n 2495)) (by decide +kernel)
+  have a2544 := h.atomAt 2544 (.add (.n 2497) (.n 2492) (.n 2496)) (by decide +kernel)
+  have a2546 := h.atomAt 2546 (.mul (.n 2499) (.n 609) (.n 2498)) (by decide +kernel)
+  have a2547 := h.atomAt 2547 (.add (.n 2500) (.n 2497) (.n 2499)) (by decide +kernel)
+  have a2551 := h.atomAt 2551 (.mul (.n 2504) (.n 622) (.n 2503)) (by decide +kernel)
+  have a2552 := h.atomAt 2552 (.add (.n 2505) (.n 2500) (.n 2504)) (by decide +kernel)
+  have a2556 := h.atomAt 2556 (.mul (.n 2509) (.n 635) (.n 2508)) (by decide +kernel)
+  have a2557 := h.atomAt 2557 (.add (.n 2510) (.n 2505) (.n 2509)) (by decide +kernel)
+  have a2584 := h.atomAt 2584 (.mul (.n 2537) (.n 648) (.n 2536)) (by decide +kernel)
+  have a2585 := h.atomAt 2585 (.add (.n 2538) (.n 2510) (.n 2537)) (by decide +kernel)
+  simp only [Atom.Holds] at a2539 a2543 a2544 a2546 a2547 a2551 a2552 a2556 a2557 a2584
+  simp only [Atom.Holds] at a2585
+  simp only [a2539, a2543, a2544, a2546, a2547, a2551, a2552, a2556, a2557, a2584, a2585]
+  simp only [vtPadSum, vtPadV]
+  rw [← vt_countPadT0 h W, ← vt_countPadT1 h W, ← vt_countPadT2 h W, ← vt_countPadT3 h W,
+    ← vt_countPadT4 h W, ← vt_countPadT5 h W]
+
+/-- **The count side's total.** -/
+theorem vt_count_total {rd : Reader} {σ : Val} (h : VtH rd σ) :
+    σ (.n 2543) = σ (.n 2538) + (1 + σ (.n 1825)) + σ (.n 2542) := by
+  have a2586 := h.atomAt 2586 (.const (.n 2539) (word 1 0)) (by decide +kernel)
+  have a2587 := h.atomAt 2587 (.add (.n 2540) (.n 2539) (.n 1825)) (by decide +kernel)
+  have a2588 := h.atomAt 2588 (.add (.n 2541) (.n 2538) (.n 2540)) (by decide +kernel)
+  have a2590 := h.atomAt 2590 (.add (.n 2543) (.n 2541) (.n 2542)) (by decide +kernel)
+  simp only [Atom.Holds] at a2586 a2587 a2588 a2590
+  rw [a2590, a2588, a2587, a2586, tb_word_one]
+
+/-- The count side's selector sum is the running sum's copy. -/
+theorem vt_count_sel {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 1825) = σ (.n 1823) := by
+  have a := h.atomAt 1912 (.copy (.n 1825) (.n 1823)) (by decide +kernel)
+  simpa only [Atom.Holds] using a
 
 end
 end LeanVM.Guest.B1.Tables
