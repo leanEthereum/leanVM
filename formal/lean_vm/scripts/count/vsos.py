@@ -23,14 +23,22 @@ def SKt(n):
     """`wSK n - B2C.fs n` (`wSKt`): a loop's words per iteration, its run's phantom frame apart."""
     c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
 B1 = os.path.join(LV, 'LeanVM', 'Guest', 'B1')
-def names(path, name):
-    s = open(os.path.join(B1, path), encoding='utf-8').read()
-    m = re.search(r'def %s : List \(String × ℕ\) :=\s*\[(.*?)\]\n' % name, s, re.S)
-    return re.findall(r'\("([^"]+)", \d+\)', m.group(1))
-KINDS = set(["opening_fold", "grind_check__L17", "opening_row_weights__L4_L0",
-             "opening_row_weights__L6_L1"] + names('Opening/Meaning.lean', 'oodPointNames')
-            + names('Opening/Meaning.lean', 'finalMessageNames') + names('Merkle/Meaning.lean', 'merkleCapNames')
-            + names('Eq/Meaning.lean', 'foldFinalMsgNames'))
+def names(name):
+    """The names of the list `name` (`List (String × ℕ)`), wherever under `B1` it is defined."""
+    for root, _, files in os.walk(B1):
+        for f in files:
+            if not f.endswith('.lean'): continue
+            s = open(os.path.join(root, f), encoding='utf-8').read()
+            m = re.search(r'def %s : List \(String × ℕ\) :=\s*\[(.*?)\]\n' % name, s, re.S)
+            if m: return re.findall(r'\("([^"]+)", \d+\)', m.group(1))
+    sys.exit('vsos.py: `%s`, which `osKindTable` (B1/Place/OsMean.lean) reads, is defined nowhere under B1' % name)
+def kinds():
+    """`B1.osKindTable`'s names: its literal entries and the name lists it maps."""
+    s = open(os.path.join(B1, 'Place', 'OsMean.lean'), encoding='utf-8').read()
+    body = re.search(r'def osKindTable : List \(String × OsKind\) :=\n(.*?)\n\n', s, re.S).group(1)
+    return set(re.findall(r'\("([^"]+)", \.', body) + [n for r in re.findall(r'(\w+Names)\.map', body)
+                                                          for n in names(r)])
+KINDS = kinds()
 Bnd = lambda n: SB(n) if n in KINDS else 0
 src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
 def arr(name):

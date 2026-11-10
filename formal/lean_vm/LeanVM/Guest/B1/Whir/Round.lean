@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Bits.Meaning
-public import LeanVM.Guest.B1.Whir.Template
+public import LeanVM.Guest.B1.Whir.Flat
 public import LeanVM.Guest.CoreData
 
 /-!
@@ -111,17 +111,8 @@ def MeaningOpeningRound (rd : Reader) : List E → List E → Prop
 
 variable {rd : Reader} {σ : Val}
 
-theorem grindCheckName_nine : grindCheckName 9 = "grind_check__L9" := by
-  rw [grindCheckName, Nat.toString_eq_repr, Nat.repr_of_lt (by decide)]
-  rw [show Nat.digitChar 9 = '9' from Nat.digitChar_eq_nine.mpr rfl]
-  decide
+theorem grindCheckName_nine : grindCheckName 9 = "grind_check__L9" := rfl
 
-theorem holds_const (d : V) (c : E) : (Atom.const d c).Holds rd σ ↔ σ d = c := Iff.rfl
-theorem holds_add (d a b : V) : (Atom.add d a b).Holds rd σ ↔ σ d = σ a + σ b := Iff.rfl
-theorem holds_mul (d a b : V) : (Atom.mul d a b).Holds rd σ ↔ σ d = σ a * σ b := Iff.rfl
-theorem holds_copy (d s : V) : (Atom.copy d s).Holds rd σ ↔ σ d = σ s := Iff.rfl
-theorem holds_load (d p : V) (o : ℕ) : (Atom.load d p o).Holds rd σ ↔ LoadHolds rd (σ p) o (σ d) :=
-  Iff.rfl
 
 /-- Five scalars absorbed from an empty queue: the first four permuted, the fifth waiting. -/
 theorem absorbAll_five (cap : List E) (a b c d e : E) (t : ℕ) :

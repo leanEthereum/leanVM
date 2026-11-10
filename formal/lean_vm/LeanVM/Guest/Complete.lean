@@ -240,7 +240,7 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
   b2 := h.b2
   size hdr rd T hname hH n hrun := by
     have h32 := hH.toHonest.logMem_le
-    have hc := (run_ext (readExt_padImage (le_max_left _ 20)
+    have hc := (run_ext (readExt_padImage (le_max_left _ 21)
       (show padLog (T.total fs) < 64 from
         max_lt (lt_of_le_of_lt h32 (by unfold maxLogMem; omega)) (by omega))
       (Memory.honest coreProgram fs H C hdr T)) n _ _ hrun).2

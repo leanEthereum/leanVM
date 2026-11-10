@@ -4,14 +4,14 @@
   The executable witness of an execution is the specification's: `checkTrace` decides a valid
   execution within the cap, and `witness?` returns, from the same run, the announced sizes, every
   column of the instance and the stack of the specification witness, which is a child's witness
-  (`ChildFor`).
+  (`LeanVM.Guest.Child.ChildFor`, unfolded: honest, its stack the execution's committed size).
 -/
 
 module
 
 public import LeanVM.Prover.WitnessCols
 public import LeanVM.Prover.WitnessStack
-public import LeanVM.Guest.Child.Honest
+public import LeanVM.Protocol.EndToEnd.Complete.Small
 
 /-!
 # The witness of an execution
@@ -27,7 +27,8 @@ skeletons) and `traceSizes prog input t` (the sizes it carries, `witnessSizes`),
   column of `stackOf` (the `KECCAK` output lanes included), the stack `stackOf`'s cells, and the
   announcement `announce`.
 * `childFor_trace`: the specification witness at its sizes is a child's witness at every valid
-  rate (`exists_childFor`, for the concrete witness).
+  rate (`exists_childFor`, for the concrete witness): honest (`HonestFor`), with the execution's
+  committed size as its stack's.
 -/
 
 namespace LeanVM.Prover
@@ -35,7 +36,6 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Extraction
 open LeanVM.Protocol LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front
 open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Halting LeanVM.Protocol.Verifier
-open LeanVM.Guest.Child
 open Air.Flat (EnsembleWitness)
 
 @[expose] public section
@@ -67,11 +67,12 @@ theorem ofWitness_traceWitness (hv : ValidExecution prog input t) (hb : TraceBou
   simp only [traceWitness_pos hv hb, dite_true]
   rfl
 
-/-- **The specification witness is a child's witness**, for a valid execution within the cap and
-a valid rate: `exists_childFor`, for the concrete witness. -/
+/-- **The specification witness is a child's witness** (`ChildFor`, unfolded), for a valid
+execution within the cap and a valid rate: `exists_childFor`, for the concrete witness. -/
 theorem childFor_trace (hv : ValidExecution prog input t)
     (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ} (hρ : validRate ρ) :
-    ChildFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) := by
+    HonestFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) ∧
+      (LeanIsa.blocks prog (traceSizes prog input t)).total = t.committedSize := by
   have hb : TraceBounds t := traceBounds_of hv hbudget
   have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
   have hheight : ∀ op, 2 ^ Nat.clog 2 (t.opcodeCount op) ≤ t.committedSize := by

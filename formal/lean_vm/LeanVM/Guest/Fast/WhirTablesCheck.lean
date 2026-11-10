@@ -2,15 +2,15 @@ module
 
 public import LeanVM.Guest.Fast.WhirTables
 public import LeanVM.Guest.Fast.FunctionNames
-public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.Whir.Witness
 
 /-!
 # `open_stacked`'s tables, checked
 
-* `callMatch r c`: the `OsCall` `r` is the `opening_queries` call `c` of the template
-  (`osQCalls`) in numbers: its shape, its odd query and iterations, its depth, its arguments' and
-  returns' cells (cells all), its callee, its loop and its queries' `walk_path` the functions of
-  `r`'s indices (`decoderFunctionName`, `Fast/FunctionNames.lean`);
+* `callMatch m r c`: the `OsCall` `r` is candidate `m`'s `opening_queries` call `c` of the template
+  (`osQCalls`, with its level's index) in numbers: its callee, its loop and its queries'
+  `walk_path` the functions of `r`'s indices (`decoderFunctionName`, `Fast/FunctionNames.lean`),
+  its iterations, its level's depth and cap depth, its arguments' and returns' cells (cells all);
 * `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's,
   by kernel evaluation, a candidate at a time (`callsOK_m`).
 -/
@@ -27,19 +27,33 @@ def vIdx (v : V) : ℕ := v.idx
 /-- Whether a value is the cell of its number. -/
 def isN (v : V) : Bool := v == .n v.idx
 
-/-- **The table's call `r` is the template's call `c`.** -/
-noncomputable def callMatch (r : OsCall) : ℕ × OsLv × String × List V × List V → Bool
-  | (lvl, lv, name, args, rets) =>
-    r.base == (lvOq lvl lv).base && r.I == (lvOq lvl lv).I && r.pd == (lvOq lvl lv).pd &&
-      r.cd == (lvOq lvl lv).cd && r.odd == lv.queries % 2 * (if lvl = 0 then 1 else 0) &&
-      r.N == lv.queries / (1 + if lvl = 0 then 1 else 0) && r.depth == lv.depth &&
-      r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN &&
-      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name &&
-      decoderFunctionName r.walk == oqWalkOf (lvOq lvl lv)
+/-- Two shapes, field by field. -/
+def shapeBEq (a b : OqShape) : Bool :=
+  a.odd == b.odd && a.base == b.base && a.folds == b.folds && a.leafCells == b.leafCells &&
+    a.depth == b.depth && a.cd == b.cd && a.mu == b.mu && a.vanish == b.vanish &&
+    a.nHs == b.nHs && a.hsBits == b.hsBits && a.final == b.final && a.vs == b.vs
 
-/-- Candidate `m`'s `opening_queries` calls. -/
-def osCallsOf (m : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
-  osQCalls (osCfg m) 0 (osCfg m).levels (osHead (osCfg m)).2
+theorem eq_of_shapeBEq {a b : OqShape} (h : shapeBEq a b = true) : a = b := by
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _⟩ := a
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _⟩ := b
+  simp only [shapeBEq, Bool.and_eq_true, beq_iff_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+  rfl
+
+/-- **The table's call `r` is candidate `m`'s call `c`** of level `c.2`. -/
+noncomputable def callMatch (m : ℕ) (r : OsCall) : (String × List V × List V) × ℕ → Bool
+  | ((name, args, rets), l) =>
+    shapeBEq (oqShapeAt r.sh) (oqShapeOf name) &&
+      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name &&
+      decoderFunctionName r.walk == oqWalkOf (oqShapeOf name).oq &&
+      r.N == ((osCfg m).levels.getD l default).queries / (1 + if l = 0 then 1 else 0) &&
+      r.depth == ((osCfg m).levels.getD l default).depth &&
+      r.cd == ((osCfg m).levels.getD l default).capDepth &&
+      r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
+
+/-- Candidate `m`'s `opening_queries` calls, with their levels' indices. -/
+def osCallsOf (m : ℕ) : List ((String × List V × List V) × ℕ) := (osQCalls (osCfg m)).zipIdx
 
 theorem osWordsTab_eq : osWordsTab = (List.range 28).map fun m ↦ osWordsLen (osCfg m) := by
   decide +kernel
@@ -47,7 +61,7 @@ theorem osWordsTab_eq : osWordsTab = (List.range 28).map fun m ↦ osWordsLen (o
 /-- Candidate `m`'s calls are the table's. -/
 def CallsOK (m : ℕ) : Prop :=
   (osCallsTab.getD m []).length = (osCallsOf m).length ∧
-    ((osCallsTab.getD m []).zip (osCallsOf m)).all (fun p ↦ callMatch p.1 p.2) = true
+    ((osCallsTab.getD m []).zip (osCallsOf m)).all (fun p ↦ callMatch m p.1 p.2) = true
 
 theorem callsOK_0 : CallsOK 0 := by unfold CallsOK; decide +kernel
 

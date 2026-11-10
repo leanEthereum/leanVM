@@ -53,11 +53,10 @@ def aggB (fs : String → ℕ) (SB SK : String → ℕ) (m : ℕ) : ℕ :=
 set_option maxRecDepth 20000 in
 /-- **`aggregate_claims` is complete, placed, its tree of honest shape, within `aggB`**: on `m ≤ 16` children whose words the caller's
 words `Lin` hold, the window tables at `tabs`, the hints of an accepting batching, writing the
-batching's claim, which `Lin` holds at `g^ds`; given `batch_sumcheck__L23`'s meaning and
-`grind_check__L2`'s completeness. -/
+batching's claim, which `Lin` holds at `g^ds`; given
+`grind_check__L2`'s trees within `SB` (`hGr`). -/
 theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (hBS : agg_batch_sumcheck_Spec)
-    (hGr : CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
+    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs "__loop33" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33"))
     (h26 : TotalLeOn coreProgram fs "__loop34" LoopPre
@@ -116,14 +115,14 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
     ⟨fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l25 l25_shape' (rest := [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi])
           (agg_l25 (hcw' rd hm) (hbm rd hm))).2 hne) 16 (hL h25 _ _)).toDTB,
-      fun _ => (hGr _ _ _ fun rd hl hm =>
+      fun _ => (aggGrind_completeB_of cert hGr _ _ _ fun rd hl hm =>
         ⟨rfl, _, _, rfl, htabs rd hl (Main.memL_append.mp hm).2, agg_pow hpow⟩).toDTB,
       fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l26 l26_shape.1
           (rest := [P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h])
           (agg_l26 (hcw' rd hm) (hbm rd hm))).2 hne) 16 (hL h26 _ _)).toDTB,
       fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet])
-        (fun rd hm => agg_bs hBS tabs hrl (hbm rd hm)) 16
+        (fun rd hm => agg_bs tabs hrl (hbm rd hm)) 16
         (fun rd t hn hv hb => hbs rd t _ _ hn hv hb)).toDTB,
       fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h])
@@ -282,7 +281,7 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
       show (σ (.n 188)).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
-        simp [aggOut, DeferredClaim.cells, aggRun, aggBsRun_len, hrl]
+        simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
       show (σ (.n 4)).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _
