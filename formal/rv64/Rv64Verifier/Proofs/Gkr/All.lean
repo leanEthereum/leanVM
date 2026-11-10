@@ -9,6 +9,7 @@ import Rv64Verifier.Proofs.Gkr.LayerWeights
 import Rv64Verifier.Proofs.Gkr.LayerR7
 import Rv64Verifier.Proofs.Gkr.Layer
 import Rv64Verifier.Proofs.Gkr.KeccakClaim
+import Rv64Verifier.Proofs.Gkr.LayerR17
 import Rv64Verifier.Proofs.Multilinear.All
 
 /-!
@@ -29,6 +30,11 @@ theorem «open» : OpenSpec :=
   Open.open_spec Proofs.Multilinear.optFromElemGkr Transcript.sumcheck eqKernel Proofs.Field.mul
     Runtime.memcpy
 
+/-- `verify_layer` from `J12` to the return, its callees' contracts discharged. -/
+theorem secondHalf : Layer.SecondHalf :=
+  Layer.second_half Runtime.alloc_spec Runtime.reserveFresh_80008a10 Proofs.Field.mul
+    Proofs.Multilinear.fromElem
+
 end Rv64Verifier.Gkr
 
 /-! Lean's three axioms, nothing native. -/
@@ -44,3 +50,6 @@ end Rv64Verifier.Gkr
 
 /-- info: 'Rv64Verifier.Gkr.Layer.verify_layer_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Gkr.Layer.verify_layer_spec
+
+/-- info: 'Rv64Verifier.Gkr.secondHalf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.secondHalf
