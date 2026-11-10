@@ -1,5 +1,6 @@
 import Rv64Verifier.Proofs.Walk.Head
 import Rv64Verifier.Proofs.Walk.R6
+import Rv64Verifier.Proofs.Walk.R6U
 
 /-!
 # `walk`: what is proved so far
@@ -11,7 +12,8 @@ returns `Err` (`exit`, `errExit`); `high` checks their high limbs, `rowsStage` f
 and checks the rate, `headStage` runs `build_layout`'s head to `0x80001338` (`Head`: the
 conditions of `buildLayoutRust`'s `if`); `r5` runs `table_log_heights` to `state_step`'s call
 (`AtR5`), `r6a` from there through `state_step`, the operands and `bytecode` to the first
-`keccak_cell_lanes` (`AtR6a`). The axioms: Lean's three.
+`keccak_cell_lanes` (`AtR6a`); `keccakLoop` from there through both `keccak_cell_lanes` calls and
+the 26-cell loop to `0x80001f00`, the `Flushes` at `sp + 1168` holding `flushes_keccak()`. The axioms: Lean's three.
 -/
 
 /-- info: 'Rv64Verifier.Proofs.Walk.start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -55,3 +57,6 @@ conditions of `buildLayoutRust`'s `if`); `r5` runs `table_log_heights` to `state
 
 /-- info: 'Rv64Verifier.Proofs.Walk.r6a' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.r6a
+
+/-- info: 'Rv64Verifier.Proofs.Walk.keccakLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.keccakLoop

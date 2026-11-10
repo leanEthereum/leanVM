@@ -54,11 +54,12 @@ structure M6 (OI : MachineState → Word → List (List Opening) → Prop) (s u 
     u.getMem (s.getReg .x2 - 2488) = s.getReg .x10 ∧ u.getMem (s.getReg .x2 - 2480) = R
 
 /-- What a step past `table_log_heights` may write: the frame from `sp + 576` (past the transcript)
-and the heights' lengths at `sp + 136`, `sp + 152`, the stack below the frame, `NEXT`, the heap
-from `B` on. -/
+and the slots at `sp + 136`, `sp + 152`, `sp + 184`, `sp + 200`, the stack below the frame, `NEXT`,
+the heap from `B` on. -/
 def W6 (s : MachineState) (B : Nat) (v : MachineState) (a : Word) : Prop :=
   Within a (s.getReg .x2 - 2080) 1976 ∨ Within a (s.getReg .x2 - 2520) 8 ∨
-    Within a (s.getReg .x2 - 2504) 8 ∨ Within a (s.getReg .x2 - 11392) 8736 ∨
+    (Within a (s.getReg .x2 - 2504) 8 ∨ Within a (s.getReg .x2 - 2472) 8 ∨
+      Within a (s.getReg .x2 - 2456) 8) ∨ Within a (s.getReg .x2 - 11392) 8736 ∨
     Within a nextAddr 8 ∨ (B ≤ a.toNat ∧ a.toNat < heapNext v)
 
 theorem M6.step {OI : MachineState → Word → List (List Opening) → Prop} {s u v : MachineState}
@@ -74,7 +75,7 @@ theorem M6.step {OI : MachineState → Word → List (List Opening) → Prop} {s
   simp only [heapEnd] at hh hhu
   have I : Inv s v := h.inv.stepL hpre fr (fun a ha ↦ by
     simp only [W6, Within] at ha
-    rcases ha with ha | ha | ha | ha | ha | ⟨ha1, ha2⟩
+    rcases ha with ha | ha | (ha | ha | ha) | ha | ha | ⟨ha1, ha2⟩
     all_goals first
       | exact ⟨Or.inr (Or.inl (by rw [stackLo_eq, stack_eq]; simp only [Within]; addr_omega [ha, hb1])),
           by simp only [Within]; addr_omega [ha, hb1]⟩
@@ -84,11 +85,13 @@ theorem M6.step {OI : MachineState → Word → List (List Opening) → Prop} {s
           by simp only [Within, heapNext] at ha2 hh ⊢; addr_omega [ha2, hh, hb1]⟩) hv mono sp
   have keep (x : Word) (hx : ((s.getReg .x2 - 2656).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2520).toNat) ∨
       ((s.getReg .x2 - 2512).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2504).toNat) ∨
-      ((s.getReg .x2 - 2496).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2080).toNat) ∨
+      ((s.getReg .x2 - 2496).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2472).toNat) ∨
+      ((s.getReg .x2 - 2464).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2456).toNat) ∨
+      ((s.getReg .x2 - 2448).toNat ≤ x.toNat ∧ x.toNat + 8 ≤ (s.getReg .x2 - 2080).toNat) ∨
       (0x20 ≤ x.toNat ∧ x.toNat + 8 ≤ B)) : v.getMem x = u.getMem x :=
     fr x (fun y hy hw ↦ by
       simp only [W6, Within, heapNext] at hy hw hh hhu q4 ⊢
-      rcases hw with hw | hw | hw | hw | hw | hw <;> addr_omega [hx, hy, hw, hb1, q4, hhu, hh])
+      rcases hw with hw | hw | (hw | hw | hw) | hw | hw | hw <;> addr_omega [hx, hy, hw, hb1, q4, hhu, hh])
       (by simp only [heapNext] at hhu q4; addr_omega [hx, hb1, q4, hhu])
   have hT (T : TState) (hT : TranscriptAt u (tp s) T) : TranscriptAt v (tp s) T := by
     obtain ⟨e0, e1, e2⟩ := proofVals hpre h.inv h.proofPtr
@@ -103,21 +106,21 @@ theorem M6.step {OI : MachineState → Word → List (List Opening) → Prop} {s
     refine (lframe_d fr).transcriptAt hT (tok hpre h.inv h.proofPtr) ?_ ?_ ?_ ?_
     · intro y hy hw
       simp only [W6, Within, tp, heapNext] at hy hw hh
-      rcases hw with (hw | hw | hw | hw | hw | hw) | hw <;> addr_omega [hy, hw, hh, hb1]
+      rcases hw with (hw | hw | (hw | hw | hw) | hw | hw | hw) | hw <;> addr_omega [hy, hw, hh, hb1]
     · rw [e0]; intro y hy hw
       simp only [W6, Within, heapNext] at hy hw hh hm p1
-      rcases hw with (hw | hw | hw | hw | hw | hw) | hw <;>
+      rcases hw with (hw | hw | (hw | hw | hw) | hw | hw | hw) | hw <;>
         addr_omega [hy, hw, hh, hb1, p1, p1', p2, hP, q2, q3, q4, hm]
     · rw [e1, e2]; intro y hy hw
       simp only [W6, Within, heapNext] at hy hw hh hm s1
       rcases hS with h0 | h0
       · rw [h0] at hy; omega
       simp only [Region] at h0
-      rcases hw with (hw | hw | hw | hw | hw | hw) | hw <;>
+      rcases hw with (hw | hw | (hw | hw | hw) | hw | hw | hw) | hw <;>
         addr_omega [hy, hw, hh, hb1, s1, s1', s2, h0, q2, q3, q4, hm]
     · intro y hy hw
       simp only [W6, Within, tp, heapNext] at hy hw hh
-      rcases hw with (hw | hw | hw | hw | hw | hw) | hw <;> addr_omega [hy, hw, hh, hb1]
+      rcases hw with (hw | hw | (hw | hw | hw) | hw | hw | hw) | hw <;> addr_omega [hy, hw, hh, hb1]
   have hn : B ≤ heapNext v := by omega
   exact {
     inv := I
@@ -313,6 +316,9 @@ structure Ops (OI : MachineState → Word → List (List Opening) → Prop) (s u
   x8 : j ≤ 11 → u.getReg .x8 = 0
   x9 : u.getReg .x9 = P
   x26 : u.getReg .x26 = s.getReg .x2 - 512
+  x18 : 11 ≤ j → u.getReg .x18 = 13
+  x19 : 8 ≤ j → u.getReg .x19 = 10
+  x21 : 9 ≤ j → u.getReg .x21 = 11
 
 theorem Ops.hb {OI : MachineState → Word → List (List Opening) → Prop} {s u : MachineState}
     {A : List E} {k : Nat} {R Q : Word} {B : Nat} {P : Word} {j : Nat} (h : Ops OI s u A k R Q B P j) :
@@ -332,7 +338,9 @@ theorem Ops.copy {OI : MachineState → Word → List (List Opening) → Prop} {
     (m8 : v.getMem (P + BitVec.ofNat 64 (24 * j) + 8) = u.getMem (s.getReg .x2 - 928 + 8))
     (m16 : v.getMem (P + BitVec.ofNat 64 (24 * j) + 16) = u.getMem (s.getReg .x2 - 928 + 16))
     (sp : v.getReg .x2 = u.getReg .x2) (x8 : j + 1 ≤ 11 → v.getReg .x8 = u.getReg .x8)
-    (x9 : v.getReg .x9 = u.getReg .x9) (x26 : v.getReg .x26 = u.getReg .x26) :
+    (x9 : v.getReg .x9 = u.getReg .x9) (x26 : v.getReg .x26 = u.getReg .x26)
+    (x18 : 11 ≤ j + 1 → v.getReg .x18 = 13) (x19 : 8 ≤ j + 1 → v.getReg .x19 = 10)
+    (x21 : 9 ≤ j + 1 → v.getReg .x21 = 11) :
     Ops OI s v A k R Q B P (j + 1) := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
   obtain ⟨p1, p2, p3⟩ := h.buf
@@ -376,7 +384,10 @@ theorem Ops.copy {OI : MachineState → Word → List (List Opening) → Prop} {
     forms := fun i hi ↦ ?_
     x8 := fun hj' ↦ by rw [x8 hj']; exact h.x8 (by omega)
     x9 := by rw [x9]; exact h.x9
-    x26 := by rw [x26]; exact h.x26 }
+    x26 := by rw [x26]; exact h.x26
+    x18 := x18
+    x19 := x19
+    x21 := x21 }
   by_cases hij : i < j
   · obtain ⟨o1, o2, o3⟩ := h.forms i hij
     have ha : ∀ x, Within x (P + BitVec.ofNat 64 (24 * i)) 24 →
@@ -510,7 +521,10 @@ theorem Ops.col (hC : Rv64Verifier.Layout.ColSpec)
       exact ⟨G.2, by rw [G.1]; exact o2, fun x hx ↦ o3 x (by rw [← Hb]; exact hx)⟩
     x8 := fun hj' ↦ by rw [hp.reg .x8]; exact h.x8 hj'
     x9 := by rw [hp.reg .x9]; exact h.x9
-    x26 := by rw [hp.reg .x26]; exact h.x26 }, nf.ok, ?_, fun x hx ↦ ?_⟩⟩
+    x26 := by rw [hp.reg .x26]; exact h.x26
+    x18 := fun hj ↦ by rw [hp.reg .x18]; exact h.x18 hj
+    x19 := fun hj ↦ by rw [hp.reg .x19]; exact h.x19 hj
+    x21 := fun hj ↦ by rw [hp.reg .x21]; exact h.x21 hj }, nf.ok, ?_, fun x hx ↦ ?_⟩⟩
   · rw [fv]; congr 1
     · simp only [BitVec.toNat_ofNat]; omega
   · have nb := nf.fresh
@@ -626,7 +640,7 @@ theorem r6alloc (hAS : AllocSpec) (hRF : ReserveFastSpec 0x80004aec)
     rcases hx with hx | hx | hx
     · exact Or.inl (by simp only [Within] at hx ⊢; addr_omega [hx, hb1])
     · exact Or.inr (Or.inl hx)
-    · exact Or.inr (Or.inr (Or.inl hx))
+    · exact Or.inr (Or.inr (Or.inl (Or.inl hx)))
   have keep₄ (y : Word) (hy : y.toNat + 8 ≤ (s.getReg .x2 - 2520).toNat ∨
       (s.getReg .x2 - 2512).toNat ≤ y.toNat ∧ y.toNat + 8 ≤ (s.getReg .x2 - 2504).toNat ∨
       (s.getReg .x2 - 2496).toNat ≤ y.toNat ∧ y.toNat + 8 ≤ (s.getReg .x2 - 152).toNat) :
@@ -699,7 +713,10 @@ theorem r6alloc (hAS : AllocSpec) (hRF : ReserveFastSpec 0x80004aec)
     x9 := by
       rw [b800018b4_x9 h₆, x26₅, show s.getReg .x2 - 512 + 368 = s.getReg .x2 - 144 by
         apply BitVec.eq_of_toNat_eq; addr_omega [hb1], m₅]; exact v1
-    x26 := by rw [b800018b4_keeps h₆ .x26 (by decide)]; exact x26₅ },
+    x26 := by rw [b800018b4_keeps h₆ .x26 (by decide)]; exact x26₅
+    x18 := fun h ↦ absurd h (by decide)
+    x19 := fun h ↦ absurd h (by decide)
+    x21 := fun h ↦ absurd h (by decide) },
     by rw [b800018b4_x10 h₆, hp₅.reg .x2, k₄ .x2 (by decide)]; exact e 1728 928 (by decide),
     b800018b4_x11 h₆, b800018b4_x12 h₆, b800018b4_x1 h₆⟩⟩
 
@@ -747,7 +764,7 @@ theorem op0 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (by rw [b800018d0_x9 hv, x8]; simp)
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b800018d0_pc hv, H', by rw [b800018d0_x10 hv, e 1728 928 (by decide)],
     by rw [b800018d0_x11 hv]; rfl, b800018d0_x12 hv, b800018d0_x1 hv⟩⟩
 
@@ -795,7 +812,7 @@ theorem op1 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b8000190c_pc hv, H', by rw [b8000190c_x10 hv, e 1728 928 (by decide)],
     by rw [b8000190c_x11 hv]; rfl, b8000190c_x12 hv, b8000190c_x1 hv⟩⟩
 
@@ -843,7 +860,7 @@ theorem op2 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001938_pc hv, H', by rw [b80001938_x10 hv, e 1728 928 (by decide)],
     by rw [b80001938_x11 hv]; rfl, b80001938_x12 hv, b80001938_x1 hv⟩⟩
 
@@ -891,7 +908,7 @@ theorem op3 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001964_pc hv, H', by rw [b80001964_x10 hv, e 1728 928 (by decide)],
     by rw [b80001964_x11 hv]; rfl, b80001964_x12 hv, b80001964_x1 hv⟩⟩
 
@@ -939,7 +956,7 @@ theorem op4 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001990_pc hv, H', by rw [b80001990_x10 hv, e 1728 928 (by decide)],
     by rw [b80001990_x11 hv]; rfl, b80001990_x12 hv, b80001990_x1 hv⟩⟩
 
@@ -987,7 +1004,7 @@ theorem op5 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b800019bc_pc hv, H', by rw [b800019bc_x10 hv, e 1728 928 (by decide)],
     by rw [b800019bc_x11 hv]; rfl, b800019bc_x12 hv, b800019bc_x1 hv⟩⟩
 
@@ -1035,7 +1052,7 @@ theorem op6 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b800019e8_pc hv, H', by rw [b800019e8_x10 hv, e 1728 928 (by decide)],
     by rw [b800019e8_x11 hv]; rfl, b800019e8_x12 hv, b800019e8_x1 hv⟩⟩
 
@@ -1083,7 +1100,7 @@ theorem op7 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun _ ↦ b80001a14_x19 hv) (fun h ↦ absurd h (by decide))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001a14_pc hv, H', by rw [b80001a14_x10 hv, e 1728 928 (by decide)],
     by rw [b80001a14_x11 hv]; rfl, b80001a14_x12 hv, b80001a14_x1 hv⟩⟩
 
@@ -1131,7 +1148,7 @@ theorem op8 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ by rw [k .x19 (by decide)]; exact H.x19 (by omega)) (fun _ ↦ b80001a44_x21 hv)
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001a44_pc hv, H', by rw [b80001a44_x10 hv, e 1728 928 (by decide)],
     by rw [b80001a44_x11 hv]; rfl, b80001a44_x12 hv, b80001a44_x1 hv⟩⟩
 
@@ -1179,7 +1196,7 @@ theorem op9 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun h ↦ absurd h (by decide)) (fun h ↦ by rw [k .x19 (by decide)]; exact H.x19 (by omega)) (fun h ↦ by rw [k .x21 (by decide)]; exact H.x21 (by omega))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001a74_pc hv, H', by rw [b80001a74_x10 hv, e 1728 928 (by decide)],
     by rw [b80001a74_x11 hv]; rfl, b80001a74_x12 hv, b80001a74_x1 hv⟩⟩
 
@@ -1227,10 +1244,9 @@ theorem op10 (hC : Rv64Verifier.Layout.ColSpec)
       show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun _ ↦ k .x8 (by decide)) (k .x9 (by decide))
-    (k .x26 (by decide))
+    (k .x26 (by decide)) (fun _ ↦ b80001aa0_x18 hv) (fun h ↦ by rw [k .x19 (by decide)]; exact H.x19 (by omega)) (fun h ↦ by rw [k .x21 (by decide)]; exact H.x21 (by omega))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001aa0_pc hv, H', by rw [b80001aa0_x10 hv, e 1728 928 (by decide)],
     by rw [b80001aa0_x11 hv]; rfl, b80001aa0_x12 hv, b80001aa0_x1 hv⟩⟩
-
 
 set_option maxRecDepth 8192 in
 /-- `col(13, 0)`, copied to `P + 264`; the length 12; the call of `bytecode`. -/
@@ -1285,6 +1301,9 @@ theorem op11 (hC : Rv64Verifier.Layout.ColSpec)
       b80001ad0_m_x9_280 hv, show s.getReg .x2 - 928 + 16 = t.getReg .x2 + 1744 by
         rw [sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]])
     (k .x2 (by decide)) (fun h ↦ absurd h (by decide)) (k .x9 (by decide)) (k .x26 (by decide))
+    (fun h ↦ by rw [k .x18 (by decide)]; exact H.x18 (by omega))
+    (fun h ↦ by rw [k .x19 (by decide)]; exact H.x19 (by omega))
+    (fun h ↦ by rw [k .x21 (by decide)]; exact H.x21 (by omega))
   exact ⟨v, hr.trans hr', Or.inl ⟨b80001ad0_pc hv, H', by
     rw [← e376, b80001ad0_m_x26_376 hv, x8]; rfl, by rw [b80001ad0_x10 hv, e 1168 1488 (by decide)],
     b80001ad0_x11 hv, b80001ad0_x12 hv, by rw [b80001ad0_x13 hv, e 2504 152 (by decide)],
@@ -1315,6 +1334,9 @@ structure AtR6a (OI : MachineState → Word → List (List Opening) → Prop) (s
   x10 : u.getReg .x10 = s.getReg .x2 - 1344
   x11 : u.getReg .x11 = 0
   x26 : u.getReg .x26 = s.getReg .x2 - 512
+  x18 : u.getReg .x18 = 13
+  x19 : u.getReg .x19 = 10
+  x21 : u.getReg .x21 = 11
 
 set_option maxRecDepth 8192 in
 /-- `bytecode(KECCAK_CNT_BC, OP_KECCAK, operands)`, then the call of `keccak_cell_lanes(false)`. -/
@@ -1412,7 +1434,10 @@ theorem r6bytecode (hBC : Rv64Verifier.Layout.BytecodeSpec)
     x1 := b80001b0c_x1 hv
     x10 := by rw [b80001b0c_x10 hv, hp.reg .x2]; exact spAdd hpre h.m.inv.sp (by decide)
     x11 := b80001b0c_x11 hv
-    x26 := by rw [kv .x26 (by decide), hp.reg .x26]; exact h.x26 }⟩⟩
+    x26 := by rw [kv .x26 (by decide), hp.reg .x26]; exact h.x26
+    x18 := by rw [kv .x18 (by decide), hp.reg .x18]; exact h.x18 (by decide)
+    x19 := by rw [kv .x19 (by decide), hp.reg .x19]; exact h.x19 (by decide)
+    x21 := by rw [kv .x21 (by decide), hp.reg .x21]; exact h.x21 (by decide) }⟩⟩
   · exact (Rv64Verifier.Layout.flushesOf_frame (Rv64Verifier.Layout.DFrame.of_same m (fun _ ↦ False))
       g.ok (fun _ _ h ↦ h) (fun _ _ h ↦ h) (by addr_omega [hb1]) g.heap hnv.ge).2.1
   · rw [(Rv64Verifier.Layout.flushesOf_frame (Rv64Verifier.Layout.DFrame.of_same m (fun _ ↦ False))

@@ -18,6 +18,7 @@ import Rv64Verifier.Proofs.Layout.CellLanes
 import Rv64Verifier.Proofs.Layout.Limb
 import Rv64Verifier.Proofs.Layout.BusLayout
 import Rv64Verifier.Proofs.Layout.ExtendTrusted
+import Rv64Verifier.Proofs.Layout.Arith
 import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Proofs.Field.All
 
@@ -100,6 +101,10 @@ theorem bus_layout_proved : Bus.BusLayoutSpec :=
 theorem extend_trusted_proved : ExtendSpec :=
   Extend.extend_spec Runtime.reserveFresh_800060bc clone_proved
 
+theorem flushes_arith_proved : FlushesArithSpec :=
+  Arith.flushes_arith_spec state_step_proved Runtime.alloc_spec col_proved term_proved
+    bytecode_proved prod_proved memory_cols_proved add_scaled_proved Runtime.memcpy memory_proved
+
 /-- info: 'Rv64Verifier.Layout.evaluate_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms evaluate_proved
 
@@ -153,5 +158,8 @@ theorem extend_trusted_proved : ExtendSpec :=
 
 /-- info: 'Rv64Verifier.Layout.extend_trusted_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms extend_trusted_proved
+
+/-- info: 'Rv64Verifier.Layout.flushes_arith_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms flushes_arith_proved
 
 end Rv64Verifier.Layout
