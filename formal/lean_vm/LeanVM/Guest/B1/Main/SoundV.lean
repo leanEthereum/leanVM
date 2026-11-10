@@ -23,9 +23,7 @@ callees' (`Da.dvWit`), a child proof by `piOf` off `verify_sub`'s (B1-d), the ba
 under any call relation `C` that unfolds at `V` and lies below `coreProgram.Rel`, a run of
 `main`'s body gives the statement of the public input's digest, held by `decWitV σ rd V piOf`.
 `main_sound_V_of_sub`: it holds given `SubSoundW bytecode piOf`, `verify_sub`'s statement with its
-proof named by `piOf` (the form B1-d's `verify_sub_sound_w_Spec` takes), `exponent_tables`'
-(`exponent_tables_Spec`) and `aggregate_claims`' two callees' (`agg_batch_sumcheck_Spec`,
-`agg_grind_check_Spec`) as hypotheses until their families land: `SoundVX`'s
+proof named by `piOf` (the form B1-d's `verify_sub_sound_w_Spec` takes): `SoundVX`'s
 `main_sound_VX` at the leanXMSS segment's proof (`Sig.verify_lean_xmss_sound_holds`).
 -/
 
@@ -56,10 +54,10 @@ def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Pro
           NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitV σ rd V piOf)
 
 /-- **`main` is sound, its witness decoded from the frame map**, given `verify_sub`'s statement
-with its proof named, `exponent_tables`' and the batching's two callees'. -/
+with its proof named. -/
 theorem main_sound_V_of_sub {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
-    (hv : SubSoundW bytecode piOf) (hexp : exponent_tables_Spec) (hGr : agg_grind_check_Spec) : main_sound_V bytecode piOf :=
-  main_sound_VX Sig.verify_lean_xmss_sound_holds hv hexp hGr
+    (hv : SubSoundW bytecode piOf) : main_sound_V bytecode piOf :=
+  main_sound_VX Sig.verify_lean_xmss_sound_holds hv
 
 end
 end LeanVM.Guest.B1.Main

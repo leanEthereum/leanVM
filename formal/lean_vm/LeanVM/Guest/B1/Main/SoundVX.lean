@@ -65,7 +65,7 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
 given the segment's statement and `verify_sub`'s with its proof named. -/
 theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
     {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
-    (hv : SubSoundW bytecode piOf) (hexp : exponent_tables_Spec) (hGr : agg_grind_check_Spec) :
+    (hv : SubSoundW bytecode piOf) :
     bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
       UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
         LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
@@ -74,7 +74,7 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
             NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitVX sigOf σ rd V piOf) := by
   intro hbl rd hm C V hV hle D σ hp0 hp1 hb
   obtain ⟨κ, -, hκ, L, rfl⟩ := id hm
-  refine main_sound_C hexp hbl hm (unfolds_of_V hV) hle ⟨?_, ?_, ?_, ?_, ?_⟩ hp0 hp1 hb
+  refine main_sound_C hbl hm (unfolds_of_V hV) hle ⟨?_, ?_, ?_, ?_, ?_⟩ hp0 hp1 hb
   · intro args h
     obtain ⟨hp, hbx⟩ := body_ofV hV find_loop2 h
     exact loop2Out_of_body hx hp hbx
@@ -96,7 +96,7 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     exact ho
   · intro ncg cpi cfresh ccarried dst tabs h hw m hm1 hm16 hN
     obtain ⟨hp, hba⟩ := body_ofV hV find_aggregate_claims h
-    exact (aggregate_claims_val hGr hle hp hba hw m hm1 hm16 hN).2
+    exact (aggregate_claims_val hm hle hp hba hw m hm1 hm16 hN).2
 
 end
 end LeanVM.Guest.B1.Main

@@ -10,13 +10,13 @@ module
 public import LeanVM.Guest.B1.Main.AggBody
 public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.B1.Sumcheck.Batch
+public import LeanVM.Guest.B1.Bits.Grind
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)
 
-`aggregate_claims_holds : aggregate_claims_sound_Spec`, given `batch_sumcheck__L23`'s meaning
-(`agg_batch_sumcheck_Spec`, `MeaningBatchSumcheck`) and `grind_check__L2`'s soundness
-(`agg_grind_check_Spec`), both hypotheses until their families are ported. For
+`aggregate_claims_holds : aggregate_claims_sound_Spec`, from `batch_sumcheck__L23`'s meaning
+(`batch_sumcheck_holds`) and `grind_check__L2`'s (`grind_check_holds`, on the memory image). For
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
 the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
@@ -298,12 +298,12 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
 
 /-! ## The callees' meanings this proof takes -/
 
-/-- `grind_check__L2`'s core IR gives its meaning on any memory whose `tabs` holds the bit windows
-(a hypothesis of `aggregate_claims_holds` until `B1/Bits/Grind` is ported; the name is a literal,
-since the kernel does not reduce `grindCheckName 2`'s `toString`). -/
-def agg_grind_check_Spec : Prop :=
-  ∀ (rd : Reader) (w tabs : E) (rets : List E), WinTabs rd tabs →
-    coreProgram.Rel rd "grind_check__L2" [w, tabs] rets → MeaningGrindCheck 2 [w, tabs] rets
+/-- `grind_check__L2`'s core IR gives its meaning on a memory image whose `tabs` holds the bit
+windows. -/
+theorem agg_grind {rd : Reader} (hm : MemOk rd) {w tabs : E} {rets : List E} (hW : WinTabs rd tabs)
+    (h : coreProgram.Rel rd "grind_check__L2" [w, tabs] rets) : MeaningGrindCheck 2 [w, tabs] rets := by
+  obtain ⟨κ, h16, hκ, L, rfl⟩ := hm
+  exact (grind_check_holds 2 (by decide) hκ (by unfold winTabBits; omega) L w tabs hW rets).mp h
 
 /-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
 relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/
@@ -328,8 +328,8 @@ theorem nonce_ins {s : Fs} (hs : s.pend.length = 4) (n : E) :
 
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
-theorem aggregate_claims_val (hGr : agg_grind_check_Spec)
-    {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
+theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
+    (hle : CallRel.Le C (coreProgram.Rel rd))
     {σ : Val} {args rets : List E} (hpar : Data.core33.params.map σ = args)
     (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core33) False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
@@ -463,7 +463,7 @@ theorem aggregate_claims_val (hGr : agg_grind_check_Spec)
       rwa [show aggNo.getD c default = .n (81 + c) by
         simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
   -- the proof of work and `λ`
-  have hg := hGr rd _ _ _ hW (by simpa using call_of_flat hall hgr)
+  have hg := agg_grind hm hW (by simpa using call_of_flat hall hgr)
   obtain ⟨-, hpow⟩ := hg
   have q1 : σ (.n 82) = cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false 1 :=
     q 1 (by omega)
@@ -541,12 +541,11 @@ theorem aggregate_claims_val (hGr : agg_grind_check_Spec)
   exact ite_pos' rfl
 
 /-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
-holds**, given `batch_sumcheck`'s and `grind_check__L2`'s meanings. -/
-theorem aggregate_claims_holds (hGr : agg_grind_check_Spec) :
-    aggregate_claims_sound_Spec := by
-  intro rd args rets hrel
+holds**, on a memory image. -/
+theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
+  intro rd hm args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
-  have h := aggregate_claims_val hGr (fun _ _ _ h => h) hpar hb
+  have h := aggregate_claims_val hm (fun _ _ _ h => h) hpar hb
   match args, h with
   | [ncg, cpi, cfresh, ccarried, dst, tabs], h =>
     intro hW m hm1 hm16 hN

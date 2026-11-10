@@ -120,9 +120,9 @@ def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
           batch cs h = some out
   | _, _ => False
 
-/-- `aggregate_claims`' core IR gives its meaning. -/
+/-- `aggregate_claims`' core IR gives its meaning, on a memory image. -/
 def aggregate_claims_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
+  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "aggregate_claims" args rets → MeaningAggregateClaims rd args rets
 
 /-! ## What `main` asks of its callees with a witness -/
