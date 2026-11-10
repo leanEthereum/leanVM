@@ -91,8 +91,8 @@ theorem vtc_grp1 (hl : args.length = 20) {κ : ℕ}
   have q27 : σv (.n 44) = σv (.n 12) * σv (.n 29) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 27 (.atom (.mul (.n 44) (.n 12) (.n 29))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q29 : σv (.n 46) = word 9223372036854775821 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 29 (.atom (.const (.n 46) (word 9223372036854775821 0 0))) (by decide +kernel)
+  have q29 : σv (.n 46) = word 9223372036854775821 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 29 (.atom (.const (.n 46) (word 9223372036854775821 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q30 : σv (.n 47) = σv (.n 45) * σv (.n 46) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 30 (.atom (.mul (.n 47) (.n 45) (.n 46))) (by decide +kernel)
@@ -135,8 +135,8 @@ theorem vtc_grp2 (hl : args.length = 20) {κ : ℕ}
   rw [show vtGi 2 = 2 from rfl, show vtB0 2 = 2 from rfl] at hkey
   rw [show vtGi 2 = 2 from rfl, show vtLen 2 = 1 from rfl] at hsz
   rw [show vtGrpA 2 = 35 from rfl, show vtGrpL 2 = 10 from rfl]
-  have q35 : σv (.n 50) = word 524288 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 35 (.atom (.const (.n 50) (word 524288 0 0))) (by decide +kernel)
+  have q35 : σv (.n 50) = word 524288 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 35 (.atom (.const (.n 50) (word 524288 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q36 : σv (.n 51) = σv (.n 28) * σv (.n 50) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 36 (.atom (.mul (.n 51) (.n 28) (.n 50))) (by decide +kernel)
@@ -144,8 +144,8 @@ theorem vtc_grp2 (hl : args.length = 20) {κ : ℕ}
   have q37 : σv (.n 52) = σv (.n 12) * σv (.n 51) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 37 (.atom (.mul (.n 52) (.n 12) (.n 51))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q39 : σv (.n 54) = word 13835058055282163723 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 39 (.atom (.const (.n 54) (word 13835058055282163723 0 0))) (by decide +kernel)
+  have q39 : σv (.n 54) = word 13835058055282163723 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 39 (.atom (.const (.n 54) (word 13835058055282163723 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q40 : σv (.n 55) = σv (.n 53) * σv (.n 54) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 40 (.atom (.mul (.n 55) (.n 53) (.n 54))) (by decide +kernel)
@@ -193,8 +193,8 @@ theorem vtc_grp3 (hl : args.length = 20) {κ : ℕ}
   have q45 : σv (.n 58) = σv (.n 12) * σv (.n 30) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 45 (.atom (.mul (.n 58) (.n 12) (.n 30))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q47 : σv (.n 60) = word 16140901064495857672 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 47 (.atom (.const (.n 60) (word 16140901064495857672 0 0))) (by decide +kernel)
+  have q47 : σv (.n 60) = word 16140901064495857672 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 47 (.atom (.const (.n 60) (word 16140901064495857672 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q48 : σv (.n 61) = σv (.n 59) * σv (.n 60) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 48 (.atom (.mul (.n 61) (.n 59) (.n 60))) (by decide +kernel)
@@ -249,8 +249,8 @@ theorem vtc_grp4 (hl : args.length = 20) {κ : ℕ}
   have q56 : σv (.n 67) = σv (.n 12) * σv (.n 31) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 56 (.atom (.mul (.n 67) (.n 12) (.n 31))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q58 : σv (.n 69) = word 14339461213547659275 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 58 (.atom (.const (.n 69) (word 14339461213547659275 0 0))) (by decide +kernel)
+  have q58 : σv (.n 69) = word 14339461213547659275 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 58 (.atom (.const (.n 69) (word 14339461213547659275 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q59 : σv (.n 70) = σv (.n 68) * σv (.n 69) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 59 (.atom (.mul (.n 70) (.n 68) (.n 69))) (by decide +kernel)
@@ -305,8 +305,8 @@ theorem vtc_grp5 (hl : args.length = 20) {κ : ℕ}
   have q67 : σv (.n 76) = σv (.n 12) * σv (.n 32) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 67 (.atom (.mul (.n 76) (.n 12) (.n 32))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q69 : σv (.n 78) = word 10247940952081563661 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 69 (.atom (.const (.n 78) (word 10247940952081563661 0 0))) (by decide +kernel)
+  have q69 : σv (.n 78) = word 10247940952081563661 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 69 (.atom (.const (.n 78) (word 10247940952081563661 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q70 : σv (.n 79) = σv (.n 77) * σv (.n 78) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 70 (.atom (.mul (.n 79) (.n 77) (.n 78))) (by decide +kernel)
@@ -358,8 +358,8 @@ theorem vtc_grp6 (hl : args.length = 20) {κ : ℕ}
   have q77 : σv (.n 84) = σv (.n 12) * σv (.n 33) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 77 (.atom (.mul (.n 84) (.n 12) (.n 33))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q79 : σv (.n 86) = word 8198521646651277316 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 79 (.atom (.const (.n 86) (word 8198521646651277316 0 0))) (by decide +kernel)
+  have q79 : σv (.n 86) = word 8198521646651277316 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 79 (.atom (.const (.n 86) (word 8198521646651277316 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q80 : σv (.n 87) = σv (.n 85) * σv (.n 86) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 80 (.atom (.mul (.n 87) (.n 85) (.n 86))) (by decide +kernel)
@@ -414,8 +414,8 @@ theorem vtc_grp7 (hl : args.length = 20) {κ : ℕ}
   have q88 : σv (.n 93) = σv (.n 12) * σv (.n 34) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 88 (.atom (.mul (.n 93) (.n 12) (.n 34))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q90 : σv (.n 95) = word 16397104865953710088 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 90 (.atom (.const (.n 95) (word 16397104865953710088 0 0))) (by decide +kernel)
+  have q90 : σv (.n 95) = word 16397104865953710088 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 90 (.atom (.const (.n 95) (word 16397104865953710088 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q91 : σv (.n 96) = σv (.n 94) * σv (.n 95) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 91 (.atom (.mul (.n 96) (.n 94) (.n 95))) (by decide +kernel)
@@ -470,8 +470,8 @@ theorem vtc_grp8 (hl : args.length = 20) {κ : ℕ}
   have q99 : σv (.n 102) = σv (.n 12) * σv (.n 35) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 99 (.atom (.mul (.n 102) (.n 12) (.n 35))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q101 : σv (.n 104) = word 14347467582343217163 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 101 (.atom (.const (.n 104) (word 14347467582343217163 0 0))) (by decide +kernel)
+  have q101 : σv (.n 104) = word 14347467582343217163 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 101 (.atom (.const (.n 104) (word 14347467582343217163 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q102 : σv (.n 105) = σv (.n 103) * σv (.n 104) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 102 (.atom (.mul (.n 105) (.n 103) (.n 104))) (by decide +kernel)
@@ -535,8 +535,8 @@ theorem vtc_grp18 (hl : args.length = 20) {κ : ℕ}
   have q342 : σv (.n 359) = σv (.n 12) * σv (.n 30) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 342 (.atom (.mul (.n 359) (.n 12) (.n 30))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q344 : σv (.n 361) = word 680209610532396145 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 344 (.atom (.const (.n 361) (word 680209610532396145 0 0))) (by decide +kernel)
+  have q344 : σv (.n 361) = word 680209610532396145 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 344 (.atom (.const (.n 361) (word 680209610532396145 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q345 : σv (.n 362) = σv (.n 360) * σv (.n 361) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 345 (.atom (.mul (.n 362) (.n 360) (.n 361))) (by decide +kernel)
@@ -588,8 +588,8 @@ theorem vtc_grp19 (hl : args.length = 20) {κ : ℕ}
   have q352 : σv (.n 367) = σv (.n 12) * σv (.n 31) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 352 (.atom (.mul (.n 367) (.n 12) (.n 31))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q354 : σv (.n 369) = word 8112963632906203587 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 354 (.atom (.const (.n 369) (word 8112963632906203587 0 0))) (by decide +kernel)
+  have q354 : σv (.n 369) = word 8112963632906203587 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 354 (.atom (.const (.n 369) (word 8112963632906203587 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q355 : σv (.n 370) = σv (.n 368) * σv (.n 369) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 355 (.atom (.mul (.n 370) (.n 368) (.n 369))) (by decide +kernel)
@@ -641,8 +641,8 @@ theorem vtc_grp20 (hl : args.length = 20) {κ : ℕ}
   have q362 : σv (.n 375) = σv (.n 12) * σv (.n 32) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 362 (.atom (.mul (.n 375) (.n 12) (.n 32))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q364 : σv (.n 377) = word 10883353768518260496 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 364 (.atom (.const (.n 377) (word 10883353768518260496 0 0))) (by decide +kernel)
+  have q364 : σv (.n 377) = word 10883353768518260496 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 364 (.atom (.const (.n 377) (word 10883353768518260496 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q365 : σv (.n 378) = σv (.n 376) * σv (.n 377) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 365 (.atom (.mul (.n 378) (.n 376) (.n 377))) (by decide +kernel)
@@ -691,8 +691,8 @@ theorem vtc_grp21 (hl : args.length = 20) {κ : ℕ}
   have q371 : σv (.n 382) = σv (.n 12) * σv (.n 33) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 371 (.atom (.mul (.n 382) (.n 12) (.n 33))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q373 : σv (.n 384) = word 2720838442129565124 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 373 (.atom (.const (.n 384) (word 2720838442129565124 0 0))) (by decide +kernel)
+  have q373 : σv (.n 384) = word 2720838442129565124 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 373 (.atom (.const (.n 384) (word 2720838442129565124 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q374 : σv (.n 385) = σv (.n 383) * σv (.n 384) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 374 (.atom (.mul (.n 385) (.n 383) (.n 384))) (by decide +kernel)
@@ -744,8 +744,8 @@ theorem vtc_grp22 (hl : args.length = 20) {κ : ℕ}
   have q381 : σv (.n 390) = σv (.n 12) * σv (.n 34) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 381 (.atom (.mul (.n 390) (.n 12) (.n 34))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q383 : σv (.n 392) = word 14005110457915261527 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 383 (.atom (.const (.n 392) (word 14005110457915261527 0 0))) (by decide +kernel)
+  have q383 : σv (.n 392) = word 14005110457915261527 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 383 (.atom (.const (.n 392) (word 14005110457915261527 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q384 : σv (.n 393) = σv (.n 391) * σv (.n 392) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 384 (.atom (.mul (.n 393) (.n 391) (.n 392))) (by decide +kernel)
@@ -797,8 +797,8 @@ theorem vtc_grp23 (hl : args.length = 20) {κ : ℕ}
   have q391 : σv (.n 398) = σv (.n 12) * σv (.n 35) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 391 (.atom (.mul (.n 398) (.n 12) (.n 35))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
-  have q393 : σv (.n 400) = word 6639926926653938722 0 0 := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 393 (.atom (.const (.n 400) (word 6639926926653938722 0 0))) (by decide +kernel)
+  have q393 : σv (.n 400) = word 6639926926653938722 0 := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 393 (.atom (.const (.n 400) (word 6639926926653938722 0))) (by decide +kernel)
     simpa only [GoodS, fixNe, fixA, Good, Nat.reduceLT, and_self, ↓reduceIte] using h
   have q394 : σv (.n 401) = σv (.n 399) * σv (.n 400) := by
     have h := vt_goodAt (rd := rd) (w := w) hl 394 (.atom (.mul (.n 401) (.n 399) (.n 400))) (by decide +kernel)

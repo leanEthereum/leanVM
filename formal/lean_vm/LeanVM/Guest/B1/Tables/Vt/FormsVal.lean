@@ -61,7 +61,7 @@ theorem vtCoordVal_cons (ev : ℕ → E) (m : List ℕ) (c : ℕ) (l : List (Lis
     vtCoordVal ev ((m, c) :: l) = ofK (K.ofBits c) * (m.map ev).prod + vtCoordVal ev l := by
   simp [vtCoordVal, vtTermsK, liftT]
 
-theorem vt_word_ofK (n : ℕ) : word n 0 0 = ofK (K.ofBits n) := by rw [tb_word_eOfNat]; rfl
+theorem vt_word_ofK (n : ℕ) : word n 0 = ofK (K.ofBits n) := by rw [tb_word_eOfNat]; rfl
 
 theorem vt_ofK_ofBits_zero : ofK (K.ofBits 0) = 0 := by rw [← vt_word_ofK, tb_word_zero]
 

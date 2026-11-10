@@ -27,7 +27,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-- `eq_prefix_chain`'s statements before its `ret`. -/
 def epcPre : List Stmt :=
-  [.atom (.const (.n 5) (word (2 ^ 40) 0 0)),
+  [.atom (.const (.n 5) (word (2 ^ 40) 0)),
     .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
     .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9]]
 

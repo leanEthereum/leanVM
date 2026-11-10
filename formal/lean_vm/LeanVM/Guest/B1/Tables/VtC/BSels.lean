@@ -116,7 +116,7 @@ theorem vtc_sels (hl : args.length = 20) (hlow : LowDefB 14 rd) {point : List E}
   have k2 : σv (.n 876) = gen ^ (vtSizesP lm τ).getD 2 0 := by
     have e0 : σv (.n 28) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_mulAt hl 863 (d := 876) (x := 28) (y := 875) (by norm_num) (by norm_num)
-        (by decide +kernel), vt_constAt hl 862 (d := .n 875) (e := word 524288 0 0)
+        (by decide +kernel), vt_constAt hl 862 (d := .n 875) (e := word 524288 0)
         (by decide +kernel), show (524288 : ℕ) = 2 ^ 19 by norm_num,
       tb_word_two_pow (by norm_num), e0, one_mul]
     rfl
@@ -140,7 +140,7 @@ theorem vtc_sels (hl : args.length = 20) (hlow : LowDefB 14 rd) {point : List E}
   -- the pointers' steps
   have hstep : ∀ t < 6, 0 < t →
       σv (.n (vtEqV (t - 1))) * vtW288 = σv (.n 705) * gen ^ (288 * t) ∧
-        σv (.n (vtGV (t - 1))) * word 21299200 0 0 = σv (.n 706) * gen ^ (144 * t) := by
+        σv (.n (vtGV (t - 1))) * word 21299200 0 = σv (.n 706) * gen ^ (144 * t) := by
     intro t ht ht0
     obtain ⟨e1, e2⟩ := vtc_shptr (rd := rd) (w := wo) hl (t - 1) (by omega)
     obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
@@ -168,7 +168,7 @@ theorem vtc_sels (hl : args.length = 20) (hlow : LowDefB 14 rd) {point : List E}
           σv (.n (vtSelE w t)) := by
     intro sizes b c w t prev pos es gs gw hc ht hd hes hgs hsz hal hob hoff hdig hw0 hw1
     have hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 705) * gen ^ (288 * t) ∧
-        σv (.n gs) * word gw 0 0 = σv (.n 706) * gen ^ (144 * t) := fun ht0 => by
+        σv (.n gs) * word gw 0 = σv (.n 706) * gen ^ (144 * t) := fun ht0 => by
       obtain ⟨rfl, hg⟩ := hd ht0
       refine ⟨(hstep t ht ht0).1, ?_⟩
       rcases hg with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩

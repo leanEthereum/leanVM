@@ -43,8 +43,8 @@ def l10Body : List Stmt :=
     .atom (.load (.n 14) (.n 10) 13), .atom (.mul (.n 20) (.n 5) (.n 0)),
     .atom (.load (.n 21) (.n 20) 0), .atom (.mul (.n 22) (.n 21) (.n 15)),
     .atom (.mul (.n 23) (.n 5) (.n 0)), .atom (.load (.n 22) (.n 23) 1),
-    .atom (.const (.n 24) (word 2 0 0)), .atom (.mul (.n 25) (.n 0) (.n 24)),
-    .atom (.add (.n 26) (.n 25) (.n 1)), .atom (.const (.n 27) (word 2 0 0)),
+    .atom (.const (.n 24) (word 2 0)), .atom (.mul (.n 25) (.n 0) (.n 24)),
+    .atom (.add (.n 26) (.n 25) (.n 1)), .atom (.const (.n 27) (word 2 0)),
     .atom (.mul (.n 28) (.n 0) (.n 27)),
     .callIf (.n 26) "__loop9" [.n 28, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 

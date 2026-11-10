@@ -126,7 +126,7 @@ theorem vtAir4 {rd : Reader} {σ : Val} (h : VtH rd σ) {ev : ℕ → E}
       LoadHolds rd (σ (.n 2608) * σ (.n 4419)) 0 (σ (.n 4421)) ∧
       LoadHolds rd (σ (.n 2629) * σ (.n 34)) 0 (σ (.n 4423)) ∧
       σ (.n 4425) = σ (.n 4421) * σ (.n 4423) *
-        (((((σ (.n 2589) * (ev 13 + (ev 5 * ev 12))) + (σ (.n 2590) * (ev 5 * (ev 13 + word 1 0 0)))) + (σ (.n 2591) * σ (.n 4363))) + (σ (.n 2592) * σ (.n 4407))) + (σ (.n 2593) * σ (.n 4416))) := by
+        (((((σ (.n 2589) * (ev 13 + (ev 5 * ev 12))) + (σ (.n 2590) * (ev 5 * (ev 13 + word 1 0)))) + (σ (.n 2591) * σ (.n 4363))) + (σ (.n 2592) * σ (.n 4407))) + (σ (.n 2593) * σ (.n 4416))) := by
   have a4217 := h.atomAt 4217 (.mul (.n 2516) (.n 4419) (.n 34)) (by decide +kernel)
   have a4218 := h.atomAt 4218 (.mul (.n 4420) (.n 2608) (.n 4419)) (by decide +kernel)
   have a4219 := h.atomAt 4219 (.load (.n 4421) (.n 4420) 0) (by decide +kernel)
@@ -137,7 +137,7 @@ theorem vtAir4 {rd : Reader} {σ : Val} (h : VtH rd σ) {ev : ℕ → E}
   have a4020 := h.atomAt 4020 (.mul (.n 4222) (.n 4107) (.n 4210)) (by decide +kernel)
   have a4021 := h.atomAt 4021 (.add (.n 4223) (.n 4221) (.n 4222)) (by decide +kernel)
   have a4022 := h.atomAt 4022 (.mul (.n 4224) (.n 2589) (.n 4223)) (by decide +kernel)
-  have a4023 := h.atomAt 4023 (.const (.n 4225) (word 1 0 0)) (by decide +kernel)
+  have a4023 := h.atomAt 4023 (.const (.n 4225) (word 1 0)) (by decide +kernel)
   have a4024 := h.atomAt 4024 (.add (.n 4226) (.n 4221) (.n 4225)) (by decide +kernel)
   have a4025 := h.atomAt 4025 (.mul (.n 4227) (.n 4107) (.n 4226)) (by decide +kernel)
   have a4026 := h.atomAt 4026 (.mul (.n 4228) (.n 2590) (.n 4227)) (by decide +kernel)
