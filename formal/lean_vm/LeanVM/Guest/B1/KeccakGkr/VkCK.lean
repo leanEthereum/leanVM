@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCJ
+public import LeanVM.Guest.B1.KeccakGkr.VkCI
 public import LeanVM.Guest.B1.KeccakGkr.FlatGI
 
 /-!
@@ -30,7 +31,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- Where step `s` ends. -/
 def stepE (s : ℕ) : ℕ :=
-  [531, 566, 600, 643, 684, 727, 760, 801, 839, 882, 923, 963].getD s 0
+  [489, 524, 558, 601, 642, 685, 718, 759, 797, 840, 881, 921].getD s 0
 
 theorem stepE_eq : ∀ s < 12, stepT0 s (stepB s) + stepTailSz s = stepE s := by decide +kernel
 
@@ -40,35 +41,35 @@ variable (D : VkData)
 
 /-- **The oracle.** -/
 def w (B curE : ℕ) (i : ℕ) : E :=
-  if 20 ≤ i ∧ i < 25 then Value.bitE ((D.τ - 3).testBit (i - 20))
-  else if i = 60 then ptr B
-  else if i = 92 then ptr (B + (D.τ - 3))
-  else if i = 203 then ptr (B + D.o201)
-  else if i = 205 then ptr (B + D.τ + 288)
-  else if i = 276 then ptr (B + D.o274)
-  else if i = 384 then ptr (B + D.τ + 380)
-  else if i = 1259 then ptr (B + D.τ + 382)
-  else if 966 ≤ i ∧ i < 973 then (D.oRets curE).getD (i - 966) 0
-  else if 1252 ≤ i ∧ i < 1259 then (D.iRets curE).getD (i - 1252) 0
-  else if 1382 ≤ i ∧ i < 1389 then (D.sRets curE).getD (i - 1382) 0
+  if 21 ≤ i ∧ i < 26 then Value.bitE ((D.τ - 3).testBit (i - 21))
+  else if i = 61 then ptr B
+  else if i = 87 then ptr (B + (D.τ - 3))
+  else if i = 161 then ptr (B + D.o201)
+  else if i = 163 then ptr (B + D.τ + 288)
+  else if i = 234 then ptr (B + D.o274)
+  else if i = 342 then ptr (B + D.τ + 380)
+  else if i = 1210 then ptr (B + D.τ + 382)
+  else if 924 ≤ i ∧ i < 931 then (D.oRets curE).getD (i - 924) 0
+  else if 1203 ≤ i ∧ i < 1210 then (D.iRets curE).getD (i - 1203) 0
+  else if 1333 ≤ i ∧ i < 1340 then (D.sRets curE).getD (i - 1333) 0
   else match (List.range 12).find? (fun s ↦ stepE s - 6 ≤ i && i < stepE s) with
     | some s => ((D.layer s).rets (firstOf s) (ptr (curE + D.lcur s))).getD (i - (stepE s - 6)) 0
     | none => 0
 
 variable {D} {B curE : ℕ}
 
-theorem w_bits {j : ℕ} (hj : j < 5) : D.w B curE (20 + j) = Value.bitE ((D.τ - 3).testBit j) := by
-  simp only [w, Nat.le_add_right, true_and, show 20 + j < 25 by omega, ↓reduceIte,
+theorem w_bits {j : ℕ} (hj : j < 5) : D.w B curE (21 + j) = Value.bitE ((D.τ - 3).testBit j) := by
+  simp only [w, Nat.le_add_right, true_and, show 21 + j < 26 by omega, ↓reduceIte,
     Nat.add_sub_cancel_left]
 
 
-theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (966 + j) = (D.oRets curE).getD j 0 := by
+theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (924 + j) = (D.oRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (1252 + j) = (D.iRets curE).getD j 0 := by
+theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (1203 + j) = (D.iRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (1382 + j) = (D.sRets curE).getD j 0 := by
+theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (1333 + j) = (D.sRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
 theorem w_layer {s : ℕ} (hs : s < 12) {j : ℕ} (hj : j < 6) :
