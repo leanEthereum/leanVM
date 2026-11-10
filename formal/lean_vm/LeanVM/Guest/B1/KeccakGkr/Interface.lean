@@ -114,16 +114,16 @@ scalar `w` waiting, its rate cells `p0`, `p1`. -/
 def plainStart (k0 : ℕ) (cap : List E) (w : E) : Fs :=
   ⟨cap, if k0 = 1 then [(w, dsObserve)] else []⟩
 
-/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)`** (G:3086-3112): the capacity is canonical; the `2n` stream words at the cursor are the rounds' `c₀`,
-`c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
+/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)`** (G:3086-3112): the
+`2n` stream words at the cursor are the rounds' `c₀`, `c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
 (`Keccak.scalarCells w dsObserve`, the scalar waiting), the rounds (`plainRun`) store their
 challenges at `point`, and the function returns the final capacity, the cursor `2n` words on and
 the final claim. -/
 def MeaningPlainRounds (n k0 : ℕ) (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, p0, p1, cur, value, point, _tabs], rets =>
-      AllCanonical [f0, f1, f2, f3, f4] ∧ ∃ rounds : List (E × E), rounds.length = n ∧
+      ∃ rounds : List (E × E), rounds.length = n ∧
         ReadsAt rd cur (rounds.flatMap fun c ↦ [c.1, c.2]) ∧
-        ∀ w : E, (k0 = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        ∀ w : E, (k0 = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
           let r := plainRun rounds value (plainStart k0 [f0, f1, f2, f3, f4] w)
           ReadsAt rd point r.1 ∧ rets = r.2.2.cap ++ [cur * gen ^ (2 * n), r.2.1]
   | _, _ => False
@@ -216,7 +216,7 @@ def MeaningKeccakLayer (first : ℕ) (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, p0, p1, cur, yg, sg, rg, claim, out, iota, tabs], rets =>
       WinTabs rd tabs → ∀ (y step : ℕ) (c : KeccakClaim) (w : E), 1 ≤ y → y < 32 → yg = gen ^ y →
         sg = gen ^ (y / krStep) → rg = gen ^ (y % krStep) → ClaimRec rd (first = 1) claim c y →
-        (first = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        (first = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
         iota = keccakIota (y + 3) step c →
         ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd cur xs ∧
           RunsTo (verifyKeccakLayer (y + 3) step c) (plainStart first [f0, f1, f2, f3, f4] w) xs c'
