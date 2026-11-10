@@ -33,7 +33,7 @@ use leanvm_core::cpu::Program;
 const GOLDEN: &[(&str, &str)] = &[
     ("conditionals", "4f88f144b73dfb5e6453c12fb3f1b20bbc99835d2b7e8b30c0b80a8c4d558c40"),
     ("const_params", "9e2168aed0eab72821f98f91e0406e226bf4d108acf15ee5c96868b93fd7e16e"),
-    ("fibonacci", "184585c370a069f11d2e151a2ed31514f48a7b52afb1c49d2d4601aeca245a05"),
+    ("fibonacci", "0b2aa710076eafc8eaef5303cb362746ad1e5ce495d1f96a1387b986fca5d819"),
     ("hash_heap_chain", "f281889e8c3abdbacef18b6a5974345576874a12d90e46c8806b1803ea3b1556"),
     ("hash_slices", "9d4604cc5e6f978b3dc855143f3bedf4a3396e44c32c1df7dcfd543781fcd15f"),
     ("heapbuf_dyn", "95e1a69f54106145fc4f845e9076117ba3e891305dc30e20de6e2aa989ecb8e7"),

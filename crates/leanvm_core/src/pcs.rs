@@ -46,7 +46,7 @@ pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 // The PCS and the unground F192 bus argument both target `SECURITY_BITS`.
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
 /// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
-pub const MIN_MU: usize = 15;
+pub const MIN_MU: usize = 16;
 /// Largest committed size accepted by all verifiers and compiled into the recursion guest.
 pub const MAX_MU: usize = 32;
 

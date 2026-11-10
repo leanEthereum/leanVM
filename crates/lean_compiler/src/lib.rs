@@ -102,15 +102,35 @@ pub fn compile(ast: &Ast) -> Program {
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
     // one `SET` per slot writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
-    if !tables.slots.is_empty() {
-        lowered[0].frame_size += tables.slots.len() as u32;
-        let code = (tables.slots.iter().zip(tables_base..))
-            .map(|(k, o)| LInstr {
-                op: LOp::Set { o, k: k.clone() },
-                line: 0,
-                hints: Vec::new(),
-            })
-            .collect();
+    let instr = |op| LInstr {
+        op,
+        line: 0,
+        hints: Vec::new(),
+    };
+    let mut code: Vec<LInstr> = (tables.slots.iter().zip(tables_base..))
+        .map(|(k, o)| instr(LOp::Set { o, k: k.clone() }))
+        .collect();
+    lowered[0].frame_size += tables.slots.len() as u32;
+    // A range check of bound `k` is complete only on a memory of at least `k` cells
+    // (its complement is an address). The cells written so far are in memory; past
+    // them, one `DEREF` through `g^{k-1}` for the largest constant bound makes every
+    // valid execution's memory hold it.
+    let written = (lowered[0].frame_size as u64).max(2);
+    if tables.range_bound > written {
+        let (ptr, touch) = (lowered[0].frame_size, lowered[0].frame_size + 1);
+        lowered[0].frame_size += 2;
+        code.push(instr(LOp::Set {
+            o: ptr,
+            k: KVal::Const(F64::G.pow((tables.range_bound - 1) as u128).into()),
+        }));
+        code.push(instr(LOp::Deref {
+            o1: ptr,
+            o2: 0,
+            o3: touch,
+            mode: DerefMode::Cell,
+        }));
+    }
+    if !code.is_empty() {
         let frame_size = lowered[0].frame_size;
         lowered.insert(
             0,
@@ -212,6 +232,7 @@ pub fn compile(ast: &Ast) -> Program {
     prog.resize(bytecode_size, Op::Set { o: 0, k: F192::ZERO });
     let mut program = Program::assemble(prog, hints, frame_size["main"]);
     program.src_lines = src_lines;
+    program.range_bound = tables.range_bound as usize;
     program.fn_ranges = lowered
         .iter()
         .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))

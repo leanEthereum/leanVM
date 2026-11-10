@@ -91,7 +91,8 @@ pub(super) fn gen_verify(
     // buffer/stride placeholder is a global cap so the placeholder map is
     // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
     let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
-    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
+    let kbc = program.prog().len().trailing_zeros() as usize;
+    if !(mu_min(kbc)..=MU_MAX).contains(&layout.shape.mu) || !fits {
         return Err(AggregationError::ChildOutOfRange {
             log_committed: layout.shape.mu,
         });
@@ -260,12 +261,15 @@ pub(super) fn gen_verify(
     Ok((hints, deferred))
 }
 
-/// The stacked sizes `2^mu` a child may commit, `mu` in `MU_MIN..=MU_MAX`: every size an execution proof the
-/// native verifier accepts can have. The guest carries one set of opening tables per size and rate.
-pub(super) const MU_MIN: usize = verifier::MIN_EXECUTION_STACKED_LOG;
+/// The stacked sizes `2^mu` a child of a guest of `2^kbc` instructions may commit, `mu` in
+/// `mu_min(kbc)..=MU_MAX`: every size the native verifier accepts of an execution of that bytecode, which every
+/// child is. The guest carries one set of opening tables per size and rate.
+pub(super) fn mu_min(kbc: usize) -> usize {
+    verifier::min_execution_stacked_log(kbc)
+}
 pub(super) const MU_MAX: usize = verifier::MAX_STACKED_LOG;
 
-const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU && MU_MAX == leanvm_core::pcs::MAX_MU);
+const _: () = assert!(MU_MAX == leanvm_core::pcs::MAX_MU);
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and
 /// `gen_verify` admits against: one definition, so a hinted shape can never

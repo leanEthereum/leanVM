@@ -139,8 +139,9 @@ def HonestProofRarelyRefused : Prop :=
 is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
 statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
 accepts it. No size is asked: the guest program has an opening arm for every stack log the
-verifier admits of an execution, from `19` (`MIN_EXECUTION_STACKED_LOG`, `crates/verifier`'s
-`layout.rs`: the memory's columns alone fill `2^18` words) to `32` (`MAX_STACKED_LOG`), and the
+verifier admits of an execution of its bytecode, from `20` (`min_execution_stacked_log`,
+`crates/verifier`'s `layout.rs`: the bytecode's `2^19` instructions alone fill `2^19` words) to `32`
+(`MAX_STACKED_LOG`), and the
 honest prover makes no proof past `2^32` committed words (`maxCommitted`). `lean_vm` proves that
 such a child meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=

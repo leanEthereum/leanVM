@@ -81,7 +81,7 @@ Under the same hypotheses every read address is an entry address $\gen^{i}$, $i<
 
 \subsection{Memory}\label{sec:memchan}
 
-The memory is an array of $2^{\kmem}$ cells, $16\le\kmem\le32$ (\S\ref{sec:vm}). Bus interaction uses domain separation $\sep=\dsep{MEM} = \gen^{1}$. A memory word is $192$-bit (i.e. one $\E$-element), so $\ncomp=3$: memory is committed as three $\K$-valued multilinears $\mem_0,\mem_1,\mem_2$ in $\kmem$ variables, with
+The memory is an array of $2^{\kmem}$ cells, $1\le\kmem\le32$ (\S\ref{sec:vm}). Bus interaction uses domain separation $\sep=\dsep{MEM} = \gen^{1}$. A memory word is $192$-bit (i.e. one $\E$-element), so $\ncomp=3$: memory is committed as three $\K$-valued multilinears $\mem_0,\mem_1,\mem_2$ in $\kmem$ variables, with
 \[
   \mem=\mem_0+y\,\mem_1+y^2\,\mem_2 .
 \]

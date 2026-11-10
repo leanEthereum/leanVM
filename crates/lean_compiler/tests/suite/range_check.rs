@@ -60,9 +60,9 @@ def main():
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
-/// The largest allowed bound, `2^16` = the minimum prover memory, end to end:
-/// the complement cell is `g^65535`, the last cell of that memory, so an
-/// off-by-one in the bound check or in the memory size shows up here.
+/// A bound of `2^16`, the memory this prover pads to, end to end: the complement
+/// cell is `g^65535`, the last cell of that memory, so an off-by-one in the bound
+/// check or in the memory size shows up here.
 #[test]
 fn range_check_max_bound() {
     let src = "\
@@ -78,6 +78,25 @@ def main():
     let want = [F192::from(g_pow(5)); 2];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("max-bound range check verifies");
+}
+
+/// A bound past the prover's padding: the code at pc 0 touches `g^{k-1}`, so the
+/// memory the run needs holds every complement and the check is complete.
+#[test]
+fn range_check_bound_past_the_pad() {
+    let src = "\
+def main():
+    x = GEN ** 5
+    assert log x < 131072
+    p = 1
+    p[1] = x
+    p[GEN] = x
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F192::from(g_pow(5)); 2];
+    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("a range check past the pad verifies");
 }
 
 /// Range checks inside a `mul_range` body: the check runs once per iteration in
@@ -111,12 +130,12 @@ fn range_check_empty_bound_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
-/// Bounds beyond `2^16` (the minimum memory size) would not be sound for every
-/// prover memory choice: rejected at compile time.
+/// Bounds beyond `2^32`, the largest memory, could never be complete: rejected at
+/// compile time.
 #[test]
-#[should_panic(expected = "exceeds 2^16")]
+#[should_panic(expected = "exceeds 2^32")]
 fn range_check_bound_too_big_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 65537\n    return\n";
+    let src = "def main():\n    x = 1\n    assert log x < 4294967297\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

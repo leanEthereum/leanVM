@@ -1,5 +1,5 @@
 use super::cells::{count, pack_16_bytes};
-use super::child::{MU_MAX, MU_MIN};
+use super::child::{MU_MAX, mu_min};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
@@ -348,7 +348,7 @@ def main():
         program.execute([expected, F192::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
-    for mu in MU_MIN..=MU_MAX {
+    for mu in mu_min(18)..=MU_MAX {
         let mut point: Vec<F192> = (0..mu)
             .map(|_| {
                 let (c0, c1, c2) = rand::Rng::random(&mut rng);

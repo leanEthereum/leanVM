@@ -711,7 +711,7 @@ bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest pro
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
 ($2^{25}$ nonces per proof of work) of an execution of $G$ on $\mathrm{dig}_{iv_G}(s_i)$ (the
 prover makes none past $2^{32}$ committed words, and $G$ opens every stack the verifier admits of an
-execution, of log $19$ to $32$); and the verifier that also refuses
+execution of its bytecode, of log $20$ to $32$); and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
@@ -722,7 +722,7 @@ below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
-statement's deferring-verifier conditions; a stack log of $19$ to $32$ announced (the guest program
+statement's deferring-verifier conditions; a stack log of $20$ to $32$ announced (the guest program
 has one opening arm per stack log, the rate dispatched inside it) and a proof stream of at most $8192$ field
 elements; at each query step of its deferring verifier, the Merkle openings agreeing wherever they
 share a node of the tree (an honest prover's openings, all from one tree, agree); and no zero
@@ -787,7 +787,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 \end{tabular}
 \end{center}
 \lean{DeployedLimits} caps a recursion node at $16$ children, each at
-any $\mu \in [19,32]$ and $r \in [1,4]$.
+any $\mu \in [20,32]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA

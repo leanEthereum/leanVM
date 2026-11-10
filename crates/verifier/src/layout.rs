@@ -84,12 +84,12 @@ pub const KECCAK_DEPTH: usize = 12;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 pub const MAX_TABLE_LOG: usize = 32;
-pub const MIN_STACKED_LOG: usize = 15;
+/// The least memory a proof announces, as a log: the public input's two cells.
+pub const MIN_LOG_MEMORY: usize = 1;
+pub const MIN_STACKED_LOG: usize = 16;
 /// The largest stack the verifier admits, below the `2^40` the caps alone would: past `2^32` the knowledge extractor's
 /// decoder outgrows the sizes its proof covers (`formal/`).
 pub const MAX_STACKED_LOG: usize = 32;
-/// The stack of the smallest execution: the memory's four columns at `2^16` cells already fill `2^18`.
-pub const MIN_EXECUTION_STACKED_LOG: usize = 19;
 
 pub struct Layout<'a> {
     pub log_memory: usize,
@@ -524,6 +524,17 @@ fn stacked_blocks(columns: usize) -> Vec<usize> {
         .collect()
 }
 
+/// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
+/// its floor. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one.
+pub fn min_execution_stacked_log(log_bytecode: usize) -> usize {
+    let kappas = column_kappas(&tables(), MIN_LOG_MEMORY, log_bytecode, &TABLE_LOG_FLOORS);
+    let blocks: Vec<usize> = stacked_blocks(kappas.len())
+        .iter()
+        .map(|&column| kappas[column])
+        .collect();
+    stack_offsets(&blocks).1.max(MIN_STACKED_LOG)
+}
+
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,
     log_memory: u64,
@@ -531,7 +542,7 @@ pub fn build_layout<'a>(
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
-        (16..=32).contains(&log_memory)
+        (MIN_LOG_MEMORY as u64..=32).contains(&log_memory)
             && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
             && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
@@ -614,7 +625,9 @@ mod tests {
 
     #[test]
     fn stacked_log_bounds() {
-        assert_eq!(stack_log(16, 0, 0), MIN_EXECUTION_STACKED_LOG);
+        assert_eq!(stack_log(MIN_LOG_MEMORY, 19, 0), min_execution_stacked_log(19));
+        // Every size and table only grows the stack.
+        assert!(stack_log(16, 19, 4) >= min_execution_stacked_log(19));
         // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
         assert!(stack_log(32, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
     }

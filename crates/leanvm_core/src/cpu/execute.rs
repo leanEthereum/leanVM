@@ -42,8 +42,10 @@ impl Execution {
 /// `log2` of the cells a [`Memory`] page holds.
 const PAGE_LOG: usize = 16;
 const PAGE: usize = 1 << PAGE_LOG;
-// The padded image is a whole number of pages.
-const _: () = assert!(PAGE_LOG <= MIN_LOG_MEM);
+/// The least memory this prover announces, as a log: a whole number of pages, and of
+/// the memory columns' fill blocks. The protocol's floor is lower (`MIN_LOG_MEM`).
+const PAD_LOG_MEM: usize = 16;
+const _: () = assert!(PAGE_LOG <= PAD_LOG_MEM && MIN_LOG_MEM <= PAD_LOG_MEM);
 
 /// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
 /// unwritten cells links them, and a write to either reaches the other at once.
@@ -280,7 +282,8 @@ impl Program {
         // floor, then grown by each reservation, and its reverse index g^j ↦ j.
         let seed = (self.prog.len() + 2)
             .max(self.main_frame as usize)
-            .max(1 << MIN_LOG_MEM);
+            .max(1 << PAD_LOG_MEM)
+            .max(self.range_bound);
         let mut g = GPow::new(seed);
 
         // The write-once data memory, each cell's access count and write state with its word.
@@ -1066,9 +1069,9 @@ impl Program {
             counts,
         };
         // Pad memory to a power of two (the boundary tables read a dense image), at
-        // least 2^MIN_LOG_MEM cells (doc §Memory).
+        // least 2^PAD_LOG_MEM cells, this prover's floor (doc §Memory has the protocol's).
         let mem_used = m.used;
-        let cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
+        let cells = mem_used.next_power_of_two().max(1 << PAD_LOG_MEM);
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
         Ok(Execution {
             mem: Memory {

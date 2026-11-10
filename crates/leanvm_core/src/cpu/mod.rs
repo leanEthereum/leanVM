@@ -32,12 +32,10 @@ pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
 /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
-/// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
-/// verifier rejects any announced `h` outside the range. `MIN_LOG_MEM` is also
-/// the static cap on range-check bounds (`compiler::Stmt::AssertLt`): a bound
-/// `≤ 2^MIN_LOG_MEM` keeps the complement argument sound for every memory size
-/// the prover may announce.
-pub const MIN_LOG_MEM: usize = 16;
+/// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`; the verifier rejects any announced `h`
+/// outside the range. The floor is the public input's two cells. The prover
+/// pads further, to `PAD_LOG_MEM` (`execute.rs`), a choice of its own.
+pub const MIN_LOG_MEM: usize = verifier::MIN_LOG_MEMORY;
 const MAX_LOG_MEM: usize = 32;
 
 /// Each per-opcode table holds at most `2^MAX_LOG_ROWS` rows (executed
@@ -122,6 +120,9 @@ pub struct Program {
     /// check reports a line rather than a pc to disassemble around. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
+    /// The largest compile-time range-check bound: the run touches `g^{k-1}`, and the
+    /// prover's g-power index covers it. Prover-side only.
+    pub range_bound: usize,
 }
 
 /// The IV reinterprets the stacked bytecode table as bytes, which is its
@@ -163,6 +164,7 @@ impl Program {
             witness: HashMap::new(),
             fn_ranges: Vec::new(),
             src_lines: Vec::new(),
+            range_bound: 0,
         }
     }
 

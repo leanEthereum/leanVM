@@ -146,6 +146,9 @@ pub(crate) struct JumpTables {
     pub(crate) slots: Vec<KVal>,
     /// The table of each dispatched call's callees, shared by every call to the same ones.
     pub(crate) shared: HashMap<Vec<String>, usize>,
+    /// The largest compile-time range-check bound, which the code at pc 0 makes the
+    /// memory hold (`compile`), so that every check of it is complete at any memory.
+    pub(crate) range_bound: u64,
 }
 
 /// A resolved run of consecutive cells (`FnLower::cell_run`): a

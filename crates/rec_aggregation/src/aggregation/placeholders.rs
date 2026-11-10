@@ -1,15 +1,15 @@
 //! The constants baked into the guest.
 
+use super::MAX_RECURSIONS;
 use super::cells::{dsl_u128, pack_16_bytes};
 use super::child::{
-    MU_CAP, MU_MAX, MU_MIN, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups,
-    merkle_cap_depth, whir_shape,
+    MU_CAP, MU_MAX, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth,
+    mu_min, whir_shape,
 };
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
-use super::MAX_RECURSIONS;
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f192_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
@@ -590,7 +590,7 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 }
 
-/// The stacked opening's candidate tables, one per committed size in `MU_MIN..=MU_MAX` and rate.
+/// The stacked opening's candidate tables, one per committed size in `mu_min(kbc)..=MU_MAX` and rate.
 fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let oshape = |m: usize, log_inv_rate: usize| {
         let shape = whir_shape(m, log_inv_rate);
@@ -641,7 +641,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             ood_samples: shape.config.ood_samples,
         }
     };
-    let (minm, maxm) = (MU_MIN, MU_MAX);
+    let (minm, maxm) = (mu_min(kbc), MU_MAX);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
@@ -719,7 +719,10 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 (192 / depth) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
             })
         });
-        assert!(windows.max().unwrap() <= QUERY_WINDOWS_CAP, "a squeezed word's windows past QUERY_WINDOWS_CAP");
+        assert!(
+            windows.max().unwrap() <= QUERY_WINDOWS_CAP,
+            "a squeezed word's windows past QUERY_WINDOWS_CAP"
+        );
         ps(
             "LIG_PATH_CAP",
             cands

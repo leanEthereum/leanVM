@@ -80,7 +80,7 @@ impl Abi {
 /// the largest immediate, so beyond this a huge constant index falls back to a
 /// materialized pointer instead of inflating that table. The one cap: every site
 /// that folds an exponent into `β` measures it against this.
-const FOLD_MAX: u128 = 1 << leanvm_core::cpu::MIN_LOG_MEM;
+const FOLD_MAX: u128 = 1 << 16;
 
 /// The two pure operations worth interning. Both are commutative, so operands
 /// are stored sorted.
@@ -892,40 +892,41 @@ impl FnLower<'_> {
     ///    so the runner back-solves the one unknown operand;
     /// 3. `DEREF` through `y`, proving `y = g^f` with `f < 2^h`.
     ///
-    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h`, and a negative `k-1-e`
-    /// wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size,
-    /// provided `k ≤ 2^MIN_LOG_MEM`. Both `DEREF` destinations are unconstrained
+    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^32`, and a negative
+    /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
+    /// An honest complement is a memory address only if `k ≤ 2^h`, which the code
+    /// at pc 0 makes hold by touching `g^{k-1}` for the largest constant bound
+    /// (`JumpTables::range_bound`). Both `DEREF` destinations are unconstrained
     /// touches, back-filled at the end of execution unless a cached read needs
     /// their value sooner. Only the ADDRESS matters to the range check itself.
     ///
     /// A [`LtBound::Runtime`] bound reaches the same gadget through one extra
-    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted, and
-    /// the `k ≤ 2^MIN_LOG_MEM` obligation moves to the program.
+    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted; a small
+    /// `k` is then the program's to show.
     fn lower_assert_lt(&mut self, e: &Expr, bound: &LtBound) {
         let kcell = match bound {
             LtBound::Const(k) => {
                 if *k < 1 {
                     self.fail("range-check bound GEN ** 0 names the empty set")
                 };
-                if *k > 1 << leanvm_core::cpu::MIN_LOG_MEM {
+                if *k > 1 << 32 {
                     self.fail(format!(
-                        "range-check bound GEN ** {k} exceeds 2^{} (the minimum memory size)",
-                        leanvm_core::cpu::MIN_LOG_MEM
+                        "range-check bound GEN ** {k} exceeds 2^32 (the largest memory size)"
                     ))
                 };
+                self.tables.range_bound = self.tables.range_bound.max(*k);
                 self.bound_cell(*k)
             }
             LtBound::Runtime(b) => {
                 // A bound that folds only after substitution (`GEN ** i` inside an
                 // `unroll`) reaches here rather than the arm above, and would then
-                // skip the `k <= 2^MIN_LOG_MEM` cap entirely. Reject it: the author
-                // wrote a compile-time bound and should get the compile-time check.
+                // skip the memory touch. Reject it: the author wrote a compile-time
+                // bound and should get the compile-time treatment.
                 if self.try_field_const(b).is_some() {
-                    self.fail(format!(
+                    self.fail(
                         "a compile-time range-check bound must be written as `log GEN ** k` or an \
-                     integer, so that the 2^{} cap applies",
-                        leanvm_core::cpu::MIN_LOG_MEM
-                    ))
+                     integer, so that the memory is made to hold it",
+                    )
                 };
                 // A bound `c·g^j` with `j ≥ 1` has `c·g^{j-1}` as its target, at no `g^{-1}`.
                 if let Some(
