@@ -154,5 +154,136 @@ theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.�
     rw [mem_agreeT]
     exact fun _ ↦ hv
 
+/-! ## The specification -/
+
+/-- A specification whose program never returns in doom admits any follower's allowance. -/
+def anyT {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop} {εmax L T : ENNReal}
+    (S : Spec p Pre (fun _ _ ↦ False) εmax L T) (T' : ENNReal) :
+    Spec p Pre (fun _ _ ↦ False) εmax L T' :=
+  { S with retDoom := fun hl ha hD ↦ (S.post hl ha hD).elim }
+
+/-- A claim on no message bits is a sum over the lanes. -/
+theorem claimSum_msg0 {n : ℕ} (Φ : List E → E) (g : (Fin n → Bool) → (Fin 0 → Bool) → E) :
+    claimSum Φ g = ∑ u, Φ (bitsL u) * g u Fin.elim0 := by
+  rw [claimSum]
+  refine Finset.sum_congr rfl fun u _ ↦ ?_
+  rw [Fintype.sum_eq_single (Fin.elim0 : Fin 0 → Bool) fun x hx ↦
+    absurd (_root_.funext fun i ↦ Fin.elim0 i) hx]
+  simp
+
+theorem mem_zip_map_self {α β : Type} (W : α → β) {qs : List α} {q : α} (hq : q ∈ qs) :
+    (q, W q) ∈ List.zip qs (qs.map W) := by
+  induction qs with
+  | nil => simp at hq
+  | cons a qs ih =>
+    simp only [List.map_cons, List.zip_cons_cons, List.mem_cons] at hq ⊢
+    rcases hq with rfl | hq
+    · exact Or.inl rfl
+    · exact Or.inr (ih hq)
+
+/-- **The final level**: the code relations and the groups' escapes within `εmax`. -/
+structure FinalOK (P : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
+  hℓκ : P.ℓ ≤ 2 ^ P.κ
+  hA : 1 ≤ P.A
+  eQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P t ≤ εmax
+  eQ1 : eQuery P t < 1
+  eT : eTail ≤ εmax
+
+section Spec
+
+variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (pre : ℕ)
+
+open Classical in
+/-- **The final level after its fold rounds**: the query group escapes within `εmax` after its
+grind, each tail round within `εmax`, and the terminal check fails. -/
+noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsMultiaffine μ w)
+    (hℓ₀ : ℓ₀ ≤ μ) (hlev : level.fold = P.ℓ ∧ level.logInvRate = P.R)
+    (F : FinalOK P level.queries εmax) (s : WhirState) (rounds : List FoldRound) :
+    Spec (finalTail μ ℓ₀ w i level s rounds)
+      (fun h ↦ (RoundInv μ ℓ₀ w i P pre s rounds (commits h) ∧
+        (ShapeOK i P (commits h) ∧ (commits h).length = i + 1)) ∧ rounds.length = P.ℓ)
+      (fun _ _ ↦ False) εmax 0 0 :=
+  if hmu : μ - s.gammas.length = P.κ ∧ rounds.length = P.ℓ ∧ GluedOK μ s ∧
+      s.gammas.length ≤ μ then
+  let I : CInv := fun cs ↦ (RoundInv μ ℓ₀ w i P pre s rounds cs ∧
+    (ShapeOK i P cs ∧ cs.length = i + 1)) ∧ rounds.length = P.ℓ
+  let res := fun folded : List E ↦ folded.take (2 ^ (μ - s.gammas.length))
+  (readNInv I (T := 0) zero_le (2 ^ (μ - s.gammas.length) + level.fold)).bind' fun folded ↦
+  (grindInv (fun cs ↦ folded.length = 2 ^ (μ - s.gammas.length) + level.fold ∧ I cs)
+    (b := Whir.queryGrindingBits) (by decide) (T := eQuery P level.queries + 0)
+    (by simpa using F.eQ)).bind' fun _ ↦
+  (Spec.ofNoMove (Pre := fun h ↦ folded.length = 2 ^ (μ - s.gammas.length) + level.fold ∧
+      I (commits h))
+    (Post := fun _ _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] (μ - s.gammas.length) s.claim)
+    (T := 0)
+    ((noMoves_sampleQueriesAux _ _ _).bind fun _ ↦ (noMoves_queryP _ _).bind fun _ ↦ by
+      unfold VerifierProgram.require; split
+      · exact NoMoves.ret _
+      · exact NoMoves.fail).noMove F.eQ1 fun h₀ hp ↦ by
+      obtain ⟨hfl, ⟨hR, ⟨W, hW, hWl⟩, hlen⟩, hr⟩ := hp
+      have hκ := hmu.1
+      have hres : (res folded).length = 2 ^ (([] : List E).length + (μ - s.gammas.length)) := by
+        simp only [res, List.length_take, hfl, List.length_nil, zero_add]; omega
+      have hma : IsMultiaffine (([] : List E).length + (μ - s.gammas.length)) (runW w ℓ₀ s) := by
+        simpa using isMultiaffine_runW hw hℓ₀ s hmu.2.2.2 hmu.2.2.1
+      set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
+      have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim
+          (P.thr P.ℓ) (P.deg P.ℓ) := by
+        have h5 := hR.2.2.2.2
+        rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
+        have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =
+            fun _ : Fin 0 → Bool ↦ C := by
+          funext u v
+          simp [rowsOf, C, bitsToNat]
+        rwa [hrow] at h5
+      obtain ⟨S, hScard, hSq⟩ := final_agree P F.hA F.hℓκ C (runW w ℓ₀ s) s.claim folded
+        (by rw [hfl, hκ, hlev.1]) hviol
+      have hdepth : 1 ≤ P.κ + P.R := by have := P.hR; omega
+      have hW' : (commits h₀)[i]? = some (P.κ + P.R, wdOf i P.ℓ, W) := hW
+      rw [hκ, hlev.2]
+      refine (escRet_queryCheck_le (fun _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] P.κ s.claim)
+        i (P.κ + P.R) level.queries hdepth (by have := P.h64; omega) h₀ hW' _
+        (fun j ↦ ∃ h : j < P.n, (⟨j, h⟩ : Fin P.n) ∈ S) fun qs hqs _ hch hT q hq ↦ ?_).trans ?_
+      · refine ⟨hqs q hq, hSq ?_ ⟨q, hqs q hq⟩ ?_⟩
+        · by_contra hne
+          refine hT ⟨by rw [← hκ]; exact hres, by rw [← hκ]; exact hma, ?_⟩
+          rw [claimSum_msg0]
+          intro heq
+          apply hne
+          rw [← heq]
+          refine Finset.sum_congr rfl fun u _ ↦ ?_
+          simp only [List.nil_append, tailMsg, foldsN, List.foldl_nil, resO, res, hκ]
+          rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+            List.getElem?_take_of_lt (bitsToNat_lt u)]
+        · have hrow := (List.all_eq_true.mp hch) (q, W q) (mem_zip_map_self W hq)
+          have hlanes : (lanesOf i (W q)).length = 2 ^ rounds.length := by
+            rw [hr]; exact length_lanesOf _ (hWl q)
+          simp only [decide_eq_true_eq] at hrow
+          rw [foldRow_eq _ rounds _ hlanes, novelEval_eq P.κ_lt folded (by
+            have := F.hℓκ; rw [hfl, hκ, hlev.1, pow_succ]; omega)] at hrow
+          show (polyOf folded).eval (ofK (K.ofBits q)) = C ⟨q, hqs q hq⟩
+          rw [← hrow]
+          simp only [C, foldsA, laneO, wordOf_eq hW']
+          rfl
+      · rw [eQuery, Nat.cast_pow, Nat.cast_ofNat]
+        gcongr
+        have : (univ.filter fun j : Fin (2 ^ (P.κ + P.R)) ↦
+            ∃ h : (j : ℕ) < P.n, (⟨j, h⟩ : Fin P.n) ∈ S).card ≤ P.A - 1 := by
+          refine le_trans (card_le_card fun j hj ↦ ?_) (by omega : S.card ≤ P.A - 1)
+          obtain ⟨-, h, hjS⟩ := mem_filter.mp hj
+          exact hjS
+        exact_mod_cast this).bind' fun _ ↦
+  (tailSpec (runW w ℓ₀ s) (res folded) F.eT (μ - s.gammas.length) [] s.claim).bind' fun x ↦
+  Spec.require fun _ hp hc ↦ by
+    rw [terminal_weight w ℓ₀ s (fun g hg ↦ (hmu.2.2.1 g hg).1)] at hc
+    exact tailDone_ne _ _ hp (by simpa using hc)
+  else Spec.dead.mono (fun h hp ↦ hmu ⟨by
+      obtain ⟨⟨⟨hlen, -, hκ, -⟩, -⟩, hr⟩ := hp
+      omega, hp.2, hp.1.1.2.2.2.1, by
+      obtain ⟨⟨⟨hlen, -, hκ, -⟩, -⟩, hr⟩ := hp
+      omega⟩) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
+
+end Spec
+
 end
 end LeanVM.Protocol.Whir.Sound
