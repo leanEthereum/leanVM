@@ -73,7 +73,7 @@ noncomputable def sphincsRawsT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signa
 
 theorem kidsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (n : ℕ) :
-    kidsT D rd σ wV (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) n =
+    kidsT D rd σ wV (σ (.n 419)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) n =
       kidsAt D rd σ wV n :=
   List.map_congr_left fun c _ ↦ decKidT_eq D rd σ wV c
 
@@ -105,7 +105,7 @@ noncomputable def decWitAt (D : DiscreteLogTables) (σ : Val) (rd : Reader)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints)
     (nk lx ls nrx nrs : ℕ) : NodeWitness :=
-  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 420)) (σ (.n 52)) (σ (.n 55))
+  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 419)) (σ (.n 52)) (σ (.n 55))
     (regionTable D rd (σ (.n 66)) 0 lx) (regionTable D rd (σ (.n 66)) lx ls) (l2ArgsD σ)
 
 /-- **The witness, staged**: `decWit`'s fields through `decWitAt`, the counts (logarithms)

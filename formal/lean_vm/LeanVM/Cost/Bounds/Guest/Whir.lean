@@ -992,7 +992,7 @@ variable {σ : Val} {σV : MachineValue}
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
   {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
-  {L : ℕ} (hL : cl (σ (.n 25)) (σ (.n 656)) ≤ L) (hL32 : L ≤ 2 ^ 32)
+  {L : ℕ} (hL : cl (σ (.n 25)) (σ (.n 1928)) ≤ L) (hL32 : L ≤ 2 ^ 32)
 include hσ hS hVn hF hcl hC hL hL32
 
 omit hrd hR hVn hF hcl hC hL hL32 in
@@ -1023,10 +1023,10 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
     machineCost P Decoder.vsPiOfAtC.costIdx
       [encodeValue T, rdV, σV, VnV, clV, encodeValue m, frV] ≤ vsAtPrice R S F C L := by
   rw [Decoder.vsPiOfAtC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m fr frV hfr]
-  have := hS (.n 25); have := hS (.n 656); have := hfrS (.n 8)
-  have := hC (σ (.n 25)) (σ (.n 656))
+  have := hS (.n 25); have := hS (.n 1928); have := hfrS (.n 8)
+  have := hC (σ (.n 25)) (σ (.n 1928))
   have hl := hL
-  have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 25)) (σ (.n 656)))
+  have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 25)) (σ (.n 1928)))
     ((σ (.n 25)).limb 0) (by omega)
   have := Nat.mul_le_mul_left (R + 56) hl
   have hwd := hT.words m
@@ -1034,7 +1034,7 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
     (by omega)
   have := Nat.mul_le_mul_left (R + 56) hwd
   have ha := append_cost P (by includes)
-    (wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 656))))
+    (wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 1928))))
     (wordsFrom rd ((fr (.n 8)).limb 0) (T.words.getD m 0))
   rw [length_wordsFrom] at ha
   obtain ⟨hcl6, hcok⟩ := hT.calls m
@@ -1094,11 +1094,11 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
     machineCost P Decoder.vsPiOfNC.costIdx [encodeValue T, rdV, σV, VnV, clV] ≤
       vsPiPrice R S F C L := by
   rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
-  have := hS (.n 1695)
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1695)) 28 (by norm_num)
-  have := logGTWith_le T.lanes (σ (.n 1695)) 28
+  have := hS (.n 1922)
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1922)) 28 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n 1922)) 28
   have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
-    (logGTWith T.lanes (σ (.n 1695)) 28) (by omega)
+    (logGTWith T.lanes (σ (.n 1922)) 28) (by omega)
   unfold vsPiPrice
   omega
 

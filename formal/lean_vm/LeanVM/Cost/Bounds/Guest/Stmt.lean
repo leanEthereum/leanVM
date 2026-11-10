@@ -170,12 +170,12 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hX0 : Decoder.gLogD D (σ (.n 0)) ≤ X) (hX3 : Decoder.gLogD D (σ (.n 3)) ≤ X) :
     machineCost P Decoder.decStmtC.costIdx [encodeValue D, σV, rdV] ≤ decStmtPrice G R S X := by
   rw [Decoder.decStmtC.costEq P hP D σ σV hσ rd rdV hrd]
-  have := hG (σ (.n 0)); have := hG (σ (.n 3)); have := hG (σ (.n 427))
+  have := hG (σ (.n 0)); have := hG (σ (.n 3)); have := hG (σ (.n 426))
   have n0 := gLogD_lt D (σ (.n 0))
   have n3 := gLogD_lt D (σ (.n 3))
-  have n387 := gLogD_lt D (σ (.n 427))
-  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n 52)) (σ (.n 55)) (σ (.n 385)) (σ (.n 438))
-    (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) (Decoder.gLogD D (σ (.n 427)))
+  have n387 := gLogD_lt D (σ (.n 426))
+  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n 52)) (σ (.n 55)) (σ (.n 385)) (σ (.n 437))
+    (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) (Decoder.gLogD D (σ (.n 426)))
     (by omega) (by omega) (by omega)
   have : decStmtAtPrice R (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) ≤
       decStmtAtPrice R X X := by

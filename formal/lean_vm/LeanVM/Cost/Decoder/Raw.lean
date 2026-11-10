@@ -58,7 +58,7 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
+    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392)])
   else none
 
 /-- `__loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,
@@ -77,12 +77,12 @@ theorem l2ArgsD_eq : l2ArgsD = l2Args := by
   simp [l2ArgsD, l2Args, List.range_succ]
 
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 405), σ (.n 411), σ (.n 417), σ (.n 438)]
+def aggArgs (σ : Val) : List E :=
+  [σ (.n 6), σ (.n 404), σ (.n 410), σ (.n 416), σ (.n 437), σ (.n 465)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
 cost_compile nDirectC := nDirectD
-cost_compile scalarOfCellsC := LeanVM.Guest.B1.Da.scalarOfCells
 cost_compile dvClaimC := dvClaim
 cost_compile daWitnessC := daWitness
 cost_compile aggArgsC := aggArgs

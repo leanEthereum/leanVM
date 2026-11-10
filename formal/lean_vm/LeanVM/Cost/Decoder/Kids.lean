@@ -43,7 +43,7 @@ noncomputable def markOfD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (s : 
 
 /-- The running count `written[c]` (`countOf`). -/
 noncomputable def countOfD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) : ℕ :=
-  gLogD D (cellAt rd (σ (.n 420)) c)
+  gLogD D (cellAt rd (σ (.n 419)) c)
 
 /-- The number of children (`nKids`). -/
 def nKidsD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n 6))
@@ -96,12 +96,12 @@ noncomputable def kidStmtD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c :
   ⟨⟨(kidSlotsD D rd σ 0 (lxSlotsD D σ) a b).map (xmssAt rd (σ (.n 52))),
     (kidSlotsD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
-   deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 416) * gen ^ (24 * c)) 24)⟩
 
 /-- **Child `c`** (`decKid`). -/
 noncomputable def decKidD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (c : ℕ) : Child :=
-  ⟨kidStmtD D rd σ c, fixedOfCells (readCells rd (σ (.n 411) * gen ^ (24 * c)) 24),
+  ⟨kidStmtD D rd σ c, fixedOfCells (readCells rd (σ (.n 410) * gen ^ (24 * c)) 24),
     wV (subArgs rd σ c)⟩
 
 theorem slotOfD_tables : slotOfD discreteLogTables = slotOf := by
@@ -203,7 +203,7 @@ noncomputable def sphincsSlotClaim (rd : Reader) (p55 : E) (s : ℕ) : LeanSphin
 noncomputable def kidStmtAt (rd : Reader) (σ : Val) (p52 p55 : E) (c : ℕ) (sx ss : List ℕ) :
     NodeStatement :=
   ⟨⟨sx.map (xmssSlotClaim rd p52), ss.map (sphincsSlotClaim rd p55), daDigestAt rd σ c⟩,
-   deferOfCells (readCellsK rd ((σ (.n 417)).limb 0 * Parameters.g ^ (24 * c)) 24)⟩
+   deferOfCells (readCellsK rd ((σ (.n 416)).limb 0 * Parameters.g ^ (24 * c)) 24)⟩
 
 /-- Child `c`'s statement, its segment `[a, b)` given: its lists' slots off the tables
 (`kidSlotsIn`), the leanSPHINCS list's from the mark after the leanXMSS ones. -/
@@ -220,15 +220,15 @@ noncomputable def kidStmtT (D : DiscreteLogTables) (rd : Reader) (σ : Val) (w38
 /-- The words of child `c`'s `verify_sub` call (`subArgs`), its proof's claim's address by a
 power in `K`. -/
 noncomputable def subArgsK (rd : Reader) (σ : Val) (c : ℕ) : List E :=
-  [cellAt rd (σ (.n 405)) (2 * c), cellAt rd (σ (.n 405)) (2 * c + 1), σ (.n 47), σ (.n 48),
-    σ (.n 49), mulK (σ (.n 411)) (Parameters.g ^ (24 * c))]
+  [cellAt rd (σ (.n 404)) (2 * c), cellAt rd (σ (.n 404)) (2 * c + 1), σ (.n 47), σ (.n 48),
+    σ (.n 49), mulK (σ (.n 410)) (Parameters.g ^ (24 * c))]
 
 /-- **Child `c`** (`decKid`), off the regions' tables. -/
 noncomputable def decKidT (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (w380 p52 p55 : E) (tx ts : Array ℕ × Array ℕ)
     (c : ℕ) : Child :=
   ⟨kidStmtT D rd σ w380 p52 p55 tx ts c,
-    fixedOfCells (readCellsK rd ((σ (.n 411)).limb 0 * Parameters.g ^ (24 * c)) 24),
+    fixedOfCells (readCellsK rd ((σ (.n 410)).limb 0 * Parameters.g ^ (24 * c)) 24),
     wV (subArgsK rd σ c)⟩
 
 /-- The two regions' tables, as `decWit`'s caller builds them. -/
@@ -245,7 +245,7 @@ theorem sphincsSlotClaim_eq (rd : Reader) (p : E) : sphincsSlotClaim rd p = sphi
 
 /-- **Off the tables built, child `c`'s statement is `kidStmtD`'s.** -/
 theorem kidStmtT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) :
-    kidStmtT D rd σ (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
+    kidStmtT D rd σ (σ (.n 419)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
       kidStmtD D rd σ c := by
   unfold kidStmtT kidStmtSeg kidStmtAt kidStmtD
   rw [countIn_regionTable, kidSlotsIn_regionTable, kidSlotsIn_regionTable, xmssSlotClaim_eq,
@@ -255,7 +255,7 @@ theorem kidStmtT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) :
 /-- **Off the tables built, child `c` is `decKidD`'s.** -/
 theorem decKidT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (c : ℕ) :
-    decKidT D rd σ wV (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
+    decKidT D rd σ wV (σ (.n 419)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
       decKidD D rd σ wV c := by
   unfold decKidT decKidD subArgsK subArgs
   rw [kidStmtT_eq, ← readCells_mul_gen_pow, mulK_gen_pow]
