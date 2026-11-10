@@ -359,6 +359,7 @@ structure Fps (bev : MachineState → Word → List E → Option E) (s z : Machi
   x22 : z.getReg .x22 = vecLen z (s.getReg .x2 - 888)
   x20 : z.getReg .x20 = vecPtr z (s.getReg .x2 - 888)
   x21 : z.getReg .x21 = vecLen z (s.getReg .x2 - 888)
+  x27 : z.getReg .x27 = z.getMem (s.getReg .x2 - 1256)
   tracks : Tracks (prog bev s) (s.getReg .x12) s z (pure (restValue s k state mem mf bf bv))
 
 theorem fpsPush (hP : PowSpec) (hF : FingerprintsSpec)
@@ -670,6 +671,9 @@ theorem fpsStage (hP : PowSpec) (hF : FingerprintsSpec)
       rw [k₄ .x20 (by decide), hpt₃ .x20 (by decide), b80007208_x20 h₃, t464, vp, z880]
     x21 := by
       rw [k₄ .x21 (by decide), hpt₃ .x21 (by decide), b80007208_x21 h₃, t472, vl, z872]
+    x27 := by
+      rw [k₄ .x27 (by decide), hpt₃ .x27 (by decide), k₃ .x27 (by decide), rg₂ .x27 (by decide),
+        E.x27, K1 _ (Or.inl (by constructor <;> addr_omega [hb1]))]
     tracks := E.tracks.keep fun T hT ↦ Sz.transcript hpre E.inv fW hT }⟩⟩
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance
