@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Digest.ListsComplete
 # `da_levels`, completely
 
 * the tree: `treeLvl_succ`, `length_treeLvl`, `cellRoot_treeLvl` (the root is the last level's
-  node), the internal levels' cells canonical (digests);
+  node);
 * `lvl_block`: a level loop's block holds at every node of its level, on the evaluated valuation
   (`Fwd.ev`): its four loads read the level's cells, its pair hash is the next level's node
   (`chain_final`), which its two stores find in memory;

@@ -2,8 +2,7 @@
   LeanVM.Guest.B1.Da.CellCChk
 
   `da_verify_cell`, evaluated (by kernel evaluation): its values defined in order, no store, the
-  template's side conditions its assertions on symbols and its loads of weights, the chain's
-  inputs canonical from the packed cells.
+  template's side conditions its assertions on symbols and its loads of weights.
 -/
 
 module

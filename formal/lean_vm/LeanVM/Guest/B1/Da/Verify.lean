@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Main.Facts
 
 `da_verify_sound_w`: under a call relation that unfolds at a frame map `Vm` and lies below
 `coreProgram.Rel`, with the exponent table, a run of `da_verify` returns the cells of a root and
-the rate cells of a challenge `z` that the witness `dvWit σ Vm` opens (`opens_of`); with
+a challenge `z` that the witness `dvWit σ Vm` opens (`opens_of`); with
 `coreProgram.Rel` and a frame map by choice, `da_verify_holds : da_verify_sound_Spec`. The
 witness's rows are the symbols of the cell checks' frames (`colSyms`, at the calls
 `da_verify`'s structure makes: column `h`'s call `dvColArgs σ h`, its blob loop's iteration `i`,

@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 
 The honest valuation is the body evaluated on the weights' pointer (`Fwd.ev`), the hinted
 symbols `ofK` of the honest ones. The template's assertions see `K` words and its loads read the
-weights, so the template holds (`blk_sound` then packs each pair into a canonical cell); the
-chain's inputs are canonical from the packed cells, so every atom holds. The returns are computed
+weights, so the template holds (`blk_sound` then packs each pair into a cell), and every atom
+holds. The returns are computed
 as in `da_verify_cell_holds`.
 -/
 
