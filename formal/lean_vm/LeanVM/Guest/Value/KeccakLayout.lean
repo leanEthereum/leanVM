@@ -186,14 +186,14 @@ def laneLimbIdx (odd : Bool) (l : ℕ) : ℕ := if odd ∨ 17 ≤ l then (l + 1)
 theorem laneCellIdx_lt (odd : Bool) {l : ℕ} (hl : l < 25) : laneCellIdx odd l < 13 := by
   unfold laneCellIdx; split <;> omega
 
-theorem laneLimbIdx_lt (odd : Bool) (l : ℕ) : laneLimbIdx odd l < 3 := by
+theorem laneLimbIdx_lt (odd : Bool) (l : ℕ) : laneLimbIdx odd l < 2 := by
   unfold laneLimbIdx; split <;> omega
 
 /-- The cell holding lane `l < 25`. -/
 def laneCell (odd : Bool) (l : Fin 25) : Fin 13 := ⟨laneCellIdx odd l, laneCellIdx_lt odd l.isLt⟩
 
 /-- The limb holding lane `l`. -/
-def laneLimb (odd : Bool) (l : ℕ) : Fin 3 := ⟨laneLimbIdx odd l, laneLimbIdx_lt odd l⟩
+def laneLimb (odd : Bool) (l : ℕ) : Fin 2 := ⟨laneLimbIdx odd l, laneLimbIdx_lt odd l⟩
 
 private theorem lane_stateOfCells_nat (cells : Fin 13 → E) (odd : Bool) (l : ℕ) (hl : l < 25) :
     Keccak.lane (stateOfCells cells odd) l =
@@ -281,7 +281,7 @@ theorem keccak_block {S : KeccakState} {inOdd outOdd : Bool} {blk : List E} {I O
     (h : KeccakCellsRelation I inOdd O outOdd .all) :
     O = cellsOfState (absorbBlock S (blockBytes inOdd blk)) outOdd := by
   funext c
-  rw [h.2 c c.isLt, stateOfCells_xor hI, absorbBlock_eq]
+  rw [h c c.isLt, stateOfCells_xor hI, absorbBlock_eq]
 
 /-- The zero state's cells are zero. -/
 theorem cellsOfState_zero (odd : Bool) (c : Fin 13) :
