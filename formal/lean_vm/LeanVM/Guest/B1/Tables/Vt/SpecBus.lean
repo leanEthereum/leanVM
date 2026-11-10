@@ -10,11 +10,11 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SpecRun
 
 /-!
-# `busRest` as a run (V:1492-1513)
+# `busRest` as a run (V:1348-1380)
 
-`vtBus`: the bus result `busRest` returns for the framework words `memory`, `mf`, `bf` and the
-bytecode's value `bv`. `vt_busRest_run`: from any sponge `s`, `busRest` reads the five words and
-returns `vtBus`, leaving `s` with the words absorbed.
+`vtBus`: the bus result `busRest` returns for the framework words `memory`, `mf`, `bf`, the
+bytecode's share and the slot sumcheck's point. `vt_busRest_run`: from any sponge `s`, `busRest`
+reads the four words and the bytecode share's, and returns `vtBus`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -27,74 +27,79 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The framework claims `busRest` returns. -/
 def vtBusClaims (layout : Layout) (point memory : List E) (mf bf : E) : List ColumnClaim :=
   (List.zipWith (fun column value ↦ ⟨column, point.take layout.logMemory, value⟩)
-    [memory0, memory1, memory2] memory) ++
+    [memory0, memory1] memory) ++
   [⟨memoryFinalCounters, point.take layout.logMemory, mf⟩,
     ⟨bytecodeFinalCounters, point.take layout.logBytecode, bf⟩]
 
 /-- The push side's fingerprints. -/
-def vtFpPush (layout : Layout) (alphas point memory : List E) (bv : E) : List E :=
-  fingerprints (eqKernel alphas) memory (point.take layout.logMemory)
-    (point.take layout.logBytecode) bv (Verifier.gpow 0) 1 1
+def vtFpPush (layout : Layout) (weights point memory : List E) (share : E) : List E :=
+  fingerprints weights memory (point.take layout.logMemory) (point.take layout.logBytecode) share
+    (Verifier.gpow 0) 1 1
 
 /-- The pull side's fingerprints. -/
-def vtFpPull (layout : Layout) (alphas point memory : List E) (mf bf bv : E) : List E :=
-  fingerprints (eqKernel alphas) memory (point.take layout.logMemory)
-    (point.take layout.logBytecode) bv (Verifier.gpow (2 ^ layout.logBytecode - 1)) mf bf
+def vtFpPull (layout : Layout) (weights point memory : List E) (mf bf share : E) : List E :=
+  fingerprints weights memory (point.take layout.logMemory) (point.take layout.logBytecode) share
+    (Verifier.gpow (2 ^ layout.logBytecode - 1)) mf bf
 
 /-- The forms and total after the push side. -/
-def vtAcc0 (layout : Layout) (alphas : List E) (beta : E) (point memory : List E) (bv tv : E) :
+def vtAcc0 (layout : Layout) (weights : List E) (beta : E) (point memory : List E) (share tv : E) :
     List (List Form) × E :=
   accumulateSide (tables.map fun _ ↦ [{}, {}, {}]) 0 layout.push
     (busLayout [0, layout.logMemory, layout.logBytecode] layout.push)
-    (vtFpPush layout alphas point memory bv) (eqKernel alphas) beta point tv
+    (vtFpPush layout weights point memory share) weights beta point tv
 
 /-- The forms and total after the pull side. -/
-def vtAcc1 (layout : Layout) (alphas : List E) (beta : E) (point memory : List E)
-    (mf bf bv tv0 tv1 : E) : List (List Form) × E :=
-  accumulateSide (vtAcc0 layout alphas beta point memory bv tv0).1 1 layout.pull
+def vtAcc1 (layout : Layout) (weights : List E) (beta : E) (point memory : List E)
+    (mf bf share tv0 tv1 : E) : List (List Form) × E :=
+  accumulateSide (vtAcc0 layout weights beta point memory share tv0).1 1 layout.pull
     (busLayout [0, layout.logMemory, layout.logBytecode] layout.pull)
-    (vtFpPull layout alphas point memory mf bf bv) (eqKernel alphas) beta point tv1
+    (vtFpPull layout weights point memory mf bf share) weights beta point tv1
 
 /-- The forms and total after the count side. -/
-def vtAcc2 (layout : Layout) (alphas : List E) (beta : E) (point memory : List E)
-    (mf bf bv tv0 tv1 tv2 : E) : List (List Form) × E :=
-  accumulateSide (vtAcc1 layout alphas beta point memory mf bf bv tv0 tv1).1 2 layout.count
+def vtAcc2 (layout : Layout) (weights : List E) (beta : E) (point memory : List E)
+    (mf bf share tv0 tv1 tv2 : E) : List (List Form) × E :=
+  accumulateSide (vtAcc1 layout weights beta point memory mf bf share tv0 tv1).1 2 layout.count
     (busLayout [] layout.count) [] [1] 0 point tv2
 
-/-- **The bus result.** -/
-def vtBus (layout : Layout) (alphas : List E) (beta : E) (point treeValues memory : List E)
-    (mf bf bv : E) : BusResult :=
-  ⟨vtBusClaims layout point memory mf bf, point,
-    (vtAcc2 layout alphas beta point memory mf bf bv (treeValues.getD 0 0) (treeValues.getD 1 0)
-      (treeValues.getD 2 0)).1,
-    [(vtAcc0 layout alphas beta point memory bv (treeValues.getD 0 0)).2,
-      (vtAcc1 layout alphas beta point memory mf bf bv (treeValues.getD 0 0)
+/-- **The bus result**, the bytecode's share `share` and the slot sumcheck's point `slots`. -/
+def vtBus (layout : Layout) (weights : List E) (beta : E) (point treeValues memory : List E)
+    (mf bf share : E) (slots : List E) : BusResult :=
+  ⟨vtBusClaims layout point memory mf bf, point.take layout.logBytecode ++ slots, point,
+    (vtAcc2 layout weights beta point memory mf bf share (treeValues.getD 0 0)
+      (treeValues.getD 1 0) (treeValues.getD 2 0)).1,
+    [(vtAcc0 layout weights beta point memory share (treeValues.getD 0 0)).2,
+      (vtAcc1 layout weights beta point memory mf bf share (treeValues.getD 0 0)
         (treeValues.getD 1 0)).2,
-      (vtAcc2 layout alphas beta point memory mf bf bv (treeValues.getD 0 0) (treeValues.getD 1 0)
-        (treeValues.getD 2 0)).2]⟩
+      (vtAcc2 layout weights beta point memory mf bf share (treeValues.getD 0 0)
+        (treeValues.getD 1 0) (treeValues.getD 2 0)).2]⟩
 
-/-- **`busRest` as a run.** -/
-theorem vt_busRest_run (ev : (List K → List E → VerifierProgram E)) (layout : Layout) (alphas : List E) (beta : E)
-    (point treeValues : List E) (memory : List E) (hm : memory.length = 3) (mf bf bv : E)
-    (hbv : BytecodeAt ev layout.bytecode (point.take layout.logBytecode ++ alphas) bv) (s : Fs) :
-    RunsTo (busRest ev layout alphas beta point treeValues) s (memory ++ [mf, bf])
-      (vtBus layout alphas beta point treeValues memory mf bf bv)
-      (s.absorbAll (memory ++ [mf, bf]) dsObserve) := by
+/-- **`busRest` as a run**: the four framework words, then the bytecode share's run (`bcWords`, to
+the share, the point and the value `bv`, which `ev` accepts). -/
+theorem vt_busRest_run (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout)
+    (weights : List E) (beta : E) (point treeValues : List E) (memory : List E)
+    (hm : memory.length = 2) (mf bf share bv : E) (slots bcWords : List E) (s s' : Fs)
+    (hsh : RunsTo (bytecodeShare weights (point.take layout.logBytecode))
+      (s.absorbAll (memory ++ [mf, bf]) dsObserve) bcWords
+      (share, point.take layout.logBytecode ++ slots, bv) s')
+    (hbv : BytecodeAt ev layout.bytecode (point.take layout.logBytecode ++ slots) bv) :
+    RunsTo (busRest ev layout weights beta point treeValues) s (memory ++ [mf, bf] ++ bcWords)
+      (vtBus layout weights beta point treeValues memory mf bf share slots) s' := by
   have h1 := runsTo_readN s memory
   rw [hm] at h1
   have h2 := runsTo_readE (s.absorbAll memory dsObserve) mf
   have h3 := runsTo_readE ((s.absorbAll memory dsObserve).absorb mf dsObserve) bf
-  have h4 := vt_runsTo_bytecode hbv
-    (((s.absorbAll memory dsObserve).absorb mf dsObserve).absorb bf dsObserve)
-  have h5 := runsTo_ret (vtBus layout alphas beta point treeValues memory mf bf bv)
-    (((s.absorbAll memory dsObserve).absorb mf dsObserve).absorb bf dsObserve)
   have hs : s.absorbAll (memory ++ [mf, bf]) dsObserve =
       ((s.absorbAll memory dsObserve).absorb mf dsObserve).absorb bf dsObserve := by
     simp [Fs.absorbAll, List.foldl_append]
-  have hx : memory ++ [mf, bf] = memory ++ ([mf] ++ ([bf] ++ ([] ++ []))) := by simp
-  rw [hs, hx]
+  rw [hs] at hsh
+  have h5 := vt_runsTo_const (p := ev layout.bytecode (point.take layout.logBytecode ++ slots) bv)
+    hbv s'
+  have h6 := runsTo_ret (vtBus layout weights beta point treeValues memory mf bf share slots) s'
+  have hx : memory ++ [mf, bf] ++ bcWords =
+      memory ++ ([mf] ++ ([bf] ++ (bcWords ++ ([] ++ [])))) := by simp
+  rw [hx]
   unfold busRest
-  exact h1.bind (h2.bind (h3.bind (h4.bind h5)))
+  exact h1.bind (h2.bind (h3.bind (hsh.bind (h5.bind h6))))
 
 end
 end LeanVM.Guest.B1.Tables
