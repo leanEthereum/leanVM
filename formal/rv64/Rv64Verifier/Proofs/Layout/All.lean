@@ -13,6 +13,9 @@ import Rv64Verifier.Proofs.Layout.Counted
 import Rv64Verifier.Proofs.Layout.MemoryCols
 import Rv64Verifier.Proofs.Layout.Bytecode
 import Rv64Verifier.Proofs.Layout.BusBridge
+import Rv64Verifier.Proofs.Layout.BusEvaluate
+import Rv64Verifier.Proofs.Layout.CellLanes
+import Rv64Verifier.Proofs.Layout.Limb
 import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Proofs.Field.All
 
@@ -79,6 +82,15 @@ theorem bytecode_proved : BytecodeSpec :=
   Bytecode.bytecode_spec Runtime.alloc_spec Field.ePow term_proved Runtime.tryAllocZeroed
     spec_extend_proved col_proved counted_proved
 
+/-- `Form::evaluate` as `table_sumcheck` calls it, either slice possibly empty. -/
+theorem form_evaluate_e_proved : Proofs.Bus.TableSumcheck.FormEvaluateSpecE :=
+  formEvaluateE_spec evaluate_proved
+
+theorem cell_lanes_proved : CellLanesSpec := CellLanes.cell_lanes_spec Runtime.memcpy
+
+theorem limb_proved : LimbSpec :=
+  Limb.limb_spec term_proved col_proved prod_proved add_scaled_proved
+
 /-- info: 'Rv64Verifier.Layout.evaluate_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms evaluate_proved
 
@@ -117,5 +129,14 @@ theorem bytecode_proved : BytecodeSpec :=
 
 /-- info: 'Rv64Verifier.Layout.bytecode_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms bytecode_proved
+
+/-- info: 'Rv64Verifier.Layout.form_evaluate_e_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms form_evaluate_e_proved
+
+/-- info: 'Rv64Verifier.Layout.cell_lanes_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms cell_lanes_proved
+
+/-- info: 'Rv64Verifier.Layout.limb_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms limb_proved
 
 end Rv64Verifier.Layout

@@ -11,6 +11,8 @@ import Rv64Verifier.Proofs.Pcs.VsoRound
 import Rv64Verifier.Proofs.Pcs.VsoFoldLoop
 import Rv64Verifier.Proofs.Pcs.VsoOpenings
 
+import Rv64Verifier.Proofs.Pcs.ExtendSpec
+import Rv64Verifier.Proofs.Pcs.VsoClimb
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -33,6 +35,9 @@ theorem ringSwitch : RingSwitchSpec :=
     tryAllocZeroed Field.ePow Field.mul Multilinear.polyEval
 
 theorem roundPolyErr : RoundPolyErrSpec := Transcript.roundPolyErr
+
+theorem extend : ExtendSpec :=
+  Extend.extend_spec Multilinear.selectorPoint Multilinear.sliceConcat Runtime.growAmortized
 
 end Rv64Verifier.Proofs.Pcs
 
@@ -91,3 +96,18 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.foldRounds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.foldRounds
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.extend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.extend
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.reassemble' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.reassemble
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.climb_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.climb_tail
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.climb_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.climb_step
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.climb_loop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.climb_loop

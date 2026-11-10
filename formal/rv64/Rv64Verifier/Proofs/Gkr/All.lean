@@ -1,3 +1,4 @@
+import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Gkr.Open
 import Rv64Verifier.Proofs.Gkr.LayerScalars
 import Rv64Verifier.Proofs.Gkr.LayerProj
@@ -12,7 +13,7 @@ import Rv64Verifier.Proofs.Multilinear.All
 /-!
 # The Keccak reduction's contracts, their callees' discharged
 
-`eq_kernel`'s contract as the multilinear proof gives it; `open` still takes `sumcheck`'s.
+`eq_kernel`'s contract as the multilinear proof gives it; `open` closed.
 -/
 
 namespace Rv64Verifier.Gkr
@@ -23,8 +24,9 @@ theorem eqKernel : EqKernelSpec := fun s hpc h ↦
       h.pointOut, h.rodata, h.outRodata⟩).imp fun _ ⟨hr, ht⟩ ↦
     ⟨hr, ht.imp_left fun ⟨a, b, c⟩ ↦ ⟨a, b, ⟨c.heap, c.mono, c.value, c.frame⟩⟩⟩
 
-theorem «open» (hSC : Transcript.SumcheckSpec) : OpenSpec :=
-  Open.open_spec Proofs.Multilinear.optFromElemGkr hSC eqKernel Proofs.Field.mul Runtime.memcpy
+theorem «open» : OpenSpec :=
+  Open.open_spec Proofs.Multilinear.optFromElemGkr Transcript.sumcheck eqKernel Proofs.Field.mul
+    Runtime.memcpy
 
 end Rv64Verifier.Gkr
 

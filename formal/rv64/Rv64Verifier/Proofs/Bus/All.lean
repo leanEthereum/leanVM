@@ -2,6 +2,7 @@ import Rv64Verifier.Proofs.Bus.Fingerprints
 import Rv64Verifier.Proofs.Bus.TsSpec
 import Rv64Verifier.Proofs.Multilinear.All
 import Rv64Verifier.Proofs.Transcript.All
+import Rv64Verifier.Proofs.Layout.All
 import Rv64Verifier.Proofs.Bus.VbbSpine
 import Rv64Verifier.Proofs.Bus.VbbTail9
 import Rv64Verifier.Proofs.Bus.VbbGkrLoop
@@ -34,10 +35,10 @@ open Rv64Verifier.Bus Rv64Verifier.Runtime
 theorem fingerprints : FingerprintsSpec :=
   Fingerprints.fingerprints_spec alloc_spec Multilinear.dot
 
-theorem tableSumcheck (hOF : TableSumcheck.OptFromElemBelowSpec) (hS : Transcript.SumcheckSpec)
-    (hFEv : TableSumcheck.FormEvaluateSpecE) : TableSumcheckSpec :=
-  TableSumcheck.table_sumcheck_spec hOF hS tryAllocZeroed Runtime.reserveFresh_80008a10
-    Multilinear.fromElem Field.mul memcpy Transcript.nextScalars alloc_spec Multilinear.dot hFEv
+theorem tableSumcheck (hOF : TableSumcheck.OptFromElemBelowSpec) : TableSumcheckSpec :=
+  TableSumcheck.table_sumcheck_spec hOF Transcript.sumcheck tryAllocZeroed Runtime.reserveFresh_80008a10
+    Multilinear.fromElem Field.mul memcpy Transcript.nextScalars alloc_spec Multilinear.dot
+    Layout.form_evaluate_e_proved
 
 end Rv64Verifier.Proofs.Bus
 

@@ -265,6 +265,10 @@ def stackClaimsAt (s : MachineState) (a : Word) : List StackClaimRust :=
 @[rv_addr] def placementsLen (s : MachineState) : Nat := (s.getMem (itLayout s + 112)).toNat
 @[rv_addr] def stackLogAt (s : MachineState) : Nat := (s.getMem (itLayout s + 184)).toNat
 
+/-- The `n` bytes from `a` miss the `Vec` at `a0` and the iterator at `a1`. -/
+def ExtendOff (s : MachineState) (a : Word) (n : Nat) : Prop :=
+  Apart a n (s.getReg .x10) 24 ∧ Apart a n (s.getReg .x11) 24
+
 /-- `a0` = the `Vec<StackClaim>`, `a1` = the iterator; every placement within the stack. -/
 structure ExtendPre (s : MachineState) : Prop where
   heap : HeapOk s
@@ -283,6 +287,21 @@ structure ExtendPre (s : MachineState) : Prop where
   within : ∀ p ∈ placementsAt s (placementsPtr s) (placementsLen s), ∀ q, p = some q →
     q.variableCount ≤ stackLogAt s
   selfIter : Apart (s.getReg .x10) 24 (s.getReg .x11) 24
+  /-- The `Vec` full (as `vec![claim]` leaves it), so a push moves it to a new buffer. -/
+  full : vecLen s (s.getReg .x10) = vecCap s (s.getReg .x10)
+  elems : Src s extendStack (vecPtr s (s.getReg .x10)) (88 * (vecLen s (s.getReg .x10)).toNat)
+  weights : ∀ i < (vecLen s (s.getReg .x10)).toNat,
+    WeightSrc s extendStack (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i))
+  /-- What it reads misses the `Vec` and the iterator, which it writes. -/
+  elemsOff : ExtendOff s (vecPtr s (s.getReg .x10)) (88 * (vecLen s (s.getReg .x10)).toNat)
+  weightsOff : ∀ i < (vecLen s (s.getReg .x10)).toNat,
+    WeightApart s (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) (s.getReg .x10) 24 ∧
+      WeightApart s (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) (s.getReg .x11) 24
+  claimsOff : ExtendOff s (itCur s) (56 * itCount s)
+  pointsOff : ∀ i < itCount s, ExtendOff s (vecPtr s (itCur s + BitVec.ofNat 64 (56 * i)))
+    (24 * (vecLen s (itCur s + BitVec.ofNat 64 (56 * i))).toNat)
+  layoutOff : ExtendOff s (itLayout s) 192
+  placementsOff : ExtendOff s (placementsPtr s) (24 * placementsLen s)
 
 /-- The claims on the stack appended, the iterator at its end; memory changes only in the `Vec`,
 the iterator's position, the stack, `NEXT` and the heap allocated. -/
