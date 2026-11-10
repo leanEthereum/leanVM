@@ -35,7 +35,7 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
   (`frameWit_cost`);
-* the tables: preconditions `12880` (`preTable_cost`), entries `8112592` (`pcTableT_cost`); the
+* the tables: preconditions `12880` (`preTable_cost`), entries `9897904` (`pcTableT_cost`); the
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
@@ -69,7 +69,7 @@ theorem topConst_valid_le (F : ℕ) :
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice kidSlotsInPrice
     xmssRawsTPrice sphincsRawsTPrice regionTablePrice vsPiPrice vsMPrice
     vsAtPrice levelPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
-    queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice
+    queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice shapePrice
   omega
 
 /-- The address tables' price is the statement's. -/
@@ -86,10 +86,10 @@ theorem topConst_le (F : ℕ) :
   topConst_valid_le F
 
 /-- **Filing a state**: the sorted entry array's price per state (`entryArrayStatePrice`) at the
-deployed pc table's lookup (`5969`), two functions a pc, the precondition test and the reader, is
+deployed pc table's lookup (`7093`), two functions a pc, the precondition test and the reader, is
 the statement's filing price. -/
 theorem entryArrayStatePrice_eq (e : ℕ) :
-    entryArrayStatePrice 5969 2 guestDecoderPreconditionPrice 1271 e =
+    entryArrayStatePrice 7093 2 guestDecoderPreconditionPrice 1271 e =
       guestDecoderStateFilingPrice e := by
   unfold entryArrayStatePrice pairsStatePrice guestDecoderStateFilingPrice
     guestDecoderEntryTablePositionLimbs wl
@@ -202,7 +202,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     (powTable LeanVM.Guest.guestProgram.logSize) LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory)
   rw [← hstates] at hpos
   have hE := entryArrayT_cost compiledGuestWitnessDecoder _ _ hrd 1271 hR _ _ hpre _ hPr
-    includes_budget_entryArrayT Decoder.pcTableT 2 5969 e pcTableT_getD_lt pcTableT_getD_length
+    includes_budget_entryArrayT Decoder.pcTableT 2 7093 e pcTableT_getD_lt pcTableT_getD_length
     (fun k hk ↦ pcTableT_get_cost compiledGuestWitnessDecoder includes_budget_getPc k hk) states hn
   obtain ⟨hok, hsz⟩ := entryArrayT_ok (Decoder.memReader (powTable t.logMemorySize)
     (Decoder.memoryVector t.memory)) (preTestAt discreteLogTables preTable genPows
@@ -250,7 +250,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12880 8112592 _ _
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12880 9897904 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := topConst_le (guestDecoderFramePrice e)
@@ -292,7 +292,7 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 32) (hs : ste
     unfold guestDecoderFramePrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
-  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12880 + 8112592 +
+  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12880 + 9897904 +
           guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAtValidCounts +
           guestDecoderFrameLookupCountAtValidCounts * (1129 * lg + 7803) + 39 := by gcongr
     _ ≤ _ := by

@@ -44,6 +44,7 @@ theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = 61 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
+set_option maxHeartbeats 1000000 in
 /-- **`verify_sub`'s words for a child at candidate `candidate μ r`** at the deployed instance:
 its frame `2032` and buffers `8706`, `g_power_of_word` (`49`, twice), the two `log2_ceil`
 placements (`205`, `206`), `certify_placement` (`486`), the grind checks (`53`, twice), the

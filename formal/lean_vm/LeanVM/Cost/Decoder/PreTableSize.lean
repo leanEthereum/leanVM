@@ -10,15 +10,15 @@ As `Cost/ExtractorSize.lean` measures the extractor's program (`MachineValue.siz
 functions:
 
 * **`preTable_size`**: the literal table of the functions' preconditions
-  (`Guest.Fast.preTable`, `992` entries) is a value of size `4891`;
+  (`Guest.Fast.preTable`, `992` entries) is a value of size `4856`;
 * `preTableC_body_size`: the body that builds it (`preTableC`, its constructors, each natural
-  literal a term `Term.literal`) has size `6765`, what it adds to the decoder's program (and `2` for
+  literal a term `Term.literal`) has size `6772`, what it adds to the decoder's program (and `2` for
   its index);
 * `preTestBodies_size`: the bodies the compiled test adds past the decoder's witness (`preTestAtC`'s
   dependencies from `powBelowAtC` on, `18` of them, the lanes' scan `twoPowScanC` and the table's
-  reads `gpowAtC`, `symValAtC` among them) have size `303`;
+  reads `gpowAtC`, `symValAtC` among them) have size `274`;
 * `genPowsBodies_size`: the powers table's bodies (`genPowsC`, `squaresFromC`, `powsFromC`, the
-  append, and the product in `K`, `kMulC`), built once and passed to the test, have size `161`.
+  append, and the product in `K`, `kMulC`), built once and passed to the test, have size `135`.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -27,26 +27,26 @@ open LeanVM.Cost LeanVM.Guest.Fast
 
 public section
 
-/-- **The table's size**: `4891`. -/
-theorem preTable_size : (encodeValue preTable).size = 4891 := by
+/-- **The table's size**: `4856`. -/
+theorem preTable_size : (encodeValue preTable).size = 4856 := by
   -- an array's encoding maps `Array.map`, whose body the kernel does not see here: by its list
-  show (MachineValue.array (preTable.map encodeValue)).size = 4891
+  show (MachineValue.array (preTable.map encodeValue)).size = 4856
   rw [MachineValue.size, Array.toList_map]
   decide +kernel
 
-/-- The size of the body that builds the table: `6765`. -/
-theorem preTableC_body_size : preTableC.costBody.size = 6765 := by decide +kernel
+/-- The size of the body that builds the table: `6772`. -/
+theorem preTableC_body_size : preTableC.costBody.size = 6772 := by decide +kernel
 
-/-- The sizes of the test's bodies: `303`, `18` bodies. -/
+/-- The sizes of the test's bodies: `274`, `18` bodies. -/
 theorem preTestBodies_size :
     ((preTestAtC.costDeps.filter fun p ↦ decide (powBelowAtC.costIdx ≤ p.1)).map
-      fun p ↦ p.2.size).sum = 303 ∧
+      fun p ↦ p.2.size).sum = 274 ∧
     (preTestAtC.costDeps.filter fun p ↦ decide (powBelowAtC.costIdx ≤ p.1)).length = 18 := by
   decide +kernel
 
-/-- The sizes of the powers table's bodies: `161`, `5` bodies. -/
+/-- The sizes of the powers table's bodies: `135`, `5` bodies. -/
 theorem genPowsBodies_size :
-    (genPowsC.costDeps.map fun p ↦ p.2.size).sum = 161 ∧ genPowsC.costDeps.length = 5 := by
+    (genPowsC.costDeps.map fun p ↦ p.2.size).sum = 135 ∧ genPowsC.costDeps.length = 5 := by
   decide +kernel
 
 end
