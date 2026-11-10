@@ -3,16 +3,14 @@ import Rv64Verifier.Proofs.Main.Iv
 import Rv64Verifier.Proofs.Main.ParseHead
 import Rv64Verifier.Proofs.Main.ParseEnd
 import Rv64Verifier.Proofs.Main.NewHead
-import Rv64Verifier.Proofs.Main.NewLoop
-import Rv64Verifier.Proofs.Main.NewCount
+import Rv64Verifier.Proofs.Main.NewPush
 
 /-!
 # `main`, and soundness from `walk`'s contract
 
 `main_spec`: the stages (`Proofs/Main/Stages.lean`) and `walk`'s contract give `main`'s, on every
-input that fits below the heap (`inputWords`). `IvStage` (`iv_stage`) and `ParseStage`
-(`parse_head`, `parse_rest`) are proved; `NewStage` is, from `BlockFull` (`newStage_of`), a block's
-work after `group`, a hypothesis.
+input that fits below the heap (`inputWords`). `IvStage` (`iv_stage`), `NewStage` (`newStage`) and
+`ParseStage` (`parse_head`, `parse_rest`) are proved.
 `sound_of_walk_fits`: as `sound_of_main`, for those inputs (`SoundFits`); `sound_of_walk`: `Sound`, since `Loaded` bounds the input.
 -/
 
@@ -74,21 +72,20 @@ theorem sound_of_main_fits
     subst hsame
     exact absurd hu1 (hdead.2 hhalt)
 
-/-- `main`'s contract, given `walk`'s and the stage not yet proved. -/
+/-- `main`'s contract, given `walk`'s and `Bytecode::new`'s stage. -/
 theorem main_spec_of (hNew : NewStage) (hW : WalkCallSpec) (words : List Word)
     (hfit : words.length ≤ inputWords) :
     FunSpec Image.code mainEntry (MainPre words) (MainPost words) :=
   main_spec iv_stage hNew (parse_stage_of parse_head parse_rest) hW words hfit
 
-/-- **Soundness, from `walk`'s contract**, for the inputs that fit, given a block's work after
-`group` (`BlockFull`). -/
-theorem sound_of_walk_fits (hFull : BlockFull) (hW : WalkCallSpec) : SoundFits image :=
-  sound_of_main_fits fun words hfit ↦ main_spec_of (newStage_of hFull) hW words hfit
+/-- **Soundness, from `walk`'s contract**, for the inputs that fit. -/
+theorem sound_of_walk_fits (hW : WalkCallSpec) : SoundFits image :=
+  sound_of_main_fits fun words hfit ↦ main_spec_of newStage hW words hfit
 
-/-- **Soundness**, given `walk`'s contract and `Bytecode::new`'s block phases: `Loaded` bounds the
+/-- **Soundness**, given `walk`'s contract: `Loaded` bounds the
 input by `inputCapacity`, which is `inputWords`. -/
-theorem sound_of_walk (hFull : BlockFull) (hW : WalkCallSpec) : Sound image :=
-  fun words s n hload hhalts ↦ sound_of_walk_fits hFull hW words s n hload.2.2.2.2 hload hhalts
+theorem sound_of_walk (hW : WalkCallSpec) : Sound image :=
+  fun words s n hload hhalts ↦ sound_of_walk_fits hW words s n hload.2.2.2.2 hload hhalts
 
 end Rv64Verifier.Proofs.Main
 
@@ -109,8 +106,8 @@ end Rv64Verifier.Proofs.Main
 /-- info: 'Rv64Verifier.Proofs.Main.new_head' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Main.new_head
 
-/-- info: 'Rv64Verifier.Proofs.Main.newStage_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms Rv64Verifier.Proofs.Main.newStage_of
+/-- info: 'Rv64Verifier.Proofs.Main.newStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Main.newStage
 
-/-- info: 'Rv64Verifier.Proofs.Main.count_phase' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms Rv64Verifier.Proofs.Main.count_phase
+/-- info: 'Rv64Verifier.Proofs.Main.blockFull' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Main.blockFull
