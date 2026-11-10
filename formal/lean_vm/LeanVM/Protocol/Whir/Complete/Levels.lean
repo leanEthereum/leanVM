@@ -487,6 +487,86 @@ theorem zip_map_self {β : Type} (f : ℕ → β) : ∀ l : List ℕ, l.zip (l.m
 def lanesOfV (index : ℕ) (row : List K) : List E :=
   if index = 0 then row.reverse.map ofK else extRow row
 
+theorem sampleOodPoints_two {α : Type} (κ : ℕ) (G : List (List E) → VerifierProgram α) :
+    (sampleOodPoints κ Whir.oodSamples).bind G =
+      (VerifierProgram.sampleChallenges κ).bind fun z₁ ↦
+        (VerifierProgram.sampleChallenges κ).bind fun z₂ ↦ G [z₁, z₂] := by
+  simp [sampleOodPoints, Whir.oodSamples, VerifierProgram.bind_assoc]
+
+theorem ladderOK_cons {mu : ℕ} {l : Whir.Level} {r : List Whir.Level} (h : ladderOK mu (l :: r) = true) :
+    l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 28 := by
+  cases r with
+  | nil => simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h; exact ⟨h.1.1, h.1.2, h.2⟩
+  | cons n r =>
+    simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h
+    exact ⟨h.1.1.1, h.1.1.2, h.1.2⟩
+
+theorem size_queryTableA {κ : ℕ} (hκ : κ ≤ 64) (qs : List ℕ) (ws : List E) :
+    (queryTableA κ qs ws).size = 2 ^ κ := by
+  rw [← Array.length_toList, toList_queryTableA hκ]; simp [queryTable]
+
+theorem getD_extract_low (p : Array E) {n i : ℕ} (hn : n ≤ p.size) (hi : i < n) :
+    (p.extract 0 n).getD i 0 = p.getD i 0 := by
+  have hi2 : i < (p.extract 0 n).size := by simp; omega
+  rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hi2, Option.getD_some,
+    Array.getElem_extract]
+  simp [Array.getD_eq_getD_getElem?, show i < p.size by omega]
+
+/-- **The next level's invariant** after gluing the level's claims. -/
+theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (hℓ' : ℓ' ≤ κ) (hκ : κ ≤ 28)
+    {sv' : WhirState} {p w' : Array E} (hp' : p.size = 2 ^ κ + ℓ) (hw' : w'.size = 2 ^ κ)
+    (hclaim : sv'.claim = ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0)
+    (hlen : sv'.gammas.length + κ = μ)
+    (hW : ∀ x, x.length = κ → runW B lf sv' x = multilinearEval w'.toList x)
+    (z₁ z₂ : List E) (hz₁ : z₁.length = κ) (hz₂ : z₂.length = κ) (lam : E) (qs : List ℕ) (b : E)
+    (hb : b = dot (queryTableA κ qs (powers lam qs.length)).toList (p.extract 0 (2 ^ κ)).toList)
+    (rowOf : ℕ → List E)
+    (hrow : ∀ q < 2 ^ (κ - ℓ' + R'), rowOf q = laneCodes (κ - ℓ') ℓ' (p.extract 0 (2 ^ κ)).toList q) :
+    FoldInv μ lf B (κ - ℓ') (2 ^ (κ - ℓ' + R')) rowOf 0 ℓ'
+      (glueLevel sv' lam κ [z₁, z₂] [dotA (p.extract 0 (2 ^ κ)) (eqTable z₁),
+        dotA (p.extract 0 (2 ^ κ)) (eqTable z₂)] qs (powers lam qs.length) b)
+      (p.extract 0 (2 ^ κ))
+      (glueTablesA lam w' [eqTable z₁, eqTable z₂, queryTableA κ qs (powers lam qs.length)]) [] := by
+  set low := p.extract 0 (2 ^ κ) with hlow
+  have hlowsz : low.size = 2 ^ κ := by simp [hlow, hp']
+  have hsplit : 2 ^ κ = 2 ^ (κ - ℓ') * 2 ^ ℓ' := by rw [← pow_add, Nat.sub_add_cancel hℓ']
+  have he₁ : (eqTable z₁).size = 2 ^ κ := by rw [size_eqTable, hz₁]
+  have he₂ : (eqTable z₂).size = 2 ^ κ := by rw [size_eqTable, hz₂]
+  have hT := size_queryTableA (by omega : κ ≤ 64) qs (powers lam qs.length)
+  have hgsz := size_glued lam w' (eqTable z₁) (eqTable z₂) (queryTableA κ qs (powers lam qs.length))
+    (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT])
+  have hdot : ∀ T : Array E, T.size = 2 ^ κ →
+      ∑ i ∈ range T.size, T.getD i 0 * low.getD i 0 = dot T.toList low.toList := fun T hTs ↦ by
+    rw [dot_eq_sum _ _ (by simp [hTs, hlowsz])]
+    exact sum_congr rfl fun i _ ↦ by rw [Enc.array_getD_toList, Enc.array_getD_toList]
+  refine ⟨by rw [hgsz, hw', hsplit], by rw [hlowsz, hsplit]; ring, ?_, ?_, ?_, ?_, ?_⟩
+  · have : 2 ^ (κ - ℓ') ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    have : (2 : ℕ) ^ 28 + 28 ≤ 2 ^ 61 := by norm_num
+    omega
+  · rw [glueLevel_eq, hdot _ (by rw [hgsz, hw']),
+      dot_glued lam w' _ _ _ (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT]), hclaim, hb]
+    have hc : ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0 = dot w'.toList low.toList := by
+      rw [← hdot w' hw']
+      exact sum_congr rfl fun i hi ↦ by
+        rw [hlow, getD_extract_low p (by rw [hp']; omega) (by rw [← hw']; exact mem_range.mp hi)]
+    have hy : ∀ T : Array E, T.size = 2 ^ κ → dotA low T = dot T.toList low.toList := fun T hTs ↦ by
+      rw [dotA, sumRange_eq, dot_eq_sum _ _ (by simp [hTs, hlowsz]), hlowsz, hTs, min_self]
+      simp only [Array.length_toList, hTs]
+      exact sum_congr rfl fun i _ ↦ by rw [Enc.array_getD_toList, Enc.array_getD_toList, mul_comm]
+    rw [hc, hy _ he₁, hy _ he₂]
+    ring
+  · rw [glueLevel_eq]; simp only; omega
+  · intro x hx
+    rw [runW_glue, hW x (by omega),
+      mle_glued lam w' _ _ _ (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT]),
+      mle_eqTable z₁ x (by omega), mle_eqTable z₂ x (by omega),
+      mle_queryTableA (by omega) qs _ x (by omega)]
+  · intro q hq
+    rw [hrow q hq]
+    have h := laneCodes_eq (κ - ℓ') ℓ' low.toList (by simp [hlowsz, hsplit]) q
+    refine ⟨h.1, fun l hl ↦ ?_⟩
+    rw [vfold, List.foldl_nil, h.2 l hl, Array.toArray_toList]
+
 /-- **The honest levels follow the verifier's.** -/
 theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
     ∀ (levels : List Whir.Level) (index mu : ℕ) (f w : Array E) (sv : WhirState) (cs : Commits)
@@ -576,7 +656,71 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
         simp only [hplen, Enc.array_getD_toList]
         rw [hp']; simp
     | cons next rest' =>
-      done
+      dsimp only
+      simp only [levelShape]
+      obtain ⟨h1, h2, h28⟩ := ladderOK_cons hok
+      have hok' : ladderOK κ (next :: rest') = true := by
+        rw [ladderOK] at hok
+        simp only [Bool.and_eq_true] at hok
+        exact hok.2
+      obtain ⟨hn1, -, -⟩ := ladderOK_cons hok'
+      have hp'' : p.size = 2 ^ κ + level.fold := by rw [hp']; ring
+      have hw'' : w'.size = 2 ^ κ := by rw [hw']; ring
+      have hlowsz : (p.extract 0 (2 ^ κ)).size = 2 ^ κ := by simp [hp'']
+      have hwf := levelWordFast_eq (κ := κ - next.fold) (by omega) next.fold next.logInvRate
+        (p.extract 0 (2 ^ κ))
+      refine Follows.bind (fun cs₂ _ _ h ↦ ?_) _ _ _
+        (Follows.commitS_commitP (hwf ▸ wellShaped_levelWord _ _ _ _) cs₁)
+      subst h
+      have hhl : (p.extract (2 ^ κ) p.size).toList.length = level.fold := by simp [hp'']
+      have hsend := Follows.sendList_readN (cs₁ ++ [(κ - next.fold + next.logInvRate,
+        2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
+          (p.extract 0 (2 ^ κ)))]) (p.extract (2 ^ κ) p.size).toList
+      rw [hhl] at hsend
+      refine Follows.bind (fun cs₃ _ high h ↦ ?_) _ _ _ hsend
+      obtain ⟨rfl, rfl⟩ := h
+      rw [sampleOodPoints_two]
+      refine Follows.bind (fun cs₄ z₁ z₁' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
+      obtain ⟨rfl, rfl, hz₁⟩ := h
+      refine Follows.bind (fun cs₅ z₂ z₂' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
+      obtain ⟨rfl, rfl, hz₂⟩ := h
+      have hood := Follows.sendList_readN (cs₁ ++ [(κ - next.fold + next.logInvRate,
+        2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
+          (p.extract 0 (2 ^ κ)))]) [dotA (p.extract 0 (2 ^ κ)) (eqTable z₁),
+        dotA (p.extract 0 (2 ^ κ)) (eqTable z₂)]
+      refine Follows.bind (fun cs₆ _ ys h ↦ ?_) _ _ _ hood
+      obtain ⟨rfl, rfl⟩ := h
+      refine Follows.bind (fun cs₇ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
+      subst h
+      rw [sampleQueries]
+      refine Follows.bind (fun cs₈ queries queries' h ↦ ?_) _ _ _ (follows_sampleQueriesS _ _ _ _)
+      obtain ⟨rfl, rfl, hq⟩ := h
+      refine Follows.bind (fun cs₉ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
+      subst h
+      refine Follows.bind (fun cs₁₀ lam lam' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)
+      obtain ⟨rfl, rfl⟩ := h
+      have hans' : answerOf (cs₁ ++ [(κ - next.fold + next.logInvRate,
+          2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
+            (p.extract 0 (2 ^ κ)))]) index queries = some (queries.map word) := by
+        rw [answerOf, List.getElem?_append_left (by omega), hcsi, Option.map_some]
+        exact congrArg some (List.map_congr_left fun q hq' ↦ by
+          simp only; rw [Nat.mod_eq_of_lt (hq q hq')])
+      refine Follows.bind (fun cs₁₁ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP hans')
+      obtain ⟨rfl, -, rfl⟩ := h
+      refine follows_levelsA μ lf B (next :: rest') (index + 1) κ (p.extract 0 (2 ^ κ)) _ _ _
+        (levelWordFast (κ - next.fold) next.fold next.logInvRate (p.extract 0 (2 ^ κ)))
+        (2 * 2 ^ next.fold) hok' (by simp [hcs]) ?_
+      intro level' hl'
+      simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hl'
+      subst hl'
+      refine ⟨by rw [List.getElem?_append_right (by omega)]; simp [hcs], ?_⟩
+      refine foldInv_next hn1 (by omega) hp'' hw'' hclaim (by omega)
+        (fun x hx ↦ hW x (by simpa using hx)) z₁ z₂ hz₁ hz₂ lam queries _ ?_ _ ?_
+      · exact (batched_eq (lanesOfV index) word rounds p hp'' h2 (by omega) queries _
+          fun q hq' ↦ hrow0 q (hq q hq'))
+      · intro q hq'
+        simp only [lanesOfV, Nat.add_one_ne_zero, ite_false]
+        rw [hwf, extRow_levelWord _ _ _ _ hq']
 
 end
 end LeanVM.Protocol.Whir.Complete
