@@ -90,7 +90,7 @@ pub(crate) fn fixture() -> &'static Fixture {
         let (program, public_input) = chain(LOOP_STEPS);
         let (proof, _) = prove(&program, public_input, 1).unwrap();
         let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
-        let table = leanvm_core::cpu::layout::bytecode_table(&program.prog);
+        let table = leanvm_core::cpu::layout::bytecode_table(program.prog());
         let bytecode = Bytecode::new(&table.iter().map(|word| word.0).collect::<Vec<_>>());
         Fixture {
             public_input_bytes: public_input_bytes(&public_input),

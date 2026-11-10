@@ -63,7 +63,7 @@ fn opcode_delta(with: &str, without: &str) -> (i64, i64, i64) {
     let count = |src: &str| {
         let p = compile(&parse(src).expect("parse"));
         let (mut xor, mut mul, mut jump) = (0i64, 0i64, 0i64);
-        for op in &p.prog {
+        for op in p.prog() {
             match op {
                 Op::Xor { .. } => xor += 1,
                 Op::Mul { .. } => mul += 1,

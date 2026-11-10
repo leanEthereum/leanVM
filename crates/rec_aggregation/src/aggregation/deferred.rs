@@ -111,7 +111,7 @@ pub(super) fn scalar_bytecode() -> &'static verifier::Bytecode {
 /// evaluates it and building it walks the whole program.
 pub(super) fn stacked_bytecode() -> &'static [F64] {
     static TABLE: std::sync::OnceLock<Vec<F64>> = std::sync::OnceLock::new();
-    TABLE.get_or_init(|| leanvm_core::cpu::layout::bytecode_table(&unified_guest().prog))
+    TABLE.get_or_init(|| leanvm_core::cpu::layout::bytecode_table(unified_guest().prog()))
 }
 
 /// The rows of [`BLOCK`] entries of the stacked bytecode that hold its populated slots: every other row is

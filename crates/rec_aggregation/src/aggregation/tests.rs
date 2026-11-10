@@ -82,8 +82,8 @@ fn the_wire_layout_is_pinned() {
 fn guest_compiles_reproducibly() {
     let (one, two) = (compile_guest(20), compile_guest(20));
     assert_eq!(
-        format!("{:?}", one.prog),
-        format!("{:?}", two.prog),
+        format!("{:?}", one.prog()),
+        format!("{:?}", two.prog()),
         "two compilations of the guest produced different bytecode, \
              so the compiler is reading a hash seed"
     );

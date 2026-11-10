@@ -33,7 +33,7 @@ pub fn guest() -> &'static Program {
 
 /// The deployed placeholders, at the guest's log size.
 pub fn placeholders() -> BTreeMap<String, String> {
-    placeholder_map(guest().prog.len().trailing_zeros() as usize)
+    placeholder_map(guest().prog().len().trailing_zeros() as usize)
 }
 
 /// The guest's source text, as `aggregation.rs` includes it.

@@ -36,9 +36,9 @@ def main():
     println!("\n=== zkDSL source ===\n{src}");
     println!(
         "=== compiled ISA ({} instructions) ===",
-        pretty_integer(program.prog.len())
+        pretty_integer(program.prog().len())
     );
-    let text = disassemble(&program.prog);
+    let text = disassemble(program.prog());
     print!("{text}");
 
     for mnemonic in ["SET", "XOR", "MUL", "DEREF", "JUMP", "KECCAK"] {

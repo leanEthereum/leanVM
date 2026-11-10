@@ -425,8 +425,14 @@ impl KeccakOp {
 
     /// Cell `c` (in flush order) of a row at frame `fp`.
     pub(crate) fn cell(&self, fp: u32, c: usize) -> u32 {
+        let (offset, step) = self.cell_parts(c);
+        fp + offset + step
+    }
+
+    /// Cell `c` of a row at frame `fp` is `fp + offset + step`.
+    pub(crate) fn cell_parts(&self, c: usize) -> (u32, u32) {
         let (operand, step) = KECCAK_CELLS[c];
-        fp + self.offsets[operand] + step
+        (self.offsets[operand], step)
     }
 }
 
