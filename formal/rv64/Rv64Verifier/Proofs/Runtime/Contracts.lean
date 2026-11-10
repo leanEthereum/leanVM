@@ -55,7 +55,7 @@ structure TryAllocPre (al sz : Reg) (s : MachineState) : Prop where
   outStack : Apart (s.getReg .x10) 24 (stackLo s tryAllocStack) tryAllocStack
 
 /-- `Ok` (tag `0` at `a0`): the capacity at `a0 + 8`, a new buffer of that many elements at
-`a0 + 16`. -/
+`a0 + 16`; for capacity 0, the dangling pointer `align`. -/
 structure TryAllocPost (al sz : Reg) (s t : MachineState) : Prop where
   heap : HeapOk t
   mono : heapNext s ≤ heapNext t
@@ -64,6 +64,8 @@ structure TryAllocPost (al sz : Reg) (s t : MachineState) : Prop where
       (s.getReg al).toNat
   frame : ByteFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
     Within a (stackLo s tryAllocStack) tryAllocStack ∨ Within a nextAddr 8 ∨ Fresh s t a
+  dangling : t.getMem (s.getReg .x10) = 0 → s.getReg .x11 = 0 →
+    t.getMem (s.getReg .x10 + 16) = s.getReg al
 
 def TryAllocSpec : Prop := FunSpec Image.code 0x80000024 (TryAllocPre .x12 .x13) (TryAllocPost .x12 .x13)
 
@@ -72,6 +74,20 @@ def TryAllocZeroedSpec : Prop := FunSpec Image.code 0x800049ac (TryAllocPre .x13
   TryAllocPost .x13 .x14 s t ∧ (s.getReg .x12 ≠ 0 → t.getMem (s.getReg .x10) = 0 →
     bytesAt t (t.getMem (s.getReg .x10 + 16)) ((s.getReg .x11).toNat * (s.getReg .x14).toNat) =
       List.replicate ((s.getReg .x11).toNat * (s.getReg .x14).toNat) 0)
+
+/-- An empty buffer's dangling pointer, its alignment, lies below the heap. -/
+theorem dangling_lt_heap {align : Nat} (h : align ≤ 16) :
+    (BitVec.ofNat 64 align).toNat < heapStart := by
+  simp only [BitVec.toNat_ofNat, heapStart]
+  omega
+
+/-- The dangling pointer, as an empty range, misses the free heap and `NEXT`, and lies below
+`NEXT`. -/
+theorem dangling_outside {s : MachineState} {align : Nat} (hs : HeapOk s) (h : align ≤ 16) :
+    Outside s (BitVec.ofNat 64 align) 0 ∧ (BitVec.ofNat 64 align).toNat < heapNext s := by
+  have h1 := dangling_lt_heap h
+  have h2 := hs.lo
+  exact ⟨⟨Or.inl (by omega), Or.inl rfl⟩, by omega⟩
 
 /-! ## `RawVecInner::finish_grow`, at `0x8000c224` -/
 

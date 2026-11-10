@@ -129,7 +129,9 @@ theorem finish {s u t : MachineState} {nx : Word} (hpre : TryAllocPre .x12 .x13 
     (hm : MemFrame u t (s.getReg .x10) 8) (hu : ∀ a, a.toNat % 8 ≠ 0 → t.getMem a = u.getMem a)
     (hok : t.getMem (s.getReg .x10) = 0 → u.getMem (s.getReg .x10 + 8) = s.getReg .x11 ∧
       NewBuf s u (u.getMem (s.getReg .x10 + 16)) ((s.getReg .x11).toNat * (s.getReg .x13).toNat)
-        (s.getReg .x12).toNat) :
+        (s.getReg .x12).toNat)
+    (hdang : t.getMem (s.getReg .x10) = 0 → s.getReg .x11 = 0 →
+      u.getMem (s.getReg .x10 + 16) = s.getReg .x12) :
     TryAllocPost .x12 .x13 s t := by
   have hb := hpre.bounds
   have ho := hpre.outFree
@@ -138,7 +140,8 @@ theorem finish {s u t : MachineState} {nx : Word} (hpre : TryAllocPre .x12 .x13 
   have h8 : t.getMem (s.getReg .x10 + 8) = u.getMem (s.getReg .x10 + 8) := hm _ (by addr_omega [hb])
   have h16 : t.getMem (s.getReg .x10 + 16) = u.getMem (s.getReg .x10 + 16) :=
     hm _ (by addr_omega [hb])
-  refine ⟨⟨hnext ▸ hheap.lo, hnext ▸ hheap.hi⟩, hnext ▸ hmono, fun h0 ↦ ?_, ?_⟩
+  refine ⟨⟨hnext ▸ hheap.lo, hnext ▸ hheap.hi⟩, hnext ▸ hmono, fun h0 ↦ ?_, ?_,
+    fun h0 hc ↦ h16.trans (hdang h0 hc)⟩
   · obtain ⟨hc, hp⟩ := hok h0
     refine ⟨by rw [h8, hc], ?_⟩
     rw [h16]
@@ -213,11 +216,13 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
         (by rw [k₃ .x10 (by decide), hx10])
       refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ?_⟩⟩
       have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
-      refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut fun _ ↦ ?_
-      · have m8 := b800000a8_m_x10_8 h₃
-        have m16 := b800000a8_m_x10_16 h₃
-        rw [hx10] at m8 m16
-        rw [hx8] at hz
+      have m8 := b800000a8_m_x10_8 h₃
+      have m16 := b800000a8_m_x10_16 h₃
+      rw [hx10] at m8 m16
+      rw [k₂ .x12 (by decide), k₁ .x12 (by decide)] at m16
+      refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut (fun _ ↦ ?_)
+        fun _ _ ↦ m16
+      · rw [hx8] at hz
         have hc : (s.getReg .x11).toNat = 0 := by
           have := congrArg BitVec.toNat hz
           rw [hmul, show (0 : Word).toNat = 0 from rfl] at this
@@ -225,7 +230,7 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
           · omega
           · exact h
         refine ⟨by rw [m8]; exact (BitVec.eq_of_toNat_eq (by simp [hc])), ?_⟩
-        rw [m16, k₂ .x12 (by decide), k₁ .x12 (by decide)]
+        rw [m16]
         simp only [NewBuf, hc, Nat.zero_mul, true_or, and_true]
         exact Nat.mod_self _
     · -- allocate
@@ -287,7 +292,8 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
         have := hpost.above
         have := hpost.next
         omega
-      refine finish hpre inv₆ ⟨hn₆ ▸ hpost.heap.lo, hn₆ ▸ hpost.heap.hi⟩ hmono hmt hut fun _ ↦ ?_
+      refine finish hpre inv₆ ⟨hn₆ ▸ hpost.heap.lo, hn₆ ▸ hpost.heap.hi⟩ hmono hmt hut (fun _ ↦ ?_)
+        fun _ hc ↦ (hz (by rw [hx8, hc]; simp)).elim
       have m8 := b80000090_m_x18_8 h₆
       have m16 := b80000090_m_x18_16 h₆
       rw [hx18, hx9] at m8
@@ -316,8 +322,7 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
       (by rw [k₃ .x10 (by decide), k₂ .x10 (by decide), hx10])
     refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ?_⟩⟩
     have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
-    refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut fun h0 ↦ ?_
-    rw [htag, b80000064_x13 h₃] at h0
-    cases h0
+    refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut (fun h0 ↦ ?_)
+      fun h0 _ ↦ ?_ <;> (rw [htag, b80000064_x13 h₃] at h0; cases h0)
 
 end Rv64Verifier.Runtime.TryAlloc

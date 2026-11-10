@@ -212,15 +212,17 @@ theorem try_alloc_zeroed_spec (hA : AllocSpec) (hM : MemsetSpec 0x800126f4) :
         rcases Nat.mul_eq_zero.mp this with h | h
         · omega
         · exact h
+      have m16 := b80004a40_m_x8_16 h₃
+      rw [hx8₂, k₂ .x13 (by decide), k₁ .x13 (by decide)] at m16
+      have h16 : t.getMem (s.getReg .x10 + 16) = s.getReg .x13 := by
+        rw [hmt _ (by addr_omega [hb]), m16]
       refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ⟨hheap', hmono,
-        fun _ ↦ ⟨?_, ?_⟩, hframe⟩, fun _ _ ↦ by simp only [hc, Nat.zero_mul]; rfl⟩⟩
+        fun _ ↦ ⟨?_, ?_⟩, hframe, fun _ _ ↦ h16⟩, fun _ _ ↦ by simp only [hc, Nat.zero_mul]; rfl⟩⟩
       · have m := b80004a40_m_x8_8 h₃
         rw [hx8₂] at m
         rw [hmt _ (by addr_omega [hb]), m]
         exact BitVec.eq_of_toNat_eq (by rw [hc]; rfl)
-      · have m := b80004a40_m_x8_16 h₃
-        rw [hx8₂, k₂ .x13 (by decide), k₁ .x13 (by decide)] at m
-        rw [hmt _ (by addr_omega [hb]), m]
+      · rw [h16]
         simp only [NewBuf, hc, Nat.zero_mul, true_or, and_true]
         exact Nat.mod_self _
     · -- allocate
@@ -287,7 +289,8 @@ theorem try_alloc_zeroed_spec (hA : AllocSpec) (hM : MemsetSpec 0x800126f4) :
           tail hpre (b80004a50_pc_not_taken h₆ (by rw [k₅ .x10 (by decide)]; exact hp0)) inv₆
             (by rw [k₆ .x8 (by decide), k₅ .x8 (by decide), hx8₄])
         refine ⟨t, hr₁.trans (hr₂.trans (hr₄.trans (hr₅.trans (hr₆.trans hr)))),
-          Or.inl ⟨hpc', hpres, ⟨hheap', hmono, fun _ ↦ ⟨?_, ?_⟩, hframe⟩, fun h' ↦ (h' hi).elim⟩⟩
+          Or.inl ⟨hpc', hpres, ⟨hheap', hmono, fun _ ↦ ⟨?_, ?_⟩, hframe,
+            fun _ hc ↦ (hz (by rw [hx9, hc]; simp)).elim⟩, fun h' ↦ (h' hi).elim⟩⟩
         · rw [h8, k₆ .x19 (by decide), k₅ .x19 (by decide), hx19]
         · rw [h16, k₆ .x10 (by decide), k₅ .x10 (by decide)]
           exact hbuf t hnext
@@ -331,8 +334,8 @@ theorem try_alloc_zeroed_spec (hA : AllocSpec) (hM : MemsetSpec 0x800126f4) :
             rw [k₉ .x8 (by decide), hpres₈.reg .x8, k₇ .x8 (by decide), k₆ .x8 (by decide),
               k₅ .x8 (by decide), hx8₄])
         refine ⟨t, hr₁.trans (hr₂.trans (hr₄.trans (hr₅.trans (hr₆.trans (hr₈.trans
-          (hr₉.trans hr)))))), Or.inl ⟨hpc', hpres, ⟨hheap', hmono, fun _ ↦ ⟨?_, ?_⟩, hframe⟩,
-          fun _ _ ↦ ?_⟩⟩
+          (hr₉.trans hr)))))), Or.inl ⟨hpc', hpres, ⟨hheap', hmono, fun _ ↦ ⟨?_, ?_⟩, hframe,
+          fun _ hc ↦ (hz (by rw [hx9, hc]; simp)).elim⟩, fun _ _ ↦ ?_⟩⟩
         · rw [h8, k₉ .x19 (by decide), hpres₈.reg .x19, k₇ .x19 (by decide), k₆ .x19 (by decide),
             k₅ .x19 (by decide), hx19]
         · rw [h16, hx10₉]
@@ -363,8 +366,7 @@ theorem try_alloc_zeroed_spec (hA : AllocSpec) (hM : MemsetSpec 0x800126f4) :
       (by rw [k₃ .x8 (by decide), k₂ .x8 (by decide), hx8])
     obtain ⟨hheap', hmono, -, hframe⟩ := finish hpre inv₃ hmt hbt
     refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ⟨hheap', hmono,
-      fun h0 ↦ ?_, hframe⟩, fun _ h0 ↦ ?_⟩⟩
-    · rw [htag, b800049f4_x11 h₃] at h0; cases h0
-    · rw [htag, b800049f4_x11 h₃] at h0; cases h0
+      fun h0 ↦ ?_, hframe, fun h0 _ ↦ ?_⟩, fun _ h0 ↦ ?_⟩⟩ <;>
+      (rw [htag, b800049f4_x11 h₃] at h0; cases h0)
 
 end Rv64Verifier.Runtime.TryAllocZeroed
