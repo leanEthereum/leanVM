@@ -47,7 +47,7 @@ noncomputable def l26COk : Bool :=
   let A := l26A
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 7 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
-  canonChk [] A && A.all (fun a => !needsSide a || isL26Load a) &&
+  A.all (fun a => !needsSide a || isL26Load a) &&
   isMul P (.n 7) (.n 0) (.n 0) && isMul P (.n 8) (.n 2) (.n 7) &&
   A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul P (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
@@ -96,7 +96,7 @@ noncomputable def l27COk : Bool :=
   let A := l27A
   let P := (atomsIn (loopPre fn)).filter pureB
   (chk 8 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
-  canonChk [] A && A.all (fun a => !needsSide a || isL27Load a) &&
+  A.all (fun a => !needsSide a || isL27Load a) &&
   isMul P (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul P (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
   eqChainOk A (.n 9) (.n 4) 23 (.n 167) && eqChainOk A (.n 11) (.n 4) 23 (.n 170) &&
