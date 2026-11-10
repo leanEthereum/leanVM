@@ -37,20 +37,25 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
   hprodL : prod.length = productBits
   hprod : ReadsAt rd cur prod
   hproj : projectedOf c prod + iota * sumE c.mu = c.value
+  nonce : E
+  hnonce : LoadHolds rd cur productBits nonce
+  hgrind : ((plainStart first [f0, f1, f2, f3, f4] w).absorbAll prod dsObserve).GrindOk sGrindBits
+    nonce
   sv : E
   capS : List E
-  hsq : layerSq (plainStart first [f0, f1, f2, f3, f4] w) prod = (sv, ⟨capS, []⟩)
+  hsq : layerSq (plainStart first [f0, f1, f2, f3, f4] w) prod nonce = (sv, ⟨capS, []⟩)
   hmuOut : ∀ i < 16, LoadHolds rd out (6 + i) ((keccakInstanceWeights sv).getD i 0)
   hkapOut : LoadHolds rd out 1 (sumE (keccakInstanceWeights sv))
   rc : E
   pt : E
   pp : E
   hpp : LoadHolds rd claim 2 pp
-  h0 : RoundRec rd rc 0 capS (cur * gen ^ productBits) (polyEval prod sv) 1
+  tb : E
+  h0 : RoundRec rd rc 0 capS (cur * gen ^ (productBits + 1)) (polyEval prod sv) 1
   hloop : IsInK (1 + sg) ∧
-    (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rc, pp, pt] [])
+    (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rc, pp, pt, tb] [])
   hrem : IsInK (1 + rg) ∧
-    (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rc * sg, pp * sg ^ 8,
+    (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rc * sg, pp * sg ^ 8, tb,
       pt * sg ^ 8] [])
   capL : List E
   curL : E
@@ -101,52 +106,55 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
       ClaimRec rd false out c' y ∧ rets = cap' ++ [cur * gen ^ xs.length] := by
   obtain ⟨-, hptL, -, -, -, ⟨pp', hpp', hppR⟩, -⟩ := hcr
   have epp : W.pp = pp' := loadHolds_unique W.hpp hpp'
-  have hcanS : AllCanonical W.capS := by
-    have h := congrArg (fun q : E × Fs ↦ q.2.cap) W.hsq
-    simp only [layerSq] at h
-    rw [← h]; exact squeeze_cap_canonical _
-  obtain ⟨msgsP, chs, hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2, -⟩ :=
-    pack_chain hf hsg hrg hy32 hptL (epp ▸ hppR) W.h0 hcanS W.hloop W.hrem W.hlast
+  obtain ⟨msgsP, chs, hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2⟩ :=
+    pack_chain hf hsg hrg hy32 hptL (epp ▸ hppR) W.h0 W.hloop W.hrem W.hlast
   have hpack : packRunF c.point msgsP (polyEval W.prod W.sv) 1 ⟨W.capS, []⟩ =
       ((W.vL, W.scL, chs), ⟨W.capL, []⟩) := Prod.ext hrun1 hrun2
-  have hsq1 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod).1 = W.sv := by
+  have hsq1 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).1 = W.sv := by
     rw [W.hsq]
-  have hsq2 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod).2 = ⟨W.capS, []⟩ := by
+  have hsq2 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).2 = ⟨W.capS, []⟩ := by
     rw [W.hsq]
-  have hP : layerPack c (plainStart first [f0, f1, f2, f3, f4] w) W.prod msgsP =
+  have hP : layerPack c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP =
       ((W.vL, W.scL, chs), ⟨W.capL, []⟩) := by
     rw [layerPack, hsq1, hsq2, hpack]
-  have hL : layerLocal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod msgsP W.msgs =
+  have hL : layerLocal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP W.msgs =
       ((W.locPt, W.vR), ⟨W.capR, []⟩) := by
     rw [layerLocal, hP]; exact W.hlocal
-  have hB : layerBeta c (plainStart first [f0, f1, f2, f3, f4] w) W.prod msgsP W.msgs
+  have hB : layerBeta c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP W.msgs
       (W.t0, W.t1, W.t2) = (W.beta, ⟨W.capB, []⟩) := by
     rw [layerBeta, hL]; exact W.hbeta
-  have hfin : LayerFinal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod msgsP W.msgs
+  have hfin : LayerFinal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP W.msgs
       (W.t0, W.t1, W.t2) := by
     unfold LayerFinal
     rw [hsq1, hP, hL]
     exact W.hfin
   have hrun := layer_runsTo (y + 3) step c (plainStart first [f0, f1, f2, f3, f4] w) W.prod
-    W.hprodL msgsP (by rw [hmL, hptL]) W.msgs W.hmsgsL (W.t0, W.t1, W.t2)
+    W.hprodL W.nonce W.hgrind msgsP (by rw [hmL, hptL]) W.msgs W.hmsgsL (W.t0, W.t1, W.t2)
     (by rw [← hiota]; exact W.hproj) hfin
   rw [hB] at hrun
   have hlocL : W.locPt.length = 11 := by
     have := localRunF_length W.msgs W.vL ⟨W.capL, []⟩
     rw [W.hlocal, W.hmsgsL] at this
     exact this
-  have hc' : W.curL = cur * gen ^ (47 + 2 * y) := by
+  have hc' : W.curL = cur * gen ^ (48 + 2 * y) := by
     rw [hcurL, mul_assoc, ← pow_add]; rfl
   refine ⟨_, _, W.capB, ?_, hrun, ?_, ?_⟩
   · simp only [List.append_assoc]
-    rw [readsAt_append, readsAt_append, readsAt_append, W.hprodL, flatMap_pairs_length, hmL,
-      flatMap_triples_length, W.hmsgsL]
-    refine ⟨W.hprod, hmR, ?_, ?_⟩
-    · rw [mul_assoc, ← pow_add, show productBits + 2 * y = 47 + 2 * y from rfl, ← hc']
+    rw [readsAt_append, readsAt_append, readsAt_append, readsAt_append, W.hprodL,
+      List.length_singleton, flatMap_pairs_length, hmL, flatMap_triples_length, W.hmsgsL]
+    refine ⟨W.hprod, fun k hk => ?_, ?_, ?_, ?_⟩
+    · simp only [List.length_singleton, Nat.lt_one_iff] at hk
+      subst hk
+      rw [loadHolds_mul_gen_pow]
+      exact W.hnonce
+    · rw [mul_assoc, ← pow_add]
+      exact hmR
+    · rw [mul_assoc, ← pow_add, mul_assoc, ← pow_add, show productBits + (1 + 2 * y) = 48 + 2 * y by
+        show 47 + (1 + 2 * y) = 48 + 2 * y; ring, ← hc']
       exact W.hmsgs
-    · rw [mul_assoc, ← pow_add, mul_assoc, ← pow_add,
-        show productBits + (2 * y + 3 * keccakLocalBits) = 47 + 2 * y + 33 by
-          show 47 + (2 * y + 3 * 11) = 47 + 2 * y + 33; ring,
+    · rw [mul_assoc, ← pow_add, mul_assoc, ← pow_add, mul_assoc, ← pow_add,
+        show productBits + (1 + (2 * y + 3 * keccakLocalBits)) = 48 + 2 * y + 33 by
+          show 47 + (1 + (2 * y + 3 * 11)) = 48 + 2 * y + 33; ring,
         pow_add, ← mul_assoc, ← hc']
       exact W.ht
   · simp only [ClaimRec, layerClaim, hsq1, hP, hL, hB, Bool.false_eq_true, ↓reduceIte]
