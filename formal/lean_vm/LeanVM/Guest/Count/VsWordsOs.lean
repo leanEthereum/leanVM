@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Count.VsWords
+public import LeanVM.Guest.Count.VsBoundBase
 public import LeanVM.Guest.Count.Instances
 public import LeanVM.Guest.B1.VerifySub.CompleteB
 
@@ -18,9 +19,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
-/-- **`open_stacked`'s named callees' words**: `wSB` on the names `osKindOf` knows, `0` on the
-others (the queries' callees and the loops, which `osBk` bounds by `osSpB`). -/
-noncomputable def osBnd (f : String) : ℕ := if (B1.osKindOf f).isSome then wSB f else 0
 
 theorem osLeafBoundsB : B1.OsLeafBounds B2C.fs osBnd := fun f K hK => by
   have h := osLeafBounds f K hK
