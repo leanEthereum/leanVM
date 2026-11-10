@@ -319,11 +319,13 @@ theorem glueLevel_eq (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) 
 theorem runW_glue (B : List E → E) (lf : ℕ) (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E)
     (y₁ y₂ : E) (qs : List ℕ) (ws : List E) (b : E) (x : List E) :
     runW B lf (glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b) x =
-      runW B lf sv x + lam * eqEval z₁ x + lam * lam * eqEval z₂ x +
-        lam * lam * lam * Verifier.inducedWeight mu qs ws x := by
+      runW B lf sv x + 1 * lam * eqEval z₁ x + 1 * lam * lam * eqEval z₂ x +
+        1 * lam * lam * lam * Verifier.inducedWeight mu qs ws x := by
   rw [glueLevel_eq]
-  simp only [runW, List.foldl_append, List.foldl_cons, List.foldl_nil, List.drop_left]
-  ring
+  unfold runW
+  rw [List.foldl_append, List.foldl_cons, List.foldl_cons, List.foldl_cons, List.foldl_nil]
+  dsimp only
+  rw [List.drop_left]
 
 theorem toList_glued (lam : E) (W T₁ T₂ T₃ : Array E) :
     (glueTablesA lam W [T₁, T₂, T₃]).toList =
@@ -335,26 +337,25 @@ theorem toList_glued (lam : E) (W T₁ T₂ T₃ : Array E) :
 theorem mle_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
     (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (x : List E) :
     multilinearEval (glueTablesA lam W [T₁, T₂, T₃]).toList x =
-      multilinearEval W.toList x + lam * multilinearEval T₁.toList x +
-        lam * lam * multilinearEval T₂.toList x + lam * lam * lam * multilinearEval T₃.toList x := by
+      multilinearEval W.toList x + 1 * lam * multilinearEval T₁.toList x +
+        1 * lam * lam * multilinearEval T₂.toList x +
+          1 * lam * lam * lam * multilinearEval T₃.toList x := by
   rw [toList_glued, multilinearEval_axpy _ _ _ _ (by
       rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
       rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
     multilinearEval_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
     multilinearEval_axpy _ _ _ _ (by simpa using h₁)]
-  ring
 
 theorem dot_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
     (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (g : List E) :
     dot (glueTablesA lam W [T₁, T₂, T₃]).toList g =
-      dot W.toList g + lam * dot T₁.toList g + lam * lam * dot T₂.toList g +
-        lam * lam * lam * dot T₃.toList g := by
+      dot W.toList g + 1 * lam * dot T₁.toList g + 1 * lam * lam * dot T₂.toList g +
+        1 * lam * lam * lam * dot T₃.toList g := by
   rw [toList_glued, dot_axpy _ _ _ _ (by
       rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
       rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
     dot_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
     dot_axpy _ _ _ _ (by simpa using h₁)]
-  ring
 
 theorem size_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
     (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) :
@@ -554,7 +555,6 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
       simp only [Array.length_toList, hTs]
       exact sum_congr rfl fun i _ ↦ by rw [Enc.array_getD_toList, Enc.array_getD_toList, mul_comm]
     rw [hc, hy _ he₁, hy _ he₂]
-    ring
   · rw [glueLevel_eq]; simp only; omega
   · intro x hx
     rw [runW_glue, hW x (by omega),
