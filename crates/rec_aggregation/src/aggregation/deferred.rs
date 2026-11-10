@@ -241,12 +241,13 @@ fn absorb_round(
 /// sumcheck over the stacked bytecode.
 ///
 /// Each child brings two claims, the fresh one its verification raised and the one it deferred; `sums` holds their
-/// [`bytecode_sums`] in that order. Returns the guest hints and the single claim they reduce to.
+/// [`bytecode_sums`] in that order. Returns the guest hints and the single claim they reduce to, or
+/// [`AggregateVerifyError::MalformedClaim`] when a child carried a value that is not the bytecode's evaluation.
 pub(super) fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
     carried_claims: &[&DeferredClaim],
     mut sums: Vec<Vec<F192>>,
-) -> (SubHints, DeferredClaim) {
+) -> Result<(SubHints, DeferredClaim), AggregateVerifyError> {
     let child_count = subproofs.len();
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
     let kbcv = bytecode_vars();
@@ -337,15 +338,17 @@ pub(super) fn aggregate_deferred_claims(
         fold_lsb(&mut wt, r);
     }
     let v_bc = bt[0];
-    assert_eq!(brun, v_bc * wt[0], "bytecode sumcheck terminal");
+    if brun != v_bc * wt[0] {
+        return Err(AggregateVerifyError::MalformedClaim);
+    }
 
     drop(_span);
     let hints = vec![("bc_sumcheck_msgs", bscr), ("bc_star_hint", vec![v_bc])];
-    (
+    Ok((
         hints,
         DeferredClaim {
             bytecode_point: r_bc,
             bytecode_value: v_bc,
         },
-    )
+    ))
 }
