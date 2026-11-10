@@ -81,7 +81,7 @@ abbrev HonestProver : Type 1 :=
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
 execution it computes the witness (`witness?`, no proof unless the execution is valid and within
-`2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's own
+`2^32` committed cells), and, at a valid rate, runs the honest script against the verifier's own
 program `leanVmVerifierProgram`, trying `nonceAttemptsPerProofOfWork` nonces per proof of work. -/
 def leanVmHonestProver : HonestProver :=
   fun π program input execution ρ nonceAttemptsPerProofOfWork ↦
@@ -202,7 +202,7 @@ honest prover's (`leanVmHonestProver`) proof of an execution within the verifier
 rejected with probability at most `2^-256`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 32 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 25)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

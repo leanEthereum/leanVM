@@ -30,7 +30,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 **The cap is structural.** **`stepCap_le_stack`**: `stepCap (verifierLayout prog s)` is at most
 `2^μ`, the stack's size: the six opcode tables, the memory and the bytecode each own a committed
 column, hence a block of the stack of their height. **`stepCap_le_maxMu`**: at admissible sizes, at
-most `2^28`.
+most `2^32`.
 -/
 
 namespace LeanVM.Protocol.Halting

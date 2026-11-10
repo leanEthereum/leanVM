@@ -69,11 +69,11 @@ theorem completenessError_eq (fuel : ℕ) :
   rfl
 
 /-- **Completeness in the statement's experiment.** For a valid execution whose committed size
-is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
+is at most `2^32`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
 nonces: the verifier rejects the honest prover's proof with probability at most
 `completenessError fuel`. -/
 theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 32) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
       LeanVM.completenessError fuel := by

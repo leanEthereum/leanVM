@@ -78,7 +78,7 @@ theorem verifierRZ_eq_comp (prog : LeanIsaProgram) (input : PublicInput) (π : P
 /-- The completeness error of the verifier refusing a zero challenge, against the random
 oracles. -/
 noncomputable def nzCompletenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) * (missProb Whir.queryGrindingBits ^ fuel + (2 : ℝ≥0∞)⁻¹ ^ 192)
+  (completenessQueries fuel : ℝ≥0∞) * (missProb EndToEnd.Sound.maxGrindingBits ^ fuel + (2 : ℝ≥0∞)⁻¹ ^ 192)
 
 set_option maxHeartbeats 1000000 in
 /-- **The specification's honest prover at a witness against the random oracles**, against the
@@ -98,7 +98,7 @@ theorem romChild_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution
   simp only [verifierRZ_eq_comp]
   have h := romCompleteNZ (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
     (rzProgram (bytecodeWords prog) (publicInputDigest input)) (nz_rzProgram _ _) _
-    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Whir.queryGrindingBits)
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := EndToEnd.Sound.maxGrindingBits)
     (by decide) (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_ok _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))

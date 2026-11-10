@@ -43,7 +43,7 @@ the adversary's queries, as they stood when the adversary output its proof (`exp
   program on the public input is at most `soundnessError Q`. Proved:
   `LeanVM.knowledgeSoundnessRom_holds` (`LeanVM/Protocol/LeanVMSound.lean`).
 * `CompletenessRom`: there is an honest prover which, given a valid execution whose committed size
-  is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces
+  is at most `2^32`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces
   per proof of work, makes the verifier reject with probability at most `completenessError fuel`.
   Proved: `LeanVM.completenessRom_holds` (`LeanVM/Protocol/LeanVM.lean`).
 -/
@@ -133,7 +133,7 @@ proof (`none`) enters it as the empty proof, which the verifier rejects. -/
 def CompletenessRom : Prop :=
   ∃ prover : HonestProverWithHash, ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
-    t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
+    t.committedSize ≤ 2 ^ 32 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment
         ((fun proof ↦ ((prog, input), proof.getD ⟨[], []⟩)) <$> prover prog input t ρ fuel)}[
       z.rejected] ≤ completenessError fuel

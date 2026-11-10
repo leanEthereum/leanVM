@@ -98,7 +98,7 @@ theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execut
   rfl
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
-most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
+most `2^32`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}

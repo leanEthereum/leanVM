@@ -179,7 +179,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 
 /-! ## `derive_config` outside the window -/
 
-#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 29 1).isNone
+#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 33 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
 /-! ## Field and multilinear arithmetic (`field.rs:258-267`, `multilinear.rs`, `layout.rs:114`) -/
@@ -802,7 +802,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      (0x0, 0x5)]
 
 #guard (keccakConstants) =
-    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 15, 28]
+    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 15, 32]
 
 #guard (ringMapShifts) =
     [32, 16, 8, 4, 2, 1]

@@ -111,8 +111,8 @@ def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
-/-- The greatest committed size the verifier admits, `2^28` (`MAX_MU`, `pcs.rs:51`). -/
-def maxCommitted : ℕ := 2 ^ 28
+/-- The greatest committed size the verifier admits, `2^32` (`MAX_MU`, `pcs.rs:51`). -/
+def maxCommitted : ℕ := 2 ^ 32
 
 /-! ## The rows -/
 
