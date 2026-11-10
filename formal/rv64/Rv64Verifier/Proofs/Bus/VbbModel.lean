@@ -88,4 +88,60 @@ theorem sideTotal_code (tree known ones rows : E) :
 
 theorem gpowRust_zero_eq_one : gpowRust 0#64 = 1 := pow_zero _
 
+/-! ## The run in the code's order -/
+
+/-- `verify_bus_balance` past the GKR loop, from the count's root and the loop's state. -/
+def vbbTail (bytecodeEvaluate : List E → Option E) (layout : Layout) (alphas : List E)
+    (beta count : E) (state : GkrState) : TM BusResultRust := do
+  TM.require (count ≠ 0)
+  let point := state.point
+  let treeValues := state.values
+  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
+  let pushLayout := busLayoutRust frameworkLogRows layout.push
+  let pullLayout := busLayoutRust frameworkLogRows layout.pull
+  let countLayout := busLayoutRust [] layout.count
+  let weights := eqKernelRust alphas
+  let memoryLow := point.take layout.logMemory
+  let bytecodeLow := point.take layout.logBytecode
+  let memory ← TM.nextScalars 3
+  let memoryFinal ← TM.nextScalar
+  let bytecodeFinal ← TM.nextScalar
+  let claims : List ColumnClaim :=
+    [memory0, memory1, memory2].map (fun column ↦ ⟨column, memoryLow, memory.getD column 0⟩) ++
+      [⟨memoryFinalCounters, memoryLow, memoryFinal⟩,
+        ⟨bytecodeFinalCounters, bytecodeLow, bytecodeFinal⟩]
+  let memoryIndex := indexMleRust memoryLow
+  let bytecodeIndex := indexMleRust bytecodeLow
+  let bytecodePoint := bytecodeLow ++ alphas
+  let bytecodeValue ← TM.lift (bytecodeEvaluate bytecodePoint)
+  let fingerprints := fun (pc memoryCount bytecodeCount : E) ↦
+    [dotRust (weights.take 3) [sepStateRust, pc, gpowRust 0#64],
+      dotRust (weights.take 6) [sepMemRust, memoryIndex, memoryCount, memory.getD 0 0,
+        memory.getD 1 0, memory.getD 2 0],
+      dotRust (weights.take 3) [sepBytecodeRust, bytecodeIndex, bytecodeCount] + bytecodeValue]
+  let finalPc := gpowRust ((1#64 <<< (layout.logBytecode % 64)) - 1#64)
+  let sides : List (List BusBlock × BusLayoutRust × List E × List E × E) :=
+    [(layout.push, pushLayout, fingerprints (gpowRust 0#64) 1 1, weights, beta),
+      (layout.pull, pullLayout, fingerprints finalPc memoryFinal bytecodeFinal, weights, beta),
+      (layout.count, countLayout, [], [1], 0)]
+  let r := sides.zipIdx.foldl (fun (acc : List (List Form) × List E) sd ↦
+      let side := sideStepRust point treeValues acc.1 sd.2 sd.1.1 sd.1.2.1 sd.1.2.2.1 sd.1.2.2.2.1
+        sd.1.2.2.2.2
+      (side.1, acc.2 ++ [side.2]))
+    (List.replicate tables.length (List.replicate 3 {}), [])
+  pure ⟨claims, bytecodePoint, point, r.1, r.2⟩
+
+/-- `verifyBusBalanceM` as the code runs it: the challenges, the GKR loop's start, the loop, the
+rest. -/
+theorem verifyBusBalanceM_eq (bytecodeEvaluate : List E → Option E) (layout : Layout) :
+    verifyBusBalanceM bytecodeEvaluate layout = (do
+      let alphas ← TM.samples busBits
+      let beta ← TM.sample
+      let shared ← TM.nextScalar
+      let count ← TM.nextScalar
+      let state ← gkrLoopM (busLayoutRust [0, layout.logMemory, layout.logBytecode] layout.push).depth
+        ⟨[shared, shared, count], []⟩
+      vbbTail bytecodeEvaluate layout alphas beta count state) := by
+  simp only [verifyBusBalanceM, verifyGkrM, vbbTail, bind_assoc, pure_bind]
+
 end Rv64Verifier.Model

@@ -1,7 +1,7 @@
 import Rv64Verifier.Proofs.Bus.Fingerprints
 import Rv64Verifier.Proofs.Bus.TsCalls
 import Rv64Verifier.Proofs.Multilinear.All
-import Rv64Verifier.Proofs.Bus.VbbSteps
+import Rv64Verifier.Proofs.Bus.VbbSpine
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -12,7 +12,11 @@ the frame (`TsBase.lean`), the prologue with the heights' maximum (`TsStart.lean
 and the call of `vec![None; n_rounds]` (`TsCalls.lean`) are proved. Of `verify_bus_balance`, the
 mirror lemmas for the compiled loops (`VbbModel.lean`), the frame (`VbbBase.lean`), the prologue and
 the three `bus_layout` calls (`VbbLayouts.lean`), the epilogue and the `Err` exit (`VbbEnd.lean`),
-and the transcript callees' steps with the call of `samples` (`VbbSteps.lean`).
+the transcript callees' steps with the call of `samples` (`VbbSteps.lean`), the mirror's run in the
+code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `next_scalar` and
+`alloc` (`VbbCalls.lean`), the challenges and the GKR loop's start (`VbbHead.lean`,
+`VbbValues.lean`, `start` in `VbbInit.lean`), and the contract from the GKR loop's and the rest's
+stages (`verify_bus_balance_spec` in `VbbSpine.lean`; `GkrStage` and `TailStage` still to prove).
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -66,3 +70,16 @@ end Rv64Verifier.Proofs.Bus
 
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.LayoutAt.keepT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.LayoutAt.keepT
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.start
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.depthZero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.depthZero
+
+/--
+info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec

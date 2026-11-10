@@ -116,12 +116,6 @@ theorem LayoutAt.keepT {s v w : MachineState} (hpre : BusBalancePre s) {lo : Wor
     rw [e32, e24]
     exact ⟨this.1, this.2.imp_right fun h' ↦ ⟨h'.1, by omega⟩⟩
 
-/-- A step that leaves the transcript alone keeps what it stands for. -/
-theorem Step.transcript {s v w : MachineState} (hpre : BusBalancePre s) (h : Inv s v) {lo : Word}
-    {n : Nat} (hl : InFrame s lo n) (st : Step s v w lo n) {T : TState}
-    (hT : TranscriptAt v (s.getReg .x12) T) : TranscriptAt w (s.getReg .x12) T :=
-  h.transcript hpre st.heap (st.frame.mono fun _ ha ↦ Below.loc hpre hl ha) hT
-
 /-- The precondition of a transcript callee with an `m`-byte stack, its `n`-byte result at
 `S - k` in the frame. -/
 theorem tpre {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u) {k n m : Nat}

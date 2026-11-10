@@ -70,7 +70,8 @@ theorem exit {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u) (hpc : 
       W.mono hn.ge ha⟩, hm⟩
 
 /-- The `Err` exit: `errNiche` in the result's first capacity. -/
-theorem errExit {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u) (R : Regs s u)
+theorem errExit {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u)
+    (hx18 : u.getReg .x18 = s.getReg .x10)
     (hpc : u.pc = 0x80007104) :
     ∃ t, Reaches Image.code u t ∧ Exit s t ∧ vecCap t (s.getReg .x10) = errNiche := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
@@ -79,11 +80,11 @@ theorem errExit {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u) (R :
   have hof := hpre.outFree
   rw [stackLo_eq] at hos
   obtain ⟨u₁, hr₁, h₁⟩ := Sym.BlockSpec.reaches b80007104_spec hpc (by
-    rv_eval [R.x18]
+    rv_eval [hx18]
     and_intros <;> exact Region.valid ho (by addr_omega [ho]) (by addr_omega [ho])
       (by addr_omega [ho]))
-  have fr := DFrame.of_memFrame (b80007104_frame h₁ (by rw [R.x18]; addr_omega [ho]))
-  rw [R.x18] at fr
+  have fr := DFrame.of_memFrame (b80007104_frame h₁ (by rw [hx18]; addr_omega [ho]))
+  rw [hx18] at fr
   have hn : heapNext u₁ = heapNext u := by
     simp only [heapNext]
     exact congrArg BitVec.toNat (fr nextAddr fun i hi hw ↦ by addr_omega [hof.2, hw, hi])
@@ -92,7 +93,7 @@ theorem errExit {s u : MachineState} (hpre : BusBalancePre s) (h : Inv s u) (R :
     (b80007104_keeps h₁ .x2 (by decide))
   obtain ⟨t, hr, ex, hm⟩ := exit hpre I₁ (b80007104_pc h₁)
   refine ⟨t, hr₁.trans hr, ex, ?_⟩
-  rw [vecCap, hm, ← R.x18, b80007104_m_x18_0 h₁]
+  rw [vecCap, hm, ← hx18, b80007104_m_x18_0 h₁]
   rfl
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

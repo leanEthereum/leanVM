@@ -34,7 +34,8 @@ theorem prologue {s : MachineState} (hpc : s.pc = 0x80006428) (hpre : BusBalance
       u.getReg .x9 = vecLen s (s.getReg .x11 + 24) ∧
       u.getMem (s.getReg .x2 - 1104) = 0 ∧ u.getMem (s.getReg .x2 - 1096) = logMem s ∧
       u.getMem (s.getReg .x2 - 1088) = logBc s ∧ u.getMem (s.getReg .x2 - 1136) = logMem s ∧
-      u.getMem (s.getReg .x2 - 1152) = logBc s ∧ heapNext u = heapNext s := by
+      u.getMem (s.getReg .x2 - 1152) = logBc s ∧ heapNext u = heapNext s ∧
+      ∀ T, TranscriptAt s (s.getReg .x12) T → TranscriptAt u (s.getReg .x12) T := by
   obtain ⟨hb1, hb2, hb3, hlo⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 4544) 568 := hpre.stack.valid
   have hs := hpre.layout.stack
@@ -75,11 +76,34 @@ theorem prologue {s : MachineState} (hpc : s.pc = 0x80006428) (hpre : BusBalance
     ⟨b80006428_x18 h₁, b80006428_x19 h₁, b80006428_x20 h₁⟩, b80006428_x10 h₁,
     b80006428_x11 h₁,
     b80006428_x12 h₁, ?_, ?_, ?_, ?_, b80006428_m_x2_n1104 h₁, b80006428_m_x2_n1096 h₁,
-    b80006428_m_x2_n1088 h₁, b80006428_m_x2_n1136 h₁, b80006428_m_x2_n1152 h₁, hn₁⟩
+    b80006428_m_x2_n1088 h₁, b80006428_m_x2_n1136 h₁, b80006428_m_x2_n1152 h₁, hn₁,
+    fun T hT ↦ ?_⟩
   · rw [b80006428_x13 h₁, vecPtr, e24]
   · rw [b80006428_x14 h₁, vecLen, e40]
   · rw [b80006428_x24 h₁, vecPtr, e24]
   · rw [b80006428_x9 h₁, vecLen, e40]
+  · have ss := hpre.selfStack
+    have ps := hpre.proofStack
+    have hS := hpre.self.self
+    have hP := hpre.self.proof
+    rw [stackLo_eq] at ss ps
+    simp only [ProofApart] at ps
+    have hw (lo : Word) (n : Nat) (h1 : Apart lo n (s.getReg .x2 - 4544) 4544) (hn : lo.toNat + n ≤ 2 ^ 64) :
+        Misses (fun a ↦ Within a (stackLo s busBalanceStack) busBalanceStack) lo n :=
+      fun y hy hw ↦ by rw [stackLo_eq] at hw; addr_omega [hy, hw, h1, hn]
+    refine (hm₁.mono fun a ha ↦ ?_).transcriptAt hT hpre.self (hw _ _ (by addr_omega [ss, hS])
+      (by addr_omega [hS])) (hw _ _ ps.1 (by addr_omega [hP])) ?_
+      (hw _ _ (by addr_omega [ss, hS]) (by addr_omega [hS]))
+    · rw [stackLo_eq]; addr_omega [ha, hb1]
+    · rcases hpre.self.stream with h0 | h0
+      · intro y hy; rw [h0] at hy; addr_omega [hy]
+      · exact hw _ _ ps.2 (by addr_omega [h0])
+
+/-- A step that leaves the transcript alone keeps what it stands for. -/
+theorem Step.transcript {s v w : MachineState} (hpre : BusBalancePre s) (h : Inv s v) {lo : Word}
+    {n : Nat} (hl : InFrame s lo n) (st : Step s v w lo n) {T : TState}
+    (hT : TranscriptAt v (s.getReg .x12) T) : TranscriptAt w (s.getReg .x12) T :=
+  h.transcript hpre st.heap (st.frame.mono fun _ ha ↦ Below.loc hpre hl ha) hT
 
 /-! ## The three layouts -/
 
@@ -259,6 +283,7 @@ structure AfterLayouts (s v : MachineState) : Prop where
   pull : LayoutAt s v (s.getReg .x2 - 1024)
     (busLayoutRust [0, (logMem s).toNat, (logBc s).toNat] (busLayoutAt s (s.getReg .x11)).pull)
   count : LayoutAt s v (s.getReg .x2 - 968) (busLayoutRust [] (busLayoutAt s (s.getReg .x11)).count)
+  transcript : ∀ T, TranscriptAt s (s.getReg .x12) T → TranscriptAt v (s.getReg .x12) T
 
 theorem natsAt_frl {s u : MachineState} (hpre : BusBalancePre s)
     (h0 : u.getMem (s.getReg .x2 - 1104) = 0) (h1 : u.getMem (s.getReg .x2 - 1096) = logMem s)
@@ -288,7 +313,7 @@ theorem layouts (hBL : BusLayoutSpec) {s : MachineState} (hpc : s.pc = 0x8000642
     · exact absurd h0 (by decide)
     · exact h0
   obtain ⟨u₁, hr₁, I₁, hpc₁, hx1, R₁, h10, h11, h12, h13, h14, h24, h9, m0, m1, m2, m3,
-    m4, hn₁⟩ :=
+    m4, hn₁, tr₁⟩ :=
     prologue hpc hpre
   -- push
   obtain ⟨v₁, hrv₁, ⟨hpcv₁, hp₁, st₁, J₁, L₁⟩ | hd⟩ :=
@@ -459,5 +484,8 @@ theorem layouts (hBL : BusLayoutSpec) {s : MachineState} (hpc : s.pc = 0x8000642
       st₃' if₃' if₁ (by addr_omega [hb1]))
     pull := ((L₂.keep hpre st₃ if₃ if₂' (by addr_omega [hb1])).keep hpre st₃' if₃'
       if₂' (by addr_omega [hb1]))
-    count := L₃ }⟩⟩
+    count := L₃
+    transcript := fun T hT ↦ st₃'.transcript hpre J₃ if₃' (st₃.transcript hpre J₂' if₃
+      (st₂'.transcript hpre J₂ if₂' (st₂.transcript hpre J₁ if₂
+        (st₁.transcript hpre I₁ if₁ (tr₁ T hT))))) }⟩⟩
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance
