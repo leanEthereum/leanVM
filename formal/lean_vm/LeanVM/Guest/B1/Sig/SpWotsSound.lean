@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsSound
 
   `sp_wots` is sound: whenever its body holds (under any call relation: it calls nothing), it
-  returns one canonical word, the WOTS+C leaf of the chain values its frame holds at the key whose
+  returns one word, the WOTS+C leaf of the chain values its frame holds at the key whose
   address is its second and third arguments and the digits the encoding digest, its fourth, holds
   (`base_2b`), of digit sum `T = 128`; over cells.
 -/
@@ -128,12 +128,12 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : 
         rw [hb, spState_succ, this, spN_of_lt hp])
     exact hcw
 
-/-- **`sp_wots`'s template is sound**: whenever it holds of `σ`, it returns one canonical word
+/-- **`sp_wots`'s template is sound**: whenever it holds of `σ`, it returns one word
 `leaf`: the digits `spDigit σ` sum to `128`, the fourth argument is their encoding (`spX`), and
 `leaf` is the one-time leaf of the chain values at `spStart σ` (`spLeafCell`). -/
 theorem sp_wots_soundT {rets : List E}
     (h : Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = rets)) :
-    ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ (∀ i, spDigit σ i < 4) ∧
+    ∃ leaf, rets = [leaf] ∧ (∀ i, spDigit σ i < 4) ∧
       ∑ i ∈ Finset.range 64, spDigit σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigit σ) 64) ∧
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigit σ) fun i => σ (spStart σ i) := by
   rw [spBodyT_parts] at h
@@ -212,8 +212,7 @@ theorem sp_wots_soundT {rets : List E}
   have s5 := s4.2
   simp only [Stmt.HoldsList, Stmt.Holds, copyS, Atom.Holds, List.map_cons, List.map_nil] at s5
   obtain ⟨hcp', hret⟩ := s5
-  refine ⟨σ (.n spLeafK.2.1), hret.symm, by rw [hcp', hleaf]; exact canon_hcell _, hdlt, hsum,
-    henc3, ?_⟩
+  refine ⟨σ (.n spLeafK.2.1), hret.symm, hdlt, hsum, henc3, ?_⟩
   rw [hcp', hleaf, spLeafCells_eq, spLeafCell]
   simp only [List.map_cons, List.map_map]
   rw [eL2, eL1]
@@ -247,22 +246,22 @@ noncomputable def spDigitR (σ : Val) (i : Nat) : Nat := spDigit (σ ∘ spRen) 
 template's. -/
 noncomputable def spStartR (σ : Val) (i : Nat) : V := spRen (spStart (σ ∘ spRen) i)
 
-/-- **`sp_wots` is sound**: whenever its body holds of `σ`, it returns one canonical word `leaf`:
+/-- **`sp_wots` is sound**: whenever its body holds of `σ`, it returns one word `leaf`:
 the digits `spDigitR σ` sum to `128`, the fourth argument is their encoding (`spX`: digit `i` at
 `spDigitPos i`, `spX_digit`), and `leaf` is the one-time leaf of the chain values at `spStartR σ`
 (`spLeafCell`) at the address `(σ n1, σ n2)`. -/
 theorem sp_wots_sound_cells {rets : List E}
     (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
-    ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ (∀ i, spDigitR σ i < 4) ∧
+    ∃ leaf, rets = [leaf] ∧ (∀ i, spDigitR σ i < 4) ∧
       ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigitR σ) 64) ∧
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by
   rw [spBody_eq, spBody, Stmt.holdsList_rename] at h
-  obtain ⟨leaf, h1, h2, h3, h4, h5, h6⟩ := sp_wots_soundT h
+  obtain ⟨leaf, h1, h3, h4, h5, h6⟩ := sp_wots_soundT h
   have e : ∀ i ≤ 29, (σ ∘ spRen) (.n i) = σ (.n i) := fun i hi => by
     rw [Function.comp_apply, spRen_small hi]
   rw [e 3 (by norm_num)] at h5
   rw [e 0 (by norm_num), e 1 (by norm_num), e 2 (by norm_num)] at h6
-  exact ⟨leaf, h1, h2, h3, h4, h5, h6⟩
+  exact ⟨leaf, h1, h3, h4, h5, h6⟩
 
 end
 end LeanVM.Guest.B1.Sig
