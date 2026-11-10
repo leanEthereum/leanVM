@@ -817,12 +817,13 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 /-- `verify_sub`'s compiled index: its windows take a memory bound from an obligation. -/
 def vsIdx : ℕ := 19
 
-/-- `opening_queries__L{odd}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
-`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1393` at `40f877dc`). -/
+/-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
+`(odd, base, depth, cap_depth)` (`opening_queries`, `crates/rec_aggregation/guests/lean_ethereum.py`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
-    | [some odd, some base, some _, some _, some d, some cd] => some (odd, base, d, cd)
+    | [some odd, some base, some _, some _, some d, some cd, some _, some _, some _, some _, some _] =>
+      some (odd, base, d, cd)
     | _ => none
   else none
 
@@ -843,8 +844,8 @@ def loopsOf (body : List Core.Stmt) : List String :=
 /-- The tagged tuples of frame cells each function assumes in the semantic relations
 (`Glob.sem`, `WalkTags.lean`): the exponent table (tag `0`) at `verify_sub`'s argument 4 and at
 `__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
-`opening_queries`' window pointers and iteration count (arguments 4 and 6, `OqMainWins`) and at
-its loop's `[t, x, N]` (arguments 2, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
+`opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
+its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
 (`Check.tagNe`). -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
@@ -862,9 +863,9 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
         if dispatchesRounds then m := m.insert g [(tagGkr, [6, 2, 4, 5, 8])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
-      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [6, 8])]
+      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
       for g in loopsOf cf.body do
-        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [4, 2, 3]), (Check.tagNe, [2, 3])]
+        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [5, 2, 3]), (Check.tagNe, [2, 3])]
   -- `walk_path`'s windows: `WinsAt` on `wins` (argument 2, cell 4) at depth `path_depth + cap_depth`
   -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
