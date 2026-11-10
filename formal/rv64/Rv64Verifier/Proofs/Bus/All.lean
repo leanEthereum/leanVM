@@ -12,6 +12,7 @@ import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
 import Rv64Verifier.Proofs.Bus.VbbTail30
+import Rv64Verifier.Proofs.Bus.VbbTail39
 
 /-!
 # The bus's contracts, their callees' discharged
