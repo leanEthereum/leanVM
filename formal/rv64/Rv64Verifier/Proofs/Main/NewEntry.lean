@@ -192,13 +192,13 @@ theorem block_entry (h : NewL s words u₀ i st t) :
   refine ⟨t₄, r₁.trans (r₂.trans (r₃.trans r₄)), ⟨⟨⟨ha, h.lt, rfl, h.fold, h.slots, h.ng.mono, ng₄,
     le_of_eq hn₄.symm, ⟨(K 8 (by decide)).trans h.m8, (K 16 (by decide)).trans h.m16,
       (K 40 (by decide)).trans h.m40, m48, m56, m64⟩⟩, vecs₄, bufs₄, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩,
-    hLpos, R4 .x8 (by decide) |>.trans h.x8, by rw [b8000053c_x9 h₄]; rfl,
+    Nat.zero_le _, R4 .x8 (by decide) |>.trans h.x8, by rw [b8000053c_x9 h₄]; rfl,
     by rw [b8000053c_x10 h₄, m112], by rw [b8000053c_x15 h₄, ← b8000053c_m_x2_64 h₄, hsp₃]; exact m64,
     R4 .x16 (by decide) |>.trans h.x16, by rw [b8000053c_x18 h₄]; rfl, ?_,
     by rw [k₄ .x21 (by decide), x21₃], R4 .x22 (by decide) |>.trans h.x22,
     by rw [b8000053c_x23 h₄, R .x16 (by decide) (by decide) (by decide), h.x16],
     by rw [b8000053c_x24 h₄, x21₃]; simp, R4 .x25 (by decide) |>.trans h.x25, ?_,
-    R4 .x27 (by decide) |>.trans h.x27⟩, b8000053c_pc h₄, rfl⟩⟩
+    R4 .x27 (by decide) |>.trans h.x27⟩, b8000053c_pc h₄, rfl, hLpos⟩⟩
   · intro j hj
     have e : (st.slots.map fun _ ↦ (none : Option (BitVec 16))).getD j none = none := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_map]

@@ -210,7 +210,7 @@ structure GS (s : MachineState) (words : List Word) (u₀ : MachineState) (i L H
   vecs : VecsAt t st
   bufs : VecBufs t (heapNext u₀) Hb
   mem : GMem u₀ Hb g t
-  hq : q < L
+  hq : q ≤ L
   x8 : t.getReg .x8 = u₀.getReg .x8
   x9 : t.getReg .x9 = BitVec.ofNat 64 q
   x10 : t.getReg .x10 = t.getMem (msp + 112)
@@ -232,5 +232,6 @@ structure GH (s : MachineState) (words : List Word) (u₀ : MachineState) (i L H
   gs : GS s words u₀ i L Hb st q g t
   pc : t.pc = 0x800005b4
   fold : gfold words i st q = some g
+  lt : q < L
 
 end Rv64Verifier.Proofs.Main
