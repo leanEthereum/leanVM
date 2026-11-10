@@ -102,15 +102,16 @@ pub struct ProverData {
 ///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
 const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
-/// `LEANVM_KEEP_CODEWORD_MAX_BYTES`, when set to a number, replaces [`KEEP_CODEWORD_MAX_BYTES`]: a prover with
+/// [`KEEP_CODEWORD_MAX_BYTES`], or `LEANVM_KEEP_CODEWORD_MAX_BYTES` when that is set to a number: a prover with
 /// memory to spare (a mempool node) keeps a larger codeword, and its opening reads the rows a query asks for
 /// instead of rebuilding them from the message. The proof is the same either way.
-fn keep_codeword_max_bytes() -> Option<usize> {
-    static MAX: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
+fn keep_codeword_max_bytes() -> usize {
+    static MAX: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
     *MAX.get_or_init(|| {
         std::env::var("LEANVM_KEEP_CODEWORD_MAX_BYTES")
             .ok()
             .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(KEEP_CODEWORD_MAX_BYTES)
     })
 }
 
@@ -133,6 +134,17 @@ fn keep_codeword_max_bytes() -> Option<usize> {
 /// in front, so the NTT has no masked tail. The padding is the image's zeros and
 /// never rides the proof.
 pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
+    commit_keeping(message, log_n, log_batch_size, log_inv_rate, keep_codeword_max_bytes())
+}
+
+/// [`commit`], keeping the L0 codeword where it takes at most `keep_max_bytes`.
+fn commit_keeping(
+    message: &[F64],
+    log_n: usize,
+    log_batch_size: usize,
+    log_inv_rate: usize,
+    keep_max_bytes: usize,
+) -> (Commitment, ProverData) {
     assert!(log_inv_rate >= 1, "log_inv_rate must be >= 1 for a non-trivial RS code");
     assert!(log_n > log_batch_size, "witness must be wider than the interleaving");
     let log_rows = log_n - log_batch_size;
@@ -155,7 +167,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             let bytes = n_positions.saturating_mul(row_words * size_of::<F64>());
             let keep = if !primitives::REBUILD_OVER_STORE {
                 Keep::Whole
-            } else if bytes > keep_codeword_max_bytes().unwrap_or(KEEP_CODEWORD_MAX_BYTES) {
+            } else if bytes > keep_max_bytes {
                 Keep::Nothing
             } else {
                 Keep::BeforeDeep
@@ -1338,6 +1350,48 @@ mod tests {
                 assert_eq!(fs_trunc, fs_full, "the proofs differ at n_lanes = {n_lanes}");
             }
         }
+    }
+
+    /// The L0 keep bound trades memory for time only: keeping no codeword, so that the opening rebuilds the rows a
+    /// query reads from the message, and keeping it give the same root and the same proof.
+    #[test]
+    fn keep_bound_leaves_the_proof_unchanged() {
+        let log_n = 18;
+        let pc = test_config_for(log_n);
+        let lane_block = 1usize << (log_n - pc.initial_k);
+        let mut rebuilt = 0;
+        for n_lanes in [5usize, 40, 64] {
+            let mut rng = Rng::new(0x4EE9 + n_lanes as u64);
+            let witness: Vec<F64> = (0..n_lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let claims: Vec<_> = [0, (n_lanes - 1) * lane_block]
+                .into_iter()
+                .map(|offset| StackClaim::Point {
+                    offset,
+                    low_point: rng.ext_vec(log_n - pc.initial_k),
+                    value: rng.ext(),
+                })
+                .collect();
+            let ring = RingSwitchOpen {
+                offset: 0,
+                claims: Vec::new(),
+            };
+
+            let mut prove = |keep_max_bytes| {
+                let (cm, pd) = commit_keeping(&witness, log_n, pc.initial_k, pc.log_inv_rates[0], keep_max_bytes);
+                rebuilt += usize::from(matches!(pd.codeword, Codeword::Nothing(..)));
+                let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+                open_batch_mixed_whir_stacked(&mut ps, log_n, witness.clone(), pd, &pc, &claims, &ring);
+                (cm.root, ps.into_proof())
+            };
+            let (root_kept, fs_kept) = prove(usize::MAX);
+            let (root_rebuilt, fs_rebuilt) = prove(0);
+            assert_eq!(root_kept, root_rebuilt, "root differs at n_lanes = {n_lanes}");
+            assert_eq!(fs_kept, fs_rebuilt, "the proofs differ at n_lanes = {n_lanes}");
+        }
+        assert!(
+            rebuilt > 0 || !primitives::REBUILD_OVER_STORE,
+            "no shape kept nothing, so nothing was rebuilt"
+        );
     }
 
     /// The sparse transposed-NTT induce must be byte-identical to the dense
