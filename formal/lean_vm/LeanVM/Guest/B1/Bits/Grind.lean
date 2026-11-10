@@ -283,16 +283,19 @@ theorem gcV_pred {b : ℕ} (w : E) {i : ℕ} (h1 : 1 ≤ i) (h2 : i ≤ gcW b) :
 theorem gcV_lt {b : ℕ} (w : E) (i : ℕ) : gcV b w i < 2 ^ 64 :=
   lt_of_le_of_lt (Nat.div_le_self _ _) (kToNat_lt _)
 
-/-- **`grind_check` is complete**: the honest valuation meets every block. -/
-theorem gc_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryImage κ) {b : ℕ}
+/-- **`grind_check` is complete** on any memory where the windows' range checks pass: the honest
+valuation meets every block. -/
+theorem gc_complete_of {rd : Reader}
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2) {b : ℕ}
     (hs : 1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64) (hW : 1 ≤ gcW b)
-    {w tabs : E} (ht : WinTabs L.read tabs) (hlow : ((w.limb 0).lane.toNat % 2 ^ b = 0)) :
-    let σ : Val := fun v => gcVals L.read b w tabs v.idx
-    GcHeadOk L.read σ (gcW b) (gcTop b) ∧ (∀ i < gcW b, GcIterOk L.read σ (gcW b) (i + 1)) ∧
+    {w tabs : E} (ht : WinTabs rd tabs) (hlow : ((w.limb 0).lane.toNat % 2 ^ b = 0)) :
+    let σ : Val := fun v => gcVals rd b w tabs v.idx
+    GcHeadOk rd σ (gcW b) (gcTop b) ∧ (∀ i < gcW b, GcIterOk rd σ (gcW b) (i + 1)) ∧
       GcTailOk σ (gcW b) b := by
   intro σ
   obtain ⟨hT1, hT, hsum⟩ := hs
-  have ev : ∀ k, σ (.n k) = gcVals L.read b w tabs k := fun _ => rfl
+  have ev : ∀ k, σ (.n k) = gcVals rd b w tabs k := fun _ => rfl
   have hlow' : kToNat (w.limb 0) % 2 ^ b = 0 := hlow
   have hV0 : gcV b w 0 < 2 ^ gcTop b := by
     unfold gcV
@@ -301,23 +304,23 @@ theorem gc_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : Memory
     exact kToNat_lt _
   have hV0' : gcV b w 0 < 2 ^ 11 := lt_of_lt_of_le hV0 (Nat.pow_le_pow_right (by decide) hT)
   refine ⟨?_, fun i hi => ?_, ?_⟩
-  · obtain ⟨y, t1, t2, r1, r2, r3⟩ := rc_complete hκ L hT (by omega) hV0
-    have hrc := rcWit_spec (rd := L.read) ⟨y, t1, t2, r1, r2, r3⟩
+  · obtain ⟨y, t1, t2, r1, r2, r3⟩ := hrc _ hT _ hV0
+    have hrc := rcWit_spec (rd := rd) ⟨y, t1, t2, r1, r2, r3⟩
     have e2 : σ (.n (gcW b + 2)) = gen ^ gcV b w 0 := by
       rw [ev]; unfold gcVals
       rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
     have e3 : σ (.n (gcW b + 3)) = wBound (gcTop b) := by
       rw [ev]; unfold gcVals
       rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
-    have e4 : σ (.n (gcW b + 4)) = (rcWit L.read (gen ^ gcV b w 0) (wBound (gcTop b))).1 := by
+    have e4 : σ (.n (gcW b + 4)) = (rcWit rd (gen ^ gcV b w 0) (wBound (gcTop b))).1 := by
       rw [ev]; unfold gcVals
       rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
         ite_eq_right (by omega), ite_eq_left rfl]
-    have e5 : σ (.n (gcW b + 5)) = (rcWit L.read (gen ^ gcV b w 0) (wBound (gcTop b))).2.1 := by
+    have e5 : σ (.n (gcW b + 5)) = (rcWit rd (gen ^ gcV b w 0) (wBound (gcTop b))).2.1 := by
       rw [ev]; unfold gcVals
       rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
         ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
-    have e6 : σ (.n (gcW b + 6)) = (rcWit L.read (gen ^ gcV b w 0) (wBound (gcTop b))).2.2 := by
+    have e6 : σ (.n (gcW b + 6)) = (rcWit rd (gen ^ gcV b w 0) (wBound (gcTop b))).2.2 := by
       rw [ev]; unfold gcVals
       rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
         ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
@@ -333,11 +336,11 @@ theorem gc_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : Memory
   · have h1 : 1 ≤ i + 1 := by omega
     have h2 : i + 1 ≤ gcW b := by omega
     have hwin : gcV b w (i + 1) % 2 ^ 11 < 2 ^ 11 := Nat.mod_lt _ (by positivity)
-    obtain ⟨y, t1, t2, r1, r2, r3⟩ := rc_complete hκ L (le_refl 11) hκ11 hwin
-    have hrc := rcWit_spec (rd := L.read) ⟨y, t1, t2, r1, r2, r3⟩
+    obtain ⟨y, t1, t2, r1, r2, r3⟩ := hrc 11 le_rfl _ hwin
+    have hrc := rcWit_spec (rd := rd) ⟨y, t1, t2, r1, r2, r3⟩
     have ew : σ (.n (gcW b + 2 - (i + 1))) = gen ^ (gcV b w (i + 1) % 2 ^ 11) := by
       rw [ev]; exact gv_win h1 h2
-    have ei : ∀ r < 9, σ (.n (gcW b + 9 * (i + 1) + r)) = gcIterVal L.read b w tabs (i + 1) r :=
+    have ei : ∀ r < 9, σ (.n (gcW b + 9 * (i + 1) + r)) = gcIterVal rd b w tabs (i + 1) r :=
       fun r hr => by rw [ev]; exact gv_iter h1 h2 hr
     have e0 : σ (.n (gcW b + 9 * (i + 1))) = wBound 11 := ei 0 (by omega)
     have ep : σ (.n (gcW b + 9 * (i + 1) - 1)) = eOfNat (gcV b w i) := by
@@ -380,6 +383,15 @@ theorem gc_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : Memory
       rw [hL, word_y_inv]; exact hsp.2
     · show IsInK (eOfNat (gcV b w (gcW b)) * word (2 ^ b) 0)
       rw [hL]; exact hsp.1
+
+/-- **`grind_check` is complete** on a memory image of `2^κ ≥ 2^11` words. -/
+theorem gc_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ11 : 11 ≤ κ) (L : MemoryImage κ) {b : ℕ}
+    (hs : 1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64) (hW : 1 ≤ gcW b)
+    {w tabs : E} (ht : WinTabs L.read tabs) (hlow : ((w.limb 0).lane.toNat % 2 ^ b = 0)) :
+    let σ : Val := fun v => gcVals L.read b w tabs v.idx
+    GcHeadOk L.read σ (gcW b) (gcTop b) ∧ (∀ i < gcW b, GcIterOk L.read σ (gcW b) (i + 1)) ∧
+      GcTailOk σ (gcW b) b :=
+  gc_complete_of (fun _ hv _ he => rc_complete hκ L hv (by omega) he) hs hW ht hlow
 
 /-! ## The meaning -/
 

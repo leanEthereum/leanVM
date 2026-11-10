@@ -19,7 +19,7 @@ public import LeanVM.Guest.AcceptableChild
 
 `mainComplete_of_main`: `End.MainComplete fs cert cnt b` from
 * B1-f's `main_honest_budgetB` at `0` (the signature schemes' specs, the frame runs' fit, the
-  static callees' words `MainStatics`, each child's `verify_sub` within `Bvf` at its announced stack log and rate);
+  static callees' words `MainStatics`, `grind_check__L2`'s completeness, each child's `verify_sub` within `Bvf` at its announced stack log and rate);
 * the counts within the frame weights `ω op` and the jump table's `jt op` (`hcnt`), `main`'s
   callees' weights `MainCounts (ω op) fs` (`H`), the claim lists' within `Kx op s w`,
   `Ks op s w`, `da_verify`'s within `Kd op s w` and the children's loop's within `K5 op s w` on
@@ -38,7 +38,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (MainComplete Budget work bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics
-  main_honest_budgetB hData_bounds childBv)
+  main_honest_budgetB hData_bounds childBv aggGrindPre)
 
 @[expose] public section
 
@@ -50,6 +50,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
+    (hGr : B1.CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
@@ -88,7 +89,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ hwords
   · intro seed s w hrel hlim hok
     obtain ⟨n, L, hn, hW, hab, hD, -, hR⟩ := main_honest_budgetB bytecode_length hrel hlim hxc hsc
-      hrf hS (hV seed s w hrel hlim hok)
+      hrf hS hGr (hV seed s w hrel hlim hok)
     exact ⟨n, L, hn, hW, fun q hq => by simpa using hab q hq, hD, hR⟩
   · intro seed s w hrel hlim rd t hTt hv hb op
     obtain ⟨σ, bufs, ks, ht, hMV, hT, hc, -⟩ := hTt
@@ -141,6 +142,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
     (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
+    (hGr : B1.CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
@@ -151,7 +153,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainComplete fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=
-  mainComplete_of_main fs cert cnt _ ω jt H hfs hxc hsc hrf hS hV hcnt
+  mainComplete_of_main fs cert cnt _ ω jt H hfs hxc hsc hrf hS hGr hV hcnt
     (fun op s _ => (H op).clA + (H op).clS * s.claims.xmss.length)
     (fun op s _ => (H op).clA + (H op).clS * s.claims.sphincs.length)
     (fun op s w => (H op).dvA + (H op).dvR * (work s w).rawDaRows +

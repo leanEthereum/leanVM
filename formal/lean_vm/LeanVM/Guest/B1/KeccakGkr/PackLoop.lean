@@ -15,13 +15,14 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 # The pack rounds' loops (`keccak_layer`, G:2757-2808)
 
 `for xs in mul_range(1, step_g)` in `keccak_layer` is lowered to a helper of parameters
-`[xs, step_g, rounds, prev_point, point]` (`Data.core425`, `Data.core427`: the same body but for
-the self-call's name, `pack8T`). At `x = g^j` it reads the record `rounds·x`, the eight
+`[xs, step_g, rounds, prev_point, point, tabs]` (`Data.core456`, `Data.core458`: the same body but
+for the self-call's name, `pack8T`). At `x = g^j` it reads the record `rounds·x`, the eight
 coordinates `prev_point[8j ..]` (`prev_point·x⁸`), runs eight equality-mode rounds (`eqRound`, a
 round each `packRoundT`), stores their challenges at `point[8j ..]` and writes the record
-`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core426`, `Data.core428`,
-`packRemT`) runs one round an iteration on `rounds·g^⌊y/8⌋`, `prev_point·g^(8⌊y/8⌋)`,
-`point·g^(8⌊y/8⌋)` (`PackRemStep`).
+`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core457`, `Data.core459`,
+`packRemT`, parameters `[x1, rem_g, rounds, prev_point, tabs, point]`) runs one round an iteration
+on `rounds·g^⌊y/8⌋`, `prev_point·g^(8⌊y/8⌋)`, `point·g^(8⌊y/8⌋)` (`PackRemStep`). Every grind of
+these rounds is of `0` bits: `tabs` is passed along, never read.
 
 `EqChain`: rounds chained by `eqRound`, which `packRunF` runs (`packRunF_of_chain`).
 -/
@@ -37,30 +38,28 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Two words absorbed and a squeeze -/
 
-/-- **A squeeze of two read words**: `c₁`'s and `c₂`'s `fs_next` cells (`a`, `a + 10`), four
-zeros and the capacity in one `KECCAK` atom, then `challenge_from_state`: the challenge `o + 19`
-and the outputs `o + 8 .. o + 12` are `(⟨cap, []⟩.absorbAll [c₁, c₂]).squeeze`'s. -/
+/-- **A squeeze of two read words**: `c₁`'s and `c₂`'s `fs_next` cells (`a + 1`, `a + 2`,
+`a + 4`, `a + 5`), four zeros and the capacity in one `KECCAK` atom, then `challenge_from_state`:
+the challenge `o + 13` and the outputs `o + 8 .. o + 12` are
+`(⟨cap, []⟩.absorbAll [c₁, c₂]).squeeze`'s. -/
 theorem sq2_atoms {a o : ℕ} {zs capV : List V} {cap : List E}
-    (p1 : FsPackOk σ (.n a) (a + 1) dsObserve) (p2 : FsPackOk σ (.n (a + 10)) (a + 10 + 1) dsObserve)
-    (hk : (Atom.keccak ([V.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19)] ++ zs ++ capV)
+    (p1 : FsPackOk σ (.n a) (a + 1) dsObserve) (p2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve)
+    (hk : (Atom.keccak ([V.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV)
       ((List.range 13).map fun k ↦ .n (o + k)) false false).Holds rd σ)
-    (hch : ChallengeOk σ (.n o) (.n (o + 1)) (o + 13)) (hz : zs.map σ = [0, 0, 0, 0])
+    (hch : ChallengeOk σ (.n o) (o + 13)) (hz : zs.map σ = [0, 0, 0, 0])
     (hc : capV.map σ = cap) :
-    σ (.n (o + 19)) = ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10))] dsObserve).squeeze.1 ∧
+    σ (.n (o + 13)) = ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3))] dsObserve).squeeze.1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
-        ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10))] dsObserve).squeeze.2.cap := by
-  obtain ⟨-, -, hcan, -⟩ := keccak_outs hk
-  have c0 : IsCanonical128 (σ (.n (a + 7))) := hcan _ (by simp)
-  have c2 : IsCanonical128 (σ (.n (a + 10 + 7))) := hcan _ (by simp)
-  have s0 := fsNext_scalar p1 c0
-  have s2 := fsNext_scalar p2 c2
-  have habs : (⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10))] dsObserve =
-      ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve)]⟩ := rfl
-  have hin : ([V.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19)] ++ zs ++ capV).map σ =
-      rateOf [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve)] ++ cap := by
+        ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3))] dsObserve).squeeze.2.cap := by
+  have s0 := fsNext_scalar p1
+  have s2 := fsNext_scalar p2
+  have habs : (⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3))] dsObserve =
+      ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩ := rfl
+  have hin : ([V.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV).map σ =
+      rateOf [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)] ++ cap := by
     rw [rateOf_two, ← s0, ← s2, List.map_append, List.map_append, hz, hc]
     rfl
-  have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve)]⟩) hk hin
+  have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩) hk hin
     (by simpa [range13_map] using hch)
   simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
   rw [habs]
@@ -140,42 +139,43 @@ squeeze on the capacity cells `cap` (zero cells `zs`), the challenge stored at `
 `cl` and the scale `sc` updated (`eqRound`). -/
 def packRoundT (pp cu pt : V) (q b c : ℕ) (pre : List Stmt) (zs cap : List V) (cl sc : V) :
     List Stmt :=
-  [.atom (.load (.n b) pp q)] ++ fsNextT cu (2 * q) (b + 1) ++ fsNextT cu (2 * q + 1) (b + 11) ++
+  [.atom (.load (.n b) pp q)] ++ fsNextT cu (2 * q) (b + 1) ++ fsNextT cu (2 * q + 1) (b + 4) ++
     pre ++
-  [keccakA ([.n (b + 8), .n (b + 10), .n (b + 18), .n (b + 20)] ++ zs ++ cap)
+  [keccakA ([.n (b + 2), .n (b + 3), .n (b + 5), .n (b + 6)] ++ zs ++ cap)
     ((List.range 13).map fun k ↦ .n (c + k))] ++
-  challengeT (.n c) (.n (c + 1)) (c + 13) ++
-  [.atom (.load (.n (c + 19)) pt q), .atom (.add (.n (c + 20)) (.n b) (.n (c + 19))),
-    .atom (.const (.n (c + 21)) (word 1 0 0)),
-    .atom (.add (.n (c + 22)) (.n (c + 21)) (.n (c + 20))),
-    .atom (.mul (.n (c + 23)) (.n (c + 20)) (.n (b + 1))),
-    .atom (.add (.n (c + 24)) cl (.n (c + 23))),
-    .atom (.mul (.n (c + 25)) (.n (c + 19)) (.n (c + 19))),
-    .atom (.add (.n (c + 26)) (.n b) (.n (c + 25))),
-    .atom (.mul (.n (c + 27)) (.n (c + 26)) (.n (b + 11))),
-    .atom (.add (.n (c + 28)) (.n (c + 24)) (.n (c + 27))),
-    .atom (.mul (.n (c + 29)) (.n (c + 22)) (.n (c + 28))),
-    .atom (.mul (.n (c + 30)) sc (.n (c + 22)))]
+  challengeT (.n c) (c + 13) ++
+  [.atom (.load (.n (c + 13)) pt q), .atom (.add (.n (c + 14)) (.n b) (.n (c + 13))),
+    .atom (.const (.n (c + 15)) (word 1 0)),
+    .atom (.add (.n (c + 16)) (.n (c + 15)) (.n (c + 14))),
+    .atom (.mul (.n (c + 17)) (.n (c + 14)) (.n (b + 1))),
+    .atom (.add (.n (c + 18)) cl (.n (c + 17))),
+    .atom (.mul (.n (c + 19)) (.n (c + 13)) (.n (c + 13))),
+    .atom (.add (.n (c + 20)) (.n b) (.n (c + 19))),
+    .atom (.mul (.n (c + 21)) (.n (c + 20)) (.n (b + 4))),
+    .atom (.add (.n (c + 22)) (.n (c + 18)) (.n (c + 21))),
+    .atom (.mul (.n (c + 23)) (.n (c + 16)) (.n (c + 22))),
+    .atom (.mul (.n (c + 24)) sc (.n (c + 16)))]
 
 theorem fsNextT_atoms (cu : V) (off b : ℕ) : AllAtoms (fsNextT cu off b) := by
   intro s hs
   simp only [fsNextT, fsPackT, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+  rcases hs with rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
-theorem challengeT_atoms (s0 s1 : V) (b : ℕ) : AllAtoms (challengeT s0 s1 b) := by
+theorem challengeT_atoms (s0 : V) (b : ℕ) : AllAtoms (challengeT s0 b) := by
   intro s hs
   simp only [challengeT, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+  rcases hs with rfl
+  exact ⟨_, rfl⟩
 
 theorem fsNextT_facts {cu : V} {off b : ℕ} (H : ∀ a, Stmt.atom a ∈ fsNextT cu off b → a.Holds rd σ) :
     LoadHolds rd (σ cu) off (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve :=
   ((holds_fsNextT (C := fun _ _ _ ↦ True) cu off b True (fun _ ↦ False)).1
     ((holdsList_atoms (fsNextT_atoms cu off b) True _).2 ⟨H, trivial⟩)).1
 
-theorem challengeT_facts {s0 s1 : V} {b : ℕ}
-    (H : ∀ a, Stmt.atom a ∈ challengeT s0 s1 b → a.Holds rd σ) : ChallengeOk σ s0 s1 b :=
-  ((holds_challengeT (C := fun _ _ _ ↦ True) s0 s1 b True (fun _ ↦ False)).1
-    ((holdsList_atoms (challengeT_atoms s0 s1 b) True _).2 ⟨H, trivial⟩)).1
+theorem challengeT_facts {s0 : V} {b : ℕ}
+    (H : ∀ a, Stmt.atom a ∈ challengeT s0 b → a.Holds rd σ) : ChallengeOk σ s0 b :=
+  ((holds_challengeT (C := fun _ _ _ ↦ True) s0 b True (fun _ ↦ False)).1
+    ((holdsList_atoms (challengeT_atoms s0 b) True _).2 ⟨H, trivial⟩)).1
 
 /-- **A round's facts**: the coordinate and the two words read, and `eqRound` of them on the
 capacity: the challenge (stored at `pt[q]`), the claim and the scale, and the capacity after. -/
@@ -183,18 +183,18 @@ theorem packRound_facts {pp cu pt : V} {q b c : ℕ} {pre : List Stmt} {zs cap :
     (H : ∀ a, Stmt.atom a ∈ packRoundT pp cu pt q b c pre zs cap cl sc → a.Holds rd σ)
     (hz : zs.map σ = [0, 0, 0, 0]) :
     LoadHolds rd (σ pp) q (σ (.n b)) ∧ LoadHolds rd (σ cu) (2 * q) (σ (.n (b + 1))) ∧
-      LoadHolds rd (σ cu) (2 * q + 1) (σ (.n (b + 11))) ∧ LoadHolds rd (σ pt) q (σ (.n (c + 19))) ∧
-      eqRound ⟨cap.map σ, []⟩ (σ (.n (b + 1))) (σ (.n (b + 11))) (σ (.n b)) (σ cl) (σ sc) =
-        (σ (.n (c + 19)), σ (.n (c + 29)), σ (.n (c + 30)), ⟨(cap5 (c + 8)).map σ, []⟩) := by
+      LoadHolds rd (σ cu) (2 * q + 1) (σ (.n (b + 4))) ∧ LoadHolds rd (σ pt) q (σ (.n (c + 13))) ∧
+      eqRound ⟨cap.map σ, []⟩ (σ (.n (b + 1))) (σ (.n (b + 4))) (σ (.n b)) (σ cl) (σ sc) =
+        (σ (.n (c + 13)), σ (.n (c + 23)), σ (.n (c + 24)), ⟨(cap5 (c + 8)).map σ, []⟩) := by
   have m1 : ∀ a, Stmt.atom a ∈ fsNextT cu (2 * q) (b + 1) → a.Holds rd σ := fun a ha ↦
     H a (by simp only [packRoundT, List.mem_append]; exact Or.inl (Or.inl (Or.inl (Or.inl
       (Or.inl (Or.inr ha))))))
-  have m2 : ∀ a, Stmt.atom a ∈ fsNextT cu (2 * q + 1) (b + 11) → a.Holds rd σ := fun a ha ↦
+  have m2 : ∀ a, Stmt.atom a ∈ fsNextT cu (2 * q + 1) (b + 4) → a.Holds rd σ := fun a ha ↦
     H a (by simp only [packRoundT, List.mem_append]; exact Or.inl (Or.inl (Or.inl (Or.inl
       (Or.inr ha)))))
-  have m3 : ∀ a, Stmt.atom a ∈ challengeT (.n c) (.n (c + 1)) (c + 13) → a.Holds rd σ := fun a ha ↦
+  have m3 : ∀ a, Stmt.atom a ∈ challengeT (.n c) (c + 13) → a.Holds rd σ := fun a ha ↦
     H a (by simp only [packRoundT, List.mem_append]; exact Or.inl (Or.inr ha))
-  have hk : (Atom.keccak ([V.n (b + 8), .n (b + 10), .n (b + 18), .n (b + 20)] ++ zs ++ cap)
+  have hk : (Atom.keccak ([V.n (b + 2), .n (b + 3), .n (b + 5), .n (b + 6)] ++ zs ++ cap)
       ((List.range 13).map fun k ↦ .n (c + k)) false false).Holds rd σ :=
     H _ (by simp [packRoundT, keccakA])
   have l0 : LoadHolds rd (σ pp) q (σ (.n b)) := H (.load (.n b) pp q) (by simp [packRoundT])
@@ -203,20 +203,20 @@ theorem packRound_facts {pp cu pt : V} {q b c : ℕ} {pre : List Stmt} {zs cap :
   have hch := challengeT_facts m3
   have q0 := sq2_atoms (a := b + 1) (o := c) (zs := zs) (capV := cap) (cap := cap.map σ) p1 p2
     (by simpa [Nat.add_assoc] using hk) hch hz rfl
-  have l3 : LoadHolds rd (σ pt) q (σ (.n (c + 19))) := H (.load (.n (c + 19)) pt q) (by simp [packRoundT])
+  have l3 : LoadHolds rd (σ pt) q (σ (.n (c + 13))) := H (.load (.n (c + 13)) pt q) (by simp [packRoundT])
+  have e14 : σ (.n (c + 14)) = σ (.n b) + σ (.n (c + 13)) := H (.add (.n (c + 14)) (.n b) (.n (c + 13))) (by simp [packRoundT])
+  have e15 : σ (.n (c + 15)) = word 1 0 := H (.const (.n (c + 15)) (word 1 0)) (by simp [packRoundT])
+  have e16 : σ (.n (c + 16)) = σ (.n (c + 15)) + σ (.n (c + 14)) := H (.add (.n (c + 16)) (.n (c + 15)) (.n (c + 14))) (by simp [packRoundT])
+  have e17 : σ (.n (c + 17)) = σ (.n (c + 14)) * σ (.n (b + 1)) := H (.mul (.n (c + 17)) (.n (c + 14)) (.n (b + 1))) (by simp [packRoundT])
+  have e18 : σ (.n (c + 18)) = σ cl + σ (.n (c + 17)) := H (.add (.n (c + 18)) cl (.n (c + 17))) (by simp [packRoundT])
+  have e19 : σ (.n (c + 19)) = σ (.n (c + 13)) * σ (.n (c + 13)) := H (.mul (.n (c + 19)) (.n (c + 13)) (.n (c + 13))) (by simp [packRoundT])
   have e20 : σ (.n (c + 20)) = σ (.n b) + σ (.n (c + 19)) := H (.add (.n (c + 20)) (.n b) (.n (c + 19))) (by simp [packRoundT])
-  have e21 : σ (.n (c + 21)) = word 1 0 0 := H (.const (.n (c + 21)) (word 1 0 0)) (by simp [packRoundT])
-  have e22 : σ (.n (c + 22)) = σ (.n (c + 21)) + σ (.n (c + 20)) := H (.add (.n (c + 22)) (.n (c + 21)) (.n (c + 20))) (by simp [packRoundT])
-  have e23 : σ (.n (c + 23)) = σ (.n (c + 20)) * σ (.n (b + 1)) := H (.mul (.n (c + 23)) (.n (c + 20)) (.n (b + 1))) (by simp [packRoundT])
-  have e24 : σ (.n (c + 24)) = σ cl + σ (.n (c + 23)) := H (.add (.n (c + 24)) cl (.n (c + 23))) (by simp [packRoundT])
-  have e25 : σ (.n (c + 25)) = σ (.n (c + 19)) * σ (.n (c + 19)) := H (.mul (.n (c + 25)) (.n (c + 19)) (.n (c + 19))) (by simp [packRoundT])
-  have e26 : σ (.n (c + 26)) = σ (.n b) + σ (.n (c + 25)) := H (.add (.n (c + 26)) (.n b) (.n (c + 25))) (by simp [packRoundT])
-  have e27 : σ (.n (c + 27)) = σ (.n (c + 26)) * σ (.n (b + 11)) := H (.mul (.n (c + 27)) (.n (c + 26)) (.n (b + 11))) (by simp [packRoundT])
-  have e28 : σ (.n (c + 28)) = σ (.n (c + 24)) + σ (.n (c + 27)) := H (.add (.n (c + 28)) (.n (c + 24)) (.n (c + 27))) (by simp [packRoundT])
-  have e29 : σ (.n (c + 29)) = σ (.n (c + 22)) * σ (.n (c + 28)) := H (.mul (.n (c + 29)) (.n (c + 22)) (.n (c + 28))) (by simp [packRoundT])
-  have e30 : σ (.n (c + 30)) = σ sc * σ (.n (c + 22)) := H (.mul (.n (c + 30)) sc (.n (c + 22))) (by simp [packRoundT])
-  have hsq : ((⟨cap.map σ, []⟩ : Fs).absorbAll [σ (.n (b + 1)), σ (.n (b + 11))] dsObserve).squeeze =
-      (σ (.n (c + 19)), ⟨(cap5 (c + 8)).map σ, []⟩) := by
+  have e21 : σ (.n (c + 21)) = σ (.n (c + 20)) * σ (.n (b + 4)) := H (.mul (.n (c + 21)) (.n (c + 20)) (.n (b + 4))) (by simp [packRoundT])
+  have e22 : σ (.n (c + 22)) = σ (.n (c + 18)) + σ (.n (c + 21)) := H (.add (.n (c + 22)) (.n (c + 18)) (.n (c + 21))) (by simp [packRoundT])
+  have e23 : σ (.n (c + 23)) = σ (.n (c + 16)) * σ (.n (c + 22)) := H (.mul (.n (c + 23)) (.n (c + 16)) (.n (c + 22))) (by simp [packRoundT])
+  have e24 : σ (.n (c + 24)) = σ sc * σ (.n (c + 16)) := H (.mul (.n (c + 24)) sc (.n (c + 16))) (by simp [packRoundT])
+  have hsq : ((⟨cap.map σ, []⟩ : Fs).absorbAll [σ (.n (b + 1)), σ (.n (b + 4))] dsObserve).squeeze =
+      (σ (.n (c + 13)), ⟨(cap5 (c + 8)).map σ, []⟩) := by
     refine Prod.ext q0.1.symm ?_
     have h2 := q0.2
     simp only [cap5, List.map_cons, List.map_nil, Nat.add_assoc, Nat.reduceAdd] at h2 ⊢
@@ -227,68 +227,68 @@ theorem packRound_facts {pp cu pt : V} {q b c : ℕ} {pre : List Stmt} {zs cap :
   rw [hsq]
   simp only [Prod.mk.injEq, true_and]
   refine ⟨?_, ?_⟩
-  · rw [e29, e28, e27, e26, e25, e24, e23, e22, e21, e20, word_one]
+  · rw [e23, e22, e21, e20, e19, e18, e17, e16, e15, e14, word_one]
   · refine ⟨?_, trivial⟩
-    rw [e30, e22, e21, e20, word_one]
+    rw [e24, e16, e15, e14, word_one]
 
 /-! ## The eight-round loop -/
 
 /-- Round `q`'s permutation outputs. -/
-def pkC (q : ℕ) : ℕ := 48 + 52 * q
+def pkC (q : ℕ) : ℕ := 35 + 32 * q
 
 /-- Round `q`'s first value. -/
-def pkB (q : ℕ) : ℕ := if q = 0 then 22 else 27 + 52 * q
+def pkB (q : ℕ) : ℕ := if q = 0 then 23 else 28 + 32 * q
 
 /-- The capacity cells round `q` reads. -/
-def pkCap (q : ℕ) : List V := if q = 0 then cap5 14 else cap5 (pkC (q - 1) + 8)
+def pkCap (q : ℕ) : List V := if q = 0 then cap5 15 else cap5 (pkC (q - 1) + 8)
 
 /-- The claim round `q` reads. -/
-def pkCl (q : ℕ) : ℕ := if q = 0 then 20 else pkC (q - 1) + 29
+def pkCl (q : ℕ) : ℕ := if q = 0 then 21 else pkC (q - 1) + 23
 
 /-- The scale round `q` reads. -/
-def pkSc (q : ℕ) : ℕ := if q = 0 then 21 else pkC (q - 1) + 30
+def pkSc (q : ℕ) : ℕ := if q = 0 then 22 else pkC (q - 1) + 24
 
 /-- The zero cells (and a one) round `0` sets. -/
 def pkPre (q : ℕ) : List Stmt :=
   if q = 0 then
-    [.atom (.const (.n 43) (word 1 0 0)), .atom (.const (.n 44) (word 0 0 0)),
-      .atom (.const (.n 45) (word 0 0 0)), .atom (.const (.n 46) (word 0 0 0)),
-      .atom (.const (.n 47) (word 0 0 0))]
+    [.atom (.const (.n 30) (word 1 0)), .atom (.const (.n 31) (word 0 0)),
+      .atom (.const (.n 32) (word 0 0)), .atom (.const (.n 33) (word 0 0)),
+      .atom (.const (.n 34) (word 0 0))]
   else []
 
 /-- The zero cells. -/
-def pkZs : List V := [.n 44, .n 45, .n 46, .n 47]
+def pkZs : List V := [.n 31, .n 32, .n 33, .n 34]
 
 /-- Round `q` of the eight-round loop. -/
 def pkRound (q : ℕ) : List Stmt :=
-  packRoundT (.n 9) (.n 19) (.n 13) q (pkB q) (pkC q) (pkPre q) pkZs (pkCap q) (.n (pkCl q))
+  packRoundT (.n 10) (.n 20) (.n 14) q (pkB q) (pkC q) (pkPre q) pkZs (pkCap q) (.n (pkCl q))
     (.n (pkSc q))
 
 /-- The loop body's head: `rd = rounds·x`, `pp = prev_point·x⁸`, `pt = point·x⁸`, the record read. -/
 def pk8Head : List Stmt :=
-  [.atom (.mul (.n 5) (.n 2) (.n 0)), .atom (.mul (.n 6) (.n 0) (.n 0)),
-    .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 7)),
-    .atom (.mul (.n 9) (.n 3) (.n 8)), .atom (.mul (.n 10) (.n 0) (.n 0)),
-    .atom (.mul (.n 11) (.n 10) (.n 10)), .atom (.mul (.n 12) (.n 11) (.n 11)),
-    .atom (.mul (.n 13) (.n 4) (.n 12)),
-    .atom (.load (.n 14) (.n 5) 0), .atom (.load (.n 15) (.n 5) 16), .atom (.load (.n 16) (.n 5) 32),
-    .atom (.load (.n 17) (.n 5) 48), .atom (.load (.n 18) (.n 5) 64), .atom (.load (.n 19) (.n 5) 80),
-    .atom (.load (.n 20) (.n 5) 96), .atom (.load (.n 21) (.n 5) 112)]
+  [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.mul (.n 7) (.n 0) (.n 0)),
+    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
+    .atom (.mul (.n 10) (.n 3) (.n 9)), .atom (.mul (.n 11) (.n 0) (.n 0)),
+    .atom (.mul (.n 12) (.n 11) (.n 11)), .atom (.mul (.n 13) (.n 12) (.n 12)),
+    .atom (.mul (.n 14) (.n 4) (.n 13)),
+    .atom (.load (.n 15) (.n 6) 0), .atom (.load (.n 16) (.n 6) 16), .atom (.load (.n 17) (.n 6) 32),
+    .atom (.load (.n 18) (.n 6) 48), .atom (.load (.n 19) (.n 6) 64), .atom (.load (.n 20) (.n 6) 80),
+    .atom (.load (.n 21) (.n 6) 96), .atom (.load (.n 22) (.n 6) 112)]
 
 /-- The eight rounds. -/
 def pk8Rounds : List Stmt := ((List.range 8).map pkRound).flatten
 
 /-- The next record written, the counter's step. -/
 def pk8Tail : List Stmt :=
-  [.atom (.load (.n 420) (.n 5) 1), .atom (.load (.n 421) (.n 5) 17),
-    .atom (.load (.n 422) (.n 5) 33), .atom (.load (.n 423) (.n 5) 49),
-    .atom (.load (.n 424) (.n 5) 65),
-    .atom (.const (.n 443) (word 65536 0 0)), .atom (.mul (.n 444) (.n 19) (.n 443)),
-    .atom (.load (.n 444) (.n 5) 81), .atom (.load (.n 441) (.n 5) 97),
-    .atom (.load (.n 442) (.n 5) 113),
-    .atom (.const (.n 445) (word 2 0 0)), .atom (.mul (.n 446) (.n 0) (.n 445)),
-    .atom (.add (.n 447) (.n 446) (.n 1)), .atom (.const (.n 448) (word 2 0 0)),
-    .atom (.mul (.n 449) (.n 0) (.n 448))]
+  [.atom (.load (.n 267) (.n 6) 1), .atom (.load (.n 268) (.n 6) 17),
+    .atom (.load (.n 269) (.n 6) 33), .atom (.load (.n 270) (.n 6) 49),
+    .atom (.load (.n 271) (.n 6) 65),
+    .atom (.const (.n 284) (word 65536 0)), .atom (.mul (.n 285) (.n 20) (.n 284)),
+    .atom (.load (.n 285) (.n 6) 81), .atom (.load (.n 282) (.n 6) 97),
+    .atom (.load (.n 283) (.n 6) 113),
+    .atom (.const (.n 286) (word 2 0)), .atom (.mul (.n 287) (.n 0) (.n 286)),
+    .atom (.add (.n 288) (.n 287) (.n 1)), .atom (.const (.n 289) (word 2 0)),
+    .atom (.mul (.n 290) (.n 0) (.n 289))]
 
 /-- The loop body's atoms. -/
 def pack8Pre : List Stmt := pk8Head ++ pk8Rounds ++ pk8Tail
@@ -297,87 +297,68 @@ theorem pack8Pre_atoms : pack8Pre.all isAtom = true := by decide +kernel
 
 /-- The loop body, the self-call named `name`. -/
 def pack8T (name : String) : List Stmt :=
-  pack8Pre ++ [.callIf (.n 447) name [.n 449, .n 1, .n 2, .n 3, .n 4], .ret []]
+  pack8Pre ++ [.callIf (.n 288) name [.n 290, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 /-- The remainder loop's atoms: one round on the record `rounds·x`. -/
 def packRemPre : List Stmt :=
-  [.atom (.mul (.n 5) (.n 2) (.n 0)),
-    .atom (.mul (.n 6) (.n 3) (.n 0)),
-    .atom (.load (.n 7) (.n 6) 0),
-    .atom (.load (.n 8) (.n 5) 0),
-    .atom (.load (.n 9) (.n 5) 16),
-    .atom (.load (.n 10) (.n 5) 32),
-    .atom (.load (.n 11) (.n 5) 48),
-    .atom (.load (.n 12) (.n 5) 64),
-    .atom (.load (.n 13) (.n 5) 80),
-    .atom (.load (.n 14) (.n 13) 0),
-    .atom (.hint (.limbs (.n 14) [.n 15, .n 16, .n 17])),
-    .atom (.const (.n 18) (word 1 0 0)),
-    .atom (.assertInK (.n 17) (.n 18)),
-    .atom (.const (.n 19) (word 0 0 1)),
-    .atom (.mul (.n 20) (.n 19) (.n 17)),
-    .atom (.add (.n 21) (.n 14) (.n 20)),
-    .atom (.const (.n 22) (word 0 1 0)),
-    .atom (.add (.n 23) (.n 17) (.n 22)),
-    .atom (.load (.n 24) (.n 13) 1),
-    .atom (.hint (.limbs (.n 24) [.n 25, .n 26, .n 27])),
-    .atom (.const (.n 28) (word 1 0 0)),
-    .atom (.assertInK (.n 27) (.n 28)),
-    .atom (.const (.n 29) (word 0 0 1)),
-    .atom (.mul (.n 30) (.n 29) (.n 27)),
-    .atom (.add (.n 31) (.n 24) (.n 30)),
-    .atom (.const (.n 32) (word 0 1 0)),
-    .atom (.add (.n 33) (.n 27) (.n 32)),
-    .atom (.const (.n 34) (word 1 0 0)),
-    .atom (.const (.n 35) (word 0 0 0)),
-    .atom (.const (.n 36) (word 0 0 0)),
-    .atom (.const (.n 37) (word 0 0 0)),
-    .atom (.const (.n 38) (word 0 0 0)),
-    .atom (.keccak [.n 21, .n 23, .n 31, .n 33, .n 35, .n 36, .n 37, .n 38, .n 8, .n 9, .n 10, .n 11, .n 12] [.n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51] false false),
-    .atom (.hint (.limbs (.n 40) [.n 52])),
-    .atom (.add (.n 53) (.n 40) (.n 52)),
-    .atom (.const (.n 54) (word 1 0 1)),
-    .atom (.mul (.n 55) (.n 53) (.n 54)),
-    .atom (.assertInK (.n 52) (.n 55)),
-    .atom (.const (.n 56) (word 0 0 1)),
-    .atom (.mul (.n 57) (.n 56) (.n 52)),
-    .atom (.add (.n 58) (.n 39) (.n 57)),
-    .atom (.mul (.n 59) (.n 4) (.n 0)),
-    .atom (.load (.n 58) (.n 59) 0),
-    .atom (.add (.n 60) (.n 7) (.n 58)),
-    .atom (.const (.n 61) (word 1 0 0)),
-    .atom (.add (.n 62) (.n 61) (.n 60)),
-    .atom (.load (.n 47) (.n 5) 1),
-    .atom (.load (.n 48) (.n 5) 17),
-    .atom (.load (.n 49) (.n 5) 33),
-    .atom (.load (.n 50) (.n 5) 49),
-    .atom (.load (.n 51) (.n 5) 65),
-    .atom (.const (.n 63) (word 4 0 0)),
-    .atom (.mul (.n 64) (.n 13) (.n 63)),
-    .atom (.load (.n 64) (.n 5) 81),
-    .atom (.load (.n 65) (.n 5) 96),
-    .atom (.mul (.n 66) (.n 60) (.n 14)),
-    .atom (.add (.n 67) (.n 65) (.n 66)),
-    .atom (.mul (.n 68) (.n 58) (.n 58)),
-    .atom (.add (.n 69) (.n 7) (.n 68)),
-    .atom (.mul (.n 70) (.n 69) (.n 24)),
-    .atom (.add (.n 71) (.n 67) (.n 70)),
-    .atom (.mul (.n 72) (.n 62) (.n 71)),
-    .atom (.load (.n 72) (.n 5) 97),
-    .atom (.load (.n 73) (.n 5) 112),
-    .atom (.mul (.n 74) (.n 73) (.n 62)),
-    .atom (.load (.n 74) (.n 5) 113),
-    .atom (.const (.n 75) (word 2 0 0)),
-    .atom (.mul (.n 76) (.n 0) (.n 75)),
-    .atom (.add (.n 77) (.n 76) (.n 1)),
-    .atom (.const (.n 78) (word 2 0 0)),
-    .atom (.mul (.n 79) (.n 0) (.n 78))]
+  [.atom (.mul (.n 6) (.n 2) (.n 0)),
+    .atom (.mul (.n 7) (.n 3) (.n 0)),
+    .atom (.load (.n 8) (.n 7) 0),
+    .atom (.load (.n 9) (.n 6) 0),
+    .atom (.load (.n 10) (.n 6) 16),
+    .atom (.load (.n 11) (.n 6) 32),
+    .atom (.load (.n 12) (.n 6) 48),
+    .atom (.load (.n 13) (.n 6) 64),
+    .atom (.load (.n 14) (.n 6) 80),
+    .atom (.load (.n 15) (.n 14) 0),
+    .atom (.copy (.n 16) (.n 15)),
+    .atom (.const (.n 17) (word 0 1)),
+    .atom (.load (.n 18) (.n 14) 1),
+    .atom (.copy (.n 19) (.n 18)),
+    .atom (.const (.n 20) (word 0 1)),
+    .atom (.const (.n 21) (word 1 0)),
+    .atom (.const (.n 22) (word 0 0)),
+    .atom (.const (.n 23) (word 0 0)),
+    .atom (.const (.n 24) (word 0 0)),
+    .atom (.const (.n 25) (word 0 0)),
+    .atom (.keccak [.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 24, .n 25, .n 9, .n 10, .n 11, .n 12, .n 13] [.n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38] false false),
+    .atom (.copy (.n 39) (.n 26)),
+    .atom (.mul (.n 40) (.n 5) (.n 0)),
+    .atom (.load (.n 39) (.n 40) 0),
+    .atom (.add (.n 41) (.n 8) (.n 39)),
+    .atom (.const (.n 42) (word 1 0)),
+    .atom (.add (.n 43) (.n 42) (.n 41)),
+    .atom (.load (.n 34) (.n 6) 1),
+    .atom (.load (.n 35) (.n 6) 17),
+    .atom (.load (.n 36) (.n 6) 33),
+    .atom (.load (.n 37) (.n 6) 49),
+    .atom (.load (.n 38) (.n 6) 65),
+    .atom (.const (.n 44) (word 4 0)),
+    .atom (.mul (.n 45) (.n 14) (.n 44)),
+    .atom (.load (.n 45) (.n 6) 81),
+    .atom (.load (.n 46) (.n 6) 96),
+    .atom (.mul (.n 47) (.n 41) (.n 15)),
+    .atom (.add (.n 48) (.n 46) (.n 47)),
+    .atom (.mul (.n 49) (.n 39) (.n 39)),
+    .atom (.add (.n 50) (.n 8) (.n 49)),
+    .atom (.mul (.n 51) (.n 50) (.n 18)),
+    .atom (.add (.n 52) (.n 48) (.n 51)),
+    .atom (.mul (.n 53) (.n 43) (.n 52)),
+    .atom (.load (.n 53) (.n 6) 97),
+    .atom (.load (.n 54) (.n 6) 112),
+    .atom (.mul (.n 55) (.n 54) (.n 43)),
+    .atom (.load (.n 55) (.n 6) 113),
+    .atom (.const (.n 56) (word 2 0)),
+    .atom (.mul (.n 57) (.n 0) (.n 56)),
+    .atom (.add (.n 58) (.n 57) (.n 1)),
+    .atom (.const (.n 59) (word 2 0)),
+    .atom (.mul (.n 60) (.n 0) (.n 59))]
 
 theorem packRemPre_atoms : packRemPre.all isAtom = true := by decide +kernel
 
 /-- The remainder loop's body, the self-call named `name`. -/
 def packRemT (name : String) : List Stmt :=
-  packRemPre ++ [.callIf (.n 77) name [.n 79, .n 1, .n 2, .n 3, .n 4], .ret []]
+  packRemPre ++ [.callIf (.n 58) name [.n 60, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 /-- The two helpers' names, by `keccak_layer` specialization: the eight-round loop. -/
 def packLoopName : ℕ → String
@@ -389,35 +370,39 @@ def remLoopName : ℕ → String
   | 1 => "__loop38"
   | _ => "__loop40"
 
-theorem pack8_body426 : Data.core425.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body428 : Data.core427.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body427 : Data.core426.body = packRemT "__loop38" :=
+theorem pack8_body456 : Data.core456.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
+theorem pack8_body458 : Data.core458.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
+theorem packRem_body457 : Data.core457.body = packRemT "__loop38" :=
   stmtsEqb_sound (by decide +kernel)
-theorem packRem_body429 : Data.core428.body = packRemT "__loop40" :=
+theorem packRem_body459 : Data.core459.body = packRemT "__loop40" :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem find_pack8_426 : coreProgram.find? "__loop37" = some Data.core425 :=
-  Program.find?_of_indexOf? (j := 425) (by decide +kernel) rfl
-theorem find_packRem_427 : coreProgram.find? "__loop38" = some Data.core426 :=
-  Program.find?_of_indexOf? (j := 426) (by decide +kernel) rfl
-theorem find_pack8_428 : coreProgram.find? "__loop39" = some Data.core427 :=
-  Program.find?_of_indexOf? (j := 427) (by decide +kernel) rfl
-theorem find_packRem_429 : coreProgram.find? "__loop40" = some Data.core428 :=
-  Program.find?_of_indexOf? (j := 428) (by decide +kernel) rfl
+theorem find_pack8_456 : coreProgram.find? "__loop37" = some Data.core456 :=
+  Program.find?_of_indexOf? (j := 456) (by decide +kernel) rfl
+theorem find_packRem_457 : coreProgram.find? "__loop38" = some Data.core457 :=
+  Program.find?_of_indexOf? (j := 457) (by decide +kernel) rfl
+theorem find_pack8_458 : coreProgram.find? "__loop39" = some Data.core458 :=
+  Program.find?_of_indexOf? (j := 458) (by decide +kernel) rfl
+theorem find_packRem_459 : coreProgram.find? "__loop40" = some Data.core459 :=
+  Program.find?_of_indexOf? (j := 459) (by decide +kernel) rfl
+
+/-- The loops' parameters: `[x, bound, rounds, prev_point, point, tabs]` for the eight-round
+loop, `[x, bound, rounds, prev_point, tabs, point]` for the remainder loop. -/
+def loopParams : List V := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]
 
 theorem find_pack8 {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (packLoopName first) = some fn ∧ fn.body = pack8T (packLoopName first) ∧
-      fn.params = [V.n 0, .n 1, .n 2, .n 3, .n 4] := by
+      fn.params = loopParams := by
   interval_cases first
-  · exact ⟨_, find_pack8_428, pack8_body428, rfl⟩
-  · exact ⟨_, find_pack8_426, pack8_body426, rfl⟩
+  · exact ⟨_, find_pack8_458, pack8_body458, rfl⟩
+  · exact ⟨_, find_pack8_456, pack8_body456, rfl⟩
 
 theorem find_packRem {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (remLoopName first) = some fn ∧ fn.body = packRemT (remLoopName first) ∧
-      fn.params = [V.n 0, .n 1, .n 2, .n 3, .n 4] := by
+      fn.params = loopParams := by
   interval_cases first
-  · exact ⟨_, find_packRem_429, packRem_body429, rfl⟩
-  · exact ⟨_, find_packRem_427, packRem_body427, rfl⟩
+  · exact ⟨_, find_packRem_459, packRem_body459, rfl⟩
+  · exact ⟨_, find_packRem_457, packRem_body457, rfl⟩
 
 /-! ## The steps -/
 
@@ -442,7 +427,7 @@ def PackRemStep (rd : Reader) (rec pp pt x : E) : Prop :=
       let o := eqRound ⟨cap, []⟩ g1 g2 r claim scale
       LoadHolds rd (pt * x) 0 o.1 ∧ RoundRec rd (rec * x) 1 o.2.2.2.cap (cur * gen ^ 2) o.2.1 o.2.2.1
 
-theorem word_16 : word 16 0 0 = gen ^ 4 := by
+theorem word_16 : word 16 0 = gen ^ 4 := by
   rw [show (16 : ℕ) = 2 ^ 4 from rfl]; exact word_two_pow (by decide)
 
 /-! ## Chains over a range -/
@@ -501,16 +486,16 @@ set_option maxRecDepth 20000 in
 /-- **The eight-round loop's step**: at depth `d + 1` and `x`, an iteration's meaning, and the
 call at `x·g` one level shallower unless `x·g = step_g`. -/
 theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = pack8T name) (hp : fn.params = [V.n 0, .n 1, .n 2, .n 3, .n 4]) (d : ℕ)
-    (x hg rec pp pt : E) (h : coreProgram.relN rd (d + 1) name [x, hg, rec, pp, pt] []) :
+    (hb : fn.body = pack8T name) (hp : fn.params = loopParams) (d : ℕ)
+    (x hg rec pp pt tb : E) (h : coreProgram.relN rd (d + 1) name [x, hg, rec, pp, pt, tb] []) :
     Pack8Step rd rec pp pt x ∧
-      (x * gen + hg ≠ 0 → coreProgram.relN rd d name [x * gen, hg, rec, pp, pt] []) := by
+      (x * gen + hg ≠ 0 → coreProgram.relN rd d name [x * gen, hg, rec, pp, pt, tb] []) := by
   obtain ⟨fn', hf', σ, hpar, hbody⟩ := h
   rw [hf] at hf'
   cases hf'
   rw [hp] at hpar
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hpar
+  simp only [loopParams, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hpar
   rw [hb, pack8T, holdsList_append] at hbody
   obtain ⟨H, hc⟩ := (holdsList_atoms (allAtoms_of_all pack8Pre_atoms) _ _).1 hbody
   simp only [Stmt.HoldsList, Stmt.Holds] at hc
@@ -523,26 +508,26 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     H a (pk8_mem_round hq ha)
   simp only [pk8Head, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, Atom.Holds,
     Stmt.atom.injEq, forall_eq] at HH
-  obtain ⟨e5, e6, e7, e8, e9, e10, e11, e12, e13, L14, L15, L16, L17, L18, L19, L20, L21⟩ := HH
+  obtain ⟨e6, e7, e8, e9, e10, e11, e12, e13, e14, L15, L16, L17, L18, L19, L20, L21, L22⟩ := HH
   simp only [pk8Tail, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, Atom.Holds,
     Stmt.atom.injEq, forall_eq] at HT
-  obtain ⟨S420, S421, S422, S423, S424, e443, e444, S444, S441, S442, e445, e446, e447, e448,
-    e449⟩ := HT
+  obtain ⟨S267, S268, S269, S270, S271, e284, e285, S285, S282, S283, e286, e287, e288, e289,
+    e290⟩ := HT
   have hz : pkZs.map σ = [0, 0, 0, 0] := by
-    have z : ∀ v ∈ [44, 45, 46, 47], σ (.n v) = 0 := by
+    have z : ∀ v ∈ [31, 32, 33, 34], σ (.n v) = 0 := by
       intro v hv
-      have := HR 0 (by omega) (.const (.n v) (word 0 0 0)) (by
+      have := HR 0 (by omega) (.const (.n v) (word 0 0)) (by
         simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
         rcases hv with rfl | rfl | rfl | rfl <;> simp [pkRound, packRoundT, pkPre])
       simpa [Atom.Holds, word_zero] using this
-    simp [pkZs, z 44 (by simp), z 45 (by simp), z 46 (by simp), z 47 (by simp)]
+    simp [pkZs, z 31 (by simp), z 32 (by simp), z 33 (by simp), z 34 (by simp)]
   have F := fun q (hq : q < 8) ↦ packRound_facts (HR q hq) hz
-  have hx8 : σ (.n 8) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e6 e7 e8
-  have hx12 : σ (.n 12) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e10 e11 e12
+  have hx8 : σ (.n 9) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e7 e8 e9
+  have hx12 : σ (.n 13) = σ (.n 0) ^ 8 := gen_pow_eight_of _ _ _ _ e11 e12 e13
   let R : ℕ → E := fun q ↦ σ (.n (pkB q))
   let G1 : ℕ → E := fun q ↦ σ (.n (pkB q + 1))
-  let G2 : ℕ → E := fun q ↦ σ (.n (pkB q + 11))
-  let CH : ℕ → E := fun q ↦ σ (.n (pkC q + 19))
+  let G2 : ℕ → E := fun q ↦ σ (.n (pkB q + 4))
+  let CH : ℕ → E := fun q ↦ σ (.n (pkC q + 13))
   let CL : ℕ → E := fun q ↦ σ (.n (pkCl q))
   let SC : ℕ → E := fun q ↦ σ (.n (pkSc q))
   let CAP : ℕ → List E := fun q ↦ (pkCap q).map σ
@@ -550,17 +535,17 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     have := (F q hq).2.2.2.2
     simp only [Nat.zero_add]
     simpa [R, G1, G2, CH, CL, SC, CAP, pkCl, pkSc, pkCap, pkRound] using this
-  refine ⟨⟨CAP 0, σ (.n 19), CL 0, SC 0, (List.range' 0 8).map R,
+  refine ⟨⟨CAP 0, σ (.n 20), CL 0, SC 0, (List.range' 0 8).map R,
     (List.range' 0 8).map fun q ↦ (G1 q, G2 q), (List.range' 0 8).map CH, CL 8, SC 8, CAP 8,
     ?_, by simp, ?_, ?_, hch, ?_, ?_⟩, ?_⟩
-  · rw [← e5]
-    exact ⟨capAt_five L14 L15 L16 L17 L18, L19, L20, L21⟩
+  · rw [← e6]
+    exact ⟨capAt_five L15 L16 L17 L18 L19, L20, L21, L22⟩
   · intro k hk
     simp only [List.length_map, List.length_range'] at hk
     have := (F k hk).1
-    rw [e9, hx8] at this
+    rw [e10, hx8] at this
     simpa [R] using this
-  · have := readsAt_pairs (rd := rd) (p := σ (.n 19)) ((List.range' 0 8).map fun q ↦ (G1 q, G2 q)) 0
+  · have := readsAt_pairs (rd := rd) (p := σ (.n 20)) ((List.range' 0 8).map fun q ↦ (G1 q, G2 q)) 0
       fun q hq ↦ by
         simp only [List.length_map, List.length_range'] at hq
         have h1 := (F q hq).2.1
@@ -572,22 +557,22 @@ theorem pack8_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some
   · intro k hk
     simp only [List.length_map, List.length_range'] at hk
     have := (F k hk).2.2.2.1
-    rw [e13, hx12] at this
+    rw [e14, hx12] at this
     simpa [CH] using this
-  · rw [← e5]
+  · rw [← e6]
     refine ⟨capAt_five ?_ ?_ ?_ ?_ ?_, ?_, ?_, ?_⟩
-    · simpa [CAP, pkCap, pkC, cap5] using S420
-    · simpa [CAP, pkCap, pkC, cap5] using S421
-    · simpa [CAP, pkCap, pkC, cap5] using S422
-    · simpa [CAP, pkCap, pkC, cap5] using S423
-    · simpa [CAP, pkCap, pkC, cap5] using S424
-    · rw [e444, e443, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by decide)] at S444
-      simpa [krCap] using S444
-    · simpa [CL, pkCl, pkC, krCap] using S441
-    · simpa [SC, pkSc, pkC, krCap] using S442
+    · simpa [CAP, pkCap, pkC, cap5] using S267
+    · simpa [CAP, pkCap, pkC, cap5] using S268
+    · simpa [CAP, pkCap, pkC, cap5] using S269
+    · simpa [CAP, pkCap, pkC, cap5] using S270
+    · simpa [CAP, pkCap, pkC, cap5] using S271
+    · rw [e285, e284, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by decide)] at S285
+      simpa [krCap] using S285
+    · simpa [CL, pkCl, pkC, krCap] using S282
+    · simpa [SC, pkSc, pkC, krCap] using S283
   · intro hne
-    have e : σ (.n 447) = σ (.n 0) * gen + σ (.n 1) := by rw [e447, e446, e445, word_gen]
-    have e' : σ (.n 449) = σ (.n 0) * gen := by rw [e449, e448, word_gen]
+    have e : σ (.n 288) = σ (.n 0) * gen + σ (.n 1) := by rw [e288, e287, e286, word_gen]
+    have e' : σ (.n 290) = σ (.n 0) * gen := by rw [e290, e289, word_gen]
     have := hcall (by rw [e]; exact hne)
     simpa [e'] using this
 
@@ -595,66 +580,64 @@ set_option maxRecDepth 20000 in
 /-- **The remainder loop's step**: at depth `d + 1` and `x`, an iteration's meaning, and the call
 at `x·g` one level shallower unless `x·g = rem_g`. -/
 theorem packRem_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (hb : fn.body = packRemT name) (hp : fn.params = [V.n 0, .n 1, .n 2, .n 3, .n 4]) (d : ℕ)
-    (x hg rec pp pt : E) (h : coreProgram.relN rd (d + 1) name [x, hg, rec, pp, pt] []) :
+    (hb : fn.body = packRemT name) (hp : fn.params = loopParams) (d : ℕ)
+    (x hg rec pp tb pt : E) (h : coreProgram.relN rd (d + 1) name [x, hg, rec, pp, tb, pt] []) :
     PackRemStep rd rec pp pt x ∧
-      (x * gen + hg ≠ 0 → coreProgram.relN rd d name [x * gen, hg, rec, pp, pt] []) := by
+      (x * gen + hg ≠ 0 → coreProgram.relN rd d name [x * gen, hg, rec, pp, tb, pt] []) := by
   obtain ⟨fn', hf', σ, hpar, hbody⟩ := h
   rw [hf] at hf'
   cases hf'
   rw [hp] at hpar
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hpar
+  simp only [loopParams, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hpar
   rw [hb, packRemT, holdsList_append] at hbody
   obtain ⟨H, hc⟩ := (holdsList_atoms (allAtoms_of_all packRemPre_atoms) _ _).1 hbody
   simp only [Stmt.HoldsList, Stmt.Holds] at hc
   obtain ⟨-, hcall, -⟩ := hc
   simp only [packRemPre, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, Atom.Holds,
     Stmt.atom.injEq, forall_eq] at H
-  obtain ⟨e5, e6, L7_6_0, L8_5_0, L9_5_16, L10_5_32, L11_5_48, L12_5_64, L13_5_80, L14_13_0, -,
-    e18, k17, e19, e20, e21, e22, e23, L24_13_1, -, e28, k27, e29, e30, e31, e32, e33, e34, e35,
-    e36, e37, e38, hk, -, e53, e54, e55, k52, e56, e57, e58, e59, L58_59_0, e60, e61, e62,
-    L47_5_1, L48_5_17, L49_5_33, L50_5_49, L51_5_65, e63, e64, L64_5_81, L65_5_96, e66, e67, e68,
-    e69, e70, e71, e72, L72_5_97, L73_5_112, e74, L74_5_113, e75, e76, e77, e78, e79⟩ := H
-  have hz : [V.n 35, .n 36, .n 37, .n 38].map σ = [0, 0, 0, 0] := by
-    simp only [List.map_cons, List.map_nil, e35, e36, e37, e38, word_zero]
-  have q0 := sq2_atoms (rd := rd) (a := 14) (o := 39) (zs := [.n 35, .n 36, .n 37, .n 38])
-    (capV := [.n 8, .n 9, .n 10, .n 11, .n 12])
-    (cap := [σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12)])
-    ⟨e18, k17.1, k17.2, e19, e20, e21, e22, e23⟩ ⟨e28, k27.1, k27.2, e29, e30, e31, e32, e33⟩
-    hk ⟨e53, e54, e55, k52.1, k52.2, e56, e57, e58⟩ hz rfl
+  obtain ⟨e6, e7, L8_7_0, L9_6_0, L10_6_16, L11_6_32, L12_6_48, L13_6_64, L14_6_80, L15_14_0, e16,
+    e17, L18_14_1, e19, e20, e21, e22, e23, e24, e25, hk, e39, e40, L39_40_0, e41, e42, e43,
+    L34_6_1, L35_6_17, L36_6_33, L37_6_49, L38_6_65, e44, e45, L45_6_81, L46_6_96, e47, e48, e49,
+    e50, e51, e52, e53, L53_6_97, L54_6_112, e55, L55_6_113, e56, e57, e58, e59, e60⟩ := H
+  have hz : [V.n 22, .n 23, .n 24, .n 25].map σ = [0, 0, 0, 0] := by
+    simp only [List.map_cons, List.map_nil, e22, e23, e24, e25, word_zero]
+  have q0 := sq2_atoms (rd := rd) (a := 15) (o := 26) (zs := [.n 22, .n 23, .n 24, .n 25])
+    (capV := [.n 9, .n 10, .n 11, .n 12, .n 13])
+    (cap := [σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)])
+    ⟨e16, e17⟩ ⟨e19, e20⟩ hk e39 hz rfl
   simp only [Nat.reduceAdd] at q0
-  refine ⟨⟨[σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12)], σ (.n 13), σ (.n 65), σ (.n 73),
-    σ (.n 7), σ (.n 14), σ (.n 24), ?_, ?_, ?_, ?_⟩, ?_⟩
-  · rw [← e5]
-    exact ⟨capAt_five L8_5_0 L9_5_16 L10_5_32 L11_5_48 L12_5_64, L13_5_80, L65_5_96, L73_5_112⟩
-  · rw [← e6]; exact L7_6_0
+  refine ⟨⟨[σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)], σ (.n 14), σ (.n 46), σ (.n 54),
+    σ (.n 8), σ (.n 15), σ (.n 18), ?_, ?_, ?_, ?_⟩, ?_⟩
+  · rw [← e6]
+    exact ⟨capAt_five L9_6_0 L10_6_16 L11_6_32 L12_6_48 L13_6_64, L14_6_80, L46_6_96, L54_6_112⟩
+  · rw [← e7]; exact L8_7_0
   · intro k hk
     simp only [List.length_cons, List.length_nil] at hk
     interval_cases k
-    · exact L14_13_0
-    · exact L24_13_1
-  · have hsq : ((⟨[σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12)], []⟩ : Fs).absorbAll
-        [σ (.n 14), σ (.n 24)] dsObserve).squeeze =
-        (σ (.n 58), ⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)], []⟩) := by
+    · exact L15_14_0
+    · exact L18_14_1
+  · have hsq : ((⟨[σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13)], []⟩ : Fs).absorbAll
+        [σ (.n 15), σ (.n 18)] dsObserve).squeeze =
+        (σ (.n 39), ⟨[σ (.n 34), σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38)], []⟩) := by
       refine Prod.ext q0.1.symm ?_
       rw [q0.2]
       rfl
     simp only [eqRound]
     rw [hsq]
-    refine ⟨by rw [← e59]; exact L58_59_0, ?_⟩
-    rw [← e5]
+    refine ⟨by rw [← e40]; exact L39_40_0, ?_⟩
+    rw [← e6]
     simp only [RoundRec, krCap, Nat.reduceMul, Nat.reduceAdd]
-    refine ⟨capAt_five L47_5_1 L48_5_17 L49_5_33 L50_5_49 L51_5_65, ?_, ?_, ?_⟩
-    · rw [e64, e63, show (4 : ℕ) = 2 ^ 2 from rfl, word_two_pow (by decide)] at L64_5_81
-      exact L64_5_81
-    · simp only [e72, e71, e70, e69, e68, e67, e66, e62, e61, e60, word_one] at L72_5_97
-      exact L72_5_97
-    · simp only [e74, e62, e61, e60, word_one] at L74_5_113
-      exact L74_5_113
+    refine ⟨capAt_five L34_6_1 L35_6_17 L36_6_33 L37_6_49 L38_6_65, ?_, ?_, ?_⟩
+    · rw [e45, e44, show (4 : ℕ) = 2 ^ 2 from rfl, word_two_pow (by decide)] at L45_6_81
+      exact L45_6_81
+    · simp only [e53, e52, e51, e50, e49, e48, e47, e43, e42, e41, word_one] at L53_6_97
+      exact L53_6_97
+    · simp only [e55, e43, e42, e41, word_one] at L55_6_113
+      exact L55_6_113
   · intro hne
-    have e : σ (.n 77) = σ (.n 0) * gen + σ (.n 1) := by rw [e77, e76, e75, word_gen]
-    have e' : σ (.n 79) = σ (.n 0) * gen := by rw [e79, e78, word_gen]
+    have e : σ (.n 58) = σ (.n 0) * gen + σ (.n 1) := by rw [e58, e57, e56, word_gen]
+    have e' : σ (.n 60) = σ (.n 0) * gen := by rw [e60, e59, word_gen]
     have := hcall (by rw [e]; exact hne)
     simpa [e'] using this
 
