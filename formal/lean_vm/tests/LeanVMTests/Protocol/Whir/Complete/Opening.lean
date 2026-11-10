@@ -92,8 +92,8 @@ example : stackCommit 15 1 ⟨Vector.replicate _ 0⟩ = (10, 64, stackWord 15 1 
 
 /-! ## The honest round polynomials -/
 
-/-- A field element from three words. -/
-def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b) (K.ofBits c)
+/-- A field element from three words (the last two summed into the upper limb). -/
+def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits (b + c))
 
 /-- A pseudo-random table of `n` entries. -/
 def tbl (seed n : ℕ) : List E :=
