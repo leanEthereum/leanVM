@@ -240,7 +240,7 @@ def lamF : ℝ≥0∞ := (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0�
 open Classical in
 theorem sbF_le (δ : Fin signatureLimit → DigV) :
     (sbF δ : ℝ) / Fintype.card DigV ≤
-      ∑ t, 2 ^ 0 * (cnt δ t : ℝ) ^ forsTrees / (Fintype.card Index * Fintype.card (FTree → FLeaf)) := by
+      ∑ t, (cnt δ t : ℝ) ^ forsTrees / (Fintype.card Index * Fintype.card (FTree → FLeaf)) := by
   have hv := card_view_filter (Covered (leavesAll δ))
   have hc : (Finset.univ.filter (Covered (leavesAll δ))).card ≤ ∑ t, cnt δ t ^ forsTrees := by
     rw [Finset.card_filter, Fintype.sum_prod_type]
@@ -265,13 +265,12 @@ theorem sbF_le (δ : Fin signatureLimit → DigV) :
     push_cast [Fintype.card_prod] at this
     rw [sbF]
     convert this using 2
-  rw [← Finset.sum_div, div_le_div_iff₀ hD (mul_pos hI hF), hv', pow_zero]
-  simp only [one_mul]
+  rw [← Finset.sum_div, div_le_div_iff₀ hD (mul_pos hI hF), hv']
   rw [mul_comm]
   exact mul_le_mul_of_nonneg_right (by exact_mod_cast hc) hD.le
 
-/-- **`λ_full` is at most `lamS 0`.** -/
-theorem lamF_le : lamF ≤ ENNReal.ofReal (lamS 0) :=
+/-- **`λ_full` is at most `lamS`.** -/
+theorem lamF_le : lamF ≤ ENNReal.ofReal lamS :=
   avg_le_lamS _ (fun δ ↦ by positivity) sbF_le
 
 end Qrom.Sphincs

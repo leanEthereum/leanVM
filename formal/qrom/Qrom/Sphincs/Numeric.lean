@@ -8,11 +8,12 @@ public import Qrom.Sphincs.Bound.LamCov
 /-!
 # The numbers
 
-With the cover probability bounded (`Qrom.Sphincs.lamCov_le`), the forgery bound is explicit
+With the cover probability bounded (`Qrom.Sphincs.lamF_le`), the forgery bound is explicit
 (`Qrom.Sphincs.winProb_le_lamS`). For the parameters of `FORS.h26_layered` (`h = 26`, `d = 3`,
-`k = 24`, `a = 10`, `1,182,000,000` signatures), the first digest call carries the top 10 index bits,
-`λ_cov ≤ 2^-110` (`Qrom.Sphincs.lamS_h26`) and a win in the hidden game weighs at most
-`(2^-109 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)² + 2^-68) tr ρ` (`Qrom.Sphincs.winProb_le_h26`).
+`k = 24`, `a = 10`, `1,182,000,000` signatures), `λ_full ≤ 9 · 2^-130` (`Qrom.Sphincs.lamS_h26`) and
+a win in the hidden game weighs at most
+`(13 · 2^-130 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)² + 2^-68) tr ρ`
+(`Qrom.Sphincs.winProb_le_h26`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Concrete Quantum
@@ -31,7 +32,7 @@ variable [Params]
 /-- The weight of a win in the hidden game, with the cover probability bounded. -/
 def epsB (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
   (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    ENNReal.ofReal badB + ENNReal.ofReal (lamS 0) * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
+    ENNReal.ofReal badB + ENNReal.ofReal (lamS) * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
 
 theorem epsHid_le (n : ℕ) (t : ℝ) : epsHid n t ≤ epsB n t := by
   unfold epsHid epsB
@@ -58,8 +59,8 @@ section h26
 
 local instance : Params := params26
 
-theorem lamS_h26 : lamS 0 ≤ 9 * (2 : ℝ)⁻¹ ^ 130 := by
-  have h : lamS 0 ≤ ((9 : ℕ) : ℝ) * (2 : ℝ)⁻¹ ^ 130 := lamS_le (by
+theorem lamS_h26 : lamS ≤ 9 * (2 : ℝ)⁻¹ ^ 130 := by
+  have h : lamS ≤ ((9 : ℕ) : ℝ) * (2 : ℝ)⁻¹ ^ 130 := lamS_le (by
     simp only [Fintype.card_fun, Fintype.card_fin, ← stirRow_getD]
     decide +kernel)
   simpa using h
@@ -92,7 +93,7 @@ theorem winProb_le_h26 {A : QReg} (adv : Adversary A) {n : ℕ}
   unfold epsB
   gcongr ?_ * _
   calc ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * K) +
-        ENNReal.ofReal badB + ENNReal.ofReal (lamS 0) * ENNReal.ofReal K ≤
+        ENNReal.ofReal badB + ENNReal.ofReal (lamS) * ENNReal.ofReal K ≤
       ENNReal.ofReal (879 * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * K) +
         ENNReal.ofReal (3 * (2 : ℝ)⁻¹ ^ 70) + ENNReal.ofReal (9 * (2 : ℝ)⁻¹ ^ 130 * K) := by
         rw [verifyQueries_h26, badB_h26]

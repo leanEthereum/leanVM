@@ -5,14 +5,14 @@ public import Qrom.Sphincs.Bound.Cover
 @[expose] public section
 
 /-!
-# The cover probability
+# Counting covered digests
 
-When the FORS leaves fit the first digest call (`mdBytes ≤ 32`), a coverable first call output has
-leaves that the signatures at one index open, and when the index bits from `lo` up are read from the
-first call too (`IdxCall0`), that index agrees with the output on those bits. So `λ_cov` is at most
-`2^lo / 2^h` times the expected number of `k`-tuples of signatures at one index over `2^(k a)`, and
-that expectation is the `k`-th moment of a binomial count, at most `∑_j S(k, j) (N / 2^h)^j` for `N`
-signatures (`Qrom.Sphincs.lamCov_le`).
+A digest at index `t` is covered by the presampled digests when each of its leaves is one that a
+presampled digest at `t` opens, so the covered digests are a fraction at most `∑_t c_t^k / (2^h 2^(k a))`
+of all, with `c_t` the number of presampled digests at `t`. The average of `c_t^k` over the presampled
+digests is the `k`-th moment of a binomial count, at most `∑_j S(k, j) (N / 2^h)^j` for `N` signatures
+with `S` the Stirling numbers of the second kind (`Qrom.Sphincs.sum_pow_card_image`), so such
+averages are at most `lamS = ∑_j S(k, j) (N / 2^h)^j / 2^(k a)` (`Qrom.Sphincs.avg_le_lamS`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Concrete Quantum
@@ -74,145 +74,6 @@ theorem card_index_eq (t : Index) :
     rw [mul_assoc, ← h]
     rfl
   exact Nat.eq_of_mul_eq_mul_right hpos h'
-
-/-! ## The leaves are read from the first call -/
-
-/-- The digest calls with `y` first and zeros after. -/
-def ext0 (y : HashOutput) : DigV := fun c ↦ if c = firstCall then y else 0
-
-theorem ext0_first (y : HashOutput) : ext0 y firstCall = y := by simp [ext0]
-
-theorem outputBit_call0 (ys : DigV) {g : ℕ} (hg : g < 256) : outputBit ys g = (ys firstCall).getLsbD g := by
-  have h0 : g / 256 = 0 := Nat.div_eq_of_lt hg
-  unfold outputBit
-  rw [dite_eq_left (by rw [h0]; exact digestCalls_pos)]
-  simp only [h0, Nat.mod_eq_of_lt hg]
-  rfl
-
-theorem digestSource_fors_lt (hmd : mdBytes ≤ 32) {q : ℕ} (hlow : totalHeight ≤ q)
-    (hq : q < messageDigestBits) : digestSource q < 256 := by
-  have hb := bottomHeight_le
-  obtain ⟨-, -, hmd', -⟩ := field_bytes_le
-  have hp := forsBit_lt hlow hq
-  unfold digestSource
-  rw [ite_eq_right (by omega), ite_eq_right (by omega)]
-  unfold msbPos
-  omega
-
-theorem leaves_call0 (hmd : mdBytes ≤ 32) {ys ys' : DigV} (h : ys firstCall = ys' firstCall) :
-    digestLeaves (truncateMessageDigest ys) = digestLeaves (truncateMessageDigest ys') := by
-  funext κ
-  unfold digestLeaves
-  congr 1
-  apply BitVec.eq_of_getLsbD_eq
-  intro i hi
-  rw [BitVec.getLsbD_extractLsb', BitVec.getLsbD_extractLsb']
-  have hκ := κ.isLt
-  have hle : forsHeight * (κ.val + 1) ≤ forsHeight * forsTrees := Nat.mul_le_mul_left _ hκ
-  have hq : leafOffset κ + i < messageDigestBits := by
-    unfold leafOffset messageDigestBits
-    rw [Nat.mul_succ] at hle
-    rw [mul_comm forsTrees]
-    omega
-  have hlow : totalHeight ≤ leafOffset κ + i := by unfold leafOffset; omega
-  rw [getLsbD_truncateMessageDigest _ hq, getLsbD_truncateMessageDigest _ hq,
-    outputBit_call0 _ (digestSource_fors_lt hmd hlow hq), outputBit_call0 _ (digestSource_fors_lt hmd hlow hq), h]
-
-/-- The index bits from `lo` up, as a number. -/
-def hiIdx (lo : ℕ) (v : DigV) : ℕ := (digestIndex (truncateMessageDigest v)).val / 2 ^ lo
-
-/-- The index bits from `lo` up are read from the first call. -/
-def IdxCall0 (lo : ℕ) : Prop := ∀ q < totalHeight, lo ≤ q → digestSource q < 256
-
-theorem hiIdx_call0 {lo : ℕ} (hlo : IdxCall0 lo) {ys ys' : DigV} (h : ys firstCall = ys' firstCall) :
-    hiIdx lo ys = hiIdx lo ys' := by
-  show ((truncateMessageDigest ys).extractLsb' 0 totalHeight).toNat / 2 ^ lo =
-    ((truncateMessageDigest ys').extractLsb' 0 totalHeight).toNat / 2 ^ lo
-  apply Nat.eq_of_testBit_eq
-  intro i
-  rw [Nat.testBit_div_two_pow, Nat.testBit_div_two_pow, BitVec.testBit_toNat, BitVec.testBit_toNat,
-    BitVec.getLsbD_extractLsb', BitVec.getLsbD_extractLsb', Nat.zero_add]
-  by_cases hq : i + lo < totalHeight
-  · have hq' : i + lo < messageDigestBits := by unfold messageDigestBits; omega
-    have hs := hlo _ hq (by omega)
-    rw [getLsbD_truncateMessageDigest _ hq', getLsbD_truncateMessageDigest _ hq', outputBit_call0 _ hs,
-      outputBit_call0 _ hs, h]
-  · simp [hq]
-
-/-- The index values with given bits from `lo` up. -/
-theorem card_index_hi_le (lo c : ℕ) : (Finset.univ.filter fun t : Index ↦ t.val / 2 ^ lo = c).card ≤ 2 ^ lo := by
-  calc _ ≤ (Finset.range (2 ^ lo)).card := by
-        refine Finset.card_le_card_of_injOn (fun t ↦ t.val % 2 ^ lo)
-          (fun t _ ↦ Finset.mem_coe.mpr (Finset.mem_range.mpr (Nat.mod_lt _ (by positivity)))) ?_
-        intro a ha b hb hab
-        replace ha := (Finset.mem_filter.mp (Finset.mem_coe.mp ha)).2
-        replace hb := (Finset.mem_filter.mp (Finset.mem_coe.mp hb)).2
-        have hab' : a.val % 2 ^ lo = b.val % 2 ^ lo := hab
-        exact Fin.ext (by rw [← Nat.div_add_mod a.val (2 ^ lo), ← Nat.div_add_mod b.val (2 ^ lo), ha, hb, hab'])
-    _ = 2 ^ lo := Finset.card_range _
-
-/-- The fraction of first call outputs whose index bits from `lo` up are `c` and whose leaves lie in
-given sets is at most `2^lo / 2^h` times the product of the sets' fractions. -/
-theorem card_leaves (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) (c : ℕ) (L : FTree → Finset FLeaf) :
-    (Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = c ∧
-        ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ).card *
-      (Fintype.card Index * Fintype.card (FTree → FLeaf)) ≤
-      Fintype.card HashOutput * (2 ^ lo * ∏ κ, (L κ).card) := by
-  set S := Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = c ∧
-    ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ
-  let e := Equiv.piSplitAt firstCall fun _ : DigestCall ↦ HashOutput
-  -- the digest calls with these bits and leaves are those whose first call lies in `S`
-  have ha : (Finset.univ.filter fun ys : DigV ↦
-      (fullDigestView (truncateMessageDigest ys)).1.val / 2 ^ lo = c ∧
-        ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ).card =
-      S.card * Fintype.card ({j // j ≠ firstCall} → HashOutput) := by
-    rw [Finset.card_filter, Finset.card_filter]
-    have hf : ∀ ys : DigV, (if (fullDigestView (truncateMessageDigest ys)).1.val / 2 ^ lo = c ∧
-          ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ then 1 else 0) =
-        (fun p : HashOutput × ({j // j ≠ firstCall} → HashOutput) ↦
-          if hiIdx lo (ext0 p.1) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ
-          then 1 else 0) (e ys) := by
-      intro ys
-      have hl : digestLeaves (truncateMessageDigest ys) =
-          digestLeaves (truncateMessageDigest (ext0 (ys firstCall))) :=
-        leaves_call0 hmd (ext0_first _).symm
-      have hh : (digestIndex (truncateMessageDigest ys)).val / 2 ^ lo = hiIdx lo (ext0 (ys firstCall)) :=
-        hiIdx_call0 hlo (ext0_first _).symm
-      have he : (e ys).1 = ys firstCall := rfl
-      simp only [fullDigestView, hl, hh, he]
-    rw [Fintype.sum_equiv e _ (fun p : HashOutput × ({j // j ≠ firstCall} → HashOutput) ↦
-          if hiIdx lo (ext0 p.1) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ
-          then 1 else 0) hf,
-      Fintype.sum_prod_type, Finset.sum_mul]
-    refine Finset.sum_congr rfl fun y _ ↦ ?_
-    show (∑ _r : {j // j ≠ firstCall} → HashOutput,
-      if hiIdx lo (ext0 y) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ then 1 else 0) = _
-    rw [Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_comm]
-  have hb := card_view_filter (fun w ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ)
-  have hc : (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ).card ≤
-      2 ^ lo * ∏ κ, (L κ).card := by
-    have hsub : (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ) ⊆
-        (Finset.univ.filter fun t : Index ↦ t.val / 2 ^ lo = c) ×ˢ Fintype.piFinset L := by
-      intro w hw
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hw
-      simpa only [Finset.mem_product, Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset]
-        using hw
-    refine (Finset.card_le_card hsub).trans ?_
-    rw [Finset.card_product, Fintype.card_piFinset]
-    exact Nat.mul_le_mul_right _ (card_index_hi_le lo c)
-  have hd : Fintype.card DigV = Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) := by
-    rw [Fintype.card_congr e, Fintype.card_prod]
-  rw [ha, hd, Fintype.card_prod] at hb
-  have hpos : 0 < Fintype.card ({j // j ≠ firstCall} → HashOutput) := Fintype.card_pos
-  refine Nat.le_of_mul_le_mul_right ?_ hpos
-  calc S.card * (Fintype.card Index * Fintype.card (FTree → FLeaf)) *
-        Fintype.card ({j // j ≠ firstCall} → HashOutput) =
-      Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) *
-        (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ).card := by
-        rw [← hb]; ring
-    _ ≤ Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) *
-        (2 ^ lo * ∏ κ, (L κ).card) := Nat.mul_le_mul_left _ hc
-    _ = _ := by ring
 
 /-! ## Tuples with few distinct entries -/
 
@@ -319,9 +180,9 @@ abbrev idxD (v : DigV) : Index := digestIndex (truncateMessageDigest v)
 def cnt (δ : Fin signatureLimit → DigV) (t : Index) : ℕ :=
   (Finset.univ.filter fun i ↦ idxD (δ i) = t).card
 
-/-- **The cover bound**: `2^lo ∑_j S(k, j) (N / 2^h)^j / 2^(k a)`, as a quotient of naturals. -/
-def lamS (lo : ℕ) : ℝ :=
-  ((2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
+/-- **The cover bound**: `∑_j S(k, j) (N / 2^h)^j / 2^(k a)`, as a quotient of naturals. -/
+def lamS : ℝ :=
+  ((∑ j ∈ Finset.range (forsTrees + 1),
       Nat.stirlingSecond forsTrees j * signatureLimit ^ j * Fintype.card Index ^ (forsTrees - j) : ℕ) : ℝ) /
     ((Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees : ℕ) : ℝ)
 
@@ -334,47 +195,6 @@ theorem card_leavesAll_le (δ : Fin signatureLimit → DigV) (t : Index) (κ : F
   simp only [leavesAll, Finset.mem_filter, Finset.mem_univ, true_and] at hl
   obtain ⟨i, hi, hk⟩ := hl
   exact Finset.mem_image.mpr ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hi⟩, hk⟩
-
-open Classical in
-/-- Per presampled digests: the coverable fraction is at most `2^lo / 2^h` times the `k`-th powers of
-the counts. -/
-theorem sbC_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) (δ : Fin signatureLimit → DigV) :
-    (sbC δ : ℝ) / Fintype.card HashOutput ≤
-      ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees / (Fintype.card Index * Fintype.card (FTree → FLeaf)) := by
-  have hsub : Finset.univ.filter (Coverable δ) ⊆ Finset.univ.biUnion fun t : Index ↦
-      Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = t.val / 2 ^ lo ∧
-        ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ := by
-    intro y hy
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hy
-    obtain ⟨ys, hys, hcov⟩ := hy
-    simp only [Finset.mem_biUnion, Finset.mem_univ, true_and, Finset.mem_filter]
-    have h0 : ys firstCall = ext0 y firstCall := by rw [hys, ext0_first]
-    refine ⟨digestIndex (truncateMessageDigest ys), (hiIdx_call0 hlo h0).symm, fun κ ↦ ?_⟩
-    rw [← leaves_call0 hmd h0]
-    exact hcov κ
-  have hc := (Finset.card_le_card hsub).trans Finset.card_biUnion_le
-  have hY : (0 : ℝ) < Fintype.card HashOutput := by exact_mod_cast Fintype.card_pos
-  have hI : (0 : ℝ) < Fintype.card Index := by exact_mod_cast Fintype.card_pos
-  have hF : (0 : ℝ) < Fintype.card (FTree → FLeaf) := by exact_mod_cast Fintype.card_pos
-  have hIF := mul_pos hI hF
-  rw [div_le_iff₀ hY, Finset.sum_mul]
-  refine (Nat.cast_le.mpr hc).trans ?_
-  push_cast
-  refine Finset.sum_le_sum fun t _ ↦ ?_
-  have hl := card_leaves hmd hlo (t.val / 2 ^ lo) (leavesAll δ t)
-  have hle : (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ (cnt δ t : ℝ) ^ forsTrees := by
-    calc (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ ∏ _κ : FTree, (cnt δ t : ℝ) :=
-          Finset.prod_le_prod₀ (fun _ _ ↦ by positivity) fun κ _ ↦ by
-            exact_mod_cast card_leavesAll_le δ t κ
-      _ = _ := by rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
-  have hl' : ((Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = t.val / 2 ^ lo ∧
-      ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ).card : ℝ) *
-      (Fintype.card Index * Fintype.card (FTree → FLeaf)) ≤
-      Fintype.card HashOutput * (2 ^ lo * ∏ κ, ((leavesAll δ t κ).card : ℝ)) := by
-    exact_mod_cast hl
-  rw [div_mul_eq_mul_div, le_div_iff₀ hIF]
-  refine hl'.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left
-    (mul_le_mul_of_nonneg_left hle (by positivity)) hY.le) (by ring))
 
 /-- The presampled digests that put the digests of a tuple's signatures at `t`. -/
 theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
@@ -417,11 +237,11 @@ theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
     Fintype.card_fin, Finset.prod_ite_mem, Finset.univ_inter, Finset.prod_const]
 
 /-- **An average of fractions below the `k`-th powers of the counts is at most `lamS`.** -/
-theorem avg_le_lamS {lo : ℕ} (r : (Fin signatureLimit → DigV) → ℝ) (hr : ∀ δ, 0 ≤ r δ)
-    (hle : ∀ δ, r δ ≤ ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees /
+theorem avg_le_lamS (r : (Fin signatureLimit → DigV) → ℝ) (hr : ∀ δ, 0 ≤ r δ)
+    (hle : ∀ δ, r δ ≤ ∑ t, (cnt δ t : ℝ) ^ forsTrees /
       (Fintype.card Index * Fintype.card (FTree → FLeaf))) :
     (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0∞)⁻¹ * ∑ δ, ENNReal.ofReal (r δ) ≤
-      ENNReal.ofReal (lamS lo) := by
+      ENNReal.ofReal lamS := by
   set cΔ := (Fintype.card (Fin signatureLimit → DigV) : ℝ)
   have hΔ : 0 < cΔ := Nat.cast_pos.mpr Fintype.card_pos
   have hcΔ : cΔ = (Fintype.card DigV : ℝ) ^ signatureLimit := by
@@ -457,9 +277,9 @@ theorem avg_le_lamS {lo : ℕ} (r : (Fin signatureLimit → DigV) → ℝ) (hr :
     rw [Finset.card_filter] at h
     push_cast at h
     rw [h, hcΔ]
-  set C : ℝ := 2 ^ lo / (I * F)
+  set C : ℝ := (I * F)⁻¹
   have hC : 0 ≤ C := by positivity
-  calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees / (I * F) :=
+  calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, (cnt δ t : ℝ) ^ forsTrees / (I * F) :=
         mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ hle δ) (inv_nonneg.mpr hΔ.le)
     _ = C * ∑ t : Index, (cΔ⁻¹ * ∑ δ, (cnt δ t : ℝ) ^ forsTrees) := by
         rw [Finset.sum_comm, Finset.mul_sum, Finset.mul_sum]
@@ -476,7 +296,7 @@ theorem avg_le_lamS {lo : ℕ} (r : (Fin signatureLimit → DigV) → ℝ) (hr :
           ((Nat.stirlingSecond forsTrees j * signatureLimit ^ j : ℕ) : ℝ) * I⁻¹ ^ j) := by
         refine mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left ?_ hI.le) hC
         exact sum_pow_card_image signatureLimit (inv_nonneg.mpr hI.le) forsTrees
-    _ = lamS lo := by
+    _ = lamS := by
         rw [lamS]
         push_cast
         have hterm : ∀ j ∈ Finset.range (forsTrees + 1),
@@ -489,15 +309,11 @@ theorem avg_le_lamS {lo : ℕ} (r : (Fin signatureLimit → DigV) → ℝ) (hr :
         simp only [C, F, I]
         field_simp
 
-/-- **The cover probability is at most `lamS`.** -/
-theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov ≤ ENNReal.ofReal (lamS lo) :=
-  avg_le_lamS _ (fun δ ↦ by positivity) (sbC_le hmd hlo)
-
 /-- `lamS` is at most `a 2^-b` when the naturals say so. -/
-theorem lamS_le {lo a b : ℕ} (hn : (2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
+theorem lamS_le {a b : ℕ} (hn : (∑ j ∈ Finset.range (forsTrees + 1),
       Nat.stirlingSecond forsTrees j * signatureLimit ^ j * Fintype.card Index ^ (forsTrees - j)) * 2 ^ b ≤
       a * (Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees)) :
-    lamS lo ≤ a * (2 : ℝ)⁻¹ ^ b := by
+    lamS ≤ a * (2 : ℝ)⁻¹ ^ b := by
   have hd : (0 : ℝ) < ((Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees : ℕ) : ℝ) :=
     Nat.cast_pos.mpr (Nat.mul_pos Fintype.card_pos (Nat.pow_pos Fintype.card_pos))
   unfold lamS
