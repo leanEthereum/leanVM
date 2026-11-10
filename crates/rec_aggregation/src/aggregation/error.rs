@@ -64,6 +64,9 @@ pub enum AggregationError {
     InvalidRate { log_inv_rate: usize },
     /// A child's proof outgrows the guest's baked buffers (`MU_CAP`, `STREAM_CAP`).
     ChildOutOfRange { log_committed: usize },
+    /// [`aggregate_after`](super::aggregate_after)'s `previous` returned a child that does not carry the
+    /// claims it was given.
+    OtherChild,
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any
     /// verifier accepts (too many signatures for one proof).
@@ -121,6 +124,7 @@ impl std::fmt::Display for AggregationError {
                     "a child commits 2^{log_committed} words, outside the guest's opening arms"
                 )
             }
+            Self::OtherChild => write!(f, "the child does not carry the claims it was announced with"),
             Self::ProofError(e) => write!(f, "proving failed: {e}"),
         }
     }

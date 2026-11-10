@@ -86,17 +86,24 @@ fn public_api_end_to_end() {
         lean_sphincs: received.claims().lean_sphincs[1..].to_vec(),
         da_commitment: Some(commitment),
     };
-    let narrowed = aggregate(&[received], vec![], vec![], &[], Some(&retained), 2).unwrap();
-    narrowed.verify().unwrap();
-    assert_eq!(narrowed.claims(), &retained);
-    assert_eq!(narrowed.claims().num_signature_claims(), 11 - 4 - 1);
-
-    // And the blob claim.
+    // 6. And the blob claim, as a node loop does it: the next aggregate starts from the claims of one still
+    //    being proven on another thread, and asks for that proof only once its run needs it.
     let without_blobs = EthereumClaims {
         da_commitment: None,
-        ..retained
+        ..retained.clone()
     };
-    let dropped = aggregate(&[narrowed], vec![], vec![], &[], Some(&without_blobs), 2).unwrap();
+    let dropped = std::thread::scope(|scope| {
+        let narrowing = scope.spawn(|| aggregate(&[received], vec![], vec![], &[], Some(&retained), 2));
+        let previous = || {
+            let narrowed = narrowing.join().expect("the narrowing thread returns")?;
+            narrowed.verify().unwrap();
+            assert_eq!(narrowed.claims(), &retained);
+            assert_eq!(narrowed.claims().num_signature_claims(), 11 - 4 - 1);
+            Ok(narrowed)
+        };
+        aggregate_after(&retained, previous, vec![], vec![], &[], Some(&without_blobs), 2)
+    })
+    .unwrap();
     dropped.verify().unwrap();
     assert_eq!(dropped.claims(), &without_blobs);
 }

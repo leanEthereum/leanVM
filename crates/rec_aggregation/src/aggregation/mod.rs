@@ -53,7 +53,7 @@ mod tests;
 
 pub use error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
 pub use guest::{unified_guest, warm_up};
-pub use node::{aggregate, aggregate_with_stats};
+pub use node::{aggregate, aggregate_after, aggregate_after_with_stats, aggregate_with_stats};
 pub use proof::{EthereumClaims, EthereumProof};
 use signatures::lean_sphincs::LeanSphincsPublicKey;
 use signatures::lean_xmss::LeanXmssPublicKey;

@@ -3,7 +3,7 @@ use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_var
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
-use super::node::aggregate;
+use super::node::{aggregate, aggregate_after_with_stats, aggregate_with_stats};
 use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
@@ -345,6 +345,66 @@ fn aggregate_two_to_one() {
     // `cpu::verify` accepts the same proof of the same statement.
     verify(unified_guest(), &node.vm_public_input(), &node.proof).expect("node verifies natively");
     assert_eq!(node.claims.xmss.len(), SMALL_LEAF_SIZE + big);
+}
+
+/// A node proved with [`aggregate_after_with_stats`] is the one [`aggregate`] proves: its guest runs
+/// the raw leanSPHINCS loop and the child's claim lists before it asks for the child, which another
+/// thread only then sends, and the proof bytes and the run are the same. A child that does not carry the
+/// claims the node started from is refused when it comes.
+#[test]
+fn aggregate_after_makes_the_same_proof() {
+    leanvm_core::init_prover();
+    let child = prove_leaf(&get_signers(SMALL_LEAF_SIZE));
+    let raw = get_lean_sphincs_signers(2);
+    let (want, want_stats) = aggregate_with_stats(
+        std::slice::from_ref(&child),
+        vec![],
+        raw.clone(),
+        &[],
+        None,
+        LOG_INV_RATE,
+    )
+    .expect("node aggregates");
+    let (ask, asked) = std::sync::mpsc::channel();
+    let (send, received) = std::sync::mpsc::channel();
+    let sent = child.clone();
+    let (node, stats) = std::thread::scope(|scope| {
+        scope.spawn(move || {
+            if asked.recv().is_ok() {
+                send.send(sent).expect("the parent waits for its child");
+            }
+        });
+        let previous = || {
+            ask.send(()).expect("the child's prover waits for the ask");
+            received.recv().map_err(|_| AggregationError::Empty)
+        };
+        aggregate_after_with_stats(&child.claims, previous, vec![], raw.clone(), &[], None, LOG_INV_RATE)
+    })
+    .expect("node aggregates after its child");
+    assert_eq!(node.claims, want.claims);
+    assert!(node.proof_bytes() == want.proof_bytes(), "the proofs differ");
+    assert_eq!((stats.cycles, stats.rows), (want_stats.cycles, want_stats.rows));
+
+    let mut fewer = child.claims.clone();
+    fewer.xmss.pop();
+    let other = aggregate_after_with_stats(&fewer, || Ok(child), vec![], raw, &[], None, LOG_INV_RATE);
+    assert_eq!(other.err(), Some(AggregationError::OtherChild));
+}
+
+/// A child that never comes is the caller's error, returned as is.
+#[test]
+fn aggregate_after_returns_the_childs_error() {
+    leanvm_core::init_prover();
+    let mut xmss: Vec<LeanXmssClaim> = get_signers(2).into_iter().map(|(pk, _)| (pk, message())).collect();
+    xmss.sort();
+    let claims = EthereumClaims {
+        xmss,
+        ..EthereumClaims::default()
+    };
+    let raw = get_lean_sphincs_signers(1);
+    let previous = || Err(AggregationError::BlobNotCovered);
+    let result = aggregate_after_with_stats(&claims, previous, vec![], raw, &[], None, LOG_INV_RATE);
+    assert_eq!(result.err(), Some(AggregationError::BlobNotCovered));
 }
 
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
