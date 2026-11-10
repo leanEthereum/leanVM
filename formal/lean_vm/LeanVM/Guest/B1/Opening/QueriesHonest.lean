@@ -46,11 +46,11 @@ def offOf {α : Type} (f : ℕ → List α) : ℕ → ℕ
   | 0 => 0
   | j + 1 => offOf f j + (f j).length
 
-theorem length_flatMap_range {α : Type} (f : ℕ → List α) :
+theorem length_flatMap_range_offOf {α : Type} (f : ℕ → List α) :
     ∀ n, ((List.range n).flatMap f).length = offOf f n
   | 0 => rfl
   | n + 1 => by
-    rw [List.range_succ, List.flatMap_append, List.length_append, length_flatMap_range f n]
+    rw [List.range_succ, List.flatMap_append, List.length_append, length_flatMap_range_offOf f n]
     simp [offOf]
 
 theorem offOf_mono {α : Type} (f : ℕ → List α) {i : ℕ} : ∀ {n : ℕ}, i ≤ n → offOf f i ≤ offOf f n
@@ -66,7 +66,7 @@ theorem getD_flatMap_range_of {α : Type} (f : ℕ → List α) (d : α) :
   | 0, _, _, hj, _ => absurd hj (Nat.not_lt_zero _)
   | n + 1, j, r, hj, hr => by
     rw [List.range_succ, List.flatMap_append]
-    have hl := length_flatMap_range f n
+    have hl := length_flatMap_range_offOf f n
     rcases Nat.lt_or_ge j n with h | h
     · have h1 : offOf f (j + 1) ≤ offOf f n := offOf_mono f h
       simp only [offOf] at h1
@@ -83,7 +83,7 @@ theorem offOf_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f 
 
 theorem length_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f j).length = c)
     (n : ℕ) : ((List.range n).flatMap f).length = c * n := by
-  rw [length_flatMap_range, offOf_const f hf]
+  rw [length_flatMap_range_offOf, offOf_const f hf]
 
 theorem getD_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f j).length = c)
     (d : α) {n j r : ℕ} (hj : j < n) (hr : r < c) :
@@ -313,7 +313,7 @@ theorem oqRK_eq (F : ℕ) : ∀ j, oqRK d.s F j = F + offOf d.roundVals j
     omega
 
 theorem foldVals_length : d.foldVals.length = offOf d.roundVals d.s.folds + 1 := by
-  simp only [foldVals, List.length_append, length_flatMap_range, List.length_singleton]
+  simp only [foldVals, List.length_append, length_flatMap_range_offOf, List.length_singleton]
 
 theorem k1_eq : d.k1 = d.b + d.rowVals.length + d.packVals.length := by
   rw [rowVals_length, packVals_length]; rfl
@@ -383,12 +383,12 @@ theorem val_round {j o : ℕ} (hj : j < d.s.folds) (ho : o < (d.roundVals j).len
   have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
   simp only [offOf] at h1
   rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
-    List.getD_append _ _ _ _ (by rw [length_flatMap_range]; omega)]
+    List.getD_append _ _ _ _ (by rw [length_flatMap_range_offOf]; omega)]
   exact getD_flatMap_range_of _ 0 _ _ _ hj ho
 
 theorem val_v : d.val d.v = d.foldVal := by
   rw [v_eq, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
-    List.getD_append_right _ _ _ _ (by rw [length_flatMap_range]), length_flatMap_range,
+    List.getD_append_right _ _ _ _ (by rw [length_flatMap_range_offOf]), length_flatMap_range_offOf,
     Nat.sub_self]
   rfl
 
