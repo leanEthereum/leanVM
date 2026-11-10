@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Place.OsCallV
 
 `HonNames c`: the names the body calls at each level map to their kinds (`osKindOf`): the fold
 and closing rounds, the grinds, `fold_final_msg`, each level's message, out-of-domain squeezes and
-cap check; its decoder, squeeze loop and `opening_queries` to none; the cap depths in range.
+cap check; its decoder, squeeze loop, `opening_queries` and residual loop to none; the cap depths in range.
 `Whir/CHonNames{0..3}.lean` decide it for the 28 candidates.
 -/
 
@@ -37,6 +37,7 @@ def HonNames (c : OsCfg) : Prop :=
     osKindOf ("opening_message__L" ++ natStr (2 + (lv l).folds) ++ "_L0") = some (.msg (2 + (lv l).folds) 0) ∧
     osKindOf ("squeeze_point_from__L" ++ natStr (lv l).logCols) = some (.spf (lv l).logCols) ∧
     osKindOf ("squeeze_point__L" ++ natStr (lv l).logCols) = some (.sp (lv l).logCols)) ∧
+  (∀ l < c.yrLevel, osKindOf (c.resLoop l) = none) ∧
   ∀ l < c.levels.length,
     osKindOf ("verify_merkle_cap__L" ++ natStr (lv l).capDepth) = some (.cap (lv l).capDepth) ∧
     osKindOf ("decode_query_windows__L" ++ natStr (lv l).depth ++ "_L" ++ natStr (lv l).capDepth) = none ∧

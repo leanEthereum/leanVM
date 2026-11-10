@@ -78,7 +78,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)))
     (hz : ∀ C rd, H C rd → ∀ i < yrLogCap - h.c.yrLog,
       LoadHolds rd (osPtrF h.c b (13 + 2 * h.c.levels.length)) (h.c.yrLog + i) 0)
-    (hfin : ∀ σ, (∀ i < 13, σ (.n (11 + 2 * i)) = osPtrF h.c b i) → σ (.n osTabs) = tabs →
+    (hfin : ∀ σ, (osLvsEnd h.c).Sf → (∀ i < 13, σ (.n (11 + 2 * i)) = osPtrF h.c b i) → σ (.n osTabs) = tabs →
       σ (.n (osFinTch h.c)) = osPtrF h.c b (13 + 2 * h.c.levels.length) →
       σ (.n (osFinSt h.c).claim) = (tailRun h.Lf.fw.pairs (h.capAt h.c.levels.length)
         (h.claimAt h.c.levels.length)).2.1 →
@@ -161,7 +161,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
     show 10 ≤ (osTail c (osLvsEnd c)).2.1.k
     omega) (fun σ3 _ ho ↦ BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
       obtain ⟨-, -, hp, ht, -, htc, -, hcl, -⟩ := (ho C0 rd0 hH0).2
-      exact hfin σ3 hp ht htc hcl) (fun σ' ho ↦ by exact ho.1)
+      exact hfin σ3 (ho C0 rd0 hH0).1.2.2.1.ok.sf hp ht htc hcl) (fun σ' ho ↦ by exact ho.1)
   refine ⟨_, BlkA.mono b3 fun σ' ⟨⟨⟨⟨_, hv, _⟩, _, _, hR⟩, hOT⟩, _, hFA, hFR, hFC⟩ ↦ ?_⟩
   have hal : AllocsAt σ' (osBodyA c) = bufsAt c b 0 (osSizesF c).length := by
     show AllocsAt σ' ((osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++

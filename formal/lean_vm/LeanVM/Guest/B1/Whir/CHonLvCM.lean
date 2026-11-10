@@ -153,7 +153,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have hroot : h.root l = root := by simp only [OsHD.root, hRg]
   have hheight : height = (osLvAt h.c l).depth := by rw [← hht, hRg]
   have hplen : (h.L l).phase.length = ((h.L l).qs h.logN).length := by rw [hph, hqs]; exact hnext.plen
-  have hcd := (hNm.2.2.2.2.2.2.2 l hln)
+  have hcd := (hNm.2.2.2.2.2.2.2.2 l hln)
   -- sizes
   have h9 : (osSizesF h.c).getD 9 0 = 2 * h.c.levels.length * 22 := by
     rw [hS.head (j := 9) (by omega)]; rfl

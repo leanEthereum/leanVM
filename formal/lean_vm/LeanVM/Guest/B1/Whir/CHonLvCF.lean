@@ -110,7 +110,7 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
   have hroot : h.root h.c.yrLevel = root := by simp only [OsHD.root, hRg]
   have hheight : height = (osLvAt h.c h.c.yrLevel).depth := by rw [← hht, hRg]
   have hplen : h.Lf.phase.length = (h.Lf.qs h.logN).length := by rw [hph, hqs]; exact hfin.plen
-  have hcd := (hNm.2.2.2.2.2.2.2 h.c.yrLevel hln)
+  have hcd := (hNm.2.2.2.2.2.2.2.2 h.c.yrLevel hln)
   have hfe := h.foldsEnd_le hS hln
   have h2 : (osSizesF h.c).getD 2 0 = h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds := by
     rw [hS.head (j := 2) (by omega)]; rfl
