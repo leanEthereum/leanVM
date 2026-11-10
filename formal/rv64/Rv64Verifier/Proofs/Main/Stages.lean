@@ -78,7 +78,7 @@ structure AfterIv (s : MachineState) (words : List Word) (u : MachineState) : Pr
   iv : bytesAt u (msp + 320) 32 = Model.fiatShamirIvRust (tbl words)
 
 /-- The `Vec`s `Bytecode::new` builds hold `bc`'s `blocks`, `words`, `positions` and `bytes`, at
-`msp + 400`, `424`, `448` and `240`, in allocated buffers. -/
+`msp + 400`, `424`, `448` and `240`, in allocated buffers, their pointers below `NEXT`. -/
 structure NewVecs (u : MachineState) (bc : Model.BytecodeRust) : Prop where
   blocks : blocksAt u (vecPtr u (msp + 400)) (vecLen u (msp + 400)).toNat = bc.blocks
   words : wordsAt u (vecPtr u (msp + 424)) (vecLen u (msp + 424)).toNat = bc.words
@@ -88,6 +88,10 @@ structure NewVecs (u : MachineState) (bc : Model.BytecodeRust) : Prop where
   wordsBuf : Buf u (vecPtr u (msp + 424)) (16 * (vecLen u (msp + 424)).toNat) 8
   positionsBuf : Buf u (vecPtr u (msp + 448)) (2 * (vecLen u (msp + 448)).toNat) 2
   bytesBuf : Buf u (vecPtr u (msp + 240)) (2 * (vecLen u (msp + 240)).toNat) 2
+  blocksLe : (vecPtr u (msp + 400)).toNat ≤ heapNext u
+  wordsLe : (vecPtr u (msp + 424)).toNat ≤ heapNext u
+  positionsLe : (vecPtr u (msp + 448)).toNat ≤ heapNext u
+  bytesLe : (vecPtr u (msp + 240)).toNat ≤ heapNext u
 
 /-- After `Bytecode::new`'s loop (`0x80000a20`): as `AfterIv`, the table's length at `msp`, and
 the four `Vec`s holding `newRust`'s. -/

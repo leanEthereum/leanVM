@@ -34,7 +34,7 @@ theorem sum_body (he : EnvOk e) {t : MachineState} {i j p : Nat} (hs : SInv e t 
     ∃ u, Reaches Image.code t u ∧ (Dead Image.code u ∨ (u.pc = 0x80011150 ∧ AInv e u i j) ∨
       (u.pc = 0x80011114 ∧ SInv e u i j (p + 1))) := by
   have hpc' := he.pre.bcClear.positions
-  have hpm := he.pre.bc.positions
+  have hpm := he.positionsMem (Nat.lt_of_lt_of_le hs.phi hs.pend)
   have hpa := he.pre.bc.positionsAlign
   have hplen := bc_positions_length e
   have hp : p < e.bc.positions.length := Nat.lt_of_lt_of_le hs.phi hs.pend

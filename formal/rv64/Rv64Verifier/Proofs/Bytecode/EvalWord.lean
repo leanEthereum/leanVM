@@ -97,7 +97,7 @@ theorem word_start (he : EnvOk e) {t : MachineState} {i j : Nat} (hw : WInv e t 
   have hsp := he.sp
   have hst := he.pre.stack.valid
   have hwc := he.pre.bcClear.words
-  have hwm := he.pre.bc.words
+  have hwm := he.wordsMem (Nat.lt_of_lt_of_le hw.jhi hw.wele)
   have hwa := he.pre.bc.wordsAlign
   have hlen := bc_words_length e
   have hj : j < e.bc.words.length := Nat.lt_of_lt_of_le hw.jhi hw.wele

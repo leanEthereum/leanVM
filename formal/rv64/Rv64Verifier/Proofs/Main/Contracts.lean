@@ -2,6 +2,7 @@ import Rv64Verifier.Proofs.Bytecode.Contracts
 import Rv64Verifier.Proofs.Rodata
 import Rv64Verifier.Model.Walk
 import Rv64Verifier.EndStatement
+import Rv64Verifier.Proofs.Layout.Repr
 
 /-!
 # What `main` needs of `walk`
@@ -16,9 +17,9 @@ The `Proof` as the image lays it out (`readProof`): `stream: Vec<E>` at `0`,
 `siblings: Vec<[u8; 32]>` at `24`, `leaf_index` at `48`. A sibling is read as bytes: its buffer is
 aligned to one byte only.
 
-`WalkCallSpec`: given the parts mapped, aligned, allocated and apart from `walk`'s stack and its
-result (`WalkCallPre`), `walk` returns `Ok` only if `verifyExecutionRust` of what they hold does, and
-writes only its result, its stack, `NEXT` and memory it allocates.
+`WalkCallSpec`: given the parts mapped, aligned, allocated and apart from `walk`'s stack, its
+result and `.rodata` (`WalkCallPre`), `walk` returns `Ok` only if `verifyExecutionRust` of what
+they hold does, and writes only its result, its stack, `NEXT` and memory it allocates.
 -/
 
 namespace Rv64Verifier.Proofs.Main
@@ -59,11 +60,12 @@ def readProof (s : MachineState) (p : Word) : Proof where
 /-- `Err`'s niche in the result's first doubleword. -/
 @[rv_addr] def errTag : Word := 0xffffffffffffffff
 
-/-- The `n` bytes from `a`, aligned to `al`, are mapped, allocated, and apart from `walk`'s stack
-and its result at `out`; none when `n = 0`. -/
+/-- The `n` bytes from `a`, aligned to `al`, are mapped, allocated, and apart from `walk`'s stack,
+its result at `out` and `.rodata`; when `n = 0`, `a` lies below `NEXT`. -/
 @[rv_addr] def Part (s : MachineState) (out a : Word) (n al : Nat) : Prop :=
-  n = 0 ∨ (Runtime.Mapped a n ∧ a.toNat % al = 0 ∧ Outside s a n ∧
-    Apart a n (stackLo s walkStack) walkStack ∧ Apart a n out walkOutSize)
+  a.toNat % al = 0 ∧ ((n = 0 ∧ a.toNat ≤ heapNext s) ∨ (Runtime.Mapped a n ∧ Outside s a n ∧
+    Apart a n (stackLo s walkStack) walkStack ∧ Apart a n out walkOutSize ∧
+    Apart a n rodataBase rodataSize))
 
 /-- The `Bytecode` at `p` and its four buffers. -/
 structure BcMem (s : MachineState) (out p : Word) : Prop where
@@ -102,6 +104,7 @@ structure WalkCallPre (s : MachineState) : Prop where
   out : Runtime.Mapped (s.getReg .x10) walkOutSize ∧ (s.getReg .x10).toNat % 8 = 0 ∧
     Outside s (s.getReg .x10) walkOutSize ∧
     Apart (s.getReg .x10) walkOutSize (stackLo s walkStack) walkStack
+  outRodata : Apart (s.getReg .x10) walkOutSize rodataBase rodataSize
   bc : BcMem s (s.getReg .x10) (s.getReg .x11)
   publicInput : Part s (s.getReg .x10) (s.getReg .x12) 32 8
   proof : ProofMem s (s.getReg .x10) (s.getReg .x13)
@@ -113,7 +116,7 @@ structure WalkCallPost (s t : MachineState) : Prop where
   ok : t.getMem (s.getReg .x10) ≠ errTag → ∃ summary,
     Model.verifyExecutionRust (readBytecode s (s.getReg .x11)) (bytesAt s (s.getReg .x12) 32)
       (readProof s (s.getReg .x13)) = some summary
-  frame : ByteFrame s t fun a ↦ Within a (s.getReg .x10) walkOutSize ∨
+  frame : Rv64Verifier.Layout.DFrame s t fun a ↦ Within a (s.getReg .x10) walkOutSize ∨
     Within a (stackLo s walkStack) walkStack ∨ Within a nextAddr 8 ∨ Fresh s t a
 
 abbrev WalkCallSpec : Prop := FunSpec Image.code 0x80000ef8 WalkCallPre WalkCallPost

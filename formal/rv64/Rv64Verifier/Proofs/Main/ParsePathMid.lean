@@ -205,7 +205,9 @@ theorem path_mid (h0 : ParseA s words u₀) {P L : Word} {npi j k l : Nat} {t₀
     · rw [hsread, h0']; rfl
     · rw [readWords_same m₄, hlw, hp.leaf]
     · rw [hn₄]; exact hlb.mono (le_refl _) (by rw [← hn₂]; exact hmw)
-    · rw [hn₄]; exact ⟨Nat.mod_one _, Or.inl (by omega)⟩
+    · have hQ := bufw.le
+      simp only [heapNext] at hQ hn₄ ⊢
+      exact ⟨Nat.mod_one _, Or.inl ⟨by omega, by omega⟩⟩
     · exact hfrw.trans (BFrame.of_same m₄ _) fun _ h ↦ h
     · rw [hn₄]; rw [← hn₂] at hm0; exact le_trans hm0 hmw
   -- the siblings

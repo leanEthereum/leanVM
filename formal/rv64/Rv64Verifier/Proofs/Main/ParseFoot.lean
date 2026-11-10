@@ -14,13 +14,21 @@ namespace Rv64Verifier.Proofs.Main
 open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile Rv64Verifier.Runtime
   Rv64Verifier.Proofs.Bytecode Rv64Verifier.Proofs.End
 
-/-- `n` bytes from `p`, aligned to `al`, within `[lo, hi)`, or none. -/
+/-- `n` bytes from `p`, aligned to `al`, within `[lo, hi)`, or none and `p` at most `hi`. -/
 @[rv_addr] def InR (p : Word) (n al lo hi : Nat) : Prop :=
-  p.toNat % al = 0 ∧ (n = 0 ∨ lo ≤ p.toNat ∧ p.toNat + n ≤ hi)
+  p.toNat % al = 0 ∧ ((n = 0 ∧ p.toNat ≤ hi) ∨ lo ≤ p.toNat ∧ p.toNat + n ≤ hi)
 
 theorem InR.mono {p : Word} {n al lo hi lo' hi' : Nat} (h : InR p n al lo hi) (h1 : lo' ≤ lo)
     (h2 : hi ≤ hi') : InR p n al lo' hi' :=
-  ⟨h.1, h.2.imp_right fun h' ↦ ⟨le_trans h1 h'.1, le_trans h'.2 h2⟩⟩
+  ⟨h.1, h.2.imp (fun h' ↦ ⟨h'.1, le_trans h'.2 h2⟩) fun h' ↦ ⟨le_trans h1 h'.1, le_trans h'.2 h2⟩⟩
+
+theorem InR.le {p : Word} {n al lo hi : Nat} (h : InR p n al lo hi) : p.toNat ≤ hi := by
+  rcases h.2 with h' | h' <;> omega
+
+/-- A buffer of the heap whose pointer lies below `NEXT`. -/
+theorem inR_of_buf {s : MachineState} {p : Word} {n al : Nat} (h : Buf s p n al)
+    (hp : p.toNat ≤ heapNext s) : InR p n al heapStart (heapNext s) :=
+  ⟨h.1, h.2.imp_left fun h0 ↦ ⟨h0, hp⟩⟩
 
 /-- The `MerklePath` at `a`'s buffers lie in `[lo, hi)`. -/
 structure PathFoot (t : MachineState) (a : Word) (lo hi : Nat) : Prop where
@@ -126,16 +134,16 @@ theorem PhaseIn.frame {t t' : MachineState} {a : Word} {ph : List Opening} {lo h
 theorem part_of_inR {s : MachineState} {p : Word} {n al lo hi : Nat} (h : InR p n al lo hi)
     (hlo : heapStart ≤ lo) (hhi : hi ≤ heapNext s) (hheap : HeapOk s) (hsp : s.getReg .x2 = msp) :
     Part s (msp + 320) p n al := by
-  rcases h with ⟨hal, h0 | ⟨h1, h2⟩⟩
-  · exact Or.inl h0
+  rcases h with ⟨hal, ⟨h0, hp⟩ | ⟨h1, h2⟩⟩
+  · exact ⟨hal, Or.inl ⟨h0, le_trans hp hhi⟩⟩
   · have he := hheap.hi
     simp only [heapStart, heapNext, heapEnd] at hlo hhi he
-    right
-    refine ⟨?_, hal, ⟨Or.inl (by simp only [heapNext]; omega), ?_⟩, ?_, ?_⟩
+    refine ⟨hal, Or.inr ⟨?_, ⟨Or.inl (by simp only [heapNext]; omega), ?_⟩, ?_, ?_, ?_⟩⟩
     · simp only [Mapped]; omega
     · addr_omega [h1, h2, hlo, hhi, he]
     · simp only [stackLo, hsp]; addr_omega [h1, h2, hlo, hhi, he]
     · addr_omega [h1, h2, hlo, hhi, he]
+    · simp only [rodataBase, rodataSize]; addr_omega [h1, h2, hlo, hhi, he]
 
 theorem PathIn.mem {s : MachineState} {a : Word} {op : Opening} {lo hi : Nat}
     (h : PathIn s a op lo hi) (hlo : heapStart ≤ lo) (hhi : hi ≤ heapNext s) (hheap : HeapOk s)

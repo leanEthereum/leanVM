@@ -39,7 +39,7 @@ structure BE (s : MachineState) (words : List Word) (u₀ : MachineState) (i L :
 
 theorem VecIn.mono {t : MachineState} {a : Word} {size al H H' H'' : Nat}
     (h : VecIn t a size al H H') (hH : H' ≤ H'') : VecIn t a size al H H'' :=
-  ⟨h.len, h.al, h.buf.imp_right fun h ↦ ⟨h.1, le_trans h.2 hH⟩⟩
+  ⟨h.len, h.al, h.buf.imp_right fun h ↦ ⟨h.1, le_trans h.2 hH⟩, h.dang⟩
 
 theorem VecBufs.mono {t : MachineState} {H H' H'' : Nat} (h : VecBufs t H H') (hH : H' ≤ H'') :
     VecBufs t H H'' :=
@@ -54,6 +54,14 @@ theorem VecIn.buf' {t : MachineState} {a : Word} {size al H : Nat}
   rcases h.buf with h0 | ⟨h1, h2⟩
   · left; rw [Nat.mul_comm]; omega
   · right; rw [Nat.mul_comm]; omega
+
+/-- A `Vec`'s pointer lies below `NEXT`. -/
+theorem VecIn.ptr_le {t : MachineState} {a : Word} {size al H : Nat}
+    (h : VecIn t a size al H (heapNext t)) (hn : heapStart ≤ heapNext t) :
+    (vecPtr t a).toNat ≤ heapNext t := by
+  rcases h.buf with h0 | ⟨_, h2⟩
+  · exact le_of_lt (lt_of_lt_of_le (h.dang h0) hn)
+  · omega
 
 section
 variable {s u₀ t : MachineState} {words : List Word} {i L : Nat} {st : Model.NewState}
@@ -94,8 +102,10 @@ theorem block_next (h : BE s words u₀ i L st t) :
     · rw [ng.iv']; exact h.a.iv
     · have hnb : ((tbl words).length + 2 ^ 14 - 1) / 2 ^ 14 = i + 1 := by
         rw [tbl_length hlen]; omega
+      have hS : heapStart ≤ heapNext v := by rw [hn]; simp only [heapStart, heapNext]; omega
       refine ⟨_, by rw [newRust_eq, hnb, h.fold]; rfl, vecs.blocks, vecs.words, vecs.positions,
-        vecs.bytes, bufs.b.buf' hlo, bufs.w.buf' hlo, bufs.p.buf' hlo, bufs.y.buf' hlo⟩
+        vecs.bytes, bufs.b.buf' hlo, bufs.w.buf' hlo, bufs.p.buf' hlo, bufs.y.buf' hlo,
+        bufs.b.ptr_le hS, bufs.w.ptr_le hS, bufs.p.ptr_le hS, bufs.y.ptr_le hS⟩
   · have hL' : L = 2 ^ 14 := by
       have : (t.getReg .x26).toNat ≠ 0 := fun e ↦ hz (BitVec.eq_of_toNat_eq e)
       omega

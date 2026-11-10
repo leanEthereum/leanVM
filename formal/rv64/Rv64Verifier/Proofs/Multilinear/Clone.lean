@@ -27,7 +27,25 @@ def kept : List Reg := [.x19, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27]
 
 abbrev Inv (s u : MachineState) (nx : Word) : Prop := FnInv s u 64 slots kept (W s) nx
 
-theorem bounds {s : MachineState} (h : ClonePre s) :
+/-- `ClonePre`, the slice asked for only when it is not empty (`clone` then reads nothing of it):
+an empty slice's dangling pointer is neither `Mapped` nor `Outside`. -/
+structure ClonePreE (s : MachineState) : Prop where
+  heap : HeapOk s
+  out : ValidMemRange (s.getReg .x10) 3
+  src : (s.getReg .x12).toNat ≠ 0 → Mapped (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  srcAlign : (s.getReg .x11).toNat % 8 = 0
+  stack : RtStack s cloneStack
+  outFree : Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s cloneStack) cloneStack
+  srcFree : (s.getReg .x12).toNat ≠ 0 → Outside s (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  srcOut : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (s.getReg .x10) 24
+  srcStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s cloneStack) cloneStack
+
+theorem preE {s : MachineState} (h : ClonePre s) : ClonePreE s :=
+  ⟨h.heap, h.out, fun _ ↦ h.src, h.srcAlign, h.stack, h.outFree, h.outStack, fun _ ↦ h.srcFree,
+    h.srcOut, h.srcStack⟩
+
+theorem bounds {s : MachineState} (h : ClonePreE s) :
     0x78000070 ≤ (s.getReg .x2).toNat ∧ (s.getReg .x2).toNat ≤ 0xc0000008 ∧
       (s.getReg .x2).toNat % 16 = 0 ∧ (s.getReg .x10).toNat % 8 = 0 ∧
       (s.getReg .x10).toNat + 24 ≤ 0xc0000008 := by
@@ -38,7 +56,7 @@ theorem bounds {s : MachineState} (h : ClonePre s) :
   rw [this.2.2.2] at ha
   omega
 
-theorem stack64 {s : MachineState} (h : ClonePre s) : RtStack s 64 := by
+theorem stack64 {s : MachineState} (h : ClonePreE s) : RtStack s 64 := by
   have hb := bounds h
   have hst := h.stack
   have hn := hst.next
@@ -47,7 +65,7 @@ theorem stack64 {s : MachineState} (h : ClonePre s) : RtStack s 64 := by
   exact ValidMemRange.sub hst.valid (by addr_omega [hb]) (by addr_omega [hb]) (by addr_omega [hb])
 
 theorem Inv.step {s u v : MachineState} {nx nx' : Word} {X : Word → Prop}
-    (hpre : ClonePre s) (h : Inv s u nx) (hX : ByteFrame u v X)
+    (hpre : ClonePreE s) (h : Inv s u nx) (hX : ByteFrame u v X)
     (hXsub : ∀ a, X a → W s a ∨ Within a nextAddr 8 ∨ (heapNext s ≤ a.toNat ∧ a.toNat < nx'.toNat))
     (hnx : v.getMem nextAddr = nx') (hle : nx.toNat ≤ nx'.toNat) (hend : nx'.toNat ≤ heapEnd)
     (hr : ∀ r ∈ Reg.x2 :: kept, v.getReg r = u.getReg r) :
@@ -59,7 +77,7 @@ theorem Inv.step {s u v : MachineState} {nx nx' : Word} {X : Word → Prop}
     (hr _ (by decide)) fun r hr' ↦ hr r (List.mem_cons_of_mem _ hr')
 
 /-- A block that writes nothing. -/
-theorem Inv.same {s u v : MachineState} {nx : Word} (hpre : ClonePre s) (h : Inv s u nx)
+theorem Inv.same {s u v : MachineState} {nx : Word} (hpre : ClonePreE s) (h : Inv s u nx)
     (hm : ∀ a, v.getMem a = u.getMem a) {l : List Reg} (hk : ∀ r ∈ l, v.getReg r = u.getReg r)
     (hl : ∀ r ∈ Reg.x2 :: kept, r ∈ l := by decide) : Inv s v nx :=
   h.step hpre (ByteFrame.of_same hm fun _ ↦ False) (fun _ h ↦ h.elim) ((hm _).trans h.next)
@@ -77,7 +95,7 @@ theorem Inv.saved {s u : MachineState} {nx : Word} (h : Inv s u nx) :
   exact ⟨hsp, sl⟩
 
 /-- The epilogue: restore and return. -/
-theorem exit {s u : MachineState} {nx : Word} (hpre : ClonePre s) (hpc : u.pc = 0x800089f4)
+theorem exit {s u : MachineState} {nx : Word} (hpre : ClonePreE s) (hpc : u.pc = 0x800089f4)
     (h : Inv s u nx) :
     ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧
       ∀ a, t.getMem a = u.getMem a := by
@@ -100,8 +118,10 @@ theorem exit {s u : MachineState} {nx : Word} (hpre : ClonePre s) (hpc : u.pc = 
   rcases hr' with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact (k _ (by decide)).trans (h.kept _ (by decide))
 
-/-- **`clone` meets its contract**, given `try_allocate_in`'s and `memcpy`'s. -/
-theorem clone_spec (hT : TryAllocZeroedSpec) (hC : MemcpySpec 0x800126e4) : CloneSpec := by
+/-- **`clone` meets its contract**, the slice asked for only when not empty, given
+`try_allocate_in`'s and `memcpy`'s. -/
+theorem clone_spec_e (hT : TryAllocZeroedSpec) (hC : MemcpySpec 0x800126e4) :
+    FunSpec Image.code 0x8000897c ClonePreE ClonePost := by
   intro s hpc hpre
   have hb := bounds hpre
   have hst := hpre.stack
@@ -254,15 +274,15 @@ theorem clone_spec (hT : TryAllocZeroedSpec) (hC : MemcpySpec 0x800126e4) : Clon
     exact fin t₄ (hr₂.trans (hr₃.trans hr₄)) (b800089c0_pc_taken h₄ (by rw [hx8₃]; exact h0))
       inv₄ c₀ c₁ (by rw [c₂, h0]) (by rw [hz]; rfl)
   -- copy
-  have hS := hpre.src
-  have hSf := hpre.srcFree
-  have hSs := hpre.srcStack
-  have hSo := hpre.srcOut
-  simp only [Outside] at hSf
   have hlen : 0 < (s.getReg .x12).toNat := by
     rcases Nat.eq_zero_or_pos (s.getReg .x12).toNat with h | h
     · exact absurd (BitVec.eq_of_toNat_eq h) h0
     · exact h
+  have hS := hpre.src (by omega)
+  have hSf := hpre.srcFree (by omega)
+  have hSs := hpre.srcStack
+  have hSo := hpre.srcOut
+  simp only [Outside] at hSf
   have hbuf' := hbuf
   simp only [NewBuf, hn₁] at hbuf'
   have hPr : heapNext s ≤ P.toNat ∧ P.toNat + (s.getReg .x12).toNat * 24 ≤ heapNext t₂ := by
@@ -359,5 +379,9 @@ theorem clone_spec (hT : TryAllocZeroedSpec) (hC : MemcpySpec 0x800126e4) : Clon
     · addr_omega [hw, hi, hSs, hb, hS]
     · addr_omega [hw, hi, hSf.2, hS]
     · addr_omega [hw, hi, hSf.1, hfit₅, hS]
+
+/-- **`clone` meets its contract**, given `try_allocate_in`'s and `memcpy`'s. -/
+theorem clone_spec (hT : TryAllocZeroedSpec) (hC : MemcpySpec 0x800126e4) : CloneSpec :=
+  fun s hpc hpre ↦ clone_spec_e hT hC s hpc (preE hpre)
 
 end Rv64Verifier.Proofs.Multilinear.Clone

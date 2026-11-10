@@ -36,7 +36,7 @@ theorem head (he : EnvOk e) {t : MachineState} {i : Nat} (ho : Outer e t i)
   have hsp := he.sp
   have hst := he.pre.stack.valid
   have hbc := he.pre.bcClear.blocks
-  have hbm := he.pre.bc.blocks
+  have hbm := he.blocksMem ho.lt
   have hba := he.pre.bc.blocksAlign
   have hlen := bc_blocks_length e
   have hi := ho.lt

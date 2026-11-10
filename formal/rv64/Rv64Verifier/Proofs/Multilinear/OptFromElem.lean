@@ -443,9 +443,10 @@ theorem last {s u : MachineState} {nx P : Word} (hpre : Bus.OptFromElemPre s) (h
 /-! ## The epilogue -/
 
 theorem exit {s u : MachineState} {nx P : Word} (hpre : Bus.OptFromElemPre s) (hP : BufOk s P nx)
-    (hu : ExitInv s u nx P) :
-    ∃ t, Reaches Image.code u t ∧
-      ((t.pc = returnAddress s ∧ Preserves s t ∧ Bus.OptFromElemPost s t) ∨ Dead Image.code t) := by
+    (hPle : P.toNat ≤ nx.toNat) (hu : ExitInv s u nx P) :
+    ∃ t, Reaches Image.code u t ∧ ((t.pc = returnAddress s ∧ Preserves s t ∧
+      Bus.OptFromElemPost s t ∧ (vecPtr t (s.getReg .x10)).toNat ≤ heapNext t) ∨
+        Dead Image.code t) := by
   have hb := bounds hpre
   have hos := hpre.outStack
   have hof := hpre.outFree
@@ -486,7 +487,7 @@ theorem exit {s u : MachineState} {nx P : Word} (hpre : Bus.OptFromElemPre s) (h
       len := by simp only [vecLen, m₂]
       elems := ?_
       fresh := ?_
-      frame := hbf.mono fun a ha ↦ ?_ }⟩⟩
+      frame := hbf.mono fun a ha ↦ ?_ }, by simp only [vecPtr, m₁, hn]; exact hPle⟩⟩
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hr'
     rcases hr' with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       exact (k _ (by decide)).trans (hu.inv.kept _ (by decide))
@@ -529,9 +530,10 @@ theorem exit {s u : MachineState} {nx P : Word} (hpre : Bus.OptFromElemPre s) (h
 /-! ## `from_elem` -/
 
 /-- **`<Option<E>>::from_elem` meets its contract**, given `try_allocate_in`'s and `reserve`'s
-(room enough). -/
-theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x8001086c) :
-    Bus.OptFromElemSpec := by
+(room enough), and the buffer lies below `NEXT` (dangling, at the alignment, when empty). -/
+theorem opt_from_elem_below (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x8001086c) :
+    FunSpec Image.code 0x80010724 Bus.OptFromElemPre fun s t ↦
+      Bus.OptFromElemPost s t ∧ (vecPtr t (s.getReg .x10)).toNat ≤ heapNext t := by
   intro s hpc hpre
   have hb := bounds hpre
   have hst := hpre.stack
@@ -600,11 +602,13 @@ theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x800
   have hm₃ := b80010760_mem_same h₃
   have inv₃ := inv₂.same hpre hm₃ k₃
   obtain ⟨hcap, hbuf⟩ := hpost₂.ok (by rw [hx10₁]; exact htag)
+  have hdang := hpost₂.dangling (by rw [hx10₁]; exact htag)
+  rw [hx10₁, b80010724_x11 h₁, b80010724_x13 h₁] at hdang
   rw [hx10₁, b80010724_x11 h₁] at hcap hbuf
   rw [b80010724_x14 h₁, b80010724_x13 h₁] at hbuf
-  rv_eval [] at hcap hbuf
+  rv_eval [] at hcap hbuf hdang
   obtain ⟨P, hP⟩ : ∃ P, P = t₂.getMem (s.getReg .x2 - 40) := ⟨_, rfl⟩
-  rw [← hP] at hbuf
+  rw [← hP] at hbuf hdang
   have hsp₃ : t₃.getReg .x2 = s.getReg .x2 - 80 := (k₃ .x2 (by decide)).trans hsp₂
   have hreg (r : Reg) (hr : r ∈ [Reg.x8, .x9, .x18]) : t₃.getReg r = t₁.getReg r := by
     rw [k₃ r (mem_of_mem hr _), hpres₂ r (by unfold calleeSaved; exact mem_of_mem hr _)]
@@ -677,11 +681,24 @@ theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x800
   have hPr : (s.getReg .x12).toNat = 0 ∨ (heapNext s ≤ P.toNat ∧
       P.toNat + (s.getReg .x12).toNat * 32 ≤ (t₂.getMem nextAddr).toNat) := hBuf.range
   have hPf := hBuf.fits
+  have hPle : P.toNat ≤ (t₂.getMem nextAddr).toNat := by
+    have hlo := hheap.lo
+    simp only [heapStart, heapNext] at hlo
+    have hm2 := hpost₂.mono
+    rw [hn₁] at hm2
+    simp only [heapNext] at hm2
+    rcases Nat.eq_zero_or_pos (s.getReg .x12).toNat with h0 | h0
+    · rw [hdang (BitVec.eq_of_toNat_eq h0)]
+      exact Nat.le_trans (Nat.le_trans (by decide) hlo) hm2
+    · rcases hPr with h | h
+      · omega
+      · omega
   have finish (u : MachineState) (hu : Reaches Image.code s u)
       (hl : LastInv s u (t₂.getMem nextAddr) P) : ∃ t, Reaches Image.code s t ∧
-        ((t.pc = returnAddress s ∧ Preserves s t ∧ Bus.OptFromElemPost s t) ∨ Dead Image.code t) := by
+        ((t.pc = returnAddress s ∧ Preserves s t ∧ Bus.OptFromElemPost s t ∧
+          (vecPtr t (s.getReg .x10)).toNat ≤ heapNext t) ∨ Dead Image.code t) := by
     obtain ⟨v, hv, hx⟩ := last hpre hBuf hl
-    obtain ⟨t, ht, hres⟩ := exit hpre hBuf hx
+    obtain ⟨t, ht, hres⟩ := exit hpre hBuf hPle hx
     exact ⟨t, hu.trans (hv.trans ht), hres⟩
   by_cases hlt : (s.getReg .x12).toNat < 2
   · have hpc₇ := b8001078c_pc_taken h₆ (by rw [hmid₅.x18]; exact hlt)
@@ -700,7 +717,7 @@ theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x800
         (b80010808_pc_not_taken h₇ (by rw [hmid₆.x18]; exact h0)) (by rv_eval [])
       have k₈ := b8001080c_keeps h₈
       have hm₈ := b8001080c_mem_same h₈
-      obtain ⟨t, hr, ht⟩ := exit hpre hBuf {
+      obtain ⟨t, hr, ht⟩ := exit hpre hBuf hPle {
         x8 := (k₈ .x8 (by decide)).trans hmid₇.x8
         x9 := (k₈ .x9 (by decide)).trans hmid₇.x9
         x18 := (k₈ .x18 (by decide)).trans hmid₇.x18
@@ -758,5 +775,11 @@ theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x800
   rcases ht with ht | hdead
   · exact finish t (hreach.trans (hr₇.trans hr)) ht
   · exact ⟨t, hreach.trans (hr₇.trans hr), Or.inr hdead⟩
+
+/-- `opt_from_elem_below` without the pointer's bound. -/
+theorem opt_from_elem_spec (hT : TryAllocZeroedSpec) (hR : ReserveFastSpec 0x8001086c) :
+    Bus.OptFromElemSpec := fun s hpc hpre ↦ by
+  obtain ⟨t, hr, h⟩ := opt_from_elem_below hT hR s hpc hpre
+  exact ⟨t, hr, h.imp_left fun ⟨a, b, c⟩ ↦ ⟨a, b, c.1⟩⟩
 
 end Rv64Verifier.Proofs.Multilinear.OptFromElem

@@ -52,13 +52,13 @@ def readBytecode (s : MachineState) (p : Word) : Model.BytecodeRust where
 structure BytecodeMem (s : MachineState) (p : Word) : Prop where
   self : Mapped p 136
   align : p.toNat % 8 = 0
-  blocks : Mapped (vecPtr s p) (24 * (vecLen s p).toNat)
+  blocks : (vecLen s p).toNat = 0 ∨ Mapped (vecPtr s p) (24 * (vecLen s p).toNat)
   blocksAlign : (vecPtr s p).toNat % 8 = 0
-  words : Mapped (vecPtr s (p + 24)) (16 * (vecLen s (p + 24)).toNat)
+  words : (vecLen s (p + 24)).toNat = 0 ∨ Mapped (vecPtr s (p + 24)) (16 * (vecLen s (p + 24)).toNat)
   wordsAlign : (vecPtr s (p + 24)).toNat % 8 = 0
-  positions : Mapped (vecPtr s (p + 48)) (2 * (vecLen s (p + 48)).toNat)
+  positions : (vecLen s (p + 48)).toNat = 0 ∨ Mapped (vecPtr s (p + 48)) (2 * (vecLen s (p + 48)).toNat)
   positionsAlign : (vecPtr s (p + 48)).toNat % 2 = 0
-  bytes : Mapped (vecPtr s (p + 72)) (2 * (vecLen s (p + 72)).toNat)
+  bytes : (vecLen s (p + 72)).toNat = 0 ∨ Mapped (vecPtr s (p + 72)) (2 * (vecLen s (p + 72)).toNat)
   bytesAlign : (vecPtr s (p + 72)).toNat % 2 = 0
 
 /-- The `n` bytes from `a` miss the free heap and `NEXT`, the `m` bytes below `sp` and the 32

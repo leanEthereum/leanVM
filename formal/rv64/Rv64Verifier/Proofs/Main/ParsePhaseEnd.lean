@@ -95,7 +95,7 @@ theorem phase_bb0 (h0 : ParseA s words u₀) {k1 : Nat} {S O P : Word} {stream :
   have hnew : PhaseIn v a ops (O.toNat + 24 * np) (heapNext v) := by
     refine ⟨?_, ?_, fun j hj ↦ ?_⟩
     · rw [e8, e16, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hnpi, hnv]
-      refine ⟨hP8, hPb.imp (fun h' ↦ by omega) fun h' ↦ ⟨?_, h'.2⟩⟩
+      refine ⟨hP8, hPb.imp (fun h' ↦ by simp only [heapNext] at h' ⊢; omega) fun h' ↦ ⟨?_, h'.2⟩⟩
       simp only [heapNext] at h' ⊢; omega
     · rw [e16, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hnpi, hb.len]
     · rw [e8]

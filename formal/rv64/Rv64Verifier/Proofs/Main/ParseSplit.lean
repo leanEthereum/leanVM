@@ -13,12 +13,16 @@ namespace Rv64Verifier.Proofs.Main
 open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile Rv64Verifier.Runtime
   Rv64Verifier.Proofs.Bytecode
 
-/-- The `Bytecode` at `msp + 104`'s buffers are allocated. -/
+/-- The `Bytecode` at `msp + 104`'s buffers are allocated, their pointers below `NEXT`. -/
 structure BcBufs (u : MachineState) : Prop where
   blocks : Buf u (vecPtr u (msp + 104)) (24 * (vecLen u (msp + 104)).toNat) 8
   words : Buf u (vecPtr u (msp + 128)) (16 * (vecLen u (msp + 128)).toNat) 8
   positions : Buf u (vecPtr u (msp + 152)) (2 * (vecLen u (msp + 152)).toNat) 2
   bytes : Buf u (vecPtr u (msp + 176)) (2 * (vecLen u (msp + 176)).toNat) 2
+  blocksLe : (vecPtr u (msp + 104)).toNat ≤ heapNext u
+  wordsLe : (vecPtr u (msp + 128)).toNat ≤ heapNext u
+  positionsLe : (vecPtr u (msp + 152)).toNat ≤ heapNext u
+  bytesLe : (vecPtr u (msp + 176)).toNat ≤ heapNext u
 
 /-- After the public input (`0x80000aac`): `n + 5` words read, the `Bytecode` at `msp + 104` is
 `newRust`'s, the public input's bytes at `msp + 240`. -/

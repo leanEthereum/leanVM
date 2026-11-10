@@ -93,7 +93,7 @@ theorem blocks_loop (hMul : MulSpec) (he : EnvOk e) {t : MachineState} {i : Nat}
   obtain ⟨u, hr, hd | ⟨hu, ho'⟩ | ⟨hu, hreg, heq, htot⟩⟩ := block_step hMul he ho hpc
   · exact Or.inl ⟨u, hr, Or.inl hd⟩
   · refine Or.inr ⟨u, hr, ⟨i + 1, hu, ho'⟩, ?_⟩
-    have hbm := he.pre.bc.blocks
+    have hbm := he.blocksMem ho'.lt
     have hlen := bc_blocks_length e
     have h1 := ho'.lt
     simp only [Mapped, Env.blocksLen, Env.blocksPtr, Env.bcp] at hbm hlen ⊢

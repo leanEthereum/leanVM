@@ -253,12 +253,13 @@ end
 /-! ## The `Vec`s -/
 
 /-- The `Vec` at `a`, of `size`-byte elements aligned to `al`: its length within its capacity, its
-buffer in `[H, H')`, or none. -/
+buffer in `[H, H')`, or none and its pointer below the heap. -/
 structure VecIn (t : MachineState) (a : Word) (size al H H' : Nat) : Prop where
   len : (vecLen t a).toNat ≤ (vecCap t a).toNat
   al : (vecPtr t a).toNat % al = 0
   buf : (vecCap t a).toNat * size = 0 ∨
     H ≤ (vecPtr t a).toNat ∧ (vecPtr t a).toNat + (vecCap t a).toNat * size ≤ H'
+  dang : (vecCap t a).toNat * size = 0 → (vecPtr t a).toNat < heapStart
 
 /-- The `Vec`s' buffers, `blocks` (`msp + 400`), `words` (`424`), `positions` (`448`) and `bytes`
 (`240`), in `[H, H')` and pairwise apart. -/
@@ -368,10 +369,14 @@ theorem VecsAt.frame {t t' : MachineState} {st : Model.NewState} {H H' : Nat} {W
     have hb2 := hb.p
     have hb3 := hb.y
     obtain ⟨_, _, _, _, bw, bp, bY, wp, wy, py⟩ := hb
-    exact ⟨⟨by rw [l0, c0]; exact hb0.len, by rw [p0]; exact hb0.al, by rw [p0, c0]; exact hb0.buf⟩,
-      ⟨by rw [l1, c1]; exact hb1.len, by rw [p1]; exact hb1.al, by rw [p1, c1]; exact hb1.buf⟩,
-      ⟨by rw [l2, c2]; exact hb2.len, by rw [p2]; exact hb2.al, by rw [p2, c2]; exact hb2.buf⟩,
-      ⟨by rw [l3, c3]; exact hb3.len, by rw [p3]; exact hb3.al, by rw [p3, c3]; exact hb3.buf⟩,
+    exact ⟨⟨by rw [l0, c0]; exact hb0.len, by rw [p0]; exact hb0.al, by rw [p0, c0]; exact hb0.buf,
+        by rw [p0, c0]; exact hb0.dang⟩,
+      ⟨by rw [l1, c1]; exact hb1.len, by rw [p1]; exact hb1.al, by rw [p1, c1]; exact hb1.buf,
+        by rw [p1, c1]; exact hb1.dang⟩,
+      ⟨by rw [l2, c2]; exact hb2.len, by rw [p2]; exact hb2.al, by rw [p2, c2]; exact hb2.buf,
+        by rw [p2, c2]; exact hb2.dang⟩,
+      ⟨by rw [l3, c3]; exact hb3.len, by rw [p3]; exact hb3.al, by rw [p3, c3]; exact hb3.buf,
+        by rw [p3, c3]; exact hb3.dang⟩,
       by rw [p0, c0, p1, c1]; exact bw, by rw [p0, c0, p2, c2]; exact bp,
       by rw [p0, c0, p3, c3]; exact bY, by rw [p1, c1, p2, c2]; exact wp,
       by rw [p1, c1, p3, c3]; exact wy, by rw [p2, c2, p3, c3]; exact py⟩
@@ -522,9 +527,10 @@ theorem new_init (h : NewA s words u) :
     · rw [show (msp + 448 + 16 : Word) = msp + BitVec.ofNat 64 464 from rfl, w464]; rfl
     · rw [show (msp + 240 + 16 : Word) = msp + BitVec.ofNat 64 256 from rfl, w256]; rfl
   · have z : ∀ {a : Word} {sz al : Nat} (h0 : t.getMem a = 0) (h1 : (t.getMem (a + 8)).toNat % al = 0)
-        (h2 : t.getMem (a + 16) = 0), VecIn t a sz al (heapNext u) (heapNext t) := fun h0 h1 h2 ↦
+        (h3 : (t.getMem (a + 8)).toNat < heapStart) (h2 : t.getMem (a + 16) = 0),
+        VecIn t a sz al (heapNext u) (heapNext t) := fun h0 h1 h3 h2 ↦
       ⟨by simp only [vecLen, vecCap, h0, h2]; rfl, h1,
-        Or.inl (by simp only [vecCap, h0]; exact Nat.zero_mul _)⟩
+        Or.inl (by simp only [vecCap, h0]; exact Nat.zero_mul _), fun _ ↦ h3⟩
     have c0 : ∀ {a : Word} {m : Nat} {b : Word} {k : Nat}, t.getMem a = 0 →
         Apart (vecPtr t a) ((vecCap t a).toNat * m) b k := fun h0 ↦
       Or.inl (by simp only [vecCap, h0]; exact Nat.zero_mul _)
@@ -536,8 +542,16 @@ theorem new_init (h : NewA s words u) :
       rw [show (msp + 448 + 8 : Word) = msp + BitVec.ofNat 64 456 from rfl, w456]; rfl
     have a248 : (t.getMem (msp + 240 + 8)).toNat % 2 = 0 := by
       rw [show (msp + 240 + 8 : Word) = msp + BitVec.ofNat 64 248 from rfl, w248]; rfl
-    exact ⟨z w400 a408 w416, z w424 a432 w440, z w448 a456 w464, z w240 a248 w256,
-      c0 w400, c0 w400, c0 w400, c0 w424, c0 w424, c0 w448⟩
+    have d408 : (t.getMem (msp + 400 + 8)).toNat < heapStart := by
+      rw [show (msp + 400 + 8 : Word) = msp + BitVec.ofNat 64 408 from rfl, w408]; decide
+    have d432 : (t.getMem (msp + 424 + 8)).toNat < heapStart := by
+      rw [show (msp + 424 + 8 : Word) = msp + BitVec.ofNat 64 432 from rfl, w432]; decide
+    have d456 : (t.getMem (msp + 448 + 8)).toNat < heapStart := by
+      rw [show (msp + 448 + 8 : Word) = msp + BitVec.ofNat 64 456 from rfl, w456]; decide
+    have d248 : (t.getMem (msp + 240 + 8)).toNat < heapStart := by
+      rw [show (msp + 240 + 8 : Word) = msp + BitVec.ofNat 64 248 from rfl, w248]; decide
+    exact ⟨z w400 a408 d408 w416, z w424 a432 d432 w440, z w448 a456 d456 w464,
+      z w240 a248 d248 w256, c0 w400, c0 w400, c0 w400, c0 w424, c0 w424, c0 w448⟩
   · rw [halvesAt_zero h.groupOf.1 (by omega)]
     · rfl
     · rw [show 2 * 0x4000 = 0x8000 from rfl, ← h.groupOfZero]

@@ -153,7 +153,8 @@ structure VS (u₀ : MachineState) (Hb H1 U Un : Nat) (st' : Model.NewState) (t 
 theorem VecIn.keep {t t' : MachineState} {a : Word} {size al H H' H'' : Nat}
     (h : VecIn t a size al H H') (hc : vecCap t' a = vecCap t a) (hp : vecPtr t' a = vecPtr t a)
     (hl : vecLen t' a = vecLen t a) (hH : H' ≤ H'') : VecIn t' a size al H H'' :=
-  ⟨by rw [hl, hc]; exact h.len, by rw [hp]; exact h.al, by rw [hp, hc]; exact (h.mono hH).buf⟩
+  ⟨by rw [hl, hc]; exact h.len, by rw [hp]; exact h.al, by rw [hp, hc]; exact (h.mono hH).buf,
+    by rw [hp, hc]; exact h.dang⟩
 
 theorem wordsAt_vec {t t' : MachineState} {a : Word} {H H' : Nat} (h : VecIn t a 16 8 H H')
     (hH : H' ≤ heapEnd) (hp : vecPtr t' a = vecPtr t a) (hl : vecLen t' a = vecLen t a)

@@ -40,10 +40,10 @@ theorem walk_return (hW : WalkCallSpec) {s : MachineState} {words : List Word}
     intro k r hk
     obtain ⟨h1, h2, -⟩ := slot_bounds hk
     rw [← hu.inv.slots (k, r) hk]
-    refine hpost.frame.getMem fun i hi hw ↦ ?_
+    refine hpost.frame.getMem_of (fun x hx hw ↦ ?_) (by addr_omega [h1, h2])
     rw [ha0] at hw
     simp only [stackLo, husp] at hw
-    rcases hw with hw | hw | hw | hw <;> addr_omega [hw, h1, h2, hi, hhi, hlo]
+    rcases hw with hw | hw | hw | hw <;> addr_omega [hw, h1, h2, hx, hhi, hlo]
   have hpc : t.pc = 0x80000dc8 := by rw [htpc, returnAddress, hu.ra]; decide
   obtain ⟨t', htt', hx⟩ := Sym.BlockSpec.reaches b80000dc8_spec hpc (by rv_eval [hsp, msp]; decide)
   have hx10 : t'.getReg .x10 =

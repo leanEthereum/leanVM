@@ -43,6 +43,28 @@ theorem bc_positions_length (e : Env) : e.bc.positions.length = e.posLen.toNat :
 theorem bc_bytes_length (e : Env) : e.bc.bytes.length = e.bytesLen.toNat := by
   simp [Env.bc, readBytecode, halvesAt, Env.bytesLen, Env.bcp]
 
+/-! A buffer read at an index below its length is nonempty, so `BytecodeMem` maps it. -/
+
+theorem EnvOk.blocksMem {e : Env} (he : EnvOk e) {i : Nat} (hi : i < e.bc.blocks.length) :
+    Mapped (vecPtr e.s (e.s.getReg .x11)) (24 * (vecLen e.s (e.s.getReg .x11)).toNat) :=
+  he.pre.bc.blocks.resolve_left (by
+    have := bc_blocks_length e; simp only [Env.blocksLen, Env.bcp] at this; omega)
+
+theorem EnvOk.wordsMem {e : Env} (he : EnvOk e) {j : Nat} (hj : j < e.bc.words.length) :
+    Mapped (vecPtr e.s (e.s.getReg .x11 + 24)) (16 * (vecLen e.s (e.s.getReg .x11 + 24)).toNat) :=
+  he.pre.bc.words.resolve_left (by
+    have := bc_words_length e; simp only [Env.wordsLen, Env.bcp] at this; omega)
+
+theorem EnvOk.positionsMem {e : Env} (he : EnvOk e) {p : Nat} (hp : p < e.bc.positions.length) :
+    Mapped (vecPtr e.s (e.s.getReg .x11 + 48)) (2 * (vecLen e.s (e.s.getReg .x11 + 48)).toNat) :=
+  he.pre.bc.positions.resolve_left (by
+    have := bc_positions_length e; simp only [Env.posLen, Env.bcp] at this; omega)
+
+theorem EnvOk.bytesMem {e : Env} (he : EnvOk e) {b : Nat} (hb : b < e.bc.bytes.length) :
+    Mapped (vecPtr e.s (e.s.getReg .x11 + 72)) (2 * (vecLen e.s (e.s.getReg .x11 + 72)).toNat) :=
+  he.pre.bc.bytes.resolve_left (by
+    have := bc_bytes_length e; simp only [Env.bytesLen, Env.bcp] at this; omega)
+
 theorem bc_blocks (e : Env) {i : Nat} (hi : i < e.bc.blocks.length) :
     e.bc.blocks[i] = ⟨(e.s.getMem (e.blocksPtr + BitVec.ofNat 64 (24 * i))).toNat,
       (e.s.getMem (e.blocksPtr + BitVec.ofNat 64 (24 * i) + 8)).toNat,

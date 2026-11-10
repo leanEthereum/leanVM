@@ -361,7 +361,8 @@ theorem new_head (h : AfterIv s words u) :
     have hN : (words.getD 0 0).toNat = 0 := by rw [← hx19, z]; rfl
     refine ⟨t₁₁, r, Or.inl (Or.inl ⟨hinv, b80000490_pc_taken h₁₁ z, h.len, hm0, by rw [hptr, h.ptr],
       by rw [hrest, h.rest], hiv, ⟨_, newRust_nil (by rw [tbl_length h.len, hN]), ?_⟩⟩)⟩
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    have hS := hinv.heap.lo
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp only [vecPtr, vecLen, Buf]
     · rw [show (msp + 400 + 16 : Word) = msp + 416 from rfl, v416]; rfl
     · rw [show (msp + 424 + 8 : Word) = msp + 432 from rfl, show (msp + 424 + 16 : Word) = msp + 440
@@ -376,6 +377,10 @@ theorem new_head (h : AfterIv s words u) :
         show (msp + 448 + 16 : Word) = msp + 464 from rfl, v464]; exact ⟨rfl, Or.inl rfl⟩
     · rw [show (msp + 240 + 8 : Word) = msp + 248 from rfl, v248,
         show (msp + 240 + 16 : Word) = msp + 256 from rfl, v256]; exact ⟨rfl, Or.inl rfl⟩
+    · rw [show (msp + 400 + 8 : Word) = msp + 408 from rfl, v408]; exact le_trans (by decide) hS
+    · rw [show (msp + 424 + 8 : Word) = msp + 432 from rfl, v432]; exact le_trans (by decide) hS
+    · rw [show (msp + 448 + 8 : Word) = msp + 456 from rfl, v456]; exact le_trans (by decide) hS
+    · rw [show (msp + 240 + 8 : Word) = msp + 248 from rfl, v248]; exact le_trans (by decide) hS
   · refine ⟨t₁₁, r, Or.inl (Or.inr ⟨hinv, b80000490_pc_not_taken h₁₁ z, h.len,
       by rw [← hx19]; exact z, hm0, x19, ?_, by rw [hptr, h.ptr], by rw [hrest, h.rest], hiv, ?_, ?_,
       ?_, ?_, ⟨v400, v408, v416, v424, v432, v440, v448, v456, v464, v240, v248, v256⟩⟩)⟩

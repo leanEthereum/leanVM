@@ -119,7 +119,7 @@ theorem adds (he : EnvOk e) {t : MachineState} {i j : Nat} (ha : AInv e t i j)
         show 16 * n + 16 = 16 * (n + 1) by omega]
   have x13₈' : u₈.getReg .x13 = e.wordsPtr + BitVec.ofNat 64 (16 * (j + 1)) := by
     rw [x13₈, T₇ .x13 (by decide), ha.x13, BitVec.add_assoc, e16]
-  have hwm := he.pre.bc.words
+  have hwm := he.wordsMem hj
   have hlen := bc_words_length e
   simp only [Env.wordsLen, Env.bcp] at hwm hlen
   by_cases hc : u₇.getReg .x13 + 16 ≠ u₇.getReg .x12
@@ -168,7 +168,7 @@ theorem word_body (he : EnvOk e) {t : MachineState} {i j : Nat} (hw : WInv e t i
 theorem words_loop (he : EnvOk e) {t : MachineState} {i j : Nat} (hw : WInv e t i j)
     (hpc : t.pc = 0x800110d0) :
     ∃ u, Reaches Image.code t u ∧ (Dead Image.code u ∨ (u.pc = 0x8001136c ∧ Mid e u i)) := by
-  have hwm := he.pre.bc.words
+  have hwm := he.wordsMem (Nat.lt_of_lt_of_le hw.jhi hw.wele)
   simp only [Mapped] at hwm
   refine Reaches.loop (fun t ↦ ∃ j, t.pc = 0x800110d0 ∧ WInv e t i j)
     (fun t ↦ (t.getReg .x12).toNat - (t.getReg .x13).toNat) _ (fun t ⟨j, hpc, hw⟩ ↦ ?_) t

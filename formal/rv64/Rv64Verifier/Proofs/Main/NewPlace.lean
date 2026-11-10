@@ -180,7 +180,7 @@ theorem resize_end (h : RY s words u₀ i L Hb st g D C N H1 t₀ t) (hpc : t.pc
       subst hc; addr_omega [hin, hx1, hx2, hP2, hE, hhi]) (by omega)
   have vs' := re.vs.setP (l := (pfold words i L g st 0).1) hf (fun a ha ↦ (hW a ha).2) hmono
     hheap.hi ⟨by rw [l1', c1]; exact hE, by rw [p1]; exact vin.al, by
-      rw [p1, c1, hn]; exact vin.buf⟩
+      rw [p1, c1, hn]; exact vin.buf, by rw [p1, c1]; exact vin.dang⟩
     (by
       simp only [VMiss, p1, c1]
       rcases h.sf with ⟨e1, e2⟩ | h0 | hfr

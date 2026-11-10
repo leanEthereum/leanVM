@@ -149,7 +149,8 @@ theorem openings_stage (h0 : ParseA s words u₀) {k : Nat} {S : Word} {stream :
   · -- no phases
     have hz' : np = 0 := by rw [regw .x9 (by decide), x9₁] at hz; rw [hnp, hz]; rfl
     refine ⟨t₃, r, Or.inr ⟨O, np, hgk, Or.inl ⟨hg₃, b80000b8c_pc_taken h₃ hz, ?_, ?_, x18₃, s40, s64,
-      by omega, ?_, hsval, h.buf, hg.mono, hmono₃, ⟨hO8, Or.inl (by omega)⟩,
+      by omega, ?_, hsval, h.buf, hg.mono, hmono₃,
+      ⟨hO8, Or.inl ⟨by omega, by rw [hn₃]; exact bufw.le⟩⟩,
       fun i hi ↦ absurd hi (by simp)⟩⟩⟩
     · rw [k₃ .x8 (by decide), regw .x8 (by decide), x8₁]
     · rw [x9₃, hz']; exact (ofNat_toNat' _).symm.trans (by rw [← hnp, hz'])
@@ -195,7 +196,7 @@ theorem openings_stage (h0 : ParseA s words u₀) {k : Nat} {S : Word} {stream :
       eListAt_memFrame hfr₄ (by
         obtain ⟨-, hSb⟩ := h.buf
         rcases hSb with h' | h'
-        · exact Or.inl h'
+        · exact Or.inl h'.1
         · simp only [heapNext] at h'; addr_omega [h', hhi])
         (by obtain ⟨-, hSb⟩ := h.buf; rcases hSb with h' | h' <;> (try simp only [heapNext] at h') <;>
           omega)]

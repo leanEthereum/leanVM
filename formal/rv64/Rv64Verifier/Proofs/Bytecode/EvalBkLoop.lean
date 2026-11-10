@@ -30,7 +30,7 @@ theorem bk_body (he : EnvOk e) {t : MachineState} {i b : Nat} (hb : BkInv e t i 
   simp only [heapNext, heapEnd, heapStart] at hbk hh hlo
   have hbkm : Mapped e.bk 49152 := by simp only [Mapped]; omega
   have hbc := he.pre.bcClear.bytes
-  have hbm := he.pre.bc.bytes
+  have hbm := he.bytesMem (Nat.lt_of_lt_of_le hb.bhi hb.bend)
   have hba := he.pre.bc.bytesAlign
   have hblen := bc_bytes_length e
   have hbl : b < e.bc.bytes.length := Nat.lt_of_lt_of_le hb.bhi hb.bend

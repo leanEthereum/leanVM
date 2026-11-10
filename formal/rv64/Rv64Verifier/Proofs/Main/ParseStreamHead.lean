@@ -146,8 +146,11 @@ theorem stream_stage (h0 : ParseA s words u₀) :
     rw [hsp₄] at hfr₅
     have hg₅ : PG u₀ t₅ := hg₄.slotWrite (c := 40) hfr₅
       (by decide) (by decide) (by decide) (by decide) hsp₅
+    have hS5 : S.toNat ≤ heapNext t₅ := by
+      have e : heapNext t₅ = heapNext t₄ := by simp only [heapNext]; rw [hfr₅ _ (by addr_omega [])]
+      rw [e, hnx₄]; exact bufw.le
     refine ⟨t₅, r.trans r₅, Or.inr ⟨k0 + 1, S, [], ⟨hg₅, b80000e0c_pc_taken h₅ hz5, hk1, ?_, ?_, ?_,
-      ?_, ?_, ⟨hS8, Or.inl rfl⟩, rfl⟩⟩⟩
+      ?_, ?_, ⟨hS8, Or.inl ⟨rfl, hS5⟩⟩, rfl⟩⟩⟩
     · rw [b80000e0c_x10 h₅, x12₄]; addr_omega [hk1, hfit]
     · rw [k₅ .x11 (by decide), x11₄]
     · rw [k₅ .x18 (by decide), x18₄, hn0]; rfl

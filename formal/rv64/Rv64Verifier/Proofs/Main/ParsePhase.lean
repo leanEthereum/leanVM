@@ -74,7 +74,8 @@ structure AtBB0 (u₀ : MachineState) (words : List Word) (O : Word) (i k : Nat)
   len : ops.length = npi
   paths : ∀ j (h : j < ops.length),
     PathIn b (P + BitVec.ofNat 64 (56 * j)) ops[j] (P.toNat + 56 * npi) (heapNext b)
-  pbuf : P.toNat % 8 = 0 ∧ (npi = 0 ∨ heapNext t₀ ≤ P.toNat ∧ P.toNat + 56 * npi ≤ heapNext b)
+  pbuf : P.toNat % 8 = 0 ∧
+    ((npi = 0 ∧ P.toNat ≤ heapNext b) ∨ heapNext t₀ ≤ P.toNat ∧ P.toNat + 56 * npi ≤ heapNext b)
   frame : BFrame t₀ b (Wph (heapNext t₀) (O + BitVec.ofNat 64 (24 * i)))
   mono : heapNext t₀ ≤ heapNext b
 
@@ -211,7 +212,8 @@ theorem phase_head (h0 : ParseA s words u₀) {k1 : Nat} {S O : Word} {stream : 
       rw [regw .x18 (by decide), x18₂] at hz; rw [hnpi, hz]; rfl
     refine ⟨t₄, r, Or.inr ⟨P, npi, k + 1, [], ⟨hg₄, b80000c28_pc_taken h₄ hz, ?_, x23₄, slots₄, s80,
       by omega, by rw [k88, p88], by rw [k96, p96, BitVec.toNat_ofNat]; omega, ?_, ?_,
-      fun j hj ↦ absurd hj (by simp), ⟨hP8, Or.inl hz'⟩, hfr, hmono₄⟩⟩⟩
+      fun j hj ↦ absurd hj (by simp), ⟨hP8, Or.inl ⟨hz', by rw [hn₄]; exact bufw.le⟩⟩, hfr,
+      hmono₄⟩⟩⟩
     · rw [x18₄, ofNat_toNat']
     · rw [hread0, hz']; rfl
     · rw [hz']; rfl

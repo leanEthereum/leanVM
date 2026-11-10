@@ -25,7 +25,7 @@ theorem bk_start (he : EnvOk e) {t : MachineState} {i : Nat} (hz : ZDone e t i)
   have hh := he.heapL.hi
   simp only [heapNext, heapEnd] at hbk hh
   have hbc := he.pre.bcClear.blocks
-  have hbm := he.pre.bc.blocks
+  have hbm := he.blocksMem hz.lt
   have hba := he.pre.bc.blocksAlign
   have hlen := bc_blocks_length e
   have hi := hz.lt
@@ -129,7 +129,7 @@ theorem bk_start (he : EnvOk e) {t : MachineState} {i : Nat} (hz : ZDone e t i)
   have hbsp : u₃.getMem (u₃.getReg .x2 + 16) = e.bytesPtr := by
     rw [K₃ .x2 (by decide), e2]; rv_eval []
     rw [hmid.mem.slot he]; exact he.c16
-  have hbmap := he.pre.bc.bytes
+  have hbmap := he.bytesMem (Nat.lt_of_lt_of_le hbsl hbend)
   have hbl' := bc_bytes_length e
   simp only [Mapped, Env.bytesLen, Env.bcp] at hbmap hbl'
   refine ⟨u₄, hr₁.trans (hr₂.trans (hr₃.trans hr₄)), Or.inr (Or.inr ⟨b800113ac_pc h₄, ?_⟩)⟩

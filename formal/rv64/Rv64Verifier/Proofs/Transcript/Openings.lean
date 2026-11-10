@@ -10,12 +10,14 @@ one: read as bytes, a digest's lanes little-endian) and `leaf_index` at `48`.
 
 `OpeningsAt s p T` says the openings of the transcript at `p`'s proof are `T.proof.openings`, in
 the shape `PcsContracts.VsoSpec` takes. `OpenFoot s p` is the bytes it reads: the `Vec` buffers
-(the siblings' widened to whole doublewords, as `getByte` reads them), the headers inside them;
-the outer header lies in the `Proof`'s 48 bytes. `OpenFits s p` says those buffers do not wrap.
+(the siblings' widened to the doublewords holding them, as `getByte` reads them), the headers
+inside them; the outer header lies in the `Proof`'s 48 bytes. `OpenFits s p` says those buffers do
+not wrap. `OpenMem s p w` places them for a function writing at most `w`: mapped, aligned as their
+types ask (`OpenMapped`, which gives `OpenFits`), `OpenFoot` missing `w`.
 
-A frame that misses the pointer at `p`, the `Proof` and `OpenFoot` keeps `OpeningsAt`, `OpenFoot`
-and `OpenFits` (`DFrame.openings`, `DFrame.openingsAt`); `OpeningsAt` reads only `T.proof`
-(`OpeningsAt.of_proof`).
+A frame that misses the pointer at `p`, the `Proof` and `OpenFoot` keeps `OpeningsAt`, `OpenFoot`,
+`OpenFits` and `OpenMapped` (`DFrame.openings`, `DFrame.openingsAt`, `DFrame.openMapped`);
+`OpeningsAt` reads only `T.proof` (`OpeningsAt.of_proof`).
 -/
 
 namespace Rv64Verifier.Transcript
@@ -55,11 +57,15 @@ structure OpeningsAt (s : MachineState) (p : Word) (T : TState) : Prop where
   phases : ∀ k (h : k < T.proof.openings.length),
     PhaseAt s (vecPtr s (openingsVec s p) + BitVec.ofNat 64 (24 * k)) T.proof.openings[k]
 
-/-- The bytes a `MerklePath` at `a` reads beyond its header: the leaf's buffer, the siblings'
-doublewords. -/
+/-- How many bytes the doublewords holding the `n` digests from `b` span, from the first's start:
+none for none. -/
+@[rv_addr] def sibSpan (b : Word) (n : Nat) : Nat := 32 * n + 8 * min n ((b.toNat % 8 + 7) / 8)
+
+/-- The bytes a `MerklePath` at `a` reads beyond its header: the leaf's buffer, the doublewords
+holding the siblings' bytes. -/
 def PathFoot (s : MachineState) (a y : Word) : Prop :=
   Within y (vecPtr s a) (8 * (vecLen s a).toNat) ∨
-    Within y (vecPtr s (a + 24) &&& ~~~7#64) (32 * (vecLen s (a + 24)).toNat + 8)
+    Within y (vecPtr s (a + 24) &&& ~~~7#64) (sibSpan (vecPtr s (a + 24)) (vecLen s (a + 24)).toNat)
 
 /-- The bytes a phase at `a` reads beyond its header: its buffer, its paths'. -/
 def PhaseFoot (s : MachineState) (a y : Word) : Prop :=
@@ -79,7 +85,7 @@ attribute [local rv_addr] vecPtr vecLen
 /-- The leaf's and the siblings' buffers of the `MerklePath` at `a` end below `2 ^ 64`. -/
 structure PathFits (s : MachineState) (a : Word) : Prop where
   leaf : (vecPtr s a).toNat + 8 * (vecLen s a).toNat ≤ 2 ^ 64
-  path : (vecPtr s (a + 24) &&& ~~~7#64).toNat + (32 * (vecLen s (a + 24)).toNat + 8) ≤ 2 ^ 64
+  path : (vecPtr s (a + 24)).toNat + 32 * (vecLen s (a + 24)).toNat ≤ 2 ^ 64
 
 /-- The phase at `a`'s buffer and its paths' end below `2 ^ 64`. -/
 structure PhaseFits (s : MachineState) (a : Word) : Prop where
@@ -91,6 +97,60 @@ structure OpenFits (s : MachineState) (p : Word) : Prop where
   buf : (vecPtr s (openingsVec s p)).toNat + 24 * (vecLen s (openingsVec s p)).toNat ≤ 2 ^ 64
   phases : ∀ k < (vecLen s (openingsVec s p)).toNat,
     PhaseFits s (vecPtr s (openingsVec s p) + BitVec.ofNat 64 (24 * k))
+
+/-! ## Where the openings lie -/
+
+/-- The `MerklePath` at `a`'s buffers: the leaf's mapped and 8-aligned, the siblings' mapped. -/
+structure PathMapped (s : MachineState) (a : Word) : Prop where
+  leaf : (vecLen s a).toNat = 0 ∨ Region (vecPtr s a) (8 * (vecLen s a).toNat)
+  siblings : (vecLen s (a + 24)).toNat = 0 ∨
+    Mapped (vecPtr s (a + 24)) (32 * (vecLen s (a + 24)).toNat)
+
+/-- The phase at `a`'s buffer, mapped and 8-aligned, and its paths'. -/
+structure PhaseMapped (s : MachineState) (a : Word) : Prop where
+  buf : (vecLen s a).toNat = 0 ∨ Region (vecPtr s a) (56 * (vecLen s a).toNat)
+  paths : ∀ j < (vecLen s a).toNat, PathMapped s (vecPtr s a + BitVec.ofNat 64 (56 * j))
+
+/-- The buffers the openings of the transcript at `p` read: mapped, aligned as their types ask. -/
+structure OpenMapped (s : MachineState) (p : Word) : Prop where
+  buf : (vecLen s (openingsVec s p)).toNat = 0 ∨
+    Region (vecPtr s (openingsVec s p)) (24 * (vecLen s (openingsVec s p)).toNat)
+  phases : ∀ k < (vecLen s (openingsVec s p)).toNat,
+    PhaseMapped s (vecPtr s (openingsVec s p) + BitVec.ofNat 64 (24 * k))
+
+/-- The openings of the transcript at `p` in place for a function writing at most `w`. -/
+structure OpenMem (s : MachineState) (p : Word) (w : Word → Prop) : Prop where
+  mapped : OpenMapped s p
+  apart : ∀ y, OpenFoot s p y → ¬ w y
+
+theorem PathMapped.fits {s : MachineState} {a : Word} (h : PathMapped s a) : PathFits s a := by
+  constructor
+  · rcases h.leaf with h0 | ⟨hm, -⟩
+    · have := (vecPtr s a).isLt
+      omega
+    · simp only [Mapped] at hm
+      omega
+  · rcases h.siblings with h0 | hm
+    · have := (vecPtr s (a + 24)).isLt
+      omega
+    · simp only [Mapped] at hm
+      omega
+
+theorem PhaseMapped.fits {s : MachineState} {a : Word} (h : PhaseMapped s a) : PhaseFits s a := by
+  refine ⟨?_, fun j hj ↦ (h.paths j hj).fits⟩
+  rcases h.buf with h0 | ⟨hm, -⟩
+  · have := (vecPtr s a).isLt
+    omega
+  · simp only [Mapped] at hm
+    omega
+
+theorem OpenMapped.fits {s : MachineState} {p : Word} (h : OpenMapped s p) : OpenFits s p := by
+  refine ⟨?_, fun k hk ↦ (h.phases k hk).fits⟩
+  rcases h.buf with h0 | ⟨hm, -⟩
+  · have := (vecPtr s (openingsVec s p)).isLt
+    omega
+  · simp only [Mapped] at hm
+    omega
 
 /-! ## Frames -/
 
@@ -220,6 +280,44 @@ theorem DFrame.openings {s t : MachineState} {w : Word → Prop} (h : DFrame s t
     rw [ev, e1] at hk
     rw [ev, e0]
     exact (phase k hk).2.2
+
+theorem DFrame.pathMapped {s t : MachineState} {w : Word → Prop} (h : DFrame s t w) {a : Word}
+    (hm : Misses w a 56) (han : a.toNat + 56 ≤ 2 ^ 64) (hp : PathMapped s a) : PathMapped t a := by
+  obtain ⟨e0, e1, e2, e3, -⟩ := h.pathHead hm han
+  exact ⟨by rw [e0, e1]; exact hp.leaf, by rw [e2, e3]; exact hp.siblings⟩
+
+theorem DFrame.phaseMapped {s t : MachineState} {w : Word → Prop} (h : DFrame s t w) {a : Word}
+    (hm : Misses w a 24) (han : a.toNat + 24 ≤ 2 ^ 64) (hf : ∀ y, PhaseFoot s a y → ¬ w y)
+    (fit : PhaseFits s a) (hp : PhaseMapped s a) : PhaseMapped t a := by
+  obtain ⟨e0, e1⟩ := h.phaseHead hm han
+  have fb := fit.buf
+  refine ⟨by rw [e0, e1]; exact hp.buf, fun j hj ↦ ?_⟩
+  rw [e1] at hj
+  rw [e0]
+  exact h.pathMapped (fun y hy ↦ hf y (Or.inl (by addr_omega [hy, fb, hj])))
+    (by addr_omega [fb, hj]) (hp.paths j hj)
+
+/-- A frame as `DFrame.openings` asks keeps `OpenMapped`. -/
+theorem DFrame.openMapped {s t : MachineState} {w : Word → Prop} (h : DFrame s t w) {p : Word}
+    (hp : Misses w p 8) (hpn : p.toNat + 8 ≤ 2 ^ 64) (hq : Misses w (proofAt s p) 48)
+    (hqn : (proofAt s p).toNat + 48 ≤ 2 ^ 64) (hf : ∀ y, OpenFoot s p y → ¬ w y)
+    (hm : OpenMapped s p) : OpenMapped t p := by
+  have fit := hm.fits
+  have e : proofAt t p = proofAt s p := h.proofAt_eq hp hpn
+  have ev : openingsVec t p = openingsVec s p := by simp only [openingsVec, e]
+  have e0 : vecPtr t (openingsVec s p) = vecPtr s (openingsVec s p) :=
+    h _ (hq.bytes (by simp only [openingsVec]; addr_omega [hqn])
+      (by simp only [openingsVec]; addr_omega [hqn]) hqn)
+  have e1 : vecLen t (openingsVec s p) = vecLen s (openingsVec s p) :=
+    h _ (hq.bytes (by simp only [openingsVec]; addr_omega [hqn])
+      (by simp only [openingsVec]; addr_omega [hqn]) hqn)
+  have fb := fit.buf
+  refine ⟨by rw [ev, e0, e1]; exact hm.buf, fun k hk ↦ ?_⟩
+  rw [ev, e1] at hk
+  rw [ev, e0]
+  exact h.phaseMapped (fun y hy ↦ hf y (Or.inl (by addr_omega [hy, fb, hk])))
+    (by addr_omega [fb, hk]) (fun y hy ↦ hf y (Or.inr ⟨k, hk, hy⟩)) (fit.phases k hk)
+    (hm.phases k hk)
 
 /-- `OpeningsAt` reads only `T.proof`. -/
 theorem OpeningsAt.of_proof {s : MachineState} {p : Word} {T T' : TState} (h : OpeningsAt s p T)

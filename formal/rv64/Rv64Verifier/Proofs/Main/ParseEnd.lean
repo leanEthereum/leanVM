@@ -15,10 +15,11 @@ open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile Rv
 /-- A part of `main`'s frame, between the `Bytecode` and `walk`'s result. -/
 theorem part_msp {v : MachineState} (hsp : v.getReg .x2 = msp) {c n : Nat} (h1 : 104 ≤ c)
     (h2 : c + n ≤ 320) (h8 : c % 8 = 0) : Part v (msp + 320) (msp + BitVec.ofNat 64 c) n 8 := by
-  right
-  refine ⟨Or.inr ⟨by addr_omega [h1, h2], by addr_omega [h1, h2]⟩, by addr_omega [h1, h2, h8],
+  refine ⟨by addr_omega [h1, h2, h8],
+    Or.inr ⟨Or.inr ⟨by addr_omega [h1, h2], by addr_omega [h1, h2]⟩,
     ⟨Or.inr (by simp only [heapEnd]; addr_omega [h1, h2]), by addr_omega [h1, h2]⟩, ?_,
-    by simp only [walkOutSize]; addr_omega [h1, h2]⟩
+    by simp only [walkOutSize]; addr_omega [h1, h2],
+    by simp only [rodataBase, rodataSize]; addr_omega [h1, h2]⟩⟩
   simp only [stackLo, hsp, walkStack]; addr_omega [h1, h2]
 
 theorem m280 : (msp + 272 + 8 : Word) = msp + 280 := by decide
@@ -157,17 +158,22 @@ theorem final_stage (h0 : ParseA s words u₀) {kB k : Nat} {S O : Word} {stream
   refine ⟨v, r₁.trans r₂, Or.inl ⟨hinv, b80000d8c_pc h₂, b80000d8c_x1 h₂, hx10, ?_,
     (tbl words).map BF64.ofBitVec, digestOfWords ((words.drop ((words.getD 0 0).toNat + 1)).take 4),
     { stream, openings := phs }, hdec, ?_, ?_, ?_, ?_⟩⟩
-  · refine ⟨hgv.heap, rtStack_msp hspv le_rfl (by decide), hinv.rodata, ?_, ?_, ?_, ?_⟩
+  · refine ⟨hgv.heap, rtStack_msp hspv le_rfl (by decide), hinv.rodata, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hx10]
       refine ⟨by simp only [Runtime.Mapped, walkOutSize]; decide, by decide,
         ⟨Or.inr (by decide), by simp only [walkOutSize]; addr_omega []⟩, ?_⟩
       simp only [stackLo, hspv, walkStack, walkOutSize]; addr_omega []
+    · rw [hx10]; simp only [rodataBase, rodataSize, walkOutSize]; addr_omega []
     · rw [hx10, hx11]
       refine ⟨part_msp hspv (c := 104) (by decide) (by decide) (by decide),
-        part_of_inR hbufs.blocks le_rfl le_rfl hgv.heap hspv, ?_, ?_, ?_⟩
-      · rw [msp_128]; exact part_of_inR hbufs.words le_rfl le_rfl hgv.heap hspv
-      · rw [msp_152]; exact part_of_inR hbufs.positions le_rfl le_rfl hgv.heap hspv
-      · rw [msp_176]; exact part_of_inR hbufs.bytes le_rfl le_rfl hgv.heap hspv
+        part_of_inR (inR_of_buf hbufs.blocks hbufs.blocksLe) le_rfl le_rfl hgv.heap hspv,
+        ?_, ?_, ?_⟩
+      · rw [msp_128]
+        exact part_of_inR (inR_of_buf hbufs.words hbufs.wordsLe) le_rfl le_rfl hgv.heap hspv
+      · rw [msp_152]
+        exact part_of_inR (inR_of_buf hbufs.positions hbufs.positionsLe) le_rfl le_rfl hgv.heap hspv
+      · rw [msp_176]
+        exact part_of_inR (inR_of_buf hbufs.bytes hbufs.bytesLe) le_rfl le_rfl hgv.heap hspv
     · rw [hx10, hx12]; exact part_msp hspv (c := 240) (by decide) (by decide) (by decide)
     · rw [hx10, hx13]
       refine ⟨part_msp hspv (c := 272) (by decide) (by decide) (by decide), ?_, ?_, ?_⟩

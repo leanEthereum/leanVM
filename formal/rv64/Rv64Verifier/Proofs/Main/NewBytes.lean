@@ -1107,7 +1107,7 @@ theorem bytes_mark (h : BP s words u₀ i L Hb st g D C H1 U k m t) (hpc : t.pc 
   have hy := ub₃.vs.vecs.bytes
   simp only at hy
   have hin : VecIn t₆ (msp + 240) 2 2 (heapNext u₀) (heapNext t₆) := by
-    refine ⟨le_of_lt hroom, by rw [p6]; exact hfresh.1, ?_⟩
+    refine ⟨le_of_lt hroom, by rw [p6]; exact hfresh.1, ?_, fun h0 ↦ absurd h0 (by omega)⟩
     rw [p6, c6, hn₆]
     rcases hfresh.2 with h0 | ⟨h1, h2⟩
     · exact Or.inl h0
@@ -1310,7 +1310,8 @@ theorem bytes_push (h : BQ s words u₀ i L Hb st g D C H1 U k m t) (hpc : t.pc 
     rfl
   have vs₃ := ub.vs.setY (l := (bfold g st k m).2 ++ [wbucket g k m]) hf (fun a ha ↦ (hW a ha).2.2)
     (le_of_eq hn.symm) hheap.hi ⟨by rw [l3', c3]; omega, by rw [p3]; exact by'.al,
-      by rw [p3, c3, hn]; exact by'.buf⟩ (by simp only [VMiss, p3, c3]; exact ub.vs.my)
+      by rw [p3, c3, hn]; exact by'.buf, by rw [p3, c3]; exact by'.dang⟩
+    (by simp only [VMiss, p3, c3]; exact ub.vs.my)
     (Or.inl ⟨p3, c3⟩) hl
   have R : ∀ r, r ≠ .x10 → r ≠ .x11 → r ≠ .x22 → t₃.getReg r = t.getReg r := fun r h10 h11 h22 ↦ by
     have e : t₃.getReg r = t₂.getReg r := by

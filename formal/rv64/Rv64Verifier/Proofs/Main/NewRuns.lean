@@ -652,7 +652,7 @@ theorem runs_grow (h : RQ s words u₀ i L Hb st g D C N H1 k t) (hpc : t.pc = 0
     simp only [wordsAt, List.length_map, List.length_range] at e
     exact e
   have hin : VecIn t₂ (msp + 424) 16 8 (heapNext u₀) (heapNext t₂) := by
-    refine ⟨by omega, by rw [p2]; exact hfresh.1, ?_⟩
+    refine ⟨by omega, by rw [p2]; exact hfresh.1, ?_, fun h0 ↦ absurd h0 (by omega)⟩
     rw [p2, c2, hn₂]
     rcases hfresh.2 with h0 | ⟨h1, h2⟩
     · exact Or.inl h0
@@ -873,7 +873,8 @@ theorem runs_push (h : RQ s words u₀ i L Hb st g D C N H1 k t) (hpc : t.pc = 0
     simp only [rfold_succ, Model.runStep]
   have vs' := h.vs.setW (l := (rfold words i L g st (k + 1)).2.2) hf (fun a ha ↦ (hWb a ha).2)
     (le_of_eq hn.symm) hheap.hi
-    ⟨by rw [lv', cv]; omega, by rw [pv]; exact bw.al, by rw [pv, cv, hn]; exact bw.buf⟩
+    ⟨by rw [lv', cv]; omega, by rw [pv]; exact bw.al, by rw [pv, cv, hn]; exact bw.buf,
+      by rw [pv, cv]; exact bw.dang⟩
     (by simp only [VMiss, pv, cv]; exact mw) (Or.inl ⟨pv, cv⟩) hl
   have next' : v.readWords N (k + 1) = (rfold words i L g st (k + 1)).1.map (BitVec.ofNat 64) := by
     rw [rwords_keep rb.nal (by omega) fun a ha ↦ hf a fun hw ↦ by

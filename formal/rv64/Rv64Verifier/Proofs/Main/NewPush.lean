@@ -218,7 +218,7 @@ theorem push_head (h : BO s words u₀ i L Hb st g D C H1 U g.2.2.length t) (hpc
   have hb' := vs₁.vecs.blocks
   simp only at hb'
   have hin : VecIn t₄ (msp + 400) 24 8 (heapNext u₀) (heapNext t₄) := by
-    refine ⟨le_of_lt hroom, by rw [p4]; exact hfresh.1, ?_⟩
+    refine ⟨le_of_lt hroom, by rw [p4]; exact hfresh.1, ?_, fun h0 ↦ absurd h0 (by omega)⟩
     rw [p4, c4, hn₄]
     rcases hfresh.2 with h0 | ⟨h1, h2⟩
     · exact Or.inl h0
@@ -427,7 +427,8 @@ theorem push_store (h : PS s words u₀ i L Hb st g D C H1 U t) (hpc : t.pc = 0x
       Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)]
   have vs' := h.vs.setB (l := st.blocks ++ [⟨i, (rfold words i L g st g.2.2.length).2.2.length,
       (ufold g st g.2.2.length).2.length⟩]) hf (fun a ha ↦ (hW a ha).2) (le_of_eq hn.symm) hheap.hi
-    ⟨by rw [lv', cv]; omega, by rw [pv]; exact bb.al, by rw [pv, cv, hn]; exact bb.buf⟩
+    ⟨by rw [lv', cv]; omega, by rw [pv]; exact bb.al, by rw [pv, cv, hn]; exact bb.buf,
+      by rw [pv, cv]; exact bb.dang⟩
     (by simp only [VMiss, pv, cv]; exact h.vs.mb) (Or.inl ⟨pv, cv⟩) hl
   have hne : g.2.2 ≠ [] := rc.ne
   have bm := rc'.k.bm

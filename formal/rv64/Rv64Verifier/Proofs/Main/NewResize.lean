@@ -363,12 +363,13 @@ theorem resize_room (h : RE s words u₀ i L Hb st g D C N H1 t₀) (hpc : t₀.
     (R .x20 (by simp)).trans ((R2 .x20 (by simp)).trans h.rb.x20),
     (R .x21 (by simp)).trans ((R2 .x21 (by simp)).trans h.rb.x21), ?_,
     (R .x24 (by simp)).trans x24₂, (R .x27 (by simp)).trans ((R2 .x27 (by simp)).trans h.x27)⟩⟩
-  · refine ⟨?_, by rw [p6]; exact pfresh.1, ?_⟩
+  · refine ⟨?_, by rw [p6]; exact pfresh.1, ?_, fun h0 ↦ absurd h0 ?_⟩
     · rw [l6, c6, hpl]; simp only [rend] at pcap ⊢; omega
     · rw [p6, c6, hn₆]
       rcases pfresh.2 with h0 | ⟨h1, h2⟩
       · exact Or.inl h0
       · right; rw [hn₃] at h1; simp only [heapNext] at h1 h2 ⊢; omega
+    · rw [c6]; simp only [rend] at pcap ⊢; omega
   · rw [c6]; simp only [rend] at pcap ⊢; omega
   · rw [p6, c6]
     rcases pfresh.2 with h0 | ⟨h1, _⟩

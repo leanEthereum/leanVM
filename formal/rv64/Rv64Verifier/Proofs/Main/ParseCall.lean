@@ -6,7 +6,7 @@ import Rv64Verifier.Proofs.Main.ParseFoot
 `Wc B`: what a callee writes, `main`'s result slots (`msp + 272` on), the stack below `msp`,
 `NEXT` and the heap from `B` on; it misses `main`'s scratch slots (`Wc.keep`). `alloc_call`: a
 call of `try_allocate_in` with its result at `msp + 320`, then the block that traps on its error,
-to the block after it with a new buffer.
+to the block after it with a new buffer, the dangling pointer `a2` if empty.
 -/
 
 namespace Rv64Verifier.Proofs.Main
@@ -51,7 +51,7 @@ theorem m336 : (msp + 320 + 16 : Word) = msp + 336 := by decide
 `N`. -/
 theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x80000024)
     (h10 : t.getReg .x10 = msp + 320)
-    (hal : 0 < (t.getReg .x12).toNat ∧ (t.getReg .x12).toNat ≤ 2 ^ 32)
+    (hal : 0 < (t.getReg .x12).toNat ∧ (t.getReg .x12).toNat ≤ 16)
     (hsz : 0 < (t.getReg .x13).toNat)
     {A N : Word} {x : Sym.Expect} {k : Nat} (hra : returnAddress t = A)
     (hs : Sym.BlockSpec Image.code A k (fun s ↦ Sym.Oblig.all s x.obl) x.Holds)
@@ -64,13 +64,13 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
       (∀ r ∈ calleeSaved, w.getReg r = t.getReg r) ∧ PG u₀ w ∧
       BFrame t w (Wc (heapNext t)) ∧ heapNext t ≤ heapNext w ∧
       w.getMem (msp + 328) = t.getReg .x11 ∧
-      NewBuf t w (w.getMem (msp + 336)) ((t.getReg .x11).toNat * (t.getReg .x13).toNat)
-        (t.getReg .x12).toNat)) := by
+      InR (w.getMem (msp + 336)) ((t.getReg .x11).toNat * (t.getReg .x13).toNat)
+        (t.getReg .x12).toNat (heapNext t) (heapNext w))) := by
   have hsp := hg.sp
   obtain ⟨v, hv, hout⟩ := tryAlloc t hpc {
     heap := hg.heap
     out := by rw [h10]; exact validRange_of (by decide) (by decide) (by decide)
-    align := hal
+    align := ⟨hal.1, by omega⟩
     size := hsz
     stack := rtStack_msp hsp (by decide) (by decide)
     outFree := by rw [h10]; addr_omega []
@@ -106,7 +106,13 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
     hfv.trans hfw fun _ h ↦ h, by rw [hnx]; exact hpost.mono, ?_, ?_⟩⟩
   · rw [hkeep v w hx r hr, hpres.reg r hr]
   · rw [hm, ← m328, ← h10]; exact hcap
-  · rw [hm, ← m336, ← h10]
-    refine ⟨hbuf.1, hbuf.2.imp_right fun h ↦ ⟨h.1, by rw [hnx]; exact h.2⟩⟩
+  · rw [hm, ← m336, ← h10, hnx]
+    refine ⟨hbuf.1, hbuf.2.imp (fun h0 ↦ ⟨h0, ?_⟩) fun h ↦ h⟩
+    have hc : t.getReg .x11 = 0 := BitVec.eq_of_toNat_eq
+      ((Nat.mul_eq_zero.mp h0).resolve_right (by omega))
+    have hl := hpost.heap.lo
+    rw [hpost.dangling hz hc]
+    simp only [heapStart] at hl
+    omega
 
 end Rv64Verifier.Proofs.Main

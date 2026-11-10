@@ -53,7 +53,7 @@ theorem start (he : EnvOk e) {t : MachineState} {i : Nat} {S B : List E} {pe : N
   have hsp := he.sp
   have hst := he.pre.stack.valid
   have hbc := he.pre.bcClear.blocks
-  have hbm := he.pre.bc.blocks
+  have hbm := he.blocksMem ht.lt
   have hba := he.pre.bc.blocksAlign
   have hlen := bc_blocks_length e
   have hi := ht.lt
@@ -142,7 +142,7 @@ theorem finish (hMul : MulSpec) (he : EnvOk e) {t v : MachineState} {i : Nat} {S
   have hh := he.heapL.hi
   have hlo := he.pre.heap.lo
   simp only [heapNext, heapEnd, heapStart] at hbk hhi hh hlo
-  have hbm := he.pre.bc.blocks
+  have hbm := he.blocksMem ht.lt
   have hlen := bc_blocks_length e
   have hi := ht.lt
   have hidx : (e.bc.blocks[i]?.map BlockRust.index |>.getD 0) = ix.toNat := by

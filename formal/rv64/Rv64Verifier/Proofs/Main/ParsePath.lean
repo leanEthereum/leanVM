@@ -188,7 +188,8 @@ theorem path_head (h0 : ParseA s words u₀) {P : Word} {npi j k : Nat}
       Wpath.of_wc (le_of_eq hn₄.symm) ha
   have hmw' : heapNext t ≤ heapNext w := by rw [← hn₄]; exact hmw
   have hL8 : L.toNat % 8 = 0 := bufw.1
-  have hLb : 8 * l = 0 ∨ heapNext t ≤ L.toNat ∧ L.toNat + 8 * l ≤ heapNext w := by
+  have hLb : (8 * l = 0 ∧ L.toNat ≤ heapNext w) ∨
+      heapNext t ≤ L.toNat ∧ L.toNat + 8 * l ≤ heapNext w := by
     rcases bufw.2 with h' | h'
     · left; rw [toNat_8] at h'; omega
     · right; rw [toNat_8, hn₄] at h'; exact ⟨h'.1, by omega⟩
@@ -227,7 +228,8 @@ theorem path_head (h0 : ParseA s words u₀) {P : Word} {npi j k : Nat}
       rcases Nat.eq_zero_or_pos l with h' | h'
       · exact absurd (by rw [x19w]; exact BitVec.eq_of_toNat_eq (by rw [← hl, h']; rfl)) hz
       · exact h'
-    have hLb' : heapNext t ≤ L.toNat ∧ L.toNat + 8 * l ≤ heapNext w := hLb.resolve_left (by omega)
+    have hLb' : heapNext t ≤ L.toNat ∧ L.toNat + 8 * l ≤ heapNext w :=
+      hLb.resolve_left fun h' ↦ by omega
     obtain ⟨t₇, r₇, h₇⟩ := Sym.BlockSpec.reaches b80000cd0_spec (b80000cc0_pc_not_taken h₆ hz) trivial
     have k₇ := b80000cd0_keeps h₇
     have m₇ := b80000cd0_mem_same h₇

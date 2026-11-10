@@ -4,6 +4,7 @@ import Rv64Verifier.Proofs.Field.Contracts
 import Rv64Verifier.Model.Whir
 import Rv64Verifier.Model.Walk
 import Rv64Verifier.Proofs.Transcript.Contracts
+import Rv64Verifier.Proofs.Transcript.Openings
 
 /-!
 # Contracts of the opening's functions
@@ -360,6 +361,11 @@ structure VsoPre (s : MachineState) : Prop where
   rootClaims : Apart (s.getReg .x11) 32 (s.getReg .x14) (88 * (s.getReg .x15).toNat)
   rootWeights : ∀ i < (s.getReg .x15).toNat,
     WeightApart s (s.getReg .x14 + BitVec.ofNat 64 (88 * i)) (s.getReg .x11) 32
+  /-- The Merkle openings in place, never written: apart from the free heap, `NEXT`, the stack,
+  the sponge and offsets, and the root. -/
+  openMem : OpenMem s (s.getReg .x10) fun y ↦ (heapNext s ≤ y.toNat ∧ y.toNat < heapEnd) ∨
+    Within y nextAddr 8 ∨ Within y (stackLo s vsoStack) vsoStack ∨
+      Within y (s.getReg .x10 + 8) 352 ∨ Within y (s.getReg .x11) 32
 
 /-- `Ok` only when `verifyStackedOpeningRust` returns, on a transcript whose roots so far are the
 stack's alone, at the shape level `0` opens, and whose Merkle openings `OpeningsAt` places in

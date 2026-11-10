@@ -313,11 +313,15 @@ theorem PG.bufs (h0 : ParseA s words u₀) (h : PG u₀ t) : BcBufs t := by
   have b₂ := hb.positions
   have b₃ := hb.bytes
   simp only [Buf] at b₀ b₁ b₂ b₃
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [Buf]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> try simp only [Buf]
   · rw [p0, l0]; exact ⟨b₀.1, b₀.2.imp_right fun h' ↦ ⟨h'.1, le_trans h'.2 hm⟩⟩
   · rw [p1, l1]; exact ⟨b₁.1, b₁.2.imp_right fun h' ↦ ⟨h'.1, le_trans h'.2 hm⟩⟩
   · rw [p2, l2]; exact ⟨b₂.1, b₂.2.imp_right fun h' ↦ ⟨h'.1, le_trans h'.2 hm⟩⟩
   · rw [p3, l3]; exact ⟨b₃.1, b₃.2.imp_right fun h' ↦ ⟨h'.1, le_trans h'.2 hm⟩⟩
+  · rw [p0]; exact le_trans hb.blocksLe hm
+  · rw [p1]; exact le_trans hb.wordsLe hm
+  · rw [p2]; exact le_trans hb.positionsLe hm
+  · rw [p3]; exact le_trans hb.bytesLe hm
 
 end
 

@@ -260,11 +260,20 @@ theorem parse_head : ParseHead := by
     have b₂ := hv.positionsBuf
     have b₃ := hv.bytesBuf
     simp only [Buf, heapNext] at b₀ b₁ b₂ b₃
-    refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [Buf, heapNext, hn4]
+    have e₀ := hv.blocksLe
+    have e₁ := hv.wordsLe
+    have e₂ := hv.positionsLe
+    have e₃ := hv.bytesLe
+    simp only [heapNext] at e₀ e₁ e₂ e₃
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Buf, heapNext, hn4]
     · rw [p0, l0]; exact b₀
     · rw [show (msp + 128 : Word) = msp + 104 + 24 by decide, p1, l1]; exact b₁
     · rw [show (msp + 152 : Word) = msp + 104 + 48 by decide, p2, l2]; exact b₂
     · rw [show (msp + 176 : Word) = msp + 104 + 72 by decide, p3, l3]; exact b₃
+    · rw [p0]; exact e₀
+    · rw [show (msp + 128 : Word) = msp + 104 + 24 by decide, p1]; exact e₁
+    · rw [show (msp + 152 : Word) = msp + 104 + 48 by decide, p2]; exact e₂
+    · rw [show (msp + 176 : Word) = msp + 104 + 72 by decide, p3]; exact e₃
   · have w := hp₄.words
     rw [f10, f11] at w
     simp only [inputPtr] at w
