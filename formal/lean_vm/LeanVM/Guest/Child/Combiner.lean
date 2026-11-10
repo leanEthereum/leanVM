@@ -128,6 +128,11 @@ theorem refusingZeroProgram_refines (bytecode : List K) (publicInput : Digest) :
   (refines_refusingZeroChallenge _).trans
     (Refines.bind (verifyExecutionRefusingZeroCombiner_refines _ _ _) fun _ ↦ Refines.refl _)
 
+/-- The refusing program reads first. -/
+theorem refusingZeroProgram_read (bytecode : List K) (publicInput : Digest) :
+    ∃ k, refusingZeroProgram bytecode publicInput = VerifierProgram.read k :=
+  ⟨_, rfl⟩
+
 /-- **What the statement's refusing verifier accepts, the leanVM verifier accepts**, by the same
 run (`run_refines`): over any permutation, the seed being the same. -/
 theorem leanVmVerifier_of_refusingZero {π : KeccakState → Id KeccakState}

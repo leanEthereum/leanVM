@@ -60,7 +60,7 @@ theorem offOf_mono {α : Type} (f : ℕ → List α) {i : ℕ} : ∀ {n : ℕ}, 
     · have := offOf_mono f (i := i) (n := n) (by omega); simp only [offOf]; omega
     · rw [show i = n + 1 by omega]
 
-theorem getD_flatMap_range {α : Type} (f : ℕ → List α) (d : α) :
+theorem getD_flatMap_range_of {α : Type} (f : ℕ → List α) (d : α) :
     ∀ (n j r : ℕ), j < n → r < (f j).length →
       ((List.range n).flatMap f).getD (offOf f j + r) d = (f j).getD r d
   | 0, _, _, hj, _ => absurd hj (Nat.not_lt_zero _)
@@ -71,7 +71,7 @@ theorem getD_flatMap_range {α : Type} (f : ℕ → List α) (d : α) :
     · have h1 : offOf f (j + 1) ≤ offOf f n := offOf_mono f h
       simp only [offOf] at h1
       rw [List.getD_append _ _ _ _ (by rw [hl]; omega)]
-      exact getD_flatMap_range f d n j r h hr
+      exact getD_flatMap_range_of f d n j r h hr
     · obtain rfl : j = n := by omega
       rw [List.getD_append_right _ _ _ _ (by rw [hl]; omega), hl, Nat.add_sub_cancel_left]
       simp
@@ -89,7 +89,7 @@ theorem getD_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀
     (d : α) {n j r : ℕ} (hj : j < n) (hr : r < c) :
     ((List.range n).flatMap f).getD (c * j + r) d = (f j).getD r d := by
   rw [← offOf_const f hf j]
-  exact getD_flatMap_range f d n j r hj (by rw [hf]; exact hr)
+  exact getD_flatMap_range_of f d n j r hj (by rw [hf]; exact hr)
 
 /-! ## An honest query -/
 
@@ -384,7 +384,7 @@ theorem val_round {j o : ℕ} (hj : j < d.s.folds) (ho : o < (d.roundVals j).len
   simp only [offOf] at h1
   rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
     List.getD_append _ _ _ _ (by rw [length_flatMap_range]; omega)]
-  exact getD_flatMap_range _ 0 _ _ _ hj ho
+  exact getD_flatMap_range_of _ 0 _ _ _ hj ho
 
 theorem val_v : d.val d.v = d.foldVal := by
   rw [v_eq, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,

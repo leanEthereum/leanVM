@@ -224,6 +224,11 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
 
 /-! ## The terminal -/
 
+/-- The terminal's bound (`check_opening_terminal_completeAtB`'s). -/
+def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
+  fs "check_opening_terminal" + 175 + 4 * Beqc + (32 * K15 + fs "__loop14") +
+    (fs "selector_tables" + 448) + 94 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
+
 set_option maxHeartbeats 1000000 in
 /-- **`check_opening_terminal` is complete, placed, within a bound**
 (`check_opening_terminal_completeAt` with its size at most
