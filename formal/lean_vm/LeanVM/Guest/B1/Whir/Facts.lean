@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.Open
+public import LeanVM.Guest.B1.Whir.Levels
 public import LeanVM.Guest.B1.Fs.Message
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Merkle.Meaning
@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Merkle.Meaning
 # A candidate's facts, decided
 
 `CandOk m μ r cfg`: the configuration `Whir.ladder μ r = cfg` against candidate `m`'s rows level
-by level (`MidOk`, `FinOk`: the arithmetic `MidFacts`, `FinFacts`, `LvFin` and the finish need,
+by level (`MidOk`, `FinOkF`: the arithmetic `MidFacts`, `FinFacts`, `LvFin` and the finish need,
 the names of the level's callees in B1-a's tables, the `opening_queries` specialization's shape),
 and the template's `opening_queries` calls those of its levels. `candB m μ r` decides it;
 `Whir/Facts{m}.lean` decide it, one candidate a module.
@@ -98,7 +98,7 @@ instance (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv'
   unfold MidOk; infer_instance
 
 /-- The final level's facts, checked. -/
-def FinOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop :=
+def FinOkF (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop :=
   lvl = c.yrLevel ∧ level.fold = lv.folds ∧ logN - (lv.foldsOff + lv.folds) = c.yrLog ∧
   2 ^ c.yrLog = c.yrLen ∧ lv.depth = c.yrLog + level.logInvRate ∧ level.queries = lv.queries ∧
   0 < lv.queries ∧ lv.queries < u128Bound ∧ 1 ≤ 128 / lv.depth ∧
@@ -118,12 +118,12 @@ def FinOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop :
   ("verify_merkle_cap__L" ++ natStr lv.capDepth, lv.capDepth) ∈ merkleCapNames
 
 instance (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) :
-    Decidable (FinOk c logN lvl lv level) := by
-  unfold FinOk; infer_instance
+    Decidable (FinOkF c logN lvl lv level) := by
+  unfold FinOkF; infer_instance
 
 /-- Every level's facts, from level `lvl`. -/
 def levelsB (c : OsCfg) (logN : ℕ) : ℕ → List OsLv → List Whir.Level → Bool
-  | lvl, [lv], [level] => decide (FinOk c logN lvl lv level)
+  | lvl, [lv], [level] => decide (FinOkF c logN lvl lv level)
   | lvl, lv :: lv' :: lvs, level :: next :: cfg =>
       decide (MidOk c logN lvl lv level next lv') && levelsB c logN (lvl + 1) (lv' :: lvs) (next :: cfg)
   | _, _, _ => false
