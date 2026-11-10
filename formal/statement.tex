@@ -77,7 +77,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{SufCma.lean}: the single-key SUF-CMA game and \lean{StronglyUnforgeable}.
 \item \lean{HashSignatures.lean}: the tweakable hash, chain, path fold and tree both schemes share.
 \item \lean{LeanXmss.lean}, \lean{LeanSphincs.lean}: the two schemes and their end statements.
-\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{192})$ and the Fiat--Shamir duplex sponge.
+\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{128})$ and the Fiat--Shamir duplex sponge.
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
 \item \lean{LeanVmVerifier.lean}: the verifier, the readable reference of \lean{crates/verifier}.
@@ -451,11 +451,11 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{40f877dc}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{98ceacf2c}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
-$\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \emph{deployed seed}
+$\mathbb{E} = \mathbb{F}[y]/(y^2+xy+1)$, the field of $2^{128}$ elements. Its \emph{deployed seed}
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
