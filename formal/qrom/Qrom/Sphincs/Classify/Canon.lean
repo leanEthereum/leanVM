@@ -125,4 +125,111 @@ theorem canonical_eq_signExpl (d : Data) (G : Input → HashOutput) (message : M
     rw [chosenWord_eq d G i lay]
     rfl
 
+/-- The log holds what the signer gives every logged message. -/
+def HonestLog (d : Data) (s : Log) : Prop := ∀ e ∈ s.1, e.2 = signH (d none) (hOf d) e.1
+
+theorem digestInput_length (d : Data) (m : Message) (R : Randomness) (call : DigestCall) :
+    (messageDigestInput (param (hOf d)) (dataOf (hOf d)).root m R call).length ≤ maxLen := by
+  rw [messageDigestInput_length]
+  unfold maxLen
+  omega
+
+/-- A digest call input, in the finite domain. -/
+def digestInputX (d : Data) (m : Message) (R : Randomness) (call : DigestCall) : Input :=
+  ⟨_, digestInput_length d m R call⟩
+
+/-- The digest a message and a randomizer get from `G`. -/
+def digestG (d : Data) (G : Input → HashOutput) (m : Message) (R : Randomness) : MessageDigest :=
+  truncateMessageDigest fun call ↦ G (digestInputX d m R call)
+
+/-- The digest of a message at a randomizer not its own comes from `G`, and its FORS leaves are all
+opened by logged digests. -/
+def CoverE (d : Data) (s : Log) (G : Input → HashOutput) (m : Message) (R : Randomness) : Prop :=
+  R ≠ rndOf (hOf d) m ∧
+    Covered (revealedLeaves d s) (digestIndex (digestG d G m R), digestLeaves (digestG d G m R))
+
+theorem digestInput_not_honest (d : Data) (m : Message) (R : Randomness) (hR : R ≠ rndOf (hOf d) m)
+    (call : DigestCall) : ∀ k, inputD d k ≠ messageDigestInput (param (hOf d)) (dataOf (hOf d)).root m R call := by
+  intro k hk
+  have hlen := congrArg List.length hk
+  rw [messageDigestInput_length] at hlen
+  cases k with
+  | pkSeed => simp only [inputD, length_input_pkSeed] at hlen; omega
+  | prf => simp only [inputD, length_input_prf] at hlen; omega
+  | ots => simp only [inputD, length_input_ots] at hlen; omega
+  | fts => simp only [inputD, length_input_fts] at hlen; omega
+  | rnd => simp only [inputD, length_input_rnd] at hlen; omega
+  | enc => simp only [inputD, length_input_enc] at hlen; omega
+  | pos p => simp only [inputD, length_input_pos] at hlen; omega
+  | dig m' call' =>
+    simp only [inputD, input] at hk
+    obtain ⟨-, -, hm, hr, -⟩ := messageDigestInput_injective hk
+    subst hm
+    exact hR hr.symm
+
+theorem fors_hidden_prot (d : Data) (s : Log) (G : Input → HashOutput) (index : Index) (κ : FTree)
+    (leaf : FLeaf) (hleaf : leaf ∉ revealedLeaves d s index κ) :
+    Prot d s (pt (hOf d) (d none) (.pos (.fleaf index κ leaf))) ∧
+      (pt (hOf d) (d none) (.pos (.fleaf index κ leaf))).1 = tweakableHashInput (param (hOf d))
+        (.forsLeaf index κ leaf) (bytesLE 16 (Completeness.forsSecretValue (fD d G) (param (hOf d))
+          index κ (d none) leaf)) := by
+  refine ⟨⟨.pos (.fleaf index κ leaf), fun hsub ↦ ?_, rfl⟩, ?_⟩
+  · have hq : some (Key.fts index κ leaf) ∈ deps (.pos (.fleaf index κ leaf)) := by
+      simp [deps, secretDep]
+    exact hleaf (inv_of_mem_rev d s _ (hsub hq))
+  · exact (canonical_eq_input d G (.fleaf index κ leaf)).symm.trans
+      (fleaf_input (fD d G) _ (d none) _ index κ leaf)
+
+/-- **The canonical branch**: a protected read, or a covered digest from `G`. -/
+theorem canonical_out (d : Data) (s : Log) (G : Input → HashOutput) (message : Message)
+    (signature : Signature) (hlog : HonestLog d s) (hfresh : ¬ s.Contains ⟨message, signature⟩)
+    (counter : Layer → Counter)
+    (hcount : ∀ lay, SignatureWitness.chosenCounter (fD d G) (param (hOf d)) (d none)
+      (SignatureWitness.index (fD d G) (pkD d) message signature) lay = some (counter lay))
+    (hcanon : SignatureWitness.CanonicalOpening (fD d G) (pkD d) (d none) message signature counter
+      (SignatureWitness.chosenWord (fD d G) (param (hOf d)) (d none)
+        (SignatureWitness.index (fD d G) (pkD d) message signature))) :
+    (∃ l ∈ SignatureWitness.trace (fD d G) (pkD d) message signature, ∃ x : Input, x.1 = l ∧ Prot d s x) ∨
+      CoverE d s G message signature.randomness := by
+  by_cases hR : signature.randomness = rndOf (hOf d) message
+  · by_cases hM : ∃ e ∈ s.1, e.1 = message
+    · exfalso
+      obtain ⟨e, he, rfl⟩ := hM
+      apply hfresh
+      refine ⟨e, he, rfl, ?_⟩
+      rw [hlog e he, signH_eq]
+      exact canonical_eq_signExpl d G e.1 signature hR counter hcount hcanon
+    · left
+      refine ⟨_, digestInputs_mem' (fD d G) (pkD d) message signature ⟨0, digestCalls_pos⟩,
+        pt (hOf d) (d none) (.dig message ⟨0, digestCalls_pos⟩), ?_, ?_⟩
+      · change messageDigestInput (param (hOf d)) (dataOf (hOf d)).root message (rndOf (hOf d) message) _ =
+          messageDigestInput (param (hOf d)) (dataOf (hOf d)).root message signature.randomness _
+        rw [hR]
+      · refine ⟨.dig message ⟨0, digestCalls_pos⟩, fun hsub ↦ hM ?_, rfl⟩
+        have hq : some (Key.rnd message) ∈ deps (.dig message ⟨0, digestCalls_pos⟩) := by simp [deps]
+        exact inv_of_mem_rev d s _ (hsub hq)
+  · have hnh := digestInput_not_honest d message signature.randomness hR
+    have hdig : verificationDigest (fD d G) (pkD d) message signature =
+        digestG d G message signature.randomness := by
+      unfold verificationDigest digestG
+      simp only [messageDigest, messageDigestCall, evalWithAnswerFn_bind, Completeness.eval_sequenceFin,
+        Completeness.eval_oracleHash, evalWithAnswerFn_pure, QueryImpl.ofFn_apply]
+      congr 1
+      funext call
+      exact (ans_of_not_honest d s G (digestInputX d message signature.randomness call) (hnh call)).1
+    obtain ⟨-, -, hopen⟩ := hcanon
+    have hrun := (SignatureWitness.verification_fors_run (fD d G) (pkD d) message signature).bind_left
+    rcases Fors.Opening.covered_or_hidden (fD d G) (param (hOf d))
+        (SignatureWitness.index (fD d G) (pkD d) message signature) (d none)
+        (digestLeaves (verificationDigest (fD d G) (pkD d) message signature)) signature.fors
+        (revealedLeaves d s) _ hopen hrun with hcov | ⟨index', κ, leaf, hleaf, hmem⟩
+    · right
+      refine ⟨hR, ?_⟩
+      unfold SignatureWitness.index at hcov
+      rw [hdig] at hcov
+      exact hcov
+    · left
+      obtain ⟨hp, hx⟩ := fors_hidden_prot d s G index' κ leaf hleaf
+      exact ⟨_, hmem, _, hx, hp⟩
+
 end Qrom.Sphincs
