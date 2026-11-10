@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Lift.Sig
-public import LeanVM.Guest.Lift.OsCallees
+public import LeanVM.Guest.Lift.RegD
 public import LeanVM.Guest.Memory.Size
 
 namespace LeanVM.Guest.B1

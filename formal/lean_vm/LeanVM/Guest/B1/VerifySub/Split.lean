@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.Split
 
-  The deferring verifier's program (`deferringVerifierProgram`, V:2328) regrouped along
-  `verify_sub`'s callees.
+  The deferring verifier's program (`deferringVerifierProgram`) regrouped along `verify_sub`'s
+  callees.
 -/
 
 module
@@ -18,12 +18,12 @@ public import LeanVM.Guest.B1.Gkr.Interface
 
 `deferredFlat c bytecode pi` is `deferringVerifierProgram c bytecode pi` (`deferred_eq`) with its
 phases grouped as `verify_sub` runs them: the announced sizes (`readAnnouncedSizes`), the stack's
-commitment, the four bus challenges and `β`, the bus's GKR (`gkrPhase`, `verify_bus_gkr`), the bus's
+commitment and its out-of-domain sample (`readOod`: a grind, the point, the value), the bus's
+depth check, grind, slot weights and `β`, the bus's GKR (`gkrPhase`, `verify_bus_gkr`), the bus's
 rest, the table sumcheck and the public input (`tablesSeg`, `verify_tables`), the output lanes'
-check, the Keccak reduction and the ring map's first challenge (`keccakSeg`, `verify_keccak`), the
-ring map's other five challenges, the batching challenge, the stacked opening up to its terminal
-(`whirOpen`,
-`open_stacked`) and the terminal's check (`check_opening_terminal`).
+check and the Keccak reduction (`keccakPhaseClaims`, `verify_keccak`), the ring switch (a grind
+and its sixteen challenges), and the stacked opening (the batching challenge, `whirOpen`, i.e.
+`open_stacked`, and the terminal's check, `check_opening_terminal`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -33,72 +33,55 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- `verifyBusBalance` (V:1481) as the challenges, `gkrPhase` and `busRest`. -/
-theorem verifyBusBalance_split (ev : (List K → List E → VerifierProgram E)) (layout : Layout) :
-    verifyBusBalance ev layout =
-      (VerifierProgram.sampleChallenges busBits).bind fun alphas ↦
-          VerifierProgram.sampleChallenge.bind fun beta ↦
-        (Tables.gkrPhase (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
-          fun r ↦ Tables.busRest ev layout alphas beta r.2.1 r.2.2 := by
-  simp only [verifyBusBalance, Tables.gkrPhase, Tables.busRest, VerifierProgram.bind_eq,
-      VerifierProgram.pure_eq,
-    VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+/-- The push side's bus depth of a layout. -/
+abbrev busDepth (layout : Layout) : ℕ :=
+  (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
 
-/-- The output lanes' claims (V:2215). -/
+/-- `verifyBusBalance` as the depth's check, the grind, the weights and `β`, `gkrPhase` and
+`busRest`. -/
+theorem verifyBusBalance_split (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
+    verifyBusBalance ev layout =
+      (VerifierProgram.require (busDepth layout < 64)).bind fun _ ↦
+      (VerifierProgram.grindProofOfWork (busGrindingBits (busDepth layout))).bind fun _ ↦
+      (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
+      VerifierProgram.sampleChallenge.bind fun beta ↦
+      (Tables.gkrPhase (busDepth layout)).bind fun r ↦
+        Tables.busRest ev layout weights beta r.2.1 r.2.2 := by
+  simp only [verifyBusBalance, Tables.gkrPhase, Tables.busRest, VerifierProgram.bind_eq,
+    VerifierProgram.pure_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+
+/-- The output lanes' claims. -/
 def lanesOf (claims : List ColumnClaim) : List ColumnClaim :=
   claims.filter fun c ↦ c.column ∈ keccakOutputColumns
 
-/-- The claims the opening batches, as stack claims: the ring switch's first. -/
-def stackClaims (layout : Layout) (claims : List ColumnClaim) (outs : List ColumnClaim)
-    (ringPoint slices challenges : List E) : List StackClaim :=
-  ringSwitchClaim layout (polyEval (slices.map (phiMap · challenges)) gen)
-      (fun rPrime ↦ ringWeight ringPoint rPrime (ringCoefficients challenges)) ::
-    (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ outs).map (·.stackClaim layout)
+/-- The claims the stacked opening batches: the ring switch's, the column claims with a
+placement (the output lanes' replaced by the Keccak reduction's), the out-of-domain one. -/
+def stackClaims (layout : Layout) (claims : List ColumnClaim) (target : E)
+    (weight : List E → E) (ood : StackClaim) : List StackClaim :=
+  ringSwitchClaim layout target weight :: claims.map (·.stackClaim layout) ++ [ood]
 
 /-- **The deferring verifier's program, regrouped.** -/
 def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : VerifierProgram Bool :=
   (readAnnouncedSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-  (VerifierProgram.sampleChallenges busBits).bind fun alphas ↦
+  (readOod ls.1.stackLog).bind fun ood ↦
+  (VerifierProgram.require (busDepth ls.1 < 64)).bind fun _ ↦
+  (VerifierProgram.grindProofOfWork (busGrindingBits (busDepth ls.1))).bind fun _ ↦
+  (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
   VerifierProgram.sampleChallenge.bind fun beta ↦
-  (Tables.gkrPhase (busLayout [0, ls.1.logMemory, ls.1.logBytecode] ls.1.push).depth).bind fun r ↦
-  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi alphas beta r.2.1 r.2.2).bind fun bc ↦
-  (VerifierProgram.require ((lanesOf bc.2).map (·.column) = keccakOutputColumns ∧
-    ∀ c ∈ lanesOf bc.2, c.point = ((lanesOf bc.2).headD default).point)).bind fun _ ↦
-  (keccakSeg (ls.1.tableLogHeights.getD opKeccak 0) ((lanesOf bc.2).headD default).point
-    ((lanesOf bc.2).map (·.value))).bind fun km ↦
-  (VerifierProgram.sampleChallenges 5).bind fun chs ↦
-  VerifierProgram.sampleChallenge.bind fun lam ↦
-  let all := stackClaims ls.1 bc.2 km.1.1 km.1.2.1 km.1.2.2 (km.2 :: chs)
-  (B1.Whir.whirOpen ls.1.stackLog ls.2 (dot (powers lam all.length) (all.map (·.2)))).bind fun w ↦
-  (VerifierProgram.require (w.Accepts fun point ↦ dot (powers lam all.length) (all.map fun c ↦ c.1 point))).bind
-    fun _ ↦ VerifierProgram.ret true
+  (Tables.gkrPhase (busDepth ls.1)).bind fun r ↦
+  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi weights beta r.2.1 r.2.2).bind fun bc ↦
+  (keccakPhaseClaims ls.1 bc.2).bind fun kc ↦
+  (ringSwitch kc.2.1 kc.2.2).bind fun rs ↦
+  (verifyStackedOpening ls.1.stackLog ls.2 (stackClaims ls.1 kc.1 rs.1 rs.2 ood)).bind fun _ ↦
+  VerifierProgram.ret true
 
 theorem deferred_eq (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     deferringVerifierProgram c bytecode pi = deferredFlat c bytecode pi := by
-  simp only [deferredProgram_eq, verifyExecutionClaims, deferredFlat, VerifierProgram.bind_eq,
-    VerifierProgram.bind_assoc]
-  refine congrArg _ (funext fun ls ↦ congrArg _ (funext fun _ ↦ ?_))
-  rw [verifyBusBalance_split]
-  simp only [Tables.tablesSeg, VerifierProgram.bind_assoc, VerifierProgram.bind_eq,
-      VerifierProgram.pure_eq, VerifierProgram.ret_bind]
-  refine congrArg _ (funext fun alphas ↦ congrArg _ (funext fun beta ↦ congrArg _ (funext fun r ↦
-    congrArg _ (funext fun bus ↦ congrArg _ (funext fun cl ↦ congrArg _ (funext fun pc ↦ ?_))))))
-  simp only [keccakPhaseClaims, lanesOf, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
-  refine congrArg _ (funext fun _ ↦ ?_)
-  simp only [keccakSeg, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
-  refine congrArg _ (funext fun kr ↦ ?_)
-  simp only [ringSwitch, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-      VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
-  rw [show ringMapShifts.length = 5 + 1 from rfl, VerifierProgram.sampleChallenges]
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-      VerifierProgram.ret_bind]
-  refine congrArg _ (funext fun m ↦ congrArg _ (funext fun chs ↦ ?_))
-  simp only [verifyStackedOpening, verifyWhir_eq_target, B1.Whir.verifyWhir_split, stackClaims, VerifierProgram.bind_eq,
-    VerifierProgram.bind_assoc]
-  refine congrArg _ (funext fun lam ↦ congrArg _ (funext fun w ↦ ?_))
+  rw [deferredProgram_eq]
+  simp only [verifyExecutionClaims, deferredFlat, verifyBusBalance_split, Tables.tablesSeg,
+    stackClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+    VerifierProgram.ret_bind]
   rfl
 
 end

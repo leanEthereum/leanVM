@@ -1,26 +1,27 @@
 /-
-  LeanVM.Guest.B1.Whir.QueriesOpenW
+  LeanVM.Guest.B1.Whir.QOpen
 
-  A level's queries with their witness named: the openings `toOpening` builds of the queries'
-  witness and the cap's cells pass `openOne`, and the queries' sum is the Spec's.
+  A level's queries: the openings `toOpening` builds of the queries' witness and the cap's cells
+  pass `openOne` against the level's root.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.QueriesOpen
-public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.Whir.Witness
+public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.AcceptableChild
 
 /-!
-# The queries' openings, named
+# The queries' openings (G:1658-1662, 1719-1726)
 
-`cap_climb_w`: up the cap by the siblings `capSibsOf` reads off the cap's cells (`cap_climb` with
-its siblings named). `queries_open_w`: `opening_queries`' meaning with its queries `ws` named
-(`MeaningOpeningQueriesW`) over a checked cap gives the openings `ws.map (toOpening …)`, at the
-queries' positions, each passing `openOne` at the Spec's position, and the queries' sum their
-`enforcedSum`.
+`cap_climb_w`: up the cap by the siblings `capSibsOf` reads off the cap's cells, a node whose cells
+the cap check (`verify_merkle_cap`) holds and whose parent is flagged reaches the root.
+`query_openOne_w`: a query's opening (`toOpening`: its row, its siblings below the cap, then the
+cap's) passes `openOne`. `queries_open`: `opening_queries`' meaning with its queries `ws` named
+(`MeaningOpeningQueriesW`), over a checked cap and at positions the decodes wrote, gives the
+openings `ws.map (toOpening …)` at the positions `qs`, each passing `openOne`, the rounds read
+from `coefs` and the chain of the folds returned.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -198,88 +199,69 @@ theorem winPos_unique {p : E} {d cd q q' : ℕ} (hcd : cd ≤ 8) (hq : q < 2 ^ d
     rwa [frameRun_load hr hi this] at this
   rw [← winPosOf_eq hcd hq hl, winPosOf_eq hcd hq' hl']
 
-/-- **The queries' openings and sum, named.** -/
-theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptrs wp nG sum r0 r1 : E}
-    {root : Digest} {ws : List QW} {cap0 : E} (hc0 : cap0 = cap)
-    (hm : MeaningOpeningQueriesW odd base I depth cd rd ws [cap, flags, lam, lamN, qptrs, wp, nG]
-      [sum])
-    (hcap : MeaningVerifyMerkleCap cd rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ cd) (hcd8 : cd ≤ 8) (hcdd : cd ≤ depth)
-    (hnG : nG = gen ^ N0) (hN0 : N0 < ordG) (hQ : oqCount odd base N0 = q) (hodd : odd ≤ 1)
-    (hb : base = 1 ∨ (base = 0 ∧ odd = 0))
-    (qs : List ℕ) (hqsl : qs.length = q) (hqlt : ∀ k < q, qs.getD k 0 < 2 ^ depth)
-    (hbits : ∀ k < q, ∃ bp, LoadHolds rd qptrs k bp ∧
-      FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd (qs.getD k 0) i)
-    (hlamN : lamN = lam ^ q) {width : ℕ} (hwidth : (if base = 1 then I else 3 * I) = width)
-    (specRow : List K → List E) (fd : List E)
-    (hdot : ∀ (row : List K) (w : ℕ → E), row.length = width →
-      (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) →
-        rowDot base I row w = dot (specRow row) (eqKernel fd)) :
-    (ws.map (toOpening rd cap0 cd depth)).length = q ∧
-      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap0 cd depth)).length),
-        Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width qs[k]
-          (ws.map (toOpening rd cap0 cd depth))[k]) = true) ∧
-      sum = enforcedSum (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow) fd
-        (powers lam q) ∧
-      (ws.map (toOpening rd cap0 cd depth)).map Opening.leafIndex = qs := by
-  subst hc0
-  obtain ⟨N, hN, hnG', hlam, hwl, bps, ds, hall, ch, -, hret⟩ := hm
+
+/-- **A level's queries, opened** (`opening_queries` over a checked cap): the openings
+`ws.map (toOpening …)` sit at the positions `qs` and pass `openOne` against the root; the rounds
+and the final coefficients the meaning reads; each query's fold. -/
+theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs nG r0 r1 : E}
+    {rets : List E} {root : Digest} {ws : List QW} {N0 Q : ℕ}
+    (hm : MeaningOpeningQueriesW sh rd ws [cap, flags, lamInv, coefs, hs, positions, qptrs, nG] rets)
+    (hcap : MeaningVerifyMerkleCap sh.cd rd [cap, flags] [r0, r1])
+    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ sh.cd) (hcd8 : sh.cd ≤ 8)
+    (hcdd : sh.cd ≤ sh.depth) (hnG : nG = gen ^ N0) (hN0 : N0 < ordG)
+    (hQ : oqCount sh.odd sh.base N0 = Q) (hQpos : 0 < Q) (qs : List ℕ) (hqsl : qs.length = Q)
+    (hqlt : ∀ k < Q, qs.getD k 0 < 2 ^ sh.depth)
+    (hbits : ∀ k < Q, ∃ bp, LoadHolds rd qptrs k bp ∧
+      FrameRun rd bp (qwN sh.depth sh.cd) fun i ↦ gen ^ qwVal sh.depth sh.cd (qs.getD k 0) i) :
+    ∃ (rounds : List FoldRound) (hsv : List E), rounds.length = sh.folds ∧ hsv.length = sh.nHs ∧
+      RoundsAt rd coefs rounds ∧ (sh.final = 1 → WordsAt rd hs hsv) ∧
+      (ws.map (toOpening rd cap sh.cd sh.depth)).length = Q ∧
+      (∀ k (hk : k < qs.length) (ho : k < (ws.map (toOpening rd cap sh.cd sh.depth)).length),
+        Id.run (Compile.openOneWithHash (m := Id) keccak256 root sh.depth (rowLen sh.base sh.folds)
+          qs[k] (ws.map (toOpening rd cap sh.cd sh.depth))[k]) = true) ∧
+      (ws.map (toOpening rd cap sh.cd sh.depth)).map Opening.leafIndex = qs ∧
+      (∀ k < Q, (ws.getD k default).1 = qs.getD k 0) ∧
+      (∀ k < Q, FoldsNonzero rounds (K.ofBits (qs.getD k 0))) ∧
+      (sh.final = 1 → ∀ k < Q, qwFold sh.base rounds (ws.getD k default) =
+        novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat (qs.getD k 0))) sh.nHs sh.hsBits) ∧
+      (sh.final = 1 → rets = [0]) ∧
+      (sh.final ≠ 1 → rets = [oqChain sh.odd sh.base lamInv
+        (fun k ↦ qwFold sh.base rounds (ws.getD k default)) N0]) := by
+  obtain ⟨N, hN, hnG', hwl, rounds, hsv, hrl, hhl, hall, hret⟩ := hm
   have hNN : N = N0 := gen_pow_inj hN hN0 (hnG'.symm.trans hnG)
   subst hNN
   rw [hQ] at hwl hall
-  have hql : (ws.map (toOpening rd cap0 cd depth)).length = q := by rw [List.length_map, hwl]
-  -- the positions
-  have hqs' : ∀ k < q, (ws.getD k default).1 = qs.getD k 0 := by
+  have hql : (ws.map (toOpening rd cap sh.cd sh.depth)).length = Q := by rw [List.length_map, hwl]
+  have hqs' : ∀ k < Q, (ws.getD k default).1 = qs.getD k 0 := by
     intro k hk
-    obtain ⟨hbp, hlt, hb', -⟩ := hall k hk
-    obtain ⟨bp, hbp', hbits'⟩ := hbits k hk
+    obtain ⟨-, -, -, hlt, ⟨bp, hbp, hb'⟩, -⟩ := hall k hk
+    obtain ⟨bp', hbp', hbits'⟩ := hbits k hk
     have e := loadHolds_unique hbp hbp'
     subst e
     exact winPos_unique hcd8 hlt (hqlt k hk) hb' hbits'
-  have hget : ∀ k (hk : k < q), (ws.map (toOpening rd cap0 cd depth))[k]'(by rw [hql]; exact hk) =
-      toOpening rd cap0 cd depth (ws.getD k default) := by
+  have hget : ∀ k (hk : k < Q), (ws.map (toOpening rd cap sh.cd sh.depth))[k]'(by rw [hql]; exact hk) =
+      toOpening rd cap sh.cd sh.depth (ws.getD k default) := by
     intro k hk
     rw [List.getElem_map, List.getD_eq_getElem _ _ (by rw [hwl]; exact hk)]
-  refine ⟨hql, fun k hk ho ↦ ?_, ?_, ?_⟩
-  · have hkq : k < q := by rw [hql] at ho; exact ho
-    obtain ⟨-, hlt, -, hop⟩ := hall k hkq
-    obtain ⟨hrow, hsl, w, -, h0, h1, hfl, -⟩ := hop
+  refine ⟨rounds, hsv, hrl, hhl, (hall 0 hQpos).1, (hall 0 hQpos).2.1, hql, fun k hk ho ↦ ?_, ?_, hqs', fun k hk ↦ ?_,
+    fun hf k hk ↦ ?_, fun hf ↦ ?_, fun hf ↦ ?_⟩
+  · have hkq : k < Q := by rw [hql] at ho; exact ho
+    obtain ⟨-, -, -, hlt, -, hop, -⟩ := hall k hkq
+    obtain ⟨hrow, hsl, h0, h1, hfl⟩ := hop
     rw [hget k hkq, ← List.getD_eq_getElem _ 0 hk, ← hqs' k hkq]
-    exact query_openOne_w hcd hcdd hcap hroot hlt (hrow.trans hwidth) hsl h0 h1 hfl
-  · have hds : ∀ k < q, ds k = dot (specRow (ws.getD k default).2.1) (eqKernel fd) := by
-      intro k hk
-      obtain ⟨-, -, -, hrow, -, w, hw, -, -, -, hd⟩ := hall k hk
-      rw [hd]
-      exact hdot _ _ (hrow.trans hwidth) hw
-    obtain ⟨hret, -⟩ := List.cons_eq_cons.mp hret
-    rw [hret, hlamN, ← hQ, oqChain_powers hlam hodd hb, hQ]
-    have hrl : (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).length = q := by
-      simp [hwl]
-    rw [← hrl, enforcedSum_eq, hrl]
-    unfold powSum
-    have hL : ∀ k < q, (((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).getD k [] =
-        specRow (ws.getD k default).2.1 := by
-      intro k hk
-      rw [List.getD_eq_getElem _ _ (by simp [hwl]; omega), List.getD_eq_getElem _ _ (by omega)]
-      simp [toOpening]
-    have hmap : (List.range q).map (fun k ↦ lam ^ k * ds k) =
-        (List.range q).map (fun k ↦ lam ^ k *
-          dot ((((ws.map (toOpening rd cap0 cd depth)).map (·.leaf)).map specRow).getD k [])
-            (eqKernel fd)) := by
-      refine List.map_congr_left fun k hk ↦ ?_
-      have hk' : k < q := List.mem_range.mp hk
-      rw [hds k hk', hL k hk']
-    rw [hmap]
+    exact query_openOne_w hcd hcdd hcap hroot hlt hrow hsl h0 h1 hfl
   · apply List.ext_getElem (by simp [hwl, hqsl])
     intro k h1 h2
-    have hk : k < q := by simpa [hwl] using h1
+    have hk : k < Q := by simpa [hwl] using h1
     have e := hqs' k hk
     rw [List.getD_eq_getElem _ _ (by rw [hwl]; exact hk), List.getD_eq_getElem _ _ h2] at e
     simpa [toOpening] using e
-
-theorem meaningW_args {odd base I depth cd : ℕ} {ws : List QW} {A A' R : List E}
-    (h : MeaningOpeningQueriesW odd base I depth cd rd ws A R) (e : A = A') :
-    MeaningOpeningQueriesW odd base I depth cd rd ws A' R := e ▸ h
+  · rw [← hqs' k hk]; exact (hall k hk).2.2.2.2.2.2.1
+  · rw [← hqs' k hk]; exact (hall k hk).2.2.2.2.2.2.2 hf
+  · simpa [hf] using hret
+  · simp only [hf, ↓reduceIte] at hret
+    obtain ⟨-, -, h⟩ := hret
+    exact h
 
 end
 end LeanVM.Guest.B1.Whir

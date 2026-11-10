@@ -57,7 +57,7 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 17 ≤ b) (hσ : ∀ v
   have e2 : σ (.n (b + 2)) = c.point.getD (τ - 4) 0 :=
     load_val (gA _ (mA _ (by simp [eqfLevel0T]))) (not_mem_of_noneIn k1 _ (by simp)) hr
   have c3 : σ (.n (b + 3)) = word 1 0 0 :=
-    gA (.const (.n (b + 3)) (word 1 0 0)) (mA _ (by simp [eqfLevel0T]))
+    gA (.const (.n (b + 3)) (word 1 0)) (mA _ (by simp [eqfLevel0T]))
   have a4 : σ (.n (b + 4)) = σ (.n (b + 3)) + σ (.n (b + 2)) :=
     gA (.add (.n (b + 4)) (.n (b + 3)) (.n (b + 2))) (mA _ (by simp [eqfLevel0T]))
   have p5 : σ (.n (b + 5)) = σ (.n (b + 2)) :=
@@ -157,13 +157,13 @@ theorem tail0_complete {T : ℕ} (hT : 204 ≤ T) {cap : List ℕ} {cur cb pn io
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepTailT 0 T cap cur cb pn io) next kret := by
   have gA : ∀ a, Stmt.atom a ∈ stepTailT 0 T cap cur cb pn io → Good rd vkSt w σ a :=
     fun a h ↦ hg _ h
-  have c0 : σ (.n T) = word 2 0 0 := gA (.const (.n T) (word 2 0 0)) (by simp [stepTailT])
+  have c0 : σ (.n T) = word 2 0 0 := gA (.const (.n T) (word 2 0)) (by simp [stepTailT])
   have m1 := mulG (by omega) (by omega) (gA (.mul (.n (T + 1)) (.n 5) (.n T)) (by simp [stepTailT]))
-  have c2 : σ (.n (T + 2)) = word 2 0 0 := gA (.const (.n (T + 2)) (word 2 0 0)) (by simp [stepTailT])
+  have c2 : σ (.n (T + 2)) = word 2 0 0 := gA (.const (.n (T + 2)) (word 2 0)) (by simp [stepTailT])
   have m3 := mulG (by omega) (by omega)
     (gA (.mul (.n (T + 3)) (.n 17) (.n (T + 2))) (by simp [stepTailT]))
   have c4 : σ (.n (T + 4)) = word 4194304 0 0 :=
-    gA (.const (.n (T + 4)) (word 4194304 0 0)) (by simp [stepTailT])
+    gA (.const (.n (T + 4)) (word 4194304 0)) (by simp [stepTailT])
   have m5 := mulG (by omega) (by omega)
     (gA (.mul (.n (T + 5)) (.n 203) (.n (T + 4))) (by simp [stepTailT]))
   have e1 : σ (.n (T + 1)) = σ (.n 5) * gen := by rw [m1, c0, word_gen]
@@ -186,19 +186,19 @@ theorem tailL_complete {s T : ℕ} (hs1 : 1 ≤ s) (hT : 18 ≤ T) {cap : List �
   have hs0 : s ≠ 0 := by omega
   have gA : ∀ a, Stmt.atom a ∈ stepTailT s T cap cur cb pn io → Good rd vkSt w σ a :=
     fun a h ↦ hg _ h
-  have c0 : σ (.n T) = word 0 0 0 := gA (.const (.n T) (word 0 0 0)) (by simp [stepTailT, hs0])
+  have c0 : σ (.n T) = word 0 0 0 := gA (.const (.n T) (word 0 0)) (by simp [stepTailT, hs0])
   have c1 : σ (.n (T + 1)) = word 0 0 0 :=
-    gA (.const (.n (T + 1)) (word 0 0 0)) (by simp [stepTailT, hs0])
+    gA (.const (.n (T + 1)) (word 0 0)) (by simp [stepTailT, hs0])
   have c2 : σ (.n (T + 2)) = word 2 0 0 :=
-    gA (.const (.n (T + 2)) (word 2 0 0)) (by simp [stepTailT, hs0])
+    gA (.const (.n (T + 2)) (word 2 0)) (by simp [stepTailT, hs0])
   have m3 := mulG (by omega) (by omega)
     (gA (.mul (.n (T + 3)) (.n 17) (.n (T + 2))) (by simp [stepTailT, hs0]))
   have c4 : σ (.n (T + 4)) = word 4194304 0 0 :=
-    gA (.const (.n (T + 4)) (word 4194304 0 0)) (by simp [stepTailT, hs0])
+    gA (.const (.n (T + 4)) (word 4194304 0)) (by simp [stepTailT, hs0])
   have m5 := mulG (by omega) (by omega)
     (gA (.mul (.n (T + 5)) (.n cb) (.n (T + 4))) (by simp [stepTailT, hs0]))
   have c6 : σ (.n (T + 6)) = word 4194304 0 0 :=
-    gA (.const (.n (T + 6)) (word 4194304 0 0)) (by simp [stepTailT, hs0])
+    gA (.const (.n (T + 6)) (word 4194304 0)) (by simp [stepTailT, hs0])
   have m7 := mulG (by omega) (by omega)
     (gA (.mul (.n (T + 7)) (.n pn) (.n (T + 6))) (by simp [stepTailT, hs0]))
   have e3 : σ (.n (T + 3)) = gen ^ (τ - 3) := by

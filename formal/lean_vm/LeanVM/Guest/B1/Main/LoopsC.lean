@@ -218,7 +218,7 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
     ∃ (root : Digest) (z : E), (wD [gsq] rets).Opens root z ∧ rets = digestCells root ++ [z]
   /-- A child proof's check with the exponent table: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 gsq out,
-    C "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    C "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq ∧ ExpWinTab rd gsq →
     VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
   /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
   with the hints `wA args`. -/
