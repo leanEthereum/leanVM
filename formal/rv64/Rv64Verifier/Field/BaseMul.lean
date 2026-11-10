@@ -7,7 +7,7 @@ import Mathlib.Tactic.IntervalCases
 /-!
 # `field::base_mul`, with its calls, as one run
 
-`base_mul` (18 instructions at `0x80011128`) calls `clmul` (157 instructions), which calls
+`base_mul` (18 instructions at `0x800107bc`) calls `clmul` (157 instructions), which calls
 `clmul_low` (64 instructions) on the operands and on their bit reversals, which `clmul` computes
 inline; `base_mul` then reduces the 128-bit product. `symRunCode` follows the calls and the
 returns, 303 steps from `base_mul`'s entry to its own return, and one `decide +kernel`
@@ -84,17 +84,17 @@ theorem baseMulE_eval (s : MachineState) (h : s.getMem ClmulLow.poolAddr = Clmul
 
 /-! ## The run -/
 
-def entry : Word := 0x80011128
+def entry : Word := 0x800107bc
 
 theorem entry_listed :
-    ("verifier[72855cb32e92cc4d]::field::base_mul", entry, 72) ∈ Image.functions := by
+    ("verifier[312c7e26d4ca39a]::field::base_mul", entry, 72) ∈ Image.functions := by
   decide +kernel
 
-/-- `clmul`, `base_mul` and `clmul_low`, the image's words from `0x80010d84` to `0x80011270`. -/
-def window : Code := codeWindow Image.code 17249 315
+/-- `clmul`, `base_mul` and `clmul_low`, the image's words from `0x80010418` to `0x80010904`. -/
+def window : Code := codeWindow Image.code 16646 315
 
 theorem window_sub : CodeSub window Image.code :=
-  codeWindow_sub Image.code 17249 315 (by decide +kernel)
+  codeWindow_sub Image.code 16646 315 (by decide +kernel)
 
 /-- `ra`, `sp` and `s0`..`s11`. -/
 def calleeSaved : List Reg :=

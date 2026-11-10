@@ -2,7 +2,8 @@
 //!
 //! The loader puts the input, a sequence of little-endian 64-bit words, at `INPUT` and its length in words in `a0`,
 //! and jumps to `_start`. The program halts (`ECALL` with `t0 = 0`) with `a0` = 1 if the proof verifies, 0 if the
-//! verifier rejects it, and 2 if the input is malformed or memory runs out. The input, in words:
+//! verifier rejects it, and 2 if the input is malformed or memory runs out; a panic traps (`panic = "immediate-abort"`).
+//! The input, in words:
 //!
 //! ```text
 //! bytecode: n, then n table words

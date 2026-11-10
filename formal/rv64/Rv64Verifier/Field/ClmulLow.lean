@@ -5,7 +5,7 @@ import Rv64Verifier.Model.Clmul
 /-!
 # `field::clmul_low`, whole function
 
-The image's `clmul_low` (64 instructions at `0x80011170`: it saves `s0` and `s1`, computes, restores
+The image's `clmul_low` (64 instructions at `0x80010804`: it saves `s0` and `s1`, computes, restores
 them and returns with `jalr zero, 0(ra)`) computes `clmulLowMirror`, a transcription of the Rust:
 
 ```rust
@@ -83,17 +83,17 @@ theorem clmulLowE_eval (s : MachineState) (h : s.getMem poolAddr = M3) :
       clmulLowMirror (s.getReg .x10) (s.getReg .x11) := by
   simp only [clmulLowE, clmulLowMirror, E.eval, BinOp.eval, h]
 
-def entry : Word := 0x80011170
+def entry : Word := 0x80010804
 
 theorem entry_listed :
-    ("verifier[72855cb32e92cc4d]::field::clmul_low", entry, 256) ∈ Image.functions := by
+    ("verifier[312c7e26d4ca39a]::field::clmul_low", entry, 256) ∈ Image.functions := by
   decide +kernel
 
 /-- The function's 64 instructions. -/
-def words : List (BitVec 32) := (Image.code.words.drop 17500).take 64
+def words : List (BitVec 32) := (Image.code.words.drop 16897).take 64
 
 theorem codeAt : CodeAt Image.code entry words :=
-  CodeAt.slice Image.code 17500 64 entry (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  CodeAt.slice Image.code 16897 64 entry (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- `ra`, `sp` and `s0`..`s11`. -/
 def calleeSaved : List Reg :=
