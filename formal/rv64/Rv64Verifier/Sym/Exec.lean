@@ -141,6 +141,11 @@ structure Config where
   /-- If `true`, reads that cannot be resolved syntactically emit `Oblig.ne` side conditions
   (the addresses differ) instead of failing. -/
   noAlias : Bool := false
+  /-- If `true`, a sub-doubleword access at `b + off`, `b` not constant, needs no alignment of `b`:
+  its doubleword is `(b + off) &&& ~~~7` and its byte position `(b + off) &&& 7`, both symbolic
+  (`anyKey`); the access's own alignment is part of `Oblig.valid`. Otherwise `b` must be 8-aligned
+  (`Oblig.align8`, `subKey`), which keeps the doubleword `b + (off &&& ~~~7)`. -/
+  anyAlign : Bool := false
   deriving Repr
 
 /-- Resolve a doubleword read at key `k`: the value and extra side conditions. -/
@@ -203,6 +208,10 @@ def subKey (σ : SymState) (a : Addr) : SymState × Addr × Nat :=
   | none => (σ, ⟨none, alignToDword a.off⟩, byteOffset a.off)
   | some b => (σ.addObl (.align8 b), ⟨some b, alignToDword a.off⟩, byteOffset a.off)
 
+/-- Doubleword key and byte position of a sub-doubleword access at any address. -/
+def anyKey (a : Addr) : Addr × E :=
+  (norm (mkBin .and a.toE (.c (~~~7#64))), mkBin .and a.toE (.c 7))
+
 def LoadKind.isD : LoadKind → Bool
   | .d => true
   | _ => false
@@ -227,6 +236,12 @@ def symMicro (cfg : Config) (pc : Word) (σ : SymState) : Micro → Option (SymS
         | some (v, os) =>
           let σ₂ := σ₁.addObls os
           some ({ σ₂ with regs := σ₂.regs.set rd v }, none)
+      else if cfg.anyAlign && a.base.isSome then
+        match readMem cfg (anyKey a).1 σ₁.mem with
+        | none => none
+        | some (w, os) =>
+          let σ₂ := σ₁.addObls os
+          some ({ σ₂ with regs := σ₂.regs.set rd (mkBin (.ldx k) w (anyKey a).2) }, none)
       else
         match subKey σ₁ a with
         | (σ₂, key, bo) =>
@@ -243,6 +258,12 @@ def symMicro (cfg : Config) (pc : Word) (σ : SymState) : Micro → Option (SymS
     | some σ₁ =>
       if k.isD then
         some ({ σ₁ with mem := writeMem a v σ₁.mem }, none)
+      else if cfg.anyAlign && a.base.isSome then
+        match readMem cfg (anyKey a).1 σ₁.mem with
+        | none => none
+        | some (old, os) =>
+          let σ₂ := σ₁.addObls os
+          some ({ σ₂ with mem := writeMem (anyKey a).1 (.stx k old (anyKey a).2 v) σ₂.mem }, none)
       else
         match subKey σ₁ a with
         | (σ₂, key, bo) =>

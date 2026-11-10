@@ -50,6 +50,7 @@ def BinOp.code : BinOp → Nat
   | .mulhu => 13 | .div => 14 | .divu => 15 | .rem => 16 | .remu => 17
   | .w op => 18 + wordOpCode op
   | .st k bo => 28 + k.code + 4 * bo
+  | .ldx k => 60 + k.code
 
 def UnOp.code : UnOp → Nat
   | .ld k bo => k.code + 8 * bo
@@ -58,7 +59,7 @@ def CmpOp.code : CmpOp → Nat
   | .eq => 0 | .ne => 1 | .lt => 2 | .ge => 3 | .ltu => 4 | .geu => 5
 
 def E.tag : E → Nat
-  | .c _ => 0 | .reg _ => 1 | .ld _ => 2 | .un .. => 3 | .bin .. => 4 | .ite .. => 5
+  | .c _ => 0 | .reg _ => 1 | .ld _ => 2 | .un .. => 3 | .bin .. => 4 | .ite .. => 5 | .stx .. => 6
 
 def natCmp (a b : Nat) : Ordering :=
   if a < b then .lt else if a = b then .eq else .gt
@@ -73,6 +74,8 @@ def E.cmp : E → E → Ordering
   | .ite o x y a b, .ite o' x' y' a' b' =>
     (natCmp o.code o'.code).then ((E.cmp x x').then ((E.cmp y y').then
       ((E.cmp a a').then (E.cmp b b'))))
+  | .stx k o p v, .stx k' o' p' v' =>
+    (natCmp k.code k'.code).then ((E.cmp o o').then ((E.cmp p p').then (E.cmp v v')))
   | a, b => natCmp a.tag b.tag
 
 def E.lt (a b : E) : Bool :=
@@ -111,6 +114,7 @@ def E.acNorm : E → E
     if op.isAC then E.rebuild op (E.sort (E.chain op a.acNorm ++ E.chain op b.acNorm))
     else .bin op a.acNorm b.acNorm
   | .ite op x y a b => .ite op x.acNorm y.acNorm a.acNorm b.acNorm
+  | .stx k o p v => .stx k o.acNorm p.acNorm v.acNorm
 
 /-- Equality modulo associativity and commutativity. -/
 def E.acEq (a b : E) : Bool := E.beq a.acNorm b.acNorm
@@ -214,6 +218,7 @@ theorem E.acNorm_eval (e : E) : e.acNorm.eval s = e.eval s := by
       rfl
     · simp only [E.eval, iha, ihb]
   | ite o x y a b ihx ihy iha ihb => simp only [E.acNorm, E.eval, ihx, ihy, iha, ihb]
+  | stx k o p v iho ihp ihv => simp only [E.acNorm, E.eval, iho, ihp, ihv]
 
 theorem E.acEq_eval {a b : E} (h : E.acEq a b = true) : a.eval s = b.eval s := by
   rw [← E.acNorm_eval s a, ← E.acNorm_eval s b, E.beq_eq h]

@@ -292,6 +292,12 @@ theorem subKey_sound {σ σ₂ : SymState} {a key : Addr} {bo : Nat} (h : subKey
     · simp [Addr.eval, hb, this.1]
     · simp [Addr.eval, hb, this.2]
 
+theorem anyKey_sound (s : MachineState) (a : Addr) :
+    (anyKey a).1.eval s = alignToDword (a.eval s) ∧
+      ((anyKey a).2.eval s).toNat = byteOffset (a.eval s) := by
+  simp only [anyKey, norm_eval, mkBin_eval, Addr.toE_eval]
+  exact ⟨rfl, rfl⟩
+
 /-! ## One micro-op -/
 
 theorem Src.sym_eval (σ : SymState) (s : MachineState) (pc : Word) (a : Src) :
@@ -356,6 +362,33 @@ theorem symMicro_sound {cfg : Config} {pc : Word} {σ σ' : SymState} {m : Micro
       · -- sub-doubleword
         rename_i hk
         have hk' : k ≠ .d := fun h' => hk ((LoadKind.isD_iff k).mpr h')
+        split at h
+        · -- at any address
+          split at h
+          · cases h
+          · rename_i w os hr
+            simp only [Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            have hsub2 := SymState.addObls_sub σ₁ os
+            have hobl1 : ∀ o ∈ σ₁.obl, o.holds s := fun o ho => hobl o (hsub2 ho)
+            obtain ⟨hv, hr1, hm1, hs1⟩ := checkValid_sound hcv s hobl1
+            have hos : ∀ o ∈ os, o.holds s := fun o ho =>
+              hobl o (SymState.addObls_mem_obl σ₁ os o ho)
+            have hread := readMem_sound hr s hos
+            obtain ⟨hkey, hpos⟩ := anyKey_sound s (norm (mkAdd (σ.regs.get rs) (E.c off)))
+            refine ⟨List.Subset.trans hs1 hsub2, ?_⟩
+            rw [haddr] at hv hkey hpos
+            rw [hkey, hm1] at hread
+            simp only [Micro.exec, hv, ite_true, SymState.toState_pc]
+            rw [LoadKind.read_sub _ _ _ hk', SymState.toState_getMem, hread, ← hpos,
+              show k.fromWord (w.eval s) ((anyKey (norm (mkAdd (σ.regs.get rs) (E.c off)))).2.eval
+                s).toNat = (mkBin (.ldx k) w (anyKey (norm (mkAdd (σ.regs.get rs) (E.c off)))).2).eval
+                s by rw [mkBin_eval]; rfl,
+              SymState.toState_setReg, SymState.toState_setPC]
+            congr 1
+            apply SymState.toState_congr
+            · simp [SymState.addObls_regs, hr1]
+            · simp [SymState.addObls_mem, hm1]
         generalize hsk : subKey σ₁ (norm (mkAdd (σ.regs.get rs) (E.c off))) = p at h
         obtain ⟨σ₂, key, bo⟩ := p
         simp only at h
@@ -409,6 +442,33 @@ theorem symMicro_sound {cfg : Config} {pc : Word} {σ σ' : SymState} {m : Micro
         · simp [memEval_writeMem, hm1]
       · rename_i hk
         have hk' : k ≠ .d := fun h' => hk ((StoreKind.isD_iff k).mpr h')
+        split at h
+        · -- at any address
+          split at h
+          · cases h
+          · rename_i old os hr
+            simp only [Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            have hsub2 := SymState.addObls_sub σ₁ os
+            have hobl1 : ∀ o ∈ σ₁.obl, o.holds s := fun o ho => hobl o (hsub2 ho)
+            obtain ⟨hv, hr1, hm1, hs1⟩ := checkValid_sound hcv s hobl1
+            have hos : ∀ o ∈ os, o.holds s := fun o ho =>
+              hobl o (SymState.addObls_mem_obl σ₁ os o ho)
+            have hread := readMem_sound hr s hos
+            obtain ⟨hkey, hpos⟩ := anyKey_sound s (norm (mkAdd (σ.regs.get rs1) (E.c off)))
+            refine ⟨List.Subset.trans hs1 hsub2, ?_⟩
+            rw [haddr] at hv hkey hpos
+            rw [hkey, hm1] at hread
+            simp only [Micro.exec, hv, ite_true, SymState.toState_pc]
+            rw [StoreKind.write_sub _ _ _ _ hk', SymState.toState_getMem, hread, ← hpos, ← hkey,
+              show k.merge (old.eval s) ((anyKey (norm (mkAdd (σ.regs.get rs1) (E.c off)))).2.eval
+                s).toNat ((σ.toState s c pc).getReg rs2) = (E.stx k old (anyKey (norm (mkAdd
+                (σ.regs.get rs1) (E.c off)))).2 (σ.regs.get rs2)).eval s by simp [E.eval],
+              SymState.toState_setMem, SymState.toState_setPC]
+            congr 1
+            apply SymState.toState_congr
+            · simp [SymState.addObls_regs, hr1]
+            · simp [memEval_writeMem, SymState.addObls_mem, hm1]
         generalize hsk : subKey σ₁ (norm (mkAdd (σ.regs.get rs1) (E.c off))) = p at h
         obtain ⟨σ₂, key, bo⟩ := p
         simp only at h

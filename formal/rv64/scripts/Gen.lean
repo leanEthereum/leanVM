@@ -146,6 +146,7 @@ partial def shortE : E → String
       | .eq => "=" | .ne => "≠" | .lt => "<ₛ" | .ge => "≥ₛ"
       | .ltu => "<ᵤ" | .geu => "≥ᵤ"
     s!"if {shortE x} {sym} {shortE y} then {shortE a} else {shortE b}"
+  | .stx k o p v => s!"{repr k}[{shortE o} @ {shortE p} := {shortE v}]"
 
 def clip (s : String) : String := if s.length ≤ 160 then s else (s.take 157).toString ++ "..."
 

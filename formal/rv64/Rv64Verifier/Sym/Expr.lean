@@ -7,7 +7,9 @@ Ported from sig.golf's `SigGolfCandidate.Rv`.
 
 `E` is a small expression language over atoms taken from a fixed initial machine state `s`:
 `E.reg r` is the initial register value `s.getReg r`, and `E.ld a` the initial memory doubleword
-`s.getMem (a.eval s)`. `E.eval s e : Word` is the meaning of `e` relative to `s`. The smart
+`s.getMem (a.eval s)`. `E.eval s e : Word` is the meaning of `e` relative to `s`. A sub-doubleword
+load or store whose byte position is not known (`BinOp.ldx`, `E.stx`) takes it as an operand. The
+smart
 constructors (`mkAdd`, `mkBin`, `mkUn`, `mkIte`) fold constants and normalize additive constants,
 so that addresses have the shape `base + const`.
 
@@ -68,6 +70,9 @@ inductive BinOp where
   | w (op : WordOp)
   /-- sub-doubleword store merge: `eval old v = k.merge old bo v` -/
   | st (k : StoreKind) (bo : Nat)
+  /-- sub-doubleword load extraction at a byte position given as a word: `eval x p = k.fromWord x
+  p.toNat` -/
+  | ldx (k : LoadKind)
   deriving DecidableEq, Repr
 
 inductive UnOp where
@@ -101,6 +106,7 @@ def BinOp.eval : BinOp → Word → Word → Word
   | .remu, x, y => rv64_remu x y
   | .w op, x, y => (wordResult op (x.truncate 32) (y.truncate 32)).signExtend 64
   | .st k bo, x, y => k.merge x bo y
+  | .ldx k, x, p => k.fromWord x p.toNat
 
 def UnOp.eval : UnOp → Word → Word
   | .ld k bo, x => k.fromWord x bo
@@ -124,6 +130,8 @@ inductive E where
   | bin (op : BinOp) (a b : E)
   /-- `if op x y then a else b` -/
   | ite (op : CmpOp) (x y a b : E)
+  /-- sub-doubleword store merge at a byte position given as a word: `k.merge old p.toNat v` -/
+  | stx (k : StoreKind) (old p v : E)
   deriving Repr
 
 /-- Meaning of a symbolic word relative to the initial state `s`. -/
@@ -134,6 +142,7 @@ def E.eval (s : MachineState) : E → Word
   | .un op a => op.eval (a.eval s)
   | .bin op a b => op.eval (a.eval s) (b.eval s)
   | .ite op x y a b => if op.eval (x.eval s) (y.eval s) then a.eval s else b.eval s
+  | .stx k o p v => k.merge (o.eval s) (p.eval s).toNat (v.eval s)
 
 /-! ## Boolean equality -/
 
@@ -155,6 +164,8 @@ def E.beq : E → E → Bool
   | .bin o a b, .bin o' a' b' => decide (o = o') && E.beq a a' && E.beq b b'
   | .ite o x y a b, .ite o' x' y' a' b' =>
       decide (o = o') && E.beq x x' && E.beq y y' && E.beq a a' && E.beq b b'
+  | .stx k o p v, .stx k' o' p' v' =>
+      decide (k = k') && E.beq o o' && E.beq p p' && E.beq v v'
   | _, _ => false
 
 theorem E.beq_eq : ∀ {a b : E}, E.beq a b = true → a = b := by
@@ -172,6 +183,9 @@ theorem E.beq_eq : ∀ {a b : E}, E.beq a b = true → a = b := by
   | ite o x y a b ihx ihy iha ihb =>
     intro b' h; cases b' <;> simp [E.beq] at h
     obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h; subst h1; rw [ihx h2, ihy h3, iha h4, ihb h5]
+  | stx k o p v iho ihp ihv =>
+    intro b' h; cases b' <;> simp [E.beq] at h
+    obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h; subst h1; rw [iho h2, ihp h3, ihv h4]
 
 /-! ## Smart constructors -/
 

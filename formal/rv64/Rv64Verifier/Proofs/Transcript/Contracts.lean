@@ -196,6 +196,20 @@ def TFrame (n k : Nat) (s t : MachineState) : Prop :=
   DFrame s t fun a ↦ Within a (s.getReg .x10) n ∨ Within a (s.getReg .x11 + 8) 344 ∨
     Within a (stackLo s k) k ∨ Within a nextAddr 8 ∨ Fresh s t a
 
+/-- `Vec::reserve` (`Runtime.ReserveSpec`) whose buffer afterwards is the same one, or a new one: a
+`Vec` filled after the call writes only memory allocated since. The runtime's contract does not say
+so yet; this is what the transcript's proofs assume. -/
+def ReserveFreshSpec (entry : Word) (size align : Nat) : Prop :=
+  FunSpec Image.code entry (ReservePre size align) fun s t ↦ ReservePost size align s t ∧
+    ((vecPtr t (s.getReg .x10) = vecPtr s (s.getReg .x10) ∧
+      vecCap t (s.getReg .x10) = vecCap s (s.getReg .x10)) ∨
+     NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align)
+
+/-- `RawVec::grow_one` (`Runtime.GrowOneSpec`) whose new buffer is new. -/
+def GrowOneFreshSpec (entry : Word) (size align : Nat) : Prop :=
+  FunSpec Image.code entry (GrowOnePre size align) fun s t ↦ GrowOnePost size align s t ∧
+    NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align
+
 /-! ### `Transcript::next_scalars`, at `0x80004818` -/
 
 @[rv_addr] def nextScalarsStack : Nat := 224 + shuntNextStack

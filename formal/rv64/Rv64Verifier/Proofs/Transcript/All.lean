@@ -2,6 +2,7 @@ import Rv64Verifier.Proofs.Transcript.Duplex
 import Rv64Verifier.Proofs.Transcript.Absorb
 import Rv64Verifier.Proofs.Transcript.NextScalar
 import Rv64Verifier.Proofs.Transcript.ShuntNext
+import Rv64Verifier.Proofs.Transcript.Samples
 import Rv64Verifier.Proofs.Runtime.All
 
 /-!
@@ -28,7 +29,14 @@ theorem shuntNext (hMC : Runtime.MemcpySpec 0x800126e4) (hK : Contracts.KeccakFS
     ShuntNextSpec :=
   ShuntNext.shunt_next_spec (nextScalar hMC hK)
 
+theorem samples (hMC : Runtime.MemcpySpec 0x800126e4) (hK : Contracts.KeccakFSpec)
+    (hR : ReserveFreshSpec 0x80008a10 24 8) : SamplesSpec :=
+  Samples.samples_spec (duplex hMC hK) Runtime.tryAllocZeroed hR
+
 end Rv64Verifier.Transcript
 
 /-- info: 'Rv64Verifier.Transcript.shuntNext' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Transcript.shuntNext
+
+/-- info: 'Rv64Verifier.Transcript.samples' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Transcript.samples
