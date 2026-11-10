@@ -23,9 +23,9 @@ public import LeanVM.Facts.ClaimBytes
 # The statement's digest binds
 
 `statementDigest seed s` hashes the seed, the two claim lists' digests, the DA digest and the
-deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:316-345` at leanVM `542b035`). Every encoding on the
-way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytesOf`, 64; `eBytes`, 16). So
+deferred claim's cells, each as its two lanes (`statement_digest`,
+`aggregation/statement.rs:81-102`). Every encoding on the way is injective at a fixed width
+(`digestBytes`, 32 bytes; `claimBytesOf`, 64; `E.toBytes`, 16). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs
 `collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : StatementDigestBinds`).
@@ -147,16 +147,12 @@ theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
       claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs =
         claimListDigest Sphincs.PublicKey.toBytes s'.claims.sphincs ∧
       s.claims.daDigest = s'.claims.daDigest ∧ s.deferredClaim = s'.deferredClaim := by
-  have hc : s.deferredClaim.cells.length = s'.deferredClaim.cells.length := by
-    simp [DeferredClaim.cells, hb]
   unfold statementPreimage at h
   obtain ⟨h1234, h5⟩ := List.append_inj h (by simp [digestBytes_length])
   obtain ⟨h123, h4⟩ := List.append_inj h1234 (by simp [digestBytes_length])
   obtain ⟨h12, h3⟩ := List.append_inj h123 (by simp [digestBytes_length])
   obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [digestBytes_length])
-  have hp := flatMap_inj (n := 16) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
-  unfold paddedDeferredClaimCells at hp
-  obtain ⟨hcells, -⟩ := List.append_inj hp hc
+  have hcells := flatMap_inj (n := 16) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
   exact ⟨digestBytes_injective h1, digestBytes_injective h2, digestBytes_injective h3,
     digestBytes_injective h4, cells_inj hb hcells⟩
 
