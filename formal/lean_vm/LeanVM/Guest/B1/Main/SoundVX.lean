@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.Callees
 public import LeanVM.Guest.B1.Main.Aggregate
 public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
+public import LeanVM.Guest.B1.VerifySub.Interface
 
 /-!
 # `main`, its witness decoded from the frame map, the leanXMSS reader a parameter
@@ -43,12 +44,6 @@ noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd :
 theorem find_verify_sub : coreProgram.find? "verify_sub" = some Data.core18 :=
   Program.find?_of_indexOf? (j := 18) (by decide +kernel) rfl
 
-/-- `verify_sub`'s precondition (B1-d's `VerifySub.VerifySubPre`, restated): the exponent tables at
-its fifth argument. -/
-def SubPre (rd : Reader) : List E → Prop
-  | [_, _, _, _, sq, _] => ExpTables rd sq
-  | _ => False
-
 /-- **`verify_sub`'s statement, its proof named by `piOf`**: on a memory image of at most `2^32`
 words, under a call relation that unfolds at `V` and lies below `coreProgram.Rel`, a run of its
 body whose arguments hold the exponent tables returns nothing, and its proof `piOf L.read σ V` is
@@ -58,7 +53,7 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
     ∀ (C : CallRel) (V : FrameMap), UnfoldsV L.read C V → CallRel.Le C (coreProgram.Rel L.read) →
       ∀ (σ : Val) (rets : List E),
         Stmt.HoldsList C L.read σ (Fn.body Data.core18) False (fun rs ↦ rs = rets) →
-        SubPre L.read (Data.core18.params.map σ) →
+        VerifySub.VerifySubPre L.read (Data.core18.params.map σ) →
           rets = [] ∧ VerifySubOut bytecode L.read (Data.core18.params.map σ) (piOf L.read σ V)
 
 /-- **`main` is sound, its witness decoded from the frame map**, the leanXMSS reader `sigOf`,
