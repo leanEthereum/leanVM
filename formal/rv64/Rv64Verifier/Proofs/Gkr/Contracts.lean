@@ -25,7 +25,9 @@ How the image holds the values, read off the code:
   their contracts ask for checked mode, the mode `verify_execution` runs (the mirrors check).
 
 The shape's depth is `KECCAK_DEPTH = 12`, the only one the caller passes and the one the mirrors'
-simulations are proved at.
+simulations are proved at. `output` has `STATE_LANES = 25` elements at every call: the compiled
+`verify_keccak` does not test its length (the compiler propagated the callers' constant), so its
+contract asks for it.
 -/
 
 namespace Rv64Verifier.Gkr
@@ -259,6 +261,7 @@ apart from what is written and outside the free heap. -/
 structure VerifyKeccakPre (s : MachineState) : Prop extends TPre 96 verifyKeccakStack s where
   depth : s.getReg .x13 = 12
   checked : Checked s (s.getReg .x11)
+  outputLen : kOutputLen s = 25
   inst : kInstLen s = 0 ∨ Region (kInst s) (24 * kInstLen s)
   output : kOutputLen s = 0 ∨ Region (kOutput s) (24 * kOutputLen s)
   instFree : Outside s (kInst s) (24 * kInstLen s)

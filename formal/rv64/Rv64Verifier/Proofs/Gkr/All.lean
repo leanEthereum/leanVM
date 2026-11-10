@@ -8,6 +8,7 @@ import Rv64Verifier.Proofs.Gkr.LayerSample
 import Rv64Verifier.Proofs.Gkr.LayerWeights
 import Rv64Verifier.Proofs.Gkr.LayerR7
 import Rv64Verifier.Proofs.Gkr.Layer
+import Rv64Verifier.Proofs.Gkr.KeccakClaim
 import Rv64Verifier.Proofs.Multilinear.All
 
 /-!
