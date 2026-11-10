@@ -157,28 +157,39 @@ theorem ly_perm_block {m b : ℕ} {cap : List V}
       (lyCap b).map σ = capOf (Fs.perm ⟨cap.map σ, (lyCh σ m).map (·, dsObserve)⟩) :=
   ch_perm_block hp hk
 
-/-- Tree `t`'s new value, `lo + c₁·(lo + hi)`, its values from `b`, stored at the next slot's
-`off`. -/
-def lyValT (t b off : ℕ) : List Stmt :=
-  let e := fun i ↦ lyEv (4 * t + i) + 3
-  [.atom (.add (.n b) (.n (e 0)) (.n (e 1))), .atom (.mul (.n (b + 1)) (.n 180) (.n b)),
+/-- Tree `t`'s new value at the two coordinates `c0`, `c1` (`lo + c₁·(lo + hi)`), its children's
+reads from `b0`, its values from `b`, stored at `slot`'s `off`. -/
+def chValT (b0 c0 c1 slot t b off : ℕ) : List Stmt :=
+  let e := fun i ↦ chB b0 (4 * t + i) + 3
+  [.atom (.add (.n b) (.n (e 0)) (.n (e 1))), .atom (.mul (.n (b + 1)) (.n c0) (.n b)),
     .atom (.add (.n (b + 2)) (.n (e 0)) (.n (b + 1))),
-    .atom (.add (.n (b + 3)) (.n (e 2)) (.n (e 3))), .atom (.mul (.n (b + 4)) (.n 180) (.n (b + 3))),
+    .atom (.add (.n (b + 3)) (.n (e 2)) (.n (e 3))), .atom (.mul (.n (b + 4)) (.n c0) (.n (b + 3))),
     .atom (.add (.n (b + 5)) (.n (e 2)) (.n (b + 4))),
-    .atom (.add (.n (b + 6)) (.n (b + 2)) (.n (b + 5))), .atom (.mul (.n (b + 7)) (.n 194) (.n (b + 6))),
-    .atom (.add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))), .atom (.load (.n (b + 8)) (.n 17) off)]
+    .atom (.add (.n (b + 6)) (.n (b + 2)) (.n (b + 5))), .atom (.mul (.n (b + 7)) (.n c1) (.n (b + 6))),
+    .atom (.add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))), .atom (.load (.n (b + 8)) (.n slot) off)]
 
 /-- A tree's new value: its four children's multilinear value at the two new coordinates. -/
-theorem ly_val {t b off : ℕ} (h : Stmt.HoldsList C rd σ (lyValT t b off) True kret) :
-    σ (.n (b + 8)) = multilinearEval [σ (.n (lyEv (4 * t + 0) + 3)), σ (.n (lyEv (4 * t + 1) + 3)),
-      σ (.n (lyEv (4 * t + 2) + 3)), σ (.n (lyEv (4 * t + 3) + 3))]
-      [σ (.n 180), σ (.n 194)] ∧ LoadHolds rd (σ (.n 17)) off (σ (.n (b + 8))) := by
-  simp only [lyValT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
+theorem ch_val {b0 c0 c1 slot t b off : ℕ}
+    (h : Stmt.HoldsList C rd σ (chValT b0 c0 c1 slot t b off) True kret) :
+    σ (.n (b + 8)) = multilinearEval [σ (.n (chB b0 (4 * t + 0) + 3)),
+      σ (.n (chB b0 (4 * t + 1) + 3)), σ (.n (chB b0 (4 * t + 2) + 3)),
+      σ (.n (chB b0 (4 * t + 3) + 3))] [σ (.n c0), σ (.n c1)] ∧
+      LoadHolds rd (σ (.n slot)) off (σ (.n (b + 8))) := by
+  simp only [chValT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
   obtain ⟨e0, e1, e2, e3, e4, e5, e6, e7, e8, l⟩ := h
   refine ⟨?_, l⟩
   rw [e8, e7, e6, e5, e4, e3, e2, e1, e0]
   simp only [multilinearEval, List.foldl, foldPairs, List.headD]
   ring
+
+/-- `__loop6`'s tree `t`'s new value. -/
+abbrev lyValT (t b off : ℕ) : List Stmt := chValT 76 180 194 17 t b off
+
+theorem ly_val {t b off : ℕ} (h : Stmt.HoldsList C rd σ (lyValT t b off) True kret) :
+    σ (.n (b + 8)) = multilinearEval [σ (.n (lyEv (4 * t + 0) + 3)), σ (.n (lyEv (4 * t + 1) + 3)),
+      σ (.n (lyEv (4 * t + 2) + 3)), σ (.n (lyEv (4 * t + 3) + 3))]
+      [σ (.n 180), σ (.n 194)] ∧ LoadHolds rd (σ (.n 17)) off (σ (.n (b + 8))) :=
+  ch_val h
 
 /-- The sponge after the twelve children, from the last record's capacity. -/
 def lySponge (σ : Val) : Fs :=
