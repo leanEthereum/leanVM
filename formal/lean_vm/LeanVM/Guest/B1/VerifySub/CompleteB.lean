@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Terminal.KidsDepB
 public import LeanVM.Guest.B1.Ring.CompleteB
 public import LeanVM.Guest.B1.Gkr.VbgB
 public import LeanVM.Guest.B1.Tables.VtC.ABound
-public import LeanVM.Guest.B1.Place.OsCandB
+public import LeanVM.Guest.B1.Place.OsSpec
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.B1.Placement.CertifyAt
 public import LeanVM.Guest.B1.Tables.VtC.AWeight
