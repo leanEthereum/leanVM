@@ -17,11 +17,11 @@ The words certificates (`Count.Words`) give, at the deployed frame sizes: the co
 `__loop10`, `__loop11`, `__loop12` (cores `262`, `266`, `268`, frames `17`) at most `17` words per
 iteration and their runs' one phantom frame; `keccak_plain_rounds__L6_L0` (core `265`,
 `plainName 0`) at most `250`, `keccak_plain_rounds__L4_L1` (core `267`, `plainName 1`) at most
-`178`; the layers' eight-round loops `473` per iteration and remainder loops `92`, and their frames
+`178`; the layers' eight-round loops `374` per iteration and remainder loops `77`, and their frames
 (`LayerCPlacedBW`). So `verify_keccak`'s callees are complete within
-`D.kidsB B2C.fs 17 473 92 250 178` (`kids_completeB_fs`), whose sum is at most
-`3 * ((τ - 4) * 17) + 51 + 678 + 12 * (2624 + (y + 171) + (473 + y / 8 * 473) + (92 + y % 8 * 92))`
-(`y = τ - 3`), at most `61728` words for `τ ≤ 28` (`kidsB_fs_le`).
+`D.kidsB B2C.fs 17 374 77 250 178` (`kids_completeB_fs`), whose sum is at most
+`3 * ((τ - 4) * 17) + 51 + 678 + 12 * (2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60)`
+(`y = τ - 3`), at most `52647` words for `τ ≤ 28` (`kidsB_fs_le`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -62,30 +62,30 @@ namespace VkData
 variable {D : VkData} {cert : String → V → ℕ}
 
 /-- **`verify_keccak`'s calls, complete where it places them, within their words at `B2C.fs`.** -/
-theorem kids_completeB_fs (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ) :
+theorem kids_completeB_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ) :
     KidsGB LeanVM.Guest.B2C.fs cert κ (D.kids LeanVM.Guest.B2C.fs B curE chiE olE zvE slE tbE)
-      (D.kidsB LeanVM.Guest.B2C.fs 17 473 92 250 178) :=
-  kids_completeB h κ B curE chiE olE zvE slE tbE copyLoop_totalLeOn_fs
+      (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178) :=
+  kids_completeB h hκ B curE chiE olE zvE slE tbE copyLoop_totalLeOn_fs
     (fun _ hf ↦ packLoop_totalLeOn_fs hf) (fun _ hf ↦ remLoop_totalLeOn_fs hf)
     plain0_totalLe_fs plain1_totalLe_fs
 
 /-- **The callees' words at `B2C.fs`, in numbers**: the copy loops `(τ - 4) * 17 + 17` each, the
 openings' rounds `250 + 178 + 250`, each layer (`y = τ - 3`) at most
-`2624 + (y + 171) + (473 + y / 8 * 473) + (92 + y % 8 * 92)`; at most `61728` (`τ ≤ 28`, the
+`2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60`; at most `52647` (`τ ≤ 28`, the
 largest at `y = 23`). -/
 theorem kidsB_fs_le (h : D.Ok) :
-    (D.kidsB LeanVM.Guest.B2C.fs 17 473 92 250 178).sum ≤
-      3 * ((D.τ - 4) * 17) + 51 + 678 + 12 * (2624 + (D.τ - 3 + 171) + (473 + (D.τ - 3) / 8 * 473) +
-        (92 + (D.τ - 3) % 8 * 92)) ∧
-    (D.kidsB LeanVM.Guest.B2C.fs 17 473 92 250 178).sum ≤ 61728 := by
+    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178).sum ≤
+      3 * ((D.τ - 4) * 17) + 51 + 678 + 12 * (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) +
+        (77 + (D.τ - 3) % 8 * 77) + 60) ∧
+    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178).sum ≤ 52647 := by
   have hτ := h.2.1
   have hτ1 := h.1
   have hL : ((List.range 12).map (fun s ↦ layerWords LeanVM.Guest.B2C.fs (firstOf s)
-      (D.layer s).y 473 92)).sum ≤
-      12 * (2624 + (D.τ - 3 + 171) + (473 + (D.τ - 3) / 8 * 473) + (92 + (D.τ - 3) % 8 * 92)) := by
+      (D.layer s).y 374 77)).sum ≤
+      12 * (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60) := by
     have := List.sum_le_length_nsmul ((List.range 12).map (fun s ↦ layerWords
-      LeanVM.Guest.B2C.fs (firstOf s) (D.layer s).y 473 92))
-      (2624 + (D.τ - 3 + 171) + (473 + (D.τ - 3) / 8 * 473) + (92 + (D.τ - 3) % 8 * 92))
+      LeanVM.Guest.B2C.fs (firstOf s) (D.layer s).y 374 77))
+      (2241 + (D.τ - 3 + 171) + (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60)
       (fun x hx ↦ ?_)
     · simpa using this
     obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hx
@@ -100,8 +100,8 @@ theorem kidsB_fs_le (h : D.Ok) :
     decide +kernel
   rw [kidsB_sum, hF]
   refine ⟨by omega, ?_⟩
-  refine le_trans (by omega : _ ≤ 3 * ((D.τ - 4) * 17) + 51 + 678 + 12 * (2624 + (D.τ - 3 + 171) +
-    (473 + (D.τ - 3) / 8 * 473) + (92 + (D.τ - 3) % 8 * 92))) ?_
+  refine le_trans (by omega : _ ≤ 3 * ((D.τ - 4) * 17) + 51 + 678 + 12 * (2241 + (D.τ - 3 + 171) +
+    (374 + (D.τ - 3) / 8 * 374) + (77 + (D.τ - 3) % 8 * 77) + 60)) ?_
   generalize hT : D.τ = t at hτ hτ1
   interval_cases t <;> norm_num
 
