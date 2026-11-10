@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.LayerStep
-public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!
 # The root-most layer (G:1985-2044)
@@ -117,22 +116,18 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret) {s : Fs} {st : GkrSt
   have q5 : σ (.n 333) = w5 := cp 5 (by omega)
   -- the sponge: four children, a permutation, two waiting, `y`'s permutation
   have k1 := a 16 (.keccak (chRate 297 0 ++ lyCap 46) (lyOuts 313) false false) (by decide +kernel)
-  obtain ⟨-, B0⟩ := ch_perm_block (fun i hi => hp i (by omega)) k1
+  obtain ⟨-, B0⟩ := ch_perm_block (fun i hi => hp (4 * 0 + i) (by omega)) k1
   rw [hcap] at B0
   have k2 := a 36 (.keccak ([.n 327, .n 328, .n 331, .n 332, .n 42, .n 43, .n 44, .n 45] ++
     lyCap 313) (lyOuts 344) false false) (by decide +kernel)
   obtain ⟨P2, B2⟩ := ly_keccak k2
   have hr2 : (([.n 327, .n 328, .n 331, .n 332, .n 42, .n 43, .n 44, .n 45] ++ lyCap 313 :
       List V).map σ) = rateOf [(w4, dsObserve), (w5, dsObserve)] ++ (lyCap 313).map σ := by
-    have hr := ch_rate (n := 2) (ws := fun i ↦ chB 297 (4 + i)) (fun i hi => hp (4 + i) (by omega))
-    simp only [List.range_succ, List.range_zero, List.flatMap_cons, List.flatMap_nil,
-      List.map_cons, List.map_nil, List.nil_append, List.cons_append, List.append_nil, chB] at hr
+    obtain ⟨e327, e328⟩ := Prod.ext_iff.mp (fsPackT_cells (hp 4 (by omega)))
+    obtain ⟨e331, e332⟩ := Prod.ext_iff.mp (fsPackT_cells (hp 5 (by omega)))
+    norm_num [chB] at e327 e328 e331 e332
     rw [List.map_append, rateOf_eq_cells _ (by simp)]
-    simp only [List.map_cons, List.map_nil, z42, z43, z44, z45, List.cons_append,
-      List.nil_append] at hr ⊢
-    rw [show [σ (.n 327), σ (.n 328), σ (.n 331), σ (.n 332)] = pendCells
-      [(w4, dsObserve), (w5, dsObserve)] from hr]
-    simp [pendCells]
+    simp [pendCells, e327, e328, e331, e332, z42, z43, z44, z45, w4, w5]
   rw [hr2] at P2 B2
   have c357 := a 37 (.copy (.n 357) (.n 344)) (by decide +kernel)
   simp only [Atom.Holds] at c357
@@ -182,7 +177,10 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret) {s : Fs} {st : GkrSt
   rw [hA0, hA1, hA2] at hstep
   have hsq1 : ((⟨(lyCap 313).map σ, [(w4, dsObserve), (w5, dsObserve)]⟩ : Fs).squeezeN 1).1 =
       [σ (.n 357)] := by
-    rw [c357, P2 0 (by omega), ← challengeOf_cells]; rfl
+    have e357 : σ (.n 357) = challengeOf
+        (⟨(lyCap 313).map σ, [(w4, dsObserve), (w5, dsObserve)]⟩ : Fs).perm := by
+      rw [c357, P2 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
+    rw [e357]; rfl
   have hsq2 : ((⟨(lyCap 313).map σ, [(w4, dsObserve), (w5, dsObserve)]⟩ : Fs).squeezeN 1).2 =
       ⟨(lyCap 344).map σ, []⟩ := by rw [B2]; rfl
   rw [hsq1, hsq2] at hstep
@@ -242,14 +240,14 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret) {s : Fs} {st : GkrSt
     rw [hg, show 13 * 1 + k = 13 + k by ring]
     exact hcs k hk
   · rw [m359, c358] at l359
-    rw [show σ (.n 5) * gen ^ 2 * gen ^ (([w0, w1] ++ ([w2, w3] ++ [w4, w5])).length) =
-      σ (.n 5) * gen ^ 8 by simp only [List.length_append, List.length_cons, List.length_nil]; ring]
+    have hlen : ([] ++ ([w0, w1] ++ ([w2, w3] ++ [w4, w5]))).length = 6 := rfl
+    rw [hlen, mul_assoc, ← pow_add]
     exact l359
   · rw [show 13 * 1 + 6 + t = 19 + t by ring]
     interval_cases t
-    · convert V0 using 1; simp [multilinearEval, foldPairs]
-    · convert V1 using 1; simp [multilinearEval, foldPairs]
-    · convert V2 using 1; simp [multilinearEval, foldPairs]
+    · convert V0 using 1; simp [multilinearEval, foldPairs]; ring
+    · convert V1 using 1; simp [multilinearEval, foldPairs]; ring
+    · convert V2 using 1; simp [multilinearEval, foldPairs]; ring
   · rw [m370, c369] at l370
     exact l370
   · simp only [List.append_nil]
@@ -283,12 +281,12 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret) {s : Fs} {st : Gkr
   set W := chWords σ 145 with hW
   -- the sponge: three blocks of four children, then `y`'s two permutations
   have k1 := a 16 (.keccak (chRate 145 0 ++ lyCap 46) (lyOuts 161) false false) (by decide +kernel)
-  obtain ⟨-, B0⟩ := ch_perm_block (fun i hi => hp i (by omega)) k1
+  obtain ⟨-, B0⟩ := ch_perm_block (fun i hi => hp (4 * 0 + i) (by omega)) k1
   rw [hcap] at B0
   have k2 := a 33 (.keccak (chRate 145 1 ++ lyCap 161) (lyOuts 190) false false) (by decide +kernel)
-  obtain ⟨-, B1⟩ := ch_perm_block (fun i hi => hp (4 + i) (by omega)) k2
+  obtain ⟨-, B1⟩ := ch_perm_block (fun i hi => hp (4 * 1 + i) (by omega)) k2
   have k3 := a 67 (.keccak (chRate 145 2 ++ lyCap 190) (lyOuts 235) false false) (by decide +kernel)
-  obtain ⟨P2, B2⟩ := ch_perm_block (fun i hi => hp (8 + i) (by omega)) k3
+  obtain ⟨P2, B2⟩ := ch_perm_block (fun i hi => hp (4 * 2 + i) (by omega)) k3
   set sp : Fs := ((s.squeeze.2.absorbAll (W 0) dsObserve).absorbAll (W 1) dsObserve).absorbAll
     (W 2) dsObserve with hsp
   have hA : sp = ⟨(lyCap 190).map σ, (W 2).map (·, dsObserve)⟩ := by
@@ -298,8 +296,8 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret) {s : Fs} {st : Gkr
       simp [Fs.squeeze]
     rw [A0, tb_absorbAll_full _ (by simp [hW, chWords_length]) _ (chWords_length σ 145 1),
       show capOf (Fs.perm ⟨capOf s.perm, (W 0).map (·, dsObserve)⟩) = (lyCap 161).map σ by
-        rw [B0]; rfl,
-      tb_absorbAll_full _ (by simp [hW, chWords_length]) _ (chWords_length σ 145 2), ← B1]
+        rw [B0],
+      tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length σ 145 2), ← B1]
   rw [← hA] at P2 B2
   have c248 := a 68 (.copy (.n 248) (.n 235)) (by decide +kernel)
   simp only [Atom.Holds] at c248
@@ -310,8 +308,11 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret) {s : Fs} {st : Gkr
   have c262 := a 70 (.copy (.n 262) (.n 249)) (by decide +kernel)
   simp only [Atom.Holds] at c262
   have hsq1 : (sp.squeezeN 2).1 = [σ (.n 248), σ (.n 262)] := by
-    rw [c248, c262, P2 0 (by omega), P3 0 (by omega), ← challengeOf_cells, ← challengeOf_cells]
-    rfl
+    have e248 : σ (.n 248) = challengeOf sp.perm := by
+      rw [c248, P2 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
+    have e262 : σ (.n 262) = challengeOf (permOf (rateOf [] ++ capOf sp.perm)) := by
+      rw [c262, P3 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
+    rw [e248, e262]; rfl
   have hsq2 : (sp.squeezeN 2).2 = ⟨(lyCap 249).map σ, []⟩ := by
     rw [B3]; rfl
   -- the check
@@ -398,11 +399,11 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret) {s : Fs} {st : Gkr
     intro b off t hb ht hv
     obtain ⟨ev, l⟩ := ch_val hv
     rw [ev] at l
-    convert l using 1
+    have hw : ∀ i < 4, σ (.n (chB 145 (4 * t + i) + 3)) = σ (.n (chB 145 (4 * t + i))) :=
+      fun i hi => cp _ (by omega)
+    rw [hw 0 (by omega), hw 1 (by omega), hw 2 (by omega), hw 3 (by omega)] at l
     rw [hW, chWords_eq]
-    interval_cases t <;>
-    · simp only [chB, Nat.reduceMul, Nat.reduceAdd, Nat.reduceDiv]
-      rw [cp _ (by omega), cp _ (by omega), cp _ (by omega), cp _ (by omega)]
+    simpa using l
   refine ⟨by simp [lyCap], fun k hk => ?_, rfl, ?_, by simp, fun t ht => ?_, ?_, by simp, ?_,
     ?_, ?_, ?_⟩
   · have hg : ((lyCap 249).map σ).getD k 0 = σ (.n (257 + k)) := by
@@ -410,9 +411,9 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret) {s : Fs} {st : Gkr
     rw [hg, show 13 * 2 + k = 26 + k by ring]
     exact hcs k hk
   · rw [m264, c263] at l264
-    rw [show σ (.n 5) * gen ^ 2 * gen ^ ([] ++ (W 0 ++ (W 1 ++ W 2))).length =
-      σ (.n 5) * gen ^ 14 by
-        simp only [List.nil_append, List.length_append, hW, chWords_length]; ring]
+    have hlen : ([] ++ (chWords σ 145 0 ++ (chWords σ 145 1 ++ chWords σ 145 2))).length = 12 := by
+      simp only [List.nil_append, List.length_append, chWords_length]
+    rw [hlen, mul_assoc, ← pow_add]
     exact l264
   · rw [show 13 * 2 + 6 + t = 32 + t by ring]
     have hv : ([W 0, W 1, W 2].map fun c ↦ multilinearEval c [σ (.n 248), σ (.n 262)]).getD t 0 =

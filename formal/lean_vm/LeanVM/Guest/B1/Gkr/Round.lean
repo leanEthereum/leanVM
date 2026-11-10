@@ -113,7 +113,8 @@ theorem holds_gkRound {B q : ℕ} {cur pt claimV : V} {cap : List V}
     have := outs_eq hout ⟨k, hk⟩ (by simpa using hk)
     simpa [hperm] using this
   have hch' : σ (.n (B + 25)) = challengeOf P := by
-    rw [hch, show B + 12 = B + 12 + 0 by rfl, hout' 0 (by omega), challengeOf_cells]
+    rw [hch, show B + 12 = B + 12 + 0 by rfl, hout' 0 (by omega), Keccak.challengeOf_cells]
+    rfl
   refine ⟨xs, rfl, fun i hi => ?_, ?_, ?_, ht.2.2.2.2.2.2.1, σ (.n (B + 26)), ht.1, ?_⟩
   · interval_cases i
     · exact hl0

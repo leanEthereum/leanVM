@@ -144,7 +144,7 @@ theorem ch_perm_block {b0 m b : ℕ} {cap : List V}
       rateOf ((chWords σ b0 m).map (·, dsObserve)) ++ cap.map σ := by
     rw [List.map_append, chRate, ch_rate (ws := fun i ↦ chB b0 (4 * m + i)) hp,
       rateOf_eq_cells _ (by simp [chWords_length])]
-    simp [chWords, chWords_length]
+    simp [chWords]
   rw [hins] at hP hcap
   exact ⟨hP, hcap⟩
 
@@ -306,7 +306,7 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
   have c180 := a 129 (.copy (.n 180) (.n 167)) (by decide +kernel)
   simp only [Atom.Holds] at c180
   have e180 : σ (.n 180) = challengeOf (lySponge σ).perm := by
-    rw [c180, P2 0 (by omega)]; exact (challengeOf_cells _).symm
+    rw [c180, P2 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
   -- the second
   have c25 := a 15 (.const (.n 25) (word 0 0)) (by decide +kernel)
   have c26 := a 16 (.const (.n 26) (word 0 0)) (by decide +kernel)
@@ -320,7 +320,7 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
   have c194 := a 131 (.copy (.n 194) (.n 181)) (by decide +kernel)
   simp only [Atom.Holds] at c194
   have e194 : σ (.n 194) = challengeOf (permOf (rateOf [] ++ capOf (lySponge σ).perm)) := by
-    rw [c194, P3 0 (by omega)]; exact (challengeOf_cells _).symm
+    rw [c194, P3 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
   have hsq : ((lySponge σ).squeezeN 2).1 = [σ (.n 180), σ (.n 194)] := by
     rw [e180, e194]; rfl
   refine ⟨hreads, ?_, hsq, ?_, ?_⟩
@@ -372,15 +372,15 @@ theorem ly_tail (h : Stmt.HoldsList C rd σ lyPre True kret) :
     · have hs := tb_holds_slice hnr h 142 (lyValT 0 197 32) (by decide +kernel)
       obtain ⟨ev, l⟩ := ly_val hs
       exact ⟨by rw [ev, lyCh_eq, cp 0 (by omega), cp 1 (by omega), cp 2 (by omega),
-        cp 3 (by omega)]; rfl, l⟩
+        cp 3 (by omega)], l⟩
     · have hs := tb_holds_slice hnr h 152 (lyValT 1 206 33) (by decide +kernel)
       obtain ⟨ev, l⟩ := ly_val hs
       exact ⟨by rw [ev, lyCh_eq, cp 4 (by omega), cp 5 (by omega), cp 6 (by omega),
-        cp 7 (by omega)]; rfl, l⟩
+        cp 7 (by omega)], l⟩
     · have hs := tb_holds_slice hnr h 162 (lyValT 2 215 34) (by decide +kernel)
       obtain ⟨ev, l⟩ := ly_val hs
       exact ⟨by rw [ev, lyCh_eq, cp 8 (by omega), cp 9 (by omega), cp 10 (by omega),
-        cp 11 (by omega)]; rfl, l⟩
+        cp 11 (by omega)], l⟩
 
 end Sem
 

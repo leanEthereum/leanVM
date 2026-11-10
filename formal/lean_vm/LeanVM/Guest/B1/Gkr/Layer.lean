@@ -109,7 +109,10 @@ theorem tb_eq_map_getD {l : List E} {n : ℕ} (h : l.length = n) :
 
 /-- The rate cells of nothing waiting are zeros. -/
 theorem tb_rateOf_nil_getD (k : ℕ) : (rateOf []).getD k 0 = 0 := by
-  simp [rateOf, List.getD_eq_getElem?_getD, Keccak.rateCell]
+  rw [rateOf_eq_cells [] (by simp)]
+  simp only [pendCells, List.flatMap_nil, List.nil_append, List.length_nil,
+    List.getD_eq_getElem?_getD, List.getElem?_replicate]
+  split <;> rfl
 
 /-- A run of `13` values from `b`. -/
 def lyOuts (b : ℕ) : List V := (List.range 13).map fun k ↦ .n (b + k)
@@ -176,7 +179,7 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   set L := 2 * j + 2 - sh with hL
   have e10 : σ (.n 10) = gen ^ (2 * j) := by rw [m10, hx, ← pow_add]; ring_nf
   have e11 : σ (.n 11) = gen ^ L := by
-    rw [m11, e10, hsg, ← pow_add]; congr 1; omega
+    rw [m11, e10, hsg, ← pow_add, show 2 * j + (2 - sh) = L by omega]
   have e17 : σ (.n 17) = σ (.n 3) * gen ^ (13 * L) := by
     rw [m17, m16, m15, m14, m13, m12, e11, ← pow_add, ← pow_add, ← pow_add, ← pow_add,
       ← pow_add]
@@ -198,19 +201,18 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
       (List.range 5).map fun k ↦ .n (18 + k)) (lyOuts 29) false false) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c25 c26 c27 c28
   obtain ⟨hP, -⟩ := ly_keccak k1
+  have hcapE : ((List.range 5).map fun k ↦ V.n (18 + k)).map σ = s.cap := by
+    rw [tb_eq_map_getD hcl, List.map_map]
+    exact List.map_congr_left fun k hk => ecap k (List.mem_range.mp hk)
   have hins : (([.n 25, .n 25, .n 25, .n 25, .n 25, .n 26, .n 27, .n 28] ++
       (List.range 5).map fun k ↦ V.n (18 + k)) : List V).map σ = rateOf s.pend ++ s.cap := by
-    rw [ly_zero_rate c25 c26 c27 c28, hpe, tb_eq_map_getD hcl]
-    simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil,
-      List.nil_append, List.cons_append, List.cons.injEq, and_true]
-    exact ⟨ecap 0 (by omega), ecap 1 (by omega), ecap 2 (by omega), ecap 3 (by omega),
-      ecap 4 (by omega)⟩
+    rw [ly_zero_rate c25 c26 c27 c28, hpe, hcapE]
   rw [hins] at hP
   have c42 := a 20 (.copy (.n 42) (.n 29)) (by decide +kernel)
   simp only [Atom.Holds] at c42
   have e42 : σ (.n 42) = s.squeeze.1 := by
     rw [c42, hP 0 (by omega)]
-    exact (challengeOf_cells _).symm
+    exact (Keccak.challengeOf_cells _).symm
   -- the slot's values, row, position, half and parity
   have l43 := a 21 (.load (.n 43) (.n 17) 6) (by decide +kernel)
   have l44 := a 22 (.load (.n 44) (.n 17) 7) (by decide +kernel)

@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Walk
 public import LeanVM.Guest.B1.Gkr.Loop8
-public import LeanVM.Guest.B1.Gkr.RoundsHolds
 public import LeanVM.Guest.B1.Placement.Common
 
 /-!
@@ -117,21 +116,19 @@ theorem vbg_root (h : Stmt.HoldsList C rd σ vbgPre True kret) :
   have hins : (([.n 29, .n 30, .n 34, .n 35, .n 42, .n 43, .n 44, .n 45] ++
       (List.range 5).map fun k ↦ V.n (23 + k)) : List V).map σ =
       rateOf (vbgS1 σ).pend ++ (vbgS1 σ).cap := by
-    have hr := ch_rate (σ := σ) (n := 2) (ws := fun i ↦ if i = 0 then 28 else 33)
-      (fun i hi => by interval_cases i; exact p28; exact p33)
-    simp only [List.range_succ, List.range_zero, List.flatMap_cons, List.flatMap_nil,
-      List.map_cons, List.map_nil, List.nil_append, List.cons_append, List.append_nil,
-      ↓reduceIte, one_ne_zero] at hr
-    rw [List.map_append, rateOf_eq_cells _ (by simp [vbgS1])]
-    simp only [vbgS1, List.map_cons, List.map_nil, c42, c43, c44, c45, List.cons_append,
-      List.nil_append, List.range_succ, List.range_zero, List.map_append, List.append_nil]
-    rw [show [σ (.n 29), σ (.n 30), σ (.n 34), σ (.n 35)] = pendCells
-      [(σ (.n 28), dsObserve), (σ (.n 33), dsObserve)] from hr]
-    simp [pendCells, cp 0 (by omega), cp 1 (by omega), cp 2 (by omega), cp 3 (by omega),
-      cp 4 (by omega)]
+    obtain ⟨e29, e30⟩ := Prod.ext_iff.mp (fsPackT_cells p28)
+    obtain ⟨e34, e35⟩ := Prod.ext_iff.mp (fsPackT_cells p33)
+    have hcapE : ((List.range 5).map fun k ↦ V.n (23 + k)).map σ =
+        [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
+      rw [List.map_map, show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] =
+        (List.range 5).map (fun k ↦ σ (.n k)) from rfl]
+      exact List.map_congr_left fun k hk => cp k (List.mem_range.mp hk)
+    rw [List.map_append, hcapE, rateOf_eq_cells _ (by simp [vbgS1])]
+    norm_num at e29 e30 e34 e35
+    simp [vbgS1, pendCells, e29, e30, e34, e35, c42, c43, c44, c45]
   rw [hins] at P B
   have e59 : σ (.n 59) = (vbgS1 σ).squeeze.1 := by
-    rw [c59, P 0 (by omega), ← challengeOf_cells]; rfl
+    rw [c59, P 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
   refine ⟨l28, l33, fun h0 => ?_, e59, ?_, B, c42, c43, c44, c45⟩
   · obtain ⟨e40, e1⟩ := n38
     rw [a38, c37, h0, zero_add, zero_mul] at e40
@@ -186,17 +183,18 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
     rw [c0, tb_word_two_pow (by omega)] at l0
     rw [c1, tb_word_two_pow (by omega)] at l1
     exact ⟨l1, l0⟩
-  · rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num), e142] at c374
+  · rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)] at c374
+    rw [c374, e142] at m374
     have hsh : depth % 2 ≤ 2 := by omega
     have hne : (gen : E) ^ (depth % 2) ≠ 0 := pow_ne_zero _ gen_ne_zero
     apply mul_right_cancel₀ hne
-    rw [← c374, ← pow_add, Nat.sub_add_cancel hsh]
+    rw [← m374, ← pow_add, Nat.sub_add_cancel hsh]
 
 end Sem
 
 /-- **The walk**: from the sponge the roots wait in, the root-most layer and the layer loop run
 `gkrLayers depth` to the slot of `L = depth`, nothing waiting. -/
-theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
+theorem vbg_walk (hGR : tb_gkr_rounds_Spec) {rd : Reader} {σ : Val} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ vbgPre True kret) {depth : ℕ}
     (hg : σ (.n 6) = gen ^ depth) (hd : depth < 33) (hd0 : depth ≠ 0) :
     ∃ (xs : List E) (st : GkrState) (s : Fs) (row pos half par : E),
@@ -207,8 +205,6 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
   have a := fun n a heq => tb_holds_atom hnr h n a heq
   obtain ⟨-, -, -, h59, h63, hcap, z42, z43, z44, z45⟩ := vbg_root h
   obtain ⟨hk, e142, e378, e382, e375⟩ := vbg_tables h hg hd
-  set sh := depth % 2 with hsh
-  set m := (depth - 1) / 2 with hm
   -- the layer loop's iterations
   have c376 := a 199 (.const (.n 376) (word 1 0)) (by decide +kernel)
   have a379 := a 202 (.add (.n 379) (.n 376) (.n 378)) (by decide +kernel)
@@ -216,7 +212,7 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
   simp only [Atom.Holds, tb_word_one] at c376 a379 c380
   obtain ⟨-, h6⟩ := tb_holds_callIf hnr h 206 (.n 379) "__loop6"
     [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6, .n 64] (by decide +kernel)
-  have hB : ∀ j < m, LyB rd (σ (.n 375)) (σ (.n 142)) (σ (.n 16)) (σ (.n 64)) (gen ^ j) := by
+  have hB : ∀ j < (depth - 1) / 2, LyB rd (σ (.n 375)) (σ (.n 142)) (σ (.n 16)) (σ (.n 64)) (gen ^ j) := by
     intro j hj
     have hne : σ (.n 379) ≠ 0 := by
       rw [a379, c376, e378]
@@ -229,8 +225,8 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     rw [← pow_zero gen] at hrel
     obtain ⟨m', -, hN, hall⟩ := tb_loop_sound
       (B := LyB rd (σ (.n 375)) (σ (.n 142)) (σ (.n 16)) (σ (.n 64)))
-      (fun d x hx => ly_step tb_gkr_rounds_holds d x hx) 0 hrel
-    have hm' : m ≤ m' := by
+      (fun d x hx => ly_step hGR d x hx) 0 hrel
+    have hm' : (depth - 1) / 2 ≤ m' := by
       by_contra hc
       have := gen_pow_inj (by omega) (by omega) (e382.symm.trans hN)
       omega
@@ -248,15 +244,19 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     have h0 : σ (.n 144) = 0 := by rw [a144, c143, e142, h2, pow_zero, e_add_self]
     obtain ⟨xs1, st1, s1, hrun1, hrd1, hsl1⟩ := rt_four (hfour h0) rfl rfl h59 h63 hcap
       z42 z43 z44 z45
-    obtain ⟨xs, st, s, pos, hrun, hrd, hsl⟩ := ly_chain hk (sh := sh) (by rw [e375]) e142 (by omega)
-      (by omega) hB (by rw [h2]; simpa using hsl1) m le_rfl
+    have hsl1' : GkSlot rd (σ (.n 16)) (2 - depth % 2) s1 (σ (.n 5) * gen ^ 2 * gen ^ xs1.length)
+        st1 (σ (.n 18) * gen ^ 40) gen (gen ^ ((1 - depth % 2) / 4))
+        (gen ^ ((1 - depth % 2) % 4)) := by rw [h2]; simpa using hsl1
+    obtain ⟨xs, st, s, pos, hrun, hrd, hsl⟩ := ly_chain hk (sh := depth % 2) e375 e142 (by omega)
+      (by omega) hB hsl1' ((depth - 1) / 2) le_rfl
     have hrun' : RunsTo (gkrLayers depth (vbgSt0 σ)) (vbgS1 σ) (xs1 ++ xs) st s := by
-      rw [show depth = 2 * m + 2 by omega, gkrLayers_even]
+      rw [show depth = 2 * ((depth - 1) / 2) + 2 by omega, gkrLayers_even]
       exact hrun1.bind hrun
     have hrd' : TbReadsAt rd (σ (.n 5) * gen ^ 2) (xs1 ++ xs) := by
       rw [tbReadsAt_append]
       exact ⟨hrd1, hrd⟩
-    rw [show 2 * m + 2 - sh = depth by omega, mul_assoc (σ (.n 5) * gen ^ 2), ← pow_add,
+    rw [show 2 * ((depth - 1) / 2) + 2 - depth % 2 = depth by omega,
+      mul_assoc (σ (.n 5) * gen ^ 2), ← pow_add,
       ← List.length_append] at hsl
     exact ⟨xs1 ++ xs, st, s, _, _, _, _, hrun', hrd', hsl⟩
   · -- an odd depth: the binary root layer, then the layers
@@ -270,29 +270,34 @@ theorem vbg_walk {rd : Reader} {σ : Val} {kret : List E → Prop}
     have hne : σ (.n 144) ≠ 0 := by
       rw [a144, c143, e142, h2, pow_one]
       intro h0
-      have := gen_pow_inj (by omega) (by omega)
-        ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm)
+      have := gen_pow_inj (a := 1) (b := 0) (by omega) (by omega)
+        ((pow_one gen).trans ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm))
       omega
     obtain ⟨xs1, st1, s1, hrun1, hrd1, hsl1⟩ := rt_two (htwo hne) rfl rfl h59 h63 hcap
       z42 z43 z44 z45
-    obtain ⟨xs, st, s, pos, hrun, hrd, hsl⟩ := ly_chain hk (sh := sh) (by rw [e375]) e142 (by omega)
-      (by omega) hB (by rw [h2]; simpa using hsl1) m le_rfl
+    have hsl1' : GkSlot rd (σ (.n 16)) (2 - depth % 2) s1 (σ (.n 5) * gen ^ 2 * gen ^ xs1.length)
+        st1 (σ (.n 18) * gen ^ 40) gen (gen ^ ((1 - depth % 2) / 4))
+        (gen ^ ((1 - depth % 2) % 4)) := by rw [h2]; simpa using hsl1
+    obtain ⟨xs, st, s, pos, hrun, hrd, hsl⟩ := ly_chain hk (sh := depth % 2) e375 e142 (by omega)
+      (by omega) hB hsl1' ((depth - 1) / 2) le_rfl
     have hrun' : RunsTo (gkrLayers depth (vbgSt0 σ)) (vbgS1 σ) (xs1 ++ xs) st s := by
-      rw [show depth = 2 * m + 1 by omega, gkrLayers_odd]
+      rw [show depth = 2 * ((depth - 1) / 2) + 1 by omega, gkrLayers_odd]
       exact hrun1.bind hrun
     have hrd' : TbReadsAt rd (σ (.n 5) * gen ^ 2) (xs1 ++ xs) := by
       rw [tbReadsAt_append]
       exact ⟨hrd1, hrd⟩
-    rw [show 2 * m + 2 - sh = depth by omega, mul_assoc (σ (.n 5) * gen ^ 2), ← pow_add,
+    rw [show 2 * ((depth - 1) / 2) + 2 - depth % 2 = depth by omega,
+      mul_assoc (σ (.n 5) * gen ^ 2), ← pow_add,
       ← List.length_append] at hsl
     exact ⟨xs1 ++ xs, st, s, _, _, _, _, hrun', hrd', hsl⟩
 
 /-- **`verify_bus_gkr` is sound**: on any memory of at most `2^32` words, at a depth other than
 `0`, it runs the specification's GKR walk and count check (`gkrPhase`) on the words it reads,
 writes the point to `zeta` and returns the sponge's capacity, the cursor past the words and a
-buffer of the three values. -/
-theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :
-    verify_bus_gkr_Spec Lm.read := by
+buffer of the three values, given the rounds `gkr_rounds__L{n}` (`verify_bus_gkr_holds`,
+`RoundsHolds`). -/
+theorem verify_bus_gkr_holds_of (hGR : tb_gkr_rounds_Spec) {μ : ℕ} (hμ : μ ≤ 32)
+    (Lm : MemoryImage μ) : verify_bus_gkr_Spec Lm.read := by
   intro args rets hne hrel
   obtain ⟨fn, hf, hp, hb⟩ := vbgFound
   obtain ⟨σ, hpar, h, hret⟩ := (tb_rel_pre hf hb vbgPre_noRet args rets).mp hrel
@@ -315,7 +320,7 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) 
   have hd0 : depth ≠ 0 := by rintro rfl; exact hne (by rw [hg, pow_zero])
   -- the roots and the walk
   obtain ⟨l28, l33, hcnt, -⟩ := vbg_root h
-  obtain ⟨xs, st, s, row, pos, half, par, hrun, hrd, hsl⟩ := vbg_walk h hg hd hd0
+  obtain ⟨xs, st, s, row, pos, half, par, hrun, hrd, hsl⟩ := vbg_walk hGR h hg hd hd0
   obtain ⟨hcl, hcap, hpe, hcur, hvl, hval, hrow, hpl, hpt, -, -, -⟩ := hsl
   -- the final slot
   have m383 := a 207 (.mul (.n 383) (.n 6) (.n 6)) (by decide +kernel)
@@ -403,8 +408,8 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) 
     rw [mul_assoc, ← pow_two]
     exact hrd
   · intro k hk
-    rw [hvl] at hk
-    exact eval k hk
+    have := eval k (by simpa [hvl] using hk)
+    simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk] using this
   · rw [tb_eq_map_getD hcl]
     simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
       List.cons_append, List.length_append, List.length_cons,
