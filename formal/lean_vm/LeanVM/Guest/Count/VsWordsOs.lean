@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.Count.VsWords
 public import LeanVM.Guest.Count.VsBoundBase
 public import LeanVM.Guest.Count.Instances
-public import LeanVM.Guest.B1.VerifySub.CompleteB
+public import LeanVM.Guest.B1.VerifySub.BoundsB
 
 namespace LeanVM.Guest.Count
 

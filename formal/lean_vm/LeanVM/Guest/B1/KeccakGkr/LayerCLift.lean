@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.LayerCLift1
 public import LeanVM.Guest.B1.KeccakGkr.PackCompleteIn
 public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.B1.Bits.GrindPlaced
 
 /-!
 # `keccak_layer`, placed
@@ -18,9 +19,10 @@ public import LeanVM.Guest.Memory.LiftPure
   they hold (`ClaimLay.Ok`); `ClaimLay.claimRec`: a memory holding them holds the claim's record.
 * `layerBufs D first cur b`: the layer's buffers from `b`: the pack challenges, the round records,
   the local point, the next claim's lanes and flips. `layerLin`: the caller's words, the next
-  claim's record at `out` pointing into `layerBufs`.
+  claim's record at `out` pointing into `layerBufs`, and the grind's window tables
+  (`winTabWords`, at `tbE`).
 * `layer_kids`: on a memory holding both, the eight-round loop and the remainder loop hold,
-  loading from them.
+  loading from them; `layer_grind`: `grind_check__L3` holds of any word passing the grind.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -48,6 +50,16 @@ theorem inR_entry {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L)
 
 theorem memL_entry {rd : Reader} {L : Main.Layout} (h : MemL rd L) {b : ℕ} {ws : List E}
     (hq : (b, ws) ∈ L) : ReadsAt rd (ptr b) ws := h _ hq
+
+/-- The window tables' words (`WinTabs`). -/
+def winTabWords : List E := (List.range (2 ^ winTabBits)).map eOfNat
+
+/-- **A memory holding the window tables' words at `tbE` holds the window tables there.** -/
+theorem winTabs_of_memL {rd : Reader} {L : Main.Layout} {tbE : ℕ} (h : MemL rd L)
+    (hq : (tbE, winTabWords) ∈ L) : WinTabs rd (ptr tbE) := by
+  intro n hn
+  have := memL_entry h hq n (by simp [winTabWords]; omega)
+  simpa [winTabWords] using this
 
 /-! ## The claim's record -/
 
@@ -132,29 +144,30 @@ theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
   simp [layerBufs, bufL, layerSizes, layerOwn, bases]
 
 /-- **The caller's words**: the next claim's record at `out` (its pointers into `layerBufs` from
-`b`), the stream at `cur`, the claim's layout. -/
-noncomputable def layerLin (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout b : ℕ) : Main.Layout :=
+`b`), the stream at `cur`, the claim's layout, the window tables at `tbE`. -/
+noncomputable def layerLin (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
+    Main.Layout :=
   [(bout, D.outW first (ptr b) (ptr (b + D.y + 139)) (ptr (b + D.y + 128)) (ptr (b + D.y + 164))),
-    (bcur, D.xs)] ++ CL.L first D.c
+    (bcur, D.xs)] ++ CL.L first D.c ++ [(tbE, winTabWords)]
 
 theorem recWords_length (D : LayerData) (first : ℕ) (cur : E) :
     (D.recWords first cur).length = 128 := by simp [LayerData.recWords]
 
 /-- **The callees, honestly and loading from the layout**: on a memory holding the caller's words
 and the buffers, the eight-round loop and the remainder loop hold. -/
-theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay) (bcur bout b : ℕ)
+theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay) (bcur bout tbE b : ℕ)
     (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
     (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11) {rd : Reader}
-    (hm : MemL rd (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b)) :
+    (hm : MemL rd (layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b)) :
     (1 + gen ^ (D.y / 8) ≠ 0 → coreProgram.RelIn rd
-      (RegionL (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b))
-      (packLoopName first) [1, gen ^ (D.y / 8), ptr (b + D.y), ptr CL.bpp, ptr b] []) ∧
+      (RegionL (layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b))
+      (packLoopName first) [1, gen ^ (D.y / 8), ptr (b + D.y), ptr CL.bpp, ptr b, ptr tbE] []) ∧
     (1 + gen ^ (D.y % 8) ≠ 0 → coreProgram.RelIn rd
-      (RegionL (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b))
+      (RegionL (layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b))
       (remLoopName first) [1, gen ^ (D.y % 8), ptr (b + D.y) * gen ^ (D.y / 8),
-        ptr CL.bpp * (gen ^ (D.y / 8)) ^ 8, ptr b * (gen ^ (D.y / 8)) ^ 8] []) := by
+        ptr CL.bpp * (gen ^ (D.y / 8)) ^ 8, ptr tbE, ptr b * (gen ^ (D.y / 8)) ^ 8] []) := by
   have hy' : D.y = D.c.point.length := rfl
-  set L := layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b with hL
+  set L := layerLin D first CL bcur bout tbE b ++ layerBufs D first (ptr bcur) b with hL
   have mRec : (b + D.y, D.recWords first (ptr bcur)) ∈ L := by
     simp [hL, layerBufs_eq]
   have mPp : (CL.bpp, D.c.point) ∈ L := by simp [hL, layerLin, ClaimLay.L]
@@ -169,7 +182,7 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
   have hxl := LayerData.xs_length hpl hpm hlm
   -- record `j`'s cursor
   have hcur : ∀ j < 16, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 80 c' →
-      c' = ptr bcur * gen ^ (47 + 2 * D.recK j) := by
+      c' = ptr bcur * gen ^ (48 + 2 * D.recK j) := by
     intro j hj hjy c' hc'
     have := (LayerData.recWords_rec hrec hj hjy).2.1
     simp only [krCap] at this
@@ -185,7 +198,7 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
     intro p a c
     rw [mul_assoc, ← pow_mul, ← pow_add, show a * 8 = 8 * a by ring]
   refine ⟨fun hne ↦ ?_, fun hne ↦ ?_⟩
-  · refine (pack8Loop_relIn hf (m := D.y / 8)
+  · refine (pack8Loop_relIn hf (m := D.y / 8) (tb := ptr tbE)
       (fun j hj ↦ LayerData.pack8_honest hpl hpm hrec hpp hxs hpt hy30 hj)
       (fun j hj ↦ ⟨hrecR j (by omega), fun q hq ↦ ?_, fun q hq ↦ ?_, fun c' hc' k hk ↦ ?_⟩)).2 hne
     · rw [← pow_mul]; exact inR_entry mPp (by omega)
@@ -195,7 +208,7 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
       have : D.recK j = 8 * j := by unfold LayerData.recK; split <;> omega
       rw [this]
       omega
-  · refine (packRemLoop_relIn hf (m := D.y % 8)
+  · refine (packRemLoop_relIn hf (m := D.y % 8) (tb := ptr tbE)
       (fun i hi ↦ LayerData.packRem_honest hpl hpm hrec hpp hxs hpt hy30 hi)
       (fun i hi ↦ ⟨?_, ?_, ?_, fun c' hc' k hk ↦ ?_⟩)).2 hne
     · rw [mul_assoc, ← pow_add]; exact hrecR _ (by omega)
@@ -209,6 +222,24 @@ theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay
         unfold LayerData.recK; split <;> omega
       rw [this]
       omega
+
+variable {fs : String → ℕ} {cert : String → V → ℕ}
+
+/-- **`grind_check__L3`, placed, on the window tables at `tbE`**, of any word passing the grind. -/
+theorem layer_grind_completeD {κ : ℕ} (hκ : 11 ≤ κ) {L : Main.Layout} {tbE : ℕ}
+    (hq : (tbE, winTabWords) ∈ L) {v : E} (hv : (v.limb 0).lane.toNat % 2 ^ 3 = 0) :
+    CompleteAtD fs cert κ (grindCheckName 3) L [v, ptr tbE] (Returns []) :=
+  grind_check_completeD (bits := 3) (by decide) hκ [v, ptr tbE] [] L
+    fun _ _ hm ↦ ⟨rfl, v, ptr tbE, rfl, winTabs_of_memL hm hq, hv⟩
+
+/-- **`grind_check__L3` holds** of any word passing the grind, on a memory holding the window
+tables at `tbE`. -/
+theorem layer_grind {κ : ℕ} (hκ : 11 ≤ κ) {L : Main.Layout} {tbE : ℕ}
+    (hq : (tbE, winTabWords) ∈ L) {rd : Reader} (hlow : LowDef κ rd) (hm : MemL rd L) {v : E}
+    (hv : (v.limb 0).lane.toNat % 2 ^ 3 = 0) :
+    coreProgram.Rel rd (grindCheckName 3) [v, ptr tbE] [] :=
+  (grind_relAtIn (fs := fun _ ↦ 0) (cert := fun _ _ ↦ 0) (bits := 3) (by decide) hκ
+    (fun _ _ hm' ↦ ⟨rfl, v, ptr tbE, rfl, winTabs_of_memL hm' hq, hv⟩) 0 hlow hm).relAt.rel
 
 end
 end LeanVM.Guest.B1.VerifySub
