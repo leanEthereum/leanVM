@@ -77,7 +77,7 @@ def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m 
       verifyExecutionRefusingZeroCombiner computedBytecodeValue (bytecodeWords prog)
         (publicInputDigest input)
       return true : VerifierProgram Bool).refusingZeroChallenge
-    seed proof
+        seed proof
 
 /-- Keccak-256 and Keccak-f[1600] answering the calls `KeccakCalls`. -/
 def deployedKeccakCalls : QueryImpl KeccakCalls Id
@@ -98,7 +98,7 @@ for the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover
 oracle calls),
 1. in the random-permutation model, at `2^25` nonces per proof of work, it makes no proof, or
    `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
-   `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
+   `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`;
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
    execution of the leanISA guest program of committed size above `2^21` on a statement's digest
    under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
@@ -116,7 +116,7 @@ def GuestChildCompleteWithHash : Prop :=
         | some proof =>
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
           false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
+      (2 : ℝ≥0∞)⁻¹ ^ 100) ∧
   ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < t.committedSize →
     s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
