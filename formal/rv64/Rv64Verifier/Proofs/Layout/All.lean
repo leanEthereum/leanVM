@@ -16,6 +16,8 @@ import Rv64Verifier.Proofs.Layout.BusBridge
 import Rv64Verifier.Proofs.Layout.BusEvaluate
 import Rv64Verifier.Proofs.Layout.CellLanes
 import Rv64Verifier.Proofs.Layout.Limb
+import Rv64Verifier.Proofs.Layout.BusLayout
+import Rv64Verifier.Proofs.Layout.ExtendTrusted
 import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Proofs.Field.All
 
@@ -91,6 +93,13 @@ theorem cell_lanes_proved : CellLanesSpec := CellLanes.cell_lanes_spec Runtime.m
 theorem limb_proved : LimbSpec :=
   Limb.limb_spec term_proved col_proved prod_proved add_scaled_proved
 
+theorem bus_layout_proved : Bus.BusLayoutSpec :=
+  BusLayout.bus_layout_spec Runtime.tryAllocZeroed Runtime.reserveFast_8000d628 Runtime.memcpy
+    (Proofs.Multilinear.StackOffsets.stack_offsets_spec Runtime.tryAllocZeroed)
+
+theorem extend_trusted_proved : ExtendSpec :=
+  Extend.extend_spec Runtime.reserveFresh_800060bc clone_proved
+
 /-- info: 'Rv64Verifier.Layout.evaluate_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms evaluate_proved
 
@@ -138,5 +147,11 @@ theorem limb_proved : LimbSpec :=
 
 /-- info: 'Rv64Verifier.Layout.limb_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms limb_proved
+
+/-- info: 'Rv64Verifier.Layout.bus_layout_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms bus_layout_proved
+
+/-- info: 'Rv64Verifier.Layout.extend_trusted_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms extend_trusted_proved
 
 end Rv64Verifier.Layout
