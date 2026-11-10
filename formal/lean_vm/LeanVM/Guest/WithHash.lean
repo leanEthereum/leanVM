@@ -108,7 +108,7 @@ def GuestChildCompleteWithHash : Prop :=
   (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
-        match ← LeanVM.proverWithHash prog input t ρ (2 ^ 25) with
+        match ← LeanVM.proverWithHash prog input t ρ (2 ^ 33) with
         | none => pure false
         | some proof =>
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
@@ -118,7 +118,7 @@ def GuestChildCompleteWithHash : Prop :=
     s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
     ∀ proof,
-      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 25) =
+      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 33) =
         some proof →
     verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧
