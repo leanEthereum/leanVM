@@ -118,7 +118,7 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
   obtain ⟨c1, rc, l5, hd, c9, q, c10, a11, -, n13⟩ := hs
   simp only [Atom.Holds] at c1 l5 c9 q c10 a11 n13
   have l0 : LoadHolds Lm.read (σ (.n 10)) (t + 1) (σ (.n (27 + t))) := by
-    have := (vt_kb h).2 (t + 1) (by omega); rwa [show 29 + (t + 1) = 30 + t by omega] at this
+    have := (vt_kb h).2 (t + 1) (by omega); rwa [show 26 + (t + 1) = 27 + t by omega] at this
   obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 29) (by omega) (by norm_num) (by rw [c1, vtW28_eq]) rc
   have hp := vt_pad_arm hτ hv hd
   simp only [List.map_cons, List.map_nil, PadWeightOut] at hp
