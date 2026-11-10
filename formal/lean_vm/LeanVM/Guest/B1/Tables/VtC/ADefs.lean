@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Bits.Tables
 # The honest memory
 
 `VtBases`: the caller's buffers' addresses (the cursor, `zeta`, `dims_g`, `table_rows`,
-`g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`) and the first word of
-`verify_tables`' own buffers. `VtHonest.args`: the 20 arguments. `VtHonest.linL`: the caller's
+`g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`, `gkr_leaves`, `tabs`, `bc_point`)
+and the first word of `verify_tables`' own buffers. `VtHonest.args`: the 20 arguments. `VtHonest.linL`: the caller's
 buffers' honest words. `vtAllocVars`: the 111 allocations' values, in order (`vt_allocs`, by the
 kernel); `VtHonest.sizes`, `VtHonest.ownW`: their sizes and honest words; `VtHonest.ownL`: them
 at the bump allocator's positions. `VtWOk`: what the oracle answers (the allocations' pointers,
@@ -72,13 +72,16 @@ structure VtBases where
   fpw : ℕ
   pool : ℕ
   chi : ℕ
+  leaves : ℕ
+  tabs : ℕ
+  bcp : ℕ
   own : ℕ
 
 /-- The allocations' values, in order. -/
 def vtAllocVars : List ℕ :=
-  [36, 37, 38, 39, 668, 703, 705, 706, 781] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
+  [33, 34, 35, 36, 664, 699, 701, 702, 777] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2605, 2608, 2629]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2627, 2630, 2651]
 
 theorem vtAllocVars_length : vtAllocVars.length = 111 := by decide
 
@@ -108,22 +111,23 @@ noncomputable def args : List E :=
     (digestHalves H.pi).1, (digestHalves H.pi).2, ofK (addressOfIndex B.zeta), gen ^ H.μ,
     ofK (addressOfIndex B.dims), ofK (addressOfIndex B.rows), ofK (addressOfIndex B.sq),
     ofK (addressOfIndex B.fpw), H.beta, ofK (addressOfIndex B.pool), ofK (addressOfIndex B.chi),
-    H.values.getD 0 0, H.values.getD 1 0, H.values.getD 2 0]
+    ofK (addressOfIndex B.leaves), ofK (addressOfIndex B.tabs), ofK (addressOfIndex B.bcp)]
 
 /-- `dims_g`'s words. -/
 noncomputable def dimsW : List E := gen ^ H.lm :: (vtTauList H.τ).map (gen ^ ·)
 
 /-- The stream words. -/
-def curW : List E := H.xs5 ++ H.xsR ++ H.evsT.flatten
+def curW : List E := H.xs4 ++ H.bcW ++ H.xsR ++ H.evsT.flatten
 
 /-- The public input's claims' values. -/
 noncomputable def pcW : List E :=
-  ([0, 1, 2] : List (Fin 3)).map fun limb ↦
+  ([0, 1] : List (Fin 2)).map fun limb ↦
     multilinearEval [ofK ((digestHalves H.pi).1.limb limb),
       ofK ((digestHalves H.pi).2.limb limb)] [H.rm]
 
-/-- `claim_pool`'s words (slots `5 ..< 162` unwritten by `verify_tables`). -/
-noncomputable def poolW : List E := H.xs5 ++ H.evsT.flatten ++ H.pcW
+/-- `claim_pool`'s words: the bus's four, slots `4 ..< 157` unwritten by `verify_tables`, the
+public input's two. -/
+noncomputable def poolW : List E := H.xs4 ++ List.replicate 153 0 ++ H.pcW
 
 /-- `chi`'s words: the challenges, last first. -/
 noncomputable def chiW : List E := zcChis H.cap0 H.target H.xsR H.n
@@ -131,7 +135,8 @@ noncomputable def chiW : List E := zcChis H.cap0 H.target H.xsR H.n
 /-- **The caller's buffers.** -/
 noncomputable def linL : TLay :=
   [(B.cur, H.curW), (B.zeta, H.point), (B.dims, H.dimsW), (B.rows, H.rows.map eOfNat),
-    (B.sq, expTableWords), (B.fpw, eqKernel H.alphas), (B.pool, H.poolW), (B.chi, H.chiW)]
+    (B.sq, expTableWords), (B.fpw, H.weights), (B.pool, H.poolW), (B.chi, H.chiW),
+    (B.leaves, H.values), (B.bcp, H.slots)]
 
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
@@ -166,10 +171,9 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
   pads : ∀ t < 6, w (vtPadV t) = paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t) ∧
     w (vtPadV t + 1) = PadLead (H.τ t) (vtRw H.rows t) ∧
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
-  w704 : w 704 = 0
-  w581 : w 581 = H.bv
-  w2500 : w 2516 = gen ^ H.n
-  hwI : w 824 = indexMle (H.point.take H.lm) ∧ w 894 = indexMle (H.point.take 19)
+  w700 : w 700 = 0
+  w2544 : w 2544 = gen ^ H.n
+  hwI : w 809 = indexMle (H.point.take H.lm) ∧ w 837 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0
   hwP : ∀ i < 51, w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =

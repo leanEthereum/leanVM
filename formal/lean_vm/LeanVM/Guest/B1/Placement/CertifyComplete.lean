@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Guest.B1.Placement.Certify
+public import LeanVM.Guest.B1.Placement.CompleteBase
 public import LeanVM.Guest.B1.Placement.Kappas
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 
@@ -46,18 +47,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- The memory is defined below `2^k`. -/
-def LowDefB (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (addressOfIndex i)).isSome
-
-/-- The word at `g^a`, or `0`. -/
-noncomputable def rdv (rd : Reader) (a : ℕ) : E := (rd (addressOfIndex a)).getD 0
-
-theorem tb_ite_neg {c : Prop} [Decidable c] (h : ¬c) {α : Type} {a b : α} :
-    (if c then a else b) = b := by simp [h]
-
-theorem tb_ite_pos {c : Prop} [Decidable c] (h : c) {α : Type} {a b : α} :
-    (if c then a else b) = a := by simp [h]
 
 /-! ## The honest data -/
 
@@ -259,7 +248,7 @@ theorem cpσ_grp {gi v : ℕ} (hgi : gi < 9) (h1 : cpB gi ≤ v) (h2 : v < cpBx 
 theorem cpσ_rank0 {j : ℕ} (hj : j < 11) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (138 + j)) =
       cpRank0V lm hs e10 e11 e137 rd j := by
-  show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (140 + j) = _
+  show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (138 + j) = _
   unfold cpF
   rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
     tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
@@ -268,7 +257,7 @@ theorem cpσ_rank0 {j : ℕ} (hj : j < 11) :
 theorem cpσ_rank {r j : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 8) (hj : j < 18) :
     cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd (.n (131 + 18 * r + j)) =
       cpRankV lm hs e10 e11 e137 rd r j := by
-  show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (133 + 18 * r + j) = _
+  show cpF lm hs ekb esq e10 e11 e136 e137 e293 rd (131 + 18 * r + j) = _
   have e1 : (131 + 18 * r + j - 131) / 18 = r := by omega
   have e2 : (131 + 18 * r + j - 131) % 18 = j := by omega
   unfold cpF
@@ -339,7 +328,7 @@ theorem cpKc_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
     (h5 : hs.getD 5 0 ≤ 27) (c : ℕ) : cpKc lm hs c < 34 := by
   unfold cpKc
   have hb := cp_base_lt hl hlm hhs (colKappaSrc_lt (c := c))
-  by_cases h45 : c = 4 ∨ c = 5
+  by_cases h45 : c = 3 ∨ c = 4
   · rcases h45 with rfl | rfl
     · simp [colKappaSrc, colKappaAdj, cpEb]
     · show (0 :: lm :: hs).getD 7 0 + 6 < 34
@@ -439,7 +428,7 @@ theorem cpKey_step (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h
   set a := cpC0 (cpPi lm hs r)
   set b := cpC0 (cpPi lm hs (r + 1))
   set Wp := word (cpInvWords.getD (cpPi lm hs r) 0) 0
-  set W := word (cpInvWords.getD (cpPi lm hs (r + 1)) 0) 0 0
+  set W := word (cpInvWords.getD (cpPi lm hs (r + 1)) 0) 0
   set e := cpE lm hs (r + 1)
   calc gen ^ A * Wp = gen ^ A * Wp * (W * gen ^ b) := by rw [h2, mul_one]
     _ = gen ^ (A + b) * W * Wp := by ring

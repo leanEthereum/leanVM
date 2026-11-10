@@ -615,8 +615,9 @@ theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ}
 end Search
 
 /-- The average over `E` is the average over a uniform state's challenge. -/
-theorem avgE_eq (A : E → ℝ≥0∞) : (∑ c : E, A c) / (Fintype.card E : ℝ≥0∞) =
+theorem avgE_eq (A : E → ℝ≥0∞) : avgE A =
     (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState := by
+  unfold avgE
   convert (sum_challengeOf_div A).symm using 3
   · exact congrArg (@Finset.univ E) (Subsingleton.elim _ _)
   · exact congrArg (@Fintype.card E) (Subsingleton.elim _ _)
@@ -758,7 +759,7 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
     refine hle.trans ?_
     rcases hgr : sp.ground with _ | c
     · simp only [Strategy.failFrom]
-      rw [avg_add_const, avgE_eq]
+      rw [avg_add_const, ← avgE_eq (fun c ↦ S.failFrom (k' c) (h ++ [Ev.sample c]) none)]
       gcongr
       exact_mod_cast Nat.sub_le n 4
     · simp only [Strategy.failFrom]

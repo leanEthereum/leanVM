@@ -1,223 +1,246 @@
 /-
   LeanVM.Guest.B1.Whir.Finish
 
-  The body after the tail: the residual's value, the point, the basis rows, the residual sums,
-  the out-of-domain weights and the returns.
+  The body after the closing rounds: the final lane at the tail challenges, the point, the basis
+  rows, the residual sums, the out-of-domain weights and the returns, against the Spec's
+  terminal.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.Residuals
-public import LeanVM.Guest.B1.Whir.Bases
-public import LeanVM.Guest.B1.Whir.OodW
+public import LeanVM.Guest.B1.Whir.InnerAlg
+public import LeanVM.Guest.B1.Whir.FinishSplit
 public import LeanVM.Guest.B1.Whir.Point
 public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Whir.HsScale
 
 /-!
-# The finish (G:1667-1757)
+# The finish (G:1755-1856)
 
-`osFinish_sound`: from what the levels and the tail stored (`FinIn`), the returns are the claim,
-the two point buffers, the glued weight `Σ_lvl scale_lvl·sum_lvl + Σ_ol ood_ol` (`finInner`) and
-the final message folded at the tail challenges.
+`osFinish_sound`: from the levels' records in memory (`RecStored`), every `γ` in
+`fold_challenges`, the tail challenges at `tch`, the final lane at `final_msg` and the guest's
+closing claim, the body after the closing rounds returns the Spec's terminal: the closing claim
+plus the deficit times the closing challenges (the high chains, `level_high`), the rotated point
+and one plus it, the glued weight (the product chains `level_inner` and the out-of-domain
+weights `eqEval_prod`) and the lane's low part at the tail challenges (`fold_final_msg`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- `osFinish` before its `ret`. -/
-def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
-  let n := c.levels.length
-  let yat := st.k
-  let pt := yat + 1
-  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
-  let bd := pts.2 + 1
-  let ls := pts.2 + 3
-  let bs := osBases c tch bd ls 0 c.levels (pts.2 + 4)
-  let ich := bs.2 + 1
-  let rs := osResiduals c ich bd ls 0 c.levels (bs.2 + 3)
-  let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
-  let k := od.2.2
-  [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
-    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ bs.1 ++
-    osHeap (n + 1) bs.2 ++
-    [.atom (.const (.n (bs.2 + 2)) (word 0 0 0)), .atom (.load (.n (bs.2 + 2)) (.n ich) 0)] ++
-    rs.1 ++ od.1 ++
-    [.atom (.copy (.n k) (.n st.t)), .atom (.copy (.n (k + 1)) (.n pt)),
-      .atom (.copy (.n (k + 2)) (.n (pt + 1))), .atom (.load (.n (k + 3)) (.n ich) n),
-      .atom (.add (.n (k + 4)) (.n (k + 3)) (.n (od.2.1.getD 0))), .atom (.copy (.n (k + 5)) (.n yat))]
+/-! ## Helpers -/
 
-/-- `osFinish`'s returns. -/
-def osFinishRet (c : OsCfg) (st : OsSt) (tch : ℕ) : List V :=
-  let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
-  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4)
-  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3)
-  let k := (osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2).2.2
-  [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]
+theorem readsAt_take {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
+    (hl : xs.length ≤ ys.length) : xs = ys.take xs.length := by
+  refine List.ext_getElem (by simp; omega) fun i hi _ ↦ ?_
+  rw [List.getElem_take]
+  exact loadHolds_unique (h1 i hi) (h2 i (by omega))
 
-theorem osFinish_split (c : OsCfg) (st : OsSt) (tch : ℕ) :
-    osFinish c st tch = osFinishA c st tch ++ [.ret (osFinishRet c st tch)] := by
-  simp only [osFinish, osFinishA, osFinishRet, List.append_assoc, List.cons_append,
-    List.nil_append]
+theorem prod_getD_range (l : List E) : ∏ t ∈ Finset.range l.length, l.getD t 0 = l.prod := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+    rw [List.length_cons, Finset.prod_range_succ', List.prod_cons]
+    simp only [List.getD_cons_succ, List.getD_cons_zero, ih]
+    ring
 
-/-! ## The residual sums, every level -/
+theorem foldl_add_map {α : Type} (f : α → E) : ∀ (l : List α) (a : E),
+    l.foldl (fun w g ↦ w + f g) a = a + (l.map f).sum
+  | [], a => by simp
+  | x :: l, a => by
+    rw [List.foldl_cons, foldl_add_map f l, List.map_cons, List.sum_cons]; ring
 
-theorem osResiduals_sound {c : OsCfg} {ich bd ls : ℕ} (G : ℕ → E) (levels : List OsLv) :
-    ∀ (lvl k : ℕ) (I : E),
-      (∀ i (hi : i < levels.length) (k' : ℕ) (I' : E),
-        AllOk (coreProgram.Rel rd) rd σ (osResidual c ich bd ls (lvl + i) levels[i] k').1 →
-        LoadHolds rd (σ (.n ich)) (lvl + i) I' →
-        LoadHolds rd (σ (.n ich)) (lvl + i + 1) (I' + G (lvl + i))) →
-      AllOk (coreProgram.Rel rd) rd σ (osResiduals c ich bd ls lvl levels k).1 →
-      LoadHolds rd (σ (.n ich)) lvl I →
-      LoadHolds rd (σ (.n ich)) (lvl + levels.length)
-        (I + ∑ i ∈ Finset.range levels.length, G (lvl + i)) := by
-  induction levels with
-  | nil => intro lvl _ I _ _ h; simpa using h
-  | cons lv rest ih =>
-    intro lvl k I hstep hok h
-    simp only [osResiduals] at hok
-    rw [allOk_append] at hok
-    have h1 := hstep 0 (by simp) k I hok.1 (by simpa using h)
-    have := ih (lvl + 1) _ _ (fun i hi k' I' h1 h2 ↦ by
-      have := hstep (i + 1) (by simp; omega) k' I'
-        (by rwa [show lvl + (i + 1) = lvl + 1 + i by ring]) (by
-          rwa [show lvl + (i + 1) = lvl + 1 + i by ring])
-      rwa [show lvl + (i + 1) = lvl + 1 + i by ring] at this) hok.2 (by simpa using h1)
-    have e : I + ∑ i ∈ Finset.range (lv :: rest).length, G (lvl + i) =
-        I + G lvl + ∑ i ∈ Finset.range rest.length, G (lvl + 1 + i) := by
-      rw [List.length_cons, Finset.sum_range_succ', Finset.sum_congr rfl
-        (fun i _ ↦ by rw [show lvl + (i + 1) = lvl + 1 + i by ring])]
-      simp only [Nat.add_zero]
-      ring
-    rw [e, List.length_cons, show lvl + (rest.length + 1) = lvl + 1 + rest.length by ring]
-    exact this
+theorem readsAt_padded {p : E} {P : List E} {n : ℕ} (f : E → E)
+    (h : ∀ i < P.length + n, LoadHolds rd p i (f (P.getD i 0))) :
+    ReadsAt rd p (P.map f ++ List.replicate n (f 0)) := by
+  intro k hk
+  simp only [List.length_append, List.length_map, List.length_replicate] at hk
+  by_cases h1 : k < P.length
+  · rw [List.getElem_append_left (by simpa using h1), List.getElem_map]
+    have := h k hk
+    rwa [List.getD_eq_getElem _ _ h1] at this
+  · rw [List.getElem_append_right (by simpa using h1), List.getElem_replicate]
+    have := h k hk
+    rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega), Option.getD_none] at this
 
-/-! ## The finish -/
+theorem ofK_ne_zero {a : K} (h : a ≠ 0) : ofK a ≠ 0 := by
+  intro h0
+  exact h ((algebraMap K E).injective (by rw [map_zero]; exact h0))
 
-/-- Words read at a pointer are determined by their number. -/
-theorem readsAt_unique {p : E} {xs ys : List E} (hl : xs.length = ys.length)
-    (hx : ReadsAt rd p xs) (hy : ReadsAt rd p ys) : xs = ys :=
-  List.ext_getElem hl fun i h1 h2 ↦ loadHolds_unique (hx i h1) (hy i h2)
+/-! ## A non-final level's terms -/
 
-/-- What a level's residual sum reads: its loop, its positions, `μ = λ⁻¹` in `level_mus`. -/
-def ResIn (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (P : ℕ → E) (lam : E) :
-    Prop :=
-  FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl lv (c.resLoop lvl)) ∧ 1 ≤ lv.logCols ∧
-    lv.posOff < u128Bound ∧ lv.queries / resBatch < ordG ∧ lv.queries / resBatch < u128Bound ∧
-    lv.prefixLen + c.yrLog = lv.logCols ∧
-    (∀ i < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + i) (P i)) ∧ lam ≠ 0 ∧
-    LoadHolds rd (σ (.n osMus)) lvl lam⁻¹
+/-- A non-final level's static facts the finish reads. -/
+structure LvFin (c : OsCfg) (lv lv' : OsLv) : Prop where
+  pre : lv.prefixLen + c.yrLog = lv.logCols
+  rfo : lv.resFoldOff = lv.foldsOff + lv.folds
+  le : lv.foldsOff + lv.folds ≤ c.nFolds
+  cols : c.nFolds - (lv.foldsOff + lv.folds) + c.yrLog = lv.logCols
+  next : lv'.foldsOff = lv.foldsOff + lv.folds
+  ml1 : 1 ≤ lv.logCols
+  mu64 : lv.logCols < 64
+  nhs : 1 ≤ lv.folds
+  b3 : lv.highBits ≤ 3
+  bn : lv.highBits ≤ lv.logCols + 1
+  hn : lv.folds ≤ 2 ^ lv.highBits
+  posOff : lv.posOff < u128Bound
+  nbo : lv.queries / resBatch < ordG
+  nbu : lv.queries / resBatch < u128Bound
+  val : ∀ t ≤ lv.logCols, K.ofBits (vanishVal (lv.vanish + t)) = (subspaceRoots lv.logCols).getD t 0
+  inv : ∀ t ≤ lv.logCols,
+    K.ofBits (vanishInv (lv.vanish + t)) = ((subspaceRoots lv.logCols).getD t 0)⁻¹
+  hsm : ∀ c' < lv.folds,
+    K.ofBits (hsScale lv.vanish lv.highBits c' (vanishInv (lv.vanish + lv.logCols))) =
+      ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c'
 
-/-- **The `μ`-chain times `λ^n` is the `λ`-weighted sum** (`μ = λ⁻¹`). -/
-theorem resFold_lam {D : ℕ → E} {vo ml n : ℕ} {lam : E} (h0 : lam ≠ 0) (P : ℕ → E) :
-    lam ^ n * resFold D vo ml lam⁻¹ 0 ((List.range n).map P) =
-      ∑ j ∈ Finset.range n, lam ^ j * residualProd (osVals vo ml) (P j) D ml := by
-  rw [resFold_eq_sum, zero_mul, zero_add, Finset.mul_sum]
-  refine Finset.sum_congr rfl fun j hj ↦ ?_
-  rw [Finset.mem_range] at hj
-  rw [inv_pow, mul_comm (residualProd _ _ _ _), ← mul_assoc]
-  congr 1
-  rw [show n = j + (n - j) by omega, pow_add, mul_assoc, show j + (n - j) - j = n - j by omega,
-    mul_inv_cancel₀ (pow_ne_zero _ h0), mul_one]
+/-- The terminal point from a level's folds on: `(G ++ T).drop F`. -/
+abbrev ptFrom (G T : List E) (F : ℕ) : List E := (G ++ T).drop F
 
-/-- A level's coefficients `d_t`. -/
+/-- A level's stored high part, normalized. -/
+def hsvOf (lv : OsLv) (r : OsRec) : List E :=
+  (List.range lv.folds).map fun c ↦
+    r.high.getD c 0 * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0
+
+/-- A level's basis row. -/
 def dOf (lv : OsLv) (X : ℕ → E) (t : ℕ) : E := (1 + X t) / (X t * invW lv t)
 
-/-- The guest's glued weight: every level's scale times its residual sum, and the out-of-domain
-weights. -/
-def finInner (c : OsCfg) (β : ℕ → E) (X P W : ℕ → ℕ → E) (Λ : ℕ → E) (Z Y : ℕ → ℕ → E) : E :=
-  ∑ i ∈ Finset.range c.levels.length,
-    (β i * ∏ t ∈ Finset.range ((c.levels.getD i default).prefixLen + c.yrLog),
-        (X i t * invW (c.levels.getD i default) t)) *
-      ∑ j ∈ Finset.range (c.levels.getD i default).queries,
-        W i j * lvRes (c.levels.getD i default) (dOf (c.levels.getD i default) (X i)) (P i j) +
-  oodSum c Λ Z Y (c.levels.headD default).logCols 1 c.levels.tail
+theorem osVals_ofK {lv : OsLv} (hF : ∀ t ≤ lv.logCols,
+    K.ofBits (vanishVal (lv.vanish + t)) = (subspaceRoots lv.logCols).getD t 0) :
+    ∀ i < lv.logCols, (osVals lv.vanish lv.logCols).getD i 0 =
+      ofK ((subspaceRoots lv.logCols).getD i 0) := by
+  intro i hi
+  rw [osVals_getD hi, word_eOfNat, eOfNat, hF i (by omega)]
 
-/-- **The finish** (G:1518-1608). -/
-theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {β Λ Lam : ℕ → E}
-    {X P W Z Y : ℕ → ℕ → E} (hW : ∀ i j, W i j = Lam i ^ j)
-    (hfm : ∀ args rets, coreProgram.Rel rd ("fold_final_msg__L" ++ natStr c.yrLog) args rets →
-      MeaningFoldFinalMsg c.yrLog rd args rets)
-    (hms : ms.length = 2 ^ c.yrLog) (hmsr : ReadsAt rd (σ (.n osFmsg)) ms)
-    (hT : T.length = c.yrLog) (hTr : ReadsAt rd (σ (.n tch)) T)
-    (hpt : ∀ i, PtSrcOk rd σ (osPtSrc c tch i) (Pt.getD i 0))
-    (hbasis : ∀ i (hi : i < c.levels.length), BasisIn rd σ c tch i c.levels[i]
-      (β i * Lam i ^ c.levels[i].queries) (X i))
-    (hres : ∀ i (hi : i < c.levels.length), ResIn rd σ c i c.levels[i] (P i) (Lam i))
-    (hood : OodAll rd σ c tch Λ Z Y (c.levels.headD default).logCols 1 c.levels.tail)
-    (hn2 : 2 ≤ c.levels.length)
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osFinishA c st tch)) :
-    (osFinishRet c st tch).map σ = [σ (.n st.t), σ (.n (st.k + 1)), σ (.n (st.k + 1 + 1)),
-      finInner c β X P W Λ Z Y, multilinearEval ms T] ∧
-    (∀ i < pointCap, LoadHolds rd (σ (.n (st.k + 1))) i (Pt.getD i 0) ∧
-      LoadHolds rd (σ (.n (st.k + 1 + 1))) i (1 + Pt.getD i 0)) ∧
-    ∀ i (hi : i < c.levels.length), ∀ t < c.levels[i].prefixLen + c.yrLog,
-      X i t * invW c.levels[i] t ≠ 0 := by
-  simp only [osFinishA, osFinishRet] at hok ⊢
-  set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
-  set bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4) with hbs
-  set rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3) with hrs
-  set od := osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2 with hod
-  simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hA, hP⟩, -⟩, -⟩, hB⟩, -⟩, hZ⟩, hR⟩, hO⟩, hE⟩ := hok
-  -- the final message folded at the tail challenges
-  simp only [allOk_cons, allOk_nil, and_true, StmtOk, List.map_cons, List.map_nil] at hA
-  obtain ⟨m, ps, hml, hpsl, hmr, hpr, hy⟩ := hfm _ _ hA.1
-  have em := readsAt_unique (by rw [hml, hms]) hmr hmsr
-  have ep := readsAt_unique (by rw [hpsl, hT]) hpr hTr
-  simp only [List.cons.injEq, and_true] at hy
-  -- the point
-  have hpoint := osPtBlks_sound (C := coreProgram.Rel rd) (fun i ↦ Pt.getD i 0) hpt pointCap 0 _ hP
-  -- the bases
-  have hbo := osBases_sound (C := coreProgram.Rel rd) (bd := pts.2 + 1) (ls := pts.2 + 3)
-    (fun i ↦ β i * Lam i ^ (c.levels.getD i default).queries) X
-    c.levels 0 _ (fun i hi ↦ by
-      simp only [Nat.zero_add, List.getD_eq_getElem _ _ hi]; exact hbasis i hi) hB
-  -- the residual sums
-  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at hZ
-  obtain ⟨z0, s0⟩ := hZ
-  rw [z0, word_zero] at s0
-  have hich := osResiduals_sound (rd := rd) (σ := σ) (c := c) (ich := bs.2 + 1) (bd := pts.2 + 1)
-    (ls := pts.2 + 3) (fun i ↦ (β i * ∏ t ∈ Finset.range ((c.levels.getD i default).prefixLen +
-        c.yrLog), (X i t * invW (c.levels.getD i default) t)) *
-      ∑ j ∈ Finset.range (c.levels.getD i default).queries,
-        W i j * lvRes (c.levels.getD i default) (dOf (c.levels.getD i default) (X i)) (P i j))
-    c.levels 0 _ 0 (fun i hi k' I' h1 h2 ↦ by
-      simp only [Nat.zero_add] at h1 h2 ⊢
-      obtain ⟨hf, h1', hpo, hqo, hqu, hlen, hPq, hl0, hM⟩ := hres i hi
-      obtain ⟨hD, hL⟩ := hbo i hi
-      simp only [Nat.zero_add] at hD hL
-      have hgd : c.levels.getD i default = c.levels[i] := by
-        rw [List.getD_eq_getElem _ _ hi]
-      rw [hgd] at hL ⊢
-      have := osResidual_sound hf h1' hpo hqo hqu (D := dOf c.levels[i] (X i))
-        (fun s hs ↦ (hD s (by omega)).2) hPq hM h2 hL h1
+theorem invW_ofK {lv : OsLv} (hF : ∀ t ≤ lv.logCols,
+    K.ofBits (vanishInv (lv.vanish + t)) = ((subspaceRoots lv.logCols).getD t 0)⁻¹) :
+    ∀ t < lv.logCols, word (vanishInv (lv.vanish + t)) 0 =
+      ofK ((subspaceRoots lv.logCols).getD t 0)⁻¹ := by
+  intro t ht
+  rw [word_eOfNat, eOfNat, hF t (by omega)]
+
+theorem invW_ne {lv : OsLv} (hmu : lv.logCols < 64) (hF : ∀ t ≤ lv.logCols,
+    K.ofBits (vanishInv (lv.vanish + t)) = ((subspaceRoots lv.logCols).getD t 0)⁻¹) :
+    ∀ t < lv.logCols, invW lv t ≠ 0 := by
+  intro t ht
+  rw [invW, invW_ofK hF t ht]
+  refine ofK_ne_zero (inv_ne_zero ?_)
+  rw [subspaceRoots_getD (by omega)]
+  exact LeanVM.Protocol.Whir.vanishingAt_basisVec_ne_zero (by omega)
+
+theorem range_map_pos (qs : List ℕ) :
+    (List.range qs.length).map (fun k ↦ eOfNat (qs.getD k 0)) = qs.map eOfNat := by
+  refine List.ext_getElem (by simp) fun i h1 h2 ↦ ?_
+  simp only [List.getElem_map, List.getElem_range]
+  rw [List.getD_eq_getElem _ _ (by simpa using h1)]
+
+/-- **A level's three terms**: the scale times the product chain is `λ³` times its induced
+weight, the batching scalar times the product after times the high chain is `λ³·recH` times the
+challenges after the level, and the out-of-domain weights are `λ·eqEval`, `λ²·eqEval`. -/
+theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} {G T : List E}
+    (hG : G.length = c.nFolds) (hT : T.length = c.yrLog) (hrF : r.F = lv.foldsOff + lv.folds)
+    (hrmu : r.mu = lv.logCols) (hql : r.qs.length = lv.queries) (hhl : r.high.length = lv.folds)
+    (hz0 : r.z0.length = lv.logCols) (hz1 : r.z1.length = lv.logCols)
+    {li : E} (hli : r.lam * li = 1)
+    (hne : ∀ t < lv.logCols, (ptFrom G T r.F).getD t 0 * invW lv t ≠ 0) :
+    r.lam ^ 3 * r.lam ^ lv.queries *
+        (∏ t ∈ Finset.range lv.logCols, ((ptFrom G T r.F).getD t 0 * invW lv t)) *
+        (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
+          (fun k ↦ eOfNat (r.qs.getD k 0)) li).1 =
+      1 * r.lam * r.lam * r.lam * inducedWeight r.mu r.qs (powers r.lam r.qs.length) (ptFrom G T r.F) ∧
+    r.lam ^ 3 * r.lam ^ lv.queries * (∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0) *
+        (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
+          (fun k ↦ eOfNat (r.qs.getD k 0)) li).2 =
+      T.prod * (r.lam ^ 3 * recH r * (G.drop r.F).prod) ∧
+    r.lam * ∏ t ∈ Finset.range lv.logCols, (1 + r.z0.getD t 0 + (ptFrom G T r.F).getD t 0) =
+      1 * r.lam * eqEval r.z0 (ptFrom G T r.F) ∧
+    r.lam ^ 2 * ∏ t ∈ Finset.range lv.logCols, (1 + r.z1.getD t 0 + (ptFrom G T r.F).getD t 0) =
+      1 * r.lam * r.lam * eqEval r.z1 (ptFrom G T r.F) := by
+  have hPl : (ptFrom G T r.F).length = lv.logCols := by
+    simp only [ptFrom, List.length_drop, List.length_append, hG, hT, hrF]
+    have := hF.cols; have := hF.le; omega
+  have hpos : (List.range lv.queries).map (fun k ↦ eOfNat (r.qs.getD k 0)) = r.qs.map eOfNat := by
+    rw [← hql]; exact range_map_pos r.qs
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · unfold resAll
+    rw [resFold_fst, hpos]
+    have h := level_inner hli r.qs (ptFrom G T r.F) hPl (osVals_ofK hF.val) (invW_ofK hF.inv) hne
+    rw [hrmu, ← h, hql]
+    unfold resP dOf invW
+    ring
+  · unfold resAll
+    rw [resFold_snd, hpos]
+    have hhs : ∀ c' < r.high.length, (hsvOf lv r).getD c' 0 =
+        r.high.getD c' 0 * ofK ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ *
+          ofK (hsNorm lv.logCols lv.highBits c') := by
+      intro c' hc
+      rw [hhl] at hc
+      rw [hsvOf, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range,
+        word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul', mul_assoc]
+    have h := level_high hli r.qs hF.mu64 hF.bn r.high (hsvOf lv r) (by rw [hhl]; exact hF.hn)
+      (by simp [hsvOf, hhl]) (osVals_ofK hF.val) hhs
+    have hp : ∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0 = (G.drop r.F).prod * T.prod := by
+      rw [← hPl, prod_getD_range, ptFrom, List.drop_append_of_le_length (by rw [hG, hrF]; exact hF.le),
+        List.prod_append]
+    rw [hp]
+    have e : r.lam ^ lv.queries * (r.qs.map eOfNat).foldl (fun a p ↦ (a + resH lv (hsvOf lv r) p) * li) 0 =
+        recH r := by
+      unfold resH
+      have := h
+      rw [hhl] at this
+      rw [← hql, this, recH, hrmu]
+    calc r.lam ^ 3 * r.lam ^ lv.queries * ((G.drop r.F).prod * T.prod) *
+          (r.qs.map eOfNat).foldl (fun a p ↦ (a + resH lv (hsvOf lv r) p) * li) 0
+        = r.lam ^ 3 * (r.lam ^ lv.queries *
+            (r.qs.map eOfNat).foldl (fun a p ↦ (a + resH lv (hsvOf lv r) p) * li) 0) *
+            ((G.drop r.F).prod * T.prod) := by ring
+      _ = _ := by rw [e]; ring
+  · rw [eqEval_prod, hz0, hPl, min_self]; ring
+  · rw [eqEval_prod, hz1, hPl, min_self]; ring
+
+/-! ## The point -/
+
+/-- The rotated point `(G ++ T).drop lane ++ (G ++ T).take lane`. -/
+abbrev rotPt (G T : List E) (lane : ℕ) : List E := (G ++ T).drop lane ++ (G ++ T).take lane
+
+/-- **The point's sources**: entry `i` of the rotated point is the fold or tail challenge
+`osPtSrc` names, zero past it. -/
+theorem ptSrc_ok {c : OsCfg} {tch : ℕ} {G T : List E} (hG : G.length = c.nFolds)
+    (hT : T.length = c.yrLog) (hl : (c.levels.headD default).folds ≤ c.nFolds)
+    (hfch : ∀ j (h : j < G.length), LoadHolds rd (σ (.n osFch)) j G[j])
+    (htch : ReadsAt rd (σ (.n tch)) T) (i : ℕ) :
+    PtSrcOk rd σ (osPtSrc c tch i)
+      ((rotPt G T (c.levels.headD default).folds).getD i 0) := by
+  set lane := (c.levels.headD default).folds with hlane
+  have hlen : (G ++ T).length = c.nFolds + c.yrLog := by simp [hG, hT]
+  unfold osPtSrc
+  simp only [← hlane]
+  by_cases h1 : i < c.nFolds - lane
+  · simp only [h1, ↓reduceIte, PtSrcOk]
+    rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_left (by simp [hG, hT]; omega),
+      List.getElem_drop, List.getElem_append_left (by omega)]
+    exact hfch _ (by omega)
+  · by_cases h2 : i < c.nFolds - lane + c.yrLog
+    · simp only [h1, h2, ↓reduceIte, PtSrcOk]
+      rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_left (by simp [hG, hT]; omega),
+        List.getElem_drop, List.getElem_append_right (by omega)]
+      have := htch (i - (c.nFolds - lane)) (by omega)
       convert this using 2
-      simp only [hW, lvRes]
-      rw [← resFold_lam hl0]
-      ring) hR (by simpa using s0)
-  -- the out-of-domain weights
-  obtain ⟨x, hx, hxv⟩ := osOodWeights_sound (C := coreProgram.Rel rd) Λ Z Y c.levels.tail
-    (c.levels.headD default).logCols 1 none rs.2 hood hO (Or.inr (by
-      intro h
-      have := congrArg List.length h
-      simp at this
-      omega))
-  -- the returns
-  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at hE
-  obtain ⟨e0, e1, e2, l3, a4, e5⟩ := hE
-  rw [hx, Option.getD_some, hxv, loadHolds_unique l3 (by simpa using hich)] at a4
-  refine ⟨?_, fun i hi ↦ by simpa using hpoint i hi, fun i hi t ht ↦ by
-    simpa using ((hbo i hi).1 t ht).1⟩
-  simp only [List.map_cons, List.map_nil, e0, e1, e2, a4, e5, hy, em, ep, accVal, zero_add,
-    finInner, List.getD_eq_getElem?_getD]
+      omega
+    · by_cases h3 : i < c.nFolds + c.yrLog
+      · simp only [h1, h2, h3, ↓reduceIte, PtSrcOk]
+        rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_right (by simp [hG, hT]; omega),
+          List.getElem_take, List.getElem_append_left (by simp [hG, hT]; omega)]
+        have := hfch (i - (c.nFolds - lane) - c.yrLog) (by omega)
+        convert this using 2
+        simp [hG, hT]; omega
+      · simp only [h1, h2, h3, ↓reduceIte, PtSrcOk]
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by simp [hG, hT]; omega),
+          Option.getD_none]
 
 end
 end LeanVM.Guest.B1.Whir

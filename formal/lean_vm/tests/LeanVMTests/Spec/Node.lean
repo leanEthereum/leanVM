@@ -50,7 +50,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Node
 
 /-- A field element from its limbs. -/
-def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)
+def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
 /-- The UTF-8 bytes of a string. -/
 def utf8 (s : String) : List UInt8 := s.toUTF8.toList

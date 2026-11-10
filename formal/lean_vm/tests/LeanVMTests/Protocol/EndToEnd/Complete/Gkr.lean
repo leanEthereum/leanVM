@@ -30,7 +30,7 @@ example : ∀ (D : ℕ) (L₀ L₁ L₂ : List E), L₀.length = 2 ^ D → L₁.
 /-! ## Small trees -/
 
 /-- A field element from three words. -/
-def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b) (K.ofBits c)
+def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b)
 
 /-- A pseudo-random list of `n` entries. -/
 def tbl (seed n : ℕ) : List E :=

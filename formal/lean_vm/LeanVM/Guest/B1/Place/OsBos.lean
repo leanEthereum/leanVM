@@ -6,14 +6,16 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.OsFinalK
+public import LeanVM.Guest.B1.Whir.Template
+public import LeanVM.Guest.Memory.Uniform
 
 /-!
 # The frame-size bound
 
-`osCallB fs Bk f`: a call of `f`, entered within `Bk f` words or skipped (its frame `fs f`).
-`osKidsB fs Bk c`: the body's calls' total, one `osCallB` per call statement, whatever `σ` (a
-call's callee is its statement's). `osBos fs Bk name c`: the frame `fs name`, the buffers, the
+`osSizesF c`: the heap buffers' sizes at f128's layout. `osCallB fs Bk f`: a call of `f`, entered
+within `Bk f` words or skipped (its frame `fs f`).
+`osKidsB fs Bk c`: the body's (`Whir.osBody c`) calls' total, one `osCallB` per call statement,
+whatever `σ` (a call's callee is its statement's; `mkCalls_sumB`). `osBos fs Bk name c`: the frame `fs name`, the buffers, the
 callees.
 -/
 
@@ -25,35 +27,46 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
+/-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
+`osFinish`; `lean_ethereum.py`'s `open_stacked` at 98ceacf2c): the head's thirteen (`merkle_caps`,
+`merkle_cap_active`, `final_msg`, `level_roots`, `fold_challenges`, `round_coefs`, `level_betas`,
+`level_mus`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`, `query_win_ptrs`); per level
+the message `sent` (a non-final one), the squeeze run `sqz`, the normalized lane `hs` (the final
+one); `tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_after`,
+`inner_chain`; each non-final level's residual chain. -/
+def osSizesF (c : OsCfg) : List ℕ :=
+  let n := c.levels.length
+  [4 * c.capLen, c.capLen, c.yrLen + (c.levels.getD c.yrLevel default).folds, 2 * n, c.nFolds,
+    3 * c.nFolds, n, n, n * hsStride, oodSamples * n * ligColsCap, oodSamples * n, c.posLen,
+    c.posLen] ++
+  (List.range n).flatMap (fun i ↦
+    (if i = c.yrLevel then [] else [2 + (c.levels.getD i default).folds]) ++ [(c.maxSq + 1) * 5] ++
+      (if i = c.yrLevel then [c.yrLen + (c.levels.getD i default).folds] else [])) ++
+  [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n] ++
+  (List.range c.yrLevel).map fun i ↦ 2 * ((c.levels.getD i default).queries / resBatch + 1)
+
 /-- A call of `f`: entered within `Bk f` words, or skipped. -/
 def osCallB (fs Bk : String → ℕ) (f : String) : ℕ := max (fs f) (Bk f)
 
 /-- The body's callees' total, one `osCallB` per call statement. -/
 def osKidsB (fs Bk : String → ℕ) (c : OsCfg) : ℕ :=
-  (((osBodyA c).filterMap Main.Stmt.callS).map fun x ↦ osCallB fs Bk x.2.1).sum
+  (((osBody c).filterMap Stmt.callS).map fun x ↦ osCallB fs Bk x.2.1).sum
 
 /-- **`open_stacked`'s frame-size bound** at a configuration. -/
 def osBos (fs Bk : String → ℕ) (name : String) (c : OsCfg) : ℕ :=
-  fs name + (osSizesL c).sum + osKidsB fs Bk c
+  fs name + (osSizesF c).sum + osKidsB fs Bk c
 
 theorem mkCall_f (σ : Val) (x : Option V × String × List V × List V) :
-    (Main.mkCall σ x).f = x.2.1 := by
+    (mkCall σ x).f = x.2.1 := by
   obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
 
 theorem mkCalls_sumB (fs Bk : String → ℕ) (σ : Val) :
     ∀ xs : List (Option V × String × List V × List V),
-      ((xs.map (Main.mkCall σ)).map fun c' ↦ osCallB fs Bk c'.f).sum =
+      ((xs.map (mkCall σ)).map fun c' ↦ osCallB fs Bk c'.f).sum =
         (xs.map fun x ↦ osCallB fs Bk x.2.1).sum
   | [] => rfl
   | x :: xs => by
     simp only [List.map_cons, List.sum_cons, mkCall_f, mkCalls_sumB fs Bk σ xs]
-
-/-- The body's frames under any `σ` total `osKidsB`. -/
-theorem osBodyCalls_sumB (fs Bk : String → ℕ) (σ : Val) (c : OsCfg) :
-    ((osBodyCalls σ c).map fun c' ↦ osCallB fs Bk c'.f).sum = osKidsB fs Bk c := by
-  rw [osBodyCalls_eq, osKidsB]
-  generalize (osBodyA c).filterMap Main.Stmt.callS = xs
-  exact mkCalls_sumB fs Bk σ xs
 
 /-- `CompleteAtB` on fewer words read. -/
 theorem completeAtB_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}

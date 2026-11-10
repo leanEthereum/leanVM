@@ -76,7 +76,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
         (decKid rd σ wV c).freshClaim (decKid rd σ wV c).proof = true := by
   have k := hK c hc
   obtain ⟨pi0, pi1, s0, s1, gsq, out, hargs, seed, pi, fresh, hs, hp, hfl, hfr, hvd⟩ :=
-    cw.sub _ _ _ _ _ _ k.sub MF.exp
+    cw.sub _ _ _ _ _ _ k.sub ⟨MF.exp, MF.win⟩
   simp only [List.cons.injEq, and_true] at hargs
   obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
   have hseed : decSeed σ = seed := by
