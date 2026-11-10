@@ -73,8 +73,8 @@ theorem vtc_sels (hl : args.length = 20) (hlow : LowDefB 14 rd) {point : List E}
         (vtCountSel.getD i default).2.2.2.1) = blockSel (vtSizesC τ) point.length i point ∧
       wo (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
         gen ^ (stackOffsets (vtSizesC τ)).1.getD i 0) :
-    (∀ s ∈ vtFwSelT 778 0 28 none, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ s ∈ vtFwSelT 794 1 29 (some 788), VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ vtFwSelT 778 0 25 none, VSH (coreProgram.Rel rd) rd σv s) ∧
+      (∀ s ∈ vtFwSelT 794 1 26 (some 788), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ s ∈ vtFwSelT 822 2 821 (some 806), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ i < 51, ∀ s ∈ vtSelT (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).1
         (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1
