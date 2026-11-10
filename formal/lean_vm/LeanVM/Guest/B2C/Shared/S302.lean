@@ -16,24 +16,108 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L14_L7`, window 2. -/
-theorem w924_2 : shareWin 924 (snapsOf 924) 2 = true := by decide +kernel
+/-- `__loop316`, once. -/
+theorem st916 : shareStatic 916 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L14_L7`, window 3. -/
-theorem w924_3 : shareWin 924 (snapsOf 924) 3 = true := by decide +kernel
+/-- `__loop316`, window 0. -/
+theorem w916_0 : shareWin 916 (snapsOf 916) 0 = true := by decide +kernel
+
+theorem ok916 : ShareOk 916 := ⟨st916, fun i hi ↦ by
+  have h : (snapsOf 916).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w916_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L14_L7`, window 4. -/
-theorem w924_4 : shareWin 924 (snapsOf 924) 4 = true := by decide +kernel
+/-- `__loop317`, once. -/
+theorem st917 : shareStatic 917 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop406`, once. -/
-theorem st925 : shareStatic 925 = true := by decide +kernel
+/-- `__loop317`, window 0. -/
+theorem w917_0 : shareWin 917 (snapsOf 917) 0 = true := by decide +kernel
+
+theorem ok917 : ShareOk 917 := ⟨st917, fun i hi ↦ by
+  have h : (snapsOf 917).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w917_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop406`, window 0. -/
-theorem w925_0 : shareWin 925 (snapsOf 925) 0 = true := by decide +kernel
+/-- `__loop318`, once. -/
+theorem st918 : shareStatic 918 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop318`, window 0. -/
+theorem w918_0 : shareWin 918 (snapsOf 918) 0 = true := by decide +kernel
+
+theorem ok918 : ShareOk 918 := ⟨st918, fun i hi ↦ by
+  have h : (snapsOf 918).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w918_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop319`, once. -/
+theorem st919 : shareStatic 919 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop319`, window 0. -/
+theorem w919_0 : shareWin 919 (snapsOf 919) 0 = true := by decide +kernel
+
+theorem ok919 : ShareOk 919 := ⟨st919, fun i hi ↦ by
+  have h : (snapsOf 919).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w919_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop320`, once. -/
+theorem st920 : shareStatic 920 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop320`, window 0. -/
+theorem w920_0 : shareWin 920 (snapsOf 920) 0 = true := by decide +kernel
+
+theorem ok920 : ShareOk 920 := ⟨st920, fun i hi ↦ by
+  have h : (snapsOf 920).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w920_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop321`, once. -/
+theorem st921 : shareStatic 921 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop321`, window 0. -/
+theorem w921_0 : shareWin 921 (snapsOf 921) 0 = true := by decide +kernel
+
+theorem ok921 : ShareOk 921 := ⟨st921, fun i hi ↦ by
+  have h : (snapsOf 921).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w921_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop322`, once. -/
+theorem st922 : shareStatic 922 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop322`, window 0. -/
+theorem w922_0 : shareWin 922 (snapsOf 922) 0 = true := by decide +kernel
+
+theorem ok922 : ShareOk 922 := ⟨st922, fun i hi ↦ by
+  have h : (snapsOf 922).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w922_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop323`, once. -/
+theorem st923 : shareStatic 923 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop323`, window 0. -/
+theorem w923_0 : shareWin 923 (snapsOf 923) 0 = true := by decide +kernel
+
+theorem ok923 : ShareOk 923 := ⟨st923, fun i hi ↦ by
+  have h : (snapsOf 923).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w923_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

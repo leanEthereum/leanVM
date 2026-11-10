@@ -16,43 +16,39 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `opening_queries__L0_L0_L16_L24_L20_L6`, window 0, part 0. -/
+/-- `squeeze_point__L13`, window 0, part 0. -/
 theorem cw511_0_0 : cplWin 511 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L16_L24_L20_L6`, window 1, part 0. -/
-theorem cw511_1_0 : cplWin 511 1 0 = true := by decide +kernel
-
-/-- `__loop79`, window 0, part 0. -/
+/-- `decode_query_windows__L17_L6`, window 0, part 0. -/
 theorem cw512_0_0 : cplWin 512 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L16_L24_L19_L5`, window 0, part 0. -/
+/-- `__loop49`, window 0, part 0. -/
 theorem cw513_0_0 : cplWin 513 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L16_L24_L19_L5`, window 1, part 0. -/
-theorem cw513_1_0 : cplWin 513 1 0 = true := by decide +kernel
-
-/-- `__loop80`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L17_L6_L0_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw514_0_0 : cplWin 514 0 0 = true := by decide +kernel
 
-/-- `__loop81`, window 0, part 0. -/
+/-- `squeeze_point_from__L9`, window 0, part 0. -/
 theorem cw515_0_0 : cplWin 515 0 0 = true := by decide +kernel
 
-/-- `__loop82`, window 0, part 0. -/
+/-- `squeeze_point__L9`, window 0, part 0. -/
 theorem cw516_0_0 : cplWin 516 0 0 = true := by decide +kernel
+
+/-- `decode_query_windows__L16_L5`, window 0, part 0. -/
+theorem cw517_0_0 : cplWin 517 0 0 = true := by decide +kernel
+
+/-- `__loop50`, window 0, part 0. -/
+theorem cw518_0_0 : cplWin 518 0 0 = true := by decide +kernel
 
 theorem ok511 : CplOk 511 := by
   intro i hi k hk
-  have hc : (certOf 511).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 511).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 511 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw511_0_0
-  · have hn : nParts 511 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw511_1_0
 
 theorem ok512 : CplOk 512 := by
   intro i hi k hk
@@ -66,17 +62,13 @@ theorem ok512 : CplOk 512 := by
 
 theorem ok513 : CplOk 513 := by
   intro i hi k hk
-  have hc : (certOf 513).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 513).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 513 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw513_0_0
-  · have hn : nParts 513 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw513_1_0
 
 theorem ok514 : CplOk 514 := by
   intro i hi k hk
@@ -97,6 +89,36 @@ theorem ok515 : CplOk 515 := by
     rw [hn] at hk
     interval_cases k
     · exact cw515_0_0
+
+theorem ok516 : CplOk 516 := by
+  intro i hi k hk
+  have hc : (certOf 516).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 516 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw516_0_0
+
+theorem ok517 : CplOk 517 := by
+  intro i hi k hk
+  have hc : (certOf 517).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 517 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw517_0_0
+
+theorem ok518 : CplOk 518 := by
+  intro i hi k hk
+  have hc : (certOf 518).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 518 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw518_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

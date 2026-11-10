@@ -15,7 +15,8 @@ public import LeanVM.Protocol.Compile.Prover
 
 `Node.batch` is a `StateM Sponge` program. `batch_eq` unfolds it: the sponge after the label's
 seed absorbs the count and the children's words, each padded to a whole rate (`cellsBeforeChallenge`), the
-lambdas are the powers of one squeeze (`sqL`), and the sumcheck's rounds absorb the round's two
+lambdas are the powers of one squeeze (`sqL`) after the proof of work on the hinted nonce
+(`powB`), and the sumcheck's rounds absorb the round's two
 values and squeeze its challenge (`rsRun`); the deferred claim is the challenges and the hinted
 value, if the final claim is the hinted value times the batched weight at the challenges.
 -/
@@ -46,7 +47,7 @@ theorem sq_fst (sp : Sponge) : (sq sp).1 = challengeOf (sq sp).2.state := rfl
 /-! ## The transcript -/
 
 /-- The sponge after the batching's absorptions. -/
-def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, []⟩ (cellsBeforeChallenge cs)
+def batchSponge (cs : List ChildClaims) : Sponge := obsAll ⟨batchSeed, [], none⟩ (cellsBeforeChallenge cs)
 
 /-- One squeeze, its powers the lambdas of `n` children (`lambdaPowers`): the lambdas and the
 sponge after the squeeze. -/
@@ -106,6 +107,9 @@ theorem observe_run (x : E) (sp : Sponge) : (observe x).run sp = ((), obs sp x) 
 
 theorem sample_run (sp : Sponge) : sample.run sp = sq sp := rfl
 
+theorem grind_run (bits : ℕ) (n : E) (sp : Sponge) :
+    (grind bits n).run sp = (powOk bits (powStep keccakF1600 sp n).1, (powStep keccakF1600 sp n).2) := rfl
+
 theorem batchRounds_run (rounds : List (E × E)) (claim : E) (sp : Sponge) :
     (batchRounds claim rounds).run sp = rsRun rounds claim sp := by
   induction rounds generalizing claim sp with
@@ -152,17 +156,24 @@ theorem forIn_children_run (cs : List ChildClaims) (sp : Sponge) :
       obsAll_append]
     exact ih _
 
+/-- The proof of work on the hinted nonce at the batching's sponge: its third lane and the sponge
+after it, whose ground challenge is `λ`. -/
+def powB (cs : List ChildClaims) (h : BatchingHints) : UInt64 × Sponge :=
+  powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce
+
 /-- **`Node.batch` on the sponge.** -/
 theorem batch_eq (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
-      let L := sqL cs.length (batchSponge cs)
-      let R := rsRun h.sumcheckMessages (batchedClaim cs L.1) L.2
-      if R.1.2 = h.finalBytecodeValue * batchedBytecodeWeight cs L.1 R.1.1 then
-        some ⟨R.1.1, h.finalBytecodeValue⟩
+      if powOk batchLambdaGrindBits (powB cs h).1 then
+        let L := sqL cs.length (powB cs h).2
+        let R := rsRun h.sumcheckMessages (batchedClaim cs L.1) L.2
+        if R.1.2 = h.finalBytecodeValue * batchedBytecodeWeight cs L.1 R.1.1 then
+          some ⟨R.1.1, h.finalBytecodeValue⟩
+        else none
       else none := by
   simp only [batch, batch.go, StateT.run'_eq, StateT.run_bind, forIn_observe_run,
-    forIn_children_run, sample_run, batchRounds_run]
-  rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (childCountCells cs.length))
+    forIn_children_run, grind_run, sample_run, batchRounds_run, powB]
+  rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, [], none⟩ (childCountCells cs.length))
     (cs.flatMap childCells) from obsAll_append _ _ _]
   simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, childCountCells]
   rfl

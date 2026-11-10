@@ -143,6 +143,14 @@ def pairsAt (bus : BusResult) (r : List E) : List ((Table × ℕ × List Form ×
   [tableRow prog s q bus r 0, tableRow prog s q bus r 1, tableRow prog s q bus r 2,
     tableRow prog s q bus r 3, tableRow prog s q bus r 4, tableRow prog s q bus r 5]
 
+/-- The tables' claims are one per column, `153` of them. -/
+theorem length_termsPure_pairsAt (bus : BusResult) (cp fp r : List E) :
+    (termsPure cp fp r (pairsAt prog s q bus r) 0 0 []).2.length = 153 := by
+  rw [termsPure_snd]
+  simp only [pairsAt, tableRow, evalsAt, List.flatMap_cons, List.flatMap_nil, List.length_append,
+    List.length_map, List.length_zipIdx, List.length_finRange, List.nil_append, List.append_nil]
+  decide +kernel
+
 /-- **The honest summand** at a point: the terminal value the verifier computes from the honest
 evaluations there. -/
 def summand (cp fp : List E) (bus : BusResult) (r : List E) : E :=
@@ -722,7 +730,7 @@ bus result, every check of `tablePhase` passes and every claim it returns is tru
 theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) input q)
     (bus : BusResult) (hb : BusGood prog s q bus) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧
-        ∃ tc, b = bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+        ∃ tc, b = bus.claims ++ tc ∧ tc.length = 153 ∧ ∃ z : Vector E (s.τ 5),
           tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z)
       (hTable prog s q bus) (tablePhaseClaims (verifierLayout prog s) bus) cs := by
   unfold tablePhaseClaims tableSumcheckClaims hTable
@@ -759,11 +767,12 @@ theorem follows_tablePhase {input : PublicInput} (hq : M3Holds (inst prog s) inp
         (termsPure (cpOf xi) (fpOf xi) r.1.reverse (pairsAt prog s q bus r.1.reverse) 0 0 []).2) ∧
         ∃ tc, bus.claims ++
           (termsPure (cpOf xi) (fpOf xi) r.1.reverse (pairsAt prog s q bus r.1.reverse) 0 0 []).2 =
-            bus.claims ++ tc ∧ ∃ z : Vector E (s.τ 5),
+            bus.claims ++ tc ∧ tc.length = 153 ∧ ∃ z : Vector E (s.τ 5),
               tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) = honestLanes prog s q z :=
       ⟨trueClaims_append hb.claims
         (trueClaims_termsPure prog s q bus (cpOf xi) (fpOf xi) r.1.reverse
-          (by rw [List.length_reverse, hlen])), _, rfl, _,
+          (by rw [List.length_reverse, hlen])), _, rfl,
+        length_termsPure_pairsAt prog s q bus _ _ _, _,
         lanes_termsPure prog s q bus _ _ r.1.reverse
           (by rw [List.length_reverse, hlen]; exact τ_le_nRounds s 5)⟩
     have hP := width_pairsAt prog s q bus r.1.reverse

@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `block_selector__L29`, window 0, part 0. -/
+/-- `block_selector__L28`, window 0, part 0. -/
 theorem cw189_0_0 : cplWin 189 0 0 = true := by decide +kernel
 
-/-- `block_selector__L30`, window 0, part 0. -/
+/-- `block_selector__L29`, window 0, part 0. -/
 theorem cw190_0_0 : cplWin 190 0 0 = true := by decide +kernel
 
-/-- `block_selector__L31`, window 0, part 0. -/
+/-- `block_selector__L30`, window 0, part 0. -/
 theorem cw191_0_0 : cplWin 191 0 0 = true := by decide +kernel
 
-/-- `block_selector__L32`, window 0, part 0. -/
+/-- `block_selector__L31`, window 0, part 0. -/
 theorem cw192_0_0 : cplWin 192 0 0 = true := by decide +kernel
 
-/-- `block_selector__L33`, window 0, part 0. -/
+/-- `block_selector__L32`, window 0, part 0. -/
 theorem cw193_0_0 : cplWin 193 0 0 = true := by decide +kernel
 
-/-- `index_mle__L0`, window 0, part 0. -/
+/-- `block_selector__L33`, window 0, part 0. -/
 theorem cw194_0_0 : cplWin 194 0 0 = true := by decide +kernel
 
-/-- `index_mle__L1`, window 0, part 0. -/
+/-- `index_mle__L0`, window 0, part 0. -/
 theorem cw195_0_0 : cplWin 195 0 0 = true := by decide +kernel
 
-/-- `index_mle__L2`, window 0, part 0. -/
+/-- `index_mle__L1`, window 0, part 0. -/
 theorem cw196_0_0 : cplWin 196 0 0 = true := by decide +kernel
 
 theorem ok189 : CplOk 189 := by

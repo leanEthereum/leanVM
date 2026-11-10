@@ -358,16 +358,16 @@ theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : Strin
 and its word. -/
 def tableCells : List (ℕ × E) :=
   Data.f0.code.filterMap fun
-    | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
+    | .set o k0 k1 => some (o, OffsetInstruction.immediateWord k0 k1)
     | _ => none
 
 set_option maxRecDepth 100000 in
-/-- The slots are `444, 445, …`, one per `SET`. -/
-theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 444 16555 := by
+/-- The slots are `445, 446, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 445 16322 := by
   decide +kernel
 
-/-- The slots lie in `main`'s frame past its header, below `444 + 16555`. -/
-theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 444 + 16555 := by
+/-- The slots lie in `main`'s frame past its header, below `445 + 16322`. -/
+theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 445 + 16322 := by
   have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
   rw [List.mem_range'_1] at this
   omega

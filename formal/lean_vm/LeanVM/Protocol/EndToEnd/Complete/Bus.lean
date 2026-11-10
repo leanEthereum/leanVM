@@ -579,7 +579,7 @@ theorem busGood_honestBus (hP : (inst prog s).PaddingHonest q) (alphas : List E)
     (owner_lt_six s (pullBlocks_owned s) _)
   obtain ⟨a3, b3, c3, -⟩ := accFold_spec 2 (by norm_num) [1] 0 l3 F2 a2 b2
     (owner_lt_six s (countBlocks_owned s) _)
-  refine ⟨trueClaims_honestBus prog s q alphas β p bp hp, fun t ↦ ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨trueClaims_honestBus prog s q alphas β p bp hp, rfl, fun t ↦ ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [honestBus_point, hp]; exact tau_le_busDepth prog s t
   · rw [hF]; exact a3
   · rw [hF]; exact b3

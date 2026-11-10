@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `padding_weight__L13`, window 0. -/
+/-- `padding_weight__L12`, window 0. -/
 theorem w110_0 : WinOk 110 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L14`, window 0. -/
+/-- `padding_weight__L13`, window 0. -/
 theorem w111_0 : WinOk 111 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L15`, window 0. -/
+/-- `padding_weight__L14`, window 0. -/
 theorem w112_0 : WinOk 112 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L16`, window 0. -/
+/-- `padding_weight__L15`, window 0. -/
 theorem w113_0 : WinOk 113 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L17`, window 0. -/
+/-- `padding_weight__L16`, window 0. -/
 theorem w114_0 : WinOk 114 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L18`, window 0. -/
+/-- `padding_weight__L17`, window 0. -/
 theorem w115_0 : WinOk 115 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L19`, window 0. -/
+/-- `padding_weight__L18`, window 0. -/
 theorem w116_0 : WinOk 116 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L20`, window 0. -/
+/-- `padding_weight__L19`, window 0. -/
 theorem w117_0 : WinOk 117 0 := winOk_of_C (by decide +kernel)
 
 theorem ok110 : CheckOk 110 := checkOk_one (by decide +kernel) w110_0

@@ -53,16 +53,6 @@ namespace Script
 
 variable {α β γ : Type}
 
-theorem bind_assoc' (p : Script α) (f : α → Script β) (g : β → Script γ) :
-    (p.bind f).bind g = p.bind fun a ↦ (f a).bind g := by
-  induction p with
-  | ret a => rfl
-  | send x k ih => simp only [bind, ih]
-  | sample k ih => simp only [bind, ih]
-  | grind k ih => simp only [bind, ih]
-  | commit w k ih => simp only [bind, ih]
-  | query k ih => simp only [bind, ih]
-
 theorem AllRet.mono {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) :
     ∀ H : Script α, Script.AllRet P H → Script.AllRet Q H
   | .ret a, h => hPQ a h

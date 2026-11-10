@@ -216,8 +216,8 @@ theorem outStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
 /-- The memory block's cells. -/
 theorem memCell_trace (hb : TraceBounds t) (x : ℕ) (hx : x < 2 ^ t.logMemorySize) (k : ℕ) :
     cellOf (tableAt (traceWitness prog input t) 6) x k =
-      (#[(t.memory ⟨x, hx⟩).limb 0, (t.memory ⟨x, hx⟩).limb 1, (t.memory ⟨x, hx⟩).limb 2,
-        addressOfIndex x, g ^ skelMemFin t.memory t.runSkels (addressOfIndex x)][k]?).getD 0 := by
+      (#[(t.memory ⟨x, hx⟩).limb 0, (t.memory ⟨x, hx⟩).limb 1, addressOfIndex x,
+        g ^ skelMemFin t.memory t.runSkels (addressOfIndex x)][k]?).getD 0 := by
   rw [cellOf, traceWitness_eq hb, skelWitness_tableAt_table]
   show ((List.ofFn fun i : Fin (2 ^ t.logMemorySize) ↦ rawRow (memRowOf t.memory i
     (g ^ skelMemFin t.memory t.runSkels (addressOfIndex i))))[x]?.bind (·[k]?)).getD 0 = _

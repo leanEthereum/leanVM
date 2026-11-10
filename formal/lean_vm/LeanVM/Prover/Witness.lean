@@ -171,7 +171,7 @@ theorem buildWitness_spec (hv : ValidExecution prog input t) (hcap : t.committed
     (verifierLayout prog (traceSizes prog input t))
   rw [verifierLayout_tableLogHeights] at hC hS
   have hsize :
-      (colsOf t.memory (traceRows t) (tableLogs (traceSizes prog input t))).size = 165 := by
+      (colsOf t.memory (traceRows t) (tableLogs (traceSizes prog input t))).size = 158 := by
     unfold colsOf; exact Array.size_ofFn
   refine ⟨rowsList_trace hv hb, hL, fun c ↦ by rw [hC]; exact cols_trace hv hb c, ?_, fun ρ ↦ ?_⟩
   · rw [hS]

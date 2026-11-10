@@ -23,25 +23,25 @@ theorem w89_1 : WinOk 89 1 := winOk_of_C (by decide +kernel)
 /-- `rs_eq_rows__L7`, window 2. -/
 theorem w89_2 : WinOk 89 2 := winOk_of_C (by decide +kernel)
 
-/-- `__loop6`, window 0. -/
+/-- `grind_check__L9`, window 0. -/
 theorem w90_0 : WinOk 90 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop6`, window 1. -/
-theorem w90_1 : WinOk 90 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop6`, window 2. -/
-theorem w90_2 : WinOk 90 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop7`, window 0. -/
+/-- `__loop6`, window 0. -/
 theorem w91_0 : WinOk 91 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop8`, window 0. -/
+/-- `__loop6`, window 1. -/
+theorem w91_1 : WinOk 91 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop6`, window 2. -/
+theorem w91_2 : WinOk 91 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop7`, window 0. -/
 theorem w92_0 : WinOk 92 0 := winOk_of_C (by decide +kernel)
 
-/-- `sel_partial_nibble__L0`, window 0. -/
+/-- `__loop8`, window 0. -/
 theorem w93_0 : WinOk 93 0 := winOk_of_C (by decide +kernel)
 
-theorem ok91 : CheckOk 91 := checkOk_one (by decide +kernel) w91_0
+theorem ok90 : CheckOk 90 := checkOk_one (by decide +kernel) w90_0
 
 theorem ok92 : CheckOk 92 := checkOk_one (by decide +kernel) w92_0
 

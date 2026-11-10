@@ -259,11 +259,11 @@ def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Pro
       child.freshClaim.Holds bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
 
 /-- **The batching program's query bound** on child counts below `childCountBound`: the seed's two
-queries, then a quarter of the program's cost (the count, the children's cells, the challenge, the
-sumcheck's rounds and the final value). -/
+queries, then a quarter of the program's cost (the count, the children's cells, the proof of work
+and the challenge, the sumcheck's rounds and the final value). -/
 def batchingQueryBound (bytecode : List K) (childCountBound : ℕ) : ℕ :=
   2 + (rateScalars + (childCountBound * (childWordCount (Nat.log2 bytecode.length) +
-    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
+    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
 open OracleComp OracleSpec in
@@ -271,7 +271,7 @@ open OracleComp OracleSpec in
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
-of whose claims is false is at most `(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for
+of whose claims is false is at most `(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`, for
 `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
 adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
 children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
@@ -292,7 +292,7 @@ def BatchingSound : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

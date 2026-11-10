@@ -25,7 +25,7 @@ open LeanVM.Parameters LeanVM.Semantics Core Memory Data
 @[expose] public section
 
 /-- A subtree. -/
-def kcSTlll : NTree ℕ := (.node 2 2 .leaf .leaf)
+def kcSTlll : NTree ℕ := (.node 1 1 .leaf .leaf)
 
 /-- A subtree. -/
 def kcSTllr : NTree ℕ := (.node 20 20 .leaf .leaf)
@@ -34,18 +34,21 @@ def kcSTllr : NTree ℕ := (.node 20 20 .leaf .leaf)
 def kcSTlrl : NTree ℕ := (.node 33 33 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrll : NTree ℕ := (.node 36 36 .leaf .leaf)
+def kcSTlrr : NTree ℕ := (.node 35 35 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrlr : NTree ℕ := (.node 414 414 .leaf .leaf)
+def kcSTrll : NTree ℕ := (.node 37 37 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrrl : NTree ℕ := (.node 416 416 .leaf .leaf)
+def kcSTrlr : NTree ℕ := (.node 444 444 .leaf .leaf)
+
+/-- A subtree. -/
+def kcSTrrl : NTree ℕ := (.node 446 446 .leaf .leaf)
 
 
 /-- The functions the certificates counting instructions cover, by core index (each its own
 value): the closure of `main`'s statically bounded callees. -/
-def kcST : NTree ℕ := (.node 35 35 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 34 34 kcSTlrl .leaf)) (.node 415 415 (.node 37 37 kcSTrll kcSTrlr) (.node 417 417 kcSTrrl .leaf)))
+def kcST : NTree ℕ := (.node 36 36 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 34 34 kcSTlrl kcSTlrr)) (.node 445 445 (.node 443 443 kcSTrll kcSTrlr) (.node 447 447 kcSTrrl .leaf)))
 
 /-- Function `j` is covered. -/
 def kcIn (j : ℕ) : Prop := kcST.find j = some j

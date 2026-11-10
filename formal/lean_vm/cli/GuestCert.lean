@@ -85,8 +85,8 @@ def envGet (e : Env) (o : ℕ) : Option Sym := e.get? o
 
 def inter (a b : Env) : Env := a.fold (fun m k v => if b.get? k == some v then m.insert k v else m) {}
 
-def symOf (F : GFacts) (k0 k1 k2 : ℕ) : Option Sym :=
-  if k1 == 0 && k2 == 0 then
+def symOf (F : GFacts) (k0 k1 : ℕ) : Option Sym :=
+  if k1 == 0 then
     if k0 == 0 then some .zero else if k0 == 1 then some (.gp 0) else (F.pows.get? k0).map .gp
   else none
 
@@ -192,8 +192,8 @@ def execG (F : GFacts) (f : CompiledFunction) (a b : ℕ) (env0 : Env) : Array G
             | some e' => env2 := learn env c' (.fpg (e + e'))
             | none => pure ()
           | _ => pure ()
-      | .set o k0 k1 k2 =>
-        if k0 == 1 && k1 == 0 && k2 == 0 then
+      | .set o k0 k1 =>
+        if k0 == 1 && k1 == 0 then
           match prev with
           | (_, .mul x _ p') :: rest =>
             if p' == o then
@@ -202,7 +202,7 @@ def execG (F : GFacts) (f : CompiledFunction) (a b : ℕ) (env0 : Env) : Array G
               | [(_, .xor a' b' x')] => if x' == x then fs := fs.push (.ne a' b')
               | _ => pure ()
           | _ => pure ()
-        if let some v := symOf F k0 k1 k2 then env2 := env.insert o v
+        if let some v := symOf F k0 k1 then env2 := env.insert o v
       | .deref o1 o2 o3 mode =>
         if o2 == 0 && mode == .cell then
           match prev with
@@ -236,13 +236,13 @@ def execG (F : GFacts) (f : CompiledFunction) (a b : ℕ) (env0 : Env) : Array G
 /-- Immediate bits of `SET`s that are powers of `g`, each function's. -/
 def setPows (f : CompiledFunction) : List (ℕ × ℕ) :=
   f.code.filterMap fun
-    | .set _ k0 0 0 => if k0 == 0 || k0 == 1 then none else (logTable.get? k0).map (k0, ·)
+    | .set _ k0 0 => if k0 == 0 || k0 == 1 then none else (logTable.get? k0).map (k0, ·)
     | _ => none
 
 /-- The jump table: slot to target pc, from `__jump_tables`. -/
 def jumpTable (f0 : CompiledFunction) : Std.HashMap ℕ ℕ :=
   f0.code.foldl (fun m ins => match ins with
-    | .set s k0 0 0 => match logTable.get? k0 with
+    | .set s k0 0 => match logTable.get? k0 with
       | some e => m.insert s e
       | none => m
     | _ => m) {}
@@ -281,7 +281,7 @@ def selfCells (fns : List CompiledFunction) : Std.HashMap ℕ ℕ := Id.run do
             let lo := if i ≥ 200 then i - 200 else 0
             let sets := ((List.range (i - lo)).map (i - 1 - ·)).filterMap fun k =>
               match c[k]! with
-              | .set o k0 0 0 => if o == od then logTable.get? k0 else none
+              | .set o k0 0 => if o == od then logTable.get? k0 else none
               | _ => none
             if let some e := sets.head? then m := m.insert e o
       | _ => pure ()
@@ -296,7 +296,7 @@ abbrev Pos := ℕ × ℕ
 
 structure WSt where
   loc : Loc := {}
-  pend : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  pend : Std.HashMap ℕ (ℕ × ℕ) := {}
   used : Std.HashSet String := {}
   fa : Array (ℕ × List ℕ) := #[]
   nr : ℕ := 0
@@ -317,7 +317,7 @@ structure WSt where
 
 structure WCtx where
   segs : Std.HashMap ℕ GSeg
-  setCells : Std.HashMap (ℕ × ℕ × ℕ) (List ℕ)
+  setCells : Std.HashMap (ℕ × ℕ) (List ℕ)
   entry : ℕ
   na : ℕ
   main : Bool
@@ -368,7 +368,7 @@ def bind (bs : List (ℕ × ℕ)) : WM Bool := do
 /-- How far forward a fact is looked for when a passed one already fits but for its one written
 value: the compiler shares pure results and repeated loads (`pure`, `load_cells`), so such a
 fact is the shared one unless the instruction follows at once (a write into a given cell). -/
-def nearWindow : ℕ := 48
+def nearWindow : ℕ := 24
 
 /-- The fact `pred` matches, among those passed (one fully known first), else forward (only
 `nearWindow` items when a passed one fits but for one value, which is then taken), else any
@@ -427,7 +427,7 @@ def go (p : Pos) (facts : Array Exec.Atom) (pred : Exec.Atom → WM (Option (Lis
 
 def vi (v : Core.V) : ℕ := v.idx
 
-def limbsOfE (x : E) : ℕ × ℕ × ℕ := limbsOf x
+def limbsOfE (x : E) : ℕ × ℕ := limbsOf x
 
 def xorPred (d a b : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
   match ft with
@@ -444,9 +444,9 @@ def mulPred (d a b : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := 
     unify [(a, y), (b, x), (d, z)]
   | _ => return none
 
-def setPred (c : ℕ) (l : ℕ × ℕ × ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
+def setPred (c : ℕ) (l : ℕ × ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
   match ft with
-  | .instr _ (.set o k0 k1 k2) => return if o == c && (k0, k1, k2) == l then some [] else none
+  | .instr _ (.set o k0 k1) => return if o == c && (k0, k1) == l then some [] else none
   | _ => return none
 
 def derefPred (off : ℕ) (p d : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
@@ -501,7 +501,7 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
   | .assertNe x i q =>
     let (p, facts) ← go p facts (mulPred (vi q) (vi x) (vi i))
     let c := ((← get).loc.get? (vi q)).getD 0
-    go p facts (setPred c (1, 0, 0))
+    go p facts (setPred c (1, 0))
   | .rangeCheck x y t1 t2 k =>
     let (p, facts) ← go p facts (derefPred 0 (vi x) (vi t1))
 
@@ -689,8 +689,8 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
       Array (ℕ × ℕ) × Array (ℕ × List ℕ)) := do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let setCells := f.code.foldl (fun m ins => match ins with
-    | .set o k0 k1 k2 => m.insert (k0, k1, k2) (o :: (m.get? (k0, k1, k2)).getD [])
-    | _ => m) ({} : Std.HashMap (ℕ × ℕ × ℕ) (List ℕ))
+    | .set o k0 k1 => m.insert (k0, k1) (o :: (m.get? (k0, k1)).getD [])
+    | _ => m) ({} : Std.HashMap (ℕ × ℕ) (List ℕ))
   let bounces := f.code.foldl (fun m ins => match ins with
     | .deref o1 _ _ .fp => m.insert o1
     | _ => m) ({} : Std.HashSet ℕ)
@@ -817,12 +817,13 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 /-- `verify_sub`'s compiled index: its windows take a memory bound from an obligation. -/
 def vsIdx : ℕ := 19
 
-/-- `opening_queries__L{odd}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
-`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1393` at `40f877dc`). -/
+/-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
+`(odd, base, depth, cap_depth)` (`opening_queries`, `crates/rec_aggregation/guests/lean_ethereum.py`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
-    | [some odd, some base, some _, some _, some d, some cd] => some (odd, base, d, cd)
+    | [some odd, some base, some _, some _, some d, some cd, some _, some _, some _, some _, some _] =>
+      some (odd, base, d, cd)
     | _ => none
   else none
 
@@ -843,8 +844,8 @@ def loopsOf (body : List Core.Stmt) : List String :=
 /-- The tagged tuples of frame cells each function assumes in the semantic relations
 (`Glob.sem`, `WalkTags.lean`): the exponent table (tag `0`) at `verify_sub`'s argument 4 and at
 `__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
-`opening_queries`' window pointers and iteration count (arguments 4 and 6, `OqMainWins`) and at
-its loop's `[t, x, N]` (arguments 2, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
+`opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
+its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
 (`Check.tagNe`). -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
@@ -862,9 +863,9 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
         if dispatchesRounds then m := m.insert g [(tagGkr, [6, 2, 4, 5, 8])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
-      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [6, 8])]
+      m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
       for g in loopsOf cf.body do
-        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [4, 2, 3]), (Check.tagNe, [2, 3])]
+        m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [5, 2, 3]), (Check.tagNe, [2, 3])]
   -- `walk_path`'s windows: `WinsAt` on `wins` (argument 2, cell 4) at depth `path_depth + cap_depth`
   -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
@@ -894,7 +895,7 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
   -- (`Check.impTag`), since the compiler sets it in the call's own setup
   let consts : Std.HashMap ℕ ℕ := body.foldl (fun m s => match s with
     | .atom (.const d x) => match limbsOfE x with
-      | (k0, 0, 0) => m.insert d.idx k0
+      | (k0, 0) => m.insert d.idx k0
       | _ => m
     | _ => m) {}
   let mut out : Array (ℕ × ℕ × List (ℕ × List ℕ)) := #[]
@@ -980,7 +981,7 @@ def keccakOp (k : ℕ) (inOdd outOdd : Bool) : ℕ := 4 + 4 * k + 2 * inOdd.toNa
 def keysG : Exec.Atom → List ℕ
   | .instr _ (.xor _ _ c) => [c]
   | .instr _ (.mul _ _ c) => [c]
-  | .instr _ (.set o _ _ _) => [o]
+  | .instr _ (.set o _ _) => [o]
   | .instr _ (.deref _ _ o3 .cell) => [o3]
   | .instr _ (.deref o1 _ _ .fp) => [o1]
   | .instr _ (.keccak _ _ _ _ _ _ _ out _ _ _) => [out]
@@ -1006,7 +1007,7 @@ def modeText : LeanVM.Semantics.DerefMode → String
 def instrText : OffsetInstruction → String
   | .xor a b c => s!"(.xor {a} {b} {c})"
   | .mul a b c => s!"(.mul {a} {b} {c})"
-  | .set o k0 k1 k2 => s!"(.set {o} {k0} {k1} {k2})"
+  | .set o k0 k1 => s!"(.set {o} {k0} {k1})"
   | .deref a b c m => s!"(.deref {a} {b} {c} {modeText m})"
   | .jump a b c => s!"(.jump {a} {b} {c})"
   | .keccak a b c d t b8 cp o i j n =>
@@ -1092,15 +1093,15 @@ selectors and bounded call arguments, the arguments and guard of a call to a fun
 obligations (`walk`: `Check.neAt`, a conditional tag's constant), and the constants' cells and
 limbs. -/
 partial def laterNeeds (walk : String → Bool) (cellOf : Core.V → ℕ) :
-    List Core.Stmt → List ℕ × List (ℕ × ℕ × ℕ × ℕ)
+    List Core.Stmt → List ℕ × List (ℕ × ℕ × ℕ)
   | [] => ([], [])
   | s :: ss =>
     let preCells (g : String) (args : List Core.V) : List ℕ :=
       (bounds g).1.filterMap fun (o, _) => (args[o - 2]?).map cellOf
     let (a, b) := laterNeeds walk cellOf ss
-    let (a', b') : List ℕ × List (ℕ × ℕ × ℕ × ℕ) := match s with
+    let (a', b') : List ℕ × List (ℕ × ℕ × ℕ) := match s with
       | .atom (.frameAddr q _) => ([cellOf q], [])
-      | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; ([], [(cellOf v, k0, k1, k2)])
+      | .atom (.const v x) => let (k0, k1) := limbsOfE x; ([], [(cellOf v, k0, k1)])
       | .match_ x arms => arms.foldl (fun (a, b) arm => let (a2, b2) := laterNeeds walk cellOf arm; (a ++ a2, b ++ b2))
           ([cellOf x], [])
       | .ite _ z n => let (a1, b1) := laterNeeds walk cellOf z; let (a2, b2) := laterNeeds walk cellOf n; (a1 ++ a2, b1 ++ b2)
@@ -1125,12 +1126,12 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
   let locA := locs.toArray
   let cellOf (v : Core.V) : ℕ := locA.getD v.idx 0
   -- the first `SET` of each top-level constant's cell and limbs: a window ends after it
-  let setAt := f.code.zipIdx.foldl (fun (m : Std.HashMap (ℕ × ℕ × ℕ × ℕ) ℕ) (ins, i) =>
+  let setAt := f.code.zipIdx.foldl (fun (m : Std.HashMap (ℕ × ℕ × ℕ) ℕ) (ins, i) =>
     match ins with
-    | .set o k0 k1 k2 => if m.contains (o, k0, k1, k2) then m else m.insert (o, k0, k1, k2) i
+    | .set o k0 k1 => if m.contains (o, k0, k1) then m else m.insert (o, k0, k1) i
     | _ => m) {}
   let constAt : Array ℕ := (cf.body.toArray.map fun
-    | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; (setAt.get? (cellOf v, k0, k1, k2)).getD f.instructionCount
+    | .atom (.const v x) => let (k0, k1) := limbsOfE x; (setAt.get? (cellOf v, k0, k1)).getD f.instructionCount
     | _ => 0)
   let constMax : Array ℕ := constAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
   let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
@@ -1188,9 +1189,9 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     let later := cf.body.drop idx
     let (selL, consts) := laterNeeds walk cellOf later
     let sel : Std.HashSet ℕ := selL.foldl (·.insert ·) {}
-    let constSet : Std.HashSet (ℕ × ℕ × ℕ × ℕ) := consts.foldl (·.insert ·) {}
+    let constSet : Std.HashSet (ℕ × ℕ × ℕ) := consts.foldl (·.insert ·) {}
     let isConst : Exec.Atom → Bool
-      | .instr _ (.set o k0 k1 k2) => constSet.contains (o, k0, k1, k2)
+      | .instr _ (.set o k0 k1) => constSet.contains (o, k0, k1)
       | _ => false
     let used : Std.HashSet ℕ := uses.foldl (fun h (t, k) => if t ≥ idx && k < n + extra.size then h.insert k else h) {}
     let fs := spine.extract 0 n ++ extra
@@ -1238,7 +1239,7 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
 /-- The largest frame cell an instruction names. -/
 def offTop : OffsetInstruction → ℕ
   | .xor a b c | .mul a b c | .jump a b c => max a (max b c)
-  | .set o _ _ _ => o
+  | .set o _ _ => o
   | .deref o1 _ o3 _ => max o1 o3
   | .keccak m0 m1 m2 m3 tail b8 cap out _ _ oC =>
     max ((keccakIns m0 m1 m2 m3 tail b8 cap).foldl max 0) (out + oC.cellCount - 1)
@@ -1473,7 +1474,7 @@ namespace Cpl
 
 /-- Static plumbing content of a non-value cell. -/
 inductive PC where
-  | k (l : ℕ × ℕ × ℕ)
+  | k (l : ℕ × ℕ)
   | fpg (e : ℕ)
   deriving BEq, Repr
 
@@ -1506,11 +1507,11 @@ structure Ctx where
 structure St where
   book : Std.HashMap ℕ (List Core.Atom) := {}
   inK : Std.HashSet ℕ := {}
-  know : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  know : Std.HashMap ℕ (ℕ × ℕ) := {}
   occ : Std.HashSet ℕ := {}
   unk : Std.HashSet ℕ := {}
   keys : Std.HashMap String (ℕ × ℕ × List ℕ) := {}
-  vconst : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  vconst : Std.HashMap ℕ (ℕ × ℕ) := {}
   vkeys : Std.HashMap ℕ (List (String × List ℕ)) := {}
   veqs : Std.HashMap ℕ (List ℕ) := {}
   named : Std.HashSet ℕ := {}
@@ -1569,7 +1570,7 @@ def fail (msg : String) : M Unit := do
   let c ← read
   modify fun o => { o with fails := o.fails.push s!"{c.fname}: {msg}" }
 
-def isK (l : ℕ × ℕ × ℕ) : Bool := l.2.1 == 0 && l.2.2 == 0
+def isK (l : ℕ × ℕ) : Bool := l.2 == 0
 
 /-! ## Book and sharing -/
 
@@ -1601,7 +1602,7 @@ def factOf (cell : ℕ → ℕ) (st : St) : Core.Atom → St
     outs.zipIdx.foldl (fun st (o, k) => addKey st s!"K{k},{inOdd},{outOdd}{cs}" o.idx iv (cell o.idx)) st
   | .assertInK a b => { st with inK := (st.inK.insert (cell a.idx)).insert (cell b.idx) }
   | .assertNe _ _ p =>
-    if st.know.contains (cell p.idx) then st else { st with know := st.know.insert (cell p.idx) (1, 0, 0) }
+    if st.know.contains (cell p.idx) then st else { st with know := st.know.insert (cell p.idx) (1, 0) }
   | .rangeCheck x y _ _ _ => { st with inK := (st.inK.insert (cell x.idx)).insert (cell y.idx) }
   | .frameAddr p _ => { st with inK := st.inK.insert (cell p.idx) }
   | _ => st
@@ -1668,13 +1669,13 @@ def lookahead (cell : ℕ → ℕ) (st : St) (ss : List Core.Stmt) : St × List 
 
 /-! ## Justifying instructions -/
 
-def contentK (c : Ctx) (st : St) (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
+def contentK (c : Ctx) (st : St) (o : ℕ) : Option (ℕ × ℕ) :=
   match c.plumb.get? o with
   | some (.k l) => some l
   | _ => st.know.get? o
 
-def isOne (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (1, 0, 0)
-def isZero (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (0, 0, 0)
+def isOne (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (1, 0)
+def isZero (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (0, 0)
 
 def bookAt (st : St) (o : ℕ) : List Core.Atom := st.book.getD o []
 
@@ -1701,7 +1702,7 @@ def sameW (c : Ctx) (st : St) (a b : ℕ) : Bool :=
 def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
   let cell := c.cell
   match ins with
-  | .set o k0 k1 k2 => contentK c st o == some (k0, k1, k2)
+  | .set o k0 k1 => contentK c st o == some (k0, k1)
   | .xor a b d =>
     (bookAt st d).any (fun x => match x with
       | .add d' x y => perm3 a b d (cell d'.idx) (cell x.idx) (cell y.idx)
@@ -1722,14 +1723,14 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
               | .frameAddr p0 (r :: _) => if cell p0.idx == a then some (.fpg (cell r.idx)) else none
               | _ => none
            match fa, contentK c st b with
-            | some (.fpg e1), some (k0, 0, 0) => match (if k0 == 1 then some 0 else c.pows.get? k0), run with
+            | some (.fpg e1), some (k0, 0) => match (if k0 == 1 then some 0 else c.pows.get? k0), run with
               | some e2, r :: _ => e1 + e2 == cell r.idx
               | _, _ => false
             | _, _ => false)
       | _ => false) ||
     (isOne c st b && sameW c st a d) || (isOne c st a && sameW c st b d) ||
     (match c.plumb.get? d, c.plumb.get? a, contentK c st b with
-      | some (.fpg e), some (.fpg e1), some (k0, 0, 0) =>
+      | some (.fpg e), some (.fpg e1), some (k0, 0) =>
         (if k0 == 1 then some 0 else c.pows.get? k0) == some (e - e1)  && e1 ≤ e
       | _, _, _ => false) ||
     (d ≥ c.fsz && isOne c st b && (match st.next.find? (·.1 == d - c.fsz) with
@@ -1748,7 +1749,7 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
       | some fcs => fcs.any fun (o, fc) => o == o2 && (match fc with
         | .val cv => sameW c st cv o3
         | .self => o3 == o1
-        | .pc r => contentK c st o3 == some (c.bitsOf r, 0, 0)
+        | .pc r => contentK c st o3 == some (c.bitsOf r, 0)
         | _ => false)
       | none => false) ||
     (st.targets.get? o3 == some (o1, o2)) ||
@@ -1794,9 +1795,9 @@ def envCheck (st : St) (s : GSeg) : M Unit := do
   let c ← read
   for (o, sym) in s.env.toList do
     let ok : Bool := match sym with
-      | .zero => contentK c st o == some (0, 0, 0)
+      | .zero => contentK c st o == some (0, 0)
       | .gp e => match contentK c st o with
-        | some (k0, 0, 0) => (if k0 == 1 then some 0 else c.pows.get? k0) == some e
+        | some (k0, 0) => (if k0 == 1 then some 0 else c.pows.get? k0) == some e
         | _ => false
       | .fpg e => c.plumb.get? o == some (.fpg e)
     unless ok do fail s!"env {o} {symText sym} at seg {s.start}"
@@ -1854,7 +1855,7 @@ def joinSt (pre : St) (bs : List St) : St :=
     | b :: rest => b.named.fold (fun h v => if rest.all (·.named.contains v) then h.insert v else h) pre.named
   let newCells : Std.HashSet ℕ := bs.foldl (fun h b => b.occ.fold (fun h c => if pre.occ.contains c then h else h.insert c) h) {}
   let (know, unk) := newCells.fold (fun (know, unk) c =>
-    let ks := bs.map fun b => if b.occ.contains c || b.unk.contains c then b.know.get? c else some (0, 0, 0)
+    let ks := bs.map fun b => if b.occ.contains c || b.unk.contains c then b.know.get? c else some (0, 0)
     match ks with
     | some k :: rest => if rest.all (· == some k) && !pre.know.contains c then (know.insert c k, unk.insert c) else (know, unk.insert c)
     | _ => (know, unk.insert c)) (pre.know, pre.unk)
@@ -2102,7 +2103,7 @@ end Cpl
 
 /-- Static plumbing of a function: its non-value cells' contents. -/
 def plumbOf (f : CompiledFunction) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std.HashMap ℕ ℕ)
-    (constCell : ℕ → (ℕ × ℕ × ℕ) → Bool) :
+    (constCell : ℕ → (ℕ × ℕ) → Bool) :
     Std.HashMap ℕ Cpl.PC × List String := Id.run do
   let code := f.code.toArray
   let mut m : Std.HashMap ℕ Cpl.PC := {}
@@ -2113,10 +2114,10 @@ def plumbOf (f : CompiledFunction) (F : GFacts) (vcells : Std.HashSet ℕ) (pows
     | none => (m.insert o v, none)
   for (o, _) in F.env do
     let (m', e) := put m o (.fpg 0); m := m'; if let some e := e then errs := e :: errs
-  let mut sets : Std.HashMap ℕ (List (ℕ × ℕ × ℕ)) := {}
+  let mut sets : Std.HashMap ℕ (List (ℕ × ℕ)) := {}
   for ins in code do
     match ins with
-    | .set o k0 k1 k2 => sets := sets.insert o (((sets.get? o).getD []).insert (k0, k1, k2))
+    | .set o k0 k1 => sets := sets.insert o (((sets.get? o).getD []).insert (k0, k1))
     | _ => pure ()
   for (o, ks) in sets.toList do
     match ks with
@@ -2128,7 +2129,7 @@ def plumbOf (f : CompiledFunction) (F : GFacts) (vcells : Std.HashSet ℕ) (pows
     match code[i]! with
     | .mul a b c => if !vcells.contains c then
         match m.get? a, m.get? b with
-        | some (.fpg e1), some (.k (k0, 0, 0)) =>
+        | some (.fpg e1), some (.k (k0, 0)) =>
           match (if k0 == 1 then some 0 else pows.get? k0) with
           | some e2 => let (m', e) := put m c (.fpg (e1 + e2)); m := m'; if let some e := e then errs := e :: errs
           | none => pure ()
@@ -2156,13 +2157,13 @@ namespace ShareM
 structure PF where
   v : ℕ
   c : ℕ
-  kc : Option (ℕ × ℕ × ℕ)
+  kc : Option (ℕ × ℕ)
   keys : List (ℕ × List ℕ)
   eqs : List ℕ
 
 structure SS where
   occ : Std.HashSet ℕ := {}
-  cst : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  cst : Std.HashMap ℕ (ℕ × ℕ) := {}
   keys : Std.HashMap ℕ (List (ℕ × List ℕ)) := {}
   named : Std.HashSet ℕ := {}
   pend : List PF := []
@@ -2173,10 +2174,10 @@ structure Ctx where
   tmpAt : Std.HashMap ℕ ℕ
   runs : List (ℕ × ℕ)
 
-def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ × ℕ) :=
+def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ) :=
   match a with
-  | .const d x => if d.idx == v then some (limbNat x 0, limbNat x 1, limbNat x 2) else none
-  | .assertNe _ _ p => if p.idx == v then some (1, 0, 0) else none
+  | .const d x => if d.idx == v then some (limbNat x 0, limbNat x 1) else none
+  | .assertNe _ _ p => if p.idx == v then some (1, 0) else none
   | _ => none
 
 def keysOf (a : Core.Atom) (v : ℕ) : List (ℕ × List ℕ) :=
@@ -2213,7 +2214,7 @@ def cellKeys (X : Ctx) : Core.Atom → List (ℕ × ℕ × List ℕ)
 
 def isPend (st : SS) (v : ℕ) : Bool := st.pend.any (·.v == v)
 
-def nameV (X : Ctx) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SS) (v : Core.V) : SS :=
+def nameV (X : Ctx) (kc : ℕ → Option (ℕ × ℕ)) (st : SS) (v : Core.V) : SS :=
   if st.named.contains v.idx || isPend st v.idx then st
   else
     let c := X.cell v.idx
@@ -2225,7 +2226,7 @@ def nameV (X : Ctx) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SS) (v : Cor
         | none => st.cst
       { st with occ := st.occ.insert c, cst := cst, named := st.named.insert v.idx }
 
-def nameAll (X : Ctx) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SS) (vs : List Core.V) : SS :=
+def nameAll (X : Ctx) (kc : ℕ → Option (ℕ × ℕ)) (st : SS) (vs : List Core.V) : SS :=
   vs.foldl (nameV X kc) st
 
 def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
@@ -2253,12 +2254,12 @@ def discharge (X : Ctx) : ℕ → SS → SS
     if ok.isEmpty then st
     else discharge X n { st with named := named, pend := rest }
 
-def recCst (X : Ctx) (a : Core.Atom) (cst : Std.HashMap ℕ (ℕ × ℕ × ℕ)) : Std.HashMap ℕ (ℕ × ℕ × ℕ) :=
+def recCst (X : Ctx) (a : Core.Atom) (cst : Std.HashMap ℕ (ℕ × ℕ)) : Std.HashMap ℕ (ℕ × ℕ) :=
   match a with
   | .const d x => let c := X.cell d.idx
-    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (limbNat x 0, limbNat x 1, limbNat x 2) else cst
+    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (limbNat x 0, limbNat x 1) else cst
   | .assertNe _ _ p => let c := X.cell p.idx
-    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (1, 0, 0) else cst
+    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (1, 0) else cst
   | _ => cst
 
 def record (X : Ctx) (a : Core.Atom) (st : SS) : SS :=
@@ -2375,12 +2376,12 @@ def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los h
     let cst := (m.cst.toList.filter fun (c, _) => cellsUsed.contains c).mergeSort (·.1 ≤ ·.1)
     let keys := ((m.keys.toList.filter fun (c, _) => cellsUsed.contains c).flatMap fun (c, ks) =>
       ks.map fun k => (c, k)).mergeSort (·.1 ≤ ·.1)
-    let cstM : Std.HashMap ℕ (ℕ × ℕ × ℕ) := cst.foldl (fun h (c, x) => h.insert c x) {}
+    let cstM : Std.HashMap ℕ (ℕ × ℕ) := cst.foldl (fun h (c, x) => h.insert c x) {}
     let keysM : Std.HashMap ℕ (List (ℕ × List ℕ)) := keys.foldl (fun h (c, k) => h.insert c (k :: h.getD c [])) {}
     let namedS : Std.HashSet ℕ := named.foldl (·.insert ·) {}
     let st : SS := { occ := m.occ, cst := cstM, keys := keysM, named := namedS, pend := [] }
     (s!"⟨{a}, {w}, {bitsOfSet m.occ}, {listText (named.map toString)}, " ++
-      s!"{listText (cst.map fun (c, (x, y, z)) => s!"({c}, {x}, {y}, {z})")}, " ++
+      s!"{listText (cst.map fun (c, (x, y)) => s!"({c}, {x}, {y})")}, " ++
       s!"{listText (keys.map fun (c, (op, ins)) => s!"({c}, {op}, {listText (ins.map toString)})")}⟩", st)
   let mut st := nameStep (ctxAt 0) init cf.params
   let mut out : List String := []
@@ -2441,7 +2442,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
   let byCell : Std.HashMap ℕ (List ℕ) := locs.zipIdx.foldl (fun m (c, v) => m.insert c (v :: m.getD c [])) {}
   -- a cell of constants `l`, and of loads the compiler put there as reading the same address as
   -- one of them (the sharing check proves each load's value the constant)
-  let constCell (o : ℕ) (l : ℕ × ℕ × ℕ) : Bool :=
+  let constCell (o : ℕ) (l : ℕ × ℕ) : Bool :=
     (byCell.getD o []).any (fun v => match fm.get? v with
       | some (k, _, imm, _) => k == "const" && imm == toString l
       | none => false) &&
@@ -2488,7 +2489,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
   let chainText (ch : ℕ × ℕ × List ℕ × ℕ × ℕ) : String :=
     s!"({ch.1}, {ch.2.1}, {listText (ch.2.2.1.map toString)}, {ch.2.2.2.1}, {ch.2.2.2.2})"
   let pcText : Cpl.PC → String
-    | .k (k0, k1, k2) => s!"(.k {k0} {k1} {k2})"
+    | .k (k0, k1) => s!"(.k {k0} {k1})"
     | .fpg e => s!"(.fpg {e})"
   let stat := (plumb.toList.mergeSort (·.1 ≤ ·.1)).map fun (o, pc) => s!"({o}, {pcText pc})"
   let sites := (byKey.toList.mergeSort (fun a b => a.2.2.1 ≤ b.2.2.1)).map fun ((a, r), (q, rp, tg)) =>
