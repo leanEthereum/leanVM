@@ -17,39 +17,39 @@ open LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem walk_310 : CutsKnown 310 :=
+theorem walk_339 : CutsKnown 339 :=
   os_cutsKnown (m := 7) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_7 osOk_310
+    osLvB_7 osOk_339
 
 set_option maxRecDepth 100000 in
-theorem walk_311 : CutsKnown 311 :=
+theorem walk_340 : CutsKnown 340 :=
   os_cutsKnown (m := 8) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_8 osOk_311
+    osLvB_8 osOk_340
 
 set_option maxRecDepth 100000 in
-theorem walk_312 : CutsKnown 312 :=
+theorem walk_341 : CutsKnown 341 :=
   os_cutsKnown (m := 9) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_9 osOk_312
+    osLvB_9 osOk_341
 
 set_option maxRecDepth 100000 in
-theorem walk_313 : CutsKnown 313 :=
+theorem walk_342 : CutsKnown 342 :=
   os_cutsKnown (m := 10) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_10 osOk_313
+    osLvB_10 osOk_342
 
 set_option maxRecDepth 100000 in
-theorem walk_314 : CutsKnown 314 :=
+theorem walk_343 : CutsKnown 343 :=
   os_cutsKnown (m := 11) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_11 osOk_314
+    osLvB_11 osOk_343
 
 set_option maxRecDepth 100000 in
-theorem walk_315 : CutsKnown 315 :=
+theorem walk_344 : CutsKnown 344 :=
   os_cutsKnown (m := 12) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_12 osOk_315
+    osLvB_12 osOk_344
 
 set_option maxRecDepth 100000 in
-theorem walk_316 : CutsKnown 316 :=
+theorem walk_345 : CutsKnown 345 :=
   os_cutsKnown (m := 13) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_13 osOk_316
+    osLvB_13 osOk_345
 
 end
 end LeanVM.Guest.End

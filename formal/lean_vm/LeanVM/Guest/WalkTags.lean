@@ -23,6 +23,9 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   `winsTag d cd = walkTag 0 1 d cd`: `WinsAt` on `[wins]`, the windows `walk_path__L{pd}_L{cd}`
   dispatches on (`lean_ethereum.py:1308-1343` at `40f877dc`), which its callers hand it.
 
+* `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
+  argument (`lean_ethereum.py:1530`), which its decodes and grinds read.
+
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
   radix-four layer loop `__loop6` (`lean_ethereum.py:2006-2089`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
@@ -66,6 +69,10 @@ def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
 
 /-- The tag of `GkrPar`, above every walk tag. -/
 def tagGkr : ℕ := 2 ^ 20
+
+/-- The tag of `WinTabs` (`ExpTables.lean`), above `tagGkr`: `open_stacked`'s window table `tabs`,
+which `verify_sub` hands it. -/
+def tagTabs : ℕ := 2 ^ 21
 
 /-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
 `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
