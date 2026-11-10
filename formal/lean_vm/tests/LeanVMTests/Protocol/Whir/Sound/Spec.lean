@@ -12,7 +12,7 @@ import LeanVM.Protocol.Whir.Sound.Spec
 /-!
 # WHIR soundness controls
 
-* **Inhabitant.** `smallCode` is a `LevelCode` (`κ = 1`, `R = 1`, one fold, last threshold `3`),
+* **Inhabitant.** `smallCode` is a `LevelCode` (`κ = 1`, `R = 1`, one fold, last threshold `4`),
   whose first round's list is defined (`n·d₀ < A₀²`).
 * **Lane order.** `dot(row, eq_kernel([a, b]))` is the fold with `a` on the low lane bit
   (`dot_eqKernel`); folding with the challenges swapped gives a different value, so the order of
@@ -36,11 +36,11 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## A concrete level code -/
 
-/-- A level code: `κ = 1`, `R = 1`, one fold, last threshold `3`. -/
-def smallCode : LevelCode := ⟨1, 1, 1, 3, by norm_num, le_rfl⟩
+/-- A level code: `κ = 1`, `R = 1`, one fold, last threshold `4`. -/
+def smallCode : LevelCode := ⟨1, 1, 1, 4, by norm_num, le_rfl⟩
 
 example : smallCode.n = 4 := rfl
-example : smallCode.thr 0 = 2 := rfl
+example : smallCode.thr 0 = 3 := rfl
 example : smallCode.n * smallCode.deg 0 < smallCode.thr 0 * smallCode.thr 0 := by decide
 
 /-! ## Lane order -/
