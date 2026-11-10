@@ -582,6 +582,14 @@ theorem tableFid_leanIsa (hI : Bus.Conditions (leanIsaWith prog s fl)) (w : BusW
     rcases hc with hc | hc
     · exact List.mem_append_left _ (busOut_columns_mem prog s input w hw.1 hw.2.2.1 c hc)
     · exact List.mem_append_right _ (finalClaims_mem prog s ξ w ch evs hch hs c hc)
+  rows pt := by
+    apply List.ne_nil_of_length_pos
+    have hh : (verifierLayout prog s).tableLogHeights.length = 6 := by
+      rw [show (verifierLayout prog s).tableLogHeights = tableLogs s from rfl]
+      simp [tableLogs]
+    simp only [rowsOf, List.length_zip, Complete.length_tableWeights, (result_forms_shape prog s w).1,
+      hh, show tables.length = 6 from rfl]
+    norm_num
 
 /-! ## The bus phase's depth -/
 
@@ -664,7 +672,7 @@ noncomputable def busTableSpec_leanIsa {L₀ : ℕ} (hfin : ∀ W, (cands W).Fin
       (abError (leanIsaWith prog s fl) L₀ + 0) ≤ εmax)
     (he4 : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
     (hlam : lambdaError L₀ + 0 ≤ εmax) (hs : roundError 1 2 + 0 ≤ εmax) {T : ℝ≥0∞}
-    (he3 : roundError L₀ 3 + T ≤ εmax) (hTf : T ≤ εmax)
+    (he3 : roundError L₀ 3 ≤ εmax) (hTf : T ≤ εmax)
     (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError (leanIsaWith prog s fl) L₀ + sumcheckLead
       (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T) ≤ εmax) :
     Spec ((verifyBusBalance computedBytecodeValue (verifierLayout prog s)).bind
