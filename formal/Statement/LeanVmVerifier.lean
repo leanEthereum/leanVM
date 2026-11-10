@@ -302,6 +302,11 @@ def sampleChallenges : ℕ → VerifierProgram (List E)
 /-- Check a proof of work of `bits` bits. -/
 def grindProofOfWork (bits : ℕ) : VerifierProgram Unit := grind bits (ret ())
 
+/-- The proof of work before a fold challenge: `bits` bits, and none at `0`, where no nonce is
+read (`crates/verifier/src/whir.rs:185-189`). -/
+def foldProofOfWork (bits : ℕ) : VerifierProgram Unit :=
+  if bits = 0 then ret () else grindProofOfWork bits
+
 /-- Read a commitment to a matrix of `2^height` rows of `width` words. -/
 def readCommitment (height width : ℕ) : VerifierProgram Unit := commit height width (ret ())
 
@@ -1518,7 +1523,7 @@ own challenges. -/
 def foldRounds (grinding : ℕ) : ℕ → WhirState → List E → VerifierProgram (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    if grinding ≠ 0 then VerifierProgram.grindProofOfWork grinding
+    VerifierProgram.foldProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     let quad ← sumcheckRoundPoly 3 (polyEval s.runningQuad challenge) none
     foldRounds grinding n { s with runningQuad := quad, folds := s.folds ++ [challenge] }

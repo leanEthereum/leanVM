@@ -81,6 +81,9 @@ def sampleN : ℕ → Script (List E)
 /-- Pass a proof of work. -/
 def grindS : Script Unit := grind (ret ())
 
+/-- Pass the proof of work before a fold challenge, none at `0` bits. -/
+def foldGrindS (bits : ℕ) : Script Unit := if bits = 0 then ret () else grindS
+
 /-- Commit a matrix. -/
 def commitS (word : Word) : Script Unit := commit word (ret ())
 

@@ -65,7 +65,7 @@ def foldRoundsA.fast (grinding : ℕ) : ℕ → WhirState → List E → Array E
     Script (WhirState × List E × Array E × Array E)
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
-    if grinding ≠ 0 then Script.grindS
+    Script.foldGrindS grinding
     let challenge ← Script.sampleE
     let W' := foldPairsA challenge W
     let g' := foldPairsA challenge g
