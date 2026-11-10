@@ -204,7 +204,7 @@ def spChecks : List Stmt :=
 /-- The body before its checks: the copies, the powers and the codeword's groups. -/
 def spHeadT : List Stmt :=
   [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)] ++
-    (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0 0)) ++ spGs.1 ++ spLast.1
+    (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0)) ++ spGs.1 ++ spLast.1
 
 /-- The body from its checks, the leaf's message `L`: the checks, the message, the copy and the
 return. -/

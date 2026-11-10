@@ -117,14 +117,14 @@ def lxNodeConst (w r : Nat) : Nat :=
 /-- The address of level `r` of window `w`'s parent over the index `L`: the constant plus
 `L >>> (8w + r + 1)`, the top layer's root at index `0`. -/
 def lxNodeAddr (L w r : Nat) : E :=
-  word (lxNodeConst w r) 0 0 + if 8 * w + r + 1 = 32 then 0 else eOfNat (L >>> (8 * w + r + 1))
+  word (lxNodeConst w r) 0 + if 8 * w + r + 1 = 32 then 0 else eOfNat (L >>> (8 * w + r + 1))
 
 /-- The address `lx_levels` computes at level `r` of window `w` in arm `k`, from the next shift
 `hi` and the power `g^(7 - r)` `pw`. -/
 def lxAt (hi pw : E) (w r k : Nat) : E :=
-  if w + 1 = 4 then word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
-  else if r + 1 = 8 then hi + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
-  else hi * pw + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
+  if w + 1 = 4 then word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
+  else if r + 1 = 8 then hi + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
+  else hi * pw + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
 
 theorem lxNodeConst_eq (w r : Nat) :
     lxNodeConst w r = 2 ^ 32 * (3 * 2 ^ 24 + ((8 * w + r) % 16 + 1) + 2 ^ 23 * ((8 * w + r) / 16)) := by
@@ -133,7 +133,7 @@ theorem lxNodeConst_eq (w r : Nat) :
 
 /-- A constant above bit `32` plus a value below it. -/
 theorem word_split {q x : Nat} (hx : x < 2 ^ 32) :
-    word (2 ^ 32 * q + x) 0 0 = word (2 ^ 32 * q) 0 0 + eOfNat x := by
+    word (2 ^ 32 * q + x) 0 = word (2 ^ 32 * q) 0 + eOfNat x := by
   rw [word_eq_eOfNat, word_eq_eOfNat, eOfNat_add_of_lt hx]
 
 theorem lxNodeConst_lt {w r : Nat} (hw : w < 4) (hr : r < 8) : lxNodeConst w r + 2 ^ 32 < 2 ^ 64 := by
@@ -221,7 +221,7 @@ theorem lx_bit (L w r : Nat) (hr : r < 8) :
 on the layer with the top layer's bit `55`. -/
 theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
     eOfNat (L >>> (8 * 0)) = eOfNat (2 ^ 32 * (2 ^ 23 * 0) + L >>> (16 * 0)) ∧
-      eOfNat (L >>> (8 * 2)) + word lxTop 0 0 = eOfNat (2 ^ 32 * (2 ^ 23 * 1) + L >>> (16 * 1)) := by
+      eOfNat (L >>> (8 * 2)) + word lxTop 0 = eOfNat (2 ^ 32 * (2 ^ 23 * 1) + L >>> (16 * 1)) := by
   refine ⟨by simp, ?_⟩
   rw [word_eq_eOfNat, add_comm, show lxTop = 2 ^ 32 * (2 ^ 23 * 1) by simp [lxTop],
     eOfNat_add_of_lt (lt_of_le_of_lt (Nat.shiftRight_le _ _) hL)]

@@ -9,6 +9,7 @@ module
 
 public import Statement.Prover.Run
 public import LeanVM.Protocol.Whir.Complete.Script
+public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 public import LeanVM.Protocol.WithHash
 
 /-!
@@ -27,6 +28,27 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 
 @[expose] public section
+
+namespace Script
+
+variable {α β γ : Type}
+
+theorem bind_assoc' (p : Script α) (f : α → Script β) (g : β → Script γ) :
+    (p.bind f).bind g = p.bind fun a ↦ (f a).bind g := by
+  induction p with
+  | ret a => rfl
+  | send x k ih => simp only [bind, ih]
+  | sample k ih => simp only [bind, ih]
+  | grind k ih => simp only [bind, ih]
+  | commit w k ih => simp only [bind, ih]
+  | query k ih => simp only [bind, ih]
+
+end Script
+
+/-- The statement's round grind is the specification's, for a round of `count` coefficients. -/
+theorem roundGrind_eq {count : ℕ} {c : List E} (hc : c.length = count) (mode : Option E) :
+    roundGrind mode c = LeanVM.Protocol.EndToEnd.Complete.roundBits count mode := by
+  subst hc; rfl
 
 /-- **The scripts make the same moves**, and end in results related by `R`. -/
 def Corr {α β : Type} (R : α → β → Prop) : Script α → Script β → Prop
@@ -102,6 +124,10 @@ theorem bind' {R : α → β → Prop} {S : γ → δ → Prop} {f : α → Scri
 theorem bind_same {S : γ → δ → Prop} {f : α → Script γ} {g : α → Script δ} (H : Script α)
     (hk : ∀ a, Corr S (f a) (g a)) : Corr S (H.bind f) (H.bind g) :=
   bind (R := (· = ·)) (fun a _ h ↦ h ▸ hk a) H H (refl H)
+
+/-- Two results related. -/
+theorem ret_ret {R : α → β → Prop} {a : α} {b : β} (h : R a b) :
+    Corr R (Script.ret a) (Script.ret b) := h
 
 /-- Equal sends. -/
 theorem sendList (xs : List E) : Corr (fun _ _ ↦ True) (Script.sendList xs) (Script.sendList xs) :=

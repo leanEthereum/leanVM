@@ -28,7 +28,7 @@ computes the same two values (`#guard`, compiled).
 Rejections use actual rows and the tables' own theorems: the counterexample to a
 step-only contract, a `DEREF` row with the flag pair `(1, 1)`, executes from its registers
 and fails its bindings; a changed input limb (`XOR`, `MUL_NATIVE`), a changed immediate
-(`SET_CONSTANT`, which the cell does not hold), and a non-canonical image cell (`KECCAK`)
+(`SET_CONSTANT`, which the cell does not hold), and an image cell with a nonzero free limb (`KECCAK`)
 fail the constraints `main` emits in every environment over the data, read
 back through each table's `soundness`; the two `JUMP` residuals reject the wrong witness `b = 1`
 at `v_cond = 0` (`flags_sound`). What a table does not reject is a row
@@ -39,7 +39,7 @@ a wrong but canonical word, consistently in row and image, is locally complete (
 `completeness`) and fails `KeccakRelation` and `KeccakSpec`, the failure the Keccak reduction
 (the verifier's GKR over the rounds) enforces.
 
-The `MUL_NATIVE` row reproduces the executor's `mul_192bit_word` product (`cpu/mod.rs:873-890`)
+The `MUL_NATIVE` row reproduces the executor's `mul_128bit_word` product (`cpu/mod.rs:873-890`)
 from the twelve-product coordinates (test at leanVM `a386121f`), and the `KECCAK` row the first
 permutation of the executor's `keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875` at leanVM
 `4af2cddd`): even layout in, odd layout out, the output lanes Keccak-f[1600] as the pinned
@@ -52,24 +52,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 
 /-! ## The fixture: one image -/
 
--- The executor test `mul_192bit_word` at leanVM a386121f: the operands `x`, `y` and the product
--- `x · y`.
+-- The executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at `leanvm-rev`): the operands `x`, `y`
+-- and the product `x · y`.
 def x0 : K := (K.ofBits 0x0123456789abcdef)
 def x1 : K := (K.ofBits 0xfeedfacedeadbeef)
-def x2 : K := (K.ofBits 0x1111222233334444)
 def y0 : K := (K.ofBits 0x9999aaaabbbbcccc)
 def y1 : K := (K.ofBits 0x13579bdf2468ace0)
-def y2 : K := (K.ofBits 0x5555666677778888)
-def mulXY : E :=
-  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
+def mulXY : E := E.ofLimbs (K.ofBits 0x1b4ac62c35ac2ecc) (K.ofBits 0x421e3037aaa197d0)
 
-/-- The canonical image word of a two-limb cell. -/
-def cell (v : Vector K 2) : Vector K 3 := #v[v[0], v[1], 0]
-
-/-- The twelve-product coordinates of `x · y` (`TOWER_LANES`). -/
-def xyLanes : Vector K 3 :=
-  #v[x0 * y0 + x1 * y2 + x2 * y1, x0 * y1 + x1 * y0 + x1 * y2 + x2 * y1 + x2 * y2,
-     x0 * y2 + x1 * y1 + x2 * y0 + x2 * y2]
+/-- The four-product coordinates of `x · y` (`TOWER_LANES`). -/
+def xyLanes : Vector K 2 := #v[x0 * y0 + x1 * y1, x0 * y1 + x1 * y0 + g * (x1 * y1)]
 
 /-- The image, thirty-two words: `x`, `y`, `x + y`, `x · y` at `2..5`; the `SET` immediate at
 `6`; the `pc`-mode `DEREF` pointer `g^8` at `7`, its target `g²·g³` (the return address of
@@ -78,64 +70,63 @@ def xyLanes : Vector K 3 :=
 `cell`-mode `DEREF` pointer `g^26` at `25`, its target at `26` holding the local word at `27`;
 the `fp`-mode `DEREF` pointer `g^29` at `28`, its target at `29` holding `fp = 1`, its local cell
 at `30`; zero elsewhere. -/
-def memTable : Array (Vector K 3) :=
-  #[#v[0, 0, 0], #v[0, 0, 0],
-    #v[x0, x1, x2], #v[y0, y1, y2], #v[x0 + y0, x1 + y1, x2 + y2], xyLanes,
-    #v[K.ofBits 7, K.ofBits 8, K.ofBits 9],
-    #v[addressOfIndex 8, 0, 0], #v[g ^ 2 * addressOfIndex 3, 0, 0], #v[K.ofBits 5, K.ofBits 6,
-        K.ofBits 7],
-    #v[1, 0, 0], #v[addressOfIndex 6, 0, 0], #v[1, 0, 0],
-    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
-    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
-    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
-    #v[addressOfIndex 26, 0, 0], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5],
-    #v[addressOfIndex 29, 0, 0], #v[1, 0, 0], #v[K.ofBits 9, K.ofBits 9, K.ofBits 9],
-    #v[0, 0, 0]]
+def memTable : Array (Vector K 2) :=
+  #[#v[0, 0], #v[0, 0],
+    #v[x0, x1], #v[y0, y1], #v[x0 + y0, x1 + y1], xyLanes,
+    #v[K.ofBits 7, K.ofBits 8],
+    #v[addressOfIndex 8, 0], #v[g ^ 2 * addressOfIndex 3, 0], #v[K.ofBits 5, K.ofBits 6],
+    #v[1, 0], #v[addressOfIndex 6, 0], #v[1, 0],
+    #v[0, 0], #v[0, 0], #v[0, 0],
+    #v[0, 0], #v[0, 0], #v[0, 0], #v[0, 0], #v[0, 0], #v[0, 0],
+    #v[0, 0], #v[0, 0], #v[0, 0],
+    #v[addressOfIndex 26, 0], #v[K.ofBits 3, K.ofBits 4], #v[K.ofBits 3, K.ofBits 4],
+    #v[addressOfIndex 29, 0], #v[1, 0], #v[K.ofBits 9, K.ofBits 9],
+    #v[0, 0]]
 
 /-- The prover data of an image, its one table matched on arity so that the kernel never
 compares names (as in the channel tests). -/
-def dataOf (mem : Array (Vector K 3)) : ProverData K := fun _ n ↦
+def dataOf (mem : Array (Vector K 2)) : ProverData K := fun _ n ↦
   match n with
-  | 3 => mem
+  | 2 => mem
   | _ => #[]
 
 /-- The fixture's prover data. -/
 def tabData : ProverData K := dataOf memTable
 
-theorem dataOf_logSize {mem : Array (Vector K 3)} (h : mem.size = 32) :
+theorem dataOf_logSize {mem : Array (Vector K 2)} (h : mem.size = 32) :
     (imageOf (dataOf mem)).1 = 5 := by
   show min (Nat.log 2 (memRows (dataOf mem)).size) maxLogMem = 5
   rw [show memRows (dataOf mem) = mem from rfl, h, show (32 : ℕ) = 2 ^ 5 by decide,
     Nat.log_pow (by norm_num)]
   decide
 
-theorem dataOf_wellShaped {mem : Array (Vector K 3)} (h : mem.size = 32) :
+theorem dataOf_wellShaped {mem : Array (Vector K 2)} (h : mem.size = 32) :
     WellShapedData (dataOf mem) where
   memRows_size := by rw [dataOf_logSize h]; exact h
 
 /-- On a well-shaped thirty-two-word data, the word at `g^k` is row `k` of the image, as
 limbs. -/
 theorem readAt {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : WellShapedData data)
-    (k : ℕ) (v : Vector K 3) (hk : k < 32 := by decide)
+    (k : ℕ) (v : Vector K 2) (hk : k < 32 := by decide)
     (hv : (memRows data)[k]'(by rw [hws.memRows_size, hlog]; exact hk) = v := by decide +kernel) :
-    (imageOf data).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1] v[2]) := by
+    (imageOf data).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1]) := by
   have hk' : k < 2 ^ (imageOf data).1 := by rw [hlog]; omega
   rw [show addressOfIndex k = addressOfIndex ((⟨k, hk'⟩ : Fin (2 ^ (imageOf data).1)) : ℕ) from rfl,
     MemoryImage.read_gpow (by rw [hlog]; decide), imageOf_apply hws _ hv]
 
 /-- The word at `g^k` of the fixture's image. -/
-theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 32 := by decide)
+theorem read_at (k : ℕ) (v : Vector K 2) (hk : k < 32 := by decide)
     (hv : memTable[k]'(by rw [show memTable.size = 32 from rfl]; exact hk) = v :=
       by decide +kernel) :
-    (imageOf tabData).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1] v[2]) :=
+    (imageOf tabData).2.read (addressOfIndex k) = some (E.ofLimbs v[0] v[1]) :=
   readAt (dataOf_logSize rfl) (dataOf_wellShaped rfl) k v hk hv
 
-/-- `read_at` with the word's three limbs spelled out, for the kernel fixtures. -/
-theorem read_lit (k : ℕ) (a b c : K) (hk : k < 32 := by decide)
-    (hv : memTable[k]'(by rw [show memTable.size = 32 from rfl]; exact hk) = #v[a, b, c] :=
+/-- `read_at` with the word's two limbs spelled out, for the kernel fixtures. -/
+theorem read_lit (k : ℕ) (a b : K) (hk : k < 32 := by decide)
+    (hv : memTable[k]'(by rw [show memTable.size = 32 from rfl]; exact hk) = #v[a, b] :=
       by decide +kernel) :
-    (imageOf tabData).2.read (addressOfIndex k) = some (E.ofLimbs a b c) :=
-  read_at k #v[a, b, c] hk hv
+    (imageOf tabData).2.read (addressOfIndex k) = some (E.ofLimbs a b) :=
+  read_at k #v[a, b] hk hv
 
 /-- `g · g^k = g^(k + 1)`, oriented for `simp`. -/
 theorem g_mul_gpow (k : ℕ) : g * addressOfIndex k = addressOfIndex (k + 1) := (gpow_succ k).symm
@@ -144,16 +135,16 @@ theorem g_mul_gpow (k : ℕ) : g * addressOfIndex k = addressOfIndex (k + 1) := 
 
 /-- The honest `XOR` row at `pc = g^0`, `fp = 1`: operands `g^2, g^3, g^4`, the words `x`, `y`. -/
 def xorRow : XorRow K :=
-  ⟨addressOfIndex 0, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, #v[x0, x1, x2], #v[y0,
-      y1, y2], 1, 1, 1, 1⟩
+  ⟨addressOfIndex 0, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, #v[x0, x1], #v[y0,
+      y1], 1, 1, 1, 1⟩
 
 /-- The honest row is bound: the two operand words are the fixture's. -/
 theorem xor_bindings : XorBindings (imageOf tabData).2 xorRow := by
   refine ⟨?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 2) = some (E.ofLimbs x0 x1 x2)
-    rw [one_mul]; exact read_at 2 #v[x0, x1, x2]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 3) = some (E.ofLimbs y0 y1 y2)
-    rw [one_mul]; exact read_at 3 #v[y0, y1, y2]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 2) = some (E.ofLimbs x0 x1)
+    rw [one_mul]; exact read_at 2 #v[x0, x1]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 3) = some (E.ofLimbs y0 y1)
+    rw [one_mul]; exact read_at 3 #v[y0, y1]
 
 /-- `XorSpec` on the honest row: bound, and `XOR g^2 g^3 g^4` executes from `(1, 1)` to
 `(g, 1)`. -/
@@ -162,8 +153,8 @@ theorem xor_spec : XorSpec xorRow ⟨g * addressOfIndex 0, 1⟩ tabData :=
     show execute (imageOf tabData).2 ⟨addressOfIndex 0, 1⟩ (.xor (addressOfIndex 2) (addressOfIndex
         3) (addressOfIndex 4)) =
       some ⟨g * addressOfIndex 0, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
-      read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1], read_at 3 #v[y0, y1],
+      read_at 4 #v[x0 + y0, x1 + y1]]
     decide +kernel⟩
 
 /-- The valid execution alone yields a satisfying row (`xor_exec_complete`): no assumption on
@@ -185,14 +176,14 @@ example : XorSpec xorRow2 ⟨g * addressOfIndex 2, 1⟩ tabData :=
     show execute (imageOf tabData).2 ⟨addressOfIndex 2, 1⟩ (.xor (addressOfIndex 2) (addressOfIndex
         3) (addressOfIndex 4)) =
       some ⟨g * addressOfIndex 2, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
-      read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1], read_at 3 #v[y0, y1],
+      read_at 4 #v[x0 + y0, x1 + y1]]
     decide +kernel⟩
 
 /-- An alleged `XOR` row with operands `0` fails `XorSpec` for every successor: the address `0`
 reads nothing. Its counter plays no part. -/
 def bogusXor : XorRow K :=
-  { xorRow with pc := addressOfIndex 2, oA := 0, oB := 0, oC := 0, vA := #v[0, 0, 0] }
+  { xorRow with pc := addressOfIndex 2, oA := 0, oB := 0, oC := 0, vA := #v[0, 0] }
 
 example (next : Registers K) : ¬ XorSpec bogusXor next tabData := by
   rintro ⟨⟨hA, -⟩, -⟩
@@ -200,12 +191,11 @@ example (next : Registers K) : ¬ XorSpec bogusXor next tabData := by
   cases hA
 
 /-- A changed input limb: `execute` from the registers is unchanged, the bindings fail. -/
-def xorRow' : XorRow K := { xorRow with vA := #v[x0 + 1, x1, x2] }
+def xorRow' : XorRow K := { xorRow with vA := #v[x0 + 1, x1] }
 
 example (next : Registers K) : ¬ XorSpec xorRow' next tabData := by
   rintro ⟨⟨hA, -⟩, -⟩
-  rw [show xorRow'.fp * xorRow'.oA = 1 * addressOfIndex 2 from rfl, one_mul, read_at 2 #v[x0, x1,
-      x2]] at hA
+  rw [show xorRow'.fp * xorRow'.oA = 1 * addressOfIndex 2 from rfl, one_mul, read_at 2 #v[x0, x1]] at hA
   exact absurd (Option.some.inj hA) (by decide +kernel)
 
 /-- …so the constraints `main` emits on it fail in every environment over the fixture: its
@@ -216,26 +206,25 @@ example (get : ℕ → K) :
   have hs : XorSpec xorRow' _ tabData := (xorTable.soundness 0 ⟨get, tabData⟩ (const xorRow')
     xorRow' ProvableType.eval_const trivial h).1
   obtain ⟨⟨hA, -⟩, -⟩ := hs
-  rw [show xorRow'.fp * xorRow'.oA = 1 * addressOfIndex 2 from rfl, one_mul, read_at 2 #v[x0, x1,
-      x2]] at hA
+  rw [show xorRow'.fp * xorRow'.oA = 1 * addressOfIndex 2 from rfl, one_mul, read_at 2 #v[x0, x1]] at hA
   exact absurd (Option.some.inj hA) (by decide +kernel)
 
 /-! ## `MUL_NATIVE` -/
 
-/-- The twelve-product coordinates of the Rust operands are the Rust product. -/
-example : E.ofLimbs xyLanes[0] xyLanes[1] xyLanes[2] = mulXY := by decide +kernel
+/-- The four-product coordinates of the Rust operands are the Rust product. -/
+example : E.ofLimbs xyLanes[0] xyLanes[1] = mulXY := by decide +kernel
 
 /-- The honest `MUL_NATIVE` row at `pc = g^1`. -/
 def mulRow : MulRow K :=
-  ⟨addressOfIndex 1, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 5, #v[x0, x1, x2], #v[y0,
-      y1, y2], 1, 1, 1, 1⟩
+  ⟨addressOfIndex 1, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 5, #v[x0, x1], #v[y0,
+      y1], 1, 1, 1, 1⟩
 
 theorem mul_bindings : MulBindings (imageOf tabData).2 mulRow := by
   refine ⟨?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 2) = some (E.ofLimbs x0 x1 x2)
-    rw [one_mul]; exact read_at 2 #v[x0, x1, x2]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 3) = some (E.ofLimbs y0 y1 y2)
-    rw [one_mul]; exact read_at 3 #v[y0, y1, y2]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 2) = some (E.ofLimbs x0 x1)
+    rw [one_mul]; exact read_at 2 #v[x0, x1]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 3) = some (E.ofLimbs y0 y1)
+    rw [one_mul]; exact read_at 3 #v[y0, y1]
 
 /-- `MulSpec` on the honest row, through the product of the Rust vectors. -/
 theorem mul_spec : MulSpec mulRow ⟨g * addressOfIndex 1, 1⟩ tabData :=
@@ -243,7 +232,7 @@ theorem mul_spec : MulSpec mulRow ⟨g * addressOfIndex 1, 1⟩ tabData :=
     show execute (imageOf tabData).2 ⟨addressOfIndex 1, 1⟩ (.mulNative (addressOfIndex 2)
         (addressOfIndex 3) (addressOfIndex 5)) =
       some ⟨g * addressOfIndex 1, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1], read_at 3 #v[y0, y1],
       read_at 5 xyLanes]
     decide +kernel⟩
 
@@ -254,7 +243,7 @@ example : ConstraintsHold.Completeness (rowEnv tabData)
   mul_exec_complete mul_spec.exec_eq 1 1 1 1
 
 /-- A changed input limb fails the bindings, and the constraints in every environment. -/
-def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1, y2] }
+def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1] }
 
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((mulTable.main (const mulRow')).operations 0) := by
@@ -262,38 +251,36 @@ example (get : ℕ → K) :
   have hs : MulSpec mulRow' _ tabData := (mulTable.soundness 0 ⟨get, tabData⟩ (const mulRow')
     mulRow' ProvableType.eval_const trivial h).1
   obtain ⟨⟨-, hB⟩, -⟩ := hs
-  rw [show mulRow'.fp * mulRow'.oB = 1 * addressOfIndex 3 from rfl, one_mul, read_at 3 #v[y0, y1,
-      y2]] at hB
+  rw [show mulRow'.fp * mulRow'.oB = 1 * addressOfIndex 3 from rfl, one_mul, read_at 3 #v[y0, y1]] at hB
   exact absurd (Option.some.inj hB) (by decide +kernel)
 
 /-! ## `SET_CONSTANT` -/
 
-/-- The honest `SET_CONSTANT` row at `pc = g^2`: the immediate `7 + 8·y + 9·y²` at `g^6`. -/
-def setRow : SetRow K := ⟨addressOfIndex 2, 1, addressOfIndex 6, #v[K.ofBits 7, K.ofBits 8, K.ofBits
-    9], 1, 1⟩
+/-- The honest `SET_CONSTANT` row at `pc = g^2`: the immediate `7 + 8·y` at `g^6`. -/
+def setRow : SetRow K := ⟨addressOfIndex 2, 1, addressOfIndex 6, #v[K.ofBits 7, K.ofBits 8], 1, 1⟩
 
-/-- `SetSpec` on the honest row: `SET_CONSTANT g^6 (7 + 8·y + 9·y²)` executes, the cell holding
+/-- `SetSpec` on the honest row: `SET_CONSTANT g^6 (7 + 8·y)` executes, the cell holding
 the immediate. -/
 theorem set_spec : SetSpec setRow ⟨g * addressOfIndex 2, 1⟩ tabData :=
   ⟨by
-    show execute (imageOf tabData).2 ⟨addressOfIndex 2, 1⟩ (.setConstant (addressOfIndex 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8) (K.ofBits 9))) =
+    show execute (imageOf tabData).2 ⟨addressOfIndex 2, 1⟩ (.setConstant (addressOfIndex 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8))) =
       some ⟨g * addressOfIndex 2, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]]
+    simp only [execute, executeWith, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8]]
     decide +kernel⟩
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((setTable.main (const (setRowOf (addressOfIndex 2) 1 (addressOfIndex 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8) (K.ofBits 9)) 1 1))).operations 0) :=
+    ((setTable.main (const (setRowOf (addressOfIndex 2) 1 (addressOfIndex 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8)) 1 1))).operations 0) :=
   set_exec_complete set_spec.exec_eq 1 1
 
 /-- A changed immediate limb: the cell `fp·o` does not hold the row's immediate, so the row
 fails `SetRefines` and the constraints fail in every environment. (Whether the program holds
 this immediate at `g^2` is the bus's to check.) -/
-def setRow' : SetRow K := { setRow with k := #v[K.ofBits 7, K.ofBits 8, K.ofBits 10] }
+def setRow' : SetRow K := { setRow with k := #v[K.ofBits 7, K.ofBits 10] }
 
 example (next : Registers K) : ¬ SetSpec setRow' next tabData := by
   intro h
   obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp h
-  rw [show setRow'.fp * setRow'.o = 1 * addressOfIndex 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]] at hk
+  rw [show setRow'.fp * setRow'.o = 1 * addressOfIndex 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8]] at hk
   exact absurd (Option.some.inj hk) (by decide +kernel)
 
 example (get : ℕ → K) :
@@ -302,7 +289,7 @@ example (get : ℕ → K) :
   have hs : SetSpec setRow' _ tabData := (setTable.soundness 0 ⟨get, tabData⟩ (const setRow')
     setRow' ProvableType.eval_const trivial h).1
   obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp hs
-  rw [show setRow'.fp * setRow'.o = 1 * addressOfIndex 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]] at hk
+  rw [show setRow'.fp * setRow'.o = 1 * addressOfIndex 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8]] at hk
   exact absurd (Option.some.inj hk) (by decide +kernel)
 
 /-! ## `DEREF` -/
@@ -311,38 +298,38 @@ example (get : ℕ → K) :
 at `g^7`, local cell `g^9`, target `g^8 · 1` holding `g² · g^3`. -/
 def derefRow : DerefRow K :=
   ⟨addressOfIndex 3, 1, addressOfIndex 7, 1, addressOfIndex 9, 1, 0, addressOfIndex 8, #v[K.ofBits
-      5, K.ofBits 6, K.ofBits 7], 1, 1, 1, 1⟩
+      5, K.ofBits 6], 1, 1, 1, 1⟩
 
 /-- The `cell`-mode row at `pc = g^6`: pointer `g^26` at `g^25`, local cell `g^27`, target
 `g^26 · 1` holding the local word. -/
 def derefCellRow : DerefRow K :=
-  ⟨addressOfIndex 6, 1, addressOfIndex 25, 1, addressOfIndex 27, 0, 0, addressOfIndex 26, #v[K.ofBits 3, K.ofBits 4, K.ofBits 5], 1, 1, 1, 1⟩
+  ⟨addressOfIndex 6, 1, addressOfIndex 25, 1, addressOfIndex 27, 0, 0, addressOfIndex 26, #v[K.ofBits 3, K.ofBits 4], 1, 1, 1, 1⟩
 
 /-- The `fp`-mode row at `pc = g^7`: pointer `g^29` at `g^28`, local cell `g^30` (read, not
 stored), target `g^29 · 1` holding `fp = 1`. -/
 def derefFpRow : DerefRow K :=
-  ⟨addressOfIndex 7, 1, addressOfIndex 28, 1, addressOfIndex 30, 0, 1, addressOfIndex 29, #v[K.ofBits 9, K.ofBits 9, K.ofBits 9], 1, 1, 1, 1⟩
+  ⟨addressOfIndex 7, 1, addressOfIndex 28, 1, addressOfIndex 30, 0, 1, addressOfIndex 29, #v[K.ofBits 9, K.ofBits 9], 1, 1, 1, 1⟩
 
 theorem deref_bindings : DerefBindings (imageOf tabData).2 derefRow .pc := by
   refine ⟨rfl, ?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 7) = some (E.ofLimbs (addressOfIndex 8) 0 0)
-    rw [one_mul]; exact read_at 7 #v[addressOfIndex 8, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 9) = some (E.ofLimbs (K.ofBits 5) (K.ofBits 6) (K.ofBits 7))
-    rw [one_mul]; exact read_at 9 #v[K.ofBits 5, K.ofBits 6, K.ofBits 7]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 7) = some (E.ofLimbs (addressOfIndex 8) 0)
+    rw [one_mul]; exact read_at 7 #v[addressOfIndex 8, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 9) = some (E.ofLimbs (K.ofBits 5) (K.ofBits 6))
+    rw [one_mul]; exact read_at 9 #v[K.ofBits 5, K.ofBits 6]
 
 theorem derefCell_bindings : DerefBindings (imageOf tabData).2 derefCellRow .cell := by
   refine ⟨rfl, ?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 25) = some (E.ofLimbs (addressOfIndex 26) 0 0)
-    rw [one_mul]; exact read_at 25 #v[addressOfIndex 26, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 27) = some (E.ofLimbs (K.ofBits 3) (K.ofBits 4) (K.ofBits 5))
-    rw [one_mul]; exact read_at 27 #v[K.ofBits 3, K.ofBits 4, K.ofBits 5]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 25) = some (E.ofLimbs (addressOfIndex 26) 0)
+    rw [one_mul]; exact read_at 25 #v[addressOfIndex 26, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 27) = some (E.ofLimbs (K.ofBits 3) (K.ofBits 4))
+    rw [one_mul]; exact read_at 27 #v[K.ofBits 3, K.ofBits 4]
 
 theorem derefFp_bindings : DerefBindings (imageOf tabData).2 derefFpRow .fp := by
   refine ⟨rfl, ?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 28) = some (E.ofLimbs (addressOfIndex 29) 0 0)
-    rw [one_mul]; exact read_at 28 #v[addressOfIndex 29, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 30) = some (E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9))
-    rw [one_mul]; exact read_at 30 #v[K.ofBits 9, K.ofBits 9, K.ofBits 9]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 28) = some (E.ofLimbs (addressOfIndex 29) 0)
+    rw [one_mul]; exact read_at 28 #v[addressOfIndex 29, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 30) = some (E.ofLimbs (K.ofBits 9) (K.ofBits 9))
+    rw [one_mul]; exact read_at 30 #v[K.ofBits 9, K.ofBits 9]
 
 /-- `DEREF g^7 1 g^9` in `pc` mode executes from `(g^3, 1)`: the target holds the return address
 `g² · g^3`. -/
@@ -350,10 +337,10 @@ theorem deref_exec :
     execute (imageOf tabData).2 ⟨addressOfIndex 3, 1⟩ (.deref (addressOfIndex 7) 1 (addressOfIndex
         9) .pc) =
       some ⟨g * addressOfIndex 3, 1⟩ := by
-  simp only [execute, executeWith, one_mul, mul_one, read_lit 7 (addressOfIndex 8) 0 0,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 7 (addressOfIndex 8) 0,
       Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 9 (K.ofBits 5) (K.ofBits 6) (K.ofBits 7), read_lit 8 (g ^ 2 * addressOfIndex 3) 0 0, derefSource, ofK_eq_ofLimbs]
+    read_lit 9 (K.ofBits 5) (K.ofBits 6), read_lit 8 (g ^ 2 * addressOfIndex 3) 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
 
 /-- In `cell` mode from `(g^6, 1)`: the target holds the local word. -/
@@ -361,10 +348,10 @@ theorem derefCell_exec :
     execute (imageOf tabData).2 ⟨addressOfIndex 6, 1⟩ (.deref (addressOfIndex 25) 1 (addressOfIndex
         27) .cell) =
       some ⟨g * addressOfIndex 6, 1⟩ := by
-  simp only [execute, executeWith, one_mul, mul_one, read_lit 25 (addressOfIndex 26) 0 0,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 25 (addressOfIndex 26) 0,
       Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 27 (K.ofBits 3) (K.ofBits 4) (K.ofBits 5), read_lit 26 (K.ofBits 3) (K.ofBits 4) (K.ofBits 5), derefSource]
+    read_lit 27 (K.ofBits 3) (K.ofBits 4), read_lit 26 (K.ofBits 3) (K.ofBits 4), derefSource]
   decide +kernel
 
 /-- In `fp` mode from `(g^7, 1)`: the target holds `fp = 1`; the local cell is read all the
@@ -373,10 +360,10 @@ theorem derefFp_exec :
     execute (imageOf tabData).2 ⟨addressOfIndex 7, 1⟩ (.deref (addressOfIndex 28) 1 (addressOfIndex
         30) .fp) =
       some ⟨g * addressOfIndex 7, 1⟩ := by
-  simp only [execute, executeWith, one_mul, mul_one, read_lit 28 (addressOfIndex 29) 0 0,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 28 (addressOfIndex 29) 0,
       Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 30 (K.ofBits 9) (K.ofBits 9) (K.ofBits 9), read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
+    read_lit 30 (K.ofBits 9) (K.ofBits 9), read_lit 29 1 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
 
 /-- `DerefSpec` in each store mode: the bindings and the execution, with the same mode. -/
@@ -445,21 +432,21 @@ def jumpRow0 : JumpRow K := ⟨addressOfIndex 8, 1, addressOfIndex 13, addressOf
 
 theorem jump_bindings : JumpBindings (imageOf tabData).2 jumpRow := by
   refine ⟨?_, ?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 10) = some (E.ofLimbs 1 0 0)
-    rw [one_mul]; exact read_at 10 #v[1, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 11) = some (E.ofLimbs (addressOfIndex 6) 0 0)
-    rw [one_mul]; exact read_at 11 #v[addressOfIndex 6, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 12) = some (E.ofLimbs 1 0 0)
-    rw [one_mul]; exact read_at 12 #v[1, 0, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 10) = some (E.ofLimbs 1 0)
+    rw [one_mul]; exact read_at 10 #v[1, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 11) = some (E.ofLimbs (addressOfIndex 6) 0)
+    rw [one_mul]; exact read_at 11 #v[addressOfIndex 6, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 12) = some (E.ofLimbs 1 0)
+    rw [one_mul]; exact read_at 12 #v[1, 0]
 
 theorem jump0_bindings : JumpBindings (imageOf tabData).2 jumpRow0 := by
   refine ⟨?_, ?_, ?_⟩
-  · show (imageOf tabData).2.read (1 * addressOfIndex 13) = some (E.ofLimbs 0 0 0)
-    rw [one_mul]; exact read_at 13 #v[0, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 11) = some (E.ofLimbs (addressOfIndex 6) 0 0)
-    rw [one_mul]; exact read_at 11 #v[addressOfIndex 6, 0, 0]
-  · show (imageOf tabData).2.read (1 * addressOfIndex 12) = some (E.ofLimbs 1 0 0)
-    rw [one_mul]; exact read_at 12 #v[1, 0, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 13) = some (E.ofLimbs 0 0)
+    rw [one_mul]; exact read_at 13 #v[0, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 11) = some (E.ofLimbs (addressOfIndex 6) 0)
+    rw [one_mul]; exact read_at 11 #v[addressOfIndex 6, 0]
+  · show (imageOf tabData).2.read (1 * addressOfIndex 12) = some (E.ofLimbs 1 0)
+    rw [one_mul]; exact read_at 12 #v[1, 0]
 
 /-- `JumpSpec` on the taken row: the branch is taken, to `(g^6, 1)`. -/
 theorem jump_spec : JumpSpec jumpRow ⟨addressOfIndex 6, 1⟩ tabData :=
@@ -467,9 +454,9 @@ theorem jump_spec : JumpSpec jumpRow ⟨addressOfIndex 6, 1⟩ tabData :=
     show execute (imageOf tabData).2 ⟨addressOfIndex 4, 1⟩ (.jump (addressOfIndex 10)
         (addressOfIndex 11) (addressOfIndex 12)) =
       some ⟨addressOfIndex 6, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 10 #v[1, 0, 0], read_at 11 #v[addressOfIndex
-        6, 0, 0],
-      read_at 12 #v[1, 0, 0]]
+    simp only [execute, executeWith, one_mul, read_at 10 #v[1, 0], read_at 11 #v[addressOfIndex
+        6, 0],
+      read_at 12 #v[1, 0]]
     decide +kernel⟩
 
 /-- `JumpSpec` on the untaken row: fall-through to `(g^9, 1)`. -/
@@ -478,9 +465,9 @@ theorem jump0_spec : JumpSpec jumpRow0 ⟨g * addressOfIndex 8, 1⟩ tabData :=
     show execute (imageOf tabData).2 ⟨addressOfIndex 8, 1⟩ (.jump (addressOfIndex 13)
         (addressOfIndex 11) (addressOfIndex 12)) =
       some ⟨g * addressOfIndex 8, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 13 #v[0, 0, 0], read_at 11 #v[addressOfIndex
-        6, 0, 0],
-      read_at 12 #v[1, 0, 0]]
+    simp only [execute, executeWith, one_mul, read_at 13 #v[0, 0], read_at 11 #v[addressOfIndex
+        6, 0],
+      read_at 12 #v[1, 0]]
     decide +kernel⟩
 
 /-- Either valid execution alone yields a satisfying row, in its honest environment, witnesses
@@ -543,19 +530,19 @@ def kLout : Vector K 25 :=
 
 /-- Output cell `c` in the odd layout: lane `0` alone in the high limb of cell `0`, then the lane
 pairs `(2c - 1, 2c)`. -/
-def kOutCell (L : Vector K 25) (c : ℕ) : Vector K 3 :=
-  if c = 0 then #v[0, L[0], 0] else #v[L.getD (2 * c - 1) 0, L.getD (2 * c) 0, 0]
+def kOutCell (L : Vector K 25) (c : ℕ) : Vector K 2 :=
+  if c = 0 then #v[0, L[0]] else #v[L.getD (2 * c - 1) 0, L.getD (2 * c) 0]
 
 /-- The `KECCAK` image: `a, b` at `2, 3`, the tail at `4..7`, `b8` at `8` (its high limb
 `0x5555`, which holds no lane in the even layout, is free), the zero capacity at `9..12`, and the
 thirteen output cells at `13..25`. -/
-def kMemOf (L : Vector K 25) : Array (Vector K 3) :=
-  #[(#v[0, 0, 0] : Vector K 3), #v[0, 0, 0], #v[kLin[0], kLin[1], 0], #v[kLin[2], kLin[3], 0],
-    #v[kLin[8], 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[kLin[16], K.ofBits 0x5555, 0],
-    #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0]] ++
-  (List.range 13).toArray.map (kOutCell L) ++ (List.replicate 6 (#v[0, 0, 0] : Vector K 3)).toArray
+def kMemOf (L : Vector K 25) : Array (Vector K 2) :=
+  #[(#v[0, 0] : Vector K 2), #v[0, 0], #v[kLin[0], kLin[1]], #v[kLin[2], kLin[3]],
+    #v[kLin[8], 0], #v[0, 0], #v[0, 0], #v[0, 0], #v[kLin[16], K.ofBits 0x5555],
+    #v[0, 0], #v[0, 0], #v[0, 0], #v[0, 0]] ++
+  (List.range 13).toArray.map (kOutCell L) ++ (List.replicate 6 (#v[0, 0] : Vector K 2)).toArray
 
-def kMem : Array (Vector K 3) := kMemOf kLout
+def kMem : Array (Vector K 2) := kMemOf kLout
 
 /-- The honest `KECCAK` row at `pc = g^5`, `fp = 1`: `m = [2, 3, 2, 3]`, `tail = 4`, `b8 = 8`,
 `cap = 9`, `out = 13`, even in, odd out, all thirteen output cells written, the free limb
@@ -566,9 +553,8 @@ def keccakRow : KeccakRow K :=
     K.ofBits 0x5555, kLin, kLout, Vector.replicate 26 1, 1⟩
 
 /-- The word at `g^k` of a thirty-two-word image, as a value `e` of its limbs. -/
-theorem readMem (mem : Array (Vector K 3)) (hs : mem.size = 32) (k : ℕ) (hk : k < 32) (e : E)
-    (h : E.ofLimbs (mem[k]'(by rw [hs]; exact hk))[0] (mem[k]'(by rw [hs]; exact hk))[1]
-      (mem[k]'(by rw [hs]; exact hk))[2] = e) :
+theorem readMem (mem : Array (Vector K 2)) (hs : mem.size = 32) (k : ℕ) (hk : k < 32) (e : E)
+    (h : E.ofLimbs (mem[k]'(by rw [hs]; exact hk))[0] (mem[k]'(by rw [hs]; exact hk))[1] = e) :
     (imageOf (dataOf mem)).2.read (addressOfIndex k) = some e :=
   (readAt (dataOf_logSize hs) (dataOf_wellShaped hs) k _ hk rfl).trans (congrArg some h)
 
@@ -627,10 +613,10 @@ example : ConstraintsHold.Completeness (rowEnv (dataOf kMem))
     | exact absurd ha (by decide +kernel)
     | exact keccak_exec_complete hexec _ _
 
-/-- A non-canonical cell is rejected: an image whose first output cell has a nonzero top limb
-does not balance the row's canonical read of it, so the constraints `main` emits on the honest
-row fail in every environment over that image. -/
-def badMem : Array (Vector K 3) := kMem.set! 13 #v[0, kLout[0], 1]
+/-- A nonzero free limb is rejected: an image whose first output cell (odd layout) has a nonzero
+low limb, which holds no lane, does not balance the row's read of it, so the constraints `main`
+emits on the honest row fail in every environment over that image. -/
+def badMem : Array (Vector K 2) := kMem.set! 13 #v[1, kLout[0]]
 
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, dataOf badMem⟩
@@ -691,7 +677,7 @@ example (next : Registers K) : ¬ KeccakSpec keccakRowOne next (dataOf (kMemOf w
     (execute_keccak_eq_some_iff _ _ _ _ _ _ _ _ _ _ _).mp hexec
   have h0 : output 0 = laneCells keccakRowOne.outLanes o 0 0 :=
     Option.some.inj ((hout 0 (by cases oc <;> decide)).symm.trans (hb.out_eq 0 (by cases oc <;> decide)))
-  have hc := hcells.2 0 (by cases oc <;> decide)
+  have hc := hcells 0 (by cases oc <;> decide)
   have hinput : input = laneCells keccakRowOne.inLanes i keccakRowOne.free := by
     funext c; exact Option.some.inj ((hin c).symm.trans (hb.in_eq c))
   rw [h0, hinput, stateOfCells_laneCells, cellsOfState_eq_laneCells] at hc

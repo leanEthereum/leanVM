@@ -80,7 +80,7 @@ def MainData.toIn (fs : String → ℕ) (fp : ℕ) : MainIn :=
     sdg := d.sdg, daR := d.daR, dap := d.dap, leaf := d.leaf }
 
 /-- `exponent_tables`' table, placed. -/
-def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout := [(etB fs (mK0 d fs fp), expTableWords)]
+def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout := [(etB fs (mK0 d fs fp), expTabAllWords)]
 
 /-- **`main`'s callees after `exponent_tables`**, in call order, reading `Lin`. -/
 def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
@@ -100,7 +100,8 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     m.a117 * gen ^ X, gen ^ Y, m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2,
     m.a394, m.et, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else
-    [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417], Lin, Returns []⟩]) ++
+    [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417,
+      m.et * word 133823759239872512 0], Lin, Returns []⟩]) ++
   [⟨"statement_digest", true, [(digestHalves m.seed).1, (digestHalves m.seed).2,
     (digestHalves m.xd).1, (digestHalves m.xd).2, (digestHalves m.sd).1, (digestHalves m.sd).2,
     (digestHalves m.dap).1, (digestHalves m.dap).2, m.a417], Lin, Returns (digestCells m.sdg)⟩]

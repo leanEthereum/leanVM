@@ -7,9 +7,9 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 
 \subsection{\texttt{XOR}}\label{sec:tab-xor}
 
-\texttt{XOR}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}$, the $192$-bit field sum (in $\E$).
+\texttt{XOR}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}$, the $128$-bit field sum (in $\E$).
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
@@ -17,51 +17,47 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{XOR},o_A,o_B,o_C,0,0}$.
   \item \textbf{Memory:}
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0},v_{A,1}+v_{B,1},v_{A,2}+v_{B,2}}.
+      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1}}\quad(X\in\{A,B\}),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0},v_{A,1}+v_{B,1}}.
     \end{align*}
   \end{itemize}
 \end{itemize}
 
 \subsection{\texttt{MUL\_NATIVE}}\label{sec:tab-mul}
 
-\texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}$, the $192$-bit field multiplication (in $\E$).
+\texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}$, the $128$-bit field multiplication (in $\E$).
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1\}}$ and $(v_{B,i})_{i\in\{0,1\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{MUL},o_A,o_B,o_C,0,0}$.
-  \item \textbf{Memory} (the destination carries $v_Av_B$ in $\E$, of degree two). With $y^3=y+1$, put
+  \item \textbf{Memory} (the destination carries $v_Av_B$ in $\E$, of degree two). With $y^2=\gen y+1$ (\S\ref{sec:vm}), put
     \[
-    p_0=v_{A,0}v_{B,0},\quad
-    p_1=v_{A,0}v_{B,1}+v_{A,1}v_{B,0},\quad
-    p_2=v_{A,0}v_{B,2}+v_{A,1}v_{B,1}+v_{A,2}v_{B,0},
+    p_0=v_{A,0}v_{B,0},\qquad
+    p_1=v_{A,0}v_{B,1}+v_{A,1}v_{B,0},\qquad
+    p_2=v_{A,1}v_{B,1},
     \]
-    \[
-    p_3=v_{A,1}v_{B,2}+v_{A,2}v_{B,1},\qquad
-    p_4=v_{A,2}v_{B,2},
-    \]
-    twelve products over the nine pairs $v_{A,i}v_{B,j}$:
+    four products over the four pairs $v_{A,i}v_{B,j}$:
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_3,p_1+p_3+p_4,p_2+p_4}.
+      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1}}\quad(X\in\{A,B\}),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_2,p_1+\gen\,p_2}.
     \end{align*}
   \end{itemize}
 \end{itemize}
 
 \subsection{\texttt{SET\_CONSTANT}}\label{sec:tab-set}
 
-\texttt{SET\_CONSTANT}\ $[o,k_0,k_1,k_2]$ asserts $\loc{o}=k_0+k_1y+k_2y^{2}$.
+\texttt{SET\_CONSTANT}\ $[o,k_0,k_1]$ asserts $\loc{o}=k_0+k_1y$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operand $o$; immediate $(k_i)_{i\in\{0,1,2\}}$; memory count $r$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operand $o$; immediate $(k_i)_{i\in\{0,1\}}$; memory count $r$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{SET},o,k_0,k_1,k_2,0}$.
-  \item \textbf{Memory:} $\rdf{\dsep{MEM},\fp\cdot o,r,k_0,k_1,k_2}$.
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{SET},o,k_0,k_1,0,0}$.
+  \item \textbf{Memory:} $\rdf{\dsep{MEM},\fp\cdot o,r,k_0,k_1}$.
   \end{itemize}
 \end{itemize}
 
@@ -75,7 +71,7 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 \end{itemize}
 The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\ref{sec:vm}): the local cell $v_3$, the return address $\gen^{2}\cdot\pc$, or the frame pointer $\fp$. The mode is two boolean flags $(f_{\pc},f_{\fp})$: $(0,0)$ for $\texttt{deref\_cell}[o_3]$, $(1,0)$ for $\texttt{deref\_pc}$, $(0,1)$ for $\texttt{deref\_fp}$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_1,o_2,o_3$; flags $f_{\pc},f_{\fp}$; pointer $p$ (a single $\K$-limb); the local value $(v_{3,i})_{i\in\{0,1,2\}}$; memory counts $r_1,r_2,r_3$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_1,o_2,o_3$; flags $f_{\pc},f_{\fp}$; pointer $p$ (a single $\K$-limb); the local value $(v_{3,i})_{i\in\{0,1\}}$; memory counts $r_1,r_2,r_3$; bytecode count $r_{\mathrm{bc}}$.
 \item \textbf{Constraints:} none.
 \item \textbf{Flushes:}
   \begin{itemize}
@@ -83,9 +79,9 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{DRF},o_1,o_2,o_3,f_{\pc},f_{\fp}}$.
   \item \textbf{Memory}, the target giving $v_3$, $\gen^{2}\cdot\pc$ or $\fp$ at the three flag settings:
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_1,r_1,p,0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_3,r_3,v_{3,0},v_{3,1},v_{3,2}},\\
-      &\rdf{\dsep{MEM},p\cdot o_2,r_2,\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1},\ \bar f\,v_{3,2}},
+      &\rdf{\dsep{MEM},\fp\cdot o_1,r_1,p,0},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_3,r_3,v_{3,0},v_{3,1}},\\
+      &\rdf{\dsep{MEM},p\cdot o_2,r_2,\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1}},
       \quad \bar f=1+f_{\pc}+f_{\fp}.
     \end{align*}
   \end{itemize}
@@ -104,9 +100,9 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{JMP},o_c,o_d,o_f,0,0}$.
   \item \textbf{Memory:}
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_c,r_c,v_{\mathrm{cond}},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_d,r_d,v_{\pc},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_f,r_f,v_{\fp},0,0}.
+      &\rdf{\dsep{MEM},\fp\cdot o_c,r_c,v_{\mathrm{cond}},0},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_d,r_d,v_{\pc},0},\\
+      &\rdf{\dsep{MEM},\fp\cdot o_f,r_f,v_{\fp},0}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -121,7 +117,7 @@ One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{ann
 \item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
 \end{itemize}
 
-A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
+A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. A cell is exactly its two limbs.
 \begin{itemize}
 \item \textbf{Constraints:} none. The permutation is proved by the GKR of Annex~\ref{annex:keccak}.
 \item \textbf{Flushes:}
@@ -144,8 +140,8 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
       \end{cases}
     \]
     \begin{align*}
-      &\rdf{\dsep{MEM},a_c,r_c,u_c,v_c,0} &&(c<9),\\
-      &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c},0} &&(9\le c<13),
+      &\rdf{\dsep{MEM},a_c,r_c,u_c,v_c} &&(c<9),\\
+      &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c}} &&(9\le c<13),
     \end{align*}
     the writes the same with $\kout{\ell}$ and $r_{13+c}$. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
   \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.

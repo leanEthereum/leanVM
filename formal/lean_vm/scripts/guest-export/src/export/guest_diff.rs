@@ -7,7 +7,7 @@
 //! `LEANVM_GUEST_DIFF=<dir> cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored`
 //! writes `<dir>/<case>.txt`.
 //!
-//! The tokens: a field element is its three limbs in hex, a `K` word one hex token, a byte string one hex token, a
+//! The tokens: a field element is its two limbs in hex, a `K` word one hex token, a byte string one hex token, a
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
@@ -22,7 +22,7 @@ use std::fmt::Write as _;
 
 thread_local! {
     /// The streams of the last node this thread aggregated, as the `FORGE` hook saw them.
-    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<F192>>)>> = const { std::cell::RefCell::new(Vec::new()) };
+    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<F128>>)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// Have the next node this thread aggregates record its streams in `INSTALLED`, unchanged.
@@ -45,11 +45,11 @@ impl Out {
         write!(self.0, "{n} ").unwrap();
     }
 
-    fn e(&mut self, x: F192) {
-        write!(self.0, "{:x} {:x} {:x} ", x.c0, x.c1, x.c2).unwrap();
+    fn e(&mut self, x: F128) {
+        write!(self.0, "{:x} {:x} ", x.c0, x.c1).unwrap();
     }
 
-    fn es(&mut self, xs: &[F192]) {
+    fn es(&mut self, xs: &[F128]) {
         self.n(xs.len());
         for &x in xs {
             self.e(x);
@@ -189,12 +189,12 @@ fn export(
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
         // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
-        let fresh_point: Vec<F192> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
+        let fresh_point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
         let fresh_value = mle_eval_par(stacked_bytecode(), &fresh_point);
         let (_, fresh) =
             gen_verify(unified_guest(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F192> = fresh.bytecode_point.clone();
+        let point: Vec<F128> = fresh.bytecode_point.clone();
         out.es(&point);
         out.e(fresh.bytecode_value);
         out.tag("proof");
@@ -258,7 +258,7 @@ fn export(
     out.tag("batch");
     let rounds = |name: &str| stream(name).map_or(vec![], |e| e[0].clone());
     out.es(&rounds("bc_sumcheck_msgs"));
-    out.es(&stream("bc_star_hint").map_or(vec![F192::ZERO], |e| e[0].clone()));
+    out.es(&stream("bc_star_hint").map_or(vec![F128::ZERO], |e| e[0].clone()));
 
     out.tag("streams");
     out.n(streams.len());

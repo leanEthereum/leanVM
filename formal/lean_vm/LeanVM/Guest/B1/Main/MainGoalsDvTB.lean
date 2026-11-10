@@ -73,12 +73,12 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
   simp only [Option.map_some, Option.getD_some]
   have hL := wLog_lt hw
   have h := Da.da_verify_completeAtTB fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp)) hS
-  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTableWords) ∈ hLmain fs fp seed s w :=
+  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
     List.mem_append_right _ (by simp [etL])
-  have hlen : expTableWords.length = 236 := length_expTableWords
+  have hlen : expTabAllWords.length = 2284 := length_expTabAllWords
   refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) h
   · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
-    rw [expTableWords_sq (by omega)] at hr
+    rw [expTabAllWords_sq (by omega)] at hr
     intro q hq'
     rw [List.mem_singleton] at hq'
     subst hq'
@@ -91,8 +91,10 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
     rw [List.mem_singleton] at hq'
     subst hq'
     simp only [List.length_singleton] at h1 h2
-    exact ⟨_, hq, show etB fs (mK0 (hData seed s w) fs fp) ≤ i by omega,
-      show i < etB fs (mK0 (hData seed s w) fs fp) + expTableWords.length by omega⟩
+    refine ⟨_, hq, by dsimp only; omega, ?_⟩
+    dsimp only
+    rw [hlen]
+    omega
 
 end
 end LeanVM.Guest.B1.Main

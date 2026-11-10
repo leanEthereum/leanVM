@@ -109,7 +109,7 @@ enum Binding {
     Scalar(Off),
     Stack(Off, u32),
     Gaddr(GAddr),
-    FConst(F192),
+    FConst(F128),
 }
 
 /// What one name means: its value binding, plus an OPTIONAL compile-time integer
@@ -153,7 +153,7 @@ struct Scope {
     /// use in scope. A `SET` first emitted inside a branch must not be named from
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
-    const_cells: HashMap<F192, Off>,
+    const_cells: HashMap<F128, Off>,
     /// Materialized shifted pointers: base cell → `(exp, cell holding base·g^exp)`.
     /// A later `base·g^k` multiplies the nearest one up by a constant already set,
     /// so an unrolled walk `p·g, p·g^2, …` pays one `SET` of `g` rather than one per step.
@@ -241,7 +241,7 @@ struct FnLower<'a> {
     defs: &'a HashMap<&'a str, &'a Func>,
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
-    const_arrays: &'a HashMap<&'a str, &'a [F192]>,
+    const_arrays: &'a HashMap<&'a str, &'a [F128]>,
     /// Every `match` dispatches through a slot of these.
     tables: &'a mut JumpTables,
 }
@@ -301,7 +301,7 @@ impl FnLower<'_> {
         self.emit(LOp::Set { o, k });
     }
 
-    fn set_const(&mut self, o: Off, v: F192) {
+    fn set_const(&mut self, o: Off, v: F128) {
         self.set(o, KVal::Const(v));
     }
 
@@ -317,7 +317,7 @@ impl FnLower<'_> {
     /// branch join, or on a path this hint does not belong to).
     fn anchor(&mut self) {
         let o = self.fresh();
-        self.set_const(o, F192::ZERO);
+        self.set_const(o, F128::ZERO);
     }
 
     /// A top-level constant name is reserved (`zkDSL.md` §Global constants). A
@@ -397,7 +397,7 @@ impl FnLower<'_> {
 
     /// A frame cell holding `1` (always-taken `JUMP` condition).
     fn one(&mut self) -> Off {
-        self.const_cell(F192::ONE)
+        self.const_cell(F128::ONE)
     }
 
     /// A frame cell holding `v`, shared by every dominated use in the current
@@ -411,7 +411,7 @@ impl FnLower<'_> {
     /// the cell unwritten and so prover-chosen. Several call sites hoist
     /// [`Self::one`] above a branch on purpose; the revert is what makes that an
     /// optimization rather than the thing holding the invariant up.
-    fn const_cell(&mut self, v: F192) -> Off {
+    fn const_cell(&mut self, v: F128) -> Off {
         if let Some(&o) = self.scope.const_cells.get(&v) {
             return o;
         }
@@ -424,7 +424,7 @@ impl FnLower<'_> {
     /// A frame cell holding `0`, set lazily once (or a zero of the `keccak` padding
     /// run, when that came first): the condition of `assert_in_k`'s untaken jump.
     fn zero(&mut self) -> Off {
-        self.const_cell(F192::ZERO)
+        self.const_cell(F128::ZERO)
     }
 
     /// Terminate `main`: jump to the halt sentinel `g^{B-1}` with `fp = g^0`, the
@@ -557,7 +557,7 @@ impl FnLower<'_> {
         // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
-        // A builtin arm (`f192(…)`, `hint_log2_ceil(…)`) has no entry to dispatch to.
+        // A builtin arm (`hint_log2_ceil(…)`) has no entry to dispatch to.
         if arms
             .iter()
             .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| !d.inline)))
@@ -866,7 +866,7 @@ impl FnLower<'_> {
         self.pending.push(Hint::Resolved(RHint::Inverse { value: x, dst: inv }));
         let p = self.fresh();
         self.emit(LOp::Mul { a: x, b: inv, c: p });
-        self.set_const(p, F192::ONE);
+        self.set_const(p, F128::ONE);
     }
 
     /// The frame cell holding `g^{k-1}`, the range-check product target, shared
@@ -939,7 +939,7 @@ impl FnLower<'_> {
                     return self.range_check(e, kcell);
                 }
                 let bcell = self.expr(b);
-                let inv = self.const_cell(F192::from(F64::G.inv()));
+                let inv = self.const_cell(F128::from(F64::G.inv()));
                 // Interned: the MUL that first writes `Y·g^{-1}` pins it, so every later
                 // check of the same bound in its scope multiplies into that cell.
                 self.pure(PureOp::Mul, bcell, inv)
@@ -1029,8 +1029,6 @@ impl FnLower<'_> {
                 self.emit(LOp::Mul { a: q, b: lb, c: la });
                 q
             }
-            // A well-formed one folds above, so this is a malformed call.
-            Expr::Call(f, _) if f == "f192" => self.fail("f192 needs three literal u64 limbs"),
             // Folded above when it is what it claims to be, so reaching here means
             // it is not: name that, rather than reporting an unknown function.
             Expr::Call(f, args) if f == "const" => {
@@ -1128,7 +1126,7 @@ impl FnLower<'_> {
         }
         if k == 0 {
             let o = self.fresh();
-            self.set_const(o, F192::ONE);
+            self.set_const(o, F128::ONE);
             return o;
         }
         // Runtime base: square-and-multiply over the compile-time exponent bits.
@@ -1647,7 +1645,7 @@ pub(crate) fn lower_func(
     queue: &mut Vec<Func>,
     loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
-    const_arrays: &HashMap<&str, &[F192]>,
+    const_arrays: &HashMap<&str, &[F128]>,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
     tables: &mut JumpTables,
 ) -> Lowered {

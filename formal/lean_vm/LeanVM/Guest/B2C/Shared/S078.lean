@@ -16,108 +16,108 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L19`, once. -/
-theorem st59 : shareStatic 59 = true := by decide +kernel
+/-- `eq_prefix_run__L3`, once. -/
+theorem st43 : shareStatic 43 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L19`, window 0. -/
-theorem w59_0 : shareWin 59 (snapsOf 59) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L3`, window 0. -/
+theorem w43_0 : shareWin 43 (snapsOf 43) 0 = true := by decide +kernel
 
-theorem ok59 : ShareOk 59 := ⟨st59, fun i hi ↦ by
-  have h : (snapsOf 59).length = 0 := by decide +kernel
+theorem ok43 : ShareOk 43 := ⟨st43, fun i hi ↦ by
+  have h : (snapsOf 43).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w59_0⟩
+  exact w43_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L20`, once. -/
-theorem st60 : shareStatic 60 = true := by decide +kernel
+/-- `eq_prefix_run__L4`, once. -/
+theorem st44 : shareStatic 44 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L20`, window 0. -/
-theorem w60_0 : shareWin 60 (snapsOf 60) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L4`, window 0. -/
+theorem w44_0 : shareWin 44 (snapsOf 44) 0 = true := by decide +kernel
 
-theorem ok60 : ShareOk 60 := ⟨st60, fun i hi ↦ by
-  have h : (snapsOf 60).length = 0 := by decide +kernel
+theorem ok44 : ShareOk 44 := ⟨st44, fun i hi ↦ by
+  have h : (snapsOf 44).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w60_0⟩
+  exact w44_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L21`, once. -/
-theorem st61 : shareStatic 61 = true := by decide +kernel
+/-- `eq_prefix_run__L5`, once. -/
+theorem st45 : shareStatic 45 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L21`, window 0. -/
-theorem w61_0 : shareWin 61 (snapsOf 61) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L5`, window 0. -/
+theorem w45_0 : shareWin 45 (snapsOf 45) 0 = true := by decide +kernel
 
-theorem ok61 : ShareOk 61 := ⟨st61, fun i hi ↦ by
-  have h : (snapsOf 61).length = 0 := by decide +kernel
+theorem ok45 : ShareOk 45 := ⟨st45, fun i hi ↦ by
+  have h : (snapsOf 45).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w61_0⟩
+  exact w45_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L22`, once. -/
-theorem st62 : shareStatic 62 = true := by decide +kernel
+/-- `eq_prefix_run__L6`, once. -/
+theorem st46 : shareStatic 46 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L22`, window 0. -/
-theorem w62_0 : shareWin 62 (snapsOf 62) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L6`, window 0. -/
+theorem w46_0 : shareWin 46 (snapsOf 46) 0 = true := by decide +kernel
 
-theorem ok62 : ShareOk 62 := ⟨st62, fun i hi ↦ by
-  have h : (snapsOf 62).length = 0 := by decide +kernel
+theorem ok46 : ShareOk 46 := ⟨st46, fun i hi ↦ by
+  have h : (snapsOf 46).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w62_0⟩
+  exact w46_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L23`, once. -/
-theorem st63 : shareStatic 63 = true := by decide +kernel
+/-- `eq_prefix_run__L7`, once. -/
+theorem st47 : shareStatic 47 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L23`, window 0. -/
-theorem w63_0 : shareWin 63 (snapsOf 63) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L7`, window 0. -/
+theorem w47_0 : shareWin 47 (snapsOf 47) 0 = true := by decide +kernel
 
-theorem ok63 : ShareOk 63 := ⟨st63, fun i hi ↦ by
-  have h : (snapsOf 63).length = 0 := by decide +kernel
+theorem ok47 : ShareOk 47 := ⟨st47, fun i hi ↦ by
+  have h : (snapsOf 47).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w63_0⟩
+  exact w47_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L24`, once. -/
-theorem st64 : shareStatic 64 = true := by decide +kernel
+/-- `eq_prefix_run__L8`, once. -/
+theorem st48 : shareStatic 48 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L24`, window 0. -/
-theorem w64_0 : shareWin 64 (snapsOf 64) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L8`, window 0. -/
+theorem w48_0 : shareWin 48 (snapsOf 48) 0 = true := by decide +kernel
 
-theorem ok64 : ShareOk 64 := ⟨st64, fun i hi ↦ by
-  have h : (snapsOf 64).length = 0 := by decide +kernel
+theorem ok48 : ShareOk 48 := ⟨st48, fun i hi ↦ by
+  have h : (snapsOf 48).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w64_0⟩
+  exact w48_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L25`, once. -/
-theorem st65 : shareStatic 65 = true := by decide +kernel
+/-- `eq_prefix_run__L9`, once. -/
+theorem st49 : shareStatic 49 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L25`, window 0. -/
-theorem w65_0 : shareWin 65 (snapsOf 65) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L9`, window 0. -/
+theorem w49_0 : shareWin 49 (snapsOf 49) 0 = true := by decide +kernel
 
-theorem ok65 : ShareOk 65 := ⟨st65, fun i hi ↦ by
-  have h : (snapsOf 65).length = 0 := by decide +kernel
+theorem ok49 : ShareOk 49 := ⟨st49, fun i hi ↦ by
+  have h : (snapsOf 49).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w65_0⟩
+  exact w49_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L26`, once. -/
-theorem st66 : shareStatic 66 = true := by decide +kernel
+/-- `eq_prefix_run__L10`, once. -/
+theorem st50 : shareStatic 50 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L26`, window 0. -/
-theorem w66_0 : shareWin 66 (snapsOf 66) 0 = true := by decide +kernel
+/-- `eq_prefix_run__L10`, window 0. -/
+theorem w50_0 : shareWin 50 (snapsOf 50) 0 = true := by decide +kernel
 
-theorem ok66 : ShareOk 66 := ⟨st66, fun i hi ↦ by
-  have h : (snapsOf 66).length = 0 := by decide +kernel
+theorem ok50 : ShareOk 50 := ⟨st50, fun i hi ↦ by
+  have h : (snapsOf 50).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w66_0⟩
+  exact w50_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

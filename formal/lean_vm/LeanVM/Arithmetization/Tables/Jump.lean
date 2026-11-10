@@ -18,16 +18,16 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `JUMP` table
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The columns are
-`crates/leanvm_core/src/tables.rs:693-717` (`mod jump`, in that order), the two identities
-`tables.rs:70-78` (`jump_identity` with `quadratic = false`; `true` selects their degree-2 parts),
-the flushes `tables.rs:736-756` (`JumpTable::flushes`), matching specification §7.5
-(`doc/leanvm/body/07-instruction-tables.tex:94-112`).
+At `leanvm-rev` and Clean pin `b41c196b`. The columns are
+`crates/leanvm_core/src/tables.rs:694-718` (`mod jump`, in that order), the two identities
+`tables.rs:741-748` (`JumpTable::constraint`, weighted `pows[0]` and `pows[1]`), the flushes
+`tables.rs:749-769` (`JumpTable::flushes`), matching specification §7.5
+(`doc/leanvm/body/07-instruction-tables.tex`).
 
 **The row** `JumpRow` is the column list: `pc, fp`; the operands `o_c, o_d, o_f`; the condition
 `v_cond`, the destination `v_pc` and the frame `v_fp`, each a single `K` limb; the memory counts
 `r_c, r_d, r_f`; the bytecode count `r_bc`. The inverse `w` and the taken indicator `b` are
-local witnesses of the component (`tables.rs:711-715`, "local witness columns"): the honest
+local witnesses of the component (`tables.rs:713-717`, "local witness columns"): the honest
 prover sets `w = v_cond⁻¹` when `v_cond ≠ 0` and `0` otherwise, and `b = [v_cond ≠ 0]`.
 
 **The constraints** are the two residuals `b + v_cond·w = 0` and `v_cond·(b + 1) = 0`. Together
@@ -54,7 +54,7 @@ table is program-free, as leanVM's is (`Arithmetization.Channels`).
 successor `(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)`, in characteristic two the selection
 of `(v_pc, v_fp)` when `b = 1` and of `(g·pc, fp)` when `b = 0`; reads the bytecode entry
 `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)` at `pc`; and reads the three cells `fp·o_c`, `fp·o_d`,
-`fp·o_f` as single-limb words `(v, 0, 0)`. `Spec` is `JumpSpec`: the successor is a function of
+`fp·o_f` as single-limb words `(v, 0)`. `Spec` is `JumpSpec`: the successor is a function of
 the witness `b`, which is why the table returns it rather than naming it in `Spec` from the
 row; soundness reads `b` off the residuals (`flags_sound`), and leaves the bytecode pull's
 guarantee unused, the tuple `main` emits being `JUMP o_c o_d o_f`'s entry by construction
@@ -75,7 +75,7 @@ from the execution alone.
 
 ## Wrong readings excluded
 
-* The three memory reads carry literal zeros above the low limb, so the condition, destination
+* The three memory reads carry a literal zero above the low limb, so the condition, destination
   and frame words are in `K` whether or not the branch is taken, as `step` asserts.
 * `b·(b + 1) = 0` is not the constraint: `flags_sound` needs both
   residuals, and `b = 1` at `v_cond = 0` fails the first (`flags_sound`, in the tests).
@@ -89,7 +89,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `JUMP` columns, in the order of `tables.rs:693-717`; the witnesses `w` and `b` are
+/-- The `JUMP` columns, in the order of `tables.rs:694-718`; the witnesses `w` and `b` are
 local to the component. -/
 structure JumpRow (F : Type) where
   /-- The program counter. -/
@@ -143,11 +143,11 @@ theorem flags_complete (c : K) :
 /-- The row's bindings to an image: the three cells hold the row's `K` words. -/
 structure JumpBindings {κ : ℕ} (mem : MemoryImage κ) (r : JumpRow K) : Prop where
   /-- The condition cell `fp · o_c` holds `v_cond`, a word in `K`. -/
-  cond_eq : mem.read (r.fp * r.oc) = some (E.ofLimbs r.vcond 0 0)
+  cond_eq : mem.read (r.fp * r.oc) = some (E.ofLimbs r.vcond 0)
   /-- The destination cell `fp · o_d` holds `v_pc`, a word in `K`. -/
-  dest_eq : mem.read (r.fp * r.od) = some (E.ofLimbs r.vpc 0 0)
+  dest_eq : mem.read (r.fp * r.od) = some (E.ofLimbs r.vpc 0)
   /-- The frame cell `fp · o_f` holds `v_fp`, a word in `K`. -/
-  frame_eq : mem.read (r.fp * r.of) = some (E.ofLimbs r.vfp 0 0)
+  frame_eq : mem.read (r.fp * r.of) = some (E.ofLimbs r.vfp 0)
 
 /-- The relation a `JUMP` row refines: it is bound to the image, and from its registers the
 machine executes the instruction it names, `JUMP o_c o_d o_f`, to `next` (`execute`).
@@ -191,7 +191,7 @@ private theorem jump_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `JUMP` table (specification §7.5; `tables.rs:693-815`): the witnesses `w`, `b`, the two
+/-- The `JUMP` table (specification §7.5; `tables.rs:692-833`): the witnesses `w`, `b`, the two
 residual constraints, the state pull and the push of the derived successor, the bytecode read
 of `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)`, and the three single-limb reads. Returns the pushed
 successor. -/
@@ -212,9 +212,9 @@ def jumpTable : GeneralFormalCircuit K JumpRow Registers where
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.busCode) #v[r.oc, r.od, r.of, 0, 0, 0, 0, 0, 0, 0,
       0, 0]
-    memRead (r.fp * r.oc) r.rc #v[r.vcond, 0, 0]
-    memRead (r.fp * r.od) r.rd #v[r.vpc, 0, 0]
-    memRead (r.fp * r.of) r.rf #v[r.vfp, 0, 0]
+    memRead (r.fp * r.oc) r.rc #v[r.vcond, 0]
+    memRead (r.fp * r.od) r.rd #v[r.vpc, 0]
+    memRead (r.fp * r.of) r.rf #v[r.vfp, 0]
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
@@ -305,11 +305,11 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oc od of : K}
   obtain ⟨c, hc, d, hd, f, hf, u, hu, -⟩ := h
   obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
   refine ⟨⟨?_, ?_, ?_⟩, hexec⟩
-  · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0 0)
+  · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0)
     rw [MemoryImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
-  · show mem.read (fp * od) = some (E.ofLimbs (mem.limbsAt (fp * od))[0] 0 0)
+  · show mem.read (fp * od) = some (E.ofLimbs (mem.limbsAt (fp * od))[0] 0)
     rw [MemoryImage.limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
-  · show mem.read (fp * of) = some (E.ofLimbs (mem.limbsAt (fp * of))[0] 0 0)
+  · show mem.read (fp * of) = some (E.ofLimbs (mem.limbsAt (fp * of))[0] 0)
     rw [MemoryImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
 /-- Every valid `JUMP` execution has a satisfying row, witnesses included, from the execution

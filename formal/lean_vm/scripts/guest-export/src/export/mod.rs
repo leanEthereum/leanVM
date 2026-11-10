@@ -9,7 +9,7 @@ use super::{
     placeholders::*, proof::*, statement::*,
 };
 use leanvm_core::cpu::{Program, from_scalar};
-use primitives::field::F192;
+use primitives::field::F128;
 use primitives::multilinear::mle_eval_par;
 use std::collections::BTreeMap;
 

@@ -81,6 +81,10 @@ def sampleN : ℕ → Script (List E)
 /-- Pass a proof of work. -/
 def grindS : Script Unit := grind (ret ())
 
+/-- Pass a proof of work of `bits` bits: nothing at `0` bits, as the verifier's
+`grindProofOfWork` and the Rust's `grind` (`crates/fiat_shamir/src/lib.rs:170-176`). -/
+def grindBits (bits : ℕ) : Script Unit := if bits = 0 then ret () else grindS
+
 /-- Commit a matrix. -/
 def commitS (word : Word) : Script Unit := commit word (ret ())
 
@@ -109,14 +113,20 @@ def wire : Option E → List E → List E
   | none, c => c.headD 0 :: c.drop 2
   | some _, c => c.drop 1
 
+/-- The grind after a round polynomial of these coefficients in the round's mode, for its degree,
+the equality factor included (`add_round_poly`, `crates/fiat_shamir/src/transcript.rs:93-104`). -/
+def roundGrind (mode : Option E) (c : List E) : ℕ :=
+  grindingBits (c.length - 1 + if mode.isSome then 1 else 0)
+
 /-- **A stateful sumcheck prover**: per round the coefficients `round st` (constant first) on the
-wire in the round's mode, then the challenge `c`, the state becoming `fold st c`; the challenges
-in order, and the last state. -/
+wire in the round's mode and the grind for their degree, then the challenge `c`, the state
+becoming `fold st c`; the challenges in order, and the last state. -/
 def sumcheckBy {σ : Type} (round : σ → List E) (fold : σ → E → σ) :
     List (Option E) → σ → Script (List E × σ)
   | [], st => .ret ([], st)
   | mode :: modes, st =>
-    (Script.sendList (wire mode (round st))).bind fun _ ↦ Script.sampleE.bind fun c ↦
+    (Script.sendList (wire mode (round st))).bind fun _ ↦
+    (Script.grindBits (roundGrind mode (round st))).bind fun _ ↦ Script.sampleE.bind fun c ↦
       (sumcheckBy round fold modes (fold st c)).bind fun r ↦ .ret (c :: r.1, r.2)
 
 end LeanVM.Prover

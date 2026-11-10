@@ -127,8 +127,8 @@ def l5Body : List Stmt :=
     .atom (.mul (.n 13) (.n 12) (.n 12)), .atom (.mul (.n 14) (.n 2) (.n 13)),
     .atom (.mul (.n 15) (.n 3) (.n 7)), .atom (.mul (.n 16) (.n 4) (.n 7)),
     .call "rs_eq_rows__L8" [.n 14, .n 15, .n 16] [.n 17],
-    .atom (.const (.n 18) (word 2 0 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
-    .atom (.add (.n 20) (.n 19) (.n 1)), .atom (.const (.n 21) (word 2 0 0)),
+    .atom (.const (.n 18) (word 2 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
+    .atom (.add (.n 20) (.n 19) (.n 1)), .atom (.const (.n 21) (word 2 0)),
     .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) "__loop5" [.n 22, .n 1, .n 2, .n 3, .n 4],
     .ret []]
 

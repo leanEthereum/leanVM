@@ -17,33 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop420`, window 1. -/
+/-- `walk_path__L11_L8`, window 1. -/
 theorem w949_1 : WinOk 949 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop420`, window 2. -/
-theorem w949_2 : WinOk 949 2 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L26_L6`, window 0. -/
+/-- `__loop348`, window 0. -/
 theorem w950_0 : WinOk 950 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop421`, window 0. -/
+/-- `__loop348`, window 1. -/
+theorem w950_1 : WinOk 950 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop348`, window 2. -/
+theorem w950_2 : WinOk 950 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop348`, window 3. -/
+theorem w950_3 : WinOk 950 3 := winOk_of_C (by decide +kernel)
+
+/-- `__loop349`, window 0. -/
 theorem w951_0 : WinOk 951 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop421`, window 1. -/
+/-- `__loop349`, window 1. -/
 theorem w951_1 : WinOk 951 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop421`, window 2. -/
+/-- `__loop349`, window 2. -/
 theorem w951_2 : WinOk 951 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop421`, window 3. -/
-theorem w951_3 : WinOk 951 3 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L25_L5`, window 0. -/
-theorem w952_0 : WinOk 952 0 := winOk_of_C (by decide +kernel)
-
-theorem ok950 : CheckOk 950 := checkOk_one (by decide +kernel) w950_0
-
-theorem ok952 : CheckOk 952 := checkOk_one (by decide +kernel) w952_0
 
 end
 end LeanVM.Guest.Checked

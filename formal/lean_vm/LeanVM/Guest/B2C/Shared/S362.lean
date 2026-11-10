@@ -16,20 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L11_L7`, window 2. -/
-theorem w977_2 : shareWin 977 (snapsOf 977) 2 = true := by decide +kernel
+/-- `__loop376`, window 1. -/
+theorem w987_1 : shareWin 987 (snapsOf 987) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L11_L7`, window 3. -/
-theorem w977_3 : shareWin 977 (snapsOf 977) 3 = true := by decide +kernel
+/-- `__loop376`, window 2. -/
+theorem w987_2 : shareWin 987 (snapsOf 987) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L4`, once. -/
-theorem st978 : shareStatic 978 = true := by decide +kernel
+/-- `__loop376`, window 3. -/
+theorem w987_3 : shareWin 987 (snapsOf 987) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L4`, window 0. -/
-theorem w978_0 : shareWin 978 (snapsOf 978) 0 = true := by decide +kernel
+/-- `__loop377`, once. -/
+theorem st988 : shareStatic 988 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop377`, window 0. -/
+theorem w988_0 : shareWin 988 (snapsOf 988) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop377`, window 1. -/
+theorem w988_1 : shareWin 988 (snapsOf 988) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop377`, window 2. -/
+theorem w988_2 : shareWin 988 (snapsOf 988) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L16_L7`, once. -/
+theorem st989 : shareStatic 989 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

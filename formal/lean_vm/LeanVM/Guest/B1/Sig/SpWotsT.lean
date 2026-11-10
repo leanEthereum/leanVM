@@ -55,7 +55,7 @@ def spPad : Nat := 21
 
 /-- The padding run `[0x01, 0, 0, 0, 0]` at `P`. -/
 def padRun (P : Nat) : List Stmt :=
-  (List.range 5).map fun k => cst (P + k) (word (if k = 0 then 1 else 0) 0 0)
+  (List.range 5).map fun k => cst (P + k) (word (if k = 0 then 1 else 0) 0)
 
 /-! ## The chains -/
 
@@ -130,10 +130,10 @@ def spGroupsT : Nat → Nat → V → V → Nat → List Stmt × Nat × List V �
 /-! ## The body -/
 
 /-- `g^128`, the target sum in the exponent (`SP_TARGET_SUM`), as the compiler writes it. -/
-def spTarget : E := word 325 0 0
+def spTarget : E := word 325 0
 
 /-- `SP_WOTS_PK`, the type `WOTS_PK` in `A1`'s byte 19. -/
-def spPkC : E := word (2 ^ 24) 0 0
+def spPkC : E := word (2 ^ 24) 0
 
 /-- The codeword's groups: 21 of three digits from `n16`, then the last chain's. -/
 def spGs : List Stmt × Nat × List V × V × V := spGroupsT 21 0 (.n 0) (.n 0) 16
@@ -155,7 +155,7 @@ def spLeafK : List Stmt × Nat × Nat := kMsg spPad (spLeafCells.map KC.cell) 10
 /-- The body of `sp_wots`, numbered uniformly. -/
 def spBodyT : List Stmt :=
   [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)] ++
-    (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0 0)) ++ spGs.1 ++ spLast.1 ++
+    (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0)) ++ spGs.1 ++ spLast.1 ++
     [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n 3)), cst spC spTarget,
       .atom (.assertEq (.n (spProd false 1 spGs.2.1)) (.n spC)), cst (spC + 1) spPkC,
       addS (.n (spC + 2)) (.n 2) (.n (spC + 1))] ++ spLeafK.1 ++

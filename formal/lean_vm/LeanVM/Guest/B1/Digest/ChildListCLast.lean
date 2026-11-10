@@ -39,20 +39,11 @@ open LeanVM.Guest.B1.Da (limb0_gen_pow_mul)
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (351 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (380 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 360 + (k - 9) = 351 + k by omega] at this
-
-theorem mem_ccA {st : List V} {o0 K i : ℕ} (h : i ∈ ccA st o0 K) :
-    (∃ v ∈ st, i = v.idx) ∨ ∃ j < K, ∃ c < 4, i = ccCell o0 j c := by
-  rcases List.mem_append.mp h with h | h
-  · obtain ⟨v, hv, rfl⟩ := List.mem_map.mp h
-    exact Or.inl ⟨v, hv, rfl⟩
-  · obtain ⟨j, hj, h⟩ := List.mem_flatMap.mp h
-    obtain ⟨c, hc, rfl⟩ := List.mem_map.mp h
-    exact Or.inr ⟨j, List.mem_range.mp hj, c, List.mem_range.mp hc, rfl⟩
+    rwa [show 9 + (k - 9) = k by omega, show 389 + (k - 9) = 380 + k by omega] at this
 
 /-- The records' message is their cells. -/
 theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)
@@ -63,22 +54,6 @@ theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length =
   simp only [ccMsg, List.getElem_map, List.getElem_range, srcVal]
   rw [hv (i / 4) (by omega) (i % 4) (by omega), show 4 * (i / 4) + i % 4 = i by omega,
     List.getD_eq_getElem _ _ h2]
-
-/-- The canonical inputs: the state's cells and the records'. -/
-theorem ccA_canon {σ : Val} (hidx : ∀ v, σ v = σ (.n v.idx)) {st : List V} {S : KeccakState}
-    {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K) (hc : AllCanonical cells)
-    (hlen : st.length = 13) (vst : ∀ c : Fin 13, σ (st.getD c default) = cellsOfState S false c)
-    (vc : ∀ j < K, ∀ c < 4, σ (.n (ccCell o0 j c)) = cells.getD (4 * j + c) 0) :
-    ∀ i ∈ ccA st o0 K, IsCanonical128 (σ (.n i)) := by
-  intro i hi
-  rcases mem_ccA hi with ⟨v, hv, rfl⟩ | ⟨j, hj, c, hc4, rfl⟩
-  · obtain ⟨c, hc13, rfl⟩ := List.getElem_of_mem hv
-    have := vst ⟨c, by omega⟩
-    rw [List.getD_eq_getElem _ _ hc13] at this
-    rw [← hidx, this]
-    exact canon_cellsOfState _ _ _
-  · rw [vc j hj c hc4, List.getD_eq_getElem _ _ (by omega)]
-    exact hc _ (List.getElem_mem _)
 
 theorem edge_parts {A S : List Atom} {o0 p0 K stp : ℕ} {outs : List V}
     (h : edgeOk A S o0 p0 K stp outs = true) :
@@ -123,7 +98,6 @@ mark at `region · g^(os j)`, a record's cells at `entries · g^(4 os j)`. -/
 theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hhd : anycHead (coreProgram.getD j default) f = true)
-    (hcn : anycCanon (coreProgram.getD j default) m o0 st0 = true)
     (hedge : anycEdge (coreProgram.getD j default) m o0 p0 mk st0 = true)
     (hrecs : ∀ i < m,
       recW (ccOwn (loopAtoms (coreProgram.getD j default)) p0 i) (anyP mk) o0 i = true)
@@ -132,7 +106,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (hx : x = gen ^ xj) (hch : chain = gen ^ chP) (hen : entries = gen ^ eP)
     (hrg : region = gen ^ rg) {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
-    {os : ℕ → ℕ} {cells : List E} (hl : cells.length = 4 * m) (hc : AllCanonical cells)
+    {os : ℕ → ℕ} {cells : List E} (hl : cells.length = 4 * m)
     (hrec : RecMem rd region (gen ^ L) entries (base * x ^ m) m os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
@@ -194,10 +168,9 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
     rw [load_val (hst.2 c c.isLt) hg (hnSl rfl (by have := c.isLt; omega)), v12,
       rdAt_of_load (hS c)]
-  have hA := ccA_canon (o0 := o0) hidx hl hc (by simp [anySt]) vst vc
   have hat : ∀ a ∈ A, a.Holds rd σ := by
     refine blockW_holds (c := 7) (ss := fn.body) (p0 := p0) (stp := 12)
-      (outs := anyOuts m o0 st0 A) hidx (canonChk_of_canonGoB hcn) hg hA hedge hside ?_ ?_ ?_
+      (outs := anyOuts m o0 st0 A) hg hedge hside ?_ ?_ ?_
     · intro a ha h haS
       cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
         decide_eq_true_eq] at h
@@ -231,7 +204,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
         simp [isLoadB] at ha'
       have hchk' : (anySpec m o0 st0 A).check (A.filter (fun a => decide (a ∉ S))) = true := by
         rw [check_filter hq]; exact hck
-      obtain ⟨hw, -, -⟩ := chain_whole hchk' rfl hG hpre (fun c => vst c)
+      obtain ⟨hw, -⟩ := chain_whole hchk' rfl hG hpre (fun c => vst c)
       have hv : (anySpec m o0 st0 A).vals σ = cells := ccMsg_vals hl vc
       have hwc := hw ⟨c, hc13⟩
       rw [hv, hnb, show ((⟨c, hc13⟩ : Fin 13) : ℕ) = c from rfl] at hwc
@@ -282,7 +255,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 /-! ## The two frame loops -/
 
 theorem any136c_recs : ∀ i < 136,
-    recW (ccOwn (loopAtoms (coreProgram.getD 349 default)) 15 i) (anyP 21) 22 i = true :=
+    recW (ccOwn (loopAtoms (coreProgram.getD 378 default)) 15 i) (anyP 21) 22 i = true :=
   recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
     have hw : ∀ i < 16, anycWin i = true := by
       intro i hi
@@ -292,13 +265,12 @@ theorem any136c_recs : ∀ i < 136,
         anycWin_14, anycWin_15]
     exact hw i hi
 
-theorem any17c_parts : anycHead (coreProgram.getD 350 default) "__loop18" = true ∧
-    anycCanon (coreProgram.getD 350 default) 17 19 255 = true ∧
-    anycEdge (coreProgram.getD 350 default) 17 19 12 18 255 = true ∧
-    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 350 default)) 12 i) (anyP 18) 19 i = true := by
+theorem any17c_parts : anycHead (coreProgram.getD 379 default) "__loop18" = true ∧
+    anycEdge (coreProgram.getD 379 default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 379 default)) 12 i) (anyP 18) 19 i = true := by
   have h := any17c_ok
   simp only [anycOk, Bool.and_eq_true] at h
-  exact ⟨h.1.1.1, h.1.1.2, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by
+  exact ⟨h.1.1, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by
     rw [show i = 0 by omega]; exact h.2⟩
 
 end

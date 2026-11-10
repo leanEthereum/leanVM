@@ -51,23 +51,23 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1600` statements, up to its call of
-`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `139`) among the powers
+`verify_sub`'s argument `4` (`g_squares`), its first `1552` statements, up to its call of
+`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `83`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1600) True (fun _ ↦ True) →
-      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1552) True (fun _ ↦ True) →
+      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 83)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
-dims_g known', 'verifysub#7'): on every memory image, its first `552` statements, up to its call
-of `verify_tables`, put entry `0` of `dims_g` (the value `127`, `g^logMem`) among the powers
+dims_g known', 'verifysub#7'): on every memory image, its first `333` statements, up to its call
+of `verify_tables`, put entry `0` of `dims_g` (the value `71`, `g^logMem`) among the powers
 `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
 def VsDimsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True (fun _ ↦ True) →
-      ∃ e < 34, LoadHolds L.read (σ (.n 127)) 0 (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 333) True (fun _ ↦ True) →
+      ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e))
 
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table. -/
 def ExpTablesSound : Prop :=
@@ -89,11 +89,11 @@ def CutsKnown (j : ℕ) : Prop :=
 
 /-! ## `verify_sub`'s obligation -/
 
-/-- `verify_sub`'s first `552` statements hold under any longer prefix of its body. -/
-theorem vs_take552 {κ : ℕ} {L : MemoryImage κ} {σ : Val} {n : ℕ} (hn : 552 ≤ n)
+/-- `verify_sub`'s first `333` statements hold under any longer prefix of its body. -/
+theorem vs_take333 {κ : ℕ} {L : MemoryImage κ} {σ : Val} {n : ℕ} (hn : 333 ≤ n)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take n) True
       (fun _ ↦ True)) :
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 333) True
       (fun _ ↦ True) := by
   obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hn
   rw [List.take_add, holdsList_append] at hl
@@ -111,26 +111,26 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
-  have hdims (n : ℕ) (hn : 552 ≤ n)
+  have hdims (n : ℕ) (hn : 333 ≤ n)
       (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
         ((coreOf 19).body.take n) True (fun _ ↦ True)) :
-      MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 127 0)) := by
+      MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 71 0)) := by
     intro m hm
     rw [vsDimsKnown, List.mem_singleton] at hm
     subst hm
-    exact hvd L h16 h32 _ (vs_take552 hn hl)
+    exact hvd L h16 h32 _ (vs_take333 hn hl)
   rw [vs_cuts] at hi
   obtain rfl | rfl : i = 1 ∨ i = 2 := by omega
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    exact ⟨hdims 552 le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+    exact ⟨hdims 333 le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
     rw [hkn, hki, hsm]
     rw [hst] at hl
     refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
     rcases List.mem_append.mp hm with hm | hm
-    · exact hdims 1600 (by omega) hl m hm
+    · exact hdims 1552 (by omega) hl m hm
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
     exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
 

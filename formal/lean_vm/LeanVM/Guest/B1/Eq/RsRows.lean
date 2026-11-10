@@ -111,7 +111,7 @@ def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
 /-- The expansion of `rs_eq_rows__L{n}`, `n ≥ 1`. -/
 def rrBody (n : ℕ) : List Stmt :=
   ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ++
-    [.atom (.const (.n (rrT n)) (word 27 0 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
+    [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
 theorem core81_body : Fn.body Data.core81 = [.atom (.copy (.n 3) (.n 0)), .ret [.n 3]] :=
@@ -123,7 +123,7 @@ theorem core85_body : Fn.body Data.core85 = rrBody 4 := stmtsEqb_sound (by decid
 theorem core86_body : Fn.body Data.core86 = rrBody 5 := stmtsEqb_sound (by decide +kernel)
 theorem core87_body : Fn.body Data.core87 = rrBody 6 := stmtsEqb_sound (by decide +kernel)
 theorem core88_body : Fn.body Data.core88 = rrBody 7 := stmtsEqb_sound (by decide +kernel)
-theorem core418_body : Fn.body Data.core418 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core448_body : Fn.body Data.core448 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
 
@@ -170,7 +170,7 @@ theorem rr_unfold {name : String} {f : Fn} (n : ℕ) (hfind : coreProgram.find? 
     coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1), σ (.n 2)] = args ∧
       (∀ i < n, LoadHolds rd (σ (.n 1)) i (σ (.n (3 + 2 * i))) ∧
         LoadHolds rd (σ (.n 2)) i (σ (.n (4 + 2 * i)))) ∧
-      (∀ k < 64, RrRowOk rd σ n k) ∧ σ (.n (rrT n)) = word 27 0 0 ∧
+      (∀ k < 64, RrRowOk rd σ n k) ∧ σ (.n (rrT n)) = word 27 0 ∧
       σ (.n (rrT n + 1)) = σ (.n 0) * σ (.n (rrT n)) ∧
       σ (.n (rrT n + 2)) = σ (.n (rrT n + 1)) ∧ [σ (.n (rrT n + 2))] = rets := by
   rw [rel_iff_sem hfind, hbody, hparams, rrBody]
@@ -238,7 +238,7 @@ theorem length_rrRowVals (n : ℕ) (zs ps c : List E) (k : ℕ) :
 def rrVals (n : ℕ) (row z p : E) (zs ps c : List E) : List E :=
   [row, z, p] ++ (List.range n).flatMap (fun i ↦ [zs.getD i 0, ps.getD i 0]) ++
     (List.range 64).flatMap (rrRowVals n zs ps c) ++
-    [word 27 0 0, row * word 27 0 0, row * word 27 0 0]
+    [word 27 0, row * word 27 0, row * word 27 0]
 
 theorem length_rrHeadVals (n : ℕ) (zs ps : List E) :
     ((List.range n).flatMap (fun i ↦ [zs.getD i 0, ps.getD i 0])).length = n * 2 :=
@@ -319,7 +319,7 @@ theorem rrRowVals_coord (k i s : ℕ) (hi : i < n) (hs : s < rrStride k) :
 
 theorem rrVals_tail (t : ℕ) (ht : t < 3) :
     (rrVals n row z p zs ps c).getD (rrT n + t) 0 =
-      [word 27 0 0, row * word 27 0 0, row * word 27 0 0].getD t 0 := by
+      [word 27 0, row * word 27 0, row * word 27 0].getD t 0 := by
   have hB := length_rrPreRows n row z p zs ps c
   unfold rrVals
   rw [List.getD_append_right _ _ _ _ (by rw [hB]; omega), hB, Nat.add_sub_cancel_left]
@@ -349,7 +349,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
     coreProgram.Rel rd name args rets ↔ MeaningRsEqRows n rd args rets := by
   rw [rr_unfold n hfind hparams hbody]
   have hk27 : K.ofBits 27 = K.ofBits 2 ^ 64 := by decide +kernel
-  have w27 : word 27 0 0 = gen ^ 64 := by
+  have w27 : word 27 0 = gen ^ 64 := by
     rw [word_eOfNat, show gen = ofK (K.ofBits 2) from rfl, ← ofK_pow, ← hk27]
     rfl
   constructor
@@ -478,8 +478,8 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
       core87_body rd args rets
   · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
       core88_body rd args rets
-  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl) rfl
-      core418_body rd args rets
+  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 448) (by decide +kernel) rfl) rfl
+      core448_body rd args rets
 
 end
 end LeanVM.Guest.B1

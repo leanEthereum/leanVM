@@ -3,7 +3,7 @@
 
   What `verify_sub` hands `check_opening_terminal`, in the terminal's forms: the exponent table's
   nibble shares (`GTabsAt`), `verify_tables`' context (`TCtx`) as the terminal's `TermCtx`, and the
-layout's placements at the guest's bytecode log size.
+  layout's placements at the guest's bytecode log size.
 -/
 
 module
@@ -27,21 +27,11 @@ theorem gTabs_of_exp {rd : Reader} {sq : E} (h : ExpTables rd sq) :
   have := h.2.1 j (by simp only [Tables.selNibbles] at hj; simp only [selTabNibbles]; omega) u hu
   simpa only [sizeBits, Nat.add_assoc] using this
 
-theorem claimKappaSrc_eq : ∀ j < Tables.nClaims, Tables.claimKappaSrc.getD j 0 = claimKappaSrc j := by
-  decide +kernel
-
-/-- `verify_tables`' context is the terminal's: the same claims, their low dimensions
-`claimLowDim` the terminal's `claimLow`. -/
+/-- `verify_tables`' context is the terminal's (`TermCtx` is `Tables.TCtx`). -/
 theorem termCtx_of_tctx {rd : Reader} {layout : Layout} {bus : BusResult}
     {claims : List ColumnClaim} {zeta chi rm gmu gzcn : E}
     (h : Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn]) :
-    TermCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] := by
-  obtain ⟨chis, h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
-  refine ⟨chis, h1, h2, h3, h4, h5, h6, h7, fun j p hp ↦ ?_⟩
-  obtain ⟨a, b, c, d⟩ := h8 j p hp
-  refine ⟨fun hj ↦ ?_, b, c, d⟩
-  rw [a hj, Tables.claimLowDim, claimLow, claimKappaSrc_eq j (by simp only [Tables.nPooled] at hj; omega)]
-  rfl
+    TermCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] := h
 
 /-- The layout's placements, at the guest's bytecode log size `19`. -/
 theorem layoutOf_placements {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)

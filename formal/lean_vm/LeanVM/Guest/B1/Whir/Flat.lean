@@ -86,6 +86,18 @@ theorem holdsList_flat_ret (ss : List Stmt) (h : ss.all Stmt.flat = true) (vs : 
   rw [holdsList_append, holdsList_flat ss h]
   simp [Stmt.HoldsList, Stmt.Holds]
 
+/-! ## Atoms -/
+
+theorem holds_const (d : V) (c : E) : (Atom.const d c).Holds rd σ ↔ σ d = c := Iff.rfl
+theorem holds_add (d a b : V) : (Atom.add d a b).Holds rd σ ↔ σ d = σ a + σ b := Iff.rfl
+theorem holds_mul (d a b : V) : (Atom.mul d a b).Holds rd σ ↔ σ d = σ a * σ b := Iff.rfl
+theorem holds_copy (d s : V) : (Atom.copy d s).Holds rd σ ↔ σ d = σ s := Iff.rfl
+theorem holds_load (d p : V) (o : ℕ) : (Atom.load d p o).Holds rd σ ↔ LoadHolds rd (σ p) o (σ d) :=
+  Iff.rfl
+theorem stmtOk_atom (a : Atom) : StmtOk C rd σ (.atom a) ↔ a.Holds rd σ := Iff.rfl
+theorem stmtOk_call (f : String) (args rets : List V) :
+    StmtOk C rd σ (.call f args rets) ↔ C f (args.map σ) (rets.map σ) := Iff.rfl
+
 /-! ## Words -/
 
 /-- The template's g-power words. -/

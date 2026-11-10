@@ -28,7 +28,7 @@ moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.l
   the trees committed so far are carried along; an opening reads the stored tree
   (`LeanVM.Prover.Tree.opening`) and queries nothing;
 * the proof-of-work search tries the nonces `0, 1, …, fuel - 1` in order, each absorbed into the
-  sponge with tag `4` and a challenge squeezed (`LeanVM.Prover.powStepM`,
+  sponge with tag `4` and permuted, the permutation's third lane checked (`absorbNonce`,
   `LeanVM.Prover.searchM`).
 
 * `simulateQ_proveM`: interpreting the queries of `proveM callKeccak256 callKeccakF1600` by any implementation is
@@ -44,7 +44,7 @@ namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Rom
-open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash searchM findNonceM)
 open OracleComp OracleSpec
 
 @[expose] public section
@@ -73,7 +73,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     match ← findNonceM F bits sp fuel with
     | none => pure none
     | some n => do
-      let r ← powStepM F sp n
+      let r ← absorbNonce F sp n
       let t ← proveFromM S fuel k r.2 (h ++ [Ev.grind bits]) cs
       pure (t.map fun t ↦ (n :: t.1, t.2))
   | .commit ht w k, sp, h, cs => do
@@ -92,7 +92,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
 /-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
 def proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : m (Option
     Proof) := do
-  let r ← proveFromM H F S fuel P ⟨seed, []⟩ [] []
+  let r ← proveFromM H F S fuel P ⟨seed, [], none⟩ [] []
   pure (r.map fun t ↦ ⟨t.1, t.2⟩)
 
 end ProverM
@@ -198,12 +198,11 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
 
 theorem searchM_id (bits : ℕ) (sp : Sponge) :
     ∀ (count n : ℕ), searchM (m := Id) F bits sp n count =
-      ((List.range' n count).find? fun j ↦ powOk bits (nonceOf j) (powStep F sp (nonceOf j)).1).map
-        nonceOf
+      ((List.range' n count).find? fun j ↦ powOk bits (powStep F sp (nonceOf j)).1).map nonceOf
   | 0, _ => rfl
   | count + 1, n => by
     rw [List.range'_succ, List.find?_cons]
-    show (if powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 then _ else _) = _
+    show (if powOk bits (powStep F sp (nonceOf n)).1 then _ else _) = _
     split <;> rename_i hp
     · simp only [hp, Option.map_some]; rfl
     · simp only [hp]; exact searchM_id bits sp count (n + 1)
@@ -211,9 +210,7 @@ theorem searchM_id (bits : ℕ) (sp : Sponge) :
 theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     findNonceM (m := Id) F bits sp fuel = findNonce F bits sp fuel := by
   unfold findNonceM findNonce
-  split
-  · rfl
-  · rw [searchM_id, List.range_eq_range']
+  rw [searchM_id, List.range_eq_range']
 
 theorem treesOf_append (h : List Ev) (ht w : ℕ) (W : Word) :
     treesOf H (commits (h ++ [Ev.commit ht w W])) = treesOf H (commits h) ++
@@ -273,7 +270,7 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
 /-- **The `Id` instance is the honest prover.** -/
 theorem proveM_id (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) :
     proveM (m := Id) H F P S seed fuel = prove H F P S seed fuel := by
-  show (proveFromM (m := Id) H F S fuel P ⟨seed, []⟩ [] (treesOf H (commits []))).map _ = _
+  show (proveFromM (m := Id) H F S fuel P ⟨seed, [], none⟩ [] (treesOf H (commits []))).map _ = _
   rw [proveFromM_id]
   rfl
 
@@ -317,16 +314,12 @@ theorem simulateQ_buildTreeM (height : ℕ) (word : Word) :
   simp only [buildTreeWithHash, simulateQ_bind, simulateQ_leafDigestsM, simulateQ_levelsM,
     simulateQ_pure]
 
-theorem simulateQ_powStepM (sp : Sponge) (n : E) :
-    simulateQ impl (powStepM callKeccakF1600 sp n) = powStepM (implF impl) sp n := by
-  simp only [powStepM, simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
-
 theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
     ∀ (count n : ℕ), simulateQ impl (searchM callKeccakF1600 bits sp n count) =
       searchM (implF impl) bits sp n count
   | 0, _ => by simp [searchM]
   | count + 1, n => by
-    simp only [searchM, simulateQ_bind, simulateQ_powStepM]
+    simp only [searchM, simulateQ_bind, simulateQ_absorbNonce]
     congr 1; funext r
     split
     · simp
@@ -335,9 +328,7 @@ theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
 theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     simulateQ impl (findNonceM callKeccakF1600 bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
   unfold findNonceM
-  split
-  · simp
-  · exact simulateQ_searchM impl bits sp _ _
+  exact simulateQ_searchM impl bits sp _ _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree),
@@ -356,7 +347,7 @@ theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     congr 1; funext o
     split
     · simp
-    · simp only [simulateQ_bind, simulateQ_powStepM, simulateQ_pure]
+    · simp only [simulateQ_bind, simulateQ_absorbNonce, simulateQ_pure]
       congr 1; funext r; rw [simulateQ_proveFromM S fuel]
   | .commit ht w k, sp, h, cs => by
     simp only [proveFromM, simulateQ_bind, simulateQ_buildTreeM, simulateQ_absorb,
@@ -486,15 +477,20 @@ theorem isTotalQueryBound_absorb_le {β : Type} (sp : Sponge) (x : E) (tag : ℕ
 theorem isTotalQueryBound_squeeze_le {β : Type} (sp : Sponge)
     {g : E × Sponge → OracleComp KeccakCalls β} {n : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) n) :
     IsTotalQueryBound (squeeze callKeccakF1600 sp >>= g) (n + 1) := by
-  rw [squeeze_bind]
-  exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
+  rcases hs : sp.ground with _ | c
+  · rw [squeeze_bind hs]
+    exact isTotalQueryBound_queryF_bind _ fun st ↦ hg _
+  · rw [squeeze_bind_ground hs]
+    exact (hg _).mono (Nat.le_succ n)
 
 /-- A proof-of-work step queries at most twice. -/
-theorem isTotalQueryBound_powStepM_le {β : Type} (sp : Sponge) (n : E)
-    {g : E × Sponge → OracleComp KeccakCalls β} {c : ℕ} (hg : ∀ r, IsTotalQueryBound (g r) c) :
-    IsTotalQueryBound (powStepM callKeccakF1600 sp n >>= g) (c + 2) := by
-  simp only [powStepM, bind_assoc]
-  exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦ isTotalQueryBound_squeeze_le _ hg
+theorem isTotalQueryBound_absorbNonce_le {β : Type} (sp : Sponge) (n : E)
+    {g : UInt64 × Sponge → OracleComp KeccakCalls β} {c : ℕ}
+    (hg : ∀ r, IsTotalQueryBound (g r) c) :
+    IsTotalQueryBound (absorbNonce callKeccakF1600 sp n >>= g) (c + 2) := by
+  rw [absorbNonce_bind]
+  exact isTotalQueryBound_absorb_le _ _ _ fun sp' ↦
+    isTotalQueryBound_queryF_bind _ fun st ↦ hg _
 
 theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
     ∀ (count n : ℕ), IsTotalQueryBound (searchM callKeccakF1600 bits sp n count) (2 * count)
@@ -502,7 +498,7 @@ theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
   | count + 1, n => by
     simp only [searchM]
     rw [show 2 * (count + 1) = 2 * count + 2 by ring]
-    refine isTotalQueryBound_powStepM_le _ _ fun r ↦ ?_
+    refine isTotalQueryBound_absorbNonce_le _ _ fun r ↦ ?_
     split
     · trivial
     · exact isTotalQueryBound_searchM bits sp count (n + 1)
@@ -510,9 +506,7 @@ theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
 theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     IsTotalQueryBound (findNonceM callKeccakF1600 bits sp fuel) (2 * fuel) := by
   unfold findNonceM
-  split
-  · trivial
-  · exact isTotalQueryBound_searchM bits sp fuel 0
+  exact isTotalQueryBound_searchM bits sp fuel 0
 
 /-- The query cost of one quarter of a program's cost: a commitment builds a
 tree of height at most `height`, a proof of work searches `fuel` nonces at two queries each. -/
@@ -566,7 +560,7 @@ theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Ty
       (n₂ := (n - 5) * proverFactor height fuel + 0 + 2) fun o ↦ ?_).mono ?_
     · split
       · trivial
-      · exact isTotalQueryBound_powStepM_le (c := (n - 5) * proverFactor height fuel + 0) _ _
+      · exact isTotalQueryBound_absorbNonce_le (c := (n - 5) * proverFactor height fuel + 0) _ _
           fun r ↦ isTotalQueryBound_bind
           (isTotalQueryBound_proveFromM S fuel height k r.2 (h ++ [Ev.grind bits]) cs (n - 5) Q
             hp.2) fun _ ↦ isTotalQueryBound_pure' _ 0
@@ -610,7 +604,7 @@ theorem isTotalQueryBound_proveM {P : VerifierProgram Bool} {height n : ℕ} (hP
     IsTotalQueryBound (proveM callKeccak256 callKeccakF1600 P S seed fuel) (n * proverFactor height fuel) := by
   unfold proveM
   rw [← Nat.add_zero (n * _)]
-  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, []⟩ [] [] n _
+  exact isTotalQueryBound_bind (isTotalQueryBound_proveFromM S fuel height P ⟨seed, [], none⟩ [] [] n _
     hP) fun _ ↦ isTotalQueryBound_pure' _ 0
 
 end Queries

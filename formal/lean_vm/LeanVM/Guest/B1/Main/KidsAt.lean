@@ -62,7 +62,7 @@ end KidH
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
-/-- **What child `c` needs**: its counts' bounds, its words canonical, the caller's words (the
+/-- **What child `c` needs**: its counts' bounds, the caller's words (the
 running counts at `g^W`, the DA digest at `g^(D + 2c)`, the statement's digest at `g^(Pi + 2c)`,
 the deferred cells at `g^(Cr + 24c)`) and their addresses in `Lin`, and its callees
 `child_claim_list_digest` (twice) and `verify_sub` complete reading `Lin`. -/
@@ -70,7 +70,6 @@ structure KidOkC (Lin : Layout) (W D Pi Cr : ℕ) (lxt cover lxs lst spc lss s0 
     (c : ℕ) (k : KidH) : Prop where
   ex_le : k.ex ≤ 65535
   es_le : k.es ≤ 65535
-  can : AllCanonical [k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2]
   defer_len : k.defer.length = 24
   mem : ∀ rd, MemL rd Lin →
     LoadHolds rd (gen ^ W) c k.base ∧
@@ -116,7 +115,7 @@ set_option maxRecDepth 20000 in
 /-- **One child of `__loop4`, placed**: child `c` and the rest of the loop. -/
 theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH}
-    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
     (htail : c + 1 < nk → CompleteAtD fs cert 16 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -159,13 +158,7 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
     · exact hk.hS
     · refine statement_completeAt fs cert fun rd hm => ?_
       obtain ⟨-, -, -, -, -, -, hdef⟩ := hk.mem rd hm
-      refine ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, ?_, rfl⟩
-      intro x hx
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      · exact hs01 _ (by simp)
-      · exact hs01 _ (by simp)
-      all_goals exact hk.can _ (by simp)
+      exact ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, rfl⟩
     · exact hk.hV
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
     kidsFromIn_of_kidsD (fs := fs) (cert := cert) 16 ks hok P1
@@ -339,7 +332,7 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
 (`KidOkC`). -/
 theorem l5_completeAt {Lin : Layout} {W D Pi Cr nk : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {kid : ℕ → KidH}
-    (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34)
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c)) :
     ∀ c < nk, CompleteAtD fs cert 16 "__loop4" Lin
@@ -352,10 +345,10 @@ theorem l5_completeAt {Lin : Layout} {W D Pi Cr nk : ℕ}
     induction t with
     | zero =>
       intro c hc
-      exact l5_stepAt fs cert hnk (by omega) hs01 (hk c (by omega)) fun h => absurd h (by omega)
+      exact l5_stepAt fs cert hnk (by omega) (hk c (by omega)) fun h => absurd h (by omega)
     | succ t ih =>
       intro c hc
-      exact l5_stepAt fs cert hnk (by omega) hs01 (hk c (by omega)) fun _ => ih (c + 1) (by omega)
+      exact l5_stepAt fs cert hnk (by omega) (hk c (by omega)) fun _ => ih (c + 1) (by omega)
   intro c hc
   exact key (nk - c - 1) c (by omega)
 

@@ -37,22 +37,9 @@ the lanes, which are the stack's six high bits, and its weight at a point `p` is
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-  LeanVM.Protocol.Whir LeanVM.Protocol.EndToEnd Finset
+  LeanVM.Protocol.Whir LeanVM.Protocol.EndToEnd Finset Polynomial
 
 @[expose] public section
-
-/-! ## Reindexing -/
-
-/-- Lists are invariant under reindexing the rows. -/
-theorem mem_iList_comp {F ι ρ ρ' : Type*} [Field F] [Fintype F] [Fintype ι] [Fintype ρ]
-    [Fintype ρ'] (C : Submodule F (ι → F)) (A : ℕ) (e : ρ' ≃ ρ) (O V : ρ' → ι → F) :
-    V ∈ iList C A O ↔ (fun r ↦ V (e.symm r)) ∈ iList C A (fun r ↦ O (e.symm r)) := by
-  simp only [mem_iList, IsInterleavedCodeword, IsClose, AgreeOn]
-  constructor
-  · rintro ⟨hc, S, hS, hag⟩
-    exact ⟨fun r ↦ hc _, S, hS, fun r x hx ↦ hag _ x hx⟩
-  · rintro ⟨hc, S, hS, hag⟩
-    refine ⟨fun r ↦ by simpa using hc (e r), S, hS, fun r x hx ↦ by simpa using hag (e r) x hx⟩
 
 theorem bitsToNat_append {m n : ℕ} (x : Fin m → Bool) (u : Fin n → Bool) :
     bitsToNat (Fin.append x u) = bitsToNat x + 2 ^ m * bitsToNat u := by
@@ -106,50 +93,116 @@ theorem claimSum_encStack {μ : ℕ} (hμ : laneBits ≤ μ) (w : List E → E) 
   rw [hrot, ← bitsL_append, ← boolPoint_bitsToNat, bitsToNat_append]
   simp [EndToEnd.blockOf, bitsEquiv_val]
 
+/-! ## Tuples and codewords -/
+
+/-- The level-0 tuple of a stack: lane `u` is the message polynomial of block `⟨u⟩`. -/
+noncomputable def stackTuple {μ : ℕ} (q : Column μ) : (Fin laneBits → Bool) → E[X] :=
+  fun u ↦ msgPoly (μ - laneBits) (blockOf q (bitsEquiv laneBits u))
+
+/-- **The tuple of a close candidate.** A tuple of degree below `2^κ` agreeing with the level-0
+word on at least `A ≥ 2^κ` columns is the tuple of a candidate. -/
+theorem exists_candidate_of_tuple {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64)
+    (hA : 2 ^ (μ - laneBits) ≤ A) (cs : List (ℕ × ℕ × Word))
+    (U : (Fin laneBits → Bool) → E[X]) (hU : DegLE (2 ^ (μ - laneBits) - 1) U)
+    (hag : A ≤ (agreeT (domain (μ - laneBits) R h) U
+      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))).card) :
+    ∃ q ∈ Candidates μ R A (wordOf cs 0), ∀ u, lowMsg (μ - laneBits) (U u) =
+      blockOf q (bitsEquiv laneBits u) := by
+  have hκ : μ - laneBits ≤ 64 := by omega
+  set V : Fin (2 ^ laneBits) → Fin (2 ^ (μ - laneBits + R)) → E :=
+    fun u ↦ enc (μ - laneBits) R (lowMsg (μ - laneBits) (U ((bitsEquiv laneBits).symm u)))
+  have hV : ∀ u v, V u v = (U ((bitsEquiv laneBits).symm u)).eval (domain (μ - laneBits) R h v) := by
+    intro u v
+    simp only [V]
+    rw [enc_eq_evalOnPoints h, msgPoly_lowMsg_of_deg hκ (hU _)]
+    rfl
+  have hmem : V ∈ iList (ReedSolomon.code (domain (μ - laneBits) R h) (2 ^ (μ - laneBits))) A
+      (laneWord μ R (wordOf cs 0)) := by
+    rw [mem_iList]
+    refine ⟨fun u ↦ by rw [← range_enc h]; exact LinearMap.mem_range_self _ _, _, hag, ?_⟩
+    intro u v hv
+    rw [mem_agreeT] at hv
+    have := hv ((bitsEquiv laneBits).symm u)
+    simp only [rowsOf_laneO_zero, Equiv.apply_symm_apply] at this
+    rw [hV, this]
+  obtain ⟨q, hq, hVq⟩ := exists_candidate_of_mem_iList hμ h hA hmem
+  refine ⟨q, hq, fun u ↦ enc_injective h ?_⟩
+  have := congrFun hVq (bitsEquiv laneBits u)
+  simpa [V, encStack] using this
+
+/-- The tuple of a candidate lies in the level-0 list. -/
+theorem stackTuple_mem {μ R A : ℕ} (h : μ - laneBits + R ≤ 64)
+    (cs : List (ℕ × ℕ × Word)) {q : Column μ} (hq : q ∈ Candidates μ R A (wordOf cs 0)) :
+    stackTuple q ∈ tlist (domain (μ - laneBits) R h)
+      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R)))) A (2 ^ (μ - laneBits) - 1) := by
+  have hκ : μ - laneBits ≤ 64 := by omega
+  obtain ⟨S, hS, hagree⟩ := hq
+  rw [mem_tlist]
+  refine ⟨fun u ↦ ?_, hS.trans (card_le_card fun v hv ↦ ?_)⟩
+  · have := natDegree_msgPoly_lt hκ (blockOf q (bitsEquiv laneBits u))
+    have h1 := Nat.one_le_two_pow (n := μ - laneBits)
+    by_cases h0 : stackTuple q u = 0
+    · rw [h0, Polynomial.natDegree_zero]; exact Nat.zero_le _
+    · have := (Polynomial.natDegree_lt_iff_degree_lt h0).mpr (by exact_mod_cast this)
+      omega
+  · rw [mem_agreeT]
+    intro u
+    rw [rowsOf_laneO_zero]
+    have := hagree v hv (bitsEquiv laneBits u)
+    simp only [laneWord]
+    rw [this, enc_eq_evalOnPoints h]
+    rfl
+
+/-- **The candidates are finite**, as many as the level-0 list. -/
+theorem candidates_ncard_le {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64)
+    (cs : List (ℕ × ℕ × Word)) :
+    (Candidates μ R A (wordOf cs 0)).Finite ∧ (Candidates μ R A (wordOf cs 0)).ncard ≤
+      (tlist (domain (μ - laneBits) R h) (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))
+        A (2 ^ (μ - laneBits) - 1)).card := by
+  have hκ : μ - laneBits ≤ 64 := by omega
+  have hinj : Set.InjOn stackTuple (Candidates μ R A (wordOf cs 0)) := by
+    intro q _ q' _ hqq
+    refine eq_of_blockOf_eq hμ fun u ↦ ?_
+    have := congrFun hqq ((bitsEquiv laneBits).symm u)
+    simp only [stackTuple, Equiv.apply_symm_apply] at this
+    exact msgPoly_injective hκ this
+  have hsub : stackTuple '' Candidates μ R A (wordOf cs 0) ⊆
+      ↑(tlist (domain (μ - laneBits) R h) (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))
+        A (2 ^ (μ - laneBits) - 1)) := by
+    rintro _ ⟨q, hq, rfl⟩
+    exact stackTuple_mem h cs hq
+  have hfin : (Candidates μ R A (wordOf cs 0)).Finite :=
+    Set.Finite.of_finite_image ((Finset.finite_toSet _).subset hsub) hinj
+  refine ⟨hfin, ?_⟩
+  rw [← hinj.ncard_image, ← Set.ncard_coe_finset]
+  exact Set.ncard_le_ncard hsub (Finset.finite_toSet _)
+
 /-! ## The starting doom -/
 
-/-- WHIR's starting relation: the level-0 commitment has the right shape and every candidate of
-its word violates the claim `(w, t)`. -/
-def WhirPre (μ R : ℕ) (P₀ : LevelCode) (w : List E → E) (t : E) (cs : List (ℕ × ℕ × Word)) :
-    Prop :=
-  ShapeOK 0 P₀ laneBits cs ∧
-    ∀ q ∈ Candidates μ R P₀.thr (wordOf cs 0), ¬ StackClaim.Holds μ (w, t) q
-
-/-- **The starting doom**: from the candidates' violation and the first round polynomial,
-`LevelPre` of level `0` for the initial state. -/
+/-- **The starting doom**: from the candidates' violation, `LevelPre` of level `0` for the initial
+state. -/
 theorem levelPre_zero {μ R : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - laneBits) (hR : P₀.R = R)
-    (hμ : laneBits ≤ μ) (w : List E → E) (t : E) (quad : List E) (cs : List (ℕ × ℕ × Word))
-    (hpre : WhirPre μ R P₀ w t cs) (hq : QuadOK quad t) :
-    LevelPre μ laneBits w 0 P₀ laneBits 0 ⟨t, quad, [], []⟩ cs := by
-  refine ⟨⟨by simp, by simp, by omega, by simp [GluedOK], hq, ?_⟩, hpre.1⟩
-  obtain ⟨-, hcand⟩ := hpre
-  rcases P₀ with ⟨κ, R', η, h64, hκ1, hR1, hη, hagr⟩
-  simp only at hκ hR
-  subst hκ hR
-  intro V hV
-  simp only [List.length_nil, Nat.sub_zero, foldsN, List.foldl_nil] at hV
-  have hV' : V ∈ iList (ReedSolomon.code (domain (μ - laneBits) R' h64) (2 ^ (μ - laneBits)))
-      (LevelCode.thr ⟨μ - laneBits, R', η, h64, hκ1, hR1, hη, hagr⟩)
-      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R')))) := hV
-  rw [rowsOf_laneO_zero, mem_iList_comp _ _ (bitsEquiv laneBits)] at hV'
-  clear hV
-  have hV := hV'
-  simp only [Equiv.apply_symm_apply] at hV
-  obtain ⟨q, hqc, hVq⟩ := exists_candidate_of_mem_iList hμ h64
-    (LevelCode.two_pow_le_thr ⟨μ - laneBits, R', η, h64, hκ1, hR1, hη, hagr⟩) hV
-  have hVe : V = fun u ↦ enc (μ - laneBits) R' (blockOf q (bitsEquiv laneBits u)) := by
-    funext u
-    have := congrFun hVq (bitsEquiv laneBits u)
-    simpa [encStack] using this
-  have hdec : decode ⟨μ - laneBits, R', η, h64, hκ1, hR1, hη, hagr⟩ V =
-      fun u ↦ blockOf q (bitsEquiv laneBits u) := by
-    rw [hVe]
-    exact decode_enc ⟨μ - laneBits, R', η, h64, hκ1, hR1, hη, hagr⟩ _
-  have hrun : runW w laneBits ⟨t, quad, [], []⟩ = fun r ↦ w (rotL laneBits r) := by
+    (hℓ : P₀.ℓ = laneBits) (hμ : laneBits ≤ μ) (hthr : 2 ^ P₀.κ ≤ P₀.thr 0) (w : List E → E)
+    (t : E) (cs : List (ℕ × ℕ × Word)) (hS : ShapeOK 0 P₀ cs) (hlen : cs.length = 1)
+    (hcand : ∀ q ∈ Candidates μ R (P₀.thr 0) (wordOf cs 0), ¬ StackClaim.Holds μ (w, t) q) :
+    LevelPre μ laneBits w 0 P₀ 0 ⟨t, [], []⟩ cs := by
+  refine ⟨⟨rfl, Nat.zero_le _, by omega, fun _ hc ↦ by simp at hc, ?_⟩, hS, hlen⟩
+  obtain ⟨κ, R', ℓ, A, h64, hR1⟩ := P₀
+  dsimp only at hκ hR hℓ hthr hcand ⊢
+  subst hκ hR hℓ
+  simp only [List.length_nil, Nat.sub_zero, foldsA_nil]
+  intro U hU hag heq
+  obtain ⟨q, hq, hUq⟩ := exists_candidate_of_tuple hμ h64 hthr cs U hU hag
+  apply hcand q hq
+  have hrun : runW w laneBits ⟨t, [], []⟩ = fun r ↦ w (rotL laneBits r) := by
     funext r
-    simp [runW]
-  rw [hdec, hrun, claimSum_encStack hμ]
-  exact hcand q hqc
+    rw [runW_eq]
+    simp
+  have hU' : (fun u ↦ lowMsg (μ - laneBits) (U u)) = fun u ↦ blockOf q (bitsEquiv laneBits u) :=
+    funext hUq
+  rw [tclaim, hrun, hU'] at heq
+  rw [StackClaim.Holds, ← claimSum_encStack hμ w q]
+  exact heq
 
 end
 end LeanVM.Protocol.Whir.Sound

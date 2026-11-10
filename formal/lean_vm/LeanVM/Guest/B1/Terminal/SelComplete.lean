@@ -60,8 +60,8 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg :
     subst ho0
     simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
       true_and]
-    have e3 : F 3 = word 1 0 0 := by simp [hF, cskVal]
-    have e4 : F 4 = word 1 0 0 := by simp [hF, cskVal]
+    have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
+    have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
     rw [e3, e4, f0, tb_word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
   have hκ' : κ < 28 := by omega

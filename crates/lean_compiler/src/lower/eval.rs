@@ -17,14 +17,14 @@ pub(super) struct Known {
     /// The compile-time INTEGER, wanted by a size, an index, a bound, an exponent.
     pub(super) int: Option<u128>,
     /// The FIELD element a value position sees, where `+` is XOR.
-    pub(super) field: Option<F192>,
+    pub(super) field: Option<F128>,
     /// The ADDRESS the compiler tracks: a base cell times `g^exp`.
     pub(super) addr: Option<GAddr>,
 }
 
 impl Known {
     /// The integer and field readings when both exist and disagree.
-    pub(super) fn diverging_readings(self) -> Option<(u128, F192)> {
+    pub(super) fn diverging_readings(self) -> Option<(u128, F128)> {
         let (n, f) = (self.int?, self.field?);
         (f != lit_field(n)).then_some((n, f))
     }
@@ -47,8 +47,8 @@ fn gmul(a: GAddr, b: GAddr) -> Option<GAddr> {
 }
 
 /// `b^k` by square-and-multiply, in logarithmically many field operations.
-pub(super) fn field_pow(b: F192, mut k: u32) -> F192 {
-    let (mut acc, mut sq) = (F192::ONE, b);
+pub(super) fn field_pow(b: F128, mut k: u32) -> F128 {
+    let (mut acc, mut sq) = (F128::ONE, b);
     while k > 0 {
         if k & 1 == 1 {
             acc *= sq;
@@ -195,22 +195,12 @@ impl FnLower<'_> {
             // bits spell.
             Expr::Index(..) => match self.const_array_elem(e) {
                 Some(v) => Known {
-                    int: (v.c2 == 0).then_some(v.c0 as u128 | ((v.c1 as u128) << 64)),
+                    int: Some(crate::word_int(v)),
                     field: Some(v),
                     addr: None,
                 },
                 None => Known::default(),
             },
-            Expr::Call(f, args) if f == "f192" && args.len() == 3 => {
-                let limb = |i: usize| match &args[i] {
-                    Expr::Lit(n) => u64::try_from(*n).ok(),
-                    _ => None,
-                };
-                Known {
-                    field: (|| Some(F192::new(limb(0)?, limb(1)?, limb(2)?)))(),
-                    ..Known::default()
-                }
-            }
             // `const(e)`: the one construct that asks for the INTEGER reading in a
             // position that would otherwise take the field one. It reinterprets the
             // OPERATORS, so its leaves must mean the same thing either way.
@@ -243,7 +233,7 @@ impl FnLower<'_> {
     /// `e` as a compile-time FIELD constant, where `+` is XOR. `None` for a
     /// runtime value or for arithmetic the field has no meaning for (`-`, `//`,
     /// `%`).
-    pub(super) fn try_field_const(&self, e: &Expr) -> Option<F192> {
+    pub(super) fn try_field_const(&self, e: &Expr) -> Option<F128> {
         self.eval(e).field
     }
 
@@ -273,7 +263,7 @@ impl FnLower<'_> {
 
     /// If `e` is `NAME[i]` for a top-level constant array `NAME` with a
     /// compile-time index `i`, its element (a raw `u128`).
-    fn const_array_elem(&self, e: &Expr) -> Option<F192> {
+    fn const_array_elem(&self, e: &Expr) -> Option<F128> {
         if let Expr::Index(arr, idx) = e
             && let Expr::Var(v) = arr.as_ref()
             && let Some(a) = self.const_arrays.get(v.as_str())
@@ -305,20 +295,20 @@ impl FnLower<'_> {
     /// preserve. So `x + 0` lowers to just `x`: no cell, no XOR. Kills the
     /// `acc = 0; acc = acc + t` accumulator seed and similar.
     pub(super) fn add_identity<'e>(&self, a: &'e Expr, b: &'e Expr) -> Option<&'e Expr> {
-        if self.try_field_const(a) == Some(F192::ZERO) {
+        if self.try_field_const(a) == Some(F128::ZERO) {
             return Some(b);
         }
-        (self.try_field_const(b) == Some(F192::ZERO)).then_some(a)
+        (self.try_field_const(b) == Some(F128::ZERO)).then_some(a)
     }
 
     /// The surviving operand of `a * b` when the other is a compile-time one, a
     /// no-op multiply. Kills the `acc = GEN ** 0` (= 1) accumulator seed's first
     /// `1 * f` in every product loop.
     pub(super) fn mul_identity<'e>(&self, a: &'e Expr, b: &'e Expr) -> Option<&'e Expr> {
-        if self.try_field_const(a) == Some(F192::ONE) {
+        if self.try_field_const(a) == Some(F128::ONE) {
             return Some(b);
         }
-        (self.try_field_const(b) == Some(F192::ONE)).then_some(a)
+        (self.try_field_const(b) == Some(F128::ONE)).then_some(a)
     }
 
     /// The field value of `e` when it is a trivial compile-time constant (a

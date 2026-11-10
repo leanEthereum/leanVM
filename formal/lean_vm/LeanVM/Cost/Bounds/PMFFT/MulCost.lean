@@ -20,20 +20,20 @@ public section
 
 variable (P : MachineProgram)
 
-/-- **The pointwise product** (`pmul.c415`) of `n` entries: at most `55·n + 16`. -/
-theorem pmulC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.costDeps) (n : ℕ)
+/-- **The pointwise product** (`pmul.c414`) of `n` entries: at most `55·n + 16`. -/
+theorem pmulC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.costDeps) (n : ℕ)
     (hn : n < 2 ^ 64) (a b : Array K) :
-    machineCost P Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.costIdx [encodeValue n, encodeValue a,
+    machineCost P Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.costIdx [encodeValue n, encodeValue a,
       encodeValue b] ≤ 55 * n + 16 := by
-  rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.costEq P hP]
+  rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) hn _
-    (.closure Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.lam0.costIdx [encodeValue n, encodeValue a,
+    (.closure Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.lam0.costIdx [encodeValue n, encodeValue a,
       encodeValue b])
-    (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.lam0.costSpec P (by includes)
+    (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.lam0.costSpec P (by includes)
       n a b v)) 38
     (fun v ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c415.lam0.costEq P (by includes)]) 0 (Nat.zero_le _)
+      rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c414.lam0.costEq P (by includes)]) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
   simp only [Nat.sub_zero] at hof
   omega

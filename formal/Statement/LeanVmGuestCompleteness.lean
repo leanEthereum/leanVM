@@ -25,10 +25,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4530`): one for each raw
+/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4765`): one for each raw
 signature and each entry of a child's signature lists, every slot written once
-(`lean_ethereum.py:4564-4567`: the writes `:4590, 4595, 4179, 4247`, counted by `written`,
-`:4614-4615, 4640-4641`). -/
+(`lean_ethereum.py:4799-4802`: the writes `:4825, 4830, 4416, 4484`, counted by `written`,
+`:4849-4850, 4875-4876`). -/
 def coverageSlots (witness : NodeWitness) : ℕ :=
   witness.xmssSignatures.length + witness.sphincsSignatures.length +
     (witness.children.map fun child ↦
@@ -37,25 +37,25 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
 stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4525`), every count of `meta` and of a child's
-lists below `2^16` (`lean_ethereum.py:4518-4523, 4626-4627`: each at most `coverageSlots`), the bus
-depth at most `32` (`lean_ethereum.py:1779`), the tables' heights at most `28`
-(`lean_ethereum.py:2195`). -/
+directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4760`), every count of `meta` and of a child's
+lists below `2^16` (`lean_ethereum.py:4753-4758, 4861-4862`: each at most `coverageSlots`), the bus
+depth at most `32` (`lean_ethereum.py:1930`), the tables' heights at most `28`
+(`lean_ethereum.py:2349`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4589-4590, 4594-4595`; a
-  child's list by hinted indices, `:4178-4179`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4243-4247, 4301`; the count, `:4641`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4824-4825, 4829-4830`; a
+  child's list by hinted indices, `:4415-4416`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4480-4484, 4538`; the count, `:4876`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4524`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4759`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^16` (`lean_ethereum.py:4531`). -/
+  /-- The coverage table below `2^16` (`lean_ethereum.py:4766`). -/
   coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
@@ -90,14 +90,17 @@ def CoveredNode (witness : NodeWitness) : Prop :=
 
 The guest program checks a child with the deployed Keccak, so the honest proof is made with it
 (the honest prover in `Id` over `keccakF1600`); what it can fail by (a proof of work without a
-nonce within its fuel, a zero challenge where the guest program divides) is bounded in the
+nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1400, 1709, 1714`), so a zero one makes
-it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
-anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
-zero with probability `2^-192`. -/
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1644, 1781, 1787`) and, at
+each queried point `x` of a level, by each of its rounds' fold combiners `α + β·x`
+(`opening_query`, `lean_ethereum.py:1447-1449`), so a zero there makes it reject a child the
+verifier accepts. The honest child's hypothesis refuses a zero challenge anywhere
+(`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each challenge being zero with
+probability `2^-128`) and a combiner vanishing at a queried point
+(`verifyExecutionRefusingZeroCombiner`). -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -110,47 +113,155 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .commit height width k => .commit height width k.refusingZeroChallenge
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
-/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
-`leanVmVerifier π` with every sampled challenge `0` a failure. -/
+/-- **No fold combiner vanishes at a queried point**: `α + β·x ≠ 0` for every round of the level
+and every queried position, `x` the position's domain point (`opening_query`,
+`lean_ethereum.py:1447-1449`). -/
+def CombinersNonzero (queries : List ℕ) (rounds : List FoldRound) : Prop :=
+  ∀ q ∈ queries, ∀ round ∈ rounds, round.alpha + round.beta * ofK (K.ofBits q) ≠ 0
+
+instance (queries : List ℕ) (rounds : List FoldRound) :
+    Decidable (CombinersNonzero queries rounds) :=
+  inferInstanceAs (Decidable (∀ q ∈ queries, ∀ round ∈ rounds, _))
+
+/-- **`whirLevels` refusing a vanishing combiner**: `whirLevels` (`LeanVmVerifier.lean`) with
+`require (CombinersNonzero queries rounds)` right after each level samples its queries; nothing
+else differs. -/
+def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
+    ℕ → List Whir.Level → WhirState → VerifierProgram Unit
+  | _, [], _ => VerifierProgram.fail
+  | index, level :: rest, s => do
+    let (s, rounds) ← foldRounds level.fold s
+    let mu := logN - s.gammas.length
+    let depth := mu + level.logInvRate
+    -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
+    -- level's regrouped (`whir.rs:264-271`).
+    let lanesOf : List K → List E := fun row ↦
+      if index = 0 then row.reverse.map ofK else extRow row
+    match rest with
+    | [] => do
+      -- The final level (`whir.rs:273-301`).
+      let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNonzero queries rounds)
+      let words ← VerifierProgram.queryOpenings index queries
+      VerifierProgram.require ((List.zip queries words).all fun (query, row) ↦
+        foldRow (lanesOf row) (K.ofBits query) rounds =
+          novelEval folded (subspaceAt mu (K.ofBits query)))
+      let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
+      let point := s.gammas ++ tail
+      let weight := s.glued.foldl
+        (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart))
+        (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
+      VerifierProgram.require (weight * multilinearEval (folded.take (2 ^ mu)) tail = claim)
+    | next :: _ => do
+      -- A non-final level (`whir.rs:304-341`).
+      let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
+      VerifierProgram.readCommitment height width
+      let high ← VerifierProgram.readScalars level.fold
+      let oodPoints ← sampleOodPoints mu Whir.oodSamples
+      let oodValues ← VerifierProgram.readScalars Whir.oodSamples
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNonzero queries rounds)
+      VerifierProgram.grindProofOfWork Whir.batchGrindingBits
+      let lam ← VerifierProgram.sampleChallenge
+      let queryWeights := powers lam queries.length
+      let words ← VerifierProgram.queryOpenings index queries
+      -- Each row folds to the folded lane at its point; less the high part,
+      -- `What_μ(x) Σ_j p_(2^μ + j) X_j(x)`, it is the low part's value there.
+      let batched := sumE (List.zipWith (fun (query, row) queryWeight ↦
+        let what := subspaceAt mu (K.ofBits query)
+        queryWeight * (foldRow (lanesOf row) (K.ofBits query) rounds +
+          novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
+      let s := glueLevel s lam mu oodPoints oodValues queries queryWeights batched
+      whirLevelsRefusingZeroCombiner logN laneFolds evaluateBasis (index + 1) rest s
+
+/-- `verifyWhir` with `whirLevelsRefusingZeroCombiner`. -/
+def verifyWhirRefusingZeroCombiner (logN logInvRate : ℕ) (target : E)
+    (evaluateBasis : List E → E) : VerifierProgram Unit := do
+  let config ← liftOption (Whir.ladder logN logInvRate)
+  whirLevelsRefusingZeroCombiner logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
+    ⟨target, [], []⟩
+
+/-- `verifyStackedOpening` with `verifyWhirRefusingZeroCombiner`. -/
+def verifyStackedOpeningRefusingZeroCombiner (stackLog logInvRate : ℕ)
+    (claims : List StackClaim) : VerifierProgram Unit := do
+  VerifierProgram.require (claims.length ≤ maxStackedClaims)
+  let scales := powers (← VerifierProgram.sampleChallenge) claims.length
+  verifyWhirRefusingZeroCombiner stackLog logInvRate (dot scales (claims.map (·.2)))
+    fun point ↦ dot scales (claims.map fun c ↦ c.1 point)
+
+/-- `verifyExecution` with `verifyStackedOpeningRefusingZeroCombiner`. -/
+def verifyExecutionRefusingZeroCombiner
+    (bytecodeValue : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) : VerifierProgram Unit := do
+  -- 1] memory log-size, table row counts, and the WHIR rate
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
+  -- 2] the stack's commitment, and its out-of-domain sample
+  commitStack layout.stackLog logInverseRate
+  let ood ← readOod layout.stackLog
+  -- 3] the bus
+  let bus ← verifyBusBalance bytecodeValue layout
+  -- 4] the table sumcheck, and the tables' column claims
+  let evaluations ← tablePhase layout bus
+  let claims := bus.claims ++ tableColumnClaims evaluations
+  -- 5] the public input
+  let publicClaims ← publicInputPhase layout publicInput
+  let claims := claims ++ publicClaims
+  -- 6] KECCAK validity, by GKR over the rounds
+  let (outputs, keccakPoint, keccakSlices) ← keccakPhase layout evaluations
+  let claims := claims ++ outputs
+  -- 7] ring switching, then one opening of the stack for every claim with a placement
+  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
+  verifyStackedOpeningRefusingZeroCombiner layout.stackLog logInverseRate
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [ood])
+
+/-- **The leanVM verifier refusing a zero where the guest program divides**: the leanVM verifier
+refusing a vanishing combiner at a queried point (`verifyExecutionRefusingZeroCombiner`) and a
+zero challenge anywhere (`VerifierProgram.refusingZeroChallenge`). -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
   runProof π
-    (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
-        seed proof
+    (do
+      verifyExecutionRefusingZeroCombiner computedBytecodeValue (bytecodeWords program)
+        (publicInputDigest input)
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    seed proof
 
 open OracleComp OracleSpec in
-/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
+/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^33` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
 makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
+at most `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`. -/
 def HonestProofRarelyRefused : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 →
     1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
-            25) with
+            33) with
         | none => pure false
         | some proof =>
           verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 126
+      (2 : ℝ≥0∞)⁻¹ ^ 100
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program of
 committed size above `2^21` on its statement's digest under the deployed seed, and the leanVM
 verifier refusing a zero challenge accepts it. The floor is the one the guest program checks: it
 has an opening arm for a child's stack log `⌈log₂ committedSize⌉` from `22` (`MU_MIN`,
-`aggregation/child.rs:259`) to `28` only (`lean_ethereum.py:3489-3493`), and the aggregator pads
+`aggregation/child.rs:258`) to `28` only (`lean_ethereum.py:3639-3644`), and the aggregator pads
 every aggregate's memory, doubling it, until that log is at least `22` (`min_log_committed =
-MU_MIN`, `aggregation/node.rs:325`; `execute.rs:1052-1061`; the log is `placements_of`'s `mu`,
-`⌈log₂⌉` of the committed cells, `cpu/layout.rs:280-284`, `witness.rs:79-96`). `lean_vm` proves that
+MU_MIN`, `aggregation/node.rs:325`; `execute.rs:1038-1047`; the log is `placements_of`'s `mu`,
+`⌈log₂⌉` of the committed cells, `cpu/layout.rs:278-282`, `witness.rs:79-96`). `lean_vm` proves that
 such a child meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
     ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < execution.committedSize ∧
-      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 25) =
+      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 33) =
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
@@ -160,7 +271,7 @@ deployed limits, in one of the families `CoveredNode` lists, every child carryin
 (`HonestChild`), there is a valid execution of the guest program on the statement's digest of
 committed size above `2^21` and at most `2^28`, so of stack log `⌈log₂ committedSize⌉` from `22` to
 `28`, the sizes `HonestChild` admits (the aggregator's floor, `aggregation/node.rs:325`,
-`execute.rs:1052-1061`). Reading `HonestProofRarelyRefused` for the deployed Keccak,
+`execute.rs:1038-1047`). Reading `HonestProofRarelyRefused` for the deployed Keccak,
 so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
 behaves as a random permutation, applied to this prover. Proved by
 `LeanVM.Guest.Completeness.guest_complete_on_honest_children`. -/
@@ -259,11 +370,11 @@ def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Pro
       child.freshClaim.Holds bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
 
 /-- **The batching program's query bound** on child counts below `childCountBound`: the seed's two
-queries, then a quarter of the program's cost (the count, the children's cells, the challenge, the
-sumcheck's rounds and the final value). -/
+queries, then a quarter of the program's cost (the count, the children's cells, the proof of work
+and the challenge, the sumcheck's rounds and the final value). -/
 def batchingQueryBound (bytecode : List K) (childCountBound : ℕ) : ℕ :=
   2 + (rateScalars + (childCountBound * (childWordCount (Nat.log2 bytecode.length) +
-    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
+    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
 open OracleComp OracleSpec in
@@ -271,7 +382,7 @@ open OracleComp OracleSpec in
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
-of whose claims is false is at most `(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for
+of whose claims is false is at most `(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`, for
 `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
 adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
 children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
@@ -292,7 +403,7 @@ def BatchingSound : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

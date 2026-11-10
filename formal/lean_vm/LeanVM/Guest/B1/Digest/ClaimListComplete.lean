@@ -54,17 +54,11 @@ theorem memRun_take {p : E} {cells : List E} (hr : ReadsAt rd p cells) {k : ℕ}
     (hk : k ≤ cells.length) : memRun rd p k = cells.take k := by
   rw [readsAt_memRun (readsAt_take' hr k), List.length_take, Nat.min_eq_left hk]
 
-theorem canon_take {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.take k) :=
-  fun c h => hc c (List.mem_of_mem_take h)
-
-theorem canon_drop {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.drop k) :=
-  fun c h => hc c (List.mem_of_mem_drop h)
-
 theorem grpc_shapeF {j : ℕ} {f : String} {m c0 st0 ep : ℕ}
     (h : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true) :
     loopShapeF (coreProgram.getD j default) f = true := by
   simp only [grpcOk, Bool.and_eq_true] at h
-  exact h.1.1.1.1.1.1.1.1.1
+  exact h.1.1.1.1.1.1.1.1
 
 /-- **A frame from the chain's memory**: the states before and after `d` units of `68` cells
 (units `u` to `u + d`) give a frame loop's block (`grp_block`) at the counter `x`. -/
@@ -73,7 +67,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
     (hcok : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb) (hep : ep ≠ 9)
     (hm : 4 * m = 68 * d) (hnbd : nb = 8 * d) {N chain' entries' entries x : E} {u : ℕ}
-    {cells : List E} (hr : ReadsAt rd entries cells) (hc : AllCanonical cells)
+    {cells : List E} (hr : ReadsAt rd entries cells)
     (hu : 68 * (u + d) ≤ cells.length)
     (hS : StateAt rd (chain' * x ^ 13) 0
       (absorbChunks (8 * u) zeroState (cellsBytes (cells.take (68 * u)))))
@@ -85,7 +79,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
     rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
     show 16 * (68 * u) = 136 * (8 * u); omega
   refine grp_block hok hcok hnb hep hpre hS (cells := (cells.drop (68 * u)).take (4 * m))
-    (by simp; omega) ?_ (canon_take (canon_drop hc _) _) ?_
+    (by simp; omega) ?_ ?_
   · rw [hE]; exact readsAt_take' (readsAt_drop' hr _) _
   · rw [show 68 * (u + d) = 68 * u + 4 * m by omega, List.take_add, cellsBytes_append,
       show 8 * (u + d) = 8 * u + nb by omega] at hS1
@@ -93,8 +87,8 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
 
 /-- The big frames: `__loop15`'s block at every big frame below `a = n / 136`. -/
 theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
-    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n / 136, LoopBlock rd (coreProgram.getD 330 default) (gen ^ q) (gen ^ (n / 136))
+    (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
+    ∀ q < n / 136, LoopBlock rd (coreProgram.getD 359 default) (gen ^ q) (gen ^ (n / 136))
       [chain, entries] := by
   intro q hq
   have hS := hmem q (by omega)
@@ -104,7 +98,7 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     unfold clU; rw [Nat.min_eq_left (by omega)]; omega
   rw [hu0, memRun_take hr (by omega)] at hS
   rw [hu1, memRun_take hr (by omega)] at hS1
-  refine frame_block big_ok grpc_big big_nb (by decide) (d := 8) (by norm_num) rfl hr hc (u := 8 * q)
+  refine frame_block big_ok grpc_big big_nb (by decide) (d := 8) (by norm_num) rfl hr (u := 8 * q)
     (by omega) (by rw [gen_pow_pow]; exact hS) (fun c => ?_) (by rw [gen_pow_pow]; congr 2; ring)
   have := hS1 c
   rw [gen_pow_pow, loadHolds_mul_gen_pow]
@@ -114,8 +108,8 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
 /-- The groups: `__loop16`'s block at every group below `b = n % 136 / 17`, from
 `chain · g^(13a)` and `entries · g^(544a)`. -/
 theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
-    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 331 default) (gen ^ q) (gen ^ (n % 136 / 17))
+    (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
+    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 360 default) (gen ^ q) (gen ^ (n % 136 / 17))
       [chain * gen ^ (13 * (n / 136)), entries * gen ^ (544 * (n / 136))] := by
   intro q hq
   set a := n / 136 with ha
@@ -127,7 +121,7 @@ theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     unfold clU; rw [Nat.min_eq_right (by omega)]; omega
   rw [hu0, memRun_take hr (by omega)] at hS
   rw [hu1, memRun_take hr (by omega)] at hS1
-  refine frame_block grp_ok grpc_ok grp_nb (by decide) (d := 1) (by norm_num) rfl hr hc
+  refine frame_block grp_ok grpc_ok grp_nb (by decide) (d := 1) (by norm_num) rfl hr
     (u := 8 * a + q) (by omega) ?_ (fun c => ?_) ?_
   · rw [gen_pow_pow, mul_assoc, ← pow_add, show 13 * a + 13 * q = 13 * (a + q) by ring]; exact hS
   · have := hS1 c

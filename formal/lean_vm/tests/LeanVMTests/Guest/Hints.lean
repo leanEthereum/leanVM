@@ -30,7 +30,7 @@ def seed : Digest := keccak256 [1, 2, 3]
 
 def leaf : NodeStatement := ⟨⟨[(key, message)], [], zeroDigest⟩, ⟨List.replicate 23 0, 5⟩⟩
 
-def witness : NodeWitness := ⟨[], [((key, message), signature)], [], none, ⟨[], 0⟩⟩
+def witness : NodeWitness := ⟨[], [((key, message), signature)], [], none, ⟨0, [], 0⟩⟩
 
 def streams : Streams := honestStreams [] seed leaf witness
 
@@ -53,7 +53,7 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 
 /- The leaf index `2^16 + 2` shifted right by `0, 8, 16, 24`, and those shifts' low bytes in the
 exponent. -/
-#guard get "lx_index" == [[word 0x10002 0 0, word 0x100 0 0, word 1 0 0, word 0 0 0]]
+#guard get "lx_index" == [[word 0x10002 0, word 0x100 0, word 1 0, word 0 0]]
 #guard get "lx_windows" == [[count 2, count 0, count 1, count 0]]
 
 /- The randomizers and the chain values, bottom layer first. -/

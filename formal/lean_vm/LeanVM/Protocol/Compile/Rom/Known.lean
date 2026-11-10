@@ -160,14 +160,12 @@ theorem consume_done_half {W : Digest → ℕ → ℕ → Word} :
     right
     simp only [consume] at hc
     split at hc
-    · split at hc
-      · rcases consume_done_half rest _ _ hc with rfl | hl
-        · simp only [consume, Cons.done.injEq] at hc
-          exact absurd hc.2 (by simp)
-        · rcases rest with _ | ⟨y, rest'⟩
-          · simp at hl
-          · simpa using hl
-      · cases hc
+    · rcases consume_done_half rest _ _ hc with rfl | hl
+      · simp only [consume, Cons.done.injEq] at hc
+        exact absurd hc.2 (by simp)
+      · rcases rest with _ | ⟨y, rest'⟩
+        · simp at hl
+        · simpa using hl
     · cases hc
 
 /-- Every decoding in the middle of a commitment comes from an input whose last slot is the
@@ -211,7 +209,8 @@ theorem halfOk_stepF (ℓ : Log) (δ : Dec) (t u : KeccakState) {inf : Info}
             apply UInt64.toNat_inj.mp
             simpa using htg
         · simp at h
-      · simp [decodeAt] at h
+      · simp only [decodeAt] at h
+        split at h <;> simp at h
       · simp [decodeAt] at h
     · simp at h
 
@@ -225,11 +224,11 @@ def prePos : Pos → List (E × ℕ)
 /-- The roots adjacent scalars of tag `1` encode. -/
 def rootsList (l : List (E × ℕ)) : List Digest :=
   (l.zip l.tail).filterMap fun ab ↦
-    if ab.1.2 = 1 ∧ ab.2.2 = 1 then digestFromHalves (ab.1.1, ab.2.1) else none
+    if ab.1.2 = 1 ∧ ab.2.2 = 1 then some (digestFromHalves (ab.1.1, ab.2.1)) else none
 
 theorem rootsList_cons_cons (a b : E × ℕ) (l : List (E × ℕ)) :
     rootsList (a :: b :: l) =
-      (if a.2 = 1 ∧ b.2 = 1 then digestFromHalves (a.1, b.1) else none).toList ++
+      (if a.2 = 1 ∧ b.2 = 1 then some (digestFromHalves (a.1, b.1)) else none).toList ++
         rootsList (b :: l) := by
   simp only [rootsList, List.tail_cons, List.zip_cons_cons, List.filterMap_cons]
   split <;> simp_all
@@ -268,22 +267,20 @@ theorem consume_congr {W W' : Digest → ℕ → ℕ → Word} :
     simp only [consume]
     split
     · rename_i htag
-      split
-      · rename_i r hr
-        have hrW : ∀ ht w, W r ht w = W' r ht w := hW r (by
+      have hrW : ∀ ht w, W (digestFromHalves (x₀, x)) ht w = W' (digestFromHalves (x₀, x)) ht w :=
+        hW _ (by
           simp only [prePos, List.singleton_append]
           rw [rootsList_cons_cons]
-          simp [htag, hr])
-        rw [hrW ht w]
-        refine consume_congr rest _ _ fun r' hr' ↦ hW r' ?_
-        simp only [prePos, List.nil_append, List.singleton_append] at hr' ⊢
-        exact rootsList_subset_cons _ _ r' (rootsList_subset_cons _ _ r' hr')
-      · rfl
+          simp [htag])
+      rw [hrW ht w]
+      refine consume_congr rest _ _ fun r' hr' ↦ hW r' ?_
+      simp only [prePos, List.nil_append, List.singleton_append] at hr' ⊢
+      exact rootsList_subset_cons _ _ r' (rootsList_subset_cons _ _ r' hr')
     · rfl
 
 theorem mem_rootsList {l : List (E × ℕ)} {r : Digest} (hr : r ∈ rootsList l) :
     ∃ (i : ℕ) (hi : i + 1 < l.length), l[i].2 = 1 ∧ l[i + 1].2 = 1 ∧
-      digestFromHalves (l[i].1, l[i + 1].1) = some r := by
+      digestFromHalves (l[i].1, l[i + 1].1) = r := by
   induction l with
   | nil => simp [rootsList] at hr
   | cons a l ih =>
@@ -294,7 +291,7 @@ theorem mem_rootsList {l : List (E × ℕ)} {r : Digest} (hr : r ∈ rootsList l
       · split at hr
         · rename_i htag
           refine ⟨0, by simp, htag.1, htag.2, ?_⟩
-          simpa using hr
+          simpa [eq_comm] using hr
         · simp at hr
       · obtain ⟨i, hi, h1, h2, h3⟩ := ih hr
         exact ⟨i + 1, by simpa using hi, h1, h2, h3⟩
@@ -314,12 +311,12 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
   have hslot : ∀ i (hi : i < ps.length), slotE (duplexOf c ps) i = ps[i].1 := fun i hi ↦
     slotE_duplexOf c ps hi (by have := hv.1; omega)
   have hpair : ∀ i (hi : i + 1 < ps.length), ps[i].2 = 1 → ps[i + 1].2 = 1 →
-      digestFromHalves (ps[i].1, ps[i + 1].1) = some r → RootOf ℓ' (duplexOf c ps) r := by
+      digestFromHalves (ps[i].1, ps[i + 1].1) = r → RootOf ℓ' (duplexOf c ps) r := by
     intro i hi h1 h2 h3
     refine Or.inl ⟨i, by have := hv.1; omega, ?_⟩
     simp only [pairRoot, htag i (by omega) h1, htag (i + 1) hi h2, and_self, ↓reduceIte,
       hslot i (by omega), hslot (i + 1) hi]
-    exact h3
+    exact congrArg some h3
   rcases pos with p | ⟨ht, w, k, x₀⟩
   · obtain ⟨i, hi, h1, h2, h3⟩ := mem_rootsList (by simpa [prePos] using hr)
     exact hpair i hi h1 h2 h3
@@ -333,7 +330,7 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
       have hp0 : 0 < ps.length := by omega
       rw [straddleRoot, hs', Option.bind_some]
       simp only [ht3, htag 0 hp0 h2, and_self, ↓reduceIte, hx, hslot 0 hp0]
-      exact h3
+      exact congrArg some h3
     | succ i =>
       simp only [List.getElem_cons_succ] at h1 h2 h3
       exact hpair i (by omega) h1 h2 h3

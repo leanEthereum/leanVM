@@ -47,7 +47,7 @@ example : ∀ (prog : LeanIsaProgram) {s : Sizes}, s.Admissible prog → ∀ {ρ
 example : ∀ {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ
     prog s)},
     M3Holds (inst prog s) input q → ∀ (cs : Commits),
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (hPub prog s q)
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧ b.length = 2) (hPub prog s q)
       (Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)) cs :=
   follows_publicInputPhase
 
@@ -69,8 +69,8 @@ def feed {α : Type} : VerifierProgram α → List E → Option α
   | .read k, x :: xs => feed (k x) xs
   | _, _ => none
 
-/-- A field element from three words. -/
-def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b) (K.ofBits c)
+/-- A field element from three words (the last two summed into the upper limb). -/
+def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits (b + c))
 
 /-- A pseudo-random coefficient list of `n` entries. -/
 def coeffs (seed n : ℕ) : List E :=

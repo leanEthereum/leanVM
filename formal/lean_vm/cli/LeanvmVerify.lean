@@ -11,7 +11,7 @@ compares them with the Rust verifier (`scripts/rust-verifier-cli`, its two forms
 proofs.
 
 * `lake exe leanvm-verify <bytecode> <public input> <stream> <merkle phases>`: the proof in its
-  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs:10-16`): the scalars
+  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs:9-15`): the scalars
   (`stream.bin`) and the phases of unpruned Merkle paths (`merkle_phases.bin`, `readPhasesFile`);
   runs `Verifier.verify` (`LeanVM/Facts/Verifier.lean`, the statement's verifier compiled, on the
   program's bytecode words) on it.
@@ -74,32 +74,29 @@ def runLog {α : Type} (total : ℕ) : VerifierProgram α → VerifierProgramSta
     Option (α × VerifierProgramState) × Log
   | .ret a, s, log => (some (a, s), log)
   | .fail, _, log => (none, log)
-  | .read k, s, log => match s.stream with
-    | [] => (none, log)
-    | x :: xs =>
+  | .read k, s, log => match s.stream, s.sponge.ground with
+    | x :: xs, none =>
       let sp := Id.run (absorb keccakF1600 s.sponge x dsObserve)
       runLog total (k x) { s with sponge := sp, stream := xs } log
+    | _, _ => (none, log)
   | .sample k, s, log =>
     let (c, sp) := Id.run (squeeze keccakF1600 s.sponge)
     runLog total (k c) { s with sponge := sp } log
-  | .grind bits k, s, log => match s.stream with
-    | [] => (none, log)
-    | n :: xs =>
+  | .grind bits k, s, log => match s.stream, s.sponge.ground with
+    | n :: xs, none =>
       let log := { log with nonces := log.nonces.push (total - s.stream.length, bits) }
-      let sp := Id.run (absorb keccakF1600 s.sponge n dsPowNonce)
-      let (c, sp) := Id.run (squeeze keccakF1600 sp)
-      if powOk bits n c then runLog total k { s with sponge := sp, stream := xs } log
+      let (pow, sp) := Id.run (absorbNonce keccakF1600 s.sponge n)
+      if powOk bits pow then runLog total k { s with sponge := sp, stream := xs } log
       else (none, log)
-  | .commit height width k, s, log => match s.stream with
-    | x0 :: x1 :: xs =>
+    | _, _ => (none, log)
+  | .commit height width k, s, log => match s.stream, s.sponge.ground with
+    | x0 :: x1 :: xs, none =>
       let log := { log with roots := log.roots.push (total - s.stream.length) }
       let sp := Id.run (absorb keccakF1600 s.sponge x0 dsObserve)
       let sp := Id.run (absorb keccakF1600 sp x1 dsObserve)
-      match digestFromHalves (x0, x1) with
-      | some root => runLog total k
-          { s with sponge := sp, stream := xs, roots := s.roots ++ [(root, height, width)] } log
-      | none => (none, log)
-    | _ => (none, log)
+      let roots := s.roots ++ [(digestFromHalves (x0, x1), height, width)]
+      runLog total k { s with sponge := sp, stream := xs, roots := roots } log
+    | _, _ => (none, log)
   | .query i ps k, s, log => match s.roots[i]?, s.openings with
     | some (root, height, width), phase :: rest =>
       match Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
@@ -126,6 +123,8 @@ def tracedKeccak (total logSteps : ℕ) (inst output : List E) :
   mark total "keccak"
   let packBits := logSteps - 4
   let rLow := inst.take 4
+  exec total (VerifierProgram.grindProofOfWork
+    (grindingBits (keccakSegmentBits + keccakLaneBits)))
   let segment ← exec total (VerifierProgram.sampleChallenges keccakSegmentBits)
   let lanePoint ← exec total (VerifierProgram.sampleChallenges keccakLaneBits)
   let committed ← exec total (if 1 < keccakSegments then VerifierProgram.readScalar else pure 0)
@@ -149,11 +148,13 @@ def tracedKeccak (total logSteps : ℕ) (inst output : List E) :
   return (outputs, low ++ claim.point.take packBits ++ slot, slices)
 
 /-- `verifyExecution computedBytecodeValue`'s sequencing, each phase marked where the fuzz cuts the
-stream (the table sumcheck's end is the public input's start). -/
+stream (the table sumcheck's end is the public input's start; the stack root and its
+out-of-domain sample are the fuzz's own phase, from the root's offset). -/
 def tracedExecution (total : ℕ) (bytecode : List K) (publicInput : Digest) : Traced Unit := do
   mark total "sizes"
   let (layout, logInverseRate) ← exec total (readAnnouncedSizes bytecode)
   exec total (commitStack layout.stackLog logInverseRate)
+  let ood ← exec total (readOod layout.stackLog)
   mark total "bus"
   let bus ← exec total (verifyBusBalance computedBytecodeValue layout)
   mark total "tables"
@@ -171,7 +172,7 @@ def tracedExecution (total : ℕ) (bytecode : List K) (publicInput : Digest) : T
   let (ringTarget, ringWeight) ← exec total (ringSwitch keccakPoint keccakSlices)
   mark total "whir"
   exec total (verifyStackedOpening layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout)))
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [ood]))
 
 /-- The JSON of the log: phases as `[name, offset]`, roots as offsets, nonces as `[offset, bits]`. -/
 def Log.json (log : Log) (total : ℕ) : String :=
@@ -190,7 +191,7 @@ def events (bytecode publicInput stream : List UInt8) (phases : ByteArray) : Exc
       readPhasesFile phases with
   | some words, some digest, some scalars, some openings =>
     let total := scalars.length
-    let start : VerifierProgramState := ⟨⟨seed words digest, []⟩, scalars, openings, []⟩
+    let start : VerifierProgramState := ⟨⟨seed words digest, [], none⟩, scalars, openings, []⟩
     let (whole, reference) := runLog total (leanVmVerifierProgram words digest) start {}
     match tracedExecution total words digest |>.run (start, {}), whole with
     | some ((), (s, log)), some (true, _) =>

@@ -107,7 +107,7 @@ theorem pe_clmul (a b : ℕ) (ha : a < 2 ^ 32) (hb : b < 2 ^ 32) (x : E) :
 
 /-- One atom of the pass. -/
 def maskStep (sv : V) (st : List (V × ℕ)) : Stmt → Option (List (V × ℕ))
-  | .atom (.const d c) => if eEqb c (word 1 0 0) then some ((d, 1) :: st) else none
+  | .atom (.const d c) => if eEqb c (word 1 0) then some ((d, 1) :: st) else none
   | .atom (.add d a b) =>
       match st.lookup a, st.lookup b with
       | some ma, some mb => some ((d, ma ^^^ mb) :: st)

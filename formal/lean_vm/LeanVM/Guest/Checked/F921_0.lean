@@ -17,29 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop404`, window 0. -/
+/-- `__loop321`, window 0. -/
 theorem w921_0 : WinOk 921 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop404`, window 1. -/
-theorem w921_1 : WinOk 921 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop404`, window 2. -/
-theorem w921_2 : WinOk 921 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop404`, window 3. -/
-theorem w921_3 : WinOk 921 3 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L13_L7`, window 0. -/
+/-- `__loop322`, window 0. -/
 theorem w922_0 : WinOk 922 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L13_L7`, window 1. -/
-theorem w922_1 : WinOk 922 1 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L13_L7`, window 2. -/
-theorem w922_2 : WinOk 922 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop405`, window 0. -/
+/-- `__loop323`, window 0. -/
 theorem w923_0 : WinOk 923 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop324`, window 0. -/
+theorem w924_0 : WinOk 924 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop325`, window 0. -/
+theorem w925_0 : WinOk 925 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop326`, window 0. -/
+theorem w926_0 : WinOk 926 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop327`, window 0. -/
+theorem w927_0 : WinOk 927 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop328`, window 0. -/
+theorem w928_0 : WinOk 928 0 := winOk_of_C (by decide +kernel)
+
+theorem ok921 : CheckOk 921 := checkOk_one (by decide +kernel) w921_0
+
+theorem ok922 : CheckOk 922 := checkOk_one (by decide +kernel) w922_0
+
+theorem ok923 : CheckOk 923 := checkOk_one (by decide +kernel) w923_0
+
+theorem ok924 : CheckOk 924 := checkOk_one (by decide +kernel) w924_0
+
+theorem ok925 : CheckOk 925 := checkOk_one (by decide +kernel) w925_0
+
+theorem ok926 : CheckOk 926 := checkOk_one (by decide +kernel) w926_0
+
+theorem ok927 : CheckOk 927 := checkOk_one (by decide +kernel) w927_0
+
+theorem ok928 : CheckOk 928 := checkOk_one (by decide +kernel) w928_0
 
 end
 end LeanVM.Guest.Checked

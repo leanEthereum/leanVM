@@ -25,7 +25,7 @@ row shape (`row_shape_completeAtB`), the dual codeword (`vec_completeAtB`), the 
 (`l17_rel`), the column loop (`l18_completeAtTB` of `col_completeAtB`, on `da_vector`'s buffers read
 off its result, `dvVb`), the blobs' trees (`l19_rel`), the padding (`l20_rel`), the roots' tree
 (`dl_rel`). `dvNH r L`: its honest shape; `dv_completeAtB`: complete within `dvB`, returning the
-root's cells and the challenge's rate cells.
+root's cells and the challenge.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -56,12 +56,12 @@ theorem dlNames_bang {L : ℕ} (hL : L ≤ 10) : dlNames[L]! = daLevelsName L :=
 /-- `da_verify`'s calls, the dispatch at `j`. -/
 def dvCallsS (j : ℕ) : List (Option V × String × List V × List V) :=
   [(none, "da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4]),
-    (none, "da_vector", [.n 5], [.n 16, .n 17, .n 18, .n 19]),
-    (some (.n 34), "__loop21", [.n 35, .n 1, .n 31, .n 32], []),
-    (none, "__loop22", [.n 36, .n 1, .n 32, .n 16, .n 17, .n 18, .n 19], []),
-    (some (.n 41), "__loop23", [.n 42, .n 1, .n 32, .n 39], []),
-    (some (.n 44), "__loop24", [.n 45, .n 4, .n 39, .n 1], []),
-    (none, dlList.getD j "", [.n 39], [.n 46, .n 47])]
+    (none, "da_vector", [.n 5], [.n 6, .n 7, .n 8, .n 9]),
+    (some (.n 24), "__loop21", [.n 25, .n 1, .n 21, .n 22], []),
+    (none, "__loop22", [.n 26, .n 1, .n 22, .n 6, .n 7, .n 8, .n 9], []),
+    (some (.n 31), "__loop23", [.n 32, .n 1, .n 22, .n 29], []),
+    (some (.n 34), "__loop24", [.n 35, .n 4, .n 29, .n 1], []),
+    (none, dlList.getD j "", [.n 29], [.n 36, .n 37])]
 
 theorem dv_callsSF (σ : Val) : dvP.filterMap (Stmt.callSF σ) = dvCallsS (logG (σ (.n 2))) := rfl
 
@@ -71,7 +71,7 @@ theorem dv_flatCalls (σ : Val) : flatCalls dvP σ = (dvCallsS (logG (σ (.n 2))
 /-- **`da_verify`'s block, its shape** (kernel evaluation). -/
 noncomputable def dvCOk : Bool :=
   dvP.all Core.Stmt.flat && dvP.all B1.notIteB && decide (dvP.filterMap Stmt.addrS = []) &&
-  decide (dvP.filterMap Stmt.allocSz = [(.n 31, .inr (.n 30)), (.n 32, .inr (.n 1)), (.n 39, .inr (.n 38))]) &&
+  decide (dvP.filterMap Stmt.allocSz = [(.n 21, .inr (.n 20)), (.n 22, .inr (.n 1)), (.n 29, .inr (.n 28))]) &&
   decide (dvP.filterMap Stmt.loadS = [])
 
 theorem dv_cok : dvCOk = true := by decide +kernel
@@ -125,34 +125,22 @@ noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E) (s 
     fun _ => ⟨daLevelsName L, true, [gen ^ (bb + 641 * r + r)], [(bb + 641 * r + r, rootsCells r L syms)],
       Returns (digestCells (daRoot r L syms))⟩]
 
-/-- The rate cells of the challenge, as `fs_pack` computes them from its top limb. -/
-def zCells (z : E) : List E :=
-  [z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 0 * word 0 0 0]
-
-theorem zCells_eq (z : E) :
-    zCells z = [(scalarCells z 0).1, (scalarCells z 0).2] := by
-  have hc := (top_pin_iff z (ofK (z.limb 2))).mpr rfl
-  obtain ⟨-, he⟩ := fsPack_cells z (ofK (z.limb 2)) 0 hc.1 hc.2
-  rw [← he, zCells, word_yy, word_y, word_eOfNat]
-
 /-- `da_verify`'s valuation. -/
 def dvVals (r L s : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) : List E :=
-  [gen ^ s, gen ^ r, gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), z, word 0 0 0, ofK (z.limb 0),
-    ofK (z.limb 1), ofK (z.limb 2), word 0 0 1, word 0 0 1 * ofK (z.limb 2),
-    z + word 0 0 1 * ofK (z.limb 2), word 0 1 0, word 0 1 0 * word 0 0 0,
-    ofK (z.limb 2) + word 0 1 0 * word 0 0 0, gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7), gen ^ q.2.2.1,
+  [gen ^ s, gen ^ r, gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), z, gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7),
+    gen ^ q.2.2.1,
     gen ^ q.2.2.2, gen ^ (2 * r), gen ^ (4 * r), gen ^ (5 * r), gen ^ (10 * r), gen ^ (20 * r),
     gen ^ (40 * r), gen ^ (80 * r), gen ^ (160 * r), gen ^ (320 * r), gen ^ (640 * r),
-    gen ^ (641 * r), gen ^ bb, gen ^ (bb + 641 * r), word 1 0 0, word 1 0 0 + gen ^ r, word 1 0 0,
-    word 1 0 0, gen ^ (2 * 2 ^ L), gen ^ (4 * 2 ^ L), gen ^ (bb + 641 * r + r), word 1 0 0,
-    word 1 0 0 + gen ^ r, word 1 0 0, word 1 0 0, word 1 0 0 + gen ^ (2 ^ L - r), word 1 0 0, c0, c1,
-    c0, c1, z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 0 * word 0 0 0]
+    gen ^ (641 * r), gen ^ bb, gen ^ (bb + 641 * r), word 1 0, word 1 0 + gen ^ r, word 1 0,
+    word 1 0, gen ^ (2 * 2 ^ L), gen ^ (4 * 2 ^ L), gen ^ (bb + 641 * r + r), word 1 0,
+    word 1 0 + gen ^ r, word 1 0, word 1 0, word 1 0 + gen ^ (2 ^ L - r), word 1 0, c0, c1,
+    c0, c1, z]
 
 /-- **`da_verify`'s honest shape**: its counts, its loops' starts and the padding's guard, its
 dispatch. -/
 def dvQ (r L : ℕ) (σ : Val) : Prop :=
-  σ (.n 1) = gen ^ r ∧ σ (.n 2) = gen ^ L ∧ σ (.n 4) = gen ^ (2 ^ L - r) ∧ σ (.n 35) = 1 ∧
-    σ (.n 42) = 1 ∧ σ (.n 44) = 1 + gen ^ (2 ^ L - r) ∧ σ (.n 45) = 1
+  σ (.n 1) = gen ^ r ∧ σ (.n 2) = gen ^ L ∧ σ (.n 4) = gen ^ (2 ^ L - r) ∧ σ (.n 25) = 1 ∧
+    σ (.n 32) = 1 ∧ σ (.n 34) = 1 + gen ^ (2 ^ L - r) ∧ σ (.n 35) = 1
 
 /-- The predicates on `da_verify`'s callees' trees: the column loop's honest shape. -/
 def dvTs (r : ℕ) : List (Tree → Prop) :=
@@ -173,11 +161,10 @@ theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ �
   intro st hs
   simp only [dvP, Data.core27, Data.core27.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, dvVals, List.getD_cons_succ,
     List.getD_cons_zero]
   all_goals first
-    | exact ⟨ofK_isInK _, by rw [word_zero, ← ofK_zero]; exact ofK_isInK 0⟩
     | exact ⟨by rw [word_one]; exact one_add_gen_isInK _, fun _ => True.intro⟩
     | exact ⟨L, by simp; omega, by rw [gen_pow_eq_ofK], True.intro⟩
     | (rw [← pow_add]; ring_nf)
@@ -193,7 +180,7 @@ theorem dv_dispOk (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ �
   intro st hs
   simp only [dvP, Data.core27, Data.core27.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals first
     | exact True.intro
     | exact ⟨L, by simp; omega, by omega, by simp [ofArgs_n, dvVals, gen_pow_eq_ofK]⟩
@@ -262,7 +249,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
       dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) (s : ℕ) :
     CompleteAtDTB fs cert 16 "da_verify" [(s + L, [gen ^ 2 ^ L])] [gen ^ s]
-      (Returns (digestCells (daRoot r L syms) ++ zCells z)) (dvNH r L)
+      (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNH r L)
       (fs "da_verify" + (dvSizes r L).sum + (dvBs fs SB SK r L).sum) := by
   -- the shape
   have hr' : r ≤ 1024 := hr
@@ -279,13 +266,13 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body Data.core27 = dvP ++ [.ret [.n 48, .n 49, .n 50, .n 51]] := rfl
+  have hb : Fn.body Data.core27 = dvP ++ [.ret [.n 38, .n 39, .n 40]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [blobsCells r syms z, rowbaseCells r bb, rootsCells r L syms] =
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb), (bb + 641 * r + r, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]
   refine ((completeAt_flatDepRet (fs := fs) (cert := cert) find_da_verify
     (by rw [Program.loop_of_find? find_da_verify]; decide +kernel) 16 [(s + L, [gen ^ 2 ^ L])] [gen ^ s]
-    (fun _ _ => digestCells (daRoot r L syms) ++ zCells z) _ hb hflat haddr hni (dvSizes r L)
+    (fun _ _ => digestCells (daRoot r L syms) ++ [z]) _ hb hflat haddr hni (dvSizes r L)
     (fun fp => [blobsCells r syms z, rowbaseCells r (fp + fs "da_verify"), rootsCells r L syms])
     (fun _ => by simp [dvSizes, length_blobsCells, rowbaseCells, length_rootsCells])
     (fun fp => dvKids r L syms z s (fp + fs "da_verify"))
@@ -461,13 +448,13 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     have h6 : 2 ^ L - r ≠ 0 → o6.1 = [] := fun h =>
       (kidsAt_outsOk _ [] _ ho 5 (by simp [dvKids]) (by simp)
         (by show decide (2 ^ L - r ≠ 0) = true; simpa using h)).1
-    have h44 : σ (.n 44) ≠ 0 → 2 ^ L - r ≠ 0 := fun h hz => h (by
-      rw [hσ]; show word 1 0 0 + gen ^ (2 ^ L - r) = 0
+    have h44 : σ (.n 34) ≠ 0 → 2 ^ L - r ≠ 0 := fun h hz => h (by
+      rw [hσ]; show word 1 0 + gen ^ (2 ^ L - r) = 0
       rw [hz, pow_zero, word_one]; exact e_add_eq_zero_iff.mpr rfl)
     refine ⟨σ, by rw [hσ]; rfl, hdisp, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hb]
       refine holdsList_straight _ _ _ _ hall ?_
-      simp [hσ, ofArgs_n, dvVals, digestCells, zCells]
+      simp [hσ, ofArgs_n, dvVals, digestCells]
     · rw [halloc]
       simp only [List.map_cons, List.map_nil, Sum.elim_inr, hσ, ofArgs_n, dvVals, dvSizes,
         List.getD_cons_succ, List.getD_cons_zero]
@@ -486,7 +473,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     · rw [hloads]
       simp
     · refine ⟨by rw [hσ]; rfl, s2, by rw [hσ]; rfl, by rw [hσ]; exact word_one, by rw [hσ]; exact word_one,
-        by rw [hσ]; show word 1 0 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩
+        by rw [hσ]; show word 1 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩
 
 end
 end LeanVM.Guest.B1.Da

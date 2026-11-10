@@ -79,7 +79,8 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa
   l5 : MainGoalL5T fs cert fp seed s w p.T5
 
 /-- **`main`'s callees, by trees satisfying `p`.** -/

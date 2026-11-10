@@ -50,7 +50,7 @@ abbrev leanIsaWith (prog : LeanIsaProgram) (s : Sizes)
   μ := leanIsaμ prog s
   layout := layout prog s
   derived := derived prog s
-  nLines := 3
+  nLines := 2
   publicLines := publicLines prog s
   keccak := fl
 

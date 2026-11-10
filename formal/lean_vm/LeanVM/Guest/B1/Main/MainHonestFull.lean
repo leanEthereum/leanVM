@@ -57,7 +57,8 @@ theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation by
     (hag : (hm fs fp seed s w).nc ≠ 0 →
       CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) Pa) :
+          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) Pa) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →

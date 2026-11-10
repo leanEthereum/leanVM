@@ -6,7 +6,7 @@ file formats, read without hashing, and the running of their child processes.
     `u64` position, its `u32` leaf length and that many `u64` words, its `u32` sibling count and
     that many 32-byte digests (`parse_phases`);
   * `proof.wire`, the one wire encoding (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`): the
-    `u32` stream length and the stream, 24 bytes a scalar; the `u32` phase count; per phase its
+    `u32` stream length and the stream, 16 bytes a scalar; the `u32` phase count; per phase its
     `u32` query count and positions, its `u32` height, leaf width and row width, the row of every
     distinct position, ascending, and the carried siblings (`parse_wire`, `Wire`, `Phase`).
 
@@ -120,7 +120,7 @@ class Wire:
         self.stream, self.phases = stream, phases
 
     def encode(self, stream_count=None, phase_count=None) -> bytes:
-        out = bytearray(u32(len(self.stream) // 24 if stream_count is None else stream_count))
+        out = bytearray(u32(len(self.stream) // 16 if stream_count is None else stream_count))
         out += self.stream
         out += u32(len(self.phases) if phase_count is None else phase_count)
         for phase in self.phases:
@@ -144,7 +144,7 @@ def parse_wire(data: bytes) -> tuple:
     def read_u32():
         return struct.unpack("<I", take(4))[0]
 
-    stream = take(24 * read_u32())
+    stream = take(16 * read_u32())
     phases, offsets = [], []
     for _ in range(read_u32()):
         start = offset

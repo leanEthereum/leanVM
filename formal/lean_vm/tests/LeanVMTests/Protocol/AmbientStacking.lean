@@ -70,7 +70,7 @@ example (z : Vector K 2) :
 /-! ## The decomposition, evaluated -/
 
 /-- A point of `E^3` off the cube and outside `K`. -/
-def offCube : Vector E 3 := #v[E.ofLimbs 0 1 0, E.ofLimbs 1 1 0, E.ofLimbs 0 0 1]
+def offCube : Vector E 3 := #v[E.ofLimbs 0 1, E.ofLimbs 1 1, E.ofLimbs (K.ofBits 2) 1]
 
 /-- The blocks' share of the stack at `offCube`. -/
 def coveredPart : E :=

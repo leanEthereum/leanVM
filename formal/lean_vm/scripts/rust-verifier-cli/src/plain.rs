@@ -1,6 +1,6 @@
 //! The plain rendering of a proof, which hashes nothing and prunes nothing: every count a
-//! little-endian `u32`, every word and position a little-endian `u64`, a scalar three words
-//! `c0, c1, c2`; the Merkle openings the phase count, and per phase its path count, and per path
+//! little-endian `u32`, every word and position a little-endian `u64`, a scalar two words
+//! `c0, c1`; the Merkle openings the phase count, and per phase its path count, and per path
 //! its position, its leaf's length and words, its siblings' count and their 32 bytes each.
 //! `merkle_phases.bin` is the openings alone. Shared by `leanvm-rust-verify` and, through
 //! `#[path]`, `leanvm-rust-wire`.
@@ -22,12 +22,12 @@ impl<'a> Reader<'a> {
         self.bytes(8).map(word)
     }
 
-    /// `count` scalars, as their three words.
-    pub fn scalars(&mut self, count: usize) -> Option<Vec<[u64; 3]>> {
-        let bytes = self.bytes(count.checked_mul(24)?)?;
+    /// `count` scalars, as their two words.
+    pub fn scalars(&mut self, count: usize) -> Option<Vec<[u64; 2]>> {
+        let bytes = self.bytes(count.checked_mul(16)?)?;
         Some(
             bytes
-                .chunks_exact(24)
+                .chunks_exact(16)
                 .map(|scalar| std::array::from_fn(|i| word(&scalar[8 * i..])))
                 .collect(),
         )

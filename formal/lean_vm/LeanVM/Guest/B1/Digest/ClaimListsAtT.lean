@@ -48,7 +48,7 @@ open LeanVM.Guest.Budget (NodeHonest)
 /-! ## The path -/
 
 /-- The head of `child_claim_list_digest`'s body: `n_g + 1`. -/
-def ccdHead : List Stmt := [.atom (.const (.n 5) (word 1 0 0)), .atom (.add (.n 6) (.n 4) (.n 5))]
+def ccdHead : List Stmt := [.atom (.const (.n 5) (word 1 0)), .atom (.add (.n 6) (.n 4) (.n 5))]
 
 /-- The final copies of `child_claim_list_digest`. -/
 def ccdTail : List Stmt := [.atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) (.n 14))]
@@ -57,7 +57,7 @@ def ccdTail : List Stmt := [.atom (.copy (.n 25) (.n 13)), .atom (.copy (.n 26) 
 def ccE4 : List Stmt :=
   [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
     .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
-    .atom (.const (.n 19) (word 2 0 0)), .atom (.add (.n 20) (.n 18) (.n 19))]
+    .atom (.const (.n 19) (word 2 0)), .atom (.add (.n 20) (.n 18) (.n 19))]
 
 /-- The gap walk's arm. -/
 def ccMonoArm : List Stmt :=
@@ -116,7 +116,7 @@ noncomputable def ccZEval : List Stmt := ccdHead ++ cc25Zero ++ fillH 15 25 ++ c
 
 /-- **The empty list's run, evaluated**: in order, no store, no side condition. -/
 noncomputable def cczOk : Bool :=
-  (chk 5 ccZEval).isSome && (storesOf 5 ccZEval).isEmpty && canonChk [] (atomsIn ccZEval) &&
+  (chk 5 ccZEval).isSome && (storesOf 5 ccZEval).isEmpty &&
     (atomsIn ccZEval).all (fun a => !needsSide a)
 
 set_option maxRecDepth 100000 in
@@ -142,14 +142,13 @@ theorem ccz_core (entries region base limit : E) :
   simp only [cc25ZOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
   simp only [cczOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨-, hzc⟩, hz13⟩, hz14⟩ := hz1
-  obtain ⟨⟨⟨b12, b13⟩, b14⟩, b15⟩ := hb1
-  have c5 : Stmt.atom (.const (.n 5) (word 1 0 0)) ∈ ccdHead := by simp [ccdHead]
+  obtain ⟨⟨b12, b13⟩, b15⟩ := hb1
+  have c5 : Stmt.atom (.const (.n 5) (word 1 0)) ∈ ccdHead := by simp [ccdHead]
   have a6 : Stmt.atom (.add (.n 6) (.n 4) (.n 5)) ∈ ccdHead := by simp [ccdHead]
   have t36 : Stmt.atom (.copy (.n 25) (.n 13)) ∈ ccdTail := by simp [ccdTail]
   have t37 : Stmt.atom (.copy (.n 26) (.n 14)) ∈ ccdTail := by simp [ccdTail]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, region, base, limit, gen ^ 0]
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) ccZEval args hchk
   rw [show args.length = 5 from rfl, List.isEmpty_iff.mp b13] at hgs
   have hg : ∀ a ∈ atomsIn ccZEval, Good rd [] (fun _ => 0) σ a := fun a ha =>
@@ -159,7 +158,7 @@ theorem ccz_core (entries region base limit : E) :
     have := List.all_eq_true.mp b15 a ha
     simpa using this
   have hat : ∀ a ∈ atomsIn ccZEval, a.Holds rd σ :=
-    atoms_holds hidx b14 hg (A := []) (by simp) fun a ha hn => absurd hn (by simp [hns a ha])
+    atoms_holds hg fun a ha hn => absurd hn (by simp [hns a ha])
   have mH : ∀ s ∈ ccdHead, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
   have mZ : ∀ s ∈ cc25Zero, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
   have mT : ∀ s ∈ ccdTail, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
@@ -167,14 +166,14 @@ theorem ccz_core (entries region base limit : E) :
     hat a (cl_mem_atoms (mZ _ (cl_atom_mem ha)))
   have par : ∀ i (hi : i < 5), σ (.n i) = args.getD i 0 := fun i hi =>
     ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have v5 : σ (.n 5) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c5))
+  have v5 : σ (.n 5) = word 1 0 := hat _ (cl_mem_atoms (mH _ c5))
   have v6 : σ (.n 6) = σ (.n 4) + σ (.n 5) := hat _ (cl_mem_atoms (mH _ a6))
   have v36 : σ (.n 25) = σ (.n 13) := hat _ (cl_mem_atoms (mT _ t36))
   have v37 : σ (.n 26) = σ (.n 14) := hat _ (cl_mem_atoms (mT _ t37))
   have v6' : σ (.n 6) = gen ^ 0 + gen ^ 0 := by
     rw [v6, v5, par 4 (by omega), word_one, pow_zero]; rfl
   have h60 : σ (.n 6) = 0 := by rw [v6']; exact e_add_eq_zero_iff.mpr rfl
-  obtain ⟨hd, -⟩ := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
+  have hd := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
   rw [hz13, hz14, show List.take (cc25ZSpec.len / 16) (cc25ZSpec.vals σ) = [] by
     simp [cc25ZSpec], List.nil_append] at hd
@@ -209,9 +208,9 @@ def ccTs (n : ℕ) : List (Tree → Prop) := [fun _ => True, anyHonest n]
 
 /-- The nonempty list's valuation, written out (the hint `child_mono = 0`). -/
 noncomputable def ccEσ (eP rg L n : ℕ) (base : E) (D : Digest) : Val :=
-  B1.Val.ofArgs [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n, word 1 0 0, gen ^ n + word 1 0 0,
+  B1.Val.ofArgs [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n, word 1 0, gen ^ n + word 1 0,
     0, 0, 0, 0, 0, 0, (digestHalves D).1, (digestHalves D).2,
-    gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17), 0, word 2 0 0, 0 + word 2 0 0, 0, 0,
+    gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17), 0, word 2 0, 0 + word 2 0, 0, 0,
     (digestHalves D).1, (digestHalves D).2, (digestHalves D).1, (digestHalves D).2]
 
 /-- `child_claim_list_digest`'s callees on a nonempty list. -/
@@ -289,10 +288,10 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   set σ := ccEσ eP rg L n base D with hσ
   have hgn : gen ^ n ≠ 1 := fun h => hn0 ((gen_pow_eq_one_iff (by omega)).mp h)
   have h6ne : σ (.n 6) ≠ 0 := by
-    show gen ^ n + word 1 0 0 ≠ 0
+    show gen ^ n + word 1 0 ≠ 0
     rw [word_one, Ne, e_add_eq_zero_iff]; exact hgn
   have h31ne : σ (.n 20) ≠ 0 := by
-    show 0 + word 2 0 0 ≠ 0
+    show 0 + word 2 0 ≠ 0
     rw [zero_add, word_gen]; exact gen_ne_zero
   have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
       .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: ccAnyArm.flatMap (Main.slEvs σ)) := by
@@ -310,15 +309,15 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
       Main.slEvs, List.cons_append, List.nil_append, List.append_nil, List.mem_cons,
       List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · show σ (.n 5) = word 1 0 0; rfl
+    · show σ (.n 5) = word 1 0; rfl
     · show σ (.n 6) = σ (.n 4) + σ (.n 5); rfl
-    · show IsInK (gen ^ n + word 1 0 0)
+    · show IsInK (gen ^ n + word 1 0)
       rw [word_one, ← pow_zero gen]; exact gen_pow_add_isInK _ _
     · trivial
     · trivial
-    · show σ (.n 19) = word 2 0 0; rfl
+    · show σ (.n 19) = word 2 0; rfl
     · show σ (.n 20) = σ (.n 18) + σ (.n 19); rfl
-    · show IsInK (0 + word 2 0 0)
+    · show IsInK (0 + word 2 0)
       rw [zero_add, word_gen, ← pow_one gen]; exact gen_pow_isInK 1
     · trivial
     · show σ (.n 13) = σ (.n 23); rfl
@@ -447,7 +446,7 @@ honest records among the caller's words (marks `base · g^j` at `g^(rg + o j)`, 
 `g^(eP + 4 o j)`, slots below `L ≤ 2^κ`); it returns their cells' digest. -/
 theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -463,7 +462,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
       B1.disj_nil, fun rd _ _ => cc_empty fs cert fp rd⟩
   have hok : KidsDT fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n) :=
     ⟨fun _ => (list_split_n fs cert hκ hn).toT,
-      fun _ => child_claim_list_any_completeAtT fs cert hn hl hc hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, -, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDT hok _)
   exact ⟨_, Lown, _, [], ⟨rfl, rfl⟩, hW, hD, hr⟩
@@ -471,14 +470,14 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
 /-- **`child_claim_list_digest` is complete, placed.** -/
 theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
     (hR3 : ∀ j < n, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
     CompleteAtD fs cert κ "child_claim_list_digest" Lin [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_digest_completeAtT fs cert hκ hn hl hc hL33 hLκ hrec hR2 hR3).toD
+  (child_claim_list_digest_completeAtT fs cert hκ hn hl hL33 hLκ hrec hR2 hR3).toD
 
 end
 end LeanVM.Guest.B1.Digest

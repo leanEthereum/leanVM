@@ -66,15 +66,14 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   cellsOfState S false 1)`.
 
 **The duplex** (`KeccakDuplex`)
-* `rateCell pending c`, `scalarCells x t = (E.ofLimbs (x.limb 0) (x.limb 1) 0,
-  E.ofLimbs (x.limb 2) (K.ofLane t.toUInt64) 0)`, `rateCell_scalar`, `rateCell_past`.
+* `rateCell pending c`, `scalarCells x t = (x, E.ofLimbs 0 (K.ofBits t))`, `rateCell_scalar`,
+  `rateCell_past`.
 * `keccak_duplex`: `(∀ c : Fin 13, c.val < 8 → I c = rateCell pending c) →
    (∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c) → KeccakCells I false O false →
    O = cellsOfState (keccakF (duplexInput ⟨S, pending⟩)) false`.
-* `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF`.
-* `challengeOf_cells : challengeOf S =
-   cellsOfState S false 0 + y * y * ofK ((cellsOfState S false 1).limb 0)`, `challengeOf_limb0`;
-  `fsPack_cells` (`fs_pack`'s two cells, canonical exactly at the top limb).
+* `squeeze_id`, `squeeze_id_ground`, `absorb_id_full`: the Spec's sponge at `Id`, `keccakF`.
+* `challengeOf_cells : challengeOf S = cellsOfState S false 0`, `challengeOf_limb0`;
+  `powLane_cells : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane`.
 
 **Constants by kernel evaluation** (`KeccakConst`, `KeccakEval`)
 * `keccakF_zero : keccakF zeroState = keccakFZero` (the `KECCAK` table's padding row).

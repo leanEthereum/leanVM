@@ -10,7 +10,6 @@ module
 public import LeanVM.Wire.Spec
 public import LeanVM.Wire.PruneList
 public import LeanVM.Wire.ReadWrite
-public import LeanVM.Parameters.Field
 
 /-!
 # Reading back the pruned encoding
@@ -37,9 +36,9 @@ open LeanVM.Protocol.Compile LeanVM.Wire.PruneList
 
 namespace Prune
 
-/-- The three limbs of each stream element, in order. -/
+/-- The two limbs of each stream element, in order. -/
 def limbWords (s : List E) : List K :=
-  s.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
+  s.flatMap fun x ↦ [x.limb 0, x.limb 1]
 
 theorem limbWords_toBytes (s : List E) :
     (limbWords s).flatMap K.toBytes = s.flatMap E.toBytes := by
@@ -49,33 +48,34 @@ theorem limbWords_toBytes (s : List E) :
     simp only [limbWords] at ih
     simp [limbWords, ih, E.toBytes]
 
-theorem length_limbWords (s : List E) : (limbWords s).length = 3 * s.length := by
+theorem length_limbWords (s : List E) : (limbWords s).length = 2 * s.length := by
   induction s with
   | nil => rfl
   | cons x s ih => simp [limbWords] at ih ⊢; omega
 
 /-- `readProof`'s regrouping of the stream's words gives the stream back. -/
 theorem regroup_limbWords :
-    ∀ s : List E, (List.range s.length).map (fun i ↦ E.ofLimbs ((limbWords s).getD (3 * i) 0)
-      ((limbWords s).getD (3 * i + 1) 0) ((limbWords s).getD (3 * i + 2) 0)) = s
+    ∀ s : List E, (List.range s.length).map (fun i ↦ E.ofLimbs ((limbWords s).getD (2 * i) 0)
+      ((limbWords s).getD (2 * i + 1) 0)) = s
   | [] => rfl
   | x :: s => by
     have ih := regroup_limbWords s
     rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map]
     refine congrArg₂ List.cons ?_ (Eq.trans ?_ ih)
-    · simpa [limbWords] using Parameters.ofLimbs_limb x
+    · simpa [limbWords] using (CompPoly.Extension.Ext.ext fun i ↦ by fin_cases i <;> rfl :
+        E.ofLimbs (x.limb 0) (x.limb 1) = x)
     · apply List.map_congr_left
       intro i _
       simp only [Function.comp, limbWords, List.flatMap_cons]
-      have h3 : 3 * (i + 1) = 3 * i + 3 := by ring
-      simp [List.getD_eq_getElem?_getD, h3, Nat.add_assoc]
+      have h2 : 2 * (i + 1) = 2 * i + 2 := by ring
+      simp [List.getD_eq_getElem?_getD, h2, Nat.add_assoc]
 
 /-- The stream's form of `readProof_toBytes`, from `readWords_toBytes` (`ReadWrite`'s
 `streamOfWords`, `streamWords` are not exposed). -/
 theorem readStream_of_readWords (s : List E) (rest : Bytes) : ∃ ws,
-      readWords (3 * s.length) (s.flatMap E.toBytes ++ rest) = some (ws, rest) ∧
+      readWords (2 * s.length) (s.flatMap E.toBytes ++ rest) = some (ws, rest) ∧
         (List.range s.length).map (fun i ↦
-          E.ofLimbs (ws.getD (3 * i) 0) (ws.getD (3 * i + 1) 0) (ws.getD (3 * i + 2) 0)) = s :=
+          E.ofLimbs (ws.getD (2 * i) 0) (ws.getD (2 * i + 1) 0)) = s :=
   ⟨limbWords s, by rw [← length_limbWords, ← limbWords_toBytes]; exact readWords_toBytes _ _,
     regroup_limbWords s⟩
 

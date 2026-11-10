@@ -18,7 +18,7 @@ words at the record's cursor (`Pack8Regions`); one of the remainder loop loads t
 coordinate at `pp·x`, the challenge's slot at `pt·x` and two stream words (`PackRemRegions`).
 With those words in a region `R` at every counter, each loop's relation loads from `R`
 (`pack8Loop_relIn`, `packRemLoop_relIn`): one tree per iteration (`Memory.relIn_of_walk`,
-`loop5_relIn_step`), its only callee the next iteration.
+`loop6_relIn_step`), its only callee the next iteration.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -29,35 +29,36 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## A loop of five parameters, one iteration -/
+/-! ## A loop of six parameters, one iteration -/
 
 /-- **One iteration on its loads' region**, the next one (if any) given: a body of atoms `pre`
 then the self-call guarded by `c` with the counter `nx`, its atoms holding on `σ`. -/
-theorem loop5_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
+theorem loop6_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
     {pre : List Stmt} {c nx : ℕ}
-    (hb : fn.body = pre ++ [.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4], .ret []])
-    (hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) (hat : pre.all isAtom = true)
-    {rd : Reader} {R : ℕ → Prop} {rec pp pt : E} {m k : ℕ} (hk : k < m) {σ : Val}
-    (hp : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = [gen ^ k, gen ^ m, rec, pp, pt])
+    (hb : fn.body = pre ++ [.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []])
+    (hpar : fn.params = loopParams) (hat : pre.all isAtom = true)
+    {rd : Reader} {R : ℕ → Prop} {a2 a3 a4 a5 : E} {m k : ℕ} (hk : k < m) {σ : Val}
+    (hp : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] =
+      [gen ^ k, gen ^ m, a2, a3, a4, a5])
     (hblk : ∀ a, Stmt.atom a ∈ pre → a.Holds rd σ) (hc : σ (.n c) = gen ^ k * gen + gen ^ m)
     (hn : σ (.n nx) = gen ^ k * gen)
     (hL : ∀ q ∈ pre.filterMap Stmt.loadS, InR R (σ q.1) q.2)
-    (hnext : k + 1 < m → coreProgram.RelIn rd R name [gen ^ (k + 1), gen ^ m, rec, pp, pt] []) :
-    coreProgram.RelIn rd R name [gen ^ k, gen ^ m, rec, pp, pt] [] := by
+    (hnext : k + 1 < m → coreProgram.RelIn rd R name [gen ^ (k + 1), gen ^ m, a2, a3, a4, a5] []) :
+    coreProgram.RelIn rd R name [gen ^ k, gen ^ m, a2, a3, a4, a5] [] := by
   have hpreS : pre.all Stmt.straight = true := List.all_eq_true.2 fun s hs ↦ by
     have := List.all_eq_true.1 hat s hs
     cases s with
     | atom a => rfl
     | _ => simp [isAtom] at this
-  have hst : (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4]]).all
+  have hst : (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]).all
       Stmt.straight = true := by
     rw [List.all_append]
     simp only [Bool.and_eq_true]
     exact ⟨hpreS, rfl⟩
   have hw : walk σ fn.body = .ret ((pre ++ [Stmt.callIf (.n c) name
-      [.n nx, .n 1, .n 2, .n 3, .n 4]]).flatMap (slEvs σ)) [] := by
-    rw [hb, show pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4], .ret []] =
-      (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4]]) ++ [.ret []] by simp]
+      [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]).flatMap (slEvs σ)) [] := by
+    rw [hb, show pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []] =
+      (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]) ++ [.ret []] by simp]
     exact walk_straight σ [] _ hst
   have hcalls : pre.filterMap Stmt.callS = [] := by
     rw [List.filterMap_eq_nil_iff]
@@ -66,7 +67,7 @@ theorem loop5_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name 
     cases s with
     | atom a => rfl
     | _ => simp [isAtom] at this
-  refine relIn_of_walk coreProgram_wf hf (by rw [hpar]; exact hp) hw rfl
+  refine relIn_of_walk coreProgram_wf hf (by rw [hpar, loopParams]; exact hp) hw rfl
     (fun e he ↦ ?_) (fun A hA ↦ ?_) (fun c' hc' ht ↦ ?_)
   · rw [List.flatMap_append, List.mem_append] at he
     rcases he with he | he
@@ -96,26 +97,27 @@ theorem loop5_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name 
     subst hc'
     simp only [mkCall, decide_eq_true_eq] at ht
     simp only [List.cons.injEq, and_true] at hp
-    obtain ⟨-, h1, h2, h3, h4⟩ := hp
+    obtain ⟨-, h1, h2, h3, h4, h5⟩ := hp
     have hk1 : k + 1 < m := by
       by_contra hge
       apply ht
       rw [hc, ← pow_succ, show k + 1 = m by omega]
       exact e_add_eq_zero_iff.mpr rfl
-    show coreProgram.RelIn rd R name [σ (.n nx), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] []
-    rw [hn, h1, h2, h3, h4, ← pow_succ]
+    show coreProgram.RelIn rd R name [σ (.n nx), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []
+    rw [hn, h1, h2, h3, h4, h5, ← pow_succ]
     exact hnext hk1
 
-/-- **A loop of five parameters runs from `1`**, every iteration given its successor. -/
-theorem loop5_relIn_guard {name : String} {rd : Reader} {R : ℕ → Prop} {rec pp pt : E} {m : ℕ}
-    (hstep : ∀ k < m, (k + 1 < m → coreProgram.RelIn rd R name [gen ^ (k + 1), gen ^ m, rec, pp, pt]
-      []) → coreProgram.RelIn rd R name [gen ^ k, gen ^ m, rec, pp, pt] []) :
+/-- **A loop of six parameters runs from `1`**, every iteration given its successor. -/
+theorem loop6_relIn_guard {name : String} {rd : Reader} {R : ℕ → Prop} {a2 a3 a4 a5 : E} {m : ℕ}
+    (hstep : ∀ k < m, (k + 1 < m → coreProgram.RelIn rd R name
+      [gen ^ (k + 1), gen ^ m, a2, a3, a4, a5] []) →
+        coreProgram.RelIn rd R name [gen ^ k, gen ^ m, a2, a3, a4, a5] []) :
     IsInK (1 + gen ^ m) ∧
-      (1 + gen ^ m ≠ 0 → coreProgram.RelIn rd R name [1, gen ^ m, rec, pp, pt] []) := by
+      (1 + gen ^ m ≠ 0 → coreProgram.RelIn rd R name [1, gen ^ m, a2, a3, a4, a5] []) := by
   refine ⟨by rw [← pow_zero gen]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _),
     fun hne ↦ ?_⟩
   have key : ∀ t k, k + 1 + t = m →
-      coreProgram.RelIn rd R name [gen ^ k, gen ^ m, rec, pp, pt] [] := by
+      coreProgram.RelIn rd R name [gen ^ k, gen ^ m, a2, a3, a4, a5] [] := by
     intro t
     induction t with
     | zero =>
@@ -139,8 +141,8 @@ def Pack8Regions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
 
 /-- The eight-round loop's loads: the record, the coordinates, the stream words, the slots. -/
 def pack8LoadOk (q : V × ℕ) : Bool :=
-  (decide (q.1 = .n 5) && roundRecOffs.contains q.2) || (decide (q.1 = .n 9) && decide (q.2 < 8)) ||
-    (decide (q.1 = .n 19) && decide (q.2 < 16)) || (decide (q.1 = .n 13) && decide (q.2 < 8))
+  (decide (q.1 = .n 6) && roundRecOffs.contains q.2) || (decide (q.1 = .n 10) && decide (q.2 < 8)) ||
+    (decide (q.1 = .n 20) && decide (q.2 < 16)) || (decide (q.1 = .n 14) && decide (q.2 < 8))
 
 theorem pack8_loads : (pack8Pre.filterMap Stmt.loadS).all pack8LoadOk = true := by decide +kernel
 
@@ -148,16 +150,16 @@ theorem pack8_loads : (pack8Pre.filterMap Stmt.loadS).all pack8LoadOk = true := 
 `j < m`, its words in `R`, gives the guard and the loop run of `keccak_layer`'s call loading from
 `R`. -/
 theorem pack8Loop_relIn {first : ℕ} (hfirst : first < 2) {rd : Reader} {R : ℕ → Prop}
-    {rec pp pt : E} {m : ℕ} (hs : ∀ j < m, Pack8Hon rd rec pp pt (gen ^ j))
+    {rec pp pt tb : E} {m : ℕ} (hs : ∀ j < m, Pack8Hon rd rec pp pt (gen ^ j))
     (hR : ∀ j < m, Pack8Regions R rd rec pp pt (gen ^ j)) :
     IsInK (1 + gen ^ m) ∧ (1 + gen ^ m ≠ 0 →
-      coreProgram.RelIn rd R (packLoopName first) [1, gen ^ m, rec, pp, pt] []) := by
+      coreProgram.RelIn rd R (packLoopName first) [1, gen ^ m, rec, pp, pt, tb] []) := by
   obtain ⟨fn, hf, hb, hpar⟩ := find_pack8 hfirst
-  refine loop5_relIn_guard fun k hk hnext ↦ ?_
+  refine loop6_relIn_guard fun k hk hnext ↦ ?_
   obtain ⟨σ, hp, hblk, v5, v9, v13, l19, v447, v449⟩ :=
-    pack8Block_complete (N := gen ^ m) (hs k hk)
+    pack8Block_complete (N := gen ^ m) (tb := tb) (hs k hk)
   obtain ⟨r5, r9, r13, r19⟩ := hR k hk
-  refine loop5_relIn_step hf (hb.trans rfl) hpar pack8Pre_atoms hk hp hblk v447 v449 (fun q hq ↦ ?_)
+  refine loop6_relIn_step hf (hb.trans rfl) hpar pack8Pre_atoms hk hp hblk v447 v449 (fun q hq ↦ ?_)
     hnext
   have := List.all_eq_true.1 pack8_loads q hq
   simp only [pack8LoadOk, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq,
@@ -177,24 +179,24 @@ def PackRemRegions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
 
 /-- The remainder loop's loads. -/
 def packRemLoadOk (q : V × ℕ) : Bool :=
-  (decide (q.1 = .n 5) && roundRecOffs.contains q.2) || (decide (q.1 = .n 6) && decide (q.2 = 0)) ||
-    (decide (q.1 = .n 13) && decide (q.2 < 2)) || (decide (q.1 = .n 59) && decide (q.2 = 0))
+  (decide (q.1 = .n 6) && roundRecOffs.contains q.2) || (decide (q.1 = .n 7) && decide (q.2 = 0)) ||
+    (decide (q.1 = .n 14) && decide (q.2 < 2)) || (decide (q.1 = .n 40) && decide (q.2 = 0))
 
 theorem packRem_loads : (packRemPre.filterMap Stmt.loadS).all packRemLoadOk = true := by
   decide +kernel
 
 /-- **The remainder loop is complete, its loads placed.** -/
 theorem packRemLoop_relIn {first : ℕ} (hfirst : first < 2) {rd : Reader} {R : ℕ → Prop}
-    {rec pp pt : E} {m : ℕ} (hs : ∀ j < m, PackRemHon rd rec pp pt (gen ^ j))
+    {rec pp tb pt : E} {m : ℕ} (hs : ∀ j < m, PackRemHon rd rec pp pt (gen ^ j))
     (hR : ∀ j < m, PackRemRegions R rd rec pp pt (gen ^ j)) :
     IsInK (1 + gen ^ m) ∧ (1 + gen ^ m ≠ 0 →
-      coreProgram.RelIn rd R (remLoopName first) [1, gen ^ m, rec, pp, pt] []) := by
+      coreProgram.RelIn rd R (remLoopName first) [1, gen ^ m, rec, pp, tb, pt] []) := by
   obtain ⟨fn, hf, hb, hpar⟩ := find_packRem hfirst
-  refine loop5_relIn_guard fun k hk hnext ↦ ?_
+  refine loop6_relIn_guard fun k hk hnext ↦ ?_
   obtain ⟨σ, hp, hblk, v5, v6, v59, l13, v77, v79⟩ :=
-    packRemBlock_complete (N := gen ^ m) (hs k hk)
+    packRemBlock_complete (N := gen ^ m) (tb := tb) (hs k hk)
   obtain ⟨r5, r6, r59, r13⟩ := hR k hk
-  refine loop5_relIn_step hf (hb.trans rfl) hpar packRemPre_atoms hk hp hblk v77 v79 (fun q hq ↦ ?_)
+  refine loop6_relIn_step hf (hb.trans rfl) hpar packRemPre_atoms hk hp hblk v77 v79 (fun q hq ↦ ?_)
     hnext
   have := List.all_eq_true.1 packRem_loads q hq
   simp only [packRemLoadOk, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq,

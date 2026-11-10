@@ -12,8 +12,8 @@ namespace LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-theorem step_ker_2 : stepKer 2 566 := by decide +kernel
-theorem step_ker_3 : stepKer 3 600 := by decide +kernel
+theorem step_ker_2 : stepKer 2 524 := by decide +kernel
+theorem step_ker_3 : stepKer 3 558 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.VerifySub

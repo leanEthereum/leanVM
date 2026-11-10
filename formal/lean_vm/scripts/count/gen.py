@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4469-4474)
-MAIN_FRAME = 444 + 16555  # B2C.mainFrame
+MAIN_FRAME = 445 + 16322  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -54,9 +54,7 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
 # family's change rebuilds the other's dependents.
 VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
-          ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
-           'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
+          vscount.VS_ST + ['list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
           ['child_claim_list_mono_last__L%d' % k for k in range(17)] +
           vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
@@ -66,7 +64,8 @@ WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab_
           ['eq_prefix_run__L%d' % k for k in range(41)] + ['index_mle__L%d' % k for k in range(34)] +
           ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
           ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
-          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables'])
+          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables',
+           'opening_tail_round'])
 # `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).
@@ -304,8 +303,8 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
 
 # Functions the words tables index by name (`Count/Words.lean`, `wIdxN`): open_stacked's named
 # callees (`B1.osKindTable`) and the static callees of main's non-static ones.
-WORDS_PREFIXES = ('opening_fold', 'assert_canonical', 'grind_check__L', 'opening_row_weights__L',
-                  'opening_ood_point__L', 'opening_final_message__L', 'verify_merkle_cap__L',
+WORDS_PREFIXES = ('opening_round', 'opening_tail_round', 'opening_message__L', 'squeeze_point__L',
+                  'squeeze_point_from__L', 'grind_check__L', 'verify_merkle_cap__L',
                   'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
                   'batch_sumcheck__L', 'statement_digest', 'exponent_tables')
 

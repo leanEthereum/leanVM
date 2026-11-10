@@ -191,7 +191,7 @@ def mlOk (k : ℕ) (f : Fn) : Bool :=
 /-! ## The big frame loop `__loop19` (136 claims, 64 blocks), in sixteen windows -/
 
 /-- `__loop19`'s atoms. -/
-noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 368 default)
+noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 397 default)
 
 /-- `__loop19`'s chain. -/
 noncomputable def mono136Spec : ChainSpec := monoSpec 136 1377 mono136Atoms

@@ -40,8 +40,8 @@ def facC (top d y : ℕ) : ℕ := (wK (top - d) (y * 2 ^ (top - d + 1))).toBitVe
 /-- Node `2^d + y`'s atoms. -/
 def facNodeA (top d y : ℕ) : List Atom :=
   let v := facB d + 1 + 4 * y
-  [.const (.n v) (word (facC top d y) 0 0), .mul (.n (v + 1)) (.n (facB d)) (.n v),
-    .const (.n (v + 2)) (word 1 0 0), .add (.n (v + 3)) (.n (v + 1)) (.n (v + 2)),
+  [.const (.n v) (word (facC top d y) 0), .mul (.n (v + 1)) (.n (facB d)) (.n v),
+    .const (.n (v + 2)) (word 1 0), .add (.n (v + 3)) (.n (v + 1)) (.n (v + 2)),
     .load (.n (v + 3)) (.n 1) (2 ^ d + y)]
 
 /-- Depth `d`'s atoms: its power, then its nodes. -/
@@ -59,7 +59,7 @@ def facOk (fn : Fn) (top D : ℕ) : Bool :=
   | some (A, vs) => decide (vs = [.n (facB D)]) && atomsEqb A (facT top D)
   | none => false
 
-theorem facC_word (top d y : ℕ) : word (facC top d y) 0 0 = ofK (wK (top - d) (y * 2 ^ (top - d + 1))) := by
+theorem facC_word (top d y : ℕ) : word (facC top d y) 0 = ofK (wK (top - d) (y * 2 ^ (top - d + 1))) := by
   rw [word_eOfNat, eOfNat, facC]
   congr 1
   simp [K.ofBits]

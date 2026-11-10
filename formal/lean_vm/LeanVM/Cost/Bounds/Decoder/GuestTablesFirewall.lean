@@ -16,6 +16,7 @@ import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk10
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk11
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk12
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk13
+import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk14
 
 /-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the frame cells'
 bound (`Bounds/Decoder/GuestLocs/*.lean`) is a kernel evaluation of some functions' certificates,
@@ -26,7 +27,7 @@ build if their imports reach any other `LeanVM.Cost` module. -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
-  let chunks := ["Chunk0", "Chunk1", "Chunk2", "Chunk3", "Chunk4", "Chunk5", "Chunk6", "Chunk7", "Chunk8", "Chunk9", "Chunk10", "Chunk11", "Chunk12", "Chunk13"]
+  let chunks := ["Chunk0", "Chunk1", "Chunk2", "Chunk3", "Chunk4", "Chunk5", "Chunk6", "Chunk7", "Chunk8", "Chunk9", "Chunk10", "Chunk11", "Chunk12", "Chunk13", "Chunk14"]
   let allowed := [`LeanVM.Cost.Decoder.GuestTables] ++
     chunks.map fun c ↦ (`LeanVM.Cost.Bounds.Decoder.GuestLocs).str c
   let reached := (← getEnv).header.moduleNames.filter fun m ↦

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 /-!
 # The codeword, complete
 
-* `StepShape.mono`, `StepCanon.mono`: a step's shape above a larger bound;
+* `StepShape.mono`, `GoodStable.mono`: a step's shape and `good`'s stability above a larger bound;
 * `Completes.withHolds`: a completed block holds of its valuation;
 * `groupT_load`: a group completes from any valuation, its digits and starts loaded;
 * `cwPos`: the start of a codeword's chain, in the arm of its group's digits;
@@ -88,15 +88,14 @@ theorem groupT_snd_eq (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : 
 /-- **A group completes from any valuation**, its digits `k` loaded at `d` and its arm's starts
 `vals`, its statements `pre` a sequential block on `d + 5 ..< b + 5` after which `good` holds. -/
 theorem groupD_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {d : Nat}
+    (hc : GoodStable B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {d : Nat}
     {pre : List Stmt} {b k : Nat}
     (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hdb : d ≤ b) (hB : B ≤ b + 5)
     (hpre : SeqOK (d + 5) pre (b + 5)) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n))) (vals : Nat → E)
-    (hv : ∀ t < n, IsCanonical128 (vals t)) (σ : Val)
+    (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n))) (vals : Nat → E) (σ : Val)
     (hg : ∀ σ', AgreeBelow d σ σ' → AtomsHold rd σ' pre → good σ') :
     Completes C rd d (groupD W first n fold prodIn encIn d pre b).2 (groupD W first n fold prodIn encIn d pre b).1 σ
-      (fun σ' => σ' (.n d) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+      (fun σ' => σ' (.n d) = ofK (addressOfIndex k) ∧
         (∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) ∧ good σ') := by
   obtain ⟨hl1, hl2, hl3⟩ := gLoadD_spec W first n fold prodIn encIn d b k vals σ hk hdb
   have hend : (groupD W first n fold prodIn encIn d pre b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
@@ -104,31 +103,23 @@ theorem groupD_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape 
   rw [← hend] at hl1
   refine ((groupD_complete (C := C) (rd := rd) hW hc hn hk hm hdb hB hpre hpi hei hpw _
     (fun σ' he hh => hg σ' (fun j hj => (hl1.apply (Or.inl hj)).symm.trans (he.agree j (by omega))) hh)
-    hl2 (fun t ht => ?_)).reload hl1).mono le_rfl le_rfl
-    (fun σ' ⟨h1, h2, h3, h4⟩ => ⟨h1, h2, fun t ht => by rw [h3 t ht, hl3 t ht], h4⟩)
-  show IsCanonical128 (gLoadD W first n fold prodIn encIn d b k vals σ (grpPos W first n fold prodIn encIn b k t))
-  rw [hl3 t ht]
-  exact hv t ht
+    hl2).reload hl1).mono le_rfl le_rfl
+    (fun σ' ⟨h1, h3, h4⟩ => ⟨h1, fun t ht => by rw [h3 t ht, hl3 t ht], h4⟩)
 
 /-- **A group completes from any valuation**, its digits `k` and its arm's starts `vals` loaded. -/
 theorem groupT_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
+    (hc : GoodStable B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
     (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hB : B ≤ b) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (vals : Nat → E)
-    (hv : ∀ t < n, IsCanonical128 (vals t)) (σ : Val) (hg : good σ) :
+    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (vals : Nat → E) (σ : Val) (hg : good σ) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
-      (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+      (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧
         ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) := by
   obtain ⟨hl1, hl2, hl3⟩ := gLoad_spec W first n fold prodIn encIn b k vals σ hk
   rw [← groupT_snd_eq] at hl1
   have hgr : good (gLoad W first n fold prodIn encIn b k vals σ) :=
-    hc.1 _ _ (fun j hj => (hl1.apply (Or.inl (by omega))).symm) hg
-  refine ((groupT_complete (C := C) (rd := rd) hW hc hn hk hm hB hpi hei hpw _ hgr hl2
-    (fun t ht => ?_)).reload hl1).mono le_rfl le_rfl
-    (fun σ' ⟨h1, h2, h3⟩ => ⟨h1, h2, fun t ht => by rw [h3 t ht, hl3 t ht]⟩)
-  show IsCanonical128 (gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t))
-  rw [hl3 t ht]
-  exact hv t ht
+    hc _ _ (fun j hj => (hl1.apply (Or.inl (by omega))).symm) hg
+  exact ((groupT_complete (C := C) (rd := rd) hW hc hn hk hm hB hpi hei hpw _ hgr hl2).reload
+    hl1).mono le_rfl le_rfl (fun σ' ⟨h1, h3⟩ => ⟨h1, fun t ht => by rw [h3 t ht, hl3 t ht]⟩)
 
 /-- The start of chain `i` of a codeword, in the arm of its group's digits `K`. -/
 def cwPos (W : WotsT) (G b : Nat) (K : Nat → Nat) (i : Nat) : V :=
@@ -144,14 +135,12 @@ theorem cwPos_eq (W : WotsT) (G b : Nat) (K : Nat → Nat) (q t : Nat) (ht : t <
 
 /-- **The groups of a codeword complete**, each from its digits `K q` and its starts `vals` loaded. -/
 theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) {G b : Nat} (hb0 : 0 < b) (hB : B ≤ b) (hm : MemOK rd 64)
-    (hpw : ∀ j, NBv B (W.power j)) (K : Nat → Nat) (hK : ∀ q < G, K q < 64) (vals : Nat → E)
-    (hv : ∀ i, IsCanonical128 (vals i)) :
+    (hc : GoodStable B good) {G b : Nat} (hb0 : 0 < b) (hB : B ≤ b) (hm : MemOK rd 64)
+    (hpw : ∀ j, NBv B (W.power j)) (K : Nat → Nat) (hK : ∀ q < G, K q < 64) (vals : Nat → E) :
     ∀ m p, p + m ≤ G → ∀ σ, good σ →
       Completes C rd (cwState W b p).2.2 (cwState W b (p + m)).2.2
         (groupsT W m p (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2).1 σ
         (fun σ' => good σ' ∧ ∀ q, p ≤ q → q < p + m → σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
-          (∀ t < 3, IsCanonical128 (σ' (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
           ∀ t < 3, σ' (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
   | 0, p, _, σ, hg => ⟨σ, Ext.refl _ _ _, ⟨hg, fun q h1 h2 => by omega⟩, fun _ _ hn => hn⟩
   | m + 1, p, hpm, σ, hg => by
@@ -162,7 +151,7 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
       have hn : cwN G p = 3 := by simp [cwN]; omega
       have hgroup := groupT_load (C := C) (rd := rd) (first := 3 * p) (fold := p == 0) (hW.mono hBp)
         (hc.mono hBp) (le_refl 3) (show K p < 4 ^ 3 from hK p (by omega)) hm le_rfl hpi hei hpwp
-        (fun t => vals (3 * p + t)) (fun t _ => hv _) σ hg
+        (fun t => vals (3 * p + t)) σ hg
       have hnb := groupT_numBelow (first := 3 * p) (n := 3) (fold := p == 0) hW hBp hpi hei hpwp
       have hle := cwState_le W b (p + 1) m
       have hend : (cwState W b (p + 1)).2.2 =
@@ -172,39 +161,32 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
       refine Completes.append (m := (cwState W b (p + 1)).2.2) (cwState_le W b p 1)
         (by rw [show p + (m + 1) = p + 1 + m by omega]; exact hle) hnb hgroup (fun σ1 he1 hp1 => ?_)
       have hag : AgreeBelow B σ σ1 := fun k hk => he1.agree k (by omega)
-      have hg1 := hc.1 _ _ hag hg
-      have ih := groupsT_complete hW hc hb0 hB hm hpw K hK vals hv m (p + 1) (by omega) σ1 hg1
+      have hg1 := hc _ _ hag hg
+      have ih := groupsT_complete hW hc hb0 hB hm hpw K hK vals m (p + 1) (by omega) σ1 hg1
       rw [show p + (m + 1) = p + 1 + m by omega]
       refine (ih.keep (Q := fun σ
-          => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧ (∀ t < 3,
-          IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2)))) ∧
+          => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧
           ∀ t < 3, σ (grpPos W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
             (cwState W b p).2.2 (K p) t) = vals (3 * p + t))
-        (Q' := fun σ => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧ (∀ t < 3,
-          IsCanonical128 (σ (.n (slotsT W (p == 0) (cwState W b p).2.2 t 2)))) ∧
+        (Q' := fun σ => σ (.n (cwState W b p).2.2) = ofK (addressOfIndex (K p)) ∧
           ∀ t < 3, σ (grpPos W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
             (cwState W b p).2.2 (K p) t) = vals (3 * p + t))
-        hp1 (fun σ' he' hq => ⟨?_, fun t ht => ?_, fun t ht => ?_⟩)).mono le_rfl le_rfl
+        hp1 (fun σ' he' hq => ⟨?_, fun t ht => ?_⟩)).mono le_rfl le_rfl
         (fun σ' ⟨⟨hg', hr⟩, hq'⟩ => ⟨hg', fun q h1 h2 => ?_⟩)
       · have := cwState_le W b p 1
         have := groupT_end W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2
         rw [he'.apply (Or.inl (by rw [cwState_succ]; rw [groupStart_eq] at this; omega))]
         exact hq.1
-      · have hs := (slot_bounds W (p == 0) (cwState W b p).2.2 t 2 (by norm_num)).2
-        have := groupT_end W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2
-        have : chainStride W * (t + 1) ≤ chainStride W * 3 := Nat.mul_le_mul_left _ (by omega)
-        rw [he'.apply (Or.inl (by rw [cwState_succ]; omega))]
-        exact hq.2.1 t ht
       · obtain ⟨j, ej, -, hj, -⟩ := grpPos_spec W (3 * p) 3 (p == 0) (cwState W b p).1 (cwState W b p).2.1
           (cwState W b p).2.2 (K p) t (hK p (by omega)) ht
         rw [ej, he'.apply (Or.inl (by rw [hend]; exact hj)), ← ej]
-        exact hq.2.2 t ht
+        exact hq.2 t ht
       · rcases Nat.lt_or_ge q (p + 1) with hq | hq
         · have : q = p := by omega
           subst this
-          refine ⟨hq'.1, hq'.2.1, fun t ht => ?_⟩
+          refine ⟨hq'.1, fun t ht => ?_⟩
           rw [cwPos_eq W G b K q t ht, hn]
-          exact hq'.2.2 t ht
+          exact hq'.2 t ht
         · exact hr q hq (by omega)
 
 /-- The digit `i` of the digits `K` of the groups. -/
@@ -253,18 +235,16 @@ theorem groupsT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {b : Nat} (h
 /-- **The codeword completes**: its groups dispatching on the digits `K`, the digest's first cell
 their base-4 number and the target `g` to their sum, the chains' starts `vals` loaded and kept. -/
 theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) (hWa : StepAtoms W) {F : Val → Nat → Nat → E → E}
+    (hc : GoodStable B good) (hWa : StepAtoms W) {F : Val → Nat → Nat → E → E}
     (hss : ∀ σ, good σ → StepSound rd σ W (F σ)) (hpow : ∀ σ, good σ → ∀ s < 10, σ (W.power s) = gen ^ s)
     {G : Nat} {target : E} {d0 : V} {b : Nat} (hG : 0 < G) (hG21 : G ≤ 21) (hb0 : 0 < b) (hB : B ≤ b)
     (hm : MemOK rd 64) (hpw : ∀ j, NBv B (W.power j)) (hd0 : NBv b d0) (K : Nat → Nat)
-    (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i)) (σ : Val)
-    (hg : good σ)
+    (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) (vals : Nat → E) (σ : Val) (hg : good σ)
     (hsum : gen ^ (∑ i ∈ Finset.range (3 * G + 1), digK K i) = target)
     (hd0v : σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), digK K i * 4 ^ i))
     (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Completes C rd b (codewordT W G target d0 b).2.1 (codewordT W G target d0 b).1 σ
-      (fun σ' => good σ' ∧ (∀ i < 3 * G + 1, IsCanonical128 (σ' (cwTip W b i))) ∧
-        (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
+      (fun σ' => good σ' ∧ (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
         ∀ i < 3 * G + 1, σ' (cwPos W G b K i) = vals i) := by
   have hbG := cwState_mono W b G
   obtain ⟨hpiG, heiG⟩ := cwState_in W hb0 G
@@ -307,9 +287,8 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
       ((groupsT W G 0 (cwState W b 0).1 (cwState W b 0).2.1 (cwState W b 0).2.2).1 ++
         (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).1) σ
       (fun σ' => good σ' ∧ (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
-        (∀ i < 3 * G + 1, IsCanonical128 (σ' (cwTip W b i))) ∧
         ∀ i < 3 * G + 1, σ' (cwPos W G b K i) = vals i) := by
-    have hgc := groupsT_complete (C := C) (rd := rd) hW hc hb0 hB hm hpw K hK3 vals hv G 0 (by omega) σ hg
+    have hgc := groupsT_complete (C := C) (rd := rd) hW hc hb0 hB hm hpw K hK3 vals G 0 (by omega) σ hg
     rw [Nat.zero_add] at hgc
     refine Completes.append (m := (cwState W b G).2.2) hbG (by omega) hnbG hgc (fun σ1 he1 hp1 => ?_)
     obtain ⟨hg1, hq1⟩ := hp1
@@ -317,47 +296,33 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
       (encIn := (cwState W b G).2.1) (fold := false)
       (hW.mono (show B ≤ (cwState W b G).2.2 by omega)) (hc.mono (show B ≤ (cwState W b G).2.2 by omega))
       (by norm_num) (show K G < 4 ^ 1 by simpa [hnG] using hK G le_rfl) hm le_rfl hpiG heiG hpwG
-      (fun t => vals (3 * G + t)) (fun t _ => hv _) σ1 hg1
+      (fun t => vals (3 * G + t)) σ1 hg1
     refine (hlast.keep (Q := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
-        (∀ t < 3, IsCanonical128 (σ (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
         ∀ t < 3, σ (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
       (Q' := fun σ => good σ ∧ ∀ q < G, σ (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q)) ∧
-        (∀ t < 3, IsCanonical128 (σ (.n (slotsT W (q == 0) (cwState W b q).2.2 t 2)))) ∧
         ∀ t < 3, σ (cwPos W G b K (3 * q + t)) = vals (3 * q + t))
       ⟨hg1, fun q hq => hq1 q (by omega) (by omega)⟩ (fun σ' he' hq => ⟨?_, fun q hqG => ?_⟩)).mono
-      le_rfl le_rfl (fun σ' ⟨⟨hhint, htip, hkl⟩, hgood, hgr⟩ =>
-        ⟨hgood, fun q hq => ?_, fun i hi => ?_, fun i hi => ?_⟩)
-    · exact hc.1 _ _ (fun j hj => he'.agree j (by omega)) hq.1
+      le_rfl le_rfl (fun σ' ⟨⟨hhint, hkl⟩, hgood, hgr⟩ =>
+        ⟨hgood, fun q hq => ?_, fun i hi => ?_⟩)
+    · exact hc _ _ (fun j hj => he'.agree j (by omega)) hq.1
     · have hle := cwState_le W b (q + 1) (G - (q + 1))
       rw [show q + 1 + (G - (q + 1)) = G by omega] at hle
       have hend := groupT_end W (3 * q) 3 (q == 0) (cwState W b q).1 (cwState W b q).2.1 (cwState W b q).2.2
       rw [← cwState_succ, groupStart_eq] at hend
       refine ⟨by rw [he'.apply (Or.inl (by split at hend <;> omega))]; exact (hq.2 q hqG).1,
-        fun t ht => ?_, fun t ht => ?_⟩
-      · have hs := (slot_bounds W (q == 0) (cwState W b q).2.2 t 2 (by norm_num)).2
-        have : chainStride W * (t + 1) ≤ chainStride W * 3 := Nat.mul_le_mul_left _ (by omega)
-        rw [groupStart_eq] at hs
-        rw [he'.apply (Or.inl (by split at hs <;> split at hend <;> omega))]
-        exact (hq.2 q hqG).2.1 t ht
+        fun t ht => ?_⟩
       · obtain ⟨j, ej, hj⟩ := hposq q hqG t ht
         rw [ej, he'.apply (Or.inl hj), ← ej]
-        exact (hq.2 q hqG).2.2 t ht
+        exact (hq.2 q hqG).2 t ht
     · rcases Nat.lt_or_ge q G with hq' | hq'
       · exact (hgr q hq').1
       · have : q = G := by omega
         subst this
         exact hhint
-    · unfold cwTip
-      rcases Nat.lt_or_ge (i / 3) G with hq' | hq'
-      · exact (hgr (i / 3) hq').2.1 (i % 3) (Nat.mod_lt _ (by norm_num))
-      · have h1 : i / 3 = G := by omega
-        have h2 : i % 3 = 0 := by omega
-        rw [h1, h2, hfG]
-        exact htip 0 (by norm_num)
     · have hi' : i = 3 * (i / 3) + i % 3 := by omega
       rw [hi']
       rcases Nat.lt_or_ge (i / 3) G with hq' | hq'
-      · exact (hgr (i / 3) hq').2.2 (i % 3) (Nat.mod_lt _ (by norm_num))
+      · exact (hgr (i / 3) hq').2 (i % 3) (Nat.mod_lt _ (by norm_num))
       · have h1 : i / 3 = G := by omega
         have h2 : i % 3 = 0 := by omega
         rw [h1, h2, cwPos_eq W G b K G 0 (by omega), hnG, hfG]
@@ -369,7 +334,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     exact (hnbG.mono (by omega)).append hnbL
   refine Completes.append (m := (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1
     (cwState W b G).2.2).2) (by omega) (Nat.le_succ _) hnb1 hgl.withHolds (fun σ1 he1 hp1 => ?_)
-  obtain ⟨⟨hg1, hk1, ht1, hkept1⟩, hhold⟩ := hp1
+  obtain ⟨⟨hg1, hk1, hkept1⟩, hhold⟩ := hp1
   -- the groups' facts
   have hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ1 (.n (cwState W b p).2.2) = ofK (addressOfIndex k) ∧
       AtomsHold rd σ1 (cwArm W G b p k).1 := by
@@ -415,27 +380,8 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     obtain ⟨j, hj, rfl⟩ := hd0
     rw [hext.apply (Or.inl (by omega))]
     exact hd01
-  refine completes_atoms rfl hext ⟨hc.1 _ _ (fun j hj => hext.agree j (by omega)) hg1, fun i hi => ?_,
+  refine completes_atoms rfl hext ⟨hc _ _ (fun j hj => hext.agree j (by omega)) hg1,
     fun q hq => ?_, fun i hi => ?_⟩ (fun a ha => ?_)
-  · have := ht1 i hi
-    unfold cwTip at this ⊢
-    have hlt : slotsT W (i / 3 == 0) (cwState W b (i / 3)).2.2 (i % 3) 2 < c := by
-      have hs := (slot_bounds W (i / 3 == 0) (cwState W b (i / 3)).2.2 (i % 3) 2 (by norm_num)).2
-      rcases Nat.lt_or_ge (i / 3) G with hq | hq
-      · have hle := cwState_le W b (i / 3 + 1) (G - (i / 3 + 1))
-        rw [show i / 3 + 1 + (G - (i / 3 + 1)) = G by omega] at hle
-        have hend := groupT_end W (3 * (i / 3)) 3 (i / 3 == 0) (cwState W b (i / 3)).1
-          (cwState W b (i / 3)).2.1 (cwState W b (i / 3)).2.2
-        rw [← cwState_succ] at hend
-        have : chainStride W * (i % 3 + 1) ≤ chainStride W * 3 := Nat.mul_le_mul_left _ (by omega)
-        omega
-      · have h1 : i / 3 = G := by omega
-        have h2 : i % 3 = 0 := by omega
-        rw [h1, h2, hfG] at hs ⊢
-        rw [hgs] at hs
-        omega
-    rw [hext.apply (Or.inl hlt)]
-    exact this
   · have hle := cwState_le W b q (G - q)
     rw [show q + (G - q) = G by omega] at hle
     rw [hext.apply (Or.inl (by omega))]

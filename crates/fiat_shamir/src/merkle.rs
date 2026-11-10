@@ -1,20 +1,20 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Digest encoding and Merkle openings carried by proofs.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 use crate::digest_words;
 
 pub type Hash = [u8; 32];
 
 /// Encode a Merkle hash as the two field words transcripts carry it in: two
-/// 128-bit halves, each a K pair with a spare top lane. Every digest in the
+/// 128-bit halves, each a K pair. Every digest in the
 /// protocol uses this one split (the commitment root, the public input, the
 /// guest's MD state), so the VM sees one shape everywhere.
 #[inline]
-pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
+pub fn hash_to_scalars(hash: &Hash) -> [F128; 2] {
     let [w0, w1, w2, w3] = digest_words(hash);
-    [F192::new(w0.0, w1.0, 0), F192::new(w2.0, w3.0, 0)]
+    [F128::new(w0.0, w1.0), F128::new(w2.0, w3.0)]
 }
 
 /// Hash one leaf ([`primitives::hash::hash`]).
@@ -39,7 +39,7 @@ pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
 
 /// One query's Merkle opening: its position, the whole leaf image it hashes, and its siblings, bottom level first.
 ///
-/// Leaf data is `F64` because that is what a Merkle preimage is; an `E`-valued row of width `w` is `3w` words, packed
+/// Leaf data is `F64` because that is what a Merkle preimage is; an `E`-valued row of width `w` is `2w` words, packed
 /// by the opener.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MerklePath {

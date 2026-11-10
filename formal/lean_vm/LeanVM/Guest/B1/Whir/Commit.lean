@@ -1,314 +1,295 @@
 /-
   LeanVM.Guest.B1.Whir.Commit
 
-  A level's next commitment, its out-of-domain sample and the proof of work after it: the
-  template's block runs the Spec's `levelMid` and `grindP`.
+  A non-final level's next commitment, high part, out-of-domain points and values and query
+  nonce (`osCommit`), and the final level's lane and query nonce (`osFinalMsg`), soundly.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.Folds
-public import LeanVM.Guest.B1.Bits.Meaning
-public import LeanVM.Guest.B1.Merkle.Climb
+public import LeanVM.Guest.B1.Fs.Message
+public import LeanVM.Guest.B1.Whir.SqLoop
 
 /-!
-# The next commitment (TRIAGE G #42, G:1494-1553)
+# The level's message (G:1584-1612)
 
-A level that is not the last reads the next commitment's root (two scalars, checked canonical,
-stored in `level_roots`), samples its out-of-domain point (`opening_ood_point`, stored in
-`ood_z`), reads the point's value and the claim's intro message (stored in `ood`), then the
-proof-of-work nonce, absorbs the three scalars and the nonce and permutes: `grind_check` reads
-the permutation's first cell. In the Spec (V:1798-1811) that is `levelMid` (the commitment,
-`sampleN`, `readE`, `sumcheckRoundPoly`) and the level's `grindP`.
-
-* `allOk_fsPackT`, `allOk_fsNextT`, `allOk_challengeT`: B1-a's inline templates, flat.
-* `levelMid_grind_run`: the Spec's side, from the scalars read and the nonce's proof of work.
-* `osCommit_sound`: the template's block, with `grind_check`'s call, runs it.
+`osCommit_sound`: `opening_message` reads the next root's two cells and the high part at the
+cursor, stores them in `sent` (the root also in `level_roots`), absorbs them and permutes; the
+permutation's first cell is the first out-of-domain point's first coordinate
+(`squeeze_point_from`), the second point follows (`squeeze_point`); the two values and the query
+nonce are read at the cursor past the message and absorbed, the nonce's permutation `S` leaving
+the first query word and the proof of work in its cells `0`, `1` and the sponge's capacity.
+`osFinalMsg_sound`: the final lane and the nonce, by `opening_message` with a nonce.
 -/
 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier
+open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-! ## The inline templates, flat -/
+/-- An output cell of a permutation. -/
+theorem outCellK {k : ℕ} {S : KeccakState} (h : cells13 ((osRun k 13).map σ) = cellsOfState S false)
+    (i : Fin 13) : σ (.n (k + i.val)) = cellsOfState S false i := by
+  simpa [osRun] using outs_eq h i (by simp [osRun])
 
-theorem allOk_fsPackT (x : V) (b t : ℕ) : AllOk C rd σ (fsPackT x b t) ↔ FsPackOk σ x b t := by
-  have h := holdsList_flat (C := C) (rd := rd) (σ := σ) (fsPackT x b t) rfl True (fun _ ↦ True)
-  rw [holds_fsPackT] at h
-  simpa using h.symm
+/-- `osMatS_val`, the statements first, so that they name the state. -/
+theorem osMatS_val' {P : List (ℕ × ℕ × ℕ)} {base off : ℕ} {s : OsSt}
+    (hok : AllOk C rd σ (osMatS P base off s).1) (hm : MatsOk σ s.mats) (h : off < u128Bound) :
+    σ (.n (osMatS P base off s).2.1) = σ (.n base) * gen ^ off ∧
+      MatsOk σ (osMatS P base off s).2.2.mats := osMatS_val hm h hok
 
-theorem allOk_fsNextT (cur : V) (off b : ℕ) :
-    AllOk C rd σ (fsNextT cur off b) ↔
-      LoadHolds rd (σ cur) off (σ (.n b)) ∧ FsPackOk σ (.n b) (b + 1) dsObserve := by
-  have h := holdsList_flat (C := C) (rd := rd) (σ := σ) (fsNextT cur off b) rfl True (fun _ ↦ True)
-  rw [holds_fsNextT] at h
-  simpa using h.symm
+/-- `n` squeezes from a sponge with nothing waiting are the first, then `n - 1` more. -/
+theorem squeezeN_succ' (s : Fs) (n : ℕ) :
+    s.squeezeN (n + 1) = (s.squeeze.1 :: (s.squeeze.2.squeezeN n).1, (s.squeeze.2.squeezeN n).2) :=
+  rfl
 
-theorem allOk_challengeT (s0 s1 : V) (b : ℕ) :
-    AllOk C rd σ (challengeT s0 s1 b) ↔ ChallengeOk σ s0 s1 b := by
-  have h := holdsList_flat (C := C) (rd := rd) (σ := σ) (challengeT s0 s1 b) rfl True
-    (fun _ ↦ True)
-  rw [holds_challengeT] at h
-  simpa using h.symm
+/-- The sponge after squeezes is its capacity with nothing waiting. -/
+theorem squeezeN_eq_cap (s : Fs) (n : ℕ) (h : 0 < n) :
+    (s.squeezeN n).2 = ⟨(s.squeezeN n).2.cap, []⟩ := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  have := squeezeN_pend (s := s.squeeze.2) rfl m
+  rw [squeezeN_succ']
+  cases e : (s.squeeze.2.squeezeN m).2
+  rw [e] at this
+  simp only at this
+  rw [this]
 
-/-- A read through the cursor's base at an offset past it. -/
-theorem load_cur {cb : E} {co i : ℕ} {w : E} (h : LoadHolds rd cb (co + i) w) :
-    LoadHolds rd (cb * gen ^ co) i w := (loadHolds_mul_gen_pow rd cb co i w).mpr h
+/-- A sponge is its capacity and what waits. -/
+theorem fs_mk_eq {s : Fs} {c : List E} {p : List (E × ℕ)} (h1 : s.cap = c) (h2 : s.pend = p) :
+    s = ⟨c, p⟩ := by
+  cases s; simp_all
 
-/-- Words read at a cursor's base past its offset. -/
-theorem readsAt_cur {cb : E} {co : ℕ} {xs : List E}
-    (h : ∀ i (hi : i < xs.length), LoadHolds rd cb (co + i) xs[i]) : ReadsAt rd (cb * gen ^ co) xs :=
-  fun i hi ↦ load_cur (h i hi)
-
-theorem squeezeN_length : ∀ (n : ℕ) (s : Fs), (s.squeezeN n).1.length = n
-  | 0, _ => rfl
-  | n + 1, s => by simp only [Fs.squeezeN, List.length_cons, squeezeN_length n]
-
-/-! ## The Spec's side -/
-
-theorem squeezeN_pend_nil : ∀ (k : ℕ) (t : Fs), t.pend = [] → (t.squeezeN k).2.pend = []
-  | 0, _, h => h
-  | k + 1, t, _ => squeezeN_pend_nil k t.squeeze.2 rfl
-
-theorem squeezeN_succ_pend (k : ℕ) (s : Fs) : (s.squeezeN (k + 1)).2.pend = [] :=
-  squeezeN_pend_nil k s.squeeze.2 rfl
-
-/-- The Spec's round polynomial of three coefficients, the two sent read. -/
-theorem runsTo_round3 (s : Fs) (claim c0 c2 : E) :
-    RunsTo (sumcheckRoundPoly 3 claim none) s [c0, c2] [c0, claim + c2, c2]
-      ((s.absorb c0 dsObserve).absorbAll [c2] dsObserve) := by
-  have hr0 := runsTo_readE s c0
-  have hr1 := runsTo_readN (s.absorb c0 dsObserve) [c2]
-  have := hr0.bind (f := fun c ↦ do
-      let tail ← VerifierProgram.readScalars 1
-      return c :: (claim + sumE tail) :: tail)
-    (hr1.bind (f := fun tail ↦ (pure (c0 :: (claim + sumE tail) :: tail) : VerifierProgram
-        (List E)))
-      (runsTo_ret _ _))
-  simpa [sumcheckRoundPoly, sumE_single] using this
-
-/-- **`levelMid` then `grindP`** (V:1798-1811) on the carried sponge with two scalars waiting:
-the root's two scalars, the out-of-domain point squeezed from the four waiting scalars, its value
-and intro read, the nonce's proof of work on the permutation after it. -/
-theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
-    {d : Digest} (hd : digestFromHalves (ra, rb) = some d) {m : ℕ} (hm : 1 ≤ m)
-    (next : Whir.Level) (rest : List Whir.Level) (roots : List (Digest × ℕ × ℕ))
-    (hpow : powOk Whir.queryGrindingBits nonce
-      ((⟨((F.absorbAll [ra, rb] dsObserve).squeezeN m).2.cap,
-        [(y, dsObserve), (c0, dsObserve), (c2, dsObserve), (nonce, dsPowNonce)]⟩ : Fs).perm |>
-        challengeOf) = true) :
-    RunsWith (do
-        let r ← levelMid m (next :: rest)
-        VerifierProgram.grindProofOfWork Whir.queryGrindingBits
-        pure r)
-      F [ra, rb, y, c0, c2, nonce] [] roots
-      ([], [(y, [c0, y + c2, c2], fun x ↦ eqEval ((F.absorbAll [ra, rb] dsObserve).squeezeN m).1 x)])
-      ⟨capOf (⟨((F.absorbAll [ra, rb] dsObserve).squeezeN m).2.cap,
-        [(y, dsObserve), (c0, dsObserve), (c2, dsObserve), (nonce, dsPowNonce)]⟩ : Fs).perm, []⟩
-      (roots ++ [(d, levelShape m next (3 * 2 ^ next.fold))]) := by
-  set hw := levelShape m next (3 * 2 ^ next.fold)
-  set F1 := F.absorbAll [ra, rb] dsObserve
-  set z := (F1.squeezeN m).1
-  set F2 := (F1.squeezeN m).2
-  have hp2 : F2.pend = [] := by
-    obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
-    exact squeezeN_succ_pend k F1
-  have e : (do
-        let r ← levelMid m (next :: rest)
-        VerifierProgram.grindProofOfWork Whir.queryGrindingBits
-        pure r) =
-      (VerifierProgram.readCommitment hw.1 hw.2).bind fun _ ↦ (VerifierProgram.sampleChallenges m).bind fun zz ↦ VerifierProgram.readScalar.bind fun yv ↦
-        (sumcheckRoundPoly 3 yv none).bind fun intro ↦ (VerifierProgram.grindProofOfWork Whir.queryGrindingBits).bind
-          fun _ ↦ VerifierProgram.ret (([] : List E), [(yv, intro, fun x ↦ eqEval zz x)]) := by
-    simp only [levelMid, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-        VerifierProgram.bind_assoc, VerifierProgram.ret_bind, hw]
-  rw [e]
-  have h1 : RunsWith (VerifierProgram.readCommitment hw.1 hw.2) F [ra, rb] [] roots () F1 (roots ++ [(d, hw)]) :=
-    runsWith_commitP F ra rb hd hw.1 hw.2 roots
-  have h2 := RunsTo.withRoots (runsTo_sampleN m F1) (roots ++ [(d, hw)])
-  have hF3 : F2.absorb y dsObserve = ⟨F2.cap, [(y, dsObserve)]⟩ := by
-    simp [Fs.absorb, hp2, rateScalars]
-  have h3 := RunsTo.withRoots (runsTo_readE F2 y) (roots ++ [(d, hw)])
-  rw [hF3] at h3
-  have h4 := RunsTo.withRoots (runsTo_round3 ⟨F2.cap, [(y, dsObserve)]⟩ y c0 c2)
-    (roots ++ [(d, hw)])
-  have hF4 : ((⟨F2.cap, [(y, dsObserve)]⟩ : Fs).absorb c0 dsObserve).absorbAll [c2] dsObserve =
-      ⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve)]⟩ := by
-    simp [Fs.absorbAll, Fs.absorb, rateScalars]
-  rw [hF4] at h4
-  have hF5 : (⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve)]⟩ : Fs).absorb nonce
-      dsPowNonce = ⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve), (nonce, dsPowNonce)]⟩ :=
-    by simp [Fs.absorb, rateScalars]
-  have h5 := RunsTo.withRoots (runsTo_grindP Whir.queryGrindingBits
-    ⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve)]⟩ nonce
-    (by rw [hF5]; exact hpow)) (roots ++ [(d, hw)])
-  rw [hF5] at h5
-  show RunsWith _ F ([ra, rb] ++ ([] ++ ([y] ++ ([c0, c2] ++ ([nonce] ++ [])))))
-    ([] ++ ([] ++ ([] ++ ([] ++ ([] ++ []))))) roots _ _ _
-  exact RunsWith.bind' h1 (RunsWith.bind' h2 (RunsWith.bind' h3 (RunsWith.bind' h4
-    (RunsWith.bind' h5 (runsWith_ret _ _ _)))))
-
-/-! ## The template's block -/
-
-/-- The packed cells of a scalar are its rate cells, once the first is canonical. -/
-theorem packed_cells {x : V} {b t : ℕ} (h : FsPackOk σ x b t) (hc : IsCanonical128 (σ (.n (b + 6)))) :
-    σ (.n (b + 6)) = (Keccak.scalarCells (σ x) t).1 ∧ σ (.n (b + 8)) = (Keccak.scalarCells (σ x) t).2 :=
-  by have := fsPackT_cells h hc; simp only [Prod.ext_iff] at this; exact this
-
-/-- A sponge's squeezes: the first from its permutation, the rest from its capacity. -/
-theorem squeezeN_succ (k : ℕ) (s : Fs) :
-    s.squeezeN (k + 1) = (challengeOf s.perm :: ((⟨capOf s.perm, []⟩ : Fs).squeezeN k).1,
-      ((⟨capOf s.perm, []⟩ : Fs).squeezeN k).2) := rfl
-
-/-- What a level's next commitment leaves. -/
-structure CommitOut (rd : Reader) (σ : Val) (lvl m : ℕ) (st st' : OsSt) (F : Fs)
-    (ra rb y c0 c2 nonce : E) (d : Digest) (z : List E) : Prop where
-  root : (ra, rb) = digestHalves d
-  rootA : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) ra
-  rootB : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) rb
-  zlen : z.length = m
-  zat : ∀ t (ht : t < z.length), LoadHolds rd (σ (.n osOodz)) ((lvl + 1) * ligColsCap + t) z[t]
-  oy : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y
-  oc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0
-  oc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2
-  sponge : F = ⟨st'.fsv σ, []⟩
-  cur : st'.cur σ = st.cur σ * gen ^ 6
+/-- What a non-final level's message leaves (G:1586-1612): the root's two cells `x0, x1` and the
+high part read at the cursor, stored at `sent` and the root in `level_roots`; the out-of-domain
+points `P1`, `P2` squeezed after them and stored in `ood_z`; the values `y0, y1` and the nonce
+`nn` read past them; the nonce's permutation `S`. -/
+structure CommitOut (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st st' : OsSt)
+    (x0 x1 : E) (high : List E) (y0 y1 nn : E) : Prop where
+  high_len : high.length = lv.folds
+  reads : ReadsAt rd (st.cur σ) (x0 :: x1 :: high ++ [y0, y1, nn])
+  sent : ReadsAt rd (σ (.n st'.sent)) (x0 :: x1 :: high)
+  root0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) x0
+  root1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) x1
+  ood0 : ReadsAt rd (σ (.n osOodz) * gen ^ (oodSamples * (lvl + 1) * ligColsCap))
+    (((st.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN lv.logCols).1
+  ood1 : ReadsAt rd (σ (.n osOodz) * gen ^ ((oodSamples * (lvl + 1) + 1) * ligColsCap))
+    (((((st.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN lv.logCols).2.squeezeN
+      lv.logCols).1)
+  ys : st'.ys = [st'.ys.getD 0 0, st'.ys.getD 1 0] ∧ σ (.n (st'.ys.getD 0 0)) = y0 ∧
+    σ (.n (st'.ys.getD 1 0)) = y1
+  word0 : σ (.n st'.word0) = cellsOfState ((((((st.F σ).absorbAll (x0 :: x1 :: high)
+    dsObserve).squeezeN lv.logCols).2.squeezeN lv.logCols).2.absorbAll [y0, y1] dsObserve).nonceState
+      nn) false 0
+  pow0 : σ (.n st'.pow0) = cellsOfState ((((((st.F σ).absorbAll (x0 :: x1 :: high)
+    dsObserve).squeezeN lv.logCols).2.squeezeN lv.logCols).2.absorbAll [y0, y1] dsObserve).nonceState
+      nn) false 1
+  F : st'.F σ = ⟨capOf ((((((st.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
+    lv.logCols).2.squeezeN lv.logCols).2.absorbAll [y0, y1] dsObserve).nonceState nn), []⟩
+  cur : st'.cur σ = st.cur σ * gen ^ (lv.folds + 5)
   fs : st'.fs.length = 5
   mats : MatsOk σ st'.mats
+  co : st'.co = 3
+  pad : st'.pad = st.pad
 
-/-- **A level's next commitment** (G:1494-1553), with the grinding check after it: the root's two
-halves, the out-of-domain point, its value and intro, the nonce read at the cursor; they run the
-Spec's `levelMid` and `grindP`. -/
-theorem osCommit_sound
-    (hCan : ∀ args rets, C "assert_canonical" args rets → MeaningAssertCanonical args rets)
-    {lvl : ℕ} {lv : OsLv}
-    (hOod : ∀ args rets, C ("opening_ood_point__L" ++ natStr lv.logCols) args rets →
-      MeaningOpeningOodPoint lv.logCols rd args rets)
-    (hGr : ∀ args rets, C ("grind_check__L" ++ natStr lv.grind) args rets →
-      MeaningGrindCheck Whir.queryGrindingBits args rets)
-    {plan : List (ℕ × ℕ × ℕ)} {st : OsSt} (hfs : st.fs.length = 5) (hmats : MatsOk σ st.mats)
-    (hm : 1 ≤ lv.logCols) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
-    (hok : AllOk C rd σ ((osCommit plan lvl lv st).1 ++
-      [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit plan lvl lv st).2.2] []]))
-    (next : Whir.Level) (rest : List Whir.Level) (roots : List (Digest × ℕ × ℕ)) :
-    ∃ (ra rb y c0 c2 nonce : E) (d : Digest) (z : List E) (F' : Fs),
-      ReadsAt rd (st.cur σ) [ra, rb, y, c0, c2, nonce] ∧
-      CommitOut rd σ lvl lv.logCols st (osCommit plan lvl lv st).2.1 F' ra rb y c0 c2 nonce d z ∧
-      RunsWith (do
-          let r ← levelMid lv.logCols (next :: rest)
-          VerifierProgram.grindProofOfWork Whir.queryGrindingBits
-          pure r)
-        (st.F σ) [ra, rb, y, c0, c2, nonce] [] roots
-        ([], [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)]) F'
-        (roots ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))]) := by
-  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
-  obtain ⟨m', hm'⟩ : ∃ m', lv.logCols = m' + 1 := ⟨lv.logCols - 1, by omega⟩
-  simp only [osCommit, hf, allOk_append, allOk_cons, allOk_nil, and_true, allOk_fsPackT,
-    allOk_fsNextT, StmtOk, Atom.Holds, List.zipIdx_cons, List.zipIdx_nil, List.map_cons,
-    List.map_nil, List.range_succ, List.range_zero, List.nil_append, List.cons_append, osRun,
-    and_assoc, Nat.add_assoc, Nat.reduceAdd, Nat.add_zero, Nat.zero_add] at hok
-  obtain ⟨-, -, -, -, -, P0, P1, L23, P23, L33, P33, can23, can33, R23, R33, hozA, hood, L52,
-    P52, L62, P62, L72, P72, S52, S62, S72, L82, e83, e84, e85, e86, e87, P82, hK, hgr⟩ := hok
-  set k := st.k
-  -- the root's halves are canonical: a digest
-  obtain ⟨ca, -⟩ := hCan _ _ can23
-  obtain ⟨cb, -⟩ := hCan _ _ can33
-  obtain ⟨d, hd⟩ := exists_digest ca cb
-  have hdd : digestFromHalves (σ (.n (k + 23)), σ (.n (k + 33))) = some d := by
-    rw [hd]; exact digestOfScalars_digestScalars d
-  -- the out-of-domain point
-  have hood' := hOod _ _ hood
-  rw [hm'] at hood'
-  obtain ⟨hcan, hpt, hrets⟩ := hood'
-  have cnA := packed_cells P0 (hcan _ (by simp))
-  have cnB := packed_cells P1 (hcan _ (by simp))
-  have cnC := packed_cells P23 (hcan _ (by simp))
-  have cnD := packed_cells P33 (hcan _ (by simp))
-  have hF1 : (st.F σ).absorbAll [σ (.n (k + 23)), σ (.n (k + 33))] dsObserve =
-      ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)],
-        [(σ (.n st.w0), dsObserve), (σ (.n st.w1), dsObserve), (σ (.n (k + 23)), dsObserve),
-          (σ (.n (k + 33)), dsObserve)]⟩ := by
-    rw [absorbAll_short _ _ _ (by simp [OsSt.F])]
-    simp [OsSt.F, OsSt.fsv, hf]
-  generalize hF1g : (⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)],
-    [(σ (.n st.w0), dsObserve), (σ (.n st.w1), dsObserve), (σ (.n (k + 23)), dsObserve),
-      (σ (.n (k + 33)), dsObserve)]⟩ : Fs) = F1 at hF1
-  have hS1 : permOf [σ (.n (k + 11)), σ (.n (k + 13)), σ (.n (k + 20)), σ (.n (k + 22)),
-      σ (.n (k + 30)), σ (.n (k + 32)), σ (.n (k + 40)), σ (.n (k + 42)), σ (.n f0), σ (.n f1),
-      σ (.n f2), σ (.n f3), σ (.n f4)] = F1.perm := by
-    rw [← hF1g, perm_eq_cells _ (by simp)]
-    simp [pendCells, cnA.1, cnA.2, cnB.1, cnB.2, cnC.1, cnC.2, cnD.1, cnD.2, dsObserve]
-  rw [hS1] at hpt hrets
-  simp only [Nat.add_sub_cancel] at hpt hrets
-  generalize hrg : (⟨capOf F1.perm, []⟩ : Fs).squeezeN m' = rs at hpt hrets
-  have hsq : F1.squeezeN lv.logCols = (challengeOf F1.perm :: rs.1, rs.2) := by
-    rw [hm', ← hrg]; exact squeezeN_succ m' F1
-  -- the absorb of the three scalars and the nonce
-  obtain ⟨-, -, hcanK, hout⟩ := keccakA_perm (rd := rd) hK
-  have cn52 := packed_cells P52 (hcanK _ (by simp))
-  have cn62 := packed_cells P62 (hcanK _ (by simp))
-  have cn72 := packed_cells P72 (hcanK _ (by simp))
-  have cn82 := packed_cells P82 (hcanK _ (by simp))
-  simp only [Nat.add_assoc, Nat.reduceAdd] at cn52 cn62 cn72 cn82
-  set S2 := (⟨rs.2.cap, [(σ (.n (k + 52)), dsObserve), (σ (.n (k + 62)), dsObserve),
-    (σ (.n (k + 72)), dsObserve), (σ (.n (k + 82)), dsPowNonce)]⟩ : Fs).perm with hS2
-  have hS2' : permOf ([V.n (k + 59), V.n (k + 61), V.n (k + 69), V.n (k + 71), V.n (k + 79),
-      V.n (k + 81), V.n (k + 94), V.n (k + 96), V.n (k + 83), V.n (k + 84), V.n (k + 85),
-      V.n (k + 86), V.n (k + 87)].map σ) = S2 := by
-    rw [hS2, perm_eq_cells _ (by simp)]
-    simp only [List.map_cons, List.map_nil, e83, e84, e85, e86, e87]
-    rw [hrets]
-    simp [pendCells, cn52.1, cn52.2, cn62.1, cn62.2, cn72.1, cn72.2, cn82.1, cn82.2, dsObserve,
-      dsPowNonce]
-  rw [hS2'] at hout
-  have o0 : σ (.n (k + 97)) = cellsOfState S2 false 0 := outs_eq hout 0 (by simp)
-  have o8 : σ (.n (k + 105)) = cellsOfState S2 false 8 := outs_eq hout 8 (by simp)
-  have o9 : σ (.n (k + 106)) = cellsOfState S2 false 9 := outs_eq hout 9 (by simp)
-  have o10 : σ (.n (k + 107)) = cellsOfState S2 false 10 := outs_eq hout 10 (by simp)
-  have o11 : σ (.n (k + 108)) = cellsOfState S2 false 11 := outs_eq hout 11 (by simp)
-  have o12 : σ (.n (k + 109)) = cellsOfState S2 false 12 := outs_eq hout 12 (by simp)
-  -- the proof of work
-  obtain ⟨-, -, hlow⟩ := hGr _ _ hgr
-  have hpow : powOk Whir.queryGrindingBits (σ (.n (k + 82))) (challengeOf S2) = true := by
-    have h17 : ((challengeOf S2).limb 0).lane.toNat % 2 ^ Whir.queryGrindingBits = 0 := by
-      rw [Keccak.challengeOf_limb0, ← o0]; exact hlow
-    simp only [powOk, show Whir.queryGrindingBits ≠ 0 by decide, ↓reduceIte]
-    exact decide_eq_true h17
-  have hrun := levelMid_grind_run (st.F σ) (σ (.n (k + 23))) (σ (.n (k + 33))) (σ (.n (k + 52)))
-    (σ (.n (k + 62))) (σ (.n (k + 72))) (σ (.n (k + 82))) hdd hm next rest roots
-    (by rw [hF1, hsq]; exact hpow)
-  have hoz : σ (.n (k + 46)) = σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap) := by
-    have h46 := (osMatP_shape plan st.mats osOodz ((lvl + 1) * ligColsCap) (k + 45)).2
-      (by unfold ligColsCap; omega)
-    have := osMatP_val hmats hlvl hozA
-    rw [h46] at this
-    exact this
-  refine ⟨_, _, _, _, _, _, d, _, _, ?_, ⟨hd, R23, R33, squeezeN_length _ _, ?_, S52, S62, S72, ?_,
-    ?_, rfl, osMatsAfter_ok hmats hlvl hozA⟩, hrun⟩
-  · refine readsAt_cur fun i hi ↦ ?_
-    rcases i with _ | _ | _ | _ | _ | _ | i
-    · simpa using L23
-    · exact L33
-    · exact L52
-    · exact L62
-    · exact L72
-    · exact L82
-    · simp only [List.length_cons, List.length_nil] at hi; omega
-  · intro t ht
-    simp only [hF1, hsq] at ht ⊢
-    have := hpt t ht
-    rw [hoz, loadHolds_mul_gen_pow] at this
-    exact this
-  · rw [hF1, hsq]
-    simp only [osCommit, OsSt.fsv, List.map_cons, List.map_nil, capOf]
-    rw [← hS2, ← o8, ← o9, ← o10, ← o11, ← o12]
-  · simp only [osCommit, OsSt.cur, pow_add, mul_assoc]
+/-- **A non-final level's message, soundly** (G:1586-1612). -/
+theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
+    (hom : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L0") a r →
+      MeaningOpeningMessage (2 + lv.folds) 0 rd a r)
+    (hspf : ∀ a r, C ("squeeze_point_from__L" ++ natStr lv.logCols) a r →
+      MeaningSqueezePointFrom lv.logCols rd a r)
+    (hsp : ∀ a r, C ("squeeze_point__L" ++ natStr lv.logCols) a r →
+      MeaningSqueezePoint lv.logCols rd a r)
+    (hmu : 1 ≤ lv.logCols) (hfs : st.fs.length = 5) (hm : MatsOk σ st.mats)
+    (hco : st.co < u128Bound) (hoff : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound)
+    (hok : AllOk C rd σ (osCommit c lvl lv st).1) :
+    ∃ x0 x1 high y0 y1 nn, CommitOut rd σ lvl lv st (osCommit c lvl lv st).2 x0 x1 high y0 y1 nn := by
+  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
+  unfold osCommit at hok ⊢
+  simp only [allOk_append, and_assoc] at hok
+  obtain ⟨-, hcu, hmsg, ho0, hspf', ho1, hsp', hcp, hn0, hn1, hlast⟩ := hok
+  set s0 : OsSt := { st with k := st.k + 2 } with hs0
+  set r := (osCurS s0).2.2.k with hr
+  set s1 : OsSt := { (osCurS s0).2.2 with k := r + 10 } with hs1
+  set q := (osMatS c.plan osOodz (oodSamples * (lvl + 1) * ligColsCap) s1).2.2.k with hq
+  set s2 : OsSt := { (osMatS c.plan osOodz (oodSamples * (lvl + 1) * ligColsCap) s1).2.2 with
+    k := q + 5 } with hs2
+  set t := (osMatS c.plan osOodz ((oodSamples * (lvl + 1) + 1) * ligColsCap) s2).2.2.k with ht
+  have ecu := osCurS_val (s := s0) hco hcu
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, stmtOk_atom, holds_load, osLd] at hmsg
+  obtain ⟨hcall, ls0, lr0, ls1, lr1⟩ := hmsg
+  have hM := hom _ _ hcall
+  have hfm : List.map V.n st.fs = [.n f0, .n f1, .n f2, .n f3, .n f4] := by rw [hf]; rfl
+  simp only [List.map_append, hfm, List.cons_append, List.nil_append, List.map_cons, List.map_nil, osRun,
+    List.range_succ, List.range_zero, Nat.add_zero, MeaningOpeningMessage] at hM
+  obtain ⟨xs, hxl, hrd, hsent, nn0, -, hret⟩ := hM
+  obtain ⟨x0, x1, high, rfl⟩ : ∃ x0 x1 high, xs = x0 :: x1 :: high := by
+    rcases xs with _ | ⟨x0, _ | ⟨x1, high⟩⟩
+    · simp only [List.length_nil] at hxl; omega
+    · simp only [List.length_cons, List.length_nil] at hxl; omega
+    · exact ⟨x0, x1, high, rfl⟩
+  simp only [show ¬ (0 : ℕ) = 1 from by decide, ↓reduceIte, omState, capOf, List.cons_append,
+    List.nil_append, List.cons.injEq] at hret
+  obtain ⟨e0, e1, c0, c1, c2, c3, c4, ecur, -⟩ := hret
+  rw [ecu] at hrd ecur
+  -- the first out-of-domain point
+  have hrow0 : oodSamples * (lvl + 1) * ligColsCap < u128Bound :=
+    lt_of_le_of_lt (by unfold ligColsCap; omega) hoff
+  obtain ⟨ev0, hm0⟩ := osMatS_val' ho0 hm hrow0
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil, osRun,
+    List.range_succ, List.range_zero] at hspf'
+  have hP1 := hspf _ _ hspf'
+  simp only [MeaningSqueezePointFrom] at hP1
+  obtain ⟨rP1, eP1⟩ := hP1
+  rw [ev0] at rP1
+  -- the second
+  obtain ⟨ev1, hm1⟩ := osMatS_val' ho1 hm0 hoff
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil, osRun,
+    List.range_succ, List.range_zero] at hsp'
+  have hP2 := hsp _ _ hsp'
+  simp only [MeaningSqueezePoint] at hP2
+  obtain ⟨rP2, eP2⟩ := hP2
+  rw [ev1] at rP2
+  -- the values, the nonce and its permutation
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_copy, holds_load, holds_const,
+    osCp, osLd, osCst, osOodNext, List.map_cons, List.map_nil, List.range_succ, List.range_zero,
+    List.nil_append, List.cons_append, Nat.add_zero] at hcp hn0 hn1 hlast
+  simp only [List.nil_append, List.cons_append, List.map_cons, List.map_nil, Nat.add_zero] at eP1 eP2
+  obtain ⟨c5, c6, c7, c8, c9⟩ := hcp
+  obtain ⟨ly0, p1, p2, p3⟩ := hn0
+  obtain ⟨ly1, q1, q2, q3⟩ := hn1
+  obtain ⟨lnn, z1, z2, z3, z4, hK⟩ := hlast
+  simp only [Nat.add_assoc, Nat.reduceAdd] at p1 p2 p3 ly1 q1 q2 q3 lnn z1 z2 z3 z4 hK c6 c7 c8 c9
+  obtain ⟨m, hmm⟩ : ∃ m, lv.logCols = m + 1 := ⟨lv.logCols - 1, by omega⟩
+  rw [hmm] at rP1 eP1 rP2 eP2
+  simp only [Nat.add_sub_cancel] at rP1 eP1
+  have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
+    simp [OsSt.F, hf]
+  set F1 : Fs := (⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ : Fs).absorbAll
+    (x0 :: x1 :: high) dsObserve with hF1
+  have hS1 : F1.squeeze =
+      (σ (.n r), ⟨[σ (.n (r + 2)), σ (.n (r + 3)), σ (.n (r + 4)), σ (.n (r + 5)), σ (.n (r + 6))], []⟩) := by
+    simp only [Fs.squeeze, capOf, e0, c0, c1, c2, c3, c4, Keccak.challengeOf_cells]
+  set G1 := (⟨[σ (.n (r + 2)), σ (.n (r + 3)), σ (.n (r + 4)), σ (.n (r + 5)), σ (.n (r + 6))], []⟩ :
+    Fs).squeezeN m with hG1d
+  have hP1 : F1.squeezeN (m + 1) = (σ (.n r) :: G1.1, G1.2) := by rw [squeezeN_succ', hS1]
+  have hG1 : G1.2 = ⟨[σ (.n q), σ (.n (q + 1)), σ (.n (q + 2)), σ (.n (q + 3)), σ (.n (q + 4))], []⟩ :=
+    fs_mk_eq eP1.symm (squeezeN_pend rfl m)
+  set G2 := (⟨[σ (.n q), σ (.n (q + 1)), σ (.n (q + 2)), σ (.n (q + 3)), σ (.n (q + 4))], []⟩ :
+    Fs).squeezeN (m + 1) with hG2d
+  have hG2 : G2.2 = ⟨[σ (.n (t + 5)), σ (.n (t + 6)), σ (.n (t + 7)), σ (.n (t + 8)), σ (.n (t + 9))],
+      []⟩ := by
+    refine fs_mk_eq ?_ (squeezeN_pend rfl (m + 1))
+    rw [← eP2, c5, c6, c7, c8, c9]
+  set y0 := σ (.n (t + 10))
+  set y1 := σ (.n (t + 14))
+  set nn := σ (.n (t + 18))
+  have hS : (G2.2.absorbAll [y0, y1] dsObserve).nonceState nn =
+      (⟨[σ (.n (t + 5)), σ (.n (t + 6)), σ (.n (t + 7)), σ (.n (t + 8)), σ (.n (t + 9))],
+        [(y0, dsObserve), (y1, dsObserve), (nn, dsPowNonce)]⟩ : Fs).perm := by
+    rw [hG2, absorbAll_short _ _ _ (by simp)]
+    simp [Fs.nonceState, Fs.absorb, rateScalars]
+  simp only [osKeccak, stmtOk_atom] at hK
+  have hout := keccakA_fs (s := (⟨[σ (.n (t + 5)), σ (.n (t + 6)), σ (.n (t + 7)), σ (.n (t + 8)),
+      σ (.n (t + 9))], [(y0, dsObserve), (y1, dsObserve), (nn, dsPowNonce)]⟩ : Fs)) hK (by simp) (by
+    simp [pendCells, Keccak.scalarCells, p1, p2, q1, q2, z1, z2, z3, z4, dsObserve,
+      dsPowNonce, word, y0, y1, nn]
+    exact ⟨rfl, rfl, word_zero⟩)
+  rw [← hS] at hout
+  have o : ∀ i : Fin 13, σ (.n (t + 23 + i.val)) =
+      cellsOfState ((G2.2.absorbAll [y0, y1] dsObserve).nonceState nn) false i := outCellK hout
+  have hxl' : high.length = lv.folds := by simp only [List.length_cons] at hxl; omega
+  have hx0 : σ (.n (r + 8)) = x0 := loadHolds_unique ls0 (hsent 0 (by simp))
+  have hx1 : σ (.n (r + 9)) = x1 := loadHolds_unique ls1 (hsent 1 (by simp))
+  have hF1eq : (st.F σ).absorbAll (x0 :: x1 :: high) dsObserve = F1 := by rw [hF]
+  have h2 : ReadsAt rd (OsSt.cur σ s0 * gen ^ (x0 :: x1 :: high).length) [y0, y1, nn] := by
+    rw [hxl, ← ecur]
+    intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    exacts [ly0, ly1, lnn]
+  refine ⟨x0, x1, high, y0, y1, nn, ?_⟩
+  dsimp only
+  refine ⟨hxl', readsAt_append hrd h2, hsent, hx0 ▸ lr0, hx1 ▸ lr1, ?_, ?_, ⟨rfl, ?_, ?_⟩, ?_, ?_,
+    ?_, ?_, rfl, hm1, rfl, rfl⟩
+  · rw [hF1eq, hmm, hP1]; exact rP1
+  · rw [hF1eq, hmm, hP1, hG1]; exact rP2
+  · simpa [Nat.add_assoc] using p3
+  · simpa [Nat.add_assoc] using q3
+  · rw [hF1eq, hmm, hP1, hG1]; simpa [Nat.add_assoc] using o 0
+  · rw [hF1eq, hmm, hP1, hG1]; simpa [Nat.add_assoc] using o 1
+  · rw [hF1eq, hmm, hP1, hG1]
+    have e8 : σ (.n (t + 31)) = _ := o 8
+    have e9 : σ (.n (t + 32)) = _ := o 9
+    have e10 : σ (.n (t + 33)) = _ := o 10
+    have e11 : σ (.n (t + 34)) = _ := o 11
+    have e12 : σ (.n (t + 35)) = _ := o 12
+    show (⟨[σ (.n (t + 31)), σ (.n (t + 32)), σ (.n (t + 33)), σ (.n (t + 34)), σ (.n (t + 35))], []⟩ :
+      Fs) = _
+    rw [e8, e9, e10, e11, e12]
+    rfl
+  · simp only [OsSt.cur]
+    rw [ecur]
+    simp only [OsSt.cur, hs0]
+    rw [mul_assoc, ← pow_add]
+    ring_nf
+
+/-- What the final level's message leaves (G:1584-1585): the lane `xs` read at the cursor and
+stored in `final_msg`, the nonce `nn` after it, the nonce's permutation `S` leaving the first
+query word and the proof of work in its cells `0`, `1` and the sponge's capacity. -/
+structure FinalOut (rd : Reader) (σ : Val) (n : ℕ) (st st' : OsSt) (xs : List E) (nn : E) : Prop where
+  len : xs.length = n
+  reads : ReadsAt rd (st.cur σ) (xs ++ [nn])
+  fmsg : ReadsAt rd (σ (.n osFmsg)) xs
+  word0 : σ (.n st'.word0) = cellsOfState (((st.F σ).absorbAll xs dsObserve).nonceState nn) false 0
+  pow0 : σ (.n st'.pow0) = cellsOfState (((st.F σ).absorbAll xs dsObserve).nonceState nn) false 1
+  F : st'.F σ = ⟨capOf (((st.F σ).absorbAll xs dsObserve).nonceState nn), []⟩
+  cur : st'.cur σ = st.cur σ * gen ^ (n + 1)
+  fs : st'.fs.length = 5
+  mats : MatsOk σ st'.mats
+  co : st'.co = 0
+  pad : st'.pad = st.pad
+
+/-- **The final level's message, soundly** (G:1584-1585). -/
+theorem osFinalMsg_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
+    (hom : ∀ a r, C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1") a r →
+      MeaningOpeningMessage (c.yrLen + lv.folds) 1 rd a r)
+    (hfs : st.fs.length = 5) (hm : MatsOk σ st.mats) (hco : st.co < u128Bound)
+    (hok : AllOk C rd σ (osFinalMsg c lv st).1) :
+    ∃ xs nn, FinalOut rd σ (c.yrLen + lv.folds) st (osFinalMsg c lv st).2 xs nn := by
+  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
+  unfold osFinalMsg at hok ⊢
+  simp only [allOk_append] at hok
+  obtain ⟨hcu, hcall⟩ := hok
+  have ecu := osCurS_val hco hcu
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call] at hcall
+  have hM := hom _ _ hcall
+  have hfm : List.map V.n st.fs = [.n f0, .n f1, .n f2, .n f3, .n f4] := by rw [hf]; rfl
+  simp only [List.map_append, hfm, List.cons_append, List.nil_append, List.map_cons, List.map_nil,
+    osRun, List.range_succ, List.range_zero, MeaningOpeningMessage] at hM
+  obtain ⟨xs, hxl, hrd, hfmsg, nn, hnn, hret⟩ := hM
+  simp only [↓reduceIte, omState, capOf, List.cons_append, List.nil_append, List.cons.injEq] at hret
+  obtain ⟨e0, e1, c0, c1, c2, c3, c4, ecur, -⟩ := hret
+  rw [ecu] at hrd ecur hnn
+  have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
+    simp [OsSt.F, hf]
+  refine ⟨xs, nn, hxl, readsAt_append hrd ?_, hfmsg, ?_, ?_, ?_, ?_, rfl, hm, rfl, rfl⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    rw [hxl]
+    exact (loadHolds_mul_gen_pow _ _ _ _ _).mpr (by simpa using hnn trivial)
+  · rw [hF]; exact e0
+  · rw [hF]; exact e1
+  · rw [hF]
+    simp only [OsSt.F, capOf, List.map_cons, List.map_nil, c0, c1, c2, c3, c4]
+  · simp only [OsSt.cur, pow_zero, mul_one]
+    rw [ecur]
+    rfl
 
 end
 end LeanVM.Guest.B1.Whir

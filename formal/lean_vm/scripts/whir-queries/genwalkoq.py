@@ -1,0 +1,86 @@
+"""Write Guest/WalkOqOk{0..3}.lean and Guest/WalkOq{0..3}.lean: the walk certificates of
+opening_queries' specializations and loops (certificate index j = core index + 1)."""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gen
+D = os.path.join(sys.argv[1], 'LeanVM') + '/' + 'Guest/'
+sp = gen.oq_specs()
+parts = [sp[k::4] for k in range(4)]
+names = []
+for k, part in enumerate(parts):
+    ok = ['''/-
+  LeanVM.Guest.WalkOqOk%d
+
+  The certificates of a quarter of `opening_queries`' specializations and loops hand on the walk
+  their templates give (`mainOkS`, `loop0Ok`, `loop1Ok`), by kernel evaluation.
+-/
+
+module
+
+public import LeanVM.Guest.WalkKnownDefs
+
+namespace LeanVM.Guest.End
+
+open LeanVM.Guest.B1
+
+@[expose] public section
+''' % k]
+    wk = ['''/-
+  LeanVM.Guest.WalkOq%d
+
+  The cut obligations (`CutsKnown`) of a quarter of `opening_queries`' specializations and loops,
+  from their templates (`B1/Opening/QueriesBody%d.lean`), the generic forms (`WalkKnown.lean`) and
+  their certificates' checks (`WalkOqOk%d.lean`).
+-/
+
+module
+
+public import LeanVM.Guest.WalkKnown
+public import LeanVM.Guest.WalkOqOk%d
+public import LeanVM.Guest.B1.Opening.QueriesBody%d
+
+namespace LeanVM.Guest.End
+
+open LeanVM.Guest.B1
+
+@[expose] public section
+''' % (k, k, k, k, k)]
+    for d in part:
+        s = '(⟨%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, [%s]⟩ : OqShape).oq' % (
+            d['odd'], d['base'], d['folds'], d['leaf'], d['depth'], d['cd'], d['mu'], d['vanish'], d['nhs'],
+            d['hsb'], d['final'], ', '.join(map(str, d['vs'])))
+        jm, jl = d['idx'] + 1, d['loopidx'] + 1
+        names += ['walk_%d' % jm, 'walk_%d' % jl]
+        ok.append('/-- `%s`. -/\ntheorem walkOk_%d : mainOkS %d %d %s = true := by decide +kernel\n'
+                  % (d['name'], jm, jm, d['odd'], s))
+        if d['base'] == 1:
+            ok.append('/-- `%s`. -/\ntheorem walkOk_%d : loop1Ok %d %d %s = true := by decide +kernel\n'
+                      % (d['loop'], jl, jl, d['odd'], s))
+        else:
+            ok.append('/-- `%s`. -/\ntheorem walkOk_%d : loop0Ok %d %s = true := by decide +kernel\n'
+                      % (d['loop'], jl, jl, s))
+        wk.append('''set_option maxRecDepth 100000 in
+/-- `%s`. -/
+theorem walk_%d : CutsKnown %d :=
+  main_cutsKnown (j := %d) oqBody_%d
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_%d
+''' % (d['name'], jm, jm, jm, d['idx'], jm))
+        if d['base'] == 1:
+            wk.append('''set_option maxRecDepth 100000 in
+/-- `%s`. -/
+theorem walk_%d : CutsKnown %d :=
+  loop1_cutsKnown (j := %d) oqLoopBody_%d
+    (by decide) (by decide) (by decide) (by decide) walkOk_%d
+''' % (d['loop'], jl, jl, jl, d['idx'], jl))
+        else:
+            wk.append('''set_option maxRecDepth 100000 in
+/-- `%s`. -/
+theorem walk_%d : CutsKnown %d :=
+  loop0_cutsKnown (j := %d) oqLoopBody_%d
+    (by decide) (by decide) (by decide) walkOk_%d
+''' % (d['loop'], jl, jl, jl, d['idx'], jl))
+    for out in (ok, wk):
+        out.append('end\nend LeanVM.Guest.End\n')
+    open(D + 'WalkOqOk%d.lean' % k, 'w').write('\n'.join(ok))
+    open(D + 'WalkOq%d.lean' % k, 'w').write('\n'.join(wk))
+print(' '.join(sorted(names, key=lambda n: int(n[5:]))))
