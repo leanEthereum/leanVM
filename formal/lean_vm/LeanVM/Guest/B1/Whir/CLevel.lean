@@ -469,5 +469,310 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     rw [show (osGlue lvl lv s8).2.cb = s5.cb from fq.2.2.2.2.2.1,
       show (osGlue lvl lv s8).2.co = s5.co from fq.2.2.2.2.2.2.1]
 
+/-! ## The final level -/
+
+theorem osFinalMsg_lt (c : OsCfg) (lv : OsLv) (s : OsSt) :
+    (osFinalMsg c lv s).2.word0 < (osFinalMsg c lv s).2.k ∧
+      (osFinalMsg c lv s).2.pow0 < (osFinalMsg c lv s).2.k ∧ s.k ≤ (osFinalMsg c lv s).2.k := by
+  have := osCurS_k s
+  simp only [osFinalMsg]
+  omega
+
+theorem osHsFinal_hs_lt (c : OsCfg) (lv : OsLv) (s : OsSt) :
+    (osHsFinal c lv s).2.hs < (osHsFinal c lv s).2.k := by
+  have := osHsCoefs_k osFmsg (s.k + 1) (fun i ↦ hsScale lv.vanish (c.yrLog + 1) i 1) 0 0
+    (c.yrLen + lv.folds) 0 (s.k + 2)
+  simp only [osHsFinal]
+  omega
+
+/-- The final level's data. -/
+structure FinWD where
+  rw : List E
+  lane : List E
+  nq : E
+  r0 : E
+  r1 : E
+  batched : E
+  pZ : E
+  pH : E
+
+namespace FinWD
+
+variable (c : OsCfg) (lv : OsLv) (cap : List E) (cl : E) (W : FinWD)
+
+/-- The capacity and claim after the rounds. -/
+def cap1 : List E := (roundsTr lv.folds cap cl W.rw).1
+def cl1 : E := (roundsTr lv.folds cap cl W.rw).2
+
+/-- The lane's and the query nonce's permutation. -/
+def S2 : KeccakState := omState (W.cap1 lv cap cl) W.lane (some W.nq)
+
+/-- The capacity after the squeezes. -/
+def cap3 : List E := sqCap (capOf (W.S2 lv cap cl)) (lv.squeezes - 1)
+
+end FinWD
+
+/-- **The final level's calls and memory** at its honest values. -/
+structure FinC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv)
+    (cap : List E) (cl cur : E) (W : FinWD) : Prop where
+  rounds : RoundsC C (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) lv.folds lv.foldsOff cap cl cur W.rw
+  om : C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1")
+    (W.cap1 lv cap cl ++ [MidW.cur1 lv cur, σ (.n osFmsg)])
+    (omRets (W.cap1 lv cap cl) W.lane (some W.nq) (MidW.cur1 lv cur) (c.yrLen + lv.folds + 1))
+  g17 : C ("grind_check__L" ++ natStr queryGrind) [cellsOfState (W.S2 lv cap cl) false 1, σ (.n osTabs)] []
+  rows : (∀ i < 5, LoadHolds rd W.pZ (5 + i) ((capOf (W.S2 lv cap cl)).getD i 0)) ∧
+    ∀ i < 5, LoadHolds rd W.pZ (lv.squeezes * 5 + i) ((W.cap3 lv cap cl).getD i 0)
+  dec : C ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+    [cellsOfState (W.S2 lv cap cl) false 0, σ (.n osQpos) * gen ^ lv.posOff,
+      σ (.n osQbp) * gen ^ lv.posOff, σ (.n osTabs)] []
+  loop : gen + gen ^ lv.squeezes ≠ 0 → C (c.sqLoop lvl)
+    [gen, gen ^ lv.squeezes, W.pZ, σ (.n osQpos), σ (.n osQbp), σ (.n osTabs)] []
+  mcap : C ("verify_merkle_cap__L" ++ natStr lv.capDepth)
+    [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff] [W.r0, W.r1]
+  roots : LoadHolds rd (σ (.n osRoots)) (2 * lvl) W.r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) W.r1
+  hs : ∀ j < c.yrLen + lv.folds, LoadHolds rd (σ (.n osFmsg)) j (W.lane.getD j 0) ∧
+    LoadHolds rd W.pH j (W.lane.getD j 0 * word (hsScale lv.vanish (c.yrLog + 1) j 1) 0)
+  q : C (osQueriesName c lvl lv)
+    [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
+      σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+      σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] [W.batched]
+
+/-- **The final level, honestly** (G:1576-1726 at the final level). -/
+theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
+    (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl = c.yrLevel) (W : FinWD)
+    (hr3 : 3 * (lv.foldsOff + lv.folds) < u128Bound) (hpo : lv.posOff < u128Bound)
+    (hS5 : lv.squeezes * 5 < u128Bound) (hS : lv.squeezes < u128Bound)
+    (hc4 : 4 * lv.capOff < u128Bound) (h3 : 3 * lv.foldsOff < u128Bound)
+    (hh8 : lvl * hsStride < u128Bound)
+    (hpq : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound)
+    (hC : ∀ C rd, H C rd → FinC C rd σ c lvl lv (st.fsv σ) (σ (.n st.claim)) (st.cur σ) W) :
+    BlkA H σ st.k (osLevel c lvl lv st).2.k (osLevel c lvl lv st).1 (fun σ' ↦
+      OsStep σ σ' st (osLevel c lvl lv st).2 ∧
+      (osLevel c lvl lv st).2.F σ' = ⟨W.cap3 lv (st.fsv σ) (σ (.n st.claim)), []⟩ ∧
+      (osLevel c lvl lv st).2.cur σ' = MidW.cur1 lv (st.cur σ) * gen ^ (c.yrLen + lv.folds + 1) ∧
+      σ' (.n (osLevel c lvl lv st).2.claim) = W.cl1 lv (st.fsv σ) (σ (.n st.claim)) ∧
+      σ' (.n (lvM c lvl lv st).2.k) = gw ((c.maxSq + 1) * 5) ∧
+      σ' (.n ((lvM c lvl lv st).2.k + 1)) = W.pZ ∧
+      σ' (.n (osCap c lvl lv (lvS c lvl lv st).2).2.k) = gw (c.yrLen + lv.folds) ∧
+      σ' (.n (lvH c lvl lv st).2.hs) = W.pH ∧
+      (osDecCallAt c lv (lvM c lvl lv st).2).2.2.1.map σ' =
+        [cellsOfState (W.S2 lv (st.fsv σ) (σ (.n st.claim))) false 0, σ (.n osQpos) * gen ^ lv.posOff,
+          σ (.n osQbp) * gen ^ lv.posOff, σ (.n osTabs)] ∧
+      (osSqCallAt c lvl lv (lvM c lvl lv st).2).1.map σ' = some (gen + gen ^ lv.squeezes) ∧
+      (osSqCallAt c lvl lv (lvM c lvl lv st).2).2.2.1.map σ' =
+        [gen, gen ^ lv.squeezes, W.pZ, σ (.n osQpos), σ (.n osQbp), σ (.n osTabs)] ∧
+      (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.1.map σ' =
+        [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
+          σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+          σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
+      (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.2.map σ' = [W.batched]) := by
+  set cap := st.fsv σ with hcap
+  set cl := σ (.n st.claim) with hcl
+  set cur := st.cur σ with hcur
+  set k := st.k with hk
+  have k36 : 36 ≤ k := hsf.k
+  set s1 := (osRounds c.plan lv.foldsOff lv.folds st).2 with hs1
+  set s2 := (osFinalMsg c lv s1).2 with hs2
+  set s4 := (osSqueezes c lvl lv s2).2 with hs4
+  set s6 := (osCap c lvl lv s4).2 with hs6
+  set s7 := (osHsFinal c lv s6).2 with hs7
+  have sf1 : s1.Sf := osRounds_sf _ _ _ _ hsf
+  have ep1 : s1.pad = st.pad := osRounds_pad _ _ _ _
+  have b1 : BlkA H σ k s1.k (osRounds c.plan lv.foldsOff lv.folds st).1 (fun σ' ↦
+      RoundsOut σ σ' st s1 (roundsTr lv.folds cap cl W.rw) lv.folds ∧ AgreeBelow k σ σ') :=
+    osRounds_completeA lv.folds lv.foldsOff st σ W.rw hsf.co hr3 hsf.below
+      (fun C rd hH ↦ (hok C rd hH).mats) hsf.k hsf.fs fun C rd hH ↦ (hC C rd hH).rounds
+  -- the lane
+  have b2 := BlkA.seqK b1 (fun σ' h ↦ h.1.k) (B := (osFinalMsg c lv s1).1)
+    (OutB := fun σ' ↦ s2.Ok σ' ∧ s1.k ≤ s2.k ∧ k ≤ s2.k ∧
+      s2.F σ' = ⟨capOf (W.S2 lv cap cl), []⟩ ∧
+      σ' (.n s2.word0) = cellsOfState (W.S2 lv cap cl) false 0 ∧
+      σ' (.n s2.pow0) = cellsOfState (W.S2 lv cap cl) false 1 ∧
+      s2.cur σ' = MidW.cur1 lv cur * gen ^ (c.yrLen + lv.folds + 1) ∧ s2.claim = s1.claim)
+    (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      have ro := (ho1 C0 rd0 hH0).1
+      have ef : s1.fsv σ1 = W.cap1 lv cap cl := by
+        have := congrArg Fs.cap ro.F
+        simpa [OsSt.F, OsSt.fsv, FinWD.cap1] using this
+      have ecur : s1.cur σ1 = MidW.cur1 lv cur := ro.cur
+      have h := osFinalMsg_complete (H := H) (c := c) (lv := lv) (st := s1) σ1 sf1
+        (fun C rd hH ↦ ⟨sf1, (ho1 C rd hH).1.mats, by rw [ep1]; exact ((hok C rd hH).agree ha1).pad⟩)
+        W.lane W.nq (fun C rd hH ↦ by
+          rw [ef, ecur, ha1 _ (show 15 < k by omega)]; exact (hC C rd hH).om)
+      refine h.mono fun σ' ho ↦ ?_
+      obtain ⟨hst, hF, hw, hp, hcur, hclm, -⟩ := ho
+      rw [ef] at hF hw hp
+      rw [ecur] at hcur
+      exact ⟨hst.ok, hst.le, le_trans ro.k hst.le, hF, hw, hp, hcur, hclm⟩)
+    (fun _ _ ↦ (osFinalMsg_lt c lv s1).2.2)
+  -- the query grind
+  have b3 := BlkA.seqK b2 (fun σ' h ↦ h.2.2.2.1) (B := [.call ("grind_check__L" ++ natStr queryGrind)
+      ([s2.pow0, osTabs].map V.n) []])
+    (OutB := fun _ ↦ True) (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      have w := osFinalMsg_lt c lv s1
+      have h := call0_blk (H := H) (σ := σ1) (k := s2.k)
+        (f := "grind_check__L" ++ natStr queryGrind) (args := [s2.pow0, osTabs]) (fun i hi ↦ by
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
+          rcases hi with rfl | rfl
+          · exact w.2.1
+          · have := (ho1 C0 rd0 hH0).2.2.2.1; show 9 < s2.k; omega)
+        fun C rd hH ↦ by
+          simp only [List.map_cons, List.map_nil]
+          rw [(ho1 C rd hH).2.2.2.2.2.2.1, ha1 _ (show 9 < k by omega)]
+          exact (hC C rd hH).g17
+      exact h.mono fun _ _ ↦ trivial) (fun _ _ ↦ le_rfl)
+  -- the squeezes
+  have b4 := BlkA.seqK b3 (fun σ' h ↦ h.1.2.2.2.1) (B := (osSqueezes c lvl lv s2).1)
+    (OutB := fun σ' ↦ s4.Ok σ' ∧ s2.k ≤ s4.k ∧ k ≤ s4.k ∧ s4.F σ' = ⟨W.cap3 lv cap cl, []⟩ ∧
+      σ' (.n s2.k) = gw ((c.maxSq + 1) * 5) ∧ σ' (.n (s2.k + 1)) = W.pZ ∧
+      s4.cur σ' = MidW.cur1 lv cur * gen ^ (c.yrLen + lv.folds + 1) ∧
+      (osDecCallAt c lv s2).2.2.1.map σ' = [cellsOfState (W.S2 lv cap cl) false 0,
+        σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff, σ (.n osTabs)] ∧
+      (osSqCallAt c lvl lv s2).1.map σ' = some (gen + gen ^ lv.squeezes) ∧
+      (osSqCallAt c lvl lv s2).2.2.1.map σ' =
+        [gen, gen ^ lv.squeezes, W.pZ, σ (.n osQpos), σ (.n osQbp), σ (.n osTabs)])
+    (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      obtain ⟨ok2, -, hk2, hF2, hw2, -, hcur2, -⟩ := (ho1 C0 rd0 hH0).1.2
+      have ef : s2.fsv σ1 = capOf (W.S2 lv cap cl) := by
+        have := congrArg Fs.cap hF2
+        simpa [OsSt.F, OsSt.fsv] using this
+      have eq9 : σ1 (.n osTabs) = σ (.n osTabs) := ha1 _ (show 9 < k by omega)
+      have eqp : σ1 (.n osQpos) = σ (.n osQpos) := ha1 _ (show 33 < k by omega)
+      have eqb : σ1 (.n osQbp) = σ (.n osQbp) := ha1 _ (show 35 < k by omega)
+      have h := osSqueezes_complete (H := H) (c := c) (lvl := lvl) (lv := lv) (st := s2) σ1 ok2.sf
+        (fun C rd hH ↦ (ho1 C rd hH).1.2.1) (osFinalMsg_lt c lv s1).1 W.pZ hpo hS5 hS
+        (fun C rd hH ↦ by rw [ef]; exact (hC C rd hH).rows)
+        (fun C rd hH ↦ by rw [hw2, eqp, eqb, eq9]; exact (hC C rd hH).dec)
+        (fun C rd hH ↦ by rw [eqp, eqb, eq9]; exact (hC C rd hH).loop)
+      refine h.mono fun σ' ho ↦ ?_
+      obtain ⟨hst, hF, hsz, hpz, hcur, -, -, -, -, hdec, hg, hla⟩ := ho
+      rw [ef] at hF
+      rw [hw2, eqp, eqb, eq9] at hdec
+      rw [eqp, eqb, eq9] at hla
+      rw [hcur2] at hcur
+      exact ⟨hst.ok, hst.le, le_trans hk2 hst.le, hF, hsz, hpz, hcur, hdec, hg, hla⟩)
+    (fun σ' h ↦ h.2.1)
+  -- the cap
+  have b6 := BlkA.seqK b4 (fun σ' h ↦ h.2.2.2.1) (B := (osCap c lvl lv s4).1)
+    (OutB := fun σ' ↦ s6.Ok σ' ∧ s4.k ≤ s6.k ∧ k ≤ s6.k)
+    (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      obtain ⟨ok4, -, hk4, -⟩ := (ho1 C0 rd0 hH0).2
+      have h := osCap_complete (H := H) (c := c) (lvl := lvl) (lv := lv) (st := s4) σ1 ok4.sf
+        (fun C rd hH ↦ (ho1 C rd hH).2.1) W.r0 W.r1 hc4
+        (fun C rd hH ↦ by
+          rw [ha1 _ (show 11 < k by omega), ha1 _ (show 13 < k by omega)]; exact (hC C rd hH).mcap)
+        (fun C rd hH ↦ by rw [ha1 _ (show 17 < k by omega)]; exact (hC C rd hH).roots)
+      exact h.mono fun σ' ho ↦ ⟨ho.ok, ho.le, le_trans hk4 ho.le⟩)
+    (fun σ' h ↦ h.2.1)
+  -- the lane normalized
+  have b7 := BlkA.seqK b6 (fun σ' h ↦ h.2.2.2) (B := (osHsFinal c lv s6).1)
+    (OutB := fun σ' ↦ s7.Ok σ' ∧ s6.k ≤ s7.k ∧ k ≤ s7.k ∧ σ' (.n s6.k) = gw (c.yrLen + lv.folds) ∧
+      σ' (.n s7.hs) = W.pH)
+    (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      have ok6 := (ho1 C0 rd0 hH0).2.1
+      have hk6 := (ho1 C0 rd0 hH0).2.2.2
+      have h := osHsFinal_complete (H := H) (c := c) (lv := lv) (st := s6) σ1 ok6.sf
+        (fun C rd hH ↦ (ho1 C rd hH).2.1) W.pH (fun j ↦ W.lane.getD j 0)
+        (fun C rd hH j hj ↦ by rw [ha1 _ (show 15 < k by omega)]; exact (hC C rd hH).hs j hj)
+      exact h.mono fun σ' ho ↦ ⟨ho.1.ok, ho.1.le, le_trans hk6 ho.1.le, ho.2.1, ho.2.2⟩)
+    (fun σ' h ↦ h.2.1)
+  -- the queries
+  have b8 := BlkA.seqK b7 (fun σ' h ↦ h.2.2.2.1) (B := (osQueries c lvl lv s7).1)
+    (OutB := fun σ' ↦ (osQueries c lvl lv s7).2.Ok σ' ∧ s7.k ≤ (osQueries c lvl lv s7).2.k ∧
+      k ≤ (osQueries c lvl lv s7).2.k ∧
+      (osQCallAt c lvl lv s7).2.2.1.map σ' =
+        [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
+          σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+          σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
+      (osQCallAt c lvl lv s7).2.2.2.map σ' = [W.batched])
+    (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      have ok7 := (ho1 C0 rd0 hH0).2.1
+      have hk7 := (ho1 C0 rd0 hH0).2.2.2.1
+      have hpH := (ho1 C0 rd0 hH0).2.2.2.2.2
+      have eA : osQArgsV σ1 c lvl lv s7 =
+          [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
+            σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+            σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] := by
+        simp only [osQArgsV, hfin, ↓reduceIte]
+        rw [hpH, ha1 _ (show 11 < k by omega), ha1 _ (show 13 < k by omega),
+          ha1 _ (show 21 < k by omega), ha1 _ (show 33 < k by omega), ha1 _ (show 35 < k by omega)]
+      have h := osQueries_complete (H := H) (c := c) (lvl := lvl) (lv := lv) (st := s7) σ1 ok7.sf
+        (fun C rd hH ↦ (ho1 C rd hH).2.1) W.batched hc4 h3 hpo hh8 hpq
+        (fun h ↦ absurd hfin h) (fun _ ↦ osHsFinal_hs_lt c lv s6)
+        (fun C rd hH ↦ by rw [eA]; exact (hC C rd hH).q)
+      refine h.mono fun σ' ho ↦ ?_
+      obtain ⟨hst, hargs, hrets, -⟩ := ho
+      rw [eA] at hargs
+      exact ⟨hst.ok, hst.le, le_trans hk7 hst.le, hargs, hrets⟩)
+    (fun σ' h ↦ h.2.1)
+  -- the level
+  have eL : osLevel c lvl lv st = ((osRounds c.plan lv.foldsOff lv.folds st).1 ++
+      (osFinalMsg c lv s1).1 ++
+      [.call ("grind_check__L" ++ natStr queryGrind) ([s2.pow0, osTabs].map V.n) []] ++
+      (osSqueezes c lvl lv s2).1 ++ (osCap c lvl lv s4).1 ++ (osHsFinal c lv s6).1 ++
+      (osQueries c lvl lv s7).1, (osQueries c lvl lv s7).2) := by
+    simp only [osLevel, hfin, ↓reduceIte, List.append_nil]
+    rfl
+  have eM : (lvM c lvl lv st).2 = s2 := by simp only [lvM, lvF, hfin, ↓reduceIte]; rfl
+  have eS : (lvS c lvl lv st).2 = s4 := by simp only [lvS, lvM, lvF, hfin, ↓reduceIte]; rfl
+  have eH : (lvH c lvl lv st).2 = s7 := by simp only [lvH, lvS, lvM, lvF, hfin, ↓reduceIte]; rfl
+  rw [eL, eM, eS, eH]
+  refine BlkA.mono b8.agree fun σ' ho ↦ ?_
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨ro, -⟩, -⟩, -⟩, B4⟩, -⟩, B7⟩, B8⟩, hag⟩ := ho
+  obtain ⟨-, -, -, hF4, hsz4, hpz4, hcur4, hdec, hg, hla⟩ := B4
+  obtain ⟨-, -, -, hsz6, hpH⟩ := B7
+  obtain ⟨ok8, -, hk8, hargs, hrets⟩ := B8
+  have fq := osQueries_fields c lvl lv s7
+  refine ⟨⟨ok8, hk8, hag⟩, ?_, ?_, ?_, hsz4, hpz4, hsz6, hpH, hdec, hg, hla, hargs, hrets⟩
+  · rw [← hF4]
+    simp only [OsSt.F]
+    rw [show (osQueries c lvl lv s7).2.fs = s4.fs from fq.2.2.2.2.1]
+  · rw [← hcur4]
+    simp only [OsSt.cur]
+    rw [show (osQueries c lvl lv s7).2.cb = s4.cb from fq.2.2.2.2.2.1,
+      show (osQueries c lvl lv s7).2.co = s4.co from fq.2.2.2.2.2.2.1]
+  · rw [show (osQueries c lvl lv s7).2.claim = s1.claim from fq.2.2.2.1, ro.claim]
+    rfl
+
+/-! ## The levels -/
+
+/-- **The levels in sequence**: each level from a start satisfying `Q` is a block whose outcome
+gives the next level's `Q` and its own `R`; `Q` holds on any valuation agreeing below the state's
+next free value. -/
+theorem osLevels_complete (c : OsCfg) (Q : ℕ → OsSt → Val → Prop) (R : ℕ → Val → Prop)
+    (hQ : ∀ lvl st σ σ', Q lvl st σ → AgreeBelow st.k σ σ' → Q lvl st σ') :
+    ∀ (lvs : List OsLv) (lvl : ℕ),
+      (∀ i (h : i < lvs.length) st σ, Q (lvl + i) st σ →
+        BlkA H σ st.k (osLevel c (lvl + i) lvs[i] st).2.k (osLevel c (lvl + i) lvs[i] st).1
+          (fun σ' ↦ st.k ≤ (osLevel c (lvl + i) lvs[i] st).2.k ∧
+            Q (lvl + i + 1) (osLevel c (lvl + i) lvs[i] st).2 σ' ∧ R (lvl + i) σ')) →
+      ∀ st σ, Q lvl st σ →
+        BlkA H σ st.k (osLevels c lvl lvs st).2.k (osLevels c lvl lvs st).1
+          (fun σ' ↦ st.k ≤ (osLevels c lvl lvs st).2.k ∧ Q (lvl + lvs.length) (osLevels c lvl lvs st).2 σ' ∧
+            ∀ i < lvs.length, R (lvl + i) σ')
+  | [], lvl, _, st, σ, hq => by
+    refine BlkA.nil fun σ' ha ↦ ⟨le_rfl, ?_, fun i hi ↦ absurd hi (by simp)⟩
+    exact hQ lvl st σ σ' hq ha
+  | lv :: rest, lvl, hstep, st, σ, hq => by
+    have e : osLevels c lvl (lv :: rest) st = ((osLevel c lvl lv st).1 ++
+        (osLevels c (lvl + 1) rest (osLevel c lvl lv st).2).1,
+        (osLevels c (lvl + 1) rest (osLevel c lvl lv st).2).2) := rfl
+    rw [e]
+    have h0 := hstep 0 (by simp) st σ hq
+    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
+    have ih := osLevels_complete c Q R hQ rest (lvl + 1) fun i hi st' σ' hq' ↦ by
+      have := hstep (i + 1) (by simp; omega) st' σ' (by rw [← Nat.add_assoc, Nat.add_right_comm]; exact hq')
+      simp only [List.getElem_cons_succ] at this
+      rw [show lvl + (i + 1) = lvl + 1 + i by omega] at this
+      exact this
+    refine BlkA.mono (BlkA.seqK h0 (fun σ' h ↦ h.1) (fun σ1 _ ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦
+      ih (osLevel c lvl lv st).2 σ1 (ho1 C0 rd0 hH0).2.1) (fun σ' h ↦ h.1)) fun σ' ⟨ha, hb⟩ ↦ ?_
+    refine ⟨le_trans ha.1 hb.1, by rw [List.length_cons, show lvl + (rest.length + 1) =
+      lvl + 1 + rest.length by omega]; exact hb.2.1, fun i hi ↦ ?_⟩
+    rcases i with _ | i
+    · simpa using ha.2.2
+    · rw [show lvl + (i + 1) = lvl + 1 + i by omega]
+      exact hb.2.2 i (by simp at hi; omega)
+
 end
 end LeanVM.Guest.B1.Whir
