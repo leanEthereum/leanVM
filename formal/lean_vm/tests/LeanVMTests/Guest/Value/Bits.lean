@@ -18,7 +18,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Guest.Value
 #guard bitsVal (Nat.testBit 0b1011) 4 = 11
 #guard (∑ i ∈ Finset.range 4, bitE (Nat.testBit 11 i) * coordBasis i) = eOfNat 11
 #guard (∑ i ∈ Finset.range 4, bitE (Nat.testBit 11 i) * coordBasis (62 + i)) =
-  eOfNat192 (2 ^ 62 * 11)
+  eOfNat128 (2 ^ 62 * 11)
 #guard (∏ j ∈ Finset.range 4, (1 + bitE (Nat.testBit 11 j) * (gen ^ 2 ^ j + 1))) = gen ^ 11
 -- Without booleanity the bits are not unique: `x·e_0 = e_1`, and `x` fails `b·b = b`.
 #guard eOfNat 2 * coordBasis 0 + 0 * coordBasis 1 = 0 * coordBasis 0 + 1 * coordBasis 1
