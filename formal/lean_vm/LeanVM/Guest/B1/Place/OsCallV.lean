@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.Template
+public import LeanVM.Guest.B1.Whir.FinishSplit
 public import LeanVM.Guest.Memory.Straight
 
 /-!
@@ -74,7 +74,7 @@ theorem osLevel_callSplit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 
 /-! ## Calls of atom runs -/
 
-theorem callS_atoms {l : List Stmt} (h : ∀ s ∈ l, ∃ a, s = .atom a) :
+theorem osCallS_atoms {l : List Stmt} (h : ∀ s ∈ l, ∃ a, s = .atom a) :
     l.filterMap Stmt.callS = [] :=
   List.filterMap_eq_nil_iff.mpr fun s hs ↦ by obtain ⟨a, rfl⟩ := h s hs; rfl
 
@@ -106,7 +106,7 @@ theorem osSqueezes_callS (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
       [osDecCallAt c lv s, osSqCallAt c lvl lv s] := by
   simp only [osSqueezes, List.filterMap_append, osHeap_callS, osMatS_callS, osLoopCall,
     List.filterMap_cons, List.filterMap_nil, Stmt.callS, List.nil_append]
-  rw [callS_atoms (by simp; intro _ _ _ _ h; exact ⟨_, h.symm⟩), callS_atoms (by simp)]
+  rw [osCallS_atoms (by simp; intro _ _ _ _ h; exact ⟨_, h.symm⟩), osCallS_atoms (by simp)]
   simp [osDecCallAt, osSqCallAt]
 
 /-! ## The levels' states and special calls -/
@@ -186,13 +186,13 @@ theorem lvB_callS (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 /-- The levels' state. -/
 def osLvsEnd (c : OsCfg) : OsSt := (osLevels c 0 c.levels (osHead c).2).2
 
-/-- The statements after the levels: the closing rounds and the finish. -/
+/-- The statements after the levels before the return: the closing rounds and the finish. -/
 def osRest (c : OsCfg) : List Stmt :=
-  (osTail c (osLvsEnd c)).1 ++ osFinish c (osTail c (osLvsEnd c)).2.1 (osTail c (osLvsEnd c)).2.2
+  (osTail c (osLvsEnd c)).1 ++ (osFinishA c (osTail c (osLvsEnd c)).2.1 (osTail c (osLvsEnd c)).2.2).1
 
-theorem osBody_eq_rest (c : OsCfg) :
-    osBody c = (osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++ osRest c := by
-  simp only [osBody, osRest, osLvsEnd, List.append_assoc]
+theorem osBodyA_eq_rest (c : OsCfg) :
+    osBodyA c = (osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++ osRest c := by
+  simp only [osBodyA, osRest, osLvsEnd, List.append_assoc]
 
 /-- The finish's residual base values: `inner_chain`, `basis_d`, the scales, the products, the
 first free value. -/

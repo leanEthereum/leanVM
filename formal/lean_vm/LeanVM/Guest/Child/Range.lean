@@ -50,45 +50,52 @@ theorem queriesOf_le {p q : VerifierProgram α} (hpq : VerifierProgram.Le p q) :
   | ret a => intro st b h; exact h
   | read _ ih =>
     intro st b h
-    obtain ⟨sp, stream, os, roots⟩ := st
+    obtain ⟨⟨S, pend, g⟩, stream, os, roots⟩ := st
     cases stream with
     | nil => simp [Limits.queryStepsOf] at h
-    | cons x xs => simp only [Limits.queryStepsOf] at h ⊢; exact ih x h
+    | cons x xs =>
+      cases g with
+      | none => exact ih x h
+      | some c => simp [Limits.queryStepsOf] at h
   | sample _ ih => intro st b h; simp only [Limits.queryStepsOf] at h ⊢; exact ih _ h
   | grind bits _ ih =>
     intro st b h
-    obtain ⟨sp, stream, os, roots⟩ := st
+    obtain ⟨⟨S, pend, g⟩, stream, os, roots⟩ := st
     cases stream with
     | nil => simp [Limits.queryStepsOf] at h
     | cons n xs =>
-      simp only [Limits.queryStepsOf] at h ⊢
-      split at h
-      · next hpow => simp only [hpow, ↓reduceIte]; exact ih h
-      · simp at h
+      cases g with
+      | some c => simp [Limits.queryStepsOf] at h
+      | none =>
+        revert h
+        simp only [Limits.queryStepsOf]
+        generalize Id.run (absorbNonce keccakF1600 ⟨S, pend, none⟩ n) = r
+        obtain ⟨pow, sp'⟩ := r
+        dsimp only
+        by_cases hc : powOk bits pow = true
+        · simp only [hc, ↓reduceIte]
+          exact fun h ↦ ih h
+        · simp [hc]
   | commit height width _ ih =>
     intro st b h
-    obtain ⟨sp, stream, os, roots⟩ := st
-    match stream, h with
-    | [], h => simp [Limits.queryStepsOf] at h
-    | [_], h => simp [Limits.queryStepsOf] at h
-    | x0 :: x1 :: xs, h =>
-      simp only [Limits.queryStepsOf] at h ⊢
-      split at h
-      · next root hroot => exact ih h
-      · simp at h
+    obtain ⟨⟨S, pend, g⟩, stream, os, roots⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [Limits.queryStepsOf] at h
+    | [_], _, h => simp [Limits.queryStepsOf] at h
+    | _ :: _ :: _, some _, h => simp [Limits.queryStepsOf] at h
+    | x0 :: x1 :: xs, none, h => exact ih h
   | query i ps _ ih =>
     intro st b h
     obtain ⟨sp, stream, os, roots⟩ := st
-    simp only [Limits.queryStepsOf] at h ⊢
     cases hr : roots[i]? with
-    | none => simp [hr] at h
+    | none => simp [Limits.queryStepsOf, hr] at h
     | some x =>
       obtain ⟨root, height, width⟩ := x
       cases os with
-      | nil => simp [hr] at h
+      | nil => simp [Limits.queryStepsOf, hr] at h
       | cons phase rest =>
-        simp only [hr, openPhase_eq_withHash, keccak256With_keccakF1600] at h ⊢
-        cases ho : Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+        simp only [Limits.queryStepsOf, hr] at h ⊢
+        cases ho : Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) with
         | none => simp [ho] at h
         | some rows =>
           simp only [ho] at h ⊢
@@ -170,39 +177,51 @@ end InRange
 
 /-! ## WHIR -/
 
-theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
-    VerifierProgram.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
-  | 0, s, lf, r, h => by
-    have := VerifierProgram.returns_ret h
-    subst this
+/-- A fold round adds one `γ`. -/
+theorem foldRound_returns {s : WhirState} {p : WhirState × FoldRound}
+    (h : VerifierProgram.Returns (foldRound s) p) : p.1.gammas.length = s.gammas.length + 1 := by
+  unfold foldRound at h
+  repeat (obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h)
+  rw [VerifierProgram.returns_ret h]
+  simp
+
+/-- A level's fold rounds add one `γ` each. -/
+theorem foldRounds_returns : ∀ {n : ℕ} {s : WhirState} {p : WhirState × List FoldRound},
+    VerifierProgram.Returns (foldRounds n s) p → p.1.gammas.length = s.gammas.length + n
+  | 0, s, p, h => by
+    rw [foldRounds] at h
+    rw [VerifierProgram.returns_ret h]
     rfl
-  | n + 1, s, lf, r, h => by
-    unfold foldRoundsT at h
-    obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
-    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-    have := foldRounds_returns n _ _ h
-    simp only [List.length_append, List.length_singleton] at this
+  | n + 1, s, p, h => by
+    rw [foldRounds] at h
+    obtain ⟨⟨s', r⟩, h1, h⟩ := VerifierProgram.returns_bind h
+    obtain ⟨⟨s'', rs⟩, h2, h⟩ := VerifierProgram.returns_bind h
+    rw [VerifierProgram.returns_ret h]
+    rw [foldRounds_returns h2, foldRound_returns h1]
     omega
 
-theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    NoCommit (foldRoundsT n s lf)
-  | 0, _, _ => noCommit_ret _
-  | n + 1, s, lf => by
-    unfold foldRoundsT
-    simp only [VerifierProgram.bind_eq]
-    exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
-      (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
+theorem noCommit_foldRound (s : WhirState) : NoCommit (foldRound s) := by
+  unfold foldRound
+  nc
 
-theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (tailRoundsT n t quad)
-  | 0, _, _ => noCommit_ret _
-  | n + 1, t, quad => by
-    unfold tailRoundsT
+theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirState), NoCommit (foldRounds n s)
+  | 0, _ => noCommit_ret _
+  | n + 1, s => by
+    unfold foldRounds
     simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
-    split
-    · exact noCommit_ret _
-    · exact NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦
-        NoCommit.bind (noCommit_tailRounds n _ _) fun _ ↦ noCommit_ret _
+    refine NoCommit.bind (noCommit_foldRound s) fun p ↦ ?_
+    obtain ⟨s', r⟩ := p
+    refine NoCommit.bind (noCommit_foldRounds n s') fun q ↦ ?_
+    obtain ⟨s'', rs⟩ := q
+    exact noCommit_ret _
+
+theorem noCommit_sampleOodPoints (mu : ℕ) : ∀ n, NoCommit (sampleOodPoints mu n)
+  | 0 => noCommit_ret _
+  | n + 1 => by
+    unfold sampleOodPoints
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    exact NoCommit.bind (noCommit_sampleN _) fun _ ↦
+      NoCommit.bind (noCommit_sampleOodPoints mu n) fun _ ↦ noCommit_ret _
 
 theorem noCommit_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
     NoCommit (sampleQueriesAux depth fuel remaining)
@@ -238,99 +257,88 @@ theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs 
       · exact sampleQueriesAux_returns depth fuel _ hrest q hq
 
 /-- **The WHIR levels open in range**: at level `index`, the heights so far end with the
-current level's, `logN − folds − fold + rate`. -/
+current level's, `logN − γs − fold + rate`. -/
 theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT) (hs : List ℕ),
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (hs : List ℕ),
       hs.length = index + 1 →
       (∀ level ∈ levels.head?,
-        hs.getD index 0 = logN - s.folds.length - level.fold + level.logInvRate) →
-      InRange (whirLevelsT logN laneFolds evaluateBasis index levels s) hs fun _ _ ↦ True
+        hs.getD index 0 = logN - s.gammas.length - level.fold + level.logInvRate) →
+      InRange (whirLevels logN laneFolds evaluateBasis index levels s) hs fun _ _ ↦ True
   | [], _, _, _, _, _ => trivial
   | level :: rest, index, s, hs, hl, hh => by
     have hh' := hh level rfl
-    unfold whirLevelsT
-    refine InRange.nc_bind (noCommit_foldRounds _ _ _) fun r hr ↦ ?_
-    obtain ⟨s', levelFolds⟩ := r
-    have hf := foldRounds_returns _ _ _ hr
-    simp only at hf
-    have hdepth : logN - s'.folds.length + level.logInvRate = hs.getD index 0 := by
+    unfold whirLevels
+    simp only [VerifierProgram.bind_eq]
+    refine InRange.nc_bind (noCommit_foldRounds _ _) fun r hr ↦ ?_
+    obtain ⟨s', rounds⟩ := r
+    have hf := foldRounds_returns hr
+    dsimp only at hf ⊢
+    have hdepth : logN - s'.gammas.length + level.logInvRate = hs.getD index 0 := by
       rw [hh', hf]; omega
     cases rest with
     | nil =>
+      dsimp only
       refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq
-      · refine InRange.nc_bind (p := sumcheckRoundPoly 3 _ none)
-          (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-        refine InRange.nc_bind (p := tailRoundsT _ _ _) (noCommit_tailRounds _ _ _) fun r _ ↦ ?_
-        obtain ⟨tf, tg⟩ := r
+      · refine InRange.nc_bind (noCommit_ret _) fun _ _ ↦ ?_
+        refine InRange.nc_bind (noCommit_require _) fun _ _ ↦ ?_
+        refine InRange.nc_bind (noCommit_sumcheck _ _ _) fun _ _ ↦ ?_
         exact (InRange.of_noCommit (noCommit_require _)).mono fun _ _ _ ↦ trivial
     | cons next rest' =>
-      simp only [VerifierProgram.pure_eq, levelShape]
-      have hc : InRange (VerifierProgram.readCommitment (logN - s'.folds.length - next.fold +
-          next.logInvRate)
-          (3 * 2 ^ next.fold)) hs
-          (fun _ hs' ↦ hs' = hs ++ [logN - s'.folds.length - next.fold + next.logInvRate]) :=
+      dsimp only
+      simp only [levelShape]
+      have hc : InRange (VerifierProgram.readCommitment (logN - s'.gammas.length - next.fold +
+          next.logInvRate) (2 * 2 ^ next.fold)) hs
+          (fun _ hs' ↦ hs' = hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]) :=
         rfl
       refine InRange.bind (Q := fun (_ : Unit) hs' ↦
-        hs' = hs ++ [logN - s'.folds.length - next.fold + next.logInvRate]) hc fun _ _ e ↦ ?_
+        hs' = hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]) hc fun _ _ e ↦ ?_
       subst e
-      have hgi : (hs ++ [logN - s'.folds.length - next.fold + next.logInvRate]).getD index 0 =
+      have hgi : (hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]).getD index 0 =
           hs.getD index 0 := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
-      refine InRange.nc_bind (noCommit_sampleN _) fun _ _ ↦ ?_
-      refine InRange.nc_bind noCommit_readE fun _ _ ↦ ?_
-      refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_sampleOodPoints _ _) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
+      refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [hgi, ← hdepth]
         exact sampleQueriesAux_returns _ _ _ hq q hqq
-      · refine InRange.nc_bind (p := sumcheckRoundPoly 3 _ none)
-          (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-        refine inRange_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _
+      · refine inRange_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _
           (by simp [hl]) fun lv hlv ↦ ?_
         simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
         subst hlv
-        rw [glue_folds]
+        rw [glueLevel_gammas]
         simp [List.getD_eq_getElem?_getD, hl]
 
 /-! ## The verifier program -/
 
-theorem noCommit_busRest_computed (L : Layout) (alphas : List E) (beta : E) (point tv : List E) :
-    NoCommit (LeanVM.Guest.B1.Tables.busRest computedBytecodeValue L alphas beta point tv) := by
+theorem noCommit_busRest_computed (L : Layout) (weights : List E) (beta : E) (point tv : List E) :
+    NoCommit (LeanVM.Guest.B1.Tables.busRest computedBytecodeValue L weights beta point tv) := by
   unfold LeanVM.Guest.B1.Tables.busRest
-  simp only [computedBytecodeValue]
+  simp only [computedBytecodeValue, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  refine NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
+  refine NoCommit.bind noCommit_readE fun _ ↦ ?_
+  refine NoCommit.bind noCommit_readE fun _ ↦ ?_
+  refine NoCommit.bind (noCommit_bytecodeShare _ _) fun _ ↦ ?_
   nc
 
 theorem noCommit_verifyBusBalance_computed (layout : Layout) :
     NoCommit (verifyBusBalance computedBytecodeValue layout) := by
   rw [verifyBusBalance_split]
-  exact NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
+  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
+    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
     NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest_computed _ _ _ _ _
-
-theorem noCommit_restClaims_computed (layout : Layout) (pi : Digest) :
-    NoCommit (restClaims computedBytecodeValue layout pi) := by
-  unfold restClaims keccakPhaseClaims ringSwitch
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-      VerifierProgram.ret_bind]
-  refine NoCommit.bind (noCommit_verifyBusBalance_computed _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_tablePhase _ _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_publicInputPhase _ _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_require _) fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_verifyKeccak _ _ _) fun x ↦ ?_
-  rcases x with ⟨cl, kp, ks⟩
-  exact NoCommit.bind (noCommit_sampleN _) fun _ ↦ noCommit_ret _
 
 /-- The stack's commitment: the height of the ladder's first level. -/
 theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
@@ -347,36 +355,51 @@ theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
   | nil => trivial
   | cons level rest => exact ⟨level, rest, hc', rfl⟩
 
-/-- **The verifier program opens in range**, from no commitment. -/
-theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
-  rw [leanVmProgram_eq]
-  rw [verifyExecution_pre]
-  unfold specPre
-  simp only [VerifierProgram.bind_assoc]
-  refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
-  refine InRange.bind (inRange_commitStack _ _ []) fun _ hs' hc ↦ ?_
-  obtain ⟨level, rest, hcfg, rfl⟩ := hc
-  refine InRange.nc_bind (noCommit_restClaims_computed _ _) fun cl _ ↦ ?_
-  simp only [VerifierProgram.ret_bind]
-  unfold verifyStackedOpening
-  simp only [verifyWhir_eq_target]
-  unfold verifyWhirT
-  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+/-- The stacked opening opens in range, the stack committed at the ladder's first level. -/
+theorem inRange_verifyStackedOpening {μ r : ℕ} {level : Whir.Level} {rest : List Whir.Level}
+    (hcfg : Whir.ladder μ r = some (level :: rest)) (cl : List StackClaim) :
+    InRange (verifyStackedOpening μ r cl) [μ - level.fold + level.logInvRate] fun _ _ ↦ True := by
+  unfold verifyStackedOpening verifyWhir
+  simp only [VerifierProgram.bind_eq]
+  refine InRange.nc_bind (noCommit_require _) fun _ _ ↦ ?_
   refine InRange.nc_bind noCommit_sampleE fun _ _ ↦ ?_
   refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_
-  have hc' : Whir.ladder ls.1.stackLog ls.2 = some config := by
+  have hc' : Whir.ladder μ r = some config := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
     · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
   rw [hcfg] at hc'
   cases hc'
-  refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
-  refine InRange.bind (inRange_whirLevels _ _ _ _ 0 _ _ rfl fun lv hlv ↦ ?_) fun _ _ _ ↦ trivial
+  refine inRange_whirLevels _ _ _ _ 0 _ _ rfl fun lv hlv ↦ ?_
   simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
   subst hlv
   simp
+
+/-- **The verifier program opens in range**, from no commitment. -/
+theorem inRange_leanVmProgram (bytecode : List K) (publicInput : Digest) :
+    InRange (leanVmVerifierProgram bytecode publicInput) [] fun _ _ ↦ True := by
+  rw [leanVmProgram_eq]
+  refine InRange.bind (Q := fun _ _ ↦ True) ?_ fun _ _ _ ↦ trivial
+  unfold verifyExecutionClaims
+  simp only [VerifierProgram.bind_eq]
+  refine InRange.nc_bind (noCommit_readSizes _) fun ls _ ↦ ?_
+  obtain ⟨layout, rate⟩ := ls
+  dsimp only
+  refine InRange.bind (inRange_commitStack _ _ []) fun _ hs' hc ↦ ?_
+  obtain ⟨level, rest, hcfg, rfl⟩ := hc
+  rw [List.nil_append]
+  refine InRange.nc_bind (noCommit_readOod _) fun ood _ ↦ ?_
+  refine InRange.nc_bind (noCommit_verifyBusBalance_computed _) fun _ _ ↦ ?_
+  refine InRange.nc_bind (noCommit_tablePhase _ _) fun _ _ ↦ ?_
+  refine InRange.nc_bind (noCommit_publicInputPhase _ _) fun _ _ ↦ ?_
+  refine InRange.nc_bind (noCommit_keccakPhaseClaims _ _) fun kc _ ↦ ?_
+  obtain ⟨cl, kp, ks⟩ := kc
+  dsimp only
+  -- Elaborating `InRange` at `ringSwitch kp ks` itself is slow: name it first.
+  have hrs := noCommit_ringSwitch kp ks
+  generalize ringSwitch kp ks = rsw at hrs ⊢
+  exact InRange.nc_bind hrs fun _ _ ↦ inRange_verifyStackedOpening hcfg _
 
 end
 end LeanVM.Guest.Child
