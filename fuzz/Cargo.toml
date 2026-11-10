@@ -199,6 +199,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "soundness-verifier-dos"
+path = "fuzz_targets/soundness_verifier_dos.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "soundness-keccak-batch"
 path = "fuzz_targets/soundness_keccak_batch.rs"
 test = false

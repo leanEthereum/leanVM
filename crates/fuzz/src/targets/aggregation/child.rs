@@ -42,6 +42,14 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             describe_claims(honest.claims()),
         )
     };
+    // A statement some fixture honestly proves is true, whatever proof bytes back it: another fixture's whole aggregate,
+    // or `x3r2`'s proof of `x3`'s claims.
+    let true_statement = (0..f.children.len())
+        .any(|j| forged.claims() == f.proof(j).claims() && forged.deferred() == f.proof(j).deferred());
+    if verdict.is_ok() && true_statement && !(same_claims && same_defer) {
+        ctx.note("forgery is another fixture's true statement");
+        return Ok(());
+    }
     if verdict.is_ok() {
         if !(same_claims && same_defer) {
             return Err(Finding::critical(
@@ -76,6 +84,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         );
         finding
     })?;
+    super::common::note_kill(ctx, &result);
     match outcome(&result) {
         Err(kind) => {
             ctx.note(format!("refused {kind}"));

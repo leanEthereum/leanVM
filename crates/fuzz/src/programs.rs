@@ -111,6 +111,17 @@ pub fn corpus() -> &'static [Spec] {
     })
 }
 
+/// The corpus a case at `depth` draws from: `# fuzz: slow` programs (a run to the step limit holds gigabytes of trace)
+/// only at depth 2, so a default campaign spends its workers on programs that finish.
+pub fn corpus_at(depth: u8) -> &'static [Spec] {
+    static FAST: std::sync::OnceLock<Vec<Spec>> = std::sync::OnceLock::new();
+    if depth >= 2 {
+        corpus()
+    } else {
+        FAST.get_or_init(|| corpus().iter().filter(|s| !s.slow).cloned().collect())
+    }
+}
+
 /// Corpus programs that run and prove: the honest fixtures the soundness targets attack.
 pub fn provable() -> Vec<&'static Spec> {
     corpus().iter().filter(|s| s.expect == Expect::Ok).collect()

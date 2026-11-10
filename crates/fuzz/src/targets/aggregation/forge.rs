@@ -144,6 +144,7 @@ pub fn random_inputs(src: &mut Source, f: &Fixtures) -> Inputs {
 /// The unforged node runs, and publishes what `aggregate`'s rules say.
 fn honest(inputs: &Inputs, ctx: &Ctx) -> Outcome {
     let result = inputs.execute();
+    super::common::note_kill(ctx, &result);
     match outcome(&result) {
         Ok(()) => {
             let run = result.unwrap();
@@ -220,6 +221,7 @@ fn witness_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
         ctx.note("edit reads nothing new");
         return Ok(());
     }
+    super::common::note_kill(ctx, &result);
     match outcome(&result) {
         Err(why) => {
             ctx.note(format!("refused {stream} {why}"));

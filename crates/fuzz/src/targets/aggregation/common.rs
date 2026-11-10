@@ -225,6 +225,18 @@ pub fn refusal_kind(e: &ProveError) -> String {
 }
 
 /// How a node's build and run went: `Ok` for an accepted run, else a stable name of the refusal.
+/// Where in the guest a refused run failed, as a note: `guest check <function> (line N)`. Over a campaign these notes
+/// are the guest's kill map, which `leanvm-fuzz guest-coverage` sets against every check in `lean_ethereum.py`.
+pub fn note_kill(ctx: &crate::Ctx, result: &Result<NodeRun, AggregationError>) {
+    if let Ok(NodeRun {
+        run: Err(leanvm_core::cpu::ProveError::Execution(e)),
+        ..
+    }) = result
+    {
+        ctx.note(format!("guest check {}", e.site));
+    }
+}
+
 pub fn outcome(result: &Result<NodeRun, AggregationError>) -> Result<(), String> {
     match result {
         Err(e) => Err(error_kind(e)),
@@ -372,6 +384,7 @@ pub fn judge(ctx: &crate::Ctx, context: &str, inputs: &Inputs, expect: &Expect) 
         finding.detail = format!("{context}\n{}\ninputs: {}", finding.detail, inputs.describe());
         finding
     })?;
+    note_kill(ctx, &result);
     match outcome(&result) {
         Ok(()) => {
             let run = result.expect("accepted");
@@ -439,6 +452,7 @@ pub fn reject_child(
         finding.detail = format!("{context}\n{}\ninputs: {}", finding.detail, inputs.describe());
         finding
     })?;
+    note_kill(ctx, &result);
     match outcome(&result) {
         Ok(()) => Err(Finding::critical(
             format!("{context}: the guest accepts a child the Rust verifier rejects"),

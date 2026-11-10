@@ -2,7 +2,7 @@
 //!
 //! Protocol, one line each, prefixed `@@FUZZ`:
 //! - `START <n>` before case `n`, whose input is already in `workers/<id>.case`, so a crash names its case;
-//! - `END <n> <micros> <finding severity or ->` after it;
+//! - `END <n> <micros> <finding severity or -> <peak heap bytes>` after it;
 //! - `NOTE <count>` when the case reached notes new to this worker.
 
 use crate::store::{CaseInput, Store};
@@ -85,6 +85,6 @@ pub fn run(store: &Store, args: WorkerArgs) {
             say(&format!("NOTE {}", fresh.len()));
             known.extend(fresh);
         }
-        say(&format!("END {n} {micros} {severity}"));
+        say(&format!("END {n} {micros} {severity} {}", result.usage.peak_bytes));
     }
 }

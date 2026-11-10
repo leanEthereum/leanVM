@@ -115,6 +115,7 @@ fn forged_run(inputs: &Inputs, edit: impl FnOnce(&mut Streams) + 'static) -> Res
 /// A witness the honest host would not produce must be refused.
 fn forgery_refused(ctx: &Ctx, inputs: &Inputs, what: &str, edit: impl FnOnce(&mut Streams) + 'static) -> Outcome {
     let result = forged_run(inputs, edit);
+    super::common::note_kill(ctx, &result);
     match outcome(&result) {
         Err(kind) => {
             ctx.note(format!("{what}: {kind}"));

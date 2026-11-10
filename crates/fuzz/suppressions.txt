@@ -1,3 +1,20 @@
-# Finding keys known to be benign or already tracked, one per line, matched as a prefix of `<target> <key>`. A matching
-# finding is still recorded, under `findings/suppressed/`, and does not count toward `report --fail-on`. A campaign can
-# add its own in `<out>/suppressions.txt`. Say why, in a comment, above each line.
+# Finding keys known to be benign or already tracked, one per line, matched as a prefix of `<target> <key>` in which
+# `*` stands for any run of characters. A matching finding is still recorded, under `findings/suppressed/`, and does not
+# count toward `report --fail-on` or `replay --fail-on`. A campaign can add its own in `<out>/suppressions.txt`. Say why,
+# in a comment, above each line.
+
+# A forged child whose differences the host's replay overwrites before the guest sees them (a cap-level Merkle sibling
+# another query's computed node replaces, `gen_verify` in rec_aggregation's child.rs): the target confirms the guest
+# was handed exactly the honest child's witness before it records this.
+guest-child guest-child *: a child the verifier rejects reads into the honest child's witness
+
+# Hint cells the guest provably never reads, each traced to the guest line that explains it (the reason is in the key):
+# the pull side's block group order (`verify_tables` certifies only the push and count sides), the running node's own
+# copy in a Merkle pair (`walk_window` hashes only the sibling), cap flags read only as nonzero, `child_mono` read only
+# as equal to g, and a DA pick of a child whose digest equals the picked one's.
+guest-forge guest-forge block_group_order: accepted an edit the guest does not read
+guest-forge guest-forge merkle_children: accepted an edit the guest does not read
+guest-forge guest-forge merkle_cap_active: accepted an edit the guest does not read
+guest-forge guest-forge merkle_caps: accepted an edit the guest does not read
+guest-forge guest-forge child_mono: accepted an edit the guest does not read
+guest-forge guest-forge da_pick: accepted an edit the guest does not read

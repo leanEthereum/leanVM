@@ -17,6 +17,7 @@
 pub mod findings;
 pub mod mutate_proof;
 pub mod programs;
+pub mod resources;
 mod selftest;
 pub mod source;
 pub mod targets;
@@ -120,7 +121,12 @@ pub struct CaseResult {
     pub notes: BTreeSet<String>,
     /// The input bytes the case consumed, for the corpus.
     pub consumed: Vec<u8>,
+    /// Its peak heap and time.
+    pub usage: resources::Usage,
 }
+
+/// The most a cheap case may hold at once: past it, an input made a kernel or a decoder allocate without bound.
+const CHEAP_PEAK_BYTES: usize = 1 << 32;
 
 /// The last panic in the process, from any thread: its message and where it was raised, which the hook records
 /// before unwinding. Process-wide because a panic in a thread-pool job is raised on a worker thread and reaches the
@@ -164,10 +170,10 @@ pub fn install_panic_hook() {
 pub fn run_case(target: &Target, source: &mut Source, ctx: &Ctx) -> CaseResult {
     install_panic_hook();
     take_panic();
-    let outcome = catch_unwind(AssertUnwindSafe(|| (target.run)(source, ctx)));
+    let (outcome, usage) = resources::measure(|| catch_unwind(AssertUnwindSafe(|| (target.run)(source, ctx))));
     // A hook a target armed and never fired must not leak into the next case.
     targets::disarm_all();
-    let finding = match outcome {
+    let mut finding = match outcome {
         Ok(Ok(())) => None,
         Ok(Err(finding)) => Some(finding),
         Err(_) => {
@@ -175,10 +181,24 @@ pub fn run_case(target: &Target, source: &mut Source, ctx: &Ctx) -> CaseResult {
             Some(Finding::panic(&message, &location))
         }
     };
+    if resources::installed() {
+        // A new peak bucket is new behaviour: the corpus keeps the case, and its mutations climb toward costlier inputs.
+        ctx.note(format!("peak heap 2^{}", usage.peak_bucket()));
+        if finding.is_none() && target.cost == Cost::Cheap && usage.peak_bytes > CHEAP_PEAK_BYTES {
+            finding = Some(Finding::medium(
+                format!(
+                    "resource: a cheap case peaked past 2^{} bytes",
+                    CHEAP_PEAK_BYTES.trailing_zeros()
+                ),
+                format!("{} bytes in {:?}", usage.peak_bytes, usage.elapsed),
+            ));
+        }
+    }
     CaseResult {
         finding,
         notes: ctx.take_notes(),
         consumed: source.consumed(),
+        usage,
     }
 }
 

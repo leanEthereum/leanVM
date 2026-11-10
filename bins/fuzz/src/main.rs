@@ -1,7 +1,10 @@
 //! `cargo leanvm-fuzz`: run a fuzzing campaign over leanVM, and triage what it finds. See `crates/fuzz/README.md`.
 
-// No `bench::Jemalloc`: it never returns freed pages, so a worker's resident set would only grow over its slice and
-// `--mem-limit-mb` would kill whichever case ran when it crossed the limit. The system allocator's tracks live memory.
+// The system allocator, counted: each case's peak heap is measured (`fuzz::resources`). Not `bench::Jemalloc`, which
+// never returns freed pages, so a worker's resident set would only grow and `--mem-limit-mb` would blame whichever
+// case ran when it crossed the limit.
+#[global_allocator]
+static ALLOCATOR: fuzz::resources::Counting = fuzz::resources::Counting;
 
 mod store;
 mod supervisor;
@@ -104,6 +107,47 @@ enum Command {
         /// Check these files instead of the embedded corpus: a program being written, before it joins `programs/`.
         #[arg(long)]
         file: Vec<PathBuf>,
+    },
+    /// Replay a campaign against this build: every recorded finding (fixed, still there, or changed?) and every corpus
+    /// entry (a regression gate: each input that ever reached new behaviour, run again).
+    Replay {
+        #[arg(long, default_value = "fuzz-out")]
+        out: PathBuf,
+        /// Comma-separated target names or prefixes, all by default.
+        #[arg(long, default_value = "")]
+        targets: String,
+        /// Only the recorded findings.
+        #[arg(long)]
+        findings_only: bool,
+        /// Only the corpus.
+        #[arg(long)]
+        corpus_only: bool,
+        /// Exit with status 1 if a finding at least this severe reproduces or appears (`critical`, `high`, `medium`, `low`).
+        #[arg(long, default_value = "medium")]
+        fail_on: String,
+    },
+    /// The guest's kill map: which checks in `lean_ethereum.py` some forged witness or child has made fail in a campaign,
+    /// and which never have. A check that never fires is a blind spot of the fuzzer or a check nothing can reach.
+    GuestCoverage {
+        #[arg(long, default_value = "fuzz-out")]
+        out: PathBuf,
+        /// Also list the checks that fired, with the targets whose cases fired them.
+        #[arg(long)]
+        all: bool,
+    },
+    /// Prove every fast provable corpus program and print digests of its bytecode and proof bytes. Proofs are
+    /// deterministic, so two machines (NEON, AVX2, AVX-512) or two commits must print the same lines: a difference is
+    /// a kernel that computes differently, or a change to the protocol that every verifier has to follow.
+    Fingerprint {
+        /// Only programs whose name contains this.
+        #[arg(long, default_value = "")]
+        filter: String,
+        /// Comma-separated `log_inv_rate`s.
+        #[arg(long, default_value = "1,2")]
+        rates: String,
+        /// Compare with a file an earlier run wrote, exiting with status 1 on any difference.
+        #[arg(long)]
+        compare: Option<PathBuf>,
     },
     /// Summarize the findings of a campaign directory.
     Report {
@@ -284,12 +328,64 @@ fn main() {
                 (None, false) => println!("no finding; notes: {:?}", result.notes),
             }
         }
+        Command::Replay {
+            out,
+            targets,
+            findings_only,
+            corpus_only,
+            fail_on,
+        } => {
+            let level = fuzz::Severity::parse(&fail_on).expect("a severity: critical, high, medium or low");
+            let store = Store::new(&out);
+            let chosen = select(&targets, "");
+            let mut failing = false;
+            if !corpus_only {
+                failing |= replay_findings(&store, &chosen, level);
+            }
+            if !findings_only {
+                leanvm_core::init_prover();
+                failing |= with_big_stack(move || replay_corpus(&store, &chosen, level));
+            }
+            if failing {
+                std::process::exit(1);
+            }
+        }
         Command::Minimize {
             target: name,
             input,
             out,
             output,
         } => minimize(&name, &input, &out, output),
+        Command::GuestCoverage { out, all } => guest_coverage(&Store::new(&out), all),
+        #[cfg(not(feature = "dsl"))]
+        Command::Fingerprint { .. } => panic!("`fingerprint` needs the `dsl` feature"),
+        #[cfg(feature = "dsl")]
+        Command::Fingerprint { filter, rates, compare } => {
+            leanvm_core::init_prover();
+            let rates: Vec<usize> = rates.split(',').map(|r| r.trim().parse().expect("a rate")).collect();
+            let lines = with_big_stack(move || fingerprint(&filter, &rates));
+            for line in &lines {
+                println!("{line}");
+            }
+            if let Some(path) = compare {
+                let before = std::fs::read_to_string(&path).expect("read the earlier fingerprint");
+                let before: std::collections::BTreeSet<&str> = before.lines().collect();
+                let now: std::collections::BTreeSet<&str> = lines.iter().map(String::as_str).collect();
+                let (gone, new): (Vec<_>, Vec<_>) =
+                    (before.difference(&now).collect(), now.difference(&before).collect());
+                for line in &gone {
+                    eprintln!("- {line}");
+                }
+                for line in &new {
+                    eprintln!("+ {line}");
+                }
+                if !gone.is_empty() || !new.is_empty() {
+                    eprintln!("{} line(s) differ from {}", gone.len() + new.len(), path.display());
+                    std::process::exit(1);
+                }
+                eprintln!("identical to {}", path.display());
+            }
+        }
         Command::Report { out, fail_on } => {
             let store = Store::new(&out);
             print_report(&store);
@@ -391,20 +487,222 @@ fn print_report(store: &Store) {
     }
 }
 
+/// Each recorded finding's first case, in a subprocess so a crash is reported rather than fatal: whether it still gives
+/// its key. Returns whether one at least `level` still does.
+fn replay_findings(store: &Store, targets: &[&'static fuzz::Target], level: fuzz::Severity) -> bool {
+    let scratch = std::env::temp_dir().join(format!("leanvm-fuzz-replay-{}", std::process::id()));
+    let (mut fixed, mut still, mut changed, mut failing) = (0, 0, 0, false);
+    for (severity, target, key, _, dir) in store.findings() {
+        if !targets.iter().any(|t| t.name == target) {
+            continue;
+        }
+        let Some(case) = std::fs::read_dir(&dir)
+            .into_iter()
+            .flatten()
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .find(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("case-")))
+        else {
+            continue;
+        };
+        let input = std::fs::read(&case).expect("read case");
+        let now = key_of(&target, &input, &store.out, &scratch);
+        let verdict = if now == "-" {
+            fixed += 1;
+            "fixed  "
+        } else if now == key || (process_level(&key) && now.starts_with("crash")) {
+            still += 1;
+            failing |= severity <= level;
+            "STILL  "
+        } else {
+            changed += 1;
+            failing |= severity <= level;
+            "CHANGED"
+        };
+        println!("{verdict} [{:<8}] {target:<28} {key}", severity.as_str());
+        if verdict == "CHANGED" {
+            println!("        now: {now}");
+        }
+    }
+    let _ = std::fs::remove_file(scratch);
+    println!("findings: {fixed} fixed, {still} still reproduce, {changed} changed");
+    failing
+}
+
+/// Every corpus entry of `targets`, once, in this process. Returns whether a finding at least `level` appeared.
+fn replay_corpus(store: &Store, targets: &[&'static fuzz::Target], level: fuzz::Severity) -> bool {
+    let ctx = fuzz::Ctx::new(store.cache_dir(), 1);
+    let mut failing = false;
+    for target in targets {
+        let corpus = store.corpus(target.name);
+        if corpus.is_empty() {
+            continue;
+        }
+        let t = std::time::Instant::now();
+        let mut keys: BTreeMap<String, (fuzz::Severity, usize)> = BTreeMap::new();
+        for input in &corpus {
+            let result = fuzz::run_case(target, &mut CaseInput::decode(input).source(), &ctx);
+            if let Some(f) = result.finding {
+                keys.entry(f.key).or_insert((f.severity, 0)).1 += 1;
+            }
+        }
+        println!(
+            "{:<28} {:>6} entries {:>8.1}s  {}",
+            target.name,
+            corpus.len(),
+            t.elapsed().as_secs_f64(),
+            if keys.is_empty() { "ok" } else { "FINDINGS" }
+        );
+        for (key, (severity, n)) in keys {
+            failing |= severity <= level && !store.suppressed(target.name, &key);
+            println!("    [{:<8}] x{n:<5} {key}", severity.as_str());
+        }
+    }
+    failing
+}
+
+/// One line per (program, rate): its cycles, and the first 16 hex digits of the Keccak of its bytecode and of its
+/// proof's bytes. Programs over `2^16` cycles, slow ones and ones that do not prove are left out, deterministically.
+#[cfg(feature = "dsl")]
+fn fingerprint(filter: &str, rates: &[usize]) -> Vec<String> {
+    let hex = |bytes: &[u8]| -> String {
+        primitives::hash::hash(bytes)[..8]
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    };
+    let mut lines = Vec::new();
+    for spec in fuzz::programs::provable()
+        .into_iter()
+        .filter(|s| !s.slow && s.name.contains(filter))
+    {
+        let Ok(program) = spec.compile() else { continue };
+        let (Ok(exec), public_input) = fuzz::programs::execute(&program, spec.public_input) else {
+            continue;
+        };
+        if exec.cycles > 1 << 16 || !exec.unconstrained_reads.is_empty() {
+            continue;
+        }
+        let bytecode = hex(format!("{:?}", program.prog()).as_bytes());
+        for &rate in rates {
+            if let Ok((proof, _)) = leanvm_core::cpu::prove(&program, public_input, rate) {
+                lines.push(format!(
+                    "{}\trate {rate}\tcycles {}\tbytecode {bytecode}\tproof {}",
+                    spec.name,
+                    exec.cycles,
+                    hex(&proof.to_bytes())
+                ));
+            }
+        }
+    }
+    lines
+}
+
+/// The recursion guest's source, whose lines the guest's kill notes name.
+const GUEST: &str = include_str!("../../../crates/rec_aggregation/guests/lean_ethereum.py");
+
+fn guest_coverage(store: &Store, all: bool) {
+    // `guest check <function> (line N)`, from every target that runs the guest.
+    let mut fired: BTreeMap<usize, std::collections::BTreeSet<String>> = BTreeMap::new();
+    for target in ["guest-forge", "guest-child", "aggregate-api", "aggregation-scenarios"] {
+        for note in store.known_notes(target) {
+            let Some(rest) = note.strip_prefix("guest check ") else {
+                continue;
+            };
+            let line = rest
+                .rsplit_once("(line ")
+                .and_then(|(_, n)| n.trim_end_matches(')').parse::<usize>().ok());
+            if let Some(line) = line {
+                fired.entry(line).or_default().insert(target.to_string());
+            }
+        }
+    }
+    let mut function = String::new();
+    let mut explicit = Vec::new();
+    for (i, text) in GUEST.lines().enumerate() {
+        let line = i + 1;
+        let code = text.trim();
+        if let Some(name) = code.strip_prefix("def ") {
+            function = name.split('(').next().unwrap_or("").to_string();
+        }
+        if code.starts_with("assert ") || code.starts_with("assert_in_k(") || code.starts_with("assert_gpow(") {
+            explicit.push((line, function.clone(), code.to_string()));
+        }
+    }
+    let never: Vec<_> = explicit.iter().filter(|(line, ..)| !fired.contains_key(line)).collect();
+    println!(
+        "explicit checks: {} in lean_ethereum.py, {} fired at least once, {} never",
+        explicit.len(),
+        explicit.len() - never.len(),
+        never.len()
+    );
+    let implicit = fired.keys().filter(|l| !explicit.iter().any(|(e, ..)| e == *l)).count();
+    println!(
+        "implicit checks that fired (stores into written cells, keccak outputs, range-check derefs): {implicit} lines"
+    );
+    println!("\nnever fired:");
+    for (line, function, code) in &never {
+        println!("  {line:>5}  {function:<32} {code}");
+    }
+    if all {
+        println!("\nfired:");
+        let lines: Vec<&str> = GUEST.lines().collect();
+        for (line, targets) in &fired {
+            let code = lines.get(line - 1).map_or("", |l| l.trim());
+            let targets: Vec<&str> = targets.iter().map(String::as_str).collect();
+            println!("  {line:>5}  {:<40} {code}", targets.join(","));
+        }
+    }
+}
+
+/// How long one replayed case may run before it counts as the hang it may be.
+const KEY_TIMEOUT: Duration = Duration::from_secs(600);
+
+/// Whether a key was recorded by the supervisor for a dead or killed worker, rather than returned by the target: such
+/// a finding reproduces as a crash or a timeout, not as its key.
+fn process_level(key: &str) -> bool {
+    [
+        "stack overflow",
+        "died",
+        "abort after panic",
+        "hang",
+        "memory",
+        "allocation failure",
+    ]
+    .iter()
+    .any(|p| key.starts_with(p))
+}
+
 /// The finding key `input` reproduces, from a subprocess so crashes count.
 fn key_of(name: &str, input: &[u8], out: &std::path::Path, scratch: &std::path::Path) -> String {
     std::fs::write(scratch, input).expect("write scratch input");
-    let output = std::process::Command::new(std::env::current_exe().unwrap())
+    let stdout_file = scratch.with_extension("stdout");
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
         .args(["repro", name, "--quiet", "--input"])
         .arg(scratch)
         .arg("--out")
         .arg(out)
-        .output()
+        .stdout(std::fs::File::create(&stdout_file).expect("repro stdout"))
+        .stderr(std::process::Stdio::null())
+        .spawn()
         .expect("run repro");
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let deadline = std::time::Instant::now() + KEY_TIMEOUT;
+    let status = loop {
+        if let Some(status) = child.try_wait().expect("wait for repro") {
+            break status;
+        }
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return "crash: timeout".to_string();
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    let stdout = std::fs::read_to_string(&stdout_file).unwrap_or_default();
+    let _ = std::fs::remove_file(stdout_file);
     match stdout.lines().last() {
-        Some(key) if output.status.success() => key.to_string(),
-        _ => format!("crash: {}", output.status),
+        Some(key) if status.success() => key.to_string(),
+        _ => format!("crash: {status}"),
     }
 }
 

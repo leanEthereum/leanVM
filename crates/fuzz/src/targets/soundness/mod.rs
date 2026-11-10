@@ -7,6 +7,7 @@ use crate::{Cost, Ctx, Finding, Target, catch};
 use leanvm_core::cpu::{CpuError, Proof};
 
 pub mod determinism;
+pub mod dos;
 pub mod fixtures;
 pub mod keccak_batch;
 pub mod proof_mutate;
@@ -51,6 +52,12 @@ pub static TARGETS: &[&Target] = &[
         about: "a program proven twice is byte-identical, and its digest agrees across processes and thread counts",
         cost: Cost::Medium,
         run: determinism::run,
+    },
+    &Target {
+        name: "soundness-verifier-dos",
+        about: "a garbage proof announcing sizes up to the caps, repaired round after round to walk deeper: replay_unchecked and verify stay within a budget linear in the proof, and never accept it",
+        cost: Cost::Medium,
+        run: dos::run,
     },
     &Target {
         name: "soundness-keccak-batch",

@@ -73,7 +73,7 @@ const EDGES: &[&str] = &[
 ];
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
-    let corpus = programs::corpus();
+    let corpus = programs::corpus_at(ctx.depth);
     let guest = src.chance(1, 16);
     let (name, base, spec) = if guest {
         ("guest", GUEST, None)

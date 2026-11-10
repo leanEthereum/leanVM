@@ -337,6 +337,7 @@ dependencies = [
  "clap",
  "fuzz",
  "leanvm_core",
+ "primitives",
 ]
 
 [[package]]

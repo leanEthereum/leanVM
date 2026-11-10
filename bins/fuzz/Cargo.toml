@@ -15,6 +15,7 @@ workspace = true
 [dependencies]
 fuzz = { path = "../../crates/fuzz", default-features = false }
 leanvm_core.workspace = true
+primitives.workspace = true
 clap = { version = "4", features = ["derive"] }
 
 # The target groups, all by default: `--no-default-features --features <group>` builds one alone.

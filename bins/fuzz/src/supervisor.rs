@@ -36,7 +36,13 @@ struct TargetStats {
     crashes: u64,
     hangs: u64,
     workers: u64,
+    /// The largest peak heap of any case, in bytes.
+    peak: u64,
 }
+
+/// How much worker time a new note is worth in power scheduling, in seconds, and the most a target's weight grows.
+const NOTE_VALUE: f64 = 60.0;
+const MAX_BOOST: f64 = 5.0;
 
 struct Worker {
     id: String,
@@ -151,17 +157,28 @@ pub fn run(store: &Store, args: CampaignArgs) {
             }
         }
         while !stopping && workers.len() < args.jobs {
-            let (i, target) = args
+            // Power scheduling: the target with the least worker time per unit of weight goes next, and a target whose
+            // time keeps reaching new notes weighs up to `MAX_BOOST` times more, so a long campaign drifts toward the
+            // targets still discovering behaviour while every target keeps at least its base share.
+            let weight = |k: usize, t: &Target| {
+                let busy = busy_secs.get(t.name).copied().unwrap_or(0.0);
+                let notes = stats.get(t.name).map_or(0, |s| s.notes) as f64;
+                let boost = if busy > 0.0 {
+                    (1.0 + NOTE_VALUE * notes / busy).min(MAX_BOOST)
+                } else {
+                    1.0
+                };
+                weights[k].max(1) as f64 * boost
+            };
+            let (_, target) = args
                 .targets
                 .iter()
                 .enumerate()
                 .min_by(|(i, a), (j, b)| {
-                    let share =
-                        |k: usize, t: &Target| busy_secs.get(t.name).copied().unwrap_or(0.0) / weights[k].max(1) as f64;
+                    let share = |k: usize, t: &Target| busy_secs.get(t.name).copied().unwrap_or(0.0) / weight(k, t);
                     share(*i, a).total_cmp(&share(*j, b))
                 })
                 .expect("at least one target");
-            let _ = i;
             let id = format!("w{spawned}");
             spawned += 1;
             let threads = args.threads.unwrap_or_else(|| {
@@ -222,6 +239,9 @@ pub fn run(store: &Store, args: CampaignArgs) {
                             s.micros += parts.next().and_then(|m| m.parse::<u128>().ok()).unwrap_or(0);
                             if let Some(sev) = parts.next().and_then(Severity::parse) {
                                 *s.findings.entry(sev.as_str()).or_default() += 1;
+                            }
+                            if let Some(peak) = parts.next().and_then(|p| p.parse::<u64>().ok()) {
+                                s.peak = s.peak.max(peak);
                             }
                         }
                         Some("NOTE") => s.notes += parts.next().and_then(|c| c.parse().ok()).unwrap_or(0),
@@ -328,12 +348,13 @@ fn record_dead(store: &Store, w: &Worker, finding: Finding) {
 
 fn report(store: &Store, stats: &BTreeMap<&'static str, TargetStats>, elapsed: Duration, running: usize) {
     let mut table = format!(
-        "elapsed {}s, {running} workers running\n{:<28} {:>10} {:>10} {:>7} {:>6} {:>6} {:>6}  findings\n",
+        "elapsed {}s, {running} workers running\n{:<28} {:>10} {:>10} {:>7} {:>9} {:>6} {:>6} {:>6}  findings\n",
         elapsed.as_secs(),
         "target",
         "cases",
         "cases/s",
         "notes",
+        "peak MiB",
         "crash",
         "hang",
         "spawns"
@@ -346,10 +367,11 @@ fn report(store: &Store, stats: &BTreeMap<&'static str, TargetStats>, elapsed: D
         };
         let findings: Vec<String> = s.findings.iter().map(|(k, v)| format!("{k}:{v}")).collect();
         table += &format!(
-            "{name:<28} {:>10} {:>10.1} {:>7} {:>6} {:>6} {:>6}  {}\n",
+            "{name:<28} {:>10} {:>10.1} {:>7} {:>9} {:>6} {:>6} {:>6}  {}\n",
             s.cases,
             rate,
             s.notes,
+            s.peak >> 20,
             s.crashes,
             s.hangs,
             s.workers,

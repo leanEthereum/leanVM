@@ -11,7 +11,7 @@ cargo leanvm-fuzz report                             # what it found, worst firs
 fuzz/campaign.sh --duration 24h --libfuzzer-jobs 8   # plus coverage-guided libFuzzer on the cheap targets (bash 4+)
 ```
 
-`run` is a supervisor: it starts `--jobs` worker processes (a quarter of the CPUs by default, since proofs use the thread pool), gives each one target for a time slice (`--slice`, 600 s), and rotates targets so each gets an equal share of worker time (`--weights target=3,...` to change that). Each worker draws its own `LEANVM_NUM_THREADS` unless `--threads` is given, so proofs run at many thread counts. A worker that panics, aborts, overflows its stack, exceeds `--mem-limit-mb` or spends longer than its target's timeout on one case (`--timeout-scale` to stretch) is killed if needed, recorded as a finding against the exact case it announced, and replaced. Everything persists in `--out` (`fuzz-out` by default): stopping and restarting resumes with the same corpus and findings, under a new base seed (`--seed` to fix it).
+`run` is a supervisor: it starts `--jobs` worker processes (a quarter of the CPUs by default, since proofs use the thread pool), gives each one target for a time slice (`--slice`, 600 s), and rotates targets by power scheduling: each gets at least its share of worker time (`--weights target=3,...` to change the shares), and a target whose time keeps reaching new behaviour earns up to five times more, so a long campaign drifts toward the targets still discovering something. Each worker draws its own `LEANVM_NUM_THREADS` unless `--threads` is given, so proofs run at many thread counts. A worker that panics, aborts, overflows its stack, exceeds `--mem-limit-mb` or spends longer than its target's timeout on one case (`--timeout-scale` to stretch) is killed if needed, recorded as a finding against the exact case it announced, and replaced. Everything persists in `--out` (`fuzz-out` by default): stopping and restarting resumes with the same corpus and findings, under a new base seed (`--seed` to fix it).
 
 `cargo leanvm-fuzz` builds with the `fuzz` profile: release speed with `debug_assert!` and integer-overflow checks on, since an overflow is a bug a fuzzer should see. `LEANVM_FUZZ_SELFTEST=1 cargo leanvm-fuzz run --targets selftest --duration 3m --mem-limit-mb 4096` checks on a new machine that every kind of failure is caught (each `selftest-*` target fails one way on purpose).
 
@@ -21,6 +21,8 @@ fuzz/campaign.sh --duration 24h --libfuzzer-jobs 8   # plus coverage-guided libF
 cargo leanvm-fuzz report [--fail-on high]
 cargo leanvm-fuzz repro <target> --input fuzz-out/findings/<severity>/<target>/<key>/case-<n>.bin
 cargo leanvm-fuzz minimize <target> --input <case file>
+cargo leanvm-fuzz replay [--findings-only | --corpus-only] [--fail-on medium]
+cargo leanvm-fuzz guest-coverage [--all]
 ```
 
 A finding is deduplicated by its key, which names the bug and nothing about the case (a panic's location, a verifier error, a mutated field), so a campaign reports each bug once with a hit count and up to eight inputs. `finding.txt` in its directory has the key, the first detail and the command that reproduces it. `repro` replays the case in one process with panics printed; `minimize` shrinks the input while the same key reproduces, running each attempt in a subprocess so crashes count.
@@ -34,7 +36,18 @@ Severities:
 | medium   | a crash, hang or unbounded allocation where the input deserves an error |
 | low      | a panic on a path documented to panic (the compiler on a malformed program), kept for triage |
 
-A finding triaged as benign goes in `crates/fuzz/suppressions.txt` (or a campaign's own `<out>/suppressions.txt`), as a prefix of `<target> <key>` with a comment saying why: it is still recorded, under `findings/suppressed/`, and no longer counts.
+A finding triaged as benign goes in `crates/fuzz/suppressions.txt` (or a campaign's own `<out>/suppressions.txt`), as a prefix of `<target> <key>` (`*` matches any run of characters) with a comment saying why: it is still recorded, under `findings/suppressed/`, and no longer counts.
+
+`replay` runs a campaign against the current build: each recorded finding's case in a subprocess, saying whether it is fixed, still reproduces, or now gives another finding (a finding recorded for a worker that outgrew `--mem-limit-mb` replays without the limit, so it shows as fixed), then every corpus entry once. After a fix it says what the fix fixed; on a pull request it is a regression gate that re-runs every input a campaign ever found interesting, exiting with status 1 on a finding at `--fail-on` or worse.
+
+## Measuring the fuzzer
+
+A fuzzer that finds nothing is either facing sound code or blind. Three tools say which:
+
+- **Resources.** The `leanvm-fuzz` binary counts every allocation (`resources.rs`). Each case notes the power of two its peak heap falls in, so a case that allocates more than any before joins the corpus and the campaign climbs toward expensive inputs, the denial-of-service bugs crash detection cannot see; a cheap case past 4 GiB is a finding, and `soundness-verifier-dos` holds the verifier and `replay_unchecked` to a budget linear in the proof on adversarial proofs. `stats.txt` shows each target's largest peak.
+- **The guest's kill map.** The guest targets note where in `lean_ethereum.py` each refused run failed. `guest-coverage` sets those lines against every `assert`, `assert_in_k` and `assert_gpow` in the guest and lists the checks no forgery has ever made fail: where the next forgery strategies should aim, or checks nothing can reach.
+- **Mutation analysis.** `fuzz/mutants.sh` disables one check of `crates/verifier` at a time (each `require` and each `transcript.checked()` guard, `fuzz/mutate_verifier.py`), rebuilds a copy of the tree, fuzzes the soundness targets for `--duration` seconds and records whether a finding killed the mutant. A surviving mutant is a check whose deletion no target notices. `--subject guest` does the same to the recursion guest, each `assert`, `assert_in_k` and `assert_gpow` of `lean_ethereum.py` in turn (`fuzz/mutate_guest.py`), against the guest and aggregation targets; every guest mutant proves its own child fixtures, so that sweep takes many hours. Run them on a fuzzing machine after a protocol or guest change, and keep the survivors list empty or explained.
+- **Fingerprints.** Proofs are deterministic, so `cargo leanvm-fuzz fingerprint` (digests of every fast provable corpus program's bytecode and proof bytes) must print the same lines on every machine and at every thread count; `--compare <file>` diffs against another run. A difference between NEON, AVX2 and AVX-512 is a kernel that computes differently; one between two commits that change no program is a change to the proof, which `crates/verifier`, the Lean statement and the guest all have to follow.
 
 ## How a case works
 
@@ -128,6 +141,7 @@ The malicious prover.
 | `soundness-wrong-statement` | medium | an honest proof against another public input or bytecode, and proofs by a prover whose Program carries a stale IV: verify rejects |
 | `soundness-replay-consistency` | medium | replay_unchecked returns verify's Summary on honest proofs, never panics on mutated ones, and fails exactly where verify fails structurally |
 | `soundness-determinism` | medium | a program proven twice is byte-identical, and its digest agrees across processes and thread counts |
+| `soundness-verifier-dos` | medium | a garbage proof announcing sizes up to the caps, repaired round after round to walk deeper: replay_unchecked and verify stay within a budget linear in the proof, and never accept it |
 | `soundness-keccak-batch` | medium | verify_keccak_batch accepts an honest standalone Keccak batch and rejects forged messages, tampered committed states and wrong shapes |
 
 ### `aggregation`

@@ -6,7 +6,7 @@ use crate::{Ctx, Finding, Outcome, Source};
 use leanvm_core::cpu::ProveError;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
-    let corpus = programs::corpus();
+    let corpus = programs::corpus_at(ctx.depth);
     let spec = &corpus[src.below(corpus.len())];
     check(spec, src, ctx)
 }

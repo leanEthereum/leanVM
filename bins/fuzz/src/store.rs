@@ -56,6 +56,22 @@ impl CaseInput {
     }
 }
 
+/// Whether `text` starts with `pattern`, where each `*` in the pattern stands for any run of characters.
+fn glob_prefix(pattern: &str, text: &str) -> bool {
+    let mut parts = pattern.split('*');
+    let Some(first) = parts.next() else { return true };
+    let Some(mut rest) = text.strip_prefix(first) else {
+        return false;
+    };
+    for part in parts {
+        match rest.find(part) {
+            Some(i) => rest = &rest[i + part.len()..],
+            None => return false,
+        }
+    }
+    true
+}
+
 /// FNV-1a, for file names: stable across builds and platforms.
 pub fn hash(bytes: &[u8]) -> u64 {
     bytes.iter().fold(0xcbf2_9ce4_8422_2325u64, |h, &b| {
@@ -137,7 +153,7 @@ impl Store {
 
     pub fn suppressed(&self, target: &str, key: &str) -> bool {
         let full = format!("{target} {key}");
-        self.suppressions.iter().any(|s| full.starts_with(s.as_str()))
+        self.suppressions.iter().any(|pattern| glob_prefix(pattern, &full))
     }
 
     pub fn corpus_dir(&self, target: &str) -> PathBuf {
