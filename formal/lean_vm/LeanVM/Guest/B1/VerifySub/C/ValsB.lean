@@ -46,13 +46,13 @@ local notation "ς" => vsσ rd w args
 
 /-! ## The ring map's challenges -/
 
-theorem vsMapSqz_noSide (i : ℕ) : (vsMapSqz i).all noSideB = true := by
-  simp [vsMapSqz, vsSqzT, keccakA, challengeT, vsCopy, noSideB, needsSide]
+theorem vsMapSqz_noSide (i : ℕ) : (vsMapSqz i).all vsNoSideB = true := by
+  simp [vsMapSqz, vsSqzT, keccakA, challengeT, vsCopy, vsNoSideB, needsSide]
 
-theorem flatMap_noSide {f : ℕ → List Stmt} (hf : ∀ i, (f i).all noSideB = true) :
-    ∀ l : List ℕ, (l.flatMap f).all noSideB = true
+theorem vs_flatMap_noSide {f : ℕ → List Stmt} (hf : ∀ i, (f i).all vsNoSideB = true) :
+    ∀ l : List ℕ, (l.flatMap f).all vsNoSideB = true
   | [] => rfl
-  | i :: l => by rw [List.flatMap_cons, List.all_append, hf i, flatMap_noSide hf l]; rfl
+  | i :: l => by rw [List.flatMap_cons, List.all_append, hf i, vs_flatMap_noSide hf l]; rfl
 
 theorem vsMapsT_split : vsMapsT =
     (List.range 5).map (fun i ↦ vsCopy (597 + i) (590 + i)) ++ fsNonceT (.n 595) 0 602 ++
@@ -90,11 +90,11 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_right _ hs))
   have hk : (Atom.keccak [.n 603, .n 604, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 597, .n 598,
       .n 599, .n 600, .n 601] (vsRun 605 13) false false).Holds rd ς :=
-    good_atom (hG _ (by simp [keccakA])) rfl
-  have c620 : ς (.n 620) = ς (.n 605) := good_copy (hG _ (by simp [vsCopy]))
-  have c621 : ς (.n 621) = ς (.n 620) := good_copy (hG _ (by simp [vsCopy]))
+    vsg_atom (hG _ (by simp [keccakA])) rfl
+  have c620 : ς (.n 620) = ς (.n 605) := vsg_copy (hG _ (by simp [vsCopy]))
+  have c621 : ς (.n 621) = ς (.n 620) := vsg_copy (hG _ (by simp [vsCopy]))
   have cA : ∀ i < 5, ς (.n (597 + i)) = w (590 + i) := fun i hi ↦ by
-    rw [good_copy (mA _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩)),
+    rw [vsg_copy (mA _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩)),
       vs_w hl (by interval_cases i <;> decide)]
   have c0 := cA 0 (by omega)
   have c1 := cA 1 (by omega)
@@ -103,11 +103,11 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
   have c4 := cA 4 (by omega)
   simp only [Nat.reduceAdd] at c0 c1 c2 c3 c4
   have e602 : ς (.n 602) = n :=
-    good_read (mN _ List.mem_cons_self) (by decide +kernel) (by rw [vs_w hl (by decide)]; exact hn)
-  have pk : FsPackOk ς (.n 602) 603 dsPowNonce := good_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
-  have h619 := tabs_good (c := 618) (by decide) mT
-  have hsqH := holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
-    (flatMap_noSide vsMapSqz_noSide _) mQ (next := True) trivial
+    vsg_read (mN _ List.mem_cons_self) (by decide +kernel) (by rw [vs_w hl (by decide)]; exact hn)
+  have pk : FsPackOk ς (.n 602) 603 dsPowNonce := vsg_fsPack fun s hs ↦ mN s (List.mem_cons_of_mem _ hs)
+  have h619 := vsg_tabs (c := 618) (by decide) mT
+  have hsqH := vs_holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
+    (vs_flatMap_noSide vsMapSqz_noSide _) mQ (next := True) trivial
   obtain ⟨hsq, -⟩ := maps_chain hz.1 hz.2.1 hz.2.2.1 hz.2.2.2 15 0 hsqH
   -- the nonce's permutation
   set S := vsMapSt (vsKCap w) n with hS
@@ -146,7 +146,7 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
 
 /-! ## `c_table` -/
 
-theorem vsSqT_noSide : ∀ b < 8, ∀ q < 7, (vsSqT b (849 + 64 * b) q).all noSideB = true := by
+theorem vsSqT_noSide : ∀ b < 8, ∀ q < 7, (vsSqT b (849 + 64 * b) q).all vsNoSideB = true := by
   decide +kernel
 
 /-- Where `c_table[8 p + b]` is computed: block `b`'s first product, then term `p`'s. -/
@@ -171,7 +171,7 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
     | zero => intro _; simp
     | succ q ih =>
       intro hq
-      have hS := holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
+      have hS := vs_holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
         (vsSqT_noSide b hb q (by omega)) (fun s hs ↦ hG s (by
           rw [vsCtabBlock]
           exact List.mem_append_right _ (List.mem_flatMap.2 ⟨q, List.mem_range.2 (by omega),
@@ -182,18 +182,18 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
         show 8 * q + 8 = 8 * (q + 1) by ring]
   intro p hp
   rcases p with _ | q
-  · have m := good_mul (by simp [vsCh]; omega) (by simp [vsCh]; omega)
+  · have m := vsg_mul (by simp [vsCh]; omega) (by simp [vsCh]; omega)
       (hG (.atom (.mul (.n s0) (.n (vsCh 0)) (.n (vsCh (8 + b))))) (by
         rw [vsCtabBlock]; exact List.mem_append_left _ List.mem_cons_self))
     simp only [vsCtabD, ↓reduceIte, Nat.mul_zero, pow_zero, pow_one]
     exact m
-  · have hS := holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
+  · have hS := vs_holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
       (vsSqT_noSide b hb q (by omega)) (fun s hs ↦ hG s (by
         rw [vsCtabBlock]
         exact List.mem_append_right _ (List.mem_flatMap.2 ⟨q, List.mem_range.2 (by omega),
           List.mem_append_left _ hs⟩))) (next := True) trivial
     obtain ⟨e7, -⟩ := vsSqT_holds (hsq q (by omega)) hS
-    have m := good_mul (x := vsCh (q + 1)) (by simp [vsCh]; omega) (by omega)
+    have m := vsg_mul (x := vsCh (q + 1)) (by simp [vsCh]; omega) (by omega)
       (hG (.atom (.mul (.n (s0 + 1 + 9 * q + 8)) (.n (vsCh (q + 1))) (.n (s0 + 1 + 9 * q + 7))))
         (by
           rw [vsCtabBlock]
@@ -204,17 +204,17 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
 
 /-! ## The sizes, the placement, the push blocks -/
 
-theorem word_gen1 : word 2 0 = gen := by
+theorem vs_word_gen1 : word 2 0 = gen := by
   rw [show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num), pow_one]
 
 /-- `rate_sel = g^(rate - 1)` (G:3600-3602). -/
 theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : w 64 = gen ^ rate) :
     ς (.n 66) = gen ^ (rate - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have h65w : ς (.n 65) = word 2 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h65 : ς (.n 65) = gen := by rw [h65w, word_gen1]
+  have h65w : ς (.n 65) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n 65) = gen := by rw [h65w, vs_word_gen1]
   have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
-    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+    vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
   rw [h66, h65, vs_w hl (by decide), h64, show gen⁻¹ = (gen ^ 1)⁻¹ by rw [pow_one],
     ← pow_sub₀ _ gen_ne_zero hr]
 
@@ -228,18 +228,18 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
       ς (.n 84) = 1 ∧ ς (.n 85) = gen ^ logMem ∧
       ∀ t < 6, ς (.n (86 + t)) = rdAt rd (w 71) (1 + t) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have h65w : ς (.n 65) = word 2 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h65 : ς (.n 65) = gen := by rw [h65w, word_gen1]
+  have h65w : ς (.n 65) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n 65) = gen := by rw [h65w, vs_word_gen1]
   have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
-    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
-  have h67 : ς (.n 67) = word 8 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h73 : ς (.n 73) = word 4294967296 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h77 : ς (.n 77) = word 4294967296 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h78 : ς (.n 78) = word 65536 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+    vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+  have h67 : ς (.n 67) = word 8 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h73 : ς (.n 73) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h77 : ς (.n 77) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h78 : ς (.n 78) = word 65536 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
   have h79 : ς (.n 79) = ς (.n 72) * (ς (.n 78))⁻¹ :=
-    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
-  have h84 : ς (.n 84) = word 1 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h85 : ς (.n 85) = ς (.n 72) := good_copy (hG _ (by simp [vsSizesT, vsCopy]))
+    vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+  have h84 : ς (.n 84) = word 1 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h85 : ς (.n 85) = ς (.n 72) := vsg_copy (hG _ (by simp [vsSizesT, vsCopy]))
   have e72 : ς (.n 72) = gen ^ logMem := by rw [vs_w hl (by decide), h72]
   have e78 : ς (.n 78) = gen ^ 16 := by
     rw [h78, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by norm_num)]
@@ -250,7 +250,7 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
   · exact vs_rateSel hl hr h64
   · rw [h67, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]
   · rw [h79, e72, e78, ← pow_sub₀ _ gen_ne_zero hm]
-  · rw [good_rdAt (hG _ (by
+  · rw [vsg_rdAt (hG _ (by
       rw [vsSizesT]
       exact List.mem_append_left _ (List.mem_append_right _
         (List.mem_map.2 ⟨t, List.mem_range.2 ht, rfl⟩)))) (by interval_cases t <;> decide +kernel),
@@ -260,10 +260,10 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
 theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 22 ≤ m) (h276 : w 276 = gen ^ m) :
     ς (.n 278) = gen ^ (m - 22) ∧ ς (.n 279) = gen ^ 6 := by
   have hG := vsPlaceT_good (rd := rd) (w := w) hl
-  have h277 : ς (.n 277) = vsGinv22 := good_const (hG _ (by simp [vsPlaceT, vsConst]))
+  have h277 : ς (.n 277) = vsGinv22 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
   have h278 : ς (.n 278) = ς (.n 276) * ς (.n 277) :=
-    good_mul (by norm_num) (by norm_num) (hG _ (by simp [vsPlaceT, vsMul]))
-  have h279 : ς (.n 279) = word 64 0 := good_const (hG _ (by simp [vsPlaceT, vsConst]))
+    vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsPlaceT, vsMul]))
+  have h279 : ς (.n 279) = word 64 0 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
   refine ⟨?_, by rw [h279, show (64 : ℕ) = 2 ^ 6 from rfl, word_two_pow (by norm_num)]⟩
   rw [h278, h277, vs_w hl (by decide), h276, show m = (m - 22) + 22 by omega, pow_add,
     Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 22), vsGinv22_mul, mul_one]
@@ -291,7 +291,7 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
     rw [vsPushT]
     exact List.mem_append_left _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, vsPushStep_mul b⟩)
   have hsrc : Tables.blockKappaSrc.getD b 0 < 8 := blockKappaSrc_lt b (by show b < 153; omega)
-  exact good_mul (by unfold vsPushP; split <;> omega) (by unfold vsPushP; split <;> omega)
+  exact vsg_mul (by unfold vsPushP; split <;> omega) (by unfold vsPushP; split <;> omega)
     (vsPushT_good hl _ hm)
 
 /-! ## The tail -/
@@ -311,40 +311,40 @@ theorem vs_tailV (hl : args.length = 6) {rate m : ℕ} (hr : 1 ≤ rate) (hm : 2
       (List.mem_append_left _ (List.mem_append_left _ hs)))))
   have h66 := vs_rateSel (rd := rd) (w := w) hl hr h64
   have h278 := (vs_placeV (rd := rd) (w := w) hl hm h276).1
-  have m18 : ς (.n 1918) = ς (.n 66) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m19 : ς (.n 1919) = ς (.n 1918) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m20 : ς (.n 1920) = ς (.n 1919) * ς (.n 1919) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m21 : ς (.n 1921) = ς (.n 1920) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m22 : ς (.n 1922) = ς (.n 278) * ς (.n 1921) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have c23 : ς (.n 1923) = word 134217728 0 := good_const (hP _ (by simp [vsMul, vsConst]))
-  have c27 : ς (.n 1927) = word 2 0 := good_const (hP _ (by simp [vsMul, vsConst]))
-  have m28 : ς (.n 1928) = ς (.n 595) * ς (.n 1927) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have h30 := tabs_good (c := 1929) (d := 1930) (by decide) fun s hs ↦ hG s (by
+  have m18 : ς (.n 1918) = ς (.n 66) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m19 : ς (.n 1919) = ς (.n 1918) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m20 : ς (.n 1920) = ς (.n 1919) * ς (.n 1919) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m21 : ς (.n 1921) = ς (.n 1920) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m22 : ς (.n 1922) = ς (.n 278) * ς (.n 1921) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have c23 : ς (.n 1923) = word 134217728 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
+  have c27 : ς (.n 1927) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
+  have m28 : ς (.n 1928) = ς (.n 595) * ς (.n 1927) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have h30 := vsg_tabs (c := 1929) (d := 1930) (by decide) fun s hs ↦ hG s (by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ hs)))))
   refine ⟨?_, by rw [c23, show (134217728 : ℕ) = 2 ^ 27 from rfl, word_two_pow (by norm_num)],
-    by rw [m28, c27, word_gen1, vs_w hl (by decide)], h30⟩
+    by rw [m28, c27, vs_word_gen1, vs_w hl (by decide)], h30⟩
   rw [m22, m21, m20, m19, m18, h66, h278, pow_add, pow_mul]
   ring
 
 /-! ## `λ` and the target -/
 
 /-- A read atom. -/
-def isLdB : Stmt → Bool
+def vsIsLdB : Stmt → Bool
   | .atom (.load ..) => true
   | _ => false
 
 /-- **A block of reads and atoms with automatic side conditions holds** from their equations and
 the reads' words. -/
-theorem holdsList_goodLd {S : List Atom} {σ : Val} {C : CallRel} {blk : List Stmt}
-    (hb : blk.all (fun s ↦ noSideB s || isLdB s) = true) (hg : ∀ s ∈ blk, GoodS rd S w σ s)
+theorem vs_holdsList_goodLd {S : List Atom} {σ : Val} {C : CallRel} {blk : List Stmt}
+    (hb : blk.all (fun s ↦ vsNoSideB s || vsIsLdB s) = true) (hg : ∀ s ∈ blk, GoodS rd S w σ s)
     (hld : ∀ d p off, Stmt.atom (.load d p off) ∈ blk →
       Atom.load d p off ∉ S ∧ ∃ v, LoadHolds rd (σ p) off v)
     {next : Prop} {kret : List E → Prop} (hn : next) : Stmt.HoldsList C rd σ blk next kret := by
   refine holdsList_straightN blk (List.all_eq_true.mpr fun s hs ↦ ?_) (fun s hs ↦ ?_) hn
   · have := List.all_eq_true.mp hb s hs
-    cases s <;> simp_all [noSideB, straightB, isLdB]
+    cases s <;> simp_all [vsNoSideB, straightB, vsIsLdB]
   · have h1 := List.all_eq_true.mp hb s hs
     cases s with
     | atom a =>
@@ -352,12 +352,12 @@ theorem holdsList_goodLd {S : List Atom} {σ : Val} {C : CallRel} {blk : List St
       | load d p off =>
         obtain ⟨hS, v, hv⟩ := hld d p off hs
         show LoadHolds _ _ _ _
-        rw [good_read (hg _ hs) hS hv]
+        rw [vsg_read (hg _ hs) hS hv]
         exact hv
-      | _ => exact good_atom (hg _ hs) (by simpa [noSideB, isLdB] using h1)
-    | _ => simp [noSideB, isLdB] at h1
+      | _ => exact vsg_atom (hg _ hs) (by simpa [vsNoSideB, vsIsLdB] using h1)
+    | _ => simp [vsNoSideB, vsIsLdB] at h1
 
-theorem vsLamT_ok : vsLamT.all (fun s ↦ noSideB s || isLdB s) = true := by decide +kernel
+theorem vsLamT_ok : vsLamT.all (fun s ↦ vsNoSideB s || vsIsLdB s) = true := by decide +kernel
 
 theorem vsLamT_notS : ∀ i < 134,
     Atom.load (.n (1376 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2 ∉ vsSL := by
@@ -393,7 +393,7 @@ theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.
   rw [← vs_w (rd := rd) (w := w) hl (a := 310) (by decide)] at hv
   have hcl' := claim_load hcl hpool hcew hpi
   have hH : Stmt.HoldsList (fun _ _ _ ↦ True) rd ς vsLamT True (fun _ ↦ True) :=
-    holdsList_goodLd vsLamT_ok (vsLamT_good hl) (fun d p off hm ↦ by
+    vs_holdsList_goodLd vsLamT_ok (vsLamT_good hl) (fun d p off hm ↦ by
       rcases vsLamT_loads hm with ⟨i, hi, rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
       · exact ⟨vsLamT_notS i hi, _, hcl' (vsKept i) (by simp only [vsKept]; split <;> omega)⟩
       · exact ⟨by decide +kernel, _, hv 0 (by simp)⟩) trivial

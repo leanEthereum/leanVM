@@ -116,7 +116,7 @@ theorem subOf_expTableWords {Lin : Main.Layout} {sqE : ℕ}
       simp [expTableWords, length_etWordsN], expTabAll_prefix])
   simpa using this
 
-theorem subOf_Tables.expTableWordsW {Lin : Main.Layout} {sqE : ℕ}
+theorem subOf_expTableWordsW {Lin : Main.Layout} {sqE : ℕ}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) : SubOf Lin (sqE, Tables.expTableWordsW) := by
   have := subOf_exp hexp 0 Tables.expTableWordsW (by rw [Tables.length_expTableWordsW]; simp [winTabBits])
     (by rw [List.drop_zero, Tables.length_expTableWordsW, expTabAll_W])

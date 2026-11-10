@@ -43,48 +43,48 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## Blocks holding by evaluation alone -/
 
 /-- An atom whose side condition is automatic. -/
-def noSideB : Stmt → Bool
+def vsNoSideB : Stmt → Bool
   | .atom a => !needsSide a
   | _ => false
 
 /-- **A block of atoms with automatic side conditions holds** from their equations. -/
-theorem holdsList_good {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {C : CallRel}
-    {blk : List Stmt} (hb : blk.all noSideB = true) (hg : ∀ s ∈ blk, GoodS rd S w σ s)
+theorem vs_holdsList_good {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {C : CallRel}
+    {blk : List Stmt} (hb : blk.all vsNoSideB = true) (hg : ∀ s ∈ blk, GoodS rd S w σ s)
     {next : Prop} {kret : List E → Prop} (hn : next) : Stmt.HoldsList C rd σ blk next kret := by
   refine holdsList_straightN blk (List.all_eq_true.mpr fun s hs ↦ ?_) (fun s hs ↦ ?_) hn
   · have := List.all_eq_true.mp hb s hs
-    cases s <;> simp_all [noSideB, straightB]
+    cases s <;> simp_all [vsNoSideB, straightB]
   · have h1 := List.all_eq_true.mp hb s hs
     cases s with
     | atom a =>
-      simp only [noSideB, Bool.not_eq_true'] at h1
-      exact holds_of_good (hg _ hs) (side_of_not_needs h1)
-    | _ => simp [noSideB] at h1
+      simp only [vsNoSideB, Bool.not_eq_true'] at h1
+      exact holds_of_good (hg _ hs) (vs_side_of_not_needs h1)
+    | _ => simp [vsNoSideB] at h1
 
-theorem good_const {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d : ℕ} {e : E}
+theorem vsg_const {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d : ℕ} {e : E}
     (h : GoodS rd S w σ (.atom (.const (.n d) e))) : σ (.n d) = e := h
 
-theorem good_copy {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d s : ℕ}
+theorem vsg_copy {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d s : ℕ}
     (h : GoodS rd S w σ (.atom (.copy (.n d) (.n s)))) : σ (.n d) = σ (.n s) := h
 
-theorem good_mul {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : x < d)
+theorem vsg_mul {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : x < d)
     (hy : y < d) (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
   rwa [ite_pos' (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨hx, hy⟩)] at h
 
-theorem good_quot {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : d < x)
+theorem vsg_quot {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : d < x)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n x) = σ (.n d) * (σ (.n y))⁻¹ := by
   simp only [GoodS, Good] at h
   rwa [ite_neg' (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
     fun h' ↦ by simp only at h'; omega)] at h
 
-theorem good_add {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ}
+theorem vsg_add {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ}
     (h : GoodS rd S w σ (.atom (.add (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) + σ (.n y) := h
 
 /-- A read through a pointer, of a word the memory holds. -/
-theorem good_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
+theorem vsg_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
     (hg : GoodS rd S w σ (.atom (.load d p off))) (hS : Atom.load d p off ∉ S)
     (hm : LoadHolds rd (σ p) off v) : σ d = v := by
   simp only [GoodS, Good] at hg
@@ -92,17 +92,17 @@ theorem good_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p 
   rfl
 
 /-- A read's value, whatever the memory holds. -/
-theorem good_rdAt {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ}
+theorem vsg_rdAt {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ}
     (hg : GoodS rd S w σ (.atom (.load d p off))) (hS : Atom.load d p off ∉ S) :
     σ d = rdAt rd (σ p) off := by
   simp only [GoodS, Good] at hg
   exact hg.resolve_left hS
 
-theorem good_atom {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {a : Atom}
+theorem vsg_atom {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {a : Atom}
     (h : GoodS rd S w σ (.atom a)) (hn : needsSide a = false) : a.Holds rd σ :=
-  holds_of_good h (side_of_not_needs hn)
+  holds_of_good h (vs_side_of_not_needs hn)
 
-theorem good_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x : V} {b t : ℕ}
+theorem vsg_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x : V} {b t : ℕ}
     (hg : ∀ s ∈ fsPackT x b t, GoodS rd S w σ s) : FsPackOk σ x b t :=
   ⟨hg _ List.mem_cons_self, hg _ (List.mem_cons_of_mem _ List.mem_cons_self)⟩
 
@@ -179,7 +179,7 @@ theorem vs_zero (hl : args.length = 6) :
   have e : ∀ d ∈ [8, 9, 10, 11], ς (.n d) = 0 := by
     intro d hd
     rw [← word_zero]
-    refine good_const (hG _ ?_)
+    refine vsg_const (hG _ ?_)
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hd
     rcases hd with rfl | rfl | rfl | rfl <;> simp [vsHeadT, vsConst]
   exact ⟨e 8 (by simp), e 9 (by simp), e 10 (by simp), e 11 (by simp)⟩
@@ -192,7 +192,7 @@ theorem vs_seedCap (hl : args.length = 6) {seed pi : Digest}
       capOf (keccakF1600 (seedInput seed pi)) := by
   have hG := vsHeadT_good (rd := rd) (w := w) hl
   obtain ⟨z8, z9, z10, z11⟩ := vs_zero (rd := rd) (w := w) hl
-  have hk : vsSeedAtom.Holds rd ς := good_atom (hG _ (by simp [vsHeadT, keccakA])) rfl
+  have hk : vsSeedAtom.Holds rd ς := vsg_atom (hG _ (by simp [vsHeadT, keccakA])) rfl
   obtain ⟨seed', pi', e1, e2, hc⟩ := vs_seed hk z8 z9 z10 z11
   have p2 := vsC_param (rd := rd) (w := w) hl (i := 2) (by omega)
   have p3 := vsC_param (rd := rd) (w := w) hl (i := 3) (by omega)
@@ -234,8 +234,8 @@ theorem vs_word (hl : args.length = 6) {k : ℕ} (hk : k < 10) {v : E}
     · exact vsReadsT_good hl s (fsNextT_sub_reads k h8 s hs)
     · exact vsRootsT_good hl s (fsNextT_sub_roots k (by omega) hk s hs)
   have hv' : LoadHolds rd (ς (.n 25)) k v := by rw [vs_w hl (by decide)]; exact hv
-  have e := good_read (hg _ List.mem_cons_self) (vs_notS_word k hk) hv'
-  refine ⟨e, by rw [e]; exact hv', good_fsPack fun s hs ↦ hg s (List.mem_cons_of_mem _ hs)⟩
+  have e := vsg_read (hg _ List.mem_cons_self) (vs_notS_word k hk) hv'
+  refine ⟨e, by rw [e]; exact hv', vsg_fsPack fun s hs ↦ hg s (List.mem_cons_of_mem _ hs)⟩
 
 theorem vsWords_eq (σ : Val) : vsWords σ = (List.range 8).map fun i ↦ σ (.n (vsX i)) := rfl
 
@@ -253,9 +253,9 @@ theorem vs_rootFs (hl : args.length = 6) {ws : List E} (hwl : 10 ≤ ws.length)
   have hw8 : ∀ i < 8, WordAt rd ς i (vsX i) := fun i hi ↦ by
     rw [← vsWv_lt i hi]; exact (W i (by omega)).2
   have hk39 : vsAtom39.Holds rd ς :=
-    good_atom (vsReadsT_good hl _ (by simp [vsReadsT, keccakA])) rfl
+    vsg_atom (vsReadsT_good hl _ (by simp [vsReadsT, keccakA])) rfl
   have hk255 : vsAtom255.Holds rd ς :=
-    good_atom (vsRootsT_good hl _ (by simp [vsRootsT, keccakA])) rfl
+    vsg_atom (vsRootsT_good hl _ (by simp [vsRootsT, keccakA])) rfl
   have hws8 : ws.take 8 = vsWords ς := by
     apply List.ext_getElem (by simp [vsWords]; omega)
     intro i h1 h2
@@ -272,18 +272,18 @@ theorem vs_rootFs (hl : args.length = 6) {ws : List E} (hwl : 10 ≤ ws.length)
 noncomputable def vsOodSt (rd : Reader) (w : ℕ → E) (args : List E) (n : E) : KeccakState :=
   (vsRootFsV rd w args).nonceState n
 
-theorem ood_cells {σ : Val} {S : KeccakState} (hc : cells13 ((vsRun 288 13).map σ) = cellsOfState S false) :
+theorem vs_ood_cells {σ : Val} {S : KeccakState} (hc : cells13 ((vsRun 288 13).map σ) = cellsOfState S false) :
     σ (.n 288) = cellsOfState S false 0 ∧ σ (.n 289) = cellsOfState S false 1 ∧
       [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300)] = capOf S :=
   ⟨congrFun hc 0, congrFun hc 1, by
     rw [capOf, ← congrFun hc 8, ← congrFun hc 9, ← congrFun hc 10, ← congrFun hc 11,
       ← congrFun hc 12]; rfl⟩
 
-theorem tabs_good {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {c d : ℕ}
-    (hb : (vsTabsT c d).all noSideB = true) (hg : ∀ s ∈ vsTabsT c d, GoodS rd S w σ s) :
+theorem vsg_tabs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {c d : ℕ}
+    (hb : (vsTabsT c d).all vsNoSideB = true) (hg : ∀ s ∈ vsTabsT c d, GoodS rd S w σ s) :
     σ (.n d) = σ (.n 4) * gen ^ winTabAt :=
   (vsTabsT_holds (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
-    (holdsList_good hb hg (next := True) trivial)).1
+    (vs_holdsList_good hb hg (next := True) trivial)).1
 
 /-- **The out-of-domain sample** (G:3649-3654): the nonce `n` at stream offset `10` absorbed after
 the root's words and permuted (`vsOodSt`), `grind_check`'s cell, the point's capacity and
@@ -303,24 +303,24 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
     rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ hs))))
   have e283 : ς (.n 283) = ws.getD 10 0 :=
-    good_read (hn _ List.mem_cons_self) (by decide +kernel)
+    vsg_read (hn _ List.mem_cons_self) (by decide +kernel)
       (by rw [vs_w hl (by decide)]; exact hws 10 (by omega))
   have hp : FsPackOk ς (.n 283) 284 dsPowNonce :=
-    good_fsPack fun s hs ↦ hn s (List.mem_cons_of_mem _ hs)
+    vsg_fsPack fun s hs ↦ hn s (List.mem_cons_of_mem _ hs)
   have h286 : ς (.n 286) = 0 := by
-    rw [← word_zero]; exact good_const (hG _ (by simp [vsOodT, zero2T]))
+    rw [← word_zero]; exact vsg_const (hG _ (by simp [vsOodT, zero2T]))
   have h287 : ς (.n 287) = 0 := by
-    rw [← word_zero]; exact good_const (hG _ (by simp [vsOodT, zero2T]))
-  have hk : vsAtom288.Holds rd ς := good_atom (hG _ (by simp [vsOodT, keccakA])) rfl
+    rw [← word_zero]; exact vsg_const (hG _ (by simp [vsOodT, zero2T]))
+  have hk : vsAtom288.Holds rd ς := vsg_atom (hG _ (by simp [vsOodT, keccakA])) rfl
   have hc := vs_oodPerm (by simpa [vsWv] using W8.2) (by simpa [vsWv] using W9.2) hp h286 h287 hk
   rw [e283] at hc
-  obtain ⟨c0, c1, ccap⟩ := ood_cells hc
-  have h303 : ς (.n 303) = ς (.n 288) := good_copy (hG _ (by simp [vsOodT, vsCopy]))
-  have h302 : ς (.n 302) = ς (.n 4) * gen ^ winTabAt := tabs_good (c := 301) (by decide) fun s hs ↦ hG s (by
+  obtain ⟨c0, c1, ccap⟩ := vs_ood_cells hc
+  have h303 : ς (.n 303) = ς (.n 288) := vsg_copy (hG _ (by simp [vsOodT, vsCopy]))
+  have h302 : ς (.n 302) = ς (.n 4) * gen ^ winTabAt := vsg_tabs (c := 301) (by decide) fun s hs ↦ hG s (by
     rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
-  have h311 : ς (.n 311) = word 2048 0 := good_const (hG _ (by simp [vsOodT, vsConst]))
+  have h311 : ς (.n 311) = word 2048 0 := vsg_const (hG _ (by simp [vsOodT, vsConst]))
   have h312 : ς (.n 312) = ς (.n 25) * ς (.n 311) :=
-    good_mul (by norm_num) (by norm_num) (hG _ (by simp [vsOodT, vsMul]))
+    vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsOodT, vsMul]))
   refine ⟨e283, c1, ccap, ?_, h302, ?_⟩
   · rw [h303, c0, Keccak.challengeOf_cells]; rfl
   · rw [h312, h311, word_g11, vs_w hl (by decide)]
@@ -332,11 +332,11 @@ theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 16 ≤ d) (h253 : w 2
     ς (.n 322) = gen ^ (d - 16) ∧ ς (.n 323) = gen ^ 17 ∧
       ς (.n 328) = ς (.n 4) * gen ^ winTabAt := by
   have hG := vsBusGrindT_good (rd := rd) (w := w) hl
-  have h321 : ς (.n 321) = vsGinv16 := good_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h321 : ς (.n 321) = vsGinv16 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
   have h322 : ς (.n 322) = ς (.n 253) * ς (.n 321) :=
-    good_mul (by norm_num) (by norm_num) (hG _ (by simp [vsBusGrindT, vsMul]))
-  have h323 : ς (.n 323) = word 131072 0 := good_const (hG _ (by simp [vsBusGrindT, vsConst]))
-  have h328 : ς (.n 328) = ς (.n 4) * gen ^ winTabAt := tabs_good (c := 327) (by decide) fun s hs ↦ hG s (by
+    vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsBusGrindT, vsMul]))
+  have h323 : ς (.n 323) = word 131072 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h328 : ς (.n 328) = ς (.n 4) * gen ^ winTabAt := vsg_tabs (c := 327) (by decide) fun s hs ↦ hG s (by
     rw [vsBusGrindT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
   refine ⟨?_, by rw [h323, word_g17], h328⟩
   rw [h322, h321, vs_w hl (by decide), h253, show d = (d - 16) + 16 by omega, pow_add,
@@ -347,16 +347,16 @@ theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 16 ≤ d) (h253 : w 2
 /-- The sponge the slot weights are squeezed from: `opening_message`'s capacity. -/
 def vsFpwFs (w : ℕ → E) : Fs := ⟨[w 315, w 316, w 317, w 318, w 319], []⟩
 
-theorem vsSqzT_noSide (capb o : ℕ) : (vsSqzT capb o).all noSideB = true := rfl
+theorem vsSqzT_noSide (capb o : ℕ) : (vsSqzT capb o).all vsNoSideB = true := rfl
 
-theorem sqz_good {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {capb o : ℕ}
+theorem vsg_sqz {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {capb o : ℕ}
     (hz : σ (.n 8) = 0 ∧ σ (.n 9) = 0 ∧ σ (.n 10) = 0 ∧ σ (.n 11) = 0)
     (hg : ∀ s ∈ vsSqzT capb o, GoodS rd S w σ s) :
     (⟨(vsRun capb 5).map σ, []⟩ : Fs).squeeze =
       (σ (.n (o + 13)), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),
         σ (.n (o + 12))], []⟩) :=
   (vsSqzT_holds (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True) hz.1 hz.2.1 hz.2.2.1 hz.2.2.2
-    (holdsList_good (vsSqzT_noSide capb o) hg (next := True) trivial)).1
+    (vs_holdsList_good (vsSqzT_noSide capb o) hg (next := True) trivial)).1
 
 theorem vsSqz_mem_fpw {i : ℕ} (hi : i < 15) {s : Stmt} (hs : s ∈ vsSqzT (330 + 14 * i) (336 + 14 * i)) :
     s ∈ vsFpwT := by
@@ -364,7 +364,7 @@ theorem vsSqz_mem_fpw {i : ℕ} (hi : i < 15) {s : Stmt} (hs : s ∈ vsSqzT (330
   exact List.mem_append_left _ (List.mem_append_right _
     (List.mem_flatMap.2 ⟨i, List.mem_range.2 hi, List.mem_append_left _ hs⟩))
 
-theorem fpw_loopC (hl : args.length = 6) : ∀ n ≤ 15,
+theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
     sqSt (vsFpwFs w) n = ⟨(vsRun (330 + 14 * n) 5).map ς, []⟩ ∧
       ∀ i < n, (sqSt (vsFpwFs w) i).squeeze.1 = ς (.n (349 + 14 * i)) := by
   have hG := vsFpwT_good (rd := rd) (w := w) hl
@@ -375,7 +375,7 @@ theorem fpw_loopC (hl : args.length = 6) : ∀ n ≤ 15,
     intro _
     refine ⟨?_, fun i hi ↦ absurd hi (by omega)⟩
     have c : ∀ i < 5, ς (.n (330 + i)) = w (315 + i) := fun i hi ↦ by
-      rw [good_copy (hG _ (by
+      rw [vsg_copy (hG _ (by
         rw [vsFpwT]
         exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
           (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩))))), vs_w hl (by interval_cases i <;> decide)]
@@ -392,7 +392,7 @@ theorem fpw_loopC (hl : args.length = 6) : ∀ n ≤ 15,
   | succ n ih =>
     intro hn
     obtain ⟨hs, hi⟩ := ih (by omega)
-    have hq := sqz_good hz fun s hs ↦ hG s (vsSqz_mem_fpw (i := n) (by omega) hs)
+    have hq := vsg_sqz hz fun s hs ↦ hG s (vsSqz_mem_fpw (i := n) (by omega) hs)
     refine ⟨?_, fun i hi' ↦ ?_⟩
     · rw [sqSt, hs, hq, show 336 + 14 * n + 8 = 330 + 14 * (n + 1) by omega,
         show 336 + 14 * n + 9 = 330 + 14 * (n + 1) + 1 by omega,
@@ -412,13 +412,13 @@ theorem vs_fpw (hl : args.length = 6) :
         (ς (.n 559), ⟨[ς (.n 554), ς (.n 555), ς (.n 556), ς (.n 557), ς (.n 558)], []⟩) := by
   have hG := vsFpwT_good (rd := rd) (w := w) hl
   have hz := vs_zero (rd := rd) (w := w) hl
-  obtain ⟨h15, hi⟩ := fpw_loopC (rd := rd) (w := w) hl 15 le_rfl
+  obtain ⟨h15, hi⟩ := vs_fpw_loop (rd := rd) (w := w) hl 15 le_rfl
   rw [squeezeN_eq]
   refine ⟨fun i hi' ↦ ?_, ?_⟩
   · rw [List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range,
       hi i hi']
   · rw [h15]
-    exact sqz_good hz fun s hs ↦ hG s (by rw [vsFpwT]; exact List.mem_append_right _ hs)
+    exact vsg_sqz hz fun s hs ↦ hG s (by rw [vsFpwT]; exact List.mem_append_right _ hs)
 
 /-! ## The three calls -/
 
@@ -429,18 +429,18 @@ theorem vs_callsV (hl : args.length = 6) :
       ς (.n 589) = ς (.n 4) * gen ^ winTabAt ∧ ς (.n 583) = rdAt rd (w 71) 6 ∧
       ς (.n 587) = w 582 * gen ^ 101 := by
   have hG := vsCallsT_good (rd := rd) (w := w) hl
-  have h586 : ς (.n 586) = word 3710851743744 0 := good_const (hG _ (by simp [vsCallsT, vsConst]))
+  have h586 : ς (.n 586) = word 3710851743744 0 := vsg_const (hG _ (by simp [vsCallsT, vsConst]))
   have h587 : ς (.n 587) = ς (.n 582) * ς (.n 586) :=
-    good_mul (by norm_num) (by norm_num) (hG _ (by simp [vsCallsT, vsMul]))
+    vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsCallsT, vsMul]))
   have h583 : ς (.n 583) = rdAt rd (ς (.n 71)) 6 :=
-    good_rdAt (hG _ (by simp [vsCallsT, vsLd])) (by decide +kernel)
-  refine ⟨tabs_good (c := 560) (by decide) fun s hs ↦ hG s (by
+    vsg_rdAt (hG _ (by simp [vsCallsT, vsLd])) (by decide +kernel)
+  refine ⟨vsg_tabs (c := 560) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ hs))))),
-    tabs_good (c := 571) (by decide) fun s hs ↦ hG s (by
+    vsg_tabs (c := 571) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_right _ hs)))),
-    tabs_good (c := 588) (by decide) fun s hs ↦ hG s (by
+    vsg_tabs (c := 588) (by decide) fun s hs ↦ hG s (by
       rw [vsCallsT]; exact List.mem_append_left _ (List.mem_append_right _ hs)),
     by rw [h583, vs_w hl (by decide)], ?_⟩
   rw [h587, h586, word_g101, vs_w hl (by decide)]

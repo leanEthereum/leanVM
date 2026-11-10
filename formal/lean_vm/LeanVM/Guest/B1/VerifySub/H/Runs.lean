@@ -160,6 +160,45 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 
 theorem c1 : ∃ sp, S.s1.Carries sp := Tables.RunsTo.carries S.runS (seedFs_carries _ _)
 
+/-- **The announced sizes' run absorbs their words**: the sponge after it is the seed's with the
+eight words absorbed. -/
+theorem s1_eq : S.s1 = (seedFs seed (Node.statementDigest seed c.statement)).absorbAll
+    (sizeWords S.logMem S.rowsN S.rate) dsObserve := by
+  obtain ⟨sp, hsp⟩ := seedFs_carries seed (Node.statementDigest seed c.statement)
+  have h := Tables.RunsTo.toT S.runS hsp []
+  rw [List.append_nil] at h
+  generalize hp : readAnnouncedSizes bytecode = p at h
+  unfold readAnnouncedSizes at hp
+  subst hp
+  obtain ⟨xs, st1, h1, h2⟩ := Tables.runT_bind_some h
+  obtain ⟨rest, hl, hz, rfl⟩ := Tables.runT_readN_some _ _ _ _ _ _ _ h1
+  have hsl : (sizeWords S.logMem S.rowsN S.rate).length = 8 := by simp [sizeWords, S.hrowsL]
+  have hxl : xs.length = 8 := by rw [hl]; rfl
+  have hrest : rest = [] := by
+    have := congrArg List.length hz
+    simp only [List.length_append, hsl, hxl] at this
+    exact List.eq_nil_of_length_eq_zero (by omega)
+  subst hrest
+  rw [List.append_nil] at hz
+  subst hz
+  obtain ⟨u, st2, h3, h4⟩ := Tables.runT_bind_some h2
+  obtain ⟨-, rfl⟩ := Tables.runT_require_some h3
+  obtain ⟨u, st3, h5, h6⟩ := Tables.runT_bind_some h4
+  obtain ⟨-, rfl⟩ := Tables.runT_require_some h5
+  obtain ⟨L, st4, h7, h8⟩ := Tables.runT_bind_some h6
+  cases ho : buildLayout bytecode (kToNat (((sizeWords S.logMem S.rowsN S.rate).headD 0).limb 0))
+      ((((sizeWords S.logMem S.rowsN S.rate).drop 1).take tables.length).map
+        fun value ↦ kToNat (value.limb 0)) with
+  | none => rw [ho] at h7; exact absurd h7 (by simp [Verifier.liftOption, Tables.runT])
+  | some L' =>
+    rw [ho] at h7
+    obtain ⟨-, rfl⟩ := Tables.runT_pure_some h7
+    obtain ⟨u, st5, h9, h10⟩ := Tables.runT_bind_some h8
+    obtain ⟨-, rfl⟩ := Tables.runT_require_some h9
+    obtain ⟨-, e⟩ := Tables.runT_pure_some h10
+    simp only [Tables.TSt.mk.injEq] at e
+    exact e.1
+
 theorem cSR : ∃ sp, S.sR.Carries sp := by
   obtain ⟨sp, h⟩ := S.c1
   exact ⟨_, carries_absorb (carries_absorb h _ _) _ _⟩
@@ -365,7 +404,9 @@ theorem gkr_inv (hbl : bytecode.length = 2 ^ 23) : S.s3 = ⟨S.s3.cap, []⟩ ∧
 /-- **The ring map, read back.** -/
 theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.ringN ∧
     S.rs.1 = ringTarget S.kc.2.2 (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth) ∧
-    S.s7 = ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).2 := by
+    S.s7 = ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).2 ∧
+    S.rs.2 = fun r ↦ ringWeight S.kc.2.1 r
+      (ringCoefficients (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth)) := by
   obtain ⟨sp, hsp⟩ := S.c6
   have h := Tables.RunsTo.toT S.runR hsp []
   rw [List.append_nil] at h
@@ -387,7 +428,8 @@ theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.r
       ((⟨capOf (S.s6.nonceState n), []⟩ : Fs).squeezeN 15).1 := by
     show challengeOf S.ringSt :: ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).1 = _
     rw [hS]
-  refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3⟩
+  refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3,
+    by rw [e1, hC]⟩
 
 /-- The ring map's grind's proof of work, as `grind_check__L14` reads it. -/
 theorem ringPow : ((cellsOfState S.ringSt false 1).limb 0).lane.toNat % 2 ^ 14 = 0 :=
