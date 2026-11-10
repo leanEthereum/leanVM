@@ -169,8 +169,7 @@ theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof)
         ((execWith computedBytecodeValue verifyStackedOpening (bytecodeWords prog)
           (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true).refusingZeroChallenge
         (seed (bytecodeWords prog) (publicInputDigest input)) π) := by
-  unfold Budget.verifierRefusingZeroWithHash
-  rw [Verifier.leanVmProgram_eq]
+  unfold Budget.verifierRefusingZeroWithHash leanVmVerifierProgram execWith
   rfl
 
 /-- **A proof with Keccak**, of a prover that is the specification at a child's witness or makes
