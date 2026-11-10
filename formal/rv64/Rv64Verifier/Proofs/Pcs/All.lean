@@ -16,6 +16,7 @@ import Rv64Verifier.Proofs.Pcs.VsoClimb
 import Rv64Verifier.Proofs.Pcs.VsoLamPowers
 import Rv64Verifier.Proofs.Pcs.VsoQueries
 import Rv64Verifier.Proofs.Pcs.VsoLevelQ
+import Rv64Verifier.Proofs.Pcs.VsoFinalTail
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -41,6 +42,12 @@ theorem roundPolyErr : RoundPolyErrSpec := Transcript.roundPolyErr
 
 theorem extend : ExtendSpec :=
   Extend.extend_spec Multilinear.selectorPoint Multilinear.sliceConcat Runtime.growAmortized
+
+/-- `verify_stacked_opening`'s contract, its callees in the final level's terminal check proved,
+from the level loop and the tail up to that check. -/
+theorem vsoSpec (hL : Vso.LoopSpec Transcript.OpeningsAt) (hT : Vso.ToCheck Transcript.OpeningsAt) :
+    VsoSpec Transcript.OpeningsAt :=
+  Vso.vsoSpec_of Multilinear.mleEval Field.mul hL hT
 
 end Rv64Verifier.Proofs.Pcs
 
@@ -237,3 +244,18 @@ end Rv64Verifier.Proofs.Pcs
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.lamPowersU
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Opened.slots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Opened.slots
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.exitR' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.exitR
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.vso_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.vso_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.check' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.check
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.afterGlue_final' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.afterGlue_final
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.vsoSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.vsoSpec
