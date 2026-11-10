@@ -211,7 +211,7 @@ theorem trueClaim_of_colTrue {c : Verifier.ColumnClaim} (hc : colTrue (s.τ 5) (
 theorem honestLanes_columns (z : Vector E (s.τ 5)) :
     (honestLanes prog s q z).map (·.column) = keccakOutputColumns := by
   rw [keccakOutputColumns_eq, honestLanes, List.map_map]
-  show (List.finRange 25).map (fun l : Fin 25 ↦ 113 + l.val) = _
+  show (List.finRange 25).map (fun l : Fin 25 ↦ 106 + l.val) = _
   decide +kernel
 
 /-- **The check on the honest lanes passes.** -/
