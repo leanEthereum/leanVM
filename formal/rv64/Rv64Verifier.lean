@@ -20,6 +20,7 @@ import Rv64Verifier.Proofs.Rodata
 import Rv64Verifier.Proofs.EqEval
 import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Proofs.Runtime.All
+import Rv64Verifier.Proofs.Hash.KeccakHash
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
@@ -169,3 +170,12 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Proofs.EqEval.eq_eval_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.EqEval.eq_eval_proved
+
+/-- info: 'Rv64Verifier.Hash.KeccakF.keccak_f_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Hash.KeccakF.keccak_f_spec
+
+/-- info: 'Rv64Verifier.Hash.XorBlock.xor_block_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Hash.XorBlock.xor_block_spec
+
+/-- info: 'Rv64Verifier.Hash.KeccakHash.keccak_hash_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Hash.KeccakHash.keccak_hash_spec
