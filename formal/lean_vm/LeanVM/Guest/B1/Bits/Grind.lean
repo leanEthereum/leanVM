@@ -408,5 +408,13 @@ theorem grind_check_holds : grind_check_all_Spec := by
     unfold gcVals
     simp
 
+/-- **A `grind_check` call passing** (`grindCallT`): the proof-of-work lane's low `bits` bits are
+zero. -/
+theorem grindCall_pow {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : κ ≤ 32)
+    (h11 : winTabBits ≤ κ) (L : MemoryImage κ) {w tabs : E} (ht : WinTabs L.read tabs)
+    (h : coreProgram.Rel L.read (grindCheckName bits) [w, tabs] []) :
+    (w.limb 0).lane.toNat % 2 ^ bits = 0 :=
+  ((grind_check_holds bits hb hκ h11 L w tabs ht []).mp h).2
+
 end
 end LeanVM.Guest.B1
