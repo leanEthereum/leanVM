@@ -97,10 +97,10 @@ example (z : Vector E 2) :
   blocks.stack_eval₂ (algebraMap K E) tables blocks_total_le 0 (0 : Fin 3) z
 
 -- This point is outside the embedded base field.
-example : ¬ IsInK (E.ofLimbs 0 1 0) := by decide
+example : ¬ IsInK (E.ofLimbs 0 1) := by decide
 #guard eval₂Mle stack0 (algebraMap K E)
-    (#v[E.ofLimbs 0 1 0, E.ofLimbs 1 1 0, 0] : Vector E 3) =
-  eval₂Mle (tables (0 : Fin 3)) (algebraMap K E) #v[E.ofLimbs 0 1 0, E.ofLimbs 1 1 0]
+    (#v[E.ofLimbs 0 1, E.ofLimbs 1 1, 0] : Vector E 3) =
+  eval₂Mle (tables (0 : Fin 3)) (algebraMap K E) #v[E.ofLimbs 0 1, E.ofLimbs 1 1]
 
 /-! ## Boundary layouts -/
 

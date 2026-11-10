@@ -123,7 +123,7 @@ def sixteen : LeanIsaProgram where
   instructions := ![
     .xor (K.ofBits 1) (K.ofBits 2) (K.ofBits 3),
     .mulNative (K.ofBits 4) (K.ofBits 5) (K.ofBits 6),
-    .setConstant (K.ofBits 7) (E.ofLimbs (K.ofBits 8) (K.ofBits 9) (K.ofBits 10)),
+    .setConstant (K.ofBits 7) (E.ofLimbs (K.ofBits 8) (K.ofBits 9)),
     .deref (K.ofBits 11) (K.ofBits 12) (K.ofBits 13) .cell,
     .jump (K.ofBits 14) (K.ofBits 15) (K.ofBits 16),
     .keccak ![K.ofBits 17, K.ofBits 18, K.ofBits 19, K.ofBits 20] (K.ofBits 21) (K.ofBits 22)
@@ -132,7 +132,7 @@ def sixteen : LeanIsaProgram where
     .deref (K.ofBits 27) (K.ofBits 28) (K.ofBits 29) .fp,
     .xor (K.ofBits 30) (K.ofBits 31) (K.ofBits 32),
     .mulNative (K.ofBits 33) (K.ofBits 34) (K.ofBits 35),
-    .setConstant (K.ofBits 36) (E.ofLimbs (K.ofBits 37) (K.ofBits 38) (K.ofBits 39)),
+    .setConstant (K.ofBits 36) (E.ofLimbs (K.ofBits 37) (K.ofBits 38)),
     .jump (K.ofBits 40) (K.ofBits 41) (K.ofBits 42),
     .keccak ![K.ofBits 43, K.ofBits 44, K.ofBits 45, K.ofBits 46] (K.ofBits 47) (K.ofBits 48)
       (K.ofBits 49) (K.ofBits 60) true false .all,
