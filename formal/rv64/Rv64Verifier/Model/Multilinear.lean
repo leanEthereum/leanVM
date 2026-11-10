@@ -608,4 +608,11 @@ theorem stackOffsetsRust_eq (sizes : List ℕ) (h : (sizes.map (2 ^ ·)).sum < 2
   simp only [stackOffsetsRust, stackPasses_eq, log2CeilRust_eq]
   exact ⟨hrel.1, by rw [hrel.2]⟩
 
+theorem multilinearEvalRust_some {mle point : List E} {v : E}
+    (h : multilinearEvalRust mle point = some v) : v = multilinearEval mle point := by
+  by_cases hc : point.length < 64 ∧ mle.length = 2 ^ point.length
+  · rw [multilinearEvalRust_eq _ _ hc] at h
+    exact (Option.some.inj h).symm
+  · simp [multilinearEvalRust, hc] at h
+
 end Rv64Verifier.Model

@@ -13,6 +13,7 @@ import Rv64Verifier.Model.Layout
 import Rv64Verifier.Model.KeccakGkr
 import Rv64Verifier.Model.Hash
 import Rv64Verifier.Model.Bytecode
+import Rv64Verifier.Model.Walk
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Sym
@@ -143,3 +144,15 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.newRust_evaluate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.newRust_evaluate
+
+/-- info: 'Rv64Verifier.Model.SimR.bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.SimR.bind
+
+/-- info: 'Rv64Verifier.Model.walkBodyRust_sim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.walkBodyRust_sim
+
+/-- info: 'Rv64Verifier.Model.walkRust_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.walkRust_sound
+
+/-- info: 'Rv64Verifier.Model.walkRust_sound_new' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.walkRust_sound_new

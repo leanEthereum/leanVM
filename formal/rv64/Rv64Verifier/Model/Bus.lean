@@ -3,245 +3,15 @@ import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Model.FieldAlg
 
 /-!
-# The sumcheck and the bus, as the Rust runs them
+# The bus, as the Rust runs it
 
-Mirrors of `crates/verifier/src/transcript.rs`'s `sumcheck_round_poly` and `sumcheck`, and of
-`crates/verifier/src/bus.rs`, in `TM`, each with a `Sim` against the statement's program.
+Mirrors of `crates/verifier/src/bus.rs` in `TM`, each with a `Sim` against the statement's
+program; the sumcheck's are `Model.Transcript`'s.
 -/
 
 namespace Rv64Verifier.Model
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
   LeanVM.Protocol.Verifier
-
-/-! ## Generic lemmas -/
-
-theorem VerifierProgram.bind_assoc {α β γ : Type} (P : VerifierProgram α)
-    (f : α → VerifierProgram β) (g : β → VerifierProgram γ) :
-    (P >>= f) >>= g = P >>= fun x ↦ f x >>= g := by
-  show (P.bind f).bind g = P.bind fun x ↦ (f x).bind g
-  induction P with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih => simp only [VerifierProgram.bind, ih]
-  | sample k ih => simp only [VerifierProgram.bind, ih]
-  | grind b k ih => simp only [VerifierProgram.bind, ih]
-  | commit h w k ih => simp only [VerifierProgram.bind, ih]
-  | query i ps k ih => simp only [VerifierProgram.bind, ih]
-
-theorem VerifierProgram.bind_ret {α : Type} (P : VerifierProgram α) :
-    (P >>= fun x ↦ VerifierProgram.ret x) = P := by
-  show P.bind VerifierProgram.ret = P
-  induction P with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih => simp only [VerifierProgram.bind, ih]
-  | sample k ih => simp only [VerifierProgram.bind, ih]
-  | grind b k ih => simp only [VerifierProgram.bind, ih]
-  | commit h w k ih => simp only [VerifierProgram.bind, ih]
-  | query i ps k ih => simp only [VerifierProgram.bind, ih]
-
-theorem VerifierProgram.ret_bind {α β : Type} (a : α) (f : α → VerifierProgram β) :
-    (VerifierProgram.ret a >>= f) = f a := rfl
-
-theorem Sim.requireIff {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
-    Sim (TM.require c) (VerifierProgram.require c') := by
-  intro t a t' hr
-  simp only [TM.require, StateT.run] at hr
-  split_ifs at hr with hc
-  simp only [Option.some.injEq, Prod.mk.injEq] at hr
-  obtain ⟨-, rfl⟩ := hr
-  simp only [VerifierProgram.require, h.mp hc, ↓reduceIte]
-  rfl
-
-/-- What a mirror returns satisfies `R`. -/
-def Returns {α : Type} (m : TM α) (R : α → Prop) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → R a
-
-theorem Sim.bindPost {α β : Type} {m : TM α} {P : VerifierProgram α} {k : α → TM β}
-    {Q : α → VerifierProgram β} {R : α → Prop} (hm : Sim m P) (hR : Returns m R)
-    (hk : ∀ a, R a → Sim (k a) (Q a)) : Sim (m >>= k) (P >>= Q) := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    rw [runK_bind, hm t a t₁ hmt]
-    exact hk a (hR t a t₁ hmt) t₁ b t' h
-
-theorem Sim.congr {α : Type} {m : TM α} {P P' : VerifierProgram α} (h : P = P') (hm : Sim m P') :
-    Sim m P := h ▸ hm
-
-theorem Returns.pure {α : Type} {R : α → Prop} {a : α} (h : R a) :
-    Returns (Pure.pure a : TM α) R := by
-  intro t b t' hr
-  cases (Option.some.inj hr : ((a, t) : α × TState) = (b, t'))
-  exact h
-
-theorem Returns.bind {α β : Type} {m : TM α} {k : α → TM β} {R : α → Prop} {S : β → Prop}
-    (hm : Returns m R) (hk : ∀ a, R a → Returns (k a) S) : Returns (m >>= k) S := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    exact hk a (hm t a t₁ hmt) t₁ b t' h
-
-theorem Returns.true {α : Type} (m : TM α) : Returns m fun _ ↦ True := fun _ _ _ _ ↦ trivial
-
-namespace TM
-
-/-- A pure `Result` step, `?`: fail on `none`. -/
-def lift {α : Type} (o : Option α) : TM α := fun t ↦ o.map (·, t)
-
-end TM
-
-theorem Sim.liftBind {α β : Type} {o : Option α} {k : α → TM β} {Q : VerifierProgram β}
-    (h : ∀ a, o = some a → Sim (k a) Q) : Sim (TM.lift o >>= k) Q := by
-  intro t b t' hr
-  rw [StateT.run_bind] at hr
-  cases ho : o with
-  | none => simp [ho, TM.lift, StateT.run] at hr
-  | some a =>
-    simp only [ho, TM.lift, StateT.run, Option.map_some] at hr
-    exact h a ho t b t' hr
-
-theorem Sim.lift {α : Type} {o : Option α} {P : VerifierProgram α}
-    (h : ∀ a, o = some a → ∀ σ, runK P σ = some (a, σ)) : Sim (TM.lift o) P := by
-  intro t a t' hr
-  cases ho : o with
-  | none => simp [ho, TM.lift, StateT.run] at hr
-  | some b =>
-    simp only [ho, TM.lift, StateT.run, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := hr
-    exact h b ho _
-
-/-- `m` runs `P`, its value standing for `P`'s through `f`. -/
-def SimR {α β : Type} (m : TM α) (P : VerifierProgram β) (f : α → β) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → runK P t.toSpec = some (f a, t'.toSpec)
-
-theorem SimR.sim {α β : Type} {m : TM α} {P : VerifierProgram β} {f : α → β} (h : SimR m P f) :
-    Sim (f <$> m) P := by
-  intro t b t' hr
-  rw [StateT.run_map] at hr
-  cases hmt : m.run t with
-  | none => simp [hmt] at hr
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    simp only [hmt, Option.map_eq_map, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := hr
-    exact h t a t₁ hmt
-
-theorem SimR.pure {α β : Type} {f : α → β} {a : α} {b : β} (h : f a = b) :
-    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) f := by
-  intro t c t' hr
-  cases (Option.some.inj hr : ((a, t) : α × TState) = (c, t'))
-  rw [h]
-  rfl
-
-theorem SimR.bindPost {α β γ : Type} {m : TM α} {P : VerifierProgram α} {k : α → TM β}
-    {Q : α → VerifierProgram γ} {f : β → γ} {R : α → Prop} (hm : Sim m P) (hR : Returns m R)
-    (hk : ∀ a, R a → SimR (k a) (Q a) f) : SimR (m >>= k) (P >>= Q) f := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    rw [runK_bind, hm t a t₁ hmt]
-    exact hk a (hR t a t₁ hmt) t₁ b t' h
-
-theorem SimR.bind {α β γ : Type} {m : TM α} {P : VerifierProgram α} {k : α → TM β}
-    {Q : α → VerifierProgram γ} {f : β → γ} (hm : Sim m P) (hk : ∀ a, SimR (k a) (Q a) f) :
-    SimR (m >>= k) (P >>= Q) f :=
-  SimR.bindPost hm (Returns.true m) fun a _ ↦ hk a
-
-theorem Returns.nextScalars : ∀ n, Returns (TM.nextScalars n) fun xs ↦ xs.length = n
-  | 0 => Returns.pure rfl
-  | n + 1 => Returns.bind (Returns.true _) fun x _ ↦ Returns.bind (Returns.nextScalars n)
-      fun xs hxs ↦ Returns.pure (by simp [hxs])
-
-theorem Returns.samples : ∀ n, Returns (TM.samples n) fun xs ↦ xs.length = n
-  | 0 => Returns.pure rfl
-  | n + 1 => Returns.bind (Returns.true _) fun x _ ↦ Returns.bind (Returns.samples n)
-      fun xs hxs ↦ Returns.pure (by simp [hxs])
-
-/-! ## `sumcheck_round_poly`, `sumcheck` (`transcript.rs`) -/
-
-/-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`. Every caller passes `count ≥ 3`, so
-`count - 2` does not wrap. -/
-def sumcheckRoundPolyM (count : ℕ) (claim : E) : Option E → TM (List E)
-  | none => do
-    let constant ← TM.nextScalar
-    let tail ← TM.nextScalars (count - 2)
-    pure ([constant, claim + sumE tail] ++ tail)
-  | some eqFactor => do
-    let tail ← TM.nextScalars (count - 1)
-    pure ([claim + eqFactor * sumE tail] ++ tail)
-
-/-- `sumcheck`'s loop over `equalities`, from the point pushed so far and the running claim. -/
-def sumcheckLoop (count : ℕ) : List (Option E) → List E → E → TM (List E × E)
-  | [], point, claim => pure (point, claim)
-  | equality :: equalities, point, claim => do
-    let message ← sumcheckRoundPolyM count claim equality
-    let challenge ← TM.sample
-    sumcheckLoop count equalities (point ++ [challenge]) (polyEvalRust message challenge)
-
-/-- `sumcheck(transcript, claim, count, equalities)`. -/
-def sumcheckM (claim : E) (count : ℕ) (equalities : List (Option E)) : TM (List E × E) :=
-  sumcheckLoop count equalities [] claim
-
-theorem Sim.sumcheckRoundPoly (count : ℕ) (claim : E) (equality : Option E) :
-    Sim (sumcheckRoundPolyM count claim equality) (sumcheckRoundPoly count claim equality) := by
-  cases equality with
-  | none =>
-    exact Sim.bind Sim.nextScalar fun _ ↦ Sim.bind (Sim.nextScalars _) fun _ ↦ Sim.pure _
-  | some r => exact Sim.bind (Sim.nextScalars _) fun _ ↦ Sim.pure _
-
-theorem Sim.sumcheckLoop (count : ℕ) :
-    ∀ (equalities : List (Option E)) (point : List E) (claim : E),
-    Sim (sumcheckLoop count equalities point claim)
-      (sumcheck claim count equalities >>= fun r ↦ VerifierProgram.ret (point ++ r.1, r.2))
-  | [], point, claim => by
-    show Sim (Pure.pure (point, claim)) (VerifierProgram.ret (point ++ [], claim))
-    rw [List.append_nil]
-    exact Sim.pure _
-  | equality :: equalities, point, claim => by
-    simp only [Model.sumcheckLoop, sumcheck, VerifierProgram.bind_assoc]
-    refine Sim.bind (Sim.sumcheckRoundPoly _ _ _) fun message ↦ Sim.bind Sim.sample fun c ↦ ?_
-    have := Sim.sumcheckLoop count equalities (point ++ [c]) (polyEvalRust message c)
-    rw [polyEvalRust_eq] at this ⊢
-    refine Sim.congr ?_ this
-    congr 1
-    funext r
-    simp only [List.append_assoc, List.singleton_append]
-    rfl
-
-theorem Sim.sumcheck (claim : E) (count : ℕ) (equalities : List (Option E)) :
-    Sim (sumcheckM claim count equalities) (sumcheck claim count equalities) := by
-  have := Sim.sumcheckLoop count equalities [] claim
-  simp only [List.nil_append] at this
-  exact Sim.congr (VerifierProgram.bind_ret _).symm this
-
-theorem Returns.sumcheckLoop (count : ℕ) : ∀ (equalities : List (Option E)) (point : List E)
-    (claim : E), Returns (sumcheckLoop count equalities point claim)
-      fun r ↦ r.1.length = point.length + equalities.length
-  | [], point, claim => Returns.pure rfl
-  | _ :: equalities, point, _ => Returns.bind (Returns.true _) fun _ _ ↦
-      Returns.bind (Returns.true _) fun _ _ ↦ by
-        refine fun t a t' h ↦ (Returns.sumcheckLoop count equalities _ _ t a t' h).trans ?_
-        simp only [List.length_append, List.length_cons, List.length_nil]
-        omega
-
-theorem Returns.sumcheck (claim : E) (count : ℕ) (equalities : List (Option E)) :
-    Returns (sumcheckM claim count equalities) fun r ↦ r.1.length = equalities.length := by
-  intro t a t' h
-  have := Returns.sumcheckLoop count equalities [] claim t a t' h
-  simpa using this
 
 /-! ## `verify_gkr_grand_products` (`bus.rs`) -/
 
@@ -250,7 +20,7 @@ def gkrStepM (step : ℕ) (state : GkrState) : TM GkrState := do
   let combiner ← TM.sample
   let claim := polyEvalRust state.values combiner
   let equalities := state.point.map some
-  let (x, claim) ← sumcheckM claim ((1 <<< step) + 1) equalities
+  let (x, claim) ← TM.sumcheck claim ((1 <<< step) + 1) equalities
   let child0 ← TM.nextScalars (1 <<< step)
   let child1 ← TM.nextScalars (1 <<< step)
   let child2 ← TM.nextScalars (1 <<< step)
@@ -277,13 +47,6 @@ def verifyGkrM (depth : ℕ) : TM (E × List E × List E) := do
   let count ← TM.nextScalar
   let state ← gkrLoopM depth ⟨[shared, shared, count], []⟩
   pure (count, state.point, state.values)
-
-theorem multilinearEvalRust_some {mle point : List E} {v : E}
-    (h : multilinearEvalRust mle point = some v) : v = multilinearEval mle point := by
-  by_cases hc : point.length < 64 ∧ mle.length = 2 ^ point.length
-  · rw [multilinearEvalRust_eq _ _ hc] at h
-    exact (Option.some.inj h).symm
-  · simp [multilinearEvalRust, hc] at h
 
 theorem mapM_some {α β : Type} {f : α → Option β} {g : α → β}
     (hf : ∀ a b, f a = some b → b = g a) :
@@ -400,7 +163,7 @@ def termValueRust (column : List E) : List ℕ × E → E
   | (m, c) => m.foldl (fun acc i ↦ acc * column.getD i 0) c
 
 /-- `Form::evaluate(column)`. -/
-def evaluateRust (f : Form) (column : List E) : E := sumE (f.terms.map (termValueRust column))
+def formEvaluateRust (f : Form) (column : List E) : E := sumE (f.terms.map (termValueRust column))
 
 theorem addTermRust_eq : ∀ (terms : List (List ℕ × E)) (m : List ℕ) (c : E),
     addTermRust terms m c = addTerm terms m c
@@ -421,9 +184,9 @@ theorem addScaledRust_eq (f other : Form) (weight : E) :
     addScaledRust f other weight = f.addScaled other weight := by
   simp only [addScaledRust, Form.addScaled, addTermRust_eq]
 
-theorem evaluateRust_eq (f : Form) (column : List E) :
-    evaluateRust f column = f.evaluate (column.getD · 0) := by
-  unfold evaluateRust Form.evaluate
+theorem formEvaluateRust_eq (f : Form) (column : List E) :
+    formEvaluateRust f column = f.evaluate (column.getD · 0) := by
+  unfold formEvaluateRust Form.evaluate
   congr 1
   apply List.map_congr_left
   rintro ⟨_ | ⟨i, _ | ⟨j, _ | ⟨k, m⟩⟩⟩, c⟩ _ <;> rfl
@@ -521,7 +284,7 @@ theorem blockFormRust_eq (block : BusBlock) (sideWeights : List E) (sideBeta : E
 
 /-- One iteration of the loop over a side's table blocks: the owner's form for the side gains the
 block's, and the padding rows their difference. -/
-def blockStepRust (point : List E) (side : ℕ) (sideWeights : List E) (sideBeta : E)
+def busBlockStepRust (point : List E) (side : ℕ) (sideWeights : List E) (sideBeta : E)
     (acc : List (List Form) × E) (sb : E × BusBlock) : List (List Form) × E :=
   let selector := sb.1
   let block := sb.2
@@ -530,7 +293,7 @@ def blockStepRust (point : List E) (side : ℕ) (sideWeights : List E) (sideBeta
     row.modify side fun form ↦ addScaledRust form blockForm selector
   let padding := (tables.getD block.owner default).padding
   let weight := paddingWeightRust (point.take block.logRows) (BitVec.ofNat 64 block.rows)
-  (forms, acc.2 + selector * weight * (evaluateRust blockForm padding + 1))
+  (forms, acc.2 + selector * weight * (formEvaluateRust blockForm padding + 1))
 
 /-- One iteration of `verify_bus_balance`'s loop over the sides: the forms with the side's table
 blocks added, and the side's total. -/
@@ -542,7 +305,7 @@ def sideStepRust (point treeValues : List E) (forms : List (List Form)) (side : 
   let shifted := frameworkFingerprints.map (sideBeta + ·)
   let known := dotRust frameworkSelectors shifted
   let r :=
-    (tableSelectors.zip blocks).foldl (blockStepRust point side sideWeights sideBeta) (forms, 0)
+    (tableSelectors.zip blocks).foldl (busBlockStepRust point side sideWeights sideBeta) (forms, 0)
   let onesPadding := sumE (frameworkSelectors ++ tableSelectors) + 1
   (r.1, treeValues.getD side 0 + known + onesPadding + r.2)
 
@@ -565,7 +328,7 @@ theorem sideStepRust_eq (point treeValues : List E) (forms : List (List Form)) (
     exact PlacementRust.eqAbove_eq p point hpoint
   have hfold : ∀ (l : List (E × BusBlock)) (init : List (List Form) × E),
       (∀ x ∈ l, x.2 ∈ blocks) →
-      l.foldl (blockStepRust point side sideWeights sideBeta) init =
+      l.foldl (busBlockStepRust point side sideWeights sideBeta) init =
         l.foldl (fun (acc : List (List Form) × E) (sb : E × BusBlock) ↦
           let form := blockForm sb.2 sideWeights sideBeta
           let padding := (tables.getD sb.2.owner default).padding
@@ -578,7 +341,7 @@ theorem sideStepRust_eq (point treeValues : List E) (forms : List (List Form)) (
     obtain ⟨hlog, hrows⟩ := hblocks sb.2 (hl sb hsb)
     have hlen : (point.take sb.2.logRows).length < 64 := by
       rw [List.length_take]; omega
-    simp only [blockStepRust, blockFormRust_eq, addScaledRust_eq, evaluateRust_eq,
+    simp only [busBlockStepRust, blockFormRust_eq, addScaledRust_eq, formEvaluateRust_eq,
       paddingWeightRust_eq _ _ hlen, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hrows]
   have hmem : ∀ x ∈ (spec.tables.map (·.eqAbove point)).zip blocks, x.2 ∈ blocks :=
     fun x hx ↦ List.of_mem_zip hx |>.2
@@ -682,7 +445,7 @@ theorem SimR.verifyBusBalance (bytecodeEvaluate : List E → Option E)
     (hv : ∀ pt v, bytecodeEvaluate pt = some v →
       ∀ σ, runK (bytecodeValue layout.bytecode pt) σ = some (v, σ)) :
     SimR (verifyBusBalanceM bytecodeEvaluate layout)
-      (Verifier.verifyBusBalance bytecodeValue layout) BusResultRust.toSpec := by
+      (Verifier.verifyBusBalance bytecodeValue layout) fun a b ↦ a.toSpec = b := by
   obtain ⟨hpush, hpull, hcount, hrows⟩ := hb
   obtain ⟨hd, hfw0, htb0⟩ := busLayoutRust_spec _ _ hpush
   obtain ⟨-, hfw1, htb1⟩ := busLayoutRust_spec _ _ hpull
@@ -695,13 +458,14 @@ theorem SimR.verifyBusBalance (bytecodeEvaluate : List E → Option E)
   have hb2 := blocks_bounded hcount fun b hb ↦ hrows b (by simp [hb])
   unfold verifyBusBalanceM Verifier.verifyBusBalance
   simp only [hd, eqKernelRust_eq]
-  refine SimR.bind (Sim.samples _) fun alphas ↦ SimR.bind Sim.sample fun beta ↦ ?_
+  refine SimR.bindEq (Sim.samples _) fun alphas ↦ SimR.bindEq Sim.sample fun beta ↦ ?_
   refine SimR.bindPost (Sim.verifyGkr _) (Returns.verifyGkr _) fun ⟨countRoot, point, treeValues⟩
     hlen ↦ ?_
-  refine SimR.bind (Sim.require _) fun _ ↦ ?_
+  refine SimR.bindEq (Sim.require _) fun _ ↦ ?_
   refine SimR.bindPost (Sim.nextScalars 3) (Returns.nextScalars 3) fun memory hmem ↦ ?_
-  refine SimR.bind Sim.nextScalar fun memoryFinal ↦ SimR.bind Sim.nextScalar fun bytecodeFinal ↦ ?_
-  refine SimR.bind (Sim.lift (hv _)) fun bytecodeValue ↦ ?_
+  refine SimR.bindEq Sim.nextScalar fun memoryFinal ↦
+    SimR.bindEq Sim.nextScalar fun bytecodeFinal ↦ ?_
+  refine SimR.bindEq (Sim.lift (hv _)) fun bytecodeValue ↦ ?_
   match memory, hmem with
   | [m0, m1, m2], _ =>
   apply SimR.pure
@@ -725,26 +489,22 @@ theorem Sim.verifyBusBalance (bytecodeEvaluate : List E → Option E)
       ∀ σ, runK (bytecodeValue layout.bytecode pt) σ = some (v, σ)) :
     Sim (BusResultRust.toSpec <$> verifyBusBalanceM bytecodeEvaluate layout)
       (Verifier.verifyBusBalance bytecodeValue layout) :=
-  (SimR.verifyBusBalance bytecodeEvaluate bytecodeValue layout hb hv).sim
+  (SimR.verifyBusBalance bytecodeEvaluate bytecodeValue layout hb hv).map_sim
 
-theorem blockStepRust_length (point : List E) (side : ℕ) (sideWeights : List E) (sideBeta : E) :
+theorem busBlockStepRust_length (point : List E) (side : ℕ) (sideWeights : List E) (sideBeta : E) :
     ∀ (l : List (E × BusBlock)) (acc : List (List Form) × E),
-      (l.foldl (blockStepRust point side sideWeights sideBeta) acc).1.length = acc.1.length
+      (l.foldl (busBlockStepRust point side sideWeights sideBeta) acc).1.length = acc.1.length
   | [], _ => rfl
   | sb :: l, acc => by
-    rw [List.foldl_cons, blockStepRust_length point side sideWeights sideBeta l]
-    simp [blockStepRust]
+    rw [List.foldl_cons, busBlockStepRust_length point side sideWeights sideBeta l]
+    simp [busBlockStepRust]
 
 theorem sideStepRust_length (point treeValues : List E) (forms : List (List Form)) (side : ℕ)
     (blocks : List BusBlock) (sideLayout : BusLayoutRust)
     (frameworkFingerprints sideWeights : List E) (sideBeta : E) :
     (sideStepRust point treeValues forms side blocks sideLayout frameworkFingerprints sideWeights
       sideBeta).1.length = forms.length := by
-  simp only [sideStepRust, blockStepRust_length]
-
-theorem Returns.bindAll {α β : Type} {m : TM α} {k : α → TM β} {S : β → Prop}
-    (hk : ∀ a, Returns (k a) S) : Returns (m >>= k) S :=
-  Returns.bind (Returns.true m) fun a _ ↦ hk a
+  simp only [sideStepRust, busBlockStepRust_length]
 
 /-- `verify_bus_balance` returns a row of forms per table, as `table_sumcheck` takes them. -/
 theorem Returns.verifyBusBalance (bytecodeEvaluate : List E → Option E) (layout : Layout) :
@@ -795,7 +555,7 @@ def terminalStep (constraintPowers formPowers : List E) (acc : E × ℕ)
   let weight := item.2
   let n := table.nConstraints
   let summand := dotRust ((constraintPowers.drop acc.2).take n) (table.constraints evaluations)
-  let formValues := forms.map (evaluateRust · evaluations)
+  let formValues := forms.map (formEvaluateRust · evaluations)
   (acc.1 + weight * (summand + dotRust formPowers formValues), acc.2 + n)
 
 /-- The checked terminal, `Σ weight · (constraints + forms)`. -/
@@ -809,7 +569,7 @@ def tableSumcheckM (tablesL : List Table) (heights : List ℕ) (busForms : List 
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     TM (List (List E × List E)) := do
   let nRounds := heights.max?.getD 0
-  let (challenges, claim) ← sumcheckM target 4 (List.replicate nRounds none)
+  let (challenges, claim) ← TM.sumcheck target 4 (List.replicate nRounds none)
   let point := challenges.reverse
   let weights := tableWeightsRust tablesL.length heights equalityPoint point
   let rows ← readRowsM point (tablesL.zip heights) []
@@ -943,7 +703,7 @@ theorem terminal_eq (constraintPowers formPowers : List E) :
     simp only [List.length_cons, Nat.add_right_cancel_iff] at hH hF hW hR
     have hs : terminalStep constraintPowers formPowers acc (((t, r), f), w) =
         specStep constraintPowers formPowers acc ((t, h, f, w), r) := by
-      simp only [terminalStep, specStep, dotRust_eq, evaluateRust_eq]
+      simp only [terminalStep, specStep, dotRust_eq, formEvaluateRust_eq]
     simp only [List.zip_cons_cons, List.foldl_cons, hs]
     exact terminal_eq constraintPowers formPowers T H F W R _ hH hF hW hR
 

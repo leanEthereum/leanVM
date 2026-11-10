@@ -15,8 +15,8 @@ final check's split kernel, the next weights, `linear_transpose`, and `open`'s r
 
 `Claim` is the statement's `KeccakClaim` (the same four fields). `KECCAK_RC`, `KECCAK_RHO`,
 `KECCAK_PI` and `along` are the statement's `keccakRC`, `keccakRho`, `keccakPi` and
-`keccakAlong`, which transcribe them. `SimR` is `Sim` with a postcondition on the mirror's value,
-so that a continuation may use what its predecessor returned (a length).
+`keccakAlong`, which transcribe them. `SimR` is `Model.SimR` with equality and a postcondition on
+the mirror's value, so that a continuation may use what its predecessor returned (a length).
 -/
 
 namespace Rv64Verifier.Model.Gkr
@@ -28,52 +28,26 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 
 /-- `m` runs `P`, and what it returns satisfies `R`. -/
 def SimR {α : Type} (m : TM α) (P : VerifierProgram α) (R : α → Prop) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → runK P t.toSpec = some (a, t'.toSpec) ∧ R a
-
-theorem vp_bind_assoc {α β γ : Type} (P : VerifierProgram α) (f : α → VerifierProgram β)
-    (g : β → VerifierProgram γ) : (P >>= f) >>= g = P >>= fun a ↦ f a >>= g := by
-  show VerifierProgram.bind (VerifierProgram.bind P f) g =
-    VerifierProgram.bind P fun a ↦ VerifierProgram.bind (f a) g
-  induction P with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih => simp only [VerifierProgram.bind, ih]
-  | sample k ih => simp only [VerifierProgram.bind, ih]
-  | grind b k ih => simp only [VerifierProgram.bind, ih]
-  | commit h w k ih => simp only [VerifierProgram.bind, ih]
-  | query i ps k ih => simp only [VerifierProgram.bind, ih]
+  Model.SimR m P fun a b ↦ a = b ∧ R a
 
 namespace SimR
 
 variable {α β : Type}
 
 theorem toSim {m : TM α} {P : VerifierProgram α} {R : α → Prop} (h : SimR m P R) : Sim m P :=
-  fun t a t' hr ↦ (h t a t' hr).1
+  Model.SimR.mono h fun _ _ h ↦ h.1
 
 theorem ofSim {m : TM α} {P : VerifierProgram α} (h : Sim m P) : SimR m P fun _ ↦ True :=
-  fun t a t' hr ↦ ⟨h t a t' hr, trivial⟩
+  Model.SimR.mono h fun _ _ h ↦ ⟨h, trivial⟩
 
 theorem bind {m : TM α} {P : VerifierProgram α} {R : α → Prop} {k : α → TM β}
     {Q : α → VerifierProgram β} {S : β → Prop} (hm : SimR m P R)
-    (hk : ∀ a, R a → SimR (k a) (Q a) S) : SimR (m >>= k) (P >>= Q) S := by
-  intro t b t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    obtain ⟨h1, h2⟩ := hm t a t₁ hmt
-    rw [runK_bind, h1]
-    exact hk a h2 t₁ b t' h
+    (hk : ∀ a, R a → SimR (k a) (Q a) S) : SimR (m >>= k) (P >>= Q) S :=
+  Model.SimR.bind hm fun a _ h ↦ by obtain ⟨rfl, hR⟩ := h; exact hk a hR
 
 theorem pure {a b : α} {S : α → Prop} (hab : a = b) (h : S a) :
-    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) S := by
-  subst hab
-  intro t c t' hr
-  simp only [StateT.run_pure] at hr
-  cases hr
-  exact ⟨rfl, h⟩
+    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) S :=
+  Model.SimR.pure ⟨hab, h⟩
 
 theorem nextScalar : SimR TM.nextScalar VerifierProgram.readScalar fun _ ↦ True :=
   ofSim Sim.nextScalar
@@ -98,88 +72,34 @@ theorem require {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
   split_ifs at hr with hc
   simp only [Option.some.injEq, Prod.mk.injEq] at hr
   obtain ⟨-, rfl⟩ := hr
+  refine ⟨(), ?_, rfl, hc⟩
   simp only [VerifierProgram.require, h.mp hc, ↓reduceIte]
-  exact ⟨rfl, hc⟩
+  rfl
 
 /-- A check the statement does not make. -/
 theorem require_left {c : Prop} [Decidable c] {k : TM α} {K : VerifierProgram α} {S : α → Prop}
-    (h : c → SimR k K S) : SimR (TM.require c >>= fun _ ↦ k) K S := by
-  intro t a t' hr
-  rw [StateT.run_bind] at hr
-  by_cases hc : c
-  · have e : (TM.require c).run t = some ((), t) := by simp [TM.require, StateT.run, hc]
-    rw [e] at hr
-    exact h hc t a t' hr
-  · have e : (TM.require c).run t = none := by simp [TM.require, StateT.run, hc]
-    rw [e] at hr
-    cases hr
+    (h : c → SimR k K S) : SimR (TM.require c >>= fun _ ↦ k) K S :=
+  Model.SimR.require_left h
 
 end SimR
 
-/-- An `Err` of a pure step. -/
-def TM.fail {α : Type} : TM α := fun _ ↦ none
+/-! ## `sumcheck_round_poly` and `sumcheck`, through `SimR` -/
 
-/-! ## `sumcheck_round_poly` and `sumcheck` (`transcript.rs:188-233`) -/
-
-/-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`. -/
-def sumcheckRoundPolyRust (count : ℕ) (claim : E) : Option E → TM (List E)
-  | none => do
-    let constant ← TM.nextScalar
-    let tail ← TM.nextScalars (count - 2)
-    pure (constant :: (claim + sumE tail) :: tail)
-  | some eqFactor => do
-    let tail ← TM.nextScalars (count - 1)
-    pure ((claim + eqFactor * sumE tail) :: tail)
-
-theorem sumcheckRoundPoly_sim (count : ℕ) (claim : E) : ∀ e : Option E,
-    SimR (sumcheckRoundPolyRust count claim e) (sumcheckRoundPoly count claim e) fun _ ↦ True
-  | none => SimR.bind SimR.nextScalar fun _ _ ↦
-      SimR.bind (SimR.nextScalars _) fun _ _ ↦ SimR.pure rfl trivial
-  | some _ => SimR.bind (SimR.nextScalars _) fun _ _ ↦ SimR.pure rfl trivial
-
-/-- One iteration of `sumcheck`'s loop: the round polynomial, the challenge, `point.push`, the
-claim at the challenge. -/
-def sumcheckRound (count : ℕ) (acc : List E × E) (equality : Option E) : TM (List E × E) := do
-  let message ← sumcheckRoundPolyRust count acc.2 equality
-  let challenge ← TM.sample
-  pure (acc.1 ++ [challenge], polyEvalRust message challenge)
-
-/-- `sumcheck(transcript, claim, count, equalities)`. -/
-def sumcheckRust (claim : E) (count : ℕ) (equalities : List (Option E)) : TM (List E × E) :=
-  equalities.foldlM (sumcheckRound count) ([], claim)
-
-theorem sumcheck_sim {β : Type} (count : ℕ) {S : β → Prop} : ∀ (eqs : List (Option E))
-    (pre : List E) (claim : E) (k : List E × E → TM β) (K : List E × E → VerifierProgram β),
-    (∀ p v, p.length = eqs.length → SimR (k (pre ++ p, v)) (K (p, v)) S) →
-    SimR (eqs.foldlM (sumcheckRound count) (pre, claim) >>= k) (sumcheck claim count eqs >>= K) S
-  | [], pre, claim, k, K, h => by
-    have h0 := h [] claim rfl
-    rw [List.append_nil] at h0
-    simp only [List.foldlM_nil, pure_bind]
-    exact h0
-  | e :: es, pre, claim, k, K, h => by
-    simp only [List.foldlM_cons, sumcheckRound, bind_assoc, pure_bind]
-    rw [sumcheck]
-    simp only [vp_bind_assoc]
-    refine SimR.bind (sumcheckRoundPoly_sim count claim e) fun message _ ↦
-      SimR.bind SimR.sample fun c _ ↦ ?_
-    rw [polyEvalRust_eq]
-    refine sumcheck_sim count es (pre ++ [c]) _ k _ fun p v hp ↦ ?_
-    have h1 := h (c :: p) v (by simp [hp])
-    rw [List.append_assoc, List.singleton_append]
-    exact h1
+theorem sumcheckRoundPoly_sim (count : ℕ) (claim : E) (e : Option E) :
+    SimR (TM.sumcheckRoundPoly count claim e) (sumcheckRoundPoly count claim e) fun _ ↦ True :=
+  SimR.ofSim (Sim.sumcheckRoundPoly count claim e)
 
 theorem sumcheckRust_sim {β : Type} (claim : E) (count : ℕ) (eqs : List (Option E))
     {k : List E × E → TM β} {K : List E × E → VerifierProgram β} {S : β → Prop}
     (h : ∀ p v, p.length = eqs.length → SimR (k (p, v)) (K (p, v)) S) :
-    SimR (sumcheckRust claim count eqs >>= k) (sumcheck claim count eqs >>= K) S :=
-  sumcheck_sim count eqs [] claim k K h
+    SimR (TM.sumcheck claim count eqs >>= k) (sumcheck claim count eqs >>= K) S :=
+  Model.SimR.sumcheck_bind claim count eqs h
 
 /-! ## The pack rounds (`keccak.rs:152-161`) -/
 
 /-- One iteration of the pack and segment loop: `value`, `scale`, `point`. -/
 def packRound (acc : E × E × List E) (r : E) : TM (E × E × List E) := do
-  let message ← sumcheckRoundPolyRust 3 acc.1 (some r)
+  let message ← TM.sumcheckRoundPoly 3 acc.1 (some r)
   let challenge ← TM.sample
   pure ((1 + r + challenge) * polyEvalRust message challenge, acc.2.1 * (1 + r + challenge),
     acc.2.2 ++ [challenge])
@@ -196,7 +116,7 @@ theorem packRounds_sim {β : Type} {S : β → Prop} : ∀ (rs : List E) (value 
   | r :: rs, value, scale, pre, k, K, h => by
     simp only [List.foldlM_cons, packRound, bind_assoc, pure_bind]
     rw [keccakPackRounds]
-    simp only [vp_bind_assoc]
+    simp only [VerifierProgram.bind_assoc]
     refine SimR.bind (sumcheckRoundPoly_sim 3 value (some r)) fun message _ ↦
       SimR.bind SimR.sample fun c _ ↦ ?_
     rw [polyEvalRust_eq]
@@ -1365,7 +1285,7 @@ def verifyLayerRust (shape : KeccakShape) (step : ℕ) (claim : KeccakClaim) : T
   let mu := instanceWeightsRust s
   let kappa := sumE mu
   let (value, scale, point) ← claim.point.foldlM packRound (polyEvalRust product s, 1, [])
-  let (localPt, value) ← sumcheckRust value 4 (List.replicate keccakLocalBits none)
+  let (localPt, value) ← TM.sumcheck value 4 (List.replicate keccakLocalBits none)
   let t ← TM.nextScalars 3
   let eqZ := eqKernelRust (localPt.take 6)
   let eqLane := eqKernelRust (localPt.drop 6)
@@ -1434,7 +1354,7 @@ theorem layers_sim (logSteps : ℕ) {β : Type} {S : β → Prop} : ∀ (steps :
     exact h claim hw
   | step :: steps, claim, hw, k, K, h => by
     simp only [List.foldlM_cons, bind_assoc]
-    rw [keccakLayers, vp_bind_assoc]
+    rw [keccakLayers, VerifierProgram.bind_assoc]
     exact SimR.bind (verifyLayerRust_sim logSteps step claim hw) fun c hc ↦
       layers_sim logSteps steps c hc k K h
 
@@ -1443,7 +1363,7 @@ theorem layers_sim (logSteps : ℕ) {β : Type} {S : β → Prop} : ∀ (steps :
 /-- `open(transcript, shape, claim, first, count, value)`. -/
 def openRust (shape : KeccakShape) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     TM (List E × List E × E) := do
-  let (slot, value) ← sumcheckRust value 3 (List.replicate shape.slotBits none)
+  let (slot, value) ← TM.sumcheck value 3 (List.replicate shape.slotBits none)
   let segments := eqKernelRust (claim.point.drop shape.packBits)
   let slots := eqKernelRust slot
   pure (slot, openRow segments slots claim.weights first count, value)
@@ -1484,11 +1404,6 @@ structure KeccakOpenings where
 def KeccakOpenings.toSpec (o : KeccakOpenings) : List ColumnClaim × List E × List E :=
   (o.outputs.toList.map fun pw ↦ ⟨qkeccak, pw.1, pw.2⟩, o.inputs)
 
-/-- The `?` of a pure step that returns a `Result`. -/
-def TM.ofOption {α : Type} : Option α → TM α
-  | some a => pure a
-  | none => TM.fail
-
 /-- `verify_keccak(transcript, shape, instance, output)`. -/
 def verifyKeccakRust (shape : KeccakShape) (inst output : List E) : TM KeccakOpenings := do
   TM.require (inst.length = shape.logSteps ∧ output.length = 25 ∧ 4 ≤ shape.logSteps)
@@ -1509,7 +1424,7 @@ def verifyKeccakRust (shape : KeccakShape) (inst output : List E) : TM KeccakOpe
       TM.require (row.getD 0 0 * word = value)
       pure (some (inst ++ slot, word))
     else pure none
-  let (low, value) ← sumcheckRust claim.value 3 (List.replicate 4 none)
+  let (low, value) ← TM.sumcheck claim.value 3 (List.replicate 4 none)
   let (slot, row, value) ← openRust shape claim 0 shape.segments value
   let slices ← TM.nextScalars kBits
   let atLow ← TM.ofOption (multilinearEvalRust claim.mu low)
@@ -1539,24 +1454,8 @@ theorem verifyKeccak_eq (logSteps : ℕ) (inst output : List E) :
     verifyKeccak logSteps inst output = keccakSpec logSteps inst output := rfl
 
 theorem SimR.ofOption_left {α β : Type} {o : Option α} {k : α → TM β} {K : VerifierProgram β}
-    {S : β → Prop} (h : ∀ a, o = some a → SimR (k a) K S) : SimR (TM.ofOption o >>= k) K S := by
-  cases o with
-  | none =>
-    intro t b t' hr
-    have h' : (none : Option (β × TState)) = some (b, t') := hr
-    cases h'
-  | some a =>
-    simp only [TM.ofOption, pure_bind]
-    exact h a rfl
-
-theorem multilinearEvalRust_some {mle point : List E} {a : E}
-    (h : multilinearEvalRust mle point = some a) : a = multilinearEval mle point := by
-  unfold multilinearEvalRust at h
-  split_ifs at h with hc
-  have e := multilinearEvalRust_eq mle point hc
-  rw [multilinearEvalRust, ite_eq_left hc] at e
-  rw [e] at h
-  exact (Option.some.inj h).symm
+    {S : β → Prop} (h : ∀ a, o = some a → SimR (k a) K S) : SimR (TM.ofOption o >>= k) K S :=
+  Model.SimR.ofOption_bind h
 
 /-- The Rust's first claim is the statement's. -/
 theorem firstClaim_eq (inst segment lanePoint output : List E) (committed : E) :
@@ -1598,7 +1497,7 @@ theorem verifyKeccakRust_sim (logSteps : ℕ) (inst output : List E) :
   refine SimR.bind (SimR.samples _) fun segment _ ↦ ?_
   refine SimR.bind (SimR.samples _) fun lanePoint _ ↦ ?_
   refine SimR.bind SimR.nextScalar fun committed _ ↦ ?_
-  rw [keccakLayers, vp_bind_assoc]
+  rw [keccakLayers, VerifierProgram.bind_assoc]
   refine SimR.bind (verifyLayerRust_sim logSteps 0 _ (firstClaim_weights _ _ _ _ _)) fun c hc ↦ ?_
   refine layers_sim logSteps (List.range' 1 (12 - 1)) c hc _ _ fun claim hcw ↦ ?_
   refine SimR.bind (openRust_sim logSteps _ 1 1 committed (firstClaim_weights _ _ _ _ _)

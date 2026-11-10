@@ -21,97 +21,6 @@ namespace Rv64Verifier.Model.Pcs
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-/-! ## Simulation up to a relation on the results -/
-
-/-- `m` runs `P`, its result related to the statement's by `r`. -/
-def SimR {α β : Type} (m : TM α) (P : VerifierProgram β) (r : α → β → Prop) : Prop :=
-  ∀ t a t', m.run t = some (a, t') → ∃ b, runK P t.toSpec = some (b, t'.toSpec) ∧ r a b
-
-theorem SimR.of_sim {α : Type} {m : TM α} {P : VerifierProgram α} (h : Sim m P) :
-    SimR m P (· = ·) := fun t a t' hm ↦ ⟨a, h t a t' hm, rfl⟩
-
-theorem Sim.of_simR {α : Type} {m : TM α} {P : VerifierProgram α} (h : SimR m P (· = ·)) :
-    Sim m P := by
-  intro t a t' hm
-  obtain ⟨b, hb, rfl⟩ := h t a t' hm
-  exact hb
-
-theorem SimR.mono {α β : Type} {m : TM α} {P : VerifierProgram β} {r r' : α → β → Prop}
-    (h : SimR m P r) (hr : ∀ a b, r a b → r' a b) : SimR m P r' := by
-  intro t a t' hm
-  obtain ⟨b, hb, hab⟩ := h t a t' hm
-  exact ⟨b, hb, hr a b hab⟩
-
-theorem SimR.pure {α β : Type} {r : α → β → Prop} {a : α} {b : β} (h : r a b) :
-    SimR (Pure.pure a : TM α) (VerifierProgram.ret b) r := by
-  intro t a' t' hm
-  simp only [StateT.run_pure] at hm
-  cases hm
-  exact ⟨b, rfl, h⟩
-
-theorem SimR.bind {α β γ δ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
-    {k : α → TM γ} {Q : β → VerifierProgram δ} {r' : γ → δ → Prop} (hm : SimR m P r)
-    (hk : ∀ a b, r a b → SimR (k a) (Q b) r') : SimR (m >>= k) (P >>= Q) r' := by
-  intro t c t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    obtain ⟨b, hb, hab⟩ := hm t a t₁ hmt
-    rw [runK_bind, hb]
-    exact hk a b hab t₁ c t' h
-
-theorem SimR.bindUnit {α γ δ : Type} {m : TM α} {P : VerifierProgram Unit} {k : α → TM γ}
-    {Q : VerifierProgram δ} {r' : γ → δ → Prop} (hm : SimUnit m P) (hk : ∀ a, SimR (k a) Q r') :
-    SimR (m >>= k) (P >>= fun _ ↦ Q) r' := by
-  intro t c t' h
-  rw [StateT.run_bind] at h
-  cases hmt : m.run t with
-  | none => rw [hmt] at h; cases h
-  | some p =>
-    obtain ⟨a, t₁⟩ := p
-    rw [hmt] at h
-    rw [runK_bind, hm t a t₁ hmt]
-    exact hk a t₁ c t' h
-
-/-- A check of the Rust's that the statement leaves out: the rest runs `Q` when it holds. -/
-theorem SimR.require_left {γ δ : Type} {c : Prop} [Decidable c] {k : Unit → TM γ}
-    {Q : VerifierProgram δ} {r : γ → δ → Prop} (hk : c → SimR (k ()) Q r) :
-    SimR (TM.require c >>= k) Q r := by
-  intro t a t' h
-  rw [StateT.run_bind] at h
-  simp only [TM.require, StateT.run] at h
-  by_cases hc : c
-  · rw [ite_eq_left hc] at h
-    exact hk hc t a t' h
-  · rw [ite_eq_right hc] at h
-    cases h
-
-/-- A Rust failure (`Err` or panic). -/
-def TM.fail {α : Type} : TM α := fun _ ↦ none
-
-/-- `?` on a pure `Option`: an `Err` or a panic of a pure step. -/
-def TM.ofOption {α : Type} : Option α → TM α
-  | some a => Pure.pure a
-  | none => TM.fail
-
-theorem SimR.fail_left {α β : Type} {P : VerifierProgram β} {r : α → β → Prop} :
-    SimR (TM.fail : TM α) P r := by
-  intro t a t' h
-  cases h
-
-theorem SimR.ofOption_bind {α γ δ : Type} {o : Option α} {k : α → TM γ} {Q : VerifierProgram δ}
-    {r : γ → δ → Prop} (hk : ∀ a, o = some a → SimR (k a) Q r) :
-    SimR (TM.ofOption o >>= k) Q r := by
-  cases o with
-  | none => intro t a t' h; cases h
-  | some a =>
-    intro t c t' h
-    simp only [TM.ofOption, StateT.run_bind, StateT.run_pure] at h
-    exact hk a rfl t c t' h
-
 /-! ## The WHIR parameters (`whir.rs:12-63`) -/
 
 /-- `INITIAL_FOLDING_FACTOR`. -/
@@ -392,16 +301,6 @@ theorem ringSwitchRust_sim (point s : List E) :
 
 /-! ## Transcript helpers -/
 
-/-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`. -/
-def TM.sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → TM (List E)
-  | none => do
-    let constant ← TM.nextScalar
-    let tail ← TM.nextScalars (count - 2)
-    pure ([constant, claim + sumE tail] ++ tail)
-  | some eqFactor => do
-    let tail ← TM.nextScalars (count - 1)
-    pure ([claim + eqFactor * sumE tail] ++ tail)
-
 /-- `for _ in 0..n`. -/
 def TM.loopN {σ : Type} (f : σ → TM σ) : ℕ → σ → TM σ
   | 0, s => pure s
@@ -644,19 +543,6 @@ theorem SimR.map_right {α β γ : Type} {m : TM α} {P : VerifierProgram β} {r
   have := SimR.bind h hk
   simpa only [bind_pure] using this
 
-theorem SimR.require_iff {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
-    SimR (TM.require c) (VerifierProgram.require c') (fun _ _ ↦ True) := by
-  intro t a t' hm
-  simp only [TM.require, StateT.run] at hm
-  by_cases hc : c
-  · rw [ite_eq_left hc] at hm
-    cases hm
-    refine ⟨(), ?_, trivial⟩
-    simp only [VerifierProgram.require, h.mp hc, ↓reduceIte]
-    rfl
-  · rw [ite_eq_right hc] at hm
-    cases hm
-
 theorem SimR.nextScalars_len : ∀ n, SimR (TM.nextScalars n) (VerifierProgram.readScalars n)
     (fun a b ↦ a = b ∧ a.length = n)
   | 0 => SimR.pure ⟨rfl, rfl⟩
@@ -676,13 +562,6 @@ theorem SimR.sumcheckRoundPoly3 (claim : E) :
   refine SimR.bind (SimR.nextScalars_len _) ?_
   rintro tail _ ⟨rfl, hl⟩
   exact SimR.pure ⟨rfl, by simp [hl]⟩
-
-theorem Sim.sumcheckRoundPoly (count : ℕ) (claim : E) (e : Option E) :
-    Sim (TM.sumcheckRoundPoly count claim e) (sumcheckRoundPoly count claim e) := by
-  cases e with
-  | none => exact Sim.bind Sim.nextScalar fun x ↦ Sim.bind (Sim.nextScalars _) fun xs ↦
-      Sim.pure _
-  | some f => exact Sim.bind (Sim.nextScalars _) fun xs ↦ Sim.pure _
 
 /-- A claim glued into the running sumcheck: the same power of `λ` and level, and a weight that,
 wherever the Rust's returns, is the statement's. -/
@@ -1168,7 +1047,7 @@ theorem SimR.merkleLeaves (i : ℕ) (qs : List (BitVec 64)) (w : ℕ) :
   exact SimR.require_left fun hc ↦ SimR.pure ⟨rfl, hc⟩
 
 theorem SimR.of_simUnit {α : Type} {m : TM α} {P : VerifierProgram Unit} (h : SimUnit m P) :
-    SimR m P (fun _ _ ↦ True) := fun t a t' hm ↦ ⟨(), h t a t' hm, trivial⟩
+    SimR m P (fun _ _ ↦ True) := h
 
 theorem multilinearEvalRust_rel {mle point : List E} {v : E}
     (h : multilinearEvalRust mle point = some v) : v = multilinearEval mle point := by
