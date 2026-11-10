@@ -456,11 +456,12 @@ open LeanVM.Parameters LeanVM.Semantics
 limits. -/
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `649734`, the
-compiled decoder's size (`649304`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that)
-and a slack of `430`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table of witnesses (hard-coded signatures, matrices or proofs that would mask a
-bug of the guest program on finitely many statements) fits beside the compiled decoder's code. The
-size counts in full the guest program's per-function tables, literals of the compiled decoder; a
-program written differently could hold more. -/
+compiled decoder's size (`649304`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
+slack of `430`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
+of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
+on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
+guest program's per-function tables, literals of the compiled decoder; a program written differently
+could hold more. -/
 def guestWitnessDecoderSizeBound : ℕ := 649734
 
 /-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
