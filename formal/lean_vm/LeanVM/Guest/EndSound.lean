@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.B1.Bits.Tables
-public import LeanVM.Guest.B1.VerifySub.Proof
+public import LeanVM.Guest.B1.VerifySub.Sound
 public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 /-!
@@ -23,10 +23,10 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
   dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
-* `EndPending`: what the end theorems take until B1's ports to the f128 guest land:
-  `verify_sub`'s statement with the proof `VerifySub.vsPiOf`, and the walks' cut obligations
-  (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk` and ostack's
-  `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers' parities).
+* `EndPending`: what the end theorems take until the walks' ports to the f128 guest land: their
+  cut obligations (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk`
+  and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers'
+  parities). `verify_sub`'s statement is proved (`VerifySub.verify_sub_sound_w`).
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`), `b2SoundL` from
   `EndPending`.
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
@@ -57,12 +57,9 @@ theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
 theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
   VerifySub.vsDimsKnown0_holds L h16 h32 σ h
 
-/-- **What the end theorems take** until B1's ports to the f128 guest land: `verify_sub`'s
-statement with the proof `VerifySub.vsPiOf` (`VerifySub.verify_sub_sound_w`), and the walks' cut
+/-- **What the end theorems take** until the walks' ports to the f128 guest land: the walks' cut
 obligations (`walkKnown_proved`, `WalkKnownAll.lean`, whose whir walks are not yet on f128). -/
 structure EndPending : Prop where
-  /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`. -/
-  sound : B1.Main.SubSoundW bytecode VerifySub.vsPiOf
   /-- The walks' cut obligations. -/
   walk : WalkKnown
 

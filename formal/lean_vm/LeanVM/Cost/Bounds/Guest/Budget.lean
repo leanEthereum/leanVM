@@ -150,7 +150,8 @@ variable (P : MachineProgram)
 
 /-- **On every valid execution of the guest, the decoder program's price is within its exact
 price** (`guestDecoderPrice`, `Cost/Prices.lean`). -/
-theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.guestProgram)
+theorem decoderPrice_le_exact (hEP : LeanVM.Guest.End.EndPending) (input : PublicInput)
+    (t : Execution LeanVM.Guest.guestProgram)
     (hv : ValidExecution LeanVM.Guest.guestProgram input t) :
     decoderProgramPrice LeanVM.Guest.guestProgram t ≤
       guestDecoderPrice t.logMemorySize LeanVM.Guest.guestProgram.logSize t.stepCount := by
@@ -249,7 +250,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     _ (guestDecoderFramePrice e) hF hFp (4 * guestDecoderFramePrice e) hFp4 125634
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
-    hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
+    hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hEP hv c hck)
   have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12758 8112592 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
@@ -306,8 +307,9 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 32) (hs : ste
 /-- **On every valid execution of the guest, the decoder program's price is within its
 budget**: within the exact price (`decoderPrice_le_exact`), within the budget
 (`guestDecoderPrice_le_budget`: `κ ≤ 32` and fewer than `2^128` steps on a valid execution). -/
-theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := fun input t hv ↦ by
-  have h := decoderPrice_le_exact input t hv
+theorem decoderPriceWithinBudget (hEP : LeanVM.Guest.End.EndPending) :
+    DecoderPriceWithinBudget := fun input t hv ↦ by
+  have h := decoderPrice_le_exact hEP input t hv
   rw [LeanVM.Guest.guest_logSize] at h
   unfold guestWitnessDecoderBudget
   exact h.trans (guestDecoderPrice_le_budget hv.1.2.1 (steps_lt_of_valid hv))
