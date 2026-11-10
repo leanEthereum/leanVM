@@ -15,7 +15,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 /-- The `i`-th claim of a buffer at `P`, from a `Vec` in registers and its fields' words. -/
 theorem NewVecR.claimAt' {s t : MachineState} {P cap ptr len : Word} {i : Nat} {xs : List E}
-    (h : NewVecR s t cap ptr len xs) (hlo : heapStart ≤ heapNext s)
+    (h : NewVecR s t cap ptr len xs) (hlo : heapStart ≤ heapNext s) (hl : PtrLo t ptr len)
     (e0 : t.getMem (P + BitVec.ofNat 64 (56 * i)) = cap)
     (e8 : t.getMem (P + BitVec.ofNat 64 (56 * i + 8)) = ptr)
     (e16 : t.getMem (P + BitVec.ofNat 64 (56 * i + 16)) = len) {col : Nat}
@@ -24,7 +24,7 @@ theorem NewVecR.claimAt' {s t : MachineState} {P cap ptr len : Word} {i : Nat} {
     ClaimAt s t (P + BitVec.ofNat 64 (56 * i)) ⟨col, xs, x⟩ := by
   have a (j : Nat) : P + BitVec.ofNat 64 (56 * i) + BitVec.ofNat 64 j =
       P + BitVec.ofNat 64 (56 * i + j) := by rw [BitVec.add_assoc, ← BitVec.ofNat_add]
-  exact h.claimAt hlo e0 ((a 8).symm ▸ e8) ((a 16).symm ▸ e16) ((a 24).symm ▸ ec)
+  exact h.claimAt hlo hl e0 ((a 8).symm ▸ e8) ((a 16).symm ▸ e16) ((a 24).symm ▸ ec)
     ((a 32).symm ▸ ex)
 
 /-- An `E` from its three words at `P + j`. -/
@@ -57,6 +57,7 @@ structure Cl3 (bev : MachineState → Word → List E → Option E) (s w : Machi
     (w.getMem (s.getReg .x2 - 824)) (memClaims s state mem)
   len : w.getMem (s.getReg .x2 - 824) = 3
   c3 : NewVecR s w (w.getReg .x9) (w.getReg .x19) (logMem s) (state.point.take (logMem s).toNat)
+  c3Lo : PtrLo w (w.getReg .x19) (logMem s)
   x20 : w.getReg .x20 = s.getReg .x12
   x21 : w.getReg .x21 = s.getReg .x10
   x23 : w.getReg .x23 = logBc s
@@ -74,6 +75,7 @@ structure Cl3 (bev : MachineState → Word → List E → Option E) (s w : Machi
   bfEq : bf = eOf3 (w.getReg .x26) (w.getMem (s.getReg .x2 - 1120))
     (w.getMem (s.getReg .x2 - 1128))
   tracks : Tracks (prog bev s) (s.getReg .x12) s w (rest bev s k state mem mf bf)
+  pointLo : PtrLo w (w.getMem (s.getReg .x2 - 1256)) (w.getMem (s.getReg .x2 - 1144))
 
 theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
     {bev : MachineState → Word → List E → Option E} {s y : MachineState} {k : Start}
@@ -218,7 +220,7 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
     (mx 120).trans ((b80006ea0_m_x10_120 h₂).trans r24)
   have C0 : ClaimAt s u₂ (v.getReg .x10 + BitVec.ofNat 64 (56 * 0))
       ⟨memory0, state.point.take (logMem s).toNat, mem.getD 0 0⟩ := by
-    refine (hc P.c0).claimAt' hlo' a00 a08 ((mx 16).trans ((b80006ea0_m_x10_16 h₂).trans lm₁))
+    refine (hc P.c0).claimAt' hlo' (P.c0Lo.mono st₂.mono) a00 a08 ((mx 16).trans ((b80006ea0_m_x10_16 h₂).trans lm₁))
       ?_ ?_
     · rw [mx 24]
       exact (congrArg BitVec.toNat (b80006ea0_m_x10_24 h₂)).trans rfl
@@ -228,7 +230,7 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
         ((mx 48).trans ((b80006ea0_m_x10_48 h₂).trans m736.2.2))
   have C1 : ClaimAt s u₂ (v.getReg .x10 + BitVec.ofNat 64 (56 * 1))
       ⟨memory1, state.point.take (logMem s).toNat, mem.getD 1 0⟩ := by
-    refine (hc P.c1).claimAt' hlo' a10 a18 ((mx 72).trans ((b80006ea0_m_x10_72 h₂).trans lm₁))
+    refine (hc P.c1).claimAt' hlo' (P.c1Lo.mono st₂.mono) a10 a18 ((mx 72).trans ((b80006ea0_m_x10_72 h₂).trans lm₁))
       ?_ ?_
     · rw [mx 80]
       exact (congrArg BitVec.toNat (b80006ea0_m_x10_80 h₂)).trans rfl
@@ -238,7 +240,7 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
         ((mx 104).trans ((b80006ea0_m_x10_104 h₂).trans m1096.2.2))
   have C2 : ClaimAt s u₂ (v.getReg .x10 + BitVec.ofNat 64 (56 * 2))
       ⟨memory2, state.point.take (logMem s).toNat, mem.getD 2 0⟩ := by
-    refine (hc P.c2).claimAt' hlo' a20 a28 ((mx 128).trans ((b80006ea0_m_x10_128 h₂).trans lm₁))
+    refine (hc P.c2).claimAt' hlo' (P.c2Lo.mono st₂.mono) a20 a28 ((mx 128).trans ((b80006ea0_m_x10_128 h₂).trans lm₁))
       ?_ ?_
     · rw [mx 136]
       exact (congrArg BitVec.toNat (b80006ea0_m_x10_136 h₂)).trans rfl
@@ -279,7 +281,7 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
       (by rcases hx with hx | hx <;> constructor <;> addr_omega [hb1, hx])
   have hlen : state.point.length = (y.getMem (s.getReg .x2 - 1144)).toNat := by
     rw [← P.point.elems, eListAt_length]
-  obtain ⟨w, hrw, hd | ⟨hpcw, Iw, stw, rgw, x21w, x23w, x27w, c3⟩⟩ := copy4 hT hM hpre I₂
+  obtain ⟨w, hrw, hd | ⟨hpcw, Iw, stw, rgw, x21w, x23w, x27w, c3, c3Lo⟩⟩ := copy4 hT hM hpre I₂
     (b80006ea0_pc h₂) (b80006ea0_x1 h₂)
     (by rw [b80006ea0_x10 h₂, sp₁]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1])
     (b80006ea0_x13 h₂) (b80006ea0_x14 h₂) ((b80006ea0_x11 h₂).trans lm₁)
@@ -319,6 +321,7 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
       exact CS.keepR hpre stw.toR f608
     len := (sw _ (by constructor <;> addr_omega [hb1])).trans hd824
     c3 := c3
+    c3Lo := c3Lo
     x20 := by rw [rw' .x20 (by decide)]; exact P.x20
     x21 := by
       rw [x21w]; exact (s2 _ (Or.inl (by constructor <;> addr_omega [hb1]))).trans P.kept.out
@@ -348,6 +351,10 @@ theorem claims3 (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x80
       rw [rw' .x26 (by decide), kT _ (Or.inl (by constructor <;> addr_omega [hb1])),
         kT _ (Or.inl (by constructor <;> addr_omega [hb1]))]
       exact P.bfEq
-    tracks := P.tracks.keep fun T hT ↦ stT.transcript hpre P.inv fT hT }⟩⟩
+    tracks := P.tracks.keep fun T hT ↦ stT.transcript hpre P.inv fT hT
+    pointLo := by
+      rw [kT _ (Or.inl (by constructor <;> addr_omega [hb1])),
+        kT _ (Or.inl (by constructor <;> addr_omega [hb1]))]
+      exact P.pointLo.mono stT.mono }⟩⟩
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

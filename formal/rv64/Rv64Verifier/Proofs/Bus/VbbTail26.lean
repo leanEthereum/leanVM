@@ -74,7 +74,7 @@ theorem Rows1.mat {s z w v : MachineState} (R : Rows1 s z w v) (hz : heapStart �
     · exact Or.inr ⟨by omega, by omega⟩
   · obtain ⟨c0, c1, c2⟩ := (R.rows i hi).cells j hj
     refine ⟨⟨?_, ?_⟩, fun k hk ↦ absurd hk (by rw [c1]; exact Nat.not_lt_zero _)⟩
-    · simp only [RawVecOk, Buf, c0]; exact ⟨c2, Or.inl rfl⟩
+    · simp only [RawVecOk, Buf, c0]; exact ⟨by rw [c2]; rfl, Or.inl rfl⟩
     · rw [c0, c1]
   · rcases Nat.lt_or_ge j 3 with h3 | h3
     · exact (cell0 i hi j h3 x hx).elim

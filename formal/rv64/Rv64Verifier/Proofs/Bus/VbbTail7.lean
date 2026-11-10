@@ -87,7 +87,8 @@ theorem ClaimsAt.grow {s u v : MachineState} {A : Word → Prop} (hpre : BusBala
     rwa [add_ofNat_zero, add_ofNat_zero] at this
   obtain ⟨hl', hbuf'⟩ := C.vec.bound
   refine ⟨C.vec.transfer e0 (wd 8 (by omega) (by omega)) (wd 16 (by omega) (by omega)) hm
-    (st.eListAt hpre hA hbuf' hl'), ?_, ?_⟩
+    (st.eListAt hpre hA hbuf' hl'), ?_, ?_,
+    C.lo.move (wd 8 (by omega) (by omega)) (wd 16 (by omega) (by omega)) hm⟩
   · rw [show ptr' + BitVec.ofNat 64 (56 * i) + 24 =
       ptr' + BitVec.ofNat 64 (56 * i) + BitVec.ofNat 64 24 from rfl, wd 24 (by omega) (by omega)]
     exact C.column

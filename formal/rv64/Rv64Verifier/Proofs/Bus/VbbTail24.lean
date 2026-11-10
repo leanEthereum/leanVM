@@ -149,13 +149,13 @@ theorem cloneIter (hCl : Layout.Clone.CloneCapsSpec) {s z w u : MachineState} {i
     srcStack := by
       rw [x11₁, x12₁, hsl, show (3 : Word).toNat = 3 from rfl]
       addr_omega [hBP, hC3, hwh, hab, hb1, hPw] }
-  obtain ⟨t, hrt, ⟨hpct, hpt, ⟨N, hvl⟩, hcp⟩ | hd⟩ :=
+  obtain ⟨t, hrt, ⟨hpct, hpt, ⟨N, hvl⟩, hcp, hdp⟩ | hd⟩ :=
     hCl.call (Reaches.refl v₁) (b80007334_pc h₁) pre
   swap
   · exact ⟨t, hr₁.trans hrt, Or.inl hd⟩
   have hpc₂ : t.pc = 0x80007348 := by rw [hpct, returnAddress_eq, b80007334_x1 h₁]; decide
-  rw [x10₁] at N hvl hcp
-  rw [x11₁, x12₁] at hvl hcp
+  rw [x10₁] at N hvl hcp hdp
+  rw [x11₁, x12₁] at hvl hcp hdp
   have frt : DFrame v₁ t fun a ↦ Within a (s.getReg .x2 - 608) 24 ∨
       Within a (stackLo v₁ Layout.cloneStack) Layout.cloneStack ∨ Within a nextAddr 8 ∨
         Fresh v₁ t a :=
@@ -202,7 +202,7 @@ theorem cloneIter (hCl : Layout.Clone.CloneCapsSpec) {s z w u : MachineState} {i
       have hc0 : vecCap t (vecPtr t (s.getReg .x2 - 608) + BitVec.ofNat 64 (24 * j)) = 0 := by
         rw [hcp j hj]
         exact (m₁ _).trans (hdef j hj).2.2
-      refine ⟨hc0, ?_, hfo.vec.raw.1⟩
+      refine ⟨hc0, ?_, hdp j hj ((m₁ _).trans (hdef j hj).2.2)⟩
       show vecLen t (vecPtr t (s.getReg .x2 - 608) + BitVec.ofNat 64 (24 * j)) = 0
       have hl := hfo.vec.len
       rw [hc0] at hl
@@ -546,8 +546,7 @@ theorem cloneStore {s z w u u' : MachineState} {i : Nat} (hpre : BusBalancePre s
       refine ⟨e0.trans d0, (e 16 (by omega)).trans d2, ?_⟩
       rw [show (w.getReg .x18 + BitVec.ofNat 64 (24 * j) + 8) =
         w.getReg .x18 + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 8 from rfl, e 8 (by omega)]
-      show (w.getMem (w.getReg .x18 + BitVec.ofNat 64 (24 * j) + 8)).toNat % 8 = 0
-      rw [d1]; rfl
+      exact d1
   have newBuf : ∀ x, Layout.formVecBuf v (rowAt (w.getReg .x23) i) x →
       x.toNat + 1 ≤ (w.getReg .x18).toNat + (w.getReg .x9).toNat * 24 := by
     intro x hx

@@ -23,6 +23,41 @@ structure NewVecR (s u : MachineState) (cap ptr len : Word) (xs : List E) : Prop
   buf : NewBuf s u ptr (cap.toNat * 24) 8
   elems : eListAt u ptr len.toNat = xs
 
+/-- The `len` elements from `p` end below `NEXT`: for an empty buffer, its dangling pointer does. -/
+def PtrLo (u : MachineState) (p len : Word) : Prop := p.toNat + 24 * len.toNat ≤ heapNext u
+
+theorem PtrLo.mono {u v : MachineState} {p len : Word} (h : PtrLo u p len)
+    (hm : heapNext u ≤ heapNext v) : PtrLo v p len := by
+  simp only [PtrLo] at h ⊢; omega
+
+/-- The dangling pointer of an empty buffer of `E`s. -/
+theorem PtrLo.dangling {u : MachineState} (hh : HeapOk u) : PtrLo u 8 0 := by
+  have := hh.lo
+  simp only [PtrLo, heapStart] at this ⊢
+  have e8 : (8 : Word).toNat = 8 := rfl
+  have e0 : (0 : Word).toNat = 0 := rfl
+  omega
+
+theorem toNat_pos_of_ne {n : Word} (h : n ≠ 0) : 0 < n.toNat :=
+  Nat.pos_of_ne_zero fun h0 ↦ h (BitVec.eq_of_toNat_eq h0)
+
+/-- A non-empty buffer lies below `NEXT`. -/
+theorem NewVecR.ptrLo {s u : MachineState} {cap ptr len : Word} {xs : List E}
+    (h : NewVecR s u cap ptr len xs) (hl : 0 < len.toNat) : PtrLo u ptr len := by
+  have hb := h.buf
+  have hle := h.le
+  simp only [NewBuf] at hb
+  simp only [PtrLo]
+  rcases hb.2 with h0 | h0 <;> omega
+
+theorem NewVecR.ptrLo_ne {s u : MachineState} {cap ptr len : Word} {xs : List E}
+    (h : NewVecR s u cap ptr len xs) (hx : xs ≠ []) : PtrLo u ptr len := by
+  refine h.ptrLo ?_
+  have hl := congrArg List.length h.elems
+  rw [eListAt_length] at hl
+  have := List.length_pos_of_ne_nil hx
+  omega
+
 /-- After the GKR loop, at `0x80006b60`. -/
 structure AfterGkr (bev : MachineState → Word → List E → Option E) (s u : MachineState)
     (k : Start) (cnt : E) (state : GkrState) : Prop where
@@ -39,6 +74,7 @@ structure AfterGkr (bev : MachineState → Word → List E → Option E) (s u : 
   values : NewVecE s u (s.getReg .x2 - 176) state.values
   len : state.values.length = 3
   tracks : Tracks (prog bev s) (s.getReg .x12) s u (tail bev s k cnt state)
+  pointLo : PtrLo u (u.getReg .x27) (u.getReg .x21)
 
 /-- The GKR loop with a positive depth, to `0x80006b60`, or out. -/
 def GkrStage (bev : MachineState → Word → List E → Option E) : Prop :=
@@ -88,7 +124,10 @@ theorem depthZero {bev : MachineState → Word → List E → Option E} {s u : M
     tracks := by
       have := h.tracks
       rw [hd, gkrLoopM_zero, pure_bind] at this
-      exact this.keep fun T hT ↦ TranscriptAt.same hpre h.inv m₁ hT }⟩
+      exact this.keep fun T hT ↦ TranscriptAt.same hpre h.inv m₁ hT
+    pointLo := by
+      rw [b80006b54_x27 h₁, b80006b54_x21 h₁]
+      exact PtrLo.dangling (h.inv.same m₁ sp).heap }⟩
 
 /-- **`verify_bus_balance`'s contract**, from the GKR loop's and the rest's stages and the
 callees' contracts. -/

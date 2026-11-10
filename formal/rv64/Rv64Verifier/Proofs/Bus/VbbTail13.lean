@@ -14,7 +14,8 @@ open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol.Verifier Rv64Verifier.Runt
 
 /-- A claim from a `Vec` in registers written at `a`. -/
 theorem NewVecR.claimAt {s t : MachineState} {a cap ptr len : Word} {xs : List E}
-    (h : NewVecR s t cap ptr len xs) (hlo : heapStart ≤ heapNext s) (e0 : t.getMem a = cap)
+    (h : NewVecR s t cap ptr len xs) (hlo : heapStart ≤ heapNext s) (hl : PtrLo t ptr len)
+    (e0 : t.getMem a = cap)
     (e8 : t.getMem (a + 8) = ptr) (e16 : t.getMem (a + 16) = len) {col : Nat}
     (ec : (t.getMem (a + 24)).toNat = col) {x : E} (ex : eAt t (a + 32) = x) :
     ClaimAt s t a ⟨col, xs, x⟩ := by
@@ -22,12 +23,13 @@ theorem NewVecR.claimAt {s t : MachineState} {a cap ptr len : Word} {xs : List E
   have hle := h.le
   have hel := h.elems
   simp only [NewBuf] at hb
-  refine ⟨⟨⟨?_, ?_⟩, ?_, ?_⟩, ec, ex⟩
+  refine ⟨⟨⟨?_, ?_⟩, ?_, ?_⟩, ec, ex, ?_⟩
   · simp only [RawVecOk, Buf, vecPtr, vecCap, e0, e8]
     exact ⟨hb.1, hb.2.imp_right fun h' ↦ ⟨by omega, h'.2⟩⟩
   · simp only [vecLen, vecCap, e0, e16]; exact hle
   · simp only [NewBuf, vecPtr, vecCap, e0, e8]; exact hb
   · simp only [vecEs, vecPtr, vecLen, e8, e16]; exact hel
+  · simp only [vecPtr, vecLen, e8, e16]; exact hl
 
 /-- A claim whose 56 bytes and point buffer a step misses. -/
 theorem ClaimAt.keepD {s v w : MachineState} {B : Word → Prop} {a : Word} {c : ColumnClaim}
@@ -44,7 +46,7 @@ theorem ClaimAt.keepD {s v w : MachineState} {B : Word → Prop} {a : Word} {c :
     · omega
     · have := (v.getMem nextAddr).isLt; omega
   refine ⟨h.vec.transfer (by simpa using hw 0 (by omega)) (hw 8 (by omega)) (hw 16 (by omega)) hm
-    (eListAt_congr fun i hi ↦ ?_), ?_, ?_⟩
+    (eListAt_congr fun i hi ↦ ?_), ?_, ?_, h.lo.move (hw 8 (by omega)) (hw 16 (by omega)) hm⟩
   · have bw (j : Nat) (hj : j + 8 ≤ 24) : w.getMem (vecPtr v a + BitVec.ofNat 64 (24 * i) +
         BitVec.ofNat 64 j) = v.getMem (vecPtr v a + BitVec.ofNat 64 (24 * i) + BitVec.ofNat 64 j) :=
       fr _ fun k hk ↦ hbuf _ (by addr_omega [hbd, hi, hl, hj, hk])

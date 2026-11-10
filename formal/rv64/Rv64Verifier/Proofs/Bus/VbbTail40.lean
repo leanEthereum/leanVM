@@ -13,6 +13,15 @@ open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol.Verifier Rv64Verifier.Runt
   Rv64Verifier.Model Rv64Verifier.Bus Rv64Verifier.Transcript Rv64Verifier.Blocks.F26
   Rv64Verifier.MultilinearContracts
 
+/-- What an iteration writes from the head `h` to `u` before the block loop: the frame's slots but
+the block loop's scratch and the totals, the stack below the frame, `NEXT` and the heap from `h`'s
+`NEXT` on. -/
+def FrW (s h u : MachineState) (a : Word) : Prop :=
+  Within a (s.getReg .x2 - 1304) 24 ∨ Within a (s.getReg .x2 - 1272) 16 ∨
+    Within a (s.getReg .x2 - 1248) 8 ∨ Within a (s.getReg .x2 - 1216) 72 ∨
+    Within a (s.getReg .x2 - 320) 216 ∨ Within a (s.getReg .x2 - 4544) 3200 ∨
+    Within a nextAddr 8 ∨ (heapNext h ≤ a.toNat ∧ a.toNat < heapNext u)
+
 /-- At `0x800076c4` for side `i` (`sd`): its framework selectors from `s8`, its tables' from `s4`,
 their counts at `S - 1288` and `S - 1296`, the tuple's words in the registers and the frame. -/
 structure Front (s z h u : MachineState) (i : Nat)
@@ -37,6 +46,21 @@ structure Front (s z h u : MachineState) (i : Nat)
   fw : eListAt u (u.getReg .x24) sd.2.1.framework.length = sd.2.1.framework.map (·.eqAbove point)
   tbBuf : NewBuf h u (u.getReg .x20) (24 * sd.2.1.tables.length) 8
   tb : eListAt u (u.getReg .x20) sd.2.1.tables.length = sd.2.1.tables.map (·.eqAbove point)
+  fr : DFrame h u (FrW s h u)
+
+theorem SelW.frW {s h h' u u' : MachineState} (hpre : BusBalancePre s)
+    (hh : heapNext h ≤ heapNext h') (hu : heapNext u ≤ heapNext u') {a : Word}
+    (ha : SelW s h' u a ∨ Within a (s.getReg .x2 - 1288) 8 ∨ Within a (s.getReg .x2 - 1296) 8) :
+    FrW s h u' a := by
+  obtain ⟨hb1, -, -, -⟩ := bounds hpre
+  rcases ha with (hw | hw | hw | hw | ⟨a1, a2⟩) | hw | hw
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl (by addr_omega [hw, hb1])))))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl (by addr_omega [hw, hb1])))))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl hw)))))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl hw))))))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨by omega, by omega⟩))))))
+  · exact Or.inl (by addr_omega [hw, hb1])
+  · exact Or.inl (by addr_omega [hw, hb1])
 
 /-- A frame slot `S - j` outside `S - 248` and `S - 128` misses `SelW`. -/
 theorem SelW.slot {s h u : MachineState} (hpre : BusBalancePre s) (hu : HeapOk u) {j : Nat}
@@ -191,7 +215,7 @@ theorem sideFront (hT : TryAllocZeroedSpec) (hR : ReserveFreshSpec 0x80008a10 24
     exact C₂.low hpre Ih hzh (by simp only [heapStart]; addr_omega [b1, b2, hj, hk, hz])
       (by simp only [heapNext]; addr_omega [b1, b2, hj, hk, hz])
   have x24₃ : u₃.getReg .x24 = Pf := (S2.regs .x24 (by decide)).trans S1.x24
-  refine ⟨C₃, ?_, ?_, ?_, ?_, ?_, ?_, S2.x27, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨C₃, ?_, ?_, ?_, ?_, ?_, ?_, S2.x27, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [S2.regs .x8 (by decide), S1.regs .x8 (by decide), A.x8]
   · rw [S2.regs .x18 (by decide), S1.regs .x18 (by decide), A.x18]
   · rw [S2.regs .x22 (by decide), S1.regs .x22 (by decide), A.x22]
@@ -235,5 +259,16 @@ theorem sideFront (hT : TryAllocZeroedSpec) (hR : ReserveFreshSpec 0x80008a10 24
     · exact Or.inl (by rw [← hlenT] at h0; rw [h0])
     · exact Or.inr ⟨by omega, by rw [hlenT]; exact b2⟩
   · rw [S2.x20, hlenT, S2.vals, htb]
+  · refine ((A.frame.mono fun a ha ↦ ?_).trans S1.fr fun a ha ↦ ?_).trans S2.fr fun a ha ↦ ?_
+    · rcases ha with ha | ha | ha
+      · exact Or.inr (Or.inl (by addr_omega [ha, hb1]))
+      · exact Or.inr (Or.inr (Or.inl ha))
+      · exact Or.inr (Or.inr (Or.inr (Or.inl (by addr_omega [ha, hb1]))))
+    · rcases ha with ha | ha
+      · exact SelW.frW hpre (le_refl _) hn₂₃ (Or.inl ha)
+      · exact SelW.frW hpre (le_refl _) hn₂₃ (Or.inr (Or.inl ha))
+    · rcases ha with ha | ha
+      · exact SelW.frW hpre hn₁₂ (le_refl _) (Or.inl ha)
+      · exact SelW.frW hpre hn₁₂ (le_refl _) (Or.inr (Or.inr ha))
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

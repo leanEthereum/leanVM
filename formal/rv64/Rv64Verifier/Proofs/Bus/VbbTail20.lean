@@ -251,6 +251,7 @@ structure Evaluated (bev : MachineState → Word → List E → Option E) (s y :
   bfEq : bf = eOf3 (y.getReg .x26) (y.getMem (s.getReg .x2 - 1120))
     (y.getMem (s.getReg .x2 - 1128))
   tracks : Tracks (prog bev s) (s.getReg .x12) s y (pure (restValue s k state mem mf bf bv))
+  pointLo : PtrLo y (y.getMem (s.getReg .x2 - 1256)) (y.getMem (s.getReg .x2 - 1144))
 
 /-- What the steps from `concat`'s entry to `0x80007170` write in the frame. -/
 def EvalW (s : MachineState) (a : Word) : Prop :=
@@ -376,6 +377,7 @@ theorem evalStage (hC : SliceConcatSpec) {BcOk : MachineState → Nat → Word �
     outStack := x10₂ ▸ o3
     outRodata := by rw [x10₂]; addr_omega [hr4, hrb, hb1]
     bytecode := x11₂ ▸ hBc
+    outFrame := by rw [x10₂, hsl]; constructor <;> addr_omega [hb1]
     point := by
       rw [x12₂, x13₂]
       refine ⟨regionRange PR (Nat.le_refl _) (by omega) PR.2, PO, PA1⟩
@@ -539,6 +541,9 @@ theorem evalStage (hC : SliceConcatSpec) {BcOk : MachineState → Nat → Word �
       rw [K1 _ (by constructor <;> addr_omega [hb1]), K1 _ (by constructor <;> addr_omega [hb1]),
         K1 _ (by constructor <;> addr_omega [hb1])]
       exact X.point.keepR hpre st.toR fT
+    pointLo := by
+      rw [K1 _ (by constructor <;> addr_omega [hb1]), K1 _ (by constructor <;> addr_omega [hb1])]
+      exact X.pointLo.mono st.mono
     valuesPtr := by
       rw [K1 _ (by constructor <;> addr_omega [hb1]), X.valuesPtr, vecPtr, vecPtr,
         st.slot hpre (fun z hz h' ↦ by rcases h' with h' | h' | h' <;> addr_omega [hz, h', hb1])

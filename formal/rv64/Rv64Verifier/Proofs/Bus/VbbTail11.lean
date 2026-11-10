@@ -43,6 +43,7 @@ structure PtsB (s w y : MachineState) (xs : List E) : Prop where
     y.getReg r = w.getReg r
   x9 : y.getReg .x9 = logMem s
   c1 : NewVecR s y (y.getReg .x19) (y.getReg .x23) (logMem s) (xs.take (logMem s).toNat)
+  c1Lo : PtrLo y (y.getReg .x23) (logMem s)
   m0 : eAt y (s.getReg .x2 - 720) = eAt w (s.getReg .x2 - 248)
   m1 : eAt y (s.getReg .x2 - 248) = eAt w (vecPtr w (s.getReg .x2 - 864) + 24)
   len : 2 ≤ (vecLen w (s.getReg .x2 - 864)).toNat
@@ -113,7 +114,7 @@ theorem ptsB (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s w : Machi
     rw [k₂ r (mem_of_mem hr _), k₁ r (mem_of_mem hr _)]
   have st₁₂ := st₁.trans st₂
   have hp₂ := hp.keepR hpre st₁₂.toR (fun a ha ↦ by rcases ha with ha | ha <;> addr_omega [ha, hb1])
-  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, c1⟩⟩ := copy2 hT hM hpre I₂ (b80006d50_pc h₂)
+  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, c1, c1Lo⟩⟩ := copy2 hT hM hpre I₂ (b80006d50_pc h₂)
     (b80006d50_x1 h₂) x10₂ (b80006d50_x13 h₂) (b80006d50_x14 h₂) x9₂ x11₂
     ((rg₂ .x18 (by decide)).trans h18) ((rg₂ .x27 (by decide)).trans h27) hp₂ hn
   · exact ⟨y, hr₁.trans (hr₂.trans hry), Or.inl hd⟩
@@ -139,6 +140,7 @@ theorem ptsB (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s w : Machi
     regs := fun r hr ↦ by rw [rgy r (mem_of_mem hr _), rg₂ r (mem_of_mem hr _)]
     x9 := by rw [rgy .x9 (by decide), x9₂]
     c1 := c1
+    c1Lo := c1Lo
     m0 := by
       rw [sty.eSlot hpre (fun y hy h' ↦ by addr_omega [hy, h', hb1])
           (by constructor <;> addr_omega [hb1]),
@@ -182,6 +184,7 @@ structure PtsC (s w y : MachineState) (ptr : Word) (xs : List E) : Prop where
     y.getReg r = w.getReg r
   x9 : y.getReg .x9 = logMem s
   c2 : NewVecR s y (y.getReg .x27) (y.getReg .x24) (logMem s) (xs.take (logMem s).toNat)
+  c2Lo : PtrLo y (y.getReg .x24) (logMem s)
   m1 : eAt y (s.getReg .x2 - 128) = eAt w (s.getReg .x2 - 248)
   m2 : eAt y (s.getReg .x2 - 248) = eAt w (vecPtr w (s.getReg .x2 - 864) + 48)
   pointPtr : y.getMem (s.getReg .x2 - 1256) = ptr
@@ -254,7 +257,7 @@ theorem ptsC (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s w : Machi
     rw [k₂ r (mem_of_mem hr _), k₁ r (mem_of_mem hr _)]
   have st₁₂ := st₁.trans st₂
   have hp₂ := hp.keepR hpre st₁₂.toR (fun a ha ↦ by rcases ha with ha | ha <;> addr_omega [ha, hb1])
-  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, p88, p72, c2⟩⟩ := copy3 hT hM hpre I₂
+  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, p88, p72, c2, c2Lo⟩⟩ := copy3 hT hM hpre I₂
     (b80006dd8_pc h₂) (b80006dd8_x1 h₂) x10₂ (b80006dd8_x13 h₂) (b80006dd8_x14 h₂) x9₂ x11₂
     ((rg₂ .x18 (by decide)).trans h18) ((rg₂ .x27 (by decide)).trans h27) hp₂ hn
   · exact ⟨y, hr₁.trans (hr₂.trans hry), Or.inl hd⟩
@@ -280,6 +283,7 @@ theorem ptsC (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s w : Machi
     regs := fun r hr ↦ by rw [rgy r (mem_of_mem hr _), rg₂ r (mem_of_mem hr _)]
     x9 := by rw [rgy .x9 (by decide), x9₂]
     c2 := c2
+    c2Lo := c2Lo
     m1 := by
       rw [sty.eSlot hpre (fun y hy h' ↦ by rcases h' with h' | h' | h' <;> addr_omega [hy, h', hb1])
           (by constructor <;> addr_omega [hb1]),

@@ -46,6 +46,7 @@ structure PtsA (s q w : MachineState) (state : GkrState) : Prop where
   x9 : w.getReg .x9 = logMem s
   x18 : w.getReg .x18 = logMem s * 16 + logMem s * 8
   c0 : NewVecR s w (w.getReg .x8) (w.getReg .x21) (logMem s) (state.point.take (logMem s).toNat)
+  c0Lo : PtrLo w (w.getReg .x21) (logMem s)
   m0 : eAt w (s.getReg .x2 - 248) = eAt q (q.getReg .x8)
   valuesPtr : w.getMem (s.getReg .x2 - 1280) = q.getReg .x19
   pointLen : w.getMem (s.getReg .x2 - 1144) = q.getReg .x21
@@ -143,7 +144,7 @@ theorem ptsA (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
     rcases ha with (ha | ha | ha) | ha | ha <;> addr_omega [ha, hb1])
   have hlen : state.point.length = (q.getReg .x21).toNat := by
     rw [← Sc.point.elems, eListAt_length]
-  obtain ⟨w, hrw, hd | ⟨hpcw, Iw, stw, rgw, x18w, c0⟩⟩ := copy1 hT hM hpre I₂ (b80006cb8_pc h₂)
+  obtain ⟨w, hrw, hd | ⟨hpcw, Iw, stw, rgw, x18w, c0, c0Lo⟩⟩ := copy1 hT hM hpre I₂ (b80006cb8_pc h₂)
     (b80006cb8_x1 h₂) x10₂ (b80006cb8_x13 h₂) (b80006cb8_x14 h₂) x9₂ x11₂ x27₂ hp₂
     (by rw [← hlen]; exact Sc.lm)
   · exact ⟨w, hr₁.trans (hr₂.trans hrw), Or.inl hd⟩
@@ -193,6 +194,7 @@ theorem ptsA (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
     x9 := by rw [rgw .x9 (by decide), x9₂]
     x18 := x18w
     c0 := c0
+    c0Lo := c0Lo
     m0 := by
       rw [stw.eSlot hpre (fun y hy h' ↦ by addr_omega [hy, h', hb1])
         (by constructor <;> addr_omega [hb1])]

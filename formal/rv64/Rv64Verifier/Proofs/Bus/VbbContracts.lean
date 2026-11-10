@@ -28,8 +28,8 @@ namespace Vbb
 /-- `a0` = where the `Vec` goes, `a1`/`a2` = the point, of fewer than `64` coordinates. -/
 structure EqKernelPre (s : MachineState) : Prop where
   heap : Runtime.HeapOk s
-  out : ValidMemRange (s.getReg .x10) 3
-  point : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
+  out : Region (s.getReg .x10) 24
+  point : (s.getReg .x12).toNat = 0 ∨ Region (s.getReg .x11) (24 * (s.getReg .x12).toNat)
   small : (s.getReg .x12).toNat < 64
   stack : Runtime.RtStack s eqKernelStack
   outFree : Runtime.Outside s (s.getReg .x10) 24
@@ -162,8 +162,8 @@ abbrev MleEvalSpec : Prop := FunSpec Image.code 0x8000d28c MleEvalPre MleEvalPos
 /-- Its 1968-byte frame and `eq_kernel`'s stack below it. -/
 @[rv_addr] def bytecodeEvalStack : Nat := 1968 + eqKernelStack
 
-/-- `a0` = the `Result<E, VerifierError>`, `a1` = the `Bytecode` (as `BcOk` says, for a callee
-with an `n`-byte stack), `a2`/`a3` = the point, read only. -/
+/-- `a0` = the `Result<E, VerifierError>` in the caller's frame, `a1` = the `Bytecode` (as `BcOk`
+says, for a callee with an `n`-byte stack), `a2`/`a3` = the point, read only. -/
 structure BytecodeEvalPre (BcOk : MachineState → Nat → Word → Prop) (s : MachineState) : Prop where
   heap : Runtime.HeapOk s
   stack : Runtime.RtStack s bytecodeEvalStack
@@ -173,6 +173,9 @@ structure BytecodeEvalPre (BcOk : MachineState → Nat → Word → Prop) (s : M
   outStack : Apart (s.getReg .x10) 32 (stackLo s bytecodeEvalStack) bytecodeEvalStack
   outRodata : Apart (s.getReg .x10) 32 rodataBase rodataSize
   bytecode : BcOk s bytecodeEvalStack (s.getReg .x11)
+  /-- The result lies in the caller's frame, right above the callee's stack. -/
+  outFrame : (stackLo s bytecodeEvalStack).toNat ≤ (s.getReg .x10).toNat ∧
+    (s.getReg .x10).toNat + 32 ≤ (stackLo s bytecodeEvalStack).toNat + busBalanceStack
   point : Held s bytecodeEvalStack (s.getReg .x12) (24 * (s.getReg .x13).toNat)
   pointOut : Apart (s.getReg .x12) (24 * (s.getReg .x13).toNat) (s.getReg .x10) 32
 

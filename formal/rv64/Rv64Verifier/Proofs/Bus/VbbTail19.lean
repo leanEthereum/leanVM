@@ -132,6 +132,7 @@ structure Indexed (bev : MachineState → Word → List E → Option E) (s v : M
   bfEq : bf = eOf3 (v.getReg .x26) (v.getMem (s.getReg .x2 - 1120))
     (v.getMem (s.getReg .x2 - 1128))
   tracks : Tracks (prog bev s) (s.getReg .x12) s v (rest bev s k state mem mf bf)
+  pointLo : PtrLo v (v.getMem (s.getReg .x2 - 1256)) (v.getMem (s.getReg .x2 - 1144))
 
 theorem indexStage (hI : IndexMleSpec) {bev : MachineState → Word → List E → Option E}
     {s t : MachineState} {k : Start} {state : GkrState} {mem : List E} {mf bf : E}
@@ -283,6 +284,9 @@ theorem indexStage (hI : IndexMleSpec) {bev : MachineState → Word → List E �
       rw [K1 _ (by constructor <;> addr_omega [hb1]), K1 _ (by constructor <;> addr_omega [hb1]),
         K1 _ (by constructor <;> addr_omega [hb1])]
       exact C.point.keepR hpre st.toR fT
+    pointLo := by
+      rw [K1 _ (by constructor <;> addr_omega [hb1]), K1 _ (by constructor <;> addr_omega [hb1])]
+      exact C.pointLo.mono st.mono
     valuesPtr := by
       rw [K1 _ (by constructor <;> addr_omega [hb1]), C.valuesPtr, vecPtr, vecPtr,
         kT _ (Or.inr (Or.inr (by constructor <;> addr_omega [hb1])))]

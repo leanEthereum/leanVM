@@ -361,6 +361,7 @@ structure Fps (bev : MachineState → Word → List E → Option E) (s z : Machi
   x21 : z.getReg .x21 = vecLen z (s.getReg .x2 - 888)
   x27 : z.getReg .x27 = z.getMem (s.getReg .x2 - 1256)
   tracks : Tracks (prog bev s) (s.getReg .x12) s z (pure (restValue s k state mem mf bf bv))
+  pointLo : PtrLo z (z.getMem (s.getReg .x2 - 1256)) (z.getMem (s.getReg .x2 - 1144))
 
 theorem fpsPush (hP : PowSpec) (hF : FingerprintsSpec)
     {bev : MachineState → Word → List E → Option E} {s y : MachineState} {k : Start}
@@ -643,6 +644,10 @@ theorem fpsStage (hP : PowSpec) (hF : FingerprintsSpec)
         K1 _ (Or.inl (by constructor <;> addr_omega [hb1])),
         K1 _ (Or.inl (by constructor <;> addr_omega [hb1]))]
       exact E.point.keepR hpre Sz.toR fW
+    pointLo := by
+      rw [K1 _ (Or.inl (by constructor <;> addr_omega [hb1])),
+        K1 _ (Or.inl (by constructor <;> addr_omega [hb1]))]
+      exact E.pointLo.mono Sz.mono
     valuesPtr := by
       rw [K1 _ (Or.inl (by constructor <;> addr_omega [hb1])), E.valuesPtr, vecPtr, vecPtr,
         K1 _ (Or.inr (by constructor <;> addr_omega [hb1]))]

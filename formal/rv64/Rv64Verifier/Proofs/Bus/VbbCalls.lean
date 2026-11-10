@@ -56,7 +56,7 @@ theorem eqKernelCall (hEK : Vbb.EqKernelSpec) {s u₀ u : MachineState} (hpre : 
     ∃ v, Reaches Image.code u₀ v ∧ ((v.pc = returnAddress u ∧ Preserves u v ∧
       Step s u v (s.getReg .x2 - BitVec.ofNat 64 k) 24 ∧
       NewVecE s v (s.getReg .x2 - BitVec.ofNat 64 k) (eqKernelRust xs)) ∨ Dead Image.code v) := by
-  obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
+  obtain ⟨hb1, -, -, -⟩ := bounds hpre
   obtain ⟨o1, o2, o3⟩ := frameSlot (m := Vbb.eqKernelStack) hpre h (n := 24) (by omega) hk2 hk8
     (by decide)
   have hsl : stackLo u Vbb.eqKernelStack = s.getReg .x2 - BitVec.ofNat 64 (1344 + 1232) := by
@@ -76,11 +76,10 @@ theorem eqKernelCall (hEK : Vbb.EqKernelSpec) {s u₀ u : MachineState} (hpre : 
   simp only [heapNext, heapEnd, heapStart] at hhi hlo hm i1 i2 hst
   have pre : Vbb.EqKernelPre u := {
     heap := h.heap
-    out := by
-      rw [h10]; exact regionRange o1 (Nat.le_refl _) (by omega) (by addr_omega [hb1, hb3, hk8, hk2])
+    out := h10 ▸ o1
     point := by
       rw [h11, h12]
-      exact heapRange i3 (by simp only [heapStart]; omega) (by simp only [heapEnd]; omega)
+      exact Or.inr ⟨Or.inl ⟨by omega, by omega⟩, i3⟩
     small := by rw [h12]; exact hsmall
     stack := hpre.stack.sub 1344 h.sp (by decide) (by decide) (by decide) (by decide) (by decide)
     outFree := h10 ▸ o2

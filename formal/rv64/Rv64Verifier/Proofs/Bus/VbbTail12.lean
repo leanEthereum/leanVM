@@ -161,6 +161,10 @@ structure Points (bev : MachineState → Word → List E → Option E) (s y : Ma
   bfEq : bf = eOf3 (y.getReg .x26) (y.getMem (s.getReg .x2 - 1120))
     (y.getMem (s.getReg .x2 - 1128))
   tracks : Tracks (prog bev s) (s.getReg .x12) s y (rest bev s k state mem mf bf)
+  c0Lo : PtrLo y (y.getReg .x21) (logMem s)
+  c1Lo : PtrLo y (y.getReg .x23) (logMem s)
+  c2Lo : PtrLo y (y.getReg .x24) (logMem s)
+  pointLo : PtrLo y (y.getMem (s.getReg .x2 - 1256)) (y.getMem (s.getReg .x2 - 1144))
 
 theorem pointsStage (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
     {bev : MachineState → Word → List E → Option E} {s q : MachineState} {k : Start}
@@ -336,7 +340,13 @@ theorem pointsStage (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
         kv _ (Or.inr (by constructor <;> addr_omega [hb1])), A.bf1,
         kv _ (Or.inr (by constructor <;> addr_omega [hb1])), A.bf2]
       exact Sc.bfEq
-    tracks := Sc.tracks.keep fun T hT ↦ st.transcript hpre Sc.inv fW hT }⟩⟩
+    tracks := Sc.tracks.keep fun T hT ↦ st.transcript hpre Sc.inv fW hT
+    c0Lo := by rw [rv .x21 (by decide)]; exact A.c0Lo.mono stBCD.mono
+    c1Lo := by
+      rw [D.regs .x23 (by decide), C.regs .x23 (by decide)]
+      exact B.c1Lo.mono (C.step.trans D.step).mono
+    c2Lo := by rw [D.regs .x24 (by decide)]; exact C.c2Lo.mono D.step.mono
+    pointLo := by rw [p1256, p1144]; exact Sc.pointLo.mono st.mono }⟩⟩
 
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

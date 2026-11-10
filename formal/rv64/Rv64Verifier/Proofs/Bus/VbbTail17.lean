@@ -28,6 +28,7 @@ structure At702c (s w z : MachineState) (state : GkrState) (mem : List E) (mf : 
   len : z.getMem (s.getReg .x2 - 824) = 4
   lt : 4 < (z.getMem (s.getReg .x2 - 840)).toNat
   c4 : NewVecR s z (z.getReg .x9) (z.getReg .x18) (logBc s) (state.point.take (logBc s).toNat)
+  c4Lo : PtrLo z (z.getReg .x18) (logBc s)
   apart4 : Apart (z.getReg .x18) ((z.getReg .x9).toNat * 24) (z.getReg .x8)
     (56 * (z.getMem (s.getReg .x2 - 840)).toNat)
   x19 : z.getReg .x19 = 4
@@ -79,6 +80,9 @@ theorem to702c (hG : GrowOneFreshSpec 0x8000c0a4 56 8)
       c4 := by
         rw [k₁ .x9 (by decide), k₁ .x18 (by decide)]
         exact C.c4.keepR hpre (sm₁ (A := fun _ ↦ False)) (fun _ h ↦ h.elim)
+      c4Lo := by
+        rw [k₁ .x18 (by decide)]
+        exact C.c4Lo.mono (sm₁ (A := fun _ ↦ False)).mono
       apart4 := by
         rw [k₁ .x9 (by decide), k₁ .x18 (by decide), k₁ .x8 (by decide), m₁, C.x8]
         exact C.apart4
@@ -180,6 +184,9 @@ theorem to702c (hG : GrowOneFreshSpec 0x8000c0a4 56 8)
     c4 := by
       rw [rg .x9 (by decide), rg .x18 (by decide)]
       exact C.c4.keepR hpre st₃.toR f16
+    c4Lo := by
+      rw [rg .x18 (by decide)]
+      exact C.c4Lo.mono st₃.mono
     apart4 := by
       rw [rg .x9 (by decide), rg .x18 (by decide), x8₃, y840]
       have hb := C.c4.buf

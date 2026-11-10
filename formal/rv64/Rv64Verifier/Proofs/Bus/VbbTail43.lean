@@ -117,6 +117,7 @@ structure Dotted (s z h u t : MachineState) (i : Nat)
   x18 : t.getReg .x18 = sideWord s h i 80
   known : eAt t (s.getReg .x2 - 320) =
     dotRust (sd.2.1.framework.map (·.eqAbove point)) (sd.2.2.1.map (sd.2.2.2.2 + ·))
+  mono : heapNext u ≤ heapNext t
 
 set_option maxRecDepth 8192 in
 theorem sideDot (hD : DotSpec) {s z h u w : MachineState} {i : Nat}
@@ -181,7 +182,7 @@ theorem sideDot (hD : DotSpec) {s z h u w : MachineState} {i : Nat}
   swap
   · exact ⟨t, hr₁.trans hrt, Or.inl hd⟩
   refine ⟨t, hr₁.trans hrt, Or.inr ⟨by rw [hpct, returnAddress_eq, b80007788_x1 h₁]; decide,
-    Ct, ?_, fun r hr ↦ ?_, ?_, ?_, ?_⟩⟩
+    Ct, ?_, fun r hr ↦ ?_, ?_, ?_, ?_, ?_⟩⟩
   · refine ((S.fr.mono fun a ha ↦ ?_).trans (DFrame.of_same m₁ _) fun _ h ↦ h).trans
       (frt.mono fun a ha ↦ ?_) fun _ h ↦ h
     · rcases ha with ha | ha | ha | ⟨a1, a2⟩
@@ -217,5 +218,6 @@ theorem sideDot (hD : DotSpec) {s z h u w : MachineState} {i : Nat}
     have e2 : eListAt w₁ q sd.2.1.framework.length = sd.2.2.1.map (sd.2.2.2.2 + ·) := by
       rw [eListAt_congr fun j _ ↦ eAt_congr (m₁ _) (m₁ _) (m₁ _), hlen', S.vals]
     rw [e1, e2]
+  · rw [hnt, hn₁]; exact S.mono
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

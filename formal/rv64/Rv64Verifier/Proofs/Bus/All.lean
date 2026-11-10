@@ -12,7 +12,10 @@ import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
 import Rv64Verifier.Proofs.Bus.VbbTail30
-import Rv64Verifier.Proofs.Bus.VbbTail57
+import Rv64Verifier.Proofs.Bus.VbbTail69
+import Rv64Verifier.Proofs.Bus.VbbEntry
+import Rv64Verifier.Proofs.Bus.VbbBc
+import Rv64Verifier.Proofs.Bytecode.All
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -30,7 +33,7 @@ code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `nex
 stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's (`gkrStage`, `VbbGkr*.lean`, closed), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
 `table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
 and `Form::evaluate` (`FormEvaluateSpecE`).
-Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`), the forms' rows and the sides' array (`restToSides`, `VbbTail23.lean` to `VbbTail26.lean`). The side loop's invariant (`Sides`), its entry and the return with the result (`finalStage`, `VbbTail27.lean` to `VbbTail30.lean`) are proved: `TailStage` holds given the way into the side loop with the empty buffers' pointers (`SidesEntry`) and one iteration of it (`SideStage`), both stated in `VbbTail27.lean`.
+Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`), the forms' rows and the sides' array (`restToSides`, `VbbTail23.lean` to `VbbTail26.lean`). The side loop's invariant (`Sides`), its entry and the return with the result (`finalStage`, `VbbTail27.lean` to `VbbTail30.lean`) are proved: `TailStage` holds given the way into the side loop with the empty buffers' pointers (`SidesEntry`) and one iteration of it (`SideStage`), both stated in `VbbTail27.lean`. `SidesEntry` is proved (`VbbEntry.lean`), `Bytecode::evaluate` read through `VerifyBusBalance.BcOk` (`VbbBc.lean`), and `verifyBusBalance` / `verifyBusBalanceBc` close the contract but for `SideStage` (and `Bytecode::evaluate`'s `eq_kernel`). `SideStage` is proved (`VbbTail31.lean` to `VbbTail69.lean`), its callees discharged (`sideStage`): `verifyBusBalance'` and `verifyBusBalanceBc'` take only `Bytecode::evaluate`.
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -59,6 +62,82 @@ theorem vbbTailStage {BcOk : MachineState → Nat → Word → Prop}
     (hS : VerifyBusBalance.SideStage bev) : VerifyBusBalance.TailStage BcOk bev :=
   VerifyBusBalance.tailStage Transcript.nextScalars Transcript.nextScalar
     (VerifyBusBalance.restStage hE hS (VerifyBusBalance.finalStage bev))
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- The side loop's iteration, its callees discharged. -/
+theorem sideStage (bev : MachineState → Word → List E → Option E) :
+    VerifyBusBalance.SideStage bev :=
+  VerifyBusBalance.sideStage tryAllocZeroed Runtime.reserveFresh_80008a10 Multilinear.eqAbove
+    Multilinear.dot ⟨Layout.term_proved, Layout.add_scaled_proved, Field.mul,
+      Layout.form_evaluate_e_proved⟩ Runtime.growOneFresh_80011c78 bev
+
+open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Model in
+/-- `eq_kernel`'s proved contract gives `Vbb.EqKernelPost`. -/
+theorem vbbEqKernelPost {s t : MachineState} (c : MultilinearContracts.EqKernelPost s t) :
+    Vbb.EqKernelPost s t := by
+  have hv := c.value
+  have hl : (vecLen t (s.getReg .x10)).toNat = 2 ^ (s.getReg .x12).toNat := by
+    have := congrArg List.length hv.elems
+    rwa [vecEs, eListAt_length, eqKernelRust_eq, eqKernel_length, eListAt_length] at this
+  refine ⟨c.heap, c.mono, hv.vec, hl, hv.elems, ?_, c.frame⟩
+  have hb := hv.buf
+  have hle := hv.vec.len
+  have hp := Nat.two_pow_pos (s.getReg .x12).toNat
+  simp only [NewBuf] at hb ⊢
+  refine ⟨hb.1, Or.inr ?_⟩
+  rcases hb.2 with h0 | h0
+  · omega
+  · exact ⟨h0.1, by omega⟩
+
+/-- `eq_kernel`, as `verify_bus_balance` calls it, from the multilinear proof. -/
+theorem vbbEqKernel : Vbb.EqKernelSpec := fun s hpc h ↦
+  (Proofs.Multilinear.eqKernel s hpc
+    ⟨h.heap, h.out, h.point, h.stack, h.outFree, Or.inr h.pointFree, h.outStack, h.pointStack,
+      h.pointOut, h.rodata, h.outRodata⟩).imp fun _ ⟨hr, ht⟩ ↦
+    ⟨hr, ht.imp_left fun ⟨a, b, c⟩ ↦ ⟨a, b, vbbEqKernelPost c⟩⟩
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- `verify_bus_balance`'s way into the side loop, its callees' contracts discharged. -/
+theorem sidesEntry {BcOk : MachineState → Nat → Word → Prop}
+    {bev : MachineState → Word → List E → Option E} (hB : Vbb.BytecodeEvalSpec BcOk bev)
+    (hBT : VerifyBusBalance.BcTransfer BcOk bev) : VerifyBusBalance.SidesEntry BcOk bev :=
+  VerifyBusBalance.sidesEntry tryAllocZeroed memcpy alloc_spec growOneFresh_8000c0a4
+    Multilinear.indexMle Multilinear.sliceConcat hB hBT Field.ePow fingerprints
+    reserveFresh_80004aec (Layout.Clone.clone_caps_spec tryAllocZeroed memcpy)
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- **`verify_bus_balance`'s contract**, given one iteration of the side loop and `Bytecode::evaluate`
+read through `BcOk`. -/
+theorem verifyBusBalance {BcOk : MachineState → Nat → Word → Prop}
+    {bev : MachineState → Word → List E → Option E} (hB : Vbb.BytecodeEvalSpec BcOk bev)
+    (hBT : VerifyBusBalance.BcTransfer BcOk bev) (hS : VerifyBusBalance.SideStage bev) :
+    BusBalanceSpec BcOk bev :=
+  VerifyBusBalance.verify_bus_balance_spec Layout.bus_layout_proved Transcript.samples vbbEqKernel
+    Transcript.duplex Transcript.nextScalar alloc_spec (gkrStage bev)
+    (vbbTailStage (sidesEntry hB hBT) hS)
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- **`verify_bus_balance`'s contract** for the `Bytecode` as `VerifyBusBalance.BcOk` says, given
+one iteration of the side loop and `Bytecode::evaluate`'s `eq_kernel` contract. -/
+theorem verifyBusBalanceBc (hEK : Proofs.Bytecode.EqKernelSpec)
+    (hS : VerifyBusBalance.SideStage VerifyBusBalance.bevOf) :
+    BusBalanceSpec VerifyBusBalance.BcOk VerifyBusBalance.bevOf :=
+  verifyBusBalance (VerifyBusBalance.bytecodeEval (Proofs.Bytecode.evaluate hEK))
+    VerifyBusBalance.bcTransfer hS
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- **`verify_bus_balance`'s contract**, given `Bytecode::evaluate` read through `BcOk`. -/
+theorem verifyBusBalance' {BcOk : MachineState → Nat → Word → Prop}
+    {bev : MachineState → Word → List E → Option E} (hB : Vbb.BytecodeEvalSpec BcOk bev)
+    (hBT : VerifyBusBalance.BcTransfer BcOk bev) : BusBalanceSpec BcOk bev :=
+  verifyBusBalance hB hBT (sideStage bev)
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- **`verify_bus_balance`'s contract** for the `Bytecode` as `VerifyBusBalance.BcOk` says, given
+`Bytecode::evaluate`'s `eq_kernel` contract. -/
+theorem verifyBusBalanceBc' (hEK : Proofs.Bytecode.EqKernelSpec) :
+    BusBalanceSpec VerifyBusBalance.BcOk VerifyBusBalance.bevOf :=
+  verifyBusBalanceBc hEK (sideStage VerifyBusBalance.bevOf)
 
 end Rv64Verifier.Proofs.Bus
 
@@ -254,3 +333,47 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkLoop
+/-- info: 'Rv64Verifier.Proofs.Bus.vbbEqKernel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.vbbEqKernel
+
+/-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalance' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalance
+
+/-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalanceBc' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalanceBc
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.Sides.mm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.Sides.mm
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkEnter' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkEnter
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.Blk.tl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.Blk.tl
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.Mat.keepO' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.Mat.keepO
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideSums' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideSums
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.toPush' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.toPush
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.pushTot' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.pushTot
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideTail
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.sideStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.sideStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalance'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalance'
+
+/-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalanceBc'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalanceBc'

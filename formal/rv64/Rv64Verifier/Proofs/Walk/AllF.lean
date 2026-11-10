@@ -1,4 +1,5 @@
 import Rv64Verifier.Proofs.Walk.Front
+import Rv64Verifier.Proofs.Walk.BcWalk
 
 /-!
 # `walk`'s front: the axioms
@@ -35,3 +36,9 @@ axioms: Lean's three.
 
 /-- info: 'Rv64Verifier.Proofs.Walk.frontV' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.frontV
+
+/-- info: 'Rv64Verifier.Proofs.Walk.bcWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.bcWalk
+
+/-- info: 'Rv64Verifier.Proofs.Walk.bcCover_of_aligned' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.bcCover_of_aligned

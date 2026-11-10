@@ -101,7 +101,8 @@ theorem copy1 (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s u : Mach
       (∀ r ∈ ([.x9, .x19, .x20, .x22, .x23, .x24, .x25, .x26, .x27] : List Reg),
         w.getReg r = u.getReg r) ∧
       w.getReg .x18 = n * 16 + n * 8 ∧
-      NewVecR s w (w.getReg .x8) (w.getReg .x21) n (xs.take n.toNat))) := by
+      NewVecR s w (w.getReg .x8) (w.getReg .x21) n (xs.take n.toNat) ∧
+      PtrLo w (w.getReg .x21) n)) := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 4544) 568 := hpre.stack.valid
   obtain ⟨v, hrv, ⟨hpcv, hpv, st, J, ok⟩ | hd⟩ := tryAllocCall hT hpre h (Reaches.refl u) hpc h10 h13 h14
@@ -121,8 +122,8 @@ theorem copy1 (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s u : Mach
   · have pc₂ := b80006cf8_pc_taken h₂ (by rw [sp, e736]; exact ht)
     exact ⟨u₂, hrv.trans hr₂, Or.inl (dead_of_fetch (by
       rw [pc₂]; exact Option.isNone_iff_eq_none.mp (by decide +kernel)))⟩
-  obtain ⟨hcap, hP⟩ := ok ht
-  rw [h11] at hcap hP
+  obtain ⟨hcap, hP, hdg⟩ := ok ht
+  rw [h11] at hcap hP hdg
   have pc₂ := b80006cf8_pc_not_taken h₂ (by rw [sp, e736]; exact ht)
   have I₂ := J.same m₂ (k₂ .x2 (by decide))
   have sp₂ : u₂.getReg .x2 = s.getReg .x2 - 1344 := I₂.sp
@@ -154,11 +155,12 @@ theorem copy1 (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s u : Mach
     rw [k₃ r (mem_of_mem hr _), k₂ r (mem_of_mem hr _), hpv r (mem_of_mem hr _)]
   by_cases hz : n = 0
   · refine ⟨u₃, hrv.trans (hr₂.trans hr₃), Or.inr ⟨b80006d00_pc_taken h₃ (by rw [x9₂]; exact hz),
-      I₃, st₃, rg, x18₃, ?_⟩⟩
-    rw [x8₃, x21₃]
-    have hz' : n.toNat = 0 := by rw [hz]; rfl
-    refine ⟨Nat.le_refl _, ⟨hP.1, Or.inl (by rw [hz'])⟩, ?_⟩
-    rw [hz']; rfl
+      I₃, st₃, rg, x18₃, ?_, ?_⟩⟩
+    · rw [x8₃, x21₃]
+      have hz' : n.toNat = 0 := by rw [hz]; rfl
+      refine ⟨Nat.le_refl _, ⟨hP.1, Or.inl (by rw [hz'])⟩, ?_⟩
+      rw [hz']; rfl
+    · rw [x21₃, hdg hz, hz]; exact PtrLo.dangling I₃.heap
   have pc₃ := b80006d00_pc_not_taken h₃ (by rw [x9₂]; exact hz)
   obtain ⟨u₄, hr₄, h₄⟩ := Sym.BlockSpec.reaches b80006d18_spec pc₃ trivial
   have k₄ := b80006d18_keeps h₄
@@ -179,11 +181,13 @@ theorem copy1 (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s u : Mach
   swap
   · exact ⟨w, hrv.trans (hr₂.trans (hr₃.trans (hr₄.trans hrw))), Or.inl hd⟩
   refine ⟨w, hrv.trans (hr₂.trans (hr₃.trans (hr₄.trans hrw))), Or.inr ⟨by
-    rw [hpcw, returnAddress_eq, b80006d18_x1 h₄]; decide, Iw, stw, fun r hr ↦ ?_, ?_, ?_⟩⟩
+    rw [hpcw, returnAddress_eq, b80006d18_x1 h₄]; decide, Iw, stw, fun r hr ↦ ?_, ?_, ?_, ?_⟩⟩
   · rw [hpw r (by unfold calleeSaved; exact mem_of_mem hr _), k₄ r (mem_of_mem hr _), rg r hr]
   · rw [hpw .x18 (by decide), k₄ .x18 (by decide), x18₃]
   · rw [hpw .x8 (by decide), hpw .x21 (by decide), k₄ .x8 (by decide), k₄ .x21 (by decide), x8₃,
       x21₃]
     exact hw
+  · rw [hpw .x21 (by decide), k₄ .x21 (by decide), x21₃]
+    exact hw.ptrLo (toNat_pos_of_ne hz)
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

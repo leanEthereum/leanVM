@@ -280,6 +280,7 @@ structure Loop (bev : MachineState → Word → List E → Option E) (s u : Mach
   values : NewVecE s u (s.getReg .x2 - 176) st.values
   len : st.values.length = 3
   tracks : Tracks (prog bev s) (s.getReg .x12) s u (gkrLoopM n st >>= tail bev s k cnt)
+  pointLo : PtrLo u (u.getReg .x27) (u.getReg .x21)
 
 /-- A `Vec<E>` of three elements allocated since the entry: its first 72 bytes lie in the heap. -/
 theorem _root_.Rv64Verifier.Transcript.NewVecE.heap3 {s u : MachineState} {a : Word}

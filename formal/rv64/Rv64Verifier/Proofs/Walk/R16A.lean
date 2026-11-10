@@ -298,6 +298,98 @@ theorem hdrCopy {OI : MachineState → Word → List (List Opening) → Prop} {s
       apply BitVec.eq_of_toNat_eq; addr_omega [hb1, hk, hj]]
   exact h.st.slot15 hpre (by omega) (by omega)
 
+/-! ## The `Bytecode`'s doublewords -/
+
+theorem bcIn_parts {s : MachineState} {p : Word} (hb : BytecodeIn s p) :
+    ∀ q ∈ bcParts s p, ReadOnly s q.1 q.2 := by
+  intro q hq
+  simp only [bcParts, List.mem_cons, List.not_mem_nil, or_false] at hq
+  rcases hq with rfl | rfl | rfl | rfl | rfl
+  · exact hb.self
+  · exact hb.blocks
+  · exact hb.words
+  · exact hb.positions
+  · exact hb.bytes
+
+/-- Bytes apart from an aligned range: so is each aligned doubleword holding one of them. -/
+theorem apart_dword {a q b : Word} {n m : Nat} (h : Apart q n b m) (hb : b.toNat % 8 = 0)
+    (hm : m % 8 = 0) (ha : Meets a q n) : Apart a 8 b m := by
+  simp only [Apart, Meets] at h ha ⊢
+  omega
+
+/-- A doubleword holding a byte of a part only read misses `walk`'s stack, its result and
+`NEXT`. -/
+theorem bcDword {s : MachineState} (hpre : WalkPre s) {q a : Word} {n : Nat}
+    (hq : ReadOnly s q n) (ha : Meets a q n) :
+    Apart a 8 (s.getReg .x2 - 11392) 11392 ∧ Apart a 8 (s.getReg .x10) 80 ∧
+      Apart a 8 nextAddr 8 := by
+  obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
+  have hs := hq.2.1
+  rw [stackLo_eq, stack_eq] at hs
+  exact ⟨apart_dword hs (by addr_omega [hb1, hb3]) (by decide) ha,
+    apart_dword hq.2.2.1 hpre.out.2 (by decide) ha, apart_dword hq.1.2 (by decide) (by decide) ha⟩
+
+/-- A doubleword holding a byte of a part only read, below `NEXT` at the entry or above the heap,
+is kept. -/
+theorem bcKeep {s c : MachineState} (hpre : WalkPre s) (I : Inv s c) {q a : Word} {n : Nat}
+    (hq : ReadOnly s q n) (hend : q.toNat + n ≤ 0xc0000000) (ha : Meets a q n)
+    (hc : a.toNat + 8 ≤ heapNext s ∨ heapEnd ≤ a.toNat) : c.getMem a = s.getMem a := by
+  obtain ⟨hs, ho, hn⟩ := bcDword hpre hq ha
+  have hm := I.heap.hi
+  simp only [Meets] at ha
+  simp only [heapNext, heapEnd] at hc hm
+  refine I.frame a (fun x hx hw ↦ ?_) (by omega)
+  simp only [WalkW, Fresh, stackLo_eq] at hw
+  rcases hw with hw | hw | hw | ⟨f1, f2⟩
+  · addr_omega [hx, hw, ho, ha, hend]
+  · addr_omega [hx, hw, hs, ha, hend]
+  · addr_omega [hx, hw, hn, ha, hend]
+  · simp only [heapNext] at f1 f2; addr_omega [hx, f1, f2, hc, hm, ha, hend]
+
+/-- The `Bytecode`'s header, kept. -/
+theorem bcHdr {s c : MachineState} (hpre : WalkPre s) (I : Inv s c) {k : Nat} (hk8 : k % 8 = 0)
+    (hk : k + 8 ≤ 136) :
+    c.getMem (s.getReg .x11 + BitVec.ofNat 64 k) = s.getMem (s.getReg .x11 + BitVec.ofNat 64 k) := by
+  have hm := hpre.bytecode.mem
+  have hro := hpre.bytecode.self
+  have he : (s.getReg .x11).toNat + 136 ≤ 0xc0000000 := by
+    have := hm.self; simp only [Mapped] at this; omega
+  have hal := hm.align
+  refine bcKeep hpre I hro he ⟨by addr_omega [hal, he, hk8, hk], by addr_omega [he, hk],
+    by addr_omega [he, hk], by omega⟩ ?_
+  rcases hro.1.1 with h0 | h0
+  · exact Or.inl (by addr_omega [h0, he, hk])
+  · exact Or.inr (by addr_omega [h0, he, hk])
+
+/-- The `Bytecode`'s parts, read in a state past the entry. -/
+theorem bcParts_walk {s c : MachineState} (hpre : WalkPre s) (I : Inv s c) :
+    bcParts c (s.getReg .x11) = bcParts s (s.getReg .x11) := by
+  have w2 (b j : Nat) (hb : b + j + 8 ≤ 136) (hj : (b + j) % 8 = 0) :
+      c.getMem (s.getReg .x11 + BitVec.ofNat 64 b + BitVec.ofNat 64 j) =
+        s.getMem (s.getReg .x11 + BitVec.ofNat 64 b + BitVec.ofNat 64 j) := by
+    rw [BitVec.add_assoc, ← BitVec.ofNat_add]; exact bcHdr hpre I hj hb
+  have p0 : vecPtr c (s.getReg .x11) = vecPtr s (s.getReg .x11) := bcHdr hpre I (k := 8) rfl (by omega)
+  have l0 : vecLen c (s.getReg .x11) = vecLen s (s.getReg .x11) :=
+    bcHdr hpre I (k := 16) rfl (by omega)
+  have p1 : vecPtr c (s.getReg .x11 + 24) = vecPtr s (s.getReg .x11 + 24) := w2 24 8 (by omega) rfl
+  have l1 : vecLen c (s.getReg .x11 + 24) = vecLen s (s.getReg .x11 + 24) := w2 24 16 (by omega) rfl
+  have p2 : vecPtr c (s.getReg .x11 + 48) = vecPtr s (s.getReg .x11 + 48) := w2 48 8 (by omega) rfl
+  have l2 : vecLen c (s.getReg .x11 + 48) = vecLen s (s.getReg .x11 + 48) := w2 48 16 (by omega) rfl
+  have p3 : vecPtr c (s.getReg .x11 + 72) = vecPtr s (s.getReg .x11 + 72) := w2 72 8 (by omega) rfl
+  have l3 : vecLen c (s.getReg .x11 + 72) = vecLen s (s.getReg .x11 + 72) := w2 72 16 (by omega) rfl
+  simp only [bcParts, p0, l0, p1, l1, p2, l2, p3, l3]
+
+/-- The `Bytecode`'s doublewords miss `verify_bus_balance`'s result and the transcript's sponge,
+both in `walk`'s frame. -/
+theorem bcApart {s c : MachineState} (hpre : WalkPre s) (I : Inv s c) {x : Word} {m : Nat}
+    (hx1 : (s.getReg .x2).toNat - 11392 ≤ x.toNat) (hx2 : x.toNat + m ≤ (s.getReg .x2).toNat) :
+    ∀ q ∈ bcParts c (s.getReg .x11), ∀ a, Meets a q.1 q.2 → Apart a 8 x m := by
+  obtain ⟨hb1, -, -, -⟩ := bounds hpre
+  rw [bcParts_walk hpre I]
+  intro q hq a ha
+  obtain ⟨hs, -, -⟩ := bcDword hpre (bcIn_parts hpre.bytecode q hq) ha
+  addr_omega [hs, hx1, hx2, hb1]
+
 set_option maxRecDepth 8192 in
 /-- `verify_bus_balance`'s precondition at its call. -/
 theorem busPre {BcOk : MachineState → Nat → Word → Prop}
@@ -434,7 +526,16 @@ theorem busPre {BcOk : MachineState → Nat → Word → Prop}
         rw [h.x11]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
       have hbc : u₀.getMem (s.getReg .x2 - BitVec.ofNat 64 1936) = s.getReg .x11 := h.at15.bc
       rw [bytecodeOf, e144, sl 1936 (by omega) (by omega), hbc]
-      exact (hBW s c hpre I).1 }
+      exact (hBW s c hpre I).1
+    bytecodeApart := by
+      have e144 : c.getReg .x11 + 144 = s.getReg .x2 - BitVec.ofNat 64 1936 := by
+        rw [h.x11]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
+      have hbc : u₀.getMem (s.getReg .x2 - BitVec.ofNat 64 1936) = s.getReg .x11 := h.at15.bc
+      rw [bytecodeOf, e144, sl 1936 (by omega) (by omega), hbc]
+      intro q hq a ha
+      exact ⟨bcApart hpre I (by rw [h.x10]; addr_omega [hb1]) (by rw [h.x10]; addr_omega [hb1]) q hq a ha,
+        bcApart hpre I (by rw [h.x12, tp]; addr_omega [hb1]) (by rw [h.x12, tp]; addr_omega [hb1])
+          q hq a ha⟩ }
 
 theorem vbb_congr (f : List E → Option E) {L₁ L₂ : LeanVM.Protocol.Verifier.Layout}
     (h1 : L₁.logMemory = L₂.logMemory) (h2 : L₁.logBytecode = L₂.logBytecode)

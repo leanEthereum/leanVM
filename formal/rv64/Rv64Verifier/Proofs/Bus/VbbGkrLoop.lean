@@ -89,7 +89,10 @@ theorem gkrEntry {bev : MachineState → Word → List E → Option E} {s u : Ma
     values := h.values.keepR hpre st fA (by addr_omega [hb1]) (miss 176 24 (by omega) (by omega))
     len := rfl
     tracks := h.tracks.keep fun T hT ↦ h.inv.transcript hpre I.heap
-      (fr.mono fun a ha ↦ by rcases ha with ha | ha <;> exact Or.inl (by addr_omega [ha, hb1])) hT }⟩
+      (fr.mono fun a ha ↦ by rcases ha with ha | ha <;> exact Or.inl (by addr_omega [ha, hb1])) hT
+    pointLo := by
+      rw [b80006614_x27 h₁, b80006614_x21 h₁]
+      exact PtrLo.dangling I.heap }⟩
 
 /-- From the exit's test, `0x80006c7c`, to `0x80006b60`. -/
 theorem gkrExit {bev : MachineState → Word → List E → Option E} {s u : MachineState} {k : Start}
@@ -145,7 +148,10 @@ theorem gkrExit {bev : MachineState → Word → List E → Option E} {s u : Mac
     tracks := by
       have := h.tracks
       rw [gkrLoopM_zero, pure_bind] at this
-      exact this.keep fun T hT ↦ TranscriptAt.same hpre h.inv m₁ hT }⟩
+      exact this.keep fun T hT ↦ TranscriptAt.same hpre h.inv m₁ hT
+    pointLo := by
+      rw [k₁ .x27 (by decide), k₁ .x21 (by decide)]
+      exact h.pointLo.mono (by simp only [heapNext, m₁]; exact Nat.le_refl _) }⟩
 
 /-- The loop, from its head with `n` layers left. -/
 theorem gkrLoop {bev : MachineState → Word → List E → Option E} (hI : Iter bev)

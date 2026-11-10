@@ -20,6 +20,9 @@ import Rv64Verifier.Proofs.Pcs.VsoFinalTail
 import Rv64Verifier.Proofs.Pcs.VsoKernel
 import Rv64Verifier.Proofs.Pcs.VsoOpenOA
 import Rv64Verifier.Proofs.Pcs.VsoKernelCall
+import Rv64Verifier.Proofs.Pcs.VsoUniform
+import Rv64Verifier.Proofs.Pcs.VsoFinalToCheck
+import Rv64Verifier.Proofs.Runtime.All
 
 /-!
 # The opening's contracts, their callees' discharged
@@ -52,6 +55,13 @@ from the level loop and the tail up to that check. -/
 theorem vsoSpec (hL : Vso.LoopSpec Transcript.OpeningsAt) (hT : Vso.ToCheck Transcript.OpeningsAt) :
     VsoSpec Transcript.OpeningsAt :=
   Vso.vsoSpec_of Multilinear.mleEval Field.mul hL hT
+
+/-- The final level's tail up to the terminal check, its callees proved, from the glued claims'
+loop and an empty scales `Vec`'s pointer. -/
+theorem toCheck (hZ : Vso.ScalesZero Transcript.OpeningsAt)
+    (hGl : Vso.GluedSpec Transcript.OpeningsAt) : Vso.ToCheck Transcript.OpeningsAt :=
+  Vso.toCheck_of Transcript.duplex Transcript.polyEval Runtime.growOneFresh_80011c78 roundPolyErr
+    Multilinear.sliceConcat basis hZ hGl
 
 end Rv64Verifier.Proofs.Pcs
 
@@ -305,3 +315,27 @@ end Rv64Verifier.Proofs.Pcs
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Merkled.keep
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Slices.keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Slices.keep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.tRounds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.tRounds
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.tPoint' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.tPoint
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.claims_keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.claims_keep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.tBasis' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.tBasis
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.tEmpty' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.tEmpty
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.afterTail_basis' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.afterTail_basis
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.toCheck_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.toCheck_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.toCheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.toCheck

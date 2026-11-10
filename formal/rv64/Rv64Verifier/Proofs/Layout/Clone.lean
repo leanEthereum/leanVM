@@ -90,6 +90,7 @@ structure Core (s t₁ : MachineState) (P : Word) (nr : Nat) (u : MachineState) 
   new : ∀ j < k, formOf u (slot P j) = formOf s (src s j) ∧ FormOk u (slot P j) ∧
     ∀ x, formBuf u (slot P j) x → nr ≤ x.toNat ∧ x.toNat < heapNext u
   caps : ∀ j < k, vecCap u (slot P j) = vecLen s (src s j)
+  dang : ∀ j < k, vecLen s (src s j) = 0 → vecPtr u (slot P j) = 8
 
 /-- What the outer allocation gave: `P`, aligned, of `len` slots, allocated between the entry's
 `NEXT` and `nr`. -/
@@ -151,6 +152,7 @@ structure Cloned (s u y : MachineState) (k : Nat) (p : Word) : Prop where
   copy : ∀ k', k' % 8 = 0 → k' + 8 ≤ 48 * (vecLen s (src s k)).toNat →
     y.getMem (p + BitVec.ofNat 64 k') = s.getMem (vecPtr s (src s k) + BitVec.ofNat 64 k')
   frame : DFrame u y fun x ↦ Within x (s.getReg .x2 - 176) 72 ∨ Within x nextAddr 8 ∨ Fresh u y x
+  dang : vecLen s (src s k) = 0 → p = 8
 
 /-- `try_allocate_in` and `memcpy` for form `k`. -/
 theorem cloneStep (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s t₁ u : MachineState}
@@ -272,9 +274,14 @@ theorem cloneStep (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s t₁
       k₁ q (mem_of_mem hq _), k₀ q (mem_of_mem hq _)]
   have hheap₄ : HeapOk w₃ := ⟨hnext₄ ▸ hpost.heap.lo, hnext₄ ▸ hpost.heap.hi⟩
   have hmono₄ : heapNext u ≤ heapNext w₃ := by rw [hnext₄, ← hnext₁]; exact hpost.mono
+  have hdg : vecLen s (src s k) = 0 → p = 8 := fun hz0 ↦ by
+    have h8 := hpost.dangling (by rw [x10₁]; exact htag) (by rw [x11₁]; exact hz0)
+    rw [x10₁, b800061b4_x13 h₁, show s.getReg .x2 - 128 + 16 = s.getReg .x2 - 112 by rv_eval []]
+      at h8
+    rw [hp]; exact h8
   by_cases hz : vecLen s (src s k) = 0
   · refine ⟨w₃, hr₀.trans (hr₂.trans (hr₃.trans hr₄)), Or.inl ⟨p, b800061e0_pc_taken h₄
-      (by rw [x19₂, hz]), hregs₄, x27₄, x21₄, x19₄, hheap₄, hmono₄, ?_, ?_, hf₄⟩⟩
+      (by rw [x19₂, hz]), hregs₄, x27₄, x21₄, x19₄, hheap₄, hmono₄, ?_, ?_, hf₄, hdg⟩⟩
     · simp only [NewBuf, hnext₁.symm, hnext₄] at hnewp ⊢; exact hnewp
     · intro k' _ hk'; rw [hz] at hk'; simp at hk'
   have hlz : 0 < (vecLen s (src s k)).toNat := by
@@ -341,7 +348,7 @@ theorem cloneStep (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s t₁
       · addr_omega [hx, h, hb, hnx]) (by decide), hm₅, hm₄, hm₃]
   refine ⟨y, hr₀.trans (hr₂.trans (hr₃.trans (hr₄.trans (hr₆.trans hr₇)))), Or.inl ⟨p,
     b80006208_pc h₇, fun q hq ↦ ?_, ?_, ?_, ?_, ⟨hny ▸ hpost.heap.lo, hny ▸ hpost.heap.hi⟩, ?_, ?_,
-    ?_, ?_⟩⟩
+    ?_, ?_, hdg⟩⟩
   · rw [k₇ q (mem_of_mem hq _), hpres₆ q (mem_of_mem hq _), k₅ q (mem_of_mem hq _), hregs₄ q hq]
   · rw [k₇ .x27 (by decide), hpres₆.reg .x27, k₅ .x27 (by decide), x27₄]
   · rw [k₇ .x21 (by decide), hpres₆.reg .x21, k₅ .x21 (by decide), x21₄]
@@ -546,7 +553,18 @@ theorem body (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) {s t₁ : Ma
         simp only [vecCap]
         exact hfz.getMem_of (fun x hx ↦ hWs j hj x (by addr_omega [hx, hsj, hPb, hk, hj, hnr]))
           (by addr_omega [hsj, hPb, hk, hnr, hj])
-      · simp only [vecCap]; exact w0 }
+      · simp only [vecCap]; exact w0
+    dang := fun j hj ↦ by
+      rcases Nat.lt_succ_iff_lt_or_eq.mp hj with hj | rfl
+      · have hsj : (slot P j).toNat = P.toNat + 24 * j := by
+          simp only [slot]; addr_omega [hPb, hk, hnr, hj]
+        intro h0
+        rw [← hi.dang j hj h0]
+        simp only [vecPtr]
+        exact hfz.getMem_of (fun x hx ↦ hWs j hj x (by addr_omega [hx, hsj, hPb, hk, hj, hnr]))
+          (by addr_omega [hsj, hPb, hk, hnr, hj])
+      · intro h0
+        simp only [vecPtr]; rw [w8]; exact hc.dang h0 }
   have x26y : y.getReg .x26 = s.getReg .x12 - BitVec.ofNat 64 k :=
     (hc.regs .x26 (by decide)).trans hi.x26
   have hz2 : z.getReg .x2 = s.getReg .x2 - 128 := by
@@ -588,8 +606,10 @@ theorem exit {s t₁ u : MachineState} {P : Word} {nr : Nat} (hpre : ClonePre s)
     ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧
       NewFormVec s t (s.getReg .x10) cloneStack ∧
       formVecOf t (s.getReg .x10) = formsAt s (s.getReg .x11) (s.getReg .x12).toNat ∧
-      ∀ i < (s.getReg .x12).toNat,
-        vecCap t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) = vecLen s (src s i) := by
+      (∀ i < (s.getReg .x12).toNat,
+        vecCap t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) = vecLen s (src s i)) ∧
+      ∀ i < (s.getReg .x12).toNat, vecLen s (src s i) = 0 →
+        vecPtr t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) = 8 := by
   have hb := hpre.bounds
   have hst := hpre.stack
   have hos := hpre.outStack
@@ -691,12 +711,25 @@ theorem exit {s t₁ u : MachineState} {P : Word} {nr : Nat} (hpre : ClonePre s)
     simp only [vecCap]
     exact hmf.dframe.getMem_of (fun x hx ↦ hW x (by addr_omega [hx, hsj, hPb'])
       (by addr_omega [hx, hsj, hPb', hj, hnu])) (by addr_omega [hsj, hPb', hj, hnr])
+  have hdang : ∀ j < (s.getReg .x12).toNat, vecLen s (src s j) = 0 → vecPtr t (slot P j) = 8 := by
+    intro j hj h0
+    have hPb' : heapNext s ≤ P.toNat ∧ P.toNat + 24 * (s.getReg .x12).toNat ≤ nr := by
+      simp only [heapNext]; rcases hPb with h | h
+      · omega
+      · exact h
+    simp only [heapNext] at hPb'
+    have hsj : (slot P j).toNat = P.toNat + 24 * j := by
+      simp only [slot]; addr_omega [hPb', hj, hnr]
+    rw [← he.dang j hj h0]
+    simp only [vecPtr]
+    exact hmf.dframe.getMem_of (fun x hx ↦ hW x (by addr_omega [hx, hsj, hPb', hj, hnr])
+      (by addr_omega [hx, hsj, hPb', hj, hnu, hnr])) (by addr_omega [hsj, hPb', hj, hnr])
   have hptr : vecPtr t (s.getReg .x10) = P := o8
   have hcap : vecCap t (s.getReg .x10) = s.getReg .x12 := o0
   have hlen : vecLen t (s.getReg .x10) = s.getReg .x12 := o16
   refine ⟨t, hrt, pc.trans (returnAddress_eq s).symm, preserves_of r₂ r₈ r₉ r₁₈ r₁₉ fun q hq ↦ ?_,
     ⟨⟨hnt ▸ he.heap.lo, hnt ▸ he.heap.hi⟩, by rw [hnt]; simp only [heapNext]; omega,
-      ⟨⟨?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+      ⟨⟨?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_, ?_⟩
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact r₂₀
@@ -753,13 +786,18 @@ theorem exit {s t₁ u : MachineState} {P : Word} {nr : Nat} (hpre : ClonePre s)
   · intro i hi
     rw [hptr]
     exact hcaps i hi
+  · intro i hi
+    rw [hptr]
+    exact hdang i hi
 
 /-- `CloneSpec`, and each clone's capacity its source's length. -/
 def CloneCapsSpec : Prop := FunSpec Image.code 0x80006104 ClonePre fun s t ↦
   (NewFormVec s t (s.getReg .x10) cloneStack ∧
     formVecOf t (s.getReg .x10) = formsAt s (s.getReg .x11) (s.getReg .x12).toNat) ∧
-  ∀ i < (s.getReg .x12).toNat, vecCap t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) =
-    vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i))
+  (∀ i < (s.getReg .x12).toNat, vecCap t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) =
+    vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i))) ∧
+  ∀ i < (s.getReg .x12).toNat, vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i)) = 0 →
+    vecPtr t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) = 8
 
 /-- `<Vec<Form> as Clone>::clone` meets `CloneCapsSpec`, given `try_allocate_in`'s and
 `memcpy`'s. -/
@@ -851,19 +889,22 @@ theorem clone_caps_spec (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4) :
         · exact Or.inr (Or.inr (by simpa only [Fresh, hnext₁, hnv] using h))
         · exact h.elim
       new := fun j hj ↦ absurd hj (Nat.not_lt_zero _)
-      caps := fun j hj ↦ absurd hj (Nat.not_lt_zero _) }
+      caps := fun j hj ↦ absurd hj (Nat.not_lt_zero _)
+      dang := fun j hj ↦ absurd hj (Nat.not_lt_zero _) }
   have hfin : ∀ v, Reaches Image.code s v → Done s t₁ P (heapNext r) v → ∃ t,
       Reaches Image.code s t ∧ ((t.pc = returnAddress s ∧ Preserves s t ∧
         ((NewFormVec s t (s.getReg .x10) cloneStack ∧
           formVecOf t (s.getReg .x10) = formsAt s (s.getReg .x11) (s.getReg .x12).toNat) ∧
-        ∀ i < (s.getReg .x12).toNat,
+        (∀ i < (s.getReg .x12).toNat,
           vecCap t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) =
-            vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i)))) ∨
+            vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i))) ∧
+        ∀ i < (s.getReg .x12).toNat, vecLen s (s.getReg .x11 + BitVec.ofNat 64 (24 * i)) = 0 →
+          vecPtr t (vecPtr t (s.getReg .x10) + BitVec.ofNat 64 (24 * i)) = 8)) ∨
         Dead Image.code t) := by
     intro v hv hd
     rcases hd with he | hd
-    · obtain ⟨t, hvt, hpc', hpres, hnew, hval, hcap⟩ := exit hpre hbase h₁ he
-      exact ⟨t, hv.trans hvt, Or.inl ⟨hpc', hpres, ⟨hnew, hval⟩, hcap⟩⟩
+    · obtain ⟨t, hvt, hpc', hpres, hnew, hval, hcap, hdang⟩ := exit hpre hbase h₁ he
+      exact ⟨t, hv.trans hvt, Or.inl ⟨hpc', hpres, ⟨hnew, hval⟩, hcap, hdang⟩⟩
     · exact ⟨v, hv, Or.inr hd⟩
   have hreg (q : Reg) (hq : q ∈ [Reg.x8, .x9, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25,
       .x26, .x27]) : r₂.getReg q = t₁.getReg q := by

@@ -24,7 +24,9 @@ theorem tryAllocCall (hT : TryAllocZeroedSpec) {s u₀ u : MachineState} (hpre :
       (v.getMem (s.getReg .x2 - BitVec.ofNat 64 608) = 0 →
         v.getMem (s.getReg .x2 - BitVec.ofNat 64 608 + 8) = u.getReg .x11 ∧
         NewBuf u v (v.getMem (s.getReg .x2 - BitVec.ofNat 64 608 + 16))
-          ((u.getReg .x11).toNat * 24) 8)) ∨ Dead Image.code v) := by
+          ((u.getReg .x11).toNat * 24) 8 ∧
+        (u.getReg .x11 = 0 → v.getMem (s.getReg .x2 - BitVec.ofNat 64 608 + 16) = 8))) ∨
+      Dead Image.code v) := by
   obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
   obtain ⟨o1, o2, o3⟩ := frameSlot (m := tryAllocStack) hpre h (n := 24) (k := 608) (by omega)
     (by omega) (by omega) (by decide)
@@ -53,8 +55,10 @@ theorem tryAllocCall (hT : TryAllocZeroedSpec) {s u₀ u : MachineState} (hpre :
   refine ⟨v, hrv, Or.inl ⟨hpcv, hp, st, h.after hpre (inFrame hpre (by omega) (by omega)) st,
     fun h0 ↦ ?_⟩⟩
   have hok := post.ok (by rw [h10]; exact h0)
+  have hdg := post.dangling (by rw [h10]; exact h0)
   rw [h10, h13, h14] at hok
-  exact hok
+  rw [h10, h13] at hdg
+  exact ⟨hok.1, hok.2, hdg⟩
 
 /-- A call of `memcpy` from a buffer allocated before `y` to one allocated since, both in the
 heap: the bytes copied, as `n` elements. -/

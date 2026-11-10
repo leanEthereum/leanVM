@@ -56,7 +56,7 @@ theorem ClaimAt.heapKept {s u t : MachineState} {B : Nat} {a : Word} {c : Column
     (h2 : a.toNat + 56 ≤ B) : ClaimAt s t a c := by
   have w (j : Nat) (hj : j + 8 ≤ 56) := hk.at hB h1 h2 hj
   refine ⟨h.vec.heapKept hk hu hBu hm (by simpa using w 0 (by omega)) (w 8 (by omega))
-    (w 16 (by omega)), ?_, ?_⟩
+    (w 16 (by omega)), ?_, ?_, h.lo.move (w 8 (by omega)) (w 16 (by omega)) hm⟩
   · rw [show a + 24 = a + BitVec.ofNat 64 24 from rfl, w 24 (by omega)]; exact h.column
   · rw [← h.value]
     have e40 : a + 32 + 8 = a + BitVec.ofNat 64 40 := by rw [BitVec.add_assoc]; rfl

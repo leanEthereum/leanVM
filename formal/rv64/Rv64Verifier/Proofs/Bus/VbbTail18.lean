@@ -111,7 +111,7 @@ theorem claim5 {s w z : MachineState} {state : GkrState} {mem : List E} {mf bf :
     b8000702c_m_x8_232 h₁
   have hc : ClaimAt s t (z.getReg .x8 + BitVec.ofNat 64 (56 * 4))
       ⟨bytecodeFinalCounters, state.point.take (logBc s).toNat, bf⟩ := by
-    refine c4.claimAt' hpre.heap.lo e0 e8
+    refine c4.claimAt' hpre.heap.lo (A.c4Lo.mono (by rw [hn])) e0 e8
       ((b8000702c_m_x8_240 h₁).trans ((A.regs .x23 (by decide)).trans hlb))
       ((congrArg BitVec.toNat ((b8000702c_m_x8_248 h₁).trans A.x19)).trans rfl) ?_
     rw [eAt_eOf3, hbf, ← A.regs .x26 (by decide)]
@@ -190,6 +190,7 @@ structure Claims (bev : MachineState → Word → List E → Option E) (s t : Ma
   bfEq : bf = eOf3 (t.getReg .x26) (t.getMem (s.getReg .x2 - 1120))
     (t.getMem (s.getReg .x2 - 1128))
   tracks : Tracks (prog bev s) (s.getReg .x12) s t (rest bev s k state mem mf bf)
+  pointLo : PtrLo t (t.getMem (s.getReg .x2 - 1256)) (t.getMem (s.getReg .x2 - 1144))
 
 theorem claimsStage (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 0x800126e4)
     (hG : GrowOneFreshSpec 0x8000c0a4 56 8) {bev : MachineState → Word → List E → Option E}
@@ -248,6 +249,9 @@ theorem claimsStage (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 
       rw [K1 _ (by constructor <;> addr_omega [hb1]), p1256,
         K1 _ (by constructor <;> addr_omega [hb1])]
       exact C.point.keepR hpre st.toR fT
+    pointLo := by
+      rw [p1256, K1 _ (by constructor <;> addr_omega [hb1])]
+      exact C.pointLo.mono st.mono
     valuesPtr := by
       rw [K1 _ (by constructor <;> addr_omega [hb1]), C.valuesPtr, vecPtr, vecPtr,
         kT _ (Or.inr (Or.inr (by constructor <;> addr_omega [hb1])))]

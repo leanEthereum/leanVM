@@ -306,6 +306,17 @@ structure BlocksRO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a :
   coordinates : ∀ i < (vecLen s a).toNat,
     FormRowsRO s n ws p (vecPtr s a + BitVec.ofNat 64 (48 * i)) 1
 
+/-- The parts of the `Bytecode` at `p`: its own 136 bytes and its four buffers. -/
+def bcParts (s : MachineState) (p : Word) : List (Word × Nat) :=
+  [(p, 136), (vecPtr s p, 24 * (vecLen s p).toNat),
+    (vecPtr s (p + 24), 16 * (vecLen s (p + 24)).toNat),
+    (vecPtr s (p + 48), 2 * (vecLen s (p + 48)).toNat),
+    (vecPtr s (p + 72), 2 * (vecLen s (p + 72)).toNat)]
+
+/-- The aligned doubleword at `a` holds one of the `n` bytes from `q` (none when `n = 0`). -/
+def Meets (a q : Word) (n : Nat) : Prop :=
+  a.toNat % 8 = 0 ∧ a.toNat < q.toNat + n ∧ q.toNat < a.toNat + 8 ∧ 0 < n
+
 structure BusBalancePre (s : MachineState) : Prop where
   heap : HeapOk s
   stack : RtStack s busBalanceStack
@@ -338,6 +349,9 @@ structure BusBalancePre (s : MachineState) : Prop where
     RO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12)
       (vecPtr s (vecPtr s (s.getReg .x11) + BitVec.ofNat 64 (80 * i)))
       (24 * (vecLen s (vecPtr s (s.getReg .x11) + BitVec.ofNat 64 (80 * i))).toNat)
+  /-- The doublewords holding the `Bytecode` miss the result and the transcript's sponge. -/
+  bytecodeApart : ∀ q ∈ bcParts s (bytecodeOf s (s.getReg .x11)), ∀ a, Meets a q.1 q.2 →
+    Apart a 8 (s.getReg .x10) 120 ∧ Apart a 8 (s.getReg .x12 + 8) 344
 
 /-- The `ColumnClaim` at `a`. -/
 def claimAt (s : MachineState) (a : Word) : ColumnClaim :=

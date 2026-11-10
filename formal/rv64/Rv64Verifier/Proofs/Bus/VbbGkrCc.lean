@@ -22,6 +22,8 @@ theorem _root_.Rv64Verifier.Runtime.VecOk.move {t : MachineState} {a b : Word} {
   · simp only [RawVecOk, vecPtr, vecCap] at hr ⊢; rw [h0, h8]; exact hr
   · simp only [vecLen, vecCap] at hl ⊢; rw [h0, h16]; exact hl
 
+theorem stepOf_pos (n : ℕ) : 0 < stepOf n := by unfold stepOf; split <;> omega
+
 /-- The third push, `concat`, and the loop's head or exit, from `0x80006b24`. -/
 theorem ccStep (hCC : ConcatSpec) {bev : MachineState → Word → List E → Option E}
     {s u t : MachineState} {k : Start} {cnt : E} {P : Word} {n : ℕ} {x y c2 : List E} {xp : Word}
@@ -314,6 +316,11 @@ theorem ccStep (hCC : ConcatSpec) {bev : MachineState → Word → List E → Op
     refine ⟨hl, ⟨hb.1, hb.2.imp_right fun h' ↦ ⟨by omega, by rw [hnz]; exact h'.2⟩⟩, ?_⟩
     rw [← hel]
     exact eListAt_congr fun i _ ↦ eAt_congr (mz _) (mz _) (mz _)
+  have hyx : y ++ x ≠ [] := by
+    have hy : y ≠ [] := List.ne_nil_of_length_pos (h.ylen ▸ stepOf_pos n)
+    simp only [ne_eq, List.append_eq_nil_iff, not_and]
+    exact fun h0 ↦ absurd h0 hy
+  have pLo := Pz.ptrLo_ne hyx
   -- the layers left
   have rgv (r : Reg) (hr : r ∈ ([.x20, .x23, .x24] : List Reg)) : v.getReg r = t.getReg r := by
     rw [hpv r (mem_of_mem hr _), k₂ r (mem_of_mem hr _), k₁ r (mem_of_mem hr _)]
@@ -358,7 +365,8 @@ theorem ccStep (hCC : ConcatSpec) {bev : MachineState → Word → List E → Op
         · exact Or.inl (by addr_omega [ha, hb1])
         · exact Or.inr (Or.inl ha)
         · exact Or.inr (Or.inr ha)) T₂
-      exact TranscriptAt.same hpre C₃.inv mz T₃ }, ?_⟩⟩
+      exact TranscriptAt.same hpre C₃.inv mz T₃
+    pointLo := pLo }, ?_⟩⟩
   by_cases h0 : n - stepOf n = 0
   · simp only [h0, ↓reduceIte]
     exact b80006680_pc_taken hz (by

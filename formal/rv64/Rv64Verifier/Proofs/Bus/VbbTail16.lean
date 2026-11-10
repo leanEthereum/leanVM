@@ -68,6 +68,7 @@ structure Cl4 (bev : MachineState → Word → List E → Option E) (s w y : Mac
   len : y.getMem (s.getReg .x2 - 824) = 4
   x8 : y.getReg .x8 = y.getMem (s.getReg .x2 - 832)
   c4 : NewVecR s y (y.getReg .x9) (y.getReg .x18) (logBc s) (state.point.take (logBc s).toNat)
+  c4Lo : PtrLo y (y.getReg .x18) (logBc s)
   apart4 : Apart (y.getReg .x18) ((y.getReg .x9).toNat * 24) (y.getMem (s.getReg .x2 - 832))
     (56 * (y.getMem (s.getReg .x2 - 840)).toNat)
   regs : ∀ r ∈ ([.x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27] : List Reg),
@@ -180,7 +181,8 @@ theorem claim4 (hG : GrowOneFreshSpec 0x8000c0a4 56 8) (hT : TryAllocZeroedSpec)
     (mb (b80006f94_m6 h₂)).trans (rv .x19 (by decide))
   have hc3 : ClaimAt s u₂ (P' + BitVec.ofNat 64 (56 * 3))
       ⟨memoryFinalCounters, state.point.take (logMem s).toNat, mf⟩ := by
-    refine c3₂.claimAt' hpre.heap.lo e0 e8 ((mb (b80006f94_m5 h₂)).trans ((rv .x24 (by decide)).trans C.x24))
+    refine c3₂.claimAt' hpre.heap.lo
+      (C.c3Lo.mono ((sm₁ (A := fun _ ↦ False)).mono.trans st₂.mono)) e0 e8 ((mb (b80006f94_m5 h₂)).trans ((rv .x24 (by decide)).trans C.x24))
       ((congrArg BitVec.toNat (mb (b80006f94_m4 h₂))).trans rfl) ?_
     rw [eAt_eOf3, C.mfEq, ← rv .x25 (by decide), ← rv .x22 (by decide)]
     congr 1
@@ -213,7 +215,7 @@ theorem claim4 (hG : GrowOneFreshSpec 0x8000c0a4 56 8) (hT : TryAllocZeroedSpec)
   have hlen : state.point.length = (w.getMem (s.getReg .x2 - 1144)).toNat := by
     rw [← C.point.elems, eListAt_length]
   have lb₂ : v.getReg .x23 = logBc s := (rv .x23 (by decide)).trans C.x23
-  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, c4, fresh4, x9y⟩⟩ := copy5 hT hM hpre I₂
+  obtain ⟨y, hry, hd | ⟨hpcy, Iy, sty, rgy, c4, c4Lo, fresh4, x9y⟩⟩ := copy5 hT hM hpre I₂
     (b80006f94_pc h₂) (b80006f94_x1 h₂)
     (by rw [b80006f94_x10 h₂, spv]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1])
     (b80006f94_x13 h₂) (b80006f94_x14 h₂) ((b80006f94_x11 h₂).trans lb₂)
@@ -258,6 +260,7 @@ theorem claim4 (hG : GrowOneFreshSpec 0x8000c0a4 56 8) (hT : TryAllocZeroedSpec)
           apply BitVec.eq_of_toNat_eq; addr_omega [hb1]]
       exact m512
     c4 := c4
+    c4Lo := c4Lo
     apart4 := by
       rw [y832, y840, x9y]
       have hb := fresh4

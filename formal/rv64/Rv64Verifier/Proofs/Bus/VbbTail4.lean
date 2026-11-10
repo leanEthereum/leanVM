@@ -75,6 +75,7 @@ structure Scalars (bev : MachineState → Word → List E → Option E) (s q : M
   mfEq : mf = eOf3 (q.getReg .x25) (q.getReg .x22) (q.getReg .x23)
   bfEq : bf = eOf3 (q.getReg .x26) (q.getReg .x11) (q.getMem (s.getReg .x2 - 584))
   tracks : Tracks (prog bev s) (s.getReg .x12) s q (rest bev s k state mem mf bf)
+  pointLo : PtrLo q (q.getReg .x27) (q.getReg .x21)
 
 theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     {bev : MachineState → Word → List E → Option E} {s u : MachineState} {k : Start} {cnt : E}
@@ -164,7 +165,10 @@ theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     mfEq := by
       rw [B.regs .x25 (by decide), B.regs .x22 (by decide), B.regs .x23 (by decide)]
     bfEq := rfl
-    tracks := trB }⟩)⟩
+    tracks := trB
+    pointLo := by
+      rw [rq .x27 (by decide), rq .x21 (by decide)]
+      exact G.pointLo.mono stUQ.mono }⟩)⟩
 
 /-- From `0x80006ca0` to the return. -/
 def RestStage (BcOk : MachineState → Nat → Word → Prop)

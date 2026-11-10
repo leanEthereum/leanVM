@@ -268,14 +268,14 @@ theorem layoutFrame {s t : MachineState} {w : Word → Prop} (hr : Reaches Image
 /-- The `j`-th form of the `Vec<Form>` at `a`. -/
 def cellAt (t : MachineState) (a : Word) (j : Nat) : Word := vecPtr t a + BitVec.ofNat 64 (24 * j)
 
-/-- A row of `vec![Form::default(); 3]`: a `Vec` of three empty forms of capacity zero, its buffer
-allocated from `b` on. -/
+/-- A row of `vec![Form::default(); 3]`: a `Vec` of three empty forms of capacity zero and the
+dangling pointer, its buffer allocated from `b` on. -/
 structure RowOk (b t : MachineState) (a : Word) : Prop where
   vec : VecOk t a 24 8
   len : vecLen t a = 3
   buf : NewBuf b t (vecPtr t a) ((vecCap t a).toNat * 24) 8
   cells : ∀ j < 3, vecCap t (cellAt t a j) = 0 ∧ vecLen t (cellAt t a j) = 0 ∧
-    (vecPtr t (cellAt t a j)).toNat % 8 = 0
+    vecPtr t (cellAt t a j) = 8
 
 theorem RowOk.cap {b t : MachineState} {a : Word} (h : RowOk b t a) : 3 ≤ (vecCap t a).toNat := by
   have := h.vec.len
@@ -332,8 +332,7 @@ theorem RowOk.move {b t v : MachineState} {a a' : Word} {w : Word → Prop} (h :
     have c0' : t.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 0) = 0 := by
       rw [add_ofNat_zero]; exact c0
     have c1' : t.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 16) = 0 := c1
-    have c2' : (t.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 8)).toNat % 8 =
-      0 := c2
+    have c2' : t.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 8) = 8 := c2
     simp only [cellAt, vecCap, vecLen, vecPtr] at ⊢
     rw [h8]
     refine ⟨?_, ?_, ?_⟩
@@ -342,7 +341,7 @@ theorem RowOk.move {b t v : MachineState} {a a' : Word} {w : Word → Prop} (h :
       exact c0'
     · show v.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 16) = 0
       rw [bw j hj 16 (by omega)]; exact c1'
-    · show (v.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 8)).toNat % 8 = 0
+    · show v.getMem (vecPtr t a' + BitVec.ofNat 64 (24 * j) + BitVec.ofNat 64 8) = 8
       rw [bw j hj 8 (by omega)]; exact c2'
 
 /-- A row's statement value: three empty forms. -/

@@ -45,8 +45,10 @@ structure Configured (s b u : MachineState) (nxb QP QL FP RP : Word) : Prop wher
   bufs : nxb.toNat ≤ FP.toNat ∧ FP.toNat + 8 * (K0 s + 2) ≤ heapNext u ∧ FP.toNat % 8 = 0 ∧
     nxb.toNat ≤ RP.toNat ∧ RP.toNat + 8 * (K0 s + 2) ≤ heapNext u ∧ RP.toNat % 8 = 0
   nxs : heapNext s ≤ nxb.toNat
-  scales : (vecLen u (s.getReg .x2 - 728)).toNat = ncl s ∧ (ncl s = 0 ∨
-    (vecPtr u (s.getReg .x2 - 728)).toNat + 24 * ncl s ≤ nxb.toNat)
+  scales : (vecLen u (s.getReg .x2 - 728)).toNat = ncl s ∧
+    (vecPtr u (s.getReg .x2 - 728)).toNat % 8 = 0 ∧ (ncl s = 0 ∨
+    heapNext s ≤ (vecPtr u (s.getReg .x2 - 728)).toNat ∧
+      (vecPtr u (s.getReg .x2 - 728)).toNat + 24 * ncl s ≤ nxb.toNat)
   config : Model.Pcs.deriveConfigRust (s.getReg .x12).toNat (s.getReg .x13).toNat = some (cfgOf s)
   /-- The ladders lie below the first round polynomial's buffer. -/
   mark : ∃ L : ℕ, FP.toNat + 8 * (K0 s + 2) ≤ L ∧ RP.toNat + 8 * (K0 s + 2) ≤ L ∧ nxb.toNat ≤ L ∧
@@ -497,10 +499,10 @@ theorem round (hRP : RoundPolyErrSpec) {s b u : MachineState} {nxb QP QL FP RP :
     config := hcfg
     mark := ?_
     value := ?_ }⟩
-  · refine ⟨by rw [hsc1, hncl], ?_⟩
+  · refine ⟨by rw [hsc1, hncl], by rw [hsc0]; exact hBb.1, ?_⟩
     rcases hBr with h0 | h0
     · exact Or.inl h0
-    · exact Or.inr (by rw [hsc0]; exact h0.2)
+    · exact Or.inr (by rw [hsc0]; exact h0)
   · obtain ⟨hok, hnb⟩ := hpost₁.ok (by rw [h.x10]; exact herr)
     rw [h.x10] at hok hnb
     have hl := hok.len

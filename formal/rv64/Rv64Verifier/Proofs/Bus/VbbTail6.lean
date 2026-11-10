@@ -72,11 +72,20 @@ theorem _root_.Rv64Verifier.Transcript.NewVecE.keepBuf {s v w : MachineState} {A
   exact h.transfer (by simpa using hw 0 (by omega)) (hw 8 (by omega)) (hw 16 (by omega)) st.mono
     (st.eListAt hpre hA hbuf hl)
 
-/-- The `ColumnClaim` at `a` is `c`, its point a `Vec` allocated since the entry. -/
+/-- `PtrLo` of a `Vec`'s header, its pointer and length words moved from `a` in `t` to `b` in `t'`. -/
+theorem PtrLo.move {t t' : MachineState} {a b : Word} (h : PtrLo t (vecPtr t a) (vecLen t a))
+    (e8 : t'.getMem (b + 8) = t.getMem (a + 8)) (e16 : t'.getMem (b + 16) = t.getMem (a + 16))
+    (hm : heapNext t ≤ heapNext t') : PtrLo t' (vecPtr t' b) (vecLen t' b) := by
+  simp only [vecPtr, vecLen, e8, e16]
+  exact h.mono hm
+
+/-- The `ColumnClaim` at `a` is `c`, its point a `Vec` allocated since the entry, ending below
+`NEXT` even when empty. -/
 structure ClaimAt (s t : MachineState) (a : Word) (c : ColumnClaim) : Prop where
   vec : NewVecE s t a c.point
   column : (t.getMem (a + 24)).toNat = c.column
   value : eAt t (a + 32) = c.value
+  lo : PtrLo t (vecPtr t a) (vecLen t a)
 
 theorem ClaimAt.eq {s t : MachineState} {a : Word} {c : ColumnClaim} (h : ClaimAt s t a c) :
     claimAt t a = c := by
@@ -98,7 +107,8 @@ theorem ClaimAt.keepBuf {s v w : MachineState} {A : Word → Prop} (hpre : BusBa
   have hw (j : Nat) (hj : j + 8 ≤ 56) : w.getMem (a + BitVec.ofNat 64 j) =
       v.getMem (a + BitVec.ofNat 64 j) :=
     st.bufWord hpre hA hb (by addr_omega [h1, h2, hj, hbd]) (by addr_omega [h1, h2, hj, hbd])
-  refine ⟨h.vec.keepBuf hpre st hA hb h1 (by omega), ?_, ?_⟩
+  refine ⟨h.vec.keepBuf hpre st hA hb h1 (by omega), ?_, ?_,
+    h.lo.move (hw 8 (by omega)) (hw 16 (by omega)) st.mono⟩
   · rw [show a + 24 = a + BitVec.ofNat 64 24 from rfl, hw 24 (by omega)]; exact h.column
   · rw [← h.value]
     have e40 : a + 32 + 8 = a + BitVec.ofNat 64 40 := by rw [BitVec.add_assoc]; rfl
