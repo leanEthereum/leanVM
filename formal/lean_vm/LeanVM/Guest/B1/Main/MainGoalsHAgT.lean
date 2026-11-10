@@ -25,7 +25,7 @@ variable {seed s w}
 
 /-- **`main`'s honest `aggregate_claims` call is complete, by a tree of honest shape**: under `NodeRelation` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
-theorem mainGoalAgT (cert : String → V → ℕ) (hBS : agg_batch_sumcheck_Spec)
+theorem mainGoalAgT (cert : String → V → ℕ)
     (hGr : CompleteRelD fs cert 16 "grind_check__L2" aggGrindPre) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : DeployedLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
@@ -42,11 +42,11 @@ theorem mainGoalAgT (cert : String → V → ℕ) (hBS : agg_batch_sumcheck_Spec
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
     have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.hasBytecodeShape, hlog]
-    rw [(batch_out hb).1, aggOut, aggRun, aggBsRun_len] at hpt
+    rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAtT fs cert hBS hGr (m := w.children.length) (by omega)
+  have := aggregate_claims_completeAtT fs cert hGr (m := w.children.length) (by omega)
     hl.atMostSixteenChildren (cs := hKids seed w) (by rw [List.length_map]) hrl hb
     (fun rd hM => hkids_words fs fp hbl hrel hM) (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
   exact this

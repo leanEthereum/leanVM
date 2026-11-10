@@ -76,8 +76,8 @@ structure Theorems
   proof (`HonestChild`) (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
-  makes none, or the verifier refusing a zero challenge rejects it, with probability at most
-  `2^-126` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
+  makes none, or the verifier refusing a zero where the guest divides rejects it, with
+  probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
   Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-127 +

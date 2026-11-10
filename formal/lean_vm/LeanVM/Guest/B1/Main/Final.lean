@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Holders
 public import LeanVM.Guest.Batch.Node
+public import LeanVM.Guest.B1.Bits.Tables
 
 /-!
 # `main`, soundly
@@ -20,8 +21,8 @@ the deferred claim's shape, every child's proof accepted by the deferring verifi
 decoded statement (`kid_sub`, `kid_digest`), every raw signature verifying and every declared
 signature claim held (`signatures_held`), the DA digest the direct DA check's, zeros or a child's (`da_rel`), and the
 deferred claim the leaf's zero point or the batching of the
-children's claims (`aggregate_claims`' contract). `exponent_tables`' statement is a hypothesis
-(`exponent_tables_Spec`, B1-a's); every other deterministic callee is this family's.
+children's claims (`aggregate_claims`' contract). `exponent_tables` is B1-a's
+(`exponent_tables_holds`); every other deterministic callee is this family's.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -101,7 +102,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
 
 /-- **`main`, soundly, its witness decoded, under a call relation `C`** that unfolds and lies
 below `coreProgram.Rel` (G:4491-4667, TRIAGE #96), given the callees' contracts on `C`'s calls. -/
-theorem main_sound_C (hexp : exponent_tables_Spec) {bytecode : List K}
+theorem main_sound_C {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
     {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
@@ -110,7 +111,7 @@ theorem main_sound_C (hexp : exponent_tables_Spec) {bytecode : List K}
     (hb : Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA) := by
-  have MF := main_facts hCu hle hm hexp (fun _ h => ⟨_, cw.xmss _ h⟩) (σ := σ) hb
+  have MF := main_facts hCu hle hm exponent_tables_holds (fun _ h => ⟨_, cw.xmss _ h⟩) (σ := σ) hb
   obtain ⟨Kr, hK⟩ : ∃ Kr : ℕ → KidRec, ∀ c < lg σ 6, KidOk C rd σ c (Kr c) := by
     have hex : ∀ c, c < lg σ 6 → ∃ k : KidRec, KidOk C rd σ c k := kid_rec hm MF
     choose! Kr hK using hex
@@ -197,10 +198,10 @@ theorem main_sound_C (hexp : exponent_tables_Spec) {bytecode : List K}
         exact k.defreads
 
 /-- **`main`, soundly, its witness decoded** (`coreProgram.Rel`'s instance of `main_sound_C`). -/
-theorem main_sound_w (hexp : exponent_tables_Spec) (bytecode : List K) :
+theorem main_sound_w (bytecode : List K) :
     main_sound_Spec bytecode := by
   intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
-  exact main_sound_C hexp hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
+  exact main_sound_C hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
     ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, cw.da, cw.sub, cw.agg⟩ hp0 hp1 hb
 
 end

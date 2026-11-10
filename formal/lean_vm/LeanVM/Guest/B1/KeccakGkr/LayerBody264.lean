@@ -14,7 +14,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem layer_body264 : Data.core263.body = layerT 1 := stmtsEqb_sound (by decide +kernel)
+theorem layer_body264 : Data.core264.body = layerT 1 := stmtsEqb_sound (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.VerifySub

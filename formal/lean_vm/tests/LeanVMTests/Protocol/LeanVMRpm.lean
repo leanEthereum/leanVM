@@ -1,4 +1,4 @@
-import LeanVM.Prover.End
+import LeanVM.Prover.EndChild
 
 /-!
 # leanVM's statements, locked

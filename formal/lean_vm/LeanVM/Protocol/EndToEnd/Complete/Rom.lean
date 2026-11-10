@@ -108,6 +108,21 @@ theorem moves_leanVm_twentyFive (prog : LeanIsaProgram) (publicInput : Digest) :
       (leanVmVerifierProgram (bytecodeWords prog) publicInput) :=
   Sound.moves_leanVmProgram_le (by norm_num) _ _ fun _ _ _ ↦ busGrindLE_twentyFive
 
+/-- **The specification's honest prover, `none` where it makes no proof**: `Rom.honestComp`
+before it stands the empty proof in for `none` (`honestComp_eq_getD`). -/
+def _root_.LeanVM.Protocol.Compile.Rom.honestComp? (σ : Seed) (P : VerifierProgram Bool) (S :
+    Strategy)
+    (fuel : ℕ) : OracleComp KeccakCalls (Option Proof) := do
+  let seed ← σ.run callKeccak256 callKeccakF1600
+  proveM callKeccak256 callKeccakF1600 P S seed fuel
+
+/-- `Rom.honestComp` is `Rom.honestComp?` with the empty proof for `none`. -/
+theorem honestComp_eq_getD (σ : Seed) (P : VerifierProgram Bool) (S : Strategy) (fuel : ℕ) :
+    Rom.honestComp σ P S fuel = (·.getD ⟨[], []⟩) <$> Rom.honestComp? σ P S fuel := by
+  unfold Rom.honestComp Rom.honestComp?
+  rw [map_bind]
+  simp only [map_eq_bind_pure_comp, Function.comp_def]
+
 /-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
 sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
 specification's honest prover at that witness with probability at most `completenessError fuel`. -/
