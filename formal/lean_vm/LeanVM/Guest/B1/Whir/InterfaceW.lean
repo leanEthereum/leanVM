@@ -56,12 +56,13 @@ theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E
 /-- **`open_stacked` is sound with its witness `osW`**: under a call relation `C ≤ Rel` unfolding
 at the frame map `V`, a valuation `σ` holding the body of the candidate of `μ`, `r` on the
 capacity cells `fs`, the claim `target`, the root's two cells, the cursor and the window tables
-`tabs`, returning `rets`, on a memory image of at most `2^32` words (the query windows' range
+`tabs`, returning `rets`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`, (the query windows' range
 checks), gives `OpenOutW` at the words and openings `osW L.read (candidate μ r) σ V`. -/
 def open_stacked_sound_w_Spec
     (osW : Reader → ℕ → Val → FrameMap → List E × List (List Opening)) :
     Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap), UnfoldsV L.read C V →
+  ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap),
+    UnfoldsV L.read C V →
     CallRel.Le C (coreProgram.Rel L.read) →
     ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E) (fn : Fn)
