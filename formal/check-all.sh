@@ -106,8 +106,7 @@ lean_da() {
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
     LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
     LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
-    LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork \
-    LeanDa.codeBindingRpmFork_of_codeBindingRpm
+    LeanDa.leanDa_codeBinding_rpm_bound
 }
 
 # Every lean_vm executable, in one build.
