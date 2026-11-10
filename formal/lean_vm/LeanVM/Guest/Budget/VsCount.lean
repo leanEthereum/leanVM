@@ -201,9 +201,9 @@ theorem vs_weight_le (op : Opcode) {μ r d : ℕ} (hc : B1.Whir.candidate μ r <
   have st := fun (k : ℕ) (hk : k < 33) (hnk : t'.name = vsStNames.getD k "") =>
     vsSt_weightLe op hk rd' t' args' rets' hnk hv' hb'
   interval_cases i <;>
-    simp only [B1.VerifySub.vsTs, B1.namedP, B1.VerifySub.vsNames, B1.VerifySub.vsBsAt,
+    simp only [B1.VerifySub.vsTs, B1.VerifySub.vsNames, B1.VerifySub.vsBsAt,
       B1.VerifySub.vsBsWith, B1.VerifySub.vsPs, vsWs, List.getElem_cons_zero,
-      List.getElem_cons_succ, Budget.NamedWithin] at hTi ⊢
+      List.getElem_cons_succ] at hTi ⊢
   · exact st 0 (by norm_num) hTi.1.1
   · exact st 0 (by norm_num) hTi.1.1
   · exact st 1 (by norm_num) hTi.1.1
