@@ -9,6 +9,7 @@ import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Model.Transcript
 import Rv64Verifier.Model.Bus
 import Rv64Verifier.Model.Whir
+import Rv64Verifier.Model.Layout
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Sym
@@ -97,3 +98,18 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.Sim.gkrLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.Sim.gkrLoop
+
+/-- info: 'Rv64Verifier.Model.LayoutMirror.buildLayoutRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.buildLayoutRust_eq
+
+/-- info: 'Rv64Verifier.Model.LayoutMirror.buildLayoutRust_rest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.buildLayoutRust_rest
+
+/-- info: 'Rv64Verifier.Model.LayoutMirror.buildLayoutRust_busLayout' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.buildLayoutRust_busLayout
+
+/-- info: 'Rv64Verifier.Model.LayoutMirror.busLayoutRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.busLayoutRust_eq
+
+/-- info: 'Rv64Verifier.Model.LayoutMirror.ColumnClaimRust.onStack_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.LayoutMirror.ColumnClaimRust.onStack_eq
