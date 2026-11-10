@@ -22,10 +22,10 @@ open LeanVM.Guest.B1.Main
 /-- Column `h`'s valuation (`da_verify_column`, function `30`). -/
 def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 30 (dvColArgs σ h) []
 
-/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop25`, function `405`), its valuation
+/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop25`, function `398`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn 404 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn 398 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
 
 /-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `31`'s. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
