@@ -52,9 +52,8 @@ choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only 
 
 They rest on B2 (`b2SoundL`: the kernel-checked certificates, `VsDimsKnown`, `VsKnown` and
 the walks' obligations) and B1 (`B1.Main.main_sound_V_of_sub` with
-`VerifySub.verify_sub_sound_w`). Until B1's ports to the f128 guest land, they take what they
-need of `verify_sub`, and the walks' obligations, as the hypothesis `EndPending`
-(`EndSound.lean`).
+`VerifySub.verify_sub_sound_w`). Until the walks' ports to the f128 guest land, they take the
+walks' obligations as the hypothesis `EndPending` (`EndSound.lean`).
 -/
 
 namespace LeanVM.Guest.End
@@ -108,7 +107,8 @@ theorem guest_knowledge (hP : EndPending) : MemoryGuestKnowledge guestProgram de
   rw [decode_eq hκ]
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of (b2SoundL hP) hv
   have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
-  exact B1.Main.main_sound_V_of_sub hP.sound bytecode_length t.memory.read hm _ _
+  exact B1.Main.main_sound_V_of_sub (B1.VerifySub.verify_sub_sound_w bytecode) bytecode_length
+    t.memory.read hm _ _
     (Located.unfoldsV_replay (b2SoundL hP) hv) (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
@@ -132,7 +132,8 @@ theorem guest_sound (hP : EndPending) (input : PublicInput) (t : Execution guest
     (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w :=
-  guest_sound_of (soundHyps_of_sub (b2SoundL hP) hP.sound) input t hv
+  guest_sound_of (soundHyps_of_sub (b2SoundL hP) (B1.VerifySub.verify_sub_sound_w bytecode)) input t
+    hv
 
 end
 end LeanVM.Guest.End

@@ -23,9 +23,9 @@ open LeanVM LeanVM.Guest LeanVM.Guest.End LeanVM.Node LeanVM.Semantics
 #guard_msgs in
 #print axioms LeanVM.Guest.End.b2SoundL
 
-/-- info: 'LeanVM.Guest.End.subSoundW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.B1.VerifySub.verify_sub_sound_w' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.End.subSoundW
+#print axioms LeanVM.Guest.B1.VerifySub.verify_sub_sound_w
 
 /-- info: 'LeanVM.Guest.End.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -37,9 +37,10 @@ open LeanVM LeanVM.Guest LeanVM.Guest.End LeanVM.Node LeanVM.Semantics
 
 /-! ## The statements, as the specification states them -/
 
-example : MemoryGuestKnowledge guestProgram decode := guest_knowledge
+example (hP : EndPending) : MemoryGuestKnowledge guestProgram decode := guest_knowledge hP
 
-example : MemoryAggregateSound guestProgram decode transcriptExtractor := aggregate_sound_outer
+example (hP : EndPending) : MemoryAggregateSound guestProgram decode transcriptExtractor :=
+  aggregate_sound_outer hP
 
 /-- The decoder reads the seed and the statement off `main`'s frame, through the index of the
 memory's addresses (on fewer than `2^64` words, the memory's own reads). -/

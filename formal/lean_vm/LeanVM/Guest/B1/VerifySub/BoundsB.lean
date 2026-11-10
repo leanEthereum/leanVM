@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Place.OsSpec
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.B1.Placement.CertifyAt
+public import LeanVM.Guest.B1.Bits.BusGrind
 
 /-!
 # `verify_sub`'s bounds
@@ -25,8 +26,8 @@ sixteen callees' bounds, in call order (`Data.core18`): two `g_power_of_word`s,
 `grind_check__L15`, the `squeeze_point_from` dispatch, `opening_message__L1_L1`, the
 `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L14`,
 `ring_switch_target`, the `open_stacked` dispatch and the terminal; the maxima over the honest
-children's depths (`vbgMax`, `vtMax`, `osMax`) or a dispatch's arms (`armMax`) where a callee's
-bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8706 + (vsBs W Bvk).sum`: the frame,
+children's depths (`vbgMax`, `vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
+arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8706 + (vsBs W Bvk).sum`: the frame,
 the own buffers (`8677 + μ` words, `μ ≤ 29`) and the callees. `vsNames μ r d`, `vsTs`: the
 callees' names (the squeeze's arm at the stack log `μ`, the bus grind's at the depth `d`,
 `open_stacked`'s candidate) and trees, within their bounds, `verify_tables`' and the terminal's
@@ -60,6 +61,10 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 @[irreducible] noncomputable def osMax (fs Bnd Kr : String → ℕ) : ℕ :=
   lmax ((List.range 29).flatMap fun μ ↦ (List.range 5).map (osBosAt fs Bnd Kr μ))
 
+/-- The `bus_grind_check` dispatch's bound over its arms: an arm's frame and its `grind_check`'s. -/
+def busGrindMax (fs : String → ℕ) : ℕ :=
+  lmax ((List.range 18).map fun j ↦ fs (busGrindName j) + fs (grindCheckName (busGrindBits j)))
+
 /-- **`verify_sub`'s callees' words facts with `open_stacked`'s**: its leaves' and residual loops'
 (`Bnd`, `Kr`). -/
 structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
@@ -75,7 +80,7 @@ noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : �
     fs "certify_placement" + Tables.cpSizes.sum,
     fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
-    armMax W.Kst busGrindNames, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
+    busGrindMax fs, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
     W.Kst "grind_check__L14", fs "ring_switch_target" + 72 + W.B14, os,
     termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
