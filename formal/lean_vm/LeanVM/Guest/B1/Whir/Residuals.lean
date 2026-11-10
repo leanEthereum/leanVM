@@ -129,5 +129,58 @@ theorem osResidual_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
   · rw [a3, m2, r1] at s3; exact s3
   · rw [a9, m8, m7, r2] at s9; exact s9
 
+/-- **Every level's residual**, the levels `lvl ..`. -/
+theorem osResiduals_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {ich bd ls la : ℕ}
+    (D : ℕ → ℕ → E) (hsv : ℕ → List E) (Pos : ℕ → ℕ → E) (mu : ℕ → E) :
+    ∀ (lvs : List OsLv) (lvl k : ℕ),
+      (∀ i (hi : i < lvs.length), ResIn rd σ c bd (lvl + i) lvs[i] (D (lvl + i)) (hsv (lvl + i))
+        (Pos (lvl + i)) (mu (lvl + i))) →
+      AllOk C rd σ (osResiduals c ich bd ls la lvl lvs k).1 →
+      ∀ i (hi : i < lvs.length), ∃ i0 i1 s b a : E,
+        LoadHolds rd (σ (.n ich)) (2 * (lvl + i)) i0 ∧
+        LoadHolds rd (σ (.n ich)) (2 * (lvl + i) + 1) i1 ∧ LoadHolds rd (σ (.n ls)) (lvl + i) s ∧
+        LoadHolds rd (σ (.n osBetas)) (lvl + i) b ∧ LoadHolds rd (σ (.n la)) (lvl + i) a ∧
+        LoadHolds rd (σ (.n ich)) (2 * (lvl + i) + 2)
+          (i0 + s * (resAll lvs[i] (D (lvl + i)) (hsv (lvl + i)) (Pos (lvl + i)) (mu (lvl + i))).1) ∧
+        LoadHolds rd (σ (.n ich)) (2 * (lvl + i) + 3)
+          (i1 + b * a * (resAll lvs[i] (D (lvl + i)) (hsv (lvl + i)) (Pos (lvl + i)) (mu (lvl + i))).2)
+  | [], _, _, _, _, i, hi => absurd hi (by simp)
+  | lv :: rest, lvl, k, hin, hok, i, hi => by
+    simp only [osResiduals, allOk_append] at hok
+    rcases i with _ | i
+    · have := osResidual_sound hle (hin 0 (by simp)) hok.1
+      simpa using this
+    · have := osResiduals_sound hle D hsv Pos mu rest (lvl + 1) _ (fun j hj ↦ by
+        have := hin (j + 1) (by simp; omega)
+        rwa [show lvl + (j + 1) = lvl + 1 + j by ring] at this) hok.2 i (by simpa using hi)
+      rw [show lvl + 1 + i = lvl + (i + 1) by ring] at this
+      simpa using this
+
+/-- **The inner chain**: from `ich[0] = 0`, `ich[1] = claim`, after `j` levels `ich[2j]` is the
+sum of the scales times the product chains and `ich[2j + 1]` the claim plus the sum of the
+batching scalars times the products after times the high chains. -/
+theorem ich_chain {ich ls la : ℕ} {claim : E} (n : ℕ) (Hp Hh : ℕ → E) (sv bv av : ℕ → E)
+    (h0 : LoadHolds rd (σ (.n ich)) 0 0) (h1 : LoadHolds rd (σ (.n ich)) 1 claim)
+    (hls : ∀ i < n, LoadHolds rd (σ (.n ls)) i (sv i))
+    (hbs : ∀ i < n, LoadHolds rd (σ (.n osBetas)) i (bv i))
+    (hla : ∀ i < n, LoadHolds rd (σ (.n la)) i (av i))
+    (hstep : ∀ i < n, ∃ i0 i1 s b a : E, LoadHolds rd (σ (.n ich)) (2 * i) i0 ∧
+      LoadHolds rd (σ (.n ich)) (2 * i + 1) i1 ∧ LoadHolds rd (σ (.n ls)) i s ∧
+      LoadHolds rd (σ (.n osBetas)) i b ∧ LoadHolds rd (σ (.n la)) i a ∧
+      LoadHolds rd (σ (.n ich)) (2 * i + 2) (i0 + s * Hp i) ∧
+      LoadHolds rd (σ (.n ich)) (2 * i + 3) (i1 + b * a * Hh i)) :
+    ∀ j ≤ n, LoadHolds rd (σ (.n ich)) (2 * j) (∑ i ∈ Finset.range j, sv i * Hp i) ∧
+      LoadHolds rd (σ (.n ich)) (2 * j + 1) (claim + ∑ i ∈ Finset.range j, bv i * av i * Hh i)
+  | 0, _ => by simpa using ⟨h0, h1⟩
+  | j + 1, hj => by
+    obtain ⟨e0, e1⟩ := ich_chain n Hp Hh sv bv av h0 h1 hls hbs hla hstep j (by omega)
+    obtain ⟨i0, i1, s, b, a, l0, l1, ls', lb, la', l2, l3⟩ := hstep j (by omega)
+    rw [← loadHolds_unique e0 l0, ← loadHolds_unique (hls j (by omega)) ls'] at l2
+    rw [← loadHolds_unique e1 l1, ← loadHolds_unique (hbs j (by omega)) lb,
+      ← loadHolds_unique (hla j (by omega)) la'] at l3
+    refine ⟨?_, ?_⟩
+    · rw [show 2 * (j + 1) = 2 * j + 2 by ring, Finset.sum_range_succ]; exact l2
+    · rw [show 2 * (j + 1) + 1 = 2 * j + 3 by ring, Finset.sum_range_succ, ← add_assoc]; exact l3
+
 end
 end LeanVM.Guest.B1.Whir
