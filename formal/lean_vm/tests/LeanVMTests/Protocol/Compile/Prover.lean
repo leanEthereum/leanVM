@@ -38,7 +38,7 @@ def prog (bits : ℕ) : VerifierProgram Bool :=
 
 /-- The honest strategy: the scalar `3`, then `word0`. -/
 def strat : Strategy where
-  msg := fun _ ↦ E.ofLimbs (w 3) 0 0
+  msg := fun _ ↦ E.ofLimbs (w 3) 0
   word := fun _ ↦ word0
 
 /-- The seed of the sponge. -/

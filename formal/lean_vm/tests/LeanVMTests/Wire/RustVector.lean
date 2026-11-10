@@ -47,7 +47,7 @@ def opening (q : ℕ) : Opening :=
 
 /-- The test's proof. -/
 def proof : Proof :=
-  ⟨[E.ofLimbs (K.ofBits 1) (K.ofBits 2) (K.ofBits 3)], [[3, 1, 3].map opening]⟩
+  ⟨[E.ofLimbs (K.ofBits 1) (K.ofBits 2)], [[3, 1, 3].map opening]⟩
 
 /-- A proof's fields, comparable. -/
 def fields (p : Proof) : List (List UInt8) × List (List (ℕ × List K × List Digest)) :=

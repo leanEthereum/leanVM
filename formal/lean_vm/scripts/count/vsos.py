@@ -44,16 +44,16 @@ src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding=
 def arr(name):
     m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
     return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
-A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS',
-                         'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_MAX_INTERLEAVE', 'LIG_QUERIES',
-                         'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_INTERLEAVE', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}
+A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_YR_LEVEL', 'LIG_TOTAL_FOLDS',
+                         'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_FOLDS', 'LIG_QUERIES',
+                         'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}
 lig = lambda a, i: A[a][i] if i < len(A[a]) else 0
 oql = {}
 for m in re.finditer(r'\("(opening_queries__[^"]+)", "(__loop\d+)"',
                      open(os.path.join(B1, 'Opening', 'Witness.lean'), encoding='utf-8').read()):
     oql[m.group(1)] = m.group(2)
 def nlev(m): return lig('LIG_N_LEVELS', m)
-def loopBase(m): return 41 + 2 * sum(nlev(k) for k in range(m))  # `B1.Whir.loopBase`
+def loopBase(m): return 41 + sum(2 * nlev(k) - 1 for k in range(m))  # `B1.Whir.loopBase`
 
 
 def calls(name):
@@ -69,17 +69,20 @@ def osBos(m):
     """The frame and buffers, and each call's bound, in order."""
     name = 'open_stacked__L%d' % m
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
-    posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m)
-    maxIl = lig('LIG_MAX_INTERLEAVE', m)
-    # `B1.osSizesL` (ligColsCap 22, oodSlots 4, yrLogCap 5, pointCap 40, resBatch 8)
-    sizes = ([4 * capLen, capLen, yrLen, 2 * nl, nF, nl, nl, posLen, posLen, 128, nl * 22, nl * 4]
-             + [(maxSq + 1) * 5, maxIl] * nl + [5, 40, 40, nl * 22, nl, nl + 1]
-             + [lig('LIG_QUERIES', m * 6 + l) // 8 + 1 for l in range(nl)])
+    posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m); last = lig('LIG_YR_LEVEL', m)
+    folds = lambda l: lig('LIG_FOLDS', m * 6 + l)
+    # `B1.osSizesF` (hsStride 8, oodSamples 2, ligColsCap 22, yrLogCap 5, pointCap 40, resBatch 8)
+    sizes = ([4 * capLen, capLen, yrLen + folds(last), 2 * nl, nF, 3 * nF, nl, nl, nl * 8, 2 * nl * 22, 2 * nl,
+              posLen, posLen]
+             + [x for l in range(nl) for x in ([] if l == last else [2 + folds(l)]) + [(maxSq + 1) * 5]
+                + ([yrLen + folds(l)] if l == last else [])]
+             + [5, 40, 40, nl * 22, nl, nl, 2 * nl]
+             + [2 * (lig('LIG_QUERIES', m * 6 + l) // 8 + 1) for l in range(last)])
     sp = {}
     for l in range(nl):
         i = m * 6 + l
         q = lig('LIG_QUERIES', i); depth = lig('LIG_TREE_DEPTH', i); sq = lig('LIG_SQUEEZES', i)
-        il = lig('LIG_INTERLEAVE', i); lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
+        lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
         sqL = '__loop%d' % (loopBase(m) + l); resL = '__loop%d' % (loopBase(m) + nl + l)
         sp[sqL] = sp.get(sqL, 0) + (sq + 1) * fs(sqL) + sq * fs('decode_query_windows__L%d_L%d' % (depth, cd))
         # level `l`'s `opening_queries`: the `l`-th one `open_stacked` calls, its eleven Const
@@ -95,7 +98,8 @@ def osBos(m):
         sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
                   + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))
         # `B1.osSpB`: the residual loop's run, `q / 8` iterations and its one phantom frame
-        sp[resL] = sp.get(resL, 0) + q // 8 * SKt(resL) + fs(resL)
+        if l < lig('LIG_YR_LEVEL', m):
+            sp[resL] = sp.get(resL, 0) + q // 8 * SKt(resL) + fs(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 
 
