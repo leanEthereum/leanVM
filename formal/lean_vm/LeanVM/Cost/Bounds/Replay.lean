@@ -47,38 +47,38 @@ section Lists
 
 variable {α : Type} [MachineEncoding α]
 
-theorem elem_cost (hP : Includes P Auto.List.elem.c340.costDeps) (a : ℕ) (ha : a < 2 ^ 64) :
+theorem elem_cost (hP : Includes P Auto.List.elem.c339.costDeps) (a : ℕ) (ha : a < 2 ^ 64) :
     ∀ l : List ℕ, (∀ b ∈ l, b < 2 ^ 64) →
-      machineCost P Auto.List.elem.c340.costIdx [encodeValue a, encodeValue l] ≤ 11 * l.length + 3
-  | [], _ => by rw [Auto.List.elem.c340.costEq_nil P hP]; omega
+      machineCost P Auto.List.elem.c339.costIdx [encodeValue a, encodeValue l] ≤ 11 * l.length + 3
+  | [], _ => by rw [Auto.List.elem.c339.costEq_nil P hP]; omega
   | b :: l, hb => by
-    rw [Auto.List.elem.c340.costEq_cons P hP, limbs_of_lt ha, limbs_of_lt (hb b (by simp))]
+    rw [Auto.List.elem.c339.costEq_cons P hP, limbs_of_lt ha, limbs_of_lt (hb b (by simp))]
     have := elem_cost hP a ha l fun c hc ↦ hb c (by simp [hc])
     simp only [List.length_cons]
     cases a == b <;> dsimp only <;> omega
 
-theorem set_cost (hP : Includes P Auto.List.set.c337.costDeps) (a : α) :
+theorem set_cost (hP : Includes P Auto.List.set.c336.costDeps) (a : α) :
     ∀ (l : List α) (n : ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.set.c337.costIdx [encodeValue l, encodeValue n, encodeValue a] ≤ 20 * l.length + 3
-  | [], n, _ => by rw [Auto.List.set.c337.costEq_nil P hP]; omega
+      machineCost P Auto.List.set.c336.costIdx [encodeValue l, encodeValue n, encodeValue a] ≤ 20 * l.length + 3
+  | [], n, _ => by rw [Auto.List.set.c336.costEq_nil P hP]; omega
   | x :: l, 0, _ => by
-    rw [Auto.List.set.c337.costEq_cons P hP]
+    rw [Auto.List.set.c336.costEq_cons P hP]
     simp only [limbs_zero, List.length_cons, Nat.rec_zero]
     omega
   | x :: l, n + 1, h => by
-    rw [Auto.List.set.c337.costEq_cons P hP, limbs_of_lt h]
+    rw [Auto.List.set.c336.costEq_cons P hP, limbs_of_lt h]
     have := set_cost hP a l n (by omega)
     simp only [List.length_cons]
     omega
 
-theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c344.costDeps) (p : α → Bool)
+theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c343.costDeps) (p : α → Bool)
     (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.findIdx.go.c344.costIdx [pVal, encodeValue l, encodeValue n] ≤
+      machineCost P Auto.List.findIdx.go.c343.costIdx [pVal, encodeValue l, encodeValue n] ≤
         (B + 14) * l.length + 3
-  | [], n, _, _ => by rw [Auto.List.findIdx.go.c344.costEq_nil P hP p pVal hp]; omega
+  | [], n, _, _ => by rw [Auto.List.findIdx.go.c343.costEq_nil P hP p pVal hp]; omega
   | x :: l, n, h, hB => by
-    rw [Auto.List.findIdx.go.c344.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
+    rw [Auto.List.findIdx.go.c343.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
       limbs_of_lt (by simp at h; omega : n + 1 < 2 ^ 64), max_self]
     have h1 := findIdxGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
       fun a ha ↦ hB a (by simp [ha])
@@ -86,14 +86,14 @@ theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c344.costDeps) (p :
     simp only [List.length_cons]
     split <;> nlinarith
 
-theorem findIdxOptGo_cost (hP : Includes P Auto.List.findIdx?.go.c332.costDeps) (p : α → Bool)
+theorem findIdxOptGo_cost (hP : Includes P Auto.List.findIdx?.go.c331.costDeps) (p : α → Bool)
     (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.findIdx?.go.c332.costIdx [pVal, encodeValue l, encodeValue n] ≤
+      machineCost P Auto.List.findIdx?.go.c331.costIdx [pVal, encodeValue l, encodeValue n] ≤
         (B + 14) * l.length + 3
-  | [], n, _, _ => by rw [Auto.List.findIdx?.go.c332.costEq_nil P hP p pVal hp]; omega
+  | [], n, _, _ => by rw [Auto.List.findIdx?.go.c331.costEq_nil P hP p pVal hp]; omega
   | x :: l, n, h, hB => by
-    rw [Auto.List.findIdx?.go.c332.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
+    rw [Auto.List.findIdx?.go.c331.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
       limbs_of_lt (by simp at h; omega : n + 1 < 2 ^ 64), max_self]
     have h1 := findIdxOptGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
       fun a ha ↦ hB a (by simp [ha])
@@ -138,12 +138,12 @@ theorem absorbPure_cost (hP : Includes P absorbPureC.costDeps) (sp : Sponge) (x 
 
 open LeanVM.Protocol.Compile in
 /-- Reading `n` scalars: at most `148` per scalar. -/
-theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c323.costDeps) :
+theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c322.costDeps) :
     ∀ (n : ℕ) (s : VerifierProgramState), n < 2 ^ 64 → s.sponge.pending.length ≤ 4 →
-      machineCost P Auto.LeanVM.Extraction.Fast.readPure.c323.costIdx [encodeValue n, encodeValue s] ≤ 148 * n + 11
-  | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c323.costEq_zero P hP]
+      machineCost P Auto.LeanVM.Extraction.Fast.readPure.c322.costIdx [encodeValue n, encodeValue s] ≤ 148 * n + 11
+  | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c322.costEq_zero P hP]
   | n + 1, s, hn, hs => by
-    rw [Auto.LeanVM.Extraction.Fast.readPure.c323.costEq_succ P hP, limbs_of_lt hn]
+    rw [Auto.LeanVM.Extraction.Fast.readPure.c322.costEq_succ P hP, limbs_of_lt hn]
     obtain ⟨sp, stream, os, roots⟩ := s
     cases stream with
     | nil => simp only; omega
@@ -207,14 +207,14 @@ theorem length_levelsFrom : ∀ (fuel rem pf pr red : ℕ), (levelsFrom fuel rem
 
 open LeanVM.Parameters.Whir in
 /-- The ladder's levels after the first: at most `44` per level. -/
-theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.c349.costDeps) :
+theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costDeps) :
     ∀ (fuel rem pf pr red : ℕ), fuel < 2 ^ 64 → rem < 2 ^ 64 → pr + pf + 4 * fuel < 2 ^ 63 →
       red < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Parameters.Whir.levelsFrom.c349.costIdx [encodeValue fuel, encodeValue rem, encodeValue pf, encodeValue pr, encodeValue red] ≤
+      machineCost P Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costIdx [encodeValue fuel, encodeValue rem, encodeValue pf, encodeValue pr, encodeValue red] ≤
         44 * fuel + 15
-  | 0, rem, pf, pr, red, _, _, _, _ => by rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c349.costEq_zero P hP]; omega
+  | 0, rem, pf, pr, red, _, _, _, _ => by rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costEq_zero P hP]; omega
   | fuel + 1, rem, pf, pr, red, hf, hr, hpp, hred => by
-    rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c349.costEq_succ P hP]
+    rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costEq_succ P hP]
     have hrec := levelsFrom_cost hP fuel (rem - min subsequentFold rem) (min subsequentFold rem)
       (pr + pf - red) subsequentReduction (by omega) (by omega)
       (by simp only [subsequentFold]; omega) (by simp [subsequentReduction])
