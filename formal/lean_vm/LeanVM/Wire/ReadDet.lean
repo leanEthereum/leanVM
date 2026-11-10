@@ -50,7 +50,7 @@ the row width `leafWords - zeroPrefix leaves`; each leaf without the common zero
 carried siblings' digests, level by level, in order. -/
 def encodePhase (ph : PrunedPhase) : Bytes :=
   let zeros := zeroPrefix ph.leaves
-  Prover.u32Bytes ph.queries.length ++ ph.queries.flatMap Prover.u32Bytes ++
+  Prover.u32Bytes ph.queries.length ++ ph.queries.flatMap Prover.u64Bytes ++
     Prover.u32Bytes ph.height ++ Prover.u32Bytes ph.leafWords ++
     Prover.u32Bytes (ph.leafWords - zeros) ++
     ph.leaves.flatMap (fun leaf ↦ (leaf.drop zeros).flatMap K.toBytes) ++
@@ -74,7 +74,7 @@ below `2 ^ height`; one leaf per position, each of the leaf width; the row width
 carried siblings keyed by `carriedSiblings (levelNodes positions level)`, one list per level. -/
 structure PhaseRead (ph : PrunedPhase) : Prop where
   queries_length_le : ph.queries.length ≤ wireMaxQueries
-  queries_lt : ∀ query ∈ ph.queries, query < 2 ^ 32
+  queries_lt : ∀ query ∈ ph.queries, query < 2 ^ 64
   height_le : ph.height ≤ wireMaxHeight
   leafWords_le : ph.leafWords ≤ wireMaxLeafWords
   positions_eq : ph.positions = distinctPositions ph.queries
@@ -265,7 +265,7 @@ theorem readPhase_eq {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
     hrowLe, last, hlast, hlastShift⟩, rows, input₆, hrows, -, hmin, carried, input₇, hcarried,
     rfl, rfl⟩ := h
   obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hcount
-  obtain ⟨rfl, hqueriesLt, rfl⟩ := readU32s_eq_some_iff.1 hqueries
+  obtain ⟨rfl, hqueriesLt, rfl⟩ := readU64s_eq_some_iff.1 hqueries
   obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hheight
   obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hleafWords
   obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hrowWords

@@ -49,7 +49,7 @@ def phaseHeaderAndRows (paths : List Opening) : Bytes :=
   let leafWords := (paths.head?.map fun path ↦ path.leaf.length).getD 0
   let distinct := distinctPaths paths
   let zeros := zeroPrefix (distinct.map Opening.leaf)
-  Prover.u32Bytes paths.length ++ paths.flatMap (fun path ↦ Prover.u32Bytes path.leafIndex) ++
+  Prover.u32Bytes paths.length ++ paths.flatMap (fun path ↦ Prover.u64Bytes path.leafIndex) ++
     Prover.u32Bytes height ++ Prover.u32Bytes leafWords ++ Prover.u32Bytes (leafWords - zeros) ++
     distinct.flatMap (fun path ↦ (path.leaf.drop zeros).flatMap K.toBytes)
 
@@ -79,7 +79,7 @@ positions, the height, the leaf width, the row width (the leaf width less the le
 every leaf has, `zeroPrefix`) and each leaf without them. -/
 def encodePhaseHeaderAndRows (phase : PrunedPhase) : Bytes :=
   let zeros := zeroPrefix phase.leaves
-  Prover.u32Bytes phase.queries.length ++ phase.queries.flatMap Prover.u32Bytes ++
+  Prover.u32Bytes phase.queries.length ++ phase.queries.flatMap Prover.u64Bytes ++
     Prover.u32Bytes phase.height ++ Prover.u32Bytes phase.leafWords ++
     Prover.u32Bytes (phase.leafWords - zeros) ++
     phase.leaves.flatMap (fun leaf ↦ (leaf.drop zeros).flatMap K.toBytes)

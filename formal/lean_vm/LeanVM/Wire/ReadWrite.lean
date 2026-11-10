@@ -230,6 +230,54 @@ theorem readU32_u32Bytes {n : ℕ} (hn : n < 2 ^ 32) (rest : List UInt8) :
     readU32 (Prover.u32Bytes n ++ rest) = some (n, rest) :=
   readU32_eq_some_iff.mpr ⟨hn, rfl⟩
 
+/-! ## `readU64` -/
+
+@[simp] theorem length_u64Bytes (n : ℕ) : (Prover.u64Bytes n).length = 8 := by
+  simp [Prover.u64Bytes]
+
+private theorem toNat_littleEndianLane_eight (b0 b1 b2 b3 b4 b5 b6 b7 : UInt8) :
+    (littleEndianLane [b0, b1, b2, b3, b4, b5, b6, b7] 0).toNat =
+      b0.toNat + b1.toNat * 2 ^ 8 + b2.toNat * 2 ^ 16 + b3.toNat * 2 ^ 24 + b4.toNat * 2 ^ 32 +
+        b5.toNat * 2 ^ 40 + b6.toNat * 2 ^ 48 + b7.toNat * 2 ^ 56 := by
+  rw [toNat_littleEndianLane]
+  simp [Finset.sum_range_succ, List.getD_eq_getElem?_getD]
+
+/-- **What `readU64` accepts:** the eight bytes of a number below `2 ^ 64`, then the rest. -/
+theorem readU64_eq_some_iff {input rest : List UInt8} {n : ℕ} :
+    readU64 input = some (n, rest) ↔ n < 2 ^ 64 ∧ input = Prover.u64Bytes n ++ rest := by
+  unfold readU64
+  rw [Option.map_eq_some_iff]
+  constructor
+  · rintro ⟨⟨head, rest'⟩, hread, heq⟩
+    simp only [Prod.mk.injEq] at heq
+    obtain ⟨rfl, rfl⟩ := heq
+    obtain ⟨hlen, rfl⟩ := readBytes_eq_some_iff.mp hread
+    match head, hlen with
+    | [b0, b1, b2, b3, b4, b5, b6, b7], _ =>
+      rw [toNat_littleEndianLane_eight]
+      have h0 := b0.toNat_lt
+      have h1 := b1.toNat_lt
+      have h2 := b2.toNat_lt
+      have h3 := b3.toNat_lt
+      have h4 := b4.toNat_lt
+      have h5 := b5.toNat_lt
+      have h6 := b6.toNat_lt
+      have h7 := b7.toNat_lt
+      refine ⟨by omega, ?_⟩
+      simp only [Prover.u64Bytes, List.range_succ, List.range_zero, List.nil_append,
+        List.map_cons, List.map_nil, List.cons_append, List.nil_append, List.cons.injEq,
+        and_true]
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> apply UInt8.toNat_inj.mp <;>
+        simp only [UInt8.toNat_ofNat'] <;> norm_num <;> omega
+  · rintro ⟨hn, rfl⟩
+    refine ⟨(Prover.u64Bytes n, rest), by rw [← length_u64Bytes n, readBytes_append], ?_⟩
+    simp only [Prod.mk.injEq, and_true]
+    simp only [Prover.u64Bytes, List.range_succ, List.range_zero, List.nil_append,
+      List.map_cons, List.map_nil, List.cons_append, toNat_littleEndianLane_eight,
+      UInt8.toNat_ofNat']
+    norm_num
+    omega
+
 /-! ## Lists of fields -/
 
 /-- `count` fields in order, each read by `read`: the shape of `readU32s`, `readDigests` and
@@ -291,6 +339,24 @@ theorem readU32s_eq_some_iff {count : ℕ} {input rest : List UInt8} {values : L
       (∀ n ∈ values, n < 2 ^ 32) ∧ input = values.flatMap Prover.u32Bytes ++ rest := by
   rw [readU32s_eq_readList]
   exact readList_eq_some_iff Prover.u32Bytes (· < 2 ^ 32) readU32_eq_some_iff
+
+theorem readU64s_eq_readList : readU64s = readList readU64 := by
+  funext count input
+  induction count generalizing input with
+  | zero => rfl
+  | succ count ih => simp only [readU64s, readList, ih]
+
+/-- **What `readU64s` accepts:** `count` numbers below `2 ^ 64`, then the rest. -/
+theorem readU64s_eq_some_iff {count : ℕ} {input rest : List UInt8} {values : List ℕ} :
+    readU64s count input = some (values, rest) ↔ values.length = count ∧
+      (∀ n ∈ values, n < 2 ^ 64) ∧ input = values.flatMap Prover.u64Bytes ++ rest := by
+  rw [readU64s_eq_readList]
+  exact readList_eq_some_iff Prover.u64Bytes (· < 2 ^ 64) readU64_eq_some_iff
+
+/-- `readU64s` reads back numbers below `2 ^ 64`. -/
+theorem readU64s_u64Bytes {ns : List ℕ} (hns : ∀ n ∈ ns, n < 2 ^ 64) (rest : List UInt8) :
+    readU64s ns.length (ns.flatMap Prover.u64Bytes ++ rest) = some (ns, rest) :=
+  readU64s_eq_some_iff.mpr ⟨rfl, hns, rfl⟩
 
 /-- `readU32s` reads back numbers below `2 ^ 32`. -/
 theorem readU32s_u32Bytes {ns : List ℕ} (hns : ∀ n ∈ ns, n < 2 ^ 32) (rest : List UInt8) :
