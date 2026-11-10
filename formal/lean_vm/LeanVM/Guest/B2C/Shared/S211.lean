@@ -16,36 +16,99 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 4. -/
-theorem w482_4 : shareWin 482 (snapsOf 482) 4 = true := by decide +kernel
+/-- `rs_eq_rows__L8`, window 5. -/
+theorem w449_5 : shareWin 449 (snapsOf 449) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 5. -/
-theorem w482_5 : shareWin 482 (snapsOf 482) 5 = true := by decide +kernel
+/-- `__loop36`, once. -/
+theorem st450 : shareStatic 450 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 6. -/
-theorem w482_6 : shareWin 482 (snapsOf 482) 6 = true := by decide +kernel
+/-- `__loop36`, window 0. -/
+theorem w450_0 : shareWin 450 (snapsOf 450) 0 = true := by decide +kernel
+
+theorem ok450 : ShareOk 450 := ⟨st450, fun i hi ↦ by
+  have h : (snapsOf 450).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w450_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 7. -/
-theorem w482_7 : shareWin 482 (snapsOf 482) 7 = true := by decide +kernel
+/-- `gkr_rounds__L0`, once. -/
+theorem st451 : shareStatic 451 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 8. -/
-theorem w482_8 : shareWin 482 (snapsOf 482) 8 = true := by decide +kernel
+/-- `gkr_rounds__L0`, window 0. -/
+theorem w451_0 : shareWin 451 (snapsOf 451) 0 = true := by decide +kernel
+
+theorem ok451 : ShareOk 451 := ⟨st451, fun i hi ↦ by
+  have h : (snapsOf 451).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w451_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 9. -/
-theorem w482_9 : shareWin 482 (snapsOf 482) 9 = true := by decide +kernel
+/-- `gkr_rounds__L2`, once. -/
+theorem st452 : shareStatic 452 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 10. -/
-theorem w482_10 : shareWin 482 (snapsOf 482) 10 = true := by decide +kernel
+/-- `gkr_rounds__L2`, window 0. -/
+theorem w452_0 : shareWin 452 (snapsOf 452) 0 = true := by decide +kernel
+
+theorem ok452 : ShareOk 452 := ⟨st452, fun i hi ↦ by
+  have h : (snapsOf 452).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w452_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 11. -/
-theorem w482_11 : shareWin 482 (snapsOf 482) 11 = true := by decide +kernel
+/-- `gkr_rounds__L4`, once. -/
+theorem st453 : shareStatic 453 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L4`, window 0. -/
+theorem w453_0 : shareWin 453 (snapsOf 453) 0 = true := by decide +kernel
+
+theorem ok453 : ShareOk 453 := ⟨st453, fun i hi ↦ by
+  have h : (snapsOf 453).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w453_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L6`, once. -/
+theorem st454 : shareStatic 454 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L6`, window 0. -/
+theorem w454_0 : shareWin 454 (snapsOf 454) 0 = true := by decide +kernel
+
+theorem ok454 : ShareOk 454 := ⟨st454, fun i hi ↦ by
+  have h : (snapsOf 454).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w454_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L1`, once. -/
+theorem st455 : shareStatic 455 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L1`, window 0. -/
+theorem w455_0 : shareWin 455 (snapsOf 455) 0 = true := by decide +kernel
+
+theorem ok455 : ShareOk 455 := ⟨st455, fun i hi ↦ by
+  have h : (snapsOf 455).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w455_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `grind_check__L3`, once. -/
+theorem st456 : shareStatic 456 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `grind_check__L3`, window 0. -/
+theorem w456_0 : shareWin 456 (snapsOf 456) 0 = true := by decide +kernel
+
+theorem ok456 : ShareOk 456 := ⟨st456, fun i hi ↦ by
+  have h : (snapsOf 456).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w456_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

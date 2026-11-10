@@ -8,8 +8,15 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F554_0
-public import LeanVM.Guest.Checked.F577_0
+public import LeanVM.Guest.Checked.F551_0
+public import LeanVM.Guest.Checked.F557_2
+public import LeanVM.Guest.Checked.F557_2
+public import LeanVM.Guest.Checked.F564_0
+public import LeanVM.Guest.Checked.F571_0
+public import LeanVM.Guest.Checked.F578_0
+public import LeanVM.Guest.Checked.F584_0
+public import LeanVM.Guest.Checked.F584_0
+public import LeanVM.Guest.Checked.F590_0
 
 namespace LeanVM.Guest.Checked
 
@@ -28,11 +35,12 @@ theorem plain555 : Plain 555 := plain_of_nil (by decide +kernel)
 theorem plain556 : Plain 556 := plain_of_nil (by decide +kernel)
 
 theorem ok557 : CheckOk 557 := fun i hi ↦ by
-  have h : (certOf 557).cuts.length = 1 := by decide +kernel
+  have h : (certOf 557).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w557_0
   · exact w557_1
+  · exact w557_2
 
 theorem plain558 : Plain 558 := plain_of_nil (by decide +kernel)
 
@@ -42,7 +50,12 @@ theorem plain560 : Plain 560 := plain_of_nil (by decide +kernel)
 
 theorem plain561 : Plain 561 := plain_of_nil (by decide +kernel)
 
-theorem plain562 : Plain 562 := plain_of_nil (by decide +kernel)
+theorem ok562 : CheckOk 562 := fun i hi ↦ by
+  have h : (certOf 562).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w562_0
+  · exact w562_1
 
 theorem plain563 : Plain 563 := plain_of_nil (by decide +kernel)
 
@@ -52,7 +65,12 @@ theorem plain565 : Plain 565 := plain_of_nil (by decide +kernel)
 
 theorem plain566 : Plain 566 := plain_of_nil (by decide +kernel)
 
-theorem plain567 : Plain 567 := plain_of_nil (by decide +kernel)
+theorem ok567 : CheckOk 567 := fun i hi ↦ by
+  have h : (certOf 567).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w567_0
+  · exact w567_1
 
 theorem plain568 : Plain 568 := plain_of_nil (by decide +kernel)
 
@@ -64,7 +82,12 @@ theorem plain571 : Plain 571 := plain_of_nil (by decide +kernel)
 
 theorem plain572 : Plain 572 := plain_of_nil (by decide +kernel)
 
-theorem plain573 : Plain 573 := plain_of_nil (by decide +kernel)
+theorem ok573 : CheckOk 573 := fun i hi ↦ by
+  have h : (certOf 573).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w573_0
+  · exact w573_1
 
 theorem plain574 : Plain 574 := plain_of_nil (by decide +kernel)
 
@@ -85,29 +108,45 @@ theorem plain581 : Plain 581 := plain_of_nil (by decide +kernel)
 theorem plain582 : Plain 582 := plain_of_nil (by decide +kernel)
 
 theorem ok583 : CheckOk 583 := fun i hi ↦ by
-  have h : (certOf 583).cuts.length = 1 := by decide +kernel
+  have h : (certOf 583).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w583_0
   · exact w583_1
+  · exact w583_2
 
 theorem plain584 : Plain 584 := plain_of_nil (by decide +kernel)
 
 theorem plain585 : Plain 585 := plain_of_nil (by decide +kernel)
 
-theorem plain586 : Plain 586 := plain_of_nil (by decide +kernel)
+theorem ok586 : CheckOk 586 := fun i hi ↦ by
+  have h : (certOf 586).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w586_0
+  · exact w586_1
 
 theorem plain587 : Plain 587 := plain_of_nil (by decide +kernel)
 
 theorem plain588 : Plain 588 := plain_of_nil (by decide +kernel)
 
-theorem plain589 : Plain 589 := plain_of_nil (by decide +kernel)
+theorem ok589 : CheckOk 589 := fun i hi ↦ by
+  have h : (certOf 589).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w589_0
+  · exact w589_1
 
 theorem plain590 : Plain 590 := plain_of_nil (by decide +kernel)
 
 theorem plain591 : Plain 591 := plain_of_nil (by decide +kernel)
 
-theorem plain592 : Plain 592 := plain_of_nil (by decide +kernel)
+theorem ok592 : CheckOk 592 := fun i hi ↦ by
+  have h : (certOf 592).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w592_0
+  · exact w592_1
 
 theorem plain593 : Plain 593 := plain_of_nil (by decide +kernel)
 

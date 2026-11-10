@@ -100,19 +100,5 @@ theorem ok556 : CplOk 556 := by
     interval_cases k
     · exact cw556_0_0
 
-theorem ok557 : CplOk 557 := by
-  intro i hi k hk
-  have hc : (certOf 557).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 557 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw557_0_0
-  · have hn : nParts 557 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw557_1_0
-
 end
 end LeanVM.Guest.B2C.Cplw

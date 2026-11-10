@@ -35,11 +35,11 @@ theorem w940_1 : WinOk 940 1 := winOk_of_C (by decide +kernel)
 /-- `__loop340`, window 2. -/
 theorem w940_2 : WinOk 940 2 := winOk_of_C (by decide +kernel)
 
+/-- `__loop340`, window 3. -/
+theorem w940_3 : WinOk 940 3 := winOk_of_C (by decide +kernel)
+
 /-- `__loop341`, window 0. -/
 theorem w941_0 : WinOk 941 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop341`, window 1. -/
-theorem w941_1 : WinOk 941 1 := winOk_of_C (by decide +kernel)
 
 theorem ok937 : CheckOk 937 := checkOk_one (by decide +kernel) w937_0
 

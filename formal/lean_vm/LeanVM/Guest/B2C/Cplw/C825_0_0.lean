@@ -22,6 +22,9 @@ theorem cw825_0_0 : cplWin 825 0 0 = true := by decide +kernel
 /-- `opening_queries__L0_L0_L4_L16_L18_L4_L2_L1846_L8_L3_L1`, window 0, part 0. -/
 theorem cw826_0_0 : cplWin 826 0 0 = true := by decide +kernel
 
+/-- `opening_queries__L0_L0_L4_L16_L18_L4_L2_L1846_L8_L3_L1`, window 1, part 0. -/
+theorem cw826_1_0 : cplWin 826 1 0 = true := by decide +kernel
+
 /-- `__loop243`, window 0, part 0. -/
 theorem cw827_0_0 : cplWin 827 0 0 = true := by decide +kernel
 
@@ -43,13 +46,17 @@ theorem ok825 : CplOk 825 := by
 
 theorem ok826 : CplOk 826 := by
   intro i hi k hk
-  have hc : (certOf 826).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 826).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 826 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw826_0_0
+  · have hn : nParts 826 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw826_1_0
 
 theorem ok827 : CplOk 827 := by
   intro i hi k hk

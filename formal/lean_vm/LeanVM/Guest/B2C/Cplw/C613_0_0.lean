@@ -37,6 +37,9 @@ theorem cw618_0_0 : cplWin 618 0 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L6_L32_L23_L8_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw618_1_0 : cplWin 618 1 0 = true := by decide +kernel
 
+/-- `opening_queries__L1_L1_L6_L32_L23_L8_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw618_2_0 : cplWin 618 2 0 = true := by decide +kernel
+
 theorem ok613 : CplOk 613 := by
   intro i hi k hk
   have hc : (certOf 613).cuts.length = 0 := by decide +kernel
@@ -89,7 +92,7 @@ theorem ok617 : CplOk 617 := by
 
 theorem ok618 : CplOk 618 := by
   intro i hi k hk
-  have hc : (certOf 618).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 618).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 618 0 = 1 := by decide +kernel
@@ -100,6 +103,10 @@ theorem ok618 : CplOk 618 := by
     rw [hn] at hk
     interval_cases k
     · exact cw618_1_0
+  · have hn : nParts 618 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw618_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

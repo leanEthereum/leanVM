@@ -105,60 +105,61 @@ public import LeanVM.Guest.B2C.Cplw.C311_0_0
 public import LeanVM.Guest.B2C.Cplw.C319_0_0
 public import LeanVM.Guest.B2C.Cplw.C327_0_0
 public import LeanVM.Guest.B2C.Cplw.C332_3_0
-public import LeanVM.Guest.B2C.Cplw.C333_2_0
-public import LeanVM.Guest.B2C.Cplw.C334_0_0
-public import LeanVM.Guest.B2C.Cplw.C334_3_0
-public import LeanVM.Guest.B2C.Cplw.C335_0_0
-public import LeanVM.Guest.B2C.Cplw.C335_3_0
-public import LeanVM.Guest.B2C.Cplw.C336_0_0
-public import LeanVM.Guest.B2C.Cplw.C336_3_0
-public import LeanVM.Guest.B2C.Cplw.C337_0_0
-public import LeanVM.Guest.B2C.Cplw.C337_3_1
-public import LeanVM.Guest.B2C.Cplw.C337_6_0
-public import LeanVM.Guest.B2C.Cplw.C338_3_0
-public import LeanVM.Guest.B2C.Cplw.C338_5_1
-public import LeanVM.Guest.B2C.Cplw.C339_1_0
+public import LeanVM.Guest.B2C.Cplw.C333_0_0
+public import LeanVM.Guest.B2C.Cplw.C333_5_0
+public import LeanVM.Guest.B2C.Cplw.C334_5_0
+public import LeanVM.Guest.B2C.Cplw.C334_7_0
+public import LeanVM.Guest.B2C.Cplw.C335_5_0
+public import LeanVM.Guest.B2C.Cplw.C335_7_0
+public import LeanVM.Guest.B2C.Cplw.C336_5_0
+public import LeanVM.Guest.B2C.Cplw.C336_7_0
+public import LeanVM.Guest.B2C.Cplw.C337_4_0
+public import LeanVM.Guest.B2C.Cplw.C337_7_0
+public import LeanVM.Guest.B2C.Cplw.C338_1_0
+public import LeanVM.Guest.B2C.Cplw.C338_7_0
+public import LeanVM.Guest.B2C.Cplw.C338_9_1
 public import LeanVM.Guest.B2C.Cplw.C339_4_0
-public import LeanVM.Guest.B2C.Cplw.C340_3_0
-public import LeanVM.Guest.B2C.Cplw.C341_1_0
-public import LeanVM.Guest.B2C.Cplw.C341_4_0
-public import LeanVM.Guest.B2C.Cplw.C342_1_0
+public import LeanVM.Guest.B2C.Cplw.C340_0_0
+public import LeanVM.Guest.B2C.Cplw.C340_5_0
+public import LeanVM.Guest.B2C.Cplw.C341_3_0
+public import LeanVM.Guest.B2C.Cplw.C341_7_0
 public import LeanVM.Guest.B2C.Cplw.C342_4_0
-public import LeanVM.Guest.B2C.Cplw.C343_1_0
-public import LeanVM.Guest.B2C.Cplw.C343_4_0
-public import LeanVM.Guest.B2C.Cplw.C344_0_0
+public import LeanVM.Guest.B2C.Cplw.C342_7_0
+public import LeanVM.Guest.B2C.Cplw.C343_3_0
+public import LeanVM.Guest.B2C.Cplw.C343_7_0
 public import LeanVM.Guest.B2C.Cplw.C344_3_0
-public import LeanVM.Guest.B2C.Cplw.C344_5_0
+public import LeanVM.Guest.B2C.Cplw.C344_7_0
 public import LeanVM.Guest.B2C.Cplw.C345_2_0
-public import LeanVM.Guest.B2C.Cplw.C345_5_0
-public import LeanVM.Guest.B2C.Cplw.C346_1_0
-public import LeanVM.Guest.B2C.Cplw.C347_0_0
-public import LeanVM.Guest.B2C.Cplw.C347_3_0
-public import LeanVM.Guest.B2C.Cplw.C348_2_0
-public import LeanVM.Guest.B2C.Cplw.C349_0_0
-public import LeanVM.Guest.B2C.Cplw.C349_3_0
-public import LeanVM.Guest.B2C.Cplw.C350_1_0
-public import LeanVM.Guest.B2C.Cplw.C350_4_0
-public import LeanVM.Guest.B2C.Cplw.C351_2_0
+public import LeanVM.Guest.B2C.Cplw.C345_7_0
+public import LeanVM.Guest.B2C.Cplw.C345_9_0
+public import LeanVM.Guest.B2C.Cplw.C346_4_0
+public import LeanVM.Guest.B2C.Cplw.C347_2_0
+public import LeanVM.Guest.B2C.Cplw.C348_0_0
+public import LeanVM.Guest.B2C.Cplw.C348_6_0
+public import LeanVM.Guest.B2C.Cplw.C349_4_0
+public import LeanVM.Guest.B2C.Cplw.C349_7_0
+public import LeanVM.Guest.B2C.Cplw.C350_5_0
+public import LeanVM.Guest.B2C.Cplw.C350_7_0
 public import LeanVM.Guest.B2C.Cplw.C351_5_0
-public import LeanVM.Guest.B2C.Cplw.C352_3_0
-public import LeanVM.Guest.B2C.Cplw.C352_5_0
-public import LeanVM.Guest.B2C.Cplw.C353_2_0
+public import LeanVM.Guest.B2C.Cplw.C351_7_0
+public import LeanVM.Guest.B2C.Cplw.C352_6_0
+public import LeanVM.Guest.B2C.Cplw.C352_8_0
+public import LeanVM.Guest.B2C.Cplw.C353_4_0
 public import LeanVM.Guest.B2C.Cplw.C354_0_0
-public import LeanVM.Guest.B2C.Cplw.C354_3_0
+public import LeanVM.Guest.B2C.Cplw.C354_5_0
 public import LeanVM.Guest.B2C.Cplw.C355_0_0
-public import LeanVM.Guest.B2C.Cplw.C355_3_0
-public import LeanVM.Guest.B2C.Cplw.C355_5_1
-public import LeanVM.Guest.B2C.Cplw.C356_2_0
-public import LeanVM.Guest.B2C.Cplw.C356_4_1
+public import LeanVM.Guest.B2C.Cplw.C355_6_0
+public import LeanVM.Guest.B2C.Cplw.C355_8_0
+public import LeanVM.Guest.B2C.Cplw.C356_5_0
+public import LeanVM.Guest.B2C.Cplw.C356_7_0
 public import LeanVM.Guest.B2C.Cplw.C357_1_0
-public import LeanVM.Guest.B2C.Cplw.C357_4_0
 public import LeanVM.Guest.B2C.Cplw.C357_6_0
-public import LeanVM.Guest.B2C.Cplw.C358_2_0
-public import LeanVM.Guest.B2C.Cplw.C358_4_1
-public import LeanVM.Guest.B2C.Cplw.C359_0_0
-public import LeanVM.Guest.B2C.Cplw.C359_3_1
-public import LeanVM.Guest.B2C.Cplw.C359_6_0
+public import LeanVM.Guest.B2C.Cplw.C357_8_1
+public import LeanVM.Guest.B2C.Cplw.C358_5_0
+public import LeanVM.Guest.B2C.Cplw.C358_7_1
+public import LeanVM.Guest.B2C.Cplw.C359_1_0
+public import LeanVM.Guest.B2C.Cplw.C359_7_0
+public import LeanVM.Guest.B2C.Cplw.C359_9_0
 public import LeanVM.Guest.B2C.Cplw.C360_0_0
 public import LeanVM.Guest.B2C.Cplw.C366_0_0
 public import LeanVM.Guest.B2C.Cplw.C374_0_0
@@ -179,73 +180,80 @@ public import LeanVM.Guest.B2C.Cplw.C472_0_0
 public import LeanVM.Guest.B2C.Cplw.C480_0_0
 public import LeanVM.Guest.B2C.Cplw.C482_6_0
 public import LeanVM.Guest.B2C.Cplw.C483_0_0
-public import LeanVM.Guest.B2C.Cplw.C491_0_0
-public import LeanVM.Guest.B2C.Cplw.C499_0_0
-public import LeanVM.Guest.B2C.Cplw.C504_0_0
-public import LeanVM.Guest.B2C.Cplw.C511_0_0
-public import LeanVM.Guest.B2C.Cplw.C519_0_0
+public import LeanVM.Guest.B2C.Cplw.C490_0_0
+public import LeanVM.Guest.B2C.Cplw.C496_1_0
+public import LeanVM.Guest.B2C.Cplw.C502_0_1
+public import LeanVM.Guest.B2C.Cplw.C509_1_0
+public import LeanVM.Guest.B2C.Cplw.C515_0_0
+public import LeanVM.Guest.B2C.Cplw.C522_0_0
 public import LeanVM.Guest.B2C.Cplw.C526_0_0
-public import LeanVM.Guest.B2C.Cplw.C533_0_0
-public import LeanVM.Guest.B2C.Cplw.C541_0_0
-public import LeanVM.Guest.B2C.Cplw.C549_0_0
+public import LeanVM.Guest.B2C.Cplw.C532_0_0
+public import LeanVM.Guest.B2C.Cplw.C539_0_0
+public import LeanVM.Guest.B2C.Cplw.C546_0_0
 public import LeanVM.Guest.B2C.Cplw.C551_0_0
-public import LeanVM.Guest.B2C.Cplw.C558_0_0
-public import LeanVM.Guest.B2C.Cplw.C566_0_0
-public import LeanVM.Guest.B2C.Cplw.C574_0_0
-public import LeanVM.Guest.B2C.Cplw.C577_0_0
-public import LeanVM.Guest.B2C.Cplw.C584_0_0
-public import LeanVM.Guest.B2C.Cplw.C592_0_0
-public import LeanVM.Guest.B2C.Cplw.C595_0_0
-public import LeanVM.Guest.B2C.Cplw.C602_0_0
+public import LeanVM.Guest.B2C.Cplw.C557_2_0
+public import LeanVM.Guest.B2C.Cplw.C564_0_0
+public import LeanVM.Guest.B2C.Cplw.C571_0_0
+public import LeanVM.Guest.B2C.Cplw.C576_0_1
+public import LeanVM.Guest.B2C.Cplw.C583_1_0
+public import LeanVM.Guest.B2C.Cplw.C589_0_0
+public import LeanVM.Guest.B2C.Cplw.C594_0_0
+public import LeanVM.Guest.B2C.Cplw.C598_0_0
+public import LeanVM.Guest.B2C.Cplw.C604_0_0
 public import LeanVM.Guest.B2C.Cplw.C610_0_0
 public import LeanVM.Guest.B2C.Cplw.C613_0_0
 public import LeanVM.Guest.B2C.Cplw.C619_0_0
-public import LeanVM.Guest.B2C.Cplw.C627_0_0
-public import LeanVM.Guest.B2C.Cplw.C632_0_1
-public import LeanVM.Guest.B2C.Cplw.C635_0_0
-public import LeanVM.Guest.B2C.Cplw.C639_1_0
-public import LeanVM.Guest.B2C.Cplw.C646_0_0
+public import LeanVM.Guest.B2C.Cplw.C625_0_0
+public import LeanVM.Guest.B2C.Cplw.C631_1_0
+public import LeanVM.Guest.B2C.Cplw.C633_0_0
+public import LeanVM.Guest.B2C.Cplw.C638_0_0
+public import LeanVM.Guest.B2C.Cplw.C642_0_0
+public import LeanVM.Guest.B2C.Cplw.C647_0_0
 public import LeanVM.Guest.B2C.Cplw.C653_0_0
 public import LeanVM.Guest.B2C.Cplw.C656_0_0
-public import LeanVM.Guest.B2C.Cplw.C663_0_0
+public import LeanVM.Guest.B2C.Cplw.C662_0_0
 public import LeanVM.Guest.B2C.Cplw.C667_0_0
-public import LeanVM.Guest.B2C.Cplw.C674_0_0
-public import LeanVM.Guest.B2C.Cplw.C679_0_0
-public import LeanVM.Guest.B2C.Cplw.C686_0_0
-public import LeanVM.Guest.B2C.Cplw.C691_0_0
-public import LeanVM.Guest.B2C.Cplw.C698_0_0
+public import LeanVM.Guest.B2C.Cplw.C673_0_0
+public import LeanVM.Guest.B2C.Cplw.C678_0_1
+public import LeanVM.Guest.B2C.Cplw.C684_0_0
+public import LeanVM.Guest.B2C.Cplw.C690_0_0
+public import LeanVM.Guest.B2C.Cplw.C693_0_0
+public import LeanVM.Guest.B2C.Cplw.C699_0_0
 public import LeanVM.Guest.B2C.Cplw.C703_0_0
-public import LeanVM.Guest.B2C.Cplw.C710_0_0
-public import LeanVM.Guest.B2C.Cplw.C718_0_0
-public import LeanVM.Guest.B2C.Cplw.C722_0_1
-public import LeanVM.Guest.B2C.Cplw.C725_0_0
-public import LeanVM.Guest.B2C.Cplw.C732_0_0
-public import LeanVM.Guest.B2C.Cplw.C739_0_1
-public import LeanVM.Guest.B2C.Cplw.C747_0_0
+public import LeanVM.Guest.B2C.Cplw.C709_0_0
+public import LeanVM.Guest.B2C.Cplw.C715_0_0
+public import LeanVM.Guest.B2C.Cplw.C721_0_0
+public import LeanVM.Guest.B2C.Cplw.C723_0_0
+public import LeanVM.Guest.B2C.Cplw.C730_1_0
+public import LeanVM.Guest.B2C.Cplw.C735_0_0
+public import LeanVM.Guest.B2C.Cplw.C741_0_0
+public import LeanVM.Guest.B2C.Cplw.C748_0_0
 public import LeanVM.Guest.B2C.Cplw.C750_0_0
-public import LeanVM.Guest.B2C.Cplw.C758_0_0
+public import LeanVM.Guest.B2C.Cplw.C757_1_0
 public import LeanVM.Guest.B2C.Cplw.C760_0_0
-public import LeanVM.Guest.B2C.Cplw.C768_0_0
+public import LeanVM.Guest.B2C.Cplw.C767_1_0
 public import LeanVM.Guest.B2C.Cplw.C770_0_0
-public import LeanVM.Guest.B2C.Cplw.C778_0_0
+public import LeanVM.Guest.B2C.Cplw.C777_1_0
 public import LeanVM.Guest.B2C.Cplw.C780_0_0
-public import LeanVM.Guest.B2C.Cplw.C787_0_0
-public import LeanVM.Guest.B2C.Cplw.C795_0_0
-public import LeanVM.Guest.B2C.Cplw.C798_0_1
-public import LeanVM.Guest.B2C.Cplw.C801_0_0
-public import LeanVM.Guest.B2C.Cplw.C808_0_0
-public import LeanVM.Guest.B2C.Cplw.C812_0_0
-public import LeanVM.Guest.B2C.Cplw.C818_0_0
+public import LeanVM.Guest.B2C.Cplw.C786_0_0
+public import LeanVM.Guest.B2C.Cplw.C792_0_0
+public import LeanVM.Guest.B2C.Cplw.C797_1_0
+public import LeanVM.Guest.B2C.Cplw.C799_0_0
+public import LeanVM.Guest.B2C.Cplw.C803_2_0
+public import LeanVM.Guest.B2C.Cplw.C809_0_0
+public import LeanVM.Guest.B2C.Cplw.C815_0_0
+public import LeanVM.Guest.B2C.Cplw.C819_0_0
 public import LeanVM.Guest.B2C.Cplw.C825_0_0
 public import LeanVM.Guest.B2C.Cplw.C829_0_0
-public import LeanVM.Guest.B2C.Cplw.C836_0_0
+public import LeanVM.Guest.B2C.Cplw.C835_0_0
 public import LeanVM.Guest.B2C.Cplw.C840_0_0
-public import LeanVM.Guest.B2C.Cplw.C847_0_0
+public import LeanVM.Guest.B2C.Cplw.C846_0_0
 public import LeanVM.Guest.B2C.Cplw.C851_0_0
-public import LeanVM.Guest.B2C.Cplw.C858_0_0
-public import LeanVM.Guest.B2C.Cplw.C864_0_1
-public import LeanVM.Guest.B2C.Cplw.C869_1_0
-public import LeanVM.Guest.B2C.Cplw.C877_0_0
+public import LeanVM.Guest.B2C.Cplw.C857_0_0
+public import LeanVM.Guest.B2C.Cplw.C863_0_0
+public import LeanVM.Guest.B2C.Cplw.C865_0_0
+public import LeanVM.Guest.B2C.Cplw.C871_0_0
+public import LeanVM.Guest.B2C.Cplw.C877_1_0
 public import LeanVM.Guest.B2C.Cplw.C881_0_1
 public import LeanVM.Guest.B2C.Cplw.C884_0_0
 public import LeanVM.Guest.B2C.Cplw.C892_0_0
@@ -255,43 +263,52 @@ public import LeanVM.Guest.B2C.Cplw.C916_0_0
 public import LeanVM.Guest.B2C.Cplw.C924_0_0
 public import LeanVM.Guest.B2C.Cplw.C932_0_0
 public import LeanVM.Guest.B2C.Cplw.C940_0_0
-public import LeanVM.Guest.B2C.Cplw.C943_1_0
-public import LeanVM.Guest.B2C.Cplw.C947_0_0
+public import LeanVM.Guest.B2C.Cplw.C942_1_0
+public import LeanVM.Guest.B2C.Cplw.C945_1_0
+public import LeanVM.Guest.B2C.Cplw.C947_2_0
 public import LeanVM.Guest.B2C.Cplw.C950_2_0
-public import LeanVM.Guest.B2C.Cplw.C954_1_0
-public import LeanVM.Guest.B2C.Cplw.C957_1_0
+public import LeanVM.Guest.B2C.Cplw.C953_0_0
+public import LeanVM.Guest.B2C.Cplw.C955_2_0
+public import LeanVM.Guest.B2C.Cplw.C958_0_0
 public import LeanVM.Guest.B2C.Cplw.C960_2_0
-public import LeanVM.Guest.B2C.Cplw.C964_1_0
-public import LeanVM.Guest.B2C.Cplw.C967_1_0
+public import LeanVM.Guest.B2C.Cplw.C963_0_0
+public import LeanVM.Guest.B2C.Cplw.C965_2_0
+public import LeanVM.Guest.B2C.Cplw.C968_0_0
 public import LeanVM.Guest.B2C.Cplw.C970_2_0
-public import LeanVM.Guest.B2C.Cplw.C974_1_0
-public import LeanVM.Guest.B2C.Cplw.C977_2_0
+public import LeanVM.Guest.B2C.Cplw.C973_0_0
+public import LeanVM.Guest.B2C.Cplw.C975_3_0
+public import LeanVM.Guest.B2C.Cplw.C978_1_0
 public import LeanVM.Guest.B2C.Cplw.C980_2_0
-public import LeanVM.Guest.B2C.Cplw.C983_2_0
-public import LeanVM.Guest.B2C.Cplw.C986_2_0
-public import LeanVM.Guest.B2C.Cplw.C989_2_0
+public import LeanVM.Guest.B2C.Cplw.C983_0_0
+public import LeanVM.Guest.B2C.Cplw.C985_1_0
+public import LeanVM.Guest.B2C.Cplw.C987_3_0
+public import LeanVM.Guest.B2C.Cplw.C990_1_0
 public import LeanVM.Guest.B2C.Cplw.C992_2_0
-public import LeanVM.Guest.B2C.Cplw.C995_1_0
-public import LeanVM.Guest.B2C.Cplw.C999_1_0
-public import LeanVM.Guest.B2C.Cplw.C1003_1_0
-public import LeanVM.Guest.B2C.Cplw.C1006_0_0
+public import LeanVM.Guest.B2C.Cplw.C994_2_0
+public import LeanVM.Guest.B2C.Cplw.C997_1_0
+public import LeanVM.Guest.B2C.Cplw.C1000_0_0
+public import LeanVM.Guest.B2C.Cplw.C1002_2_0
+public import LeanVM.Guest.B2C.Cplw.C1005_0_0
+public import LeanVM.Guest.B2C.Cplw.C1007_1_0
 public import LeanVM.Guest.B2C.Cplw.C1010_0_0
-public import LeanVM.Guest.B2C.Cplw.C1013_0_0
-public import LeanVM.Guest.B2C.Cplw.C1016_0_0
-public import LeanVM.Guest.B2C.Cplw.C1019_0_0
-public import LeanVM.Guest.B2C.Cplw.C1021_1_0
-public import LeanVM.Guest.B2C.Cplw.C1024_0_0
-public import LeanVM.Guest.B2C.Cplw.C1026_2_0
-public import LeanVM.Guest.B2C.Cplw.C1029_3_0
+public import LeanVM.Guest.B2C.Cplw.C1012_1_0
+public import LeanVM.Guest.B2C.Cplw.C1014_3_0
+public import LeanVM.Guest.B2C.Cplw.C1017_1_0
+public import LeanVM.Guest.B2C.Cplw.C1019_2_0
+public import LeanVM.Guest.B2C.Cplw.C1021_2_0
+public import LeanVM.Guest.B2C.Cplw.C1023_3_0
+public import LeanVM.Guest.B2C.Cplw.C1026_0_0
+public import LeanVM.Guest.B2C.Cplw.C1028_1_0
+public import LeanVM.Guest.B2C.Cplw.C1030_2_0
 public import LeanVM.Guest.B2C.Cplw.C1033_0_0
-public import LeanVM.Guest.B2C.Cplw.C1037_0_0
-public import LeanVM.Guest.B2C.Cplw.C1040_2_0
-public import LeanVM.Guest.B2C.Cplw.C1043_1_0
-public import LeanVM.Guest.B2C.Cplw.C1046_0_0
-public import LeanVM.Guest.B2C.Cplw.C1048_2_0
-public import LeanVM.Guest.B2C.Cplw.C1051_0_0
-public import LeanVM.Guest.B2C.Cplw.C1053_0_0
-public import LeanVM.Guest.B2C.Cplw.C1055_0_0
+public import LeanVM.Guest.B2C.Cplw.C1036_1_0
+public import LeanVM.Guest.B2C.Cplw.C1040_1_0
+public import LeanVM.Guest.B2C.Cplw.C1043_0_0
+public import LeanVM.Guest.B2C.Cplw.C1045_2_0
+public import LeanVM.Guest.B2C.Cplw.C1048_1_0
+public import LeanVM.Guest.B2C.Cplw.C1050_2_0
+public import LeanVM.Guest.B2C.Cplw.C1052_3_0
+public import LeanVM.Guest.B2C.Cplw.C1054_3_0
 public import LeanVM.Guest.B2C.Cplw.D37_17_0
 public import LeanVM.Guest.B2C.Cplw.D37_17_8
 public import LeanVM.Guest.B2C.Cplw.E37_17
@@ -831,7 +848,7 @@ theorem ok37 : CplOk 37 := by
 
 theorem ok332 : CplOk 332 := by
   intro i hi k hk
-  have hc : (certOf 332).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 332).cuts.length = 6 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 332 0 = 1 := by decide +kernel
@@ -854,10 +871,18 @@ theorem ok332 : CplOk 332 := by
     rw [hn] at hk
     interval_cases k
     · exact cw332_4_0
+  · have hn : nParts 332 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw332_5_0
+  · have hn : nParts 332 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw332_6_0
 
 theorem ok333 : CplOk 333 := by
   intro i hi k hk
-  have hc : (certOf 333).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 333).cuts.length = 6 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 333 0 = 1 := by decide +kernel
@@ -880,10 +905,18 @@ theorem ok333 : CplOk 333 := by
     rw [hn] at hk
     interval_cases k
     · exact cw333_4_0
+  · have hn : nParts 333 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw333_5_0
+  · have hn : nParts 333 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw333_6_0
 
 theorem ok334 : CplOk 334 := by
   intro i hi k hk
-  have hc : (certOf 334).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 334).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 334 0 = 1 := by decide +kernel
@@ -910,10 +943,18 @@ theorem ok334 : CplOk 334 := by
     rw [hn] at hk
     interval_cases k
     · exact cw334_5_0
+  · have hn : nParts 334 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw334_6_0
+  · have hn : nParts 334 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw334_7_0
 
 theorem ok335 : CplOk 335 := by
   intro i hi k hk
-  have hc : (certOf 335).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 335).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 335 0 = 1 := by decide +kernel
@@ -940,10 +981,18 @@ theorem ok335 : CplOk 335 := by
     rw [hn] at hk
     interval_cases k
     · exact cw335_5_0
+  · have hn : nParts 335 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw335_6_0
+  · have hn : nParts 335 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw335_7_0
 
 theorem ok336 : CplOk 336 := by
   intro i hi k hk
-  have hc : (certOf 336).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 336).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 336 0 = 1 := by decide +kernel
@@ -970,10 +1019,22 @@ theorem ok336 : CplOk 336 := by
     rw [hn] at hk
     interval_cases k
     · exact cw336_5_0
+  · have hn : nParts 336 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw336_6_0
+  · have hn : nParts 336 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw336_7_0
+  · have hn : nParts 336 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw336_8_0
 
 theorem ok337 : CplOk 337 := by
   intro i hi k hk
-  have hc : (certOf 337).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 337).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 337 0 = 1 := by decide +kernel
@@ -988,11 +1049,10 @@ theorem ok337 : CplOk 337 := by
     rw [hn] at hk
     interval_cases k
     · exact cw337_2_0
-  · have hn : nParts 337 3 = 2 := by decide +kernel
+  · have hn : nParts 337 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw337_3_0
-    · exact cw337_3_1
   · have hn : nParts 337 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1005,10 +1065,23 @@ theorem ok337 : CplOk 337 := by
     rw [hn] at hk
     interval_cases k
     · exact cw337_6_0
+  · have hn : nParts 337 7 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_7_0
+    · exact cw337_7_1
+  · have hn : nParts 337 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_8_0
+  · have hn : nParts 337 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_9_0
 
 theorem ok338 : CplOk 338 := by
   intro i hi k hk
-  have hc : (certOf 338).cuts.length = 7 := by decide +kernel
+  have hc : (certOf 338).cuts.length = 10 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 338 0 = 1 := by decide +kernel
@@ -1023,32 +1096,44 @@ theorem ok338 : CplOk 338 := by
     rw [hn] at hk
     interval_cases k
     · exact cw338_2_0
-  · have hn : nParts 338 3 = 2 := by decide +kernel
+  · have hn : nParts 338 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw338_3_0
-    · exact cw338_3_1
   · have hn : nParts 338 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw338_4_0
-  · have hn : nParts 338 5 = 2 := by decide +kernel
+  · have hn : nParts 338 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw338_5_0
-    · exact cw338_5_1
-  · have hn : nParts 338 6 = 1 := by decide +kernel
+  · have hn : nParts 338 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw338_6_0
+    · exact cw338_6_1
   · have hn : nParts 338 7 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw338_7_0
+  · have hn : nParts 338 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_8_0
+  · have hn : nParts 338 9 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_9_0
+    · exact cw338_9_1
+  · have hn : nParts 338 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_10_0
 
 theorem ok339 : CplOk 339 := by
   intro i hi k hk
-  have hc : (certOf 339).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 339).cuts.length = 6 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 339 0 = 1 := by decide +kernel
@@ -1071,10 +1156,18 @@ theorem ok339 : CplOk 339 := by
     rw [hn] at hk
     interval_cases k
     · exact cw339_4_0
+  · have hn : nParts 339 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_5_0
+  · have hn : nParts 339 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_6_0
 
 theorem ok340 : CplOk 340 := by
   intro i hi k hk
-  have hc : (certOf 340).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 340).cuts.length = 6 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 340 0 = 1 := by decide +kernel
@@ -1097,10 +1190,18 @@ theorem ok340 : CplOk 340 := by
     rw [hn] at hk
     interval_cases k
     · exact cw340_4_0
+  · have hn : nParts 340 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_5_0
+  · have hn : nParts 340 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_6_0
 
 theorem ok341 : CplOk 341 := by
   intro i hi k hk
-  have hc : (certOf 341).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 341).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 341 0 = 1 := by decide +kernel
@@ -1115,11 +1216,10 @@ theorem ok341 : CplOk 341 := by
     rw [hn] at hk
     interval_cases k
     · exact cw341_2_0
-  · have hn : nParts 341 3 = 2 := by decide +kernel
+  · have hn : nParts 341 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw341_3_0
-    · exact cw341_3_1
   · have hn : nParts 341 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1128,10 +1228,22 @@ theorem ok341 : CplOk 341 := by
     rw [hn] at hk
     interval_cases k
     · exact cw341_5_0
+  · have hn : nParts 341 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_6_0
+  · have hn : nParts 341 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_7_0
+  · have hn : nParts 341 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_8_0
 
 theorem ok342 : CplOk 342 := by
   intro i hi k hk
-  have hc : (certOf 342).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 342).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 342 0 = 1 := by decide +kernel
@@ -1150,19 +1262,30 @@ theorem ok342 : CplOk 342 := by
     rw [hn] at hk
     interval_cases k
     · exact cw342_3_0
-  · have hn : nParts 342 4 = 2 := by decide +kernel
+  · have hn : nParts 342 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw342_4_0
-    · exact cw342_4_1
   · have hn : nParts 342 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw342_5_0
+  · have hn : nParts 342 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_6_0
+  · have hn : nParts 342 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_7_0
+  · have hn : nParts 342 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_8_0
 
 theorem ok343 : CplOk 343 := by
   intro i hi k hk
-  have hc : (certOf 343).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 343).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 343 0 = 1 := by decide +kernel
@@ -1181,20 +1304,30 @@ theorem ok343 : CplOk 343 := by
     rw [hn] at hk
     interval_cases k
     · exact cw343_3_0
-  · have hn : nParts 343 4 = 2 := by decide +kernel
+  · have hn : nParts 343 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw343_4_0
-    · exact cw343_4_1
-  · have hn : nParts 343 5 = 2 := by decide +kernel
+  · have hn : nParts 343 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw343_5_0
-    · exact cw343_5_1
+  · have hn : nParts 343 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_6_0
+  · have hn : nParts 343 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_7_0
+  · have hn : nParts 343 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_8_0
 
 theorem ok344 : CplOk 344 := by
   intro i hi k hk
-  have hc : (certOf 344).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 344).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 344 0 = 1 := by decide +kernel
@@ -1213,11 +1346,10 @@ theorem ok344 : CplOk 344 := by
     rw [hn] at hk
     interval_cases k
     · exact cw344_3_0
-  · have hn : nParts 344 4 = 2 := by decide +kernel
+  · have hn : nParts 344 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw344_4_0
-    · exact cw344_4_1
   · have hn : nParts 344 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1226,10 +1358,18 @@ theorem ok344 : CplOk 344 := by
     rw [hn] at hk
     interval_cases k
     · exact cw344_6_0
+  · have hn : nParts 344 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_7_0
+  · have hn : nParts 344 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_8_0
 
 theorem ok345 : CplOk 345 := by
   intro i hi k hk
-  have hc : (certOf 345).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 345).cuts.length = 10 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 345 0 = 1 := by decide +kernel
@@ -1244,11 +1384,10 @@ theorem ok345 : CplOk 345 := by
     rw [hn] at hk
     interval_cases k
     · exact cw345_2_0
-  · have hn : nParts 345 3 = 2 := by decide +kernel
+  · have hn : nParts 345 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw345_3_0
-    · exact cw345_3_1
   · have hn : nParts 345 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1257,14 +1396,31 @@ theorem ok345 : CplOk 345 := by
     rw [hn] at hk
     interval_cases k
     · exact cw345_5_0
-  · have hn : nParts 345 6 = 1 := by decide +kernel
+  · have hn : nParts 345 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw345_6_0
+    · exact cw345_6_1
+  · have hn : nParts 345 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_7_0
+  · have hn : nParts 345 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_8_0
+  · have hn : nParts 345 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_9_0
+  · have hn : nParts 345 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_10_0
 
 theorem ok346 : CplOk 346 := by
   intro i hi k hk
-  have hc : (certOf 346).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 346).cuts.length = 5 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 346 0 = 1 := by decide +kernel
@@ -1283,10 +1439,18 @@ theorem ok346 : CplOk 346 := by
     rw [hn] at hk
     interval_cases k
     · exact cw346_3_0
+  · have hn : nParts 346 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_4_0
+  · have hn : nParts 346 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_5_0
 
 theorem ok347 : CplOk 347 := by
   intro i hi k hk
-  have hc : (certOf 347).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 347).cuts.length = 5 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 347 0 = 1 := by decide +kernel
@@ -1301,15 +1465,23 @@ theorem ok347 : CplOk 347 := by
     rw [hn] at hk
     interval_cases k
     · exact cw347_2_0
-  · have hn : nParts 347 3 = 2 := by decide +kernel
+  · have hn : nParts 347 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw347_3_0
-    · exact cw347_3_1
+  · have hn : nParts 347 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw347_4_0
+  · have hn : nParts 347 5 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw347_5_0
+    · exact cw347_5_1
 
 theorem ok348 : CplOk 348 := by
   intro i hi k hk
-  have hc : (certOf 348).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 348).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 348 0 = 1 := by decide +kernel
@@ -1324,19 +1496,30 @@ theorem ok348 : CplOk 348 := by
     rw [hn] at hk
     interval_cases k
     · exact cw348_2_0
-  · have hn : nParts 348 3 = 2 := by decide +kernel
+  · have hn : nParts 348 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw348_3_0
-    · exact cw348_3_1
   · have hn : nParts 348 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw348_4_0
+  · have hn : nParts 348 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw348_5_0
+  · have hn : nParts 348 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw348_6_0
+  · have hn : nParts 348 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw348_7_0
 
 theorem ok349 : CplOk 349 := by
   intro i hi k hk
-  have hc : (certOf 349).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 349).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 349 0 = 1 := by decide +kernel
@@ -1355,15 +1538,26 @@ theorem ok349 : CplOk 349 := by
     rw [hn] at hk
     interval_cases k
     · exact cw349_3_0
-  · have hn : nParts 349 4 = 2 := by decide +kernel
+  · have hn : nParts 349 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw349_4_0
-    · exact cw349_4_1
+  · have hn : nParts 349 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw349_5_0
+  · have hn : nParts 349 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw349_6_0
+  · have hn : nParts 349 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw349_7_0
 
 theorem ok350 : CplOk 350 := by
   intro i hi k hk
-  have hc : (certOf 350).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 350).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 350 0 = 1 := by decide +kernel
@@ -1390,10 +1584,18 @@ theorem ok350 : CplOk 350 := by
     rw [hn] at hk
     interval_cases k
     · exact cw350_5_0
+  · have hn : nParts 350 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw350_6_0
+  · have hn : nParts 350 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw350_7_0
 
 theorem ok351 : CplOk 351 := by
   intro i hi k hk
-  have hc : (certOf 351).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 351).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 351 0 = 1 := by decide +kernel
@@ -1408,11 +1610,10 @@ theorem ok351 : CplOk 351 := by
     rw [hn] at hk
     interval_cases k
     · exact cw351_2_0
-  · have hn : nParts 351 3 = 2 := by decide +kernel
+  · have hn : nParts 351 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw351_3_0
-    · exact cw351_3_1
   · have hn : nParts 351 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1421,10 +1622,18 @@ theorem ok351 : CplOk 351 := by
     rw [hn] at hk
     interval_cases k
     · exact cw351_5_0
+  · have hn : nParts 351 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw351_6_0
+  · have hn : nParts 351 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw351_7_0
 
 theorem ok352 : CplOk 352 := by
   intro i hi k hk
-  have hc : (certOf 352).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 352).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 352 0 = 1 := by decide +kernel
@@ -1439,11 +1648,10 @@ theorem ok352 : CplOk 352 := by
     rw [hn] at hk
     interval_cases k
     · exact cw352_2_0
-  · have hn : nParts 352 3 = 2 := by decide +kernel
+  · have hn : nParts 352 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw352_3_0
-    · exact cw352_3_1
   · have hn : nParts 352 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1452,14 +1660,27 @@ theorem ok352 : CplOk 352 := by
     rw [hn] at hk
     interval_cases k
     · exact cw352_5_0
-  · have hn : nParts 352 6 = 1 := by decide +kernel
+  · have hn : nParts 352 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw352_6_0
+    · exact cw352_6_1
+  · have hn : nParts 352 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw352_7_0
+  · have hn : nParts 352 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw352_8_0
+  · have hn : nParts 352 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw352_9_0
 
 theorem ok353 : CplOk 353 := by
   intro i hi k hk
-  have hc : (certOf 353).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 353).cuts.length = 6 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 353 0 = 1 := by decide +kernel
@@ -1482,10 +1703,18 @@ theorem ok353 : CplOk 353 := by
     rw [hn] at hk
     interval_cases k
     · exact cw353_4_0
+  · have hn : nParts 353 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw353_5_0
+  · have hn : nParts 353 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw353_6_0
 
 theorem ok354 : CplOk 354 := by
   intro i hi k hk
-  have hc : (certOf 354).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 354).cuts.length = 7 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 354 0 = 1 := by decide +kernel
@@ -1512,10 +1741,18 @@ theorem ok354 : CplOk 354 := by
     rw [hn] at hk
     interval_cases k
     · exact cw354_5_0
+  · have hn : nParts 354 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw354_6_0
+  · have hn : nParts 354 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw354_7_0
 
 theorem ok355 : CplOk 355 := by
   intro i hi k hk
-  have hc : (certOf 355).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 355).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 355 0 = 1 := by decide +kernel
@@ -1534,24 +1771,31 @@ theorem ok355 : CplOk 355 := by
     rw [hn] at hk
     interval_cases k
     · exact cw355_3_0
-  · have hn : nParts 355 4 = 2 := by decide +kernel
+  · have hn : nParts 355 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw355_4_0
-    · exact cw355_4_1
-  · have hn : nParts 355 5 = 2 := by decide +kernel
+  · have hn : nParts 355 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw355_5_0
-    · exact cw355_5_1
-  · have hn : nParts 355 6 = 1 := by decide +kernel
+  · have hn : nParts 355 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw355_6_0
+    · exact cw355_6_1
+  · have hn : nParts 355 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw355_7_0
+  · have hn : nParts 355 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw355_8_0
 
 theorem ok356 : CplOk 356 := by
   intro i hi k hk
-  have hc : (certOf 356).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 356).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 356 0 = 1 := by decide +kernel
@@ -1570,24 +1814,35 @@ theorem ok356 : CplOk 356 := by
     rw [hn] at hk
     interval_cases k
     · exact cw356_3_0
-  · have hn : nParts 356 4 = 2 := by decide +kernel
+  · have hn : nParts 356 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw356_4_0
-    · exact cw356_4_1
-  · have hn : nParts 356 5 = 2 := by decide +kernel
+  · have hn : nParts 356 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw356_5_0
-    · exact cw356_5_1
-  · have hn : nParts 356 6 = 1 := by decide +kernel
+  · have hn : nParts 356 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw356_6_0
+    · exact cw356_6_1
+  · have hn : nParts 356 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw356_7_0
+  · have hn : nParts 356 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw356_8_0
+  · have hn : nParts 356 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw356_9_0
 
 theorem ok357 : CplOk 357 := by
   intro i hi k hk
-  have hc : (certOf 357).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 357).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 357 0 = 1 := by decide +kernel
@@ -1606,11 +1861,10 @@ theorem ok357 : CplOk 357 := by
     rw [hn] at hk
     interval_cases k
     · exact cw357_3_0
-  · have hn : nParts 357 4 = 2 := by decide +kernel
+  · have hn : nParts 357 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw357_4_0
-    · exact cw357_4_1
   · have hn : nParts 357 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1619,10 +1873,24 @@ theorem ok357 : CplOk 357 := by
     rw [hn] at hk
     interval_cases k
     · exact cw357_6_0
+  · have hn : nParts 357 7 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw357_7_0
+    · exact cw357_7_1
+  · have hn : nParts 357 8 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw357_8_0
+    · exact cw357_8_1
+  · have hn : nParts 357 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw357_9_0
 
 theorem ok358 : CplOk 358 := by
   intro i hi k hk
-  have hc : (certOf 358).cuts.length = 7 := by decide +kernel
+  have hc : (certOf 358).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 358 0 = 1 := by decide +kernel
@@ -1641,11 +1909,10 @@ theorem ok358 : CplOk 358 := by
     rw [hn] at hk
     interval_cases k
     · exact cw358_3_0
-  · have hn : nParts 358 4 = 2 := by decide +kernel
+  · have hn : nParts 358 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw358_4_0
-    · exact cw358_4_1
   · have hn : nParts 358 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1654,14 +1921,24 @@ theorem ok358 : CplOk 358 := by
     rw [hn] at hk
     interval_cases k
     · exact cw358_6_0
-  · have hn : nParts 358 7 = 1 := by decide +kernel
+  · have hn : nParts 358 7 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw358_7_0
+    · exact cw358_7_1
+  · have hn : nParts 358 8 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw358_8_0
+    · exact cw358_8_1
+  · have hn : nParts 358 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw358_9_0
 
 theorem ok359 : CplOk 359 := by
   intro i hi k hk
-  have hc : (certOf 359).cuts.length = 7 := by decide +kernel
+  have hc : (certOf 359).cuts.length = 11 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 359 0 = 1 := by decide +kernel
@@ -1676,20 +1953,18 @@ theorem ok359 : CplOk 359 := by
     rw [hn] at hk
     interval_cases k
     · exact cw359_2_0
-  · have hn : nParts 359 3 = 2 := by decide +kernel
+  · have hn : nParts 359 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw359_3_0
-    · exact cw359_3_1
   · have hn : nParts 359 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw359_4_0
-  · have hn : nParts 359 5 = 2 := by decide +kernel
+  · have hn : nParts 359 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw359_5_0
-    · exact cw359_5_1
   · have hn : nParts 359 6 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
@@ -1699,6 +1974,23 @@ theorem ok359 : CplOk 359 := by
     rw [hn] at hk
     interval_cases k
     · exact cw359_7_0
+  · have hn : nParts 359 8 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw359_8_0
+    · exact cw359_8_1
+  · have hn : nParts 359 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw359_9_0
+  · have hn : nParts 359 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw359_10_0
+  · have hn : nParts 359 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw359_11_0
 
 theorem ok379 : CplOk 379 := by
   intro i hi k hk
@@ -1825,88 +2117,222 @@ theorem ok482 : CplOk 482 := by
     interval_cases k
     · exact cw482_13_0
 
-theorem ok632 : CplOk 632 := by
+theorem ok496 : CplOk 496 := by
   intro i hi k hk
-  have hc : (certOf 632).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 496).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 632 0 = 2 := by decide +kernel
+  · have hn : nParts 496 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw632_0_0
-    · exact cw632_0_1
+    · exact cw496_0_0
+  · have hn : nParts 496 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw496_1_0
 
-theorem ok639 : CplOk 639 := by
+theorem ok502 : CplOk 502 := by
   intro i hi k hk
-  have hc : (certOf 639).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 502).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 639 0 = 1 := by decide +kernel
+  · have hn : nParts 502 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw639_0_0
-  · have hn : nParts 639 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw639_1_0
+    · exact cw502_0_0
+    · exact cw502_0_1
 
-theorem ok722 : CplOk 722 := by
+theorem ok509 : CplOk 509 := by
   intro i hi k hk
-  have hc : (certOf 722).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 509).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 722 0 = 2 := by decide +kernel
+  · have hn : nParts 509 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw722_0_0
-    · exact cw722_0_1
+    · exact cw509_0_0
+  · have hn : nParts 509 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw509_1_0
+  · have hn : nParts 509 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw509_2_0
 
-theorem ok739 : CplOk 739 := by
+theorem ok557 : CplOk 557 := by
   intro i hi k hk
-  have hc : (certOf 739).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 557).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 739 0 = 2 := by decide +kernel
+  · have hn : nParts 557 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw739_0_0
-    · exact cw739_0_1
+    · exact cw557_0_0
+  · have hn : nParts 557 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw557_1_0
+  · have hn : nParts 557 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw557_2_0
 
-theorem ok798 : CplOk 798 := by
+theorem ok576 : CplOk 576 := by
   intro i hi k hk
-  have hc : (certOf 798).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 576).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 798 0 = 2 := by decide +kernel
+  · have hn : nParts 576 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw798_0_0
-    · exact cw798_0_1
+    · exact cw576_0_0
+    · exact cw576_0_1
 
-theorem ok864 : CplOk 864 := by
+theorem ok583 : CplOk 583 := by
   intro i hi k hk
-  have hc : (certOf 864).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 583).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 864 0 = 2 := by decide +kernel
+  · have hn : nParts 583 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw864_0_0
-    · exact cw864_0_1
+    · exact cw583_0_0
+  · have hn : nParts 583 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw583_1_0
+  · have hn : nParts 583 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw583_2_0
 
-theorem ok869 : CplOk 869 := by
+theorem ok631 : CplOk 631 := by
   intro i hi k hk
-  have hc : (certOf 869).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 631).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 869 0 = 1 := by decide +kernel
+  · have hn : nParts 631 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw869_0_0
-  · have hn : nParts 869 1 = 1 := by decide +kernel
+    · exact cw631_0_0
+  · have hn : nParts 631 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw869_1_0
+    · exact cw631_1_0
+
+theorem ok678 : CplOk 678 := by
+  intro i hi k hk
+  have hc : (certOf 678).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 678 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw678_0_0
+    · exact cw678_0_1
+
+theorem ok730 : CplOk 730 := by
+  intro i hi k hk
+  have hc : (certOf 730).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 730 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw730_0_0
+  · have hn : nParts 730 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw730_1_0
+
+theorem ok757 : CplOk 757 := by
+  intro i hi k hk
+  have hc : (certOf 757).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 757 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw757_0_0
+  · have hn : nParts 757 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw757_1_0
+
+theorem ok767 : CplOk 767 := by
+  intro i hi k hk
+  have hc : (certOf 767).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 767 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw767_0_0
+  · have hn : nParts 767 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw767_1_0
+
+theorem ok777 : CplOk 777 := by
+  intro i hi k hk
+  have hc : (certOf 777).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 777 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw777_0_0
+  · have hn : nParts 777 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw777_1_0
+
+theorem ok797 : CplOk 797 := by
+  intro i hi k hk
+  have hc : (certOf 797).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 797 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw797_0_0
+  · have hn : nParts 797 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw797_1_0
+
+theorem ok803 : CplOk 803 := by
+  intro i hi k hk
+  have hc : (certOf 803).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 803 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw803_0_0
+  · have hn : nParts 803 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw803_1_0
+  · have hn : nParts 803 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw803_2_0
+
+theorem ok877 : CplOk 877 := by
+  intro i hi k hk
+  have hc : (certOf 877).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 877 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw877_0_0
+  · have hn : nParts 877 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw877_1_0
 
 theorem ok881 : CplOk 881 := by
   intro i hi k hk
@@ -1919,23 +2345,67 @@ theorem ok881 : CplOk 881 := by
     · exact cw881_0_0
     · exact cw881_0_1
 
-theorem ok943 : CplOk 943 := by
+theorem ok942 : CplOk 942 := by
   intro i hi k hk
-  have hc : (certOf 943).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 942).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 943 0 = 1 := by decide +kernel
+  · have hn : nParts 942 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw943_0_0
-  · have hn : nParts 943 1 = 1 := by decide +kernel
+    · exact cw942_0_0
+  · have hn : nParts 942 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw943_1_0
+    · exact cw942_1_0
+  · have hn : nParts 942 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw942_2_0
+
+theorem ok945 : CplOk 945 := by
+  intro i hi k hk
+  have hc : (certOf 945).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 945 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw945_0_0
+  · have hn : nParts 945 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw945_1_0
+  · have hn : nParts 945 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw945_2_0
+  · have hn : nParts 945 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw945_3_0
+
+theorem ok947 : CplOk 947 := by
+  intro i hi k hk
+  have hc : (certOf 947).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 947 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw947_0_0
+  · have hn : nParts 947 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw947_1_0
+  · have hn : nParts 947 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw947_2_0
 
 theorem ok950 : CplOk 950 := by
   intro i hi k hk
-  have hc : (certOf 950).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 950).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 950 0 = 1 := by decide +kernel
@@ -1950,42 +2420,36 @@ theorem ok950 : CplOk 950 := by
     rw [hn] at hk
     interval_cases k
     · exact cw950_2_0
+  · have hn : nParts 950 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw950_3_0
 
-theorem ok954 : CplOk 954 := by
+theorem ok955 : CplOk 955 := by
   intro i hi k hk
-  have hc : (certOf 954).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 955).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 954 0 = 1 := by decide +kernel
+  · have hn : nParts 955 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw954_0_0
-  · have hn : nParts 954 1 = 1 := by decide +kernel
+    · exact cw955_0_0
+  · have hn : nParts 955 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw954_1_0
-  · have hn : nParts 954 2 = 1 := by decide +kernel
+    · exact cw955_1_0
+  · have hn : nParts 955 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw954_2_0
-
-theorem ok957 : CplOk 957 := by
-  intro i hi k hk
-  have hc : (certOf 957).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 957 0 = 1 := by decide +kernel
+    · exact cw955_2_0
+  · have hn : nParts 955 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw957_0_0
-  · have hn : nParts 957 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw957_1_0
+    · exact cw955_3_0
 
 theorem ok960 : CplOk 960 := by
   intro i hi k hk
-  have hc : (certOf 960).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 960).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 960 0 = 1 := by decide +kernel
@@ -2000,42 +2464,36 @@ theorem ok960 : CplOk 960 := by
     rw [hn] at hk
     interval_cases k
     · exact cw960_2_0
+  · have hn : nParts 960 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw960_3_0
 
-theorem ok964 : CplOk 964 := by
+theorem ok965 : CplOk 965 := by
   intro i hi k hk
-  have hc : (certOf 964).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 965).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 964 0 = 1 := by decide +kernel
+  · have hn : nParts 965 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw964_0_0
-  · have hn : nParts 964 1 = 1 := by decide +kernel
+    · exact cw965_0_0
+  · have hn : nParts 965 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw964_1_0
-  · have hn : nParts 964 2 = 1 := by decide +kernel
+    · exact cw965_1_0
+  · have hn : nParts 965 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw964_2_0
-
-theorem ok967 : CplOk 967 := by
-  intro i hi k hk
-  have hc : (certOf 967).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 967 0 = 1 := by decide +kernel
+    · exact cw965_2_0
+  · have hn : nParts 965 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw967_0_0
-  · have hn : nParts 967 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw967_1_0
+    · exact cw965_3_0
 
 theorem ok970 : CplOk 970 := by
   intro i hi k hk
-  have hc : (certOf 970).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 970).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 970 0 = 1 := by decide +kernel
@@ -2050,38 +2508,54 @@ theorem ok970 : CplOk 970 := by
     rw [hn] at hk
     interval_cases k
     · exact cw970_2_0
+  · have hn : nParts 970 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw970_3_0
 
-theorem ok974 : CplOk 974 := by
+theorem ok975 : CplOk 975 := by
   intro i hi k hk
-  have hc : (certOf 974).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 975).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 974 0 = 1 := by decide +kernel
+  · have hn : nParts 975 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw974_0_0
-  · have hn : nParts 974 1 = 1 := by decide +kernel
+    · exact cw975_0_0
+  · have hn : nParts 975 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw974_1_0
+    · exact cw975_1_0
+  · have hn : nParts 975 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw975_2_0
+  · have hn : nParts 975 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw975_3_0
 
-theorem ok977 : CplOk 977 := by
+theorem ok978 : CplOk 978 := by
   intro i hi k hk
-  have hc : (certOf 977).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 978).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 977 0 = 1 := by decide +kernel
+  · have hn : nParts 978 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw977_0_0
-  · have hn : nParts 977 1 = 1 := by decide +kernel
+    · exact cw978_0_0
+  · have hn : nParts 978 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw977_1_0
-  · have hn : nParts 977 2 = 1 := by decide +kernel
+    · exact cw978_1_0
+  · have hn : nParts 978 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw977_2_0
+    · exact cw978_2_0
+  · have hn : nParts 978 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw978_3_0
 
 theorem ok980 : CplOk 980 := by
   intro i hi k hk
@@ -2101,59 +2575,67 @@ theorem ok980 : CplOk 980 := by
     interval_cases k
     · exact cw980_2_0
 
-theorem ok983 : CplOk 983 := by
+theorem ok985 : CplOk 985 := by
   intro i hi k hk
-  have hc : (certOf 983).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 985).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 983 0 = 1 := by decide +kernel
+  · have hn : nParts 985 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw983_0_0
-  · have hn : nParts 983 1 = 1 := by decide +kernel
+    · exact cw985_0_0
+  · have hn : nParts 985 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw983_1_0
-  · have hn : nParts 983 2 = 1 := by decide +kernel
+    · exact cw985_1_0
+  · have hn : nParts 985 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw983_2_0
+    · exact cw985_2_0
 
-theorem ok986 : CplOk 986 := by
+theorem ok987 : CplOk 987 := by
   intro i hi k hk
-  have hc : (certOf 986).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 987).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 986 0 = 1 := by decide +kernel
+  · have hn : nParts 987 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw986_0_0
-  · have hn : nParts 986 1 = 1 := by decide +kernel
+    · exact cw987_0_0
+  · have hn : nParts 987 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw986_1_0
-  · have hn : nParts 986 2 = 1 := by decide +kernel
+    · exact cw987_1_0
+  · have hn : nParts 987 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw986_2_0
+    · exact cw987_2_0
+  · have hn : nParts 987 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw987_3_0
 
-theorem ok989 : CplOk 989 := by
+theorem ok990 : CplOk 990 := by
   intro i hi k hk
-  have hc : (certOf 989).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 990).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 989 0 = 1 := by decide +kernel
+  · have hn : nParts 990 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw989_0_0
-  · have hn : nParts 989 1 = 1 := by decide +kernel
+    · exact cw990_0_0
+  · have hn : nParts 990 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw989_1_0
-  · have hn : nParts 989 2 = 1 := by decide +kernel
+    · exact cw990_1_0
+  · have hn : nParts 990 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw989_2_0
+    · exact cw990_2_0
+  · have hn : nParts 990 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw990_3_0
 
 theorem ok992 : CplOk 992 := by
   intro i hi k hk
@@ -2177,51 +2659,165 @@ theorem ok992 : CplOk 992 := by
     interval_cases k
     · exact cw992_3_0
 
-theorem ok995 : CplOk 995 := by
+theorem ok994 : CplOk 994 := by
   intro i hi k hk
-  have hc : (certOf 995).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 994).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 995 0 = 1 := by decide +kernel
+  · have hn : nParts 994 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw995_0_0
-  · have hn : nParts 995 1 = 1 := by decide +kernel
+    · exact cw994_0_0
+  · have hn : nParts 994 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw995_1_0
+    · exact cw994_1_0
+  · have hn : nParts 994 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw994_2_0
 
-theorem ok999 : CplOk 999 := by
+theorem ok997 : CplOk 997 := by
   intro i hi k hk
-  have hc : (certOf 999).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 997).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 999 0 = 1 := by decide +kernel
+  · have hn : nParts 997 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw999_0_0
-  · have hn : nParts 999 1 = 1 := by decide +kernel
+    · exact cw997_0_0
+  · have hn : nParts 997 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw999_1_0
+    · exact cw997_1_0
+  · have hn : nParts 997 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw997_2_0
 
-theorem ok1003 : CplOk 1003 := by
+theorem ok1002 : CplOk 1002 := by
   intro i hi k hk
-  have hc : (certOf 1003).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1002).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1003 0 = 1 := by decide +kernel
+  · have hn : nParts 1002 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1003_0_0
-  · have hn : nParts 1003 1 = 1 := by decide +kernel
+    · exact cw1002_0_0
+  · have hn : nParts 1002 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1003_1_0
+    · exact cw1002_1_0
+  · have hn : nParts 1002 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1002_2_0
+
+theorem ok1007 : CplOk 1007 := by
+  intro i hi k hk
+  have hc : (certOf 1007).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1007 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1007_0_0
+  · have hn : nParts 1007 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1007_1_0
+  · have hn : nParts 1007 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1007_2_0
+
+theorem ok1012 : CplOk 1012 := by
+  intro i hi k hk
+  have hc : (certOf 1012).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1012 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1012_0_0
+  · have hn : nParts 1012 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1012_1_0
+  · have hn : nParts 1012 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1012_2_0
+
+theorem ok1014 : CplOk 1014 := by
+  intro i hi k hk
+  have hc : (certOf 1014).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1014 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1014_0_0
+  · have hn : nParts 1014 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1014_1_0
+  · have hn : nParts 1014 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1014_2_0
+  · have hn : nParts 1014 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1014_3_0
+
+theorem ok1017 : CplOk 1017 := by
+  intro i hi k hk
+  have hc : (certOf 1017).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1017 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1017_0_0
+  · have hn : nParts 1017 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1017_1_0
+  · have hn : nParts 1017 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1017_2_0
+  · have hn : nParts 1017 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1017_3_0
+
+theorem ok1019 : CplOk 1019 := by
+  intro i hi k hk
+  have hc : (certOf 1019).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1019 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1019_0_0
+  · have hn : nParts 1019 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1019_1_0
+  · have hn : nParts 1019 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1019_2_0
+  · have hn : nParts 1019 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1019_3_0
 
 theorem ok1021 : CplOk 1021 := by
   intro i hi k hk
-  have hc : (certOf 1021).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1021).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1021 0 = 1 := by decide +kernel
@@ -2232,46 +2828,86 @@ theorem ok1021 : CplOk 1021 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1021_1_0
+  · have hn : nParts 1021 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1021_2_0
 
-theorem ok1026 : CplOk 1026 := by
+theorem ok1023 : CplOk 1023 := by
   intro i hi k hk
-  have hc : (certOf 1026).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1023).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1026 0 = 1 := by decide +kernel
+  · have hn : nParts 1023 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1026_0_0
-  · have hn : nParts 1026 1 = 1 := by decide +kernel
+    · exact cw1023_0_0
+  · have hn : nParts 1023 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1026_1_0
-  · have hn : nParts 1026 2 = 1 := by decide +kernel
+    · exact cw1023_1_0
+  · have hn : nParts 1023 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1026_2_0
+    · exact cw1023_2_0
+  · have hn : nParts 1023 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1023_3_0
 
-theorem ok1029 : CplOk 1029 := by
+theorem ok1028 : CplOk 1028 := by
   intro i hi k hk
-  have hc : (certOf 1029).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1028).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1029 0 = 1 := by decide +kernel
+  · have hn : nParts 1028 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1029_0_0
-  · have hn : nParts 1029 1 = 1 := by decide +kernel
+    · exact cw1028_0_0
+  · have hn : nParts 1028 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1029_1_0
-  · have hn : nParts 1029 2 = 1 := by decide +kernel
+    · exact cw1028_1_0
+  · have hn : nParts 1028 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1029_2_0
-  · have hn : nParts 1029 3 = 1 := by decide +kernel
+    · exact cw1028_2_0
+
+theorem ok1030 : CplOk 1030 := by
+  intro i hi k hk
+  have hc : (certOf 1030).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1030 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1029_3_0
+    · exact cw1030_0_0
+  · have hn : nParts 1030 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1030_1_0
+  · have hn : nParts 1030 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1030_2_0
+  · have hn : nParts 1030 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1030_3_0
+
+theorem ok1036 : CplOk 1036 := by
+  intro i hi k hk
+  have hc : (certOf 1036).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1036 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1036_0_0
+  · have hn : nParts 1036 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1036_1_0
 
 theorem ok1040 : CplOk 1040 := by
   intro i hi k hk
@@ -2291,23 +2927,23 @@ theorem ok1040 : CplOk 1040 := by
     interval_cases k
     · exact cw1040_2_0
 
-theorem ok1043 : CplOk 1043 := by
+theorem ok1045 : CplOk 1045 := by
   intro i hi k hk
-  have hc : (certOf 1043).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1045).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1043 0 = 1 := by decide +kernel
+  · have hn : nParts 1045 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1043_0_0
-  · have hn : nParts 1043 1 = 1 := by decide +kernel
+    · exact cw1045_0_0
+  · have hn : nParts 1045 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1043_1_0
-  · have hn : nParts 1043 2 = 1 := by decide +kernel
+    · exact cw1045_1_0
+  · have hn : nParts 1045 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1043_2_0
+    · exact cw1045_2_0
 
 theorem ok1048 : CplOk 1048 := by
   intro i hi k hk
@@ -2330,6 +2966,68 @@ theorem ok1048 : CplOk 1048 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1048_3_0
+
+theorem ok1050 : CplOk 1050 := by
+  intro i hi k hk
+  have hc : (certOf 1050).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1050 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1050_0_0
+  · have hn : nParts 1050 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1050_1_0
+  · have hn : nParts 1050 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1050_2_0
+
+theorem ok1052 : CplOk 1052 := by
+  intro i hi k hk
+  have hc : (certOf 1052).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1052 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1052_0_0
+  · have hn : nParts 1052 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1052_1_0
+  · have hn : nParts 1052 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1052_2_0
+  · have hn : nParts 1052 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1052_3_0
+
+theorem ok1054 : CplOk 1054 := by
+  intro i hi k hk
+  have hc : (certOf 1054).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1054 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1054_0_0
+  · have hn : nParts 1054 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1054_1_0
+  · have hn : nParts 1054 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1054_2_0
+  · have hn : nParts 1054 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1054_3_0
 
 /-- **Every compiled function passes the completeness check.** -/
 theorem cplOk_all : ∀ j, 1 ≤ j → j < nFns → CplOk j := fun j h1 h2 ↦

@@ -8,8 +8,12 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F481_0
-public import LeanVM.Guest.Checked.F482_7
+public import LeanVM.Guest.Checked.F482_0
+public import LeanVM.Guest.Checked.F482_8
+public import LeanVM.Guest.Checked.F482_8
+public import LeanVM.Guest.Checked.F484_0
+public import LeanVM.Guest.Checked.F491_0
+public import LeanVM.Guest.Checked.F498_0
 
 namespace LeanVM.Guest.Checked
 
@@ -100,7 +104,12 @@ theorem plain482 : Plain 482 := by
   unfold Plain
   decide +kernel
 
-theorem plain483 : Plain 483 := plain_of_nil (by decide +kernel)
+theorem ok483 : CheckOk 483 := fun i hi ↦ by
+  have h : (certOf 483).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w483_0
+  · exact w483_1
 
 theorem plain484 : Plain 484 := plain_of_nil (by decide +kernel)
 
@@ -114,7 +123,12 @@ theorem plain488 : Plain 488 := plain_of_nil (by decide +kernel)
 
 theorem plain489 : Plain 489 := plain_of_nil (by decide +kernel)
 
-theorem plain490 : Plain 490 := plain_of_nil (by decide +kernel)
+theorem ok490 : CheckOk 490 := fun i hi ↦ by
+  have h : (certOf 490).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w490_0
+  · exact w490_1
 
 theorem plain491 : Plain 491 := plain_of_nil (by decide +kernel)
 
@@ -126,7 +140,12 @@ theorem plain494 : Plain 494 := plain_of_nil (by decide +kernel)
 
 theorem plain495 : Plain 495 := plain_of_nil (by decide +kernel)
 
-theorem plain496 : Plain 496 := plain_of_nil (by decide +kernel)
+theorem ok496 : CheckOk 496 := fun i hi ↦ by
+  have h : (certOf 496).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w496_0
+  · exact w496_1
 
 theorem plain497 : Plain 497 := plain_of_nil (by decide +kernel)
 
@@ -134,7 +153,12 @@ theorem plain498 : Plain 498 := plain_of_nil (by decide +kernel)
 
 theorem plain499 : Plain 499 := plain_of_nil (by decide +kernel)
 
-theorem plain500 : Plain 500 := plain_of_nil (by decide +kernel)
+theorem ok500 : CheckOk 500 := fun i hi ↦ by
+  have h : (certOf 500).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w500_0
+  · exact w500_1
 
 end
 end LeanVM.Guest.Checked

@@ -29,17 +29,17 @@ theorem w970_1 : WinOk 970 1 := winOk_of_C (by decide +kernel)
 /-- `__loop364`, window 2. -/
 theorem w970_2 : WinOk 970 2 := winOk_of_C (by decide +kernel)
 
+/-- `__loop364`, window 3. -/
+theorem w970_3 : WinOk 970 3 := winOk_of_C (by decide +kernel)
+
 /-- `__loop365`, window 0. -/
 theorem w971_0 : WinOk 971 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop365`, window 1. -/
 theorem w971_1 : WinOk 971 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop366`, window 0. -/
-theorem w972_0 : WinOk 972 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop366`, window 1. -/
-theorem w972_1 : WinOk 972 1 := winOk_of_C (by decide +kernel)
+/-- `__loop365`, window 2. -/
+theorem w971_2 : WinOk 971 2 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

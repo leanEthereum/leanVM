@@ -14,6 +14,7 @@ public import LeanVM.Guest.Data.Cert03
 public import LeanVM.Guest.Data.Cert04
 public import LeanVM.Guest.Data.Cert05
 public import LeanVM.Guest.Data.Cert06
+public import LeanVM.Guest.Data.Cert07
 public import LeanVM.Guest.Data.Cert37_0
 public import LeanVM.Guest.Data.Cert37_1
 

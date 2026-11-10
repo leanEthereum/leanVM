@@ -198,14 +198,13 @@ theorem runF_liftOption_bind {α β : Type} {o : Option α} {k : α → Verifier
   | none => simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF] at h
   | some a => exact ⟨a, rfl, h⟩
 
-theorem word_eOfNat_of {v : E} (h1 : v.limb 1 = 0) (h2 : v.limb 2 = 0) :
+theorem word_eOfNat_of {v : E} (h1 : v.limb 1 = 0) :
     v = eOfNat (kToNat (v.limb 0)) := by
   apply E.ext
   intro i
   fin_cases i
   · simp [eOfNat, ofBits_kToNat]
   · simp [eOfNat, h1]
-  · simp [eOfNat, h2]
 
 /-- **The announced sizes' run**: the words `eOfNat logMem`, the row counts, `eOfNat r`, and the
 layout `layoutOf bytecode logMem rows`. -/
@@ -232,8 +231,7 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
   | [v0, v1, v2, v3, v4, v5, v6, v7], _, hall, hs1, hL', hr =>
     simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true, decide_eq_true_eq]
       at hall
-    obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, ⟨a6, b6⟩, ⟨a7, b7⟩⟩ :=
-      hall
+    obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7⟩ := hall
     set rowsN := [kToNat (v1.limb 0), kToNat (v2.limb 0), kToNat (v3.limb 0), kToNat (v4.limb 0),
       kToNat (v5.limb 0), kToNat (v6.limb 0)] with hrowsN
     have hrows : ((([v0, v1, v2, v3, v4, v5, v6, v7].drop 1).take tables.length).map
@@ -254,10 +252,10 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
       rw [hL'] at hLe
       obtain rfl := Option.some.inj hLe
       refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h32, hlen', hr32, hr.1, hr.2, hst.1, hst.2⟩
-      rw [hs1, ← word_eOfNat_of a0 b0, ← word_eOfNat_of a7 b7]
-      simp only [hrowsN, List.map_cons, List.map_nil, ← word_eOfNat_of a1 b1,
-        ← word_eOfNat_of a2 b2, ← word_eOfNat_of a3 b3, ← word_eOfNat_of a4 b4,
-        ← word_eOfNat_of a5 b5, ← word_eOfNat_of a6 b6]
+      rw [hs1, ← word_eOfNat_of a0, ← word_eOfNat_of a7]
+      simp only [hrowsN, List.map_cons, List.map_nil, ← word_eOfNat_of a1,
+        ← word_eOfNat_of a2, ← word_eOfNat_of a3, ← word_eOfNat_of a4,
+        ← word_eOfNat_of a5, ← word_eOfNat_of a6]
       rfl
     · simp at hcond
 

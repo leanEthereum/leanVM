@@ -25,6 +25,9 @@ theorem cw620_0_0 : cplWin 620 0 0 = true := by decide +kernel
 /-- `opening_queries__L0_L0_L4_L16_L22_L6_L0_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw621_0_0 : cplWin 621 0 0 = true := by decide +kernel
 
+/-- `opening_queries__L0_L0_L4_L16_L22_L6_L0_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw621_1_0 : cplWin 621 1 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L21_L5`, window 0, part 0. -/
 theorem cw622_0_0 : cplWin 622 0 0 = true := by decide +kernel
 
@@ -34,11 +37,8 @@ theorem cw623_0_0 : cplWin 623 0 0 = true := by decide +kernel
 /-- `opening_queries__L0_L0_L4_L16_L21_L5_L0_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw624_0_0 : cplWin 624 0 0 = true := by decide +kernel
 
-/-- `__loop94`, window 0, part 0. -/
-theorem cw625_0_0 : cplWin 625 0 0 = true := by decide +kernel
-
-/-- `__loop95`, window 0, part 0. -/
-theorem cw626_0_0 : cplWin 626 0 0 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L21_L5_L0_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw624_1_0 : cplWin 624 1 0 = true := by decide +kernel
 
 theorem ok619 : CplOk 619 := by
   intro i hi k hk
@@ -62,13 +62,17 @@ theorem ok620 : CplOk 620 := by
 
 theorem ok621 : CplOk 621 := by
   intro i hi k hk
-  have hc : (certOf 621).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 621).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 621 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw621_0_0
+  · have hn : nParts 621 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw621_1_0
 
 theorem ok622 : CplOk 622 := by
   intro i hi k hk
@@ -92,33 +96,17 @@ theorem ok623 : CplOk 623 := by
 
 theorem ok624 : CplOk 624 := by
   intro i hi k hk
-  have hc : (certOf 624).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 624).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 624 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw624_0_0
-
-theorem ok625 : CplOk 625 := by
-  intro i hi k hk
-  have hc : (certOf 625).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 625 0 = 1 := by decide +kernel
+  · have hn : nParts 624 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw625_0_0
-
-theorem ok626 : CplOk 626 := by
-  intro i hi k hk
-  have hc : (certOf 626).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 626 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw626_0_0
+    · exact cw624_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

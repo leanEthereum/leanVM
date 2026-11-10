@@ -32,14 +32,14 @@ theorem w766_0 : WinOk 766 0 := winOk_of_C (by decide +kernel)
 /-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, window 0. -/
 theorem w767_0 : WinOk 767 0 := winOk_of_C (by decide +kernel)
 
+/-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, window 1. -/
+theorem w767_1 : WinOk 767 1 := winOk_of_C (by decide +kernel)
+
 /-- `__loop200`, window 0. -/
 theorem w768_0 : WinOk 768 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop201`, window 0. -/
 theorem w769_0 : WinOk 769 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop202`, window 0. -/
-theorem w770_0 : WinOk 770 0 := winOk_of_C (by decide +kernel)
 
 theorem ok763 : CheckOk 763 := checkOk_one (by decide +kernel) w763_0
 
@@ -49,13 +49,9 @@ theorem ok765 : CheckOk 765 := checkOk_one (by decide +kernel) w765_0
 
 theorem ok766 : CheckOk 766 := checkOk_one (by decide +kernel) w766_0
 
-theorem ok767 : CheckOk 767 := checkOk_one (by decide +kernel) w767_0
-
 theorem ok768 : CheckOk 768 := checkOk_one (by decide +kernel) w768_0
 
 theorem ok769 : CheckOk 769 := checkOk_one (by decide +kernel) w769_0
-
-theorem ok770 : CheckOk 770 := checkOk_one (by decide +kernel) w770_0
 
 end
 end LeanVM.Guest.Checked

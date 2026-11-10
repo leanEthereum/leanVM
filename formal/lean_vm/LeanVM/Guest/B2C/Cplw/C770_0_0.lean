@@ -110,15 +110,5 @@ theorem ok776 : CplOk 776 := by
     interval_cases k
     · exact cw776_0_0
 
-theorem ok777 : CplOk 777 := by
-  intro i hi k hk
-  have hc : (certOf 777).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 777 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw777_0_0
-
 end
 end LeanVM.Guest.B2C.Cplw

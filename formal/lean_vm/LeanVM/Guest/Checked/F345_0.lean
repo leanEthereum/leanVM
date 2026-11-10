@@ -38,8 +38,8 @@ theorem w345_5 : WinOk 345 5 := winOk_of_C (by decide +kernel)
 /-- `open_stacked__L13`, window 6. -/
 theorem w345_6 : WinOk 345 6 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L14`, window 0. -/
-theorem w346_0 : WinOk 346 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L13`, window 7. -/
+theorem w345_7 : WinOk 345 7 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

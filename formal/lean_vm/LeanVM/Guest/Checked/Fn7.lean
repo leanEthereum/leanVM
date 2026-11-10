@@ -8,34 +8,36 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F349_4
+public import LeanVM.Guest.Checked.F350_1
 public import LeanVM.Guest.Checked.F351_1
 public import LeanVM.Guest.Checked.F351_1
-public import LeanVM.Guest.Checked.F352_3
-public import LeanVM.Guest.Checked.F352_3
-public import LeanVM.Guest.Checked.F353_4
-public import LeanVM.Guest.Checked.F353_4
-public import LeanVM.Guest.Checked.F353_4
-public import LeanVM.Guest.Checked.F355_1
-public import LeanVM.Guest.Checked.F355_1
-public import LeanVM.Guest.Checked.F356_2
-public import LeanVM.Guest.Checked.F356_2
-public import LeanVM.Guest.Checked.F357_3
-public import LeanVM.Guest.Checked.F357_3
-public import LeanVM.Guest.Checked.F358_4
-public import LeanVM.Guest.Checked.F358_4
-public import LeanVM.Guest.Checked.F359_4
-public import LeanVM.Guest.Checked.F359_4
-public import LeanVM.Guest.Checked.F379_0
-public import LeanVM.Guest.Checked.F392_0
-public import LeanVM.Guest.Checked.F398_2
+public import LeanVM.Guest.Checked.F352_1
+public import LeanVM.Guest.Checked.F352_9
+public import LeanVM.Guest.Checked.F352_9
+public import LeanVM.Guest.Checked.F354_0
+public import LeanVM.Guest.Checked.F355_0
+public import LeanVM.Guest.Checked.F355_8
+public import LeanVM.Guest.Checked.F355_8
+public import LeanVM.Guest.Checked.F356_7
+public import LeanVM.Guest.Checked.F356_7
+public import LeanVM.Guest.Checked.F357_5
+public import LeanVM.Guest.Checked.F357_5
+public import LeanVM.Guest.Checked.F358_3
+public import LeanVM.Guest.Checked.F358_3
+public import LeanVM.Guest.Checked.F359_1
+public import LeanVM.Guest.Checked.F359_9
+public import LeanVM.Guest.Checked.F359_9
+public import LeanVM.Guest.Checked.F372_0
+public import LeanVM.Guest.Checked.F379_1
+public import LeanVM.Guest.Checked.F393_0
+public import LeanVM.Guest.Checked.F398_3
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
 theorem ok351 : CheckOk 351 := fun i hi ↦ by
-  have h : (certOf 351).cuts.length = 5 := by decide +kernel
+  have h : (certOf 351).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w351_0
@@ -44,13 +46,11 @@ theorem ok351 : CheckOk 351 := fun i hi ↦ by
   · exact w351_3
   · exact w351_4
   · exact w351_5
-
-theorem plain351 : Plain 351 := by
-  unfold Plain
-  decide +kernel
+  · exact w351_6
+  · exact w351_7
 
 theorem ok352 : CheckOk 352 := fun i hi ↦ by
-  have h : (certOf 352).cuts.length = 6 := by decide +kernel
+  have h : (certOf 352).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w352_0
@@ -60,13 +60,12 @@ theorem ok352 : CheckOk 352 := fun i hi ↦ by
   · exact w352_4
   · exact w352_5
   · exact w352_6
-
-theorem plain352 : Plain 352 := by
-  unfold Plain
-  decide +kernel
+  · exact w352_7
+  · exact w352_8
+  · exact w352_9
 
 theorem ok353 : CheckOk 353 := fun i hi ↦ by
-  have h : (certOf 353).cuts.length = 4 := by decide +kernel
+  have h : (certOf 353).cuts.length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w353_0
@@ -74,13 +73,11 @@ theorem ok353 : CheckOk 353 := fun i hi ↦ by
   · exact w353_2
   · exact w353_3
   · exact w353_4
-
-theorem plain353 : Plain 353 := by
-  unfold Plain
-  decide +kernel
+  · exact w353_5
+  · exact w353_6
 
 theorem ok354 : CheckOk 354 := fun i hi ↦ by
-  have h : (certOf 354).cuts.length = 5 := by decide +kernel
+  have h : (certOf 354).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w354_0
@@ -89,13 +86,11 @@ theorem ok354 : CheckOk 354 := fun i hi ↦ by
   · exact w354_3
   · exact w354_4
   · exact w354_5
-
-theorem plain354 : Plain 354 := by
-  unfold Plain
-  decide +kernel
+  · exact w354_6
+  · exact w354_7
 
 theorem ok355 : CheckOk 355 := fun i hi ↦ by
-  have h : (certOf 355).cuts.length = 6 := by decide +kernel
+  have h : (certOf 355).cuts.length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w355_0
@@ -105,13 +100,11 @@ theorem ok355 : CheckOk 355 := fun i hi ↦ by
   · exact w355_4
   · exact w355_5
   · exact w355_6
-
-theorem plain355 : Plain 355 := by
-  unfold Plain
-  decide +kernel
+  · exact w355_7
+  · exact w355_8
 
 theorem ok356 : CheckOk 356 := fun i hi ↦ by
-  have h : (certOf 356).cuts.length = 6 := by decide +kernel
+  have h : (certOf 356).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w356_0
@@ -121,13 +114,12 @@ theorem ok356 : CheckOk 356 := fun i hi ↦ by
   · exact w356_4
   · exact w356_5
   · exact w356_6
-
-theorem plain356 : Plain 356 := by
-  unfold Plain
-  decide +kernel
+  · exact w356_7
+  · exact w356_8
+  · exact w356_9
 
 theorem ok357 : CheckOk 357 := fun i hi ↦ by
-  have h : (certOf 357).cuts.length = 6 := by decide +kernel
+  have h : (certOf 357).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w357_0
@@ -137,13 +129,12 @@ theorem ok357 : CheckOk 357 := fun i hi ↦ by
   · exact w357_4
   · exact w357_5
   · exact w357_6
-
-theorem plain357 : Plain 357 := by
-  unfold Plain
-  decide +kernel
+  · exact w357_7
+  · exact w357_8
+  · exact w357_9
 
 theorem ok358 : CheckOk 358 := fun i hi ↦ by
-  have h : (certOf 358).cuts.length = 7 := by decide +kernel
+  have h : (certOf 358).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w358_0
@@ -154,13 +145,11 @@ theorem ok358 : CheckOk 358 := fun i hi ↦ by
   · exact w358_5
   · exact w358_6
   · exact w358_7
-
-theorem plain358 : Plain 358 := by
-  unfold Plain
-  decide +kernel
+  · exact w358_8
+  · exact w358_9
 
 theorem ok359 : CheckOk 359 := fun i hi ↦ by
-  have h : (certOf 359).cuts.length = 7 := by decide +kernel
+  have h : (certOf 359).cuts.length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w359_0
@@ -171,10 +160,10 @@ theorem ok359 : CheckOk 359 := fun i hi ↦ by
   · exact w359_5
   · exact w359_6
   · exact w359_7
-
-theorem plain359 : Plain 359 := by
-  unfold Plain
-  decide +kernel
+  · exact w359_8
+  · exact w359_9
+  · exact w359_10
+  · exact w359_11
 
 theorem ok360 : CheckOk 360 := fun i hi ↦ by
   have h : (certOf 360).cuts.length = 1 := by decide +kernel

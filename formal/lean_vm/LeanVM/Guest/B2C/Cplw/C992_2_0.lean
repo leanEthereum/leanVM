@@ -31,18 +31,18 @@ theorem cw993_1_0 : cplWin 993 1 0 = true := by decide +kernel
 /-- `__loop380`, window 2, part 0. -/
 theorem cw993_2_0 : cplWin 993 2 0 = true := by decide +kernel
 
+/-- `__loop380`, window 3, part 0. -/
+theorem cw993_3_0 : cplWin 993 3 0 = true := by decide +kernel
+
 /-- `__loop381`, window 0, part 0. -/
 theorem cw994_0_0 : cplWin 994 0 0 = true := by decide +kernel
 
 /-- `__loop381`, window 1, part 0. -/
 theorem cw994_1_0 : cplWin 994 1 0 = true := by decide +kernel
 
-/-- `__loop382`, window 0, part 0. -/
-theorem cw995_0_0 : cplWin 995 0 0 = true := by decide +kernel
-
 theorem ok993 : CplOk 993 := by
   intro i hi k hk
-  have hc : (certOf 993).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 993).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 993 0 = 1 := by decide +kernel
@@ -57,20 +57,10 @@ theorem ok993 : CplOk 993 := by
     rw [hn] at hk
     interval_cases k
     · exact cw993_2_0
-
-theorem ok994 : CplOk 994 := by
-  intro i hi k hk
-  have hc : (certOf 994).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 994 0 = 1 := by decide +kernel
+  · have hn : nParts 993 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw994_0_0
-  · have hn : nParts 994 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw994_1_0
+    · exact cw993_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

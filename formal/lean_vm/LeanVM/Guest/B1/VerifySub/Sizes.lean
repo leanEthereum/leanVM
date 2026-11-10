@@ -167,8 +167,6 @@ theorem le_pow_of_log2Ceil {r k : ℕ} (h : log2Ceil r ≤ k) : r ≤ 2 ^ k := b
 
 theorem eOfNat_limb1 (n : ℕ) : (eOfNat n).limb 1 = 0 := by simp [eOfNat]
 
-theorem eOfNat_limb2 (n : ℕ) : (eOfNat n).limb 2 = 0 := by simp [eOfNat]
-
 theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = n := by
   simp [eOfNat, kToNat_ofBits]
   omega
@@ -230,8 +228,8 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
   have e3 : kToNat ((xs.getLastD 0).limb 0) = lir := by
     rw [hxs, List.getLastD_eq_getLast?, List.getLast?_append, List.getLast?_singleton]
     exact kToNat_eOfNat (by omega)
-  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true := by
-    simp [xs, eOfNat_limb1, eOfNat_limb2]
+  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true := by
+    simp [xs, eOfNat_limb1]
   unfold readAnnouncedSizes
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
   simp only [e1, e2, e3]

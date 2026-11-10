@@ -15,9 +15,9 @@ public import LeanVM.Guest.B1.Main.Frames
 
 `vsPiOf rd σ V` reads the child proof off `verify_sub`'s valuation `σ`, the memory `rd` and the
 frame map `V`, choosing nothing and computing no hash: the stream is the memory's words at
-`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 656`, found by comparing
+`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 1928`, found by comparing
 `g`-powers, `cursorLen`), then `open_stacked`'s words, and the openings are `open_stacked`'s
-(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 1695`).
+(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 1922`).
 
 `wordsAt_eq`, `cursorLen_eq`, `dispatchIdx_eq`: the decoding gives what a run read.
 -/
@@ -43,18 +43,18 @@ def dispatchIdx (x : E) : ℕ :=
 
 /-- `open_stacked`'s argument words in `verify_sub`. -/
 def vsOsArgs (σ : Val) : List E :=
-  [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681), σ (.n 324),
-    σ (.n 334), σ (.n 656)]
+  [σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374), σ (.n 1917), σ (.n 268),
+    σ (.n 271), σ (.n 1928), σ (.n 1930)]
 
 /-- `open_stacked`'s return words in `verify_sub`. -/
-def vsOsRets (σ : Val) : List E := [σ (.n 1700), σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704)]
+def vsOsRets (σ : Val) : List E := [σ (.n 1931), σ (.n 1932), σ (.n 1933), σ (.n 1934), σ (.n 1935)]
 
 /-- The child proof, given `open_stacked`'s witness function `osW` (candidate, arguments,
 returns ↦ stream words, openings). -/
 def piOfW (osW : ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
     Proof :=
-  let w := osW (dispatchIdx (σ (.n 1695))) (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 656))) ++ w.1, w.2⟩
+  let w := osW (dispatchIdx (σ (.n 1922))) (vsOsArgs σ) (vsOsRets σ)
+  ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 1928))) ++ w.1, w.2⟩
 
 /-- `open_stacked`'s witness function at the frame map `V`. -/
 def vsOsW (rd : Reader) (V : FrameMap) : ℕ → List E → List E → List E × List (List Opening) :=

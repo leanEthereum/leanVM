@@ -37,8 +37,8 @@ theorem cw531_0_0 : cplWin 531 0 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L6_L32_L19_L8_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw531_1_0 : cplWin 531 1 0 = true := by decide +kernel
 
-/-- `squeeze_point_from__L14`, window 0, part 0. -/
-theorem cw532_0_0 : cplWin 532 0 0 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L6_L32_L19_L8_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw531_2_0 : cplWin 531 2 0 = true := by decide +kernel
 
 theorem ok526 : CplOk 526 := by
   intro i hi k hk
@@ -92,7 +92,7 @@ theorem ok530 : CplOk 530 := by
 
 theorem ok531 : CplOk 531 := by
   intro i hi k hk
-  have hc : (certOf 531).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 531).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 531 0 = 1 := by decide +kernel
@@ -103,16 +103,10 @@ theorem ok531 : CplOk 531 := by
     rw [hn] at hk
     interval_cases k
     · exact cw531_1_0
-
-theorem ok532 : CplOk 532 := by
-  intro i hi k hk
-  have hc : (certOf 532).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 532 0 = 1 := by decide +kernel
+  · have hn : nParts 531 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw532_0_0
+    · exact cw531_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw
