@@ -53,7 +53,7 @@ for m in re.finditer(r'\("(opening_queries__[^"]+)", "(__loop\d+)"',
                      open(os.path.join(B1, 'Opening', 'Witness.lean'), encoding='utf-8').read()):
     oql[m.group(1)] = m.group(2)
 def nlev(m): return lig('LIG_N_LEVELS', m)
-def loopBase(m): return 41 + 2 * sum(nlev(k) for k in range(m))  # `B1.Whir.loopBase`
+def loopBase(m): return 41 + sum(2 * nlev(k) - 1 for k in range(m))  # `B1.Whir.loopBase`
 
 
 def calls(name):
@@ -98,7 +98,8 @@ def osBos(m):
         sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
                   + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))
         # `B1.osSpB`: the residual loop's run, `q / 8` iterations and its one phantom frame
-        sp[resL] = sp.get(resL, 0) + q // 8 * SKt(resL) + fs(resL)
+        if l < lig('LIG_YR_LEVEL', m):
+            sp[resL] = sp.get(resL, 0) + q // 8 * SKt(resL) + fs(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 
 
