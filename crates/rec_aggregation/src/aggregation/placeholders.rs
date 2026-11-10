@@ -495,24 +495,24 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
 /// is no nonce): a sumcheck round of degree `d`, eq factor included, then each other challenge the guest grinds for.
 fn grind_placeholders(ps: &mut impl FnMut(&str, String)) {
     use fiat_shamir::grinding_bits;
+    use leanvm_core::gkr::{ROUND_GRIND, y_grind};
     use leanvm_core::leaf::{N_BUS_TREES, bus_grinding_bits};
     // The bus grind's bits by the push depth mu. It sends a nonce at every depth the guest admits, which it absorbs
     // with the OOD sample's value.
     assert!(bus_grinding_bits(leanvm_core::cpu::MIN_LOG_MEM) > 0);
     ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
-    for degree in [2, 3, 5] {
+    for degree in [2, 3] {
         ps(&format!("ROUND{degree}_GRIND_BITS"), grinding_bits(degree).to_string());
     }
-    // A bus GKR round of the last layer, whose challenge zeta's zerocheck also reads, grinds as any other.
-    assert_eq!(grinding_bits(4 + 1 + 1), grinding_bits(4 + 1));
+    ps("ROUND5_GRIND_BITS", ROUND_GRIND.to_string());
     ps(
         "GKR_COMBINER_GRIND_BITS",
         grinding_bits(N_BUS_TREES as u128 - 1).to_string(),
     );
     // y: a binary layer's (only ever the root-most, never the last), a radix-four one's, the last layer's doubled.
-    ps("GKR_Y1_GRIND_BITS", grinding_bits(1).to_string());
-    ps("GKR_Y_GRIND_BITS", grinding_bits(2).to_string());
-    ps("GKR_Y_LAST_GRIND_BITS", grinding_bits(4).to_string());
+    ps("GKR_Y1_GRIND_BITS", y_grind(1, false).to_string());
+    ps("GKR_Y_GRIND_BITS", y_grind(2, false).to_string());
+    ps("GKR_Y_LAST_GRIND_BITS", y_grind(2, true).to_string());
     ps(
         "XI_GRIND_BITS",
         grinding_bits(leanvm_core::cpu::n_xi_powers() as u128 - 1).to_string(),

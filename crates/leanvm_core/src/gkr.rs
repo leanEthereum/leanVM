@@ -793,13 +793,13 @@ pub struct Products {
 /// A sumcheck round's grind: its polynomial is `eq` times a product of four lines, degree five. In the bus's last
 /// layer the challenge is also a coordinate of `ζ`, which the table sumcheck's zerocheck reads, one more: six, as
 /// many bits.
-const ROUND_GRIND: u32 = fiat_shamir::grinding_bits(4 + 1);
+pub const ROUND_GRIND: u32 = fiat_shamir::grinding_bits(4 + 1);
 const _: () = assert!(fiat_shamir::grinding_bits(4 + 1 + 1) == ROUND_GRIND);
 
 /// The grind before a layer's `y`, its `step` coordinates: the children's multilinear has degree `step` in them.
 /// The last layer's are `ζ`'s first coordinates, which the bus's zerocheck also reads, `step` more (every table
 /// sumcheck spans at least two variables, the KECCAK table's floor).
-fn y_grind(step: usize, last: bool) -> u32 {
+pub fn y_grind(step: usize, last: bool) -> u32 {
     fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
 }
 
