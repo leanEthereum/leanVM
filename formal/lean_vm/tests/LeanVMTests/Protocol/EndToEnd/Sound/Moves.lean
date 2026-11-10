@@ -3,11 +3,14 @@ import LeanVM.Protocol.EndToEnd.Sound.Moves
 /-!
 # The prover moves' tests
 
-* **Statement locks** of `grindBits_le_of_reachable` and `movesOK_ringSwitch`.
-* **The trust audit**: `grindBits_le_of_reachable` depends on `propext`, `Classical.choice` and `Quot.sound` only.
+* **Statement locks** of `grindBits_le_of_reachable`, `grindThenSample_leanVmProgram` and
+  `moves_ringSwitch`.
+* **The trust audit**: `grindBits_le_of_reachable` and `grindThenSample_leanVmProgram` depend on
+  `propext`, `Classical.choice` and `Quot.sound` only.
 * **What is load-bearing.** The bound on the bits is the predicate's: a proof of work of `65` bits
-  is not allowed at `64`, while WHIR's `17` is; a commitment is not allowed where commitments are
-  excluded.
+  is not allowed at `64`, while WHIR's query grind is; a proof of work must be followed by a
+  challenge (one ending a program whose follower is unconstrained is not); a commitment is not
+  allowed where commitments are excluded.
 -/
 
 namespace LeanVMTests.Protocol.EndToEnd.Sound.Moves
@@ -21,8 +24,13 @@ example (bytecode : List K) (publicInput : Digest) {h : List Ev}
     (hh : (leanVmVerifierProgram bytecode publicInput).Reachable h) : grindBits h ≤ 64 :=
   grindBits_le_of_reachable bytecode publicInput hh
 
-example (point s : List E) : MovesOK (fun _ ↦ False) False (ringSwitch point s) :=
-  movesOK_ringSwitch point s
+example (bytecode : List K) (publicInput : Digest) :
+    GrindThenSample (leanVmVerifierProgram bytecode publicInput) :=
+  grindThenSample_leanVmProgram bytecode publicInput
+
+example (point s : List E) :
+    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) :=
+  moves_ringSwitch point s
 
 /-! ## The trust audit -/
 
@@ -33,14 +41,26 @@ info: 'LeanVM.Protocol.EndToEnd.Sound.grindBits_le_of_reachable' depends on axio
 #guard_msgs (whitespace := lax) in
 #print axioms grindBits_le_of_reachable
 
+/--
+info: 'LeanVM.Protocol.EndToEnd.Sound.grindThenSample_leanVmProgram' depends on axioms:
+  [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs (whitespace := lax) in
+#print axioms grindThenSample_leanVmProgram
+
 /-! ## What is load-bearing -/
 
 /-- A proof of work of `65` bits is not allowed at `64`. -/
-example : ¬ MovesOK (· ≤ 64) True (VerifierProgram.grindProofOfWork 65) := fun h ↦ absurd h.1 (by decide)
+example : ¬ MovesOK G64 True (VerifierProgram.grindProofOfWork 65) := fun h ↦ absurd h.1 (by decide)
 
 /-- WHIR's query proof of work is allowed at `64`. -/
-example : MovesOK (· ≤ 64) True (VerifierProgram.grindProofOfWork Whir.queryGrindingBits) :=
-  MovesOK.grindP (by decide)
+example : MovesOK G64 True (VerifierProgram.grindProofOfWork Whir.queryGrindingBits) :=
+  Moves.grindP fun _ ↦ by decide
+
+/-- A proof of work ending a program whose returns admit no follower is not followed by a
+challenge. -/
+example : ¬ Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (VerifierProgram.grindProofOfWork 3) :=
+  fun h ↦ h.2.1
 
 /-- A commitment is not allowed where commitments are excluded. -/
 example : ¬ MovesOK (fun _ ↦ False) False (VerifierProgram.readCommitment 1 1) := fun h ↦ h.1
