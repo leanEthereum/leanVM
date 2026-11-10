@@ -165,7 +165,7 @@ noncomputable def ownW : List (List E) :=
       (H.τ (vtPushSel.getD i default).2.2.2.1)) ++
     (List.range 45).map (fun i ↦ offDigits (H.offC.getD i 0)
       (H.τ (vtCountSel.getD i default).2.2.2.1)) ++
-    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 5) H.xsR H.n,
+    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n,
       zcCprodW H.cap0 H.target H.xsR H.n,
       (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))]
 
