@@ -349,7 +349,7 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog :
 /-! ## The stacks -/
 
 /-- **The fast path** on the committed leaves (`fastOfC`, width `64`). -/
-theorem fastOfC_cost (hP : Includes P fastOfC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40) (hR : R ≤ 8)
+theorem fastOfC_cost (hP : Includes P fastOfC.costDeps) (μ R : ℕ) (hμ : μ ≤ 34) (hR : R ≤ 8)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P fastOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
       fastPathPrice μ R 64 23 + 10 := by
