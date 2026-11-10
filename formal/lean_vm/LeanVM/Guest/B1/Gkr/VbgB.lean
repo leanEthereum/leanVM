@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Loop7T
 public import LeanVM.Guest.B1.Gkr.VbgAt
+public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 
 /-!
@@ -63,11 +64,6 @@ theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E �
   rw [show 2 * j + 2 - sh = 2 * k + sh by omega]
   exact ⟨hhalf, hpar⟩
 
-/-- `__loop6`'s words from `1` below `g^((depth - 1)/2)`: the iterations' bounds and the last
-tail's frame. -/
-def ly7Total (fs : String → ℕ) (K29 R depth : ℕ) : ℕ :=
-  Budget.iterSum (ly7B fs K29 R (depth % 2)) 0 ((depth - 1) / 2) + fs "__loop6"
-
 /-- **`__loop6`'s words on the honest buffers.** -/
 theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
@@ -109,13 +105,6 @@ theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
   unfold flatCalls
   rw [e, vbg_callS]
   rfl
-
-/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop6`'s chain, `__loop7`'s run (`depth`
-iterations of at most `K8` words and its one phantom frame), and the frames of its two conditional
-calls. -/
-noncomputable def vbgBound (fs : String → ℕ) (K29 R K8 depth : ℕ) : ℕ :=
-  fs "verify_bus_gkr" + (vbgSizes depth).sum +
-    ([ly7Total fs K29 R depth, depth * K8 + fs "__loop7"].sum + ifFrames fs vbgPre)
 
 variable {cert : String → V → ℕ}
 
