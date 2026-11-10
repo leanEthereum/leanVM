@@ -13,7 +13,8 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.B1.Main.MainGoalsDvTB
 public import LeanVM.Guest.Child.RefuseZero
 public import LeanVM.Guest.AcceptableChild
-public import LeanVM.Guest.B1.Bits.Log2Placed
+public import LeanVM.Facts.Guest
+public import LeanVM.Guest.B1.VerifySub.CompleteSpec
 public import LeanVM.Guest.B1.Whir.Split
 
 /-!
@@ -36,7 +37,8 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest (DeployedLimits ChildrenOk)
-open LeanVM.Guest.B1 (CompleteAtDTB Returns log2Lin)
+open LeanVM.Guest.B1 (CompleteAtDTB Returns)
+open LeanVM.Guest.B1.VerifySub (vsExpLin)
 
 @[expose] public section
 
@@ -45,11 +47,13 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 
 /-- What `verify_sub`'s completeness asks of a child `c` under the seed `seed`: its announced stack
 log at least `22`, its stream within the cap, its deferring verifier accepting without a zero
-challenge, and its openings agreeing in the caps. -/
+challenge (the statement's refusal and the guest's), and its openings agreeing in the caps. -/
 def VsChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop :=
   (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) ∧
     c.proof.stream.length ≤ Coverage.childStreamCap ∧
+    Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
+      c.proof = true ∧
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true ∧
     ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
@@ -62,7 +66,7 @@ child's announced shape an opening arm (B1-d's `child_segments`). -/
 structure VsCompleteHyp (bytecode : List K) (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (T : ℕ → ℕ → Tree → Prop) (B : ℕ → ℕ → ℕ) : Prop where
   complete : ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout),
-    VsChildOk bytecode seed c → (∀ q ∈ log2Lin sqE, q ∈ Lin) →
+    VsChildOk bytecode seed c → (∀ q ∈ vsExpLin sqE, q ∈ Lin) →
     (outE, DeferredClaim.cells c.freshClaim) ∈ Lin →
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestHalves (statementDigest seed c.statement)).1,
@@ -74,9 +78,9 @@ structure VsCompleteHyp (bytecode : List K) (fs : String → ℕ) (cert : String
     22 ≤ (childShape bytecode c).1 ∧ (childShape bytecode c).1 ≤ 28 ∧
       1 ≤ (childShape bytecode c).2 ∧ (childShape bytecode c).2 ≤ 4
 
-/-- `exponent_tables`' table is `log2Lin`'s. -/
+/-- `exponent_tables`' tables are `vsExpLin`'s. -/
 theorem etL_eq (fs : String → ℕ) (fp : ℕ) (d : MainData) :
-    log2Lin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
+    vsExpLin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
 
 /-- **Every child's announced shape is an opening arm of the guest**: its stack log in
 `[22, 28]`, its rate in `[1, 4]`. -/
@@ -86,7 +90,7 @@ theorem childShape_bounds {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ �
     22 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 28 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 :=
   hvs.shape seed ch ⟨(hok _ hch).stackLogAtLeastMinimum, (hok _ hch).streamWithinCap,
-    Limits.verifyDeferredNZ_of_childOk (hok _ hch), (hok _ hch).capsAgree⟩
+    (hok _ hch).noZeroChallenge, Limits.verifyDeferredNZ_of_childOk (hok _ hch), (hok _ hch).capsAgree⟩
 
 /-- **Each child's `verify_sub` call on the honest run, within its own bound**: `B` at its
 announced stack log and rate, by a tree of `T`, the child's candidate among `open_stacked`'s
@@ -105,9 +109,9 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
   set e := etB fs (mK0 (hData seed s w) fs fp) with he
   set outE := hP fs fp seed s w 6 + 24 * c with hout
   have h := hvs.complete seed w.children[c] e outE
-    (log2Lin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
+    (vsExpLin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      Limits.verifyDeferredNZ_of_childOk (hok _ hmem), (hok _ hmem).capsAgree⟩
+      (hok _ hmem).noZeroChallenge, Limits.verifyDeferredNZ_of_childOk (hok _ hmem), (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : B (childShape bytecode w.children[c]).1
       (childShape bytecode w.children[c]).2 = (w.children.map fun ch =>

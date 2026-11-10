@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.WordsB
-public import LeanVM.Guest.B1.Gkr.VbgB
+public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Place.OsSpec
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.B1.Placement.CertifyAt
@@ -44,7 +44,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-! ## The bounds -/
 
 /-- `verify_bus_gkr`'s bound over the depths below `30`. -/
-@[irreducible] def vbgMax (fs : String → ℕ) (K29 R K8 : ℕ) : ℕ :=
+@[irreducible] noncomputable def vbgMax (fs : String → ℕ) (K29 R K8 : ℕ) : ℕ :=
   lmax ((List.range 30).map (Tables.vbgBound fs K29 R K8))
 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
