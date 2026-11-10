@@ -27,8 +27,8 @@ checked equal to the core IR, and their facts against the Spec are decided (`Whi
 * `lig a i`: entry `i` of the table `a`, its low limb (the tables hold integers, the vanishing
   tables words of `K`);
 * `OsLv`, `osLvR m r lvl`: level `lvl`'s row of size `m` at rate `r`, the rate-free columns from
-  the size's first row; `OsCfg`, `osCfg m r`: the size's configuration at a rate, with every rate's
-  levels for the dispatches' names.
+  the size's first row; `OsCfg`, `osCfg m`: the size's configuration, its levels at the first rate
+  (the columns the body reads) and every rate's (the dispatches' arms, `OsCfg.lvAt`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -120,13 +120,11 @@ def osLvR (m r lvl : Nat) : OsLv :=
     vanish := cols * (cols + 1) / 2, grindAny := lig Data.arr_LIG_FOLD_GRIND_ANY i,
     foldGrind := lig Data.arr_LIG_FOLD_GRIND_BITS j }
 
-/-- A size's configuration at a rate. -/
+/-- A size's configuration. -/
 structure OsCfg where
   /-- The size, `μ - 19`. -/
   m : Nat
-  /-- The rate, `logInvRate - 1`. -/
-  r : Nat
-  /-- Its levels at the rate. -/
+  /-- Its levels, at the first rate: the columns no rate changes, which the body reads. -/
   levels : List OsLv
   /-- Its levels at every rate, by rate: the arms of the dispatches. -/
   levelsAt : List (List OsLv)
@@ -150,9 +148,9 @@ def osNLevels (m : Nat) : Nat := lig Data.arr_LIG_N_LEVELS m
 /-- Size `m`'s levels at rate `r`. -/
 def osLevelsR (m r : Nat) : List OsLv := (List.range (osNLevels m)).map (osLvR m r)
 
-/-- Size `m`'s configuration at rate `r`. -/
-def osCfg (m r : Nat) : OsCfg :=
-  { m, r, levels := osLevelsR m r, levelsAt := (List.range ligNRates).map (osLevelsR m),
+/-- Size `m`'s configuration. -/
+def osCfg (m : Nat) : OsCfg :=
+  { m, levels := osLevelsR m 0, levelsAt := (List.range ligNRates).map (osLevelsR m),
     yrLevel := lig Data.arr_LIG_YR_LEVEL m, yrLog := lig Data.arr_LIG_YR_LOG_LEN m,
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
     maxIl := lig Data.arr_LIG_MAX_INTERLEAVE m, plan := osMatPlan m }

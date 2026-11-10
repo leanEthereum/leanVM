@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Whir.DataSpec
 
-  What the kernel checks of each candidate's core IR: `open_stacked__L{m}` and its loop helpers
-  are the templates at the candidate's configuration.
+  What the kernel checks of each size's core IR: `open_stacked__L{m}` is the template at the
+  size's configuration.
 -/
 
 module
@@ -10,11 +10,10 @@ module
 public import LeanVM.Guest.B1.Whir.Template
 
 /-!
-# The candidates' core IR, as the templates
+# The sizes' core IR, as the templates
 
-`OsData m`: the core IR holds `open_stacked__L{m}` with the parameters `0 .. 8` and the body
-`osBody (osCfg m)`, and, for each level, the squeeze loop and the residual loop with their
-templates. `Whir/Data{0,1,2,3}.lean` prove it for the 28 candidates by kernel evaluation
+`OsData m`: the core IR holds `open_stacked__L{m}` with the parameters `0 .. 9` and the body
+`osBody (osCfg m)`. `Whir/Data{m}.lean` prove it for the 14 sizes by kernel evaluation
 (`stmtsEqb_sound`), `Whir/DataAll.lean` collects them.
 -/
 
@@ -31,13 +30,9 @@ def FnIs (name : String) (ps : List V) (body : List Stmt) : Prop :=
 /-- The parameters `0 .. n - 1`. -/
 def osParams (n : Nat) : List V := (List.range n).map V.n
 
-/-- **Candidate `m`'s core IR is its template**, with its loop helpers'. -/
+/-- **Size `m`'s core IR is its template.** -/
 def OsData (m : Nat) : Prop :=
-  FnIs ("open_stacked__L" ++ natStr m) (osParams 9) (osBody (osCfg m)) ∧
-    ∀ lvl < (osCfg m).levels.length,
-      FnIs ((osCfg m).sqLoop lvl) (osParams 6) (sqLoopBody (osLv m lvl) ((osCfg m).sqLoop lvl)) ∧
-      FnIs ((osCfg m).resLoop lvl) (osParams 6)
-        (resLoopBody lvl (osLv m lvl) ((osCfg m).resLoop lvl))
+  FnIs ("open_stacked__L" ++ natStr m) (osParams 10) (osBody (osCfg m))
 
 /-- Two lists agree from `o` on if they agree on the run of `n` from `o` (by `stmtsEqb`) and from
 `o + n` on: the data's bodies are checked a run at a time, each run its own kernel evaluation. -/

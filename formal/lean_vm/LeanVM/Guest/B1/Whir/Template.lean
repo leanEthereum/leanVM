@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.Interface
 # The template of `open_stacked` (TRIAGE G #42)
 
 `osBody c` is the body of `open_stacked__L{c.m}` (`lean_ethereum.py`, `open_stacked`) at the
-configuration `c = osCfg m r`, value by value as the expansion numbers it: every block takes the
+configuration `c = osCfg m`, value by value as the expansion numbers it: every block takes the
 first free value `k` and returns the next, the running sponge cells, the cursor (a base value and
 a word offset), the waiting scalars, the quadratic and the claim in `OsSt`. The body depends on the
 size alone: where a rate changes a level's shape it dispatches on the rate's selector, value `0`
