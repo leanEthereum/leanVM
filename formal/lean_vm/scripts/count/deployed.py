@@ -90,7 +90,7 @@ def numbers(g, certs):
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
-    v['agA0'] = fs('aggregate_claims') + 108 + SB('batch_sumcheck__L23')
+    v['agA0'] = fs('aggregate_claims') + 109 + SB('grind_check__L2') + SB('batch_sumcheck__L23')
     # `aggregate_claims`' loops: their phantoms per child (`SKt + fs`), as the base is charged
     # without a child.
     v['agA1'] = 18 + SK('__loop33') + SK('__loop34') + SK('__loop35')
@@ -188,7 +188,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
             fs=['__loop4'], sb=['statement_digest']),
         thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17', '__loop18']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
-            sb=['batch_sumcheck__L23']),
+            sb=['grind_check__L2', 'batch_sumcheck__L23']),
         thm('agA1_eq', 'agA1 B2C.fs wSK', v['agA1'], 'agA1 B1.Main.iterK', [],
             fs=['__loop33', '__loop34', '__loop35'], sk=['__loop33', '__loop34', '__loop35'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',

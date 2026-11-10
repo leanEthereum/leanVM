@@ -96,6 +96,7 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   l26 := iterK_totalLeOn (j := wIdxL 34) (by decide +kernel)
   l27 := iterK_totalLeOn (j := wIdxL 35) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
+  gr := wSB_totalLe (j := wIdx "grind_check__L2") (by decide +kernel)
 
 /-- `open_stacked`'s named callees, checked. -/
 theorem osKind_ok : B1.osKindTable.all (fun p => wOkB (wIdx p.1) p.1) = true := by

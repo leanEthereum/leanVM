@@ -10,10 +10,11 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PushFw
 
 /-!
-# The pull side's total (G:2228-2230, 2318-2322)
+# The pull side's total (G:2521-2580)
 
 The pull side's blocks mirror the push side's: their eq weights are the push blocks' copies, and
-their padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`.
+their padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`. The framework blocks' coordinate values are the first loop's (`coord_vals`): constants, the index
+extensions and the stream words.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -27,227 +28,164 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 abbrev vtWFinalPc : E := word 12261764870545049476 0
 
 set_option maxRecDepth 100000 in
-/-- **The pull side's total.** -/
-theorem vt_pull_total {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
+/-- **The pull side's framework accumulator.** -/
+theorem vt_pull_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i)) :
-    σ (.n 2073) = σ (.n 796) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +
-      σ (.n 820) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1839) + W 2 * σ (.n 1843) +
-        W 3 * σ (.n 1856) + W 4 * σ (.n 1860) + W 5 * σ (.n 1864))) +
-      σ (.n 890) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1881) + W 2 * σ (.n 1898) +
-        σ (.n 581))) + σ (.n 1815) +
-      (1 + (σ (.n 796) + σ (.n 820) + σ (.n 890) +
-        (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum)) + σ (.n 26) := by
-  have a3914 := h.atomAt 1860 (.load (.n 1822) (.n 13) 0) (by decide +kernel)
-  have a3915 := h.atomAt 1861 (.load (.n 1823) (.n 13) 1) (by decide +kernel)
-  have a3916 := h.atomAt 1862 (.const (.n 1824) (word 12261764870545049476 0)) (by decide +kernel)
-  have a3917 := h.atomAt 1863 (.mul (.n 1825) (.n 1823) (.n 1824)) (by decide +kernel)
-  have a3918 := h.atomAt 1864 (.add (.n 1826) (.n 1822) (.n 1825)) (by decide +kernel)
-  have a3919 := h.atomAt 1865 (.load (.n 1827) (.n 13) 2) (by decide +kernel)
-  have a3920 := h.atomAt 1866 (.add (.n 1828) (.n 1826) (.n 1827)) (by decide +kernel)
-  have a3921 := h.atomAt 1867 (.const (.n 1829) (word 0 0)) (by decide +kernel)
-  have a3922 := h.atomAt 1868 (.mul (.n 1830) (.n 1829) (.n 581)) (by decide +kernel)
-  have a3923 := h.atomAt 1869 (.add (.n 1831) (.n 1828) (.n 1830)) (by decide +kernel)
-  have a3924 := h.atomAt 1870 (.add (.n 1832) (.n 14) (.n 1831)) (by decide +kernel)
-  have a3925 := h.atomAt 1871 (.mul (.n 1833) (.n 796) (.n 1832)) (by decide +kernel)
-  have a3929 := h.atomAt 1872 (.add (.n 1834) (.n 796) (.n 820)) (by decide +kernel)
-  have a3931 := h.atomAt 1874 (.load (.n 1836) (.n 13) 0) (by decide +kernel)
-  have a3932 := h.atomAt 1875 (.const (.n 1837) (word 2 0)) (by decide +kernel)
-  have a3933 := h.atomAt 1876 (.mul (.n 1838) (.n 1836) (.n 1837)) (by decide +kernel)
-  have a3935 := h.atomAt 1878 (.load (.n 1840) (.n 13) 1) (by decide +kernel)
-  have a3936 := h.atomAt 1879 (.mul (.n 1841) (.n 1840) (.n 1839)) (by decide +kernel)
-  have a3937 := h.atomAt 1880 (.add (.n 1842) (.n 1838) (.n 1841)) (by decide +kernel)
-  have a3949 := h.atomAt 1891 (.load (.n 1853) (.n 13) 2) (by decide +kernel)
-  have a3950 := h.atomAt 1892 (.mul (.n 1854) (.n 1853) (.n 1843)) (by decide +kernel)
-  have a3951 := h.atomAt 1893 (.add (.n 1855) (.n 1842) (.n 1854)) (by decide +kernel)
-  have a3953 := h.atomAt 1895 (.load (.n 1857) (.n 13) 3) (by decide +kernel)
-  have a3954 := h.atomAt 1896 (.mul (.n 1858) (.n 1857) (.n 1856)) (by decide +kernel)
-  have a3955 := h.atomAt 1897 (.add (.n 1859) (.n 1855) (.n 1858)) (by decide +kernel)
-  have a3957 := h.atomAt 1899 (.load (.n 1861) (.n 13) 4) (by decide +kernel)
-  have a3958 := h.atomAt 1900 (.mul (.n 1862) (.n 1861) (.n 1860)) (by decide +kernel)
-  have a3959 := h.atomAt 1901 (.add (.n 1863) (.n 1859) (.n 1862)) (by decide +kernel)
-  have a3961 := h.atomAt 1903 (.load (.n 1865) (.n 13) 5) (by decide +kernel)
-  have a3962 := h.atomAt 1904 (.mul (.n 1866) (.n 1865) (.n 1864)) (by decide +kernel)
-  have a3963 := h.atomAt 1905 (.add (.n 1867) (.n 1863) (.n 1866)) (by decide +kernel)
-  have a3964 := h.atomAt 1906 (.const (.n 1868) (word 0 0)) (by decide +kernel)
-  have a3965 := h.atomAt 1907 (.mul (.n 1869) (.n 1868) (.n 581)) (by decide +kernel)
-  have a3966 := h.atomAt 1908 (.add (.n 1870) (.n 1867) (.n 1869)) (by decide +kernel)
-  have a3967 := h.atomAt 1909 (.add (.n 1871) (.n 14) (.n 1870)) (by decide +kernel)
-  have a3968 := h.atomAt 1910 (.mul (.n 1872) (.n 820) (.n 1871)) (by decide +kernel)
-  have a3969 := h.atomAt 1911 (.add (.n 1873) (.n 1833) (.n 1872)) (by decide +kernel)
-  have a3973 := h.atomAt 1914 (.add (.n 1876) (.n 1834) (.n 890)) (by decide +kernel)
-  have a3975 := h.atomAt 1916 (.load (.n 1878) (.n 13) 0) (by decide +kernel)
-  have a3976 := h.atomAt 1917 (.const (.n 1879) (word 4 0)) (by decide +kernel)
-  have a3977 := h.atomAt 1918 (.mul (.n 1880) (.n 1878) (.n 1879)) (by decide +kernel)
-  have a3979 := h.atomAt 1920 (.load (.n 1882) (.n 13) 1) (by decide +kernel)
-  have a3980 := h.atomAt 1921 (.mul (.n 1883) (.n 1882) (.n 1881)) (by decide +kernel)
-  have a3981 := h.atomAt 1922 (.add (.n 1884) (.n 1880) (.n 1883)) (by decide +kernel)
-  have a3994 := h.atomAt 1934 (.load (.n 1908) (.n 13) 2) (by decide +kernel)
-  have a3995 := h.atomAt 1935 (.mul (.n 1909) (.n 1908) (.n 1898)) (by decide +kernel)
-  have a3996 := h.atomAt 1936 (.add (.n 1910) (.n 1884) (.n 1909)) (by decide +kernel)
-  have a3997 := h.atomAt 1937 (.load (.n 1911) (.n 13) 3) (by decide +kernel)
-  have a3998 := h.atomAt 1938 (.const (.n 1912) (word 0 0)) (by decide +kernel)
-  have a3999 := h.atomAt 1939 (.mul (.n 1913) (.n 1911) (.n 1912)) (by decide +kernel)
-  have a4000 := h.atomAt 1940 (.add (.n 1914) (.n 1910) (.n 1913)) (by decide +kernel)
-  have a4001 := h.atomAt 1941 (.load (.n 1915) (.n 13) 4) (by decide +kernel)
-  have a4002 := h.atomAt 1942 (.const (.n 1916) (word 0 0)) (by decide +kernel)
-  have a4003 := h.atomAt 1943 (.mul (.n 1917) (.n 1915) (.n 1916)) (by decide +kernel)
-  have a4004 := h.atomAt 1944 (.add (.n 1918) (.n 1914) (.n 1917)) (by decide +kernel)
-  have a4005 := h.atomAt 1945 (.load (.n 1919) (.n 13) 5) (by decide +kernel)
-  have a4006 := h.atomAt 1946 (.const (.n 1920) (word 0 0)) (by decide +kernel)
-  have a4007 := h.atomAt 1947 (.mul (.n 1921) (.n 1919) (.n 1920)) (by decide +kernel)
-  have a4008 := h.atomAt 1948 (.add (.n 1922) (.n 1918) (.n 1921)) (by decide +kernel)
-  have a4009 := h.atomAt 1949 (.load (.n 1923) (.n 13) 6) (by decide +kernel)
-  have a4010 := h.atomAt 1950 (.const (.n 1924) (word 0 0)) (by decide +kernel)
-  have a4011 := h.atomAt 1951 (.mul (.n 1925) (.n 1923) (.n 1924)) (by decide +kernel)
-  have a4012 := h.atomAt 1952 (.add (.n 1926) (.n 1922) (.n 1925)) (by decide +kernel)
-  have a4013 := h.atomAt 1953 (.load (.n 1927) (.n 13) 7) (by decide +kernel)
-  have a4014 := h.atomAt 1954 (.const (.n 1928) (word 0 0)) (by decide +kernel)
-  have a4015 := h.atomAt 1955 (.mul (.n 1929) (.n 1927) (.n 1928)) (by decide +kernel)
-  have a4016 := h.atomAt 1956 (.add (.n 1930) (.n 1926) (.n 1929)) (by decide +kernel)
-  have a4017 := h.atomAt 1957 (.load (.n 1931) (.n 13) 8) (by decide +kernel)
-  have a4018 := h.atomAt 1958 (.const (.n 1932) (word 0 0)) (by decide +kernel)
-  have a4019 := h.atomAt 1959 (.mul (.n 1933) (.n 1931) (.n 1932)) (by decide +kernel)
-  have a4020 := h.atomAt 1960 (.add (.n 1934) (.n 1930) (.n 1933)) (by decide +kernel)
-  have a4021 := h.atomAt 1961 (.load (.n 1935) (.n 13) 9) (by decide +kernel)
-  have a4022 := h.atomAt 1962 (.const (.n 1936) (word 0 0)) (by decide +kernel)
-  have a4023 := h.atomAt 1963 (.mul (.n 1937) (.n 1935) (.n 1936)) (by decide +kernel)
-  have a4024 := h.atomAt 1964 (.add (.n 1938) (.n 1934) (.n 1937)) (by decide +kernel)
-  have a4025 := h.atomAt 1965 (.load (.n 1939) (.n 13) 10) (by decide +kernel)
-  have a4026 := h.atomAt 1966 (.const (.n 1940) (word 0 0)) (by decide +kernel)
-  have a4027 := h.atomAt 1967 (.mul (.n 1941) (.n 1939) (.n 1940)) (by decide +kernel)
-  have a4028 := h.atomAt 1968 (.add (.n 1942) (.n 1938) (.n 1941)) (by decide +kernel)
-  have a4029 := h.atomAt 1969 (.load (.n 1943) (.n 13) 11) (by decide +kernel)
-  have a4030 := h.atomAt 1970 (.const (.n 1944) (word 0 0)) (by decide +kernel)
-  have a4031 := h.atomAt 1971 (.mul (.n 1945) (.n 1943) (.n 1944)) (by decide +kernel)
-  have a4032 := h.atomAt 1972 (.add (.n 1946) (.n 1942) (.n 1945)) (by decide +kernel)
-  have a4033 := h.atomAt 1973 (.load (.n 1947) (.n 13) 12) (by decide +kernel)
-  have a4034 := h.atomAt 1974 (.const (.n 1948) (word 0 0)) (by decide +kernel)
-  have a4035 := h.atomAt 1975 (.mul (.n 1949) (.n 1947) (.n 1948)) (by decide +kernel)
-  have a4036 := h.atomAt 1976 (.add (.n 1950) (.n 1946) (.n 1949)) (by decide +kernel)
-  have a4037 := h.atomAt 1977 (.load (.n 1951) (.n 13) 13) (by decide +kernel)
-  have c1978 := h.atomAt 1978 (.const (.n 1952) (word 0 0)) (by decide +kernel)
-  have c1979 := h.atomAt 1979 (.mul (.n 1953) (.n 1951) (.n 1952)) (by decide +kernel)
-  have c1980 := h.atomAt 1980 (.add (.n 1954) (.n 1950) (.n 1953)) (by decide +kernel)
-  have c1982 := h.atomAt 1982 (.const (.n 1956) (word 0 0)) (by decide +kernel)
-  have c1983 := h.atomAt 1983 (.mul (.n 1957) (.n 1955) (.n 1956)) (by decide +kernel)
-  have c1984 := h.atomAt 1984 (.add (.n 1958) (.n 1954) (.n 1957)) (by decide +kernel)
-  have a4038 := h.atomAt 1986 (.const (.n 1960) (word 0 0)) (by decide +kernel)
-  have a4039 := h.atomAt 1987 (.mul (.n 1961) (.n 1959) (.n 1960)) (by decide +kernel)
-  have a4040 := h.atomAt 1988 (.add (.n 1962) (.n 1958) (.n 1961)) (by decide +kernel)
-  have a4041 := h.atomAt 1989 (.add (.n 1963) (.n 1962) (.n 581)) (by decide +kernel)
-  have a4042 := h.atomAt 1990 (.add (.n 1964) (.n 14) (.n 1963)) (by decide +kernel)
-  have a4043 := h.atomAt 1991 (.mul (.n 1965) (.n 890) (.n 1964)) (by decide +kernel)
-  have a4044 := h.atomAt 1992 (.add (.n 1966) (.n 1873) (.n 1965)) (by decide +kernel)
-  have a4048 := h.atomAt 1993 (.add (.n 1967) (.n 1876) (.n 960)) (by decide +kernel)
-  have a4053 := h.atomAt 1995 (.add (.n 1969) (.n 1967) (.n 965)) (by decide +kernel)
-  have a4058 := h.atomAt 1997 (.add (.n 1971) (.n 1969) (.n 970)) (by decide +kernel)
-  have a4063 := h.atomAt 1999 (.add (.n 1973) (.n 1971) (.n 975)) (by decide +kernel)
-  have a4068 := h.atomAt 2001 (.add (.n 1975) (.n 1973) (.n 980)) (by decide +kernel)
-  have a4073 := h.atomAt 2003 (.add (.n 1977) (.n 1975) (.n 989)) (by decide +kernel)
-  have a4078 := h.atomAt 2005 (.add (.n 1979) (.n 1977) (.n 998)) (by decide +kernel)
-  have a4083 := h.atomAt 2007 (.add (.n 1981) (.n 1979) (.n 1007)) (by decide +kernel)
-  have a4088 := h.atomAt 2009 (.add (.n 1983) (.n 1981) (.n 1016)) (by decide +kernel)
-  have a4093 := h.atomAt 2011 (.add (.n 1985) (.n 1983) (.n 1025)) (by decide +kernel)
-  have a4098 := h.atomAt 2013 (.add (.n 1987) (.n 1985) (.n 1034)) (by decide +kernel)
-  have a4103 := h.atomAt 2015 (.add (.n 1989) (.n 1987) (.n 1043)) (by decide +kernel)
-  have a4108 := h.atomAt 2017 (.add (.n 1991) (.n 1989) (.n 1052)) (by decide +kernel)
-  have a4113 := h.atomAt 2019 (.add (.n 1993) (.n 1991) (.n 1061)) (by decide +kernel)
-  have a4118 := h.atomAt 2021 (.add (.n 1995) (.n 1993) (.n 1070)) (by decide +kernel)
-  have a4123 := h.atomAt 2023 (.add (.n 1997) (.n 1995) (.n 1079)) (by decide +kernel)
-  have a4128 := h.atomAt 2025 (.add (.n 1999) (.n 1997) (.n 1088)) (by decide +kernel)
-  have a4133 := h.atomAt 2027 (.add (.n 2001) (.n 1999) (.n 1097)) (by decide +kernel)
-  have a4138 := h.atomAt 2029 (.add (.n 2003) (.n 2001) (.n 1106)) (by decide +kernel)
-  have a4143 := h.atomAt 2031 (.add (.n 2005) (.n 2003) (.n 1115)) (by decide +kernel)
-  have a4148 := h.atomAt 2033 (.add (.n 2007) (.n 2005) (.n 1124)) (by decide +kernel)
-  have a4153 := h.atomAt 2035 (.add (.n 2009) (.n 2007) (.n 1133)) (by decide +kernel)
-  have a4158 := h.atomAt 2037 (.add (.n 2011) (.n 2009) (.n 1142)) (by decide +kernel)
-  have a4163 := h.atomAt 2039 (.add (.n 2013) (.n 2011) (.n 1151)) (by decide +kernel)
-  have a4168 := h.atomAt 2041 (.add (.n 2015) (.n 2013) (.n 1160)) (by decide +kernel)
-  have a4173 := h.atomAt 2043 (.add (.n 2017) (.n 2015) (.n 1169)) (by decide +kernel)
-  have a4178 := h.atomAt 2045 (.add (.n 2019) (.n 2017) (.n 1178)) (by decide +kernel)
-  have a4183 := h.atomAt 2047 (.add (.n 2021) (.n 2019) (.n 1187)) (by decide +kernel)
-  have a4188 := h.atomAt 2049 (.add (.n 2023) (.n 2021) (.n 1196)) (by decide +kernel)
-  have a4193 := h.atomAt 2051 (.add (.n 2025) (.n 2023) (.n 1205)) (by decide +kernel)
-  have a4198 := h.atomAt 2053 (.add (.n 2027) (.n 2025) (.n 1214)) (by decide +kernel)
-  have a4203 := h.atomAt 2055 (.add (.n 2029) (.n 2027) (.n 1223)) (by decide +kernel)
-  have a4208 := h.atomAt 2057 (.add (.n 2031) (.n 2029) (.n 1232)) (by decide +kernel)
-  have a4213 := h.atomAt 2059 (.add (.n 2033) (.n 2031) (.n 1241)) (by decide +kernel)
-  have a4218 := h.atomAt 2061 (.add (.n 2035) (.n 2033) (.n 1250)) (by decide +kernel)
-  have a4223 := h.atomAt 2063 (.add (.n 2037) (.n 2035) (.n 1259)) (by decide +kernel)
-  have a4228 := h.atomAt 2065 (.add (.n 2039) (.n 2037) (.n 1268)) (by decide +kernel)
-  have a4233 := h.atomAt 2067 (.add (.n 2041) (.n 2039) (.n 1277)) (by decide +kernel)
-  have a4238 := h.atomAt 2069 (.add (.n 2043) (.n 2041) (.n 1286)) (by decide +kernel)
-  have a4243 := h.atomAt 2071 (.add (.n 2045) (.n 2043) (.n 1295)) (by decide +kernel)
-  have a4248 := h.atomAt 2073 (.add (.n 2047) (.n 2045) (.n 1304)) (by decide +kernel)
-  have a4253 := h.atomAt 2075 (.add (.n 2049) (.n 2047) (.n 1313)) (by decide +kernel)
-  have a4258 := h.atomAt 2077 (.add (.n 2051) (.n 2049) (.n 1322)) (by decide +kernel)
-  have a4263 := h.atomAt 2079 (.add (.n 2053) (.n 2051) (.n 1331)) (by decide +kernel)
-  have a4268 := h.atomAt 2081 (.add (.n 2055) (.n 2053) (.n 1340)) (by decide +kernel)
-  have a4273 := h.atomAt 2083 (.add (.n 2057) (.n 2055) (.n 1349)) (by decide +kernel)
-  have a4278 := h.atomAt 2085 (.add (.n 2059) (.n 2057) (.n 1358)) (by decide +kernel)
-  have a4283 := h.atomAt 2087 (.add (.n 2061) (.n 2059) (.n 1367)) (by decide +kernel)
-  have a4288 := h.atomAt 2089 (.add (.n 2063) (.n 2061) (.n 1376)) (by decide +kernel)
-  have a4293 := h.atomAt 2091 (.add (.n 2065) (.n 2063) (.n 1385)) (by decide +kernel)
-  have a4298 := h.atomAt 2093 (.add (.n 2067) (.n 2065) (.n 1394)) (by decide +kernel)
-  have a4300 := h.atomAt 2095 (.add (.n 2069) (.n 1966) (.n 1815)) (by decide +kernel)
-  have a4301 := h.atomAt 2096 (.const (.n 2070) (word 1 0)) (by decide +kernel)
-  have a4302 := h.atomAt 2097 (.add (.n 2071) (.n 2070) (.n 2067)) (by decide +kernel)
-  have a4303 := h.atomAt 2098 (.add (.n 2072) (.n 2069) (.n 2071)) (by decide +kernel)
-  have a4304 := h.atomAt 2099 (.add (.n 2073) (.n 2072) (.n 26)) (by decide +kernel)
-  have e3914 := tb_loadHolds_unique a3914 (hw 0 (by norm_num))
-  have e3915 := tb_loadHolds_unique a3915 (hw 1 (by norm_num))
-  have e3919 := tb_loadHolds_unique a3919 (hw 2 (by norm_num))
-  have e3931 := tb_loadHolds_unique a3931 (hw 0 (by norm_num))
-  have e3935 := tb_loadHolds_unique a3935 (hw 1 (by norm_num))
-  have e3949 := tb_loadHolds_unique a3949 (hw 2 (by norm_num))
-  have e3953 := tb_loadHolds_unique a3953 (hw 3 (by norm_num))
-  have e3957 := tb_loadHolds_unique a3957 (hw 4 (by norm_num))
-  have e3961 := tb_loadHolds_unique a3961 (hw 5 (by norm_num))
-  have e3975 := tb_loadHolds_unique a3975 (hw 0 (by norm_num))
-  have e3979 := tb_loadHolds_unique a3979 (hw 1 (by norm_num))
-  have e3994 := tb_loadHolds_unique a3994 (hw 2 (by norm_num))
-  have e3997 := tb_loadHolds_unique a3997 (hw 3 (by norm_num))
-  have e4001 := tb_loadHolds_unique a4001 (hw 4 (by norm_num))
-  have e4005 := tb_loadHolds_unique a4005 (hw 5 (by norm_num))
-  have e4009 := tb_loadHolds_unique a4009 (hw 6 (by norm_num))
-  have e4013 := tb_loadHolds_unique a4013 (hw 7 (by norm_num))
-  have e4017 := tb_loadHolds_unique a4017 (hw 8 (by norm_num))
-  have e4021 := tb_loadHolds_unique a4021 (hw 9 (by norm_num))
-  have e4025 := tb_loadHolds_unique a4025 (hw 10 (by norm_num))
-  have e4029 := tb_loadHolds_unique a4029 (hw 11 (by norm_num))
-  have e4033 := tb_loadHolds_unique a4033 (hw 12 (by norm_num))
-  have e4037 := tb_loadHolds_unique a4037 (hw 13 (by norm_num))
-  simp only [Atom.Holds] at a3916 a3917 a3918 a3920 a3921 a3922 a3923 a3924 a3925 a3929
-  simp only [Atom.Holds] at a3932 a3933 a3936 a3937 a3950 a3951 a3954 a3955 a3958 a3959
-  simp only [Atom.Holds] at a3962 a3963 a3964 a3965 a3966 a3967 a3968 a3969 a3973 a3976
-  simp only [Atom.Holds] at a3977 a3980 a3981 a3995 a3996 a3998 a3999 a4000 a4002 a4003
-  simp only [Atom.Holds] at a4004 a4006 a4007 a4008 a4010 a4011 a4012 a4014 a4015 a4016
-  simp only [Atom.Holds] at a4018 a4019 a4020 a4022 a4023 a4024 a4026 a4027 a4028 a4030
-  simp only [Atom.Holds] at a4031 a4032 a4034 a4035 a4036 a4038 a4039 a4040 a4041 a4042
-  simp only [Atom.Holds] at c1978 c1979 c1980 c1982 c1983 c1984
-  simp only [Atom.Holds] at a4043 a4044 a4048 a4053 a4058 a4063 a4068 a4073 a4078 a4083
-  simp only [Atom.Holds] at a4088 a4093 a4098 a4103 a4108 a4113 a4118 a4123 a4128 a4133
-  simp only [Atom.Holds] at a4138 a4143 a4148 a4153 a4158 a4163 a4168 a4173 a4178 a4183
-  simp only [Atom.Holds] at a4188 a4193 a4198 a4203 a4208 a4213 a4218 a4223 a4228 a4233
-  simp only [Atom.Holds] at a4238 a4243 a4248 a4253 a4258 a4263 a4268 a4273 a4278 a4283
-  simp only [Atom.Holds] at a4288 a4293 a4298 a4300 a4301 a4302 a4303 a4304
-  simp only [e3914, e3915, a3916, a3917, a3918, e3919, a3920, a3921, a3922, a3923, a3924, a3925, a3929,
-    e3931, a3932, a3933, e3935, a3936, a3937, e3949, a3950, a3951, e3953, a3954, a3955, e3957,
-    a3958, a3959, e3961, a3962, a3963, a3964, a3965, a3966, a3967, a3968, a3969, a3973, e3975,
-    a3976, a3977, e3979, a3980, a3981, e3994, a3995, a3996, e3997, a3998, a3999, a4000, e4001,
-    a4002, a4003, a4004, e4005, a4006, a4007, a4008, e4009, a4010, a4011, a4012, e4013, a4014,
-    a4015, a4016, e4017, a4018, a4019, a4020, e4021, a4022, a4023, a4024, e4025, a4026, a4027,
-    a4028, e4029, a4030, a4031, a4032, e4033, a4034, a4035, a4036, e4037, a4038, a4039, a4040,
-    c1984, c1983, c1982, c1980, c1979, c1978,
-    a4041, a4042, a4043, a4044, a4048, a4053, a4058, a4063, a4068, a4073, a4078, a4083, a4088,
-    a4093, a4098, a4103, a4108, a4113, a4118, a4123, a4128, a4133, a4138, a4143, a4148, a4153,
-    a4158, a4163, a4168, a4173, a4178, a4183, a4188, a4193, a4198, a4203, a4208, a4213, a4218,
-    a4223, a4228, a4233, a4238, a4243, a4248, a4253, a4258, a4263, a4268, a4273, a4278, a4283,
-    a4288, a4293, a4298, a4300, a4301, a4302, a4303, a4304]
-  simp only [vtPushPadData, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
-  rw [tb_word_zero, tb_word_one, tb_word_gen, show (4 : ℕ) = 2 ^ 2 by norm_num,
-    tb_word_two_pow (by norm_num)]
+    σ (.n 2482) = σ (.n 1294) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +
+      σ (.n 1299) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1301) + W 2 * σ (.n 1305) +
+        W 3 * σ (.n 1307) + W 4 * σ (.n 1309))) +
+      σ (.n 1313) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1315) + W 2 * σ (.n 1319))) +
+      σ (.n 1436) * σ (.n 1843) := by
+  have a1335 := h.atomAt 1335 (.const (.n 1295) (word 1 0)) (by decide +kernel)
+  have a1336 := h.atomAt 1336 (.const (.n 1296) (word 12261764870545049476 0)) (by decide +kernel)
+  have a1337 := h.atomAt 1337 (.const (.n 1297) (word 1 0)) (by decide +kernel)
+  have a1340 := h.atomAt 1340 (.const (.n 1300) (word 2 0)) (by decide +kernel)
+  have a1355 := h.atomAt 1355 (.const (.n 1314) (word 4 0)) (by decide +kernel)
+  have a2490 := h.atomAt 2490 (.load (.n 2443) (.n 13) 0) (by decide +kernel)
+  have e2490 := tb_loadHolds_unique a2490 (hw 0 (by norm_num))
+  have a2491 := h.atomAt 2491 (.mul (.n 2444) (.n 2443) (.n 1295)) (by decide +kernel)
+  have a2492 := h.atomAt 2492 (.load (.n 2445) (.n 13) 1) (by decide +kernel)
+  have e2492 := tb_loadHolds_unique a2492 (hw 1 (by norm_num))
+  have a2493 := h.atomAt 2493 (.mul (.n 2446) (.n 2445) (.n 1296)) (by decide +kernel)
+  have a2494 := h.atomAt 2494 (.add (.n 2447) (.n 2444) (.n 2446)) (by decide +kernel)
+  have a2495 := h.atomAt 2495 (.load (.n 2448) (.n 13) 2) (by decide +kernel)
+  have e2495 := tb_loadHolds_unique a2495 (hw 2 (by norm_num))
+  have a2496 := h.atomAt 2496 (.mul (.n 2449) (.n 2448) (.n 1297)) (by decide +kernel)
+  have a2497 := h.atomAt 2497 (.add (.n 2450) (.n 2447) (.n 2449)) (by decide +kernel)
+  have a2498 := h.atomAt 2498 (.add (.n 2451) (.n 14) (.n 2450)) (by decide +kernel)
+  have a2499 := h.atomAt 2499 (.mul (.n 2452) (.n 1294) (.n 2451)) (by decide +kernel)
+  have a2500 := h.atomAt 2500 (.load (.n 2453) (.n 13) 0) (by decide +kernel)
+  have e2500 := tb_loadHolds_unique a2500 (hw 0 (by norm_num))
+  have a2501 := h.atomAt 2501 (.mul (.n 2454) (.n 2453) (.n 1300)) (by decide +kernel)
+  have a2502 := h.atomAt 2502 (.load (.n 2455) (.n 13) 1) (by decide +kernel)
+  have e2502 := tb_loadHolds_unique a2502 (hw 1 (by norm_num))
+  have a2503 := h.atomAt 2503 (.mul (.n 2456) (.n 2455) (.n 1301)) (by decide +kernel)
+  have a2504 := h.atomAt 2504 (.add (.n 2457) (.n 2454) (.n 2456)) (by decide +kernel)
+  have a2505 := h.atomAt 2505 (.load (.n 2458) (.n 13) 2) (by decide +kernel)
+  have e2505 := tb_loadHolds_unique a2505 (hw 2 (by norm_num))
+  have a2506 := h.atomAt 2506 (.mul (.n 2459) (.n 2458) (.n 1305)) (by decide +kernel)
+  have a2507 := h.atomAt 2507 (.add (.n 2460) (.n 2457) (.n 2459)) (by decide +kernel)
+  have a2508 := h.atomAt 2508 (.load (.n 2461) (.n 13) 3) (by decide +kernel)
+  have e2508 := tb_loadHolds_unique a2508 (hw 3 (by norm_num))
+  have a2509 := h.atomAt 2509 (.mul (.n 2462) (.n 2461) (.n 1307)) (by decide +kernel)
+  have a2510 := h.atomAt 2510 (.add (.n 2463) (.n 2460) (.n 2462)) (by decide +kernel)
+  have a2511 := h.atomAt 2511 (.load (.n 2464) (.n 13) 4) (by decide +kernel)
+  have e2511 := tb_loadHolds_unique a2511 (hw 4 (by norm_num))
+  have a2512 := h.atomAt 2512 (.mul (.n 2465) (.n 2464) (.n 1309)) (by decide +kernel)
+  have a2513 := h.atomAt 2513 (.add (.n 2466) (.n 2463) (.n 2465)) (by decide +kernel)
+  have a2514 := h.atomAt 2514 (.add (.n 2467) (.n 14) (.n 2466)) (by decide +kernel)
+  have a2515 := h.atomAt 2515 (.mul (.n 2468) (.n 1299) (.n 2467)) (by decide +kernel)
+  have a2516 := h.atomAt 2516 (.add (.n 2469) (.n 2452) (.n 2468)) (by decide +kernel)
+  have a2517 := h.atomAt 2517 (.load (.n 2470) (.n 13) 0) (by decide +kernel)
+  have e2517 := tb_loadHolds_unique a2517 (hw 0 (by norm_num))
+  have a2518 := h.atomAt 2518 (.mul (.n 2471) (.n 2470) (.n 1314)) (by decide +kernel)
+  have a2519 := h.atomAt 2519 (.load (.n 2472) (.n 13) 1) (by decide +kernel)
+  have e2519 := tb_loadHolds_unique a2519 (hw 1 (by norm_num))
+  have a2520 := h.atomAt 2520 (.mul (.n 2473) (.n 2472) (.n 1315)) (by decide +kernel)
+  have a2521 := h.atomAt 2521 (.add (.n 2474) (.n 2471) (.n 2473)) (by decide +kernel)
+  have a2522 := h.atomAt 2522 (.load (.n 2475) (.n 13) 2) (by decide +kernel)
+  have e2522 := tb_loadHolds_unique a2522 (hw 2 (by norm_num))
+  have a2523 := h.atomAt 2523 (.mul (.n 2476) (.n 2475) (.n 1319)) (by decide +kernel)
+  have a2524 := h.atomAt 2524 (.add (.n 2477) (.n 2474) (.n 2476)) (by decide +kernel)
+  have a2525 := h.atomAt 2525 (.add (.n 2478) (.n 14) (.n 2477)) (by decide +kernel)
+  have a2526 := h.atomAt 2526 (.mul (.n 2479) (.n 1313) (.n 2478)) (by decide +kernel)
+  have a2527 := h.atomAt 2527 (.add (.n 2480) (.n 2469) (.n 2479)) (by decide +kernel)
+  have a2528 := h.atomAt 2528 (.mul (.n 2481) (.n 1436) (.n 1843)) (by decide +kernel)
+  have a2529 := h.atomAt 2529 (.add (.n 2482) (.n 2480) (.n 2481)) (by decide +kernel)
+  simp only [Atom.Holds] at a1335 a1336 a1337 a1340 a1355 a2491 a2493 a2494 a2496 a2497
+  simp only [Atom.Holds] at a2498 a2499 a2501 a2503 a2504 a2506 a2507 a2509 a2510 a2512
+  simp only [Atom.Holds] at a2513 a2514 a2515 a2516 a2518 a2520 a2521 a2523 a2524 a2525
+  simp only [Atom.Holds] at a2526 a2527 a2528 a2529
+  simp only [a1335, a1336, a1337, a1340, a1355, e2490, a2491, e2492, a2493, a2494, e2495, a2496,
+    a2497, a2498, a2499, e2500, a2501, e2502, a2503, a2504, e2505, a2506, a2507, e2508, a2509,
+    a2510, e2511, a2512, a2513, a2514, a2515, a2516, e2517, a2518, e2519, a2520, a2521, e2522,
+    a2523, a2524, a2525, a2526, a2527, a2528, a2529]
+  simp only [tb_word_one, tb_word_gen, vt_word4]
   ring
+
+set_option maxRecDepth 100000 in
+/-- **The pull side's selector sum: the push blocks' copies.** -/
+theorem vt_pull_sel {rd : Reader} {σ : Val} (h : VtH rd σ) :
+    σ (.n 1435) = σ (.n 790) + σ (.n 807) + σ (.n 835) +
+      (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
+  have a1338 := h.atomAt 1338 (.add (.n 1298) (.n 790) (.n 807)) (by decide +kernel)
+  have a1353 := h.atomAt 1353 (.add (.n 1312) (.n 1298) (.n 835)) (by decide +kernel)
+  have a1375 := h.atomAt 1375 (.add (.n 1333) (.n 1312) (.n 857)) (by decide +kernel)
+  have a1377 := h.atomAt 1377 (.add (.n 1335) (.n 1333) (.n 862)) (by decide +kernel)
+  have a1379 := h.atomAt 1379 (.add (.n 1337) (.n 1335) (.n 867)) (by decide +kernel)
+  have a1381 := h.atomAt 1381 (.add (.n 1339) (.n 1337) (.n 872)) (by decide +kernel)
+  have a1383 := h.atomAt 1383 (.add (.n 1341) (.n 1339) (.n 877)) (by decide +kernel)
+  have a1385 := h.atomAt 1385 (.add (.n 1343) (.n 1341) (.n 886)) (by decide +kernel)
+  have a1387 := h.atomAt 1387 (.add (.n 1345) (.n 1343) (.n 895)) (by decide +kernel)
+  have a1389 := h.atomAt 1389 (.add (.n 1347) (.n 1345) (.n 904)) (by decide +kernel)
+  have a1391 := h.atomAt 1391 (.add (.n 1349) (.n 1347) (.n 913)) (by decide +kernel)
+  have a1393 := h.atomAt 1393 (.add (.n 1351) (.n 1349) (.n 922)) (by decide +kernel)
+  have a1395 := h.atomAt 1395 (.add (.n 1353) (.n 1351) (.n 931)) (by decide +kernel)
+  have a1397 := h.atomAt 1397 (.add (.n 1355) (.n 1353) (.n 940)) (by decide +kernel)
+  have a1399 := h.atomAt 1399 (.add (.n 1357) (.n 1355) (.n 949)) (by decide +kernel)
+  have a1401 := h.atomAt 1401 (.add (.n 1359) (.n 1357) (.n 958)) (by decide +kernel)
+  have a1403 := h.atomAt 1403 (.add (.n 1361) (.n 1359) (.n 967)) (by decide +kernel)
+  have a1405 := h.atomAt 1405 (.add (.n 1363) (.n 1361) (.n 976)) (by decide +kernel)
+  have a1407 := h.atomAt 1407 (.add (.n 1365) (.n 1363) (.n 985)) (by decide +kernel)
+  have a1409 := h.atomAt 1409 (.add (.n 1367) (.n 1365) (.n 994)) (by decide +kernel)
+  have a1411 := h.atomAt 1411 (.add (.n 1369) (.n 1367) (.n 1003)) (by decide +kernel)
+  have a1413 := h.atomAt 1413 (.add (.n 1371) (.n 1369) (.n 1012)) (by decide +kernel)
+  have a1415 := h.atomAt 1415 (.add (.n 1373) (.n 1371) (.n 1021)) (by decide +kernel)
+  have a1417 := h.atomAt 1417 (.add (.n 1375) (.n 1373) (.n 1030)) (by decide +kernel)
+  have a1419 := h.atomAt 1419 (.add (.n 1377) (.n 1375) (.n 1039)) (by decide +kernel)
+  have a1421 := h.atomAt 1421 (.add (.n 1379) (.n 1377) (.n 1048)) (by decide +kernel)
+  have a1423 := h.atomAt 1423 (.add (.n 1381) (.n 1379) (.n 1057)) (by decide +kernel)
+  have a1425 := h.atomAt 1425 (.add (.n 1383) (.n 1381) (.n 1066)) (by decide +kernel)
+  have a1427 := h.atomAt 1427 (.add (.n 1385) (.n 1383) (.n 1075)) (by decide +kernel)
+  have a1429 := h.atomAt 1429 (.add (.n 1387) (.n 1385) (.n 1084)) (by decide +kernel)
+  have a1431 := h.atomAt 1431 (.add (.n 1389) (.n 1387) (.n 1093)) (by decide +kernel)
+  have a1433 := h.atomAt 1433 (.add (.n 1391) (.n 1389) (.n 1102)) (by decide +kernel)
+  have a1435 := h.atomAt 1435 (.add (.n 1393) (.n 1391) (.n 1111)) (by decide +kernel)
+  have a1437 := h.atomAt 1437 (.add (.n 1395) (.n 1393) (.n 1120)) (by decide +kernel)
+  have a1439 := h.atomAt 1439 (.add (.n 1397) (.n 1395) (.n 1129)) (by decide +kernel)
+  have a1441 := h.atomAt 1441 (.add (.n 1399) (.n 1397) (.n 1138)) (by decide +kernel)
+  have a1443 := h.atomAt 1443 (.add (.n 1401) (.n 1399) (.n 1147)) (by decide +kernel)
+  have a1445 := h.atomAt 1445 (.add (.n 1403) (.n 1401) (.n 1156)) (by decide +kernel)
+  have a1447 := h.atomAt 1447 (.add (.n 1405) (.n 1403) (.n 1165)) (by decide +kernel)
+  have a1449 := h.atomAt 1449 (.add (.n 1407) (.n 1405) (.n 1174)) (by decide +kernel)
+  have a1451 := h.atomAt 1451 (.add (.n 1409) (.n 1407) (.n 1183)) (by decide +kernel)
+  have a1453 := h.atomAt 1453 (.add (.n 1411) (.n 1409) (.n 1192)) (by decide +kernel)
+  have a1455 := h.atomAt 1455 (.add (.n 1413) (.n 1411) (.n 1201)) (by decide +kernel)
+  have a1457 := h.atomAt 1457 (.add (.n 1415) (.n 1413) (.n 1210)) (by decide +kernel)
+  have a1459 := h.atomAt 1459 (.add (.n 1417) (.n 1415) (.n 1219)) (by decide +kernel)
+  have a1461 := h.atomAt 1461 (.add (.n 1419) (.n 1417) (.n 1228)) (by decide +kernel)
+  have a1463 := h.atomAt 1463 (.add (.n 1421) (.n 1419) (.n 1237)) (by decide +kernel)
+  have a1465 := h.atomAt 1465 (.add (.n 1423) (.n 1421) (.n 1246)) (by decide +kernel)
+  have a1467 := h.atomAt 1467 (.add (.n 1425) (.n 1423) (.n 1255)) (by decide +kernel)
+  have a1469 := h.atomAt 1469 (.add (.n 1427) (.n 1425) (.n 1264)) (by decide +kernel)
+  have a1471 := h.atomAt 1471 (.add (.n 1429) (.n 1427) (.n 1273)) (by decide +kernel)
+  have a1473 := h.atomAt 1473 (.add (.n 1431) (.n 1429) (.n 1282)) (by decide +kernel)
+  have a1475 := h.atomAt 1475 (.add (.n 1433) (.n 1431) (.n 1291)) (by decide +kernel)
+  have a1477 := h.atomAt 1477 (.copy (.n 1435) (.n 1433)) (by decide +kernel)
+  simp only [Atom.Holds] at a1338 a1353 a1375 a1377 a1379 a1381 a1383 a1385 a1387 a1389
+  simp only [Atom.Holds] at a1391 a1393 a1395 a1397 a1399 a1401 a1403 a1405 a1407 a1409
+  simp only [Atom.Holds] at a1411 a1413 a1415 a1417 a1419 a1421 a1423 a1425 a1427 a1429
+  simp only [Atom.Holds] at a1431 a1433 a1435 a1437 a1439 a1441 a1443 a1445 a1447 a1449
+  simp only [Atom.Holds] at a1451 a1453 a1455 a1457 a1459 a1461 a1463 a1465 a1467 a1469
+  simp only [Atom.Holds] at a1471 a1473 a1475 a1477
+  simp only [a1338, a1353, a1375, a1377, a1379, a1381, a1383, a1385, a1387, a1389, a1391, a1393,
+    a1395, a1397, a1399, a1401, a1403, a1405, a1407, a1409, a1411, a1413, a1415, a1417, a1419,
+    a1421, a1423, a1425, a1427, a1429, a1431, a1433, a1435, a1437, a1439, a1441, a1443, a1445,
+    a1447, a1449, a1451, a1453, a1455, a1457, a1459, a1461, a1463, a1465, a1467, a1469, a1471,
+    a1473, a1475, a1477]
+  simp only [vtPushPadData, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+  ring
+
+/-- **The pull side's total.** -/
+theorem vt_pull_total {rd : Reader} {σ : Val} (h : VtH rd σ) :
+    σ (.n 2488) = σ (.n 2482) + σ (.n 2436) + (1 + σ (.n 1435)) + σ (.n 2487) := by
+  have a2530 := h.atomAt 2530 (.add (.n 2483) (.n 2482) (.n 2436)) (by decide +kernel)
+  have a2531 := h.atomAt 2531 (.const (.n 2484) (word 1 0)) (by decide +kernel)
+  have a2532 := h.atomAt 2532 (.add (.n 2485) (.n 2484) (.n 1435)) (by decide +kernel)
+  have a2533 := h.atomAt 2533 (.add (.n 2486) (.n 2483) (.n 2485)) (by decide +kernel)
+  have a2535 := h.atomAt 2535 (.add (.n 2488) (.n 2486) (.n 2487)) (by decide +kernel)
+  simp only [Atom.Holds] at a2530 a2531 a2532 a2533 a2535
+  rw [a2535, a2533, a2532, a2531, a2530, tb_word_one]
 
 end
 end LeanVM.Guest.B1.Tables

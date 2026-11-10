@@ -82,20 +82,20 @@ theorem eqtreeT_last {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs 
   have := eqtree_sound hn hA hrs hpt n hn le_rfl i hi
   rwa [show rs.take n = rs by rw [← hrs]; exact List.take_length] at this
 
-theorem word_2p30 : word 1073741824 0 0 = gen ^ 30 := by
+theorem word_2p30 : word 1073741824 0 = gen ^ 30 := by
   rw [show (1073741824 : ℕ) = 2 ^ 30 from rfl]; exact word_two_pow (by decide)
 
 /-- **The first claim's record** (G:2980-2998). -/
 theorem vkFirstT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) {chis outs rl : List E} {r0 : E}
     (hchi : τ ≤ chis.length) (hzv : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (chis.getD i 0))
-    (hrl : rl.length = 5) (hrlL : ∀ i < 5, LoadHolds rd (σ (.n 92)) i (rl.getD i 0))
-    (hseg : LoadHolds rd (σ (.n 66)) 0 r0)
-    (hpt : ReadsAt rd (σ (.n 60)) ((chis.take τ).drop 4 ++ [r0]))
+    (hrl : rl.length = 5) (hrlL : ∀ i < 5, LoadHolds rd (σ (.n 87)) i (rl.getD i 0))
+    (hseg : LoadHolds rd (σ (.n 67)) 0 r0)
+    (hpt : ReadsAt rd (σ (.n 61)) ((chis.take τ).drop 4 ++ [r0]))
     (houts : outs.length = 25) (hol : ReadsAt rd (σ (.n 8)) outs)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkFirstT next kret) :
-    ClaimRec rd ((1 : ℕ) = 1) (σ (.n 203)) (vkFirst (chis.take τ) outs (σ (.n 193)) [r0] rl)
+    ClaimRec rd ((1 : ℕ) = 1) (σ (.n 161)) (vkFirst (chis.take τ) outs (σ (.n 158)) [r0] rl)
         (τ - 3) ∧
-      (∀ lane < 32, LoadHolds rd (σ (.n 276)) (30 + lane) ((eqKernel rl).getD lane 0)) ∧ next := by
+      (∀ lane < 32, LoadHolds rd (σ (.n 234)) (30 + lane) ((eqKernel rl).getD lane 0)) ∧ next := by
   rw [vkFirstT] at h
   simp only [holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨-, e202, l202, l58, -, h⟩ := h
@@ -133,16 +133,16 @@ theorem vkFirstT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) {chis outs rl : List E} {r0 
     (by simp [consecOffs]) h
   obtain ⟨l485, e486, e487, l487, hn⟩ := h
   simp only [consecOffs, List.length_map, List.length_range, pairsDotV] at hdot
-  have hl30 : ∀ lane < 32, LoadHolds rd (σ (.n 276)) (30 + lane) ((eqKernel rl).getD lane 0) :=
+  have hl30 : ∀ lane < 32, LoadHolds rd (σ (.n 234)) (30 + lane) ((eqKernel rl).getD lane 0) :=
     fun lane hl ↦ by simpa using hlane lane (by simpa using hl)
   refine ⟨?_, hl30, hn⟩
   have h1600 : ∀ j ∈ List.range keccakBits, j / 64 < 25 := fun j hj ↦ by
     have := List.mem_range.1 hj; simp only [keccakBits] at this; omega
-  refine ⟨?_, ?_, ?_, ?_, ?_, ⟨σ (.n 60), l58, ?_⟩, σ (.n 383), (eqKernel rl).take 25, l381,
+  refine ⟨?_, ?_, ?_, ?_, ?_, ⟨σ (.n 61), l58, ?_⟩, σ (.n 341), (eqKernel rl).take 25, l381,
     by simp [eqKernel_length, hrl], ?_, ?_⟩
   · simp [vkFirst, eqKernel_length, hmu4, pack]
   · simp [vkFirst]; omega
-  · suffices hv : (vkFirst (chis.take τ) outs (σ (.n 193)) [r0] rl).value = σ (.n 489) by
+  · suffices hv : (vkFirst (chis.take τ) outs (σ (.n 158)) [r0] rl).value = σ (.n 447) by
       rw [hv]; exact l487
     rw [e487, e486, hdot]
     have := hsw 1 (by norm_num)
@@ -152,7 +152,7 @@ theorem vkFirstT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) {chis outs rl : List E} {r0 
     symm
     rw [dot_eq _ _ (by simp [eqKernel_length, hrl, houts])]
     simp only [List.length_take, eqKernel_length, hrl, show min 25 (2 ^ 5) = 25 from rfl]
-    refine congrArg (σ (.n 193) + (eqKernel [r0]).getD 1 0 * ·)
+    refine congrArg (σ (.n 158) + (eqKernel [r0]).getD 1 0 * ·)
       (Finset.sum_congr rfl fun k hk ↦ ?_)
     simp [List.getD_eq_getElem?_getD, Finset.mem_range.1 hk]
   · rw [e202, word_one] at l202
