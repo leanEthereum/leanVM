@@ -48,7 +48,7 @@ theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
   -- the head
   have gd : ∀ a, Stmt.atom a ∈ eqtreeT p o po b n → Good rd S w σ a := fun a h ↦ hg _ h
   have g0 := gd (.load (.n b) p po) (by simp [eqtreeT])
-  have g1 := gd (.const (.n (b + 1)) (word 1 0 0)) (by simp [eqtreeT])
+  have g1 := gd (.const (.n (b + 1)) (word 1 0)) (by simp [eqtreeT])
   have g2 := gd (.add (.n (b + 2)) (.n (b + 1)) (.n b)) (by simp [eqtreeT])
   have e0 : σ (.n b) = rs.getD 0 0 :=
     load_val g0 (hS _ (by simp [eqtreeReads])) (by simpa using hpt 0 hn)
@@ -86,7 +86,7 @@ theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
     have gl : ∀ a, Stmt.atom a ∈ eqtreeLevelT p o po b (t' + 1) → Good rd S w σ a :=
       fun a h ↦ hg _ (memL _ h)
     have h0 := gl (.load (.n Sb) p (po + (t' + 1))) (by simp [eqtreeLevelT, hSb])
-    have h1 := gl (.const (.n (Sb + 1)) (word 1 0 0)) (by simp [eqtreeLevelT, hSb])
+    have h1 := gl (.const (.n (Sb + 1)) (word 1 0)) (by simp [eqtreeLevelT, hSb])
     have h2 := gl (.add (.n (Sb + 2)) (.n (Sb + 1)) (.n Sb)) (by simp [eqtreeLevelT, hSb])
     have v0 : σ (.n Sb) = rs.getD (t' + 1) 0 := load_val h0 rd0 (hpt _ htn)
     have v1 : σ (.n (Sb + 1)) = 1 := by rw [show σ (.n (Sb + 1)) = word 1 0 0 from h1, word_one]

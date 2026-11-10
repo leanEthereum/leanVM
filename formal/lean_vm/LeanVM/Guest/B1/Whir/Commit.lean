@@ -238,5 +238,58 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     rw [mul_assoc, ← pow_add]
     ring_nf
 
+/-- What the final level's message leaves (G:1584-1585): the lane `xs` read at the cursor and
+stored in `final_msg`, the nonce `nn` after it, the nonce's permutation `S` leaving the first
+query word and the proof of work in its cells `0`, `1` and the sponge's capacity. -/
+structure FinalOut (rd : Reader) (σ : Val) (n : ℕ) (st st' : OsSt) (xs : List E) (nn : E) : Prop where
+  len : xs.length = n
+  reads : ReadsAt rd (st.cur σ) (xs ++ [nn])
+  fmsg : ReadsAt rd (σ (.n osFmsg)) xs
+  word0 : σ (.n st'.word0) = cellsOfState (((st.F σ).absorbAll xs dsObserve).nonceState nn) false 0
+  pow0 : σ (.n st'.pow0) = cellsOfState (((st.F σ).absorbAll xs dsObserve).nonceState nn) false 1
+  F : st'.F σ = ⟨capOf (((st.F σ).absorbAll xs dsObserve).nonceState nn), []⟩
+  cur : st'.cur σ = st.cur σ * gen ^ (n + 1)
+  fs : st'.fs.length = 5
+  mats : MatsOk σ st'.mats
+  co : st'.co = 0
+  pad : st'.pad = st.pad
+
+/-- **The final level's message, soundly** (G:1584-1585). -/
+theorem osFinalMsg_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
+    (hom : ∀ a r, C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1") a r →
+      MeaningOpeningMessage (c.yrLen + lv.folds) 1 rd a r)
+    (hfs : st.fs.length = 5) (hm : MatsOk σ st.mats) (hco : st.co < u128Bound)
+    (hok : AllOk C rd σ (osFinalMsg c lv st).1) :
+    ∃ xs nn, FinalOut rd σ (c.yrLen + lv.folds) st (osFinalMsg c lv st).2 xs nn := by
+  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
+  unfold osFinalMsg at hok ⊢
+  simp only [allOk_append] at hok
+  obtain ⟨hcu, hcall⟩ := hok
+  have ecu := osCurS_val hco hcu
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call] at hcall
+  have hM := hom _ _ hcall
+  have hfm : List.map V.n st.fs = [.n f0, .n f1, .n f2, .n f3, .n f4] := by rw [hf]; rfl
+  simp only [List.map_append, hfm, List.cons_append, List.nil_append, List.map_cons, List.map_nil,
+    osRun, List.range_succ, List.range_zero, MeaningOpeningMessage] at hM
+  obtain ⟨xs, hxl, hrd, hfmsg, nn, hnn, hret⟩ := hM
+  simp only [↓reduceIte, omState, capOf, List.cons_append, List.nil_append, List.cons.injEq] at hret
+  obtain ⟨e0, e1, c0, c1, c2, c3, c4, ecur, -⟩ := hret
+  rw [ecu] at hrd ecur hnn
+  have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
+    simp [OsSt.F, hf]
+  refine ⟨xs, nn, hxl, readsAt_append hrd ?_, hfmsg, ?_, ?_, ?_, ?_, rfl, hm, rfl, rfl⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    rw [hxl]
+    exact (loadHolds_mul_gen_pow _ _ _ _ _).mpr (by simpa using hnn trivial)
+  · rw [hF]; exact e0
+  · rw [hF]; exact e1
+  · rw [hF]
+    simp only [OsSt.F, capOf, List.map_cons, List.map_nil, c0, c1, c2, c3, c4]
+  · simp only [OsSt.cur, pow_zero, mul_one]
+    rw [ecur]
+    rfl
+
 end
 end LeanVM.Guest.B1.Whir

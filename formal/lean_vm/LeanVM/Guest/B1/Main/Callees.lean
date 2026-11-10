@@ -33,7 +33,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 every call with the exponent tables has a proof that `VerifySubOut` describes. -/
 def SubSound (bytecode : List K) : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
+      ExpTables rd gsq ∧ ExpWinTab rd gsq →
       ∃ π, VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] π
 
 /-- **Witness functions for `main`'s callees exist.** -/
@@ -86,11 +87,11 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   -- the proofs
   have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 gsq out,
       args = [pi0, pi1, s0, s1, gsq, out] →
-      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq →
+      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq ∧ ExpWinTab L.read gsq →
       VerifySubOut bytecode L.read args π := by
     intro args
     by_cases h : ∃ pi0 pi1 s0 s1 gsq out, args = [pi0, pi1, s0, s1, gsq, out] ∧
-        coreProgram.Rel L.read "verify_sub" args [] ∧ ExpTables L.read gsq
+        coreProgram.Rel L.read "verify_sub" args [] ∧ (ExpTables L.read gsq ∧ ExpWinTab L.read gsq)
     · obtain ⟨pi0, pi1, s0, s1, gsq, out, rfl, hr, he⟩ := h
       obtain ⟨π, hπ⟩ := hv L.read hm' _ _ _ _ _ _ hr he
       exact ⟨π, fun _ _ _ _ _ _ _ _ _ => hπ⟩
