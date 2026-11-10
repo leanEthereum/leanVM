@@ -27,7 +27,7 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-theorem word_bitc {t : ℕ} (ht : t < 6) : word (2 ^ (2 ^ t) + 1) 0 0 = 1 + gen ^ 2 ^ t := by
+theorem word_bitc {t : ℕ} (ht : t < 6) : word (2 ^ (2 ^ t) + 1) 0 = 1 + gen ^ 2 ^ t := by
   rw [word_eOfNat, show 2 ^ (2 ^ t) + 1 = 2 ^ (2 ^ t) ^^^ 1 by interval_cases t <;> decide,
     eOfNat_xor, eOfNat_one, ← word_eOfNat, word_two_pow (by interval_cases t <;> decide), add_comm]
 

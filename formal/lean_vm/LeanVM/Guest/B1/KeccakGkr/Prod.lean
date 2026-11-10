@@ -126,7 +126,7 @@ theorem reader_val {muB rb : ℕ} {idx : List ℕ}
 theorem allAtoms_fsPackT (x : V) (b t : ℕ) : AllAtoms (fsPackT x b t) := by
   intro s hs
   simp only [fsPackT, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+  rcases hs with rfl | rfl <;> exact ⟨_, rfl⟩
 
 /-- The facts of position `k`. -/
 theorem prodPos_facts {cur : V} {muB k : ℕ} {p : PPos}
@@ -184,7 +184,7 @@ theorem prodTFrom_loads {cur : V} {muB : ℕ} : ∀ (ps : List PPos) (k : ℕ),
 def pendCellsV (pv : List (V × V)) : List V := pv.flatMap fun c ↦ [c.1, c.2]
 
 /-- The cells a position's `fs_pack` writes. -/
-def cellsOfPos (p : PPos) : V × V := (.n (p.fb + 6), .n (p.fb + 8))
+def cellsOfPos (p : PPos) : V × V := (.n p.fb, .n (p.fb + 1))
 
 /-- The capacity cells of a permutation's outputs from `o`. -/
 def capOuts (o : ℕ) : List V := (List.range 5).map fun j ↦ .n (o + 8 + j)
@@ -207,12 +207,11 @@ def spChain : List V × List (V × V) → List PPos → Option (List V × List (
       | some st' => spChain st' ps
       | none => none
 
-/-- The waiting scalars against their cells' values: a canonical first cell makes them the
-scalar's rate cells. -/
+/-- The waiting scalars against their cells' values: the scalar's rate cells. -/
 def PendOk (σ : Val) : List (E × ℕ) → List (V × V) → Prop
   | [], [] => True
   | q :: qs, c :: cs =>
-      (IsCanonical128 (σ c.1) → (σ c.1, σ c.2) = Keccak.scalarCells q.1 q.2) ∧ PendOk σ qs cs
+      (σ c.1, σ c.2) = Keccak.scalarCells q.1 q.2 ∧ PendOk σ qs cs
   | _, _ => False
 
 /-- The sponge `s` against the guest's cells. -/
@@ -227,7 +226,7 @@ theorem pendOk_length : ∀ {qs : List (E × ℕ)} {cs : List (V × V)}, PendOk 
   | _ :: _, [], h => h.elim
 
 theorem pendOk_append : ∀ {qs : List (E × ℕ)} {cs : List (V × V)} {q : E × ℕ} {c : V × V},
-    PendOk σ qs cs → (IsCanonical128 (σ c.1) → (σ c.1, σ c.2) = Keccak.scalarCells q.1 q.2) →
+    PendOk σ qs cs → (σ c.1, σ c.2) = Keccak.scalarCells q.1 q.2 →
     PendOk σ (qs ++ [q]) (cs ++ [c])
   | [], [], _, _, _, h => ⟨h, trivial⟩
   | _ :: _, _ :: _, _, _, h, hc => ⟨h.1, pendOk_append h.2 hc⟩
@@ -235,24 +234,18 @@ theorem pendOk_append : ∀ {qs : List (E × ℕ)} {cs : List (V × V)} {q : E �
   | _ :: _, [], _, _, h, _ => h.elim
 
 theorem pendOk_cells : ∀ {qs : List (E × ℕ)} {cs : List (V × V)}, PendOk σ qs cs →
-    AllCanonical ((pendCellsV cs).map σ) → (pendCellsV cs).map σ = pendCells qs
-  | [], [], _, _ => rfl
-  | q :: qs, c :: cs, h, hc => by
-    have hc1 : IsCanonical128 (σ c.1) := hc _ (by simp [pendCellsV])
-    have hrest : AllCanonical ((pendCellsV cs).map σ) := by
-      intro x hx
-      apply hc x
-      simp only [pendCellsV, List.flatMap_cons, List.map_append, List.mem_append] at hx ⊢
-      exact Or.inr hx
-    have e := h.1 hc1
+    (pendCellsV cs).map σ = pendCells qs
+  | [], [], _ => rfl
+  | q :: qs, c :: cs, h => by
+    have e := h.1
     simp only [Prod.ext_iff] at e
     simp only [pendCellsV, pendCells, List.flatMap_cons, List.map_cons, List.cons_append,
-      List.nil_append] at hrest ⊢
+      List.nil_append] at ⊢
     rw [e.1, e.2]
     congr 2
-    exact pendOk_cells h.2 hrest
-  | [], _ :: _, h, _ => h.elim
-  | _ :: _, [], h, _ => h.elim
+    exact pendOk_cells h.2
+  | [], _ :: _, h => h.elim
+  | _ :: _, [], h => h.elim
 
 /-- **A permutation of the guest's cells**: on the waiting cells (zeros past them) and the
 capacity, its outputs are the cells of the sponge's next permutation. -/
@@ -263,12 +256,10 @@ theorem spOk_perm {s : Fs} {st : List V × List (V × V)} (h : SpOk σ s st) {in
     (ho : outs.length = 13 := by first | rfl | simp) :
     s.perm = permOf (ins.map σ) ∧
       ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState s.perm false ⟨k, hk⟩ := by
-  obtain ⟨-, -, hcan, hout⟩ := keccak_outs hk ho
+  obtain ⟨-, -, hout⟩ := keccak_outs hk ho
   have hlen := pendOk_length h.2
-  have hc1 : AllCanonical ((pendCellsV st.2).map σ) := fun x hx ↦
-    hcan x (by rw [hin]; simp only [List.map_append, List.mem_append]; exact Or.inl (Or.inl hx))
   have hp : s.perm = permOf (ins.map σ) := by
-    rw [perm_eq_cells s (by omega), hin, List.map_append, List.map_append, pendOk_cells h.2 hc1,
+    rw [perm_eq_cells s (by omega), hin, List.map_append, List.map_append, pendOk_cells h.2,
       hz, hlen, h.1]
   exact ⟨hp, fun k hk ↦ by rw [hp]; exact hout k hk⟩
 
@@ -293,9 +284,8 @@ theorem spStep_sound {st st' : List V × List (V × V)} {p : PPos} (hs : spStep 
       (Atom.keccak (ins.map .n) ((List.range 13).map fun j ↦ .n (o + j)) false false).Holds rd σ)
     (hp : FsPackOk σ (.n p.a) p.fb dsObserve) :
     SpOk σ (s.absorb (σ (.n p.a)) dsObserve) st' := by
-  have hcells : IsCanonical128 (σ (cellsOfPos p).1) →
-      (σ (cellsOfPos p).1, σ (cellsOfPos p).2) = Keccak.scalarCells (σ (.n p.a)) dsObserve :=
-    fun hc ↦ fsPackT_cells hp hc
+  have hcells : (σ (cellsOfPos p).1, σ (cellsOfPos p).2) =
+      Keccak.scalarCells (σ (.n p.a)) dsObserve := fsPackT_cells hp
   have hlen := pendOk_length h.2
   unfold spStep at hs
   split at hs

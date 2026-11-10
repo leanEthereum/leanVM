@@ -11,15 +11,16 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.Batch.Run
 public import LeanVM.Guest.B1.Common.Atoms
+public import LeanVM.Guest.B1.Sumcheck.Meaning
 
 /-!
 # The batching's sponge
 
 * `batch_fs`: `Node.batch` (N:268) on the carried sponge (`Fs`): the seed's capacity absorbs the
   batching's words (`aggAbs`), the hinted nonce's permutation (`aggN`, `Fs.nonceState`) passes the
-  proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `aggBsRun` runs the
+  proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `bsRun` runs the
   sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried sponge's operations
-  (`carries_absorb`, `carries_squeeze`, `powStep_carried`, `aggBsRun_run`).
+  (`carries_absorb`, `carries_squeeze`, `powStep_carried`, `bsRun_run`).
 * `RowRel rd p s`: thirteen words at `p` carry the sponge `s`, its capacity cells, then each
   waiting scalar's two rate cells (as `fs_pack` writes them, `PackOf`), zeros past them;
   `rowRel_perm`: a `KECCAK` reading them permutes `s`.
@@ -39,26 +40,15 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The batching on the carried sponge -/
 
-/-- `Node.batchRounds` on the carried sponge (`batch_sumcheck`, `ROUND2_GRIND_BITS = 0`): per round
-`g(1)`, `g(∞)` absorbed, the challenge squeezed, the degree-2 round folded. The challenges, the
-final claim, the final sponge. -/
-def aggBsRun : List (E × E) → E → Fs → (List E × E) × Fs
-  | [], claim, s => (([], claim), s)
-  | (g1, gInf) :: rest, claim, s =>
-    let r := ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze
-    let g0 := claim + g1
-    let res := aggBsRun rest ((gInf * r.1 + (g0 + g1 + gInf)) * r.1 + g0) r.2
-    ((r.1 :: res.1.1, res.1.2), res.2)
-
-/-- **`aggBsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
-theorem aggBsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
-    s.Carries sp → ∃ sp', (aggBsRun rounds claim s).2.Carries sp' ∧
-      (Node.batchRounds claim rounds).run sp = ((aggBsRun rounds claim s).1, sp')
+/-- **`bsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
+theorem bsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
+    s.Carries sp → ∃ sp', (bsRun rounds claim s).2.Carries sp' ∧
+      (Node.batchRounds claim rounds).run sp = ((bsRun rounds claim s).1, sp')
   | [], claim, s, sp, h => ⟨sp, h, rfl⟩
   | (g1, gInf) :: rest, claim, s, sp, h => by
     have ha := carries_absorb (carries_absorb h g1 dsObserve) gInf dsObserve
     obtain ⟨e1, e2⟩ := carries_squeeze ha
-    obtain ⟨sp', h', hrun⟩ := aggBsRun_run rest
+    obtain ⟨sp', h', hrun⟩ := bsRun_run rest
       ((gInf * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
         (claim + g1 + g1 + gInf)) * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
         (claim + g1)) _ _ e2
@@ -76,10 +66,10 @@ theorem aggBsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : S
     rw [key, e1, hrun]
     rfl
 
-theorem aggBsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
-    (aggBsRun rounds claim s).1.1.length = rounds.length
+theorem bsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
+    (bsRun rounds claim s).1.1.length = rounds.length
   | [], _, _ => rfl
-  | (_, _) :: rest, _, _ => by simp [aggBsRun, aggBsRun_len rest]
+  | (_, _) :: rest, _, _ => by simp [bsRun, bsRun_len rest]
 
 /-- The batching's initial sponge, carried: the seed's capacity, nothing waiting. -/
 def aggS0 : Fs := ⟨capOf batchSeed, []⟩
@@ -104,7 +94,7 @@ def aggLam (cs : List ChildClaims) (n : E) : List (E × E) × Fs :=
 
 /-- The sumcheck's run: its challenges and final claim, and the sponge after it. -/
 def aggRun (cs : List ChildClaims) (h : BatchingHints) : (List E × E) × Fs :=
-  aggBsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
+  bsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
     (aggLam cs h.lambdaGrindNonce).2
 
 /-- The proof of work at any permutation `F` (a variable, so that `rfl` cannot unfold
@@ -141,7 +131,7 @@ theorem batch_fs (cs : List ChildClaims) (h : BatchingHints) :
       ⟨aggN cs h.lambdaGrindNonce, [], none⟩) := rfl
   have h1 : (aggLam cs h.lambdaGrindNonce).2.Carries ⟨aggN cs h.lambdaGrindNonce, [], none⟩ :=
     ⟨rfl, rfl, rfl⟩
-  obtain ⟨sp', -, hr⟩ := aggBsRun_run h.sumcheckMessages
+  obtain ⟨sp', -, hr⟩ := bsRun_run h.sumcheckMessages
     (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1) (aggLam cs h.lambdaGrindNonce).2 _ h1
   rw [Batch.batchRounds_run _ _ rfl] at hr
   have hr' : (Batch.rsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)

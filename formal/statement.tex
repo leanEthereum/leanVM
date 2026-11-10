@@ -77,7 +77,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{SufCma.lean}: the single-key SUF-CMA game and \lean{StronglyUnforgeable}.
 \item \lean{HashSignatures.lean}: the tweakable hash, chain, path fold and tree both schemes share.
 \item \lean{LeanXmss.lean}, \lean{LeanSphincs.lean}: the two schemes and their end statements.
-\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{192})$ and the Fiat--Shamir duplex sponge.
+\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{128})$ and the Fiat--Shamir duplex sponge.
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
 \item \lean{LeanVmVerifier.lean}: the verifier, the readable reference of \lean{crates/verifier}.
@@ -451,11 +451,11 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{40f877dc}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{98ceacf2c}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
-$\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \emph{deployed seed}
+$\mathbb{E} = \mathbb{F}[y]/(y^2+xy+1)$, the field of $2^{128}$ elements. Its \emph{deployed seed}
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
@@ -732,13 +732,16 @@ bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest pro
 committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
 the guest program checks and leanVM's aggregator pads every aggregate to) on
 $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
-every zero challenge (\lean{verifierRefusingZero}, through
-\lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
-program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
-challenges and by the batching coefficient $\lambda$ at the stacked opening; refusing every zero
-challenge is slightly stronger, each challenge being zero with probability $2^{-128}$. An honest
-proof is refused with probability at most $2^{-126}$ in the RPM (\lean{HonestProofRarelyRefused}
-below).
+every zero challenge and every fold combiner $\alpha + \beta x$ vanishing at a queried point $x$
+(\lean{verifierRefusingZero}: \lean{VerifierProgram.refusingZeroChallenge}, which fails on every
+zero challenge the verifier program samples, of \lean{verifyExecutionRefusingZeroCombiner}, the
+verifier program with \lean{CombinersNonzero} required after each level's queries) accepts it with
+the deployed Keccak. The guest program divides by the fold and tail challenges and by the batching
+coefficient $\lambda$ at the stacked opening, and folds each opened row by $\theta + 1/(\alpha +
+\beta x)$; refusing every zero challenge is slightly stronger, each challenge being zero with
+probability $2^{-128}$, and a combiner vanishes at a queried point with probability $2^{-128}$ for
+each round and query, the point being drawn after $\alpha$ and $\beta$. An honest proof is refused
+with probability at most $2^{-100}$ in the RPM (\lean{HonestProofRarelyRefused} below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
@@ -823,10 +826,11 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
 prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{33}$ nonces per proof of work, it
-makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
-rejects its proof, of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$,
-with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so
-the bad events (a proof of work with no nonce within its fuel, a zero challenge) are bounded in the
+makes no proof, or the verifier that also refuses every zero challenge and every vanishing fold
+combiner at a queried point (\lean{verifierRefusingZero}) rejects its proof, of any valid execution
+of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability at most $2^{-100}$. The
+guest program checks a child with the deployed Keccak, so the bad events (a proof of work with no
+nonce within its fuel, a zero challenge, a vanishing combiner) are bounded in the
 RPM for the same prover and check, and their absence at the deployed Keccak is what
 \lean{HonestChild} asks. Completeness thus holds level after level as far as the deployed Keccak
 behaves like $\pi$ for these events; that step is the model's assumption, not a theorem. Not stated
