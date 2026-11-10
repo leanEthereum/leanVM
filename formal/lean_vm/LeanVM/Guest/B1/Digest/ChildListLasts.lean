@@ -65,7 +65,7 @@ theorem ccl_15 : cclOk 15 (coreProgram.getD 360 default) = true := by decide +ke
 set_option maxRecDepth 100000 in
 theorem ccl_16 : cclOk 16 (coreProgram.getD 361 default) = true := by decide +kernel
 
-theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (351 + k) default) = true := by
+theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (345 + k) default) = true := by
   intro k hk
   interval_cases k
   exacts [ccl_0, ccl_1, ccl_2, ccl_3, ccl_4, ccl_5, ccl_6, ccl_7, ccl_8, ccl_9, ccl_10, ccl_11,

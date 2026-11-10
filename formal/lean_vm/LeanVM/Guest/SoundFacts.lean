@@ -102,7 +102,7 @@ theorem sigSem_args {j : ℕ} (hj : j < nFns) :
 
 theorem nameIndex_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : nameIndex (coreOf j).name = j := by
   have hl : j - 1 < coreProgram.length := by
-    have : coreProgram.length = 991 := coreProgram_length
+    have : coreProgram.length = 1803 := coreProgram_length
     simp only [nFns] at h2
     omega
   unfold nameIndex coreOf

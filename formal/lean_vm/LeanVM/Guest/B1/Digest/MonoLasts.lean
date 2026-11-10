@@ -65,14 +65,14 @@ theorem ml_15 : mlOk 15 (coreProgram.getD 379 default) = true := by decide +kern
 set_option maxRecDepth 100000 in
 theorem ml_16 : mlOk 16 (coreProgram.getD 380 default) = true := by decide +kernel
 
-theorem ml_all : ∀ k < 17, mlOk k (coreProgram.getD (370 + k) default) = true := by
+theorem ml_all : ∀ k < 17, mlOk k (coreProgram.getD (364 + k) default) = true := by
   intro k hk
   interval_cases k
   exacts [ml_0, ml_1, ml_2, ml_3, ml_4, ml_5, ml_6, ml_7, ml_8, ml_9, ml_10, ml_11, ml_12, ml_13,
     ml_14, ml_15, ml_16]
 
 set_option maxRecDepth 100000 in
-theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (370 + k) := by
+theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (364 + k) := by
   decide +kernel
 
 end

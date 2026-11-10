@@ -66,7 +66,7 @@ theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (
     decoderFunctionName (nameIndex f) = f := by
   obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hf
   obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hg
-  have hl : coreProgram.length = 991 := coreProgram_length
+  have hl : coreProgram.length = 1803 := coreProgram_length
   unfold nameIndex decoderFunctionName
   rw [findIdx_name_of_nodup coreProgram_names_nodup hi]
   simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 991 by omega, decide_true, Bool.and_self,

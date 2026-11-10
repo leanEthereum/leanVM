@@ -153,11 +153,11 @@ noncomputable def anycWin (i : ℕ) : Bool := recsWin anyc136Atoms (anyP 21) 22 
 
 
 set_option maxRecDepth 100000 in
-theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (351 + k) default) = true := by
+theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (345 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (360 + k) default) = true := by
+theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (354 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

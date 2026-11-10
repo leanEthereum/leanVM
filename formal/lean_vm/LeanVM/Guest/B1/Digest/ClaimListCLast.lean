@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (332 + k) default) = true := by
+theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (326 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
@@ -74,7 +74,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   have hok := cl_all k hk
   have hcok := clc_all hk
-  set fn := coreProgram.getD (332 + k) default
+  set fn := coreProgram.getD (326 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [clcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff] at hcok

@@ -454,7 +454,7 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
   have hf := find_of_idx (ml_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ml_all k hk
-  set f := coreProgram.getD (370 + k) default
+  set f := coreProgram.getD (364 + k) default
   simp only [mlOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
