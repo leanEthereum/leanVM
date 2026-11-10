@@ -848,7 +848,7 @@ def loopsOf (body : List Core.Stmt) : List String :=
 `__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
 `opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
 its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
-(`Check.tagNe`). -/
+(`Check.tagNe`); `open_stacked`'s window table (argument 9, `tagTabs`). -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
@@ -872,6 +872,10 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
       m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
+    -- `open_stacked`'s window table `tabs` (argument 9, cell 11), which its decodes and grinds
+    -- read: `verify_sub` hands it on at its dispatch
+    if cf.name.startsWith "open_stacked__L" then
+      m := m.insert cf.name [(tagTabs, [11])]
   return m
 
 /-- The semantic tuples a function learns from a top-level call, `(statement after it, value)`:
@@ -888,9 +892,10 @@ def defAfter (body : List Core.Stmt) (v : ℕ) : ℕ :=
     | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
     | _ => false).map (· + 1) |>.getD 0
 
-/-- The obligations a function's top-level calls carry: the callee's walk tuples (tags `≥ 2`) on
-the arguments' values, `(statement of the call, statement after its arguments' definitions, the
-tagged tuples of values)`; a cut before the call takes them from the statements before it. -/
+/-- The obligations a function's top-level calls and dispatches (whose targets share them) carry:
+the callee's walk tuples (tags `≥ 2`) on the arguments' values, `(statement of the call,
+statement after its arguments' definitions, the tagged tuples of values)`; a cut before the call
+takes them from the statements before it. -/
 def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body : List Core.Stmt) :
     Except String (List (ℕ × ℕ × List (ℕ × List ℕ))) := do
   -- the top-level constants of one limb: an argument that is one takes a conditional tag
@@ -905,7 +910,11 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
     let some (g, args) := (match s with
       | .call g args _ => some (g, args)
       | .callIf _ g args => some (g, args)
+      | .dispatch _ (g :: _) args _ => some (g, args)
       | _ => none) | continue
+    if let .dispatch _ fs _ _ := s then
+      if fs.any (fun f => semMap.getD f [] != semMap.getD g []) then
+        throw s!"statement {i}: a dispatch's targets with different tuples"
     let tus := (semMap.getD g []).filter (·.1 ≥ 2)
     if tus.isEmpty then continue
     let mut tu : List (ℕ × List ℕ) := []

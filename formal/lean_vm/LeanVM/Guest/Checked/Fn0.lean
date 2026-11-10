@@ -175,12 +175,13 @@ theorem plain18 : Plain 18 := by
   decide +kernel
 
 theorem ok19 : CheckOk 19 := fun i hi ↦ by
-  have h : (certOf 19).cuts.length = 2 := by decide +kernel
+  have h : (certOf 19).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w19_0
   · exact w19_1
   · exact w19_2
+  · exact w19_3
 
 theorem ok20 : CheckOk 20 := fun i hi ↦ by
   have h : (certOf 20).cuts.length = 20 := by decide +kernel

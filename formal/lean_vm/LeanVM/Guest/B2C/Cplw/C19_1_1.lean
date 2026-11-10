@@ -25,6 +25,9 @@ theorem cw19_1_2 : cplWin 19 1 2 = true := by decide +kernel
 /-- `verify_sub`, window 2, part 0. -/
 theorem cw19_2_0 : cplWin 19 2 0 = true := by decide +kernel
 
+/-- `verify_sub`, window 3, part 0. -/
+theorem cw19_3_0 : cplWin 19 3 0 = true := by decide +kernel
+
 /-- `sp_wots`, window 0, part 0. -/
 theorem cw20_0_0 : cplWin 20 0 0 = true := by decide +kernel
 

@@ -78,10 +78,16 @@ theorem known_of_plain {j : ℕ} (hp : Checked.Plain j) {κ : ℕ} {L : MemoryIm
   rw [hc, hall.1.1, hall.1.2, hall.2]
   exact ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
 
-/-- **The exponent table's tag**: tag `0` of `glob` on one word is `B1.ExpTables`. -/
+/-- **The exponent table's tag**: tag `0` of `glob` on one word is `B1.ExpTables` with its
+window section. -/
 theorem semRel_exp (rd : Reader) (ws : List E) :
-    SemRel glob 0 rd ws ↔ B1.ExpTables rd (ws.getD 0 0) := by
+    SemRel glob 0 rd ws ↔ B1.ExpTables rd (ws.getD 0 0) ∧ B1.ExpWinTab rd (ws.getD 0 0) := by
   simp [SemRel, SemRel0, tagNe, glob, globSem]
+
+/-- **`open_stacked`'s window table's tag**: tag `tagTabs` of `glob` on one word is `B1.WinTabs`. -/
+theorem semRel_tabs (rd : Reader) (ws : List E) :
+    SemRel glob tagTabs rd ws ↔ B1.WinTabs rd (ws.getD 0 0) := by
+  simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs, tagGkr]
 
 /-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided. -/
 noncomputable def sigSemArgsB : Bool :=
@@ -117,7 +123,7 @@ theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j'
 
 /-! ## `verify_sub`'s window -/
 
-theorem vs_cuts : (certOf 19).cuts.length = 2 := by decide +kernel
+theorem vs_cuts : (certOf 19).cuts.length = 3 := by decide +kernel
 
 /-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3255-3263`): `kb[0] = g^0`, the
 memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, keccak's `τ`,
@@ -135,13 +141,21 @@ theorem vs_cut1 : ((certOf 19).cutAt 1).start = 333 ∧
     ((certOf 19).cutAt 1).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
-/-- `verify_sub`'s third window starts at its call of `check_opening_terminal` (statement
-`1552`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
-value `83`). -/
-theorem vs_cut : ((certOf 19).cutAt 2).start = 1552 ∧
-    ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ++
+/-- `verify_sub`'s third window starts at its dispatch to `open_stacked` (statement `1551`) and
+takes, beside `dims_g`'s bound, the window table at `tabs` (the value `1930`, `tagTabs`). -/
+theorem vs_cutT : ((certOf 19).cutAt 2).start = 1551 ∧
+    ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ∧
+    ((certOf 19).cutAt 2).knownIf = [] ∧
+    ((certOf 19).cutAt 2).sems = [(tagTabs, [(certOf 19).locs.getD 1930 0])] := by decide +kernel
+
+/-- `verify_sub`'s fourth window starts at its call of `check_opening_terminal` (statement
+`1552`) and takes, beside `dims_g`'s and the window table, the bound of each of the `8` entries of
+`kappa_base` (the value `83`). -/
+theorem vs_cut : ((certOf 19).cutAt 3).start = 1552 ∧
+    ((certOf 19).cutAt 3).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ++
       (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 83 0, c, vsKbBound c)) ∧
-    ((certOf 19).cutAt 2).knownIf = [] ∧ ((certOf 19).cutAt 2).sems = [] := by decide +kernel
+    ((certOf 19).cutAt 3).knownIf = [] ∧
+    ((certOf 19).cutAt 3).sems = [(tagTabs, [(certOf 19).locs.getD 1930 0])] := by decide +kernel
 
 theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 := by decide +kernel
 

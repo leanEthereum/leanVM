@@ -20,6 +20,10 @@ set_option maxRecDepth 100000 in
 theorem w19_6 : shareWin 19 (snapsOf 19) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
+/-- `verify_sub`, window 7. -/
+theorem w19_7 : shareWin 19 (snapsOf 19) 7 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- `sp_wots`, once. -/
 theorem st20 : shareStatic 20 = true := by decide +kernel
 
