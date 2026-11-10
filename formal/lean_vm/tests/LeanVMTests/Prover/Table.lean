@@ -23,7 +23,7 @@ def tableOf (c : ℕ) : ℕ :=
 
 /-- A pseudo-random element of `E`. -/
 def el (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5)) (K.ofBits (n + 77))
+  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5))
 
 /-- Every global column, `2^τ_t` pseudo-random cells. -/
 def cols : Array (Array K) := Array.ofFn (n := 165) fun c ↦

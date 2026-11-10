@@ -16,14 +16,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Prover
 
 /-- `SET [g^2] = 5`, then the last slot. -/
 def toyProg : LeanIsaProgram :=
-  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 5) 0 0)
+  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 5) 0)
     else .setConstant (addressOfIndex 3) 0⟩
 
 /-- The zero public input. -/
 def toyInput : PublicInput := ⟨fun _ ↦ 0⟩
 
 /-- `2^16` words, `5` at word `2`. -/
-def toyImage : MemoryImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 0 else 0
+def toyImage : MemoryImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 else 0
 
 /-- The run of one step. -/
 def toyTrace : Execution toyProg := ⟨16, toyImage, 1⟩

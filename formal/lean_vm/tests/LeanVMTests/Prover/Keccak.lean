@@ -25,7 +25,7 @@ def drive {α β : Type} (chal : ℕ → E) : VerifierProgram α → Script β �
 
 /-- A pseudo-random element of `E`. -/
 def el (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5)) (K.ofBits (n + 77))
+  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5))
 
 def chal (n : ℕ) : E := el (1000 + n)
 
