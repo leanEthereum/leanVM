@@ -116,7 +116,6 @@ open Classical in
 def evHit (d : Data) (G : Input → HashOutput) (b : Bool × List HashInput) : Bool :=
   decide (∃ z ∈ outK b, HitE d G z)
 
-
 open Classical in
 /-- The forgery's digest is covered. -/
 def evCov (d : Data) (s : Log) (G : Input → HashOutput) (F : Forgery) : Bool :=

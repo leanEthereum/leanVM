@@ -17,12 +17,12 @@ outputting at most `k` inputs outputs one whose value is good with probability a
 `λ (√6 t + 2 k)²`, where every input has a fraction at most `λ` of good values.
 `Qrom.OvGame.ov_search_le` is the same bound for games whose hash answers some inputs from fixed
 data, depending on a classical side state, beside classical side ports such as a signing oracle,
-with `t` the number of calls in all; `Qrom.OvGame.search_withVerifier_cells_le` is the bound for a
+with `t` the number of calls in all; `Qrom.OvGame.search_cells_le` is the bound for a
 predicate on the whole value of a cell of inputs, by simulating the oracle on cells.
 `Qrom.Sphincs.winProb_le` bounds a leanSPHINCS forgery by an
 adversary making at most `n` calls in all, from those and from the classical classification of a
 winning forgery; `Qrom.Sphincs.winProb_le_h26` makes it numeric for the parameters of
-`FORS.h26_layered`: at most `((n + 2048) / 2^61)²`. The build fails if their axiom footprints grow beyond Lean's
+`FORS.Lifetimes.h26Params`: at most `((n + 2048) / 2^61)²`. The build fails if their axiom footprints grow beyond Lean's
 three standard axioms. -/
 
 /-- info: 'Qrom.qrom_search_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -61,10 +61,9 @@ three standard axioms. -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.OvGame.search_withVerifier_le
 
-/-- info: 'Qrom.OvGame.search_withVerifier_cells_le' depends on axioms: [propext, Classical.choice,
-Quot.sound] -/
+/-- info: 'Qrom.OvGame.search_cells_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Qrom.OvGame.search_withVerifier_cells_le
+#print axioms Qrom.OvGame.search_cells_le
 
 /-- info: 'Qrom.Sphincs.winProb_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -12,7 +12,7 @@ On corresponding digests, a covered forgery digest is covered by the leaves of a
 digests. With the digest calls of one prefix as the components of one cell, that is a search for
 a cell whose value, a whole digest, is covered, checking the one cell of the forgery's digest, so
 averaged over the data and `G` the covered digests weigh at most
-`λ_full (√6 (n + 1 + verifyQueries) + 2)² tr ρ` (`Qrom.Sphincs.avg_covF_le`).
+`λ_full (√6 (n + 1) + 2)² tr ρ` (`Qrom.Sphincs.avg_covF_le`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Concrete Quantum
@@ -27,15 +27,14 @@ namespace Qrom.Sphincs
 variable [Params]
 
 /-- The cell of the forgery's digest calls. -/
-def outF (r : Data) (ab : (PublicKey × Forgery) × (Bool × List HashInput)) : Finset Cell :=
-  {(cellOf (digestInputX r ab.1.2.message ab.1.2.signature.randomness firstCall)).1}
+def outF (r : Data) (a : PublicKey × Forgery) : Finset Cell :=
+  {(cellOf (digestInputX r a.2.message a.2.signature.randomness firstCall)).1}
 
 open Classical in
 /-- The cell of the forgery's digest calls holds a covered digest. -/
 def evBc (r : Data) (G : Input → HashOutput) (δ : Fin signatureLimit → DigV)
-    (p : Σ u, QuantumComp₂.Leaf (QReg.of Unit) (PublicKey × Forgery) u) (s : Log) : Bool :=
-  decide (∃ c ∈ outF r (p.2.2, evalWithAnswerFn (QueryImpl.ofFn ((gB r δ).answer s G))
-      (verifier p.2.2)),
+    (p : Σ u, QuantumComp₂.Leaf (QReg.of Unit) (PublicKey × Forgery) u) (_ : Log) : Bool :=
+  decide (∃ c ∈ outF r p.2.2,
     ∀ v : DigV, (∀ x, (cellOf x).1 = c → v (cellOf x).2 = G x) →
       Covered (leavesAll δ) (fullDigestView (truncateMessageDigest v)))
 
@@ -71,13 +70,13 @@ theorem sum_covF_search_le (r : Data) (δ : Fin signatureLimit → DigV) {A : QR
     ∑ G : Input → HashOutput, (Fintype.card (Input → HashOutput) : ℝ≥0∞)⁻¹ *
       OvGame.sideW (gB r δ) G .instruments (withKey adv) ρ (evBc r G δ) ≤
       ENNReal.ofReal (((sbF δ : ℝ) / Fintype.card DigV) *
-        (√6 * (1 + n + verifyQueries : ℕ) + 2) ^ 2) *
+        (√6 * (1 + n : ℕ) + 2) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
-  have h := OvGame.search_withVerifier_cells_le (gB r δ) cellOf cellOf_injective
+  have h := OvGame.search_cells_le (gB r δ) cellOf cellOf_injective
     (fun s ↦ cellOv ((gB r δ).ov s)) (gB_ov_spec r δ)
     (fun _ v ↦ Covered (leavesAll δ) (fullDigestView (truncateMessageDigest v))) (sbF δ)
-    (fun _ ↦ le_rfl) (withKey adv) verifier (outF r) 1 (fun _ ↦ (Finset.card_singleton _).le) (1 + n)
-    verifyQueries (isTotalQueryBound_withKey hadv) isTotalQueryBound_verifier ρ
+    (fun _ ↦ le_rfl) (withKey adv) (outF r) 1 (fun _ ↦ (Finset.card_singleton _).le) (1 + n)
+    (isTotalQueryBound_withKey hadv) ρ
   simp only [Nat.cast_one, mul_one] at h
   exact h
 
@@ -87,13 +86,13 @@ theorem avg_covF_le {A : QReg} (adv : Adversary A) {n : ℕ}
     (hadv : ∀ pk, (adv pk).IsTotalQueryBound n) (ρ : SubState A) :
     ∑ d, ∑ G, ((Fintype.card Data : ℝ≥0∞) * Fintype.card (Input → HashOutput))⁻¹ *
       OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦ evCov d s G p.2.2.2) ≤
-      lamF * ENNReal.ofReal ((√6 * (1 + n + verifyQueries : ℕ) + 2) ^ 2) *
+      lamF * ENNReal.ofReal ((√6 * (1 + n : ℕ) + 2) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
   set cD := (Fintype.card Data : ℝ≥0∞)
   set cG := (Fintype.card (Input → HashOutput) : ℝ≥0∞)
   set cM := (Fintype.card (Message → DigV) : ℝ≥0∞)
   set cΔ := (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0∞)
-  set K := (√6 * (1 + n + verifyQueries : ℕ) + 2) ^ 2
+  set K := (√6 * (1 + n : ℕ) + 2) ^ 2
   set T := ENNReal.ofReal ρ.matrix.trace.re
   have hW : ∀ r G Dg, OvGame.sideW (hidGame (withDig r Dg)) G .instruments (withKey adv) ρ
       (fun p s ↦ evCov (withDig r Dg) s G p.2.2.2) =

@@ -11,7 +11,8 @@ The verifier may read an input that is no honest input at which `G` hits the hon
 address, or an encoding input of a counter other than the one the signer finds, whose value in the
 data carries the key's word (`Qrom.Sphincs.HitE`). Such a counter is above the found one, and the
 honest computation never reads the data there: the inputs read no encoding values, and the signer
-reads the counters up to the one it finds (`Qrom.Sphincs.Same`). Exchanging the data above the
+reads the counters up to the one it finds (`Qrom.Sphincs.encH_congr_found`,
+`Qrom.Sphincs.signExpl_same`). Exchanging the data above the
 found counters with `G` at their inputs is then an involution of the pairs `(d, G)`
 (`Qrom.Sphincs.swapE`) that carries the hidden game to one answering those inputs by `G` once
 revealed (`Qrom.Sphincs.answer_swap`), where both events are hits of `G`. Averaged over the data and
@@ -362,21 +363,6 @@ theorem answer_swap (d : Data) (G : Input → HashOutput) (s : Log) (x : Input) 
         exact pt_inj d (ha.2.trans hb.2.symm)
     rw [dite_eq_right hx', swapG_of_not hx, hov]
 
-theorem sideW_congr (g g' : OvGame Input HashOutput Log Port Res) (G G' : Input → HashOutput)
-    (hi : g.init = g'.init) (ht : g.trans = g'.trans) (ha : ∀ s x, g.answer s G x = g'.answer s G' x)
-    {A : QReg} {α : Type} (x : QComp Spec A (QReg.of Unit) α) (ρ : SubState A)
-    (ev : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) α u) → Log → Bool) :
-    OvGame.sideW g G .instruments x ρ ev = OvGame.sideW g' G' .instruments x ρ ev := by
-  obtain ⟨i, o, t⟩ := g
-  obtain ⟨i', o', t'⟩ := g'
-  simp only at hi ht
-  subst hi ht
-  have hf : (fun u : Log × Unit ↦ OvGame.answer ⟨i, o, t⟩ u.1 G) =
-      fun u ↦ OvGame.answer ⟨i, o', t⟩ u.1 G' := funext fun u ↦ funext fun x ↦ ha u.1 x
-  unfold OvGame.sideW OvGame.sampled
-  rw [hf]
-  rfl
-
 /-! ## The bound -/
 
 open Classical in
@@ -461,7 +447,8 @@ theorem avg_hit_le {A : QReg} (adv : Adversary A) {n : ℕ}
     have hans : ∀ s, hidAns d G s = QueryImpl.ofFn ((hidX (swapD d G)).answer s (swapG d G)) :=
       fun s ↦ congrArg QueryImpl.ofFn (funext (answer_swap d G s))
     simp only [hans]
-    rw [sideW_congr (hidGame d) (hidX (swapD d G)) G (swapG d G) rfl (same_trans hS) (answer_swap d G)]
+    refine (OvGame.sideW_congr (g := hidGame d) (g' := hidX (swapD d G)) (answer_swap d G)
+      (same_trans hS) rfl .instruments (withKey adv) ρ _).trans_le ?_
     exact OvGame.sideW_mono _ _ _ _ ρ fun p s hps ↦ evHit_le_evX d G _ hps
   -- the exchanged hits, for each data
   have hX : ∀ e, ∑ G, cG⁻¹ * Φ (e, G) ≤ B := by

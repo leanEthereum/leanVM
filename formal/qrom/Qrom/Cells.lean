@@ -16,7 +16,7 @@ becomes one call on `|c, w⟩`, where `w` holds `z` at the component `k` and the
 superposition at every other component, which no addition changes (`Qrom.cellIso`). The
 translation `Qrom.OvGame.cellCalls` runs as the original program (`Qrom.OvGame.run_cellCalls`) and
 keeps the call budget, so the one-cell bound for the game on cells gives the bound with
-`λ = sb / |K → Y|` (`Qrom.OvGame.search_withVerifier_cells_le`).
+`λ = sb / |K → Y|` (`Qrom.OvGame.search_cells_le`).
 -/
 
 open Matrix OracleSpec
@@ -468,52 +468,45 @@ theorem evalDistMap_true_mono {spec : QuantumOracleSpec.{0, 0}} {L : LocalSig.{u
   · simp [hp, h p hp]
   · simp [hp]
 
-/-- **The search bound for a predicate on cells, with a classical verifier.** A program making at
-most `n` calls is followed by a verifier making at most `m` queries, and at most `k` cells are picked
-from their outputs. In the side state the run ends in, one of these cells has only good completions
-with probability at most `λ (√6 (n + m) + 2 k)²`, where every cell has a fraction at most `λ` of good
-values. The inputs sit in the cells by the injection `cellOf`, and the overrides of `g` are components of
-overrides of whole cells. -/
-theorem search_withVerifier_cells_le (g : OvGame X Y S P Res) [Nonempty Y] (cellOf : X → C × K)
+/-- **The search bound for a predicate on cells.** A program making at most `n` calls outputs at
+most `k` cells, one of which has only good completions with probability at most
+`λ (√6 n + 2 k)²`, where every cell has a fraction at most `λ` of good values. The inputs sit in the
+cells by the injection `cellOf`, and the overrides of `g` are components of overrides of whole
+cells. -/
+theorem search_cells_le (g : OvGame X Y S P Res) [Nonempty Y] (cellOf : X → C × K)
     (hinj : Function.Injective cellOf) (ov' : S → C → Option (K → Y))
     (hov : ∀ s x, g.ov s x = (ov' s (cellOf x).1).map fun v ↦ v (cellOf x).2)
     (good : C → (K → Y) → Prop) [∀ c, DecidablePred (good c)] (sb : ℕ)
     (hs : ∀ c, (Finset.univ.filter (good c)).card ≤ sb)
-    {A : QReg} {α β : Type} [DecidableEq α] [DecidableEq β]
-    (adv : QComp (ovSpec X Y S P Res) A (QReg.of Unit) α) (ver : α → OracleComp (X →ₒ Y) β)
-    (out : α × β → Finset C) (k : ℕ) (hout : ∀ ab, (out ab).card ≤ k) (n m : ℕ)
-    (hadv : adv.IsTotalQueryBound n) (hver : ∀ a, OracleComp.IsTotalQueryBound (ver a) m)
-    (ρ : SubState A) :
-    ∑ G : X → Y, (Fintype.card (X → Y) : ℝ≥0∞)⁻¹ * sideW g G .instruments adv ρ (fun p s ↦
-        decide (∃ c ∈ out (p.2.2, evalWithAnswerFn (QueryImpl.ofFn (g.answer s G)) (ver p.2.2)),
+    {A : QReg} {α : Type} [DecidableEq α] (adv : QComp (ovSpec X Y S P Res) A (QReg.of Unit) α)
+    (out : α → Finset C) (k : ℕ) (hout : ∀ a, (out a).card ≤ k) (n : ℕ)
+    (hadv : adv.IsTotalQueryBound n) (ρ : SubState A) :
+    ∑ G : X → Y, (Fintype.card (X → Y) : ℝ≥0∞)⁻¹ * sideW g G .instruments adv ρ (fun p _ ↦
+        decide (∃ c ∈ out p.2.2,
           ∀ v : K → Y, (∀ x, (cellOf x).1 = c → v (cellOf x).2 = G x) → good c v)) ≤
-      ENNReal.ofReal (((sb : ℝ) / Fintype.card (K → Y)) * (√6 * (n + m : ℕ) + 2 * k) ^ 2) *
+      ENNReal.ofReal (((sb : ℝ) / Fintype.card (K → Y)) * (√6 * n + 2 * k) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
-  set x := withVerifier adv ver
   let ev : (X → Y) → C → Prop := fun G c ↦
     ∀ v : K → Y, (∀ x, (cellOf x).1 = c → v (cellOf x).2 = G x) → good c v
-  have h := ov_search_le (cellGame g ov') good .instruments sb hs (n + m) k (cellCalls hinj x)
-    (isTotalQueryBound_cellCalls hinj (isTotalQueryBound_withVerifier hadv hver)) ρ
-    (fun p ↦ out p.2.2) fun p ↦ hout _
+  have h := ov_search_le (cellGame g ov') good .instruments sb hs n k (cellCalls hinj adv)
+    (isTotalQueryBound_cellCalls hinj hadv) ρ (fun p ↦ out p.2.2) fun p ↦ hout _
   erw [sampledEvalDistMap_apply _ _ _ _ _ (measurableSet_singleton true)] at h
-  have hG : ∀ G : X → Y, sideW g G .instruments adv ρ (fun p s ↦
-      decide (∃ c ∈ out (p.2.2, evalWithAnswerFn (QueryImpl.ofFn (g.answer s G)) (ver p.2.2)),
-        ev G c)) =
-      (g.sampled G).evalDistMap .instruments x ρ
+  have hG : ∀ G : X → Y, sideW g G .instruments adv ρ (fun p _ ↦
+      decide (∃ c ∈ out p.2.2, ev G c)) =
+      (g.sampled G).evalDistMap .instruments adv ρ
         (fun p ↦ decide (∃ c ∈ out p.2.2, ev G c)) {true} := fun G ↦
-    (sideW_withVerifier g G adv ver ρ fun ab _ ↦ decide (∃ c ∈ out ab, ev G c)).symm.trans
-      (sideW_const g G .instruments x ρ fun p ↦ decide (∃ c ∈ out p.2.2, ev G c))
+    sideW_const g G .instruments adv ρ fun p ↦ decide (∃ c ∈ out p.2.2, ev G c)
   calc _ = ∑ G' : C → K → Y, (Fintype.card (C → K → Y) : ℝ≥0∞)⁻¹ *
-          (g.sampled (unpair cellOf G')).evalDistMap .instruments x ρ
+          (g.sampled (unpair cellOf G')).evalDistMap .instruments adv ρ
             (fun p ↦ decide (∃ c ∈ out p.2.2, ev (unpair cellOf G') c)) {true} :=
         (Finset.sum_congr rfl fun G _ ↦ congrArg _ (hG G)).trans
-          (sum_unpair hinj fun G ↦ (g.sampled G).evalDistMap .instruments x ρ
+          (sum_unpair hinj fun G ↦ (g.sampled G).evalDistMap .instruments adv ρ
             (fun p ↦ decide (∃ c ∈ out p.2.2, ev G c)) {true}).symm
     _ ≤ ∑ G' : C → K → Y, (Fintype.card (C → K → Y) : ℝ≥0∞)⁻¹ *
-          ((cellGame g ov').sampled G').evalDistMap .instruments (cellCalls hinj x) ρ
+          ((cellGame g ov').sampled G').evalDistMap .instruments (cellCalls hinj adv) ρ
             (fun p ↦ decide (∃ c ∈ out p.2.2, good c (G' c))) {true} := by
         refine Finset.sum_le_sum fun G' _ ↦ ?_
-        rw [evalDistMap_cellCalls hinj g ov' hov G' x]
+        rw [evalDistMap_cellCalls hinj g ov' hov G' adv]
         gcongr _ * ?_
         refine evalDistMap_true_mono _ _ _ _ fun p hp ↦ ?_
         obtain ⟨c, hc, hgood⟩ := of_decide_eq_true hp

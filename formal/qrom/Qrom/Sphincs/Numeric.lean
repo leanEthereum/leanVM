@@ -1,16 +1,14 @@
 module
 
 public import Qrom.Sphincs.Security
-public import Qrom.Sphincs.Bound.LamCov
 
 @[expose] public section
 
 /-!
 # The numbers
 
-With the cover probability bounded (`Qrom.Sphincs.lamF_le`), the forgery bound is explicit
-(`Qrom.Sphincs.winProb_le_lamS`). For the parameters of `FORS.h26_layered` (`h = 26`, `d = 3`,
-`k = 24`, `a = 10`, `1,182,000,000` signatures), `λ_full ≤ 9 · 2^-130` (`Qrom.Sphincs.lamS_h26`), and
+For the parameters of `FORS.Lifetimes.h26Params` (`h = 26`, `d = 3`, `k = 24`, `a = 10`,
+`1,182,000,000` signatures), the cover bound is `lamS ≤ 9 · 2^-130` (`Qrom.Sphincs.lamS_h26`), and
 an adversary making at most `n` calls forges with probability at most `((n + 2048) / 2^61)²`
 (`Qrom.Sphincs.winProb_le_h26`; term by term, `Qrom.Sphincs.winProb_le_h26_terms`).
 -/
@@ -24,33 +22,7 @@ set_option linter.unusedSectionVars false
 
 namespace Qrom.Sphincs
 
-section generic
-
-variable [Params]
-
-/-- The weight of a win in the hidden game, with the cover probability bounded. -/
-def epsB (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
-  (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    ENNReal.ofReal lamS * ENNReal.ofReal (searchK1 n)) * ENNReal.ofReal t
-
-theorem epsHid_le (n : ℕ) (t : ℝ) : epsHid n t ≤ epsB n t := by
-  unfold epsHid epsB
-  gcongr
-  exact lamF_le
-
-/-- **leanSPHINCS in the QROM, explicitly**: an adversary making at most `n` calls in all forges with
-probability at most `(√ε + (n + 1 + verifyQueries) √(4 · 2^-128 tr ρ))²`, where `ε` is `epsB`. -/
-theorem winProb_le_lamS {A : QReg} (adv : Adversary A) {n : ℕ}
-    (hadv : ∀ pk, (adv pk).IsTotalQueryBound n) (ρ : SubState A) :
-    winProb adv ρ ≤ (epsB n ρ.matrix.trace.re ^ (2⁻¹ : ℝ) + ((1 + n + verifyQueries : ℕ) : ℝ≥0∞) *
-      (4 * ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128) * ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ)) ^ 2 := by
-  refine (winProb_le adv hadv ρ).trans ?_
-  gcongr
-  exact epsHid_le n _
-
-end generic
-
-/-- The parameters of `FORS.h26_layered`. -/
+/-- The parameters of `FORS.Lifetimes.h26Params`. -/
 abbrev params26 : Params :=
   .layered (h := 26) (d := 3) (ℓ := 8) (k := 24) (a := 10) (N := 1_182_000_000)
 
@@ -68,14 +40,14 @@ theorem verifyQueries_h26 : verifyQueries = 879 := by decide
 
 /-- The h26 bound, term by term: an adversary from the register `A` in the state `ρ`, making at
 most `n` calls in all, forges with probability at most
-`(√((4 · 2^-130 (√6 (n + 880) + 1758)² + 9 · 2^-130 (√6 (n + 880) + 2)² + 879 · 2^-128) tr ρ) + (n + 880) √(4 · 2^-128 tr ρ))²`. -/
+`(√((4 · 2^-130 (√6 (n + 880) + 1758)² + 9 · 2^-130 (√6 (n + 1) + 2)² + 879 · 2^-128) tr ρ) + (n + 880) √(4 · 2^-128 tr ρ))²`. -/
 theorem winProb_le_h26_terms {A : QReg} (adv : Adversary A) {n : ℕ}
     (hadv : ∀ pk, (adv pk).IsTotalQueryBound n) (ρ : SubState A) :
     winProb adv ρ ≤ ((ENNReal.ofReal (4 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 1758) ^ 2 +
-        9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128) *
+        9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 1) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128) *
         ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ) + ((n + 880 : ℕ) : ℝ≥0∞) *
       (4 * ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128) * ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ)) ^ 2 := by
-  refine (winProb_le_lamS adv hadv ρ).trans ?_
+  refine (winProb_le adv hadv ρ).trans ?_
   have hN : (1 + n + verifyQueries : ℕ) = n + 880 := by rw [verifyQueries_h26]; omega
   rw [hN]
   gcongr
@@ -85,13 +57,13 @@ theorem winProb_le_h26_terms {A : QReg} (adv : Adversary A) {n : ℕ}
     simp only [K, searchK, verifyQueries_h26]
     push_cast
     ring_nf
-  have hK1 : K1 = (√6 * (n + 880) + 2) ^ 2 := by
-    simp only [K1, searchK1, verifyQueries_h26]
+  have hK1 : K1 = (√6 * (n + 1) + 2) ^ 2 := by
+    simp only [K1, searchK1]
     push_cast
     ring_nf
   have hK0 : 0 ≤ K := sq_nonneg _
   have hK10 : 0 ≤ K1 := sq_nonneg _
-  unfold epsB
+  unfold epsHid
   gcongr ?_ * _
   calc ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * K) +
         ENNReal.ofReal lamS * ENNReal.ofReal K1 ≤
@@ -116,7 +88,7 @@ theorem winProb_le_h26_terms {A : QReg} (adv : Adversary A) {n : ℕ}
 /-- The terms of the h26 bound are at most `(n + 2048) / 2^61`. -/
 theorem h26_terms_le (n : ℕ) {T : ℝ} (hT1 : T ≤ 1) :
     √((4 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 1758) ^ 2 +
-        9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128) * T) +
+        9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 1) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128) * T) +
       (n + 880) * √(4 * (2 : ℝ)⁻¹ ^ 128 * T) ≤ (n + 2048) / 2 ^ 61 := by
   set u : ℝ := (2 : ℝ)⁻¹ ^ 65
   have hu : 0 < u := by positivity
@@ -127,9 +99,9 @@ theorem h26_terms_le (n : ℕ) {T : ℝ} (hT1 : T ≤ 1) :
   have hs : √6 ≤ 49 / 20 := Real.sqrt_le_iff.mpr ⟨by norm_num, by norm_num⟩
   have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
   set A : ℝ := √6 * (n + 880) + 1758
-  set B : ℝ := √6 * (n + 880) + 2
+  set B : ℝ := √6 * (n + 1) + 2
   have hB0 : 0 ≤ B := by positivity
-  have hBA : B ≤ A := by simp only [A, B]; linarith
+  have hBA : B ≤ A := by simp only [A, B]; nlinarith
   have hA : A ≤ 49 / 20 * (n + 880) + 1758 := by
     simp only [A]
     nlinarith [mul_le_mul_of_nonneg_right hs (by linarith : (0 : ℝ) ≤ n + 880)]
@@ -151,7 +123,7 @@ theorem h26_terms_le (n : ℕ) {T : ℝ} (hT1 : T ≤ 1) :
   rw [h61]
   nlinarith [mul_le_mul_of_nonneg_left hA hu.le, mul_nonneg hu.le hn]
 
-/-- **leanSPHINCS in the QROM, for the parameters of `FORS.h26_layered`: 61 bits.** An adversary
+/-- **leanSPHINCS in the QROM, for the parameters of `FORS.Lifetimes.h26Params`: 61 bits.** An adversary
 from the register `A` in the state `ρ`, making at most `n` calls in all (hash queries, quantum or
 classical, and signing requests), forges with probability at most `((n + 2048) / 2^61)²`. -/
 theorem winProb_le_h26 {A : QReg} (adv : Adversary A) {n : ℕ}
@@ -162,7 +134,7 @@ theorem winProb_le_h26 {A : QReg} (adv : Adversary A) {n : ℕ}
   have hT0 : 0 ≤ T := SubState.trace_re_nonneg _
   have hT1 : T ≤ 1 := ρ.trace_re_le_one
   have hE : 0 ≤ 4 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 1758) ^ 2 +
-      9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128 := by positivity
+      9 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 1) + 2) ^ 2 + 879 * (2 : ℝ)⁻¹ ^ 128 := by positivity
   have hR : ((n + 2048 : ℝ≥0∞) / 2 ^ 61) = ENNReal.ofReal ((n + 2048) / 2 ^ 61) := by
     rw [ENNReal.ofReal_div_of_pos (by positivity), ENNReal.ofReal_add (Nat.cast_nonneg _) (by norm_num),
       ENNReal.ofReal_natCast, ENNReal.ofReal_ofNat, ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_ofNat]

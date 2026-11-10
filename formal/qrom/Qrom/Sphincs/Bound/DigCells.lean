@@ -8,8 +8,9 @@ public import Qrom.Sphincs.Bound.LamCov
 # The digest calls as one cell
 
 A digest input is an 80-byte prefix (the randomizer, `PK.seed`, `PK.root` and the message) and the
-4 bytes of its call. Grouping the inputs by prefix (`Qrom.Sphincs.cellOf`) makes the digest calls of
-one message and randomizer the components of one cell, every other input a cell alone. The games
+4 bytes of its call. Grouping the inputs of that shape by prefix (`Qrom.Sphincs.cellOf`) makes the
+digest calls of one message and randomizer the components of one cell, and every input of another
+shape a cell alone. The games
 answer the calls of a cell together: the hidden game overrides one call of a prefix exactly when it
 overrides all of them (`Qrom.Sphincs.hidGame_ov_whole`), so its overrides are those of a game on
 cells (`Qrom.Sphincs.cellOv_spec`).
@@ -55,7 +56,7 @@ theorem digPrefix_length (pa : PublicParameter) (root : Digest) (m : Message) (R
   rw [messageDigestInput_split, List.length_append, callBytes_length] at h
   omega
 
-/-- `x` is the call `c` of a digest input. -/
+/-- `x` has the shape of the call `c` of a digest input. -/
 def IsDig (x : Input) (c : DigestCall) : Prop := x.1.length = 84 ∧ x.1.drop 80 = callBytes c
 
 theorem isDig_unique {x : Input} {c c' : DigestCall} (h : IsDig x c) (h' : IsDig x c') : c = c' :=
