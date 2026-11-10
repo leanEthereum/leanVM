@@ -14,7 +14,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 theorem hK : extendStack = 464 := rfl
 
-theorem sbounds {s : MachineState} (h : ExtendPre s) :
+theorem sbounds {s : MachineState} (h : Walk.ExtendPreE s) :
     0xa0000f38 + 464 ≤ (s.getReg .x2).toNat ∧ (s.getReg .x2).toNat ≤ 0xc0000008 ∧
       (s.getReg .x2).toNat % 16 = 0 := by
   have hm := h.stack.mapped (by decide) (by decide)
@@ -50,13 +50,13 @@ structure AfterSel (s u t : MachineState) (k : Nat) : Prop where
   selLen : (vecLen t (s.getReg .x2 - 160)).toNat = stackLogAt s - varsAt s k
   selBuf : NewBuf u t (vecPtr t (s.getReg .x2 - 160)) (24 * (vecLen t (s.getReg .x2 - 160)).toNat) 8
 
-theorem vars_le {s : MachineState} {k : Nat} (hpre : ExtendPre s) (hcol : colAt s k < placementsLen s)
+theorem vars_le {s : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (hcol : colAt s k < placementsLen s)
     (hbit : s.getMem (plAt s k) &&& 1 ≠ 0) : varsAt s k ≤ stackLogAt s := by
   have hmem : placementAt s (plAt s k) ∈ placementsAt s (placementsPtr s) (placementsLen s) :=
     List.mem_map.mpr ⟨colAt s k, List.mem_range.mpr hcol, rfl⟩
   exact hpre.within _ hmem ⟨varsAt s k, idxAt s k⟩ (by simp only [placementAt, hbit, ite_false]; rfl)
 
-theorem sel_step (hS : MultilinearContracts.SelectorSpec) {s u : MachineState} {k : Nat} (hpre : ExtendPre s)
+theorem sel_step (hS : MultilinearContracts.SelectorSpec) {s u : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s)
     (hp : Push s u k) : ∃ t, Reaches Image.code u t ∧ (Dead Image.code t ∨ AfterSel s u t k) := by
   have hI := hp.inv
   have hk := hp.lt

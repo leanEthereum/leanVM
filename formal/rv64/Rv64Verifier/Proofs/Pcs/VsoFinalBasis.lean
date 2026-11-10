@@ -94,8 +94,7 @@ structure TB (OA : MachineState → Word → Model.TState → Prop) (s : Machine
 /-- **The basis at the terminal point**: `0x8000ba98` to `0x8000bab0`, or a dead end. -/
 theorem tBasis (hB : BasisSpec) {OA : MachineState → Word → Model.TState → Prop}
     {s : MachineState} {x : LCtx} {u v : MachineState} {Wl : Model.Pcs.WhirLocals}
-    {residual : List E} {tf : List E} {rt : E} (hpre : VsoPre s) (hv : TV OA s x u v Wl residual tf rt)
-    (hz : ncl s = 0 → (vecPtr x.c (s.getReg .x2 - 728)).toNat ≤ heapNext s) :
+    {residual : List E} {tf : List E} {rt : E} (hpre : VsoPre s) (hv : TV OA s x u v Wl residual tf rt) :
     ∃ w, Reaches Image.code v w ∧ (Dead Image.code w ∨ ∃ w0, TB OA s x u w Wl residual tf rt w0) := by
   have hb := bounds hpre
   have hst := hpre.stack
@@ -217,11 +216,11 @@ theorem tBasis (hB : BasisSpec) {OA : MachineState → Word → Model.TState →
         stack_outside hpre (by addr_omega [hb]) (by addr_omega [hb])⟩
     scales := by
       rw [hx11, hSp, hSl, hsc.1]
-      refine heapSrc _ _ ?_ hsc.2.1 fun h0 ↦ by
-        have := hz (by omega); omega
       rcases hSb with h0 | h0
-      · left; omega
-      · right; exact ⟨h0.1, by have := hmark.2.2.1; omega⟩
+      · exact Or.inl h0
+      · have := hmark.2.2.1
+        have := hmark.2.2.2
+        exact Or.inr (heapSrc _ _ (Or.inr ⟨h0.1, by omega⟩) hsc.2.1 fun _ ↦ by omega)
     claims := by rw [hx11, hcp, hcl]; exact hcalle hc14
     weights := by
       intro i hi

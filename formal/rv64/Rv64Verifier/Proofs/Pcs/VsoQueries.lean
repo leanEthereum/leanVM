@@ -24,7 +24,10 @@ structure QOut (s u v : MachineState) (d : ℕ) (qs : List Word) : Prop where
   x1 : v.getReg .x1 = vecPtr v (s.getReg .x2 - 464)
   x8 : v.getReg .x8 = BitVec.ofNat 64 d
   x9 : v.getReg .x9 = u.getReg .x9
+  x19 : v.getReg .x19 = vecCap v (s.getReg .x2 - 464)
   x20 : v.getReg .x20 = s.getReg .x10
+  /-- The running quadratic's length, in `s7` as at `S - 808`. -/
+  x23 : v.getReg .x23 = v.getMem (s.getReg .x2 - 808)
   x26 : v.getReg .x26 = BitVec.ofNat 64 qs.length
   vec : QVec s u v qs.length qs
 
@@ -54,7 +57,9 @@ theorem QDone.rebase {s u w v : MachineState} {d : ℕ} {qs : List Word}
   x1 := h.x1
   x8 := h.x8
   x9 := h.x9.trans h9
+  x19 := h.x19
   x20 := h.x20
+  x23 := h.x23
   x26 := h.x26
   vec := h.vec.rebase hn
 
@@ -94,16 +99,16 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
   · exact ⟨w, hr₁, Or.inl hf⟩
   obtain ⟨T₁, hgr, hT₁, p₁, r₁, o₁⟩ := hg.tr
   have kw (o : ℕ) (ho : o = 856 ∨ o = 800 ∨ o = 848 ∨ o = 832 ∨ o = 872 ∨ o = 824 ∨ o = 816 ∨
-      o = 792) : w.getMem (s.getReg .x2 - BitVec.ofNat 64 o) =
+      o = 792 ∨ o = 808) : w.getMem (s.getReg .x2 - BitVec.ofNat 64 o) =
         u.getMem (s.getReg .x2 - BitVec.ofNat 64 o) :=
     hg.fr _ fun i hi hw ↦ by
       rcases hw with hw | hw | hw | hw
       · simp only [W] at hw
-        rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+        rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
           addr_omega [hw, hi, hS, hIs, hb]
-      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
-      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
-      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
+      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
+      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
+      · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
   have hn : heapNext w = heapNext u := by simp only [heapNext, hg.nx]
   have h9 : w.getReg .x9 = u.getReg .x9 := hg.regs .x9 (by decide)
   obtain ⟨hnx, -⟩ := sfacts hpre
@@ -128,6 +133,7 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
     ((kw 856 (by decide)).trans h184) ((kw 800 (by decide)).trans h240)
     ((kw 848 (by decide)).trans h192) ((kw 832 (by decide)).trans h208)
     ((kw 872 (by decide)).trans h168) ((kw 824 (by decide)).trans h216) hg.x20
+    (hg.x23.trans (kw 808 (by decide)).symm)
   rcases hv₂ with hd | ⟨cnt, hcnt, hpos, htr, ⟨h0, hq⟩ | hq⟩
   · exact ⟨v, hr₁.trans hr₂, Or.inl (Or.inl hd)⟩
   · subst h0

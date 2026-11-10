@@ -415,9 +415,16 @@ theorem backStep {s w u : MachineState} {d cnt : ℕ} {r : List Word} (hpre : Vs
       simp only [vecPtr]; rw [hm₂]
     x8 := by rw [k₂ .x8 (by decide), k₁ .x8 (by decide), h.x8]
     x9 := by rw [k₂ .x9 (by decide), k₁ .x9 (by decide), h.x9]
+    x19 := by
+      rw [b8000a9c8_x19 h₂, sp₁, show s.getReg .x2 - 1040 + 576 = s.getReg .x2 - 464 by
+        rv_eval []]
+      simp only [vecCap]; rw [hm₂]
     x20 := by rw [k₂ .x20 (by decide), b8000a8cc_x20 h₁, hsp]; rv_eval [h224]
     x26 := by rw [k₂ .x26 (by decide), k₁ .x26 (by decide), h.x26]
-    vec := hvec₂ }⟩⟩
+    vec := hvec₂
+    x23 := by
+      rw [k₂ .x23 (by decide), b8000a8cc_x23 h₁, hsp, hm₂, hm₁]
+      rv_eval [] }⟩⟩
 
 /-- **One sample's chunks**, from chunk `j` on. -/
 theorem chunks {s w : MachineState} {d cnt : ℕ} {r : List Word} {smp : E} (hpre : VsoPre s) :

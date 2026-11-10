@@ -63,6 +63,11 @@ theorem merkle_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
       rcases hrf.1 with h | h
       · exact Or.inl (by omega)
       · exact Or.inr h
+  have hw808 : w.getMem (s.getReg .x2 - 808) = u.getMem (s.getReg .x2 - 808) := by
+    have hT := Region.bounds hpre.self.ok.self
+    have hIs := hpre.self.stack
+    rw [stackLo_vso, vso_stack] at hIs
+    exact hl.fr _ fun i hi hw ↦ by rcases hw with hw | hw | hw <;> addr_omega [hw, hi, hT, hIs, hb]
   have hin : PathIn s w (vecPtr u (phaseH s u) + BitVec.ofNat 64 (56 * 0))
       (vecPtr u (phaseH s u) + BitVec.ofNat 64 (56 * (u.getReg .x26).toNat)) w :=
     { pc := hl.pc
@@ -72,7 +77,8 @@ theorem merkle_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
       fr := DFrame.refl _ _
       heap := ⟨hnW ▸ hu.lo, hnW ▸ hu.hi⟩
       mono := le_refl _
-      rodata := MY.rodata hpre (hm.inv.rodata' hpre) hl.fr }
+      rodata := MY.rodata hpre (hm.inv.rodata' hpre) hl.fr
+      x23 := by rw [hl.x23, hw808] }
   obtain ⟨w3, r3, hd | ⟨PF, hw3⟩⟩ := paths_loop hT hRF hM hK hC hpre hPn hps hroot _ 0 w
     (Nat.sub_zero _) hn0 hin fun _ _ ↦ rfl
   · exact ⟨w3, r3, Or.inl (Or.inl hd)⟩
@@ -80,7 +86,7 @@ theorem merkle_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
   have fr3 : DFrame u w3 (MW s (heapNext u) (heapNext w3)) :=
     (MY.toMW hl.fr _ _).trans pf fun _ h ↦ Or.inr h
   have mono3 : heapNext u ≤ heapNext w3 := hnW ▸ PF.mono
-  rcases hw3 with hpc | ⟨hpc, rg3, roots⟩
+  rcases hw3 with hpc | ⟨hpc, rg3, x23₃, roots⟩
   · obtain ⟨w4, r4, h4⟩ := merkle_err hpre hm.inv hm.front.sp PF.sp (Or.inr (Or.inr (Or.inr hpc)))
       fr3 PF.heap mono3
     exact ⟨w4, r3.trans r4, Or.inl h4⟩
@@ -121,7 +127,9 @@ theorem merkle_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
     count := hs.count
     scanned := hs.scanned
     roots := fun i hi ↦ roots_keep hpre hu hl.fr (hsub i hi).1 (hsub i hi).2
-      (hP.leaves i (by omega)) (hP.sibs i (by omega)) (roots i (Nat.zero_le _) hi) }⟩
+      (hP.leaves i (by omega)) (hP.sibs i (by omega)) (roots i (Nat.zero_le _) hi)
+    x23 := by
+      rw [k4 .x23 (by simp), x23₃, kf (by addr_omega [hb]) (by addr_omega [hb]), hw808] }⟩
 
 /-- **The Merkle checks**, from `0x8000aa14`: their end at `0x8000b0dc`, an `Err` returned, or a
 dead end. -/

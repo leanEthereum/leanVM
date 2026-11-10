@@ -142,6 +142,12 @@ structure PendOk (u t : MachineState) (A : Word) (pend : List (List E × Model.P
     u.getMem (vecPtr u A + BitVec.ofNat 64 (80 * i) + 24) = 0xffffffffffffffff ∧
     VecOk u (vecPtr u A + BitVec.ofNat 64 (80 * i) + 24 + 8) 24 8
   fresh : ∀ y, PBufs u A y → heapNext t ≤ y.toNat ∧ y.toNat < heapNext u
+  /-- The claims' buffers miss the claims' own buffer. -/
+  self : ∀ i < (vecLen u A).toNat, ∀ y,
+    (Within y (vecPtr u (vecPtr u A + BitVec.ofNat 64 (80 * i)))
+        ((vecCap u (vecPtr u A + BitVec.ofNat 64 (80 * i))).toNat * 24) ∨
+      InBufs u (vecPtr u A + BitVec.ofNat 64 (80 * i) + 24) y) →
+    ¬ Within y (vecPtr u A) ((vecCap u A).toNat * 80)
 
 /-! ## At `0x8000a790` -/
 
@@ -177,8 +183,12 @@ structure Opened (s : MachineState) (x : LCtx) (h t u : MachineState) (ℓ : ℕ
     ((u.getReg .x31).toNat = 0 ∨ heapNext t ≤ (u.getReg .x1).toNat ∧
       (u.getReg .x1).toNat + 24 * (u.getReg .x31).toNat ≤ heapNext u)
   pnd : PendOk u t (s.getReg .x2 - 616) pend
+  /-- No residual, or no pending claims' buffer. -/
+  rsdp : (u.getReg .x31).toNat = 0 ∨ vecCap u (s.getReg .x2 - 616) = 0
   root : NR u (s.getReg .x2) d
   last : ℓ = K0 s + 1 → d = digestAt u (s.getReg .x11)
+  /-- The final level's residual has `2 ^ ml` elements. -/
+  rlen : ℓ = K0 s + 1 → res.length = 2 ^ (((s.getReg .x12).toNat - (Wl.folds ++ lf).length) % 64)
   value : RunsC s u ℓ (Model.Pcs.afterCommit (s.getReg .x12).toNat (cfgOf s) (basisOf s x) ℓ
     (fcOf s ℓ) (rtOf s ℓ) (restOf s ℓ) (Model.Pcs.foldSt Wl lf q).1 lf (res, pend))
     (nextRoots s ℓ d)

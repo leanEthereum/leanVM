@@ -12,9 +12,9 @@ import Rv64Verifier.Proofs.Walk.R20I
 `walkSpec`: `WalkSpecO OI` (`walk`'s contract, the proof's openings in place: `OpenPre`) from the
 front (`front`, DEREF to R9 by `derefToR10`) and the tail (`tail_of`), given what is still open:
 `verify_bus_balance`'s contract and its reading of the `Bytecode` (`BusBalanceSpec`, `BcWalk`),
-`verify_keccak`'s as `walk` calls it (`VerifyKeccakSpecE`, for R20; R19 and R20 are `r1920`),
-`extend_desugared`'s strengthened contract (`ExtendSpecE`) and `verify_stacked_opening`'s
-(`VsoSpec`). `openBridge` gives `verify_stacked_opening` the openings
+`verify_keccak`'s as `walk` calls it (`VerifyKeccakSpecE`, for R20; R19 and R20 are `r1920`)
+and `verify_stacked_opening`'s (`VsoSpec`); `walkSpec'` has `extend_desugared`'s strengthened
+contract (`ExtendSpecE`) proved (`Pcs.extendE`). `openBridge` gives `verify_stacked_opening` the openings
 `OI` places. `walkCall_of_walkO`: `main`'s view of it; the doublewords the openings read miss what
 `walk` writes (`openRO_of`): any of them shares a doubleword with a byte `main` gives apart from
 it, and `NEXT` is aligned once there are openings (`WalkCallPre.aligned`).
@@ -179,6 +179,14 @@ theorem walkSpec {BcOk : MachineState → Nat → Word → Prop}
       Runtime.Drop.drop_nop_spec Runtime.dropLayout cloneE Runtime.growAmortized Pcs.ringSwitch
       Runtime.alloc_spec hE hV openBridge (r1920 hVK))
 
+/-- **`walk`'s contract**, `extend_desugared`'s proved, given `verify_bus_balance`'s and its
+reading of the `Bytecode`, `verify_keccak`'s and `verify_stacked_opening`'s. -/
+theorem walkSpec' {BcOk : MachineState → Nat → Word → Prop}
+    {bev : MachineState → Word → List E → Option E} (hBB : Bus.BusBalanceSpec BcOk bev)
+    (hBW : Walk.BcWalk BcOk bev) (hVK : Walk.VerifyKeccakSpecE)
+    (hV : PcsContracts.VsoSpec Transcript.OpeningsAt) : Walk.WalkSpecO OI :=
+  walkSpec hBB hBW hVK Pcs.extendE hV
+
 end Rv64Verifier.Proofs.Final
 
 /-! Lean's three axioms, nothing native. -/
@@ -200,3 +208,6 @@ end Rv64Verifier.Proofs.Final
 
 /-- info: 'Rv64Verifier.Proofs.Final.walkSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Final.walkSpec
+
+/-- info: 'Rv64Verifier.Proofs.Final.walkSpec'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Final.walkSpec'

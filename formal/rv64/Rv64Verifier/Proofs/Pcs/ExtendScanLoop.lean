@@ -31,7 +31,7 @@ theorem skip_none {s : MachineState} {j : Nat} (hc : colAt s j < placementsLen s
   onStack_none s hc hb
 
 /-- After claim `j`, at `0x80009ca0`: the end, or the loop. -/
-theorem after {s u : MachineState} {j : Nat} (hpre : ExtendPre s) (hI : Inv s u (j + 1))
+theorem after {s u : MachineState} {j : Nat} (hpre : Walk.ExtendPreE s) (hI : Inv s u (j + 1))
     (hj : j < itCount s) (hpc : u.pc = 0x80009ca0) (hx12 : u.getReg .x12 = clAt s (j + 1))
     (hx10 : u.getReg .x10 = s.getMem (itLayout s + 112)) (hx11 : u.getReg .x11 = placementsPtr s) :
     ∃ v, Reaches Image.code u v ∧ (Exit s v ∨ Skip s v (j + 1)) := by
@@ -51,7 +51,7 @@ theorem after {s u : MachineState} {j : Nat} (hpre : ExtendPre s) (hI : Inv s u 
     rw [hx12, hI.x19]
     exact fun h' ↦ he ((clAt_end hf (by omega)).mp h')
 
-theorem skip_loop {s : MachineState} (hpre : ExtendPre s) : ∀ n j u, itCount s - j ≤ n →
+theorem skip_loop {s : MachineState} (hpre : Walk.ExtendPreE s) : ∀ n j u, itCount s - j ≤ n →
     Skip s u j →
     ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ Exit s v ∨ ∃ k, j ≤ k ∧ Push s v k) := by
   intro n
@@ -128,7 +128,7 @@ theorem skip_loop {s : MachineState} (hpre : ExtendPre s) : ∀ n j u, itCount s
       by rw [b80009cd4_x18 h₃, x12₂], by rw [b80009cd4_x25 h₃, x12₂, clAt_succ],
       by rw [k₃ .x13 (by decide), b80009cac_x13 h₂, hA], hcol, hbit, hj⟩)⟩
 
-theorem head_step {s u : MachineState} {j : Nat} (hpre : ExtendPre s) (hh : Head s u j) :
+theorem head_step {s u : MachineState} {j : Nat} (hpre : Walk.ExtendPreE s) (hh : Head s u j) :
     ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ Exit s v ∨ ∃ k, j ≤ k ∧ Push s v k) := by
   have hI := hh.inv
   have hj := hh.lt

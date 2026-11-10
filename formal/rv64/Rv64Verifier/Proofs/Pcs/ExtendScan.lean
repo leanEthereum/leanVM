@@ -76,7 +76,7 @@ theorem Inv.congr {s u v : MachineState} {j : Nat} (h : Inv s u j)
   refine ⟨?_, (hr .x8 (by simp)).trans h.x8, (hr .x9 (by simp)).trans h.x9,
     (hr .x19 (by simp)).trans h.x19, (hr .x20 (by simp)).trans h.x20,
     (hr .x21 (by simp)).trans h.x21, (hr .x22 (by simp)).trans h.x22,
-    (hr .x23 (by simp)).trans h.x23, (hr .x24 (by simp)).trans h.x24, ?_, ?_, ?_, ?_, h.le⟩
+    (hr .x23 (by simp)).trans h.x23, (hr .x24 (by simp)).trans h.x24, ?_, ?_, ?_, ?_, h.le, ?_, ?_⟩
   · rw [hm]; exact h.p.same hm hsp fun r hr ↦ by simp at hr
   · exact ⟨by simp only [RawVecOk, Buf, hP, hC, hn]; exact h.vec.raw,
       by rw [hL, hC]; exact h.vec.len⟩
@@ -88,6 +88,12 @@ theorem Inv.congr {s u v : MachineState} {j : Nat} (h : Inv s u j)
     exact (hcl i hi).2
   · rw [← h.value, stackClaimsAt, stackClaimsAt, hP, hL]
     exact claimsAt_congr fun i hi ↦ (hcl i hi).1
+  · intro i hi k hk
+    rw [hP, hm]
+    exact h.words i hi k hk
+  · intro i h1 h2
+    rw [hL] at h2
+    exact heapBuf_move (hm _) (hm _) (le_of_eq hn.symm) (by rw [hP]; exact h.added i h1 h2)
 
 /-- Claim `j` skipped. -/
 theorem Inv.skip {s u : MachineState} {j : Nat} (h : Inv s u j) (hj : j < itCount s)
@@ -107,7 +113,7 @@ structure Facts (s : MachineState) : Prop where
   layout : Region (itLayout s) 192
   stop : (itEnd s).toNat = (itCur s).toNat + 56 * itCount s
 
-theorem facts {s : MachineState} (hpre : ExtendPre s) (hc : 0 < itCount s) : Facts s := by
+theorem facts {s : MachineState} (hpre : Walk.ExtendPreE s) (hc : 0 < itCount s) : Facts s := by
   refine ⟨hpre.claims.region.resolve_left (by omega), hpre.layout.region.resolve_left (by decide), ?_⟩
   have := hpre.bounds
   simp only [itCount] at hc ⊢
@@ -123,22 +129,22 @@ theorem clAt_end {s : MachineState} (hf : Facts s) {m : Nat} (hm : m ≤ itCount
   · intro h
     addr_omega [h, hb, he, hm]
 
-theorem rd_col {s u : MachineState} {j k : Nat} (hpre : ExtendPre s) (hf : Facts s) (h : Inv s u j)
+theorem rd_col {s u : MachineState} {j k : Nat} (hpre : Walk.ExtendPreE s) (hf : Facts s) (h : Inv s u j)
     (hk : k < itCount s) : u.getMem (clAt s k + 24) = s.getMem (clAt s k + 24) := by
   have hb := Region.bounds hf.claims
   exact h.read hpre.claims hpre.claimsOff (by addr_omega [hb, hk]) (by addr_omega [hb, hk])
 
-theorem rd_layout {s u : MachineState} {j : Nat} (hpre : ExtendPre s) (hf : Facts s)
+theorem rd_layout {s u : MachineState} {j : Nat} (hpre : Walk.ExtendPreE s) (hf : Facts s)
     (h : Inv s u j) {o : Word} (ho : o.toNat + 8 ≤ 192) :
     u.getMem (itLayout s + o) = s.getMem (itLayout s + o) := by
   have hb := Region.bounds hf.layout
   exact h.read hpre.layout hpre.layoutOff (by addr_omega [hb, ho]) (by addr_omega [hb, ho])
 
-theorem pl_region {s : MachineState} (hpre : ExtendPre s) {k : Nat}
+theorem pl_region {s : MachineState} (hpre : Walk.ExtendPreE s) {k : Nat}
     (hk : colAt s k < placementsLen s) : Region (placementsPtr s) (24 * placementsLen s) :=
   hpre.placements.region.resolve_left (by omega)
 
-theorem rd_pl {s u : MachineState} {j k : Nat} (hpre : ExtendPre s) (h : Inv s u j)
+theorem rd_pl {s u : MachineState} {j k : Nat} (hpre : Walk.ExtendPreE s) (h : Inv s u j)
     (hk : colAt s k < placementsLen s) : u.getMem (plAt s k) = s.getMem (plAt s k) := by
   have hb := Region.bounds (pl_region hpre hk)
   exact h.read hpre.placements hpre.placementsOff (by simp only [plAt]; addr_omega [hb, hk])

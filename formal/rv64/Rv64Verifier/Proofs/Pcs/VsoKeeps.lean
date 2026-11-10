@@ -50,6 +50,30 @@ theorem Keeps.nextScalars : ∀ n, Keeps (TM.nextScalars n)
   | n + 1 => Keeps.bind Keeps.nextScalar fun _ ↦ Keeps.bind (Keeps.nextScalars n) fun _ ↦
       Keeps.pure _
 
+theorem nextScalars_len : ∀ (n : ℕ) (t : TState) (xs : List E) (t' : TState),
+    (TM.nextScalars n).run t = some (xs, t') → xs.length = n
+  | 0, t, xs, t', h => by
+    cases (Option.some.inj h : (([] : List E), t) = (xs, t'))
+    rfl
+  | n + 1, t, xs, t', h => by
+    simp only [TM.nextScalars] at h
+    rw [StateT.run_bind] at h
+    cases h1 : TM.nextScalar.run t with
+    | none => rw [h1] at h; cases h
+    | some p =>
+      obtain ⟨x, t1⟩ := p
+      rw [h1] at h
+      change (TM.nextScalars n >>= fun ys ↦ (Pure.pure (x :: ys) : TM (List E))).run t1 =
+        some (xs, t') at h
+      rw [StateT.run_bind] at h
+      cases h2 : (TM.nextScalars n).run t1 with
+      | none => rw [h2] at h; cases h
+      | some p2 =>
+        obtain ⟨ys, t2⟩ := p2
+        rw [h2] at h
+        cases (Option.some.inj h : ((x :: ys), t2) = (xs, t'))
+        simp [nextScalars_len n t1 ys _ h2]
+
 theorem Keeps.samples : ∀ n, Keeps (TM.samples n)
   | 0 => Keeps.pure _
   | n + 1 => Keeps.bind Keeps.sample fun _ ↦ Keeps.bind (Keeps.samples n) fun _ ↦ Keeps.pure _

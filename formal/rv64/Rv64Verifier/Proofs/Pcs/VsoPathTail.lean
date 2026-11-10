@@ -66,6 +66,7 @@ structure PathOut (s u0 : MachineState) (p E R : Word) (u v : MachineState) : Pr
   mono : heapNext u ≤ heapNext v
   next : v.pc = 0x8000b8d4 ∨ (v.pc = 0x8000ab2c ∧ v.getReg .x22 = p ∧ v.getReg .x25 = E ∧
     (∀ r ∈ [Reg.x9, .x26], v.getReg r = u.getReg r) ∧ PathRoot u0 p R)
+  x23 : v.getReg .x23 = v.getMem (s.getReg .x2 - 808)
 
 theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC : MemcmpSpec)
     {s u0 u v : MachineState} {p E R : Word} (hpre : VsoPre s) (hp : PathOk s u0 p)
@@ -110,8 +111,10 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
   · -- no siblings
     obtain ⟨t2, r2, hv2⟩ := cmpB hC hpre (R := R)
       (b8000abcc_pc_taken h1 (by rw [hh.x22, e40, hm0])) (by rw [k1 .x2 (by decide), hsp])
-      (by rw [m1]; exact hslot) hR.region
-    rcases hv2 with hd | ⟨m2, sp2, k2, x22₂, hnext⟩
+      (by rw [m1]; exact hslot) hR.region (by
+        rw [k1 .x23 (by decide), hh.x23, hin.x23, m1,
+          PW.k808 hpre hh.fr hvhi])
+    rcases hv2 with hd | ⟨m2, sp2, k2, x23₂, x22₂, hnext⟩
     · exact ⟨t2, r1.trans r2, Or.inl hd⟩
     have hn2 : heapNext t2 = heapNext v := by simp only [heapNext, m2, m1]
     refine ⟨t2, r1.trans r2, Or.inr {
@@ -121,7 +124,8 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
         exact hh.fr.trans (DFrame.of_same (fun a ↦ by rw [m2, m1]) _) fun _ h ↦ h
       heap := ⟨by rw [hn2]; exact hh.heap.lo, by rw [hn2]; exact hh.heap.hi⟩
       mono := by rw [hn2]; exact hh.mono
-      next := ?_ }⟩
+      next := ?_
+      x23 := by rw [x23₂, m2] }⟩
     rcases hnext with h | ⟨hpc, heq⟩
     · exact Or.inl h
     refine Or.inr ⟨hpc, by rw [x22₂, k1 .x22 (by decide), hh.x22],
@@ -202,7 +206,7 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
         | addr_omega [hw', hi, hm, hnx]
         | addr_omega [hw2, hi, hm, hvhi]]
     exact hR.slot) hR.region
-  rcases hv4 with hd | ⟨m4, sp4, k4, x22₄, hnext⟩
+  rcases hv4 with hd | ⟨m4, sp4, k4, x23₄, x22₄, hnext⟩
   · exact ⟨t4, r1.trans (r2.trans (r3.trans r4)), Or.inl hd⟩
   have nx3 : t3.getMem nextAddr = t2.getMem nextAddr := hcl.fr _ fun i hi hw' ↦ by
     rcases hw' with hw' | hw' | hw' | hw' <;> addr_omega [hw', hi, hm, hnx]
@@ -222,7 +226,8 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
       exact hh.fr.trans d fun a h ↦ h.mono hh.mono (Nat.le_refl _)
     heap := ⟨by rw [hn4]; exact hh.heap.lo, by rw [hn4]; exact hh.heap.hi⟩
     mono := by rw [hn4]; exact hh.mono
-    next := ?_ }⟩
+    next := ?_
+    x23 := by rw [x23₄, m4] }⟩
   rcases hnext with h | ⟨hpc, heq⟩
   · exact Or.inl h
   refine Or.inr ⟨hpc, by rw [x22₄, hcl.regs .x24 (by simp), b8000abd4_x24 h2, x22₁],

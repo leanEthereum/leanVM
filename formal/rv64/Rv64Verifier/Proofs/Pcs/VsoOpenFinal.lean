@@ -15,6 +15,11 @@ open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Contracts Rv64Verifier.Runtim
   LeanVM.Protocol
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
+/-- A transcript the machine's stands for. -/
+theorem exists_TA (s : MachineState) (p : Word) : ∃ T, TranscriptAt s p T :=
+  ⟨⟨⟨eListAt s (streamPtr s p) (streamLen s p), []⟩, spongeAt s (p + 8),
+    (s.getMem (p + 344)).toNat, (s.getMem (p + 352)).toNat, []⟩, rfl, rfl, rfl, rfl⟩
+
 /-! ## The invariant through the opening's steps -/
 
 /-- A step writing only the frame below the saved registers keeps the invariant. -/
@@ -241,6 +246,8 @@ structure LastNS (s : MachineState) (x : LCtx) (h t u w : MachineState) (ℓ : �
   ok : vecCap w (s.getReg .x2 - 384) ≠ errNiche → VecOk w (s.getReg .x2 - 384) 24 8 ∧
     NewBuf t w (vecPtr w (s.getReg .x2 - 384)) ((vecCap w (s.getReg .x2 - 384)).toNat * 24) 8
   dig : digestAt w (s.getReg .x11) = digestAt u (s.getReg .x11)
+  len : vecCap w (s.getReg .x2 - 384) ≠ errNiche → (vecEs w (s.getReg .x2 - 384)).length =
+    2 ^ (((s.getReg .x12).toNat - (Wl.folds ++ lf).length) % 64)
   value : vecCap w (s.getReg .x2 - 384) ≠ errNiche →
     RunsC s w ℓ (Model.Pcs.afterCommit (s.getReg .x12).toNat (cfgOf s) (basisOf s x) ℓ
       (fcOf s ℓ) (rtOf s ℓ) (restOf s ℓ) (Model.Pcs.foldSt Wl lf q).1 lf
@@ -386,6 +393,19 @@ theorem lastCall (hNS : NextScalarsSpec) {s : MachineState} {x : LCtx} {h t u : 
       have := (hok₃ hne).2; simp only [NewBuf] at this ⊢; rw [← hn₂]; exact this⟩
     dig := d₂₃.trans (digest_keep X₂ (root_bound hpre) fun y hy hw ↦ by
       rcases hw with hw | hw <;> addr_omega [hy, hw, hrst, hb])
+    len := fun herr ↦ by
+      obtain ⟨T0, hT0⟩ := exists_TA t₂ (s.getReg .x10)
+      have hv := hval₃ T0 hT0
+      rw [hn] at hv
+      cases hrun : (Model.TM.nextScalars (2 ^ (((s.getReg .x12).toNat -
+          (Model.Pcs.foldSt Wl lf q).1.folds.length) % 64))).run T0 with
+      | none => rw [hrun] at hv; exact absurd hv herr
+      | some p =>
+        obtain ⟨xs, T'⟩ := p
+        rw [hrun] at hv
+        obtain ⟨-, hnew, -⟩ := hv
+        rw [hnew.elems]
+        exact Model.Pcs.nextScalars_len _ T0 xs T' hrun
     value := fun herr ↦ V₂.bind (v := t₃) (nx' := []) (vecEs t₃ (s.getReg .x2 - 384)) d₂₃ fun T hT ↦ by
       have hv := hval₃ T hT
       rw [hn] at hv
@@ -565,6 +585,7 @@ theorem lastClose {s : MachineState} {x : LCtx} {h t u t₃ : MachineState} {ℓ
     m128 := by rw [kU _ (by addr_omega [hb]), ha.m128]
     m168 := by rw [kU _ (by addr_omega [hb]), ha.m168]; addr_omega [hle]
     m248 := by rw [kU _ (by addr_omega [hb]), ha.m248]
+    rsdp := Or.inr c0
     rsd := ⟨by rw [x1₅, x31₅]; exact hres, by rw [x1₅]; exact hraw.1, by
       rw [x1₅, x31₅]
       rcases hnb.2 with h0 | h0
@@ -579,12 +600,14 @@ theorem lastClose {s : MachineState} {x : LCtx} {h t u t₃ : MachineState} {ℓ
         rcases hy with hy | ⟨i, hi, -⟩
         · have hc0 : (vecCap t₅ (s.getReg .x2 - 616)).toNat = 0 := by rw [c0]; rfl
           simp only [Within] at hy; omega
-        · rw [l0] at hi; exact absurd hi (Nat.not_lt_zero _) }
+        · rw [l0] at hi; exact absurd hi (Nat.not_lt_zero _)
+      self := fun i hi ↦ by rw [l0] at hi; exact absurd hi (Nat.not_lt_zero _) }
     root := ⟨by rw [kU _ (by addr_omega [hb]), g0]; exact ha.low,
       by rw [e96, w96, g0, g1], by rw [e88, w88, g1, g2],
       by rw [e120, X₅ _ fun i hi hw ↦ by addr_omega [hw, hi, hb, sp₄], B₄.m120, zb7, g2],
       by rw [e104, w104, g3]⟩
     last := fun _ ↦ hdig.symm
+    rlen := fun _ ↦ lw.len herr
     value := V₅ }⟩⟩
   · exact (ha.fr.mono fun a ha ↦ by
       rcases ha with ha | ha | ha | ha | ha | ha | ha

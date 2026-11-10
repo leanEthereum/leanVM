@@ -38,6 +38,8 @@ structure Merkled (s : MachineState) (x : LCtx) (h t u v w m : MachineState) (�
   value : RunsK s m ℓ 1 (Model.Pcs.afterWords (s.getReg .x12).toNat (cfgOf s) (basisOf s x) ℓ
     (restOf s ℓ) (Model.Pcs.foldSt Wl lf q).1 lf res pend (eAt w (s.getReg .x2 - 384)) qs
     (wordsAt s w)) (nextRoots s ℓ d)
+  /-- The residual's buffer and length, spilled by the grinding. -/
+  rs : v.getMem (s.getReg .x2 - 968) = u.getReg .x1 ∧ v.getMem (s.getReg .x2 - 960) = u.getReg .x31
 
 /-- The level's query depth fits a shift. -/
 theorem mr_lt {s : MachineState} {QP QL : Word} (hc : Cfg s QP QL) {ℓ : ℕ} (hlt : ℓ < K0 s + 2)
@@ -226,7 +228,7 @@ theorem levelMerkle (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpe
   obtain ⟨s184, s192, s200, s208, s216, s224, s240, s256⟩ := ho.slots hpre
   obtain ⟨v, r1, hv⟩ := queriesU hD hA hTA hpre hc ho.fo.head.cfg.config ho.inv ho.pc hlt hmr s184
     s240 s192 s208 ho.m168 s216 s224 ho.m248
-  rcases hv with hv | ⟨cnt, qs, hcnt, hql, -, hq, hrun, -, -⟩
+  rcases hv with hv | ⟨cnt, qs, hcnt, hql, -, hq, hrun, hs1, hs2⟩
   · exact ⟨v, r1, Or.inl hv⟩
   obtain ⟨w, r2, hw⟩ := lamPowersU hD hP hpre hq.inv hq.pc
     ((hq.keep hpre 792 (by decide)).trans ho.m248) hq.x20
@@ -241,12 +243,28 @@ theorem levelMerkle (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpe
   have hmi : MerkleIn s w ℓ (fcOf s ℓ) :=
     merkleIn_of hpre hOM hl0.inv hl0.pc hl0.sp (by rw [hl0.regs .x20 (by decide), hq.x20])
       ((kw 856 (by decide)).trans s184) ((kw 784 (by decide)).trans s256) (by omega)
-      (by rw [hf]; split <;> omega) ((kw 840 (by decide)).trans s200) hqb
+      (by rw [hf]; split <;> omega) ((kw 840 (by decide)).trans s200) hqb (by
+        have hb := bounds hpre
+        obtain ⟨hnx, -⟩ := sfacts hpre
+        have hS := Region.bounds hpre.self.ok.self
+        have hIs := hpre.self.stack
+        rw [stackLo_vso, vso_stack] at hIs
+        have hhi := (hl0.inv.heap hpre.heap).hi
+        rw [hl0.regs .x23 (by decide), hq.x23]
+        refine (hl0.fr _ fun i hi hw ↦ ?_).symm
+        rcases hw with hw | hw | hw | hw | hw | hw | hw
+        · addr_omega [hw, hi, hS, hIs, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb, hnx]
+        · simp only [Fresh] at hw; addr_omega [hw.2, hi, hb, hhi])
   obtain ⟨m, r3, hm⟩ := merkle hTA hRF hM hK hC hpre hmi
   rcases hm with hm | hout
   · exact ⟨m, r1.trans (r2.trans r3), Or.inl hm⟩
   refine ⟨m, r1.trans (r2.trans r3), Or.inr ⟨v, w, qs, ho, hq, hql ▸ hcnt, ⟨T0, hl0⟩, hmi, hout,
-    hqsw, ?_⟩⟩
+    hqsw, ?_, hs1, hs2⟩⟩
   have V0 := ho.value.toK
   rw [afterCommit_split hcnt] at V0
   have V1 : RunsK s v ℓ 0 (Model.Pcs.afterQueries (s.getReg .x12).toNat (cfgOf s) (basisOf s x) ℓ

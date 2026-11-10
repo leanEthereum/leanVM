@@ -683,6 +683,7 @@ theorem pushPend {s : MachineState} {x : LCtx} {h t u v w r g : MachineState} {�
     m168 := by rw [kU _ (by addr_omega [hb]), ha.m168]; addr_omega [hle]
     m248 := by rw [kU _ (by addr_omega [hb]), ha.m248]
     rsd := by rw [b8000a754_x1 h₃, b8000a754_x31 h₃]; exact ⟨rfl, rfl, Or.inl rfl⟩
+    rsdp := Or.inl (by rw [b8000a754_x31 h₃]; rfl)
     pnd := {
       vec := ⟨by
           simp only [RawVecOk, Buf]; rw [hpz, hcz]
@@ -727,13 +728,26 @@ theorem pushPend {s : MachineState} {x : LCtx} {h t u v w r g : MachineState} {�
             rcases hnbI.2 with h0 | h0 <;> omega
           · rw [InBufs, ite_eq_left_of_eq_true _ _ (eq_true hm24), a32, oP, oL] at hy
             simp only [Within] at hy
-            rcases hnbP.2 with h0 | h0 <;> omega }
+            rcases hnbP.2 with h0 | h0 <;> omega
+      self := fun i hi y hy ↦ by
+        rw [hlz] at hi
+        obtain rfl : i = 0 := by omega
+        rw [hpz, e0] at hy
+        rw [hpz, hcz]
+        rcases hy with hy | hy
+        · rw [iP, iC] at hy
+          simp only [Within] at hy ⊢
+          rcases hnbI.2 with h0 | h0 <;> omega
+        · rw [InBufs, ite_eq_left_of_eq_true _ _ (eq_true hm24), a32, oP, oL] at hy
+          simp only [Within] at hy ⊢
+          rcases hnbP.2 with h0 | h0 <;> omega }
     root := ⟨by rw [kz _ (Or.inr (Or.inl (by addr_omega [hb])))]; exact hR.1,
       by rw [kz _ (Or.inl (by addr_omega [hb]))]; exact hR.2.1,
       by rw [kz _ (Or.inl (by addr_omega [hb]))]; exact hR.2.2.1,
       by rw [kz _ (Or.inl (by addr_omega [hb]))]; exact hR.2.2.2.1,
       by rw [kz _ (Or.inl (by addr_omega [hb]))]; exact hR.2.2.2.2⟩
     last := fun h' ↦ absurd h' hl
+    rlen := fun h' ↦ absurd h' hl
     value := V₃ }⟩
 
 /-- **A level's opening**, from the fold rounds' end `t` (`0x8000a304`) to `0x8000a790`, or an

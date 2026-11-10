@@ -31,6 +31,22 @@ structure PathOk (s u0 : MachineState) (p : Word) : Prop where
       Safe s (heapNext u0) (alignToDword (vecPtr u0 (p + 24)))
         (sibSpan (vecPtr u0 (p + 24)) (vecLen u0 (p + 24)).toNat)
 
+/-- `S - 808`, the running quadratic's length, misses what the Merkle checks write. -/
+theorem PW.k808 {s u v : MachineState} {lo hi : ℕ} (hpre : VsoPre s) (hf : DFrame u v (PW s lo hi))
+    (hhi : hi ≤ heapEnd) : v.getMem (s.getReg .x2 - 808) = u.getMem (s.getReg .x2 - 808) := by
+  have hm := stack_mapped hpre
+  have hnx := hpre.stack.next
+  rw [stackLo_vso, vso_stack] at hnx
+  refine hf _ fun i hi hw ↦ ?_
+  rcases hw with (hw | hw | hw | hw) | hw | hw | ⟨hw1, hw2⟩
+  · addr_omega [hw, hi, hm]
+  · addr_omega [hw, hi, hm]
+  · addr_omega [hw, hi, hm]
+  · addr_omega [hw, hi, hm]
+  · addr_omega [hw, hi, hm]
+  · addr_omega [hw, hi, hm, hnx]
+  · simp only [heapEnd] at hhi; addr_omega [hw2, hi, hm, hhi]
+
 /-- At `0x8000ab38`, before path `p`, what the loop wrote since `u0`. -/
 structure PathIn (s u0 : MachineState) (p E : Word) (u : MachineState) : Prop where
   pc : u.pc = 0x8000ab38
@@ -41,6 +57,7 @@ structure PathIn (s u0 : MachineState) (p E : Word) (u : MachineState) : Prop wh
   heap : HeapOk u
   mono : heapNext u0 ≤ heapNext u
   rodata : RodataOk u
+  x23 : u.getReg .x23 = u.getMem (s.getReg .x2 - 808)
 
 /-- A doubleword of the header is `u0`'s. -/
 theorem PathIn.hdrWord {s u0 u : MachineState} {p E : Word} (hpre : VsoPre s)
@@ -71,6 +88,7 @@ structure LeafAlloc (s u0 : MachineState) (p E : Word) (u w : MachineState) (B :
   fr : DFrame u w (PW s (heapNext u) (heapNext w))
   heap : HeapOk w
   mono : heapNext u ≤ heapNext w
+  x23 : w.getReg .x23 = u.getReg .x23
 
 theorem allocLeaf (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
     {s u0 u : MachineState} {p E : Word} (hpre : VsoPre s) (hp : PathOk s u0 p)
@@ -178,6 +196,7 @@ theorem allocLeaf (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
       rcases hr with rfl | rfl
       · rw [kk .x9 (by simp), k1 .x9 (by decide)]
       · rw [kk .x26 (by simp), k1 .x26 (by decide)]
+    x23 := by rw [pr5.reg _, k4 _ (by decide), k3 _ (by decide), pr2.reg _, k1 _ (by decide)]
     ptr := by rw [m5, v1]
     len := by rw [m5, v2]
     buf := by
@@ -200,6 +219,7 @@ structure Hashed (s u0 : MachineState) (p E : Word) (u v : MachineState) : Prop 
   mono : heapNext u ≤ heapNext v
   node : Contracts.bytesAt v (s.getReg .x2 - 160) 32 =
     Model.keccakHashRust (Contracts.bytesAt u0 (vecPtr u0 p) (8 * (vecLen u0 p).toNat))
+  x23 : v.getReg .x23 = u.getReg .x23
 
 theorem copyHash (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec)
     {s u0 u w : MachineState} {p E B : Word} (hpre : VsoPre s) (hp : PathOk s u0 p)
@@ -327,6 +347,9 @@ theorem copyHash (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec)
     fr := frB
     heap := ⟨by rw [hn6]; exact ha.heap.lo, by rw [hn6]; exact hwhi⟩
     mono := by rw [hn6]; exact ha.mono
-    node := by rw [by6, hleaf] }⟩
+    node := by rw [by6, hleaf]
+    x23 := by
+      rw [pr6.reg _, k5 _ (by decide), k4 _ (by decide), pr3.reg _, k2 _ (by decide),
+        k1 _ (by decide), ha.x23] }⟩
 
 end Rv64Verifier.Proofs.Pcs.Vso

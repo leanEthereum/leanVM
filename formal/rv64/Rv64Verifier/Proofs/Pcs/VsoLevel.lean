@@ -322,6 +322,12 @@ def InBufs (u : MachineState) (a y : Word) : Prop :=
   else Within y (vecPtr u a) (8 * (vecLen u a).toNat) ∨
     Within y (vecPtr u (a + 24)) (24 * (vecLen u (a + 24)).toNat)
 
+/-- The weight at `a`'s buffers are aligned: the out-of-domain point's, or the queries' and their
+weights'. -/
+def WeightAligned (u : MachineState) (a : Word) : Prop :=
+  if u.getMem a = 0xffffffffffffffff then (vecPtr u (a + 8)).toNat % 8 = 0
+  else (vecPtr u a).toNat % 8 = 0 ∧ (vecPtr u (a + 24)).toNat % 8 = 0
+
 /-- The `n`-th glued claim's address. -/
 @[rv_addr] def gAddr (u : MachineState) (s : MachineState) (i : ℕ) : Word :=
   vecPtr u (s.getReg .x2 - 664) + BitVec.ofNat 64 (88 * i)
@@ -431,6 +437,8 @@ structure Head (s : MachineState) (x : LCtx) (u : MachineState) (ℓ : ℕ)
     ¬ Within y (vecPtr u (s.getReg .x2 - 688)) ((vecCap u (s.getReg .x2 - 688)).toNat * 24) ∧
     ¬ Within y (vecPtr u (s.getReg .x2 - 664)) ((vecCap u (s.getReg .x2 - 664)).toNat * 88) ∧
     ¬ Within y (u.getReg .x22) (24 * (u.getReg .x23).toNat)
+  /-- And aligned. -/
+  aligned : ∀ i < (vecLen u (s.getReg .x2 - 664)).toNat, WeightAligned u (gAddr u s i)
   value : Runs s u ℓ (levelsFrom s x ℓ Wl)
 
 theorem K0_lt (s : MachineState) : K0 s + 2 < 2 ^ 64 := by
@@ -531,6 +539,7 @@ theorem init {s b c : MachineState} {nxb QP QL FP RP : Word} (hpre : VsoPre s)
       rw [k .x22 (by decide), k .x23 (by decide), hn]; exact hq⟩
     apart := ⟨Or.inl (by rw [m352]; rfl), Or.inl (by rw [m352]; rfl), Or.inl (by rw [m376]; rfl)⟩
     frozen := fun i hi ↦ by rw [m392] at hi; exact absurd hi (Nat.not_lt_zero _)
+    aligned := fun i hi ↦ by rw [m392] at hi; exact absurd hi (Nat.not_lt_zero _)
     value := fun T hT _ hroots ↦ by
       obtain ⟨T', e, hT', -, p, r, o⟩ := hc.value T hT
       refine ⟨T', e, tr_keep hpre hc.inv.toR hT' X fun a ha ↦ Or.inl (by

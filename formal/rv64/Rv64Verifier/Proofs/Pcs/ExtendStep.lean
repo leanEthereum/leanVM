@@ -40,7 +40,7 @@ theorem stepW_wr {s u : MachineState} {j : Nat} (hI : Inv s u j) {nx x : Word}
   · have := spare_heap hI h
     exact Or.inr (Or.inr (Or.inr ⟨this.1, by omega⟩))
 
-theorem stepW_slot {s u : MachineState} {j : Nat} (hpre : ExtendPre s) (hI : Inv s u j)
+theorem stepW_slot {s u : MachineState} {j : Nat} (hpre : Walk.ExtendPreE s) (hI : Inv s u j)
     {nx x : Word} (hnx : nx.toNat ≤ heapEnd) (hx : StepW s u nx x) :
     ¬ Within x (s.getReg .x2 - BitVec.ofNat 64 104) 104 := by
   have hb := sbounds hpre

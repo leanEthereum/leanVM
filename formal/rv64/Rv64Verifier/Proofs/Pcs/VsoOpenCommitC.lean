@@ -14,11 +14,6 @@ open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Contracts Rv64Verifier.Runtim
   LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
-/-- A transcript the machine's stands for. -/
-theorem exists_TA (s : MachineState) (p : Word) : ∃ T, TranscriptAt s p T :=
-  ⟨⟨⟨eListAt s (streamPtr s p) (streamLen s p), []⟩, spongeAt s (p + 8),
-    (s.getMem (p + 344)).toNat, (s.getMem (p + 352)).toNat, []⟩, rfl, rfl, rfl, rfl⟩
-
 /-- At `0x8000a630`, from `u` at `0x8000a534`: the next root `d` in the frame, the
 out-of-domain point at `S - 560`. -/
 structure CommitS (s : MachineState) (x : LCtx) (h t u v : MachineState) (ℓ : ℕ)

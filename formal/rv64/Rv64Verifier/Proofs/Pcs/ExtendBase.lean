@@ -1,4 +1,4 @@
-import Rv64Verifier.Proofs.Pcs.Contracts
+import Rv64Verifier.Proofs.Pcs.ExtendContracts
 import Rv64Verifier.Blocks.F37
 
 /-!

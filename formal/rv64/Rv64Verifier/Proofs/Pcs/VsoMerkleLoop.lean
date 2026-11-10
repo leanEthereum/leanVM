@@ -93,6 +93,7 @@ structure LoopIn (s u w : MachineState) (ℓ : ℕ) : Prop where
   s18 : w.getMem (s.getReg .x2 - 992) = u.getReg .x18
   s25 : w.getMem (s.getReg .x2 - 984) = u.getReg .x25
   s24 : w.getMem (s.getReg .x2 - 976) = u.getReg .x24
+  x23 : w.getReg .x23 = u.getMem (s.getReg .x2 - 808)
 
 /-- **From the scans' end**: an empty phase done, or the path loop's start. -/
 theorem merkle_enter {s u t v : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (hm : MerkleIn s u ℓ fc)
@@ -130,6 +131,8 @@ theorem merkle_enter {s u t v : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (
     rw [kw r (mem_of_mem hr _), kvu r (mem_of_mem hr _) (mem_of_mem hr _)]
   have x22 : w.getReg .x22 = vecPtr u (phaseH s u) := by
     rw [kw .x22 (by decide), hs.regs .x22 (by decide), hF.x22]; rfl
+  have x23 : w.getReg .x23 = u.getMem (s.getReg .x2 - 808) := by
+    rw [kw .x23 (by decide), kvu .x23 (by decide) (by decide), hm.x23]
   rcases hw with ⟨pc, x20, h0⟩ | ⟨pc, hne, hH⟩
   · refine ⟨w, r, Or.inl {
       pc := pc
@@ -152,7 +155,8 @@ theorem merkle_enter {s u t v : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (
       scanned := hs.scanned
       roots := fun i hi ↦ by
         rw [← kvu .x26 (by decide) (by decide), h0] at hi
-        exact absurd hi (Nat.not_lt_zero _) }⟩
+        exact absurd hi (Nat.not_lt_zero _)
+      x23 := x23 }⟩
   · refine ⟨w, r, Or.inr {
       pc := pc
       fr := frW
@@ -168,7 +172,8 @@ theorem merkle_enter {s u t v : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (
       s19 := by rw [sl.x19, kvu .x19 (by decide) (by decide)]
       s18 := by rw [sl.x18, kvu .x18 (by decide) (by decide)]
       s25 := by rw [sl.x25, kvu .x25 (by decide) (by decide)]
-      s24 := by rw [sl.x24, kvu .x24 (by decide) (by decide)] }⟩
+      s24 := by rw [sl.x24, kvu .x24 (by decide) (by decide)]
+      x23 := x23 }⟩
 
 /-- A path's root, checked at the path loop's start, holds of `u`. -/
 theorem roots_keep {s u w : MachineState} {p : Word} (hpre : VsoPre s) (hu : HeapOk u)

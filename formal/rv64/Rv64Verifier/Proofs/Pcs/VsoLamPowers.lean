@@ -35,6 +35,9 @@ structure LamOut (s u w : MachineState) (T : Model.TState) : Prop where
   len : vecLen w (s.getReg .x2 - 488) = u.getReg .x26
   elems : vecEs w (s.getReg .x2 - 488) = Verifier.powers (spSqueeze T.sponge).1 (u.getReg .x26).toNat
   fresh : NewBuf u w (vecPtr w (s.getReg .x2 - 488)) (24 * (u.getReg .x26).toNat) 8
+  /-- `lam`'s limbs, also in `s8`, `s9`, `s2`. -/
+  limbs : w.getMem (s.getReg .x2 - 384) = w.getReg .x24 ∧
+    w.getMem (s.getReg .x2 - 376) = w.getReg .x25 ∧ w.getMem (s.getReg .x2 - 368) = w.getReg .x18
 
 /-- **`lam` drawn and its powers**, from `0x8000a9d8` to `0x8000aa14`. -/
 theorem lamPowers (hD : DuplexSpec) (hP : PowersSpec) {s u : MachineState} {T : Model.TState}
@@ -225,12 +228,33 @@ theorem lamPowers (hD : DuplexSpec) (hP : PowersSpec) {s u : MachineState} {T : 
     vec := by have := hpost₄.vec; rw [hx10₃] at this; exact this
     len := by have := hpost₄.len; rw [hx10₃, hx12₃] at this; exact this
     elems := by have := hpost₄.elems; rw [hx10₃, hx11₃, hx12₃, hlam] at this; exact this
-    fresh := ?_ }⟩
-  have h' := hpost₄.fresh
-  rw [hx10₃, hx12₃] at h'
-  simp only [NewBuf, heapNext] at h' ⊢
-  simp only [heapNext] at hn₃
-  rw [hn₃] at h'
-  exact h'
+    fresh := ?_
+    limbs := ?_ }⟩
+  · have h' := hpost₄.fresh
+    rw [hx10₃, hx12₃] at h'
+    simp only [NewBuf, heapNext] at h' ⊢
+    simp only [heapNext] at hn₃
+    rw [hn₃] at h'
+    exact h'
+  have kp (y : Word) (hy : (s.getReg .x2 - 384).toNat ≤ y.toNat ∧
+      y.toNat + 8 ≤ (s.getReg .x2 - 360).toNat) : t₄.getMem y = t₃.getMem y :=
+    X₄ _ fun i hi hw ↦ by
+      rcases hw with hw | hw | hw | hw
+      · addr_omega [hw, hi, hb, hy]
+      · addr_omega [hw, hi, hb, hy]
+      · addr_omega [hw, hi, hb, hnx, hy]
+      · simp only [Fresh, heapNext] at hw; addr_omega [hw.2, hi, hb, hfit, hy]
+  have m0 := b8000a9e8_m_x2_656 h₃
+  have m1 := b8000a9e8_m_x2_664 h₃
+  have m2 := b8000a9e8_m_x2_672 h₃
+  rw [sp₂] at m0 m1 m2
+  rv_eval [] at m0 m1 m2
+  refine ⟨?_, ?_, ?_⟩
+  · rw [kp _ (by addr_omega [hb]), hpres₄ .x24 (by decide), b8000a9e8_x24 h₃]
+    rv_eval [m0]
+  · rw [kp _ (by addr_omega [hb]), hpres₄ .x25 (by decide), b8000a9e8_x25 h₃]
+    rv_eval [m1]
+  · rw [kp _ (by addr_omega [hb]), hpres₄ .x18 (by decide), b8000a9e8_x18 h₃]
+    rv_eval [m2]
 
 end Rv64Verifier.Proofs.Pcs.Vso

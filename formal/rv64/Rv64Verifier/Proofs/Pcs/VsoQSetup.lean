@@ -150,9 +150,12 @@ structure QDone (s w u : MachineState) (d : ℕ) (qs : List Word) : Prop where
   x1 : u.getReg .x1 = vecPtr u (s.getReg .x2 - 464)
   x8 : u.getReg .x8 = BitVec.ofNat 64 d
   x9 : u.getReg .x9 = w.getReg .x9
+  x19 : u.getReg .x19 = vecCap u (s.getReg .x2 - 464)
   x20 : u.getReg .x20 = s.getReg .x10
   x26 : u.getReg .x26 = BitVec.ofNat 64 qs.length
   vec : QVec s w u qs.length qs
+  /-- The running quadratic's length, in `s7` as at `S - 808`. -/
+  x23 : u.getReg .x23 = u.getMem (s.getReg .x2 - 808)
 
 /-- At `0x8000a8dc`, `sample_queries`' loop: `r` of the `cnt` positions drawn, at depth `d`. -/
 structure QOuter (s w u : MachineState) (d cnt : ℕ) (r : List Word) : Prop where
@@ -188,7 +191,8 @@ theorem qsetup (hT : TryAllocZeroedSpec) {s w : MachineState} {QP QL : Word} {�
     (h208 : w.getMem (s.getReg .x2 - 832) = BitVec.ofNat 64 (8 * ℓ))
     (h168 : w.getMem (s.getReg .x2 - 872) = BitVec.ofNat 64 ml)
     (h216 : w.getMem (s.getReg .x2 - 824) = BitVec.ofNat 64 rt)
-    (hx20 : w.getReg .x20 = s.getReg .x10) :
+    (hx20 : w.getReg .x20 = s.getReg .x10)
+    (hx23 : w.getReg .x23 = w.getMem (s.getReg .x2 - 808)) :
     ∃ v, Reaches Image.code w v ∧ (Dead Image.code v ∨
       ∃ cnt, (cfgOf s).queries[ℓ]? = some cnt ∧ 0 < ml + rt ∧
         (∀ T, TranscriptAt w (s.getReg .x10) T → TranscriptAt v (s.getReg .x10) T) ∧
@@ -393,6 +397,8 @@ theorem qsetup (hT : TryAllocZeroedSpec) {s w : MachineState} {QP QL : Word} {�
       x1 := by rw [x1₆, v584]
       x8 := x8₆
       x9 := x9₆
+      x19 := by
+        rw [v576, b8000a88c_x19 h₆, sp₅]; rv_eval [hm₅]; rw [hcap₄, x11₃]
       x20 := x20₆
       x26 := b8000a88c_x26 h₆
       vec := {
@@ -402,7 +408,25 @@ theorem qsetup (hT : TryAllocZeroedSpec) {s w : MachineState} {QP QL : Word} {�
         elems := rfl
         le := le_refl _
         hw := hw.lo
-        hs := by have := hinv.mono; simp only [heapNext] at this ⊢; exact this } }⟩⟩⟩
+        hs := by have := hinv.mono; simp only [heapNext] at this ⊢; exact this }
+      x23 := by
+        have hI := hpre.self
+        have hS := Region.bounds hI.ok.self
+        have hIs := hI.stack
+        rw [stackLo_vso, vso_stack] at hIs
+        have hhi6 : heapNext t₆ ≤ heapEnd := by rw [hn₆]; exact hfit₄
+        rw [k₆ .x23 (by decide), k₅ .x23 (by decide), hpres₄ .x23 (by decide), k₃ .x23 (by decide),
+          k₂ .x23 (by decide), k₁ .x23 (by decide), hx23]
+        refine (X₆ _ fun i hi hw ↦ ?_).symm
+        rcases hw with hw | hw | hw | hw | hw | hw | hw
+        · simp only [W] at hw; addr_omega [hw, hi, hS, hIs, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb]
+        · addr_omega [hw, hi, hb, hnx]
+        · simp only [Fresh, heapNext, heapEnd] at hw hhi6
+          addr_omega [hw.2, hi, hb, hhi6] }⟩⟩⟩
   obtain ⟨t₇, hr₇, h₇⟩ := Sym.BlockSpec.reaches b8000a8a8_spec
     (b8000a88c_pc_not_taken h₆ (by rw [hxx]; exact h0)) (by
       rv_eval [sp₆]; and_intros <;> valid_access hst.valid [hb])

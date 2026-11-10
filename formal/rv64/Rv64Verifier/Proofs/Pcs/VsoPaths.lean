@@ -50,6 +50,7 @@ theorem paths_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
       ∃ w, Reaches Image.code u w ∧ (Dead Image.code w ∨ (PathsFr s u0 w ∧
         (w.pc = 0x8000b8d4 ∨ (w.pc = 0x8000b0d0 ∧
           (∀ r ∈ [Reg.x9, .x26], w.getReg r = u0.getReg r) ∧
+          w.getReg .x23 = w.getMem (s.getReg .x2 - 808) ∧
           ∀ i, j ≤ i → i < n → PathRoot u0 (P + BitVec.ofNat 64 (56 * i)) R))))
   | 0, j, _, hk, hj, _, _ => absurd hj (by omega)
   | k + 1, j, u, hk, hj, hin, hr => by
@@ -74,9 +75,11 @@ theorem paths_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
       rcases hm' with rfl | rfl <;> rw [k2 _ (by decide), regs _ (by simp), hr _ (by simp)]
     have hnext : P + BitVec.ofNat 64 (56 * j) + 56 = P + BitVec.ofNat 64 (56 * (j + 1)) :=
       addr56 P j
+    have x23t : t.getReg .x23 = t.getMem (s.getReg .x2 - 808) := by
+      rw [k2 .x23 (by decide), ho.x23, m2]
     by_cases hlast : j + 1 = n
     · refine ⟨t, r1.trans r2, Or.inr ⟨hft, Or.inr ⟨b8000ab2c_pc_taken h2 (by
-        rw [x22, x25, hnext, hlast]), rt, fun i hi1 hi2 ↦ ?_⟩⟩⟩
+        rw [x22, x25, hnext, hlast]), rt, x23t, fun i hi1 hi2 ↦ ?_⟩⟩⟩
       rw [show i = j by omega]
       exact root
     · have hne : P + BitVec.ofNat 64 (56 * (j + 1)) ≠ P + BitVec.ofNat 64 (56 * n) :=
@@ -92,15 +95,16 @@ theorem paths_loop (hT : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000c898)
           mono := hft.mono
           rodata := hin.rodata.dframe
             (ho.fr.trans (DFrame.of_same m2 (PW s (heapNext u) (heapNext w))) fun _ h ↦ h)
-            (PW.rodata (lo := heapNext u) (hi := heapNext w) hpre ho.heap.hi) }
+            (PW.rodata (lo := heapNext u) (hi := heapNext w) hpre ho.heap.hi)
+          x23 := x23t }
       obtain ⟨v, r3, hv⟩ := paths_loop hT hRF hM hK hC hpre hPn hps hR k (j + 1) t (by omega)
         (by omega) hin' rt
       refine ⟨v, r1.trans (r2.trans r3), ?_⟩
       rcases hv with hd | ⟨hfv, hv⟩
       · exact Or.inl hd
-      rcases hv with hpc' | ⟨hpc', rv, roots⟩
+      rcases hv with hpc' | ⟨hpc', rv, x23v, roots⟩
       · exact Or.inr ⟨hfv, Or.inl hpc'⟩
-      refine Or.inr ⟨hfv, Or.inr ⟨hpc', rv, fun i hi1 hi2 ↦ ?_⟩⟩
+      refine Or.inr ⟨hfv, Or.inr ⟨hpc', rv, x23v, fun i hi1 hi2 ↦ ?_⟩⟩
       rcases Nat.lt_or_ge j i with h | h
       · exact roots i h hi2
       · rw [show i = j by omega]

@@ -252,6 +252,7 @@ structure VecAt (s u : MachineState) (C Q nx : Word) (i : Nat) : Prop where
   ctot : C.toNat = lenSum s (s.getReg .x12).toNat
   qa : Q.toNat % 8 = 0
   qr : C.toNat = 0 ∨ heapNext s ≤ Q.toNat ∧ Q.toNat + 24 * C.toNat ≤ nx.toNat
+  qd : C.toNat = 0 → Q = 8
   elems : eListAt u Q (lenSum s i) = ((parts s).take i).flatten
 
 /-- At `0x8000d03c`, the first `i` slices appended. -/
@@ -375,6 +376,7 @@ theorem ext_body (hE : ExtendSpec) {s : MachineState} (hpre : SliceConcatPre s) 
     ctot := hu.ctot
     qa := hu.qa
     qr := hu.qr
+    qd := hu.qd
     elems := hel₂ }
   by_cases hlast : i + 1 = (s.getReg .x12).toNat
   · refine ⟨w, hr₂.trans hr₃, Or.inr (Or.inl ⟨by rw [← hlast]; exact hvec, ?_⟩)⟩
@@ -395,7 +397,8 @@ theorem exit {s u : MachineState} {nx C Q : Word} (hpre : SliceConcatPre s) (hu 
     (hptr₇ : u.getMem (s.getReg .x2 - 56) = Q) (hlen₇ : (u.getMem (s.getReg .x2 - 48)).toNat = C.toNat)
     (hel : eListAt u Q C.toNat = (parts s).flatten)
     (hQa : Q.toNat % 8 = 0)
-    (hQr : C.toNat = 0 ∨ heapNext s ≤ Q.toNat ∧ Q.toNat + 24 * C.toNat ≤ nx.toNat) :
+    (hQr : C.toNat = 0 ∨ heapNext s ≤ Q.toNat ∧ Q.toNat + 24 * C.toNat ≤ nx.toNat)
+    (hQd : C.toNat = 0 → Q = 8) :
     ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧ SliceConcatPost s t := by
   have hb := bounds hpre
   have hst := hpre.stack
@@ -469,7 +472,11 @@ theorem exit {s u : MachineState} {nx C Q : Word} (hpre : SliceConcatPre s) (hu 
             · left; omega
             · right; omega⟩
         elems := by rw [vecEs, vecPtr, vecLen, o8, hLt, hE8, hel] }
-      frame := (DFrame.of_byteFrame hbf).mono fun a ha ↦ ?_ }⟩
+      frame := (DFrame.of_byteFrame hbf).mono fun a ha ↦ ?_
+      dangling := fun h ↦ by
+        simp only [vecCap, o0] at h
+        simp only [vecPtr, o8]
+        exact hQd (by rw [h]; rfl) }⟩
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hr'
     rcases hr' with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       exact (k₈ _ (by decide)).trans (hu.kept _ (by decide))
@@ -625,11 +632,15 @@ theorem prologue (hT : TryAllocZeroedSpec) {s : MachineState} (hpc : s.pc = 0x80
   have hm₅ := b8000d01c_mem_same h₅
   have inv₅ := inv₄.same hpre hm₅ k₅
   obtain ⟨hcap, hbuf⟩ := hpost₄.ok (by rw [hx10₃]; exact htag)
+  have hdang := hpost₄.dangling (by rw [hx10₃]; exact htag)
+  rw [hx10₃, b8000d004_x13 h₃] at hdang
+  rv_eval [] at hdang
   rw [hx10₃] at hcap hbuf
   rw [b8000d004_x14 h₃, b8000d004_x13 h₃, hx11₃] at hbuf
   rv_eval [] at hcap hbuf
   obtain ⟨Q, hQ⟩ : ∃ Q, Q = t₄.getMem (s.getReg .x2 - 48) := ⟨_, rfl⟩
   rw [← hQ] at hbuf
+  rw [← hQ] at hdang
   simp only [NewBuf, heapNext] at hbuf
   have hLt : (BitVec.ofNat 64 (lenSum s (s.getReg .x12).toNat)).toNat =
       lenSum s (s.getReg .x12).toNat := by
@@ -677,6 +688,7 @@ theorem prologue (hT : TryAllocZeroedSpec) {s : MachineState} (hpc : s.pc = 0x80
       rcases hbuf.2 with h0 | h0
       · left; omega
       · right; omega
+    qd := fun h0 ↦ hdang (BitVec.eq_of_toNat_eq (by rw [h0]; rfl))
     elems := by simp [lenSum, eListAt]
     pc := b8000d024_pc h₆
     lt := hpre.count
@@ -711,7 +723,7 @@ theorem slice_concat_spec (hT : TryAllocZeroedSpec) (hE : ExtendSpec) : SliceCon
     obtain ⟨t, hr'', hpc'', hpres, hpost⟩ := exit hpre hv.inv hpc' (by
         rw [hv.inv.sp]; rfl) hv.x8 hv.cap hv.ptr
       (by rw [hv.len, hv.ctot, BitVec.toNat_ofNat]; have := lenSum_small hpre _ (Nat.le_refl _);
-          have := count_small hpre; omega) hel hv.qa hv.qr
+          have := count_small hpre; omega) hel hv.qa hv.qr hv.qd
     exact ⟨t, hr.trans (hr'.trans hr''), Or.inl ⟨hpc'', hpres, hpost⟩⟩
   · exact ⟨v, hr.trans hr', Or.inr hd⟩
 

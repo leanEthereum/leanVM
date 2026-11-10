@@ -28,6 +28,7 @@ structure Mid (s u v : MachineState) (k : Nat) : Prop where
   mono : heapNext u ≤ heapNext v
   fr : DFrame u v (CallW s u (v.getMem nextAddr))
   pt : NewVecE u v (s.getReg .x2 - 184) (stackPt s k)
+  dang : vecCap v (s.getReg .x2 - 184) = 0 → vecPtr v (s.getReg .x2 - 184) = 8
 
 theorem CallW.mono {s u : MachineState} {nx nx' x : Word} (h : CallW s u nx x)
     (hle : nx.toNat ≤ nx'.toNat) : CallW s u nx' x := by
@@ -68,7 +69,7 @@ theorem src_eList {s v : MachineState} {nx : Word} (hd : DFrame s v (Wr s extend
   · right; omega
 
 theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : MachineState} {k : Nat}
-    (hpre : ExtendPre s) (hp : Push s u k) (ha : AfterSel s u t k) :
+    (hpre : Walk.ExtendPreE s) (hp : Push s u k) (ha : AfterSel s u t k) :
     ∃ v, Reaches Image.code t v ∧ (Dead Image.code v ∨ Mid s u v k) := by
   have hI := hp.inv
   have hk := hp.lt
@@ -129,7 +130,8 @@ theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : Machine
   have hlo' : heapStart ≤ heapNext u := le_trans hpre.heap.lo hu'
   simp only [heapStart] at hlo'
   have hheap₃ : HeapOk t₃ := ⟨by rw [hnx₃]; exact ha.heap.lo, by rw [hnx₃]; exact ha.heap.hi⟩
-  have hPt : Src s extendStack (s.getMem (clAt s k + 8)) (24 * (s.getMem (clAt s k + 16)).toNat) :=
+  have hPt : (s.getMem (clAt s k + 16)).toNat = 0 ∨
+      Src s extendStack (s.getMem (clAt s k + 8)) (24 * (s.getMem (clAt s k + 16)).toNat) :=
     hpre.points k hk
   have hPo : ExtendOff s (s.getMem (clAt s k + 8)) (24 * (s.getMem (clAt s k + 16)).toNat) :=
     hpre.pointsOff k hk
@@ -156,6 +158,8 @@ theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : Machine
       match i, hi with
       | 0, _ =>
         rw [q0, n0]
+        rcases hPt with h0 | hPt
+        · left; omega
         rcases hPt.region with h0 | hR
         · left; omega
         · right
@@ -191,7 +195,11 @@ theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : Machine
     rw [show List.range 2 = [0, 1] from rfl]
     simp only [List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil, q0,
       n0, q1, n1]
-    rw [src_eList (hI.callFrame hfr3 (by rw [hn₃]; exact htm)) (by rw [hn₃]; exact hhi) hPt hPo]
+    rw [show eListAt t₃ (s.getMem (clAt s k + 8)) (s.getMem (clAt s k + 16)).toNat =
+        eListAt s (s.getMem (clAt s k + 8)) (s.getMem (clAt s k + 16)).toNat by
+      rcases hPt with h0 | hPt
+      · rw [h0]; rfl
+      · exact src_eList (hI.callFrame hfr3 (by rw [hn₃]; exact htm)) (by rw [hn₃]; exact hhi) hPt hPo]
     have hsel : eListAt t₃ (vecPtr t (s.getReg .x2 - 160)) (vecLen t (s.getReg .x2 - 160)).toNat =
         vecEs t (s.getReg .x2 - 160) := by
       obtain ⟨hal, hS0 | ⟨hS1, hS2⟩⟩ := ha.selBuf
@@ -202,7 +210,7 @@ theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : Machine
           (Or.inr (by addr_omega [hS2, hhi]))
     rw [hsel, ha.sel]
     rfl
-  refine ⟨t₄, hr₄, Or.inr ⟨?_, ?_, ?_, ?_, ?_, hpost₄.heap, ?_, ?_, ?_⟩⟩
+  refine ⟨t₄, hr₄, Or.inr ⟨?_, ?_, ?_, ?_, ?_, hpost₄.heap, ?_, ?_, ?_, ?_⟩⟩
   · rw [hpc₄, returnAddress_eq, b80009d08_x1 h₃]; decide
   · rw [kp .x2 (by decide), hsp₃]; rfl
   · intro r hr
@@ -224,5 +232,8 @@ theorem concat_step (hC : MultilinearContracts.SliceConcatSpec) {s u t : Machine
   · rw [← hpt]
     exact ⟨hnv.vec, by
       have := hnv.buf; simp only [NewBuf] at this ⊢; rw [hnx₃] at this; omega, hnv.elems⟩
+  · have := hpost₄.dangling
+    rw [x10₃] at this
+    exact this
 
 end Rv64Verifier.Proofs.Pcs.Extend

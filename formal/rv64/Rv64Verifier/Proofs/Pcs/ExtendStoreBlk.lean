@@ -52,7 +52,7 @@ structure Stored (s u w t : MachineState) (k : Nat) : Prop where
   keep : ∀ r ∈ [Reg.x2, .x8, .x9, .x19, .x20, .x21, .x22, .x23, .x24, .x25], t.getReg r = w.getReg r
   pc : (k + 1 = itCount s ∧ t.pc = 0x80009d7c) ∨ (k + 1 < itCount s ∧ t.pc = 0x80009c64)
 
-theorem store_blk {s u w : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Push s u k)
+theorem store_blk {s u w : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (hp : Push s u k)
     (hr : Room s u w k) : ∃ t, Reaches Image.code w t ∧ Stored s u w t k := by
   have hI := hp.inv
   have hk := hp.lt

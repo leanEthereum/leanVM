@@ -107,6 +107,30 @@ structure Inv (s u : MachineState) (j : Nat) : Prop where
   value : stackClaimsAt u (s.getReg .x10) = stackClaimsAt s (s.getReg .x10) ++
     (columnClaimsAt s (itCur s) j).filterMap (onStackS s)
   le : j ≤ itCount s
+  /-- The entry's claims, word for word. -/
+  words : ∀ i < (vecLen s (s.getReg .x10)).toNat, ∀ k < 11,
+    u.getMem (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k)) =
+      s.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k))
+  /-- The new claims' points in the heap. -/
+  added : ∀ i, (vecLen s (s.getReg .x10)).toNat ≤ i → i < (vecLen u (s.getReg .x10)).toNat →
+    Walk.HeapBuf u (vecPtr u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8)))
+      (24 * (vecLen u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8))).toNat)
+
+/-- The `Vec` only grows. -/
+theorem Inv.len_le {s u : MachineState} {j : Nat} (h : Inv s u j) :
+    (vecLen s (s.getReg .x10)).toNat ≤ (vecLen u (s.getReg .x10)).toNat := by
+  have := congrArg List.length h.value
+  simp only [stackClaimsAt, claimsAt, List.length_append, List.length_map, List.length_range] at this
+  omega
+
+/-- A point's `HeapBuf`, its `Vec`'s words moved and `NEXT` grown. -/
+theorem heapBuf_move {u v : MachineState} {X X' : Word} (h8 : v.getMem (X' + 8) = u.getMem (X + 8))
+    (h16 : v.getMem (X' + 16) = u.getMem (X + 16)) (hm : heapNext u ≤ heapNext v)
+    (h : Walk.HeapBuf u (vecPtr u X) (24 * (vecLen u X).toNat)) :
+    Walk.HeapBuf v (vecPtr v X') (24 * (vecLen v X').toNat) := by
+  simp only [Walk.HeapBuf, vecPtr, vecLen] at h ⊢
+  rw [h8, h16]
+  exact ⟨h.1, le_trans h.2.1 hm, h.2.2⟩
 
 /-- A word of a region the function reads keeps its entry value. -/
 theorem Inv.read {s u : MachineState} {j : Nat} (h : Inv s u j) {a : Word} {n : Nat}

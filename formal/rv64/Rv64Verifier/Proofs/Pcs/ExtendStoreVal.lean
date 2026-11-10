@@ -15,14 +15,13 @@ theorem SCtx.heapT {s u w t : MachineState} {k : Nat} (c : SCtx s u w t k) :
     heapNext u ≤ heapNext t := by
   rw [show heapNext t = heapNext w by simp only [heapNext, c.nx]]; exact c.hr.mono
 
-theorem SCtx.old {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SCtx s u w t k)
-    {i : Nat} (hi : i < (vecLen u (s.getReg .x10)).toNat) :
-    stackClaimAt t (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) =
-        stackClaimAt u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) ∧
-      ClaimRegions (Safe s t) t (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) := by
+/-- An old claim's words, at its place in `t`'s buffer. -/
+theorem SCtx.oldWords {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s)
+    (c : SCtx s u w t k) {i : Nat} (hi : i < (vecLen u (s.getReg .x10)).toNat) (j : Nat)
+    (hj : j < 11) :
+    t.getMem (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) =
+      u.getMem (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) := by
   have hI := c.hp.inv
-  have hX := c.frame hpre
-  have hnt : (t.getMem nextAddr).toNat ≤ heapEnd := by rw [c.nx]; exact c.hr.heap.hi
   have hsafe := hI.safe i hi
   have hroom := c.hr.room
   have hAb := Region.bounds hpre.self.region
@@ -31,10 +30,6 @@ theorem SCtx.old {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SC
   have hwh := c.hr.heap.hi
   have v1 := c.v1
   have v2 := c.v2
-  refine claim_move (fun j hj ↦ ?_) hsafe (fun a m hm ↦ hX.eList (fun x hx ↦ hm.miss hnt x hx) (by
-      rcases hm.bound with h | h
-      · left; omega
-      · right; omega)) (fun a n h ↦ h.next c.heapT c.spare) (c.slot hpre hi.le)
   have hwt : t.getMem (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) =
       w.getMem (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) :=
     c.hs.fr.word (fun x hx hw ↦ by
@@ -53,7 +48,49 @@ theorem SCtx.old {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SC
       (by addr_omega [hsb, hj])
   · exact hmv i hi j hj
 
-theorem SCtx.new {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SCtx s u w t k) :
+theorem SCtx.old {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (c : SCtx s u w t k)
+    {i : Nat} (hi : i < (vecLen u (s.getReg .x10)).toNat) :
+    stackClaimAt t (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) =
+        stackClaimAt u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) ∧
+      ClaimRegions (Safe s t) t (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) := by
+  have hX := c.frame hpre
+  have hnt : (t.getMem nextAddr).toNat ≤ heapEnd := by rw [c.nx]; exact c.hr.heap.hi
+  exact claim_move (c.oldWords hpre hi) (c.hp.inv.safe i hi)
+    (fun a m hm ↦ hX.eList (fun x hx ↦ hm.miss hnt x hx) (by
+      rcases hm.bound with h | h
+      · left; omega
+      · right; omega)) (fun a n h ↦ h.next c.heapT c.spare) (c.slot hpre hi.le)
+
+/-- The new claim's point lies in the heap. -/
+theorem SCtx.newBuf {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s)
+    (c : SCtx s u w t k) :
+    Walk.HeapBuf t (vecPtr t (eNew s u w + 8)) (24 * (vecLen t (eNew s u w + 8)).toNat) := by
+  have n1 : eNew s u w + 8 + 8 = eNew s u w + 16 := add_lit _ _ _ _ rfl
+  have n2 : eNew s u w + 8 + 16 = eNew s u w + 24 := add_lit _ _ _ _ rfl
+  have hP8 : vecPtr t (eNew s u w + 8) = vecPtr w (s.getReg .x2 - 184) := by
+    unfold vecPtr; rw [n1, c.hs.p16]
+  have hL8 : vecLen t (eNew s u w + 8) = vecLen w (s.getReg .x2 - 184) := by
+    unfold vecLen; rw [n2, c.hs.p24]
+  have hnt : heapNext t = heapNext w := by simp only [heapNext, c.nx]
+  have hu' : heapNext s ≤ heapNext u := c.hp.inv.p.mono
+  have hlo := hpre.heap.lo
+  have hwlo := c.hr.heap.lo
+  have hpb := c.hr.pt.buf
+  have hpl := c.hr.pt.vec.len
+  have hd := c.hr.dang
+  simp only [NewBuf] at hpb
+  simp only [heapStart] at hlo hwlo
+  rw [hP8, hL8]
+  simp only [Walk.HeapBuf, hnt, heapStart]
+  rcases hpb with ⟨hal, h0 | ⟨h1, h2⟩⟩
+  · have z : (0 : Word).toNat = 0 := rfl
+    have e : (8 : Word).toNat = 8 := rfl
+    have hc : vecCap w (s.getReg .x2 - 184) = 0 := BitVec.eq_of_toNat_eq (by omega)
+    rw [hd hc, e]
+    exact ⟨rfl, by omega, Or.inl (by omega)⟩
+  · exact ⟨hal, by omega, Or.inr (by omega)⟩
+
+theorem SCtx.new {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (c : SCtx s u w t k) :
     stackClaimAt t (eNew s u w) = ⟨.eq (stackPt s k), eAt s (clAt s k + 32)⟩ ∧
       ClaimRegions (Safe s t) t (eNew s u w) := by
   have hroom := c.hr.room
@@ -119,7 +156,7 @@ theorem SCtx.new {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SC
         addr_omega [hpa, hpl, hroom, h1, h2, v1, v2]
 
 /-- **After a push, the invariant for the next claim.** -/
-theorem store_inv {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SCtx s u w t k) :
+theorem store_inv {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (c : SCtx s u w t k) :
     Inv s t (k + 1) := by
   have hI := c.hp.inv
   have hnt : heapNext t = heapNext w := by simp only [heapNext, c.nx]
@@ -144,7 +181,7 @@ theorem store_inv {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : S
     (kr .x19 (by decide)).trans hI.x19, (kr .x20 (by decide)).trans hI.x20,
     (kr .x21 (by decide)).trans hI.x21, (kr .x22 (by decide)).trans hI.x22,
     (kr .x23 (by decide)).trans hI.x23, (kr .x24 (by decide)).trans hI.x24,
-    ⟨?_, by rw [c.lT, c.cT]; omega⟩, Or.inr ?_, ?_, ?_, c.hp.lt⟩
+    ⟨?_, by rw [c.lT, c.cT]; omega⟩, Or.inr ?_, ?_, ?_, c.hp.lt, ?_, ?_⟩
   · simp only [RawVecOk, Buf, c.pT, c.cT, hnt]
     exact ⟨c.v3, Or.inr ⟨by omega, c.v2⟩⟩
   · simp only [NewBuf, c.pT, c.cT, hnt]
@@ -161,5 +198,27 @@ theorem store_inv {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : S
       show claimsAt u (vecPtr u (s.getReg .x10)) (vecLen u (s.getReg .x10)).toNat =
         stackClaimsAt u (s.getReg .x10) from rfl, hI.value, columnClaimsAt_succ,
       List.filterMap_append, List.filterMap_cons_some hos, List.filterMap_nil, List.append_assoc]
+  · intro i hi j hj
+    rw [c.pT, ← add_ofNat_add, c.oldWords hpre (lt_of_lt_of_le hi hI.len_le) j hj, add_ofNat_add]
+    exact hI.words i hi j hj
+  · intro i h1 h2
+    rw [c.lT] at h2
+    rw [c.pT]
+    rcases Nat.lt_succ_iff_lt_or_eq.mp h2 with h2 | rfl
+    · have e8 (P : Word) : P + BitVec.ofNat 64 (88 * i + 8) + 8 =
+          P + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * 2) := by
+        rw [show (8 : Word) = BitVec.ofNat 64 8 from rfl, add_ofNat_add, add_ofNat_add,
+          show 88 * i + 8 + 8 = 88 * i + 8 * 2 by omega]
+      have e16 (P : Word) : P + BitVec.ofNat 64 (88 * i + 8) + 16 =
+          P + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * 3) := by
+        rw [show (16 : Word) = BitVec.ofNat 64 16 from rfl, add_ofNat_add, add_ofNat_add,
+          show 88 * i + 8 + 16 = 88 * i + 8 * 3 by omega]
+      exact heapBuf_move (by rw [e8, e8]; exact c.oldWords hpre h2 2 (by decide))
+        (by rw [e16, e16]; exact c.oldWords hpre h2 3 (by decide)) c.heapT (hI.added i h1 h2)
+    · have hX : vecPtr w (s.getReg .x10) +
+          BitVec.ofNat 64 (88 * (vecLen u (s.getReg .x10)).toNat + 8) = eNew s u w + 8 := by
+        rw [← add_ofNat_add, eNew]; rfl
+      rw [hX]
+      exact c.newBuf hpre
 
 end Rv64Verifier.Proofs.Pcs.Extend

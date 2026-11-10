@@ -10,7 +10,7 @@ namespace Rv64Verifier.Proofs.Pcs.Extend
 open RiscvZkvm.Rv64 Rv64Verifier.Runtime Rv64Verifier.Transcript Rv64Verifier.Pcs
   Rv64Verifier.PcsContracts Rv64Verifier.Model.Pcs LeanVM.Parameters
 
-theorem safe_of_src {s : MachineState} {a : Word} {n : Nat} (hpre : ExtendPre s)
+theorem safe_of_src {s : MachineState} {a : Word} {n : Nat} (hpre : Walk.ExtendPreE s)
     (hs : Src s extendStack a n) (ho : ExtendOff s a n) : Safe s s a n := by
   rcases hs.region with h0 | hR
   · exact Or.inl h0
@@ -23,7 +23,7 @@ theorem off_of {s : MachineState} {a : Word} {n : Nat}
     (h0 : Apart a n (s.getReg .x10) 24) (h1 : Apart a n (s.getReg .x11) 24) : ExtendOff s a n :=
   ⟨h0, h1⟩
 
-theorem claim_pre {s : MachineState} (hpre : ExtendPre s) {i : Nat}
+theorem claim_pre {s : MachineState} (hpre : Walk.ExtendPreE s) {i : Nat}
     (hi : i < (vecLen s (s.getReg .x10)).toNat) :
     ClaimRegions (Safe s s) s (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) := by
   have hE := hpre.elems

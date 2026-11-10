@@ -31,7 +31,7 @@ theorem room_nogrow {s u w : MachineState} {k : Nat} (hp : Push s u k) (hB : Bas
   · simp only [RawVecOk, Buf, hP, hC]; omega
   · simp only [Apart, hP, hC]; omega
 
-theorem room_grow (hG : GrowSpec) {s u w : MachineState} {k : Nat} (hpre : ExtendPre s)
+theorem room_grow (hG : GrowSpec) {s u w : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s)
     (hp : Push s u k) (hB : Base s u w k)
     (h0 : w.getMem (s.getReg .x10) = u.getMem (s.getReg .x10))
     (h8 : w.getMem (s.getReg .x10 + 8) = u.getMem (s.getReg .x10 + 8)) (hpc : w.pc = 0x80009d58)
@@ -138,7 +138,7 @@ theorem room_grow (hG : GrowSpec) {s u w : MachineState} {k : Nat} (hpre : Exten
   have hS0 : t₈.getMem (s.getReg .x2 - 184) = w.getMem (s.getReg .x2 - 184) := hstk _ (by addr_omega [hb]) (by addr_omega [hb])
   have hS8 : t₈.getMem (s.getReg .x2 - 184 + 8) = w.getMem (s.getReg .x2 - 184 + 8) := hstk _ (by addr_omega [hb]) (by addr_omega [hb])
   refine ⟨t₈, hr₇.trans hr₈, Or.inr ⟨⟨?_, fun r hr ↦ ?_, ?_, ?_, ⟨by rw [hn₈]; exact hlo7, by rw [hn₈]; exact hh7⟩,
-    by rw [hn₈]; omega, ?_, ?_, ?_, by rw [hL₈]; exact hB.len⟩,
+    by rw [hn₈]; omega, ?_, ?_, ?_, by rw [hL₈]; exact hB.len, fun h ↦ ?_⟩,
     b80009d74_pc_taken h₈ (by rw [x23₇]; exact hok), by rw [hC₈]; omega, ?_, ?_, Or.inr ⟨?_, ?_⟩⟩⟩
   · rw [k₈ .x2 (by decide), kp .x2 (by decide), hsp₆]; rfl
   · rw [k₈ r ((by decide : [Reg.x8, .x9, .x19, .x20, .x21, .x22, .x23, .x24] ⊆ _) hr),
@@ -176,6 +176,9 @@ theorem room_grow (hG : GrowSpec) {s u w : MachineState} {k : Nat} (hpre : Exten
       · addr_omega [hx, hw, hb]
       · addr_omega [hx, hw, hb]
       · simp only [Fresh] at hw; addr_omega [hx, hw.2, hh7, hb]) (by addr_omega [hb])
+  · have e0 : vecCap t₈ (s.getReg .x2 - 184) = vecCap w (s.getReg .x2 - 184) := hS0
+    rw [show vecPtr t₈ (s.getReg .x2 - 184) = vecPtr w (s.getReg .x2 - 184) from hS8]
+    exact hB.dang (e0 ▸ h)
   · simp only [RawVecOk, Buf, hP₈, hC₈, hn₈]; exact hraw₇
   · rw [show vecPtr t₈ (s.getReg .x2 - 184) = vecPtr w (s.getReg .x2 - 184) from hS8,
       show vecCap t₈ (s.getReg .x2 - 184) = vecCap w (s.getReg .x2 - 184) from hS0]

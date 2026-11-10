@@ -10,7 +10,7 @@ import Rv64Verifier.Proofs.Pcs.Contracts
 /-!
 # Soundness, assembled
 
-`soundness`: `Sound image` from `walk`'s two halves (`WalkFront`, `WalkTail`, for the openings
+`soundness_of_halves`: `Sound image` from `walk`'s two halves (`WalkFront`, `WalkTail`, for the openings
 `OI` of `Bridge.lean`), the tail taking `verify_stacked_opening`'s contract (`VsoSpec`) and the
 bus's tail (`TailStage`, from `SidesEntry` and `SideStage`). `main`, the bridge and every other
 callee are proved; `cloneE` and `tableSumcheckClosed` discharge the walk's `CloneSpecE` and
@@ -49,7 +49,7 @@ def WalkTail : Prop :=
 /-- **Soundness**: the image halts with `1` only on an input that decodes to an accepted proof,
 given `walk`'s front, its tail (from `verify_stacked_opening`'s contract and the bus's tail), and
 those two. -/
-theorem soundness {OA : MachineState → Word → TState → Prop}
+theorem soundness_of_halves {OA : MachineState → Word → TState → Prop}
     {BcOk : MachineState → Nat → Word → Prop} {bev : MachineState → Word → List E → Option E}
     (hVso : PcsContracts.VsoSpec OA) (hE : Bus.VerifyBusBalance.SidesEntry BcOk bev)
     (hS : Bus.VerifyBusBalance.SideStage bev) (hFront : WalkFront)
@@ -62,8 +62,8 @@ end Rv64Verifier.Proofs.Final
 
 /-! Lean's three axioms, nothing native. -/
 
-/-- info: 'Rv64Verifier.Proofs.Final.soundness' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms Rv64Verifier.Proofs.Final.soundness
+/-- info: 'Rv64Verifier.Proofs.Final.soundness_of_halves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Final.soundness_of_halves
 
 /-- info: 'Rv64Verifier.Proofs.Final.walkCall_of_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Final.walkCall_of_walk

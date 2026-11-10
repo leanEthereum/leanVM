@@ -43,6 +43,8 @@ structure MerkleIn (s u : MachineState) (ℓ fc : ℕ) : Prop where
       Clear s (heapNext u) (u.getMem (s.getReg .x2 - 824)) (8 * (u.getReg .x26).toNat)
   phase : (u.getMem (s.getReg .x10 + 352)).toNat < (u.getMem (u.getMem (s.getReg .x10) + 40)).toNat →
     PhaseOk s u (phaseH s u)
+  /-- The running quadratic's length, in `s7` as at `S - 808`. -/
+  x23 : u.getReg .x23 = u.getMem (s.getReg .x2 - 808)
 
 /-- **At `0x8000b0dc`**, after the Merkle checks from `u`. -/
 structure MerkleOut (s u w : MachineState) (ℓ fc : ℕ) : Prop where
@@ -66,6 +68,8 @@ structure MerkleOut (s u w : MachineState) (ℓ fc : ℕ) : Prop where
     (widthW ℓ fc) (u.getReg .x8)
   roots : ∀ i < (u.getReg .x26).toNat,
     PathRoot u (vecPtr u (phaseH s u) + BitVec.ofNat 64 (56 * i)) (s.getReg .x11)
+  /-- `s7` as `S - 808` was at the checks' start. -/
+  x23 : w.getReg .x23 = u.getMem (s.getReg .x2 - 808)
 
 /-- **An `Err` of the Merkle checks**: the function's exit, the invariant kept. -/
 theorem merkle_err {s u v : MachineState} (hpre : VsoPre s) (hinv : InvR s u (u.getMem nextAddr))

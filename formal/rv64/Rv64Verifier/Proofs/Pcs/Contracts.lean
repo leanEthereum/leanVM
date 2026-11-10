@@ -128,14 +128,16 @@ smaller; `dot`, a tail call, runs on the caller's `sp`). -/
 @[rv_addr] def basisClaimsPtr (s : MachineState) (a : Word) : Word := s.getMem (a + 24)
 @[rv_addr] def basisClaimsLen (s : MachineState) (a : Word) : Nat := (s.getMem (a + 32)).toNat
 
-/-- `a0` = the result, `a1` = the `StackBasis`, `a2`/`a3` = the point. -/
+/-- `a0` = the result, `a1` = the `StackBasis`, `a2`/`a3` = the point. An empty scales `Vec`'s
+dangling pointer is unconstrained. -/
 structure BasisPre (s : MachineState) : Prop where
   heap : HeapOk s
   stack : RtStack s basisStack
   rodata : RodataOk s
   out : Dst s basisStack (s.getReg .x10) 24
   self : Src s basisStack (s.getReg .x11) 40
-  scales : Src s basisStack (vecPtr s (s.getReg .x11)) (24 * (vecLen s (s.getReg .x11)).toNat)
+  scales : (vecLen s (s.getReg .x11)).toNat = 0 ∨
+    Src s basisStack (vecPtr s (s.getReg .x11)) (24 * (vecLen s (s.getReg .x11)).toNat)
   claims : Src s basisStack (basisClaimsPtr s (s.getReg .x11)) (88 * basisClaimsLen s (s.getReg .x11))
   weights : ∀ i < basisClaimsLen s (s.getReg .x11),
     WeightSrc s basisStack (basisClaimsPtr s (s.getReg .x11) + BitVec.ofNat 64 (88 * i))

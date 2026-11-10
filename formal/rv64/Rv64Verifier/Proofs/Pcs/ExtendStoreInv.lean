@@ -25,7 +25,7 @@ structure SCtx (s u w t : MachineState) (k : Nat) : Prop where
   cT : vecCap t (s.getReg .x10) = vecCap w (s.getReg .x10)
   lT : (vecLen t (s.getReg .x10)).toNat = (vecLen u (s.getReg .x10)).toNat + 1
 
-theorem sctx {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Push s u k)
+theorem sctx {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (hp : Push s u k)
     (hr : Room s u w k) (hs : Stored s u w t k) : SCtx s u w t k := by
   have hb := sbounds hpre
   have hAb := Region.bounds hpre.self.region
@@ -55,7 +55,7 @@ theorem sctx {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Push 
   rw [this, BitVec.toNat_add, Nat.mod_eq_of_lt (by exact hlt)]
   rfl
 
-theorem SCtx.frame {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SCtx s u w t k) :
+theorem SCtx.frame {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (c : SCtx s u w t k) :
     DFrame u t (StepW s u (t.getMem nextAddr)) := by
   have hroom := c.hr.room
   have hAb := Region.bounds hpre.self.region
@@ -74,7 +74,7 @@ theorem SCtx.frame {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : 
       rw [c.nx]
       constructor <;> addr_omega [h, hn, hroom, hv2]
 
-theorem SCtx.slot {s u w t : MachineState} {k : Nat} (hpre : ExtendPre s) (c : SCtx s u w t k)
+theorem SCtx.slot {s u w t : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (c : SCtx s u w t k)
     {i : Nat} (hi : i ≤ (vecLen u (s.getReg .x10)).toNat) :
     Safe s t (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) 88 := by
   have hroom := c.hr.room

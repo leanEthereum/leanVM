@@ -185,9 +185,10 @@ theorem merkleIn_of {s u : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s)
     (hfc : fc < 2 ^ 64) (hroot : u.getMem (s.getReg .x2 - 840) = s.getReg .x11)
     (hq : (u.getReg .x26).toNat = 0 ∨
       Region (u.getMem (s.getReg .x2 - 824)) (8 * (u.getReg .x26).toNat) ∧
-        Clear s (heapNext u) (u.getMem (s.getReg .x2 - 824)) (8 * (u.getReg .x26).toNat)) :
+        Clear s (heapNext u) (u.getMem (s.getReg .x2 - 824)) (8 * (u.getReg .x26).toNat))
+    (hx23 : u.getReg .x23 = u.getMem (s.getReg .x2 - 808)) :
     MerkleIn s u ℓ fc :=
   ⟨frontIn_of hpre hO hinv hpc hsp hx20 hlvl hfold, hℓ, hfc, hinv, hroot, hq,
-    phaseOk_of hpre hO hinv⟩
+    phaseOk_of hpre hO hinv, hx23⟩
 
 end Rv64Verifier.Proofs.Pcs.Vso

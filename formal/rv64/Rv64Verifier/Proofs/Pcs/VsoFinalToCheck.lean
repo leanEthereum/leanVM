@@ -55,12 +55,6 @@ def GluedSpec (OA : MachineState → Word → Model.TState → Prop) : Prop :=
     (vecLen v (s.getReg .x2 - 664)).toNat ≠ 0 →
     ∃ w, Reaches Image.code v w ∧ (FailR s w ∨ ∃ ml res tf' wt rt', TC OA s w ml res tf' wt rt')
 
-/-- An empty scales `Vec`'s pointer lies below the entry's `NEXT` (`StackBasis::evaluate` reads it
-as a source). -/
-def ScalesZero (OA : MachineState → Word → Model.TState → Prop) : Prop :=
-  ∀ s x u Wl residual, VsoPre s → VsoFinalIn OA s x u Wl residual → ncl s = 0 →
-    (vecPtr x.c (s.getReg .x2 - 728)).toNat ≤ heapNext s
-
 /-- No glued claim: from `0x8000bab0` straight to the terminal check. -/
 theorem tEmpty {OA : MachineState → Word → Model.TState → Prop} {s : MachineState} {x : LCtx}
     {u v : MachineState} {Wl : Model.Pcs.WhirLocals} {residual tf : List E} {rt w0 : E}
@@ -141,11 +135,10 @@ theorem tEmpty {OA : MachineState → Word → Model.TState → Prop} {s : Machi
       rw [afterTail_basis s _ _ _ _ _ _ h.six h.basis, hgl] at hv
       exact hv.keep hpre (h.toTI.inv hpre) (DFrame.of_same hm₁ (fun _ ↦ False)) fun _ h ↦ h.elim }⟩
 
-/-- **The tail up to the terminal check**, from the glued claims' loop and an empty scales
-`Vec`'s pointer. -/
+/-- **The tail up to the terminal check**, from the glued claims' loop. -/
 theorem toCheck_of (hD : DuplexSpec) (hPE : PolyEvalSpec) (hG : GrowOneFreshSpec 0x80011c78 24 8)
     (hRP : RoundPolyErrSpec) (hC : MultilinearContracts.SliceConcatSpec) (hB : BasisSpec)
-    {OA : MachineState → Word → Model.TState → Prop} (hZ : ScalesZero OA) (hGl : GluedSpec OA) :
+    {OA : MachineState → Word → Model.TState → Prop} (hGl : GluedSpec OA) :
     ToCheck OA := by
   intro s x u Wl residual hpre hin
   obtain ⟨v₁, r₁, h₁⟩ := tRounds hD hPE hG hRP hpre hin
@@ -154,7 +147,7 @@ theorem toCheck_of (hD : DuplexSpec) (hPE : PolyEvalSpec) (hG : GrowOneFreshSpec
   obtain ⟨v₂, r₂, h₂⟩ := tPoint hC hpre ha
   rcases h₂ with hd | hv
   · exact ⟨v₂, r₁.trans r₂, Or.inl (Or.inl hd)⟩
-  obtain ⟨v₃, r₃, h₃⟩ := tBasis hB hpre hv (hZ s x u Wl residual hpre hin)
+  obtain ⟨v₃, r₃, h₃⟩ := tBasis hB hpre hv
   rcases h₃ with hd | ⟨w0, htb⟩
   · exact ⟨v₃, r₁.trans (r₂.trans r₃), Or.inl (Or.inl hd)⟩
   by_cases h0 : (vecLen v₃ (s.getReg .x2 - 664)).toNat = 0

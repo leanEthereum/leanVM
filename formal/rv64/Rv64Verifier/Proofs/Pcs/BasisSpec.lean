@@ -190,7 +190,11 @@ theorem finish (hDot : DotSpec) {s u : MachineState} {nx WP : Word} (hpre : Basi
   have hOs := hpre.out.stack
   have hOf := hpre.out.free
   simp only [Outside] at hOf
-  have hsS := hpre.scales.stack
+  have hsS : Apart (vecPtr s (s.getReg .x11)) (24 * (vecLen s (s.getReg .x11)).toNat)
+      (stackLo s basisStack) basisStack := by
+    rcases hpre.scales with h0 | h0
+    · exact Or.inl (by omega)
+    · exact h0.stack
   have hsc := hpre.outScales
   have hPa := he.buf.align
   have hfit := he.inv.fits
@@ -209,7 +213,9 @@ theorem finish (hDot : DotSpec) {s u : MachineState} {nx WP : Word} (hpre : Basi
       rw [hx10]; exact Region.vrange hpre.out.region (Nat.le_refl _) (by omega) hO.2.2
     left := by
       rw [hx11, hx12]
-      rcases hpre.scales.region with h0 | h0
+      rcases hpre.scales with h0 | h0
+      · intro i hi; omega
+      rcases h0.region with h0 | h0
       · intro i hi; omega
       · exact Region.vrange h0 (Nat.le_refl _) (by omega) (Region.bounds h0).2.2
     right := by
@@ -288,7 +294,9 @@ theorem finish (hDot : DotSpec) {s u : MachineState} {nx WP : Word} (hpre : Basi
     have eS : eListAt v (vecPtr s (s.getReg .x11)) (ncl s) = vecEs s (s.getReg .x11) := by
       have : (vecLen s (s.getReg .x11)).toNat = ncl s := by rw [hlen, BitVec.toNat_ofNat]; omega
       simp only [Runtime.vecEs, ← this]
-      rw [← Inv.eList he.inv hpre.scales]
+      rcases hpre.scales with h0 | h0
+      · rw [h0]; rfl
+      rw [← Inv.eList he.inv h0]
       simp only [eListAt, eAt, hm]
     have eW : eListAt v WP (ncl s) = (List.range (ncl s)).map fun i ↦
         eAt u (WP + BitVec.ofNat 64 (24 * i)) := by

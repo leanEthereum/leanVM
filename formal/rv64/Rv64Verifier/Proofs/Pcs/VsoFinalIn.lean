@@ -81,6 +81,8 @@ structure VsoFinalIn (OA : MachineState → Word → Model.TState → Prop) (s :
   /-- Every glued claim's buffers lie in the heap from the mark on. -/
   frozen : ∀ i < (vecLen u (s.getReg .x2 - 664)).toNat, ∀ y, InBufs u (gAddr u s i) y →
     x.L ≤ y.toNat ∧ y.toNat < heapNext u
+  /-- And aligned. -/
+  aligned : ∀ i < (vecLen u (s.getReg .x2 - 664)).toNat, WeightAligned u (gAddr u s i)
   /-- The running quadratic: buffer at `S - 896`, length at `S - 808`. -/
   quad : eListAt u (u.getMem (s.getReg .x2 - 896)) (u.getMem (s.getReg .x2 - 808)).toNat =
       Wl.runningQuad ∧ (u.getMem (s.getReg .x2 - 896)).toNat % 8 = 0 ∧

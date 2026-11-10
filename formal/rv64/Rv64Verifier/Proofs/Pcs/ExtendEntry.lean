@@ -19,12 +19,18 @@ structure Done (s u : MachineState) : Prop where
   value : stackClaimsAt u (s.getReg .x10) = stackClaimsAt s (s.getReg .x10) ++
     (columnClaimsAt s (itCur s) (itCount s)).filterMap (onStackS s)
   pc : u.pc = 0x80009d7c
+  words : ∀ i < (vecLen s (s.getReg .x10)).toNat, ∀ k < 11,
+    u.getMem (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k)) =
+      s.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k))
+  added : ∀ i, (vecLen s (s.getReg .x10)).toNat ≤ i → i < (vecLen u (s.getReg .x10)).toNat →
+    Walk.HeapBuf u (vecPtr u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8)))
+      (24 * (vecLen u (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8))).toNat)
 
 theorem Exit.done {s u : MachineState} (h : Exit s u) : Done s u :=
-  ⟨h.inv.p, h.inv.vec, h.inv.value, h.pc⟩
+  ⟨h.inv.p, h.inv.vec, h.inv.value, h.pc, h.inv.words, h.inv.added⟩
 
 /-- The `Vec` and its claims across the saves. -/
-theorem entry_keep {s t : MachineState} (hpre : ExtendPre s)
+theorem entry_keep {s t : MachineState} (hpre : Walk.ExtendPreE s)
     (hf : DFrame s t fun x ↦ Within x (s.getReg .x2 - 104) 104) :
     VecOk t (s.getReg .x10) 88 8 ∧ vecLen t (s.getReg .x10) = vecLen s (s.getReg .x10) ∧
       vecCap t (s.getReg .x10) = vecCap s (s.getReg .x10) ∧
@@ -32,7 +38,9 @@ theorem entry_keep {s t : MachineState} (hpre : ExtendPre s)
       ∀ i < (vecLen s (s.getReg .x10)).toNat,
         stackClaimAt t (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) =
           stackClaimAt s (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) ∧
-        ClaimRegions (Safe s t) t (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) := by
+        ClaimRegions (Safe s t) t (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i)) ∧
+        ∀ k < 11, t.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k)) =
+          s.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i + 8 * k)) := by
   have hb := sbounds hpre
   have hAb := Region.bounds hpre.self.region
   have hAs := hpre.self.stack
@@ -68,8 +76,12 @@ theorem entry_keep {s t : MachineState} (hpre : ExtendPre s)
     · omega
     · exact h
   rw [hK] at hst
-  refine claim_move (fun j hj ↦ hf.word (fun x hx hw ↦ by addr_omega [hx, hw, hst, heb, hj, hb])
-      (by addr_omega [heb, hj])) hcl (fun a m hm ↦ hf.eList (fun x hx hw ↦ ?_) ?_) hS (hS _ _ he)
+  have hw (j : Nat) (hj : j < 11) :
+      t.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) =
+        s.getMem (vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) :=
+    hf.word (fun x hx hw ↦ by addr_omega [hx, hw, hst, heb, hj, hb]) (by addr_omega [heb, hj])
+  refine (and_assoc).mp ⟨claim_move hw hcl (fun a m hm ↦ hf.eList (fun x hx hw ↦ ?_) ?_) hS (hS _ _ he),
+    fun k hk ↦ by rw [← add_ofNat_add]; exact hw k hk⟩
   · rcases hm with h0 | ⟨hR, -, h2, -⟩
     · simp only [Within] at hx; omega
     · rw [hK] at h2; have := Region.bounds hR; addr_omega [hx, hw, h2, this, hb]
@@ -89,7 +101,7 @@ theorem value0 {s t : MachineState}
   simp only [columnClaimsAt, List.range_zero, List.map_nil, List.filterMap_nil, List.append_nil]
   rfl
 
-theorem prologue {s : MachineState} (hpc : s.pc = 0x80009b94) (hpre : ExtendPre s) :
+theorem prologue {s : MachineState} (hpc : s.pc = 0x80009b94) (hpre : Walk.ExtendPreE s) :
     ∃ t, Reaches Image.code s t ∧ (Done s t ∨ Head s t 0) := by
   have hb := sbounds hpre
   have hv := hpre.stack.valid
@@ -125,7 +137,8 @@ theorem prologue {s : MachineState} (hpc : s.pc = 0x80009b94) (hpre : ExtendPre 
   by_cases he : itCur s = itEnd s
   · have h0 : itCount s = 0 := by simp only [itCount, he, Nat.sub_self, Nat.zero_div]
     refine ⟨t₁, hr₁, Or.inl ⟨hp₁, hvec, by rw [h0]; exact value0 hP hL fun i hi ↦ (hcl i hi).1,
-      b80009b94_pc_taken h₁ he⟩⟩
+      b80009b94_pc_taken h₁ he, fun i hi k hk ↦ by rw [hP]; exact (hcl i hi).2.2 k hk,
+      fun i h1 h2 ↦ absurd h2 (by rw [hL]; omega)⟩⟩
   have hne : (itCur s).toNat ≠ (itEnd s).toNat := fun h ↦ he (BitVec.eq_of_toNat_eq h)
   obtain ⟨t₂, hr₂, h₂⟩ := Sym.BlockSpec.reaches b80009bd8_spec (b80009b94_pc_not_taken h₁ he) (by
     rv_eval [k₁ .x11 (by decide)]
@@ -139,8 +152,10 @@ theorem prologue {s : MachineState} (hpc : s.pc = 0x80009b94) (hpre : ExtendPre 
     rw [m₂]; exact hf₁.word (fun x hx hw ↦ by addr_omega [hx, hw, hIs, hIb, hb]) (by addr_omega [hIb])
   have hsp₂ : t₂.getReg .x2 = s.getReg .x2 - 240 := (k₂ .x2 (by decide)).trans (b80009b94_x2 h₁)
   refine ⟨t₂, hr₁.trans hr₂, Or.inr ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hvec₂, Or.inl (by rw [hL₂, hC₂]; exact hpre.full),
-    fun i hi ↦ by rw [hP₂]; rw [hL₂] at hi; exact (hcl₂ i hi).2,
-    value0 hP₂ hL₂ fun i hi ↦ (hcl₂ i hi).1, Nat.zero_le _⟩, b80009bd8_pc h₂, ?_, ?_⟩⟩
+    fun i hi ↦ by rw [hP₂]; rw [hL₂] at hi; exact (hcl₂ i hi).2.1,
+    value0 hP₂ hL₂ fun i hi ↦ (hcl₂ i hi).1, Nat.zero_le _,
+    fun i hi k hk ↦ by rw [hP₂]; exact (hcl₂ i hi).2.2 k hk,
+    fun i h1 h2 ↦ absurd h2 (by rw [hL₂]; omega)⟩, b80009bd8_pc h₂, ?_, ?_⟩⟩
   · rw [m₂]; exact hp₁.same m₂ (k₂ .x2 (by decide)) fun r hr ↦ by simp at hr
   · rw [b80009bd8_x8 h₂, k₁ .x11 (by decide)]
   · rw [b80009bd8_x9 h₂, k₁ .x10 (by decide)]

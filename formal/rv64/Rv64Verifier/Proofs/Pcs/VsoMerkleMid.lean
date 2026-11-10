@@ -79,7 +79,7 @@ theorem scans {s t : MachineState} {P N Q : Word} (hpre : VsoPre s) (hpc : t.pc 
   exact ⟨e1, e2, hall2 i (Nat.zero_le _) hi⟩
 
 /-- The registers `enterPaths` keeps. -/
-def KE : List Reg := [.x2, .x5, .x9, .x17, .x22, .x26]
+def KE : List Reg := [.x2, .x5, .x9, .x17, .x22, .x23, .x26]
 
 /-- `0x8000aad8`'s spills at `S - 1008`, from the scans' end `v`. -/
 structure Spills (s v w : MachineState) : Prop where
@@ -171,7 +171,7 @@ theorem reload {s w : MachineState} {H : Word} (hpre : VsoPre s) (hpc : w.pc = 0
     (hr : Region H 24) :
     ∃ v, Reaches Image.code w v ∧ v.pc = 0x8000b0dc ∧ v.getReg .x20 = w.getMem (H + 16) ∧
       v.getReg .x22 = w.getMem (H + 8) ∧ (∀ a, v.getMem a = w.getMem a) ∧
-      ∀ r ∈ [Reg.x2, .x9, .x26], v.getReg r = w.getReg r := by
+      ∀ r ∈ [Reg.x2, .x9, .x23, .x26], v.getReg r = w.getReg r := by
   have hb := bounds hpre
   have hHb := Region.bounds hr
   have e : w.getMem (w.getReg .x2 + 208) = H := by

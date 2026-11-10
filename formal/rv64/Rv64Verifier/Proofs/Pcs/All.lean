@@ -22,7 +22,14 @@ import Rv64Verifier.Proofs.Pcs.VsoOpenOA
 import Rv64Verifier.Proofs.Pcs.VsoKernelCall
 import Rv64Verifier.Proofs.Pcs.VsoUniform
 import Rv64Verifier.Proofs.Pcs.VsoFinalToCheck
+import Rv64Verifier.Proofs.Pcs.VsoGlueLoop
+import Rv64Verifier.Proofs.Pcs.VsoGlueRoots
+import Rv64Verifier.Proofs.Pcs.VsoGlueInvs
+import Rv64Verifier.Proofs.Pcs.VsoGlueProds
 import Rv64Verifier.Proofs.Runtime.All
+import Rv64Verifier.Proofs.Pcs.VsoTailLevel
+import Rv64Verifier.Proofs.Pcs.VsoLeaves
+import Rv64Verifier.Proofs.Hash.All
 
 /-!
 # The opening's contracts, their callees' discharged
@@ -47,8 +54,14 @@ theorem ringSwitch : RingSwitchSpec :=
 
 theorem roundPolyErr : RoundPolyErrSpec := Transcript.roundPolyErr
 
-theorem extend : ExtendSpec :=
+/-- `extend_desugared`'s contract as `walk`'s R21 calls it. -/
+theorem extendE : Walk.ExtendSpecE :=
   Extend.extend_spec Multilinear.selectorPoint Multilinear.sliceConcat Runtime.growAmortized
+
+theorem extend : ExtendSpec := by
+  intro s hpc hpre
+  obtain ⟨t, hr, h⟩ := extendE s hpc { hpre with points := fun i hi ↦ Or.inr (hpre.points i hi) }
+  exact ⟨t, hr, h.imp_left fun ⟨hpc', hpres, hpost⟩ ↦ ⟨hpc', hpres, hpost.toExtendPost⟩⟩
 
 /-- `verify_stacked_opening`'s contract, its callees in the final level's terminal check proved,
 from the level loop and the tail up to that check. -/
@@ -57,11 +70,42 @@ theorem vsoSpec (hL : Vso.LoopSpec Transcript.OpeningsAt) (hT : Vso.ToCheck Tran
   Vso.vsoSpec_of Multilinear.mleEval Field.mul hL hT
 
 /-- The final level's tail up to the terminal check, its callees proved, from the glued claims'
-loop and an empty scales `Vec`'s pointer. -/
-theorem toCheck (hZ : Vso.ScalesZero Transcript.OpeningsAt)
-    (hGl : Vso.GluedSpec Transcript.OpeningsAt) : Vso.ToCheck Transcript.OpeningsAt :=
+loop. -/
+theorem toCheck (hGl : Vso.GluedSpec Transcript.OpeningsAt) : Vso.ToCheck Transcript.OpeningsAt :=
   Vso.toCheck_of Transcript.duplex Transcript.polyEval Runtime.growOneFresh_80011c78 roundPolyErr
-    Multilinear.sliceConcat basis hZ hGl
+    Multilinear.sliceConcat basis hGl
+
+/-- The glued claims' loop, its callees and `induced_weight`'s pieces proved. -/
+theorem gluedClosed : Vso.GluedSpec Transcript.OpeningsAt :=
+  Vso.gluedSpec EqEval.eq_eval_proved
+    (Vso.roots_spec Runtime.alloc_spec tryAllocZeroed Runtime.reserveFast_8000d628 Field.kSquare
+      Field.baseMul Runtime.memmove Runtime.growOneFresh_8000d7bc)
+    (Vso.invs_spec tryAllocZeroed Runtime.reserveFast_8000d628 Field.kInv)
+    (Vso.prods_spec Field.baseMul Field.mulK Field.mul Field.kSquare) Field.mul
+
+/-- **The final level's tail up to the terminal check**, with no hypothesis. -/
+theorem toCheckClosed : Vso.ToCheck Transcript.OpeningsAt := toCheck gluedClosed
+
+/-- The callees of a level of `verify_stacked_opening`'s loop. -/
+theorem levelCallees : Vso.LevelCallees :=
+  ⟨Transcript.duplex, Runtime.growOneFresh_80011c78, Transcript.polyEval, roundPolyErr,
+    Transcript.nextScalars, Transcript.samples, Transcript.nextScalar,
+    Runtime.growOneFresh_8000c7d0, Transcript.absorb, tryAllocZeroed, Multilinear.powers,
+    Runtime.reserveFast_8000c898, Runtime.memcpy, Hash.keccakHash, Runtime.Memcmp.memcmp_spec,
+    Multilinear.eqKernel⟩
+
+/-- The glue of a level's pending claims. -/
+theorem glue : Vso.GlueSpec :=
+  Vso.glueSpec Field.mul Runtime.memcpy Runtime.growOneFresh_8000db78
+
+/-- A level's tail, from the rows' values. -/
+theorem levelTail : Vso.LevelTail :=
+  Vso.levelTail Multilinear.dot roundPolyErr Runtime.growOneFresh_8000c7d0 glue
+
+/-- **`verify_stacked_opening`'s level loop**, from the two paths of a level's rows. -/
+theorem loopSpec (h0 : Vso.RowsZero) (hD : Vso.RowsDeep) : Vso.LoopSpec Transcript.OpeningsAt :=
+  Vso.loopSpec_of levelCallees Multilinear.dot Runtime.alloc_spec Runtime.growOneFresh_8000d7bc h0 hD
+    Vso.leavesSpec levelTail
 
 end Rv64Verifier.Proofs.Pcs
 
@@ -123,6 +167,9 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.extend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.extend
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.extendE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.extendE
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.reassemble' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.reassemble
@@ -339,3 +386,39 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.toCheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.toCheck
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.gluedClosed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.gluedClosed
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.toCheckClosed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.toCheckClosed
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.glue' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.glue
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.levelTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.levelTail
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.loopSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.loopSpec
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.tailFront' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.tailFront
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.glueIn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.glueIn
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.nextHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.nextHead
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.finalIn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.finalIn
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.backEdge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.backEdge
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.atR' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.atR
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.leavesSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.leavesSpec

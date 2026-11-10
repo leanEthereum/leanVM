@@ -485,8 +485,8 @@ structure SliceConcatPre (s : MachineState) : Prop where
       Apart (partPtr s i) (24 * partLen s i) (stackLo s sliceConcatStack) sliceConcatStack ∧
       Apart (partPtr s i) (24 * partLen s i) (s.getReg .x10) 24)
 
-/-- A new `Vec` of the slices' elements; memory changes only in the `Vec`, the stack, `NEXT` and
-the new allocation. -/
+/-- A new `Vec` of the slices' elements, its pointer the dangling `8` when it has no capacity;
+memory changes only in the `Vec`, the stack, `NEXT` and the new allocation. -/
 structure SliceConcatPost (s t : MachineState) : Prop where
   heap : Runtime.HeapOk t
   mono : Runtime.heapNext s ≤ Runtime.heapNext t
@@ -494,6 +494,7 @@ structure SliceConcatPost (s t : MachineState) : Prop where
   frame : Transcript.DFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
     Within a (stackLo s sliceConcatStack) sliceConcatStack ∨ Within a Runtime.nextAddr 8 ∨
       Runtime.Fresh s t a
+  dangling : Runtime.vecCap t (s.getReg .x10) = 0 → Runtime.vecPtr t (s.getReg .x10) = 8
 
 abbrev SliceConcatSpec : Prop := FunSpec Image.code 0x8000cfc4 SliceConcatPre SliceConcatPost
 

@@ -12,7 +12,7 @@ open RiscvZkvm.Rv64 Rv64Verifier.Runtime Rv64Verifier.Transcript Rv64Verifier.Pc
 
 theorem push_step (hS : MultilinearContracts.SelectorSpec)
     (hC : MultilinearContracts.SliceConcatSpec) (hG : GrowSpec) {s u : MachineState} {k : Nat}
-    (hpre : ExtendPre s) (hp : Push s u k) :
+    (hpre : Walk.ExtendPreE s) (hp : Push s u k) :
     ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ Exit s v ∨ Head s v (k + 1)) := by
   obtain ⟨t₁, hr₁, hd₁ | ha⟩ := sel_step hS hpre hp
   · exact ⟨t₁, hr₁, Or.inl hd₁⟩
@@ -33,7 +33,7 @@ theorem push_step (hS : MultilinearContracts.SelectorSpec)
   · exact Or.inr ⟨hI, hpc, (hs.keep .x25 (by decide)).trans hr.x25, hlt⟩
 
 theorem loop (hS : MultilinearContracts.SelectorSpec) (hC : MultilinearContracts.SliceConcatSpec)
-    (hG : GrowSpec) {s : MachineState} (hpre : ExtendPre s) :
+    (hG : GrowSpec) {s : MachineState} (hpre : Walk.ExtendPreE s) :
     ∀ n j u, itCount s - j ≤ n → Head s u j →
       ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ Exit s v) := by
   intro n

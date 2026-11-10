@@ -23,6 +23,7 @@ structure Base (s u w : MachineState) (k : Nat) : Prop where
   pt : NewVecE u w (s.getReg .x2 - 184) (stackPt s k)
   val : eAt w (s.getReg .x2 - 208) = eAt s (clAt s k + 32)
   len : vecLen w (s.getReg .x10) = vecLen u (s.getReg .x10)
+  dang : vecCap w (s.getReg .x2 - 184) = 0 → vecPtr w (s.getReg .x2 - 184) = 8
 
 /-- At `0x80009bf8`, room for one more claim. -/
 structure Room (s u w : MachineState) (k : Nat) : Prop extends Base s u w k where
@@ -38,7 +39,7 @@ structure Room (s u w : MachineState) (k : Nat) : Prop extends Base s u w k wher
         w.getMem (vecPtr w (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)) =
           u.getMem (vecPtr u (s.getReg .x10) + BitVec.ofNat 64 (88 * i) + BitVec.ofNat 64 (8 * j)))
 
-theorem d34_step {s u v : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Push s u k)
+theorem d34_step {s u v : MachineState} {k : Nat} (hpre : Walk.ExtendPreE s) (hp : Push s u k)
     (hm : Mid s u v k) :
     ∃ w, Reaches Image.code v w ∧ Base s u w k ∧
       w.getMem (s.getReg .x10) = u.getMem (s.getReg .x10) ∧
@@ -105,7 +106,7 @@ theorem d34_step {s u v : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Pus
     (hm₅ _ (by addr_omega [hAs, hAb, hb]) (by addr_omega [hAb])).trans (hA0 16 (by decide))
   refine ⟨t₅, hr₅, ⟨(k₅ .x2 (by decide)).trans hm.sp, fun r hr ↦ ?_,
     (k₅ .x25 (by decide)).trans hm.x25, ?_, ⟨by rw [hnx₅]; exact hm.heap.lo, by rw [hnx₅]; exact hnxv⟩,
-    by rw [hnx₅]; exact hm.mono, ?_, ?_, hval.trans hcv, ha16⟩,
+    by rw [hnx₅]; exact hm.mono, ?_, ?_, hval.trans hcv, ha16, fun h ↦ ?_⟩,
     (hm₅ _ (by addr_omega [hAs, hAb, hb]) (by addr_omega [hAb])).trans hA00,
     (hm₅ _ (by addr_omega [hAs, hAb, hb]) (by addr_omega [hAb])).trans (hA0 8 (by decide)), ?_⟩
   · rw [keeps_sub k₅ (by decide) r hr]; exact hm.keep r hr
@@ -119,6 +120,12 @@ theorem d34_step {s u v : MachineState} {k : Nat} (hpre : ExtendPre s) (hp : Pus
     rcases hbuf with ⟨-, h0 | ⟨h1, h2⟩⟩
     · simp only [Within] at hx; omega
     · addr_omega [hx, hw, h2, hvn, hb]
+  · have e0 : vecCap t₅ (s.getReg .x2 - 184) = vecCap v (s.getReg .x2 - 184) :=
+      hm₅ _ (by addr_omega [hb]) (by addr_omega [hb])
+    have e8 : vecPtr t₅ (s.getReg .x2 - 184) = vecPtr v (s.getReg .x2 - 184) :=
+      hm₅ _ (by addr_omega [hb]) (by addr_omega [hb])
+    rw [e8]
+    exact hm.dang (e0 ▸ h)
   · by_cases hfull : vecLen u (s.getReg .x10) = vecCap u (s.getReg .x10)
     · right
       refine ⟨b80009d34_pc_not_taken h₅ ?_, hfull⟩

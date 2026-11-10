@@ -12,8 +12,8 @@ open RiscvZkvm.Rv64 Rv64Verifier.Runtime Rv64Verifier.Transcript Rv64Verifier.Pc
   Rv64Verifier.PcsContracts Rv64Verifier.Model.Pcs Rv64Verifier.Blocks.F37 LeanVM.Parameters
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
-theorem epilogue {s u : MachineState} (hpre : ExtendPre s) (hd : Done s u) :
-    ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧ ExtendPost s t := by
+theorem epilogue {s u : MachineState} (hpre : Walk.ExtendPreE s) (hd : Done s u) :
+    ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧ Walk.ExtendPostE s t := by
   have hb := sbounds hpre
   have hv := hpre.stack.valid
   rw [hK] at hv
@@ -30,8 +30,10 @@ theorem epilogue {s u : MachineState} (hpre : ExtendPre s) (hd : Done s u) :
       s.getReg .x2 - BitVec.ofNat 64 p := by addr_omega [hb, hop]
   have hheap := hd.p.heap hpre.heap
   have hnt : heapNext t = heapNext u := by simp only [heapNext, m]
-  refine ⟨t, hr, ?_, ?_, ⟨by rw [hnt]; exact hheap.lo, by rw [hnt]; exact hheap.hi⟩,
-    by rw [hnt]; exact hd.p.mono, ?_, ?_, ?_⟩
+  have hPt : vecPtr t (s.getReg .x10) = vecPtr u (s.getReg .x10) := m _
+  have hLt : vecLen t (s.getReg .x10) = vecLen u (s.getReg .x10) := m _
+  refine ⟨t, hr, ?_, ?_, ⟨⟨by rw [hnt]; exact hheap.lo, by rw [hnt]; exact hheap.hi⟩,
+    by rw [hnt]; exact hd.p.mono, ?_, ?_, ?_⟩, fun i hi k hk ↦ ?_, fun i h1 h2 ↦ ?_⟩
   · rw [b80009d7c_pc h, hsp, show (232 : Word) = BitVec.ofNat 64 232 from rfl, a 232 8 rfl, s1,
       returnAddress_eq]
   · intro r hr
@@ -66,10 +68,15 @@ theorem epilogue {s u : MachineState} (hpre : ExtendPre s) (hd : Done s u) :
     · exact Or.inr (Or.inr (Or.inl h))
     · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
     · exact Or.inr (Or.inr (Or.inr (Or.inr (by simp only [Fresh, hnt] at h ⊢; exact h))))
+  · rw [hPt, m]
+    exact hd.words i hi k hk
+  · rw [hLt] at h2
+    exact heapBuf_move (m _) (m _) (le_of_eq hnt.symm) (by rw [hPt]; exact hd.added i h1 h2)
 
-/-- **`Vec<StackClaim>::extend_desugared` meets its contract**, given its callees'. -/
+/-- **`Vec<StackClaim>::extend_desugared` meets its contract as `walk` calls it**, given its
+callees'. -/
 theorem extend_spec (hS : MultilinearContracts.SelectorSpec)
-    (hC : MultilinearContracts.SliceConcatSpec) (hG : GrowSpec) : ExtendSpec := by
+    (hC : MultilinearContracts.SliceConcatSpec) (hG : GrowSpec) : Walk.ExtendSpecE := by
   intro s hpc hpre
   obtain ⟨t, hr, hd | hh⟩ := prologue hpc hpre
   · obtain ⟨v, hrv, hpcv, hpres, hpost⟩ := epilogue hpre hd
