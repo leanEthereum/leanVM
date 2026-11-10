@@ -35,7 +35,7 @@ theorem qw_L15_L5 : QwIs "decode_query_windows__L15_L5" (qwBody 15 5) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L16_L4 : QwIs "decode_query_windows__L16_L4" (qwBody 16 4) :=
-  ⟨Data.core899, Program.find?_of_indexOf? (j := 899) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1687, Program.find?_of_indexOf? (j := 1687) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -55,7 +55,7 @@ theorem qw_L17_L4 : QwIs "decode_query_windows__L17_L4" (qwBody 17 4) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L17_L5 : QwIs "decode_query_windows__L17_L5" (qwBody 17 5) :=
-  ⟨Data.core863, Program.find?_of_indexOf? (j := 863) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1688, Program.find?_of_indexOf? (j := 1688) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -80,7 +80,7 @@ theorem qw_L18_L5 : QwIs "decode_query_windows__L18_L5" (qwBody 18 5) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L18_L6 : QwIs "decode_query_windows__L18_L6" (qwBody 18 6) :=
-  ⟨Data.core861, Program.find?_of_indexOf? (j := 861) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1706, Program.find?_of_indexOf? (j := 1706) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -110,7 +110,7 @@ theorem qw_L19_L6 : QwIs "decode_query_windows__L19_L6" (qwBody 19 6) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L19_L7 : QwIs "decode_query_windows__L19_L7" (qwBody 19 7) :=
-  ⟨Data.core895, Program.find?_of_indexOf? (j := 895) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1718, Program.find?_of_indexOf? (j := 1718) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -140,7 +140,7 @@ theorem qw_L20_L7 : QwIs "decode_query_windows__L20_L7" (qwBody 20 7) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L20_L8 : QwIs "decode_query_windows__L20_L8" (qwBody 20 8) :=
-  ⟨Data.core865, Program.find?_of_indexOf? (j := 865) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1748, Program.find?_of_indexOf? (j := 1748) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -195,7 +195,7 @@ theorem qw_L22_L8 : QwIs "decode_query_windows__L22_L8" (qwBody 22 8) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L23_L5 : QwIs "decode_query_windows__L23_L5" (qwBody 23 5) :=
-  ⟨Data.core936, Program.find?_of_indexOf? (j := 936) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1749, Program.find?_of_indexOf? (j := 1749) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -220,7 +220,7 @@ theorem qw_L24_L5 : QwIs "decode_query_windows__L24_L5" (qwBody 24 5) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L24_L6 : QwIs "decode_query_windows__L24_L6" (qwBody 24 6) :=
-  ⟨Data.core934, Program.find?_of_indexOf? (j := 934) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1756, Program.find?_of_indexOf? (j := 1756) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -240,7 +240,7 @@ theorem qw_L25_L6 : QwIs "decode_query_windows__L25_L6" (qwBody 25 6) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L25_L7 : QwIs "decode_query_windows__L25_L7" (qwBody 25 7) :=
-  ⟨Data.core931, Program.find?_of_indexOf? (j := 931) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1762, Program.find?_of_indexOf? (j := 1762) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in

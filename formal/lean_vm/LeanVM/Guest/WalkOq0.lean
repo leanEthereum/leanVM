@@ -85,7 +85,7 @@ theorem walk_723 : CutsKnown 723 :=
 
 set_option maxRecDepth 100000 in
 theorem walk_783 : CutsKnown 783 :=
-  main_cutsKnown (j := 783) oqBody_761
+  main_cutsKnown (j := 1351) oqBody_761
     (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_783
 
 set_option maxRecDepth 100000 in

@@ -22,7 +22,7 @@ theorem wpBody_976 : Data.core976.body = wpBodyT ⟨0, 0, 11, 7⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L4`. -/
-theorem wpBody_977 : Data.core977.body = wpBodyT ⟨0, 0, 12, 4⟩ :=
+theorem wpBody_977 : Data.core1692.body = wpBodyT ⟨0, 0, 12, 4⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
@@ -52,12 +52,12 @@ theorem wpBody_982 : Data.core982.body = wpBodyT ⟨0, 0, 16, 4⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L6`. -/
-theorem wpBody_983 : Data.core983.body = wpBodyT ⟨0, 0, 18, 6⟩ :=
+theorem wpBody_983 : Data.core1763.body = wpBodyT ⟨0, 0, 18, 6⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L5`. -/
-theorem wpBody_984 : Data.core984.body = wpBodyT ⟨0, 0, 18, 5⟩ :=
+theorem wpBody_984 : Data.core1757.body = wpBodyT ⟨0, 0, 18, 5⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
@@ -87,7 +87,7 @@ theorem wpBody_989 : Data.core989.body = wpBodyT ⟨0, 0, 20, 5⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L4`. -/
-theorem wpBody_990 : Data.core990.body = wpBodyT ⟨0, 0, 18, 4⟩ :=
+theorem wpBody_990 : Data.core1751.body = wpBodyT ⟨0, 0, 18, 4⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 end

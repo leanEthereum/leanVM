@@ -485,10 +485,10 @@ theorem rwStmts_complete {point out : E} {r : ℕ → E} :
     exact hst
 
 set_option maxRecDepth 100000 in
-theorem core394_body : Fn.body Data.core437 = rwBody 4 0 := stmtsEqb_sound (by decide +kernel)
+theorem core394_body : Fn.body Data.core439 = rwBody 4 0 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core389_body : Fn.body Data.core432 = rwBody 6 1 := stmtsEqb_sound (by decide +kernel)
+theorem core389_body : Fn.body Data.core429 = rwBody 6 1 := stmtsEqb_sound (by decide +kernel)
 
 theorem rw_complete {name : String} {f : Fn} (folds rev : ℕ) (hlo : 0 < rwLo folds)
     (hhi : rwLo folds < folds) (hfind : coreProgram.find? name = some f)
@@ -538,10 +538,10 @@ theorem rw_complete {name : String} {f : Fn} (folds rev : ℕ) (hlo : 0 < rwLo f
 
 /-- **`opening_row_weights`' core IR is its meaning**, at its two specializations. -/
 theorem opening_row_weights_holds : opening_row_weights_Spec := by
-  have h1 : coreProgram.find? "opening_row_weights__L6_L1" = some Data.core432 :=
-    Program.find?_of_indexOf? (j := 432) (by decide +kernel) rfl
-  have h2 : coreProgram.find? "opening_row_weights__L4_L0" = some Data.core437 :=
-    Program.find?_of_indexOf? (j := 437) (by decide +kernel) rfl
+  have h1 : coreProgram.find? "opening_row_weights__L6_L1" = some Data.core429 :=
+    Program.find?_of_indexOf? (j := 429) (by decide +kernel) rfl
+  have h2 : coreProgram.find? "opening_row_weights__L4_L0" = some Data.core439 :=
+    Program.find?_of_indexOf? (j := 439) (by decide +kernel) rfl
   have l6 : rwLo 6 = 3 := rfl
   have l4 : rwLo 4 = 3 := rfl
   exact ⟨fun rd args rets ↦ ⟨rw_sound 6 1 (by rw [l6]; omega) (by rw [l6]; omega) h1 rfl

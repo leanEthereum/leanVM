@@ -27,7 +27,7 @@ theorem wpBody_885 : Data.core885.body = wpBodyT ⟨0, 0, 15, 8⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L7`. -/
-theorem wpBody_919 : Data.core919.body = wpBodyT ⟨0, 0, 12, 7⟩ :=
+theorem wpBody_919 : Data.core1728.body = wpBodyT ⟨0, 0, 12, 7⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
@@ -57,7 +57,7 @@ theorem wpBody_929 : Data.core929.body = wpBodyT ⟨0, 0, 17, 7⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L7`. -/
-theorem wpBody_932 : Data.core932.body = wpBodyT ⟨0, 0, 18, 7⟩ :=
+theorem wpBody_932 : Data.core1769.body = wpBodyT ⟨0, 0, 18, 7⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in

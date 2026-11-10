@@ -175,11 +175,11 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core471 :=
-  Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core466 :=
+  Program.find?_of_indexOf? (j := 466) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core990 :=
-  Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1751 :=
+  Program.find?_of_indexOf? (j := 1751) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
@@ -187,6 +187,6 @@ example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
 example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
 
-example : Data.core990.name = Data.f991.name := name_eq_compiled (j := 990) rfl rfl
+example : Data.core1751.name = Data.f1752.name := name_eq_compiled (j := 990) rfl rfl
 
 end LeanVMTests.Guest.CoreData

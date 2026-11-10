@@ -27,12 +27,12 @@ theorem wpBody_962 : Data.core962.body = wpBodyT ⟨0, 0, 11, 8⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L6`. -/
-theorem wpBody_963 : Data.core963.body = wpBodyT ⟨0, 0, 12, 6⟩ :=
+theorem wpBody_963 : Data.core1719.body = wpBodyT ⟨0, 0, 12, 6⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L5`. -/
-theorem wpBody_964 : Data.core964.body = wpBodyT ⟨0, 0, 12, 5⟩ :=
+theorem wpBody_964 : Data.core1710.body = wpBodyT ⟨0, 0, 12, 5⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
