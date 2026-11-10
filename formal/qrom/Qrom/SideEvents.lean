@@ -118,7 +118,7 @@ noncomputable def avgSide (g : (K → Z) → OvGame X Y S P Res) (I : L.Interp)
   ∑ h, ∑ G, ((Fintype.card (K → Z) : ℝ≥0∞) * Fintype.card (X → Y))⁻¹ *
     sideW (g h) G I x ρ (ev h G)
 
-variable (g₁ g₂ : (K → Z) → OvGame X Y S P Res) (rev : S → Finset K)
+variable (g₁ g₂ : (K → Z) → OvGame X Y S P Res) (rev : (K → Z) → S → Finset K)
   (Prot : (K → Z) → S → X → Prop) [∀ h s, DecidablePred (Prot h s)]
 
 /-- The per-`(h, G)` hybrid for events of the leaf and the side state. -/
@@ -156,13 +156,14 @@ theorem rpow_sideW_le_hybrid (htr : ∀ h, (g₁ h).trans = (g₂ h).trans)
 theorem hiding_side_le (htr : ∀ h, (g₁ h).trans = (g₂ h).trans)
     (hov : ∀ h s x, ¬ Prot h s x → (g₁ h).ov s x = (g₂ h).ov s x)
     (hinit12 : ∀ h, (g₁ h).init = (g₂ h).init)
-    (hmono : ∀ h j s, rev s ⊆ rev ((g₂ h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g₂ h).ov s = (g₂ h').ov s)
-    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g₂ h).trans j s).2, h k = h' k) →
+    (hself : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s)
+    (hmono : ∀ h j s, rev h s ⊆ rev h ((g₂ h).trans j s).2)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → (g₂ h).ov s = (g₂ h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev h ((g₂ h).trans j s).2, h k = h' k) →
       (g₂ h).trans j s = (g₂ h').trans j s)
     (hinit : ∀ h h', (g₂ h).init = (g₂ h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
-    (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
-      ε * Fintype.card ({k // k ∉ rev s} → Z))
+    (hprot : ∀ h s x, ((Finset.univ.filter fun b ↦ Prot (merge (rev h s) h b) s x).card : ℝ) ≤
+      ε * Fintype.card ({k // k ∉ rev h s} → Z))
     (I : L.Interp) (n : ℕ) (x : QuantumComp L (ovSpec X Y S P Res) W A)
     (hx : x.IsTotalQueryBound n) (ρ : SubState A)
     (ev : (K → Z) → (X → Y) → (Σ u, W u) → S → Bool) :
@@ -206,7 +207,7 @@ theorem hiding_side_le (htr : ∀ h, (g₁ h).trans = (g₂ h).trans)
     calc c * (4 * ∑ G, ∑ h, QW j (h, G))
         ≤ c * (4 * ∑ G : X → Y, ENNReal.ofReal ε * ∑ h : K → Z, ENNReal.ofReal ρ.matrix.trace.re) := by
           gcongr with G
-          refine (sum_queryWeight_protMass_le rev g₂ Prot hmono hlocal hlocalTr hinit hε0 hprot I G x ρ j).trans ?_
+          refine (sum_queryWeight_protMass_le rev g₂ Prot hself hmono hlocal hlocalTr hinit hε0 hprot I G x ρ j).trans ?_
           gcongr with h
           exact htrace (h, G)
       _ = c * (Fintype.card (K → Z) * Fintype.card (X → Y)) *

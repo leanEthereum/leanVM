@@ -90,7 +90,7 @@ theorem blockW_proj {B : Type*} [Fintype B] [DecidableEq B] (U : Set S) [Decidab
 section hidden
 
 variable {K Z : Type} [Fintype K] [DecidableEq K] [Fintype Z] [DecidableEq Z] [Nonempty Z]
-variable (rev : S → Finset K) (g : (K → Z) → OvGame X Y S P Res)
+variable (rev : (K → Z) → S → Finset K) (g : (K → Z) → OvGame X Y S P Res)
   (Prot : (K → Z) → S → X → Prop) [∀ h s, DecidablePred (Prot h s)]
 
 theorem sideW_eq_sum (g' : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
@@ -101,13 +101,14 @@ theorem sideW_eq_sum (g' : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
 
 /-- **Reading a protected input.** -/
 theorem sum_sideW_protHit_le
-    (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
-    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+    (hself : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s)
+    (hmono : ∀ h j s, rev h s ⊆ rev h ((g h).trans j s).2)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev h ((g h).trans j s).2, h k = h' k) →
       (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
-    (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
-      ε * Fintype.card ({k // k ∉ rev s} → Z))
+    (hprot : ∀ h s x, ((Finset.univ.filter fun b ↦ Prot (merge (rev h s) h b) s x).card : ℝ) ≤
+      ε * Fintype.card ({k // k ∉ rev h s} → Z))
     (I : L.Interp) (G : X → Y) (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A)
     (out : (Σ u, W u) → Finset X) (k : ℕ) (hout : ∀ p, (out p).card ≤ k) :
     ∑ h, sideW (g h) G I x ρ (fun p s ↦ decide (∃ z ∈ out p, Prot h s z)) ≤
@@ -119,50 +120,54 @@ theorem sum_sideW_protHit_le
   simp only [↓reduceIte]
   rw [Finset.sum_comm, Finset.sum_comm (f := fun h s ↦ blockW s _), Finset.mul_sum]
   refine Finset.sum_le_sum fun s _ ↦ ?_
-  set e := splitE rev s
-  have hagree : ∀ a b b', blockW s (((g (e.symm (a, b))).sampled G).jointPost I x ρ p).matrix =
-      blockW s (((g (e.symm (a, b'))).sampled G).jointPost I x ρ p).matrix := by
-    intro a b b'
-    have hj := conj_jointPost_eq_of_agreeOn (U := below rev s) I
-      (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).1
-      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).2
-      (hinit _ _) G x ρ p
-    rw [← blockW_proj (below rev s) s ((mem_below rev).mpr subset_rfl), hj,
-      blockW_proj (below rev s) s ((mem_below rev).mpr subset_rfl)]
-  obtain ⟨b₀⟩ : Nonempty ({k // k ∉ rev s} → Z) := inferInstance
-  rw [← e.symm.sum_comp, ← e.symm.sum_comp, Fintype.sum_prod_type, Fintype.sum_prod_type,
-    Finset.mul_sum]
-  refine Finset.sum_le_sum fun a _ ↦ ?_
-  simp only [hagree a _ b₀]
-  have hcount : ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (e.symm (a, b)) s z).card : ℝ) ≤
-      k * ε * Fintype.card ({k // k ∉ rev s} → Z) := by
-    calc ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (e.symm (a, b)) s z).card : ℝ)
-        ≤ ∑ z ∈ out p, ((Finset.univ.filter fun b ↦ Prot (e.symm (a, b)) s z).card : ℝ) := by
+  have hselfs : ∀ h h', (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s :=
+    fun h h' ↦ hself h h' s
+  -- on the fiber of `h`, the weight of `s` is that of `h`
+  have hagree : ∀ h b, blockW s (((g (merge (rev h s) h b)).sampled G).jointPost I x ρ p).matrix =
+      blockW s (((g h).sampled G).jointPost I x ρ p).matrix := by
+    intro h b
+    have hag : ∀ k ∈ rev h s, h k = merge (rev h s) h b k :=
+      fun k hk ↦ (merge_agree _ h b k hk).symm
+    obtain ⟨hc₁, hc₂, hov, htr⟩ := agree_below rev g hself hmono hlocal hlocalTr hag
+    have hj := conj_jointPost_eq_of_agreeOn (U := below rev h s) I hc₁ hc₂ hov htr (hinit _ _)
+      G x ρ p
+    rw [← blockW_proj (below rev h s) s ((mem_below rev).mpr subset_rfl), ← hj,
+      blockW_proj (below rev h s) s ((mem_below rev).mpr subset_rfl)]
+  rw [sum_eq_sum_fiber (fun h ↦ rev h s) hselfs (fun h ↦ if decide (∃ z ∈ out p, Prot h s z) then
+      blockW s (((g h).sampled G).jointPost I x ρ p).matrix else 0),
+    sum_eq_sum_fiber (fun h ↦ rev h s) hselfs (fun h ↦
+      blockW s (((g h).sampled G).jointPost I x ρ p).matrix), Finset.mul_sum]
+  refine Finset.sum_le_sum fun h _ ↦ ?_
+  simp only [hagree h]
+  rw [mul_left_comm]
+  gcongr
+  have hcount : ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (merge (rev h s) h b) s z).card : ℝ) ≤
+      k * ε * Fintype.card ({k // k ∉ rev h s} → Z) := by
+    calc ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (merge (rev h s) h b) s z).card : ℝ)
+        ≤ ∑ z ∈ out p, ((Finset.univ.filter fun b ↦ Prot (merge (rev h s) h b) s z).card : ℝ) := by
           rw [← Nat.cast_sum]
           refine Nat.cast_le.mpr ((Finset.card_le_card fun b hb ↦ ?_).trans Finset.card_biUnion_le)
           simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
           obtain ⟨z, hz, hp⟩ := hb
           exact Finset.mem_biUnion.mpr ⟨z, hz, by simpa using hp⟩
-      _ ≤ ∑ _z ∈ out p, ε * Fintype.card ({k // k ∉ rev s} → Z) :=
-          Finset.sum_le_sum fun z _ ↦ hprot s z a
-      _ ≤ k * ε * Fintype.card ({k // k ∉ rev s} → Z) := by
+      _ ≤ ∑ _z ∈ out p, ε * Fintype.card ({k // k ∉ rev h s} → Z) :=
+          Finset.sum_le_sum fun z _ ↦ hprot h s z
+      _ ≤ k * ε * Fintype.card ({k // k ∉ rev h s} → Z) := by
           rw [Finset.sum_const, nsmul_eq_mul, mul_assoc]
           exact mul_le_mul_of_nonneg_right (by exact_mod_cast hout p) (by positivity)
-  calc ∑ b, (if decide (∃ z ∈ out p, Prot (e.symm (a, b)) s z) then
-        blockW s (((g (e.symm (a, b₀))).sampled G).jointPost I x ρ p).matrix else 0)
-      = ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (e.symm (a, b)) s z).card : ℝ≥0∞) *
-          blockW s (((g (e.symm (a, b₀))).sampled G).jointPost I x ρ p).matrix := by
+  calc ∑ b, (if decide (∃ z ∈ out p, Prot (merge (rev h s) h b) s z) then
+        blockW s (((g h).sampled G).jointPost I x ρ p).matrix else 0)
+      = ((Finset.univ.filter fun b ↦ ∃ z ∈ out p, Prot (merge (rev h s) h b) s z).card : ℝ≥0∞) *
+          blockW s (((g h).sampled G).jointPost I x ρ p).matrix := by
         simp only [decide_eq_true_eq]
         rw [← Finset.sum_filter, Finset.sum_const, nsmul_eq_mul]
-    _ ≤ ENNReal.ofReal (k * ε * Fintype.card ({k // k ∉ rev s} → Z)) *
-          blockW s (((g (e.symm (a, b₀))).sampled G).jointPost I x ρ p).matrix := by
+    _ ≤ ENNReal.ofReal (k * ε * Fintype.card ({k // k ∉ rev h s} → Z)) *
+          blockW s (((g h).sampled G).jointPost I x ρ p).matrix := by
         gcongr
         rw [← ENNReal.ofReal_natCast]
         exact ENNReal.ofReal_le_ofReal hcount
-    _ = ENNReal.ofReal (k * ε) * ∑ _b : {k // k ∉ rev s} → Z,
-          blockW s (((g (e.symm (a, b₀))).sampled G).jointPost I x ρ p).matrix := by
+    _ = ENNReal.ofReal (k * ε) * ∑ _b : {k // k ∉ rev h s} → Z,
+          blockW s (((g h).sampled G).jointPost I x ρ p).matrix := by
         rw [Finset.sum_const, nsmul_eq_mul, ENNReal.ofReal_mul (by positivity),
           ENNReal.ofReal_natCast, Finset.card_univ]
         ring

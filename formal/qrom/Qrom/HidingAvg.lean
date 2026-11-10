@@ -1,6 +1,7 @@
 module
 
 public import Qrom.Hiding
+public import Qrom.Fiber
 
 @[expose] public section
 
@@ -8,14 +9,15 @@ public import Qrom.Hiding
 # The protected mass, averaged over the hidden data
 
 Let the second game depend on hidden data `h : K → Z`, revealed key by key: in side state `s` the
-game reads only the keys `rev s`, and the side ports only grow `rev`. If, for every side state `s`,
-input `x` and values of the revealed keys, at most a fraction `ε` of the values of the other keys
-protect `x`, then the protected mass of every call, summed over `h`, is at most `ε` times its
-total mass (`Qrom.OvGame.sum_queryWeight_protMass_le`).
+game reads only the keys `rev h s`, a set determined by the values of `h` on it, and the side ports
+only grow it. If, for every side state `s`, input `x` and data `h`, at most a fraction `ε` of the
+values of the keys `h` does not reveal protect `x`, then the protected mass of every call, summed
+over `h`, is at most `ε` times its total mass (`Qrom.OvGame.sum_queryWeight_protMass_le`).
 
 The mass splits by side state. On the side state `s`, the run depends on `h` only through the
 revealed keys (`Qrom.OvGame.queryWeight_eq_of_agreeOn` on the side states `s'` with
-`rev s' ⊆ rev s`), so the protected indicator can be averaged over the other keys first.
+`rev h s' ⊆ rev h s`), so the protected indicator can be averaged over each fiber of the revealed
+values first (`Qrom.sum_eq_sum_fiber`).
 -/
 
 open Matrix OracleSpec
@@ -146,137 +148,141 @@ theorem sum_massSH_true {σ : Matrix ((X × Y) × (S × Unit)) ((X × Y) × (S �
 section hidden
 
 variable {K Z : Type} [Fintype K] [DecidableEq K] [Fintype Z] [DecidableEq Z] [Nonempty Z]
-variable (rev : S → Finset K)
+variable (rev : (K → Z) → S → Finset K)
 
-/-- Splitting the hidden data along the keys revealed in `s`. -/
-def splitE (s : S) : (K → Z) ≃ ({k // k ∈ rev s} → Z) × ({k // k ∉ rev s} → Z) :=
-  Equiv.piEquivPiSubtypeProd (· ∈ rev s) (fun _ ↦ Z)
-
-theorem splitE_symm_agree (s : S) (a : {k // k ∈ rev s} → Z) (b b' : {k // k ∉ rev s} → Z) :
-    ∀ k ∈ rev s, (splitE rev s).symm (a, b) k = (splitE rev s).symm (a, b') k := by
-  intro k hk
-  simp [splitE, Equiv.piEquivPiSubtypeProd, hk]
-
-/-- The side states whose revealed keys are among those of `s`. -/
-def belowF (s : S) : Finset S := Finset.univ.filter fun s' ↦ rev s' ⊆ rev s
+/-- The side states whose revealed keys, read on `h`, are among those of `s`. -/
+def belowF (h : K → Z) (s : S) : Finset S := Finset.univ.filter fun s' ↦ rev h s' ⊆ rev h s
 
 /-- The same, as a set. -/
-abbrev below (s : S) : Set S := ↑(belowF rev s)
+abbrev below (h : K → Z) (s : S) : Set S := ↑(belowF rev h s)
 
-theorem mem_below {s s' : S} : s' ∈ below rev s ↔ rev s' ⊆ rev s := by
+theorem mem_below {h : K → Z} {s s' : S} : s' ∈ below rev h s ↔ rev h s' ⊆ rev h s := by
   simp [below, belowF]
 
-theorem massS_factor (s : S) (Q : X → Prop) [DecidablePred Q] :
+theorem massS_factor (h : K → Z) (s : S) (Q : X → Prop) [DecidablePred Q] :
     massS (P := P) (Res := Res) (Y := Y) s Q = fun i σ ↦
-      massS s Q i ((MatrixMap.conj (sideProj (below rev s))).amplifyLeft _ σ) := by
+      massS s Q i ((MatrixMap.conj (sideProj (below rev h s))).amplifyLeft _ σ) := by
   funext i σ
   rcases i with ⟨⟩ | j
-  · exact (massSH_proj (below rev s) s ((mem_below rev).mpr subset_rfl) Q σ).symm
+  · exact (massSH_proj (below rev h s) s ((mem_below rev).mpr subset_rfl) Q σ).symm
   · rfl
 
 variable (g : (K → Z) → OvGame X Y S P Res)
   (Prot : (K → Z) → S → X → Prop) [∀ h s, DecidablePred (Prot h s)]
 variable {L : LocalSig.{u, v}} {W : QReg → Type w} {A : QReg}
 
-/-- Data agreeing on the keys revealed in `s` give games that agree on the side states below `s`:
-the same overrides, and the same transitions into them. -/
-theorem agree_below
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
-    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+/-- Data agreeing on the keys `h` reveals in `s` give games that agree on the side states below
+`s`: the side states are closed under predecessors in both, with the same overrides, and the same
+transitions into them. -/
+theorem agree_below (hself : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s)
+    (hmono : ∀ h j s, rev h s ⊆ rev h ((g h).trans j s).2)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev h ((g h).trans j s).2, h k = h' k) →
       (g h).trans j s = (g h').trans j s)
-    {s : S} {h h' : K → Z} (hag : ∀ k ∈ rev s, h k = h' k) :
-    (∀ s' ∈ below rev s, (g h).ov s' = (g h').ov s') ∧
-      ∀ s' ∈ below rev s, ∀ j, ((g h).trans j s').2 ∈ below rev s ∨
-        ((g h').trans j s').2 ∈ below rev s → (g h).trans j s' = (g h').trans j s' := by
-  refine ⟨fun s' hs' ↦ hlocal _ _ s' fun k hk ↦ hag k ((mem_below rev).mp hs' hk),
+    {s : S} {h h' : K → Z} (hag : ∀ k ∈ rev h s, h k = h' k) :
+    (∀ j s', ((g h).trans j s').2 ∈ below rev h s → s' ∈ below rev h s) ∧
+    (∀ j s', ((g h').trans j s').2 ∈ below rev h s → s' ∈ below rev h s) ∧
+    (∀ s' ∈ below rev h s, (g h).ov s' = (g h').ov s') ∧
+      ∀ s' ∈ below rev h s, ∀ j, ((g h).trans j s').2 ∈ below rev h s ∨
+        ((g h').trans j s').2 ∈ below rev h s → (g h).trans j s' = (g h').trans j s' := by
+  -- a transition of `h'` into `below h s` is the transition of `h`
+  have hback : ∀ j s', ((g h').trans j s').2 ∈ below rev h s → (g h).trans j s' = (g h').trans j s' := by
+    intro j s' hU
+    have hU' := (mem_below rev).mp hU
+    have hrev : rev h' ((g h').trans j s').2 = rev h ((g h').trans j s').2 :=
+      hself h h' _ fun k hk ↦ hag k (hU' hk)
+    refine (hlocalTr h' h j s' fun k hk ↦ ?_).symm
+    rw [hrev] at hk
+    exact (hag k (hU' hk)).symm
+  refine ⟨fun j s' hU ↦ (mem_below rev).mpr ((hmono h j s').trans ((mem_below rev).mp hU)),
+    fun j s' hU ↦ ?_, fun s' hs' ↦ hlocal _ _ s' fun k hk ↦ hag k ((mem_below rev).mp hs' hk),
     fun s' _ j hU ↦ ?_⟩
-  rcases hU with hU | hU
-  · exact hlocalTr _ _ j s' fun k hk ↦ hag k ((mem_below rev).mp hU hk)
-  · exact (hlocalTr _ _ j s' fun k hk ↦ (hag k ((mem_below rev).mp hU hk)).symm).symm
+  · have he := hback j s' hU
+    rw [← he] at hU
+    exact (mem_below rev).mpr ((hmono h j s').trans ((mem_below rev).mp hU))
+  · rcases hU with hU | hU
+    · exact hlocalTr _ _ j s' fun k hk ↦ hag k ((mem_below rev).mp hU hk)
+    · exact hback j s' hU
 
 /-- **The protected mass of one side state, averaged over the hidden data.** -/
 theorem sum_queryWeight_massS_le
-    (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
-    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+    (hself : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s)
+    (hmono : ∀ h j s, rev h s ⊆ rev h ((g h).trans j s).2)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev h ((g h).trans j s).2, h k = h' k) →
       (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
-    (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
-      ε * Fintype.card ({k // k ∉ rev s} → Z))
+    (hprot : ∀ h s x, ((Finset.univ.filter fun b ↦ Prot (merge (rev h s) h b) s x).card : ℝ) ≤
+      ε * Fintype.card ({k // k ∉ rev h s} → Z))
     (I : L.Interp) (G : X → Y) (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A)
     (j : ℕ) (s : S) :
     ∑ h, ((g h).sampled G).queryWeight I (massS s (Prot h s)) x
         (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j ≤
       ENNReal.ofReal ε * ∑ h, ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
         (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
-  set e := splitE rev s
-  have hagree : ∀ a b b' (w : ∀ i : (ovSpec X Y S P Res).Port, Matrix ((ovSpec X Y S P Res).In i ×
-      (S × Unit)) ((ovSpec X Y S P Res).In i × (S × Unit)) ℂ → ℝ≥0∞),
-      ((g (e.symm (a, b))).sampled G).queryWeight I
-          (fun i σ ↦ w i ((MatrixMap.conj (sideProj (below rev s))).amplifyLeft _ σ)) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b))).sampled G).init.matrix) j =
-        ((g (e.symm (a, b'))).sampled G).queryWeight I
-          (fun i σ ↦ w i ((MatrixMap.conj (sideProj (below rev s))).amplifyLeft _ σ)) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b'))).sampled G).init.matrix) j := by
-    intro a b b' w
-    exact queryWeight_eq_of_agreeOn I
-      (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (fun j' s' h ↦ (mem_below rev).mpr ((hmono _ j' s').trans ((mem_below rev).mp h)))
-      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).1
-      (agree_below rev g hlocal hlocalTr (splitE_symm_agree rev s a b b')).2
-      (hinit _ _) G w x ρ j
-  obtain ⟨b₀⟩ : Nonempty ({k // k ∉ rev s} → Z) := inferInstance
-  have hrun : ∀ a b (Q : X → Prop) [DecidablePred Q],
-      ((g (e.symm (a, b))).sampled G).queryWeight I (massS s Q) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b))).sampled G).init.matrix) j =
-        ((g (e.symm (a, b₀))).sampled G).queryWeight I (massS s Q) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j := by
-    intro a b Q _
-    rw [massS_factor rev s Q]
-    exact hagree a b b₀ _
-  rw [← e.symm.sum_comp, ← e.symm.sum_comp, Fintype.sum_prod_type, Fintype.sum_prod_type,
-    Finset.mul_sum]
-  refine Finset.sum_le_sum fun a _ ↦ ?_
-  simp only [hrun a _ (fun _ ↦ True)]
-  calc ∑ b, ((g (e.symm (a, b))).sampled G).queryWeight I (massS s (Prot (e.symm (a, b)) s)) x
-        (ρ.matrix ⊗ₖ ((g (e.symm (a, b))).sampled G).init.matrix) j
-      = ∑ b, ((g (e.symm (a, b₀))).sampled G).queryWeight I (massS s (Prot (e.symm (a, b)) s)) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j :=
-        Finset.sum_congr rfl fun b _ ↦ hrun a b _
-    _ = ((g (e.symm (a, b₀))).sampled G).queryWeight I
-          (fun i σ ↦ ∑' b, massS s (Prot (e.symm (a, b)) s) i σ) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j := by
-        have ht := QuantumRuntime.tsum_queryWeight ((g (e.symm (a, b₀))).sampled G) I
-          (fun b ↦ massS (P := P) (Res := Res) (Y := Y) s (Prot (e.symm (a, b)) s)) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j
+  have hselfs : ∀ h h', (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s :=
+    fun h h' ↦ hself h h' s
+  -- on the fiber of `h`, the runs agree with that of `h` on the side states below `s`
+  have hrun : ∀ h b (Q : X → Prop) [DecidablePred Q],
+      ((g (merge (rev h s) h b)).sampled G).queryWeight I (massS s Q) x
+          (ρ.matrix ⊗ₖ ((g (merge (rev h s) h b)).sampled G).init.matrix) j =
+        ((g h).sampled G).queryWeight I (massS s Q) x
+          (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
+    intro h b Q _
+    have hag : ∀ k ∈ rev h s, h k = merge (rev h s) h b k :=
+      fun k hk ↦ (merge_agree _ h b k hk).symm
+    obtain ⟨hc₁, hc₂, hov, htr⟩ := agree_below rev g hself hmono hlocal hlocalTr hag
+    rw [massS_factor rev h s Q]
+    exact (queryWeight_eq_of_agreeOn I hc₁ hc₂ hov htr (hinit _ _) G _ x ρ j).symm
+  rw [sum_eq_sum_fiber (fun h ↦ rev h s) hselfs (fun h ↦ ((g h).sampled G).queryWeight I
+      (massS s (Prot h s)) x (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j),
+    sum_eq_sum_fiber (fun h ↦ rev h s) hselfs (fun h ↦ ((g h).sampled G).queryWeight I
+      (massS s fun _ ↦ True) x (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j), Finset.mul_sum]
+  refine Finset.sum_le_sum fun h _ ↦ ?_
+  simp only [hrun h _ (fun _ ↦ True)]
+  rw [mul_left_comm]
+  gcongr
+  calc ∑ b, ((g (merge (rev h s) h b)).sampled G).queryWeight I
+          (massS s (Prot (merge (rev h s) h b) s)) x
+          (ρ.matrix ⊗ₖ ((g (merge (rev h s) h b)).sampled G).init.matrix) j
+      = ∑ b, ((g h).sampled G).queryWeight I (massS s (Prot (merge (rev h s) h b) s)) x
+          (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j :=
+        Finset.sum_congr rfl fun b _ ↦ hrun h b _
+    _ = ((g h).sampled G).queryWeight I
+          (fun i σ ↦ ∑' b, massS s (Prot (merge (rev h s) h b) s) i σ) x
+          (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
+        have ht := QuantumRuntime.tsum_queryWeight ((g h).sampled G) I
+          (fun b ↦ massS (P := P) (Res := Res) (Y := Y) s (Prot (merge (rev h s) h b) s)) x
+          (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j
         rw [tsum_fintype] at ht
         exact ht
-    _ ≤ ((g (e.symm (a, b₀))).sampled G).queryWeight I
-          (fun i σ ↦ ENNReal.ofReal (ε * Fintype.card ({k // k ∉ rev s} → Z)) *
+    _ ≤ ((g h).sampled G).queryWeight I
+          (fun i σ ↦ ENNReal.ofReal (ε * Fintype.card ({k // k ∉ rev h s} → Z)) *
             massS s (fun _ ↦ True) i σ) x
-          (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j := by
+          (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
         refine QuantumRuntime.queryWeight_mono _ I (fun i σ hσ ↦ ?_) x
-          (ρ.prod ((g (e.symm (a, b₀))).sampled G).init).posSemidef j
+          (ρ.prod ((g h).sampled G).init).posSemidef j
         rcases i with ⟨⟩ | j'
         · rw [tsum_fintype]
-          exact sum_massSH_le s (fun b ↦ Prot (e.symm (a, b)) s) hε0 (hprot s · a) hσ
+          exact sum_massSH_le s (fun b ↦ Prot (merge (rev h s) h b) s) hε0 (hprot h s ·) hσ
         · simp [massS]
-    _ = ENNReal.ofReal ε * ∑ _b : {k // k ∉ rev s} → Z,
-          ((g (e.symm (a, b₀))).sampled G).queryWeight I (massS s fun _ ↦ True) x
-            (ρ.matrix ⊗ₖ ((g (e.symm (a, b₀))).sampled G).init.matrix) j := by
+    _ = ENNReal.ofReal ε * ∑ _b : {k // k ∉ rev h s} → Z,
+          ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
+            (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
         rw [QuantumRuntime.queryWeight_const_mul, Finset.sum_const, nsmul_eq_mul,
           ENNReal.ofReal_mul hε0, ENNReal.ofReal_natCast, Finset.card_univ]
         ring
 
 /-- **The protected mass, averaged over the hidden data.** -/
 theorem sum_queryWeight_protMass_le
-    (hmono : ∀ h j s, rev s ⊆ rev ((g h).trans j s).2)
-    (hlocal : ∀ h h' s, (∀ k ∈ rev s, h k = h' k) → (g h).ov s = (g h').ov s)
-    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev ((g h).trans j s).2, h k = h' k) →
+    (hself : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → rev h' s = rev h s)
+    (hmono : ∀ h j s, rev h s ⊆ rev h ((g h).trans j s).2)
+    (hlocal : ∀ h h' s, (∀ k ∈ rev h s, h k = h' k) → (g h).ov s = (g h').ov s)
+    (hlocalTr : ∀ h h' j s, (∀ k ∈ rev h ((g h).trans j s).2, h k = h' k) →
       (g h).trans j s = (g h').trans j s)
     (hinit : ∀ h h', (g h).init = (g h').init) {ε : ℝ} (hε0 : 0 ≤ ε)
-    (hprot : ∀ s x a, ((Finset.univ.filter fun b ↦ Prot ((splitE rev s).symm (a, b)) s x).card : ℝ) ≤
-      ε * Fintype.card ({k // k ∉ rev s} → Z))
+    (hprot : ∀ h s x, ((Finset.univ.filter fun b ↦ Prot (merge (rev h s) h b) s x).card : ℝ) ≤
+      ε * Fintype.card ({k // k ∉ rev h s} → Z))
     (I : L.Interp) (G : X → Y) (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A)
     (j : ℕ) :
     ∑ h, ((g h).sampled G).queryWeight I (protMass (Prot h)) x
@@ -322,7 +328,7 @@ theorem sum_queryWeight_protMass_le
       ≤ ∑ s, ENNReal.ofReal ε * ∑ h, ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
           (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j :=
         Finset.sum_le_sum fun s _ ↦
-          sum_queryWeight_massS_le rev g Prot hmono hlocal hlocalTr hinit hε0 hprot I G x ρ j s
+          sum_queryWeight_massS_le rev g Prot hself hmono hlocal hlocalTr hinit hε0 hprot I G x ρ j s
     _ = ENNReal.ofReal ε * ∑ h, ∑ s, ((g h).sampled G).queryWeight I (massS s fun _ ↦ True) x
           (ρ.matrix ⊗ₖ ((g h).sampled G).init.matrix) j := by
         rw [← Finset.mul_sum, Finset.sum_comm]
