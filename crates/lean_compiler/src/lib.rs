@@ -291,7 +291,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             KVal::FrameSize => g_pow(frame_size as usize).into(),
             KVal::Const(c) => *c,
             // Address / entry / sentinel constants are K-valued g-powers;
-            // embed them canonically as (c0, 0, 0).
+            // embed them canonically as (c0, 0).
             KVal::Entry(name) => g_pow(entry[name] as usize).into(),
             KVal::EndSentinel => g_pow(sentinel as usize).into(),
             KVal::Local(i) => g_pow((pc0 + i) as usize).into(),
