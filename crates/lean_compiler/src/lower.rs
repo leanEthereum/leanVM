@@ -1345,7 +1345,10 @@ impl FnLower<'_> {
             StmtKind::Match { targets, x, arms } => self.lower_match(targets, x, arms),
             StmtKind::Call(f, args) => {
                 if !self.lower_builtin(f, args) {
-                    self.call(f, args, 0);
+                    // A call statement discards the callee's returns into cells nothing reads.
+                    let n_ret = self.defs.get(f.as_str()).map_or(0, |d| d.return_shapes.len());
+                    self.call(f, args, n_ret);
+                    self.inline_stack_ret = None;
                 }
             }
             StmtKind::Store(arr, idx, val) => {

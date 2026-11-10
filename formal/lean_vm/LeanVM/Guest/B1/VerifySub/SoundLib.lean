@@ -130,7 +130,7 @@ theorem depth_ge {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
   exact lt_log2Ceil_iff.2 this
 
 /-- `g^n ≠ 1` below the order. -/
-theorem gen_pow_ne_one {n : ℕ} (h0 : 0 < n) (h : n < 2 ^ 64 - 1) : gen ^ n ≠ 1 := by
+theorem vs_gen_pow_ne_one {n : ℕ} (h0 : 0 < n) (h : n < 2 ^ 64 - 1) : gen ^ n ≠ 1 := by
   intro e
   have := gen_pow_inj h (by norm_num) (e.trans (pow_zero gen).symm)
   omega

@@ -41,7 +41,8 @@ within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `d
 execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
 `guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
 DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
-`corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
+`corollaries_hold` take one hypothesis until the walks' ports to the f128 guest land,
+`LeanVM.Guest.End.EndPending` (the `example` after `theorems_hold` pins the statement).
 Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
 `DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
 `LeanVM/Guest/DecoderProgram.lean`); `theorems_hold_of_decode` takes that decoder to be `decode`,
@@ -105,12 +106,14 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 
 example : LeanVM.KnowledgeSoundness LeanVM.transcriptExtractor := LeanVM.knowledgeSoundness_holds
 example : LeanVM.Completeness := LeanVM.completeness_holds
-example : LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.guestProgram LeanVM.Guest.End.decode :=
-  LeanVM.Guest.End.guest_knowledge
+example (hP : LeanVM.Guest.End.EndPending) :
+    LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.guestProgram LeanVM.Guest.End.decode :=
+  LeanVM.Guest.End.guest_knowledge hP
 example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
-example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
-    LeanVM.transcriptExtractor :=
-  LeanVM.Guest.End.aggregate_sound_outer
+example (hP : LeanVM.Guest.End.EndPending) :
+    LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
+      LeanVM.transcriptExtractor :=
+  LeanVM.Guest.End.aggregate_sound_outer hP
 example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
   LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
@@ -312,12 +315,13 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
 /-- **Every end theorem**, for a decoder program that computes `LeanVM.Guest.End.decode` (read off
 the memory) within its size bound and budget on every valid execution: that hypothesis alone
 (`DecoderProgramSpec`). -/
-theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProgram}
+theorem LeanVM.theorems_hold_of_decode (hP : LeanVM.Guest.End.EndPending)
+    {decoderProgram : LeanVM.Cost.MachineProgram}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram
       fun t ↦ LeanVM.Guest.End.decode t.memory) :
     Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := decoderProgram) :=
-  LeanVM.theorems_of_decoderSpec hspec LeanVM.Guest.End.decoderExplains_decode
+  LeanVM.theorems_of_decoderSpec hspec (LeanVM.Guest.End.decoderExplains_decode hP)
 
 /-- info: 'LeanVM.theorems_hold_of_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -327,11 +331,11 @@ theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProg
 decoder `LeanVM.Cost.compiledGuestWitnessDecoder`, its price within its budget
 (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor`. -/
-theorem LeanVM.theorems_hold :
+theorem LeanVM.theorems_hold (hP : LeanVM.Guest.End.EndPending) :
     Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.theorems_hold_of_decode
-    (LeanVM.Cost.decoderProgram_spec LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget)
+  LeanVM.theorems_hold_of_decode hP
+    (LeanVM.Cost.decoderProgram_spec (LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget hP))
 
 /-- info: 'LeanVM.theorems_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -345,11 +349,12 @@ theorem LeanVM.theorems_hold :
 #guard_msgs in
 #print axioms LeanVM.Cost.encodeValue_decoded_injective
 
-/-- The end theorems' statement, pinned: the programs named, no hypothesis. -/
-example :
+/-- The end theorems' statement, pinned: the programs named, the walks' obligations the one
+hypothesis until their ports to the f128 guest land. -/
+example (hP : LeanVM.Guest.End.EndPending) :
     Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.theorems_hold
+  LeanVM.theorems_hold hP
 
 open OracleComp in
 /-- **The corollaries follow from the end theorems**, field by field: `aggregateSound` from
@@ -382,10 +387,10 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
 
 /-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled extractor and decoder
 programs. -/
-theorem LeanVM.corollaries_hold :
+theorem LeanVM.corollaries_hold (hP : LeanVM.Guest.End.EndPending) :
     Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
       (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.corollaries_of_theorems LeanVM.theorems_hold
+  LeanVM.corollaries_of_theorems (LeanVM.theorems_hold hP)
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
