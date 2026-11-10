@@ -91,8 +91,11 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     (hg : ∀ st ∈ sqT first, GoodS rd S w σ st) (hS7 : ∀ d off, Atom.load d (.n 7) off ∉ S)
     {n : E} (hn : LoadHolds rd (σ (.n 7)) 47 n) (hok : s.GrindOk sGrindBits n)
     (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n 14)] []) :
-    σ (.n (nonceV first)) = n ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (sqT first) next kret := by
+    σ (.n (nonceV first)) = n ∧
+      s.grindSqueeze sGrindBits n =
+        (σ (.n (layOff first + 544)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ (sqT first) next kret := by
   interval_cases first
   · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 528, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
@@ -115,7 +118,8 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
     rw [e528] at hout
     have hpow := grind_cell (s := s) (b := 531) hout hok
-    refine ⟨e528, fun {next kret} hnx ↦ ?_⟩
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 531) hout hpow hch
+    refine ⟨e528, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
       List.map_nil]
@@ -157,7 +161,8 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
     rw [e543] at hout
     have hpow := grind_cell (s := s) (b := 551) hout hok
-    refine ⟨e543, fun {next kret} hnx ↦ ?_⟩
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 551) hout hpow hch
+    refine ⟨e543, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
       List.map_nil]
@@ -177,8 +182,11 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
     (hok : ((plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0).absorbAll
       prod dsObserve).GrindOk sGrindBits n)
     (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 → C (grindCheckName 3) [v, σ (.n 14)] []) :
-    σ (.n (nonceV first)) = n ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (secA1 first ++ secA2 first) next kret := by
+    σ (.n (nonceV first)) = n ∧ (prodTab first).map (fun p ↦ σ (.n p.a)) = prod ∧
+      layerSq (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0) prod n =
+        (σ (.n (layOff first + 544)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ (secA1 first ++ secA2 first) next kret := by
   obtain ⟨hall1, hallC⟩ := secA_atoms hf
   have hr1 := secA_resid1 hf
   have hrC := secA_residC hf
@@ -251,8 +259,8 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
     rw [g3, g2, e1, e4, ← hproj, hp]
     exact e_add_self _
   -- the grind and the squeeze
-  obtain ⟨en, HS⟩ := sqT_complete (C := C) hf hsp hgS hS7 hn hok hgr
-  refine ⟨en, fun {next kret} hnx ↦ ?_⟩
+  obtain ⟨en, hsq, HS⟩ := sqT_complete (C := C) hf hsp hgS hS7 hn hok hgr
+  refine ⟨en, hprodE, hsq, fun {next kret} hnx ↦ ?_⟩
   rw [secA2, ← List.append_assoc, holdsList_append, holdsList_append]
   exact H1 (HC (HS hnx))
 
