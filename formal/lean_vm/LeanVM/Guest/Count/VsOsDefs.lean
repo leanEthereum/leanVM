@@ -37,7 +37,7 @@ noncomputable def osCF (c : ℕ) : ℕ :=
 
 /-- Its calls' bounds, in order. -/
 noncomputable def osCallsF (c : ℕ) : List ℕ :=
-  ((osBodyA (osCfg c)).filterMap B1.Main.Stmt.callS).map fun x =>
+  ((osBody (osCfg c)).filterMap LeanVM.Guest.Memory.Stmt.callS).map fun x =>
     B1.osCallB fsFast (B1.osBk fsFast osBndFast (fun f => wSKFast f - fsFast f) (osCfg c)) x.2.1
 
 /-- Its frame and buffers. -/

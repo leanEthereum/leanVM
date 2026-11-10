@@ -6,15 +6,16 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.OsFinalK
+public import LeanVM.Guest.B1.Whir.Template
+public import LeanVM.Guest.Memory.Uniform
 
 /-!
 # The frame-size bound
 
 `osSizesF c`: the heap buffers' sizes at f128's layout. `osCallB fs Bk f`: a call of `f`, entered
 within `Bk f` words or skipped (its frame `fs f`).
-`osKidsB fs Bk c`: the body's calls' total, one `osCallB` per call statement, whatever `σ` (a
-call's callee is its statement's). `osBos fs Bk name c`: the frame `fs name`, the buffers, the
+`osKidsB fs Bk c`: the body's (`Whir.osBody c`) calls' total, one `osCallB` per call statement,
+whatever `σ` (a call's callee is its statement's; `mkCalls_sumB`). `osBos fs Bk name c`: the frame `fs name`, the buffers, the
 callees.
 -/
 
@@ -49,30 +50,23 @@ def osCallB (fs Bk : String → ℕ) (f : String) : ℕ := max (fs f) (Bk f)
 
 /-- The body's callees' total, one `osCallB` per call statement. -/
 def osKidsB (fs Bk : String → ℕ) (c : OsCfg) : ℕ :=
-  (((osBodyA c).filterMap Main.Stmt.callS).map fun x ↦ osCallB fs Bk x.2.1).sum
+  (((osBody c).filterMap Stmt.callS).map fun x ↦ osCallB fs Bk x.2.1).sum
 
 /-- **`open_stacked`'s frame-size bound** at a configuration. -/
 def osBos (fs Bk : String → ℕ) (name : String) (c : OsCfg) : ℕ :=
   fs name + (osSizesF c).sum + osKidsB fs Bk c
 
 theorem mkCall_f (σ : Val) (x : Option V × String × List V × List V) :
-    (Main.mkCall σ x).f = x.2.1 := by
+    (mkCall σ x).f = x.2.1 := by
   obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
 
 theorem mkCalls_sumB (fs Bk : String → ℕ) (σ : Val) :
     ∀ xs : List (Option V × String × List V × List V),
-      ((xs.map (Main.mkCall σ)).map fun c' ↦ osCallB fs Bk c'.f).sum =
+      ((xs.map (mkCall σ)).map fun c' ↦ osCallB fs Bk c'.f).sum =
         (xs.map fun x ↦ osCallB fs Bk x.2.1).sum
   | [] => rfl
   | x :: xs => by
     simp only [List.map_cons, List.sum_cons, mkCall_f, mkCalls_sumB fs Bk σ xs]
-
-/-- The body's frames under any `σ` total `osKidsB`. -/
-theorem osBodyCalls_sumB (fs Bk : String → ℕ) (σ : Val) (c : OsCfg) :
-    ((osBodyCalls σ c).map fun c' ↦ osCallB fs Bk c'.f).sum = osKidsB fs Bk c := by
-  rw [osBodyCalls_eq, osKidsB]
-  generalize (osBodyA c).filterMap Main.Stmt.callS = xs
-  exact mkCalls_sumB fs Bk σ xs
 
 /-- `CompleteAtB` on fewer words read. -/
 theorem completeAtB_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
