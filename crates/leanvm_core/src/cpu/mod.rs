@@ -231,6 +231,9 @@ pub use crate::transcript::Proof;
 pub enum ProveError {
     /// `log_inv_rate` is outside the range the WHIR configuration accepts (1, 2, 3 or 4).
     InvalidRate { log_inv_rate: usize },
+    /// A public input half has a nonzero third limb, so it is not half of a 256-bit
+    /// digest and no verifier would accept the proof.
+    PublicInputNotDigest,
     /// The program has no execution on this input and advice: a failed `assert`,
     /// a wild pointer, advice that does not fit, ...
     Execution(ExecError),
@@ -246,6 +249,10 @@ impl std::fmt::Display for ProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidRate { log_inv_rate } => write!(f, "log_inv_rate {log_inv_rate} is not supported"),
+            Self::PublicInputNotDigest => write!(
+                f,
+                "the public input is not a 256-bit digest: a half has a nonzero third limb"
+            ),
             Self::Execution(e) => write!(f, "{e}"),
             Self::UnconstrainedReads(cells) => write!(
                 f,
@@ -432,6 +439,9 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
+    if public_input.iter().any(|h| h.c2 != 0) {
+        return Err(ProveError::PublicInputNotDigest);
+    }
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
@@ -454,10 +464,6 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
-    debug_assert!(
-        public_input.iter().all(|h| h.c2 == 0),
-        "a public input is a 256-bit digest"
-    );
     let mut ps = ProverState::new(
         fiat_shamir::digest_words(&program.fiat_shamir_iv),
         digest_words(&public_input),
