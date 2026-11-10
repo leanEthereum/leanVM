@@ -211,10 +211,10 @@ theorem keccak_chain {P : List E} {S0 : KeccakState} {B : ℕ} {I O : ℕ → Fi
 /-! ## The padding cells -/
 
 /-- The cell `xor_byte` XORs byte `v` into a message cell with: `v` at byte `pos % 16`, in limb
-`0` or `1` (`F192::new(v << 8·(byte % 8), 0, 0)` or `F192::new(0, ·, 0)`, `builtins.rs:339-345`). -/
+`0` or `1` (`F128::new(v << 8·(byte % 8), 0)` or `F128::new(0, ·)`, `builtins.rs`). -/
 def byteCell (pos v : ℕ) : E :=
-  if pos % 16 < 8 then LeanVM.Guest.word (v * 2 ^ (8 * (pos % 16))) 0 0
-  else LeanVM.Guest.word 0 (v * 2 ^ (8 * (pos % 16 - 8))) 0
+  if pos % 16 < 8 then LeanVM.Guest.word (v * 2 ^ (8 * (pos % 16))) 0
+  else LeanVM.Guest.word 0 (v * 2 ^ (8 * (pos % 16 - 8)))
 
 /-- `xor_byte(cells, pos, v)`: the message cell holding byte `pos` plus `byteCell pos v`
 (`builtins.rs:337-355`; a `Zero` cell becomes the constant, a `Const` the constant's sum, a
