@@ -112,30 +112,30 @@ theorem bitE_injective : Function.Injective bitE := by
 
 /-- A bit times the coordinate basis vector `i` is the bit pattern `2^i` or zero. -/
 theorem bitE_mul_coordBasis (c : Bool) (i : ℕ) :
-    bitE c * coordBasis i = eOfNat192 (2 ^ i * c.toNat) := by
+    bitE c * coordBasis i = eOfNat128 (2 ^ i * c.toNat) := by
   cases c
-  · simp [bitE, eOfNat192_zero]
+  · simp [bitE, eOfNat128_zero]
   · simp [bitE, coordBasis]
 
 /-- **A bit run reconstructed** over the coordinate basis from position `s`: the bit pattern of
 `2^s` times the bits' integer. -/
 theorem sum_bitE_coordBasis (f : ℕ → Bool) (s n : ℕ) :
-    ∑ i ∈ Finset.range n, bitE (f i) * coordBasis (s + i) = eOfNat192 (2 ^ s * bitsVal f n) := by
+    ∑ i ∈ Finset.range n, bitE (f i) * coordBasis (s + i) = eOfNat128 (2 ^ s * bitsVal f n) := by
   induction n with
-  | zero => simp [bitsVal, eOfNat192_zero]
+  | zero => simp [bitsVal, eOfNat128_zero]
   | succ n ih =>
-    rw [Finset.sum_range_succ, ih, bitE_mul_coordBasis, ← eOfNat192_xor, bitsVal, Nat.mul_add,
+    rw [Finset.sum_range_succ, ih, bitE_mul_coordBasis, ← eOfNat128_xor, bitsVal, Nat.mul_add,
       ← Nat.mul_assoc, ← Nat.pow_add, Nat.xor_comm, two_pow_mul_xor, Nat.add_comm]
     rw [Nat.pow_add]
     exact Nat.mul_lt_mul_of_pos_left (bitsVal_lt f n) (Nat.two_pow_pos s)
 
 /-- **Booleanity and reconstruction give the bits of a word** (`hint_decompose_bits(bits, x, n,
 s)` and the checks after it): if every `b_i` satisfies `b_i · b_i = b_i` and
-`Σ_{i < n} b_i · COORD_BASIS[s + i] = x` with `s + n ≤ 192`, then `x` is `2^s` times an integer
+`Σ_{i < n} b_i · COORD_BASIS[s + i] = x` with `s + n ≤ 128`, then `x` is `2^s` times an integer
 `N < 2^n` and `b_i` is bit `i` of `N`. -/
 theorem bits_of_reconstruct {s n : ℕ} {b : ℕ → E} (hb : ∀ i < n, b i * b i = b i) {x : E}
     (hx : ∑ i ∈ Finset.range n, b i * coordBasis (s + i) = x) :
-    ∃ N < 2 ^ n, x = eOfNat192 (2 ^ s * N) ∧ ∀ i < n, b i = bitE (N.testBit i) := by
+    ∃ N < 2 ^ n, x = eOfNat128 (2 ^ s * N) ∧ ∀ i < n, b i = bitE (N.testBit i) := by
   let f : ℕ → Bool := fun i ↦ decide (b i = 1)
   have hbf : ∀ i < n, b i = bitE (f i) := fun i hi ↦ bitE_of_mul_self (hb i hi)
   have hsum : ∑ i ∈ Finset.range n, b i * coordBasis (s + i) =
@@ -146,20 +146,20 @@ theorem bits_of_reconstruct {s n : ℕ} {b : ℕ → E} (hb : ∀ i < n, b i * b
   · rw [hbf i hi, testBit_bitsVal]
     simp [hi]
 
-/-- The same, read off the word (`s = 0`, `n ≤ 192`): `x`'s integer is below `2^n` and `b_i` is
+/-- The same, read off the word (`s = 0`, `n ≤ 128`): `x`'s integer is below `2^n` and `b_i` is
 its bit `i`. -/
-theorem bits_of_reconstruct_zero {n : ℕ} (hn : n ≤ 192) {b : ℕ → E}
+theorem bits_of_reconstruct_zero {n : ℕ} (hn : n ≤ 128) {b : ℕ → E}
     (hb : ∀ i < n, b i * b i = b i) {x : E}
     (hx : ∑ i ∈ Finset.range n, b i * coordBasis i = x) :
     eToNat x < 2 ^ n ∧ ∀ i < n, b i = bitE ((eToNat x).testBit i) := by
   obtain ⟨N, hN, rfl, hbits⟩ := bits_of_reconstruct (s := 0) hb (by simpa using hx)
-  have hN' : N < 2 ^ 192 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) hn)
-  rw [Nat.pow_zero, Nat.one_mul, eToNat_eOfNat192, Nat.mod_eq_of_lt hN']
+  have hN' : N < 2 ^ 128 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) hn)
+  rw [Nat.pow_zero, Nat.one_mul, eToNat_eOfNat128, Nat.mod_eq_of_lt hN']
   exact ⟨hN, hbits⟩
 
 /-- **Completeness**: the bits of an integer below `2^n` are Boolean and reconstruct it. -/
 theorem reconstruct_bits (s : ℕ) {N n : ℕ} (hN : N < 2 ^ n) :
-    ∑ i ∈ Finset.range n, bitE (N.testBit i) * coordBasis (s + i) = eOfNat192 (2 ^ s * N) := by
+    ∑ i ∈ Finset.range n, bitE (N.testBit i) * coordBasis (s + i) = eOfNat128 (2 ^ s * N) := by
   rw [sum_bitE_coordBasis, bitsVal_testBit hN]
 
 /-! ## Products of g-powers -/
@@ -227,7 +227,7 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
       rw [Nat.zero_add, coordBasis_of_lt (by have := Finset.mem_range.mp hj; omega)]
   obtain ⟨N, hN, hv, hbits⟩ := bits_of_reconstruct hb hsum
   have hN64 : N < 2 ^ 64 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) (by omega))
-  rw [Nat.pow_zero, Nat.one_mul, eOfNat192_of_lt hN64] at hv
+  rw [Nat.pow_zero, Nat.one_mul, eOfNat128_of_lt hN64] at hv
   subst hv
   have hk : kToNat ((eOfNat N).limb 0) = N := by
     rw [eOfNat_eq_ofLimbs, ofLimbs_limb0, kToNat_ofBits, Nat.mod_eq_of_lt hN64]

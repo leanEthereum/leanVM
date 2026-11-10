@@ -45,7 +45,7 @@ def minChildStackLog : ℕ := 22
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
 def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
-  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), []⟩, child.proof.stream,
+  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), [], none⟩, child.proof.stream,
     child.proof.openings, []⟩
 
 end Coverage
@@ -68,32 +68,28 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
     Opening))
   | .ret _, _ => []
   | .fail, _ => []
-  | .read k, state => match state.stream with
-    | [] => []
-    | x :: xs =>
+  | .read k, state => match state.stream, state.sponge.ground with
+    | x :: xs, none =>
       queryStepsOf (k x) { state with
         sponge := Id.run (absorb keccakF1600 state.sponge x dsObserve), stream := xs }
+    | _, _ => []
   | .sample k, state =>
     let (c, sponge) := Id.run (squeeze keccakF1600 state.sponge)
     queryStepsOf (k c) { state with sponge := sponge }
-  | .grind bits k, state => match state.stream with
-    | [] => []
-    | n :: xs =>
-      let (c, sponge) :=
-        Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 state.sponge n dsPowNonce)))
-      if powOk bits n c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
-  | .commit height width k, state => match state.stream with
-    | x0 :: x1 :: xs =>
-      match digestFromHalves (x0, x1) with
-      | some root =>
-        queryStepsOf k { state with
-          sponge :=
-            Id.run (absorb keccakF1600
-              (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
-          stream := xs
-          roots := state.roots ++ [(root, height, width)] }
-      | none => []
-    | _ => []
+  | .grind bits k, state => match state.stream, state.sponge.ground with
+    | n :: xs, none =>
+      let (pow, sponge) := Id.run (absorbNonce keccakF1600 state.sponge n)
+      if powOk bits pow then queryStepsOf k { state with sponge := sponge, stream := xs } else []
+    | _, _ => []
+  | .commit height width k, state => match state.stream, state.sponge.ground with
+    | x0 :: x1 :: xs, none =>
+      queryStepsOf k { state with
+        sponge :=
+          Id.run (absorb keccakF1600
+            (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
+        stream := xs
+        roots := state.roots ++ [(digestFromHalves (x0, x1), height, width)] }
+    | _, _ => []
   | .query i ps k, state => match state.roots[i]?, state.openings with
     | some (root, height, width), phase :: rest =>
       match Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) with

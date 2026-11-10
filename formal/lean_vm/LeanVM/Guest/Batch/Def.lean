@@ -55,7 +55,7 @@ input and claims, each group padded to a whole rate; it squeezes one challenge `
 child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
 closes. -/
 def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredClaim :=
-  go.run' ⟨batchSeed, []⟩
+  go.run' ⟨batchSeed, [], none⟩
 where
   /-- The transcript. -/
   go : Chain (Option DeferredClaim) := do
