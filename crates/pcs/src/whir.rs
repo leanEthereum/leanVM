@@ -728,14 +728,18 @@ fn fetched_row<'a>(group: &[usize], rows: &'a [F64], row_words: usize, q: usize)
 /// One level's claims batched into the running one with powers of the level's challenge `lambda`, the running claim
 /// keeping `lambda^0 = 1`: claim `tau` (counting from 1) adds `lambda^tau` times its weight and its value.
 fn glue(w: &mut [F128], claim: &mut F128, pending: Vec<(Vec<F128>, F128)>, lambda: F128) {
-    let mut scalar = F128::ONE;
-    for (b_new, value) in pending {
-        scalar *= lambda;
+    let scalars = &powers(lambda, pending.len() + 1)[1..];
+    for ((b_new, value), &scalar) in pending.iter().zip(scalars) {
         assert_eq!(b_new.len(), w.len());
-        *claim += scalar * value;
-        let chunk = parallel::recommended_chunk_size(b_new.len());
-        parallel::chunks_mut_zip(w, &b_new, chunk, |_, acc, v| add_scaled(acc, v, scalar));
+        *claim += scalar * *value;
     }
+    let chunk = parallel::recommended_chunk_size(w.len());
+    parallel::chunks_mut(w, chunk, |i, acc| {
+        let at = i * chunk..i * chunk + acc.len();
+        for ((b_new, _), &scalar) in pending.iter().zip(scalars) {
+            add_scaled(acc, &b_new[at.clone()], scalar);
+        }
+    });
 }
 
 /// The tail sumcheck on `<w, f> = claim` over the low variables first, each round's message sent before its
