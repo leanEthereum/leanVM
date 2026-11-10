@@ -150,7 +150,8 @@ theorem eqsStep (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8001086c)
     (hpre : BusBalancePre s) (h : AtAlloc s u v k cnt P c st comb) (hpc : v.pc = 0x800049ac)
     (h19 : u.getReg .x19 = P) (h24 : u.getReg .x24 = 1) :
     ∃ w, Reaches Image.code v w ∧ (Dead Image.code w ∨
-      (w.pc = 0x8000677c ∧ AtEqs s u w k cnt P st comb)) := by
+      (w.pc = 0x8000677c ∧ AtEqs s u w k cnt P st comb ∧
+        ∀ T, TranscriptAt v (s.getReg .x12) T → TranscriptAt w (s.getReg .x12) T)) := by
   obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 4544) 568 := hpre.stack.valid
   have C := h.ctx
@@ -294,6 +295,19 @@ theorem eqsStep (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8001086c)
   simp only [NewBuf] at hpb
   have hhv₁ := post.heap.hi
   have hmv := h.ctx.inv.mono
+  have hm15' : heapNext v₁ ≤ heapNext u₅ :=
+    ((((StepR.same (s := s) (A := fun _ ↦ False) m₂ J₁.heap (k₂ .x2 (by decide))).trans st₃).trans
+      (StepR.same (A := fun _ ↦ False) hm₄ I₃.heap (hp₄.reg .x2))).trans st₅).mono
+  have dl : DFrame v u₅ (Loc s v u₅) :=
+    ((((fr₁.mono fun a ha ↦ by
+        rcases ha with ha | ha | ha | ⟨h1, h2⟩
+        · exact Or.inl (by addr_omega [ha, hb1])
+        · exact Or.inl (by addr_omega [ha, hb1])
+        · exact Or.inr (Or.inl ha)
+        · exact Or.inr (Or.inr ⟨h1, by omega⟩)).trans (DFrame.of_same m₂ _) fun _ h ↦ h).trans
+      (DFrame.of_memFrame fr₃) fun a ha ↦ Or.inl (by addr_omega [ha, hb1])).trans
+      (DFrame.of_same hm₄ _) fun _ h ↦ h).trans
+      (DFrame.of_memFrame fr₅) fun a ha ↦ Or.inl (by addr_omega [ha, hb1])
   by_cases hz : u.getReg .x21 = 0
   · -- no coordinates
     have hpc₅ := b80006724_pc_taken h₅ (by rw [← k₅ .x21 (by decide), rg₅ .x21 (by decide), hz])
@@ -311,7 +325,7 @@ theorem eqsStep (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8001086c)
       eqLen := by rw [x15₅, hz]
       eqBuf := ⟨by rw [x14₅]; exact hbx.1, Or.inl (by rw [x15₅]; rfl)⟩
       step := (h.step.trans (stPre.weaken hsc)).weaken fun a ha ↦ by
-        rcases ha with ha | ha <;> exact ha }⟩⟩
+        rcases ha with ha | ha <;> exact ha }, fun T hT ↦ I.transcript hpre I₅.heap dl hT⟩⟩
   -- the fill loop
   have hpc₅ := b80006724_pc_not_taken h₅ (by rw [← k₅ .x21 (by decide), rg₅ .x21 (by decide)]; exact hz)
   obtain ⟨u₆, hr₆, h₆⟩ := Sym.BlockSpec.reaches b80006734_spec hpc₅ trivial
@@ -424,7 +438,20 @@ theorem eqsStep (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8001086c)
       rw [x14w, x15w, ← hlen]
       have hmu := h.step.mono
       refine ⟨hB8, Or.inr ⟨?_, ?_⟩⟩ <;> simp only [heapNext] at hnw hn6 hm15 hmu ⊢ <;> omega
-    step := (h.step.trans stAll).weaken fun a ha ↦ by rcases ha with ha | ha <;> exact ha }⟩⟩
+    step := (h.step.trans stAll).weaken fun a ha ↦ by rcases ha with ha | ha <;> exact ha },
+    fun T hT ↦ I.transcript hpre stF.heap (((dl.trans (DFrame.of_same m₆ _) fun _ h ↦ h).trans
+      Fw.frame fun a ha ↦ by
+        simp only [Within] at ha
+        have h1 := hm15
+        simp only [heapNext] at h1
+        exact Or.inr (Or.inr ⟨by simp only [heapNext]; omega, by simp only [heapNext]; omega⟩)).mono fun a ha ↦ by
+          rcases ha with ha | ha | ⟨h1, h2⟩
+          · exact Or.inl ha
+          · exact Or.inr (Or.inl ha)
+          · have e1 := hnw
+            have e2 := hn6
+            simp only [heapNext] at e1 e2 h2
+            exact Or.inr (Or.inr ⟨h1, by simp only [heapNext]; omega⟩)) hT⟩⟩
 
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

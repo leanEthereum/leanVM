@@ -6,6 +6,7 @@ import Rv64Verifier.Proofs.Bus.VbbSpine
 import Rv64Verifier.Proofs.Bus.VbbTail9
 import Rv64Verifier.Proofs.Bus.VbbGkrLoop
 import Rv64Verifier.Proofs.Bus.VbbGkrSumcheck
+import Rv64Verifier.Proofs.Bus.VbbGkrCheck
 import Rv64Verifier.Proofs.Bus.VbbTail19
 
 /-!
