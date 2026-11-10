@@ -15,11 +15,8 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # `verify_sub` by its callees' trees
 
-`vsNames μ r`: the thirteen callees in call order (`vs_calls`), `open_stacked`'s candidate
-`openName μ r`. `vsTs fs W Bvk μ r`: callee `j` a call of `vsNames μ r`'s `j`-th name within
-`vsBsAt W Bvk μ r`'s `j`-th bound, `verify_tables`' and the terminal's within their weights at each
-opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8675 +
-(vsBsAt W Bvk μ r).sum`. `vs_kidsDepBP`: the callees on an honest child, each within its bound by
+The callees' names, bounds and predicates are `VerifySub/CompleteB`'s (`vsNames`, `vsBsAt`, `vsPs`,
+`vsTs`, `vsBoundAt`). `vs_kidsDepBP`: the callees on an honest child, each within its bound by
 a tree of its predicate.
 
 `verify_sub_completeBT`: `verify_sub_completeB` within the child's own bound (its announced stack
@@ -34,30 +31,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open LeanVM.Node LeanVM.Guest.Memory
 
 @[expose] public section
-
-/-- **`verify_sub`'s callees' names**, in call order (`vs_calls`). -/
-def vsNames (μ r : ℕ) : List String :=
-  ["g_power_of_word", "g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical",
-    "assert_canonical", "verify_bus_gkr", "verify_tables", "verify_keccak", "ring_switch_target",
-    "certify_placement", "log2_ceil_in_the_exponent__L15_L34", B1.Whir.openName μ r,
-    "check_opening_terminal"]
-
-/-- **`verify_sub`'s callees' predicates**: `verify_tables`' tree within `vtWB`, the terminal's
-within `termWB`, at each opcode's weights. -/
-noncomputable def vsPs {fs : String → ℕ} (W : VsWords fs) : List (Tree → Prop) :=
-  [fun _ ↦ True, fun _ ↦ True, fun _ ↦ True, fun _ ↦ True, fun _ ↦ True, fun _ ↦ True,
-    fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W op) t,
-    fun _ ↦ True, fun _ ↦ True, fun _ ↦ True, fun _ ↦ True, fun _ ↦ True,
-    fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W op) t]
-
-/-- **`verify_sub`'s callees' trees**: callee `j` a call of its name within its bound satisfying
-its predicate. -/
-noncomputable def vsTs (fs : String → ℕ) (W : VsWords fs) (Bvk μ r : ℕ) : List (Tree → Prop) :=
-  namedP fs (vsNames μ r) (vsBsAt W Bvk μ r) (vsPs W)
-
-/-- **`verify_sub`'s bound at one candidate.** -/
-noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : ℕ :=
-  fs "verify_sub" + 8675 + (vsBsAt W Bvk μ r).sum
 
 theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (bs : List ℕ) (sqE : ℕ) :

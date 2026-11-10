@@ -10,7 +10,6 @@ public import LeanVM.Guest.B1.VerifySub.C.Flat
 public import LeanVM.Guest.B1.Fwd.PureIn
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Bits.GPower
-public import LeanVM.Guest.B1.Bits.AssertCanonical
 public import LeanVM.Guest.B1.Tables.Base
 public import LeanVM.Guest.B1.KeccakGkr.Interface
 public import LeanVM.Guest.B1.Bits.Tables
