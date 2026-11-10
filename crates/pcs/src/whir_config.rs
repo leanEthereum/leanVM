@@ -61,9 +61,10 @@ pub const QUERY_GRINDING_BITS: usize = 17;
 
 /// The most fold grinding bits the derivation may assign a level. A level grinds
 /// before each of its fold challenges only where the proximity gap alone falls
-/// short of the target, which happens only at large stacks. Kept within the
-/// nonce budget the formal honest prover is given (`formal/statement.tex`).
-const MAX_FOLD_GRINDING_BITS: usize = 24;
+/// short of the target, which happens only at large stacks. No more than the
+/// query phase's, the largest proof of work the formal completeness bound covers
+/// (`maxGrindingBits` in `formal/`).
+const MAX_FOLD_GRINDING_BITS: usize = QUERY_GRINDING_BITS;
 
 /// Maximum BCHKS25 integer parameter considered by the per-level eta search.
 /// Production configurations hit the proximity-gap boundary far below this;
