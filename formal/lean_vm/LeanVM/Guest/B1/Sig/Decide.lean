@@ -28,12 +28,12 @@ namespace Dec
 
 /-- Equality of words by their limbs. -/
 scoped instance (priority := high) eDecEq : DecidableEq E := fun a b =>
-  decidable_of_iff (a.limb 0 = b.limb 0 ∧ a.limb 1 = b.limb 1 ∧ a.limb 2 = b.limb 2) (by
+  decidable_of_iff (a.limb 0 = b.limb 0 ∧ a.limb 1 = b.limb 1) (by
     constructor
-    · rintro ⟨h0, h1, h2⟩
-      rw [← ofLimbs_limb a, ← ofLimbs_limb b, h0, h1, h2]
+    · rintro ⟨h0, h1⟩
+      rw [← ofLimbs_limb a, ← ofLimbs_limb b, h0, h1]
     · rintro rfl
-      exact ⟨rfl, rfl, rfl⟩)
+      exact ⟨rfl, rfl⟩)
 
 end Dec
 
