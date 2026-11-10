@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `g_power_of_word` (G:745-758, TRIAGE #17)
+# `g_power_of_word` (TRIAGE #17)
 
 `g_power_of_word(value)` hints the six bits of `value` into frame cells `1 .. 6`, pins each by
 booleanity (`b = b·b`), accumulates the word `Σ b_j·2^j` (at `45`) and the product
@@ -25,18 +25,18 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some Data.core3 :=
-  Program.find?_of_indexOf? (j := 3) (by decide +kernel) rfl
+theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some Data.core2 :=
+  Program.find?_of_indexOf? (j := 2) (by decide +kernel) rfl
 
 /-- The folded factor constant `1 + g^(2^j)`. -/
 theorem word_gpow_one (j : ℕ) (hj : 2 ^ j < 64) (c : ℕ) (hc : c = 2 ^ 2 ^ j ^^^ 1) :
-    word c 0 0 = gen ^ 2 ^ j + 1 := by
+    word c 0 = gen ^ 2 ^ j + 1 := by
   rw [word_eOfNat, gen_pow_eq_eOfNat hj, ← eOfNat_one, ← eOfNat_xor, hc]
 
 /-- The honest values of `g_power_of_word` at `value = E(n)`. -/
 def gpwVals (n : ℕ) : List E :=
   let b := fun j => bitE (n.testBit j)
-  let w := fun k => word k 0 0
+  let w := fun k => word k 0
   let s1 := b 0 + b 1 * w 2
   let s2 := s1 + b 2 * w 4
   let s3 := s2 + b 3 * w 8
@@ -65,9 +65,9 @@ theorem g_power_of_word_holds : g_power_of_word_Spec := by
   have w257 := word_gpow_one 3 (by norm_num) 257 (by decide)
   have w65537 := word_gpow_one 4 (by norm_num) 65537 (by decide)
   have w4294967297 := word_gpow_one 5 (by norm_num) 4294967297 (by decide)
-  rw [rel_iff_sem find_g_power_of_word, show Fn.params Data.core3 = [.n 0] from rfl,
-    show Fn.body Data.core3 = Data.core3.body from rfl]
-  simp only [Data.core3.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+  rw [rel_iff_sem find_g_power_of_word, show Fn.params Data.core2 = [.n 0] from rfl,
+    show Fn.body Data.core2 = Data.core2.body from rfl]
+  simp only [Data.core2.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
     true_and]
   constructor
   · rintro ⟨σ, hp, b0, e7, e8, e9, e10, b1, e11, e12, e13, e14, e15, e16, e17, e18, b2, e19, e20,
@@ -101,7 +101,7 @@ theorem g_power_of_word_holds : g_power_of_word_Spec := by
     have hbm : ∀ j, bitE (n.testBit j) = bitE (n.testBit j) * bitE (n.testBit j) :=
       fun j => (bitE_mul_self _).symm
     have hsum : ∑ j ∈ Finset.range 6, bitE (n.testBit j) * coordBasis (0 + j) = eOfNat n := by
-      rw [reconstruct_bits 0 hn, Nat.pow_zero, Nat.one_mul, eOfNat192_of_lt (by omega)]
+      rw [reconstruct_bits 0 hn, Nat.pow_zero, Nat.one_mul, eOfNat128_of_lt (by omega)]
     have hpr := prod_bitE_gen_pow n.testBit 6
     rw [bitsVal_testBit hn] at hpr
     simp only [Finset.sum_range_succ, Finset.sum_range_zero, Finset.prod_range_succ,
@@ -112,7 +112,7 @@ theorem g_power_of_word_holds : g_power_of_word_Spec := by
     refine ⟨hbm 0, word_one.symm, hbm 1, word_one.symm, hbm 2, word_one.symm, hbm 3,
       word_one.symm, hbm 4, word_one.symm, hbm 5, word_one.symm, ?_, ?_⟩
     · rw [e_add_eq_zero_iff, ← hsum]
-      simp [word_eOfNat, eOfNat192_of_lt, eOfNat_one]
+      simp [word_eOfNat, eOfNat128_of_lt, eOfNat_one]
     · rw [← hpr, w3, w5, w17, w257, w65537, w4294967297]
 
 end
