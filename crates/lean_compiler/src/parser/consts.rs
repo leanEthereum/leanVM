@@ -87,7 +87,7 @@ pub fn parse_const(s: &str) -> Result<F128, String> {
     fn eval(e: &Expr) -> Result<F128, String> {
         match e {
             // An integer literal is the raw 128-bit bit pattern of a machine word.
-            Expr::Lit(n) => Ok(crate::lit_field(*n)),
+            Expr::Lit(n) => Ok(F128::from(*n)),
             Expr::Gen => Ok(F64::G.into()),
             Expr::GPow(k) => Ok(F64::G.pow(*k).into()),
             Expr::Add(a, b) => Ok(eval(a)? + eval(b)?),
@@ -100,7 +100,7 @@ pub fn parse_const(s: &str) -> Result<F128, String> {
 
 /// `v` as the zkDSL integer literal whose bits spell its limbs, which a global constant or an expression reads back as `v`.
 pub fn f128_literal(v: F128) -> String {
-    crate::word_int(v).to_string()
+    u128::from(v).to_string()
 }
 
 /// A range bound (`mul_range` bounds and `assert log _ < log _` bounds): a

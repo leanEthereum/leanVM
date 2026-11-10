@@ -1,6 +1,6 @@
 //! The constants baked into the guest.
 
-use super::cells::{dsl_u128, pack_16_bytes};
+use super::cells::pack_16_bytes;
 use super::child::{MU_CAP, MU_MAX, MU_MIN, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
@@ -177,7 +177,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("INV_GEN", dsl_u128(F128::from(F64::G.inv())).to_string());
+    ps("INV_GEN", f128_literal(F128::from(F64::G.inv())));
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -250,7 +250,7 @@ fn bus_placeholders(
                 nbcv += usize::from(matches!(c, Coord::Public(_)));
                 coordinates.push(CoordinateDescriptor {
                     kind: coord_kind(c),
-                    constant: dsl_u128(coord_scale(c)),
+                    constant: u128::from(coord_scale(c)),
                     padding: blk.padding.get(i).map_or(0, |v| v.0),
                     fresh,
                     claim_slot: slot,
@@ -349,16 +349,16 @@ fn bus_placeholders(
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
     ps("TERM_COL_B", literals(terms.iter().map(|t| t.column_b)));
     ps("N_BUS_CLAIMS", nclaims.to_string());
-    let idxc: Vec<u128> = (0..34)
+    let idxc: Vec<F128> = (0..34)
         .map(|i| {
             let mut g2k = F128::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
-            dsl_u128(F128::ONE + g2k)
+            F128::ONE + g2k
         })
         .collect();
-    ps("INDEX_MLE_FACTORS", literals(&idxc));
+    ps("INDEX_MLE_FACTORS", flds(&idxc));
     (nclaims, nbcv)
 }
 
@@ -633,7 +633,7 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
     // Tower F128 = F64[Y]/(Y^2 + xY + 1). Y_TOWER embeds Y for AIR lane reassembly;
     // Y_INV = Y + x splits a word into its two K limbs.
     let y_tower = F128::new(0, 1);
-    ps("Y_TOWER", dsl_u128(y_tower).to_string());
+    ps("Y_TOWER", f128_literal(y_tower));
     ps("Y_INV", f128_literal(y_tower.inv()));
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
@@ -873,7 +873,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
     ps("LIG_N_CANDIDATES", (n_log_sizes * n_rates).to_string());
-    ps("LIG_MIN_SHIFT_INV", dsl_u128(F128::from(g_pow(minm).inv())).to_string());
+    ps("LIG_MIN_SHIFT_INV", f128_literal(F128::from(g_pow(minm).inv())));
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.
@@ -890,7 +890,7 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());
     let agg_seed = FiatShamirState::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
-        ps(&format!("AGG_SEED_{c}"), dsl_u128(*cell).to_string());
+        ps(&format!("AGG_SEED_{c}"), f128_literal(*cell));
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
     let child_words = 2 + (kbc + log2_bc_cols + 1) + (kbc + log2_bc_cols + 1);
@@ -947,7 +947,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("DIGIT_SUMS", format!("[{}]", digit_sums.join(", ")));
     // leanXMSS: its hash types as its address lane holds them. Its addresses are
     // derived per signature from the leaf index the signature carries.
-    let address = |tw| dsl_u128(pack_16_bytes(&lean_xmss::address(&tw))).to_string();
+    let address = |tw| f128_literal(pack_16_bytes(&lean_xmss::address(&tw)));
     for (name, tag) in [
         ("TW_CHAIN", lean_xmss::TWEAK_CHAIN),
         ("TW_LEAF", lean_xmss::TWEAK_LEAF),
@@ -986,7 +986,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     // second cell, holds it, and the cell bit each address field's low bytes start at.
     // The guest derives the rest of every address from the digest.
     use lean_sphincs::Adrs;
-    let cell = |adrs: Adrs, half: usize| dsl_u128(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
+    let cell = |adrs: Adrs, half: usize| f128_literal(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
     let at = Adrs::new(0, 0);
     for (name, adrs, half) in [
         ("SP_LAYER_MUL", Adrs::new(1, 0), 0),
@@ -999,7 +999,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
         ("SP_WORD3_MUL_0", at.with_tree_index(1), 1),
         ("SP_WORD3_MUL_1", at.with_tree_index(1 << 8), 1),
     ] {
-        ps(name, cell(adrs, half).to_string());
+        ps(name, cell(adrs, half));
     }
     ps("SP_V", lean_sphincs::V.to_string());
     ps("SP_TARGET_SUM", lean_sphincs::TARGET_SUM.to_string());
@@ -1016,6 +1016,6 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
         ("SP_FORS_ROOTS", lean_sphincs::FORS_ROOTS),
         ("SP_WOTS_ENC", lean_sphincs::WOTS_ENC),
     ] {
-        ps(name, cell(at.with_type(t), 1).to_string());
+        ps(name, cell(at.with_type(t), 1));
     }
 }

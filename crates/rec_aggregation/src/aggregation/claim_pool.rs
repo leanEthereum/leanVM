@@ -1,6 +1,6 @@
 //! The guest's claim pool and its coordinate terms.
 
-use super::cells::{count, dsl_u128};
+use super::cells::count;
 use leanvm_core::cpu::keccak_value;
 use leanvm_core::leaf::{Block, Coord};
 use primitives::field::F128;
@@ -63,7 +63,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     };
     terms.push(Term {
         kind: coord_kind(c),
-        constant: dsl_u128(coord_scale(c)),
+        constant: u128::from(coord_scale(c)),
         column_a,
         column_b,
     });
@@ -73,7 +73,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 /// one column or one column product summed, and whatever sums to zero dropped.
 pub(super) fn coord_difference(a: &[Term], b: &[Term]) -> Vec<Term> {
     let (konst, col, gcol) = (0, 1, 2); // coord_kind of Const, Col, GCol
-    let one = dsl_u128(F128::ONE);
+    let one = u128::from(F128::ONE);
     let mut constant = 0u128;
     let mut scaled: BTreeMap<(usize, usize, usize), u128> = BTreeMap::new();
     for t in a.iter().chain(b) {

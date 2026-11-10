@@ -285,16 +285,6 @@ pub fn disassemble(prog: &[Op]) -> String {
     out
 }
 
-/// A `u128` source literal as the machine word whose limbs its bits spell.
-pub(crate) fn lit_field(n: u128) -> F128 {
-    F128::new(n as u64, (n >> 64) as u64)
-}
-
-/// The inverse of [`lit_field`]: the integer whose bits spell a word's limbs.
-pub(crate) fn word_int(v: F128) -> u128 {
-    v.c0 as u128 | (v.c1 as u128) << 64
-}
-
 fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {
     let resolve_kval = |kv: &KVal| -> F128 {
         match kv {

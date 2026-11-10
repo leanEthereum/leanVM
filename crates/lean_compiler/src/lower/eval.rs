@@ -26,7 +26,7 @@ impl Known {
     /// The integer and field readings when both exist and disagree.
     pub(super) fn diverging_readings(self) -> Option<(u128, F128)> {
         let (n, f) = (self.int?, self.field?);
-        (f != lit_field(n)).then_some((n, f))
+        (f != F128::from(n)).then_some((n, f))
     }
 }
 
@@ -82,7 +82,7 @@ impl FnLower<'_> {
         // guard exists to stop.
         let int = |n: u128| Known {
             int: Some(n),
-            field: Some(lit_field(n)),
+            field: Some(F128::from(n)),
             addr: None,
         };
         let gpow = |exp: u128| Known {
@@ -195,7 +195,7 @@ impl FnLower<'_> {
             // bits spell.
             Expr::Index(..) => match self.const_array_elem(e) {
                 Some(v) => Known {
-                    int: Some(crate::word_int(v)),
+                    int: Some(u128::from(v)),
                     field: Some(v),
                     addr: None,
                 },

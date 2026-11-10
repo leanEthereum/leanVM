@@ -203,6 +203,22 @@ impl From<F64> for F128 {
     }
 }
 
+/// The word whose bits are `n`'s: `c0` its low 64 bits, `c1` its high.
+impl From<u128> for F128 {
+    #[inline]
+    fn from(n: u128) -> Self {
+        Self::new(n as u64, (n >> 64) as u64)
+    }
+}
+
+/// The integer whose bits spell a word's coefficients, `c0` low: the inverse of `From<u128>`.
+impl From<F128> for u128 {
+    #[inline]
+    fn from(v: F128) -> Self {
+        v.c0 as u128 | (v.c1 as u128) << 64
+    }
+}
+
 impl Mul for F128 {
     type Output = Self;
     #[inline]

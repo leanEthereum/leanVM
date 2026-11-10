@@ -13,24 +13,16 @@ pub(super) fn exponent_bytes(bytes: &[u8]) -> Vec<F128> {
     bytes.iter().map(|&b| count(b.into())).collect()
 }
 
-/// A field element as the decimal `u128` literal the zkDSL parser accepts.
-pub(super) fn dsl_u128(value: F128) -> u128 {
-    (value.c0 as u128) | ((value.c1 as u128) << 64)
-}
-
-/// A 16-byte native value as one cell.
+/// A 16-byte native value as one cell, little-endian.
 pub(super) fn pack_16_bytes(bytes: &[u8]) -> F128 {
-    let word_at = |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
-    F128::new(word_at(0), word_at(8))
+    u128::from_le_bytes(bytes[..16].try_into().unwrap()).into()
 }
 
-/// A run of cells as the byte string the hash takes: each cell is its two limbs,
-/// little-endian, which is the order the VM's hash instruction reads a memory cell in.
+/// A run of cells as the byte string the hash takes: each cell little-endian,
+/// which is the order the VM's hash instruction reads a memory cell in.
 pub(super) fn cell_bytes(cells: impl IntoIterator<Item = F128>) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    for cell in cells {
-        bytes.extend_from_slice(&cell.c0.to_le_bytes());
-        bytes.extend_from_slice(&cell.c1.to_le_bytes());
-    }
-    bytes
+    cells
+        .into_iter()
+        .flat_map(|cell| u128::from(cell).to_le_bytes())
+        .collect()
 }
