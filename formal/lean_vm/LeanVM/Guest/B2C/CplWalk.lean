@@ -55,7 +55,7 @@ theorem ksum_succ (ck : List (Opcode → ℕ)) (n : ℕ) (op : Opcode) :
 theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j).name = some j := by
   have hl : j - 1 < coreProgram.length := by
     have := coreProgram_length
-    have : nFns = 992 := rfl
+    have : nFns = 1804 := rfl
     omega
   have hc : coreOf j = coreProgram[j - 1] := by unfold coreOf; exact nth_eq hl
   unfold idxOf Core.Program.indexOf?

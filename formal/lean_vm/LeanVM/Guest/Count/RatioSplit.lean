@@ -22,7 +22,7 @@ noncomputable def krBody (i : ℕ) : List Stmt := ((coreProgram[i]?).getD defaul
 in `J`. -/
 noncomputable def krPiece (J : List ℕ) (i a n : ℕ) (L : List ℕ) : Bool :=
   (Stmt.blockCallees (((krBody i).drop a).take n) == L.map krName) &&
-    L.all fun k => decide (k ∈ J) && Nat.blt k 991
+    L.all fun k => decide (k ∈ J) && Nat.blt k 1803
 
 end
 end LeanVM.Guest.Count

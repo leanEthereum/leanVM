@@ -106,7 +106,7 @@ theorem pcTableT_getD (k : ℕ) :
 theorem pcTableT_getD_lt (k : ℕ) : ∀ j ∈ pcTableT.getD k [], j < 2 ^ 64 := by
   intro j hj
   rw [pcTableT_getD, List.mem_reverse, List.mem_filter, List.mem_range] at hj
-  have : nFns = 992 := rfl
+  have : nFns = 1804 := rfl
   omega
 
 theorem range_countP_getD (e : ℕ) : ∀ l : List ℕ,
@@ -199,7 +199,7 @@ set_option maxRecDepth 100000 in
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
     machineCost P pcTableTC.costIdx [] ≤ 8112592 := by
   rw [pcTableTC.costEq P hP]
-  have hn : nFns = 992 := rfl
+  have hn : nFns = 1804 := rfl
   have hr := rangeLoop_cost P (by includes) nFns [] (by rw [hn]; norm_num)
   obtain ⟨-, hF⟩ := listFoldl_amortized' P (by includes) _ (.closure pcTableTC.lam0.costIdx [])
     (fun m j ↦ RunsApp.of_spec (pcTableTC.lam0.costSpec P (by includes) m j))
