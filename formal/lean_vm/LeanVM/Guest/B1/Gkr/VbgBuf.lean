@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.VbgComplete
+public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Tables.FlatLift
 public import LeanVM.Guest.B1.Fwd.PureIn
 
@@ -138,9 +139,6 @@ def vbgOddW : List E := (List.range 33).map fun k ↦ gen ^ (k % 2)
 /-- The last slot's values. -/
 noncomputable def vbgValsW (depth : ℕ) (cap0 xs : List E) : List E :=
   (gkSl cap0 xs (depth % 2) (depth / 2)).2.1.values
-
-/-- The buffers' sizes. -/
-def vbgSizes (depth : ℕ) : List ℕ := [13 * (depth + 2), 6034, 1640, 8, 33, 33, 3]
 
 /-- The buffers' words. -/
 noncomputable def vbgOwnW (depth : ℕ) (cap0 xs : List E) (cur : E) (eP : ℕ) : List (List E) :=

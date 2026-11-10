@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Loop7In
+public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.Budget.Chain
 public import LeanVM.Guest.Memory.LoopPre
 
@@ -258,10 +259,6 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
 
 /-! ## The chain's words -/
 
-/-- The words of `__loop36` called below `g^(k/4)`: its run's iterations and its one phantom
-frame, or its frame when not entered. -/
-def ly7W29 (fs : String → ℕ) (K29 k : ℕ) : ℕ := fs "__loop36" + k / 4 * K29
-
 /-- The rounds the body calls: `gkr_rounds__L{2r}` (the dispatch), `gkr_rounds__L1` at an odd
 depth. -/
 noncomputable def ly7Rounds (σ : Val) : List Call :=
@@ -271,10 +268,6 @@ noncomputable def ly7Rounds (σ : Val) : List Call :=
 /-- The body calls' bounds, by position: `__loop36`'s, then `R` for each round. -/
 noncomputable def ly7Wb (fs : String → ℕ) (K29 R sh : ℕ) (c : ℕ) (σ : Val) : List ℕ :=
   ly7W29 fs K29 (c + 1 - sh) :: List.replicate (ly7Rounds σ).length R
-
-/-- Iteration `c`'s words: its frame, `__loop36`'s and `R` per round. -/
-def ly7B (fs : String → ℕ) (K29 R sh : ℕ) (c : ℕ) : ℕ :=
-  fs "__loop6" + ly7W29 fs K29 (c + 1 - sh) + (1 + (if sh = 1 then 1 else 0)) * R
 
 theorem ly73_calls (σ : Val) : (ly73.filterMap Main.Stmt.callS).map (Main.mkCall σ) =
     [⟨"gkr_rounds__L1", [.n 66, .n 67, .n 4], [.n 68], true⟩] := rfl
