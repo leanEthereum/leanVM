@@ -67,6 +67,8 @@ structure WalkPre (s : MachineState) : Prop where
   stream : (vecLen s (s.getReg .x13)).toNat = 0 ∨
     Region (vecPtr s (s.getReg .x13)) (24 * (vecLen s (s.getReg .x13)).toNat)
   streamRO : ReadOnly s (vecPtr s (s.getReg .x13)) (24 * (vecLen s (s.getReg .x13)).toNat)
+  /-- `NEXT` is 8-aligned once the stream is not empty. -/
+  aligned : (vecLen s (s.getReg .x13)).toNat ≠ 0 → heapNext s % 8 = 0
 
 /-- What `walk` may write: the result, its stack, `NEXT` and the heap it allocates. -/
 @[rv_addr] def WalkW (s t : MachineState) (a : Word) : Prop :=

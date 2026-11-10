@@ -22,7 +22,9 @@ of `Contracts.lean` is proved, with no hypothesis.
 namespace Rv64Verifier.Runtime
 open Rv64Verifier.Runtime
 
-theorem tryAlloc : TryAllocSpec := TryAlloc.try_alloc_spec alloc_spec
+theorem tryAlloc : TryAllocSpec := TryAlloc.try_alloc_spec alloc_tight
+
+theorem tryAllocNext : TryAllocNextSpec := TryAlloc.try_alloc_next alloc_tight
 
 theorem tryAllocZeroed : TryAllocZeroedSpec :=
   TryAllocZeroed.try_alloc_zeroed_spec alloc_spec (Wrap.memset_wrap Memset.memset_spec)
@@ -112,6 +114,9 @@ end Rv64Verifier.Runtime
 
 /-- info: 'Rv64Verifier.Runtime.tryAlloc' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Runtime.tryAlloc
+
+/-- info: 'Rv64Verifier.Runtime.tryAllocNext' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Runtime.tryAllocNext
 
 /-- info: 'Rv64Verifier.Runtime.tryAllocZeroed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Runtime.tryAllocZeroed

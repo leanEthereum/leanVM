@@ -96,24 +96,28 @@ theorem Wf.tryAlloc {t v : MachineState} (hsp : t.getReg .x2 = msp) (hv : HeapOk
   · have h2 := h.2
     exact Wf.heap h.1 (by simp only [heapEnd] at this ⊢; omega)
 
-/-- From `u₀` on: `sp` is `msp`, the heap in shape and grown, memory changed only in `Wf`. -/
+/-- From `u₀` on: `sp` is `msp`, the heap in shape and grown, memory changed only in `Wf`;
+`NEXT` where `u₀` left it, or 8-aligned. -/
 structure PG (u₀ t : MachineState) : Prop where
   sp : t.getReg .x2 = msp
   heap : HeapOk t
   mono : heapNext u₀ ≤ heapNext t
   frame : BFrame u₀ t (Wf (heapNext u₀))
+  al : heapNext t = heapNext u₀ ∨ heapNext t % 8 = 0
 
 theorem PG.step {u₀ t t' : MachineState} {W : Word → Prop} (h : PG u₀ t) (hf : BFrame t t' W)
     (hW : ∀ a, W a → Wf (heapNext u₀) a) (hsp : t'.getReg .x2 = msp) (hheap : HeapOk t')
-    (hmono : heapNext t ≤ heapNext t') : PG u₀ t' :=
-  ⟨hsp, hheap, le_trans h.mono hmono, h.frame.trans hf hW⟩
+    (hmono : heapNext t ≤ heapNext t') (hal : heapNext t' = heapNext t ∨ heapNext t' % 8 = 0) :
+    PG u₀ t' :=
+  ⟨hsp, hheap, le_trans h.mono hmono, h.frame.trans hf hW,
+    hal.elim (fun e ↦ e ▸ h.al) Or.inr⟩
 
 /-- A step that changes no memory. -/
 theorem PG.same {u₀ t t' : MachineState} (h : PG u₀ t) (hm : ∀ a, t'.getMem a = t.getMem a)
     (hsp : t'.getReg .x2 = msp) : PG u₀ t' := by
   have hn : heapNext t' = heapNext t := by simp only [heapNext, hm]
   exact h.step (BFrame.of_same hm (fun _ ↦ False)) (fun _ h ↦ h.elim) hsp
-    ⟨by rw [hn]; exact h.heap.lo, by rw [hn]; exact h.heap.hi⟩ (le_of_eq hn.symm)
+    ⟨by rw [hn]; exact h.heap.lo, by rw [hn]; exact h.heap.hi⟩ (le_of_eq hn.symm) (Or.inl hn)
 
 theorem not_kept_wf {words : List Word} (hf : words.length ≤ inputWords) {B : Nat}
     (hB : heapStart ≤ B) {a : Word} (h : Wf B a) : ¬ Kept words a := by

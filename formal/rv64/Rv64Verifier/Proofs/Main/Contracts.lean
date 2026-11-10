@@ -18,7 +18,8 @@ The `Proof` as the image lays it out (`readProof`): `stream: Vec<E>` at `0`,
 aligned to one byte only.
 
 `WalkCallSpec`: given the parts mapped, aligned, allocated and apart from `walk`'s stack, its
-result and `.rodata` (`WalkCallPre`), `walk` returns `Ok` only if `verifyExecutionRust` of what
+result and `.rodata`, `NEXT` aligned once the `Proof` has a buffer (`WalkCallPre`), `walk` returns
+`Ok` only if `verifyExecutionRust` of what
 they hold does, and writes only its result, its stack, `NEXT` and memory it allocates.
 -/
 
@@ -108,6 +109,10 @@ structure WalkCallPre (s : MachineState) : Prop where
   bc : BcMem s (s.getReg .x10) (s.getReg .x11)
   publicInput : Part s (s.getReg .x10) (s.getReg .x12) 32 8
   proof : ProofMem s (s.getReg .x10) (s.getReg .x13)
+  /-- `NEXT` is 8-aligned once the stream or the openings have a buffer: each allocation since
+  leaves it so, a sibling digests' buffer (alignment one) included. -/
+  aligned : (vecLen s (s.getReg .x13)).toNat ≠ 0 ∨ (vecLen s (s.getReg .x13 + 24)).toNat ≠ 0 →
+    heapNext s % 8 = 0
 
 /-- `Ok` only if `verifyExecutionRust` accepts what the arguments hold; memory changes only in the
 result, the stack, `NEXT` and what is allocated. -/

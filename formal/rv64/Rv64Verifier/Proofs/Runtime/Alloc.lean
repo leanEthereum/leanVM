@@ -95,8 +95,12 @@ theorem abort {t : MachineState} (hpc : t.pc = 0x800002bc) :
   exact ⟨u, hr, dead_of_halt (by rw [b800002bc_pc h]; exact halt_fetch) (b800002bc_x5 h)
     (by rw [b800002bc_x10 h]; decide)⟩
 
-/-- **`alloc` meets its contract.** -/
-theorem alloc_spec : AllocSpec := by
+/-- `alloc`'s contract, `a0` also the least multiple of the alignment from `NEXT` on. -/
+def AllocTightSpec : Prop := FunSpec Image.code 0x80000284 AllocPre fun s t ↦
+  AllocPost s t ∧ (t.getReg .x10).toNat < heapNext s + (s.getReg .x10).toNat
+
+/-- **`alloc` meets its contract**, its pointer the least one aligned from `NEXT` on. -/
+theorem alloc_tight : AllocTightSpec := by
   intro s hpc hpre
   have hN := hpre.heap
   have hal := hpre.align
@@ -147,7 +151,7 @@ theorem alloc_spec : AllocSpec := by
   have hnext : (t₃.getMem 0xa0000f30).toNat = (t₃.getReg .x10).toNat + (s.getReg .x11).toNat := by
     rw [show (0xa0000f30 : Word) = 0xa0001284 - 852 from rfl, hm₃, hsz, hx10]
   rw [← hx10] at hp hend'
-  refine ⟨t₃, hr₁.trans (hr₂.trans hr₃), Or.inl ⟨?_, ?_, ?_⟩⟩
+  refine ⟨t₃, hr₁.trans (hr₂.trans hr₃), Or.inl ⟨?_, ?_, ?_, ?_⟩⟩
   · rw [b800002b4_pc h₃, k₂ .x1 (by decide), k₁ .x1 (by decide)]; rfl
   · intro r hr
     rw [k₃ r (mem_of_calleeSaved hr _), k₂ r (mem_of_calleeSaved hr _),
@@ -156,5 +160,13 @@ theorem alloc_spec : AllocSpec := by
     · simp only [heapNext, heapStart, nextAddr, hnext]; omega
     · simp only [heapNext, heapEnd, nextAddr, hnext]; omega
     · rw [h₃.frame a (by rv_eval [h12₂]; exact ha), hm₂, hm₁]
+  · have := hp.2.2
+    simp only [heapNext, nextAddr] at this ⊢
+    omega
+
+/-- **`alloc` meets its contract.** -/
+theorem alloc_spec : AllocSpec := fun s hpc hpre ↦ by
+  obtain ⟨t, hr, h⟩ := alloc_tight s hpc hpre
+  exact ⟨t, hr, h.imp_left fun h ↦ ⟨h.1, h.2.1, h.2.2.1⟩⟩
 
 end Rv64Verifier.Runtime

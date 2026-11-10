@@ -104,6 +104,7 @@ theorem walkPre_of (hpre : Main.WalkCallPre s) : Walk.WalkPre s where
   proofRO := readOnly_of_part hpre hpre.proof.self
   stream := (mapped_of_part (by decide) hpre.proof.stream).imp_right fun h ↦ ⟨h, hpre.proof.stream.1⟩
   streamRO := readOnly_of_part hpre hpre.proof.stream
+  aligned := fun h ↦ hpre.aligned (Or.inl h)
 
 theorem proofIn (hpre : Main.WalkCallPre s) :
     Walk.ProofIn OI s (s.getReg .x13) (Main.readProof s (s.getReg .x13)) where

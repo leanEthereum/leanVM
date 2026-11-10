@@ -170,15 +170,16 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
     {bev : MachineState → Word → List E → Option E} (hBB : BusBalanceSpec BcOk bev)
     (hBW : BcWalk BcOk bev) (hDL : DropLayoutSpec)
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ c : MachineState} {A : List E}
-    {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s) (hpc : c.pc = 0x80006428)
-    (h : AtBus OI s u₀ c A k R Q B lo lo2) :
+    {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s)
+    (hne : (vecLen s (s.getReg .x13)).toNat ≠ 0)
+    (hpc : c.pc = 0x80006428) (h : AtBus OI s u₀ c A k R Q B lo lo2) :
     ∃ t, Reaches Image.code c t ∧ (((∃ bus, AtR17 OI s t (layoutOf A k) (rowsOf A) (rateOf A) bus) ∧
       PlApart s t) ∨ Done OI s t ∨ Dead Image.code t) := by
   obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 11392) 1424 := hpre.stack.valid
   have I := h.inv
   have H := h.at15.keep.at11.base
-  obtain ⟨y, hr, ⟨hpcy, hpy, post⟩ | hd⟩ := hBB.call (Reaches.refl c) hpc (busPre hBW hpre h)
+  obtain ⟨y, hr, ⟨hpcy, hpy, post⟩ | hd⟩ := hBB.call (Reaches.refl c) hpc (busPre hBW hpre hne h)
   swap
   · exact ⟨y, hr, Or.inr (Or.inr hd)⟩
   have stc := busCallStep hpre I h.x10 h.x12 post (hpy .x2 (by decide))
@@ -212,7 +213,7 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
     exact ⟨t₃, hr.trans (hr₁.trans (hr₂.trans hr₃)), Or.inr ht⟩
   -- `Ok`: the bus, one for every transcript
   have hok : vecCap y (s.getReg .x2 - 928) ≠ errNiche := by rw [vecCap, ← e1728]; exact he
-  have hargs := busArgs hBW hpre h
+  have hargs := busArgs hBW hpre hne h
   have run : ∀ T, TranscriptAt c (tp s) T → ∃ r T',
       (verifyBusBalanceM (evaluateRust (Proofs.Bytecode.readBytecode s (s.getReg .x11)))
         ((layoutOf A k).toSpec [])).run T = some (r, T') ∧
@@ -353,14 +354,15 @@ theorem r1516 {BcOk : MachineState → Nat → Word → Prop}
     {bev : MachineState → Word → List E → Option E} (hNS : NextScalarsSpec)
     (hBB : BusBalanceSpec BcOk bev) (hBW : BcWalk BcOk bev) (hDL : DropLayoutSpec)
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ : MachineState} {A : List E}
-    {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s) (hpc : u₀.pc = 0x800034c0)
-    (h : AtR15 OI s u₀ A k R Q B lo lo2) :
+    {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s)
+    (hne : (vecLen s (s.getReg .x13)).toNat ≠ 0)
+    (hpc : u₀.pc = 0x800034c0) (h : AtR15 OI s u₀ A k R Q B lo lo2) :
     ∃ t, Reaches Image.code u₀ t ∧ ((∃ layout rows lir bus, AtR17 OI s t layout rows lir bus ∧
       PlApart s t) ∨ Done OI s t ∨ Dead Image.code t) := by
   obtain ⟨c, hr, hd | hd | ⟨hpc₁, hc⟩⟩ := r15 hNS hDL hpre hpc h
   · exact ⟨c, hr, Or.inr (Or.inl hd)⟩
   · exact ⟨c, hr, Or.inr (Or.inr hd)⟩
-  obtain ⟨t, hr', ht | ht | ht⟩ := r16 hBB hBW hDL hpre hpc₁ hc
+  obtain ⟨t, hr', ht | ht | ht⟩ := r16 hBB hBW hDL hpre hne hpc₁ hc
   · obtain ⟨⟨bus, hb⟩, hpl⟩ := ht
     exact ⟨t, hr.trans hr', Or.inl ⟨_, _, _, bus, hb, hpl⟩⟩
   · exact ⟨t, hr.trans hr', Or.inr (Or.inl ht)⟩

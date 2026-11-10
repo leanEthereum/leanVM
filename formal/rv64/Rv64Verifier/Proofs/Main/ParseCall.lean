@@ -52,7 +52,8 @@ theorem m336 : (msp + 320 + 16 : Word) = msp + 336 := by decide
 theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x80000024)
     (h10 : t.getReg .x10 = msp + 320)
     (hal : 0 < (t.getReg .x12).toNat ∧ (t.getReg .x12).toNat ≤ 16)
-    (hsz : 0 < (t.getReg .x13).toNat)
+    (hsz : 0 < (t.getReg .x13).toNat) (h8 : (t.getReg .x13).toNat % 8 = 0)
+    (hA : (t.getReg .x12).toNat = 8 ∨ ((t.getReg .x12).toNat = 1 ∧ heapNext t ≠ heapNext u₀))
     {A N : Word} {x : Sym.Expect} {k : Nat} (hra : returnAddress t = A)
     (hs : Sym.BlockSpec Image.code A k (fun s ↦ Sym.Oblig.all s x.obl) x.Holds)
     (hobl : ∀ v, v.getReg .x2 = msp → Sym.Oblig.all v x.obl)
@@ -67,7 +68,7 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
       InR (w.getMem (msp + 336)) ((t.getReg .x11).toNat * (t.getReg .x13).toNat)
         (t.getReg .x12).toNat (heapNext t) (heapNext w))) := by
   have hsp := hg.sp
-  obtain ⟨v, hv, hout⟩ := tryAlloc t hpc {
+  obtain ⟨v, hv, hout⟩ := tryAllocNext t hpc {
     heap := hg.heap
     out := by rw [h10]; exact validRange_of (by decide) (by decide) (by decide)
     align := ⟨hal.1, by omega⟩
@@ -75,7 +76,7 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
     stack := rtStack_msp hsp (by decide) (by decide)
     outFree := by rw [h10]; addr_omega []
     outStack := by rw [h10]; simp only [stackLo, hsp]; addr_omega [] }
-  rcases hout with ⟨hpcv, hpres, hpost⟩ | hd
+  rcases hout with ⟨hpcv, hpres, hpost, hnext⟩ | hd
   swap
   · exact ⟨v, hv, Or.inl hd⟩
   have hspv : v.getReg .x2 = msp := (hpres.reg .x2).trans hsp
@@ -90,7 +91,6 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
     · have h2 := h.2
       exact Or.inr (Or.inr (Or.inr ⟨h.1, by simp only [heapEnd] at this ⊢; omega⟩))
   have hfv : BFrame t v (Wc (heapNext t)) := BFrame.mono hpost.frame.byte hWc
-  have hgv : PG u₀ v := hg.step hfv (fun a h ↦ (Wc.wf h).mono hg.mono) hspv hpost.heap hpost.mono
   obtain ⟨w, hw, hx⟩ := Sym.BlockSpec.reaches hs (by rw [hpcv, hra]) (hobl v hspv)
   by_cases htag : v.getMem (v.getReg .x2 + 320) ≠ 0
   · obtain ⟨w', hw', hd⟩ := abort (u := w) (by rw [htaken v w hx htag]; decide)
@@ -99,6 +99,20 @@ theorem alloc_call {u₀ t : MachineState} (hg : PG u₀ t) (hpc : t.pc = 0x8000
   have hm := hmem v w hx
   have hspw : w.getReg .x2 = msp := (hkeep v w hx .x2 (by decide)).trans hspv
   have hz : v.getMem (t.getReg .x10) = 0 := by rw [h10, ← hspv]; exact htag
+  have hal : heapNext v = heapNext t ∨ heapNext v % 8 = 0 := by
+    rcases hnext hz with ⟨-, e⟩ | ⟨hp8, hp1, hp2, e⟩
+    · exact Or.inl e
+    · right
+      have hn8 : ((t.getReg .x11).toNat * (t.getReg .x13).toNat) % 8 = 0 := by
+        rw [Nat.mul_mod, h8, Nat.mul_zero, Nat.zero_mod]
+      rcases hA with e8 | ⟨e1, hne⟩
+      · rw [e8] at hp8
+        omega
+      · rw [e1] at hp2
+        have ht8 := hg.al.resolve_left hne
+        omega
+  have hgv : PG u₀ v :=
+    hg.step hfv (fun a h ↦ (Wc.wf h).mono hg.mono) hspv hpost.heap hpost.mono hal
   obtain ⟨hcap, hbuf⟩ := hpost.ok hz
   have hfw : BFrame v w (Wc (heapNext t)) := BFrame.of_same hm _
   have hnx : heapNext w = heapNext v := by simp only [heapNext, hm]

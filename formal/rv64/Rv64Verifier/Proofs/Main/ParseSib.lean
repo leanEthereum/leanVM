@@ -215,7 +215,7 @@ theorem sib_body (h0 : ParseA s words u₀) {Q : Word} {h kh c : Nat} {t₀ : Ma
     simp only [heapNext, e]
   have hg₅ : PG u₀ t₅ := hg.step hb (fun a ha ↦ Wsib.wf (B := heapNext u₀) (by simp only [heapNext]; omega)
       (by simp only [heapEnd]; omega) (hsub a ha)) hsp₅
-    ⟨by rw [hnx]; exact hg.heap.lo, by rw [hnx]; exact hg.heap.hi⟩ (le_of_eq hnx.symm)
+    ⟨by rw [hnx]; exact hg.heap.lo, by rw [hnx]; exact hg.heap.hi⟩ (le_of_eq hnx.symm) (Or.inl hnx)
   have keepQ : ∀ c' < c, bytesAt t₅ (Q + BitVec.ofNat 64 (32 * c')) 32 =
       bytesAt t (Q + BitVec.ofNat 64 (32 * c')) 32 := by
     intro c' hc'

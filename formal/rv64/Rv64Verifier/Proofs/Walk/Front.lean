@@ -84,14 +84,16 @@ end Next
 
 variable {OI : MachineState → Word → List (List Opening) → Prop}
 
-/-- R0..R4: the entry to `build_layout`'s head checked (`Head`). -/
+/-- R0..R4: the entry to `build_layout`'s head checked (`Head`), the stream not empty. -/
 theorem frontHead {s : MachineState} (hpc : s.pc = 0x80000ef8) (hpre : WalkPre s) :
-    Next OI s s (fun t ↦ t.pc = 0x80001338 ∧ ∃ A k, Head OI s t A k) := by
+    Next OI s s (fun t ↦ t.pc = 0x80001338 ∧ (∃ A k, Head OI s t A k) ∧
+      (Runtime.vecLen s (s.getReg .x13)).toNat ≠ 0) := by
   refine Next.bind (toScalars Runtime.memset Runtime.memcpy Hash.keccakF Transcript.nextScalars hpc
     hpre) fun v ⟨hv, h⟩ ↦ ?_
+  have hne := h.streamNE
   refine (Next.ofDone (high hpre hv h)).bind fun w ⟨hw, h⟩ ↦ ?_
   refine Next.bind (rowsStage Runtime.alloc_spec hpre hw h) fun x ⟨hx, h⟩ ↦ ?_
-  exact (Next.ofDone (headStage hpre hx h)).mono fun t ⟨ht, k, h⟩ ↦ ⟨ht, _, k, h⟩
+  exact (Next.ofDone (headStage hpre hx h)).mono fun t ⟨ht, k, h⟩ ↦ ⟨ht, ⟨_, k, h⟩, hne⟩
 
 /-- `keccak_cell_lanes`' and `flushes_keccak`'s operands' contracts. -/
 theorem loopSpecs : LoopSpecs :=
@@ -142,14 +144,15 @@ theorem frontR13 {s u : MachineState} {A : List E} {k : Nat} {R Q B : Word} (hpr
 theorem frontR17 {BcOk : MachineState → Nat → Word → Prop}
     {bev : MachineState → Word → List E → Option E} (hBB : Bus.BusBalanceSpec BcOk bev)
     (hBW : BcWalk BcOk bev) {s u : MachineState} {A : List E} {k : Nat} {R Q B : Word}
-    {lo lo2 lo3 : Nat} {G BK : Word} (hpre : WalkPre s) (hpc : u.pc = 0x800032b8)
+    {lo lo2 lo3 : Nat} {G BK : Word} (hpre : WalkPre s)
+    (hne : (Runtime.vecLen s (s.getReg .x13)).toNat ≠ 0) (hpc : u.pc = 0x800032b8)
     (h : AtR13 OI s u A k R Q B lo lo2 lo3 G BK) :
     Next OI s u (fun t ↦ ∃ layout rows lir bus, AtR17 OI s t layout rows lir bus ∧ PlApart s t) := by
   refine (Next.ofDead' (r13 Proofs.Multilinear.stackOffsets Runtime.tryAllocZeroed hpre hpc
     h)).bind fun v ⟨hv, PL, h⟩ ↦ ?_
   refine (Next.ofDoneDead (r14 Runtime.memcpy Runtime.dropLayout hpre hv h)).bind
     fun w ⟨hw, h⟩ ↦ ?_
-  exact r1516 Transcript.nextScalars hBB hBW Runtime.dropLayout hpre hw h
+  exact r1516 Transcript.nextScalars hBB hBW Runtime.dropLayout hpre hne hw h
 
 /-- **`walk`'s front**: `walk_spec_of`'s `hFront`, given DEREF, JUMP and the tables' vector
 (`hDJ`), `verify_bus_balance`'s contract and its reading of the `Bytecode`. -/
@@ -163,12 +166,12 @@ theorem front {BcOk : MachineState → Nat → Word → Prop}
       ((∃ layout rows lir bus, AtR17 OI s u layout rows lir bus ∧ PlApart s u) ∨ Done OI s u ∨
         Dead Image.code u) := by
   intro s hpc hpre
-  refine (frontHead hpc hpre).bind fun v ⟨hv, A, k, h⟩ ↦ ?_
+  refine (frontHead hpc hpre).bind fun v ⟨hv, ⟨A, k, h⟩, hne⟩ ↦ ?_
   refine (frontKeccak hpre hv h).bind fun w ⟨hw, R, Q, B, h⟩ ↦ ?_
   refine (frontDeref hpre hw h).bind fun x ⟨Bb, h⟩ ↦ ?_
   refine Next.bind (hDJ s x A k R Q B Bb hpre h) fun y ⟨A, k, R, Q, B, h⟩ ↦ ?_
   refine (frontR13 hpre h).bind fun z ⟨hz, lo, lo2, lo3, G, BK, h⟩ ↦ ?_
-  exact frontR17 hBB hBW hpre hz h
+  exact frontR17 hBB hBW hpre hne hz h
 
 /-- `verify_bus_balance`'s contract, but for its side loop's entry and iteration and
 `eq_kernel`'s contract as the bus states it (`Vbb.EqKernelSpec`). -/

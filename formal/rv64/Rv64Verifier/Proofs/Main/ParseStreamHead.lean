@@ -54,7 +54,7 @@ theorem stream_stage (h0 : ParseA s words u₀) :
   have hib : inputBase.toNat = 0x10000000 := rfl
   have hlen := h0.len
   set k0 := (words.getD 0 0).toNat + 5 with hk0
-  have hg0 : PG u₀ u₀ := ⟨hsp, h0.inv.heap, le_refl _, BFrame.refl _ _⟩
+  have hg0 : PG u₀ u₀ := ⟨hsp, h0.inv.heap, le_refl _, BFrame.refl _ _, Or.inl rfl⟩
   have hlo0 := h0.inv.heap.lo
   -- `0x80000aac`: a word left
   obtain ⟨t₁, r₁, h₁⟩ := Sym.BlockSpec.reaches b80000aac_spec h0.pc (by rv_eval [hsp, msp]; decide)
@@ -98,7 +98,8 @@ theorem stream_stage (h0 : ParseA s words u₀) :
     rw [k₂ .x8 (by decide), x8₁]
   obtain ⟨w, rw', hd | ⟨pcw, regw, hgw, -, -, -, bufw⟩⟩ := alloc_call hg₂ (b80000ab4_pc h₂)
     (by rw [b80000ab4_x10 h₂, hsp₁]) (by rw [b80000ab4_x12 h₂]; decide)
-    (by rw [b80000ab4_x13 h₂]; decide) (by rw [returnAddress, b80000ab4_x1 h₂]; decide)
+    (by rw [b80000ab4_x13 h₂]; decide) (by rw [b80000ab4_x13 h₂]; decide)
+    (Or.inl (by rw [b80000ab4_x12 h₂]; decide)) (by rw [returnAddress, b80000ab4_x1 h₂]; decide)
     b80000ad4_spec (fun v hv ↦ by rv_eval [hv]; decide)
     (fun _ _ h hc ↦ b80000ad4_pc_taken h hc) (fun _ _ h hc ↦ b80000ad4_pc_not_taken h hc)
     (fun _ _ h ↦ b80000ad4_mem_same h) (fun _ _ h r hr ↦ b80000ad4_keeps h r (mem_of_calleeSaved hr _))

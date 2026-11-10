@@ -130,9 +130,16 @@ theorem path_mid (h0 : ParseA s words u₀) {P L : Word} {npi j k l : Nat} {t₀
     rw [e]; addr_omega [hk3, hfit]
   have hn₂ : heapNext t₂ = heapNext t := by
     simp only [heapNext]; rw [hfr₂ _ (by addr_omega []), m₁]
+  have hne₂ : heapNext t₂ ≠ heapNext u₀ := by
+    obtain ⟨-, hP1, hP2⟩ := hp.start.buf
+    have hlt := hp.lt
+    rw [hn₂]
+    omega
   obtain ⟨w, rw', hd | ⟨pcw, regw, hgw, hfw, hmw, -, bufw⟩⟩ := alloc_call hg₂ (b80000cf4_pc h₂)
     (by rw [b80000cf4_x10 h₂, hsp₁]) (by rw [b80000cf4_x12 h₂]; decide)
-    (by rw [b80000cf4_x13 h₂]; decide) (by rw [returnAddress, b80000cf4_x1 h₂]; decide)
+    (by rw [b80000cf4_x13 h₂]; decide) (by rw [b80000cf4_x13 h₂]; decide)
+    (Or.inr ⟨by rw [b80000cf4_x12 h₂]; decide, hne₂⟩)
+    (by rw [returnAddress, b80000cf4_x1 h₂]; decide)
     b80000d2c_spec (fun v hv ↦ by rv_eval [hv]; decide)
     (fun _ _ h hc ↦ b80000d2c_pc_taken h hc) (fun _ _ h hc ↦ b80000d2c_pc_not_taken h hc)
     (fun _ _ h ↦ b80000d2c_mem_same h) (fun _ _ h r hr ↦ b80000d2c_keeps h r (mem_of_calleeSaved hr _))

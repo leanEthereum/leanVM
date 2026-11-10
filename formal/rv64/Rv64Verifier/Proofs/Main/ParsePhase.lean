@@ -152,7 +152,8 @@ theorem phase_head (h0 : ParseA s words u₀) {k1 : Nat} {S O : Word} {stream : 
     rw [e]; addr_omega [hk, hfit]
   obtain ⟨w, rw', hd | ⟨pcw, regw, hgw, hfw, hmw, -, bufw⟩⟩ := alloc_call hg₂ (b80000bf0_pc h₂)
     (by rw [b80000bf0_x10 h₂, hsp₁]) (by rw [b80000bf0_x12 h₂]; decide)
-    (by rw [b80000bf0_x13 h₂]; decide) (by rw [returnAddress, b80000bf0_x1 h₂]; decide)
+    (by rw [b80000bf0_x13 h₂]; decide) (by rw [b80000bf0_x13 h₂]; decide)
+    (Or.inl (by rw [b80000bf0_x12 h₂]; decide)) (by rw [returnAddress, b80000bf0_x1 h₂]; decide)
     b80000c20_spec (fun v hv ↦ by rv_eval [hv]; decide)
     (fun _ _ h hc ↦ b80000c20_pc_taken h hc) (fun _ _ h hc ↦ b80000c20_pc_not_taken h hc)
     (fun _ _ h ↦ b80000c20_mem_same h) (fun _ _ h r hr ↦ b80000c20_keeps h r (mem_of_calleeSaved hr _))

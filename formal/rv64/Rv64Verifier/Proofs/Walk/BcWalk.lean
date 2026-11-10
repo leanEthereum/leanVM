@@ -8,7 +8,8 @@ import Rv64Verifier.Proofs.Bus.VbbBc
 doubleword holding one of its bytes lies below `NEXT` there, or above the heap (`BcCover`). The
 `Bytecode`'s own bytes and its `Block` and word buffers are doubleword-aligned and always are
 (`ReadOnly`); its two `u16` buffers are whenever `NEXT` is aligned at the entry
-(`bcCover_of_aligned`).
+(`bcCover_of_aligned`), as it is when the stream is not empty (`WalkPre.aligned`), which `BcWalk`
+asks.
 -/
 
 namespace Rv64Verifier.Proofs.Walk
@@ -69,8 +70,9 @@ theorem bcWalk_of {s c : MachineState} (hpre : WalkPre s) (hc : BcCover s) (I : 
     exact ⟨⟨(hc q hq a ha).imp_left fun h ↦ Nat.le_trans h hmo, hn'⟩, by addr_omega [hs', hb1]⟩
   · funext pt; unfold bevOf; rw [hrd]
 
-/-- **`BcWalk` for `BcOk`**, the `Bytecode` covered at `walk`'s entry. -/
-theorem bcWalk (h : ∀ s, WalkPre s → BcCover s) : BcWalk BcOk bevOf :=
-  fun s _ hpre I ↦ bcWalk_of hpre (h s hpre) I
+/-- **`BcWalk` for `BcOk`**: with the stream not empty, `NEXT` is aligned at `walk`'s entry
+(`WalkPre.aligned`), which covers the `Bytecode`. -/
+theorem bcWalkClosed : BcWalk BcOk bevOf :=
+  fun _ _ hpre hne I ↦ bcWalk_of hpre (bcCover_of_aligned hpre (hpre.aligned hne)) I
 
 end Rv64Verifier.Proofs.Walk

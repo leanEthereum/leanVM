@@ -1,11 +1,14 @@
 import Rv64Verifier.Proofs.Walk.Calls
+import Rv64Verifier.Proofs.Transcript.NextScalar
+import Rv64Verifier.Proofs.Transcript.NextScalarsModel
 
 /-!
 # `walk`: `next_scalars(8)`
 
 `announcedCall`: the announced sizes' `next_scalars(8)` into `S - 928`. Its `Err` is copied to the
 result (`0x800011a8`) and the function returns; otherwise, at `0x8000116c`, the `Vec` at `S - 928`
-holds the scalars and the code runs `walkRust` past them.
+holds the scalars and the code runs `walkRust` past them, and the stream is not empty: they were
+read from it.
 -/
 
 namespace Rv64Verifier.Proofs.Walk
@@ -33,7 +36,16 @@ def afterScalars (s : MachineState) (a : List E) : TM SummaryRust :=
       bodyRest (Proofs.Bytecode.readBytecode s (s.getReg .x11)) (bytesAt s (s.getReg .x12) 32)) >>=
     finishRust
 
-/-- At `0x8000116c`: the scalars in the `Vec` at `S - 928`, `s0`/`s1` its buffer and length. -/
+/-- Reading `n > 0` scalars needs one left. -/
+theorem stream_pos {n : Nat} {T T' : TState} {xs : List E} (hn : 0 < n)
+    (h : (TM.nextScalars n).run T = some (xs, T')) : T.streamOffset < T.proof.stream.length := by
+  by_contra hc
+  rw [nextScalars_fail (d := 0) (T' := T) (xs := []) rfl
+    (NextScalar.nextScalar_none (List.getElem?_eq_none (by omega))) hn] at h
+  cases h
+
+/-- At `0x8000116c`: the scalars in the `Vec` at `S - 928`, `s0`/`s1` its buffer and length; the
+stream is not empty. -/
 structure Announced (OI : MachineState → Word → List (List Opening) → Prop)
     (s v : MachineState) : Prop where
   inv : Inv s v
@@ -44,6 +56,7 @@ structure Announced (OI : MachineState → Word → List (List Opening) → Prop
   x9 : v.getReg .x9 = vecLen v (s.getReg .x2 - 928)
   vec : NewVecE s v (s.getReg .x2 - 928) (vecEs v (s.getReg .x2 - 928))
   tracks : Tracks OI s v (afterScalars s (vecEs v (s.getReg .x2 - 928)))
+  streamNE : (vecLen s (s.getReg .x13)).toNat ≠ 0
 
 theorem announcedCall (hNS : NextScalarsSpec) {OI : MachineState → Word → List (List Opening) → Prop}
     {s u : MachineState} (hpre : WalkPre s) (hpc : u.pc = 0x80004818) (h : Start OI s u) :
@@ -112,7 +125,8 @@ theorem announcedCall (hNS : NextScalarsSpec) {OI : MachineState → Word → Li
           rw [spw]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
         rw [b80001158_x9 h₂, a16, vecLen, hm₂]
       vec := ?_
-      tracks := ?_ }⟩⟩
+      tracks := ?_
+      streamNE := ?_ }⟩⟩
     · have ha : (tp s + 360).toNat % 8 = 0 := by rw [tp]; addr_omega [hb1, hb3]
       rw [byteAt_congr ha (hm₂ _), byteAt_congr ha (st.word hpre (by rw [tp]; addr_omega [hb1])
         (by rw [tp]; addr_omega [hb1]) (by rw [tp]; addr_omega [hb1]))]
@@ -136,6 +150,20 @@ theorem announcedCall (hNS : NextScalarsSpec) {OI : MachineState → Word → Li
         congr
         rw [← hn.elems]
         simp only [vecEs, vecPtr, vecLen, hm₂, eListAt, eAt]
+      · exact absurd (by rw [vecCap, ← e928] at hv; exact hv) hc
+    · have hT₀ : TranscriptAt u (u.getReg .x11)
+          ⟨⟨eListAt u (streamPtr u (u.getReg .x11)) (streamLen u (u.getReg .x11)), []⟩,
+            spongeAt u (u.getReg .x11 + 8), (u.getMem (u.getReg .x11 + 344)).toNat,
+            (u.getMem (u.getReg .x11 + 352)).toNat, []⟩ := ⟨rfl, rfl, rfl, rfl⟩
+      have hv := post.value _ hT₀
+      have e8 : (u.getReg .x12).toNat = 2 + LayoutMirror.nTablesRust := by rw [h.x12]; rfl
+      rw [e8, h.x10] at hv
+      split at hv
+      · rename_i xs T' heq
+        have hp := stream_pos (by decide) heq
+        simp only [eListAt_length] at hp
+        rw [h.x11, (proofVals hpre h.inv h.proofPtr).2.2] at hp
+        omega
       · exact absurd (by rw [vecCap, ← e928] at hv; exact hv) hc
 
 /-- **From the entry to the announced sizes' check** (`0x8000116c`), or the function has returned

@@ -43,7 +43,7 @@ theorem PG.heapWrite {u₀ t t' : MachineState} (hg : PG u₀ t) {lo : Word} {m 
   exact hg.step (BFrame.of_memFrame hfr hlo hm)
     (fun a ha ↦ Wf.heap (by simp only [Within] at ha; omega)
       (by simp only [Within, heapEnd] at ha ⊢; omega))
-    hsp ⟨by rw [hn]; exact hg.heap.lo, by rw [hn]; exact hg.heap.hi⟩ (le_of_eq hn.symm)
+    hsp ⟨by rw [hn]; exact hg.heap.lo, by rw [hn]; exact hg.heap.hi⟩ (le_of_eq hn.symm) (Or.inl hn)
 
 /-- A step that writes only `main`'s scratch slots. -/
 theorem PG.slotWrite {u₀ t t' : MachineState} (hg : PG u₀ t) {c m : Nat}
@@ -54,7 +54,7 @@ theorem PG.slotWrite {u₀ t t' : MachineState} (hg : PG u₀ t) {c m : Nat}
     simp only [heapNext]; rw [hfr _ (by addr_omega [h1, h2])]
   exact hg.step (BFrame.of_memFrame hfr (by addr_omega [hc, h1, h2]) hm)
     (fun a ha ↦ Wf.slot (by addr_omega [ha, h1, h2]))
-    hsp ⟨by rw [hn]; exact hg.heap.lo, by rw [hn]; exact hg.heap.hi⟩ (le_of_eq hn.symm)
+    hsp ⟨by rw [hn]; exact hg.heap.lo, by rw [hn]; exact hg.heap.hi⟩ (le_of_eq hn.symm) (Or.inl hn)
 
 theorem eListAt_snoc {t t' : MachineState} {S : Word} {c : Nat}
     (hf : MemFrame t t' (S + BitVec.ofNat 64 (24 * c)) 24) (hS : S.toNat + 24 * (c + 1) ≤ 2 ^ 64) :

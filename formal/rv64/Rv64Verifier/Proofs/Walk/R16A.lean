@@ -244,10 +244,12 @@ theorem blocksRO {s u₀ c : MachineState} (hpre : WalkPre s) (I : Inv s c) (hu 
 /-! ## The precondition -/
 
 /-- `BcOk` holds of `walk`'s `Bytecode` in any state past the prologue, and `bev` reads it as
-`evaluateRust`: the bytecode is only read. -/
+`evaluateRust`: the bytecode is only read. Asked only when the stream is not empty, as it is once
+`walk` has read from it. -/
 def BcWalk (BcOk : MachineState → Nat → Word → Prop)
     (bev : MachineState → Word → List E → Option E) : Prop :=
-  ∀ s c, WalkPre s → Inv s c → BcOk c busBalanceStack (s.getReg .x11) ∧
+  ∀ s c, WalkPre s → (vecLen s (s.getReg .x13)).toNat ≠ 0 → Inv s c →
+    BcOk c busBalanceStack (s.getReg .x11) ∧
     bev c (s.getReg .x11) = evaluateRust (Proofs.Bytecode.readBytecode s (s.getReg .x11))
 
 /-- What the steps from `u₀` write misses the heap below `NEXT` at `u₀`. -/
@@ -396,6 +398,7 @@ theorem busPre {BcOk : MachineState → Nat → Word → Prop}
     {bev : MachineState → Word → List E → Option E} (hBW : BcWalk BcOk bev)
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ c : MachineState} {A : List E}
     {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s)
+    (hne : (vecLen s (s.getReg .x13)).toNat ≠ 0)
     (h : AtBus OI s u₀ c A k R Q B lo lo2) : BusBalancePreB BcOk c := by
   obtain ⟨hb1, hb2, hb3, -⟩ := bounds hpre
   have I := h.inv
@@ -526,7 +529,7 @@ theorem busPre {BcOk : MachineState → Nat → Word → Prop}
         rw [h.x11]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
       have hbc : u₀.getMem (s.getReg .x2 - BitVec.ofNat 64 1936) = s.getReg .x11 := h.at15.bc
       rw [bytecodeOf, e144, sl 1936 (by omega) (by omega), hbc]
-      exact (hBW s c hpre I).1
+      exact (hBW s c hpre hne I).1
     bytecodeApart := by
       have e144 : c.getReg .x11 + 144 = s.getReg .x2 - BitVec.ofNat 64 1936 := by
         rw [h.x11]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
@@ -562,6 +565,7 @@ theorem busArgs {BcOk : MachineState → Nat → Word → Prop}
     {bev : MachineState → Word → List E → Option E} (hBW : BcWalk BcOk bev)
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ c : MachineState} {A : List E}
     {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s)
+    (hne : (vecLen s (s.getReg .x13)).toNat ≠ 0)
     (h : AtBus OI s u₀ c A k R Q B lo lo2) :
     verifyBusBalanceM (bev c (bytecodeOf c (c.getReg .x11))) (busLayoutAt c (c.getReg .x11)) =
       verifyBusBalanceM (evaluateRust (Proofs.Bytecode.readBytecode s (s.getReg .x11)))
@@ -581,7 +585,7 @@ theorem busArgs {BcOk : MachineState → Nat → Word → Prop}
     have hb : u₀.getMem (s.getReg .x2 - BitVec.ofNat 64 1936) = s.getReg .x11 := h.at15.bc
     rw [bytecodeOf, show (144 : Word) = BitVec.ofNat 64 144 from rfl, eo 144 1936 rfl,
       sl 1936 (by omega) (by omega), hb]
-  rw [hbc, (hBW s c hpre h.inv).2]
+  rw [hbc, (hBW s c hpre hne h.inv).2]
   have hlo2 := K.lo2le
   have side (k' : Nat) (W : Word) (hk : k' = 2056 ∨ k' = 2032 ∨ k' = 2008)
       (hc : ∀ j < 3, u₀.getMem (s.getReg .x2 - BitVec.ofNat 64 k' + BitVec.ofNat 64 (8 * j)) =

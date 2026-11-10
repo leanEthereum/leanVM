@@ -86,7 +86,7 @@ theorem final_stage (h0 : ParseA s words u₀) {kB k : Nat} {S O : Word} {stream
   have hbf : BFrame t v (Within · (msp + 272) 48) := BFrame.of_memFrame hfr (by decide) (by decide)
   have hnv : heapNext v = heapNext t := by simp only [heapNext]; rw [hfr _ (by addr_omega [])]
   have hgv : PG u₀ v := hg.step hbf (fun a ha ↦ Wf.out (by addr_omega [ha])) hspv
-    ⟨by rw [hnv]; exact hg.heap.lo, by rw [hnv]; exact hg.heap.hi⟩ (le_of_eq hnv.symm)
+    ⟨by rw [hnv]; exact hg.heap.lo, by rw [hnv]; exact hg.heap.hi⟩ (le_of_eq hnv.symm) (Or.inl hnv)
   have hinv := hgv.minv h0
   have hhi := hgv.heap.hi
   have hlo0 := h0.inv.heap.lo
@@ -158,7 +158,7 @@ theorem final_stage (h0 : ParseA s words u₀) {kB k : Nat} {S O : Word} {stream
   refine ⟨v, r₁.trans r₂, Or.inl ⟨hinv, b80000d8c_pc h₂, b80000d8c_x1 h₂, hx10, ?_,
     (tbl words).map BF64.ofBitVec, digestOfWords ((words.drop ((words.getD 0 0).toNat + 1)).take 4),
     { stream, openings := phs }, hdec, ?_, ?_, ?_, ?_⟩⟩
-  · refine ⟨hgv.heap, rtStack_msp hspv le_rfl (by decide), hinv.rodata, ?_, ?_, ?_, ?_, ?_⟩
+  · refine ⟨hgv.heap, rtStack_msp hspv le_rfl (by decide), hinv.rodata, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hx10]
       refine ⟨by simp only [Runtime.Mapped, walkOutSize]; decide, by decide,
         ⟨Or.inr (by decide), by simp only [walkOutSize]; addr_omega []⟩, ?_⟩
@@ -187,6 +187,16 @@ theorem final_stage (h0 : ParseA s words u₀) {kB k : Nat} {S O : Word} {stream
         rcases hO1 with h' | h'
         · omega
         exact (hphv i (by omega)).mem h' le_rfl hgv.heap hspv
+    · intro hne
+      have hl1 : (vecLen v (v.getReg .x13)).toNat = stream.length := by
+        rw [hx13, e288, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn64]
+      have hl2 : (vecLen v (v.getReg .x13 + 24)).toNat = np := by
+        rw [hx13, e312, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hnp64]
+      rw [hl1, hl2] at hne
+      refine hgv.al.resolve_left fun he ↦ ?_
+      rcases hne with hne | hne
+      · rcases hSb with h' | h' <;> omega
+      · rcases hOb with h' | h' <;> omega
   · rw [List.length_map, tbl_length (by omega)]; omega
   · rw [List.map_map, show BF64.toBitVec ∘ BF64.ofBitVec = id from funext BF64.toBitVec_ofBitVec,
       List.map_id, hx11, hgv.bc h0]

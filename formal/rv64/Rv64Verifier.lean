@@ -43,6 +43,7 @@ import Rv64Verifier.Field.BaseMul
 import Rv64Verifier.Proofs.Walk.AllE
 import Rv64Verifier.Proofs.Final.WalkSpec
 import Rv64Verifier.Proofs.Walk.AllG
+import Rv64Verifier.Proofs.Final.Sound
 
 /-! The axioms of the results so far: Lean's three, nothing native (`bv_decide` adds one). -/
 

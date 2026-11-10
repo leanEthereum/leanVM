@@ -164,7 +164,8 @@ theorem path_head (h0 : ParseA s words u₀) {P : Word} {npi j k : Nat}
     simp only [heapNext, m₄, m₃, m₂, m₁]
   obtain ⟨w, rw', hd | ⟨pcw, regw, hgw, hfw, hmw, -, bufw⟩⟩ := alloc_call hg₄ (b80000c9c_pc h₄)
     (by rw [b80000c9c_x10 h₄, hsp₃]) (by rw [b80000c9c_x12 h₄]; decide)
-    (by rw [b80000c9c_x13 h₄]; decide) (by rw [returnAddress, b80000c9c_x1 h₄]; decide)
+    (by rw [b80000c9c_x13 h₄]; decide) (by rw [b80000c9c_x13 h₄]; decide)
+    (Or.inl (by rw [b80000c9c_x12 h₄]; decide)) (by rw [returnAddress, b80000c9c_x1 h₄]; decide)
     b80000cb8_spec (fun v hv ↦ by rv_eval [hv]; decide)
     (fun _ _ h hc ↦ b80000cb8_pc_taken h hc) (fun _ _ h hc ↦ b80000cb8_pc_not_taken h hc)
     (fun _ _ h ↦ b80000cb8_mem_same h) (fun _ _ h r hr ↦ b80000cb8_keeps h r (mem_of_calleeSaved hr _))

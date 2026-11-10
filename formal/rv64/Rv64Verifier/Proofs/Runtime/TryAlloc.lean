@@ -1,4 +1,4 @@
-import Rv64Verifier.Proofs.Runtime.Contracts
+import Rv64Verifier.Proofs.Runtime.Alloc
 import Rv64Verifier.Blocks.F0
 
 /-!
@@ -17,7 +17,30 @@ compiled (`Blocks/F0.lean`): `0x80000024` saves `ra`, `s0`..`s3` in a 48-byte fr
 the dangling pointer `align`), else `0x80000070` calls `alloc`, `0x8000008c` branches on a null
 pointer (never: `alloc` halts instead) and `0x80000090` writes the capacity and the pointer.
 `0x800000b4` writes the tag, restores and returns.
+
+`try_alloc_next`: on `Ok`, `NEXT` is past the new buffer, which starts at the least multiple of the
+alignment from `NEXT` on (`NextAfter`), given `alloc`'s tight contract.
 -/
+
+namespace Rv64Verifier.Runtime
+open RiscvZkvm.Rv64
+
+/-- `NEXT` from `lo` to `hi` for `n` bytes aligned to `al` at `p`: kept for none, else past them,
+`p` the least multiple of `al` from `lo` on. -/
+def NextAfter (lo hi p n al : Nat) : Prop :=
+  (n = 0 ∧ hi = lo) ∨ (p % al = 0 ∧ lo ≤ p ∧ p < lo + al ∧ hi = p + n)
+
+/-- `try_allocate_in` at `0x80000024`, on `Ok`: `NEXT` past the new buffer. -/
+def TryAllocNext (s t : MachineState) : Prop :=
+  t.getMem (s.getReg .x10) = 0 → NextAfter (heapNext s) (heapNext t)
+    (t.getMem (s.getReg .x10 + 16)).toNat ((s.getReg .x11).toNat * (s.getReg .x13).toNat)
+    (s.getReg .x12).toNat
+
+/-- `try_allocate_in`'s contract at `0x80000024`, with `TryAllocNext`. -/
+def TryAllocNextSpec : Prop := FunSpec Image.code 0x80000024 (TryAllocPre .x12 .x13)
+  fun s t ↦ TryAllocPost .x12 .x13 s t ∧ TryAllocNext s t
+
+end Rv64Verifier.Runtime
 
 namespace Rv64Verifier.Runtime.TryAlloc
 open RiscvZkvm.Rv64 Rv64Verifier.Blocks.F0
@@ -165,8 +188,8 @@ theorem finish {s u t : MachineState} {nx : Word} (hpre : TryAllocPre .x12 .x13 
       · exact Or.inr (Or.inl ha)
       · exact Or.inr (Or.inr (Or.inl ha))
 
-/-- **`try_allocate_in` meets its contract**, given `alloc`'s. -/
-theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
+/-- **`try_allocate_in` meets its contract**, `NEXT` past the new buffer, given `alloc`'s. -/
+theorem try_alloc_next (hA : AllocTightSpec) : TryAllocNextSpec := by
   intro s hpc hpre
   have hb := hpre.bounds
   have hal := hpre.align
@@ -214,7 +237,15 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
         fun r hr ↦ k₃ r (mem_of_mem hr _)
       obtain ⟨t, hr, hpc', hpres, htag, hmt, hut⟩ := exit hpre (b800000a8_pc h₃) inv₃
         (by rw [k₃ .x10 (by decide), hx10])
-      refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ?_⟩⟩
+      refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)),
+        Or.inl ⟨hpc', hpres, ?_, fun _ ↦ Or.inl ⟨?_, ?_⟩⟩⟩
+      rotate_left
+      · rw [hx8] at hz
+        have := congrArg BitVec.toNat hz
+        rw [hmul, show (0 : Word).toNat = 0 from rfl] at this
+        rw [Nat.mul_comm]; exact this
+      · have hn : t.getMem nextAddr = t₃.getMem nextAddr := hmt _ (by addr_omega [ho, hb])
+        simp only [heapNext, hn, inv₃.next]
       have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
       have m8 := b800000a8_m_x10_8 h₃
       have m16 := b800000a8_m_x10_16 h₃
@@ -249,17 +280,17 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
         hA.call hr₃ (b80000070_pc h₃) ⟨hheap₃, by rw [hx10]; exact hal⟩
       swap
       · exact ⟨t₄, hr₁.trans (hr₂.trans hr₄), Or.inr hdead⟩
-      have hpal := hpost.aligned
+      have hpal := hpost.1.aligned
       rw [hx10] at hpal
       have hp0 : t₄.getReg .x10 ≠ 0 := by
         intro h0
-        have h1 := hpost.above
+        have h1 := hpost.1.above
         have h2 := hheap₃.lo
         rw [h0, show (0 : Word).toNat = 0 from rfl] at h1
         simp only [heapStart] at h2
         omega
-      have inv₄ := inv₃.step hpre (fun a _ ha ↦ hpost.mem a ha)
-        (fun a ha ↦ hpost.mem a fun h' ↦ ha (by rw [h']; decide)) rfl
+      have inv₄ := inv₃.step hpre (fun a _ ha ↦ hpost.1.mem a ha)
+        (fun a ha ↦ hpost.1.mem a fun h' ↦ ha (by rw [h']; decide)) rfl
         fun r hr ↦ hpres₄ r (mem_of_mem hr _)
       obtain ⟨t₅, hr₅, h₅⟩ := Sym.BlockSpec.reaches b8000008c_spec
         (by rw [hpc₄, returnAddress_eq, b80000070_x1 h₃]; decide) trivial
@@ -284,15 +315,30 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
         fun r hr ↦ k₆ r (mem_of_mem hr _)
       obtain ⟨t, hr, hpc', hpres, htag, hmt, hut⟩ := exit hpre (b80000090_pc h₆) inv₆
         (by rw [b80000090_x10 h₆, hx18])
-      refine ⟨t, hr₁.trans (hr₂.trans (hr₄.trans (hr₅.trans (hr₆.trans hr)))),
-        Or.inl ⟨hpc', hpres, ?_⟩⟩
       have hn₆ : heapNext t₆ = heapNext t₄ := by simp only [heapNext, inv₆.next]
       have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
+      refine ⟨t, hr₁.trans (hr₂.trans (hr₄.trans (hr₅.trans (hr₆.trans hr)))),
+        Or.inl ⟨hpc', hpres, ?_, fun _ ↦ Or.inr ?_⟩⟩
+      rotate_left
+      · have hn : t.getMem nextAddr = t₆.getMem nextAddr := hmt _ (by addr_omega [ho, hb])
+        have e16 : t.getMem (s.getReg .x10 + 16) = t₄.getReg .x10 := by
+          have m16' := b80000090_m_x18_16 h₆
+          rw [hx18, k₅ .x10 (by decide)] at m16'
+          rw [hmt _ (by addr_omega [hb]), m16']
+        have hnt : heapNext t = heapNext t₆ := by simp only [heapNext, hn]
+        have ht := hpost.2
+        have hab := hpost.1.above
+        have hnx := hpost.1.next
+        rw [hx10] at ht
+        rw [hx11, hmul] at hnx
+        rw [e16, hnt, hn₆]
+        refine ⟨hpal, by omega, by omega, by rw [hnx, Nat.mul_comm (s.getReg .x13).toNat]⟩
       have hmono : heapNext s ≤ heapNext t₆ := by
-        have := hpost.above
-        have := hpost.next
+        have := hpost.1.above
+        have := hpost.1.next
         omega
-      refine finish hpre inv₆ ⟨hn₆ ▸ hpost.heap.lo, hn₆ ▸ hpost.heap.hi⟩ hmono hmt hut (fun _ ↦ ?_)
+      refine finish hpre inv₆ ⟨hn₆ ▸ hpost.1.heap.lo, hn₆ ▸ hpost.1.heap.hi⟩ hmono hmt hut
+        (fun _ ↦ ?_)
         fun _ hc ↦ (hz (by rw [hx8, hc]; simp)).elim
       have m8 := b80000090_m_x18_8 h₆
       have m16 := b80000090_m_x18_16 h₆
@@ -301,9 +347,9 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
       refine ⟨m8, ?_⟩
       rw [m16]
       refine ⟨hpal, Or.inr ⟨?_, ?_⟩⟩
-      · have := hpost.above
+      · have := hpost.1.above
         omega
-      · rw [hn₆, hpost.next, hx11, hmul, Nat.mul_comm]
+      · rw [hn₆, hpost.1.next, hx11, hmul, Nat.mul_comm]
   · -- the size overflows: `Err(CapacityOverflow)`
     obtain ⟨t₂, hr₂, h₂⟩ := Sym.BlockSpec.reaches b80000060_spec hpc₁ (by
       rv_eval [k₁ .x10 (by decide)]
@@ -320,9 +366,15 @@ theorem try_alloc_spec (hA : AllocSpec) : TryAllocSpec := by
       (fun a _ ↦ b80000064_mem_same h₃ a) fun r hr ↦ k₃ r (mem_of_mem hr _)
     obtain ⟨t, hr, hpc', hpres, htag, hmt, hut⟩ := exit hpre (b80000064_pc h₃) inv₃
       (by rw [k₃ .x10 (by decide), k₂ .x10 (by decide), hx10])
-    refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ?_⟩⟩
-    have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
-    refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut (fun h0 ↦ ?_)
-      fun h0 _ ↦ ?_ <;> (rw [htag, b80000064_x13 h₃] at h0; cases h0)
+    refine ⟨t, hr₁.trans (hr₂.trans (hr₃.trans hr)), Or.inl ⟨hpc', hpres, ?_, fun h0 ↦ ?_⟩⟩
+    · have hn₃ : heapNext t₃ = heapNext s := by simp only [heapNext, inv₃.next]
+      refine finish hpre inv₃ ⟨hn₃ ▸ hheap.lo, hn₃ ▸ hheap.hi⟩ hn₃.ge hmt hut (fun h0 ↦ ?_)
+        fun h0 _ ↦ ?_ <;> (rw [htag, b80000064_x13 h₃] at h0; cases h0)
+    · rw [htag, b80000064_x13 h₃] at h0; cases h0
+
+/-- **`try_allocate_in` meets its contract**, given `alloc`'s. -/
+theorem try_alloc_spec (hA : AllocTightSpec) : TryAllocSpec := fun s hpc hpre ↦ by
+  obtain ⟨t, hr, h⟩ := try_alloc_next hA s hpc hpre
+  exact ⟨t, hr, h.imp_left fun h ↦ ⟨h.1, h.2.1, h.2.2.1⟩⟩
 
 end Rv64Verifier.Runtime.TryAlloc

@@ -79,7 +79,8 @@ theorem openings_stage (h0 : ParseA s words u₀) {k : Nat} {S : Word} {stream :
     rw [e]; addr_omega [hk, hfit]
   obtain ⟨w, rw', hd | ⟨pcw, regw, hgw, hfw, hmw, -, bufw⟩⟩ := alloc_call hg₁ (b80000b58_pc h₁)
     (by rw [b80000b58_x10 h₁, hsp]) (by rw [b80000b58_x12 h₁]; decide)
-    (by rw [b80000b58_x13 h₁]; decide) (by rw [returnAddress, b80000b58_x1 h₁]; decide)
+    (by rw [b80000b58_x13 h₁]; decide) (by rw [b80000b58_x13 h₁]; decide)
+    (Or.inl (by rw [b80000b58_x12 h₁]; decide)) (by rw [returnAddress, b80000b58_x1 h₁]; decide)
     b80000b84_spec (fun v hv ↦ by rv_eval [hv]; decide)
     (fun _ _ h hc ↦ b80000b84_pc_taken h hc) (fun _ _ h hc ↦ b80000b84_pc_not_taken h hc)
     (fun _ _ h ↦ b80000b84_mem_same h) (fun _ _ h r hr ↦ b80000b84_keeps h r (mem_of_calleeSaved hr _))
