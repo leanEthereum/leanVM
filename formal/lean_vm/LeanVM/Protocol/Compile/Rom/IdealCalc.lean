@@ -540,6 +540,115 @@ theorem DivLE.bind {α β : Type} {c d : ℝ≥0∞} {X' X : VerifierProgram α}
 theorem DivLE.mono {α : Type} {c d : ℝ≥0∞} {X' X : VerifierProgram α} (h : DivLE S c X' X)
     (hcd : c ≤ d) : DivLE S d X' X :=
   fun K h' g ↦ (h K h' g).trans (add_le_add le_rfl hcd)
+
+/-- `exp0` reads `C` only at the values the program may return. -/
+theorem exp0_mono_returns {α : Type} {C C' : α → List Ev → Option E → ℝ≥0∞} :
+    ∀ (A : VerifierProgram α), (∀ a, VerifierProgram.Returns A a → ∀ h g, C a h g ≤ C' a h g) →
+      ∀ (h : List Ev) (g : Option E), S.exp0 A h g C ≤ S.exp0 A h g C' := by
+  intro A
+  induction A with
+  | ret a => intro hC h g; exact hC a (.ret a) h g
+  | fail => intros; simp [exp0]
+  | read k ih =>
+    intro hC h g
+    simp only [exp0]
+    split
+    · exact le_rfl
+    · exact ih _ (fun a ha ↦ hC a (.read _ ha)) _ _
+  | sample k ih =>
+    intro hC h g
+    rcases g with _ | c
+    · simp only [exp0]
+      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
+        ih c (fun a ha ↦ hC a (.sample c ha)) _ _) _
+    · exact ih c (fun a ha ↦ hC a (.sample c ha)) _ _
+  | grind b k ih =>
+    intro hC h g
+    simp only [exp0]
+    split
+    · exact le_rfl
+    · exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
+        ih (fun a ha ↦ hC a (.grind b ha)) _ _) _
+  | commit ht w k ih =>
+    intro hC h g
+    simp only [exp0]
+    split
+    · exact le_rfl
+    · exact ih (fun a ha ↦ hC a (.commit ht w ha)) _ _
+  | query i ps k ih =>
+    intro hC h g
+    simp only [exp0]
+    split
+    · exact ih _ (fun a ha ↦ hC a (.query i ps _ ha)) _ _
+    · exact le_rfl
+
+/-- `failFrom_bind_le`, the continuations compared only at the values the first part may
+return. -/
+theorem failFrom_bind_le_returns {α : Type} {f' f : α → VerifierProgram Bool}
+    {D : α → List Ev → Option E → ℝ≥0∞} :
+    ∀ (A : VerifierProgram α),
+      (∀ a, VerifierProgram.Returns A a → ∀ h g,
+        S.failFrom (f' a) h g ≤ S.failFrom (f a) h g + D a h g) →
+      ∀ (h : List Ev) (g : Option E),
+        S.failFrom (A >>= f') h g ≤ S.failFrom (A >>= f) h g + S.exp0 A h g D := by
+  intro A
+  induction A with
+  | ret a => intro hf h g; exact hf a (.ret a) h g
+  | fail => intros; simp only [VerifierProgram.bind_eq, VerifierProgram.bind]; exact le_self_add
+  | read k ih =>
+    intro hf h g
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
+    split
+    · simp
+    · exact ih _ (fun a ha ↦ hf a (.read _ ha)) _ _
+  | sample k ih =>
+    intro hf h g
+    rcases g with _ | c
+    · simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
+      rw [← sum_div_add]
+      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
+        ih c (fun a ha ↦ hf a (.sample c ha)) _ _) _
+    · exact ih c (fun a ha ↦ hf a (.sample c ha)) _ _
+  | grind b k ih =>
+    intro hf h g
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
+    split
+    · simp
+    · rw [← sum_div_add]
+      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
+        ih (fun a ha ↦ hf a (.grind b ha)) _ _) _
+  | commit ht w k ih =>
+    intro hf h g
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
+    split
+    · simp
+    · exact ih (fun a ha ↦ hf a (.commit ht w ha)) _ _
+  | query i ps k ih =>
+    intro hf h g
+    simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
+    rcases ha : answer h i ps with _ | rows
+    · simp
+    · exact ih rows (fun a ha' ↦ hf a (.query i ps rows ha')) _ _
+
+/-- `exp0` of a list sum. -/
+theorem exp0_list_sum {α ι : Type} (L : List ι) (C : ι → α → List Ev → Option E → ℝ≥0∞)
+    (A : VerifierProgram α) (h : List Ev) (g : Option E) :
+    S.exp0 A h g (fun a h' g' ↦ (L.map fun i ↦ C i a h' g').sum) =
+      (L.map fun i ↦ S.exp0 A h g (C i)).sum := by
+  induction L with
+  | nil =>
+    have := S.exp0_const_mul 0 (fun _ _ _ ↦ 0) A h g
+    simpa using this
+  | cons i L ih =>
+    simp only [List.map_cons, List.sum_cons]
+    rw [S.exp0_add (C i) (fun a h' g' ↦ (L.map fun i ↦ C i a h' g').sum) A h g, ih]
+
+/-- Averaging an expectation over `E` is the expectation of the average. -/
+theorem avg_exp0 {α : Type} (C : E → α → List Ev → Option E → ℝ≥0∞) (A : VerifierProgram α)
+    (h : List Ev) (g : Option E) :
+    (∑ x : E, S.exp0 A h g (C x)) / Fintype.card E =
+      S.exp0 A h g (fun a h' g' ↦ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, C x a h' g') := by
+  rw [div_eq_mul_inv, mul_comm, ← exp0_sum, ← exp0_const_mul]
 end Strategy
 
 end
