@@ -62,6 +62,7 @@ theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
   obtain ⟨k1, k2, k3, k4⟩ := vs_static
   rewrite [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
   simp only [List.sum_cons, List.sum_nil]
+  generalize osC (candidate μ r) = x
   omega
 
 end

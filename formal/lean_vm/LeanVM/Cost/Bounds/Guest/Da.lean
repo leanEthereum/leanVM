@@ -136,8 +136,8 @@ theorem dvColArgs_cost (hP : Includes P Decoder.dvColArgsC.costDeps) (j : ℕ)
   rw [Decoder.dvColArgsC.costEq P hP σ σV hσ]
   have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
     (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 32); have := hS (.n 16); have := hS (.n 17)
-  have := hS (.n 18); have := hS (.n 19)
+  have := hS (.n 1); have := hS (.n 22); have := hS (.n 6); have := hS (.n 7)
+  have := hS (.n 8); have := hS (.n 9)
   omega
 
 /-- **Column `j`'s valuation** (`dvColVNC`) at `a`, `j < 128`: `F + 8·S + 4378`. -/

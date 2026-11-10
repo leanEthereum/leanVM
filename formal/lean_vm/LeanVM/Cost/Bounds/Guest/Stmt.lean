@@ -37,9 +37,9 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
 
 omit hrd hR in
-/-- `p · x` limb by limb (`mulKC`): `94`. -/
+/-- `p · x` limb by limb (`mulKC`): `63`. -/
 theorem mulK_cost (hP : Includes P Decoder.mulKC.costDeps) (p : E) (x : K) :
-    machineCost P Decoder.mulKC.costIdx [encodeValue p, encodeValue x] = 94 :=
+    machineCost P Decoder.mulKC.costIdx [encodeValue p, encodeValue x] = 63 :=
   Decoder.mulKC.costEq P hP p x |>.trans (by norm_num)
 
 include hrd hR
