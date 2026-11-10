@@ -84,11 +84,11 @@ theorem name_da_verify : decoderFunctionName 28 = "da_verify" := by decide +kern
 theorem name_da_verify_column : decoderFunctionName 30 = "da_verify_column" := by decide +kernel
 theorem name_da_verify_cell : decoderFunctionName 31 = "da_verify_cell" := by decide +kernel
 theorem name_aggregate_claims : decoderFunctionName 34 = "aggregate_claims" := by decide +kernel
-theorem name_da_expand_L7_L8 : decoderFunctionName 403 = "da_expand__L7_L8" := by decide +kernel
-theorem name_loop25 : decoderFunctionName 404 = "__loop25" := by decide +kernel
+theorem name_da_expand_L7_L8 : decoderFunctionName 432 = "da_expand__L7_L8" := by decide +kernel
+theorem name_loop25 : decoderFunctionName 433 = "__loop25" := by decide +kernel
 
-/-- `open_stacked__L{m}` is function `303 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 303 + m
+/-- `open_stacked__L{m}` is function `331 + m`. -/
+def openStackedIdx (m : ℕ) : ℕ := 331 + m
 
 end
 end LeanVM.Guest.Fast
