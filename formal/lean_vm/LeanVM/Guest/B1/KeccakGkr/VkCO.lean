@@ -156,9 +156,9 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     vkOut_complete hσ hg h17 (by rw [e3699]; exact mword) hslot (O1_length h) hr0 hL hchk
   have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
   have c3692 : σ (.n 964) = Guest.word 0 0 0 :=
-    gA (.const (.n 964) (Guest.word 0 0 0)) (by simp [vkOutT])
+    gA (.const (.n 964) (Guest.word 0 0)) (by simp [vkOutT])
   have c3693 : σ (.n 965) = Guest.word 0 0 0 :=
-    gA (.const (.n 965) (Guest.word 0 0 0)) (by simp [vkOutT])
+    gA (.const (.n 965) (Guest.word 0 0)) (by simp [vkOutT])
   refine ⟨?_, ?_, by rw [e3691, h9, h6], by rw [c3692, word_zero], by rw [c3693, word_zero], eO,
     e3701, cells, by rw [e3971, h17], e3972, by rw [e3974, h9], H⟩
   · apply List.ext_getElem (by simp [cap5, hcL])

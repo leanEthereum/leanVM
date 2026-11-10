@@ -82,14 +82,9 @@ cost_compile spWotsRetsC := spWotsRets
 /-! ## A child's proof -/
 
 cost_compile oqRowC := oqRow
-cost_compile OqRC := Oq.R
 cost_compile digestOfCellsWC := LeanVM.Guest.B1.digestOfCells
 cost_compile oqSibsOfC := oqSibsOf
 cost_compile oqK1C := oqK1
-cost_compile OqTszC := Oq.tsz
-cost_compile rowLoC := rowLo
-cost_compile OqGC := Oq.G
-cost_compile OqDC := Oq.D
 cost_compile oqKLC := oqKL
 cost_compile OqBC := Oq.B
 cost_compile OqChainLenC := Oq.chainLen

@@ -134,7 +134,7 @@ theorem semRel_imp {t : ℕ} (ht : t < 2 ^ 32) (rd : Reader) (ws : List E) :
   have e3 : impBase (impTag t 1 1) = t := by
     unfold impBase impTag
     rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt ht]
-  have hone : OffsetInstruction.immediateWord 1 0 0 = 1 := (Exec.imm_of_ofBits rfl).trans Exec.ofK_one
+  have hone : OffsetInstruction.immediateWord 1 0 = 1 := (Exec.imm_of_ofBits rfl).trans Exec.ofK_one
   unfold SemRel
   rw [ite_eq_left_of_eq_true _ _ (eq_true (by unfold impTag; omega)), e1, e2, e3, hone]
 
@@ -261,7 +261,7 @@ theorem loop1_cutsKnown {j odd : ℕ} {s : Oq} {walk name : String}
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
     rcases hv with rfl | rfl
     · exact oqLoop1T_wins1 hle hl hw hne
-    · rw [← oqQueryT_length_walk _ _ _ _ _ _ _ _ _ _ _ walk] at hle
+    · rw [← oqQueryT_length_walk _ _ _ _ _ _ _ _ _ _ walk] at hle
       exact oqLoop1T_wins2 hle hl hw hne
   · rw [hb] at hl
     rw [← oqLoop1A_length_walk s odd walk] at hle

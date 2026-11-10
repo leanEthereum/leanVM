@@ -23,22 +23,30 @@ def SKt(n):
     """`wSK n - B2C.fs n` (`wSKt`): a loop's words per iteration, its run's phantom frame apart."""
     c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
 B1 = os.path.join(LV, 'LeanVM', 'Guest', 'B1')
-def names(path, name):
-    s = open(os.path.join(B1, path), encoding='utf-8').read()
-    m = re.search(r'def %s : List \(String × ℕ\) :=\s*\[(.*?)\]\n' % name, s, re.S)
-    return re.findall(r'\("([^"]+)", \d+\)', m.group(1))
-KINDS = set(["opening_fold", "grind_check__L17", "opening_row_weights__L4_L0",
-             "opening_row_weights__L6_L1"] + names('Opening/Meaning.lean', 'oodPointNames')
-            + names('Opening/Meaning.lean', 'finalMessageNames') + names('Merkle/Meaning.lean', 'merkleCapNames')
-            + names('Eq/Meaning.lean', 'foldFinalMsgNames'))
+def names(name):
+    """The names of the list `name` (`List (String × ℕ)`), wherever under `B1` it is defined."""
+    for root, _, files in os.walk(B1):
+        for f in files:
+            if not f.endswith('.lean'): continue
+            s = open(os.path.join(root, f), encoding='utf-8').read()
+            m = re.search(r'def %s : List \(String × ℕ\) :=\s*\[(.*?)\]\n' % name, s, re.S)
+            if m: return re.findall(r'\("([^"]+)", \d+\)', m.group(1))
+    sys.exit('vsos.py: `%s`, which `osKindTable` (B1/Place/OsMean.lean) reads, is defined nowhere under B1' % name)
+def kinds():
+    """`B1.osKindTable`'s names: its literal entries and the name lists it maps."""
+    s = open(os.path.join(B1, 'Place', 'OsMean.lean'), encoding='utf-8').read()
+    body = re.search(r'def osKindTable : List \(String × OsKind\) :=\n(.*?)\n\n', s, re.S).group(1)
+    return set(re.findall(r'\("([^"]+)", \.', body) + [n for r in re.findall(r'(\w+Names)\.map', body)
+                                                          for n in names(r)])
+KINDS = kinds()
 Bnd = lambda n: SB(n) if n in KINDS else 0
 src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
 def arr(name):
     m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
     return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
-A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS',
-                         'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_MAX_INTERLEAVE', 'LIG_QUERIES',
-                         'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_INTERLEAVE', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}
+A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_YR_LEVEL', 'LIG_TOTAL_FOLDS',
+                         'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_FOLDS', 'LIG_QUERIES',
+                         'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}
 lig = lambda a, i: A[a][i] if i < len(A[a]) else 0
 oql = {}
 for m in re.finditer(r'\("(opening_queries__[^"]+)", "(__loop\d+)"',
@@ -61,17 +69,20 @@ def osBos(m):
     """The frame and buffers, and each call's bound, in order."""
     name = 'open_stacked__L%d' % m
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
-    posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m)
-    maxIl = lig('LIG_MAX_INTERLEAVE', m)
-    # `B1.osSizesL` (ligColsCap 22, oodSlots 4, yrLogCap 5, pointCap 40, resBatch 8)
-    sizes = ([4 * capLen, capLen, yrLen, 2 * nl, nF, nl, nl, posLen, posLen, 128, nl * 22, nl * 4]
-             + [(maxSq + 1) * 5, maxIl] * nl + [5, 40, 40, nl * 22, nl, nl + 1]
-             + [lig('LIG_QUERIES', m * 6 + l) // 8 + 1 for l in range(nl)])
+    posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m); last = lig('LIG_YR_LEVEL', m)
+    folds = lambda l: lig('LIG_FOLDS', m * 6 + l)
+    # `B1.osSizesF` (hsStride 8, oodSamples 2, ligColsCap 22, yrLogCap 5, pointCap 40, resBatch 8)
+    sizes = ([4 * capLen, capLen, yrLen + folds(last), 2 * nl, nF, 3 * nF, nl, nl, nl * 8, 2 * nl * 22, 2 * nl,
+              posLen, posLen]
+             + [x for l in range(nl) for x in ([] if l == last else [2 + folds(l)]) + [(maxSq + 1) * 5]
+                + ([yrLen + folds(l)] if l == last else [])]
+             + [5, 40, 40, nl * 22, nl, nl, 2 * nl]
+             + [2 * (lig('LIG_QUERIES', m * 6 + l) // 8 + 1) for l in range(last)])
     sp = {}
     for l in range(nl):
         i = m * 6 + l
         q = lig('LIG_QUERIES', i); depth = lig('LIG_TREE_DEPTH', i); sq = lig('LIG_SQUEEZES', i)
-        il = lig('LIG_INTERLEAVE', i); lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
+        lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
         sqL = '__loop%d' % (loopBase(m) + l); resL = '__loop%d' % (loopBase(m) + nl + l)
         sp[sqL] = sp.get(sqL, 0) + (sq + 1) * fs(sqL) + sq * fs('decode_query_windows__L%d_L%d' % (depth, cd))
         # level `l`'s `opening_queries`: the `l`-th one `open_stacked` calls, its eleven Const
