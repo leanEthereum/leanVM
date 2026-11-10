@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 # The templates of `opening_queries` (TRIAGE G #33, #39, #40)
 
 `opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd, base, I,
-leaf_cells, depth, cd)` (G:1393-1417) has 56 specializations, one per level shape (`Oq`). One
+leaf_cells, depth, cd)` (G:1393-1417) has 49 specializations, one per level shape (`Oq`). One
 query (`opening_query`, G:1346-1390, inline, with `walk_path`, G:1308-1343) from its first
 value `b` is `oqQueryT`:
 
@@ -317,51 +317,28 @@ def wpBodyT (s : Oq) : List Stmt :=
 /-- The deployed specializations of `walk_path`, `(pd, cd, name)` (a name built by `++ toString`
 does not reduce in a `module`'s kernel). -/
 def walkPathNames : List (ℕ × ℕ × String) :=
-  [(9, 5, "walk_path__L9_L5"),
-    (9, 8, "walk_path__L9_L8"),
-    (10, 5, "walk_path__L10_L5"),
-    (10, 6, "walk_path__L10_L6"),
-    (10, 8, "walk_path__L10_L8"),
-    (11, 5, "walk_path__L11_L5"),
-    (11, 6, "walk_path__L11_L6"),
-    (11, 7, "walk_path__L11_L7"),
-    (11, 8, "walk_path__L11_L8"),
+  [(6, 6, "walk_path__L6_L6"),
+    (6, 7, "walk_path__L6_L7"),
+    (6, 8, "walk_path__L6_L8"),
+    (12, 2, "walk_path__L12_L2"),
+    (12, 3, "walk_path__L12_L3"),
     (12, 4, "walk_path__L12_L4"),
     (12, 5, "walk_path__L12_L5"),
     (12, 6, "walk_path__L12_L6"),
     (12, 7, "walk_path__L12_L7"),
     (12, 8, "walk_path__L12_L8"),
-    (13, 4, "walk_path__L13_L4"),
-    (13, 5, "walk_path__L13_L5"),
-    (13, 6, "walk_path__L13_L6"),
-    (13, 7, "walk_path__L13_L7"),
-    (13, 8, "walk_path__L13_L8"),
-    (14, 4, "walk_path__L14_L4"),
-    (14, 5, "walk_path__L14_L5"),
-    (14, 6, "walk_path__L14_L6"),
-    (14, 7, "walk_path__L14_L7"),
-    (14, 8, "walk_path__L14_L8"),
-    (15, 4, "walk_path__L15_L4"),
-    (15, 5, "walk_path__L15_L5"),
-    (15, 6, "walk_path__L15_L6"),
-    (15, 7, "walk_path__L15_L7"),
-    (15, 8, "walk_path__L15_L8"),
-    (16, 4, "walk_path__L16_L4"),
-    (16, 5, "walk_path__L16_L5"),
-    (16, 6, "walk_path__L16_L6"),
-    (16, 7, "walk_path__L16_L7"),
-    (17, 4, "walk_path__L17_L4"),
-    (17, 5, "walk_path__L17_L5"),
-    (17, 6, "walk_path__L17_L6"),
-    (17, 7, "walk_path__L17_L7"),
+    (18, 2, "walk_path__L18_L2"),
+    (18, 3, "walk_path__L18_L3"),
     (18, 4, "walk_path__L18_L4"),
     (18, 5, "walk_path__L18_L5"),
     (18, 6, "walk_path__L18_L6"),
     (18, 7, "walk_path__L18_L7"),
-    (19, 5, "walk_path__L19_L5"),
-    (19, 6, "walk_path__L19_L6"),
-    (20, 5, "walk_path__L20_L5"),
-    (20, 6, "walk_path__L20_L6")]
+    (18, 8, "walk_path__L18_L8"),
+    (24, 2, "walk_path__L24_L2"),
+    (24, 3, "walk_path__L24_L3"),
+    (24, 4, "walk_path__L24_L4"),
+    (24, 5, "walk_path__L24_L5"),
+    (24, 6, "walk_path__L24_L6")]
 
 /-- The specialization of `walk_path` a shape's queries call. -/
 def oqWalkOf (s : Oq) : String :=

@@ -19,144 +19,148 @@ open LeanVM.Guest.B1
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem walk_458 : CutsKnown 458 :=
-  main_cutsKnown (j := 458) oqBody_436
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_458
+/-- `opening_queries__L0_L1_L64_L32_L17_L5`. -/
+theorem walk_1116 : CutsKnown 1116 :=
+  main_cutsKnown (j := 1116) oqBody_1115
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1116
 
 set_option maxRecDepth 100000 in
-theorem walk_461 : CutsKnown 461 :=
-  main_cutsKnown (j := 461) oqBody_439
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_461
+/-- `opening_queries__L0_L0_L16_L24_L16_L4`. -/
+theorem walk_1126 : CutsKnown 1126 :=
+  main_cutsKnown (j := 1126) oqBody_1125
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1126
 
 set_option maxRecDepth 100000 in
-theorem walk_490 : CutsKnown 490 :=
-  main_cutsKnown (j := 1346) oqBody_468
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_490
+/-- `opening_queries__L1_L1_L64_L32_L17_L5`. -/
+theorem walk_1158 : CutsKnown 1158 :=
+  main_cutsKnown (j := 1158) oqBody_1157
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1158
 
 set_option maxRecDepth 100000 in
-theorem walk_523 : CutsKnown 523 :=
-  main_cutsKnown (j := 523) oqBody_501
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_523
+/-- `opening_queries__L0_L1_L64_L32_L19_L7`. -/
+theorem walk_1200 : CutsKnown 1200 :=
+  main_cutsKnown (j := 1200) oqBody_1199
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1200
 
 set_option maxRecDepth 100000 in
-theorem walk_525 : CutsKnown 525 :=
-  main_cutsKnown (j := 525) oqBody_503
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_525
+/-- `opening_queries__L0_L0_L16_L24_L19_L7`. -/
+theorem walk_1241 : CutsKnown 1241 :=
+  main_cutsKnown (j := 1241) oqBody_1240
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1241
 
 set_option maxRecDepth 100000 in
-theorem walk_527 : CutsKnown 527 :=
-  main_cutsKnown (j := 527) oqBody_505
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_527
+/-- `opening_queries__L1_L1_L64_L32_L21_L3`. -/
+theorem walk_1307 : CutsKnown 1307 :=
+  main_cutsKnown (j := 1307) oqBody_1306
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1307
 
 set_option maxRecDepth 100000 in
-theorem walk_564 : CutsKnown 564 :=
-  main_cutsKnown (j := 1200) oqBody_542
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_564
+/-- `opening_queries__L1_L1_L64_L32_L22_L4`. -/
+theorem walk_1347 : CutsKnown 1347 :=
+  main_cutsKnown (j := 1347) oqBody_1346
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1347
 
 set_option maxRecDepth 100000 in
-theorem walk_613 : CutsKnown 613 :=
-  main_cutsKnown (j := 613) oqBody_591
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_613
+/-- `opening_queries__L0_L1_L64_L32_L24_L6`. -/
+theorem walk_1386 : CutsKnown 1386 :=
+  main_cutsKnown (j := 1386) oqBody_1385
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1386
 
 set_option maxRecDepth 100000 in
-theorem walk_636 : CutsKnown 636 :=
-  main_cutsKnown (j := 1236) oqBody_614
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_636
+/-- `opening_queries__L0_L0_L16_L24_L24_L6`. -/
+theorem walk_1428 : CutsKnown 1428 :=
+  main_cutsKnown (j := 1428) oqBody_1427
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1428
 
 set_option maxRecDepth 100000 in
-theorem walk_698 : CutsKnown 698 :=
-  main_cutsKnown (j := 1460) oqBody_676
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_698
+/-- `opening_queries__L1_L1_L64_L32_L26_L2`. -/
+theorem walk_1502 : CutsKnown 1502 :=
+  main_cutsKnown (j := 1502) oqBody_1501
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1502
 
 set_option maxRecDepth 100000 in
-theorem walk_702 : CutsKnown 702 :=
-  main_cutsKnown (j := 1389) oqBody_680
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_702
+/-- `opening_queries__L0_L0_L16_L24_L27_L3`. -/
+theorem walk_1550 : CutsKnown 1550 :=
+  main_cutsKnown (j := 1550) oqBody_1549
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1550
 
 set_option maxRecDepth 100000 in
-theorem walk_732 : CutsKnown 732 :=
-  main_cutsKnown (j := 732) oqBody_710
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_732
+/-- `opening_queries__L1_L1_L64_L32_L30_L6`. -/
+theorem walk_1640 : CutsKnown 1640 :=
+  main_cutsKnown (j := 1640) oqBody_1639
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_1640
 
 set_option maxRecDepth 100000 in
-theorem walk_754 : CutsKnown 754 :=
-  main_cutsKnown (j := 1386) oqBody_732
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_754
+/-- `__loop623`. -/
+theorem walk_1695 : CutsKnown 1695 :=
+  loop1_cutsKnown (j := 1695) oqBody_1694
+    (by decide) (by decide) (by decide) (by decide) walkOk_1695
 
 set_option maxRecDepth 100000 in
-theorem walk_779 : CutsKnown 779 :=
-  main_cutsKnown (j := 779) oqBody_757
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) walkOk_779
+/-- `__loop627`. -/
+theorem walk_1701 : CutsKnown 1701 :=
+  loop0_cutsKnown (j := 1701) oqBody_1700
+    (by decide) (by decide) (by decide) walkOk_1701
 
 set_option maxRecDepth 100000 in
-theorem walk_857 : CutsKnown 857 :=
-  loop0_cutsKnown (j := 857) oqBody_836
-    (by decide) (by decide) (by decide) walkOk_857
+/-- `__loop631`. -/
+theorem walk_1712 : CutsKnown 1712 :=
+  loop1_cutsKnown (j := 1712) oqBody_1711
+    (by decide) (by decide) (by decide) (by decide) walkOk_1712
 
 set_option maxRecDepth 100000 in
-theorem walk_859 : CutsKnown 859 :=
-  loop0_cutsKnown (j := 859) oqBody_837
-    (by decide) (by decide) (by decide) walkOk_859
+/-- `__loop635`. -/
+theorem walk_1722 : CutsKnown 1722 :=
+  loop1_cutsKnown (j := 1722) oqBody_1721
+    (by decide) (by decide) (by decide) (by decide) walkOk_1722
 
 set_option maxRecDepth 100000 in
-theorem walk_867 : CutsKnown 867 :=
-  loop1_cutsKnown (j := 867) oqBody_843
-    (by decide) (by decide) (by decide) (by decide) walkOk_867
+/-- `__loop639`. -/
+theorem walk_1732 : CutsKnown 1732 :=
+  loop0_cutsKnown (j := 1732) oqBody_1731
+    (by decide) (by decide) (by decide) walkOk_1732
 
 set_option maxRecDepth 100000 in
-theorem walk_880 : CutsKnown 880 :=
-  loop1_cutsKnown (j := 880) oqBody_851
-    (by decide) (by decide) (by decide) (by decide) walkOk_880
+/-- `__loop643`. -/
+theorem walk_1745 : CutsKnown 1745 :=
+  loop1_cutsKnown (j := 1745) oqBody_1744
+    (by decide) (by decide) (by decide) (by decide) walkOk_1745
 
 set_option maxRecDepth 100000 in
-theorem walk_882 : CutsKnown 882 :=
-  loop0_cutsKnown (j := 882) oqBody_852
-    (by decide) (by decide) (by decide) walkOk_882
+/-- `__loop647`. -/
+theorem walk_1753 : CutsKnown 1753 :=
+  loop1_cutsKnown (j := 1753) oqBody_1752
+    (by decide) (by decide) (by decide) (by decide) walkOk_1753
 
 set_option maxRecDepth 100000 in
-theorem walk_884 : CutsKnown 884 :=
-  loop0_cutsKnown (j := 884) oqBody_853
-    (by decide) (by decide) (by decide) walkOk_884
+/-- `__loop651`. -/
+theorem walk_1760 : CutsKnown 1760 :=
+  loop1_cutsKnown (j := 1760) oqBody_1759
+    (by decide) (by decide) (by decide) (by decide) walkOk_1760
 
 set_option maxRecDepth 100000 in
-theorem walk_897 : CutsKnown 897 :=
-  loop1_cutsKnown (j := 897) oqBody_860
-    (by decide) (by decide) (by decide) (by decide) walkOk_897
+/-- `__loop655`. -/
+theorem walk_1767 : CutsKnown 1767 :=
+  loop0_cutsKnown (j := 1767) oqBody_1766
+    (by decide) (by decide) (by decide) walkOk_1767
 
 set_option maxRecDepth 100000 in
-theorem walk_911 : CutsKnown 911 :=
-  loop0_cutsKnown (j := 911) oqBody_867
-    (by decide) (by decide) (by decide) walkOk_911
+/-- `__loop659`. -/
+theorem walk_1777 : CutsKnown 1777 :=
+  loop1_cutsKnown (j := 1777) oqBody_1776
+    (by decide) (by decide) (by decide) (by decide) walkOk_1777
 
 set_option maxRecDepth 100000 in
-theorem walk_921 : CutsKnown 921 :=
-  loop1_cutsKnown (j := 921) oqBody_873
-    (by decide) (by decide) (by decide) (by decide) walkOk_921
+/-- `__loop663`. -/
+theorem walk_1785 : CutsKnown 1785 :=
+  loop0_cutsKnown (j := 1785) oqBody_1784
+    (by decide) (by decide) (by decide) walkOk_1785
 
 set_option maxRecDepth 100000 in
-theorem walk_934 : CutsKnown 934 :=
-  loop1_cutsKnown (j := 934) oqBody_880
-    (by decide) (by decide) (by decide) (by decide) walkOk_934
-
-set_option maxRecDepth 100000 in
-theorem walk_938 : CutsKnown 938 :=
-  loop0_cutsKnown (j := 938) oqBody_882
-    (by decide) (by decide) (by decide) walkOk_938
-
-set_option maxRecDepth 100000 in
-theorem walk_943 : CutsKnown 943 :=
-  loop1_cutsKnown (j := 1136) oqBody_886
-    (by decide) (by decide) (by decide) (by decide) walkOk_943
-
-set_option maxRecDepth 100000 in
-theorem walk_945 : CutsKnown 945 :=
-  loop1_cutsKnown (j := 1138) oqBody_888
-    (by decide) (by decide) (by decide) (by decide) walkOk_945
-
-set_option maxRecDepth 100000 in
-theorem walk_953 : CutsKnown 953 :=
-  loop0_cutsKnown (j := 1142) oqBody_893
-    (by decide) (by decide) (by decide) walkOk_953
+/-- `__loop667`. -/
+theorem walk_1796 : CutsKnown 1796 :=
+  loop1_cutsKnown (j := 1796) oqBody_1795
+    (by decide) (by decide) (by decide) (by decide) walkOk_1796
 
 end
 end LeanVM.Guest.End

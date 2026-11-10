@@ -101,7 +101,7 @@ def qwDigit (d : ℕ) (w : E) (t : ℕ) : ℕ :=
 /-- **The positions and the rest windows sum back to the word.** -/
 theorem qw_recon {d cd : ℕ} (hs : QwShape d cd) (w : E) :
     tS (qwTop d) (qwDigit d w) (192 / d + qwRestN d) = eToNat w := by
-  have hd14 := hs.1
+  have hd12 := hs.1
   have hper : 192 / d * d ≤ 192 := Nat.div_mul_le_self 192 d
   set N := 192 / d
   have htop : ∀ t ≤ N, qwTop d t = t * d := fun t ht ↦ by

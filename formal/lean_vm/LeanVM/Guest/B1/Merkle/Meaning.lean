@@ -25,7 +25,7 @@ root being what `openOne` (V:501) compares (`B1/Merkle/Climb.lean`).
 * `HashesPair l0 l1 r0 r1 p0 p1`: the four child cells are canonical and the parent's cells are
   the digest of their 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
   digests' cells is `hashPair` (`LeanVM/Protocol/KeccakHash.lean`).
-* `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `4 ≤ D ≤ 8`.
+* `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `2 ≤ D ≤ 8`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -58,13 +58,18 @@ def MeaningVerifyMerkleCap (D : ℕ) (rd : Reader) : List E → List E → Prop
         rets = [cell 2, cell 3]
   | _, _ => False
 
-/-- The deployed specializations, cap depths `4 .. 8`, by name (a name built by `++ toString`
+/-- The deployed specializations, cap depths `2 .. 8`, by name (a name built by `++ toString`
 does not reduce in a `module`'s kernel). -/
 def merkleCapNames : List (String × ℕ) :=
-  [("verify_merkle_cap__L4", 4), ("verify_merkle_cap__L5", 5), ("verify_merkle_cap__L6", 6),
-    ("verify_merkle_cap__L7", 7), ("verify_merkle_cap__L8", 8)]
+  [("verify_merkle_cap__L2", 2),
+    ("verify_merkle_cap__L3", 3),
+    ("verify_merkle_cap__L4", 4),
+    ("verify_merkle_cap__L5", 5),
+    ("verify_merkle_cap__L6", 6),
+    ("verify_merkle_cap__L7", 7),
+    ("verify_merkle_cap__L8", 8)]
 
-/-- `verify_merkle_cap__L{D}`'s core IR is its meaning, `4 ≤ D ≤ 8`. -/
+/-- `verify_merkle_cap__L{D}`'s core IR is its meaning, `2 ≤ D ≤ 8`. -/
 def verify_merkle_cap_Spec : Prop :=
   ∀ p ∈ merkleCapNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
