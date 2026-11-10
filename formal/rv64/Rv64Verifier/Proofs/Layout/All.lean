@@ -10,21 +10,39 @@ import Rv64Verifier.Proofs.Layout.StateStep
 import Rv64Verifier.Proofs.Layout.StateDerived
 import Rv64Verifier.Proofs.Layout.Memory
 import Rv64Verifier.Proofs.Layout.Counted
+import Rv64Verifier.Proofs.Layout.MemoryCols
+import Rv64Verifier.Proofs.Layout.Bytecode
 import Rv64Verifier.Proofs.Layout.BusBridge
 import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Proofs.Field.All
 
 /-!
-# The layout functions' contracts, closed where their callees' are
+# The layout functions' contracts, closed
 
-`Form::term`, `col`, `prod` and `Form::evaluate` need only `alloc`, `E::pow` and `mul`, all proved.
-`Flushes::pair` and `Form::add_scaled` need `grow_one` with a fresh buffer (`Grow.lean`), and
-`Vec<Form>::spec_extend` `reserve` with one (`ReserveFreshSpec`), which the runtime's contracts do
-not yet state; `clone` and `spec_extend` need `memcpy`.
+The runtime's `grow_one` and `reserve` say their new buffer is fresh (`NewBuf`); the layout proofs
+take that as `GrowOneFreshSpec` and `SpecExtend.ReserveFreshSpec`.
 -/
 
 namespace Rv64Verifier.Layout
 open Rv64Verifier.Proofs
+
+/-- The runtime's `grow_one` gives the layout's: the new buffer is not empty. -/
+theorem growOneFresh_of {entry : BitVec 64} {size align : Nat}
+    (h : Runtime.GrowOneFreshSpec entry size align) (hs : 0 < size) :
+    Layout.GrowOneFreshSpec entry size align :=
+  h.weaken fun _ _ ⟨hp, hb⟩ ↦ ⟨hp, by
+    have := hp.cap
+    rcases hb.2 with h0 | h1
+    · rcases Nat.mul_eq_zero.mp h0 with h0 | h0 <;> omega
+    · exact h1.1⟩
+
+theorem growOneFlushes : Layout.GrowOneFreshSpec 0x80011c78 24 8 :=
+  growOneFresh_of Runtime.growOneFresh_80011c78 (by decide)
+
+theorem growOnePairs : Layout.GrowOneFreshSpec 0x80010a94 48 8 :=
+  growOneFresh_of Runtime.growOneFresh_80010a94 (by decide)
+
+theorem reserveForms : SpecExtend.ReserveFreshSpec := Runtime.reserveFresh_80004aec
 
 theorem term_proved : TermSpec := Term.term_spec Runtime.alloc_spec
 
@@ -34,34 +52,41 @@ theorem prod_proved : ProdSpec := Prod.prod_spec Field.ePow term_proved
 
 theorem evaluate_proved : EvaluateSpec := Evaluate.evaluate_spec Field.mul
 
-theorem concat_of (hR : SpecExtend.ReserveFreshSpec) : ConcatSpec :=
-  Concat.concat_spec Runtime.tryAllocZeroed
-    (SpecExtend.spec_extend_spec hR Runtime.tryAllocZeroed Runtime.memcpy)
+theorem add_scaled_proved : AddScaledSpec := AddScaled.add_scaled_spec' Field.mul growOnePairs
+
+theorem pair_proved : PairSpec := Pair.pair_spec growOneFlushes
+
+theorem spec_extend_proved : SpecExtendSpec :=
+  SpecExtend.spec_extend_spec reserveForms Runtime.tryAllocZeroed Runtime.memcpy
+
+theorem concat_proved : ConcatSpec := Concat.concat_spec Runtime.tryAllocZeroed spec_extend_proved
 
 theorem clone_proved : CloneSpec := Clone.clone_spec Runtime.tryAllocZeroed Runtime.memcpy
 
-theorem state_derived_of (hG : GrowOneFreshSpec 0x80011c78 24 8) : StateDerivedSpec :=
-  StateDerived.state_derived_spec Runtime.alloc_spec term_proved col_proved (Pair.pair_spec hG)
+theorem state_derived_proved : StateDerivedSpec :=
+  StateDerived.state_derived_spec Runtime.alloc_spec term_proved col_proved pair_proved
 
-theorem state_step_of (hG : GrowOneFreshSpec 0x80011c78 24 8) : StateStepSpec :=
-  StateStep.state_step_spec col_proved (state_derived_of hG)
+theorem state_step_proved : StateStepSpec := StateStep.state_step_spec col_proved state_derived_proved
 
-theorem counted_of (hR : SpecExtend.ReserveFreshSpec) (hG : GrowOneFreshSpec 0x80011c78 24 8) :
-    CountedSpec :=
-  Counted.counted_spec (concat_of hR) col_proved (Pair.pair_spec hG)
+theorem counted_proved : CountedSpec := Counted.counted_spec concat_proved col_proved pair_proved
 
-theorem memory_of (hR : SpecExtend.ReserveFreshSpec) (hG : GrowOneFreshSpec 0x80011c78 24 8) :
-    MemorySpec :=
-  Memory.memory_spec term_proved col_proved (counted_of hR hG)
+theorem memory_proved : MemorySpec := Memory.memory_spec term_proved col_proved counted_proved
+
+theorem memory_cols_proved : MemoryColsSpec :=
+  MemoryCols.memory_cols_spec term_proved col_proved Runtime.memcpy memory_proved
+
+theorem bytecode_proved : BytecodeSpec :=
+  Bytecode.bytecode_spec Runtime.alloc_spec Field.ePow term_proved Runtime.tryAllocZeroed
+    spec_extend_proved col_proved counted_proved
 
 /-- info: 'Rv64Verifier.Layout.evaluate_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms evaluate_proved
 
-/-- info: 'Rv64Verifier.Layout.AddScaled.add_scaled_spec'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms AddScaled.add_scaled_spec'
+/-- info: 'Rv64Verifier.Layout.add_scaled_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms add_scaled_proved
 
-/-- info: 'Rv64Verifier.Layout.concat_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms concat_of
+/-- info: 'Rv64Verifier.Layout.concat_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms concat_proved
 
 /-- info: 'Rv64Verifier.Layout.clone_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms clone_proved
@@ -72,13 +97,25 @@ theorem memory_of (hR : SpecExtend.ReserveFreshSpec) (hG : GrowOneFreshSpec 0x80
 /-- info: 'Rv64Verifier.Layout.prod_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms prod_proved
 
-/-- info: 'Rv64Verifier.Layout.Pair.pair_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms Pair.pair_spec
+/-- info: 'Rv64Verifier.Layout.pair_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms pair_proved
 
-/-- info: 'Rv64Verifier.Layout.state_step_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms state_step_of
+/-- info: 'Rv64Verifier.Layout.state_step_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms state_step_proved
 
-/-- info: 'Rv64Verifier.Layout.memory_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in #print axioms memory_of
+/-- info: 'Rv64Verifier.Layout.memory_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms memory_proved
+
+/-- info: 'Rv64Verifier.Layout.state_derived_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms state_derived_proved
+
+/-- info: 'Rv64Verifier.Layout.counted_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms counted_proved
+
+/-- info: 'Rv64Verifier.Layout.memory_cols_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms memory_cols_proved
+
+/-- info: 'Rv64Verifier.Layout.bytecode_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms bytecode_proved
 
 end Rv64Verifier.Layout

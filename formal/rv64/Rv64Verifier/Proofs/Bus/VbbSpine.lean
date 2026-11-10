@@ -31,6 +31,7 @@ structure AfterGkr (bev : MachineState → Word → List E → Option E) (s u : 
   x18 : u.getReg .x18 = s.getReg .x10
   x20 : u.getReg .x20 = s.getReg .x12
   x24 : u.getReg .x24 = vecPtr s (s.getReg .x11 + 24)
+  x19 : u.getReg .x19 = vecPtr u (s.getReg .x2 - 176)
   x11 : u.getReg .x11 = k.count0
   x12 : u.getReg .x12 = k.count1
   cntEq : cnt = eOf3 k.count0 k.count1 (u.getReg .x13)
@@ -71,6 +72,9 @@ theorem depthZero {bev : MachineState → Word → List E → Option E} {s u : M
     x18 := (k₁ .x18 (by decide)).trans h.x18
     x20 := (k₁ .x20 (by decide)).trans h.x20
     x24 := (k₁ .x24 (by decide)).trans h.x24
+    x19 := by
+      rw [k₁ .x19 (by decide), h.x19]
+      exact (m₁ _).symm
     x11 := (k₁ .x11 (by decide)).trans h.x11
     x12 := (k₁ .x12 (by decide)).trans h.x12
     cntEq := by rw [k₁ .x13 (by decide)]; exact h.cntEq

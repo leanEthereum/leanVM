@@ -236,6 +236,7 @@ structure Values (s y z : MachineState) : Prop where
   x12 : z.getReg .x12 = y.getMem (s.getReg .x2 - 1232)
   x13 : z.getReg .x13 = y.getReg .x9
   x19 : z.getReg .x19 = vecPtr z (s.getReg .x2 - 176)
+  above : heapNext y ≤ (vecPtr z (s.getReg .x2 - 176)).toNat
   out : z.getMem (s.getReg .x2 - 1312) = y.getReg .x18
   values : NewVecE s z (s.getReg .x2 - 176)
     [eOf3 (y.getReg .x27) (y.getReg .x21) (y.getReg .x8),
@@ -356,6 +357,7 @@ theorem valuesStep (hA : AllocSpec) {s y : MachineState} (hpre : BusBalancePre s
     x12 := by rw [b800065c8_x12 h₂, c1]
     x13 := by rw [b800065c8_x13 h₂, ry .x9 (by decide)]
     x19 := by rw [b800065c8_x19 h₂, hptr, x10₁]
+    above := by rw [hptr]; simp only [heapNext]; omega
     out := by
       rw [ea _ 32 (by decide) (by addr_omega [hb1]), b800065c8_m_x2_32 h₂,
         ry .x18 (by decide)]

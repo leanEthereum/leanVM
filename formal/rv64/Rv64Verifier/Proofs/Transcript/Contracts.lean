@@ -102,6 +102,8 @@ structure NextScalarPost (s t : MachineState) : Prop where
     | none => t.getMem (s.getReg .x10) = 1 ∧ t.getMem (s.getReg .x10 + 8) = 3
   frame : DFrame s t fun a ↦ Within a (s.getReg .x10) 32 ∨ Within a (s.getReg .x11 + 8) 344 ∨
     Within a (stackLo s nextScalarStack) nextScalarStack
+  /-- An `Err` is `StreamExhausted`, whatever the transcript stands for. -/
+  err : t.getMem (s.getReg .x10) ≠ 0 → t.getMem (s.getReg .x10 + 8) = 3
 
 abbrev NextScalarSpec : Prop := FunSpec Image.code 0x8000c720 NextScalarPre NextScalarPost
 
@@ -223,6 +225,8 @@ structure NextScalarsPost (s t : MachineState) : Prop where
     | none => vecCap t (s.getReg .x10) = errNiche
   frame : TFrame 24 nextScalarsStack s t
   ok : VecResult s t (s.getReg .x10)
+  /-- An `Err`'s discriminant, the word after the niche, is not `-1`. -/
+  err : vecCap t (s.getReg .x10) = errNiche → t.getMem (s.getReg .x10 + 8) ≠ errNiche
 
 abbrev NextScalarsSpec : Prop := FunSpec Image.code 0x80004818 NextScalarsPre NextScalarsPost
 
@@ -300,6 +304,8 @@ structure RoundPolyPost (s t : MachineState) : Prop where
     | none => vecCap t (s.getReg .x10) = errNiche
   frame : TFrame 24 roundPolyStack s t
   ok : VecResult s t (s.getReg .x10)
+  /-- An `Err`'s discriminant, the word after the niche, is not `-1`. -/
+  err : vecCap t (s.getReg .x10) = errNiche → t.getMem (s.getReg .x10 + 8) ≠ errNiche
 
 abbrev RoundPolySpec : Prop := FunSpec Image.code 0x8000c334 RoundPolyPre RoundPolyPost
 
@@ -369,6 +375,8 @@ structure SumcheckPost (s t : MachineState) : Prop where
     Within a (s.getReg .x11 + 8) 344 ∨ Within a (stackLo s sumcheckStack) sumcheckStack ∨
     Within a nextAddr 8 ∨ Fresh s t a
   ok : VecResult s t (s.getReg .x10)
+  /-- An `Err`'s discriminant, the word after the niche, is not `-1`. -/
+  err : vecCap t (s.getReg .x10) = errNiche → t.getMem (s.getReg .x10 + 8) ≠ errNiche
 
 abbrev SumcheckSpec : Prop := FunSpec Image.code 0x80010538 SumcheckPre SumcheckPost
 

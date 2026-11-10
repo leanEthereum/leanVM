@@ -30,6 +30,8 @@ theorem ringSwitch : RingSwitchSpec :=
   RingSwitch.ring_switch_spec Transcript.samples Runtime.alloc_spec
     tryAllocZeroed Field.ePow Field.mul Multilinear.polyEval
 
+theorem roundPolyErr : RoundPolyErrSpec := Transcript.roundPolyErr
+
 end Rv64Verifier.Proofs.Pcs
 
 /-! Lean's three axioms, nothing native. -/
@@ -57,3 +59,6 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.toLevels' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.toLevels
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.roundPolyErr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.roundPolyErr

@@ -220,9 +220,10 @@ theorem finish_ok {s u : MachineState} (hpre : NextScalarsPre s) (hpc : u.pc = 0
 
 /-- `0x80004950`: the error out (`-1` in the capacity), return. -/
 theorem finish_err {s u : MachineState} (hpre : NextScalarsPre s) (hpc : u.pc = 0x80004950)
-    (h : Saved s u) (x8 : u.getReg .x8 = s.getReg .x10) :
+    (h : Saved s u) (x8 : u.getReg .x8 = s.getReg .x10) (x12 : u.getReg .x12 ≠ errNiche) :
     ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧
-      vecCap t (s.getReg .x10) = errNiche ∧ MemFrame u t (s.getReg .x10) 24 := by
+      vecCap t (s.getReg .x10) = errNiche ∧ t.getMem (s.getReg .x10 + 8) ≠ errNiche ∧
+      MemFrame u t (s.getReg .x10) 24 := by
   have hb := bounds hpre
   have ho := hpre.out
   have hos := hpre.outStack
@@ -233,12 +234,14 @@ theorem finish_err {s u : MachineState} (hpre : NextScalarsPre s) (hpc : u.pc = 
       | (refine Region.valid ho ?_ ?_ ?_ <;> addr_omega [ho]))
   have k := b80004950_keeps h₁
   have m0 := b80004950_m_x8_0 h₁
+  have m8 := b80004950_m_x8_8 h₁
   have f := b80004950_frame h₁ (by rw [x8]; addr_omega [ho])
-  rw [x8] at m0 f
+  rw [x8] at m0 m8 f
   obtain ⟨t, hr', pc, pres, hm⟩ := epilogue hpre (b80004950_pc h₁)
     (h.step (by addr_omega [hb]) (k .x2 (by decide)) (fun r hr ↦ k r (mem_of_mem hr _))
       fun y h1 h2 ↦ f y (by addr_omega [h1, h2, hb, ho, hos]))
-  exact ⟨t, hr.trans hr', pc, pres, by rw [vecCap, hm, m0]; rfl, fun a ha ↦ (hm a).trans (f a ha)⟩
+  exact ⟨t, hr.trans hr', pc, pres, by rw [vecCap, hm, m0]; rfl, by rw [hm, m8]; exact x12,
+    fun a ha ↦ (hm a).trans (f a ha)⟩
 
 /-- The contract's frame and heap, and the transcript, from the state before the result is
 written. -/
@@ -534,7 +537,7 @@ theorem leave0 {s u : MachineState} (hpre : NextScalarsPre s) (hpc : u.pc = 0x80
     rw [b80004940_x19 h₂] at el
     obtain ⟨hvec, hnb⟩ := newVec (v := u₂) hpre.heap ec ep el nxt (by simp [NewBuf]) (by simp)
     refine ⟨t, (hr₁.trans hr₂).trans hr₃, pc, pres, heapt, monot, fun T hT ↦ ?_, frt,
-      fun _ ↦ ⟨hvec, hnb⟩⟩
+      fun _ ↦ ⟨hvec, hnb⟩, fun he ↦ absurd (ec.symm.trans he) (by decide)⟩
     have hv := h.value T hT
     by_cases hc : 0 < (s.getReg .x12).toNat
     · rw [ite_eq_left hc] at hv
@@ -547,11 +550,12 @@ theorem leave0 {s u : MachineState} (hpre : NextScalarsPre s) (hpc : u.pc = 0x80
       refine ⟨by rw [ec]; decide, ⟨hvec, hnb, ?_⟩, trt T (tr₂ T hv)⟩
       simp only [vecEs, el]
       rfl
-  · obtain ⟨t, hr₃, pc, pres, ec, f⟩ := finish_err hpre
+  · obtain ⟨t, hr₃, pc, pres, ec, e8, f⟩ := finish_err hpre
       (b80004940_pc_not_taken h₂ (by rw [hres, x18₁]; exact hr)) S₂ x8₂
+      (by rw [b80004940_x12 h₂, hres]; exact hr)
     obtain ⟨heapt, monot, frt, -, -⟩ := post_of hpre F₂ heap₂ mono₂ f
     refine ⟨t, (hr₁.trans hr₂).trans hr₃, pc, pres, heapt, monot, fun T hT ↦ ?_, frt,
-      fun hne ↦ absurd ec hne⟩
+      fun hne ↦ absurd ec hne, fun _ ↦ e8⟩
     have hc : 0 < (s.getReg .x12).toNat := by
       by_contra hc; exact hr (h.kept (Or.inr hc))
     have hv := h.value T hT
@@ -1272,8 +1276,15 @@ theorem leave {s u : MachineState} {cap ptr : Word} {d : Nat} (hpre : NextScalar
     have hbuf := A₂.buf
     have hhi := A₂.heap.hi
     obtain ⟨hvec, hnb⟩ := newVec hpre.heap ec ep el nxt hbuf (by rw [eld]; exact A₂.room)
+    have hcne : vecCap t (s.getReg .x10) ≠ errNiche := fun he ↦ by
+      rw [ec] at he
+      rw [he] at hbuf
+      simp only [NewBuf, heapEnd] at hbuf hhi
+      have : (errNiche).toNat = 18446744073709551615 := rfl
+      rw [this] at hbuf
+      omega
     refine ⟨t, hr₁.trans (hr₂.trans hr₃), pc, pres, heapt, monot, fun T hT ↦ ?_, frt,
-      fun _ ↦ ⟨hvec, hnb⟩⟩
+      fun _ ↦ ⟨hvec, hnb⟩, fun he ↦ absurd he hcne⟩
     have res₂ : u₂.getMem (s.getReg .x2 - 224) = 0xffffffffffffffff := by rw [hm₂, hm₁]; exact hr
     obtain ⟨T', h1, h2⟩ := A₂.value T hT
     by_cases hc : d < (s.getReg .x12).toNat
@@ -1285,24 +1296,19 @@ theorem leave {s u : MachineState} {cap ptr : Word} {d : Nat} (hpre : NextScalar
     · rw [ite_eq_right hc] at h2
       have hdc : (s.getReg .x12).toNat = d := by have := h.le; omega
       rw [hdc, h1]
-      refine ⟨fun he ↦ ?_, ⟨hvec, hnb, ?_⟩, trt T' h2⟩
-      · rw [ec] at he
-        rw [he] at hbuf
-        simp only [NewBuf, heapEnd] at hbuf hhi
-        have : (errNiche).toNat = 18446744073709551615 := rfl
-        rw [this] at hbuf
-        omega
+      refine ⟨hcne, ⟨hvec, hnb, ?_⟩, trt T' h2⟩
       · have ho := hpre.out
         have hof := hpre.outFree
         simp only [vecEs, ep, el, eld]
         exact (DFrame.of_memFrame f).eListAt fun i hi hw ↦ by
           simp only [NewBuf] at hbuf
           addr_omega [hw, hi, ho, hof, hbuf, A₂.room, A₂.mono, hhi]
-  · obtain ⟨t, hr₃, pc, pres, ec, f⟩ := finish_err hpre
+  · obtain ⟨t, hr₃, pc, pres, ec, e8, f⟩ := finish_err hpre
       (b80004968_pc_taken h₂ (by rw [hres, A₁.x18]; exact hr)) A₂.saved A₂.x8
+      (by rw [b80004968_x12 h₂, hres]; exact hr)
     obtain ⟨heapt, monot, frt, -, -⟩ := post_of hpre A₂.frame A₂.heap A₂.mono f
     refine ⟨t, hr₁.trans (hr₂.trans hr₃), pc, pres, heapt, monot, fun T hT ↦ ?_, frt,
-      fun hne ↦ absurd ec hne⟩
+      fun hne ↦ absurd ec hne, fun _ ↦ e8⟩
     have hc : d < (s.getReg .x12).toNat := by
       by_contra hc; exact hr (by rw [← hm₁, ← hm₂]; exact A₂.kept (Or.inr hc))
     obtain ⟨T', h1, h2⟩ := A₂.value T hT

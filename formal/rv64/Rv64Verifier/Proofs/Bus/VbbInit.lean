@@ -1,4 +1,4 @@
-import Rv64Verifier.Proofs.Bus.VbbValues
+import Rv64Verifier.Proofs.Bus.VbbFence
 
 /-!
 # `verify_bus_balance` from its entry to the GKR loop
@@ -41,6 +41,7 @@ structure AfterStart (bev : MachineState → Word → List E → Option E) (s u 
   tracks : Tracks (prog bev s) (s.getReg .x12) s u
     (gkrLoopM (pushDepth s) ⟨[sh, sh, cnt], []⟩ >>= tail bev s k cnt)
   branch : (u.pc = 0x80006b54 ∧ pushDepth s = 0) ∨ (u.pc = 0x80006614 ∧ 0 < pushDepth s)
+  fence : Fence s u (vecPtr u (s.getReg .x2 - 176))
 
 theorem prog_eq (bev : MachineState → Word → List E → Option E) (s : MachineState) :
     Tracks (prog bev s) (s.getReg .x12) s s (do
@@ -273,6 +274,32 @@ theorem start (hBL : BusLayoutSpec) (hS : SamplesSpec) (hEK : Vbb.EqKernelSpec)
       have := trD.keep E.transcript
       rw [← hk] at this
       exact this
+    fence := by
+      have hm : heapNext u ≤ (vecPtr z (s.getReg .x2 - 176)).toNat :=
+        (C.step.trans D.step).mono.trans E.above
+      have hk (x : Word) (h1 : (s.getReg .x2 - 1080).toNat ≤ x.toNat)
+          (h2 : x.toNat + 8 ≤ (s.getReg .x2 - 864).toNat) : z.getMem x = u.getMem x :=
+        stCDE.word hpre (fun y' hy h' ↦ by
+          rcases h' with (h' | h') | ((h' | h' | h') | (h' | h')) <;>
+            addr_omega [hy, h', h1, h2, hb1])
+          (Or.inl (by addr_omega [h1, h2, hb1]))
+      refine ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_⟩
+      · exact BufBelow.of_newBuf H.push.frameworkNew (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newBuf H.push.tablesNew (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newBuf H.pull.frameworkNew (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newBuf H.pull.tablesNew (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newBuf H.count.frameworkNew (hk _ (by addr_omega [hb1])
+          (by addr_omega [hb1])) (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newBuf H.count.tablesNew (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newVecE H.alphas (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
+      · exact BufBelow.of_newVecE H.weights (hk _ (by addr_omega [hb1]) (by addr_omega [hb1]))
+          (hk _ (by addr_omega [hb1]) (by addr_omega [hb1])) hm
     branch := by
       rcases E.branch with ⟨h1, h2⟩ | ⟨h1, h2⟩
       · exact Or.inl ⟨h1, by rw [← hx25, h2]; rfl⟩

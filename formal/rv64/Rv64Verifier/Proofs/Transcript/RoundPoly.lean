@@ -26,7 +26,8 @@ product by `eq_factor` into `S - 104`, plus `claim` (`someMul`). `None`: `next_s
 (`exitErr`). `0x8000c5e4` returns.
 
 This file holds the frame (`Fr`, what is written before the result: `V`), the return and the
-error exit; the paths themselves are not proved yet.
+error exit; `RoundPolySome*`, `RoundPolyNone*`, `RoundPolyFinish` the paths, `RoundPolySpec` the
+whole.
 -/
 
 namespace Rv64Verifier.Transcript.RoundPoly
@@ -232,6 +233,7 @@ structure ErrState (s u : MachineState) : Prop where
   mono : heapNext s ≤ heapNext u
   frame : DFrame s u (W s u)
   cap : vecCap u (s.getReg .x10) = errNiche
+  err : u.getMem (s.getReg .x10 + 8) ≠ errNiche
   fails : ∀ T, TranscriptAt s (s.getReg .x11) T → (mirror s).run T = none
 
 theorem exitErr {s u : MachineState} (hpre : RoundPolyPre s) (hpc : u.pc = 0x8000c5e4)
@@ -242,7 +244,7 @@ theorem exitErr {s u : MachineState} (hpre : RoundPolyPre s) (hpc : u.pc = 0x800
   have hc : vecCap t (s.getReg .x10) = errNiche := by simp only [vecCap, hm]; exact h.cap
   refine ⟨t, hr, pc, pres, ⟨nx ▸ h.heap.lo, nx ▸ h.heap.hi⟩, nx ▸ h.mono, fun T hT ↦ ?_,
     (h.frame.mono fun a h ↦ TW.mono (Nat.le_of_eq nx.symm) h).trans (DFrame.of_same hm _)
-      fun _ h ↦ h, fun hne ↦ absurd hc hne⟩
+      fun _ h ↦ h, fun hne ↦ absurd hc hne, fun _ ↦ by rw [hm]; exact h.err⟩
   have e := h.fails T hT
   simp only [mirror] at e
   rw [e]
@@ -253,6 +255,7 @@ theorem exitErr {s u : MachineState} (hpre : RoundPolyPre s) (hpc : u.pc = 0x800
 capacity. -/
 theorem ErrState.of_write {s u v : MachineState} (hpre : RoundPolyPre s) (h : Fr s u)
     (hr : ∀ r ∈ [Reg.x2] ++ keptRegs, v.getReg r = u.getReg r) (hm : MemFrame u v (s.getReg .x10) 24) (hc : v.getMem (s.getReg .x10) = errNiche)
+    (h8 : v.getMem (s.getReg .x10 + 8) ≠ errNiche)
     (hn : ∀ T, TranscriptAt s (s.getReg .x11) T → (mirror s).run T = none) : ErrState s v := by
   have hb := bounds hpre
   have ho := hpre.out
@@ -267,6 +270,7 @@ theorem ErrState.of_write {s u v : MachineState} (hpre : RoundPolyPre s) (h : Fr
     frame := (h.frame.mono fun a h ↦ (V.mono (Nat.le_of_eq nx.symm) h).toW).trans
       (DFrame.of_memFrame hm) fun a h ↦ Or.inl h
     cap := hc
+    err := h8
     fails := hn }
 
 end Rv64Verifier.Transcript.RoundPoly

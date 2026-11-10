@@ -151,7 +151,8 @@ theorem next_scalar_spec (hA : AbsorbSpec) : NextScalarSpec := by
       (by rw [k₂ .x2 (by decide), x2₁]) (by rw [k₂ .x8 (by decide), x8₁])
       (fun r hr ↦ by rw [k₂ r (mem_of_mem hr _), k₁ r (mem_of_mem hr _)])
       (by rw [hm₂, sl₄]) (by rw [hm₂, sl₃]) (by rw [hm₂, sl₂]) (by rw [hm₂, sl₁]) (by rw [hm₂, sl₀])
-    refine ⟨t, (hr₁.trans hr₂).trans hr₃, Or.inl ⟨pc, pres, ?_, ?_⟩⟩
+    refine ⟨t, (hr₁.trans hr₂).trans hr₃, Or.inl ⟨pc, pres, ?_, ?_, fun _ ↦ by
+      rw [m8, b8000c7a4_x9 h₂]⟩⟩
     · intro T hT
       have hlen : T.proof.stream.length = streamLen s (s.getReg .x11) := by
         rw [← hT.stream, eListAt_length]
@@ -288,7 +289,8 @@ theorem next_scalar_spec (hA : AbsorbSpec) : NextScalarSpec := by
   have hoff : t.getMem (s.getReg .x11 + 344) = s.getMem (s.getReg .x11 + 344) + 1 := by
     rw [f _ (by addr_omega [hosf, hS, ho]), f₄ _ (by addr_omega [hosf, hS, ho]),
       G₃ _ fun i hi h ↦ by rcases h with h | h <;> addr_omega [h, hi, hS, hss, hb], mo]
-  refine ⟨t, (hr₃.trans hr₄).trans hr₅, Or.inl ⟨pc, pres, ?_, hF⟩⟩
+  refine ⟨t, (hr₃.trans hr₄).trans hr₅, Or.inl ⟨pc, pres, ?_, hF, fun hne ↦
+    absurd (by rw [m0, b8000c794_x10 h₄]) hne⟩⟩
   intro T hT
   have hlen : T.proof.stream.length = streamLen s (s.getReg .x11) := by
     rw [← hT.stream, eListAt_length]
