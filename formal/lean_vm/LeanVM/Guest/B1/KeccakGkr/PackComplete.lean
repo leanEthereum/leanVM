@@ -194,7 +194,7 @@ theorem packRound_complete {pp cu pt : V} {q b c : ℕ} {pre : List Stmt} {zs ca
     · exact H4' a ha
     · have gt : ∀ x, Stmt.atom x ∈ [Stmt.atom (.load (.n (c + 19)) pt q),
           .atom (.add (.n (c + 20)) (.n b) (.n (c + 19))),
-          .atom (.const (.n (c + 21)) (word 1 0 0)),
+          .atom (.const (.n (c + 21)) (word 1 0)),
           .atom (.add (.n (c + 22)) (.n (c + 21)) (.n (c + 20))),
           .atom (.mul (.n (c + 23)) (.n (c + 20)) (.n (b + 1))),
           .atom (.add (.n (c + 24)) cl (.n (c + 23))),
@@ -341,7 +341,7 @@ theorem pack8Block_complete {x N rec pp pt : E} (hs : Pack8Hon rd rec pp pt x) :
       g _ (pk8_mem_roundS hk _ (packRound_mem.2.2.1 _ ha)))
   have z : ∀ v ∈ [44, 45, 46, 47], σ (.n v) = 0 := by
     intro v hv
-    have := g (.atom (.const (.n v) (word 0 0 0))) (pk8_mem_roundS (q := 0) (by norm_num) _ (by
+    have := g (.atom (.const (.n v) (word 0 0))) (pk8_mem_roundS (q := 0) (by norm_num) _ (by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl | rfl <;> simp [pkRound, packRoundT, pkPre]))
     simpa [GoodS, Good, word_zero] using this
@@ -393,14 +393,14 @@ theorem pack8Block_complete {x N rec pp pt : E} (hs : Pack8Hon rd rec pp pt x) :
   norm_num at kc
   obtain ⟨w420, w421, w422, w423, w424⟩ := kc
   -- the tail
-  have e443 : σ (.n 443) = word 65536 0 0 := gT (.const (.n 443) (word 65536 0 0)) (by simp [pk8Tail])
+  have e443 : σ (.n 443) = word 65536 0 0 := gT (.const (.n 443) (word 65536 0)) (by simp [pk8Tail])
   have e444 : σ (.n 444) = σ (.n 19) * σ (.n 443) := good_mul (by decide) (gT _ (by simp [pk8Tail]))
   have v444 : σ (.n 444) = cur * gen ^ 16 := by
     rw [e444, e443, v19, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by decide)]
-  have e445 : σ (.n 445) = word 2 0 0 := gT (.const (.n 445) (word 2 0 0)) (by simp [pk8Tail])
+  have e445 : σ (.n 445) = word 2 0 0 := gT (.const (.n 445) (word 2 0)) (by simp [pk8Tail])
   have e446 : σ (.n 446) = σ (.n 0) * σ (.n 445) := good_mul (by decide) (gT _ (by simp [pk8Tail]))
   have e447 : σ (.n 447) = σ (.n 446) + σ (.n 1) := gT (.add (.n 447) (.n 446) (.n 1)) (by simp [pk8Tail])
-  have e448 : σ (.n 448) = word 2 0 0 := gT (.const (.n 448) (word 2 0 0)) (by simp [pk8Tail])
+  have e448 : σ (.n 448) = word 2 0 0 := gT (.const (.n 448) (word 2 0)) (by simp [pk8Tail])
   have e449 : σ (.n 449) = σ (.n 0) * σ (.n 448) := good_mul (by decide) (gT _ (by simp [pk8Tail]))
   have hO : ∀ j (hj : j < 5), LoadHolds rd (rec * x) (1 + j * 16) ([d0, d1, d2, d3, d4][j]'(by simpa using hj)) :=
     fun j hj ↦ hcap' j (by simpa using hj)
@@ -472,9 +472,9 @@ def remA : List Stmt :=
 
 /-- The remainder block's constants before the permutation. -/
 def remZ : List Stmt :=
-  [.atom (.const (.n 34) (word 1 0 0)), .atom (.const (.n 35) (word 0 0 0)),
-    .atom (.const (.n 36) (word 0 0 0)), .atom (.const (.n 37) (word 0 0 0)),
-    .atom (.const (.n 38) (word 0 0 0))]
+  [.atom (.const (.n 34) (word 1 0)), .atom (.const (.n 35) (word 0 0)),
+    .atom (.const (.n 36) (word 0 0)), .atom (.const (.n 37) (word 0 0)),
+    .atom (.const (.n 38) (word 0 0))]
 
 /-- The remainder block's permutation. -/
 def remK : Atom :=
@@ -485,20 +485,20 @@ def remK : Atom :=
 /-- The remainder block's tail: the challenge stored, the claim and the scale, the next record. -/
 def remT : List Stmt :=
   [.atom (.mul (.n 59) (.n 4) (.n 0)), .atom (.load (.n 58) (.n 59) 0),
-    .atom (.add (.n 60) (.n 7) (.n 58)), .atom (.const (.n 61) (word 1 0 0)),
+    .atom (.add (.n 60) (.n 7) (.n 58)), .atom (.const (.n 61) (word 1 0)),
     .atom (.add (.n 62) (.n 61) (.n 60)), .atom (.load (.n 47) (.n 5) 1),
     .atom (.load (.n 48) (.n 5) 17), .atom (.load (.n 49) (.n 5) 33),
     .atom (.load (.n 50) (.n 5) 49), .atom (.load (.n 51) (.n 5) 65),
-    .atom (.const (.n 63) (word 4 0 0)), .atom (.mul (.n 64) (.n 13) (.n 63)),
+    .atom (.const (.n 63) (word 4 0)), .atom (.mul (.n 64) (.n 13) (.n 63)),
     .atom (.load (.n 64) (.n 5) 81), .atom (.load (.n 65) (.n 5) 96),
     .atom (.mul (.n 66) (.n 60) (.n 14)), .atom (.add (.n 67) (.n 65) (.n 66)),
     .atom (.mul (.n 68) (.n 58) (.n 58)), .atom (.add (.n 69) (.n 7) (.n 68)),
     .atom (.mul (.n 70) (.n 69) (.n 24)), .atom (.add (.n 71) (.n 67) (.n 70)),
     .atom (.mul (.n 72) (.n 62) (.n 71)), .atom (.load (.n 72) (.n 5) 97),
     .atom (.load (.n 73) (.n 5) 112), .atom (.mul (.n 74) (.n 73) (.n 62)),
-    .atom (.load (.n 74) (.n 5) 113), .atom (.const (.n 75) (word 2 0 0)),
+    .atom (.load (.n 74) (.n 5) 113), .atom (.const (.n 75) (word 2 0)),
     .atom (.mul (.n 76) (.n 0) (.n 75)), .atom (.add (.n 77) (.n 76) (.n 1)),
-    .atom (.const (.n 78) (word 2 0 0)), .atom (.mul (.n 79) (.n 0) (.n 78))]
+    .atom (.const (.n 78) (word 2 0)), .atom (.mul (.n 79) (.n 0) (.n 78))]
 
 theorem packRemPre_split : packRemPre = remA ++ fsNextT (.n 13) 0 14 ++ fsNextT (.n 13) 1 24 ++
     remZ ++ [.atom remK] ++ challengeT (.n 39) (.n 40) 52 ++ remT := rfl
@@ -590,7 +590,7 @@ theorem packRemBlock_complete {x N rec pp pt : E} (hs : PackRemHon rd rec pp pt 
   -- the permutation
   have z : ∀ v ∈ [35, 36, 37, 38], σ (.n v) = 0 := by
     intro v hv
-    have := gZ (.const (.n v) (word 0 0 0)) (by
+    have := gZ (.const (.n v) (word 0 0)) (by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl | rfl <;> simp [remZ])
     simpa [Good, word_zero] using this
@@ -633,9 +633,9 @@ theorem packRemBlock_complete {x N rec pp pt : E} (hs : PackRemHon rd rec pp pt 
   have e59 : σ (.n 59) = σ (.n 4) * σ (.n 0) := good_mul (by decide) (gT _ (by simp [remT]))
   have v59 : σ (.n 59) = pt * x := by rw [e59, p4, p0]
   have e60 : σ (.n 60) = σ (.n 7) + σ (.n 58) := gT (.add (.n 60) (.n 7) (.n 58)) (by simp [remT])
-  have e61 : σ (.n 61) = word 1 0 0 := gT (.const (.n 61) (word 1 0 0)) (by simp [remT])
+  have e61 : σ (.n 61) = word 1 0 0 := gT (.const (.n 61) (word 1 0)) (by simp [remT])
   have e62 : σ (.n 62) = σ (.n 61) + σ (.n 60) := gT (.add (.n 62) (.n 61) (.n 60)) (by simp [remT])
-  have e63 : σ (.n 63) = word 4 0 0 := gT (.const (.n 63) (word 4 0 0)) (by simp [remT])
+  have e63 : σ (.n 63) = word 4 0 0 := gT (.const (.n 63) (word 4 0)) (by simp [remT])
   have e64 : σ (.n 64) = σ (.n 13) * σ (.n 63) := good_mul (by decide) (gT _ (by simp [remT]))
   have v65 : σ (.n 65) = claim := load_val (gT (.load (.n 65) (.n 5) 96) (by simp [remT]))
     (by decide) (by rw [v5]; exact L96)
@@ -649,10 +649,10 @@ theorem packRemBlock_complete {x N rec pp pt : E} (hs : PackRemHon rd rec pp pt 
   have v73 : σ (.n 73) = scale := load_val (gT (.load (.n 73) (.n 5) 112) (by simp [remT]))
     (by decide) (by rw [v5]; exact L112)
   have e74 : σ (.n 74) = σ (.n 73) * σ (.n 62) := good_mul (by decide) (gT _ (by simp [remT]))
-  have e75 : σ (.n 75) = word 2 0 0 := gT (.const (.n 75) (word 2 0 0)) (by simp [remT])
+  have e75 : σ (.n 75) = word 2 0 0 := gT (.const (.n 75) (word 2 0)) (by simp [remT])
   have e76 : σ (.n 76) = σ (.n 0) * σ (.n 75) := good_mul (by decide) (gT _ (by simp [remT]))
   have e77 : σ (.n 77) = σ (.n 76) + σ (.n 1) := gT (.add (.n 77) (.n 76) (.n 1)) (by simp [remT])
-  have e78 : σ (.n 78) = word 2 0 0 := gT (.const (.n 78) (word 2 0 0)) (by simp [remT])
+  have e78 : σ (.n 78) = word 2 0 0 := gT (.const (.n 78) (word 2 0)) (by simp [remT])
   have e79 : σ (.n 79) = σ (.n 0) * σ (.n 78) := good_mul (by decide) (gT _ (by simp [remT]))
   have v64 : σ (.n 64) = cur * gen ^ 2 := by
     rw [e64, e63, v13, show (4 : ℕ) = 2 ^ 2 from rfl, word_two_pow (by decide)]

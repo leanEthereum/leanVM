@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.AComplete
+public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Memory.LoopPre
 
@@ -55,34 +56,6 @@ theorem flatCalls_getElem {σ : Val} : ∀ (pre : List Stmt) (i : ℕ) (c : Call
           simpa [flatCalls, List.filterMap_cons, ht] using h
         obtain ⟨s', h1, h2⟩ := flatCalls_getElem ss i c h'
         exact ⟨s', by simpa [List.filter_cons, hs] using h1, h2⟩
-
-/-- What a call statement's callee is bounded by. -/
-def vtCallBnd (Kf : String → ℕ) (Ksh K10n : ℕ) : Stmt → ℕ
-  | .call f _ _ => if f = "shared_selector_tables" then Ksh else Kf f
-  | .dispatch _ fs' _ _ => (fs'.map Kf).foldr max 0
-  | .callIf _ _ _ => K10n
-  | _ => 0
-
-/-- `__loop9`'s run at `n` rounds: `n · K10` words and, when it runs, its one phantom frame. -/
-def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 0 else fs "__loop9"
-
-/-- The calls' bounds, in order. -/
-noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ := (vtPre.filter callB).map (vtCallBnd Kf Ksh K10n)
-
-/-- The calls' kinds: a call is not the rounds loop, the shared tables' are of six arguments and
-no return, a dispatch's arms neither, the only conditional call the rounds loop's. -/
-def vtCallKindB : Stmt → Bool
-  | .call f a r => f != "__loop9" && f != "__loop8" &&
-      (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
-  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop9" && g != "__loop8" &&
-      g != "shared_selector_tables"
-  | .callIf c f a => f == "__loop9" && c == .n 2635 &&
-      a == [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630]
-  | _ => true
-
-theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel
-
-theorem vt_ncalls : (vtPre.filter callB).length = 119 := by decide +kernel
 
 theorem le_foldr_max {l : List ℕ} {a : ℕ} (h : a ∈ l) : a ≤ l.foldr max 0 := by
   induction l with

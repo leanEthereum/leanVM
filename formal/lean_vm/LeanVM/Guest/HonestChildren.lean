@@ -9,7 +9,7 @@
 import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.Child.FreshUnique
 import LeanVM.Guest.Budget.Covered
-import LeanVM.Prover.End
+import LeanVM.Prover.EndChild
 
 /-!
 # Completeness on honest children

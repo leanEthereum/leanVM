@@ -33,7 +33,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 every call with the exponent tables has a proof that `VerifySubOut` describes. -/
 def SubSound (bytecode : List K) : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
+      ExpTables rd gsq ∧ ExpWinTab rd gsq →
       ∃ π, VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] π
 
 /-- **Witness functions for `main`'s callees exist.** -/
@@ -86,11 +87,11 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   -- the proofs
   have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 gsq out,
       args = [pi0, pi1, s0, s1, gsq, out] →
-      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq →
+      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq ∧ ExpWinTab L.read gsq →
       VerifySubOut bytecode L.read args π := by
     intro args
     by_cases h : ∃ pi0 pi1 s0 s1 gsq out, args = [pi0, pi1, s0, s1, gsq, out] ∧
-        coreProgram.Rel L.read "verify_sub" args [] ∧ ExpTables L.read gsq
+        coreProgram.Rel L.read "verify_sub" args [] ∧ (ExpTables L.read gsq ∧ ExpWinTab L.read gsq)
     · obtain ⟨pi0, pi1, s0, s1, gsq, out, rfl, hr, he⟩ := h
       obtain ⟨π, hπ⟩ := hv L.read hm' _ _ _ _ _ _ hr he
       exact ⟨π, fun _ _ _ _ _ _ _ _ _ => hπ⟩
@@ -111,7 +112,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
         coreProgram.Rel L.read "aggregate_claims" args [] ∧ WinTabs L.read tabs ∧ 1 ≤ m ∧ m ≤ 16 ∧
         ncg = gen ^ m
     · obtain ⟨ncg, cpi, cfresh, ccarried, dst, tabs, m, rfl, hr, hw, h1, h16, hn⟩ := h
-      obtain ⟨-, hints, out, hl, hrd, hb⟩ := ha L.read _ _ hr hw m h1 h16 hn
+      obtain ⟨-, hints, out, hl, hrd, hb⟩ := ha L.read hm' _ _ hr hw m h1 h16 hn
       refine ⟨hints, fun _ _ _ _ _ _ hargs _ _ m' h1' h16' hn' => ?_⟩
       simp only [List.cons.injEq, and_true] at hargs
       obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
@@ -137,13 +138,13 @@ theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signat
     {ss : Val → FrameMap → Sphincs.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sx)
     (hs : Sig.verify_sig_lean_sphincs_sound_Spec ss) (hv : SubSound bytecode)
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec)
-    (hexp : exponent_tables_Spec) (hbl : bytecode.length = 2 ^ bytecodeVars) {rd : Reader} (hm : MemOk rd) {D : Digest}
+    (hbl : bytecode.length = 2 ^ bytecodeVars) {rd : Reader} (hm : MemOk rd) {D : Digest}
     {σ : Val} (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w := by
   obtain ⟨wX, wS, wD, wV, wA, cw⟩ := callees_exist hx hs hv hd ha hm
-  obtain ⟨h1, h2⟩ := main_sound_w hexp bytecode hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
+  obtain ⟨h1, h2⟩ := main_sound_w bytecode hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
   exact ⟨h1, _, h2⟩
 
 end

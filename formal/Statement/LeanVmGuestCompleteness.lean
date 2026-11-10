@@ -90,14 +90,17 @@ def CoveredNode (witness : NodeWitness) : Prop :=
 
 The guest program checks a child with the deployed Keccak, so the honest proof is made with it
 (the honest prover in `Id` over `keccakF1600`); what it can fail by (a proof of work without a
-nonce within its fuel, a zero challenge where the guest program divides) is bounded in the
+nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1644, 1781, 1787`), so a zero one makes
-it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
-anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
-zero with probability `2^-128`. -/
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1644, 1781, 1787`) and, at
+each queried point `x` of a level, by each of its rounds' fold combiners `α + β·x`
+(`opening_query`, `lean_ethereum.py:1447-1449`), so a zero there makes it reject a child the
+verifier accepts. The honest child's hypothesis refuses a zero challenge anywhere
+(`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each challenge being zero with
+probability `2^-128`) and a combiner vanishing at a queried point
+(`verifyExecutionRefusingZeroCombiner`). -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -110,20 +113,128 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .commit height width k => .commit height width k.refusingZeroChallenge
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
-/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
-`leanVmVerifier π` with every sampled challenge `0` a failure. -/
+/-- **No fold combiner vanishes at a queried point**: `α + β·x ≠ 0` for every round of the level
+and every queried position, `x` the position's domain point (`opening_query`,
+`lean_ethereum.py:1447-1449`). -/
+def CombinersNonzero (queries : List ℕ) (rounds : List FoldRound) : Prop :=
+  ∀ q ∈ queries, ∀ round ∈ rounds, round.alpha + round.beta * ofK (K.ofBits q) ≠ 0
+
+instance (queries : List ℕ) (rounds : List FoldRound) :
+    Decidable (CombinersNonzero queries rounds) :=
+  inferInstanceAs (Decidable (∀ q ∈ queries, ∀ round ∈ rounds, _))
+
+/-- **`whirLevels` refusing a vanishing combiner**: `whirLevels` (`LeanVmVerifier.lean`) with
+`require (CombinersNonzero queries rounds)` right after each level samples its queries; nothing
+else differs. -/
+def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
+    ℕ → List Whir.Level → WhirState → VerifierProgram Unit
+  | _, [], _ => VerifierProgram.fail
+  | index, level :: rest, s => do
+    let (s, rounds) ← foldRounds level.fold s
+    let mu := logN - s.gammas.length
+    let depth := mu + level.logInvRate
+    -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
+    -- level's regrouped (`whir.rs:264-271`).
+    let lanesOf : List K → List E := fun row ↦
+      if index = 0 then row.reverse.map ofK else extRow row
+    match rest with
+    | [] => do
+      -- The final level (`whir.rs:273-301`).
+      let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNonzero queries rounds)
+      let words ← VerifierProgram.queryOpenings index queries
+      VerifierProgram.require ((List.zip queries words).all fun (query, row) ↦
+        foldRow (lanesOf row) (K.ofBits query) rounds =
+          novelEval folded (subspaceAt mu (K.ofBits query)))
+      let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
+      let point := s.gammas ++ tail
+      let weight := s.glued.foldl
+        (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart))
+        (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
+      VerifierProgram.require (weight * multilinearEval (folded.take (2 ^ mu)) tail = claim)
+    | next :: _ => do
+      -- A non-final level (`whir.rs:304-341`).
+      let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
+      VerifierProgram.readCommitment height width
+      let high ← VerifierProgram.readScalars level.fold
+      let oodPoints ← sampleOodPoints mu Whir.oodSamples
+      let oodValues ← VerifierProgram.readScalars Whir.oodSamples
+      VerifierProgram.grindProofOfWork Whir.queryGrindingBits
+      let queries ← sampleQueries depth level.queries
+      VerifierProgram.require (CombinersNonzero queries rounds)
+      VerifierProgram.grindProofOfWork Whir.batchGrindingBits
+      let lam ← VerifierProgram.sampleChallenge
+      let queryWeights := powers lam queries.length
+      let words ← VerifierProgram.queryOpenings index queries
+      -- Each row folds to the folded lane at its point; less the high part,
+      -- `What_μ(x) Σ_j p_(2^μ + j) X_j(x)`, it is the low part's value there.
+      let batched := sumE (List.zipWith (fun (query, row) queryWeight ↦
+        let what := subspaceAt mu (K.ofBits query)
+        queryWeight * (foldRow (lanesOf row) (K.ofBits query) rounds +
+          novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
+      let s := glueLevel s lam mu oodPoints oodValues queries queryWeights batched
+      whirLevelsRefusingZeroCombiner logN laneFolds evaluateBasis (index + 1) rest s
+
+/-- `verifyWhir` with `whirLevelsRefusingZeroCombiner`. -/
+def verifyWhirRefusingZeroCombiner (logN logInvRate : ℕ) (target : E)
+    (evaluateBasis : List E → E) : VerifierProgram Unit := do
+  let config ← liftOption (Whir.ladder logN logInvRate)
+  whirLevelsRefusingZeroCombiner logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
+    ⟨target, [], []⟩
+
+/-- `verifyStackedOpening` with `verifyWhirRefusingZeroCombiner`. -/
+def verifyStackedOpeningRefusingZeroCombiner (stackLog logInvRate : ℕ)
+    (claims : List StackClaim) : VerifierProgram Unit := do
+  VerifierProgram.require (claims.length ≤ maxStackedClaims)
+  let scales := powers (← VerifierProgram.sampleChallenge) claims.length
+  verifyWhirRefusingZeroCombiner stackLog logInvRate (dot scales (claims.map (·.2)))
+    fun point ↦ dot scales (claims.map fun c ↦ c.1 point)
+
+/-- `verifyExecution` with `verifyStackedOpeningRefusingZeroCombiner`. -/
+def verifyExecutionRefusingZeroCombiner
+    (bytecodeValue : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) : VerifierProgram Unit := do
+  -- 1] memory log-size, table row counts, and the WHIR rate
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
+  -- 2] the stack's commitment, and its out-of-domain sample
+  commitStack layout.stackLog logInverseRate
+  let ood ← readOod layout.stackLog
+  -- 3] the bus
+  let bus ← verifyBusBalance bytecodeValue layout
+  -- 4] the table sumcheck, and the tables' column claims
+  let evaluations ← tablePhase layout bus
+  let claims := bus.claims ++ tableColumnClaims evaluations
+  -- 5] the public input
+  let publicClaims ← publicInputPhase layout publicInput
+  let claims := claims ++ publicClaims
+  -- 6] KECCAK validity, by GKR over the rounds
+  let (outputs, keccakPoint, keccakSlices) ← keccakPhase layout evaluations
+  let claims := claims ++ outputs
+  -- 7] ring switching, then one opening of the stack for every claim with a placement
+  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
+  verifyStackedOpeningRefusingZeroCombiner layout.stackLog logInverseRate
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [ood])
+
+/-- **The leanVM verifier refusing a zero where the guest program divides**: the leanVM verifier
+refusing a vanishing combiner at a queried point (`verifyExecutionRefusingZeroCombiner`) and a
+zero challenge anywhere (`VerifierProgram.refusingZeroChallenge`). -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
   runProof π
-    (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
-        seed proof
+    (do
+      verifyExecutionRefusingZeroCombiner computedBytecodeValue (bytecodeWords program)
+        (publicInputDigest input)
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    seed proof
 
 open OracleComp OracleSpec in
 /-- **The honest proof is rarely refused**: in the random-permutation model, at `2^33` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
 makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
+at most `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`. -/
 def HonestProofRarelyRefused : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 →
@@ -134,7 +245,7 @@ def HonestProofRarelyRefused : Prop :=
         | none => pure false
         | some proof =>
           verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 126
+      (2 : ℝ≥0∞)⁻¹ ^ 100
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program of

@@ -4,7 +4,7 @@ import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
 top, flat, ctr, cend = vtflat.load()
-assert cend == 6973, cend
+assert cend == 5990, cend
 st = []
 for (k, s), c in zip(flat, ctr):
     m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n (\d+)\) (\d+)\)$', s)

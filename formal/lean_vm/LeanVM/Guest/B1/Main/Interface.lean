@@ -120,9 +120,9 @@ def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
           batch cs h = some out
   | _, _ => False
 
-/-- `aggregate_claims`' core IR gives its meaning. -/
+/-- `aggregate_claims`' core IR gives its meaning, on a memory image. -/
 def aggregate_claims_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
+  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "aggregate_claims" args rets → MeaningAggregateClaims rd args rets
 
 /-! ## What `main` asks of its callees with a witness -/
@@ -160,9 +160,10 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
   the root's cells and the challenge (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, coreProgram.Rel rd "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
     ∃ (root : Digest) (z : E), (wD [gsq] rets).Opens root z ∧ rets = digestCells root ++ [z]
-  /-- A child proof's check with the exponent table: the proof `wV args`. -/
+  /-- A child proof's check with the exponent and window tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
+      ExpTables rd gsq ∧ ExpWinTab rd gsq →
     VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
   /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
   with the hints `wA args`. -/

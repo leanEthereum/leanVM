@@ -48,7 +48,7 @@ theorem mem_atomsL {B : List Stmt} {a : Atom} : a ∈ atomsL B ↔ Stmt.atom a �
 /-- The values known in `K` by their equations: hinted limbs, constants without `y` limbs. -/
 def inKVals (as : List Atom) : List ℕ := as.flatMap fun a ↦ match a with
   | .hint (.limbs _ ds) => ds.map V.idx
-  | .const d e => if e.limb 1 = 0 ∧ e.limb 2 = 0 then [d.idx] else []
+  | .const d e => if e.limb 1 = 0 then [d.idx] else []
   | _ => []
 
 /-- An `assertInK` of two values known in `K`. -/
@@ -177,7 +177,7 @@ theorem holds_read {d p : V} {off : ℕ} (hS : Atom.load d p off ∉ S)
 theorem idx_lt {a b : ℕ} (h : a < b) : (V.n a).idx < (V.n b).idx := h
 
 theorem canon_zero : IsCanonical128 (0 : E) := by
-  have cz : IsCanonical128 (word 0 0 0) := by
+  have cz : IsCanonical128 (word 0 0) := by
     rw [word_zero]; unfold IsCanonical128; exact limb_zero 2
   rwa [word_zero] at cz
 

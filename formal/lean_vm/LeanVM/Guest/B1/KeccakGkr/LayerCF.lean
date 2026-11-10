@@ -41,7 +41,7 @@ def tailP1 (W wv : ℕ) : List Stmt :=
     .atom (.add (.n (W + 5)) (.n (W + 2)) (.n (W + 4))),
     .atom (.mul (.n (W + 6)) (.n (W + 1)) (.n (W + 5))),
     .atom (.assertEq (.n (W + 6)) (.n 1741)),
-    .atom (.const (.n (W + 7)) (word 0 0 0)), .atom (.const (.n (W + 8)) (word 0 0 0)),
+    .atom (.const (.n (W + 7)) (word 0 0)), .atom (.const (.n (W + 8)) (word 0 0)),
     keccakA ([.n 1749, .n 1751, .n 1759, .n 1761, .n 1769, .n 1771, .n (W + 7), .n (W + 8)] ++
       cap5 1722) ((List.range 13).map fun k ↦ .n (W + 9 + k))]
 
@@ -59,14 +59,14 @@ def tailEqf (W : ℕ) : List Stmt := eqfT (.n 1081) 0 5 32 (sliceB W)
 
 /-- The top coordinate, `1 + top`, the flips' buffer. -/
 def tailTop (W : ℕ) : List Stmt :=
-  [.atom (.load (.n (topV W)) (.n 1081) 5), .atom (.const (.n (topV W + 1)) (word 1 0 0)),
+  [.atom (.load (.n (topV W)) (.n 1081) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
     .atom (.add (.n (topV W + 2)) (.n (topV W + 1)) (.n (topV W))),
     .atom (.hint (.alloc (.n (topV W + 3)) 7))]
 
 /-- The return's copies. -/
 def tailP3 (W : ℕ) : List Stmt :=
   (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 17 + j)))) ++
-  [.atom (.const (.n (topV W + 310)) (word 68719476736 0 0)),
+  [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
     .atom (.mul (.n (topV W + 311)) (.n 1078) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311)))]
 
@@ -201,7 +201,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
   have e4' := mul_good (by omega) (by omega) e4
   have e6' := mul_good (by omega) (by omega) e6
   -- the squeeze of `β`
-  have zc : IsCanonical128 (word 0 0 0) := by
+  have zc : IsCanonical128 (word 0 0) := by
     rw [word_zero]; unfold IsCanonical128; exact limb_zero 2
   have hcanI : AllCanonical (([V.n 1749, .n 1751, .n 1759, .n 1761, .n 1769, .n 1771, .n (W + 7),
       .n (W + 8)] ++ cap5 1722).map σ) := by

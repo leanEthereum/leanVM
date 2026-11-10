@@ -128,8 +128,8 @@ theorem walk_flat_stuck (σ : Val) : ∀ (pre rest : List Stmt), pre.all Stmt.fl
 
 /-- **The walk is stuck unless the remainder's selector names a callee.** -/
 theorem rs_walk_stuck (σ : Val) (h : ¬ ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
-    walk σ (Fn.body Data.core6) = .stuck := by
-  rw [core6_body, rsBody_split']
+    walk σ (Fn.body Data.core5) = .stuck := by
+  rw [core5_body, rsBody_split']
   refine walk_flat_stuck σ _ _ (by decide +kernel) (rs_dispOk0 σ) ?_
   rw [walk, rsD, walk1, pick_stuck σ _ _ _ _ 0 fun i hi hx ↦ h ⟨i, by simpa using hi, by
     rwa [Nat.zero_add] at hx⟩]
@@ -144,8 +144,8 @@ theorem rs_callSF (σ : Val) : (rsA ++ rsT).filterMap (Stmt.callSF σ) =
 theorem rs_allocSz : (rsA ++ rsT).filterMap Main.Stmt.allocSz = [] := rfl
 
 theorem rs_walk {σ : Val} (h : ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
-    walk σ (Fn.body Data.core6) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 58] := by
-  rw [core6_body, rsBody_split]
+    walk σ (Fn.body Data.core5) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 58] := by
+  rw [core5_body, rsBody_split]
   exact walk_flat σ _ _ rs_flat (rs_dispOk h)
 
 /-- `rs_eq_run`'s frames: `__loop5`'s (entered unless `q = 0`), the remainder's. -/

@@ -10,8 +10,8 @@ module
 
 public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Sound
-public import LeanVM.Guest.WalkKnownAll
 public import LeanVM.Guest.B1.Bits.Tables
+public import LeanVM.Guest.B1.VerifySub.Proof
 public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 /-!
@@ -23,10 +23,12 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
   dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
-* `walkKnown_proved` (`WalkKnownAll.lean`): the walks' cut obligations (whir's `QueriesWalk`
-  and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers'
-  parities).
-* `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`).
+* `EndPending`: what the end theorems take until B1's ports to the f128 guest land:
+  `verify_sub`'s statement with the proof `VerifySub.vsPiOf`, and the walks' cut obligations
+  (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk` and ostack's
+  `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers' parities).
+* `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`), `b2SoundL` from
+  `EndPending`.
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
   the witness `W` (`Located.MainSoundV bytecode W`).
 * `guest_knowledge_sub`, `decode_binds_sub`: the end theorems for the decoder `decodeV piOf`,
@@ -55,30 +57,41 @@ theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
 theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
   VerifySub.vsDimsKnown0_holds L h16 h32 σ h
 
+/-- **What the end theorems take** until B1's ports to the f128 guest land: `verify_sub`'s
+statement with the proof `VerifySub.vsPiOf` (`VerifySub.verify_sub_sound_w`), and the walks' cut
+obligations (`walkKnown_proved`, `WalkKnownAll.lean`, whose whir walks are not yet on f128). -/
+structure EndPending : Prop where
+  /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`. -/
+  sound : B1.Main.SubSoundW bytecode VerifySub.vsPiOf
+  /-- The walks' cut obligations. -/
+  walk : WalkKnown
+
 /-- **B2, proved**, given `verify_sub`'s `dims_g` and `kappa_base` bounds and the walks'
 obligations. -/
 theorem b2SoundL_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) : B2SoundL :=
   ⟨b2_step fun _ h2 hj ↦ cutsKnown_of hvd hvs hwalk h2 hj, b2_mainL expTablesSound⟩
 
-/-- **B2, proved.** -/
-theorem b2SoundL : B2SoundL := b2SoundL_of vsDimsKnown_proved vsKnown_proved walkKnown_proved
+/-- **B2, proved**, given `verify_sub`'s obligations. -/
+theorem b2SoundL (h : EndPending) : B2SoundL := b2SoundL_of vsDimsKnown_proved vsKnown_proved h.walk
 
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 
 /-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/
-theorem guest_knowledge_sub (hv : B1.Main.SubSoundW bytecode piOf) :
+theorem guest_knowledge_sub (hwalk : WalkKnown)
+    (hv : B1.Main.SubSoundW bytecode piOf) :
     MemoryGuestKnowledge guestProgram (decodeV piOf) :=
-  guest_knowledge_V b2SoundL hv
+  guest_knowledge_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv
 
 /-- **What a consumer learns**, from `verify_sub`'s statement. -/
-theorem decode_binds_sub (hv : B1.Main.SubSoundW bytecode piOf)
+theorem decode_binds_sub (hwalk : WalkKnown)
+    (hv : B1.Main.SubSoundW bytecode piOf)
     {input : PublicInput} {t : Execution guestProgram} (hvt : ValidExecution guestProgram input t) {iv : Digest}
     {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.memory).seed
         (decodeV piOf t.memory).statement iv s₀) :=
-  decode_binds_V b2SoundL hv hvt hs₀ hpub
+  decode_binds_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv hvt hs₀ hpub
 
 end
 end LeanVM.Guest.End
