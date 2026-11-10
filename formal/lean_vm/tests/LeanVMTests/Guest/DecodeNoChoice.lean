@@ -19,8 +19,8 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   (`Located.statesTable`, `Extraction.Fast.stepTable`, the machine's step `Semantics.executeWith`),
   the entries' table (`Located.entryTable`), the decided precondition `Located.preTest`, and
   B1-d's child proof `VerifySub.piOfW`, not the replay through the hash-map index
-  (`Located.statesIn`, `Extraction.powIndex`), which the proofs use; and it flags a definition that does choose (`VerifySub.valOf`, the word
-  at an address by `Exists.choose`, which `decode` does not use).
+  (`Located.statesIn`, `Extraction.powIndex`), which the proofs use; and it flags a definition that does choose (`Semantics.addressIndex?`, the
+  address index by `Classical.choose`, which `decode` does not use).
 * **No verifier.** No definition `decode` unfolds to mentions a signature scheme's verifier, the
   deferring verifier, the DA opening or the batching. (It runs the machine, whose `KECCAK`
   instruction checks Keccak-f[1600], the guest's own in-circuit check.)
@@ -89,10 +89,10 @@ run_meta do
   let (seen, _) ← traverse ``LeanVM.Guest.End.decode classical.contains
   logInfo s!"statesTable: {seen.contains ``LeanVM.Guest.Located.statesTable}, stepTable: {seen.contains ``LeanVM.Extraction.Fast.stepTable}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, entryTable: {seen.contains ``LeanVM.Guest.Located.entryTable}, preTest: {seen.contains ``LeanVM.Guest.Located.preTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}, powIndex: {seen.contains ``LeanVM.Extraction.powIndex}, statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}"
 
-/-- info: [LeanVM.Guest.B1.VerifySub.valOf uses Classical.propDecidable, LeanVM.Guest.B1.VerifySub.valOf uses Exists.choose] -/
+/-- info: [LeanVM.Semantics.addressIndex? uses Classical.choose] -/
 #guard_msgs in
 run_meta do
-  let (_, hits) ← traverse ``LeanVM.Guest.B1.VerifySub.valOf classical.contains
+  let (_, hits) ← traverse ``LeanVM.Semantics.addressIndex? classical.contains
   logInfo (showHits hits)
 
 /-! ## No verifier -/
