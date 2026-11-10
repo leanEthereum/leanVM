@@ -145,7 +145,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   have hcok := off_cok
   unfold offCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcan⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
     hcalls⟩, hnli⟩ := hcok
   have hS := atomsEqb_sound hst
   have hNb : ∀ b < 7, word (offN b) 0 = gen ^ 2 ^ b := fun b hb' => by

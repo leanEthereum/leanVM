@@ -68,7 +68,6 @@ holds its atoms and reads the chain buffer's states and the records among the ca
 theorem anyLoop_blocks {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hhd : anycHead (coreProgram.getD j default) f = true)
-    (hcn : anycCanon (coreProgram.getD j default) m o0 st0 = true)
     (hedge : anycEdge (coreProgram.getD j default) m o0 p0 mk st0 = true)
     (hrecs : ∀ i < m,
       recW (ccOwn (loopAtoms (coreProgram.getD j default)) p0 i) (anyP mk) o0 i = true)
@@ -103,11 +102,11 @@ theorem anyLoop_blocks {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
   have hr := recMem_group hrec (s := m * q) (k := m) hmq
   rw [show 4 * (m * q) = 4 * m * q by ring, show base * gen ^ (m * q) = base * (gen ^ q) ^ m by
     rw [gen_pow_pow]] at hr
-  obtain ⟨σ, hp, hat, hload⟩ := any_core hok hhd hcn hedge hrecs hnb (x := gen ^ q) (N := gen ^ M)
+  obtain ⟨σ, hp, hat, hload⟩ := any_core hok hhd hedge hrecs hnb (x := gen ^ q) (N := gen ^ M)
     rfl hch hen hrg hpre (by rw [gen_pow_pow]; exact hS0)
     (cells := (cells.drop (4 * m * q)).take (4 * m))
     (by simp only [List.length_take, List.length_drop]; omega)
-    (canon_take (canon_drop hc _) _) hr hlast hL33 (boundMem_of_low hlow hLκ) (fun c => by
+    hr hlast hL33 (boundMem_of_low hlow hLκ) (fun c => by
       have := hS1 c
       rw [gen_pow_pow, loadHolds_mul_gen_pow]
       rw [loadHolds_mul_gen_pow, show 13 * (q + 1) + (0 + c.val) = 13 * q + (13 + c.val) by ring]
@@ -126,7 +125,6 @@ theorem anyLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     {m o0 p0 mk st0 nb : ℕ} (hf : coreProgram.find? f = some (coreProgram.getD j default))
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hhd : anycHead (coreProgram.getD j default) f = true)
-    (hcn : anycCanon (coreProgram.getD j default) m o0 st0 = true)
     (hedge : anycEdge (coreProgram.getD j default) m o0 p0 mk st0 = true)
     (hrecs : ∀ i < m,
       recW (ccOwn (loopAtoms (coreProgram.getD j default)) p0 i) (anyP mk) o0 i = true)
@@ -152,7 +150,7 @@ theorem anyLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     simp only [anycHead, Bool.and_eq_true] at hhd; exact hhd.1.1.2
   have h := loopA_completeAtB fs cert hf hshape hAS hun (Lin := Lin) (κ := κ) (N := gen ^ M)
     (rest := [chain, entries, region, base, last]) (m := M) rfl hM
-    (anyLoop_blocks hok hhd hcn hedge hrecs hnb h64 hch hen hrg hpre0 hl hc hlast hL33 hLκ hmem hR1
+    (anyLoop_blocks hok hhd hedge hrecs hnb h64 hch hen hrg hpre0 hl hlast hL33 hLκ hmem hR1
       hR2 hR3)
   have := h 0 hM0
   rwa [pow_zero, Nat.sub_zero] at this
@@ -164,7 +162,6 @@ theorem anyLoop_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {
     {m o0 p0 mk st0 nb : ℕ} (hf : coreProgram.find? f = some (coreProgram.getD j default))
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hhd : anycHead (coreProgram.getD j default) f = true)
-    (hcn : anycCanon (coreProgram.getD j default) m o0 st0 = true)
     (hedge : anycEdge (coreProgram.getD j default) m o0 p0 mk st0 = true)
     (hrecs : ∀ i < m,
       recW (ccOwn (loopAtoms (coreProgram.getD j default)) p0 i) (anyP mk) o0 i = true)
@@ -183,7 +180,7 @@ theorem anyLoop_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {
     (hR2 : ∀ i < m * M, RegionL Lin (rg + o i))
     (hR3 : ∀ i < m * M, ∀ c < 4, RegionL Lin (eP + 4 * o i + c)) :
     CompleteAtD fs cert κ f Lin [1, gen ^ M, chain, entries, region, base, last] (Returns []) :=
-  (anyLoop_completeAtB fs cert hf hok hhd hcn hedge hrecs hnb hun h64 hch hen hrg hpre0 hl hc hlast
+  (anyLoop_completeAtB fs cert hf hok hhd hedge hrecs hnb hun h64 hch hen hrg hpre0 hl hlast
     hL33 hLκ hM hM0 hmem hR1 hR2 hR3).toDT.toD
 
 end

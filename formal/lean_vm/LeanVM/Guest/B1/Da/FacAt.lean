@@ -93,7 +93,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hb := splitBody_eq hsp
     unfold facCOk at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at hcok
-    obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcan⟩, haddr⟩, halloc⟩ := hcok
+    obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, haddr⟩, halloc⟩ := hcok
     have hS := atomsEqb_sound hst
     have hflat : ((facT top D).map Stmt.atom).all Core.Stmt.flat = true :=
       List.all_eq_true.mpr fun s hs => by obtain ⟨a, -, rfl⟩ := List.mem_map.mp hs; rfl

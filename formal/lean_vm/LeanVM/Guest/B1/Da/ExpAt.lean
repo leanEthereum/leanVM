@@ -148,7 +148,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hb := splitBody_eq hsp
     unfold expCOk at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.isEmpty_iff] at hcok
-    obtain ⟨⟨⟨⟨⟨⟨⟨hchk, hst⟩, hcan⟩, hside⟩, hvals⟩, hna⟩, haddr⟩, hrun⟩ := hcok
+    obtain ⟨⟨⟨⟨⟨⟨⟨hchk, hst⟩⟩, hside⟩, hvals⟩, hna⟩, haddr⟩, hrun⟩ := hcok
     intro fp
     set rb := fp + cert f (.n (expB D + 1)) with hrb
     have hlenR : (expRunVals root F Z S top D).length = 512 := by simp [expRunVals]

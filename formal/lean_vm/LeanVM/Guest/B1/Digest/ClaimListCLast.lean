@@ -64,11 +64,10 @@ theorem cl_cells_unique {blk : E} {cells cells' : List E} (h : ReadsAt rd blk ce
 
 set_option maxRecDepth 20000 in
 /-- **`claim_list_last__L{k}` is complete**: from the state after whole blocks `pre` at `sp` and
-`4k` canonical cells at `blk`, it returns the digest of `pre ++` the cells. -/
+`4k` cells at `blk`, it returns the digest of `pre ++` the cells. -/
 theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre : List UInt8}
     (hpre : pre.length = rate * n) (hS : StateAt rd sp 0 (absorbChunks n zeroState pre))
-    {cells : List E} (hl : cells.length = 4 * k) (hr : ReadsAt rd blk cells)
-    :
+    {cells : List E} (hl : cells.length = 4 * k) (hr : ReadsAt rd blk cells) :
     coreProgram.Rel rd (clNames.getD k "") [sp, blk]
       (digestCells (keccak256 (pre ++ cellsBytes cells))) := by
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
@@ -84,10 +83,9 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     rw [hsb] at hcok
     simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hok hcok
     obtain ⟨⟨⟨-, -⟩, hl1⟩, hst⟩ := hok
-    obtain ⟨hneeds⟩ := hcok
+    have hneeds := hcok
     let args : List E := [sp, blk]
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
-    have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
     obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
     rw [show args.length = 2 from rfl, hS0, ← hσ] at hgs
     have hbody := splitBody_eq hsb
@@ -108,24 +106,8 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
         Option.map_some, Option.getD_some] at this
       rw [load_val this hg (by simp), e1, rdAt_of_load (hr i (by omega)),
         List.getD_eq_getElem _ _ (by omega)]
-    have hA : ∀ i ∈ (clSt k).map V.idx ++ (List.range (4 * k)).map (· + 2),
-        IsCanonical128 (σ (.n i)) := by
-      intro i hi
-      rcases List.mem_append.mp hi with hi | hi
-      · obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hi
-        obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hv
-        have hc13 := List.mem_range.mp hc'
-        have := vst ⟨c, hc13⟩
-        simp only [clSt, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hc13,
-          Option.map_some, Option.getD_some] at this
-        rw [← hidx, this]
-        exact canon_cellsOfState _ _ _
-      · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
-        have hj' := List.mem_range.mp hj
-        rw [vc j hj', List.getD_eq_getElem _ _ (by omega)]
-        exact hc _ (List.getElem_mem _)
     have hat : ∀ a ∈ atoms, a.Holds rd σ := by
-      refine atoms_holds hidx hcan hg hA fun a ha hn => Or.inl ?_
+      refine atoms_holds hg fun a ha hn => Or.inl ?_
       rcases hneeds a ha with (h | h) | h
       · rw [hn] at h; exact absurd h (by simp)
       · cases a <;> simp only [isLoadBelow, Bool.false_eq_true, Bool.and_eq_true,
@@ -151,7 +133,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     obtain ⟨sp', blk', hargs, hlast⟩ := claimLast_sound hk hrel
     simp only [List.cons.injEq, and_true] at hargs
     obtain ⟨rfl, rfl⟩ := hargs
-    obtain ⟨cells', hl', hr', -, hd⟩ := hlast n pre hpre hS
+    obtain ⟨cells', hl', hr', hd⟩ := hlast n pre hpre hS
     rw [cl_cells_unique hr hr' (by rw [hl, hl'])] at hd
     rw [← hd]
     exact hrel
@@ -178,7 +160,7 @@ theorem cl_mem_atoms {ss : List Stmt} {a : Atom} (h : Stmt.atom a ∈ ss) : a �
 
 set_option maxRecDepth 20000 in
 /-- **A frame of `m` claims** (a frame loop's block at the counter `x`, `grpOk`, `grpcOk`): the
-state after whole blocks `pre` at `chain · x^13`, the `4m` canonical cells at `entries · x^(4m)`,
+state after whole blocks `pre` at `chain · x^13`, the `4m` cells at `entries · x^(4m)`,
 the state after them (`nb` blocks) at `chain · x^13` from offset `13`. -/
 theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
@@ -198,12 +180,11 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
   obtain ⟨⟨⟨⟨⟨⟨⟨-, hlen4⟩, hck⟩, hst⟩, hl1⟩, -⟩, -⟩, -⟩ := hok
   simp only [grpcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩⟩, hneeds⟩, hstF⟩, hm9⟩, hmE⟩ :=
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩, hneeds⟩, hstF⟩, hm9⟩, hmE⟩ :=
     hcok
   have heqA' := atomsEqbL_sound heqA
   let args : List E := [x, N, chain, entries]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
   rw [show args.length = 4 from rfl, ← hσ] at hgs
   have hg : ∀ a ∈ A, Good rd S (fun _ => 0) σ a := fun a ha =>
@@ -255,24 +236,8 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
       Option.map_some, Option.getD_some] at this
     rw [load_val this hg (hnSE _ _), vE, rdAt_of_load (hr i (by omega)),
       List.getD_eq_getElem _ _ (by omega)]
-  have hA : ∀ i ∈ (grpSt st0).map V.idx ++ (List.range (4 * m)).map (· + c0),
-      IsCanonical128 (σ (.n i)) := by
-    intro i hi
-    rcases List.mem_append.mp hi with hi | hi
-    · obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hi
-      obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hv
-      have hc13 := List.mem_range.mp hc'
-      have := vst ⟨c, hc13⟩
-      simp only [grpSt, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hc13,
-        Option.map_some, Option.getD_some] at this
-      rw [← hidx, this]
-      exact canon_cellsOfState _ _ _
-    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
-      have hj' := List.mem_range.mp hj
-      rw [vc j hj', List.getD_eq_getElem _ _ (by omega)]
-      exact hc _ (List.getElem_mem _)
   have hat : ∀ a ∈ A, a.Holds rd σ := by
-    refine atoms_holds_stores (S := S) (w := fun _ => 0) hidx hcan hg hA
+    refine atoms_holds_stores (S := S) (w := fun _ => 0) hg
       (fun a ha hnS' hns => Or.inl ?_) (fun h1 a ha haS => ?_)
     · rcases hneeds a ha with ((h | h) | h) | h
       · rw [hns] at h; exact absurd h (by simp)

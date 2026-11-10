@@ -71,13 +71,13 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hcok
   obtain ⟨hparams, hok⟩ := hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcanT⟩, hneedsT⟩, hcok⟩ := hcok
+  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hneedsT⟩, hcok⟩ := hcok
   split at hok
   · rename_i A vs hsp
     rw [hsp] at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, Bool.not_eq_true'] at hok hcok
     obtain ⟨⟨⟨⟨⟨rfl, hA1280⟩, htm⟩, hchain⟩, hret⟩, hcp⟩ := hok
-    obtain ⟨⟨hcanC, hneedsC⟩, hhint⟩ := hcok
+    obtain ⟨⟨hneedsC⟩, hhint⟩ := hcok
     have hbody := splitBody_eq hsp
     let w : ℕ → E := symOrc syms
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [lv] (Fn.body Data.core30)) := ⟨_, rfl⟩

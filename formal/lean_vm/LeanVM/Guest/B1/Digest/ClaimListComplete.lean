@@ -54,17 +54,11 @@ theorem memRun_take {p : E} {cells : List E} (hr : ReadsAt rd p cells) {k : ℕ}
     (hk : k ≤ cells.length) : memRun rd p k = cells.take k := by
   rw [readsAt_memRun (readsAt_take' hr k), List.length_take, Nat.min_eq_left hk]
 
-theorem canon_take {cells : List E} (k : ℕ) : AllCanonical (cells.take k) :=
-  fun c h => hc c (List.mem_of_mem_take h)
-
-theorem canon_drop {cells : List E} (k : ℕ) : AllCanonical (cells.drop k) :=
-  fun c h => hc c (List.mem_of_mem_drop h)
-
 theorem grpc_shapeF {j : ℕ} {f : String} {m c0 st0 ep : ℕ}
     (h : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true) :
     loopShapeF (coreProgram.getD j default) f = true := by
   simp only [grpcOk, Bool.and_eq_true] at h
-  exact h.1.1.1.1.1.1.1.1.1
+  exact h.1.1.1.1.1.1.1.1
 
 /-- **A frame from the chain's memory**: the states before and after `d` units of `68` cells
 (units `u` to `u + d`) give a frame loop's block (`grp_block`) at the counter `x`. -/
@@ -85,7 +79,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
     rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
     show 16 * (68 * u) = 136 * (8 * u); omega
   refine grp_block hok hcok hnb hep hpre hS (cells := (cells.drop (68 * u)).take (4 * m))
-    (by simp; omega) ?_ (canon_take (canon_drop hc _) _) ?_
+    (by simp; omega) ?_ ?_
   · rw [hE]; exact readsAt_take' (readsAt_drop' hr _) _
   · rw [show 68 * (u + d) = 68 * u + 4 * m by omega, List.take_add, cellsBytes_append,
       show 8 * (u + d) = 8 * u + nb by omega] at hS1
@@ -104,7 +98,7 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     unfold clU; rw [Nat.min_eq_left (by omega)]; omega
   rw [hu0, memRun_take hr (by omega)] at hS
   rw [hu1, memRun_take hr (by omega)] at hS1
-  refine frame_block big_ok grpc_big big_nb (by decide) (d := 8) (by norm_num) rfl hr hc (u := 8 * q)
+  refine frame_block big_ok grpc_big big_nb (by decide) (d := 8) (by norm_num) rfl hr (u := 8 * q)
     (by omega) (by rw [gen_pow_pow]; exact hS) (fun c => ?_) (by rw [gen_pow_pow]; congr 2; ring)
   have := hS1 c
   rw [gen_pow_pow, loadHolds_mul_gen_pow]
@@ -127,7 +121,7 @@ theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
     unfold clU; rw [Nat.min_eq_right (by omega)]; omega
   rw [hu0, memRun_take hr (by omega)] at hS
   rw [hu1, memRun_take hr (by omega)] at hS1
-  refine frame_block grp_ok grpc_ok grp_nb (by decide) (d := 1) (by norm_num) rfl hr hc
+  refine frame_block grp_ok grpc_ok grp_nb (by decide) (d := 1) (by norm_num) rfl hr
     (u := 8 * a + q) (by omega) ?_ (fun c => ?_) ?_
   · rw [gen_pow_pow, mul_assoc, ← pow_add, show 13 * a + 13 * q = 13 * (a + q) by ring]; exact hS
   · have := hS1 c

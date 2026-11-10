@@ -97,7 +97,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     rw [hatoms]
     simp only [Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok hcok
     obtain ⟨⟨⟨hck, hret⟩, -⟩, hst⟩ := hok
-    obtain ⟨⟨⟨hedge⟩, hrecs⟩, -⟩ := hcok
+    obtain ⟨⟨hedge, hrecs⟩, -⟩ := hcok
     obtain ⟨hSt, hst0, -, htl⟩ := edge_parts hedge
     set S := storesOf 5 fn.body with hSdef
     let args : List E := [sp, entries, region, marks, last]
@@ -129,10 +129,9 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
       rw [load_val (hst.2 c c.isLt) hg (hnSl rfl (by have := c.isLt; omega)), e0,
         rdAt_of_load (hS c)]
-    have hA := ccA_canon (o0 := 5) hidx hl hc (by simp [cclSt]) vst vc
     have hat : ∀ a ∈ atoms, a.Holds rd σ := by
       refine blockW_holds (c := 5) (ss := fn.body) (p0 := 0) (stp := 0) (outs := [])
-        hidx (canonChk_of_canonGoB) hg hA hedge hside ?_
+        hg hedge hside ?_
         (fun a _ h => (isStSt_nil h).elim) (fun _ a _ h => (isStSt_nil h).elim)
       intro a ha h haS
       cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,

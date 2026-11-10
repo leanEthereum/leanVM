@@ -93,7 +93,6 @@ def lvlOk (fn : Fn) (f : String) (offA offB : ℕ) : Bool :=
 their digest's cells at `tree·g^offB·x^2`. -/
 def LvlStep (rd : Reader) (tree : E) (offA offB : ℕ) (x : E) : Prop :=
   (∀ i < 4, LoadHolds rd (tree * gen ^ offA * x ^ 4) i (memAt rd (tree * gen ^ offA * x ^ 4) i)) ∧
-  AllCanonical ((List.range 4).map (memAt rd (tree * gen ^ offA * x ^ 4))) ∧
   LoadHolds rd (tree * gen ^ offB * x ^ 2) 0
     (nodeCells (memAt rd (tree * gen ^ offA * x ^ 4) 0, memAt rd (tree * gen ^ offA * x ^ 4) 1)
       (memAt rd (tree * gen ^ offA * x ^ 4) 2, memAt rd (tree * gen ^ offA * x ^ 4) 3)).1 ∧
@@ -123,7 +122,7 @@ theorem lvl_step {f : String} {j offA offB : ℕ} (hidx : coreProgram.indexOf? f
   have ea := ptr_sound hpa hat hA
   have eb := ptr_sound hpb hat hB
   rw [h2, hx] at ea eb
-  obtain ⟨hcan, h0, h1⟩ := pairHash_sound hph hat
+  obtain ⟨h0, h1⟩ := pairHash_sound hph hat
   have hl : ∀ i < 4, LoadHolds rd (tree * gen ^ offA * x ^ 4) i
       (σ (.n ((if offA = 0 then 10 else 12) + i))) := fun i hi => by
     have := load_sound (hld i hi) hat

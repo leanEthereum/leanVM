@@ -619,7 +619,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
           rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
           show 16 * (68 * (8 * a + b)) = 136 * (8 * (8 * a + b)); omega
         have := claimLast_complete hr17 hpre hS (cells := cells.drop (68 * (8 * a + b)))
-          (by simp; omega) (readsAt_drop' hr _) (canon_drop hc _)
+          (by simp; omega) (readsAt_drop' hr _)
         rw [← cellsBytes_append, List.take_append_drop] at this
         rw [show 544 * a + 68 * b = 68 * (8 * a + b) by ring]
         exact this

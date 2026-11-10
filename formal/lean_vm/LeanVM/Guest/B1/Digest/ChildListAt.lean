@@ -135,9 +135,9 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtB fs cert (j := 378)
         (find_of_idx any136_idx (by rw [coreProgram_length]; omega)) any136_ok any136c_head
-        any136c_canon any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
+        any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
-        (by rw [hl]; omega) hc hlast hL33 hLκ (by omega) (by omega)
+        (by rw [hl]; omega) hlast hL33 hLκ (by omega) (by omega)
         (fun rd hm => ⟨fun q hq => ?_, fun j hj => hrec rd (memL_append.mp hm).1 j (by omega)⟩)
         (fun q hq c hc => ?_) (fun i hi => regionL_append_left (hR2 i (by omega)))
         (fun i hi c hc => regionL_append_left (hR3 i (by omega) c hc))
@@ -157,7 +157,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         (by
           rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
           show 16 * (544 * a) = 136 * (64 * a); ring)
-        (by rw [List.length_drop, hl]; omega) (canon_drop hc _) hlast hL33 hLκ (by omega)
+        (by rw [List.length_drop, hl]; omega) hlast hL33 hLκ (by omega)
         (by omega)
         (fun rd hm => ⟨fun q hq => ?_, ?_⟩) (fun q hq c hc => ?_)
         (fun i hi => regionL_append_left (hR2 _ (by omega)))
@@ -181,7 +181,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         (os := fun j => o (136 * a + 17 * b + j)) (cells := cells.drop (68 * (8 * a + b)))
         (n := 8 * (8 * a + b)) (pre := cellsBytes (cells.take (68 * (8 * a + b))))
         (marks := base * gen ^ (136 * a + 17 * b)) (by rw [hchain, ← pow_add]) rfl rfl hpre
-        (by rw [List.length_drop, hl]; omega) (canon_drop hc _) hlast hL33 hLκ
+        (by rw [List.length_drop, hl]; omega) hlast hL33 hLκ
         (fun rd hm => ⟨by
             have := state_of_reads (hmOwn rd (memL_append.mp hm).2) (le_refl (a + b))
             rwa [clU_last] at this, by

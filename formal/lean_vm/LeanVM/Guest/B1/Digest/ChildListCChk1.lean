@@ -21,10 +21,6 @@ theorem any136c_head : anycHead (coreProgram.getD 378 default) "__loop17" = true
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any136c_canon : anycCanon (coreProgram.getD 378 default) 136 22 1924 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
 theorem any136c_edge : anycEdge (coreProgram.getD 378 default) 136 22 15 21 1924 = true := by
   decide +kernel
 

@@ -357,7 +357,7 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
     (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
     CompleteAtD fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
       (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) :=
-  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hc hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
+  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
 
 end
 end LeanVM.Guest.B1.Digest

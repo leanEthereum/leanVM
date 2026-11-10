@@ -20,10 +20,10 @@ proof is the theorem `…_holds` of the family's modules. The functions building
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3921-3961 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
+| `da_verify` | 4560-4598 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
 | `da_row_shape` | 3964-3973 | `core28` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
 | `da_verify_cell` | 3993-4005 | `core30` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4008-4016 | `core391-400` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
+| `da_levels__L{n}_L{k}` | 4008-4016 | `core420-430` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
@@ -58,23 +58,18 @@ def cellRoot : ℕ → List (E × E) → E × E
   | 0, nodes => nodes.headD 0
   | k + 1, nodes => cellRoot k (cellLevel nodes)
 
-/-- The scalar of its two rate cells `(z_0, z_1, 0)`, `(z_2, tag, 0)` (`fs_pack`,
-`Keccak.scalarCells`): `z`. -/
-def scalarOfCells (c0 c1 : E) : E := E.ofLimbs (c0.limb 0) (c0.limb 1) (c1.limb 0)
-
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
 /-! ## `da_verify` (G:4323-4363, TRIAGE #90) -/
 
 /-- **`da_verify(g_squares)`**: with the exponent table at `g_squares`, a witness opens the claim
-of the returned root and challenge `z` (`Da.MatrixWitness.Opens`), the four returned words the
-root's cells and `z`'s rate cells as `fs_pack` writes them with the tag `0` (`c2` its hinted top
-limb, which the `KECCAK` hashing them pins: `Keccak.fsPack_cells`). -/
+of the returned root and challenge `z` (`Da.MatrixWitness.Opens`), the three returned words the
+root's cells and `z`. -/
 def MeaningDaVerify (rd : Reader) : List E → List E → Prop
   | [gsq], rets => SquaresAt rd gsq →
-      ∃ (w : LeanVM.Da.MatrixWitness) (root : Digest) (z c2 : E), w.Opens root z ∧ IsInK c2 ∧
-        rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
+      ∃ (w : LeanVM.Da.MatrixWitness) (root : Digest) (z : E), w.Opens root z ∧
+        rets = digestCells root ++ [z]
   | _, _ => False
 
 /-- `da_verify`'s core IR gives its meaning, on a memory image. -/
@@ -123,11 +118,11 @@ def daLevelsName (k : ℕ) : String :=
     "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
     "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"].getD k ""
 
-/-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each, canonical when
-hashed), and the function returns the root's cells (`cellRoot`). -/
+/-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each), and the function
+returns the root's cells (`cellRoot`). -/
 def MeaningDaLevels (k : ℕ) (rd : Reader) : List E → List E → Prop
   | [tree], rets => ∃ leaves : List (E × E), leaves.length = 2 ^ k ∧
-      ReadsAt rd tree (pairCells leaves) ∧ (0 < k → AllCanonical (pairCells leaves)) ∧
+      ReadsAt rd tree (pairCells leaves) ∧
       rets = [(cellRoot k leaves).1, (cellRoot k leaves).2]
   | _, _ => False
 

@@ -226,7 +226,7 @@ theorem lvl_block {f : String} {fn : Fn}
     · intro h1 a ha haS
       have hA' : ∀ b ∈ lvlA' fn, b.Holds rd σ := fun b hb =>
         h1 b (List.mem_filter.mp hb).1 (by simpa using (List.mem_filter.mp hb).2)
-      obtain ⟨hd, -⟩ := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
+      have hd := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
         (fun c => (cellsOfState_zero false c).symm)
       have hvals : ((lvlSp fn c0).vals σ).take ((lvlSp fn c0).len / 16) =
           [σ (.n c0), σ (.n (c0 + 1)), σ (.n (c0 + 2)), σ (.n (c0 + 3))] := by
@@ -302,7 +302,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range,
       Bool.or_eq_true] at hdl hbody
     obtain ⟨⟨⟨⟨rfl, -⟩, hguards⟩, hr0⟩, hr1⟩ := hdl
-    obtain ⟨⟨hcan, hneeds⟩, hcalls⟩ := hbody
+    obtain ⟨⟨hneeds⟩, hcalls⟩ := hbody
     have hb := splitRet_eq hsr
     let σ : Val := B1.Val.ofArgs (ev rd (fun _ => 0) [tree] fn.body)
     obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body [tree] hchk
@@ -366,7 +366,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
             List.mem_range] at hlok
           obtain ⟨⟨⟨⟨⟨hshape, hplen⟩, hld⟩, -⟩, -⟩, -⟩ := hlok
           simp only [lvlCOk, Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq] at hclo
-          obtain ⟨⟨⟨⟨⟨⟨⟨⟨c2, hchk2⟩, hatoms⟩, hcan2⟩, hneeds2⟩, hS2⟩, hpa⟩, hpb⟩, hsp⟩ := hclo
+          obtain ⟨⟨⟨⟨⟨⟨⟨⟨c2, hchk2⟩, hatoms⟩⟩, hneeds2⟩, hS2⟩, hpa⟩, hpb⟩, hsp⟩ := hclo
           have hgd := guard_complete hfl hshape (rest := [tree]) (m := 2 ^ (k - lvl - 1))
             (fun p hp => lvl_block hl hk (by split <;> decide) hshape hplen hld hatoms hchk2
               hcan2 hneeds2 hS2 hpa hpb hsp hlen hcl hmem hp)

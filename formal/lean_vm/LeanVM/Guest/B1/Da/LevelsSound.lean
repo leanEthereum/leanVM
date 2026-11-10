@@ -140,7 +140,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
         rcases (show c = 0 ∨ c = 1 by omega) with rfl | rfl
         · rw [memAt_of_load l0]; exact l0
         · rw [memAt_of_load l1]; exact l1
-      · obtain ⟨hld, hcan, -, -⟩ := hlvl 0 hk0 (c / 4) (by
+      · obtain ⟨hld, -, -⟩ := hlvl 0 hk0 (c / 4) (by
           have : 2 ^ k = 2 * 2 ^ (k - 0 - 1) := by rw [← pow_succ']; congr 1; omega
           omega)
         rw [ptr_pow, off_zero, zero_add] at hld
