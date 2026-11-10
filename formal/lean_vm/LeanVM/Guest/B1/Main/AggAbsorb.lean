@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Main.AggFs
 /-!
 # `__loop33`: the children's words
 
-`aggregate_claims` (G:4670-4773) keeps the batching's sponge in rows of thirteen words (`absorb`,
+`aggregate_claims` (`lean_ethereum.py`) keeps the batching's sponge in rows of thirteen words (`absorb`,
 `RowRel`: the capacity cells, then four waiting scalars' rate cells). Iteration `x = g^c`
-(`__loop33`, core function `415`) writes the child's pointers `child_fresh·x^24`,
+(`__loop33`, core function `443`) writes the child's pointers `child_fresh·x^24`,
 `child_carried·x^24` into the tables `lf`, `lc`, permutes row `c`, absorbs the child's `50` words
 (its public input's two cells at `child_pi·x^2`, its fresh claim's `24` cells, its carried claim's
 `24`) and two zeros in thirteen `KECCAK`s, and writes row `c + 1` (`l25_step`, `L25Step`).
@@ -110,10 +110,11 @@ theorem rowRel_full {p : E} {ws : List E} (hws : ws.length = 4)
 
 /-! ## The words of a chain -/
 
-/-- The `fs_pack`s of a list of atoms: each packed value and its base. -/
+/-- The `fs_pack`s of a list of atoms: each packed value and its base, a copy into `b` followed by
+the tag's constant at `b + 1`. -/
 def packsOf (atoms : List Atom) : List (V × ℕ) :=
-  atoms.filterMap fun a => match a with
-    | .hint (.limbs x (b :: _)) => some (x, b.idx)
+  (atoms.zip atoms.tail).filterMap fun p => match p with
+    | (.copy (.n b) x, .const (.n b') _) => if b' = b + 1 then some (x, b) else none
     | _ => none
 
 theorem DupSpec.wvals_eq (s : DupSpec) (σ : Val) :
@@ -127,10 +128,10 @@ theorem DupSpec.wvals_eq (s : DupSpec) (σ : Val) :
       show 4 * (n + 1) = 4 * n + 4 by ring, List.range_add, List.map_append, List.map_map]
     rfl
 
-/-- The source of word `w` of a child: its public input's cells through `.n 59`, `.n 70`, its fresh
+/-- The source of word `w` of a child: its public input's cells through `.n 59`, `.n 63`, its fresh
 claim's through `.n 50`, its carried claim's through `.n 57`, then two zeros. -/
 def l25Src (w : ℕ) : Option (V × ℕ) :=
-  if w = 0 then some (.n 59, 0) else if w = 1 then some (.n 70, 1)
+  if w = 0 then some (.n 59, 0) else if w = 1 then some (.n 63, 1)
   else if w < 26 then some (.n 50, w - 2) else if w < 50 then some (.n 57, w - 26) else none
 
 /-- `x` is loaded from its source, or is the constant zero. -/
@@ -162,11 +163,11 @@ def l25Ok (fn : Fn) : Bool :=
   loopShapeF fn "__loop33" && decide (fn.params.length = 8) && s.check A && decide (s.nb = 13) &&
   rowInOk A (.n 13) (s.ins 0) &&
   storesOk A (.n 13) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
-  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j) + 6)) (.n 13) (13 + (5 + 2 * j))) &&
-    A.any (isLoadAt (.n (s.wB (48 + j) + 8)) (.n 13) (13 + (6 + 2 * j)))) &&
+  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j))) (.n 13) (13 + (5 + 2 * j))) &&
+    A.any (isLoadAt (.n (s.wB (48 + j) + 1)) (.n 13) (13 + (6 + 2 * j)))) &&
   (List.range 52).all (fun w => srcOk A (s.wV w) (l25Src w)) &&
   monoIs A (.n 13) (.n 2) (.n 0) 13 && monoIs A (.n 59) (.n 7) (.n 0) 2 &&
-  monoIs A (.n 70) (.n 7) (.n 0) 2 && monoIs A (.n 50) (.n 3) (.n 0) 24 &&
+  monoIs A (.n 63) (.n 7) (.n 0) 2 && monoIs A (.n 50) (.n 3) (.n 0) 24 &&
   monoIs A (.n 57) (.n 5) (.n 0) 24 &&
   A.any (isLoadAt (.n 50) (.n 51) 0) && isMul A (.n 51) (.n 4) (.n 0) &&
   A.any (isLoadAt (.n 57) (.n 58) 0) && isMul A (.n 58) (.n 6) (.n 0)
@@ -187,7 +188,7 @@ def L25Step (rd : Reader) (absorb cfresh lfT ccarried lcT cpi x : E) : Prop :=
     RowRel rd (absorb * x ^ 13 * gen ^ 13)
       (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)
 
-theorem l25Src_lt2 {w : ℕ} (h : w < 2) : l25Src w = some (if w = 0 then V.n 59 else V.n 70, w) := by
+theorem l25Src_lt2 {w : ℕ} (h : w < 2) : l25Src w = some (if w = 0 then V.n 59 else V.n 63, w) := by
   rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl <;> rfl
 
 theorem l25Src_fresh {w : ℕ} (h1 : 2 ≤ w) (h2 : w < 26) : l25Src w = some (.n 50, w - 2) := by
@@ -210,7 +211,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hchk⟩, hnb⟩, hrin⟩, hcst⟩, hrst⟩, hsrc⟩, hm13⟩,
-    hm59⟩, hm70⟩, hm50⟩, hm57⟩, hl50⟩, hm51⟩, hl57⟩, hm58⟩ := hok
+    hm59⟩, hm63⟩, hm50⟩, hm57⟩, hl50⟩, hm51⟩, hl57⟩, hm58⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N absorb cfresh lfT ccarried lcT cpi hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
@@ -224,7 +225,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   obtain ⟨-, h2, h3, h4, h5, h6, h7⟩ := hps
   have p13 : σ (.n 13) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hat, h2, hx]
   have p59 : σ (.n 59) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hat, h7, hx]
-  have p70 : σ (.n 70) = cpi * x ^ 2 := by rw [monoIs_sound hm70 hat, h7, hx]
+  have p63 : σ (.n 63) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hat, h7, hx]
   have p50 : σ (.n 50) = cfresh * x ^ 24 := by rw [monoIs_sound hm50 hat, h3, hx]
   have p57 : σ (.n 57) = ccarried * x ^ 24 := by rw [monoIs_sound hm57 hat, h5, hx]
   refine ⟨?_, ?_, fun st hp hrow => ?_⟩
@@ -235,12 +236,10 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   -- the chain
   set A := atomsIn (loopPre (coreProgram.getD 443 default))
   set s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
-  obtain ⟨-, hwl, hK, hP, -⟩ := DupSpec.check_facts hchk hat
+  obtain ⟨-, hwl, -, hP, -⟩ := DupSpec.check_facts hchk hat
   have hin := rowIn_sound hrin hat
   rw [p13] at hin
-  have hcan := (DupSpec.keccak_facts (hK 0 (by omega)).2.2 (hK 0 (by omega)).2.1).1
-  rw [hin] at hcan
-  have hperm := rowRel_perm hrow (fun c hc => hcan c (List.mem_append_left _ hc))
+  have hperm := rowRel_perm hrow
   rw [← hin] at hperm
   have hch := DupSpec.chain hchk hat st hp hperm
   -- the words
@@ -257,7 +256,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
       rw [ite_pos' ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
       · rw [ite_pos' rfl, p59]
-      · rw [ite_neg' (show ¬ (1 = 0) by omega), p70]
+      · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
       rw [ite_neg' ha, ite_pos' hb, ← p50]
