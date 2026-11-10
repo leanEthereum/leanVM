@@ -21,7 +21,7 @@
 //!
 //! The plain rendering of a proof hashes nothing and prunes nothing: every count a little-endian
 //! `u32`, every word and position a little-endian `u64`; the stream's length and its elements, each
-//! three words `c0, c1, c2`; the number of phases, and for each its number of paths, and for each
+//! two words `c0, c1`; the number of phases, and for each its number of paths, and for each
 //! path its position, its leaf's length and words, its siblings' count and their 32 bytes each.
 
 use std::io::{BufRead, Write};
@@ -29,7 +29,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use fiat_shamir::merkle::{MerklePath, hash_pair, hash_words, open};
 use fiat_shamir::transcript::Proof;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 #[path = "../../rust-verifier-cli/src/plain.rs"]
 mod plain;
@@ -44,7 +44,7 @@ fn plain(proof: &Proof) -> Vec<u8> {
     let mut out = Vec::new();
     put_u32(&mut out, proof.stream.len());
     for element in &proof.stream {
-        for word in [element.c0, element.c1, element.c2] {
+        for word in [element.c0, element.c1] {
             out.extend(word.to_le_bytes());
         }
     }
@@ -70,7 +70,7 @@ fn plain(proof: &Proof) -> Vec<u8> {
 fn from_plain(bytes: &[u8]) -> Option<Proof> {
     let mut input = Reader(bytes);
     let count = input.u32()?;
-    let stream = input.scalars(count)?.into_iter().map(|[c0, c1, c2]| F192::new(c0, c1, c2)).collect();
+    let stream = input.scalars(count)?.into_iter().map(|[c0, c1]| F128::new(c0, c1)).collect();
     let merkle = input.phases(|leaf_index, leaf, siblings| MerklePath {
         leaf_index,
         leaf: leaf.into_iter().map(F64).collect(),
@@ -89,11 +89,11 @@ fn vector() -> Vec<u8> {
         _ => hash_pair(&leaf(2 * i), &leaf(2 * i + 1)),
     };
     let proof = Proof {
-        stream: vec![F192::new(1, 2, 3)],
+        stream: vec![F128::new(1, 2)],
         merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
     };
     let bytes = proof.to_bytes();
-    assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
+    assert_eq!(bytes.len(), (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
     assert_eq!(Proof::from_bytes(&bytes), Some(proof));
     assert_eq!(Proof::from_bytes(&[&bytes[..], &[0]].concat()), None);
     bytes

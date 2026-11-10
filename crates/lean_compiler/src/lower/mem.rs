@@ -275,7 +275,7 @@ impl FnLower<'_> {
                     return o;
                 }
                 let has = |s: &Self, e: u128| {
-                    let v: F192 = F64::G.pow(e).into();
+                    let v: F128 = F64::G.pow(e).into();
                     s.scope.const_cells.contains_key(&v)
                 };
                 // Start from the base itself or the nearest materialized step below

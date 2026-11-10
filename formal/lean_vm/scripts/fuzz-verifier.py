@@ -22,8 +22,8 @@ The stream's mutation positions come from the Lean verifier's traced run of the 
 openings' from the phases file itself. Each structured case changes one thing:
 
   phase       one bit of the first, middle or last scalar of a phase (low bit of limb 0, top bit
-              of limb 2), of a repeated phase (the Keccak layers) its first and last instances;
-  root        the low bit, or a bit of the (must-be-zero) top limb, of a root half;
+              of limb 1), of a repeated phase (the Keccak layers) its first and last instances;
+  root        the low bit of either limb of a root half;
   nonce       the low bit, the top bit, or a bit of limb 1, of a proof-of-work nonce;
   opening     one bit of a phase's first or last leaf word, its first sibling, its top sibling,
               and of a random path of the phase;
@@ -101,7 +101,8 @@ def instrument(exe: Path, directory: Path) -> dict:
     traced = json.loads(run.stdout)
     events = {"phase": [tuple(p) for p in traced["phase"]], "root": traced["root"],
               "nonce": [tuple(n) for n in traced["nonce"]], "stream_length": traced["stream_length"]}
-    # The root is read between the sizes and the bus; give it a phase of its own.
+    # The root and its out-of-domain sample are read between the sizes and the bus; give them a
+    # phase of their own.
     events["phase"].insert(1, ("root", events["root"][0]))
     return events
 
@@ -187,7 +188,7 @@ def wire_cases(parsed: tuple, events: dict, data: dict, rng: random.Random) -> l
     phase_count_at = 4 + len(wire.stream)
     cases = [("honest", "the honest wire proof", [("set", W, 0, data[W][:4])])]
     for name, first in events["phase"][2::3]:
-        cases.append(("wire", f"wire: {name} scalar {first} limb 0 bit 0", [flip(W, 4 + 24 * first)]))
+        cases.append(("wire", f"wire: {name} scalar {first} limb 0 bit 0", [flip(W, 4 + 16 * first)]))
     cases += [
         ("wire", "wire: stream length + 1", [("set", W, 0, u32(events["stream_length"] + 1))]),
         ("wire", "wire: last byte dropped", [("truncate", W, 1)]),
@@ -242,15 +243,15 @@ def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) 
         if names.index(phase) < index < len(names) - 1 - names[::-1].index(phase):
             continue  # of a repeated phase (the Keccak layers), its first and last instances only
         for position in sorted({first, (first + end) // 2, end - 1}):
-            cases.append(("phase", f"{phase} scalar {position} limb 0 bit 0", [flip(S, 24 * position)]))
-            cases.append(("phase", f"{phase} scalar {position} limb 2 bit 63", [flip(S, 24 * position + 23, 7)]))
+            cases.append(("phase", f"{phase} scalar {position} limb 0 bit 0", [flip(S, 16 * position)]))
+            cases.append(("phase", f"{phase} scalar {position} limb 1 bit 63", [flip(S, 16 * position + 15, 7)]))
     for index, position in enumerate(events["root"]):
         for half in (0, 1):
-            at = 24 * (position + half)
+            at = 16 * (position + half)
             cases.append(("root", f"root {index} half {half} low bit", [flip(S, at)]))
-            cases.append(("root", f"root {index} half {half} limb 2 bit 0", [flip(S, at + 16)]))
+            cases.append(("root", f"root {index} half {half} limb 1 bit 0", [flip(S, at + 8)]))
     for position, bits in events["nonce"]:
-        at = 24 * position
+        at = 16 * position
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) low bit", [flip(S, at)]))
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) bit 63", [flip(S, at + 7, 7)]))
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) limb 1 bit 0", [flip(S, at + 8)]))
@@ -258,7 +259,7 @@ def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) 
         cases.append(("public", f"public input byte {at}", [flip("public_input.bin", at)]))
     stream = data[S]
     for table in range(6):  # the announced row counts, scalars 1..6: the padding rows move
-        at = 24 * (1 + table)
+        at = 16 * (1 + table)
         rows = int.from_bytes(stream[at : at + 8], "little")
         full = 1 << max(rows - 1, 0).bit_length()
         changes = (("one fewer", rows - 1), ("one more", rows + 1), ("none", 0), ("a full table", full), ("above the cap", 2**32 + 1))
@@ -271,11 +272,11 @@ def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) 
                       ("middle byte", len(bytecode) // 2), ("last byte", len(bytecode) - 1)):
         cases.append(("bytecode", f"bytecode {label}", [flip("bytecode.bin", at)]))
     length = [
-        (S, "truncate", 24, "last scalar dropped"),
+        (S, "truncate", 16, "last scalar dropped"),
         (S, "truncate", 1, "stream cut mid-scalar"),
         (S, "truncate", sizes[S], "empty stream"),
-        (S, "append", bytes(24), "zero scalar appended"),
-        (S, "append", bytes(rng.randrange(256) for _ in range(24)), "random scalar appended"),
+        (S, "append", bytes(16), "zero scalar appended"),
+        (S, "append", bytes(rng.randrange(256) for _ in range(16)), "random scalar appended"),
         (S, "append", bytes(5), "partial scalar appended"),
         (M, "truncate", 32, "last sibling dropped"),
         (M, "truncate", 1, "phases cut by one byte"),
@@ -318,10 +319,10 @@ def random_case(events: dict, sizes: dict, data: dict, rng: random.Random):
     scalars = events["stream_length"]
     if kind == "scalar":
         position = rng.randrange(scalars)
-        return ("random-scalar", f"scalar {position} replaced by a random element", [("set", S, 24 * position, rng.randbytes(24))])
+        return ("random-scalar", f"scalar {position} replaced by a random element", [("set", S, 16 * position, rng.randbytes(16))])
     if kind == "zero":
         position = rng.randrange(scalars)
-        return ("random-scalar", f"scalar {position} replaced by zero", [("set", S, 24 * position, bytes(24))])
+        return ("random-scalar", f"scalar {position} replaced by zero", [("set", S, 16 * position, bytes(16))])
     if kind == "swap":
         bounds = [p for p in events["phase"]] + [("end", scalars)]
         spans = [(name, first, end) for (name, first), (_, end) in zip(bounds, bounds[1:]) if end - first >= 2]
@@ -329,7 +330,7 @@ def random_case(events: dict, sizes: dict, data: dict, rng: random.Random):
         i, j = rng.sample(range(first, end), 2)
         stream = data[S]
         return ("random-swap", f"{name} scalars {i} and {j} swapped",
-                [("set", S, 24 * i, stream[24 * j:24 * j + 24]), ("set", S, 24 * j, stream[24 * i:24 * i + 24])])
+                [("set", S, 16 * i, stream[16 * j:16 * j + 16]), ("set", S, 16 * j, stream[16 * i:16 * i + 16])])
     p = rng.randrange(len(events["phases"]))
     n = rng.randrange(len(events["phases"][p]["paths"]))
     path = events["phases"][p]["paths"][n]

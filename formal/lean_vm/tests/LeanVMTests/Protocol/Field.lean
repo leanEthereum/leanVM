@@ -74,7 +74,7 @@ def sampleE : ProbComp E := $ᵗ E
 
 /-! ## Cardinality -/
 
-example : Fintype.card E = 2 ^ 192 := card_E
+example : Fintype.card E = 2 ^ 128 := card_E
 
 end
 end LeanVMTests.Protocol

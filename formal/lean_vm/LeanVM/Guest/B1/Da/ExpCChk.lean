@@ -18,11 +18,11 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.D
 @[expose] public section
 
 /-- **`da_expand`, evaluated**: its computing atoms defined in order from its four arguments up
-to the run's pointer `.n (expB D)`, without a store, canonical without inputs, only their loads
+to the run's pointer `.n (expB D)`, without a store, only their loads
 needing a side condition, their values below it; no `HeapBuf`; its one `frameAddr` the run's. -/
 def expCOk (top D W : ℕ) : Bool :=
   decide (chk 4 ((expBodyA top D).map Stmt.atom) = some (expB D)) &&
-  (storesOf 4 ((expBodyA top D).map Stmt.atom)).isEmpty && canonChk [] (expBodyA top D) &&
+  (storesOf 4 ((expBodyA top D).map Stmt.atom)).isEmpty &&
   (expBodyA top D).all (fun a => !needsSide a || (atomLoad? a).isSome) &&
   (expBodyA top D).all (fun a => a.vals.all fun v => decide (v.idx < expB D)) &&
   (expT top D W).all (fun a => !atomAllocB a) &&

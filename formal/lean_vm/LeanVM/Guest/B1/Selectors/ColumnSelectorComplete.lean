@@ -104,7 +104,7 @@ noncomputable def cskRole (κ o : ℕ) (se sg : E) (p p1 : List E) (rd : Reader)
 /-- The valuation, by value number. -/
 noncomputable def cskVal (κ o : ℕ) (se sg : E) (p p1 : List E) (rd : Reader) (x : ℕ) : E :=
   if x = 0 then gen ^ o else if x = 1 then se else if x = 2 then sg
-  else if κ = 28 then word 1 0 0
+  else if κ = 28 then word 1 0
   else if x < 3 + csN κ then gen ^ cskU κ o (x - 3)
   else if x < csC κ 1 then cskRole κ o se sg p p1 rd 0 (x - csC κ 0)
   else if x < csC κ (csN κ) then
@@ -205,8 +205,8 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {
     subst ho0
     simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
       true_and]
-    have e3 : F 3 = word 1 0 0 := by simp [hF, cskVal]
-    have e4 : F 4 = word 1 0 0 := by simp [hF, cskVal]
+    have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
+    have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
     rw [e3, e4, f0, tb_word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
   have hκ' : κ < 28 := by omega

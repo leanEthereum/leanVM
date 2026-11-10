@@ -1,5 +1,5 @@
 # usage: python3 -I gencshared.py  — writes Tables/VtC/SShT.lean: each table's shared selector
-# tables' statements (G:2218-2228 at 40f877dc) hold on the honest valuation (`vtc_sh{t}`), and the
+# tables' statements (G:2360-2378 at f128) hold on the honest valuation (`vtc_sh{t}`), and the
 # tables' pointers (`vtc_shptr`), from vt_ir.txt (dump.py). The completeness twin of genshared.py.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -14,8 +14,8 @@ def atom(p): return parse_atom(IR[p])
 
 
 def slices():
-    out = []; p = 701
-    while p <= 768:
+    out = []; p = 697
+    while p <= 764:
         q = p
         while not IR[q].startswith('.call "shared_selector_tables"'): q += 1
         out.append((p, q)); p = q + 1
@@ -25,7 +25,7 @@ def slices():
 
 def defs():
     d = {}
-    for p in range(699, 769):
+    for p in range(695, 765):
         a = atom(p)
         if a is None: continue
         op, args = a
@@ -48,7 +48,7 @@ def ptr_rws(v, base):
         rws.append(f'vt_mulAt hl {p} (d := {v}) (x := {x}) (y := {y}) (by norm_num) (by norm_num) (by decide +kernel)')
         c = D[y]
         assert c[1] == 'const'
-        rws.append(f'vt_constAt hl {c[0]} (d := .n {y}) (e := word {c[2][0]} 0 0) (by decide +kernel)')
+        rws.append(f'vt_constAt hl {c[0]} (d := .n {y}) (e := word {c[2][0]} 0) (by decide +kernel)')
         rws.append(W[c[2][0]])
         v = x
     return rws
@@ -66,23 +66,24 @@ def gen():
     eqv = [a[0] for a in call_args]; gv = [a[1] for a in call_args]
     cases = []
     for t in range(6):
-        r1 = ptr_rws(eqv[t], 705); r2 = ptr_rws(gv[t], 706)
+        r1 = ptr_rws(eqv[t], 701); r2 = ptr_rws(gv[t], 702)
         def pr(rws):
             if not rws: return 'by ring'
-            return 'by\n      rw [' + ',\n        '.join(rws) + ']\n      try ring'
-        cases.append(f'  · show σv (.n {eqv[t]}) = σv (.n 705) * gen ^ (288 * {t}) ∧\n'
-                     f'      σv (.n {gv[t]}) = σv (.n 706) * gen ^ (144 * {t})\n'
+            tail = '' if len(rws) == 3 else '\n      ring'
+            return 'by\n      rw [' + ',\n        '.join(rws) + ']' + tail
+        cases.append(f'  · show σv (.n {eqv[t]}) = σv (.n 701) * gen ^ (288 * {t}) ∧\n'
+                     f'      σv (.n {gv[t]}) = σv (.n 702) * gen ^ (144 * {t})\n'
                      f'    exact ⟨{pr(r1)},\n      {pr(r2)}⟩')
     L.append('set_option maxRecDepth 100000 in\n'
              '/-- **The tables\' pointers**: table `t`\'s nibble tables at `shared_eq·g^(288 t)`, '
              '`shared_g·g^(144 t)`. -/\n'
              'theorem vtc_shptr (hl : args.length = 20) : ∀ t < 6,\n'
-             '    σv (.n (vtEqV t)) = σv (.n 705) * gen ^ (288 * t) ∧\n'
-             '      σv (.n (vtGV t)) = σv (.n 706) * gen ^ (144 * t) := by\n'
+             '    σv (.n (vtEqV t)) = σv (.n 701) * gen ^ (288 * t) ∧\n'
+             '      σv (.n (vtGV t)) = σv (.n 702) * gen ^ (144 * t) := by\n'
              '  intro t ht\n  interval_cases t\n' + '\n'.join(cases))
     for t, (p, q) in enumerate(S):
         Lt = []
-        a0 = atom(p); assert a0[0] == 'mul' and a0[1][0] == 9 and a0[1][2] == 30 + t
+        a0 = atom(p); assert a0[0] == 'mul' and a0[1][0] == 9 and a0[1][2] == 27 + t
         v = a0[1][1]
         a1 = atom(p + 1); assert a1 == ('copy', [v + 1, v])
         a2 = atom(p + 2); assert a2[0] == 'const' and a2[1][1][0] == 8589934592
@@ -94,10 +95,10 @@ def gen():
         zp, z1p, sqp = call_args[t][2], call_args[t][3], call_args[t][4]
         def mulq(var, src):
             pp, op, args = D[var]
-            assert op == 'mul' and args == [src, 30 + t], (var, D[var])
-            return f'vt_mulAt hl {pp} (d := {var}) (x := {src}) (y := {30 + t}) (by norm_num) (by norm_num) (by decide +kernel)'
-        Lt.append(f'  have qd : σv (.n {v}) = σv (.n 9) * (σv (.n {30 + t}))⁻¹ := by\n'
-                  f'    have h := vt_goodAt (rd := rd) (w := w) hl {p} (.atom (.mul (.n 9) (.n {v}) (.n {30 + t}))) (by decide +kernel)\n'
+            assert op == 'mul' and args == [src, 27 + t], (var, D[var])
+            return f'vt_mulAt hl {pp} (d := {var}) (x := {src}) (y := {27 + t}) (by norm_num) (by norm_num) (by decide +kernel)'
+        Lt.append(f'  have qd : σv (.n {v}) = σv (.n 9) * (σv (.n {27 + t}))⁻¹ := by\n'
+                  f'    have h := vt_goodAt (rd := rd) (w := w) hl {p} (.atom (.mul (.n 9) (.n {v}) (.n {27 + t}))) (by decide +kernel)\n'
                   f'    simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h')
         Lt.append(f'  have ev : σv (.n {v}) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]')
         Lt.append(f'  have ec : σv (.n {v + 1}) = gen ^ (μ - τ) := by rw [vt_copyAt hl {p + 1} (d := .n {v + 1}) (x := .n {v}) (by decide +kernel), ev]')
@@ -105,15 +106,15 @@ def gen():
                   f'  simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr\n'
                   f'  obtain ⟨r1, r2, r3⟩ := qr\n'
                   f'  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec\n'
-                  f'    (by rw [vt_constAt hl {p + 2} (d := .n {k}) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])\n'
+                  f'    (by rw [vt_constAt hl {p + 2} (d := .n {k}) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])\n'
                   f'    (by omega) (by norm_num)')
         Lt.append(f'  obtain ⟨pe, pg⟩ := vtc_shptr hl {t} (by norm_num)')
         Lt.append(f'  have ez : σv (.n {zp}) = σv (.n 8) * gen ^ τ := by rw [{mulq(zp, 8)}, hkb]')
-        Lt.append(f'  have ez1 : σv (.n {z1p}) = σv (.n 703) * gen ^ τ := by rw [{mulq(z1p, 703)}, hkb]')
+        Lt.append(f'  have ez1 : σv (.n {z1p}) = σv (.n 699) * gen ^ τ := by rw [{mulq(z1p, 699)}, hkb]')
         Lt.append(f'  have esq : σv (.n {sqp}) = σv (.n 12) * gen ^ τ := by rw [{mulq(sqp, 12)}, hkb]')
         call = IR[q]
         Lt.append(f'  refine ⟨vt_blockR hl {p} {q + 1 - p} [\n'
-                  f'    .atom (.mul (.n 9) (.n {v}) (.n {30 + t})),\n'
+                  f'    .atom (.mul (.n 9) (.n {v}) (.n {27 + t})),\n'
                   f'    {rc},\n'
                   f'    {call}] (by decide +kernel) ?_, by\n'
                   f'      rw [show vtShLen {t} = {v + 1} from rfl]; exact ec⟩\n'
@@ -132,11 +133,11 @@ def gen():
         head = (f'set_option maxRecDepth 100000 in\n'
                 f'/-- **Table `{t}`\'s shared selector tables** (`{p} ..< {q + 1}`). -/\n'
                 f'theorem vtc_sh{t} (hl : args.length = 20) (hlow : LowDefB 14 rd) {{μ τ : ℕ}} {{point : List E}}\n'
-                f'    (hkb : σv (.n {30 + t}) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)\n'
+                f'    (hkb : σv (.n {27 + t}) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)\n'
                 f'    (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)\n'
-                f'    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))\n'
+                f'    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))\n'
                 f'    (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)\n'
-                f'    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * {t})) (σv (.n 706) * gen ^ (144 * {t})) (μ - τ)\n'
+                f'    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * {t})) (σv (.n 702) * gen ^ (144 * {t})) (μ - τ)\n'
                 f'      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :\n'
                 f'    (∀ s ∈ (vtPre.drop {p}).take {q + 1 - p}, VSH (coreProgram.Rel rd) rd σv s) ∧\n'
                 f'      σv (.n (vtShLen {t})) = gen ^ (μ - τ) := by')

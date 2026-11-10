@@ -132,36 +132,27 @@ theorem gkStepD_point_length {D : GkStepD} {s : Fs} {st : GkrState} (h : D.Ok s 
 /-- **The pairs, read back**: `k` steps of two levels from the slot before them. -/
 theorem gkrPairs_invT (cap0 xs : List E) (sh : ℕ)
     (hp0 : (gkSl cap0 xs sh 0).2.1.point.length = sh) :
-    ∀ (k : ℕ) (stF : GkrState) (sF : Fs) (rest : List E),
+    ∀ (k : ℕ) (stF : GkrState) (X : TSt),
       runT (gkrPairs k (gkSl cap0 xs sh 0).2.1)
-        ⟨(gkSl cap0 xs sh 0).1, xs.drop (gkSl cap0 xs sh 0).2.2, [], []⟩ =
-          some (stF, ⟨sF, rest, [], []⟩) →
+        ⟨(gkSl cap0 xs sh 0).1, none, xs.drop (gkSl cap0 xs sh 0).2.2, [], []⟩ = some (stF, X) →
       (∀ j < k, (gkD cap0 xs sh j).Ok (gkSl cap0 xs sh j).1 (gkSl cap0 xs sh j).2.1 2 ∧
         xs.drop (gkSl cap0 xs sh j).2.2 =
           (gkD cap0 xs sh j).xs ++ xs.drop (gkSl cap0 xs sh (j + 1)).2.2) ∧
-      stF = (gkSl cap0 xs sh k).2.1 ∧ sF = (gkSl cap0 xs sh k).1 ∧
-      rest = xs.drop (gkSl cap0 xs sh k).2.2 ∧
+      stF = (gkSl cap0 xs sh k).2.1 ∧
+      X = ⟨(gkSl cap0 xs sh k).1, none, xs.drop (gkSl cap0 xs sh k).2.2, [], []⟩ ∧
       (gkSl cap0 xs sh k).2.1.point.length = 2 * k + sh
-  | 0, stF, sF, rest, h => by
+  | 0, stF, X, h => by
     obtain ⟨e1, e2⟩ := runT_pure_some (a := (gkSl cap0 xs sh 0).2.1) h
-    simp only [TSt.mk.injEq] at e2
-    exact ⟨fun j hj => absurd hj (by omega), e1, e2.1, e2.2.1, by simpa using hp0⟩
-  | k + 1, stF, sF, rest, h => by
+    exact ⟨fun j hj => absurd hj (by omega), e1, e2, by simpa using hp0⟩
+  | k + 1, stF, X, h => by
     simp only [gkrPairs] at h
-    obtain ⟨st1, ⟨s1, rest1, os1, R1⟩, h1, h2⟩ := runT_bind_some h
-    have hos : os1 = [] := by
-      obtain ⟨-, opre, -, ho, -⟩ := runT_frame _ _ _ _ h1
-      exact (List.append_eq_nil_iff.mp ho.symm).2
-    have hR : R1 = [] := by
-      obtain ⟨C, hC⟩ := runT_roots _ _ _ _ h2
-      exact (List.append_eq_nil_iff.mp hC.symm).1
-    subst hos hR
-    obtain ⟨hall, rfl, rfl, rfl, hpl⟩ := gkrPairs_invT cap0 xs sh hp0 k _ _ _ h1
-    obtain ⟨D, hok, hd, rfl, rfl⟩ := gkrStep_invT h2 (Or.inl rfl)
+    obtain ⟨st1, X1, h1, h2⟩ := runT_bind_some h
+    obtain ⟨hall, rfl, rfl, hpl⟩ := gkrPairs_invT cap0 xs sh hp0 k _ _ h1
+    obtain ⟨D, rest, hok, hd, rfl, rfl⟩ := gkrStep_invT le_rfl false h2 (Or.inl rfl)
     have hok' := hok
     obtain ⟨hl, h4, h0, h1', h2', -⟩ := hok'
     obtain ⟨rfl, rfl⟩ := gkStepAt_eq hd (hl.trans hpl) h4 h0 h1' h2'
-    refine ⟨fun j hj => ?_, rfl, rfl, rfl, ?_⟩
+    refine ⟨fun j hj => ?_, rfl, rfl, ?_⟩
     · rcases Nat.lt_succ_iff_lt_or_eq.mp hj with hj | rfl
       · exact hall j hj
       · exact ⟨hok, hd⟩
@@ -209,24 +200,19 @@ theorem gk_walk {depth : ℕ} {cap0 xs : List E} {r : E × List E × List E} {sF
   rw [tb_absorb_two] at h9
   have hx1 : (x0 :: x1 :: zs2).getD 1 0 = x1 := rfl
   rcases Nat.mod_two_eq_zero_or_one depth with hsh | hsh
-  · rw [show depth = 2 * (depth / 2) by omega, gkrLayers_even] at h9
+  · rw [show depth = 2 * (depth / 2) by omega, gkrLayers_pairs] at h9
     have h0 : gkSl cap0 (x0 :: x1 :: zs2) (depth % 2) 0 =
         (gkRootS cap0 (x0 :: x1 :: zs2), gkRootSt (x0 :: x1 :: zs2), 2) := by
       simp [gkSl, gkSl0, hsh]
-    obtain ⟨hall, rfl, rfl, hrest, hpl⟩ := gkrPairs_invT cap0 (x0 :: x1 :: zs2) (depth % 2)
-      (by rw [h0, hsh]; rfl) (depth / 2) stF sF [] (by rw [h0]; exact h9)
-    refine ⟨by rw [hx1]; exact hne, by simp, fun h => by omega, hall, hrest.symm, rfl, rfl,
+    obtain ⟨hall, rfl, hX, hpl⟩ := gkrPairs_invT cap0 (x0 :: x1 :: zs2) (depth % 2)
+      (by rw [h0, hsh]; rfl) (depth / 2) stF _ (by rw [h0]; exact h9)
+    have hrest := (congrArg TSt.stream hX).symm
+    obtain rfl : sF = _ := congrArg TSt.sponge hX
+    refine ⟨by rw [hx1]; exact hne, by simp, fun h => by omega, hall, hrest, rfl, rfl,
       by rw [hpl]; omega⟩
   · rw [show depth = 2 * (depth / 2) + 1 by omega, gkrLayers_odd] at h9
-    obtain ⟨st1, ⟨s1, rest1, os1, R1⟩, h11, h12⟩ := runT_bind_some h9
-    have hos : os1 = [] := by
-      obtain ⟨-, opre, -, ho, -⟩ := runT_frame _ _ _ _ h11
-      exact (List.append_eq_nil_iff.mp ho.symm).2
-    have hR : R1 = [] := by
-      obtain ⟨C, hC⟩ := runT_roots _ _ _ _ h12
-      exact (List.append_eq_nil_iff.mp hC.symm).1
-    subst hos hR
-    obtain ⟨D, hok, hd, rfl, rfl⟩ := gkrStep_invT h11 (Or.inr rfl)
+    obtain ⟨st1, X1, h11, h12⟩ := runT_bind_some h9
+    obtain ⟨D, rest1, hok, hd, rfl, rfl⟩ := gkrStep_invT (by norm_num) false h11 (Or.inr rfl)
     have hok' := hok
     obtain ⟨hl, h4, h0', h1', h2', -⟩ := hok'
     obtain ⟨rfl, rfl⟩ := gkStepAt_eq (zs := x0 :: x1 :: zs2) (o := 2) (L := 0) hd
@@ -237,9 +223,11 @@ theorem gk_walk {depth : ℕ} {cap0 xs : List E} {r : E × List E × List E} {sF
           (gkOdd (x0 :: x1 :: zs2)).st' (gkRootS cap0 (x0 :: x1 :: zs2))
             (gkRootSt (x0 :: x1 :: zs2)) 1, 8) := by
       simp [gkSl, gkSl0, hsh]
-    obtain ⟨hall, rfl, rfl, hrest, hpl⟩ := gkrPairs_invT cap0 (x0 :: x1 :: zs2) (depth % 2)
-      (by rw [h0, hsh]; rfl) (depth / 2) stF sF [] (by rw [h0]; exact h12)
-    refine ⟨by rw [hx1]; exact hne, by simp, fun _ => ⟨hok, hd⟩, hall, hrest.symm, rfl, rfl,
+    obtain ⟨hall, rfl, hX, hpl⟩ := gkrPairs_invT cap0 (x0 :: x1 :: zs2) (depth % 2)
+      (by rw [h0, hsh]; rfl) (depth / 2) stF _ (by rw [h0]; exact h12)
+    have hrest := (congrArg TSt.stream hX).symm
+    obtain rfl : sF = _ := congrArg TSt.sponge hX
+    refine ⟨by rw [hx1]; exact hne, by simp, fun _ => ⟨hok, hd⟩, hall, hrest, rfl, rfl,
       by rw [hpl]; omega⟩
 
 end

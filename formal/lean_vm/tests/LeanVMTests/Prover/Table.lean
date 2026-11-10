@@ -7,7 +7,7 @@ Six tables of log-heights `2, 1, 0, 3, 2, 1` (so three rounds), pseudo-random co
 and degree-two forms. The round messages are consistent (each round's values at `0` and `1` sum to
 the previous round's value at its challenge), the first round's sum is the summand summed over the
 cube, the last round's value at its challenge is the terminal value the verifier computes from the
-final evaluations, and the evaluations sent are the `159` columns'.
+final evaluations, and the evaluations sent are the `153` columns'.
 -/
 
 namespace LeanVMTests.Prover.Table
@@ -23,10 +23,10 @@ def tableOf (c : ℕ) : ℕ :=
 
 /-- A pseudo-random element of `E`. -/
 def el (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5)) (K.ofBits (n + 77))
+  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5))
 
 /-- Every global column, `2^τ_t` pseudo-random cells. -/
-def cols : Array (Array K) := Array.ofFn (n := 165) fun c ↦
+def cols : Array (Array K) := Array.ofFn (n := 158) fun c ↦
   Array.ofFn (n := 2 ^ logs.getD (tableOf c.val) 0) fun j ↦
     K.ofBits (c.val * 1000003 + j.val * 7919 + 17)
 
@@ -34,9 +34,9 @@ def cols : Array (Array K) := Array.ofFn (n := 165) fun c ↦
 def form (k : ℕ) : Form :=
   ⟨[([0], el (k + 1)), ([0, 1], el (k + 2)), ([], el (k + 3)), ([2, 2], el (k + 4))]⟩
 
-/-- A bus result: its point and forms (its claims and totals unused). -/
+/-- A bus result: its point and forms (its claims, bytecode point and totals unused). -/
 def bus : BusResult :=
-  ⟨[], [el 10, el 11, el 12, el 13], (List.range 6).map fun t ↦ [form t, form (t + 7), form (t + 13)],
+  ⟨[], [], [el 10, el 11, el 12, el 13], (List.range 6).map fun t ↦ [form t, form (t + 7), form (t + 13)],
     [0, 0, 0]⟩
 
 def xi : E := el 99
@@ -79,7 +79,7 @@ def terminal : E :=
 #guard polyEval (round (st 1)) 0 + polyEval (round (st 1)) 1 == polyEval (round (st 0)) (chal 0)
 #guard polyEval (round (st 2)) 0 + polyEval (round (st 2)) 1 == polyEval (round (st 1)) (chal 1)
 #guard polyEval (round (st 2)) (chal 2) == terminal
-#guard (tableEvals (st 3)).length == 159
+#guard (tableEvals (st 3)).length == 153
 #guard (st 3).free == 0
 
 end LeanVMTests.Prover.Table

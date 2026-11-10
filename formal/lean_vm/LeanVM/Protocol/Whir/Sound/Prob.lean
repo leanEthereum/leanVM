@@ -4,7 +4,7 @@
   Expectations over the challenges of a group (`VerifierProgram.retExp`): their algebra (sequencing,
   monotonicity, sums, constants, independence of the commitments), the uniform tuple drawn by
   `sampleN`, and the query positions drawn by `sampleQueries`: disjoint bit chunks of uniform
-  192-bit samples, i.i.d. uniform on the domain.
+  128-bit samples, i.i.d. uniform on the domain.
 -/
 
 module
@@ -29,7 +29,7 @@ verifier (`LeanVM.Protocol.Verifier.verifyWhir`, transcribing `verify_whir` at l
 * `retExp_sampleN`: `sampleN n` draws a uniform vector of `E^n`;
 * `retExp_sampleQueries_le`: the positions of `sampleQueries depth t` all land in a set `S` with
   probability at most `(|S ∩ [0, 2^depth)| / 2^depth)^t`. Each sample is a uniform `E`, read as a
-  uniform 192-bit integer (`eToNat`, a bijection `E ≃ [0, 2^192)`), whose `⌊192/depth⌋` chunks of
+  uniform 128-bit integer (`eToNat`, a bijection `E ≃ [0, 2^128)`), whose `⌊128/depth⌋` chunks of
   `depth` bits are independent and uniform (`card_chunks`).
 -/
 

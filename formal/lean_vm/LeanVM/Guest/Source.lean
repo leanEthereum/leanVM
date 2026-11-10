@@ -186,10 +186,10 @@ def Func.hasConstParams (f : Func) : Bool :=
   f.params.any fun p => p.kind == .const
 
 /-- A whole program (`Ast`): the functions, and the constant arrays by name, each element the
-three limbs of a word. -/
+two limbs of a word. -/
 structure Program where
   funcs : List Func
-  constArrays : List (String × List (Nat × Nat × Nat))
+  constArrays : List (String × List (Nat × Nat))
   deriving Repr, Inhabited
 
 /-! ## Substitution (`parser/subst.rs`) -/

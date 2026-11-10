@@ -40,8 +40,8 @@ variable {rd : Reader} {σ : Val}
 /-- **A pair hash** (`keccak(path[4l:4l+2], path[4l+2:4l+4], node)`): 64 bytes, the padding run
 `1, 0, 0, 0, 0` as tail and capacity, `0x80 << 56` as cell `8`. -/
 theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
-    (hw : σ w = word (2 ^ 63) 0 0)
+    (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
+    (hw : σ w = word (2 ^ 63) 0)
     (hK : (Atom.keccak [c0, c1, c2, c3, .n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), w,
       .n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)] outs false false).Holds rd σ)
     (ho : 2 ≤ outs.length := by simp) :
@@ -53,26 +53,19 @@ theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
   rw [show pr + 1 + 1 = pr + 2 by omega] at z2
   rw [show pr + 1 + 2 = pr + 3 by omega] at z3
   rw [show pr + 1 + 3 = pr + 4 by omega] at z4
-  refine ⟨fun x hx => ?_, ?_⟩
-  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    have := hKC.1
-    rcases hx with rfl | rfl | rfl | rfl
-    · simpa [cells13] using this 0
-    · simpa [cells13] using this 1
-    · simpa [cells13] using this 2
-    · simpa [cells13] using this 3
-  · have h := (keccak_one (cells := [σ c0, σ c1, σ c2, σ c3]) (len := 64) (by simp) (by decide)
-      (getD_cellsBytes_of_le (by simp))
-      (fun c hc ↦ by
-        fin_cases c <;> simp_all [padCells, xorByte, padRead, rate, byteCell, cells13])
-      (fun c hc ↦ by fin_cases c <;> simp_all [cells13]) hKC).2
-    rw [List.take_of_length_le (by simp)] at h
-    have e0 : O 0 = σ (outs.getD 0 (.n 0)) := by
-      rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 0 (by simp; omega)).symm
-    have e1 : O 1 = σ (outs.getD 1 (.n 0)) := by
-      rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 1 (by simp; omega)).symm
-    rw [e0, e1] at h
-    exact h
+  unfold HashesPair
+  have h := (keccak_one (cells := [σ c0, σ c1, σ c2, σ c3]) (len := 64) (by simp) (by decide)
+    (getD_cellsBytes_of_le (by simp))
+    (fun c hc ↦ by
+      fin_cases c <;> simp_all [padCells, xorByte, padRead, rate, byteCell, cells13])
+    (fun c hc ↦ by fin_cases c <;> simp_all [cells13]) hKC).2
+  rw [List.take_of_length_le (by simp)] at h
+  have e0 : O 0 = σ (outs.getD 0 (.n 0)) := by
+    rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 0 (by simp; omega)).symm
+  have e1 : O 1 = σ (outs.getD 1 (.n 0)) := by
+    rw [List.getD_eq_getElem _ _ (by omega)]; exact (hO 1 (by simp; omega)).symm
+  rw [e0, e1] at h
+  exact h
 
 /-! ## One level -/
 
@@ -96,14 +89,14 @@ theorem oqStepT_mem_keccak (pr ch l K n0 n1 : ℕ) (bit : Bool) :
 the other side of the order bit, the pair a digest's cells, the next node at `K + 1, K + 2`. -/
 theorem oqStep_sound {pr ch l K n0 n1 : ℕ} {bit : Bool}
     (hA : ∀ a, Stmt.atom a ∈ oqStepT pr ch l K n0 n1 bit → a.Holds rd σ)
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {node : Digest}
+    (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {node : Digest}
     (hnode : (σ (.n n0), σ (.n n1)) = digestHalves node) :
     ∃ sib : Digest,
       (σ (.n (ch + 4 * l + (if bit then 0 else 2))),
         σ (.n (ch + 4 * l + (if bit then 0 else 2) + 1))) = digestHalves sib ∧
       (σ (.n (K + 1)), σ (.n (K + 2))) =
         digestHalves (if bit then hashPair sib node else hashPair node sib) := by
-  have a0 := hA _ (by simp [oqStepT] : Stmt.atom (.const (.n K) (word (2 ^ 63) 0 0)) ∈ _)
+  have a0 := hA _ (by simp [oqStepT] : Stmt.atom (.const (.n K) (word (2 ^ 63) 0)) ∈ _)
   have a1 := hA _ (oqStepT_mem_keccak pr ch l K n0 n1 bit)
   simp only [Atom.Holds] at a0
   have hout : ∀ (x y : E), (x, y) = (σ (([V.n (K + 1), V.n (K + 2)]).getD 0 (.n 0)),
@@ -149,7 +142,7 @@ starts from `climbD leaf q sibs0` (`6i` siblings), its levels' pairs off the wal
 siblings `sibs` and the node copied into the match's targets is `climbD leaf q (sibs0 ++ sibs)`. -/
 theorem oqArm_sound {s : Oq} {pr kL ch i a : ℕ}
     (hA : ∀ x, Stmt.atom x ∈ oqArmT s pr kL ch i a → x.Holds rd σ)
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q : ℕ}
+    (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q : ℕ}
     (hbits : ∀ r < oqWw s i, a.testBit r = q.testBit (6 * i + r)) {leaf : Digest}
     {sibs0 : List Digest} (hl0 : sibs0.length = 6 * i)
     (hnode : (σ (.n (oqNd s kL ch i 0)), σ (.n (oqNd s kL ch i 1))) =
@@ -202,7 +195,7 @@ theorem oqWw_le (s : Oq) (i : ℕ) : oqWw s i ≤ 6 := by
 from level `6i`: arm `v` climbs (`oqArm_sound`). -/
 theorem oqWin_sound {s : Oq} {bp : V} {pr kL ch i : ℕ}
     (hA : BlockOk rd σ (oqWinT s bp pr kL ch i))
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q v : ℕ}
+    (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q v : ℕ}
     (hw : σ (.n (oqWk s ch i)) = gen ^ v) (hv : v < 2 ^ oqWw s i)
     (hbits : ∀ r < oqWw s i, v.testBit r = q.testBit (6 * i + r)) {leaf : Digest}
     {sibs0 : List Digest} (hl0 : sibs0.length = 6 * i)
@@ -239,7 +232,7 @@ side hold siblings `sibs` and the node reached, the cap leaf's, is `climbD leaf 
 (`climb`, V:492). -/
 theorem oqPath_sound {s : Oq} {bp : V} {pr kL ch q : ℕ} {leaf : Digest}
     (hA : BlockOk rd σ (oqPathT s bp pr kL ch))
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
+    (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
     (hwin : ∀ i < oqNpw s, ∃ v < 2 ^ oqWw s i, σ (.n (oqWk s ch i)) = gen ^ v ∧
       ∀ r < oqWw s i, v.testBit r = q.testBit (6 * i + r))
     (hleaf : (σ (.n (oqNd s kL ch 0 0)), σ (.n (oqNd s kL ch 0 1))) = digestHalves leaf) :

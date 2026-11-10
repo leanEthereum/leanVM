@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 /-!
 # `eq_prefix_run`, `eq_prefix_chain` (G:1005-1021, TRIAGE #25, #26)
 
-`eq_prefix_run__L{n}` (core function `38 + n`) stores the seed at `chain[0]`, then per coordinate
+`eq_prefix_run__L{n}` (core function `39 + n`) stores the seed at `chain[0]`, then per coordinate
 `k < n` (`epBlk k`) reads `a[k]`, `b1[k]`, multiplies the running product by their sum and stores
 it at `chain[k + 1]`; it returns `0`. `eq_prefix_chain` range-checks `count_g = g^n` below
 `g^41` and dispatches to `eq_prefix_run__L{n}`.
@@ -55,7 +55,7 @@ def epBlk (k : ℕ) : List Stmt :=
 /-- The expansion of `eq_prefix_run__L{n}`. -/
 def epBody (n : ℕ) : List Stmt :=
   [.atom (.load (.n 1) (.n 0) 0)] ++ ((List.range n).map epBlk).flatten ++
-    [.atom (.const (.n (4 + 4 * n)) (word 0 0 0)), .ret [.n (4 + 4 * n)]]
+    [.atom (.const (.n (4 + 4 * n)) (word 0 0)), .ret [.n (4 + 4 * n)]]
 
 /-- What coordinate `k` asks. -/
 def EpOk (rd : Reader) (σ : Val) (k : ℕ) : Prop :=
@@ -414,11 +414,11 @@ theorem eq_prefix_run_holds : eq_prefix_run_Spec := by
 
 /-! ## `eq_prefix_chain` -/
 
-theorem find_eq_prefix_chain : coreProgram.find? "eq_prefix_chain" = some Data.core5 :=
-  Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl
+theorem find_eq_prefix_chain : coreProgram.find? "eq_prefix_chain" = some Data.core4 :=
+  Program.find?_of_indexOf? (j := 4) (by decide +kernel) rfl
 
-theorem core5_body : Fn.body Data.core5 =
-    [.atom (.const (.n 5) (word (2 ^ 40) 0 0)),
+theorem core4_body : Fn.body Data.core4 =
+    [.atom (.const (.n 5) (word (2 ^ 40) 0)),
       .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
       .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
@@ -430,7 +430,7 @@ theorem eq_prefix_chain_holds : eq_prefix_chain_Spec := by
   have hname : ∀ j (hj : j < eqPrefixRunNames.length), eqPrefixRunNames[j] = eqPrefixRunNames.getD j "" :=
     fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
   rw [rel_iff_sem find_eq_prefix_chain,
-    show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, core5_body]
+    show Fn.params Data.core4 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, core4_body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   rw [word_two_pow (by norm_num)]
   constructor

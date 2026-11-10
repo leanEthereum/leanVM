@@ -92,6 +92,40 @@ The algorithm computes $\Enc_{\kappa,\rexp}$ with exactly $\tfrac12 \kappa \blen
 For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\langle \ell \rangle + 2^d j} \novel^{(d)}_j$ collect the coefficients congruent to $\langle \ell \rangle$ modulo $2^d$. Downward induction on $d$ maintains the invariant that after stages $\kappa-1, \dots, d$, $\ \bfarr(v) = \mpoly^{(d)}_{(v_0,\dots,v_{d-1})}\bigl(\Wn{d}(x_v)\bigr)$, where by linearity $\Wn{d}(x_v) = v_d + t$ with $t$ the twiddle of the algorithm (coordinates $c < d$ lie in $\ker \Wn{d} = \subsp_d$, and $\Wn{d}(e_d) = 1$). The base $d = \kappa$ is the tiled initialization. For the step, let $\ell := (v_0, \dots, v_{d-1})$: the order-$(d{+}1)$ even and odd parts of $\mpoly^{(d)}_{\ell}$ are $\mpoly^{(d+1)}_{(\ell,0)}$ and $\mpoly^{(d+1)}_{(\ell,1)}$ (as $\langle \ell \rangle + 2^d(2j+\iota) = \langle (\ell,\iota) \rangle + 2^{d+1} j$), whose values at $\Wn{d+1}(x_v) = \Wn{d+1}(x_{v'})$ are the pre-stage entries $\bfarr(v)$ and $\bfarr(v')$; Lemma~\ref{lem:evenodd} at the fiber $\{t, t+1\}$ of $\ntmap_d$ over this point (Lemma~\ref{lem:chain}) gives $\mpoly^{(d)}_{\ell}(t) = \bfarr(v) + t\,\bfarr(v')$ and $\mpoly^{(d)}_{\ell}(t+1) = \mpoly^{(d)}_{\ell}(t) + \bfarr(v')$, exactly the butterfly. At $d = 0$, $\bfarr(v) = \mpoly(x_v)$. Each of the $\kappa$ stages does $\blen/2$ butterflies of one multiplication and two additions.
 \end{proof}
 
+\subsection{Multiplication by \texorpdfstring{$X$}{X}}\label{sec:ntt-mulx}
+
+The affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$. In the novel basis this is not a shift of the coefficients, but it stays local.
+
+\begin{lemma}[Multiplication by $X$ in the novel basis]\label{lem:mulx}
+For $0\le i<63$ put $\nbc_i:=\vansub_{i+1}(e_{i+1})/\vansub_i(e_i)^2\in\K^\times$. Then
+\[
+\Wn{i}^2=\Wn{i}+\nbc_i\,\Wn{i+1}.
+\]
+Let $c<2^{63}$ have $t$ trailing ones (bits $0,\dots,t-1$ of $c$ are $1$ and bit $t$ is $0$), and put $\nbc_{<j}:=\prod_{i<j}\nbc_i$ ($\nbc_{<0}=1$). Then
+\[
+X\cdot\novel_c\;=\;\sum_{j<t}\nbc_{<j}\,\novel_{c-2^{j}+1}\;+\;\nbc_{<t}\,\novel_{c+1},
+\]
+where $c-2^j+1$ is $c$ with bits $0,\dots,j-1$ cleared; for $t=0$, $X\cdot\novel_c=\novel_{c+1}$. Moreover:
+\begin{enumerate}[itemsep=1pt,label=(\roman*)]
+\item for $\kappa<63$ and $c<2^\kappa$, $\novel_{2^\kappa+c}=\Wn{\kappa}\,\novel_c$;
+\item every index on the right is at least $2^\kappa$ when $c\ge2^\kappa$, so for a polynomial $H=\sum_ch_c\novel_c$ the coefficients of $XH$ of index below $2^\kappa$ depend only on the $h_c$ with $c<2^\kappa$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:subspace}(i), $\vansub_{i+1}=\vansub_i^2+\vansub_i(e_i)\,\vansub_i$. Dividing by $\vansub_i(e_i)^2$ gives $\nbc_i\Wn{i+1}=\Wn{i}^2+\Wn{i}$, the first identity in characteristic $2$ (equivalently $\Wn{i+1}=\ntmap_i\circ\Wn{i}$, Lemma~\ref{lem:chain}, as $\ntmap_i=\nbc_i^{-1}X(X+1)$). The constants lie in $\K$ since the $e_i$ and the subspaces do, and are nonzero by Lemma~\ref{lem:subspace}.
+
+Write $\novel_c=\Wn{0}\cdots\Wn{t-1}\,R$ with $R$ the product of the $\Wn{i}$ over the set bits $i>t$ of $c$, and for $j\le t$ let $S_j:=\Wn{j}\cdot\Wn{j}\Wn{j+1}\cdots\Wn{t-1}\,R$. Since $\Wn{0}=X$, $X\cdot\novel_c=S_0$. For $j<t$ the first identity gives
+\[
+S_j=\bigl(\Wn{j}+\nbc_j\Wn{j+1}\bigr)\,\Wn{j+1}\cdots\Wn{t-1}\,R=\novel_{c-2^j+1}+\nbc_j\,S_{j+1},
+\]
+because $\Wn{j}\cdots\Wn{t-1}R$ is the product over the bits of $c$ from $j$ up. And $S_t=\Wn{t}R=\novel_{c+1}$, since adding $1$ clears bits $0,\dots,t-1$ and sets bit $t$. Unrolling from $S_0$ gives the formula.
+
+(i) is Definition~\ref{def:enc}: bit $\kappa$ of $2^\kappa+c$ is set and its lower bits are those of $c$. For (ii), let $c\ge2^\kappa$. The index $c+1$ exceeds $c$. An index $c-2^j+1$, $j<t$, keeps every bit of $c$ from $j$ up, among them bit $j$, a one. If $j\le\kappa$, it keeps every bit of $c$ at $\kappa$ or above, one of which is set as $c\ge2^\kappa$; if $j>\kappa$, bit $j$ alone makes it at least $2^j>2^\kappa$. Either way the index is at least $2^\kappa$, so a coefficient of index at least $2^\kappa$ only reaches indices at least $2^\kappa$.
+\end{proof}
+
+So $XH$ costs one pass over $H$, with $t+1$ terms for a coefficient whose index has $t$ trailing ones, two on average. Its degree is $\deg H+1$, as the coefficient on $\novel_{c+1}$ is $\nbc_{<t}\neq0$.
+
 \subsection{Column weights}\label{sec:ntt-weights}
 
 A codeword coordinate is a linear combination of the message coefficients. The following factorization lets the PCS verifier evaluate that combination's multilinear weight without running a transform.

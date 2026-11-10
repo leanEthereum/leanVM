@@ -73,11 +73,10 @@ theorem after_readN_ret : ∀ (n : ℕ) {l : List Ev} {xs : List E},
 theorem ofBits_kToNat (k : K) : K.ofBits (kToNat k) = k := by
   cases k; simp [K.ofBits, kToNat, BF64.ofBitVec]
 
-/-- A scalar with zero upper limbs is `eOfNat` of its low limb's value. -/
-theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) (h2 : x.limb 2 = 0) :
-    x = eOfNat (kToNat (x.limb 0)) := by
+/-- A scalar with a zero upper limb is `eOfNat` of its low limb's value. -/
+theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) : x = eOfNat (kToNat (x.limb 0)) := by
   rw [eOfNat, ofBits_kToNat]
-  exact E.ext fun i ↦ by fin_cases i <;> simp [h1, h2]
+  exact E.ext fun i ↦ by fin_cases i <;> simp [h1]
 
 /-- The eight scalars that announce the sizes `s` and the rate `ρ`, as the verifier reads them. -/
 def announce (s : Sizes) (ρ : ℕ) : List E := (s.logMem :: List.ofFn s.rows ++ [ρ]).map eOfNat
@@ -114,13 +113,13 @@ theorem IsPure.after_cons {α : Type} {p : VerifierProgram α} (hp : IsPure p) (
 @[simp] theorem fail_bind' {α β : Type} (f : α → VerifierProgram β) :
     (VerifierProgram.fail : VerifierProgram α).bind f = .fail := rfl
 
-/-- **What `readAnnouncedSizes` returns**: after eight reads whose upper limbs are zero, the rate in
+/-- **What `readAnnouncedSizes` returns**: after eight reads whose upper limb is zero, the rate in
 `[1, 4]` from the last, the layout `buildLayout` gives from the first seven, and a stacked size in
 the window. -/
 theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × ℕ}
     (h : (readAnnouncedSizes bytecode).after l = some (.ret a)) :
     ∃ xs : List E, l = xs.map Ev.read ∧ xs.length = 8 ∧
-      (xs.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) ∧
+      (xs.all fun value ↦ value.limb 1 = 0) ∧
       1 ≤ a.2 ∧ a.2 ≤ 4 ∧ a.2 = kToNat ((xs.getLastD 0).limb 0) ∧
       buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
         (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) = some a.1 ∧
@@ -133,7 +132,7 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
     refine ⟨xs, rfl, by simpa [tables] using hlen, ?_⟩
     have ht : tables.length = 6 := rfl
     rw [ht] at hk
-    by_cases c1 : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true
+    by_cases c1 : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true
     · by_cases c2 : 1 ≤ kToNat ((xs.getLastD 0).limb 0) ∧ kToNat ((xs.getLastD 0).limb 0) ≤ 4
       · cases hb : buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
             (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) with
@@ -160,8 +159,7 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
       cases hk
   · exfalso
     have hpure : IsPure ((fun announced : List E ↦
-        (VerifierProgram.require ((announced.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2
-            = 0)) =
+        (VerifierProgram.require ((announced.all fun value ↦ decide (value.limb 1 = 0)) =
           true)).bind fun _ ↦
         (VerifierProgram.require (1 ≤ kToNat ((announced.getLastD 0).limb 0) ∧
           kToNat ((announced.getLastD 0).limb 0) ≤ 4)).bind fun _ ↦
@@ -218,11 +216,11 @@ theorem readSizes_ret_sizes (prog : LeanIsaProgram) {l : List Ev} {a : Verifier.
         List.nil_append, List.ofFn_succ, List.ofFn_zero]
       rw [hρ]
       simp only [List.getLastD_cons, List.getLastD_nil]
-      obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, ⟨a6, b6⟩, a7, b7⟩ := hall
+      obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7⟩ := hall
       simp only [List.cons.injEq, Ev.read.injEq, and_true]
-      exact ⟨eq_eOfNat_of_limbs a0 b0, eq_eOfNat_of_limbs a1 b1, eq_eOfNat_of_limbs a2 b2,
-        eq_eOfNat_of_limbs a3 b3, eq_eOfNat_of_limbs a4 b4, eq_eOfNat_of_limbs a5 b5,
-        eq_eOfNat_of_limbs a6 b6, eq_eOfNat_of_limbs a7 b7⟩
+      exact ⟨eq_eOfNat_of_limbs a0, eq_eOfNat_of_limbs a1, eq_eOfNat_of_limbs a2,
+        eq_eOfNat_of_limbs a3, eq_eOfNat_of_limbs a4, eq_eOfNat_of_limbs a5,
+        eq_eOfNat_of_limbs a6, eq_eOfNat_of_limbs a7⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Front

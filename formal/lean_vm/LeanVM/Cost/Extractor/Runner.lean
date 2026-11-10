@@ -111,8 +111,7 @@ cost_rewrite keccakRound_shared
     let output ← readFirstCells read r.fp (fun c ↦ LeanVM.Parameters.g ^ c.val * oout)
       outCells.cellCount
     let s := keccakF1600 (stateOfCells input inOdd)
-    guard ((∀ c, IsCanonical128 (input c)) ∧
-      ∀ c : Fin 13, outCells.cellCount ≤ c.val ∨ output c = cellsOfState s outOdd c)
+    guard (∀ c : Fin 13, outCells.cellCount ≤ c.val ∨ output c = cellsOfState s outOdd c)
     pure r.next
 
 theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : LeanIsaInstruction) :
@@ -120,10 +119,10 @@ theorem executeWith_shared (read : K → Option E) (r : Registers K) (i : LeanIs
   cases i with
   | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     have h : ∀ (input output : Fin 13 → E), KeccakCellsRelation input inOdd output outOdd outCells =
-        ((∀ c, IsCanonical128 (input c)) ∧ ∀ c : Fin 13, outCells.cellCount ≤ c.val ∨
+        (∀ c : Fin 13, outCells.cellCount ≤ c.val ∨
           output c = cellsOfState (keccakF1600 (stateOfCells input inOdd)) outOdd c) := by
       intro input output
-      refine propext (and_congr Iff.rfl (forall_congr' fun c ↦ ?_))
+      refine propext (forall_congr' fun c ↦ ?_)
       rw [imp_iff_not_or, Nat.not_lt]
     simp only [executeWith, executeWithShared, h]
   | _ => rfl

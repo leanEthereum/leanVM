@@ -46,27 +46,22 @@ theorem cellsBytes_digestScalars (d : Digest) :
   | [a, b, c, e], _ =>
     simp [cellsBytes, cellBytes, digestHalves, digestBytes, limb_ofLimbs, kBytes_ofLane]
 
-/-- Two canonical cells encode a digest. -/
-theorem exists_digest {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    ∃ d, (a, b) = digestHalves d := by
-  have : digestFromHalves (a, b) =
-      some #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane] := by
-    unfold digestFromHalves
-    simp [ha, hb]
-  exact ⟨_, (digestScalars_digestOfScalars this).symm⟩
+/-- Two cells encode a digest. -/
+theorem exists_digest (a b : E) : ∃ d, (a, b) = digestHalves d :=
+  ⟨_, (digestScalars_digestOfScalars (a, b)).symm⟩
 
 theorem capDigestScalars_injective : Function.Injective digestHalves := fun a b h => by
   have ha := digestOfScalars_digestScalars a
   rw [h, digestOfScalars_digestScalars] at ha
-  exact (Option.some.inj ha).symm
+  exact ha.symm
 
 /-- **A hashed node is `hashPair` of its children's digests.** -/
 theorem hashesPair_digests {l0 l1 r0 r1 p0 p1 : E} (h : HashesPair l0 l1 r0 r1 p0 p1) :
     ∃ dl dr, (l0, l1) = digestHalves dl ∧ (r0, r1) = digestHalves dr ∧
       (p0, p1) = digestHalves (hashPair dl dr) := by
-  obtain ⟨hc, hd⟩ := h
-  obtain ⟨dl, hl⟩ := exists_digest (hc l0 (by simp)) (hc l1 (by simp))
-  obtain ⟨dr, hr⟩ := exists_digest (hc r0 (by simp)) (hc r1 (by simp))
+  have hd := h
+  obtain ⟨dl, hl⟩ := exists_digest l0 l1
+  obtain ⟨dr, hr⟩ := exists_digest r0 r1
   refine ⟨dl, dr, hl, hr, ?_⟩
   rw [hd, hashPair, ← cellsBytes_digestScalars, ← cellsBytes_digestScalars, ← cellsBytes_append]
   simp only [Prod.ext_iff] at hl hr

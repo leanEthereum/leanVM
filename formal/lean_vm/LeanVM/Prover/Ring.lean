@@ -10,15 +10,15 @@ module
 public import Statement.Prover.Whir
 public import LeanVM.Prover.Corr
 public import LeanVM.Protocol.EndToEnd.Complete.Ring
+public import LeanVM.Protocol.RingVerifier
 
 /-!
 # Ring switching
 
 `corr_ringFast`: `ringFast point slices` makes the moves of the specification's
-`hRing point slices` (six challenges, nothing sent), and the specification's result is the
-target with the weight `ringWeight point · (ringCoefficients challenges)` of the executable's
-result; the claim description of the result (`RingOut.claim`) denotes the specification's ring
-claim on the stack (`denote_ringOut_claim`).
+`hRing point slices` (a grind and sixteen challenges, nothing sent), and the specification's
+result is the target with the weight `ringWeight point · (ringCoefficients f g)` of the
+executable's result.
 -/
 
 namespace LeanVM.Prover
@@ -39,16 +39,20 @@ theorem corr_sampleN : ∀ n : ℕ,
     obtain ⟨rfl, hl⟩ := h
     exact ⟨rfl, by simp [hl]⟩
 
+attribute [local irreducible] Corr in
 /-- **The executable ring switching makes the specification's moves**, and the specification's
-result is the target with the weight of the executable's point and coefficients. -/
+result is the target with the weight of the executable's point and challenges. -/
 theorem corr_ringFast (point slices : List E) :
     Corr (fun a b ↦ b = (a.target, fun rPrime ↦ ringWeight a.point rPrime
-        (ringCoefficients a.challenges)) ∧ a.point = point ∧ a.challenges.length = 6)
+        (Protocol.Ring.ringCoefficients a.f a.g)) ∧ a.point = point ∧ a.f.length = 8 ∧
+        a.g.length = 8)
       (ringFast point slices) (hRing point slices) := by
-  simp only [ringFast, hRing, Script.bind_eq, Script.pure_eq]
+  simp only [ringFast, hRing, Script.bind_eq, Script.pure_eq, show ringMapWidth = 8 from rfl]
+  refine Corr.bind_same _ fun _ ↦ ?_
   refine Corr.bind (fun a b h ↦ ?_) _ _ (corr_sampleN _)
   obtain ⟨rfl, hl⟩ := h
-  exact ⟨rfl, rfl, hl⟩
+  refine Corr.ret_ret ⟨?_, rfl, by simp [hl], by simp [hl]⟩
+  rw [Protocol.Ring.verifier_ringTarget]
 
 end
 end LeanVM.Prover

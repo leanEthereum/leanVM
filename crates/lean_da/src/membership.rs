@@ -11,8 +11,9 @@
 //!
 //! For a fixed invalid row `w`, `⟨L,w⟩ = Σ_i z^i ⟨X_i,w⟩` is a nonzero polynomial in `z`
 //! of degree below `k`. A uniform challenge accepts it with probability at most
-//! `(k-1)/2^192`. The verifier crate derives `z` from the root, outside the SNARK, and the
-//! statement binds it; the guest builds `L` from `z` and checks the inner products.
+//! `(k-1)/2^128`, which the grind before `z` (`verifier::da`) lifts to `2^-SECURITY_BITS`. `z` is derived from
+//! the root outside the SNARK, and the statement binds it; the guest builds `L` from `z` and
+//! checks the inner products.
 
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::F64;
@@ -34,13 +35,13 @@ pub fn subspace_above() -> impl Fn(usize, usize) -> F64 {
 mod tests {
     use super::*;
     use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, encode_rows};
-    use primitives::field::{F192, powers};
+    use primitives::field::{F128, powers};
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
     /// `L` over the whole domain as the guest builds it: at each point, the product of its factors.
-    fn dual_codeword(z: F192) -> Vec<F192> {
+    fn dual_codeword(z: F128) -> Vec<F128> {
         let vhat = subspace_above();
-        let z_powers: Vec<F192> = std::iter::successors(Some(z), |&p| Some(p * p))
+        let z_powers: Vec<F128> = std::iter::successors(Some(z), |&p| Some(p * p))
             .take(DA_LOG_K)
             .collect();
         (0..CODEWORD_SYMBOLS)
@@ -48,7 +49,7 @@ mod tests {
                 (0..DA_LOG_K)
                     .map(|j| {
                         let at = F64((i >> j) as u64 & 1) + vhat(j, i >> (j + 1));
-                        F192::ONE + z_powers[j].mul_base(at)
+                        F128::ONE + z_powers[j].mul_base(at)
                     })
                     .product()
             })
@@ -56,16 +57,16 @@ mod tests {
     }
 
     /// Test every row against the vector of a random challenge.
-    fn check_membership(z: F192, codewords: &[u64]) -> bool {
+    fn check_membership(z: F128, codewords: &[u64]) -> bool {
         let dual = dual_codeword(z);
         codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
-            let residual = dual.iter().zip(row).map(|(&l, &w)| l.mul_base(F64(w))).sum::<F192>();
-            residual == F192::ZERO
+            let residual = dual.iter().zip(row).map(|(&l, &w)| l.mul_base(F64(w))).sum::<F128>();
+            residual == F128::ZERO
         })
     }
 
-    fn random_challenge(rng: &mut StdRng) -> F192 {
-        F192::new(rng.random(), rng.random(), rng.random())
+    fn random_challenge(rng: &mut StdRng) -> F128 {
+        F128::new(rng.random(), rng.random())
     }
 
     fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
@@ -94,7 +95,7 @@ mod tests {
         let dual = dual_codeword(z);
         let want = powers(z, BLOB_SYMBOLS);
         let ntt = AdditiveNttF64::standard(LOG_M);
-        for limb in 0..3 {
+        for limb in 0..2 {
             let mut coefficients: Vec<F64> = dual.iter().map(|v| F64(v.to_limbs()[limb])).collect();
             ntt.inverse_transform(&mut coefficients);
             let (low, high) = coefficients.split_at(BLOB_SYMBOLS);

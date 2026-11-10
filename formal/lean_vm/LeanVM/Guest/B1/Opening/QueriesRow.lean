@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesRow
 
-  One query's row: its packs and its dot product with the row weights.
+  One query's row: its packs, its fold at the point, and the final level's check.
 -/
 
 module
@@ -10,11 +10,15 @@ public import LeanVM.Guest.B1.Opening.QueriesT
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# A query's row (`opening_query`, G:1346-1385)
+# A query's row, fold and final check (`opening_query`)
 
-* `oqPack_sound`: the packs put each pair of row words in `K` and make the packed cell
-  `E.ofLimbs` of their limbs (`pack64x2`); `oqRow b R σ` is the row's `K` words.
-* `oqDot_sound`: the dot product is `rowDot base I (oqRow …) w`, `w` the weights read at `wp`.
+* `oqPack_sound`: a level-0 pack puts its two row words in `K` and makes the packed cell
+  `E.ofLimbs` of their limbs (`pack64x2`); `oqRow s b σ` is the row's `K` words (level 0: the
+  cells' low limbs; deeper: both limbs of each cell, `extRow`'s inverse).
+* `oqFold_sound`: the fold's value is `foldRowE` of the lanes (the cells, reversed at level 0) at
+  the point, the rounds read at `coefs`, none of their combiners vanishing (`FoldAlg.guestFold_value`).
+* `oqFin_sound`: the final check's coefficients are read at `hs` and the fold's value is
+  `novelSum` of them over `wsChain` at the point.
 -/
 
 namespace LeanVM.Guest.B1
@@ -28,267 +32,421 @@ variable {rd : Reader} {σ : Val}
 
 /-! ## Atoms -/
 
-theorem oqRowT_atoms (b R : ℕ) : AllAtoms (oqRowT b R) := allAtoms_cons allAtoms_nil
+theorem oqRowT_atoms (b I : ℕ) : AllAtoms (oqRowT b I) := allAtoms_cons allAtoms_nil
 
-theorem oqPackT_atoms (b R j : ℕ) : AllAtoms (oqPackT b R j) := by
+theorem oqPackT_atoms (b I j : ℕ) : AllAtoms (oqPackT b I j) := by
   unfold oqPackT
   exact allAtoms_cons (allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil)))
 
-theorem oqPacksT_atoms (b R : ℕ) : AllAtoms (oqPacksT b R) :=
+theorem oqPacksT_atoms (b I : ℕ) : AllAtoms (oqPacksT b I) :=
   allAtoms_map_flatten fun _ _ => oqPackT_atoms _ _ _
 
-theorem oqWordT_atoms (s : Oq) (b jw t : ℕ) : AllAtoms (oqWordT s b jw t) := by
-  unfold oqWordT
-  split <;> exact allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil))
+theorem oqPrepT_atoms (s : Oq) (b : ℕ) : AllAtoms (oqPrepT s b) := by
+  unfold oqPrepT
+  refine allAtoms_append (oqRowT_atoms _ _) ?_
+  split
+  · exact oqPacksT_atoms _ _
+  · exact allAtoms_nil
 
-theorem oqTermT_atoms (s : Oq) (wp : V) (b h l : ℕ) : AllAtoms (oqTermT s wp b h l) := by
-  unfold oqTermT
-  refine allAtoms_append (allAtoms_append ?_ (allAtoms_cons (allAtoms_cons allAtoms_nil))) ?_
-  · split
-    · exact allAtoms_nil
-    · exact oqWordT_atoms _ _ _ _
+theorem oqRoundT_atoms (s : Oq) (coefs x : V) (b F j : ℕ) : AllAtoms (oqRoundT s coefs x b F j) := by
+  unfold oqRoundT
+  refine allAtoms_append (allAtoms_append ?_ ?_) (allAtoms_map_flatten fun _ _ =>
+    allAtoms_cons (allAtoms_cons allAtoms_nil))
+  · repeat' apply allAtoms_cons
+    exact allAtoms_nil
   · split
     · exact allAtoms_nil
     · exact allAtoms_cons allAtoms_nil
 
-theorem oqGroupT_atoms (s : Oq) (wp : V) (b h : ℕ) : AllAtoms (oqGroupT s wp b h) := by
-  unfold oqGroupT
-  refine allAtoms_append (allAtoms_append (allAtoms_map_flatten fun _ _ => oqTermT_atoms _ _ _ _ _)
-    (allAtoms_cons (allAtoms_cons allAtoms_nil))) ?_
-  split
-  · exact allAtoms_nil
-  · exact allAtoms_cons allAtoms_nil
+theorem oqFoldT_atoms (s : Oq) (coefs x : V) (b F : ℕ) : AllAtoms (oqFoldT s coefs x b F) :=
+  allAtoms_append (allAtoms_map_flatten fun _ _ => oqRoundT_atoms _ _ _ _ _ _)
+    (allAtoms_cons allAtoms_nil)
 
-theorem oqDotT_atoms (s : Oq) (wp : V) (b : ℕ) : AllAtoms (oqDotT s wp b) :=
-  allAtoms_map_flatten fun _ _ => oqGroupT_atoms _ _ _ _
+theorem oqWsT_atoms (s : Oq) (x : V) (v : ℕ) : AllAtoms (oqWsT s x v) :=
+  allAtoms_cons (allAtoms_map_flatten fun _ _ =>
+    allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil)))
 
-/-! ## The packs -/
+theorem nvLevel0T_atoms (hs w : V) (n k : ℕ) : AllAtoms (nvLevel0T hs w n k) :=
+  allAtoms_map_flatten fun _ _ =>
+    allAtoms_cons (allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil)))
 
-/-- The row's `K` words: the hinted words' low limbs. -/
-def oqRow (b R : ℕ) (σ : Val) : List K := (List.range R).map fun i ↦ (σ (.n (b + i))).limb 0
+theorem nvLevelT_atoms (w : V) : ∀ (ins : List ℕ) (k : ℕ), AllAtoms (nvLevelT w ins k).1
+  | lo :: hi :: rest, k => by
+    rw [nvLevelT]
+    exact allAtoms_append (allAtoms_cons (allAtoms_cons allAtoms_nil)) (nvLevelT_atoms w rest (k + 2))
+  | [_], _ => allAtoms_cons allAtoms_nil
+  | [], _ => allAtoms_nil
 
-theorem mem_oqPacksT {b R j : ℕ} (hj : j < R / 2) {a : Atom} (h : Stmt.atom a ∈ oqPackT b R j) :
-    Stmt.atom a ∈ oqPacksT b R :=
+theorem nvLevelsT_atoms (ws : ℕ → ℕ) : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ),
+    AllAtoms (nvLevelsT ws c i ins k).1
+  | 0, _, _, _ => allAtoms_nil
+  | c + 1, i, ins, k => by
+    rw [nvLevelsT]
+    exact allAtoms_append (nvLevelT_atoms _ _ _) (nvLevelsT_atoms ws c _ _ _)
+
+theorem oqNovel_atoms (s : Oq) (hs : V) (v : ℕ) : AllAtoms (oqNovel s hs v).1 :=
+  allAtoms_append (nvLevel0T_atoms _ _ _ _) (nvLevelsT_atoms _ _ _ _ _)
+
+theorem oqFinT_atoms (s : Oq) (x hs : V) (v : ℕ) : AllAtoms (oqFinT s x hs v) :=
+  allAtoms_append (allAtoms_append (oqWsT_atoms _ _ _) (oqNovel_atoms _ _ _))
+    (allAtoms_cons (allAtoms_cons allAtoms_nil))
+
+/-! ## The row and the packs -/
+
+/-- The row's `K` words: at level 0 the cells' low limbs, deeper both limbs of each cell. -/
+def oqRow (s : Oq) (b : ℕ) (σ : Val) : List K :=
+  if s.base = 1 then (List.range s.I).map fun j ↦ (σ (.n (b + j))).limb 0
+  else (List.range s.I).flatMap fun j ↦ [(σ (.n (b + j))).limb 0, (σ (.n (b + j))).limb 1]
+
+/-- The row's cells, as hinted. -/
+def oqCells (s : Oq) (b : ℕ) (σ : Val) : List E := (List.range s.I).map fun j ↦ σ (.n (b + j))
+
+/-- The lanes the guest folds: the cells, reversed at level 0. -/
+def oqLanes (s : Oq) (b : ℕ) (σ : Val) : List E :=
+  if s.base = 1 then (oqCells s b σ).reverse else oqCells s b σ
+
+theorem mem_oqPacksT {b I j : ℕ} (hj : j < I / 2) {a : Atom} (h : Stmt.atom a ∈ oqPackT b I j) :
+    Stmt.atom a ∈ oqPacksT b I :=
   List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩, h⟩
 
 /-- **A pack** (`pack64x2(row[2j], row[2j+1])`): both words in `K`, the packed cell the cell of
 their limbs. -/
-theorem oqPack_sound {b R j : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPacksT b R → a.Holds rd σ)
-    (hj : j < R / 2) :
+theorem oqPack_sound {b I j : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPacksT b I → a.Holds rd σ)
+    (hj : j < I / 2) :
     IsInK (σ (.n (b + 2 * j))) ∧ IsInK (σ (.n (b + 2 * j + 1))) ∧
-      σ (.n (oqPk b R j)) =
-        E.ofLimbs ((σ (.n (b + 2 * j))).limb 0) ((σ (.n (b + 2 * j + 1))).limb 0) 0 := by
+      σ (.n (b + I + 3 * j + 2)) =
+        E.ofLimbs ((σ (.n (b + 2 * j))).limb 0) ((σ (.n (b + 2 * j + 1))).limb 0) := by
   have h1 := hA _ (mem_oqPacksT hj (by simp [oqPackT]) :
     Stmt.atom (.assertInK (.n (b + 2 * j)) (.n (b + 2 * j + 1))) ∈ _)
   have h2 := hA _ (mem_oqPacksT hj (by simp [oqPackT]) :
-    Stmt.atom (.const (.n (b + R + 3 * j)) (word 0 1 0)) ∈ _)
+    Stmt.atom (.const (.n (b + I + 3 * j)) (word 0 1)) ∈ _)
   have h3 := hA _ (mem_oqPacksT hj (by simp [oqPackT]) :
-    Stmt.atom (.mul (.n (b + R + 3 * j + 1)) (.n (b + R + 3 * j)) (.n (b + 2 * j + 1))) ∈ _)
+    Stmt.atom (.mul (.n (b + I + 3 * j + 1)) (.n (b + I + 3 * j)) (.n (b + 2 * j + 1))) ∈ _)
   have h4 := hA _ (mem_oqPacksT hj (by simp [oqPackT]) :
-    Stmt.atom (.add (.n (b + R + 3 * j + 2)) (.n (b + 2 * j)) (.n (b + R + 3 * j + 1))) ∈ _)
+    Stmt.atom (.add (.n (b + I + 3 * j + 2)) (.n (b + 2 * j)) (.n (b + I + 3 * j + 1))) ∈ _)
   simp only [Atom.Holds] at h1 h2 h3 h4
   refine ⟨h1.1, h1.2, ?_⟩
-  rw [oqPk, h4, h3, h2, word_y]
+  rw [h4, h3, h2, word_y]
   exact pack64x2_eq h1.1 h1.2
 
+/-! ## The fold -/
 
-/-! ## The dot product -/
+theorem mem_oqFoldT_round {s : Oq} {coefs x : V} {b F j : ℕ} (hj : j < s.folds) {a : Atom}
+    (h : Stmt.atom a ∈ oqRoundT s coefs x b F j) : Stmt.atom a ∈ oqFoldT s coefs x b F :=
+  List.mem_append_left _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩, h⟩)
 
-/-- The deployed row shapes: level 0 (`base = 1`, `I = 64`) and deeper (`base = 0`, `I = 16`). -/
-def Oq.RowShape (s : Oq) : Prop := (s.base = 1 ∧ s.I = 64) ∨ (s.base = 0 ∧ s.I = 16)
+theorem mem_oqRoundT_head {s : Oq} {coefs x : V} {b F j : ℕ} {a : Atom}
+    (h : Stmt.atom a ∈ [Stmt.atom (.load (.n (oqRK s F j)) coefs (3 * j)),
+      .atom (.load (.n (oqRK s F j + 1)) coefs (3 * j + 1)),
+      .atom (.mul (.n (oqRK s F j + 2)) (.n (oqRK s F j + 1)) x),
+      .atom (.add (.n (oqRK s F j + 3)) (.n (oqRK s F j)) (.n (oqRK s F j + 2))),
+      .atom (.load (.n (oqRK s F j + 4)) coefs (3 * j + 2)),
+      .atom (.const (.n (oqRK s F j + 5)) (word 1 0)),
+      .atom (.mul (.n (oqRK s F j + 5)) (.n (oqRK s F j + 6)) (.n (oqRK s F j + 3))),
+      .atom (.add (.n (oqRK s F j + 7)) (.n (oqRK s F j + 4)) (.n (oqRK s F j + 6)))]) :
+    Stmt.atom a ∈ oqRoundT s coefs x b F j := by
+  unfold oqRoundT
+  exact List.mem_append_left _ (List.mem_append_left _ h)
 
-/-- `rowDot` with the words given as a function. -/
-def dotSum (I lo : ℕ) (W w : ℕ → E) : E :=
-  ((List.range (I / lo)).map fun h ↦ w (lo + h) *
-    ((List.range lo).map fun l ↦ W (lo * h + l) * w l).foldl (· + ·) 0).foldl (· + ·) 0
+theorem mem_oqRoundT_scale {s : Oq} {coefs x : V} {b F j : ℕ} (hj : j ≠ 0) :
+    Stmt.atom (.mul (.n (oqRK s F j + 8)) (.n (oqScale s F (j - 1))) (.n (oqRK s F j + 3))) ∈
+      oqRoundT s coefs x b F j := by
+  unfold oqRoundT
+  exact List.mem_append_left _ (List.mem_append_right _ (by simp [hj]))
 
-theorem rowDot_eq (base I : ℕ) (row : List K) (w : ℕ → E) :
-    rowDot base I row w = dotSum I (rowLo I) (rowWord base row) w := rfl
+theorem mem_oqRoundT_out {s : Oq} {coefs x : V} {b F j m : ℕ} (hm : m < 2 ^ (s.folds - 1 - j))
+    {a : Atom} (h : Stmt.atom a ∈ [Stmt.atom (.mul (.n (oqRO s F j + 2 * m)) (.n (oqRK s F j + 7))
+        (.n (oqLoHi s b F j m).2)),
+      .atom (.add (.n (oqRO s F j + 2 * m + 1)) (.n (oqLoHi s b F j m).1) (.n (oqRO s F j + 2 * m)))]) :
+    Stmt.atom a ∈ oqRoundT s coefs x b F j := by
+  unfold oqRoundT
+  exact List.mem_append_right _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨m, List.mem_range.mpr hm, rfl⟩, h⟩)
 
-theorem foldl_range_succ (f : ℕ → E) (n : ℕ) :
-    ((List.range (n + 1)).map f).foldl (· + ·) 0 = ((List.range n).map f).foldl (· + ·) 0 + f n := by
-  rw [List.range_succ, List.map_append, List.foldl_append]
-  rfl
+/-- The rounds a fold reads: round `j`'s `θ, α, β` at its values `K + 4, K, K + 1`. -/
+def oqRounds (s : Oq) (F : ℕ) (σ : Val) : List FoldRound :=
+  (List.range s.folds).map fun j ↦
+    ⟨σ (.n (oqRK s F j + 4)), σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩
 
-theorem mem_oqDotT {s : Oq} {wp : V} {b h : ℕ} (hh : h < s.I / s.lo) {a : Atom}
-    (ha : Stmt.atom a ∈ oqGroupT s wp b h) : Stmt.atom a ∈ oqDotT s wp b :=
-  List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨h, List.mem_range.mpr hh, rfl⟩, ha⟩
+theorem oqRounds_getD {s : Oq} {F : ℕ} {σ : Val} {j : ℕ} (hj : j < s.folds) :
+    (oqRounds s F σ).getD j ⟨0, 0, 0⟩ =
+      ⟨σ (.n (oqRK s F j + 4)), σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩ := by
+  simp [oqRounds, List.getD_eq_getElem?_getD, hj]
 
-theorem mem_oqGroupT_term {s : Oq} {wp : V} {b h l : ℕ} (hl : l < s.lo) {a : Atom}
-    (ha : Stmt.atom a ∈ oqTermT s wp b h l) : Stmt.atom a ∈ oqGroupT s wp b h := by
-  unfold oqGroupT
-  exact List.mem_append_left _ (List.mem_append_left _
-    (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨l, List.mem_range.mpr hl, rfl⟩, ha⟩))
+/-- **The fold** (`opening_query`'s rounds): its value is `foldRowE` of the lanes at the point,
+the rounds read at `coefs`, no combiner vanishing. -/
+theorem oqFold_sound {s : Oq} (hf : 1 ≤ s.folds) {coefs x : V} {b F : ℕ}
+    (hA : ∀ a, Stmt.atom a ∈ oqFoldT s coefs x b F → a.Holds rd σ) :
+    RoundsAt rd (σ coefs) (oqRounds s F σ) ∧
+      (∀ r ∈ oqRounds s F σ, r.alpha + r.beta * σ x ≠ 0) ∧
+      σ (.n (oqVal s F)) = foldRowE (oqLanes s b σ) (σ x) (oqRounds s F σ) := by
+  have hR : ∀ j < s.folds, ∀ a, Stmt.atom a ∈ oqRoundT s coefs x b F j → a.Holds rd σ :=
+    fun j hj a h ↦ hA a (mem_oqFoldT_round hj h)
+  -- each round's head
+  have head : ∀ j < s.folds,
+      LoadHolds rd (σ coefs) (3 * j) (σ (.n (oqRK s F j))) ∧
+      LoadHolds rd (σ coefs) (3 * j + 1) (σ (.n (oqRK s F j + 1))) ∧
+      LoadHolds rd (σ coefs) (3 * j + 2) (σ (.n (oqRK s F j + 4))) ∧
+      σ (.n (oqRK s F j + 3)) = σ (.n (oqRK s F j)) + σ (.n (oqRK s F j + 1)) * σ x ∧
+      σ (.n (oqRK s F j + 3)) ≠ 0 ∧
+      σ (.n (oqRK s F j + 7)) = σ (.n (oqRK s F j + 4)) + (σ (.n (oqRK s F j + 3)))⁻¹ := by
+    intro j hj
+    have g : ∀ a, Stmt.atom a ∈ _ → a.Holds rd σ := fun a h ↦ hR j hj a (mem_oqRoundT_head h)
+    have l0 := g _ (List.mem_cons_self ..)
+    have l1 := g _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+    have m2 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+    have a3 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_self ..))))
+    have l4 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_self ..)))))
+    have c5 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))
+    have m5 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+        (List.mem_cons_self ..)))))))
+    have a7 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+        (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))))
+    simp only [Atom.Holds] at l0 l1 m2 a3 l4 c5 m5 a7
+    rw [c5, word_one] at m5
+    have hne : σ (.n (oqRK s F j + 3)) ≠ 0 := fun h0 ↦ by
+      rw [h0, mul_zero] at m5; exact one_ne_zero m5
+    have hinv : σ (.n (oqRK s F j + 6)) = (σ (.n (oqRK s F j + 3)))⁻¹ :=
+      eq_inv_of_mul_eq_one_left m5.symm
+    exact ⟨l0, l1, l4, by rw [a3, m2], hne, by rw [a7, hinv]⟩
+  have hlen : (oqRounds s F σ).length = s.folds := by simp [oqRounds]
+  refine ⟨fun j hj ↦ ?_, fun r hr ↦ ?_, ?_⟩
+  · rw [hlen] at hj
+    rw [oqRounds_getD hj]
+    exact ⟨(head j hj).1, (head j hj).2.1, (head j hj).2.2.1⟩
+  · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hr
+    have hj' := List.mem_range.mp hj
+    rw [← (head j hj').2.2.2.1]
+    exact (head j hj').2.2.2.2.1
+  · have hlast := hA _ (List.mem_append_right _ (List.mem_singleton_self _) :
+      Stmt.atom (.mul (.n (oqVal s F)) (.n (oqScale s F (s.folds - 1)))
+        (.n (oqAcc s F (s.folds - 1) 0))) ∈ oqFoldT s coefs x b F)
+    simp only [Atom.Holds] at hlast
+    rw [hlast]
+    have hI : s.I = 2 ^ s.folds := rfl
+    refine guestFold_value hlen hf (by simp [oqLanes, oqCells, hI]; split <;> simp)
+      (acc := fun j m ↦ σ (.n (oqAcc s F j m))) (scale := fun j ↦ σ (.n (oqScale s F j)))
+      (ts := fun j ↦ σ (.n (oqRK s F j + 3))) (rs := fun j ↦ σ (.n (oqRK s F j + 7)))
+      (fun j hj ↦ by rw [oqRounds_getD hj]; exact (head j hj).2.2.2.1)
+      (fun j hj ↦ (head j hj).2.2.2.2.1)
+      (fun j hj ↦ by rw [oqRounds_getD hj]; exact (head j hj).2.2.2.2.2)
+      rfl (fun j hj ↦ ?_) (fun m hm ↦ ?_) (fun j hj m hm ↦ ?_)
+    · have h := hR (j + 1) hj _ (mem_oqRoundT_scale (Nat.succ_ne_zero j))
+      simp only [Atom.Holds] at h
+      simp only [oqScale, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel] at h ⊢
+      exact h
+    · have hm' : m < 2 ^ (s.folds - 1 - 0) := by simpa using hm
+      have hmul := hR 0 (by omega) _ (mem_oqRoundT_out hm' (List.mem_cons_self ..))
+      have hadd := hR 0 (by omega) _ (mem_oqRoundT_out hm' (List.mem_cons_of_mem _
+        (List.mem_cons_self ..)))
+      simp only [Atom.Holds] at hmul hadd
+      simp only [oqAcc]
+      rw [hadd, hmul]
+      have h2m : 2 * m + 1 < s.I := by
+        have : 2 ^ s.folds = 2 * 2 ^ (s.folds - 1) := by rw [← pow_succ']; congr 1; omega
+        rw [hI]; omega
+      unfold oqLoHi oqLanes oqCells
+      by_cases hb : s.base = 1
+      · simp only [hb, ↓reduceIte, List.getD_eq_getElem?_getD, List.getElem?_reverse,
+          List.length_map, List.length_range, List.getElem?_map, List.getElem?_range,
+          show 2 * m < s.I by omega, h2m, show s.I - 1 - 2 * m < s.I by omega,
+          show s.I - 1 - (2 * m + 1) < s.I by omega, Option.map_some, Option.getD_some]
+        rw [show s.I - 1 - (2 * m + 1) = s.I - 2 - 2 * m by omega,
+          show b + (s.I - 1 - 2 * m) = b + s.I - 1 - 2 * m by omega,
+          show b + (s.I - 2 - 2 * m) = b + s.I - 2 - 2 * m by omega]
+      · simp only [hb, ↓reduceIte, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range,
+          show 2 * m < s.I by omega, h2m, Option.map_some, Option.getD_some, ← Nat.add_assoc]
+    · have e : s.folds - 2 - j = s.folds - 1 - (j + 1) := by omega
+      have hm' : m < 2 ^ (s.folds - 1 - (j + 1)) := by rw [← e]; exact hm
+      have hmul := hR (j + 1) hj _ (mem_oqRoundT_out hm' (List.mem_cons_self ..))
+      have hadd := hR (j + 1) hj _ (mem_oqRoundT_out hm' (List.mem_cons_of_mem _
+        (List.mem_cons_self ..)))
+      simp only [Atom.Holds] at hmul hadd
+      simp only [oqAcc]
+      rw [hadd, hmul]
+      simp only [oqLoHi, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel, oqAcc]
 
-/-- The weight `wp[l]` the terms read, and `wp[lo + h]` the groups read. -/
-def oqW (s : Oq) (b : ℕ) (σ : Val) (i : ℕ) : E :=
-  if i < s.lo then σ (.n (oqTs s b 0 i + s.tsz)) else σ (.n (oqGs s b (i - s.lo) + s.G - 2))
+/-! ## The final check -/
 
-/-- **The dot product** (G:1368-1385): from the words `W` the terms read, the template's value is
-`dotSum`, the weights read at `wp`. -/
-theorem oqDot_sound {s : Oq} (hs : s.RowShape) {wp : V} {b : ℕ} {W : ℕ → E}
-    (hA : ∀ a, Stmt.atom a ∈ oqDotT s wp b → a.Holds rd σ)
-    (hW : ∀ h < s.I / s.lo, ∀ l < s.lo, σ (.n (oqWordV s b h l)) = W (s.lo * h + l)) :
-    (∀ i < s.lo + s.I / s.lo, LoadHolds rd (σ wp) i (oqW s b σ i)) ∧
-      σ (.n (oqDot s b)) = dotSum s.I s.lo W (oqW s b σ) := by
-  have hlo : s.lo = 8 := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> simp [Oq.lo, rowLo, h]
-  have hng : 0 < s.I / s.lo := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> simp [hlo, h]
-  -- the term atoms
-  have tload : ∀ h < s.I / s.lo, ∀ l < s.lo,
-      LoadHolds rd (σ wp) l (σ (.n (oqTs s b h l + s.tsz))) := fun h hh l hl => by
-    have := hA _ (mem_oqDotT hh (mem_oqGroupT_term hl (by simp [oqTermT] :
-      Stmt.atom (.load (.n (oqTs s b h l + s.tsz)) wp l) ∈ _)))
-    exact this
-  have tmul : ∀ h < s.I / s.lo, ∀ l < s.lo,
-      σ (.n (oqTs s b h l + s.tsz + 1)) =
-        σ (.n (oqWordV s b h l)) * σ (.n (oqTs s b h l + s.tsz)) := fun h hh l hl => by
-    have := hA _ (mem_oqDotT hh (mem_oqGroupT_term hl (by simp [oqTermT] :
-      Stmt.atom (.mul (.n (oqTs s b h l + s.tsz + 1)) (.n (oqWordV s b h l))
-        (.n (oqTs s b h l + s.tsz))) ∈ _)))
-    exact this
-  have tadd : ∀ h < s.I / s.lo, ∀ l, l + 1 < s.lo →
-      σ (.n (oqTs s b h (l + 1) + s.tsz + 2)) =
-        σ (.n (oqPart s b h l)) + σ (.n (oqTs s b h (l + 1) + s.tsz + 1)) := fun h hh l hl => by
-    have := hA _ (mem_oqDotT hh (mem_oqGroupT_term hl (by simp [oqTermT] :
-      Stmt.atom (.add (.n (oqTs s b h (l + 1) + s.tsz + 2)) (.n (oqPart s b h l))
-        (.n (oqTs s b h (l + 1) + s.tsz + 1))) ∈ _)))
-    exact this
-  -- the group atoms
-  have gload : ∀ h < s.I / s.lo,
-      LoadHolds rd (σ wp) (s.lo + h) (σ (.n (oqGs s b h + s.G - 2))) := fun h hh => by
-    have := hA _ (mem_oqDotT hh (by simp [oqGroupT] :
-      Stmt.atom (.load (.n (oqGs s b h + s.G - 2)) wp (s.lo + h)) ∈ oqGroupT s wp b h))
-    exact this
-  have gmul : ∀ h < s.I / s.lo, σ (.n (oqGs s b h + s.G - 1)) =
-      σ (.n (oqGs s b h + s.G - 2)) * σ (.n (oqPart s b h (s.lo - 1))) := fun h hh => by
-    have := hA _ (mem_oqDotT hh (by simp [oqGroupT] :
-      Stmt.atom (.mul (.n (oqGs s b h + s.G - 1)) (.n (oqGs s b h + s.G - 2))
-        (.n (oqPart s b h (s.lo - 1)))) ∈ oqGroupT s wp b h))
-    exact this
-  have gadd : ∀ h, h + 1 < s.I / s.lo → σ (.n (oqGs s b (h + 1) + s.G)) =
-      σ (.n (oqDotAfter s b h)) + σ (.n (oqGs s b (h + 1) + s.G - 1)) := fun h hh => by
-    have := hA _ (mem_oqDotT hh (by simp [oqGroupT] :
-      Stmt.atom (.add (.n (oqGs s b (h + 1) + s.G)) (.n (oqDotAfter s b h))
-        (.n (oqGs s b (h + 1) + s.G - 1))) ∈ oqGroupT s wp b (h + 1)))
-    exact this
-  -- the weights
-  have wl : ∀ h < s.I / s.lo, ∀ l < s.lo, σ (.n (oqTs s b h l + s.tsz)) = oqW s b σ l :=
-    fun h hh l hl => by
-      simp only [oqW, hl, ↓reduceIte]
-      exact loadHolds_unique (tload h hh l hl) (tload 0 hng l hl)
-  have wg : ∀ h < s.I / s.lo, σ (.n (oqGs s b h + s.G - 2)) = oqW s b σ (s.lo + h) :=
-    fun h hh => by
-      simp only [oqW, show ¬ s.lo + h < s.lo by omega, ↓reduceIte, Nat.add_sub_cancel_left]
-  refine ⟨fun i hi => ?_, ?_⟩
-  · by_cases h' : i < s.lo
-    · rw [← wl 0 hng i h']; exact tload 0 hng i h'
-    · obtain ⟨h, rfl⟩ : ∃ h, i = s.lo + h := ⟨i - s.lo, by omega⟩
-      rw [← wg h (by omega)]; exact gload h (by omega)
-  -- the partial sums of a group
-  have part : ∀ h < s.I / s.lo, ∀ l < s.lo, σ (.n (oqPart s b h l)) =
-      ((List.range (l + 1)).map fun l' ↦ W (s.lo * h + l') * oqW s b σ l').foldl (· + ·) 0 := by
-    intro h hh l hl
-    induction l with
-    | zero =>
-      have e : oqPart s b h 0 = oqTs s b h 0 + s.tsz + 1 := by simp [oqPart]
-      rw [e, tmul h hh 0 hl, hW h hh 0 hl, wl h hh 0 hl]
-      simp
-    | succ l ih =>
-      have e : oqPart s b h (l + 1) = oqTs s b h (l + 1) + s.tsz + 2 := by simp [oqPart]
-      rw [foldl_range_succ, ← ih (by omega), e, tadd h hh l hl, tmul h hh (l + 1) hl,
-        hW h hh (l + 1) hl, wl h hh (l + 1) hl]
-  have partEnd : ∀ h < s.I / s.lo, σ (.n (oqPart s b h (s.lo - 1))) =
-      ((List.range s.lo).map fun l ↦ W (s.lo * h + l) * oqW s b σ l).foldl (· + ·) 0 :=
-    fun h hh => by rw [part h hh (s.lo - 1) (by omega), show s.lo - 1 + 1 = s.lo by omega]
-  -- the groups
-  have grp : ∀ h < s.I / s.lo, σ (.n (oqDotAfter s b h)) =
-      ((List.range (h + 1)).map fun h' ↦ oqW s b σ (s.lo + h') *
-        ((List.range s.lo).map fun l ↦ W (s.lo * h' + l) * oqW s b σ l).foldl (· + ·) 0).foldl
-          (· + ·) 0 := by
-    intro h hh
-    induction h with
-    | zero =>
-      have e : oqDotAfter s b 0 = oqGs s b 0 + s.G - 1 := by simp [oqDotAfter]
-      rw [e, gmul 0 hh, wg 0 hh, partEnd 0 hh]
-      simp
-    | succ h ih =>
-      have e : oqDotAfter s b (h + 1) = oqGs s b (h + 1) + s.G := by simp [oqDotAfter]
-      rw [foldl_range_succ, ← ih (by omega), e, gadd h hh, gmul (h + 1) hh, wg (h + 1) hh,
-        partEnd (h + 1) hh]
-  rw [oqDot, grp _ (by omega), show s.I / s.lo - 1 + 1 = s.I / s.lo by omega]
-  rfl
+theorem nvLevelT_sound {w : V} : ∀ (ins : List ℕ) (k : ℕ),
+    (∀ a, Stmt.atom a ∈ (nvLevelT w ins k).1 → a.Holds rd σ) →
+      (nvLevelT w ins k).2.1.map (fun v ↦ σ (.n v)) = nvPair (σ w) (ins.map fun v ↦ σ (.n v))
+  | lo :: hi :: rest, k, hA => by
+    rw [nvLevelT] at hA ⊢
+    have hm := hA _ (List.mem_append_left _ (List.mem_cons_self ..))
+    have ha := hA _ (List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+    simp only [Atom.Holds] at hm ha
+    simp only [List.map_cons, nvPair]
+    rw [nvLevelT_sound rest (k + 2) fun a h ↦ hA a (List.mem_append_right _ h), ha, hm]
+  | [lo], k, hA => by
+    rw [nvLevelT] at hA ⊢
+    have hc := hA _ (List.mem_cons_self ..)
+    simp only [Atom.Holds] at hc
+    simp [nvPair, hc]
+  | [], _, _ => by simp [nvLevelT, nvPair]
 
-/-! ## The row's words -/
+theorem nvLevelsT_sound {ws : ℕ → ℕ} : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ),
+    (∀ a, Stmt.atom a ∈ (nvLevelsT ws c i ins k).1 → a.Holds rd σ) →
+      (nvLevelsT ws c i ins k).2.1.map (fun v ↦ σ (.n v)) =
+        nvTree (fun i ↦ σ (.n (ws i))) c i (ins.map fun v ↦ σ (.n v))
+  | 0, _, _, _, _ => rfl
+  | c + 1, i, ins, k, hA => by
+    rw [nvLevelsT] at hA ⊢
+    rw [nvTree, ← nvLevelT_sound ins k fun a h ↦ hA a (List.mem_append_left _ h)]
+    exact nvLevelsT_sound c (i + 1) _ _ fun a h ↦ hA a (List.mem_append_right _ h)
 
-/-- Every hinted word is in `K` (its pair's pack). -/
-theorem oqRow_inK {b R : ℕ} (hR : R % 2 = 0) (hA : ∀ a, Stmt.atom a ∈ oqPacksT b R → a.Holds rd σ)
-    {j : ℕ} (hj : j < R) : IsInK (σ (.n (b + j))) := by
-  have hp := oqPack_sound hA (j := j / 2) (by omega)
-  rcases Nat.mod_two_eq_zero_or_one j with h | h
-  · rw [show j = 2 * (j / 2) by omega]; exact hp.1
-  · rw [show j = 2 * (j / 2) + 1 by omega, ← Nat.add_assoc]; exact hp.2.1
+/-- The chain's words: `W_i` at `oqWs v i`, `i ≤ mu`. -/
+theorem oqWs_sound {s : Oq} {x : V} {v : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqWsT s x v → a.Holds rd σ) :
+    ∀ i ≤ s.mu, σ (.n (oqWs v i)) = wsChain (s.vs.map K.ofBits) (σ x) i
+  | 0, _ => by
+    have h := hA _ (List.mem_cons_self ..)
+    simp only [Atom.Holds] at h
+    simpa [oqWs, wsChain] using h
+  | i + 1, hi => by
+    have mem : ∀ a, Stmt.atom a ∈ [Stmt.atom (.const (.n (v + 2 + 3 * i)) (word (s.vs.getD i 0) 0)),
+        .atom (.add (.n (v + 3 + 3 * i)) (.n (oqWs v i)) (.n (v + 2 + 3 * i))),
+        .atom (.mul (.n (v + 4 + 3 * i)) (.n (oqWs v i)) (.n (v + 3 + 3 * i)))] →
+        Stmt.atom a ∈ oqWsT s x v := fun a h ↦
+      List.mem_cons_of_mem _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr
+        (by omega), rfl⟩, h⟩)
+    have hc := hA _ (mem _ (List.mem_cons_self ..))
+    have ha := hA _ (mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+    have hm := hA _ (mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
+    simp only [Atom.Holds] at hc ha hm
+    have e : oqWs v (i + 1) = v + 4 + 3 * i := by simp only [oqWs]; split <;> omega
+    rw [e, hm, ha, hc, oqWs_sound hA i (by omega), wsChain, word_eOfNat, eOfNat]
+    congr 3
+    simp [List.getD_eq_getElem?_getD]
+    cases s.vs[i]? <;> rfl
 
-theorem getD_oqRow {b R j : ℕ} (hj : j < R) : (oqRow b R σ).getD j 0 = (σ (.n (b + j))).limb 0 := by
-  simp [oqRow, List.getD_eq_getElem?_getD, hj]
+/-- The final coefficients a check reads: the loads of its level `0`. -/
+def oqHsv (s : Oq) (v : ℕ) (σ : Val) : List E :=
+  (List.range s.nHs).map fun c ↦ σ (.n (v + 2 + 3 * s.mu + 4 * (c / 2) + c % 2))
 
-/-- `ofK a + y·(b + c·y) = E.ofLimbs a b c`. -/
-theorem ofK_add_y_mul_ofLimbs (a b c : K) : ofK a + y * E.ofLimbs b c 0 = E.ofLimbs a b c := by
-  rw [mul_comm, ofLimbs_mul_y, ofK_eq_ofLimbs, ofLimbs_add]
-  simp
+theorem nvPair_range' (w : E) (f : ℕ → E) : ∀ (h s : ℕ),
+    nvPair w ((List.range' s (2 * h)).map f) =
+      (List.range h).map fun m ↦ f (s + 2 * m) + w * f (s + 2 * m + 1)
+  | 0, s => by simp [nvPair]
+  | h + 1, s => by
+    rw [show 2 * (h + 1) = 2 * h + 1 + 1 by ring, List.range'_succ, List.range'_succ,
+      List.range_succ_eq_map]
+    simp only [List.map_cons, nvPair, List.map_map]
+    rw [show s + 1 + 1 = s + 2 by omega, nvPair_range' w f h (s + 2)]
+    simp only [Nat.mul_zero, Nat.add_zero]
+    refine congrArg _ (List.map_congr_left fun m _ ↦ ?_)
+    simp only [Function.comp_apply]
+    rw [show s + 2 + 2 * m = s + 2 * (m + 1) by ring]
 
-/-- A deeper level's word from its packed low limbs and its top limb. -/
-theorem ofLimbs_add_yy (a b : K) {c : E} (hc : IsInK c) :
-    E.ofLimbs a b 0 + y * y * c = E.ofLimbs a b (c.limb 0) := by
-  rw [eq_ofK_limb hc, add_y_mul_y_mul_ofK]
-  simp [limb_ofK]
+theorem nvLevel0T_sound {hs w : V} {n k : ℕ} (hn : n % 2 = 0)
+    (hA : ∀ a, Stmt.atom a ∈ nvLevel0T hs w n k → a.Holds rd σ) :
+    (∀ c < n, LoadHolds rd (σ hs) c (σ (.n (k + 4 * (c / 2) + c % 2)))) ∧
+      ((List.range (n / 2)).map fun m ↦ k + 4 * m + 3).map (fun v ↦ σ (.n v)) =
+        nvPair (σ w) ((List.range n).map fun c ↦ σ (.n (k + 4 * (c / 2) + c % 2))) := by
+  have mem : ∀ m < n / 2, ∀ a, Stmt.atom a ∈
+      [Stmt.atom (.load (.n (k + 4 * m)) hs (2 * m)), .atom (.load (.n (k + 4 * m + 1)) hs (2 * m + 1)),
+        .atom (.mul (.n (k + 4 * m + 2)) w (.n (k + 4 * m + 1))),
+        .atom (.add (.n (k + 4 * m + 3)) (.n (k + 4 * m)) (.n (k + 4 * m + 2)))] →
+      a.Holds rd σ := fun m hm a h ↦
+    hA a (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨m, List.mem_range.mpr hm, rfl⟩, h⟩)
+  refine ⟨fun c hc ↦ ?_, ?_⟩
+  · have hm : c / 2 < n / 2 := by omega
+    have l0 := mem (c / 2) hm _ (List.mem_cons_self ..)
+    have l1 := mem (c / 2) hm _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+    simp only [Atom.Holds] at l0 l1
+    rcases Nat.mod_two_eq_zero_or_one c with h0 | h1
+    · rw [h0, Nat.add_zero]
+      rw [show 2 * (c / 2) = c by omega] at l0
+      exact l0
+    · rw [h1]
+      rw [show 2 * (c / 2) + 1 = c by omega] at l1
+      exact l1
+  · obtain ⟨h, rfl⟩ : ∃ h, n = 2 * h := ⟨n / 2, by omega⟩
+    rw [show 2 * h / 2 = h by omega, show List.range (2 * h) = List.range' 0 (2 * h) from
+      List.range_eq_range', nvPair_range', List.map_map]
+    refine List.map_congr_left fun m hm ↦ ?_
+    have hm' : m < 2 * h / 2 := by rw [List.mem_range] at hm; omega
+    have hmul := mem m hm' _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+    have hadd := mem m hm' _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+      (List.mem_cons_self ..))))
+    simp only [Atom.Holds] at hmul hadd
+    simp only [Function.comp_apply, Nat.zero_add]
+    rw [hadd, hmul, show 2 * m / 2 = m by omega, show 2 * m % 2 = 0 by omega,
+      show (2 * m + 1) / 2 = m by omega, show (2 * m + 1) % 2 = 1 by omega]
+    simp only [Nat.add_zero]
 
-/-- **The row's words** (G:1373-1382): the word a term reads is `rowWord`. -/
-theorem oqWord_sound {s : Oq} (hs : s.RowShape) {wp : V} {b : ℕ}
-    (hP : ∀ a, Stmt.atom a ∈ oqPacksT b s.R → a.Holds rd σ)
-    (hD : ∀ a, Stmt.atom a ∈ oqDotT s wp b → a.Holds rd σ) :
-    ∀ h < s.I / s.lo, ∀ l < s.lo,
-      σ (.n (oqWordV s b h l)) = rowWord s.base (oqRow b s.R σ) (s.lo * h + l) := by
-  intro h hh l hl
-  have hlo : s.lo = 8 := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> simp [Oq.lo, rowLo, h]
-  rcases hs with ⟨hb, hI⟩ | ⟨hb, hI⟩
-  · have hR : s.R = 64 := by simp [Oq.R, hb, hI]
-    have hj : s.lo * h + l < s.R := by rw [hlo] at hh hl ⊢; rw [hI] at hh; omega
-    have hk := oqRow_inK (by omega) hP hj
-    simp only [oqWordV, rowWord, hb, ↓reduceIte, getD_oqRow hj]
-    exact eq_ofK_limb hk
-  · have hR : s.R = 48 := by simp [Oq.R, hb, hI]
-    have hjw : s.lo * h + l < 16 := by rw [hlo] at hh hl ⊢; rw [hI] at hh; omega
-    set jw := s.lo * h + l with hjwdef
-    have mem : ∀ a, Stmt.atom a ∈ oqWordT s b jw (oqTs s b h l) → a.Holds rd σ := fun a ha =>
-      hD a (mem_oqDotT hh (mem_oqGroupT_term hl (by
-        simp only [oqTermT, hb, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.mem_append]
-        exact Or.inl (Or.inl ha))))
-    simp only [oqWordV, rowWord, hb, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
-    rw [getD_oqRow (by omega), getD_oqRow (by omega), getD_oqRow (by omega)]
-    rcases Nat.mod_two_eq_zero_or_one jw with he | ho
-    · have h1 := mem _ (by simp [oqWordT, he] : Stmt.atom (.const (.n (oqTs s b h l)) (word 0 0 1)) ∈ _)
-      have h2 := mem _ (by simp [oqWordT, he] : Stmt.atom (.mul (.n (oqTs s b h l + 1))
-        (.n (oqTs s b h l)) (.n (b + (3 * jw + 2)))) ∈ _)
-      have h3 := mem _ (by simp [oqWordT, he] : Stmt.atom (.add (.n (oqTs s b h l + 2))
-        (.n (oqPk b s.R (3 * jw / 2))) (.n (oqTs s b h l + 1))) ∈ _)
-      simp only [Atom.Holds] at h1 h2 h3
-      have hp := oqPack_sound hP (j := 3 * jw / 2) (by omega)
-      rw [show 2 * (3 * jw / 2) = 3 * jw by omega] at hp
-      have hk := oqRow_inK (by omega) hP (j := 3 * jw + 2) (by omega)
-      rw [h3, h2, h1, hp.2.2, word_yy, ofLimbs_add_yy _ _ hk]
+theorem nvLevelT_ne {w : V} : ∀ (ins : List ℕ) (k : ℕ), ins ≠ [] → (nvLevelT w ins k).2.1 ≠ []
+  | _ :: _ :: _, _, _ => by simp [nvLevelT]
+  | [_], _, _ => by simp [nvLevelT]
+  | [], _, h => absurd rfl h
+
+theorem nvLevelsT_ne {ws : ℕ → ℕ} : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ), ins ≠ [] →
+    (nvLevelsT ws c i ins k).2.1 ≠ []
+  | 0, _, _, _, h => h
+  | c + 1, i, ins, k, h => by
+    rw [nvLevelsT]
+    exact nvLevelsT_ne c (i + 1) _ _ (nvLevelT_ne ins k h)
+
+/-- **The final check**: the coefficients read at `hs` and the fold's value `v` their `novelSum`
+over the chain at the point, `n_hs` even and the chain long enough. -/
+theorem oqFin_sound {s : Oq} {x hs : V} {v : ℕ} (hn : s.nHs % 2 = 0) (hn2 : 2 ≤ s.nHs)
+    (hb : 1 ≤ s.hsBits)
+    (hmu : s.hsBits - 1 ≤ s.mu) (hA : ∀ a, Stmt.atom a ∈ oqFinT s x hs v → a.Holds rd σ) :
+    WordsAt rd (σ hs) (oqHsv s v σ) ∧ (oqHsv s v σ).length = s.nHs ∧
+      σ (.n v) = novelSum (oqHsv s v σ) (wsChain (s.vs.map K.ofBits) (σ x)) s.nHs s.hsBits := by
+  have hW := oqWs_sound (rd := rd) (σ := σ) (s := s) (x := x) (v := v)
+    fun a h ↦ hA a (List.mem_append_left _ (List.mem_append_left _ h))
+  have hN : ∀ a, Stmt.atom a ∈ (oqNovel s hs v).1 → a.Holds rd σ :=
+    fun a h ↦ hA a (List.mem_append_left _ (List.mem_append_right _ h))
+  have h0 := nvLevel0T_sound hn fun a h ↦ hN a (List.mem_append_left _ h)
+  have hL := nvLevelsT_sound (ws := oqWs v) _ _ _ _ fun a h ↦ hN a (List.mem_append_right _ h)
+  have heq := hA _ (List.mem_append_right _ (List.mem_cons_self ..))
+  simp only [Atom.Holds] at heq
+  have hlen : (oqHsv s v σ).length = s.nHs := by simp [oqHsv]
+  refine ⟨fun c hc ↦ ?_, hlen, ?_⟩
+  · rw [hlen] at hc
+    have := h0.1 c hc
+    simpa [oqHsv, List.getD_eq_getElem?_getD, hc] using this
+  · have hv : σ (.n v) = σ (.n ((oqNovel s hs v).2.1.headD 0)) := by
+      rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at heq; exact heq
+    rw [hv, novelSum, List.take_of_length_le (by omega)]
+    obtain ⟨c, hc⟩ : ∃ c, s.hsBits = c + 1 := ⟨s.hsBits - 1, by omega⟩
+    rw [hc, nvTree]
+    have hws : ∀ i ≤ c, σ (.n (oqWs v i)) = wsChain (s.vs.map K.ofBits) (σ x) i :=
+      fun i hi ↦ hW i (by omega)
+    have hpair : nvPair (wsChain (s.vs.map K.ofBits) (σ x) 0) (oqHsv s v σ) =
+        ((List.range (s.nHs / 2)).map fun m ↦ v + 2 + 3 * s.mu + 4 * m + 3).map (fun u ↦ σ (.n u)) := by
+      rw [h0.2, ← hW 0 (Nat.zero_le _)]
       rfl
-    · have h1 := mem _ (by simp [oqWordT, ho] : Stmt.atom (.const (.n (oqTs s b h l)) (word 0 1 0)) ∈ _)
-      have h2 := mem _ (by simp [oqWordT, ho] : Stmt.atom (.mul (.n (oqTs s b h l + 1))
-        (.n (oqTs s b h l)) (.n (oqPk b s.R ((3 * jw + 1) / 2)))) ∈ _)
-      have h3 := mem _ (by simp [oqWordT, ho] : Stmt.atom (.add (.n (oqTs s b h l + 2))
-        (.n (b + 3 * jw)) (.n (oqTs s b h l + 1))) ∈ _)
-      simp only [Atom.Holds] at h1 h2 h3
-      have hp := oqPack_sound hP (j := (3 * jw + 1) / 2) (by omega)
-      rw [show 2 * ((3 * jw + 1) / 2) = 3 * jw + 1 by omega] at hp
-      have hk := oqRow_inK (by omega) hP (j := 3 * jw) (by omega)
-      rw [h3, h2, h1, hp.2.2, word_y, eq_ofK_limb hk, ofK_add_y_mul_ofLimbs, limb_ofK,
-        show b + (3 * jw + 1) + 1 = b + (3 * jw + 2) by omega]
-      simp
+    have htree : ∀ (c i : ℕ) (l : List E), (∀ j < c, σ (.n (oqWs v (i + j))) =
+        wsChain (s.vs.map K.ofBits) (σ x) (i + j)) →
+        nvTree (fun i ↦ σ (.n (oqWs v i))) c i l = nvTree (wsChain (s.vs.map K.ofBits) (σ x)) c i l := by
+      intro c
+      induction c with
+      | zero => intro i l _; rfl
+      | succ c ih =>
+        intro i l h
+        rw [nvTree, nvTree, show σ (.n (oqWs v i)) = wsChain (s.vs.map K.ofBits) (σ x) i by
+          simpa using h 0 (by omega)]
+        exact ih (i + 1) _ fun j hj ↦ by rw [show i + 1 + j = i + (j + 1) by omega]; exact h _ (by omega)
+    rw [hpair, ← htree c 1 _ (fun j hj ↦ hws _ (by omega))]
+    have hsb : s.hsBits - 1 = c := by omega
+    have hL' : ((oqNovel s hs v).2.1).map (fun u ↦ σ (.n u)) = nvTree (fun i ↦ σ (.n (oqWs v i)))
+        (s.hsBits - 1) 1
+        (((List.range (s.nHs / 2)).map fun m ↦ v + 2 + 3 * s.mu + 4 * m + 3).map fun u ↦ σ (.n u)) := hL
+    rw [hsb] at hL'
+    have hne : (oqNovel s hs v).2.1 ≠ [] := nvLevelsT_ne _ _ _ _ (by
+      simp only [ne_eq, List.map_eq_nil_iff, List.range_eq_nil]; omega)
+    rw [← hL']
+    revert hne
+    generalize (oqNovel s hs v).2.1 = outs
+    intro hne
+    cases outs with
+    | nil => exact absurd rfl hne
+    | cons o _ => rfl
 
 end
 end LeanVM.Guest.B1

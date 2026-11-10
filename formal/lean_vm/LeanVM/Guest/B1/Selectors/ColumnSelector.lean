@@ -162,7 +162,7 @@ def csSel (κ k : ℕ) : ℕ := if k = 0 then csC κ 0 + 5 else csC κ k + 6
 def csRb (κ k : ℕ) : ℕ := if k = 0 then csC κ 0 + 7 else csC κ k + 9
 
 /-- `g^15`, the digits' range check (`assert log(d) < 16`). -/
-abbrev w15 : E := word 32768 0 0
+abbrev w15 : E := word 32768 0
 
 theorem word_g15 : w15 = ofK (Parameters.addressOfIndex 15) := by
   rw [w15, tb_word_eOfNat]
@@ -194,8 +194,8 @@ def csHint (κ : ℕ) : Stmt :=
 /-- `column_selector__L{κ}`'s statements before its `ret`, the hint first. -/
 def csPre (κ : ℕ) : List Stmt :=
   csHint κ :: if κ = 28 then
-    [.atom (.const (.n 3) (word 1 0 0)), .atom (.assertEq (.n 3) (.n 0)),
-      .atom (.const (.n 4) (word 1 0 0))]
+    [.atom (.const (.n 3) (word 1 0)), .atom (.assertEq (.n 3) (.n 0)),
+      .atom (.const (.n 4) (word 1 0))]
   else ((List.range (csN κ)).map (csNibT κ)).flatten ++
     [.atom (.assertEq (.n (csRb κ (csN κ - 1))) (.n 0)),
       .atom (.copy (.n (csC κ (csN κ))) (.n (csSel κ (csN κ - 1))))]

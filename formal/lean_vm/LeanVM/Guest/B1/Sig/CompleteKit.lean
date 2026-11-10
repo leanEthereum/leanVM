@@ -320,11 +320,11 @@ theorem merkleT_numBelow {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
       have h0 := hbits 0 (by omega)
       rw [Nat.add_zero] at h0
       have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c →
-          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) c →
+          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) c →
           merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
             ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
               addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-              cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
+              cst (b + 4) (word (addrOf l) 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1,
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1,
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2) →

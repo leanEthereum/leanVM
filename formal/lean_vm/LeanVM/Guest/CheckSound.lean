@@ -110,12 +110,10 @@ theorem char2 (a b : E) : a + (a + b) = b := by
 theorem ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
   simp [K.ofBits, BitVec.ofNat_toNat]
 
-theorem eq_imm_of_limbs {x : E} {k0 k1 k2 : ℕ} (h0 : limbNat x 0 = k0) (h1 : limbNat x 1 = k1)
-    (h2 : limbNat x 2 = k2) : x = OffsetInstruction.immediateWord k0 k1 k2 := by
-  subst h0 h1 h2
-  rw [OffsetInstruction.immediateWord, limbNat, limbNat, limbNat, ofBits_toNat, ofBits_toNat,
-      ofBits_toNat,
-    ofLimbs_limb]
+theorem eq_imm_of_limbs {x : E} {k0 k1 : ℕ} (h0 : limbNat x 0 = k0) (h1 : limbNat x 1 = k1) :
+    x = OffsetInstruction.immediateWord k0 k1 := by
+  subst h0 h1
+  rw [OffsetInstruction.immediateWord, limbNat, limbNat, ofBits_toNat, ofBits_toNat, ofLimbs_limb]
 
 end Basic
 
@@ -125,20 +123,20 @@ section Atoms
 
 variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {B : Book}
 
-theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 l2 : ℕ} (h : setImm B c l0 l1 l2 = true) :
-    L.read (fp * addressOfIndex c) = some (OffsetInstruction.immediateWord l0 l1 l2) := by
+theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 : ℕ} (h : setImm B c l0 l1 = true) :
+    L.read (fp * addressOfIndex c) = some (OffsetInstruction.immediateWord l0 l1) := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hB c a ha
   split at hp
-  · rename_i pc o k0 k1 k2
+  · rename_i pc o k0 k1
     simp only [Bool.and_eq_true, beq_iff_eq] at hp
-    obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := hp
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hp
     exact hh
   · simp at hp
 
 theorem setIs_sound (hB : BookHolds L fp B) {c : ℕ} {x : E} (h : setIs B c x = true) :
     L.read (fp * addressOfIndex c) = some x := by
-  rw [eq_imm_of_limbs rfl rfl rfl (x := x)]
+  rw [eq_imm_of_limbs rfl rfl (x := x)]
   exact setImm_sound hB h
 
 theorem perm3_sound {x y z p q r : ℕ} (h : perm3 x y z p q r = true) {vX vY : E}
@@ -235,7 +233,7 @@ theorem setSame_sound (hB : BookHolds L fp B) {p q : ℕ} (h : setSame B p q = t
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hB p a ha
   split at hp
-  · rename_i pc o k0 k1 k2
+  · rename_i pc o k0 k1
     simp only [Bool.and_eq_true, beq_iff_eq] at hp
     obtain ⟨rfl, hq⟩ := hp
     rw [wd_of hh, wd_of (setImm_sound hB hq)]
@@ -352,14 +350,14 @@ theorem keccakOk_sound (hB : BookHolds L fp B) {ins outs : List ℕ} {inOdd outO
       exact wd_of (hout' c hc)
     refine ⟨by rw [hins, keccakIns_eq]; rfl, oC, hlen, ?_⟩
     rw [ei]
-    exact ⟨hk.1, fun c hc ↦ (eo c hc).trans (hk.2 c hc)⟩
+    exact fun c hc ↦ (eo c hc).trans (hk c hc)
   · exact absurd hp Bool.false_ne_true
 
 theorem neOk_sound (hB : BookHolds L fp B) {x i p : ℕ} (h : neOk B x i p = true) :
     wd L fp p = wd L fp x * wd L fp i ∧ wd L fp p = 1 := by
   simp only [neOk, Bool.and_eq_true] at h
   refine ⟨mulOk_wd hB h.1, wd_of ?_⟩
-  rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 0 from (imm_of_ofBits rfl).trans ofK_one
+  rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 from (imm_of_ofBits rfl).trans ofK_one
       |>.symm]
   exact setImm_sound hB h.2
 
@@ -565,7 +563,7 @@ def SemRel0 (t : ℕ) (rd : Core.Reader) (ws : List E) : Prop :=
 above), `SemRel0` of its tag if its position's word is its immediate. -/
 def SemRel (t : ℕ) (rd : Core.Reader) (ws : List E) : Prop :=
   if 2 ^ 32 ≤ t then
-    ws.getD (impPos t) 0 = OffsetInstruction.immediateWord (impImm t) 0 0 → SemRel0 G (impBase t) rd ws
+    ws.getD (impPos t) 0 = OffsetInstruction.immediateWord (impImm t) 0 → SemRel0 G (impBase t) rd ws
   else SemRel0 G t rd ws
 
 /-- The words of each tagged tuple of cells are in the relation of its tag. -/
@@ -1313,10 +1311,10 @@ theorem selConst_sound (hB : BookHolds L fp B) {q k : ℕ} (h : selConst B q = s
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
   have hh := hB q a ha
   split at hp
-  · rename_i pc o k0 k1 k2
+  · rename_i pc o k0 k1
     obtain ⟨ho, hq⟩ := optIf_eq_some hp
     simp only [Bool.and_eq_true, beq_iff_eq] at ho
-    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := ho
+    obtain ⟨rfl, rfl⟩ := ho
     rw [hh, imm_of_ofBits (onePlusPow_spec hq)]
   · simp at hp
 
@@ -1365,9 +1363,9 @@ theorem boolSel_sound (hB : BookHolds L fp B) {c n : ℕ} (h : boolSel B c = som
     obtain ⟨hz, hq⟩ := optIf_eq_some hp
     obtain rfl : z = c := beq_iff_eq.mp hz
     obtain ⟨vX, vY, hx, hy, hc⟩ := hh
-    have hone : OffsetInstruction.immediateWord 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
+    have hone : OffsetInstruction.immediateWord 1 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
     have key : ∀ {p q : ℕ} {vp vq : E} {k : ℕ}, L.read (fp * addressOfIndex p) = some vp →
-        L.read (fp * addressOfIndex q) = some vq → setImm B p 1 0 0 = true → boolScaled B q =
+        L.read (fp * addressOfIndex q) = some vq → setImm B p 1 0 = true → boolScaled B q =
             some k →
         ∃ e < k + 1, vp + vq = ofK (addressOfIndex e) := by
       intro p q vp vq k hp' hq' h1 hs
@@ -1593,7 +1591,7 @@ theorem semOk_sound {G : Glob} {fp' : K} {sems : List (ℕ × List ℕ)} (hs : S
       have hlt : s.1 < 2 ^ 32 := by rw [← hb, impBase]; exact Nat.mod_lt _ (by positivity)
       have hkq : impPos q.1 < q.2.length := by rw [hq2, List.length_map]; exact hk
       have himm : (q.2.map (wd L fp)).getD (impPos q.1) 0 =
-          OffsetInstruction.immediateWord (impImm q.1) 0 0 := by
+          OffsetInstruction.immediateWord (impImm q.1) 0 := by
         rw [List.getD_eq_getElem _ _ (by rw [List.length_map]; exact hkq), List.getElem_map,
           ← nth_eq hkq]
         exact wd_of (setImm_sound hB hset)

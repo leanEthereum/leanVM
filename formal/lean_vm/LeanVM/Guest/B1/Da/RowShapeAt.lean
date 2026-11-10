@@ -31,14 +31,14 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- `da_row_shape`'s atoms. -/
 def rsAs : List Atom := [
-    .const (.n 3) (word 1 0 0), .add (.n 4) (.n 0) (.n 3), .hint (.inverse (.n 4) (.n 5)),
-    .assertNe (.n 4) (.n 5) (.n 6), .const (.n 7) (word 281474976776218 0 0),
-    .rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7), .const (.n 11) (word 1024 0 0),
+    .const (.n 3) (word 1 0), .add (.n 4) (.n 0) (.n 3), .hint (.inverse (.n 4) (.n 5)),
+    .assertNe (.n 4) (.n 5) (.n 6), .const (.n 7) (word 281474976776218 0),
+    .rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7), .const (.n 11) (word 1024 0),
     .rangeCheck (.n 1) (.n 12) (.n 13) (.n 14) (.n 11), .mul (.n 15) (.n 2) (.n 1),
     .load (.n 16) (.n 15) 0, .mul (.n 16) (.n 17) (.n 0),
-    .const (.n 18) (word 281474976776218 0 0), .rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18),
-    .const (.n 22) (word 140737488388109 0 0), .mul (.n 23) (.n 0) (.n 0),
-    .const (.n 24) (word 2 0 0), .mul (.n 25) (.n 16) (.n 24), .mul (.n 23) (.n 26) (.n 25),
+    .const (.n 18) (word 281474976776218 0), .rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18),
+    .const (.n 22) (word 140737488388109 0), .mul (.n 23) (.n 0) (.n 0),
+    .const (.n 24) (word 2 0), .mul (.n 25) (.n 16) (.n 24), .mul (.n 23) (.n 26) (.n 25),
     .rangeCheck (.n 26) (.n 27) (.n 28) (.n 29) (.n 22), .copy (.n 30) (.n 16),
     .copy (.n 31) (.n 17)]
 

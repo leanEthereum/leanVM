@@ -72,29 +72,29 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide +kernel
 
 def st : Registers K := ⟨addressOfIndex 3, addressOfIndex 5⟩
 def mm : MemMsg K := ⟨addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, #v[K.ofBits 7, K.ofBits
-    8, K.ofBits 9]⟩
+    8]⟩
 def bm : BytecodeMsg K := ⟨addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, #v[addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 0, 0, 0, 0, 0, 0]⟩
 
 #guard (toElements st).toList = [addressOfIndex 3, addressOfIndex 5]
 #guard (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7,
-    K.ofBits 8, K.ofBits 9]
+    K.ofBits 8]
 #guard (toElements bm).toList =
   [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5,
       1, 0, 0, 0, 0, 0, 0, 0, 0]
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
 example : (toElements st).toList = [addressOfIndex 3, addressOfIndex 5] := regs_toElements st
-example : (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9] := by
+example : (toElements mm).toList = [addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8] := by
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
     [addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex
         5, 1, 0, 0, 0, 0, 0, 0, 0, 0] := by
   rw [bytecodeMsg_toElements]; rfl
 
--- Sizes: two, five, and fifteen coordinates after the separator: the bytecode message fills the
+-- Sizes: two, four, and fifteen coordinates after the separator: the bytecode message fills the
 -- sixteen slots.
 example : size Registers = 2 := rfl
-example : size MemMsg = 5 := rfl
+example : size MemMsg = 4 := rfl
 example : size BytecodeMsg = 15 := rfl
 
 /-- The state message is the machine's register pair: `Registers.initial` is a message. -/
@@ -107,7 +107,7 @@ example : (toElements Registers.initial).toList = [1, 1] := by
 #guard (busTuple StatePull.toRaw (toElements st).toList).toList =
   [1, addressOfIndex 3, addressOfIndex 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busTuple MemPush.toRaw (toElements mm).toList).toList =
-  [g, addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0,
+  [g, addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busTuple BytecodePull.toRaw (toElements bm).toList).toList =
   [g ^ 2, addressOfIndex 3, addressOfIndex 4, Opcode.deref.busCode, addressOfIndex 4, 1,
@@ -116,14 +116,14 @@ example : (toElements Registers.initial).toList = [1, 1] := by
 /-- Slot `0` is the separator, slot `3` the first limb, slot `6` the padding. -/
 example : (busTuple MemPull.toRaw (toElements mm).toList)[0] = g ∧
     (busTuple MemPull.toRaw (toElements mm).toList)[3] = K.ofBits 7 ∧
-    (busTuple MemPull.toRaw (toElements mm).toList)[6] = 0 := by
+    (busTuple MemPull.toRaw (toElements mm).toList)[5] = 0 := by
   simp only [busTuple_getElem, memMsg_toElements]
   decide +kernel
 
 /-! ## The read gadgets (specification §6.2 "Flush rules") -/
 
 /-- `memRead` is a `pull` then a `push`, the count advanced by `g`. -/
-example (a c : Expression K) (v : Vector (Expression K) 3) :
+example (a c : Expression K) (v : Vector (Expression K) 2) :
     (memRead a c v).operations 0 =
       [.interact ⟨MemPull.toRaw, .pull, 1, toElements (⟨a, c, v⟩ : MemMsg (Expression K))⟩,
        .interact ⟨MemPush.toRaw, .push, 1,
@@ -132,7 +132,7 @@ example (a c : Expression K) (v : Vector (Expression K) 3) :
 
 /-- `memReadIf` is a `pullIf` of multiplicity `flag` then a `push` of the gated counter
 `count + g·(flag·count) + flag·count` (`memory_coords_if`, leanVM main `40f877dc`). -/
-example (f a c : Expression K) (v : Vector (Expression K) 3) :
+example (f a c : Expression K) (v : Vector (Expression K) 2) :
     (memReadIf f a c v).operations 0 =
       [.interact ⟨MemPull.toRaw, .pull, f, toElements (⟨a, c, v⟩ : MemMsg (Expression K))⟩,
        .interact ⟨MemPush.toRaw, .push, 1,
@@ -177,43 +177,43 @@ example (env : Environment K) : Expression.eval env (-1 : Expression K) = 1 := b
 program has no table: it is public. -/
 def sampleData : ProverData K := fun _ n ↦
   match n with
-  | 3 => #[#v[1, K.ofBits 2, K.ofBits 3], #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]]
+  | 2 => #[#v[1, K.ofBits 2], #v[K.ofBits 4, K.ofBits 5]]
   | _ => #[]
 
 /-- A store whose table is told apart by name: `imageOf` reads `"mem"`. -/
 def namedData : ProverData K := fun name n ↦
   match name, n with
-  | "mem", 3 => #[#v[K.ofBits 9, K.ofBits 9, K.ofBits 9]]
+  | "mem", 2 => #[#v[K.ofBits 9, K.ofBits 9]]
   | _, _ => #[]
 
 /-- Three memory words: not a power of two. -/
 def threeRows : ProverData K := fun _ n ↦
   match n with
-  | 3 => #[#v[1, K.ofBits 2, K.ofBits 3], #v[K.ofBits 4, K.ofBits 5, K.ofBits 6], #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]]
+  | 2 => #[#v[1, K.ofBits 2], #v[K.ofBits 4, K.ofBits 5], #v[K.ofBits 7, K.ofBits 8]]
   | _ => #[]
 
 /-- The empty store. -/
 def emptyData : ProverData K := fun _ _ ↦ #[]
 
 #guard (imageOf sampleData).1 = 1
-#guard (imageOf sampleData).2 0 = E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)
-#guard (imageOf sampleData).2 1 = E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6)
+#guard (imageOf sampleData).2 0 = E.ofLimbs 1 (K.ofBits 2)
+#guard (imageOf sampleData).2 1 = E.ofLimbs (K.ofBits 4) (K.ofBits 5)
 #guard (imageOf namedData).1 = 0
-#guard (imageOf namedData).2 0 = E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9)
+#guard (imageOf namedData).2 0 = E.ofLimbs (K.ofBits 9) (K.ofBits 9)
 
 -- The floor logarithm truncates: three rows give a one-bit image without the third word.
 #guard (imageOf threeRows).1 = 1
-#guard (imageOf threeRows).2 1 = E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6)
+#guard (imageOf threeRows).2 1 = E.ofLimbs (K.ofBits 4) (K.ofBits 5)
 -- The empty store: one word `0`.
 #guard (imageOf emptyData).1 = 0
 #guard (imageOf emptyData).2 0 = 0
 
 /-- The log-size of two rows is `1`, through `Nat.log_pow`, under the cap. -/
 theorem sampleData_logSize : (imageOf sampleData).1 = 1 := by
-  show min (Nat.log 2 (#[(#v[1, K.ofBits 2, K.ofBits 3] : Vector K 3), #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]]).size) maxLogMem = 1
+  show min (Nat.log 2 (#[(#v[1, K.ofBits 2] : Vector K 2), #v[K.ofBits 4, K.ofBits 5]]).size) maxLogMem = 1
   have h := Nat.log_pow (b := 2) (by norm_num) 1
   rw [pow_one] at h
-  rw [show (#[(#v[1, K.ofBits 2, K.ofBits 3] : Vector K 3), #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]]).size = 2 from rfl, h]
+  rw [show (#[(#v[1, K.ofBits 2] : Vector K 2), #v[K.ofBits 4, K.ofBits 5]]).size = 2 from rfl, h]
   decide
 
 /-- The two-row store is well shaped. -/
@@ -252,19 +252,19 @@ example : ¬ WellShapedData emptyData := by
 def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; decide⟩
 
 /-- A correct read satisfies the memory guarantee: word `1` sits at `g^1`. -/
-example : MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩ sampleData := by
-  show (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 6))
+example : MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 5]⟩ sampleData := by
+  show (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5))
   rw [show addressOfIndex 1 = addressOfIndex (one : ℕ) from rfl,
     MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
-    imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
+    imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5]) (by decide +kernel)]
   rfl
 
 /-- A wrong word does not: the guarantee is a statement about the committed image. -/
-example : ¬ MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 5, K.ofBits 7]⟩ sampleData := by
-  show ¬ (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 5) (K.ofBits 7))
+example : ¬ MemPull.Guarantees ⟨addressOfIndex 1, addressOfIndex 0, #v[K.ofBits 4, K.ofBits 7]⟩ sampleData := by
+  show ¬ (imageOf sampleData).2.read (addressOfIndex 1) = some (E.ofLimbs (K.ofBits 4) (K.ofBits 7))
   rw [show addressOfIndex 1 = addressOfIndex (one : ℕ) from rfl,
     MemoryImage.read_gpow (by rw [sampleData_logSize]; decide),
-    imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
+    imageOf_apply sampleData_wellShaped one (v := #v[K.ofBits 4, K.ofBits 5]) (by decide +kernel)]
   decide +kernel
 
 /-- The bytecode guarantee is decodability alone: an instruction's entry passes, at any counter
@@ -306,38 +306,38 @@ example (s : Registers K) (data : ProverData K) : StatePull.Guarantees s data :=
 example : (-1 : K) = 1 := by decide
 
 /-- Clean's `toRaw` grants the typed guarantee to a pull of multiplicity `1`. -/
-example (v : Vector K 5) (data : ProverData K) :
+example (v : Vector K 4) (data : ProverData K) :
     MemPull.toRaw.Guarantees 1 v data ↔ MemPull.Guarantees (fromElements v) data := by
   simp [Channel.toRaw]
 
 /-- Clean's `Requirements` of a pull hold at multiplicity `1` … -/
-example (v : Vector K 5) (data : ProverData K) : MemPull.toRaw.Requirements .pull 1 v data :=
+example (v : Vector K 4) (data : ProverData K) : MemPull.toRaw.Requirements .pull 1 v data :=
   .inr rfl
 
 /-- … and at multiplicity `0`. -/
-example (v : Vector K 5) (data : ProverData K) : MemPull.toRaw.Requirements .pull 0 v data :=
+example (v : Vector K 4) (data : ProverData K) : MemPull.toRaw.Requirements .pull 0 v data :=
   .inl rfl
 
 /-- An active push owes the typed guarantee of its message. -/
-example (v : Vector K 5) (data : ProverData K) :
+example (v : Vector K 4) (data : ProverData K) :
     MemPull.toRaw.Requirements .push 1 v data ↔ MemPull.Guarantees (fromElements v) data := by
   simp only [Channel.toRaw, Channel.Direction.push_requirements]
   exact ⟨fun f ↦ f one_ne_zero, fun g _ ↦ g⟩
 
 /-- A `pull` on a push channel is granted nothing: the push channels carry `True`. -/
-example (v : Vector K 5) (data : ProverData K) : MemPush.toRaw.Guarantees 1 v data :=
+example (v : Vector K 4) (data : ProverData K) : MemPush.toRaw.Guarantees 1 v data :=
   fun _ ↦ trivial
 
 /-- `K` has characteristic `2`, so balance cannot be a field sum of signed multiplicities. -/
 example : ringChar K = 2 := ringChar.eq K 2
 
 /-- An interaction of the message `v` on the memory pull channel, in a direction. -/
-def memInteraction (direction : Channel.Direction) (v : Vector K 5) : Interaction K :=
+def memInteraction (direction : Channel.Direction) (v : Vector K 4) : Interaction K :=
   ⟨MemPull.toRaw, direction, 1, v.toArray, v.size_toArray⟩
 
 /-- Clean's balance counts pushes and pulls by direction: a push of a message and a pull of it
 balance, although `ringChar K = 2`. -/
-example (v : Vector K 5) :
+example (v : Vector K 4) :
     BalancedInteractions [memInteraction .push v, memInteraction .pull v] := by
   constructor
   · intro a ha hpull
@@ -349,7 +349,7 @@ example (v : Vector K 5) :
     by_cases h : v.toArray = msg <;> simp [activeCount, memInteraction, h]
 
 /-- A pull alone does not balance: no push provides its message. -/
-example (v : Vector K 5) : ¬ BalancedInteractions [memInteraction .pull v] := by
+example (v : Vector K 4) : ¬ BalancedInteractions [memInteraction .pull v] := by
   rintro ⟨h, -⟩
   obtain ⟨b, hb, -, hpush⟩ := h (memInteraction .pull v) (by simp) ⟨rfl, rfl⟩
   simp only [List.mem_singleton] at hb

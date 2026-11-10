@@ -285,8 +285,8 @@ structure Facts where
   scaled : List ℕ := []
 
 /-- What a `SET` immediate is known as. -/
-noncomputable def Facts.symOf (F : Facts) (k0 k1 k2 : ℕ) : Option Sym :=
-  bif k1 == 0 && k2 == 0 then
+noncomputable def Facts.symOf (F : Facts) (k0 k1 : ℕ) : Option Sym :=
+  bif k1 == 0 then
     (bif k0 == 0 then some .zero else bif k0 == 1 then some (.gp 0) else (F.pows.find k0).map .gp)
   else none
 
@@ -493,9 +493,9 @@ noncomputable def nonJump (F : Facts) (pc : ℕ) (st : St) :
     OffsetInstruction → List Atom × Trie Sym × List (ℕ × ℕ × Sym)
   | .xor a b c => (if isZero (st.env.get c) then [.eq a b] else [], st.env, st.mem)
   | .mul a b c => (mulFacts a b c (st.env.get a) (st.env.get b), mulEnv F st.env a b c, st.mem)
-  | .set o k0 k1 k2 =>
-    (if k0 = 1 ∧ k1 = 0 ∧ k2 = 0 then neFacts o st.prev else [],
-      (match F.symOf k0 k1 k2 with
+  | .set o k0 k1 =>
+    (if k0 = 1 ∧ k1 = 0 then neFacts o st.prev else [],
+      (match F.symOf k0 k1 with
         | some v => st.env.set v envDepth o
         | none => st.env), st.mem)
   | .deref o1 o2 o3 mode =>

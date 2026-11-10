@@ -84,9 +84,9 @@ structure Apart (j : ℕ) : Prop where
   siteNodup : (siteCells (plumbOf j)).Nodup
   armNodup : ((plumbOf j).arms.map fun a ↦ a.2.1).Nodup
   env : ∀ p ∈ (certOf j).facts.env, (p.1, PC.fpg 0) ∈ (plumbOf j).stat
-  main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < 444) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < 444) ∧
-    (∀ q ∈ (plumbOf j).stat, q.1 < 444) ∧ (∀ c ∈ (certOf j).locs, c < 444) ∧
-    (∀ c ∈ siteCells (plumbOf j), c < 444) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < 444
+  main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < 445) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < 445) ∧
+    (∀ q ∈ (plumbOf j).stat, q.1 < 445) ∧ (∀ c ∈ (certOf j).locs, c < 445) ∧
+    (∀ c ∈ siteCells (plumbOf j), c < 445) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < 445
 
 theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
   unfold apartOk at h
@@ -130,7 +130,7 @@ theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
     simp only [show Nat.beq 1 1 = true from rfl, Bool.cond_true, Nat.blt_eq] at h7
     have hlt : ∀ c, (Nat.lor (Nat.lor (Nat.lor (Nat.lor (tmpCells (plumbOf 1)) (bitsOf ((plumbOf 1).runs.map Prod.snd)))
         (bitsOf ((plumbOf 1).stat.map Prod.fst))) (bitsOf (certOf 1).locs)) (bitsOf (siteCells (plumbOf 1)))).testBit c
-          = true ∨ (bitsOf ((plumbOf 1).arms.map fun a ↦ a.2.1)).testBit c = true → c < 444 := fun c hc ↦
+          = true ∨ (bitsOf ((plumbOf 1).arms.map fun a ↦ a.2.1)).testBit c = true → c < 445 := fun c hc ↦
       lt_of_testBit_lt h7 (by
         rcases hc with hc | hc
         · exact testBit_lor_l hc
@@ -312,8 +312,8 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
     (hw : walk σ (coreOf j).body = .ret es vs) {Ψ : ℕ → E}
     (hΨ : ∀ u ∈ namedOf (coreOf j).params es vs, 2 ≤ cellJ j u → σ u = Ψ (cellJ j u))
-    (hst : ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o =
-        OffsetInstruction.immediateWord a b c)
+    (hst : ∀ o a b, (o, PC.k a b) ∈ (plumbOf j).stat → Ψ o =
+        OffsetInstruction.immediateWord a b)
     {v : V} (hv : v ∈ namedOf (coreOf j).params es vs) (h2 : 2 ≤ cellJ j v)
     {x : ℕ × E} (hx : x ∈ nodeE j f σ I) (hxc : x.1 = cellJ j v) : x.2 = σ v := by
   obtain ⟨i, rfl, -, -, -, hc, -, hcert, -⟩ := fn_of_idx hj
@@ -358,10 +358,10 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     simp only [List.mem_map] at hx
     obtain ⟨q, hq, rfl⟩ := hx
     simp only at hxc ⊢
-    rcases q with ⟨o, ⟨a, b, c⟩ | e⟩
+    rcases q with ⟨o, ⟨a, b⟩ | e⟩
     · simp only at hxc
       subst hxc
-      rw [hvΨ, hst _ a b c hq]; rfl
+      rw [hvΨ, hst _ a b hq]; rfl
     · simp only at hxc
       have : (fpgCells (plumbOf (i + 1))).testBit o = true :=
         mem_bitsOf (List.mem_filterMap.mpr ⟨_, hq, rfl⟩)
@@ -379,7 +379,7 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     exact absurd hxc.symm (hC.path σ es vs hw ch hch k tc hkt hσk v hv)
   · split_ifs at hx with h1
     · have hlt := (AP.main h1).2.2.2.1 _ (cellJ_mem h2)
-      have hge : 444 ≤ x.1 := by
+      have hge : 445 ≤ x.1 := by
         have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
         rw [tableCells_offsets, List.mem_range'] at this
         omega
@@ -459,9 +459,9 @@ theorem read_stat {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   have hval : ∀ u ∈ namedOf (coreOf (i + 1)).params es vs, cellJ (i + 1) u = q.1 → σ u = q.2.word I.fp := by
     intro u hu hcu
     obtain ⟨-, -, hfc, -⟩ := valOk_global hS hchk (namedOf_sub hw hu)
-    rcases q with ⟨o, ⟨a, b, c⟩ | e⟩
+    rcases q with ⟨o, ⟨a, b⟩ | e⟩
     · simp only at hcu ⊢
-      rw [hΨ' u hu (by rw [hcu]; exact h2), hcu, hst o a b c hq]; rfl
+      rw [hΨ' u hu (by rw [hcu]; exact h2), hcu, hst o a b hq]; rfl
     · simp only at hcu
       have : (fpgCells (plumbOf (i + 1))).testBit o = true := mem_bitsOf (List.mem_filterMap.mpr ⟨_, hq, rfl⟩)
       rw [bitN_eq, hcu, this] at hfc; cases hfc

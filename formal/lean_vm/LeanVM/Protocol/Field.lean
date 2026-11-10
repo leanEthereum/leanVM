@@ -16,16 +16,16 @@ public import VCVio.OracleComp.Constructions.SampleableType
 /-!
 # Fields for the proof system
 
-leanVM's columns take values in `K` and its challenges in `E`, the cubic extension of `K`
+leanVM's columns take values in `K` and its challenges in `E`, the quadratic extension of `K`
 (`LeanVM.Parameters.Field`). Three things are supplied.
 
 * `SampleableType E`: the uniform sampler ArkLib requires of every challenge type. `E` is
-  sampled as three independent limbs through `Ext.ofVector`; the `K` sampler it is built from
+  sampled as two independent limbs through `Ext.ofVector`; the `K` sampler it is built from
   reads a uniform `Fin (2^64)` as a bit pattern through `BitVec.ofFin` and `BF64.ofBitVec`.
   Neither enumerates its field: `Fintype K` is proof-only, and a sampler built from it would
   enumerate `2^64` elements at initialization. The shape follows ArkLib's own
   `KoalaBear.Ext6.sampleableType`.
-* `card_E`: `Fintype.card E = 2^192`, the one cardinality fact every error bound rewrites with.
+* `card_E`: `Fintype.card E = 2^128`, the one cardinality fact every error bound rewrites with.
 * `innerProductOracle`: the interface of the one committed oracle, the stack, on `Column n`,
   the value table of a `K`-multilinear on `n` variables. A query is a weight `W : Weight E n`
   (specification Definition 3.13, `def:ipcs`, `doc/leanvm/body/03-proving-primitives.tex:112-115`
@@ -76,18 +76,21 @@ instance instSampleableTypeK : SampleableType K :=
   haveI : NeZero (2 ^ 64) := ⟨by norm_num⟩
   SampleableType.ofEquiv finEquivK
 
-/-- `E` as its three limbs, CompPoly's carrier view. -/
-def limbsEquiv : Vector K 3 ≃ E where
-  toFun := fun v ↦ CompPoly.Extension.Ext.ofVector (P := BF64.ext3Params) v
-  invFun := fun x ↦ CompPoly.Extension.Ext.coeffs (P := BF64.ext3Params) x
+/-- `E` as its two limbs, CompPoly's carrier view. -/
+def limbsEquiv : Vector K 2 ≃ E where
+  toFun := fun v ↦ CompPoly.Extension.Ext.ofVector (P := eParams) v
+  invFun := fun x ↦ CompPoly.Extension.Ext.coeffs (P := eParams) x
   left_inv _ := rfl
   right_inv _ := rfl
 
-/-- Uniform sampling of `E`: three independent uniform limbs. -/
+/-- Uniform sampling of `E`: two independent uniform limbs. -/
 instance instSampleableTypeE : SampleableType E := SampleableType.ofEquiv limbsEquiv
 
-/-- `|E| = 2^192`: the size of the challenge space in every error bound. -/
-theorem card_E : Fintype.card E = 2 ^ 192 := BF64.card_ext3
+/-- `|E| = 2^128`: the size of the challenge space in every error bound. -/
+theorem card_E : Fintype.card E = 2 ^ 128 := by
+  rw [← Nat.card_eq_fintype_card, CompPoly.Extension.Ext.nat_card_ext]
+  show (2 ^ 64) ^ 2 = 2 ^ 128
+  norm_num
 
 /-! ## The inner-product oracle -/
 

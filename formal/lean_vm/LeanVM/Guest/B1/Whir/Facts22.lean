@@ -15,5 +15,8 @@ namespace LeanVM.Guest.B1.Whir
 set_option maxRecDepth 100000 in
 theorem candB_22 : candB 22 23 4 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem qcallsB_22 : qcallsB 22 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B1.Whir

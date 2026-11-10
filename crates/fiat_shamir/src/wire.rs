@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use crate::merkle::{Hash, MerklePath, hash_pair, hash_words, padded};
 use crate::transcript::Proof;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 /// The most phases a proof, queries a phase, leaf words and tree height may have: at least the protocol's own, and few
 /// enough that hostile bytes unprune to a bounded size. Encoding asserts them, so an honest proof always decodes.
@@ -16,7 +16,7 @@ const MAX_HEIGHT: usize = 32;
 impl Proof {
     /// Every count and size is a little-endian `u32`, every word a little-endian `u64`.
     ///
-    /// - The stream: its length, then each element as its three words.
+    /// - The stream: its length, then each element as its two words.
     /// - The number of phases, then each phase pruned: its queries' count and positions, in the order the verifier
     ///   samples them; the tree's height, the leaf width, and the row width; the leaf at each distinct position,
     ///   ascending, as its last row-width words, the ones before being zero in every leaf of the phase; then the
@@ -41,12 +41,12 @@ impl Proof {
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let mut input = Reader(bytes);
         let length = input.u32()? as usize;
-        let words = input.words(length.checked_mul(3)?)?;
+        let words = input.words(length.checked_mul(2)?)?;
         let stream = words
             .as_chunks()
             .0
             .iter()
-            .map(|[c0, c1, c2]| F192::new(c0.0, c1.0, c2.0))
+            .map(|[c0, c1]| F128::new(c0.0, c1.0))
             .collect();
         let phases = input.u32().filter(|&phases| phases as usize <= MAX_PHASES)?;
         let merkle = (0..phases).map(|_| read_phase(&mut input)).collect::<Option<_>>()?;
@@ -199,12 +199,12 @@ mod tests {
             _ => hash_pair(&leaf(2 * i), &leaf(2 * i + 1)),
         };
         let proof = Proof {
-            stream: vec![F192::new(1, 2, 3)],
+            stream: vec![F128::new(1, 2)],
             merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
         };
         let bytes = proof.to_bytes();
         // The stream, then the phase: its queries, three sizes, two rows of two words, and two siblings.
-        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
+        assert_eq!(bytes.len(), (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
         assert_eq!(Proof::from_bytes(&bytes), Some(proof));
         assert_eq!(Proof::from_bytes(&[&bytes[..], &[0]].concat()), None);
     }

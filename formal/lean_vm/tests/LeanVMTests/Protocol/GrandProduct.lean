@@ -77,14 +77,14 @@ example : Typed.Def NoOracle (Unit × (Fin 3 → E)) Unit (LayerStmt Unit E 3 4)
   gkr 3 4 sixteen
 
 /-- The public data of the bus phase's argument: the statement and the fingerprint challenges. -/
-abbrev BusX : Type := toy.Stmt × ((Fin 4 → E) × E)
+abbrev BusX : Type := toy.Stmt × ((Fin 16 → E) × E)
 
 /-- The bus phase's shape around the argument: the fingerprint challenges, the two roots, the
 argument for three trees of `2 ^ μ_bus` leaves read from the stack, and the boundary values. The
 bus slot takes it at the slot's type, by definitional equality of the slots. -/
 def busShape : Typed.Def (TheOracle toy) toy.Stmt Unit
     (LayerStmt BusX E 3 toy.μBus × Vector E toy.busClaims) Unit (busSlot toy) :=
-  (((Typed.sampleChallenge (TheOracle toy) ((Fin 4 → E) × E) (fun _ ↦ true)
+  (((Typed.sampleChallenge (TheOracle toy) ((Fin 16 → E) × E) (fun _ ↦ true)
       fun s ab ↦ (s, ab)).append
     (Typed.sendChecked (TheOracle toy) (E × E) (fun _ ↦ (0, 0)) (fun _ _ ↦ true)
       fun s r ↦ ((s, ![r.1, r.1, r.2]) : BusX × (Fin 3 → E)))).append

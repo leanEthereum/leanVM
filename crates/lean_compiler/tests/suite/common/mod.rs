@@ -2,10 +2,10 @@
 #![allow(dead_code)]
 
 use lean_compiler::{compile, parse};
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// The program's own instruction mix: executed but not proven.
-pub fn mix(src: &str, pi: [F192; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
+pub fn mix(src: &str, pi: [F128; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
     compile(&parse(src).expect("parse")).execute(pi).unwrap().rows()
 }
 

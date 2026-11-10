@@ -11,7 +11,7 @@ public import LeanVM.Protocol.EndToEnd.Completeness
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.WithHash
 
@@ -33,9 +33,9 @@ opcode table holds the run's rows of its opcode, as many as the instructions of 
 execution executes (`Execution.count_eq_runRows`). The stacked size counts every committed column at
 its table's height (`blocks_total_eq`):
 
-  `4·2^logMem + 2^logSize + 2^(τ₅ + 6) + 15·2^τ₀ + 15·2^τ₁ + 8·2^τ₂ + 15·2^τ₃ + 14·2^τ₄ + 28·2^τ₅`
+  `3·2^logMem + 2^logSize + 2^(τ₅ + 6) + 13·2^τ₀ + 13·2^τ₁ + 7·2^τ₂ + 14·2^τ₃ + 14·2^τ₄ + 28·2^τ₅`
 
-(the four memory columns, `BFCNT`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
+(the three memory columns, `BFCNT`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
 columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, the last without its
 fifty value lanes and the fourteen columns riding `q_keccak`'s spare slots), `τ_j = ⌈log₂ rows_j⌉`, and `τ₅` at least `9` (`TABLE_LOG_FLOORS`). At the
 witness's sizes it is the execution's committed size (`Execution.committedSize`), so it is within the
@@ -61,18 +61,18 @@ open Air.Flat (EnsembleWitness)
 
 /-! ## The stacked size -/
 
-/-- The committed columns, by table: four of the memory, `BFCNT`, `QKECCAK`, then those of the
-six opcode tables (`15, 15, 8, 15, 14` and `28` for `KECCAK`, whose fifty value lanes are
+/-- The committed columns, by table: three of the memory, `BFCNT`, `QKECCAK`, then those of the
+six opcode tables (`13, 13, 7, 14, 14` and `28` for `KECCAK`, whose fifty value lanes are
 `q_keccak`'s or derived and whose columns `0 … 13` ride `q_keccak`'s spare slots). -/
 theorem committedColumns_tables : committedColumns.map (fun c ↦ c.1) =
-    List.replicate 4 0 ++ [1, 2] ++ List.replicate 15 3 ++ List.replicate 15 4 ++
-      List.replicate 8 5 ++ List.replicate 15 6 ++ List.replicate 14 7 ++ List.replicate 28 8 := by
+    List.replicate 3 0 ++ [1, 2] ++ List.replicate 13 3 ++ List.replicate 13 4 ++
+      List.replicate 7 5 ++ List.replicate 14 6 ++ List.replicate 14 7 ++ List.replicate 28 8 := by
   decide +kernel
 
 /-- **The stacked size**: every committed column at its table's height. -/
 theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks prog s).total =
-    4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 := by
+    3 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 13 * 2 ^ s.τ 0 + 13 * 2 ^ s.τ 1 +
+      7 * 2 ^ s.τ 2 + 14 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 := by
   rw [Blocks.total_eq_sum]
   have h1 : ∑ b : Fin (LeanIsa.blocks prog s).n, 2 ^ (LeanIsa.blocks prog s).size b =
       ((LeanIsa.stackOrder prog s).map fun c ↦ 2 ^ kappa prog s c).sum :=
@@ -182,7 +182,8 @@ theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakS
   have hrun := runI_leanVmProgram hadm hρ hq
   -- Unifying through the strategy unfolds it under Lean 4.35: name it first.
   generalize leanVmProver prog _ ρ (stackOf prog _ hc.choose) = S at h hrun
-  exact runProof_prove H F _ _ _ fuel (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2) h
+  exact runProof_prove H F _ _ _ fuel (Sound.grindThenSample_leanVmProgram _ _)
+    (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2) h
 
 /-- **The honest prover succeeds within the budget.** For a valid execution whose committed size is
 at most `2^28`, at a valid rate, the honest proof exists as soon as every proof-of-work search the

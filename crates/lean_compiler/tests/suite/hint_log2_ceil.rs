@@ -6,7 +6,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 fn log2_ceil_of(v: u128) -> usize {
     if v <= 1 {
@@ -30,9 +30,9 @@ def main():
 ";
     for v in [1u128, 2, 3, 4, 5, 7, 8, 200] {
         let mut program = compile(&parse(src).expect("parse"));
-        let bits: Vec<F192> = (0..8).map(|j| F192::from(F64(((v >> j) & 1) as u64))).collect();
+        let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
         program.set_witness("bits", vec![bits]);
-        let want = [F192::from(g_pow(log2_ceil_of(v))), F192::from(F64::ONE)];
+        let want = [F128::from(g_pow(log2_ceil_of(v))), F128::from(F64::ONE)];
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: log2_ceil advice must verify"));
     }
@@ -54,9 +54,9 @@ def main():
 ";
     for (v, mu) in [(2u128, 5usize), (4, 5), (64, 6), (200, 8)] {
         let mut program = compile(&parse(src).expect("parse"));
-        let bits: Vec<F192> = (0..8).map(|j| F192::from(F64(((v >> j) & 1) as u64))).collect();
+        let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
         program.set_witness("bits", vec![bits]);
-        let want = [F192::from(g_pow(mu)), F192::from(F64::ONE)];
+        let want = [F128::from(g_pow(mu)), F128::from(F64::ONE)];
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: floored log2_ceil must verify"));
     }

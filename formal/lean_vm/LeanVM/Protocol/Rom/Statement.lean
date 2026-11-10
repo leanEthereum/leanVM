@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Errors
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Extraction.Defs
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic

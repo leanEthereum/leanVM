@@ -65,11 +65,11 @@ theorem list_split_completeAtDTB (fs : String → ℕ) (cert : String → V → 
 
 set_option maxRecDepth 20000 in
 /-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^16`
-canonical claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
+claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
-    (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
@@ -207,7 +207,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
           exact (guard_complete (find_of_idx big_idx (by rw [coreProgram_length]; omega))
-            (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
+            (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         · have := hL15 rd t _ _ hn (loopPre_gen (m := a) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show a < 2 ^ 64 - 1 by omega)] using this
       · simp only [decide_eq_true_eq] at ht
@@ -216,7 +216,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
           exact (guard_complete (find_of_idx grp_idx (by rw [coreProgram_length]; omega))
-            (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
+            (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         · have := hL16 rd t _ _ hn (loopPre_gen (m := b) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show b < 2 ^ 64 - 1 by omega)] using this
       · have hT := hCL r hr17
@@ -231,7 +231,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
           rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
           show 16 * (68 * (8 * a + b)) = 136 * (8 * (8 * a + b)); omega
         have := claimLast_complete hr17 hpre hS (cells := cells.drop (68 * (8 * a + b)))
-          (by simp; omega) (readsAt_drop' hr _) (canon_drop hc _)
+          (by simp; omega) (readsAt_drop' hr _)
         rw [← cellsBytes_append, List.take_append_drop] at this
         rw [show 544 * a + 68 * b = 68 * (8 * a + b) by ring]
         exact this

@@ -28,10 +28,9 @@ def exponents : List ℕ :=
   [0, 1, 2, 3, 640, 4095, 4096, 4097, 65535, 65536, 65537, 6700416, 6700417, 2 ^ 32, 2 ^ 34,
     2 ^ 63, 2 ^ 64 - 3, 2 ^ 64 - 2] ++ (List.range 16).map fun i ↦ lcg (i + 1) % (2 ^ 64 - 1)
 
-/-- A pseudo-random word of `E`, its limbs nonzero or not as `s` falls. -/
+/-- A pseudo-random nonzero word of `E`, its limbs nonzero or not as `s` falls. -/
 def word (s : ℕ) : E :=
-  E.ofLimbs (K.ofBits (if s % 3 = 0 then 0 else lcg s)) (K.ofBits (lcg (s + 1)))
-    (K.ofBits (if s % 5 = 0 then 0 else lcg (s + 2)))
+  E.ofLimbs (K.ofBits (if s % 3 = 0 then 0 else lcg s)) (K.ofBits (if s % 3 = 1 then 0 else lcg (s + 1)))
 
 /-- The checks, the baby-step tables built once (`discreteLog` is `discreteLogWith` in
 `discreteLogTables`), each named. -/

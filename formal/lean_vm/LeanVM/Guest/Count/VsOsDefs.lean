@@ -9,8 +9,7 @@
 module
 
 public import LeanVM.Guest.Count.Fast
-public import LeanVM.Guest.B1.Place.OsFinalB
-public import LeanVM.Guest.B1.Place.OsBos
+public import LeanVM.Guest.B1.Place.OsSpec
 
 namespace LeanVM.Guest.Count
 
@@ -20,8 +19,9 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 
 /-- The core indices of `osKindTable`'s names. -/
 def osKindIdx : List ℕ :=
-  [8, 1, 430, 437, 432, 477, 496, 440, 458, 474, 493, 435, 455, 471, 490, 429, 452, 468, 487, 506,
-    520, 534, 479, 498, 444, 461, 544, 442, 438, 553, 433, 481, 500, 447, 463]
+  [7, 8, 483, 476, 544, 570, 496, 519, 542, 568, 491, 515, 537, 563, 485, 510, 532, 558, 478, 505,
+    527, 553, 579, 597, 614, 541, 567, 490, 514, 536, 562, 484, 509, 531, 557, 477, 504, 526, 552,
+    578, 596, 304, 330, 462, 628, 494, 488, 637, 481, 547, 573, 500, 522]
 
 /-- `open_stacked`'s named callees' words (`osBnd`) by the tree: `wSB` at the indices of
 `osKindTable`'s names, `0` elsewhere. -/
@@ -37,12 +37,12 @@ noncomputable def osCF (c : ℕ) : ℕ :=
 
 /-- Its calls' bounds, in order. -/
 noncomputable def osCallsF (c : ℕ) : List ℕ :=
-  ((osBodyA (osCfg c)).filterMap B1.Main.Stmt.callS).map fun x =>
+  ((osBody (osCfg c)).filterMap LeanVM.Guest.Memory.Stmt.callS).map fun x =>
     B1.osCallB fsFast (B1.osBk fsFast osBndFast (fun f => wSKFast f - fsFast f) (osCfg c)) x.2.1
 
 /-- Its frame and buffers. -/
 noncomputable def osHeadF (c : ℕ) : ℕ :=
-  fsFast ("open_stacked__L" ++ natStr c) + (B1.osSizesL (osCfg c)).sum
+  fsFast ("open_stacked__L" ++ natStr c) + (B1.osSizesF (osCfg c)).sum
 
 /-- Its calls `a` to `a + n - 1`. -/
 noncomputable def osPartF (c a n : ℕ) : ℕ := (((osCallsF c).drop a).take n).sum

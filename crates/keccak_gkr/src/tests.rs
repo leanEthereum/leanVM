@@ -1,10 +1,10 @@
 use fiat_shamir::transcript::{Proof, ProverState};
-use primitives::field::F192;
+use primitives::field::F128;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
-use crate::batch_bench::{batch_transcript, open_commitment, scalar_proof};
+use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANES, LOCAL_VARS};
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
@@ -20,13 +20,13 @@ fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
 }
 
 /// A claim's value, from its definition.
-fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192 {
+fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F128 {
     let eq = eq_table(&claim.point);
-    let mut acc = F192::ZERO;
+    let mut acc = F128::ZERO;
     for (segment, state) in states.iter().enumerate() {
         for (g, block) in state.as_chunks::<BLOCK_LEN>().0.iter().enumerate() {
             for j in 0..BITS {
-                let mut inner = F192::ZERO;
+                let mut inner = F128::ZERO;
                 for w in 0..BLOCK_WORDS {
                     let word = block[j * BLOCK_WORDS + w];
                     for p in 0..4 {
@@ -90,21 +90,20 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
-fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F192) -> Proof {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F128) -> Proof {
+    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
-    let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
+    let (prover_data, ood) = commit_stack(&mut ps, shape, committed, LOG_INV_RATE_0);
+    let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
     // The states must be the honest ones; what rides the spare slots past them is free.
-    if lane_error == F192::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
+    if lane_error == F128::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
         // Each opening is what the commitment scheme means by it.
         let mut stack = committed.to_vec();
         stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
@@ -119,27 +118,37 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
         let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
         assert!(openings.inputs.slices == slices, "inputs");
     }
-    open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings);
+    open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings, ood);
     ps.into_proof()
 }
 
-/// The Keccak check that rejects a change to stream scalar `at`, if the reduction reads it:
-/// after the root come the output lanes and the committed outputs' value, which the first
-/// layer's product check meets, then the layers, then the two openings.
+/// The Keccak check that rejects a change to stream scalar `at`, if one meets it before any grind does (a grind of
+/// few bits may still pass a changed transcript, so what catches those is left open). After the root, the OOD sample's
+/// nonce and value and the instance's nonce come the output lanes, the segment and lane nonce, the committed
+/// outputs' value, which the first layer's product check meets, then the layers, then the two openings. A round is
+/// its scalars and its nonce, and a grind of zero bits sends none.
 fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
+    let nonce = |numerator: usize| usize::from(fiat_shamir::grinding_bits(numerator as u128) > 0);
     let committed = usize::from(shape.segments() > 1);
-    let layer = PROD_BITS + 2 * shape.y_vars() + 3 * LOCAL_VARS + 3;
-    let layers = 2 + LANES + committed;
+    // A sumcheck round of degree 2 or 3 sends two scalars; the bit position's, of degree 3 with no eq factor, three.
+    let (round2, round3) = (2 + nonce(2), 2 + nonce(3));
+    let layer = PROD_BITS + nonce(PROD_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_VARS + 3 + nonce(2);
+    let first = 2 + 1 + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + 5);
+    let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
-    let inputs = outputs + committed * (2 * shape.slot_log() + 1);
-    let end = inputs + 2 * (4 + shape.slot_log()) + 64;
+    let word = outputs + committed * round2 * shape.slot_log();
+    let inputs = word + committed;
+    let slices = inputs + round2 * (4 + shape.slot_log());
+    let in_layer = at.wrapping_sub(layers) % layer;
     Some(match at {
-        _ if at < 2 || at >= end => return None,
-        _ if at < layers => VerifierError::KeccakProduct,
-        _ if at < outputs && (at - layers) % layer < PROD_BITS => VerifierError::KeccakProduct,
-        _ if at < outputs => VerifierError::KeccakLayer,
-        _ if at < inputs => VerifierError::KeccakOutputOpening,
-        _ => VerifierError::KeccakInputOpening,
+        _ if (first..layers).contains(&at) => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && in_layer < PROD_BITS => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && (layer - 3 - nonce(2)..layer - nonce(2)).contains(&in_layer) => {
+            VerifierError::KeccakLayer
+        }
+        _ if (word..inputs).contains(&at) => VerifierError::KeccakOutputOpening,
+        _ if (slices..slices + 64).contains(&at) => VerifierError::KeccakInputOpening,
+        _ => return None,
     })
 }
 
@@ -158,11 +167,11 @@ fn end_to_end(n_instances: usize, depth: usize) {
     for word in &mut committed[shape.slots() * shape.n()..] {
         *word = primitives::field::F64(rng.next_u64());
     }
-    let proof = prove(shape, &inputs, &committed, F192::ZERO);
+    let proof = prove(shape, &inputs, &committed, F128::ZERO);
     verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
         let mut bad = proof.clone();
-        bad.stream[at] += F192::ONE;
+        bad.stream[at] += F128::ONE;
         let err = verify(shape, &bad).expect_err("a changed scalar is rejected");
         if let Some(check) = keccak_check(shape, at) {
             assert_eq!(err, check, "scalar {at}");
@@ -175,7 +184,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
 /// is what lets other columns ride there at all.
 #[test]
 fn spare_slots_must_be_the_committed_ones() {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
 
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
@@ -193,13 +202,46 @@ fn spare_slots_must_be_the_committed_ones() {
 
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+    let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, LOG_INV_RATE_0);
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);
-    open_commitment(&mut ps, shape, committed, prover_data, &config, openings);
+    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
     verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
+}
+
+/// The OOD sample's value is a claim the opening discharges: a prover that sends a wrong one is rejected there.
+#[test]
+fn a_wrong_ood_value_fails_the_opening() {
+    use pcs::stack_open::StackClaim;
+    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir_config::OOD_GRINDING_BITS;
+
+    let mut rng = Rng::new(83);
+    let (n, depth) = (600, 12);
+    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let shape = Shape::new(n, depth);
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let witness = Witness::generate(shape, &inputs, &mut committed);
+
+    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
+    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+    ps.add_root(&commitment.root);
+    ps.grind(OOD_GRINDING_BITS as u32);
+    let low_point = ps.sample_vec(shape.stack_log());
+    let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
+    ps.add_scalar(value);
+    let ood = StackClaim::Point {
+        offset: 0,
+        low_point,
+        value,
+    };
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
+    ps.add_scalars(&output.lanes);
+    let openings = witness.prove(&mut ps, &committed, &output);
+    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
+    assert_eq!(verify(shape, &ps.into_proof()), Err(VerifierError::WhirTerminal));
 }
 
 #[test]
@@ -235,7 +277,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
         let padded = Witness::generate(shape, &inputs, &mut committed);
         let stream = |witness: &Witness| {
             let mut ps = ProverState::from_label(LABEL);
-            let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+            let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
             ps.add_scalars(&output.lanes);
             let openings = witness.prove(&mut ps, &committed, &output);
             (openings, ps.into_proof())
@@ -255,17 +297,17 @@ fn a_broken_committed_state_is_rejected() {
     let shape = Shape::new(inputs.len(), 6);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
-    let accepts = |committed: &[primitives::field::F64], lane_error: F192| {
+    let accepts = |committed: &[primitives::field::F64], lane_error: F128| {
         verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()
     };
-    assert!(accepts(&committed, F192::ZERO), "the honest column");
+    assert!(accepts(&committed, F128::ZERO), "the honest column");
     // A lane of the input and of each state between.
     for slot in [3, 30, 60, 80, 99] {
         let mut bad = committed.clone();
         bad[slot * shape.n() + 17].0 ^= 1 << 40;
-        assert!(!accepts(&bad, F192::ZERO), "slot {slot}");
+        assert!(!accepts(&bad, F128::ZERO), "slot {slot}");
     }
-    assert!(!accepts(&committed, F192::ONE), "the output");
+    assert!(!accepts(&committed, F128::ONE), "the output");
 }
 
 /// An extent whose size would wrap is refused, not allocated short.

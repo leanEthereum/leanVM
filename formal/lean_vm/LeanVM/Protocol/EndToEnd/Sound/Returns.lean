@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.SpecRules.Basic
-public import LeanVM.Protocol.Verifier.Cost
 
 /-!
 # The returns of the leanVM verifier
@@ -20,21 +19,15 @@ property of the program alone, with no probability, and it composes through `bin
 (`RetOK.bind`): a sequence returns only what its continuation returns on a value its first part
 returns.
 
-The instances bound the column claims the front phases of `leanVmVerifierProgram`
-(`LeanVM.Protocol.Verifier`) return, with the unfoldings and inductions of
-`LeanVM.Protocol.Verifier.Cost`:
+The instances bound the column claims the front phases of `verifyExecutionClaims`
+(`LeanVM.Protocol.Verifier.Claims`, the claim-list form of `Statement/LeanVmVerifier.lean`'s
+`verifyExecution` at leanVM `f128`) return:
 
-* `retOK_verifyBusBalance`: the bus phase returns at most five framework claims (the three memory
+* `retOK_verifyBusBalance`: the bus phase returns four framework claims (the two memory limbs'
   columns and the two final counters);
-* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most `5 + 159 = 164`
-  claims, every one of the six tables contributing one claim per column, `159` columns in all
-  (`tables_width_sum`), within the `545` the later phases are budgeted for;
-* `retOK_publicInputPhase`: the public-input phase returns at most three claims.
-
-## Deployed behaviour
-
-The statements are on the program `leanVmVerifierProgram` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`, as transcribed in `LeanVM.Protocol.Verifier`.
+* `retOK_busTable`: the bus phase followed by the table sumcheck returns at most `4 + 153 = 157`
+  claims, every one of the six tables contributing one claim per column (`tables_width_sum`);
+* `retOK_publicInputPhase`: the public-input phase returns two claims, one per memory limb.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -107,15 +100,18 @@ theorem RetOK.readN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
 
 /-! ## The front phases of the leanVM verifier -/
 
-/-- The bus phase returns at most five framework claims. -/
-theorem retOK_verifyBusBalance (layout : Layout) :
-    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 5) (verifyBusBalance computedBytecodeValue layout) := by
+/-- The bus phase returns four framework claims, whatever checks the fixed polynomial's value. -/
+theorem retOK_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
+    RetOK (fun bus : BusResult ↦ bus.claims.length ≤ 4) (verifyBusBalance ev layout) := by
   unfold verifyBusBalance
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
+  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
   obtain ⟨countRoot, point, treeValues⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil]
+  refine RetOK.bind_true fun _ ↦ (RetOK.readN 2).bind fun memory hm ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
+  obtain ⟨share, bytecodePoint, value⟩ := r
+  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
+  simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil, hm]
   omega
 
 /-- The tables' row evaluations: one claim per column of each row's table, added to the claims
@@ -143,13 +139,13 @@ theorem sum_map_zip_fst_le {α β : Type} (f : α → ℕ) :
     simp only [List.zip_cons_cons, List.map_cons, List.sum_cons]
     exact Nat.add_le_add_left (sum_map_zip_fst_le f l₁ l₂) _
 
-/-- The six tables have `159` columns in all (`KECCAK`'s `92` the widest). -/
-theorem tables_width_sum : (tables.map Table.width).sum = 159 := by decide +kernel
+/-- The six tables have `153` columns in all (`KECCAK`'s `92` the widest). -/
+theorem tables_width_sum : (tables.map Table.width).sum = 153 := by decide +kernel
 
-/-- The table sumcheck returns at most `159` claims, one per column of the six tables. -/
+/-- The table sumcheck returns at most `153` claims, one per column of the six tables. -/
 theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 159)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 153)
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target) := by
   unfold tableSumcheckClaims
   refine RetOK.bind_true fun r ↦ ?_
@@ -163,27 +159,26 @@ theorem retOK_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
   simp only [List.length_nil, Nat.zero_add] at hr
   omega
 
-/-- The table phase returns the bus's claims and at most `159` more. -/
+/-- The table phase returns the bus's claims and at most `153` more. -/
 theorem retOK_tablePhase (layout : Layout) (bus : BusResult) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 159)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ bus.claims.length + 153)
       (tablePhaseClaims layout bus) := by
   unfold tablePhaseClaims
-  refine RetOK.bind_true fun _ ↦ (retOK_tableSumcheck _ _ _ _ _ _).bind fun claims hc ↦
-    RetOK.ret ?_
+  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    (retOK_tableSumcheck _ _ _ _ _ _).bind fun claims hc ↦ RetOK.ret ?_
   simp only [List.length_append]
   omega
 
-/-- The bus phase and the table sumcheck return at most `5 + 159 = 164` claims, within the `545`
-the later phases are budgeted for. -/
-theorem retOK_busTable (layout : Layout) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 545)
-      ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) :=
-  (retOK_verifyBusBalance layout).bind fun bus hb ↦
+/-- The bus phase and the table sumcheck return at most `4 + 153 = 157` claims. -/
+theorem retOK_busTable (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 157)
+      ((verifyBusBalance ev layout).bind (tablePhaseClaims layout)) :=
+  (retOK_verifyBusBalance ev layout).bind fun bus hb ↦
     (retOK_tablePhase layout bus).mono fun _ h ↦ by omega
 
-/-- The public-input phase returns three claims. -/
+/-- The public-input phase returns two claims. -/
 theorem retOK_publicInputPhase (layout : Layout) (publicInput : Digest) :
-    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 3)
+    RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 2)
       (publicInputPhase layout publicInput) := by
   unfold publicInputPhase
   refine RetOK.bind_true fun _ ↦ RetOK.ret ?_

@@ -63,8 +63,8 @@ def pVs (vs : List V) : String := pList (vs.map pItem)
 def pStrs (ss : List String) : String := pList (ss.map String.quote)
 
 def pE (x : E) : String :=
-  let (c0, c1, c2) := limbsOf x
-  s!"(word {c0} {c1} {c2})"
+  let (c0, c1) := limbsOf x
+  s!"(word {c0} {c1})"
 
 def pDest : Dest → String
   | .stack cs => s!"(.stack {pVs cs})"

@@ -14,8 +14,8 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The verifier tables are the instance's
 
-Fidelity of the six instruction tables of `crates/verifier/src/layout.rs:134-469` at leanVM
-`40f877dc` (`Flushes`, `flushes_arith`, `flushes_set`, `flushes_deref`, `flushes_jump`,
+Fidelity of the six instruction tables of `crates/verifier/src/layout.rs:133-460` at leanVM
+`f128` (`Flushes`, `flushes_arith`, `flushes_set`, `flushes_deref`, `flushes_jump`,
 `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, `flushes_keccak`, `tables`), transcribed as
 `LeanVM.Protocol.Verifier.tables`, against the leanISA instance's opcode tables (`LeanIsa.flushes`,
 `LeanIsa.counts`, `LeanIsa.constraints` at `opIdx t`), which are Clean's components through
@@ -347,20 +347,20 @@ def memoryIf (f : FlushesC) (flag : ℕ) (address : FormC) (count : ℕ) (values
 /-- `Flushes.memory_cols`. -/
 def memoryCols (f : FlushesC) (address : FormC) (count : ℕ) (columns : List ℕ) : FlushesC :=
   f.memory address count
-    (columns.map (FormC.col ·) ++ List.replicate (3 - columns.length) (FormC.const .zero))
+    (columns.map (FormC.col ·) ++ List.replicate (2 - columns.length) (FormC.const .zero))
 
 end FlushesC
 
 /-- `flushes_arith(opcode, multiply)`, symbolically. -/
 def flushesArithC (opcode : ℕ) (multiply : Bool) : FlushesC :=
   let c := columnIndexByName arithColumns
-  let va := [c "va_0", c "va_1", c "va_2"]
-  let vb := [c "vb_0", c "vb_1", c "vb_2"]
+  let va := [c "va_0", c "va_1"]
+  let vb := [c "vb_0", c "vb_1"]
   let result : List FormC :=
     if multiply then
       towerLanes.map fun lane ↦
-        FormC.sum (lane.map fun (j, k) ↦ FormC.prod (va.getD j 0) (vb.getD k 0))
-    else (List.range 3).map fun i ↦ (FormC.col (va.getD i 0)).add (FormC.col (vb.getD i 0))
+        FormC.sum (lane.map fun (j, k, e) ↦ FormC.prod (va.getD j 0) (vb.getD k 0) e)
+    else (List.range 2).map fun i ↦ (FormC.col (va.getD i 0)).add (FormC.col (vb.getD i 0))
   let f : FlushesC := {}
   let f := f.stateStep (c "pc") (c "fp")
   let f := f.bytecode (c "pc") (c "cnt_bc") opcode
@@ -373,11 +373,11 @@ def flushesArithC (opcode : ℕ) (multiply : Bool) : FlushesC :=
 /-- `flushes_set()`, symbolically. -/
 def flushesSetC : FlushesC :=
   let c := columnIndexByName setColumns
-  let k := [c "k_0", c "k_1", c "k_2"]
+  let k := [c "k_0", c "k_1"]
   let f : FlushesC := {}
   let f := f.stateStep (c "pc") (c "fp")
   let f := f.bytecode (c "pc") (c "cnt_bc") opSet
-    (FormC.col (c "o") :: k.map (FormC.col ·) ++ [FormC.const .zero])
+    (FormC.col (c "o") :: k.map (FormC.col ·) ++ [FormC.const .zero, FormC.const .zero])
   f.memoryCols (FormC.prod (c "fp") (c "o")) (c "cnt") k
 
 /-- `flushes_deref()`, symbolically. -/
@@ -387,11 +387,11 @@ def flushesDerefC : FlushesC :=
   let fp := c "fp"
   let fPc := c "f_pc"
   let fFp := c "f_fp"
-  let v3 := [c "v3_0", c "v3_1", c "v3_2"]
+  let v3 := [c "v3_0", c "v3_1"]
   let gated := fun lane ↦ [FormC.col lane, FormC.prod fPc lane, FormC.prod fFp lane]
   let store : List FormC :=
     [FormC.sum (gated (v3.getD 0 0) ++ [FormC.prod fPc pc 2, FormC.prod fFp fp]),
-      FormC.sum (gated (v3.getD 1 0)), FormC.sum (gated (v3.getD 2 0))]
+      FormC.sum (gated (v3.getD 1 0))]
   let f : FlushesC := {}
   let f := f.stateStep pc fp
   let f := f.bytecode pc (c "cnt_bc") opDeref
@@ -456,7 +456,7 @@ def flushesKeccakC : FlushesC :=
       let values := ([0, 1] : List ℕ).map (fun h ↦
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimbC (lane (pick (LeanVM.Semantics.cellLanes false cell)))
-          (lane (pick (LeanVM.Semantics.cellLanes true cell))) flag missing) ++ [FormC.const .zero]
+          (lane (pick (LeanVM.Semantics.cellLanes true cell))) flag missing)
       let count := keccakCnt + 13 * side + cell
       if side = 0 then f.memory (address cell) count values
       else if cell = 0 then f.memory (FormC.prod fp (c "o_out")) count values
@@ -655,16 +655,16 @@ theorem refForm_terms : ∀ t : Fin 6,
 theorem refCountColumns : ∀ t : Fin 6,
     (tables.getD t default).countColumns = (LeanIsa.counts (opIdx t)).map (·.val)
   | 0 => by
-    rw [show (LeanIsa.counts (opIdx 0)).map (·.val) = [11, 12, 13, 14] by decide +kernel]
+    rw [show (LeanIsa.counts (opIdx 0)).map (·.val) = [9, 10, 11, 12] by decide +kernel]
     simp [Table.countColumns, tables, arithColumns]
   | 1 => by
-    rw [show (LeanIsa.counts (opIdx 1)).map (·.val) = [11, 12, 13, 14] by decide +kernel]
+    rw [show (LeanIsa.counts (opIdx 1)).map (·.val) = [9, 10, 11, 12] by decide +kernel]
     simp [Table.countColumns, tables, arithColumns]
   | 2 => by
-    rw [show (LeanIsa.counts (opIdx 2)).map (·.val) = [6, 7] by decide +kernel]
+    rw [show (LeanIsa.counts (opIdx 2)).map (·.val) = [5, 6] by decide +kernel]
     simp [Table.countColumns, tables, setColumns]
   | 3 => by
-    rw [show (LeanIsa.counts (opIdx 3)).map (·.val) = [11, 12, 13, 14] by decide +kernel]
+    rw [show (LeanIsa.counts (opIdx 3)).map (·.val) = [10, 11, 12, 13] by decide +kernel]
     simp [Table.countColumns, tables, derefColumns]
   | 4 => by
     rw [show (LeanIsa.counts (opIdx 4)).map (·.val) = [8, 9, 10, 11] by decide +kernel]

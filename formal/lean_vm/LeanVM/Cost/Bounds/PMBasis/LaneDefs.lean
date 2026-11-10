@@ -104,7 +104,8 @@ copied, the orders, the PM-basis (`pmBasisPrice`, `w + m` rows, `m` columns, max
 
 /-- **The interpolation on `pmSolver`** (`interpolateDistinctWith pmSolver`), `n` points:
 `G` and `R`, the GS data, the certified solve, the least row (a degree read per entry), the
-normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` of glue. -/
+normalization (`normBound`, and the row read as a bivariate polynomial), `2^41` of glue (the
+model's margin at the smallest shapes). -/
 @[expose] def interpPMPrice (p : PMPrices) (n : ℕ) (params : GSInterpParams) : ℕ :=
   grPrice n + gsDataPrice p n params.multiplicity (interpolationWidth params) +
     certSolvePrice p n params.multiplicity (interpolationWidth params)
@@ -112,7 +113,7 @@ normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` 
     (p.ovh * ((interpolationWidth params + params.multiplicity) * interpolationWidth params) +
       64 * (interpolationWidth params + params.multiplicity) + 100) +
     normBound params.weightedDegreeBound (interpolationWidth params) +
-    p.ovh * (interpolationWidth params * (params.weightedDegreeBound + 2)) + 2 ^ 20
+    p.ovh * (interpolationWidth params * (params.weightedDegreeBound + 2)) + 2 ^ 41
 
 /-- **One lane's run on `pmSolver`** (`gsRunDistinctWith pmSolver`): the interpolation
 `interpPMPrice`, the truncation, Roth–Ruckenstein's search (`rrBound`), the candidates' filter. -/

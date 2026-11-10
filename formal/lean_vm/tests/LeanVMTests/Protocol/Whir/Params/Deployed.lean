@@ -1,123 +1,44 @@
 /-
   LeanVMTests.Protocol.Whir.Params.Deployed
 
-  Controls for the certified codes of the deployed WHIR ladders: the certificates check, the
-  bound is tight at `2^-128`, level 0's slack is the largest that checks, a halved slack or a
-  dropped query breaks it, a wrong square-root bracket is rejected, and the result feeds
-  `stackedSpec`.
+  Controls for the deployed WHIR parameters' check: level 0's list bound and threshold, the
+  query rows are tight, and the interface is filled.
 -/
 
-import LeanVM.Protocol.Whir.Params.Deployed
+import LeanVM.Protocol.Whir.Params.Iface
 
 /-!
-# Deployed WHIR code controls
+# Deployed WHIR parameter controls
 
-* **Inhabitant.** `defaultCert` and the table's certificates check (`Cert.OK`), so
-  `deployedCodes` is built from the certificates and not from the fallback.
-* **Tightness.** Every shape checks at `2^-128` and fails at `2^-129` (level 0's query group, at
-  its limit): `(15, 2)` (about `2^-128.16`), `(16, 3)` and the largest, `(28, 4)`.
-* **Level 0's slack is the largest.** One unit more at level 0 of `(15, 2)` (`e = 2049 → 2050`)
-  or of `(28, 4)` (`e = 13059 → 13060`) breaks its query group. Level 0's list bound at `(15, 2)`
-  is `2049`, the largest, so the survivor bound of `shapeOK` is `2^12`, not `2^11`.
-* **Slack.** Halving the slack of level 1 of `(16, 3)` (`e = 16 → 8`) breaks its fold group:
-  ArkLib's exception count grows like `η^-3`; at level 0 of `(15, 2)` a slack of `17` breaks its
-  fold group too.
-* **Queries.** Dropping one of the 111 queries of level 0 of `(15, 2)`, or one of the 37 of
-  level 1 of `(16, 3)`, breaks its query group.
-* **Bracket.** Moving the bracket of `√ρ₋` up by one step is rejected.
-* **Use.** `deployed_spec_hyps` supplies the code hypotheses of `stackedSpec` at
-  `εmax = 2^-128`.
+* **Level 0.** The largest list bound is `166`, at `(19, 4)`; the extractor's threshold at
+  `(15, 1)` is level 0's `A₀ = 744 − 6 = 738`.
+* **Queries.** Level 0 of `(15, 1)` passes its checks, and with one query fewer, as at `(28, 4)`,
+  its query row fails: the Rust's query counts are the smallest that pass.
+* **Use.** `openingIface` fills the soundness assembly's interface.
 -/
 
 namespace LeanVMTests.Protocol.Whir.Params
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Sound
-  LeanVM.Protocol.Whir.Params LeanVM.Protocol.EndToEnd
+open LeanVM.Parameters LeanVM.Protocol.Whir.Params
 
-/-! ## Inhabitants -/
+#guard listMax₀ 19 4 = 166
+#guard (List.range 14).all fun i ↦ (List.range 4).all fun r ↦ listMax₀ (15 + i) (r + 1) ≤ 166
+#guard LeanVM.Extraction.johnsonThreshold 15 1 = 738
+#guard thr0Of 15 1 = 738
 
-example : defaultCert.OK := defaultCert_ok
+/-- Level 0's checks with one query fewer. -/
+def dropOne (μ R : ℕ) : Bool :=
+  match Whir.ladder μ R, levelsOf μ R with
+  | some (c :: _), lv :: _ => levelChecks μ lv { c with queries := c.queries - 1 }
+  | _, _ => true
 
-example : certOf 16 3 1 = ⟨6, 6, 16, 136360984252⟩ := rfl
+#guard !dropOne 15 1
+#guard !dropOne 28 4
 
-example : (certOf 16 3 1).OK := by decide +kernel
+#guard match Whir.ladder 15 1, levelsOf 15 1 with
+  | some (c :: _), lv :: _ => levelChecks 15 lv c
+  | _, _ => false
 
-example : (certOf 28 4 5).OK := by decide +kernel
-
-/-! ## Tightness at `2^-128` -/
-
-example : shapeOK 128 15 2 = true := by decide +kernel
-
-example : shapeOK 129 15 2 = false := by decide +kernel
-
-example : shapeOK 128 16 3 = true := by decide +kernel
-
-example : shapeOK 129 16 3 = false := by decide +kernel
-
-example : shapeOK 128 28 4 = true := by decide +kernel
-
-example : shapeOK 129 28 4 = false := by decide +kernel
-
-/-! ## Level 0's slack is the largest -/
-
-example : certOf 28 4 0 = ⟨22, 4, 13059, 274877874175⟩ := rfl
-
-/-- The query group of level 0 of `(28, 4)` with its 56 queries, at the table's slack. -/
-example : (certOf 28 4 0).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
-
-/-- One unit of slack more breaks it. -/
-example : ¬ (Cert.mk 22 4 13060 274877874175).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
-
-/-- At `(15, 2)` too. -/
-example : ¬ (Cert.mk 9 2 2050 549218680575).QueryOK 128 (certOf 15 2 1) 111 := by decide +kernel
-
-/-- Level 0's list bound at `(15, 2)` is above `2^11`. -/
-example : (certOf 15 2 0).listHi = 2049 := by decide +kernel
-
-/-! ## Load-bearing slack and query count -/
-
-/-- The fold group of level 1 of `(16, 3)` at the table's slack `16 / 2^22`. -/
-example : (certOf 16 3 1).FoldOK 128 4 := by decide +kernel
-
-/-- Halving the slack breaks it. -/
-example : ¬ (Cert.mk 6 6 8 136360984252).FoldOK 128 4 := by decide +kernel
-
-/-- The query group of level 1 of `(16, 3)` with its 37 queries. -/
-example : (certOf 16 3 1).QueryOK 128 (certOf 16 3 2) 37 := by decide +kernel
-
-/-- One query fewer breaks it. -/
-example : ¬ (certOf 16 3 1).QueryOK 128 (certOf 16 3 2) 36 := by decide +kernel
-
-/-- The fold group of level 0 of `(15, 2)` at the table's slack `2049 / 2^22`. -/
-example : certOf 15 2 0 = ⟨9, 2, 2049, 549218680575⟩ := rfl
-
-example : (certOf 15 2 0).FoldOK 128 6 := by decide +kernel
-
-/-- A slack of `17` breaks it. -/
-example : ¬ (Cert.mk 9 2 17 549218680575).FoldOK 128 6 := by decide +kernel
-
-/-- The query group of level 0 of `(15, 2)` with its 111 queries (`WHIR_QUERIES`,
-`crates/verifier/src/whir.rs:20` at leanVM `40f877dc`). -/
-example : (certOf 15 2 0).QueryOK 128 (certOf 15 2 1) 111 := by decide +kernel
-
-/-- One query fewer breaks it. -/
-example : ¬ (certOf 15 2 0).QueryOK 128 (certOf 15 2 1) 110 := by decide +kernel
-
-/-! ## The bracket -/
-
-example : ¬ (Cert.mk 6 6 16 136360984253).OK := by decide +kernel
-
-/-! ## Feeding the specification -/
-
-/-- `stackedSpec` at `εmax = 2^-128` for every admissible shape. -/
-noncomputable example {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest))
-    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (T : ENNReal) :
-    LeanVM.Protocol.Compile.Spec (verifyStackedOpening μ R claims)
-      (fun h ↦ StackedPre μ R (deployedCodes μ R 0) claims (LeanVM.Protocol.Compile.commits h))
-      (fun _ _ ↦ False) ((2 : ENNReal)⁻¹ ^ 128)
-      (eBatch claims.length (deployedCodes μ R 0)) T :=
-  have hs := deployed_spec_hyps h hc
-  stackedSpec claims hcl hc hs.1 hs.2.1 hs.2.2.1 hs.2.2.2.1 hs.2.2.2.2.2.1 hs.2.2.2.2.2.2 T
+noncomputable example : LeanVM.Protocol.EndToEnd.Sound.OpeningIface := openingIface
 
 end LeanVMTests.Protocol.Whir.Params

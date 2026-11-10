@@ -210,7 +210,7 @@ theorem follows_keccak (col : ℕ → K) {inst output : List E} (hi : inst.lengt
     (ho : output.length = 25) (hmid : outClaimsTrueMid (P + 4) col inst output)
     (hagree : midAgree (P + 4) col inst) (cs : Commits) :
     Follows (fun cs' a res ↦ cs' = cs ∧ a = res ∧ (∀ c ∈ res.1, colTrue (P + 4) col c) ∧
-        slicesTrue (P + 4) col res.2.1 res.2.2)
+        slicesTrue (P + 4) col res.2.1 res.2.2 ∧ res.1.length = 1)
       (hKeccak P col inst output) (verifyKeccak (P + 4) inst output) cs := by
   rw [verifyKeccak_eq, gkrProg, keccakSegmentBits_eq, show keccakLaneBits = 5 from rfl]
   unfold hKeccak
@@ -241,7 +241,7 @@ theorem follows_keccak (col : ℕ → K) {inst output : List E} (hi : inst.lengt
   refine Follows.mono (fun cs' u res hres ↦ ?_) _ _ _ (follows_input P col claim hshape htrue
     [(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, Qo (P + 4) col inst x.1⟩ : ColumnClaim)] cs₇)
   obtain ⟨hcs, hu, hres1, hsl⟩ := hres
-  refine ⟨hcs, hu, fun c hc ↦ ?_, hsl⟩
+  refine ⟨hcs, hu, fun c hc ↦ ?_, hsl, by rw [hres1]; rfl⟩
   rw [hres1, List.mem_singleton] at hc
   subst hc
   refine ⟨rfl, by simp [hi, hx6], ?_⟩

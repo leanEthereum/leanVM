@@ -114,7 +114,7 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
   have hppB : σB sPP = cellOf128 pk.publicSeed := by
     rw [show sPP = .n 2 from rfl, tB 2 (by norm_num)]; exact hppA
   have hF := hB.fors C rd σB (layerTreeN T 0) (layerLeafN T 0) (forsLeafN T) (forsSecretCell sig)
-    (forsSibCell sig) hpB (by rw [hppB]; exact isCanonical128_cellOf128 _) ha0B hkB
+    (forsSibCell sig) hpB ha0B hkB
     (fun c _ => forsLeafN_lt T c)
     (fun c hc z hz => by
       have e : sForsBit (10 * c + z) = sMdBit (10 * c + 9 - z) := by
@@ -127,7 +127,6 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
         simp only [sVals]
         rw [show (10 * c + z) / 10 = c by omega, show (10 * c + z) % 10 = z by omega]
       rw [e]; exact hdB.2.2.1 c hc z hz)
-    (fun _ => isCanonical128_cellOf128 _) (fun _ _ => isCanonical128_cellOf128 _)
   obtain ⟨σC, heC, hfC, hhC⟩ := hF
   have tC : ∀ k < 1382, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
   have tCA : ∀ k < 1372, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]

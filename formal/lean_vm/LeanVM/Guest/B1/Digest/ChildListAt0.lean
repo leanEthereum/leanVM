@@ -116,15 +116,14 @@ noncomputable def anyCOk : Bool :=
   (chk 7 anyFlat).isSome &&
   SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (18 + c)) (.n 17) c)) &&
   (atomsIn anyFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
-    atomEqb a (.mul (.n 3) (.n 8) (.n 7))) &&
-  canonChk [] ((atomsIn anyFlat).filter fun a => decide (a ∉ SE))
+    atomEqb a (.mul (.n 3) (.n 8) (.n 7)))
 
 set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any_atoms : ∀ a ∈ [Atom.const (.n 7) (word 2 0 0), .mul (.n 3) (.n 8) (.n 7),
-    .mul (.n 9) (.n 4) (.n 5), .const (.n 10) (word 2 0 0), .mul (.n 11) (.n 9) (.n 10),
+theorem any_atoms : ∀ a ∈ [Atom.const (.n 7) (word 2 0), .mul (.n 3) (.n 8) (.n 7),
+    .mul (.n 9) (.n 4) (.n 5), .const (.n 10) (word 2 0), .mul (.n 11) (.n 9) (.n 10),
     .mul (.n 12) (.n 11) (.n 11), .mul (.n 13) (.n 12) (.n 11), .mul (.n 14) (.n 13) (.n 13),
     .mul (.n 15) (.n 14) (.n 14), .mul (.n 16) (.n 15) (.n 11), .hint (.allocDyn (.n 17) (.n 16))],
     a ∈ atomsIn anyFlat := by
@@ -171,7 +170,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
       [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] a b chain D := by
   have hk := anyc_ok
   simp only [anyCOk, Bool.and_eq_true] at hk
-  obtain ⟨⟨⟨hchk1, hst⟩, hside⟩, hcan⟩ := hk
+  obtain ⟨⟨hchk1, hst⟩, hside⟩ := hk
   have hb := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hb
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, hdis⟩, -⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,
@@ -180,7 +179,6 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp hchk1
   let args : List E := [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c]
   set σ := anyσ rd args chain D with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w anyFlat args hchk
   rw [show args.length = 7 from rfl] at hgs
   set SE := storesOf 7 anyFlat with hSE
@@ -191,7 +189,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hs
   obtain ⟨s7, s3, s9, s10, s11, s12, s13, s14, s15, s16, s17⟩ := hs
   have v7 : σ (.n 7) = gen := by
-    have : σ (.n 7) = word 2 0 0 := hg _ s7
+    have : σ (.n 7) = word 2 0 := hg _ s7
     rw [this, word_gen]
   have v17 : σ (.n 17) = chain := by
     have : σ (.n 17) = w 17 := hg _ s17
@@ -206,8 +204,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
     have hgx' : σ (.n (18 + c)) = _ := hgx
     rw [hgx', eEqb_sound he, word_zero]
   have hat : ∀ x ∈ atomsIn anyFlat, x.Holds rd σ := by
-    refine atoms_holds_stores (S := SE) (w := w) hidx hcan hg (A := []) (by simp)
-      (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
+    refine atoms_holds_stores hg (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
     · have := List.all_eq_true.mp hside x hx
       simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at this
       rcases this with (h | h) | h
@@ -238,7 +235,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   have e5 : σ (.n 5) = gen ^ b := par 5 (by omega)
   have q3 : σ (.n 3) = σ (.n 8) * σ (.n 7) := hat _ s3
   have q9 : σ (.n 9) = σ (.n 4) * σ (.n 5) := hat _ s9
-  have q10 : σ (.n 10) = word 2 0 0 := hat _ s10
+  have q10 : σ (.n 10) = word 2 0 := hat _ s10
   have q11 : σ (.n 11) = σ (.n 9) * σ (.n 10) := hat _ s11
   have q12 : σ (.n 12) = σ (.n 11) * σ (.n 11) := hat _ s12
   have q13 : σ (.n 13) = σ (.n 12) * σ (.n 11) := hat _ s13
@@ -320,7 +317,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
     {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
       RecMem rd region (gen ^ L) entries marks k os cells)
@@ -334,7 +331,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     B1.disj_nil, fun rd hlow hm => ?_⟩
   simp only [List.append_nil, List.nil_append] at hm
   obtain ⟨hS, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := ccl_core hk hsp hen hrg hpre hS hl hc hrec hlast hL33
+  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
     (boundMem_of_low hlow hLκ)
   refine RelAtIn.relAtInT (relAtIn_atoms (ccl_name hk) hb (ccl_loop hk) (ccl_na hk) hp hat hr
     (fun q hq => by rw [ccl_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)
@@ -349,7 +346,7 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
     {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
     {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
       RecMem rd region (gen ^ L) entries marks k os cells)
@@ -357,7 +354,7 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
     (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
     CompleteAtD fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
       (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) :=
-  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hc hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
+  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
 
 end
 end LeanVM.Guest.B1.Digest

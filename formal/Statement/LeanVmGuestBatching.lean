@@ -31,17 +31,17 @@ abbrev DeferredClaim : Type := BytecodeClaim
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
 exported as: the point, then the value (`DeferredClaim::cells`, `aggregation/deferred.rs:84-88`; the
-guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3508-3513`). -/
+guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3752-3757`). -/
 def DeferredClaim.cells (claim : DeferredClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-! ## The batching program
 
-The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4670-4774`;
-`aggregate_deferred_claims`, `aggregation/deferred.rs:245-351`), as a program of the verifier's
+The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4905-5015`;
+`aggregate_deferred_claims`, `aggregation/deferred.rs:250-357`), as a program of the verifier's
 language (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the
-count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then one
-challenge, whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds
+count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then a proof of
+work of `batchLambdaGrindBits` bits and one challenge, whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds
 (`sumcheckRoundsProgram`) and the final value, accepted if the final claim is the value times the
 batched weight and the deferred claim meets a check (`batchingAfterChildren`); run from the batching
 transcript's seed (`runBatching`). -/
@@ -57,14 +57,16 @@ structure ChildClaims where
   carriedClaim : DeferredClaim
 
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
-the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:366`). -/
+the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py:397`). -/
 def ChildClaims.words (child : ChildClaims) : List E :=
   [(digestHalves child.publicInput).1, (digestHalves child.publicInput).2] ++
     DeferredClaim.cells child.freshClaim ++ child.carriedClaim.cells
 
-/-- The prover's part of a batching: the sumcheck's rounds and the bytecode's value at its end
-(`bc_sumcheck_msgs`, `bc_star_hint`). -/
+/-- The prover's part of a batching: the nonce of the proof of work before the challenge, the
+sumcheck's rounds and the bytecode's value at its end (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 structure BatchingHints where
+  /-- The nonce of the proof of work before the batching challenge. -/
+  lambdaGrindNonce : E
   /-- Each round's message `(g(1), g(∞))`. -/
   sumcheckMessages : List (E × E)
   /-- The bytecode's value at the sumcheck's final point. -/
@@ -80,16 +82,22 @@ namespace LeanVM.Guest.Batch
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
+/-- The bits of the proof of work before the batching challenge, whose powers weigh at most
+`2 · MAX_RECURSIONS = 32` claims: `grinding_bits(31) = ⌈log₂ 31⌉ - 3` (`BATCH_LAM_GRIND_BITS`,
+`aggregation/deferred.rs:219-220`; `MAX_RECURSIONS`, `aggregation/mod.rs:71`). A round of the
+sumcheck, of degree two, grinds `grinding_bits(2) = 0` bits: no proof of work. -/
+def batchLambdaGrindBits : ℕ := 2
+
 /-- The zeros that pad `wordCount` words to a whole rate. -/
 def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateScalars) % rateScalars
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation/deferred.rs:256-260`; `AGG_CHILD_PAD`). -/
+`aggregation/deferred.rs:261-265`; `AGG_CHILD_PAD`). -/
 def _root_.LeanVM.Node.padToRate (words : List E) : List E :=
   words ++ List.replicate (zerosToWholeRate words.length) 0
 
 /-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh
-claim and its carried one (`lean_ethereum.py:4732-4746`, `aggregation/deferred.rs:276-280`). -/
+claim and its carried one (`lean_ethereum.py:4967-4987`, `aggregation/deferred.rs:281-286`). -/
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 
@@ -124,12 +132,13 @@ def sumcheckRoundsProgram : (claim : E) → (roundCount : ℕ) → VerifierProgr
     return (challenge :: rest.1, rest.2)
 
 open Classical in
-/-- **The batching after its children**: one challenge and the lambdas of its powers, the
+/-- **The batching after its children**: a proof of work, one challenge and the lambdas of its powers, the
 sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read after the last
 challenge: no challenge follows), the final check, and `deferredClaimCheck` of the deferred
 claim. -/
 noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
+  VerifierProgram.grindProofOfWork batchLambdaGrindBits
   let challenge ← VerifierProgram.sampleChallenge
   let lambdas := lambdaPowers challenge children.length
   let rounds ← sumcheckRoundsProgram (batchedClaim children lambdas) (Nat.log2 bytecode.length)
@@ -159,17 +168,17 @@ noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredClaim → Pr
 
 /-- **The batching transcript run**, over a permutation `π` in any monad: from the seed
 `π(H(label) ‖ 0)`, `H` Keccak-256 over `π` (`FiatShamirState::from_label`; the guest program bakes
-its capacity, `AGG_SEED_*`, `aggregation/placeholders.rs:823-826`), the program on the proof. -/
+its capacity, `AGG_SEED_*`, `aggregation/placeholders.rs:891-894`), the program on the proof. -/
 noncomputable def runBatching {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← π (seedInput (← keccak256With π batchingLabel) (Vector.replicate 4 0))
   runProof π program seed proof
 
-/-- The stream of a node's batching: the count's and the children's cells, the sumcheck's
-messages `(g(1), g(∞))`, the final value. -/
+/-- The stream of a node's batching: the count's and the children's cells, the proof of work's
+nonce, the sumcheck's messages `(g(1), g(∞))`, the final value. -/
 def batchingStream (children : List ChildClaims) (hints : BatchingHints) : List E :=
-  cellsBeforeChallenge children ++ hints.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
-    [hints.finalBytecodeValue]
+  cellsBeforeChallenge children ++ [hints.lambdaGrindNonce] ++
+    hints.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [hints.finalBytecodeValue]
 
 end LeanVM.Guest.Batch
 

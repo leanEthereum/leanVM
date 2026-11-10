@@ -33,7 +33,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- The weights of coordinate `j`: `1 + p_j` at `4 + 4j`, `p_j` at `5 + 4j`. -/
 def ffW (j : ℕ) : List Stmt :=
-  [.atom (.const (.n (2 + 4 * j)) (word 1 0 0)), .atom (.load (.n (3 + 4 * j)) (.n 1) j),
+  [.atom (.const (.n (2 + 4 * j)) (word 1 0)), .atom (.load (.n (3 + 4 * j)) (.n 1) j),
     .atom (.add (.n (4 + 4 * j)) (.n (2 + 4 * j)) (.n (3 + 4 * j))),
     .atom (.load (.n (5 + 4 * j)) (.n 1) j)]
 
@@ -71,13 +71,13 @@ def ffBody (L fin : ℕ) : List Stmt :=
     (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
 
-theorem core438_body : Fn.body Data.core481 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
+theorem core547_body : Fn.body Data.core547 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core457_body : Fn.body Data.core500 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
+theorem core573_body : Fn.body Data.core573 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
 
-theorem core404_body : Fn.body Data.core447 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
+theorem core500_body : Fn.body Data.core500 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
 
-theorem core420_body : Fn.body Data.core463 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
+theorem core522_body : Fn.body Data.core522 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## What it asks -/
 
@@ -466,26 +466,26 @@ theorem fold_final_msg_iff {name : String} {f : Fn} (L fin : ℕ)
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L2_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L2" args rets ↔ MeaningFoldFinalMsg 2 rd args rets :=
-  fold_final_msg_iff 1 22 (Program.find?_of_indexOf? (j := 481) (by decide +kernel) rfl) rfl
-    core438_body (by decide) (by decide) rd args rets
+  fold_final_msg_iff 1 22 (Program.find?_of_indexOf? (j := 547) (by decide +kernel) rfl) rfl
+    core547_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L3_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L3" args rets ↔ MeaningFoldFinalMsg 3 rd args rets :=
-  fold_final_msg_iff 2 42 (Program.find?_of_indexOf? (j := 500) (by decide +kernel) rfl) rfl
-    core457_body (by decide) (by decide) rd args rets
+  fold_final_msg_iff 2 42 (Program.find?_of_indexOf? (j := 573) (by decide +kernel) rfl) rfl
+    core573_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets :=
-  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 447) (by decide +kernel) rfl) rfl
-    core404_body (by decide) (by decide) rd args rets
+  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 500) (by decide +kernel) rfl) rfl
+    core500_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L5_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L5" args rets ↔ MeaningFoldFinalMsg 5 rd args rets :=
-  fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 463) (by decide +kernel) rfl) rfl
-    core420_body (by decide) (by decide) rd args rets
+  fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 522) (by decide +kernel) rfl) rfl
+    core522_body (by decide) (by decide) rd args rets
 
 /-- **`fold_final_msg`'s core IR is its meaning**, every specialization. -/
 theorem fold_final_msg_holds : fold_final_msg_Spec := by

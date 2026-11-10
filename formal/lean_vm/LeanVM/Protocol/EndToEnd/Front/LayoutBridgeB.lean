@@ -20,7 +20,7 @@ The public-input bridge (`PubPhase`) takes facts about the verifier's layout as 
 
 * `toI`: a stack on the layout's `stackLog` variables read on the instance's `μ`, the cast along
   `stackLog_verifierLayout`;
-* `pubLayoutHyp_verifierLayout`: the program's claim on memory column `j < 3` at `(r, 0, …, 0)` is
+* `pubLayoutHyp_verifierLayout`: the program's claim on memory column `j < 2` at `(r, 0, …, 0)` is
   the instance's claim on `MEM_j` at `linePoint r`;
 * `tableLogHeights_keccak`: the layout's `KECCAK` height is `τ_KECCAK`.
 
@@ -65,13 +65,13 @@ def toI (q : Column (verifierLayout prog s).stackLog) : Column (leanIsaμ prog s
 
 /-- **A claim of the program, read on a candidate** (the wire's reading): a claim on a `KECCAK`
 output lane, which the layout does not place, is read as the claim on the derived column it names
-(lane `column − 113`, at the point, on `τ_KECCAK` variables); every other claim on the stack, at
+(lane `column − 106`, at the point, on `τ_KECCAK` variables); every other claim on the stack, at
 its placement (`ColumnClaim.onStack`). -/
 def WireHolds (c : Verifier.ColumnClaim) (q : Column (verifierLayout prog s).stackLog) : Prop :=
   if c.column ∈ keccakOutputColumns then
     ∃ hl : c.point.length = s.τ 5,
       eval₂Mle ((leanIsaInstance prog s).column (toI prog s q)
-          (outCol ⟨(c.column - 113) % 25, Nat.mod_lt _ (by norm_num)⟩)).values (algebraMap K E)
+          (outCol ⟨(c.column - 106) % 25, Nat.mod_lt _ (by norm_num)⟩)).values (algebraMap K E)
         (⟨c.point.toArray, by simpa using hl⟩ : Vector E (s.τ 5)) = c.value
   else StackClaim.Holds (verifierLayout prog s).stackLog (c.stackClaim (verifierLayout prog s)) q
 
@@ -85,7 +85,7 @@ theorem wireHolds_of_not_mem {c : Verifier.ColumnClaim} (hc : c.column ∉ kecca
 
 /-- An output lane is `outCol` of its lane. -/
 theorem eq_outCol_of_isOut {c : Col} (h : IsOut c) :
-    c = outCol ⟨(refCol c - 113) % 25, Nat.mod_lt _ (by norm_num)⟩ := by
+    c = outCol ⟨(refCol c - 106) % 25, Nat.mod_lt _ (by norm_num)⟩ := by
   obtain ⟨-, -, -, hv⟩ := refCol_lanes c
   have hp := hv h.isVirtual
   obtain ⟨j, i⟩ := c
@@ -110,7 +110,7 @@ theorem wireHolds_iff (col : Col) (z : Vector E (kappa prog s col)) (v : E)
     unfold WireHolds
     rw [ite_eq_left hm]
     simp only
-    generalize hl : (⟨(refCol col - 113) % 25, Nat.mod_lt _ (by norm_num)⟩ : Fin 25) = l at he ⊢
+    generalize hl : (⟨(refCol col - 106) % 25, Nat.mod_lt _ (by norm_num)⟩ : Fin 25) = l at he ⊢
     subst he
     unfold LeanVM.Protocol.ColumnClaim.Holds
     constructor
@@ -130,7 +130,7 @@ theorem tableLogHeights_keccak :
   simp [verifierLayout, tableLogs, opKeccak]
 
 /-- The memory columns are committed. -/
-theorem not_isVirtual_memCol (i : Fin 4) : ¬ IsVirtual (memCol i) := by
+theorem not_isVirtual_memCol (i : Fin 3) : ¬ IsVirtual (memCol i) := by
   revert i; decide
 
 /-- The public point of the program is the instance's line point. -/
@@ -151,7 +151,7 @@ theorem pubPoint_eq (r : E) :
   · simp
 
 /-- **The memory claims at the public point** (`pubLayoutHyp`): the program's claim on memory
-column `j < 3` at `(r, 0, …, 0)` holding of a candidate is the instance's claim on `MEM_j` at
+column `j < 2` at `(r, 0, …, 0)` holding of a candidate is the instance's claim on `MEM_j` at
 `linePoint r` holding of its reading. -/
 theorem pubLayoutHyp_verifierLayout :
     pubLayoutHyp prog s (verifierLayout prog s) (toI prog s) (WireHolds prog s) := by

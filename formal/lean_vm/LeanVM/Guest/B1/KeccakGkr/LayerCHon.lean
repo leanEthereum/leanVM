@@ -22,7 +22,7 @@ the pack rounds' and the position rounds' messages, `t`). From them, on the run
 * `chs`, `locPt`, `beta`, `next`: the pack challenges, the local point, `β`, the next claim;
 * `outW`: the next claim's record (its pointers given); `rets cur`: the returns.
 
-`run_cap`: every state of the run has five canonical capacity cells and nothing waiting.
+`run_cap`: every state of the run has five capacity cells and nothing waiting.
 `run_add`: more rounds continue the run (`cont`); `eqChain_of_packRunF`: rounds from a state with
 nothing waiting chain by `eqRound`. `run_chs`: the challenges so far are a prefix of `chs`.
 -/
@@ -41,6 +41,7 @@ structure LayerData where
   w0 : E
   c : KeccakClaim
   product : List E
+  nonce : E
   packMsgs : List (E × E)
   localMsgs : List (E × E × E)
   t : E × E × E
@@ -56,10 +57,10 @@ def s0 : Fs := plainStart first D.cap D.w0
 def y : ℕ := D.c.point.length
 
 /-- `s`. -/
-def sv : E := (layerSq (D.s0 first) D.product).1
+def sv : E := (layerSq (D.s0 first) D.product D.nonce).1
 
 /-- The capacity after `s`. -/
-def capS : List E := (layerSq (D.s0 first) D.product).2.cap
+def capS : List E := (layerSq (D.s0 first) D.product D.nonce).2.cap
 
 /-- The first `k` pack rounds. -/
 def run (k : ℕ) : (E × E × List E) × Fs :=
@@ -70,7 +71,7 @@ def run (k : ℕ) : (E × E × List E) × Fs :=
 def recK (j : ℕ) : ℕ := if j ≤ D.y / 8 then 8 * j else min (8 * (D.y / 8) + (j - D.y / 8)) D.y
 
 /-- Record `j`'s cursor. -/
-def recCur (cur : E) (j : ℕ) : E := cur * gen ^ (47 + 2 * D.recK j)
+def recCur (cur : E) (j : ℕ) : E := cur * gen ^ (48 + 2 * D.recK j)
 
 /-- Field `f` of record `j`: the capacity, the cursor, the claim, the scale. -/
 def recField (cur : E) (f j : ℕ) : E :=
@@ -83,16 +84,16 @@ def recWords (cur : E) : List E := (List.range 128).map fun i ↦
   if i % 16 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 16) (i % 16) else 0
 
 /-- The pack rounds. -/
-def pack : (E × E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.packMsgs
+def pack : (E × E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs
 
 /-- The position rounds. -/
-def loc : (List E × E) × Fs := layerLocal D.c (D.s0 first) D.product D.packMsgs D.localMsgs
+def loc : (List E × E) × Fs := layerLocal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs
 
 /-- `β` and the sponge after it. -/
-def beta : E × Fs := layerBeta D.c (D.s0 first) D.product D.packMsgs D.localMsgs D.t
+def beta : E × Fs := layerBeta D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t
 
 /-- The next claim. -/
-def next : KeccakClaim := layerClaim D.c (D.s0 first) D.product D.packMsgs D.localMsgs D.t
+def next : KeccakClaim := layerClaim D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t
 
 /-- The pack challenges. -/
 def chs : List E := (D.pack first).1.2.2
@@ -102,7 +103,7 @@ def locPt : List E := (D.loc first).1.1
 
 /-- The words the layer reads. -/
 def xs : List E :=
-  D.product ++ D.packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
+  D.product ++ [D.nonce] ++ D.packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
     D.localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [D.t.1, D.t.2.1, D.t.2.2]
 
 /-- The next claim's record, its point, lanes, local point and flips at `pt`, `lp`, `lc`, `fl`. -/
@@ -110,21 +111,20 @@ def outW (pt lp lc fl : E) : List E :=
   [(D.next first).value, sumE (D.next first).mu, pt, lp, lc, fl] ++ (D.next first).mu
 
 /-- The returns. -/
-def rets (cur : E) : List E := (D.beta first).2.cap ++ [cur * gen ^ (47 + 2 * D.y + 36)]
+def rets (cur : E) : List E := (D.beta first).2.cap ++ [cur * gen ^ (48 + 2 * D.y + 36)]
 
 end LayerData
 
 /-! ## The run's states -/
 
 theorem packRunF_cap : ∀ (rs : List E) (ms : List (E × E)) (v sc : E) (s : Fs),
-    s.cap.length = 5 → AllCanonical s.cap → s.pend = [] →
-    (packRunF rs ms v sc s).2.cap.length = 5 ∧ AllCanonical (packRunF rs ms v sc s).2.cap ∧
-      (packRunF rs ms v sc s).2.pend = []
-  | r :: rs, (g1, g2) :: ms, v, sc, s, _, _, _ => by
+    s.cap.length = 5 → s.pend = [] →
+    (packRunF rs ms v sc s).2.cap.length = 5 ∧ (packRunF rs ms v sc s).2.pend = []
+  | r :: rs, (g1, g2) :: ms, v, sc, s, _, _ => by
     simp only [packRunF]
-    exact packRunF_cap rs ms _ _ _ (by simp [Fs.squeeze, capOf]) (squeeze_cap_canonical _) rfl
-  | [], _, _, _, _, h1, h2, h3 => by simp only [packRunF]; exact ⟨h1, h2, h3⟩
-  | _ :: _, [], _, _, _, h1, h2, h3 => by simp only [packRunF]; exact ⟨h1, h2, h3⟩
+    exact packRunF_cap rs ms _ _ _ (by simp [Fs.squeeze, capOf]) rfl
+  | [], _, _, _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
+  | _ :: _, [], _, _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
 
 theorem packRunF_chs_length : ∀ (rs : List E) (ms : List (E × E)) (v sc : E) (s : Fs),
     ms.length = rs.length → (packRunF rs ms v sc s).1.2.2.length = rs.length
@@ -138,14 +138,15 @@ namespace LayerData
 
 variable {D : LayerData} {first : ℕ}
 
-theorem capS_ok : (D.capS first).length = 5 ∧ AllCanonical (D.capS first) :=
-  ⟨by simp [capS, layerSq, Fs.squeeze, capOf], squeeze_cap_canonical _⟩
+theorem capS_ok : (D.capS first).length = 5 := by
+  simp only [capS, layerSq, Fs.grindSqueeze, sGrindBits_eq]
+  simp [capOf]
 
-theorem run_cap (k : ℕ) : ((D.run first k).2.cap.length = 5 ∧
-    AllCanonical (D.run first k).2.cap) ∧ (D.run first k).2 = ⟨(D.run first k).2.cap, []⟩ := by
-  obtain ⟨h1, h2, h3⟩ := packRunF_cap (D.c.point.take k) (D.packMsgs.take k)
-    (polyEval D.product (D.sv first)) 1 ⟨D.capS first, []⟩ capS_ok.1 capS_ok.2 rfl
-  refine ⟨⟨h1, h2⟩, ?_⟩
+theorem run_cap (k : ℕ) : (D.run first k).2.cap.length = 5 ∧
+    (D.run first k).2 = ⟨(D.run first k).2.cap, []⟩ := by
+  obtain ⟨h1, h3⟩ := packRunF_cap (D.c.point.take k) (D.packMsgs.take k)
+    (polyEval D.product (D.sv first)) 1 ⟨D.capS first, []⟩ capS_ok rfl
+  refine ⟨h1, ?_⟩
   unfold run
   generalize packRunF _ _ _ _ _ = q at h3 ⊢
   cases q with

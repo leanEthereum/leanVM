@@ -134,15 +134,15 @@ theorem plain89 : Plain 89 := by
   unfold Plain
   decide +kernel
 
-theorem ok90 : CheckOk 90 := fun i hi ↦ by
-  have h : (certOf 90).cuts.length = 2 := by decide +kernel
+theorem plain90 : Plain 90 := plain_of_nil (by decide +kernel)
+
+theorem ok91 : CheckOk 91 := fun i hi ↦ by
+  have h : (certOf 91).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w90_0
-  · exact w90_1
-  · exact w90_2
-
-theorem plain91 : Plain 91 := plain_of_nil (by decide +kernel)
+  · exact w91_0
+  · exact w91_1
+  · exact w91_2
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 

@@ -35,7 +35,7 @@ theorem gpow_addC (a b : ℕ) : addressOfIndex (a + b) = addressOfIndex a * addr
 
 theorem isInK_ofK (a : K) : IsInK (ofK a) := (isInK_iff _).mpr ⟨a, rfl⟩
 
-theorem imm_one : OffsetInstruction.immediateWord 1 0 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
+theorem imm_one : OffsetInstruction.immediateWord 1 0 = 1 := (imm_of_ofBits rfl).trans ofK_one
 
 section Sem
 
@@ -208,7 +208,7 @@ theorem statAt_sound (hX : CXOk L fp X) {o : ℕ} {p : PC} (h : statAt X o = som
     rdc L fp o = some (p.word fp) := hX.stat o p h
 
 theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
-    OffsetInstruction.immediateWord k0 0 0 = ofK (addressOfIndex e) := by
+    OffsetInstruction.immediateWord k0 0 = ofK (addressOfIndex e) := by
   unfold gpE at h
   cases hb : Nat.beq k0 1
   · rw [hb] at h
@@ -238,14 +238,14 @@ theorem fpgAtC_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o e : ℕ}
       exact h3
     · cases hp
 
-theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k2 : ℕ}
-    (h : cplCstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OffsetInstruction.immediateWord
-        k0 k1 k2) := by
+theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 : ℕ}
+    (h : cplCstAt X st o = some (k0, k1)) : rdc L fp o = some (OffsetInstruction.immediateWord
+        k0 k1) := by
   unfold cplCstAt at h
   split at h
-  · rename_i a b c hs
+  · rename_i a b hs
     simp only [Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl⟩ := h
     exact statAt_sound hX hs
   · obtain ⟨a, ha, hf⟩ := List.exists_of_findSome?_eq_some h
     have hh := (hst o a ha).1
@@ -256,8 +256,8 @@ theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k
       · rw [hd] at hf
         obtain rfl := Nat.eq_of_beq_eq_true hd
         simp only [Bool.cond_true, Option.some.injEq, Prod.mk.injEq] at hf
-        obtain ⟨h0, h1, h2⟩ := hf
-        rw [← eq_imm_of_limbs h0 h1 h2]
+        obtain ⟨h0, h1⟩ := hf
+        rw [← eq_imm_of_limbs h0 h1]
         exact hh
     · rename_i x i p
       cases hd : Nat.beq p o
@@ -265,7 +265,7 @@ theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k
       · rw [hd] at hf
         obtain rfl := Nat.eq_of_beq_eq_true hd
         simp only [Bool.cond_true, Option.some.injEq, Prod.mk.injEq] at hf
-        obtain ⟨rfl, rfl, rfl⟩ := hf
+        obtain ⟨rfl, rfl⟩ := hf
         obtain ⟨vx, vi, -, -, h3, h4⟩ := hh
         rw [imm_one, h3, h4]
     · cases hf
@@ -701,7 +701,7 @@ theorem keccak_sound (hst : CWOk L fp X st) {pc m0 m1 m2 m3 tail b8 cap out : �
 theorem justI_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc : ℕ} {ins : OffsetInstruction}
     (h : justI X st pc ins = true) : Guest.Holds L pc (addressOfIndex fp) ins := by
   cases ins with
-  | set o k0 k1 k2 =>
+  | set o k0 k1 =>
     unfold Guest.Holds
     exact cplCstAt_sound hX hst.book (of_decide_eq_true h)
   | xor a b d => exact xor_sound hX hst h
@@ -722,10 +722,8 @@ theorem cellK_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : cel
   · obtain ⟨v, hv, hK⟩ := hX.hdr o (Nat.le_of_ble_eq_true h1)
     exact ⟨v, hv, hK (by simpa using hm)⟩
   · split at h
-    · rename_i k0 k1 k2 hs
-      simp only [Bool.and_eq_true] at h
-      obtain rfl := Nat.eq_of_beq_eq_true h.1
-      obtain rfl := Nat.eq_of_beq_eq_true h.2
+    · rename_i k0 k1 hs
+      obtain rfl := Nat.eq_of_beq_eq_true h
       exact ⟨_, statAt_sound hX hs, by rw [PC.word, imm_of_ofBits rfl]; exact isInK_ofK _⟩
     · rename_i e hs
       exact ⟨_, statAt_sound hX hs, by rw [PC.word]; exact isInK_ofK _⟩
@@ -735,10 +733,10 @@ theorem cellK_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : cel
     split at hp
     · rename_i d x'
       simp only [Bool.and_eq_true] at hp
-      obtain ⟨⟨hd, h1⟩, h2⟩ := hp
+      obtain ⟨hd, h1⟩ := hp
       obtain rfl := Nat.eq_of_beq_eq_true hd
       refine ⟨_, hh, ?_⟩
-      rw [eq_imm_of_limbs rfl (Nat.eq_of_beq_eq_true h1) (Nat.eq_of_beq_eq_true h2),
+      rw [eq_imm_of_limbs rfl (Nat.eq_of_beq_eq_true h1),
         imm_of_ofBits rfl]
       exact isInK_ofK _
     · obtain ⟨vx, vy, v1, v2, hx', hKx, hy', hKy, -⟩ := hh

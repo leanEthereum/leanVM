@@ -56,14 +56,17 @@ def rwProd (vs rP : List E) (c : E) : E :=
 
 theorem ringWeight_fold (r rP : List E) :
     ∀ (cs : List E) (s : E) (j : ℕ),
-      (cs.foldl (fun (acc : E × List E) c ↦ (acc.1 + rwProd acc.2 rP c, acc.2.map (· ^ 2)))
+      (cs.foldl (fun (acc : E × List E) c ↦
+          (acc.1 + rwProd acc.2 rP c, acc.2.map fun value ↦ value * value))
         (s, r.map (· ^ 2 ^ j))) =
         (s + gsum (fun k ↦ rwProd (r.map (· ^ 2 ^ (j + k))) rP (cs.getD k 0)) cs.length,
           r.map (· ^ 2 ^ (j + cs.length)))
   | [], s, j => by simp [gsum_zero]
   | c :: cs, s, j => by
-    have hr : (r.map (· ^ 2 ^ j)).map (· ^ 2) = r.map (· ^ 2 ^ (j + 1)) := by
-      rw [List.map_map]; congr 1; funext x; simp [pow_succ, pow_mul]
+    have hr : (r.map (· ^ 2 ^ j)).map (fun value ↦ value * value) = r.map (· ^ 2 ^ (j + 1)) := by
+      rw [List.map_map]; congr 1; funext x
+      simp only [Function.comp_apply]
+      rw [← pow_two, ← pow_mul, ← pow_succ]
     rw [List.foldl_cons, hr, ringWeight_fold r rP cs _ (j + 1), List.length_cons, gsum_cons]
     have hf : (fun k ↦ rwProd (r.map (· ^ 2 ^ (j + 1 + k))) rP (cs.getD k 0)) =
         (fun k ↦ rwProd (r.map (· ^ 2 ^ (j + (k + 1)))) rP ((c :: cs).getD (k + 1) 0)) := by
@@ -79,8 +82,8 @@ theorem ringWeight_eq (r rP cs : List E) :
   have hr0 : r.map (· ^ 2 ^ 0) = r := by simp
   rw [hr0] at h
   simp only [zero_add] at h
-  show (cs.foldl (fun (acc : E × List E) c ↦ (acc.1 + rwProd acc.2 rP c, acc.2.map (· ^ 2)))
-    (0, r)).1 = _
+  show (cs.foldl (fun (acc : E × List E) c ↦
+      (acc.1 + rwProd acc.2 rP c, acc.2.map fun value ↦ value * value)) (0, r)).1 = _
   rw [h]
 
 theorem foldl_mul_start : ∀ (l : List E) (c : E), l.foldl (· * ·) c = c * l.foldl (· * ·) 1
@@ -110,7 +113,7 @@ theorem rwProd_eq_ringRow (k : ℕ) :
 
 /-- Row `0`'s entry `k`: `1` (`prod_chains[k] = 1`). -/
 def rswInit (k : ℕ) : List Stmt :=
-  [.atom (.const (.n (13 + k)) (word 1 0 0)), .atom (.load (.n (13 + k)) (.n 12) k)]
+  [.atom (.const (.n (13 + k)) (word 1 0)), .atom (.load (.n (13 + k)) (.n 12) k)]
 
 /-- The value of `c_table[k]`, of the last row's entry `k`, of their product. -/
 def rswC (k : ℕ) : ℕ := if k = 0 then 78 else 4 * k + 77
@@ -129,7 +132,7 @@ def rswTerm (k : ℕ) : List Stmt :=
 
 /-- `ring_switch_weight`'s body. -/
 def rswT : List Stmt :=
-  [.atom (.const (.n 4) (word 2 0 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
+  [.atom (.const (.n 4) (word 2 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
     .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 6) (.n 6)),
     .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
     .atom (.mul (.n 10) (.n 9) (.n 9)), .atom (.mul (.n 11) (.n 10) (.n 10)),

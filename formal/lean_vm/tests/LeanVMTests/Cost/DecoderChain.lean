@@ -20,8 +20,8 @@ def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Optio
 /-- The discrete logarithm's baby-step tables, built in Lean and passed in as a value. -/
 def dlTables : MachineValue := encodeValue LeanVM.Extraction.Fast.discreteLogTables
 
-def cA : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 0xfedcba9876543210) 0
-def cB : E := E.ofLimbs (K.ofLane 7) (K.ofLane 0xffffffffffffffff) (K.ofLane 3)
+def cA : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 0xfedcba9876543210)
+def cB : E := E.ofLimbs (K.ofLane 7) (K.ofLane 0xffffffffffffffff)
 
 #guard runOn digestOfCellsC.costDeps digestOfCellsC.costIdx [encodeValue cA, encodeValue cB] ==
   some (encodeValue (Main.digestOfCells cA cB))

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Value.Tower
 
-  The tower `E = K[y]/(y³ + y + 1)` as the aggregation guest reads it: `y` and `y⁻¹`, packing two
+  The tower `E = K[y]/(y² + x·y + 1)` as the aggregation guest reads it: `y` and `y⁻¹`, packing two
   limbs into a cell and splitting a word into its limbs, integers as bit patterns, and products by
   powers of `x` that do not reduce.
 -/
@@ -12,35 +12,29 @@ public import LeanVM.Parameters.Field
 public import LeanVM.Guest.Value.FieldBits
 public import Statement.LeanVmVerifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 import CompPoly.Fields.Binary.BF64.Impl
 
 /-!
 # The tower, as the guest reads it
 
-The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM main `40f877dc`, G
-below) never reads a limb directly:
-it hints one, derives the next by `y⁻¹` and proves every piece lies in `K` with `assert_in_k`
-(one untaken `JUMP` whose operands must be in `K`). The tower representation `c0 + c1·y + c2·y²`
-is unique, so those constraints pin the hint. This module states what they pin, at the level of
-values:
+A word is one memory cell of two `K` limbs, `c0 + c1·y`. The guest
+(`crates/rec_aggregation/guests/lean_ethereum.py`, G below) never reads a limb directly: it hints
+the low one, derives the high one by `y⁻¹` and proves both lie in `K` with `assert_in_k` (one
+untaken `JUMP` whose operands must be in `K`). The representation `c0 + c1·y` is unique, so those
+constraints pin the hint, for every word:
 
-* `pack64x2` (G:553-555) is `E.ofLimbs a b 0` (`pack64x2_eq`);
-* `assert_canonical`, `canonical_limbs` (G:558-575) and `challenge_from_state` (G:593-602)
-  split a canonical word as `lo + y·hi` (`split_iff`, `split_hi`);
-* `fs_pack` (G:616-624) pins a scalar's top limb by the canonicity of the cell it lands in
-  (`top_pin_iff`);
-* `pack_pair` (G:578-589, in `statement_digest` and `da_vector_cell`) splits a full word into its
-  three limbs (`split3_iff`, `split3_top`).
+* `pack64x2` is `E.ofLimbs a b` (`pack64x2_eq`);
+* `split_limbs` splits a word as `lo + y·hi` (`split_iff`, `split_hi`), and `grind_check` the
+  word less its rebuilt low limb.
 
-The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = 1 + y²` (`y_inv`; `placeholder_map`,
-`crates/rec_aggregation/src/aggregation/placeholders.rs`). A zkDSL integer literal is a bit pattern
-(`crates/lean_compiler/zkDSL.md`, "a substituted literal is a bit-pattern element"): `n < 2^64`
-is `E::new(n, 0, 0)`, `eOfNat n`, and a wider one, up to the `u128` literals the host
-substitutes, is `eOfNat192 n`. `COORD_BASIS[i]` (`placeholder_map`) is `eOfNat192 (2^i)`. Sums of integers are XORs (`eOfNat_xor`), so they add when their bits are
-disjoint (`two_pow_mul_xor`); and the product of `x^s` with a word of degree below `64 - s` does
-not reduce (`ofBits_two_pow_mul`).
+The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = x + y` (`y_inv`; `placeholder_map`,
+`crates/rec_aggregation/src/aggregation/placeholders.rs`). A zkDSL integer literal is a bit
+pattern: `n < 2^64` is `E::new(n, 0)`, `eOfNat n`, and a wider one, up to `u128`, is
+`eOfNat128 n`. `COORD_BASIS[i]` (`placeholder_map`) is `eOfNat128 (2^i)`. Sums of integers are XORs
+(`eOfNat_xor`), so they add when their bits are disjoint (`two_pow_mul_xor`); and the product of
+`x^s` with a word of degree below `64 - s` does not reduce (`ofBits_two_pow_mul`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -69,183 +63,111 @@ theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
 
 theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
 
-theorem zero_eq_ofLimbs : (0 : E) = E.ofLimbs 0 0 0 := by rw [← ofK_eq_ofLimbs, ofK_zero]
+@[simp] theorem ofLimbs_limb0 (a b : K) : (E.ofLimbs a b).limb 0 = a := by simp
 
-theorem one_eq_ofLimbs : (1 : E) = E.ofLimbs 1 0 0 := by rw [← ofK_eq_ofLimbs, ofK_one]
+@[simp] theorem ofLimbs_limb1 (a b : K) : (E.ofLimbs a b).limb 1 = b := by simp
+
+theorem zero_eq_ofLimbs : (0 : E) = E.ofLimbs 0 0 := by rw [← ofK_eq_ofLimbs, ofK_zero]
+
+theorem one_eq_ofLimbs : (1 : E) = E.ofLimbs 1 0 := by rw [← ofK_eq_ofLimbs, ofK_one]
 
 /-- A word in limb form. -/
-theorem eq_ofLimbs (x : E) : x = E.ofLimbs (x.limb 0) (x.limb 1) (x.limb 2) := (ofLimbs_limb x).symm
+theorem eq_ofLimbs (x : E) : x = E.ofLimbs (x.limb 0) (x.limb 1) := (ofLimbs_limb x).symm
 
-@[simp] theorem ofLimbs_limb0 (a b c : K) : (E.ofLimbs a b c).limb 0 = a := rfl
-
-@[simp] theorem ofLimbs_limb1 (a b c : K) : (E.ofLimbs a b c).limb 1 = b := rfl
-
-@[simp] theorem ofLimbs_limb2 (a b c : K) : (E.ofLimbs a b c).limb 2 = c := rfl
-
-theorem ofLimbs_inj {a b c a' b' c' : K} :
-    E.ofLimbs a b c = E.ofLimbs a' b' c' ↔ a = a' ∧ b = b' ∧ c = c' := by
+theorem ofLimbs_inj {a b a' b' : K} : E.ofLimbs a b = E.ofLimbs a' b' ↔ a = a' ∧ b = b' := by
   constructor
   · intro h
-    exact ⟨congrArg (·.limb 0) h, congrArg (·.limb 1) h, congrArg (·.limb 2) h⟩
-  · rintro ⟨rfl, rfl, rfl⟩
+    exact ⟨by simpa using congrArg (·.limb 0) h, by simpa using congrArg (·.limb 1) h⟩
+  · rintro ⟨rfl, rfl⟩
     rfl
 
-theorem isInK_ofLimbs_iff (a b c : K) : IsInK (E.ofLimbs a b c) ↔ b = 0 ∧ c = 0 := Iff.rfl
-
-theorem isCanonical128_ofLimbs_iff (a b c : K) : IsCanonical128 (E.ofLimbs a b c) ↔ c = 0 :=
-  Iff.rfl
-
-/-- A canonical word is its two low limbs. -/
-theorem eq_ofLimbs_of_canonical {x : E} (h : IsCanonical128 x) :
-    x = E.ofLimbs (x.limb 0) (x.limb 1) 0 := by
-  conv_lhs => rw [eq_ofLimbs x]
-  rw [h]
+theorem isInK_ofLimbs_iff (a b : K) : IsInK (E.ofLimbs a b) ↔ b = 0 := by
+  show (E.ofLimbs a b).limb 1 = 0 ↔ b = 0
+  simp
 
 theorem ofK_isInK (a : K) : IsInK (ofK a) := (isInK_iff _).mpr ⟨a, rfl⟩
 
+theorem ofLimbs_add (a0 a1 b0 b1 : K) :
+    E.ofLimbs a0 a1 + E.ofLimbs b0 b1 = E.ofLimbs (a0 + b0) (a1 + b1) :=
+  add_limbs a0 a1 b0 b1
+
 /-! ## `y` and `y⁻¹` -/
 
-/-- `y` is the limb vector `(0, 1, 0)`. -/
-theorem y_eq : y = E.ofLimbs 0 1 0 := by
+/-- `y` is the limb vector `(0, 1)`. -/
+theorem y_eq : y = E.ofLimbs 0 1 := by
   rw [ofLimbs_eq, ofK_zero, ofK_one]
   ring
 
-/-- Multiplying by `y` shifts the limbs and folds `y³ = y + 1`. -/
-theorem ofLimbs_mul_y (a0 a1 a2 : K) : E.ofLimbs a0 a1 a2 * y = E.ofLimbs a2 (a0 + a2) a1 := by
+/-- Multiplying by `y` shifts the limbs and folds `y² = x·y + 1`. -/
+theorem ofLimbs_mul_y (a0 a1 : K) : E.ofLimbs a0 a1 * y = E.ofLimbs a1 (a0 + g * a1) := by
   rw [y_eq, mul_limbs, ofLimbs_inj]
-  refine ⟨?_, ?_, ?_⟩ <;> ring
+  exact ⟨by ring, by ring⟩
 
-/-- `y⁻¹ = 1 + y²`, the limb vector `(1, 0, 1)` (the guest's `Y_INV`). -/
-theorem y_inv : y⁻¹ = E.ofLimbs 1 0 1 := by
+/-- `y⁻¹ = x + y`, the limb vector `(g, 1)` (the guest's `Y_INV`). -/
+theorem y_inv : y⁻¹ = E.ofLimbs g 1 := by
   refine inv_eq_of_mul_eq_one_right ?_
   rw [y_eq, mul_limbs, one_eq_ofLimbs, ofLimbs_inj]
-  exact ⟨by ring, by linear_combination k_two, by ring⟩
+  exact ⟨by ring, by linear_combination g * k_two⟩
 
 /-- Multiplying by `y⁻¹`. -/
-theorem ofLimbs_mul_y_inv (a0 a1 a2 : K) :
-    E.ofLimbs a0 a1 a2 * y⁻¹ = E.ofLimbs (a0 + a1) a2 a0 := by
+theorem ofLimbs_mul_y_inv (a0 a1 : K) :
+    E.ofLimbs a0 a1 * y⁻¹ = E.ofLimbs (a0 * g + a1) a0 := by
   rw [y_inv, mul_limbs, ofLimbs_inj]
-  exact ⟨by ring, by linear_combination a1 * k_two,
-    by linear_combination a2 * k_two⟩
+  exact ⟨by ring, by linear_combination (g * a1) * k_two⟩
 
-theorem ofLimbs_add (a0 a1 a2 b0 b1 b2 : K) :
-    E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2) :=
-  add_limbs a0 a1 a2 b0 b1 b2
+/-! ## Packing two limbs (`pack64x2`) -/
 
-/-! ## Packing two limbs (`pack64x2`, G:553-555) -/
-
-/-- **`pack64x2(a, b)`** (G:548-550): after `assert_in_k(a, b)`, `a + y·b` is the canonical cell
-with limbs `a`, `b`: `E.ofLimbs a b 0`. -/
+/-- **`pack64x2(a, b)`**: after `assert_in_k(a, b)`, `a + y·b` is the cell with limbs `a`, `b`. -/
 theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
-    a + y * b = E.ofLimbs (a.limb 0) (b.limb 0) 0 := by
+    a + y * b = E.ofLimbs (a.limb 0) (b.limb 0) := by
   obtain ⟨a0, rfl⟩ := (isInK_iff a).mp ha
   obtain ⟨b0, rfl⟩ := (isInK_iff b).mp hb
   rw [ofK_eq_ofLimbs, ofK_eq_ofLimbs, mul_comm, ofLimbs_mul_y, ofLimbs_add, ofLimbs_inj]
   simp
 
-/-! ## Splitting a canonical word (`assert_canonical`, `canonical_limbs`, G:558-575) -/
+/-- `a + y·b` for `a`, `b` in `K`: the cell of the two limbs. -/
+theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b := by
+  rw [pack64x2_eq (ofK_isInK a) (ofK_isInK b)]
+  simp
+
+/-- `y · E(t)`: the word whose `y` limb is `t` (`Y_TOWER * tag`, a rate cell's tag). -/
+theorem y_mul_ofK (t : K) : y * ofK t = E.ofLimbs 0 t := by
+  rw [← ofK_add_y_mul_ofK, ofK_zero, zero_add]
+
+/-! ## Splitting a word (`split_limbs`) -/
 
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/
 theorem add_ofK_mul_y_inv (x : E) (c : K) :
-    (x + ofK c) * y⁻¹ =
-      E.ofLimbs (x.limb 0 + c + x.limb 1) (x.limb 2) (x.limb 0 + c) := by
+    (x + ofK c) * y⁻¹ = E.ofLimbs ((x.limb 0 + c) * g + x.limb 1) (x.limb 0 + c) := by
   rw [eq_ofLimbs x, ofK_eq_ofLimbs, ofLimbs_add, ofLimbs_mul_y_inv]
   simp
 
-/-- **The split of a word** (`assert_canonical`, `canonical_limbs`, G:558-575; the same
-constraints in `challenge_from_state`, G:593-602, and `grind_check`, G:930-937): the hinted
-`lo` and the derived `(x + lo)·y⁻¹` both lie in `K` exactly when `x` is canonical
-(`IsCanonical128`) and `lo` is its low limb: the tower representation is unique. -/
-theorem split_iff (x lo : E) :
-    IsInK lo ∧ IsInK ((x + lo) * y⁻¹) ↔ IsCanonical128 x ∧ lo = ofK (x.limb 0) := by
+/-- **The split of a word** (`split_limbs`; the same constraints in `grind_check`): the hinted
+`lo` and the derived `(x + lo)·y⁻¹` both lie in `K` exactly when `lo` is `x`'s low limb: the
+representation `c0 + c1·y` is unique. -/
+theorem split_iff (x lo : E) : IsInK lo ∧ IsInK ((x + lo) * y⁻¹) ↔ lo = ofK (x.limb 0) := by
   constructor
   · rintro ⟨hlo, hhi⟩
     obtain ⟨c, rfl⟩ := (isInK_iff lo).mp hlo
     rw [add_ofK_mul_y_inv, isInK_ofLimbs_iff] at hhi
-    exact ⟨hhi.1, by rw [k_add_eq_zero_iff.mp hhi.2]⟩
-  · rintro ⟨hx, rfl⟩
-    refine ⟨ofK_isInK _, ?_⟩
-    rw [add_ofK_mul_y_inv, isInK_ofLimbs_iff]
-    exact ⟨hx, k_add_self _⟩
-
-/-- The derived high limb of a canonical word is its `y` limb. -/
-theorem split_hi {x : E} (hx : IsCanonical128 x) : (x + ofK (x.limb 0)) * y⁻¹ = ofK (x.limb 1) := by
-  rw [add_ofK_mul_y_inv, k_add_self, zero_add, hx, ofK_eq_ofLimbs]
-
-/-! ## The top limb, pinned by a canonical cell (`fs_pack`, G:616-624) -/
-
-/-- `x + y²·c`, in limbs. -/
-theorem add_y_mul_y_mul_ofK (x : E) (c : K) :
-    x + y * y * ofK c = E.ofLimbs (x.limb 0) (x.limb 1) (x.limb 2 + c) := by
-  have hyy : y * y = E.ofLimbs 0 0 1 := by
-    rw [y_eq, mul_limbs, ofLimbs_inj]
-    refine ⟨by ring, by ring, by ring⟩
-  rw [hyy, ofK_eq_ofLimbs, mul_limbs, eq_ofLimbs x, ofLimbs_add]
-  simp
-
-/-- **The top limb is pinned** (`fs_pack`, G:616-624): a hinted `l` in `K` makes
-`x + y²·l` canonical exactly when it is `x`'s top limb. -/
-theorem top_pin_iff (x l : E) : IsInK l ∧ IsCanonical128 (x + y * y * l) ↔ l = ofK (x.limb 2) := by
-  constructor
-  · rintro ⟨hl, hc⟩
-    obtain ⟨c, rfl⟩ := (isInK_iff l).mp hl
-    rw [add_y_mul_y_mul_ofK, isCanonical128_ofLimbs_iff] at hc
-    rw [k_add_eq_zero_iff.mp hc]
+    rw [k_add_eq_zero_iff.mp hhi]
   · rintro rfl
     refine ⟨ofK_isInK _, ?_⟩
-    rw [add_y_mul_y_mul_ofK, isCanonical128_ofLimbs_iff]
+    rw [add_ofK_mul_y_inv, isInK_ofLimbs_iff]
     exact k_add_self _
 
-/-- With its top limb pinned, `x + y²·x₂` is the cell of `x`'s two low limbs. -/
-theorem top_pin_eq (x : E) : x + y * y * ofK (x.limb 2) = E.ofLimbs (x.limb 0) (x.limb 1) 0 := by
-  rw [add_y_mul_y_mul_ofK, k_add_self]
-
-/-- `t + y·tag` for a tag in `K`, the scalar's second cell in `fs_pack`. -/
-theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b 0 := by
-  rw [pack64x2_eq (ofK_isInK a) (ofK_isInK b)]
-  simp
-
-/-! ## Splitting a full word into three limbs (`pack_pair`) -/
-
-/-- **The three-limb split** (`pack_pair`, G:579-589): two hinted limbs `a`, `b` and the derived
-top `((x + a)·y⁻¹ + b)·y⁻¹` all lie in `K` (the `pack64x2` calls assert it) exactly when `a`, `b`
-are `x`'s low limbs. -/
-theorem split3_iff (x a b : E) :
-    IsInK a ∧ IsInK b ∧ IsInK (((x + a) * y⁻¹ + b) * y⁻¹) ↔
-      a = ofK (x.limb 0) ∧ b = ofK (x.limb 1) := by
-  constructor
-  · rintro ⟨ha, hb, htop⟩
-    obtain ⟨a0, rfl⟩ := (isInK_iff a).mp ha
-    obtain ⟨b0, rfl⟩ := (isInK_iff b).mp hb
-    rw [add_ofK_mul_y_inv x a0, ofK_eq_ofLimbs b0, ofLimbs_add, ofLimbs_mul_y_inv,
-      isInK_ofLimbs_iff] at htop
-    simp only [add_zero] at htop
-    have h0 : x.limb 0 = a0 := k_add_eq_zero_iff.mp htop.1
-    subst h0
-    rw [k_add_self, zero_add] at htop
-    exact ⟨rfl, by rw [k_add_eq_zero_iff.mp htop.2]⟩
-  · rintro ⟨rfl, rfl⟩
-    refine ⟨ofK_isInK _, ofK_isInK _, ?_⟩
-    rw [add_ofK_mul_y_inv x (x.limb 0), ofK_eq_ofLimbs (x.limb 1), ofLimbs_add,
-      ofLimbs_mul_y_inv, isInK_ofLimbs_iff]
-    simp [k_add_self]
-
-/-- The derived top limb of the three-limb split is `x`'s `y²` limb. -/
-theorem split3_top (x : E) :
-    ((x + ofK (x.limb 0)) * y⁻¹ + ofK (x.limb 1)) * y⁻¹ = ofK (x.limb 2) := by
-  rw [add_ofK_mul_y_inv x (x.limb 0), ofK_eq_ofLimbs (x.limb 1), ofLimbs_add,
-    ofLimbs_mul_y_inv, ofK_eq_ofLimbs]
-  simp [k_add_self]
+/-- The derived high limb is the word's `y` limb. -/
+theorem split_hi (x : E) : (x + ofK (x.limb 0)) * y⁻¹ = ofK (x.limb 1) := by
+  rw [add_ofK_mul_y_inv, k_add_self, zero_mul, zero_add, ofK_eq_ofLimbs]
 
 /-! ## Integers as bit patterns -/
 
-/-- A `u192` bit pattern: limb `i` holds bits `64·i .. 64·i + 63` of `n` (a zkDSL integer
-literal, and `COORD_BASIS[i] = eOfNat192 (2^i)`). -/
-def eOfNat192 (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits n) (K.ofBits (n / 2 ^ 64)) (K.ofBits (n / 2 ^ 128))
+/-- A `u128` bit pattern: limb `i` holds bits `64·i .. 64·i + 63` of `n` (a zkDSL integer
+literal, and `COORD_BASIS[i] = eOfNat128 (2^i)`). -/
+def eOfNat128 (n : ℕ) : E := E.ofLimbs (K.ofBits n) (K.ofBits (n / 2 ^ 64))
 
 /-- `COORD_BASIS[i]` (`placeholder_map`): the `i`-th coordinate basis vector. -/
-def coordBasis (i : ℕ) : E := eOfNat192 (2 ^ i)
+def coordBasis (i : ℕ) : E := eOfNat128 (2 ^ i)
 
 theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
   simp only [K.ofBits, BitVec.ofNat_xor]
@@ -266,7 +188,9 @@ theorem ofBits_kToNat (a : K) : K.ofBits (kToNat a) = a := by
   apply BF64.toBitVec_injective
   simp [K.ofBits, kToNat]
 
-theorem eOfNat_eq_ofLimbs (n : ℕ) : eOfNat n = E.ofLimbs (K.ofBits n) 0 0 := ofK_eq_ofLimbs _
+theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
+
+theorem eOfNat_eq_ofLimbs (n : ℕ) : eOfNat n = E.ofLimbs (K.ofBits n) 0 := ofK_eq_ofLimbs _
 
 theorem eOfNat_zero : eOfNat 0 = 0 := by rw [eOfNat, ofBits_zero, ofK_zero]
 
@@ -294,40 +218,41 @@ theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
   rw [e_add_eq_zero_iff]
   exact ⟨eOfNat_inj ha hb, fun h ↦ h ▸ rfl⟩
 
-theorem eOfNat192_xor (a b : ℕ) : eOfNat192 (a ^^^ b) = eOfNat192 a + eOfNat192 b := by
-  simp only [eOfNat192, Nat.xor_div_two_pow, ofBits_xor, ofLimbs_add]
+theorem eOfNat128_xor (a b : ℕ) : eOfNat128 (a ^^^ b) = eOfNat128 a + eOfNat128 b := by
+  simp only [eOfNat128, Nat.xor_div_two_pow, ofBits_xor, ofLimbs_add]
 
-theorem eOfNat192_of_lt {n : ℕ} (h : n < 2 ^ 64) : eOfNat192 n = eOfNat n := by
-  rw [eOfNat192, eOfNat_eq_ofLimbs, Nat.div_eq_of_lt h,
-    Nat.div_eq_of_lt (lt_of_lt_of_le h (Nat.pow_le_pow_right (by decide) (by decide)))]
+theorem eOfNat128_of_lt {n : ℕ} (h : n < 2 ^ 64) : eOfNat128 n = eOfNat n := by
+  rw [eOfNat128, eOfNat_eq_ofLimbs, Nat.div_eq_of_lt h]
   rfl
 
-theorem eOfNat192_zero : eOfNat192 0 = 0 := by rw [eOfNat192_of_lt (by decide), eOfNat_zero]
+theorem eOfNat128_zero : eOfNat128 0 = 0 := by rw [eOfNat128_of_lt (by decide), eOfNat_zero]
 
-/-- `eToNat` reads the bit pattern back, modulo `2^192`. -/
-theorem eToNat_eOfNat192 (n : ℕ) : eToNat (eOfNat192 n) = n % 2 ^ 192 := by
-  simp only [eToNat, eOfNat192, ofLimbs_limb0, ofLimbs_limb1, ofLimbs_limb2, kToNat_ofBits]
+/-- `eToNat` reads the bit pattern back, modulo `2^128`. -/
+theorem eToNat_eOfNat128 (n : ℕ) : eToNat (eOfNat128 n) = n % 2 ^ 128 := by
+  simp only [eToNat, eOfNat128, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
   have h1 : n % 2 ^ 128 = n % 2 ^ 64 + 2 ^ 64 * (n / 2 ^ 64 % 2 ^ 64) := by
     rw [show (2 : ℕ) ^ 128 = 2 ^ 64 * 2 ^ 64 by norm_num, Nat.mod_mul]
-  have h2 : n % 2 ^ 192 = n % 2 ^ 128 + 2 ^ 128 * (n / 2 ^ 128 % 2 ^ 64) := by
-    rw [show (2 : ℕ) ^ 192 = 2 ^ 128 * 2 ^ 64 by norm_num, Nat.mod_mul]
   omega
 
-/-- `eOfNat192` of the integer of a word is the word. -/
-theorem eOfNat192_eToNat (x : E) : eOfNat192 (eToNat x) = x := by
-  have h0 := (x.limb 0).toBitVec.isLt
-  have h1 := (x.limb 1).toBitVec.isLt
-  have h2 := (x.limb 2).toBitVec.isLt
-  have e0 : eToNat x % 2 ^ 64 = kToNat (x.limb 0) := by unfold eToNat kToNat; omega
-  have e1 : eToNat x / 2 ^ 64 % 2 ^ 64 = kToNat (x.limb 1) := by unfold eToNat kToNat; omega
-  have e2 : eToNat x / 2 ^ 128 % 2 ^ 64 = kToNat (x.limb 2) := by unfold eToNat kToNat; omega
-  rw [eOfNat192, ← ofBits_mod (eToNat x), e0, ← ofBits_mod (eToNat x / 2 ^ 64), e1,
-    ← ofBits_mod (eToNat x / 2 ^ 128), e2, ofBits_kToNat, ofBits_kToNat, ofBits_kToNat,
-    ← eq_ofLimbs]
+/-- The integer of a word is below `2^128`. -/
+theorem eToNat_lt (x : E) : eToNat x < 2 ^ 128 := by
+  have h0 := kToNat_lt (x.limb 0)
+  have h1 := kToNat_lt (x.limb 1)
+  unfold eToNat
+  omega
+
+/-- `eOfNat128` of the integer of a word is the word. -/
+theorem eOfNat128_eToNat (x : E) : eOfNat128 (eToNat x) = x := by
+  have h0 := kToNat_lt (x.limb 0)
+  have h1 := kToNat_lt (x.limb 1)
+  have e0 : eToNat x % 2 ^ 64 = kToNat (x.limb 0) := by unfold eToNat; omega
+  have e1 : eToNat x / 2 ^ 64 % 2 ^ 64 = kToNat (x.limb 1) := by unfold eToNat; omega
+  rw [eOfNat128, ← ofBits_mod (eToNat x), e0, ← ofBits_mod (eToNat x / 2 ^ 64), e1,
+    ofBits_kToNat, ofBits_kToNat, ← eq_ofLimbs]
 
 /-- Below the first limb, a coordinate basis vector is `E(2^i)`. -/
 theorem coordBasis_of_lt {i : ℕ} (h : i < 64) : coordBasis i = eOfNat (2 ^ i) :=
-  eOfNat192_of_lt (Nat.pow_lt_pow_right (by decide) h)
+  eOfNat128_of_lt (Nat.pow_lt_pow_right (by decide) h)
 
 /-- Disjoint bits: a multiple of `2^s` and a value below `2^s` XOR to their sum. -/
 theorem two_pow_mul_xor {s q r : ℕ} (hr : r < 2 ^ s) : 2 ^ s * q ^^^ r = 2 ^ s * q + r := by
@@ -368,55 +293,28 @@ theorem eOfNat_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
   rfl
 
 /-- A product by a `K` word, limb by limb. -/
-theorem ofLimbs_mul_ofK (a b c v : K) : E.ofLimbs a b c * ofK v = E.ofLimbs (a * v) (b * v) (c * v) := by
+theorem ofLimbs_mul_ofK (a b v : K) : E.ofLimbs a b * ofK v = E.ofLimbs (a * v) (b * v) := by
   rw [ofK_eq_ofLimbs, mul_limbs, ofLimbs_inj]
-  exact ⟨by ring, by ring, by ring⟩
+  exact ⟨by ring, by ring⟩
 
 /-- A word in the `y` limb. -/
-theorem eOfNat192_two_pow_64_mul {X : ℕ} (hX : X < 2 ^ 64) :
-    eOfNat192 (2 ^ 64 * X) = E.ofLimbs 0 (K.ofBits X) 0 := by
-  rw [eOfNat192, ofLimbs_inj, ← ofBits_mod (2 ^ 64 * X), Nat.mul_mod_right,
-    Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64), show (2 : ℕ) ^ 128 = 2 ^ 64 * 2 ^ 64 by norm_num,
-    ← Nat.div_div_eq_div_mul, Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64), Nat.div_eq_of_lt hX]
-  exact ⟨rfl, rfl, rfl⟩
+theorem eOfNat128_two_pow_64_mul (X : ℕ) :
+    eOfNat128 (2 ^ 64 * X) = E.ofLimbs 0 (K.ofBits X) := by
+  rw [eOfNat128, ofLimbs_inj, ← ofBits_mod (2 ^ 64 * X), Nat.mul_mod_right,
+    Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64)]
+  exact ⟨rfl, rfl⟩
 
-/-- A word in the `y²` limb. -/
-theorem eOfNat192_two_pow_128_mul (X : ℕ) :
-    eOfNat192 (2 ^ 128 * X) = E.ofLimbs 0 0 (K.ofBits X) := by
-  have h1 : 2 ^ 128 * X / 2 ^ 64 = 2 ^ 64 * X := by
-    rw [show (2 : ℕ) ^ 128 = 2 ^ 64 * 2 ^ 64 by norm_num, Nat.mul_assoc,
-      Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64)]
-  have h2 : 2 ^ 128 * X / 2 ^ 128 = X := Nat.mul_div_cancel_left _ (Nat.two_pow_pos 128)
-  have h3 : 2 ^ 128 * X % 2 ^ 64 = 0 := by
-    rw [show (2 : ℕ) ^ 128 * X = 2 ^ 64 * (2 ^ 64 * X) by ring]
-    exact Nat.mul_mod_right _ _
-  have h4 : 2 ^ 64 * X % 2 ^ 64 = 0 := Nat.mul_mod_right _ _
-  rw [eOfNat192, ofLimbs_inj, h1, h2, ← ofBits_mod (2 ^ 128 * X), h3, ← ofBits_mod (2 ^ 64 * X), h4]
-  exact ⟨rfl, rfl, rfl⟩
-
-/-- **A coordinate basis vector times a word** (`decode_query_windows`, G:848-910): `e_i · E(v)`
-with `v` of degree below `64 - i mod 64` is the bit pattern `2^i · v`, in limb `i / 64`. -/
-theorem coordBasis_mul_eOfNat {i v : ℕ} (hi : i < 192) (h : 2 ^ (i % 64) * v < 2 ^ 64) :
-    coordBasis i * eOfNat v = eOfNat192 (2 ^ i * v) := by
-  rcases (show i < 64 ∨ (64 ≤ i ∧ i < 128) ∨ 128 ≤ i by omega) with h0 | h1 | h2
+/-- **A coordinate basis vector times a word** (`decode_query_windows`): `e_i · E(v)` with `v` of
+degree below `64 - i mod 64` is the bit pattern `2^i · v`, in limb `i / 64`. -/
+theorem coordBasis_mul_eOfNat {i v : ℕ} (hi : i < 128) (h : 2 ^ (i % 64) * v < 2 ^ 64) :
+    coordBasis i * eOfNat v = eOfNat128 (2 ^ i * v) := by
+  rcases (show i < 64 ∨ 64 ≤ i by omega) with h0 | h1
   · rw [Nat.mod_eq_of_lt h0] at h
-    rw [coordBasis_of_lt h0, eOfNat_two_pow_mul h, eOfNat192_of_lt h]
+    rw [coordBasis_of_lt h0, eOfNat_two_pow_mul h, eOfNat128_of_lt h]
   · obtain ⟨a, rfl⟩ : ∃ a, i = 64 + a := ⟨i - 64, by omega⟩
     rw [show (64 + a) % 64 = a by omega] at h
-    rcases Nat.eq_zero_or_pos v with hv | hv
-    · subst hv
-      rw [Nat.mul_zero, eOfNat_zero, mul_zero, eOfNat192_zero]
-    have ha : 2 ^ a < 2 ^ 64 := lt_of_le_of_lt (Nat.le_mul_of_pos_right _ hv) h
-    rw [coordBasis, pow_add, eOfNat192_two_pow_64_mul ha, eOfNat, ofLimbs_mul_ofK, Nat.mul_assoc,
-      eOfNat192_two_pow_64_mul h, ofBits_two_pow_mul h]
-    simp
-  · obtain ⟨a, rfl⟩ : ∃ a, i = 128 + a := ⟨i - 128, by omega⟩
-    rw [show (128 + a) % 64 = a by omega] at h
-    rcases Nat.eq_zero_or_pos v with hv | hv
-    · subst hv
-      rw [Nat.mul_zero, eOfNat_zero, mul_zero, eOfNat192_zero]
-    rw [coordBasis, pow_add, eOfNat192_two_pow_128_mul, eOfNat, ofLimbs_mul_ofK, Nat.mul_assoc,
-      eOfNat192_two_pow_128_mul, ofBits_two_pow_mul h]
+    rw [coordBasis, pow_add, eOfNat128_two_pow_64_mul, eOfNat, ofLimbs_mul_ofK, Nat.mul_assoc,
+      eOfNat128_two_pow_64_mul, ofBits_two_pow_mul h]
     simp
 
 /-- `gen^a = E(2^a)` below the first reduction (a compile-time `GEN ** a`). -/

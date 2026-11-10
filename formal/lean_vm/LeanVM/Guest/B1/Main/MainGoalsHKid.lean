@@ -70,13 +70,6 @@ theorem cellsBytes_claimCells (r p : BitVec 128) (m : BitVec 256) :
     cellBytes_cellOfBytes (by rw [List.length_drop]; omega)]
   exact take16_chain hl
 
-theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
-    AllCanonical (claimCells r p m) := by
-  intro x hx
-  rw [kid_claimCells_eq] at hx
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl | rfl <;> rfl
-
 /-! ## The lists' digests are their cells' -/
 
 theorem xmssList_cells (l : List LeanXmssClaim) :
@@ -179,14 +172,13 @@ theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc
 
 /-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
-theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
-    (hlen : w.children[c].statement.deferredClaim.cells.length = 24) :
+theorem hKid_pi {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).pi (digestHalves seed).1 (digestHalves seed).2 =
       digestHalves (statementDigest seed w.children[c].statement) := by
   unfold KidH.pi
   rw [hKid_cx hc, hKid_cs hc, hKid_da hc, hKid_defer hc,
     statementDigest_of_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen]
+      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl]
 
 end
 end LeanVM.Guest.B1.Main
