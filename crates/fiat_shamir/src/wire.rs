@@ -8,13 +8,13 @@ use primitives::field::{F64, F192};
 
 /// The most phases a proof, queries a phase, leaf words and tree height may have: at least the protocol's own, and few
 /// enough that hostile bytes unprune to a bounded size. Encoding asserts them, so an honest proof always decodes.
-const MAX_PHASES: usize = 8;
-const MAX_QUERIES: usize = 256;
-const MAX_LEAF_WORDS: usize = 64;
-const MAX_HEIGHT: usize = 32;
+pub const MAX_PHASES: usize = 9;
+pub const MAX_QUERIES: usize = 256;
+pub const MAX_LEAF_WORDS: usize = 64;
+pub const MAX_HEIGHT: usize = 40;
 
 impl Proof {
-    /// Every count and size is a little-endian `u32`, every word a little-endian `u64`.
+    /// Every count and size is a little-endian `u32`, every word and query position a little-endian `u64`.
     ///
     /// - The stream: its length, then each element as its three words.
     /// - The number of phases, then each phase pruned: its queries' count and positions, in the order the verifier
@@ -76,7 +76,7 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
 
     write_u32(out, paths.len());
     for path in paths {
-        write_u32(out, usize::try_from(path.leaf_index).expect("a position fits in usize"));
+        out.extend(path.leaf_index.to_le_bytes());
     }
     for size in [height, leaf_words, leaf_words - zeros] {
         write_u32(out, size);
@@ -102,7 +102,7 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
 /// verifier checks every path; what is refused is anything but the one encoding of a phase within the bounds.
 fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
     let count = input.u32().filter(|&count| count as usize <= MAX_QUERIES)?;
-    let queries: Vec<u64> = (0..count).map(|_| input.u32().map(u64::from)).collect::<Option<_>>()?;
+    let queries: Vec<u64> = (0..count).map(|_| input.u64()).collect::<Option<_>>()?;
     let (height, leaf_words, row_words) = (input.u32()? as usize, input.u32()? as usize, input.u32()? as usize);
     let mut positions = queries.clone();
     positions.sort_unstable();
@@ -172,6 +172,10 @@ impl<'a> Reader<'a> {
         Some(u32::from_le_bytes(*self.bytes(4)?.as_array()?))
     }
 
+    fn u64(&mut self) -> Option<u64> {
+        Some(u64::from_le_bytes(*self.bytes(8)?.as_array()?))
+    }
+
     fn hash(&mut self) -> Option<Hash> {
         Some(*self.bytes(32)?.as_array()?)
     }
@@ -210,7 +214,7 @@ mod tests {
         };
         let bytes = proof.to_bytes();
         // The stream, then the phase: its queries, three sizes, two rows of two words, and two siblings.
-        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
+        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 8) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
         assert_eq!(Proof::from_bytes(&bytes), Some(proof));
         assert_eq!(Proof::from_bytes(&[&bytes[..], &[0]].concat()), None);
     }

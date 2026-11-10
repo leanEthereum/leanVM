@@ -13,7 +13,7 @@
 
 pub mod merkle;
 pub mod transcript;
-mod wire;
+pub mod wire;
 
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
