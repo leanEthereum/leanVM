@@ -41,6 +41,9 @@ const STAGE_TILE_BYTES: usize = 16 << 10;
 /// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
 ///
 /// Blocks must all have the same power-of-two size, and together cover every leaf once.
+///
+/// A forest is the tree's lowest levels only: its subtrees of `2^levels` leaves are never joined, and their roots are
+/// what it keeps.
 pub(crate) struct MerkleBuilder {
     nodes: Nodes,
     /// Levels below it are never stored: see [`CutTree`].
@@ -55,13 +58,27 @@ impl MerkleBuilder {
     /// A tree of `CUT_FROM` leaves or more is cut, so its blocks must hold whole leaf groups.
     pub fn new(num_leaves: usize, row_words: usize, leaf_words: usize) -> Self {
         let cut = if num_leaves >= CUT_FROM { CUT } else { 0 };
-        Self::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, cut)
+        Self::with_bytes(
+            num_leaves,
+            8 * row_words,
+            8 * leaf_words,
+            cut,
+            num_leaves.ilog2() as usize,
+        )
     }
 
-    fn with_bytes(num_leaves: usize, row_bytes: usize, leaf_bytes: usize, cut: usize) -> Self {
+    /// An empty forest of subtrees `levels` high over `num_leaves` leaves, hashed as [`Self::new`]'s, cut where that
+    /// tree is but never above its roots.
+    pub fn new_forest(num_leaves: usize, row_words: usize, leaf_words: usize, levels: usize) -> Self {
+        assert!(levels <= num_leaves.ilog2() as usize, "a subtree fits the leaves");
+        let cut = if num_leaves >= CUT_FROM { CUT.min(levels) } else { 0 };
+        Self::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, cut, levels)
+    }
+
+    fn with_bytes(num_leaves: usize, row_bytes: usize, leaf_bytes: usize, cut: usize, top: usize) -> Self {
         assert!(num_leaves.is_power_of_two(), "num_leaves must be power of 2");
         Self {
-            nodes: Nodes::new(num_leaves, cut),
+            nodes: Nodes::new(num_leaves, cut, top),
             cut,
             leaves: LeafHasher::new(row_bytes, leaf_bytes),
             progress: Progress::new(num_leaves),
@@ -118,21 +135,28 @@ impl MerkleBuilder {
 
     /// Climb `n` finished nodes of `level` from node `first`, then hand them to their unit.
     ///
-    /// The unit's last arrival climbs the unit in turn, up to the root.
+    /// The unit's last arrival climbs the unit in turn, up to the top level.
     ///
     /// # Safety
     ///
     /// The nodes are initialized, and no other caller holds them.
     unsafe fn complete(&self, level: usize, first: usize, n: usize) {
+        let top = self.nodes.top;
+        if level == top {
+            return;
+        }
         if n == self.nodes.width(level) {
-            // SAFETY: forwarded, and the whole level climbs to the root.
-            return unsafe { self.nodes.climb(level, 0, n, n.ilog2() as usize) };
+            // SAFETY: forwarded, and the whole level climbs to the top.
+            return unsafe { self.nodes.climb(level, 0, n, top - level) };
         }
         // Climb while every level still fills whole batches.
-        let height = (n / LANES).max(1).ilog2() as usize;
+        let height = ((n / LANES).max(1).ilog2() as usize).min(top - level);
         // SAFETY: forwarded.
         unsafe { self.nodes.climb(level, first, n, height) };
         let (level, first, n) = (level + height, first >> height, n >> height);
+        if level == top {
+            return;
+        }
 
         let unit = UNIT.min(self.nodes.width(level));
         if self.progress.arrive(level, first / unit, n, unit) {
@@ -166,30 +190,39 @@ impl MerkleBuilder {
     /// Panics unless every leaf was absorbed.
     pub fn finish(self) -> CutTree {
         assert!(self.progress.all_claimed(), "every leaf absorbed");
-        let (cut, num_leaves) = (self.cut, self.nodes.num_leaves);
+        let (cut, top, num_leaves) = (self.cut, self.nodes.top, self.nodes.num_leaves);
         // SAFETY: every block was absorbed once, and the last arrivals climbed every level above.
         let nodes = unsafe { self.nodes.assume_init() };
-        CutTree { nodes, cut, num_leaves }
+        CutTree {
+            nodes,
+            cut,
+            top,
+            num_leaves,
+        }
     }
 }
 
-/// The flat tree from level `cut` up, written at disjoint nodes by concurrent climbs.
+/// The flat tree from level `cut` up to level `top`, written at disjoint nodes by concurrent climbs.
 struct Nodes {
     tree: Vec<MaybeUninit<Hash>>,
     base: SendPtr<MaybeUninit<Hash>>,
     num_leaves: usize,
     cut: usize,
+    top: usize,
 }
 
 impl Nodes {
-    fn new(num_leaves: usize, cut: usize) -> Self {
-        let mut tree = Box::new_uninit_slice(((2 * num_leaves) >> cut) - 1).into_vec();
+    fn new(num_leaves: usize, cut: usize, top: usize) -> Self {
+        assert!(cut <= top && top <= num_leaves.ilog2() as usize);
+        let len = CutTree::start(num_leaves, top + 1) - CutTree::start(num_leaves, cut);
+        let mut tree = Box::new_uninit_slice(len).into_vec();
         let base = SendPtr(tree.as_mut_ptr());
         Self {
             tree,
             base,
             num_leaves,
             cut,
+            top,
         }
     }
 
@@ -210,7 +243,7 @@ impl Nodes {
     /// No other live slice overlaps them.
     #[allow(clippy::mut_from_ref)]
     unsafe fn level_mut(&self, level: usize, first: usize, n: usize) -> &mut [MaybeUninit<Hash>] {
-        debug_assert!(self.cut <= level && first + n <= self.width(level));
+        debug_assert!(self.cut <= level && level <= self.top && first + n <= self.width(level));
         // SAFETY: in bounds, and exclusive by the caller.
         unsafe { self.base.slice(self.start(level) + first, n) }
     }
@@ -303,12 +336,14 @@ const CUT: usize = 4;
 /// Trees of this many leaves or more are cut, so every block they are built from holds a leaf group.
 const CUT_FROM: usize = 1 << 12;
 
-/// A finished tree that keeps only the levels from `cut` up, in the flat layout of the full tree.
+/// A finished tree that keeps only the levels from `cut` up to `top`, in the flat layout of the full tree: up to the
+/// root for a tree, up to the subtree roots for a forest.
 ///
 /// Opening a leaf group takes its rows again: the levels below `cut` are recomputed from them.
 pub(crate) struct CutTree {
     nodes: Vec<Hash>,
     cut: usize,
+    top: usize,
     num_leaves: usize,
 }
 
@@ -319,7 +354,13 @@ impl CutTree {
     }
 
     pub fn root(&self) -> Hash {
+        assert_eq!(1usize << self.top, self.num_leaves, "a tree has a root");
         self.nodes[self.nodes.len() - 1]
+    }
+
+    /// The nodes of the top level, left to right: a forest's subtree roots.
+    pub fn top_nodes(&self) -> &[Hash] {
+        &self.nodes[Self::start(self.num_leaves, self.top) - Self::start(self.num_leaves, self.cut)..]
     }
 
     /// Distinct groups the `positions` fall in, ascending.
@@ -359,7 +400,7 @@ impl CutTree {
         let local = if self.cut == 0 || n == 0 {
             Vec::new()
         } else {
-            let mut nodes = Nodes::new(n, 0);
+            let mut nodes = Nodes::new(n, 0, self.cut);
             // SAFETY: the nodes are ours alone, the climb writes every level it reads, and the levels kept are written.
             unsafe {
                 LeafHasher::new(8 * row_words, 8 * leaf_words).hash(cast_slice(group_rows), nodes.level_mut(0, 0, n));
@@ -378,8 +419,7 @@ impl CutTree {
                 .expect("a sibling is in an opened group");
             local[Self::start(n, level) + group * width + i % width]
         };
-        let height = self.num_leaves.trailing_zeros() as usize;
-        fiat_shamir::merkle::open(self.num_leaves, height, positions, leaf_words, node, row)
+        fiat_shamir::merkle::open(self.num_leaves, self.top, positions, leaf_words, node, row)
     }
 }
 
@@ -482,10 +522,14 @@ fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
 mod tests {
     use super::*;
 
+    fn height(num_leaves: usize) -> usize {
+        num_leaves.ilog2() as usize
+    }
+
     /// The tree over `num_leaves` equal byte leaves, each hashed as [`primitives::hash::hash`] of its bytes.
     fn merkle_tree(data: &[u8], num_leaves: usize) -> Vec<Hash> {
         let leaf_bytes = data.len() / num_leaves;
-        let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes, 0);
+        let builder = MerkleBuilder::with_bytes(num_leaves, leaf_bytes, leaf_bytes, 0, height(num_leaves));
         builder.absorb_all(data);
         builder.finish().nodes
     }
@@ -493,7 +537,7 @@ mod tests {
     /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
     fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {
         assert_eq!(data.len(), row_words * num_leaves);
-        let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, 0);
+        let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, 0, height(num_leaves));
         builder.absorb_all(cast_slice(data));
         builder.finish().nodes
     }
@@ -594,7 +638,7 @@ mod tests {
                 .collect();
             let full = merkle_tree_padded_rows(&data, num_leaves, row_words, leaf_words);
             let row = |q: usize| &data[q * row_words..][..row_words];
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, CUT);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words, CUT, height(num_leaves));
             builder.absorb_all(cast_slice(&data));
             let cut = builder.finish();
             assert_eq!(cut.root(), *full.last().unwrap());
@@ -610,14 +654,66 @@ mod tests {
                 let node = |level: usize, i: usize| full[level_start(level) + i];
                 assert_eq!(
                     got,
-                    fiat_shamir::merkle::open(
-                        num_leaves,
-                        num_leaves.ilog2() as usize,
-                        &positions,
-                        leaf_words,
-                        node,
-                        row
-                    )
+                    fiat_shamir::merkle::open(num_leaves, height(num_leaves), &positions, leaf_words, node, row)
+                );
+            }
+        }
+    }
+
+    /// Forest shapes: below and above the cut size, subtrees lower than, as high as and higher than the cut, and one
+    /// subtree that is the whole tree.
+    const FORESTS: [(usize, usize, usize, usize); 5] = [
+        (1 << 10, 45, 64, 3),
+        (1 << 12, 41, 64, 3),
+        (1 << 13, 48, 64, 4),
+        (1 << 12, 16, 16, 5),
+        (64, 8, 8, 6),
+    ];
+
+    /// The forest over `num_leaves` rows, and the full tree over them.
+    fn forest_and_tree(num_leaves: usize, row_words: usize, leaf_words: usize, levels: usize) -> (CutTree, Vec<Hash>) {
+        let data: Vec<F64> = (0..row_words * num_leaves)
+            .map(|i| F64(i as u64 * 0x9E37_79B9 + 3))
+            .collect();
+        let builder = MerkleBuilder::new_forest(num_leaves, row_words, leaf_words, levels);
+        builder.absorb_all(cast_slice(&data));
+        (
+            builder.finish(),
+            merkle_tree_padded_rows(&data, num_leaves, row_words, leaf_words),
+        )
+    }
+
+    #[test]
+    fn forest_roots_are_tree_level_h() {
+        for (num_leaves, row_words, leaf_words, levels) in FORESTS {
+            let (forest, full) = forest_and_tree(num_leaves, row_words, leaf_words, levels);
+            let start = |level: usize| CutTree::start(num_leaves, level);
+            assert_eq!(
+                forest.top_nodes(),
+                &full[start(levels)..start(levels + 1)],
+                "{num_leaves} leaves, {levels} levels"
+            );
+        }
+    }
+
+    #[test]
+    fn forest_open_matches_tree_open_prefix() {
+        for (num_leaves, row_words, leaf_words, levels) in FORESTS {
+            let (forest, full) = forest_and_tree(num_leaves, row_words, leaf_words, levels);
+            let data: Vec<F64> = (0..row_words * num_leaves)
+                .map(|i| F64(i as u64 * 0x9E37_79B9 + 3))
+                .collect();
+            let row = |q: usize| &data[q * row_words..][..row_words];
+            let node = |level: usize, i: usize| full[CutTree::start(num_leaves, level) + i];
+            for positions in [vec![0usize], vec![9, 9, 10, num_leaves - 1, 3, 40]] {
+                let group = forest.group_positions(&positions);
+                let rows: Vec<F64> = group.iter().flat_map(|&q| row(q)).copied().collect();
+                // The full tree's paths, climbing the forest's levels only.
+                let want = fiat_shamir::merkle::open(num_leaves, levels, &positions, leaf_words, node, row);
+                assert_eq!(
+                    forest.open(&positions, row_words, leaf_words, &rows, row),
+                    want,
+                    "{num_leaves} leaves, {levels} levels"
                 );
             }
         }
@@ -630,7 +726,7 @@ mod tests {
         let data: Vec<F64> = (0..row_words * num_leaves).map(|i| F64(i as u64 * 7 + 1)).collect();
         let want = merkle_tree_padded_rows(&data, num_leaves, row_words, row_words);
         for log_block in [0usize, 3, 5, 6, 9, 12] {
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 0);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, 0, height(num_leaves));
             // Blocks arrive out of order, as the encode's tasks finish.
             for b in (0..num_leaves >> log_block).rev() {
                 let rows = row_words << log_block;
@@ -640,7 +736,7 @@ mod tests {
         }
         // A cut tree is the full tree without its lowest levels, whatever the block size.
         for log_block in [4usize, 5, 9, 12] {
-            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, CUT);
+            let builder = MerkleBuilder::with_bytes(num_leaves, 8 * row_words, 8 * row_words, CUT, height(num_leaves));
             for b in (0..num_leaves >> log_block).rev() {
                 let rows = row_words << log_block;
                 builder.absorb(b << log_block, &data[b * rows..][..rows]);

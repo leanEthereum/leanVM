@@ -84,21 +84,25 @@ pub(crate) struct Fixture {
     pub public_input_bytes: [u8; 32],
 }
 
+/// The bytecode multilinear the verifiers take for `program`.
+pub(crate) fn bytecode(program: &Program) -> Bytecode {
+    let table = leanvm_core::cpu::layout::bytecode_table(&program.prog);
+    Bytecode::new(&table.iter().map(|word| word.0).collect::<Vec<_>>())
+}
+
 pub(crate) fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
         let (program, public_input) = chain(LOOP_STEPS);
         let (proof, _) = prove(&program, public_input, 1).unwrap();
         let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
-        let table = leanvm_core::cpu::layout::bytecode_table(&program.prog);
-        let bytecode = Bytecode::new(&table.iter().map(|word| word.0).collect::<Vec<_>>());
         Fixture {
             public_input_bytes: public_input_bytes(&public_input),
+            bytecode: bytecode(&program),
             program,
             public_input,
             proof,
             summary,
-            bytecode,
         }
     })
 }

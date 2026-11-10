@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{Proof, ProverState};
-use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
+use pcs::whir::{ProverConfig, ProverData, commit, config_for_rate, send_commitment};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
 use crate::{Openings, OutputClaim, Shape, Witness};
@@ -43,8 +43,8 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
 
         let mut ps = batch_transcript(LABEL, shape, log_inv_rate);
         let t = Instant::now();
-        let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, log_inv_rate);
-        ps.add_root(&commitment.root);
+        let (commitment, mut prover_data) = commit(&committed, mu, &config);
+        send_commitment(&mut ps, &commitment, &mut prover_data);
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();

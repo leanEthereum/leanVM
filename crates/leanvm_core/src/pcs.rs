@@ -18,10 +18,12 @@
 //! committer absorbs them once rather than once per leaf, and at most the image's tail
 //! rides the proof.
 //!
-//! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
 //! Johnson list decoding with OOD binding and 128-bit round-by-round soundness
 //! ([`::pcs::whir::SECURITY_BITS`]). L0's opening claim supplies its binding
-//! evaluation; each deeper commitment takes one explicit OOD sample. The base-field
+//! evaluation; each deeper commitment takes one explicit OOD sample. At the rates
+//! with Canopy ([`::pcs::whir::canopy_enabled`]) the commitment is instead the root
+//! of a codeword in the L1 code whose message is the L0 forest's roots, bound by an
+//! OOD sample at commit time. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
@@ -31,7 +33,7 @@ use primitives::field::F64;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::whir::ProverConfig;
-use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
+use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate, send_commitment};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -84,8 +86,9 @@ pub struct Committed {
 }
 
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
-/// [`crate::witness::placements_of`]) and bind its root into the transcript,
-/// before any challenge is sampled.
+/// [`crate::witness::placements_of`]) and bind it into the transcript,
+/// before any challenge is sampled: its root and, at a rate with Canopy, the
+/// Canopy message's value at an out-of-domain point drawn right after it.
 ///
 /// `witness` is the stack truncated to the lane blocks that carry data
 /// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
@@ -107,8 +110,10 @@ pub fn commit(
         shape.committed_len(),
         "witness must be the committed lanes"
     );
-    let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
-    ps.add_root(&commitment.root);
+    let config = whir_config(mu, log_inv_rate);
+    assert_eq!(config.initial_k, LOG_BATCH);
+    let (commitment, mut prover_data) = whir_commit(witness, mu, &config);
+    send_commitment(ps, &commitment, &mut prover_data);
     Committed {
         prover_data,
         mu,

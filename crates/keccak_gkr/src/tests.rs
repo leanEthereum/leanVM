@@ -91,14 +91,14 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
 fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F192) -> Proof {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, send_commitment};
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
+    let (commitment, mut prover_data) = commit(committed, shape.stack_log(), &config);
+    send_commitment(&mut ps, &commitment, &mut prover_data);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
@@ -124,17 +124,19 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
 }
 
 /// The Keccak check that rejects a change to stream scalar `at`, if the reduction reads it:
-/// after the root come the output lanes and the committed outputs' value, which the first
-/// layer's product check meets, then the layers, then the two openings.
+/// after the commitment (the root, and under Canopy its out-of-domain value) come the output
+/// lanes and the committed outputs' value, which the first layer's product check meets, then the
+/// layers, then the two openings.
 fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
+    let commitment = 2 + usize::from(pcs::whir::canopy_enabled(pcs::whir::LOG_INV_RATE_0));
     let committed = usize::from(shape.segments() > 1);
     let layer = PROD_BITS + 2 * shape.y_vars() + 3 * LOCAL_VARS + 3;
-    let layers = 2 + LANES + committed;
+    let layers = commitment + LANES + committed;
     let outputs = layers + shape.depth() * layer;
     let inputs = outputs + committed * (2 * shape.slot_log() + 1);
     let end = inputs + 2 * (4 + shape.slot_log()) + 64;
     Some(match at {
-        _ if at < 2 || at >= end => return None,
+        _ if at < commitment || at >= end => return None,
         _ if at < layers => VerifierError::KeccakProduct,
         _ if at < outputs && (at - layers) % layer < PROD_BITS => VerifierError::KeccakProduct,
         _ if at < outputs => VerifierError::KeccakLayer,
@@ -175,7 +177,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
 /// is what lets other columns ride there at all.
 #[test]
 fn spare_slots_must_be_the_committed_ones() {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+    use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, send_commitment};
 
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
@@ -193,8 +195,8 @@ fn spare_slots_must_be_the_committed_ones() {
 
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
+    let (commitment, mut prover_data) = commit(&committed, shape.stack_log(), &config);
+    send_commitment(&mut ps, &commitment, &mut prover_data);
     let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);

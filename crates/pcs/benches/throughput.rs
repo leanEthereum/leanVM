@@ -21,7 +21,7 @@ use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
 use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
+use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext, send_commitment};
 use primitives::{
     field::{F64, F192},
     multilinear::eq_table_serial,
@@ -62,11 +62,15 @@ fn main() {
     plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
 
+        let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
-        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
+        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| {
+            let (cm, mut pd) = commit(&witness, log_n, &pc);
+            send_commitment(&mut ch, &cm, &mut pd);
+            (cm, pd)
+        });
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
         let stack = witness.clone();
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {

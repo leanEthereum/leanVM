@@ -13,6 +13,40 @@ const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 const QUERY_GRINDING_BITS: u32 = 17;
+/// A Canopy message carries each forest root as `2^CANOPY_DIGEST_WORDS_LOG` words.
+const CANOPY_DIGEST_WORDS_LOG: usize = 2;
+const CANOPY_DIGEST_WORDS: usize = 1 << CANOPY_DIGEST_WORDS_LOG;
+
+/// The Canopy forest height `R0 + 2` at L0 rate `2^-R0`, `None` at a rate without Canopy.
+fn canopy_height(log_inv_rate: usize) -> Option<usize> {
+    matches!(log_inv_rate, 1 | 2).then_some(log_inv_rate + CANOPY_DIGEST_WORDS_LOG)
+}
+
+/// The commitment to the stack: the root of the L0 tree, or under Canopy (the PCS annex, "Canopy commitment") the
+/// root of the Canopy codeword's tree, with the out-of-domain point drawn right after it and the claimed value of the
+/// Canopy message there.
+pub struct Commitment {
+    root: Digest,
+    canopy: Option<(Vec<E>, E)>,
+}
+
+/// Read the commitment to a stack of `2^log_n` words at L0 rate `2^-log_inv_rate`, the first thing the proof binds.
+pub fn read_commitment(
+    transcript: &mut Transcript,
+    log_n: usize,
+    log_inv_rate: usize,
+) -> Result<Commitment, VerifierError> {
+    let halves = transcript.next_scalars(2)?;
+    let root = Digest::from_halves(halves[0], halves[1])?;
+    let canopy = match canopy_height(log_inv_rate) {
+        Some(_) => {
+            let point = transcript.samples(log_n - INITIAL_FOLDING_FACTOR);
+            Some((point, transcript.next_scalar()?))
+        }
+        None => None,
+    };
+    Ok(Commitment { root, canopy })
+}
 
 #[rustfmt::skip]
 const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
@@ -125,6 +159,27 @@ fn induced_weight(message_log: usize, queries: &[u64], query_weights: &[E], poin
     Ok(total)
 }
 
+/// The batched claims on the Canopy message as one weight at `point`, its coordinates in round order: the
+/// commit-time OOD claim at `ood_point`, then the four words of each L0 query's subtree root (`subtrees`, root `j` is
+/// words `4 j ..= 4 j + 3`), weighted by `scales`, the powers of the batching challenge, the OOD claim's first.
+fn canopy_weight(ood_point: &[E], subtrees: &[u64], scales: &[E], point: &[E]) -> E {
+    let (low, high) = point.split_at(CANOPY_DIGEST_WORDS_LOG);
+    let word_weights = eq_kernel(low);
+    let mut total = eq_eval(ood_point, point);
+    for (&subtree, scales) in subtrees.iter().zip(scales[1..].as_chunks::<CANOPY_DIGEST_WORDS>().0) {
+        let mut at_subtree = ONE;
+        for (bit, &coordinate) in high.iter().enumerate() {
+            at_subtree *= if subtree >> bit & 1 == 1 {
+                coordinate
+            } else {
+                ONE + coordinate
+            };
+        }
+        total += at_subtree * dot(scales, &word_weights);
+    }
+    total
+}
+
 type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
 
 /// One claim folded into the running sumcheck, and the weight it owes back.
@@ -144,16 +199,21 @@ pub fn verify_whir(
     log_n: usize,
     log_inv_rate: usize,
     target: E,
-    root: Digest,
+    commitment: Commitment,
     evaluate_basis: &dyn Fn(&[E]) -> E,
 ) -> Result<(), VerifierError> {
     let config = derive_config(log_n, log_inv_rate)?;
     let levels = config.folds.len();
+    let canopy_levels = canopy_height(log_inv_rate);
+    let Commitment { root, mut canopy } = commitment;
+    require(canopy.is_some() == canopy_levels.is_some(), VerifierError::WhirShape)?;
 
     let mut running_quad = transcript.sumcheck_round_poly(3, target, None)?;
     let mut folds: Vec<E> = Vec::new();
     let mut glued: Vec<GluedClaim> = Vec::new();
     let mut current_root = root;
+    // Under Canopy, the vector batch's challenge, which L1 opens the Canopy codeword with.
+    let mut canopy_beta = None;
 
     for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
         let mut level_folds = Vec::new();
@@ -185,15 +245,27 @@ pub fn verify_whir(
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let block_length = 1 << (message_log + level_rate);
         let queries = sample_queries(transcript, block_length, config.queries[level])?;
-        // One batching challenge per level, drawn once every claim it batches is
-        // fixed: the OOD claims above and these query positions.
-        let lam = transcript.sample();
-        let query_weights = powers(lam, queries.len());
         // Level 0 committed the K witness, one leaf word per lane; every deeper
         // level a folded E one, three words per lane.
         let lanes = 1 << fold_count;
         let leaf_words = if level == 0 { lanes } else { 3 * lanes };
-        let words = transcript.merkle(current_root, block_length, &queries, leaf_words)?;
+        // Under Canopy, L0 opens a forest: its roots are claims on the Canopy message, observed before anything they
+        // are batched with is drawn.
+        let (words, forest_roots) = match canopy_levels.filter(|_| level == 0) {
+            Some(forest_levels) => {
+                let (words, roots) = transcript.forest(forest_levels, &queries, leaf_words)?;
+                roots.iter().for_each(|root| transcript.observe_digest(root));
+                (words, roots)
+            }
+            None => (
+                transcript.merkle(current_root, block_length, &queries, leaf_words)?,
+                Vec::new(),
+            ),
+        };
+        // One batching challenge per level, drawn once every claim it batches is
+        // fixed: the OOD claims above, these query positions and any forest roots.
+        let lam = transcript.sample();
+        let query_weights = powers(lam, queries.len());
         let lane_weights = eq_kernel(&level_folds);
         let row_values: Vec<E> = if level == 0 {
             let base_dot = |row: &[K]| {
@@ -205,10 +277,20 @@ pub fn verify_whir(
                 )
             };
             words.iter().map(|&row| base_dot(row)).collect()
+        } else if let Some(beta) = canopy_beta.take() {
+            // L1 under Canopy: the rows of `f1 + beta c`, the Canopy codeword's opened at the same positions after.
+            let c_words = transcript.merkle(root, block_length, &queries, lanes)?;
+            let c_dot = |row: &[K]| E::sum(row.iter().zip(&lane_weights).map(|(&word, &weight)| weight * word));
+            let row_value = |(row, c_row): (&&[K], &&[K])| dot(&ext_row(row), &lane_weights) + beta * c_dot(c_row);
+            words.iter().zip(&c_words).map(row_value).collect()
         } else {
             words.iter().map(|&row| dot(&ext_row(row), &lane_weights)).collect()
         };
         let enforced = dot(&row_values, &query_weights);
+        let subtrees: Vec<u64> = match canopy_levels.filter(|_| level == 0) {
+            Some(forest_levels) => queries.iter().map(|&query| query >> forest_levels).collect(),
+            None => Vec::new(),
+        };
 
         // Every commitment, including the last one, enters through an intro
         // message; the level's claims are then batched with powers of `lam`,
@@ -229,6 +311,35 @@ pub fn verify_whir(
                 fold_start: folds.len(),
                 weight_at,
             });
+        }
+
+        // Under Canopy, after L0's claims: the claims on the Canopy message batched with powers of their own
+        // challenge, the OOD claim's the first, then its two-vector batch with the folded witness at `beta`. The
+        // prover sends the batched claim's intro and the cross polynomial's three coefficients.
+        if let Some((ood_point, ood_value)) = canopy.take().filter(|_| level == 0) {
+            let lambda_c = transcript.sample();
+            let scales = powers(lambda_c, 1 + (forest_roots.len() << CANOPY_DIGEST_WORDS_LOG));
+            let mut claim = ood_value;
+            for (forest_root, scales) in forest_roots
+                .iter()
+                .zip(scales[1..].as_chunks::<CANOPY_DIGEST_WORDS>().0)
+            {
+                for (&word, &scale) in forest_root.words().iter().zip(scales) {
+                    claim += scale * K(word);
+                }
+            }
+            let intro = transcript.sumcheck_round_poly(3, claim, None)?;
+            let cross = transcript.next_scalars(3)?;
+            let beta = transcript.sample();
+            for ((q, x), c) in running_quad.iter_mut().zip(&cross).zip(&intro) {
+                *q += beta * *x + beta * beta * *c;
+            }
+            glued.push(GluedClaim {
+                scalar: beta,
+                fold_start: folds.len(),
+                weight_at: Box::new(move |x| Ok(canopy_weight(&ood_point, &subtrees, &scales, x))),
+            });
+            canopy_beta = Some(beta);
         }
 
         if final_level {
