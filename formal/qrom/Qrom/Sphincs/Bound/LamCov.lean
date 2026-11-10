@@ -216,4 +216,159 @@ theorem sum_pow_card_image (q : ℕ) {x : ℝ} (hx : 0 ≤ x) :
           mul_le_mul_of_nonneg_left (sum_pow_card_image q hx k) (by positivity)
       _ = _ := by ring
 
+/-! ## The bound -/
+
+/-- The index of the digest of some digest call outputs. -/
+abbrev idxD (v : DigV) : Index := digestIndex (truncateMessageDigest v)
+
+/-- The number of presampled digests at the index `t`. -/
+def cnt (δ : Fin signatureLimit → DigV) (t : Index) : ℕ :=
+  (Finset.univ.filter fun i ↦ idxD (δ i) = t).card
+
+/-- **The cover bound**: `2^h ∏_{j<k} (j + N / 2^h) / 2^(k a)`. -/
+def lamB : ℝ := (Fintype.card Index : ℝ) *
+  (∏ j ∈ Finset.range forsTrees, ((j : ℝ) + signatureLimit * (Fintype.card Index : ℝ)⁻¹)) /
+    Fintype.card (FTree → FLeaf)
+
+theorem card_leavesAll_le (δ : Fin signatureLimit → DigV) (t : Index) (κ : FTree) :
+    (leavesAll δ t κ).card ≤ cnt δ t := by
+  classical
+  refine (Finset.card_le_card fun leaf hl ↦ ?_).trans
+    (Finset.card_image_le (s := Finset.univ.filter fun i ↦ idxD (δ i) = t)
+      (f := fun i ↦ digestLeaves (truncateMessageDigest (δ i)) κ))
+  simp only [leavesAll, Finset.mem_filter, Finset.mem_univ, true_and] at hl
+  obtain ⟨i, hi, hk⟩ := hl
+  exact Finset.mem_image.mpr ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hi⟩, hk⟩
+
+open Classical in
+/-- Per presampled digests: the coverable fraction is at most the `k`-th powers of the counts. -/
+theorem sbC_le (hmd : mdBytes ≤ 32) (δ : Fin signatureLimit → DigV) :
+    (sbC δ : ℝ) / Fintype.card HashOutput ≤
+      ∑ t, (cnt δ t : ℝ) ^ forsTrees / Fintype.card (FTree → FLeaf) := by
+  have hsub : Finset.univ.filter (Coverable δ) ⊆ Finset.univ.biUnion fun t ↦
+      Finset.univ.filter fun y : HashOutput ↦
+        ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ := by
+    intro y hy
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hy
+    obtain ⟨ys, hys, hcov⟩ := hy
+    simp only [Finset.mem_biUnion, Finset.mem_univ, true_and, Finset.mem_filter]
+    refine ⟨digestIndex (truncateMessageDigest ys), fun κ ↦ ?_⟩
+    have hl := leaves_call0 hmd (ys := ys) (ys' := ext0 y) (by rw [hys, ext0_first])
+    rw [← hl]
+    exact hcov κ
+  have hc := (Finset.card_le_card hsub).trans Finset.card_biUnion_le
+  have hY : (0 : ℝ) < Fintype.card HashOutput := by exact_mod_cast Fintype.card_pos
+  have hF : (0 : ℝ) < Fintype.card (FTree → FLeaf) := by exact_mod_cast Fintype.card_pos
+  rw [div_le_iff₀ hY, Finset.sum_mul]
+  refine (Nat.cast_le.mpr hc).trans ?_
+  push_cast
+  refine Finset.sum_le_sum fun t _ ↦ ?_
+  have hl := card_leaves hmd (leavesAll δ t)
+  have hle : (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ (cnt δ t : ℝ) ^ forsTrees := by
+    calc (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ ∏ _κ : FTree, (cnt δ t : ℝ) :=
+          Finset.prod_le_prod₀ (fun _ _ ↦ by positivity) fun κ _ ↦ by
+            exact_mod_cast card_leavesAll_le δ t κ
+      _ = _ := by rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+  have hl' : ((Finset.univ.filter fun y : HashOutput ↦
+      ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ).card : ℝ) *
+      Fintype.card (FTree → FLeaf) = Fintype.card HashOutput * ∏ κ, ((leavesAll δ t κ).card : ℝ) := by
+    exact_mod_cast hl
+  rw [div_mul_eq_mul_div, le_div_iff₀ hF, hl', mul_comm ((cnt δ t : ℝ) ^ forsTrees)]
+  exact mul_le_mul_of_nonneg_left hle hY.le
+
+/-- The presampled digests that put the digests of a tuple's signatures at `t`. -/
+theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
+    ((Finset.univ.filter fun δ : Fin signatureLimit → DigV ↦ ∀ κ, idxD (δ (f κ)) = t).card : ℝ) =
+      (Fintype.card DigV : ℝ) ^ signatureLimit *
+        ((Fintype.card Index : ℝ)⁻¹) ^ (Finset.univ.image f).card := by
+  classical
+  set S : Fin signatureLimit → Finset DigV := fun i ↦
+    if i ∈ Finset.univ.image f then Finset.univ.filter fun v ↦ idxD v = t else Finset.univ
+  have hset : (Finset.univ.filter fun δ : Fin signatureLimit → DigV ↦ ∀ κ, idxD (δ (f κ)) = t) =
+      Fintype.piFinset S := by
+    ext δ
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset, S]
+    constructor
+    · intro h i
+      split_ifs with hi
+      · obtain ⟨κ, -, rfl⟩ := Finset.mem_image.mp hi
+        simpa using h κ
+      · exact Finset.mem_univ _
+    · intro h κ
+      have := h (f κ)
+      rw [ite_eq_left (Finset.mem_image_of_mem f (Finset.mem_univ κ))] at this
+      simpa using this
+  have hI : (0 : ℝ) < Fintype.card Index := by exact_mod_cast Fintype.card_pos
+  have hn : ((Finset.univ.filter fun v : DigV ↦ idxD v = t).card : ℝ) =
+      Fintype.card DigV * (Fintype.card Index : ℝ)⁻¹ := by
+    have h := card_index_eq t
+    rw [eq_mul_inv_iff_mul_eq₀ hI.ne']
+    exact_mod_cast h
+  rw [hset, Fintype.card_piFinset]
+  push_cast
+  have hS : ∀ i, ((S i).card : ℝ) = Fintype.card DigV *
+      (if i ∈ Finset.univ.image f then (Fintype.card Index : ℝ)⁻¹ else 1) := by
+    intro i
+    simp only [S]
+    split_ifs
+    · exact hn
+    · rw [Finset.card_univ, mul_one]
+  rw [Finset.prod_congr rfl fun i _ ↦ hS i, Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ,
+    Fintype.card_fin, Finset.prod_ite_mem, Finset.univ_inter, Finset.prod_const]
+
+/-- **The cover probability is at most `lamB`.** -/
+theorem lamCov_le (hmd : mdBytes ≤ 32) : lamCov ≤ ENNReal.ofReal lamB := by
+  set cΔ := (Fintype.card (Fin signatureLimit → DigV) : ℝ)
+  set r : (Fin signatureLimit → DigV) → ℝ := fun δ ↦ (sbC δ : ℝ) / Fintype.card HashOutput
+  have hΔ : 0 < cΔ := Nat.cast_pos.mpr Fintype.card_pos
+  have hcΔ : cΔ = (Fintype.card DigV : ℝ) ^ signatureLimit := by
+    simp only [cΔ, Fintype.card_fun, Fintype.card_fin]; push_cast; ring
+  have hr : ∀ δ, 0 ≤ r δ := fun δ ↦ by positivity
+  have hlam : lamCov = ENNReal.ofReal (cΔ⁻¹ * ∑ δ, r δ) := by
+    rw [lamCov, ENNReal.ofReal_mul (inv_nonneg.mpr hΔ.le), ENNReal.ofReal_inv_of_pos hΔ,
+      ENNReal.ofReal_sum_of_nonneg fun δ _ ↦ hr δ]
+    simp only [cΔ, ENNReal.ofReal_natCast, r]
+  rw [hlam]
+  refine ENNReal.ofReal_le_ofReal ?_
+  set F := (Fintype.card (FTree → FLeaf) : ℝ)
+  set I := (Fintype.card Index : ℝ)
+  have hF : 0 < F := Nat.cast_pos.mpr Fintype.card_pos
+  have hI : 0 < I := Nat.cast_pos.mpr Fintype.card_pos
+  -- the `k`-th power of a count counts the tuples of signatures there
+  have hpow : ∀ δ t, (cnt δ t : ℝ) ^ forsTrees =
+      ((Finset.univ.filter fun f : FTree → Fin signatureLimit ↦ ∀ κ, idxD (δ (f κ)) = t).card : ℝ) := by
+    intro δ t
+    classical
+    have : (Finset.univ.filter fun f : FTree → Fin signatureLimit ↦ ∀ κ, idxD (δ (f κ)) = t) =
+        Fintype.piFinset fun _ : FTree ↦ Finset.univ.filter fun i ↦ idxD (δ i) = t := by
+      ext f; simp [Fintype.mem_piFinset]
+    rw [this, Fintype.card_piFinset, Finset.prod_const, Finset.card_univ, Fintype.card_fin, cnt]
+    push_cast; ring
+  have hswap : ∀ t, ∑ δ : Fin signatureLimit → DigV, (cnt δ t : ℝ) ^ forsTrees =
+      ∑ f : FTree → Fin signatureLimit, cΔ * I⁻¹ ^ (Finset.univ.image f).card := by
+    intro t
+    simp only [hpow, Finset.card_filter, Nat.cast_sum, Nat.cast_ite, Nat.cast_one, Nat.cast_zero]
+    rw [Finset.sum_comm]
+    refine Finset.sum_congr rfl fun f _ ↦ ?_
+    have h := card_tuple_at f t
+    rw [Finset.card_filter] at h
+    push_cast at h
+    rw [h, hcΔ]
+  calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, (cnt δ t : ℝ) ^ forsTrees / F :=
+        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ sbC_le hmd δ) (inv_nonneg.mpr hΔ.le)
+    _ = F⁻¹ * ∑ t : Index, (cΔ⁻¹ * ∑ δ, (cnt δ t : ℝ) ^ forsTrees) := by
+        rw [Finset.sum_comm, Finset.mul_sum, Finset.mul_sum]
+        refine Finset.sum_congr rfl fun t _ ↦ ?_
+        rw [Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
+        refine Finset.sum_congr rfl fun δ _ ↦ ?_
+        rw [div_eq_mul_inv]; ring
+    _ = F⁻¹ * (I * ∑ f : FTree → Fin signatureLimit, I⁻¹ ^ (Finset.univ.image f).card) := by
+        simp only [hswap]
+        rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← Finset.mul_sum, ← mul_assoc cΔ⁻¹,
+          inv_mul_cancel₀ hΔ.ne', one_mul]
+    _ ≤ F⁻¹ * (I * ∏ j ∈ Finset.range forsTrees, ((j : ℝ) + signatureLimit * I⁻¹)) := by
+        refine mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left ?_ hI.le) (inv_nonneg.mpr hF.le)
+        exact sum_pow_card_image signatureLimit (inv_nonneg.mpr hI.le) forsTrees
+    _ = lamB := by rw [lamB]; ring
+
 end Qrom.Sphincs
