@@ -332,11 +332,19 @@ structure VsoPre (s : MachineState) : Prop where
   proofSponge : ProofApart s (s.getReg .x10) (s.getReg .x10 + 8) 352
   /-- A checked transcript: a replay skips the checks, and its `Ok` says nothing. -/
   checked : byteAt s (s.getReg .x10 + 360) ≠ 0
+  /-- The root, which the function overwrites with each level's commitment, misses what it reads
+  besides. -/
+  rootSelf : Apart (s.getReg .x11) 32 (s.getReg .x10) transcriptSize
+  rootRodata : Apart (s.getReg .x11) 32 rodataBase Rv64Verifier.rodataSize
+  rootProof : ProofApart s (s.getReg .x10) (s.getReg .x11) 32
+  rootClaims : Apart (s.getReg .x11) 32 (s.getReg .x14) (88 * (s.getReg .x15).toNat)
+  rootWeights : ∀ i < (s.getReg .x15).toNat,
+    WeightApart s (s.getReg .x14 + BitVec.ofNat 64 (88 * i)) (s.getReg .x11) 32
 
 /-- `Ok` only when `verifyStackedOpeningRust` returns, on a transcript whose roots so far are the
 stack's alone, at the shape level `0` opens, and whose Merkle openings `OpeningsAt` places in
 memory: the transcript then stands for the mirror's. Memory changes only in the sponge and offsets,
-the stack, `NEXT` and the heap allocated. -/
+the root (the last level's commitment overwrites it), the stack, `NEXT` and the heap allocated. -/
 structure VsoPost (OpeningsAt : MachineState → Word → Model.TState → Prop) (s t : MachineState) :
     Prop where
   heap : HeapOk t
@@ -348,7 +356,7 @@ structure VsoPost (OpeningsAt : MachineState → Word → Model.TState → Prop)
     ∃ T', (verifyStackedOpeningRust (s.getReg .x12).toNat (s.getReg .x13).toNat
       (claimsAt s (s.getReg .x14) (s.getReg .x15).toNat)).run T = some ((), T') ∧
       TranscriptAt t (s.getReg .x10) T'
-  frame : DFrame s t fun a ↦ Within a (s.getReg .x10 + 8) 352 ∨
+  frame : DFrame s t fun a ↦ Within a (s.getReg .x10 + 8) 352 ∨ Within a (s.getReg .x11) 32 ∨
     Within a (stackLo s vsoStack) vsoStack ∨ Within a nextAddr 8 ∨ Fresh s t a
 
 abbrev VsoSpec (OpeningsAt : MachineState → Word → Model.TState → Prop) : Prop :=

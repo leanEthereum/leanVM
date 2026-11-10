@@ -8,6 +8,8 @@ import Rv64Verifier.Proofs.Pcs.VsoMerkle
 import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Proofs.Pcs.VsoRound
+import Rv64Verifier.Proofs.Pcs.VsoFoldLoop
+import Rv64Verifier.Proofs.Pcs.VsoOpenings
 
 /-!
 # The opening's contracts, their callees' discharged
@@ -62,3 +64,30 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.roundPolyErr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.roundPolyErr
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.init' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.init
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.enter' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.enter
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.rnd_sample' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.rnd_sample
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.growF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.growF
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.pushF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.pushF
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.growLF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.growLF
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.pushLF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.pushLF
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.roundStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.roundStep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.foldRounds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.foldRounds

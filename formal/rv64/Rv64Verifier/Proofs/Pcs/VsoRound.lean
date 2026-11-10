@@ -1,4 +1,5 @@
 import Rv64Verifier.Proofs.Pcs.VsoLadder
+import Rv64Verifier.Proofs.Pcs.VsoKeeps
 
 /-!
 # `verify_stacked_opening`: the configuration checked, the first round polynomial
@@ -43,9 +44,14 @@ structure Configured (s b u : MachineState) (nxb QP QL FP RP : Word) : Prop wher
   rates : u.readWords RP (K0 s + 2) = lw (Model.Pcs.ladderRates (s.getReg .x13).toNat (K0 s + 1))
   bufs : nxb.toNat ≤ FP.toNat ∧ FP.toNat + 8 * (K0 s + 2) ≤ heapNext u ∧ FP.toNat % 8 = 0 ∧
     nxb.toNat ≤ RP.toNat ∧ RP.toNat + 8 * (K0 s + 2) ≤ heapNext u ∧ RP.toNat % 8 = 0
+  nxs : heapNext s ≤ nxb.toNat
   scales : (vecLen u (s.getReg .x2 - 728)).toNat = ncl s ∧ (ncl s = 0 ∨
     (vecPtr u (s.getReg .x2 - 728)).toNat + 24 * ncl s ≤ nxb.toNat)
   config : Model.Pcs.deriveConfigRust (s.getReg .x12).toNat (s.getReg .x13).toNat = some (cfgOf s)
+  /-- The ladders lie below the first round polynomial's buffer. -/
+  mark : ∃ L : ℕ, FP.toNat + 8 * (K0 s + 2) ≤ L ∧ RP.toNat + 8 * (K0 s + 2) ≤ L ∧ nxb.toNat ≤ L ∧
+    L ≤ heapNext u ∧ (u.getReg .x22).toNat % 8 = 0 ∧ ((u.getReg .x23).toNat = 0 ∨
+      L ≤ (u.getReg .x22).toNat ∧ (u.getReg .x22).toNat + 24 * (u.getReg .x23).toNat ≤ heapNext u)
   value : ∀ T, TranscriptAt s (s.getReg .x10) T → ∃ T',
     (Model.Pcs.verifyStackedOpeningRust (s.getReg .x12).toNat (s.getReg .x13).toNat
       (claimsOf s)).run T =
@@ -55,7 +61,8 @@ structure Configured (s b u : MachineState) (nxb QP QL FP RP : Word) : Prop wher
         ⟨eListAt u (u.getReg .x22) (u.getReg .x23).toNat, [], []⟩).run T' ∧
       TranscriptAt u (s.getReg .x10) T' ∧
       ((u.getReg .x23).toNat = 0 ∨ (nxb.toNat ≤ (u.getReg .x22).toNat ∧
-        (u.getReg .x22).toNat + 24 * (u.getReg .x23).toNat ≤ heapNext u))
+        (u.getReg .x22).toNat + 24 * (u.getReg .x23).toNat ≤ heapNext u)) ∧
+      T'.proof = T.proof ∧ T'.roots = T.roots ∧ T'.openingOffset = T.openingOffset
 
 theorem tr_facts {s u : MachineState} {nx : Word} (hpre : VsoPre s) (h : Inv s u nx) :
     TranscriptOk u (s.getReg .x10) ∧ proofAt u (s.getReg .x10) = proofAt s (s.getReg .x10) ∧
@@ -485,13 +492,24 @@ theorem round (hRP : RoundPolyErrSpec) {s b u : MachineState} {nxb QP QL FP RP :
     folds := by rw [hwF]; exact h.folds
     rates := by rw [hwR]; exact h.rates
     bufs := by rw [hn₂]; have := hmo₁; omega
+    nxs := hmb
     scales := ?_
     config := hcfg
+    mark := ?_
     value := ?_ }⟩
   · refine ⟨by rw [hsc1, hncl], ?_⟩
     rcases hBr with h0 | h0
     · exact Or.inl h0
     · exact Or.inr (by rw [hsc0]; exact h0.2)
+  · obtain ⟨hok, hnb⟩ := hpost₁.ok (by rw [h.x10]; exact herr)
+    rw [h.x10] at hok hnb
+    have hl := hok.len
+    refine ⟨heapNext u, by omega, by omega, hmu, by rw [hn₂]; exact hmo₁, ?_, ?_⟩
+    · rw [hx22]; exact hnb.1
+    · rw [hx22, hx23, hn₂]
+      rcases hnb.2 with h0 | h0
+      · exact Or.inl (by omega)
+      · exact Or.inr ⟨h0.1, by omega⟩
   intro T hT
   obtain ⟨c, T1, hs1, hT1, hsc, htg⟩ := h.bat.value T hT
   obtain ⟨hTokb, eb0, eb1, eb2⟩ := tr_facts hpre h.bat.inv
@@ -536,7 +554,10 @@ theorem round (hRP : RoundPolyErrSpec) {s b u : MachineState} {nxb QP QL FP RP :
       (fun _ _ h ↦ h) (fun _ _ h ↦ h)
   have hquad : eListAt t₂ (t₂.getReg .x22) (t₂.getReg .x23).toNat = q := by
     rw [hx22, hx23, ← hnew.elems]; simp only [vecEs, eListAt, eAt, hm12]
-  refine ⟨T2, ?_, hT2', ?_⟩
+  have hk1 : T1.proof = T.proof ∧ T1.roots = T.roots ∧ T1.openingOffset = T.openingOffset :=
+    Model.Pcs.Keeps.sample T c T1 hs1
+  have hk2 := Model.Pcs.Keeps.roundPoly _ _ _ T1 q T2 hrun
+  refine ⟨T2, ?_, hT2', ?_, hk2.1.trans hk1.1, hk2.2.1.trans hk1.2.1, hk2.2.2.trans hk1.2.2⟩
   · rw [hscales, hsc, hquad]
     have := Model.Pcs.vso_run (claims := claimsOf s) hs1 hcfg (by rw [claimsOf_length]; exact hrun)
     rw [claimsOf_length] at this
