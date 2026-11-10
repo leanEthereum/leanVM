@@ -82,13 +82,11 @@ theorem sForsBit_nb : ∀ k < 240, nbB 1382 (sForsBit k) = true := by decide +ke
 theorem sVals_nb : ∀ k < 240, nbB 1382 (sVals k) = true := by decide +kernel
 /-- **FORS completes** (`ForsBlockCompletes`), from `sForsBlock_complete`. -/
 theorem forsBlockCompletes : ForsBlockCompletes := by
-  intro C rd σ tree kp s secret sib hp hpp ha0 hkey hs hbit hval hsec hsib
+  intro C rd σ tree kp s secret sib hp ha0 hkey hs hbit hval
   have h := sForsBlock_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := sA0B)
-    (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1382) hs hsec hsib σ hp
+    (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1382) (secret := secret) (sib := sib) hs σ hp
     (by unfold sPad; omega) ⟨2, by omega, rfl⟩ ⟨1379, by omega, rfl⟩ ⟨1381, by omega, rfl⟩
-    (fun k hk => nbB_ok (sForsBit_nb k hk)) (fun k hk => nbB_ok (sVals_nb k hk)) hpp
-    (by rw [ha0]; exact isCanonical128_cellOf128 _) (by rw [hkey]; exact isCanonical128_cellOf128 _)
-    hbit hval
+    (fun k hk => nbB_ok (sForsBit_nb k hk)) (fun k hk => nbB_ok (sVals_nb k hk)) hbit hval
   obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (1382 + 1)) sForsBit sVals 1382 24 0
   have e0 : forsTreeBase 1382 0 = 1382 + 2 := by simp [forsTreeBase]
   have e24 : forsTreeBase 1382 (0 + 24) = 1382 + 3802 := forsTreeBase_24 1382
@@ -119,19 +117,18 @@ theorem encDigestCell_eq_encOf (pp a0 key signed : E) {N : Nat} (hN : N < 2 ^ 32
 
 /-- **A layer completes after its counter** (`HtLayerCompletes`), from `sHtLayer_complete`. -/
 theorem htLayerCompletes : HtLayerCompletes := by
-  intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hppc ha0c ha1c hsc hctr hlv
-    hcall he hbit hval hsib
+  intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hctr hcall he hbit hval
   obtain ⟨N, hN, hc⟩ := hctr
   have hN' : beWordAt 0 N < 2 ^ 32 := beWordAt_zero_lt N
   have h := sHtLayer_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (key := a1)
     (signed := signed) (ctr := ctr) (bit := sLeafBit) (val := sLVal) (off := sOffOf l)
     (height := sHeightOf l) (b := b) (N := beWordAt 0 N)
-    (by unfold sHeightOf sLeafLen; split <;> omega) he hsib σ (by unfold sPad; omega)
+    (sib := sib) (by unfold sHeightOf sLeafLen; split <;> omega) he σ (by unfold sPad; omega)
     ⟨2, by omega, rfl⟩ ha0 ha1 hsg hct
     (fun j hj => by
       obtain ⟨k, hk, ek⟩ := sLeafBit_lt (sOff_lt hl hj); exact ⟨k, by omega, ek⟩)
     (fun j _ => by obtain ⟨k, hk, ek⟩ := sLVal_below (sOffOf l + j); exact ⟨k, by omega, ek⟩)
-    hp hppc ha0c ha1c hsc hN' hc hbit hval hlv
+    hp hN' hc hbit hval
     (by rw [← encDigestCell_eq_encOf _ _ _ _ hN', ← hc]; exact hcall)
   exact h.mono le_rfl le_rfl fun _ h => h.2
 

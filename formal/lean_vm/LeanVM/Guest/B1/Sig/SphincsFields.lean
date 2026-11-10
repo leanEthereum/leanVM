@@ -216,7 +216,7 @@ theorem pw_zero : pw 0 = 1 := by
   rw [pw_lo (by norm_num), pow_zero, word_eq_eOfNat, Value.eOfNat_one]
 
 /-- `eOfNat128` of a value below `2^64` is `eOfNat`. -/
-theorem eOfNat_eq192 {v : Nat} (h : v < 2 ^ 64) : eOfNat v = eOfNat128 v := (eOfNat128_of_lt h).symm
+theorem eOfNat_eq128 {v : Nat} (h : v < 2 ^ 64) : eOfNat v = eOfNat128 v := (eOfNat128_of_lt h).symm
 
 /-- A value and its high bits shifted back XOR to its low bits. -/
 theorem eOfNat_low (x k : Nat) : eOfNat x + eOfNat (2 ^ k * (x >>> k)) = eOfNat (x % 2 ^ k) := by
@@ -350,7 +350,7 @@ theorem mdScale_sound {s v : Nat} {m : List Stmt × Nat × V} (hs : s < 128) (hs
   unfold mdScale at h ⊢
   by_cases hs0 : s = 0
   · simp only [hs0, ↓reduceIte] at h ⊢
-    rw [hm h, pow_zero, one_mul, eOfNat_eq192 (lt_trans hv (by norm_num))]
+    rw [hm h, pow_zero, one_mul, eOfNat_eq128 (lt_trans hv (by norm_num))]
   · simp only [hs0, ↓reduceIte] at h ⊢
     have k := h.atom (a := .const (.n m.2.1) (pw s)) (by simp [cst])
     have mu := h.atom (a := .mul (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)) (by simp [mulS])
@@ -365,7 +365,7 @@ theorem mdScale_place_sound {s v p : Nat} {m : List Stmt × Nat × V} (hs : s < 
   unfold mdScale at h ⊢
   by_cases hs0 : s = 0
   · simp only [hs0, ↓reduceIte] at h ⊢
-    rw [hm h, pow_zero, one_mul, eOfNat_eq192 (lt_trans hv (by norm_num)), pw_zero, mul_one]
+    rw [hm h, pow_zero, one_mul, eOfNat_eq128 (lt_trans hv (by norm_num)), pw_zero, mul_one]
   · simp only [hs0, ↓reduceIte] at h ⊢
     have k := h.atom (a := .const (.n m.2.1) (pw s)) (by simp [cst])
     have mu := h.atom (a := .mul (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)) (by simp [mulS])
@@ -431,7 +431,7 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
   · simp only [hs0, ↓reduceIte] at h ⊢
     have a5 : σ (.n (b + 5)) = σ (.n (b + 4)) + σ (sFVal (c + 1) (2 + k1)) :=
       h.atom (a := .add (.n (b + 5)) _ _) (by simp [addS])
-    rw [a5, e4, hv1, ← add_assoc, eOfNat_eq192 (forsLeaf_shift_lt _ _ _), hsk, hs0, pw_zero, mul_one]
+    rw [a5, e4, hv1, ← add_assoc, eOfNat_eq128 (forsLeaf_shift_lt _ _ _), hsk, hs0, pw_zero, mul_one]
     congr 1
     simpa only [pow_zero, one_mul] using eOfNat128_shift_add (s := 0) (X := forsLeafN T c % 2 ^ k1) hq
   · simp only [hs0, ↓reduceIte] at h ⊢

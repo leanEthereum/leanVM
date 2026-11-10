@@ -91,22 +91,18 @@ theorem layerShape {l : Nat} (hl : l < 3) : LayerShape l := by
   · exact layerShape_two
 
 /-- **Layer `l` completes**: its counter hinted as the marks of `BE_32(N)`, the call relation
-holding of `sp_wots` on the encoding of `N` and a canonical leaf `lv`, the leaf `e` read off the
-digest's bits and shifts, any canonical siblings: the layer's root is `pFold` of `pNodeE` from
+holding of `sp_wots` on the encoding of `N` and a leaf `lv`, the leaf `e` read off the digest's
+bits and shifts, any siblings: the layer's root is `pFold` of `pNodeE` from
 `lv`, and its bytes are the table's. -/
 theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
     {sib : Nat → E} (σ : Val) (h1 : σ (.n 1) = bb) (hp : PadOK σ sPad)
-    (hpp : IsCanonical128 (σ sPP)) (hc0 : IsCanonical128 (σ (sA0Of l)))
-    (hc1 : IsCanonical128 (σ (sA1Of l))) (hcs : IsCanonical128 (σ (sSignedOf l)))
-    (hlv : IsCanonical128 lv)
     (hcall : C "sp_wots" [σ sPP, σ (sA0Of l), σ (sA1Of l),
       encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
         (eOfNat (beWordAt 0 N))] [lv])
     (he : e < 2 ^ sHeightOf l)
     (hbit : ∀ z < sHeightOf l, σ (sLeafBit (sOffOf l + z)) = if e.testBit z then 1 else 0)
-    (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z))
-    (hsib : ∀ z, IsCanonical128 (sib z)) :
+    (hval : ∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) :
     Completes C rd (sLayerBase l) (sLayerBlk l).2.1 (sLayerBlk l).1 σ (fun σ' =>
       σ' (sLayerBlk l).2.2 = pFold (pNodeE (σ sPP) (σ (sA0Of l)) e sib) (sHeightOf l) lv ∧
         TablePtrs bb σ' (sLayerBlk l).1) := by
@@ -141,9 +137,7 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
   have hL := hB.layer C rd σ2 l (sA0Of l) (sA1Of l) (sSignedOf l) (sCtrOf l) (sLayerBase l + 37) lv e sib
     hl (by have := S.digest; omega) (S.a0.mono' (by omega)) (S.a1.mono' (by omega))
     (S.signed.mono' (by omega)) ⟨sLayerBase l + 36, by omega, rfl⟩
-    (hp.congr (b := sLayerBase l) S.pad fun j hj => (t2 j hj).symm)
-    (by rw [hpp']; exact hpp) (by rw [ha0]; exact hc0) (by rw [ha1]; exact hc1)
-    (by rw [hsg]; exact hcs) ⟨N, hN, hctr⟩ hlv
+    (hp.congr (b := sLayerBase l) S.pad fun j hj => (t2 j hj).symm) ⟨N, hN, hctr⟩
     (by rw [hpp', ha0, ha1, hsg, hctr]; exact hcall) he
     (fun z hz => by
       obtain ⟨k, hk, ek⟩ := sLeafBit_lt (b := sOffOf l + z) (sOff_lt hl hz)
@@ -151,7 +145,6 @@ theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb 
     (fun z hz => by
       obtain ⟨k, hk, ek⟩ := sLVal_below (sOffOf l + z)
       rw [ek, t2 k (by have := S.digest; omega), ← ek]; exact hval z hz)
-    hsib
   obtain ⟨σ3, he3, hp3, hh3⟩ := hL
   refine ⟨σ3, he3, ⟨hp3.trans (by rw [hpp', ha0]), ?_⟩, hh3⟩
   refine TablePtrs.append (TablePtrs.nil_of rfl) (TablePtrs.append ?_ (TablePtrs.nil_of S.ht_ptrs))

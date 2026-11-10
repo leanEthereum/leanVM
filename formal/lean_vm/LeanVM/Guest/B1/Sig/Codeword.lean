@@ -20,7 +20,7 @@ below the arm count). Then (`codewordT_sound`), with the digits `cwDigit σ i` o
 
 * chain `i`'s tip `cwTip i` is `chainT f i (3 - x) x` of its start `cwStart σ i`, `x` its digit;
 * `g^(Σ digits) = target` (the assertion, the powers being `g^s`);
-* the digest's first cell `d0` is `Σ x_i · 4^i`, as a 192-bit word.
+* the digest's first cell `d0` is `Σ x_i · 4^i`, as a 128-bit word.
 -/
 
 namespace LeanVM.Guest.B1.Sig

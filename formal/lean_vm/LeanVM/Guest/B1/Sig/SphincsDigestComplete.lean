@@ -123,9 +123,8 @@ def DigestsPost (σ : Val) (Rho : E) : Prop :=
   σ sRand = Rho ∧ PadOK σ sPad ∧ (σ sHm0, σ sHm0b) = hcellLen (hmsgCells σ 0) 84 ∧
     σ sHm1 = (hcellLen (hmsgCells σ 1) 84).1
 
-/-- **`H_msg`'s two calls complete**: the randomizer hinted, both calls hashed on canonical cells. -/
-theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP : IsCanonical128 (σ sPP))
-    (hR : IsCanonical128 (σ sRoot)) (h0 : IsCanonical128 (σ sM0)) (h1 : IsCanonical128 (σ sM1)) :
+/-- **`H_msg`'s two calls complete**: the randomizer hinted, both calls hashed. -/
+theorem sDigests_complete {Rho : E} (σ : Val) :
     Completes C rd 6 28 sDigests σ (fun σ' => DigestsPost σ' Rho) := by
   rw [sDigests_eq]
   refine Completes.reload (σr := Function.update σ sRand Rho) (fun v hv =>
@@ -153,26 +152,12 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   have c7 : σ2 (.n 7) = σ2 sM1 := hh2.atom (a := .copy (.n 7) sM1) (by simp [hPre0, copyS])
   have s2 : ∀ k < 6, σ2 (.n k) = σ (.n k) := fun k hk => by rw [t2 k (by omega), rlow k hk]
   have s2r : σ2 sRand = Rho := by rw [show sRand = .n 6 from rfl, t2 6 (by norm_num)]; exact rr
-  have hins0 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 7).map σ2) c) := by
-    intro c
-    fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
-      simp only [List.getD_cons_zero, List.getD_cons_succ] <;>
-      first
-        | (rw [s2r]; exact hRho)
-        | (rw [show sPP = .n 2 from rfl, s2 2 (by norm_num)]; exact hP)
-        | (rw [show sRoot = .n 3 from rfl, s2 3 (by norm_num)]; exact hR)
-        | (rw [show sM0 = .n 4 from rfl, s2 4 (by norm_num)]; exact h0)
-        | (rw [c7, show sM1 = .n 5 from rfl, s2 5 (by norm_num)]; exact h1)
-        | (rw [k0]; exact canon_word _ _) | (rw [k1]; exact canon_zero) | (rw [k1']; exact canon_zero)
-        | (rw [k2]; exact canon_word _ _)
-        | (rw [p1]; exact canon_zero) | (rw [p2]; exact canon_zero) | (rw [p3]; exact canon_zero)
-        | (rw [p4]; exact canon_zero)
   have hpad2 : PadOK σ2 sPad := ⟨p0, p1, p2, p3, p4⟩
   refine Completes.append (xs := [kecS (sHIns 7) (runV 17 2) false false]) (m := 19) (by norm_num)
     (by norm_num) (numBelow_of_all (by decide))
     (kecS_complete (C := C) (rd := rd) σ2 (ins := sHIns 7) 17 (.inr (.inl rfl)) rfl
       (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 7).all (nbB 17) = true) v hv))
-      hins0 false false).withHolds (fun σ3 he3 ⟨_, hh3⟩ => ?_)
+      false false).withHolds (fun σ3 he3 ⟨_, hh3⟩ => ?_)
   have t3 : ∀ k < 17, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
   have hk3 : AtomsHold rd σ3 [kecS (sHIns 7) (runV 17 2) false false] :=
     atomsHold_of_holdsList rfl hh3
@@ -215,23 +200,9 @@ theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP :
   have c33 : σ4 (.n 22) = σ4 sM1 := hh4.atom (a := .copy (.n 22) sM1) (by simp [hPre1, copyS])
   have c34 : σ4 (.n 23) = σ4 (.n 21) := hh4.atom (a := .copy (.n 23) (.n 21)) (by simp [hPre1, copyS])
   have v34 : σ4 (.n 23) = word (1 * 2 ^ 24 + 2 ^ 32) 0 := by rw [c34, a32, e30, e31, word_ctr_one]
-  have hins1 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 22).map σ4) c) := by
-    intro c
-    fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
-      simp only [List.getD_cons_zero, List.getD_cons_succ] <;>
-      first
-        | (rw [show sRand = .n 6 from rfl, t4 _ (by norm_num)]; rw [← s2r] at hRho; exact hRho)
-        | (rw [show sPP = .n 2 from rfl, t4 _ (by norm_num), s2 2 (by norm_num)]; exact hP)
-        | (rw [show sRoot = .n 3 from rfl, t4 _ (by norm_num), s2 3 (by norm_num)]; exact hR)
-        | (rw [show sM0 = .n 4 from rfl, t4 _ (by norm_num), s2 4 (by norm_num)]; exact h0)
-        | (rw [c33, show sM1 = .n 5 from rfl, t4 _ (by norm_num), s2 5 (by norm_num)]; exact h1)
-        | (rw [v34]; exact canon_word _ _) | (rw [e35]; exact canon_zero) | (rw [e36]; exact canon_zero)
-        | (rw [e37]; exact canon_word _ _)
-        | (rw [t4 _ (by norm_num), p1]; exact canon_zero) | (rw [t4 _ (by norm_num), p2]; exact canon_zero)
-        | (rw [t4 _ (by norm_num), p3]; exact canon_zero) | (rw [t4 _ (by norm_num), p4]; exact canon_zero)
   obtain ⟨σ5, he5, -, hh5⟩ := kecS_complete (C := C) (rd := rd) σ4 (ins := sHIns 22) 27 (.inl rfl) rfl
     (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 22).all (nbB 27) = true) v hv))
-    hins1 false false
+    false false
   have hk5 : AtomsHold rd σ5 [kecS (sHIns 22) (runV 27 1) false false] :=
     atomsHold_of_holdsList rfl (hh5 True (fun _ => True) trivial)
   have t5 : ∀ k < 27, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)

@@ -40,7 +40,7 @@ open HashSig HashSig.OverPermutation
 
 /-! ## The digits -/
 
-/-- A canonical cell's value. -/
+/-- A cell's value. -/
 theorem cellVal_eOfNat128 {X : Nat} (hX : X < 2 ^ 128) : cellVal (eOfNat128 X) = BitVec.ofNat 128 X :=
   BitVec.eq_of_toNat_eq (by rw [toNat_cellVal, cellNat_eOfNat128 hX, BitVec.toNat_ofNat,
     Nat.mod_eq_of_lt hX])

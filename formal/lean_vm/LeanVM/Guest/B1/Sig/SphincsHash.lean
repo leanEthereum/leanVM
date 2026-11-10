@@ -367,7 +367,7 @@ theorem adrsNat1_lt (type keyPair word2 word3 : Nat) : adrsNat1 type keyPair wor
     Nat.reduceMul, Nat.reducePow] at h0 h1 h2 h3 ⊢
   omega
 
-/-- The second address cell is the 192-bit word of its number. -/
+/-- The second address cell is the 128-bit word of its number. -/
 theorem adrsCell1_eq (type keyPair word2 word3 : Nat) :
     adrsCell1 type keyPair word2 word3 = eOfNat128 (adrsNat1 type keyPair word2 word3) :=
   cellOf128_eq_eOfNat128 (adrsNat1_lt type keyPair word2 word3)
