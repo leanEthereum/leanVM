@@ -6,6 +6,7 @@ import Rv64Verifier.Model.Field
 import Rv64Verifier.Model.Ext
 import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Model.FieldAlg
+import Rv64Verifier.Model.Transcript
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
@@ -62,3 +63,18 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.scaledMul_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.scaledMul_eq
+
+/-- info: 'Rv64Verifier.Model.Sim.bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.bind
+
+/-- info: 'Rv64Verifier.Model.Sim.nextScalar' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.nextScalar
+
+/-- info: 'Rv64Verifier.Model.Sim.grind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.grind
+
+/-- info: 'Rv64Verifier.Model.SimUnit.commit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.SimUnit.commit
+
+/-- info: 'Rv64Verifier.Model.Sim.merkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.merkle
