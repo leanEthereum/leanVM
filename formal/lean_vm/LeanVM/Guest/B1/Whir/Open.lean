@@ -107,7 +107,6 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hshape : stackShape μ r = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
     (hoff0 : (c.levels.headD default).foldsOff = 0)
     (hlane : (cfg.head?.map (·.fold)).getD 0 = (c.levels.headD default).folds)
-    (hq : osQCalls c = osQCallsL c 0 c.levels (osHead c).2)
     (hLOk : LevelsOk rd C σ c μ 0 c.levels cfg) (hFS : FinStatic rd C c)
     {fn : Fn} (hfp : fn.params = osParams 10) (hfb : fn.body = osBody c)
     {root : Digest} {fs : List E} {target root0 root1 cur tabs : E} {rets : List E}
@@ -115,8 +114,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hp : fn.params.map σ = fs ++ [target, root0, root1, cur, tabs])
     (hh : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
     OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n 8)) (osWordsLen c))
-      ((osQCalls c).zipIdx.map fun ((name, args, rets), l) ↦
-        osLevelW rd V l (c.levels.getD l default) name (args.map σ) (rets.map σ)) := by
+      (osLevelsW rd V σ c 0 c.levels (osHead c).2) := by
   -- the parameters
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ : ∃ f0 f1 f2 f3 f4, fs = [f0, f1, f2, f3, f4] := by
     match fs, hfs with
@@ -174,13 +172,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   have hwords : osReadN rd (σ (.n 8)) (osWordsLen c) = xs := by
     rw [p8, osWordsLen_eq, hlv, ← hxl]
     exact osReadN_of_readsAt hrd
-  have hops : ((osQCalls c).zipIdx.map fun ((name, args, rets), l) ↦
-      osLevelW rd V l (c.levels.getD l default) name (args.map σ) (rets.map σ)) =
-      osLevelsW rd V σ c 0 (lv0 :: rest) (osHead c).2 := by
-    rw [hq, ← hlv]
-    exact osQCallsL_openings V c (fun l ↦ c.levels.getD l default) c.levels 0 (osHead c).2
-      fun i _ ↦ by rw [Nat.zero_add]
-  rw [hwords, hops]
+  rw [hwords, hlv]
   -- the run and the returns
   have hF0 : (osHead c).2.F σ = ⟨[f0, f1, f2, f3, f4], []⟩ := by
     rw [osHead_st]; simp [OsSt.F, p0, p1, p2, p3, p4]
