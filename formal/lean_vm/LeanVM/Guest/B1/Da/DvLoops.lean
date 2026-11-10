@@ -108,16 +108,6 @@ theorem roots_leaf {i : ℕ} (hi : i < 2 ^ L) :
   rw [e _ (by omega), e _ (by omega), (pairCells_getD _ i).1, (pairCells_getD _ i).2]
   simp [rootLeaves, hi]
 
-theorem allCanonical_digests {n : ℕ} (g : ℕ → Digest) :
-    AllCanonical (pairCells ((List.range n).map fun i => digestHalves (g i))) := by
-  intro c hc
-  simp only [pairCells, List.mem_flatMap, List.mem_map, List.mem_range] at hc
-  obtain ⟨_, ⟨i, -, rfl⟩, hc⟩ := hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl
-  · exact (Main.digestScalars_canonical _).1
-  · exact (Main.digestScalars_canonical _).2
-
 /-- **The blobs' trees** (`__loop23`): each blob's sum zero after its columns, its tree's root
 written among the roots' leaves. -/
 theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
@@ -132,7 +122,7 @@ theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) 
   have hregR := readsAt_block (length_regionCells syms z) hB hi
   rw [regionCells, List.append_assoc, readsAt_append] at hregR
   have hc := da_levels_complete 7 (by norm_num) rd (gen ^ (bb + 641 * i)) (blobLeaves syms i)
-    (by rw [hlen]; norm_num) (fun _ => allCanonical_digests _) (treeMem_of_reads (by rw [hlen]; norm_num)
+    (by rw [hlen]; norm_num) (treeMem_of_reads (by rw [hlen]; norm_num)
       hregR.1)
   have hroot : cellRoot 7 (blobLeaves syms i) = digestHalves (blobLeaf r syms i) := by
     rw [blobLeaf, ite_pos' hi, blobLeaves, ← cellRoot_mRoot]
@@ -171,7 +161,7 @@ theorem dl_rel (hL : L ≤ 10) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)
     coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daRoot r L syms)) := by
   rw [rootsCells, readsAt_append] at hT
   have hc := da_levels_complete L hL rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
-    (fun _ => allCanonical_digests _) (treeMem_of_reads (length_rootLeaves r L syms) hT.1)
+    (treeMem_of_reads (length_rootLeaves r L syms) hT.1)
   rw [rootLeaves, cellRoot_mRoot] at hc
   exact hc
 

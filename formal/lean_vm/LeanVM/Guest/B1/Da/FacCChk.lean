@@ -23,10 +23,9 @@ def facStores (D : ℕ) : List Atom :=
     .load (.n (facB d + 4 + 4 * y)) (.n 1) (2 ^ d + y)
 
 /-- **`da_factors`, evaluated**: defined in order from its argument, its stores the nodes',
-canonical without inputs, one `HeapBuf` of `256` words, no `frameAddr`. -/
+one `HeapBuf` of `256` words, no `frameAddr`. -/
 def facCOk (fn : Fn) (top D : ℕ) : Bool :=
   (chk 1 fn.body).isSome && atomsEqb (storesOf 1 fn.body) (facStores D) &&
-  canonChk [] (facT top D) &&
   decide (((facT top D).map Stmt.atom).filterMap Stmt.addrS = []) &&
   decide (((facT top D).map Stmt.atom).filterMap Stmt.allocSz = [(.n 1, .inl 256)])
 

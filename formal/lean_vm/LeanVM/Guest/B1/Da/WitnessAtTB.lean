@@ -18,8 +18,7 @@ public import LeanVM.Guest.B1.Da.Witness
 `dvBs_le`: `da_verify`'s callees' bounds at the frame sizes within `dvKB`, on the static bounds
 (`DvStaticB`). `da_verify_completeAtTB`: for a witness opening `(root, z)`, `da_verify` is complete,
 placed at `g_squares = g^s` reading `g^(2^L)` at `g^(s + L)` (`L = wLog w`), by a tree of
-`dvNH r L` within `dvB fs SB SK r L` (`r` its rows), returning the root's cells and `z`'s rate
-cells (`fs_pack`'s, tag `0`).
+`dvNH r L` within `dvB fs SB SK r L` (`r` its rows), returning the root's cells and `z`.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -55,7 +54,7 @@ variable (fs) (cert : String → V → ℕ)
 theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.MatrixWitness}
     {root : Digest} {z : E} (hw : w.Opens root z) (s : ℕ) (hS : DvStaticB fs SB SK) :
     CompleteAtDTB fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
-      (Returns (digestCells root ++ [(scalarCells z 0).1, (scalarCells z 0).2]))
+      (Returns (digestCells root ++ [z]))
       (dvNH w.rows.length (wLog w)) (dvB fs SB SK w.rows.length (wLog w)) := by
   have hr1 := hw.1
   have hr := hw.2.1
@@ -68,7 +67,7 @@ theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Matri
         _ ≤ 2 ^ 11 := by norm_num; omega
     have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
     omega
-  rw [opens_eq hw, ← zCells_eq]
+  rw [opens_eq hw]
   refine (dv_completeAtB fs cert hrf hS.off hS.l17 hS.l19 hS.l20 hS.l21
     (by rw [← dlNames_bang hL10]; exact hS.dl _ hL10) hr1 hr hL (wSyms_len hw) (wDot hw) s).mono
     ?_ fun _ h => h

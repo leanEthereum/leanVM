@@ -71,17 +71,16 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hcok
   obtain ⟨hparams, hok⟩ := hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hneedsT⟩, hcok⟩ := hcok
+  obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneedsT⟩, hcok⟩ := hcok
   split at hok
   · rename_i A vs hsp
     rw [hsp] at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, Bool.not_eq_true'] at hok hcok
     obtain ⟨⟨⟨⟨⟨rfl, hA1280⟩, htm⟩, hchain⟩, hret⟩, hcp⟩ := hok
-    obtain ⟨⟨hneedsC⟩, hhint⟩ := hcok
+    obtain ⟨hneedsC, hhint⟩ := hcok
     have hbody := splitBody_eq hsp
     let w : ℕ → E := symOrc syms
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [lv] (Fn.body Data.core30)) := ⟨_, rfl⟩
-    have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
     obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core30) [lv] hchk
     rw [show [lv].length = 1 from rfl, hst, ← hσ] at hgs
     have hg : ∀ a ∈ A, Good rd [] w σ a := fun a ha =>
@@ -107,8 +106,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       exact ofK_isInK _
     -- the template
     have htmpl : ∀ a ∈ tmplA, a.Holds rd σ := by
-      refine atoms_holds hidx hcanT (fun a ha => hg a (hmT a ha))
-        (fun i hi => absurd hi (by simp)) fun a ha hns => Or.inl ?_
+      refine atoms_holds (fun a ha => hg a (hmT a ha)) fun a ha hns => Or.inl ?_
       rcases hneedsT a ha with (h | h) | h
       · rw [hns] at h; exact absurd h (by simp)
       · obtain ⟨x, y, rfl, hx, hx1, hx2, hy, hy1, hy2⟩ := symInK_spec h
@@ -126,13 +124,8 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
     have hpack : ∀ e < 128, σ (.n (packV e)) =
         E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) :=
       fun e he => (blk_sound he htmpl).2.2.1
-    have hcanP : ∀ i ∈ (List.range 128).map packV, IsCanonical128 (σ (.n i)) := by
-      intro i hi
-      obtain ⟨e, he, rfl⟩ := List.mem_map.mp hi
-      rw [hpack e (List.mem_range.mp he)]
-      exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
     have hC : ∀ a ∈ A.drop 1280, a.Holds rd σ :=
-      atoms_holds hidx hcanC (fun a ha => hg a (hmC a ha)) hcanP
+      atoms_holds (fun a ha => hg a (hmC a ha))
         fun a ha hns => by rw [hneedsC a ha] at hns; exact absurd hns (by simp)
     have hat : ∀ a ∈ A, a.Holds rd σ := by
       intro a ha

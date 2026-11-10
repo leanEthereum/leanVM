@@ -145,7 +145,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   have hcok := off_cok
   unfold offCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
     hcalls⟩, hnli⟩ := hcok
   have hS := atomsEqb_sound hst
   have hNb : ∀ b < 7, word (offN b) 0 = gen ^ 2 ^ b := fun b hb' => by
@@ -198,7 +198,6 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     reads_of_memL hB (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨b, List.mem_range.mpr hb', rfl⟩))
   let w : ℕ → E := fun i => if i = 1 then gen ^ b0 else gen ^ (b0 + 1024 + 8 * ((i - 10) / 30))
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [gen ^ c] offP) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w offP [gen ^ c] hchk
   rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
   have hgA : ∀ a, Stmt.atom a ∈ offP → Good rd offStores w σ a := fun a h => hgs (.atom a) h
@@ -252,8 +251,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     hgA (.copy (.n 220) (.n 1)) (List.mem_append_right _ (List.mem_singleton_self _))
   -- the atoms
   have hat : ∀ a ∈ offAtoms, a.Holds rd σ := by
-    refine atoms_holds (A := []) (S := offStores) (w := w) hidx hcan (fun a ha => ?_) (by simp)
-      fun a ha hns => Or.inl ?_
+    refine atoms_holds (S := offStores) (w := w) (fun a ha => ?_) fun a ha hns => Or.inl ?_
     · obtain ⟨s, hs, hsa⟩ := List.mem_filterMap.mp ha
       cases s <;> simp only [atomOfS, Option.some.injEq, reduceCtorEq] at hsa
       subst hsa
