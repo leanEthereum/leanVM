@@ -58,8 +58,8 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
   have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt w σ a := fun a h ↦ hg _ h
   -- the atoms
   have m3691 := mulG (by norm_num) (by norm_num) (gA (.mul (.n 963) (.n 9) (.n 6)) (by simp [vkOutT]))
-  have c3692 : σ (.n 964) = word 0 0 0 := gA (.const (.n 964) (word 0 0 0)) (by simp [vkOutT])
-  have c3693 : σ (.n 965) = word 0 0 0 := gA (.const (.n 965) (word 0 0 0)) (by simp [vkOutT])
+  have c3692 : σ (.n 964) = word 0 0 0 := gA (.const (.n 964) (word 0 0)) (by simp [vkOutT])
+  have c3693 : σ (.n 965) = word 0 0 0 := gA (.const (.n 965) (word 0 0)) (by simp [vkOutT])
   have gcall := hg (.call "keccak_plain_rounds__L6_L0" [.n 957, .n 958, .n 959, .n 960, .n 961,
     .n 964, .n 965, .n 962, .n 193, .n 963] ((List.range 7).map fun j ↦ .n (966 + j)))
     (by simp [vkOutT])
@@ -69,11 +69,11 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
     (gA (.mul (.n 983) (.n 60) (.n 17)) (by simp [vkOutT]))
   have m3969 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1241) (.n 1240) (.n 973)) (by simp [vkOutT]))
-  have c3970 : σ (.n 1242) = word 1 0 0 := gA (.const (.n 1242) (word 1 0 0)) (by simp [vkOutT])
+  have c3970 : σ (.n 1242) = word 1 0 0 := gA (.const (.n 1242) (word 1 0)) (by simp [vkOutT])
   have a3971 : σ (.n 1243) = σ (.n 1242) + σ (.n 17) :=
     gA (.add (.n 1243) (.n 1242) (.n 17)) (by simp [vkOutT])
-  have c3972 : σ (.n 1244) = word 1 0 0 := gA (.const (.n 1244) (word 1 0 0)) (by simp [vkOutT])
-  have c3973 : σ (.n 1245) = word 16 0 0 := gA (.const (.n 1245) (word 16 0 0)) (by simp [vkOutT])
+  have c3972 : σ (.n 1244) = word 1 0 0 := gA (.const (.n 1244) (word 1 0)) (by simp [vkOutT])
+  have c3973 : σ (.n 1245) = word 16 0 0 := gA (.const (.n 1245) (word 16 0)) (by simp [vkOutT])
   have m3974 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1246) (.n 9) (.n 1245)) (by simp [vkOutT]))
   -- the word

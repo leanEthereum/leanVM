@@ -159,13 +159,13 @@ theorem vkIn_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkInT
     rw [vkInT]; exact List.mem_append_right _ h
   have gA : ∀ a, Stmt.atom a ∈ vkInT → Good rd vkSt w σ a := fun a h ↦ hg _ h
   -- the atoms
-  have c3975 : σ (.n 1247) = word 2 0 0 := gA (.const (.n 1247) (word 2 0 0)) (by simp [vkInT])
+  have c3975 : σ (.n 1247) = word 2 0 0 := gA (.const (.n 1247) (word 2 0)) (by simp [vkInT])
   have m3976 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1248) (.n 971) (.n 1247)) (by simp [vkInT]))
   have e3977 : σ (.n 1249) = v12 :=
     load_val (gA (.load (.n 1249) (.n 203) 264) (by simp [vkInT])) (not_mem_of_noneIn k1 _ (by simp)) hv
   have c3978 : σ (.n 1250) = word 549755813888 0 0 :=
-    gA (.const (.n 1250) (word 549755813888 0 0)) (by simp [vkInT])
+    gA (.const (.n 1250) (word 549755813888 0)) (by simp [vkInT])
   have m3979 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1251) (.n 9) (.n 1250)) (by simp [vkInT]))
   have gc1 := hg (.call "keccak_plain_rounds__L4_L1" [.n 966, .n 967, .n 968, .n 969, .n 970,
@@ -174,13 +174,13 @@ theorem vkIn_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkInT
   have e3980 : ∀ j < 7, σ (.n (1252 + j)) = w (1252 + j) := fun j hj ↦
     gc1 _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
   have c4105 : σ (.n 1377) = word 549755813888 0 0 :=
-    gA (.const (.n 1377) (word 549755813888 0 0)) (by simp [vkInT])
+    gA (.const (.n 1377) (word 549755813888 0)) (by simp [vkInT])
   have m4106 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1378) (.n 9) (.n 1377)) (by simp [vkInT]))
   have m4107 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 1379) (.n 1378) (.n 6)) (by simp [vkInT]))
-  have c4108 : σ (.n 1380) = word 0 0 0 := gA (.const (.n 1380) (word 0 0 0)) (by simp [vkInT])
-  have c4109 : σ (.n 1381) = word 0 0 0 := gA (.const (.n 1381) (word 0 0 0)) (by simp [vkInT])
+  have c4108 : σ (.n 1380) = word 0 0 0 := gA (.const (.n 1380) (word 0 0)) (by simp [vkInT])
+  have c4109 : σ (.n 1381) = word 0 0 0 := gA (.const (.n 1381) (word 0 0)) (by simp [vkInT])
   have gc2 := hg (.call "keccak_plain_rounds__L6_L0" [.n 1252, .n 1253, .n 1254, .n 1255, .n 1256,
     .n 1380, .n 1381, .n 1257, .n 1258, .n 1379] ((List.range 7).map fun j ↦ .n (1382 + j)))
     (by simp [vkInT])

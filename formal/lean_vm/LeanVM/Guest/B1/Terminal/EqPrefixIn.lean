@@ -88,7 +88,7 @@ theorem ep_relIn {n : ℕ} (hn : n ≤ 40) {rd : Reader} {bc ba bb : ℕ} {seed 
 
 /-- `eq_prefix_chain`'s statements before its `ret`. -/
 def eqcPre : List Stmt :=
-  [.atom (.const (.n 5) (word (2 ^ 40) 0 0)),
+  [.atom (.const (.n 5) (word (2 ^ 40) 0)),
     .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
     .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9]]
 
@@ -106,9 +106,9 @@ theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R
       [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^ n]
           [] := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_eq_prefix_chain _ _).mp h
-  have hbody : Fn.body Data.core5 = eqcPre ++ [.ret []] := core5_body
+  have hbody : Fn.body Data.core4 = eqcPre ++ [.ret []] := core4_body
   rw [hbody] at hb
-  rw [show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hp
+  rw [show Fn.params Data.core4 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   obtain ⟨e0, e1, e2, e3, e4⟩ := hp
   simp only [eqcPre, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
@@ -127,7 +127,7 @@ theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R
     · trivial
     · exact ⟨j, hj, by omega, hx⟩)
   rw [← hbody] at hw
-  have hev : eqcPre.flatMap (flEvs σ) = [.atom (.const (.n 5) (word (2 ^ 40) 0 0)),
+  have hev : eqcPre.flatMap (flEvs σ) = [.atom (.const (.n 5) (word (2 ^ 40) 0)),
       .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
       .call (eqPrefixRunNames.getD j "") [.n 0, .n 1, .n 2, .n 3] [.n 9]] := by
     simp [eqcPre, flEvs, Main.slEvs, hlog]

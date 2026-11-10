@@ -115,7 +115,7 @@ theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE s
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
   have c56 : σ (.n 58) = Guest.word 2 0 0 :=
-    gA (.const (.n 58) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+    gA (.const (.n 58) (Guest.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 59) (.n 17) (.n 58)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]
