@@ -354,11 +354,18 @@ prover and a verifier that may query the oracles), that the cells satisfy LeanDA
 \begin{itemize}
 \item the cells hash to the root, and
 \item every row passes the \emph{membership test}: from the root, the duplex derives one
-challenge $z$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
+challenge $z \in \mathbb{E}$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
 dual code (\lean{dualCodewordAt}); every row must be orthogonal to $L$. A row that is not a codeword
-passes with probability at most $(2^{14}-1)/2^{192} < 2^{-178}$: its inner product with $L$ is a
+passes with probability at most $(2^{14}-1)/2^{128} < 2^{-114}$: its inner product with $L$ is a
 nonzero polynomial in $z$ of degree below $2^{14}$.
 \end{itemize}
+The challenge is ground (\lean{membershipChallengeWith}): the duplex seeded with the root absorbs
+the nonces $0, 1, \dots$ of $64$ bits, each into a copy of the seeded sponge, and the first whose
+permutation's third lane has $11$ low zero bits gives $z$, the first two lanes of that permutation.
+The nonce is not sent; anyone deriving $z$ finds it, about $2^{11}$ permutations per root. If no
+$64$-bit nonce is valid, the Rust search never ends; the statement then has no challenge and the
+relation asks every row to be a codeword (\lean{membershipCheckOpt}), which keeps honest matrices
+in the relation for every $\pi$.
 
 \paragraph{Completeness} (\lean{LeanDa.LeanDaPerfectlyComplete}). If the argument is perfectly
 complete, every position of an honest commitment opens and verifies, with probability $1$, for
@@ -395,24 +402,31 @@ probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{22})\cdot 2^{-178} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{11})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
-$2^{-114}$ and $2^{-119}$.
+$2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
+own calls beyond the adversary's: the relation's check hashes the extracted matrix (fewer than
+$2^{22}$ calls) and, on its worst path, runs the whole nonce search, $2^{64} + 2$ calls; the
+assumption is read at $q = Q + 2^{65}$.
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}
 \item $c^*$ fails the relation. Then the adversary breaks the argument's knowledge soundness:
 the first term.
 \item $c^*$ satisfies the relation but has a row that is not a codeword. Then it passed the
-membership test by luck, $(2^{14}-1)/2^{192}$ per root: the second term.
+membership test by luck: the second term. The grind makes luck cost permutation calls. A call of
+the adversary on one of a root's nonces gives a valid proof of work and an accepting challenge at
+once with probability at most $2^{-11}\cdot(2^{14}-1)/2^{128} < 2^{-125}$, the two independent;
+the verifier's own search for the root, however many nonces it tries, stops at its first valid
+one, so it is a single fresh try, $(2^{14}-1)/2^{128} < 2^{11}\cdot 2^{-125}$.
 \item $c^*$ is a codeword. Every opened cell hashes to the same root as $c^*$, so unless Keccak-256
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
 \end{enumerate}
 This proof needs no rewinding. Wagner's original proof, with a forking lemma, is also formalized
 (\lean{LeanDa.leanDa_codeBinding_core}, \lean{lean_da}, for arguments that do not query the oracles); it gives
-the weaker $(Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-93} + (Q + 2^{22})^2\cdot 2^{-158}$.
+the weaker $(Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-56} + (Q + 2^{22})^2\cdot 2^{-158}$.
 
 \emph{What is open.} The assumption can be met: the argument whose proof is simply all the cells
 is complete and knowledge sound, though its proof is as large as the matrix (an observation, not

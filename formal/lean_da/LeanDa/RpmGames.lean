@@ -152,6 +152,13 @@ theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [toK_hR, toK_pR]
 
+theorem toK_membershipChallengeM (root : Common.DigestBytes) :
+    simulateQ toK (membershipChallengeMWithHash hR pR root) =
+      membershipChallengeMWithHash hKB pKB root := by
+  rw [membershipChallengeM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
+    (fun _ _ ↦ simulateQ_bind _ _ _)]
+  simp only [toK_hR, toK_pR]
+
 theorem toK_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
     simulateQ toK (commitCellsMWithHash hR c) = commitCellsMWithHash hKB c := by
   rw [commitCellsM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)

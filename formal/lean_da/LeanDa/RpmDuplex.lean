@@ -12,16 +12,18 @@ import all Init.Data.Array.Basic
 /-!
 # LeanDA's challenges as a duplex
 
-The challenge's sponge (`membershipChallengeMWithHash`, and the pair of its two samples,
+The challenge's sponge (`membershipChallengeMWithHash`, and the draws of all its nonces,
 `membershipChallengeVecM`) over the direct calls `F` of the two-oracle model is a duplex challenge
-derivation in the sense of `Common.SeedDuplex` (`daDuplex`, two samples): a root's chain starts at
-the fresh sponge of the label's hash and the root (`first`, `Sponge::new`: lanes `0 … 3` the
-hash, `4 … 7` the root's words, the rest zero), a sample writes zeros over the rate (`next`), and
-a challenge is the three lanes `0 … 2` of an answer (`out`); the deployed challenge is the second
-sample. The fresh sponges have the zero capacity, and a sample keeps lanes `16 … 24`, the bytes
-`128 … 199` of the state (`cap_first`, `cap_next`), which the duplex lemma calls the capacity:
-`72` bytes, so a uniform state has a given capacity with probability `2^-576` (`daDuplex_cap`).
-Over `F`, the pair is the duplex's challenges (`membershipChallengeVecM_eq_chalP`).
+derivation in the sense of `Common.SeedDuplex` (`daDuplex`, `2^64 + 1` labels): a root's
+derivation starts at the fresh sponge of the label's hash and the root (`first`, `Sponge::new`:
+lanes `0 … 3` the hash, `4 … 7` the root's words, the rest zero), label `j` writes the nonce
+`j - 1` and its tag over the rate of the seeded answer (`next`), and a draw is the three lanes
+`0 … 2` of an answer (`out`: the challenge and the proof of work); the nonce search reads the
+deployed challenge off the draws. The fresh sponges have the zero capacity, and a nonce keeps lanes
+`16 … 24`, the bytes `128 … 199` of the seeded answer (`cap_first`, `cap_next`), which the duplex
+lemma calls the capacity: `72` bytes, so a uniform state has a given capacity with probability
+`2^-576` (`daDuplex_cap`). Over `F`, the draws are the duplex's challenges
+(`membershipChallengeVecM_eq_chalP`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
