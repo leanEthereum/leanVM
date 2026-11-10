@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.ExpTables
 public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Selectors.Interface
@@ -205,26 +205,12 @@ def blockKappaAdj (b : ℕ) : ℕ := if b = 2 ∨ b = 56 then 19 else 0
 /-- `N_BLOCKS`. -/
 abbrev nBlocks : ℕ := 153
 
-/-- `N_BLOCK_GROUPS`: the runs of a side's blocks sharing one kappa source. -/
-abbrev nBlockGroups : ℕ := 24
-
-/-- `BLOCK_GROUP_START`: each block group's first block, then `N_BLOCKS`. -/
+/-- `BLOCK_GROUP_START`: each block group's first block, then `N_BLOCKS` (the groups' count
+`nBlockGroups`, each side's first group `sideGroupStart` and the tables' offsets `rankKeysAt`,
+`sideTabAt`, `winTabAt` are `Guest/ExpTables`'). -/
 def blockGroupStart : List ℕ :=
   [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126,
     153]
-
-/-- `SIDE_GROUP_START`: each side's first block group, then `N_BLOCK_GROUPS`. -/
-def sideGroupStart : List ℕ := [0, 9, 18, 24]
-
-/-- `RANK_KEYS_AT`: where `exponent_tables` keeps the rank keys, past the squares and the selector
-shares. -/
-abbrev rankKeysAt : ℕ := 34 + 16 * 9
-
-/-- `SIDE_TAB_AT`: where `exponent_tables` keeps each block group's side. -/
-abbrev sideTabAt : ℕ := rankKeysAt + 34
-
-/-- `WIN_TAB_AT`: where `exponent_tables` keeps the window table the grinds read (`tabs`). -/
-abbrev winTabAt : ℕ := sideTabAt + nBlockGroups
 
 /-- Block group `gi`'s side (`exponent_tables`, G:751-753), a word. -/
 def sideTabList : List E :=

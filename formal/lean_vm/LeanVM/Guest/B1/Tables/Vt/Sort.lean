@@ -290,7 +290,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
       gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
     (∀ x < 45, σ (.n (vtBoffV (108 + x))) =
       gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) := by
-  obtain ⟨hsq, hrk, hsd⟩ := hE
+  obtain ⟨hsq, hrk, hsd, -⟩ := hE
   have hsrc : ∀ k < 15, blockKappaSrc.getD (vtB0 k) 0 < 8 := by decide +kernel
   have hkx : ∀ k < 15, σ (.n (vtKv k)) * gen ^ vtAdj k = gen ^ vtKap lm τ (vtB0 k) := by
     intro k hk
