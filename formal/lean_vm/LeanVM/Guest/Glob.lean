@@ -71,7 +71,7 @@ def globSem (t : ℕ) (rd : Core.Reader) (ws : List LeanVM.Parameters.E) : Prop 
   | 0 => B1.ExpTables rd (ws.getD 0 0)
   | 1 => True
   | t => if t = tagGkr then
-      GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0) (ws.getD 4 0)
+      GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
     else walkSem t rd ws
 
 /-- The context the guest's checks share, with the semantic relations `globSem`. -/
