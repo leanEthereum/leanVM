@@ -104,15 +104,15 @@ The Johnson threshold `A`, the multiplicity `m` and the `Y`-degree `ℓ = ⌊(m�
 `R = 1`, `μ = 15, …, 28`, and the multiplicities at `R = 2` (computed offline with exact
 integers). -/
 
-#guard johnsonThreshold 15 1 = 725
+#guard johnsonThreshold 15 1 = 738
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 1) =
-  [65, 59, 78, 84, 87, 91, 92, 47, 47, 47, 47, 47, 32, 32]
+  [7, 10, 15, 20, 29, 42, 59, 83, 107, 105, 102, 100, 98, 97]
 #guard (List.range 14).map (fun i ↦
     let p := gsParams (15 + i) 1
     p.interp.weightedDegreeBound / (2 ^ (9 + i) - 1)) =
-  [92, 83, 110, 119, 123, 128, 130, 66, 66, 66, 66, 66, 45, 45]
+  [10, 14, 21, 28, 41, 59, 83, 117, 151, 148, 144, 141, 138, 137]
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 2) =
-  [256, 37, 38, 39, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
+  [9, 13, 19, 27, 39, 55, 77, 77, 76, 74, 73, 71, 70, 69]
 
 /-! ## Merkle inversion -/
 

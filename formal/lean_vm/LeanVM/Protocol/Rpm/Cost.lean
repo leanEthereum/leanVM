@@ -686,14 +686,14 @@ theorem allQ_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : St
 -- does not cover it.
 set_option maxHeartbeats 1000000 in
 /-- The honest strategy of a witness commits well-shaped words. -/
-theorem shaped_of (hW : Whir.Complete.OpeningComplete) {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
+theorem shaped_of {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
     {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
     (hw : Complete.HonestFor prog input t ρ w s) (chal : List Ev → E) :
     shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) chal := by
   obtain ⟨hρ', hw', hs', hadm', -⟩ := hw
   with_reducible exact
-    (Complete.runI_leanVmProgram hW (input := input) hadm' hρ' (LeanIsa.m3Honest_stackOf hw' hs') chal).2
+    (Complete.runI_leanVmProgram (input := input) hadm' hρ' (LeanIsa.m3Honest_stackOf hw' hs') chal).2
 
 -- As for `shaped_of`.
 
@@ -759,7 +759,7 @@ theorem isTotalQueryBound_romHonestComp (prog : LeanIsaProgram) (input : PublicI
 set_option maxHeartbeats 1000000 in
 /-- **The specification's honest prover at an honest witness, then the verifier, make at most
 `completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_romHonest (hW : Whir.Complete.OpeningComplete) {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     {s : LeanIsa.Sizes} {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
     (hw : Complete.HonestFor prog input t ρ w s) (fuel : ℕ) :
@@ -769,6 +769,6 @@ theorem isWeightBound_romHonest (hW : Whir.Complete.OpeningComplete) {prog : Lea
         (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
           verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
   isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
-    (allQ_romHonestComp prog input _ fuel (shaped_of hW hw))
+    (allQ_romHonestComp prog input _ fuel (shaped_of hw))
 
 end LeanVM.Rpm

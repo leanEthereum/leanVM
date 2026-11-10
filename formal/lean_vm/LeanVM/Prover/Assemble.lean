@@ -419,7 +419,7 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
       Function.comp_def]
     rfl
   rw [← hcl, ← Script.bind_ret (openingFast _ _ _ _)]
-  exact Corr.bind (fun _ _ _ ↦ by unfold Corr; trivial) _ _ (corr_openingFast hμ ρ q _)
+  exact Corr.bind (fun _ _ _ ↦ by unfold Corr; trivial) _ _ (corr_openingFast ρ q _)
 
 end Honest
 

@@ -111,8 +111,7 @@ theorem moves_leanVm_twentyFive (prog : LeanIsaProgram) (publicInput : Digest) :
 /-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
 sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
 specification's honest prover at that witness with probability at most `completenessError fuel`. -/
-theorem romComplete_at (hW : Whir.Complete.OpeningComplete)
-    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
+theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog t.logMemorySize)} {s : Sizes}
     (hw : HonestFor prog input t ρ w s)
     {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
@@ -125,7 +124,7 @@ theorem romComplete_at (hW : Whir.Complete.OpeningComplete)
       completenessError fuel := by
   obtain ⟨hρ, hw', hs', hadm', -⟩ := hw
   have hq := m3Honest_stackOf hw' hs'
-  have hrun := runI_leanVmProgram hW hadm' hρ hq
+  have hrun := runI_leanVmProgram hadm' hρ hq
   -- Unifying through the strategy unfolds it under Lean 4.35: name it first.
   generalize leanVmProver prog s ρ (stackOf prog s w) = S at hrun ⊢
   have h := Rom.romComplete (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) _
@@ -140,8 +139,7 @@ theorem romComplete_at (hW : Whir.Complete.OpeningComplete)
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
 most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
-theorem romComplete_leanVm (hW : Whir.Complete.OpeningComplete)
-    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
@@ -153,7 +151,7 @@ theorem romComplete_leanVm (hW : Whir.Complete.OpeningComplete)
   have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   unfold honestComp
   simp only [hex, ↓reduceDIte]
-  exact romComplete_at hW hex.choose_spec.choose_spec hfuel
+  exact romComplete_at hex.choose_spec.choose_spec hfuel
 
 /-- **The numbers**: at a fuel of `2^33` nonces per proof of work, the completeness error is
 below `2^-257`: at most `2^51` queries, each missing a proof of work of at most `25` bits with
