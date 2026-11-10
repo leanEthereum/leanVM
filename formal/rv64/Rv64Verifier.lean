@@ -5,6 +5,7 @@ import Rv64Verifier.EndStatement
 import Rv64Verifier.Model.Field
 import Rv64Verifier.Model.Ext
 import Rv64Verifier.Model.Multilinear
+import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
@@ -40,3 +41,24 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.paddingWeightRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.paddingWeightRust_eq
+
+/-- info: 'Rv64Verifier.Model.kSquare_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.kSquare_eq
+
+/-- info: 'Rv64Verifier.Model.esquare_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.esquare_eq
+
+/-- info: 'Rv64Verifier.Model.kInv_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.kInv_eq
+
+/-- info: 'Rv64Verifier.Model.epow_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.epow_eq
+
+/-- info: 'Rv64Verifier.Model.einv_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.einv_eq
+
+/-- info: 'Rv64Verifier.Model.powersM_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.powersM_eq
+
+/-- info: 'Rv64Verifier.Model.scaledMul_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.scaledMul_eq
