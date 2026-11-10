@@ -75,13 +75,12 @@ theorem completenessError_eq (fuel : ℕ) :
 /-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
-theorem completenessRom (hW : Whir.Complete.OpeningComplete)
-    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=
-  Complete.completeness_le hW hv hbudget hρ hfuel
+  Complete.completeness_le hv hbudget hρ hfuel
 
 /-- **The numbers**: at a fuel of `2^33` nonces per proof of work, the completeness error is
 below `2^-257`. -/
@@ -92,8 +91,8 @@ theorem completenessError_le : completenessError (2 ^ 33) ≤ (2 : ℝ≥0∞)�
 
 /-- **Completeness in the two-oracle random-oracle model holds**, with the honest prover
 `honestProver`. -/
-theorem completenessRom_holds (hW : Whir.Complete.OpeningComplete) : CompletenessRom :=
-  Complete.completeness_holds hW
+theorem completenessRom_holds : CompletenessRom :=
+  Complete.completeness_holds
 
 end
 end LeanVM

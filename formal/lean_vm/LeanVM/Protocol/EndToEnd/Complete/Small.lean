@@ -169,10 +169,8 @@ noncomputable def honestProofOf (H : Bytes → Digest) (F : KeccakState → Kecc
   else none
 
 /-- **The honest proof is accepted**, for every hash function and permutation: whenever the
-honest prover outputs a proof, the verifier accepts it (given the stacked opening's completeness,
-`OpeningComplete`). -/
-theorem verify_honestProofOf (hW : Whir.Complete.OpeningComplete)
-    (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog :
+honest prover outputs a proof, the verifier accepts it. -/
+theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog :
     LeanIsaProgram}
     {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {proof : Proof}
     (h : honestProofOf H F prog input t ρ fuel = some proof) :
@@ -181,7 +179,7 @@ theorem verify_honestProofOf (hW : Whir.Complete.OpeningComplete)
   split_ifs at h with hc
   obtain ⟨hρ, hw, hs, hadm, -⟩ := hc.choose_spec.choose_spec
   have hq := m3Honest_stackOf hw hs
-  have hrun := runI_leanVmProgram hW hadm hρ hq
+  have hrun := runI_leanVmProgram hadm hρ hq
   -- Unifying through the strategy unfolds it under Lean 4.35: name it first.
   generalize leanVmProver prog _ ρ (stackOf prog _ hc.choose) = S at h hrun
   exact runProof_prove H F _ _ _ fuel (Sound.grindThenSample_leanVmProgram _ _)
@@ -207,8 +205,7 @@ theorem honestProofOf_isSome {prog : LeanIsaProgram} {input : PublicInput} {t : 
 /-- **Completeness within the budget.** A valid execution whose committed size is at most `2^28`,
 at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest prover outputs
 a proof, and the verifier accepts it, for every hash function and permutation. -/
-theorem complete_of_budget (hW : Whir.Complete.OpeningComplete)
-    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem complete_of_budget {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
@@ -219,7 +216,7 @@ theorem complete_of_budget (hW : Whir.Complete.OpeningComplete)
       verifyWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input) proof = true := by
   obtain ⟨proof, h⟩ := Option.isSome_iff_exists.mp
     (honestProofOf_isSome hv hbudget hρ H F fuel hpow)
-  exact ⟨proof, h, verify_honestProofOf hW H F h⟩
+  exact ⟨proof, h, verify_honestProofOf H F h⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

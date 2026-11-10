@@ -14,6 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Sizes
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 public import LeanVM.Protocol.EndToEnd.Complete.Facts
 public import LeanVM.Protocol.EndToEnd.Complete.KeccakPhase
+public import LeanVM.Protocol.Whir.Complete.OpeningProof
 
 /-!
 # Assembling the honest run
@@ -33,13 +34,13 @@ sequence of the phases' honest scripts (`honestRun`), and the simulation compose
 | `publicInputPhase` | `hPub` | the claims are true, on the memory columns |
 | `keccakPhase` | `Phases.keccak` | true claims on no output lane, the true slices of `q_keccak` |
 | `ringSwitch` | `Phases.ring` | the ring-switching claim holds and is multilinear |
-| `verifyStackedOpening` | `Whir.Complete.honestOpening` | accepts, given `OpeningComplete` |
+| `verifyStackedOpening` | `Whir.Complete.honestOpening` | accepts (`openingComplete`) |
 
 `Phases` packages the four phase scripts whose proofs live in their own modules, and
 `Phases.Honest` their simulation statements; `follows_verifyExecution` composes them with the
 proved steps (`follows_readSizes`, `follows_commitStack`, `follows_readOod`,
 `follows_publicInputPhase`, `follows_verifyStackedOpening`). The stacked opening's completeness is
-the hypothesis `OpeningComplete` (`Whir.Complete.Opening`) until it is proved; the opening receives
+`Whir.Complete.openingComplete` (`Whir.Complete.OpeningProof`); the opening receives
 at most `maxStackedClaims` claims (`length_openingClaims_le`). The bus's and the public input's claims are on the framework's
 columns whatever the run (`retOK_busColumns`, `retOK_publicColumns`, through `follows_retOK`), so
 the claims on the output lanes the Keccak phase checks are the table's. Between the commitment and
@@ -124,7 +125,7 @@ noncomputable def honestRun (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (q : 
 rate, a stack satisfying `M3Holds` of the leanISA instance, honest phases and the stacked opening's
 completeness, the honest run follows the verifier program from no commitment: every `require`
 passes, whatever the challenges. -/
-theorem follows_verifyExecution (hW : OpeningComplete) {prog : LeanIsaProgram} {s : Sizes}
+theorem follows_verifyExecution {prog : LeanIsaProgram} {s : Sizes}
     {input : PublicInput} {ρ : ℕ} {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog)
     (hρ : validRate ρ) (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ _ ↦ True) (honestRun prog s ρ q P)
@@ -154,7 +155,7 @@ theorem follows_verifyExecution (hW : OpeningComplete) {prog : LeanIsaProgram} {
   obtain ⟨rfl, rfl, hkc, hsl, hkl⟩ := hc
   refine Follows.bind (fun cs₇ rs rs' hc ↦ ?_) _ _ _ (hP.ring (kr.2.1, kr.2.2) hsl _)
   obtain ⟨rfl, rfl, hrh, hrm⟩ := hc
-  refine (follows_verifyStackedOpening hW hadm q _ ?_ ?_ ?_)
+  refine (follows_verifyStackedOpening Whir.Complete.openingComplete hadm q _ ?_ ?_ ?_)
   · have hl : (openingClaims prog s rs kr.1 ood).length = kr.1.length + 2 := by
       simp [openingClaims]
     rw [hl]
@@ -192,18 +193,18 @@ noncomputable def honestStrategy (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
   Strategy.ofScript (honestProver prog s ρ q P) 0
 
 /-- The honest prover follows `leanVmVerifierProgram` to `true`. -/
-theorem follows_leanVmProgram (hW : OpeningComplete) {prog : LeanIsaProgram} {s : Sizes}
+theorem follows_leanVmProgram {prog : LeanIsaProgram} {s : Sizes}
     {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :
     Follows (fun _ _ b ↦ b = true) (honestProver prog s ρ q P)
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) [] := by
   rw [leanVmProgram_eq]
-  exact Follows.bind_of (follows_verifyExecution hW hs hρ hq P hP) fun _ _ _ _ ↦ rfl
+  exact Follows.bind_of (follows_verifyExecution hs hρ hq P hP) fun _ _ _ _ ↦ rfl
 
 /-- **The honest strategy wins every interactive run** of the verifier program, with
 well-shaped words, from honest phases. -/
-theorem runI_leanVmProgram_of (hW : OpeningComplete) {prog : LeanIsaProgram} {s : Sizes}
+theorem runI_leanVmProgram_of {prog : LeanIsaProgram} {s : Sizes}
     {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q)
@@ -216,7 +217,7 @@ theorem runI_leanVmProgram_of (hW : OpeningComplete) {prog : LeanIsaProgram} {s 
   -- No local of type `ShapedFrom …`: under 4.35 the elaborator and the linters would unfold the run.
   have h := runFrom_of_follows' (h₀ := []) (H := honestProver prog s ρ q P)
     (honestStrategy prog s ρ q P) chal (ofScript_agrees (honestProver prog s ρ q P) [])
-    (follows_leanVmProgram hW hs hρ hq P hP)
+    (follows_leanVmProgram hs hρ hq P hP)
   refine ⟨?_, by with_reducible exact h.2⟩
   obtain ⟨b, hb, -, -, hbt⟩ := h.1
   rw [← hbt]
