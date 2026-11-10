@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CHonLv
 public import LeanVM.Guest.B1.Whir.LastRun
+public import LeanVM.Guest.B1.Whir.LevelSpec
 
 /-!
 # The guest's sponges are the Spec's
@@ -205,6 +206,121 @@ theorem roundsMem_of {rd : Reader} {fch coefs : E} : ∀ (n i : ℕ) (s : WhirSt
         simp only [List.getD_cons_succ] at this
         rw [show i + 1 + j = i + (j + 1) by ring]
         exact this
+
+/-! ## The claims -/
+
+theorem roundsSpec_glued : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
+    (roundsSpec n s fs xs).1.glued = s.glued
+  | 0, _, _, _ => rfl
+  | n + 1, _, _, _ => roundsSpec_glued n _ _ _
+
+/-- **The guest's rounds' claim is the Spec's** but for the deficit `D` times the rounds' `γ`s. -/
+theorem roundsTr_claim : ∀ (n : ℕ) (s : WhirState) (fs xs : List E) (D : E),
+    (roundsTr n fs (s.claim + D) xs).2 = (roundsSpec n s fs xs).1.claim +
+      ((roundsSpec n s fs xs).1.gammas.drop s.gammas.length).prod * D
+  | 0, s, _, _, D => by simp [roundsTr, roundsSpec]
+  | n + 1, s, fs, xs, D => by
+    set w := xs.take 7 with hw
+    set s1 := (roundSpec s fs w).1 with hs1
+    have hcl : (roundRets fs 0 (s.claim + D) w).getD 6 0 = s1.claim + (roundChs fs w).1 * D := by
+      simp only [roundRets, hs1, roundSpec, roundChs, List.cons_append, List.nil_append,
+        List.getD_cons_succ, List.getD_cons_zero, Fs.squeeze, capOf]
+      rw [roundClaim_add]
+    have ih := roundsTr_claim n s1 (roundSponge fs w).cap (xs.drop 7) ((roundChs fs w).1 * D)
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas n s1 (roundSponge fs w).cap (xs.drop 7)
+    have hs1g : s1.gammas = s.gammas ++ [(roundChs fs w).1] := rfl
+    show (roundsTr n ((roundRets fs 0 (s.claim + D) w).take 5) ((roundRets fs 0 (s.claim + D) w).getD 6 0)
+      (xs.drop 7)).2 = (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.claim +
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.gammas.drop s.gammas.length).prod * D
+    rw [roundRets_take5, hcl, ih, hgs, hs1g]
+    simp only [List.append_assoc, List.cons_append, List.nil_append,
+      List.length_append, List.length_singleton, List.drop_append_of_le_length le_rfl, List.drop_length,
+      List.nil_append, List.prod_cons]
+    have e : List.drop (s.gammas.length + 1) (s.gammas ++ (roundChs fs w).1 :: gs) = gs := by
+      rw [show s.gammas ++ (roundChs fs w).1 :: gs = (s.gammas ++ [(roundChs fs w).1]) ++ gs by simp,
+        show s.gammas.length + 1 = (s.gammas ++ [(roundChs fs w).1]).length by simp, List.drop_left]
+    rw [e]
+    ring
+
+/-- **A non-final level's claim**: the guest's claim after the glue is the next level's, the
+Spec's less the deficit with the level's record appended; the next state's `γ`s and glued claims. -/
+theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L L') {lv : OsLv}
+    (hfold : L.level.fold = lv.folds) (hmu : L.mu logN = lv.logCols) (hdep : lv.depth = L.dp logN)
+    (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
+    (hcols : 1 ≤ lv.logCols) {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.gammas.length)
+    (r0 r1 batched pS pZ : E)
+    (hbat : (L.lam logN) ^ L.level.queries * batched = ∑ k ∈ Finset.range (L.qs logN).length,
+      (L.lam logN) ^ k * foldRow (specLanes index ((L.phase.map (·.leaf)).getD k []))
+        (K.ofBits ((L.qs logN).getD k 0)) L.rounds) :
+    (L.midW r0 r1 batched pS pZ).claimOut lv L.cap (L.gcl recs) = L'.gcl (recs ++ [L.osRec logN]) ∧
+      L'.s.gammas = L.s1.gammas ∧ L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) ∧
+      (L.osRec logN).F = L.s1.gammas.length := by
+  have hE := midEqs hN hfold hmu hdep hq hsq hcols r0 r1 batched pS pZ (L.gcl recs)
+  obtain ⟨rw, W, hd, -, -, -, -, hok, hs', -, -⟩ := hN
+  have hrw : L.rw = rw := by simp [LvAt.rw, hd]
+  have hnw : L.nw = W := by simp [LvAt.nw, hd]
+  have hrec : L.osRec logN = W.osRec logN L.level L.s1 L.F := by simp [LvAt.osRec, hd]
+  have hlam : L.lam logN = W.lam L.F (L.mu logN) (L.dp logN) L.level.queries := by simp [LvAt.lam, hd]
+  have hqs : L.qs logN = W.qs L.F (L.mu logN) (L.dp logN) L.level.queries := by simp [LvAt.qs, hd]
+  have hph : L.phase = W.phase := by simp [LvAt.phase, hd]
+  have hs1 : L.s1 = rsSt L.level L.s L.cap rw := by simp only [LvAt.s1, hrw]
+  have hF : L.F = rsF L.level L.cap rw := by simp only [LvAt.F, hrw]
+  have hrd : L.rounds = rsRounds L.level L.s L.cap rw := by simp only [LvAt.rounds, hrw]
+  -- the next state
+  have hs'' : L'.s = W.glued logN index L.level L.s1 L.F L.rounds := by rw [hs', hs1, hF, hrd]
+  have hglue := glueLevel_two L.s1 (L.lam logN) (L.mu logN)
+    ((W.ood L.F (L.mu logN)).getD 0 []) ((W.ood L.F (L.mu logN)).getD 1 []) W.y0 W.y1
+    (L.qs logN) (powers (L.lam logN) (L.qs logN).length)
+    (levelBatched (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf)) (L.lam logN))
+  have hgl : W.glued logN index L.level L.s1 L.F L.rounds = glueLevel L.s1 (L.lam logN) (L.mu logN)
+      [(W.ood L.F (L.mu logN)).getD 0 [], (W.ood L.F (L.mu logN)).getD 1 []] [W.y0, W.y1] (L.qs logN)
+      (powers (L.lam logN) (L.qs logN).length)
+      (levelBatched (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf)) (L.lam logN)) := by
+    rw [hlam, hqs]; rfl
+  rw [hgl, hglue] at hs''
+  have hrecF' : (L.osRec logN).F = L.s1.gammas.length := by rw [hrec]; rfl
+  have hrlam : (L.osRec logN).lam = L.lam logN := by rw [hrec, hlam]; rfl
+  have hrecGl : recGlued (L.osRec logN) = [⟨1 * L.lam logN, L.s1.gammas.length,
+      fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 0 []) x⟩,
+      ⟨1 * L.lam logN * L.lam logN, L.s1.gammas.length, fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 1 []) x⟩,
+      ⟨1 * L.lam logN * L.lam logN * L.lam logN, L.s1.gammas.length,
+        inducedWeight (L.mu logN) (L.qs logN) (powers (L.lam logN) (L.qs logN).length)⟩] := by
+    rw [hrec, hlam, hqs]; rfl
+  have hgam : L'.s.gammas = L.s1.gammas := by rw [hs'']
+  have hglued : L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) := by
+    rw [hs'', hrecGl, hs1, roundsSpec_glued]
+  refine ⟨?_, hgam, hglued, hrecF'⟩
+  -- the claims
+  obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas L.level.fold L.s L.cap rw
+  have hs1g : L.s1.gammas = L.s.gammas ++ gs := by rw [hs1]; exact hgs
+  have hcl1 : (L.midW r0 r1 batched pS pZ).cl1 lv L.cap (L.gcl recs) =
+      L.s1.claim + gs.prod * recsDeficit recs L.s.gammas := by
+    simp only [MidW.cl1, LvAt.midW, LvAt.gcl, hrw, ← hfold]
+    have hs1' : L.s1 = (roundsSpec L.level.fold L.s L.cap rw).1 := hs1
+    rw [roundsTr_claim, ← hs1', hs1g, List.drop_left]
+  have hB := levelBatched_eq (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf))
+    (by have hpl := hok.plen; rw [← hrw] at hpl; rw [List.length_map, hqs]; exact hpl) (L.lam logN)
+  have hH : recH (L.osRec logN) = ∑ k ∈ Finset.range (L.qs logN).length,
+      L.lam logN ^ k * highTerm (L.mu logN) W.high ((L.qs logN).getD k 0) := by
+    rw [recH, hrlam, hrec, hqs]; rfl
+  have hdef : recsDeficit (recs ++ [L.osRec logN]) L'.s.gammas =
+      gs.prod * recsDeficit recs L.s.gammas + L.lam logN ^ 3 * recH (L.osRec logN) := by
+    rw [hgam, recsDeficit_snoc _ _ _ hrecF', hs1g, recsDeficit_append_gammas _ _ _ hrecF, hrlam]
+  show _ = L'.s.claim + recsDeficit (recs ++ [L.osRec logN]) L'.s.gammas
+  rw [hdef, hs'']
+  rw [MidW.claimOut, hcl1, hE.lam]
+  simp only [LvAt.midW, hnw]
+  rw [hB, ← hph, ← hbat, ← hH, ← hq]
+  have h2 : ∀ x : E, x + x = 0 := fun x ↦ CharTwo.add_self_eq_zero x
+  linear_combination -(L.lam logN ^ 3) * h2 (recH (L.osRec logN))
+
+/-- **The guest's queries' chain** times `λ^Q` is the batched sum `hbat` asks for. -/
+theorem hbat_of {lam : E} (hlam : lam ≠ 0) {odd base N Q : ℕ} (hodd : odd ≤ 1) (hob : base = 1 ∨ odd = 0)
+    (hQ : oqCount odd base N = Q) {ds es : ℕ → E} (hds : ∀ k < Q, ds k = es k) :
+    lam ^ Q * oqChain odd base lam⁻¹ ds N = ∑ k ∈ Finset.range Q, lam ^ k * es k := by
+  subst hQ
+  rw [oqChain_mul_pow (mul_inv_cancel₀ hlam) hodd hob ds N, powSum]
+  exact Finset.sum_congr rfl fun k hk ↦ by rw [hds k (Finset.mem_range.mp hk)]
 
 end
 end LeanVM.Guest.B1.Whir
