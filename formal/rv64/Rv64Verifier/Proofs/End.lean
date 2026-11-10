@@ -113,7 +113,7 @@ def MainPost (words : List Word) (_ t : MachineState) : Prop :=
 theorem sound_of_main (hmain : ∀ words, FunSpec Image.code mainEntry (MainPre words) (MainPost words)) :
     Sound image := by
   intro words s n hload hhalts
-  obtain ⟨hpc, hdata, hinput, ha0⟩ := hload
+  obtain ⟨hpc, hdata, hinput, ha0, -⟩ := hload
   obtain ⟨u, hu, hhalt, hu1⟩ := hhalts
   have hustop := Halting.step_none hhalt
   -- `_start` up to the call

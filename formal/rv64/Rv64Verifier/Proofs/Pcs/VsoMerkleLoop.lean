@@ -35,7 +35,7 @@ theorem checked_ext {s u : MachineState} {nx : Word} (hpre : VsoPre s) (hinv : I
         · addr_omega [hx, hW1, h1, hS]
         · addr_omega [hx, hW2, h1, hS, hfit]) (by addr_omega [hS])
   rw [e]
-  have h := hpre.checked
+  have h : byteAt s (s.getReg .x10 + 360) ≠ 0 := by rw [hpre.checked]; decide
   rwa [← add_ofNat_zero (s.getReg .x10 + 360), byteAt_add (by addr_omega [hS]) (by decide)] at h
 
 /-- The path loop keeps the function's frame below the leaf index's slot. -/

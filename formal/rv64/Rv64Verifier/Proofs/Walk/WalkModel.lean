@@ -6,8 +6,8 @@ import Rv64Verifier.Model.Walk
 The compiled `walk` runs `walkRust`'s steps in its order. Where a step's shape differs, the lemmas
 here restate the mirror's step as the machine runs it:
 
-`KeepsProof m`: `m` leaves the transcript's proof alone, as every method does; `walk`'s run keeps
-the proof the memory holds through each call (`Tracks.bind`).
+`KeepsProof m`: `m` leaves the transcript's proof and roots alone, as every method but `commit`
+does; `walk`'s run keeps the proof the memory holds, and no roots, through each call (`Tracks.bind`).
 
 * `walkRust` split where the machine's stages meet: the announced sizes (`announcedRust_eq`,
   `announcedTail`), everything after them (`bodyRest`), `finish` (`finishRust`),
@@ -95,16 +95,17 @@ theorem walkRust_announced (bc : BytecodeRust) (publicInput : List (BitVec 8)) :
 
 /-! ## The proof is never changed -/
 
-/-- `m` leaves the transcript's proof as it was. -/
+/-- `m` leaves the transcript's proof and roots as they were. -/
 def KeepsProof {α : Type} (m : TM α) : Prop :=
-  ∀ {T : TState} {x : α} {T' : TState}, m.run T = some (x, T') → T'.proof = T.proof
+  ∀ {T : TState} {x : α} {T' : TState}, m.run T = some (x, T') →
+    T'.proof = T.proof ∧ T'.roots = T.roots
 
 namespace KeepsProof
 variable {α β : Type}
 
 theorem pure (a : α) : KeepsProof (Pure.pure a : TM α) := fun h ↦ by
   cases h
-  rfl
+  exact ⟨rfl, rfl⟩
 
 theorem bind {m : TM α} {f : α → TM β} (hm : KeepsProof m) (hf : ∀ a, KeepsProof (f a)) :
     KeepsProof (m >>= f) := fun {T} {x} {T'} h ↦ by
@@ -113,7 +114,7 @@ theorem bind {m : TM α} {f : α → TM β} (hm : KeepsProof m) (hf : ∀ a, Kee
   · rw [e] at h
     cases h
   · rw [e] at h
-    exact (hf a h).trans (hm e)
+    exact ⟨(hf a h).1.trans (hm e).1, (hf a h).2.trans (hm e).2⟩
 
 theorem fail : KeepsProof (TM.fail : TM α) := fun h ↦ by cases h
 
@@ -126,28 +127,28 @@ theorem require (c : Prop) [Decidable c] : KeepsProof (TM.require c) := fun {T} 
   simp only [TM.require, StateT.run] at h
   split_ifs at h
   cases h
-  rfl
+  exact ⟨rfl, rfl⟩
 
 theorem streamPosition : KeepsProof TM.streamPosition := fun h ↦ by
   cases h
-  rfl
+  exact ⟨rfl, rfl⟩
 
 theorem finish : KeepsProof TM.finish := fun {T} {x} {T'} h ↦ by
   simp only [TM.finish, StateT.run] at h
   split_ifs at h
   cases h
-  rfl
+  exact ⟨rfl, rfl⟩
 
 theorem nextScalar : KeepsProof TM.nextScalar := fun {T} {x} {T'} h ↦ by
   simp only [TM.nextScalar, StateT.run] at h
   split at h
   · cases h
-    rfl
+    exact ⟨rfl, rfl⟩
   · cases h
 
 theorem sample : KeepsProof TM.sample := fun h ↦ by
   cases h
-  rfl
+  exact ⟨rfl, rfl⟩
 
 theorem nextScalars : ∀ n, KeepsProof (TM.nextScalars n)
   | 0 => pure _
@@ -157,17 +158,19 @@ theorem samples : ∀ n, KeepsProof (TM.samples n)
   | 0 => pure _
   | n + 1 => bind sample fun _ ↦ bind (samples n) fun _ ↦ pure _
 
-theorem commit (height width : ℕ) : KeepsProof (TM.commit height width) :=
-  fun {T} {x} {T'} h ↦ by
-    rw [commit_run] at h
-    rcases e : (TM.nextScalars 2).run T with _ | ⟨xs, T₁⟩
-    · rw [e] at h
-      cases h
-    · rw [e] at h
-      simp only [Option.bind_some, Option.map_eq_some_iff] at h
-      obtain ⟨root, -, h⟩ := h
-      cases h
-      exact (nextScalars 2 e : T₁.proof = T.proof)
+/-- `TM.commit` keeps the proof and appends its root to the roots. -/
+theorem commit (height width : ℕ) {T : TState} {x : Digest} {T' : TState}
+    (h : (TM.commit height width).run T = some (x, T')) :
+    T'.proof = T.proof ∧ T'.roots = T.roots ++ [(x, height, width)] := by
+  rw [commit_run] at h
+  rcases e : (TM.nextScalars 2).run T with _ | ⟨xs, T₁⟩
+  · rw [e] at h
+    cases h
+  · rw [e] at h
+    simp only [Option.bind_some, Option.map_eq_some_iff] at h
+    obtain ⟨root, -, h⟩ := h
+    cases h
+    exact ⟨(nextScalars 2 e).1, rfl⟩
 
 end KeepsProof
 

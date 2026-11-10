@@ -91,6 +91,26 @@ theorem opAt {OI : MachineState → Word → List (List Opening) → Prop} {s u 
     rw [e, op5]
     rfl
 
+/-- Every table's coordinates are nonempty. -/
+theorem tablesRust_coords :
+    (tablesRust.all fun t ↦ (t.flushes.push ++ t.flushes.pull).all fun c ↦ !c.isEmpty) = true := by
+  decide +kernel
+
+theorem coords_ne {u : MachineState} {V : Word} {L : List (List FormRust)}
+    (hv : formVecsOf u V = L) (hL : ∀ c ∈ L, c ≠ []) :
+    ∀ i < (vecLen u V).toNat, (vecLen u (vecPtr u V + BitVec.ofNat 64 (24 * i))).toNat ≠ 0 := by
+  intro i hi h0
+  subst hv
+  refine hL _ (by unfold formVecsOf; exact List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩) ?_
+  simp [formVecOf, formsAt, h0]
+
+theorem table_coords {i : Nat} {tb : TableRust} (h : tablesRust[i]? = some tb) :
+    (∀ c ∈ tb.flushes.push, c ≠ []) ∧ ∀ c ∈ tb.flushes.pull, c ≠ [] := by
+  have := List.all_eq_true.mp tablesRust_coords tb (List.mem_of_getElem? h)
+  simp only [List.all_append, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true',
+    List.isEmpty_eq_false_iff] at this
+  exact this
+
 /-- The block of the `i`-th table with coordinates `c`. -/
 def blkOf (A : List E) (i : Nat) (c : List FormRust) : BusBlockRust :=
   ⟨(tableLogHeightsRust (rowsOf A)).getD i 0, (rowsOf A).getD i 0, c, i⟩
@@ -243,7 +263,8 @@ theorem zipExt (hE : ExtendBlocksSpec) {OI : MachineState → Word → List (Lis
     extCall hE hpre (b80002e94_pc h₁) B₁ (hdr := s.getReg .x2 - 416) (by addr_omega [hb1])
       (by addr_omega [hb1]) (by addr_omega [hb1, hb3]) (hap _ (Or.inl rfl))
       (by rw [b80002e94_x10 h₁, e2240]) (by rw [b80002e94_x11 h₁, e1728]) V₁.push
-      (fun x hx ↦ V₁.fresh x (Or.inl hx)) T₁.ok.push (hVlo 24 _ fun x hx ↦ Or.inl hx) ht80
+      (fun x hx ↦ V₁.fresh x (Or.inl hx)) T₁.ok.push (hVlo 24 _ fun x hx ↦ Or.inl hx)
+      (coords_ne (congrArg FlushesRust.push T₁.flushes) (table_coords htb).1) ht80
       c0 c8 c16 c24 c32
   · exact ⟨t₁, hr₁.trans hrt₁, Or.inl hd₁⟩
   have V₂ := V₁.withPush hpre hv₁ hv₂ mono₂ B₁.loLe fr₂ hw₂ ok₂ (by rw [val₂, V₁.pushV]) foot₂
@@ -319,7 +340,9 @@ theorem zipExt (hE : ExtendBlocksSpec) {OI : MachineState → Word → List (Lis
       (by addr_omega [hb1]) (by addr_omega [hb1, hb3]) (hap _ (Or.inr rfl))
       (by rw [b80002f0c_x10 h₃, e2432]) (by rw [b80002f0c_x11 h₃, f1728]) V₃.pull
       (fun x hx ↦ V₃.fresh x (Or.inr (Or.inl hx))) hpl (fun x hx ↦ B₃.below i hi x (by
-        rw [← htbl]; exact Or.inr (Or.inr (by rw [e24_24]; exact hx)))) ht80
+        rw [← htbl]; exact Or.inr (Or.inr (by rw [e24_24]; exact hx))))
+      (coords_ne (by rw [← e24_24]; exact congrArg FlushesRust.pull T₃.flushes) (table_coords htb).2)
+      ht80
       d0 d8 d16 d24 d32
   · exact ⟨t₂, hr₁.trans (hrt₁.trans (hr₃.trans hrt₂)), Or.inl hd₂⟩
   have V₄ := V₃.withPull hpre hv₃ hv₄ mono₄ B₃.loLe fr₄ hw₄ ok₄ (by rw [val₄, V₃.pullV]) foot₄

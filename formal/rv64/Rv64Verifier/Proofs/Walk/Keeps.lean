@@ -2,11 +2,10 @@ import Rv64Verifier.Proofs.Walk.AtR17
 import Rv64Verifier.Proofs.Pcs.VsoKeeps
 
 /-!
-# The phases after the bus keep the proof
+# The phases after the bus keep the transcript's proof and roots
 
 `Model.Pcs.Keeps`: the table sumcheck, the public input, `verify_keccak`, `ring_switch` and
-`verify_bus_balance` keep the proof, the roots and the opening offset; `verify_stacked_opening`
-commits and opens, so it keeps only the proof (`KeepsProof`).
+`verify_bus_balance` keep the proof, the roots and the opening offset.
 -/
 
 namespace Rv64Verifier.Proofs.Walk
@@ -172,105 +171,6 @@ theorem keeps_verifyBusBalanceM (bytecodeEvaluate : List E → Option E) (layout
     Keeps.bind Keeps.nextScalar fun _ ↦ Keeps.bind Keeps.nextScalar fun _ ↦
       Keeps.bind (keeps_ofOption _) fun _ ↦ Keeps.pure _
 
-/-! ## `verify_stacked_opening` keeps the proof -/
-
-theorem keepsProof_of_keeps {α : Type} {m : TM α} (h : Keeps m) : KeepsProof m :=
-  fun {_} {_} {_} e ↦ (h _ _ _ e).1
-
-theorem keepsProof_merkle (i : ℕ) (positions : List ℕ) : KeepsProof (TM.merkle i positions) :=
-  fun {T} {x} {T'} h ↦ by
-    simp only [TM.merkle, StateT.run] at h
-    split at h
-    · split at h
-      · cases h
-        rfl
-      · cases h
-    · cases h
-
-theorem keepsProof_merkleLeaves (i : ℕ) (queries : List (BitVec 64)) (leafWords : ℕ) :
-    KeepsProof (Pcs.TM.merkleLeaves i queries leafWords) :=
-  KeepsProof.bind (keepsProof_merkle _ _) fun _ ↦
-    KeepsProof.bind (KeepsProof.require _) fun _ ↦ KeepsProof.pure _
-
-theorem keeps_sampleQueriesLoop (blockLength : BitVec 64) (depth count : ℕ) :
-    ∀ (fuel : ℕ) (result : List (BitVec 64)),
-      Keeps (Pcs.sampleQueriesLoop blockLength depth count fuel result)
-  | 0, _ => Keeps.pure _
-  | fuel + 1, result => by
-    unfold Pcs.sampleQueriesLoop
-    exact keeps_ite (Keeps.bind Keeps.sample fun _ ↦
-      keeps_sampleQueriesLoop blockLength depth count fuel _) (Keeps.pure _)
-
-theorem keeps_sampleQueriesRust (blockLength : BitVec 64) (count : ℕ) :
-    Keeps (Pcs.sampleQueriesRust blockLength count) :=
-  Keeps.bind (keeps_ofOption _) fun _ ↦ keeps_sampleQueriesLoop _ _ _ _ _
-
-theorem keeps_forRange {σ : Type} {f : ℕ → σ → TM σ} (hf : ∀ i x, Keeps (f i x)) :
-    ∀ (start n : ℕ) (x : σ), Keeps (Pcs.TM.forRange f start n x)
-  | _, 0, _ => Keeps.pure _
-  | start, n + 1, x => Keeps.bind (hf start x) fun y ↦ keeps_forRange hf (start + 1) n y
-
-theorem keeps_tailRoundRust (messageLog roundIndex : ℕ) (st : List E × List E × E) :
-    Keeps (Pcs.tailRoundRust messageLog roundIndex st) := by
-  unfold Pcs.tailRoundRust
-  exact Keeps.bind Keeps.sample fun _ ↦ keeps_ite
-    (Keeps.bind (Keeps.roundPoly _ _ _) fun _ ↦ Keeps.pure _) (Keeps.pure _)
-
-theorem keepsProof_ite {α : Type} {c : Prop} {_ : Decidable c} {a b : TM α} (ha : KeepsProof a)
-    (hb : KeepsProof b) : KeepsProof (if c then a else b) := by
-  split
-  · exact ha
-  · exact hb
-
-theorem keepsProof_whirLevelsRust (logN : ℕ) (config : Pcs.WhirConfigRust)
-    (basis : List E → Option E) :
-    ∀ (level : ℕ) (pairs : List (ℕ × ℕ)) (s : Pcs.WhirLocals),
-      KeepsProof (Pcs.whirLevelsRust logN config basis level pairs s)
-  | _, [], _ => KeepsProof.fail
-  | level, (foldCount, levelRate) :: rest, s => by
-    unfold Pcs.whirLevelsRust
-    apply KeepsProof.bind (keepsProof_of_keeps (Keeps.loopN Pcs.Keeps.foldRound _ _))
-    rintro ⟨_, _⟩
-    dsimp only
-    apply keepsProof_ite
-    on_goal 1 =>
-      apply KeepsProof.bind (keepsProof_of_keeps (Keeps.nextScalars _)); intro _
-      apply KeepsProof.bind (KeepsProof.pure _); intro _
-    on_goal 2 =>
-      apply KeepsProof.bind (KeepsProof.commit _ _); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps (Keeps.samples _)); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps Keeps.nextScalar); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps (Keeps.roundPoly _ _ _)); intro _
-      apply KeepsProof.bind (KeepsProof.pure _); intro _
-    all_goals
-      apply KeepsProof.bind (keepsProof_of_keeps (Keeps.grind _)); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps (keeps_ofOption _)); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps (keeps_sampleQueriesRust _ _)); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps Keeps.sample); intro _
-      apply KeepsProof.bind (keepsProof_merkleLeaves _ _ _); intro _
-      apply KeepsProof.bind (keepsProof_of_keeps (Keeps.roundPoly _ _ _)); intro _
-      apply keepsProof_ite
-      · exact keepsProof_of_keeps (Keeps.bind
-          (keeps_forRange (fun i x ↦ keeps_tailRoundRust _ i x) _ _ _) fun _ ↦
-          Keeps.bind (keeps_ofOption _) fun _ ↦ Keeps.bind (keeps_ofOption _) fun _ ↦
-            Keeps.bind (keeps_ofOption _) fun _ ↦ keeps_require _)
-      · exact keepsProof_whirLevelsRust logN config basis _ rest _
-
-theorem keepsProof_verifyWhirRust (logN logInvRate : ℕ) (target : E) (basis : List E → Option E) :
-    KeepsProof (Pcs.verifyWhirRust logN logInvRate target basis) := by
-  unfold Pcs.verifyWhirRust
-  apply KeepsProof.bind (keepsProof_of_keeps (keeps_ofOption _)); intro _
-  apply KeepsProof.bind (keepsProof_of_keeps (Keeps.roundPoly _ _ _)); intro _
-  exact keepsProof_whirLevelsRust _ _ _ _ _ _
-
-/-- `verify_stacked_opening` keeps the proof. -/
-theorem keepsProof_verifyStackedOpeningRust (stackLog logInvRate : ℕ)
-    (claims : List Pcs.StackClaimRust) :
-    KeepsProof (Pcs.verifyStackedOpeningRust stackLog logInvRate claims) := by
-  unfold Pcs.verifyStackedOpeningRust
-  apply KeepsProof.bind (keepsProof_of_keeps Keeps.sample); intro _
-  exact keepsProof_verifyWhirRust _ _ _ _
-
 end Rv64Verifier.Proofs.Walk
 
 /-- info: 'Rv64Verifier.Proofs.Walk.keeps_streamPosition' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -308,10 +208,3 @@ end Rv64Verifier.Proofs.Walk
 
 /-- info: 'Rv64Verifier.Proofs.Walk.keeps_verifyBusBalanceM' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.keeps_verifyBusBalanceM
-
-/--
-info: 'Rv64Verifier.Proofs.Walk.keepsProof_verifyStackedOpeningRust' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.keepsProof_verifyStackedOpeningRust

@@ -6,7 +6,7 @@ import Statement.LeanVmVerifier
 
 The image (`guest/`, exported to Lean by `scripts/export-image.py`) is loaded with its code at its
 base, its data words in memory, the input words at `inputBase` and their number in `a0`, and
-started at its entry. `Sound`: if it halts with `a0 = 1`, the input decodes to a bytecode, a public
+started at its entry; the input fits below the heap (`inputCapacity` words). `Sound`: if it halts with `a0 = 1`, the input decodes to a bytecode, a public
 input and a proof that `verifyWith` over Keccak-f[1600] accepts. `Complete`: if `verifyWith`
 accepts a proof whose input fits the image's memory, the image halts with `a0 = 1` on its encoding.
 The input is a list of 64-bit words (`decodeInput`, the format `guest/src/main.rs` documents).
@@ -24,6 +24,9 @@ structure LoadImage where
 
 /-- Where the loader puts the input. -/
 def inputBase : Word := 0x10000000
+
+/-- How many input words fit between `inputBase` and the heap at `0x20000000`. -/
+def inputCapacity : Nat := 2 ^ 25
 
 /-! ## The input -/
 
@@ -82,7 +85,8 @@ def Loaded (image : LoadImage) (words : List Word) (s : MachineState) : Prop :=
   s.pc = image.entry ∧
   (∀ p ∈ image.data, s.getMem p.1 = p.2) ∧
   (∀ i (h : i < words.length), s.getMem (inputBase + BitVec.ofNat 64 (8 * i)) = words[i]) ∧
-  s.getReg .x10 = BitVec.ofNat 64 words.length
+  s.getReg .x10 = BitVec.ofNat 64 words.length ∧
+  words.length ≤ inputCapacity
 
 /-! ## The end statements -/
 

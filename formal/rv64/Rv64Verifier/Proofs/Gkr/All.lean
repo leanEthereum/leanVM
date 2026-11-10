@@ -8,8 +8,9 @@ import Rv64Verifier.Proofs.Gkr.LayerSample
 import Rv64Verifier.Proofs.Gkr.LayerWeights
 import Rv64Verifier.Proofs.Gkr.LayerR7
 import Rv64Verifier.Proofs.Gkr.Layer
-import Rv64Verifier.Proofs.Gkr.KeccakClaim
+import Rv64Verifier.Proofs.Gkr.KeccakSpec
 import Rv64Verifier.Proofs.Gkr.LayerR17
+import Rv64Verifier.Proofs.Gkr.LayerR8c
 import Rv64Verifier.Proofs.Multilinear.All
 
 /-!
@@ -35,6 +36,13 @@ theorem secondHalf : Layer.SecondHalf :=
   Layer.second_half Runtime.alloc_spec Runtime.reserveFresh_80008a10 Proofs.Field.mul
     Proofs.Multilinear.fromElem
 
+/-- `verify_keccak`, its callees' contracts discharged but `verify_layer`'s. -/
+theorem verifyKeccak (hVL : VerifyLayerSpec) : VerifyKeccakSpec :=
+  Keccak.verify_keccak_spec Transcript.samples Proofs.Multilinear.sliceConcat eqKernel
+    Runtime.alloc_spec Runtime.reserveFast_80008a10 Proofs.Field.mulK Proofs.Multilinear.dot
+    Proofs.Field.mul Transcript.nextScalar hVL Runtime.memcpy «open» Transcript.sumcheck
+    Transcript.nextScalars Proofs.Multilinear.mleEval
+
 end Rv64Verifier.Gkr
 
 /-! Lean's three axioms, nothing native. -/
@@ -53,3 +61,9 @@ end Rv64Verifier.Gkr
 
 /-- info: 'Rv64Verifier.Gkr.secondHalf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Gkr.secondHalf
+
+/-- info: 'Rv64Verifier.Gkr.Layer.pack' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.Layer.pack
+
+/-- info: 'Rv64Verifier.Gkr.verifyKeccak' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.verifyKeccak

@@ -349,8 +349,9 @@ structure VsoPre (s : MachineState) : Prop where
   weightsSponge : ∀ i < (s.getReg .x15).toNat,
     WeightApart s (s.getReg .x14 + BitVec.ofNat 64 (88 * i)) (s.getReg .x10 + 8) 352
   proofSponge : ProofApart s (s.getReg .x10) (s.getReg .x10 + 8) 352
-  /-- A checked transcript: a replay skips the checks, and its `Ok` says nothing. -/
-  checked : byteAt s (s.getReg .x10 + 360) ≠ 0
+  /-- A checked transcript (`true`, as the grinding check reads its low bit): a replay skips the
+  checks, and its `Ok` says nothing. -/
+  checked : byteAt s (s.getReg .x10 + 360) = 1
   /-- The root, which the function overwrites with each level's commitment, misses what it reads
   besides. -/
   rootSelf : Apart (s.getReg .x11) 32 (s.getReg .x10) transcriptSize

@@ -18,6 +18,7 @@ structure AtTS (s u₀ w : MachineState) (bus : BusResultRust) (PP : Word) : Pro
   rest : Rest s u₀ w
   old : ∀ x : Word, x.toNat + 8 ≤ heapNext u₀ → w.getMem x = u₀.getMem x
   x1 : w.getReg .x1 = 0x800037ac
+  x8 : w.getReg .x8 = 6
   x10 : w.getReg .x10 = s.getReg .x2 - 928
   x11 : w.getReg .x11 = u₀.getMem (s.getReg .x2 - 2456)
   x12 : w.getReg .x12 = 6
@@ -104,6 +105,7 @@ theorem tsArgs {OI : MachineState → Word → List (List Opening) → Prop}
     rest := R₁
     old := oldW
     x1 := b8000375c_x1 h₁
+    x8 := b8000375c_x8 h₁
     x10 := by rw [b8000375c_x10 h₁, ea 1728 928 rfl]
     x11 := by rw [b8000375c_x11 h₁, ea 200 2456 rfl]; exact gF 2456 (by omega)
     x12 := b8000375c_x12 h₁

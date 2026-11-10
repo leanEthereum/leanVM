@@ -108,6 +108,7 @@ theorem extPre {OI : MachineState → Word → List (List Opening) → Prop} {s 
     (x10 : c.getReg .x10 = hdr) (x11 : c.getReg .x11 = s.getReg .x2 - 928)
     (hok : BlocksOk c hdr) (hf : ∀ x, blocksFoot c hdr x → lo ≤ x.toNat)
     {V tbl : Word} (hV : FormVecsOk c V) (hVlo : ∀ x, formVecsDeep c V x → x.toNat < lo)
+    (hne : ∀ i < (vecLen c V).toNat, (vecLen c (vecPtr c V + BitVec.ofNat 64 (24 * i))).toNat ≠ 0)
     (ht : 0x20000000 ≤ tbl.toNat ∧ tbl.toNat + 80 ≤ lo ∧ tbl.toNat % 8 = 0)
     (m0 : c.getMem (s.getReg .x2 - 928) = vecPtr c V)
     (m8 : c.getMem (s.getReg .x2 - 920) = vecPtr c V + BitVec.ofNat 64 (24 * (vecLen c V).toNat))
@@ -194,6 +195,8 @@ theorem extPre {OI : MachineState → Word → List (List Opening) → Prop} {s 
         · exact Or.inr h0)
     srcOk := fun i hi ↦ by
       rw [hLen] at hi; rw [hB]; exact hV.elems i hi
+    srcNe := fun i hi ↦ by
+      rw [hLen] at hi; rw [hB]; exact hne i hi
     srcDeep := fun i hi x hx' hw ↦ by
       rw [hLen] at hi; rw [hB] at hx'
       have h1 := hVlo x (Or.inr ⟨i, hi, hx'⟩)
@@ -354,6 +357,7 @@ theorem extCall (hE : ExtendBlocksSpec) {OI : MachineState → Word → List (Li
     (x10 : c.getReg .x10 = hdr) (x11 : c.getReg .x11 = s.getReg .x2 - 928)
     (hok : BlocksOk c hdr) (hf : ∀ x, blocksFoot c hdr x → lo ≤ x.toNat)
     {V tbl : Word} (hV : FormVecsOk c V) (hVlo : ∀ x, formVecsDeep c V x → x.toNat < lo)
+    (hne : ∀ i < (vecLen c V).toNat, (vecLen c (vecPtr c V + BitVec.ofNat 64 (24 * i))).toNat ≠ 0)
     (ht : 0x20000000 ≤ tbl.toNat ∧ tbl.toNat + 80 ≤ lo ∧ tbl.toNat % 8 = 0)
     (m0 : c.getMem (s.getReg .x2 - 928) = vecPtr c V)
     (m8 : c.getMem (s.getReg .x2 - 920) = vecPtr c V + BitVec.ofNat 64 (24 * (vecLen c V).toNat))
@@ -372,7 +376,7 @@ theorem extCall (hE : ExtendBlocksSpec) {OI : MachineState → Word → List (Li
           (c.getMem (tbl + 72)).toNat⟩ : BusBlockRust)) ∧
       ∀ x, blocksFoot t hdr x → blocksFoot c hdr x ∨ Fresh c t x)) := by
   obtain ⟨hb1, hb2, -, -⟩ := bounds hpre
-  obtain ⟨pre, hB, hL, hH, hR, hT⟩ := extPre hpre h hh1 hh2 hh3 hap x10 x11 hok hf hV hVlo ht
+  obtain ⟨pre, hB, hL, hH, hR, hT⟩ := extPre hpre h hh1 hh2 hh3 hap x10 x11 hok hf hV hVlo hne ht
     m0 m8 m16 m24 m32
   obtain ⟨t, hr, ⟨hpct, hp, post⟩ | hd⟩ := hE c hpc pre
   swap

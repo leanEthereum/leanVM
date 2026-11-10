@@ -13,7 +13,7 @@ import Rv64Verifier.Proofs.Main.NewCount
 input that fits below the heap (`inputWords`). `IvStage` (`iv_stage`) and `ParseStage`
 (`parse_head`, `parse_rest`) are proved; `NewStage` is, from `BlockFull` (`newStage_of`), a block's
 work after `group`, a hypothesis.
-`sound_of_walk`: as `sound_of_main`, for those inputs (`SoundFits`).
+`sound_of_walk_fits`: as `sound_of_main`, for those inputs (`SoundFits`); `sound_of_walk`: `Sound`, since `Loaded` bounds the input.
 -/
 
 namespace Rv64Verifier.Proofs.Main
@@ -43,7 +43,7 @@ theorem sound_of_main_fits
       FunSpec Image.code mainEntry (MainPre words) (MainPost words)) :
     SoundFits image := by
   intro words s n hfit hload hhalts
-  obtain ⟨hpc, hdata, hinput, ha0⟩ := hload
+  obtain ⟨hpc, hdata, hinput, ha0, -⟩ := hload
   obtain ⟨u, hu, hhalt, hu1⟩ := hhalts
   have hustop := Halting.step_none hhalt
   obtain ⟨s₁, hs₁, hx⟩ := start_spec.reaches hpc trivial
@@ -82,8 +82,13 @@ theorem main_spec_of (hNew : NewStage) (hW : WalkCallSpec) (words : List Word)
 
 /-- **Soundness, from `walk`'s contract**, for the inputs that fit, given a block's work after
 `group` (`BlockFull`). -/
-theorem sound_of_walk (hFull : BlockFull) (hW : WalkCallSpec) : SoundFits image :=
+theorem sound_of_walk_fits (hFull : BlockFull) (hW : WalkCallSpec) : SoundFits image :=
   sound_of_main_fits fun words hfit ↦ main_spec_of (newStage_of hFull) hW words hfit
+
+/-- **Soundness**, given `walk`'s contract and `Bytecode::new`'s block phases: `Loaded` bounds the
+input by `inputCapacity`, which is `inputWords`. -/
+theorem sound_of_walk (hFull : BlockFull) (hW : WalkCallSpec) : Sound image :=
+  fun words s n hload hhalts ↦ sound_of_walk_fits hFull hW words s n hload.2.2.2.2 hload hhalts
 
 end Rv64Verifier.Proofs.Main
 

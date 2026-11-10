@@ -14,6 +14,7 @@ import Rv64Verifier.Proofs.Pcs.VsoOpenings
 import Rv64Verifier.Proofs.Pcs.ExtendSpec
 import Rv64Verifier.Proofs.Pcs.VsoClimb
 import Rv64Verifier.Proofs.Pcs.VsoLamPowers
+import Rv64Verifier.Proofs.Pcs.VsoQueries
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -193,3 +194,21 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.lamPowers' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.lamPowers
+
+/-- info: 'Rv64Verifier.Model.Pcs.afterFolds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Pcs.afterFolds_eq
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.grind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.grind
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.qsetup' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.qsetup
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.chunk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.chunk
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.qloop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.qloop
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.queries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.queries

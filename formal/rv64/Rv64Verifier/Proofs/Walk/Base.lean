@@ -265,10 +265,10 @@ def initT (s : MachineState) (proof : Proof) : TState :=
     (bytesAt s (s.getReg .x12) 32))
 
 /-- From `u` on, the code runs `C`, what is left of `prog s` from `initT s proof`, for every proof
-the memory holds. -/
+the memory holds, from a transcript with no roots yet. -/
 def Tracks (OI : MachineState → Word → List (List Opening) → Prop) (s u : MachineState)
     (C : TM SummaryRust) : Prop :=
-  ∀ proof, ProofIn OI s (s.getReg .x13) proof → ∃ T, T.proof = proof ∧
+  ∀ proof, ProofIn OI s (s.getReg .x13) proof → ∃ T, T.proof = proof ∧ T.roots = [] ∧
     TranscriptAt u (tp s) T ∧ (prog s).run (initT s proof) = C.run T
 
 section Tracks
@@ -278,16 +278,16 @@ variable {OI : MachineState → Word → List (List Opening) → Prop} {β : Typ
 theorem Tracks.keep (h : Tracks OI s u C)
     (hk : ∀ T, TranscriptAt u (tp s) T → TranscriptAt v (tp s) T) : Tracks OI s v C :=
   fun proof hp ↦ by
-    obtain ⟨T, e, hT, hr⟩ := h proof hp
-    exact ⟨T, e, hk T hT, hr⟩
+    obtain ⟨T, e, er, hT, hr⟩ := h proof hp
+    exact ⟨T, e, er, hk T hT, hr⟩
 
 theorem Tracks.bind {A : TM β} {K : β → TM SummaryRust} {x : β}
     (h : Tracks OI s u (A >>= K)) (hk : KeepsProof A)
     (hA : ∀ T, TranscriptAt u (tp s) T → ∃ T', A.run T = some (x, T') ∧ TranscriptAt v (tp s) T') :
     Tracks OI s v (K x) := fun proof hp ↦ by
-  obtain ⟨T₁, e₁, h₁, r₁⟩ := h proof hp
+  obtain ⟨T₁, e₁, f₁, h₁, r₁⟩ := h proof hp
   obtain ⟨T₂, e₂, h₂⟩ := hA T₁ h₁
-  refine ⟨T₂, (hk e₂).trans e₁, h₂, ?_⟩
+  refine ⟨T₂, (hk e₂).1.trans e₁, (hk e₂).2.trans f₁, h₂, ?_⟩
   rw [r₁, StateT.run_bind, e₂]
   rfl
 
@@ -295,7 +295,7 @@ theorem Tracks.fail {A : TM β} {K : β → TM SummaryRust} (h : Tracks OI s u (
     (hA : ∀ T, TranscriptAt u (tp s) T → A.run T = none) :
     ∀ proof, ProofIn OI s (s.getReg .x13) proof → (prog s).run (initT s proof) = none :=
   fun proof hp ↦ by
-    obtain ⟨T, -, hT, hr⟩ := h proof hp
+    obtain ⟨T, -, -, hT, hr⟩ := h proof hp
     rw [hr, StateT.run_bind, hA T hT]
     rfl
 
@@ -313,7 +313,7 @@ theorem Tracks.done {r : SummaryRust} (h : Tracks OI s u (pure r)) :
     ∀ proof, ProofIn OI s (s.getReg .x13) proof →
       ∃ summary, verifyExecutionRust (Proofs.Bytecode.readBytecode s (s.getReg .x11))
         (bytesAt s (s.getReg .x12) 32) proof = some summary := fun proof hp ↦ by
-  obtain ⟨T, -, -, hr⟩ := h proof hp
+  obtain ⟨T, -, -, -, hr⟩ := h proof hp
   refine ⟨r, ?_⟩
   show ((prog s).run (initT s proof)).map (·.1) = some r
   rw [hr]

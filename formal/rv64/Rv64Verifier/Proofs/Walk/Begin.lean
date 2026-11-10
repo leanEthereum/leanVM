@@ -196,7 +196,7 @@ theorem newStep {OI : MachineState → Word → List (List Opening) → Prop} {s
     x12 := b80001130_x12 h₁
     proofPtr := hptr
     checked := ?_
-    tracks := fun proof hp ↦ ⟨initT s proof, rfl, transcriptAt_init hpre I hptr ?_
+    tracks := fun proof hp ↦ ⟨initT s proof, rfl, rfl, transcriptAt_init hpre I hptr ?_
       (by rw [a1]; exact b80001130_m_x2_544 h₁) (by rw [a2]; exact b80001130_m_x2_552 h₁)
       (by rw [a3]; exact b80001130_m_x2_560 h₁) hp, rfl⟩ }⟩
   · rw [show tp s + 360 = u.getReg .x2 + 568 by

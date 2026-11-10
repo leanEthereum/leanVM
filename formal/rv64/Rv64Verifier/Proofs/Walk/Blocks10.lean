@@ -11,8 +11,8 @@ A `BusBlock` is 48 bytes: its coordinates `Vec<Form>` at `+0`, `log_rows` at `+2
 sound (`BlocksSound`) when the buffer is allocated and every block's coordinates are a sound
 `Vec<Form>` whose deep footprint misses the buffer.
 
-`Vec<BusBlock>::extend_trusted` for `build_layout`'s `{closure#2}` (at `0x80005f94`) has no contract
-in the tree; `ExtendBlocksSpec` states one.
+`ExtendBlocksSpec` restates the contract of `Vec<BusBlock>::extend_trusted` for `build_layout`'s
+`{closure#2}` (at `0x80005f94`) in these terms; `ExtB10.lean` derives it from the proved one.
 -/
 
 namespace Rv64Verifier.Proofs.Walk
@@ -160,6 +160,7 @@ structure ExtendBlocksPre (s : MachineState) : Prop where
     ((s.getMem (s.getReg .x11 + 8)).toNat - (itBegin s).toNat) % 24 = 0
   src : ExtRO s (itBegin s) (24 * itLen s)
   srcOk : ∀ i < itLen s, FormVecOk s (itBegin s + BitVec.ofNat 64 (24 * i))
+  srcNe : ∀ i < itLen s, (vecLen s (itBegin s + BitVec.ofNat 64 (24 * i))).toNat ≠ 0
   srcDeep : ∀ i < itLen s, ∀ x, formVecDeep s (itBegin s + BitVec.ofNat 64 (24 * i)) x →
     ¬ selfW s x
   height : ExtRO s (itHeight s) 8
