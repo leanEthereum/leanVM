@@ -2,7 +2,7 @@
   LeanVM.Guest.Count.VsBound
 
   **`verify_sub`'s words per child at the deployed instance**, at the child's candidate:
-  `185649 + osC (candidate μ r)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the
+  `176056 + osC (candidate μ r)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the
   kernel (`open_stacked`'s per candidate, `Count/VsOs*`).
 -/
 
@@ -43,11 +43,11 @@ set_option maxRecDepth 100000 in
 its frame `2032` and buffers `8706`, `g_power_of_word` (`49`, twice), the two `log2_ceil`
 placements (`205`, `206`), `certify_placement` (`486`), the grind checks (`53`, twice), the
 squeeze dispatch (`498`), the opening message (`58`), the bus grind dispatch (`61`),
-`verify_bus_gkr` (`46339`), `verify_tables` (`37789`), `verify_keccak` (`56391`),
-`ring_switch_target` (`3544`) and the terminal (`29130`), `185649` in all, and `open_stacked` at
+`verify_bus_gkr` (`37006`), `verify_tables` (`37529`), `verify_keccak` (`56391`),
+`ring_switch_target` (`3544`) and the terminal (`29130`), `176056` in all, and `open_stacked` at
 the candidate (`osC`). -/
 theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
-    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 185649 + osC (candidate μ r) := by
+    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 176056 + osC (candidate μ r) := by
   rw [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
     show vsWordsOs.Bnd = osBnd from rfl, show vsWordsOs.Kr = (fun f => wSK f - B2C.fs f) from rfl,
     osBosAt_eq h, show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,

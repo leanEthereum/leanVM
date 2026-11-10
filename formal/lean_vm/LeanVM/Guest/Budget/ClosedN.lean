@@ -45,10 +45,10 @@ instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ
 challenge, is (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
-    ([[397396, 400303, 410771, 415581, 421245, 427328, 435224],
-      [316265, 320181, 330196, 332388, 335926, 339373, 346254],
-      [287777, 292953, 300361, 302720, 304916, 307460, 314142],
-      [272554, 275315, 282119, 282932, 285304, 289094, 296506]].getD (r - 1) []).getD (μ - 22) 0
+    ([[387803, 390710, 401178, 405988, 411652, 417735, 425631],
+      [306672, 310588, 320603, 322795, 326333, 329780, 336661],
+      [278184, 283360, 290768, 293127, 295323, 297867, 304549],
+      [262961, 265722, 272526, 273339, 275711, 279501, 286913]].getD (r - 1) []).getD (μ - 22) 0
   else 0
 
 /-- `open_stacked`'s words at the 28 candidates (`Count/VsOsAll`). -/
@@ -105,7 +105,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 28` at rate `1`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 435224 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 425631 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, h3, h4⟩ := h

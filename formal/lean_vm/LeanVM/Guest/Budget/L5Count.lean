@@ -257,15 +257,16 @@ theorem iterSum_l5B_le (op : Opcode) (X S V : ℕ → ℕ) : ∀ c m,
 def vsCnt (op : Opcode) (μ r : ℕ) : ℕ := (vsCountT op).getD (B1.Whir.candidate μ r) 0
 
 /-- **`verify_sub`'s instructions of `op` on B1-d's tree at the deployed bounds** (`vsTs` at
-`Count.vsWords` and `vkBound`): at most `vsCnt op μ r`. -/
-theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28)
-    {rd : Reader} {t : Tree} {args rets : List E}
+`Count.vsWordsOs` and `vkBound`, the squeeze's arm at `μ`, the bus grind's at `d`): at most
+`vsCnt op μ r`. -/
+theorem vs_weight_le_deployed (op : Opcode) {μ r d : ℕ} (hc : B1.Whir.candidate μ r < 28)
+    (hμ : μ - 22 < 7) (hd : d < 18) {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub"
-      (B1.VerifySub.vsTs B2C.fs Count.vsWords B1.VerifySub.vkBound μ r) t)
+      (B1.VerifySub.vsTs B2C.fs Count.vsWordsOs B1.VerifySub.vkBound μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ vsCnt op μ r :=
-  vs_weight_le_vsTs op hc (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num)) h
-    hv hb
+  vs_weight_le_vsTs op hc hμ hd (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num))
+    h hv hb
 
 theorem iterSum_le {A B : ℕ → ℕ} (h : ∀ i, A i ≤ B i) : ∀ c m, iterSum A c m ≤ iterSum B c m
   | _, 0 => by simp [iterSum]

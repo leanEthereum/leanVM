@@ -24,7 +24,7 @@ CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
 BIG, GROUP, GROUPS = 136, 17, 8
 # `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
 # ratio of these words.
-RB = [('verify_bus_gkr', 46339), ('verify_keccak', 56391)]
+RB = [('verify_bus_gkr', 37006), ('verify_keccak', 56391)]
 
 
 def vt_term(g):
@@ -176,7 +176,7 @@ def write(g, OPS):
     o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
     o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
     o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its two ratio-bounded callees '
-                    'within `46339`, `56391` words.', lambda k: [vsc(k, c) for c in range(28)]))
+                    'within `37006`, `56391` words.', lambda k: [vsc(k, c) for c in range(28)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 28).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
