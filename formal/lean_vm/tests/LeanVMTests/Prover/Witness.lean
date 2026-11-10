@@ -39,8 +39,8 @@ def toyTrace2 : Execution toyProg := ⟨16, toyImage, 2⟩
   match witness? toyProg toyInput toyTrace with
   | some W => W.rows == [0, 0, 1, 0, 0, 0] && W.layout.logMemory == 16 &&
       W.stack.size == 2 ^ W.layout.stackLog &&
-      W.cols.size == 165 && (W.cols.getD 3 #[]).getD 2 0 == g &&
-      (W.cols.getD 3 #[]).getD 3 0 == 1
+      W.cols.size == 158 && (W.cols.getD 2 #[]).getD 2 0 == g &&
+      (W.cols.getD 2 #[]).getD 3 0 == 1
   | none => false
 
 /-- info: 'LeanVM.Prover.witness?_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
