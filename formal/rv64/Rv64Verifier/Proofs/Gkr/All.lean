@@ -6,6 +6,7 @@ import Rv64Verifier.Proofs.Gkr.LayerCheck
 import Rv64Verifier.Proofs.Gkr.LayerSample
 import Rv64Verifier.Proofs.Gkr.LayerWeights
 import Rv64Verifier.Proofs.Gkr.LayerR7
+import Rv64Verifier.Proofs.Gkr.Layer
 import Rv64Verifier.Proofs.Multilinear.All
 
 /-!
@@ -37,3 +38,6 @@ end Rv64Verifier.Gkr
 
 /-- info: 'Rv64Verifier.Gkr.Layer.pack_start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Gkr.Layer.pack_start
+
+/-- info: 'Rv64Verifier.Gkr.Layer.verify_layer_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.Layer.verify_layer_spec
