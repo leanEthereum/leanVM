@@ -75,22 +75,18 @@ pub fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> 
     out
 }
 
-/// One word of the sliced state after a round, from the state the round applies `chi` to.
-#[inline(always)]
-fn chi_word(block: &[u64], round: usize, j: usize, w: usize) -> u64 {
-    let chi =
-        block[j * BLOCK_WORDS + w] ^ (!block[along(j, 1) * BLOCK_WORDS + w] & block[along(j, 2) * BLOCK_WORDS + w]);
-    if j < 64 && iota_bit(round, j) { !chi } else { chi }
-}
-
-/// The eight words of position `j` in block `g` of the state after `round` rounds.
+/// The eight words of position `j` in block `g` of the state after `round` rounds: `chi` on the
+/// words of `j` and of the two positions along its row, whole, then `iota`.
 #[inline(always)]
 pub(crate) fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
     let block = witness.layer(round, g);
+    let a = words(block, j);
     if round == 0 {
-        return *words(block, j);
+        return *a;
     }
-    std::array::from_fn(|w| chi_word(block, round, j, w))
+    let (b, c) = (words(block, along(j, 1)), words(block, along(j, 2)));
+    let iota = if j < 64 && iota_bit(round, j) { !0 } else { 0 };
+    std::array::from_fn(|w| a[w] ^ (!b[w] & c[w]) ^ iota)
 }
 
 /// Every position of every committed state, at a pack `point`, keeping the sixteen instances
