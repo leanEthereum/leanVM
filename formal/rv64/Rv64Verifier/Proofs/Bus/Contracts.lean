@@ -368,7 +368,14 @@ structure BusBalancePost (bev : MachineState → Word → List E → Option E)
   frame : DFrame s t fun a ↦ Within a (s.getReg .x10) 120 ∨ Within a (s.getReg .x12 + 8) 344 ∨
     Within a (stackLo s busBalanceStack) busBalanceStack ∨ Within a nextAddr 8 ∨ Fresh s t a
 
-abbrev BusBalanceSpec (bev : MachineState → Word → List E → Option E) : Prop :=
-  FunSpec Image.code 0x80006428 BusBalancePre (BusBalancePost bev)
+/-- `BusBalancePre`, and the `Bytecode` as `Bytecode::evaluate` reads it (`BcOk`, for a callee
+with an `n`-byte stack). -/
+structure BusBalancePreB (BcOk : MachineState → Nat → Word → Prop) (s : MachineState) : Prop
+    extends BusBalancePre s where
+  bytecode : BcOk s busBalanceStack (bytecodeOf s (s.getReg .x11))
+
+abbrev BusBalanceSpec (BcOk : MachineState → Nat → Word → Prop)
+    (bev : MachineState → Word → List E → Option E) : Prop :=
+  FunSpec Image.code 0x80006428 (BusBalancePreB BcOk) (BusBalancePost bev)
 
 end Rv64Verifier.Bus

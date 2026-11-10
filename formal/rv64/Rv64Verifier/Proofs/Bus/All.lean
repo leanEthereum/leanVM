@@ -6,6 +6,7 @@ import Rv64Verifier.Proofs.Bus.VbbSpine
 import Rv64Verifier.Proofs.Bus.VbbTail9
 import Rv64Verifier.Proofs.Bus.VbbGkrLoop
 import Rv64Verifier.Proofs.Bus.VbbGkrSumcheck
+import Rv64Verifier.Proofs.Bus.VbbTail19
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -23,6 +24,7 @@ code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `nex
 stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's from one iteration (`gkrStage`, `VbbGkr*.lean`, the iteration's first steps proved), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
 `table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
 and `Form::evaluate` (`FormEvaluateSpecE`).
+Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`).
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -145,3 +147,9 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.err7100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.err7100
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsOk.push' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsOk.push
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.restToConcat' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.restToConcat

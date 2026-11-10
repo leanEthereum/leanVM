@@ -3,9 +3,7 @@ import Rv64Verifier.Proofs.Bus.VbbTail3
 /-!
 # `verify_bus_balance` past the GKR loop: from `0x80006b60` to `0x80006ca0`
 
-`scalarsStage` composes `checkStep`, `memoryStep`, `memFinalStep` and `bcFinalStep`. `AfterGkr`
-does not say that `s3` holds `values`' buffer, which the code reads `tree_values` through: the
-stage takes it as a hypothesis (`hx19`), true on the depth-zero path (`AfterStart.x19`).
+`scalarsStage` composes `checkStep`, `memoryStep`, `memFinalStep` and `bcFinalStep`.
 -/
 
 namespace Rv64Verifier.Proofs.Bus.VerifyBusBalance
@@ -80,7 +78,7 @@ structure Scalars (bev : MachineState → Word → List E → Option E) (s q : M
 theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     {bev : MachineState → Word → List E → Option E} {s u : MachineState} {k : Start} {cnt : E}
     {state : GkrState} (hpre : BusBalancePre s) (G : AfterGkr bev s u k cnt state)
-    (hx19 : u.getReg .x19 = vecPtr u (s.getReg .x2 - 176)) (hpc : u.pc = 0x80006b60) :
+    (hpc : u.pc = 0x80006b60) :
     ∃ q, Reaches Image.code u q ∧ (Done bev s q ∨ Dead Image.code q ∨
       (q.pc = 0x80006ca0 ∧ ∃ memory mf bf, Scalars bev s q k state memory mf bf)) := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
@@ -142,7 +140,7 @@ theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     kept := G.kept.step hpre (stUQ.weaken fun _ ha ↦ ScalarsW.free hpre ha)
     x18 := (rq .x18 (by decide)).trans G.x18
     x19 := by
-      rw [rq .x19 (by decide), hx19, vecPtr, vecPtr]
+      rw [rq .x19 (by decide), G.x19, vecPtr, vecPtr]
       exact (stUQ.word hpre (fun y' hy h' ↦ by rcases h' with h' | h' | h' <;>
         addr_omega [hy, h', hb1]) (Or.inl (by addr_omega [hb1]))).symm
     x20 := (rq .x20 (by decide)).trans G.x20
@@ -167,21 +165,21 @@ theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     tracks := trB }⟩)⟩
 
 /-- From `0x80006ca0` to the return. -/
-def RestStage (bev : MachineState → Word → List E → Option E) : Prop :=
-  ∀ s q k state mem mf bf, BusBalancePre s → Scalars bev s q k state mem mf bf →
+def RestStage (BcOk : MachineState → Nat → Word → Prop)
+    (bev : MachineState → Word → List E → Option E) : Prop :=
+  ∀ s q k state mem mf bf, BusBalancePre s →
+    BcOk s busBalanceStack (bytecodeOf s (s.getReg .x11)) → Scalars bev s q k state mem mf bf →
     q.pc = 0x80006ca0 → ∃ t, Reaches Image.code q t ∧ (Done bev s t ∨ Dead Image.code t)
 
-/-- `TailStage`, from the rest's stage, given that `s3` holds `values`' buffer. -/
+/-- `TailStage`, from the rest's stage. -/
 theorem tailStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
-    {bev : MachineState → Word → List E → Option E} (hR : RestStage bev) :
-    ∀ s u k cnt state, BusBalancePre s → AfterGkr bev s u k cnt state →
-      u.getReg .x19 = vecPtr u (s.getReg .x2 - 176) → u.pc = 0x80006b60 →
-      ∃ t, Reaches Image.code u t ∧ (Done bev s t ∨ Dead Image.code t) := by
-  intro s u k cnt state hpre G hx19 hpc
-  obtain ⟨q, hrq, hdone | hd | ⟨hpcq, mem, mf, bf, S⟩⟩ := scalarsStage hNS hN hpre G hx19 hpc
+    {BcOk : MachineState → Nat → Word → Prop} {bev : MachineState → Word → List E → Option E}
+    (hR : RestStage BcOk bev) : TailStage BcOk bev := by
+  intro s u k cnt state hpre hbc G hpc
+  obtain ⟨q, hrq, hdone | hd | ⟨hpcq, mem, mf, bf, S⟩⟩ := scalarsStage hNS hN hpre G hpc
   · exact ⟨q, hrq, Or.inl hdone⟩
   · exact ⟨q, hrq, Or.inr hd⟩
-  obtain ⟨t, hrt, ht⟩ := hR s q k state mem mf bf hpre S hpcq
+  obtain ⟨t, hrt, ht⟩ := hR s q k state mem mf bf hpre hbc S hpcq
   exact ⟨t, hrq.trans hrt, ht⟩
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance
