@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.Residuals
 
-  A level's residual sum: the residual loop over its query pairs, the odd query inline, the
-  running `inner` advanced by the level's scale times the sum.
+  The non-final levels' residual chains and the inner chain they feed.
 -/
 
 module
@@ -10,12 +9,13 @@ module
 public import LeanVM.Guest.B1.Whir.ResLoop
 
 /-!
-# The residual sums (G:1721-1744)
+# The residuals (G:1826-1862)
 
-`osResidual_sound`: level `lvl`'s block reads `μ` from `level_mus`, its positions `P`, its row's
-words `D` in `basis_d`, its scale `L` in `level_scale`, and stores
-`inner[lvl + 1] = inner[lvl] + L·h`, `h` the chain `h ← (h + R(P_i))·μ` over its queries from `0`
-(`resFold`), `R` the level's `residual_query`: the loop over the batches of eight, the rest inline.
+A non-final level's residual (`osResidual`): `μ` read from `level_mus`, the chains' buffer from
+`0, 0`, the loop over its batches of eight queries (`resLoop_sound`, `resChain`), the remaining
+queries inline (`osResSteps_val`): the chains over all its positions (`osResidual_sound`). The
+level's sums go into `inner_chain`: `ich[2l + 2] = ich[2l] + scale_l·h_l` and
+`ich[2l + 3] = ich[2l + 1] + β_l·after_l·hh_l`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -25,92 +25,109 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- A level's residual at a position. -/
-abbrev lvRes (lv : OsLv) (D : ℕ → E) (p : E) : E :=
-  residualProd (osVals lv.vanish lv.logCols) p D lv.logCols
+/-- What a level's residual reads: its loop helper, its row and high part, its positions, `μ`. -/
+structure ResIn (rd : Reader) (σ : Val) (c : OsCfg) (bd lvl : ℕ) (lv : OsLv) (D : ℕ → E)
+    (hsv : List E) (Pos : ℕ → E) (mu : E) : Prop where
+  fn : FnIs (c.resLoop lvl) (osParams 7) (resLoopBody lvl lv (c.resLoop lvl))
+  read : ResRead rd lvl lv (σ (.n bd)) (σ (.n osHs)) D hsv
+  posOff : lv.posOff < u128Bound
+  nbo : lv.queries / resBatch < ordG
+  nbu : lv.queries / resBatch < u128Bound
+  pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (Pos k)
+  mus : LoadHolds rd (σ (.n osMus)) lvl mu
 
-/-- `resFold` is the sum of the residuals weighted by powers of `μ`. -/
-theorem resFold_eq_sum (D : ℕ → E) (vo ml : ℕ) (mu h : E) (P : ℕ → E) (n : ℕ) :
-    resFold D vo ml mu h ((List.range n).map P) =
-      h * mu ^ n + ∑ i ∈ Finset.range n, residualProd (osVals vo ml) (P i) D ml * mu ^ (n - i) := by
-  induction n with
-  | zero => simp [resFold]
-  | succ n ih =>
-    rw [List.range_succ, List.map_append, resFold_append, ih]
-    simp only [List.map_cons, List.map_nil, resFold, List.foldl_cons, List.foldl_nil,
-      Finset.sum_range_succ]
-    have : ∀ i ∈ Finset.range n, residualProd (osVals vo ml) (P i) D ml * mu ^ (n + 1 - i) =
-        residualProd (osVals vo ml) (P i) D ml * mu ^ (n - i) * mu := by
-      intro i hi
-      rw [Finset.mem_range] at hi
-      rw [show n + 1 - i = n - i + 1 by omega, pow_succ, mul_assoc]
-    rw [Finset.sum_congr rfl this, ← Finset.sum_mul, pow_succ, show n + 1 - n = 1 by omega]
-    ring
+/-- The chains over a level's positions. -/
+def resAll (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) : E × E :=
+  resFold (resP lv D) (resH lv hsv) mu (0, 0) ((List.range lv.queries).map Pos)
 
-/-- **A level's residual sum** (G:1721-1744). -/
-theorem osResidual_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ}
-    (hloop : FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl lv (c.resLoop lvl)))
-    (hml : 1 ≤ lv.logCols) (hpo : lv.posOff < u128Bound)
-    (hqo : lv.queries / resBatch < ordG) (hqu : lv.queries / resBatch < u128Bound)
-    {D P : ℕ → E} {I L mu : E}
-    (hD : ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s))
-    (hP : ∀ i < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + i) (P i))
-    (hM : LoadHolds rd (σ (.n osMus)) lvl mu)
-    (hI : LoadHolds rd (σ (.n ich)) lvl I) (hL : LoadHolds rd (σ (.n ls)) lvl L)
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osResidual c ich bd ls lvl lv k).1) :
-    LoadHolds rd (σ (.n ich)) (lvl + 1)
-      (I + L * resFold D lv.vanish lv.logCols mu 0 ((List.range lv.queries).map P)) := by
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  set n := lv.queries / resBatch
-  simp only [osResidual, allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨hm, -⟩, hz⟩, hc⟩, hl⟩, htl⟩, hrest⟩ := hok
-  simp only [osLoopCall, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons,
-    List.map_nil] at hm hz hc hl hrest
-  obtain ⟨z3, s3⟩ := hz
-  obtain ⟨c4, c5, a6, c7, c8, -, hcall⟩ := hc
-  have hmu : σ (.n k) = mu := loadHolds_unique hm hM
-  rw [z3, word_zero] at s3
-  -- the chain after the loop
-  have hchain : σ (.n (k + 9)) = resFold D lv.vanish lv.logCols mu 0
-      ((List.range (resBatch * n)).map P) := by
-    have hl : LoadHolds rd (σ (.n (k + 2))) n (σ (.n (k + 9))) := hl
-    rcases Nat.eq_zero_or_pos n with hn0 | hn0
-    · rw [hn0] at hl ⊢
-      simpa [resFold] using loadHolds_unique hl s3
-    · have hgn : gw n = gen ^ n := gw_eq hqu
-      have hit := resLoop_sound hfind lvl lv hps hbody hml hpo (D := D) (n := n) hn0 hqo
-        (σ (.n osQpos)) (σ (.n bd)) (σ (.n (k + 2))) (σ (.n k)) hD (by
-          rw [a6, c4, c5, c7, c8, hgn, word_one] at hcall
-          exact hcall)
-      have := resChain (P := P) (fun i hi ↦ hP i (by
-        have := Nat.div_mul_le_self lv.queries resBatch; simp only [n] at hi; nlinarith)) s3 hit n le_rfl
-      rw [hmu] at this
-      exact loadHolds_unique hl this
+theorem gw_zero : gw 0 = 1 := by rw [gw_eq (by decide), pow_zero]
+
+/-- **A level's residual** (G:1826-1862): the inner chain's two sums advanced by its chains. -/
+theorem osResidual_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
+    {ich bd ls la lvl : ℕ} {lv : OsLv} {D : ℕ → E} {hsv : List E} {Pos : ℕ → E} {mu : E}
+    (hin : ResIn rd σ c bd lvl lv D hsv Pos mu) {k : ℕ}
+    (hok : AllOk C rd σ (osResidual c ich bd ls la lvl lv k).1) :
+    ∃ i0 i1 s b a : E, LoadHolds rd (σ (.n ich)) (2 * lvl) i0 ∧
+      LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1 ∧ LoadHolds rd (σ (.n ls)) lvl s ∧
+      LoadHolds rd (σ (.n osBetas)) lvl b ∧ LoadHolds rd (σ (.n la)) lvl a ∧
+      LoadHolds rd (σ (.n ich)) (2 * lvl + 2) (i0 + s * (resAll lv D hsv Pos mu).1) ∧
+      LoadHolds rd (σ (.n ich)) (2 * lvl + 3) (i1 + b * a * (resAll lv D hsv Pos mu).2) := by
+  obtain ⟨fn, hfind, hps, hbody⟩ := hin.fn
+  unfold osResidual at hok
+  simp only at hok
+  set nb := lv.queries / resBatch with hnb
+  set tl := osResSteps osQpos bd (lvl * ligColsCap) osHs (lvl * hsStride) lv.vanish lv.logCols
+    lv.folds lv.highBits k (osResTail lv) (k + 10) (k + 11) (k + 12) with htl
+  simp only [allOk_append] at hok
+  obtain ⟨⟨⟨⟨⟨⟨hmu, -⟩, hz⟩, hcall⟩, hld⟩, hst⟩, hfin⟩ := hok
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_const, osLd, osCst]
+    at hmu hz hld
+  obtain ⟨z3, l3, z4, l4⟩ := hz
+  rw [z3, word_zero] at l3
+  rw [z4, word_zero] at l4
+  obtain ⟨l10, l11⟩ := hld
+  have emu : σ (.n k) = mu := loadHolds_unique hmu hin.mus
+  -- the loop
+  have hR := hin.read
+  have hloop : ∀ j < nb, ResIter rd (resP lv D) (resH lv hsv) lv.posOff (σ (.n osQpos))
+      (σ (.n (k + 2))) mu (gen ^ j) := by
+    rcases Nat.eq_zero_or_pos nb with h0 | h0
+    · intro j hj; omega
+    · refine resLoop_sound (lvl := lvl) (lv := lv) hfind hps hbody hin.posOff h0 hin.nbo _ _ _ _ _ hR ?_
+      simp only [osLoopCall, allOk_cons, allOk_nil, and_true, holds_const, holds_add,
+        osCst, osAdd, StmtOk, List.map_cons, List.map_nil] at hcall
+      obtain ⟨c5, c6, a7, c8, c9, -, hc⟩ := hcall
+      intro hne
+      have e7 : σ (.n (k + 5 + 2)) = 1 + gen ^ nb := by
+        rw [a7, c5, c6, gw_zero, gw_eq hin.nbu]
+      have := hc (by rw [e7]; exact hne)
+      rw [c8, c9, gw_zero, gw_eq hin.nbu, emu] at this
+      exact hle _ _ _ this
+  have hch := resChain (Pos := Pos) (n := nb) (fun i hi ↦ hin.pos i (by
+      have := Nat.div_mul_le_self lv.queries resBatch
+      rw [hnb] at hi; nlinarith)) (by simpa using l3) (by simpa using l4) hloop nb le_rfl
+  obtain ⟨c0, c1⟩ := hch
+  have e10 := loadHolds_unique l10 c0
+  have e11 := loadHolds_unique l11 c1
   -- the remaining queries
-  have hq : resBatch * n + lv.queries % resBatch = lv.queries := Nat.div_add_mod _ _
-  obtain ⟨ps, hF, hv⟩ := osResSteps_val hml hD _ _ _ htl
-  have eps : ps = (List.range (lv.queries % resBatch)).map fun i ↦ P (resBatch * n + i) := by
-    have hlen := hF.length_eq
-    simp only [osResTail, List.length_map, List.length_range] at hlen
-    refine List.ext_getElem (by simp [hlen]) fun i h1 h2 ↦ ?_
-    simp only [List.length_map, List.length_range] at h2
-    have h3 := (List.forall₂_iff_get.mp hF).2 i (by simp [osResTail]; omega) h1
-    simp only [osResTail, List.get_eq_getElem, List.getElem_map, List.getElem_range] at h3 ⊢
+  have hR' : ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s) := hR.D
+  obtain ⟨ps, hF, hv⟩ := osResSteps_val hR.cols hR.nhs hR.b3 hR.bn hR' hR.len hR.hs (osResTail lv)
+    (k + 10) (k + 11) (k + 12) hst
+  have hps' : ps = (List.range (lv.queries % resBatch)).map fun i ↦ Pos (resBatch * nb + i) := by
+    have hl := hF.length_eq
+    refine List.ext_getElem (by simp [← hl, osResTail]) fun i h1 h2 ↦ ?_
+    have := List.forall₂_iff_get.mp hF
+    have h3 := this.2 i (by rw [hl]; exact h1) h1
+    simp only [List.get_eq_getElem, osResTail, List.getElem_map, List.getElem_range] at h3
+    simp only [List.getElem_map, List.getElem_range]
     refine loadHolds_unique h3 ?_
-    have := hP (resBatch * n + i) (by omega)
-    rwa [show lv.posOff + (lv.queries - lv.queries % resBatch) + i = lv.posOff + (resBatch * n + i) by
-      omega]
-  have hsplit : (List.range lv.queries).map P = (List.range (resBatch * n)).map P ++
-      (List.range (lv.queries % resBatch)).map fun i ↦ P (resBatch * n + i) := by
-    conv_lhs => rw [← hq]
-    rw [List.range_add, List.map_append, List.map_map]
+    have hq := hin.pos (resBatch * nb + i) (by
+      have := Nat.div_add_mod lv.queries resBatch
+      simp at h2; rw [hnb]; omega)
+    rw [show lv.posOff + (lv.queries - lv.queries % resBatch) + i = lv.posOff + (resBatch * nb + i) by
+      have := Nat.div_add_mod lv.queries resBatch; rw [hnb]; omega]
+    exact hq
+  have hall : (List.range lv.queries).map Pos = (List.range (resBatch * nb)).map Pos ++ ps := by
+    have hQ : resBatch * nb + lv.queries % resBatch = lv.queries := by
+      rw [hnb]; exact Nat.div_add_mod _ _
+    rw [hps', show List.range lv.queries = List.range (resBatch * nb + lv.queries % resBatch) by
+      rw [hQ], List.range_add, List.map_append, List.map_map]
     rfl
-  obtain ⟨l0, l1, m2, a3, s4⟩ := hrest
-  rw [hv, hchain, hmu, eps, ← resFold_append, ← hsplit] at m2
-  rw [a3, m2, loadHolds_unique l0 hI, loadHolds_unique l1 hL] at s4
-  exact s4
+  have hres : (σ (.n tl.2.1), σ (.n tl.2.2.1)) = resAll lv D hsv Pos mu := by
+    rw [hv, e10, e11, emu, resAll, hall, resFold_append]
+    rfl
+  -- the inner chain
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
+    osMul, osAdd] at hfin
+  obtain ⟨l0, l1, m2, a3, s3, l4', l5, l6, m7, m8, a9, s9⟩ := hfin
+  have r1 := congrArg Prod.fst hres
+  have r2 := congrArg Prod.snd hres
+  simp only at r1 r2
+  refine ⟨_, _, _, _, _, l0, l4', l1, l5, l6, ?_, ?_⟩
+  · rw [a3, m2, r1] at s3; exact s3
+  · rw [a9, m8, m7, r2] at s9; exact s9
 
 end
 end LeanVM.Guest.B1.Whir
