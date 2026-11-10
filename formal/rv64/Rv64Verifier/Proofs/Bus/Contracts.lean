@@ -265,8 +265,9 @@ a `BusResult` its `claims`, `bytecode_point`, `point`, `forms`, `totals` at `+0`
 `+72`, `+96`, the `Err` niche (`errNiche`) in `claims`' capacity; a `ColumnClaim` (56 bytes) its
 `point: Vec<E>` at `+0`, `column` at `+24`, `value` at `+32`. -/
 
-/-- The 1344-byte frame and `sumcheck`'s stack below it. -/
-@[rv_addr] def busBalanceStack : Nat := 1344 + sumcheckStack
+/-- The 1344-byte frame and `Bytecode::evaluate`'s stack below it, the deepest of the callees':
+its 1968-byte frame and `eq_kernel`'s, 208 bytes and `mul`'s. -/
+@[rv_addr] def busBalanceStack : Nat := 1344 + (1968 + (208 + Contracts.mulStack))
 
 /-- The `BusBlock` at `a`. -/
 def blockAt (s : MachineState) (a : Word) : BusBlock :=
