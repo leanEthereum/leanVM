@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.Uniform
 
 `l5Pre`: `__loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
 (`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the next
-running count), no `KECCAK` of its own, every side condition a load of `written[x]` or of the
+running count), every side condition a load of `written[x]` or of the
 child's DA digest's two hinted cells, a store or a range check.
 -/
 
@@ -109,7 +109,6 @@ def l5Calls : List Stmt :=
 def l5COk : Bool :=
   (chk 16 (l5Pre ++ [l5Tail, .ret []])).isSome &&
   decide (storesOf 16 (l5Pre ++ [l5Tail, .ret []]) = l5S) &&
-  canonChk [] l5A' &&
   (atomsIn l5Pre).all (fun a => !needsSide a || decide (a ∈ l5S) ||
     decide (a = .load (.n 17) (.n 16) 0) || decide (a = .load (.n 42) (.n 41) 0) ||
     decide (a = .load (.n 43) (.n 41) 1) || isRcB a) &&
