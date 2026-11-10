@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FInBuf
 
-  Where the loads of statements `2688 ..< 6353` read: inside `fp_w`, the cursor's words, the
+  Where the loads of statements `2685 ..< 5525` read: inside `fp_w`, the cursor's words, the
   challenges' products and the equality prefix.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.VtC.InBuf
 # The window's loads, inside buffers
 
 `BufWin σ bufs p len`: the pointer `σ p` starts a run of `len` words inside one of the buffers
-`bufs`. `vtF_loadsInBuf`: given such runs for `fp_w` (16 words read), the cursor (the 159
+`bufs`. `vtF_loadsInBuf`: given such runs for `fp_w` (16 words read), the cursor (the 153
 evaluations) and the challenges' products and equality prefix (`n + 1` each), every load of the
 statements lands in a buffer.
 -/
@@ -51,12 +51,12 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 /-- **The window's loads land in buffers.** -/
 theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
     (h13 : BufWin (vtσ rd w args) bufs (.n 13) 16)
-    (hcur : BufWin (vtσ rd w args) bufs (.n 2625) 159)
-    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
-    {n : ℕ} (hgn : vtσ rd w args (.n 2516) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    (hcp : BufWin (vtσ rd w args) bufs (.n 2608) (n + 1))
-    (hpe : BufWin (vtσ rd w args) bufs (.n 2629) (n + 1)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2688).take (6353 - 2688)) := by
+    (hcur : BufWin (vtσ rd w args) bufs (.n 2647) 153)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (27 + t)) = gen ^ τs t)
+    {n : ℕ} (hgn : vtσ rd w args (.n 2544) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    (hcp : BufWin (vtσ rd w args) bufs (.n 2630) (n + 1))
+    (hpe : BufWin (vtσ rd w args) bufs (.n 2651) (n + 1)) :
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2685).take (5525 - 2685)) := by
   intro d p off hs
   rw [tbStmtsEqb_sound vtF_split] at hs
   rcases List.mem_append.mp hs with hs | hs
@@ -72,7 +72,7 @@ theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
       simp only at h0 hk
       subst h0
       simp only [vtFTagT, vtEvRest, List.mem_cons, List.not_mem_nil, or_false,
-        Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, or_false] at hsq
+        Stmt.atom.injEq, Atom.load.injEq] at hsq
       obtain ⟨-, rfl, rfl⟩ := hsq
       exact hcur.inBuf hk
     · obtain ⟨a, j⟩ := q

@@ -16,16 +16,17 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 open LeanVM.Prover LeanVM.Prover.KeccakGkr
 
 /-- The verifier program run against a prover script, the `n`-th challenge `chal n`: the
-program's result if every read meets a send and every sample a sample. -/
+program's result if every read meets a send, every sample a sample and every grind a grind. -/
 def drive {α β : Type} (chal : ℕ → E) : VerifierProgram α → Script β → ℕ → Option α
   | .ret a, _, _ => some a
   | .read k, .send x s, n => drive chal (k x) s n
   | .sample k, .sample s, n => drive chal (k (chal n)) (s (chal n)) (n + 1)
+  | .grind _ k, .grind s, n => drive chal k s n
   | _, _, _ => none
 
 /-- A pseudo-random element of `E`. -/
 def el (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5)) (K.ofBits (n + 77))
+  E.ofLimbs (K.ofBits (n * 2654435761 + 1)) (K.ofBits (n * 40503 + 5))
 
 def chal (n : ℕ) : E := el (1000 + n)
 
