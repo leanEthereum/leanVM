@@ -34,6 +34,7 @@ import Rv64Verifier.Proofs.Main.All
 import Rv64Verifier.Proofs.Walk.AllR10
 import Rv64Verifier.Proofs.Walk.AllC
 import Rv64Verifier.Proofs.Walk.AllB
+import Rv64Verifier.Proofs.Walk.AllF
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
