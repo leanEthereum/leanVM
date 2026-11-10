@@ -167,7 +167,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
     show AllocsAt σ' ((osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++
       (osTail c (osLvsEnd c)).1 ++ (osFinishA c (osFinSt c) (osFinTch c)).1) = _
     rw [allocsAt_append, allocsAt_append, allocsAt_append, hFA, head_allocs hS' hv,
-      osLevels_flat c 0 c.levels (osHead c).2, allocsAt_flatten, List.map_map]
+      osLevels_split c 0 c.levels (osHead c).2, allocsAt_flatten, List.map_map]
     have hlv' : ((List.range c.levels.length).map ((AllocsAt σ') ∘ fun i ↦
         (osLevel c (0 + i) (c.levels.getD i default) (osStFrom c 0 c.levels (osHead c).2 i)).1)) =
         (List.range n).map fun l ↦ bufsAt c b (13 + 2 * l) 2 := by
