@@ -236,12 +236,11 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
       · obtain ⟨i, hi, hRi⟩ := hreg (2, 128 / d) (by simp) off hoff
         exact ⟨i, by rw [hq]; exact hi, Or.inr (Or.inl hRi)⟩
       · obtain ⟨i, hi, hRi⟩ := hreg (3, 128) (by simp) e he128
-        have hTK : IsInK tabs := (hT 0 (by decide)).1
         refine ⟨i, ?_, Or.inr (Or.inl hRi)⟩
         rw [hq, ← hi]
         show (tabs * gen ^ e).limb 0 * Parameters.addressOfIndex 0 =
           tabs.limb 0 * Parameters.addressOfIndex e
-        rw [gen_pow_eq_ofK, limb0_mul_ofK hTK]
+        rw [gen_pow_eq_ofK, limb0_mul_ofK]
         simp [Parameters.addressOfIndex]
     | _ => simp [Ev.loadAddr?] at hA
   · -- the claimed run: the frame's

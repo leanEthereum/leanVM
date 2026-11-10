@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.AsmRun
+public import LeanVM.Guest.B1.Tables.Vt.Pi
 
 /-!
 # The column claims (G:2269-2303, 2416-2434, 2521-2535)
@@ -15,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmRun
 `vtAllClaims`: the claims `tablesSeg` returns on the layout of the announced sizes, with the
 evaluations `vtEvsC σ` read table by table. `vt_tab_claims`: the tables' claims, through
 `termsPure`, are evaluation `k`'s claim on column `vtColOf k` at the point's first `h_t`
-coordinates. `vt_asm_claims`: there are `167`, their values are `claim_pool`'s (bus, public input) and
+coordinates. `vt_asm_claims`: there are `159`, their values are `claim_pool`'s (bus, public input) and
 `col_eval_words`' (tables), and `TCtx` holds.
 -/
 
@@ -29,44 +30,44 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure termsPure_snd length_tableWeig
 
 /-- The tables' evaluations, table by table. -/
 def vtEvsC (σ : Val) : List (List E) :=
-  [(List.range 15).map fun c ↦ σ (.n (vtEvB (0 + c))),
-    (List.range 15).map fun c ↦ σ (.n (vtEvB (15 + c))),
-    (List.range 8).map fun c ↦ σ (.n (vtEvB (30 + c))),
-    (List.range 15).map fun c ↦ σ (.n (vtEvB (38 + c))),
-    (List.range 14).map fun c ↦ σ (.n (vtEvB (53 + c))),
-    (List.range 92).map fun c ↦ σ (.n (vtEvB (67 + c)))]
+  [(List.range 13).map fun c ↦ σ (.n (vtEvB (0 + c))),
+    (List.range 13).map fun c ↦ σ (.n (vtEvB (13 + c))),
+    (List.range 7).map fun c ↦ σ (.n (vtEvB (26 + c))),
+    (List.range 14).map fun c ↦ σ (.n (vtEvB (33 + c))),
+    (List.range 14).map fun c ↦ σ (.n (vtEvB (47 + c))),
+    (List.range 92).map fun c ↦ σ (.n (vtEvB (61 + c)))]
 
 /-- Evaluation `k`'s table. -/
 def vtTabOf (k : ℕ) : ℕ :=
-  if k < 15 then 0 else if k < 30 then 1 else if k < 38 then 2 else if k < 53 then 3
-  else if k < 67 then 4 else 5
+  if k < 13 then 0 else if k < 26 then 1 else if k < 33 then 2 else if k < 47 then 3
+  else if k < 61 then 4 else 5
 
 /-- Table `t`'s first evaluation. -/
-def vtBaseOf (t : ℕ) : ℕ := [0, 15, 30, 38, 53, 67].getD t 0
+def vtBaseOf (t : ℕ) : ℕ := [0, 13, 26, 33, 47, 61].getD t 0
 
 /-- Evaluation `k`'s global column. -/
 def vtColOf (k : ℕ) : ℕ := globalColumnBases.getD (vtTabOf k) 0 + (k - vtBaseOf (vtTabOf k))
 
 /-- The tables' claims. -/
 def vtTabClaims (rows : List ℕ) (chis : List E) (σ : Val) : List ColumnClaim :=
-  (List.range 159).map fun k ↦ ⟨vtColOf k, chis.take (vtHt rows (vtTabOf k)), σ (.n (vtEvB k))⟩
+  (List.range 153).map fun k ↦ ⟨vtColOf k, chis.take (vtHt rows (vtTabOf k)), σ (.n (vtEvB k))⟩
 
 /-- The public input's claims at `rm`. -/
 def vtPubClaims (L : Layout) (pi : Digest) (rm : E) : List ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, rm ::
     List.replicate ((L.placement memory0).variableCount - 1) 0, value⟩)
-    [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map fun limb ↦
+    [memory0, memory1] (([0, 1] : List (Fin 2)).map fun limb ↦
       multilinearEval [ofK ((digestHalves pi).1.limb limb),
         ofK ((digestHalves pi).2.limb limb)] [rm])
 
 /-- **All the claims** `tablesSeg` returns. -/
 def vtAllClaims (bc : List K) (lm : ℕ) (rows : List ℕ) (pi : Digest) (point pts cp fp : List E)
     (forms3 : List (List Form)) (σ : Val) : List ColumnClaim :=
-  vtBusClaims (layoutOf bc lm rows) point [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1843))
-      (σ (.n 1898)) ++
+  vtBusClaims (layoutOf bc lm rows) point [σ (.n 812), σ (.n 816)] (σ (.n 1302))
+      (σ (.n 1316)) ++
     (termsPure cp fp pts.reverse (List.zip (vtRows (tableHeightsOf rows) forms3 point pts)
       (vtEvsC σ)) 0 0 []).2 ++
-    vtPubClaims (layoutOf bc lm rows) pi (σ (.n 6943))
+    vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5961))
 
 theorem vt_rows_length {rows : List ℕ} (hr : rows.length = 6) {forms3 : List (List Form)}
     (hf : forms3.length = 6) (e pts : List E) :
@@ -94,7 +95,7 @@ theorem vt_piece {w base : ℕ} (f : ℕ → E) (g : E × ℕ → ColumnClaim) (
   simp only [List.getElem_map, List.getElem_zipIdx, List.getElem_range, Nat.zero_add]
   exact hg i (by simpa using h2)
 
-theorem vt_tabOf_piece : ∀ t < 6, ∀ c < [15, 15, 8, 15, 14, 92].getD t 0,
+theorem vt_tabOf_piece : ∀ t < 6, ∀ c < [13, 13, 7, 14, 14, 92].getD t 0,
     vtTabOf (vtBaseOf t + c) = t := by
   intro t ht c hc
   interval_cases t <;>
@@ -122,19 +123,19 @@ theorem vt_tab_claims {rows : List ℕ} (hr : rows.length = 6) {forms3 : List (L
   rw [r0, s0, r1, s1, r2, s2, r3, s3, r4, s4, r5, s5, vt_opcode_lt 0 (by norm_num),
     vt_opcode_lt 1 (by norm_num), vt_opcode_lt 2 (by norm_num), vt_opcode_lt 3 (by norm_num),
     vt_opcode_lt 4 (by norm_num), vt_opcode_lt 5 (by norm_num)]
-  have hsplit : List.range 159 = List.range 15 ++ ((List.range 15).map (15 + ·) ++
-      ((List.range 8).map (30 + ·) ++ ((List.range 15).map (38 + ·) ++
-      ((List.range 14).map (53 + ·) ++ (List.range 92).map (67 + ·))))) := by
-    rw [show 159 = 15 + (15 + (8 + (15 + (14 + 92)))) from rfl]
+  have hsplit : List.range 153 = List.range 13 ++ ((List.range 13).map (13 + ·) ++
+      ((List.range 7).map (26 + ·) ++ ((List.range 14).map (33 + ·) ++
+      ((List.range 14).map (47 + ·) ++ (List.range 92).map (61 + ·))))) := by
+    rw [show 153 = 13 + (13 + (7 + (14 + (14 + 92)))) from rfl]
     simp only [List.range_add, List.map_append, List.map_map, Function.comp_def]
     simp only [← Nat.add_assoc, Nat.reduceAdd]
   rw [vtTabClaims, hsplit]
   simp only [List.map_append, List.map_map, Function.comp_def]
   have P : ∀ t < 6, ∀ (g : E × ℕ → ColumnClaim),
       (∀ c v, g (v, c) = ⟨globalColumnBases.getD t 0 + c, pts.reverse.take (vtHt rows t), v⟩) →
-      ((List.range ([15, 15, 8, 15, 14, 92].getD t 0)).map fun c ↦
+      ((List.range ([13, 13, 7, 14, 14, 92].getD t 0)).map fun c ↦
           σ (.n (vtEvB (vtBaseOf t + c)))).zipIdx.map g =
-        (List.range ([15, 15, 8, 15, 14, 92].getD t 0)).map fun c ↦
+        (List.range ([13, 13, 7, 14, 14, 92].getD t 0)).map fun c ↦
           (⟨vtColOf (vtBaseOf t + c), pts.reverse.take (vtHt rows (vtTabOf (vtBaseOf t + c))),
             σ (.n (vtEvB (vtBaseOf t + c)))⟩ : ColumnClaim) := by
     intro t ht g hg
@@ -154,19 +155,19 @@ theorem vt_tab_claims {rows : List ℕ} (hr : rows.length = 6) {forms3 : List (L
   all_goals intro c v; rfl
 
 theorem vt_claimColumns :
-    [memory0, memory1, memory2, memoryFinalCounters, bytecodeFinalCounters] ++
-      (List.range 159).map vtColOf ++ [memory0, memory1, memory2] = claimColumns := by
+    [memory0, memory1, memoryFinalCounters, bytecodeFinalCounters] ++
+      (List.range 153).map vtColOf ++ [memory0, memory1] = claimColumns := by
   decide +kernel
 
 theorem vt_tabOf_lt' (k : ℕ) : vtTabOf k < 6 := by
   unfold vtTabOf; split_ifs <;> omega
 
-/-- The tables' claims' kappa sources: claim `5 + k` is table `vtTabOf k`'s height (G:340-341). -/
-theorem vt_claimKappa_tab : ∀ k < 159, claimKappaSrc.getD (5 + k) 0 = vtTabOf k + 2 ∧
-    claimKappaAdj (5 + k) = 0 := by decide +kernel
+/-- The tables' claims' kappa sources: claim `4 + k` is table `vtTabOf k`'s height. -/
+theorem vt_claimKappa_tab : ∀ k < 153, claimKappaSrc.getD (4 + k) 0 = vtTabOf k + 2 ∧
+    claimKappaAdj (4 + k) = 0 := by decide +kernel
 
-theorem vt_claimLowDim_tab (lm : ℕ) (τ : ℕ → ℕ) {k : ℕ} (hk : k < 159) :
-    claimLowDim lm (vtTauList τ) (5 + k) = τ (vtTabOf k) := by
+theorem vt_claimLowDim_tab (lm : ℕ) (τ : ℕ → ℕ) {k : ℕ} (hk : k < 153) :
+    claimLowDim lm (vtTauList τ) (4 + k) = τ (vtTabOf k) := by
   obtain ⟨e1, e2⟩ := vt_claimKappa_tab k hk
   have := vt_tau_getD lm τ (vt_tabOf_lt' k)
   simp only [List.cons_append, List.nil_append] at this
@@ -174,9 +175,6 @@ theorem vt_claimLowDim_tab (lm : ℕ) (τ : ℕ → ℕ) {k : ℕ} (hk : k < 159
 
 theorem vt_tabOf_lt (k : ℕ) : vtTabOf k < 6 := by
   unfold vtTabOf; split_ifs <;> omega
-
-theorem vt_mle_zero (r : E) : multilinearEval [ofK 0, ofK 0] [r] = 0 := by
-  simp [multilinearEval, foldPairs]
 
 theorem vt_readsAt_append' {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
     (hb : ∀ k (hk : k < b.length), LoadHolds rd p (a.length + k) b[k]) : TbReadsAt rd p (a ++ b) := by
@@ -198,7 +196,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ}
     (hlm : lm ≤ 32) {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 29)
     (hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
-    {n : ℕ} (hgn : σ (.n 2516) = gen ^ n) (hnm : n ≤ point.length)
+    {n : ℕ} (hgn : σ (.n 2544) = gen ^ n) (hnm : n ≤ point.length)
     (hhn : ∀ t < 6, vtHt rows t ≤ n) {pts : List E} (hpl : pts.length = n)
     (hchi : ∀ i < n, LoadHolds Lm.read (σ (.n 16)) (n - 1 - i) (pts.getD i 0))
     (bus : BusResult) (hbp : bus.point = point) (cp fp : List E) (forms3 : List (List Form))
@@ -206,58 +204,54 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (vtAllClaims bc lm rows pi point pts cp fp forms3 σ).length = nClaims ∧
       TbReadsAt Lm.read (σ (.n 15))
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).take nBusClaims).map (·.value)) ∧
-      TbReadsAt Lm.read (σ (.n 2625))
+      TbReadsAt Lm.read (σ (.n 2647))
         ((((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nBusClaims).take
           nColEvals).map (·.value)) ∧
       TbReadsAt Lm.read (σ (.n 15) * gen ^ nPooled)
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nPooled).map (·.value)) ∧
       TCtx Lm.read (layoutOf bc lm rows) bus (vtAllClaims bc lm rows pi point pts cp fp forms3 σ)
-        [σ (.n 8), σ (.n 16), σ (.n 6943), σ (.n 9), σ (.n 2516)] := by
+        [σ (.n 8), σ (.n 16), σ (.n 5961), σ (.n 9), σ (.n 2544)] := by
   obtain ⟨hl1, hl2, -⟩ := vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
-  have hk1 : σ (.n 29) = gen ^ lm := by simpa using hkb 1 (by norm_num)
-  have hk2 : σ (.n 876) = gen ^ 19 := by
-    have e0 : σ (.n 28) = 1 := by simpa using hkb 0 (by norm_num)
+  have hk1 : σ (.n 26) = gen ^ lm := by simpa using hkb 1 (by norm_num)
+  have hk2 : σ (.n 821) = gen ^ 19 := by
+    have e0 : σ (.n 25) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_fw2_kappa h, e0, one_mul]
-  obtain ⟨-, -, -, -, -, -, -, p0, p1, p2, p3, p4⟩ := vt_fw h hz hl1 (by omega) hl2 hk1 hk2
-  obtain ⟨-, -, -, -, -, -, -, can6, can7, l162, l163, l164⟩ := vt_pi h
+  obtain ⟨-, -, -, -, -, -, p0, p1, p2, p3⟩ := vt_fw h hz hl1 (by omega) hl2 hk1 hk2
+  obtain ⟨-, -, -, -, -, -, -, l157, l158⟩ := vt_pi h
   have hpi' : digestHalves pi = (σ (.n 6), σ (.n 7)) := hpi.symm
   -- the claims, explicitly
-  have hB : vtBusClaims (layoutOf bc lm rows) point [σ (.n 830), σ (.n 843), σ (.n 856)]
-      (σ (.n 1843)) (σ (.n 1898)) =
-      [⟨memory0, point.take lm, σ (.n 830)⟩, ⟨memory1, point.take lm, σ (.n 843)⟩,
-        ⟨memory2, point.take lm, σ (.n 856)⟩, ⟨memoryFinalCounters, point.take lm, σ (.n 1843)⟩,
-        ⟨bytecodeFinalCounters, point.take 19, σ (.n 1898)⟩] := by
+  have hB : vtBusClaims (layoutOf bc lm rows) point [σ (.n 812), σ (.n 816)]
+      (σ (.n 1302)) (σ (.n 1316)) =
+      [⟨memory0, point.take lm, σ (.n 812)⟩, ⟨memory1, point.take lm, σ (.n 816)⟩,
+        ⟨memoryFinalCounters, point.take lm, σ (.n 1302)⟩,
+        ⟨bytecodeFinalCounters, point.take 19, σ (.n 1316)⟩] := by
     simp only [vtBusClaims, vt_layout_logMemory, vt_layout_logBytecode bc lm rows hbc]
     rfl
-  have hP : vtPubClaims (layoutOf bc lm rows) pi (σ (.n 6943)) =
-      [⟨memory0, σ (.n 6943) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
-          multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [σ (.n 6943)]⟩,
-        ⟨memory1, σ (.n 6943) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
-          multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [σ (.n 6943)]⟩,
-        ⟨memory2, σ (.n 6943) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
-          0⟩] := by
+  have hP : vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5961)) =
+      [⟨memory0, σ (.n 5961) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
+          multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [σ (.n 5961)]⟩,
+        ⟨memory1, σ (.n 5961) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
+          multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [σ (.n 5961)]⟩] := by
     rw [vtPubClaims, hpi']
     simp only [List.map_cons, List.map_nil, List.zipWith_cons_cons, List.zipWith_nil_left]
-    rw [show (σ (.n 6)).limb 2 = 0 from can6, show (σ (.n 7)).limb 2 = 0 from can7, vt_mle_zero]
   have hT := vt_tab_claims hr hf cp fp point pts σ
   rw [vtAllClaims, hT, hB, hP]
-  have hNB : nBusClaims = 5 := rfl
-  have hNC : nColEvals = 159 := rfl
-  have hNP : nPooled = 164 := rfl
-  have hTl : (vtTabClaims rows pts.reverse σ).length = 159 := by simp [vtTabClaims]
+  have hNB : nBusClaims = 4 := rfl
+  have hNC : nColEvals = 153 := rfl
+  have hNP : nPooled = 157 := rfl
+  have hTl : (vtTabClaims rows pts.reverse σ).length = 153 := by simp [vtTabClaims]
   refine ⟨by simp [vtTabClaims], ?_, ?_, ?_, ?_⟩
   · -- the bus's values in the pool
     rw [hNB, List.append_assoc, List.take_append_of_le_length (by simp)]
     intro k hk
-    simp only [List.take_of_length_le (show [_, _, _, _, _].length ≤ 5 by simp),
+    simp only [List.take_of_length_le (show [_, _, _, _].length ≤ 4 by simp),
       List.length_map, List.length_cons, List.length_nil] at hk
-    simp only [List.take_of_length_le (show [_, _, _, _, _].length ≤ 5 by simp)]
+    simp only [List.take_of_length_le (show [_, _, _, _].length ≤ 4 by simp)]
     interval_cases k
     · simpa using p0
     · simpa using p1
     · simpa using p2
     · simpa using p3
-    · simpa using p4
   · -- the tables' evaluations, read in place
     rw [hNB, hNC, List.append_assoc, List.drop_append_of_le_length (by simp),
       List.drop_of_length_le (by simp), List.nil_append, List.take_append_of_le_length (by omega),
@@ -266,15 +260,14 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     simp only [List.length_map, hTl] at hk
     simp only [vtTabClaims, List.getElem_map, List.getElem_range]
     exact (vt_eval h hk).1
-  · -- the public input's values past the pool's 164
+  · -- the public input's values past the pool's 157
     rw [hNP, List.drop_left' (by simp [hTl])]
     intro k hk
     simp only [List.length_map, List.length_cons, List.length_nil] at hk
     rw [tb_loadHolds_mul_gen_pow]
     interval_cases k
-    · simpa using l162
-    · simpa using l163
-    · simpa using l164
+    · simpa using l157
+    · simpa using l158
   · -- the context
     unfold TCtx
     have hchiR : TbReadsAt Lm.read (σ (.n 16)) pts.reverse := by
@@ -298,7 +291,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
       rw [vt_layout_logMemory, hTH]
       simp only [List.map_append, List.map_cons, List.map_nil, vtTabClaims, List.map_map,
         Function.comp_def] at hp
-      rcases Nat.lt_or_ge j 5 with hj | hj
+      rcases Nat.lt_or_ge j 4 with hj | hj
       · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_left (by simp; omega)]
           at hp
         have hlm' : (point.take lm).length = lm := by simp; omega
@@ -308,24 +301,23 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
           · rw [hlm']; rfl
           · rw [hlm']; rfl
           · rw [hlm']; rfl
-          · rw [hlm']; rfl
           · rw [h19']; rfl
         · interval_cases j <;> simp at hp <;> subst hp <;> rw [hbp] <;> simp
-      rcases Nat.lt_or_ge j 164 with hj' | hj'
+      rcases Nat.lt_or_ge j 157 with hj' | hj'
       · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_right (by simp; omega)]
           at hp
         simp only [List.length_cons, List.length_nil, List.getElem?_map, List.getElem?_range
-          (show j - 5 < 159 by omega), Option.map_some, Option.some.injEq] at hp
+          (show j - 4 < 153 by omega), Option.map_some, Option.some.injEq] at hp
         subst hp
-        have hk : j - 5 < 159 := by omega
-        have hh := hhn _ (vt_tabOf_lt (j - 5))
-        have hlen' : (pts.reverse.take (vtHt rows (vtTabOf (j - 5)))).length =
-            vtHt rows (vtTabOf (j - 5)) := by simp; omega
+        have hk : j - 4 < 153 := by omega
+        have hh := hhn _ (vt_tabOf_lt (j - 4))
+        have hlen' : (pts.reverse.take (vtHt rows (vtTabOf (j - 4)))).length =
+            vtHt rows (vtTabOf (j - 4)) := by simp; omega
         refine ⟨fun _ ↦ ?_, fun h5 ↦ absurd h5 (by omega), fun _ _ ↦ by simp, fun h5 ↦ absurd h5 (by omega)⟩
-        rw [hlen', show j = 5 + (j - 5) by omega, vt_claimLowDim_tab lm (vtHt rows) hk,
-          show 5 + (j - 5) - 5 = j - 5 by omega]
+        rw [hlen', show j = 4 + (j - 4) by omega, vt_claimLowDim_tab lm (vtHt rows) hk,
+          show 4 + (j - 4) - 4 = j - 4 by omega]
       · rw [List.getElem?_append_right (by simp; omega)] at hp
-        have hj3 : j - (5 + 159) < 3 := by
+        have hj3 : j - (4 + 153) < 2 := by
           by_contra hc
           rw [List.getElem?_eq_none (by simp; omega)] at hp
           exact absurd hp (by simp)
@@ -333,7 +325,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
           fun _ h5 ↦ absurd h5 (by omega), fun _ ↦ ?_⟩
         simp only [List.length_append, List.length_cons, List.length_nil, List.length_map,
           List.length_range] at hp
-        interval_cases h3 : j - (5 + 159) <;> simp at hp <;> exact hp.symm
+        interval_cases h3 : j - (4 + 153) <;> simp at hp <;> exact hp.symm
 
 end
 

@@ -62,9 +62,10 @@ theorem l5A2_eq : l5A2 B2C.fs = 51 := by
     fs_idx (j := 379) (f := "__loop18") (by decide +kernel)]
   decide +kernel
 
-theorem agA0_eq : agA0 B2C.fs wSB = 1183 := by
+theorem agA0_eq : agA0 B2C.fs wSB = 1244 := by
   unfold agA0
   rw [fs_idx (j := 33) (f := "aggregate_claims") (by decide +kernel),
+    wSB_idx (j := 444) (f := "grind_check__L2") (by decide +kernel),
     wSB_idx (j := 446) (f := "batch_sumcheck__L23") (by decide +kernel)]
   decide +kernel
 
