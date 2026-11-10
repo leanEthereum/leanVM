@@ -38,8 +38,8 @@ theorem w489_0 : WinOk 489 0 := winOk_of_C (by decide +kernel)
 /-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 0. -/
 theorem w490_0 : WinOk 490 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L8`, window 0. -/
-theorem w491_0 : WinOk 491 0 := winOk_of_C (by decide +kernel)
+/-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 1. -/
+theorem w490_1 : WinOk 490 1 := winOk_of_C (by decide +kernel)
 
 theorem ok484 : CheckOk 484 := checkOk_one (by decide +kernel) w484_0
 
@@ -52,10 +52,6 @@ theorem ok487 : CheckOk 487 := checkOk_one (by decide +kernel) w487_0
 theorem ok488 : CheckOk 488 := checkOk_one (by decide +kernel) w488_0
 
 theorem ok489 : CheckOk 489 := checkOk_one (by decide +kernel) w489_0
-
-theorem ok490 : CheckOk 490 := checkOk_one (by decide +kernel) w490_0
-
-theorem ok491 : CheckOk 491 := checkOk_one (by decide +kernel) w491_0
 
 end
 end LeanVM.Guest.Checked

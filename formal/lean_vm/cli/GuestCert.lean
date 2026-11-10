@@ -589,9 +589,10 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
       | _ => throw s!"statement {idx} after a chained match's table jump is no match"
       if top then modify fun st => { st with entered := st.entered.push (idx, succ) }
     if top then modify fun st => { st with marks := st.marks.push (idx, p, facts.size, loads), curTop := idx }
-    -- a hint runs no code: the statement after it still starts after the returned words' loads
+    -- an atom that passes no item (a hint, a shared constant or result) runs no code: the
+    -- statement after it still starts after the returned words' loads
     match s with
-    | .atom (.hint _) => pure ()
+    | .atom _ => pure ()
     | _ => loads := none
     match s with
     | .atom a =>
@@ -600,6 +601,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
           let st ← get
           let known := (Core.Atom.vals a).map fun v => (v.idx, st.loc.get? v.idx, st.pend.get? v.idx)
           throw s!"{e}, the atom `{Interp.showAtom a}` (statement {idx}; cells {known})"
+      if p' != p then loads := none
       p := p'
       facts := f'
     | .ite c z n =>

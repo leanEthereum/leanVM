@@ -16,12 +16,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L4`, window 5. -/
-theorem w1055_5 : shareWin 1055 (snapsOf 1055) 5 = true := by decide +kernel
+/-- `walk_path__L14_L5`, window 1. -/
+theorem w1044_1 : shareWin 1044 (snapsOf 1044) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L4`, window 6. -/
-theorem w1055_6 : shareWin 1055 (snapsOf 1055) 6 = true := by decide +kernel
+/-- `walk_path__L14_L5`, window 2. -/
+theorem w1044_2 : shareWin 1044 (snapsOf 1044) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

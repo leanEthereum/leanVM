@@ -22,6 +22,9 @@ theorem cw1033_0_0 : cplWin 1033 0 0 = true := by decide +kernel
 /-- `__loop412`, window 1, part 0. -/
 theorem cw1033_1_0 : cplWin 1033 1 0 = true := by decide +kernel
 
+/-- `__loop412`, window 2, part 0. -/
+theorem cw1033_2_0 : cplWin 1033 2 0 = true := by decide +kernel
+
 /-- `walk_path__L9_L8`, window 0, part 0. -/
 theorem cw1034_0_0 : cplWin 1034 0 0 = true := by decide +kernel
 
@@ -37,12 +40,9 @@ theorem cw1035_1_0 : cplWin 1035 1 0 = true := by decide +kernel
 /-- `walk_path__L10_L5`, window 0, part 0. -/
 theorem cw1036_0_0 : cplWin 1036 0 0 = true := by decide +kernel
 
-/-- `walk_path__L10_L5`, window 1, part 0. -/
-theorem cw1036_1_0 : cplWin 1036 1 0 = true := by decide +kernel
-
 theorem ok1033 : CplOk 1033 := by
   intro i hi k hk
-  have hc : (certOf 1033).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1033).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1033 0 = 1 := by decide +kernel
@@ -53,6 +53,10 @@ theorem ok1033 : CplOk 1033 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1033_1_0
+  · have hn : nParts 1033 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1033_2_0
 
 theorem ok1034 : CplOk 1034 := by
   intro i hi k hk
@@ -81,20 +85,6 @@ theorem ok1035 : CplOk 1035 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1035_1_0
-
-theorem ok1036 : CplOk 1036 := by
-  intro i hi k hk
-  have hc : (certOf 1036).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1036 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1036_0_0
-  · have hn : nParts 1036 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1036_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -38,8 +38,8 @@ theorem w332_3 : WinOk 332 3 := winOk_of_C (by decide +kernel)
 /-- `open_stacked__L0`, window 4. -/
 theorem w332_4 : WinOk 332 4 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L1`, window 0. -/
-theorem w333_0 : WinOk 333 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L0`, window 5. -/
+theorem w332_5 : WinOk 332 5 := winOk_of_C (by decide +kernel)
 
 theorem ok330 : CheckOk 330 := checkOk_one (by decide +kernel) w330_0
 

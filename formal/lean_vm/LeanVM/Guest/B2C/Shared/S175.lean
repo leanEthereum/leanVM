@@ -16,24 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L25`, window 1. -/
-theorem w357_1 : shareWin 357 (snapsOf 357) 1 = true := by decide +kernel
+/-- `open_stacked__L24`, window 1. -/
+theorem w356_1 : shareWin 356 (snapsOf 356) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L25`, window 2. -/
-theorem w357_2 : shareWin 357 (snapsOf 357) 2 = true := by decide +kernel
+/-- `open_stacked__L24`, window 2. -/
+theorem w356_2 : shareWin 356 (snapsOf 356) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L25`, window 3. -/
-theorem w357_3 : shareWin 357 (snapsOf 357) 3 = true := by decide +kernel
+/-- `open_stacked__L24`, window 3. -/
+theorem w356_3 : shareWin 356 (snapsOf 356) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L25`, window 4. -/
-theorem w357_4 : shareWin 357 (snapsOf 357) 4 = true := by decide +kernel
+/-- `open_stacked__L24`, window 4. -/
+theorem w356_4 : shareWin 356 (snapsOf 356) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L25`, window 5. -/
-theorem w357_5 : shareWin 357 (snapsOf 357) 5 = true := by decide +kernel
+/-- `open_stacked__L24`, window 5. -/
+theorem w356_5 : shareWin 356 (snapsOf 356) 5 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

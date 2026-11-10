@@ -8,11 +8,18 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F801_0
-public import LeanVM.Guest.Checked.F808_0
-public import LeanVM.Guest.Checked.F815_0
-public import LeanVM.Guest.Checked.F830_0
-public import LeanVM.Guest.Checked.F837_0
+public import LeanVM.Guest.Checked.F802_0
+public import LeanVM.Guest.Checked.F802_0
+public import LeanVM.Guest.Checked.F807_1
+public import LeanVM.Guest.Checked.F807_1
+public import LeanVM.Guest.Checked.F813_0
+public import LeanVM.Guest.Checked.F820_0
+public import LeanVM.Guest.Checked.F826_0
+public import LeanVM.Guest.Checked.F826_0
+public import LeanVM.Guest.Checked.F832_1
+public import LeanVM.Guest.Checked.F832_1
+public import LeanVM.Guest.Checked.F838_0
+public import LeanVM.Guest.Checked.F844_0
 
 namespace LeanVM.Guest.Checked
 
@@ -23,11 +30,12 @@ theorem plain801 : Plain 801 := plain_of_nil (by decide +kernel)
 theorem plain802 : Plain 802 := plain_of_nil (by decide +kernel)
 
 theorem ok803 : CheckOk 803 := fun i hi ↦ by
-  have h : (certOf 803).cuts.length = 1 := by decide +kernel
+  have h : (certOf 803).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w803_0
   · exact w803_1
+  · exact w803_2
 
 theorem plain804 : Plain 804 := plain_of_nil (by decide +kernel)
 
@@ -35,7 +43,12 @@ theorem plain805 : Plain 805 := plain_of_nil (by decide +kernel)
 
 theorem plain806 : Plain 806 := plain_of_nil (by decide +kernel)
 
-theorem plain807 : Plain 807 := plain_of_nil (by decide +kernel)
+theorem ok807 : CheckOk 807 := fun i hi ↦ by
+  have h : (certOf 807).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w807_0
+  · exact w807_1
 
 theorem plain808 : Plain 808 := plain_of_nil (by decide +kernel)
 
@@ -46,11 +59,12 @@ theorem plain810 : Plain 810 := plain_of_nil (by decide +kernel)
 theorem plain811 : Plain 811 := plain_of_nil (by decide +kernel)
 
 theorem ok812 : CheckOk 812 := fun i hi ↦ by
-  have h : (certOf 812).cuts.length = 1 := by decide +kernel
+  have h : (certOf 812).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w812_0
   · exact w812_1
+  · exact w812_2
 
 theorem plain813 : Plain 813 := plain_of_nil (by decide +kernel)
 
@@ -58,7 +72,12 @@ theorem plain814 : Plain 814 := plain_of_nil (by decide +kernel)
 
 theorem plain815 : Plain 815 := plain_of_nil (by decide +kernel)
 
-theorem plain816 : Plain 816 := plain_of_nil (by decide +kernel)
+theorem ok816 : CheckOk 816 := fun i hi ↦ by
+  have h : (certOf 816).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w816_0
+  · exact w816_1
 
 theorem plain817 : Plain 817 := plain_of_nil (by decide +kernel)
 
@@ -69,11 +88,12 @@ theorem plain819 : Plain 819 := plain_of_nil (by decide +kernel)
 theorem plain820 : Plain 820 := plain_of_nil (by decide +kernel)
 
 theorem ok821 : CheckOk 821 := fun i hi ↦ by
-  have h : (certOf 821).cuts.length = 1 := by decide +kernel
+  have h : (certOf 821).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w821_0
   · exact w821_1
+  · exact w821_2
 
 theorem plain822 : Plain 822 := plain_of_nil (by decide +kernel)
 
@@ -83,7 +103,12 @@ theorem plain824 : Plain 824 := plain_of_nil (by decide +kernel)
 
 theorem plain825 : Plain 825 := plain_of_nil (by decide +kernel)
 
-theorem plain826 : Plain 826 := plain_of_nil (by decide +kernel)
+theorem ok826 : CheckOk 826 := fun i hi ↦ by
+  have h : (certOf 826).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w826_0
+  · exact w826_1
 
 theorem plain827 : Plain 827 := plain_of_nil (by decide +kernel)
 
@@ -96,11 +121,12 @@ theorem plain830 : Plain 830 := plain_of_nil (by decide +kernel)
 theorem plain831 : Plain 831 := plain_of_nil (by decide +kernel)
 
 theorem ok832 : CheckOk 832 := fun i hi ↦ by
-  have h : (certOf 832).cuts.length = 1 := by decide +kernel
+  have h : (certOf 832).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w832_0
   · exact w832_1
+  · exact w832_2
 
 theorem plain833 : Plain 833 := plain_of_nil (by decide +kernel)
 
@@ -110,7 +136,12 @@ theorem plain835 : Plain 835 := plain_of_nil (by decide +kernel)
 
 theorem plain836 : Plain 836 := plain_of_nil (by decide +kernel)
 
-theorem plain837 : Plain 837 := plain_of_nil (by decide +kernel)
+theorem ok837 : CheckOk 837 := fun i hi ↦ by
+  have h : (certOf 837).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w837_0
+  · exact w837_1
 
 theorem plain838 : Plain 838 := plain_of_nil (by decide +kernel)
 
@@ -123,11 +154,12 @@ theorem plain841 : Plain 841 := plain_of_nil (by decide +kernel)
 theorem plain842 : Plain 842 := plain_of_nil (by decide +kernel)
 
 theorem ok843 : CheckOk 843 := fun i hi ↦ by
-  have h : (certOf 843).cuts.length = 1 := by decide +kernel
+  have h : (certOf 843).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w843_0
   · exact w843_1
+  · exact w843_2
 
 theorem plain844 : Plain 844 := plain_of_nil (by decide +kernel)
 
@@ -137,7 +169,12 @@ theorem plain846 : Plain 846 := plain_of_nil (by decide +kernel)
 
 theorem plain847 : Plain 847 := plain_of_nil (by decide +kernel)
 
-theorem plain848 : Plain 848 := plain_of_nil (by decide +kernel)
+theorem ok848 : CheckOk 848 := fun i hi ↦ by
+  have h : (certOf 848).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w848_0
+  · exact w848_1
 
 theorem plain849 : Plain 849 := plain_of_nil (by decide +kernel)
 

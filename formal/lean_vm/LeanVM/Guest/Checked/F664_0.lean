@@ -20,6 +20,9 @@ open LeanVM.Guest.Check
 /-- `opening_queries__L0_L0_L4_L16_L16_L5_L2_L754_L8_L3_L1`, window 0. -/
 theorem w664_0 : WinOk 664 0 := winOk_of_C (by decide +kernel)
 
+/-- `opening_queries__L0_L0_L4_L16_L16_L5_L2_L754_L8_L3_L1`, window 1. -/
+theorem w664_1 : WinOk 664 1 := winOk_of_C (by decide +kernel)
+
 /-- `__loop121`, window 0. -/
 theorem w665_0 : WinOk 665 0 := winOk_of_C (by decide +kernel)
 
@@ -37,11 +40,6 @@ theorem w669_0 : WinOk 669 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop125`, window 0. -/
 theorem w670_0 : WinOk 670 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L6_L32_L21_L7_L0_L0_L0_L0_L0`, window 0. -/
-theorem w671_0 : WinOk 671 0 := winOk_of_C (by decide +kernel)
-
-theorem ok664 : CheckOk 664 := checkOk_one (by decide +kernel) w664_0
 
 theorem ok665 : CheckOk 665 := checkOk_one (by decide +kernel) w665_0
 

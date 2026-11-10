@@ -19,6 +19,9 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `opening_queries__L0_L0_L4_L16_L18_L5_L5_L454_L36_L6_L1`, window 0, part 0. -/
 theorem cw610_0_0 : cplWin 610 0 0 = true := by decide +kernel
 
+/-- `opening_queries__L0_L0_L4_L16_L18_L5_L5_L454_L36_L6_L1`, window 1, part 0. -/
+theorem cw610_1_0 : cplWin 610 1 0 = true := by decide +kernel
+
 /-- `__loop87`, window 0, part 0. -/
 theorem cw611_0_0 : cplWin 611 0 0 = true := by decide +kernel
 
@@ -33,13 +36,17 @@ theorem cw612_0_1 : cplWin 612 0 1 = true := by decide +kernel
 
 theorem ok610 : CplOk 610 := by
   intro i hi k hk
-  have hc : (certOf 610).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 610).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 610 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw610_0_0
+  · have hn : nParts 610 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw610_1_0
 
 theorem ok611 : CplOk 611 := by
   intro i hi k hk

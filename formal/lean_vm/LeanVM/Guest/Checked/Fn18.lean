@@ -10,15 +10,16 @@ module
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F937_0
 public import LeanVM.Guest.Checked.F937_0
-public import LeanVM.Guest.Checked.F942_0
-public import LeanVM.Guest.Checked.F942_0
-public import LeanVM.Guest.Checked.F942_0
-public import LeanVM.Guest.Checked.F942_0
-public import LeanVM.Guest.Checked.F945_2
-public import LeanVM.Guest.Checked.F945_2
-public import LeanVM.Guest.Checked.F945_2
-public import LeanVM.Guest.Checked.F945_2
-public import LeanVM.Guest.Checked.F945_2
+public import LeanVM.Guest.Checked.F941_1
+public import LeanVM.Guest.Checked.F941_1
+public import LeanVM.Guest.Checked.F941_1
+public import LeanVM.Guest.Checked.F944_0
+public import LeanVM.Guest.Checked.F944_0
+public import LeanVM.Guest.Checked.F944_0
+public import LeanVM.Guest.Checked.F946_2
+public import LeanVM.Guest.Checked.F946_2
+public import LeanVM.Guest.Checked.F946_2
+public import LeanVM.Guest.Checked.F946_2
 public import LeanVM.Guest.Checked.F949_1
 public import LeanVM.Guest.Checked.F949_1
 
@@ -105,33 +106,37 @@ theorem plain938 : Plain 938 := plain_of_nil (by decide +kernel)
 theorem plain939 : Plain 939 := plain_of_nil (by decide +kernel)
 
 theorem ok940 : CheckOk 940 := fun i hi ↦ by
-  have h : (certOf 940).cuts.length = 2 := by decide +kernel
+  have h : (certOf 940).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w940_0
   · exact w940_1
   · exact w940_2
+  · exact w940_3
 
 theorem ok941 : CheckOk 941 := fun i hi ↦ by
-  have h : (certOf 941).cuts.length = 1 := by decide +kernel
+  have h : (certOf 941).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w941_0
   · exact w941_1
+  · exact w941_2
 
 theorem ok942 : CheckOk 942 := fun i hi ↦ by
-  have h : (certOf 942).cuts.length = 1 := by decide +kernel
+  have h : (certOf 942).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w942_0
   · exact w942_1
+  · exact w942_2
 
 theorem ok943 : CheckOk 943 := fun i hi ↦ by
-  have h : (certOf 943).cuts.length = 1 := by decide +kernel
+  have h : (certOf 943).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w943_0
   · exact w943_1
+  · exact w943_2
 
 theorem ok944 : CheckOk 944 := fun i hi ↦ by
   have h : (certOf 944).cuts.length = 1 := by decide +kernel
@@ -141,33 +146,37 @@ theorem ok944 : CheckOk 944 := fun i hi ↦ by
   · exact w944_1
 
 theorem ok945 : CheckOk 945 := fun i hi ↦ by
-  have h : (certOf 945).cuts.length = 2 := by decide +kernel
+  have h : (certOf 945).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w945_0
   · exact w945_1
   · exact w945_2
+  · exact w945_3
 
 theorem ok946 : CheckOk 946 := fun i hi ↦ by
-  have h : (certOf 946).cuts.length = 1 := by decide +kernel
+  have h : (certOf 946).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w946_0
   · exact w946_1
+  · exact w946_2
 
 theorem ok947 : CheckOk 947 := fun i hi ↦ by
-  have h : (certOf 947).cuts.length = 1 := by decide +kernel
+  have h : (certOf 947).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w947_0
   · exact w947_1
+  · exact w947_2
 
 theorem ok948 : CheckOk 948 := fun i hi ↦ by
-  have h : (certOf 948).cuts.length = 1 := by decide +kernel
+  have h : (certOf 948).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w948_0
   · exact w948_1
+  · exact w948_2
 
 theorem ok949 : CheckOk 949 := fun i hi ↦ by
   have h : (certOf 949).cuts.length = 1 := by decide +kernel
@@ -177,12 +186,13 @@ theorem ok949 : CheckOk 949 := fun i hi ↦ by
   · exact w949_1
 
 theorem ok950 : CheckOk 950 := fun i hi ↦ by
-  have h : (certOf 950).cuts.length = 2 := by decide +kernel
+  have h : (certOf 950).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w950_0
   · exact w950_1
   · exact w950_2
+  · exact w950_3
 
 end
 end LeanVM.Guest.Checked

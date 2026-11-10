@@ -22,11 +22,17 @@ theorem cw345_2_0 : cplWin 345 2 0 = true := by decide +kernel
 /-- `open_stacked__L13`, window 3, part 0. -/
 theorem cw345_3_0 : cplWin 345 3 0 = true := by decide +kernel
 
-/-- `open_stacked__L13`, window 3, part 1. -/
-theorem cw345_3_1 : cplWin 345 3 1 = true := by decide +kernel
-
 /-- `open_stacked__L13`, window 4, part 0. -/
 theorem cw345_4_0 : cplWin 345 4 0 = true := by decide +kernel
+
+/-- `open_stacked__L13`, window 5, part 0. -/
+theorem cw345_5_0 : cplWin 345 5 0 = true := by decide +kernel
+
+/-- `open_stacked__L13`, window 6, part 0. -/
+theorem cw345_6_0 : cplWin 345 6 0 = true := by decide +kernel
+
+/-- `open_stacked__L13`, window 6, part 1. -/
+theorem cw345_6_1 : cplWin 345 6 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

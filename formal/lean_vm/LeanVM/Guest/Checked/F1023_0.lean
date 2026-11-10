@@ -26,20 +26,20 @@ theorem w1023_1 : WinOk 1023 1 := winOk_of_C (by decide +kernel)
 /-- `__loop404`, window 2. -/
 theorem w1023_2 : WinOk 1023 2 := winOk_of_C (by decide +kernel)
 
+/-- `__loop404`, window 3. -/
+theorem w1023_3 : WinOk 1023 3 := winOk_of_C (by decide +kernel)
+
 /-- `__loop405`, window 0. -/
 theorem w1024_0 : WinOk 1024 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop405`, window 1. -/
 theorem w1024_1 : WinOk 1024 1 := winOk_of_C (by decide +kernel)
 
+/-- `__loop405`, window 2. -/
+theorem w1024_2 : WinOk 1024 2 := winOk_of_C (by decide +kernel)
+
 /-- `walk_path__L19_L6`, window 0. -/
 theorem w1025_0 : WinOk 1025 0 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L19_L6`, window 1. -/
-theorem w1025_1 : WinOk 1025 1 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L19_L6`, window 2. -/
-theorem w1025_2 : WinOk 1025 2 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

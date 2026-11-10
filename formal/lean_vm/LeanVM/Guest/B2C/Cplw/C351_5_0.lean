@@ -19,14 +19,8 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `open_stacked__L19`, window 5, part 0. -/
 theorem cw351_5_0 : cplWin 351 5 0 = true := by decide +kernel
 
-/-- `open_stacked__L20`, window 0, part 0. -/
-theorem cw352_0_0 : cplWin 352 0 0 = true := by decide +kernel
-
-/-- `open_stacked__L20`, window 1, part 0. -/
-theorem cw352_1_0 : cplWin 352 1 0 = true := by decide +kernel
-
-/-- `open_stacked__L20`, window 2, part 0. -/
-theorem cw352_2_0 : cplWin 352 2 0 = true := by decide +kernel
+/-- `open_stacked__L19`, window 6, part 0. -/
+theorem cw351_6_0 : cplWin 351 6 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -31,14 +31,14 @@ theorem cw843_0_0 : cplWin 843 0 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw843_1_0 : cplWin 843 1 0 = true := by decide +kernel
 
+/-- `opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw843_2_0 : cplWin 843 2 0 = true := by decide +kernel
+
 /-- `__loop257`, window 0, part 0. -/
 theorem cw844_0_0 : cplWin 844 0 0 = true := by decide +kernel
 
 /-- `__loop258`, window 0, part 0. -/
 theorem cw845_0_0 : cplWin 845 0 0 = true := by decide +kernel
-
-/-- `__loop259`, window 0, part 0. -/
-theorem cw846_0_0 : cplWin 846 0 0 = true := by decide +kernel
 
 theorem ok840 : CplOk 840 := by
   intro i hi k hk
@@ -72,7 +72,7 @@ theorem ok842 : CplOk 842 := by
 
 theorem ok843 : CplOk 843 := by
   intro i hi k hk
-  have hc : (certOf 843).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 843).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 843 0 = 1 := by decide +kernel
@@ -83,6 +83,10 @@ theorem ok843 : CplOk 843 := by
     rw [hn] at hk
     interval_cases k
     · exact cw843_1_0
+  · have hn : nParts 843 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw843_2_0
 
 theorem ok844 : CplOk 844 := by
   intro i hi k hk
@@ -103,16 +107,6 @@ theorem ok845 : CplOk 845 := by
     rw [hn] at hk
     interval_cases k
     · exact cw845_0_0
-
-theorem ok846 : CplOk 846 := by
-  intro i hi k hk
-  have hc : (certOf 846).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 846 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw846_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

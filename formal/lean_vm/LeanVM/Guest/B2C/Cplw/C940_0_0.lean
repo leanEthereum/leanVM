@@ -25,24 +25,24 @@ theorem cw940_1_0 : cplWin 940 1 0 = true := by decide +kernel
 /-- `__loop340`, window 2, part 0. -/
 theorem cw940_2_0 : cplWin 940 2 0 = true := by decide +kernel
 
+/-- `__loop340`, window 3, part 0. -/
+theorem cw940_3_0 : cplWin 940 3 0 = true := by decide +kernel
+
 /-- `__loop341`, window 0, part 0. -/
 theorem cw941_0_0 : cplWin 941 0 0 = true := by decide +kernel
 
 /-- `__loop341`, window 1, part 0. -/
 theorem cw941_1_0 : cplWin 941 1 0 = true := by decide +kernel
 
+/-- `__loop341`, window 2, part 0. -/
+theorem cw941_2_0 : cplWin 941 2 0 = true := by decide +kernel
+
 /-- `__loop342`, window 0, part 0. -/
 theorem cw942_0_0 : cplWin 942 0 0 = true := by decide +kernel
 
-/-- `__loop342`, window 1, part 0. -/
-theorem cw942_1_0 : cplWin 942 1 0 = true := by decide +kernel
-
-/-- `__loop343`, window 0, part 0. -/
-theorem cw943_0_0 : cplWin 943 0 0 = true := by decide +kernel
-
 theorem ok940 : CplOk 940 := by
   intro i hi k hk
-  have hc : (certOf 940).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 940).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 940 0 = 1 := by decide +kernel
@@ -57,10 +57,14 @@ theorem ok940 : CplOk 940 := by
     rw [hn] at hk
     interval_cases k
     · exact cw940_2_0
+  · have hn : nParts 940 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw940_3_0
 
 theorem ok941 : CplOk 941 := by
   intro i hi k hk
-  have hc : (certOf 941).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 941).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 941 0 = 1 := by decide +kernel
@@ -71,20 +75,10 @@ theorem ok941 : CplOk 941 := by
     rw [hn] at hk
     interval_cases k
     · exact cw941_1_0
-
-theorem ok942 : CplOk 942 := by
-  intro i hi k hk
-  have hc : (certOf 942).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 942 0 = 1 := by decide +kernel
+  · have hn : nParts 941 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw942_0_0
-  · have hn : nParts 942 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw942_1_0
+    · exact cw941_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

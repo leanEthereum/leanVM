@@ -34,11 +34,11 @@ theorem cw707_0_0 : cplWin 707 0 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L6_L32_L24_L7_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw707_1_0 : cplWin 707 1 0 = true := by decide +kernel
 
+/-- `opening_queries__L1_L1_L6_L32_L24_L7_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw707_2_0 : cplWin 707 2 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L23_L6`, window 0, part 0. -/
 theorem cw708_0_0 : cplWin 708 0 0 = true := by decide +kernel
-
-/-- `__loop153`, window 0, part 0. -/
-theorem cw709_0_0 : cplWin 709 0 0 = true := by decide +kernel
 
 theorem ok703 : CplOk 703 := by
   intro i hi k hk
@@ -82,7 +82,7 @@ theorem ok706 : CplOk 706 := by
 
 theorem ok707 : CplOk 707 := by
   intro i hi k hk
-  have hc : (certOf 707).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 707).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 707 0 = 1 := by decide +kernel
@@ -93,6 +93,10 @@ theorem ok707 : CplOk 707 := by
     rw [hn] at hk
     interval_cases k
     · exact cw707_1_0
+  · have hn : nParts 707 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw707_2_0
 
 theorem ok708 : CplOk 708 := by
   intro i hi k hk
@@ -103,16 +107,6 @@ theorem ok708 : CplOk 708 := by
     rw [hn] at hk
     interval_cases k
     · exact cw708_0_0
-
-theorem ok709 : CplOk 709 := by
-  intro i hi k hk
-  have hc : (certOf 709).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 709 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw709_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

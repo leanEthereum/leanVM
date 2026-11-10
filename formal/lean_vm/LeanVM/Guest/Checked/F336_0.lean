@@ -35,11 +35,11 @@ theorem w336_4 : WinOk 336 4 := winOk_of_C (by decide +kernel)
 /-- `open_stacked__L4`, window 5. -/
 theorem w336_5 : WinOk 336 5 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L5`, window 0. -/
-theorem w337_0 : WinOk 337 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L4`, window 6. -/
+theorem w336_6 : WinOk 336 6 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L5`, window 1. -/
-theorem w337_1 : WinOk 337 1 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L4`, window 7. -/
+theorem w336_7 : WinOk 336 7 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

@@ -34,11 +34,11 @@ theorem cw855_0_0 : cplWin 855 0 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L6_L32_L25_L6_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw855_1_0 : cplWin 855 1 0 = true := by decide +kernel
 
+/-- `opening_queries__L1_L1_L6_L32_L25_L6_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw855_2_0 : cplWin 855 2 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L24_L5`, window 0, part 0. -/
 theorem cw856_0_0 : cplWin 856 0 0 = true := by decide +kernel
-
-/-- `__loop266`, window 0, part 0. -/
-theorem cw857_0_0 : cplWin 857 0 0 = true := by decide +kernel
 
 theorem ok851 : CplOk 851 := by
   intro i hi k hk
@@ -82,7 +82,7 @@ theorem ok854 : CplOk 854 := by
 
 theorem ok855 : CplOk 855 := by
   intro i hi k hk
-  have hc : (certOf 855).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 855).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 855 0 = 1 := by decide +kernel
@@ -93,6 +93,10 @@ theorem ok855 : CplOk 855 := by
     rw [hn] at hk
     interval_cases k
     · exact cw855_1_0
+  · have hn : nParts 855 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw855_2_0
 
 theorem ok856 : CplOk 856 := by
   intro i hi k hk
@@ -103,16 +107,6 @@ theorem ok856 : CplOk 856 := by
     rw [hn] at hk
     interval_cases k
     · exact cw856_0_0
-
-theorem ok857 : CplOk 857 := by
-  intro i hi k hk
-  have hc : (certOf 857).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 857 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw857_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

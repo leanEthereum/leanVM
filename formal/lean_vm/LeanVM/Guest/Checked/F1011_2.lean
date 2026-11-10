@@ -20,11 +20,17 @@ open LeanVM.Guest.Check
 /-- `__loop396`, window 2. -/
 theorem w1011_2 : WinOk 1011 2 := winOk_of_C (by decide +kernel)
 
+/-- `__loop396`, window 3. -/
+theorem w1011_3 : WinOk 1011 3 := winOk_of_C (by decide +kernel)
+
 /-- `__loop397`, window 0. -/
 theorem w1012_0 : WinOk 1012 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop397`, window 1. -/
 theorem w1012_1 : WinOk 1012 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop397`, window 2. -/
+theorem w1012_2 : WinOk 1012 2 := winOk_of_C (by decide +kernel)
 
 /-- `walk_path__L15_L6`, window 0. -/
 theorem w1013_0 : WinOk 1013 0 := winOk_of_C (by decide +kernel)
@@ -34,12 +40,6 @@ theorem w1013_1 : WinOk 1013 1 := winOk_of_C (by decide +kernel)
 
 /-- `walk_path__L15_L6`, window 2. -/
 theorem w1013_2 : WinOk 1013 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop398`, window 0. -/
-theorem w1014_0 : WinOk 1014 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop398`, window 1. -/
-theorem w1014_1 : WinOk 1014 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

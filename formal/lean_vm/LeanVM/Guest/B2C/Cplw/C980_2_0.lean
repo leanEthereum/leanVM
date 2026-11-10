@@ -28,21 +28,21 @@ theorem cw981_1_0 : cplWin 981 1 0 = true := by decide +kernel
 /-- `__loop372`, window 2, part 0. -/
 theorem cw981_2_0 : cplWin 981 2 0 = true := by decide +kernel
 
+/-- `__loop372`, window 3, part 0. -/
+theorem cw981_3_0 : cplWin 981 3 0 = true := by decide +kernel
+
 /-- `__loop373`, window 0, part 0. -/
 theorem cw982_0_0 : cplWin 982 0 0 = true := by decide +kernel
 
 /-- `__loop373`, window 1, part 0. -/
 theorem cw982_1_0 : cplWin 982 1 0 = true := by decide +kernel
 
-/-- `walk_path__L14_L7`, window 0, part 0. -/
-theorem cw983_0_0 : cplWin 983 0 0 = true := by decide +kernel
-
-/-- `walk_path__L14_L7`, window 1, part 0. -/
-theorem cw983_1_0 : cplWin 983 1 0 = true := by decide +kernel
+/-- `__loop373`, window 2, part 0. -/
+theorem cw982_2_0 : cplWin 982 2 0 = true := by decide +kernel
 
 theorem ok981 : CplOk 981 := by
   intro i hi k hk
-  have hc : (certOf 981).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 981).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 981 0 = 1 := by decide +kernel
@@ -57,10 +57,14 @@ theorem ok981 : CplOk 981 := by
     rw [hn] at hk
     interval_cases k
     · exact cw981_2_0
+  · have hn : nParts 981 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw981_3_0
 
 theorem ok982 : CplOk 982 := by
   intro i hi k hk
-  have hc : (certOf 982).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 982).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 982 0 = 1 := by decide +kernel
@@ -71,6 +75,10 @@ theorem ok982 : CplOk 982 := by
     rw [hn] at hk
     interval_cases k
     · exact cw982_1_0
+  · have hn : nParts 982 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw982_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw
