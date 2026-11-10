@@ -33,7 +33,7 @@ theorem capAt_get {rec : E} {k : ℕ} {cap : List E} (h : CapAt rd rec k krCap c
   rw [List.getD_eq_getElem _ _ (by omega), show k + 16 * j = k + j * krCap by simp [krCap]; ring]
   exact this
 
-theorem goodS_mul {d x y : ℕ} (hx : x < d) (hy : y < d)
+theorem goodS_mul_lt {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
   rwa [ite_pos' ⟨hx, hy⟩] at h
@@ -58,12 +58,12 @@ theorem packSetup_goods {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetu
       implies_true, and_true] at hg
     obtain ⟨g718, -, -, -, -, -, -, -, g721, g722, -, -, g723, -, g724, g725, g726, -, g727, g728,
       g729, g730, g731, g732, g733, g734, g735, g736, g737, g738, -⟩ := hg
-    exact ⟨g718, g721, goodS_mul (by omega) (by omega) g722, g723, g724, g725, g726,
-      goodS_mul (by omega) (by omega) g727, goodS_mul (by omega) (by omega) g728,
-      goodS_mul (by omega) (by omega) g729, goodS_mul (by omega) (by omega) g730,
-      goodS_mul (by omega) (by omega) g731, goodS_mul (by omega) (by omega) g732,
-      goodS_mul (by omega) (by omega) g733, goodS_mul (by omega) (by omega) g734,
-      goodS_mul (by omega) (by omega) g735, g736, g737, g738⟩
+    exact ⟨g718, g721, goodS_mul_lt (by omega) (by omega) g722, g723, g724, g725, g726,
+      goodS_mul_lt (by omega) (by omega) g727, goodS_mul_lt (by omega) (by omega) g728,
+      goodS_mul_lt (by omega) (by omega) g729, goodS_mul_lt (by omega) (by omega) g730,
+      goodS_mul_lt (by omega) (by omega) g731, goodS_mul_lt (by omega) (by omega) g732,
+      goodS_mul_lt (by omega) (by omega) g733, goodS_mul_lt (by omega) (by omega) g734,
+      goodS_mul_lt (by omega) (by omega) g735, g736, g737, g738⟩
 
 /-- **The setup's call arguments** on a valuation satisfying its equations. -/
 theorem packSetup_vals {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packSetupT o first, GoodS rd S w σ s) :
