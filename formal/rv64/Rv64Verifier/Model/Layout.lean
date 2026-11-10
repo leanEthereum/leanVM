@@ -12,11 +12,14 @@ The statement transcribes the code before it named columns by index constants: i
 column by its name, a count column by the prefix `cnt`, a table's constraint count on a zero row.
 The mirrors use the index constants, and the theorems below show they are the statement's columns.
 A form is a list of terms in first-added order in both, a repeated monomial merged into its first
-term, so the forms are equal as data (`flushesRust_eq`), not only in value. The coefficients are
+term, so the forms are equal as data (`tablesRust_flushes`), not only in value. The coefficients are
 `E` values: `E::pow` and the products are `Model.FieldAlg`'s, written `^` and `*` here.
+
+The definitions live in `Rv64Verifier.Model.LayoutMirror`, apart from `Model.Bus`'s mirrors of
+the same helpers over the statement's types.
 -/
 
-namespace Rv64Verifier.Model
+namespace Rv64Verifier.Model.LayoutMirror
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
 
@@ -1502,3 +1505,217 @@ theorem buildLayoutRust_eq (bytecode : List K) (logMemory : BitVec 64)
       rw [LayoutRust.toSpec, hpush, hpull, hcount, hpl, hsl]
     · rw [ite_eq_right (fun h ↦ hc (hcond.mp h)), ite_eq_right hc]
       rfl
+
+theorem getD_map_option {α β : Type} (l : List (Option α)) (f : α → β) (i : ℕ) :
+    (l.map (Option.map f)).getD i none = (l.getD i none).map f := by
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases l[i]? <;> rfl
+
+/-- The rest of what `build_layout` returns: `qkeccak` is `q_keccak`'s placement, the tables are
+`tables()`, `keccak.log_steps` is KECCAK's height, and the stack's log-size fits a shift. -/
+theorem buildLayoutRust_rest {bytecodeLen logMemory : BitVec 64} {tableRows : List (BitVec 64)}
+    {l : LayoutRust} (h : buildLayoutRust bytecodeLen logMemory tableRows = some l)
+    (bytecode : List K) :
+    l.qkeccak.toSpec = (l.toSpec bytecode).placement qkeccak ∧ l.tables = tablesRust ∧
+      l.keccakLogSteps = l.tableLogHeights.getD opKeccak 0 ∧ l.stackLog ≤ 64 := by
+  unfold buildLayoutRust at h
+  split at h
+  · simp at h
+  · next L _ =>
+    split_ifs at h with hc
+    obtain ⟨⟨-, h32⟩, hall, -, h36⟩ := hc
+    simp only [Option.some.injEq] at h
+    subst h
+    refine ⟨?_, rfl, rfl, ?_⟩
+    · have hrows' : ∀ r ∈ tableRows, r.toNat ≤ 2 ^ 32 := by
+        intro r hr
+        have := List.all_eq_true.mp hall r hr
+        have h1 : (1#64 <<< maxTableLogRust).toNat = 2 ^ 32 := by decide +kernel
+        simpa [BitVec.le_def, h1] using this
+      have hH := tableLogHeightsRust_le tableRows hrows'
+      have hm : logMemory.toNat ≤ 32 := by simpa [BitVec.le_def] using h32
+      have hbb : busBitsRust = busBits := rfl
+      rw [kappasRust_eq] at *
+      have hK := columnKappas_le logMemory.toNat (L - busBitsRust) _ hm (by
+        simp only [busBitsRust] at h36 ⊢; omega) hH
+      have hKl := columnKappas_length logMemory.toNat (L - busBitsRust) (tableLogHeightsRust tableRows)
+      have hq : (columnKappas logMemory.toNat (L - busBitsRust) (tableLogHeightsRust tableRows)).getD
+          qkeccak 0 = (tableLogHeightsRust tableRows).getD opKeccakRust 0 +
+            slotBitsRust keccakDepthRust := by
+        have hs : slotBitsRust keccakDepthRust = qkeccakSlotBits := by decide +kernel
+        rw [hs]
+        rfl
+      have h5 := (placementsRust_eq _ _ hq hK (by omega)).2.2 (by rw [hKl]; decide)
+      simp only [LayoutRust.toSpec, Layout.placement, getD_map_option, h5]
+      rfl
+    · simp only [placementsRust, stackOffsetsRust, minStackedLogRust, log2CeilRust]
+      omega
+
+/-! ## `bus_layout` and `ColumnClaim::on_stack` -/
+
+/-- `BusLayout`. -/
+structure BusLayoutRust where
+  depth : ℕ
+  framework : List PlacementRust
+  tables : List PlacementRust
+
+/-- `bus_layout(framework_log_rows, blocks)`: the sizes stacked, their placements split after the
+framework's (`split_off`). -/
+def busLayoutRust (frameworkLogRows : List ℕ) (blocks : List BusBlockRust) : BusLayoutRust :=
+  let sizes := frameworkLogRows ++ blocks.map (·.logRows)
+  let stacked := stackOffsetsRust sizes
+  let placements := (sizes.zip stacked.1).map fun so ↦ (⟨so.1, so.2⟩ : PlacementRust)
+  ⟨stacked.2, placements.take frameworkLogRows.length, placements.drop frameworkLogRows.length⟩
+
+theorem zip_placements (sizes : List ℕ) (offsets : List (BitVec 64)) :
+    ((sizes.zip offsets).map fun so ↦ (⟨so.1, so.2⟩ : PlacementRust)).map PlacementRust.toSpec =
+      List.zipWith (fun size offset ↦ ({ variableCount := size, index := offset } : Placement))
+        sizes (offsets.map BitVec.toNat) := by
+  induction sizes generalizing offsets with
+  | nil => simp
+  | cons s sizes ih => cases offsets with
+    | nil => simp
+    | cons o offsets =>
+      simp only [List.zip_cons_cons, List.map_cons, List.zipWith_cons_cons, ih]
+      rfl
+
+/-- `bus_layout` computes the statement's `busLayout` while the stacked total fits in a `u64`
+(`busLayout_bound` for the layout's sides). -/
+theorem busLayoutRust_eq (frameworkLogRows : List ℕ) (blocks : List BusBlockRust)
+    (h : ((frameworkLogRows ++ blocks.map (·.logRows)).map (2 ^ ·)).sum < 2 ^ 64) :
+    (busLayoutRust frameworkLogRows blocks).depth =
+        (busLayout frameworkLogRows (blocks.map BusBlockRust.toSpec)).depth ∧
+      (busLayoutRust frameworkLogRows blocks).framework.map PlacementRust.toSpec =
+        (busLayout frameworkLogRows (blocks.map BusBlockRust.toSpec)).framework ∧
+      (busLayoutRust frameworkLogRows blocks).tables.map PlacementRust.toSpec =
+        (busLayout frameworkLogRows (blocks.map BusBlockRust.toSpec)).tables := by
+  have hs : (blocks.map BusBlockRust.toSpec).map (·.logRows) = blocks.map (·.logRows) := by
+    simp only [List.map_map]
+    rfl
+  unfold busLayoutRust busLayout
+  simp only [hs]
+  obtain ⟨hoff, htot⟩ := stackOffsetsRust_eq _ h
+  generalize stackOffsetsRust (frameworkLogRows ++ blocks.map (·.logRows)) = R at hoff htot
+  generalize stackOffsets (frameworkLogRows ++ blocks.map (·.logRows)) = S at hoff htot
+  obtain ⟨R1, R2⟩ := R
+  obtain ⟨S1, S2⟩ := S
+  simp only at hoff htot ⊢
+  rw [← hoff, List.map_take, List.map_drop, zip_placements]
+  exact ⟨htot, rfl, rfl⟩
+
+theorem sum_zip_le {g : TableRust → ℕ} :
+    ∀ (ts : List TableRust) (H : List ℕ) (R : List (BitVec 64)),
+      (((ts.zip H).zip R).map fun x ↦ g x.1.1).sum ≤ (ts.map g).sum
+  | [], _, _ => by simp
+  | _ :: _, [], _ => by simp
+  | _ :: _, _ :: _, [] => by simp
+  | t :: ts, h :: H, r :: R => by
+    simp only [List.zip_cons_cons, List.map_cons, List.sum_cons]
+    have := sum_zip_le (g := g) ts H R
+    omega
+
+/-- The blocks of the layout's sides have log-size at most `32`, and there are few of them. -/
+theorem busBlocksRust_bound (H : List ℕ) (R : List (BitVec 64)) (hH : ∀ x ∈ H, x ≤ 32) :
+    (∀ b ∈ (busBlocksRust tablesRust H R).1, b.logRows ≤ 32) ∧
+      (∀ b ∈ (busBlocksRust tablesRust H R).2.1, b.logRows ≤ 32) ∧
+      (∀ b ∈ (busBlocksRust tablesRust H R).2.2, b.logRows ≤ 32) ∧
+      (busBlocksRust tablesRust H R).1.length ≤ 64 ∧
+      (busBlocksRust tablesRust H R).2.1.length ≤ 64 ∧
+      (busBlocksRust tablesRust H R).2.2.length ≤ 64 := by
+  have hpush : (tablesRust.map fun t ↦ t.flushes.push.length).sum ≤ 64 := by decide +kernel
+  have hpull : (tablesRust.map fun t ↦ t.flushes.pull.length).sum ≤ 64 := by decide +kernel
+  have hcount : (tablesRust.map fun t ↦ t.countColumns.length).sum ≤ 64 := by decide +kernel
+  have hrow : ∀ x ∈ (tablesRust.zip H).zip R, x.1.2 ≤ 32 :=
+    fun x hx ↦ hH _ (List.of_mem_zip (List.of_mem_zip hx).1).2
+  unfold busBlocksRust
+  rw [foldl_append3]
+  simp only [List.nil_append, List.mem_flatMap, List.mem_map, List.length_flatMap,
+    List.length_map]
+  refine ⟨?_, ?_, ?_, (sum_zip_le _ _ _).trans hpush, (sum_zip_le _ _ _).trans hpull,
+    (sum_zip_le _ _ _).trans hcount⟩ <;>
+  · rintro b ⟨x, hx, c, -, rfl⟩
+    exact hrow x hx
+
+/-- What `verify_bus_balance` passes `bus_layout` fits a `u64`. -/
+theorem busLayout_bound (lm lb : ℕ) (hm : lm ≤ 32) (hb : lb ≤ 32) (blocks : List BusBlockRust)
+    (hblocks : ∀ b ∈ blocks, b.logRows ≤ 32) (hlen : blocks.length ≤ 64) (fw : List ℕ)
+    (hfw : fw = [0, lm, lb] ∨ fw = []) :
+    ((fw ++ blocks.map (·.logRows)).map (2 ^ ·)).sum < 2 ^ 64 := by
+  have hle : ∀ k ∈ fw ++ blocks.map (·.logRows), k ≤ 32 := by
+    intro k hk
+    rcases List.mem_append.mp hk with hk | hk
+    · rcases hfw with rfl | rfl
+      · simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+        omega
+      · simp at hk
+    · obtain ⟨b, hb', rfl⟩ := List.mem_map.mp hk
+      exact hblocks b hb'
+  have hl : (fw ++ blocks.map (·.logRows)).length ≤ 67 := by
+    rcases hfw with rfl | rfl <;> simp <;> omega
+  have := sum_pow_le _ 32 hle
+  have : (fw ++ blocks.map (·.logRows)).length * 2 ^ 32 ≤ 67 * 2 ^ 32 :=
+    Nat.mul_le_mul_right _ hl
+  omega
+
+/-- `ColumnClaim`. -/
+structure ColumnClaimRust where
+  column : ℕ
+  point : List E
+  value : E
+
+/-- The statement's claim. -/
+def ColumnClaimRust.toSpec (c : ColumnClaimRust) : ColumnClaim := ⟨c.column, c.point, c.value⟩
+
+/-- `ColumnClaim::on_stack`: the point of its `StackWeight::Eq`, and its value; `None` for a column
+nothing commits. -/
+def ColumnClaimRust.onStack (c : ColumnClaimRust) (layout : LayoutRust) : Option (List E × E) :=
+  match layout.placements.getD c.column none with
+  | none => none
+  | some placement => some (placement.stackPoint c.point layout.stackLog, c.value)
+
+/-- `on_stack` is the statement's `onStack`, its equality weight being `eq_eval` at the point. -/
+theorem ColumnClaimRust.onStack_eq (c : ColumnClaimRust) (layout : LayoutRust) (bytecode : List K)
+    (h : layout.stackLog ≤ 64) :
+    (c.onStack layout).map (fun pv ↦ ((fun x ↦ eqEval pv.1 x), pv.2)) =
+      c.toSpec.onStack (layout.toSpec bytecode) := by
+  simp only [ColumnClaimRust.onStack, ColumnClaim.onStack, ColumnClaimRust.toSpec,
+    LayoutRust.toSpec, getD_map_option]
+  cases layout.placements.getD c.column none with
+  | none => rfl
+  | some p =>
+    simp only [Option.map_some, PlacementRust.stackPoint_eq p c.point _ h]
+
+/-- What `build_layout` returns is in bounds: the sizes, and the blocks' heights. -/
+theorem buildLayoutRust_bounds {bytecodeLen logMemory : BitVec 64} {tableRows : List (BitVec 64)}
+    {l : LayoutRust} (h : buildLayoutRust bytecodeLen logMemory tableRows = some l) :
+    l.logMemory ≤ 32 ∧ l.logBytecode ≤ 32 ∧ (∀ x ∈ l.tableLogHeights, x ≤ 32) ∧
+      (l.push, l.pull, l.count) = busBlocksRust tablesRust l.tableLogHeights tableRows := by
+  unfold buildLayoutRust at h
+  split at h
+  · simp at h
+  · split_ifs at h with hc
+    obtain ⟨⟨-, h32⟩, hall, -, h36⟩ := hc
+    simp only [Option.some.injEq] at h
+    subst h
+    refine ⟨by simpa [BitVec.le_def] using h32, by simp only [busBitsRust] at h36 ⊢; omega, ?_, rfl⟩
+    apply tableLogHeightsRust_le
+    intro r hr
+    have := List.all_eq_true.mp hall r hr
+    have h1 : (1#64 <<< maxTableLogRust).toNat = 2 ^ 32 := by decide +kernel
+    simpa [BitVec.le_def, h1] using this
+
+/-- The three sides `verify_bus_balance` lays out (`[0, log_memory, log_bytecode]` and the push or
+pull blocks, no framework and the count blocks) fit a `u64`, so `busLayoutRust_eq` applies. -/
+theorem buildLayoutRust_busLayout {bytecodeLen logMemory : BitVec 64}
+    {tableRows : List (BitVec 64)} {l : LayoutRust}
+    (h : buildLayoutRust bytecodeLen logMemory tableRows = some l) :
+    (([0, l.logMemory, l.logBytecode] ++ l.push.map (·.logRows)).map (2 ^ ·)).sum < 2 ^ 64 ∧
+      (([0, l.logMemory, l.logBytecode] ++ l.pull.map (·.logRows)).map (2 ^ ·)).sum < 2 ^ 64 ∧
+      (([] ++ l.count.map BusBlockRust.logRows).map (2 ^ ·)).sum < 2 ^ 64 := by
+  obtain ⟨hm, hb, hH, hB⟩ := buildLayoutRust_bounds h
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := busBlocksRust_bound l.tableLogHeights tableRows hH
+  rw [← hB] at h1 h2 h3 h4 h5 h6
+  exact ⟨busLayout_bound _ _ hm hb _ h1 h4 _ (.inl rfl), busLayout_bound _ _ hm hb _ h2 h5 _ (.inl rfl),
+    busLayout_bound _ _ hm hb _ h3 h6 _ (.inr rfl)⟩
+
+end Rv64Verifier.Model.LayoutMirror

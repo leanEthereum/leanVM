@@ -8,6 +8,7 @@ import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Model.Transcript
 import Rv64Verifier.Model.Bus
+import Rv64Verifier.Model.Whir
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Sym
