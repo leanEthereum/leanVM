@@ -60,15 +60,15 @@ def main():
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
-/// The largest allowed bound, `2^18` = the minimum prover memory, end to end:
-/// the complement cell is `g^262143`, the last cell of that memory, so an
+/// The largest allowed bound, `2^16` = the minimum prover memory, end to end:
+/// the complement cell is `g^65535`, the last cell of that memory, so an
 /// off-by-one in the bound check or in the memory size shows up here.
 #[test]
 fn range_check_max_bound() {
     let src = "\
 def main():
     x = GEN ** 5
-    assert log x < 262144
+    assert log x < 65536
     p = 1
     p[1] = x
     p[GEN] = x
@@ -111,12 +111,12 @@ fn range_check_empty_bound_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
-/// Bounds beyond `2^18` (the minimum memory size) would not be sound for every
+/// Bounds beyond `2^16` (the minimum memory size) would not be sound for every
 /// prover memory choice: rejected at compile time.
 #[test]
-#[should_panic(expected = "exceeds 2^18")]
+#[should_panic(expected = "exceeds 2^16")]
 fn range_check_bound_too_big_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 262145\n    return\n";
+    let src = "def main():\n    x = 1\n    assert log x < 65537\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

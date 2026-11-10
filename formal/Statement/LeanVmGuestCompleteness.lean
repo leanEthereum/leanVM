@@ -36,10 +36,11 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
-stack log at most `32` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`), every count of `meta` and of a child's lists below `2^18`
-(`MAX_KEYS = 2^MIN_LOG_MEM`: each at most `coverageSlots`), the bus depth at most `32`, the tables'
-heights at most `32`. -/
+stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
+directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4525`), every count of `meta` and of a child's
+lists below `2^16` (`lean_ethereum.py:4518-4523, 4626-4627`: each at most `coverageSlots`), the bus
+depth at most `32` (`lean_ethereum.py:1779`), the tables' heights at most `28`
+(`lean_ethereum.py:2195`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
@@ -54,8 +55,8 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
       (witness.children.map (·.statement.claims.sphincs)).flatten)
   /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4524`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^18` (`MAX_KEYS`, `crates/rec_aggregation/src/aggregation/mod.rs`). -/
-  coverageSlotsBelow2Pow18 : coverageSlots witness < 2 ^ 18
+  /-- The coverage table below `2^16` (`lean_ethereum.py:4531`). -/
+  coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
 
@@ -139,8 +140,8 @@ def HonestProofRarelyRefused : Prop :=
 is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
 statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
 accepts it. No size is asked: the guest program has an opening arm for every stack log the
-verifier admits of an execution, from `21` (`MIN_EXECUTION_STACKED_LOG`, `crates/verifier`'s
-`layout.rs`: the memory's columns alone fill `2^20` words) to `32` (`MAX_STACKED_LOG`), and the
+verifier admits of an execution, from `19` (`MIN_EXECUTION_STACKED_LOG`, `crates/verifier`'s
+`layout.rs`: the memory's columns alone fill `2^18` words) to `32` (`MAX_STACKED_LOG`), and the
 honest prover makes no proof past `2^32` committed words (`maxCommitted`). `lean_vm` proves that
 such a child meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=

@@ -84,15 +84,12 @@ pub const KECCAK_DEPTH: usize = 12;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 pub const MAX_TABLE_LOG: usize = 32;
-/// The least memory a proof announces, as a log: `leanvm_core::cpu::MIN_LOG_MEM`.
-pub const MIN_LOG_MEMORY: usize = 18;
 pub const MIN_STACKED_LOG: usize = 15;
 /// The largest stack the verifier admits, below the `2^40` the caps alone would: past `2^32` the knowledge extractor's
 /// decoder outgrows the sizes its proof covers (`formal/`).
 pub const MAX_STACKED_LOG: usize = 32;
-/// The stack of the smallest execution: the memory's four columns at `2^MIN_LOG_MEMORY` cells already fill
-/// `2^(MIN_LOG_MEMORY + 2)`.
-pub const MIN_EXECUTION_STACKED_LOG: usize = MIN_LOG_MEMORY + 3;
+/// The stack of the smallest execution: the memory's four columns at `2^16` cells already fill `2^18`.
+pub const MIN_EXECUTION_STACKED_LOG: usize = 19;
 
 pub struct Layout<'a> {
     pub log_memory: usize,
@@ -534,7 +531,7 @@ pub fn build_layout<'a>(
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
-        (MIN_LOG_MEMORY as u64..=32).contains(&log_memory)
+        (16..=32).contains(&log_memory)
             && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
             && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
@@ -617,7 +614,7 @@ mod tests {
 
     #[test]
     fn stacked_log_bounds() {
-        assert_eq!(stack_log(MIN_LOG_MEMORY, 0, 0), MIN_EXECUTION_STACKED_LOG);
+        assert_eq!(stack_log(16, 0, 0), MIN_EXECUTION_STACKED_LOG);
         // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
         assert!(stack_log(32, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
     }

@@ -617,7 +617,7 @@ and the filing of the state in a sorted array, its share of one sort, growing as
 steps); the sorted table of the memory's addresses at the execution's $\kappa$; and
 $2^{37}(\lambda + 16)$, about $2^{42}$ to $2^{43}$, for the witness read at the counts and the
 cursors a valid execution bounds, with about $2^{25.28}$ frame lookups: $G$'s own asserts give at
-most $16$ children, $2^{18}-1$ claims of each scheme and $2^{18}-1$ coverage slots (\lean{valid_counts});
+most $16$ children, $65535$ claims of each scheme and $65535$ coverage slots (\lean{valid_counts});
 each child's cursor is at most $8192$ words, as the stream of its proof is, which the deferring
 verifier accepts on a valid execution (\lean{valid_cursor}, from
 \lean{stream_le_of_verifyDeferred}); and the decoder clamps the DA matrix's row count at $1024$. The
@@ -711,7 +711,7 @@ bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest pro
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
 ($2^{25}$ nonces per proof of work) of an execution of $G$ on $\mathrm{dig}_{iv_G}(s_i)$ (the
 prover makes none past $2^{32}$ committed words, and $G$ opens every stack the verifier admits of an
-execution, of log $21$ to $32$); and the verifier that also refuses
+execution, of log $19$ to $32$); and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
@@ -722,7 +722,7 @@ below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
-statement's deferring-verifier conditions; a stack log of $21$ to $32$ announced (the guest program
+statement's deferring-verifier conditions; a stack log of $19$ to $32$ announced (the guest program
 has one opening arm per stack log, the rate dispatched inside it) and a proof stream of at most $8192$ field
 elements; at each query step of its deferring verifier, the Merkle openings agreeing wherever they
 share a node of the tree (an honest prover's openings, all from one tree, agree); and no zero
@@ -787,7 +787,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 \end{tabular}
 \end{center}
 \lean{DeployedLimits} caps a recursion node at $16$ children, each at
-any $\mu \in [21,32]$ and $r \in [1,4]$.
+any $\mu \in [19,32]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
@@ -847,7 +847,7 @@ asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{Aggregat
 \item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}): argued,
 not a Lean theorem (\lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}); the
 decoder's budget has no cap on the steps, and its constant prices the witness at the bounds a valid
-execution's asserts and its children's accepted proofs give ($16$ children, each with $2^{18}-1$
+execution's asserts and its children's accepted proofs give ($16$ children, each with $65535$
 claims of each scheme and a cursor of $8192$ words), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
