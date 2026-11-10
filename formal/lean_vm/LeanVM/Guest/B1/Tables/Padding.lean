@@ -47,7 +47,7 @@ theorem tb_sum_bits_mod (N j : ℕ) (hj : j ≤ 64) :
   have hb : bitsVal N.testBit j = N % 2 ^ j := by
     rw [bitsVal_congr (f' := (N % 2 ^ j).testBit) fun t ht => by
       rw [Nat.testBit_mod_two_pow]; simp [ht], bitsVal_testBit (Nat.mod_lt _ (Nat.two_pow_pos j))]
-  rw [h, hb, eOfNat192_of_lt (lt_of_lt_of_le (Nat.mod_lt _ (Nat.two_pow_pos j))
+  rw [h, hb, eOfNat128_of_lt (lt_of_lt_of_le (Nat.mod_lt _ (Nat.two_pow_pos j))
     (Nat.pow_le_pow_right (by decide) hj))]
 
 /-! ## The template -/
@@ -159,7 +159,7 @@ theorem pw_bits {τ : ℕ} (hτ : τ < 63) {b : ℕ → E} (hb : ∀ k ≤ τ, b
         gen_pow_eq_eOfNat (by have := Finset.mem_range.mp hk; omega)]
   obtain ⟨W, hW, hx, hbits⟩ := bits_of_reconstruct (fun k hk => hb k (by omega)) hrec'
   have hW64 : W < 2 ^ 64 := lt_of_lt_of_le hW (Nat.pow_le_pow_right (by decide) (by omega))
-  rw [Nat.pow_zero, Nat.one_mul, eOfNat192_of_lt hW64] at hx
+  rw [Nat.pow_zero, Nat.one_mul, eOfNat128_of_lt hW64] at hx
   have hrows : rows = eOfNat (pwW τ W) := by
     rw [pwW, eOfNat_xor, ← hx, add_assoc, e_add_self, add_zero]
   have hb' : ∀ k ≤ τ, b k = bitE ((pwW τ (pwW τ W)).testBit k) := fun k hk => by

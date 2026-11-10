@@ -80,7 +80,7 @@ theorem vt_pushSel_data : ∀ i < 51,
     (vtPushPadData.getD i default).2.1 < 6 ∧
     vtSelCopy (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1
       (vtPushSel.getD i default).2.2.2.2.1 = (vtPushPadData.getD i default).2.2.1 ∧
-    (vtPushSel.getD i default).2.2.2.2.1 = some (if i = 0 then 889 else
+    (vtPushSel.getD i default).2.2.2.2.1 = some (if i = 0 then 834 else
       vtSelSum (vtPushSel.getD (i - 1) default).2.2.1 (vtPushSel.getD (i - 1) default).2.2.2.1
         (vtPushSel.getD (i - 1) default).2.2.2.2.1) ∧
     (0 < (vtPushSel.getD i default).2.2.2.1 →
@@ -109,10 +109,10 @@ theorem vt_countSel_data : ∀ i < 45,
   decide
 
 theorem vt_pushSel_last : vtSelSum (vtPushSel.getD 50 default).2.2.1
-    (vtPushSel.getD 50 default).2.2.2.1 (vtPushSel.getD 50 default).2.2.2.2.1 = 1393 := by decide
+    (vtPushSel.getD 50 default).2.2.2.1 (vtPushSel.getD 50 default).2.2.2.2.1 = 1290 := by decide
 
 theorem vt_countSel_last : vtSelSum (vtCountSel.getD 44 default).2.2.1
-    (vtCountSel.getD 44 default).2.2.2.1 (vtCountSel.getD 44 default).2.2.2.2.1 = 2460 := by
+    (vtCountSel.getD 44 default).2.2.2.1 (vtCountSel.getD 44 default).2.2.2.2.1 = 1823 := by
   decide
 
 /-- A running sum: each step adds its term to the previous step's sum. -/
@@ -130,8 +130,8 @@ theorem vt_running_sum (S : ℕ → E) (prev : ℕ → E) (x : ℕ → E) (s0 : 
 
 /-- The shared tables' pointers a table block `t > 0` steps from. -/
 theorem vt_ptr_step {rd : Reader} {σ : Val} (h : VtH rd σ) {t : ℕ} (ht : t < 6) (ht0 : 0 < t) :
-    σ (.n (vtEqV (t - 1))) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
-      σ (.n (vtGV (t - 1))) * word 21299200 0 = σ (.n 706) * gen ^ (144 * t) := by
+    σ (.n (vtEqV (t - 1))) * vtW288 = σ (.n 701) * gen ^ (288 * t) ∧
+      σ (.n (vtGV (t - 1))) * word 21299200 0 = σ (.n 702) * gen ^ (144 * t) := by
   obtain ⟨e1, e2⟩ := vt_ptrs h (t - 1) (by omega)
   obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at e1 e2 ⊢
@@ -148,19 +148,19 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     (hz : TbReadsAt Lm.read (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ}
     (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
-    (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
+    (hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
     lm ≤ point.length ∧ 19 ≤ point.length ∧
-      σ (.n 794) = blockSel (vtSizesP lm τ) point.length 0 point ∧
-      σ (.n 817) = blockSel (vtSizesP lm τ) point.length 1 point ∧
-      σ (.n 887) = blockSel (vtSizesP lm τ) point.length 2 point ∧
-      σ (.n 796) = σ (.n 794) ∧ σ (.n 820) = σ (.n 817) ∧ σ (.n 890) = σ (.n 887) ∧
+      σ (.n 788) = blockSel (vtSizesP lm τ) point.length 0 point ∧
+      σ (.n 804) = blockSel (vtSizesP lm τ) point.length 1 point ∧
+      σ (.n 832) = blockSel (vtSizesP lm τ) point.length 2 point ∧
+      σ (.n 790) = σ (.n 788) ∧ σ (.n 807) = σ (.n 804) ∧ σ (.n 835) = σ (.n 832) ∧
       (∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
         blockSel (vtSizesP lm τ) point.length (3 + i) point) ∧
-      σ (.n 1393) = σ (.n 794) + σ (.n 817) + σ (.n 887) +
+      σ (.n 1290) = σ (.n 788) + σ (.n 804) + σ (.n 832) +
         (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum ∧
       (∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
-      σ (.n 2460) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
+      σ (.n 1823) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
   have hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList := hE.1
   obtain ⟨hoP, hoC⟩ := vt_sort hμ Lm h hlm hτ hkb hE
   rw [vt_sizesP_eq] at hoP
@@ -171,14 +171,14 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     vt_stackOffsets_lt _ (by rw [vtSizesC_length]; norm_num) (vtSizesC_le lm τ hlm hτ)
   have hz1 := vt_zeta1 h hz hmu (by omega)
   have hidxc := vt_idxc h
-  have hkbt : ∀ t < 6, σ (.n (30 + t)) = gen ^ τ t := fun t ht => by
+  have hkbt : ∀ t < 6, σ (.n (27 + t)) = gen ^ τ t := fun t ht => by
     have := hkb (2 + t) (by omega)
-    rwa [show 28 + (2 + t) = 30 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm τ ht] at this
+    rwa [show 25 + (2 + t) = 27 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm τ ht] at this
   -- the framework blocks
-  have k0 : σ (.n 28) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
-  have k1 : σ (.n 29) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
-  have k2 : σ (.n 876) = gen ^ (vtSizesP lm τ).getD 2 0 := by
-    have e0 : σ (.n 28) = 1 := by simpa using hkb 0 (by norm_num)
+  have k0 : σ (.n 25) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
+  have k1 : σ (.n 26) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
+  have k2 : σ (.n 821) = gen ^ (vtSizesP lm τ).getD 2 0 := by
+    have e0 : σ (.n 25) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_fw2_kappa h, e0, one_mul]; rfl
   have f0 := vt_fwblock hμ Lm h vtFw0_check hmu hml hz1 hidxc k0 (by simp [vtSizesP])
     (hoP 0 (by norm_num)) (hobP 0)
@@ -194,7 +194,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
   simp only [vtSizesP, List.cons_append, List.getD_cons_succ, List.getD_cons_zero] at l1 l2
   -- the shared tables
   have hsh : ∀ t < 6, ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ t ∧
-      RunTables Lm.read (σ (.n 705) * gen ^ (288 * t)) (σ (.n 706) * gen ^ (144 * t)) d
+      RunTables Lm.read (σ (.n 701) * gen ^ (288 * t)) (σ (.n 702) * gen ^ (144 * t)) d
         (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t)) ((gSquaresList.drop (τ t)).take d) :=
     fun t ht => vt_shared hμ Lm h hz hmu hml hz1 hsq ht (hτ t ht) (hkbt t ht)
   -- a table block's selector
@@ -202,7 +202,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
       tbStmtsEqb (vtSelT w b t prev es gs gw)
         ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true →
       t < 6 → (0 < t → es = vtEqV (t - 1) ∧ ((gs = vtGV (t - 1) ∧ gw = 21299200) ∨
-        (t = 2 ∧ gs = 706 ∧ gw = 299140177199104))) →
+        (t = 2 ∧ gs = 702 ∧ gw = 299140177199104))) →
       sizes.getD c 0 = τ t → (∀ b, (stackOffsets sizes).1.getD b 0 < 2 ^ 62) →
       σ (.n (vtBoffV b)) = gen ^ (stackOffsets sizes).1.getD c 0 →
       σ (.n (vtSelE w t)) = blockSel sizes point.length c point ∧
@@ -211,8 +211,8 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
           σ (.n (vtSelE w t)) := by
     intro sizes b c w t prev pos es gs gw hc ht hd hsz hob hoff
     obtain ⟨d, hdv, hpl, hrun⟩ := hsh t ht
-    have hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
-        σ (.n gs) * word gw 0 = σ (.n 706) * gen ^ (144 * t) := fun ht0 => by
+    have hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 701) * gen ^ (288 * t) ∧
+        σ (.n gs) * word gw 0 = σ (.n 702) * gen ^ (144 * t) := fun ht0 => by
       obtain ⟨rfl, hg⟩ := hd ht0
       refine ⟨(vt_ptr_step h ht ht0).1, ?_⟩
       rcases hg with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -230,7 +230,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
         (vtPushSel.getD i default).2.2.2.1)) ∧
       σ (.n (vtSelSum (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1
         (vtPushSel.getD i default).2.2.2.2.1)) =
-        σ (.n (if i = 0 then 889 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
+        σ (.n (if i = 0 then 834 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
           (vtPushSel.getD (i - 1) default).2.2.2.1 (vtPushSel.getD (i - 1) default).2.2.2.2.1)) +
         σ (.n (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1)) := by
     intro i hi
@@ -275,9 +275,9 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
   -- the sums
   have hsumP := vt_running_sum (fun i ↦ σ (.n (vtSelSum (vtPushSel.getD i default).2.2.1
       (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1)))
-    (fun i ↦ σ (.n (if i = 0 then 889 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
+    (fun i ↦ σ (.n (if i = 0 then 834 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
       (vtPushSel.getD (i - 1) default).2.2.2.1 (vtPushSel.getD (i - 1) default).2.2.2.2.1)))
-    (fun i ↦ σ (.n (vtPushPadData.getD i default).2.2.1)) (σ (.n 889)) 51
+    (fun i ↦ σ (.n (vtPushPadData.getD i default).2.2.1)) (σ (.n 834)) 51
     (fun i hi ↦ by rw [(hP i hi).2.2, (hP i hi).2.1]) (by simp)
     (fun i h0 _ ↦ by simp [show i ≠ 0 by omega]) 50 (by norm_num)
   have hsumC := vt_running_sum (fun i ↦ σ (.n (vtSelSum (vtCountSel.getD i default).2.2.1
