@@ -127,8 +127,9 @@ theorem corr_pack (hr : r.length = P + 1) : ∀ (rs acc : List E) (st : PackStat
     have hco : coeffsOf 2 (fun x ↦ st.scale * FP T P s w r (acc ++ [x])) =
         packRound (kappaAt s) w.toArray st :=
       coeffsOf_eq (length_packRound _ _ _) (by norm_num) fun x ↦ packRound_eval hr h hlt x
-    simp only [List.map_cons, sumcheckBy, hPack, hco, ← wire_eq]
-    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
+    simp only [List.map_cons, sumcheckBy, hPack, hco, ← wire_eq, Script.bind_assoc',
+      roundGrind_eq (length_packRound _ _ _)]
+    refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
     have hsc : st.scale * (1 + rk + c) = (packFold st c).scale := by simp [packFold, hrs]
     rw [hsc]
     refine Corr.bind (fun a b hab ↦ ?_) _ _ (corr_pack hr rs (acc ++ [c]) (packFold st c)

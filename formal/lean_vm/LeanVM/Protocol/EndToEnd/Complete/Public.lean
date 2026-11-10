@@ -131,7 +131,7 @@ theorem trueClaim_memLine (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanI
 computed from the public input's digest, are the honest ones, and they are true. -/
 theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput}
     {q : Column (leanIsaμ prog s)} (hq : M3Holds (inst prog s) input q) (cs : Commits) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (hPub prog s q)
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧ b.length = 2) (hPub prog s q)
       (Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)) cs := by
   have hlines := hq.2.2.2.1
   have hl : ∀ l ∈ ((inst prog s).publicLines input).toList,
@@ -158,7 +158,7 @@ theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : Pu
     all_goals (try simp)
     all_goals ring
   simp only [VerifierProgram.pure_eq]
-  refine ⟨rfl, ?_, ?_⟩
+  refine ⟨rfl, ?_, ?_, ?_⟩
   · show publicClaims (verifierLayout prog s) r _ = List.zipWith _ _ _
     rw [hlimbs]
     rfl
@@ -169,6 +169,8 @@ theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : Pu
     rcases hcl with rfl | rfl
     · exact trueClaim_memLine prog s q 0 r _ rfl
     · exact trueClaim_memLine prog s q 1 r _ rfl
+  · rw [hlimbs]
+    rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

@@ -73,7 +73,7 @@ theorem length_rounds_flat (rounds : List (E × E)) :
 theorem runD_batchOf (check : DeferredClaim → Prop) {bytecode : List K} {cs : List ChildClaims}
     (rest : List E) :
     runD (nodeBatchingProgram check bytecode cs)
-        ⟨⟨batchSeed, []⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
+        ⟨⟨batchSeed, [], none⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
       runD (batchingAfterChildren check bytecode cs) ⟨batchSponge cs, rest, [], []⟩ := by
   rw [nodeBatchingProgram, runD_bind_of_runsTo (runsTo_readN' _ (cellsBeforeChallenge cs) rfl),
     ← List.nil_append rest, runD_bind_of_runsTo (runsTo_require rfl _)]
@@ -105,7 +105,7 @@ theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : Li
       ⟨batchingStream cs h, []⟩) = true) :
     h.sumcheckMessages.length = Nat.log2 bytecode.length := by
   change (match runD (nodeBatchingProgram check bytecode cs)
-      ⟨⟨batchSeed, []⟩, batchingStream cs h, [], []⟩ with
+      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
     | _ => false) = true at hacc
   rw [batchStream_eq, runD_batchOf check, batchingAfterChildren,
@@ -130,7 +130,7 @@ theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : 
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
       ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
   change (match runD (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨⟨batchSeed, []⟩, batchingStream cs h, [], []⟩ with
+      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
     | _ => false) = true ↔ _
   rw [batchStream_eq, runD_batchOf _, batchingAfterChildren,

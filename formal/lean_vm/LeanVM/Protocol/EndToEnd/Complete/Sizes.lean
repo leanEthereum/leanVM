@@ -104,5 +104,37 @@ theorem whirAdmissible (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible pr
     (hρ : validRate ρ) : Whir.Admissible (leanIsaμ prog s) ρ :=
   ⟨le_max_right _ _, hs.2.2.2, hρ.1, hρ.2⟩
 
+/-! ## The commitment's out-of-domain sample -/
+
+/-- The stack's multilinear extension at `z`: the value the out-of-domain claim holds. -/
+noncomputable def oodValue {μ : ℕ} (q : Column μ) (z : List E) : E :=
+  ∑ x : Fin (2 ^ μ), eqEval z (boolPoint μ x) * ofK (q.values.getD x 0)
+
+/-- **The honest prover of the commitment's out-of-domain sample** (`readOod`; `ood_sample`,
+`crates/pcs/src/ood.rs:20-31`): pass the grind, receive the point `z` of the stack's variables,
+send the stack's extension there; return the program's claim. -/
+noncomputable def hOod {μ : ℕ} (q : Column μ) : Script StackClaim :=
+  (Script.grindBits Whir.oodGrindingBits).bind fun _ ↦
+  (Script.sampleN μ).bind fun z ↦
+  (Script.sendE (oodValue q z)).bind fun _ ↦
+  .ret (fun x ↦ eqEval z x, oodValue q z)
+
+/-- **Completeness of the out-of-domain sample.** The honest prover follows `readOod`, and the
+claim the program returns holds of the stack with a multilinear weight. -/
+theorem follows_readOod {μ : ℕ} (q : Column μ) (cs : Commits) :
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ StackClaim.Holds μ b q ∧ IsMultilinearFn μ b.1)
+      (hOod q) (readOod μ) cs := by
+  unfold hOod readOod
+  simp only [VerifierProgram.bind_eq]
+  refine Follows.bind (fun cs₀ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
+  subst h
+  refine Follows.bind (fun cs₁ z z' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ μ)
+  obtain ⟨rfl, rfl, hl⟩ := h
+  refine Follows.bind (fun cs₂ _ v h ↦ ?_) _ _ _ (Follows.sendE_readE _ cs₁)
+  obtain ⟨rfl, rfl⟩ := h
+  refine ⟨rfl, rfl, rfl, ?_⟩
+  have := isMultilinearFn_eqEval z
+  rwa [hl] at this
+
 end
 end LeanVM.Protocol.EndToEnd.Complete

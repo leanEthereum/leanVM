@@ -22,10 +22,11 @@ sumcheck of three coefficients over the slot `x`, four rounds, the low bit first
 verifier then checks `P(z, r)` itself (`computedBytecodeValue`).
 
 The honest prover's running claim after the challenges `acc` is the sum, over the slots not yet
-bound, of the product of the two extensions `w̃` and `P(z, ·)` (`shareClaim`): before the rounds
-it is the share (`shareClaim_nil`), each round's polynomial has degree two (`shareClaim_polyLE`)
-and splits the running claim (`shareClaim_split`), and after the four rounds it is the product
-the verifier checks (`shareClaim_full`, `wMle_eq_dot`, `pMle_eq_multilinearEval`).
+bound, of the weights and the slots `P(z, ·)` (`slotList`), each folded at `acc` (`shareClaim`):
+before the rounds it is the share (`shareClaim_nil`), each round's polynomial has degree two
+(`shareClaim_polyLE`) and splits the running claim (`shareClaim_split`), and after the four rounds
+it is the product the verifier checks (`shareClaim_full`, `multilinearEval_eq_dot`,
+`slotList_multilinearEval`).
 
 * `follows_bytecodeShare`: the honest prover `hShare` follows `bytecodeShare`, to the share
   `bcShare prog w z`, the point `z ++ r` and the value `P(z, r)`, which is the stacked bytecode's
@@ -38,8 +39,7 @@ open LeanVM.Prover (Script)
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Complete LeanVM.Protocol.EndToEnd.Front Finset
-open LeanVM.Protocol.KeccakGkr (eqAt bitsE sum_cube_succ bitsE_two_mul bitsE_two_mul_add_one
-  sum_eqAt_bitsE polyLE_mle multilinearEval_eq eqKernel_length)
+open LeanVM.Protocol.KeccakGkr (multilinearEval_eq eqKernel_length)
 
 @[expose] public section
 
@@ -47,72 +47,105 @@ section Share
 
 variable (prog : LeanIsaProgram)
 
-/-- The extension of the slot weights at `pt`. -/
-noncomputable def wMle (w pt : List E) : E := ∑ o ∈ range 16, eqAt pt o * w.getD o 0
+/-- The stacked bytecode's sixteen slots at the instructions' point `z`, `P(z, x)`. -/
+noncomputable def slotList (z : List E) : List E := (List.range 16).map (bcSlot prog · z)
 
-/-- The extension of the stacked bytecode's slots at `pt`, the instructions' point `z`. -/
-noncomputable def pMle (z pt : List E) : E := ∑ o ∈ range 16, eqAt pt o * bcSlot prog o z
-
-/-- The running claim of the share's sumcheck after the challenges `acc`: the sum over the slots
-not yet bound of `w̃ · P(z, ·)`. -/
+/-- The running claim of the share's sumcheck after the challenges `acc`: the weights and the
+slots, each folded at `acc` (the low bit first), multiplied entry by entry and summed. -/
 noncomputable def shareClaim (w z acc : List E) : E :=
-  ∑ u ∈ range (2 ^ (4 - acc.length)),
-    wMle w (acc ++ bitsE u (4 - acc.length)) * pMle prog z (acc ++ bitsE u (4 - acc.length))
+  ∑ i ∈ range (2 ^ (4 - acc.length)),
+    (foldAll w acc).getD i 0 * (foldAll (slotList prog z) acc).getD i 0
+
+theorem length_slotList (z : List E) : (slotList prog z).length = 16 := by simp [slotList]
+
+theorem getD_slotList (z : List E) {k : ℕ} (hk : k < 16) :
+    (slotList prog z).getD k 0 = bcSlot prog k z := by
+  rw [slotList, List.getD_eq_getElem _ _ (by simpa using hk)]
+  simp
 
 /-- **Before the rounds the claim is the share.** -/
 theorem shareClaim_nil (w z : List E) : shareClaim prog w z [] = bcShare prog w z := by
-  simp only [shareClaim, List.length_nil, Nat.sub_zero, List.nil_append, bcShare]
-  refine sum_congr rfl fun u hu ↦ ?_
-  have hu' : u < 2 ^ 4 := mem_range.mp hu
-  rw [wMle, pMle, show (16 : ℕ) = 2 ^ 4 from rfl, sum_eqAt_bitsE hu', sum_eqAt_bitsE hu']
+  simp only [shareClaim, List.length_nil, Nat.sub_zero, foldAll_nil, bcShare]
+  refine sum_congr rfl fun k hk ↦ ?_
+  rw [getD_slotList prog z (by simpa using mem_range.mp hk)]
+
+/-- One more challenge folds the tables. -/
+theorem shareClaim_snoc (w z acc : List E) (x : E) (hw : w.length = 16)
+    (hacc : acc.length < 4) :
+    shareClaim prog w z (acc ++ [x]) =
+      ∑ i ∈ range (2 ^ (4 - (acc.length + 1))),
+        ((foldAll w acc).getD (2 * i) 0 * (1 + x) + (foldAll w acc).getD (2 * i + 1) 0 * x) *
+          ((foldAll (slotList prog z) acc).getD (2 * i) 0 * (1 + x) +
+            (foldAll (slotList prog z) acc).getD (2 * i + 1) 0 * x) := by
+  have hm : 4 - acc.length = (4 - (acc.length + 1)) + 1 := by omega
+  have hw' : (foldAll w acc).length = 2 ^ (4 - acc.length) :=
+    length_foldAll acc w _ (by rw [hw, show acc.length + (4 - acc.length) = 4 by omega]; rfl)
+  have hp' : (foldAll (slotList prog z) acc).length = 2 ^ (4 - acc.length) :=
+    length_foldAll acc _ _ (by
+      rw [length_slotList, show acc.length + (4 - acc.length) = 4 by omega]; rfl)
+  simp only [shareClaim, List.length_append, List.length_singleton, foldAll_concat]
+  refine sum_congr rfl fun i hi ↦ ?_
+  have hi' := mem_range.mp hi
+  have hlt : 2 * i + 1 < 2 ^ (4 - acc.length) := by rw [hm, pow_succ]; omega
+  rw [getD_foldPairs _ _ _ (by rw [hw']; exact hlt), getD_foldPairs _ _ _ (by rw [hp']; exact hlt)]
 
 /-- **Each round's polynomial has degree two.** -/
-theorem shareClaim_polyLE (w z acc : List E) :
+theorem shareClaim_polyLE (w z acc : List E) (hw : w.length = 16) (hacc : acc.length < 4) :
     PolyLE 2 fun x ↦ shareClaim prog w z (acc ++ [x]) := by
-  have e : ∀ x, shareClaim prog w z (acc ++ [x]) =
-      ∑ u ∈ range (2 ^ (4 - (acc.length + 1))),
-        wMle w (acc ++ x :: bitsE u (4 - (acc.length + 1))) *
-          pMle prog z (acc ++ x :: bitsE u (4 - (acc.length + 1))) := by
-    intro x
-    simp only [shareClaim, List.length_append, List.length_singleton, List.append_assoc,
-      List.singleton_append]
-  refine PolyLE.congr (PolyLE.sum _ fun u _ ↦ PolyLE.mul (polyLE_mle acc _ 16 _)
-    (polyLE_mle acc _ 16 _)) fun x ↦ (e x).symm
+  refine PolyLE.congr (PolyLE.sum _ fun i _ ↦ PolyLE.mul
+    ((PolyLE.affine ((foldAll w acc).getD (2 * i) 0)
+      ((foldAll w acc).getD (2 * i) 0 + (foldAll w acc).getD (2 * i + 1) 0)).congr
+        fun x ↦ by ring)
+    ((PolyLE.affine ((foldAll (slotList prog z) acc).getD (2 * i) 0)
+      ((foldAll (slotList prog z) acc).getD (2 * i) 0 +
+        (foldAll (slotList prog z) acc).getD (2 * i + 1) 0)).congr fun x ↦ by ring))
+    fun x ↦ (shareClaim_snoc prog w z acc x hw hacc).symm
 
 /-- **Each round splits the claim**: its values at `0` and `1` add up to the claim before it. -/
-theorem shareClaim_split (w z acc : List E) (hacc : acc.length < 4) :
+theorem shareClaim_split (w z acc : List E) (hw : w.length = 16) (hacc : acc.length < 4) :
     shareClaim prog w z (acc ++ [0]) + shareClaim prog w z (acc ++ [1]) =
       shareClaim prog w z acc := by
-  have hm : 4 - acc.length = (4 - (acc.length + 1)) + 1 := by omega
-  simp only [shareClaim, List.length_append, List.length_singleton]
-  rw [hm, sum_cube_succ, ← Finset.sum_add_distrib]
-  refine Finset.sum_congr rfl fun u _ ↦ ?_
-  rw [bitsE_two_mul, bitsE_two_mul_add_one]
-  simp only [List.append_assoc, List.singleton_append]
+  rw [shareClaim_snoc prog w z acc 0 hw hacc, shareClaim_snoc prog w z acc 1 hw hacc,
+    ← sum_add_distrib, shareClaim]
+  rw [show 2 ^ (4 - acc.length) = 2 * 2 ^ (4 - (acc.length + 1)) by
+    rw [← pow_succ', show 4 - (acc.length + 1) + 1 = 4 - acc.length by omega],
+    KeccakGkr.sum_range_two_mul]
+  refine sum_congr rfl fun i _ ↦ ?_
+  have h2 : (1 : E) + 1 = 0 := by rw [one_add_one_eq_two]; exact CharTwo.two_eq_zero
+  simp only [add_zero, mul_one, mul_zero, h2]
+  ring
 
 /-- **After the rounds the claim is the product** of the two extensions at the challenges. -/
 theorem shareClaim_full (w z r : List E) (hr : r.length = 4) :
-    shareClaim prog w z r = wMle w r * pMle prog z r := by
-  simp [shareClaim, hr, bitsE]
+    shareClaim prog w z r =
+      multilinearEval w r * multilinearEval (slotList prog z) r := by
+  simp only [shareClaim, hr, Nat.sub_self, pow_zero, sum_range_one, multilinearEval_eq_foldAll,
+    List.headD_eq_getD]
 
 /-- The weights' extension is the verifier's `dot(eq_kernel(r), w)`. -/
-theorem wMle_eq_dot (w r : List E) (hw : w.length = 16) (hr : r.length = 4) :
-    wMle w r = dot (eqKernel r) w := by
+theorem multilinearEval_eq_dot (w r : List E) (hw : w.length = 16) (hr : r.length = 4) :
+    multilinearEval w r = dot (eqKernel r) w := by
   have h := KeccakGkr.dot_eqKernel r w (by rw [hw, hr]; norm_num)
   rw [show (eqKernel r).take w.length = eqKernel r by
     rw [List.take_of_length_le (by rw [eqKernel_length, hw, hr]; norm_num)]] at h
-  rw [h, hw, wMle]
+  rw [h, multilinearEval_eq r w (by rw [hw, hr]; norm_num), hr, hw]
+  rfl
 
 /-- The slots' extension is the stacked bytecode's extension at `z ++ r`. -/
-theorem pMle_eq_multilinearEval (z r : List E) (hz : z.length = prog.logSize)
+theorem slotList_multilinearEval (z r : List E) (hz : z.length = prog.logSize)
     (hr : r.length = 4) :
-    pMle prog z r = multilinearEval ((bytecodeWords prog).map ofK) (z ++ r) := by
+    multilinearEval (slotList prog z) r =
+      multilinearEval ((bytecodeWords prog).map ofK) (z ++ r) := by
   have hlen : ((bytecodeWords prog).map ofK).length = 2 ^ (z.length + 4) := by
     rw [List.length_map, length_bytecodeWords, hz]
-  rw [multilinearEval_eq_foldAll, foldAll_append, ← multilinearEval_eq_foldAll,
-    multilinearEval_eq r _ (by rw [length_foldAll z _ 4 hlen, hr]), hr, pMle]
+  rw [multilinearEval_eq_foldAll ((bytecodeWords prog).map ofK), foldAll_append,
+    ← multilinearEval_eq_foldAll, multilinearEval_eq r _ (by rw [length_slotList, hr]; norm_num),
+    multilinearEval_eq r _ (by rw [length_foldAll z _ 4 hlen, hr])]
   refine sum_congr rfl fun o ho ↦ ?_
-  rw [getD_foldAll z _ 4 o hlen (mem_range.mp ho), bcSlot, hz]
+  have ho' : o < 16 := by rw [hr] at ho; simpa using ho
+  rw [getD_foldAll z _ 4 o hlen (by rw [hr] at ho; simpa using ho), slotList,
+    List.getD_eq_getElem _ _ (by simpa using ho')]
+  simp only [List.getElem_map, List.getElem_range, bcSlot, hz]
   exact congrArg _ (sum_congr rfl fun y _ ↦ mul_comm _ _)
 
 end Share
@@ -124,8 +157,8 @@ honest sumcheck over the slot, then send `P(z, r)` at its challenges. -/
 noncomputable def hShare (prog : LeanIsaProgram) (w z : List E) : Script (E × List E × E) :=
   (Script.sendE (bcShare prog w z)).bind fun _ ↦
   (hSumcheck 3 (shareClaim prog w z) (List.replicate busBits none) []).bind fun r ↦
-  (Script.sendE (pMle prog z r.1)).bind fun _ ↦
-  .ret (bcShare prog w z, z ++ r.1, pMle prog z r.1)
+  (Script.sendE (multilinearEval (slotList prog z) r.1)).bind fun _ ↦
+  .ret (bcShare prog w z, z ++ r.1, multilinearEval (slotList prog z) r.1)
 
 /-- **Completeness of the bytecode's share.** For sixteen slot weights and a point of the
 instructions' coordinates, the honest prover follows `bytecodeShare`, to the share, the point
@@ -143,10 +176,10 @@ theorem follows_bytecodeShare (prog : LeanIsaProgram) (w z : List E) (hw : w.len
   refine Follows.bind (fun cs₂ r r' h ↦ ?_) _ _ _
     (follows_sumcheck 3 (by norm_num) (shareClaim prog w z) (List.replicate busBits none) [] cs₁
       (fun ext hext ↦ by
-        simpa using shareClaim_polyLE prog w z ext)
+        simpa using shareClaim_polyLE prog w z ext hw (by simpa [busBits] using hext))
       (fun ext hext ↦ by
         simp only [List.getElem_replicate, RoundSplit, List.nil_append]
-        exact shareClaim_split prog w z ext (by simpa [busBits] using hext)))
+        exact shareClaim_split prog w z ext hw (by simpa [busBits] using hext)))
   obtain ⟨rfl, rfl, hl, hf⟩ := h
   obtain ⟨r, fin⟩ := r
   simp only [List.length_replicate, List.nil_append] at hl hf
@@ -154,9 +187,9 @@ theorem follows_bytecodeShare (prog : LeanIsaProgram) (w z : List E) (hw : w.len
   refine Follows.bind (fun cs₃ _ value h ↦ ?_) _ _ _ (Follows.sendE_readE _ cs₂)
   obtain ⟨rfl, rfl⟩ := h
   have hr : r.length = 4 := hl
-  rw [shareClaim_full prog w z r hr, wMle_eq_dot w r hw hr, shareClaim_nil]
+  rw [shareClaim_full prog w z r hr, multilinearEval_eq_dot w r hw hr, shareClaim_nil]
   simp only [VerifierProgram.require, ↓reduceIte, VerifierProgram.ret_bind]
-  exact ⟨rfl, rfl, rfl, pMle_eq_multilinearEval prog z r hz hr⟩
+  exact ⟨rfl, rfl, rfl, slotList_multilinearEval prog z r hz hr⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Complete
