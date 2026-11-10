@@ -22,6 +22,8 @@ predicate is kept by every move but a commitment, where the new word is appended
   `sumcheckRoundPoly 3 σ none` keep the invariant; the round polynomial comes out in the form
   `QuadOK q σ`.
 * `grindInv`: a proof of work keeps it, the follower's lead discounted by `2^-b`.
+* `foldPowInv`: so does the proof of work before a fold challenge, which at `0` bits is none and
+  passes the follower's lead on.
 * `commitInv`: a commitment appends its word.
 -/
 
@@ -92,6 +94,14 @@ noncomputable def roundPolyInv (I : CInv) (σ : E) (hT : T ≤ εmax) :
 noncomputable def grindInv (I : CInv) (b : ℕ) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
     Spec (grindProofOfWork b) (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
   Spec.grindP b (fun h₀ hI ↦ by simpa using hI) hT
+
+/-- The proof of work before a fold challenge keeps a commitment invariant: at `0` bits there is
+none, and the follower's lead passes through; otherwise it is discounted by `2^-b`. -/
+noncomputable def foldPowInv (I : CInv) : (b : ℕ) → (2 : ENNReal)⁻¹ ^ b * T ≤ εmax →
+    Spec (foldProofOfWork b) (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax
+      (if b = 0 then T else 0) T
+  | 0, _ => Spec.ret (Post := fun _ h ↦ I (commits h)) ()
+  | b + 1, hT => grindInv I (b + 1) hT
 
 /-- A commitment appends its word. -/
 noncomputable def commitInv (I I' : CInv) (ht wd : ℕ)

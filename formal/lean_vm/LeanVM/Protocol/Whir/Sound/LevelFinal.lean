@@ -60,7 +60,8 @@ def finTail (r : WhirStateT × List E) : VerifierProgram Unit :=
 
 /-- The final level, unfolded. -/
 def finProg (s : WhirStateT) : VerifierProgram Unit :=
-  (foldRoundsT level.fold s []).bind fun r ↦ finTail μ ℓ₀ w i level r
+  (foldRoundsT level.foldGrinding level.fold s []).bind fun r ↦
+    finTail μ ℓ₀ w i level r
 
 /-- **`whirLevels` on the final level is `finProg`.** -/
 theorem whirLevels_fin (s : WhirStateT) :
@@ -210,14 +211,15 @@ noncomputable def finTailSpec (H : FinHyp μ ℓ₀ w P level pre)
 
 /-- **The specification of the final level.** -/
 noncomputable def finSpec (H : FinHyp μ ℓ₀ w P level pre)
-    (hεF : eFold P level.fold ≤ εmax) (hQlt : eQueryFinal P level.queries < 1)
+    (hεF : (2 : ENNReal)⁻¹ ^ level.foldGrinding * eFold P level.fold ≤ εmax) (hQlt : eQueryFinal P level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQueryFinal P level.queries ≤ εmax)
     (hεT : eTail ≤ εmax) (s : WhirStateT) :
     Spec (whirLevelsT μ ℓ₀ w i [level] s)
       (fun h ↦ LevelPre μ ℓ₀ w i P level.fold pre s (commits h)) (fun _ _ ↦ False) εmax εmax 0 :=
-  (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) H.hw H.hℓ₀ hεF
+  (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) level.foldGrinding H.hw
+      H.hℓ₀ hεF
       level.fold s []).bind' fun r ↦ finTailSpec H hQlt hεQ hεT r).mono
-    (fun _ hp ↦ ⟨⟨hp.1, hp.2⟩, by simp⟩) (fun _ _ h ↦ h) le_rfl hεF le_rfl).congr
+    (fun _ hp ↦ ⟨⟨hp.1, hp.2⟩, by simp⟩) (fun _ _ h ↦ h) le_rfl (foldLead_le hεF) le_rfl).congr
     (whirLevels_fin μ ℓ₀ w i level s).symm
 
 end

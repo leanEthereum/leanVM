@@ -65,9 +65,10 @@ def LadderArith : ℕ → ℕ → List Whir.Level → Prop
 /-- **The largest group escape** of the levels from level `i`. -/
 noncomputable def levelEps : ℕ → List Whir.Level → ENNReal
   | _, [] => 0
-  | i, [level] => max (eFold (codes i) level.fold)
+  | i, [level] => max ((2 : ENNReal)⁻¹ ^ level.foldGrinding * eFold (codes i) level.fold)
       (max ((2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQueryFinal (codes i) level.queries) eTail)
-  | i, level :: next :: rest => max (max (eFold (codes i) level.fold) (eOod (codes (i + 1))
+  | i, level :: next :: rest => max (max ((2 : ENNReal)⁻¹ ^ level.foldGrinding *
+      eFold (codes i) level.fold) (eOod (codes (i + 1))
       (codes i).κ)) (max ((2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits *
         eQuery (codes i) (codes (i + 1)) level.queries) (levelEps (i + 1) (next :: rest)))
 

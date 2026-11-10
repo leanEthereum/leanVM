@@ -120,7 +120,7 @@ noncomputable def midTailSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
 
 /-- **The specification of a level with a next level.** -/
 noncomputable def midSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
-    (hεF : eFold P level.fold ≤ εmax)
+    (hεF : (2 : ENNReal)⁻¹ ^ level.foldGrinding * eFold P level.fold ≤ εmax)
     (hεO : eOod P' P.κ ≤ εmax) (hOlt : eOod P' P.κ < 1) (hQlt : eQuery P P' level.queries < 1)
     (hεQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P P' level.queries ≤ εmax)
     (K : ∀ s', Spec (whirLevelsT μ ℓ₀ w (i + 1) (next :: rest) s')
@@ -129,9 +129,10 @@ noncomputable def midSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
     (s : WhirStateT) :
     Spec (whirLevelsT μ ℓ₀ w i (level :: next :: rest) s)
       (fun h ↦ LevelPre μ ℓ₀ w i P level.fold pre s (commits h)) (fun _ _ ↦ False) εmax εmax 0 :=
-  (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) H.hw H.hℓ₀ hεF
+  (((foldRoundsSpec μ ℓ₀ w i P level.fold pre (ShapeOK i P level.fold) level.foldGrinding H.hw
+      H.hℓ₀ hεF
       level.fold s []).bind' fun r ↦ midTailSpec H hεO hOlt hQlt hεQ K r).mono
-    (fun _ hp ↦ ⟨⟨hp.1, hp.2⟩, by simp⟩) (fun _ _ h ↦ h) le_rfl hεF le_rfl).congr
+    (fun _ hp ↦ ⟨⟨hp.1, hp.2⟩, by simp⟩) (fun _ _ h ↦ h) le_rfl (foldLead_le hεF) le_rfl).congr
     (whirLevels_mid μ ℓ₀ w i level next rest s).symm
 
 end
