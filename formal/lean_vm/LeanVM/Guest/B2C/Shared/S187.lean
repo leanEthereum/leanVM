@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop72`, once. -/
-theorem st502 : shareStatic 502 = true := by decide +kernel
+/-- `level_queries__L56_L0_L16_L24_L15_L3`, once. -/
+theorem st566 : shareStatic 566 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop72`, window 0. -/
-theorem w502_0 : shareWin 502 (snapsOf 502) 0 = true := by decide +kernel
+/-- `level_queries__L56_L0_L16_L24_L15_L3`, window 0. -/
+theorem w566_0 : shareWin 566 (snapsOf 566) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop72`, window 1. -/
-theorem w502_1 : shareWin 502 (snapsOf 502) 1 = true := by decide +kernel
+/-- `level_queries__L56_L0_L16_L24_L15_L3`, window 1. -/
+theorem w566_1 : shareWin 566 (snapsOf 566) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop73`, once. -/
-theorem st503 : shareStatic 503 = true := by decide +kernel
+/-- `level_queries__L45_L0_L16_L24_L16_L4`, once. -/
+theorem st567 : shareStatic 567 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop73`, window 0. -/
-theorem w503_0 : shareWin 503 (snapsOf 503) 0 = true := by decide +kernel
+/-- `level_queries__L45_L0_L16_L24_L16_L4`, window 0. -/
+theorem w567_0 : shareWin 567 (snapsOf 567) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop73`, window 1. -/
-theorem w503_1 : shareWin 503 (snapsOf 503) 1 = true := by decide +kernel
+/-- `level_queries__L45_L0_L16_L24_L16_L4`, window 1. -/
+theorem w567_1 : shareWin 567 (snapsOf 567) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop74`, once. -/
-theorem st504 : shareStatic 504 = true := by decide +kernel
+/-- `level_queries__L38_L0_L16_L24_L17_L5`, once. -/
+theorem st568 : shareStatic 568 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop74`, window 0. -/
-theorem w504_0 : shareWin 504 (snapsOf 504) 0 = true := by decide +kernel
+/-- `level_queries__L38_L0_L16_L24_L17_L5`, window 0. -/
+theorem w568_0 : shareWin 568 (snapsOf 568) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

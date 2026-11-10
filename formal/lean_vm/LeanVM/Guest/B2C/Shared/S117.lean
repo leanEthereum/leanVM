@@ -16,36 +16,108 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 4. -/
-theorem w306_4 : shareWin 306 (snapsOf 306) 4 = true := by decide +kernel
+/-- `column_selector__L11`, once. -/
+theorem st330 : shareStatic 330 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 5. -/
-theorem w306_5 : shareWin 306 (snapsOf 306) 5 = true := by decide +kernel
+/-- `column_selector__L11`, window 0. -/
+theorem w330_0 : shareWin 330 (snapsOf 330) 0 = true := by decide +kernel
+
+theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
+  have h : (snapsOf 330).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w330_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 6. -/
-theorem w306_6 : shareWin 306 (snapsOf 306) 6 = true := by decide +kernel
+/-- `column_selector__L12`, once. -/
+theorem st331 : shareStatic 331 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 7. -/
-theorem w306_7 : shareWin 306 (snapsOf 306) 7 = true := by decide +kernel
+/-- `column_selector__L12`, window 0. -/
+theorem w331_0 : shareWin 331 (snapsOf 331) 0 = true := by decide +kernel
+
+theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
+  have h : (snapsOf 331).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w331_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 8. -/
-theorem w306_8 : shareWin 306 (snapsOf 306) 8 = true := by decide +kernel
+/-- `column_selector__L13`, once. -/
+theorem st332 : shareStatic 332 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L4`, once. -/
-theorem st307 : shareStatic 307 = true := by decide +kernel
+/-- `column_selector__L13`, window 0. -/
+theorem w332_0 : shareWin 332 (snapsOf 332) 0 = true := by decide +kernel
+
+theorem ok332 : ShareOk 332 := ⟨st332, fun i hi ↦ by
+  have h : (snapsOf 332).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w332_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L4`, window 0. -/
-theorem w307_0 : shareWin 307 (snapsOf 307) 0 = true := by decide +kernel
+/-- `column_selector__L14`, once. -/
+theorem st333 : shareStatic 333 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L4`, window 1. -/
-theorem w307_1 : shareWin 307 (snapsOf 307) 1 = true := by decide +kernel
+/-- `column_selector__L14`, window 0. -/
+theorem w333_0 : shareWin 333 (snapsOf 333) 0 = true := by decide +kernel
+
+theorem ok333 : ShareOk 333 := ⟨st333, fun i hi ↦ by
+  have h : (snapsOf 333).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w333_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L15`, once. -/
+theorem st334 : shareStatic 334 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L15`, window 0. -/
+theorem w334_0 : shareWin 334 (snapsOf 334) 0 = true := by decide +kernel
+
+theorem ok334 : ShareOk 334 := ⟨st334, fun i hi ↦ by
+  have h : (snapsOf 334).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w334_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L16`, once. -/
+theorem st335 : shareStatic 335 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L16`, window 0. -/
+theorem w335_0 : shareWin 335 (snapsOf 335) 0 = true := by decide +kernel
+
+theorem ok335 : ShareOk 335 := ⟨st335, fun i hi ↦ by
+  have h : (snapsOf 335).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w335_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L17`, once. -/
+theorem st336 : shareStatic 336 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L17`, window 0. -/
+theorem w336_0 : shareWin 336 (snapsOf 336) 0 = true := by decide +kernel
+
+theorem ok336 : ShareOk 336 := ⟨st336, fun i hi ↦ by
+  have h : (snapsOf 336).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w336_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L18`, once. -/
+theorem st337 : shareStatic 337 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L18`, window 0. -/
+theorem w337_0 : shareWin 337 (snapsOf 337) 0 = true := by decide +kernel
+
+theorem ok337 : ShareOk 337 := ⟨st337, fun i hi ↦ by
+  have h : (snapsOf 337).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w337_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -29,16 +29,16 @@ theorem w79_0 : WinOk 79 0 := winOk_of_C (by decide +kernel)
 /-- `eq_prefix_run__L40`, window 0. -/
 theorem w80_0 : WinOk 80 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop5`, window 0. -/
+/-- `eq_prefix_run__L41`, window 0. -/
 theorem w81_0 : WinOk 81 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L0`, window 0. -/
+/-- `eq_prefix_run__L42`, window 0. -/
 theorem w82_0 : WinOk 82 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L1`, window 0. -/
+/-- `eq_prefix_run__L43`, window 0. -/
 theorem w83_0 : WinOk 83 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L2`, window 0. -/
+/-- `eq_prefix_run__L44`, window 0. -/
 theorem w84_0 : WinOk 84 0 := winOk_of_C (by decide +kernel)
 
 theorem ok77 : CheckOk 77 := checkOk_one (by decide +kernel) w77_0

@@ -16,20 +16,109 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `open_stacked__L26`, window 0, part 0. -/
+/-- `column_selector__L10`, window 0, part 0. -/
 theorem cw329_0_0 : cplWin 329 0 0 = true := by decide +kernel
 
-/-- `open_stacked__L26`, window 1, part 0. -/
-theorem cw329_1_0 : cplWin 329 1 0 = true := by decide +kernel
+/-- `column_selector__L11`, window 0, part 0. -/
+theorem cw330_0_0 : cplWin 330 0 0 = true := by decide +kernel
 
-/-- `open_stacked__L26`, window 2, part 0. -/
-theorem cw329_2_0 : cplWin 329 2 0 = true := by decide +kernel
+/-- `column_selector__L12`, window 0, part 0. -/
+theorem cw331_0_0 : cplWin 331 0 0 = true := by decide +kernel
 
-/-- `open_stacked__L26`, window 3, part 0. -/
-theorem cw329_3_0 : cplWin 329 3 0 = true := by decide +kernel
+/-- `column_selector__L13`, window 0, part 0. -/
+theorem cw332_0_0 : cplWin 332 0 0 = true := by decide +kernel
 
-/-- `open_stacked__L26`, window 4, part 0. -/
-theorem cw329_4_0 : cplWin 329 4 0 = true := by decide +kernel
+/-- `column_selector__L14`, window 0, part 0. -/
+theorem cw333_0_0 : cplWin 333 0 0 = true := by decide +kernel
+
+/-- `column_selector__L15`, window 0, part 0. -/
+theorem cw334_0_0 : cplWin 334 0 0 = true := by decide +kernel
+
+/-- `column_selector__L16`, window 0, part 0. -/
+theorem cw335_0_0 : cplWin 335 0 0 = true := by decide +kernel
+
+/-- `column_selector__L17`, window 0, part 0. -/
+theorem cw336_0_0 : cplWin 336 0 0 = true := by decide +kernel
+
+theorem ok329 : CplOk 329 := by
+  intro i hi k hk
+  have hc : (certOf 329).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 329 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw329_0_0
+
+theorem ok330 : CplOk 330 := by
+  intro i hi k hk
+  have hc : (certOf 330).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 330 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw330_0_0
+
+theorem ok331 : CplOk 331 := by
+  intro i hi k hk
+  have hc : (certOf 331).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 331 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw331_0_0
+
+theorem ok332 : CplOk 332 := by
+  intro i hi k hk
+  have hc : (certOf 332).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 332 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw332_0_0
+
+theorem ok333 : CplOk 333 := by
+  intro i hi k hk
+  have hc : (certOf 333).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 333 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw333_0_0
+
+theorem ok334 : CplOk 334 := by
+  intro i hi k hk
+  have hc : (certOf 334).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 334 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw334_0_0
+
+theorem ok335 : CplOk 335 := by
+  intro i hi k hk
+  have hc : (certOf 335).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 335 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw335_0_0
+
+theorem ok336 : CplOk 336 := by
+  intro i hi k hk
+  have hc : (certOf 336).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 336 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw336_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

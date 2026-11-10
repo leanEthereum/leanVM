@@ -16,16 +16,45 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L16_L7`, window 3. -/
-theorem w928_3 : shareWin 928 (snapsOf 928) 3 = true := by decide +kernel
+/-- `level_positions__L3_L30_L6`, once. -/
+theorem st1000 : shareStatic 1000 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L16_L7`, window 4. -/
-theorem w928_4 : shareWin 928 (snapsOf 928) 4 = true := by decide +kernel
+/-- `level_positions__L3_L30_L6`, window 0. -/
+theorem w1000_0 : shareWin 1000 (snapsOf 1000) 0 = true := by decide +kernel
+
+theorem ok1000 : ShareOk 1000 := ⟨st1000, fun i hi ↦ by
+  have h : (snapsOf 1000).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1000_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop408`, once. -/
-theorem st929 : shareStatic 929 = true := by decide +kernel
+/-- `level_queries__L21_L0_L16_L24_L28_L4`, once. -/
+theorem st1001 : shareStatic 1001 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L21_L0_L16_L24_L28_L4`, window 0. -/
+theorem w1001_0 : shareWin 1001 (snapsOf 1001) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L21_L0_L16_L24_L28_L4`, window 1. -/
+theorem w1001_1 : shareWin 1001 (snapsOf 1001) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L19_L0_L16_L24_L29_L5`, once. -/
+theorem st1002 : shareStatic 1002 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L19_L0_L16_L24_L29_L5`, window 0. -/
+theorem w1002_0 : shareWin 1002 (snapsOf 1002) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L19_L0_L16_L24_L29_L5`, window 1. -/
+theorem w1002_1 : shareWin 1002 (snapsOf 1002) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L18_L0_L16_L24_L30_L6`, once. -/
+theorem st1003 : shareStatic 1003 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

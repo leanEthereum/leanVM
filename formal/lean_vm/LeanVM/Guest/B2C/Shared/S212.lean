@@ -16,81 +16,45 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop153`, once. -/
-theorem st605 : shareStatic 605 = true := by decide +kernel
+/-- `level_queries__L23_L0_L16_L24_L20_L2`, once. -/
+theorem st662 : shareStatic 662 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop153`, window 0. -/
-theorem w605_0 : shareWin 605 (snapsOf 605) 0 = true := by decide +kernel
+/-- `level_queries__L23_L0_L16_L24_L20_L2`, window 0. -/
+theorem w662_0 : shareWin 662 (snapsOf 662) 0 = true := by decide +kernel
 
-theorem ok605 : ShareOk 605 := ⟨st605, fun i hi ↦ by
-  have h : (snapsOf 605).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `level_queries__L23_L0_L16_L24_L20_L2`, window 1. -/
+theorem w662_1 : shareWin 662 (snapsOf 662) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L2_L19_L7`, once. -/
+theorem st663 : shareStatic 663 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L2_L19_L7`, window 0. -/
+theorem w663_0 : shareWin 663 (snapsOf 663) 0 = true := by decide +kernel
+
+theorem ok663 : ShareOk 663 := ⟨st663, fun i hi ↦ by
+  have h : (snapsOf 663).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w605_0⟩
+  exact w663_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop154`, once. -/
-theorem st606 : shareStatic 606 = true := by decide +kernel
+/-- `level_queries__L21_L0_L16_L24_L17_L5`, once. -/
+theorem st664 : shareStatic 664 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop154`, window 0. -/
-theorem w606_0 : shareWin 606 (snapsOf 606) 0 = true := by decide +kernel
-
-theorem ok606 : ShareOk 606 := ⟨st606, fun i hi ↦ by
-  have h : (snapsOf 606).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w606_0⟩
+/-- `level_queries__L21_L0_L16_L24_L17_L5`, window 0. -/
+theorem w664_0 : shareWin 664 (snapsOf 664) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop155`, once. -/
-theorem st607 : shareStatic 607 = true := by decide +kernel
+/-- `level_queries__L21_L0_L16_L24_L17_L5`, window 1. -/
+theorem w664_1 : shareWin 664 (snapsOf 664) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop155`, window 0. -/
-theorem w607_0 : shareWin 607 (snapsOf 607) 0 = true := by decide +kernel
-
-theorem ok607 : ShareOk 607 := ⟨st607, fun i hi ↦ by
-  have h : (snapsOf 607).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w607_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L23_L7`, once. -/
-theorem st608 : shareStatic 608 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 0. -/
-theorem w608_0 : shareWin 608 (snapsOf 608) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 1. -/
-theorem w608_1 : shareWin 608 (snapsOf 608) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop156`, once. -/
-theorem st609 : shareStatic 609 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop156`, window 0. -/
-theorem w609_0 : shareWin 609 (snapsOf 609) 0 = true := by decide +kernel
-
-theorem ok609 : ShareOk 609 := ⟨st609, fun i hi ↦ by
-  have h : (snapsOf 609).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w609_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop157`, once. -/
-theorem st610 : shareStatic 610 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop157`, window 0. -/
-theorem w610_0 : shareWin 610 (snapsOf 610) 0 = true := by decide +kernel
-
-theorem ok610 : ShareOk 610 := ⟨st610, fun i hi ↦ by
-  have h : (snapsOf 610).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w610_0⟩
+/-- `level_queries__L19_L0_L16_L24_L18_L6`, once. -/
+theorem st665 : shareStatic 665 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

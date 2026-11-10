@@ -37,7 +37,7 @@ theorem cw79_0_0 : cplWin 79 0 0 = true := by decide +kernel
 /-- `eq_prefix_run__L40`, window 0, part 0. -/
 theorem cw80_0_0 : cplWin 80 0 0 = true := by decide +kernel
 
-/-- `__loop5`, window 0, part 0. -/
+/-- `eq_prefix_run__L41`, window 0, part 0. -/
 theorem cw81_0_0 : cplWin 81 0 0 = true := by decide +kernel
 
 theorem ok74 : CplOk 74 := by

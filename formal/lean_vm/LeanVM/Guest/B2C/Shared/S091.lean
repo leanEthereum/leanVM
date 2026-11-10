@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L14`, once. -/
+/-- `padding_weight__L36`, once. -/
 theorem st140 : shareStatic 140 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L14`, window 0. -/
+/-- `padding_weight__L36`, window 0. -/
 theorem w140_0 : shareWin 140 (snapsOf 140) 0 = true := by decide +kernel
 
 theorem ok140 : ShareOk 140 := ⟨st140, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok140 : ShareOk 140 := ⟨st140, fun i hi ↦ by
   exact w140_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L15`, once. -/
+/-- `padding_weight__L37`, once. -/
 theorem st141 : shareStatic 141 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L15`, window 0. -/
+/-- `padding_weight__L37`, window 0. -/
 theorem w141_0 : shareWin 141 (snapsOf 141) 0 = true := by decide +kernel
 
 theorem ok141 : ShareOk 141 := ⟨st141, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok141 : ShareOk 141 := ⟨st141, fun i hi ↦ by
   exact w141_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L16`, once. -/
+/-- `padding_weight__L38`, once. -/
 theorem st142 : shareStatic 142 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L16`, window 0. -/
+/-- `padding_weight__L38`, window 0. -/
 theorem w142_0 : shareWin 142 (snapsOf 142) 0 = true := by decide +kernel
 
 theorem ok142 : ShareOk 142 := ⟨st142, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok142 : ShareOk 142 := ⟨st142, fun i hi ↦ by
   exact w142_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L17`, once. -/
+/-- `padding_weight__L39`, once. -/
 theorem st143 : shareStatic 143 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L17`, window 0. -/
+/-- `padding_weight__L39`, window 0. -/
 theorem w143_0 : shareWin 143 (snapsOf 143) 0 = true := by decide +kernel
 
 theorem ok143 : ShareOk 143 := ⟨st143, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok143 : ShareOk 143 := ⟨st143, fun i hi ↦ by
   exact w143_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L18`, once. -/
+/-- `padding_weight__L40`, once. -/
 theorem st144 : shareStatic 144 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L18`, window 0. -/
+/-- `padding_weight__L40`, window 0. -/
 theorem w144_0 : shareWin 144 (snapsOf 144) 0 = true := by decide +kernel
 
 theorem ok144 : ShareOk 144 := ⟨st144, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok144 : ShareOk 144 := ⟨st144, fun i hi ↦ by
   exact w144_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L19`, once. -/
+/-- `plus_one_run__L0`, once. -/
 theorem st145 : shareStatic 145 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L19`, window 0. -/
+/-- `plus_one_run__L0`, window 0. -/
 theorem w145_0 : shareWin 145 (snapsOf 145) 0 = true := by decide +kernel
 
 theorem ok145 : ShareOk 145 := ⟨st145, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok145 : ShareOk 145 := ⟨st145, fun i hi ↦ by
   exact w145_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L20`, once. -/
+/-- `plus_one_run__L1`, once. -/
 theorem st146 : shareStatic 146 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L20`, window 0. -/
+/-- `plus_one_run__L1`, window 0. -/
 theorem w146_0 : shareWin 146 (snapsOf 146) 0 = true := by decide +kernel
 
 theorem ok146 : ShareOk 146 := ⟨st146, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok146 : ShareOk 146 := ⟨st146, fun i hi ↦ by
   exact w146_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L21`, once. -/
+/-- `plus_one_run__L2`, once. -/
 theorem st147 : shareStatic 147 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L21`, window 0. -/
+/-- `plus_one_run__L2`, window 0. -/
 theorem w147_0 : shareWin 147 (snapsOf 147) 0 = true := by decide +kernel
 
 theorem ok147 : ShareOk 147 := ⟨st147, fun i hi ↦ by

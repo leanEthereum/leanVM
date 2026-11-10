@@ -16,12 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L4`, window 1. -/
-theorem w991_1 : shareWin 991 (snapsOf 991) 1 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L21_L3`, once. -/
+theorem st1379 : shareStatic 1379 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L4`, window 2. -/
-theorem w991_2 : shareWin 991 (snapsOf 991) 2 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L21_L3`, window 0. -/
+theorem w1379_0 : shareWin 1379 (snapsOf 1379) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L16_L24_L21_L3`, window 1. -/
+theorem w1379_1 : shareWin 1379 (snapsOf 1379) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop182`, once. -/
+theorem st1380 : shareStatic 1380 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop182`, window 0. -/
+theorem w1380_0 : shareWin 1380 (snapsOf 1380) 0 = true := by decide +kernel
+
+theorem ok1380 : ShareOk 1380 := ⟨st1380, fun i hi ↦ by
+  have h : (snapsOf 1380).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1380_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop183`, once. -/
+theorem st1381 : shareStatic 1381 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop183`, window 0. -/
+theorem w1381_0 : shareWin 1381 (snapsOf 1381) 0 = true := by decide +kernel
+
+theorem ok1381 : ShareOk 1381 := ⟨st1381, fun i hi ↦ by
+  have h : (snapsOf 1381).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1381_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop184`, once. -/
+theorem st1382 : shareStatic 1382 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop184`, window 0. -/
+theorem w1382_0 : shareWin 1382 (snapsOf 1382) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop184`, window 1. -/
+theorem w1382_1 : shareWin 1382 (snapsOf 1382) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

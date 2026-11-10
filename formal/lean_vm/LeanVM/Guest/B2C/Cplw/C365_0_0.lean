@@ -16,63 +16,39 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `child_claim_list_last__L13`, window 0, part 0. -/
+/-- `open_stacked__L3`, window 0, part 0. -/
 theorem cw365_0_0 : cplWin 365 0 0 = true := by decide +kernel
 
-/-- `child_claim_list_last__L14`, window 0, part 0. -/
-theorem cw366_0_0 : cplWin 366 0 0 = true := by decide +kernel
+/-- `open_stacked__L3`, window 1, part 0. -/
+theorem cw365_1_0 : cplWin 365 1 0 = true := by decide +kernel
 
-/-- `child_claim_list_last__L15`, window 0, part 0. -/
-theorem cw367_0_0 : cplWin 367 0 0 = true := by decide +kernel
+/-- `open_stacked__L3`, window 2, part 0. -/
+theorem cw365_2_0 : cplWin 365 2 0 = true := by decide +kernel
 
-/-- `child_claim_list_last__L16`, window 0, part 0. -/
-theorem cw368_0_0 : cplWin 368 0 0 = true := by decide +kernel
-
-/-- `__loop19`, window 0, part 0. -/
-theorem cw369_0_0 : cplWin 369 0 0 = true := by decide +kernel
-
-/-- `__loop19`, window 1, part 0. -/
-theorem cw369_1_0 : cplWin 369 1 0 = true := by decide +kernel
+/-- `open_stacked__L3`, window 3, part 0. -/
+theorem cw365_3_0 : cplWin 365 3 0 = true := by decide +kernel
 
 theorem ok365 : CplOk 365 := by
   intro i hi k hk
-  have hc : (certOf 365).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 365).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 365 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw365_0_0
-
-theorem ok366 : CplOk 366 := by
-  intro i hi k hk
-  have hc : (certOf 366).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 366 0 = 1 := by decide +kernel
+  · have hn : nParts 365 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw366_0_0
-
-theorem ok367 : CplOk 367 := by
-  intro i hi k hk
-  have hc : (certOf 367).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 367 0 = 1 := by decide +kernel
+    · exact cw365_1_0
+  · have hn : nParts 365 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw367_0_0
-
-theorem ok368 : CplOk 368 := by
-  intro i hi k hk
-  have hc : (certOf 368).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 368 0 = 1 := by decide +kernel
+    · exact cw365_2_0
+  · have hn : nParts 365 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw368_0_0
+    · exact cw365_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

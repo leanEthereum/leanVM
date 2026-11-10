@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop414`, window 3. -/
-theorem w941_3 : shareWin 941 (snapsOf 941) 3 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L28_L4`, once. -/
+theorem st1038 : shareStatic 1038 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop415`, once. -/
-theorem st942 : shareStatic 942 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L28_L4`, window 0. -/
+theorem w1038_0 : shareWin 1038 (snapsOf 1038) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop415`, window 0. -/
-theorem w942_0 : shareWin 942 (snapsOf 942) 0 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L28_L4`, window 1. -/
+theorem w1038_1 : shareWin 1038 (snapsOf 1038) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop415`, window 1. -/
-theorem w942_1 : shareWin 942 (snapsOf 942) 1 = true := by decide +kernel
+/-- `level_queries__L16_L0_L16_L24_L29_L5`, once. -/
+theorem st1039 : shareStatic 1039 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop415`, window 2. -/
-theorem w942_2 : shareWin 942 (snapsOf 942) 2 = true := by decide +kernel
+/-- `level_queries__L16_L0_L16_L24_L29_L5`, window 0. -/
+theorem w1039_0 : shareWin 1039 (snapsOf 1039) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop415`, window 3. -/
-theorem w942_3 : shareWin 942 (snapsOf 942) 3 = true := by decide +kernel
+/-- `level_queries__L16_L0_L16_L24_L29_L5`, window 1. -/
+theorem w1039_1 : shareWin 1039 (snapsOf 1039) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop416`, once. -/
-theorem st943 : shareStatic 943 = true := by decide +kernel
+/-- `level_queries__L15_L0_L16_L24_L30_L6`, once. -/
+theorem st1040 : shareStatic 1040 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop416`, window 0. -/
-theorem w943_0 : shareWin 943 (snapsOf 943) 0 = true := by decide +kernel
+/-- `level_queries__L15_L0_L16_L24_L30_L6`, window 0. -/
+theorem w1040_0 : shareWin 1040 (snapsOf 1040) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

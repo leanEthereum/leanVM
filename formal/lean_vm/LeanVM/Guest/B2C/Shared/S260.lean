@@ -16,102 +16,39 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop350`, once. -/
-theorem st828 : shareStatic 828 = true := by decide +kernel
+/-- `level_queries__L21_L0_L16_L24_L23_L5`, window 1. -/
+theorem w832_1 : shareWin 832 (snapsOf 832) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop350`, window 0. -/
-theorem w828_0 : shareWin 828 (snapsOf 828) 0 = true := by decide +kernel
-
-theorem ok828 : ShareOk 828 := ⟨st828, fun i hi ↦ by
-  have h : (snapsOf 828).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w828_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop351`, once. -/
-theorem st829 : shareStatic 829 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop351`, window 0. -/
-theorem w829_0 : shareWin 829 (snapsOf 829) 0 = true := by decide +kernel
-
-theorem ok829 : ShareOk 829 := ⟨st829, fun i hi ↦ by
-  have h : (snapsOf 829).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w829_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop352`, once. -/
-theorem st830 : shareStatic 830 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop352`, window 0. -/
-theorem w830_0 : shareWin 830 (snapsOf 830) 0 = true := by decide +kernel
-
-theorem ok830 : ShareOk 830 := ⟨st830, fun i hi ↦ by
-  have h : (snapsOf 830).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w830_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop353`, once. -/
-theorem st831 : shareStatic 831 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop353`, window 0. -/
-theorem w831_0 : shareWin 831 (snapsOf 831) 0 = true := by decide +kernel
-
-theorem ok831 : ShareOk 831 := ⟨st831, fun i hi ↦ by
-  have h : (snapsOf 831).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w831_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop354`, once. -/
-theorem st832 : shareStatic 832 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop354`, window 0. -/
-theorem w832_0 : shareWin 832 (snapsOf 832) 0 = true := by decide +kernel
-
-theorem ok832 : ShareOk 832 := ⟨st832, fun i hi ↦ by
-  have h : (snapsOf 832).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w832_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop355`, once. -/
+/-- `level_queries__L19_L0_L16_L24_L24_L6`, once. -/
 theorem st833 : shareStatic 833 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop355`, window 0. -/
+/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 0. -/
 theorem w833_0 : shareWin 833 (snapsOf 833) 0 = true := by decide +kernel
 
-theorem ok833 : ShareOk 833 := ⟨st833, fun i hi ↦ by
-  have h : (snapsOf 833).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w833_0⟩
+set_option maxRecDepth 100000 in
+/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 1. -/
+theorem w833_1 : shareWin 833 (snapsOf 833) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop356`, once. -/
+/-- `level_queries__L18_L0_L16_L24_L25_L7`, once. -/
 theorem st834 : shareStatic 834 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop356`, window 0. -/
+/-- `level_queries__L18_L0_L16_L24_L25_L7`, window 0. -/
 theorem w834_0 : shareWin 834 (snapsOf 834) 0 = true := by decide +kernel
 
-theorem ok834 : ShareOk 834 := ⟨st834, fun i hi ↦ by
-  have h : (snapsOf 834).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w834_0⟩
+set_option maxRecDepth 100000 in
+/-- `level_queries__L18_L0_L16_L24_L25_L7`, window 1. -/
+theorem w834_1 : shareWin 834 (snapsOf 834) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop357`, once. -/
+/-- `level_positions__L2_L24_L6`, once. -/
 theorem st835 : shareStatic 835 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop357`, window 0. -/
+/-- `level_positions__L2_L24_L6`, window 0. -/
 theorem w835_0 : shareWin 835 (snapsOf 835) 0 = true := by decide +kernel
 
 theorem ok835 : ShareOk 835 := ⟨st835, fun i hi ↦ by

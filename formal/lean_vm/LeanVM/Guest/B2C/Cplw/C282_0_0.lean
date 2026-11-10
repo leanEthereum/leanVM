@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `column_selector__L10`, window 0, part 0. -/
+/-- `block_selector_tab__L14`, window 0, part 0. -/
 theorem cw282_0_0 : cplWin 282 0 0 = true := by decide +kernel
 
-/-- `column_selector__L11`, window 0, part 0. -/
+/-- `block_selector_tab__L15`, window 0, part 0. -/
 theorem cw283_0_0 : cplWin 283 0 0 = true := by decide +kernel
 
-/-- `column_selector__L12`, window 0, part 0. -/
+/-- `block_selector_tab__L16`, window 0, part 0. -/
 theorem cw284_0_0 : cplWin 284 0 0 = true := by decide +kernel
 
-/-- `column_selector__L13`, window 0, part 0. -/
+/-- `block_selector_tab__L17`, window 0, part 0. -/
 theorem cw285_0_0 : cplWin 285 0 0 = true := by decide +kernel
 
-/-- `column_selector__L14`, window 0, part 0. -/
+/-- `block_selector_tab__L18`, window 0, part 0. -/
 theorem cw286_0_0 : cplWin 286 0 0 = true := by decide +kernel
 
-/-- `column_selector__L15`, window 0, part 0. -/
+/-- `block_selector_tab__L19`, window 0, part 0. -/
 theorem cw287_0_0 : cplWin 287 0 0 = true := by decide +kernel
 
-/-- `column_selector__L16`, window 0, part 0. -/
+/-- `block_selector_tab__L20`, window 0, part 0. -/
 theorem cw288_0_0 : cplWin 288 0 0 = true := by decide +kernel
 
-/-- `column_selector__L17`, window 0, part 0. -/
+/-- `block_selector_tab__L21`, window 0, part 0. -/
 theorem cw289_0_0 : cplWin 289 0 0 = true := by decide +kernel
 
 theorem ok282 : CplOk 282 := by

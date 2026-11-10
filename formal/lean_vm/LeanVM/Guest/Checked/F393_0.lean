@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `da_levels__L2_L1`, window 0. -/
+/-- `claim_list_last__L7`, window 0. -/
 theorem w393_0 : WinOk 393 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L4_L2`, window 0. -/
+/-- `claim_list_last__L8`, window 0. -/
 theorem w394_0 : WinOk 394 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L8_L3`, window 0. -/
+/-- `claim_list_last__L9`, window 0. -/
 theorem w395_0 : WinOk 395 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L16_L4`, window 0. -/
+/-- `claim_list_last__L10`, window 0. -/
 theorem w396_0 : WinOk 396 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L32_L5`, window 0. -/
+/-- `claim_list_last__L11`, window 0. -/
 theorem w397_0 : WinOk 397 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L64_L6`, window 0. -/
+/-- `claim_list_last__L12`, window 0. -/
 theorem w398_0 : WinOk 398 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L128_L7`, window 0. -/
+/-- `claim_list_last__L13`, window 0. -/
 theorem w399_0 : WinOk 399 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_levels__L256_L8`, window 0. -/
+/-- `claim_list_last__L14`, window 0. -/
 theorem w400_0 : WinOk 400 0 := winOk_of_C (by decide +kernel)
 
 theorem ok393 : CheckOk 393 := checkOk_one (by decide +kernel) w393_0

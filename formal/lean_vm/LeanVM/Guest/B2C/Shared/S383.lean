@@ -16,12 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L17_L4`, window 1. -/
-theorem w986_1 : shareWin 986 (snapsOf 986) 1 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L64_L32_L17_L5`, once. -/
+theorem st1301 : shareStatic 1301 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L17_L4`, window 2. -/
-theorem w986_2 : shareWin 986 (snapsOf 986) 2 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L64_L32_L17_L5`, window 0. -/
+theorem w1301_0 : shareWin 1301 (snapsOf 1301) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L17_L5`, window 1. -/
+theorem w1301_1 : shareWin 1301 (snapsOf 1301) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L18_L6`, once. -/
+theorem st1302 : shareStatic 1302 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L18_L6`, window 0. -/
+theorem w1302_0 : shareWin 1302 (snapsOf 1302) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L18_L6`, window 1. -/
+theorem w1302_1 : shareWin 1302 (snapsOf 1302) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop118`, once. -/
+theorem st1303 : shareStatic 1303 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop118`, window 0. -/
+theorem w1303_0 : shareWin 1303 (snapsOf 1303) 0 = true := by decide +kernel
+
+theorem ok1303 : ShareOk 1303 := ⟨st1303, fun i hi ↦ by
+  have h : (snapsOf 1303).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1303_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop119`, once. -/
+theorem st1304 : shareStatic 1304 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop119`, window 0. -/
+theorem w1304_0 : shareWin 1304 (snapsOf 1304) 0 = true := by decide +kernel
+
+theorem ok1304 : ShareOk 1304 := ⟨st1304, fun i hi ↦ by
+  have h : (snapsOf 1304).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1304_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

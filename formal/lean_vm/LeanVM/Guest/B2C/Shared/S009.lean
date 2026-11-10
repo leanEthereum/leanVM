@@ -65,14 +65,5 @@ set_option maxRecDepth 100000 in
 /-- `selector_tables`, once. -/
 theorem st17 : shareStatic 17 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `selector_tables`, window 0. -/
-theorem w17_0 : shareWin 17 (snapsOf 17) 0 = true := by decide +kernel
-
-theorem ok17 : ShareOk 17 := ⟨st17, fun i hi ↦ by
-  have h : (snapsOf 17).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w17_0⟩
-
 end
 end LeanVM.Guest.B2C.Shared

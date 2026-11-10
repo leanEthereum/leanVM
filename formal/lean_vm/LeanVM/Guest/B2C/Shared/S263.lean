@@ -16,36 +16,90 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop368`, window 2. -/
-theorem w847_2 : shareWin 847 (snapsOf 847) 2 = true := by decide +kernel
+/-- `level_queries__L12_L0_L16_L24_L23_L5`, window 0. -/
+theorem w841_0 : shareWin 841 (snapsOf 841) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop368`, window 3. -/
-theorem w847_3 : shareWin 847 (snapsOf 847) 3 = true := by decide +kernel
+/-- `level_queries__L12_L0_L16_L24_L23_L5`, window 1. -/
+theorem w841_1 : shareWin 841 (snapsOf 841) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L16_L6`, once. -/
-theorem st848 : shareStatic 848 = true := by decide +kernel
+/-- `level_residual__L24`, once. -/
+theorem st842 : shareStatic 842 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L16_L6`, window 0. -/
-theorem w848_0 : shareWin 848 (snapsOf 848) 0 = true := by decide +kernel
+/-- `level_residual__L24`, window 0. -/
+theorem w842_0 : shareWin 842 (snapsOf 842) 0 = true := by decide +kernel
+
+theorem ok842 : ShareOk 842 := ⟨st842, fun i hi ↦ by
+  have h : (snapsOf 842).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w842_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L16_L6`, window 1. -/
-theorem w848_1 : shareWin 848 (snapsOf 848) 1 = true := by decide +kernel
+/-- `opening_ood_point__L25`, once. -/
+theorem st843 : shareStatic 843 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop369`, once. -/
-theorem st849 : shareStatic 849 = true := by decide +kernel
+/-- `opening_ood_point__L25`, window 0. -/
+theorem w843_0 : shareWin 843 (snapsOf 843) 0 = true := by decide +kernel
+
+theorem ok843 : ShareOk 843 := ⟨st843, fun i hi ↦ by
+  have h : (snapsOf 843).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w843_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop369`, window 0. -/
-theorem w849_0 : shareWin 849 (snapsOf 849) 0 = true := by decide +kernel
+/-- `level_positions__L33_L26_L8`, once. -/
+theorem st844 : shareStatic 844 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop369`, window 1. -/
-theorem w849_1 : shareWin 849 (snapsOf 849) 1 = true := by decide +kernel
+/-- `level_positions__L33_L26_L8`, window 0. -/
+theorem w844_0 : shareWin 844 (snapsOf 844) 0 = true := by decide +kernel
+
+theorem ok844 : ShareOk 844 := ⟨st844, fun i hi ↦ by
+  have h : (snapsOf 844).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w844_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L17_L27_L3`, once. -/
+theorem st845 : shareStatic 845 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L17_L27_L3`, window 0. -/
+theorem w845_0 : shareWin 845 (snapsOf 845) 0 = true := by decide +kernel
+
+theorem ok845 : ShareOk 845 := ⟨st845, fun i hi ↦ by
+  have h : (snapsOf 845).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w845_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L13_L28_L4`, once. -/
+theorem st846 : shareStatic 846 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L13_L28_L4`, window 0. -/
+theorem w846_0 : shareWin 846 (snapsOf 846) 0 = true := by decide +kernel
+
+theorem ok846 : ShareOk 846 := ⟨st846, fun i hi ↦ by
+  have h : (snapsOf 846).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w846_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L10_L29_L5`, once. -/
+theorem st847 : shareStatic 847 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L10_L29_L5`, window 0. -/
+theorem w847_0 : shareWin 847 (snapsOf 847) 0 = true := by decide +kernel
+
+theorem ok847 : ShareOk 847 := ⟨st847, fun i hi ↦ by
+  have h : (snapsOf 847).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w847_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

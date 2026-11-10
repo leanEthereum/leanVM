@@ -17,31 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `rs_eq_rows__L3`, window 0. -/
+/-- `eq_prefix_run__L45`, window 0. -/
 theorem w85_0 : WinOk 85 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L4`, window 0. -/
+/-- `eq_prefix_run__L46`, window 0. -/
 theorem w86_0 : WinOk 86 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L4`, window 1. -/
-theorem w86_1 : WinOk 86 1 := winOk_of_C (by decide +kernel)
-
-/-- `rs_eq_rows__L5`, window 0. -/
+/-- `eq_prefix_run__L47`, window 0. -/
 theorem w87_0 : WinOk 87 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L5`, window 1. -/
-theorem w87_1 : WinOk 87 1 := winOk_of_C (by decide +kernel)
-
-/-- `rs_eq_rows__L6`, window 0. -/
+/-- `__loop5`, window 0. -/
 theorem w88_0 : WinOk 88 0 := winOk_of_C (by decide +kernel)
 
-/-- `rs_eq_rows__L6`, window 1. -/
-theorem w88_1 : WinOk 88 1 := winOk_of_C (by decide +kernel)
-
-/-- `rs_eq_rows__L7`, window 0. -/
+/-- `rs_eq_rows__L0`, window 0. -/
 theorem w89_0 : WinOk 89 0 := winOk_of_C (by decide +kernel)
 
+/-- `rs_eq_rows__L1`, window 0. -/
+theorem w90_0 : WinOk 90 0 := winOk_of_C (by decide +kernel)
+
+/-- `rs_eq_rows__L2`, window 0. -/
+theorem w91_0 : WinOk 91 0 := winOk_of_C (by decide +kernel)
+
+/-- `rs_eq_rows__L3`, window 0. -/
+theorem w92_0 : WinOk 92 0 := winOk_of_C (by decide +kernel)
+
 theorem ok85 : CheckOk 85 := checkOk_one (by decide +kernel) w85_0
+
+theorem ok86 : CheckOk 86 := checkOk_one (by decide +kernel) w86_0
+
+theorem ok87 : CheckOk 87 := checkOk_one (by decide +kernel) w87_0
+
+theorem ok88 : CheckOk 88 := checkOk_one (by decide +kernel) w88_0
+
+theorem ok89 : CheckOk 89 := checkOk_one (by decide +kernel) w89_0
+
+theorem ok90 : CheckOk 90 := checkOk_one (by decide +kernel) w90_0
+
+theorem ok91 : CheckOk 91 := checkOk_one (by decide +kernel) w91_0
+
+theorem ok92 : CheckOk 92 := checkOk_one (by decide +kernel) w92_0
 
 end
 end LeanVM.Guest.Checked

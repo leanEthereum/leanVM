@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, once. -/
-theorem st870 : shareStatic 870 = true := by decide +kernel
+/-- `level_queries__L227_L1_L64_L32_L27_L3`, window 0. -/
+theorem w879_0 : shareWin 879 (snapsOf 879) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, window 0. -/
-theorem w870_0 : shareWin 870 (snapsOf 870) 0 = true := by decide +kernel
+/-- `level_queries__L227_L1_L64_L32_L27_L3`, window 1. -/
+theorem w879_1 : shareWin 879 (snapsOf 879) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L5`, window 1. -/
-theorem w870_1 : shareWin 870 (snapsOf 870) 1 = true := by decide +kernel
+/-- `level_queries__L113_L1_L64_L32_L28_L4`, once. -/
+theorem st880 : shareStatic 880 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, once. -/
-theorem st871 : shareStatic 871 = true := by decide +kernel
+/-- `level_queries__L113_L1_L64_L32_L28_L4`, window 0. -/
+theorem w880_0 : shareWin 880 (snapsOf 880) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 0. -/
-theorem w871_0 : shareWin 871 (snapsOf 871) 0 = true := by decide +kernel
+/-- `level_queries__L113_L1_L64_L32_L28_L4`, window 1. -/
+theorem w880_1 : shareWin 880 (snapsOf 880) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 1. -/
-theorem w871_1 : shareWin 871 (snapsOf 871) 1 = true := by decide +kernel
+/-- `level_queries__L75_L1_L64_L32_L29_L5`, once. -/
+theorem st881 : shareStatic 881 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 2. -/
-theorem w871_2 : shareWin 871 (snapsOf 871) 2 = true := by decide +kernel
+/-- `level_queries__L75_L1_L64_L32_L29_L5`, window 0. -/
+theorem w881_0 : shareWin 881 (snapsOf 881) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L21_L8`, once. -/
-theorem st872 : shareStatic 872 = true := by decide +kernel
+/-- `level_queries__L75_L1_L64_L32_L29_L5`, window 1. -/
+theorem w881_1 : shareWin 881 (snapsOf 881) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
