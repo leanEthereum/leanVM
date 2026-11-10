@@ -27,9 +27,10 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
 * each level with a next one: its batching `λ`, `(t + 2) L' ≤ 2^17` (`2^-125` after the `14`-bit
   grind), and the next level's out-of-domain points, `L'² κ² ≤ 2^131` (`L'² (κ/|E|)² ≤ 2^-125`,
   no grind, a bound twice the Annex's `C(L', 2)`), with `1 ≤ κ`;
-* level `0`: the threshold covers the degree (`2^κ₀ ≤ A₀`), the stacked opening's batching with
-  the ring's map, `513 L₀ ≤ 2^17`, and the commitment's out-of-domain sample, `C(L₀, 2) μ ≤
-  2^18` (`2^-125` after its `15`-bit grind).
+* level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold covers the degree (`2^κ₀ ≤ A₀`),
+  its list bound is at most `166`, the stacked opening's batching with the ring's map,
+  `513 L₀ ≤ 2^17`, and the commitment's out-of-domain sample, `C(L₀, 2) μ ≤ 2^18` (`2^-125` after
+  its `15`-bit grind).
 
 `shapeOK_all`: every admissible shape passes, by kernel evaluation.
 -/
@@ -45,6 +46,12 @@ abbrev Lv : Type := ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)
 
 /-- The levels of a shape. -/
 def levelsOf (μ R : ℕ) : List Lv := (foldTable.getD (R - 1) []).getD (μ - 15) []
+
+/-- The threshold a level starts on, `A₀ = Aend − k`. -/
+def thrStart (lv : Lv) : ℕ := lv.2.2.2.1 - lv.2.2.1
+
+/-- Level 0's threshold of a shape. -/
+def thr0Of (μ R : ℕ) : ℕ := thrStart ((levelsOf μ R).headD (0, 1, 0, 1, []))
 
 /-- The list bound a level starts on, `jl(n, A₀, d₀)`. -/
 def jlStart (lv : Lv) : ℕ := jl (2 ^ (lv.1 + lv.2.1)) (lv.2.2.2.1 - lv.2.2.1) (2 ^ lv.1 - 1)
@@ -74,7 +81,8 @@ def chainChecks : ℕ → List Lv → List Whir.Level → Bool
 def shapeOK (μ R : ℕ) : Bool :=
   match Whir.ladder μ R, levelsOf μ R with
   | some cfg, lv :: rest =>
-    chainChecks μ (lv :: rest) cfg && decide (2 ^ lv.1 ≤ lv.2.2.2.1 - lv.2.2.1) &&
+    chainChecks μ (lv :: rest) cfg && decide (lv.2.1 = R) && decide (lv.2.2.1 = 6) &&
+      decide (2 ^ lv.1 ≤ lv.2.2.2.1 - lv.2.2.1) && decide (jlStart lv ≤ 166) &&
       decide (513 * jlStart lv ≤ 2 ^ 17) && decide ((jlStart lv).choose 2 * μ ≤ 2 ^ 18)
   | _, _ => false
 
