@@ -106,6 +106,23 @@ theorem good_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x 
     (hg : ∀ s ∈ fsPackT x b t, GoodS rd S w σ s) : FsPackOk σ x b t :=
   ⟨hg _ List.mem_cons_self, hg _ (List.mem_cons_of_mem _ List.mem_cons_self)⟩
 
+/-- The tail but its `ret`. -/
+def vsTailP : List Stmt :=
+  [vsMul 1918 66 66, vsMul 1919 1918 66, vsMul 1920 1919 1919, vsMul 1921 1920 66,
+    vsMul 1922 278 1921, vsConst 1923 (word 134217728 0), vsRange 1922 1924 1925 1926 1923,
+    vsConst 1927 (word 2 0), vsMul 1928 595 1927] ++ vsTabsT 1929 1930 ++
+  [.dispatch (.n 1922) vsOpenNames
+      [.n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1928, .n 1930]
+      (vsRun 1931 5),
+    vsCall "check_opening_terminal" [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275, 584, 848,
+      1932, 1933, 1934, 1935, 1931, 304, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1936 + k) 254 k, vsLd (1936 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1955 + k) 570 k, vsLd (1955 + k) 5 (19 + k)]) ++
+  [vsLd 580 5 23]
+
+theorem vsTailT_split : vsTailT = vsTailP ++ [.ret []] := by
+  simp only [vsTailT, vsTailP, List.append_assoc, List.cons_append, List.nil_append]
+
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 local notation "ς" => vsσ rd w args
@@ -151,8 +168,7 @@ theorem vsCtabT_good (hl : args.length = 6) : ∀ s ∈ vsCtabT, GoodS rd vsSL w
 theorem vsLamT_good (hl : args.length = 6) : ∀ s ∈ vsLamT, GoodS rd vsSL w ς s :=
   vs_goodL hl (n := 996) (by decide +kernel)
 
-theorem vsTailT_good (hl : args.length = 6) :
-    ∀ s ∈ vsTailT.dropLast, GoodS rd vsSL w ς s :=
+theorem vsTailP_good (hl : args.length = 6) : ∀ s ∈ vsTailP, GoodS rd vsSL w ς s :=
   vs_goodL hl (n := 1540) (by decide +kernel)
 
 /-! ## The head: the zero cells and the seed -/

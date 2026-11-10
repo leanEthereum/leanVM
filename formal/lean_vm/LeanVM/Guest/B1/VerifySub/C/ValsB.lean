@@ -149,5 +149,257 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
 theorem vsSqT_noSide : ∀ b < 8, ∀ q < 7, (vsSqT b (849 + 64 * b) q).all noSideB = true := by
   decide +kernel
 
+/-- Where `c_table[8 p + b]` is computed: block `b`'s first product, then term `p`'s. -/
+def vsCtabD (b p : ℕ) : ℕ := if p = 0 then 849 + 64 * b else 849 + 64 * b + 1 + 9 * (p - 1) + 8
+
+theorem vsCtabBlock_mem {b : ℕ} (hb : b < 8) {s : Stmt} (hs : s ∈ vsCtabBlock b) : s ∈ vsCtabT := by
+  rw [vsCtabT]
+  exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩))
+
+/-- **`c_table`'s products** (G:3705-3713): `c[8 p + b] = f_p · g_b^(2^(8 p))`, the challenges
+`f = vsCh 0 .. 7`, `g = vsCh 8 .. 15`. -/
+theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
+    ∀ p < 8, ς (.n (vsCtabD b p)) = ς (.n (vsCh p)) * ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * p) := by
+  have hG : ∀ s ∈ vsCtabBlock b, GoodS rd vsSL w ς s :=
+    fun s hs ↦ vsCtabT_good hl s (vsCtabBlock_mem hb hs)
+  set s0 := 849 + 64 * b with hs0
+  -- the squarings of term `q + 1` from the previous power
+  have hsq : ∀ q < 7, ς (.n (if q = 0 then vsCh (8 + b) else s0 + 1 + 9 * q - 2)) =
+      ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * q) := by
+    intro q
+    induction q with
+    | zero => intro _; simp
+    | succ q ih =>
+      intro hq
+      have hS := holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
+        (vsSqT_noSide b hb q (by omega)) (fun s hs ↦ hG s (by
+          rw [vsCtabBlock]
+          exact List.mem_append_right _ (List.mem_flatMap.2 ⟨q, List.mem_range.2 (by omega),
+            List.mem_append_left _ hs⟩))) (next := True) trivial
+      obtain ⟨e7, -⟩ := vsSqT_holds (ih (by omega)) hS
+      simp only [Nat.add_one_ne_zero, ↓reduceIte]
+      rw [show s0 + 1 + 9 * (q + 1) - 2 = s0 + 1 + 9 * q + 7 by omega, e7, ← pow_mul, ← pow_add,
+        show 8 * q + 8 = 8 * (q + 1) by ring]
+  intro p hp
+  rcases p with _ | q
+  · have m := good_mul (by simp [vsCh]; omega) (by simp [vsCh]; omega)
+      (hG (.atom (.mul (.n s0) (.n (vsCh 0)) (.n (vsCh (8 + b))))) (by
+        rw [vsCtabBlock]; exact List.mem_append_left _ List.mem_cons_self))
+    simp only [vsCtabD, ↓reduceIte, Nat.mul_zero, pow_zero, pow_one]
+    exact m
+  · have hS := holdsList_good (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
+      (vsSqT_noSide b hb q (by omega)) (fun s hs ↦ hG s (by
+        rw [vsCtabBlock]
+        exact List.mem_append_right _ (List.mem_flatMap.2 ⟨q, List.mem_range.2 (by omega),
+          List.mem_append_left _ hs⟩))) (next := True) trivial
+    obtain ⟨e7, -⟩ := vsSqT_holds (hsq q (by omega)) hS
+    have m := good_mul (x := vsCh (q + 1)) (by simp [vsCh]; omega) (by omega)
+      (hG (.atom (.mul (.n (s0 + 1 + 9 * q + 8)) (.n (vsCh (q + 1))) (.n (s0 + 1 + 9 * q + 7))))
+        (by
+          rw [vsCtabBlock]
+          exact List.mem_append_right _ (List.mem_flatMap.2 ⟨q, List.mem_range.2 (by omega),
+            List.mem_append_right _ List.mem_cons_self⟩)))
+    simp only [vsCtabD, Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
+    rw [m, e7, ← pow_mul, ← pow_add, show 8 * q + 8 = 8 * (q + 1) by ring]
+
+/-! ## The sizes, the placement, the push blocks -/
+
+theorem word_gen1 : word 2 0 = gen := by
+  rw [show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num), pow_one]
+
+/-- `rate_sel = g^(rate - 1)` (G:3600-3602). -/
+theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : w 64 = gen ^ rate) :
+    ς (.n 66) = gen ^ (rate - 1) := by
+  have hG := vsSizesT_good (rd := rd) (w := w) hl
+  have h65w : ς (.n 65) = word 2 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n 65) = gen := by rw [h65w, word_gen1]
+  have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
+    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+  rw [h66, h65, vs_w hl (by decide), h64, show gen⁻¹ = (gen ^ 1)⁻¹ by rw [pow_one],
+    ← pow_sub₀ _ gen_ne_zero hr]
+
+/-- **The sizes** (G:3600-3619): `g^(rate - 1)` and its bound `g^3`, `g^logMem` and its bound
+`g^32`, `g^(logMem - 16)`, and `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
+theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (hm : 16 ≤ logMem)
+    (h64 : w 64 = gen ^ rate) (h72 : w 72 = gen ^ logMem) :
+    ς (.n 65) = gen ∧ ς (.n 66) = gen ^ (rate - 1) ∧ ς (.n 67) = gen ^ 3 ∧
+      ς (.n 72) = gen ^ logMem ∧ ς (.n 73) = gen ^ 32 ∧ ς (.n 78) = gen ^ 16 ∧
+      ς (.n 79) = gen ^ (logMem - 16) ∧ ς (.n 77) = gen ^ 32 ∧
+      ς (.n 84) = 1 ∧ ς (.n 85) = gen ^ logMem ∧
+      ∀ t < 6, ς (.n (86 + t)) = rdAt rd (w 71) (1 + t) := by
+  have hG := vsSizesT_good (rd := rd) (w := w) hl
+  have h65w : ς (.n 65) = word 2 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h65 : ς (.n 65) = gen := by rw [h65w, word_gen1]
+  have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
+    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+  have h67 : ς (.n 67) = word 8 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h73 : ς (.n 73) = word 4294967296 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h77 : ς (.n 77) = word 4294967296 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h78 : ς (.n 78) = word 65536 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h79 : ς (.n 79) = ς (.n 72) * (ς (.n 78))⁻¹ :=
+    good_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
+  have h84 : ς (.n 84) = word 1 0 := good_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h85 : ς (.n 85) = ς (.n 72) := good_copy (hG _ (by simp [vsSizesT, vsCopy]))
+  have e72 : ς (.n 72) = gen ^ logMem := by rw [vs_w hl (by decide), h72]
+  have e78 : ς (.n 78) = gen ^ 16 := by
+    rw [h78, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by norm_num)]
+  have e32 : word 4294967296 0 = gen ^ 32 := by
+    rw [show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_two_pow (by norm_num)]
+  refine ⟨h65, ?_, ?_, e72, by rw [h73, e32], e78, ?_, by rw [h77, e32], by rw [h84, word_one],
+    by rw [h85, e72], fun t ht ↦ ?_⟩
+  · exact vs_rateSel hl hr h64
+  · rw [h67, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]
+  · rw [h79, e72, e78, ← pow_sub₀ _ gen_ne_zero hm]
+  · rw [good_rdAt (hG _ (by
+      rw [vsSizesT]
+      exact List.mem_append_left _ (List.mem_append_right _
+        (List.mem_map.2 ⟨t, List.mem_range.2 ht, rfl⟩)))) (by interval_cases t <;> decide +kernel),
+      vs_w hl (by decide)]
+
+/-- **The stack's log's selector** (G:3641-3644): `g^(m - 22)` and its bound `g^6`. -/
+theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 22 ≤ m) (h276 : w 276 = gen ^ m) :
+    ς (.n 278) = gen ^ (m - 22) ∧ ς (.n 279) = gen ^ 6 := by
+  have hG := vsPlaceT_good (rd := rd) (w := w) hl
+  have h277 : ς (.n 277) = vsGinv22 := good_const (hG _ (by simp [vsPlaceT, vsConst]))
+  have h278 : ς (.n 278) = ς (.n 276) * ς (.n 277) :=
+    good_mul (by norm_num) (by norm_num) (hG _ (by simp [vsPlaceT, vsMul]))
+  have h279 : ς (.n 279) = word 64 0 := good_const (hG _ (by simp [vsPlaceT, vsConst]))
+  refine ⟨?_, by rw [h279, show (64 : ℕ) = 2 ^ 6 from rfl, word_two_pow (by norm_num)]⟩
+  rw [h278, h277, vs_w hl (by decide), h276, show m = (m - 22) + 22 by omega, pow_add,
+    Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 22), vsGinv22_mul, mul_one]
+
+/-- The pointer push block `b` reads through. -/
+def vsPushP (b : ℕ) : ℕ := if b = 0 then 92 else 91 + 3 * b
+
+/-- The value push block `b` reads. -/
+def vsPushD (b : ℕ) : ℕ := if b = 0 then 93 else 92 + 3 * b
+
+theorem vsPushStep_mul (b : ℕ) :
+    vsMul (vsPushP b) 4 (84 + Tables.blockKappaSrc.getD b 0) ∈ vsPushStep b := by
+  unfold vsPushStep vsPushP
+  split <;> simp_all
+
+theorem vsPushStep_ld (b : ℕ) :
+    vsLd (vsPushD b) (vsPushP b) (Tables.blockKappaAdj b) ∈ vsPushStep b := by
+  unfold vsPushStep vsPushP vsPushD
+  split <;> simp_all
+
+/-- **The push blocks' pointers** (G:3622-3626): `g_squares · kb[src]`. -/
+theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
+    ς (.n (vsPushP b)) = ς (.n 4) * ς (.n (84 + Tables.blockKappaSrc.getD b 0)) := by
+  have hm : vsMul (vsPushP b) 4 (84 + Tables.blockKappaSrc.getD b 0) ∈ vsPushT := by
+    rw [vsPushT]
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, vsPushStep_mul b⟩)
+  have hsrc : Tables.blockKappaSrc.getD b 0 < 8 := blockKappaSrc_lt b (by show b < 153; omega)
+  exact good_mul (by unfold vsPushP; split <;> omega) (by unfold vsPushP; split <;> omega)
+    (vsPushT_good hl _ hm)
+
+/-! ## The tail -/
+
+/-- **The tail's values** (G:3741-3749): the candidate `g^(m - 22 + 7 (rate - 1))` and its bound
+`g^27`, the stream's pointer past `verify_keccak`'s cursor, `tabs`. -/
+theorem vs_tailV (hl : args.length = 6) {rate m : ℕ} (hr : 1 ≤ rate) (hm : 22 ≤ m)
+    (h64 : w 64 = gen ^ rate) (h276 : w 276 = gen ^ m) :
+    ς (.n 1922) = gen ^ (m - 22 + 7 * (rate - 1)) ∧ ς (.n 1923) = gen ^ 27 ∧
+      ς (.n 1928) = w 595 * gen ∧ ς (.n 1930) = ς (.n 4) * gen ^ winTabAt := by
+  have hG := vsTailP_good (rd := rd) (w := w) hl
+  have hP : ∀ s ∈ [vsMul 1918 66 66, vsMul 1919 1918 66, vsMul 1920 1919 1919, vsMul 1921 1920 66,
+      vsMul 1922 278 1921, vsConst 1923 (word 134217728 0), vsRange 1922 1924 1925 1926 1923,
+      vsConst 1927 (word 2 0), vsMul 1928 595 1927], GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
+    rw [vsTailP]
+    exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+      (List.mem_append_left _ (List.mem_append_left _ hs)))))
+  have h66 := vs_rateSel (rd := rd) (w := w) hl hr h64
+  have h278 := (vs_placeV (rd := rd) (w := w) hl hm h276).1
+  have m18 : ς (.n 1918) = ς (.n 66) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m19 : ς (.n 1919) = ς (.n 1918) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m20 : ς (.n 1920) = ς (.n 1919) * ς (.n 1919) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m21 : ς (.n 1921) = ς (.n 1920) * ς (.n 66) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have m22 : ς (.n 1922) = ς (.n 278) * ς (.n 1921) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have c23 : ς (.n 1923) = word 134217728 0 := good_const (hP _ (by simp [vsMul, vsConst]))
+  have c27 : ς (.n 1927) = word 2 0 := good_const (hP _ (by simp [vsMul, vsConst]))
+  have m28 : ς (.n 1928) = ς (.n 595) * ς (.n 1927) := good_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have h30 := tabs_good (c := 1929) (d := 1930) (by decide) fun s hs ↦ hG s (by
+    rw [vsTailP]
+    exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+      (List.mem_append_left _ (List.mem_append_right _ hs)))))
+  refine ⟨?_, by rw [c23, show (134217728 : ℕ) = 2 ^ 27 from rfl, word_two_pow (by norm_num)],
+    by rw [m28, c27, word_gen1, vs_w hl (by decide)], h30⟩
+  rw [m22, m21, m20, m19, m18, h66, h278, pow_add, pow_mul]
+  ring
+
+/-! ## `λ` and the target -/
+
+/-- A read atom. -/
+def isLdB : Stmt → Bool
+  | .atom (.load ..) => true
+  | _ => false
+
+/-- **A block of reads and atoms with automatic side conditions holds** from their equations and
+the reads' words. -/
+theorem holdsList_goodLd {S : List Atom} {σ : Val} {C : CallRel} {blk : List Stmt}
+    (hb : blk.all (fun s ↦ noSideB s || isLdB s) = true) (hg : ∀ s ∈ blk, GoodS rd S w σ s)
+    (hld : ∀ d p off, Stmt.atom (.load d p off) ∈ blk →
+      Atom.load d p off ∉ S ∧ ∃ v, LoadHolds rd (σ p) off v)
+    {next : Prop} {kret : List E → Prop} (hn : next) : Stmt.HoldsList C rd σ blk next kret := by
+  refine holdsList_straightN blk (List.all_eq_true.mpr fun s hs ↦ ?_) (fun s hs ↦ ?_) hn
+  · have := List.all_eq_true.mp hb s hs
+    cases s <;> simp_all [noSideB, straightB, isLdB]
+  · have h1 := List.all_eq_true.mp hb s hs
+    cases s with
+    | atom a =>
+      cases a with
+      | load d p off =>
+        obtain ⟨hS, v, hv⟩ := hld d p off hs
+        show LoadHolds _ _ _ _
+        rw [good_read (hg _ hs) hS hv]
+        exact hv
+      | _ => exact good_atom (hg _ hs) (by simpa [noSideB, isLdB] using h1)
+    | _ => simp [noSideB, isLdB] at h1
+
+theorem vsLamT_ok : vsLamT.all (fun s ↦ noSideB s || isLdB s) = true := by decide +kernel
+
+theorem vsLamT_notS : ∀ i < 134,
+    Atom.load (.n (1376 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2 ∉ vsSL := by
+  decide +kernel
+
+theorem vsLamT_loads {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ vsLamT) :
+    (∃ i < 134, d = .n (1376 + 4 * i) ∧ p = .n (vsClaimAt (vsKept i)).1 ∧
+      off = (vsClaimAt (vsKept i)).2) ∨ (d = .n 1915 ∧ p = .n 310 ∧ off = 0) := by
+  simp only [vsLamT, vsSqzT, keccakA, challengeT, vsLamStep, vsLd, vsMul, vsAdd, List.mem_append,
+    List.mem_cons, List.mem_flatMap, List.mem_range, List.not_mem_nil, or_false,
+    Stmt.atom.injEq, reduceCtorEq, false_or, Atom.load.injEq] at h
+  rcases h with ⟨i, hi, h⟩ | h
+  · exact Or.inl ⟨i, hi, h.1, h.2.1, h.2.2⟩
+  · exact Or.inr h
+
+/-- **`λ` and the target** (G:3722-3737): `λ` squeezed from the ring map's capacity, and the
+target `dot (powers λ 137)` of `ring_switch_target`'s value, the claims kept (not an output
+lane's), the Keccak reduction's word and the out-of-domain value. -/
+theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.length = 159)
+    (hcol : claims.map (·.column) = Tables.claimColumns)
+    (hpool : ReadsAt rd (w 6) ((claims.take 4).map (·.value)))
+    (hcew : ReadsAt rd (w 582) (((claims.drop 4).take 153).map (·.value)))
+    (hpi : ReadsAt rd (w 6 * gen ^ 157) ((claims.drop 157).map (·.value)))
+    {v : E} (hv : ReadsAt rd (w 310) [v]) :
+    (⟨[ς (.n 840), ς (.n 841), ς (.n 842), ς (.n 843), ς (.n 844)], []⟩ : Fs).squeeze =
+        (ς (.n 1375), ⟨[ς (.n 1370), ς (.n 1371), ς (.n 1372), ς (.n 1373), ς (.n 1374)], []⟩) ∧
+      ς (.n 1917) = dot (powers (ς (.n 1375)) 137)
+        (w 1361 :: ((claims.filter (fun c ↦ c.column ∉ keccakOutputColumns)).map (·.value) ++
+          [w 596, v])) := by
+  have hz := vs_zero (rd := rd) (w := w) hl
+  rw [← vs_w (rd := rd) (w := w) hl (a := 6) (by decide)] at hpool hpi
+  rw [← vs_w (rd := rd) (w := w) hl (a := 582) (by decide)] at hcew
+  rw [← vs_w (rd := rd) (w := w) hl (a := 310) (by decide)] at hv
+  have hcl' := claim_load hcl hpool hcew hpi
+  have hH : Stmt.HoldsList (fun _ _ _ ↦ True) rd ς vsLamT True (fun _ ↦ True) :=
+    holdsList_goodLd vsLamT_ok (vsLamT_good hl) (fun d p off hm ↦ by
+      rcases vsLamT_loads hm with ⟨i, hi, rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
+      · exact ⟨vsLamT_notS i hi, _, hcl' (vsKept i) (by simp only [vsKept]; split <;> omega)⟩
+      · exact ⟨by decide +kernel, _, hv 0 (by simp)⟩) trivial
+  obtain ⟨hsq, ht, -⟩ := vsLamT_holds hz.1 hz.2.1 hz.2.2.1 hz.2.2.2 hcl hcol hpool hcew hpi hv hH
+  refine ⟨hsq, ?_⟩
+  rw [ht, vs_w (rd := rd) (w := w) hl (a := 1361) (by decide), vs_w (rd := rd) (w := w) hl (a := 596) (by decide)]
+
 end
 end LeanVM.Guest.B1.VerifySub
