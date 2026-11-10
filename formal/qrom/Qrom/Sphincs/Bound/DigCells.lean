@@ -123,22 +123,6 @@ theorem pre_digestInputX (d : Data) (m : Message) (R : Randomness) (c : DigestCa
   show (messageDigestInput _ _ m R c).take 80 = _
   rw [messageDigestInput_split, List.take_left' (digPrefix_length _ _ _ _)]
 
-/-- The inputs of the cell of a digest input are its calls. -/
-theorem eq_digestInputX_of_cell {d : Data} {m : Message} {R : Randomness} {x : Input}
-    (h : (cellOf x).1 = (cellOf (digestInputX d m R firstCall)).1) :
-    x = digestInputX d m R (cellOf x).2 := by
-  rw [cellOf_of_isDig (isDig_digestInputX d m R firstCall)] at h
-  by_cases hx : ∃ c, IsDig x c
-  · obtain ⟨c, hc⟩ := hx
-    rw [cellOf_of_isDig hc] at h ⊢
-    simp only [Sum.inl.injEq] at h
-    rw [eq_cellIn_of_isDig hc, h]
-    apply Subtype.ext
-    show (pre (digestInputX d m R firstCall)).1.take 80 ++ callBytes c = messageDigestInput _ _ m R c
-    rw [pre_digestInputX, messageDigestInput_split, List.take_of_length_le (digPrefix_length _ _ _ _).le]
-  · rw [cellOf_of_not hx] at h
-    simp at h
-
 /-! ## Overrides of whole cells -/
 
 open Classical in

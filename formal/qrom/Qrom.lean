@@ -22,7 +22,7 @@ predicate on the whole value of a cell of inputs, by simulating the oracle on ce
 `Qrom.Sphincs.winProb_le` bounds a leanSPHINCS forgery by an
 adversary making at most `n` calls in all, from those and from the classical classification of a
 winning forgery; `Qrom.Sphincs.winProb_le_h26` makes it numeric for the parameters of
-`FORS.h26_layered`, with the cover probability at most `9 · 2^-130` (`Qrom.Sphincs.lamS_h26`). The build fails if their axiom footprints grow beyond Lean's
+`FORS.h26_layered`: at most `((n + 2048) / 2^61)²`. The build fails if their axiom footprints grow beyond Lean's
 three standard axioms. -/
 
 /-- info: 'Qrom.qrom_search_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/

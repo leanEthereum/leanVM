@@ -1,7 +1,7 @@
 module
 
 public import Qrom.Sphincs.HidingStep
-public import Qrom.Sphincs.Bound.BadEnc
+public import Qrom.Sphincs.Bound.Swap
 public import Qrom.Sphincs.Bound.CoverCells
 
 @[expose] public section

@@ -56,12 +56,6 @@ def evA (r : Data) (G : Input → HashOutput) (Dg : Message → DigV)
     (p : Σ u, QuantumComp₂.Leaf (QReg.of Unit) (PublicKey × Forgery) u) (s : Log) : Bool :=
   evCov (withDig r Dg) s G p.2.2.2 && decide (p.2.2.1 = pkD (withDig r Dg))
 
-theorem digestInput_mem_trace (f : Input → HashOutput) (d : Data) (F : Forgery) :
-    digestInputX d F.message F.signature.randomness firstCall ∈
-      outK (evalWithAnswerFn (QueryImpl.ofFn f) (verifier (pkD d, F))) := by
-  rw [outK_verifier, mem_outOf, eval_verifier]
-  exact digestInputs_mem' (QueryImpl.ofFn (extend f)) (pkD d) F.message F.signature firstCall
-
 theorem card_ne_zero_enn (α : Type) [Fintype α] [Nonempty α] : (Fintype.card α : ℝ≥0∞) ≠ 0 :=
   Nat.cast_ne_zero.mpr Fintype.card_ne_zero
 

@@ -107,12 +107,6 @@ theorem sideW_pk_restrict (d : Data) (G : Input → HashOutput) {A : QReg} (adv 
     rw [hb]
     simp only [ite_self]
 
-theorem sideW_false (g : OvGame Input HashOutput Log Port Res) (G : Input → HashOutput) {A : QReg}
-    {α : Type} (x : QComp Spec A (QReg.of Unit) α) (ρ : SubState A) :
-    OvGame.sideW g G .instruments x ρ (fun _ _ ↦ false) = 0 := by
-  rw [OvGame.sideW_eq_sum g G _ x]
-  simp
-
 open Classical in
 /-- The verifier read a protected input. -/
 def evProt (d : Data) (s : Log) (b : Bool × List HashInput) : Bool := decide (∃ x ∈ outK b, Prot d s x)
