@@ -9,6 +9,9 @@ module
 public import LeanVM.Guest.B1.Whir.CHonLv
 public import LeanVM.Guest.B1.Whir.LastRun
 public import LeanVM.Guest.B1.Whir.LevelSpec
+public import LeanVM.Guest.B1.Whir.Finish
+public import LeanVM.Guest.B1.Whir.CTail
+public import LeanVM.Guest.B1.Whir.CInvLast
 
 /-!
 # The guest's sponges are the Spec's
@@ -17,7 +20,10 @@ On a level `L : LvAt` of the honest run and the guest's data of it (`LvAt.midW`,
 with the level's row `lv` of the tables matching the Spec's level: the capacity after the folds
 (`cap1`), the query grind's permutation (`S2` = `qS`), the capacity after the squeezes (`cap3` =
 `F3`), `λ` and the batching nonce's permutation, the out-of-domain points (`MidEqs`); the
-samples and the squeezes' capacities (`lvAt_words`).
+samples and the squeezes' capacities (`lvAt_words`); the rounds' challenges in memory
+(`roundsMem_of`); a non-final level's claim, the next level's less the deficit (`midClaim`,
+`hbat_of`); the final level's sponges (`FinEqs`), its terminal (`finEnd`) and closing rounds'
+calls (`tailC_of`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -321,6 +327,128 @@ theorem hbat_of {lam : E} (hlam : lam ≠ 0) {odd base N Q : ℕ} (hodd : odd �
   subst hQ
   rw [oqChain_mul_pow (mul_inv_cancel₀ hlam) hodd hob ds N, powSum]
   exact Finset.sum_congr rfl fun k hk ↦ by rw [hds k (Finset.mem_range.mp hk)]
+
+/-! ## The final level -/
+
+/-- What the final level's guest data and the Spec agree on. -/
+structure FinEqs (logN : ℕ) (L : LvAt) (lv : OsLv) (cl : E) (M : FinWD) : Prop where
+  cap1 : M.cap1 lv L.cap cl = L.cap1
+  S2 : M.S2 lv L.cap cl = L.qS logN
+  cap3 : M.cap3 lv L.cap cl = (L.F3 logN).cap
+  F3pend : (L.F3 logN).pend = []
+
+/-- **The final level: the guest's sponges are the Spec's.** -/
+theorem finEqs {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
+    {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
+    (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
+    (r0 r1 batched pZ pH cl : E) : FinEqs logN L lv cl (L.finWD r0 r1 batched pZ pH) := by
+  obtain ⟨rw, W, hd, -⟩ := hF
+  have hfw : L.fw = W := by simp [LvAt.fw, hd]
+  set M := L.finWD r0 r1 batched pZ pH with hM
+  have hc1 : M.cap1 lv L.cap cl = L.cap1 := by
+    simp only [hM, FinWD.cap1, LvAt.finWD, LvAt.cap1, roundsTr_cap, hfold]
+  have hF : L.F = ⟨L.cap1, []⟩ := by simp [LvAt.F, LvAt.cap1]
+  have hqS : L.qS logN = W.qS L.F := by simp [LvAt.qS, hd]
+  have hS2 : M.S2 lv L.cap cl = L.qS logN := by
+    rw [hqS, FinWD.S2, hc1, hF]
+    simp [hM, LvAt.finWD, hfw, omState, FinW.qS]
+  have hF3 : L.F3 logN = ⟨M.cap3 lv L.cap cl, []⟩ := by
+    simp only [LvAt.F3, hd, FinW.F3, FinWD.cap3, sqCap]
+    rw [← hqS, ← hS2, hsq, hdep, hq]
+    exact squeezeN_mk _ _
+  exact ⟨hc1, hS2, by rw [hF3], by rw [hF3]⟩
+
+theorem tailRun_length : ∀ (pairs : List (E × E)) (cap : List E) (cl : E),
+    (tailRun pairs cap cl).1.length = pairs.length
+  | [], _, _ => rfl
+  | (_, _) :: rest, _, _ => by simp only [tailRun, List.length_cons, tailRun_length rest]
+
+/-- **The final level's end**: with `tr` the guest's closing rounds from its capacity and claim
+after the folds, the terminal's target, inner sum, residual and point. -/
+theorem finEnd {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
+    {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
+    (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
+    {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.gammas.length)
+    (hglued : L.s.glued = recs.flatMap recGlued) (r0 r1 batched pZ pH : E) :
+    w.target = (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).2.1 +
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.prod * recsDeficit recs L.s1.gammas ∧
+    w.inner = (recs.flatMap recGlued).foldl (fun x g ↦ x + g.scalar * g.weightAt ((L.s1.gammas ++
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1).drop g.foldStart)) 0 ∧
+    w.residual = multilinearEval (L.fw.fold.take (2 ^ L.mu logN))
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 ∧
+    w.point = rotPt L.s1.gammas
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 lane ∧
+    (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.length = L.mu logN := by
+  have hE := finEqs hF hfold hdep hq hsq r0 r1 batched pZ pH (L.gcl recs)
+  obtain ⟨rw, W, hd, -, -, -, -, hok, hw⟩ := hF
+  have hrw : L.rw = rw := by simp [LvAt.rw, hd]
+  have hfw : L.fw = W := by simp [LvAt.fw, hd]
+  rw [← hrw] at hw
+  have hF3 : L.F3 logN = W.F3 L.F (L.dp logN) L.level.queries := by simp [LvAt.F3, hd]
+  obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas L.level.fold L.s L.cap L.rw
+  have hs1g : L.s1.gammas = L.s.gammas ++ gs := hgs
+  have hcl1 : (L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs) =
+      L.s1.claim + recsDeficit recs L.s1.gammas := by
+    simp only [FinWD.cl1, LvAt.finWD, LvAt.gcl, ← hfold]
+    rw [roundsTr_claim, hs1g, List.drop_left, recsDeficit_append_gammas _ _ _ hrecF]
+  rw [hE.cap3, hcl1, hfw]
+  obtain ⟨t1, t2, -⟩ := tailRun_add W.pairs (L.F3 logN).cap L.s1.claim (recsDeficit recs L.s1.gammas)
+  have hT : W.tail L.F (L.dp logN) L.level.queries L.s1.claim = tailRun W.pairs (L.F3 logN).cap L.s1.claim := by
+    rw [hF3]; rfl
+  have hgl : L.s1.glued = recs.flatMap recGlued := by
+    rw [← hglued]; exact roundsSpec_glued _ _ _ _
+  have hpl := hok.plen2
+  rw [← hrw] at hpl
+  subst hw
+  simp only [FinW.wend]
+  rw [hT, t1, t2, hgl]
+  refine ⟨?_, rfl, rfl, rfl, by rw [tailRun_length, hpl]⟩
+  have h2 : ∀ x : E, x + x = 0 := fun x ↦ CharTwo.add_self_eq_zero x
+  linear_combination -h2 ((tailRun W.pairs (L.F3 logN).cap L.s1.claim).1.prod * recsDeficit recs L.s1.gammas)
+
+/-- **The closing rounds' calls**, from each round's call at the state `tailRun` reaches before
+it and the challenges' loads. -/
+theorem tailC_of {C : CallRel} {rd : Reader} {pT tabs : E} : ∀ (pairs : List (E × E)) (j0 : ℕ)
+    (cap : List E) (cl cur : E),
+    (∀ j < pairs.length, C "opening_tail_round" ((tailRun (pairs.take j) cap cl).2.2 ++
+      [cur * gen ^ (2 * j), (tailRun (pairs.take j) cap cl).2.1, tabs])
+      (tailRets (tailRun (pairs.take j) cap cl).2.2 (cur * gen ^ (2 * j)) (tailRun (pairs.take j) cap cl).2.1
+        (pairs.getD j (0, 0)))) →
+    (∀ j < pairs.length, LoadHolds rd pT (j0 + j) ((tailRun pairs cap cl).1.getD j 0)) →
+    TailC C rd pT tabs j0 pairs cap cl cur
+  | [], _, _, _, _, _, _ => trivial
+  | (c0, c2) :: rest, j0, cap, cl, cur, hc, hl => by
+    have h0 := hc 0 (by simp)
+    simp only [List.take_zero, tailRun, Nat.mul_zero, pow_zero, mul_one, List.getD_cons_zero] at h0
+    have l0 := hl 0 (by simp)
+    simp only [tailRun_cons, List.getD_cons_zero, Nat.add_zero] at l0
+    have e7 : (tailRets cap cur cl (c0, c2)).getD 7 0 =
+        ((⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve).squeeze.1 := by
+      simp [tailRets, Fs.squeeze, capOf]
+    refine ⟨h0, by rw [e7]; exact l0, ?_⟩
+    have e5 : (tailRets cap cur cl (c0, c2)).take 5 =
+        ((⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve).squeeze.2.cap := by
+      simp [tailRets, Fs.squeeze, capOf]
+    have e6 : (tailRets cap cur cl (c0, c2)).getD 6 0 =
+        c0 + ((⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve).squeeze.1 *
+          (cl + (1 + ((⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve).squeeze.1) * c2) := by
+      simp [tailRets, Fs.squeeze, capOf]
+    rw [e5, e6]
+    refine tailC_of rest (j0 + 1) _ _ _ (fun j hj ↦ ?_) (fun j hj ↦ ?_)
+    · have := hc (j + 1) (by simp; omega)
+      simp only [List.take_succ_cons, tailRun_cons, List.getD_cons_succ] at this
+      rw [show cur * gen ^ (2 * (j + 1)) = cur * gen ^ 2 * gen ^ (2 * j) by ring] at this
+      exact this
+    · have := hl (j + 1) (by simp; omega)
+      simp only [tailRun_cons, List.getD_cons_succ] at this
+      rw [show j0 + 1 + j = j0 + (j + 1) by ring]
+      exact this
 
 end
 end LeanVM.Guest.B1.Whir
