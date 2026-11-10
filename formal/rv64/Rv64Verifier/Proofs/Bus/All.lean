@@ -1,6 +1,7 @@
 import Rv64Verifier.Proofs.Bus.Fingerprints
-import Rv64Verifier.Proofs.Bus.TsCalls
+import Rv64Verifier.Proofs.Bus.TsSpec
 import Rv64Verifier.Proofs.Multilinear.All
+import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Bus.VbbSpine
 import Rv64Verifier.Proofs.Bus.VbbTail9
 
@@ -24,6 +25,8 @@ them (`tailStage`, given `s3` = `values`' buffer, which `AfterGkr` does not yet 
 them, the calls of `try_allocate_in`, `memcpy` and the claims' `grow_one` (`VbbTail5.lean`,
 `VbbTail7.lean`), the claims in memory (`VbbTail6.lean`) and the three copies of the point's prefix
 (`copy1` to `copy3`, `VbbTail8.lean`, `VbbTail9.lean`).
+`table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
+and `Form::evaluate` (`FormEvaluateSpecE`).
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -31,6 +34,11 @@ open Rv64Verifier.Bus Rv64Verifier.Runtime
 
 theorem fingerprints : FingerprintsSpec :=
   Fingerprints.fingerprints_spec alloc_spec Multilinear.dot
+
+theorem tableSumcheck (hOF : TableSumcheck.OptFromElemBelowSpec) (hS : Transcript.SumcheckSpec)
+    (hFEv : TableSumcheck.FormEvaluateSpecE) : TableSumcheckSpec :=
+  TableSumcheck.table_sumcheck_spec hOF hS tryAllocZeroed Runtime.reserveFresh_80008a10
+    Multilinear.fromElem Field.mul memcpy Transcript.nextScalars alloc_spec Multilinear.dot hFEv
 
 end Rv64Verifier.Proofs.Bus
 
@@ -114,3 +122,6 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.keepR' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.keepR
+
+/-- info: 'Rv64Verifier.Proofs.Bus.tableSumcheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.tableSumcheck

@@ -67,15 +67,23 @@ theorem optPre {s u : MachineState} (hpre : TableSumcheckPre s) (h : Inv s u)
   refine ⟨h.heap, ?_, ?_, hst, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp only [h10, h11, hsl, Outside, heapEnd] <;> addr_omega [hb1, hb2, hb3, hx]
 
+/-- `OptFromElemSpec` with the buffer below `NEXT`: for `n = 0` it is dangling, at the
+alignment. -/
+def OptFromElemBelowSpec : Prop :=
+  FunSpec Image.code 0x80010724 OptFromElemPre fun s t ↦
+    OptFromElemPost s t ∧ (vecPtr t (s.getReg .x10)).toNat ≤ heapNext t
+
 /-- `vec![None; n_rounds]`, from `0x800080b8` to `0x800080cc`: a new `Vec` at `S - 248` of
 `n_rounds` `None`s. -/
-theorem stageA (hOF : OptFromElemSpec) {s u : MachineState} (hpre : TableSumcheckPre s)
+theorem stageA (hOF : OptFromElemBelowSpec) {s u : MachineState} (hpre : TableSumcheckPre s)
     (h : Inv s u) (hpc : u.pc = 0x800080b8) (h12 : (u.getReg .x12).toNat = nRounds s) :
     ∃ v, Reaches Image.code u v ∧ ((Inv s v ∧ v.pc = 0x800080cc ∧ (∀ r ∈ calleeSaved,
       v.getReg r = u.getReg r) ∧ DFrame u v (Loc s u v) ∧
       VecOk v (s.getReg .x2 - 248) 32 8 ∧ (vecLen v (s.getReg .x2 - 248)).toNat = nRounds s ∧
       optEListAt v (vecPtr v (s.getReg .x2 - 248)) (nRounds s) = List.replicate (nRounds s) none ∧
-      NewBuf u v (vecPtr v (s.getReg .x2 - 248)) (32 * nRounds s) 8) ∨ Dead Image.code v) := by
+      NewBuf u v (vecPtr v (s.getReg .x2 - 248)) (32 * nRounds s) 8 ∧
+      (vecPtr v (s.getReg .x2 - 248)).toNat ≤ heapNext v ∧ (Args s u → Args s v)) ∨
+      Dead Image.code v) := by
   obtain ⟨hb1, hb2, -, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 2128) 266 := hpre.stack.valid
   obtain ⟨u₁, hr₁, h₁⟩ := Sym.BlockSpec.reaches b800080b8_spec hpc (by
@@ -97,7 +105,7 @@ theorem stageA (hOF : OptFromElemSpec) {s u : MachineState} (hpre : TableSumchec
     rw [h.sp] at this
     rv_eval [] at this
     exact this
-  obtain ⟨u₂, hr₂, ⟨hpc₂, hp₂, post⟩ | hd⟩ :=
+  obtain ⟨u₂, hr₂, ⟨hpc₂, hp₂, post, hbelow⟩ | hd⟩ :=
     hOF.call hr₁ (b800080b8_pc h₁) (optPre hpre I₁ h10 h11)
   swap
   · exact ⟨u₂, hr₂, Or.inr hd⟩
@@ -127,12 +135,22 @@ theorem stageA (hOF : OptFromElemSpec) {s u : MachineState} (hpre : TableSumchec
   refine ⟨u₂, hr₂, Or.inl ⟨h.loc hpre hL₂ post.heap hn₂ (by rw [hp₂.reg .x2, hk₁ .x2 (by decide)]),
     by rw [hpc₂, returnAddress_eq, b800080b8_x1 h₁]; decide,
     fun r hr ↦ by rw [hp₂ r hr, hk₁ r (mem_of_calleeSaved hr _)], hL₂, h10 ▸ post.vec,
-    by rw [hlen, h12], ?_, ?_⟩⟩
+    by rw [hlen, h12], ?_, ?_, ?_, fun hA ↦ ?_⟩⟩
   · rw [hel]
     congr 1
     simp only [optEAt, hnone, ↓reduceIte]
   · simp only [NewBuf] at hfresh ⊢
     rw [hn₁] at hfresh
     exact hfresh
+  · rw [← h10]; exact hbelow
+  · have hfr' := DFrame.of_byteFrame hfr
+    refine (hA.step hf₁ (fun a ha ↦ ⟨by addr_omega [ha, hb1], by addr_omega [ha, hb1]⟩) hb1).step
+      hfr' (fun a ha ↦ ?_) hb1
+    have hx := hpre.stack.next
+    have ha' := hpre.stack.above
+    have hhi := post.heap.hi
+    simp only [stack_eq, heapEnd] at hx ha' hhi
+    rcases ha with ha | ha | ha | ha <;>
+      exact ⟨by addr_omega [ha, hb1, hx, ha', hhi], by addr_omega [ha, hb1, hx, ha', hhi]⟩
 
 end Rv64Verifier.Proofs.Bus.TableSumcheck
