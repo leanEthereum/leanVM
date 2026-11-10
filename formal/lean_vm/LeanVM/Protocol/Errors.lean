@@ -49,11 +49,11 @@ noncomputable def soundnessError (Q : ℕ) : ℝ≥0∞ :=
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work, with two independent
 random functions: each of the `Q` queries of the honest prover and the verifier may complete a
-proof of work whose nonces all failed, a nonce failing a proof of work of `17` bits with
-probability `1 - 2^-17`. -/
+proof of work whose nonces all failed, a nonce failing a proof of work of at most `18` bits with
+probability at most `1 - 2^-18`. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   let Q : ℕ := 18540 + 74145 * (2 ^ 39 + 2 * fuel + 2)
-  Q * (1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel
+  Q * (1 - (2 : ℝ≥0∞)⁻¹ ^ 18) ^ fuel
 
 /-- The permutation calls of the verifier, at most, on every statement and proof: its
 `verifierQueries = 18538` queries, each a permutation or a Keccak-256 hash of at most

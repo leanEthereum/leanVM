@@ -682,11 +682,14 @@ theorem ladder_head_sum {μ R : ℕ} (h : Whir.Admissible μ R) :
         levels.head?.map (·.foldGrinding) = some 0 ∧ (levels.map (·.fold)).sum ≤ μ := by
   have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
       ∀ levels, Whir.ladder μ r = some levels →
-        levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, r) ∧
-          levels.head?.map (·.foldGrinding) = some 0 ∧
-          (levels.map (·.fold)).sum ≤ μ := by decide +kernel
+        (decide (levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, r)) &&
+          decide (levels.head?.map (·.foldGrinding) = some 0) &&
+          decide ((levels.map (·.fold)).sum ≤ μ)) = true := by decide +kernel
   obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 R h2 h
+  intro levels hl
+  have hk := key μ h1 R h2 h levels hl
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hk
+  exact ⟨hk.1.1, hk.1.2, hk.2⟩
 
 /-- The ladder of an admissible pair, with its first level made explicit. -/
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :

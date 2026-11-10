@@ -26,7 +26,7 @@ and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page proves co
 (`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
 most `2^28`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
-`completenessError fuel`, which is below `2^-257` at a fuel of `2^25` nonces per proof of work
+`completenessError fuel`, which is below `2^-257` at a fuel of `2^26` nonces per proof of work
 (`completenessError_le`). The honest prover is a specification, not an implementation.
 
 **Scope and trust.**
@@ -83,9 +83,9 @@ theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
       completenessError fuel :=
   Complete.completeness_le hv hbudget hρ hfuel
 
-/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
+/-- **The numbers**: at a fuel of `2^26` nonces per proof of work, the completeness error is
 below `2^-257`. -/
-theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
+theorem completenessError_le : completenessError (2 ^ 26) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
   Complete.statement_completenessError_le
 
 /-! ## Knowledge soundness in bits -/

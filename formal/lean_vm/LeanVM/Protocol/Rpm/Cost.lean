@@ -208,7 +208,8 @@ theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E
   | [], _, _, _ => by unfold whirLevelsT; exact WidthsLE.of_moves (g := fun _ ↦ True) MovesOK.fail
   | [level], index, s, _ => by
     refine WidthsLE.of_moves (g := fun _ ↦ True) ?_
-    refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
+    refine MovesOK.seq ((movesOK_foldRounds_any _ level.fold s []).mono (fun _ _ ↦ trivial)
+      False.elim) fun r ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
     refine MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.pure _) fun _ ↦
       MovesOK.seq (MovesOK.grindP trivial) fun _ ↦
@@ -220,8 +221,8 @@ theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E
     exact MovesOK.require _
   | level :: next :: rest, index, s, hf => by
     have hn : next.fold ≤ 6 := hf next (by simp)
-    refine WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ False)
-      (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
+    refine WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
+      (movesOK_foldRounds_any _ level.fold s [])) fun r ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
     exact WidthsLE.seq (WidthsLE.commitP (three_pow_le hn)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (MovesOK.sampleN _)) fun _ ↦

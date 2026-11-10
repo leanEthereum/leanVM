@@ -463,6 +463,19 @@ theorem movesOK_foldRounds {b : ℕ} (hb : b ≤ maxGrindingBits) :
       MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (MovesOK.of_none
         (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦ movesOK_foldRounds hb n _ _
 
+/-- A WHIR level's fold rounds, whatever their proofs of work ask for. -/
+theorem movesOK_foldRounds_any (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    MovesOK (fun _ ↦ True) False (foldRoundsT b n s levelFolds)
+  | 0, _, _ => MovesOK.pure _
+  | n + 1, _, _ =>
+    MovesOK.seq (by
+        unfold VerifierProgram.foldProofOfWork
+        split
+        · exact MovesOK.pure _
+        · exact MovesOK.grindP trivial) fun _ ↦
+      MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (MovesOK.of_none
+        (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦ movesOK_foldRounds_any b n _ _
+
 /-- The final WHIR level's tail rounds are reads and samples. -/
 theorem movesOK_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
     MovesOK (fun _ ↦ False) False (tailRoundsT n target quad)

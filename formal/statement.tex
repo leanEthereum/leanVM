@@ -237,7 +237,7 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
+most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{26}$ nonces
 per proof of work,
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
@@ -247,7 +247,7 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
+\delta(f) = Q_f\,(1-2^{-18})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
 Q_f = 18540 + 74145\,(2^{39} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
@@ -707,7 +707,7 @@ coverage table, one slot per raw signature and per entry of a child's lists
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
-($2^{25}$ nonces per proof of work) of an execution of $G$ of
+($2^{26}$ nonces per proof of work) of an execution of $G$ of
 committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
 the guest program checks and leanVM's aggregator pads every aggregate to) on
 $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
@@ -801,7 +801,7 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 \end{itemize}
 
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
-prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{25}$ nonces per proof of work, it
+prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{26}$ nonces per proof of work, it
 makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
 rejects its proof, of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$,
 with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so

@@ -55,7 +55,7 @@ to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts
 prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
 (`duplexVm_honest`), of at most `completenessPermCalls fuel` permutation calls
 (`isWeightBound_honest`): the rejection probability is at most
-`completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^25`
+`completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^26`
 (`completenessRpm_le`).
 
 Every theorem depends only on `propext`, `Classical.choice` and `Quot.sound` (`LeanVM.lean`).
@@ -480,19 +480,19 @@ theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
         all_goals norm_num
 
 theorem rpmError_completenessPermCalls_le :
-    rpmError (completenessPermCalls (2 ^ 25)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
+    rpmError (completenessPermCalls (2 ^ 26)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
   rw [rpmError_eq, EndToEnd.Sound.inv_pow_eq_div 257 508 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [completenessPermCalls]
   norm_num
 
-/-- **The completeness bound in the random-permutation model**: at a fuel of `2^25` nonces per
+/-- **The completeness bound in the random-permutation model**: at a fuel of `2^26` nonces per
 proof of work, at most `2^-256`: the random-oracle error and the transfer's are each below
 `2^-257`. -/
 theorem completenessRpm_le :
-    completenessError (2 ^ 25) + rpmError (completenessPermCalls (2 ^ 25)) ≤
+    completenessError (2 ^ 26) + rpmError (completenessPermCalls (2 ^ 26)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-  calc completenessError (2 ^ 25) + rpmError (completenessPermCalls (2 ^ 25))
+  calc completenessError (2 ^ 26) + rpmError (completenessPermCalls (2 ^ 26))
       ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 + (2 : ℝ≥0∞)⁻¹ ^ 257 :=
         add_le_add completenessError_le rpmError_completenessPermCalls_le
     _ = (2 : ℝ≥0∞)⁻¹ ^ 256 := by

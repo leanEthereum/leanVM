@@ -35,7 +35,7 @@ composed with the protocol's theorems in the random-permutation model (`Statemen
 * `aggregate_knowledge`: in the random-permutation experiment, the verifier accepts a proof of the
   guest from which no execution is extracted (`transcriptExtractor`, on the adversary's transcript), or
   the extracted one does not decode (`ExplainsPublicInput`), with probability at most
-  `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`: `KnowledgeSoundness`
+  `(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256` for `Q ≤ 2^128`: `KnowledgeSoundness`
   (`knowledgeSoundness_holds`) and `guest_knowledge`.
 * `aggregate_sound_outer : MemoryAggregateSound guest decode`: with `decode_binds`, an accepted
   aggregate's statement `s`, under the deployed seed and of the guest's shape, is the one the extracted execution decodes, with a witness holding it, or that
@@ -66,8 +66,8 @@ def MemoryAggregateSound (guest : LeanIsaProgram) (decode : MemoryDecoder)
       s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
       ¬ ∃ t, extractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsStatement guest s (decode t.memory)] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM.Node
 
@@ -90,8 +90,8 @@ theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge 
     Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (dec t.memory)] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA hQ)
   rintro ⟨prog, input, π, b, T⟩ ⟨hb, hprog, hno⟩
   dsimp only at hprog
@@ -106,8 +106,8 @@ theorem aggregate_knowledge_of (h : SoundHyps W) (A : RandomPermutationAdversary
     Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (decodeWith W t.memory)] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
   aggregate_knowledge_dec (guest_knowledge_of h) A Q hA hQ
 
 /-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), in the
@@ -150,19 +150,19 @@ theorem aggregate_sound_outer_sub {piOf : Reader → Val → FrameMap → Protoc
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
 the random-permutation experiment, the verifier accepts a proof of the guest from which no
 execution is extracted, or the extracted one does not decode (`ExplainsPublicInput`), with probability at
-most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128`. -/
+most `(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256`, for `Q ≤ 2^128`. -/
 theorem aggregate_knowledge (A : RandomPermutationAdversary) (Q : ℕ)
     (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) (hQ : Q ≤ 2 ^ 128) :
     Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted ∧ z.program = guestProgram ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ExplainsPublicInput guestProgram z.input (decode t.memory)] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
   aggregate_knowledge_dec guest_knowledge A Q hA hQ
 
 /-- **What the outer verifier's acceptance establishes** (`MemoryAggregateSound`), for the deployed
 guest and its decoder, in the random-permutation model: except with probability
-`(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` (for `Q ≤ 2^128`), an accepted aggregate's statement `s`, under
+`(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256` (for `Q ≤ 2^128`), an accepted aggregate's statement `s`, under
 the deployed seed and of the guest's shape, is the one the execution the
 extractor reads off the proof and the adversary's transcript (one is extracted) decodes, with a
 witness holding it, or that execution's decoding and `s` give an explicit Keccak-256 collision. -/

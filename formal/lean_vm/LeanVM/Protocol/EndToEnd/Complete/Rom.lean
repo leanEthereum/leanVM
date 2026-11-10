@@ -102,7 +102,7 @@ most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier 
 prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
         (verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))

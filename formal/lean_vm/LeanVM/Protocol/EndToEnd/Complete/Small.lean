@@ -21,7 +21,7 @@ public import LeanVM.Protocol.WithHash
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
 execution (`ValidExecution`) whose committed size (`Execution.committedSize`, stated in the ISA's
-terms in `Statement/LeanVm.lean`) is at most `2^maxMu = 2^28` has a witness representing it at
+terms in `Statement/LeanVm.lean`) is at most `2^completeMu = 2^28` has a witness representing it at
 admissible sizes (`exists_admissible_witness`), and the honest proof of that witness
 (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the proof-of-work
 searches succeed (`honestProofOf_isSome`).
@@ -88,10 +88,14 @@ theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks pr
     Nat.add_zero, ← Nat.add_assoc]
   rfl
 
-/-- The stacked size is within the cap when the blocks fit on `2^maxMu` cells. -/
+/-- The committed size completeness is stated for, `2^28` cells (`Statement/LeanVm.lean`), within
+the `2^maxMu` the verifier admits. -/
+def completeMu : ℕ := 28
+
+/-- The stacked size is within the cap when the blocks fit on `2^completeMu` cells. -/
 theorem leanIsaμ_le_of_total_le {prog : LeanIsaProgram} {s : Sizes}
-    (h : (LeanIsa.blocks prog s).total ≤ 2 ^ maxMu) : leanIsaμ prog s ≤ maxMu :=
-  max_le (Nat.clog_le_of_le_pow h) (by decide)
+    (h : (LeanIsa.blocks prog s).total ≤ 2 ^ completeMu) : leanIsaμ prog s ≤ maxMu :=
+  max_le ((Nat.clog_le_of_le_pow h).trans (by decide)) (by decide)
 
 /-! ## The admissible witness -/
 
@@ -99,7 +103,7 @@ theorem leanIsaμ_le_of_total_le {prog : LeanIsaProgram} {s : Sizes}
 `2^28` has a witness representing it that satisfies leanISA's constraint system at sizes the
 verifier admits. -/
 theorem exists_admissible_witness {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu) :
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu) :
     ∃ (w : EnsembleWitness (leanIsaEnsemble prog t.logMemorySize)) (s : Sizes),
       SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
         s.Admissible prog := by
@@ -114,7 +118,7 @@ theorem exists_admissible_witness {prog : LeanIsaProgram} {input : PublicInput} 
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
-  have hcap : (2 : ℕ) ^ maxMu ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
+  have hcap : (2 : ℕ) ^ completeMu ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
   have hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows := fun op ↦ by
     rw [← hcount]
     exact (Nat.le_pow_clog (by norm_num) _).trans (((hheight op).trans hbudget).trans hcap)
@@ -189,7 +193,7 @@ at most `2^28`, at a valid rate, the honest proof exists as soon as every proof-
 verifier program asks for finds a nonce below `fuel`. -/
 theorem honestProofOf_isSome {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
@@ -206,7 +210,7 @@ at a valid rate: when every proof-of-work search succeeds below `fuel`, the hone
 a proof, and the verifier accepts it, for every hash function and permutation. -/
 theorem complete_of_budget {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu)
     (hρ : validRate ρ) (H : Bytes → Digest) (F : KeccakState → KeccakState) (fuel : ℕ)
     (hpow : ∀ hist bits k sp,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
