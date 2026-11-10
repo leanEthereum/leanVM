@@ -186,6 +186,10 @@ theorem DW.trans {s t u : MachineState} {W W' V : Word → Prop} (h₁ : DW s t 
 theorem _root_.Rv64Verifier.Runtime.ByteFrame.dw {s t : MachineState} {W : Word → Prop} (h : ByteFrame s t W) : DW s t W :=
   fun _ ha ↦ h.getMem ha
 
+theorem _root_.Rv64Verifier.Transcript.DFrame.dw {s t : MachineState} {W : Word → Prop}
+    (h : Transcript.DFrame s t W) : DW s t W :=
+  h
+
 theorem DW.of_same {s t : MachineState} (h : ∀ a, t.getMem a = s.getMem a) (W : Word → Prop) :
     DW s t W :=
   fun a _ ↦ h a
@@ -230,7 +234,7 @@ structure EmptyOk (s t : MachineState) : Prop where
   out : t.getMem (s.getReg .x2 - 1960) = s.getReg .x10
   heap : HeapOk t
   mono : heapNext s ≤ heapNext t
-  frame : ByteFrame s t fun a ↦
+  frame : Transcript.DFrame s t fun a ↦
     Within a (stackLo s evalStack) evalStack ∨ Within a nextAddr 8 ∨ Fresh s t a
   short : (s.getReg .x13).toNat < 64
   len : (readBytecode s (s.getReg .x11)).len = 2 ^ (s.getReg .x13).toNat
@@ -268,7 +272,7 @@ structure Called (s u : MachineState) (low high bk : Word) : Prop where
   heap : HeapOk u
   mono : heapNext s ≤ heapNext u
   rodata : RodataOk u
-  frame : ByteFrame s u fun a ↦
+  frame : Transcript.DFrame s u fun a ↦
     Within a (stackLo s evalStack) evalStack ∨ Within a nextAddr 8 ∨ Fresh s u a
   lowIn : heapNext s ≤ low.toNat ∧ low.toNat + 24 * 2 ^ min (s.getReg .x13).toNat 14 ≤ heapNext u ∧
     low.toNat % 8 = 0

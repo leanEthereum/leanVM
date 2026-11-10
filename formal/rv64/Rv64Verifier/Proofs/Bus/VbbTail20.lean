@@ -381,6 +381,7 @@ theorem evalStage (hC : SliceConcatSpec) {BcOk : MachineState → Nat → Word �
     point := by
       rw [x12₂, x13₂]
       refine ⟨regionRange PR (Nat.le_refl _) (by omega) PR.2, PO, PA1⟩
+    pointRegion := by rw [x12₂, x13₂]; exact PR
     pointOut := by rw [x12₂, x13₂, x10₂]; exact PA2 }
   obtain ⟨t, hrt, ⟨hpct, hpt, post⟩ | hd⟩ := hB.call (Reaches.refl u₂) (b800070b8_pc h₂) pre
   swap

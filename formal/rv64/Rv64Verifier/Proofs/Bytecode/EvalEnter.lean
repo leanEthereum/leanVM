@@ -31,7 +31,7 @@ theorem enter {s u : MachineState} {low high bk : Word} (hpre : EvaluatePre s)
   -- the `Bytecode`'s doublewords are the entry's
   have rbc (a : Word) (h1 : (s.getReg .x11).toNat ≤ a.toNat)
       (h2 : a.toNat + 8 ≤ (s.getReg .x11).toNat + 136) : u.getMem a = s.getMem a :=
-    hc.frame.getMem fun i hi hw ↦ by
+    hc.frame a fun i hi hw ↦ by
       simp only [Fresh, heapNext] at hw
       addr_omega [hw, h1, h2, hi, hbc, hbcc, hsp, hhi, hmono]
   obtain ⟨u₁, hr₁, h₁⟩ := Sym.BlockSpec.reaches b80010efc_spec hpc (by
@@ -48,7 +48,7 @@ theorem enter {s u : MachineState} {low high bk : Word} (hpre : EvaluatePre s)
       out := by rw [hm₁, hc.out]
       heap := ⟨by simp only [heapNext, hm₁]; exact hc.heap.lo, by simp only [heapNext, hm₁]; exact hc.heap.hi⟩
       mono := by simp only [heapNext, hm₁]; exact hc.mono
-      frame := (hc.frame.trans (ByteFrame.of_same hm₁ fun _ ↦ False) fun _ h ↦ h.elim).mono
+      frame := (hc.frame.trans (Transcript.DFrame.of_same hm₁ fun _ ↦ False) fun _ h ↦ h.elim).mono
         fun a h ↦ by simp only [Fresh, heapNext, hm₁] at h ⊢; exact h
       short := hc.short
       len := hc.len
@@ -163,7 +163,8 @@ theorem enter {s u : MachineState} {low high bk : Word} (hpre : EvaluatePre s)
         have hl := hc.bkIn
         simp only [heapNext] at hl
         rw [eListAt_congr fun n hn j hj ↦ hfr _ (by addr_omega [hl, hn, hj, hsp, hhi]), hc.bkVals]
-      frame := ((hc.frame.trans (ByteFrame.of_same hm₁ fun _ ↦ False) fun _ h ↦ h.elim).trans bf₂
+      frame := ((hc.frame.trans (Transcript.DFrame.of_same hm₁ fun _ ↦ False) fun _ h ↦ h.elim).trans
+        (Transcript.DFrame.of_byteFrame bf₂)
         fun a ha ↦ Or.inl (by addr_omega [ha, hsp])).mono fun a h ↦ by
           simp only [Fresh, heapNext, hnext₂] at h ⊢; exact h }
   · exact {

@@ -221,6 +221,20 @@ theorem evalPre {s : MachineState} (h : Vbb.BytecodeEvalPre BcOk s) :
       omega
     · simp only [Apart] at ha ⊢
       omega
+  have clrDw : ∀ q ∈ bcParts s (s.getReg .x11),
+      Proofs.Bytecode.ClearDw s q.1 q.2 Proofs.Bytecode.evalStack (s.getReg .x10) := by
+    intro q hq a h8 h1 h2 h0
+    obtain ⟨ho, ha⟩ := (h.bytecode.2 q hq).2 a (by unfold Meets; exact ⟨h8, h1, h2, h0⟩)
+    have hs : stackLo s Proofs.Bytecode.evalStack = stackLo s Vbb.bytecodeEvalStack := rfl
+    have e1 : Proofs.Bytecode.evalStack = 3200 := rfl
+    have e2 : busBalanceStack = 4544 := rfl
+    refine ⟨ho, ?_, ?_⟩
+    · rw [hs]
+      simp only [Apart, e1] at ha ⊢
+      rw [e2] at ha
+      omega
+    · simp only [Apart] at ha ⊢
+      omega
   have hv := h.point.valid
   rw [show 24 * (s.getReg .x13).toNat / 8 = 3 * (s.getReg .x13).toNat by omega] at hv
   exact {
@@ -236,8 +250,13 @@ theorem evalPre {s : MachineState} (h : Vbb.BytecodeEvalPre BcOk s) :
       clr (vecPtr s (s.getReg .x11 + 48), 2 * (vecLen s (s.getReg .x11 + 48)).toNat)
         (by simp [bcParts]),
       clr (vecPtr s (s.getReg .x11 + 72), 2 * (vecLen s (s.getReg .x11 + 72)).toNat)
+        (by simp [bcParts]),
+      clrDw (vecPtr s (s.getReg .x11 + 48), 2 * (vecLen s (s.getReg .x11 + 48)).toNat)
+        (by simp [bcParts]),
+      clrDw (vecPtr s (s.getReg .x11 + 72), 2 * (vecLen s (s.getReg .x11 + 72)).toNat)
         (by simp [bcParts])⟩
     point := hv
+    pointRegion := h.pointRegion
     pointClear := ⟨h.point.free, h.point.stack, h.pointOut⟩
     stack := h.stack
     rodata := h.rodata }

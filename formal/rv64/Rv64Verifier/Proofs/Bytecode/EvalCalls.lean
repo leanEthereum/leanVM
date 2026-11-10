@@ -27,13 +27,13 @@ theorem calls (hEK : EqKernelSpec) (hFE : FromElemSpec) {s t : MachineState}
   have e2 : t.getReg .x2 = s.getReg .x2 - 1968 := hc.saved.sp
   have hnext : t.getMem nextAddr = s.getMem nextAddr := hc.mem _ (by addr_omega [hsp, hstn])
   have hmin : min (s.getReg .x13).toNat 14 ≤ (s.getReg .x13).toNat := Nat.min_le_left _ _
+  have hsm := hpre.stack.mapped (by decide) (by decide)
+  have hpr := hpre.pointRegion
   -- `eq_kernel` on the low part
   have pre₁ : EqKernelPre t := {
     heap := HeapOk.of_next hpre.heap hnext
-    out := by rw [hc.x10]; valid_sub hst [hsp]
-    point := by
-      rw [hc.x11, hc.x12]
-      exact ValidMemRange.sub hpre.point (Nat.le_refl _) (by omega) rfl
+    out := by rw [hc.x10]; addr_omega [hsp, hsm]
+    point := by rw [hc.x11, hc.x12]; addr_omega [hpr, hmin]
     short := by rw [hc.x12]; omega
     stack := rtStack_inner hpre.stack e2 (by decide) (by decide) (by decide)
     outFree := by
@@ -43,7 +43,8 @@ theorem calls (hEK : EqKernelSpec) (hFE : FromElemSpec) {s t : MachineState}
       simp only [Outside, heapNext, hnext]; rw [hc.x11, hc.x12]; addr_omega [hpc', hmin]
     pointStack := by simp only [stackLo, e2]; rw [hc.x11, hc.x12]; addr_omega [hpc', hmin, hsp]
     pointOut := by rw [hc.x11, hc.x12, hc.x10]; addr_omega [hpc', hmin, hsp]
-    rodata := RodataOk.of_dwords hpre.rodata fun a ha ↦ hc.mem a (by addr_omega [ha, hsp, hstr]) }
+    rodata := RodataOk.of_dwords hpre.rodata fun a ha ↦ hc.mem a (by addr_omega [ha, hsp, hstr])
+    outRodata := by rw [hc.x10]; addr_omega [hsp, hstr] }
   obtain ⟨t₁, hr₁, ⟨pc₁, pres₁, post₁⟩ | hd⟩ := hEK.call (Reaches.refl t) hpc pre₁
   swap
   · exact ⟨t₁, hr₁, Or.inl hd⟩
@@ -73,13 +74,8 @@ theorem calls (hEK : EqKernelSpec) (hFE : FromElemSpec) {s t : MachineState}
     · have := ValidMemRange.bounds hpre.point (by omega); right; omega
   have pre₂ : EqKernelPre t₂ := {
     heap := HeapOk.of_next heap₁ hnext₂
-    out := by rw [x10₂]; valid_sub hst [hsp]
-    point := by
-      rw [x11₂, x12₂]
-      by_cases h0 : (s.getReg .x13).toNat - min (s.getReg .x13).toNat 14 = 0
-      · rw [h0]; intro i hi; omega
-      · have hb := ValidMemRange.bounds hpre.point (by omega)
-        exact ValidMemRange.sub hpre.point (by addr_omega [hb]) (by addr_omega [hb]) (by addr_omega [hb])
+    out := by rw [x10₂]; addr_omega [hsp, hsm]
+    point := by rw [x11₂, x12₂]; addr_omega [hpr, hmin]
     short := by rw [x12₂]; omega
     stack := rtStack_inner hpre.stack e2₂ (by decide) (by decide) (by decide)
     outFree := by
@@ -93,12 +89,13 @@ theorem calls (hEK : EqKernelSpec) (hFE : FromElemSpec) {s t : MachineState}
       simp only [stackLo, e2₂]; rw [x11₂, x12₂]; addr_omega [hpc', hmin, hsp, hpb]
     pointOut := by rw [x11₂, x12₂, x10₂]; addr_omega [hpc', hmin, hsp, hpb]
     rodata := by
-      refine RodataOk.of_dwords (RodataOk.of_byteFrame pre₁.rodata post₁.frame fun a ha hw ↦ ?_)
+      refine RodataOk.of_dwords (RodataOk.dframe pre₁.rodata post₁.frame fun a ha hw ↦ ?_)
         fun a _ ↦ hm₂ a
       simp only [stackLo, e2, hc.x10] at hw
       have := heap₁.hi
       simp only [Fresh, heapNext, heapEnd] at hw this
-      addr_omega [ha, hw, hsp, hstr, this] }
+      addr_omega [ha, hw, hsp, hstr, this]
+    outRodata := by rw [x10₂]; addr_omega [hsp, hstr] }
   obtain ⟨t₃, hr₃, ⟨pc₃, pres₃, post₃⟩ | hd⟩ := hEK.call hr₂ (b80010eb4_pc h₂) pre₂
   swap
   · exact ⟨t₃, hr₁.trans hr₃, Or.inl hd⟩

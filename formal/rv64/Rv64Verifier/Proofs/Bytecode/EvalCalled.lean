@@ -112,11 +112,11 @@ theorem called_of {s t t₁ t₂ t₃ t₄ t₅ : MachineState} (hpre : Evaluate
       (ha : ∀ i < 8, ¬ V (a + BitVec.ofNat 64 i)) : t₅.getMem a = u.getMem a := h a ha
   -- `.rodata`
   have ro : RodataOk t := RodataOk.of_dwords hpre.rodata fun a ha ↦ hc.mem a (by addr_omega [ha, hsp, hstr])
-  have ro₁ : RodataOk t₁ := RodataOk.of_byteFrame ro post₁.frame fun a ha hw ↦ by
+  have ro₁ : RodataOk t₁ := RodataOk.dframe ro post₁.frame fun a ha hw ↦ by
     simp only [stackLo, Fresh, heapNext, e2, hx10, eqKernelStack, mulStack] at hw
     addr_omega [ha, hw, hsp, hstr, hN, m₁, hN₂, m₃, hN₄, m₅, hi₅]
   have ro₂ : RodataOk t₂ := RodataOk.of_dwords ro₁ fun a _ ↦ hm₂ a
-  have ro₃ : RodataOk t₃ := RodataOk.of_byteFrame ro₂ post₃.frame fun a ha hw ↦ by
+  have ro₃ : RodataOk t₃ := RodataOk.dframe ro₂ post₃.frame fun a ha hw ↦ by
     simp only [stackLo, Fresh, heapNext, e2₂, x10₂, eqKernelStack, mulStack] at hw
     addr_omega [ha, hw, hsp, hstr, hN₄, m₅, hi₅]
   have ro₄ : RodataOk t₄ := RodataOk.frame ro₃ hf₄ (by addr_omega [hsp, hstr])
@@ -162,11 +162,11 @@ theorem called_of {s t t₁ t₂ t₃ t₄ t₅ : MachineState} (hpre : Evaluate
   have hpt₀ : eListAt t (s.getReg .x12) (min (s.getReg .x13).toNat 14) =
       eListAt s (s.getReg .x12) (min (s.getReg .x13).toNat 14) :=
     eListAt_congr fun i hi j hj ↦ hc.mem _ (by addr_omega [hpc', hpb, hi, hj, hsp, hmin])
-  have bf₂ : ByteFrame s t₂ fun a ↦ Within a (stackLo s evalStack) evalStack ∨
+  have bf₂ : Transcript.DFrame s t₂ fun a ↦ Within a (stackLo s evalStack) evalStack ∨
       Within a nextAddr 8 ∨ ((s.getMem nextAddr).toNat ≤ a.toNat ∧ a.toNat < (t₂.getMem nextAddr).toNat) :=
-    ((hc.bframe.mono fun _ h ↦ Or.inl h).trans post₁.frame fun a h ↦ by
+    ((Transcript.DFrame.of_byteFrame (hc.bframe.mono fun _ h ↦ Or.inl h)).trans post₁.frame fun a h ↦ by
         simp only [stackLo, Fresh, heapNext, e2, hx10, eqKernelStack, mulStack] at h
-        addr_omega [h, hsp, hN, hN₂]).trans (ByteFrame.of_same hm₂ fun _ ↦ False)
+        addr_omega [h, hsp, hN, hN₂]).trans (Transcript.DFrame.of_same hm₂ fun _ ↦ False)
       (fun _ h ↦ h.elim)
   have hpt₂ : eListAt t₂ (t₂.getReg .x11) ((s.getReg .x13).toNat - min (s.getReg .x13).toNat 14) =
       eListAt s (s.getReg .x12 + BitVec.ofNat 64 (24 * min (s.getReg .x13).toNat 14))
@@ -201,15 +201,15 @@ theorem called_of {s t t₁ t₂ t₃ t₄ t₅ : MachineState} (hpre : Evaluate
     mono := by simp only [heapNext]; omega
     rodata := ro₅
     frame := by
-      have F₂ : ByteFrame s t₂ fun a ↦ Within a (stackLo s evalStack) evalStack ∨
+      have F₂ : Transcript.DFrame s t₂ fun a ↦ Within a (stackLo s evalStack) evalStack ∨
           Within a nextAddr 8 ∨ Fresh s t₅ a := bf₂.mono fun a h ↦ by
         simp only [Fresh, heapNext]; addr_omega [h, hN₂, m₃, hN₄, m₅]
       have F₃ := F₂.trans post₃.frame fun a h ↦ by
         simp only [stackLo, Fresh, heapNext, e2₂, x10₂, eqKernelStack, mulStack] at h ⊢
         addr_omega [h, hsp, hN, m₁, hN₂, hN₄, m₅]
-      have F₄ := F₃.trans bf₄ fun a h ↦ by
+      have F₄ := F₃.trans (Transcript.DFrame.of_byteFrame bf₄) fun a h ↦ by
         simp only [stackLo] at h ⊢; addr_omega [h, hsp]
-      exact F₄.trans post₅.frame fun a h ↦ by
+      exact F₄.trans (Transcript.DFrame.of_byteFrame post₅.frame) fun a h ↦ by
         simp only [stackLo, Fresh, heapNext, e2₄, x10₄, e2₃, MultilinearContracts.fromElemStack, tryAllocStack] at h ⊢
         addr_omega [h, hsp, hN, m₁, hN₂, m₃, hN₄]
     lowIn := by rw [hLdef]; exact ⟨by simp only [heapNext]; omega, by simp only [heapNext]; omega, f₁.1⟩

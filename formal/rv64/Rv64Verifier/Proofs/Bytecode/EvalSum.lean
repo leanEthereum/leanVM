@@ -47,8 +47,8 @@ theorem sum_body (he : EnvOk e) {t : MachineState} {i j p : Nat} (hs : SInv e t 
       refine valid_half hpm ?_ ?_ ?_ <;> addr_omega [hpm, hpa, hp2])
   have hpos : t.getHalfword (t.getReg .x5) = e.bc.positions[p] := by
     rw [bc_positions e hp, hx5]
-    exact hs.mem.bcHalf he hpc' hpm (by addr_omega [hpm, hp2])
-      (by addr_omega [hpm, hp2]) (by addr_omega [hpm, hpa, hp2])
+    exact hs.mem.bcHalf he hpc' he.pre.bcClear.positionsDw hpm (by addr_omega [hpm, hp2])
+      (by addr_omega [hpm, hp2])
   rw [hpos] at hx7 hupc
   have hzx : ((e.bc.positions[p]).zeroExtend 64 : Word).toNat = (e.bc.positions[p]).toNat := by
     rw [BitVec.toNat_setWidth]

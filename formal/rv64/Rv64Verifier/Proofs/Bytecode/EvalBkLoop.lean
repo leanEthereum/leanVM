@@ -42,8 +42,8 @@ theorem bk_body (he : EnvOk e) {t : MachineState} {i b : Nat} (hb : BkInv e t i 
     (by decide) (by rw [hx10]; refine valid_half hbm ?_ ?_ ?_ <;> addr_omega [hbm, hba, hb2])
   have hbyte : t.getHalfword (t.getReg .x10) = e.bc.bytes[b] := by
     rw [bc_bytes e hbl, hx10]
-    exact hb.mem.bcHalf he hbc hbm (by addr_omega [hbm, hb2]) (by addr_omega [hbm, hb2])
-      (by addr_omega [hbm, hba, hb2])
+    exact hb.mem.bcHalf he hbc he.pre.bcClear.bytesDw hbm (by addr_omega [hbm, hb2])
+      (by addr_omega [hbm, hb2])
   rw [hbyte] at hx16 hupc
   generalize hcdef : e.bc.bytes[b] = c at hx16 hupc
   have hzx : ((c.zeroExtend 64 : Word)).toNat = c.toNat := by

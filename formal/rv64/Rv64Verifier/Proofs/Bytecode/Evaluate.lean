@@ -17,20 +17,6 @@ open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Runtime Rv64Verifier.Contract
 
 variable {e : Env}
 
-theorem byteAt_of_dword {t u : MachineState} {a : Word}
-    (h : u.getMem (a &&& ~~~7#64) = t.getMem (a &&& ~~~7#64)) : byteAt u a = byteAt t a := by
-  rw [byteAt_eq, byteAt_eq, h]
-
-/-- The scratch is whole doublewords. -/
-theorem scratch_alignDown (he : EnvOk e) {a : Word} (h : Scratch e (a &&& ~~~7#64)) :
-    Scratch e a := by
-  have hsp := he.sp
-  have hb := he.bkIn
-  have hal := toNat_alignDown a
-  simp only [Scratch, Within, stackLo, fp, evalStack, eqKernelStack, mulStack] at h ⊢
-  simp only [heapNext] at hb
-  addr_omega [h, hal, hsp, hb]
-
 /-- The loop's state: `Outer` before block `0`. -/
 theorem outer_zero (he : EnvOk e) (hi : InitRegs e e.tL) : Outer e e.tL 0 := by
   have hlen := bc_blocks_length e
@@ -68,42 +54,31 @@ theorem evaluateRust_env (e : Env) (h1 : e.n < 64) (h2 : e.bc.len = 2 ^ e.n) :
 theorem out_align {s : MachineState} (hpre : EvaluatePre s) : (s.getReg .x10).toNat % 8 = 0 :=
   (ValidMemRange.bounds hpre.out (by decide)).2.1
 
-/-- The memory part of the contract: from a byte frame to `m`, a frame of whole doublewords
-outside `X` to `t`, and the result slot to `u`. -/
-theorem post_frames {s m t u : MachineState} (hpre : EvaluatePre s)
-    (hB : ByteFrame s m fun a ↦
+/-- The memory part of the contract: from a frame of doublewords to `m`, a frame of whole
+doublewords outside `X` to `t`, and the result slot to `u`. -/
+theorem post_frames {s m t u : MachineState}
+    (hB : Transcript.DFrame s m fun a ↦
       Within a (stackLo s evalStack) evalStack ∨ Within a nextAddr 8 ∨ Fresh s m a)
-    {X : Word → Prop} (hX : ∀ a, X (a &&& ~~~7#64) → X a) (hXW : ∀ a, X a → EvaluateW s u a)
+    {X : Word → Prop} (hXW : ∀ a, X a → EvaluateW s u a)
     (hL : ∀ a, ¬ X a → t.getMem a = m.getMem a)
     (hU : ∀ a, ¬ Within a (s.getReg .x10) 32 → u.getMem a = t.getMem a)
     (hnext : u.getMem nextAddr = m.getMem nextAddr) (hheap : HeapOk m)
     (hmono : heapNext s ≤ heapNext m) :
-    HeapOk u ∧ heapNext s ≤ heapNext u ∧ (∀ a, ¬ EvaluateW s u a → byteAt u a = byteAt s a) ∧
+    HeapOk u ∧ heapNext s ≤ heapNext u ∧
       ∀ a, (∀ i < 8, ¬ EvaluateW s u (a + BitVec.ofNat 64 i)) → u.getMem a = s.getMem a := by
-  have hoa := out_align hpre
   have hN : heapNext u = heapNext m := by simp only [heapNext, hnext]
   have hFr : ∀ a, Fresh s m a → Fresh s u a := fun a h ↦ by
     simp only [Fresh] at h ⊢; rw [hN]; exact h
   refine ⟨⟨by rw [hN]; exact hheap.lo, by rw [hN]; exact hheap.hi⟩, by rw [hN]; exact hmono,
-    fun a ha ↦ ?_, fun a ha ↦ ?_⟩
-  · have hal := toNat_alignDown a
-    have h1 : ¬ Within (a &&& ~~~7#64) (s.getReg .x10) 32 := fun h ↦
-      ha (Or.inl (by simp only [Within] at h ⊢; omega))
-    have h2 : ¬ X (a &&& ~~~7#64) := fun h ↦ ha (hXW a (hX a h))
-    rw [byteAt_of_dword ((hU _ h1).trans (hL _ h2)), ← byteAt_of_dword (t := m) rfl]
-    exact hB.byte a fun hw ↦ ha (by
-      rcases hw with hw | hw | hw
-      · exact Or.inr (Or.inl hw)
-      · exact Or.inr (Or.inr (Or.inl hw))
-      · exact Or.inr (Or.inr (Or.inr (hFr a hw))))
-  · have h0 := ha 0 (by decide)
-    simp only [BitVec.add_zero] at h0
-    rw [hU a fun h ↦ h0 (Or.inl h), hL a fun h ↦ h0 (hXW a h)]
-    exact hB.getMem fun i hi hw ↦ ha i hi (by
-      rcases hw with hw | hw | hw
-      · exact Or.inr (Or.inl hw)
-      · exact Or.inr (Or.inr (Or.inl hw))
-      · exact Or.inr (Or.inr (Or.inr (hFr _ hw))))
+    fun a ha ↦ ?_⟩
+  have h0 := ha 0 (by decide)
+  simp only [BitVec.add_zero] at h0
+  rw [hU a fun h ↦ h0 (Or.inl h), hL a fun h ↦ h0 (hXW a h)]
+  exact hB a fun i hi hw ↦ ha i hi (by
+    rcases hw with hw | hw | hw
+    · exact Or.inr (Or.inl hw)
+    · exact Or.inr (Or.inr (Or.inl hw))
+    · exact Or.inr (Or.inr (Or.inr (hFr _ hw))))
 
 /-- `evaluateRust` on an empty table of the right size: `ZERO`. -/
 theorem evaluateRust_empty {s : MachineState} (h1 : (s.getReg .x13).toNat < 64)
@@ -128,13 +103,12 @@ theorem evaluate_spec (hEK : EqKernelSpec) (hFE : FromElemSpec) (hMul : MulSpec)
   have hstn := hpre.stack.next
   obtain ⟨t, hr, ⟨htpc, hs, h10, hmem, hbad⟩ | ⟨htpc, hc⟩⟩ := prologue hpc hpre
   · obtain ⟨u, hu, hupc, hpres, h1, hfr⟩ := err_exit htpc hs hpre.stack h10 hpre.out hpre.outStack
-    obtain ⟨hh, hm, hby, hdw⟩ := post_frames (m := s) (t := t) (u := u) hpre (ByteFrame.refl _ _)
-      (X := fun a ↦ Within a (stackLo s evalStack) evalStack)
-      (fun a h ↦ within_of_alignDown (by addr_omega [hsp]) (by decide) h)
+    obtain ⟨hh, hm, hdw⟩ := post_frames (m := s) (t := t) (u := u)
+      (Transcript.DFrame.refl _ _) (X := fun a ↦ Within a (stackLo s evalStack) evalStack)
       (fun a h ↦ Or.inr (Or.inl h)) hmem hfr
       (by rw [hfr _ (by addr_omega [hof]), hmem _ (by addr_omega [hstn, hsp])]) hpre.heap
       (Nat.le_refl _)
-    refine ⟨u, hr.trans hu, Or.inl ⟨hupc, hpres, hh, hm, Or.inr ⟨h1, ?_⟩, hby, hdw⟩⟩
+    refine ⟨u, hr.trans hu, Or.inl ⟨hupc, hpres, hh, hm, Or.inr ⟨h1, ?_⟩, hdw⟩⟩
     have hl : (eListAt s (s.getReg .x12) (s.getReg .x13).toNat).length = (s.getReg .x13).toNat :=
       eListAt_length _ _ _
     unfold evaluateRust
@@ -149,11 +123,11 @@ theorem evaluate_spec (hEK : EqKernelSpec) (hFE : FromElemSpec) (hMul : MulSpec)
       (hemp.saved.of_frame ((b800116ec_keeps h₃) .x2 (by decide)) (fun a _ _ ↦ hm₃ a)
         (by addr_omega [hsp]))
       (by rw [hm₃]; exact hemp.out) hpre.stack hpre.out hpre.outStack
-    obtain ⟨hh, hm, hby, hdw⟩ := post_frames (m := t₂) (t := t₃) (u := u) hpre hemp.frame
-      (X := fun _ ↦ False) (fun _ h ↦ h) (fun _ h ↦ h.elim) (fun a _ ↦ hm₃ a) hfr
+    obtain ⟨hh, hm, hdw⟩ := post_frames (m := t₂) (t := t₃) (u := u) hemp.frame
+      (X := fun _ ↦ False) (fun _ h ↦ h.elim) (fun a _ ↦ hm₃ a) hfr
       (by rw [hfr _ (by addr_omega [hof]), hm₃]) hemp.heap hemp.mono
     refine ⟨u, hr.trans (hr₁.trans (hr₂.trans (hr₃.trans hu))), Or.inl ⟨hupc, hpres, hh, hm,
-      Or.inl ⟨h0, ?_⟩, hby, hdw⟩⟩
+      Or.inl ⟨h0, ?_⟩, hdw⟩⟩
     rw [evaluateRust_empty hemp.short hemp.len hemp.empty]
     congr 1
     apply Eq.symm
@@ -173,8 +147,8 @@ theorem evaluate_spec (hEK : EqKernelSpec) (hFE : FromElemSpec) (hMul : MulSpec)
       rw [hreg.mem.slot he]; exact he.out
     obtain ⟨u, hu, hupc, hpres, h0, h8, h16, h24, hfr⟩ :=
       ok_exit hpc₃ hsaved hout hpre.stack hpre.out hpre.outStack
-    obtain ⟨hh, hm, hby, hdw⟩ := post_frames (m := t₂) (t := t₃) (u := u) hpre he.frame
-      (X := Scratch ⟨s, t₂, low, high, bk⟩) (fun a h ↦ scratch_alignDown he h)
+    obtain ⟨hh, hm, hdw⟩ := post_frames (m := t₂) (t := t₃) (u := u) he.frame
+      (X := Scratch ⟨s, t₂, low, high, bk⟩)
       (fun a h ↦ by
         have hb2 := he.bkIn
         simp only [Scratch, EvaluateW, Fresh, heapNext] at h ⊢
@@ -183,7 +157,7 @@ theorem evaluate_spec (hEK : EqKernelSpec) (hFE : FromElemSpec) (hMul : MulSpec)
       hreg.mem hfr (by rw [hfr _ (by addr_omega [hof]), hreg.mem _ (by
         addr_omega [hstn, hsp, hbk, hhh])]) he.heapL he.monoL
     refine ⟨u, hr.trans (hr₁.trans (hr₂.trans (hr₃.trans hu))), Or.inl ⟨hupc, hpres, hh, hm,
-      Or.inl ⟨h0, ?_⟩, hby, hdw⟩⟩
+      Or.inl ⟨h0, ?_⟩, hdw⟩⟩
     have hv := evaluateRust_env ⟨s, t₂, low, high, bk⟩ he.short he.len
     refine hv.trans (congrArg some ?_)
     apply Eq.symm

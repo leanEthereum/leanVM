@@ -128,7 +128,7 @@ structure EnvOk (e : Env) : Prop where
   lowVals : eListAt e.tL e.low (2 ^ e.m) = e.lowW
   highVals : eListAt e.tL e.high (2 ^ (e.n - e.m)) = e.highW
   bkVals : eListAt e.tL e.bk 2048 = List.replicate 2048 0
-  frame : ByteFrame e.s e.tL fun a ↦
+  frame : Transcript.DFrame e.s e.tL fun a ↦
     Within a (stackLo e.s evalStack) evalStack ∨ Within a nextAddr 8 ∨ Fresh e.s e.tL a
 
 /-! ## Facts for `addr_omega` -/

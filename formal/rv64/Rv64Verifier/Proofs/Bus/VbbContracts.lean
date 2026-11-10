@@ -177,6 +177,7 @@ structure BytecodeEvalPre (BcOk : MachineState → Nat → Word → Prop) (s : M
   outFrame : (stackLo s bytecodeEvalStack).toNat ≤ (s.getReg .x10).toNat ∧
     (s.getReg .x10).toNat + 32 ≤ (stackLo s bytecodeEvalStack).toNat + busBalanceStack
   point : Held s bytecodeEvalStack (s.getReg .x12) (24 * (s.getReg .x13).toNat)
+  pointRegion : Region (s.getReg .x12) (24 * (s.getReg .x13).toNat)
   pointOut : Apart (s.getReg .x12) (24 * (s.getReg .x13).toNat) (s.getReg .x10) 32
 
 /-- `Ok` with `bev`'s value when it has one, otherwise `Err`. -/

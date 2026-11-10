@@ -23,14 +23,15 @@ theorem LoopMem.bc (he : EnvOk e) (hm : LoopMem e t) {lo : Word} {n : Nat}
   have hn := he.pre.stack.next
   simp only [heapNext, heapEnd] at hbk hh
   rw [hm a (by addr_omega [hc, hmap, h1, h2, hsp, hbk, hh])]
-  exact he.frame.getMem fun i hi hw ↦ by
+  exact he.frame a fun i hi hw ↦ by
     simp only [Fresh, heapNext] at hw
     addr_omega [hw, hc, hmap, h1, h2, hi, hsp, hh, hn]
 
-/-- A halfword of a `Clear` part. -/
+/-- A halfword of a `Clear` part whose doublewords are `Clear`. -/
 theorem LoopMem.bcHalf (he : EnvOk e) (hm : LoopMem e t) {lo : Word} {n : Nat}
-    (hc : Clear e.s lo n evalStack (e.s.getReg .x10)) (hmap : Mapped lo n) {a : Word}
-    (h1 : lo.toNat ≤ a.toNat) (h2 : a.toNat + 2 ≤ lo.toNat + n) (ha : a.toNat % 2 = 0) :
+    (hc : Clear e.s lo n evalStack (e.s.getReg .x10))
+    (hd : ClearDw e.s lo n evalStack (e.s.getReg .x10)) (hmap : Mapped lo n) {a : Word}
+    (h1 : lo.toNat ≤ a.toNat) (h2 : a.toNat + 2 ≤ lo.toNat + n) :
     t.getHalfword a = e.s.getHalfword a := by
   have hsp := he.sp
   have hbk := he.bkIn
@@ -44,14 +45,15 @@ theorem LoopMem.bcHalf (he : EnvOk e) (hm : LoopMem e t) {lo : Word} {n : Nat}
     simp only [alignToDword] at hs
     simp only [Scratch, Within, stackLo, fp, evalStack, eqKernelStack, mulStack] at hs
     addr_omega [hs, hal, hc, hmap, h1, h2, hsp, hbk, hh]
-  have ht : t.getHalfword a = e.tL.getHalfword a := by
-    simp only [MachineState.getHalfword, hdw]
-  rw [ht]
-  refine getHalfword_eq_of_bytes ha (he.frame.byte _ fun hw ↦ ?_) (he.frame.byte _ fun hw ↦ ?_)
-  · simp only [Fresh, heapNext] at hw
-    addr_omega [hw, hc, hmap, h1, h2, hsp, hh, hn]
-  · simp only [Fresh, heapNext] at hw
-    addr_omega [hw, hc, hmap, h1, h2, hsp, hh, hn]
+  have hal := toNat_alignDown a
+  have hcd := hd (alignToDword a) (by simp only [alignToDword]; omega)
+    (by simp only [alignToDword]; omega) (by simp only [alignToDword]; omega) (by omega)
+  have hdw' : e.tL.getMem (alignToDword a) = e.s.getMem (alignToDword a) :=
+    he.frame _ fun i hi hw ↦ by
+      simp only [alignToDword] at hcd hw
+      simp only [Fresh, heapNext] at hw
+      addr_omega [hw, hcd, hal, hi, hsp, hh, hn]
+  simp only [MachineState.getHalfword, hdw, hdw']
 
 /-- An element of the low eq table. -/
 theorem LoopMem.low (he : EnvOk e) (hm : LoopMem e t) {p : Nat} (hp : p < 2 ^ e.m) :

@@ -33,7 +33,7 @@ code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `nex
 stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's (`gkrStage`, `VbbGkr*.lean`, closed), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
 `table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
 and `Form::evaluate` (`FormEvaluateSpecE`).
-Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`), the forms' rows and the sides' array (`restToSides`, `VbbTail23.lean` to `VbbTail26.lean`). The side loop's invariant (`Sides`), its entry and the return with the result (`finalStage`, `VbbTail27.lean` to `VbbTail30.lean`) are proved: `TailStage` holds given the way into the side loop with the empty buffers' pointers (`SidesEntry`) and one iteration of it (`SideStage`), both stated in `VbbTail27.lean`. `SidesEntry` is proved (`VbbEntry.lean`), `Bytecode::evaluate` read through `VerifyBusBalance.BcOk` (`VbbBc.lean`), and `verifyBusBalance` / `verifyBusBalanceBc` close the contract but for `SideStage` (and `Bytecode::evaluate`'s `eq_kernel`). `SideStage` is proved (`VbbTail31.lean` to `VbbTail69.lean`), its callees discharged (`sideStage`): `verifyBusBalance'` and `verifyBusBalanceBc'` take only `Bytecode::evaluate`.
+Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`), the forms' rows and the sides' array (`restToSides`, `VbbTail23.lean` to `VbbTail26.lean`). The side loop's invariant (`Sides`), its entry and the return with the result (`finalStage`, `VbbTail27.lean` to `VbbTail30.lean`) are proved: `TailStage` holds given the way into the side loop with the empty buffers' pointers (`SidesEntry`) and one iteration of it (`SideStage`), both stated in `VbbTail27.lean`. `SidesEntry` is proved (`VbbEntry.lean`), `Bytecode::evaluate` read through `VerifyBusBalance.BcOk` (`VbbBc.lean`), and `verifyBusBalance` / `verifyBusBalanceBc` close the contract but for `SideStage` (and `Bytecode::evaluate`'s `eq_kernel`). `SideStage` is proved (`VbbTail31.lean` to `VbbTail69.lean`), its callees discharged (`sideStage`): `verifyBusBalance'` takes only `Bytecode::evaluate`, `verifyBusBalanceBc'` only its `eq_kernel`, and `verifyBusBalanceBcClosed` nothing (`Proofs.Bytecode.eqKernel`).
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -138,6 +138,12 @@ open RiscvZkvm.Rv64 LeanVM.Parameters in
 theorem verifyBusBalanceBc' (hEK : Proofs.Bytecode.EqKernelSpec) :
     BusBalanceSpec VerifyBusBalance.BcOk VerifyBusBalance.bevOf :=
   verifyBusBalanceBc hEK (sideStage VerifyBusBalance.bevOf)
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- **`verify_bus_balance`'s contract** for the `Bytecode` as `VerifyBusBalance.BcOk` says, closed:
+`Bytecode::evaluate`'s `eq_kernel` from the multilinear proof. -/
+theorem verifyBusBalanceBcClosed : BusBalanceSpec VerifyBusBalance.BcOk VerifyBusBalance.bevOf :=
+  verifyBusBalanceBc' Proofs.Bytecode.eqKernel
 
 end Rv64Verifier.Proofs.Bus
 
@@ -377,3 +383,6 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalanceBc'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalanceBc'
+
+/-- info: 'Rv64Verifier.Proofs.Bus.verifyBusBalanceBcClosed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.verifyBusBalanceBcClosed

@@ -13,8 +13,8 @@ import Rv64Verifier.Proofs.Multilinear.Contracts
 `s` holds at `p`, a `usize` read as its `toNat`; `BytecodeMem` says where its parts lie, mapped and
 aligned.
 
-`evaluate` calls `eq_kernel` (`EqKernelSpec`, stated here as a hypothesis: its proof is not yet
-written), `vec![ZERO; 2048]` (`FromElemSpec`, the statement of
+`evaluate` calls `eq_kernel` (`EqKernelSpec`, which `Proofs/Bytecode/All.lean` derives from
+`Proofs/Multilinear/Contracts.lean`'s), `vec![ZERO; 2048]` (`FromElemSpec`, the statement of
 `Proofs/Multilinear/Contracts.lean`, repeated) and `<E as Mul>::mul` (`Contracts.MulSpec`).
 -/
 
@@ -66,13 +66,21 @@ bytes from `out`: a function that writes only those leaves them. -/
 @[rv_addr] def Clear (s : MachineState) (a : Word) (n : Nat) (m : Nat) (out : Word) : Prop :=
   Outside s a n ∧ Apart a n (stackLo s m) m ∧ Apart a n out 32
 
-/-- Every part of the `Bytecode` at `p` is `Clear`. -/
+/-- Every aligned doubleword holding one of the `n` bytes from `lo` is `Clear`: what a frame of
+doublewords keeps, for a buffer that may end inside one. -/
+@[rv_addr] def ClearDw (s : MachineState) (lo : Word) (n : Nat) (m : Nat) (out : Word) : Prop :=
+  ∀ a : Word, a.toNat % 8 = 0 → a.toNat < lo.toNat + n → lo.toNat < a.toNat + 8 → 0 < n →
+    Clear s a 8 m out
+
+/-- Every part of the `Bytecode` at `p` is `Clear`, and so is every doubleword of its `u16`s. -/
 structure BytecodeClear (s : MachineState) (p : Word) (m : Nat) (out : Word) : Prop where
   self : Clear s p 136 m out
   blocks : Clear s (vecPtr s p) (24 * (vecLen s p).toNat) m out
   words : Clear s (vecPtr s (p + 24)) (16 * (vecLen s (p + 24)).toNat) m out
   positions : Clear s (vecPtr s (p + 48)) (2 * (vecLen s (p + 48)).toNat) m out
   bytes : Clear s (vecPtr s (p + 72)) (2 * (vecLen s (p + 72)).toNat) m out
+  positionsDw : ClearDw s (vecPtr s (p + 48)) (2 * (vecLen s (p + 48)).toNat) m out
+  bytesDw : ClearDw s (vecPtr s (p + 72)) (2 * (vecLen s (p + 72)).toNat) m out
 
 /-! ## `eq_kernel`, at `0x8000cb38` -/
 
@@ -81,11 +89,12 @@ are smaller). -/
 @[rv_addr] def eqKernelStack : Nat := 208 + mulStack
 
 /-- `a0` = where the `Vec` goes, `a1`/`a2` = the point, shorter than 64: the result and the point
-apart from the free heap, the stack and each other; `.rodata` in place. -/
+apart from the free heap, the stack and each other, the result from `.rodata`; `.rodata` in
+place. -/
 structure EqKernelPre (s : MachineState) : Prop where
   heap : HeapOk s
-  out : ValidMemRange (s.getReg .x10) 3
-  point : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
+  out : Transcript.Region (s.getReg .x10) 24
+  point : Transcript.Region (s.getReg .x11) (24 * (s.getReg .x12).toNat)
   short : (s.getReg .x12).toNat < 64
   stack : RtStack s eqKernelStack
   outFree : Outside s (s.getReg .x10) 24
@@ -95,9 +104,11 @@ structure EqKernelPre (s : MachineState) : Prop where
     eqKernelStack
   pointOut : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (s.getReg .x10) 24
   rodata : RodataOk s
+  outRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
 
 /-- A new `Vec` of `eqKernelRust` of the point, `2^len` elements, its buffer freshly allocated;
-memory changes only in the `Vec`, the stack, `NEXT` and the new allocation. -/
+doublewords none of whose bytes are in the `Vec`, the stack, `NEXT` or the new allocation keep
+their values. -/
 structure EqKernelPost (s t : MachineState) : Prop where
   heap : HeapOk t
   mono : heapNext s ≤ heapNext t
@@ -105,7 +116,7 @@ structure EqKernelPost (s t : MachineState) : Prop where
   len : (vecLen t (s.getReg .x10)).toNat = 2 ^ (s.getReg .x12).toNat
   elems : vecEs t (s.getReg .x10) = Model.eqKernelRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat)
   fresh : NewBuf s t (vecPtr t (s.getReg .x10)) (24 * 2 ^ (s.getReg .x12).toNat) 8
-  frame : ByteFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+  frame : Transcript.DFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
     Within a (stackLo s eqKernelStack) eqKernelStack ∨ Within a nextAddr 8 ∨ Fresh s t a
 
 abbrev EqKernelSpec : Prop := FunSpec Image.code 0x8000cb38 EqKernelPre EqKernelPost
@@ -128,8 +139,8 @@ smaller). -/
 
 /-- `a0` = where the `Result<E, VerifierError>` goes (32 bytes), `a1` = the `Bytecode`, `a2`/`a3` =
 the point: the result slot mapped, aligned, apart from the free heap and the stack; the `Bytecode`
-mapped and its parts `Clear`; the point valid and `Clear`; the heap in shape, the stack above it,
-`.rodata` in place. -/
+mapped and its parts `Clear`; the point mapped, aligned and `Clear`; the heap in shape, the stack
+above it, `.rodata` in place. -/
 structure EvaluatePre (s : MachineState) : Prop where
   heap : HeapOk s
   out : ValidMemRange (s.getReg .x10) 4
@@ -138,6 +149,7 @@ structure EvaluatePre (s : MachineState) : Prop where
   bc : BytecodeMem s (s.getReg .x11)
   bcClear : BytecodeClear s (s.getReg .x11) evalStack (s.getReg .x10)
   point : ValidMemRange (s.getReg .x12) (3 * (s.getReg .x13).toNat)
+  pointRegion : Transcript.Region (s.getReg .x12) (24 * (s.getReg .x13).toNat)
   pointClear : Clear s (s.getReg .x12) (24 * (s.getReg .x13).toNat) evalStack (s.getReg .x10)
   stack : RtStack s evalStack
   rodata : RodataOk s
@@ -148,7 +160,7 @@ structure EvaluatePre (s : MachineState) : Prop where
     Fresh s t a
 
 /-- `Ok` (tag `0`) with `evaluateRust`'s value, or `Err` (tag `1`) exactly when `evaluateRust`
-fails; bytes, and doublewords none of whose bytes, `evaluate` may write keep their values. -/
+fails; doublewords none of whose bytes `evaluate` may write keep their values. -/
 structure EvaluatePost (s t : MachineState) : Prop where
   heap : HeapOk t
   mono : heapNext s ≤ heapNext t
@@ -158,7 +170,6 @@ structure EvaluatePost (s t : MachineState) : Prop where
     (t.getMem (s.getReg .x10) = 1 ∧
       Model.evaluateRust (readBytecode s (s.getReg .x11)) (eListAt s (s.getReg .x12) (s.getReg .x13).toNat) =
         none)
-  bytes : ∀ a, ¬ EvaluateW s t a → byteAt t a = byteAt s a
   frame : ∀ a, (∀ i < 8, ¬ EvaluateW s t (a + BitVec.ofNat 64 i)) → t.getMem a = s.getMem a
 
 abbrev EvaluateSpec : Prop := FunSpec Image.code 0x80010e24 EvaluatePre EvaluatePost
