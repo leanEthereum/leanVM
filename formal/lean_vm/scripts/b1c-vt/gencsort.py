@@ -1,5 +1,5 @@
 # usage: python3 -I gencsort.py  — writes Tables/VtC/SGrpT.lean: each block group's key and size
-# statements (G:2141-2145 at 40f877dc) hold on the honest valuation (`vtc_grp{gi}`), from
+# statements (G:2283-2325 at f128) hold on the honest valuation (`vtc_grp{gi}`), from
 # vt_ir.txt (dump.py). The completeness twin of gensort.py's `vt_grp{gi}`.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +19,7 @@ def segs(lo, hi):
     out = []; cur = []
     for p in range(lo, hi):
         a = atom(p); cur.append((p, a))
-        if a and a[0] == 'load' and a[1][1] in (36, 37):
+        if a and a[0] == 'load' and a[1][1] in (33, 34):
             out.append(cur); cur = []
     assert not cur
     return out
@@ -28,8 +28,8 @@ def segs(lo, hi):
 def eq_of(p, a):
     op, args = a
     if op == 'const':
-        d, (x, y, z) = args
-        return f'σv (.n {d}) = word {x} {y} {z}'
+        d, (x, y) = args
+        return f'σv (.n {d}) = word {x} {y}'
     if op == 'mul':
         d, x, y = args
         assert x < d and y < d, (p, a)
@@ -57,7 +57,7 @@ def group(gi, K, Z):
         L_.append(f'  have hk : σv (.n {kvar}) = gen ^ κ := by\n'
                   f'    rw [q{pk}, q{pc}, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]\n'
                   f'    exact hkx')
-        kv = 28; adjv = 19; rest = K[2:]
+        kv = 25; adjv = 19; rest = K[2:]
     else:
         kvar = K[0][1][1][2]
         L_.append(f'  have hk : σv (.n {kvar}) = gen ^ κ := by simpa using hkx')
@@ -67,7 +67,7 @@ def group(gi, K, Z):
     assert mm == ('mul', [mm[1][0], 12, kvar]) and lr[0] == 'load' and lr[1][1] == mm[1][0] and lr[1][2] == 178
     rkv = lr[1][0]
     L_.append(f'  have r1 := vt_readAt (rd := rd) (w := w) hl {pr} (d := .n {lr[1][0]}) (p := .n {lr[1][1]}) (off := {lr[1][2]}) (by decide +kernel) (by decide +kernel)\n'
-              f'    (v := gen ^ (κ * 254)) (by rw [q{pm}, hk]; exact hrk)')
+              f'    (v := gen ^ (κ * 247)) (by rw [q{pm}, hk]; exact hrk)')
     pks = rest[-1][0]
     if len(rest) == 3:
         assert b0 == 0
@@ -114,10 +114,10 @@ def group(gi, K, Z):
             f'/-- Group `{gi}`\'s key and size statements (`{a} ..< {a + L}`). -/\n'
             f'theorem vtc_grp{gi} (hl : args.length = 20) {{κ : ℕ}}\n'
             f'    (hkx : σv (.n (vtKv {i})) * gen ^ vtAdj {i} = gen ^ κ)\n'
-            f'    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))\n'
+            f'    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)))\n'
             f'    (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))\n'
-            f'    (hkey : LoadHolds rd (σv (.n 36)) (vtGi {i}) (gen ^ (κ * 254) * (gen ^ vtB0 {i})⁻¹))\n'
-            f'    (hsz : LoadHolds rd (σv (.n 37)) (vtGi {i}) (gen ^ (vtLen {i} * 2 ^ κ))) :\n'
+            f'    (hkey : LoadHolds rd (σv (.n 33)) (vtGi {i}) (gen ^ (κ * 247) * (gen ^ vtB0 {i})⁻¹))\n'
+            f'    (hsz : LoadHolds rd (σv (.n 34)) (vtGi {i}) (gen ^ (vtLen {i} * 2 ^ κ))) :\n'
             f'    ∀ s ∈ (vtPre.drop (vtGrpA {i})).take (vtGrpL {i}), VSH (coreProgram.Rel rd) rd σv s := by')
     return head + '\n' + '\n'.join(L_), (gi, a, L, kv, adjv, b0, ln)
 
@@ -137,8 +137,8 @@ public import LeanVM.Guest.B1.Tables.VtC.SBase
 # The block groups' keys and sizes, honestly (G:2124-2128)
 
 `vtc_grp{gi}`: with `kappa_g = g^κ` (the group's `kappa_base` variable, times `g^19` for the
-bytecode's group `2`), the exponent tables' rank key `g^(254 κ)` and square `g^(2^κ)` at `κ`, and
-`group_key[gi]`, `group_size[gi]` holding the group's key `g^(254 κ - b0)` and size
+bytecode's group `2`), the exponent tables' rank key `g^(247 κ)` and square `g^(2^κ)` at `κ`, and
+`group_key[gi]`, `group_size[gi]` holding the group's key `g^(247 κ - b0)` and size
 `g^(len·2^κ)`, the group's statements hold: two reads, two stores.
 -/
 
@@ -159,7 +159,7 @@ local notation "σv" => vtσ rd w args
 
 
 def main():
-    s = segs(21, 113) + segs(342, 406)
+    s = segs(18, 110) + segs(339, 403)
     gis = list(range(9)) + list(range(18, 24))
     out = []; data = []
     for i, gi in enumerate(gis):
@@ -171,10 +171,10 @@ def main():
     disp = ('/-- **Every group\'s key and size statements**, by group. -/\n'
             'theorem vtc_grps (hl : args.length = 20) {k : ℕ} (hk : k < 15) {κ : ℕ}\n'
             '    (hkx : σv (.n (vtKv k)) * gen ^ vtAdj k = gen ^ κ)\n'
-            '    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)))\n'
+            '    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)))\n'
             '    (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))\n'
-            '    (hkey : LoadHolds rd (σv (.n 36)) (vtGi k) (gen ^ (κ * 254) * (gen ^ vtB0 k)⁻¹))\n'
-            '    (hsz : LoadHolds rd (σv (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ κ))) :\n'
+            '    (hkey : LoadHolds rd (σv (.n 33)) (vtGi k) (gen ^ (κ * 247) * (gen ^ vtB0 k)⁻¹))\n'
+            '    (hsz : LoadHolds rd (σv (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ κ))) :\n'
             '    ∀ s ∈ (vtPre.drop (vtGrpA k)).take (vtGrpL k), VSH (coreProgram.Rel rd) rd σv s := by\n'
             '  interval_cases k\n' +
             ''.join(f'  · exact vtc_grp{gi} hl hkx hrk hsq hkey hsz\n' for gi in gis))
