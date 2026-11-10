@@ -56,13 +56,6 @@ theorem spDigitsOf_sum {digest : Digest}
   rw [Fin.sum_univ_eq_sum_range (fun i => spDigitsOf digest i)] at hT
   exact hT
 
-theorem spValsOf_canon (values : Sphincs.ChainIndex → Digest) (i : Nat) :
-    IsCanonical128 (spValsOf values i) := by
-  unfold spValsOf
-  split
-  · exact isCanonical128_cellOf128 _
-  · exact canon_zero
-
 theorem sum_base4 (x : Nat) : ∀ m, ∑ i ∈ Finset.range m, x / 4 ^ i % 4 * 4 ^ i = x % 4 ^ m
   | 0 => by simp [Nat.mod_one]
   | m + 1 => by
@@ -111,8 +104,7 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
       (adrsCell0 layer.val tree.val, adrsCell1 0 leaf.val 0 0) := rfl
   obtain ⟨σ, h0, h1, h2, h3, hh⟩ := sp_wots_complete_cells (C := C) (rd := rd)
     (pp := cellOf128 publicSeed) (a0 := adrsCell0 layer.val tree.val) (a1 := adrsCell1 0 leaf.val 0 0)
-    (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _)
-    (spDigitsOf_lt digest) (spDigitsOf_sum hT) (spValsOf_canon values) hm
+    (vals := spValsOf values) (spDigitsOf_lt digest) (spDigitsOf_sum hT) hm
   have hleaf : spLeafCell (cellOf128 publicSeed) (adrsCell0 layer.val tree.val)
       (adrsCell1 0 leaf.val 0 0) (spDigitsOf digest) (spValsOf values) =
       cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values) := by
@@ -125,7 +117,7 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
       exact cellVal_cellOf128 _
     rw [ev, cellVal_cellOf128] at e
     rw [e]
-    exact (cellOf128_cellVal (canon_hcell _)).symm
+    exact (cellOf128_cellVal _).symm
   refine ⟨σ, h0, by rw [hpk, h1, h2], by rw [h3, spX_digest]; exact (cellOf128_eq_eOfNat128' digest).symm, ?_⟩
   rw [← hleaf]
   exact hh

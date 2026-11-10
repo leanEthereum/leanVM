@@ -337,11 +337,10 @@ theorem cellsBytes_counterCell_zero (cs : List E) (ctr : Nat) :
 
 /-! ## Constants added to an address cell -/
 
-/-- A canonical cell is the 192-bit word of its number. -/
+/-- A cell is the 128-bit word of its number. -/
 theorem cellOf128_eq_eOfNat128 {n : Nat} (h : n < 2 ^ 128) :
     cellOf128 (BitVec.ofNat 128 n) = eOfNat128 n := by
-  have h2 : n / 2 ^ 128 = 0 := Nat.div_eq_of_lt h
-  simp only [cellOf128, eOfNat128, h2]
+  simp only [cellOf128, eOfNat128]
   congr 1
   · apply BF64.toBitVec_injective
     simp only [K.ofBits, BF64.toBitVec_ofBitVec]

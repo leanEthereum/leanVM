@@ -156,7 +156,7 @@ theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
         Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n 3)))) ∧
         cellVal leaf = wotsLeafOf (cellVal (σ (.n 0))) layer tree lf (cellVal (σ (.n 3)))
           (sChainValuesOf σ) := by
-  obtain ⟨leaf, hr, -, hd, hs, h3, hl⟩ := sp_wots_sound_cells h
+  obtain ⟨leaf, hr, hd, hs, h3, hl⟩ := sp_wots_sound_cells h
   refine ⟨leaf, hr, fun layer tree lf hk => ⟨?_, ?_⟩⟩
   · rw [h3]; exact valid_spX hd hs
   · simp only [keyAdrsCells, adrsWotsHash, Prod.mk.injEq] at hk
