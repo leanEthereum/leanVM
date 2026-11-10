@@ -173,7 +173,7 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
   w700 : w 700 = 0
   w2544 : w 2544 = gen ^ H.n
-  hwI : w 824 = indexMle (H.point.take H.lm) ∧ w 894 = indexMle (H.point.take 19)
+  hwI : w 809 = indexMle (H.point.take H.lm) ∧ w 837 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0
   hwP : ∀ i < 51, w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
