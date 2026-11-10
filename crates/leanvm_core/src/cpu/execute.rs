@@ -1,6 +1,7 @@
 //! The write-once execution interpreter: run the compiled program to produce
 //! the final memory image and the per-opcode [`Trace`].
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
 
 use super::hints::{MAX_CELLS, MAX_INDEX, bounded_dlog};
@@ -234,6 +235,20 @@ struct Stream<'a> {
     next: usize,
 }
 
+/// The advice a run gets late ([`prove_late`](super::prove_late)): the witness streams the early advice
+/// ([`Program::set_witness`]) lacks, and the public input.
+pub struct Late {
+    pub witness: HashMap<String, Vec<Vec<F192>>>,
+    pub public_input: [F192; 2],
+}
+
+/// Where a run's public input comes from: the caller, before the run, or the late advice, on the first
+/// pop the early advice cannot serve.
+pub(crate) enum Input<'a> {
+    Now([F192; 2]),
+    Late(&'a mut dyn FnMut() -> Option<Late>),
+}
+
 impl<'a> Stream<'a> {
     fn pop(&mut self, len: u32) -> Result<&'a [F192], Fault> {
         let name = self.name;
@@ -266,14 +281,14 @@ impl Program {
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
-        self.execute_with(public_input, &mut |_| {})
+        self.execute_with(Input::Now(public_input), &mut |_| {})
     }
 
     /// [`Self::execute`], handing `keccak_step` the lanes each `KECCAK` row reads, in row order
     /// and as the row runs.
     pub(crate) fn execute_with(
         &self,
-        public_input: [F192; 2],
+        input: Input<'_>,
         keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
     ) -> Result<Execution, ExecError> {
         use super::hints::{BitsDest, GPow, RHint};
@@ -300,9 +315,17 @@ impl Program {
             dbg_hint: None,
         };
         m.ensure(n0 - 1);
-        // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi).
-        m.put(0, public_input[0])?;
-        m.put(1, public_input[1])?;
+        // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi), now or with the
+        // late advice.
+        let mut late = match input {
+            Input::Now(public_input) => {
+                m.put(0, public_input[0])?;
+                m.put(1, public_input[1])?;
+                None
+            }
+            Input::Late(resolve) => Some(resolve),
+        };
+        let resolved = OnceCell::new();
 
         // Per-pc bytecode execution count, as an exponent of `g`.
         let mut bytecode_count: Vec<u32> = vec![0; self.prog.len()];
@@ -494,6 +517,48 @@ impl Program {
                 count
             }
         }
+        // Stream `s`'s next entry. The first pop from a stream the early advice lacks resolves the
+        // late advice, once: its streams, then the public input. m[0] and m[1] may be linked by then
+        // (a range-check touch), which only defers their write; a run that read or wrote them would
+        // differ from one that had the public input from the start, so it fails before resolving.
+        fn pop<'a>(
+            streams: &mut [Stream<'a>],
+            s: u32,
+            len: u32,
+            late: &mut Option<&mut dyn FnMut() -> Option<Late>>,
+            resolved: &'a OnceCell<Late>,
+            m: &mut Mem<'_>,
+        ) -> Result<&'a [F192], ExecError> {
+            let fail = |m: &Mem<'_>, fault: Fault| ExecError::new(m.program, m.dbg_pc, fault);
+            let Some(resolve) = late.take_if(|_| streams[s as usize].entries.is_none()) else {
+                return streams[s as usize].pop(len).map_err(|fault| fail(m, fault));
+            };
+            if m.written(0) || m.written(1) {
+                let problem = "the public input was read or written before the late advice";
+                return Err(fail(m, Fault::Witness(problem.into())));
+            }
+            let advice = resolve().ok_or_else(|| fail(m, Fault::Witness("no late advice".into())))?;
+            if let Some(name) = advice.witness.keys().find(|&name| m.program.witness.contains_key(name)) {
+                return Err(fail(
+                    m,
+                    Fault::Witness(format!("witness stream `{name}` given both early and late")),
+                ));
+            }
+            if advice.public_input.iter().any(|half| half.c2 != 0) {
+                let problem = "the late public input is not a 256-bit digest";
+                return Err(fail(m, Fault::Witness(problem.into())));
+            }
+            let advice = resolved.get_or_init(|| advice);
+            for stream in streams.iter_mut() {
+                if let Some(entries) = advice.witness.get(stream.name) {
+                    stream.entries = Some(entries);
+                }
+            }
+            m.put(0, advice.public_input[0])?;
+            m.put(1, advice.public_input[1])?;
+            streams[s as usize].pop(len).map_err(|fault| fail(m, fault))
+        }
+
         // The cell a heap run starts at: read the pointer back out of memory and
         // invert it. Shared by every hint that writes through one.
         fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
@@ -651,14 +716,14 @@ impl Program {
                             }
                         }
                         RHint::WitnessStack { base, len, .. } => {
-                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
+                            let values = pop(&mut streams, stream, *len, &mut late, &resolved, &mut m)?;
                             for (k, &value) in values.iter().enumerate() {
                                 m.put(fp + base + k as u32, value)?;
                             }
                         }
                         RHint::WitnessHeap { ptr, lo, len, .. } => {
                             let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
-                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
+                            let values = pop(&mut streams, stream, *len, &mut late, &resolved, &mut m)?;
                             for (k, &value) in values.iter().enumerate() {
                                 m.put(b + lo + k as u32, value)?;
                             }
@@ -982,6 +1047,10 @@ impl Program {
                 }
             }
             steps += 1;
+        }
+        if late.is_some() {
+            let problem = "the late advice was never needed: the run has no late streams".into();
+            return Err(ExecError::new(self, ending_pc, Fault::Witness(problem)));
         }
 
         if let Some(p) = &prof {

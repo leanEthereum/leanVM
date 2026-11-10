@@ -26,7 +26,7 @@ mod isa;
 pub mod layout;
 mod trace;
 pub(crate) use execute::Cell;
-pub use execute::{ExecError, Execution, Fault, Memory};
+pub use execute::{ExecError, Execution, Fault, Late, Memory};
 pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
@@ -423,18 +423,38 @@ impl Stats {
 /// run [`Stats`], or why no proof was made ([`ProveError`]). `log_inv_rate`
 /// selects the PCS rate and is announced in the Fiat-Shamir transcript before
 /// the commitment.
-#[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
+    prove_from(program, execute::Input::Now(public_input), log_inv_rate)
+}
+
+/// [`prove`], with the public input and the rest of the advice ([`Late`]) from `late`, which the run
+/// calls once, on the first `hint_witness` from a stream the program has no witness for: the proof is
+/// the one [`prove`] makes with all of it from the start. The run fails, without calling `late`, if it
+/// read or wrote the public input before then; it also fails if `late` returns `None`, repeats a
+/// stream or gives a public input that is not a digest, or if the run never needs it. A hint that
+/// reads the public input before then sees zero, which the run cannot detect.
+pub fn prove_late(
+    program: &Program,
+    late: &mut dyn FnMut() -> Option<Late>,
+    log_inv_rate: usize,
+) -> Result<(Proof, Stats), ProveError> {
+    prove_from(program, execute::Input::Late(late), log_inv_rate)
+}
+
+#[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
+fn prove_from(program: &Program, input: execute::Input<'_>, log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    if public_input.iter().any(|h| h.c2 != 0) {
+    // A late public input is checked when the run gets it.
+    if matches!(&input, execute::Input::Now(public_input) if public_input.iter().any(|h| h.c2 != 0)) {
         return Err(ProveError::PublicInputNotDigest);
     }
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
-        crate::keccak::while_executing(|step| program.execute_with(public_input, step))
+        crate::keccak::while_executing(|step| program.execute_with(input, step))
     });
     let exec = exec.map_err(ProveError::Execution)?;
+    let public_input = [exec.mem.word(0), exec.mem.word(1)];
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
@@ -862,6 +882,109 @@ mod tests {
             .err()
             .expect("the run must fail");
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
+    }
+
+    /// Pops stream `early` into cell 2 at pc 0, `late` into cell 4 at pc 1, and XORs them into 5;
+    /// `touch` has pc 0 read the public input's cell 0 as well.
+    fn late_program(touch: bool) -> Program {
+        let pop = |name: &str, base| {
+            vec![hints::RHint::WitnessStack {
+                name: name.into(),
+                base,
+                len: 1,
+            }]
+        };
+        let prog = vec![
+            Op::Xor {
+                a: 2,
+                b: if touch { 0 } else { 2 },
+                c: 3,
+            },
+            Op::Xor { a: 2, b: 4, c: 5 },
+            Op::Set { o: 6, k: F192::ONE },
+            Op::Xor { a: 0, b: 0, c: 0 }, // sentinel
+        ];
+        let mut program = Program::assemble(prog, HashMap::from([(0, pop("early", 2)), (1, pop("late", 4))]), 8);
+        program.set_witness("early", vec![vec![w(3)]]);
+        program
+    }
+
+    /// Advice that arrives late, on the first pop the early advice cannot serve, makes the proof
+    /// that advice given in full from the start makes.
+    #[test]
+    fn late_advice_makes_the_same_proof() {
+        let pi = [w(7), w(11)];
+        let mut full = late_program(false);
+        full.set_witness("late", vec![vec![w(5)]]);
+        let (proof, stats) = prove(&full, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+
+        let mut calls = 0;
+        let mut late = || {
+            calls += 1;
+            Some(Late {
+                witness: HashMap::from([("late".to_string(), vec![vec![w(5)]])]),
+                public_input: pi,
+            })
+        };
+        let (late_proof, late_stats) =
+            prove_late(&late_program(false), &mut late, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(calls, 1);
+        assert_eq!(late_proof, proof);
+        assert_eq!((late_stats.cycles, late_stats.rows), (stats.cycles, stats.rows));
+    }
+
+    /// The late advice is refused where it could change the run: after a read of the public input
+    /// (without asking for it), when it never comes, or when it repeats a stream. So is one whose
+    /// public input is not a digest. A run that never needs it fails too, and an early stream that
+    /// runs out does not ask for it.
+    #[test]
+    fn late_advice_is_refused_where_the_run_would_differ() {
+        let pi = [w(7), w(11)];
+        let mut advice = || {
+            Some(Late {
+                witness: HashMap::from([("late".to_string(), vec![vec![w(5)]])]),
+                public_input: pi,
+            })
+        };
+        let witness = |program: &Program, late: &mut dyn FnMut() -> Option<Late>| match prove_late(
+            program,
+            late,
+            crate::pcs::TEST_LOG_INV_RATE,
+        )
+        .err()
+        {
+            Some(ProveError::Execution(ExecError {
+                fault: Fault::Witness(problem),
+                ..
+            })) => problem,
+            other => panic!("expected a witness fault, got {other:?}"),
+        };
+        let mut calls = 0;
+        let mut counted = || {
+            calls += 1;
+            advice()
+        };
+        assert!(witness(&late_program(true), &mut counted).contains("read or written"));
+        let mut short = late_program(false);
+        short.set_witness("early", vec![]);
+        assert!(witness(&short, &mut counted).contains("exhausted"));
+        assert_eq!(calls, 0);
+        assert!(witness(&late_program(false), &mut || None).contains("no late advice"));
+        let mut twice = || {
+            let mut late = advice()?;
+            late.witness.insert("early".to_string(), vec![vec![w(3)]]);
+            Some(late)
+        };
+        assert!(witness(&late_program(false), &mut twice).contains("both early and late"));
+        let mut not_digest = || {
+            let mut late = advice()?;
+            late.public_input[1].c2 = 1;
+            Some(late)
+        };
+        assert!(witness(&late_program(false), &mut not_digest).contains("not a 256-bit digest"));
+        let mut full = late_program(false);
+        full.set_witness("late", vec![vec![w(5)]]);
+        assert!(witness(&full, &mut advice).contains("never needed"));
     }
 
     /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb
