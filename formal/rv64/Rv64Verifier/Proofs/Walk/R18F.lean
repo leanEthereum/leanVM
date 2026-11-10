@@ -110,7 +110,7 @@ theorem innerStore (hpre : WalkPre s)
       (k₁ .x2 (by decide))
   have C₁ := Cv.stepW hpre st₁ (fun a ha ↦ ⟨(W₁ok a ha).1, (W₁ok a ha).2, by
       rw [tp]; simp only [Within] at ha ⊢; addr_omega [ha, hb1]⟩)
-    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
+    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
   have g₁ : ∀ x : Word, x.toNat + 8 ≤ heapNext v → v₁.getMem x = v.getMem x :=
     fun x hx ↦ st₁.getH hpre (fun a ha ↦ (W₁ok a ha).1) hx
   have gF₁ (c : Nat) (hc : 1616 = c ∨ 1336 = c ∨ 1328 = c) :

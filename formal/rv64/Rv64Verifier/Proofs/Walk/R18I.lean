@@ -107,14 +107,15 @@ theorem endStep (hpre : WalkPre s) (E : EndR18 OI s u₀ w t u layout rows lir b
     StepW.ofFrame hpre E.rest.inv.heap fr (fun a ha ↦ (W₁ok a ha).1) (k₁ .x2 (by decide))
   have C₁ := E.toCoreR18.stepW hpre st (fun a ha ↦ ⟨(W₁ok a ha).1, (W₁ok a ha).2, by
       rw [tp]; simp only [Within] at ha ⊢; addr_omega [ha, hb1]⟩)
-    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
+    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
   have ls : u₁.getMem (s.getReg .x2 - 1616) = L := by
     rw [← e1040, b8000383c_m_x2_1040 h₁, E.x25]
   have hk := E.hk
   by_cases hk1 : k + 1 = 6
   · have pc₁ := b8000383c_pc_taken h₁ (by rw [E.x18, E.x8, show k = 5 by omega]; rfl)
     rw [hk1, tableClaims_take_six] at C₁
-    exact ⟨u₁, hr₁, Or.inl ⟨C₁, pc₁, ls⟩⟩
+    exact ⟨u₁, hr₁, Or.inl ⟨C₁, pc₁, by rw [b8000383c_x24 h₁, sp]; bv_omega,
+      by rw [k₁ .x25 (by decide), E.x25], ls⟩⟩
   · have pc₁ := b8000383c_pc_not_taken h₁ (by
       rw [E.x18, E.x8]; intro h0; have := congrArg BitVec.toNat h0; addr_omega [this, hk, hk1])
     exact ⟨u₁, hr₁, Or.inr ⟨by omega, {
@@ -128,6 +129,7 @@ theorem endStep (hpre : WalkPre s) (E : EndR18 OI s u₀ w t u layout rows lir b
       x21 := by rw [k₁ .x21 (by decide), E.x21]
       x22 := by rw [k₁ .x22 (by decide), E.x22]
       x23 := by rw [b8000383c_x23 h₁, E.x23]; bv_omega
+      x24 := by rw [b8000383c_x24 h₁, sp]; bv_omega
       x25 := by rw [k₁ .x25 (by decide), E.x25]
       lenSlot := ls }⟩⟩
 

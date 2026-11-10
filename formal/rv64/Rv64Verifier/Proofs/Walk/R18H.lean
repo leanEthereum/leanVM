@@ -23,6 +23,8 @@ structure ExitR18 (OI : MachineState → Word → List (List Opening) → Prop)
     extends CoreR18 OI s u₀ w t u layout rows lir bus evs P C L.toNat
       (bus.claims ++ tableClaimsRust evs) where
   pc : u.pc = 0x80003a48
+  x24 : u.getReg .x24 = s.getReg .x2 - 512
+  x25 : u.getReg .x25 = L
   lenSlot : u.getMem (s.getReg .x2 - 1616) = L
 
 /-- Table `k`'s values loaded: their count in `s4`, their pointer in `s8`, the column base in
@@ -114,7 +116,8 @@ theorem outerHead (hpre : WalkPre s) (H : LoopR18 OI s u₀ w t u layout rows li
       rw [this]; bv_omega)
     rw [tableClaims_take_done evs k (Or.inl hke)] at C₁
     have ls : u₁.getMem (s.getReg .x2 - 1616) = L := by rw [m₁]; exact H.lenSlot
-    exact ⟨u₁, hr₁, Or.inl ⟨C₁, pc₁, ls⟩⟩
+    exact ⟨u₁, hr₁, Or.inl ⟨C₁, pc₁, by rw [k₁ .x24 (by decide), H.x24],
+      by rw [k₁ .x25 (by decide), H.x25], ls⟩⟩
   rcases Pf with h0 | ⟨p1, p2⟩
   · omega
   have e48 : (48 * vecLen t (s.getReg .x2 - 928) : Word).toNat = 48 * evs.length := by

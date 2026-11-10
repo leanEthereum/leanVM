@@ -153,6 +153,8 @@ theorem CoreR18.store (hpre : WalkPre s)
     capSlot := by rw [show (1632 : Word) = BitVec.ofNat 64 1632 from rfl, kS _ (by omega) (by omega)]; exact H.capSlot
     ptrSlot := by rw [show (1624 : Word) = BitVec.ofNat 64 1624 from rfl, kS _ (by omega) (by omega)]; exact H.ptrSlot
     ptr184 := by rw [show (2472 : Word) = BitVec.ofNat 64 2472 from rfl, kS _ (by omega) (by omega)]; exact H.ptr184
+    evPtr := by rw [show (2616 : Word) = BitVec.ofNat 64 2616 from rfl, kS _ (by omega) (by omega)]; exact H.evPtr
+    evLen := by rw [show (2608 : Word) = BitVec.ofNat 64 2608 from rfl, kS _ (by omega) (by omega)]; exact H.evLen
     proofPtr := by
       have etp : tp s = s.getReg .x2 - BitVec.ofNat 64 2448 := rfl
       rw [etp, kS _ (by omega) (by omega), ← etp]; exact H.proofPtr

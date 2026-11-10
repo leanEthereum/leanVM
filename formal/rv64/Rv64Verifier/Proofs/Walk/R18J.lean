@@ -248,6 +248,12 @@ theorem tabGrow (hG : GrowSpec) (hpre : WalkPre s)
         b80003930_m_x2_184 h₃, sp₂, show s.getReg .x2 - 2656 + 1032 = s.getReg .x2 - 1624 by bv_omega,
         m₂]
       exact eP'v
+    evPtr := by
+      rw [show (2616 : Word) = BitVec.ofNat 64 2616 from rfl, gF 2616 (by omega) (by omega)]
+      exact T.evPtr
+    evLen := by
+      rw [show (2608 : Word) = BitVec.ofNat 64 2608 from rfl, gF 2608 (by omega) (by omega)]
+      exact T.evLen
     proofPtr := by
       have etp : tp s = s.getReg .x2 - BitVec.ofNat 64 2448 := rfl
       rw [etp, gF 2448 (by omega) (by omega), ← etp]; exact T.proofPtr

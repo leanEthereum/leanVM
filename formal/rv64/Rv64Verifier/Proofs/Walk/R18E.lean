@@ -192,7 +192,7 @@ theorem innerClone (hCl : CloneSpecE) (hpre : WalkPre s)
         (by omega) ha
       refine ⟨o1, o2, ?_⟩
       rw [tp]; simp only [Within] at ha ⊢; addr_omega [ha, hb1])
-    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
+    (fun a ha ↦ by simp only [Within] at ha ⊢; refine ⟨?_, ?_, ?_, ?_⟩ <;> addr_omega [ha, hb1])
   have el := post.elems
   have ln := post.len
   have fs := post.fresh

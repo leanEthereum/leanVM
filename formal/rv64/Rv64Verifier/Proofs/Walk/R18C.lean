@@ -98,7 +98,7 @@ theorem CoreR18.stepW (hpre : WalkPre s)
     (st : StepW s u v W False)
     (hW : ∀ a, W a → InF s a ∧ ¬ KeepR s u₀ a ∧ ¬ Within a (tp s) 368)
     (hs : ∀ a, W a → ¬ Within a (s.getReg .x2 - 896) 48 ∧ ¬ Within a (s.getReg .x2 - 1632) 16 ∧
-      ¬ Within a (s.getReg .x2 - 2472) 8) :
+      ¬ Within a (s.getReg .x2 - 2472) 8 ∧ ¬ Within a (s.getReg .x2 - 2616) 16) :
     CoreR18 OI s u₀ w t v layout rows lir bus evs P C M cl := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
   have fW : ∀ a, W a → InF s a := fun a ha ↦ (hW a ha).1
@@ -144,8 +144,16 @@ theorem CoreR18.stepW (hpre : WalkPre s)
       exact H.ptrSlot
     ptr184 := by
       rw [show (2472 : Word) = BitVec.ofNat 64 2472 from rfl, gF 2472 (by omega) fun j hj hw ↦
-        (hs _ hw).2.2 (by simp only [Within]; addr_omega [hb1, hj])]
+        (hs _ hw).2.2.1 (by simp only [Within]; addr_omega [hb1, hj])]
       exact H.ptr184
+    evPtr := by
+      rw [show (2616 : Word) = BitVec.ofNat 64 2616 from rfl, gF 2616 (by omega) fun j hj hw ↦
+        (hs _ hw).2.2.2 (by simp only [Within]; addr_omega [hb1, hj])]
+      exact H.evPtr
+    evLen := by
+      rw [show (2608 : Word) = BitVec.ofNat 64 2608 from rfl, gF 2608 (by omega) fun j hj hw ↦
+        (hs _ hw).2.2.2 (by simp only [Within]; addr_omega [hb1, hj])]
+      exact H.evLen
     proofPtr := by
       have etp : tp s = s.getReg .x2 - BitVec.ofNat 64 2448 := rfl
       rw [etp, gF 2448 (by omega) fun j hj hw ↦ (hW _ hw).2.2 (by

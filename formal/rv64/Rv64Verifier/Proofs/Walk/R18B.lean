@@ -41,6 +41,9 @@ structure CoreR18 (OI : MachineState → Word → List (List Opening) → Prop)
   ptrSlot : u.getMem (s.getReg .x2 - 1624) = P
   ptr184 : u.getMem (s.getReg .x2 - 2472) = P
   proofPtr : u.getMem (tp s) = s.getReg .x13
+  /-- The evaluations' pointer and count at `sp + 40`, `sp + 48`. -/
+  evPtr : u.getMem (s.getReg .x2 - 2616) = vecPtr t (s.getReg .x2 - 928)
+  evLen : u.getMem (s.getReg .x2 - 2608) = vecLen t (s.getReg .x2 - 928)
   len : M ≤ C.toNat
   /-- The buffer: `u₀`'s, or one allocated after `table_sumcheck`. -/
   buf : P.toNat % 8 = 0 ∧ P.toNat + 56 * C.toNat ≤ heapNext u ∧
@@ -73,6 +76,7 @@ structure LoopR18 (OI : MachineState → Word → List (List Opening) → Prop)
   x21 : u.getReg .x21 = s.getReg .x2 - 1312
   x22 : u.getReg .x22 = vecPtr t (s.getReg .x2 - 928) + 48 * vecLen t (s.getReg .x2 - 928)
   x23 : u.getReg .x23 = vecPtr t (s.getReg .x2 - 928) + BitVec.ofNat 64 (48 * k)
+  x24 : u.getReg .x24 = s.getReg .x2 - 512
   x25 : u.getReg .x25 = L
   lenSlot : u.getMem (s.getReg .x2 - 1616) = L
 
@@ -235,7 +239,12 @@ theorem r18Entry {OI : MachineState → Word → List (List Opening) → Prop}
     x23 := by
       rw [k₂ .x23 (by decide), b800037ac_x23 h₁, ea 1736 920 rfl, e920]
       simp
+    x24 := by rw [b800037c0_x24 h₂, sp₁]; bv_omega
     x25 := by rw [k₂ .x25 (by decide), k₁ .x25 (by decide), H.regs .x25 (by decide), h.x25, e912₀]
+    evPtr := by
+      rw [← eb 40 2616 rfl, b800037c0_m_x2_40 h₂, b800037ac_x23 h₁, ea 1736 920 rfl, e920]
+    evLen := by
+      rw [← eb 48 2608 rfl, b800037c0_m_x2_48 h₂, b800037ac_x11 h₁, ea 1744 912 rfl, e912]
     bases := fun i hi ↦ by
       rw [bases_val]
       interval_cases i
