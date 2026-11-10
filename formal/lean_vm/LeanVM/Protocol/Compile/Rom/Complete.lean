@@ -566,12 +566,22 @@ theorem isTotalQueryBound_honestComp {σ : Seed} {P : VerifierProgram Bool} {hei
     exact isTotalQueryBound_bind (isTotalQueryBound_proveM hP S seed fuel) fun _ ↦
       isTotalQueryBound_pure' _ 0
 
+/-- A nonce that fails a proof of work of `b ≥ 1` bits fails one of `B ≥ b` bits. -/
+theorem powOk_false_mono {b B : ℕ} {x c : E} (hb : b ≠ 0) (hbB : b ≤ B)
+    (h : powOk b x c = false) : powOk B x c = false := by
+  have hB : B ≠ 0 := by omega
+  unfold powOk at h ⊢
+  simp only [hb, hB, ↓reduceIte, decide_eq_false_iff_not] at h ⊢
+  intro hc
+  exact h (Nat.mod_eq_zero_of_dvd
+    (Nat.dvd_trans (Nat.pow_dvd_pow 2 hbB) (Nat.dvd_of_mod_eq_zero hc)))
+
 /-- **The final inequality.** On every reachable outcome of the logged experiment in which the
 verifier rejects the honest prover's proof, the potential of the final log is at least `1`. -/
 theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bits fuel : ℕ}
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     {z : (Proof × Bool) × Log} (hz : z ∈ support (logExperiment (honestComp σ P S fuel)
       (verifierComp σ P))) (hrej : z.1.2 = false) :
     1 ≤ powPot bits fuel z.2 := by
@@ -627,7 +637,7 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
       proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (VerifierProgram.after.eq_1 P)
           ⟨by simp, by simp⟩ hr'
-    rw [hg h' b' k ha] at hf
+    obtain ⟨hb'0, hb'le⟩ := hg h' b' k ha
     obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
     obtain ⟨κ, hκ, hnon⟩ : ∃ κ : PowKey, KeyOk κ ∧ ∀ n < fuel, ∃ u,
@@ -644,14 +654,14 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
         obtain ⟨rfl, v', hv', rfl⟩ := hif
         rw [hv] at hv'
         cases hv'
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'0 hb'le hp⟩
       · refine ⟨(capOf sp.state, sp.pending), ⟨by dsimp only; have := hsp.1; omega, hsp.2⟩,
           fun n hn ↦ ?_⟩
         obtain ⟨r, hr, hp⟩ := hall n hn
         obtain ⟨c, ps, u, hu, hru, hif⟩ := powStepM_option hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, rfl⟩ := hif
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'0 hb'le hp⟩
     -- Its term is `1`.
     have hS : ¬ Solved bits fuel ℓ κ := by
       rintro ⟨n, hn, d, hd, hp⟩
@@ -677,13 +687,13 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     exact Finset.single_le_sum (fun _ _ ↦ bot_le) hmem
 
 /-- **Completeness in the random-oracle model.** For a verifier program `P` whose proofs of work
-all ask for `bits ∈ [1, 64]` bits, a strategy `S` that wins every interactive run of `P` with
+all ask for between `1` and `bits ≤ 64` bits, a strategy `S` that wins every interactive run of `P` with
 well-shaped words, the seeding `σ`, and a fuel of at most `2^64` nonces: with `Q` the queries of
 the honest prover and the verifier together, the verifier rejects the honest prover's proof with
 probability at most `Q · (1 - 2^-bits)^fuel`. -/
 theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
     (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hP : P.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P)}[z.1.2 = false] ≤

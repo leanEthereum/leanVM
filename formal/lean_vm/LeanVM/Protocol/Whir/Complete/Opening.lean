@@ -119,18 +119,19 @@ theorem follows_round (W g : List E) (claim : E) (cs : Commits) :
       VerifierProgram.readScalars,
     Follows, roundQuad, Script.bind, VerifierProgram.bind]
 
-/-- The fold rounds of a level (`foldRounds`): receive the challenge, fix the first coordinate
-of both tables at it, send the next round polynomial. -/
-def hFoldRounds (f₀ : List E) :
+/-- The fold rounds of a level (`foldRounds`): pass the level's proof of work, receive the
+challenge, fix the first coordinate of both tables at it, send the next round polynomial. -/
+def hFoldRounds (f₀ : List E) (grinding : ℕ) :
     ℕ → WhirStateT → List E → List E → Script (WhirStateT × List E × List E)
   | 0, s, levelFolds, W => return (s, levelFolds, W)
   | n + 1, s, levelFolds, W => do
+    Script.foldGrindS grinding
     let challenge ← Script.sampleE
     let target := polyEval s.quad challenge
     let W' := foldPairs challenge W
     let g' := foldAll f₀ (s.folds ++ [challenge])
     hRound W' g'
-    hFoldRounds f₀ n
+    hFoldRounds f₀ grinding n
       { s with target, quad := roundQuad target W' g', folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge]) W'
 
@@ -175,7 +176,7 @@ verifier's state `s` and the weight table `W`. -/
 def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirStateT → List E → Script Unit
   | _, [], _, _ => return ()
   | index, level :: rest, s, W => do
-    let (s, levelFolds, W) ← hFoldRounds f₀ level.fold s [] W
+    let (s, levelFolds, W) ← hFoldRounds f₀ level.foldGrinding level.fold s [] W
     let messageLog := μ - s.folds.length
     let g := foldAll f₀ s.folds
     let (residual, pending, tables) ← match rest with
@@ -378,23 +379,35 @@ section Rounds
 
 variable {μ lf : ℕ} {f₀ : List E} {B : List E → E}
 
+/-- Passing the proof of work before a fold challenge meets checking it: none at `0` bits. -/
+theorem follows_foldProofOfWork (b : ℕ) (cs : Commits) :
+    Follows (fun cs' _ _ ↦ cs' = cs) (Script.foldGrindS b) (VerifierProgram.foldProofOfWork b)
+      cs := by
+  unfold Script.foldGrindS VerifierProgram.foldProofOfWork
+  split
+  · simp [Follows]
+  · exact Follows.grindS_grindP b cs
+
 /-- **The fold rounds.** -/
-theorem follows_foldRounds (hf₀ : f₀.length = 2 ^ μ) :
+theorem follows_foldRounds (hf₀ : f₀.length = 2 ^ μ) (b : ℕ) :
     ∀ (n : ℕ) (s : WhirStateT) (lfs W : List E) (cs : Commits), Inv μ lf f₀ B s W →
       s.folds.length + n ≤ μ →
       Follows (fun cs' a b ↦ cs' = cs ∧ b = (a.1, a.2.1) ∧ Inv μ lf f₀ B a.1 a.2.2 ∧
           ∃ new : List E, new.length = n ∧ a.1.folds = s.folds ++ new ∧ a.2.1 = lfs ++ new)
-        (hFoldRounds f₀ n s lfs W) (foldRoundsT n s lfs) cs
+        (hFoldRounds f₀ b n s lfs W) (foldRoundsT b n s lfs) cs
   | 0, s, lfs, W, cs, hI, _ => by
     simp only [hFoldRounds, foldRoundsT]
     exact ⟨rfl, rfl, hI, [], rfl, by simp, by simp⟩
   | n + 1, s, lfs, W, cs, hI, hn => by
     simp only [hFoldRounds, foldRoundsT]
+    refine Follows.bind_of (follows_foldProofOfWork b cs) ?_
+    intro cs₁ _ _ hcs
+    rw [hcs]
     refine Follows.bind_of (Follows.sampleE_sampleE cs) ?_
     rintro cs' c c' ⟨rfl, rfl⟩
     refine Follows.bind_of (follows_round _ _ (polyEval s.quad c) cs') ?_
     rintro cs'' _ qd ⟨rfl, rfl⟩
-    refine Follows.mono ?_ _ _ _ (follows_foldRounds hf₀ n _ (lfs ++ [c]) _ cs''
+    refine Follows.mono ?_ _ _ _ (follows_foldRounds hf₀ b n _ (lfs ++ [c]) _ cs''
       (hI.fold hf₀ (by omega) c) (by simp; omega))
     rintro cs a b ⟨h1, h2, h3, new, hl, hf, hlf⟩
     refine ⟨h1, h2, h3, c :: new, by simp [hl], ?_, ?_⟩
@@ -526,7 +539,8 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
     simp only [List.map_cons, List.sum_cons] at hsum
     have hle := hI.folds_le
     rw [hLevels, whirLevelsT]
-    refine Follows.bind_of (follows_foldRounds hf₀ level.fold s [] W cs hI (by omega)) ?_
+    refine Follows.bind_of (follows_foldRounds hf₀ level.foldGrinding level.fold s [] W cs hI
+      (by omega)) ?_
     rintro cs1 ⟨s1, lfs1, W1⟩ b ⟨hcs1, rfl, hI1, new, hnl, hs1, hlf1⟩
     simp only [List.nil_append] at hlf1
     subst cs1 lfs1
@@ -665,24 +679,26 @@ in the stack. -/
 theorem ladder_head_sum {μ R : ℕ} (h : Whir.Admissible μ R) :
     ∀ levels, Whir.ladder μ R = some levels →
       levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, R) ∧
-        (levels.map (·.fold)).sum ≤ μ := by
+        levels.head?.map (·.foldGrinding) = some 0 ∧ (levels.map (·.fold)).sum ≤ μ := by
   have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
       ∀ levels, Whir.ladder μ r = some levels →
         levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, r) ∧
+          levels.head?.map (·.foldGrinding) = some 0 ∧
           (levels.map (·.fold)).sum ≤ μ := by decide +kernel
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 R h2 h
 
 /-- The ladder of an admissible pair, with its first level made explicit. -/
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
-    ∃ q₀ rest, Whir.ladder μ R = some (⟨laneBits, R, q₀⟩ :: rest) ∧
+    ∃ q₀ rest, Whir.ladder μ R = some (⟨laneBits, R, q₀, 0⟩ :: rest) ∧
       laneBits + (rest.map (·.fold)).sum ≤ μ := by
   obtain ⟨config, hc⟩ := Option.isSome_iff_exists.mp (Whir.ladder_isSome h)
-  obtain ⟨hhead, hsum⟩ := ladder_head_sum h config hc
-  rcases config with _ | ⟨⟨f, r, q₀⟩, rest⟩
+  obtain ⟨hhead, hg, hsum⟩ := ladder_head_sum h config hc
+  rcases config with _ | ⟨⟨f, r, q₀, g₀⟩, rest⟩
   · simp at hhead
-  · simp only [List.head?_cons, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hhead
+  · simp only [List.head?_cons, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hhead hg
     obtain ⟨rfl, rfl⟩ := hhead
+    subst hg
     refine ⟨q₀, rest, hc, ?_⟩
     simpa using hsum
 
@@ -813,9 +829,9 @@ theorem follows_whirRun {μ R q₀ : ℕ} {rest : List Whir.Level} (hμ6 : laneB
     (claims : List StackClaim) (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q)
     (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1) :
     Follows (fun _ _ _ ↦ True)
-      (hWhirRun μ (stackTable μ q) (basisTable μ scales claims) (⟨laneBits, R, q₀⟩ :: rest)
+      (hWhirRun μ (stackTable μ q) (basisTable μ scales claims) (⟨laneBits, R, q₀, 0⟩ :: rest)
         (dot scales (claims.map (·.2))))
-      (whirRun μ (⟨laneBits, R, q₀⟩ :: rest) (dot scales (claims.map (·.2)))
+      (whirRun μ (⟨laneBits, R, q₀, 0⟩ :: rest) (dot scales (claims.map (·.2)))
         (batchedBasis scales claims))
       [stackCommit μ R q] := by
   simp only [hWhirRun, whirRun]
