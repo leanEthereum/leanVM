@@ -371,5 +371,67 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
       (by simp [run13])
     rw [habs, ← cells13_run13 σ _ c, hout]
 
+
+/-! ## Soundness -/
+
+/-- What the copies out and the cursor's step ask. -/
+theorem om_final_holds {n nonce O f : ℕ} (h : ∀ a ∈ omFinal n nonce O f, a.Holds rd σ) :
+    σ (.n f) = σ (.n O) ∧ σ (.n (f + 1)) = σ (.n (O + 1)) ∧ σ (.n (f + 2)) = σ (.n (O + 8)) ∧
+      σ (.n (f + 3)) = σ (.n (O + 9)) ∧ σ (.n (f + 4)) = σ (.n (O + 10)) ∧
+      σ (.n (f + 5)) = σ (.n (O + 11)) ∧ σ (.n (f + 6)) = σ (.n (O + 12)) ∧
+      σ (.n (f + 9)) = σ (.n 5) * word (2 ^ (n + nonce)) 0 := by
+  refine ⟨h (.copy (.n f) (.n O)) (by simp [omFinal]),
+    h (.copy (.n (f + 1)) (.n (O + 1))) (by simp [omFinal]),
+    h (.copy (.n (f + 2)) (.n (O + 8))) (by simp [omFinal]),
+    h (.copy (.n (f + 3)) (.n (O + 9))) (by simp [omFinal]),
+    h (.copy (.n (f + 4)) (.n (O + 10))) (by simp [omFinal]),
+    h (.copy (.n (f + 5)) (.n (O + 11))) (by simp [omFinal]),
+    h (.copy (.n (f + 6)) (.n (O + 12))) (by simp [omFinal]), ?_⟩
+  have e9 : σ (.n (f + 9)) = σ (.n (f + 8)) := h (.copy (.n (f + 9)) (.n (f + 8))) (by simp [omFinal])
+  have e8 : σ (.n (f + 8)) = σ (.n 5) * σ (.n (f + 7)) :=
+    h (.mul (.n (f + 8)) (.n 5) (.n (f + 7))) (by simp [omFinal])
+  have e7 : σ (.n (f + 7)) = word (2 ^ (n + nonce)) 0 :=
+    h (.const (.n (f + 7)) (word (2 ^ (n + nonce)) 0)) (by simp [omFinal])
+  rw [e9, e8, e7]
+
+/-- A permutation's cells as the message returns them: cells `0`, `1`, then its capacity. -/
+theorem om_cells_ret {O : ℕ} {S : KeccakState}
+    (hO : ∀ c : Fin 13, σ (.n (O + c.val)) = cellsOfState S false c) :
+    [σ (.n O), σ (.n (O + 1)), σ (.n (O + 8)), σ (.n (O + 9)), σ (.n (O + 10)), σ (.n (O + 11)),
+      σ (.n (O + 12))] = [cellsOfState S false 0, cellsOfState S false 1] ++ capOf S := by
+  have e : ∀ i (hi : i < 13), σ (.n (O + i)) = cellsOfState S false ⟨i, hi⟩ := fun i hi ↦ hO ⟨i, hi⟩
+  rw [show σ (.n O) = _ from (by simpa using e 0 (by omega)), e 1 (by omega), e 8 (by omega),
+    e 9 (by omega), e 10 (by omega), e 11 (by omega), e 12 (by omega)]
+  rfl
+
+/-- **`opening_message` is sound.** -/
+theorem om_sound {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n nonce) (hn : 1 ≤ n)
+    (h64 : n + nonce < 64) (hfind : coreProgram.find? name = some f)
+    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
+    (hbody : f.body = omBody n nonce) (rd : Reader) (args rets : List E)
+    (h : coreProgram.Rel rd name args rets) : MeaningOpeningMessage n nonce rd args rets := by
+  rw [rel_iff_sem hfind, hbody, hparams, omBody] at h
+  obtain ⟨σ, hp, hh⟩ := h
+  rw [holdsList_atomsRet] at hh
+  obtain ⟨hall, hret⟩ := hh
+  subst hp
+  obtain ⟨nn, hnn, hO⟩ := om_tail hcase hn hall
+  have hwd : ∀ p < n, LoadHolds rd (σ (.n 5)) p (σ (.n (omW p))) ∧
+      LoadHolds rd (σ (.n 6)) p (σ (.n (omW p))) := fun p hp ↦ by
+    obtain ⟨a, -, -, b⟩ := om_word_holds fun x hx ↦ hall x (mem_omWord hp hx)
+    exact ⟨a, b⟩
+  obtain ⟨f0, f1, f2, f3, f4, f5, f6, f9⟩ := om_final_holds fun a ha ↦ hall a (mem_omFinal ha)
+  simp only [List.map_cons, List.map_nil]
+  refine ⟨omXs σ n, omXs_length σ n, fun k hk ↦ ?_, fun k hk ↦ ?_, nn, hnn, ?_⟩
+  · rw [omXs_length] at hk
+    simpa [omXs] using (hwd k hk).1
+  · rw [omXs_length] at hk
+    simpa [omXs] using (hwd k hk).2
+  · have hO' := om_cells_ret hO
+    simp only [omCap0] at hO'
+    rw [← hret, ← hO', ← word_two_pow h64]
+    simp only [omRets, List.map_cons, List.map_nil, f0, f1, f2, f3, f4, f5, f6, f9,
+      List.cons_append, List.nil_append]
+
 end
 end LeanVM.Guest.B1
