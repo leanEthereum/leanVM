@@ -45,7 +45,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- **`exponent_tables`' relation is the exponent tables** (B1-a's `exponent_tables_holds`). -/
 theorem expTablesSound : ExpTablesSound := fun rd q h ↦
-  (exponent_tables_holds rd [] [q]).mp h
+  ((exponent_tables_holds rd [] [q]).mp h).1
 
 /-- **`verify_sub`'s `kappa_base`** below `vsKbBound` (B1-d's `VerifySub.vsKnown_holds`;
 `coreOf 19` is `Data.core18`). -/
