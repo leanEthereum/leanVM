@@ -26,6 +26,10 @@ for f in files:
         txt = re.sub(r'^theorem vt_', 'theorem vtP_', txt, flags=re.M)
         txt = re.sub(r'^theorem vtPullSels', 'theorem vtPPullSels', txt, flags=re.M)
         out.append(txt)
+names = set()
+for t in out:
+    names.update(re.findall(r'^theorem (vtP_\w+)', t, re.M))
+out = [re.sub(r'\bvt_(\w+)', lambda m: 'vtP_' + m.group(1) if 'vtP_' + m.group(1) in names else m.group(0), t) for t in out]
 print('''/-
   LeanVM.Guest.B1.Tables.VtC.BTwin
 
