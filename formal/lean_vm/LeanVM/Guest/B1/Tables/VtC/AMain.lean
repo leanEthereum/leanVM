@@ -23,12 +23,13 @@ public import LeanVM.Guest.B1.Tables.VtC.ABc
 
 `VtShape`: the deployed shapes the ranges need. `vt_rel_complete`: from the specification's
 accepting run (`VtHonest.Ok`), on a memory defined below `2^14` (the rank keys' range check
-against `g^8635`) holding the caller's buffers (`linL`) and the own buffers at the allocator's
+against `g^8397`) holding the caller's buffers (`linL`) and the own buffers at the allocator's
 positions (`ownL`), with the oracle's answers (`VtWOk`), the honest valuation satisfies every
-statement of `verify_tables` (`vtS_complete` `0 ..< 769`, `vtB_complete` `769 ..< 2589`,
-`vtZ_complete` `2589 ..< 2688`, `vtF_complete` `2688 ..< 6353`, `vtZt_complete` `6353 ..< 6398`),
-its loads read inside the layout, and it returns the honest words. `vt_rel_complete_vtW`: the
-same with the explicit oracle `vtW`.
+statement of `verify_tables` (`vtS_complete` `0 ..< 765`, `vtB_complete` `765 ..< 2593`,
+`vtZ_complete` `2591 ..< 2685`, `vtF_complete` `2685 ..< 5525`, `vtZt_complete` `5525 ..< 5559`),
+its loads read inside the layout, and it returns the honest words. The bus sides' slot sumcheck
+takes its honest rounds from the specification's run (`vt_bc_honest`, `vt_spec`).
+`vt_rel_complete_vtW`: the same with the explicit oracle `vtW`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
