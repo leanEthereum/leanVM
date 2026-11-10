@@ -15,6 +15,7 @@ public import LeanVM.Guest.Child.RefuseZero
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
+public import LeanVM.Protocol.EndToEnd.Sound.Moves
 
 /-!
 # Honest children at Keccak
@@ -105,7 +106,8 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
       (acceptsFrom_of_runI (P := leanVmVerifierProgram bytecode (publicInputDigest (publicInputOf d)))
         (by rw [hpd]) fun chal ↦ by
         with_reducible exact runI_leanVmProgram (input := publicInputOf d) hadm hρ hq chal)
-      (by simp [commits]) (by simpa [commits] using hir) htt b
+      (by simp [commits]) (LeanVM.Protocol.EndToEnd.Sound.grindThenSample_leanVmProgram _ _)
+      (Or.inl rfl) (by simpa [commits] using hir) htt b
     obtain ⟨ht, word, ps, rfl, hps⟩ := this (by
       have e : proof = ⟨tt.1, tt.2⟩ := he.symm
       simp only [List.append_nil, rootsOf, commits, List.map_nil]
