@@ -377,7 +377,7 @@ def blocks : Blocks where
 def minMu : ℕ := 15
 
 /-- The maximum stacked size, `MAX_MU` (`pcs.rs:51`). -/
-def maxMu : ℕ := 28
+def maxMu : ℕ := 40
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
 `2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/

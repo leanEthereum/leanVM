@@ -240,14 +240,18 @@ smaller multiplicity, so a cheaper decoder. The table is copied from the proof's
 and the proof checks the copy against them for every admissible shape (`certOf_e_eq`,
 `thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
 def johnsonSlack : List (List ℕ) := [
-  [6676, 7275, 5527, 5165, 4984, 4765, 4720,
-    9241, 9214, 9200, 9198, 9194, 13737, 13737],
-  [2049, 14336, 13824, 13312, 13184, 13120, 13056,
-    13040, 13032, 13024, 13022, 13021, 13020, 13019],
-  [22794, 21557, 21195, 20886, 20796, 20750, 20728,
-    20716, 20707, 20704, 20703, 20701, 20701, 20700],
-  [14336, 13824, 13440, 13248, 13152, 13104, 13080,
-    13068, 13064, 13062, 13061, 13060, 13059, 13059]]
+  [6676, 7275, 5527, 5165, 4984, 4765, 4720, 9241, 9214,
+    9200, 9198, 9194, 13737, 13737, 13737, 18248, 18248, 22727,
+    27173, 27173, 31586, 35968, 44637, 48925, 57409, 65774],
+  [2049, 14336, 13824, 13312, 13184, 13120, 13056, 13040, 13032,
+    13024, 13022, 13021, 13020, 13019, 25886, 25886, 25886, 25886,
+    25886, 38604, 38604, 38604, 51175, 51175, 63602, 63602],
+  [22794, 21557, 21195, 20886, 20796, 20750, 20728, 20716, 20707,
+    20704, 20703, 20701, 20701, 20700, 20700, 20700, 20700, 20700,
+    41134, 41134, 41134, 41134, 61303, 61303, 61303, 81213],
+  [14336, 13824, 13440, 13248, 13152, 13104, 13080, 13068, 13064,
+    13062, 13061, 13060, 13059, 13059, 38959, 38959, 38959, 38959,
+    38959, 38959, 38959, 38959, 64566, 64566, 64566, 89877]]
 
 /-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
@@ -263,7 +267,7 @@ agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the sla
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
 and
-`15 ≤ μ ≤ 28`, the table's range. -/
+`15 ≤ μ ≤ 40`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)

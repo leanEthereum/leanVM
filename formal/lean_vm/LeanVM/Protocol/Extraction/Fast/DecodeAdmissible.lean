@@ -10,7 +10,7 @@ public import LeanVM.Protocol.Extraction.Params
 
 `gsLaneAtFast` runs `gsRunDistinct` where the final root check is redundant (`checkRedundant`),
 and the full decoder (`decodeWithParams gsContextFast`) elsewhere. At the shapes the extractor
-decodes, the replay's admissible ones (`Whir.Admissible`: `15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`, checked by
+decodes, the replay's admissible ones (`Whir.Admissible`: `15 ≤ μ ≤ 40`, `1 ≤ R ≤ 4`, checked by
 `readSizesPure`, so by `afterRootDirect`: `admissible_of_afterRootDirect`), it is always
 redundant:
 
