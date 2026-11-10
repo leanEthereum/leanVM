@@ -29,14 +29,14 @@ family's seeds put the program at the statement's root history.
   and, computed through answers without collisions, names the statement, because the IV's
   preimage is the version tag then the bytecode's words, which name the program
   (`bytecodeWords_injective`), and the digest names the public input (`publicDigest_injective`).
-* **The certificate** (`anyCert`): past a statement's root, the doom of `leanVmCert` of that
+* **The certificate** (`anyCert`): past a statement's root, the doom of `stmtCert` of that
   statement on the rest of the history. Roots are prefix-free (`stmt_eq_of_prefix`), so the
-  history names the statement and every obligation is `leanVmCert`'s.
+  history names the statement and every obligation is `stmtCert`'s.
 
 `leanVm_knowledge` and `leanVm_execution` state knowledge soundness for an adversary of `QA`
-queries that outputs a statement and a proof: with `N = QA + 12006`, the verifier accepts while
+queries that outputs a statement and a proof: with `N = QA + 13261`, the verifier accepts while
 the extractor finds no witness of the adversary's statement with probability at most
-`N · (2^-128 + 5N / 2^256)`.
+`N · (2^-125 + 5N / 2^256)`, against the stacked opening's interface `O`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -74,11 +74,6 @@ theorem reachable_of_after_reads {P : VerifierProgram Bool} :
         rw [List.map_append, List.map_singleton]
         exact VerifierProgram.Reachable.read e (ih hq) hq
       | _ => simp [VerifierProgram.after] at hp
-
-theorem commits_map_read (l : List E) : commits (l.map Ev.read) = [] := by
-  induction l with
-  | nil => rfl
-  | cons x l ih => simpa [commits] using ih
 
 /-! ## Transport past a prefix without commitments -/
 
@@ -221,7 +216,7 @@ end Transport
 abbrev Statement : Type := LeanIsaProgram × PublicInput
 
 /-- A word as a scalar: its first limb. -/
-def wordE (k : K) : E := E.ofLimbs k 0 0
+def wordE (k : K) : E := E.ofLimbs k 0
 
 /-- The value of a word, as a natural number. -/
 def kNat (k : K) : ℕ := k.toBitVec.toNat
@@ -425,19 +420,21 @@ def leanVmSeeds : Seeds Statement where
 
 /-! ## The certificate -/
 
+variable (O : OpeningIface)
+
 /-- **Doom for every statement**: past a statement's root, its certificate's doom on the rest. -/
 def anyD (h : List Ev) : Prop :=
-  ∃ x, stmtHistory x <+: h ∧ (leanVmCert x.1 x.2).D (h.drop (stmtHistory x).length)
+  ∃ x, stmtHistory x <+: h ∧ (stmtCert O x.1 x.2).D (h.drop (stmtHistory x).length)
 
 open Classical in
 /-- The escape bound for every statement: its certificate's past its root, `0` elsewhere. -/
 noncomputable def anyε (h : List Ev) : ℝ≥0∞ :=
   if hx : ∃ x, stmtHistory x <+: h then
-    (leanVmCert hx.choose.1 hx.choose.2).ε (h.drop (stmtHistory hx.choose).length)
+    (stmtCert O hx.choose.1 hx.choose.2).ε (h.drop (stmtHistory hx.choose).length)
   else 0
 
 theorem anyD_iff (x : Statement) (h' : List Ev) :
-    anyD (stmtHistory x ++ h') ↔ (leanVmCert x.1 x.2).D h' := by
+    anyD O (stmtHistory x ++ h') ↔ (stmtCert O x.1 x.2).D h' := by
   constructor
   · rintro ⟨x', hx', hD⟩
     obtain rfl := stmt_eq_of_prefix hx' (List.prefix_append _ _)
@@ -446,7 +443,7 @@ theorem anyD_iff (x : Statement) (h' : List Ev) :
     exact ⟨x, List.prefix_append _ _, by simpa using hD⟩
 
 theorem anyε_eq (x : Statement) (h' : List Ev) :
-    anyε (stmtHistory x ++ h') = (leanVmCert x.1 x.2).ε h' := by
+    anyε O (stmtHistory x ++ h') = (stmtCert O x.1 x.2).ε h' := by
   unfold anyε
   split
   · rename_i hx
@@ -456,48 +453,48 @@ theorem anyε_eq (x : Statement) (h' : List Ev) :
     exact absurd ⟨x, List.prefix_append _ _⟩ hx
 
 /-- A doomed history is past a root. -/
-theorem anyD_split {h : List Ev} (hD : anyD h) :
-    ∃ x h', h = stmtHistory x ++ h' ∧ (leanVmCert x.1 x.2).D h' := by
+theorem anyD_split {h : List Ev} (hD : anyD O h) :
+    ∃ x h', h = stmtHistory x ++ h' ∧ (stmtCert O x.1 x.2).D h' := by
   obtain ⟨x, ⟨h', rfl⟩, hD⟩ := hD
   exact ⟨x, h', rfl, by simpa using hD⟩
 
 /-- **The certificate of every statement.** -/
 noncomputable def anyCert : Cert anyProgram where
-  D := anyD
-  ε := anyε
+  D := anyD O
+  ε := anyε O
   read := by
     intro h k e hr ha hD
-    obtain ⟨x, h', rfl, hDx⟩ := anyD_split hD
+    obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
     rw [List.append_assoc, anyD_iff]
-    exact (leanVmCert x.1 x.2).read e
+    exact (stmtCert O x.1 x.2).read e
       (reachable_drop hax (commits_stmtHistory x) hr h' rfl) (by rwa [after_drop hax] at ha) hDx
   grind := by
     intro h b k hr ha hD
-    obtain ⟨x, h', rfl, hDx⟩ := anyD_split hD
+    obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
     rw [List.append_assoc, anyD_iff]
-    exact (leanVmCert x.1 x.2).grind
+    exact (stmtCert O x.1 x.2).grind
       (reachable_drop hax (commits_stmtHistory x) hr h' rfl) (by rwa [after_drop hax] at ha) hDx
   commit := by
     intro h ht w k word hr ha hw hD
-    obtain ⟨x, h', rfl, hDx⟩ := anyD_split hD
+    obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
     rw [List.append_assoc, anyD_iff]
-    exact (leanVmCert x.1 x.2).commit word
+    exact (stmtCert O x.1 x.2).commit word
       (reachable_drop hax (commits_stmtHistory x) hr h' rfl) (by rwa [after_drop hax] at ha) hw hDx
   group := by
     intro h p hr hb ha hp hD
-    obtain ⟨x, h', rfl, hDx⟩ := anyD_split hD
+    obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
-    rw [esc_drop (h₀ := stmtHistory x) (commits_stmtHistory x) (anyD_iff x), anyε_eq]
-    exact (leanVmCert x.1 x.2).group (reachable_drop hax (commits_stmtHistory x) hr h' rfl)
+    rw [esc_drop (h₀ := stmtHistory x) (commits_stmtHistory x) (anyD_iff O x), anyε_eq]
+    exact (stmtCert O x.1 x.2).group (reachable_drop hax (commits_stmtHistory x) hr h' rfl)
       (boundary_drop hb) (by rwa [after_drop hax] at ha) hp hDx
   final := by
     intro h hr ha hD
-    obtain ⟨x, h', rfl, hDx⟩ := anyD_split hD
+    obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
-    exact (leanVmCert x.1 x.2).final (reachable_drop hax (commits_stmtHistory x) hr h' rfl)
+    exact (stmtCert O x.1 x.2).final (reachable_drop hax (commits_stmtHistory x) hr h' rfl)
       (by rwa [after_drop hax] at ha) hDx
 
 theorem grindBits_stmt (x : Statement) (h' : List Ev) :
@@ -508,17 +505,17 @@ theorem grindBits_stmt (x : Statement) (h' : List Ev) :
     simp [grindBits]
 
 /-- **The certificate's bound**: every escape bound, discounted by the proof of work before its
-group, is at most `2^-128`. -/
+group, is at most `2^-125`. -/
 theorem anyCert_bound (h : List Ev) :
-    (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * anyCert.ε h ≤ εLean := by
+    (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (anyCert O).ε h ≤ εmsg := by
   by_cases hx : ∃ x, stmtHistory x <+: h
   · obtain ⟨x, h', rfl⟩ : ∃ x h', h = stmtHistory x ++ h' := by
       obtain ⟨x, h', he⟩ := hx
       exact ⟨x, h', he.symm⟩
-    show _ * anyε _ ≤ _
+    show _ * anyε O _ ≤ _
     rw [anyε_eq, grindBits_stmt]
-    exact leanVmCert_bound x.1 x.2 h'
-  · show _ * anyε _ ≤ _
+    exact stmtCert_bound O x.1 x.2 h'
+  · show _ * anyε O _ ≤ _
     simp only [anyε, hx, ↓reduceDIte, mul_zero, zero_le]
 
 /-! ## The verifier of every statement -/
@@ -546,11 +543,11 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Opti
   | .read k, s, h₀, h => by
     simp only [xrun]
     split
-    · rfl
     · rcases absorb (m := Option) F s.sponge _ _ with _ | sp
       · rfl
       · simp only [Option.bind_some, List.append_assoc]
         exact xrun_append_hist H F _ _ h₀ _
+    · rfl
   | .sample k, s, h₀, h => by
     simp only [xrun]
     rcases squeeze (m := Option) F s.sponge with _ | r
@@ -560,16 +557,13 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Opti
   | .grind bits k, s, h₀, h => by
     simp only [xrun]
     split
-    · rfl
-    · rcases absorb (m := Option) F s.sponge _ _ with _ | sp
+    · rcases absorbNonce (m := Option) F s.sponge _ with _ | r
       · rfl
       · simp only [Option.bind_some]
-        rcases squeeze (m := Option) F sp with _ | r
+        split
+        · rw [List.append_assoc]; exact xrun_append_hist H F _ _ h₀ _
         · rfl
-        · simp only [Option.bind_some]
-          split
-          · rw [List.append_assoc]; exact xrun_append_hist H F _ _ h₀ _
-          · rfl
+    · rfl
   | .commit height width k, s, h₀, h => by
     simp only [xrun]
     split
@@ -579,9 +573,7 @@ theorem xrun_append_hist (H : Bytes → Option Digest) (F : KeccakState → Opti
         rcases absorb (m := Option) F sp0 _ _ with _ | sp1
         · rfl
         · simp only [Option.bind_some]
-          split
-          · rw [List.append_assoc]; exact xrun_append_hist H F _ _ h₀ _
-          · rfl
+          rw [List.append_assoc]; exact xrun_append_hist H F _ _ h₀ _
     · rfl
   | .query i ps k, s, h₀, h => by
     simp only [xrun]
@@ -597,7 +589,7 @@ theorem extractedFrom_eq (H : Bytes → Option Digest) (F : KeccakState → Opti
     (p : VerifierProgram Bool) (h₀ : List Ev) (π : Proof) (hv : Rom.verify H F σ p π = some true) :
     extractedFrom H F σ p h₀ π = h₀ ++ extractedHistory H F σ p π := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
-  have hx' := xrun_append_hist H F p ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ h₀ []
+  have hx' := xrun_append_hist H F p ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ h₀ []
   rw [List.append_nil, hx, Option.map_some] at hx'
   simp only [extractedFrom, hseed, hx']
 
@@ -606,13 +598,13 @@ theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : KeccakCalls.QueryC
     (hv : Rom.verify (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
       (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2))
       (leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest x.2)) π = some true)
-    (hd : DoomedRun (leanVmCert x.1 x.2) (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) π
+    (hd : DoomedRun (stmtCert O x.1 x.2) (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) π
       c) :
-    Doomed anyCert leanVmSeeds (x, π) c := by
+    Doomed (anyCert O) leanVmSeeds (x, π) c := by
   obtain ⟨h₀, hh₀, hb, hD⟩ := hd
   refine ⟨stmtHistory x ++ h₀, ?_,
     by show (stmtHistory x).length ≤ _; rw [List.length_append]; omega, ?_,
-    (anyD_iff x h₀).mpr hD⟩
+    (anyD_iff O x h₀).mpr hD⟩
   · change stmtHistory x ++ h₀ <+: extractedFrom (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
       (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) (nodeAt anyProgram (stmtHistory x))
       (stmtHistory x) π
@@ -631,42 +623,42 @@ that outputs a statement and a proof makes the deployed verifier, with Keccak-25
 random oracles,
 accept while `extractStack` does not extract admissible sizes `s` and a stack satisfying
 `M3Holds (leanIsaInstance prog s) input` for the adversary's statement with
-probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
+probability at most `(QA + 13261) · (2^-125 + failBound leanVmSeeds (QA + 13261))`. -/
 theorem leanVm_knowledge (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
-      ¬ Extracted z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) := by
-  have h := romSound_of_imp anyProgram anyCert leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εLean
-    anyCert_bound A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
-    (fun z c ↦ ¬ Extracted z.1.1 z.1.2 c z.2)
+      ¬ Extracted O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
+      ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) := by
+  have h := romSound_of_imp anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
+    (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
+    (fun z c ↦ ¬ Extracted O z.1.1 z.1.2 c z.2)
     (fun z c hv hb ↦ by
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
-      exact doomed_of_doomedRun hv (doomed_of_not_extracted z.1.1 z.1.2 hv hb))
+      exact doomed_of_doomedRun O hv (doomed_of_not_extracted O z.1.1 z.1.2 hv hb))
   rwa [leanVmQueryBound_eq] at h
 
 /-- **The extracted witness represents a valid execution, for chosen statements.** An adversary
 of `QA` queries that outputs a statement and a proof makes the deployed verifier accept, for a
 program with well-formed bytecode, while `extractStack` does not extract sizes `s` and a stack
 `q` whose witness represents a valid execution of the adversary's program on its public input,
-with probability at most `(QA + 12006) · (2^-128 + failBound leanVmSeeds (QA + 12006))`. -/
+with probability at most `(QA + 13261) · (2^-125 + failBound leanVmSeeds (QA + 13261))`. -/
 theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1.1.1 s)),
-        extractStack z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =
+        extractStack O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 =
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) := by
-  have h := romSound_of_imp anyProgram anyCert leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εLean
-    anyCert_bound A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
+      ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) := by
+  have h := romSound_of_imp anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
+    (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
-        extractStack z.1.1 z.1.2 c z.2 = some ⟨s, q⟩ ∧
+        extractStack O z.1.1 z.1.2 c z.2 = some ⟨s, q⟩ ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1 s q) t ∧ ValidExecution z.1.1 z.1.2 t)
     (fun z c hv hb ↦ by
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
-      exact doomed_of_doomedRun hv (doomed_of_not_extracted z.1.1 z.1.2 hv
+      exact doomed_of_doomedRun O hv (doomed_of_not_extracted O z.1.1 z.1.2 hv
         fun ⟨s, q, hx, hs, hM⟩ ↦ hb ⟨s, q, hx, execution_of_extracted hs hM⟩))
   rwa [leanVmQueryBound_eq] at h
 
@@ -681,22 +673,22 @@ theorem inv_pow_eq_div (k n : ℕ) (h : k ≤ n) :
     ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
 
 /-- **The numeric bound**: for an adversary of at most `2^64` queries, the bound of the
-knowledge statement is at most `2^-63`. -/
+knowledge statement is at most `2^-60`. -/
 theorem leanVm_bound_le {QA : ℕ} (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 12006 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + failBound leanVmSeeds (QA + 12006)) ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 63 := by
-  set N := QA + 12006 with hN
+    ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) ≤
+      (2 : ℝ≥0∞)⁻¹ ^ 60 := by
+  set N := QA + 13261 with hN
   have hfail : failBound leanVmSeeds N = ((5 * N : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
     rw [failBound, Nat.cast_pow, Nat.cast_ofNat]
     rfl
-  rw [hfail, inv_pow_eq_div 128 256 (by norm_num), ENNReal.div_add_div_same, ← mul_div_assoc,
-    ← Nat.cast_add, ← Nat.cast_mul, inv_pow_eq_div 63 256 (by norm_num)]
+  rw [hfail, inv_pow_eq_div 125 256 (by norm_num), ENNReal.div_add_div_same, ← mul_div_assoc,
+    ← Nat.cast_add, ← Nat.cast_mul, inv_pow_eq_div 60 256 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  have hN' : N ≤ 2 ^ 64 + 12006 := by omega
-  rw [show 256 - 128 = 128 from rfl, show 256 - 63 = 193 from rfl]
-  calc N * (2 ^ 128 + 5 * N) ≤ (2 ^ 64 + 12006) * (2 ^ 128 + 5 * (2 ^ 64 + 12006)) :=
+  have hN' : N ≤ 2 ^ 64 + 13261 := by omega
+  rw [show 256 - 125 = 131 from rfl, show 256 - 60 = 196 from rfl]
+  calc N * (2 ^ 131 + 5 * N) ≤ (2 ^ 64 + 13261) * (2 ^ 131 + 5 * (2 ^ 64 + 13261)) :=
         Nat.mul_le_mul hN' (Nat.add_le_add_left (Nat.mul_le_mul_left 5 hN') _)
-    _ ≤ 2 ^ 193 := by norm_num
+    _ ≤ 2 ^ 196 := by norm_num
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
