@@ -12,8 +12,7 @@ public import LeanVM.Guest.B1.Sig.WotsGroup
 # A group's arm, complete
 
 `groupArm_complete`: arm `k < 4^n` of a group from base `b` completes on `b + 6 ..< armB (4^n)`,
-its valuation the arm evaluated and its tips canonical, from canonical starts; the arm is in
-single-assignment form.
+its valuation the arm evaluated; the arm is in single-assignment form.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -25,19 +24,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 variable {C : CallRel} {rd : Reader}
 
 /-- **An arm of a group completes.** -/
-theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
+theorem groupArm_complete {W : WotsT} {B : Nat} (hW : StepShape W B)
+    {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
     (hk : k < 4 ^ n) (hB : B ≤ b + 6) (hpi : NBv B prodIn) (hei : NBv B encIn)
-    (hpw : NBv B (W.power (digitSum k n))) (σ : Val) (hg : good σ)
-    (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
-      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t
-        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
+    (hpw : NBv B (W.power (digitSum k n))) (σ : Val) :
     Completes C rd (b + 6) (armB W first n fold prodIn encIn b (4 ^ n))
       (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
         (armB W first n fold prodIn encIn b k)).1 σ
       (fun σ' => σ' = fwd (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
           (encT W fold n b) k (armB W first n fold prodIn encIn b k)).1 σ ∧
-        (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
         SSA (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
           (armB W first n fold prodIn encIn b k)).1) := by
   have hend : armB W first n fold prodIn encIn b (k + 1) ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
@@ -49,8 +44,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
   · subst hk0
     simp only [Nat.zero_add] at hend
     have h1 := armB_one W first n fold prodIn encIn b
-    rw [armB_zero] at hs ⊢
-    simp only [↓reduceIte] at hs ⊢
+    rw [armB_zero]
     obtain ⟨l1, l2, l3⟩ := arm0_lay W fold (n := n) hB
     have hR : ∀ x, WalksR (slotsT W fold b) (W.size + 1) 0 n (if fold then b + 6 + 1 else b + 6) x →
         x ≠ .n (groupStart fold b + chainStride W * n) ∧
@@ -68,8 +62,6 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
       hpoB (by omega)
       (fun hf => ⟨by have := hgsf hf; omega, by have := hgsf hf; omega⟩)
       hR (fun h => absurd rfl h)
-    obtain ⟨kc, ktip⟩ := armT_canon (first := first) (prodIn := prodIn) (encIn := encIn) hW hc l1 l2
-      (by omega) hR hssa.1 σ hg (by simpa using hs)
     obtain ⟨σ', he, hp, hh⟩ := fwd_completes (C := C) (rd := rd) (lo := b + 6)
       (hi := armB W first n fold prodIn encIn b (4 ^ n)) hssa.1 (fun x hx => by
         rcases hssa.2 x hx with h | rfl | rfl | ⟨-, rfl⟩ | ⟨h, -⟩
@@ -78,16 +70,13 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨b + 6, le_rfl, by omega, rfl⟩
-        · exact absurd rfl h) σ kc
-    refine ⟨σ', he, ⟨hp, fun t ht => ?_, hssa.1⟩, hh⟩
-    rw [hp]
-    exact ktip t ht
+        · exact absurd rfl h) σ
+    exact ⟨σ', he, ⟨hp, hssa.1⟩, hh⟩
   · have ha := armB_pos W first n fold prodIn encIn b hk0
     have hnext := armB_next_pos W first n fold prodIn encIn b k hk0
     have h1 : armB W first n fold prodIn encIn b 1 ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
       armB_mono W first n fold prodIn encIn b (Nat.one_le_two_pow.trans (Nat.pow_le_pow_left (by norm_num) n))
     have h1' := armB_one W first n fold prodIn encIn b
-    simp only [hk0, ↓reduceIte] at hs ⊢
     obtain ⟨l1, l2, l3⟩ := armPos_lay W fold (n := n) (k := k) (a := armB W first n fold prodIn encIn b k) hB ha
     have hws2 := walksT_snd W (slotsT W fold b) first k W.size n 0
       (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
@@ -120,9 +109,6 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
       (by simpa [hk0] using hR)
       (fun _ => ⟨by rw [hws2]; rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega,
         by rw [hws2]; omega, by rw [hws2]; omega, fun hf => by rw [hws2]; have := hb0f hf; omega⟩)
-    obtain ⟨kc, ktip⟩ := armT_canon (first := first) (prodIn := prodIn) (encIn := encIn) hW hc
-      (by simpa [hk0] using l1) (by simpa [hk0] using l2) (by omega) (by simpa [hk0] using hR) hssa.1 σ hg
-      (by simpa [hk0] using hs)
     obtain ⟨σ', he, hp, hh⟩ := fwd_completes (C := C) (rd := rd) (lo := b + 6)
       (hi := armB W first n fold prodIn encIn b (4 ^ n)) hssa.1 (fun x hx => by
         rcases hssa.2 x hx with h | rfl | rfl | ⟨-, rfl⟩ | ⟨-, rfl⟩
@@ -133,10 +119,8 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨_, by omega, by omega, rfl⟩
-        · exact ⟨_, by rw [hws2]; omega, by rw [hws2]; omega, rfl⟩) σ kc
-    refine ⟨σ', he, ⟨hp, fun t ht => ?_, hssa.1⟩, hh⟩
-    rw [hp]
-    exact ktip t ht
+        · exact ⟨_, by rw [hws2]; omega, by rw [hws2]; omega, rfl⟩) σ
+    exact ⟨σ', he, ⟨hp, hssa.1⟩, hh⟩
 
 /-- **A group's values are numbered below its end**, its digit word at `d`, its arms from `b`. -/
 theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {fold : Bool}

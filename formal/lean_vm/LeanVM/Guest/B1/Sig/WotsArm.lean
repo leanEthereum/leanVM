@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.Sig.WotsComplete
 * `walkSum`, `walkBase_eq`: where a walk starts;
 * `walkLay_zero`, `walkLay_pos`: the walks of arm `0` and of a later arm are laid out
   (`WalkLay`), their regions apart;
-* `armT_ssa`, `armT_canon`: an arm is in single-assignment form, its `KECCAK`s on canonical
-  inputs;
+* `armT_ssa`: an arm is in single-assignment form;
 * `armBase_*`: the arms' bases.
 -/
 
@@ -223,92 +222,6 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
       · cases fold <;> simp [mulS, copyS, cst, addS, outsList, aOuts] at h <;>
           rcases h with rfl | rfl | rfl <;> simp [hk]
 
-theorem kcanon_noKec {σ : Val} {ss : List Stmt}
-    (h : ∀ x ∈ ss, ∀ ins outs i o, x ≠ .atom (.keccak ins outs i o)) : KCanon σ ss :=
-  fun ins outs i o hm => absurd rfl (h _ hm ins outs i o)
-
-/-- **An arm's `KECCAK`s read canonical inputs**, and its tips are canonical. -/
-theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool}
-    {prodIn encIn : V} {po eo k b : Nat}
-    (hwl : ∀ t < n, WalkLay W B (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
-      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)))
-    (hwd : ∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
-      WalkR (slots t) (if k = 0 then W.size + 1 else W.size) (dig k t)
-        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b)) x →
-      ¬ WalkR (slots t') (if k = 0 then W.size + 1 else W.size) (dig k t')
-        (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t' (if fold then b + 1 else b)) x)
-    (hB : B ≤ b)
-    (hR : ∀ x, WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x →
-      x ≠ .n po ∧ x ≠ .n eo ∧ (fold = true → x ≠ .n b) ∧
-      (k ≠ 0 → x ≠ .n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2))
-    (hssa : SSA (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1)
-    (σ : Val) (hg : good σ)
-    (hs : ∀ t < n, StartCanon σ (slots t) (dig k t)
-      (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold then b + 1 else b))) :
-    KCanon (fwd (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 σ)
-        (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 ∧
-      ∀ t < n, IsCanonical128 (fwd (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 σ
-        (.n (slots t 2))) := by
-  have hpreK : KCanon (fwd (if fold = true then [cst b (word 0 0)] else []) σ) (if fold = true then [cst b (word 0 0)] else []) := kcanon_noKec (by
-    intro x hx ins outs i o e
-    subst e
-    cases fold <;> simp [cst] at hx)
-  have hσ1 : AgreeBelow B σ (fwd (if fold = true then [cst b (word 0 0)] else []) σ) := fwd_agree (by
-    intro v hv ⟨j, hj, e⟩
-    subst e
-    cases fold <;> simp [cst, outsList, aOuts] at hv
-    omega) σ
-  have hg1 := hc.1 _ _ hσ1 hg
-  have hs1 : ∀ t < n, StartCanon (fwd (if fold = true then [cst b (word 0 0)] else []) σ) (slots t) (dig k t) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold = true then b + 1 else b)) := by
-    intro t ht
-    have := hs t ht
-    unfold StartCanon at this ⊢
-    rw [fwd_of_not_mem _ _ fun hm => ?_]
-    · exact this
-    · cases fold
-      · simp [outsList] at hm
-      · simp only [↓reduceIte, cst, outsList, aOuts, List.append_nil, List.mem_singleton] at hm
-        refine (hR _ ⟨t, ht, ?_⟩).2.2.1 rfl hm
-        by_cases h3 : dig k t = 3
-        · simp only [walkStartV, h3, ↓reduceIte]
-          exact Or.inr ⟨2, by omega, 0, by omega, by simp⟩
-        · simp only [walkStartV, h3, ↓reduceIte]
-          exact Or.inl ⟨0, by simp [walkSize, h3], by simp⟩
-  obtain ⟨w1, w2⟩ := walksT_canon hW hc slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
-    (fwd (if fold = true then [cst b (word 0 0)] else []) σ) hg1 (by simpa using hs1)
-  simp only [Nat.zero_add] at w2
-  have fin : ∀ tail : List Stmt, (∀ x ∈ tail, ∀ ins outs i o, x ≠ .atom (.keccak ins outs i o)) →
-      (∀ v ∈ outsList tail, ∀ t < n, v ≠ .n (slots t 2)) →
-      SSA ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) →
-      KCanon (fwd ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ)
-          ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) ∧
-        ∀ t < n, IsCanonical128 (fwd ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ
-          (.n (slots t 2))) := by
-    intro tail hk ho hs'
-    refine ⟨KCanon.append (KCanon.append hpreK w1 (SSA.disj (SSA.left hs'))) (kcanon_noKec hk)
-      (SSA.disj hs'), fun t ht => ?_⟩
-    rw [fwd_append, fwd_append, fwd_of_not_mem _ _ fun hm => ho _ hm t ht rfl]
-    exact w2 t ht
-  have hsplit : (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 =
-      (if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++
-        (if k = 0 then [if fold then copyS (.n po) (W.power (digitSum k n))
-            else mulS (.n po) prodIn (W.power (digitSum k n)), copyS (.n eo) (if fold then .n b else encIn)]
-          else [if fold then copyS (.n po) (W.power (digitSum k n))
-            else mulS (.n po) prodIn (W.power (digitSum k n)),
-            cst (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2 (lit (W.enc first n k)),
-            addS (.n eo) (if fold then .n b else encIn) (.n (walksT W slots first k W.size n 0 (if fold = true then b + 1 else b)).2)]) := by
-    unfold armT
-    split <;> rfl
-  rw [hsplit] at hssa ⊢
-  refine fin _ (fun x hx ins outs i o e => ?_) (fun v hv t ht e => ?_) hssa
-  · subst e
-    revert hx
-    split <;> cases fold <;> simp [mulS, copyS, cst, addS]
-  · subst e
-    have hr := hR (.n (slots t 2)) ⟨t, ht, Or.inr ⟨2, by omega, 0, by omega, by simp⟩⟩
-    revert hv
-    split <;> cases fold <;> simp [mulS, copyS, cst, addS, outsList, aOuts] <;> simp_all
 /-- **An arm's values**: below `B`, in its walks' region, its product's and encoding's cells, its
 base and its walks' end. -/
 theorem armT_vals {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat → Nat}
