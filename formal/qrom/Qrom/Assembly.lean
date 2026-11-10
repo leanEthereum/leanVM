@@ -14,7 +14,7 @@ that a value the verifier reads, in the side state the game ends in, is good
 -/
 
 open Matrix OracleSpec
-open scoped Kronecker ENNReal
+open scoped Kronecker ENNReal ComplexOrder
 
 universe u v w
 
@@ -197,6 +197,42 @@ theorem sideW_congr {g g' : OvGame X Y S P Res} {G G' : X → Y}
     congr 1
   unfold sideW sampled tabRuntime
   rw [ha, hs, hinit]
+
+/-- A side state no run reaches carries no weight: a set of side states that no transition
+leaves into from outside and that the initial side state avoids. -/
+theorem blockW_unreachable (g : OvGame X Y S P Res) (G : X → Y) (V : Set S) [DecidablePred (· ∈ V)]
+    (hclosed : ∀ j s, (g.trans j s).2 ∈ V → s ∈ V) (hinit : g.init ∉ V) {L : LocalSig.{u, v}}
+    {W : QReg → Type w} {A : QReg} (I : L.Interp) (x : QuantumComp L (ovSpec X Y S P Res) W A)
+    (ρ : SubState A) (p : Σ u, W u) (s : S) (hs : s ∈ V) :
+    blockW s ((g.sampled G).jointPost I x ρ p).matrix = 0 := by
+  let z : SubState (QReg.of (S × Unit)) := ⟨0, PosSemidef.zero, by simp⟩
+  have hz : MatrixMap.conj (sideProj V) (g.sampled G).init.matrix = MatrixMap.conj (sideProj V) z.matrix := by
+    have hm : (g.sampled G).init.matrix = Matrix.single (g.init, ()) (g.init, ()) 1 := by
+      simp [sampled, tabRuntime, SubState.prod, SubState.matrix_basis, Matrix.single_kronecker_single]
+    rw [hm, MatrixMap.conj_apply, MatrixMap.conj_apply, sideProj, diagonal_mul_single']
+    simp [hinit, z]
+  have hj := conj_jointPost_eq_of_proj (s₀ := (g.sampled G).step) (s₁ := (g.sampled G).step)
+    (σ₀ := (g.sampled G).init) (σ₁ := z) I (g.sampled_branch G) (g.sampled_branch G)
+    (sideProj_conjTranspose V) (sideProj_mul_self V) (sampKraus_leak g hclosed G)
+    (sampKraus_leak g hclosed G) (fun _ _ ↦ rfl) hz x ρ p
+  rw [← blockW_proj V s hs]
+  change blockW s ((MatrixMap.conj (sideProj V)).amplifyLeft p.1
+    ((QuantumRuntime.mk (QReg.of (S × Unit)) (g.sampled G).init (g.sampled G).step).jointPost I x ρ p).matrix) = 0
+  rw [hj, QuantumRuntime.matrix_jointPost]
+  simp [blockW, z]
+
+/-- An event may be restricted to the side states a run reaches. -/
+theorem sideW_restrict (g : OvGame X Y S P Res) (G : X → Y) (V : Set S) [DecidablePred (· ∈ V)]
+    (hclosed : ∀ j s, (g.trans j s).2 ∈ V → s ∈ V) (hinit : g.init ∉ V) {L : LocalSig.{u, v}}
+    {W : QReg → Type w} {A : QReg} (I : L.Interp) (x : QuantumComp L (ovSpec X Y S P Res) W A)
+    (ρ : SubState A) (ev : (Σ u, W u) → S → Bool) :
+    sideW g G I x ρ ev = sideW g G I x ρ (fun p s ↦ ev p s && decide (s ∉ V)) := by
+  rw [sideW_eq_sum, sideW_eq_sum]
+  refine tsum_congr fun p ↦ Finset.sum_congr rfl fun s _ ↦ ?_
+  by_cases hs : s ∈ V
+  · rw [blockW_unreachable g G V hclosed hinit I x ρ p s hs]
+    simp
+  · simp [hs]
 
 end OvGame
 
