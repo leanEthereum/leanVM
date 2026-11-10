@@ -93,13 +93,13 @@ theorem weightAt_last {m : ℕ} {cs : List ChildClaims} (hcl : cs.length = m) (h
 
 /-- The sumcheck leaves a state's capacity and nothing waiting. -/
 theorem bsRun_cap : ∀ (rounds : List (E × E)) (claim : E) (s : Fs), rounds ≠ [] →
-    ∃ S, (aggBsRun rounds claim s).2 = ⟨capOf S, []⟩
+    ∃ S, (bsRun rounds claim s).2 = ⟨capOf S, []⟩
   | [], _, _, h => absurd rfl h
   | (g1, gInf) :: rest, claim, s, _ => by
     cases rest with
     | nil => exact ⟨((s.absorb g1 dsObserve).absorb gInf dsObserve).perm, rfl⟩
     | cons r rest' =>
-      rw [aggBsRun]
+      rw [bsRun]
       exact bsRun_cap _ _ _ (by simp)
 
 /-- The sponge after `λ`: the nonce's permutation's capacity, nothing waiting. -/
