@@ -125,6 +125,10 @@ theorem bind_same {S : γ → δ → Prop} {f : α → Script γ} {g : α → Sc
     (hk : ∀ a, Corr S (f a) (g a)) : Corr S (H.bind f) (H.bind g) :=
   bind (R := (· = ·)) (fun a _ h ↦ h ▸ hk a) H H (refl H)
 
+/-- Two results related. -/
+theorem ret_ret {R : α → β → Prop} {a : α} {b : β} (h : R a b) :
+    Corr R (Script.ret a) (Script.ret b) := h
+
 /-- Equal sends. -/
 theorem sendList (xs : List E) : Corr (fun _ _ ↦ True) (Script.sendList xs) (Script.sendList xs) :=
   mono (fun _ _ _ ↦ trivial) _ _ (refl _)
