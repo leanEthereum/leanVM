@@ -11,11 +11,11 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsComplete
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!
-# `decode_query_windows`, placed (lean_ethereum.py:798-909 at 40f877dc)
+# `decode_query_windows`, placed (`crates/rec_aggregation/guests/lean_ethereum.py`)
 
 **The form** (`QwDecodeAtD`, the windowed successor of `OsDecodeAtD`): at every frame pointer
 `fp`, for arguments whose loads lie in the caller's words (`QwRegs`: `positions` and `win_ptrs`
-below `192 / d`, the window table `tabs` below `128`; `RegPtrs [(1, 192 / d), (2, 192 / d),
+below `128 / d`, the window table `tabs` below `128`; `RegPtrs [(1, 128 / d), (2, 128 / d),
 (3, 128)]` unfolded), on every memory defined below `2^k` where the caller's words hold the
 window table, the word's positions and the pointers `g^(fp + cert name (.n 5))·g^(j·qwN)` into
 the `wins` run (`qwPtrAt`), a tree of `fs name` words holds (the word bound: the function is a
@@ -50,10 +50,10 @@ def qwPtrAt (cert : String → V → ℕ) (name : String) (fp d cd j : ℕ) : E 
   ofK (Parameters.addressOfIndex (fp + cert name (.n 5))) * gen ^ (j * qwN d cd)
 
 /-- The loads of `decode_query_windows(word, positions, win_ptrs, tabs)` lie in `R`: `positions`
-and `win_ptrs` below `192 / d`, `tabs` below `128` (`RegPtrs [(1, 192 / d), (2, 192 / d), (3, 128)]
+and `win_ptrs` below `128 / d`, `tabs` below `128` (`RegPtrs [(1, 128 / d), (2, 128 / d), (3, 128)]
 [w, pos, ptrs, tabs] R`, unfolded). -/
 def QwRegs (d : ℕ) (args : List E) (R : ℕ → Prop) : Prop :=
-  ∀ p ∈ [(1, 192 / d), (2, 192 / d), (3, 128)], ∀ t < p.2,
+  ∀ p ∈ [(1, 128 / d), (2, 128 / d), (3, 128)], ∀ t < p.2,
     ∃ i, (args.getD p.1 0).limb 0 * Parameters.addressOfIndex t = Parameters.addressOfIndex i ∧ R i
 
 /-- **`decode_query_windows__L{d}_L{cd}`, placed, on disjoint layouts**: at every frame pointer
@@ -64,7 +64,7 @@ def QwDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d
     Prop :=
   ∀ (w pos ptrs tabs : E) (Lin : Layout) (fp : ℕ),
     QwRegs d [w, pos, ptrs, tabs] (RegionL Lin) →
-    (∀ rd, LowDef k rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ j < 192 / d,
+    (∀ rd, LowDef k rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ j < 128 / d,
       LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧ LoadHolds rd ptrs j (qwPtrAt cert name fp d cd j)) →
     ∃ Lown : Layout, Within (qwRunL cert name fp d cd w ++ Lown) fp (fs name) ∧
       DisjL (qwRunL cert name fp d cd w ++ Lown) ∧
@@ -92,11 +92,11 @@ theorem qw_mem_blockAtoms {a : Atom} : ∀ {ss : List Stmt}, Stmt.atom a ∈ ss 
 
 /-- The body's statements before its `ret`. -/
 def qwPre (d cd : ℕ) : List Stmt :=
-  [.atom (.frameAddr (.n 4) qwRun)] ++ (qwPositions d cd 0 (192 / d) 61 none).1 ++
-    (qwRest d 0 (qwRestN d) (qwPositions d cd 0 (192 / d) 61 none).2.1
-      (qwPositions d cd 0 (192 / d) 61 none).2.2).1 ++
-    [.atom (.assertEq ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 (192 / d) 61 none).2.1
-      (qwPositions d cd 0 (192 / d) 61 none).2.2).2.2.getD (.n 0)) (.n 0))]
+  [.atom (.frameAddr (.n 4) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
+    (qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
+      (qwPositions d cd 0 (128 / d) 41 none).2.2).1 ++
+    [.atom (.assertEq ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
+      (qwPositions d cd 0 (128 / d) 41 none).2.2).2.2.getD (.n 0)) (.n 0))]
 
 theorem qwBody_eq (d cd : ℕ) : qwBody d cd = qwPre d cd ++ [.ret []] := by
   simp [qwBody, qwPre]
@@ -128,19 +128,19 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
     (hk : 7 ≤ k) : QwDecodeAtD fs cert k d cd name := by
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   intro w pos ptrs tabs Lin fp hreg hpre
-  have hM : 192 / d * qwN d cd ≤ 56 := hs.2.2.1
+  have hM : 128 / d * qwN d cd ≤ 36 := hs.2.2.1
   have hrunA : Atom.frameAddr (.n 4) qwRun ∈ Lift.blockAtoms fn.body := by
     rw [hbody]; exact qw_mem_blockAtoms (by simp [qwBody])
-  have hc5 : cert name (.n 5) + 56 ≤ fs name := by
-    have h := hfit name fn hfind (.n 4) (.n 5) ((List.range 55).map fun i ↦ V.n (5 + (i + 1)))
+  have hc5 : cert name (.n 5) + 36 ≤ fs name := by
+    have h := hfit name fn hfind (.n 4) (.n 5) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
       (by rw [← qwRun_eq]; exact hrunA)
     simpa using h
-  have hcell : ∀ x < 56, cert name (.n (5 + x)) = cert name (.n 5) + x := fun x hx ↦ by
-    have hx' : x < (V.n 5 :: (List.range 55).map fun i ↦ V.n (5 + (i + 1))).length := by
+  have hcell : ∀ x < 36, cert name (.n (5 + x)) = cert name (.n 5) + x := fun x hx ↦ by
+    have hx' : x < (V.n 5 :: (List.range 35).map fun i ↦ V.n (5 + (i + 1))).length := by
       simpa using hx
-    have h := hcons name fn hfind (.n 4) (.n 5) ((List.range 55).map fun i ↦ V.n (5 + (i + 1)))
+    have h := hcons name fn hfind (.n 4) (.n 5) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
       (by rw [← qwRun_eq]; exact hrunA) x hx'
-    have e : (V.n 5 :: (List.range 55).map fun i ↦ V.n (5 + (i + 1)))[x] = V.n (5 + x) := by
+    have e : (V.n 5 :: (List.range 35).map fun i ↦ V.n (5 + (i + 1)))[x] = V.n (5 + x) := by
       rcases x with _ | x
       · rfl
       · simp [Nat.add_comm]
@@ -160,7 +160,7 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
     hlow i (lt_of_lt_of_le hi (by
       calc 128 = 2 ^ 7 := rfl
         _ ≤ 2 ^ k := Nat.pow_le_pow_right (by decide) hk))
-  have hrunF : FrameRun rd run (192 / d * qwN d cd) (qwRunW d cd w) := by
+  have hrunF : FrameRun rd run (128 / d * qwN d cd) (qwRunW d cd w) := by
     refine ⟨ofK_isInK _, fun i hi v hv ↦ ?_⟩
     have h := (hR _ (List.mem_singleton_self _) i (by simpa [qwRunList] using hi)).2
     rw [hv, Option.some.injEq] at h
@@ -194,7 +194,7 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
   rw [← hps] at hp'
   simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
   obtain ⟨-, h1, h2, h3, -⟩ := hp
-  have hrunEs : (V.n 5, 56) ∈ runs es := by
+  have hrunEs : (V.n 5, 36) ∈ runs es := by
     refine List.mem_filterMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), ?_, by rw [qwRun_eq]; rfl⟩
     exact List.mem_flatMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), by simp [qwPre], by simp [slEvs]⟩
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
@@ -231,9 +231,9 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
       simp only [Ev.loadAddr?, Option.some.injEq] at hA
       subst hA
       rcases hok with ⟨hq, hoff⟩ | ⟨hq, hoff⟩ | ⟨e, he128, hq, rfl⟩
-      · obtain ⟨i, hi, hRi⟩ := hreg (1, 192 / d) (by simp) off hoff
+      · obtain ⟨i, hi, hRi⟩ := hreg (1, 128 / d) (by simp) off hoff
         exact ⟨i, by rw [hq]; exact hi, Or.inr (Or.inl hRi)⟩
-      · obtain ⟨i, hi, hRi⟩ := hreg (2, 192 / d) (by simp) off hoff
+      · obtain ⟨i, hi, hRi⟩ := hreg (2, 128 / d) (by simp) off hoff
         exact ⟨i, by rw [hq]; exact hi, Or.inr (Or.inl hRi)⟩
       · obtain ⟨i, hi, hRi⟩ := hreg (3, 128) (by simp) e he128
         have hTK : IsInK tabs := (hT 0 (by decide)).1
@@ -249,8 +249,8 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
     simp only [qwRunL, List.mem_singleton] at hq
     subst hq
     simp only [qwRunList, List.length_map, List.length_range] at hq2
-    exact Or.inl (Or.inr ⟨(V.n 5, 56), hrunEs, by show fp + cert name (.n 5) ≤ i; exact hq1,
-      by show i < fp + cert name (.n 5) + 56; omega⟩)
+    exact Or.inl (Or.inr ⟨(V.n 5, 36), hrunEs, by show fp + cert name (.n 5) ≤ i; exact hq1,
+      by show i < fp + cert name (.n 5) + 36; omega⟩)
 
 end
 end LeanVM.Guest.B1

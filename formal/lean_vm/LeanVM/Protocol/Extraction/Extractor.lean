@@ -232,24 +232,23 @@ def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
-/-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 15]` for the stack size `μ` and
-the rate exponent `R`. The soundness proof certifies the opening's `2^-128` per query at these
-slacks, each the largest at which every group of level 0 is at most `2^-128` (chosen offline by
-`lean_vm/scripts/whir-params/gen.py`): a larger slack means a smaller list of candidates and a
-smaller multiplicity, so a cheaper decoder. The table is copied from the proof's certificates,
-and the proof checks the copy against them for every admissible shape (`certOf_e_eq`,
-`thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
+/-- Level 0's Johnson slacks, `η = e / 2^30`: entry `[R − 1][μ − 15]` for the stack size `μ` and
+the rate exponent `R`. Each is the smallest slack whose threshold is the deployed level 0's,
+`A₀ = A_end − k` of the WHIR parameters' certificate (`AffineCombiner.foldTable`, exported from
+`derive_config_with_log_inv_rate`), at which the soundness proof bounds every group of the opening
+by `2^-125` after its grind. The table is copied from that certificate, and the proof checks the
+copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr₀`). -/
 def johnsonSlack : List (List ℕ) := [
-  [6676, 7275, 5527, 5165, 4984, 4765, 4720,
-    9241, 9214, 9200, 9198, 9194, 13737, 13737],
-  [2049, 14336, 13824, 13312, 13184, 13120, 13056,
-    13040, 13032, 13024, 13022, 13021, 13020, 13019],
-  [22794, 21557, 21195, 20886, 20796, 20750, 20728,
-    20716, 20707, 20704, 20703, 20701, 20701, 20700],
-  [14336, 13824, 13440, 13248, 13152, 13104, 13080,
-    13068, 13064, 13062, 13061, 13060, 13059, 13059]]
+  [14292205, 10251190, 7444318, 5254467, 3700794, 2629046, 1863797,
+    1325524, 1035908, 1059036, 1080840, 1104030, 1127913, 1144462],
+  [14156033, 9699393, 6946833, 4849669, 3440642, 2441217, 1728513,
+    1736705, 1773569, 1810433, 1847809, 1886977, 1927681, 1955777],
+  [11864695, 8271323, 5753775, 4003490, 2817053, 2133723, 2193467,
+    2252010, 2297666, 2344046, 2392580, 2443215, 2495989, 2532391],
+  [9306241, 6422561, 4423689, 3096579, 2424833, 2486273, 2551809,
+    2618369, 2670593, 2724865, 2781569, 2840449, 2901857, 2944289]]
 
-/-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
+/-- Level 0's slack `e` (`η = e/2^30`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
 
 /-- `⌈√x⌉` on natural numbers. -/
@@ -257,18 +256,17 @@ def ceilSqrt (x : ℕ) : ℕ := if Nat.sqrt x * Nat.sqrt x = x then Nat.sqrt x e
 
 /-- **The Johnson threshold** of level 0 for a stack of `2^μ` words at rate `2^-R`: with
 `κ = μ − 6` message variables, `n = 2^(κ+R)` columns and the degree bound `D = 2^κ − 1`, the
-agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the slack `η = e/2^22`
-(`johnsonSlackOf`), computed exactly in natural numbers: `(√(D/n) + η)·n = (√X + e·n)/2^22` with
-`X = 2^44·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
+agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the slack `η = e/2^30`
+(`johnsonSlackOf`), computed exactly in natural numbers: `(√(D/n) + η)·n = (√X + e·n)/2^30` with
+`X = 2^60·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
-and
-`15 ≤ μ ≤ 28`, the table's range. -/
+and `15 ≤ μ ≤ 28`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)
   let D := 2 ^ κ - 1
-  (ceilSqrt (2 ^ 44 * D * n) + johnsonSlackOf μ R * n + 2 ^ 22 - 1) / 2 ^ 22
+  (ceilSqrt (2 ^ 60 * D * n) + johnsonSlackOf μ R * n + 2 ^ 30 - 1) / 2 ^ 30
 
 /-! ### 4. Novel-basis coefficients and evaluations
 
