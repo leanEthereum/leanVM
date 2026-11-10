@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
-public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
