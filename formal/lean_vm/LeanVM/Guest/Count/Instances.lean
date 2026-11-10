@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
-public import LeanVM.Guest.B1.Place.OsFinalB
+public import LeanVM.Guest.B1.Place.OsSpec
 
 /-!
 # The budget's static hypotheses
@@ -107,8 +107,8 @@ theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun f K hK =>
   wSB_totalLe (List.all_eq_true.mp osKind_ok (f, K) (B1.os_mem_of_lookup B1.osKindTable hK))
 
 set_option maxRecDepth 100000 in
-/-- The residual loops of the candidates, checked. -/
-theorem osRes_ok : ∀ m < 28, ∀ l < (B1.Whir.osCfg m).levels.length,
+/-- The non-final levels' residual loops of the candidates, checked. -/
+theorem osRes_ok : ∀ m < 28, ∀ l < (B1.Whir.osCfg m).yrLevel,
     wOkK (wIdxL ((B1.Whir.osCfg m).loopBase + (B1.Whir.osCfg m).levels.length + l))
       ((B1.Whir.osCfg m).resLoop l) = true := by
   decide +kernel

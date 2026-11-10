@@ -3,10 +3,10 @@
 
   The verifier refusing what makes the guest divide by zero: a zero fold challenge `γ`, a zero
   closing-round challenge, a zero batching challenge `λ` of a non-final level, and a combiner
-  `α + β·x` vanishing at a queried point `x` (G:1460, 1693, 1810, 1817; G = `lean_ethereum.py` at
-  leanVM `98ceacf2`), as copies of the verifier's programs with a `require` at each. The
-  statement's honest child refuses a zero challenge anywhere
-  (`VerifierProgram.refusingZeroChallenge`, `Statement/LeanVmGuestCompleteness.lean`).
+  `α + β·x` vanishing at a queried point `x` (G:1449, 1644, 1781, 1787; G = `lean_ethereum.py` at
+  the pin), as copies of the verifier's programs with a `require` at each. The statement's honest
+  child refuses a zero challenge anywhere and a vanishing combiner
+  (`verifierRefusingZero`, `Statement/LeanVmGuestCompleteness.lean`).
 -/
 
 module
@@ -14,6 +14,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import Statement.LeanVmGuest
+public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.B1.Whir.Split
 
@@ -27,7 +28,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRound` refusing a zero `γ`: the guest divides by the `γ`s past level 0 in its residual
-pass (G:1810). -/
+pass (G:1781). -/
 def foldRoundNZ (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   VerifierProgram.grindProofOfWork Whir.foldGrindingBits
   let theta ← VerifierProgram.sampleChallenge
@@ -54,7 +55,7 @@ def foldRoundsNZ : ℕ → WhirState → VerifierProgram (WhirState × List Fold
     return (s, round :: rounds)
 
 /-- `sumcheck` refusing a zero challenge: the closing rounds' challenges, which the residual pass
-divides by (G:1817). -/
+divides by (G:1787). -/
 def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -65,12 +66,10 @@ def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (
     return (challenge :: point, final)
 
 /-- No round's combiner `α + β·x` vanishes at a queried point `x`: an opened row's fold divides
-by it (`opening_query`, G:1460). -/
-def CombinersNZ (queries : List ℕ) (rounds : List FoldRound) : Prop :=
-  ∀ q ∈ queries, ∀ r ∈ rounds, r.alpha + r.beta * ofK (K.ofBits q) ≠ 0
-
-instance (queries : List ℕ) (rounds : List FoldRound) : Decidable (CombinersNZ queries rounds) :=
-  inferInstanceAs (Decidable (∀ q ∈ queries, ∀ r ∈ rounds, _))
+by it (`opening_query`, `lean_ethereum.py:1447-1449`); the statement's
+`Completeness.CombinersNonzero`. -/
+abbrev CombinersNZ (queries : List ℕ) (rounds : List FoldRound) : Prop :=
+  Completeness.CombinersNonzero queries rounds
 
 /-- `whirLevels` refusing a zero `γ`, closing-round challenge or non-final `λ`, and a vanishing
 combiner at a queried point. -/

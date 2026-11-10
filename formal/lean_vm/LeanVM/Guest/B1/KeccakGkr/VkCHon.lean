@@ -15,16 +15,16 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCHon
 
 `VkData`: `τ`, the carried capacity, the table sumcheck's point, the output lanes, and the words
 the run reads (the committed word, the layers' words `Ts`, the openings' rounds, the word, the
-slices). From them, on `keccakSeg`'s run:
+slices). From them, on `verifyKeccak`'s run:
 
 * `seg`, `rl`, `s2`: the segment and lane coordinates squeezed, and the sponge after them;
 * `c0`: the first claim; `chain k`: the claim and the sponge before layer `k`; `layer k`: layer
   `k`'s `LayerData`;
 * `O`, `I`, `S`: the committed outputs' opening, the inputs' sumcheck and opening;
-* `op`, `point`, `m0`, `capF`: the results.
+* `op`, `point`, `sF`: the results and the sponge after the slices.
 
-`VkData.Ok`: what the honest run gives (`vi_seg`); `vkData_of_run`: an accepting run of
-`keccakSeg` from a carried capacity is a `VkData`'s.
+`VkData.Ok`: what the honest run gives (`vi_vk`); `vkData_of_run`: an accepting run of
+`verifyKeccak` from a carried capacity is a `VkData`'s.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -84,7 +84,7 @@ def T (k : ℕ) : LT := D.Ts.getD k default
 /-- **Layer `k`'s data.** -/
 def layer (k : ℕ) : LayerData :=
   ⟨(D.chain k).2.cap, D.committed, (D.chain k).1, (D.T k).1, (D.T k).2.1, (D.T k).2.2.1,
-    (D.T k).2.2.2⟩
+    (D.T k).2.2.2.1, (D.T k).2.2.2.2⟩
 
 /-- The claim and the sponge after the layers. -/
 def L : KeccakClaim × Fs := chainEnd (List.range keccakDepth) D.c0 D.S0 D.Ts
@@ -104,8 +104,8 @@ def op : List E := D.inst.take 4 ++ D.inst.drop 4 ++ D.O.1
 /-- The inputs' point. -/
 def point : List E := D.I.1 ++ D.L.1.point.take (D.τ - 4) ++ D.S.1
 
-/-- The ring map's first challenge and the sponge after it. -/
-def fin : E × Fs := (D.S.2.2.absorbAll D.slices dsObserve).squeeze
+/-- The sponge after the slices: a full queue. -/
+def sF : Fs := D.S.2.2.absorbAll D.slices dsObserve
 
 /-- The words the run reads. -/
 def xs : List E :=
@@ -115,7 +115,6 @@ def xs : List E :=
 /-- **What the honest run gives.** -/
 def Ok : Prop :=
   9 ≤ D.τ ∧ D.τ ≤ 28 ∧ D.τ ≤ D.chis.length ∧ D.outs.length = 25 ∧ D.f.length = 5 ∧
-    AllCanonical D.f ∧
     ChainOk D.τ (List.range keccakDepth) D.c0 D.S0 D.Ts ∧
     D.mO.length = 6 ∧ D.mI.length = 4 ∧ D.mS.length = 6 ∧ D.slices.length = 64 ∧
     ((foldAll D.O.1 (keccakSlotWeights D.τ D.c0 1 1)).headD []).headD 0 * D.word = D.O.2.1 ∧
@@ -125,22 +124,22 @@ def Ok : Prop :=
 end VkData
 
 set_option maxRecDepth 20000 in
-/-- **An accepting run of `keccakSeg` is a `VkData`'s.** -/
-theorem vkData_of_run {τ : ℕ} {f chis outs xs op point slices cap' : List E} {word m0 : E}
+/-- **An accepting run of `verifyKeccak` is a `VkData`'s.** -/
+theorem vkData_of_run {τ : ℕ} {f chis outs xs op point slices : List E} {word : E} {s' : Fs}
     (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (hchis : τ ≤ chis.length) (houts : outs.length = 25)
-    (hf : f.length = 5) (hcan : AllCanonical f) (hc : ∃ sp, (⟨f, []⟩ : Fs).Carries sp)
-    (h : RunsTo (keccakSeg τ (chis.take τ) outs) ⟨f, []⟩ xs
-      (([⟨qkeccak, op, word⟩], point, slices), m0) ⟨cap', []⟩) :
+    (hf : f.length = 5) (hc : ∃ sp, (⟨f, []⟩ : Fs).Carries sp)
+    (h : RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨f, []⟩ xs
+      ([⟨qkeccak, op, word⟩], point, slices) s') :
     ∃ D : VkData, D.τ = τ ∧ D.f = f ∧ D.chis = chis ∧ D.outs = outs ∧ D.word = word ∧
       D.slices = slices ∧ D.Ok ∧ D.xs = xs ∧ D.op = op ∧ D.point = point ∧
-      D.fin = (m0, ⟨cap', []⟩) := by
+      D.sF = s' := by
   obtain ⟨sp, hsp⟩ := hc
   have hT := runsTo_toT h hsp
   obtain ⟨committed, Ts, mO, mI, mS, hok, hmO, hmI, hmS, hsl, hchkO, hchkI, hfin, hxs, hop, hpt⟩ :=
-    vi_seg hT
+    vi_vk hT
   refine ⟨⟨τ, f, chis, outs, committed, Ts, mO, word, mI, mS, slices⟩, rfl, rfl, rfl, rfl, rfl, rfl,
-    ⟨hτ1, hτ2, hchis, houts, hf, hcan, hok, hmO, hmI, hmS, hsl, hchkO, hchkI⟩, hxs.symm, hop.symm,
-    hpt.symm, hfin⟩
+    ⟨hτ1, hτ2, hchis, houts, hf, hok, hmO, hmI, hmS, hsl, hchkO, hchkI⟩, hxs.symm, hop.symm,
+    hpt.symm, hfin.symm⟩
 
 end
 end LeanVM.Guest.B1.VerifySub
