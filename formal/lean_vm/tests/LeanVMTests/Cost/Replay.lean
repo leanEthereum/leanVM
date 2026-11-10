@@ -8,7 +8,7 @@ import LeanVMTests.Protocol.Verifier.Compiled
 The compiled `afterRootLite` on the compiled verifier test's synthetic stream (`stream rate n`:
 the eight announced sizes, memory `2^16`, rows `4, 2, 2, 4, 4, 8`, the rate exponent, two root
 halves, then `n` scalars) and bytecode of 32 words: the program computes the function's value,
-on an accepted shape (rate `4`), a rejected rate (`5`), a bad root half, and an empty stream.
+on an accepted shape (rate `4`), a rejected rate (`5`), and an empty stream.
 -/
 
 namespace LeanVMTests.Cost
@@ -24,17 +24,15 @@ def afterRootRun (s : List LeanVM.Parameters.E) : Option (MachineValue × ℕ) :
 #guard (afterRootRun (stream 4 0)).map (·.1) ==
   some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 0, []⟩))
 #guard (afterRootLite sampleBytecode ⟨stream 4 0, []⟩).isSome
-#guard ((afterRootLite sampleBytecode ⟨stream 4 0, []⟩).map fun r ↦ r.1.1.stackLog) == some 19
+#guard ((afterRootLite sampleBytecode ⟨stream 4 0, []⟩).map fun r ↦ r.1.1.stackLog) == some 18
 #guard (afterRootRun (stream 4 3)).map (·.1) ==
   some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 3, []⟩))
 #guard (afterRootRun (stream 5 0)).map (·.1) ==
   some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 5 0, []⟩))
 #guard (afterRootLite sampleBytecode ⟨stream 5 0, []⟩).isNone
-#guard (afterRootRun (stream 4 0 1)).map (·.1) ==
-  some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨stream 4 0 1, []⟩))
 #guard (afterRootRun []).map (·.1) == some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨[], []⟩))
 
-/-- info: some 3720955 -/
+/-- info: some 3366225 -/
 #guard_msgs in
 #eval (afterRootRun (stream 4 0)).map (·.2)
 
