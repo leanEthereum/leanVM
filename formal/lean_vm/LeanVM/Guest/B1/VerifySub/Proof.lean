@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Interface
-public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Main.Frames
 
 /-!
