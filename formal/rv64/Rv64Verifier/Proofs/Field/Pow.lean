@@ -116,7 +116,7 @@ theorem mulStep (hMul : EMulSpec) {s t : MachineState} (hpre : PowPre s) (ht : F
   have hc11 : c.getReg .x11 = s.getReg .x2 - 80 := by rw [b8000efec_x11 h₁, ht.sp]
   have hc12 : c.getReg .x12 = s.getReg .x11 := by rw [b8000efec_x12 h₁, ht.base]
   have hcm := b8000efec_mem_same h₁
-  have hpre' : MulPre c ∧ PoolOk c mulStack := ⟨{
+  have hpre' : MulArgs c ∧ PoolOk c mulStack := ⟨{
     out := by rw [hc10]; valid_sub hpre.stack.valid [hsp]
     lhs := by rw [hc11]; valid_sub hpre.stack.valid [hsp]
     rhs := by rw [hc12]; exact hpre.base

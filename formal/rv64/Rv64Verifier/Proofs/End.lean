@@ -1,6 +1,6 @@
 import Rv64Verifier.EndStatement
 import Rv64Verifier.Sym.Read
-import Rv64Verifier.Image
+import Rv64Verifier.Proofs.Rodata
 
 /-!
 # From `main`'s contract to the end statement
@@ -98,6 +98,11 @@ def MainPre (words : List Word) (s : MachineState) : Prop :=
   s.getReg .x10 = BitVec.ofNat 64 words.length ∧
   (∀ p ∈ Image.dataWords, s.getMem p.1 = p.2) ∧
   (∀ i (h : i < words.length), s.getMem (inputBase + BitVec.ofNat 64 (8 * i)) = words[i])
+
+/-- `main` starts with `.rodata` in place. -/
+theorem MainPre.rodataOk {words : List Word} {s : MachineState} (h : MainPre words s) :
+    RodataOk s :=
+  fun p hp ↦ h.2.2.2.1 p (List.mem_of_mem_filter hp)
 
 /-- `main` returns `1` only on an accepted proof. -/
 def MainPost (words : List Word) (_ t : MachineState) : Prop :=

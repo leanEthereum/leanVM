@@ -1,4 +1,4 @@
-import Rv64Verifier.Proofs.Common
+import Rv64Verifier.Proofs.Rodata
 import Rv64Verifier.Image
 
 /-!
@@ -18,7 +18,7 @@ open RiscvZkvm.Rv64 LeanVM.Parameters
 
 /-- `a0` = where the product goes (the return slot), `a1` = `self`, `a2` = `rhs`: valid `E`s,
 the result apart from both operands, all three apart from the stack. -/
-structure MulPre (s : MachineState) : Prop where
+structure MulArgs (s : MachineState) : Prop where
   out : ValidMemRange (s.getReg .x10) 3
   lhs : ValidMemRange (s.getReg .x11) 3
   rhs : ValidMemRange (s.getReg .x12) 3
@@ -28,6 +28,12 @@ structure MulPre (s : MachineState) : Prop where
   outStack : Apart (s.getReg .x10) 24 (stackLo s mulStack) mulStack
   lhsStack : Apart (s.getReg .x11) 24 (stackLo s mulStack) mulStack
   rhsStack : Apart (s.getReg .x12) 24 (stackLo s mulStack) mulStack
+
+/-- The arguments, and `.rodata` in place apart from the stack: `clmul_low` loads its mask from
+it. -/
+structure MulPre (s : MachineState) : Prop extends MulArgs s where
+  rodata : RodataOk s
+  stackRodata : Apart (stackLo s mulStack) mulStack rodataBase rodataSize
 
 /-- `*out = self * rhs`; memory changes only in `*out` and the stack. -/
 structure MulPost (s t : MachineState) : Prop where

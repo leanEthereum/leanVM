@@ -1,4 +1,5 @@
 import Rv64Verifier.Proofs.Contracts
+import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Blocks.F62
 import Statement.LeanVmVerifier
 
@@ -25,7 +26,8 @@ the entry's) to one; `0x8000dabc` sets `s1`, `s2` to the third limbs of `right` 
 `0x8000db40` copies `result` out and returns.
 
 The proof: `mismatch` or `setup`; the loop by `Reaches.loop` with `LoopInv` (`body`); `exit` from
-`FrameInv` with every element folded in. Every block fact comes from a generated lemma
+`FrameInv` with every element folded in. `mul` needs `.rodata`: the loop writes only the stack
+(`FrameInv.mem`), apart from it. Every block fact comes from a generated lemma
 (`b<pc>_x<n>`, `b<pc>_m_..`, `b<pc>_keeps`, `b<pc>_frame`, `b<pc>_pc..`), put in terms of the
 entry state by `rv_eval [invariant] at`; every address fact is `addr_omega`'s.
 -/
@@ -45,7 +47,7 @@ def left (s : MachineState) : List E := eListAt s (s.getReg .x11) (len s)
 def right (s : MachineState) : List E := eListAt s (s.getReg .x13) (len s)
 
 /-- `a0` is a valid `E` for the result, `a1`/`a2` and `a3`/`a4` valid slices, the stack below
-`sp` valid, all three apart from the stack. -/
+`sp` valid, all three apart from the stack, and `.rodata` in place apart from the stack. -/
 structure Pre (s : MachineState) : Prop where
   ret : ValidMemRange (s.getReg .x10) 3
   left : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
@@ -54,6 +56,8 @@ structure Pre (s : MachineState) : Prop where
   retStack : Apart (s.getReg .x10) 24 (stackLo s stackSize) stackSize
   leftStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s stackSize) stackSize
   rightStack : Apart (s.getReg .x13) (24 * (s.getReg .x14).toNat) (stackLo s stackSize) stackSize
+  rodata : RodataOk s
+  stackRodata : Apart (stackLo s stackSize) stackSize rodataBase rodataSize
 
 /-- The lengths agree, the result is `eqEval` of the slices, and memory changes only in the
 result and the stack. -/
@@ -273,7 +277,10 @@ theorem body (hMul : MulSpec) {s : MachineState} (hpre : Pre s)
     outRhs := by addr_omega [hsp, hu10, hu12]
     outStack := by addr_omega [hsp, hu10, hu2]
     lhsStack := by addr_omega [hsp, hu11, hu2]
-    rhsStack := by addr_omega [hsp, hu12, hu2] }
+    rhsStack := by addr_omega [hsp, hu12, hu2]
+    rodata := hpre.rodata.frame (ht.mem.trans hm₁ fun a ha ↦ by addr_omega [ha, hsp])
+      hpre.stackRodata
+    stackRodata := by addr_omega [hsp, hu2, hpre.stackRodata] }
   obtain ⟨v, hr₂, ⟨hvpc, hpres, hpost⟩ | hdead⟩ :=
     hMul.call hr₁ (b8000dad4_pc h₁) hpre'
   swap
@@ -394,5 +401,8 @@ theorem eq_eval_spec (hMul : MulSpec) : FunSpec Image.code 0x8000da88 Pre Post :
     · exact ⟨u, hsu, Or.inr hdead⟩
   · obtain ⟨t, hst, hdead⟩ := mismatch hpc hlen
     exact ⟨t, hst, Or.inr hdead⟩
+
+/-- **`eq_eval` meets its contract.** -/
+theorem eq_eval_proved : FunSpec Image.code 0x8000da88 Pre Post := eq_eval_spec Field.mul
 
 end Rv64Verifier.Proofs.EqEval

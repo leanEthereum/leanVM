@@ -10,11 +10,12 @@ import Rv64Verifier.Proofs.Field.Pow
 /-!
 # The field functions' contracts, with no hypotheses
 
-Each `Proofs/Field` contract, its callees' contracts discharged by their own proofs.
+Each `Proofs/Field` contract, its callees' contracts discharged by their own proofs, and
+`Contracts.MulSpec`, `M3` from `.rodata`.
 -/
 
 namespace Rv64Verifier.Proofs.Field
-open Rv64Verifier.FieldContracts
+open Rv64Verifier.FieldContracts Rv64Verifier.Contracts
 
 theorem clmul : ClmulSpec := Clmul.clmul_spec
 theorem baseMul : BaseMulSpec := BaseMulFun.base_mul_fun
@@ -25,6 +26,10 @@ theorem eSquare : ESquareSpec := Square.e_square_spec
 theorem kInv : KInvSpec := KInv.k_inv_spec kSquare baseMul
 theorem ePow : PowSpec := Pow.pow_spec eMul eSquare
 theorem eSum : SumSpec := Sum.sum_spec
+
+/-- **`mul` multiplies in `E`**, from `.rodata` in place. -/
+theorem mul : MulSpec := fun s hpc hpre ↦
+  eMul s hpc ⟨hpre.toMulArgs, poolOk_of_rodata hpre.rodata hpre.stackRodata⟩
 
 /-! Lean's three axioms, nothing native. -/
 
@@ -54,5 +59,8 @@ theorem eSum : SumSpec := Sum.sum_spec
 
 /-- info: 'Rv64Verifier.Proofs.Field.eSum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms eSum
+
+/-- info: 'Rv64Verifier.Proofs.Field.mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms mul
 
 end Rv64Verifier.Proofs.Field

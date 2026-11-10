@@ -6,11 +6,10 @@ import Rv64Verifier.Model.FieldAlg
 
 Statements only: a caller takes these as hypotheses, and `Proofs/Field/*.lean` prove them.
 
-`clmul_low` reads its mask `M3 = 0x8888888888888888` from the image's data at `0xa0000008`
+`clmul_low` reads its mask `M3 = 0x8888888888888888` from `.rodata` at `0xa0000008`
 (`Field/ClmulLow.lean`), so every function that reaches it asks for that word (`PoolOk`), apart
-from the stack it writes. `Contracts.MulSpec` leaves this out, and is false without it: from a
-state whose word at `0xa0000008` is not `M3`, `mul` returns a wrong product. `EMulSpec` is
-`MulSpec` with it.
+from the stack it writes; `RodataOk` gives it (`poolOk_of_rodata`). `EMulSpec` is `mul`'s contract
+with `PoolOk`; `Contracts.MulSpec`, with `RodataOk`, follows from it (`Proofs/Field/All.lean`).
 
 A `K` is a word (`kOf`); an `E` three (`eAt`). Every contract states the bytes below `sp` it may
 write, its callees' included, and the rest of the memory it may write.
@@ -29,6 +28,11 @@ def poolWord : Word := 0x8888888888888888
 structure PoolOk (s : MachineState) (n : Nat) : Prop where
   word : s.getMem poolAddr = poolWord
   apart : Apart poolAddr 8 (stackLo s n) n
+
+/-- `M3` from `.rodata`, the stack apart from it. -/
+theorem poolOk_of_rodata {s : MachineState} {n : Nat} (h : RodataOk s)
+    (ha : Apart (stackLo s n) n rodataBase rodataSize) : PoolOk s n :=
+  ⟨h.clmulMask, by addr_omega [ha]⟩
 
 /-- Memory changes only in the `n` bytes below `sp`. -/
 def StackFrame (s t : MachineState) (n : Nat) : Prop := MemFrame s t (stackLo s n) n
@@ -70,9 +74,9 @@ abbrev BaseMulSpec : Prop := FunSpec Image.code 0x8000d774 BaseMulPre BaseMulPos
 
 /-! ## `<E as Mul>::mul`, at `0x80008c48` -/
 
-/-- `Contracts.MulSpec` with `M3` in place. -/
+/-- `mul`'s contract with `M3` in place, for `.rodata`. -/
 abbrev EMulSpec : Prop :=
-  FunSpec Image.code 0x80008c48 (fun s ↦ MulPre s ∧ PoolOk s mulStack) MulPost
+  FunSpec Image.code 0x80008c48 (fun s ↦ MulArgs s ∧ PoolOk s mulStack) MulPost
 
 /-! ## `<E as Mul<K>>::mul`, at `0x8000ce64` -/
 
