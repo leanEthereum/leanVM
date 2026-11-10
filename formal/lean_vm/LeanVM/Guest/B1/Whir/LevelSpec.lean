@@ -30,16 +30,27 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+/-- The opened rows' lanes in `eq_kernel` order (V: `whirLevels`' `lanesOf`). -/
+def specLanes (index : ℕ) (row : List K) : List E :=
+  if index = 0 then row.reverse.map ofK else extRow row
+
+/-- A non-final level's batched query values (V: `whirLevels`' `batched`). -/
+def levelBatched (mu index : ℕ) (rounds : List FoldRound) (high : List E) (queries : List ℕ)
+    (words : List (List K)) (lam : E) : E :=
+  sumE (List.zipWith (fun (query, row) queryWeight ↦
+    queryWeight * (foldRow (specLanes index row) (K.ofBits query) rounds +
+      novelEval high (subspaceAt mu (K.ofBits query)) *
+        ofK ((subspaceAt mu (K.ofBits query)).getD mu 0)))
+    (List.zip queries words) (powers lam queries.length))
+
 /-- A non-final level after its folds (V: `whirLevels`, the `next :: _` arm): from the state `s`
 and the rounds, up to the glued state. -/
 def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
     (rounds : List FoldRound) : VerifierProgram WhirState := do
   let mu := logN - s.gammas.length
   let depth := mu + level.logInvRate
-  let lanesOf : List K → List E := fun row ↦
-    if index = 0 then row.reverse.map ofK else extRow row
-  let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
-  VerifierProgram.readCommitment height width
+  VerifierProgram.readCommitment (levelShape mu next (2 * 2 ^ next.fold)).1
+    (levelShape mu next (2 * 2 ^ next.fold)).2
   let high ← VerifierProgram.readScalars level.fold
   let oodPoints ← sampleOodPoints mu Whir.oodSamples
   let oodValues ← VerifierProgram.readScalars Whir.oodSamples
@@ -47,13 +58,9 @@ def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
   let queries ← sampleQueries depth level.queries
   VerifierProgram.grindProofOfWork Whir.batchGrindingBits
   let lam ← VerifierProgram.sampleChallenge
-  let queryWeights := powers lam queries.length
   let words ← VerifierProgram.queryOpenings index queries
-  let batched := sumE (List.zipWith (fun (query, row) queryWeight ↦
-    let what := subspaceAt mu (K.ofBits query)
-    queryWeight * (foldRow (lanesOf row) (K.ofBits query) rounds +
-      novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
-  return glueLevel s lam mu oodPoints oodValues queries queryWeights batched
+  return glueLevel s lam mu oodPoints oodValues queries (powers lam queries.length)
+    (levelBatched mu index rounds high queries words lam)
 
 /-- The final level after its folds (V: `whirLevels`, the `[]` arm), up to the terminal. -/
 def levelLast (logN laneFolds index : ℕ) (level : Whir.Level) (s : WhirState)
@@ -84,8 +91,8 @@ theorem whirLevelsOpen_next (logN laneFolds index : ℕ) (level next : Whir.Leve
         (levelNext logN index level next p.1 p.2).bind fun s ↦
           whirLevelsOpen logN laneFolds (index + 1) (next :: rest) s := by
   rw [whirLevelsOpen]
-  simp only [levelNext, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-    VerifierProgram.ret_bind]
+  simp only [levelNext, levelBatched, specLanes, levelShape, VerifierProgram.bind_eq,
+    VerifierProgram.pure_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
 /-- **The final level**: its folds, then `levelLast`. -/
 theorem whirLevelsOpen_last (logN laneFolds index : ℕ) (level : Whir.Level) (s : WhirState) :
