@@ -43,12 +43,8 @@ theorem pathRoot_of {s u0 : MachineState} {p R : Word} (hp : PathOk s u0 p) (hR 
   congr 1
   simp only [sibsAt, List.map_map]
   apply List.map_congr_left
-  intro i hi
-  simp only [List.mem_range] at hi
-  rcases hp.sibs with h0 | ⟨hS, -⟩
-  · omega
-  have hSb := Region.bounds hS
-  exact digestBits_at u0 (by addr_omega [hSb, hi]) (by addr_omega [hSb, hi])
+  intro i _
+  exact digestBits_bytes u0 _
 
 theorem sibCount {m : Word} (h0 : m ≠ 0) (hb : 32 * m.toNat < 2 ^ 64) :
     ((m * 32 - 32) >>> 5) + 1 = m := by
@@ -142,6 +138,7 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
   rcases hp.sibs with hz | ⟨hS, hSs⟩
   · exact absurd (BitVec.eq_of_toNat_eq (by rw [hz]; rfl)) hm0
   have hSb := Region.bounds hS
+  have hal0 := Sym.alignToDword_toNat (vecPtr u0 (p + 24))
   obtain ⟨t2, r2, h2⟩ := Sym.BlockSpec.reaches b8000abd4_spec
     (b8000abcc_pc_not_taken h1 (by rw [hh.x22, e40]; exact hm0)) (by
       rv_eval [k1 .x2 (by decide), k1 .x22 (by decide), hsp, hh.x22]
@@ -176,7 +173,7 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
     x27 := by
       rw [b8000abd4_x27 h2, b8000abcc_x10 h1, hh.x22, e40, hlen, BitVec.ofNat_toNat,
         BitVec.setWidth_eq]
-      exact sibCount hm0 (by omega)
+      exact sibCount hm0 (by have := mapped_of_wide hmN hS; simp only [Mapped] at this; omega)
     jlt := by rw [hlen]; omega
     index := by
       have := b8000abd4_m_x2_256 h2
@@ -187,11 +184,13 @@ theorem pathTail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) (hC 
         (by addr_omega [hm]) fun y hy hw' ↦ by addr_omega [hy, hw', hm], e1, hh.node]
     sibs := fun i hi ↦ by
       rw [hlen] at hi
-      rw [DFrame.bytes32 fr02 (by addr_omega [hSb, hi]) (by addr_omega [hSb, hi])
-        fun y hy ↦ hSs.misses hpre hvhi y (by addr_omega [hy, hSb, hi])]
+      have hal := Sym.alignToDword_toNat (vecPtr u0 (p + 24) + BitVec.ofNat 64 (32 * i))
+      rw [DFrame.bytesU fr02 (by addr_omega [hSb, hi, hal, hal0])
+        fun y hy ↦ hSs.misses hpre hvhi y (by addr_omega [hy, hSb, hi, hal, hal0])]
       simp [sibsAt]
     rodata := hrod.dframe frv2 (PW.rodata hpre hvhi) }
-  obtain ⟨t3, r3, hv3⟩ := climb_loop hM hK hpre (by rw [hlen]; exact hS) (by rw [hlen]; exact hSs.2.1)
+  obtain ⟨t3, r3, hv3⟩ := climb_loop hM hK hpre (by rw [hlen]; exact mapped_of_wide hmN hS)
+    (by rw [hlen]; exact apart_of_wide hSs.2.1)
     _ 0 t2 rfl hc
   rcases hv3 with hd | hcl
   · exact ⟨t3, r1.trans (r2.trans r3), Or.inl hd⟩

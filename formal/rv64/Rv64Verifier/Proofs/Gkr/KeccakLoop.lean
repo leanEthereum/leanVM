@@ -16,7 +16,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 attribute [local rv_addr] vecPtr vecLen vecCap
 
-theorem K.block {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s)
+theorem K.block {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s)
     (k : K s u first c) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) {rs : List (Nat × Nat)}
     (hok : SlotsOk rs = true) (h1 : SlotsSep rs 5216 8 = true) (h2 : SlotsSep rs 5200 24 = true)
     (h3 : SlotsSep rs 5072 120 = true) (F : DFrame u v (Slots s rs)) : K s v first c := by
@@ -26,7 +26,7 @@ theorem K.block {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : Ver
     (by simp only [heapNext, hN]; exact le_refl _) hok h1 h2 h3 (slots_sw F)
 
 /-- A doubleword `J` bytes below the entry's `sp` that the step does not write. -/
-theorem SW.word {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
+theorem SW.word {s u v : MachineState} (hpre : VerifyKeccakPreW s) (hH : HeapOk v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) (F : DFrame u v (SW s u v rs sp))
     {J : Nat} (hJ : J ≤ 5248) (h8 : 8 ≤ J) (hsep : SlotsSep rs J 8 = true) {y : Word}
     (hy : y.toNat + J = (s.getReg .x2).toNat) : v.getMem y = u.getMem y := by
@@ -38,7 +38,7 @@ theorem SW.word {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v
 /-- After `memcpy(f + 320, f + 1976, 72)` and the header's stores: the claim returned at
 `f + 1952` (at `t`, whose memory `u` keeps) is at `f + 296`. -/
 theorem moved {s t u w v : MachineState} {first cl : KeccakClaim} {c : E}
-    (hpre : VerifyKeccakPre s) (Ku : K s u first c) (htu : ∀ a, u.getMem a = t.getMem a)
+    (hpre : VerifyKeccakPreW s) (Ku : K s u first c) (htu : ∀ a, u.getMem a = t.getMem a)
     (hc : ClaimOut s t (s.getReg .x2 - 3296) cl) (x2w : w.getReg .x2 = s.getReg .x2 - 5248)
     (hNw : heapNext w = heapNext u) (F₅ : DFrame u w (SW s u w [(4928, 72)] false))
     (hcopy : ∀ j < 9, w.getMem (s.getReg .x2 - 4928 + BitVec.ofNat 64 (8 * j)) =
@@ -126,7 +126,7 @@ structure A12 (s u : MachineState) (first : KeccakClaim) (c : E) (cl : KeccakCla
   lens : Lens cl
   rest : Rest s u (kTail (s.getReg .x12).toNat (instOf s) first c cl)
 
-theorem A11.toK {s u : MachineState} {seg lp : List E} {c : E} (hpre : VerifyKeccakPre s)
+theorem A11.toK {s u : MachineState} {seg lp : List E} {c : E} (hpre : VerifyKeccakPreW s)
     (A : A11 s u seg lp c) : K s u (kFirst (instOf s) seg lp (outOf s) c) c := by
   have hb := bounds hpre
   have e24 : s.getReg .x2 - 5048 + 24 = s.getReg .x2 - 5024 :=
@@ -151,7 +151,7 @@ theorem A11.toK {s u : MachineState} {seg lp : List E} {c : E} (hpre : VerifyKec
 
 /-! ## An `Err` from a layer -/
 
-theorem m48_of {s u : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s)
+theorem m48_of {s u : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s)
     (k : K s u first c) (hx2 : u.getReg .x2 = s.getReg .x2 - 5248) :
     u.getMem (u.getReg .x2 + 48) = s.getReg .x10 := by
   have hb := bounds hpre
@@ -168,7 +168,7 @@ theorem ofNat_succ (k : Nat) : BitVec.ofNat 64 k + 1 = BitVec.ofNat 64 (k + 1) :
   omega
 
 theorem loop_step (hVL : VerifyLayerSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
-    {s u : MachineState} {first cl : KeccakClaim} {c : E} {k : Nat} (hpre : VerifyKeccakPre s)
+    {s u : MachineState} {first cl : KeccakClaim} {c : E} {k : Nat} (hpre : VerifyKeccakPreW s)
     (A : L s u first c k cl) :
     ∃ v, Reaches Image.code u v ∧ ((∃ cl', L s v first c (k + 1) cl') ∨
       (∃ cl', A12 s v first c cl') ∨ Done s v) := by
@@ -366,7 +366,7 @@ theorem loop_step (hVL : VerifyLayerSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
 
 /-- The loop, from layer `k` on. -/
 theorem loop (hVL : VerifyLayerSpec) (hMC : Runtime.MemcpySpec 0x800126e4) {s : MachineState}
-    {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s) :
+    {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s) :
     ∀ n k u cl, 12 - k = n → L s u first c k cl →
       ∃ v, Reaches Image.code u v ∧ ((∃ cl', A12 s v first c cl') ∨ Done s v) := by
   intro n
@@ -383,7 +383,7 @@ theorem loop (hVL : VerifyLayerSpec) (hMC : Runtime.MemcpySpec 0x800126e4) {s : 
 /-! ## Layer `0` -/
 
 theorem to_loop (hVL : VerifyLayerSpec) (hMC : Runtime.MemcpySpec 0x800126e4) {s u : MachineState}
-    {seg lp : List E} {c : E} (hpre : VerifyKeccakPre s) (A : A11 s u seg lp c) :
+    {seg lp : List E} {c : E} (hpre : VerifyKeccakPreW s) (A : A11 s u seg lp c) :
     ∃ v, Reaches Image.code u v ∧
       ((∃ cl, L s v (kFirst (instOf s) seg lp (outOf s) c) c 1 cl) ∨ Done s v) := by
   have hb := bounds hpre

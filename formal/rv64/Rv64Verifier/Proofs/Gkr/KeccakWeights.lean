@@ -62,7 +62,7 @@ structure WS (s u₀ u : MachineState) (wp lptr : Word) (lanes : List E) (j : Na
   heapEq : heapNext u = heapNext u₀
   elems : eListAt u wp j = (kWeights lanes).take j
 
-theorem lwr_kw {s u₀ v : MachineState} (hpre : VerifyKeccakPre s) {wp lptr : Word}
+theorem lwr_kw {s u₀ v : MachineState} (hpre : VerifyKeccakPreW s) {wp lptr : Word}
     {lanes : List E} (K : WK s u₀ wp lptr lanes) (hv : heapNext v = heapNext u₀) (hH : HeapOk v)
     {a : Word}
     (h : LWr s wp a) : KW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104 := by
@@ -80,7 +80,7 @@ theorem lwr_kw {s u₀ v : MachineState} (hpre : VerifyKeccakPre s) {wp lptr : W
   · exact ⟨Or.inr (Or.inr (Or.inl (by addr_omega [h, hb]))), by addr_omega [h, hb]⟩
 
 theorem w_step (hMK : MulKSpec) {s u₀ u : MachineState} {wp lptr : Word} {lanes : List E} {j : Nat}
-    (hpre : VerifyKeccakPre s) (K : WK s u₀ wp lptr lanes) (hj : j < 1600)
+    (hpre : VerifyKeccakPreW s) (K : WK s u₀ wp lptr lanes) (hj : j < 1600)
     (hpc : u.pc = 0x80009044) (W : WS s u₀ u wp lptr lanes j) :
     ∃ v, Reaches Image.code u v ∧ ((v.pc = 0x80009044 ∧ j + 1 < 1600 ∧
       WS s u₀ v wp lptr lanes (j + 1)) ∨ (v.pc = 0x80009098 ∧ WS s u₀ v wp lptr lanes 1600) ∨
@@ -261,7 +261,7 @@ theorem w_step (hMK : MulKSpec) {s u₀ u : MachineState} {wp lptr : Word} {lane
     rw [hx9, hx20, e]; rfl
 
 theorem w_loop (hMK : MulKSpec) {s u₀ u : MachineState} {wp lptr : Word} {lanes : List E}
-    (hpre : VerifyKeccakPre s) (K : WK s u₀ wp lptr lanes) (hpc : u.pc = 0x80009044)
+    (hpre : VerifyKeccakPreW s) (K : WK s u₀ wp lptr lanes) (hpc : u.pc = 0x80009044)
     (W : WS s u₀ u wp lptr lanes 0) : ∃ v, Reaches Image.code u v ∧
       ((v.pc = 0x80009098 ∧ WS s u₀ v wp lptr lanes 1600) ∨ Dead Image.code v) := by
   refine Reaches.loop (fun v ↦ ∃ j, j < 1600 ∧ v.pc = 0x80009044 ∧ WS s u₀ v wp lptr lanes j)
@@ -274,7 +274,7 @@ theorem w_loop (hMK : MulKSpec) {s u₀ u : MachineState} {wp lptr : Word} {lane
   · exact Or.inl ⟨w, hr, Or.inr hd⟩
 
 /-- The loop's writes miss the bytes from `sp - J` below `f + 1952`. -/
-theorem lwr_slot {s : MachineState} (hpre : VerifyKeccakPre s) {wp : Word} {J m : Nat}
+theorem lwr_slot {s : MachineState} (hpre : VerifyKeccakPreW s) {wp : Word} {J m : Nat}
     (hJ : J ≤ 5248) (hm : 3296 + m ≤ J) (hw : 0x20000000 ≤ wp.toNat)
     (hw2 : wp.toNat + 38400 ≤ heapEnd) : Misses (LWr s wp) (s.getReg .x2 - BitVec.ofNat 64 J) m := by
   intro y hy h
@@ -284,7 +284,7 @@ theorem lwr_slot {s : MachineState} (hpre : VerifyKeccakPre s) {wp : Word} {J m 
   simp only [LWr] at h
   rcases h with h | h | h <;> addr_omega [h, hy, hb, hab, hJ, hm, hw, hw2]
 
-theorem lwr_buf {s : MachineState} (hpre : VerifyKeccakPre s) {wp p : Word} {n : Nat}
+theorem lwr_buf {s : MachineState} (hpre : VerifyKeccakPreW s) {wp p : Word} {n : Nat}
     (hp : p.toNat + n ≤ heapEnd) (hw : Apart p n wp 38400) : Misses (LWr s wp) p n := by
   intro y hy h
   have hb := bounds hpre
@@ -293,7 +293,7 @@ theorem lwr_buf {s : MachineState} (hpre : VerifyKeccakPre s) {wp p : Word} {n :
   simp only [LWr] at h
   rcases h with h | h | h <;> addr_omega [h, hy, hb, hab, hp, hw]
 
-theorem vec_lwr {s u v : MachineState} (hpre : VerifyKeccakPre s) {wp : Word} {J : Nat}
+theorem vec_lwr {s u v : MachineState} (hpre : VerifyKeccakPreW s) {wp : Word} {J : Nat}
     {xs : List E} (h : NewVecE s u (s.getReg .x2 - BitVec.ofNat 64 J) xs) (hJ : J ≤ 5248)
     (hm : 3296 + 24 ≤ J) (hw : 0x20000000 ≤ wp.toNat) (hw2 : wp.toNat + 38400 ≤ heapEnd)
     (hu : heapNext u ≤ heapEnd) (F : DFrame u v (LWr s wp)) (hN : heapNext u ≤ heapNext v)
@@ -308,7 +308,7 @@ theorem vec_lwr {s u v : MachineState} (hpre : VerifyKeccakPre s) {wp : Word} {J
   · intro y hy; simp only [Within, h0] at hy; omega
   · exact lwr_buf hpre (by omega) hsep
 
-theorem M.lwr {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPre s) (c : M s u seg)
+theorem M.lwr {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPreW s) (c : M s u seg)
     (B : Base s v) {wp : Word} (F : DFrame u v (LWr s wp)) (hN : heapNext u ≤ heapNext v)
     (hw : 0x20000000 ≤ wp.toNat) (hw2 : wp.toNat + 38400 ≤ heapEnd)
     (hsw : Apart (vecPtr u (s.getReg .x2 - 5168)) ((vecCap u (s.getReg .x2 - 5168)).toNat * 24)
@@ -353,7 +353,7 @@ structure A6 (s u : MachineState) (seg lp : List E) : Prop extends M s u seg whe
   rest : Rest s u (kLanes (s.getReg .x12).toNat (instOf s) (outOf s) seg lp)
 
 theorem to_weights (hMK : MulKSpec) {s u : MachineState} {seg lp : List E}
-    (hpre : VerifyKeccakPre s) (A : A5 s u seg lp) :
+    (hpre : VerifyKeccakPreW s) (A : A5 s u seg lp) :
     ∃ v, Reaches Image.code u v ∧ (A6 s v seg lp ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have B := A.base

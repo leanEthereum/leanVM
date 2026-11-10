@@ -172,8 +172,8 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ c : MachineState} {A : List E}
     {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s) (hpc : c.pc = 0x80006428)
     (h : AtBus OI s u₀ c A k R Q B lo lo2) :
-    ∃ t, Reaches Image.code c t ∧ ((∃ bus, AtR17 OI s t (layoutOf A k) (rowsOf A) (rateOf A) bus) ∨
-      Done OI s t ∨ Dead Image.code t) := by
+    ∃ t, Reaches Image.code c t ∧ (((∃ bus, AtR17 OI s t (layoutOf A k) (rowsOf A) (rateOf A) bus) ∧
+      PlApart s t) ∨ Done OI s t ∨ Dead Image.code t) := by
   obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 11392) 1424 := hpre.stack.valid
   have I := h.inv
@@ -252,7 +252,29 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
       (fun _ ↦ by have := i.isLt; rw [tp]; addr_omega [hb1])]
   have hbtr := h.tracks
   rw [hroot.symm] at hbtr
-  refine ⟨t, hr.trans hr₁, Or.inl ⟨bus, {
+  -- the placements, below `NEXT` at the call, miss the claims' buffer, allocated by it
+  have hpl : PlApart s t := by
+    have hp := h.at15.layoutIn.placements
+    have hmn := h.st.mono
+    have hci := hbus.claimsIn
+    have e8 : s.getReg .x2 - 1984 + 8 = s.getReg .x2 - BitVec.ofNat 64 1976 := by
+      apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
+    have e16 : s.getReg .x2 - 1984 + 16 = s.getReg .x2 - BitVec.ofNat 64 1968 := by
+      apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
+    have e1 : vecPtr t (s.getReg .x2 - 1984) = vecPtr u₀ (s.getReg .x2 - 1984) := by
+      simp only [vecPtr]; rw [e8]; exact sl 1976 (by omega) (by omega)
+    have e2 : vecLen t (s.getReg .x2 - 1984) = vecLen u₀ (s.getReg .x2 - 1984) := by
+      simp only [vecLen]; rw [e16]; exact sl 1968 (by omega) (by omega)
+    have e3 : vecPtr t (s.getReg .x2 - 928) = vecPtr y (s.getReg .x2 - 928) := by
+      simp only [vecPtr, m₁]
+    have e4 : vecCap t (s.getReg .x2 - 928) = vecCap y (s.getReg .x2 - 928) := by
+      simp only [vecCap, m₁]
+    unfold PlApart
+    rw [e1, e2, e3, e4]
+    simp only [Old, BufIn] at hp hci
+    simp only [Apart]
+    omega
+  refine ⟨t, hr.trans hr₁, Or.inl ⟨⟨bus, {
     pc := b800035dc_pc_not_taken h₁ he
     inv := It
     proofPtr := by
@@ -323,7 +345,7 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
       subst er
       exact ⟨T', e, TranscriptAt.same hpre Iy (by
         rw [show tp s = s.getReg .x2 - BitVec.ofNat 64 2448 from rfl,
-          st.slot15 hpre (by omega) (by omega)]; exact H.proofPtr) m₁ hT'⟩ }⟩⟩
+          st.slot15 hpre (by omega) (by omega)]; exact H.proofPtr) m₁ hT'⟩ }⟩, hpl⟩⟩
 
 /-- R15 and R16: from `AtR15` (`0x800034c0`) to `AtR17` (`0x800035f0`), or an `Err` return, or a
 dead end. -/
@@ -333,14 +355,14 @@ theorem r1516 {BcOk : MachineState → Nat → Word → Prop}
     {OI : MachineState → Word → List (List Opening) → Prop} {s u₀ : MachineState} {A : List E}
     {k : Nat} {R Q B : Word} {lo lo2 : Nat} (hpre : WalkPre s) (hpc : u₀.pc = 0x800034c0)
     (h : AtR15 OI s u₀ A k R Q B lo lo2) :
-    ∃ t, Reaches Image.code u₀ t ∧ ((∃ layout rows lir bus, AtR17 OI s t layout rows lir bus) ∨
-      Done OI s t ∨ Dead Image.code t) := by
+    ∃ t, Reaches Image.code u₀ t ∧ ((∃ layout rows lir bus, AtR17 OI s t layout rows lir bus ∧
+      PlApart s t) ∨ Done OI s t ∨ Dead Image.code t) := by
   obtain ⟨c, hr, hd | hd | ⟨hpc₁, hc⟩⟩ := r15 hNS hDL hpre hpc h
   · exact ⟨c, hr, Or.inr (Or.inl hd)⟩
   · exact ⟨c, hr, Or.inr (Or.inr hd)⟩
   obtain ⟨t, hr', ht | ht | ht⟩ := r16 hBB hBW hDL hpre hpc₁ hc
-  · obtain ⟨bus, hb⟩ := ht
-    exact ⟨t, hr.trans hr', Or.inl ⟨_, _, _, bus, hb⟩⟩
+  · obtain ⟨⟨bus, hb⟩, hpl⟩ := ht
+    exact ⟨t, hr.trans hr', Or.inl ⟨_, _, _, bus, hb, hpl⟩⟩
   · exact ⟨t, hr.trans hr', Or.inr (Or.inl ht)⟩
   · exact ⟨t, hr.trans hr', Or.inr (Or.inr ht)⟩
 

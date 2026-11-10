@@ -102,7 +102,7 @@ theorem ClaimOut.mono {s s' u : MachineState} {a : Word} {c : KeccakClaim} (h : 
   ⟨Open.newVecE_mono h.mu hs, Open.newVecE_mono h.point hs, Open.newVecE_mono h.weights hs, h.value⟩
 
 /-- A claim in a slot that a step does not write. -/
-theorem ClaimOut.step {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem ClaimOut.step {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hH : HeapOk v) (hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} {sp : Bool}
     (hok : SlotsOk rs = true) {J : Nat} (hJ : J ≤ 5248) (h96 : 96 ≤ J)
     (hsep : SlotsSep rs J 96 = true) (F : DFrame u v (SW s u v rs sp)) {cl : KeccakClaim}
@@ -155,7 +155,7 @@ theorem claimOut_copy {s v : MachineState} {a b : Word} {cl : KeccakClaim} (h : 
     q 11 (by decide) 72 16 rfl (b + 72 + 16) (a + 72 + 16) (by addr_omega [hb]) (by addr_omega [ha])]
 
 /-- A non-empty `Vec` allocated since the entry. -/
-theorem vec_facts {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {a : Word}
+theorem vec_facts {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {a : Word}
     {xs : List E} (h : NewVecE s u a xs) (hne : xs ≠ []) :
     VecRegion u a ∧ VecOutside u a ∧ (∀ lo m, heapEnd ≤ lo.toNat → VecApart u a lo m) ∧
       VecApart u a (s.getReg .x11 + 8) 344 := by
@@ -180,7 +180,7 @@ structure K (s u : MachineState) (first : KeccakClaim) (c : E) : Prop where
   firstLens : Lens first
   committed : eAt u (s.getReg .x2 - 5072) = c
 
-theorem K.step {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s)
+theorem K.step {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s)
     (k : K s u first c) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v)
     (hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     (h1 : SlotsSep rs 5216 8 = true) (h2 : SlotsSep rs 5200 24 = true)
@@ -200,7 +200,7 @@ theorem K.step {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : Veri
     committed := (SW.e hpre hH hok (J := 5072) (by decide) (by decide)
       (SlotsSep.sub h3 (le_refl _) (by omega)) F).trans k.committed }
 
-theorem K.same {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s)
+theorem K.same {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s)
     (k : K s u first c) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hm : ∀ a, v.getMem a = u.getMem a) :
     K s v first c := by
   have hN : heapNext v = heapNext u := by simp only [heapNext, hm]
@@ -210,7 +210,7 @@ theorem K.same {s u v : MachineState} {first : KeccakClaim} {c : E} (hpre : Veri
 
 /-! ## `verify_layer`'s precondition -/
 
-theorem layer_pre {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {J : Nat}
+theorem layer_pre {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {J : Nat}
     (hJ1 : 3392 ≤ J) (hJ2 : J ≤ 5048) (hJ8 : J % 8 = 0) {cl : KeccakClaim}
     (hc : ClaimOut s u (s.getReg .x2 - BitVec.ofNat 64 J) cl) (hl : Lens cl)
     (hx10 : u.getReg .x10 = s.getReg .x2 - 3296) (hx11 : u.getReg .x11 = s.getReg .x11)
@@ -271,7 +271,7 @@ theorem layer_pre {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
 with `Err` and the mirror failing, or with the mirror's next claim. -/
 theorem layer_call (hVL : VerifyLayerSpec) {s u : MachineState} {first : KeccakClaim} {c : E}
     {J k : Nat} {cl : KeccakClaim} {f : KeccakClaim → TM KeccakOpenings}
-    (hpre : VerifyKeccakPre s) (Kk : K s u first c) (hpc : u.pc = 0x8000f04c)
+    (hpre : VerifyKeccakPreW s) (Kk : K s u first c) (hpc : u.pc = 0x8000f04c)
     (hJ1 : 3392 ≤ J) (hJ2 : J ≤ 5048) (hJ8 : J % 8 = 0)
     (hc : ClaimOut s u (s.getReg .x2 - BitVec.ofNat 64 J) cl) (hl : Lens cl)
     (hx10 : u.getReg .x10 = s.getReg .x2 - 3296) (hx11 : u.getReg .x11 = s.getReg .x11)
@@ -333,7 +333,7 @@ theorem layer_call (hVL : VerifyLayerSpec) {s u : MachineState} {first : KeccakC
 
 /-- `memcpy(f + 320, f + 1976, 72)`. -/
 theorem memcpy_72 (hMC : Runtime.MemcpySpec 0x800126e4) {s w : MachineState}
-    (hpre : VerifyKeccakPre s) (B : Base s w) (hpc : w.pc = 0x800126e4)
+    (hpre : VerifyKeccakPreW s) (B : Base s w) (hpc : w.pc = 0x800126e4)
     (hx10 : w.getReg .x10 = s.getReg .x2 - 4928) (hx11 : w.getReg .x11 = s.getReg .x2 - 3272)
     (hx12 : w.getReg .x12 = 72) :
     ∃ w', Reaches Image.code w w' ∧ (Dead Image.code w' ∨ (w'.pc = returnAddress w ∧
@@ -375,7 +375,7 @@ theorem memcpy_72 (hMC : Runtime.MemcpySpec 0x800126e4) {s w : MachineState}
 
 /-- The result's header stored to `f + 296`, the rest copied to `f + 320`: the claim at
 `f + 296`. -/
-theorem stored {s v : MachineState} {cl : KeccakClaim} (hpre : VerifyKeccakPre s)
+theorem stored {s v : MachineState} {cl : KeccakClaim} (hpre : VerifyKeccakPreW s)
     (hc : ClaimOut s v (s.getReg .x2 - 3296) cl)
     (h0 : v.getMem (s.getReg .x2 - 4952) = v.getMem (s.getReg .x2 - 3296))
     (h8 : v.getMem (s.getReg .x2 - 4944) = v.getMem (s.getReg .x2 - 3288))

@@ -57,7 +57,7 @@ structure HB (s u : MachineState) (p n : Word) (xs : List E) : Prop where
   reg : n.toNat = 0 ∨ (Region p (24 * n.toNat) ∧
     ∀ lo m, heapEnd ≤ lo.toNat → Apart p (24 * n.toNat) lo m)
 
-theorem HB.of_vec {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {a : Word}
+theorem HB.of_vec {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {a : Word}
     {xs : List E} (h : NewVecE s u a xs) : HB s u (vecPtr u a) (vecLen u a) xs := by
   have h1 := h.buf
   have h2 := h.vec.len
@@ -66,7 +66,7 @@ theorem HB.of_vec {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
   · exact Or.inl h0
   · exact Or.inr ⟨H.region, H.above⟩
 
-theorem HB.step {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem HB.step {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) (F : DFrame u v (SW s u v rs sp))
     (hN : heapNext u ≤ heapNext v) {p n : Word} {xs : List E} (h : HB s u p n xs) : HB s v p n xs :=
   have b := buf_step hpre B hok F hN ⟨h.buf, h.elems⟩
@@ -110,7 +110,7 @@ structure R2 (s u : MachineState) (cl : KeccakClaim) (mp ml : Word) (oslot : Lis
   x26 : u.getReg .x26 = (Model.limbs word).1
 
 theorem R2.step {s u v : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot : List E}
-    {word : E} (hpre : VerifyKeccakPre s) (R : R2 s u cl mp ml oslot word)
+    {word : E} (hpre : VerifyKeccakPreW s) (R : R2 s u cl mp ml oslot word)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {spb : Bool} (hok : SlotsOk rs = true)
     (h1 : SlotsSep rs 5216 24 = true) (h3 : SlotsSep rs 4952 96 = true)
@@ -140,7 +140,7 @@ theorem R2.step {s u v : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot 
     x26 := (hregs .x26 (by decide)).trans R.x26 }
 
 theorem R2.same {s u v : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot : List E}
-    {word : E} (hpre : VerifyKeccakPre s) (R : R2 s u cl mp ml oslot word)
+    {word : E} (hpre : VerifyKeccakPreW s) (R : R2 s u cl mp ml oslot word)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hm : ∀ a, v.getMem a = u.getMem a)
     (hregs : ∀ r ∈ ([.x9, .x22, .x23, .x25, .x26] : List Reg),
       v.getReg r = u.getReg r) : R2 s v cl mp ml oslot word := by
@@ -150,7 +150,7 @@ theorem R2.same {s u v : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot 
     (DFrame.of_same hm _) hregs
 
 theorem R2.block {s u v : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot : List E}
-    {word : E} (hpre : VerifyKeccakPre s) (R : R2 s u cl mp ml oslot word)
+    {word : E} (hpre : VerifyKeccakPreW s) (R : R2 s u cl mp ml oslot word)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) {rs : List (Nat × Nat)} (hok : SlotsOk rs = true)
     (h1 : SlotsSep rs 5216 24 = true) (h3 : SlotsSep rs 4952 96 = true)
     (h4 : SlotsSep rs 4856 24 = true) (F : DFrame u v (Slots s rs))
@@ -196,7 +196,7 @@ structure J1 (s u : MachineState) (cl : KeccakClaim) (mp ml : Word) (oslot : Lis
     kIn2 (s.getReg .x12).toNat cl (some (instOf s ++ oslot, word)) low)
 
 theorem to_low (hSC : SumcheckSpec) {s u : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word}
-    {oslot : List E} {word : E} (hpre : VerifyKeccakPre s) (A : I0 s u cl mp ml sp sl oslot word) :
+    {oslot : List E} {word : E} (hpre : VerifyKeccakPreW s) (A : I0 s u cl mp ml sp sl oslot word) :
     ∃ t, Reaches Image.code u t ∧
       ((∃ lp ll low sv, J1 s t cl mp ml oslot word lp ll low sv) ∨ Done s t) := by
   have hb := bounds hpre
@@ -400,7 +400,7 @@ theorem to_low (hSC : SumcheckSpec) {s u : MachineState} {cl : KeccakClaim} {mp 
 
 /-! ## `open`, the row, `next_scalars(64)` -/
 
-theorem SW.elist {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
+theorem SW.elist {s u v : MachineState} (hpre : VerifyKeccakPreW s) (hH : HeapOk v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) (F : DFrame u v (SW s u v rs sp))
     {J n : Nat} (hJ : J ≤ 5248) (hm : 24 * n ≤ J) (hsep : SlotsSep rs J (24 * n) = true) :
     eListAt v (s.getReg .x2 - BitVec.ofNat 64 J) n = eListAt u (s.getReg .x2 - BitVec.ofNat 64 J) n := by
@@ -446,7 +446,7 @@ structure J2 (s u : MachineState) (cl : KeccakClaim) (mp ml : Word) (oslot : Lis
 
 theorem to_slices (hO : OpenSpec) (hMC : Runtime.MemcpySpec 0x800126e4) (hNSs : NextScalarsSpec)
     {s u : MachineState} {cl : KeccakClaim} {mp ml : Word} {oslot : List E} {word : E}
-    {lp ll : Word} {low : List E} {sv : E} (hpre : VerifyKeccakPre s)
+    {lp ll : Word} {low : List E} {sv : E} (hpre : VerifyKeccakPreW s)
     (A : J1 s u cl mp ml oslot word lp ll low sv) :
     ∃ t, Reaches Image.code u t ∧ ((∃ qp ql slot2 row2 v2 sc sp sn slices,
       J2 s t cl mp ml oslot word lp ll low qp ql slot2 row2 v2 sc sp sn slices) ∨ Done s t) := by

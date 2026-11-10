@@ -23,7 +23,7 @@ structure WB (s u : MachineState) (wp : Word) (lp : List E) : Prop where
   wbuf : NewBuf s u wp 38400 8
   weights : eListAt u wp 1600 = kWeights (eqKernelRust lp)
 
-theorem WB.step {s u v : MachineState} {wp : Word} {lp : List E} (hpre : VerifyKeccakPre s)
+theorem WB.step {s u v : MachineState} {wp : Word} {lp : List E} (hpre : VerifyKeccakPreW s)
     (B : Base s u) (W : WB s u wp lp) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     (F : DFrame u v (SW s u v rs sp))
@@ -59,7 +59,7 @@ theorem regs_mem {l : List Reg} (hl : l.all (fun r ↦ decide (r ∈ calleeSaved
   simpa using this
 
 theorem to_eqseg (hEK : EqKernelSpec) {s u : MachineState} {seg lp : List E}
-    (hpre : VerifyKeccakPre s) (A : A6 s u seg lp) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A6 s u seg lp) : ∃ v, Reaches Image.code u v ∧
       (A7 s v seg lp (u.getMem (s.getReg .x2 - 4824)) ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have hsm := hpre.stack.mapped (by decide) (by decide)
@@ -179,7 +179,7 @@ structure A9 (s u : MachineState) (seg lp : List E) (wp : Word) : Prop extends M
   rest : Rest s u (kLanes (s.getReg .x12).toNat (instOf s) (outOf s) seg lp)
 
 theorem to_last (hD : DotSpec) (hM : MulSpec) {s u : MachineState} {seg lp : List E} {wp : Word}
-    (hpre : VerifyKeccakPre s) (A : A7 s u seg lp wp) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A7 s u seg lp wp) : ∃ v, Reaches Image.code u v ∧
       (A9 s v seg lp wp ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have B := A.base
@@ -246,11 +246,7 @@ theorem to_last (hD : DotSpec) (hM : MulSpec) {s u : MachineState} {seg lp : Lis
     rfl
   -- `dot`
   have hor := hpre.output
-  rw [hpre.outputLen] at hor
-  rcases hor with h0 | hor
-  · simp at h0
   have hos := hpre.outputStack
-  rw [hpre.outputLen] at hos
   simp only [kOutput] at hor hos
   have hlh := vec_inHeap hlv
   rw [hllen] at hlh
@@ -298,9 +294,8 @@ theorem to_last (hD : DotSpec) (hM : MulSpec) {s u : MachineState} {seg lp : Lis
     rw [← hlv.elems, vecEs, hllen, eListAt_take _ _ (by decide)]
     exact (DFrame.of_same mu (fun _ ↦ False)).eListAt fun _ _ h ↦ h
   have eo : eListAt u₃ (s.getReg .x16) (25 : Word).toNat = outOf s := by
-    rw [outOf, kOutput, hpre.outputLen]
+    rw [outOf, kOutput]
     have hm := missOutput hpre B₃.heap
-    rw [hpre.outputLen] at hm
     exact B₃.eListAt hm (Or.inr (by addr_omega [hor]))
   rw [el, eo] at hdot
   obtain ⟨u₅, hr₅, h₅⟩ := Sym.BlockSpec.reaches b800090fc_spec

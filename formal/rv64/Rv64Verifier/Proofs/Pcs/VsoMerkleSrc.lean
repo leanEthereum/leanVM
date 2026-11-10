@@ -3,7 +3,7 @@ import Rv64Verifier.Proofs.Pcs.VsoMerkleT
 /-!
 # `verify_stacked_opening`'s Merkle checks: their inputs from the openings
 
-The openings `VsoOpeningsAt` places at the entry are read in place and never written, so inside the
+The openings `VsoOpenMem` places at the entry are read in place and never written, so inside the
 function (`InvR`) the phase to read is `PhaseOk` (`phaseOk_of`) and the front's header facts hold
 (`frontIn_of`); `merkleIn_of` assembles `MerkleIn` from what the level's earlier steps establish:
 the registers and slots at `0x8000aa14` and the queries' buffer.
@@ -44,8 +44,8 @@ theorem clear_of_src {s : MachineState} {lo : ℕ} {a : Word} {n : ℕ} (hr : Re
   · right; rw [toNat_add_ofNat (by omega)] at hl; simp only [heapEnd] at hl ⊢; omega
 
 /-- A path header's doubleword, kept inside the function. -/
-theorem pathHdr_keep {s u : MachineState} {nx : Word} {T0 : Model.TState} {i j o : ℕ}
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hinv : InvR s u nx)
+theorem pathHdr_keep {s u : MachineState} {nx : Word} {i j o : ℕ}
+    (hO : VsoOpenMem s (s.getReg .x10)) (hinv : InvR s u nx)
     (hi : i < (vecLen s (proofAt s (s.getReg .x10) + 24)).toNat)
     (hj : j < (vecLen s (phaseHdr s (proofAt s (s.getReg .x10)) i)).toNat) (ho : o + 8 ≤ 56) :
     u.getMem (pathAddr s (proofAt s (s.getReg .x10)) i j + BitVec.ofNat 64 o) =
@@ -79,8 +79,8 @@ theorem off_lt {s u : MachineState} {nx : Word} (hpre : VsoPre s) (hinv : InvR s
   rw [← e40, ecount]; exact hoff
 
 /-- **The phase to read is `PhaseOk`.** -/
-theorem phaseOk_of {s u : MachineState} {T0 : Model.TState} (hpre : VsoPre s)
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hinv : InvR s u (u.getMem nextAddr))
+theorem phaseOk_of {s u : MachineState} (hpre : VsoPre s)
+    (hO : VsoOpenMem s (s.getReg .x10)) (hinv : InvR s u (u.getMem nextAddr))
     (hoff : (u.getMem (s.getReg .x10 + 352)).toNat <
       (u.getMem (u.getMem (s.getReg .x10) + 40)).toNat) :
     PhaseOk s u (phaseH s u) := by
@@ -135,7 +135,7 @@ theorem phaseOk_of {s u : MachineState} {T0 : Model.TState} (hpre : VsoPre s)
     exact Or.inr ⟨hL, clear_of_src hL (by omega) hlo fun y hy ↦
       src' y (Or.inr ⟨i, hi, Or.inr ⟨j, hj, Or.inl hy⟩⟩)⟩
   · rw [eH16] at hj
-    unfold BufOk
+    unfold SibOk
     rw [eH8]
     rw [show vecPtr s (phaseHdr s (proofAt s (s.getReg .x10)) i) + BitVec.ofNat 64 (56 * j) =
       pathAddr s (proofAt s (s.getReg .x10)) i j from rfl]
@@ -151,12 +151,13 @@ theorem phaseOk_of {s u : MachineState} {T0 : Model.TState} (hpre : VsoPre s)
     · exact Or.inl h0
     rcases (hO.leaves i hi j hj).2 with h1 | hL
     · exact absurd h1 h0
-    exact Or.inr ⟨hL, clear_of_src hL (by omega) hlo fun y hy ↦
+    have hW := region_wide hL
+    exact Or.inr ⟨hW, clear_of_src hW (by simp only [sibSpan]; omega) hlo fun y hy ↦
       src' y (Or.inr ⟨i, hi, Or.inr ⟨j, hj, Or.inr hy⟩⟩)⟩
 
 /-- **The front's inputs**, from the openings and what the level's steps establish. -/
-theorem frontIn_of {s u : MachineState} {T0 : Model.TState} {ℓ fc : ℕ} (hpre : VsoPre s)
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hinv : InvR s u (u.getMem nextAddr))
+theorem frontIn_of {s u : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s)
+    (hO : VsoOpenMem s (s.getReg .x10)) (hinv : InvR s u (u.getMem nextAddr))
     (hpc : u.pc = 0x8000aa14) (hsp : u.getReg .x2 = s.getReg .x2 - 1040)
     (hx20 : u.getReg .x20 = s.getReg .x10) (hlvl : u.getMem (s.getReg .x2 - 856) = BitVec.ofNat 64 ℓ)
     (hfold : u.getMem (s.getReg .x2 - 784) = BitVec.ofNat 64 fc) : FrontIn s u ℓ fc := by
@@ -176,8 +177,8 @@ theorem frontIn_of {s u : MachineState} {T0 : Model.TState} {ℓ fc : ℕ} (hpre
   exact ⟨hr, ha⟩
 
 /-- **`MerkleIn`**, from the openings and what the level's steps establish. -/
-theorem merkleIn_of {s u : MachineState} {T0 : Model.TState} {ℓ fc : ℕ} (hpre : VsoPre s)
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hinv : InvR s u (u.getMem nextAddr))
+theorem merkleIn_of {s u : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s)
+    (hO : VsoOpenMem s (s.getReg .x10)) (hinv : InvR s u (u.getMem nextAddr))
     (hpc : u.pc = 0x8000aa14) (hsp : u.getReg .x2 = s.getReg .x2 - 1040)
     (hx20 : u.getReg .x20 = s.getReg .x10) (hlvl : u.getMem (s.getReg .x2 - 856) = BitVec.ofNat 64 ℓ)
     (hfold : u.getMem (s.getReg .x2 - 784) = BitVec.ofNat 64 fc) (hℓ : ℓ < 2 ^ 64)

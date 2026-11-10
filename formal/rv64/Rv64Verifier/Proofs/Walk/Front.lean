@@ -26,8 +26,8 @@ import Rv64Verifier.Proofs.Bus.All
 /-!
 # `walk`'s front, assembled
 
-`front`: from `walk`'s entry to `AtR17` (`0x800035f0`), an `Err` return or a dead end, the
-`hFront` of `walk_spec_of`. The stages chain in code order; every callee's contract is the proved
+`front`: from `walk`'s entry to `AtR17` (`0x800035f0`), with the placements' buffer apart from
+the bus claims' (`PlApart`), an `Err` return or a dead end, the `hFront` of `walk_spec_of'`. The stages chain in code order; every callee's contract is the proved
 one, but for `verify_bus_balance`'s (`BusBalanceSpec`, or its two open stages in `frontV`), the
 `Bytecode`'s reading by it (`BcWalk`), and DEREF, JUMP and the tables' vector (`AtDeref` to `AtR10`).
 -/
@@ -144,7 +144,7 @@ theorem frontR17 {BcOk : MachineState → Nat → Word → Prop}
     (hBW : BcWalk BcOk bev) {s u : MachineState} {A : List E} {k : Nat} {R Q B : Word}
     {lo lo2 lo3 : Nat} {G BK : Word} (hpre : WalkPre s) (hpc : u.pc = 0x800032b8)
     (h : AtR13 OI s u A k R Q B lo lo2 lo3 G BK) :
-    Next OI s u (fun t ↦ ∃ layout rows lir bus, AtR17 OI s t layout rows lir bus) := by
+    Next OI s u (fun t ↦ ∃ layout rows lir bus, AtR17 OI s t layout rows lir bus ∧ PlApart s t) := by
   refine (Next.ofDead' (r13 Proofs.Multilinear.stackOffsets Runtime.tryAllocZeroed hpre hpc
     h)).bind fun v ⟨hv, PL, h⟩ ↦ ?_
   refine (Next.ofDoneDead (r14 Runtime.memcpy Runtime.dropLayout hpre hv h)).bind
@@ -160,7 +160,7 @@ theorem front {BcOk : MachineState → Nat → Word → Prop}
         Dead Image.code t))
     (hBB : Bus.BusBalanceSpec BcOk bev) (hBW : BcWalk BcOk bev) :
     ∀ s, s.pc = 0x80000ef8 → WalkPre s → ∃ u, Reaches Image.code s u ∧
-      ((∃ layout rows lir bus, AtR17 OI s u layout rows lir bus) ∨ Done OI s u ∨
+      ((∃ layout rows lir bus, AtR17 OI s u layout rows lir bus ∧ PlApart s u) ∨ Done OI s u ∨
         Dead Image.code u) := by
   intro s hpc hpre
   refine (frontHead hpc hpre).bind fun v ⟨hv, A, k, h⟩ ↦ ?_
@@ -190,7 +190,7 @@ theorem frontV {BcOk : MachineState → Nat → Word → Prop}
     (hEK : Bus.Vbb.EqKernelSpec) (hE : Proofs.Bus.VerifyBusBalance.SidesEntry BcOk bev)
     (hS : Proofs.Bus.VerifyBusBalance.SideStage bev) (hBW : BcWalk BcOk bev) :
     ∀ s, s.pc = 0x80000ef8 → WalkPre s → ∃ u, Reaches Image.code s u ∧
-      ((∃ layout rows lir bus, AtR17 OI s u layout rows lir bus) ∨ Done OI s u ∨
+      ((∃ layout rows lir bus, AtR17 OI s u layout rows lir bus ∧ PlApart s u) ∨ Done OI s u ∨
         Dead Image.code u) :=
   front hDJ (busBalance hEK hE hS) hBW
 

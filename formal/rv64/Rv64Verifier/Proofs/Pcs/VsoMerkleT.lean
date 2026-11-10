@@ -36,7 +36,8 @@ theorem merkle_model {s u w : MachineState} {ℓ fc : ℕ} {T0 T : Model.TState}
     (hbl : Model.log2StrictRust bl = some (u.getReg .x8).toNat) :
     (Model.Pcs.TM.merkleLeaves ℓ (u.readWords (u.getMem (s.getReg .x2 - 824)) (u.getReg .x26).toNat)
       (widthW ℓ fc).toNat).run T =
-      some ((T.proof.openings[T.openingOffset]!).map (·.leaf),
+      some ((phaseAt u (proofAt u (s.getReg .x10)) (u.getMem (s.getReg .x10 + 352)).toNat).map
+        (·.leaf),
         { T with openingOffset := T.openingOffset + 1 }) ∧
     TranscriptAt w (s.getReg .x10) { T with openingOffset := T.openingOffset + 1 } := by
   have hI := hpre.self
@@ -55,7 +56,7 @@ theorem merkle_model {s u w : MachineState} {ℓ fc : ℕ} {T0 T : Model.TState}
     rw [hproof, ← hO.count, ← hoff]; exact hcnt
   have hph : phaseAt u (proofAt u (s.getReg .x10)) (u.getMem (s.getReg .x10 + 352)).toNat =
       T.proof.openings[T.openingOffset]! := by
-    rw [e0, phaseAt_keep hpre hO hm.inv hcnt, hO.phases _ (by rw [← hO.count]; exact hcnt), hproof,
+    rw [e0, phaseAt_keep hpre hO.toVsoOpenMem hm.inv hcnt, hO.phases _ (by rw [← hO.count]; exact hcnt), hproof,
       hoff]
   have hget : T.proof.openings[T.openingOffset]? =
       some (phaseAt u (proofAt u (s.getReg .x10)) (u.getMem (s.getReg .x10 + 352)).toNat) := by
@@ -66,7 +67,7 @@ theorem merkle_model {s u w : MachineState} {ℓ fc : ℕ} {T0 T : Model.TState}
     obtain ⟨j, -, rfl⟩ := List.mem_map.mp ho
     simp only [openingAt]
     exact BitVec.isLt _
-  refine ⟨by rw [Model.Pcs.merkleRust_run hroot hbl hget hidx (merkleRust_out hout hbl), hph], ?_⟩
+  refine ⟨by rw [Model.Pcs.merkleRust_run hroot hbl hget hidx (merkleRust_out hout hbl)], ?_⟩
   -- the transcript at `w`
   have hu := hm.inv.heap hpre.heap
   have hhi := (hout.inv.heap hpre.heap).hi

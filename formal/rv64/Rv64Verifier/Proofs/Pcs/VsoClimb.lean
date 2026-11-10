@@ -1,5 +1,5 @@
 import Rv64Verifier.Proofs.Pcs.VsoCalls
-import Rv64Verifier.Proofs.Pcs.VsoClimbBytes
+import Rv64Verifier.Proofs.Pcs.VsoSibCopy
 import Rv64Verifier.Proofs.Hash.Bytes
 import Rv64Verifier.Proofs.Transcript.Keccak
 import Rv64Verifier.Proofs.Pcs.VsoMerkle
@@ -22,14 +22,6 @@ open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Contracts Rv64Verifier.Runtim
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 /-! ## Bytes -/
-
-theorem validAccess_one {a : Word}
-    (h : (0x20 ≤ a.toNat ∧ a.toNat < 0x78000000) ∨ (0xa0000000 ≤ a.toNat ∧ a.toNat < 0xc0000000)) :
-    Sym.validAccess 1 a = true := by
-  simp only [Sym.validAccess, isValidByteAccess, isValidMemAddr, MEM_START, MEM_END,
-    INPUT_MEM_START, INPUT_MEM_END, RAM_MEM_START, RAM_MEM_END, Bool.or_eq_true, Bool.and_eq_true,
-    decide_eq_true_eq]
-  omega
 
 theorem bytesAt_rt (s : MachineState) (a : Word) (n : ℕ) :
     Runtime.bytesAt s a n = Contracts.bytesAt s a n := rfl
@@ -64,23 +56,6 @@ theorem DFrame.bytes32 {u v : MachineState} {X : Word → Prop} (hX : DFrame u v
   addr_omega [hw, hi, hm4]
 
 /-! ## The blocks' copies -/
-
-theorem abfc_bytes {s t : MachineState} (h : b8000abfc.Holds s t) (h8 : (s.getReg .x2).toNat % 8 = 0)
-    (hs : (s.getReg .x18).toNat % 8 = 0) (hw : (s.getReg .x2).toNat + 688 ≤ 2 ^ 64) :
-    Contracts.bytesAt t (s.getReg .x2 + 656) 32 = Contracts.bytesAt s (s.getReg .x18) 32 := by
-  refine bytesAt_of_four (by addr_omega [h8, hw]) hs ?_ ?_ ?_ ?_
-  · exact h.mem_eq 0 (by decide) (by rv_eval []) (by
-      simp only [reduceMem, List.getElem_cons_zero, Sym.E.eval, Sym.BinOp.eval, Sym.UnOp.eval,
-        Sym.LoadKind.fromWord]; exact reassemble _)
-  · exact h.mem_eq 1 (by decide) (by rv_eval []) (by
-      simp only [reduceMem, List.getElem_cons_succ, List.getElem_cons_zero, Sym.E.eval,
-        Sym.BinOp.eval, Sym.UnOp.eval, Sym.LoadKind.fromWord]; exact reassemble _)
-  · exact h.mem_eq 2 (by decide) (by rv_eval []) (by
-      simp only [reduceMem, List.getElem_cons_succ, List.getElem_cons_zero, Sym.E.eval,
-        Sym.BinOp.eval, Sym.UnOp.eval, Sym.LoadKind.fromWord]; exact reassemble _)
-  · exact h.mem_eq 3 (by decide) (by rv_eval []) (by
-      simp only [reduceMem, List.getElem_cons_succ, List.getElem_cons_zero, Sym.E.eval,
-        Sym.BinOp.eval, Sym.UnOp.eval, Sym.LoadKind.fromWord]; exact reassemble _)
 
 theorem af20_bytes {s t : MachineState} (h : b8000af20.Holds s t) (h8 : (s.getReg .x2).toNat % 8 = 0)
     (hw : (s.getReg .x2).toNat + 912 ≤ 2 ^ 64) :
@@ -214,7 +189,7 @@ def CW (s : MachineState) (a : Word) : Prop :=
 /-- From `0x8000ad78`, the buffer's first half `B1` and the source `B2` of its second: `memcpy`,
 `keccak_hash`, the digest copied to the node, the level counted. -/
 theorem climb_tail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s t : MachineState}
-    {sib : Word} {j n : ℕ} {B1 B2 : List (BitVec 8)} (hpre : VsoPre s) (hreg : Region sib (32 * n))
+    {sib : Word} {j n : ℕ} {B1 B2 : List (BitVec 8)} (hpre : VsoPre s) (hreg : Mapped sib (32 * n))
     (hap : Apart sib (32 * n) (s.getReg .x2 - 2464) 2464) (hjn : j < n)
     (hpc : t.pc = 0x8000ad78) (hsp : t.getReg .x2 = s.getReg .x2 - 1040)
     (hx10 : t.getReg .x10 = s.getReg .x2 - 352) (hx12 : t.getReg .x12 = 32)
@@ -230,8 +205,7 @@ theorem climb_tail (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s
       Contracts.bytesAt v (s.getReg .x2 - 160) 32 = Model.keccakHashRust (B1 ++ B2) ∧
       ((j + 1 < n ∧ v.pc = 0x8000af10) ∨ (j + 1 = n ∧ v.pc = 0x8000ab04)))) := by
   have hm := stack_mapped hpre
-  have hR := hreg.1
-  have hR8 := hreg.2
+  have hR := hreg
   simp only [Mapped] at hR
   -- `memcpy`
   obtain ⟨t1, r1, h1⟩ := Sym.BlockSpec.reaches b8000ad78_spec hpc trivial
@@ -350,7 +324,7 @@ theorem climbBytes_take {idx : Word} {leaf : List (BitVec 8)} {sibs : List (List
 /-- **A level of the climb.** -/
 theorem climb_step (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s u : MachineState}
     {sib idx : Word} {leaf : List (BitVec 8)} {sibs : List (List (BitVec 8))} {j : ℕ}
-    (hpre : VsoPre s) (hreg : Region sib (32 * sibs.length))
+    (hpre : VsoPre s) (hreg : Mapped sib (32 * sibs.length))
     (hap : Apart sib (32 * sibs.length) (s.getReg .x2 - 2464) 2464)
     (hc : Climb s sib idx leaf sibs u j) :
     ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ (DFrame u v (CW s) ∧
@@ -359,8 +333,7 @@ theorem climb_step (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s
         (j + 1 = sibs.length ∧ v.pc = 0x8000ab04 ∧
           Contracts.bytesAt v (s.getReg .x2 - 160) 32 = Model.Pcs.climbBytes idx 0 leaf sibs)))) := by
   have hm := stack_mapped hpre
-  have hR := hreg.1
-  have hR8 := hreg.2
+  have hR := hreg
   simp only [Mapped] at hR
   have hjn := hc.jlt
   have hsp := hc.sp
@@ -421,27 +394,26 @@ theorem climb_step (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s
           rcases hr with h | h | h | h | h | h | h | h <;> simp [h])⟩
       simp only [hbit, ↓reduceIte]
       rw [x11₂, ← hsib]
-      exact DFrame.bytes32 fr (by addr_omega [hR, hR8, hjn]) (by addr_omega [hR, hjn])
-        fun y hy hw ↦ by addr_omega [hy, hw, hap, hR, hjn, hm]
+      have hal := Sym.alignToDword_toNat (sib + BitVec.ofNat 64 (32 * j))
+      exact DFrame.bytesU fr (by addr_omega [hR, hjn, hal])
+        fun y hy hw ↦ by addr_omega [hy, hw, hap, hR, hjn, hm, hal]
     · have hp : t1.pc = 0x8000abfc := by
         rw [hpc1]
         exact ite_eq_left_of_eq_true _ _ (eq_true (bne_iff_ne.mpr hbit))
-      obtain ⟨t2, r2, h2⟩ := Sym.BlockSpec.reaches b8000abfc_spec hp (by
-        rv_eval [sp1, x18₁]
-        and_intros <;> first
-          | exact validAccess_one (by addr_omega [hm, hR, hjn])
-          | valid_access hpre.stack.valid [hm]
-          | addr_omega [hm, hR, hR8, hjn, hap])
-      have k2 := b8000abfc_keeps h2
-      have fr := DFrame.of_memFrame (b8000abfc_frame h2 (by rw [sp1]; addr_omega [hm]))
-      have hb := abfc_bytes h2 (by rw [sp1]; addr_omega [hm]) (by rw [x18₁]; addr_omega [hR, hR8, hjn])
-        (by rw [sp1]; addr_omega [hm])
+      obtain ⟨t2, r2, h2⟩ := Sym.BlockSpec.reaches abfcA_spec hp (abfcA_obl
+        (by rw [x18₁]; simp only [Mapped]; addr_omega [hR, hjn])
+        (by rw [x18₁, sp1]; addr_omega [hR, hjn, hap, hm])
+        (by rw [sp1]; refine ⟨?_, ?_, ?_, ?_⟩ <;> valid_access hpre.stack.valid [hm])
+        (by rw [sp1]; addr_omega [hm]))
+      have k2 := abfcA_keeps h2
+      have fr := DFrame.of_memFrame (abfcA_frame h2 (by rw [sp1]; addr_omega [hm]))
+      have hb := abfcA_bytes h2 (by rw [sp1]; addr_omega [hm]) (by rw [sp1]; addr_omega [hm])
       rw [sp1, show s.getReg .x2 - 1040 + 656 = s.getReg .x2 - 384 by rv_eval [], x18₁] at hb
       rw [sp1, show s.getReg .x2 - 1040 + 656 = s.getReg .x2 - 384 by rv_eval []] at fr
       have x11₂ : t2.getReg .x11 = s.getReg .x2 - 160 := by
-        rw [b8000abfc_x11 h2, sp1]; rv_eval []
-      refine ⟨t2, r2, by rw [b8000abfc_x10 h2, sp1]; rv_eval [], b8000abfc_x12 h2, Or.inr x11₂,
-        by rw [hb, hsib]; simp only [hbit, ↓reduceIte], ?_, fr, b8000abfc_pc h2, fun r hr ↦ k2 r (by
+        rw [abfcA_x11 h2, sp1]; rv_eval []
+      refine ⟨t2, r2, by rw [abfcA_x10 h2, sp1]; rv_eval [], abfcA_x12 h2, Or.inr x11₂,
+        by rw [hb, hsib]; simp only [hbit, ↓reduceIte], ?_, fr, abfcA_pc h2, fun r hr ↦ k2 r (by
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hr ⊢
           rcases hr with h | h | h | h | h | h | h | h <;> simp [h])⟩
       simp only [hbit, ↓reduceIte]
@@ -488,9 +460,10 @@ theorem climb_step (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s
         exact hc.index
       node := node₃
       sibs := fun i hi ↦ by
-        rw [DFrame.bytes32 fr (by addr_omega [hR, hR8, hi]) (by addr_omega [hR, hi])
+        have hal := Sym.alignToDword_toNat (sib + BitVec.ofNat 64 (32 * i))
+        rw [DFrame.bytesU fr (by addr_omega [hR, hi, hal])
           fun y hy hw ↦ by
-            rcases hw with hw | hw | hw | hw <;> addr_omega [hy, hw, hap, hR, hi, hm]]
+            rcases hw with hw | hw | hw | hw <;> addr_omega [hy, hw, hap, hR, hi, hm, hal]]
         exact hc.sibs i hi
       rodata := hc.rodata.dframe fr fun a ha hw ↦ by
         have hro := hpre.stack.rodata
@@ -511,7 +484,7 @@ structure Climbed (s u v : MachineState) (idx : Word) (leaf : List (BitVec 8))
 /-- **The climb**, from level `j` on. -/
 theorem climb_loop (hM : Runtime.MemcpySpec 0x800126e4) (hK : KeccakHashSpec) {s : MachineState}
     {sib idx : Word} {leaf : List (BitVec 8)} {sibs : List (List (BitVec 8))} (hpre : VsoPre s)
-    (hreg : Region sib (32 * sibs.length))
+    (hreg : Mapped sib (32 * sibs.length))
     (hap : Apart sib (32 * sibs.length) (s.getReg .x2 - 2464) 2464) :
     ∀ (k j : ℕ) (u : MachineState), sibs.length - j = k → Climb s sib idx leaf sibs u j →
       ∃ v, Reaches Image.code u v ∧ (Dead Image.code v ∨ Climbed s u v idx leaf sibs)

@@ -27,6 +27,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 /-- `Runs`, with the roots `nx` read since the level's head appended. -/
 def RunsC (s u : MachineState) (ℓ : ℕ) (m : Model.TM Unit) (nx : List (Digest × ℕ × ℕ)) : Prop :=
   ∀ T, TranscriptAt s (s.getReg .x10) T →
+    VsoOpeningsAt s (s.getReg .x10) T →
     T.roots = [(digestAt s (s.getReg .x11),
       Model.stackShape (s.getReg .x12).toNat (s.getReg .x13).toNat)] →
     ∃ T' R, (Model.Pcs.verifyStackedOpeningRust (s.getReg .x12).toNat (s.getReg .x13).toNat
@@ -37,8 +38,8 @@ def RunsC (s u : MachineState) (ℓ : ℕ) (m : Model.TM Unit) (nx : List (Diges
       (ℓ = 0 → R = T.roots) ∧ (0 < ℓ → (R[ℓ]?).map Prod.snd = some (rootShape s ℓ))
 
 theorem Runs.toC {s u : MachineState} {ℓ : ℕ} {m : Model.TM Unit} (h : Runs s u ℓ m) :
-    RunsC s u ℓ m [] := fun T hT hr ↦ by
-  obtain ⟨T', e, hT', p, o, l, d, z, sh⟩ := h T hT hr
+    RunsC s u ℓ m [] := fun T hT hO hr ↦ by
+  obtain ⟨T', e, hT', p, o, l, d, z, sh⟩ := h T hT hO hr
   exact ⟨T', T'.roots, e, hT', p, o, (List.append_nil _).symm, l, d, z, sh⟩
 
 /-- A step of the mirror that keeps the proof and the opening offset and appends `nx'` to the
@@ -51,8 +52,8 @@ theorem RunsC.bind {α : Type} {s u v : MachineState} {ℓ : ℕ} {m : Model.TM 
       TranscriptAt v (s.getReg .x10) T' ∧ T'.proof = T.proof ∧
       T'.openingOffset = T.openingOffset ∧ T'.roots = T.roots ++ nx') :
     RunsC s v ℓ (k a) (nx ++ nx') := by
-  intro T hT hr
-  obtain ⟨T₁, R, e₁, hT₁, p₁, o₁, r₁, l₁, d₁, z₁, sh₁⟩ := h T hT hr
+  intro T hT hO hr
+  obtain ⟨T₁, R, e₁, hT₁, p₁, o₁, r₁, l₁, d₁, z₁, sh₁⟩ := h T hT hO hr
   obtain ⟨T₂, e₂, hT₂, p₂, o₂, r₂⟩ := hstep T₁ hT₁
   exact ⟨T₂, R, e₁.trans (run_bind_of e₂), hT₂, p₂.trans p₁, by rw [o₂, o₁],
     by rw [r₂, r₁, List.append_assoc], l₁, by rw [hd, d₁], z₁, sh₁⟩
@@ -63,8 +64,8 @@ theorem RunsC.same {s u v : MachineState} {ℓ : ℕ} {m : Model.TM Unit}
     (hd : digestAt v (s.getReg .x11) = digestAt u (s.getReg .x11))
     (hT : ∀ T, TranscriptAt u (s.getReg .x10) T → TranscriptAt v (s.getReg .x10) T) :
     RunsC s v ℓ m nx := by
-  intro T₀ hT₀ hr
-  obtain ⟨T₁, R, e₁, hT₁, p₁, o₁, r₁, l₁, d₁, z₁, sh₁⟩ := h T₀ hT₀ hr
+  intro T₀ hT₀ hO hr
+  obtain ⟨T₁, R, e₁, hT₁, p₁, o₁, r₁, l₁, d₁, z₁, sh₁⟩ := h T₀ hT₀ hO hr
   exact ⟨T₁, R, e₁, hT _ hT₁, p₁, o₁, r₁, l₁, by rw [hd, d₁], z₁, sh₁⟩
 
 /-- A frame within `NS` that misses the root keeps the mirror. -/

@@ -73,7 +73,7 @@ structure D3 (s u : MachineState) (o : KeccakOpenings) (word : E) (oc op on sc s
 
 theorem to_done (hC : SliceConcatSpec) {s u : MachineState} {cl : KeccakClaim} {oslot : List E}
     {word : E} {lp ll : Word} {low : List E} {qp ql : Word} {slot2 : List E} {sc sp sn : Word}
-    {slices : List E} (hpre : VerifyKeccakPre s)
+    {slices : List E} (hpre : VerifyKeccakPreW s)
     (A : K2 s u cl oslot word lp ll low qp ql slot2 sc sp sn slices) :
     ∃ t, Reaches Image.code u t ∧ ((∃ oc op on, D3 s t ⟨some (instOf s ++ oslot, word),
       (low ++ cl.point.take ((s.getReg .x12).toNat - 4) ++ slot2, slices)⟩ word oc op on sc sp sn) ∨
@@ -320,7 +320,7 @@ theorem to_done (hC : SliceConcatSpec) {s u : MachineState} {cl : KeccakClaim} {
       (B.same x2₁ m₁).block_tat hpre (by decide) F₂ hT).keep T₃ }⟩⟩
 
 theorem finish {s u : MachineState} {pt inp sl : List E} {word : E} {oc op on sc sp sn : Word}
-    (hpre : VerifyKeccakPre s) (A : D3 s u ⟨some (pt, word), (inp, sl)⟩ word oc op on sc sp sn) :
+    (hpre : VerifyKeccakPreW s) (A : D3 s u ⟨some (pt, word), (inp, sl)⟩ word oc op on sc sp sn) :
     ∃ t, Reaches Image.code u t ∧ Done s t := by
   have hb := bounds hpre
   have ho := hpre.out

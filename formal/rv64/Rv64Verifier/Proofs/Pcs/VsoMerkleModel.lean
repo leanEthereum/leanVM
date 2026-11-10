@@ -75,8 +75,8 @@ theorem proof_misses {s : MachineState} {nx : Word} (hpre : VsoPre s) (hfit : nx
   · exact src_misses hfit hI.proofStack.1 hI.proofFree y hy (Or.inr hW)
 
 /-- What the function writes misses the openings. -/
-theorem open_misses {s : MachineState} {nx : Word} {T0 : Model.TState}
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hfit : nx.toNat ≤ heapEnd) :
+theorem open_misses {s : MachineState} {nx : Word}
+    (hO : VsoOpenMem s (s.getReg .x10)) (hfit : nx.toNat ≤ heapEnd) :
     ∀ y, InOpenings s (proofAt s (s.getReg .x10)) y → ¬ Wr s vsoStack (WR s) nx y := by
   intro y hy hW
   obtain ⟨h1, h2, h3, h4, h5⟩ := hO.src y hy
@@ -97,8 +97,8 @@ theorem count_keep {s u : MachineState} {nx : Word} (hpre : VsoPre s) (hinv : In
     hinv.mem _ fun j hj hw ↦ hm _ (by addr_omega [hP, hj]) hw⟩
 
 /-- **The phase in memory is the entry's.** -/
-theorem phaseAt_keep {s u : MachineState} {nx : Word} {T0 : Model.TState} {i : ℕ} (hpre : VsoPre s)
-    (hO : VsoOpeningsAt s (s.getReg .x10) T0) (hinv : InvR s u nx)
+theorem phaseAt_keep {s u : MachineState} {nx : Word} {i : ℕ} (hpre : VsoPre s)
+    (hO : VsoOpenMem s (s.getReg .x10)) (hinv : InvR s u nx)
     (hi : i < (vecLen s (proofAt s (s.getReg .x10) + 24)).toNat) :
     phaseAt u (proofAt s (s.getReg .x10)) i = phaseAt s (proofAt s (s.getReg .x10)) i := by
   have hX := hinv.mem
@@ -142,7 +142,7 @@ theorem phaseAt_keep {s u : MachineState} {nx : Word} {T0 : Model.TState} {i : �
         fun y hy ↦ hm y (Or.inr ⟨i, hi, Or.inr ⟨j, hj, Or.inl hy⟩⟩)⟩
   · rcases hs with h0 | h0
     · exact Or.inl h0
-    · exact Or.inr ⟨by have := Region.bounds h0; omega,
+    · exact Or.inr ⟨by have := Region.bounds (region_wide h0); omega,
         fun y hy ↦ hm y (Or.inr ⟨i, hi, Or.inr ⟨j, hj, Or.inr hy⟩⟩)⟩
 
 end Rv64Verifier.Proofs.Pcs.Vso

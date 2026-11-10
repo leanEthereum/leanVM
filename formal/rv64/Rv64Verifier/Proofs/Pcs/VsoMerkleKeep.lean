@@ -6,8 +6,9 @@ import Rv64Verifier.Proofs.Pcs.VsoMerkleMid
 From `0x8000aa14` the Merkle checks write the opening offset, the spills at `S - 1008` and the header's
 slot `S - 832` (`MY`), then what the path loop writes (`PW`): together `MW`. `Clear` bytes, safe for
 the path loop and apart from the sponge and offsets, miss all of it, so the paths' headers, leaves
-and siblings, the queries and the root keep their values (`Clear.keep`, `openingAt_keep`), and a
-path the scans checked is a `PathOk` at the path loop's start (`pathOk_of`).
+and siblings (`SibOk`, the doublewords holding them), the queries and the root keep their values
+(`Clear.keep`, `openingAt_keep`), and a path the scans checked is a `PathOk` at the path loop's
+start (`pathOk_of`).
 -/
 
 namespace Rv64Verifier.Proofs.Pcs.Vso
@@ -18,6 +19,20 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 /-- `n` bytes from `a` the Merkle checks never write. -/
 def Clear (s : MachineState) (lo : ℕ) (a : Word) (n : ℕ) : Prop :=
   Safe s lo a n ∧ Apart a n (s.getReg .x10 + 8) 352
+
+/-- The doublewords holding mapped bytes are mapped and aligned. -/
+theorem region_wide {p : Word} {n : ℕ} (h : Mapped p (32 * n)) :
+    Region (alignToDword p) (sibSpan p n) := by
+  have hal := Sym.alignToDword_toNat p
+  simp only [Region, Mapped, sibSpan] at h ⊢
+  omega
+
+/-- The siblings' `Vec<[u8; 32]>` at `a`: empty, or the doublewords holding them a `Clear`
+region. -/
+def SibOk (s u : MachineState) (a : Word) : Prop :=
+  (vecLen u a).toNat = 0 ∨
+    Region (alignToDword (vecPtr u a)) (sibSpan (vecPtr u a) (vecLen u a).toNat) ∧
+      Clear s (heapNext u) (alignToDword (vecPtr u a)) (sibSpan (vecPtr u a) (vecLen u a).toNat)
 
 /-- What the Merkle checks write before the path loop. -/
 def MY (s : MachineState) (a : Word) : Prop :=
@@ -130,8 +145,10 @@ theorem openingAt_keep {u v : MachineState} {X : Word → Prop} (hX : DFrame u v
     (hl : (vecLen u p).toNat = 0 ∨ ((vecPtr u p).toNat + 8 * (vecLen u p).toNat ≤ 2 ^ 64 ∧
       ∀ y, Within y (vecPtr u p) (8 * (vecLen u p).toNat) → ¬ X y))
     (hs : (vecLen u (p + 24)).toNat = 0 ∨
-      ((vecPtr u (p + 24)).toNat + 32 * (vecLen u (p + 24)).toNat ≤ 2 ^ 64 ∧
-        ∀ y, Within y (vecPtr u (p + 24)) (32 * (vecLen u (p + 24)).toNat) → ¬ X y)) :
+      ((alignToDword (vecPtr u (p + 24))).toNat +
+          sibSpan (vecPtr u (p + 24)) (vecLen u (p + 24)).toNat ≤ 2 ^ 64 ∧
+        ∀ y, Within y (alignToDword (vecPtr u (p + 24)))
+          (sibSpan (vecPtr u (p + 24)) (vecLen u (p + 24)).toNat) → ¬ X y)) :
     openingAt v p = openingAt u p := by
   have w (o : ℕ) (ho : o + 8 ≤ 56) :
       v.getMem (p + BitVec.ofNat 64 o) = u.getMem (p + BitVec.ofNat 64 o) :=
@@ -150,13 +167,16 @@ theorem openingAt_keep {u v : MachineState} {X : Word → Prop} (hX : DFrame u v
     · exact DFrame.readWords' hX (fun a ha hw ↦ hm a hw ha) hb
   unfold openingAt
   rw [e48, eL, e40, e32]
-  congr 1
+  refine congrArg (LeanVM.Protocol.Compile.Opening.mk _ _) ?_
   rcases hs with h0 | ⟨hb, hm⟩
   · rw [h0]; rfl
   · apply List.map_congr_left
     intro i hi
     simp only [List.mem_range] at hi
-    exact digest_keep hX (by addr_omega [hb, hi]) fun y hy hw ↦ hm y (by addr_omega [hy, hi, hb]) hw
+    have hal := Sym.alignToDword_toNat (vecPtr u (p + 24) + BitVec.ofNat 64 (32 * i))
+    have hal0 := Sym.alignToDword_toNat (vecPtr u (p + 24))
+    exact DFrame.digestU hX (by addr_omega [hb, hi, hal, hal0])
+      fun y hy ↦ hm y (by addr_omega [hy, hb, hi, hal, hal0])
 
 theorem pathRoot_keep {u v : MachineState} {p R : Word} (h : PathRoot v p R)
     (ho : openingAt v p = openingAt u p) (hd : digestAt v R = digestAt u R) : PathRoot u p R := by
@@ -180,9 +200,7 @@ theorem pathOk_of {s u w : MachineState} {p : Word} (hpre : VsoPre s) (hu : Heap
     (hf : DFrame u w (MY s)) (hh : Region p 56) (hc : Clear s (heapNext u) p 56) (hl : (vecLen u p).toNat ≠ 0)
     (hlr : (vecLen u p).toNat = 0 ∨ Region (vecPtr u p) (8 * (vecLen u p).toNat) ∧
       Clear s (heapNext u) (vecPtr u p) (8 * (vecLen u p).toNat))
-    (hs : (vecLen u (p + 24)).toNat = 0 ∨ Region (vecPtr u (p + 24)) (32 * (vecLen u (p + 24)).toNat) ∧
-      Clear s (heapNext u) (vecPtr u (p + 24)) (32 * (vecLen u (p + 24)).toNat)) :
-    PathOk s w p := by
+    (hs : SibOk s u (p + 24)) : PathOk s w p := by
   have hP := Region.bounds hh
   have hn := MY.next hpre hf
   have w' (o : ℕ) (ho : o + 8 ≤ 56) :

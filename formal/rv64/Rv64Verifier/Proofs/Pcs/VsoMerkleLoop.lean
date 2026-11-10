@@ -173,7 +173,7 @@ theorem merkle_enter {s u t v : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (
 /-- A path's root, checked at the path loop's start, holds of `u`. -/
 theorem roots_keep {s u w : MachineState} {p : Word} (hpre : VsoPre s) (hu : HeapOk u)
     (hf : DFrame u w (MY s)) (hh : Region p 56) (hc : Clear s (heapNext u) p 56)
-    (hl : BufOk s u p 8) (hs : BufOk s u (p + 24) 32) (h : PathRoot w p (s.getReg .x11)) :
+    (hl : BufOk s u p 8) (hs : SibOk s u (p + 24)) (h : PathRoot w p (s.getReg .x11)) :
     PathRoot u p (s.getReg .x11) := by
   have hb := bounds hpre
   have hT := Region.bounds hpre.self.ok.self

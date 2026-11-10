@@ -18,8 +18,8 @@ open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Contracts Rv64Verifier.Runtim
   Rv64Verifier.Transcript Rv64Verifier.Pcs Rv64Verifier.PcsContracts Rv64Verifier.Blocks.F38
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
-/-- Path `p` at the Merkle block's state `u0`: its header and buffers mapped, aligned and safe, its
-leaf not empty. -/
+/-- Path `p` at the Merkle block's state `u0`: its header and leaf mapped, aligned and safe, the
+doublewords holding its siblings too, its leaf not empty. -/
 structure PathOk (s u0 : MachineState) (p : Word) : Prop where
   hdr : Region p 56
   hdrSafe : Safe s (heapNext u0) p 56
@@ -27,8 +27,9 @@ structure PathOk (s u0 : MachineState) (p : Word) : Prop where
   leaf : Region (vecPtr u0 p) (8 * (vecLen u0 p).toNat)
   leafSafe : Safe s (heapNext u0) (vecPtr u0 p) (8 * (vecLen u0 p).toNat)
   sibs : (vecLen u0 (p + 24)).toNat = 0 ∨
-    Region (vecPtr u0 (p + 24)) (32 * (vecLen u0 (p + 24)).toNat) ∧
-      Safe s (heapNext u0) (vecPtr u0 (p + 24)) (32 * (vecLen u0 (p + 24)).toNat)
+    Region (alignToDword (vecPtr u0 (p + 24))) (sibSpan (vecPtr u0 (p + 24)) (vecLen u0 (p + 24)).toNat) ∧
+      Safe s (heapNext u0) (alignToDword (vecPtr u0 (p + 24)))
+        (sibSpan (vecPtr u0 (p + 24)) (vecLen u0 (p + 24)).toNat)
 
 /-- At `0x8000ab38`, before path `p`, what the loop wrote since `u0`. -/
 structure PathIn (s u0 : MachineState) (p E : Word) (u : MachineState) : Prop where

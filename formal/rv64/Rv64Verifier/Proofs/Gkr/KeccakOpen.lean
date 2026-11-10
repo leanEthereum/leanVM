@@ -17,7 +17,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 attribute [local rv_addr] vecPtr vecLen vecCap
 
 theorem open_call (hO : OpenSpec) {s u : MachineState} {J V F C : Nat} {cl : KeccakClaim}
-    {g : List E × List E × E → TM KeccakOpenings} (hpre : VerifyKeccakPre s) (B : Base s u)
+    {g : List E × List E × E → TM KeccakOpenings} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hpc : u.pc = 0x80010184) (hJV : (J = 5048 ∧ V = 5072) ∨ (J = 4952 ∧ V = 128))
     (hc : ClaimOut s u (s.getReg .x2 - BitVec.ofNat 64 J) cl) (hl : Lens cl)
     (hx10 : u.getReg .x10 = s.getReg .x2 - 3296) (hx11 : u.getReg .x11 = s.getReg .x11)
@@ -163,7 +163,7 @@ theorem open_call (hO : OpenSpec) {s u : MachineState} {J V F C : Nat} {cl : Kec
 
 /-- `memcpy(f + 5248 - D, f + 5248 - S, 1536)`: a 64-element row. -/
 theorem memcpy_row (hMC : Runtime.MemcpySpec 0x800126e4) {s w : MachineState}
-    (hpre : VerifyKeccakPre s) (B : Base s w) (hpc : w.pc = 0x800126e4) {D S : Nat}
+    (hpre : VerifyKeccakPreW s) (B : Base s w) (hpc : w.pc = 0x800126e4) {D S : Nat}
     (hD : 1640 ≤ D ∧ D ≤ 5248 ∧ D % 8 = 0) (hS : 1536 ≤ S ∧ S ≤ 5248 ∧ S % 8 = 0)
     (hDS : D + 1536 ≤ S ∨ S + 1536 ≤ D)
     (hx10 : w.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 D)
@@ -207,7 +207,7 @@ theorem memcpy_row (hMC : Runtime.MemcpySpec 0x800126e4) {s w : MachineState}
   · exact Or.inr (Or.inl (stk_sw hpre B.x2 (k := memcpyStack) (by decide) h))
 
 /-- `mul(f + 5248 - Ko, f + 5248 - Kl, f + 5248 - Kr)`. -/
-theorem mul_slots (hM : MulSpec) {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem mul_slots (hM : MulSpec) {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hpc : u.pc = 0x80008c48) {Ko Kl Kr : Nat} (hKo : 128 ≤ Ko ∧ Ko ≤ 5248 ∧ Ko % 8 = 0)
     (hKl : 24 ≤ Kl ∧ Kl ≤ 5248 ∧ Kl % 8 = 0) (hKr : 24 ≤ Kr ∧ Kr ≤ 5248 ∧ Kr % 8 = 0)
     (hol : Ko + 24 ≤ Kl ∨ Kl + 24 ≤ Ko) (hor : Ko + 24 ≤ Kr ∨ Kr + 24 ≤ Ko)

@@ -17,7 +17,7 @@ attribute [local rv_addr] vecPtr vecLen vecCap
 
 /-- The function's outcome: returned with its contract, or a dead end. -/
 def Done (s t : MachineState) : Prop :=
-  (t.pc = returnAddress s ∧ Preserves s t ∧ VerifyKeccakPost s t) ∨ Dead Image.code t
+  (t.pc = returnAddress s ∧ Preserves s t ∧ VerifyKeccakPostW s t) ∨ Dead Image.code t
 
 /-- After the prologue. -/
 structure P0 (s u : MachineState) : Prop where
@@ -29,7 +29,7 @@ structure P0 (s u : MachineState) : Prop where
 /-- The sizes fit. -/
 def OK (s : MachineState) : Prop := s.getReg .x15 = s.getReg .x12 ∧ 4 ≤ (s.getReg .x12).toNat
 
-theorem prologue {s : MachineState} (hpre : VerifyKeccakPre s) (hpc : s.pc = 0x80008e34) :
+theorem prologue {s : MachineState} (hpre : VerifyKeccakPreW s) (hpc : s.pc = 0x80008e34) :
     ∃ u, Reaches Image.code s u ∧ P0 s u ∧ (OK s → u.pc = 0x80008e8c) ∧
       (¬ OK s → u.pc = 0x80009154) := by
   have hb := bounds hpre
@@ -107,7 +107,7 @@ theorem prologue {s : MachineState} (hpre : VerifyKeccakPre s) (hpc : s.pc = 0x8
       by_cases h3 : (s.getReg .x12).ult 4 = true <;> simp only [h3] <;> decide
 
 /-- The sizes do not fit: `Err` returned. -/
-theorem sizes_err {s u : MachineState} (hpre : VerifyKeccakPre s) (P : P0 s u)
+theorem sizes_err {s u : MachineState} (hpre : VerifyKeccakPreW s) (P : P0 s u)
     (hpc : u.pc = 0x80009154) (hbad : ¬ OK s) :
     ∃ t, Reaches Image.code u t ∧ Done s t := by
   have hb := bounds hpre
@@ -150,7 +150,7 @@ structure A1 (s u : MachineState) : Prop where
   segLen : (vecEs u (s.getReg .x2 - 5168)).length = 1
   rest : Rest s u (kSeg (s.getReg .x12).toNat (instOf s) (outOf s) (vecEs u (s.getReg .x2 - 5168)))
 
-theorem to_seg (hS : SamplesSpec) {s u : MachineState} (hpre : VerifyKeccakPre s) (P : P0 s u)
+theorem to_seg (hS : SamplesSpec) {s u : MachineState} (hpre : VerifyKeccakPreW s) (P : P0 s u)
     (hok : OK s) (hpc : u.pc = 0x80008e8c) :
     ∃ v, Reaches Image.code u v ∧ (A1 s v ∨ Dead Image.code v) := by
   have hb := bounds hpre
@@ -219,7 +219,7 @@ theorem to_seg (hS : SamplesSpec) {s u : MachineState} (hpre : VerifyKeccakPre s
   have R₄ : Rest s u₄ (kMain (s.getReg .x12).toNat (instOf s) (outOf s)) :=
     ((rest_start hpre).require_pass ⟨by
       simp only [instOf, eListAt_length, kInstLen]; rw [hok.1], by
-      simp only [outOf, eListAt_length]; exact hpre.outputLen, hok.2⟩).keep T₄
+      simp only [outOf, eListAt_length], hok.2⟩).keep T₄
   obtain ⟨T₀, hT₀⟩ := Open.exists_T u₄ (s.getReg .x11)
   have hv₀ := hpost₅.value T₀ (by rw [x11₄]; exact hT₀)
   obtain ⟨xs₀, T₀', hrun₀, hvec₀, -⟩ := hv₀

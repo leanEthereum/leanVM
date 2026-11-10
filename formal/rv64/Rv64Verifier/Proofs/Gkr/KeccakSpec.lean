@@ -33,7 +33,7 @@ theorem verify_keccak_spec (hS : SamplesSpec) (hC : SliceConcatSpec) (hEK : EqKe
     (hA : AllocSpec) (hR : ReserveFastSpec 0x80008a10) (hMK : MulKSpec) (hD : DotSpec)
     (hM : MulSpec) (hNS : NextScalarSpec) (hVL : VerifyLayerSpec)
     (hMC : Runtime.MemcpySpec 0x800126e4) (hO : OpenSpec) (hSC : SumcheckSpec)
-    (hNSs : NextScalarsSpec) (hME : MleEvalSpec) : VerifyKeccakSpec := by
+    (hNSs : NextScalarsSpec) (hME : MleEvalSpec) : VerifyKeccakSpecW := by
   intro s hpc hpre
   obtain ⟨u, hr, P, hok, hbad⟩ := prologue hpre hpc
   suffices k : ∃ t, Reaches Image.code u t ∧ Done s t by
@@ -64,5 +64,18 @@ theorem verify_keccak_spec (hS : SamplesSpec) (hC : SliceConcatSpec) (hEK : EqKe
   refine seqD (to_cmp hpre A) fun _ A ↦ ?_
   refine seqD (to_done hC hpre A) fun _ ⟨_, _, _, A⟩ ↦ ?_
   exact finish hpre A
+
+/-- `VerifyKeccakSpec` from the contract with `a7` free. -/
+theorem spec_of_w (h : VerifyKeccakSpecW) : VerifyKeccakSpec := fun s hpc hp ↦ by
+  have e : kOutputLen s = 25 := hp.outputLen
+  have ho : Region (kOutput s) (24 * 25) := (e ▸ hp.output).resolve_left (by decide)
+  obtain ⟨t, hr, ht⟩ := h s hpc
+    { toTPre := hp.toTPre, depth := hp.depth, checked := hp.checked, inst := hp.inst, output := ho,
+      instFree := Or.inr hp.instFree, outputFree := e ▸ hp.outputFree,
+      instStack := hp.instStack, outputStack := e ▸ hp.outputStack, instOut := hp.instOut,
+      outputOut := e ▸ hp.outputOut, instSelf := hp.instSelf, outputSelf := e ▸ hp.outputSelf }
+  refine ⟨t, hr, ht.imp_left fun ⟨a, b, c⟩ ↦ ⟨a, b, c.heap, c.mono, fun T hT ↦ ?_, c.frame⟩⟩
+  rw [e]
+  exact c.value T hT
 
 end Rv64Verifier.Gkr.Keccak

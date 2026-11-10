@@ -20,7 +20,39 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 attribute [local rv_addr] vecPtr vecLen vecCap
 
-theorem bounds {s : MachineState} (h : VerifyKeccakPre s) :
+/-- `VerifyKeccakPre` with `output` 25 elements whatever `a7` holds (the body never reads it), and
+an empty instance's pointer unconstrained. -/
+structure VerifyKeccakPreW (s : MachineState) : Prop extends TPre 96 verifyKeccakStack s where
+  depth : s.getReg .x13 = 12
+  checked : Checked s (s.getReg .x11)
+  inst : kInstLen s = 0 ∨ Region (kInst s) (24 * kInstLen s)
+  output : Region (kOutput s) (24 * 25)
+  instFree : kInstLen s = 0 ∨ Outside s (kInst s) (24 * kInstLen s)
+  outputFree : Outside s (kOutput s) (24 * 25)
+  instStack : Apart (kInst s) (24 * kInstLen s) (stackLo s verifyKeccakStack) verifyKeccakStack
+  outputStack : Apart (kOutput s) (24 * 25) (stackLo s verifyKeccakStack) verifyKeccakStack
+  instOut : Apart (kInst s) (24 * kInstLen s) (s.getReg .x10) 96
+  outputOut : Apart (kOutput s) (24 * 25) (s.getReg .x10) 96
+  instSelf : Apart (kInst s) (24 * kInstLen s) (s.getReg .x11 + 8) 344
+  outputSelf : Apart (kOutput s) (24 * 25) (s.getReg .x11 + 8) 344
+
+/-- `VerifyKeccakPost` with `output` 25 elements. -/
+structure VerifyKeccakPostW (s t : MachineState) : Prop where
+  heap : HeapOk t
+  mono : heapNext s ≤ heapNext t
+  value : ∀ T, TranscriptAt s (s.getReg .x11) T →
+    match (verifyKeccakRust (shapeOf s) (eListAt s (kInst s) (kInstLen s))
+        (eListAt s (kOutput s) 25)).run T with
+    | some (o, T') => vecCap t (s.getReg .x10) ≠ errNiche ∧
+        NewVecE s t (s.getReg .x10) o.inputs.1 ∧ NewVecE s t (s.getReg .x10 + 24) o.inputs.2 ∧
+        OutputsAt s t (s.getReg .x10 + 48) o.outputs ∧ TranscriptAt t (s.getReg .x11) T'
+    | none => vecCap t (s.getReg .x10) = errNiche
+  frame : TFrame 96 verifyKeccakStack s t
+
+/-- `verify_keccak`'s contract with `a7` free. -/
+abbrev VerifyKeccakSpecW : Prop := FunSpec Image.code 0x80008e34 VerifyKeccakPreW VerifyKeccakPostW
+
+theorem bounds {s : MachineState} (h : VerifyKeccakPreW s) :
     0xa0000000 + verifyKeccakStack ≤ (s.getReg .x2).toNat ∧ (s.getReg .x2).toNat ≤ 0xc0000000 ∧
       (s.getReg .x2).toNat % 16 = 0 ∧
       (stackLo s verifyKeccakStack).toNat = (s.getReg .x2).toNat - verifyKeccakStack := by
@@ -29,7 +61,7 @@ theorem bounds {s : MachineState} (h : VerifyKeccakPre s) :
   omega
 
 /-- `0x80009684`: the saved registers back, return. -/
-theorem exit {s u : MachineState} (hpre : VerifyKeccakPre s) (hpc : u.pc = 0x80009684)
+theorem exit {s u : MachineState} (hpre : VerifyKeccakPreW s) (hpc : u.pc = 0x80009684)
     (hsp : u.getReg .x2 = s.getReg .x2 - 5248) (h : Open.Saved s u) :
     ∃ t, Reaches Image.code u t ∧ t.pc = returnAddress s ∧ Preserves s t ∧
       ∀ a, t.getMem a = u.getMem a := by
@@ -75,7 +107,7 @@ structure Base (s u : MachineState) : Prop where
 
 /-- The instance and the output. -/
 def instOf (s : MachineState) : List E := eListAt s (kInst s) (kInstLen s)
-def outOf (s : MachineState) : List E := eListAt s (kOutput s) (kOutputLen s)
+def outOf (s : MachineState) : List E := eListAt s (kOutput s) 25
 
 /-- The mirror. -/
 def mir (s : MachineState) : TM KeccakOpenings := verifyKeccakRust (shapeOf s) (instOf s) (outOf s)
@@ -132,7 +164,7 @@ theorem Rest.congr {s u : MachineState} {k k' : TM KeccakOpenings} (h : Rest s u
     Rest s u k' := e ▸ h
 
 /-- The mirror at the entry, after the sizes' check. -/
-theorem rest_start {s : MachineState} (hpre : VerifyKeccakPre s) :
+theorem rest_start {s : MachineState} (hpre : VerifyKeccakPreW s) :
     Rest s s (TM.require ((instOf s).length = (s.getReg .x12).toNat ∧ (outOf s).length = 25 ∧
       4 ≤ (s.getReg .x12).toNat) >>= fun _ ↦ kMain (s.getReg .x12).toNat (instOf s) (outOf s)) :=
   (Rest.start s).congr (by rw [mir, Open.shapeOf_eq hpre.depth, verifyKeccakRust_eq])
@@ -150,7 +182,7 @@ theorem kw_mono {s u t : MachineState} (hN : heapNext u ≤ heapNext t) {a : Wor
   · exact Or.inr (Or.inr (Or.inr (Or.inr ⟨h.1, by omega⟩)))
 
 theorem post_err {s u t : MachineState} (B : Base s u) (hcap : u.getMem (s.getReg .x10) = errNiche)
-    (hf : Fails s) (hsame : ∀ a, t.getMem a = u.getMem a) : VerifyKeccakPost s t := by
+    (hf : Fails s) (hsame : ∀ a, t.getMem a = u.getMem a) : VerifyKeccakPostW s t := by
   have hN : heapNext t = heapNext u := by simp only [heapNext, hsame]
   refine ⟨⟨by rw [hN]; exact B.heap.lo, by rw [hN]; exact B.heap.hi⟩, by rw [hN]; exact B.mono,
     fun T hT ↦ ?_, (B.frame.trans (DFrame.of_same hsame _) fun _ h ↦ h).mono fun a h ↦
@@ -176,7 +208,7 @@ theorem post_ok {s u t : MachineState} (B : Base s u) {o : KeccakOpenings}
     (hcap : u.getMem (s.getReg .x10) ≠ errNiche) (hr : Rest s u (pure o))
     (h0 : NewVecE s u (s.getReg .x10) o.inputs.1) (h24 : NewVecE s u (s.getReg .x10 + 24) o.inputs.2)
     (h48 : OutputsAt s u (s.getReg .x10 + 48) o.outputs) (hsame : ∀ a, t.getMem a = u.getMem a) :
-    VerifyKeccakPost s t := by
+    VerifyKeccakPostW s t := by
   have hN : heapNext t = heapNext u := by simp only [heapNext, hsame]
   refine ⟨⟨by rw [hN]; exact B.heap.lo, by rw [hN]; exact B.heap.hi⟩, by rw [hN]; exact B.mono,
     fun T hT ↦ ?_, (B.frame.trans (DFrame.of_same hsame _) fun _ h ↦ h).mono fun a h ↦
@@ -202,7 +234,7 @@ theorem missKW {s u : MachineState} (hu : HeapOk u) {lo : Word} {n : Nat}
   rcases h with h | h | h | h | h <;> addr_omega [hy, h, h0, h1, h2, f1, f2, hn, this]
 
 /-- The transcript's reads miss `KW`. -/
-theorem readsKW {s u : MachineState} (hpre : VerifyKeccakPre s) (hu : HeapOk u) :
+theorem readsKW {s u : MachineState} (hpre : VerifyKeccakPreW s) (hu : HeapOk u) :
     Misses (KW s u) (s.getReg .x11) 8 ∧ Misses (KW s u) (proofAt s (s.getReg .x11)) 48 ∧
       Misses (KW s u) (streamPtr s (s.getReg .x11)) (24 * streamLen s (s.getReg .x11)) := by
   have hS := hpre.self.self
@@ -219,19 +251,19 @@ theorem readsKW {s u : MachineState} (hpre : VerifyKeccakPre s) (hu : HeapOk u) 
   · intro y hy; simp only [Within, h0] at hy; omega
   · exact missKW hu hpo.2 hpa.2 hps.2 hpre.streamFree (by addr_omega [hB])
 
-theorem Base.reads {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) :
+theorem Base.reads {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) :
     proofAt u (s.getReg .x11) = proofAt s (s.getReg .x11) ∧
       streamPtr u (s.getReg .x11) = streamPtr s (s.getReg .x11) ∧
       streamLen u (s.getReg .x11) = streamLen s (s.getReg .x11) := by
   obtain ⟨r1, r2, -⟩ := readsKW hpre B.heap
   exact B.frame.stream' r1 (by addr_omega [hpre.self.self]) r2 (by addr_omega [hpre.self.proof])
 
-theorem Base.tok {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) :
+theorem Base.tok {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) :
     TranscriptOk u (s.getReg .x11) := by
   obtain ⟨r1, r2, -⟩ := readsKW hpre B.heap
   exact B.frame.transcriptOk hpre.self r1 r2
 
-theorem Base.rodata {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) :
+theorem Base.rodata {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) :
     RodataOk u := by
   have hrs := hpre.stack.rodata
   have hS := hpre.self.self
@@ -242,7 +274,7 @@ theorem Base.rodata {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s 
       addr_omega [ha, hw, hrs, hpre.outRodata, hpre.selfRodata, hS, this]
 
 /-- A block or a call whose writes lie in `KW` and miss the saved registers. -/
-theorem Base.next {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.next {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {W : Word → Prop} (F : DFrame u v W)
     (hW : ∀ a, W a → KW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104) : Base s v := by
@@ -265,14 +297,14 @@ theorem Base.same {s u v : MachineState} (B : Base s u) (hx2 : v.getReg .x2 = s.
     by rw [hm]; exact h12⟩
 
 /-- Writes to the frame's slots, below the saved registers. -/
-theorem slots_kw {s v : MachineState} (hpre : VerifyKeccakPre s) {a lo : Word} {n : Nat}
+theorem slots_kw {s v : MachineState} (hpre : VerifyKeccakPreW s) {a lo : Word} {n : Nat}
     (h1 : (s.getReg .x2).toNat - 5248 ≤ lo.toNat) (h2 : lo.toNat + n + 104 ≤ (s.getReg .x2).toNat)
     (ha : Within a lo n) : KW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104 := by
   have hb := bounds hpre
   refine ⟨Or.inr (Or.inr (Or.inl ?_)), ?_⟩ <;> addr_omega [hb, h1, h2, ha]
 
 /-- A block writing `n` bytes of the frame's slots from `lo`. -/
-theorem Base.slots {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.slots {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) {lo : Word} {n : Nat} (f : MemFrame u v lo n)
     (h1 : (s.getReg .x2).toNat - 5248 ≤ lo.toNat) (h2 : lo.toNat + n + 104 ≤ (s.getReg .x2).toNat) :
     Base s v := by
@@ -286,7 +318,7 @@ theorem Base.slots {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s
     fun a ha ↦ slots_kw hpre h1 h2 ha
 
 /-- A transcript callee's frame, its result at `f + 5248 - K`. -/
-theorem tframe_kw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {n k : Nat}
+theorem tframe_kw {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {n k : Nat}
     (K : Nat) (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K)
     (hx11 : u.getReg .x11 = s.getReg .x11) (hK : n + 104 ≤ K) (hK' : K ≤ 5248)
     (hk : k ≤ openStack) (hH : HeapOk v) (a : Word)
@@ -312,7 +344,7 @@ theorem tframe_kw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s 
   · exact ⟨Or.inr (Or.inr (Or.inr (Or.inr ⟨by omega, h.2⟩))), by addr_omega [h, hb, hab, this]⟩
 
 /-- A transcript callee's precondition, its result at `f + 5248 - K`. -/
-theorem Base.tpre {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {n k : Nat}
+theorem Base.tpre {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {n k : Nat}
     (K : Nat) (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K)
     (hx11 : u.getReg .x11 = s.getReg .x11) (hK : n ≤ K) (hK' : K ≤ 5248) (hK8 : K % 8 = 0)
     (hk : k ≤ openStack) (hk8 : k % 8 = 0) : TPre n k u := by
@@ -355,7 +387,7 @@ theorem Base.tpre {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
     selfRodata := by rw [hx11]; exact hpre.selfRodata }
 
 /-- The transcript's value is kept by a frame that misses it and the proof. -/
-theorem Base.tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) (hH : HeapOk v)
+theorem Base.tat {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) (hH : HeapOk v)
     {W : Word → Prop} (F : DFrame u v W)
     (hW : ∀ a, W a → ¬ Within a (s.getReg .x11) 368 ∧ KW s v a) {T : TState}
     (hT : TranscriptAt u (s.getReg .x11) T) : TranscriptAt v (s.getReg .x11) T := by
@@ -367,7 +399,7 @@ theorem Base.tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u
     (fun y hy h ↦ r3 y (by rwa [e1, e2] at hy) (hW y h).2)
     (fun y hy h ↦ (hW y h).1 (by addr_omega [hy, hS]))
 
-theorem Base.slots_tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.slots_tat {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (Bv : Base s v) {lo : Word} {n : Nat} (f : MemFrame u v lo n)
     (h1 : (s.getReg .x2).toNat - 5248 ≤ lo.toNat) (h2 : lo.toNat + n + 104 ≤ (s.getReg .x2).toNat)
     {T : TState} (hT : TranscriptAt u (s.getReg .x11) T) : TranscriptAt v (s.getReg .x11) T := by
@@ -391,7 +423,7 @@ theorem Base.eListAt {s u : MachineState} (B : Base s u) {lo : Word} {n : Nat}
   · exact B.frame.eListAt (hm.bytes (Nat.le_refl _) (Nat.le_refl _) hn)
 
 /-- The doubleword of the `checked` byte is kept. -/
-theorem Base.byte {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) :
+theorem Base.byte {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) :
     u.getMem (s.getReg .x11 + 360) = s.getMem (s.getReg .x11 + 360) := by
   have hS := hpre.self.self
   have hos := hpre.outSelf
@@ -402,29 +434,30 @@ theorem Base.byte {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
     (by addr_omega [hS])) (by addr_omega [hS]) (le_refl _) (le_refl _)
 
 /-- The instance's elements miss `KW`. -/
-theorem missInst {s u : MachineState} (hpre : VerifyKeccakPre s) (hu : HeapOk u) :
+theorem missInst {s u : MachineState} (hpre : VerifyKeccakPreW s) (hu : HeapOk u) :
     Misses (KW s u) (kInst s) (24 * kInstLen s) := by
+  rcases hpre.instFree with h0 | hF
+  · intro y hy; simp only [Within, h0] at hy; omega
   rcases hpre.inst with h0 | hR
   · intro y hy; simp only [Within, h0] at hy; omega
-  · exact missKW hu hpre.instOut hpre.instSelf hpre.instStack hpre.instFree (by addr_omega [hR])
+  · exact missKW hu hpre.instOut hpre.instSelf hpre.instStack hF (by addr_omega [hR])
 
-theorem missOutput {s u : MachineState} (hpre : VerifyKeccakPre s) (hu : HeapOk u) :
-    Misses (KW s u) (kOutput s) (24 * kOutputLen s) := by
-  rcases hpre.output with h0 | hR
-  · intro y hy; simp only [Within, h0] at hy; omega
-  · exact missKW hu hpre.outputOut hpre.outputSelf hpre.outputStack hpre.outputFree
-      (by addr_omega [hR])
+theorem missOutput {s u : MachineState} (hpre : VerifyKeccakPreW s) (hu : HeapOk u) :
+    Misses (KW s u) (kOutput s) (24 * 25) := by
+  have hR := hpre.output
+  exact missKW hu hpre.outputOut hpre.outputSelf hpre.outputStack hpre.outputFree
+    (by addr_omega [hR])
 
 /-! ## Calls to `mul` -/
 
-theorem slot_vmr {s : MachineState} (hpre : VerifyKeccakPre s) {K n : Nat} (hK : 8 * n ≤ K)
+theorem slot_vmr {s : MachineState} (hpre : VerifyKeccakPreW s) {K n : Nat} (hK : 8 * n ≤ K)
     (hK' : K ≤ 5248) (hK8 : K % 8 = 0) : ValidMemRange (s.getReg .x2 - BitVec.ofNat 64 K) n := by
   have hb := bounds hpre
   unfold verifyKeccakStack at hb
   valid_sub hpre.stack.valid [hb, hK, hK', hK8]
 
 /-- `mul`'s precondition from the body, the result at `f + 5248 - K`. -/
-theorem mul_pre {s u : MachineState} (hpre : VerifyKeccakPre s)
+theorem mul_pre {s u : MachineState} (hpre : VerifyKeccakPreW s)
     (hx2 : u.getReg .x2 = s.getReg .x2 - 5248) (hro : RodataOk u) (K : Nat)
     (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K)
     (hK : 24 ≤ K) (hK' : K ≤ 5248) (hK8 : K % 8 = 0)
@@ -483,7 +516,7 @@ def SlotsSep (rs : List (Nat × Nat)) (J m : Nat) : Bool :=
   Slots s rs a ∨ Within a (stackLo s verifyKeccakStack) openStack ∨ Within a nextAddr 8 ∨
     Fresh u v a ∨ (sp = true ∧ Within a (s.getReg .x11 + 8) 344)
 
-theorem slots_bounds {s : MachineState} (hpre : VerifyKeccakPre s) {rs : List (Nat × Nat)}
+theorem slots_bounds {s : MachineState} (hpre : VerifyKeccakPreW s) {rs : List (Nat × Nat)}
     (hok : SlotsOk rs = true) {a : Word} (h : Slots s rs a) :
     (s.getReg .x2).toNat - 5248 ≤ a.toNat ∧ a.toNat + 104 < (s.getReg .x2).toNat := by
   have hb := bounds hpre
@@ -494,7 +527,7 @@ theorem slots_bounds {s : MachineState} (hpre : VerifyKeccakPre s) {rs : List (N
   obtain ⟨h1, h2⟩ := this
   addr_omega [hw, hb, h1, h2]
 
-theorem SW.kw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) (hH : HeapOk v)
+theorem SW.kw {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) (hH : HeapOk v)
     (_hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     {a : Word} (h : SW s u v rs sp a) : KW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104 := by
   have hb := bounds hpre
@@ -514,14 +547,14 @@ theorem SW.kw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) (
       have hhi := hH.hi; addr_omega [h, hb, hab, hhi]⟩
   · exact ⟨Or.inr (Or.inl h), by addr_omega [h, hb, hss, hS]⟩
 
-theorem Base.step {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.step {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) (F : DFrame u v (SW s u v rs sp)) :
     Base s v :=
   B.next hpre hx2 hH hN F fun _ h ↦ SW.kw hpre B hH hN hok h
 
 /-- A slot the step does not write. -/
-theorem SW.slot {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
+theorem SW.slot {s u v : MachineState} (hpre : VerifyKeccakPreW s) (hH : HeapOk v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) {J m : Nat} (hJ : J ≤ 5248)
     (hm : m ≤ J) (hsep : SlotsSep rs J m = true) :
     Misses (SW s u v rs sp) (s.getReg .x2 - BitVec.ofNat 64 J) m := by
@@ -546,7 +579,7 @@ theorem SW.slot {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v
   · addr_omega [h, hy, hb, hss, hS, hJ, hm]
 
 /-- What was allocated since the entry. -/
-theorem SW.buf {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem SW.buf {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) {p : Word} {N : Nat}
     (hp : NewBuf s u p N 8) : Misses (SW s u v rs sp) p N := by
   intro y hy h
@@ -571,7 +604,7 @@ theorem SW.buf {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
 
 /-- Bytes outside the free heap, apart from the frame and the sponge. -/
 theorem SW.region {s u v : MachineState} (B : Base s u) (hH : HeapOk v) {rs : List (Nat × Nat)} {sp : Bool}
-    (hpre : VerifyKeccakPre s) (hok : SlotsOk rs = true) {lo : Word} {n : Nat}
+    (hpre : VerifyKeccakPreW s) (hok : SlotsOk rs = true) {lo : Word} {n : Nat}
     (h1 : Apart lo n (stackLo s verifyKeccakStack) verifyKeccakStack)
     (h2 : Apart lo n (s.getReg .x11 + 8) 344) (h3 : Outside s lo n) (hn : lo.toNat + n ≤ 2 ^ 64) :
     Misses (SW s u v rs sp) lo n := by
@@ -613,7 +646,7 @@ theorem newVecE_step {s u v : MachineState} {a : Word} {xs : List E} (h : NewVec
       rw [this]; rfl
     · exact F.eListAt (hbuf.bytes (Nat.le_refl _) (by omega) (by unfold heapEnd at hhi; omega))
 
-theorem SW.tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) (hH : HeapOk v)
+theorem SW.tat {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) (hH : HeapOk v)
     (hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} (hok : SlotsOk rs = true)
     (F : DFrame u v (SW s u v rs false)) {T : TState} (hT : TranscriptAt u (s.getReg .x11) T) :
     TranscriptAt v (s.getReg .x11) T := by
@@ -635,7 +668,7 @@ theorem SW.tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) 
   · cases h
 
 /-- A callee's stack below the frame. -/
-theorem stk_sw {s u : MachineState} (hpre : VerifyKeccakPre s)
+theorem stk_sw {s u : MachineState} (hpre : VerifyKeccakPreW s)
     (hx2 : u.getReg .x2 = s.getReg .x2 - 5248) {k : Nat} (hk : k ≤ openStack) {a : Word}
     (h : Within a (stackLo u k) k) : Within a (stackLo s verifyKeccakStack) openStack := by
   have hb := bounds hpre
@@ -649,7 +682,7 @@ theorem out_sw {s u : MachineState} {K n : Nat} (hx : u.getReg .x10 = s.getReg .
   ⟨(K, n), List.mem_singleton_self _, by rw [← hx]; exact h⟩
 
 /-- A transcript callee's frame, its result at `sp - K`. -/
-theorem tframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} (K : Nat)
+theorem tframe_sw {s u v : MachineState} (hpre : VerifyKeccakPreW s) {n k : Nat} (K : Nat)
     (hx2 : u.getReg .x2 = s.getReg .x2 - 5248)
     (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K) (hx11 : u.getReg .x11 = s.getReg .x11)
     (hk : k ≤ openStack) (a : Word)
@@ -663,7 +696,7 @@ theorem tframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} 
   · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
 
 /-- An allocating callee's frame without the transcript, its result at `sp - K`. -/
-theorem cframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} (K : Nat)
+theorem cframe_sw {s u v : MachineState} (hpre : VerifyKeccakPreW s) {n k : Nat} (K : Nat)
     (hx2 : u.getReg .x2 = s.getReg .x2 - 5248)
     (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K) (hk : k ≤ openStack) (a : Word)
     (ha : Within a (u.getReg .x10) n ∨ Within a (stackLo u k) k ∨ Within a nextAddr 8 ∨
@@ -675,7 +708,7 @@ theorem cframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} 
   · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
 
 /-- A field callee's frame: its result at `sp - K`, its stack. -/
-theorem fframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} (K : Nat)
+theorem fframe_sw {s u v : MachineState} (hpre : VerifyKeccakPreW s) {n k : Nat} (K : Nat)
     (hx2 : u.getReg .x2 = s.getReg .x2 - 5248)
     (hx10 : u.getReg .x10 = s.getReg .x2 - BitVec.ofNat 64 K) (hk : k ≤ openStack) (a : Word)
     (ha : Within a (u.getReg .x10) n ∨ Within a (stackLo u k) k) : SW s u v [(K, n)] false a := by
@@ -684,7 +717,7 @@ theorem fframe_sw {s u v : MachineState} (hpre : VerifyKeccakPre s) {n k : Nat} 
   · exact Or.inr (Or.inl (stk_sw hpre hx2 hk h))
 
 /-- A slot's doubleword the step does not write. -/
-theorem SW.mem {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
+theorem SW.mem {s u v : MachineState} (hpre : VerifyKeccakPreW s) (hH : HeapOk v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) {J : Nat} (hJ : J ≤ 5248)
     (h8 : 8 ≤ J) (hsep : SlotsSep rs J 8 = true) (F : DFrame u v (SW s u v rs sp)) :
     v.getMem (s.getReg .x2 - BitVec.ofNat 64 J) = u.getMem (s.getReg .x2 - BitVec.ofNat 64 J) := by
@@ -693,7 +726,7 @@ theorem SW.mem {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
     (by addr_omega [hb, hJ]))
 
 /-- A slot's `E` the step does not write. -/
-theorem SW.e {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
+theorem SW.e {s u v : MachineState} (hpre : VerifyKeccakPreW s) (hH : HeapOk v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true) {J : Nat} (hJ : J ≤ 5248)
     (h24 : 24 ≤ J) (hsep : SlotsSep rs J 24 = true) (F : DFrame u v (SW s u v rs sp)) :
     eAt v (s.getReg .x2 - BitVec.ofNat 64 J) = eAt u (s.getReg .x2 - BitVec.ofNat 64 J) := by
@@ -702,7 +735,7 @@ theorem SW.e {s u v : MachineState} (hpre : VerifyKeccakPre s) (hH : HeapOk v)
     (by addr_omega [hb, hJ]))
 
 /-- A slot's `Vec` the step does not write, its buffer allocated since the entry. -/
-theorem SW.vec {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) (hH : HeapOk v)
+theorem SW.vec {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) (hH : HeapOk v)
     (hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     {J : Nat} (hJ : J ≤ 5248) (h24 : 24 ≤ J) (hsep : SlotsSep rs J 24 = true)
     (F : DFrame u v (SW s u v rs sp)) {xs : List E}
@@ -714,7 +747,7 @@ theorem SW.vec {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) 
 
 /-! ## Blocks that write slots -/
 
-theorem slots_of {s : MachineState} (hpre : VerifyKeccakPre s) {rs : List (Nat × Nat)} {J : Nat}
+theorem slots_of {s : MachineState} (hpre : VerifyKeccakPreW s) {rs : List (Nat × Nat)} {J : Nat}
     (h : rs.any (fun p ↦ decide (J ≤ p.1) && decide (p.1 < J + p.2) && decide (p.1 ≤ 5248)) = true) :
     Slots s rs (s.getReg .x2 - BitVec.ofNat 64 J) := by
   have hb := bounds hpre
@@ -733,7 +766,7 @@ theorem slots_sw {s u v : MachineState} {rs : List (Nat × Nat)} (F : DFrame u v
     DFrame u v (SW s u v rs false) :=
   F.mono fun _ h ↦ Or.inl h
 
-theorem slots_next {s u v : MachineState} (hpre : VerifyKeccakPre s) {rs : List (Nat × Nat)}
+theorem slots_next {s u v : MachineState} (hpre : VerifyKeccakPreW s) {rs : List (Nat × Nat)}
     (hok : SlotsOk rs = true) (F : DFrame u v (Slots s rs)) :
     v.getMem nextAddr = u.getMem nextAddr := by
   have hb := bounds hpre
@@ -743,7 +776,7 @@ theorem slots_next {s u v : MachineState} (hpre : VerifyKeccakPre s) {rs : List 
     have := slots_bounds hpre hok h
     addr_omega [this, hb, hnx, hi]
 
-theorem Base.block {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.block {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) {rs : List (Nat × Nat)} (hok : SlotsOk rs = true)
     (F : DFrame u v (Slots s rs)) : Base s v := by
   have hN := slots_next hpre hok F
@@ -751,7 +784,7 @@ theorem Base.block {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s
     ⟨by simp only [heapNext, hN]; exact B.heap.lo, by simp only [heapNext, hN]; exact B.heap.hi⟩
     (by simp only [heapNext, hN]; exact le_refl _) hok (slots_sw F)
 
-theorem Base.block_tat {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.block_tat {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     {rs : List (Nat × Nat)} (hok : SlotsOk rs = true) (F : DFrame u v (Slots s rs)) {T : TState}
     (hT : TranscriptAt u (s.getReg .x11) T) : TranscriptAt v (s.getReg .x11) T := by
   have hN := slots_next hpre hok F

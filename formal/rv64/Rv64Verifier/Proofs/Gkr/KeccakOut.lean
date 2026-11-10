@@ -27,7 +27,7 @@ theorem kTail_eq (l : Nat) (inst : List E) (first : KeccakClaim) (c : E) (cl : K
   congr 1
 
 /-- A buffer allocated since the entry, kept by a step. -/
-theorem buf_step {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {rs : List (Nat × Nat)}
+theorem buf_step {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {rs : List (Nat × Nat)}
     {sp : Bool} (hok : SlotsOk rs = true) (F : DFrame u v (SW s u v rs sp))
     (hN : heapNext u ≤ heapNext v) {p : Word} {n : Nat} {xs : List E}
     (h : NewBuf s u p (24 * n) 8 ∧ eListAt u p n = xs) : NewBuf s v p (24 * n) 8 ∧ eListAt v p n = xs := by
@@ -62,7 +62,7 @@ structure P2 (s u : MachineState) (cl : KeccakClaim) (mp ml sp sl : Word) (slot 
   x23 : u.getReg .x23 = ml
 
 theorem P2.step {s u v : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word} {slot : List E}
-    (hpre : VerifyKeccakPre s) (P : P2 s u cl mp ml sp sl slot)
+    (hpre : VerifyKeccakPreW s) (P : P2 s u cl mp ml sp sl slot)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {spb : Bool} (hok : SlotsOk rs = true)
     (h1 : SlotsSep rs 5216 8 = true) (h2 : SlotsSep rs 5200 24 = true)
@@ -93,7 +93,7 @@ theorem P2.step {s u v : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word} {
     x23 := (hregs .x23 (by decide)).trans P.x23 }
 
 theorem P2.same {s u v : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word} {slot : List E}
-    (hpre : VerifyKeccakPre s) (P : P2 s u cl mp ml sp sl slot)
+    (hpre : VerifyKeccakPreW s) (P : P2 s u cl mp ml sp sl slot)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hm : ∀ a, v.getMem a = u.getMem a)
     (hregs : ∀ r ∈ ([.x9, .x18, .x19, .x22, .x23] : List Reg), v.getReg r = u.getReg r) :
     P2 s v cl mp ml sp sl slot := by
@@ -103,7 +103,7 @@ theorem P2.same {s u v : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word} {
     (DFrame.of_same hm _) hregs
 
 theorem P2.block {s u v : MachineState} {cl : KeccakClaim} {mp ml sp sl : Word} {slot : List E}
-    (hpre : VerifyKeccakPre s) (P : P2 s u cl mp ml sp sl slot)
+    (hpre : VerifyKeccakPreW s) (P : P2 s u cl mp ml sp sl slot)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) {rs : List (Nat × Nat)} (hok : SlotsOk rs = true)
     (h1 : SlotsSep rs 5216 8 = true) (h2 : SlotsSep rs 5200 24 = true)
     (h3 : SlotsSep rs 4952 96 = true) (F : DFrame u v (Slots s rs))
@@ -125,7 +125,7 @@ structure Q1 (s u : MachineState) (cl : KeccakClaim) (mp ml sp sl : Word) (slot 
   rest : Rest s u (kAfter (s.getReg .x12).toNat (instOf s) cl (slot, row, v))
 
 theorem to_row (hO : OpenSpec) (hMC : Runtime.MemcpySpec 0x800126e4) {s u : MachineState}
-    {first cl : KeccakClaim} {c : E} (hpre : VerifyKeccakPre s) (A : A12 s u first c cl) :
+    {first cl : KeccakClaim} {c : E} (hpre : VerifyKeccakPreW s) (A : A12 s u first c cl) :
     ∃ t, Reaches Image.code u t ∧ ((∃ sp sl slot row v, Q1 s t cl (vecPtr u (s.getReg .x2 - 4952))
       (vecLen u (s.getReg .x2 - 4952)) sp sl slot row v) ∨ Done s t) := by
   have hb := bounds hpre
@@ -312,7 +312,7 @@ theorem pres5 {u v : MachineState} (h : Preserves u v) :
     rcases hr with rfl | rfl | rfl | rfl | rfl <;> decide)
 
 theorem to_checked (hNS : NextScalarSpec) (hM : MulSpec) {s u : MachineState} {cl : KeccakClaim}
-    {mp ml sp sl : Word} {slot row : List E} {v : E} (hpre : VerifyKeccakPre s)
+    {mp ml sp sl : Word} {slot row : List E} {v : E} (hpre : VerifyKeccakPreW s)
     (A : Q1 s u cl mp ml sp sl slot row v) :
     ∃ t, Reaches Image.code u t ∧ ((∃ word, Q3 s t cl mp ml sp sl slot word) ∨ Done s t) := by
   have hb := bounds hpre
@@ -672,7 +672,7 @@ structure I0 (s u : MachineState) (cl : KeccakClaim) (mp ml sp sl : Word) (slot 
   rest : Rest s u (kInputs (s.getReg .x12).toNat cl (some (instOf s ++ slot, word)))
 
 theorem to_concat (hC : SliceConcatSpec) {s u : MachineState} {cl : KeccakClaim}
-    {mp ml sp sl : Word} {slot : List E} {word : E} (hpre : VerifyKeccakPre s)
+    {mp ml sp sl : Word} {slot : List E} {word : E} (hpre : VerifyKeccakPreW s)
     (A : Q3 s u cl mp ml sp sl slot word) :
     ∃ t, Reaches Image.code u t ∧ (I0 s t cl mp ml sp sl slot word ∨ Dead Image.code t) := by
   have hb := bounds hpre
@@ -728,7 +728,7 @@ theorem to_concat (hC : SliceConcatSpec) {s u : MachineState} {cl : KeccakClaim}
     rw [show s.getReg .x2 - 3296 + BitVec.ofNat 64 (16 * 1) + 8 = s.getReg .x2 - BitVec.ofNat 64 3272 from
       BitVec.eq_of_toNat_eq (by addr_omega [hb]), m1976, A.x20]
   have hiR := hpre.inst
-  have hiF := hpre.instFree
+  have hiF := hpre.instFree.resolve_left (by rw [hinst]; have := hok.2; omega)
   have hiS := hpre.instStack
   rw [hinst] at hiR hiF hiS
   simp only [kInst] at hiR hiF hiS

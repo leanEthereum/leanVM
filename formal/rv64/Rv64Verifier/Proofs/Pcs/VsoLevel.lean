@@ -1,4 +1,4 @@
-import Rv64Verifier.Proofs.Pcs.VsoRound
+import Rv64Verifier.Proofs.Pcs.VsoOpenings
 
 /-!
 # `verify_stacked_opening`'s level loop: a level's head
@@ -336,6 +336,7 @@ def rootShape (s : MachineState) (ℓ : ℕ) : ℕ × ℕ :=
 proof kept, `ℓ` phases of openings read, `ℓ + 1` roots, the last one the root's bytes in `u`. -/
 def Runs (s u : MachineState) (ℓ : ℕ) (m : Model.TM Unit) : Prop :=
   ∀ T, TranscriptAt s (s.getReg .x10) T →
+    VsoOpeningsAt s (s.getReg .x10) T →
     T.roots = [(digestAt s (s.getReg .x11),
       Model.stackShape (s.getReg .x12).toNat (s.getReg .x13).toNat)] →
     ∃ T', (Model.Pcs.verifyStackedOpeningRust (s.getReg .x12).toNat (s.getReg .x13).toNat
@@ -351,8 +352,8 @@ theorem Runs.step {s u v : MachineState} {ℓ : ℕ} {m m' : Model.TM Unit} (h :
     (hstep : ∀ T, TranscriptAt u (s.getReg .x10) T → ∃ T', m.run T = m'.run T' ∧
       TranscriptAt v (s.getReg .x10) T' ∧ T'.proof = T.proof ∧ T'.roots = T.roots ∧
       T'.openingOffset = T.openingOffset) : Runs s v ℓ m' := by
-  intro T hT hr
-  obtain ⟨T₁, e₁, hT₁, p₁, o₁, l₁, d₁, z₁, sh₁⟩ := h T hT hr
+  intro T hT hO hr
+  obtain ⟨T₁, e₁, hT₁, p₁, o₁, l₁, d₁, z₁, sh₁⟩ := h T hT hO hr
   obtain ⟨T₂, e₂, hT₂, p₂, r₂, o₂⟩ := hstep T₁ hT₁
   refine ⟨T₂, e₁.trans e₂, hT₂, p₂.trans p₁, by rw [o₂, o₁], by rw [r₂, l₁], ?_,
     fun h0 ↦ r₂.trans (z₁ h0), fun h0 ↦ by rw [r₂]; exact sh₁ h0⟩
@@ -530,7 +531,7 @@ theorem init {s b c : MachineState} {nxb QP QL FP RP : Word} (hpre : VsoPre s)
       rw [k .x22 (by decide), k .x23 (by decide), hn]; exact hq⟩
     apart := ⟨Or.inl (by rw [m352]; rfl), Or.inl (by rw [m352]; rfl), Or.inl (by rw [m376]; rfl)⟩
     frozen := fun i hi ↦ by rw [m392] at hi; exact absurd hi (Nat.not_lt_zero _)
-    value := fun T hT hroots ↦ by
+    value := fun T hT _ hroots ↦ by
       obtain ⟨T', e, hT', -, p, r, o⟩ := hc.value T hT
       refine ⟨T', e, tr_keep hpre hc.inv.toR hT' X fun a ha ↦ Or.inl (by
           rcases ha with ha | ha | ha <;> addr_omega [ha, hb]), p, by rw [o]; rfl,

@@ -48,12 +48,18 @@ theorem firstHalf : Layer.FirstHalf :=
 theorem verifyLayer : VerifyLayerSpec :=
   Layer.verify_layer_spec firstHalf Transcript.duplex Proofs.Field.mul Runtime.memcpy secondHalf
 
-/-- `verify_keccak`, its callees' contracts discharged but `verify_layer`'s. -/
-theorem verifyKeccak (hVL : VerifyLayerSpec) : VerifyKeccakSpec :=
+/-- `verify_keccak` with `a7` free, its callees' contracts discharged but `verify_layer`'s. -/
+theorem verifyKeccakW (hVL : VerifyLayerSpec) : Keccak.VerifyKeccakSpecW :=
   Keccak.verify_keccak_spec Transcript.samples Proofs.Multilinear.sliceConcat eqKernel
     Runtime.alloc_spec Runtime.reserveFast_80008a10 Proofs.Field.mulK Proofs.Multilinear.dot
     Proofs.Field.mul Transcript.nextScalar hVL Runtime.memcpy «open» Transcript.sumcheck
     Transcript.nextScalars Proofs.Multilinear.mleEval
+
+/-- `verify_keccak`, its callees' contracts discharged but `verify_layer`'s. -/
+theorem verifyKeccak (hVL : VerifyLayerSpec) : VerifyKeccakSpec :=
+  Keccak.spec_of_w (verifyKeccakW hVL)
+
+theorem verifyKeccakClosedW : Keccak.VerifyKeccakSpecW := verifyKeccakW verifyLayer
 
 theorem verifyKeccakClosed : VerifyKeccakSpec := verifyKeccak verifyLayer
 
@@ -87,3 +93,9 @@ end Rv64Verifier.Gkr
 
 /-- info: 'Rv64Verifier.Gkr.verifyKeccakClosed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Gkr.verifyKeccakClosed
+
+/-- info: 'Rv64Verifier.Gkr.verifyKeccakW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.verifyKeccakW
+
+/-- info: 'Rv64Verifier.Gkr.verifyKeccakClosedW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Gkr.verifyKeccakClosedW

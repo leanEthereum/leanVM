@@ -16,7 +16,7 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 attribute [local rv_addr] vecPtr vecLen vecCap
 
 /-- An `Err` written to the result's first 24 bytes, at the exit. -/
-theorem err_exit {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem err_exit {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hpc : v.pc = 0x80009684) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248)
     (f : MemFrame u v (s.getReg .x10) 24) (hcap : v.getMem (s.getReg .x10) = errNiche)
     (hf : Fails s) : ∃ t, Reaches Image.code v t ∧ Done s t := by
@@ -49,7 +49,7 @@ structure A10 (s u : MachineState) (seg lp : List E) (wp : Word) (c : E) : Prop
   rest : Rest s u (kCommitted (s.getReg .x12).toNat (instOf s) (outOf s) seg lp c)
 
 theorem to_committed (hNS : NextScalarSpec) {s u : MachineState} {seg lp : List E} {wp : Word}
-    (hpre : VerifyKeccakPre s) (A : A9 s u seg lp wp) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A9 s u seg lp wp) : ∃ v, Reaches Image.code u v ∧
       ((∃ c, A10 s v seg lp wp c) ∨ Done s v) := by
   have hb := bounds hpre
   have hsm := hpre.stack.mapped (by decide) (by decide)
@@ -283,7 +283,7 @@ structure A11 (s u : MachineState) (seg lp : List E) (c : E) : Prop extends M s 
   rest : Rest s u (kCommitted (s.getReg .x12).toNat (instOf s) (outOf s) seg lp c)
 
 theorem to_claim (hEK : EqKernelSpec) {s u : MachineState} {seg lp : List E} {wp : Word} {c : E}
-    (hpre : VerifyKeccakPre s) (A : A10 s u seg lp wp c) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A10 s u seg lp wp c) : ∃ v, Reaches Image.code u v ∧
       (A11 s v seg lp c ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have hsm := hpre.stack.mapped (by decide) (by decide)
@@ -301,7 +301,7 @@ theorem to_claim (hEK : EqKernelSpec) {s u : MachineState} {seg lp : List E} {wp
   have x11₁ : u₁.getReg .x11 = s.getReg .x14 := (k₁ .x11 (by decide)).trans A.x11
   have hok := A.ok
   have hiR := hpre.inst
-  have hiF := hpre.instFree
+  have hiF := hpre.instFree.resolve_left (by simp only [kInstLen, hok.1]; have := hok.2; omega)
   have hiS := hpre.instStack
   have hinst : kInstLen s = (s.getReg .x12).toNat := by simp only [kInstLen, hok.1]
   rw [hinst] at hiR hiF hiS
@@ -480,7 +480,7 @@ theorem to_claim (hEK : EqKernelSpec) {s u : MachineState} {seg lp : List E} {wp
     rest := A.rest.keep fun T hT ↦ SW.tat hpre B B₃.heap hNt (by decide) Ft hT }⟩
 
 /-- The claim at `f + 200` is the mirror's first. -/
-theorem A11.claim {s u : MachineState} {seg lp : List E} {c : E} (hpre : VerifyKeccakPre s)
+theorem A11.claim {s u : MachineState} {seg lp : List E} {c : E} (hpre : VerifyKeccakPreW s)
     (A : A11 s u seg lp c) :
     claimAt u (s.getReg .x2 - 5048) = kFirst (instOf s) seg lp (outOf s) c := by
   have hb := bounds hpre

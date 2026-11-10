@@ -98,6 +98,11 @@ structure LayoutIn (s u : MachineState) (layout : LayoutMirror.LayoutRust) : Pro
   keccakLogSteps : (u.getMem (s.getReg .x2 - 1888)).toNat = layout.keccakLogSteps
   keccakDepth : u.getMem (s.getReg .x2 - 1880) = 12
 
+/-- The placements' buffer misses the bus claims' buffer, whose spare room the table claims fill. -/
+def PlApart (s u₀ : MachineState) : Prop :=
+  Apart (vecPtr u₀ (s.getReg .x2 - 1984)) (24 * (vecLen u₀ (s.getReg .x2 - 1984)).toNat)
+    (vecPtr u₀ (s.getReg .x2 - 928)) (56 * (vecCap u₀ (s.getReg .x2 - 928)).toNat)
+
 /-- At `0x800035f0`, the bus's `Ok` result at `S - 928`. -/
 structure AtR17 (OI : MachineState → Word → List (List Opening) → Prop) (s u : MachineState)
     (layout : LayoutMirror.LayoutRust) (rows : List (BitVec 64)) (lir : BitVec 64)

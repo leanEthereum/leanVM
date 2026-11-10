@@ -36,7 +36,7 @@ structure Heaped (s u : MachineState) (p : Word) (n : Nat) : Prop where
   above : ∀ lo m, heapEnd ≤ lo.toNat → Apart p n lo m
   self : Apart p n (s.getReg .x11 + 8) 344
 
-theorem vec_heaped {s u : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u) {a : Word}
+theorem vec_heaped {s u : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u) {a : Word}
     {xs : List E} (h : NewVecE s u a xs) :
     (vecLen u a).toNat = 0 ∨ Heaped s u (vecPtr u a) (24 * (vecLen u a).toNat) := by
   have hhi := B.heap.hi
@@ -70,7 +70,7 @@ structure A2 (s u : MachineState) (seg : List E) : Prop where
   pointV : NewVecE s u (s.getReg .x2 - 5144) ((instOf s).drop 4 ++ seg)
   rest : Rest s u (kSeg (s.getReg .x12).toNat (instOf s) (outOf s) seg)
 
-theorem to_point (hC : SliceConcatSpec) {s u : MachineState} (hpre : VerifyKeccakPre s)
+theorem to_point (hC : SliceConcatSpec) {s u : MachineState} (hpre : VerifyKeccakPreW s)
     (A : A1 s u) : ∃ v, Reaches Image.code u v ∧
       (A2 s v (vecEs u (s.getReg .x2 - 5168)) ∨ Dead Image.code v) := by
   have hb := bounds hpre
@@ -137,7 +137,7 @@ theorem to_point (hC : SliceConcatSpec) {s u : MachineState} (hpre : VerifyKecca
     rw [show s.getReg .x2 - 3296 + BitVec.ofNat 64 (16 * 1) + 8 = s.getReg .x2 - 3272 from
       BitVec.eq_of_toNat_eq (by addr_omega [hb]), m1976, ← elen, hlen1]
   have hiR := hpre.inst
-  have hiF := hpre.instFree
+  have hiF := hpre.instFree.resolve_left (by rw [hinst]; have := hok.2; omega)
   have hiS := hpre.instStack
   rw [hinst] at hiR hiF hiS
   simp only [kInst] at hiR hiF hiS
@@ -248,11 +248,11 @@ theorem to_point (hC : SliceConcatSpec) {s u : MachineState} (hpre : VerifyKecca
 
 /-! ## What every later step keeps -/
 
-theorem seg8 {s : MachineState} (hpre : VerifyKeccakPre s) :
+theorem seg8 {s : MachineState} (hpre : VerifyKeccakPreW s) :
     s.getReg .x2 - 5168 + 8 = s.getReg .x2 - 5160 := by
   have hb := bounds hpre; exact BitVec.eq_of_toNat_eq (by addr_omega [hb])
 
-theorem seg16 {s : MachineState} (hpre : VerifyKeccakPre s) :
+theorem seg16 {s : MachineState} (hpre : VerifyKeccakPreW s) :
     s.getReg .x2 - 5168 + 16 = s.getReg .x2 - 5152 := by
   have hb := bounds hpre; exact BitVec.eq_of_toNat_eq (by addr_omega [hb])
 
@@ -280,7 +280,7 @@ structure C (s u : MachineState) (seg : List E) : Prop extends M s u seg where
   x23 : u.getReg .x23 = vecPtr u (s.getReg .x2 - 5168)
   x24 : u.getReg .x24 = vecLen u (s.getReg .x2 - 5168)
 
-theorem M.step {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPre s) (c : M s u seg)
+theorem M.step {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPreW s) (c : M s u seg)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     (hsep : SlotsSep rs 5216 96 = true) (F : DFrame u v (SW s u v rs sp)) : M s v seg := by
@@ -305,7 +305,7 @@ theorem M.step {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPre s) 
     segLen := c.segLen
     pointV := kv 5144 (by decide) (by decide) c.pointV }
 
-theorem C.step {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPre s) (c : C s u seg)
+theorem C.step {s u v : MachineState} {seg : List E} (hpre : VerifyKeccakPreW s) (c : C s u seg)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (hH : HeapOk v) (hN : heapNext u ≤ heapNext v)
     {rs : List (Nat × Nat)} {sp : Bool} (hok : SlotsOk rs = true)
     (hsep : SlotsSep rs 5216 96 = true) (F : DFrame u v (SW s u v rs sp))
@@ -336,7 +336,7 @@ structure A3 (s u : MachineState) (seg lp : List E) : Prop extends C s u seg whe
   rest : Rest s u (kLanes (s.getReg .x12).toNat (instOf s) (outOf s) seg lp)
 
 theorem to_lanePoint (hS : SamplesSpec) {s u : MachineState} {seg : List E}
-    (hpre : VerifyKeccakPre s) (A : A2 s u seg) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A2 s u seg) : ∃ v, Reaches Image.code u v ∧
       (A3 s v seg (vecEs v (s.getReg .x2 - 3296)) ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have B := A.base
@@ -422,7 +422,7 @@ theorem callee_saved_mem {r : Reg}
   rcases hr with rfl | rfl | rfl | rfl | rfl | rfl <;> decide
 
 theorem to_lanes (hEK : EqKernelSpec) {s u : MachineState} {seg lp : List E}
-    (hpre : VerifyKeccakPre s) (A : A3 s u seg lp) : ∃ v, Reaches Image.code u v ∧
+    (hpre : VerifyKeccakPreW s) (A : A3 s u seg lp) : ∃ v, Reaches Image.code u v ∧
       (A4 s v seg lp ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have hsm := hpre.stack.mapped (by decide) (by decide)
@@ -532,7 +532,7 @@ theorem below_apart {s u : MachineState} {a p : Word} {xs : List E} (h : NewVecE
   omega
 
 theorem to_wbuf (hA : AllocSpec) (hR : ReserveFastSpec 0x80008a10) {s u : MachineState}
-    {seg lp : List E} (hpre : VerifyKeccakPre s) (A : A4 s u seg lp) :
+    {seg lp : List E} (hpre : VerifyKeccakPreW s) (A : A4 s u seg lp) :
     ∃ v, Reaches Image.code u v ∧ (A5 s v seg lp ∨ Dead Image.code v) := by
   have hb := bounds hpre
   have B := A.base

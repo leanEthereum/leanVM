@@ -26,7 +26,7 @@ structure PhaseOk (s u : MachineState) (H : Word) : Prop where
   hdr : Clear s (heapNext u) H 24
   paths : BufOk s u H 56
   leaves : ∀ j < (vecLen u H).toNat, BufOk s u (vecPtr u H + BitVec.ofNat 64 (56 * j)) 8
-  sibs : ∀ j < (vecLen u H).toNat, BufOk s u (vecPtr u H + BitVec.ofNat 64 (56 * j) + 24) 32
+  sibs : ∀ j < (vecLen u H).toNat, SibOk s u (vecPtr u H + BitVec.ofNat 64 (56 * j) + 24)
 
 /-- The leaf's width, `lanes` at level `0` and `3 lanes` deeper. -/
 def widthW (ℓ fc : ℕ) : Word := (if ℓ = 0 then 1 else 3 : Word) <<< (fc % 64)

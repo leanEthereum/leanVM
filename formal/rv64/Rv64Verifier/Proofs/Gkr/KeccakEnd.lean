@@ -31,7 +31,7 @@ structure R3 (s u : MachineState) (cl : KeccakClaim) (oslot : List E) (word : E)
   x26 : u.getReg .x26 = (Model.limbs word).1
 
 theorem R3.step {s u v : MachineState} {cl : KeccakClaim} {oslot : List E} {word : E}
-    (hpre : VerifyKeccakPre s) (R : R3 s u cl oslot word) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248)
+    (hpre : VerifyKeccakPreW s) (R : R3 s u cl oslot word) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248)
     (hH : HeapOk v) (hN : heapNext u ≤ heapNext v) {rs : List (Nat × Nat)} {spb : Bool}
     (hok : SlotsOk rs = true) (h1 : SlotsSep rs 5216 32 = true) (h3 : SlotsSep rs 4952 96 = true)
     (h4 : SlotsSep rs 4856 24 = true) (F : DFrame u v (SW s u v rs spb))
@@ -56,7 +56,7 @@ theorem R3.step {s u v : MachineState} {cl : KeccakClaim} {oslot : List E} {word
     x26 := h26.trans R.x26 }
 
 theorem R3.same {s u v : MachineState} {cl : KeccakClaim} {oslot : List E} {word : E}
-    (hpre : VerifyKeccakPre s) (R : R3 s u cl oslot word) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248)
+    (hpre : VerifyKeccakPreW s) (R : R3 s u cl oslot word) (hx2 : v.getReg .x2 = s.getReg .x2 - 5248)
     (hm : ∀ a, v.getMem a = u.getMem a) (h25 : v.getReg .x25 = u.getReg .x25)
     (h26 : v.getReg .x26 = u.getReg .x26) : R3 s v cl oslot word := by
   have hN : heapNext v = heapNext u := by simp only [heapNext, hm]
@@ -98,7 +98,7 @@ theorem apart_symm {a b : Word} {n m : Nat} (h : Apart a n b m) : Apart b m a n 
   · exact Or.inr (Or.inr (Or.inl h))
 
 /-- A block writing only the result's first 24 bytes. -/
-theorem Base.outw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s u)
+theorem Base.outw {s u v : MachineState} (hpre : VerifyKeccakPreW s) (B : Base s u)
     (hx2 : v.getReg .x2 = s.getReg .x2 - 5248) (f : MemFrame u v (s.getReg .x10) 24) : Base s v := by
   have hb := bounds hpre
   have ho := hpre.out
@@ -110,7 +110,7 @@ theorem Base.outw {s u v : MachineState} (hpre : VerifyKeccakPre s) (B : Base s 
       ⟨Or.inl (by addr_omega [ha]), by unfold verifyKeccakStack at hb hos; addr_omega [ha, hos, hb]⟩
 
 /-- `0x8000959c`: `Err` stored through `s0`, returned. -/
-theorem err959c {s y : MachineState} (hpre : VerifyKeccakPre s) (By : Base s y)
+theorem err959c {s y : MachineState} (hpre : VerifyKeccakPreW s) (By : Base s y)
     (hpc : y.pc = 0x8000959c) (hx8 : y.getReg .x8 = s.getReg .x10) {k : Word}
     (hx11 : y.getReg .x11 = k) (hk : k = 8 ∨ k = 16) (hf : Fails s) :
     ∃ t, Reaches Image.code y t ∧ Done s t := by
@@ -158,7 +158,7 @@ structure K1 (s u : MachineState) (cl : KeccakClaim) (oslot : List E) (word : E)
 theorem to_check2 (hME : MleEvalSpec) {s u : MachineState}
     {cl : KeccakClaim} {mp ml : Word} {oslot : List E} {word : E} {lp ll : Word} {low : List E}
     {qp ql : Word} {slot2 row2 : List E} {v2 : E} {sc sp sn : Word} {slices : List E}
-    (hpre : VerifyKeccakPre s)
+    (hpre : VerifyKeccakPreW s)
     (A : J2 s u cl mp ml oslot word lp ll low qp ql slot2 row2 v2 sc sp sn slices) :
     ∃ t, Reaches Image.code u t ∧
       ((∃ atLow, K1 s t cl oslot word lp ll low qp ql slot2 row2 v2 sc sp sn slices atLow) ∨
@@ -398,7 +398,7 @@ structure K15 (s u : MachineState) (cl : KeccakClaim) (oslot : List E) (word : E
 theorem to_dotmul (hD : DotSpec) (hM : MulSpec) {s u : MachineState} {cl : KeccakClaim}
     {oslot : List E} {word : E} {lp ll : Word} {low : List E} {qp ql : Word}
     {slot2 row2 : List E} {v2 : E} {sc sp sn : Word} {slices : List E} {atLow : E}
-    (hpre : VerifyKeccakPre s)
+    (hpre : VerifyKeccakPreW s)
     (A : K1 s u cl oslot word lp ll low qp ql slot2 row2 v2 sc sp sn slices atLow) :
     ∃ t, Reaches Image.code u t ∧
       (K15 s t cl oslot word lp ll low qp ql slot2 v2 sc sp sn slices
@@ -583,7 +583,7 @@ theorem to_dotmul (hD : DotSpec) (hM : MulSpec) {s u : MachineState} {cl : Kecca
 
 theorem to_cmp {s u : MachineState} {cl : KeccakClaim} {oslot : List E} {word : E}
     {lp ll : Word} {low : List E} {qp ql : Word} {slot2 : List E} {v2 : E} {sc sp sn : Word}
-    {slices : List E} {pv : E} (hpre : VerifyKeccakPre s)
+    {slices : List E} {pv : E} (hpre : VerifyKeccakPreW s)
     (A : K15 s u cl oslot word lp ll low qp ql slot2 v2 sc sp sn slices pv) :
     ∃ t, Reaches Image.code u t ∧
       (K2 s t cl oslot word lp ll low qp ql slot2 sc sp sn slices ∨ Done s t) := by

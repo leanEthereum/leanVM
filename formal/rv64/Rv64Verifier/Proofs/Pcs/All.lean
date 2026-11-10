@@ -17,6 +17,10 @@ import Rv64Verifier.Proofs.Pcs.VsoLamPowers
 import Rv64Verifier.Proofs.Pcs.VsoQueries
 import Rv64Verifier.Proofs.Pcs.VsoLevelQ
 import Rv64Verifier.Proofs.Pcs.VsoFinalTail
+import Rv64Verifier.Proofs.Pcs.VsoKernel
+import Rv64Verifier.Proofs.Pcs.VsoOpenOA
+import Rv64Verifier.Proofs.Pcs.VsoKernelCall
+
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -259,3 +263,45 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.vsoSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.vsoSpec
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.RunsK.merkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.RunsK.merkle
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.stackShape_eq' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.stackShape_eq
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.mr_lt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.mr_lt
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.qbuf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.qbuf
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.levelMerkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.levelMerkle
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.levelFoldedMerkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.levelFoldedMerkle
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.copyLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.copyLoop
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.slices' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.slices
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Merkled.toSlices' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Merkled.toSlices
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.openingAt_of_pathAt' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.openingAt_of_pathAt
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.vsoOpeningsAt_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.vsoOpeningsAt_of
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.vsoOpenMem_of' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.vsoOpenMem_of
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.abfcA_bytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.abfcA_bytes
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.digestBits_bytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.digestBits_bytes
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.DFrame.bytesU' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.DFrame.bytesU
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.callEqKernel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.callEqKernel
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.kernel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.kernel
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Kerneled.lvl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Kerneled.lvl
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.rowsBranch' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.rowsBranch
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Merkled.keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Merkled.keep
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Slices.keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Slices.keep

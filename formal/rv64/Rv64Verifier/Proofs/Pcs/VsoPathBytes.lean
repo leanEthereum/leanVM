@@ -77,6 +77,45 @@ theorem digestBits_at (s : MachineState) {a : Word} (ha : a.toNat % 8 = 0)
     List.flatMap_nil]
   rfl
 
+theorem toLeBytes_laneOfBytes (b0 b1 b2 b3 b4 b5 b6 b7 : BitVec 8) :
+    Model.toLeBytes (Transcript.laneOfBytes [b0, b1, b2, b3, b4, b5, b6, b7]).toBitVec =
+      [b0, b1, b2, b3, b4, b5, b6, b7] := by
+  simp only [Transcript.laneOfBytes, Model.toLeBytes, List.foldr_cons, List.foldr_nil,
+    UInt64.toBitVec_ofBitVec, show List.range 8 = [0, 1, 2, 3, 4, 5, 6, 7] from rfl, List.map_cons,
+    List.map_nil, List.cons.injEq, and_true]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  · apply BitVec.eq_of_getLsbD_eq
+    intro i hi
+    simp only [BitVec.getLsbD_setWidth, BitVec.getLsbD_ushiftRight, BitVec.getLsbD_or,
+      BitVec.getLsbD_shiftLeft]
+    interval_cases i <;> simp
+
+theorem bytesAt_add (s : MachineState) (a : Word) (m n : ℕ) :
+    Contracts.bytesAt s a (m + n) =
+      Contracts.bytesAt s a m ++ Contracts.bytesAt s (a + BitVec.ofNat 64 m) n := by
+  simp only [Contracts.bytesAt, List.range_add, List.map_append, List.map_map]
+  congr 1
+  apply List.map_congr_left
+  intro i _
+  simp only [Function.comp, BitVec.add_assoc, BitVec.ofNat_add]
+
+/-- A digest read as bytes, at any alignment, as `memcmp` and the climb read it. -/
+theorem digestBits_bytes (s : MachineState) (a : Word) :
+    Model.Pcs.digestBits (Transcript.digestBytesAt s a) = Contracts.bytesAt s a 32 := by
+  have e (b : Word) : Model.toLeBytes (Transcript.laneOfBytes (Contracts.bytesAt s b 8)).toBitVec =
+      Contracts.bytesAt s b 8 := by
+    simp only [Contracts.bytesAt, show List.range 8 = [0, 1, 2, 3, 4, 5, 6, 7] from rfl,
+      List.map_cons, List.map_nil]
+    exact toLeBytes_laneOfBytes _ _ _ _ _ _ _ _
+  rw [show (32 : ℕ) = 8 + (8 + (8 + 8)) from rfl, bytesAt_add, bytesAt_add, bytesAt_add,
+    ← e a, ← e (a + BitVec.ofNat 64 8), ← e (a + BitVec.ofNat 64 8 + BitVec.ofNat 64 8),
+    ← e (a + BitVec.ofNat 64 8 + BitVec.ofNat 64 8 + BitVec.ofNat 64 8)]
+  simp only [Model.Pcs.digestBits, KeccakHash.digestBytes, Transcript.digestBytesAt,
+    Vector.toList_ofFn, List.ofFn_succ, List.ofFn_zero, List.flatMap_cons, List.flatMap_nil,
+    List.append_nil, Model.byteBits, List.map_append, Fin.val_zero, Fin.val_succ, BitVec.add_assoc,
+    Nat.reduceMul, Nat.reduceAdd, BitVec.add_zero, BitVec.reduceAdd]
+  rfl
+
 /-- `memcmp`'s result tested as its low word: zero only for equal bytes. -/
 theorem cmp_eq : ∀ {xs ys : List (BitVec 8)}, xs.length = ys.length →
     (wordResult .add ((cmpBytes xs ys).truncate 32) ((0 : Word).truncate 32)).signExtend 64 = 0 →
