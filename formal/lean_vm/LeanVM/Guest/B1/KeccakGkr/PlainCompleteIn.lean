@@ -32,11 +32,11 @@ def plainLoad (n : ℕ) : Atom → Bool
   | _ => true
 
 set_option maxRecDepth 100000 in
-theorem plain60_leafOk : Stmt.leafOkList (plainLoad 6) Data.core265.body = true := by
+theorem plain60_leafOk : Stmt.leafOkList (plainLoad 6) Data.core269.body = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) Data.core267.body = true := by
+theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) Data.core271.body = true := by
   decide +kernel
 
 theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk (plainLoad n) e) :

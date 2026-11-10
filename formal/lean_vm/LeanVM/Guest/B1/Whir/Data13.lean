@@ -23,19 +23,19 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem os_run_13_0 : stmtsEqb ((Data.core315.body.drop 0).take 1100)
+theorem os_run_13_0 : stmtsEqb ((Data.core323.body.drop 0).take 1100)
     (((osBody (osCfg 13)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_13_1 : stmtsEqb ((Data.core315.body.drop 1100).take 1100)
+theorem os_run_13_1 : stmtsEqb ((Data.core323.body.drop 1100).take 1100)
     (((osBody (osCfg 13)).drop 1100).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_13_2 : stmtsEqb ((Data.core315.body.drop 2200).take 1100)
+theorem os_run_13_2 : stmtsEqb ((Data.core323.body.drop 2200).take 1100)
     (((osBody (osCfg 13)).drop 2200).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_13_3 : stmtsEqb ((Data.core315.body.drop 3300).take 1100)
+theorem os_run_13_3 : stmtsEqb ((Data.core323.body.drop 3300).take 1100)
     (((osBody (osCfg 13)).drop 3300).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -101,14 +101,14 @@ theorem osLv_13_5 : FnIs ((osCfg 13).sqLoop 5) (osParams 6)
 set_option maxRecDepth 100000 in
 theorem osData_13 : OsData 13 := by
   have hl : (osCfg 13).levels.length = 6 := by decide +kernel
-  have hb : Data.core315.body.drop 0 = (osBody (osCfg 13)).drop 0 :=
+  have hb : Data.core323.body.drop 0 = (osBody (osCfg 13)).drop 0 :=
     run_step 1100 0 os_run_13_0 <|
     run_step 1100 1100 os_run_13_1 <|
     run_step 1100 2200 os_run_13_2 <|
     run_step 1100 3300 os_run_13_3 <|
     drop_end (o := 4400) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core315, Program.find?_of_indexOf? (j := 315) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core323, Program.find?_of_indexOf? (j := 323) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 # `keccak_plain_rounds` (TRIAGE G #61)
 
 `keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)` (G:2878-2903): its
-specializations `__L6_L0` (`Data.core265`) and `__L4_L1` (`Data.core267`) copy the capacity, run
+specializations `__L6_L0` (`Data.core269`) and `__L4_L1` (`Data.core271`) copy the capacity, run
 `n` rounds, each a template `plainRoundT` (`c₀`, `c₂` read and packed by `fs_next`, one `KECCAK`
 atom on the waiting scalars' rate cells and the capacity, `challenge_from_state`, the challenge
 stored at `point[i]`, the claim `c₀ + c·((claim + c₂) + c·c₂)`), and return the last capacity,
@@ -190,7 +190,7 @@ def plain60T : List Stmt :=
     .atom (.copy (.n 297) (.n 296)), .atom (.copy (.n 298) (.n 289)),
     .ret [.n 290, .n 291, .n 292, .n 293, .n 294, .n 297, .n 298]]
 
-theorem body60 : Data.core265.body = plain60T := stmtsEqb_sound (by decide +kernel)
+theorem body60 : Data.core269.body = plain60T := stmtsEqb_sound (by decide +kernel)
 
 /-- The two zero cells of `__L4_L1`'s first round. -/
 def plainMid41a : List Stmt :=
@@ -225,16 +225,16 @@ def plain41T : List Stmt :=
     .atom (.copy (.n 211) (.n 210)), .atom (.copy (.n 212) (.n 203)),
     .ret [.n 204, .n 205, .n 206, .n 207, .n 208, .n 211, .n 212]]
 
-theorem body41 : Data.core267.body = plain41T := stmtsEqb_sound (by decide +kernel)
+theorem body41 : Data.core271.body = plain41T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some Data.core265 :=
-  Program.find?_of_indexOf? (j := 265) (by decide +kernel) rfl
+theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some Data.core269 :=
+  Program.find?_of_indexOf? (j := 269) (by decide +kernel) rfl
 
 theorem plain60_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L6_L0" args rets) :
     MeaningPlainRounds 6 0 rd args rets := by
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_plain60 args rets).mp h
-  simp only [Data.core265, List.map_cons, List.map_nil] at hpar hb
+  simp only [Data.core269, List.map_cons, List.map_nil] at hpar hb
   subst hpar
   rw [body60] at hb
   simp only [plain60T, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
@@ -323,14 +323,14 @@ theorem plain60_sound (rd : Reader) (args rets : List E)
       simp only [List.map_cons, List.map_nil, e290, e291, e292, e293, e294, e297, e296, e295, e298,
         List.cons_append, List.nil_append, word_4096]
 
-theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some Data.core267 :=
-  Program.find?_of_indexOf? (j := 267) (by decide +kernel) rfl
+theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some Data.core271 :=
+  Program.find?_of_indexOf? (j := 271) (by decide +kernel) rfl
 
 theorem plain41_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L4_L1" args rets) :
     MeaningPlainRounds 4 1 rd args rets := by
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_plain41 args rets).mp h
-  simp only [Data.core267, List.map_cons, List.map_nil] at hpar hb
+  simp only [Data.core271, List.map_cons, List.map_nil] at hpar hb
   subst hpar
   rw [body41] at hb
   simp only [plain41T, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb

@@ -20,10 +20,10 @@ open LeanVM.Protocol.Verifier
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L64_L32_L18_L8` is sound with its queries named. -/
 theorem oqSpecW_433 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L18_L8" "__loop372" ⟨1, 64, 10, 8⟩ 0 :=
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L18_L8" "__loop107" ⟨1, 64, 10, 8⟩ 0 :=
   oqMain1_sound_w (s := ⟨1, 64, 10, 8⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_959)
     (Program.find?_of_indexOf? (j := 454) (by decide +kernel) rfl) rfl oqBody_433
-    (Program.find?_of_indexOf? (j := 854) (by decide +kernel) rfl) rfl oqBody_835
+    (Program.find?_of_indexOf? (j := 929) (by decide +kernel) rfl) rfl oqBody_835
 
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L64_L32_L20_L7` is sound with its queries named. -/
@@ -52,10 +52,10 @@ theorem oqSpecW_586 :
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L64_L32_L26_L6` is sound with its queries named. -/
 theorem oqSpecW_755 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L26_L6" "__loop421" ⟨1, 64, 20, 6⟩ 0 :=
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L26_L6" "__loop116" ⟨1, 64, 20, 6⟩ 0 :=
   oqMain1_sound_w (s := ⟨1, 64, 20, 6⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_988)
     (Program.find?_of_indexOf? (j := 776) (by decide +kernel) rfl) rfl oqBody_755
-    (Program.find?_of_indexOf? (j := 950) (by decide +kernel) rfl) rfl oqBody_892
+    (Program.find?_of_indexOf? (j := 940) (by decide +kernel) rfl) rfl oqBody_892
 
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L64_L32_L22_L7` is sound with its queries named. -/

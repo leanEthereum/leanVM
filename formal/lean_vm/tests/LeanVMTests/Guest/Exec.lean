@@ -62,10 +62,10 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 `fp[17..20]`, in the even layout, to the two cells `fp[6..7]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 26 9 10 11 12 28 17 6 false false .two
 
-theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 293983 := by
+theorem hash_name : Data.f327.name = "claim_list_last__L0" ∧ Data.f327.entryPc = 293983 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f333).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+theorem hash_shape : (exec F0 Data.f327).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
     (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 294004 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
@@ -85,8 +85,8 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f333.entryPc + s.start = 293983 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 333) rfl)) hs
+  have hentry : Data.f327.entryPc + s.start = 293983 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 327) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun

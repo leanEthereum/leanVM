@@ -75,7 +75,7 @@ theorem core438_body : Fn.body Data.core481 = ffBody 1 22 := stmtsEqb_sound (by 
 
 theorem core457_body : Fn.body Data.core500 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
 
-theorem core404_body : Fn.body Data.core447 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
+theorem core404_body : Fn.body Data.core554 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
 
 theorem core420_body : Fn.body Data.core463 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
 
@@ -478,7 +478,7 @@ theorem fold_final_msg_L3_iff (rd : Reader) (args rets : List E) :
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets :=
-  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 447) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 554) (by decide +kernel) rfl) rfl
     core404_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in

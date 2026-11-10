@@ -123,7 +123,7 @@ theorem core85_body : Fn.body Data.core85 = rrBody 4 := stmtsEqb_sound (by decid
 theorem core86_body : Fn.body Data.core86 = rrBody 5 := stmtsEqb_sound (by decide +kernel)
 theorem core87_body : Fn.body Data.core87 = rrBody 6 := stmtsEqb_sound (by decide +kernel)
 theorem core88_body : Fn.body Data.core88 = rrBody 7 := stmtsEqb_sound (by decide +kernel)
-theorem core418_body : Fn.body Data.core418 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core418_body : Fn.body Data.core412 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
 
@@ -478,7 +478,7 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
       core87_body rd args rets
   · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
       core88_body rd args rets
-  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl) rfl
+  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 412) (by decide +kernel) rfl) rfl
       core418_body rd args rets
 
 end

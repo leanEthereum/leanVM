@@ -36,18 +36,18 @@ theorem oqSpecW_468 :
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L64_L32_L22_L6` is sound with its queries named. -/
 theorem oqSpecW_710 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L22_L6" "__loop416" ⟨1, 64, 16, 6⟩ 0 :=
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L22_L6" "__loop111" ⟨1, 64, 16, 6⟩ 0 :=
   oqMain1_sound_w (s := ⟨1, 64, 16, 6⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_973)
     (Program.find?_of_indexOf? (j := 731) (by decide +kernel) rfl) rfl oqBody_710
-    (Program.find?_of_indexOf? (j := 942) (by decide +kernel) rfl) rfl oqBody_886
+    (Program.find?_of_indexOf? (j := 935) (by decide +kernel) rfl) rfl oqBody_886
 
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L64_L32_L24_L6` is sound with its queries named. -/
 theorem oqSpecW_732 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L24_L6" "__loop418" ⟨1, 64, 18, 6⟩ 0 :=
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L24_L6" "__loop113" ⟨1, 64, 18, 6⟩ 0 :=
   oqMain1_sound_w (s := ⟨1, 64, 18, 6⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_983)
     (Program.find?_of_indexOf? (j := 753) (by decide +kernel) rfl) rfl oqBody_732
-    (Program.find?_of_indexOf? (j := 944) (by decide +kernel) rfl) rfl oqBody_888
+    (Program.find?_of_indexOf? (j := 937) (by decide +kernel) rfl) rfl oqBody_888
 
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L64_L32_L19_L7` is sound with its queries named. -/
@@ -124,10 +124,10 @@ theorem oqSpecW_680 :
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L16_L24_L25_L5` is sound with its queries named. -/
 theorem oqSpecW_757 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L25_L5" "__loop422" ⟨0, 16, 20, 5⟩ 0 :=
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L25_L5" "__loop295" ⟨0, 16, 20, 5⟩ 0 :=
   oqMain0_sound_w (s := ⟨0, 16, 20, 5⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_989)
     (Program.find?_of_indexOf? (j := 778) (by decide +kernel) rfl) rfl oqBody_757
-    (Program.find?_of_indexOf? (j := 952) (by decide +kernel) rfl) rfl oqBody_893
+    (Program.find?_of_indexOf? (j := 1178) (by decide +kernel) rfl) rfl oqBody_893
 
 end
 end LeanVM.Guest.B1

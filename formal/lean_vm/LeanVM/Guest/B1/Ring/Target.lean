@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Ring.Weight
 # `ring_switch_target` (TRIAGE G #64, #65)
 
 `ring_switch_target(slices, map_challenges)` (G:3102-3119, `Data.core13`) seeds a two-slot chain
-`(x^0, 0)` and runs `__loop13` (`Data.core269`) for `x = g^j`, `j < 8`: the loop body evaluates
+`(x^0, 0)` and runs `__loop13` (`Data.core273`) for `x = g^j`, `j < 8`: the loop body evaluates
 `Φ` (`ring_map`, G:3092-3098, inline: six stages, each `lin + f_p · lin^(2^shift)` by `shift`
 squarings, `stageT`) on the eight slices `8j .. 8j + 7` and combines them in Horner form by `g`
 (the chunk `Σ_i g^i Φ(s_(8j+i))`), then extends the chain: `x^0 ← x^0·g^8`,
@@ -147,10 +147,10 @@ def loop14T : List Stmt :=
     .atom (.const (.n 697) (word 2 0 0)), .atom (.mul (.n 698) (.n 0) (.n 697)),
     .callIf (.n 696) "__loop13" [.n 698, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop14_body : Data.core269.body = loop14T := stmtsEqb_sound (by decide +kernel)
+theorem loop14_body : Data.core273.body = loop14T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop14 : coreProgram.find? "__loop13" = some Data.core269 :=
-  Program.find?_of_indexOf? (j := 269) (by decide +kernel) rfl
+theorem find_loop14 : coreProgram.find? "__loop13" = some Data.core273 :=
+  Program.find?_of_indexOf? (j := 273) (by decide +kernel) rfl
 
 theorem ltRow_noRet (r : ℕ) : Stmt.noRetList (ltRow r) = true := by
   simp only [ltRow, noRetList_append, rmapT_noRet]; rfl
@@ -202,7 +202,7 @@ theorem loop14_step (d : ℕ) (x sl mc ch : E)
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop14] at hf
   cases hf
-  simp only [Data.core269, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [Data.core273, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   rw [loop14_body] at hb
   simp only [loop14T, holdsList_append] at hb

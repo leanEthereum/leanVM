@@ -17,11 +17,11 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem oqBody_433 : Data.core454.body = oqMainT ⟨1, 64, 10, 8⟩ 0 (oqWalkOf ⟨1, 64, 10, 8⟩) "__loop372" :=
+theorem oqBody_433 : Data.core454.body = oqMainT ⟨1, 64, 10, 8⟩ 0 (oqWalkOf ⟨1, 64, 10, 8⟩) "__loop107" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_835 : Data.core854.body = oqLoop1T ⟨1, 64, 10, 8⟩ 0 (oqWalkOf ⟨1, 64, 10, 8⟩) "__loop372" :=
+theorem oqBody_835 : Data.core929.body = oqLoop1T ⟨1, 64, 10, 8⟩ 0 (oqWalkOf ⟨1, 64, 10, 8⟩) "__loop107" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
@@ -49,11 +49,11 @@ theorem oqBody_866 : Data.core908.body = oqLoop1T ⟨1, 64, 16, 7⟩ 0 (oqWalkOf
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_755 : Data.core776.body = oqMainT ⟨1, 64, 20, 6⟩ 0 (oqWalkOf ⟨1, 64, 20, 6⟩) "__loop421" :=
+theorem oqBody_755 : Data.core776.body = oqMainT ⟨1, 64, 20, 6⟩ 0 (oqWalkOf ⟨1, 64, 20, 6⟩) "__loop116" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_892 : Data.core950.body = oqLoop1T ⟨1, 64, 20, 6⟩ 0 (oqWalkOf ⟨1, 64, 20, 6⟩) "__loop421" :=
+theorem oqBody_892 : Data.core940.body = oqLoop1T ⟨1, 64, 20, 6⟩ 0 (oqWalkOf ⟨1, 64, 20, 6⟩) "__loop116" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
