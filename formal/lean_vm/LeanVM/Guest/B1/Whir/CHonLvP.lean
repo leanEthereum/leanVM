@@ -130,5 +130,81 @@ theorem lvAt_words (L : LvAt) (logN : ℕ) {lv : OsLv} (hdep : lv.depth = L.dp l
     · simp only [NextW.F3, LvAt.qS, hd, hsq, hdep, hq]
     · simp only [FinW.F3, LvAt.qS, hd, hsq, hdep, hq]
 
+/-! ## The rounds' challenges -/
+
+/-- The rounds only append their `γ`s. -/
+theorem roundsSpec_gammas : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
+    ∃ gs : List E, (roundsSpec n s fs xs).1.gammas = s.gammas ++ gs ∧ gs.length = n
+  | 0, s, _, _ => ⟨[], by simp [roundsSpec], rfl⟩
+  | n + 1, s, fs, xs => by
+    obtain ⟨gs, h1, h2⟩ := roundsSpec_gammas n (roundSpec s fs (xs.take 7)).1
+      (roundSponge fs (xs.take 7)).cap (xs.drop 7)
+    refine ⟨(roundChs fs (xs.take 7)).1 :: gs, ?_, by simp [h2]⟩
+    show (roundsSpec n _ _ _).1.gammas = _
+    rw [h1, show (roundSpec s fs (List.take 7 xs)).1.gammas = s.gammas ++ [(roundChs fs (List.take 7 xs)).1]
+      from rfl, List.append_assoc]
+    rfl
+
+theorem roundsSpec_gammas_length (n : ℕ) (s : WhirState) (fs xs : List E) :
+    (roundsSpec n s fs xs).1.gammas.length = s.gammas.length + n := by
+  obtain ⟨gs, h1, h2⟩ := roundsSpec_gammas n s fs xs
+  rw [h1, List.length_append, h2]
+
+theorem roundsSpec_rounds_length : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
+    (roundsSpec n s fs xs).2.length = n
+  | 0, _, _, _ => rfl
+  | n + 1, s, fs, xs => by
+    simp only [roundsSpec, List.length_cons, roundsSpec_rounds_length n]
+
+/-- **The rounds' challenges in memory**: from the Spec's `γ`s at `fch·g^i` on and its rounds'
+`α, β, θ` at `coefs·g^(3i)` on, every round's grinds passing, `RoundsMem`. -/
+theorem roundsMem_of {rd : Reader} {fch coefs : E} : ∀ (n i : ℕ) (s : WhirState) (fs : List E)
+    (cl : E) (xs : List E), RoundsOk n fs xs →
+    (∀ j < n, LoadHolds rd fch (i + j) ((roundsSpec n s fs xs).1.gammas.getD (s.gammas.length + j) 0)) →
+    (∀ j < n, LoadHolds rd coefs (3 * (i + j)) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).alpha ∧
+      LoadHolds rd coefs (3 * (i + j) + 1) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).beta ∧
+      LoadHolds rd coefs (3 * (i + j) + 2) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).theta) →
+    RoundsMem rd fch coefs n i fs cl xs
+  | 0, _, _, _, _, _, _, _, _ => trivial
+  | n + 1, i, s, fs, cl, xs, hok, hg, hc => by
+    obtain ⟨hgr, -, hok'⟩ := hok
+    set w := xs.take 7 with hw
+    set s1 := (roundSpec s fs w).1 with hs1
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas n s1 (roundSponge fs w).cap (xs.drop 7)
+    have hspec : roundsSpec (n + 1) s fs xs =
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1,
+          (roundSpec s fs w).2 :: (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).2) := rfl
+    have hs1g : s1.gammas = s.gammas ++ [(roundChs fs w).1] := rfl
+    have hG : (roundsSpec (n + 1) s fs xs).1.gammas = s.gammas ++ (roundChs fs w).1 :: gs := by
+      rw [hspec]
+      show (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.gammas = _
+      rw [hgs, hs1g, List.append_assoc]
+      rfl
+    have g0 := hg 0 (by omega)
+    rw [hG, show (s.gammas ++ (roundChs fs w).1 :: gs).getD (s.gammas.length + 0) 0 = (roundChs fs w).1 by
+      simp [List.getD_eq_getElem?_getD]] at g0
+    have hR : (roundsSpec (n + 1) s fs xs).2.getD 0 ⟨0, 0, 0⟩ =
+        ⟨(roundChs fs w).2.2.2, (roundChs fs w).2.1, (roundChs fs w).2.2.1⟩ := by
+      rw [hspec]; rfl
+    obtain ⟨c0, c1, c2⟩ := hc 0 (by omega)
+    rw [hR] at c0 c1 c2
+    simp only [Nat.add_zero] at c0 c1 c2
+    refine ⟨hgr, by rw [loadHolds_mul_gen_pow]; simpa using g0, ?_, ?_, ?_, ?_⟩
+    · rw [loadHolds_mul_gen_pow]; simpa using c0
+    · rw [loadHolds_mul_gen_pow]; exact c1
+    · rw [loadHolds_mul_gen_pow]; exact c2
+    · rw [roundRets_take5]
+      refine roundsMem_of n (i + 1) s1 _ _ _ hok' (fun j hj ↦ ?_) (fun j hj ↦ ?_)
+      · have := hg (j + 1) (by omega)
+        rw [hspec] at this
+        rw [show s1.gammas.length = s.gammas.length + 1 by simp [hs1g],
+          show i + 1 + j = i + (j + 1) by ring, show s.gammas.length + 1 + j = s.gammas.length + (j + 1) by ring]
+        exact this
+      · have := hc (j + 1) (by omega)
+        rw [hspec] at this
+        simp only [List.getD_cons_succ] at this
+        rw [show i + 1 + j = i + (j + 1) by ring]
+        exact this
+
 end
 end LeanVM.Guest.B1.Whir
