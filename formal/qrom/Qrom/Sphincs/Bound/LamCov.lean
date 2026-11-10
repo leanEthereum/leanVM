@@ -416,18 +416,21 @@ theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
   rw [Finset.prod_congr rfl fun i _ ↦ hS i, Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ,
     Fintype.card_fin, Finset.prod_ite_mem, Finset.univ_inter, Finset.prod_const]
 
-/-- **The cover probability is at most `lamS`.** -/
-theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov ≤ ENNReal.ofReal (lamS lo) := by
+/-- **An average of fractions below the `k`-th powers of the counts is at most `lamS`.** -/
+theorem avg_le_lamS {lo : ℕ} (r : (Fin signatureLimit → DigV) → ℝ) (hr : ∀ δ, 0 ≤ r δ)
+    (hle : ∀ δ, r δ ≤ ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees /
+      (Fintype.card Index * Fintype.card (FTree → FLeaf))) :
+    (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0∞)⁻¹ * ∑ δ, ENNReal.ofReal (r δ) ≤
+      ENNReal.ofReal (lamS lo) := by
   set cΔ := (Fintype.card (Fin signatureLimit → DigV) : ℝ)
-  set r : (Fin signatureLimit → DigV) → ℝ := fun δ ↦ (sbC δ : ℝ) / Fintype.card HashOutput
   have hΔ : 0 < cΔ := Nat.cast_pos.mpr Fintype.card_pos
   have hcΔ : cΔ = (Fintype.card DigV : ℝ) ^ signatureLimit := by
     simp only [cΔ, Fintype.card_fun, Fintype.card_fin]; push_cast; ring
-  have hr : ∀ δ, 0 ≤ r δ := fun δ ↦ by positivity
-  have hlam : lamCov = ENNReal.ofReal (cΔ⁻¹ * ∑ δ, r δ) := by
-    rw [lamCov, ENNReal.ofReal_mul (inv_nonneg.mpr hΔ.le), ENNReal.ofReal_inv_of_pos hΔ,
+  have hlam : (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0∞)⁻¹ * ∑ δ, ENNReal.ofReal (r δ) =
+      ENNReal.ofReal (cΔ⁻¹ * ∑ δ, r δ) := by
+    rw [ENNReal.ofReal_mul (inv_nonneg.mpr hΔ.le), ENNReal.ofReal_inv_of_pos hΔ,
       ENNReal.ofReal_sum_of_nonneg fun δ _ ↦ hr δ]
-    simp only [cΔ, ENNReal.ofReal_natCast, r]
+    simp only [cΔ, ENNReal.ofReal_natCast]
   rw [hlam]
   refine ENNReal.ofReal_le_ofReal ?_
   set F := (Fintype.card (FTree → FLeaf) : ℝ)
@@ -457,7 +460,7 @@ theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov
   set C : ℝ := 2 ^ lo / (I * F)
   have hC : 0 ≤ C := by positivity
   calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees / (I * F) :=
-        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ sbC_le hmd hlo δ) (inv_nonneg.mpr hΔ.le)
+        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ hle δ) (inv_nonneg.mpr hΔ.le)
     _ = C * ∑ t : Index, (cΔ⁻¹ * ∑ δ, (cnt δ t : ℝ) ^ forsTrees) := by
         rw [Finset.sum_comm, Finset.mul_sum, Finset.mul_sum]
         refine Finset.sum_congr rfl fun t _ ↦ ?_
@@ -486,14 +489,19 @@ theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov
         simp only [C, F, I]
         field_simp
 
-/-- `lamS` is at most `2^-b` when the naturals say so. -/
-theorem lamS_le {lo b : ℕ} (hn : (2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
+/-- **The cover probability is at most `lamS`.** -/
+theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov ≤ ENNReal.ofReal (lamS lo) :=
+  avg_le_lamS _ (fun δ ↦ by positivity) (sbC_le hmd hlo)
+
+/-- `lamS` is at most `a 2^-b` when the naturals say so. -/
+theorem lamS_le {lo a b : ℕ} (hn : (2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
       Nat.stirlingSecond forsTrees j * signatureLimit ^ j * Fintype.card Index ^ (forsTrees - j)) * 2 ^ b ≤
-      Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees) : lamS lo ≤ (2 : ℝ)⁻¹ ^ b := by
+      a * (Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees)) :
+    lamS lo ≤ a * (2 : ℝ)⁻¹ ^ b := by
   have hd : (0 : ℝ) < ((Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees : ℕ) : ℝ) :=
     Nat.cast_pos.mpr (Nat.mul_pos Fintype.card_pos (Nat.pow_pos Fintype.card_pos))
   unfold lamS
-  rw [div_le_iff₀ hd, inv_pow, inv_mul_eq_div, le_div_iff₀ (by positivity)]
+  rw [div_le_iff₀ hd, inv_pow, ← div_eq_mul_inv, div_mul_eq_mul_div, le_div_iff₀ (by positivity)]
   exact_mod_cast hn
 
 end Qrom.Sphincs

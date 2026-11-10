@@ -2,7 +2,7 @@ module
 
 public import Qrom.Sphincs.HidingStep
 public import Qrom.Sphincs.Bound.BadEnc
-public import Qrom.Sphincs.Bound.Cover
+public import Qrom.Sphincs.Bound.CoverCells
 
 @[expose] public section
 
@@ -36,7 +36,7 @@ def badB : ℝ := 2 ^ totalHeight * numLayers * 2 ^ counterBits * (2 : ℝ)⁻¹
 /-- **The weight of a win in the hidden game.** -/
 def epsHid (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
   (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    ENNReal.ofReal badB + lamCov * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
+    ENNReal.ofReal badB + lamF * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
 
 theorem sum_inv_card (α : Type) [Fintype α] [Nonempty α] : ∑ _ : α, (Fintype.card α : ℝ≥0∞)⁻¹ = 1 := by
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
@@ -124,10 +124,10 @@ theorem avg_hid_le {A : QReg} (adv : Adversary A) {n : ℕ} (hadv : ∀ pk, (adv
             _ = (cD⁻¹ * cD) * (ENNReal.ofReal badB * T) := by ring
             _ = _ := by rw [hD, one_mul]
   -- covered digests
-  have h4 := avg_cov_le adv hadv ρ
+  have h4 := avg_covF_le adv hadv ρ
   calc _ ≤ ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) * T +
         ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T +
-        (ENNReal.ofReal badB * T + lamCov * ENNReal.ofReal (searchK n) * T) :=
+        (ENNReal.ofReal badB * T + lamF * ENNReal.ofReal (searchK n) * T) :=
         add_le_add (add_le_add h1 h2) (add_le_add h3 h4)
     _ = epsHid n ρ.matrix.trace.re := by unfold epsHid; ring
 
