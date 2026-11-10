@@ -540,9 +540,9 @@ impl FnLower<'_> {
                 self.deref(x, 0, t, DerefMode::Cell);
             }
             "hint_f192_limbs" => {
-                if args.len() != 2 {
+                if !(2..=3).contains(&args.len()) {
                     self.fail(format!(
-                        "hint_f192_limbs takes two arguments, `(dest, value)`, got {}",
+                        "hint_f192_limbs takes two or three arguments, `(dest, value[, first])`, got {}",
                         args.len()
                     ))
                 };
@@ -553,15 +553,27 @@ impl FnLower<'_> {
                         args[0]
                     ))
                 });
-                if !((1..=3).contains(&len)) {
-                    self.fail("hint_f192_limbs destination must have 1..=3 cells")
+                // The limbs from `first` on, a literal: limb 2 alone is one cell, not three.
+                let first = match args.get(2) {
+                    None => 0,
+                    Some(e) => self
+                        .try_const_int(e)
+                        .and_then(|k| u32::try_from(k).ok())
+                        .unwrap_or_else(|| self.fail("hint_f192_limbs' `first` must be a literal limb index")),
+                };
+                if !(len >= 1 && first + len <= 3) {
+                    self.fail("hint_f192_limbs writes limbs first..first + len of the three, len >= 1")
                 };
                 let value = self.expr(&args[1]);
                 // Names the physical cells, as the two consumers above do: whatever
                 // the program stores into them afterwards is a second write, and so
                 // the assertion that pins these limbs.
-                self.pending
-                    .push(Hint::Resolved(RHint::FieldLimbs { value, base, len }));
+                self.pending.push(Hint::Resolved(RHint::FieldLimbs {
+                    value,
+                    base,
+                    first,
+                    len,
+                }));
             }
             _ => return false,
         }

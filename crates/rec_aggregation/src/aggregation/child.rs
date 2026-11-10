@@ -182,17 +182,26 @@ pub(super) fn gen_verify(
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
     let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
         for opening in phase {
-            query_hints.push((
-                "merkle_leaf_rows",
-                opening.leaf.iter().map(|&x| F192::from(x)).collect(),
-            ));
+            // Level 0 rows are base-field lanes; a deeper row is its F192 words, then per
+            // word pair the limbs the guest's middle pack shares, w.c2 and w'.c0.
+            let row = if level == 0 {
+                opening.leaf.iter().map(|&x| F192::from(x)).collect()
+            } else {
+                let words = opening.leaf.chunks(3).map(|w| F192::new(w[0].0, w[1].0, w[2].0));
+                let shared = opening
+                    .leaf
+                    .chunks(6)
+                    .flat_map(|p| [F192::from(p[2]), F192::from(p[3])]);
+                words.chain(shared).collect()
+            };
+            query_hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
@@ -226,19 +235,21 @@ pub(super) fn gen_verify(
         bytecode_value,
     };
 
-    let mut hints = vec![
-        ("stream", {
-            // The guest replays the WHIR opening off the same stream the native
-            // verifier reads: every transmitted scalar (sumcheck messages, level
-            // roots, OOD claims, grind nonces, `yr`) is already there in protocol
-            // order, so there is nothing to reassemble. The guest's `open_stacked`
-            // picks it up at `msg_cursor = cursor`, which sits where the Keccak
-            // reduction stopped; the ring-switch messages are struct-observed and
-            // still do not advance that cursor.
-            let mut stream = proof.stream.clone();
-            stream.resize(STREAM_CAP, F192::ZERO);
-            stream
-        }),
+    // The guest replays the WHIR opening off the same stream the native verifier
+    // reads: every transmitted scalar (sumcheck messages, level roots, OOD claims,
+    // grind nonces, `yr`) is already there in protocol order, so there is nothing to
+    // reassemble. The guest's `open_stacked` picks it up at `msg_cursor = cursor`,
+    // which sits where the Keccak reduction stopped; the ring-switch messages are
+    // struct-observed and still do not advance that cursor. It arrives in
+    // STREAM_BLOCK-word blocks, the last zero-padded.
+    let blocks = proof.stream.len().div_ceil(STREAM_BLOCK);
+    let mut hints = vec![("stream_blocks", vec![count(blocks)])];
+    hints.extend(proof.stream.chunks(STREAM_BLOCK).map(|block| {
+        let mut block = block.to_vec();
+        block.resize(STREAM_BLOCK, F192::ZERO);
+        ("stream", block)
+    }));
+    hints.extend([
         ("bytecode_val", bcv),
         ("merkle_caps", caps),
         ("merkle_cap_active", cap_active),
@@ -249,7 +260,7 @@ pub(super) fn gen_verify(
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order),
         ("block_group_order", sort_order),
-    ];
+    ]);
     hints.extend(query_hints);
     Ok((hints, deferred))
 }
@@ -261,8 +272,10 @@ pub(super) const MU_MAX: usize = leanvm_core::pcs::MAX_MU;
 
 const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU);
 
-/// The guest's baked buffer caps, which `placeholder_map` compiles in and
-/// `gen_verify` admits against: one definition, so a hinted shape can never
-/// outgrow the buffer the guest was compiled with.
-pub(super) const MU_CAP: usize = 40;
+/// The caps a child is admitted against: one definition, so a hinted shape can never
+/// outgrow what the guest was compiled for. `placeholder_map` compiles the stream's
+/// in; the guest's bus GKR walks a depth below its `COUNT_BITS`, 33.
+pub(super) const MU_CAP: usize = 32;
 pub(super) const STREAM_CAP: usize = 8192;
+/// Words per witness block of the proof stream.
+pub(super) const STREAM_BLOCK: usize = 256;

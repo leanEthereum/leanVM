@@ -570,6 +570,7 @@ impl Program {
                         RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
                         RHint::AllocDyn { .. } => "AllocDyn",
+                        RHint::AllocArm { .. } => "AllocArm",
                         RHint::WitnessStack { .. } => "WitnessStack",
                         RHint::WitnessHeap { .. } => "WitnessHeap",
                         RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -587,10 +588,27 @@ impl Program {
                         }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // reads the size from a cell at runtime.
-                        RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                        // reads the size from a cell at runtime, `AllocArm` picks it
+                        // by the arm a dispatch's scrutinee selects.
+                        RHint::Alloc { .. }
+                        | RHint::AllocDyn { .. }
+                        | RHint::AllocFrames { .. }
+                        | RHint::AllocArm { .. } => {
                             let (ptr, size) = match *h {
                                 RHint::Alloc { ptr, size } => (ptr, size),
+                                RHint::AllocArm { ptr, sel, ref sizes } => {
+                                    let c = fp + sel;
+                                    let arm = m
+                                        .written(c)
+                                        .then(|| m.get(c))
+                                        .and_then(|v| v.as_base())
+                                        .and_then(|x| g.log(x));
+                                    let max = || *sizes.iter().max().unwrap();
+                                    (
+                                        ptr,
+                                        arm.and_then(|j| sizes.get(j as usize).copied()).unwrap_or_else(max),
+                                    )
+                                }
                                 RHint::AllocFrames {
                                     ptr,
                                     size,
@@ -775,12 +793,17 @@ impl Program {
                                 m.put(bb + j, F192::from(primitives::field::g_pow(d as usize)))?;
                             }
                         }
-                        RHint::FieldLimbs { value, base, len } => {
-                            assert!((1..=3).contains(len), "an F192 value has three K limbs");
+                        RHint::FieldLimbs {
+                            value,
+                            base,
+                            first,
+                            len,
+                        } => {
+                            assert!(*len >= 1 && first + len <= 3, "an F192 value has three K limbs");
                             let v = m.get(fp + value);
                             let limbs = v.to_limbs();
                             for j in 0..*len {
-                                m.put(fp + base + j, F192::new(limbs[j as usize], 0, 0))?;
+                                m.put(fp + base + j, F192::new(limbs[(first + j) as usize], 0, 0))?;
                             }
                         }
                         RHint::Inverse { value, dst } => {

@@ -34,6 +34,28 @@ const _: () =
 const _: () = assert!(lean_sphincs::TREE_INDEX_BYTES == 3 && lean_sphincs::LEAF_INDEX_BYTES == 1);
 const _: () = assert!(lean_sphincs::DIGEST_CALLS == 2 && 8 % lean_sphincs::W == 0);
 
+/// The guest's `SP_FW_*`: a FORS leaf index's windows, low first, each dispatched on
+/// at once.
+pub(super) const SP_FORS_WINDOWS: [usize; 3] = [4, 3, 3];
+const _: () = assert!(SP_FORS_WINDOWS[0] + SP_FORS_WINDOWS[1] + SP_FORS_WINDOWS[2] == lean_sphincs::FORS_HEIGHT);
+
+/// Whether the guest reads a tree's `u_y` before a window derives it, so it is hinted:
+/// `u_0` at the leaf, a window's top for the window below, and `u_8`, `u_9`, whose
+/// index bits past a byte the A1 at heights 0 and 1 needs.
+pub(super) fn fors_u_hinted(y: usize) -> bool {
+    y == 0 || y == 8 || y == 9 || y == SP_FORS_WINDOWS[0] || y == SP_FORS_WINDOWS[0] + SP_FORS_WINDOWS[1]
+}
+
+/// The guest's `u_y` for FORS tree `c` of instance `idx` at leaf `leaf`: `v M0 + B`,
+/// `v` the tree index at height `y` across the trees, `M0` the cell holding the
+/// address word's last byte at 1, and `B` the A1 at height `y` of tree index 0.
+fn fors_u(idx: u64, c: usize, leaf: usize, y: usize) -> F192 {
+    let a1 = |adrs: lean_sphincs::Adrs| pack_16_bytes(&adrs.as_bytes()[16..]);
+    let at = lean_sphincs::OtsKey::of_index(0, idx).adrs(lean_sphincs::FORS_TREE);
+    let v = (c << (lean_sphincs::FORS_HEIGHT - y)) + (leaf >> y);
+    F192::new(v as u64, 0, 0) * a1(lean_sphincs::Adrs::new(0, 0).with_tree_index(1)) + a1(at.with_tree_height(y as u32))
+}
+
 /// The end of `H_msg`'s second call's low lane: its bytes past the digest are the
 /// guest's `SP_UNUSED_BYTES`, `8 - (DIGEST_BYTES - 32)`.
 const SP_LANE_END: usize = 32 + 8;
@@ -71,6 +93,13 @@ impl Hints {
     pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F192> {
         let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
         &mut entries[i]
+    }
+
+    /// The last entry of stream `name`, for a test to forge.
+    #[cfg(test)]
+    pub(super) fn last_mut(&mut self, name: &str) -> &mut Vec<F192> {
+        let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
+        entries.last_mut().expect("an entry")
     }
 
     pub(super) fn install(self, guest: &mut Program) {
@@ -135,11 +164,12 @@ pub(super) fn lean_xmss_hints(
 }
 
 /// One leanSPHINCS signature's witness: the randomizer, the bytes of `H_msg`'s
-/// second call's low lane past the digest, each FORS tree's secret
-/// and the ordered children of every node on its climb, then per layer, bottom
-/// first, the encoding counter's bytes, the codeword digits (three at a time, in the
-/// exponent), the chain values they start from, and the ordered children of every
-/// node on the key's path.
+/// second call's low lane past the digest, per FORS tree its index windows in the
+/// exponent, the `u_y` the guest reads before deriving them ([`fors_u`]) and its
+/// secret, then the sibling of every node on every tree's climb, then per layer,
+/// bottom first, the encoding counter's bytes, the codeword digits (three at a time,
+/// in the exponent), the chain values they start from, and the ordered children of
+/// every node on the key's path.
 ///
 /// The guest derives the index and every FORS leaf from the digest itself, so
 /// nothing here carries them. The signer's message is not hinted either: it rides
@@ -157,15 +187,28 @@ pub(super) fn lean_sphincs_hints(
         "sp_unused",
         exponent_bytes(&digest[lean_sphincs::DIGEST_BYTES..SP_LANE_END]),
     ));
-    for tree in sig.fors() {
+    for (c, (tree, &leaf)) in sig.fors().iter().zip(&leaves).enumerate() {
+        let windows = SP_FORS_WINDOWS.iter().scan(0, |at, &w| {
+            let k = leaf >> *at & ((1 << w) - 1);
+            *at += w;
+            Some(count(k))
+        });
+        hints.push(("sp_fors_windows", windows.collect()));
+        for y in (0..lean_sphincs::FORS_HEIGHT).filter(|&y| fors_u_hinted(y)) {
+            hints.push(("sp_fors_u", vec![fors_u(idx, c, leaf, y)]));
+        }
         hints.push(("sp_fors_secrets", vec![pack_16_bytes(tree.secret())]));
     }
-    // On every path the guest does not order a node and its sibling: it is handed the
-    // two children in order and checks that the node it holds is the one its bit names.
-    let ordered = |pair: &[lean_sphincs::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
+    let mut visited = 0;
     let mut signed = lean_sphincs::fors_recover(pk_seed, idx, &leaves, sig.fors(), |pair| {
-        hints.push(("sp_fors_nodes", ordered(pair)));
+        let (c, z) = (visited / lean_sphincs::FORS_HEIGHT, visited % lean_sphincs::FORS_HEIGHT);
+        hints.push(("sp_fors_nodes", vec![pack_16_bytes(&pair[1 - (leaves[c] >> z & 1)])]));
+        visited += 1;
     });
+    // On a key's path the guest does not order a node and its sibling: it is handed
+    // the two children in order and checks that the node it holds is the one its bit
+    // names.
+    let ordered = |pair: &[lean_sphincs::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
     for (layer, layer_sig) in sig.layers().iter().enumerate() {
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
         let (codeword, leaf) = lean_sphincs::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())

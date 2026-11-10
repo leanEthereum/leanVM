@@ -192,10 +192,15 @@ pub fn compile(ast: &Ast) -> Program {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
-                            ptr,
-                            size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
-                        },
+                        Hint::AllocFrameArm { ptr, sel, callees } => {
+                            let sizes: Box<[u32]> = callees.iter().map(|c| frame_size[c]).collect();
+                            let max = *sizes.iter().max().unwrap();
+                            if sizes.iter().all(|&s| s == max) {
+                                RHint::Alloc { ptr, size: max }
+                            } else {
+                                RHint::AllocArm { ptr, sel, sizes }
+                            }
+                        }
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
                         Hint::Resolved(r) => r,

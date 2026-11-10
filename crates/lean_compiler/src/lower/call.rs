@@ -16,17 +16,6 @@
 use super::*;
 use std::borrow::Cow;
 
-/// How an inlined tail return binds in the caller: a `StackBuf` run and a folded
-/// g-address alias at zero copies, while anything else (a plain scalar, or a real
-/// call, which records no [`RetBind`]) takes the destination cell it wrote.
-pub(super) fn ret_binding(b: Option<RetBind>, dst: Off) -> Binding {
-    match b {
-        Some(RetBind::Stack(base, size)) => Binding::Stack(base, size),
-        Some(RetBind::Gaddr(ga)) => Binding::Gaddr(ga),
-        _ => Binding::Scalar(dst),
-    }
-}
-
 fn substitute_body<'a>(body: &'a [Stmt], substs: &[(&str, Expr)]) -> Cow<'a, [Stmt]> {
     if substs.is_empty() {
         return Cow::Borrowed(body);
@@ -130,26 +119,17 @@ impl FnLower<'_> {
             let nfp = self.pure(PureOp::Mul, own_fp, scale);
             let entry = self.fresh();
             let oc = cond.unwrap_or_else(|| self.one());
-            let one = self.one();
+            let one = (!self.deref_copies).then(|| self.one());
             self.set(entry, KVal::Entry(callee.to_string()));
-            for &(off, ao) in &arg_offs {
-                self.emit(LOp::MulNextFrame { a: ao, b: one, c: off });
+            // Into the next frame: the arguments, its own fp, then our return target.
+            let mut copies = arg_offs;
+            copies.extend([(Abi::end(callee_arg_cells, 0), nfp), (Abi::RET_FP, 1), (Abi::RET_PC, 0)]);
+            for (c, a) in copies {
+                match one {
+                    Some(one) => self.emit(LOp::MulNextFrame { a, b: one, c }),
+                    None => self.deref(nfp, c, a, DerefMode::Cell),
+                }
             }
-            self.emit(LOp::MulNextFrame {
-                a: nfp,
-                b: one,
-                c: Abi::end(callee_arg_cells, 0),
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 1,
-                b: one,
-                c: Abi::RET_FP,
-            });
-            self.emit(LOp::MulNextFrame {
-                a: 0,
-                b: one,
-                c: Abi::RET_PC,
-            });
             self.emit(LOp::Jump { oc, od: entry, of: nfp });
             return;
         }
@@ -282,8 +262,9 @@ impl FnLower<'_> {
         let one = self.one();
 
         let nfp = self.fresh();
-        self.pending.push(Hint::AllocFrameMax {
+        self.pending.push(Hint::AllocFrameArm {
             ptr: nfp,
+            sel: xo,
             callees: callees.to_vec(),
         });
         for (i, &ao) in arg_offs.iter().enumerate() {
@@ -320,10 +301,11 @@ impl FnLower<'_> {
 
     /// Inline an `@inline` `callee(args)` into the current frame, binding its
     /// return values straight into `dsts`: no frame setup, no argument/return
-    /// plumbing, no call/return jumps. Returns `false` for a non-`@inline`
-    /// callee (the caller emits a real call). Panics if an `@inline` function
-    /// isn't inlinable ([`body_inlinable`]) or its `Const` args don't resolve.
-    pub(super) fn try_inline(&mut self, callee: &str, args: &[Expr], dsts: &[Off]) -> bool {
+    /// plumbing, no call/return jumps. A `None` destination binds its value as a
+    /// `let` would, taking a cell only if the value needs one. Returns `false` for
+    /// a non-`@inline` callee (the caller emits a real call). Panics if an `@inline`
+    /// function isn't inlinable ([`body_inlinable`]) or its `Const` args don't resolve.
+    pub(super) fn try_inline(&mut self, callee: &str, args: &[Expr], dsts: &[Option<Off>]) -> bool {
         let Some(def) = self.defs.get(callee).copied().filter(|d| d.inline) else {
             return false;
         };
@@ -411,23 +393,29 @@ impl FnLower<'_> {
         // Inlined (`@inline`): bind the return values into the caller's cells
         // and fall through: this is the body's tail return, so no jump is needed.
         if let Some(dsts) = self.inline_ret.take() {
-            // Each returned value is bound into the caller independently, exactly
-            // as a `let name = <that expr>` would: a `StackBuf` or a folded
-            // g-address hands over its run/pointer (alias, not copies: allocated
-            // in the caller's frame, so it outlives the inline scope), a scalar is
-            // copied into its dst cell. The per-slot record lets the caller's
-            // `let`/tuple pick the right binding, so a fused
-            // `fs, x, cur = fs_next(fs, cur)` returns a StackBuf, a scalar, and an
-            // advanced cursor together.
+            // Each returned value is bound into the caller independently. A value
+            // with no destination cell binds exactly as `let name = <that expr>`
+            // would, so a returned scalar name aliases its cell and a returned
+            // `StackBuf` or folded g-address aliases its run or pointer, all at
+            // zero copies (allocated in the caller's frame, so they outlive the
+            // inline scope): a fused `fs, x, cur = fs_next(fs, cur)` returns a
+            // StackBuf, a scalar, and an advanced cursor together. A value with a
+            // destination cell (a match join, an expression's target) is written
+            // there unless it is a run or a pointer, which the caller copies.
             let mut binds = Vec::with_capacity(dsts.len());
             for (e, &d) in exprs.iter().zip(&dsts) {
-                binds.push(if let Some((base, size)) = self.stack_of(e) {
-                    RetBind::Stack(base, size)
-                } else if let Some(ga) = self.gaddr_of(e) {
-                    RetBind::Gaddr(ga)
-                } else {
-                    self.expr_into(e, d);
-                    RetBind::Scalar
+                binds.push(match d {
+                    None => self.value_binding(e),
+                    Some(d) => {
+                        if let Some((base, size)) = self.stack_of(e) {
+                            Binding::Stack(base, size)
+                        } else if let Some(ga) = self.gaddr_of(e) {
+                            Binding::Gaddr(ga)
+                        } else {
+                            self.expr_into(e, d);
+                            Binding::Scalar(d)
+                        }
+                    }
                 });
             }
             self.inline_stack_ret = Some(binds);
@@ -506,26 +494,28 @@ impl FnLower<'_> {
                 return_shapes: def.return_shapes.clone(),
                 body: substitute_body(&def.body, &substs).into_owned(),
                 inline: false,
+                deref_copies: def.deref_copies,
             });
         }
         (name, runtime.map(|(_, a)| a).collect())
     }
 
-    /// Lower a call; returns one caller offset per source-level return value.
-    /// A real-call StackBuf return is flattened into consecutive ABI cells and
-    /// copied into a fresh consecutive run in the caller. `inline_stack_ret`
-    /// describes those logical bindings to the surrounding let/tuple lowering.
-    pub(super) fn call(&mut self, callee: &str, args: &[Expr], n_ret: usize) -> Vec<Off> {
+    /// Lower a call; returns one binding per source-level return value. A
+    /// real-call StackBuf return is flattened into consecutive ABI cells and
+    /// copied into a fresh consecutive run in the caller; an inlined return binds
+    /// as its tail `return` decided ([`Self::lower_return`]).
+    pub(super) fn call(&mut self, callee: &str, args: &[Expr], n_ret: usize) -> Vec<Binding> {
         if callee == "keccak" || callee == "keccak_cells" {
             self.fail(format!(
                 "{callee} is a statement: it writes the state or the digest into its `out` run"
             ))
         };
         self.inline_stack_ret = None;
-        if self.defs.get(callee).is_some_and(|d| d.inline) {
-            let dsts: Vec<Off> = (0..n_ret).map(|_| self.fresh()).collect();
-            self.call_into(callee, args, &dsts);
-            return dsts;
+        if self.try_inline(callee, args, &vec![None; n_ret]) {
+            return self
+                .inline_stack_ret
+                .take()
+                .expect("an inlined body ends in its tail return");
         }
 
         let def = self.defs.get(callee).copied();
@@ -537,31 +527,27 @@ impl FnLower<'_> {
                 def.return_shapes.len()
             ))
         };
-        let mut logical = Vec::with_capacity(n_ret);
         let mut physical = Vec::new();
         let mut binds = Vec::with_capacity(n_ret);
         for i in 0..n_ret {
             match def.map_or(Shape::Scalar, |d| d.return_shapes[i]) {
                 Shape::Scalar => {
                     let dst = self.fresh();
-                    logical.push(dst);
                     physical.push(dst);
-                    binds.push(RetBind::Scalar);
+                    binds.push(Binding::Scalar(dst));
                 }
                 Shape::StackBuf(size) => {
                     if size == 0 {
                         self.fail("a returned StackBuf must not be empty")
                     };
                     let base = self.alloc_stack(size);
-                    logical.push(base);
                     physical.extend(base..base + size);
-                    binds.push(RetBind::Stack(base, size));
+                    binds.push(Binding::Stack(base, size));
                 }
             }
         }
         self.lower_call(callee, args, None, &physical, false);
-        self.inline_stack_ret = Some(binds);
-        logical
+        binds
     }
 
     /// Evaluate `callee(args)` into `dsts`, inlining the callee when it is
@@ -570,7 +556,8 @@ impl FnLower<'_> {
         if callee == "keccak" || callee == "keccak_cells" {
             self.fail(format!("{callee} is a statement, not a value-returning call"))
         };
-        if !self.try_inline(callee, args, dsts) {
+        let fixed: Vec<Option<Off>> = dsts.iter().copied().map(Some).collect();
+        if !self.try_inline(callee, args, &fixed) {
             if let Some(def) = self.defs.get(callee) {
                 if def.return_shapes.len() != dsts.len() {
                     self.fail(format!(
@@ -615,26 +602,16 @@ impl FnLower<'_> {
             .or_else(|| self.queue.iter().find(|f| f.name == callee))
     }
 
-    /// Consume the [`RetBind`] a single-value inlined tail return recorded,
-    /// for a call in EXPRESSION position (embedded in arithmetic, a store
-    /// RHS, a single-target match arm): there is no name to alias-bind, so an
-    /// aliased return materializes into a plain cell (free for a var / an
-    /// exp-0 g-address; one `MUL` for a shifted pointer). `dst` is the call's
-    /// destination cell, already written by a real call or a plain-scalar
-    /// return, so it is the fallback.
+    /// The cell holding the single value an inlined tail return recorded, for a
+    /// call writing into `dst` in EXPRESSION position (a store RHS, a
+    /// single-target match arm): there is no name to alias-bind, so an aliased
+    /// return materializes into a plain cell (free for a var / an exp-0
+    /// g-address; one `MUL` for a shifted pointer). `dst` was already written by a
+    /// real call or a plain-scalar return, so it is the fallback.
     pub(super) fn take_inline_ret_cell(&mut self, dst: Off) -> Off {
         match self.inline_stack_ret.take().and_then(|b| b.into_iter().next()) {
-            Some(RetBind::Gaddr(ga)) => self.materialize(ga),
-            Some(RetBind::Stack(base, size)) => {
-                if size != 1 {
-                    self.fail("a multi-cell StackBuf return needs a `let` binding, not an expression use")
-                };
-                // The run's first cell: a single returned value sits there, and a
-                // `let` consumer reaches the same one by binding the run
-                // ([`ret_binding`]).
-                base
-            }
-            _ => dst,
+            Some(b) => self.binding_cell(b),
+            None => dst,
         }
     }
     /// The value a `Const` parameter takes, as the literal that substitutes for

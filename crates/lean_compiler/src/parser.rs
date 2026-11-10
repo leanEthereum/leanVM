@@ -429,25 +429,31 @@ impl Parser<'_> {
 
     fn func_inner(&mut self) -> Result<Func, String> {
         let mut line = &self.lines[self.i];
-        // Optional `@inline` decorator on its own line before `def`.
-        let inline = if let Some(dec) = line.text.strip_prefix('@') {
-            if dec.trim() != "inline" {
-                return Err(format!("unknown decorator `@{}` (only `@inline`)", dec.trim()));
+        // Optional decorators, each on its own line before `def`.
+        let (mut inline, mut deref_copies) = (false, false);
+        while let Some(dec) = line.text.strip_prefix('@') {
+            let flag = match dec.trim() {
+                "inline" => &mut inline,
+                "deref_copies" => &mut deref_copies,
+                other => return Err(format!("unknown decorator `@{other}` (`@inline`, `@deref_copies`)")),
+            };
+            if std::mem::replace(flag, true) {
+                return Err(format!("decorator `@{}` given twice", dec.trim()));
             }
             self.i += 1;
-            line = self.lines.get(self.i).ok_or("`@inline` must precede a `def`")?;
-            true
-        } else {
-            false
-        };
+            line = self.lines.get(self.i).ok_or("a decorator must precede a `def`")?;
+        }
+        if inline && deref_copies {
+            return Err("an `@inline` body copies as its caller does, so it cannot be `@deref_copies`".into());
+        }
         // Re-stamped here: the decorator path advanced past its own line, so
-        // `func`'s frame would name the `@inline` while quoting the `def`.
+        // `func`'s frame would name the decorator while quoting the `def`.
         let at_def = self.here();
-        self.func_header(inline, line.indent, &line.text)
+        self.func_header(inline, deref_copies, line.indent, &line.text)
             .map_err(|e| locate(at_def, e))
     }
 
-    fn func_header(&mut self, inline: bool, indent: usize, line: &str) -> Result<Func, String> {
+    fn func_header(&mut self, inline: bool, deref_copies: bool, indent: usize, line: &str) -> Result<Func, String> {
         let header = line
             .strip_prefix("def ")
             .ok_or_else(|| format!("expected `def`, got `{line}`"))?;
@@ -526,6 +532,7 @@ impl Parser<'_> {
             return_shapes: vec![Shape::Scalar; n_ret],
             body,
             inline,
+            deref_copies,
         })
     }
 
