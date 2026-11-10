@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CInvLast
 public import LeanVM.Guest.B1.Whir.Level
 public import LeanVM.Guest.B1.Whir.CompleteIface
+public import LeanVM.Guest.B1.Whir.CInvLadder
 
 /-!
 # The stacked opening, backwards
@@ -22,7 +23,8 @@ sponge and roots; the final one reads a `FinW` with `FinOk` and returns its `wen
 
 `whirLevelsOpen_inv`: an accepting run of `whirLevelsOpen` refusing zero challenges is a `LvsRun`.
 `whirOpen_inv`: `NoZeroChallenge`'s run is one, at the candidate's ladder; `whirOpen_end`: the
-accepting run of `whirOpen` returns the same `WhirEnd`.
+accepting run of `whirOpen` returns the same `WhirEnd`; `whirOpen_honest`: both, at every
+candidate (`ladderOk_of`, Whir/CInvLadder).
 
 `NextW.osRec`: a non-final level's record (S1a-3's `OsRec`, Whir/Level); `NextW.glued_glued`: the
 level glues `recGlued` of it.
@@ -129,6 +131,17 @@ theorem runTz_liftOption {α β : Type} {o : Option α} {f : α → VerifierProg
 /-- The candidate's levels' static facts. -/
 def LadderOk (μ r : ℕ) : Prop := ∀ cfg, Whir.ladder μ r = some cfg → ∀ l ∈ cfg, LvOk μ l
 
+/-- **Every candidate's levels' static facts.** -/
+theorem ladderOk_of {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+    LadderOk μ r := by
+  intro cfg hcfg l hl
+  have h := ladderRunOk_at h1 h2 h3 h4
+  unfold ladderRunOk at h
+  rw [hcfg] at h
+  have h' := List.all_eq_true.mp h l hl
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at h'
+  exact ⟨h'.1.1, h'.1.2, h'.2⟩
+
 /-- **`NoZeroChallenge`'s run, level by level.** -/
 theorem whirOpen_inv {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
     {os : List (List Opening)} {root : Digest} {w : WhirEnd} {s' : Fs}
@@ -160,6 +173,19 @@ theorem whirOpen_end {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
   rw [e1] at e3
   simp only [Option.some.injEq, Prod.mk.injEq] at e3
   exact e3.1
+
+/-- **An accepting run with no zero challenge, level by level**, at every candidate. -/
+theorem whirOpen_honest {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4)
+    {target : E} {S : KeccakState} {xs : List E} {os : List (List Opening)} {root : Digest}
+    {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
+    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
+    (hnz : NoZeroChallenge μ r target S xs os root) :
+    ∃ cfg, Whir.ladder μ r = some cfg ∧
+      LvsRun μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [], []⟩ (capOf S)
+        [(root, stackShape μ r)] xs os w := by
+  obtain ⟨w', s'', roots'', h⟩ := hnz
+  rw [whirOpen_end hrun h]
+  exact whirOpen_inv (ladderOk_of h1 h2 h3 h4) h
 
 /-! ## S1a-3's records -/
 
