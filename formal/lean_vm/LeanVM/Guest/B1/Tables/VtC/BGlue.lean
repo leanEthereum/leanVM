@@ -33,6 +33,13 @@ theorem vtB_const (hl : args.length = 20) {d : V} {c : E} (hm : Stmt.atom (.cons
     vtσ rd wo args d = c :=
   vt_goodS (rd := rd) (w := wo) hl hm
 
+/-- A `KECCAK` holds by evaluation: its outputs are the permutation of its inputs. -/
+theorem vtB_keccakAt (hl : args.length = 20) (n : ℕ) {ins outs : List V} {i o : Bool}
+    (heq : tbStmtsEqb [.atom (.keccak ins outs i o)] ((vtAt n).take 1) = true) :
+    VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.keccak ins outs i o)) := by
+  have hg := vt_goodAt (rd := rd) (w := wo) hl n _ heq
+  exact holds_of_good (S := vtSL) (show Good rd vtSL wo _ (.keccak ins outs i o) from hg) trivial
+
 /-- **A stream read, complete.** -/
 theorem vtc_fsNext (hl : args.length = 20) {cur : V} {off b pos : ℕ}
     (hcheck : tbStmtsEqb (fsNextT cur off b) ((vtPre.drop pos).take (fsNextT cur off b).length) =
