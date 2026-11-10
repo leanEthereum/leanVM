@@ -303,8 +303,8 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
 
 # Functions the words tables index by name (`Count/Words.lean`, `wIdxN`): open_stacked's named
 # callees (`B1.osKindTable`) and the static callees of main's non-static ones.
-WORDS_PREFIXES = ('opening_fold', 'grind_check__L', 'opening_row_weights__L',
-                  'opening_ood_point__L', 'opening_final_message__L', 'verify_merkle_cap__L',
+WORDS_PREFIXES = ('opening_round', 'opening_tail_round', 'opening_message__L', 'squeeze_point__L',
+                  'squeeze_point_from__L', 'grind_check__L', 'verify_merkle_cap__L',
                   'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
                   'batch_sumcheck__L', 'statement_digest', 'exponent_tables')
 
