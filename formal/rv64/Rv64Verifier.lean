@@ -7,6 +7,7 @@ import Rv64Verifier.Model.Ext
 import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Model.Transcript
+import Rv64Verifier.Model.Bus
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
@@ -82,3 +83,15 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Proofs.End.sound_of_main' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.End.sound_of_main
+
+/-- info: 'Rv64Verifier.Model.Sim.sumcheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.sumcheck
+
+/-- info: 'Rv64Verifier.Model.Sim.verifyBusBalance' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.verifyBusBalance
+
+/-- info: 'Rv64Verifier.Model.Sim.tableSumcheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.tableSumcheck
+
+/-- info: 'Rv64Verifier.Model.Sim.gkrLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Sim.gkrLoop
