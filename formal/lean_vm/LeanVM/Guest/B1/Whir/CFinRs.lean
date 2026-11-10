@@ -104,7 +104,7 @@ theorem osResidual_eq (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (k : ℕ)
         (resTl bd lvl lv k).2.2.2, (resTl bd lvl lv k).2.2.2 + 10) := by
   simp only [osResidual, resA, resB, resTl, List.append_assoc, List.cons_append, List.nil_append]
 
-theorem resTl_ssa {bd lvl : ℕ} {lv : OsLv} {k : ℕ} (hst : ResStatic lv hsv) (hbd : bd < k)
+theorem resTl_ssa {bd lvl : ℕ} {lv : OsLv} {hsv : List E} {k : ℕ} (hst : ResStatic lv hsv) (hbd : bd < k)
     (hk : 36 ≤ k) :
     SsaP (k + 12) (resTl bd lvl lv k).1 (resTl bd lvl lv k).2.2.2 ∧
       (resTl bd lvl lv k).2.1 < (resTl bd lvl lv k).2.2.2 ∧
