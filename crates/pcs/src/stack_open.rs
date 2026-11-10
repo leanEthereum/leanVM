@@ -343,7 +343,7 @@ mod tests {
                     &ring,
                     &rings,
                 );
-                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block);
+                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block, false);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
                 // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, the stack's
@@ -371,7 +371,7 @@ mod tests {
                     reference.fold(&h, &ch);
                     lanes.fold(&ch);
                 }
-                let (p, w, _) = lanes.finish(false);
+                let (p, w, _) = lanes.finish();
                 assert_eq!(p, reference.f, "{context}, lane");
                 assert_eq!(w, reference.w, "{context}, weight");
             }

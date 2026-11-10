@@ -766,7 +766,8 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// `log_inv_rate = config.log_inv_rates[0]`).
 ///
 /// `witness` is owned: where the L0 open recomputes the codeword rows it reads, it keeps it until then.
-/// Otherwise round 1 reads it last, and the large committed stack is gone before the level-1 commit allocates.
+/// Otherwise round 2's table reads it last (the end of the level-0 rounds if `initial_k` is 1), and the large
+/// committed stack is gone before the level-1 commit allocates.
 ///
 /// `witness` may be shorter than `2^log_n`: it is a whole number of lane blocks, zero past them. The level-0 rounds
 /// project only those, while `b_initial` keeps the weight over every lane.
@@ -823,7 +824,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let mut claim = target;
 
     // Level 0: its rounds run on the weight's terms.
-    let mut lanes = whir_lanes::LaneRounds::new(witness, b_initial, lane_block);
+    // A rebuilding L0 open recomputes its rows from the stack, so that lives until then.
+    let keep_stack = matches!(prover_data.codeword, Codeword::Nothing(..));
+    let mut lanes = whir_lanes::LaneRounds::new(witness, b_initial, lane_block, keep_stack);
     let mut rounds = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
         let _span = tracing::info_span!("Fold round", level = 0, round = j).entered();
@@ -832,8 +835,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         lanes.fold(&ch);
         rounds.push(ch);
     }
-    // A rebuilding L0 open recomputes its rows from the stack, so that lives until then. Otherwise it goes now.
-    let (mut p, mut w, mut stack) = lanes.finish(matches!(prover_data.codeword, Codeword::Nothing(..)));
+    let (mut p, mut w, mut stack) = lanes.finish();
     let mut prover_data = Some(prover_data);
     let mut wtns_prev: Option<LigeroWitness> = None;
 

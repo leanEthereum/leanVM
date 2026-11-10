@@ -157,8 +157,9 @@ struct Pending {
 }
 
 pub(crate) struct LaneRounds {
-    /// The committed lanes, read until round 2's table.
+    /// The committed lanes, read until round 2's table (or `finish` after one round), then freed unless `keep_stack`.
     stack: Vec<F64>,
+    keep_stack: bool,
     lane_block: usize,
     n_stack: usize,
     terms: Terms,
@@ -175,7 +176,7 @@ pub(crate) struct LaneRounds {
 }
 
 impl LaneRounds {
-    pub(crate) fn new(stack: Vec<F64>, basis: InitialBasis, lane_block: usize) -> Self {
+    pub(crate) fn new(stack: Vec<F64>, basis: InitialBasis, lane_block: usize, keep_stack: bool) -> Self {
         let InitialBasis { a, n_terms, terms } = basis;
         assert!(lane_block > 0 && stack.len().is_multiple_of(lane_block));
         assert_eq!(lane_block, 1 << terms.lane_vars());
@@ -183,6 +184,7 @@ impl LaneRounds {
         assert!(a.len().is_multiple_of(n_terms) && a.len() >= n_lanes * n_terms);
         Self {
             stack,
+            keep_stack,
             lane_block,
             n_stack: n_lanes,
             terms,
@@ -347,7 +349,14 @@ impl LaneRounds {
             .collect();
         let (pairs, pxh) = match self.folded.take() {
             None => (Pairs::Stack, self.project_stack(theta, &live)),
-            Some((pairs, ch)) => self.write_pairs(&self.view(&pairs, ch), theta, &live),
+            Some((pairs, ch)) => {
+                let written = self.write_pairs(&self.view(&pairs, ch), theta, &live);
+                // Round 2 read the stack's pairs last.
+                if matches!(pairs, Pairs::Stack) && !self.keep_stack {
+                    self.stack = Vec::new();
+                }
+                written
+            }
         };
 
         let zero = vec![F128::ZERO; nt];
@@ -409,7 +418,7 @@ impl LaneRounds {
 
     /// The one lane left, low coefficients then high, the weight lifted over its low coefficients, and the committed
     /// lanes if `keep_stack`.
-    pub(crate) fn finish(self, keep_stack: bool) -> (Vec<F128>, Vec<F128>, Vec<F64>) {
+    pub(crate) fn finish(self) -> (Vec<F128>, Vec<F128>, Vec<F64>) {
         assert_eq!(
             (self.n_lanes, self.a.len()),
             (1, self.n_terms),
@@ -434,6 +443,6 @@ impl LaneRounds {
             }
         });
         let w = tracing::info_span!("Lift").in_scope(|| self.terms.lift(&self.a));
-        (lane, w, if keep_stack { self.stack } else { Vec::new() })
+        (lane, w, if self.keep_stack { self.stack } else { Vec::new() })
     }
 }
