@@ -38,7 +38,7 @@ def WinRun (rd : Reader) (bp : E) (depth cd : ℕ) : Prop :=
 theorem oqQuery_sound_wins {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
     {bp cap flags wp : V} {b : ℕ} {emit : Bool} {pr : ℕ}
     (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqQueryT s bp cap flags wp b emit pr walk))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     (hrun : WinRun rd (σ bp) (s.pd + s.cd) s.cd) :
     ∃ q < 2 ^ (s.pd + s.cd),

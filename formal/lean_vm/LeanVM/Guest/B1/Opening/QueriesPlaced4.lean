@@ -42,7 +42,7 @@ structure OqQReg (R : ℕ → Prop) (s : Oq) (cap flags wp bp : E) (q : ℕ) : P
 /-- What a walk reads from the caller's region: its windows (the path's and the cap's two), its
 flag and its cap leaf. -/
 structure OqWReg (R : ℕ → Prop) (pd cd : ℕ) (cap flags bp : E) (q : ℕ) : Prop where
-  b : ∀ off < oqNpw ⟨0, 0, pd, cd⟩ + 2, OqIn R (bp.limb 0 * Parameters.addressOfIndex off)
+  b : ∀ off < oqNpw ⟨0, 0, pd, cd, 0, [], 0, 0⟩ + 2, OqIn R (bp.limb 0 * Parameters.addressOfIndex off)
   f : OqIn R ((flags * gen ^ (q / 2 ^ (pd + 1))).limb 0 * Parameters.addressOfIndex (2 ^ (cd - 1)))
   c : ∀ e < 2, OqIn R ((cap * gen ^ (4 * (q / 2 ^ (pd + 1)) +
     (if q.testBit pd then 2 else 0))).limb 0 * Parameters.addressOfIndex (2 ^ (cd + 1) + e))

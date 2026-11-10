@@ -102,10 +102,10 @@ theorem oqLoop1_step {s : Oq} {odd : ℕ} {walk loop : String} {fl : Fn}
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC1 s with hc
-  have a7 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 7)) (word 2 0 0)) ∈ _)
+  have a7 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 7)) (word 2 0)) ∈ _)
   have a8 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n (c + 8)) (.n 0) (.n (c + 7))) ∈ _)
   have a9 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.add (.n (c + 9)) (.n (c + 8)) (.n 1)) ∈ _)
-  have a10 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 10)) (word 2 0 0)) ∈ _)
+  have a10 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 10)) (word 2 0)) ∈ _)
   have a11 := hA.atom (by simp [oqLoop1A, ← hc] :
     Stmt.atom (.mul (.n (c + 11)) (.n 0) (.n (c + 10))) ∈ _)
   simp only [Atom.Holds] at a7 a8 a9 a10 a11
@@ -129,10 +129,10 @@ theorem oqLoop0_step {s : Oq} {walk loop : String} {fl : Fn}
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC0 s with hc
-  have a5 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 5)) (word 2 0 0)) ∈ _)
+  have a5 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 5)) (word 2 0)) ∈ _)
   have a6 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n (c + 6)) (.n 0) (.n (c + 5))) ∈ _)
   have a7 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.add (.n (c + 7)) (.n (c + 6)) (.n 1)) ∈ _)
-  have a8 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 8)) (word 2 0 0)) ∈ _)
+  have a8 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 8)) (word 2 0)) ∈ _)
   have a9 := hA.atom (by simp [oqLoop0A, ← hc] :
     Stmt.atom (.mul (.n (c + 9)) (.n 0) (.n (c + 8))) ∈ _)
   simp only [Atom.Holds] at a5 a6 a7 a8 a9
@@ -151,14 +151,14 @@ theorem oqMainA_basic {C : CallRel} {s : Oq} {odd : ℕ} {walk : String} {σ : V
     σ (.n 8) * σ (.n 2) = 1 ∧ σ (.n (oqMK s odd + 1)) = 1 + σ (.n 6) ∧
       σ (.n (oqMK s odd + 2)) = 1 ∧ (odd ≠ 1 → LoadHolds rd (σ (.n 11)) 0 0) := by
   set k := oqMK s odd with hk
-  have m0 := hA.atom (by simp [oqMainA] : Stmt.atom (.const (.n 7) (word 1 0 0)) ∈ _)
+  have m0 := hA.atom (by simp [oqMainA] : Stmt.atom (.const (.n 7) (word 1 0)) ∈ _)
   have m1 := hA.atom (by simp [oqMainA] : Stmt.atom (.mul (.n 7) (.n 8) (.n 2)) ∈ _)
-  have m2 := hA.atom (by simp [oqMainA, ← hk] : Stmt.atom (.const (.n k) (word 1 0 0)) ∈ _)
+  have m2 := hA.atom (by simp [oqMainA, ← hk] : Stmt.atom (.const (.n k) (word 1 0)) ∈ _)
   have m3 := hA.atom (by simp [oqMainA, ← hk] : Stmt.atom (.add (.n (k + 1)) (.n k) (.n 6)) ∈ _)
-  have m4 := hA.atom (by simp [oqMainA, ← hk] : Stmt.atom (.const (.n (k + 2)) (word 1 0 0)) ∈ _)
+  have m4 := hA.atom (by simp [oqMainA, ← hk] : Stmt.atom (.const (.n (k + 2)) (word 1 0)) ∈ _)
   simp only [Atom.Holds] at m0 m1 m2 m3 m4
   refine ⟨by rw [← m1, m0, word_one], by rw [m3, m2, word_one], by rw [m4, word_one], fun h1 => ?_⟩
-  have c1 := hA.atom (by simp [oqMainA, h1] : Stmt.atom (.const (.n 12) (word 0 0 0)) ∈ _)
+  have c1 := hA.atom (by simp [oqMainA, h1] : Stmt.atom (.const (.n 12) (word 0 0)) ∈ _)
   have c2 := hA.atom (by simp [oqMainA, h1] : Stmt.atom (.load (.n 12) (.n 11) 0) ∈ _)
   simp only [Atom.Holds] at c1 c2
   rw [c1, word_zero] at c2

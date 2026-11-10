@@ -74,7 +74,7 @@ def e : ℕ := d.ch
 def rw (j : ℕ) : E := ofK (d.row.getD j 0)
 
 /-- The packed cell `j`. -/
-def pk (j : ℕ) : E := d.rw (2 * j) + word 0 1 0 * d.rw (2 * j + 1)
+def pk (j : ℕ) : E := d.rw (2 * j) + word 0 1 * d.rw (2 * j + 1)
 
 /-- The row's `E` word `jw`. -/
 def W (jw : ℕ) : E := rowWord d.s.base d.row jw
@@ -92,7 +92,7 @@ def wordStmtV (jw o : ℕ) : E :=
   if jw % 2 = 0 then
     [word 0 0 1, word 0 0 1 * d.rw (3 * jw + 2), d.W jw].getD o 0
   else
-    [word 0 1 0, word 0 1 0 * d.pk ((3 * jw + 1) / 2), d.W jw].getD o 0
+    [word 0 1, word 0 1 * d.pk ((3 * jw + 1) / 2), d.W jw].getD o 0
 
 /-- Term `l` of group `h`, offset `o`. -/
 def termV (h l o : ℕ) : E :=
@@ -123,7 +123,7 @@ def dotV (i : ℕ) : E :=
   else d.dotAfterV (dotH d.s.G i)
 
 /-- The padded message cell `m` of the leaf hash. -/
-def P (m : ℕ) : E := if m < d.s.ncells then d.pk m else if m = d.s.ncells then word 1 0 0 else oqW80 d.s
+def P (m : ℕ) : E := if m < d.s.ncells then d.pk m else if m = d.s.ncells then word 1 0 else oqW80 d.s
 
 /-- The leaf hash's state before block `k`, as the cells block `k - 1` writes. -/
 def leafO : ℕ → Fin 13 → E
@@ -160,10 +160,10 @@ def leaf : Digest := merkleLeafDigest d.row
 def val (i : ℕ) : E :=
   if i < d.b + d.s.R then d.rw (i - d.b)
   else if i < d.k1 then
-    [word 0 1 0, word 0 1 0 * d.rw (2 * ((i - d.b - d.s.R) / 3) + 1),
+    [word 0 1, word 0 1 * d.rw (2 * ((i - d.b - d.s.R) / 3) + 1),
       d.pk ((i - d.b - d.s.R) / 3)].getD ((i - d.b - d.s.R) % 3) 0
   else if i < d.k1 + d.s.D then d.dotV (i - d.k1)
-  else if i < d.kL then [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD
+  else if i < d.kL then [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD
     (i - (d.k1 + d.s.D)) 0
   else if i < d.ch then d.leafV (i - d.kL)
   else 0
@@ -191,7 +191,7 @@ theorem val_row {j : ℕ} (hj : j < d.s.R) : d.val (d.b + j) = d.rw j := by
 
 theorem val_pack {j t : ℕ} (hj : j < d.s.R / 2) (ht : t < 3) :
     d.val (d.b + d.s.R + 3 * j + t) =
-      [word 0 1 0, word 0 1 0 * d.rw (2 * j + 1), d.pk j].getD t 0 := by
+      [word 0 1, word 0 1 * d.rw (2 * j + 1), d.pk j].getD t 0 := by
   unfold val
   have := k1_eq d
   simp only [show ¬ d.b + d.s.R + 3 * j + t < d.b + d.s.R by omega,
@@ -207,7 +207,7 @@ theorem val_dot {i : ℕ} (hi : i < d.s.D) : d.val (d.k1 + i) = d.dotV i := by
 
 theorem val_pad (he : d.emit = true) {i : ℕ} (hi : i < 5) :
     d.val (d.k1 + d.s.D + i) =
-      [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD i 0 := by
+      [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD i 0 := by
   unfold val
   have := k1_eq d
   have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
@@ -351,7 +351,7 @@ namespace WD
 variable (w : WD)
 
 /-- The walk's shape: only its `pd` and `cd` are read. -/
-def s : Oq := ⟨0, 0, w.pd, w.cd⟩
+def s : Oq := ⟨0, 0, w.pd, w.cd, 0, [], 0, 0⟩
 
 /-- The windows' first value. -/
 def W0 : ℕ := oqWk w.s wpCh 0
@@ -368,12 +368,12 @@ def node (l : ℕ) : Digest := climbNode w.leaf w.q w.sibs l
 
 /-- The cells level `l`'s permutation reads. -/
 def levelIns (l : ℕ) : List E :=
-  [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0 0, word 0 0 0,
-    word 0 0 0, word 0 0 0, word (2 ^ 63) 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0]
+  [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0, word 0 0,
+    word 0 0, word 0 0, word (2 ^ 63) 0, word 0 0, word 0 0, word 0 0, word 0 0]
 
 /-- Level `l`'s step at offset `c < 3`: the `0x80` constant, the permutation's first two cells. -/
 def stepV (l c : ℕ) : E :=
-  if c = 0 then word (2 ^ 63) 0 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
+  if c = 0 then word (2 ^ 63) 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
 
 /-- Window `i`'s value: the position's bits there. -/
 def wv (i : ℕ) : ℕ := qwVal (w.s.pd + w.s.cd) w.s.cd w.q i
@@ -384,7 +384,7 @@ def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 3 * ww * a
 /-- Window `i`'s value at offset `o ≥ 1` after its padding run: `0x80`, the targets (the node after
 it), arm `v`'s steps, `0` elsewhere (the arms not taken). -/
 def winA (i o : ℕ) : E :=
-  if o = 1 then word (2 ^ 63) 0 0
+  if o = 1 then word (2 ^ 63) 0
   else if o = 2 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
   else if o = 3 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
   else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i then
@@ -392,7 +392,7 @@ def winA (i o : ℕ) : E :=
   else 0
 
 /-- The padding run's cell `k`: `1, 0, 0, 0, 0`. -/
-def padV (k : ℕ) : E := [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD k 0
+def padV (k : ℕ) : E := [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD k 0
 
 /-- Window `i`'s value at offset `o`: its word `g^v`, (window `0`) the padding run, then `winA`. -/
 def winV (i o : ℕ) : E :=
@@ -406,7 +406,7 @@ def qV : E := gen ^ (w.q / 2 ^ (w.s.pd + 1))
 
 /-- The cap leaf at offset `o < 9`. -/
 def capV (o : ℕ) : E :=
-  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
+  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
     w.capv * (w.qV * w.qV) * (w.qV * w.qV), w.wbV * w.wbV,
     w.capv * (w.qV * w.qV) * (w.qV * w.qV) * (w.wbV * w.wbV)].getD o 0
 

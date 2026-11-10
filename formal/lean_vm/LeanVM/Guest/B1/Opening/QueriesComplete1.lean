@@ -62,7 +62,7 @@ theorem W_even (hb : d.s.base = 0) {jw : ℕ} (he : jw % 2 = 0) :
   simp [W, rowWord, hb]
 
 theorem W_odd (hb : d.s.base = 0) {jw : ℕ} (ho : jw % 2 = 1) :
-    d.W jw = d.rw (3 * jw) + word 0 1 0 * d.pk ((3 * jw + 1) / 2) := by
+    d.W jw = d.rw (3 * jw) + word 0 1 * d.pk ((3 * jw + 1) / 2) := by
   rw [pk_eq, show 2 * ((3 * jw + 1) / 2) = 3 * jw + 1 by omega, word_y, QD.rw,
     ofK_add_y_mul_ofLimbs]
   simp [W, rowWord, hb]
@@ -81,7 +81,7 @@ theorem oqPacks_complete (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.va
   have r1 : σ (.n (d.b + 2 * j + 1)) = d.rw (2 * j + 1) := by
     rw [hv _ (by omega) (by omega), Nat.add_assoc, val_row d (by omega)]
   have v : ∀ t < 3, σ (.n (d.b + d.s.R + 3 * j + t)) =
-      [word 0 1 0, word 0 1 0 * d.rw (2 * j + 1), d.pk j].getD t 0 := fun t ht => by
+      [word 0 1, word 0 1 * d.rw (2 * j + 1), d.pk j].getD t 0 := fun t ht => by
     rw [hv _ (by omega) (by omega), val_pack d hj ht]
   have v0 := v 0 (by omega); have v1 := v 1 (by omega); have v2 := v 2 (by omega)
   simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
@@ -289,7 +289,7 @@ theorem oqPad_complete (he : d.emit = true)
   have hk := k1_eq d
   have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
   have v : ∀ i < 5, σ (.n (d.k1 + d.s.D + i)) =
-      [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD i 0 := fun i hi => by
+      [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD i 0 := fun i hi => by
     rw [hv _ (by omega) (by omega), val_pad d he hi]
   intro a ha
   simp only [oqPadT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha

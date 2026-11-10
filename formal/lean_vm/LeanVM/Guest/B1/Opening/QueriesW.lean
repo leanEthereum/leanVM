@@ -113,7 +113,7 @@ theorem oqQuery_sound_s {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
     (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hW : WalkFn (oqWalkOf s) s.pd s.cd)
     {bp cap flags wp : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
     (hA : BlockOkC C rd σ (oqQueryT s bp cap flags wp b emit pr (oqWalkOf s)))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     {q : ℕ} (hq : q < 2 ^ (s.pd + s.cd))
     (hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
@@ -130,7 +130,7 @@ theorem oqQuery_sound_s {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
   rw [hp] at hpar
   rw [hb] at hh
   obtain ⟨-, hwl, sibs, hsl, hsib, hflag, hc0, hc1⟩ :=
-    wp_frame_sound (s := ⟨0, 0, s.pd, s.cd⟩) hpd hcd hpar hh (oqQuery_leaf hs hA hpad hz) hq hwin
+    wp_frame_sound (s := ⟨0, 0, s.pd, s.cd, 0, [], 0, 0⟩) hpd hcd hpar hh (oqQuery_leaf hs hA hpad hz) hq hwin
   have hrl : (oqRow b s.R σ).length = s.R := by simp [oqRow]
   have hWd := oqWord_sound hs hP hD
   obtain ⟨hw, hdot⟩ := oqDot_sound hs hD hWd
@@ -158,7 +158,7 @@ theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
     (hW : WalkFn (oqWalkOf s) s.pd s.cd)
     {bp cap flags wp : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
     (hA : BlockOkC C rd σ (oqQueryT s bp cap flags wp b emit pr (oqWalkOf s)))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     (hrun : WinRun rd (σ bp) (s.pd + s.cd) s.cd) :
     QueryW rd s (σ cap) (σ flags) (σ wp) (σ bp) (oqQueryW s rd (σ bp) (σ cap) (σ flags) b emit σ V)

@@ -62,10 +62,10 @@ theorem oqLoop1_hc {C : CallRel} {s : Oq} {odd : ℕ} {walk : String} {fl : Fn} 
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC1 s with hc
-  have a7 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 7)) (word 2 0 0)) ∈ _)
+  have a7 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 7)) (word 2 0)) ∈ _)
   have a8 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n (c + 8)) (.n 0) (.n (c + 7))) ∈ _)
   have a9 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.add (.n (c + 9)) (.n (c + 8)) (.n 1)) ∈ _)
-  have a10 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 10)) (word 2 0 0)) ∈ _)
+  have a10 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.const (.n (c + 10)) (word 2 0)) ∈ _)
   have a11 := hA.atom (by simp [oqLoop1A, ← hc] :
     Stmt.atom (.mul (.n (c + 11)) (.n 0) (.n (c + 10))) ∈ _)
   simp only [Atom.Holds] at a7 a8 a9 a10 a11
@@ -84,10 +84,10 @@ theorem oqLoop0_hc {C : CallRel} {s : Oq} {walk : String} {fl : Fn} (hpl : fl.pa
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC0 s with hc
-  have a5 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 5)) (word 2 0 0)) ∈ _)
+  have a5 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 5)) (word 2 0)) ∈ _)
   have a6 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n (c + 6)) (.n 0) (.n (c + 5))) ∈ _)
   have a7 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.add (.n (c + 7)) (.n (c + 6)) (.n 1)) ∈ _)
-  have a8 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 8)) (word 2 0 0)) ∈ _)
+  have a8 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.const (.n (c + 8)) (word 2 0)) ∈ _)
   have a9 := hA.atom (by simp [oqLoop0A, ← hc] :
     Stmt.atom (.mul (.n (c + 9)) (.n 0) (.n (c + 8))) ∈ _)
   simp only [Atom.Holds] at a5 a6 a7 a8 a9

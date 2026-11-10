@@ -271,7 +271,7 @@ theorem oqLoop0T_tail {s : Oq} {walk name : String} {n : ℕ} (hn : (oqLoop0A s 
     (hne : σ (.n 0) ≠ σ (.n 1)) :
     WinWalk rd (s.pd + s.cd) s.cd (σ (.n 2)) (σ (.n (oqC0 s + 9))) (σ (.n 1)) := by
   have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop0A_flatC s walk) hn h
-  have c8 := hb.atom (by simp [oqLoop0A] : Stmt.atom (.const (.n (oqC0 s + 8)) (word 2 0 0)) ∈ _)
+  have c8 := hb.atom (by simp [oqLoop0A] : Stmt.atom (.const (.n (oqC0 s + 8)) (word 2 0)) ∈ _)
   have c9 := hb.atom (by simp [oqLoop0A] : Stmt.atom (.mul (.n (oqC0 s + 9)) (.n 0) (.n (oqC0 s + 8))) ∈ _)
   simp only [Atom.Holds] at c8 c9
   rw [c9, c8, word_gen]
@@ -285,7 +285,7 @@ theorem oqLoop1T_tail {s : Oq} {odd : ℕ} {walk name : String} {n : ℕ}
     (hne : σ (.n 0) ≠ σ (.n 1)) :
     WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n 2)) (σ (.n (oqC1 s + 11))) (σ (.n 1)) := by
   have hb := blockOkC_of_take (List.prefix_append _ _) (oqLoop1A_flatC s odd walk) hn h
-  have c10 := hb.atom (by simp [oqLoop1A] : Stmt.atom (.const (.n (oqC1 s + 10)) (word 2 0 0)) ∈ _)
+  have c10 := hb.atom (by simp [oqLoop1A] : Stmt.atom (.const (.n (oqC1 s + 10)) (word 2 0)) ∈ _)
   have c11 := hb.atom (by simp [oqLoop1A] :
     Stmt.atom (.mul (.n (oqC1 s + 11)) (.n 0) (.n (oqC1 s + 10))) ∈ _)
   simp only [Atom.Holds] at c10 c11
@@ -299,8 +299,8 @@ theorem oqMainT_wins {s : Oq} {walk loop : String} {n : ℕ} (hn : 6 ≤ n) {odd
     (hw : OqMainWins rd (s.pd + s.cd) s.cd odd base (σ (.n 4)) (σ (.n 6))) :
     WinsAt rd (s.pd + s.cd) s.cd (σ (.n 12)) := by
   subst ho
-  have hb := blockOk_of_take (pre := [.atom (.const (.n 7) (word 1 0 0)),
-      .atom (.mul (.n 7) (.n 8) (.n 2)), .atom (.const (.n 9) (word 2 0 0)),
+  have hb := blockOk_of_take (pre := [.atom (.const (.n 7) (word 1 0)),
+      .atom (.mul (.n 7) (.n 8) (.n 2)), .atom (.const (.n 9) (word 2 0)),
       .atom (.mul (.n 10) (.n 6) (.n 9)), .atom (.hint (.allocDyn (.n 11) (.n 10))),
       .atom (.load (.n 12) (.n 4) 0)]) (by simp [oqMainT, oqMainA])
     (flat_of_atoms (allAtoms_of_forall (by simp))) (by simpa using hn) h
@@ -316,7 +316,7 @@ theorem oqMainT_loop {s : Oq} {odd base : ℕ} {walk loop : String} {n : ℕ}
     (if base = 1 then WinWalk2 rd (s.pd + s.cd) s.cd odd (σ (.n 4)) (σ (.n (oqMK s odd + 2))) (σ (.n 6))
       else WinWalk rd (s.pd + s.cd) s.cd (σ (.n 4)) (σ (.n (oqMK s odd + 2))) (σ (.n 6))) := by
   have hb := blockOkC_of_take (List.prefix_append _ _) (oqMainA_flatC s odd walk) hn h
-  have k2 := hb.atom (by simp [oqMainA] : Stmt.atom (.const (.n (oqMK s odd + 2)) (word 1 0 0)) ∈ _)
+  have k2 := hb.atom (by simp [oqMainA] : Stmt.atom (.const (.n (oqMK s odd + 2)) (word 1 0)) ∈ _)
   simp only [Atom.Holds] at k2
   rw [k2, word_one]
   exact hw.2

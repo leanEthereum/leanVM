@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The function's values from `oqMK`: `1, 1 + nG, 1`, then `rest`. -/
-def oqMainTl (nG : E) (rest : List E) : List E := [word 1 0 0, word 1 0 0 + nG, word 1 0 0] ++ rest
+def oqMainTl (nG : E) (rest : List E) : List E := [word 1 0, word 1 0 + nG, word 1 0] ++ rest
 
 /-- **The function's honest values**, from its arguments, the chain's pointer `ch`, the odd first
 query `D` and its window pointer `bp`, and its values `rest` after `1, 1 + nG, 1`. -/
@@ -35,13 +35,13 @@ def oqMainF (s : Oq) (odd : ℕ) (args : List E) (ch bp : E) (D : QD) (rest : Li
   let nG := args.getD 6 0
   let k := oqMK s odd
   if i < 7 then args.getD i 0
-  else if i = 7 then word 1 0 0 else if i = 8 then lam⁻¹ else if i = 9 then word 2 0 0
-  else if i = 10 then nG * word 2 0 0 else if i = 11 then ch
+  else if i = 7 then word 1 0 else if i = 8 then lam⁻¹ else if i = 9 then word 2 0
+  else if i = 10 then nG * word 2 0 else if i = 11 then ch
   else if odd = 1 then
     (if i = 12 then bp else if i < k - 1 then D.val i
       else if i = k - 1 then rowDot s.base s.I D.row D.w * lam⁻¹
       else (oqMainTl nG rest).getD (i - k) 0)
-  else (if i = 12 then word 0 0 0 else (oqMainTl nG rest).getD (i - k) 0)
+  else (if i = 12 then word 0 0 else (oqMainTl nG rest).getD (i - k) 0)
 
 variable {rd : Reader}
 
@@ -63,13 +63,13 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) {odd : ℕ} (hodd : odd ≤ 1) {wal
           digestHalves (merkleLeafDigest r)) ∧
       BlockOkC anyCall rd σ (oqMainA s odd walk) := by
   set tl := oqMainTl nG rest with htl
-  have mu1 : word 1 0 0 = lam⁻¹ * lam := by rw [word_one, inv_mul_cancel₀ hlam]
+  have mu1 : word 1 0 = lam⁻¹ * lam := by rw [word_one, inv_mul_cancel₀ hlam]
   have eP : ∀ i < 7, σ (.n i) = [cap, flags, lam, lamN, qptrs, wp, nG].getD i 0 := fun i hi => by
     rw [hσ]; simp only [oqMainF, hi, ↓reduceIte]
-  have e7 : σ (.n 7) = word 1 0 0 := by rw [hσ]; simp [oqMainF]
+  have e7 : σ (.n 7) = word 1 0 := by rw [hσ]; simp [oqMainF]
   have e8 : σ (.n 8) = lam⁻¹ := by rw [hσ]; simp [oqMainF]
-  have e9 : σ (.n 9) = word 2 0 0 := by rw [hσ]; simp [oqMainF]
-  have e10 : σ (.n 10) = nG * word 2 0 0 := by rw [hσ]; simp [oqMainF]
+  have e9 : σ (.n 9) = word 2 0 := by rw [hσ]; simp [oqMainF]
+  have e10 : σ (.n 10) = nG * word 2 0 := by rw [hσ]; simp [oqMainF]
   have e11 : σ (.n 11) = ch := by rw [hσ]; simp [oqMainF]
   have hpar : [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6].map σ =
       [cap, flags, lam, lamN, qptrs, wp, nG] := by
@@ -85,10 +85,10 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) {odd : ℕ} (hodd : odd ≤ 1) {wal
         show 13 + o ≠ 11 by omega, show (0 : ℕ) ≠ 1 by decide, show 13 + o ≠ 12 by omega,
         ↓reduceIte, Nat.add_sub_cancel_left]
       rfl
-    have e12 : σ (.n 12) = word 0 0 0 := by rw [hσ]; simp [oqMainF]
-    have t0 : σ (.n (oqMK s 0)) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 0
-    have t1 : σ (.n (oqMK s 0 + 1)) = word 1 0 0 + nG := by simpa [htl, oqMainTl] using eT 1
-    have t2 : σ (.n (oqMK s 0 + 2)) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 2
+    have e12 : σ (.n 12) = word 0 0 := by rw [hσ]; simp [oqMainF]
+    have t0 : σ (.n (oqMK s 0)) = word 1 0 := by simpa [htl, oqMainTl] using eT 0
+    have t1 : σ (.n (oqMK s 0 + 1)) = word 1 0 + nG := by simpa [htl, oqMainTl] using eT 1
+    have t2 : σ (.n (oqMK s 0 + 2)) = word 1 0 := by simpa [htl, oqMainTl] using eT 2
     refine ⟨hpar, e8, by rw [e10, word_gen], e11, eT, fun h ↦ absurd h (by decide), fun a ha => ?_⟩
     simp only [oqMainA, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.mem_append, List.mem_cons,
       List.not_mem_nil, or_false] at ha
@@ -139,9 +139,9 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) {odd : ℕ} (hodd : odd ≤ 1) {wal
       (wp := .n 5) (walk := walk) (C := anyCall) hs (by rw [eP 5 (by omega), e12]; exact hok) eQ hp.1
       hp.2 (eP 0 (by omega)) (eP 1 (by omega)) trivial
     change σ (.n (oqDot s 13)) = rowDot s.base s.I r w at hdot
-    have t0 : σ (.n k) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 0
-    have t1 : σ (.n (k + 1)) = word 1 0 0 + nG := by simpa [htl, oqMainTl] using eT 1
-    have t2 : σ (.n (k + 2)) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 2
+    have t0 : σ (.n k) = word 1 0 := by simpa [htl, oqMainTl] using eT 0
+    have t1 : σ (.n (k + 1)) = word 1 0 + nG := by simpa [htl, oqMainTl] using eT 1
+    have t2 : σ (.n (k + 2)) = word 1 0 := by simpa [htl, oqMainTl] using eT 2
     refine ⟨hpar, e8, by rw [e10, word_gen], e11, eT, fun _ ↦ ⟨e12, eQ, hl⟩, fun a ha => ?_⟩
     simp only [oqMainA, ↓reduceIte, List.mem_append] at ha
     rcases ha with (ha | ((ha | ha) | ha)) | ha

@@ -49,7 +49,7 @@ theorem oqQuery_pieces {C : CallRel} {s : Oq} {bp cap flags wp : V} {b : ℕ} {e
 theorem oqQuery_leaf {C : CallRel} {s : Oq} (hs : s.RowShape) {bp cap flags wp : V} {b : ℕ}
     {emit : Bool} {pr : ℕ} {walk : String}
     (hA : BlockOkC C rd σ (oqQueryT s bp cap flags wp b emit pr walk))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0) :
     (σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 1))) =
       digestHalves (merkleLeafDigest (oqRow b s.R σ)) := by
@@ -70,7 +70,7 @@ weights. -/
 theorem oqQuery_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
     {bp cap flags wp : V} {b : ℕ} {emit : Bool} {pr : ℕ}
     (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqQueryT s bp cap flags wp b emit pr walk))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     {q : ℕ} (hq : q < 2 ^ (s.pd + s.cd))
     (hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
