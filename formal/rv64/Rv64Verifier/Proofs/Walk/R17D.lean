@@ -191,6 +191,7 @@ theorem tsPre {OI : MachineState → Word → List (List Opening) → Prop}
     (by omega) (by omega) (by decide)
   have LI := h.layoutIn
   have FO := h.forms
+  have TG := h.tags
   have fb := h.formsBuf
   obtain ⟨fb1, fb2, -⟩ := fb
   have e848 : vecPtr u₀ (s.getReg .x2 - 856) = u₀.getMem (s.getReg .x2 - 848) := by
@@ -201,7 +202,7 @@ theorem tsPre {OI : MachineState → Word → List (List Opening) → Prop}
     rw [vecPtr]; congr 1; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
   have e864 : vecLen u₀ (s.getReg .x2 - 880) = u₀.getMem (s.getReg .x2 - 864) := by
     rw [vecLen]; congr 1; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
-  rw [e848, e840] at FO fb2
+  rw [e848, e840] at FO fb2 TG
   have PO := h.pointOld
   rw [e872, e864] at PO
   have hppb := A.pp
@@ -268,7 +269,7 @@ theorem tsPre {OI : MachineState → Word → List (List Opening) → Prop}
         have := fbO.2.1
         simp only [heapNext, heapEnd] at this hh m₀
         addr_omega [this, hi, hh, m₀]
-      refine ⟨oldRO hpre I m₀ hws fbO, fun i hi ↦ ?_, fun i hi j hj ↦ ?_⟩
+      refine ⟨oldRO hpre I m₀ hws fbO, fun i hi ↦ ?_, fun i hi j hj ↦ ?_, fun i hi j hj q hq ↦ ?_⟩
       · obtain ⟨e1, e2⟩ := vp _ (rowB i hi)
         rw [e1, e2]
         exact oldRO hpre I m₀ hws (FO.forms i hi)
@@ -284,6 +285,21 @@ theorem tsPre {OI : MachineState → Word → List (List Opening) → Prop}
         obtain ⟨e3, e4⟩ := vp _ hb
         rw [e3, e4]
         exact oldRO hpre I m₀ hws (FO.terms i hi j hj)
+      · obtain ⟨e1, e2⟩ := vp _ (rowB i hi)
+        rw [e2] at hj
+        rw [e1] at hq ⊢
+        have fo := FO.forms i hi
+        have hb : (vecPtr u₀ (u₀.getMem (s.getReg .x2 - 848) + BitVec.ofNat 64 (24 * i)) +
+            BitVec.ofNat 64 (24 * j)).toNat + 24 ≤ heapNext u₀ := by
+          have := fo.2.1
+          simp only [heapNext, heapEnd] at this hh m₀ ⊢
+          addr_omega [this, hj, hh, m₀]
+        obtain ⟨e3, e4⟩ := vp _ hb
+        rw [e4] at hq
+        rw [e3]
+        have ft := (FO.terms i hi j hj).2.1
+        rw [A.old _ (by simp only [heapNext, heapEnd] at ft hh m₀ ⊢; addr_omega [ft, hq, hh, m₀])]
+        exact TG i hi j hj q hq
     constraintPowers := by
       rw [A.x17, A.x28, A.self, show ((2 : Word)).toNat = 2 from rfl]
       exact ro_heap hpre I (by decide) hws hppb.1 (by rcases hppb.2 with h0 | h0 <;> omega)

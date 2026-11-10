@@ -376,6 +376,24 @@ theorem finalStage (bev : MachineState → Word → List E → Option E) : Final
       fun i' hi' j' hj' hne ↦ apart_of_disjoint fun x hx hx' ↦ Mt.apart i hi j hj i' hi' j' hj' hne x
         (formPiece_piece Mt hi hj hx) (formPiece_piece Mt hi' hj' hx')⟩
     simpa [Nat.mul_comm] using hx'
+  have hfTag : ∀ i < (vecLen t (s.getReg .x10 + 72)).toNat,
+      ∀ j < (vecLen t (vecPtr t (s.getReg .x10 + 72) + BitVec.ofNat 64 (24 * i))).toNat,
+      ∀ q < (vecLen t (vecPtr t (vecPtr t (s.getReg .x10 + 72) + BitVec.ofNat 64 (24 * i)) +
+          BitVec.ofNat 64 (24 * j))).toNat,
+        (t.getMem (vecPtr t (vecPtr t (vecPtr t (s.getReg .x10 + 72) + BitVec.ofNat 64 (24 * i)) +
+          BitVec.ofNat 64 (24 * j)) + BitVec.ofNat 64 (48 * q))).toNat ≤ 2 := by
+    show ∀ i < (t.getMem (s.getReg .x10 + 72 + 16)).toNat,
+      ∀ j < (vecLen t (t.getMem (s.getReg .x10 + 72 + 8) + BitVec.ofNat 64 (24 * i))).toNat,
+      ∀ q < (vecLen t (vecPtr t (t.getMem (s.getReg .x10 + 72 + 8) + BitVec.ofNat 64 (24 * i)) +
+          BitVec.ofNat 64 (24 * j))).toNat,
+        (t.getMem (vecPtr t (vecPtr t (t.getMem (s.getReg .x10 + 72 + 8) + BitVec.ofNat 64 (24 * i)) +
+          BitVec.ofNat 64 (24 * j)) + BitVec.ofNat 64 (48 * q))).toNat ≤ 2
+    rw [fptr, flen]
+    intro i hi j hj q hq
+    have l3 := (Mt.rows i hi).2
+    rw [show rowAt (w.getReg .x23) i = w.getReg .x23 + BitVec.ofNat 64 (24 * i) from rfl] at l3
+    rw [l3, show (3 : Word).toNat = 3 from rfl] at hj
+    exact (Mt.forms i hi j hj).tags q hq
   -- the transcript
   have frZT : DFrame z t fun a ↦ Within a (s.getReg .x2 - 4544) 4440 ∨ Within a nextAddr 8 ∨
       (heapNext s ≤ a.toNat ∧ a.toNat < heapEnd) ∨ Within a (s.getReg .x10) 120 := by
@@ -394,6 +412,6 @@ theorem finalStage (bev : MachineState → Word → List E → Option E) : Final
       · exact Or.inr (Or.inr (Or.inr ha))
       · exact Or.inl (by addr_omega [ha, hb1])
   exact ⟨hcapNe, ⟨⟨hcok, hcbuf, hclaims, hcvec⟩, hbp, hpt, ⟨hfok, hfval⟩, htot, hcIn, hcp, hpIn,
-    hfIn, hfRows, hfAp⟩, Inv.transcriptW hpre F.inv frZT hT'⟩
+    hfIn, hfRows, hfAp, hfTag⟩, Inv.transcriptW hpre F.inv frZT hT'⟩
 
 end Rv64Verifier.Proofs.Bus.VerifyBusBalance

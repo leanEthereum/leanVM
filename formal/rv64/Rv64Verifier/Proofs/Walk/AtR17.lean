@@ -70,6 +70,13 @@ structure FormRowsOld (s u : MachineState) (a : Word) (k : Nat) : Prop where
     Old s u (vecPtr u (vecPtr u (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)))
       (48 * (vecLen u (vecPtr u (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat)
 
+/-- Every term's monomial tag of the `k` `Vec<Form>`s from `a` is `One`'s, `X`'s or `Xy`'s. -/
+def FormTags (u : MachineState) (a : Word) (k : Nat) : Prop :=
+  ∀ i < k, ∀ j < (vecLen u (a + BitVec.ofNat 64 (24 * i))).toNat,
+    ∀ q < (vecLen u (vecPtr u (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat,
+      (u.getMem (vecPtr u (vecPtr u (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)) +
+        BitVec.ofNat 64 (48 * q))).toNat ≤ 2
+
 /-- The `Layout` at `S - 2080` holds what the rest of `walk` reads of `layout`; the tables' and the
 heights' buffers are at `S - 2456` and `S - 2464`. -/
 structure LayoutIn (s u : MachineState) (layout : LayoutMirror.LayoutRust) : Prop where
@@ -121,6 +128,7 @@ structure AtR17 (OI : MachineState → Word → List (List Opening) → Prop) (s
   busOk : vecCap u (s.getReg .x2 - 928) ≠ errNiche
   busAt : Bus.BusResultAt s u (s.getReg .x2 - 928) bus
   forms : FormRowsOld s u (vecPtr u (s.getReg .x2 - 856)) (vecLen u (s.getReg .x2 - 856)).toNat
+  tags : FormTags u (vecPtr u (s.getReg .x2 - 856)) (vecLen u (s.getReg .x2 - 856)).toNat
   /-- The bus point's and the claims' buffers, the claims' points' (beyond `BusResultAt`: their
   pointers when empty). -/
   pointOld : Old s u (vecPtr u (s.getReg .x2 - 880)) (24 * (vecLen u (s.getReg .x2 - 880)).toNat)

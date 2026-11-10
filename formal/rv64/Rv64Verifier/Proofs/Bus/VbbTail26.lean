@@ -126,8 +126,13 @@ theorem Mat.update {b t t' : MachineState} {P : Word} {n o sd : Nat} {Other : Wo
       Layout.formBuf t (cellAt t (rowAt P o) sd) x ∨ Fresh t t' x) :
     Mat b t' P n ∧ (∀ i < n, ∀ k < 3, t'.getMem (rowAt P i + BitVec.ofNat 64 (8 * k)) =
       t.getMem (rowAt P i + BitVec.ofNat 64 (8 * k))) ∧
-      ∀ i < n, ∀ j < 3, (i ≠ o ∨ j ≠ sd) →
-        Layout.formOf t' (cellAt t (rowAt P i) j) = Layout.formOf t (cellAt t (rowAt P i) j) := by
+      (∀ i < n, ∀ j < 3, (i ≠ o ∨ j ≠ sd) →
+        Layout.formOf t' (cellAt t (rowAt P i) j) = Layout.formOf t (cellAt t (rowAt P i) j)) ∧
+      (∀ i < n, ∀ j ≤ 3, (i ≠ o ∨ j ≠ sd) → ∀ x, piece t' P i j x ↔ piece t P i j x) ∧
+      (∀ x, piece t' P o sd x → piece t P o sd x ∨ Fresh t t' x) ∧
+      ∀ i < n, ∀ j < 3, (i ≠ o ∨ j ≠ sd) → ∀ k < 3,
+        t'.getMem (cellAt t (rowAt P i) j + BitVec.ofNat 64 (8 * k)) =
+          t.getMem (cellAt t (rowAt P i) j + BitVec.ofNat 64 (8 * k)) := by
   have hnt := hheap.hi
   have hbt := M.mono
   simp only [heapNext, heapEnd] at hnt hbt hmono
@@ -272,7 +277,7 @@ theorem Mat.update {b t t' : MachineState} {P : Word} {n o sd : Nat} {Other : Wo
     fun i hi ↦ ⟨(M.rows i hi).1.keep (hcap i hi) (hptr i hi) (hlen i hi) hm',
       (hlen i hi).trans (M.rows i hi).2⟩, fun i hi j hj ↦ ?_, fun i hi j hj x hx ↦ ?_,
     fun i hi j hj i' hi' j' hj' hne x hx hx' ↦ ?_, fun i hi j hj x hx hxP ↦ ?_⟩,
-    fun i hi k hk ↦ hrow i hi k hk, fun i hi j hj hne ↦ (other i hi j hj hne).1⟩
+    fun i hi k hk ↦ hrow i hi k hk, fun i hi j hj hne ↦ (other i hi j hj hne).1, pe, pn, hcellw⟩
   · rw [hcellAt i hi j]
     by_cases hc : i = o ∧ j = sd
     · obtain ⟨rfl, rfl⟩ := hc; exact ok

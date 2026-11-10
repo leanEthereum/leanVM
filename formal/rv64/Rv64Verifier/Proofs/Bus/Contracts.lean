@@ -173,7 +173,7 @@ structure RO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a : Word)
   self : Apart a m (p + 8) 344
 
 /-- Every `Vec<Form>` from `a` (`n` of them), every form's header and every form's terms are
-read only. -/
+read only, and every term's monomial tag is `One`'s, `X`'s or `Xy`'s. -/
 structure FormRowsRO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a : Word) (k : Nat) :
     Prop where
   rows : RO s n ws p a (24 * k)
@@ -182,6 +182,10 @@ structure FormRowsRO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a
   terms : ∀ i < k, ∀ j < (vecLen s (a + BitVec.ofNat 64 (24 * i))).toNat,
     RO s n ws p (vecPtr s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)))
       (48 * (vecLen s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat)
+  tags : ∀ i < k, ∀ j < (vecLen s (a + BitVec.ofNat 64 (24 * i))).toNat,
+    ∀ q < (vecLen s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat,
+      (s.getMem (vecPtr s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)) +
+        BitVec.ofNat 64 (48 * q))).toNat ≤ 2
 
 structure TableSumcheckPre (s : MachineState) : Prop where
   heap : HeapOk s
@@ -385,6 +389,13 @@ structure BusResultAt (s t : MachineState) (a : Word) (r : BusResultRust) : Prop
     ∀ i' < (vecLen t (a + 72)).toNat, ∀ j' ≤ 3, (i ≠ i' ∨ j ≠ j') →
       Apart (formPiece t (vecPtr t (a + 72)) i j).1 (formPiece t (vecPtr t (a + 72)) i j).2
         (formPiece t (vecPtr t (a + 72)) i' j').1 (formPiece t (vecPtr t (a + 72)) i' j').2
+  /-- Every term's monomial tag is `One`'s, `X`'s or `Xy`'s. -/
+  formTags : ∀ i < (vecLen t (a + 72)).toNat,
+    ∀ j < (vecLen t (vecPtr t (a + 72) + BitVec.ofNat 64 (24 * i))).toNat,
+    ∀ q < (vecLen t (vecPtr t (vecPtr t (a + 72) + BitVec.ofNat 64 (24 * i)) +
+        BitVec.ofNat 64 (24 * j))).toNat,
+      (t.getMem (vecPtr t (vecPtr t (vecPtr t (a + 72) + BitVec.ofNat 64 (24 * i)) +
+        BitVec.ofNat 64 (24 * j)) + BitVec.ofNat 64 (48 * q))).toNat ≤ 2
 
 /-- `Ok(result)` exactly when `verifyBusBalanceM` returns it on the layout's values, `bev s bc`
 being what `Bytecode::evaluate` computes for the `Bytecode` at `bc`; otherwise `Err` (`errNiche`

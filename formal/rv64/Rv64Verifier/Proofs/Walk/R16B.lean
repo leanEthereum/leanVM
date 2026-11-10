@@ -44,7 +44,8 @@ theorem BusResultAt.widen {s c t : MachineState} {a : Word} {r : BusResultRust}
       (h.claims.2.2.2 i hi).imp fun _ hx ↦ wv hx⟩, wv h.bytecodePoint, wv h.point, h.forms,
     wv h.totals, wb h.claimsIn, fun i hi ↦ ⟨wb (h.claimPoints i hi).1, (h.claimPoints i hi).2⟩,
     wb h.pointIn, wb h.formsIn,
-    fun i hi ↦ ⟨(h.formRows i hi).1, fun j hj ↦ wb ((h.formRows i hi).2 j hj)⟩, h.formsApart⟩
+    fun i hi ↦ ⟨(h.formRows i hi).1, fun j hj ↦ wb ((h.formRows i hi).2 j hj)⟩, h.formsApart,
+    h.formTags⟩
 
 /-- The call's frame as a step: its result, the sponge, its stack, `NEXT` and what it allocates. -/
 theorem busCallStep {s c y : MachineState} (hpre : WalkPre s) (I : Inv s c)
@@ -85,13 +86,13 @@ theorem formRowsAt_same (a : Word) (n : Nat) : formRowsAt t a n = formRowsAt y a
 /-- `BusResultAt` reads only memory. -/
 theorem BusResultAt.same {a : Word} {r : BusResultRust} (h : BusResultAt s y a r) :
     BusResultAt s t a r := by
-  obtain ⟨⟨c1, c2, c3, c4⟩, c5, c6, ⟨c7, c8⟩, c9, c10, c11, c12, c13, c14, c15⟩ := h
+  obtain ⟨⟨c1, c2, c3, c4⟩, c5, c6, ⟨c7, c8⟩, c9, c10, c11, c12, c13, c14, c15, c16⟩ := h
   refine ⟨⟨VecOk.same' hm c1, by simpa only [NewBuf, vecPtr, vecCap, heapNext, hm] using c2,
       by simpa only [claimAt, vecEs, eListAt, eAt, vecPtr, vecLen, hm] using c3,
       fun i hi ↦ ?_⟩, NewVecE.same' hm c5, NewVecE.same' hm c6, ⟨VecOk.same' hm c7, ?_⟩,
     NewVecE.same' hm c9, by simpa only [BufIn, vecPtr, vecCap, heapNext, hm] using c10, ?_,
     by simpa only [BufIn, vecPtr, vecLen, heapNext, hm] using c12,
-    by simpa only [BufIn, vecPtr, vecLen, heapNext, hm] using c13, ?_, ?_⟩
+    by simpa only [BufIn, vecPtr, vecLen, heapNext, hm] using c13, ?_, ?_, ?_⟩
   · simp only [vecLen, hm] at hi
     obtain ⟨xs, hx⟩ := c4 i (by simpa only [vecLen] using hi)
     exact ⟨xs, by simpa only [vecPtr] using NewVecE.same' hm (by simpa only [vecPtr, hm] using hx)⟩
@@ -100,6 +101,7 @@ theorem BusResultAt.same {a : Word} {r : BusResultRust} (h : BusResultAt s y a r
   · simpa only [BufIn, Apart, vecPtr, vecLen, vecCap, heapNext, hm] using c11
   · simpa only [BufIn, formPiece, vecPtr, vecLen, heapNext, hm] using c14
   · simpa only [Apart, formPiece, vecPtr, vecLen, hm] using c15
+  · simpa only [vecPtr, vecLen, hm] using c16
 
 end Same
 
@@ -299,6 +301,7 @@ theorem r16 {BcOk : MachineState → Nat → Word → Prop}
         have := (fR i hi).2 j (by omega)
         simp only [formPiece, hj3, ↓reduceIte] at this
         exact this⟩
+    tags := by have := hbt.formTags; rw [e856] at this; exact this
     pointOld := by have := hbt.pointIn; rw [e880] at this; exact this
     claimsOld := hbt.claimsIn
     claimPoints := fun i hi ↦ (hbt.claimPoints i hi).1

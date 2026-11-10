@@ -12,7 +12,7 @@ import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
 import Rv64Verifier.Proofs.Bus.VbbTail30
-import Rv64Verifier.Proofs.Bus.VbbTail45
+import Rv64Verifier.Proofs.Bus.VbbTail57
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -227,3 +227,30 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkHead
 
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.coStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.coStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.Mm.keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.Mm.keep
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.cellStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.cellStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.cdChecks' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.cdChecks
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.padStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.padStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.accA' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.accA
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.accB' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.accB
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkIter' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkIter
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkLoop

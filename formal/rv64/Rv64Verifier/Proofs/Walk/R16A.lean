@@ -202,7 +202,8 @@ theorem blocksRO {s u₀ c : MachineState} (hpre : WalkPre s) (I : Inv s c) (hu 
   obtain ⟨bP, bL⟩ := hdrEq hu hm (a := vecPtr u₀ V + BitVec.ofNat 64 (48 * i)) (by omega)
   obtain ⟨cn, cf⟩ := nb i hi
   refine ⟨roHeap hpre I (by addr_omega [hB.1, hB2, hh, hi, hle]) (by addr_omega [hB2, hh, hi, hle])
-      (by addr_omega [hB2, hh, hi, hle, hmono]), fun i' hi' ↦ ?_, fun i' hi' j hj ↦ ?_⟩
+      (by addr_omega [hB2, hh, hi, hle, hmono]), fun i' hi' ↦ ?_, fun i' hi' j hj ↦ ?_,
+    fun i' hi' j hj q hq ↦ ?_⟩
   · obtain rfl : i' = 0 := by omega
     rw [show 24 * 0 = 0 from rfl, BitVec.add_zero, bP, bL]
     exact vecRO hpre I hmono hfv.vec cn (by decide)
@@ -219,6 +220,26 @@ theorem blocksRO {s u₀ c : MachineState} (hpre : WalkPre s) (I : Inv s c) (hu 
       (by addr_omega [cb2, hj, cl, hh])
     rw [fP, fL]
     exact vecRO hpre I hmono (hfv.forms j hj).vec (cf j hj) (by decide)
+  · obtain rfl : i' = 0 := by omega
+    rw [show 24 * 0 = 0 from rfl, BitVec.add_zero] at hj hq ⊢
+    rw [bL] at hj
+    rw [bP] at hq ⊢
+    obtain ⟨c8, cb⟩ := Layout.vecBuf_bounds hfv.vec (by decide : 0 < 24)
+    have cl := hfv.vec.len
+    rcases cb with cb | ⟨cb1, cb2⟩
+    · omega
+    have hf := hfv.forms j hj
+    obtain ⟨fP, fL⟩ := hdrEq hu hm
+      (a := vecPtr u₀ (vecPtr u₀ V + BitVec.ofNat 64 (48 * i)) + BitVec.ofNat 64 (24 * j))
+      (by addr_omega [cb2, hj, cl, hh])
+    rw [fL] at hq
+    rw [fP]
+    obtain ⟨t8, tb⟩ := Layout.vecBuf_bounds hf.vec (by decide : 0 < 48)
+    have tl := hf.vec.len
+    rcases tb with tb | ⟨tb1, tb2⟩
+    · omega
+    rw [hm _ (by addr_omega [tb2, hq, tl, hh])]
+    exact hf.tags q hq
 
 /-! ## The precondition -/
 
