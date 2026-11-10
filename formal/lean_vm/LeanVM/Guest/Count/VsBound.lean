@@ -2,15 +2,15 @@
   LeanVM.Guest.Count.VsBound
 
   **`verify_sub`'s words per child at the deployed instance**, at the child's candidate:
-  `197050 + osC (candidate μ r)` (`vsBoundAt_eq`), its callees' bounds evaluated by the kernel
-  (`open_stacked`'s per candidate, `Count/VsOs*`).
+  `185649 + osC (candidate μ r)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the
+  kernel (`open_stacked`'s per candidate, `Count/VsOs*`).
 -/
 
 module
 
 public import LeanVM.Guest.Count.VsOsAll
 public import LeanVM.Guest.Count.VsMax
-public import LeanVM.Guest.B1.VerifySub.CompleteBT
+public import LeanVM.Guest.Count.VsWordsOs
 
 namespace LeanVM.Guest.Count
 
@@ -24,33 +24,38 @@ theorem bg_eq : vsWords.Bg = 49 := by
   rw [← wSBFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ba_eq : vsWords.Ba = 10 := by
-  show wSB "assert_canonical" = 10
-  rw [← wSBFast_eq]; decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- The frames `verify_sub`'s bound names. -/
-theorem vs_frames : B2C.fs "verify_sub" = 1393 ∧ B2C.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
-    B2C.fs "assert_small_g_power" = 68 ∧ B2C.fs "ring_switch_target" = 12 ∧
-    B2C.fs "certify_placement" = 365 ∧ B2C.fs "log2_ceil_in_the_exponent__L15_L34" = 36 := by
+theorem vs_frames : B2C.fs "verify_sub" = 2032 ∧ B2C.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
+    B2C.fs "assert_small_g_power" = 68 ∧ B2C.fs "ring_switch_target" = 268 ∧
+    B2C.fs "certify_placement" = 356 ∧ B2C.fs "log2_ceil_in_the_exponent__L15_L34" = 36 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
+/-- The statically bounded callees' words: the grind checks, the opening message, the two
+dispatches' largest arms. -/
+theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1" = 58 ∧
+    wSB "grind_check__L14" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 498 ∧
+    B1.VerifySub.armMax wSB B1.VerifySub.busGrindNames = 61 := by
+  rw [← wSBFast_eq]; decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s words for a child at candidate `candidate μ r`** at the deployed instance:
-its frame `1393`, its buffers `8675`, `g_power_of_word` (`49`, twice), the two `log2_ceil`
-placements (`205`, `206`: their frames and `assert_small_g_power`'s twice), `assert_canonical`
-(`10`, twice), `verify_bus_gkr` (`46339`), `verify_tables` (`37789`), `verify_keccak` (`56391`),
-`ring_switch_target` (`5979`), `certify_placement` (`502`) and the terminal (`30074`), `197050`
-in all, and `open_stacked` at the candidate (`osC`). -/
+its frame `2032` and buffers `8706`, `g_power_of_word` (`49`, twice), the two `log2_ceil`
+placements (`205`, `206`), `certify_placement` (`486`), the grind checks (`53`, twice), the
+squeeze dispatch (`498`), the opening message (`58`), the bus grind dispatch (`61`),
+`verify_bus_gkr` (`46339`), `verify_tables` (`37789`), `verify_keccak` (`56391`),
+`ring_switch_target` (`3544`) and the terminal (`29130`), `185649` in all, and `open_stacked` at
+the candidate (`osC`). -/
 theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
-    B1.VerifySub.vsBoundAt vsWords B1.VerifySub.vkBound μ r = 197050 + osC (candidate μ r) := by
-  rw [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, vbgMax_eq, vtMax_eq, bg_eq, ba_eq,
-    vkBound_eq, termBound_eq]
+    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 185649 + osC (candidate μ r) := by
+  rw [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
+    show vsWordsOs.Bnd = osBnd from rfl, show vsWordsOs.Kr = (fun f => wSK f - B2C.fs f) from rfl,
+    osBosAt_eq h, show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,
+    vkBound_eq, termBound_eq, show vsWords.Kst = wSB from rfl, show vsWords.B14 = 3204 from rfl,
+    show B1.Tables.cpSizes.sum = 130 from rfl]
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vs_frames
-  rw [h1, h2, h3, h4, h5, h6, show vsWords.B14 = 5949 from rfl,
-    show vsWords.Bnd = osBnd from rfl, show vsWords.Kr = (fun f => wSK f - B2C.fs f) from rfl,
-    osBosAt_eq h,
-    show B1.Tables.cpSizes.sum = 137 from rfl]
+  obtain ⟨k1, k2, k3, k4, k5⟩ := vs_static
+  rw [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, k5]
   simp only [List.sum_cons, List.sum_nil]
   omega
 

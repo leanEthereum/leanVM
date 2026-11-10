@@ -45,17 +45,17 @@ instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ
 challenge, is (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
-    ([[404680, 408228, 419861, 425042, 431306, 436413, 446573],
-      [327644, 329139, 342040, 344639, 347123, 349347, 358367],
-      [298521, 302138, 312537, 314217, 316089, 317951, 327284],
-      [283604, 285019, 293975, 294991, 296195, 300076, 309043]].getD (r - 1) []).getD (μ - 22) 0
+    ([[397396, 400303, 410771, 415581, 421245, 427328, 435224],
+      [316265, 320181, 330196, 332388, 335926, 339373, 346254],
+      [287777, 292953, 300361, 302720, 304916, 307460, 314142],
+      [272554, 275315, 282119, 282932, 285304, 289094, 296506]].getD (r - 1) []).getD (μ - 22) 0
   else 0
 
 /-- `open_stacked`'s words at the 28 candidates (`Count/VsOsAll`). -/
 theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
-    [207630, 211178, 222811, 227992, 234256, 239363, 249523, 130594, 132089, 144990, 147589,
-      150073, 152297, 161317, 101471, 105088, 115487, 117167, 119039, 120901, 130234, 86554,
-      87969, 96925, 97941, 99145, 103026, 111993].getD c 0 := by
+    [211747, 214654, 225122, 229932, 235596, 241679, 249575, 130616, 134532, 144547, 146739, 150277,
+      153724, 160605, 102128, 107304, 114712, 117071, 119267, 121811, 128493, 86905, 89666, 96470,
+      97283, 99655, 103445, 110857].getD c 0 := by
   interval_cases c
   · exact Count.osC_0
   · exact Count.osC_1
@@ -88,7 +88,7 @@ theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
 
 /-- `verify_sub`'s bound at an opening arm is the table's. -/
 theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
-    B1.VerifySub.vsBoundAt Count.vsWords B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
+    B1.VerifySub.vsBoundAt Count.vsWordsOs B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
   have hc : B1.Whir.candidate μ r < 28 := by unfold B1.Whir.candidate; omega
   rw [Count.vsBoundAt_eq hc, osC_getD hc]
   interval_cases μ <;> interval_cases r <;> decide
@@ -105,7 +105,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 28` at rate `1`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 446573 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 435224 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, h3, h4⟩ := h
