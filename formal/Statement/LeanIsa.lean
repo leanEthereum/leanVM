@@ -48,9 +48,9 @@ def Opcode.busCode : Opcode → K
   | .jump => addressOfIndex 4
   | .keccak => addressOfIndex 5
 
-/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:40`, `MIN_LOG_MEM`).
--/
-def minLogMem : ℕ := 16
+/-- The least memory log-size, `2^18` cells (`crates/leanvm_core/src/cpu/mod.rs`, `MIN_LOG_MEM`;
+`crates/verifier/src/layout.rs`, `MIN_LOG_MEMORY`). -/
+def minLogMem : ℕ := 18
 
 /-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:41`,
 `MAX_LOG_MEM`). -/

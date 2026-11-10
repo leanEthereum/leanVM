@@ -37,7 +37,8 @@ pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 /// the static cap on range-check bounds (`compiler::Stmt::AssertLt`): a bound
 /// `≤ 2^MIN_LOG_MEM` keeps the complement argument sound for every memory size
 /// the prover may announce.
-pub const MIN_LOG_MEM: usize = 16;
+pub const MIN_LOG_MEM: usize = 18;
+const _: () = assert!(MIN_LOG_MEM == verifier::MIN_LOG_MEMORY);
 const MAX_LOG_MEM: usize = 32;
 
 /// Each per-opcode table holds at most `2^MAX_LOG_ROWS` rows (executed

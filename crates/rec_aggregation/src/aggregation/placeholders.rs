@@ -719,7 +719,10 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 (192 / depth) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
             })
         });
-        assert!(windows.max().unwrap() <= QUERY_WINDOWS_CAP, "a squeezed word's windows past QUERY_WINDOWS_CAP");
+        assert!(
+            windows.max().unwrap() <= QUERY_WINDOWS_CAP,
+            "a squeezed word's windows past QUERY_WINDOWS_CAP"
+        );
         ps(
             "LIG_PATH_CAP",
             cands

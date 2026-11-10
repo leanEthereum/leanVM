@@ -23,7 +23,7 @@ mod whir;
 
 pub use bytecode::Bytecode;
 pub use field::{E, K};
-pub use layout::{MAX_STACKED_LOG, MIN_EXECUTION_STACKED_LOG, TAG};
+pub use layout::{MAX_STACKED_LOG, MIN_EXECUTION_STACKED_LOG, MIN_LOG_MEMORY, TAG};
 pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use whir::{whir_fold_grinding, whir_queries};

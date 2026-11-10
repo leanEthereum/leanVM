@@ -77,4 +77,4 @@ pub const MAX_RECURSIONS: usize = 16;
 /// `2^MIN_LOG_MEM`, so the bound means the same at every announced memory size.
 /// The guest checks it against a COMPILE-TIME bound, so raising it past
 /// `2^MIN_LOG_MEM` fails the build rather than weakening the index bound.
-pub const MAX_KEYS: usize = 1 << 16;
+pub const MAX_KEYS: usize = 1 << leanvm_core::cpu::MIN_LOG_MEM;
