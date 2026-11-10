@@ -615,7 +615,12 @@ impl Program {
                                             value: span,
                                         }));
                                     }
-                                    let n = count(&mut g, span).ok_or_else(|| fail(Fault::OutOfMemory))?;
+                                    let n = count(&mut g, span).ok_or_else(|| {
+                                        fail(Fault::NotAGPower {
+                                            what: "loop bound",
+                                            value: span,
+                                        })
+                                    })?;
                                     let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
                                     (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                                 }

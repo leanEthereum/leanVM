@@ -146,11 +146,15 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                 if p.is_empty() {
                     continue; // tolerate a trailing comma
                 }
+                let err = |e: String| at(format!("global constant array `{name}`: {e}"));
                 let elem = if let Some(v) = parse_f192_const(p) {
-                    v.map_err(|e| at(format!("global constant array `{name}`: {e}")))?
-                } else {
-                    let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
+                    v.map_err(err)?
+                } else if let Ok(n) = eval_const_int(p) {
                     F192::new(n as u64, (n >> 64) as u64, 0)
+                } else if parse_expr(p).is_ok_and(|e| is_int_arith(&e)) {
+                    return Err(err(format!("`{p}` overflows a u128, goes negative or divides by zero")));
+                } else {
+                    parse_const(p).map_err(err)?
                 };
                 elems.push(elem);
             }
