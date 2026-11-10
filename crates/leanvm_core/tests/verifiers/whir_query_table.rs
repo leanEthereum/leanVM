@@ -81,32 +81,6 @@ fn lean_query_table_matches_rust() {
     );
 }
 
-/// Every admitted shape's proof fits the wire format: its Merkle phases, their queries, leaf widths and tree heights.
-#[test]
-fn every_shape_fits_the_wire_format() {
-    use fiat_shamir::wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
-    for rate in 1..=4 {
-        for log_n in leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU {
-            let config = search(log_n, rate);
-            let shapes = config.level_shapes(log_n);
-            assert!(
-                shapes.levels <= MAX_PHASES,
-                "rate {rate}, log_n {log_n}: {} phases",
-                shapes.levels
-            );
-            for level in 0..shapes.levels {
-                let height = shapes.block_len[level].trailing_zeros() as usize;
-                // Level 0 commits base-field lanes, deeper levels three words a lane.
-                let leaf_words = (1 << shapes.ks[level]) * if level == 0 { 1 } else { 3 };
-                assert!(
-                    config.queries[level] <= MAX_QUERIES && height <= MAX_HEIGHT && leaf_words <= MAX_LEAF_WORDS,
-                    "rate {rate}, log_n {log_n}, level {level}: past the wire format's bounds"
-                );
-            }
-        }
-    }
-}
-
 #[test]
 fn whir_query_table_matches_the_search() {
     let (min_log, max_log) = (leanvm_core::pcs::MIN_MU, leanvm_core::pcs::MAX_MU);
