@@ -94,7 +94,7 @@ theorem os_lv_ok (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 1
     simp only [osNamedB, Bool.and_eq_true, Option.isNone_iff_eq_none, Option.isSome_iff_exists] at hx
     exact hx
   obtain ⟨hS1, hSo, hSmax, hper, hpw, hpo, hqw, hent, hpd, hcd, hcd1, hN, hQ, hfo, hfin, hnhs,
-    hcap4, hcap1, hpos⟩ := hLv i hi
+    hcap4, hcap1, hpos, -⟩ := hLv i hi
   obtain ⟨-, -, hLvP, -⟩ := hP
   obtain ⟨hnA, hnH, -, -, -, -⟩ := hLvP i hi
   refine ⟨fun c' hc' ht ↦ ?_, ?_, fun p c' hc' ht ↦ ?_⟩
