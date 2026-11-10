@@ -31,7 +31,7 @@ def vtBsNames : List String := (List.range 34).map (lName "block_selector")
 def vtImNames : List String := (List.range 34).map (lName "index_mle")
 
 /-- `2^34`'s word: the offset bits' buffer, `g^34` words. -/
-abbrev vtW34 : E := word 17179869184 0 0
+abbrev vtW34 : E := word 17179869184 0
 
 /-- A framework block's running sum and copy. -/
 def vtFwTail (w : ℕ) : Option ℕ → List Stmt
@@ -66,7 +66,7 @@ theorem vtFw2_check : tbStmtsEqb (vtFwSelT 877 2 876 (some 819))
 /-- Block `2`'s `kappa_g = kb[0]·g^19`. -/
 theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 876) = σ (.n 28) * gen ^ 19 := by
-  have c := h.atomAt 862 (.const (.n 875) (word 524288 0 0)) (by decide +kernel)
+  have c := h.atomAt 862 (.const (.n 875) (word 524288 0)) (by decide +kernel)
   have m := h.atomAt 863 (.mul (.n 876) (.n 28) (.n 875)) (by decide +kernel)
   simp only [Atom.Holds] at c m
   rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]

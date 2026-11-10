@@ -1124,19 +1124,15 @@ theorem vecGetElem {t u : Term} {n : ℕ} {v : Vector α n} {i : ℕ} {h : i < n
 /-- Limb `i` of a word of `E`: field `i`. -/
 theorem eLimb0 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (encodeValue x) c) :
     Runs P env (.field 0 t) (encodeValue (x.limb 0)) (c + 1) :=
-  Runs.field (k := 0) (fs := [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]) h rfl
+  Runs.field (k := 0) (fs := [encodeValue (x.limb 0), encodeValue (x.limb 1)]) h rfl
 theorem eLimb1 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (encodeValue x) c) :
     Runs P env (.field 1 t) (encodeValue (x.limb 1)) (c + 1) :=
-  Runs.field (k := 0) (fs := [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]) h rfl
-theorem eLimb2 {t : Term} {x : E} {c : ℕ} (h : Runs P env t (encodeValue x) c) :
-    Runs P env (.field 2 t) (encodeValue (x.limb 2)) (c + 1) :=
-  Runs.field (k := 0) (fs := [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]) h rfl
-
+  Runs.field (k := 0) (fs := [encodeValue (x.limb 0), encodeValue (x.limb 1)]) h rfl
 /-- A word of `E` from its limbs. -/
-theorem eOfLimbs {ta tb tc : Term} {a b c : K} {ca cb cc : ℕ} (ha : Runs P env ta (encodeValue a) ca)
-    (hb : Runs P env tb (encodeValue b) cb) (hc : Runs P env tc (encodeValue c) cc) :
-    Runs P env (.constructor 0 [ta, tb, tc]) (encodeValue (E.ofLimbs a b c)) (ca + cb + cc + 4) :=
-  (Runs.ctor (k := 0) (RunsList.cons ha (RunsList.cons hb (RunsList.cons hc RunsList.nil)))).cost_eq
+theorem eOfLimbs {ta tb : Term} {a b : K} {ca cb : ℕ} (ha : Runs P env ta (encodeValue a) ca)
+    (hb : Runs P env tb (encodeValue b) cb) :
+    Runs P env (.constructor 0 [ta, tb]) (encodeValue (E.ofLimbs a b)) (ca + cb + 3) :=
+  (Runs.ctor (k := 0) (RunsList.cons ha (RunsList.cons hb RunsList.nil))).cost_eq
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem vecToList {t : Term} {n : ℕ} {v : Vector α n} {c : ℕ} (h : Runs P env t (encodeValue v) c) :
@@ -1279,40 +1275,34 @@ theorem uint8Default : (default : UInt8) = 0 := rfl
 theorem kOfBits (n : ℕ) : K.ofBits n = K.ofLane n.toUInt64 := rfl
 
 /-- Addition in `E`, limb by limb. -/
-theorem eAdd (x y : E) : x + y =
-    E.ofLimbs (x.limb 0 + y.limb 0) (x.limb 1 + y.limb 1) (x.limb 2 + y.limb 2) := by
+theorem eAdd (x y : E) : x + y = E.ofLimbs (x.limb 0 + y.limb 0) (x.limb 1 + y.limb 1) := by
   rw [← ofLimbs_limb x, ← ofLimbs_limb y, add_limbs]; simp
 
-/-- Multiplication in `E`: nine products of limbs, `y^3 = y + 1`. -/
+/-- Multiplication in `E`: four products of limbs and one by `g`, `y^2 = x·y + 1`. -/
 theorem eMul (x y : E) : x * y =
-    let x0 := x.limb 0; let x1 := x.limb 1; let x2 := x.limb 2
-    let y0 := y.limb 0; let y1 := y.limb 1; let y2 := y.limb 2
-    let c3 := x1 * y2 + x2 * y1; let c4 := x2 * y2
-    E.ofLimbs (x0 * y0 + c3) (x0 * y1 + x1 * y0 + c3 + c4) (x0 * y2 + x1 * y1 + x2 * y0 + c4) := by
+    let x0 := x.limb 0; let x1 := x.limb 1
+    let y0 := y.limb 0; let y1 := y.limb 1
+    let c2 := x1 * y1
+    E.ofLimbs (x0 * y0 + c2) (x0 * y1 + x1 * y0 + g * c2) := by
   conv_lhs => rw [← ofLimbs_limb x, ← ofLimbs_limb y, mul_limbs]
-  simp only []
-  congr 1 <;> ring
 
-theorem eZero : (0 : E) = E.ofLimbs 0 0 0 := by
+theorem eZero : (0 : E) = E.ofLimbs 0 0 := by
   apply E.ext; intro i; fin_cases i <;> simp [limb_zero]
 
-theorem eOfK (a : K) : ofK a = E.ofLimbs a 0 0 := ofK_eq_ofLimbs a
+theorem eOfK (a : K) : ofK a = E.ofLimbs a 0 := ofK_eq_ofLimbs a
 
-/-- `1` of `E`: the limbs `1, 0, 0` (as `E`'s encoding reads it; the generic constructor path does
+/-- `1` of `E`: the limbs `1, 0` (as `E`'s encoding reads it; the generic constructor path does
 not). -/
-theorem eOne : (1 : E) = E.ofLimbs 1 0 0 := by
-  apply E.ext; intro i
-  rw [limb_ofLimbs]
-  have h := CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params) i
-  fin_cases i <;> exact h
+theorem eOne : (1 : E) = E.ofLimbs 1 0 := by
+  rw [← ofK_eq_ofLimbs]; exact (map_one (algebraMap K E)).symm
 
 /-- Equality in `E`: of the limbs. -/
 theorem decideEqE (x y : E) {inst : Decidable (x = y)} :
-    @decide (x = y) inst = decide (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1 ∧ x.limb 2 = y.limb 2) := by
-  have : x = y ↔ (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1 ∧ x.limb 2 = y.limb 2) := by
+    @decide (x = y) inst = decide (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1) := by
+  have : x = y ↔ (x.limb 0 = y.limb 0 ∧ x.limb 1 = y.limb 1) := by
     constructor
     · rintro rfl; simp
-    · rintro ⟨h0, h1, h2⟩; apply E.ext; intro i; fin_cases i <;> assumption
+    · rintro ⟨h0, h1⟩; apply E.ext; intro i; fin_cases i <;> assumption
   simp only [this]
 
 /-- The values `f i, …, f (n - 1)`. -/
@@ -1451,8 +1441,8 @@ theorem pow_eq_powSq {M : Type} [Monoid M] (a : M) (n : ℕ) : a ^ n = powSq a n
 
 theorem natSucc (n : ℕ) : Nat.succ n = n + 1 := rfl
 
-/-- A limb of `E` at a variable index: from the list of the three. -/
-theorem eLimbVar (x : E) (i : Fin 3) : x.limb i = [x.limb 0, x.limb 1, x.limb 2].getD i.val 0 := by
+/-- A limb of `E` at a variable index: from the list of the two. -/
+theorem eLimbVar (x : E) (i : Fin 2) : x.limb i = [x.limb 0, x.limb 1].getD i.val 0 := by
   fin_cases i <;> rfl
 
 /-- An `if` of functions, applied: each branch applied. -/

@@ -276,7 +276,7 @@ theorem vt_alloc_var {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   rw [e] at this
   exact this
 
-theorem word_g34 : word 17179869184 0 0 = gen ^ 34 := by
+theorem word_g34 : word 17179869184 0 = gen ^ 34 := by
   rw [tb_word_eOfNat, gen_pow_eq_ofK]
   show ofK (K.ofBits 17179869184) = ofK (Parameters.addressOfIndex 34)
   rw [show K.ofBits 17179869184 = Parameters.addressOfIndex 34 by decide +kernel]
@@ -318,10 +318,10 @@ theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun
       [.inr (.n 2604), .inr (.n 2607), .inr (.n 2628)] := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vt_bits_consts : tbStmtsEqb [.atom (.const (.n 789) (word 17179869184 0 0))]
+theorem vt_bits_consts : tbStmtsEqb [.atom (.const (.n 789) (word 17179869184 0))]
       ((vtPre.drop 775).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n 812) (word 17179869184 0 0))] ((vtPre.drop 797).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n 882) (word 17179869184 0 0))] ((vtPre.drop 867).take 1) = true := by
+    tbStmtsEqb [.atom (.const (.n 812) (word 17179869184 0))] ((vtPre.drop 797).take 1) = true ∧
+    tbStmtsEqb [.atom (.const (.n 882) (word 17179869184 0))] ((vtPre.drop 867).take 1) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 section
@@ -636,7 +636,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       rw [List.map_map]; rfl
     rw [hm1, vt_allocSz]
     obtain ⟨c1, c2, c3⟩ := vt_bits_consts
-    have hb : ∀ (v n : ℕ), tbStmtsEqb [.atom (.const (.n v) (word 17179869184 0 0))]
+    have hb : ∀ (v n : ℕ), tbStmtsEqb [.atom (.const (.n v) (word 17179869184 0))]
         ((vtPre.drop n).take 1) = true → LeanVM.Guest.Memory.logG ((vtσ rd w (H.args B)) (.n v)) = 34 := by
       intro v n hc
       have g := (vt_goodL (rd := rd) (w := w) hl _ _ hc).1

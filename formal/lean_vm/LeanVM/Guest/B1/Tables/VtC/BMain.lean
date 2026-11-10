@@ -162,7 +162,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have k2 : σv (.n 876) = gen ^ 19 := by
     have e0 : σv (.n 28) = 1 := by simpa using ekb 0 (by norm_num)
     rw [vt_mulAt hl 863 (d := 876) (x := 28) (y := 875) (by norm_num) (by norm_num)
-        (by decide +kernel), vt_constAt hl 862 (d := .n 875) (e := word 524288 0 0)
+        (by decide +kernel), vt_constAt hl 862 (d := .n 875) (e := word 524288 0)
         (by decide +kernel), show (524288 : ℕ) = 2 ^ 19 by norm_num,
       tb_word_two_pow (by norm_num), e0, one_mul]
   have hz8 : TbReadsAt rd (σv (.n 8)) D.point := by rw [p 8 (by norm_num)]; exact hz
@@ -291,12 +291,12 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
       (hpoolσ 2 (by norm_num))).1, x2]
   have hb1 : σv (.n 783) = σv (.n 14) + 1 := by
     rw [vt_addAt hl 771 (d := .n 783) (x := .n 14) (y := .n 782) (by decide +kernel),
-      vt_constAt hl 770 (d := .n 782) (e := word 1 0 0) (by decide +kernel), tb_word_one]
+      vt_constAt hl 770 (d := .n 782) (e := word 1 0) (by decide +kernel), tb_word_one]
   have hpv : σv (.n 1820) = σv (.n 955) + σv (.n 1815) + (1 + σv (.n 1393)) + σv (.n 25) := by
     rw [vt_addAt hl 1858 (d := .n 1820) (x := .n 1819) (y := .n 25) (by decide +kernel),
       vt_addAt hl 1857 (d := .n 1819) (x := .n 1816) (y := .n 1818) (by decide +kernel),
       vt_addAt hl 1856 (d := .n 1818) (x := .n 1817) (y := .n 1393) (by decide +kernel),
-      vt_constAt hl 1855 (d := .n 1817) (e := word 1 0 0) (by decide +kernel),
+      vt_constAt hl 1855 (d := .n 1817) (e := word 1 0) (by decide +kernel),
       vt_addAt hl 1854 (d := .n 1816) (x := .n 955) (y := .n 1815) (by decide +kernel),
       tb_word_one]
   have hpw' : ∀ t < 6, paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t) =

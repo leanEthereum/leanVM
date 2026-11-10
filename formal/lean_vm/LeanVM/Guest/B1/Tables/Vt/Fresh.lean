@@ -69,10 +69,10 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have c24 := h.atomAt 4 (.copy (.n 24) (.n 4)) (by decide +kernel)
   have k1 := h.atomAt 1923 (.keccak [.n 837, .n 839, .n 850, .n 852, .n 863, .n 865, .n 1850,
     .n 1852, .n 20, .n 21, .n 22, .n 23, .n 24] (lyOuts 1885) false false) (by decide +kernel)
-  have z2 := h.atomAt 2623 (.const (.n 2565) (word 0 0 0)) (by decide +kernel)
-  have z3 := h.atomAt 2624 (.const (.n 2566) (word 0 0 0)) (by decide +kernel)
-  have z4 := h.atomAt 2625 (.const (.n 2567) (word 0 0 0)) (by decide +kernel)
-  have z5 := h.atomAt 2626 (.const (.n 2568) (word 0 0 0)) (by decide +kernel)
+  have z2 := h.atomAt 2623 (.const (.n 2565) (word 0 0)) (by decide +kernel)
+  have z3 := h.atomAt 2624 (.const (.n 2566) (word 0 0)) (by decide +kernel)
+  have z4 := h.atomAt 2625 (.const (.n 2567) (word 0 0)) (by decide +kernel)
+  have z5 := h.atomAt 2626 (.const (.n 2568) (word 0 0)) (by decide +kernel)
   have k2 := h.atomAt 2627 (.keccak [.n 1905, .n 1907, .n 2565, .n 2565, .n 2565, .n 2566, .n 2567,
     .n 2568, .n 1893, .n 1894, .n 1895, .n 1896, .n 1897] (lyOuts 2569) false false)
     (by decide +kernel)

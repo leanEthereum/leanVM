@@ -46,105 +46,105 @@ theorem vtc_shptr (hl : args.length = 20) : ∀ t < 6,
       σv (.n 725) = σv (.n 706) * gen ^ (144 * 1)
     exact ⟨by
       rw [vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq],
       by
       rw [vt_mulAt hl 716 (d := 725) (x := 706) (y := 724) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 715 (d := .n 724) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 715 (d := .n 724) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq]⟩
   · show σv (.n 736) = σv (.n 705) * gen ^ (288 * 2) ∧
       σv (.n 738) = σv (.n 706) * gen ^ (144 * 2)
     exact ⟨by
       rw [vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring,
       by
       rw [vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]⟩
   · show σv (.n 749) = σv (.n 705) * gen ^ (288 * 3) ∧
       σv (.n 751) = σv (.n 706) * gen ^ (144 * 3)
     exact ⟨by
       rw [vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring,
       by
       rw [vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring⟩
   · show σv (.n 762) = σv (.n 705) * gen ^ (288 * 4) ∧
       σv (.n 764) = σv (.n 706) * gen ^ (144 * 4)
     exact ⟨by
       rw [vt_mulAt hl 750 (d := 762) (x := 749) (y := 761) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring,
       by
       rw [vt_mulAt hl 752 (d := 764) (x := 751) (y := 763) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring⟩
   · show σv (.n 775) = σv (.n 705) * gen ^ (288 * 5) ∧
       σv (.n 777) = σv (.n 706) * gen ^ (144 * 5)
     exact ⟨by
       rw [vt_mulAt hl 762 (d := 775) (x := 762) (y := 774) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 761 (d := .n 774) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 761 (d := .n 774) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 750 (d := 762) (x := 749) (y := 761) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
         vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring,
       by
       rw [vt_mulAt hl 764 (d := 777) (x := 764) (y := 776) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 763 (d := .n 776) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 763 (d := .n 776) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 752 (d := 764) (x := 751) (y := 763) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0 0) (by decide +kernel),
+        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
         vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0 0) (by decide +kernel),
+        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
       try ring⟩
 
@@ -168,7 +168,7 @@ theorem vtc_sh0 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 703 (d := .n 709) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 703 (d := .n 709) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 0 (by norm_num)
   have ez : σv (.n 713) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 705 (d := 713) (x := 8) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
@@ -212,7 +212,7 @@ theorem vtc_sh1 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 711 (d := .n 718) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 711 (d := .n 718) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 1 (by norm_num)
   have ez : σv (.n 726) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 717 (d := 726) (x := 8) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
@@ -256,7 +256,7 @@ theorem vtc_sh2 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 723 (d := .n 731) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 723 (d := .n 731) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 2 (by norm_num)
   have ez : σv (.n 739) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 729 (d := 739) (x := 8) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
@@ -300,7 +300,7 @@ theorem vtc_sh3 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 735 (d := .n 744) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 735 (d := .n 744) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 3 (by norm_num)
   have ez : σv (.n 752) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 741 (d := 752) (x := 8) (y := 33) (by norm_num) (by norm_num) (by decide +kernel), hkb]
@@ -344,7 +344,7 @@ theorem vtc_sh4 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 747 (d := .n 757) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 747 (d := .n 757) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 4 (by norm_num)
   have ez : σv (.n 765) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 753 (d := 765) (x := 8) (y := 34) (by norm_num) (by norm_num) (by decide +kernel), hkb]
@@ -388,7 +388,7 @@ theorem vtc_sh5 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 759 (d := .n 770) (e := word 8589934592 0 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 759 (d := .n 770) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 5 (by norm_num)
   have ez : σv (.n 778) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 765 (d := 778) (x := 8) (y := 35) (by norm_num) (by norm_num) (by decide +kernel), hkb]

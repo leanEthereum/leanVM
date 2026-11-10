@@ -69,8 +69,8 @@ def lpVal (j : ℕ) (N eqt z z1 gt gsq : E) (zs zs1 gs : List E) (x : ℕ) : E :
   else if x = 51 then gt * gen ^ (16 * j)
   else if x = 52 then gsq * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))
   else if x < 72 then lpG (nib gs j) (x - 53)
-  else [word 2 0 0, gen ^ j * word 2 0 0, gen ^ j * word 2 0 0 + N, word 2 0 0,
-    gen ^ j * word 2 0 0].getD (x - 72) 0
+  else [word 2 0, gen ^ j * word 2 0, gen ^ j * word 2 0 + N, word 2 0,
+    gen ^ j * word 2 0].getD (x - 72) 0
 
 theorem lp_pow4 (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) = gen ^ (4 * j) := by ring
 
@@ -257,13 +257,13 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       ring
     · -- the `g` table
       have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))
-      have nn : Stmt.noRetList [Stmt.atom (.const (.n 53) (word 1 0 0)),
+      have nn : Stmt.noRetList [Stmt.atom (.const (.n 53) (word 1 0)),
         Stmt.atom (.load (.n (53 + 1)) (.n 52) 0)] = true := rfl
       rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, nn,
           Bool.and_self]),
         tb_holdsList_append_noRet nn, tb_holdsList_mapAtoms,
         tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))]
-      have g0 : F 53 = word 1 0 0 := by
+      have g0 : F 53 = word 1 0 := by
         have := gv 0 (by norm_num)
         simp only [nbGV, ↓reduceIte] at this
         rw [this, tb_word_one, spGV]
@@ -340,7 +340,7 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
 def ssB (n k : ℕ) : E := bitE (n.testBit k)
 
 /-- The factor of bit `k` of `n` at share `t`. -/
-def ssF (n k t : ℕ) : E := word 1 0 0 + ssB n k * word (imFactor t) 0 0
+def ssF (n k t : ℕ) : E := word 1 0 + ssB n k * word (imFactor t) 0
 
 /-- **Value `x` of `shared_selector_tables`.** -/
 def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
@@ -349,15 +349,15 @@ def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
   let v41 := v39 * v39 * (v39 * v39)
   let v47 := v41 * v41 * (v41 * v41)
   [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
-    word 1 0 0, word (imFactor 0) 0 0, ssB n 0 * word (imFactor 0) 0 0, ssF n 0 0,
-    word 1 0 0, word (imFactor 1) 0 0, ssB n 1 * word (imFactor 1) 0 0, ssF n 1 1, v20,
-    word 1 0 0, word (imFactor 0) 0 0, ssB n 2 * word (imFactor 0) 0 0, ssF n 2 0,
-    word 1 0 0, word (imFactor 1) 0 0, ssB n 3 * word (imFactor 1) 0 0, ssF n 3 1,
+    word 1 0, word (imFactor 0) 0, ssB n 0 * word (imFactor 0) 0, ssF n 0 0,
+    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v20,
+    word 1 0, word (imFactor 0) 0, ssB n 2 * word (imFactor 0) 0, ssF n 2 0,
+    word 1 0, word (imFactor 1) 0, ssB n 3 * word (imFactor 1) 0, ssF n 3 1,
     ssF n 2 0 * ssF n 3 1,
-    word 1 0 0, word (imFactor 2) 0 0, ssB n 4 * word (imFactor 2) 0 0, ssF n 4 2,
+    word 1 0, word (imFactor 2) 0, ssB n 4 * word (imFactor 2) 0, ssF n 4 2,
     ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
-    word 1 0 0, word (imFactor 3) 0 0, ssB n 5 * word (imFactor 3) 0 0, ssF n 5 3, v39,
-    v39 * v39, v41, v41 * v20, word 1 0 0, word 1 0 0 + v39, word 1 0 0, v41 * v41, v47,
+    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v39,
+    v39 * v39, v41, v41 * v20, word 1 0, word 1 0 + v39, word 1 0, v41 * v41, v47,
     eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
 
 theorem ssF_eq (n k t : ℕ) (ht : t < 34) :

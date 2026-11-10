@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 /-!
 # `verify_tables`' callees place nothing
 
-`vtKidS`: the 215 functions `verify_tables` calls, directly or not (`padding_weight`,
+`vtKidS`: the 216 functions `verify_tables` calls, directly or not (`padding_weight`,
 `plus_one_run`, `shared_selector_tables`, `sel_partial_nibble`, `block_selector(_tab)`,
-`index_mle`, `__loop9`, `__loop8`, `sumcheck_round4`, `eq_prefix_chain`, `eq_prefix_run`, their
-specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
+`index_mle`, `__loop9`, `__loop8`, `sumcheck_round4`, `opening_tail_round`, `eq_prefix_chain`,
+`eq_prefix_run`, their specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
 in the set (`pureInB`, checked by the kernel), so each is placed anywhere from its relation
 (`completeAt_of_rel_pureD`).
 -/
@@ -174,6 +174,7 @@ def vtKidS : List String := [
   "index_mle__L7",
   "index_mle__L8",
   "index_mle__L9",
+  "opening_tail_round",
   "padding_weight__L0",
   "padding_weight__L1",
   "padding_weight__L10",

@@ -29,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The sponge after the evaluations. -/
 def vtEvalFs (σ : Val) : Fs := (⟨vtCapV σ 0, []⟩ : Fs).absorbAll (vtEvs σ) dsObserve
 
-theorem vtW159 : word 697932185600 0 0 = gen ^ 159 := by
+theorem vtW159 : word 697932185600 0 = gen ^ 159 := by
   rw [tb_word_eOfNat]
   show ofK (K.ofBits 697932185600) = gen ^ 159
   rw [gen_pow_eq_ofK, show K.ofBits 697932185600 = Parameters.addressOfIndex 159 by decide +kernel]
@@ -64,8 +64,8 @@ theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
       LoadHolds rd (σ (.n 15)) 165 (multilinearEval [ofK ((σ (.n 6)).limb 1),
         ofK ((σ (.n 7)).limb 1)] [σ (.n 6943)]) ∧
       LoadHolds rd (σ (.n 15)) 166 0 := by
-  have z6 := h.atomAt 6353 (.const (.n 6922) (word 0 0 0)) (by decide +kernel)
-  have z7 := h.atomAt 6354 (.const (.n 6923) (word 0 0 0)) (by decide +kernel)
+  have z6 := h.atomAt 6353 (.const (.n 6922) (word 0 0)) (by decide +kernel)
+  have z7 := h.atomAt 6354 (.const (.n 6923) (word 0 0)) (by decide +kernel)
   have k := h.atomAt 6355 (.keccak [.n 5712, .n 5714, .n 5723, .n 5725, .n 5734, .n 5736, .n 6922,
     .n 6923, .n 5700, .n 5701, .n 5702, .n 5703, .n 5704] (lyOuts 6924) false false)
     (by decide +kernel)
@@ -89,14 +89,14 @@ theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have a10235 := h.atomAt 6381 (.mul (.n 6958) (.n 6943) (.n 6957)) (by decide +kernel)
   have a10236 := h.atomAt 6382 (.add (.n 6959) (.n 6947) (.n 6958)) (by decide +kernel)
   have a10237 := h.atomAt 6383 (.load (.n 6959) (.n 15) 165) (by decide +kernel)
-  have a10238 := h.atomAt 6384 (.const (.n 6960) (word 0 0 0)) (by decide +kernel)
+  have a10238 := h.atomAt 6384 (.const (.n 6960) (word 0 0)) (by decide +kernel)
   have a10239 := h.atomAt 6385 (.load (.n 6960) (.n 15) 166) (by decide +kernel)
   have r0 := h.atomAt 6386 (.copy (.n 6961) (.n 6932)) (by decide +kernel)
   have r1 := h.atomAt 6387 (.copy (.n 6962) (.n 6933)) (by decide +kernel)
   have r2 := h.atomAt 6388 (.copy (.n 6963) (.n 6934)) (by decide +kernel)
   have r3 := h.atomAt 6389 (.copy (.n 6964) (.n 6935)) (by decide +kernel)
   have r4 := h.atomAt 6390 (.copy (.n 6965) (.n 6936)) (by decide +kernel)
-  have c10245 := h.atomAt 6391 (.const (.n 6966) (word 697932185600 0 0)) (by decide +kernel)
+  have c10245 := h.atomAt 6391 (.const (.n 6966) (word 697932185600 0)) (by decide +kernel)
   have m10246 := h.atomAt 6392 (.mul (.n 6967) (.n 2625) (.n 6966)) (by decide +kernel)
   have r5 := h.atomAt 6393 (.copy (.n 6968) (.n 6967)) (by decide +kernel)
   have r6 := h.atomAt 6394 (.copy (.n 6969) (.n 2516)) (by decide +kernel)

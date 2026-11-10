@@ -169,7 +169,7 @@ theorem tb_prefixSize_succ (size : ℕ → ℕ) (ord : List ℕ) (r : ℕ) (hr :
 /-! ## Stacking orders -/
 
 /-- `g^33`, as the data writes it: the range check below `SIZE_BITS = 34`. -/
-theorem word_g33 : word 8589934592 0 0 = ofK (Parameters.addressOfIndex 33) := by
+theorem word_g33 : word 8589934592 0 = ofK (Parameters.addressOfIndex 33) := by
   rw [tb_word_eOfNat]
   show ofK (K.ofBits 8589934592) = ofK (Parameters.addressOfIndex 33)
   rw [show K.ofBits 8589934592 = Parameters.addressOfIndex 33 by decide +kernel]
