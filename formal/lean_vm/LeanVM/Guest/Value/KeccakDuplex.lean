@@ -13,22 +13,20 @@ public import LeanVM.Guest.Value.KeccakLayout
 # The duplex sponge in cells
 
 The verifier's transcript (`Statement/LeanVmVerifier.lean`, `Sponge`, `duplex`, `absorb`, `squeeze`) is a
-duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its three limbs
-and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and lanes
-`16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at
-leanVM main `40f877dc`, G below) holds the sponge as the thirteen-cell output of its last permutation,
-of which only the five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x`
-with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:616-624), canonical
-exactly when `c2` is `x`'s top limb (`fsPack_cells`); a permutation is `keccak(a, b, out,
-tail=, cap=sp)` (`fs_perm`, G:628-643), lowered as one `KECCAK` in the even layouts whose eight
-rate cells are the waiting cells (zeros past them: the zero run `keccak_pad_run() + 1`) and
-whose cells `8..12` are `sp`'s last five (`builtins.rs:35-68`).
+duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its two limbs, a
+zero lane and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and
+lanes `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py`,
+G below) holds the sponge as the thirteen-cell output of its last permutation, of which only the
+five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x` with tag `t` is two
+rate cells, `x` itself and `y·t` (`fs_pack`); a permutation is `keccak(a, b, out, tail=, cap=sp)`
+(`fs_perm`), lowered as one `KECCAK` in the even layouts whose eight rate cells are the waiting
+cells (zeros past them) and whose cells `8..12` are `sp`'s last five.
 
 * `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
 * `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at
   `m = Id`, `F = keccakF`;
-* `challengeOf_cells`: `challenge_from_state` (G:593-602) reads `challengeOf`;
-* `fsPack_cells`: `fs_pack`'s two cells are the scalar's rate cells.
+* `challengeOf_cells`: `challenge_from_state` reads `challengeOf`, the state's cell `0`;
+* `powLane_cells`: the proof of work, lane `2`, is the low limb of cell `1` (`grind_check`).
 -/
 
 namespace LeanVM.Guest.Value.Keccak
@@ -44,12 +42,11 @@ open LeanVM.Guest.Value.KeccakEval
 them. -/
 def rateCell (pending : List (E × ℕ)) (c : ℕ) : E :=
   E.ofLimbs (K.ofLane ((Compile.pendingLanes pending).getD (2 * c) 0))
-    (K.ofLane ((Compile.pendingLanes pending).getD (2 * c + 1) 0)) 0
+    (K.ofLane ((Compile.pendingLanes pending).getD (2 * c + 1) 0))
 
-/-- The two rate cells of one waiting scalar `x` with tag `t`: its limbs `0`, `1`, then its limb
-`2` and the tag (`fs_pack`). -/
-def scalarCells (x : E) (t : ℕ) : E × E :=
-  (E.ofLimbs (x.limb 0) (x.limb 1) 0, E.ofLimbs (x.limb 2) (K.ofLane t.toUInt64) 0)
+/-- The two rate cells of one waiting scalar `x` with tag `t`: `x` itself, then the zero lane and
+the tag (`fs_pack`: `rate[2k] = x`, `rate[2k + 1] = Y_TOWER * tag`). -/
+def scalarCells (x : E) (t : ℕ) : E × E := (x, E.ofLimbs 0 (K.ofBits t))
 
 theorem length_pendingLanes (ps : List (E × ℕ)) :
     (Compile.pendingLanes ps).length = 4 * ps.length := by
@@ -60,8 +57,7 @@ theorem length_pendingLanes (ps : List (E × ℕ)) :
 /-- Lane `j < 4` of waiting scalar `k`. -/
 theorem getD_pendingLanes (ps : List (E × ℕ)) {k : ℕ} (hk : k < ps.length) {j : ℕ} (hj : j < 4) :
     (Compile.pendingLanes ps).getD (4 * k + j) 0 =
-      [(ps[k].1.limb 0).lane, (ps[k].1.limb 1).lane, (ps[k].1.limb 2).lane,
-        ps[k].2.toUInt64].getD j 0 := by
+      [(ps[k].1.limb 0).lane, (ps[k].1.limb 1).lane, 0, ps[k].2.toUInt64].getD j 0 := by
   induction ps generalizing k with
   | nil => simp at hk
   | cons p ps ih =>
@@ -87,7 +83,7 @@ theorem rateCell_scalar (ps : List (E × ℕ)) (k : ℕ) (hk : k < ps.length) :
   rw [rateCell, rateCell, e1, e0, e3, e2, getD_pendingLanes ps hk (show 0 < 4 by omega),
     getD_pendingLanes ps hk (show 1 < 4 by omega), getD_pendingLanes ps hk (show 2 < 4 by omega),
     getD_pendingLanes ps hk (show 3 < 4 by omega)]
-  rfl
+  exact Prod.ext (ofLimbs_limb _) rfl
 
 /-- Rate cells past the waiting scalars are zero. -/
 theorem rateCell_past (ps : List (E × ℕ)) {c : ℕ} (hc : 2 * ps.length ≤ c) : rateCell ps c = 0 := by
@@ -95,7 +91,7 @@ theorem rateCell_past (ps : List (E × ℕ)) {c : ℕ} (hc : 2 * ps.length ≤ c
   simp only [rateCell, List.getD_eq_getElem?_getD, List.getElem?_eq_none h1,
     List.getElem?_eq_none (show (Compile.pendingLanes ps).length ≤ 2 * c + 1 by omega),
     Option.getD_none, ofLane_zero]
-  exact (zero_eq_ofLimbs).symm
+  exact zero_eq_ofLimbs.symm
 
 /-! ## The duplex step -/
 
@@ -103,7 +99,7 @@ theorem rateCell_past (ps : List (E × ℕ)) {c : ℕ} (hc : 2 * ps.length ≤ c
 theorem stateOfCells_duplex {S : KeccakState} {pending : List (E × ℕ)} {I : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c) :
-    stateOfCells I false = Compile.duplexInput ⟨S, pending⟩ := by
+    stateOfCells I false = Compile.duplexInput ⟨S, pending, none⟩ := by
   apply Vector.ext
   intro i hi
   have e := lane_fin (stateOfCells I false) ⟨i, hi⟩
@@ -133,51 +129,53 @@ theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 1
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c)
     (hK : KeccakCellsRelation I false O false .all) :
-    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, pending⟩)) false := by
+    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, pending, none⟩)) false := by
   funext c
-  rw [hK.2 c c.isLt, stateOfCells_duplex hrate hcap]
+  rw [hK c c.isLt, stateOfCells_duplex hrate hcap]
 
-/-- `squeeze` with Keccak-f: a permutation, its challenge. -/
-theorem squeeze_id (sp : Compile.Sponge) :
+/-- `squeeze` with Keccak-f and no ground challenge: a permutation, its challenge. -/
+theorem squeeze_id (sp : Compile.Sponge) (hg : sp.ground = none) :
     Compile.squeeze (m := Id) keccakF1600 sp =
       (Compile.challengeOf (keccakF1600 (Compile.duplexInput sp)),
-        ⟨keccakF1600 (Compile.duplexInput sp), []⟩) :=
+        ⟨keccakF1600 (Compile.duplexInput sp), [], none⟩) := by
+  obtain ⟨st, p, g⟩ := sp
+  subst hg
+  rfl
+
+/-- `squeeze` returns a ground challenge and clears it. -/
+theorem squeeze_id_ground (sp : Compile.Sponge) (c : E) (hg : sp.ground = some c) :
+    Compile.squeeze (m := Id) keccakF1600 sp = (c, { sp with ground := none }) := by
+  obtain ⟨st, p, g⟩ := sp
+  subst hg
   rfl
 
 /-- `absorb` at a full queue permutes first. -/
 theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.length = 4) :
-    Compile.absorb (m := Id) keccakF1600 sp x t = ⟨keccakF1600 (Compile.duplexInput sp), [(x, t)]⟩ := by
-  simp [Compile.absorb, Compile.rateScalars, h]
+    Compile.absorb (m := Id) keccakF1600 sp x t =
+      ⟨keccakF1600 (Compile.duplexInput sp), [(x, t)], sp.ground⟩ := by
+  obtain ⟨st, p, g⟩ := sp
+  simp only at h
+  simp only [Compile.absorb, Compile.duplex, Compile.rateScalars, h, ↓reduceIte]
   rfl
 
 /-! ## Reading a challenge, packing a scalar -/
 
-/-- **`challenge_from_state`** (G:593-602): the challenge of a state is its cell `0` plus `y²` times
-the low limb of its cell `1` (which the guest hints and pins by `assert_in_k`, `split_iff`). -/
-theorem challengeOf_cells (S : KeccakState) :
-    Compile.challengeOf S =
-      cellsOfState S false 0 + y * y * ofK ((cellsOfState S false 1).limb 0) := by
-  rw [add_y_mul_y_mul_ofK]
+/-- **`challenge_from_state`**: the challenge of a state is its cell `0`. -/
+theorem challengeOf_cells (S : KeccakState) : Compile.challengeOf S = cellsOfState S false 0 := by
   simp [Compile.challengeOf, cellsOfState, cellLanes]
 
-/-- The first limb of a challenge (`powOk`, `grind_check`) is cell `0`'s. -/
+/-- The first limb of a challenge is cell `0`'s. -/
 theorem challengeOf_limb0 (S : KeccakState) :
-    (Compile.challengeOf S).limb 0 = (cellsOfState S false 0).limb 0 := rfl
+    (Compile.challengeOf S).limb 0 = (cellsOfState S false 0).limb 0 := by
+  rw [challengeOf_cells]
+
+/-- **The proof of work** (`absorbNonce`'s lane `2`) is the low limb of cell `1` (`grind_check`
+reads it from `nxt[1]`). -/
+theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane := by
+  simp [cellsOfState, cellLanes]
 
 /-- A `K` literal's lane. -/
 theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
-
-/-- **`fs_pack(rate, k, x, tag)`** (G:611-619): with the hinted `c2` and the tag `t < 2^64` in `K`
-(`assert_in_k(limbs[2], tag)`), the cells `x + y²·c2` and `c2 + y·E(t)` are canonical (as the
-`KECCAK` reading them requires) exactly when `c2` is `x`'s top limb, and then they are
-`scalarCells x t`. -/
-theorem fsPack_cells (x c2 : E) (t : ℕ) (hc2 : IsInK c2)
-    (hcan : IsCanonical128 (x + y * y * c2)) :
-    c2 = ofK (x.limb 2) ∧ (x + y * y * c2, c2 + y * Verifier.eOfNat t) = scalarCells x t := by
-  have hc := (top_pin_iff x c2).mp ⟨hc2, hcan⟩
-  subst hc
-  refine ⟨rfl, ?_⟩
-  rw [top_pin_eq, Verifier.eOfNat, ofK_add_y_mul_ofK, scalarCells, ofLane_toUInt64]
 
 end
 end LeanVM.Guest.Value.Keccak
