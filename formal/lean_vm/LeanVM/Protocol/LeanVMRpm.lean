@@ -329,7 +329,7 @@ theorem completenessRpm_at (hW : Whir.Complete.OpeningComplete)
             verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v = false] ≤
       completenessError fuel + rpmError (completenessPermCalls fuel) := by
   refine rpm_le_of_rom _ _ ((duplexVm_romHonestComp prog input _ fuel).bind fun proof ↦
-    duplexVm_verifier prog input proof) (isWeightBound_romHonest hw fuel) ?_
+    duplexVm_verifier prog input proof) (isWeightBound_romHonest hW hw fuel) ?_
   have hV : verifierWithHash callKeccak256 callKeccakF1600 prog input =
       LeanVM.Protocol.Compile.Rom.verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
         (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
