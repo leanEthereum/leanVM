@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.Vt.SpecTotals
+public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!
 # The table phase and the public input phase (V:646-675, 2183-2209)
@@ -88,20 +89,22 @@ theorem vt_tablePhase_run (layout : Layout) (bus : BusResult) (s0 : Fs) {n : ℕ
           (tables.map Table.nConstraints).sum) pts.reverse
         (List.zip (vtRows layout.tableLogHeights bus.forms bus.point pts) evs) 0 0 []).2)
       (s1.absorbAll evs.flatten dsObserve) := by
+  have h0 := runsTo_grind0 (bits := grindingBits ((tables.map Table.nConstraints).sum + nTrees - 1))
+    (by decide) s0
   have h1 := runsTo_sampleE s0
   have h2 := vt_tableSumcheck_run layout.tableLogHeights bus.forms _ _ bus.point _ hn hsc evs
     hlen hw hfin
   have h3 := h2.bind (f := fun c ↦ (pure (bus.claims ++ c) : VerifierProgram (List ColumnClaim)))
     (runsTo_ret _ _)
   unfold tablePhaseClaims
-  exact RunsTo.of_eq (h1.bind h3) rfl (by simp) rfl rfl
+  exact RunsTo.of_eq (h0.bind (h1.bind h3)) rfl (by simp) rfl rfl
 
 /-- **`publicInputPhase` as a run.** -/
 theorem vt_publicInputPhase_run (layout : Layout) (pi : Digest) (s : Fs) :
     RunsTo (publicInputPhase layout pi) s []
       (List.zipWith (fun column value ↦ ⟨column, s.squeeze.1 ::
         List.replicate ((layout.placement memory0).variableCount - 1) 0, value⟩)
-        [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map fun limb ↦
+        [memory0, memory1] (([0, 1] : List (Fin 2)).map fun limb ↦
           multilinearEval [ofK ((digestHalves pi).1.limb limb),
             ofK ((digestHalves pi).2.limb limb)] [s.squeeze.1])) s.squeeze.2 := by
   have h1 := runsTo_sampleE s

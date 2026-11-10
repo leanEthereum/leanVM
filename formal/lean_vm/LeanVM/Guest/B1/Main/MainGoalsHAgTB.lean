@@ -27,7 +27,7 @@ variable {seed s w}
 /-- **`main`'s honest `aggregate_claims` call is complete within `aggB`, by a tree of honest shape**: under `NodeRelation` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (hGr : CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
+    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs "__loop33" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33"))
     (h26 : TotalLeOn coreProgram fs "__loop34" LoopPre
