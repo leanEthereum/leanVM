@@ -23,8 +23,11 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   `winsTag d cd = walkTag 0 1 d cd`: `WinsAt` on `[wins]`, the windows `walk_path__L{pd}_L{cd}`
   dispatches on (`lean_ethereum.py:1308-1343` at `40f877dc`), which its callers hand it.
 
-* `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `__loop6` (`lean_ethereum.py:1868-1934` at `40f877dc`): the parity word
+* `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
+  argument (`lean_ethereum.py:1530`), which its decodes and grinds read.
+
+* `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
+  radix-four layer loop `__loop6` (`lean_ethereum.py:2006-2089`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
@@ -67,14 +70,17 @@ def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
 /-- The tag of `GkrPar`, above every walk tag. -/
 def tagGkr : ℕ := 2 ^ 20
 
-/-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, the depth shift table, `g_bus_mu`
-and `k_mod_next`: `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word
-`layer[g^12]` of layer `x`, `layer = layers·(x²·depth_shift[g_bus_mu])^17` (`LAYER_SLOTS = 17`,
-`LAYER_PARITY = 12`), if read, is `g^e`, `e < 4`. -/
-def GkrPar (rd : Reader) (layers x shift gbm kmn : E) : Prop :=
+/-- The tag of `WinTabs` (`ExpTables.lean`), above `tagGkr`: `open_stacked`'s window table `tabs`,
+which `verify_sub` hands it. -/
+def tagTabs : ℕ := 2 ^ 21
+
+/-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
+`k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
+layer `x`, `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`), if read,
+is `g^e`, `e < 4`. -/
+def GkrPar (rd : Reader) (layers x startG kmn : E) : Prop :=
   (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
-    ∀ s, LoadHolds rd (shift * gbm) 0 s → ∀ p, LoadHolds rd (layers * (x * x * s) ^ 17) 12 p →
-      ∃ e < 4, p = ofK (addressOfIndex e)
+    ∀ p, LoadHolds rd (layers * (x * x * startG) ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
 
 theorem walkTag_decode {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) :
     walkKind (walkTag kind odd d cd) = kind ∧ walkOdd (walkTag kind odd d cd) = odd ∧

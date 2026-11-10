@@ -32,6 +32,9 @@ theorem w19_1 : WinOk 19 1 := winOk_of_C (by decide +kernel)
 /-- `verify_sub`, window 2. -/
 theorem w19_2 : WinOk 19 2 := winOk_of_C (by decide +kernel)
 
+/-- `verify_sub`, window 3. -/
+theorem w19_3 : WinOk 19 3 := winOk_of_C (by decide +kernel)
+
 /-- `sp_wots`, window 0. -/
 theorem w20_0 : WinOk 20 0 := winOk_of_C (by decide +kernel)
 

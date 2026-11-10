@@ -457,7 +457,7 @@ theorem ok18 : CplOk 18 := by
 
 theorem ok19 : CplOk 19 := by
   intro i hi k hk
-  have hc : (certOf 19).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 19).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 19 0 = 1 := by decide +kernel
@@ -474,6 +474,10 @@ theorem ok19 : CplOk 19 := by
     rw [hn] at hk
     interval_cases k
     · exact cw19_2_0
+  · have hn : nParts 19 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw19_3_0
 
 theorem ok20 : CplOk 20 := by
   intro i hi k hk

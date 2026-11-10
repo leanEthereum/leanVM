@@ -33,7 +33,7 @@ at cells `g^0` and `g^1`. They mirror the Rust producers of
 grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
 (`aggregate_with_stats`, `aggregation/node.rs:61-345`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
-(`gen_verify`, `aggregation/child.rs:64-255`), the batching's (`aggregate_deferred_claims`,
+(`gen_verify`, `aggregation/child.rs:64-254`), the batching's (`aggregate_deferred_claims`,
 `aggregation/deferred.rs:245-351`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
@@ -326,18 +326,25 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
   if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
   else digestCells step.2.2 ++ digestCells step.2.1
 
-/-- One level's Merkle hints, from its commitment's height, its query count and its phase of
-openings: per opening its leaf's words and the ordered children below the cap, climbing from its
-leaf index (`merkle_leaf_rows`, `merkle_children`), and the level's cap nodes and their parents'
-activity flags (`aggregation/child.rs:178-222`). -/
-def levelHints (depth count : ℕ) (phase : List Opening) :
+/-- A leaf's lanes as the guest's cells: level `0`'s a `K` lane each, a deeper level's an `E` word
+of two lanes each (`aggregation/child.rs:185-197`). -/
+def leafCells (first : Bool) (leaf : List K) : Entry :=
+  if first then leaf.map ofK
+  else (List.range (leaf.length / 2)).map fun i ↦
+    E.ofLimbs (leaf.getD (2 * i) 0) (leaf.getD (2 * i + 1) 0)
+
+/-- One level's Merkle hints, from whether it is level `0`, its commitment's height, its query
+count and its phase of openings: per opening its leaf's cells and the ordered children below the
+cap, climbing from its leaf index (`merkle_leaf_rows`, `merkle_children`), and the level's cap
+nodes and their parents' activity flags (`aggregation/child.rs:175-224`). -/
+def levelHints (first : Bool) (depth count : ℕ) (phase : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil count) depth
   let pathDepth := depth - capDepth
   let climbs := phase.map fun o ↦
     (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
-    [("merkle_leaf_rows", o.leaf.map ofK),
+    [("merkle_leaf_rows", leafCells first o.leaf),
       ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
   let capSteps := climbs.flatMap fun (_, steps, _) ↦ steps.drop pathDepth
   let nodes := capSteps.foldl (fun (a : Array Digest) step ↦
@@ -349,11 +356,13 @@ def levelHints (depth count : ℕ) (phase : List Opening) :
   (pushes, nodes.toList.flatMap digestCells, active.toList)
 
 /-- Every level's Merkle hints, each level with its phase of the proof's openings (the levels
-zipped with `proof.merkle`); the caps and the flags of all levels each make one entry. -/
-def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
+zipped with `proof.merkle`), the first `first`; the caps and the flags of all levels each make one
+entry. -/
+def merkleHints (first : Bool) :
+    List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
   | (depth, positions) :: rest, phase :: phases =>
-    let (pushes, caps, active) := levelHints depth positions.length phase
-    let (pushes', caps', active') := merkleHints rest phases
+    let (pushes, caps, active) := levelHints first depth positions.length phase
+    let (pushes', caps', active') := merkleHints false rest phases
     (pushes ++ pushes', caps ++ caps', active ++ active')
   | _, _ => ([], [], [])
 
@@ -380,7 +389,7 @@ framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's bloc
 def blockKey (b : BusBlock) : ℕ := 3 + b.owner
 
 /-- Every side's block groups in layout order, each as `g` to its index over the three sides,
-once per group, whose blocks are consecutive (`block_group_order`, `aggregation/child.rs:113-144`):
+once per group, whose blocks are consecutive (`block_group_order`, `aggregation/child.rs:106-138`):
 push and pull after the framework's three blocks, then count; a group is a maximal run of blocks
 of one kappa source within a side. -/
 def blockGroupOrder (layout : Layout) : Entry :=
@@ -398,14 +407,14 @@ def committedColumns (layout : Layout) : List ℕ :=
   (List.range layout.placements.length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
-/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:219-247`): the
-memory's columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a table's
-columns their table. -/
+/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:211-238`): the
+memory's two columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a
+table's columns their table. -/
 def colKey (c : ℕ) : ℕ :=
-  if c < 4 then 0 else if c < 6 then c - 3 else 3 + (globalColumnBases.filter (· ≤ c)).length
+  if c < 3 then 0 else if c < 5 then c - 2 else 3 + (globalColumnBases.filter (· ≤ c)).length
 
 /-- The committed columns' groups in stack order, each as `g` to its index, once per group,
-whose columns are consecutive (`col_group_order`, `aggregation/child.rs:149-177`): a group is a
+whose columns are consecutive (`col_group_order`, `aggregation/child.rs:142-171`): a group is a
 maximal run of committed columns, in their order, of one kappa source. -/
 def colGroupOrder (layout : Layout) : Entry :=
   let columns := committedColumns layout
@@ -414,15 +423,14 @@ def colGroupOrder (layout : Layout) : Entry :=
   (runHeads (((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map
     (groups.getD · 0))).map count
 
-/-- A child's hints (`gen_verify`): its proof stream, padded; its claim's value; the Merkle caps;
+/-- A child's hints (`gen_verify`): its proof stream, padded; the Merkle caps;
 the tables' log heights; the two layout orders; and every query's leaf and path. -/
 def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String × Entry) :=
   match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
-    let (queries, caps, active) := merkleHints (childQueries bytecode seed c) c.proof.openings
+    let (queries, caps, active) := merkleHints true (childQueries bytecode seed c) c.proof.openings
     [("stream", c.proof.stream ++ List.replicate (childStreamCap - c.proof.stream.length) 0),
-      ("bytecode_val", [c.freshClaim.bytecodeValue]),
       ("merkle_caps", caps), ("merkle_cap_active", active),
       ("zc_tau_max", [count (layout.tableLogHeights.foldl max 0)]),
       ("table_logs", layout.tableLogHeights.map count),

@@ -124,7 +124,7 @@ theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast
 /-- **On a valid execution of the guest, each child's cursor length is at most `8192`**: at the
 decoder's reader, valuation and table of entries (`decTop`'s), for every child `c` below the
 count it reads. -/
-theorem valid_cursor (hEP : End.EndPending) {input : PublicInput} {t : Execution guestProgram}
+theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     (hv : ValidExecution guestProgram input t) (c : ℕ)
     (hc : c < nKidsD discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))) :
@@ -135,7 +135,7 @@ theorem valid_cursor (hEP : End.EndPending) {input : PublicInput} {t : Execution
         (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
     cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1928)) ≤ 8192 := by
   intro rd σ fr
-  have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge hEP input t hv
+  have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
   rw [← decTop_eq] at hk
   have hrel := hk.2.2.2.1
   let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd

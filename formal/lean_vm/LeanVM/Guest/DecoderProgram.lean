@@ -19,8 +19,8 @@ a decoding. The proofs read a decoding off an execution (`decoder : Execution gu
 From them, **`guestKnowledge_of_spec : GuestKnowledgeSoundness D`**, the decoding `decoder t`.
 For the compiled decoder `LeanVM.Cost.compiledGuestWitnessDecoder` and `decode`, both are proved
 (`Cost/DecoderSpec.lean`'s `decoderProgram_spec` with `Cost/Bounds/Guest/Budget.lean`'s
-`decoderPriceWithinBudget`; `decoderExplains_decode`), given the walks' obligations
-(`EndPending`), which `LeanVM.theorems_hold` takes until their ports land.
+`decoderPriceWithinBudget`; `decoderExplains_decode`), and `LeanVM.theorems_hold` takes no
+hypothesis.
 -/
 
 namespace LeanVM.Guest.End
@@ -47,8 +47,7 @@ def DecoderExplains (decoder : Execution guestProgram → SeedStatementAndWitnes
   ∀ input (t : Execution guestProgram), ValidExecution guestProgram input t → ExplainsPublicInput guestProgram input (decoder t)
 
 /-- `decode`, read off the memory, explains the public input: `guest_knowledge`. -/
-theorem decoderExplains_decode (hP : EndPending) : DecoderExplains fun t ↦ decode t.memory :=
-  guest_knowledge hP
+theorem decoderExplains_decode : DecoderExplains fun t ↦ decode t.memory := guest_knowledge
 
 /-- **`GuestKnowledgeSoundness` of the decoder program**, from its spec and its decoder's decodings
 explaining the input. -/
@@ -58,10 +57,10 @@ theorem guestKnowledge_of_spec {decoderProgram : Cost.MachineProgram}
   fun input t hv ↦ ⟨decoder t, h.computes input t hv, hx input t hv⟩
 
 /-- **`GuestKnowledgeSoundness` of a program that computes `decode`**: its spec alone. -/
-theorem guestKnowledge_of_decode (hP : EndPending) {decoderProgram : Cost.MachineProgram}
+theorem guestKnowledge_of_decode {decoderProgram : Cost.MachineProgram}
     (h : DecoderProgramSpec decoderProgram fun t ↦ decode t.memory) :
     GuestKnowledgeSoundness decoderProgram :=
-  guestKnowledge_of_spec h (decoderExplains_decode hP)
+  guestKnowledge_of_spec h decoderExplains_decode
 
 end
 

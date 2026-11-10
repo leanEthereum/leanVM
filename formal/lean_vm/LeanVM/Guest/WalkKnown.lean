@@ -56,21 +56,24 @@ theorem semRel_lt {t : ℕ} (ht : t < 2 ^ 32) (rd : Reader) (ws : List E) :
   unfold SemRel
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
 
-/-- A walk tag of a kind but `2` is not `tagGkr` (`2^20`, a multiple of `4`). -/
-theorem walkTag_ne_gkr {kind odd d cd : ℕ} (hk : kind < 4) (h2 : kind ≠ 2) :
-    walkTag kind odd d cd ≠ tagGkr := by
-  rw [show tagGkr = 4 * 262144 from rfl]
+/-- A walk tag of a kind but `2` is no multiple of `4` (as `tagGkr` and `tagTabs` are). -/
+theorem walkTag_mod {kind odd d cd : ℕ} (hk : kind < 4) (h2 : kind ≠ 2) :
+    walkTag kind odd d cd % 4 ≠ 0 := by
   unfold walkTag
   omega
 
-theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hg : t ≠ tagGkr) (rd : Reader) (ws : List E) :
-    SemRel0 glob t rd ws ↔ walkSem t rd ws := by
+/-- A tag `t ≥ 2` below `tagGkr`, or no multiple of `4`, is a walk tag. -/
+theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hg : t % 4 ≠ 0 ∨ t < tagGkr) (rd : Reader)
+    (ws : List E) : SemRel0 glob t rd ws ↔ walkSem t rd ws := by
+  rw [show tagGkr = 4 * 262144 from rfl] at hg
+  have hG : t ≠ tagGkr := by rw [show tagGkr = 4 * 262144 from rfl]; omega
+  have hT : t ≠ tagTabs := by rw [show tagTabs = 4 * 524288 from rfl]; omega
   unfold SemRel0
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega))]
   obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
   change (if n + 2 = tagGkr then GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
-    (ws.getD 4 0) else walkSem (n + 2) rd ws) ↔ _
-  rw [ite_eq_right_of_eq_false _ _ (eq_false hg)]
+    else if n + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0) else walkSem (n + 2) rd ws) ↔ _
+  rw [ite_eq_right_of_eq_false _ _ (eq_false hG), ite_eq_right_of_eq_false _ _ (eq_false hT)]
 
 theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.getD 0 0 ≠ ws.getD 1 0 := by
   rw [semRel_lt (by unfold tagNe; norm_num)]
@@ -79,7 +82,7 @@ theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.g
 
 theorem semRel0_w0 {d cd : ℕ} (hc : cd < 64) (rd : Reader) (ws : List E) :
     SemRel0 glob (walkTag 0 0 d cd) rd ws ↔ WinWalk rd d cd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega)))]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) (by decide : 0 < 2) hc
   simp only [walkSem, h1, h2, h3, h4]
   rfl
@@ -93,7 +96,7 @@ theorem semRel_w0 {d cd : ℕ} (hc : cd < 64) (hlt : walkTag 0 0 d cd < 2 ^ 32)
 theorem semRel_wins {d cd : ℕ} (hc : cd < 64) (hlt : winsTag d cd < 2 ^ 32) (rd : Reader)
     (ws : List E) : SemRel glob (winsTag d cd) rd ws ↔ WinsAt rd d cd (ws.getD 0 0) := by
   unfold winsTag at hlt ⊢
-  rw [semRel_lt hlt, semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
+  rw [semRel_lt hlt, semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega)))]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) (by decide : 1 < 2) hc
   simp only [walkSem, h1, h2, h3, h4]
   rfl
@@ -101,7 +104,7 @@ theorem semRel_wins {d cd : ℕ} (hc : cd < 64) (hlt : winsTag d cd < 2 ^ 32) (r
 theorem semRel0_w1 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (rd : Reader) (ws : List E) :
     SemRel0 glob (walkTag 1 odd d cd) rd ws ↔
       WinWalk2 rd d cd odd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) (Or.inl (walkTag_mod (by omega) (by omega)))]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 1 < 4) ho hc
   simp only [walkSem, h1, h2, h3, h4]
 
@@ -115,7 +118,7 @@ theorem semRel_main {odd d cd base : ℕ} (ho : odd < 2) (hc : cd < 64) (hb : ba
     (hlt : walkTag (2 + base) odd d cd < tagGkr) (rd : Reader) (ws : List E) :
     SemRel glob (walkTag (2 + base) odd d cd) rd ws ↔
       OqMainWins rd d cd odd base (ws.getD 0 0) (ws.getD 1 0) := by
-  rw [semRel_lt (hlt.trans tagGkr_lt), semRel0_walk (walkTag_ge _ _ _ _) hlt.ne]
+  rw [semRel_lt (hlt.trans tagGkr_lt), semRel0_walk (walkTag_ge _ _ _ _) (Or.inr hlt)]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by omega : 2 + base < 4) ho hc
   obtain rfl | rfl : base = 0 ∨ base = 1 := by omega
   · simp only [walkSem, h1, h2, h3, h4]

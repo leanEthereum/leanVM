@@ -18,8 +18,9 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsAll
 Checker K cuts `open_stacked__L{m}` before each level's `opening_queries` call; the cut hands on
 `impTag (walkTag (2 + base) odd depth cd) 1 l` on the cells of `query_win_ptrs` and `n_iters_g`
 (REC-GUEST-IFACE 'tool: walk obligations' (b)): `OqMainWins`, if `n_iters_g`'s cell holds the
-one-limb word `l` the call's setup sets. `osOk` (`WalkOsDefs`) checks each tuple is one level's,
-on its window pointers' cell, past them; `osPre_oqMainWins` (`WalkOsPre`) proves it on the prefix.
+one-limb word `l` the call's setup sets. `osOk` (`WalkOsDefs`) checks the function assumes the
+window table at `tabs` (`tagTabs`) and each tuple is one level's, on its window pointers' cell,
+past them; `osPre_oqMainWins` (`WalkOsPre`) proves it on the prefix.
 
 `os_cutsKnown`: `CutsKnown j` for `open_stacked__L{m}` from its body's template, the candidate's
 numbers (`osLvB`) and the certificate's check (`osOk`). The instances are `WalkOsN.lean`.
@@ -36,7 +37,7 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 word is `l`'s. -/
 theorem semRel_impL {t : ℕ} (ht : t < 2 ^ 32) (l : ℕ) (rd : Reader) (ws : List E) :
     SemRel glob (impTag t 1 l) rd ws ↔
-      (ws.getD 1 0 = OffsetInstruction.immediateWord l 0 0 → SemRel0 glob t rd ws) := by
+      (ws.getD 1 0 = OffsetInstruction.immediateWord l 0 → SemRel0 glob t rd ws) := by
   have e0 : impTag t 1 l / 2 ^ 32 = 1 + 1 + 8 * l := by
     unfold impTag
     rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt ht, Nat.zero_add]
@@ -61,10 +62,10 @@ theorem osWalkLv_of {m : ℕ} (hm : m < 28) (hlv : osLvB (osCfg m) = true) {κ :
     List.all_eq_true.mp hlv i (List.mem_range.mpr hi)
   have hi := hall ℓ hℓ
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hi
-  obtain ⟨⟨⟨⟨⟨⟨hpw, hper⟩, hq⟩, hs0⟩, hso⟩, -⟩, hdec⟩ := hi
-  have hloop := ((osData_all m hm).2 ℓ hℓ).1
+  obtain ⟨⟨⟨⟨⟨⟨⟨hpw, hper⟩, hq⟩, hs1⟩, hso⟩, hs5⟩, -⟩, hdec⟩ := hi
+  have hloop := (osData_all m hm).2.1 ℓ hℓ
   rw [← osCfg_getD hℓ] at hloop
-  refine ⟨hloop, hpw, hper, hq, hs0, hso, fun i _ hi' ↦ ?_,
+  refine ⟨hloop, hpw, hper, hq, hs1, hso, hs5, fun i _ hi' ↦ ?_,
     fun args rets hw h ↦ decode_query_windows_all_holds _ hdec hκ L args rets hw h⟩
   have := hall i hi'
   simp only [Bool.and_eq_true, decide_eq_true_eq] at this
@@ -84,8 +85,13 @@ theorem os_body {m j : ℕ} (hm : m < 28) (h1 : 1 ≤ j) (hj : j < nFns)
 certificate's check. -/
 theorem os_cutsKnown {j m : ℕ} (hm : m < 28) (hb : (coreOf j).body = osBody (osCfg m))
     (hlv : osLvB (osCfg m) = true) (hok : osOk j (osCfg m) = true) : CutsKnown j := by
-  intro κ L _ h32 fp _ _ i hi h0 hl
-  have hc := List.all_eq_true.mp hok _ (cutAt_mem hi h0)
+  intro κ L _ h32 fp _ hsem i hi h0 hl
+  simp only [osOk, Bool.and_eq_true, beq_iff_eq] at hok
+  obtain ⟨hs, hcuts⟩ := hok
+  have hwt : WinTabs L.read (valG L fp (certOf j) (.n osTabs)) := by
+    rw [hs] at hsem
+    exact (semRel_tabs _ _).mp (hsem _ (List.mem_singleton_self _))
+  have hc := List.all_eq_true.mp hcuts _ (cutAt_mem hi h0)
   simp only [osCutOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hc
   obtain ⟨⟨hkn, hki⟩, hsm⟩ := hc
   refine ⟨by rw [hkn]; intro _ h; simp at h, by rw [hki]; intro _ h; simp at h, fun t ht ↦ ?_⟩
@@ -95,7 +101,7 @@ theorem os_cutsKnown {j m : ℕ} (hm : m < 28) (hb : (coreOf j).body = osBody (o
   obtain ⟨ℓ, hℓ, ⟨⟨⟨⟨⟨⟨⟨ht1, htW⟩, hcd⟩, hN⟩, hl0⟩, hlen⟩, hbp⟩, hpre⟩⟩ := h1
   have hF := osWalkLv_of hm hlv (κ := κ) (by unfold maxLogMem at h32; omega) L hℓ
   rw [hb] at hl
-  have hW := osPre_oqMainWins hℓ hF hpre hl
+  have hW := osPre_oqMainWins hℓ hF hwt hpre hl
   have ho : ((osCfg m).levels.getD ℓ default).queries % 2 * (if ℓ = 0 then 1 else 0) < 2 := by
     split_ifs <;> omega
   have hbase : (if ℓ = 0 then 1 else 0) < 2 := by split_ifs <;> omega
