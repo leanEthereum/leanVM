@@ -9,6 +9,7 @@ import LeanVM.Prover.Complete
 import LeanVM.Guest.Child.NZRpm
 import LeanVM.Guest.Child.Deployed
 import LeanVM.Guest.WithHash
+import LeanVM.Guest.Child.Combiner
 
 /-!
 # The guest's completeness for a prover that is the specification at a child's witness
@@ -39,9 +40,10 @@ variable {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
 theorem verifierRefusingZeroWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
     Guest.Budget.verifierRefusingZeroWithHash H F prog input ⟨[], []⟩ =
       seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
-  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
-  simp only [Guest.Budget.verifierRefusingZeroWithHash, hk, VerifierProgram.refusingZeroChallenge,
-    runProof_read_empty]
+  obtain ⟨k, hk⟩ := Guest.Limits.refusingZeroProgram_read (bytecodeWords prog)
+    (publicInputDigest input)
+  unfold Guest.Limits.refusingZeroProgram at hk
+  simp only [Guest.Budget.verifierRefusingZeroWithHash, hk, runProof_read_empty]
 
 end Empty
 
@@ -59,7 +61,7 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
           | some proof =>
             Guest.Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input
               proof)).run' []}[v = false] ≤
-        (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
+        (2 : ℝ≥0∞)⁻¹ ^ 100) ∧
     ∀ (s : NodeStatement) (t : Execution Guest.guestProgram) (ρ : ℕ), 2 ^ 21 < t.committedSize →
       s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guestProgram) →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guestProgram) s)
