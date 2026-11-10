@@ -20,8 +20,9 @@ public import LeanVM.Guest.AcceptableChild
 
 `verify_sub_complete_Spec bytecode`: for every honest child `c` of a node under the seed `seed` —
 its deferred claim shaped for the bytecode, its stack at least `2^minChildStackLog`, its stream at most
-`childStreamCap` words, the deferring verifier accepting it while refusing a zero challenge where the
-guest divides (`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
+`childStreamCap` words, the deferring verifier accepting it while refusing a zero challenge
+(`Limits.verifyDeferredRefusingZero`) and while refusing what makes the guest divide by zero
+(`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
 steps (`Limits.queryStepsOf`) — and every caller's words `Lin` holding the exponent table at
 `g^sqE` (`log2Lin`) and the child's fixed cells at `out = g^outE` (write-once:
 `verify_sub` writes them there), `verify_sub` on the statement's and the seed's cells, `g^sqE`,
@@ -46,6 +47,8 @@ def verify_sub_complete_Spec (bytecode : List K) : Prop :=
     (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) →
     c.proof.stream.length ≤ Coverage.childStreamCap →
+    Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
+      c.proof = true →
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true →
     (∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode (statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) →

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.WordsB
-public import LeanVM.Guest.B1.Gkr.VbgB
+public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Place.OsSpec
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.B1.Placement.CertifyAt
