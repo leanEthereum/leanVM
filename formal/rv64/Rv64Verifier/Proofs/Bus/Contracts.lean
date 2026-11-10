@@ -339,6 +339,19 @@ structure BusBalancePre (s : MachineState) : Prop where
 def claimAt (s : MachineState) (a : Word) : ColumnClaim :=
   ⟨(s.getMem (a + 24)).toNat, vecEs s a, eAt s (a + 32)⟩
 
+/-- `n` bytes from `p`, aligned, ending below `NEXT` at `t`, and allocated from `s` on unless
+empty (an empty buffer's pointer still lies below `NEXT`, as `Outside` wants of an empty slice). -/
+@[rv_addr] def BufIn (s t : MachineState) (p : Word) (n : Nat) : Prop :=
+  p.toNat % 8 = 0 ∧ p.toNat + n ≤ heapNext t ∧ (n = 0 ∨ heapNext s ≤ p.toNat)
+
+/-- Piece `j` of the forms' row `i` from `P`, its pointer and length in bytes: form `j`'s terms
+(`j < 3`), or the row's own buffer (`j = 3`). -/
+def formPiece (t : MachineState) (P : Word) (i j : Nat) : Word × Nat :=
+  if j < 3 then
+    (vecPtr t (vecPtr t (P + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)),
+      48 * (vecLen t (vecPtr t (P + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat)
+  else (vecPtr t (P + BitVec.ofNat 64 (24 * i)), 24 * (vecLen t (P + BitVec.ofNat 64 (24 * i))).toNat)
+
 /-- The `BusResult` at `a` holds `r`, every buffer allocated from `s` on. -/
 structure BusResultAt (s t : MachineState) (a : Word) (r : BusResultRust) : Prop where
   claims : VecOk t a 56 8 ∧ NewBuf s t (vecPtr t a) (56 * (vecCap t a).toNat) 8 ∧
@@ -350,6 +363,28 @@ structure BusResultAt (s t : MachineState) (a : Word) (r : BusResultRust) : Prop
   forms : VecOk t (a + 72) 24 8 ∧
     formRowsAt t (vecPtr t (a + 72)) (vecLen t (a + 72)).toNat = r.forms
   totals : NewVecE s t (a + 96) r.totals
+  /-- The claims' buffer, and each claim's point's, which misses it (the caller fills its spare
+  room in place). -/
+  claimsIn : BufIn s t (vecPtr t a) (56 * (vecCap t a).toNat)
+  claimPoints : ∀ i < (vecLen t a).toNat,
+    BufIn s t (vecPtr t (vecPtr t a + BitVec.ofNat 64 (56 * i)))
+      (24 * (vecLen t (vecPtr t a + BitVec.ofNat 64 (56 * i))).toNat) ∧
+    Apart (vecPtr t (vecPtr t a + BitVec.ofNat 64 (56 * i)))
+      (24 * (vecLen t (vecPtr t a + BitVec.ofNat 64 (56 * i))).toNat)
+      (vecPtr t a) (56 * (vecCap t a).toNat)
+  pointIn : BufIn s t (vecPtr t (a + 48)) (24 * (vecLen t (a + 48)).toNat)
+  /-- The forms' buffer, its rows of three forms, every row's and every form's buffer, pairwise
+  apart and apart from the forms' buffer. -/
+  formsIn : BufIn s t (vecPtr t (a + 72)) (24 * (vecLen t (a + 72)).toNat)
+  formRows : ∀ i < (vecLen t (a + 72)).toNat,
+    vecLen t (vecPtr t (a + 72) + BitVec.ofNat 64 (24 * i)) = 3 ∧
+    ∀ j ≤ 3, BufIn s t (formPiece t (vecPtr t (a + 72)) i j).1 (formPiece t (vecPtr t (a + 72)) i j).2
+  formsApart : ∀ i < (vecLen t (a + 72)).toNat, ∀ j ≤ 3,
+    Apart (formPiece t (vecPtr t (a + 72)) i j).1 (formPiece t (vecPtr t (a + 72)) i j).2
+      (vecPtr t (a + 72)) (24 * (vecLen t (a + 72)).toNat) ∧
+    ∀ i' < (vecLen t (a + 72)).toNat, ∀ j' ≤ 3, (i ≠ i' ∨ j ≠ j') →
+      Apart (formPiece t (vecPtr t (a + 72)) i j).1 (formPiece t (vecPtr t (a + 72)) i j).2
+        (formPiece t (vecPtr t (a + 72)) i' j').1 (formPiece t (vecPtr t (a + 72)) i' j').2
 
 /-- `Ok(result)` exactly when `verifyBusBalanceM` returns it on the layout's values, `bev s bc`
 being what `Bytecode::evaluate` computes for the `Bytecode` at `bc`; otherwise `Err` (`errNiche`

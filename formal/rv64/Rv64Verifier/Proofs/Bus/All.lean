@@ -11,7 +11,7 @@ import Rv64Verifier.Proofs.Bus.VbbGkrCheck
 import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
-import Rv64Verifier.Proofs.Bus.VbbTail26
+import Rv64Verifier.Proofs.Bus.VbbTail30
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -29,7 +29,7 @@ code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `nex
 stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's (`gkrStage`, `VbbGkr*.lean`, closed), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
 `table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
 and `Form::evaluate` (`FormEvaluateSpecE`).
-Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`).
+Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`), the forms' rows and the sides' array (`restToSides`, `VbbTail23.lean` to `VbbTail26.lean`). The side loop's invariant (`Sides`), its entry and the return with the result (`finalStage`, `VbbTail27.lean` to `VbbTail30.lean`) are proved: `TailStage` holds given the way into the side loop with the empty buffers' pointers (`SidesEntry`) and one iteration of it (`SideStage`), both stated in `VbbTail27.lean`.
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -50,6 +50,14 @@ theorem gkrStage (bev : MachineState → Word → List E → Option E) :
   VerifyBusBalance.gkrStage bev (VerifyBusBalance.iter Transcript.duplex Multilinear.polyEval
     tryAllocZeroed reserveFast_8001086c Transcript.sumcheck Transcript.nextScalars Field.mul memcpy
     Transcript.samples Multilinear.mleEvalVbb Multilinear.concat bev)
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- `verify_bus_balance` from `0x80006b60` on, given the side loop's entry and iteration. -/
+theorem vbbTailStage {BcOk : MachineState → Nat → Word → Prop}
+    {bev : MachineState → Word → List E → Option E} (hE : VerifyBusBalance.SidesEntry BcOk bev)
+    (hS : VerifyBusBalance.SideStage bev) : VerifyBusBalance.TailStage BcOk bev :=
+  VerifyBusBalance.tailStage Transcript.nextScalars Transcript.nextScalar
+    (VerifyBusBalance.restStage hE hS (VerifyBusBalance.finalStage bev))
 
 end Rv64Verifier.Proofs.Bus
 
@@ -199,3 +207,9 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.gkrStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.gkrStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.finalStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.finalStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.vbbTailStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.vbbTailStage
