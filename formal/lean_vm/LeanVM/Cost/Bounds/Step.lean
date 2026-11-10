@@ -260,7 +260,7 @@ theorem readCells_cost (hP : Includes P readCells.c308.costDeps) (fp : K) (offse
     (fun x ↦ RunsApp.of_spec (readFirstCells.c301.lam1.costSpec P (by includes) x)) 7
     (fun x ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [readFirstCells.c301.lam1.costEq P (by includes)]) 0 (by omega)
+      rw [readFirstCells.c301.lam1.costEq P (by includes)]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
   -- one cell: the inner function rebuilt
   have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
@@ -316,7 +316,7 @@ theorem readFirstCells_cost (hP : Includes P readFirstCells.c301.costDeps) (fp :
     (fun x ↦ RunsApp.of_spec (readFirstCells.c301.lam1.costSpec P (by includes) x)) 7
     (fun x ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [readFirstCells.c301.lam1.costEq P (by includes)]) 0 (by omega)
+      rw [readFirstCells.c301.lam1.costEq P (by includes)]; omega) 0 (by omega)
   have h2 := finRangeFrom_cost P (by includes) 13 (by norm_num) 0 (by omega)
   -- one cell: the inner function rebuilt
   have hin : ∀ (c : Fin 13) (v : E) (rest : Fin 13 → E),
@@ -665,7 +665,7 @@ theorem cellCount_le (outCells : KeccakOutputCells) : outCells.cellCount ≤ 13 
   cases outCells <;> decide
 
 /-- The Keccak check after the reads (`lam5.lam0`): the state of the input cells, Keccak-f once,
-the two `∀ c` over the thirteen cells: at most `342500`. -/
+the `∀ c` over the thirteen cells: at most `342500`. -/
 theorem keccakCheck_cost (hP : Includes P executeWithShared.c260.costDeps) (inOdd outOdd : Bool)
     (outCells : KeccakOutputCells) (r : Registers K) (input output : Fin 13 → E) :
     machineCost P executeWithShared.c260.lam5.lam0.costIdx
@@ -687,26 +687,20 @@ theorem keccakCheck_cost (hP : Includes P executeWithShared.c260.costDeps) (inOd
       simp only [appCost_fn, List.nil_append, List.length_nil]
       rw [executeWithShared.c260.lam5.lam0.lam3.costEq P (by includes)]) 0 (by omega)
   have hlen : (Array.ofFn (id : Fin 13 → Fin 13)).toList.length = 13 := by simp
-  have ha1 := all_cost P (by includes) _
-    (.closure executeWithShared.c260.lam5.lam0.lam2.costIdx [encodeValue input])
-    (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam5.lam0.lam2.costSpec P (by includes) input a)) 8
-    (Array.ofFn (id : Fin 13 → Fin 13)).toList (fun a _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.c260.lam5.lam0.lam2.costEq P (by includes)])
   have ha2 := all_cost P (by includes) _
-    (.closure executeWithShared.c260.lam5.lam0.lam4.costIdx
+    (.closure executeWithShared.c260.lam5.lam0.lam2.costIdx
       [encodeValue outOdd, encodeValue outCells, encodeValue output,
         encodeValue (keccakF1600 (stateOfCells input inOdd))])
-    (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam5.lam0.lam4.costSpec P (by includes) outOdd
+    (fun a ↦ RunsApp.of_spec (executeWithShared.c260.lam5.lam0.lam2.costSpec P (by includes) outOdd
       outCells output _ a)) 310 (Array.ofFn (id : Fin 13 → Fin 13)).toList
     (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [executeWithShared.c260.lam5.lam0.lam4.costEq P (by includes),
+      rw [executeWithShared.c260.lam5.lam0.lam2.costEq P (by includes),
         cellCount_cost P (by includes), limbs_of_lt (by have := cellCount_le outCells; omega),
         limbs_of_lt (by have := a.isLt; omega)]
       have := cellsOfState_cost P (by includes) (keccakF1600 (stateOfCells input inOdd)) outOdd a
       split_ifs <;> omega)
-  rw [hlen] at ha1 ha2
+  rw [hlen] at ha2
   rw [ofFnFrom_length, Array.size_ofFn]
   cost_facts [guardNext_cost P hP r]
   simp only [Nat.sub_zero] at hid
