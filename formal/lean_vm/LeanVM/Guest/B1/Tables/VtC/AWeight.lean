@@ -91,8 +91,8 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2587
       [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2516])))] (by decide +kernel)
     have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2667
-      [.atom (.const (.n 2612) (word 1 0 0)), .atom (.add (.n 2613) (.n 2612) (.n 2516)),
-        .atom (.const (.n 2614) (word 1 0 0))] (by decide +kernel)
+      [.atom (.const (.n 2612) (word 1 0)), .atom (.add (.n 2613) (.n 2612) (.n 2516)),
+        .atom (.const (.n 2614) (word 1 0))] (by decide +kernel)
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at g1 g2 ⊢
     simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq, and_true] at g1 g2

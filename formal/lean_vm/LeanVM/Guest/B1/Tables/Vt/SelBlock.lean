@@ -40,7 +40,7 @@ theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Op
     (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
       ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
     (hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
-      σ (.n gs) * word gw 0 0 = σ (.n 706) * gen ^ (144 * t))
+      σ (.n gs) * word gw 0 = σ (.n 706) * gen ^ (144 * t))
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
     (hdv : σ (.n (vtShLen t)) = gen ^ d)
     (hrun : RunTables Lm.read (σ (.n 705) * gen ^ (288 * t)) (σ (.n 706) * gen ^ (144 * t)) d

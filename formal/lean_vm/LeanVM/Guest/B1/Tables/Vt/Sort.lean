@@ -47,7 +47,7 @@ theorem vt_choose_fun {α : Type} [Inhabited α] {n : ℕ} {P : ℕ → α → P
   exact ⟨fun r => if hr : r < n then Classical.choose (h r hr) else default,
     fun r hr => by simp only [hr, ↓reduceDIte]; exact Classical.choose_spec (h r hr)⟩
 
-theorem vt_word_small_inj {a b : ℕ} (ha : a < 3) (hb : b < 3) (h : word a 0 0 = word b 0 0) :
+theorem vt_word_small_inj {a b : ℕ} (ha : a < 3) (hb : b < 3) (h : word a 0 = word b 0) :
     a = b := by
   rw [tb_word_eOfNat, tb_word_eOfNat] at h
   exact eOfNat_inj (by omega) (by omega) h
@@ -81,7 +81,7 @@ and size read; the running offset; and, past the first rank, the previous key `g
 this one. -/
 def VtRankFacts (rd : Reader) (σ : Val) (v0 s r : ℕ) : Prop :=
   (∃ e < 24, σ (.n (vtRv v0 r)) = gen ^ e) ∧
-    LoadHolds rd (σ (.n 12) * σ (.n (vtRv v0 r))) 212 (word s 0 0) ∧
+    LoadHolds rd (σ (.n 12) * σ (.n (vtRv v0 r))) 212 (word s 0) ∧
     LoadHolds rd (σ (.n 36) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtRv v0 r + 8))) ∧
     LoadHolds rd (σ (.n 38) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtGin v0 r))) ∧
     LoadHolds rd (σ (.n 37) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtSz v0 r))) ∧
@@ -139,7 +139,7 @@ end
 /-- Block group `gi`'s side, as `exponent_tables` writes it. -/
 def vtGroupSide (gi : ℕ) : ℕ := if gi < 9 then 0 else if gi < 18 then 1 else 2
 
-theorem vt_sideTab_getD : ∀ e < 24, sideTabList.getD e 0 = word (vtGroupSide e) 0 0 := by
+theorem vt_sideTab_getD : ∀ e < 24, sideTabList.getD e 0 = word (vtGroupSide e) 0 := by
   intro e he
   rw [tb_word_eOfNat, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
   simp only [sideTabList, List.getElem_map, List.getElem_range]
@@ -153,7 +153,7 @@ block its `stackOffsets` offset. -/
 theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : List ℕ)
     (hlen : κs.length = n) (st kg grp bv : ℕ → ℕ) (hn : base + n ≤ 153)
     (hfacts : ∀ r < m, VtRankFacts rd σ v0 s r)
-    (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0))
+    (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0))
     (hsideS : ∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) (hs : s < 3)
     (hkey : ∀ j < m, ∃ key, LoadHolds rd (σ (.n 36)) (G0 + j) key ∧
       key * gen ^ (base + st j) = gen ^ (kg j * 254))
@@ -338,7 +338,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
     have s1 := hsq _ (by simp [gSquaresList]; exact hκ34 k hk)
     rw [tb_loadHolds_unique l1' s1]
     simp [gSquaresList]
-  have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0) :=
+  have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0) :=
     fun e he => by
       have := hsd e (by simp [sideTabList]; exact he)
       rw [tb_loadHolds_mul_gen_pow] at this

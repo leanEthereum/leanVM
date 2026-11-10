@@ -53,7 +53,7 @@ theorem vt_readM (hl : args.length = 20) {d p : V} {off : ℕ}
 /-- **Evaluation `k`'s equations**: its high limb, its tag, its two cells. -/
 theorem vtF_evalGood (hl : args.length = 20) {k : ℕ} (hk : k < 159) :
     vtσ rd w args (.n (vtEvB k + 3)) = ofK ((vtσ rd w args (.n (vtEvB k))).limb 2) ∧
-      vtσ rd w args (.n (vtEvB k + 4)) = word dsObserve 0 0 ∧
+      vtσ rd w args (.n (vtEvB k + 4)) = word dsObserve 0 ∧
       vtσ rd w args (.n (vtEvB k + 7)) = fsPackVals (vtσ rd w args (.n (vtEvB k))) dsObserve 6 ∧
       vtσ rd w args (.n (vtEvB k + 9)) =
         fsPackVals (vtσ rd w args (.n (vtEvB k))) dsObserve 8 := by
