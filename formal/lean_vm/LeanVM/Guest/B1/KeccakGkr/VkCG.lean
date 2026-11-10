@@ -92,7 +92,7 @@ variable (D : VkData)
 def lname (_D : VkData) (s : ℕ) : String := layerName (firstOf s)
 
 /-- Where layer `s` reads, past the cursor. -/
-def lcur (s : ℕ) : ℕ := 1 + s * (47 + 2 * (D.τ - 3) + 36)
+def lcur (s : ℕ) : ℕ := 1 + s * (48 + 2 * (D.τ - 3) + 36)
 
 /-- The buffers' sizes. -/
 def sizes : List ℕ := [D.τ - 3, 5, 286, 30, 62, 2, 30]

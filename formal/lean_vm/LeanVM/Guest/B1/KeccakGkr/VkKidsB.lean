@@ -130,8 +130,8 @@ theorem kidsB_sum (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) :
   omega
 
 /-- **Every call is entered: the callees' words are at most the bounds' sum.** -/
-theorem kids_boundB (B curE chiE olE zvE slE KC KP KR KO KI : ℕ) :
-    kidsGBound fs (D.kids fs B curE chiE olE zvE slE) (D.kidsB fs KC KP KR KO KI) ≤
+theorem kids_boundB (B curE chiE olE zvE slE tbE KC KP KR KO KI : ℕ) :
+    kidsGBound fs (D.kids fs B curE chiE olE zvE slE tbE) (D.kidsB fs KC KP KR KO KI) ≤
       (D.kidsB fs KC KP KR KO KI).sum := by
   refine kidsGBound_le_sum _ _ fun k hk ↦ ?_
   simp only [kids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
@@ -142,7 +142,7 @@ theorem kids_boundB (B curE chiE olE zvE slE KC KP KR KO KI : ℕ) :
 at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR` (each
 loop's run and its one phantom frame), the openings' rounds `KO` (`plainName 0`) and `KI`
 (`plainName 1`). -/
-theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC KP KR KO KI : ℕ}
+theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ) {KC KP KR KO KI : ℕ}
     (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
       TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC + fs name)
     (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first) LoopPre
@@ -151,13 +151,14 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
     (hO : TotalLe coreProgram fs (plainName 0) fun _ ↦ KO)
     (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) :
-    KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE) (D.kidsB fs KC KP KR KO KI) := by
+    KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE tbE) (D.kidsB fs KC KP KR KO KI) := by
   have hτ1 := h.1
   have hτ2 := h.2.1
   have hchis := h.2.2.1
   have hord : D.τ - 4 < ordG := by unfold ordG; omega
   have hlin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
-      (zvE + qkeccakVarsCap, D.point), (slE, D.slices)] → (b, ws) ∈ D.lin curE chiE olE zvE slE :=
+      (zvE + qkeccakVarsCap, D.point), (slE, D.slices), (tbE, winTabWords)] →
+      (b, ws) ∈ D.lin curE chiE olE zvE slE tbE :=
     fun h ↦ h
   refine kidsGB_of_zip (by simp [kids, kidsB]) fun kb hkb _ ps ↦ ?_
   rw [kids, kidsB, List.zip_append (by simp), List.zip_append (by simp), List.zip_map'] at hkb
@@ -173,8 +174,8 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       (fun j hj ↦ by rw [zero_add, c0_point_getD h hj]) (by simp) rfl).toFB
   · -- the layers
     have hy := D.layer_y h (k := s) (by omega)
-    obtain ⟨hcl, hcap⟩ := D.layer_cap h hs
-    obtain ⟨hpl, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
+    have hcl := D.layer_cap h hs
+    obtain ⟨hpl, hgr, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
     have hf2 : firstOf s < 2 := by unfold firstOf; split <;> omega
     have H := layer_completeAtFB (fs := fs) (cert := cert) (first := firstOf s)
       hf2 κ (D.layer s)
@@ -188,16 +189,16 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
     simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]
     exact H
   · -- the committed outputs' rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2.1
-    refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE)
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2
+    refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ oMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB
-    · have e : (D.oArgs curE zvE).getD 7 0 = ptr curE * gen ^ D.lcur 12 := by
+    · have e : (D.oArgs curE zvE tbE).getD 7 0 = ptr curE * gen ^ D.lcur 12 := by
         rw [oArgs, hc, ← cL_eq]; rfl
       rw [e]
       exact inR_entry (ws := D.xs) (hlin (by simp))
         (by rw [xs_length h]; simp [plainCount] at hj; omega)
-    · have e : (D.oArgs curE zvE).getD 9 0 = ptr zvE * gen ^ D.τ := by rw [oArgs, hc]; rfl
+    · have e : (D.oArgs curE zvE tbE).getD 9 0 = ptr zvE * gen ^ D.τ := by rw [oArgs, hc]; rfl
       rw [e]
       exact inR_entry (ws := D.op) (hlin (by simp))
         (by rw [op_length h]; simp [plainCount] at hj; omega)
@@ -211,11 +212,11 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
     rw [zero_add, c0_point_getD h hj, op_eq, List.take_append_drop,
       List.getD_append _ _ _ _ (by rw [inst_length h]; omega), inst_getD h (by omega)]
   · -- the inputs' rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2.1
-    refine (plain_completeB (k0 := 1) (by norm_num) hI κ (L := D.lin curE chiE olE zvE slE)
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2
+    refine (plain_completeB (k0 := 1) (by norm_num) hI κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun _ ↦ ⟨D.word, by rw [iArgs, hc]; rfl⟩) (fun rd hm ↦ iMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB
-    · have e : (D.iArgs curE zvE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 13) := by
+    · have e : (D.iArgs curE zvE tbE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 13) := by
         rw [iArgs, hc]
         show D.cL curE * gen ^ (2 * 6) * gen = _
         rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen]
@@ -223,7 +224,7 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       rw [e]
       exact inR_entry (ws := D.xs) (hlin (by simp))
         (by rw [xs_length h]; simp [plainCount] at hj; omega)
-    · have e : (D.iArgs curE zvE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ 0 := by
+    · have e : (D.iArgs curE zvE tbE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ 0 := by
         rw [iArgs, hc]
         show ptr zvE * gen ^ 39 = _
         rw [ptr_mul_gen, ptr_mul_gen]
@@ -231,11 +232,11 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       exact inR_entry (ws := D.point) (hlin (by simp))
         (by rw [point_length h]; simp [plainCount] at hj; omega)
   · -- the inputs' opening's rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2.1
-    refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE)
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2
+    refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ sMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB
-    · have e : (D.sArgs curE zvE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 21) := by
+    · have e : (D.sArgs curE zvE tbE).getD 7 0 = ptr curE * gen ^ (D.lcur 12 + 21) := by
         rw [sArgs, hc]
         show D.cL curE * gen ^ (2 * 6) * gen * gen ^ (2 * 4) = _
         rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen, ptr_mul_gen]
@@ -243,7 +244,7 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
       rw [e]
       exact inR_entry (ws := D.xs) (hlin (by simp))
         (by rw [xs_length h]; simp [plainCount] at hj; omega)
-    · have e : (D.sArgs curE zvE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ D.τ := by
+    · have e : (D.sArgs curE zvE tbE).getD 9 0 = ptr (zvE + qkeccakVarsCap) * gen ^ D.τ := by
         rw [sArgs, hc]
         show ptr zvE * gen ^ 39 * gen ^ D.τ = _
         rw [ptr_mul_gen]
