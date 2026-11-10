@@ -187,12 +187,21 @@ def measure (t : MachineState) : Nat := (t.getReg .x9).toNat - (t.getReg .x11).t
 
 def Done (s t : MachineState) : Prop := ExitInv s t ∨ Dead Image.code t
 
-set_option maxHeartbeats 4000000 in
-theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : IndexMlePre s)
-    (t : MachineState) (hinv : ∃ k, LoopInv s t k) :
-    (∃ u, Reaches Image.code t u ∧ Done s u) ∨
-      (∃ u, Reaches Image.code t u ∧ (∃ k, LoopInv s u k) ∧ measure u < measure t) := by
-  obtain ⟨k, ht⟩ := hinv
+/-- After `mul`'s second return: the new result at `S - 56`, `g` untouched. -/
+structure Mid2 (s t x : MachineState) (k : Nat) (pC : Word) : Prop where
+  pc : x.pc = 0x80010dac
+  sp : x.getReg .x2 = s.getReg .x2 - 160
+  frame : MemFrame t x (locals s) localsSize
+  regs : ∀ r ∈ [Reg.x8, .x9, .x19, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27],
+    x.getReg r = t.getReg r
+  x18 : x.getReg .x18 = pC + 24
+  res : eAt x (s.getReg .x2 - 56) = (st s k).1 * (1 + eAt s pC * (1 + (st s k).2))
+  gp : eAt x (s.getReg .x2 - 128) = (st s k).2
+
+theorem body_a (hMul : MulSpec) {s : MachineState} (hpre : IndexMlePre s) {t : MachineState}
+    {k : Nat} (ht : LoopInv s t k) :
+    ∃ x, Reaches Image.code t x ∧
+      (Dead Image.code x ∨ Mid2 s t x k (s.getReg .x11 + BitVec.ofNat 64 (24 * k))) := by
   have hsp := sp_bounds hpre
   have hk := ht.lt
   have hP := ValidMemRange.bounds hpre.point (by simp only [len] at hk; omega)
@@ -239,7 +248,7 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
     stackRodata := by addr_omega [hsp, hu2, hpre.stackRodata] }
   obtain ⟨v, hr₂, ⟨hvpc, hpres₁, hpost₁⟩ | hdead⟩ := hMul.call hr₁ (b80010d4c_pc h₁) hpre₁
   swap
-  · exact Or.inl ⟨v, hr₂, Or.inr hdead⟩
+  · exact ⟨v, hr₂, Or.inl hdead⟩
   have hv2 : v.getReg .x2 = s.getReg .x2 - 160 := (hpres₁.reg .x2).trans hu2
   have hprod₁ := hpost₁.value
   rw [hu10, hu11, hu12, e₁, hu pC (by addr_omega [hpC, hk, hP, hps, hsp])
@@ -293,13 +302,45 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
     stackRodata := by addr_omega [hsp, hw2, hpre.stackRodata] }
   obtain ⟨x, hr₄, ⟨hxpc, hpres₂, hpost₂⟩ | hdead⟩ := hMul.call hr₃ (b80010d7c_pc h₃) hpre₂
   swap
-  · exact Or.inl ⟨x, hr₂.trans hr₄, Or.inr hdead⟩
+  · exact ⟨x, hr₂.trans hr₄, Or.inl hdead⟩
   have hx2 : x.getReg .x2 = s.getReg .x2 - 160 := (hpres₂.reg .x2).trans hw2
   have hprod₂ := hpost₂.value
   rw [hw10, hw11, hw12, e₃, eres] at hprod₂
-  -- the product to `result`, then `E::square(g)` into `S - 56`
-  obtain ⟨y, hr₅, h₅⟩ := Sym.BlockSpec.reaches b80010dac_spec
-    (by rw [hxpc, returnAddress_eq, b80010d7c_x1 h₃]; decide +kernel) (by
+  rw [hpC] at hu18 hprod₂
+  refine ⟨x, hr₂.trans hr₄, Or.inr {
+    pc := by rw [hxpc, returnAddress_eq, b80010d7c_x1 h₃]; decide +kernel
+    sp := hx2
+    frame := (((hm₁.mono fun a ha ↦ by addr_omega [ha, hsp]).trans
+      (MemFrame.of_two hpost₁.frame (fun a ha ↦ by rw [hu10] at ha; addr_omega [ha, hsp])
+        (fun a ha ↦ by addr_omega [ha, hsp, hu2])) fun _ h ↦ h).trans hm₃
+      fun a ha ↦ by addr_omega [ha, hsp]).trans
+      (MemFrame.of_two hpost₂.frame (fun a ha ↦ by rw [hw10] at ha; addr_omega [ha, hsp])
+        (fun a ha ↦ by addr_omega [ha, hsp, hw2])) fun _ h ↦ h
+    regs := fun r hr ↦ by
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
+      rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+        exact (hpres₂ _ (by decide)).trans ((k₃ _ (by decide)).trans
+          ((hpres₁ _ (by decide)).trans (k₁ _ (by decide))))
+    x18 := by rw [hpres₂.reg .x18, k₃ .x18 (by decide), hpres₁.reg .x18, hu18]
+    res := hprod₂
+    gp := by
+      rw [mul_eAt hpost₂ (by rw [hw10]; addr_omega [hsp]) (by addr_omega [hsp, hw2])
+        (by addr_omega [hsp]), egp] }⟩
+
+theorem body_b (hSq : ESquareSpec) {s : MachineState} (hpre : IndexMlePre s)
+    {t x : MachineState} {k : Nat} (ht : LoopInv s t k) (hr₄ : Reaches Image.code t x)
+    (hx : Mid2 s t x k (s.getReg .x11 + BitVec.ofNat 64 (24 * k))) :
+    (∃ u, Reaches Image.code t u ∧ Done s u) ∨
+      (∃ u, Reaches Image.code t u ∧ (∃ k, LoopInv s u k) ∧ measure u < measure t) := by
+  have hsp := sp_bounds hpre
+  have hk := ht.lt
+  have hP := ValidMemRange.bounds hpre.point (by simp only [len] at hk; omega)
+  have hval := hpre.stack.valid
+  obtain ⟨pC, hpC⟩ : ∃ p, p = s.getReg .x11 + BitVec.ofNat 64 (24 * k) := ⟨_, rfl⟩
+  rw [← hpC] at hx
+  have hx11 : t.getReg .x11 = pC := by rw [ht.x11, hpC]
+  have hx2 := hx.sp
+  obtain ⟨y, hr₅, h₅⟩ := Sym.BlockSpec.reaches b80010dac_spec hx.pc (by
       rv_eval [hx2]
       and_intros <;> valid_access hval [hsp])
   have k₅ := b80010dac_keeps h₅
@@ -312,21 +353,18 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
   have hm₅ := b80010dac_frame h₅ (by rw [hx2]; addr_omega [hsp])
   rv_eval [hx2] at hy10 hy11 c₀ c₁ c₂ hm₅
   have eres' : eAt y (s.getReg .x2 - 152) = (st s k).1 * (1 + eAt s pC * (1 + (st s k).2)) := by
-    rw [← hprod₂]; unfold eAt; rw [c₀]; rv_eval [c₁, c₂]
+    rw [← hx.res]; unfold eAt; rw [c₀]; rv_eval [c₁, c₂]
   have egp' : eAt y (s.getReg .x2 - 128) = (st s k).2 := by
-    rw [hm₅.eAt (by addr_omega [hsp]) (by addr_omega [hsp]),
-      mul_eAt hpost₂ (by rw [hw10]; addr_omega [hsp]) (by addr_omega [hsp, hw2])
-        (by addr_omega [hsp]), egp]
+    rw [hm₅.eAt (by addr_omega [hsp]) (by addr_omega [hsp]), hx.gp]
   obtain ⟨z, hr₆, ⟨hzpc, hpres₃, hpost₃⟩ | hdead⟩ := hSq.call hr₅ (b80010dac_pc h₅)
     ⟨by rw [hy10]; valid_sub hval [hsp], by rw [hy11]; valid_sub hval [hsp]⟩
   swap
-  · exact Or.inl ⟨z, hr₂.trans (hr₄.trans hr₆), Or.inr hdead⟩
+  · exact Or.inl ⟨z, hr₄.trans hr₆, Or.inr hdead⟩
   have hz2 : z.getReg .x2 = s.getReg .x2 - 160 := (hpres₃.reg .x2).trans hy2
   have hsq := hpost₃.value
   rw [hy10, hy11, egp'] at hsq
   have hm₆ := hpost₃.frame
   rw [hy10] at hm₆
-  -- the square to `g`, the next challenge
   obtain ⟨z', hr₇, h₇⟩ := Sym.BlockSpec.reaches b80010dd4_spec
     (by rw [hzpc, returnAddress_eq, b80010dac_x1 h₅]; decide +kernel) (by
       rv_eval [hz2]
@@ -340,28 +378,22 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
   have hnext : st s (k + 1) = ((st s k).1 * (1 + eAt s pC * (1 + (st s k).2)),
       (st s k).2 * (st s k).2) := by
     rw [st_succ hk, ← hpC, step, sq]
-  -- memory: everything since `t` within the locals
   have hall : MemFrame t z' (locals s) localsSize :=
-    ((((((hm₁.mono fun a ha ↦ by addr_omega [ha, hsp]).trans
-      (MemFrame.of_two hpost₁.frame (fun a ha ↦ by rw [hu10] at ha; addr_omega [ha, hsp])
-        (fun a ha ↦ by addr_omega [ha, hsp, hu2])) fun _ h ↦ h).trans hm₃
-      fun a ha ↦ by addr_omega [ha, hsp]).trans
-      (MemFrame.of_two hpost₂.frame (fun a ha ↦ by rw [hw10] at ha; addr_omega [ha, hsp])
-        (fun a ha ↦ by addr_omega [ha, hsp, hw2])) fun _ h ↦ h).trans hm₅
-      fun a ha ↦ by addr_omega [ha, hsp]).trans hm₆ fun a ha ↦ by addr_omega [ha, hsp]).trans hm₇
-      fun a ha ↦ by addr_omega [ha, hsp]
+    (((hx.frame.trans hm₅ fun a ha ↦ by addr_omega [ha, hsp]).trans hm₆
+      fun a ha ↦ by addr_omega [ha, hsp]).trans hm₇ fun a ha ↦ by addr_omega [ha, hsp])
   have hold (a : Word) (ha₁ : (s.getReg .x2).toNat - 32 ≤ a.toNat)
       (ha₂ : a.toNat < (s.getReg .x2).toNat) : z'.getMem a = t.getMem a :=
     hall a (by addr_omega [ha₁, ha₂, hsp])
-  have regs (r : Reg) (hr : r ∈ [Reg.x2, .x8, .x9, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25,
-      .x26, .x27]) : z'.getReg r = u.getReg r := by
-    have hc : r ∈ calleeSaved := by unfold calleeSaved; exact Runtime.mem_of_mem hr _
-    rw [k₇ r (Runtime.mem_of_mem hr _), hpres₃ r hc, k₅ r (Runtime.mem_of_mem hr _), hpres₂ r hc,
-      k₃ r (Runtime.mem_of_mem hr _), hpres₁ r hc]
+  have regz (r : Reg) (hr : r ∈ [Reg.x8, .x9, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25,
+      .x26, .x27]) : z'.getReg r = x.getReg r := by
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
+    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      exact (k₇ _ (by decide)).trans ((hpres₃ _ (by decide)).trans (k₅ _ (by decide)))
   have hf : FrameInv s z' := {
-    sp := by rw [regs .x2 (by decide), hu2]
-    ret := by rw [regs .x8 (by decide), k₁ .x8 (by decide), ht.ret]
-    kept := fun r hr ↦ by rw [regs r (mem_of_kept hr _), k₁ r (mem_of_kept hr _), ht.kept r hr]
+    sp := by rw [k₇ .x2 (by decide), hz2]
+    ret := by rw [regz .x8 (by decide), hx.regs .x8 (by decide), ht.ret]
+    kept := fun r hr ↦ by
+      rw [regz r (mem_of_kept hr _), hx.regs r (mem_of_kept hr _), ht.kept r hr]
     ra := (hold _ (by addr_omega [hsp]) (by addr_omega [hsp])).trans ht.ra
     s0 := (hold _ (by addr_omega [hsp]) (by addr_omega [hsp])).trans ht.s0
     s1 := (hold _ (by addr_omega [hsp]) (by addr_omega [hsp])).trans ht.s1
@@ -372,21 +404,18 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
       hm₆.eAt (by addr_omega [hsp]) (by addr_omega [hsp]), eres']
   have hgp : eAt z' (s.getReg .x2 - 128) = (st s (k + 1)).2 := by
     rw [hnext, ← hsq]; unfold eAt; rw [d₀]; rv_eval [d₁, d₂]
-  have hz18 : z'.getReg .x18 = pC + 24 := by rw [regs .x18 (by decide), hu18]
+  have hzx18 : z.getReg .x18 = pC + 24 := by
+    rw [hpres₃.reg .x18, k₅ .x18 (by decide), hx.x18]
+  have hzx9 : z.getReg .x9 = s.getReg .x11 + BitVec.ofNat 64 (24 * len s) := by
+    rw [hpres₃.reg .x9, k₅ .x9 (by decide), hx.regs .x9 (by decide), ht.x9]
   have hz9 : z'.getReg .x9 = s.getReg .x11 + BitVec.ofNat 64 (24 * len s) := by
-    rw [regs .x9 (by decide), k₁ .x9 (by decide), ht.x9]
-  have hz11 : z'.getReg .x11 = pC + 24 := by
-    rw [b80010dd4_x11 h₇, hpres₃.reg .x18, k₅ .x18 (by decide), hpres₂.reg .x18,
-      k₃ .x18 (by decide), hpres₁.reg .x18, hu18]
-  have hreach := hr₂.trans (hr₄.trans (hr₆.trans hr₇))
+    rw [k₇ .x9 (by decide), hzx9]
+  have hz11 : z'.getReg .x11 = pC + 24 := by rw [b80010dd4_x11 h₇, hzx18]
+  have hreach := hr₄.trans (hr₆.trans hr₇)
   by_cases hlast : k + 1 = len s
   · refine Or.inl ⟨z', hreach, Or.inl {
       toFrameInv := hf
-      pc := b80010dd4_pc_not_taken h₇ (by
-        rw [hpres₃.reg .x18, k₅ .x18 (by decide), hpres₂.reg .x18, k₃ .x18 (by decide),
-          hpres₁.reg .x18, hu18, hpres₃.reg .x9, k₅ .x9 (by decide), hpres₂.reg .x9,
-          k₃ .x9 (by decide), hpres₁.reg .x9, k₁ .x9 (by decide), ht.x9]
-        addr_omega [hpC, hlast, hP])
+      pc := b80010dd4_pc_not_taken h₇ (by rw [hzx18, hzx9]; addr_omega [hpC, hlast, hP])
       res := by rw [hres, hlast, st_len] }⟩
   · have hk1 : k + 1 < len s := by omega
     refine Or.inr ⟨z', hreach, ⟨k + 1, {
@@ -394,16 +423,21 @@ theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : Ind
       res := hres
       gp := hgp
       lt := hk1
-      pc := b80010dd4_pc_taken h₇ (by
-        rw [hpres₃.reg .x18, k₅ .x18 (by decide), hpres₂.reg .x18, k₃ .x18 (by decide),
-          hpres₁.reg .x18, hu18, hpres₃.reg .x9, k₅ .x9 (by decide), hpres₂.reg .x9,
-          k₃ .x9 (by decide), hpres₁.reg .x9, k₁ .x9 (by decide), ht.x9]
-        addr_omega [hpC, hk1, hP])
+      pc := b80010dd4_pc_taken h₇ (by rw [hzx18, hzx9]; addr_omega [hpC, hk1, hP])
       x11 := by rw [hz11]; addr_omega [hpC, hk1, hP]
       x9 := hz9 }⟩, ?_⟩
     simp only [measure]
     rw [hz9, hz11, ht.x9, hx11]
     addr_omega [hpC, hk1, hP]
+
+theorem body (hMul : MulSpec) (hSq : ESquareSpec) {s : MachineState} (hpre : IndexMlePre s)
+    (t : MachineState) (hinv : ∃ k, LoopInv s t k) :
+    (∃ u, Reaches Image.code t u ∧ Done s u) ∨
+      (∃ u, Reaches Image.code t u ∧ (∃ k, LoopInv s u k) ∧ measure u < measure t) := by
+  obtain ⟨k, ht⟩ := hinv
+  obtain ⟨x, hr, hx | hx⟩ := body_a hMul hpre ht
+  · exact Or.inl ⟨x, hr, Or.inr hx⟩
+  · exact body_b hSq hpre ht hr hx
 
 /-! ## The epilogue -/
 

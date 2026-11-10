@@ -175,4 +175,30 @@ theorem eListAt_drop (s : MachineState) (p : Word) (n v : Nat) :
   congr 2
   ring
 
+/-- A doubleword frame: what lies outside `X`, unaligned or with its bytes outside, is kept. -/
+def DwFrame (u v : MachineState) (X : Word → Prop) : Prop :=
+  ∀ a, ¬ X a → (a.toNat % 8 ≠ 0 ∨ ∀ i < 8, ¬ X (a + BitVec.ofNat 64 i)) → v.getMem a = u.getMem a
+
+theorem DwFrame.of_two {u v : MachineState} {lo₁ lo₂ : Word} {n₁ n₂ : Nat}
+    (h : ∀ a, ¬ Within a lo₁ n₁ → ¬ Within a lo₂ n₂ → v.getMem a = u.getMem a) :
+    DwFrame u v fun a ↦ Within a lo₁ n₁ ∨ Within a lo₂ n₂ :=
+  fun a ha _ ↦ h a (fun h' ↦ ha (Or.inl h')) fun h' ↦ ha (Or.inr h')
+
+theorem DwFrame.of_mem {u v : MachineState} {lo : Word} {n : Nat} (h : MemFrame u v lo n) :
+    DwFrame u v (Within · lo n) :=
+  fun a ha _ ↦ h a ha
+
+theorem DwFrame.of_byte {u v : MachineState} {X : Word → Prop} (h : Runtime.ByteFrame u v X) :
+    DwFrame u v X := by
+  intro a _ hb
+  by_cases h8 : a.toNat % 8 = 0
+  · rcases hb with hb | hb
+    · exact absurd h8 hb
+    · exact h.getMem hb
+  · exact h.unaligned a h8
+
+theorem DwFrame.same {u v : MachineState} (h : ∀ a, v.getMem a = u.getMem a) (X : Word → Prop) :
+    DwFrame u v X :=
+  fun a _ _ ↦ h a
+
 end Rv64Verifier.MultilinearWords

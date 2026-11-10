@@ -6,14 +6,16 @@ import Rv64Verifier.Proofs.Multilinear.SelectorPoint
 import Rv64Verifier.Proofs.Multilinear.EqAbove
 import Rv64Verifier.Proofs.Multilinear.FromElem
 import Rv64Verifier.Proofs.Multilinear.Powers
+import Rv64Verifier.Proofs.Multilinear.ScalerNew
+import Rv64Verifier.Proofs.Multilinear.Frames
+import Rv64Verifier.Proofs.Multilinear.SpecExtend
 import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Proofs.Runtime.All
 
 /-!
 # The multilinear helpers' contracts, their callees' discharged
 
-Each `Proofs/Multilinear` contract with its callees' contracts proved, down to `memcpy`'s
-(`Runtime/All.lean` leaves its shifting path open), which `clone` takes as a hypothesis.
+Each `Proofs/Multilinear` contract with its callees' contracts proved.
 -/
 
 namespace Rv64Verifier.Proofs.Multilinear
@@ -26,10 +28,12 @@ theorem selectorPoint : SelectorSpec := SelectorPoint.selector_point_spec tryAll
 theorem eqAbove : EqAboveSpec := EqAbove.eq_above_spec selectorPoint EqEval.eq_eval_proved
 theorem fromElem : FromElemSpec := FromElem.from_elem_spec tryAllocZeroed
 theorem powers : PowersSpec := Powers.powers_spec tryAllocZeroed Field.mul
+theorem scalerNew : ScalerSpec := ScalerNew.scaler_new_spec fromElem
 
-/-- `clone`, given `memcpy`'s contract. -/
-theorem clone (hC : MemcpySpec 0x80011ff8) : CloneSpec :=
-  Clone.clone_spec tryAllocZeroed (Wrap.memcpy_wrap hC)
+theorem clone : CloneSpec := Clone.clone_spec tryAllocZeroed Runtime.memcpy
+
+/-- `spec_extend` with room enough. -/
+theorem specExtend : ExtendSpec := SpecExtend.extend_spec Runtime.memcpy
 
 end Rv64Verifier.Proofs.Multilinear
 
@@ -56,5 +60,11 @@ end Rv64Verifier.Proofs.Multilinear
 /-- info: 'Rv64Verifier.Proofs.Multilinear.powers' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.powers
 
+/-- info: 'Rv64Verifier.Proofs.Multilinear.scalerNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.scalerNew
+
 /-- info: 'Rv64Verifier.Proofs.Multilinear.clone' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.clone
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.specExtend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.specExtend

@@ -40,32 +40,6 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
   Within a (s.getReg .x10) 24 ∨ Within a (stackLo s powersStack) powersStack ∨
     Within a nextAddr 8 ∨ (heapNext s ≤ a.toNat ∧ a.toNat < nx.toNat)
 
-/-- A doubleword frame: what lies outside `X`, unaligned or with its bytes outside, is kept. -/
-def DwFrame (u v : MachineState) (X : Word → Prop) : Prop :=
-  ∀ a, ¬ X a → (a.toNat % 8 ≠ 0 ∨ ∀ i < 8, ¬ X (a + BitVec.ofNat 64 i)) → v.getMem a = u.getMem a
-
-theorem DwFrame.of_two {u v : MachineState} {lo₁ lo₂ : Word} {n₁ n₂ : Nat}
-    (h : ∀ a, ¬ Within a lo₁ n₁ → ¬ Within a lo₂ n₂ → v.getMem a = u.getMem a) :
-    DwFrame u v fun a ↦ Within a lo₁ n₁ ∨ Within a lo₂ n₂ :=
-  fun a ha _ ↦ h a (fun h' ↦ ha (Or.inl h')) fun h' ↦ ha (Or.inr h')
-
-theorem DwFrame.of_mem {u v : MachineState} {lo : Word} {n : Nat} (h : MemFrame u v lo n) :
-    DwFrame u v (Within · lo n) :=
-  fun a ha _ ↦ h a ha
-
-theorem DwFrame.of_byte {u v : MachineState} {X : Word → Prop} (h : ByteFrame u v X) :
-    DwFrame u v X := by
-  intro a _ hb
-  by_cases h8 : a.toNat % 8 = 0
-  · rcases hb with hb | hb
-    · exact absurd h8 hb
-    · exact h.getMem hb
-  · exact h.unaligned a h8
-
-theorem DwFrame.same {u v : MachineState} (h : ∀ a, v.getMem a = u.getMem a) (X : Word → Prop) :
-    DwFrame u v X :=
-  fun a _ _ ↦ h a
-
 def keptRegs : List Reg := [.x23, .x24, .x25, .x26, .x27]
 
 structure Inv (s u : MachineState) (nx : Word) : Prop where
@@ -244,6 +218,41 @@ theorem Inv.same {s u v : MachineState} {nx : Word} (hpre : PowersPre s) (h : In
   h.step hpre (DwFrame.same hm fun _ ↦ False) (fun _ h ↦ h.elim) (fun _ h ↦ h.elim)
     ((hm _).trans h.next) (Nat.le_refl _) h.fits fun r hr ↦ hk r (hl r hr)
 
+/-- The end of an iteration: the loop head again, or the epilogue. -/
+theorem body_tail {s u w w' : MachineState} {nx P : Word} {k : Nat}
+    (hu : LoopInv s u nx P k) (hr : Reaches Image.code u w') (h₄ : b80007ebc.Holds w w')
+    (hmid : Mid s w' P) (inv₄ : Inv s w' nx) (hx9 : w.getReg .x9 = s.getReg .x12)
+    (hx22 : w.getReg .x22 = BitVec.ofNat 64 (k + 1))
+    (hx21 : w.getReg .x21 = BitVec.ofNat 64 (24 * k))
+    (hlen : w'.getMem (s.getReg .x2 - 120) = BitVec.ofNat 64 (k + 1))
+    (hpw : eAt w' (s.getReg .x2 - 112) = eAt s (s.getReg .x11) ^ (k + 1))
+    (hel : ∀ j < k + 1, eAt w' (P + BitVec.ofNat 64 (24 * j)) = eAt s (s.getReg .x11) ^ j)
+    (hbound : 24 * (s.getReg .x12).toNat < 2 ^ 32) :
+    (∃ v, Reaches Image.code u v ∧ Done s v nx P) ∨
+      (∃ v, Reaches Image.code u v ∧ (∃ k, LoopInv s v nx P k) ∧ measure v < measure u) := by
+  have hk := hu.lt
+  have k₄ := b80007ebc_keeps h₄
+  by_cases hlast : k + 1 = (s.getReg .x12).toNat
+  · refine Or.inl ⟨w', hr, Or.inl {
+      toMid := hmid
+      inv := inv₄
+      pc := b80007ebc_pc_taken h₄ (by rw [hx9, hx22]; addr_omega [hlast])
+      len := by rw [hlen]; addr_omega [hlast]
+      elems := fun j hj ↦ hel j (by omega) }⟩
+  · refine Or.inr ⟨w', hr, ⟨k + 1, {
+      toMid := hmid
+      inv := inv₄
+      pc := b80007ebc_pc_not_taken h₄ (by rw [hx9, hx22]; addr_omega [hlast, hk, hbound])
+      lt := by omega
+      x21 := by rw [b80007ebc_x21 h₄, hx21]; addr_omega [hk, hbound]
+      x22 := (k₄ .x22 (by decide)).trans hx22
+      len := hlen
+      power := hpw
+      elems := hel }⟩, ?_⟩
+    simp only [measure]
+    rw [hmid.x9, k₄ .x22 (by decide), hx22, hu.x9, hu.x22]
+    addr_omega [hk, hbound]
+
 theorem body (hMul : MulSpec) {s : MachineState} (hpre : PowersPre s) {nx P : Word}
     (hP : BufOk s P nx) (u : MachineState) (hinv : ∃ k, LoopInv s u nx P k) :
     (∃ v, Reaches Image.code u v ∧ Done s v nx P) ∨
@@ -420,28 +429,9 @@ theorem body (hMul : MulSpec) {s : MachineState} (hpre : PowersPre s) {nx P : Wo
     rw [hpres₃.reg .x22, b80007e84_x22 h₂, hx22₁]; addr_omega [hk, hPr, hPf]
   have hx9 : w.getReg .x9 = s.getReg .x12 := by
     rw [hpres₃.reg .x9, hreg' .x9 (by decide), hu.x9]
-  by_cases hlast : k + 1 = (s.getReg .x12).toNat
-  · refine Or.inl ⟨w', hr₁.trans (hr₃.trans hr₄), Or.inl {
-      toMid := hmid
-      inv := inv₄
-      pc := b80007ebc_pc_taken h₄ (by rw [hx9, hx22]; addr_omega [hlast])
-      len := by rw [hlen]; addr_omega [hlast]
-      elems := fun j hj ↦ hel j (by omega) }⟩
-  · refine Or.inr ⟨w', hr₁.trans (hr₃.trans hr₄), ⟨k + 1, {
-      toMid := hmid
-      inv := inv₄
-      pc := b80007ebc_pc_not_taken h₄ (by rw [hx9, hx22]; addr_omega [hlast, hk])
-      lt := by omega
-      x21 := by
-        rw [b80007ebc_x21 h₄, hpres₃.reg .x21, k₂ .x21 (by decide), hx21₁]
-        addr_omega [hk, hPr, hPf]
-      x22 := (k₄ .x22 (by decide)).trans hx22
-      len := hlen
-      power := hpw
-      elems := hel }⟩, ?_⟩
-    simp only [measure]
-    rw [hmid.x9, k₄ .x22 (by decide), hx22, hu.x9, hu.x22]
-    addr_omega [hk]
+  exact body_tail hu (hr₁.trans (hr₃.trans hr₄)) h₄ hmid inv₄ hx9 hx22
+    (by rw [hpres₃.reg .x21, k₂ .x21 (by decide), hx21₁]) hlen hpw hel
+    (by have := hPr.2; have := hPf; simp only [heapEnd] at *; omega)
 
 /-! ## The epilogue -/
 

@@ -281,4 +281,88 @@ structure PowersPost (s t : MachineState) : Prop where
 
 abbrev PowersSpec : Prop := FunSpec Image.code 0x80007dfc PowersPre PowersPost
 
+/-! ## `Scaler::new`, at `0x80008a58` -/
+
+/-- `Scaler::new`'s 112-byte frame and `from_elem`'s stack below it. -/
+@[rv_addr] def scalerStack : Nat := 112 + fromElemStack
+
+/-- `a0` = the result (a tag and a `Vec` or an `E`, 32 bytes), `a1` = `r` (by reference),
+`a2` = `uses`. -/
+structure ScalerPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : ValidMemRange (s.getReg .x10) 4
+  r : ValidMemRange (s.getReg .x11) 3
+  stack : Runtime.RtStack s scalerStack
+  outFree : Runtime.Outside s (s.getReg .x10) 32
+  outStack : Apart (s.getReg .x10) 32 (stackLo s scalerStack) scalerStack
+  rFree : Runtime.Outside s (s.getReg .x11) 24
+  rStack : Apart (s.getReg .x11) 24 (stackLo s scalerStack) scalerStack
+  rOut : Apart (s.getReg .x11) 24 (s.getReg .x10) 32
+  rodata : RodataOk s
+
+/-- Under `256` uses `Plain(r)` (tag `1`); from `256` on `Table`, the `Vec` of `Scaled::new(r)`
+(tag `0`), its buffer freshly allocated. -/
+structure ScalerPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  plain : (s.getReg .x12).toNat < 256 →
+    t.getMem (s.getReg .x10) = 1 ∧ eAt t (s.getReg .x10 + 8) = eAt s (s.getReg .x11)
+  table : 256 ≤ (s.getReg .x12).toNat → t.getMem (s.getReg .x10) = 0 ∧
+    Runtime.VecOk t (s.getReg .x10 + 8) 24 8 ∧ Runtime.vecLen t (s.getReg .x10 + 8) = 2112 ∧
+    (Runtime.vecEs t (s.getReg .x10 + 8)).map Model.limbs =
+      Model.scaledTable (Model.limbs (eAt s (s.getReg .x11))) ∧
+    Runtime.NewBuf s t (Runtime.vecPtr t (s.getReg .x10 + 8)) (24 * 2112) 8
+  frame : Runtime.ByteFrame s t fun a ↦ Within a (s.getReg .x10) 32 ∨
+    Within a (stackLo s scalerStack) scalerStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev ScalerSpec : Prop := FunSpec Image.code 0x80008a58 ScalerPre ScalerPost
+
+/-! ## `<Vec<E> as SpecExtend<&E, slice::Iter<E>>>::spec_extend`, at `0x8000e520`, with room
+enough -/
+
+/-- `spec_extend`'s 48-byte frame and `memcpy`'s stack below it. -/
+@[rv_addr] def extendStack : Nat := 48 + Runtime.memcpyStack
+
+/-- The slice's length, `(a2 - a1) / 24`. -/
+def extendLen (s : MachineState) : Nat := ((s.getReg .x12).toNat - (s.getReg .x11).toNat) / 24
+
+/-- Where the new elements go: past the `Vec`'s length. -/
+def extendDst (s : MachineState) : Word :=
+  Runtime.vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (24 * (Runtime.vecLen s (s.getReg .x10)).toNat)
+
+/-- `a0` = the `Vec` (with room for the slice), `a1`..`a2` = the slice: mapped and aligned, the
+slice, the `Vec` and its free capacity apart from each other and from the stack. -/
+structure ExtendPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  vec : ValidMemRange (s.getReg .x10) 3
+  ok : Runtime.VecOk s (s.getReg .x10) 24 8
+  room : (Runtime.vecLen s (s.getReg .x10)).toNat + extendLen s ≤
+    (Runtime.vecCap s (s.getReg .x10)).toNat
+  bounds : (s.getReg .x11).toNat ≤ (s.getReg .x12).toNat
+  whole : ((s.getReg .x12).toNat - (s.getReg .x11).toNat) % 24 = 0
+  src : Runtime.Mapped (s.getReg .x11) (24 * extendLen s)
+  srcAlign : (s.getReg .x11).toNat % 8 = 0
+  stack : Runtime.RtStack s extendStack
+  vecStack : Apart (s.getReg .x10) 24 (stackLo s extendStack) extendStack
+  vecHeap : Runtime.Outside s (s.getReg .x10) 24
+  srcStack : Apart (s.getReg .x11) (24 * extendLen s) (stackLo s extendStack) extendStack
+  srcVec : Apart (s.getReg .x11) (24 * extendLen s) (s.getReg .x10) 24
+  srcDst : Apart (s.getReg .x11) (24 * extendLen s) (extendDst s) (24 * extendLen s)
+  dstVec : Apart (extendDst s) (24 * extendLen s) (s.getReg .x10) 24
+
+/-- The slice's elements appended: the length grown, the capacity and buffer kept, the new
+elements the slice's; memory changes only in the length, the new elements and the stack. -/
+structure ExtendPost (s t : MachineState) : Prop where
+  len : (Runtime.vecLen t (s.getReg .x10)).toNat =
+    (Runtime.vecLen s (s.getReg .x10)).toNat + extendLen s
+  cap : Runtime.vecCap t (s.getReg .x10) = Runtime.vecCap s (s.getReg .x10)
+  ptr : Runtime.vecPtr t (s.getReg .x10) = Runtime.vecPtr s (s.getReg .x10)
+  new : eListAt t (extendDst s) (extendLen s) = eListAt s (s.getReg .x11) (extendLen s)
+  next : Runtime.heapNext t = Runtime.heapNext s
+  frame : Runtime.ByteFrame s t fun a ↦ Within a (s.getReg .x10 + 16) 8 ∨
+    Within a (extendDst s) (24 * extendLen s) ∨ Within a (stackLo s extendStack) extendStack
+
+abbrev ExtendSpec : Prop := FunSpec Image.code 0x8000e520 ExtendPre ExtendPost
+
 end Rv64Verifier.MultilinearContracts
