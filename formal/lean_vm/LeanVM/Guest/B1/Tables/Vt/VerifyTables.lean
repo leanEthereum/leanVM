@@ -79,7 +79,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [this]
     simp [vtTauList]
   rw [hds] at hdims
-  have hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
+  have hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
     obtain ⟨k0, kl⟩ := vt_kb h
     intro i hi
     rcases i with _ | i
