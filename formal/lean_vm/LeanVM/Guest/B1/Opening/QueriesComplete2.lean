@@ -97,7 +97,7 @@ theorem oqBs_eq {kL k : ℕ} (hk : 1 ≤ k) : oqBs kL k = kL + (13 + (k - 1) * 2
 /-- **The leaf hash holds at the honest values.** -/
 theorem oqLeaf_complete (hs : d.s.RowShape)
     (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i)
-    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0) :
+    (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0) :
     ∀ a, Stmt.atom a ∈ oqLeafT d.s d.b d.prV d.kL → a.Holds rd σ := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hk := k1_eq d

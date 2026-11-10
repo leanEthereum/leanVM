@@ -171,7 +171,8 @@ theorem limbBit_eq (c0 c1 c2 : ℕ) (h0 : c0 < 2 ^ 64) (h1 : c1 < 2 ^ 64) {i : �
 /-- **`wordBit` is the integer's bit.** -/
 theorem wordBit_eq (x : E) {i : ℕ} (hi : i < 128) :
     wordBit x i = decide ((eToNat x >>> i) % 2 = 1) := by
-  have hn := limbBit_eq _ _ (kToNat (x.limb 2)) (qw_kToNat_lt (x.limb 0)) (qw_kToNat_lt (x.limb 1)) hi
+  have hn := limbBit_eq _ _ 0 (qw_kToNat_lt (x.limb 0)) (qw_kToNat_lt (x.limb 1)) hi
+  rw [Nat.mul_zero, Nat.add_zero] at hn
   rw [Nat.shiftRight_eq_div_pow]
   exact congrArg (fun n : ℕ ↦ decide (n = 1)) hn
 

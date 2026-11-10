@@ -55,7 +55,7 @@ def anyCall : CallRel := fun _ _ _ ↦ True
 /-- The chain step's values of a level-0 iteration. -/
 def oqIter1C (x N ch mu v d0 d1 : E) : List E :=
   [ch * x, v, v + d0, (v + d0) * mu, (v + d0) * mu + d1, ((v + d0) * mu + d1) * mu,
-    ch * x, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
+    ch * x, word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0]
 
 /-- **A level-0 iteration's honest values**, from its arguments, its queries, their window pointers
 and the chain's word `v`. -/
@@ -216,8 +216,8 @@ theorem oqIter1_at {s : Oq} (hs : s.RowShape) {odd j : ℕ} {walk : String}
 
 /-- The chain step's values of a deeper iteration. -/
 def oqIter0C (x N ch mu v d : E) : List E :=
-  [ch * x, v, v + d, (v + d) * mu, ch * x, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N,
-    word 2 0 0, x * word 2 0 0]
+  [ch * x, v, v + d, (v + d) * mu, ch * x, word 2 0, x * word 2 0, x * word 2 0 + N,
+    word 2 0, x * word 2 0]
 
 /-- **A deeper iteration's honest values**, from its arguments, its query, its window pointer and the
 chain's word `v`. -/

@@ -64,7 +64,7 @@ variable (d : QD) {rd : Reader} {σ : Val}
 /-- The padding run a query emits. -/
 theorem pad_of_emit (he : d.emit = true)
     (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
-    σ (.n d.prV) = word 1 0 0 ∧ ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0 := by
+    σ (.n d.prV) = word 1 0 ∧ ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
   have hpr : d.prV = d.k1 + d.s.D := by simp only [prV, oqPr, he, ↓reduceIte]; rfl
@@ -97,7 +97,7 @@ theorem oqQueryT_eq (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr :
 
 /-- **One query's atoms hold at the honest values.** -/
 theorem query_atoms (hs : d.s.RowShape) {wp : V} {bpv : E} (hok : d.Ok rd (σ wp) bpv) (hv : d.Hv σ)
-    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0) :
+    (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0) :
     AllAtoms (oqRowT d.b d.s.R ++ oqPacksT d.b d.s.R ++ oqDotT d.s wp d.b ++
         (if d.emit then oqPadT (oqK1 d.b d.s.R + d.s.D) else []) ++ oqLeafT d.s d.b d.prV d.kL) ∧
       ∀ a, Stmt.atom a ∈ (oqRowT d.b d.s.R ++ oqPacksT d.b d.s.R ++ oqDotT d.s wp d.b ++
@@ -127,7 +127,7 @@ window pointer, the cap and the flags; its value is the row's dot product (by th
 direction, `oqQuery_pieces`), and its leaf cells the leaf's digest's halves. -/
 theorem query_complete (hs : d.s.RowShape) {walk : String} {C : CallRel}
     {bp cap flags wp : V} (hok : d.Ok rd (σ wp) (σ bp)) (hv : d.Hv σ)
-    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
+    (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0)
     (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv)
     (hC : C walk [(digestHalves d.leaf).1, (digestHalves d.leaf).2, σ bp, d.capv, d.flagsv] []) :
     BlockOkC C rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr walk) ∧

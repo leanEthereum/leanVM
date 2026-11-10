@@ -91,7 +91,7 @@ theorem oqMainA_allocSz (s : Oq) (odd : ℕ) (walk : String) :
       oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0 walk ++
       [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqDot s 13)) (.n 8)),
         .atom (.load (.n (oqMK s odd - 1)) (.n 11) 0)]
-      else [.atom (.const (.n 12) (word 0 0 0)), .atom (.load (.n 12) (.n 11) 0)]).filterMap
+      else [.atom (.const (.n 12) (word 0 0)), .atom (.load (.n 12) (.n 11) 0)]).filterMap
         Stmt.allocSz = [] := by
     split_ifs
     · rw [List.filterMap_append, List.filterMap_append,

@@ -74,12 +74,15 @@ def osBos(m):
         il = lig('LIG_INTERLEAVE', i); lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
         sqL = '__loop%d' % (loopBase(m) + l); resL = '__loop%d' % (loopBase(m) + nl + l)
         sp[sqL] = sp.get(sqL, 0) + (sq + 1) * fs(sqL) + sq * fs('decode_query_windows__L%d_L%d' % (depth, cd))
-        base = 1 if l == 0 else 0
-        oq = 'opening_queries__L%d_L%d_L%d_L%d_L%d_L%d' % (q % 2 * base, base, il, lc, depth, cd)
+        # level `l`'s `opening_queries`: the `l`-th one `open_stacked` calls, its eleven Const
+        # parameters `(odd, base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits,
+        # final)` in its name
+        oq = [f for f in calls(name) if f.startswith('opening_queries__')][l]
+        odd, base = [int(x) for x in oq[len('opening_queries__L'):].split('_L')][:2]
+        assert (odd, base) == (q % 2 * (1 if l == 0 else 0), 1 if l == 0 else 0), oq
         N = q // (1 + base)
         # `B1.oqBound`: its frame, chain buffer, `N + 1` iterations and a `walk_path` frame a query
         # (`oqWalkCount`: `odd + 2N` at level 0, `N` deeper)
-        odd = q % 2 * base
         wk = odd + 2 * N if base == 1 else N
         sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
                   + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))

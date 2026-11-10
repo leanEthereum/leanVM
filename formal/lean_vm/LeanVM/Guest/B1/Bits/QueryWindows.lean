@@ -59,6 +59,9 @@ def decode_query_windows_Spec (name : String) (d cd : ℕ) : Prop :=
 def decode_query_windows_all_Spec : Prop :=
   ∀ p ∈ queryWindowsShapes, decode_query_windows_Spec p.1 p.2.1 p.2.2
 
+/-- The window table covers the 7-bit windows. -/
+theorem winTab_128 : (128 : ℕ) ≤ 2 ^ winTabBits := by decide
+
 /-! ## The shapes -/
 
 /-- Window `i`'s start, `d` past the last. -/
@@ -126,7 +129,7 @@ theorem qwRead_sound {c : V} {start w k : ℕ} (hw : w ≤ 7)
     (by rw [← qwBound_eq hw, ← hk, r2]) r3
   refine ⟨n, hn, hc, ?_⟩
   rw [hm, hc, loadHolds_mul_gen_pow, Nat.add_zero] at hl
-  exact loadHolds_unique hl (hT n (by omega))
+  exact loadHolds_unique hl (hT n (lt_of_lt_of_le (by omega) winTab_128))
 
 theorem qwSplit_sound {c : V} {start a w k : ℕ} (ha1 : 1 ≤ a) (ha : a < w) (hw : w ≤ 7)
     (h : qwAH L.read σ (qwSplit c start a w k).1) :
@@ -146,9 +149,9 @@ theorem qwSplit_sound {c : V} {start a w k : ℕ} (ha1 : 1 ≤ a) (ha : a < w) (
   refine ⟨n1, hn1, n2, hn2, ?_, ?_, ?_⟩
   · rw [hc, hsv, hc1, hc2, ← pow_mul, ← pow_add, Nat.mul_comm]
   · rw [hm1, hc1, loadHolds_mul_gen_pow, Nat.add_zero] at hl1
-    exact loadHolds_unique hl1 (hT n1 (by omega))
+    exact loadHolds_unique hl1 (hT n1 (lt_of_lt_of_le (by omega) winTab_128))
   · rw [hm2, hc2, loadHolds_mul_gen_pow, Nat.add_zero] at hl2
-    exact loadHolds_unique hl2 (hT n2 (by omega))
+    exact loadHolds_unique hl2 (hT n2 (lt_of_lt_of_le (by omega) winTab_128))
 
 end reads
 

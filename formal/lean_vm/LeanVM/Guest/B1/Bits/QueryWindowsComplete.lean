@@ -220,7 +220,7 @@ include hT hlow
 
 omit hlow in
 theorem qw_tabs {n : ℕ} (hn : n < 128) : LoadHolds rd (Q.tabs * gen ^ n) 0 (eOfNat n) :=
-  (loadHolds_mul_gen_pow rd Q.tabs n 0 _).mpr (hT n hn)
+  (loadHolds_mul_gen_pow rd Q.tabs n 0 _).mpr (hT n (lt_of_lt_of_le hn winTab_128))
 
 /-! ## A window read -/
 
@@ -559,7 +559,7 @@ theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (h
     simp only [qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true, e, h2]
     refine ⟨⟨⟨isInK_mul hrun (gen_pow_isInK _), fun x hx v hv ↦ ?_⟩, ?_⟩, hptr, by simp [hj]⟩
     · have hx' : x < 36 - j * n := by simpa [hr] using hx
-      rw [gen_pow_eq_ofK, limb0_mul_ofK hrun, mul_assoc, Parameters.addressOfIndex,
+      rw [gen_pow_eq_ofK, limb0_mul_ofK, mul_assoc, Parameters.addressOfIndex,
         Parameters.addressOfIndex, ← pow_add, ← Parameters.addressOfIndex] at hv
       rw [hfr (j * n + x) (by omega) v hv]
       rcases x with _ | x
