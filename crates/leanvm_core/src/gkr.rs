@@ -1165,6 +1165,7 @@ fn prove_product_triple_with(leaves: [Leaves; 3], ps: &mut ProverState, quad: bo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::{Rng, SeedableRng, rngs::StdRng};
 
     fn mle_eval_e(table: &[F192], point: &[F192]) -> F192 {
         assert_eq!(table.len(), 1 << point.len());
@@ -1270,6 +1271,65 @@ mod tests {
                     f.fold(F192::Y);
                     assert_eq!(f.children(), r.children());
                 }
+            }
+        }
+    }
+
+    /// Two rounds a pass, skipping random runs of identity leaves, against one round a pass
+    /// skipping none, on random leaves of random lengths: the same messages, final claims and
+    /// transcript.
+    #[test]
+    fn two_rounds_per_pass_match_one_on_random_leaves() {
+        let mut rng = StdRng::seed_from_u64(7);
+        for mu in [12, 13, 14, 15] {
+            for draw in 0..3 {
+                let full = 1usize << mu;
+                // The first tree sets the depth; the first draw is full, the others end in a tail.
+                let lengths = [
+                    if draw == 0 {
+                        full
+                    } else {
+                        rng.random_range(full / 2 + 1..full)
+                    },
+                    rng.random_range(1..=full),
+                    rng.random_range(1..=full),
+                ];
+                let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+                    (0..lengths[lane])
+                        .map(|_| F192::new(rng.random(), rng.random(), rng.random()))
+                        .collect()
+                });
+                let ones = leaves.each_mut().map(|lane| {
+                    let mut ones = Vec::new();
+                    let mut start = rng.random_range(0..1024);
+                    // The balanced last leaf is not the identity.
+                    while start < lane.len() - 1 {
+                        let end = (start + rng.random_range(1..8192)).min(lane.len() - 1);
+                        lane[start..end].fill(F192::ONE);
+                        ones.push(start..end);
+                        start = end + rng.random_range(1..8192);
+                    }
+                    ones
+                });
+                balance(&mut leaves);
+                let prove = |quad: bool| {
+                    let trees = std::array::from_fn(|lane| {
+                        let mut tree = Leaves::new(leaves[lane].clone());
+                        if quad {
+                            tree.ones = ones[lane].clone();
+                        }
+                        tree
+                    });
+                    let mut ps = ProverState::from_label(b"two-rounds-per-pass-random-test");
+                    let proved = prove_product_triple_with(trees, &mut ps, quad);
+                    let next = ps.sample();
+                    (proved.point, proved.values, next, ps.into_proof().stream)
+                };
+                let (quad, one) = (prove(true), prove(false));
+                assert_eq!(quad.0, one.0, "mu={mu}, lengths={lengths:?}");
+                assert_eq!(quad.1, one.1, "mu={mu}, lengths={lengths:?}");
+                assert_eq!(quad.2, one.2, "mu={mu}, lengths={lengths:?}");
+                assert!(quad.3 == one.3, "mu={mu}, lengths={lengths:?}");
             }
         }
     }
