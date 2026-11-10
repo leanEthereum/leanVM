@@ -1,25 +1,27 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.Vt
 
-  `verify_tables`' honest data (B1-c's `VtHonest`) from a run of `tablesSeg`: the stream words cut
-  as the run reads them.
+  `verify_tables`' honest data on an honest child (`ChildSegs.H`): the specification accepts it
+  (`VtHonest.Ok`), it fits the deployed shapes (`VtShape`), and the tables' segment ends where the
+  honest run does.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.Tables.VtC.ADefs
-public import LeanVM.Guest.B1.Tables.Vt.AsmRun
-public import LeanVM.Guest.B1.Tables.Vt.AsmForms
+public import LeanVM.Guest.B1.VerifySub.H.Runs
+public import LeanVM.Guest.B1.VerifySub.H.VtRun
 
 /-!
-# `verify_tables`' honest data from a run
+# `verify_tables`' honest data
 
-`runsTo_len`: a run of a program that runs on every `k` words reads `k` words. `chunks`: a list cut
-in pieces of given lengths. `vtHOf`: B1-c's `VtHonest` of a run of `tablesSeg` on the words `xs`
-(the five framework words, the `3 n` rounds' words, the tables' evaluations, `vtW6` words each).
-`vtH_run`: such a run makes it `Ok`, the words are cut in place (`5 + 3 n + 159` of them), and the
-run ends with nothing waiting.
+`vtH_rowsT_length`, `rowsT_fst`: the table loop's six rows. On an honest child (`ChildSegs`, the
+guest's bytecode of `2^23` words):
+
+* `H_run`: `S.H` is `Ok`, the tables' words are its words (`curW`: four, ten, `3 n`, `153`), and
+  the segment ends with nothing waiting;
+* `H_spec`: the bus result and the claims are the honest ones (`vt_spec`), and the segment ends on
+  `S.H.s3.squeeze.2`;
+* `H_shape`: `S.H` fits the deployed shapes (`VtShape`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -29,230 +31,199 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The tables' widths, table by table. -/
-theorem vtH_tables_widths : ∀ t < 6, (tables.getD t default).width = vtW6.getD t 0 := by decide
+namespace VtHonest
+
+theorem busH_forms_length {H : VtHonest} (hr : H.rows.length = 6) : H.busH.forms.length = 6 :=
+  (vt_forms3_shape H.bc H.lm hr H.weights H.beta H.point (H.xs4.take 2) (H.xs4.getD 2 0)
+    (H.xs4.getD 3 0) H.share (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
 
 theorem vtH_rowsT_length {H : VtHonest} (hr : H.rows.length = 6) : H.rowsT.length = 6 := by
-  have hf : H.busH.forms.length = 6 :=
-    (vt_forms3_shape H.bc H.lm hr H.alphas H.beta H.point (H.xs5.take 3) (H.xs5.getD 3 0)
-      (H.xs5.getD 4 0) H.bv (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
   have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
-  have ht : tables.length = 6 := rfl
-  simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, hf, ht,
+  simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, busH_forms_length hr,
     LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
   rfl
 
-/-- **The honest evaluations' shape**: six tables, each its width. -/
-theorem vtH_evsT_shape {H : VtHonest} (h : H.Ok) (hr : H.rows.length = 6) :
-    H.evsT.length = 6 ∧ ∀ t < 6, (H.evsT.getD t []).length = vtW6.getD t 0 := by
-  have hl := h.hevl
-  rw [vtH_rowsT_length hr] at hl
-  refine ⟨hl, fun t ht ↦ ?_⟩
-  have hz : (H.rowsT[t]'(by rw [vtH_rowsT_length hr]; exact ht), H.evsT[t]'(by omega)) ∈
-      List.zip H.rowsT H.evsT := by
-    rw [List.mem_iff_getElem]
-    exact ⟨t, by simp [vtH_rowsT_length hr, hl, ht], by simp⟩
-  have hw := h.hevw _ hz
-  simp only at hw
-  have ht1 : (H.rowsT[t]'(by rw [vtH_rowsT_length hr]; exact ht)).1 = tables.getD t default := by
-    simp [VtHonest.rowsT, vtRows, List.getElem_zip, List.getD_eq_getElem?_getD,
-      List.getElem?_eq_getElem (show t < tables.length from ht)]
-  rw [List.getD_eq_getElem _ _ (by omega), hw, ht1, vtH_tables_widths t ht]
-
-/-- **A run reads the words every run reads**: when the program runs on every `k` words, a run of
-it reads `k` words. -/
-theorem runsTo_len {α : Type} {p : VerifierProgram α} {s t : Fs} {xs : List E} {a : α} (h : RunsTo p
-    s xs a t)
-    (hc : ∃ sp, s.Carries sp) {k : ℕ}
-    (hall : ∀ ys : List E, ys.length = k → ∃ (b : α) (u : Fs), RunsTo p s ys b u) :
-    xs.length = k := by
-  obtain ⟨b, u, hb⟩ := hall ((xs ++ List.replicate k 0).take k) (by simp)
-  obtain ⟨-, -, hr⟩ := runsTo_det h hb hc (r1 := List.replicate k 0)
-    (r2 := (xs ++ List.replicate k 0).drop k) (List.take_append_drop _ _).symm
-  have := congrArg List.length hr
-  simp only [List.length_replicate, List.length_drop, List.length_append] at this
-  omega
-
-/-- A list cut in pieces of the given lengths. -/
-def chunks : List ℕ → List E → List (List E)
-  | [], _ => []
-  | k :: ks, l => l.take k :: chunks ks (l.drop k)
-
-theorem chunks_length : ∀ (ks : List ℕ) (l : List E), (chunks ks l).length = ks.length
-  | [], _ => rfl
-  | _ :: ks, l => by simp [chunks, chunks_length ks]
-
-theorem chunks_flatten : ∀ (ks : List ℕ) (l : List E), l.length = ks.sum → (chunks ks l).flatten = l
-  | [], l, h => by simp at h; simp [chunks, h]
-  | k :: ks, l, h => by
-    simp only [List.sum_cons] at h
-    rw [chunks, List.flatten_cons, chunks_flatten ks (l.drop k) (by simp; omega),
-      List.take_append_drop]
-
-theorem chunks_getElem_length : ∀ (ks : List ℕ) (l : List E), l.length = ks.sum →
-    ∀ i (hi : i < (chunks ks l).length), ((chunks ks l)[i]).length = ks.getD i 0
-  | [], _, _, i, hi => absurd hi (by simp [chunks])
-  | k :: ks, l, h, 0, _ => by simp only [List.sum_cons] at h; simp [chunks]; omega
-  | k :: ks, l, h, i + 1, hi => by
-    simp only [List.sum_cons] at h
-    simp only [chunks, List.getElem_cons_succ, List.getD_cons_succ]
-    exact chunks_getElem_length ks (l.drop k) (by simp; omega) i (by simpa [chunks] using hi)
-
-/-- **Rows of the tables, with their evaluations cut from `159` words.** -/
-theorem zip_chunks {X : Type} (rows : List (Table × X)) (hrows : rows.map (·.1) = tables)
-    (ys : List E) (hy : ys.length = 159) :
-    (List.zip rows (chunks vtW6 ys)).map (·.1) = rows ∧
-      (List.zip rows (chunks vtW6 ys)).flatMap (·.2) = ys ∧
-      ∀ p ∈ List.zip rows (chunks vtW6 ys), p.2.length = p.1.1.width := by
-  have hrl : rows.length = 6 := by
-    have : rows.length = tables.length := by simpa using congrArg List.length hrows
-    rw [this]; rfl
-  have hcl : (chunks vtW6 ys).length = 6 := by rw [chunks_length]; rfl
-  refine ⟨List.map_fst_zip (by omega), ?_, fun p hp ↦ ?_⟩
-  · rw [vt_flatMap_snd, List.map_snd_zip (by omega), chunks_flatten _ _ (by rw [hy]; rfl)]
-  · obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hp
-    simp only [List.length_zip] at hi
-    simp only [List.getElem_zip]
-    rw [chunks_getElem_length _ _ (by rw [hy]; rfl)]
-    have h1 : rows[i].1 = tables[i]'(by simp [← hrows]; omega) := by
-      have := congrArg (·[i]?) hrows
-      simp only [List.getElem?_map] at this
-      rw [List.getElem?_eq_getElem (by omega), List.getElem?_eq_getElem (by rw [← hrows]; simp; omega)]
-        at this
-      simpa using this
-    rw [h1, ← List.getD_eq_getElem _ default, vtH_tables_widths i (by omega)]
-
-/-- The table loop runs on every `159` words. -/
-theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List Form)) (ws : List E)
-    (h1 : 6 ≤ hs.length) (h2 : 6 ≤ fs.length) (h3 : 6 ≤ ws.length) (u : Fs) (ys : List E)
-    (hy : ys.length = 159) :
-    ∃ (b : E × List ColumnClaim) (v : Fs),
-      RunsTo (tableTermsClaims cp fp point (List.zip tables (List.zip hs (List.zip fs ws))) 0 0 []) u ys
-        b v := by
-  obtain ⟨e1, e2, hw⟩ := zip_chunks (List.zip tables (List.zip hs (List.zip fs ws)))
-    (List.map_fst_zip (by simp only [List.length_zip]; show 6 ≤ _; omega)) ys hy
-  have h := vt_runsTo_tableTerms cp fp point _ 0 0 [] u hw
-  rw [e1, e2] at h
-  exact ⟨_, _, h⟩
-
-/-- **`verify_tables`' honest data of a run of `tablesSeg`** on the words `xs`. -/
-noncomputable def vtHOf (bc : List K) (lm : ℕ) (pi : Digest) (alphas point values : List E)
-    (beta : E) (rows : List ℕ) (f : List E) (ev : (List K → List E → VerifierProgram E)) (bv : E)
-        (xs : List E)
-    (bus : BusResult) (claims : List ColumnClaim) (cap' : List E) : VtHonest :=
-  ⟨bc, lm, pi, alphas, point, values, beta, rows, f, ev, bv, xs.take 5,
-    (xs.drop 5).take (3 * (tableHeightsOf rows).foldl max 0),
-    chunks vtW6 (xs.drop (5 + 3 * (tableHeightsOf rows).foldl max 0)), bus, claims, cap'⟩
-
 theorem rowsT_fst (H : VtHonest) (hr : H.rows.length = 6) : H.rowsT.map (·.1) = tables := by
-  have hf : H.busH.forms.length = 6 :=
-    (vt_forms3_shape H.bc H.lm hr H.alphas H.beta H.point (H.xs5.take 3) (H.xs5.getD 3 0)
-      (H.xs5.getD 4 0) H.bv (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
   have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
   simp only [VtHonest.rowsT, vtRows]
   refine List.map_fst_zip ?_
-  simp only [List.length_zip, hh, hf, LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
+  simp only [List.length_zip, hh, busH_forms_length hr,
+    LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
   decide
 
-/-- **A run of `tablesSeg` is `verify_tables`' honest run**: its words cut in place, `Ok`, and
-nothing waiting at its end. -/
-theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : List E} {beta : E}
-    {rows : List ℕ} {f : List E} {ev : (List K → List E → VerifierProgram E)} {bv : E} {xs : List E} {bus : BusResult}
-    {claims : List ColumnClaim} {s' : Fs} (hr : rows.length = 6)
-    (h : RunsTo (tablesSeg ev (layoutOf bc lm rows) pi alphas beta point values) ⟨f, []⟩ xs
-      (bus, claims) s')
-    (hcar : ∃ sp, (⟨f, []⟩ : Fs).Carries sp)
-    (hbv : BytecodeAt ev (layoutOf bc lm rows).bytecode
-      (point.take (layoutOf bc lm rows).logBytecode ++ alphas) bv) :
-    (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).Ok ∧
-      xs = (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).xs5 ++
-        (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).xsR ++
-        (vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap).evsT.flatten ∧
-      s' = ⟨s'.cap, []⟩ ∧
-      xs.length = 5 + 3 * (tableHeightsOf rows).foldl max 0 + 159 := by
-  set n := (tableHeightsOf rows).foldl max 0 with hn
-  -- the words, cut
-  have key : ∃ x1 x2 x3 : List E, xs = x1 ++ x2 ++ x3 ∧ x1.length = 5 ∧ x2.length = 3 * n ∧
-      x3.length = 159 ∧ s'.pend = [] := by
-    have h0 := h
-    unfold tablesSeg at h0
-    obtain ⟨a1, xs1, xs2, t1, he1, r1, k1⟩ := RunsTo.unbind h0 hcar
-    have l1 : xs1.length = 5 := runsTo_len r1 hcar fun ys hy ↦ ⟨_, _, by
-      have hb := vt_busRest_run ev (layoutOf bc lm rows) alphas beta point values (ys.take 3)
-        (by simp [hy]) (ys.getD 3 0) (ys.getD 4 0) bv hbv ⟨f, []⟩
-      rwa [← vt_xs5_split hy] at hb⟩
-    have c1 := RunsTo.carries r1 hcar
-    obtain ⟨a2, xs3, xs4, t2, he2, r2, k2⟩ := RunsTo.unbind k1 c1
-    have c2' := RunsTo.carries r2 c1
-    obtain ⟨pc, p1s, p2s, u6, hp, o1, o2⟩ := RunsTo.unbind k2 c2'
-    obtain ⟨-, eu6, ep⟩ := runsTo_det o1 (vt_publicInputPhase_run (layoutOf bc lm rows) pi t2) c2'
-      (r1 := p2s) (r2 := p1s ++ p2s) (by simp)
-    have ep' : p1s = [] := by simpa using ep
-    subst ep'
-    obtain ⟨-, eu7, ep2⟩ := runsTo_ret_inv o2 (RunsTo.carries o1 c2')
-    subst ep2
-    -- the table phase
-    unfold tablePhaseClaims at r2
-    obtain ⟨xi, ys1, ys2, u1, hy, q1, q2⟩ := RunsTo.unbind r2 c1
-    obtain ⟨-, eu1, ey1⟩ := runsTo_det q1 (runsTo_sampleE _) c1 (r1 := ys2) (r2 := ys1 ++ ys2)
-      (by simp)
-    have ey1' : ys1 = [] := by simpa using ey1
-    subst ey1' eu1
-    have c2 := RunsTo.carries q1 c1
-    obtain ⟨tc, zs1, zs2, u2, hz, w1, w2⟩ := RunsTo.unbind q2 c2
-    obtain ⟨-, -, ez2⟩ := runsTo_ret_inv w2 (RunsTo.carries w1 c2)
-    subst ez2
-    unfold tableSumcheckClaims at w1
-    obtain ⟨⟨ch, cl⟩, v1s, v2s, u3, hv, g1, g2⟩ := RunsTo.unbind w1 c2
-    have l2 : v1s.length = 3 * n := runsTo_len g1 c2 fun ys hy ↦ ⟨_, _, zc_run _ _ hy⟩
-    have c3 := RunsTo.carries g1 c2
-    obtain ⟨⟨fin, cls⟩, x1, x2, u4, hx, m1, m2⟩ := RunsTo.unbind g2 c3
-    have c4 := RunsTo.carries m1 c3
-    obtain ⟨u, y1, y2, u5, hy', n1, n2⟩ := RunsTo.unbind m2 c4
-    have hreq := runsTo_require_inv n1 c4
-    obtain ⟨-, -, ey⟩ := runsTo_det n1 (tb_runsTo_require hreq _) c4 (r1 := y2) (r2 := y1 ++ y2)
-      (by simp)
-    have ey' : y1 = [] := by simpa using ey
-    subst ey'
-    obtain ⟨-, -, ey2⟩ := runsTo_ret_inv n2 (RunsTo.carries n1 c4)
-    subst ey2
-    have hf : a1.forms.length = 6 := by
-      obtain ⟨ea1, -, -⟩ := runsTo_det r1 (by
-        have hb := vt_busRest_run ev (layoutOf bc lm rows) alphas beta point values
-          (xs1.take 3) (by simp [l1]) (xs1.getD 3 0) (xs1.getD 4 0) bv hbv ⟨f, []⟩
-        rwa [← vt_xs5_split l1] at hb) hcar (r1 := []) (r2 := []) rfl
-      rw [ea1]
-      exact (vt_forms3_shape bc lm hr alphas beta point (xs1.take 3) (xs1.getD 3 0)
-        (xs1.getD 4 0) bv (values.getD 0 0) (values.getD 1 0) (values.getD 2 0)).1
-    have hh : (layoutOf bc lm rows).tableLogHeights.length = 6 := vt_tableHeights_length hr
-    have l3 : x1.length = 159 := runsTo_len m1 c3 fun ys hy ↦ tableTerms_any _ _ _ _ _ _
-      (by rw [hh]) (by rw [hf])
-      (by rw [LeanVM.Protocol.EndToEnd.Complete.length_tableWeights, hh]) _ ys hy
-    refine ⟨xs1, v1s, x1, ?_, l1, l2, l3, ?_⟩
-    · rw [he1, he2, hy, hz, hv, hx, hy', hp]; simp
-    · rw [eu7, eu6]; rfl
-  obtain ⟨x1, x2, x3, hxs, l1, l2, l3, hpend⟩ := key
-  set H := vtHOf bc lm pi alphas point values beta rows f ev bv xs bus claims s'.cap with hH
-  have e5 : H.xs5 = x1 := by
-    show xs.take 5 = x1; rw [hxs, List.append_assoc, List.take_left' l1]
-  have eR : H.xsR = x2 := by
-    show (xs.drop 5).take (3 * n) = x2
-    rw [hxs, List.append_assoc, List.drop_left' l1, List.take_left' l2]
-  have eE : H.evsT = chunks vtW6 x3 := by
-    show chunks vtW6 (xs.drop (5 + 3 * n)) = _
-    rw [hxs, List.append_assoc, ← List.drop_drop, List.drop_left' l1, List.drop_left' l2]
-  have hn' : H.n = n := rfl
-  have hfl : H.evsT.flatten = x3 := by rw [eE, chunks_flatten _ _ (by rw [l3]; rfl)]
-  have hsplit : xs = H.xs5 ++ H.xsR ++ H.evsT.flatten := by rw [e5, eR, hfl, hxs]
-  have hs' : s' = ⟨s'.cap, []⟩ := by cases s'; simp only at hpend; simp [hpend]
-  refine ⟨⟨?_, hcar, by rw [e5, l1], by rw [eR, l2, hn'], ?_, ?_, hbv⟩, hsplit, hs', ?_⟩
-  · show RunsTo _ ⟨f, []⟩ _ _ ⟨s'.cap, []⟩
-    rw [← hsplit, ← hs']; exact h
-  · rw [eE, chunks_length, vtH_rowsT_length hr]; rfl
-  · intro p hp
-    rw [eE] at hp
-    exact (zip_chunks H.rowsT (rowsT_fst H hr) x3 l3).2.2 p hp
-  · rw [hxs, List.length_append, List.length_append, l1, l2, l3]
+end VtHonest
 
 end
 end LeanVM.Guest.B1.Tables
+
+namespace LeanVM.Guest.B1.VerifySub
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Node
+
+@[expose] public section
+
+theorem vsChunks_eq : ∀ (ns : List ℕ) (xs : List E), vsChunks ns xs = Tables.chunks ns xs
+  | [], _ => rfl
+  | n :: ns, xs => by rw [vsChunks, Tables.chunks, vsChunks_eq ns]
+
+theorem tables_widths : tables.map (·.width) = Tables.vtW6 := by decide
+
+theorem vtPushPad_tabs : Tables.vtPushPadData.map (·.2.1) =
+    List.replicate 5 0 ++ List.replicate 5 1 ++ List.replicate 3 2 ++ List.replicate 5 3 ++
+      List.replicate 5 4 ++ List.replicate 28 5 := by decide
+
+theorem vtCountPad_tabs : Tables.vtCountPadData.map (·.2.1) =
+    List.replicate 4 0 ++ List.replicate 4 1 ++ List.replicate 2 2 ++ List.replicate 4 3 ++
+      List.replicate 4 4 ++ List.replicate 27 5 := by decide
+
+/-- The push side's sizes total the push total. -/
+theorem vtSizesP_sum (lm : ℕ) (rows : List ℕ) (hr : rows.length = 6) :
+    ((Tables.vtSizesP lm (Tables.vtHt rows)).map (2 ^ ·)).sum =
+      pushTot lm (Tables.tableHeightsOf rows) := by
+  have hsl := heights_length6 rows hr
+  have e : Tables.vtSizesP lm (Tables.vtHt rows) = [0, lm, 19] ++
+      (Tables.vtPushPadData.map (·.2.1)).map (Tables.vtHt rows) := by
+    simp only [Tables.vtSizesP, List.map_map]; rfl
+  rw [e, vtPushPad_tabs]
+  match hh : Tables.tableHeightsOf rows, hsl with
+  | [h0, h1, h2, h3, h4, h5], _ =>
+    rw [pushTot_eq]
+    simp only [List.map_append, List.map_replicate, List.sum_append, List.sum_replicate,
+      List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, smul_eq_mul, Tables.vtHt, hh,
+      List.getD_cons_succ, List.getD_cons_zero]
+    ring
+
+/-- The count side's sizes total at most the push total. -/
+theorem vtSizesC_sum (lm : ℕ) (rows : List ℕ) (hr : rows.length = 6) :
+    ((Tables.vtSizesC (Tables.vtHt rows)).map (2 ^ ·)).sum ≤
+      pushTot lm (Tables.tableHeightsOf rows) := by
+  have hsl := heights_length6 rows hr
+  have e : Tables.vtSizesC (Tables.vtHt rows) =
+      (Tables.vtCountPadData.map (·.2.1)).map (Tables.vtHt rows) := by
+    simp only [Tables.vtSizesC, List.map_map]; rfl
+  rw [e, vtCountPad_tabs]
+  match hh : Tables.tableHeightsOf rows, hsl with
+  | [h0, h1, h2, h3, h4, h5], _ =>
+    rw [pushTot_eq]
+    simp only [List.map_append, List.map_replicate, List.sum_append, List.sum_replicate,
+      smul_eq_mul, Tables.vtHt, hh, List.getD_cons_succ, List.getD_cons_zero]
+    have := Nat.two_pow_pos lm
+    omega
+
+/-- Each height is at most the push side's depth. -/
+theorem height_le_depth (lm : ℕ) {hs : List ℕ} (hl : hs.length = 6) {t : ℕ} (ht : t < 6) :
+    hs.getD t 0 ≤ log2Ceil (pushTot lm hs) := by
+  match hs, hl with
+  | [h0, h1, h2, h3, h4, h5], _ =>
+    have hp := pushTot_eq lm h0 h1 h2 h3 h4 h5
+    have := Nat.two_pow_pos lm
+    refine Tables.tb_le_log2Ceil_of_two_pow_le ?_
+    interval_cases t <;> simp only [List.getD_cons_zero, List.getD_cons_succ] <;> omega
+
+namespace ChildSegs
+
+variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
+
+/-- **`verify_tables`' honest data is accepted**: `S.H` is `Ok`, the tables' words are its words,
+and the segment ends with nothing waiting. -/
+theorem H_run (hbl : bytecode.length = 2 ^ 23) :
+    S.H.Ok ∧ S.xsT = S.H.curW ∧ S.s5 = ⟨S.H.cap', []⟩ ∧
+      S.xsT.length = 14 + 3 * S.nT + 153 := by
+  obtain ⟨-, h4, -, -, -, -⟩ := S.gkr_inv hbl
+  have hc4 : ∃ sp, (⟨S.s4.cap, []⟩ : Fs).Carries sp := by rw [← h4]; exact S.c4
+  have hrun : RunsTo (Tables.tablesSeg (claimedBytecodeValue c.freshClaim)
+      (Tables.layoutOf bytecode S.logMem S.rowsN) (Node.statementDigest seed c.statement) S.wb.1
+      S.wb.2 S.rG.2.1 S.rG.2.2) ⟨S.s4.cap, []⟩ S.xsT (S.bus, S.claims) S.s5 := by
+    rw [← h4, ← S.hlayout]; exact S.runT
+  obtain ⟨x4, bcW, xR, evs, hxs, l4, l10, lR, l153, hpend, hbv⟩ :=
+    Tables.vt_inv S.hrowsL hrun hc4
+  have hn : S.H.n = S.nT := rfl
+  have lR' : xR.length = 3 * S.nT := lR
+  have e4 : S.H.xs4 = x4 := by
+    show S.xsT.take 4 = x4
+    rw [hxs, List.append_assoc, List.append_assoc, List.take_left' l4]
+  have e10 : S.H.bcW = bcW := by
+    show (S.xsT.drop 4).take 10 = bcW
+    rw [hxs, List.append_assoc, List.append_assoc, List.drop_left' l4, List.take_left' l10]
+  have eR : S.H.xsR = xR := by
+    show (S.xsT.drop 14).take (3 * S.nT) = xR
+    rw [hxs, List.append_assoc, List.append_assoc, show 14 = 4 + 10 from rfl, ← List.drop_drop,
+      List.drop_left' l4, List.drop_left' l10, List.take_left' lR']
+  have eE : S.H.evsT = Tables.chunks Tables.vtW6 evs := by
+    show vsChunks (tables.map (·.width)) (S.xsT.drop (14 + 3 * S.nT)) = _
+    rw [vsChunks_eq, tables_widths, hxs, List.append_assoc, List.append_assoc,
+      show 14 + 3 * S.nT = 4 + (10 + 3 * S.nT) by omega, ← List.drop_drop, List.drop_left' l4,
+      ← List.drop_drop, List.drop_left' l10, List.drop_left' lR']
+  have hfl : S.H.evsT.flatten = evs := by
+    rw [eE, Tables.chunks_flatten _ _ (by rw [l153]; rfl)]
+  have hcur : S.xsT = S.H.curW := by
+    show S.xsT = S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten
+    rw [e4, e10, eR, hfl]
+    exact hxs
+  have h5 : S.s5 = ⟨S.H.cap', []⟩ := fs_eta hpend
+  have hr6 : S.H.rows.length = 6 := S.hrowsL
+  refine ⟨⟨?_, hc4, by rw [e4, l4], by rw [e10, l10], by rw [eR, lR']; rfl, ?_, ?_, ?_⟩, hcur, h5, ?_⟩
+  · show RunsTo _ _ (S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten) _ _
+    rw [← h5, show S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten = S.xsT from hcur.symm]
+    exact hrun
+  · rw [eE, Tables.chunks_length, Tables.VtHonest.vtH_rowsT_length hr6]; rfl
+  · intro p hp
+    rw [eE] at hp
+    exact (Tables.zip_chunks S.H.rowsT (Tables.VtHonest.rowsT_fst S.H hr6) evs l153).2.2 p hp
+  · show Tables.BytecodeAt _ _ (_ ++ Tables.bcSlots (S.H.s0.absorbAll S.H.xs4 dsObserve) S.H.bcW)
+      (S.H.bcW.getD 9 0)
+    rw [e4, e10]
+    exact hbv
+  · rw [hxs]
+    simp only [List.length_append, l4, l10, lR', l153]
+
+/-- **The tables' segment is the honest one**: its bus result and claims (`vt_spec`), and it
+ends on `S.H.s3.squeeze.2`. -/
+theorem H_spec (hbl : bytecode.length = 2 ^ 23) :
+    S.bus = S.H.busH ∧ S.claims = S.H.busH.claims ++ S.H.terms.2 ++ S.H.pclaims ∧
+      S.s5 = ⟨S.H.s3.squeeze.2.cap, []⟩ := by
+  obtain ⟨h, -, h5, -⟩ := S.H_run hbl
+  obtain ⟨-, -, hb, hc, hcap⟩ := Tables.vt_spec h
+  exact ⟨hb, hc, h5.trans (by rw [hcap])⟩
+
+/-- **`verify_tables`' honest data fits the deployed shapes.** -/
+theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by
+  obtain ⟨-, -, hf5, -, hpl, hvl⟩ := S.gkr_inv hbl
+  have hd := S.d_bounds hbl
+  have hdE := S.d_eq hbl
+  have hh := heights_length6 S.rowsN S.hrowsL
+  have hpT : S.pushT = pushTot S.logMem (Tables.tableHeightsOf S.rowsN) := rfl
+  have hpl' : S.H.point.length = log2Ceil (pushTot S.logMem (Tables.tableHeightsOf S.rowsN)) := by
+    show S.rG.2.1.length = _
+    rw [hpl, hdE, hpT]
+  have h29 := (S.hs_bounds hbl).1
+  have hht : ∀ t < 6, Tables.vtHt S.rowsN t ∈ S.hs := fun t ht ↦ by
+    show (Tables.tableHeightsOf S.rowsN).getD t 0 ∈ Tables.tableHeightsOf S.rowsN
+    rw [List.getD_eq_getElem _ _ (by rw [hh]; exact ht)]
+    exact List.getElem_mem _
+  have hfit : pushTot S.logMem (Tables.tableHeightsOf S.rowsN) ≤ 2 ^ S.H.point.length := by
+    rw [hpl']; exact le_two_pow_log2Ceil _
+  refine ⟨S.h32, ?_, ?_, ?_, S.hrowsL, fun t ht ↦ h29 _ (hht t ht), fun t ht ↦ ?_,
+    S.wb_length hbl, hvl, hf5, ?_, ?_, hbl⟩
+  · rw [hpl']
+    refine Tables.tb_le_log2Ceil_of_two_pow_le ?_
+    have := pushTot_ge S.logMem hh
+    show 2 ^ S.logMem ≤ _
+    omega
+  · show 19 ≤ S.rG.2.1.length
+    omega
+  · show S.rG.2.1.length < 33
+    omega
+  · rw [hpl']
+    exact height_le_depth S.logMem hh ht
+  · show ((Tables.vtSizesP S.logMem (Tables.vtHt S.rowsN)).map (2 ^ ·)).sum ≤ _
+    rw [vtSizesP_sum _ _ S.hrowsL]
+    exact hfit
+  · exact (vtSizesC_sum S.logMem _ S.hrowsL).trans hfit
+
+end ChildSegs
+
+end
+end LeanVM.Guest.B1.VerifySub

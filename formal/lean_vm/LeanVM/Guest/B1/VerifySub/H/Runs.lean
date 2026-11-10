@@ -198,6 +198,39 @@ theorem d_bounds (hbl : bytecode.length = 2 ^ 23) : 20 ≤ S.d ∧ S.d ≤ 29 :=
           rw [hpT]; omega
       _ ≤ 2 ^ 29 := by norm_num)
 
+/-- The stack's total is at most `2^28`. -/
+theorem stackTotal_le (hbl : bytecode.length = 2 ^ 23) : Tables.stackTotal S.kappas ≤ 2 ^ 28 := by
+  have h28 := S.hmu28
+  rw [S.hlayout, stackLog_eq hbl] at h28
+  exact log2Ceil_le_iff.mp (by
+    show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN))) ≤ 28
+    omega)
+
+theorem pow_le_bound {a b k : ℕ} (hk : 0 < k) (h : k * 2 ^ a ≤ 2 ^ b) : a ≤ b := by
+  have : 2 ^ a ≤ 2 ^ b := le_trans (Nat.le_mul_of_pos_left _ hk) h
+  exact (Nat.pow_le_pow_iff_right (by norm_num)).mp this
+
+/-- **The tables' heights are below `29`, the `KECCAK` table's at most `22`.** -/
+theorem hs_bounds (hbl : bytecode.length = 2 ^ 23) : (∀ h ∈ S.hs, h < 29) ∧ S.hs.getD 5 0 ≤ 22 := by
+  have hst := S.stackTotal_le hbl
+  have hh := heights_length6 S.rowsN S.hrowsL
+  unfold ChildSegs.kappas at hst
+  unfold ChildSegs.hs at hst ⊢
+  generalize Tables.tableHeightsOf S.rowsN = l at hst hh ⊢
+  match l, hh, hst with
+  | [h0, h1, h2, h3, h4, h5], _, hst =>
+    rw [show Tables.guestLogBytecode = 19 from rfl, stackTotal_eq] at hst
+    have e0 := pow_le_bound (a := h0) (b := 28) (k := 13) (by norm_num) (by omega)
+    have e1 := pow_le_bound (a := h1) (b := 28) (k := 13) (by norm_num) (by omega)
+    have e2 := pow_le_bound (a := h2) (b := 28) (k := 7) (by norm_num) (by omega)
+    have e3 := pow_le_bound (a := h3) (b := 28) (k := 14) (by norm_num) (by omega)
+    have e4 := pow_le_bound (a := h4) (b := 28) (k := 14) (by norm_num) (by omega)
+    have e5 : h5 ≤ 22 := pow_le_bound (a := h5) (b := 22) (k := 1) (by norm_num)
+      (by rw [show (2 : ℕ) ^ 28 = 64 * 2 ^ 22 by norm_num] at hst; omega)
+    refine ⟨fun h hm ↦ ?_, e5⟩
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
+    omega
+
 /-! ## The out-of-domain sample -/
 
 /-- **The out-of-domain sample, read back.** -/

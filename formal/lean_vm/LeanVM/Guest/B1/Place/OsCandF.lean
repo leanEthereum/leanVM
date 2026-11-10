@@ -68,10 +68,16 @@ def LvStatic (c : OsCfg) (l : ℕ) : Prop :=
   (oqS c l).final = (if l = c.yrLevel then 1 else 0) ∧
   (l = c.yrLevel → (oqS c l).nHs ≤ c.yrLen + lv.folds) ∧
   4 * lv.capOff + 2 ^ (lv.capDepth + 2) ≤ 4 * c.capLen ∧ lv.capOff + 2 ^ lv.capDepth ≤ c.capLen ∧
-  lv.posOff + lv.squeezes * (128 / lv.depth) ≤ c.posLen
+  lv.posOff + lv.squeezes * (128 / lv.depth) ≤ c.posLen ∧
+  (l < c.yrLevel → lv.queries / resBatch < 2 ^ 64 - 1)
 
 instance (c : OsCfg) (l : ℕ) : Decidable (LvStatic c l) := by
   unfold LvStatic; dsimp only; infer_instance
+
+theorem LvStatic.resLt {c : OsCfg} {l : ℕ} (h : LvStatic c l) (hl : l < c.yrLevel) :
+    (osLvAt c l).queries / resBatch < 2 ^ 64 - 1 := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h20⟩ := h
+  exact h20 hl
 
 /-- The buffers' indices and sizes the lift reads. -/
 def SizesOk (c : OsCfg) : Prop :=
