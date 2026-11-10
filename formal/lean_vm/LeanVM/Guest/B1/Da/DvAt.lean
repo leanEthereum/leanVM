@@ -127,7 +127,7 @@ noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E) (s 
 
 /-- The rate cells of the challenge, as `fs_pack` computes them from its top limb. -/
 def zCells (z : E) : List E :=
-  [z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 0 * word 0 0 0]
+  [z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 * word 0 0]
 
 theorem zCells_eq (z : E) :
     zCells z = [(scalarCells z 0).1, (scalarCells z 0).2] := by
@@ -137,16 +137,16 @@ theorem zCells_eq (z : E) :
 
 /-- `da_verify`'s valuation. -/
 def dvVals (r L s : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) : List E :=
-  [gen ^ s, gen ^ r, gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), z, word 0 0 0, ofK (z.limb 0),
+  [gen ^ s, gen ^ r, gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), z, word 0 0, ofK (z.limb 0),
     ofK (z.limb 1), ofK (z.limb 2), word 0 0 1, word 0 0 1 * ofK (z.limb 2),
-    z + word 0 0 1 * ofK (z.limb 2), word 0 1 0, word 0 1 0 * word 0 0 0,
-    ofK (z.limb 2) + word 0 1 0 * word 0 0 0, gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7), gen ^ q.2.2.1,
+    z + word 0 0 1 * ofK (z.limb 2), word 0 1, word 0 1 * word 0 0,
+    ofK (z.limb 2) + word 0 1 * word 0 0, gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7), gen ^ q.2.2.1,
     gen ^ q.2.2.2, gen ^ (2 * r), gen ^ (4 * r), gen ^ (5 * r), gen ^ (10 * r), gen ^ (20 * r),
     gen ^ (40 * r), gen ^ (80 * r), gen ^ (160 * r), gen ^ (320 * r), gen ^ (640 * r),
-    gen ^ (641 * r), gen ^ bb, gen ^ (bb + 641 * r), word 1 0 0, word 1 0 0 + gen ^ r, word 1 0 0,
-    word 1 0 0, gen ^ (2 * 2 ^ L), gen ^ (4 * 2 ^ L), gen ^ (bb + 641 * r + r), word 1 0 0,
-    word 1 0 0 + gen ^ r, word 1 0 0, word 1 0 0, word 1 0 0 + gen ^ (2 ^ L - r), word 1 0 0, c0, c1,
-    c0, c1, z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 0 * word 0 0 0]
+    gen ^ (641 * r), gen ^ bb, gen ^ (bb + 641 * r), word 1 0, word 1 0 + gen ^ r, word 1 0,
+    word 1 0, gen ^ (2 * 2 ^ L), gen ^ (4 * 2 ^ L), gen ^ (bb + 641 * r + r), word 1 0,
+    word 1 0 + gen ^ r, word 1 0, word 1 0, word 1 0 + gen ^ (2 ^ L - r), word 1 0, c0, c1,
+    c0, c1, z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 * word 0 0]
 
 /-- **`da_verify`'s honest shape**: its counts, its loops' starts and the padding's guard, its
 dispatch. -/
@@ -462,7 +462,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
       (kidsAt_outsOk _ [] _ ho 5 (by simp [dvKids]) (by simp)
         (by show decide (2 ^ L - r ≠ 0) = true; simpa using h)).1
     have h44 : σ (.n 44) ≠ 0 → 2 ^ L - r ≠ 0 := fun h hz => h (by
-      rw [hσ]; show word 1 0 0 + gen ^ (2 ^ L - r) = 0
+      rw [hσ]; show word 1 0 + gen ^ (2 ^ L - r) = 0
       rw [hz, pow_zero, word_one]; exact e_add_eq_zero_iff.mpr rfl)
     refine ⟨σ, by rw [hσ]; rfl, hdisp, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hb]
@@ -486,7 +486,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     · rw [hloads]
       simp
     · refine ⟨by rw [hσ]; rfl, s2, by rw [hσ]; rfl, by rw [hσ]; exact word_one, by rw [hσ]; exact word_one,
-        by rw [hσ]; show word 1 0 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩
+        by rw [hσ]; show word 1 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩
 
 end
 end LeanVM.Guest.B1.Da

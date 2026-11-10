@@ -39,7 +39,7 @@ def KC.val (σ : Val) : KC → E
 
 /-- The padding run holds `[0x01, 0, 0, 0, 0]`. -/
 def PadOK (σ : Val) (pad : Nat) : Prop :=
-  σ (.n pad) = word 1 0 0 ∧ σ (.n (pad + 1)) = 0 ∧ σ (.n (pad + 2)) = 0 ∧ σ (.n (pad + 3)) = 0 ∧
+  σ (.n pad) = word 1 0 ∧ σ (.n (pad + 1)) = 0 ∧ σ (.n (pad + 2)) = 0 ∧ σ (.n (pad + 3)) = 0 ∧
     σ (.n (pad + 4)) = 0
 
 /-! ## Blocks of atoms -/
@@ -111,7 +111,7 @@ theorem AtomsHold.atom {ss : List Stmt} {a : Atom} (h : AtomsHold rd σ ss) (ha 
 theorem kCell_const (pad : Nat) (c : E) (b : Nat) :
     kCell pad (.const c) b = if isPadOne c then ([], .n pad, b) else ([cst b c], .n b, b + 1) := rfl
 
-theorem isPadOne_eq {c : E} (h : isPadOne c = true) : c = word 1 0 0 :=
+theorem isPadOne_eq {c : E} (h : isPadOne c = true) : c = word 1 0 :=
   @of_decide_eq_true _ (Dec.eDecEq _ _) h
 
 theorem kCell_atoms (pad : Nat) (k : KC) (b : Nat) : atomsOnly (kCell pad k b).1 = true := by
@@ -161,7 +161,7 @@ theorem kRunFresh_sound : ∀ {ks : List KC} {b : Nat},
         cases k with
         | zero =>
             refine ⟨?_, h.sub fun _ hx => List.mem_cons_of_mem _ hx⟩
-            have h0 : σ (.n b) = word 0 0 0 := h.atom (List.mem_cons_self ..)
+            have h0 : σ (.n b) = word 0 0 := h.atom (List.mem_cons_self ..)
             rw [h0]
             simp only [word, Value.ofBits_zero]
             exact Value.zero_eq_ofLimbs.symm

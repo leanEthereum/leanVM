@@ -26,20 +26,20 @@ def l17Pows : List Stmt :=
 
 /-- A loop's step: the next counter `x·g` and the test `x·g + N`, from cell `c` on. -/
 def stepAtC (c : ℕ) : List Stmt :=
-  [.atom (.const (.n c) (word 2 0 0)), .atom (.mul (.n (c + 1)) (.n 0) (.n c)),
-    .atom (.add (.n (c + 2)) (.n (c + 1)) (.n 1)), .atom (.const (.n (c + 3)) (word 2 0 0)),
+  [.atom (.const (.n c) (word 2 0)), .atom (.mul (.n (c + 1)) (.n 0) (.n c)),
+    .atom (.add (.n (c + 2)) (.n (c + 1)) (.n 1)), .atom (.const (.n (c + 3)) (word 2 0)),
     .atom (.mul (.n (c + 4)) (.n 0) (.n (c + 3)))]
 
 /-- `__loop21`'s block: `rowbase[x] = blobs·x^641`, the region's word `512` zero. -/
 def l17Pre : List Stmt :=
   l17Pows ++ [.atom (.mul (.n 15) (.n 2) (.n 14)), .atom (.mul (.n 16) (.n 3) (.n 0)),
-    .atom (.load (.n 15) (.n 16) 0), .atom (.const (.n 17) (word 0 0 0)),
+    .atom (.load (.n 15) (.n 16) 0), .atom (.const (.n 17) (word 0 0)),
     .atom (.load (.n 17) (.n 15) 512)] ++ stepAtC 18
 
 /-- `__loop23`'s block: the region's sum zero at word `640`, its tree's root at `roots·x²`. -/
 def l19Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
-    .atom (.load (.n 6) (.n 5) 640), .atom (.const (.n 7) (word 0 0 0)),
+    .atom (.load (.n 6) (.n 5) 640), .atom (.const (.n 7) (word 0 0)),
     .atom (.assertEq (.n 6) (.n 7)), .call "da_levels__L128_L7" [.n 5] [.n 8, .n 9],
     .atom (.mul (.n 10) (.n 0) (.n 0)), .atom (.mul (.n 11) (.n 3) (.n 10)),
     .atom (.load (.n 8) (.n 11) 0), .atom (.load (.n 9) (.n 11) 1)] ++ stepAtC 12
@@ -48,9 +48,9 @@ def l19Pre : List Stmt :=
 def l20Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 3) (.n 3)), .atom (.mul (.n 5) (.n 2) (.n 4)),
     .atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 5) (.n 6)),
-    .atom (.const (.n 8) (word 8002054802297438051 4108169256045952147 0)),
+    .atom (.const (.n 8) (word 8002054802297438051 4108169256045952147)),
     .atom (.load (.n 8) (.n 7) 0),
-    .atom (.const (.n 9) (word 12830724869163462953 1721925254677230945 0)),
+    .atom (.const (.n 9) (word 12830724869163462953 1721925254677230945)),
     .atom (.load (.n 9) (.n 7) 1)] ++ stepAtC 10
 
 /-- `__loop25`'s block: a blob's cell in column `xb`, its running sum's step and its digest at the

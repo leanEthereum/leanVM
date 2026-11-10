@@ -46,7 +46,7 @@ def aggOrc (P : AggPtrs) (h : BatchingHints) (res : (List E × E) × Fs) (j : �
 
 theorem const_good {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x : V} {lo hi : ℕ}
     (h : atoms.any (isConstAt x lo hi) = true) (hg : ∀ a ∈ atoms, Good rd S w σ a) :
-    σ x = word lo hi 0 := by
+    σ x = word lo hi := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have := hg a ha
   cases a <;> simp only [isConstAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp

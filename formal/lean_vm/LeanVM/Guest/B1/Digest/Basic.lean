@@ -50,7 +50,7 @@ theorem forall_mem_flatMap_range {α : Type} {n : ℕ} {f : ℕ → List α} {P 
 /-! ## `pack_pair` -/
 
 /-- `y` and `y⁻¹` as the guest's words. -/
-abbrev wY : E := word 0 1 0
+abbrev wY : E := word 0 1
 abbrev wYi : E := word 1 0 1
 
 theorem wY_eq : wY = y := by rw [y_eq]; rfl

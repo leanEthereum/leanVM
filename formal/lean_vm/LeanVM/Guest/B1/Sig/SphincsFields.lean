@@ -83,7 +83,7 @@ theorem layerLeafN_lt (T l : Nat) : layerLeafN T l < 2 ^ sLeafLen l := bitsVal_l
 /-! ## Fields and their shifts -/
 
 theorem mem_shiftsG_step {bit : Nat → V} {n o r : Nat} (hr : 1 ≤ r) (hrn : r < n) :
-    ∀ x ∈ [cst (o + 3 * r - 2) (word 2 0 0),
+    ∀ x ∈ [cst (o + 3 * r - 2) (word 2 0),
       mulS (.n (o + 3 * r - 1)) (.n (o + 3 * r - 2)) (.n (o + 3 * r - 3)),
       addS (.n (o + 3 * r)) (bit r) (.n (o + 3 * r - 1))], x ∈ shiftsG bit n o := by
   intro x hx
@@ -135,7 +135,7 @@ theorem shiftsG_sound {bit : Nat → V} {n o : Nat} {f : Nat → Bool} (hn : 0 <
       ring
 
 theorem mem_shiftsG_tail {bit : Nat → V} {n o r : Nat} (hr : 1 ≤ r) (hrn : r < n) :
-    ∀ x ∈ [cst (o + 3 * r - 2) (word 2 0 0),
+    ∀ x ∈ [cst (o + 3 * r - 2) (word 2 0),
       mulS (.n (o + 3 * r - 1)) (.n (o + 3 * r - 2)) (.n (o + 3 * r - 3)),
       addS (.n (o + 3 * r)) (bit r) (.n (o + 3 * r - 1))], x ∈ (shiftsG bit n o).tail := by
   intro x hx
@@ -212,7 +212,7 @@ theorem pw_mul {s v : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) :
     eOfNat v * pw s = eOfNat192 (2 ^ s * v) := by
   rw [pw_eq hs, mul_comm, coordBasis_mul_eOfNat (by omega) h]
 
-theorem pw_lo {s : Nat} (hs : s < 64) : pw s = word (2 ^ s) 0 0 := by
+theorem pw_lo {s : Nat} (hs : s < 64) : pw s = word (2 ^ s) 0 := by
   simp only [pw, hs, ↓reduceIte]
 
 theorem pw_zero : pw 0 = 1 := by
@@ -324,7 +324,7 @@ theorem mdIn_mask_sound {T c z b : Nat} (hc : c < 24) (hz : z + 8 < 10) (hv : FV
     (h : AtomsHold rd σ (mdIn c z b true).1) :
     σ (mdIn c z b true).2.2 = eOfNat ((forsLeafN T c >>> z) % 2 ^ 8) := by
   simp only [mdIn, ↓reduceIte] at h ⊢
-  have k0 : σ (.n b) = word 256 0 0 := h.atom (a := .const (.n b) _) (by simp [cst])
+  have k0 : σ (.n b) = word 256 0 := h.atom (a := .const (.n b) _) (by simp [cst])
   have m1 : σ (.n (b + 1)) = σ (sFVal c (z + 8)) * σ (.n b) :=
     h.atom (a := .mul (.n (b + 1)) _ _) (by simp [mulS])
   have a2 : σ (.n (b + 2)) = σ (sFVal c z) + σ (.n (b + 1)) :=
@@ -645,7 +645,7 @@ theorem sForsFields_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sFor
       have e := hF.atom (a := .copy (.n 300) (sMdBit 0)) (by simp [sForsField, copyS])
       simp only [Atom.Holds] at e
       simpa [Value.eOfNat_zero] using e
-    · have k := hF.atom (a := .const (.n (299 + 29 * c)) (word (2 * c) 0 0))
+    · have k := hF.atom (a := .const (.n (299 + 29 * c)) (word (2 * c) 0))
         (by simp [sForsField, hc0, cst])
       have a := hF.atom (a := .add (.n (300 + 29 * c)) (sMdBit (10 * c)) (.n (299 + 29 * c)))
         (by simp [sForsField, hc0, addS])

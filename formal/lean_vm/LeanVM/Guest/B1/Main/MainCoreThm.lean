@@ -62,11 +62,11 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       σ (.n d) = σ (.n x) + σ (.n y) := fun d x y h => hD _ h
   have gC : ∀ (d : ℕ) (c : E), Atom.const (.n d) c ∈ mDefAtoms → σ (.n d) = c :=
     fun d c h => hD _ h
-  have one : ∀ d, Atom.const (.n d) (word 1 0 0) ∈ mDefAtoms → σ (.n d) = 1 := fun d h => by
+  have one : ∀ d, Atom.const (.n d) (word 1 0) ∈ mDefAtoms → σ (.n d) = 1 := fun d h => by
     rw [gC d _ h, word_one]
-  have two : ∀ d, Atom.const (.n d) (word 2 0 0) ∈ mDefAtoms → σ (.n d) = gen := fun d h => by
+  have two : ∀ d, Atom.const (.n d) (word 2 0) ∈ mDefAtoms → σ (.n d) = gen := fun d h => by
     rw [gC d _ h, word_gen]
-  have gd : ∀ d x y e, Atom.const (.n x) (word 1 0 0) ∈ mDefAtoms →
+  have gd : ∀ d x y e, Atom.const (.n x) (word 1 0) ∈ mDefAtoms →
       Atom.add (.n d) (.n x) (.n y) ∈ mDefAtoms → σ (.n y) = gen ^ e → σ (.n d) = 1 + gen ^ e :=
     fun d x y e hx hd hy => by rw [gA d x y hd, one x hx, hy]
   -- the counts
@@ -193,15 +193,15 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       simp only [rcPairs, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hp
       rcases hp with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ |
           ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> rw [h1, h2] at hg ⊢ <;> rw [h2] at hlt
-      · exact rc_side hl v0 (by rw [gC 8 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.lx (by norm_num) hlt hg
-      · exact rc_side hl v1 (by rw [gC 12 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.xd (by norm_num) hlt hg
-      · exact rc_side hl v2 (by rw [gC 16 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.rx (by norm_num) hlt hg
-      · exact rc_side hl v3 (by rw [gC 20 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.ls (by norm_num) hlt hg
-      · exact rc_side hl v4 (by rw [gC 24 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.sd (by norm_num) hlt hg
-      · exact rc_side hl v5 (by rw [gC 28 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.rs (by norm_num) hlt hg
-      · exact rc_side hl v6 (by rw [gC 32 (word 65536 0 0) (by decide +kernel), word_g16]) hb.nc (by norm_num) hlt hg
-      · exact rc_side hl v7 (by rw [gC 36 (word 2 0 0) (by decide +kernel), word_g1]) hb.nd (by norm_num) hlt hg
-      · exact rc_side hl v42 (by rw [gC 43 (word 9272771591053052074 0 0) (by decide +kernel), word_gmax]) hb.total (by norm_num)
+      · exact rc_side hl v0 (by rw [gC 8 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.lx (by norm_num) hlt hg
+      · exact rc_side hl v1 (by rw [gC 12 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.xd (by norm_num) hlt hg
+      · exact rc_side hl v2 (by rw [gC 16 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.rx (by norm_num) hlt hg
+      · exact rc_side hl v3 (by rw [gC 20 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.ls (by norm_num) hlt hg
+      · exact rc_side hl v4 (by rw [gC 24 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.sd (by norm_num) hlt hg
+      · exact rc_side hl v5 (by rw [gC 28 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.rs (by norm_num) hlt hg
+      · exact rc_side hl v6 (by rw [gC 32 (word 65536 0) (by decide +kernel), word_g16]) hb.nc (by norm_num) hlt hg
+      · exact rc_side hl v7 (by rw [gC 36 (word 2 0) (by decide +kernel), word_g1]) hb.nd (by norm_num) hlt hg
+      · exact rc_side hl v42 (by rw [gC 43 (word 9272771591053052074 0) (by decide +kernel), word_gmax]) hb.total (by norm_num)
           hlt hg
       · exact rc_side hl vpick v6 hb.pick (by have := hb.nc; omega) hlt hg
     | load d p o =>
@@ -242,7 +242,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       rw [e_add_eq_zero_iff]
       rcases hok with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · rw [r437, v42]
-      · rw [v445, gC 435 (word 0 0 0) (by decide +kernel), word_zero]
+      · rw [v445, gC 435 (word 0 0) (by decide +kernel), word_zero]
         rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hb.nd with h | h
         · rw [h, pow_zero, show (1 : E) + 1 = 0 from e_add_eq_zero_iff.mpr rfl, mul_zero]
         · rw [hb.pickD h, show gen ^ m.nc + gen ^ m.nc = 0 from e_add_eq_zero_iff.mpr rfl,
@@ -251,7 +251,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       · rw [r485, hO (by decide)]; simp [mOrc]
     | _ => simp [mSideOk] at hok
   -- the stores' words
-  have hbyte : ∀ v < 256, σ (.n (69 + v)) = word v 0 0 := by
+  have hbyte : ∀ v < 256, σ (.n (69 + v)) = word v 0 := by
     intro v hv
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mByte_ok v (List.mem_range.mpr hv))
     have := hG _ (atom_mem_of_atomsIn' hb')
@@ -262,14 +262,14 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mLeafC_ok k (List.mem_range.mpr hk))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
-    rw [show σ (.n (442 + k)) = word 0 0 0 from this, word_zero]
-  have hzc : ∀ d, Atom.const (.n d) (word 0 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
+    rw [show σ (.n (442 + k)) = word 0 0 from this, word_zero]
+  have hzc : ∀ d, Atom.const (.n d) (word 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
     intro d h
     have h' := atom_mem_of_atomsIn' h
-    have hs : Stmt.atom (.const (.n d) (word 0 0 0)) ∈ mFlat := by
+    have hs : Stmt.atom (.const (.n d) (word 0 0)) ∈ mFlat := by
       clear * - h'; simp only [mFlat, List.mem_append]; tauto
     have := hgA _ (mem_atomsIn' hs)
-    exact (show σ (.n d) = word 0 0 0 from this).trans word_zero
+    exact (show σ (.n d) = word 0 0 from this).trans word_zero
   -- the blocks
   have hsubF : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mFlat) → ∀ a ∈ atomsIn P, a ∈ atomsIn mFlat :=
     fun hP a ha => mem_atomsIn' (hP _ (atom_mem_of_atomsIn' ha))

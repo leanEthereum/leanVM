@@ -431,7 +431,7 @@ theorem beWordAt_three_of_lt_pow16 {j : Nat} (h : j < 2 ^ 16) :
   omega
 
 /-- A literal below `2^64` is a word. -/
-theorem lit_of_lt {c : Nat} (h : c < 2 ^ 64) : lit c = word c 0 0 := by
+theorem lit_of_lt {c : Nat} (h : c < 2 ^ 64) : lit c = word c 0 := by
   rw [lit, Nat.mod_eq_of_lt h, Nat.div_eq_of_lt h, Nat.zero_mod]
 
 /-- **A chain step's constant** (`spStepC i s = i·2^88 + s·2^120`, `walk`,
@@ -444,7 +444,7 @@ theorem adrsCell1_add_step {type keyPair i s : Nat} (hi : i < 256) (hs : s < 256
 /-- **A type constant** (`t·2^24`, as `SP_WOTS_PK` and the others) added to an address cell of type
 zero. -/
 theorem adrsCell1_add_type {t keyPair word2 word3 : Nat} (ht : t < 256) :
-    adrsCell1 0 keyPair word2 word3 + word (t * 2 ^ 24) 0 0 = adrsCell1 t keyPair word2 word3 := by
+    adrsCell1 0 keyPair word2 word3 + word (t * 2 ^ 24) 0 = adrsCell1 t keyPair word2 word3 := by
   rw [← lit_of_lt (c := t * 2 ^ 24) (by omega), ← beWordAt_zero_of_lt ht]
   exact adrsCell1_add_word0 t keyPair word2 word3
 

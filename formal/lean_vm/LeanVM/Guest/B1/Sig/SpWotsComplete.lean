@@ -328,7 +328,7 @@ theorem spCode_complete {d : Nat → Nat} (hd : ∀ i, d i < 4) (vals : Nat → 
     (fun σ1 he1 hp1 => ?_), ?_⟩
   · have hpow : ∀ s < 10, σ1 (.n (6 + s)) = gen ^ s := by
       intro s hs
-      have e : σ1 (.n (6 + s)) = word (2 ^ s) 0 0 := hp1.atom (a := .const (.n (6 + s)) _) (by
+      have e : σ1 (.n (6 + s)) = word (2 ^ s) 0 := hp1.atom (a := .const (.n (6 + s)) _) (by
         simp only [spCopies, spPowers, cst, List.mem_append, List.mem_map, List.mem_range]
         exact Or.inr ⟨s, hs, rfl⟩)
       rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]

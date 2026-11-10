@@ -183,8 +183,8 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   have v56' := mul' (d := 56) (x := 2) (y := 0) (by omega) (by omega) (by decide +kernel)
   have v58 := mul' (d := 58) (x := 0) (y := 57) (by omega) (by omega) (by decide +kernel)
   have v61' := mul' (d := 61) (x := 0) (y := 60) (by omega) (by omega) (by decide +kernel)
-  have v57 : σ (.n 57) = word 2 0 0 := gconst (k := 39) (by decide)
-  have v60 : σ (.n 60) = word 2 0 0 := gconst (k := 42) (by decide)
+  have v57 : σ (.n 57) = word 2 0 := gconst (k := 39) (by decide)
+  have v60 : σ (.n 60) = word 2 0 := gconst (k := 42) (by decide)
   have v59 : σ (.n 59) = σ (.n 58) + σ (.n 1) := hmem (.add (.n 59) (.n 58) (.n 1)) (by decide +kernel)
   have h24 : σ (.n 38) = gen ^ (24 * c) := by
     rw [v38, v37, v36, v35, v34, e0, mul_comm 24 c, pow_mul]; ring
@@ -241,10 +241,10 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
           simpa using hm
         rcases hrcs with e | e <;> rw [e] at hmemA ⊢
         · exact hrc (by omega) hex (by norm_num) hmemA v18
-            (by rw [show σ (.n 20) = word 9272771591053052074 0 0 from
+            (by rw [show σ (.n 20) = word 9272771591053052074 0 from
               gconst (k := 3) (by decide), word_gmax])
         · exact hrc (by omega) hes (by norm_num) hmemA v19
-            (by rw [show σ (.n 24) = word 9272771591053052074 0 0 from
+            (by rw [show σ (.n 24) = word 9272771591053052074 0 from
               gconst (k := 5) (by decide), word_gmax])
     · simp only [l5S, List.mem_cons, List.not_mem_nil, or_false] at haS
       rcases haS with rfl | rfl | rfl

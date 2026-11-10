@@ -243,7 +243,7 @@ noncomputable def cl23Else : List Stmt := match Fn.body Data.core23 with
 
 set_option maxRecDepth 100000 in
 theorem core22_shape : Fn.body Data.core23 =
-    [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
+    [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
      .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11)),
      .ret [.n 76, .n 77]] :=
   stmtsEqb_sound (by decide +kernel)

@@ -122,7 +122,7 @@ def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-- **The byte table** `main` writes (`lean_ethereum.py:4573-4575`): `byte_bits[g^v] = v` for every
 byte `v`, the word whose bits spell `v`. -/
-def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0 0)
+def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0)
 
 /-- The memory holds a word at each of the first `n` addresses `g^i`: a range check below `n` has
 its witnesses. -/

@@ -35,7 +35,7 @@ theorem check_complete {a : Atom} {σ : Val} (h : a.Holds rd σ) (lo : Nat) :
 
 /-- The address of a level: its constant plus the parent's index. -/
 def mA (σ : Val) (nodeOf : Nat → Option V) (addrOf : Nat → Nat) (l : Nat) : E :=
-  word (addrOf l) 0 0 + match nodeOf l with
+  word (addrOf l) 0 + match nodeOf l with
     | none => 0
     | some nd => σ nd
 
@@ -58,7 +58,7 @@ theorem canon_mA {σ : Val} {nodeOf : Nat → Option V} {addrOf : Nat → Nat} {
   | some nd => exact canon_add (canon_word _ _) (h nd hn)
 
 theorem k64_vals_eq (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) :
-    k64 pad m0 m1 m2 m3 c o = [cst c (word (2 ^ 63) 0 0)] ++ [kecS [m0, m1, m2, m3, .n pad, .n (pad + 1),
+    k64 pad m0 m1 m2 m3 c o = [cst c (word (2 ^ 63) 0)] ++ [kecS [m0, m1, m2, m3, .n pad, .n (pad + 1),
       .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)]
       (runV o 1) false false] := rfl
 
@@ -119,26 +119,26 @@ theorem k64_complete {pad : Nat} {m0 m1 m2 m3 : V} {c : Nat} (σ : Val) (hp : Pa
 /-- **One level of a Merkle path completes**, its children hinted in the order of its bit. -/
 theorem merkle_level_complete {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL : List Stmt} (σ : Val)
     (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hpp : NBv b pp) (hbit : NBv b bit) (hcur : NBv b cur)
-    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0 0)] ++ nodeL) c) (hcb : b + 5 ≤ c)
-    {Aval : E} (hA : ∀ σ', AgreeBelow b σ σ' → AtomsHold rd σ' ([cst (b + 4) (word w 0 0)] ++ nodeL) →
+    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0)] ++ nodeL) c) (hcb : b + 5 ≤ c)
+    {Aval : E} (hA : ∀ σ', AgreeBelow b σ σ' → AtomsHold rd σ' ([cst (b + 4) (word w 0)] ++ nodeL) →
       σ' (.n (c - 1)) = Aval) (hAc : IsCanonical128 Aval) {bt : Bool}
     (hbv : σ bit = if bt then 1 else 0) {sib : E} (hsc : IsCanonical128 sib)
     (hcc : IsCanonical128 (σ cur)) (hppc : IsCanonical128 (σ pp))
     (hh : σ (.n b) = (mPair bt (σ cur) sib).1 ∧ σ (.n (b + 1)) = (mPair bt (σ cur) sib).2) :
     Completes C rd b (c + 2)
       ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-          addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0 0)] ++
+          addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
         nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)) σ
       (fun σ' => σ' (.n (c + 1)) = (hcell [σ pp, Aval, (mPair bt (σ cur) sib).1,
         (mPair bt (σ cur) sib).2]).1 ∧ IsCanonical128 (σ' (.n (c + 1))) ∧ σ' (.n b) = σ (.n b) ∧
         σ' (.n (b + 1)) = σ (.n (b + 1))) := by
   have hle := hseq.le
   have hsplit : [hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0 0)] ++
+      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
       nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) =
       [hintW "siblings" [.n b, .n (b + 1)]] ++ ([addS (.n (b + 2)) cur (.n b),
         addS (.n (b + 3)) (.n b) (.n (b + 1))] ++ ([mulS (.n (b + 2)) bit (.n (b + 3))] ++
-        (([cst (b + 4) (word w 0 0)] ++ nodeL) ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)))) := by
+        (([cst (b + 4) (word w 0)] ++ nodeL) ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1)))) := by
     simp
   rw [hsplit]
   have hs2 : SeqOK (b + 2) [addS (.n (b + 2)) cur (.n b), addS (.n (b + 3)) (.n b) (.n (b + 1))] (b + 4) :=
@@ -204,9 +204,9 @@ theorem merkleT_snd_ge (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat �
 
 theorem level_numBelow {pad : Nat} {pp bit cur : V} {b c w : Nat} {nodeL : List Stmt}
     (hpb : pad + 5 ≤ b) (hpp : NBv b pp) (hbit : NBv b bit) (hcur : NBv b cur)
-    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0 0)] ++ nodeL) c) (hcb : b + 5 ≤ c) :
+    (hseq : SeqOK (b + 4) ([cst (b + 4) (word w 0)] ++ nodeL) c) (hcb : b + 5 ≤ c) :
     NumBelow (c + 2) (Stmt.valsList ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0 0)] ++
+      addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) bit (.n (b + 3)), cst (b + 4) (word w 0)] ++
       nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1))) := by
   have hn := hseq.numBelow
   rw [valsList_append] at hn
@@ -262,13 +262,13 @@ theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
       have hcurr : σr cur = σ cur := hagr.apply hcur
       -- the level, then the rest
       have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c → mNext nodeOf l b = c + 2 →
-          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) c →
-          (∀ σ', AgreeBelow b σr σ' → AtomsHold rd σ' ([cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL) →
+          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) c →
+          (∀ σ', AgreeBelow b σr σ' → AtomsHold rd σ' ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) →
             σ' (.n (c - 1)) = mA σ nodeOf addrOf l) →
           merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
             ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
               addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-              cst (b + 4) (word (addrOf l) 0 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
+              cst (b + 4) (word (addrOf l) 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1,
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1,
               (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2) →
@@ -335,7 +335,7 @@ theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
       | none =>
           refine hall (b + 5) [] (by omega) (by simp [mNext, hn]) ⟨rfl, rfl⟩ (fun σ' _ hat => ?_)
             (by simp [merkleT, hn])
-          have := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+          have := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
           simp only [mA, hn, add_zero]
           exact this
       | some nd =>
@@ -343,7 +343,7 @@ theorem merkleT_complete {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat 
           refine hall (b + 6) [addS (.n (b + 5)) (.n (b + 4)) nd] (by omega) (by simp [mNext, hn])
             ⟨rfl, ⟨rfl, ⟨b + 4, by omega, rfl⟩, hnd.1.mono' (by omega)⟩, rfl⟩ (fun σ' hag hat => ?_)
             (by simp [merkleT, hn])
-          have e1 := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+          have e1 := hat.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
           have e2 := hat.atom (a := .add (.n (b + 5)) (.n (b + 4)) nd) (by simp [addS])
           simp only [Atom.Holds] at e1 e2
           simp only [mA, hn]

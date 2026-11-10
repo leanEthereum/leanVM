@@ -66,7 +66,7 @@ establishes on a memory image of at most `2^32` words: `b = g^(e + e' + 1)`, `e,
 def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen ^ (e + e' + 1)
 
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
-abbrev ginvW : E := word 9223372036854775821 0 0
+abbrev ginvW : E := word 9223372036854775821 0
 
 /-! ## `statement_digest` (G:4058-4097, TRIAGE #86) -/
 

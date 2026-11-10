@@ -31,7 +31,7 @@ theorem spRen_slice_117 : (Stmt.valsList ((spBodyT.drop 117).take 5)).all spUnOK
 theorem spRen_slice_122 : (Stmt.valsList ((spBodyT.drop 122).take 5)).all spUnOK = true := by
   decide +kernel
 
-theorem spRen_tail : (Stmt.valsList (spTailOf (spLeafKOf (word 1 (2 ^ 63) 0)))).all spUnOK = true := by
+theorem spRen_tail : (Stmt.valsList (spTailOf (spLeafKOf (word 1 (2 ^ 63))))).all spUnOK = true := by
   decide +kernel
 
 end

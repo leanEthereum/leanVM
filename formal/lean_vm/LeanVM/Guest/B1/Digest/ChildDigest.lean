@@ -33,11 +33,11 @@ noncomputable def cc25Zero : List Stmt := match Fn.body Data.core24 with
 
 set_option maxRecDepth 100000 in
 theorem core24_shape : Fn.body Data.core24 =
-    [.atom (.const (.n 5) (word 1 0 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
+    [.atom (.const (.n 5) (word 1 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
      .ite (.n 6) cc25Zero
       [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],
        .atom (.hint (.witness "child_mono" (.stack [.n 18]))),
-       .atom (.const (.n 19) (word 2 0 0)), .atom (.add (.n 20) (.n 18) (.n 19)),
+       .atom (.const (.n 19) (word 2 0)), .atom (.add (.n 20) (.n 18) (.n 19)),
        .ite (.n 20)
         [.call "child_claim_list_mono" [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17] [.n 21, .n 22],
          .atom (.copy (.n 13) (.n 21)), .atom (.copy (.n 14) (.n 22))]

@@ -41,11 +41,11 @@ def packV (e : ℕ) : ℕ := if e = 0 then 259 else 256 + 9 * e + 2
 `sym[2e] + y·sym[2e + 1]`, and the two products `lvals[j]·sym[j]` added to the running sum. -/
 def blkA (e : ℕ) : List Atom :=
   if e = 0 then
-    [.assertInK (.n 1) (.n 2), .const (.n 257) (word 0 1 0), .mul (.n 258) (.n 257) (.n 2),
+    [.assertInK (.n 1) (.n 2), .const (.n 257) (word 0 1), .mul (.n 258) (.n 257) (.n 2),
       .add (.n 259) (.n 1) (.n 258), .load (.n 260) (.n 0) 0, .mul (.n 261) (.n 260) (.n 1),
       .load (.n 262) (.n 0) 1, .mul (.n 263) (.n 262) (.n 2), .add (.n 264) (.n 261) (.n 263)]
   else
-    [.assertInK (.n (2 * e + 1)) (.n (2 * e + 2)), .const (.n (256 + 9 * e)) (word 0 1 0),
+    [.assertInK (.n (2 * e + 1)) (.n (2 * e + 2)), .const (.n (256 + 9 * e)) (word 0 1),
       .mul (.n (256 + 9 * e + 1)) (.n (256 + 9 * e)) (.n (2 * e + 2)),
       .add (.n (256 + 9 * e + 2)) (.n (2 * e + 1)) (.n (256 + 9 * e + 1)),
       .load (.n (256 + 9 * e + 3)) (.n 0) (2 * e),

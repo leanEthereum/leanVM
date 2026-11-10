@@ -44,7 +44,7 @@ def offVals (x N off st : E) (sv tv : ℕ → E) : List E :=
   [x, N, off, st, x * x, x * x * (x * x), x * x * (x * x) * (x * x * (x * x)),
     off * (x * x * (x * x) * (x * x * (x * x)))] ++
   (List.range 8).flatMap (fun j ↦ [sv j, tv j, sv j + tv j]) ++
-  [word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
+  [word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0]
 
 theorem offVals_mid {x N off st : E} {sv tv : ℕ → E} {j : ℕ} (hj : j < 8) :
     (offVals x N off st sv tv).getD (8 + 3 * j) 0 = sv j ∧

@@ -86,7 +86,7 @@ theorem l17_block {x N bl rb : E} (h1 : LoadHolds rd (rb * x) 0 (bl * x ^ 641))
   rw [← word_zero] at h2
   refine ⟨Val.ofArgs [x, N, bl, rb, x * x, x * x * (x * x), x * x * (x * x) * x,
     x ^ 10, x ^ 20, x ^ 40, x ^ 80, x ^ 160, x ^ 320, x ^ 640, x ^ 641, bl * x ^ 641, rb * x,
-    word 0 0 0, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],
+    word 0 0, word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0],
     by rw [params_of_shape hs hl]; rfl, ?_⟩
   rw [loopPre_of_body dv_loops_body.1 (by decide)]
   intro st hst
@@ -107,8 +107,8 @@ theorem l19_block {x N rb roots base c0 c1 : E} (h1 : LoadHolds rd (rb * x) 0 ba
     (h3 : LoadHolds rd (roots * (x * x)) 0 c0) (h4 : LoadHolds rd (roots * (x * x)) 1 c1) :
     LoopBlock rd (coreProgram.getD 389 default) x N [rb, roots] := by
   obtain ⟨-, ⟨hs, hl⟩, -⟩ := dv_loops_shape
-  refine ⟨Val.ofArgs [x, N, rb, roots, rb * x, base, 0, word 0 0 0, c0, c1, x * x,
-    roots * (x * x), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],
+  refine ⟨Val.ofArgs [x, N, rb, roots, rb * x, base, 0, word 0 0, c0, c1, x * x,
+    roots * (x * x), word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0],
     by rw [params_of_shape hs hl]; rfl, ?_⟩
   rw [loopPre_of_body dv_loops_body.2.1 (by decide)]
   intro st hst
@@ -132,9 +132,9 @@ theorem l20_block {x N roots nb : E}
   rw [← e.1] at h0
   rw [← e.2] at h1
   refine ⟨Val.ofArgs [x, N, roots, nb, nb * nb, roots * (nb * nb), x * x,
-    roots * (nb * nb) * (x * x), word 8002054802297438051 4108169256045952147 0,
-    word 12830724869163462953 1721925254677230945 0, word 2 0 0, x * word 2 0 0,
-    x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
+    roots * (nb * nb) * (x * x), word 8002054802297438051 4108169256045952147,
+    word 12830724869163462953 1721925254677230945, word 2 0, x * word 2 0,
+    x * word 2 0 + N, word 2 0, x * word 2 0], by rw [params_of_shape hs hl]; rfl, ?_⟩
   rw [loopPre_of_body dv_loops_body.2.2.1 (by decide)]
   intro st hst
   simp only [l20Pre, stepAtC, List.cons_append, List.nil_append, List.mem_cons,
@@ -155,7 +155,7 @@ theorem l21_block {x N lv rb xb xb2 d0 d1 s base prev : E}
     LoopBlock rd (coreProgram.getD 403 default) x N [lv, rb, xb, xb2] := by
   obtain ⟨-, -, -, hs, hl⟩ := dv_loops_shape
   refine ⟨Val.ofArgs [x, N, lv, rb, xb, xb2, d0, d1, s, rb * x, base, base * xb, prev, prev + s,
-    base * xb2, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],
+    base * xb2, word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0],
     by rw [params_of_shape hs hl]; rfl, ?_⟩
   rw [loopPre_of_body dv_loops_body.2.2.2 (by decide)]
   intro st hst

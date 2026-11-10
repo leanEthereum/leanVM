@@ -67,7 +67,7 @@ def expBodyA (top D : ℕ) : List Atom := .copy (.n 4) (.n 0) :: (List.range D).
 /-- **`da_expand`'s atoms**, `W` the word of `g^(2^D)`. -/
 def expT (top D W : ℕ) : List Atom :=
   expBodyA top D ++
-    [.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
+    [.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0),
       .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))]
 
 /-- **`da_expand`'s body, checked.** -/
@@ -184,7 +184,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
     rw [hparams] at hpar
     subst hpar hrets
     have hatB : ∀ a ∈ expBodyA top D, a.Holds rd σ := fun a ha ↦ hat a (List.mem_append_left _ ha)
-    have hend : ∀ a ∈ [Atom.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
+    have hend : ∀ a ∈ [Atom.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0),
         .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))], a.Holds rd σ := fun a ha ↦
       hat a (List.mem_append_right _ ha)
     simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq,
@@ -209,7 +209,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
     · beta_reduce
       rw [show top - (top - d) = d by omega]
       exact (exp_depth hd (Nat.two_pow_pos d) hatB).2.1
-    · have hw : word W 0 0 = ofK (addressOfIndex (2 ^ D)) := by
+    · have hw : word W 0 = ofK (addressOfIndex (2 ^ D)) := by
         rw [word_eOfNat, eOfNat, hW]
       rw [hmul, hcst, hw]
       refine ⟨isInK_mul hfk (ofK_isInK _), fun k hk w hr ↦ ?_⟩

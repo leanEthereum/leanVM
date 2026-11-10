@@ -85,7 +85,7 @@ nor a power of two), in increasing order (`LX_TAG_SLOT`). -/
 def lxTagVals : List ℕ := (List.range 58).filter Sig.lxTagCarried
 
 /-- `lx_tags`' words. -/
-def lxTagWords : List E := lxTagVals.map fun i => word i 0 0
+def lxTagWords : List E := lxTagVals.map fun i => word i 0
 
 noncomputable def preOk : Bool :=
   let P := mPre

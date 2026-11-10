@@ -46,9 +46,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## Atom matchers -/
 
-/-- `x` is set to the word `word lo hi 0`. -/
+/-- `x` is set to the word `word lo hi`. -/
 def isConstAt (x : V) (lo hi : ℕ) : Atom → Bool
-  | .const d c => decide (d = x) && eEqb c (word lo hi 0)
+  | .const d c => decide (d = x) && eEqb c (word lo hi)
   | _ => false
 
 /-- `x = y + z`. -/
@@ -81,7 +81,7 @@ theorem any_holds {atoms : List Atom} {p : Atom → Bool} (h : atoms.any p = tru
 
 theorem const_sound {atoms : List Atom} {x : V} {lo hi : ℕ}
     (h : atoms.any (isConstAt x lo hi) = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = word lo hi 0 := by
+    σ x = word lo hi := by
   obtain ⟨a, hp, ha⟩ := any_holds h hat
   cases a <;> simp only [isConstAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
   obtain ⟨rfl, he⟩ := hp
@@ -130,7 +130,7 @@ def srcVal (σ : Val) : Option V → E
   | some v => σ v
   | none => 0
 
-/-- **`x` is the message cell `src` plus the padding constant** `word lo hi 0`. -/
+/-- **`x` is the message cell `src` plus the padding constant** `word lo hi`. -/
 def evalP (atoms : List Atom) (x : V) (src : Option V) (lo hi : ℕ) : Bool :=
   match src with
   | some v => (lo == 0 && hi == 0 && decide (x = v)) ||
@@ -142,7 +142,7 @@ def evalP (atoms : List Atom) (x : V) (src : Option V) (lo hi : ℕ) : Bool :=
 
 theorem evalP_sound {atoms : List Atom} {x : V} {src : Option V} {lo hi : ℕ}
     (h : evalP atoms x src lo hi = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = srcVal σ src + word lo hi 0 := by
+    σ x = srcVal σ src + word lo hi := by
   cases src with
   | none =>
     simp only [evalP] at h
@@ -174,7 +174,7 @@ def rateOk (atoms : List Atom) (x : V) (y : Option V) (src : Option V) (lo hi : 
 
 theorem rateOk_sound {atoms : List Atom} {x : V} {y src : Option V} {lo hi : ℕ}
     (h : rateOk atoms x y src lo hi = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = srcVal σ y + (srcVal σ src + word lo hi 0) := by
+    σ x = srcVal σ y + (srcVal σ src + word lo hi) := by
   cases y with
   | none =>
     simp only [rateOk] at h
@@ -211,7 +211,7 @@ def padNat (len i : ℕ) : ℕ × ℕ :=
   let b := byteNat (rate * (len / rate + 1) - 1) 0x80 i
   (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
-theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) 0 = word a b 0 + word c d 0 := by
+theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) = word a b + word c d := by
   simp only [word, ofBits_xor, ofLimbs_add, ofBits_zero, add_zero]
 
 theorem word_byteNat (pos v i : ℕ) :
@@ -366,7 +366,7 @@ theorem isCanonical128_add {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical12
   unfold IsCanonical128 at *
   rw [limb_add, ha, hb, add_zero]
 
-theorem isCanonical128_word (lo hi : ℕ) : IsCanonical128 (word lo hi 0) := by
+theorem isCanonical128_word (lo hi : ℕ) : IsCanonical128 (word lo hi) := by
   unfold IsCanonical128 word
   rw [ofLimbs_limb2, ofBits_zero]
 

@@ -113,19 +113,19 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
     · exact ⟨fun e => hnb heoB e hei, Or.inr hei⟩
     · exact ⟨fun e => by simp at e; exact (hfold rfl).2 e, Or.inl rfl⟩
   -- the prefix
-  have hpre : SSA (if fold = true then [cst b (word 0 0 0)] else []) ∧
-      (∀ x ∈ Stmt.valsList (if fold = true then [cst b (word 0 0 0)] else []), fold = true ∧ x = .n b) ∧
-      (∀ x ∈ outsList (if fold = true then [cst b (word 0 0 0)] else []), fold = true ∧ x = .n b) := by
+  have hpre : SSA (if fold = true then [cst b (word 0 0)] else []) ∧
+      (∀ x ∈ Stmt.valsList (if fold = true then [cst b (word 0 0)] else []), fold = true ∧ x = .n b) ∧
+      (∀ x ∈ outsList (if fold = true then [cst b (word 0 0)] else []), fold = true ∧ x = .n b) := by
     cases fold
     · exact ⟨trivial, by simp, by simp [outsList]⟩
     · refine ⟨ssa_single_atom trivial (by simp [aReads]), ?_, ?_⟩ <;>
         simp [cst, Stmt.vals, Atom.vals, outsList, aOuts]
-  have hpw : SSA ((if fold = true then [cst b (word 0 0 0)] else []) ++
+  have hpw : SSA ((if fold = true then [cst b (word 0 0)] else []) ++
       (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1) :=
     SSA.append' hpre.1 w1 (P := fun x => fold = true ∧ x = .n b)
       (Q := WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b))
       hpre.2.1 w2 (fun x hx ⟨hf, e⟩ => (hR x hx).2.2.1 hf e)
-  have hvpw : ∀ x ∈ Stmt.valsList ((if fold = true then [cst b (word 0 0 0)] else []) ++
+  have hvpw : ∀ x ∈ Stmt.valsList ((if fold = true then [cst b (word 0 0)] else []) ++
       (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1),
       (fold = true ∧ x = .n b) ∨ NBv B x ∨
         WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x := by
@@ -134,7 +134,7 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
     rcases List.mem_append.mp hx with h | h
     · exact Or.inl (hpre.2.1 x h)
     · exact Or.inr (w3 x h)
-  have hopw : ∀ x ∈ outsList ((if fold = true then [cst b (word 0 0 0)] else []) ++
+  have hopw : ∀ x ∈ outsList ((if fold = true then [cst b (word 0 0)] else []) ++
       (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold then b + 1 else b)).1),
       (fold = true ∧ x = .n b) ∨
         WalksR slots (if k = 0 then W.size + 1 else W.size) k n (if fold then b + 1 else b) x := by
@@ -250,17 +250,17 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
         (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 ∧
       ∀ t < n, IsCanonical128 (fwd (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 σ
         (.n (slots t 2))) := by
-  have hpreK : KCanon (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) (if fold = true then [cst b (word 0 0 0)] else []) := kcanon_noKec (by
+  have hpreK : KCanon (fwd (if fold = true then [cst b (word 0 0)] else []) σ) (if fold = true then [cst b (word 0 0)] else []) := kcanon_noKec (by
     intro x hx ins outs i o e
     subst e
     cases fold <;> simp [cst] at hx)
-  have hσ1 : AgreeBelow B σ (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) := fwd_agree (by
+  have hσ1 : AgreeBelow B σ (fwd (if fold = true then [cst b (word 0 0)] else []) σ) := fwd_agree (by
     intro v hv ⟨j, hj, e⟩
     subst e
     cases fold <;> simp [cst, outsList, aOuts] at hv
     omega) σ
   have hg1 := hc.1 _ _ hσ1 hg
-  have hs1 : ∀ t < n, StartCanon (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) (slots t) (dig k t) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold = true then b + 1 else b)) := by
+  have hs1 : ∀ t < n, StartCanon (fwd (if fold = true then [cst b (word 0 0)] else []) σ) (slots t) (dig k t) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 t (if fold = true then b + 1 else b)) := by
     intro t ht
     have := hs t ht
     unfold StartCanon at this ⊢
@@ -276,14 +276,14 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
         · simp only [walkStartV, h3, ↓reduceIte]
           exact Or.inl ⟨0, by simp [walkSize, h3], by simp⟩
   obtain ⟨w1, w2⟩ := walksT_canon hW hc slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b) (by simpa using hwl) (by simpa using hwd)
-    (fwd (if fold = true then [cst b (word 0 0 0)] else []) σ) hg1 (by simpa using hs1)
+    (fwd (if fold = true then [cst b (word 0 0)] else []) σ) hg1 (by simpa using hs1)
   simp only [Nat.zero_add] at w2
   have fin : ∀ tail : List Stmt, (∀ x ∈ tail, ∀ ins outs i o, x ≠ .atom (.keccak ins outs i o)) →
       (∀ v ∈ outsList tail, ∀ t < n, v ≠ .n (slots t 2)) →
-      SSA ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) →
-      KCanon (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ)
-          ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) ∧
-        ∀ t < n, IsCanonical128 (fwd ((if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ
+      SSA ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) →
+      KCanon (fwd ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ)
+          ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) ∧
+        ∀ t < n, IsCanonical128 (fwd ((if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++ tail) σ
           (.n (slots t 2))) := by
     intro tail hk ho hs'
     refine ⟨KCanon.append (KCanon.append hpreK w1 (SSA.disj (SSA.left hs'))) (kcanon_noKec hk)
@@ -291,7 +291,7 @@ theorem armT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W
     rw [fwd_append, fwd_append, fwd_of_not_mem _ _ fun hm => ho _ hm t ht rfl]
     exact w2 t ht
   have hsplit : (armT W slots first n fold prodIn encIn (.n po) (.n eo) k b).1 =
-      (if fold = true then [cst b (word 0 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++
+      (if fold = true then [cst b (word 0 0)] else []) ++ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 (if fold = true then b + 1 else b)).1 ++
         (if k = 0 then [if fold then copyS (.n po) (W.power (digitSum k n))
             else mulS (.n po) prodIn (W.power (digitSum k n)), copyS (.n eo) (if fold then .n b else encIn)]
           else [if fold then copyS (.n po) (W.power (digitSum k n))

@@ -148,7 +148,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcan⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
     hcalls⟩, hnli⟩ := hcok
   have hS := atomsEqb_sound hst
-  have hNb : ∀ b < 7, word (offN b) 0 0 = gen ^ 2 ^ b := fun b hb' => by
+  have hNb : ∀ b < 7, word (offN b) 0 = gen ^ 2 ^ b := fun b hb' => by
     rw [word_eOfNat, eOfNat, hN b hb', gen_pow_eq_ofK]
   have hKB : ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) +
       fs (offLoopName b)).sum = offKB fs SK := rfl
@@ -221,7 +221,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     intro b hb' j hj
     have e := fun a (ha : a ∈ offStepA b j) => hgA a (mem_offP_block hb' (mem_offBlock_step hj ha))
     have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n 0) j) (by simp [offStepA])
-    have c1 := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0 0)) (by simp [offStepA])
+    have c1 := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0)) (by simp [offStepA])
     have m1 := e (.mul (.n (offB b + 1 + 3 * j + 2)) (.n (offB b + 1 + 3 * j))
       (.n (offB b + 1 + 3 * j + 1))) (by simp [offStepA])
     simp only [Good] at l1 c1 m1
@@ -240,11 +240,11 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
       σ (.n (offB b + 29)) = gen ^ 2 ^ b := by
     intro b hb'
     have e := fun a (ha : Stmt.atom a ∈ offBlockS b) => hgA a (mem_offP_block hb' ha)
-    have c25 := e (.const (.n (offB b + 25)) (word 1 0 0)) (by simp [offBlockS])
-    have c26 := e (.const (.n (offB b + 26)) (word (offN b) 0 0)) (by simp [offBlockS])
+    have c25 := e (.const (.n (offB b + 25)) (word 1 0)) (by simp [offBlockS])
+    have c26 := e (.const (.n (offB b + 26)) (word (offN b) 0)) (by simp [offBlockS])
     have a27 := e (.add (.n (offB b + 27)) (.n (offB b + 25)) (.n (offB b + 26))) (by simp [offBlockS])
-    have c28 := e (.const (.n (offB b + 28)) (word 1 0 0)) (by simp [offBlockS])
-    have c29 := e (.const (.n (offB b + 29)) (word (offN b) 0 0)) (by simp [offBlockS])
+    have c28 := e (.const (.n (offB b + 28)) (word 1 0)) (by simp [offBlockS])
+    have c29 := e (.const (.n (offB b + 29)) (word (offN b) 0)) (by simp [offBlockS])
     simp only [Good] at c25 c26 a27 c28 c29
     rw [hNb b hb', word_one] at *
     exact ⟨by rw [a27, c25, c26], c28, c29⟩
@@ -265,7 +265,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     | load d p off =>
       obtain ⟨ho8, ⟨rfl, rfl⟩ | ⟨rfl, b, hb', rfl⟩ | ⟨b, hb', rfl, rfl⟩⟩ := isOffLoad_spec hsh
       · -- a zero
-        have hc := hgA (.const (.n (2 + off)) (word 0 0 0)) (mem_offP_zero ho8 (by simp [offZeroA]))
+        have hc := hgA (.const (.n (2 + off)) (word 0 0)) (mem_offP_zero ho8 (by simp [offZeroA]))
         simp only [Good] at hc
         show LoadHolds rd (σ (.n 1)) off (σ (.n (2 + off)))
         rw [e1, hc, word_zero]

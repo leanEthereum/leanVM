@@ -52,18 +52,18 @@ theorem pack_vals {A : List Atom} {x : V} {b : ℕ} (h : packIn A x b = true)
     (hg : ∀ a ∈ A, Good rd S w σ a) : ∀ i < 9, σ (.n (b + i)) = fsPackVals (σ x) dsObserve i := by
   have hall := List.all_eq_true.mp h
   have h0 := hall (.hint (.limbs x [.n b, .n (b + 1), .n (b + 2)])) (by simp [fsPackA])
-  have h3 := hall (.const (.n (b + 3)) (word dsObserve 0 0)) (by simp [fsPackA])
+  have h3 := hall (.const (.n (b + 3)) (word dsObserve 0)) (by simp [fsPackA])
   have h4 := hall (.const (.n (b + 4)) (word 0 0 1)) (by simp [fsPackA])
   have h5 := hall (.mul (.n (b + 5)) (.n (b + 4)) (.n (b + 2))) (by simp [fsPackA])
   have h6 := hall (.add (.n (b + 6)) x (.n (b + 5))) (by simp [fsPackA])
-  have h7 := hall (.const (.n (b + 7)) (word 0 dsObserve 0)) (by simp [fsPackA])
+  have h7 := hall (.const (.n (b + 7)) (word 0 dsObserve)) (by simp [fsPackA])
   have h8 := hall (.add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))) (by simp [fsPackA])
   have g0 := good_of_any hg h0
-  have g3 : σ (.n (b + 3)) = word dsObserve 0 0 := good_of_any hg h3
+  have g3 : σ (.n (b + 3)) = word dsObserve 0 := good_of_any hg h3
   have g4 : σ (.n (b + 4)) = word 0 0 1 := good_of_any hg h4
   have g5 := good_of_any hg h5
   have g6 : σ (.n (b + 6)) = σ x + σ (.n (b + 5)) := good_of_any hg h6
-  have g7 : σ (.n (b + 7)) = word 0 dsObserve 0 := good_of_any hg h7
+  have g7 : σ (.n (b + 7)) = word 0 dsObserve := good_of_any hg h7
   have g8 : σ (.n (b + 8)) = σ (.n (b + 2)) + σ (.n (b + 7)) := good_of_any hg h8
   simp only [Good] at g0 g5
   have l0 : σ (.n b) = ofK ((σ x).limb 0) := g0 0 (by simp)
@@ -83,7 +83,7 @@ theorem pack_vals {A : List Atom} {x : V} {b : ℕ} (h : packIn A x b = true)
   · show σ (.n (b + 6)) = σ x + word 0 0 1 * ofK ((σ x).limb 2)
     rw [g6, g5, g4, l2]
   · exact g7
-  · show σ (.n (b + 8)) = ofK ((σ x).limb 2) + word 0 dsObserve 0
+  · show σ (.n (b + 8)) = ofK ((σ x).limb 2) + word 0 dsObserve
     rw [g8, l2, g7]
 
 theorem pack_ok {A : List Atom} {x : V} {b : ℕ} (h : packIn A x b = true)

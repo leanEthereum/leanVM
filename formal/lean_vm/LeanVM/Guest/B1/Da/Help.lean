@@ -141,12 +141,12 @@ theorem guardK_sound {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
   · exact absurd ha (by simp)
 
 set_option maxRecDepth 100000 in
-theorem word_g64 : word 27 0 0 = gen ^ 64 := by
+theorem word_g64 : word 27 0 = gen ^ 64 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g128 : word 325 0 0 = gen ^ 128 := by
+theorem word_g128 : word 325 0 = gen ^ 128 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 

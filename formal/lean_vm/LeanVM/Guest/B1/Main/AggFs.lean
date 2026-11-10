@@ -180,12 +180,12 @@ theorem rowRel_perm {rd : Reader} {p : E} {s : Fs} (h : RowRel rd p s)
 /-- `fsPackT`'s atoms. -/
 def fsPackA (x : V) (b t : ℕ) : List Atom :=
   [.hint (.limbs x [.n b, .n (b + 1), .n (b + 2)]),
-    .const (.n (b + 3)) (word t 0 0),
+    .const (.n (b + 3)) (word t 0),
     .assertInK (.n (b + 2)) (.n (b + 3)),
     .const (.n (b + 4)) (word 0 0 1),
     .mul (.n (b + 5)) (.n (b + 4)) (.n (b + 2)),
     .add (.n (b + 6)) x (.n (b + 5)),
-    .const (.n (b + 7)) (word 0 t 0),
+    .const (.n (b + 7)) (word 0 t),
     .add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))]
 
 theorem fsPackT_eq_map (x : V) (b t : ℕ) : fsPackT x b t = (fsPackA x b t).map Stmt.atom := rfl

@@ -91,7 +91,7 @@ theorem match_complete {x : V} {arms : List (List Stmt)} {k lo hi : Nat} (hk : k
     exact he.apply (Or.inl hj)
   exact holdsArms_of arms 0 k hk (by rw [hx', hxv, Nat.zero_add]) (hh next kret hn)
 
-theorem word_two_pow_eq {j : Nat} (hj : j < 64) : word (2 ^ j) 0 0 = ofK (addressOfIndex j) := by
+theorem word_two_pow_eq {j : Nat} (hj : j < 64) : word (2 ^ j) 0 = ofK (addressOfIndex j) := by
   rw [word_eq_eOfNat, ← Value.gen_pow_eq_eOfNat hj, Value.gen_pow_eq_ofK]
 
 theorem start_ge {W : WotsT} {fold : Bool} {b k t lo : Nat} {base : Nat}
@@ -133,7 +133,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
   rw [hend]
   simp only [groupD, List.cons_append, List.append_assoc]
   show Completes C rd d _ ([hintW "digits" [.n d]] ++
-    (rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0 0) (d + 1) ++ (pre ++ ([cst (b + 5) closeLane] ++
+    (rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ (pre ++ ([cst (b + 5) closeLane] ++
       [.match_ (.n d) _])))) σ _
   refine Completes.append (m := d + 1) (by omega) (by omega)
     (by rw [valsList_hint]; exact .cons ⟨d, by omega, rfl⟩ (.nil _)) (hintKeep_complete σ _ _ _ _)

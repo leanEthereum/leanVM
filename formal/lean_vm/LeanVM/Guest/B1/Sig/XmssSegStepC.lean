@@ -196,7 +196,7 @@ theorem k64_complete_at {pad : Nat} {m0 m1 m2 m3 : V} {c o lo hi : Nat} (σ : Va
     omega
   have hcr : ¬ InR o 1 (.n c) := by
     rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
-  obtain ⟨σ1, he1, hp1, hh1⟩ := cst_complete (C := C) (rd := rd) σ c (word (2 ^ 63) 0 0)
+  obtain ⟨σ1, he1, hp1, hh1⟩ := cst_complete (C := C) (rd := rd) σ c (word (2 ^ 63) 0)
   have hσ1 : ∀ v, v ≠ .n c → σ1 v = σ v := fun v hv => he1 v (fun k h1 h2 e => hv (by rw [e]; congr 1; omega))
   have hin : ∀ v ∈ [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
       .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 1 v := by
@@ -228,7 +228,7 @@ theorem k64_complete_at {pad : Nat} {m0 m1 m2 m3 : V} {c o lo hi : Nat} (σ : Va
   have hhold : ∀ next kret, next → Stmt.HoldsList C rd σ2 (k64 pad m0 m1 m2 m3 c o) next kret := by
     intro next kret hn
     rw [k64_vals_eq, holdsList_append]
-    refine (holdsList_congr [cst c (word (2 ^ 63) 0 0)] (fun v hv => ?_) _ _).mp (hh1 _ kret (hh2 next kret hn))
+    refine (holdsList_congr [cst c (word (2 ^ 63) 0)] (fun v hv => ?_) _ _).mp (hh1 _ kret (hh2 next kret hn))
     simp only [cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
       List.mem_singleton] at hv
     subst hv

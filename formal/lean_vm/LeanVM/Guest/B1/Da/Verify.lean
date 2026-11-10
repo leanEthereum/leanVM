@@ -182,7 +182,7 @@ theorem loop_fromC {f : String} {ps : List E} {N : E} {m a : ℕ} {B : E → Pro
 
 theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C "__loop22" (x :: ps) []) :
     C "da_verify_column" (x :: ps) [] ∧
-      (x * gen + word 325 0 0 ≠ 0 → C "__loop22" (x * gen :: ps) []) := by
+      (x * gen + word 325 0 ≠ 0 → C "__loop22" (x * gen :: ps) []) := by
   have hok := l18_ok
   unfold l18Ok at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -202,7 +202,7 @@ theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C "__loop2
   obtain ⟨hc, h7, h8, h9, h10, h11, h12, -, hcall, -⟩ := hb
   refine ⟨?_, fun hne => ?_⟩
   · rw [← hx, ← hps]; exact hc
-  · have e10 : σ (.n 10) = x * gen + word 325 0 0 := by rw [h10, h8, h7, h9, word_gen, hx]
+  · have e10 : σ (.n 10) = x * gen + word 325 0 := by rw [h10, h8, h7, h9, word_gen, hx]
     have e12 : σ (.n 12) = x * gen := by rw [h12, h11, word_gen, hx]
     have := hcall (by rw [e10]; exact hne)
     rw [e12] at this

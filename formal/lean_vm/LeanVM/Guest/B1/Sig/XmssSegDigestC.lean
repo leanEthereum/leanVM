@@ -33,9 +33,9 @@ variable {C : CallRel} {rd : Reader}
 /-! ## The prologue -/
 
 theorem sPrologue_split : sPrologue = loadS sLxPP sSigner 1 :: ([hintW "lx_index" (runV 67 4),
-    hintW "lx_windows" (runV 71 4)] ++ (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0 0))) := rfl
+    hintW "lx_windows" (runV 71 4)] ++ (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))) := rfl
 
-theorem sPrologue_seq : SeqOK 75 ((List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0 0))) 88 :=
+theorem sPrologue_seq : SeqOK 75 ((List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))) 88 :=
   seqB_ok (by decide +kernel)
 
 theorem sPrologue_nb : NumBelow 88 (Stmt.valsList sPrologue) := numBelow_of_all (by decide +kernel)
@@ -70,7 +70,7 @@ theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1
   · rw [show sLxPP = V.n 66 from rfl, he3.apply (Or.inl (by norm_num))]; exact hPr
   · rw [show sHis w = V.n (67 + w) from rfl, he3.apply (Or.inl (by omega))]; exact hhis w hw
   · rw [show sWin w = V.n (71 + w) from rfl, he3.apply (Or.inl (by omega))]; exact hwin w hw
-  · have e := hh.atom (a := .const (.n (75 + s)) (word (2 ^ s) 0 0)) (by
+  · have e := hh.atom (a := .const (.n (75 + s)) (word (2 ^ s) 0)) (by
       simp only [List.mem_map, List.mem_range]
       exact ⟨s, hs, rfl⟩)
     simp only [Atom.Holds] at e
@@ -79,11 +79,11 @@ theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1
 /-! ## The bottom layer's digest -/
 
 theorem sDigest0_split : sDigest0 88 = [hintW "randomizer" [.n 88]] ++
-    ([cst 89 (word (tw 12) 0 0), addS (.n 90) (sHis 0) (.n 89)] ++
+    ([cst 89 (word (tw 12) 0), addS (.n 90) (sHis 0) (.n 89)] ++
       (loadS (.n 91) sSigner 2 :: loadS (.n 92) sSigner 3 ::
-        ((copyS (.n 93) (.n 88) :: cst 94 (word 1 0 0) :: cst 95 (word 0 0 0) :: cst 96 (word 0 0 0) ::
-          cst 97 (word (2 ^ 63) 0 0) ::
-          (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0 0))) ++
+        ((copyS (.n 93) (.n 88) :: cst 94 (word 1 0) :: cst 95 (word 0 0) :: cst 96 (word 0 0) ::
+          cst 97 (word (2 ^ 63) 0) ::
+          (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0))) ++
         [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97, .n 99, .n 100,
           .n 101, .n 102] (runV 103 1) false false]))) := rfl
 
@@ -109,7 +109,7 @@ theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
     Function.update_of_ne (by simp; omega) _ _
   refine Completes.seq (m := 91) (seqB_ok (by decide +kernel)) (by norm_num) (fun σ2 he2 hh2 => ?_)
   have hag2 := he2.agree
-  have e89 : σ2 (.n 89) = word (tw 12) 0 0 := hh2.atom (a := .const (.n 89) _) (by simp [cst])
+  have e89 : σ2 (.n 89) = word (tw 12) 0 := hh2.atom (a := .const (.n 89) _) (by simp [cst])
   have e90 : σ2 (.n 90) = σ2 (sHis 0) + σ2 (.n 89) :=
     hh2.atom (a := .add (.n 90) (sHis 0) (.n 89)) (by simp [addS])
   have hn02 : σ2 (sHis 0) = σ (sHis 0) := by
@@ -127,7 +127,7 @@ theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
   have v1 : σ5 sLxPP = σ sLxPP := by
     rw [show sLxPP = V.n 66 from rfl, hag5.apply ⟨66, by norm_num, rfl⟩, hag4.apply ⟨66, by norm_num, rfl⟩,
       hag3.apply ⟨66, by norm_num, rfl⟩, hag2.apply ⟨66, by norm_num, rfl⟩, hlow 66 (by norm_num)]
-  have v90 : σ5 (.n 90) = σ (sHis 0) + word (tw 12) 0 0 := by
+  have v90 : σ5 (.n 90) = σ (sHis 0) + word (tw 12) 0 := by
     rw [hag5.apply ⟨90, by norm_num, rfl⟩, hag4.apply ⟨90, by norm_num, rfl⟩,
       hag3.apply ⟨90, by norm_num, rfl⟩, e90, e89, hn02]
   have v91 : σ5 (.n 91) = c := by
@@ -138,11 +138,11 @@ theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
       hag3.apply ⟨88, by norm_num, rfl⟩, hag2.apply ⟨88, by norm_num, rfl⟩, h88]
   have v93 : σ5 (.n 93) = rho := by
     rw [← v88]; exact hh5.atom (a := .copy (.n 93) (.n 88)) (by simp [copyS])
-  have vc : ∀ k w, Stmt.atom (.const (.n k) (word w 0 0)) ∈ (copyS (.n 93) (.n 88) :: cst 94 (word 1 0 0) ::
-      cst 95 (word 0 0 0) :: cst 96 (word 0 0 0) :: cst 97 (word (2 ^ 63) 0 0) ::
-      (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0 0))) →
+  have vc : ∀ k w, Stmt.atom (.const (.n k) (word w 0)) ∈ (copyS (.n 93) (.n 88) :: cst 94 (word 1 0) ::
+      cst 95 (word 0 0) :: cst 96 (word 0 0) :: cst 97 (word (2 ^ 63) 0) ::
+      (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0))) →
       IsCanonical128 (σ5 (.n k)) := fun k w h => by
-    rw [show σ5 (.n k) = word w 0 0 from hh5.atom h]; exact canon_word _ _
+    rw [show σ5 (.n k) = word w 0 from hh5.atom h]; exact canon_word _ _
   have vm : ∀ k, 0 < k → k < 5 → IsCanonical128 (σ5 (.n (98 + k))) := fun k h0 h5 =>
     vc (98 + k) 0 (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨k, List.mem_range.mpr h5,
@@ -180,8 +180,8 @@ theorem sDigest0_complete (σ : Val) {rho c d : E} (hrho : IsCanonical128 rho) (
 /-! ## The top layer's digest -/
 
 theorem sDigest1_split (b : Nat) (root : V) : sDigest1 b root =
-    [cst b (word lxTop 0 0), addS (.n (b + 1)) (sHis 2) (.n b)] ++ (hintW "randomizer" [.n (b + 2)] ::
-      ([cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
+    [cst b (word lxTop 0), addS (.n (b + 1)) (sHis 2) (.n b)] ++ (hintW "randomizer" [.n (b + 2)] ::
+      ([cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
         k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 5 + 1))) := rfl
 
 /-- **The top layer's index and digest complete**, its randomizer `rho` hinted. -/
@@ -194,7 +194,7 @@ theorem sDigest1_complete {b : Nat} {root : V} (σ : Val) {rho : E} (hb : 103 �
     ⟨rfl, ⟨rfl, ⟨69, by omega, rfl⟩, ⟨b, by omega, rfl⟩⟩, rfl⟩ (by omega)
     (fun σ1 he1 hh1 => ?_)
   have hag1 := he1.agree
-  have e0 : σ1 (.n b) = word lxTop 0 0 := hh1.atom (List.mem_cons_self ..)
+  have e0 : σ1 (.n b) = word lxTop 0 := hh1.atom (List.mem_cons_self ..)
   have e1 : σ1 (.n (b + 1)) = σ1 (sHis 2) + σ1 (.n b) :=
     hh1.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   have hext : Ext (b + 2) (b + 3) σ1 (Function.update σ1 (.n (b + 2)) rho) := fun v hv =>
@@ -207,16 +207,16 @@ theorem sDigest1_complete {b : Nat} {root : V} (σ : Val) {rho : E} (hb : 103 �
   have hr2 : Function.update σ1 (.n (b + 2)) rho (.n (b + 2)) = rho := Function.update_self ..
   have hlow : ∀ k < b + 2, Function.update σ1 (.n (b + 2)) rho (.n k) = σ1 (.n k) := fun k hk =>
     Function.update_of_ne (by simp; omega) _ _
-  have hs3 : SeqOK (b + 3) [cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))]
+  have hs3 : SeqOK (b + 3) [cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))]
       (b + 5) := ⟨rfl, ⟨rfl, ⟨b + 1, by omega, rfl⟩, ⟨b + 3, by omega, rfl⟩⟩, rfl⟩
   refine Completes.seq (m := b + 5) hs3 (by omega) (fun σ3 he3 hh3 => ?_)
   have hag3 := he3.agree
-  have e3 : σ3 (.n (b + 3)) = word (tw 12) 0 0 := hh3.atom (List.mem_cons_self ..)
+  have e3 : σ3 (.n (b + 3)) = word (tw 12) 0 := hh3.atom (List.mem_cons_self ..)
   have e4 : σ3 (.n (b + 4)) = σ3 (.n (b + 1)) + σ3 (.n (b + 3)) :=
     hh3.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   have tr : ∀ k < b, σ3 (.n k) = σ (.n k) := fun k hk => by
     rw [hag3.apply ⟨k, by omega, rfl⟩, hlow k (by omega), hag1.apply ⟨k, hk, rfl⟩]
-  have v1 : σ3 (.n (b + 1)) = σ (sHis 2) + word lxTop 0 0 := by
+  have v1 : σ3 (.n (b + 1)) = σ (sHis 2) + word lxTop 0 := by
     rw [hag3.apply ⟨b + 1, by omega, rfl⟩, hlow (b + 1) (by omega), e1, e0,
       show sHis 2 = V.n 69 from rfl, hag1.apply ⟨_, by omega, rfl⟩]
   have v2 : σ3 (.n (b + 2)) = rho := by rw [hag3.apply ⟨b + 2, by omega, rfl⟩, hr2]

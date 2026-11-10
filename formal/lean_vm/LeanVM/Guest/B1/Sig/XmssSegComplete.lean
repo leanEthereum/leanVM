@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader}
 /-- A layer after its digest. -/
 def sCore (layer b : Nat) : List Stmt :=
   xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-    ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+    ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
       (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))
 
 theorem xSeg_split : xSeg = sPrologue ++ (sDigest0 88 ++ (sCore 0 88 ++ (sDigest1 62605 (.n 50364) ++

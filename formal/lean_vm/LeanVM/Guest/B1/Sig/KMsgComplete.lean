@@ -35,7 +35,7 @@ theorem canon_add {x y : E} (hx : IsCanonical128 x) (hy : IsCanonical128 y) : Is
 
 theorem canon_zero : IsCanonical128 (0 : E) := limb_zero 2
 
-theorem canon_word (a b : Nat) : IsCanonical128 (word a b 0) := by
+theorem canon_word (a b : Nat) : IsCanonical128 (word a b) := by
   simp [IsCanonical128, word, Value.ofBits_zero]
 
 theorem canon_cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) :

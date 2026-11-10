@@ -46,8 +46,8 @@ open LeanVM.Guest.B1 (CompleteAtD Returns bufL completeAt_of_rel_pureD)
 declared count's `b`. -/
 def mfσ1 (x N a b : E) : Val :=
   B1.Val.ofArgs [x, N, a, b, b * x, b * x * (b * x), b * x * (b * x) * (b * x * (b * x)),
-    a * (b * x * (b * x) * (b * x * (b * x))), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N,
-    word 2 0 0, x * word 2 0 0]
+    a * (b * x * (b * x) * (b * x * (b * x))), word 2 0, x * word 2 0, x * word 2 0 + N,
+    word 2 0, x * word 2 0]
 
 theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd "__loop0" [1, gen ^ m, a, b] [] := by

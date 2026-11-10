@@ -452,7 +452,7 @@ end groups
 
 theorem digitChecks_numBelow {dg : Nat} : ∀ m, NumBelow (dg + 15 + 4 * m)
     (Stmt.valsList ((List.range m).flatMap fun p =>
-      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0 0) (dg + 15 + 4 * p)))
+      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)))
   | 0 => NumBelow.nil _
   | m + 1 => by
       rw [List.range_succ, List.flatMap_append, List.flatMap_singleton, valsList_append]
@@ -466,7 +466,7 @@ theorem digitChecks_numBelow {dg : Nat} : ∀ m, NumBelow (dg + 15 + 4 * m)
 theorem digitChecks_complete {dg : Nat} {K : Nat → Nat} (hm : MemOK rd 256) (hK : ∀ p < 15, K p < 4 ^ lxN p) :
     ∀ m, m ≤ 15 → ∀ σ : Val, (∀ q < 15, σ (.n (dg + q)) = ofK (addressOfIndex (K q))) →
     Completes C rd (dg + 15) (dg + 15 + 4 * m) ((List.range m).flatMap fun p =>
-      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0 0) (dg + 15 + 4 * p)) σ
+      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)) σ
       (fun _ => True)
   | 0, _, σ, _ => ⟨σ, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩
   | m + 1, hm15, σ, hx => by

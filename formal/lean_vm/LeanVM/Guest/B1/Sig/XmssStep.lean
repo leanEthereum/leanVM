@@ -109,7 +109,7 @@ theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco 
     (hpc : pad + 5 ≤ c) (hpo : pad + 5 ≤ o) (hp : PadOK σ pad) :
     KCanon (fwd (k64 pad m0 m1 m2 m3 c o) σ) (k64 pad m0 m1 m2 m3 c o) ∧
       ∀ j < 1, IsCanonical128 (fwd (k64 pad m0 m1 m2 m3 c o) σ (.n (o + j))) := by
-  set σ1 := Function.update σ (.n c) (word (2 ^ 63) 0 0) with hσ1
+  set σ1 := Function.update σ (.n c) (word (2 ^ 63) 0) with hσ1
   have hf : fwd (k64 pad m0 m1 m2 m3 c o) σ = updL σ1 (runV o 1)
       (kOut ([m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c, .n (pad + 1),
         .n (pad + 2), .n (pad + 3), .n (pad + 4)].map σ1) false false) := rfl
@@ -139,7 +139,7 @@ theorem k64_fwd_canon {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hco 
       exact (hm v hv).2.2
     have hpk : ∀ k < 5, σ1 (.n (pad + k)) = σ (.n (pad + k)) := fun k hk => by
       rw [hσ1, Function.update_of_ne (by simp; omega)]
-    have hc1 : σ1 (.n c) = word (2 ^ 63) 0 0 := by rw [hσ1, Function.update_self]
+    have hc1 : σ1 (.n c) = word (2 ^ 63) 0 := by rw [hσ1, Function.update_self]
     obtain ⟨q0, q1, q2, q3, q4⟩ := hp
     have p0 := hpk 0 (by norm_num)
     have p1 := hpk 1 (by norm_num)

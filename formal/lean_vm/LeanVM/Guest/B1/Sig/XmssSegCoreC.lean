@@ -133,11 +133,11 @@ theorem sLeafK_ge {layer b : Nat} (hA : 103 ≤ sA layer b) : (sCw layer b).2.1 
 theorem sLeafPart_nb {layer b : Nat} (hidx : NBv (sA layer b) (sLxIdx layer b))
     (hd0 : NBv (sA layer b) (sD0 layer b)) (hA : 103 ≤ sA layer b) :
     NumBelow (sLeafK layer b).2.1 (Stmt.valsList (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-      ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+      ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
         (.n (sCw layer b).2.1)] ++ (sLeafK layer b).1)))) := by
   have b1 := sCw_snd_ge layer b
   have b2 := sLeafK_ge hA
-  have hseq : SeqOK (sCw layer b).2.1 [cst (sCw layer b).2.1 (word (tw 2) 0 0),
+  have hseq : SeqOK (sCw layer b).2.1 [cst (sCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)] ((sCw layer b).2.1 + 2) :=
     ⟨rfl, ⟨rfl, hidx.mono' (by omega), ⟨_, by omega, rfl⟩⟩, rfl⟩
   have hcw : NumBelow (sCw layer b).2.1 (Stmt.valsList (sCw layer b).1) := by
@@ -161,12 +161,12 @@ theorem sCore_complete (hW : LxWindowsC) {layer b : Nat} (hl : layer < 2) (hA : 
     (hs : ∑ i ∈ Finset.range 58, N / 4 ^ i % 4 = 106) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i))
     (sibs : Nat → E) (hsc : ∀ l < 16, IsCanonical128 (sibs l)) :
     NumBelow (sWin1 layer b).2.1 (Stmt.valsList (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-      ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+      ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
         (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1)))))) ∧
     sA layer b + 83 ≤ (sWin1 layer b).2.1 ∧
     Completes C rd (sA layer b) (sWin1 layer b).2.1
       (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-        ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+        ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
           (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))) σ
       (fun σ' => IsCanonical128 (σ' (.n (sWin1 layer b).2.2)) ∧ ∀ σ'', AgreeBelow (sWin1 layer b).2.1 σ' σ'' →
         (∀ i < 58, σ'' (sStart (sW layer b) σ'' (sA layer b + 6) (sA layer b + 6 + 70) i) = vals i) ∧

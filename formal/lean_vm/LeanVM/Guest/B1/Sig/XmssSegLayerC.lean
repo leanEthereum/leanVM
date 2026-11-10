@@ -116,7 +116,7 @@ theorem sLeaf_complete {layer b : Nat} (hA : 103 ≤ sA layer b) (hm : MemOK rd 
     (hs : ∑ i ∈ Finset.range 58, N / 4 ^ i % 4 = 106) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i)) :
     Completes C rd (sA layer b) (sLeafK layer b).2.1
       (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-        ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+        ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
           (.n (sCw layer b).2.1)] ++ (sLeafK layer b).1))) σ
       (fun σ' => IsCanonical128 (σ' (.n (sLeafK layer b).2.2)) ∧ ∀ σ'', AgreeBelow (sLeafK layer b).2.1 σ' σ'' →
         (∀ q < 15, σ'' (.n (sA layer b + 6 + q)) = ofK (addressOfIndex (lxK N q))) ∧
@@ -173,12 +173,12 @@ theorem sLeaf_complete {layer b : Nat} (hA : 103 ≤ sA layer b) (hm : MemOK rd 
   obtain ⟨hg2, hdg2, hkp2⟩ := hp2
   have hag2 : AgreeBelow dg σ1 σ2 := he2.agree
   -- the leaf's address
-  have hseq : SeqOK (sCw layer b).2.1 [cst (sCw layer b).2.1 (word (tw 2) 0 0),
+  have hseq : SeqOK (sCw layer b).2.1 [cst (sCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)] ((sCw layer b).2.1 + 2) :=
     ⟨rfl, ⟨rfl, hidx.mono' (by omega), ⟨_, by omega, rfl⟩⟩, rfl⟩
   refine Completes.seq hseq (by omega) (fun σ3 he3 hh3 => ?_)
   have hag3 : AgreeBelow (sCw layer b).2.1 σ2 σ3 := he3.agree
-  have e1 : σ3 (.n (sCw layer b).2.1) = word (tw 2) 0 0 := hh3.atom (List.mem_cons_self ..)
+  have e1 : σ3 (.n (sCw layer b).2.1) = word (tw 2) 0 := hh3.atom (List.mem_cons_self ..)
   have e2 : σ3 (.n ((sCw layer b).2.1 + 1)) = σ3 (sLxIdx layer b) + σ3 (.n (sCw layer b).2.1) :=
     hh3.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   have hidx3 : σ3 (sLxIdx layer b) = σ (sLxIdx layer b) := by

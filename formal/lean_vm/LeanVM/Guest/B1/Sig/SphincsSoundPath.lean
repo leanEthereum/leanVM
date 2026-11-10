@@ -111,17 +111,17 @@ theorem a1Hi_xor {z P v : Nat} (hz : z < 2 ^ 24) (hP : P < 2 ^ 16) (hv : v < 2 ^
   ring
 
 /-- Two words without a top limb add limb by limb. -/
-theorem word_add_word (a b c d : Nat) : word a b 0 + word c d 0 = word (a ^^^ c) (b ^^^ d) 0 := by
+theorem word_add_word (a b c d : Nat) : word a b + word c d = word (a ^^^ c) (b ^^^ d) := by
   simp only [word, ofLimbs_add, ofBits_xor, Value.ofBits_zero, add_zero]
 
 /-- A literal past the low limb. -/
-theorem lit_hi {X : Nat} (h : X < 2 ^ 64) : lit (2 ^ 64 * X) = word 0 X 0 := by
+theorem lit_hi {X : Nat} (h : X < 2 ^ 64) : lit (2 ^ 64 * X) = word 0 X := by
   simp only [lit, Nat.mul_mod_right, Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64),
     Nat.mod_eq_of_lt h]
 
 /-- A word times `y·2^s`. -/
 theorem eOfNat_mul_word_hi' {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) :
-    eOfNat a * word 0 (2 ^ s) 0 = word 0 (2 ^ s * a) 0 := by
+    eOfNat a * word 0 (2 ^ s) = word 0 (2 ^ s * a) := by
   rw [eOfNat_eq_ofLimbs]
   simp only [word]
   rw [mul_comm, ← ofK_eq_ofLimbs, ofLimbs_mul_ofK, Value.ofBits_zero, zero_mul,
@@ -131,15 +131,15 @@ variable {rd : Reader} {σ : Val}
 
 /-- **`sp_be16`'s multiplier**: `g^8 · 2^120 + 2^112`, the `y` limb's `g^64` reduced (`G:3818`). -/
 theorem be16HiW_eq : be16HiW = eOfNat 256 * lit (2 ^ 120) + lit (2 ^ 112) := by
-  rw [show lit (2 ^ 120) = word 0 (2 ^ 56) 0 by norm_num [lit],
-    show lit (2 ^ 112) = word 0 (2 ^ 48) 0 by norm_num [lit], be16HiW, mul_comm, eOfNat, word,
+  rw [show lit (2 ^ 120) = word 0 (2 ^ 56) by norm_num [lit],
+    show lit (2 ^ 112) = word 0 (2 ^ 48) by norm_num [lit], be16HiW, mul_comm, eOfNat, word,
     word, word, ofLimbs_mul_ofK, ofLimbs_add, ofLimbs_inj]
   decide +kernel
 
 /-- **An index's two bytes placed**: `v · 2^120 + (v >> 8) · (g^8 · 2^120 + 2^112)`, `v < 2^16`, is
 the index of an `A1`: the high bits' part at `g^128` cancels. -/
 theorem be16_split {v : Nat} (hv : v < 2 ^ 16) :
-    eOfNat v * lit (2 ^ 120) + eOfNat (v / 256) * be16HiW = word 0 (a1Hi 0 v) 0 := by
+    eOfNat v * lit (2 ^ 120) + eOfNat (v / 256) * be16HiW = word 0 (a1Hi 0 v) := by
   have hq : v / 256 < 2 ^ 8 := by omega
   have hv' : eOfNat v = eOfNat 256 * eOfNat (v / 256) + eOfNat (v % 256) := by
     have e1 : eOfNat 256 * eOfNat (v / 256) = eOfNat (2 ^ 8 * (v / 256)) :=
@@ -155,10 +155,10 @@ theorem be16_split {v : Nat} (hv : v < 2 ^ 16) :
           eOfNat 256 * eOfNat (v / 256) * lit (2 ^ 120)) := by
     rw [hv', be16HiW_eq]
     ring
-  have e4 : eOfNat (v % 256) * lit (2 ^ 120) = word 0 (2 ^ 56 * (v % 256)) 0 := by
+  have e4 : eOfNat (v % 256) * lit (2 ^ 120) = word 0 (2 ^ 56 * (v % 256)) := by
     rw [show (2 : Nat) ^ 120 = 2 ^ 64 * 2 ^ 56 by norm_num, lit_hi (by norm_num),
       eOfNat_mul_word_hi' (by omega)]
-  have e6 : eOfNat (v / 256) * lit (2 ^ 112) = word 0 (2 ^ 48 * (v / 256)) 0 := by
+  have e6 : eOfNat (v / 256) * lit (2 ^ 112) = word 0 (2 ^ 48 * (v / 256)) := by
     rw [show (2 : Nat) ^ 112 = 2 ^ 64 * 2 ^ 48 by norm_num, lit_hi (by norm_num),
       eOfNat_mul_word_hi' (by omega)]
   rw [hX, e_add_self, add_zero, e4, e6, word_add_word, Nat.xor_zero]
@@ -172,7 +172,7 @@ second byte, is placed as the index of an `A1`. -/
 theorem sBe16_sound {val : Nat → V} {pos n x v : Nat} (hn : n ≤ 16) (hv : v < 2 ^ n)
     (h0 : σ (val pos) = eOfNat v) (h8 : 9 ≤ n → σ (val (pos + 8)) = eOfNat (v / 256))
     (h : AtomsHold rd σ (sBe16 val pos n x).1) :
-    σ (sBe16 val pos n x).2.2 = word 0 (a1Hi 0 v) 0 := by
+    σ (sBe16 val pos n x).2.2 = word 0 (a1Hi 0 v) := by
   have hv16 : v < 2 ^ 16 := lt_of_lt_of_le hv (Nat.pow_le_pow_right (by norm_num) hn)
   by_cases h2 : (n + 7) / 8 = 2
   · have q8 := h8 (by omega)
@@ -280,7 +280,7 @@ theorem kNode_shape (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) :
   constructor <;> rfl
 
 theorem padCells_five (a b c d e : E) :
-    padCells [a, b, c, d, e] 80 = [a, b, c, d, e, word 1 0 0, 0, 0, word (2 ^ 63) 0 0] := by
+    padCells [a, b, c, d, e] 80 = [a, b, c, d, e, word 1 0, 0, 0, word (2 ^ 63) 0] := by
   simp [padCells, xorByte, padRead, rate, byteCell]
 
 /-- **A node's 80-byte hash** of `P`, `A0`, its address and its two children: the right child read
@@ -289,10 +289,10 @@ theorem kNode_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr k0 k1 : V} {y : N
     (h : AtomsHold rd σ (kNode pad pp a0 adr k0 k1 y).1) :
     σ (.n (y + 4)) = (hcell [σ pp, σ a0, σ adr, σ k0, σ k1]).1 := by
   obtain ⟨-, p1, p2, p3, p4⟩ := hp
-  have c0 : σ (.n y) = word 1 0 0 := h.atom (a := .const (.n y) _) (by simp [kNode, cst])
-  have c1 : σ (.n (y + 1)) = word 0 0 0 := h.atom (a := .const (.n (y + 1)) _) (by simp [kNode, cst])
-  have c2 : σ (.n (y + 2)) = word 0 0 0 := h.atom (a := .const (.n (y + 2)) _) (by simp [kNode, cst])
-  have c3 : σ (.n (y + 3)) = word (2 ^ 63) 0 0 :=
+  have c0 : σ (.n y) = word 1 0 := h.atom (a := .const (.n y) _) (by simp [kNode, cst])
+  have c1 : σ (.n (y + 1)) = word 0 0 := h.atom (a := .const (.n (y + 1)) _) (by simp [kNode, cst])
+  have c2 : σ (.n (y + 2)) = word 0 0 := h.atom (a := .const (.n (y + 2)) _) (by simp [kNode, cst])
+  have c3 : σ (.n (y + 3)) = word (2 ^ 63) 0 :=
     h.atom (a := .const (.n (y + 3)) _) (by simp [kNode, cst])
   set ins : List V := [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
     .n (pad + 2), .n (pad + 3), .n (pad + 4)] with hins
@@ -346,7 +346,7 @@ theorem level_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 adr cur bit : V} {x y
 /-! ## The paths -/
 
 /-- The address of a path's node at height `h`, index `i`: type `TREE`, no key pair. -/
-def pathAdr (h i : Nat) : E := word (2 * 2 ^ 24) (a1Hi h i) 0
+def pathAdr (h i : Nat) : E := word (2 * 2 ^ 24) (a1Hi h i)
 
 /-- A path's node at height `z + 1` from the one at `z`, the leaf `e`, its siblings `sib`. -/
 def pNodeE (pp a0 : E) (e : Nat) (sib : Nat → E) (z : Nat) (v : E) : E :=

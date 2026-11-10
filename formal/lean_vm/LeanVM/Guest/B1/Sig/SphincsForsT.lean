@@ -47,7 +47,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 /-- The multiplier of `sp_be16`'s shift by eight, `g^8 · SP_WORD3_MUL_0 + SP_WORD3_MUL_1` folded:
 `2^128 + 2^112`, the `y` limb's `g^64` reduced to `27` (`G:3818`). -/
-def be16HiW : E := word 0 (2 ^ 48 + 27) 0
+def be16HiW : E := word 0 (2 ^ 48 + 27)
 
 /-- `sp_be16(vals, pos, n)`: the `n`-bit value `val pos` as the index of an `A1` from base `x`,
 `val pos · 2^120 + val (pos + 8) · (g^8 · 2^120 + 2^112)`: its low byte at bit `120`, its high bits
@@ -65,7 +65,7 @@ def clmul8 (a b : Nat) : Nat :=
   (List.range 8).foldl (fun acc i => if a.testBit i then acc ^^^ (b <<< i) else acc) 0
 
 /-- `const(k) · (g^8 · SP_WORD3_MUL_0 + SP_WORD3_MUL_1)` folded, `k < 2^8`: `k · be16HiW`. -/
-def forsHiW (k : Nat) : E := word 0 (clmul8 k (2 ^ 48 + 27)) 0
+def forsHiW (k : Nat) : E := word 0 (clmul8 k (2 ^ 48 + 27))
 
 /-- `a + const(w)` from base `x`, `w` the constant's word and `k` a number zero exactly when it is:
 none for `k = 0`. -/
@@ -121,8 +121,8 @@ pad_tail=1)`), from base `y`: the three cells after `kids[1]` set to the padding
 `0`) and the message read in place, its last byte's constant at `y + 3`. The statements, the next
 base and the output run's base. -/
 def kNode (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : List Stmt × Nat × Nat :=
-  ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
-    cst (y + 3) (word (2 ^ 63) 0 0),
+  ([cst y (word 1 0), cst (y + 1) (word 0 0), cst (y + 2) (word 0 0),
+    cst (y + 3) (word (2 ^ 63) 0),
     kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1), .n (pad + 2),
       .n (pad + 3), .n (pad + 4)] (runV (y + 4) 1) false false], y + 5, y + 4)
 

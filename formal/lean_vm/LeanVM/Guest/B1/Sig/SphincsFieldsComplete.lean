@@ -297,7 +297,7 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     (fun σ2 he2 ⟨rR, hpad, d0, d1⟩ => ?_)
   have t21 : ∀ k < 6, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
   have hcells : ∀ i, hmsgCells σ2 i = [cellOf128 R, cellOf128 pk.publicSeed, cellOf128 pk.root,
-      eOfNat192 (M % 2 ^ 128), eOfNat192 (M / 2 ^ 128), word (i * 2 ^ 24) 0 0] := by
+      eOfNat192 (M % 2 ^ 128), eOfNat192 (M / 2 ^ 128), word (i * 2 ^ 24) 0] := by
     intro i
     simp only [hmsgCells]
     rw [rR, show sPP = .n 2 from rfl, t21 2 (by norm_num), show sRoot = .n 3 from rfl, t21 3 (by norm_num),

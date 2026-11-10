@@ -133,7 +133,7 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
         (starts i.val))) = _
   rw [e, tweakableHash_sphincsCells, spLeafCell]
   have hpk : adrsCell1 0 lf.val 0 0 + spPkC = adrsCell1 1 lf.val 0 0 := by
-    rw [show spPkC = word (1 * 2 ^ 24) 0 0 by rw [one_mul]; rfl]
+    rw [show spPkC = word (1 * 2 ^ 24) 0 by rw [one_mul]; rfl]
     exact adrsCell1_add_type (by norm_num)
   rw [hpk, List.ofFn_eq_map, ← List.map_coe_finRange_eq_range, List.map_map]
   rfl

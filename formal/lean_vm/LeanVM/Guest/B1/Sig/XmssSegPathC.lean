@@ -290,7 +290,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
       (hv b le_rfl (by split <;> omega)) _ _) ?_
     have hσr : ∀ j, j ≠ b → Function.update σ (.n b) sib (.n j) = σ (.n j) := fun j hj =>
       Function.update_of_ne (by simp only [ne_eq, V.mk.injEq, true_and]; exact hj) _ _
-    refine (lvl_completeO (xs := []) (ys := [cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0)])
+    refine (lvl_completeO (xs := []) (ys := [cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0)])
       (nm := "lx_path") (s := b) (c := b + 2) (o := O) _ rfl ⟨rfl, rfl⟩
       (hpad.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσr j (by omega)).symm)) (by simp [sLxPad]; omega)
       (by omega) (by simp only [sLxPad]; rcases hOc with h | h <;> omega) ?_ ?_).mono le_rfl (by split <;> omega)
@@ -302,7 +302,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
     · intro σ1 he1 hs1 hh1
       have hE1 : LxEnv L σ1 := hE.congr fun j hj => by
         rw [he1.apply (Or.inl (by omega)), hσr j (by omega)]
-      have ha : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0 :=
+      have ha : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 :=
         hh1.atom (a := .const _ _) (by simp [cst])
       exact lvl_inputs hE1 ⟨jc, by omega, rfl⟩ hcO
         (by rw [he1.apply (Or.inl (by omega)), hσr jc (by omega)]; exact hcc) (by omega)
@@ -325,7 +325,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
         · exact h.2.2
       refine CompletesO.reload (σr := Function.update σ (.n (b + 2)) sib) (fun v hv => Function.update_of_ne
         (hv (b + 2) (by omega) (by cases outO <;> simp)) _ _) ?_
-      refine (lvl_completeO (xs := [cst b (word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0 0),
+      refine (lvl_completeO (xs := [cst b (word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0),
           addS (.n (b + 1)) (sHis (w + 1)) (.n b)]) (ys := [])
         (nm := "lx_path") (s := b + 2) (c := b + 3) (o := O) _ ⟨rfl, ⟨rfl, hhis.mono' (by omega),
           ⟨b, by omega, rfl⟩⟩, rfl⟩ rfl
@@ -340,7 +340,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
       · intro σ1 he1 hs1 hh1
         have hE1 : LxEnv L σ1 := hE.congr fun j hj => by
           rw [he1.apply (Or.inl (by omega)), hσr (b + 2) j (by omega)]
-        have hc : σ1 (.n b) = word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0 0 :=
+        have hc : σ1 (.n b) = word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0 :=
           hh1.atom (a := .const _ _) (by simp [cst])
         have ha : σ1 (.n (b + 1)) = σ1 (sHis (w + 1)) + σ1 (.n b) :=
           hh1.atom (a := .add _ _ _) (by simp [addS])
@@ -355,7 +355,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
       refine CompletesO.reload (σr := Function.update σ (.n (b + 3)) sib) (fun v hv => Function.update_of_ne
         (hv (b + 3) (by omega) (by omega)) _ _) ?_
       refine (lvl_completeO (xs := [mulS (.n b) (sHis (w + 1)) (sPower (7 - r)),
-          cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0),
+          cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0),
           addS (.n (b + 2)) (.n b) (.n (b + 1))]) (ys := [])
         (nm := "lx_path") (s := b + 3) (c := b + 4) (o := b + 5) _
         ⟨⟨rfl, hhis, hpw⟩, rfl, ⟨rfl, ⟨b, by omega, rfl⟩, ⟨b + 1, by omega, rfl⟩⟩, rfl⟩ rfl
@@ -371,7 +371,7 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
           rw [he1.apply (Or.inl (by omega)), hσr (b + 3) j (by omega)]
         have hm : σ1 (.n b) = σ1 (sHis (w + 1)) * σ1 (sPower (7 - r)) :=
           hh1.atom (a := .mul _ _ _) (by simp [mulS])
-        have hc : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0 :=
+        have hc : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 :=
           hh1.atom (a := .const _ _) (by simp [cst])
         have ha : σ1 (.n (b + 2)) = σ1 (.n b) + σ1 (.n (b + 1)) :=
           hh1.atom (a := .add (.n (b + 2)) _ _) (by simp [addS])
@@ -729,7 +729,7 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
   · simp only [hw3, ↓reduceIte]
     obtain rfl : w = 3 := by omega
     refine CompletesO.append (by omega) le_rfl hnum hlv (fun σ1 he1 hp1 => ?_)
-    have hc : (Atom.const (.n (67 + 3)) (word (lxWin L 3) 0 0)).Holds rd σ1 := by
+    have hc : (Atom.const (.n (67 + 3)) (word (lxWin L 3) 0)).Holds rd σ1 := by
       show σ1 (sHis 3) = _
       rw [(hE1 σ1 he1).2.2.1 3 (by omega), word_eq_eOfNat]
       exact hh3
@@ -754,7 +754,7 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
         (fun σ2 he2 hh2 => ?_)
       have hm : σ2 (.n (lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1) = σ2 (sHis (w + 1)) * σ2 (sPower 8) :=
         hh2.atom (a := .mul _ _ _) (by simp [mulS])
-      have hcst : σ2 (.n ((lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 + 1)) = word (lxWin L w) 0 0 :=
+      have hcst : σ2 (.n ((lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 + 1)) = word (lxWin L w) 0 :=
         hh2.atom (a := .const _ _) (by simp [cst])
       have h2 : LxEnv L σ2 := h1.congr fun j hj => he2.apply (Or.inl (by omega))
       have hc : (Atom.add (sHis w) (.n (lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1)

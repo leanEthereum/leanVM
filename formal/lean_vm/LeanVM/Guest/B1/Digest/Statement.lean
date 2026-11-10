@@ -59,8 +59,8 @@ def sdHdr : List Atom :=
 
 /-- The constants: the padding's `0x01` cell and the zero capacity of the first block. -/
 def sdConsts : List Atom :=
-  [.const (.n 341) (word 1 0 0), .const (.n 342) (word 0 0 0), .const (.n 343) (word 0 0 0),
-   .const (.n 344) (word 0 0 0), .const (.n 345) (word 0 0 0)]
+  [.const (.n 341) (word 1 0), .const (.n 342) (word 0 0), .const (.n 343) (word 0 0),
+   .const (.n 344) (word 0 0), .const (.n 345) (word 0 0)]
 
 /-- Block `k ∈ {1, …, 4}`: nine message cells XORed into the previous output, then its `KECCAK`. -/
 def sdBlk (k : ℕ) : List Atom :=
@@ -68,7 +68,7 @@ def sdBlk (k : ℕ) : List Atom :=
     (.n (sdCell (17 * k / 2 + c)))) ++ [sdKeccak k]
 
 /-- The padding's last cell (`0x80` at byte `815`, the last byte of the sixth block). -/
-abbrev padWord : E := word 0 9223372036854775808 0
+abbrev padWord : E := word 0 9223372036854775808
 
 /-- The last block: the message's last two cells, the padding's two cells (the cells between are
 zero, their outputs passed on), its `KECCAK`. -/
@@ -136,7 +136,7 @@ theorem keccak_holds {rd : Reader} {σ : Val} {k : ℕ} (h : (sdKeccak k).Holds 
 zero between. -/
 theorem padCells_44 (cells : List E) (hl : cells.length = 44) {i : ℕ} (h1 : 44 ≤ i) (h2 : i < 51) :
     (padCells cells 704).getD i 0 =
-      if i = 44 then word 1 0 0 else if i = 50 then padWord else 0 := by
+      if i = 44 then word 1 0 else if i = 50 then padWord else 0 := by
   have hr : padRead 704 - cells.length = 7 := by rw [hl]; rfl
   unfold padCells xorByte
   rw [show rate * (704 / rate + 1) - 1 = 815 from rfl, show (815 : ℕ) / 16 = 50 from rfl,

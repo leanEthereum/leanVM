@@ -66,8 +66,8 @@ theorem l18_loop : coreProgram.loop "__loop22" = true := by
 
 /-- `__loop22`'s valuation at the counter `g^k`. -/
 def l18σ (k : ℕ) (ps : List E) : Val :=
-  Val.ofArgs ([gen ^ k] ++ ps ++ [word 2 0 0, gen ^ k * word 2 0 0, word 325 0 0,
-    gen ^ k * word 2 0 0 + word 325 0 0, word 2 0 0, gen ^ k * word 2 0 0])
+  Val.ofArgs ([gen ^ k] ++ ps ++ [word 2 0, gen ^ k * word 2 0, word 325 0,
+    gen ^ k * word 2 0 + word 325 0, word 2 0, gen ^ k * word 2 0])
 
 /-- An iteration's calls: the column, then the tail call, taken unless `k + 1 = 128`. -/
 def l18Calls (k : ℕ) : List Call :=
@@ -133,7 +133,7 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
   rw [← l18Body_split, ← l18_body] at hw'
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ l18Pre_straight
   have h10 : σ (.n 10) = gen ^ (k + 1) + gen ^ 128 := by
-    show gen ^ k * word 2 0 0 + word 325 0 0 = _
+    show gen ^ k * word 2 0 + word 325 0 = _
     rw [word_gen, gen_pow_mul_gen, word_g128]
   have htk : decide (σ (.n 10) ≠ 0) = decide (k + 1 ≠ 128) := by
     rw [h10]
@@ -158,7 +158,7 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
     exact gen_pow_add_isInK _ _
   have hargs : (.n 12 :: (List.range 6).map fun k => V.n (k + 1)).map σ =
       gen ^ (k + 1) :: [p1, p2, p3, p4, p5, p6] := by
-    show [gen ^ k * word 2 0 0, p1, p2, p3, p4, p5, p6] = _
+    show [gen ^ k * word 2 0, p1, p2, p3, p4, p5, p6] = _
     rw [word_gen, gen_pow_mul_gen]
   have h := relAtInWT_of_walk_loop (P := coreProgram) (Ts := [Tc]) (Tt := Tt) (fs := fs)
     (cert := cert) (σ := σ) (rd := rd) (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False)

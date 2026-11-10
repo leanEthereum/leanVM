@@ -226,7 +226,7 @@ theorem monoRecs_at {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom}
 
 theorem outOk_sound {rd : Reader} {σ : Val} {atoms : List Atom} {rec : V} {off o last w : ℕ}
     (h : outOk atoms rec off o last w = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    LoadHolds rd (σ rec) off (σ (.n o)) ∧ σ (.n o) = σ (.n last) * word w 0 0 := by
+    LoadHolds rd (σ rec) off (σ (.n o)) ∧ σ (.n o) = σ (.n last) * word w 0 := by
   unfold outOk at h
   simp only [Bool.and_eq_true] at h
   obtain ⟨hl, hm⟩ := h
@@ -258,7 +258,7 @@ def MonoStep (rd : Reader) (m nb : ℕ) (chain mark x : E) : Prop :=
 theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
     (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
+    (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
     (∀ N chain mark, ps = [N, chain, mark] → MonoStep rd m nb chain mark x) ∧
@@ -354,7 +354,7 @@ theorem monoFrames_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
     (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
+    (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain mark : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
     (hloop : 1 + N ≠ 0 → coreProgram.Rel rd f [1, N, chain, mark] []) :
@@ -405,20 +405,20 @@ set_option maxRecDepth 100000 in
 theorem mono17_ok : monoOk (coreProgram.getD 369 default) "__loop20" 17 9 187 131072 432 = true := by
   decide +kernel
 
-theorem word_g17 : word 131072 0 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
+theorem word_g17 : word 131072 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
 
 set_option maxRecDepth 100000 in
-theorem word_g68 : word 432 0 0 = gen ^ (4 * 17) := by
+theorem word_g68 : word 432 0 = gen ^ (4 * 17) := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g136 : word 83200 0 0 = gen ^ 136 := by
+theorem word_g136 : word 83200 0 = gen ^ 136 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g544 : word 72058697844523035 0 0 = gen ^ (4 * 136) := by
+theorem word_g544 : word 72058697844523035 0 = gen ^ (4 * 136) := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 

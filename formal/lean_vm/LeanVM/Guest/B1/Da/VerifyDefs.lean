@@ -54,9 +54,9 @@ def l17Ok (fn : Fn) : Bool :=
 /-- The body of the column loop `__loop22`: the column at `x`, then the next. -/
 def l18Body : List Stmt :=
   [.call "da_verify_column" ((List.range 7).map V.n) [],
-    .atom (.const (.n 7) (word 2 0 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
-    .atom (.const (.n 9) (word 325 0 0)), .atom (.add (.n 10) (.n 8) (.n 9)),
-    .atom (.const (.n 11) (word 2 0 0)), .atom (.mul (.n 12) (.n 0) (.n 11)),
+    .atom (.const (.n 7) (word 2 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
+    .atom (.const (.n 9) (word 325 0)), .atom (.add (.n 10) (.n 8) (.n 9)),
+    .atom (.const (.n 11) (word 2 0)), .atom (.mul (.n 12) (.n 0) (.n 11)),
     .callIf (.n 10) "__loop22" (.n 12 :: (List.range 6).map fun k => V.n (k + 1)), .ret []]
 
 /-- `__loop22`, checked. -/
@@ -81,9 +81,9 @@ def l20Ok (fn : Fn) : Bool :=
   loopShapeF fn "__loop24" && decide (fn.params.length = 4) &&
   isMul A (.n 4) (.n 3) (.n 3) && isMul A (.n 5) (.n 2) (.n 4) && isMul A (.n 6) (.n 0) (.n 0) &&
   isMul A (.n 7) (.n 5) (.n 6) &&
-  hasAtom A (.const (.n 8) (word 8002054802297438051 4108169256045952147 0)) &&
+  hasAtom A (.const (.n 8) (word 8002054802297438051 4108169256045952147)) &&
   A.any (isLoadAt (.n 8) (.n 7) 0) &&
-  hasAtom A (.const (.n 9) (word 12830724869163462953 1721925254677230945 0)) &&
+  hasAtom A (.const (.n 9) (word 12830724869163462953 1721925254677230945)) &&
   A.any (isLoadAt (.n 9) (.n 7) 1)
 
 /-! ## The body -/
@@ -99,10 +99,10 @@ noncomputable def dvOk : Bool :=
   stmtsEqb (Fn.body Data.core27) (P ++ [.ret [.n 48, .n 49, .n 50, .n 51]]) &&
   P.all Stmt.flat &&
   hasCall P "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4] &&
-  hasAtom A (.const (.n 6) (word 0 0 0)) && hasAtom A (.assertInK (.n 9) (.n 6)) &&
+  hasAtom A (.const (.n 6) (word 0 0)) && hasAtom A (.assertInK (.n 9) (.n 6)) &&
   hasAtom A (.const (.n 10) (word 0 0 1)) && hasAtom A (.mul (.n 11) (.n 10) (.n 9)) &&
   hasAtom A (.add (.n 12) (.n 5) (.n 11)) &&
-  hasAtom A (.const (.n 13) (word 0 1 0)) && hasAtom A (.mul (.n 14) (.n 13) (.n 6)) &&
+  hasAtom A (.const (.n 13) (word 0 1)) && hasAtom A (.mul (.n 14) (.n 13) (.n 6)) &&
   hasAtom A (.add (.n 15) (.n 9) (.n 14)) &&
   hasCall P "da_vector" [.n 5] [.n 16, .n 17, .n 18, .n 19] &&
   guardOk P (.n 34) "__loop21" (.n 35) (.n 1) [.n 31, .n 32] &&

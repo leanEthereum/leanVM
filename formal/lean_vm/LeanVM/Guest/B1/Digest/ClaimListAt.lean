@@ -129,7 +129,7 @@ theorem clz_core (entries : E) :
   simp only [clBrOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨-, hzc⟩, hz10⟩, hz11⟩ := hz1
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, b12⟩, b13⟩, b14⟩, b15⟩, -⟩ := hb1
-  have c2 : Stmt.atom (.const (.n 2) (word 1 0 0)) ∈ clHead := by simp [clHead]
+  have c2 : Stmt.atom (.const (.n 2) (word 1 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
   have t87 : Stmt.atom (.copy (.n 76) (.n 10)) ∈ clTail := by simp [clTail]
   have t88 : Stmt.atom (.copy (.n 77) (.n 11)) ∈ clTail := by simp [clTail]
@@ -156,7 +156,7 @@ theorem clz_core (entries : E) :
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
   have e1 : σ (.n 1) = gen ^ 0 := by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
-  have v2 : σ (.n 2) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c2))
+  have v2 : σ (.n 2) = word 1 0 := hat _ (cl_mem_atoms (mH _ c2))
   have v3 : σ (.n 3) = σ (.n 1) + σ (.n 2) := hat _ (cl_mem_atoms (mH _ a3))
   have v87 : σ (.n 76) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
   have v88 : σ (.n 77) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
@@ -196,7 +196,7 @@ structure ClVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v88 : σ (.n 77) = (digestHalves D).2
 
 set_option maxRecDepth 100000 in
-theorem cl_size_atoms : ∀ a ∈ [Atom.mul (.n 15) (.n 12) (.n 13), .const (.n 16) (word 2 0 0),
+theorem cl_size_atoms : ∀ a ∈ [Atom.mul (.n 15) (.n 12) (.n 13), .const (.n 16) (word 2 0),
     .mul (.n 17) (.n 15) (.n 16), .mul (.n 18) (.n 17) (.n 17), .mul (.n 19) (.n 18) (.n 17),
     .mul (.n 20) (.n 19) (.n 19), .mul (.n 21) (.n 20) (.n 20), .mul (.n 22) (.n 21) (.n 17)],
     a ∈ atomsIn clEEval := by
@@ -215,7 +215,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨b1, b2⟩, b3⟩, b4⟩, b5⟩, -⟩, b7⟩, -⟩, -⟩, b10⟩, b11⟩, b12⟩, -⟩, -⟩, -⟩, -⟩,
     -⟩ := hb1
   have hE := stmtsEqb_sound b1
-  have c2 : Stmt.atom (.const (.n 2) (word 1 0 0)) ∈ clHead := by simp [clHead]
+  have c2 : Stmt.atom (.const (.n 2) (word 1 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
   have t87 : Stmt.atom (.copy (.n 76) (.n 10)) ∈ clTail := by simp [clTail]
   have t88 : Stmt.atom (.copy (.n 77) (.n 11)) ∈ clTail := by simp [clTail]
@@ -329,7 +329,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
       Nat.mul_add]
   have v84 : σ (.n 73) = entries * gen ^ (544 * a + 68 * b) := by
     rw [mono2Is_sound hm84 hatElse, e0, v23, v24, gen_pow_pow, gen_pow_pow, mul_assoc, ← pow_add]
-  have v2 : σ (.n 2) = word 1 0 0 := hat _ (cl_mem_atoms (mH _ c2))
+  have v2 : σ (.n 2) = word 1 0 := hat _ (cl_mem_atoms (mH _ c2))
   have v3 : σ (.n 3) = σ (.n 1) + σ (.n 2) := hat _ (cl_mem_atoms (mH _ a3))
   have v87 : σ (.n 76) = σ (.n 10) := hat _ (cl_mem_atoms (mT _ t87))
   have v88 : σ (.n 77) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
@@ -337,7 +337,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hs
   obtain ⟨s26, s27, s28, s29, s30, s31, s32, s33⟩ := hs
   have q26 : σ (.n 15) = σ (.n 12) * σ (.n 13) := hat _ s26
-  have q27 : σ (.n 16) = word 2 0 0 := hat _ s27
+  have q27 : σ (.n 16) = word 2 0 := hat _ s27
   have q28 : σ (.n 17) = σ (.n 15) * σ (.n 16) := hat _ s28
   have q29 : σ (.n 18) = σ (.n 17) * σ (.n 17) := hat _ s29
   have q30 : σ (.n 19) = σ (.n 18) * σ (.n 17) := hat _ s30

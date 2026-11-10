@@ -123,8 +123,8 @@ set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any_atoms : ∀ a ∈ [Atom.const (.n 7) (word 2 0 0), .mul (.n 3) (.n 8) (.n 7),
-    .mul (.n 9) (.n 4) (.n 5), .const (.n 10) (word 2 0 0), .mul (.n 11) (.n 9) (.n 10),
+theorem any_atoms : ∀ a ∈ [Atom.const (.n 7) (word 2 0), .mul (.n 3) (.n 8) (.n 7),
+    .mul (.n 9) (.n 4) (.n 5), .const (.n 10) (word 2 0), .mul (.n 11) (.n 9) (.n 10),
     .mul (.n 12) (.n 11) (.n 11), .mul (.n 13) (.n 12) (.n 11), .mul (.n 14) (.n 13) (.n 13),
     .mul (.n 15) (.n 14) (.n 14), .mul (.n 16) (.n 15) (.n 11), .hint (.allocDyn (.n 17) (.n 16))],
     a ∈ atomsIn anyFlat := by
@@ -191,7 +191,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hs
   obtain ⟨s7, s3, s9, s10, s11, s12, s13, s14, s15, s16, s17⟩ := hs
   have v7 : σ (.n 7) = gen := by
-    have : σ (.n 7) = word 2 0 0 := hg _ s7
+    have : σ (.n 7) = word 2 0 := hg _ s7
     rw [this, word_gen]
   have v17 : σ (.n 17) = chain := by
     have : σ (.n 17) = w 17 := hg _ s17
@@ -238,7 +238,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   have e5 : σ (.n 5) = gen ^ b := par 5 (by omega)
   have q3 : σ (.n 3) = σ (.n 8) * σ (.n 7) := hat _ s3
   have q9 : σ (.n 9) = σ (.n 4) * σ (.n 5) := hat _ s9
-  have q10 : σ (.n 10) = word 2 0 0 := hat _ s10
+  have q10 : σ (.n 10) = word 2 0 := hat _ s10
   have q11 : σ (.n 11) = σ (.n 9) * σ (.n 10) := hat _ s11
   have q12 : σ (.n 12) = σ (.n 11) * σ (.n 11) := hat _ s12
   have q13 : σ (.n 13) = σ (.n 12) * σ (.n 11) := hat _ s13

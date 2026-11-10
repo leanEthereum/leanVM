@@ -86,7 +86,7 @@ def grpcOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
 noncomputable def clElsePre : List Stmt := cl23Else.dropLast.dropLast
 
 /-- The head of `claim_list_digest`'s body. -/
-def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
+def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
 
 /-- The final copies of `claim_list_digest`. -/
 def clTail : List Stmt := [.atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11))]

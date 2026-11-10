@@ -111,7 +111,7 @@ structure MainBounds (m : MainIn) : Prop where
 
 /-- **The words `main` stores or reads in its buffers and its header.** -/
 structure MainMem (rd : Reader) (m : MainIn) : Prop where
-  bytes : ReadsAt rd m.a119 ((List.range 256).map fun v => word v 0 0)
+  bytes : ReadsAt rd m.a119 ((List.range 256).map fun v => word v 0)
   w0 : LoadHolds rd m.a409 0 (gen ^ (m.nrx + m.nrs))
   wN : LoadHolds rd (m.a409 * gen ^ m.nc) 0 (gen ^ m.total)
   own : ReadsAt rd (m.aDa * gen ^ (2 * m.nc)) m.ownDa

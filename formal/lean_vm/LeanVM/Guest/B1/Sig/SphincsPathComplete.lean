@@ -83,20 +83,20 @@ theorem kNode_complete {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (σ : Val) (h
     (hpy : pad + 5 ≤ y) (hin : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v ∧ IsCanonical128 (σ v)) :
     Completes C rd y (kNode pad pp a0 adr k0 k1 y).2.1 (kNode pad pp a0 adr k0 k1 y).1 σ
       (fun _ => True) := by
-  have hs : SeqOK y [cst y (word 1 0 0), cst (y + 1) (word 0 0 0), cst (y + 2) (word 0 0 0),
-      cst (y + 3) (word (2 ^ 63) 0 0)] (y + 4) := ⟨rfl, rfl, rfl, rfl, rfl⟩
-  show Completes C rd y (y + 5) ([cst y (word 1 0 0), cst (y + 1) (word 0 0 0),
-    cst (y + 2) (word 0 0 0), cst (y + 3) (word (2 ^ 63) 0 0)] ++
+  have hs : SeqOK y [cst y (word 1 0), cst (y + 1) (word 0 0), cst (y + 2) (word 0 0),
+      cst (y + 3) (word (2 ^ 63) 0)] (y + 4) := ⟨rfl, rfl, rfl, rfl, rfl⟩
+  show Completes C rd y (y + 5) ([cst y (word 1 0), cst (y + 1) (word 0 0),
+    cst (y + 2) (word 0 0), cst (y + 3) (word (2 ^ 63) 0)] ++
     [kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1),
       .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV (y + 4) 1) false false]) σ _
   refine Completes.seqThen hs (by omega) (fun σ1 he1 hA1 => ?_)
   have hag : AgreeBelow y σ σ1 := he1.agree
   have hp1 : PadOK σ1 pad := hp.congr hpy hag
   obtain ⟨q0, q1, q2, q3, q4⟩ := hp1
-  have c0 : σ1 (.n y) = word 1 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
-  have c1 : σ1 (.n (y + 1)) = word 0 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
-  have c2 : σ1 (.n (y + 2)) = word 0 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
-  have c3 : σ1 (.n (y + 3)) = word (2 ^ 63) 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c0 : σ1 (.n y) = word 1 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c1 : σ1 (.n (y + 1)) = word 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c2 : σ1 (.n (y + 2)) = word 0 0 := hA1.atom (a := .const _ _) (by simp [cst])
+  have c3 : σ1 (.n (y + 3)) = word (2 ^ 63) 0 := hA1.atom (a := .const _ _) (by simp [cst])
   have hv : ∀ v ∈ [pp, a0, adr, k0, k1], NBv y v ∧ IsCanonical128 (σ1 v) := fun v hv' =>
     ⟨(hin v hv').1, by rw [hag.apply (hin v hv').1]; exact (hin v hv').2⟩
   have e0 := hv pp (by simp)

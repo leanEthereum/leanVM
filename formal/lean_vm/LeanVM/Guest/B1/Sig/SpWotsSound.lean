@@ -53,7 +53,7 @@ def spLeafCell (pp a0 a1 : E) (d : Nat → Nat) (starts : Nat → E) : E :=
 def spCopies : List Stmt := [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)]
 
 /-- The powers `g^s` at `n(6 + s)`. -/
-def spPowers : List Stmt := (List.range 10).map fun s => cst (6 + s) (word (2 ^ s) 0 0)
+def spPowers : List Stmt := (List.range 10).map fun s => cst (6 + s) (word (2 ^ s) 0)
 
 theorem spLast_eq : spLast = spGroupT 63 1 false (spState 21).1 (spState 21).2.1 (spState 21).2.2 := by
   rw [spLast, spGs_eq]
@@ -147,7 +147,7 @@ theorem sp_wots_soundT {rets : List E}
   have hpw := atomsHold_of_holdsList (ss := spPowers) rfl s0.1
   have hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s := by
     intro s hs
-    have e : σ (.n (6 + s)) = word (2 ^ s) 0 0 := hpw.atom (a := .const (.n (6 + s)) _) (by
+    have e : σ (.n (6 + s)) = word (2 ^ s) 0 := hpw.atom (a := .const (.n (6 + s)) _) (by
       simp only [spPowers, cst, List.mem_map, List.mem_range]
       exact ⟨s, hs, rfl⟩)
     rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
