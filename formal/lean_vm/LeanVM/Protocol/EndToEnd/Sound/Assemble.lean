@@ -18,6 +18,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import LeanVM.Protocol.Compile.SpecRules.Cert
+public import LeanVM.Protocol.Extraction.Extractor
 
 /-!
 # The specification of the leanVM verifier
@@ -108,6 +109,8 @@ structure OpeningIface : Type where
   /-- The stack's word (`wordOf cs 0`). -/
   word₀ : List (ℕ × ℕ × Word) → Word
   shape_word : ∀ {μ R cs}, ShapeOK₀ μ R cs → firstWordC cs = some (word₀ cs)
+  /-- Level 0's threshold is the extractor's Johnson threshold. -/
+  thr₀_eq : ∀ {μ R : ℕ}, Whir.Admissible μ R → thr₀ μ R = Extraction.johnsonThreshold μ R
   /-- The stack's root, as `commitStack` reads it, has level 0's shape: what the knowledge
   statement needs for the root's doom to hold on a run. -/
   shape_commitStack : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ {e : Ev},
