@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 
 /-!
-# `keccak_plain_rounds` (TRIAGE G #61)
+# `keccak_plain_rounds`
 
 `keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)` (G:3086-3112): its
 specializations `__L6_L0` (`Data.core266`) and `__L4_L1` (`Data.core268`) copy the capacity, run

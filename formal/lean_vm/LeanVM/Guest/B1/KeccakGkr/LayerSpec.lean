@@ -22,7 +22,7 @@ sponge the guest carries (`Fs`, `RunsTo`, B1-a's `Common/Run`):
 
 * `packRunF`: `keccakPackRounds` as a function of the round messages `(g₁, g₂)`;
 * `localRunF`: `sumcheck _ 4 (replicate n none)` as a function of the messages `(c₀, c₂, c₃)`;
-* `projectedOf`: the layer's projection of the product (V:1987-1989);
+* `projectedOf`: the layer's projection of the product;
 * `layer_runsTo`: the layer runs, reading the product, the messages and `t`, once the two checks
   hold, to the claim `layerClaim`.
 -/
@@ -49,7 +49,7 @@ theorem runsTo_require {c : Prop} [Decidable c] (h : c) (s : Fs) :
 
 /-! ## The pack rounds -/
 
-/-- `keccakPackRounds` (V:1971) on the carried sponge, round `i` reading `(g₁, g₂)`: the value,
+/-- `keccakPackRounds` on the carried sponge, round `i` reading `(g₁, g₂)`: the value,
 the scale, the challenges, and the sponge after them. -/
 def packRunF : List E → List (E × E) → E → E → Fs → (E × E × List E) × Fs
   | r :: rs, (g1, g2) :: ms, v, sc, s =>
@@ -103,7 +103,7 @@ theorem runsTo_packRounds :
 
 /-! ## Plain rounds of degree three -/
 
-/-- `sumcheck v 4 (replicate n none)` (V:1342) on the carried sponge, round `i` reading
+/-- `sumcheck v 4 (replicate n none)` on the carried sponge, round `i` reading
 `(c₀, c₂, c₃)`: the challenges and final value, and the sponge after them. -/
 def localRunF : List (E × E × E) → E → Fs → (List E × E) × Fs
   | [], v, s => (([], v), s)
@@ -166,7 +166,7 @@ theorem RunsTo.bind_assoc' {α β γ : Type} {m : VerifierProgram α} {g : α �
   have := h1.bind h2
   rwa [bind_assoc] at this
 
-/-- The projection of the product onto the claim's instance weights (V:1987-1989). -/
+/-- The projection of the product onto the claim's instance weights. -/
 def projectedOf (c : KeccakClaim) (product : List E) : E :=
   sumE ((List.range productBits).map fun b ↦
     sumE ((List.zip c.mu rmfeProject).filterMap fun (m, mask) ↦
@@ -191,7 +191,7 @@ def layerBeta (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs :
     (localMsgs : List (E × E × E)) (t : E × E × E) : E × Fs :=
   ((layerLocal c s0 product n packMsgs localMsgs).2.absorbAll [t.1, t.2.1, t.2.2] dsObserve).squeeze
 
-/-- The final check of a layer (V:2006-2012). -/
+/-- The final check of a layer. -/
 def LayerFinal (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs : List (E × E))
     (localMsgs : List (E × E × E)) (t : E × E × E) : Prop :=
   let kappa := sumE (keccakInstanceWeights (layerSq s0 product n).1)
@@ -200,7 +200,7 @@ def LayerFinal (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs 
         c.weights * (kappa * t.1 + (kappa + t.2.1) * t.2.2) =
     (layerLocal c s0 product n packMsgs localMsgs).1.2
 
-/-- The claim a layer returns (V:2016-2019). -/
+/-- The claim a layer returns. -/
 def layerClaim (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs : List (E × E))
     (localMsgs : List (E × E × E)) (t : E × E × E) : KeccakClaim :=
   let beta := (layerBeta c s0 product n packMsgs localMsgs t).1
