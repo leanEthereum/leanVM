@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.InnerAlg
+public import LeanVM.Guest.B1.Whir.FinishSplit
 public import LeanVM.Guest.B1.Whir.Point
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Whir.HsScale
@@ -32,36 +33,6 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
-
-/-! ## The finish split at its return -/
-
-/-- The body after the closing rounds, before its return, and the returned values. -/
-def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
-  let n := c.levels.length
-  let mid := c.levels.take c.yrLevel
-  let yat := st.k
-  let pt := yat + 1
-  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
-  let bd := pts.2 + 1
-  let ls := pts.2 + 3
-  let la := pts.2 + 5
-  let bs := osBases c tch bd ls la 0 mid (pts.2 + 6)
-  let ich := bs.2 + 1
-  let rs := osResiduals c ich bd ls la 0 mid (bs.2 + 3)
-  let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
-  let k := od.2.2
-  ([.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
-    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
-    osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
-    rs.1 ++ od.1 ++
-    [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
-      osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat],
-   [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)])
-
-theorem osFinish_eq (c : OsCfg) (st : OsSt) (tch : ℕ) :
-    osFinish c st tch = (osFinishA c st tch).1 ++ [.ret (osFinishA c st tch).2] := by
-  simp only [osFinish, osFinishA, List.append_assoc, List.cons_append, List.nil_append]
 
 /-! ## Helpers -/
 
@@ -230,6 +201,46 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
       _ = _ := by rw [e]; ring
   · rw [eqEval_prod, hz0, hPl, min_self]; ring
   · rw [eqEval_prod, hz1, hPl, min_self]; ring
+
+/-! ## The point -/
+
+/-- The rotated point `(G ++ T).drop lane ++ (G ++ T).take lane`. -/
+abbrev rotPt (G T : List E) (lane : ℕ) : List E := (G ++ T).drop lane ++ (G ++ T).take lane
+
+/-- **The point's sources**: entry `i` of the rotated point is the fold or tail challenge
+`osPtSrc` names, zero past it. -/
+theorem ptSrc_ok {c : OsCfg} {tch : ℕ} {G T : List E} (hG : G.length = c.nFolds)
+    (hT : T.length = c.yrLog) (hl : (c.levels.headD default).folds ≤ c.nFolds)
+    (hfch : ∀ j (h : j < G.length), LoadHolds rd (σ (.n osFch)) j G[j])
+    (htch : ReadsAt rd (σ (.n tch)) T) (i : ℕ) :
+    PtSrcOk rd σ (osPtSrc c tch i)
+      ((rotPt G T (c.levels.headD default).folds).getD i 0) := by
+  set lane := (c.levels.headD default).folds with hlane
+  have hlen : (G ++ T).length = c.nFolds + c.yrLog := by simp [hG, hT]
+  unfold osPtSrc
+  simp only [← hlane]
+  by_cases h1 : i < c.nFolds - lane
+  · simp only [h1, ↓reduceIte, PtSrcOk]
+    rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_left (by simp [hG, hT]; omega),
+      List.getElem_drop, List.getElem_append_left (by omega)]
+    exact hfch _ (by omega)
+  · by_cases h2 : i < c.nFolds - lane + c.yrLog
+    · simp only [h1, h2, ↓reduceIte, PtSrcOk]
+      rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_left (by simp [hG, hT]; omega),
+        List.getElem_drop, List.getElem_append_right (by omega)]
+      have := htch (i - (c.nFolds - lane)) (by omega)
+      convert this using 2
+      omega
+    · by_cases h3 : i < c.nFolds + c.yrLog
+      · simp only [h1, h2, h3, ↓reduceIte, PtSrcOk]
+        rw [List.getD_eq_getElem _ _ (by simp [hG, hT]; omega), List.getElem_append_right (by simp [hG, hT]; omega),
+          List.getElem_take, List.getElem_append_left (by simp [hG, hT]; omega)]
+        have := hfch (i - (c.nFolds - lane) - c.yrLog) (by omega)
+        convert this using 2
+        simp [hG, hT]; omega
+      · simp only [h1, h2, h3, ↓reduceIte, PtSrcOk]
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by simp [hG, hT]; omega),
+          Option.getD_none]
 
 end
 end LeanVM.Guest.B1.Whir
