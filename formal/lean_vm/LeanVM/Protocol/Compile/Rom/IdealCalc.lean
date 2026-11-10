@@ -49,9 +49,9 @@ noncomputable def exp0 {α : Type} : VerifierProgram α → List Ev → Option E
       exp0 (k (S.msg h)) (h ++ [Ev.read (S.msg h)]) none C
   | .sample k, h, g, C => match g with
     | some c => exp0 (k c) (h ++ [Ev.sample c]) none C
-    | none => (∑ c : E, exp0 (k c) (h ++ [Ev.sample c]) none C) / Fintype.card E
+    | none => avgE fun c ↦ exp0 (k c) (h ++ [Ev.sample c]) none C
   | .grind b k, h, g, C => if g.isSome then 0 else
-      (∑ c : E, exp0 k (h ++ [Ev.grind b]) (some c) C) / Fintype.card E
+      avgE fun c ↦ exp0 k (h ++ [Ev.grind b]) (some c) C
   | .commit ht w k, h, g, C => if g.isSome ∨ ¬ WellShaped w (S.word h) then 0 else
       exp0 k (h ++ [Ev.commit ht w (S.word h)]) none C
   | .query i ps k, h, g, C => match answer h i ps with
@@ -71,6 +71,33 @@ theorem avg_le_const {γ : Type} [Fintype γ] [Nonempty γ] {f : γ → ℝ≥0�
   calc ∑ x, f x ≤ ∑ _x : γ, c := Finset.sum_le_sum fun x _ ↦ h x
     _ = c * Fintype.card γ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm]
 
+theorem avgE_add (f f' : E → ℝ≥0∞) : avgE (fun c ↦ f c + f' c) = avgE f + avgE f' := by
+  unfold avgE
+  rw [Finset.sum_add_distrib, ENNReal.add_div]
+
+theorem avgE_mono {f f' : E → ℝ≥0∞} (h : ∀ c, f c ≤ f' c) : avgE f ≤ avgE f' := by
+  unfold avgE
+  exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ h c) _
+
+theorem avgE_le_const {f : E → ℝ≥0∞} {c : ℝ≥0∞} (h : ∀ x, f x ≤ c) : avgE f ≤ c := by
+  unfold avgE
+  exact avg_le_const h
+
+theorem avgE_const (x : ℝ≥0∞) : avgE (fun _ ↦ x) = x := by
+  unfold avgE
+  rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm, ENNReal.mul_div_cancel_right
+    (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)]
+
+theorem avgE_mul_const (c : ℝ≥0∞) (f : E → ℝ≥0∞) : avgE (fun x ↦ c * f x) = c * avgE f := by
+  unfold avgE
+  rw [← Finset.mul_sum, mul_div_assoc]
+
+/-- The average of the indicator of `0` over `E`. -/
+theorem avgE_ind_zero : avgE (fun c ↦ if c = 0 then 1 else 0) = epsE := by
+  unfold avgE epsE
+  rw [Finset.sum_ite_eq' Finset.univ (0 : E)]
+  simp only [Finset.mem_univ, ↓reduceIte, one_div]
+
 /-- `exp0` is additive. -/
 theorem exp0_add {α : Type} (C C' : α → List Ev → Option E → ℝ≥0∞) :
     ∀ (A : VerifierProgram α) (h : List Ev) (g : Option E),
@@ -86,14 +113,14 @@ theorem exp0_add {α : Type} (C C' : α → List Ev → Option E → ℝ≥0∞)
   | sample k ih =>
     intro h g
     rcases g with _ | c
-    · simp only [exp0, ih, sum_div_add]
+    · simp only [exp0, ih, avgE_add]
     · simp only [exp0, ih]
   | grind b k ih =>
     intro h g
     simp only [exp0]
     split
     · simp
-    · simp only [ih, sum_div_add]
+    · simp only [ih, avgE_add]
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -121,14 +148,14 @@ theorem exp0_mono {α : Type} {C C' : α → List Ev → Option E → ℝ≥0∞
     intro h g
     rcases g with _ | c
     · simp only [exp0]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ih _ _ _) _
+      exact avgE_mono fun c ↦ ih _ _ _
     · exact ih _ _ _
   | grind b k ih =>
     intro h g
     simp only [exp0]
     split
     · exact le_rfl
-    · exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ih _ _) _
+    · exact avgE_mono fun c ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -159,14 +186,14 @@ theorem exp0_const_le {α : Type} (c : ℝ≥0∞) :
   | sample k ih =>
     intro h g
     rcases g with _ | c'
-    · exact avg_le_const fun _ ↦ ih _ _ _
+    · exact avgE_le_const fun _ ↦ ih _ _ _
     · exact ih _ _ _
   | grind b k ih =>
     intro h g
     simp only [exp0]
     split
     · exact bot_le
-    · exact avg_le_const fun _ ↦ ih _ _
+    · exact avgE_le_const fun _ ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -239,16 +266,16 @@ theorem failFrom_bind_le {α : Type} {f' f : α → VerifierProgram Bool}
     intro h g
     rcases g with _ | c
     · simp only [VerifierProgram.bind, failFrom, exp0]
-      rw [← sum_div_add]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ih _ _ _) _
+      rw [← avgE_add]
+      exact avgE_mono fun c ↦ ih _ _ _
     · exact ih _ _ _
   | grind b k ih =>
     intro h g
     simp only [VerifierProgram.bind, failFrom, exp0]
     split
     · simp
-    · rw [← sum_div_add]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ih _ _) _
+    · rw [← avgE_add]
+      exact avgE_mono fun c ↦ ih _ _
   | commit ht w k ih =>
     intro h g
     simp only [VerifierProgram.bind, failFrom, exp0]
@@ -273,24 +300,13 @@ theorem failFrom_require_bind_le (c : Prop) [Decidable c] (X : VerifierProgram B
   · simp [VerifierProgram.bind]
   · simp [VerifierProgram.bind, failFrom]
 
-/-- The average of the indicator of `0` over `E`. -/
-theorem avg_ind_zero : (∑ c : E, (if c = 0 then 1 else 0 : ℝ≥0∞)) / Fintype.card E =
-    (Fintype.card E : ℝ≥0∞)⁻¹ := by
-  rw [Finset.sum_ite_eq' Finset.univ (0 : E)]
-  simp only [Finset.mem_univ, ↓reduceIte, one_div]
-
-/-- The average of a constant over `E`. -/
-theorem avg_const (x : ℝ≥0∞) : (∑ _c : E, x) / Fintype.card E = x := by
-  rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm, ENNReal.mul_div_cancel_right
-    (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)]
-
 /-- **Refusing every zero challenge** adds at most `|E|⁻¹` per sample of the program (a quarter
 of its cost), and fails at once on a waiting zero challenge. -/
 theorem failFrom_refusingZero_le {height : ℕ} :
     ∀ (P : VerifierProgram Bool) (n : ℕ), P.CostLE height n → ∀ (h : List Ev) (g : Option E),
       S.failFrom P.refusingZeroChallenge h g ≤
         S.failFrom P h g + (if g = some 0 then 1 else 0) +
-          ((n / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹ := by
+          ((n / 4 : ℕ) : ℝ≥0∞) * epsE := by
   intro P
   induction P with
   | ret a => intros; exact le_self_add.trans le_self_add
@@ -314,11 +330,11 @@ theorem failFrom_refusingZero_le {height : ℕ} :
     rcases g with _ | c
     · simp only [VerifierProgram.refusingZeroChallenge, failFrom, reduceCtorEq, ↓reduceIte,
         add_zero]
-      calc (∑ c : E, S.failFrom (if c = 0 then VerifierProgram.fail
-              else (k c).refusingZeroChallenge) (h ++ [Ev.sample c]) none) / Fintype.card E
-          ≤ (∑ c : E, ((if c = 0 then 1 else 0) + (S.failFrom (k c) (h ++ [Ev.sample c]) none +
-              (((n - 4) / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹))) / Fintype.card E := by
-            refine ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ?_) _
+      calc avgE (fun c ↦ S.failFrom (if c = 0 then VerifierProgram.fail
+              else (k c).refusingZeroChallenge) (h ++ [Ev.sample c]) none)
+          ≤ avgE (fun c ↦ (if c = 0 then 1 else 0) + (S.failFrom (k c) (h ++ [Ev.sample c]) none +
+              (((n - 4) / 4 : ℕ) : ℝ≥0∞) * epsE)) := by
+            refine avgE_mono fun c ↦ ?_
             split
             · rename_i hc0
               simp only [failFrom]
@@ -328,9 +344,9 @@ theorem failFrom_refusingZero_le {height : ℕ} :
               simp only [reduceCtorEq, ↓reduceIte, add_zero] at this
               simp only [zero_add]
               exact this
-        _ = (Fintype.card E : ℝ≥0∞)⁻¹ + ((∑ c : E, S.failFrom (k c) (h ++ [Ev.sample c]) none) /
-              Fintype.card E + (((n - 4) / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹) := by
-            rw [sum_div_add, avg_ind_zero, sum_div_add, avg_const]
+        _ = epsE + (avgE (fun c ↦ S.failFrom (k c) (h ++ [Ev.sample c]) none) +
+              (((n - 4) / 4 : ℕ) : ℝ≥0∞) * epsE) := by
+            rw [avgE_add, avgE_ind_zero, avgE_add, avgE_const]
         _ = _ := by
             rw [← hq, Nat.cast_add, Nat.cast_one, add_one_mul]
             ring
@@ -354,24 +370,23 @@ theorem failFrom_refusingZero_le {height : ℕ} :
       have hg' : g = none := by simpa using hg
       subst hg'
       simp only [reduceCtorEq, ↓reduceIte, add_zero]
-      calc (∑ c : E, S.failFrom k.refusingZeroChallenge (h ++ [Ev.grind b]) (some c)) /
-            Fintype.card E
-          ≤ (∑ c : E, ((if c = 0 then 1 else 0) + (S.failFrom k (h ++ [Ev.grind b]) (some c) +
-              (((n - 5) / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹))) / Fintype.card E := by
-            refine ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦ ?_) _
+      calc avgE (fun c ↦ S.failFrom k.refusingZeroChallenge (h ++ [Ev.grind b]) (some c))
+          ≤ avgE (fun c ↦ (if c = 0 then 1 else 0) + (S.failFrom k (h ++ [Ev.grind b]) (some c) +
+              (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE)) := by
+            refine avgE_mono fun c ↦ ?_
             have := ih (n - 5) hc.2 (h ++ [Ev.grind b]) (some c)
             simp only [Option.some.injEq] at this
             calc _ ≤ _ := this
               _ = _ := by ring
-        _ = (Fintype.card E : ℝ≥0∞)⁻¹ + ((∑ c : E, S.failFrom k (h ++ [Ev.grind b]) (some c)) /
-              Fintype.card E + (((n - 5) / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹) := by
-            rw [sum_div_add, avg_ind_zero, sum_div_add, avg_const]
+        _ = epsE + (avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+              (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE) := by
+            rw [avgE_add, avgE_ind_zero, avgE_add, avgE_const]
         _ ≤ _ := by
             have hq : (n - 5) / 4 + 1 ≤ n / 4 := by omega
-            calc (Fintype.card E : ℝ≥0∞)⁻¹ + ((∑ c : E, S.failFrom k (h ++ [Ev.grind b]) (some c)) /
-                  Fintype.card E + (((n - 5) / 4 : ℕ) : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹)
-                = (∑ c : E, S.failFrom k (h ++ [Ev.grind b]) (some c)) / Fintype.card E +
-                    ((((n - 5) / 4 + 1 : ℕ) : ℝ≥0∞)) * (Fintype.card E : ℝ≥0∞)⁻¹ := by
+            calc epsE + (avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+                  (((n - 5) / 4 : ℕ) : ℝ≥0∞) * epsE)
+                = avgE (fun c ↦ S.failFrom k (h ++ [Ev.grind b]) (some c)) +
+                    ((((n - 5) / 4 + 1 : ℕ) : ℝ≥0∞)) * epsE := by
                   rw [Nat.cast_add, Nat.cast_one, add_one_mul]; ring
               _ ≤ _ := by gcongr
   | commit ht w k ih =>
@@ -418,7 +433,7 @@ theorem failFrom_eq_zero :
       ih c _ _ (hacc c) (grindThenSample_after hP (l := [Ev.sample c])
         (by simp [VerifierProgram.after])) (Or.inl rfl)
     rcases g with _ | c
-    · simp only [failFrom, hk, Finset.sum_const_zero, ENNReal.zero_div]
+    · simp only [failFrom, hk, avgE_const]
     · exact hk c
   | grind b k ih =>
     intro h g hacc hP hg
@@ -428,8 +443,7 @@ theorem failFrom_eq_zero :
     have : ∀ c, S.failFrom (VerifierProgram.sample k') (h ++ [Ev.grind b]) (some c) = 0 :=
       fun c ↦ ih _ _ hacc (grindThenSample_after hP (l := [Ev.grind b])
         (by simp [VerifierProgram.after])) (Or.inr ⟨k', rfl⟩)
-    simp only [Option.isSome_none, Bool.false_eq_true, ↓reduceIte, this, Finset.sum_const_zero,
-      ENNReal.zero_div]
+    simp only [Option.isSome_none, Bool.false_eq_true, ↓reduceIte, this, avgE_const]
   | commit ht w k ih =>
     intro h g hacc hP hg
     obtain rfl : g = none := hg.resolve_right (by simp)
@@ -462,14 +476,14 @@ theorem exp0_const_mul {α : Type} (c : ℝ≥0∞) (C : α → List Ev → Opti
   | sample k ih =>
     intro h g
     rcases g with _ | c'
-    · simp only [exp0, ih, ← Finset.mul_sum, mul_div_assoc]
+    · simp only [exp0, ih, avgE_mul_const]
     · simp only [exp0, ih]
   | grind b k ih =>
     intro h g
     simp only [exp0]
     split
     · simp
-    · simp only [ih, ← Finset.mul_sum, mul_div_assoc]
+    · simp only [ih, avgE_mul_const]
   | commit ht w k ih =>
     intro h g
     simp only [exp0]
@@ -559,16 +573,14 @@ theorem exp0_mono_returns {α : Type} {C C' : α → List Ev → Option E → �
     intro hC h g
     rcases g with _ | c
     · simp only [exp0]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
-        ih c (fun a ha ↦ hC a (.sample c ha)) _ _) _
+      exact avgE_mono fun c ↦ ih c (fun a ha ↦ hC a (.sample c ha)) _ _
     · exact ih c (fun a ha ↦ hC a (.sample c ha)) _ _
   | grind b k ih =>
     intro hC h g
     simp only [exp0]
     split
     · exact le_rfl
-    · exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
-        ih (fun a ha ↦ hC a (.grind b ha)) _ _) _
+    · exact avgE_mono fun c ↦ ih (fun a ha ↦ hC a (.grind b ha)) _ _
   | commit ht w k ih =>
     intro hC h g
     simp only [exp0]
@@ -605,18 +617,16 @@ theorem failFrom_bind_le_returns {α : Type} {f' f : α → VerifierProgram Bool
     intro hf h g
     rcases g with _ | c
     · simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
-      rw [← sum_div_add]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
-        ih c (fun a ha ↦ hf a (.sample c ha)) _ _) _
+      rw [← avgE_add]
+      exact avgE_mono fun c ↦ ih c (fun a ha ↦ hf a (.sample c ha)) _ _
     · exact ih c (fun a ha ↦ hf a (.sample c ha)) _ _
   | grind b k ih =>
     intro hf h g
     simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
     split
     · simp
-    · rw [← sum_div_add]
-      exact ENNReal.div_le_div_right (Finset.sum_le_sum fun c _ ↦
-        ih (fun a ha ↦ hf a (.grind b ha)) _ _) _
+    · rw [← avgE_add]
+      exact avgE_mono fun c ↦ ih (fun a ha ↦ hf a (.grind b ha)) _ _
   | commit ht w k ih =>
     intro hf h g
     simp only [VerifierProgram.bind_eq, VerifierProgram.bind, failFrom, exp0]
@@ -646,9 +656,52 @@ theorem exp0_list_sum {α ι : Type} (L : List ι) (C : ι → α → List Ev �
 /-- Averaging an expectation over `E` is the expectation of the average. -/
 theorem avg_exp0 {α : Type} (C : E → α → List Ev → Option E → ℝ≥0∞) (A : VerifierProgram α)
     (h : List Ev) (g : Option E) :
-    (∑ x : E, S.exp0 A h g (C x)) / Fintype.card E =
-      S.exp0 A h g (fun a h' g' ↦ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, C x a h' g') := by
+    avgE (fun x ↦ S.exp0 A h g (C x)) = S.exp0 A h g (fun a h' g' ↦ avgE fun x ↦ C x a h' g') := by
+  have e : ∀ a h' g', avgE (fun x ↦ C x a h' g') =
+      (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ x : E, C x a h' g' := fun a h' g' ↦ by
+    unfold avgE
+    rw [div_eq_mul_inv, mul_comm]
+  simp only [e]
+  unfold avgE
   rw [div_eq_mul_inv, mul_comm, ← exp0_sum, ← exp0_const_mul]
+
+
+/-- A double average of a list sum, term by term. -/
+theorem avgE_avgE_list_le {X : Type} (g : X → E → E → ℝ≥0∞) (c : ℝ≥0∞) :
+    ∀ L : List X, (∀ x ∈ L, avgE (fun a ↦ avgE fun b ↦ g x a b) ≤ c) →
+      avgE (fun a ↦ avgE fun b ↦ (L.map fun x ↦ g x a b).sum) ≤ L.length * c
+  | [], _ => by
+    have e : avgE (fun a ↦ avgE fun b ↦ (([] : List X).map fun x ↦ g x a b).sum) = 0 := by
+      have := congrArg avgE (funext fun _ : E ↦ avgE_const (0 : ℝ≥0∞))
+      exact this.trans (avgE_const 0)
+    rw [e]
+    exact bot_le
+  | x :: L, hL => by
+    have e : avgE (fun a ↦ avgE fun b ↦ ((x :: L).map fun x ↦ g x a b).sum) =
+        avgE (fun a ↦ avgE fun b ↦ g x a b) +
+          avgE (fun a ↦ avgE fun b ↦ (L.map fun x ↦ g x a b).sum) := by
+      rw [← avgE_add]
+      exact congrArg avgE (funext fun a ↦ avgE_add (g x a) fun b ↦ (L.map fun x ↦ g x a b).sum)
+    rw [e, List.length_cons, Nat.cast_succ, add_one_mul, add_comm]
+    exact add_le_add (avgE_avgE_list_le g c L fun y hy ↦ hL y (List.mem_cons_of_mem x hy))
+      (hL x List.mem_cons_self)
+
+/-- **For every point `x` and every `b`, exactly one `a` makes `a + b·x` vanish**: averaged over
+`a` and `b` uniform, it vanishes with probability `|E|⁻¹`. -/
+theorem avgE_avgE_combiner (x : E) :
+    avgE (fun a ↦ avgE fun b ↦ if a + b * x = 0 then 1 else 0) ≤ epsE := by
+  unfold avgE epsE
+  simp only [div_eq_mul_inv, ← Finset.sum_mul]
+  rw [Finset.sum_comm, mul_assoc]
+  have e : ∀ b : E, ∑ a : E, (if a + b * x = 0 then (1 : ℝ≥0∞) else 0) = 1 := fun b ↦ by
+    simp only [add_eq_zero_iff_eq_neg]
+    rw [Finset.sum_ite_eq' Finset.univ (-(b * x))]
+    simp only [Finset.mem_univ, ↓reduceIte]
+  simp only [e]
+  rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one, ← mul_assoc,
+    ENNReal.mul_inv_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _),
+    one_mul]
+
 end Strategy
 
 end
